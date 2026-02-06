@@ -1,35 +1,33 @@
 # Cernion Energy Tools
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Node Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
-
 MicroService Agent System for Energy Markets
 
-## 🚀 Overview
+A modular, scalable microservices platform built with [Moleculer](https://moleculer.services/) for developing energy market applications with AI integration (Google Gemini) and MCP (Model Context Protocol) support.
 
-Cernion Energy Tools is a modern microservice-based agent system designed for energy market operations. Built with scalability, maintainability, and developer experience in mind, it provides a robust foundation for building energy market applications.
+## Features
 
-## ✨ Features
+- 🚀 **Moleculer Microservices Framework** - Fast, modern, and powerful microservices framework
+- 🌐 **API Gateway** - HTTP REST API with automatic route generation
+- 🤖 **AI Integration** - Google Gemini SDK support for AI-powered services
+- 🔌 **MCP Support** - Model Context Protocol SDK integration
+- 📝 **OpenAPI Documentation** - Automatic API documentation generation
+- 🛠️ **CLI Tool** - Command-line interface for calling microservices
+- 📦 **Service Templates** - Ready-to-use skeleton service template
+- 🔄 **Hot Reload** - Automatic service reloading during development
+- 🎯 **Best Practices** - ESLint, Prettier, and structured project layout
 
-- 🏗️ Microservice architecture for scalability
-- 🤖 Agent-based system for distributed operations
-- 🔒 Security-first approach
-- 📊 Energy market data handling
-- 🧪 Comprehensive testing framework
-- 📝 Well-documented codebase
+## Quick Start
 
-## 📋 Prerequisites
+### Prerequisites
 
-- Node.js >= 18.0.0
-- npm >= 9.0.0
+- Node.js 18+ 
+- npm or yarn
 
-## 🛠️ Installation
+### Installation
 
 ```bash
 # Clone the repository
 git clone https://github.com/energychain/cernion-energy-tools.git
-
-# Navigate to the project directory
 cd cernion-energy-tools
 
 # Install dependencies
@@ -37,29 +35,285 @@ npm install
 
 # Copy environment variables
 cp .env.example .env
+
+# Edit .env and add your API keys (optional)
+nano .env
 ```
 
-## 🚀 Quick Start
+### Running the Services
 
 ```bash
-# Development mode with auto-reload
-npm run dev
-
-# Production mode
+# Start all services
 npm start
 
-# Run tests
-npm test
+# Or use development mode with hot reload
+npm run dev
+```
 
-# Run tests with coverage
-npm run test:coverage
+The API Gateway will start on `http://localhost:3000` by default.
 
+### Using the CLI
+
+```bash
+# Call a microservice action
+npm run cli -- skeleton.hello --name=John
+
+# Process data
+npm run cli -- skeleton.process --data="test" --options.uppercase=true
+
+# Health check
+npm run cli -- skeleton.health
+
+# Get help
+npm run cli -- --help
+```
+
+### Testing the API
+
+Once services are running, you can test the API endpoints:
+
+```bash
+# Using curl
+curl http://localhost:3000/api/skeleton/hello?name=World
+
+# Using httpie
+http GET http://localhost:3000/api/skeleton/hello name==World
+
+# Using the CLI tool
+npm run cli -- skeleton.hello --name=World
+```
+
+## Creating New Services
+
+### Using the Service Creator
+
+```bash
+# Create a new service
+npm run create -- my-service
+
+# Or run interactively
+npm run create
+```
+
+This will create a new service file in the `services/` directory based on the skeleton template.
+
+### Manual Service Creation
+
+1. Copy the skeleton template:
+   ```bash
+   cp templates/skeleton.service.js services/my-service.service.js
+   ```
+
+2. Edit the service:
+   - Change the `name` property
+   - Add your actions, events, and methods
+   - Update OpenAPI documentation
+
+3. Restart services:
+   ```bash
+   npm start
+   ```
+
+## Project Structure
+
+```
+cernion-energy-tools/
+├── services/           # Active microservices (loaded at startup)
+│   └── api.service.js  # API Gateway service
+├── templates/          # Service templates
+│   └── skeleton.service.js  # Skeleton service template
+├── index.js            # Main entry point
+├── cli.js              # CLI tool for calling services
+├── create-service.js   # Service creation tool
+├── moleculer.config.js # Moleculer configuration
+├── .env.example        # Environment variables example
+├── .eslintrc.json      # ESLint configuration
+├── .prettierrc.json    # Prettier configuration
+└── package.json        # Project dependencies
+```
+
+## Service Architecture
+
+### Service Template Structure
+
+Each service follows this structure:
+
+```javascript
+module.exports = {
+  name: 'service-name',
+  version: 1,
+  
+  settings: {
+    // Service-specific settings
+  },
+  
+  actions: {
+    // Service actions (endpoints)
+  },
+  
+  events: {
+    // Event handlers
+  },
+  
+  methods: {
+    // Internal methods
+  },
+  
+  created() {},
+  async started() {},
+  async stopped() {}
+};
+```
+
+### OpenAPI Documentation
+
+Services use OpenAPI/JSDoc comments for automatic API documentation:
+
+```javascript
+/**
+ * @openapi
+ * /service/action:
+ *   get:
+ *     summary: Action description
+ *     parameters:
+ *       - name: param1
+ *         in: query
+ *         schema:
+ *           type: string
+ */
+action: {
+  rest: 'GET /action',
+  params: {
+    param1: { type: 'string' }
+  },
+  async handler(ctx) {
+    // Action logic
+  }
+}
+```
+
+## Configuration
+
+### Environment Variables
+
+Edit `.env` file to configure:
+
+- `PORT` - API Gateway port (default: 3000)
+- `LOG_LEVEL` - Logging level (info, debug, warn, error)
+- `NAMESPACE` - Moleculer namespace for service isolation
+- `TRANSPORTER` - Message transporter (NATS, Redis, MQTT, etc.)
+- `GEMINI_API_KEY` - Google Gemini API key
+- `MCP_SERVER_URL` - MCP server URL
+
+### Moleculer Configuration
+
+Edit `moleculer.config.js` to customize:
+
+- Logger settings
+- Transporter configuration
+- Cacher settings
+- Circuit breaker
+- Metrics and tracing
+
+## Available Scripts
+
+- `npm start` - Start all services
+- `npm run dev` - Start with hot reload and REPL
+- `npm run cli` - Run CLI tool
+- `npm run create` - Create new service from template
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix ESLint issues
+- `npm run format` - Format code with Prettier
+
+## AI Integration
+
+### Google Gemini
+
+The skeleton service includes an example method for calling Google Gemini:
+
+```javascript
+const result = await this.callGemini('Your prompt here');
+```
+
+Make sure to set `GEMINI_API_KEY` in your `.env` file.
+
+### MCP Support
+
+The project includes the MCP SDK (`@modelcontextprotocol/sdk`) for integrating with Model Context Protocol services.
+
+## Development
+
+### Code Style
+
+The project uses ESLint and Prettier for code quality:
+
+```bash
 # Lint code
 npm run lint
+
+# Auto-fix issues
+npm run lint:fix
 
 # Format code
 npm run format
 ```
+
+### Hot Reload
+
+During development, use `npm run dev` for automatic service reloading when files change.
+
+### REPL
+
+The Moleculer REPL provides interactive debugging:
+
+```
+mol $ actions
+mol $ call skeleton.hello --name World
+mol $ events
+mol $ nodes
+```
+
+## API Gateway
+
+The API Gateway service (`services/api.service.js`) provides HTTP access to all microservices:
+
+- **Base URL**: `http://localhost:3000/api`
+- **Auto-generated routes**: All service actions are automatically exposed
+- **REST mapping**: Actions with `rest` property get REST endpoints
+- **Body parsers**: JSON and URL-encoded body parsing
+
+### Example Endpoints
+
+- `GET /api/skeleton/hello?name=World`
+- `POST /api/skeleton/process` (with JSON body)
+- `GET /api/skeleton/health`
+
+## Contributing
+
+Contributions are welcome! Please follow these guidelines:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run linting and tests
+5. Submit a pull request
+
+## License
+
+GPL-3.0 - See [LICENSE](LICENSE) file for details
+
+## Support
+
+For issues and questions:
+
+- GitHub Issues: https://github.com/energychain/cernion-energy-tools/issues
+- Documentation: Check the code comments and this README
+
+## Acknowledgments
+
+- [Moleculer](https://moleculer.services/) - Microservices framework
+- [Google Gemini](https://ai.google.dev/) - AI integration
+- [MCP](https://modelcontextprotocol.io/) - Model Context Protocol
 
 ## 📁 Project Structure
 
@@ -131,3 +385,4 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ---
 
 Made with ❤️ by the Cernion team
+

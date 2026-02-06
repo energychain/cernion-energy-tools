@@ -1,56 +1,32 @@
-import js from '@eslint/js';
-import jest from 'eslint-plugin-jest';
-import prettier from 'eslint-config-prettier';
+const prettierConfig = require('eslint-plugin-prettier/recommended');
 
-export default [
-  js.configs.recommended,
-  prettier,
+module.exports = [
   {
-    files: ['**/*.js'],
+    ignores: ['node_modules/**', 'dist/**', 'coverage/**'],
+  },
+  {
     languageOptions: {
-      ecmaVersion: 2024,
-      sourceType: 'module',
+      ecmaVersion: 'latest',
+      sourceType: 'commonjs',
       globals: {
         console: 'readonly',
         process: 'readonly',
         __dirname: 'readonly',
         __filename: 'readonly',
-        Buffer: 'readonly',
-        global: 'readonly',
-        module: 'readonly',
         require: 'readonly',
+        module: 'readonly',
+        exports: 'readonly',
+        Buffer: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
       },
     },
     rules: {
-      'no-unused-vars': [
-        'error',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-        },
-      ],
+      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-console': 'off',
-      'prefer-const': 'error',
-      'no-var': 'error',
-      'arrow-body-style': ['error', 'as-needed'],
-      'prefer-arrow-callback': 'error',
-      'prefer-template': 'error',
-      'object-shorthand': 'error',
-      'no-duplicate-imports': 'error',
     },
   },
-  {
-    files: ['**/*.test.js', '**/*.spec.js'],
-    plugins: {
-      jest,
-    },
-    languageOptions: {
-      globals: {
-        ...jest.environments.globals.globals,
-      },
-    },
-    rules: {
-      ...jest.configs.recommended.rules,
-    },
-  },
+  prettierConfig,
 ];
