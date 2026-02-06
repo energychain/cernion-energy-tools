@@ -130,6 +130,7 @@ function parseParams(args) {
 
 /**
  * Set nested object value using dot notation
+ * Guards against prototype pollution
  */
 function setNestedValue(obj, path, value) {
   const keys = path.split('.');
@@ -137,13 +138,22 @@ function setNestedValue(obj, path, value) {
 
   for (let i = 0; i < keys.length - 1; i++) {
     const key = keys[i];
+    // Guard against prototype pollution
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      throw new Error(`Invalid property name: ${key}`);
+    }
     if (!(key in current)) {
       current[key] = {};
     }
     current = current[key];
   }
 
-  current[keys[keys.length - 1]] = value;
+  const finalKey = keys[keys.length - 1];
+  // Guard against prototype pollution
+  if (finalKey === '__proto__' || finalKey === 'constructor' || finalKey === 'prototype') {
+    throw new Error(`Invalid property name: ${finalKey}`);
+  }
+  current[finalKey] = value;
 }
 
 /**
