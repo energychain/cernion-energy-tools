@@ -99,7 +99,7 @@ module.exports = {
 
   skipProcessEventRegistration: false,
 
-  created(broker) {},
+  created(_broker) {},
 
   async started(broker) {
     broker.logger.info('Moleculer broker started successfully');

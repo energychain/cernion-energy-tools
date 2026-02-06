@@ -1,6 +1,6 @@
 /**
  * Cernion Energy Tools - MicroService Agent System for Energy Markets
- * 
+ *
  * Main entry point for starting the Moleculer broker and services
  */
 
@@ -15,9 +15,7 @@ const broker = new ServiceBroker(config);
 // Load all services from services directory
 const servicesDir = path.join(__dirname, 'services');
 if (fs.existsSync(servicesDir)) {
-  const serviceFiles = fs
-    .readdirSync(servicesDir)
-    .filter((file) => file.endsWith('.service.js'));
+  const serviceFiles = fs.readdirSync(servicesDir).filter((file) => file.endsWith('.service.js'));
 
   serviceFiles.forEach((file) => {
     const servicePath = path.join(servicesDir, file);
@@ -32,7 +30,10 @@ broker
   .then(() => {
     broker.logger.info('✅ Moleculer broker started successfully');
     broker.logger.info('Services are ready to accept requests');
-    broker.repl(); // Start REPL interface for debugging
+    // Start REPL interface only in development mode
+    if (process.env.NODE_ENV !== 'production') {
+      // broker.repl();
+    }
   })
   .catch((err) => {
     broker.logger.error('❌ Failed to start broker:', err);

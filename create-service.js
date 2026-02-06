@@ -2,9 +2,9 @@
 
 /**
  * Service Creation Tool
- * 
+ *
  * This tool helps create new microservices based on the skeleton template
- * 
+ *
  * Usage:
  *   npm run create -- <service-name>
  */

@@ -1,6 +1,6 @@
 /**
  * API Gateway Service
- * 
+ *
  * This service provides HTTP REST API access to all microservices
  * with OpenAPI documentation support.
  */
@@ -69,7 +69,7 @@ module.exports = {
     /**
      * Authenticate the request
      */
-    async authenticate(ctx, route, req) {
+    async authenticate(_ctx, _route, _req) {
       // Implement authentication logic here
       return null;
     },
@@ -77,7 +77,7 @@ module.exports = {
     /**
      * Authorize the request
      */
-    async authorize(ctx, route, req) {
+    async authorize(ctx, _route, _req) {
       // Implement authorization logic here
       return ctx;
     },

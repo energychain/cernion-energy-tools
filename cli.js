@@ -2,9 +2,9 @@
 
 /**
  * CLI Tool for Cernion Energy Tools
- * 
+ *
  * Allows calling microservices via the API Gateway from the command line
- * 
+ *
  * Usage:
  *   npm run cli -- <action> [params]
  *   npm run cli -- skeleton.hello --name=John
@@ -50,16 +50,38 @@ async function main() {
  * Call a microservice action via the API Gateway
  */
 async function callAction(action, params) {
-  const [service, actionName] = action.split('.');
+  // Parse action into service and action parts
+  // Supports formats: service.action, v1.service.action, example.hello
+  const parts = action.split('.');
 
-  if (!service || !actionName) {
-    throw new Error('Invalid action format. Use: service.action');
+  if (parts.length < 2) {
+    throw new Error('Invalid action format. Use: service.action or v1.service.action');
   }
 
-  const url = `${API_URL}/${service}/${actionName}`;
+  let service, actionName, version;
+
+  // Check if first part looks like a version (v1, v2, etc.)
+  if (parts[0].match(/^v\d+$/)) {
+    version = parts[0];
+    service = parts[1];
+    actionName = parts.slice(2).join('.');
+  } else {
+    service = parts[0];
+    actionName = parts.slice(1).join('.');
+  }
+
+  // Build URL path
+  const pathParts = [API_URL];
+  if (version) pathParts.push(version);
+  pathParts.push(service, actionName);
+
+  const url = pathParts.join('/');
 
   // Determine HTTP method based on common conventions
-  const method = actionName.startsWith('get') || actionName === 'health' ? 'GET' : 'POST';
+  const method =
+    actionName.startsWith('get') || actionName === 'health' || actionName === 'hello'
+      ? 'GET'
+      : 'POST';
 
   const config = {
     method,
@@ -135,9 +157,10 @@ Usage:
   npm run cli -- <service.action> [params]
 
 Examples:
-  npm run cli -- skeleton.hello --name=John
-  npm run cli -- skeleton.process --data="test data" --options.uppercase=true
-  npm run cli -- skeleton.health
+  npm run cli -- example.hello --name=John
+  npm run cli -- v1.example.hello --name=John
+  npm run cli -- example.process --data="test data" --options.uppercase=true
+  npm run cli -- example.health
 
 Parameters:
   --key=value       Set a parameter value

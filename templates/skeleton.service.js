@@ -1,14 +1,14 @@
 /**
  * Skeleton Service Template
- * 
+ *
  * This is a template service that demonstrates best practices for creating
  * Moleculer microservices with OpenAPI support, MCP integration, and Gemini AI.
- * 
+ *
  * Copy this file to create new services:
  * cp templates/skeleton.service.js services/yourservice.service.js
  */
 
-const { Service } = require('moleculer');
+const { Service } = require('moleculer'); // eslint-disable-line no-unused-vars
 
 module.exports = {
   name: 'skeleton',
@@ -41,7 +41,7 @@ module.exports = {
   actions: {
     /**
      * Say hello action with OpenAPI documentation
-     * 
+     *
      * @openapi
      * /skeleton/hello:
      *   get:
@@ -86,7 +86,7 @@ module.exports = {
 
     /**
      * Process data with parameters
-     * 
+     *
      * @openapi
      * /skeleton/process:
      *   post:
@@ -162,7 +162,7 @@ module.exports = {
 
     /**
      * Get service health status
-     * 
+     *
      * @openapi
      * /skeleton/health:
      *   get:
@@ -189,7 +189,7 @@ module.exports = {
      */
     health: {
       rest: 'GET /health',
-      async handler(ctx) {
+      async handler(_ctx) {
         return {
           status: 'healthy',
           uptime: process.uptime(),
@@ -203,8 +203,8 @@ module.exports = {
    * Events
    */
   events: {
-    'skeleton.created'(payload) {
-      this.logger.info('Skeleton event received:', payload);
+    'skeleton.created'(_payload) {
+      this.logger.info('Skeleton event received:', _payload);
     },
   },
 
