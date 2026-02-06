@@ -6,10 +6,11 @@
  */
 
 const ApiGateway = require('moleculer-web');
+const OpenapiMixin = require('moleculer-auto-openapi');
 
 module.exports = {
   name: 'api',
-  mixins: [ApiGateway],
+  mixins: [ApiGateway, OpenapiMixin],
 
   settings: {
     port: process.env.PORT || 3000,
@@ -17,6 +18,28 @@ module.exports = {
     ip: '0.0.0.0',
 
     use: [],
+
+    // OpenAPI settings
+    openapi: {
+      info: {
+        title: 'Cernion Energy Tools API',
+        version: '1.0.0',
+        description: 'MicroService Agent System for Energy Markets - REST API with AI integration',
+      },
+      tags: [
+        { name: 'Energy', description: 'Energy market operations' },
+        { name: 'Example', description: 'Example service endpoints' },
+      ],
+      components: {
+        securitySchemes: {
+          ApiKeyAuth: {
+            type: 'apiKey',
+            in: 'header',
+            name: 'X-API-Key',
+          },
+        },
+      },
+    },
 
     routes: [
       {
@@ -34,7 +57,9 @@ module.exports = {
 
         autoAliases: true,
 
-        aliases: {},
+        aliases: {
+          'GET /openapi.json': 'api.openapi',
+        },
 
         callingOptions: {},
 
@@ -52,6 +77,19 @@ module.exports = {
         mappingPolicy: 'all',
 
         logging: true,
+
+        onError(req, res, err) {
+          res.setHeader('Content-Type', 'application/json');
+          res.writeHead(err.code || 500);
+          res.end(
+            JSON.stringify({
+              success: false,
+              message: err.message,
+              code: err.code,
+              type: err.type,
+            })
+          );
+        },
       },
     ],
 
@@ -90,6 +128,7 @@ module.exports = {
   async started() {
     this.logger.info(`API Gateway started on port ${this.settings.port}`);
     this.logger.info(`API endpoint: http://localhost:${this.settings.port}/api`);
+    this.logger.info(`OpenAPI docs: http://localhost:${this.settings.port}/api/openapi.json`);
   },
 
   async stopped() {
