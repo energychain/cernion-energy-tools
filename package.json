@@ -1,0 +1,50 @@
+{
+  "name": "cernion-energy-tools",
+  "version": "1.0.0",
+  "description": "MicroService Agent System for Energy Markets",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "moleculer-runner --repl --hot services",
+    "cli": "node cli.js",
+    "create": "node create-service.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.js\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/energychain/cernion-energy-tools.git"
+  },
+  "keywords": [
+    "energy",
+    "microservices",
+    "moleculer",
+    "mcp",
+    "ai",
+    "gemini"
+  ],
+  "author": "Energy Chain",
+  "license": "GPL-3.0",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/energychain/cernion-energy-tools/issues"
+  },
+  "homepage": "https://github.com/energychain/cernion-energy-tools#readme",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "axios": "^1.13.4",
+    "dotenv": "^17.2.4",
+    "moleculer": "^0.14.35",
+    "moleculer-repl": "^0.7.4",
+    "moleculer-web": "^0.10.8"
+  },
+  "devDependencies": {
+    "eslint": "^10.0.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
+    "prettier": "^3.8.1"
+  }
+}
