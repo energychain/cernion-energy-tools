@@ -105,13 +105,15 @@ npm run create -- my-service
 npm run create
 ```
 
-This will create a new service file in the `services/` directory based on the skeleton template.
+This will create a new service file in the `custom-services/` directory based on the skeleton template and generate tests in `custom-tests/`.
+
+Custom services are meant for local extensions and are ignored by git by default. Core services shipped with the project remain in `services/`.
 
 ### Manual Service Creation
 
 1. Copy the skeleton template:
    ```bash
-   cp templates/skeleton.service.js services/my-service.service.js
+  cp templates/skeleton.service.js custom-services/my-service.service.js
    ```
 
 2. Edit the service:
@@ -124,12 +126,25 @@ This will create a new service file in the `services/` directory based on the sk
    npm start
    ```
 
+### Custom Services & Tests
+
+- Custom services live in `custom-services/` and are loaded at startup.
+- Custom tests live in `custom-tests/` and are excluded from release coverage.
+- Run custom tests without global coverage thresholds:
+  ```bash
+  npm run test:custom -- my-service.service.test.js
+  ```
+
+If you enable live MCP integration tests in the creator, they are stored in `custom-tests/` and run separately. The default `npm test` run only covers core services.
+
 ## Project Structure
 
 ```
 cernion-energy-tools/
-├── services/           # Active microservices (loaded at startup)
+├── services/           # Core microservices (release)
 │   └── api.service.js  # API Gateway service
+├── custom-services/    # Local/custom microservices (ignored by git)
+├── custom-tests/       # Local/custom tests (ignored by git)
 ├── templates/          # Service templates
 │   └── skeleton.service.js  # Skeleton service template
 ├── index.js            # Main entry point
@@ -154,7 +169,6 @@ Each service follows this structure:
 ```javascript
 module.exports = {
   name: 'service-name',
-  version: 1,
 
   settings: {
     // Service-specific settings
@@ -217,6 +231,7 @@ Edit `.env` file to configure:
 - `TRANSPORTER` - Message transporter (NATS, Redis, MQTT, etc.)
 - `GEMINI_API_KEY` - Google Gemini API key
 - `MCP_SERVER_URL` - MCP server URL
+- `CERNION_TOKEN` - Cernion MCP token (request at https://cernion.de/ or by email: dev@stromdao.com)
 
 ### Moleculer Configuration
 
@@ -237,6 +252,19 @@ Edit `moleculer.config.js` to customize:
 - `npm run lint` - Run ESLint
 - `npm run lint:fix` - Fix ESLint issues
 - `npm run format` - Format code with Prettier
+- `npm run test:custom` - Run custom tests without global coverage thresholds
+
+## Release Checklist
+
+For open source releases:
+
+1. Update version in package.json and OpenAPI info in services/api.service.js
+2. Update CHANGELOG.md
+3. Run tests: npm test
+4. Run lint: npm run lint
+5. Ensure custom-services/ and custom-tests/ are untracked (local only)
+6. Ensure .env is not committed and no secrets are present
+7. Commit, tag, and push release
 
 ## AI Integration
 

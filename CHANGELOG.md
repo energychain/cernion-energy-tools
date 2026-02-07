@@ -5,6 +5,22 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-02-07
+
+### Added
+- Custom service and test directories for local extensions (custom-services/, custom-tests/)
+- Creator CLI support for iterative updates, catalog-aware generation, and optional live MCP integration tests
+- Test helper script for custom services (`npm run test:custom`)
+- Hot reload and runtime loading for both core and custom services
+
+### Changed
+- Service creator now resolves Gemini model availability and falls back to supported models
+- Creator and runtime guidance updated for OpenAPI coverage and ctx.call orchestration
+
+### Fixed
+- Normalized CO₂ intensity forecast response shape to align with MCP tool data
+- Improved resilience when mapping forecast arrays from MCP responses
+
 ## [0.1.0] - 2026-02-07
 
 ### Added

@@ -12,17 +12,19 @@ const fs = require('fs');
 // Create broker
 const broker = new ServiceBroker(config);
 
-// Load all services from services directory
-const servicesDir = path.join(__dirname, 'services');
-if (fs.existsSync(servicesDir)) {
-  const serviceFiles = fs.readdirSync(servicesDir).filter((file) => file.endsWith('.service.js'));
+// Load all services from core and custom directories
+const serviceDirs = [path.join(__dirname, 'services'), path.join(__dirname, 'custom-services')];
+serviceDirs.forEach((servicesDir) => {
+  if (fs.existsSync(servicesDir)) {
+    const serviceFiles = fs.readdirSync(servicesDir).filter((file) => file.endsWith('.service.js'));
 
-  serviceFiles.forEach((file) => {
-    const servicePath = path.join(servicesDir, file);
-    broker.logger.info(`Loading service: ${file}`);
-    broker.loadService(servicePath);
-  });
-}
+    serviceFiles.forEach((file) => {
+      const servicePath = path.join(servicesDir, file);
+      broker.logger.info(`Loading service: ${path.basename(servicesDir)}/${file}`);
+      broker.loadService(servicePath);
+    });
+  }
+});
 
 // Start broker
 broker

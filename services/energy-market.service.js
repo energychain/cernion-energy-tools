@@ -385,11 +385,39 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const result = await CernionMCPClient.callWithNewSession(
           'cernion_co2_intensity',
           ctx.params,
           ctx.meta.cernionToken
         );
+
+        const forecastValues =
+          result?.data?.forecast_next_24h_gco2eq_kwh ||
+          result?.forecast_next_24h_gco2eq_kwh ||
+          null;
+
+        if (Array.isArray(forecastValues)) {
+          const baseTimestamp = result?.data?.timestamp || result?.timestamp;
+          const baseDate = baseTimestamp ? new Date(baseTimestamp) : null;
+          const forecast = forecastValues.map((value, index) => {
+            const timestamp = baseDate
+              ? new Date(baseDate.getTime() + index * 60 * 60 * 1000).toISOString()
+              : null;
+            return {
+              timestamp,
+              gCO2eqPerKWh: value,
+            };
+          });
+
+          result.data = {
+            ...(result.data || {}),
+            location: result?.data?.location || result?.location || ctx.params.location,
+            timestamp: result?.data?.timestamp || result?.timestamp || null,
+            forecast,
+          };
+        }
+
+        return result;
       },
     },
 

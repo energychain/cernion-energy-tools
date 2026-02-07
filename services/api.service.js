@@ -24,7 +24,7 @@ module.exports = {
     openapi: {
       info: {
         title: 'Cernion Energy Tools API',
-        version: '0.1.0',
+        version: '0.2.0',
         description: 'MicroService Agent System for Energy Markets - REST API with AI integration',
       },
       tags: [
@@ -43,7 +43,7 @@ module.exports = {
             scheme: 'bearer',
             bearerFormat: 'JWT',
             description:
-              'Optional Cernion MCP token. If not provided, falls back to CERNION_TOKEN from environment.',
+              'Optional Cernion MCP token. If not provided, falls back to CERNION_TOKEN from environment. Request token at https://cernion.de/ or by email: dev@stromdao.com.',
           },
         },
       },

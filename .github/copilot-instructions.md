@@ -1,7 +1,14 @@
 # GitHub Copilot Instructions for Cernion Energy Tools
 
 ## Project Overview
-This is a MicroService Agent System for Energy Markets. The system is designed to handle energy market operations through a distributed microservice architecture.
+This is a MicroService Agent System for Energy Markets built with Moleculer. It wraps the Cernion MCP server and exposes MCP tools as REST endpoints via an API Gateway.
+
+### Key Implementation Facts
+- Services live in `services/` and are loaded by Moleculer at runtime.
+- MCP calls are centralized in `src/mcp-client.js` and used by services.
+- Long-running tools use `src/async-job-poller.js` (`callWithAutoPoll`).
+- REST endpoints are declared with `rest` in each action and documented via OpenAPI.
+- API Gateway is `services/api.service.js` with OpenAPI at `/api/openapi.json` and Swagger UI at `/api/docs`.
 
 ## Coding Guidelines
 
@@ -38,9 +45,10 @@ This is a MicroService Agent System for Energy Markets. The system is designed t
 ### Testing Guidelines
 - Write unit tests for all business logic
 - Use Jest as the testing framework
-- Aim for >80% code coverage
+- Aim for >80% code coverage (configured in `jest.config.js`)
 - Write integration tests for API endpoints
 - Use meaningful test descriptions
+- Mock MCP network calls in tests (use `jest.mock('../src/mcp-client')`)
 
 ### Documentation
 - Update README.md with any significant changes
@@ -74,6 +82,20 @@ This is a MicroService Agent System for Energy Markets. The system is designed t
 - Implement proper logging with structured logs
 - Use configuration management for different environments
 - Follow semantic versioning for releases
+
+## Release Process (0.x)
+
+1. Update version in `package.json` and OpenAPI version in `services/api.service.js`.
+2. Update `CHANGELOG.md` with release notes.
+3. Run tests: `npm test` (must pass with coverage thresholds).
+4. Ensure no secrets are present (`.env` must not be committed).
+5. Commit changes: `git add -A && git commit -m "chore: prepare X.Y.Z release"`.
+6. Tag release: `git tag vX.Y.Z`.
+7. Push: `git push && git push --tags`.
+
+Notes:
+- Release 0.1.0 uses mocked MCP responses in tests to avoid external dependencies.
+- Do not store tokens or API keys in the repository; use `.env.example` only.
 
 ## What NOT to Do
 - Don't use `var` - use `const` or `let`

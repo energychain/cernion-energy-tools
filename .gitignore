@@ -41,6 +41,10 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Custom services/tests (local only)
+custom-services/
+custom-tests/
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 

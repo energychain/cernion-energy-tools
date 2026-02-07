@@ -1,17 +1,18 @@
 {
   "name": "cernion-energy-tools",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MicroService Agent System for Energy Markets",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "moleculer-runner --repl --hot services",
+    "dev": "moleculer-runner --repl --hot services custom-services",
     "cli": "node cli.js",
     "create": "node create-service.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.js\"",
     "test": "jest --coverage",
+    "test:custom": "jest --coverage=false --testPathPattern=custom-tests",
     "test:watch": "jest --watch",
     "test:integration": "jest --testMatch='**/tests/**/*.test.js'"
   },
