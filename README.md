@@ -16,11 +16,21 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - 🔄 **Hot Reload** - Automatic service reloading during development
 - 🎯 **Best Practices** - ESLint, Prettier, and structured project layout
 
+## Documentation
+
+- [CHANGELOG.md](CHANGELOG.md) - Release notes and notable changes
+- [MCP_TOOLS.md](MCP_TOOLS.md) - MCP tool reference
+- [MCP_SERVICES.md](MCP_SERVICES.md) - Microservice-to-tool mapping
+- [ASYNC_JOB_POLLING.md](ASYNC_JOB_POLLING.md) - Async job handling
+- [BEARER_TOKEN_AUTHENTICATION.md](BEARER_TOKEN_AUTHENTICATION.md) - Auth guide
+- [SECURITY.md](SECURITY.md) - Security policy and disclosure
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community guidelines
+
 ## Quick Start
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm or yarn
 
 ### Installation
@@ -127,8 +137,11 @@ cernion-energy-tools/
 ├── create-service.js   # Service creation tool
 ├── moleculer.config.js # Moleculer configuration
 ├── .env.example        # Environment variables example
-├── .eslintrc.json      # ESLint configuration
-├── .prettierrc.json    # Prettier configuration
+├── eslint.config.js    # ESLint configuration
+├── jest.config.js      # Jest configuration
+├── CHANGELOG.md        # Release notes
+├── SECURITY.md         # Security policy
+├── CODE_OF_CONDUCT.md  # Community guidelines
 └── package.json        # Project dependencies
 ```
 
@@ -142,23 +155,23 @@ Each service follows this structure:
 module.exports = {
   name: 'service-name',
   version: 1,
-  
+
   settings: {
     // Service-specific settings
   },
-  
+
   actions: {
     // Service actions (endpoints)
   },
-  
+
   events: {
     // Event handlers
   },
-  
+
   methods: {
     // Internal methods
   },
-  
+
   created() {},
   async started() {},
   async stopped() {}
@@ -278,6 +291,7 @@ mol $ nodes
 The API Gateway service (`services/api.service.js`) provides HTTP access to all microservices:
 
 - **Base URL**: `http://localhost:3000/api`
+- **API Docs**: `http://localhost:3000/api/docs`
 - **Auto-generated routes**: All service actions are automatically exposed
 - **REST mapping**: Actions with `rest` property get REST endpoints
 - **Body parsers**: JSON and URL-encoded body parsing
@@ -297,6 +311,22 @@ Contributions are welcome! Please follow these guidelines:
 3. Make your changes
 4. Run linting and tests
 5. Submit a pull request
+
+## Versioning
+
+This project follows [Semantic Versioning](https://semver.org/). See [CHANGELOG.md](CHANGELOG.md) for release history.
+
+## Security
+
+Please report security issues privately. See [SECURITY.md](SECURITY.md) for details.
+
+## Code of Conduct
+
+Please follow our community guidelines in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
+## License
+
+This project is licensed under the GPL-3.0 License. See [LICENSE](LICENSE) for details.
 
 ## License
 

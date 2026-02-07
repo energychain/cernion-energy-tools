@@ -26,7 +26,7 @@ module.exports = {
 
   serializer: 'JSON',
 
-  requestTimeout: 10 * 1000,
+  requestTimeout: 15 * 60 * 1000, // 15 minutes for long-running MCP tools (e.g., cernion_grid_data can take up to 10 minutes)
 
   retryPolicy: {
     enabled: false,

@@ -1,0 +1,243 @@
+/**
+ * MCP Client Tests
+ *
+ * Unit tests for the Cernion MCP client utility
+ */
+
+jest.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
+  Client: jest.fn(),
+}));
+
+jest.mock('@modelcontextprotocol/sdk/client/streamableHttp.js', () => ({
+  StreamableHTTPClientTransport: jest.fn(),
+}));
+
+const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
+const { StreamableHTTPClientTransport } = require('@modelcontextprotocol/sdk/client/streamableHttp.js');
+const CernionMCPClient = require('../src/mcp-client');
+
+describe('CernionMCPClient', () => {
+  let client;
+  let clientInstance;
+
+  beforeEach(() => {
+    process.env.CERNION_TOKEN = 'test_token_123';
+    clientInstance = {
+      connect: jest.fn(),
+      callTool: jest.fn(),
+      listTools: jest.fn(),
+      close: jest.fn(),
+    };
+    Client.mockImplementation(() => clientInstance);
+    StreamableHTTPClientTransport.mockImplementation(() => ({}));
+  });
+
+  afterEach(async () => {
+    if (client) {
+      await client.disconnect();
+      client = null;
+    }
+    jest.restoreAllMocks();
+    jest.clearAllMocks();
+  });
+
+  describe('Constructor', () => {
+    it('should create client with valid token', () => {
+      client = new CernionMCPClient('test_token');
+      expect(client).toBeDefined();
+      expect(client.token).toBe('test_token');
+      expect(client.baseUrl).toBe('https://mcp.cernion.de/test_token/mcp');
+    });
+
+    it('should throw error without token', () => {
+      expect(() => new CernionMCPClient()).toThrow('CERNION_TOKEN is required');
+    });
+  });
+
+  describe('callWithNewSession', () => {
+    it('should return error when token is missing', async () => {
+      delete process.env.CERNION_TOKEN;
+      const result = await CernionMCPClient.callWithNewSession('test_tool', {});
+
+      expect(result.success).toBe(false);
+      expect(result.error.code).toBe('MISSING_TOKEN');
+    });
+
+    it('should handle successful tool call', async () => {
+      jest.spyOn(CernionMCPClient.prototype, 'connect').mockResolvedValue(true);
+      jest.spyOn(CernionMCPClient.prototype, 'callTool').mockResolvedValue({
+        success: true,
+        data: { ok: true },
+      });
+      jest.spyOn(CernionMCPClient.prototype, 'disconnect').mockResolvedValue();
+
+      const result = await CernionMCPClient.callWithNewSession('test_tool', { foo: 'bar' });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ ok: true });
+    });
+  });
+
+  describe('connect', () => {
+    it('should connect successfully', async () => {
+      clientInstance.connect.mockResolvedValue(true);
+      client = new CernionMCPClient('test_token');
+
+      const result = await client.connect();
+
+      expect(result).toBe(true);
+      expect(Client).toHaveBeenCalled();
+      expect(StreamableHTTPClientTransport).toHaveBeenCalled();
+      expect(clientInstance.connect).toHaveBeenCalled();
+    });
+
+    it('should retry on connection failure', async () => {
+      jest.useFakeTimers();
+      clientInstance.connect
+        .mockRejectedValueOnce(new Error('fail-1'))
+        .mockRejectedValueOnce(new Error('fail-2'))
+        .mockResolvedValueOnce(true);
+      client = new CernionMCPClient('test_token');
+
+      const connectPromise = client.connect();
+      await jest.runAllTimersAsync();
+      const result = await connectPromise;
+
+      expect(result).toBe(true);
+      expect(clientInstance.connect).toHaveBeenCalledTimes(3);
+      jest.useRealTimers();
+    });
+  });
+
+  describe('callTool', () => {
+    it('should parse JSON content and merge response', async () => {
+      clientInstance.connect.mockResolvedValue(true);
+      clientInstance.callTool.mockResolvedValue({
+        content: [{ type: 'text', text: '{"value": 42}' }],
+      });
+      client = new CernionMCPClient('test_token');
+      await client.connect();
+
+      const result = await client.callTool('test_tool', {});
+
+      expect(result.success).toBe(true);
+      expect(result.value).toBe(42);
+      expect(result.metadata.toolName).toBe('test_tool');
+    });
+
+    it('should return additional data when present', async () => {
+      clientInstance.connect.mockResolvedValue(true);
+      clientInstance.callTool.mockResolvedValue({
+        content: [{ type: 'text', text: 'not-json' }],
+        statistics: { total: 1 },
+      });
+      client = new CernionMCPClient('test_token');
+      await client.connect();
+
+      const result = await client.callTool('test_tool', {});
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ statistics: { total: 1 } });
+    });
+
+    it('should handle async job response', async () => {
+      clientInstance.connect.mockResolvedValue(true);
+      clientInstance.callTool.mockResolvedValue({
+        content: [{ type: 'text', text: '{"job_id":"job-123"}' }],
+      });
+      client = new CernionMCPClient('test_token');
+      jest.spyOn(client, 'pollJobResult').mockResolvedValue({
+        success: true,
+        data: { done: true },
+      });
+      await client.connect();
+
+      const result = await client.callTool('test_tool', {});
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ done: true });
+    });
+
+    it('should return error on tool call failure', async () => {
+      clientInstance.connect.mockResolvedValue(true);
+      clientInstance.callTool.mockRejectedValue({ code: 'ERR', message: 'Boom' });
+      client = new CernionMCPClient('test_token');
+      await client.connect();
+
+      const result = await client.callTool('test_tool', {});
+
+      expect(result.success).toBe(false);
+      expect(result.error.code).toBe('ERR');
+    });
+  });
+
+  describe('pollJobResult', () => {
+    it('should return data when job succeeds with JSON content', async () => {
+      clientInstance.connect.mockResolvedValue(true);
+      clientInstance.callTool.mockResolvedValue({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              status: 'succeeded',
+              content: [{ text: '{"result":true}' }],
+            }),
+          },
+        ],
+      });
+      client = new CernionMCPClient('test_token');
+      await client.connect();
+
+      const result = await client.pollJobResult('job-1', 1, 1);
+
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual({ result: true });
+    });
+
+    it('should return error when job fails', async () => {
+      clientInstance.connect.mockResolvedValue(true);
+      clientInstance.callTool.mockResolvedValue({
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({ status: 'failed', message: 'Failed' }),
+          },
+        ],
+      });
+      client = new CernionMCPClient('test_token');
+      await client.connect();
+
+      const result = await client.pollJobResult('job-1', 1, 1);
+
+      expect(result.success).toBe(false);
+      expect(result.error.code).toBe('JOB_FAILED');
+    });
+  });
+
+  describe('listTools', () => {
+    it('should return tools list', async () => {
+      clientInstance.connect.mockResolvedValue(true);
+      clientInstance.listTools.mockResolvedValue({ tools: [{ name: 'tool-1' }] });
+      client = new CernionMCPClient('test_token');
+      await client.connect();
+
+      const result = await client.listTools();
+
+      expect(result.success).toBe(true);
+      expect(result.tools).toHaveLength(1);
+    });
+  });
+
+  describe('disconnect', () => {
+    it('should close client and reset state', async () => {
+      clientInstance.connect.mockResolvedValue(true);
+      client = new CernionMCPClient('test_token');
+      await client.connect();
+
+      await client.disconnect();
+
+      expect(clientInstance.close).toHaveBeenCalled();
+      expect(client.client).toBeNull();
+    });
+  });
+});
