@@ -133,13 +133,259 @@ module.exports = {
     },
 
     /**
+     * Search VNBdigital for an address, location, or VNB name
+     * Tool: vnbdigital_search
+     */
+    vnbdigitalSearch: {
+      rest: 'POST /vnbdigital-search',
+      params: {
+        searchTerm: { type: 'string', min: 1 },
+      },
+      openapi: {
+        summary: 'Search VNBdigital for address, location, or VNB name',
+        tags: ['Grid Operations'],
+        description: `Search VNBdigital to resolve addresses, locations, or VNB names into IDs for follow-up lookups.
+
+**Use Cases:**
+- Identify addresses and locations for VNB lookup
+- Find postcode/community IDs for detailed VNB results
+- VNB search by name`,
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['searchTerm'],
+                properties: {
+                  searchTerm: {
+                    type: 'string',
+                    description: 'Address, place, or VNB name',
+                    example: 'Gerhard-Weiser-Ring 29, 69256 Mauer',
+                  },
+                },
+              },
+              examples: {
+                addressSearch: {
+                  summary: 'Address search',
+                  value: {
+                    searchTerm: 'Gerhard-Weiser-Ring 29, 69256 Mauer',
+                  },
+                },
+                vnbNameSearch: {
+                  summary: 'VNB name search',
+                  value: {
+                    searchTerm: 'Netze BW',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        return await CernionMCPClient.callWithNewSession(
+          'vnbdigital_search',
+          ctx.params,
+          ctx.meta.cernionToken
+        );
+      },
+    },
+
+    /**
+     * Lookup VNBs and planning regions by coordinates, postcode ID, or community ID
+     * Tool: vnbdigital_lookup
+     */
+    vnbdigitalLookup: {
+      rest: 'POST /vnbdigital-lookup',
+      params: {
+        searchType: { type: 'enum', values: ['coordinates', 'postcode', 'community'] },
+        coordinates: { type: 'string', optional: true },
+        postcodeId: { type: 'string', optional: true },
+        communityId: { type: 'string', optional: true },
+        filter: {
+          type: 'object',
+          optional: true,
+          props: {
+            onlyNap: { type: 'boolean', optional: true },
+            voltageTypes: { type: 'array', items: 'string', optional: true },
+            withRegions: { type: 'boolean', optional: true },
+          },
+        },
+      },
+      openapi: {
+        summary: 'Lookup VNBs and planning regions by coordinates/postcode/community',
+        tags: ['Grid Operations'],
+        description: `Lookup VNBs and planning regions using VNBdigital. Provide one of:
+- **coordinates** for geolocation lookup
+- **postcodeId** from vnbdigital_search
+- **communityId** from vnbdigital_search`,
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['searchType'],
+                properties: {
+                  searchType: {
+                    type: 'string',
+                    enum: ['coordinates', 'postcode', 'community'],
+                    description: 'Lookup type',
+                  },
+                  coordinates: {
+                    type: 'string',
+                    description: 'Latitude,Longitude (required for coordinates search)',
+                    example: '49.34206,8.80022',
+                  },
+                  postcodeId: {
+                    type: 'string',
+                    description: 'Postcode ID from vnbdigital_search (required for postcode search)',
+                  },
+                  communityId: {
+                    type: 'string',
+                    description: 'Community ID from vnbdigital_search (required for community search)',
+                  },
+                  filter: {
+                    type: 'object',
+                    description: 'Optional filter settings',
+                    properties: {
+                      onlyNap: {
+                        type: 'boolean',
+                        description: 'Only NAP entries',
+                        default: false,
+                      },
+                      voltageTypes: {
+                        type: 'array',
+                        items: { type: 'string' },
+                        description: 'Filter by voltage types',
+                        example: ['Niederspannung', 'Mittelspannung'],
+                      },
+                      withRegions: {
+                        type: 'boolean',
+                        description: 'Include planning regions',
+                        default: true,
+                      },
+                    },
+                  },
+                },
+              },
+              examples: {
+                coordinateLookup: {
+                  summary: 'Coordinates lookup',
+                  value: {
+                    searchType: 'coordinates',
+                    coordinates: '49.34206,8.80022',
+                    filter: {
+                      onlyNap: false,
+                      voltageTypes: ['Niederspannung', 'Mittelspannung'],
+                      withRegions: true,
+                    },
+                  },
+                },
+                postcodeLookup: {
+                  summary: 'Postcode lookup',
+                  value: {
+                    searchType: 'postcode',
+                    postcodeId: 'DEBWhk01000gMZ1V',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { searchType, coordinates, postcodeId, communityId } = ctx.params;
+
+        if (searchType === 'coordinates' && !coordinates) {
+          throw new Error('coordinates is required when searchType is "coordinates"');
+        }
+
+        if (searchType === 'postcode' && !postcodeId) {
+          throw new Error('postcodeId is required when searchType is "postcode"');
+        }
+
+        if (searchType === 'community' && !communityId) {
+          throw new Error('communityId is required when searchType is "community"');
+        }
+
+        return await CernionMCPClient.callWithNewSession(
+          'vnbdigital_lookup',
+          ctx.params,
+          ctx.meta.cernionToken
+        );
+      },
+    },
+
+    /**
+     * Lookup MaStR ID for a VNB (grid operator) using BDEW code
+     * Tool: cernion_vnb_lookup
+     */
+    vnbLookup: {
+      rest: 'POST /vnb-lookup',
+      params: {
+        bdew: { type: 'string', min: 1 },
+        limit: { type: 'number', optional: true, default: 5, min: 1, max: 50 },
+      },
+      openapi: {
+        summary: 'Lookup MaStR ID for a VNB (grid operator) using BDEW code',
+        tags: ['Grid Operations'],
+        description: `Resolve BDEW codes to MaStR Netzbetreiber IDs (SNB/GNB) for downstream grid-operator queries.`,
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['bdew'],
+                properties: {
+                  bdew: {
+                    type: 'string',
+                    description: 'BDEW code',
+                    example: '9900992720003',
+                  },
+                  limit: {
+                    type: 'integer',
+                    description: 'Max market partner matches to consider',
+                    default: 5,
+                    minimum: 1,
+                    maximum: 50,
+                  },
+                },
+              },
+              examples: {
+                defaultLookup: {
+                  summary: 'BDEW lookup',
+                  value: {
+                    bdew: '9900992720003',
+                    limit: 5,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        return await CernionMCPClient.callWithNewSession(
+          'cernion_vnb_lookup',
+          ctx.params,
+          ctx.meta.cernionToken
+        );
+      },
+    },
+
+    /**
      * Comprehensive grid operator analysis
      * Tool: cernion_grid_operator_analysis
      */
     operatorAnalysis: {
       rest: 'POST /operator-analysis',
       params: {
-        gridOperator: { type: 'string', min: 1 },
+        gridOperator: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        gridOperatorBdewCode: { type: 'string', optional: true, min: 1 },
         date: { type: 'string', optional: true },
         includeRedispatch: { type: 'boolean', optional: true, default: true },
         includeFeedInPatterns: { type: 'boolean', optional: true, default: true },
@@ -194,12 +440,21 @@ module.exports = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['gridOperator'],
                 properties: {
                   gridOperator: {
                     type: 'string',
                     description: 'Grid operator name (fuzzy matching)',
                     example: 'Stadtwerke München',
+                  },
+                  gridOperatorId: {
+                    type: 'string',
+                    description: 'MaStR Netzbetreiber-ID (SNB/GNB...)',
+                    example: 'SNB935578300972',
+                  },
+                  gridOperatorBdewCode: {
+                    type: 'string',
+                    description: 'BDEW code (resolved to MaStR Netzbetreiber)',
+                    example: '9900992720003',
                   },
                   date: {
                     type: 'string',
@@ -233,6 +488,20 @@ module.exports = {
                     includeCapacityMap: true,
                   },
                 },
+                byMastrId: {
+                  summary: 'Analysis by MaStR ID',
+                  value: {
+                    gridOperatorId: 'SNB935578300972',
+                    includeRedispatch: true,
+                  },
+                },
+                byBdewCode: {
+                  summary: 'Analysis by BDEW code',
+                  value: {
+                    gridOperatorBdewCode: '9900992720003',
+                    includeCapacityMap: true,
+                  },
+                },
                 redispatchFocus: {
                   summary: 'Redispatch-focused analysis',
                   value: {
@@ -257,6 +526,12 @@ module.exports = {
         },
       },
       async handler(ctx) {
+        const { gridOperator, gridOperatorId, gridOperatorBdewCode } = ctx.params;
+
+        if (!gridOperator && !gridOperatorId && !gridOperatorBdewCode) {
+          throw new Error('One of gridOperator, gridOperatorId, or gridOperatorBdewCode is required');
+        }
+
         // Use auto-polling for async jobs (operator analysis can be slow for large grids)
         return await callWithAutoPoll(
           'cernion_grid_operator_analysis',
@@ -398,7 +673,9 @@ module.exports = {
     redispatchExport: {
       rest: 'POST /redispatch-export',
       params: {
-        gridOperator: { type: 'string', min: 1 },
+        gridOperator: { type: 'string', optional: true, min: 1 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        gridOperatorBdewCode: { type: 'string', optional: true, min: 1 },
         minCapacity: { type: 'number', optional: true, default: 100, min: 0 },
         types: { type: 'array', items: 'string', optional: true },
         autoConfirm: { type: 'boolean', optional: true, default: true },
@@ -413,12 +690,21 @@ module.exports = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['gridOperator'],
                 properties: {
                   gridOperator: {
                     type: 'string',
                     description: 'Grid operator name (fuzzy matching)',
                     example: 'Stadtwerke München',
+                  },
+                  gridOperatorId: {
+                    type: 'string',
+                    description: 'MaStR Netzbetreiber-ID (SNB/GNB...)',
+                    example: 'SNB935578300972',
+                  },
+                  gridOperatorBdewCode: {
+                    type: 'string',
+                    description: 'BDEW code (resolved to MaStR Netzbetreiber)',
+                    example: '9900992720003',
                   },
                   minCapacity: {
                     type: 'number',
@@ -460,6 +746,22 @@ module.exports = {
                     autoConfirm: true,
                   },
                 },
+                byMastrId: {
+                  summary: 'Export by MaStR ID',
+                  value: {
+                    gridOperatorId: 'SNB935578300972',
+                    minCapacity: 100,
+                    autoConfirm: true,
+                  },
+                },
+                byBdewCode: {
+                  summary: 'Export by BDEW code',
+                  value: {
+                    gridOperatorBdewCode: '9900992720003',
+                    minCapacity: 100,
+                    autoConfirm: true,
+                  },
+                },
                 largeInstallations: {
                   summary: 'Large installations (>500kW)',
                   value: {
@@ -474,6 +776,12 @@ module.exports = {
         },
       },
       async handler(ctx) {
+        const { gridOperator, gridOperatorId, gridOperatorBdewCode } = ctx.params;
+
+        if (!gridOperator && !gridOperatorId && !gridOperatorBdewCode) {
+          throw new Error('One of gridOperator, gridOperatorId, or gridOperatorBdewCode is required');
+        }
+
         // Use auto-polling for async jobs (redispatch export typically returns job ID)
         return await callWithAutoPoll(
           'cernion_redispatch_export',
@@ -606,6 +914,136 @@ module.exports = {
             maxWaitTime: 8 * 60 * 1000, // 8 minutes max
             pollInterval: 2000, // Poll every 2 seconds
           },
+          ctx.meta.cernionToken
+        );
+      },
+    },
+
+    /**
+     * Market Partner Search (BDEW code resolution)
+     * Tool: cernion_market_partners
+     */
+    marketPartners: {
+      rest: 'GET /market-partners',
+      params: {
+        query: { type: 'string', min: 1 },
+        limit: { type: 'number', optional: true, default: 10, min: 1, max: 20 },
+      },
+      openapi: {
+        summary: 'Search German energy market partners by BDEW code, company name, or city',
+        tags: ['Grid Operations'],
+        description: `Search for German energy market participants including grid operators, suppliers, and balancing responsible parties.
+
+**Search Types**:
+- **BDEW Code**: 13-digit code (e.g., "9900992720003")
+- **Company Name**: Full or partial name (e.g., "TWL", "Stadtwerke Heidelberg")
+- **City**: Location-based search (e.g., "Heidelberg", "München")
+
+**Use Cases**:
+- Resolve VNB names to BDEW codes for installations queries
+- Find grid operator contact details
+- Identify market partner roles (VNB, ÜNB, supplier, BKV)
+- Data integration and mapping
+
+**Response Fields**:
+- BDEW code (13 digits)
+- Company name and address
+- Market partner roles
+- Software systems in use
+- Contact information
+- MaStR IDs (SNB, GNB, etc.)
+
+**Example Queries**:
+- "TWL Netze" → TWL Netz GmbH with BDEW code
+- "9900992720003" → Specific market partner details
+- "Heidelberg" → All market partners in Heidelberg`,
+        parameters: [
+          {
+            name: 'query',
+            in: 'query',
+            required: true,
+            schema: {
+              type: 'string',
+              description: 'Search term: BDEW code, company name, or city',
+              example: 'TWL Netze',
+            },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'number',
+              description: 'Maximum number of results (1-20, default: 10)',
+              default: 10,
+              minimum: 1,
+              maximum: 20,
+            },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'List of matching market partners',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    results: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          bdew: { type: 'string', description: 'BDEW code (13 digits)' },
+                          name: { type: 'string', description: 'Company name' },
+                          address: { type: 'string', description: 'Full address' },
+                          city: { type: 'string' },
+                          postalCode: { type: 'string' },
+                          roles: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Market roles (VNB, ÜNB, supplier, etc.)',
+                          },
+                          mastrIds: {
+                            type: 'object',
+                            description: 'MaStR operator IDs',
+                          },
+                        },
+                      },
+                    },
+                    count: { type: 'number', description: 'Number of results returned' },
+                  },
+                },
+                examples: {
+                  twlNetze: {
+                    summary: 'Search for TWL Netze',
+                    value: {
+                      results: [
+                        {
+                          bdew: '9900992720003',
+                          name: 'TWL Netz GmbH',
+                          address: 'Industriestraße 7, 67063 Ludwigshafen',
+                          city: 'Ludwigshafen',
+                          postalCode: '67063',
+                          roles: ['VNB', 'Messstellenbetreiber'],
+                          mastrIds: {
+                            SNB: 'SNB123456789',
+                          },
+                        },
+                      ],
+                      count: 1,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        return await CernionMCPClient.callWithNewSession(
+          'cernion_market_partners',
+          ctx.params,
           ctx.meta.cernionToken
         );
       },

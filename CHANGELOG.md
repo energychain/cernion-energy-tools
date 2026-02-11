@@ -5,6 +5,35 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-02-11
+
+### Added
+- **Assets Service** - Complete grid operator asset management service
+  - Retrieve all installations from German Marktstammdatenregister (MaStR) for a distribution network operator
+  - Support for all installation types: solar, wind, storage, biomass, hydro, combustion
+  - VNB filtering by BDEW code, MaStR grid operator ID, or operator name
+  - Redispatch 2.0 filter (installations ≥100kW)
+  - No pagination required - can retrieve millions of installations
+  - Type-specific endpoints: `/api/assets/solar`, `/api/assets/wind`, `/api/assets/storage`, etc.
+  - Combined endpoint: `/api/assets/all` with optional type selection
+- VNB/DSO lookup endpoints for grid operator discovery
+- BDEW → MaStR grid operator ID resolution
+- MaStR installation filters for grid operator identification
+
+### Changed
+- Moved assets service from custom-services to core services directory
+- OpenAPI documentation fully translated to English for international compatibility
+- Expanded OpenAPI documentation with detailed descriptions, examples, and error responses
+- Grid operator analysis/export accepts BDEW/MaStR identifiers in addition to names
+
+### Fixed
+- VNB filtering now works for all installation types (solar, wind, storage, biomass, combustion)
+- Removed workaround code that restricted VNB filtering to storage-only after MaStR database update
+
+### Testing
+- Added comprehensive test coverage for assets service
+- Integration tests for VNB filtering across all installation types
+
 ## [0.2.0] - 2026-02-07
 
 ### Added

@@ -50,15 +50,15 @@ The Cernion MCP server provides access to comprehensive energy data across Europ
 | Category | Purpose | Tool Count |
 |----------|---------|------------|
 | **Query Tools** | Natural language queries and template-based searches | 3 |
-| **Energy Market Data** | Prices, production, forecasts | 5 |
-| **Grid Operations** | Network data, redispatch, capacity analysis | 5 |
-| **Business Intelligence** | Market analysis, lead generation, tariff design | 4 |
-| **Customer Service** | Self-service widgets, health checks, wizards | 3 |
-| **European Energy Data (ENTSO-E)** | Cross-border flows, unavailability, generation, PSR types | 9 |
-| **Gas Storage (AGSI)** | European gas storage monitoring | 7 |
+| **Energy Market Data** | Prices, production, forecasts | 15 |
+| **Grid Operations** | Network data, redispatch, capacity analysis | 10 |
+| **Business Intelligence** | Market analysis, lead generation, tariff design | 8 |
+| **Customer Service** | Self-service widgets, health checks, wizards | 6 |
+| **European Data (ENTSO-E)** | Cross-border flows, unavailability, generation, PSR types | 10 |
+| **Gas Storage (AGSI)** | European gas storage monitoring | 8 |
 | **EIC Codes** | Energy Identification Code management | 5 |
 | **German Grid (Netztransparenz)** | Spotprices, redispatch, forecasts | 4 |
-| **System Tools** | Status, discovery, job management | 4 |
+| **System Tools** | Status, discovery, job management | 8 |
 
 ---
 
@@ -458,6 +458,9 @@ headers: {
   minCapacityKW?: number;         // Minimum capacity filter
   maxCapacityKW?: number;         // Maximum capacity filter
   commissioningYear?: number;     // Filter by commissioning year
+  gridOperatorId?: string;         // MaStR Netzbetreiber-ID (SNB/GNB...), comma-separated
+  gridOperatorName?: string;       // Netzbetreiber-Name (fuzzy matching)
+  gridOperatorBdewCode?: string;   // BDEW Code (resolved to MaStR Netzbetreiber)
 }
 ```
 
@@ -521,6 +524,105 @@ headers: {
 
 ---
 
+#### vnbdigital_search
+
+**Purpose**: Search VNBdigital for an address, location, or VNB name and return matching entries with IDs for follow-up lookups.
+
+**Parameters**:
+```typescript
+{
+  searchTerm: string; // Address, place, or VNB name (e.g., "Gerhard-Weiser-Ring 29, 69256 Mauer")
+}
+```
+
+**Use Cases**:
+- Identify addresses and locations for VNB lookup
+- Find postcode/community IDs for detailed VNB results
+- VNB search by name
+
+**Example Request**:
+```json
+{
+  "searchTerm": "Gerhard Weiser Ring 29, 69256 Mauer"
+}
+```
+
+**Example Response**:
+```json
+{
+  "searchTerm": "Gerhard Weiser Ring 29, 69256 Mauer",
+  "total": 1,
+  "results": [
+    {
+      "_id": "DEBWhk01000gMZ1V",
+      "title": "Gerhard-Weiser-Ring 29, 69256 Mauer, Baden",
+      "subtitle": "Mauer, Baden, Baden-Württemberg",
+      "logo": null,
+      "url": "/overview?coordinates=49.34206,8.80022&searchType=LOCATION",
+      "type": "LOCATION"
+    }
+  ]
+}
+```
+
+---
+
+#### vnbdigital_lookup
+
+**Purpose**: Lookup VNBs and planning regions by coordinates, postcode ID, or community ID.
+
+**Parameters**:
+```typescript
+{
+  searchType: 'coordinates' | 'postcode' | 'community';
+  coordinates?: string; // "lat,lng" format (required for coordinates)
+  postcodeId?: string;  // ID from vnbdigital_search (required for postcode)
+  communityId?: string; // ID from vnbdigital_search (required for community)
+  filter?: {
+    onlyNap?: boolean;         // default: false
+    voltageTypes?: string[];   // default: ["Niederspannung", "Mittelspannung"]
+    withRegions?: boolean;     // default: true
+  };
+}
+```
+
+**Use Cases**:
+- Determine responsible VNB(s) for a specific address
+- Retrieve planning regions and VNB metadata
+- Filter by voltage level
+
+**Example Request**:
+```json
+{
+  "searchType": "coordinates",
+  "coordinates": "49.34206,8.80022",
+  "filter": {
+    "onlyNap": false,
+    "voltageTypes": ["Niederspannung", "Mittelspannung"],
+    "withRegions": true
+  }
+}
+```
+
+**Example Response**:
+```json
+{
+  "searchType": "coordinates",
+  "coordinates": "49.34206,8.80022",
+  "result": {
+    "geometry": "...",
+    "regions": [
+      { "_id": "...", "name": "..." }
+    ],
+    "vnbs": [
+      { "_id": "...", "name": "...", "voltageTypes": ["Niederspannung"] }
+    ]
+  }
+}
+```
+
+---
+
 #### cernion_grid_operator_analysis
 
 **Purpose**: Comprehensive grid operator analysis (installations, feed-in, redispatch potential)
@@ -528,9 +630,12 @@ headers: {
 **Parameters**:
 ```typescript
 {
-  gridOperator: string;        // Operator name (fuzzy matching supported)
-  includeRedispatch?: boolean; // Include redispatch analysis (default: false)
-  includeCapacity?: boolean;   // Include capacity analysis (default: true)
+  gridOperator?: string;           // Operator name (fuzzy matching supported)
+  gridOperatorId?: string;         // MaStR Netzbetreiber-ID (SNB/GNB...), comma-separated
+  gridOperatorBdewCode?: string;   // BDEW Code (resolved to MaStR Netzbetreiber)
+  includeRedispatch?: boolean;     // Include redispatch analysis (default: false)
+  includeCapacityMap?: boolean;    // Include capacity analysis (default: true)
+  includeFeedInPatterns?: boolean; // Include feed-in pattern analysis (default: true)
 }
 ```
 
@@ -628,7 +733,9 @@ headers: {
 **Parameters**:
 ```typescript
 {
-  gridOperator: string;                      // Grid operator name (fuzzy matching)
+  gridOperator?: string;                     // Grid operator name (fuzzy matching)
+  gridOperatorId?: string;                   // MaStR Netzbetreiber-ID (SNB/GNB...), comma-separated
+  gridOperatorBdewCode?: string;             // BDEW Code (resolved to MaStR Netzbetreiber)
   minCapacity?: number;                      // Minimum capacity in kW (default: 100)
   types?: ('solar'|'wind'|'storage'|'biomass'|'combustion')[];
   autoConfirm?: boolean;                     // Skip confirmation (default: true for MCP)
@@ -664,26 +771,39 @@ headers: {
 
 ---
 
-#### cernion_connection_capacity_check
+#### cernion_vnb_lookup
 
-**Purpose**: Automated grid connection feasibility check (customer self-service)
+**Purpose**: Lookup MaStR ID for a VNB (grid operator) using BDEW code
 
 **Parameters**:
 ```typescript
 {
-  gridOperator: string;                 // Grid operator name
-  location: string;                     // Address or postal code
-  installationType: 'solar' | 'wind' | 'storage' | 'wallbox' | 'heat-pump' | 'other';
-  capacityKW: number;                   // Installation capacity in kW
-  voltageLevel?: 'NS' | 'MS' | 'HS';    // Optional preferred voltage level
-  simultaneityFactor?: number;          // Optional (0-1)
+  bdew: string;            // BDEW code (e.g., "9900992720003")
+  limit?: number;          // Max market partner matches to consider (default: 5)
 }
 ```
 
 **Use Cases**:
-- Customer self-service connection checks
-- Pre-feasibility screening
-- Grid capacity planning
+- Resolve BDEW → MaStR (SNB/GNB) before grid-operator queries
+- Data integration for Netzbetreiber mapping
+
+**Example Request**:
+```json
+{
+  "bdew": "9900992720003"
+}
+```
+
+**Example Response**:
+```json
+{
+  "bdew": "9900992720003",
+  "mastrId": "SNB935578300972",
+  "mastrIds": ["SNB935578300972"],
+  "name": "TWL Netze GmbH",
+  "source": "market_partners"
+}
+```
 
 ---
 
@@ -885,33 +1005,6 @@ headers: {
   }
 }
 ```
-
----
-
-#### cernion_market_penetration_analysis
-
-**Purpose**: Analyze market penetration rates for energy suppliers in specific regions
-
-**Parameters**:
-```typescript
-{
-  region: string;
-  currentCustomers?: number;          // Optional: current customer count
-  installationType?: 'solar' | 'wind' | 'storage' | 'wallbox' | 'heat-pump' | 'all';
-  postalCodes?: string[];             // Optional filter
-  includeSegmentation?: boolean;      // Default: true
-  includeWhiteSpots?: boolean;        // Default: true
-  includeTrendAnalysis?: boolean;     // Default: true
-  includeCompetitorAnalysis?: boolean;// Default: true
-  includeRecommendations?: boolean;   // Default: true
-}
-```
-
-**Use Cases**:
-- Market expansion planning
-- White-spot identification
-- Competitive positioning
-- Sales strategy prioritization
 
 ---
 
@@ -1240,6 +1333,7 @@ All ENTSO-E tools provide direct access to the ENTSO-E Transparency Platform wit
 **Purpose**: Day-ahead wind and solar generation forecasts
 
 **Document Type**: A69 (Wind and solar forecast)
+**Process Type**: A31 (Day-ahead) - automatically applied
 
 **Parameters**:
 ```typescript
@@ -1251,6 +1345,11 @@ All ENTSO-E tools provide direct access to the ENTSO-E Transparency Platform wit
   includeStatistics?: boolean;                 // Default: true
 }
 ```
+
+**Technical Details**:
+- Automatically includes `processType=A31` (Day-ahead) as required by ENTSO-E API for A69 queries
+- Returns hourly forecast data (MW) for wind offshore, wind onshore, and solar
+- Uses intelligent EIC code resolution for region names
 
 **Use Cases**:
 - Renewable energy planning
@@ -1290,22 +1389,6 @@ All ENTSO-E tools provide direct access to the ENTSO-E Transparency Platform wit
 **Purpose**: Total actual generation (no breakdown by type)
 
 **Document Type**: A73 (Actual generation aggregated)
-
-**Parameters**:
-```typescript
-{
-  region: string;
-  dateFrom: string;
-  dateTo: string;
-  resolution?: 'hourly' | 'daily';          // Default: 'hourly'
-  includeStatistics?: boolean;              // Default: true
-}
-```
-
-**Use Cases**:
-- High-level generation monitoring
-- Demand vs. supply comparisons
-- Quick dashboards (total generation only)
 
 **Note**: For detailed breakdown by production type, use `entsoe_actual_generation` (A75)
 
@@ -1434,35 +1517,6 @@ European gas storage data from Gas Infrastructure Europe (GIE) AGSI+ platform.
   "withdrawal": 1223.5,
   "trend": -0.47,
   "coverage": 8.88
-}
-```
-
----
-
-#### agsi_operator_storage
-
-**Purpose**: Detailed storage data for a specific storage system operator (SSO) including facility breakdown
-
-**Parameters**:
-```typescript
-{
-  operatorCode: string;           // Operator EIC code (e.g., "21X000000001262B")
-  date?: string;                  // Optional date (YYYY-MM-DD)
-  includeFacilities?: boolean;    // Include facility breakdown (default: true)
-}
-```
-
-**Use Cases**:
-- Operator performance monitoring
-- Facility portfolio analysis
-- Commercial due diligence
-- Regulatory reporting
-
-**Example Request**:
-```json
-{
-  "operatorCode": "21X000000001262B",
-  "includeFacilities": true
 }
 ```
 

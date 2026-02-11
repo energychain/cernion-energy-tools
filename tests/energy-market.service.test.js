@@ -184,5 +184,16 @@ describe('Energy Market Service', () => {
 
       expect(result.success).toBe(true);
     }, 30000);
+
+    it('should support grid operator filters', async () => {
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        location: 'Baden-Württemberg',
+        gridOperatorBdewCode: '9900992720003',
+        limit: 5,
+      });
+
+      expect(result.success).toBe(true);
+    }, 30000);
   });
 });

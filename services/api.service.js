@@ -24,8 +24,9 @@ module.exports = {
     openapi: {
       info: {
         title: 'Cernion Energy Tools API',
-        version: '0.2.0',
-        description: 'MicroService Agent System for Energy Markets - REST API with AI integration',
+        version: '0.3.0',
+        description:
+          'MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.',
       },
       tags: [
         { name: 'Energy', description: 'Energy market operations' },
@@ -51,6 +52,29 @@ module.exports = {
     },
 
     routes: [
+      // Root route (redirect to docs)
+      {
+        path: '/',
+
+        whitelist: [],
+
+        use: [],
+
+        mergeParams: true,
+
+        authentication: false,
+
+        authorization: false,
+
+        autoAliases: true,
+
+        aliases: {
+          'GET /'(req, res) {
+            res.writeHead(302, { Location: '/api/docs' });
+            res.end();
+          },
+        },
+      },
       // Main API routes
       {
         path: '/api',

@@ -40,7 +40,7 @@ describe('API Gateway Service', () => {
       expect(ApiService.settings.openapi).toBeDefined();
       expect(ApiService.settings.openapi.info).toBeDefined();
       expect(ApiService.settings.openapi.info.title).toBe('Cernion Energy Tools API');
-      expect(ApiService.settings.openapi.info.version).toBe('0.2.0');
+      expect(ApiService.settings.openapi.info.version).toBe('0.3.0');
     });
 
     it('should have security schemes configured', () => {
@@ -76,20 +76,20 @@ describe('API Gateway Service', () => {
 
   describe('Routes', () => {
     it('should have body parsers configured', () => {
-      const apiRoute = ApiService.settings.routes[0];
+      const apiRoute = ApiService.settings.routes.find(r => r.path === '/api');
       expect(apiRoute.bodyParsers).toBeDefined();
       expect(apiRoute.bodyParsers.json).toBeDefined();
       expect(apiRoute.bodyParsers.urlencoded).toBeDefined();
     });
 
     it('should have onBeforeCall hook', () => {
-      const apiRoute = ApiService.settings.routes[0];
+      const apiRoute = ApiService.settings.routes.find(r => r.path === '/api');
       expect(apiRoute.onBeforeCall).toBeDefined();
       expect(typeof apiRoute.onBeforeCall).toBe('function');
     });
 
     it('should have onError handler', () => {
-      const apiRoute = ApiService.settings.routes[0];
+      const apiRoute = ApiService.settings.routes.find(r => r.path === '/api');
       expect(apiRoute.onError).toBeDefined();
       expect(typeof apiRoute.onError).toBe('function');
     });

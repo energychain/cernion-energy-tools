@@ -11,6 +11,7 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - 🤖 **AI Integration** - Google Gemini SDK support for AI-powered services
 - 🔌 **MCP Support** - Model Context Protocol SDK integration
 - 📝 **OpenAPI Documentation** - Automatic API documentation generation
+- 🧭 **DSO/VNB Lookup** - VNBdigital search/lookup and BDEW → MaStR resolution
 - 🛠️ **CLI Tool** - Command-line interface for calling microservices
 - 📦 **Service Templates** - Ready-to-use skeleton service template
 - 🔄 **Hot Reload** - Automatic service reloading during development
@@ -60,7 +61,7 @@ npm start
 npm run dev
 ```
 
-The API Gateway will start on `http://localhost:3000` by default.
+The API Gateway will start on `http://localhost:3000` by default. Docs are available at `/api/docs` and `/` redirects to the documentation.
 
 ### Using the CLI
 
@@ -372,75 +373,4 @@ For issues and questions:
 - [Moleculer](https://moleculer.services/) - Microservices framework
 - [Google Gemini](https://ai.google.dev/) - AI integration
 - [MCP](https://modelcontextprotocol.io/) - Model Context Protocol
-
-## 📁 Project Structure
-
-```
-cernion-energy-tools/
-├── .github/              # GitHub configuration and workflows
-├── .vscode/             # VS Code workspace settings
-├── config/              # Configuration files
-├── docs/                # Documentation
-├── examples/            # Example code and use cases
-├── scripts/             # Build and deployment scripts
-├── src/                 # Source code
-├── tests/               # Test files
-├── .editorconfig        # Editor configuration
-├── .env.example         # Example environment variables
-├── .gitignore          # Git ignore rules
-├── eslint.config.js    # ESLint configuration
-├── jest.config.js      # Jest testing configuration
-├── LICENSE             # Apache 2.0 License
-├── package.json        # Project dependencies and scripts
-└── README.md           # This file
-```
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run tests with coverage report
-npm run test:coverage
-```
-
-## 📖 Documentation
-
-For detailed documentation, please see the [docs](./docs) directory.
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 🔒 Security
-
-Please see our [Security Policy](SECURITY.md) for reporting security vulnerabilities.
-
-## 📄 License
-
-This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
-
-## 💬 Support
-
-- 📧 Create an issue for bug reports or feature requests
-- 💡 Contribute to discussions in GitHub Discussions
-
-## 🙏 Acknowledgments
-
-- Energy Chain for project sponsorship
-- Open source community for tools and libraries
-
----
-
-Made with ❤️ by the Cernion team
 

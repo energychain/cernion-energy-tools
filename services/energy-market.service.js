@@ -6,6 +6,7 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
+const { callWithAutoPoll } = require('../src/async-job-poller');
 
 module.exports = {
   name: 'energy-market',
@@ -286,7 +287,7 @@ module.exports = {
     co2Intensity: {
       rest: 'POST /co2-intensity',
       params: {
-        location: { type: 'string', min: 1 },
+        location: { type: 'string', optional: true, min: 1 },
         timestamp: { type: 'string', optional: true },
         forecast: { type: 'boolean', optional: true, default: false },
       },
@@ -432,26 +433,34 @@ module.exports = {
           type: 'enum',
           values: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'],
         },
-        location: { type: 'string', min: 1 },
-        limit: { type: 'number', optional: true, default: 10, min: 1, max: 100 },
+        location: { type: 'string', optional: true, min: 1 },
+        limit: { type: 'number', optional: true, min: 1 },
         minCapacityKW: { type: 'number', optional: true, min: 0 },
         maxCapacityKW: { type: 'number', optional: true, min: 0 },
         commissioningYear: { type: 'number', optional: true, min: 1900, max: 2100 },
+        gridOperatorId: { type: 'string', optional: true, min: 1 },
+        gridOperatorMastrId: { type: 'string', optional: true, min: 1 },
+        gridOperatorName: { type: 'string', optional: true, min: 1 },
+        gridOperatorBdewCode: { type: 'string', optional: true, min: 1 },
       },
       openapi: {
         summary: 'Search energy installations in German registry (MaStR)',
         tags: ['Energy Market Data'],
         description: `Search Marktstammdatenregister (MaStR) for energy installations.
 
-**'installationType' and 'location' are required.**
+**'installationType' is required.**
 
 **Parameter Details:**
 - **installationType**: Installation type - "solar" (PV), "wind", "storage" (batteries), "biomass", "hydro", "combustion" (CHP, gas turbines)
-- **location**: City name, postal code, or region (e.g., "Heidelberg", "69115", "Baden-Württemberg")
-- **limit**: Max results (1-100, default: 10)
+- **location**: City name, postal code, or region (deprecated; use bundesland/landkreis/gemeinde/postleitzahl in MCP tool)
+- **limit**: Max results (optional)
 - **minCapacityKW**: Minimum installed capacity in kW (e.g., 5 for small installations, 100 for commercial)
 - **maxCapacityKW**: Maximum installed capacity in kW
 - **commissioningYear**: Filter by year of grid connection (1900-2100)
+- **gridOperatorId**: MaStR Netzbetreiber-ID (SNB/GNB...), comma-separated (deprecated)
+- **gridOperatorMastrId**: MaStR Netzbetreiber-ID (SNB/GNB...), preferred
+- **gridOperatorName**: Netzbetreiber-Name (fuzzy matching)
+- **gridOperatorBdewCode**: BDEW code (resolved to MaStR Netzbetreiber)
 
 **Use Cases:**
 - Portfolio analysis and benchmarking
@@ -466,7 +475,7 @@ module.exports = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['installationType', 'location'],
+                required: ['installationType'],
                 properties: {
                   installationType: {
                     type: 'string',
@@ -475,15 +484,13 @@ module.exports = {
                   },
                   location: {
                     type: 'string',
-                    description: 'Location (city, postal code, or region)',
+                    description: 'Location (city, postal code, or region) - deprecated',
                     example: 'Heidelberg',
                   },
                   limit: {
                     type: 'integer',
-                    description: 'Maximum number of results',
+                    description: 'Maximum number of results (optional)',
                     minimum: 1,
-                    maximum: 100,
-                    default: 10,
                   },
                   minCapacityKW: {
                     type: 'number',
@@ -504,6 +511,26 @@ module.exports = {
                     maximum: 2100,
                     example: 2023,
                   },
+                  gridOperatorId: {
+                    type: 'string',
+                    description: 'MaStR Netzbetreiber-ID (SNB/GNB...), comma-separated',
+                    example: 'SNB935578300972',
+                  },
+                  gridOperatorMastrId: {
+                    type: 'string',
+                    description: 'MaStR Netzbetreiber-ID (SNB/GNB...), preferred',
+                    example: 'SNB935578300972',
+                  },
+                  gridOperatorName: {
+                    type: 'string',
+                    description: 'Grid operator name (fuzzy matching)',
+                    example: 'Netze BW',
+                  },
+                  gridOperatorBdewCode: {
+                    type: 'string',
+                    description: 'BDEW code (resolved to MaStR Netzbetreiber)',
+                    example: '9900992720003',
+                  },
                 },
               },
               examples: {
@@ -511,7 +538,6 @@ module.exports = {
                   summary: 'Rooftop solar in Heidelberg',
                   value: {
                     installationType: 'solar',
-                    location: 'Heidelberg',
                     minCapacityKW: 5,
                     maxCapacityKW: 30,
                     limit: 20,
@@ -521,17 +547,23 @@ module.exports = {
                   summary: 'Commercial solar installations',
                   value: {
                     installationType: 'solar',
-                    location: 'Baden-Württemberg',
                     minCapacityKW: 100,
                     commissioningYear: 2023,
                     limit: 50,
+                  },
+                },
+                gridOperatorFilter: {
+                  summary: 'Filter by grid operator (BDEW)',
+                  value: {
+                    installationType: 'solar',
+                    gridOperatorBdewCode: '9900992720003',
+                    limit: 20,
                   },
                 },
                 windTurbines: {
                   summary: 'Wind turbines in region',
                   value: {
                     installationType: 'wind',
-                    location: 'Niedersachsen',
                     minCapacityKW: 1000,
                     limit: 30,
                   },
@@ -540,7 +572,6 @@ module.exports = {
                   summary: 'Battery storage systems',
                   value: {
                     installationType: 'storage',
-                    location: 'München',
                     limit: 15,
                   },
                 },
@@ -576,9 +607,22 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
-          'cernion_installations',
-          ctx.params,
+        const toolParams = {
+          type: ctx.params.installationType,
+          limit: ctx.params.limit,
+          minCapacity: ctx.params.minCapacityKW,
+          maxCapacity: ctx.params.maxCapacityKW,
+          commissioningYear: ctx.params.commissioningYear,
+          gridOperatorMastrId: ctx.params.gridOperatorMastrId || ctx.params.gridOperatorId,
+          gridOperatorName: ctx.params.gridOperatorName,
+          gridOperatorBdewCode: ctx.params.gridOperatorBdewCode,
+          format: 'detailed',
+        };
+
+        return await callWithAutoPoll(
+          'cernion_installations_local',
+          toolParams,
+          {},
           ctx.meta.cernionToken
         );
       },

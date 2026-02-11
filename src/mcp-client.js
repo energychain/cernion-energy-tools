@@ -34,8 +34,11 @@ class CernionMCPClient {
    */
   async connect() {
     try {
-      // Create HTTP streaming transport
-      this.transport = new StreamableHTTPClientTransport(new URL(this.baseUrl));
+      // Create HTTP streaming transport with increased timeout
+      this.transport = new StreamableHTTPClientTransport(
+        new URL(this.baseUrl),
+        { timeout: 120000 } // 120 seconds timeout for long-running tools like vnb_lookup
+      );
 
       // Create MCP client
       this.client = new Client(
@@ -62,8 +65,11 @@ class CernionMCPClient {
           if (retries > 0) {
             // Wait before retry (exponential backoff)
             await new Promise((resolve) => setTimeout(resolve, (4 - retries) * 1000));
-            // Recreate transport for retry
-            this.transport = new StreamableHTTPClientTransport(new URL(this.baseUrl));
+            // Recreate transport for retry with same timeout
+            this.transport = new StreamableHTTPClientTransport(
+              new URL(this.baseUrl),
+              { timeout: 120000 }
+            );
           }
         }
       }
@@ -94,6 +100,19 @@ class CernionMCPClient {
       // Extract actual data from response
       // MCP tools can return data in content array or as additional fields
       const { content, isError, _meta, ...additionalData } = response;
+
+      // Check for async job in additional data fields
+      const jobIdFromAdditional =
+        additionalData?.job_id ||
+        additionalData?.jobId ||
+        additionalData?.data?.job_id ||
+        additionalData?.data?.jobId ||
+        additionalData?.result?.job_id ||
+        additionalData?.result?.jobId;
+
+      if (jobIdFromAdditional) {
+        return await this.pollJobResult(jobIdFromAdditional);
+      }
 
       // Check if this is an async job response (contains job_id or jobId)
       if (content && content.length > 0 && content[0].text) {
@@ -134,6 +153,17 @@ class CernionMCPClient {
           }
           return item;
         });
+      }
+
+      // Check for async job in parsed content JSON
+      if (
+        processedContent &&
+        processedContent.length > 0 &&
+        processedContent[0].json &&
+        (processedContent[0].json.job_id || processedContent[0].json.jobId)
+      ) {
+        const jobId = processedContent[0].json.job_id || processedContent[0].json.jobId;
+        return await this.pollJobResult(jobId);
       }
 
       // If parsed JSON exists and looks like the main response, use it directly
@@ -178,7 +208,7 @@ class CernionMCPClient {
    * @param {string} jobId - Job ID to poll
    * @returns {Promise<object>} Job result
    */
-  async pollJobResult(jobId, maxAttempts = 30, delayMs = 1000) {
+  async pollJobResult(jobId, maxAttempts = 600, delayMs = 1000) {
     let attempts = 0;
 
     while (attempts < maxAttempts) {

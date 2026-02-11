@@ -30,6 +30,8 @@ async function pollJobUntilComplete(jobId, options = {}) {
   const startTime = Date.now();
   let lastStatus = null;
 
+  console.log(`[AsyncJobPoller] Starting poll for job ${jobId}, maxWaitTime=${maxWaitTime}ms`);
+
   while (Date.now() - startTime < maxWaitTime) {
     try {
       // Check job status
@@ -41,7 +43,13 @@ async function pollJobUntilComplete(jobId, options = {}) {
         token
       );
 
-      const status = statusResponse.status || statusResponse.state;
+      // Debug: log raw response structure
+      console.log(`[AsyncJobPoller] Raw status response:`, JSON.stringify(statusResponse, null, 2).substring(0, 500));
+
+      const status = statusResponse.status || statusResponse.state || statusResponse.data?.status || statusResponse.data?.state || statusResponse.metadata?.status;
+
+      // Always log status for debugging
+      console.log(`[AsyncJobPoller] Job ${jobId} status: ${status || 'undefined'} (elapsed: ${Date.now() - startTime}ms)`);
 
       // Call status update callback if provided and status changed
       if (onStatusUpdate && status !== lastStatus) {
@@ -56,7 +64,25 @@ async function pollJobUntilComplete(jobId, options = {}) {
 
       // Check if job is complete
       if (status === 'succeeded' || status === 'completed' || status === 'success') {
-        // Job completed - fetch result
+        console.log(`[AsyncJobPoller] Job ${jobId} completed successfully, fetching result...`);
+
+        // Job completed - the statusResponse itself might already be the result
+        // if it contains data beyond just status info
+        if (statusResponse.data && (statusResponse.data.error || statusResponse.data.installations || statusResponse.data.results)) {
+          console.log(`[AsyncJobPoller] Result already in status response, returning directly`);
+          return {
+            success: !statusResponse.data.error,
+            data: statusResponse.data,
+            metadata: {
+              jobId,
+              status: 'succeeded',
+              totalWaitTime: Date.now() - startTime,
+              completedAt: new Date().toISOString(),
+            },
+          };
+        }
+
+        // Otherwise fetch result separately
         const resultResponse = await CernionMCPClient.callWithNewSession(
           'cernion_job_result',
           {
@@ -100,6 +126,7 @@ async function pollJobUntilComplete(jobId, options = {}) {
       await sleep(pollInterval);
     } catch (error) {
       // Error checking status
+      console.error(`[AsyncJobPoller] Error polling job ${jobId}:`, error.message);
       if (Date.now() - startTime >= maxWaitTime) {
         return {
           success: false,

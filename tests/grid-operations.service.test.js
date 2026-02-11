@@ -44,7 +44,7 @@ describe('Grid Operations Service', () => {
   afterAll(() => broker.stop());
 
   describe('operatorAnalysis action', () => {
-    it('should require grid operator parameter', async () => {
+    it('should require at least one grid operator identifier', async () => {
       await expect(broker.call('grid-operations.operatorAnalysis', {})).rejects.toThrow();
     });
 
@@ -52,6 +52,15 @@ describe('Grid Operations Service', () => {
       const result = await broker.call('grid-operations.operatorAnalysis', {
         gridOperator: 'Netze BW',
         includeRedispatch: true,
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should accept MaStR grid operator ID', async () => {
+      const result = await broker.call('grid-operations.operatorAnalysis', {
+        gridOperatorId: 'SNB935578300972',
+        includeCapacityMap: true,
       });
 
       expect(result).toBeDefined();
@@ -81,9 +90,61 @@ describe('Grid Operations Service', () => {
   });
 
   describe('redispatchExport action', () => {
+    it('should require at least one grid operator identifier', async () => {
+      await expect(broker.call('grid-operations.redispatchExport', {})).rejects.toThrow();
+    });
+
     it('should have default minCapacity of 100kW', async () => {
       const result = await broker.call('grid-operations.redispatchExport', {
         gridOperator: 'Stadtwerke Heidelberg',
+      });
+
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('vnbdigitalSearch action', () => {
+    it('should require searchTerm', async () => {
+      await expect(broker.call('grid-operations.vnbdigitalSearch', {})).rejects.toThrow();
+    });
+
+    it('should accept valid search', async () => {
+      const result = await broker.call('grid-operations.vnbdigitalSearch', {
+        searchTerm: 'Gerhard-Weiser-Ring 29, 69256 Mauer',
+      });
+
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('vnbdigitalLookup action', () => {
+    it('should require coordinates when searchType is coordinates', async () => {
+      await expect(
+        broker.call('grid-operations.vnbdigitalLookup', {
+          searchType: 'coordinates',
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should accept coordinates lookup', async () => {
+      const result = await broker.call('grid-operations.vnbdigitalLookup', {
+        searchType: 'coordinates',
+        coordinates: '49.34206,8.80022',
+      });
+
+      expect(result).toBeDefined();
+    });
+  });
+
+  describe('vnbLookup action', () => {
+    it('should require bdew code', async () => {
+      await expect(broker.call('grid-operations.vnbLookup', {})).rejects.toThrow();
+    });
+
+    it('should accept valid bdew lookup', async () => {
+      const result = await broker.call('grid-operations.vnbLookup', {
+        bdew: '9900992720003',
+        limit: 5,
       });
 
       expect(result).toBeDefined();
