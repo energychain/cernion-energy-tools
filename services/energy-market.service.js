@@ -434,6 +434,7 @@ module.exports = {
           values: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'],
         },
         location: { type: 'string', optional: true, min: 1 },
+        postleitzahl: { type: 'string', optional: true, min: 5, max: 5 },
         limit: { type: 'number', optional: true, min: 1 },
         minCapacityKW: { type: 'number', optional: true, min: 0 },
         maxCapacityKW: { type: 'number', optional: true, min: 0 },
@@ -609,6 +610,7 @@ module.exports = {
       async handler(ctx) {
         const toolParams = {
           type: ctx.params.installationType,
+          postleitzahl: ctx.params.postleitzahl || ctx.params.location,
           limit: ctx.params.limit,
           minCapacity: ctx.params.minCapacityKW,
           maxCapacity: ctx.params.maxCapacityKW,

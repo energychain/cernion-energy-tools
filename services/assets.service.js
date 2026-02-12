@@ -134,9 +134,9 @@ module.exports = {
       for (const assetType of assetTypes) {
         const callParams = {
           installationType: assetType,
-          location: location || this.settings.defaultLocation,
         };
 
+        if (location) callParams.postleitzahl = location;
         if (commissioningYear) callParams.commissioningYear = commissioningYear;
         if (effectiveMinCapacity !== undefined) callParams.minCapacityKW = effectiveMinCapacity;
         if (maxCapacityKW !== undefined) callParams.maxCapacityKW = maxCapacityKW;

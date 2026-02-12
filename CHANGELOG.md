@@ -5,6 +5,19 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-02-12
+
+### Fixed
+- **Assets Service** - Location parameter now correctly passed to MCP tool for postal code filtering
+- **Assets Service** - Fixed validation error when using gridOperatorId without location parameter
+- **Energy Market Service** - Added postleitzahl parameter support for precise location filtering
+- Parameter handling: postleitzahl only set when location is actually provided (prevents validation errors)
+
+### Technical Details
+- Bug 1: energy-market.service.js was accepting location parameter but not forwarding it to MCP tool
+- Bug 2: assets.service.js was always setting postleitzahl even when undefined, causing validation failure
+- Both fixes apply to all asset types (solar, wind, storage, biomass, hydro, combustion)
+
 ## [0.3.0] - 2026-02-11
 
 ### Added
