@@ -23,16 +23,19 @@ describe('Assets Integration', () => {
   });
 
   it('should return data from live MCP', async () => {
-    const response = await broker.call('assets.byDSO', {
-  "dso": "Stadtwerke Heidelberg Netz",
-  "type": "storage"
-});
+    const response = await broker.call('assets.list', {
+      vnbName: 'Stadtwerke Heidelberg Netz',
+      assetType: 'storage',
+    });
 
-    if (Array.isArray(response)) {
-      expect(response.length).toBeGreaterThan(0);
-      expect(response[0]).toHaveProperty('gCO2eqPerKWh');
-    } else {
-      expect(response).toBeTruthy();
+    // Assets service returns array of installation objects
+    expect(Array.isArray(response)).toBe(true);
+    if (response.length > 0) {
+      // Check for core MaStR fields
+      expect(response[0]).toHaveProperty('SEE Nummer');
+      expect(response[0]).toHaveProperty('Betreiber');
+      expect(response[0]).toHaveProperty('Anlagentyp');
+      expect(response[0]).toHaveProperty('Leistung MW');
     }
   }, 60000);
 });

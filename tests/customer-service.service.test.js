@@ -53,9 +53,7 @@ describe('Customer Service Service', () => {
     });
 
     it('should validate required parameters', async () => {
-      await expect(
-        broker.call('customer-service.portalWidget', {})
-      ).rejects.toThrow();
+      await expect(broker.call('customer-service.portalWidget', {})).rejects.toThrow();
     });
 
     it('should have correct REST endpoint', () => {

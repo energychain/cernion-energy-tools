@@ -56,9 +56,7 @@ describe('Grid Operations Service - Market Partners', () => {
     });
 
     it('should require query parameter', async () => {
-      await expect(
-        broker.call('grid-operations.marketPartners', {})
-      ).rejects.toThrow();
+      await expect(broker.call('grid-operations.marketPartners', {})).rejects.toThrow();
     });
   });
 });

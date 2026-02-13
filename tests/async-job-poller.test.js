@@ -7,7 +7,11 @@ jest.mock('../src/mcp-client', () => ({
 }));
 
 const { callWithNewSession } = require('../src/mcp-client');
-const { pollJobUntilComplete, detectAsyncJob, callWithAutoPoll } = require('../src/async-job-poller');
+const {
+  pollJobUntilComplete,
+  detectAsyncJob,
+  callWithAutoPoll,
+} = require('../src/async-job-poller');
 
 describe('Async Job Poller', () => {
   describe('detectAsyncJob', () => {

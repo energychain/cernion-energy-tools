@@ -49,7 +49,10 @@ async function questionJson(prompt) {
 }
 
 function sanitizeServiceName(input) {
-  return (input || '').toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-');
+  return (input || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/-+/g, '-');
 }
 
 function loadSkeletonTemplate() {
@@ -65,10 +68,13 @@ function loadServiceCatalog() {
   const files = serviceDirs
     .filter((dir) => fs.existsSync(dir))
     .flatMap((dir) =>
-      fs.readdirSync(dir).filter((file) => file.endsWith('.service.js')).map((file) => ({
-        dir,
-        file,
-      }))
+      fs
+        .readdirSync(dir)
+        .filter((file) => file.endsWith('.service.js'))
+        .map((file) => ({
+          dir,
+          file,
+        }))
     );
 
   return files
@@ -279,9 +285,7 @@ function validateServiceCode(serviceCode, serviceName) {
 }
 
 function buildTestCode(serviceName, serviceModule, serviceFolder) {
-  const dependencies = Array.isArray(serviceModule?.dependencies)
-    ? serviceModule.dependencies
-    : [];
+  const dependencies = Array.isArray(serviceModule?.dependencies) ? serviceModule.dependencies : [];
   const dependencySetup = dependencies
     .map((dependency) => `    broker.createService({ name: '${dependency}', actions: {} });`)
     .join('\n');
@@ -554,10 +558,7 @@ async function main() {
         fs.writeFileSync(fixturePath, JSON.stringify(params, null, 2));
 
         const integrationTestCode = buildIntegrationTestCode(serviceName, actionName, params);
-        integrationTestPath = path.join(
-          CUSTOM_TESTS_DIR,
-          `${serviceName}.integration.test.js`
-        );
+        integrationTestPath = path.join(CUSTOM_TESTS_DIR, `${serviceName}.integration.test.js`);
         fs.writeFileSync(integrationTestPath, integrationTestCode);
         console.log(`✅ Integration test added: ${integrationTestPath}`);
       }
@@ -620,7 +621,11 @@ async function main() {
     try {
       delete require.cache[require.resolve(serviceFilePath)];
       const serviceModule = require(serviceFilePath);
-      updatedTestCode = buildTestCode(serviceName, serviceModule, path.basename(CUSTOM_SERVICES_DIR));
+      updatedTestCode = buildTestCode(
+        serviceName,
+        serviceModule,
+        path.basename(CUSTOM_SERVICES_DIR)
+      );
     } catch (error) {
       if (!updatedTestCode || typeof updatedTestCode !== 'string') {
         updatedTestCode = buildTestCode(serviceName, null, path.basename(CUSTOM_SERVICES_DIR));

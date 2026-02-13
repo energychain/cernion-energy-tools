@@ -28,9 +28,7 @@ describe('ENTSO-E Service', () => {
     });
 
     it('should validate required parameters', async () => {
-      await expect(
-        broker.call('entsoe.dayAheadPrices', {})
-      ).rejects.toThrow();
+      await expect(broker.call('entsoe.dayAheadPrices', {})).rejects.toThrow();
     });
 
     it('should have correct REST endpoint', () => {

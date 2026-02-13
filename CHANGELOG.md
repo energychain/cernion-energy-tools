@@ -5,6 +5,41 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-02-13
+
+### Fixed
+- **Comprehensive MaStR Field Mapping** - Assets service now captures ALL fields from MaStR data
+  - Fixed missing `C_Rate` for storage installations (now checks 4 field name variants for storage capacity)
+  - Fixed missing `Marktakteur Name` (now checks 4 field name variants including `nameMarktakteur` and `marktakteurFirmenname`)
+  - Enhanced capacity field mapping for storage (now checks `acLeistung`, `bruttoleistung`, `nettonennleistung`, `installierteleistung`)
+  - All field mappings now handle both German and English field name variants from MCP
+
+### Added
+- **60+ Comprehensive MaStR Fields** - Complete dataset now available for all asset types:
+  - **Core Identification**: EinheitMastrNummer, Einheit Systemstatus
+  - **Grid Operator Info**: Netzbetreiber MaStR, Netzbetreiber Name
+  - **Enhanced Power Specs**: Added separate kW field alongside MW, AC/DC Nennleistung for storage
+  - **Storage-Specific**: Batterietechnologie, Hersteller Batteriemodule, AC/DC Nennleistung
+  - **Solar-Specific**: Hauptausrichtung (orientation), Neigungswinkel (tilt), Leistungsbegrenzung, Anzahl Module, Leistung je Modul
+  - **Wind-Specific**: Nabenhöhe (hub height), Rotordurchmesser (rotor diameter), Hersteller, Typenbezeichnung
+  - **Dates**: Registrierungsdatum, Genehmigungsdatum (in addition to commissioning date)
+  - **Grid Connection**: Spannungsebene (voltage level), Fernsteuerbarkeit (remote control), Einsatzverantwortlicher
+  - **Location**: Längengrad (longitude), Breitengrad (latitude), complete address data
+  - **Additional**: Fläche (used area in m²)
+
+### Changed
+- **Robust Field Detection** - All field mappings now check multiple name variants to ensure no data loss
+- **OpenAPI Schema Updated** - Swagger documentation now includes all 60+ fields with proper types, descriptions, and nullability
+- **Asset-Type Aware** - Fields are appropriately marked as type-specific (e.g., solar-only, wind-only, storage-only)
+
+### Technical Details
+- Enhanced field mapping in assets.service.js with comprehensive fallback chains
+- Storage capacity calculation now checks: `storageCapacityKWh`, `nutzbareSpeicherkapazitaet`, `speicherkapazitaet`, `nutzbareKapazitaet`
+- Power capacity checks: `capacityKW`, `acLeistung`, `bruttoleistung`, `nettonennleistung`, `installierteleistung`
+- Marktakteur name checks: `marketActorName`, `marktakteurName`, `nameMarktakteur`, `marktakteurFirmenname`
+- All OpenAPI property definitions updated with proper types and descriptions
+- Maintains backward compatibility - all previously available fields still work
+
 ## [0.4.0] - 2026-02-13
 
 ### Added

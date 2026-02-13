@@ -18,9 +18,7 @@ module.exports = {
   /**
    * Service dependencies
    */
-  dependencies: [
-    'energy-market'
-  ],
+  dependencies: ['energy-market'],
 
   /**
    * Methods
@@ -35,23 +33,25 @@ module.exports = {
       }
 
       // Get all unique keys from all objects (some objects might have different fields)
-      const allKeys = [...new Set(data.flatMap(obj => Object.keys(obj)))];
+      const allKeys = [...new Set(data.flatMap((obj) => Object.keys(obj)))];
 
       // Create CSV header
-      const header = allKeys.map(key => `"${key}"`).join(',');
+      const header = allKeys.map((key) => `"${key}"`).join(',');
 
       // Create CSV rows
-      const rows = data.map(obj => {
-        return allKeys.map(key => {
-          const value = obj[key];
-          // Handle null/undefined
-          if (value === null || value === undefined) return '';
-          // Handle numbers
-          if (typeof value === 'number') return value;
-          // Handle strings (escape quotes and wrap in quotes)
-          const stringValue = String(value).replace(/"/g, '""');
-          return `"${stringValue}"`;
-        }).join(',');
+      const rows = data.map((obj) => {
+        return allKeys
+          .map((key) => {
+            const value = obj[key];
+            // Handle null/undefined
+            if (value === null || value === undefined) return '';
+            // Handle numbers
+            if (typeof value === 'number') return value;
+            // Handle strings (escape quotes and wrap in quotes)
+            const stringValue = String(value).replace(/"/g, '""');
+            return `"${stringValue}"`;
+          })
+          .join(',');
       });
 
       return [header, ...rows].join('\n');
@@ -72,11 +72,13 @@ module.exports = {
         limit,
         redispatch,
         operationalStatus,
-        format
+        format,
       } = ctx.params;
 
       if (!vnbName && !bdewCode && !gridOperatorId && !location) {
-        throw new Error('Please provide either "vnbName", "bdewCode", "gridOperatorId", or "location".');
+        throw new Error(
+          'Please provide either "vnbName", "bdewCode", "gridOperatorId", or "location".'
+        );
       }
 
       // Redispatch 2.0 convenience: minCapacityKW=100 if redispatch=true
@@ -94,7 +96,9 @@ module.exports = {
           const { callWithAutoPoll } = require('../src/async-job-poller');
 
           if (bdewCode) {
-            this.logger.info(`Using BDEW code directly (resolved by installations_local): ${bdewCode}`);
+            this.logger.info(
+              `Using BDEW code directly (resolved by installations_local): ${bdewCode}`
+            );
           }
 
           if (!resolvedMastrId && vnbName) {
@@ -116,15 +120,18 @@ module.exports = {
               if (typeof result.data === 'object' && !Array.isArray(result.data)) {
                 jsonData = result.data;
               } else {
-                const rawText = typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
+                const rawText =
+                  typeof result.data === 'string' ? result.data : JSON.stringify(result.data);
 
                 try {
-                  const jsonMatch = rawText.match(/```json\s*([\s\S]*?)\s*```/) || rawText.match(/\{[\s\S]*\}/);
+                  const jsonMatch =
+                    rawText.match(/```json\s*([\s\S]*?)\s*```/) || rawText.match(/\{[\s\S]*\}/);
                   if (jsonMatch) {
                     jsonData = JSON.parse(jsonMatch[1] || jsonMatch[0]);
                   }
                 } catch (parseErr) {
-                  const bdewMatch = rawText.match(/BDEW[:\s]*(\d{13})/i) || rawText.match(/\b(\d{13})\b/);
+                  const bdewMatch =
+                    rawText.match(/BDEW[:\s]*(\d{13})/i) || rawText.match(/\b(\d{13})\b/);
                   if (bdewMatch && !resolvedBdewCode) {
                     resolvedBdewCode = bdewMatch[1];
                   }
@@ -137,9 +144,8 @@ module.exports = {
                 if (results.length > 0) {
                   const firstMatch = results[0];
 
-                  resolvedMastrId = firstMatch.mastrNetzbetreiberId ||
-                                    firstMatch.mastrId ||
-                                    firstMatch.mastr_id;
+                  resolvedMastrId =
+                    firstMatch.mastrNetzbetreiberId || firstMatch.mastrId || firstMatch.mastr_id;
 
                   if (!resolvedMastrId && typeof firstMatch.mastrIds === 'object') {
                     const mastrIds = firstMatch.mastrIds;
@@ -151,13 +157,17 @@ module.exports = {
                     resolvedBdewCode = responseBdewCode;
                   }
 
-                  this.logger.info(`Resolved: MaStR ID=${resolvedMastrId}, BDEW=${resolvedBdewCode}`);
+                  this.logger.info(
+                    `Resolved: MaStR ID=${resolvedMastrId}, BDEW=${resolvedBdewCode}`
+                  );
                 }
               }
             }
           }
         } catch (err) {
-          this.logger.warn(`VNB/Market partners search failed for "${searchQuery}": ${err.message}`);
+          this.logger.warn(
+            `VNB/Market partners search failed for "${searchQuery}": ${err.message}`
+          );
         }
       }
 
@@ -191,7 +201,9 @@ module.exports = {
           if (result?.data?.error) {
             const errorMsg = result.data.error;
             const details = result.data.details || '';
-            const suggestions = result.data.suggestions ? '\n\nSuggestions:\n' + result.data.suggestions.map(s => `- ${s}`).join('\n') : '';
+            const suggestions = result.data.suggestions
+              ? '\n\nSuggestions:\n' + result.data.suggestions.map((s) => `- ${s}`).join('\n')
+              : '';
             throw new Error(`${errorMsg}: ${details}${suggestions}`);
           }
 
@@ -226,25 +238,43 @@ module.exports = {
           }
 
           // Map items to German output format
-          const mappedItems = items.map(item => {
+          const mappedItems = items.map((item) => {
             // Handle both field naming conventions (camelCase and German)
-            const capacityKW = Number(item.capacityKW || item.bruttoleistung || item.nettonennleistung) || 0;
+            // For storage: check acLeistung (AC power) first, then bruttoleistung
+            const capacityKW =
+              Number(
+                item.capacityKW ||
+                  item.acLeistung ||
+                  item.bruttoleistung ||
+                  item.nettonennleistung ||
+                  item.installierteleistung
+              ) || 0;
             const capacityMW = capacityKW / 1000;
 
-            const storageCapacity = Number(item.storageCapacityKWh || item.nutzbareSpeicherkapazitaet) || 0;
-            let cRate = null;
+            // Storage capacity: check all possible field name variants
+            const storageCapacity =
+              Number(
+                item.storageCapacityKWh ||
+                  item.nutzbareSpeicherkapazitaet ||
+                  item.speicherkapazitaet ||
+                  item.nutzbareKapazitaet
+              ) || 0;
 
+            let cRate = null;
             if (assetType === 'storage') {
               if (capacityKW > 0 && storageCapacity > 0) {
                 cRate = parseFloat((capacityKW / storageCapacity).toFixed(2));
               }
             }
 
-            const inverterPower = item.inverterPowerKW || item.wechselrichterleistung ?
-              Number(item.inverterPowerKW || item.wechselrichterleistung) : null;
+            const inverterPower =
+              item.inverterPowerKW || item.wechselrichterleistung
+                ? Number(item.inverterPowerKW || item.wechselrichterleistung)
+                : null;
 
             // Extract commission date (handle ISO format)
-            let commissionDate = item.commissioningDate || item.inbetriebnahmedatum || item.date || 'N/A';
+            let commissionDate =
+              item.commissioningDate || item.inbetriebnahmedatum || item.date || 'N/A';
             if (commissionDate !== 'N/A' && typeof commissionDate === 'string') {
               // Convert ISO date to YYYY-MM-DD format
               commissionDate = commissionDate.split('T')[0];
@@ -252,34 +282,102 @@ module.exports = {
 
             // Map status code to readable name
             const statusCode = item.operationalStatus || item.einheitBetriebsstatus || null;
-            const statusName = statusCode === '31' ? 'Geplant' :
-                             statusCode === '35' ? 'In Betrieb' :
-                             statusCode === '37' ? 'Vorübergehend stillgelegt' :
-                             statusCode === '38' ? 'Endgültig stillgelegt' :
-                             statusCode ? `Status ${statusCode}` : null;
+            const statusName =
+              statusCode === '31'
+                ? 'Geplant'
+                : statusCode === '35'
+                  ? 'In Betrieb'
+                  : statusCode === '37'
+                    ? 'Vorübergehend stillgelegt'
+                    : statusCode === '38'
+                      ? 'Endgültig stillgelegt'
+                      : statusCode
+                        ? `Status ${statusCode}`
+                        : null;
 
             return {
-              'SEE Nummer': item.mastrNumber || item.mastrNummer || item.id || 'N/A',
-              'Betreiber': item.operatorName || item.operator || item.name || item.betreiber || 'N/A',
-              'Anlagentyp': assetType,
+              // Core identification
+              'SEE Nummer':
+                item.mastrNumber || item.mastrNummer || item.EinheitMastrNummer || item.id || 'N/A',
+              'Einheit Systemstatus': item.einheitSystemstatus || item.systemStatus || null,
+
+              // Operator information
+              Betreiber: item.operatorName || item.operator || item.name || item.betreiber || 'N/A',
+              'Marktaktuer MaStR':
+                item.marketActorId || item.marktakteurMastrNummer || item.marktakteur || null,
+              'Marktakteuer Name':
+                item.marketActorName ||
+                item.marktakteurName ||
+                item.nameMarktakteur ||
+                item.marktakteurFirmenname ||
+                null,
+              'Marktakteur Adresse':
+                item.marketActorAddress ||
+                item.marktakteurAdresse ||
+                item.marktakteurStrasse ||
+                null,
+
+              // Grid operator information
+              'Netzbetreiber MaStR':
+                item.netzbetreiberMastrNummer || item.gridOperatorMastrId || null,
+              'Netzbetreiber Name': item.netzbetreiberName || item.gridOperatorName || null,
+
+              // Technical specifications
+              Anlagentyp: assetType,
               'Leistung MW': capacityMW,
-              'Betriebsstatus': statusCode,
+              'Leistung kW': capacityKW,
+              Wechselrichterleistung: inverterPower,
+              Technologie: item.technology || item.technologie || assetType,
+
+              // Storage-specific fields
+              Speicherkapazität: assetType === 'storage' ? storageCapacity : null,
+              C_Rate: cRate,
+              'AC Nennleistung': item.acNennleistung || item.acNominalPower || null,
+              'DC Nennleistung': item.dcNennleistung || item.dcNominalPower || null,
+              Batterietechnologie: item.batterietechnologie || item.batteryTechnology || null,
+              'Hersteller Batteriemodule':
+                item.herstellerBatteriemodule || item.batteryModuleManufacturer || null,
+
+              // Solar-specific fields
+              Hauptausrichtung:
+                item.hauptausrichtung || item.hauptAusrichtung || item.orientation || null,
+              Neigungswinkel: item.neigungswinkel || item.tiltAngle || null,
+              Leistungsbegrenzung: item.leistungsbegrenzung || item.powerLimit || null,
+
+              // Wind-specific fields
+              Nabenhöhe: item.nabenhoehe || item.hubHeight || null,
+              Rotordurchmesser: item.rotordurchmesser || item.rotorDiameter || null,
+              Hersteller: item.hersteller || item.manufacturer || null,
+              Typenbezeichnung: item.typenbezeichnung || item.typeDesignation || null,
+
+              // Status and dates
+              Betriebsstatus: statusCode,
               'Betriebsstatus Name': statusName,
               'Datum Netzzugang': commissionDate,
-              'Wechselrichterleistung': inverterPower,
-              'Speicherkapazität': assetType === 'storage' ? storageCapacity : null,
-              'Technologie': item.technology || item.technologie || assetType,
-              'Kopplung': item.coupling || item.kopplung || (item.connectedToGrid ? 'AC' : 'DC'),
-              'Marktaktuer MaStR': item.marketActorId || item.marktakteurMastrNummer || null,
-              'Marktakteuer Name': item.marketActorName || item.marktakteurName || null,
-              'Marktakteur Adresse': item.marketActorAddress || item.marktakteurAdresse || null,
-              'Einspeiseart': item.feedInType || item.einspeiseart || 'Überschusseinspeisung',
-              'C_Rate': cRate,
-              'Postleitzahl': item.postleitzahl || item.postalCode || null,
-              'Ort': item.ort || item.city || null,
-              'Gemeinde': item.gemeinde || item.municipality || null,
-              'Landkreis': item.landkreis || item.district || null,
-              'Bundesland': item.bundesland || item.state || null
+              Registrierungsdatum: item.registrierungsdatum || item.registrationDate || null,
+              Genehmigungsdatum: item.genehmigungsdatum || item.approvalDate || null,
+
+              // Grid connection
+              Kopplung: item.coupling || item.kopplung || (item.connectedToGrid ? 'AC' : 'DC'),
+              Einspeiseart: item.feedInType || item.einspeiseart || 'Überschusseinspeisung',
+              Spannungsebene: item.spannungsebene || item.voltageLevel || null,
+              Fernsteuerbarkeit: item.fernsteuerbarkeit || item.remoteControllability || null,
+              Einsatzverantwortlicher:
+                item.einsatzverantwortlicher || item.deploymentResponsible || null,
+
+              // Location information
+              Postleitzahl: item.postleitzahl || item.postalCode || null,
+              Ort: item.ort || item.city || null,
+              Gemeinde: item.gemeinde || item.municipality || null,
+              Landkreis: item.landkreis || item.district || null,
+              Bundesland: item.bundesland || item.state || null,
+              Längengrad: item.laengengrad || item.longitude || null,
+              Breitengrad: item.breitengrad || item.latitude || null,
+
+              // Additional fields
+              Fläche: item.inAnspruchGenommeneFlaeche || item.usedArea || null,
+              'Anzahl Module': item.anzahlModule || item.moduleCount || null,
+              'Leistung je Modul': item.leistungJeModul || item.powerPerModule || null,
             };
           });
 
@@ -300,14 +398,14 @@ module.exports = {
         // Set response headers for CSV download
         ctx.meta.$responseHeaders = {
           'Content-Type': 'text/csv; charset=utf-8',
-          'Content-Disposition': `attachment; filename="assets-${Date.now()}.csv"`
+          'Content-Disposition': `attachment; filename="assets-${Date.now()}.csv"`,
         };
 
         return csvContent;
       }
 
       return allResults;
-    }
+    },
   },
 
   /**
@@ -335,91 +433,93 @@ module.exports = {
         vnbName: {
           type: 'string',
           optional: true,
-          description: 'Name of the Distribution Network Operator'
+          description: 'Name of the Distribution Network Operator',
         },
         bdewCode: {
           type: 'string',
           optional: true,
           convert: true, // Convert number to string if passed as numeric value from URL
-          description: 'BDEW Code of the VNB'
+          description: 'BDEW Code of the VNB',
         },
         gridOperatorId: {
           type: 'string',
           optional: true,
           convert: true, // Convert number to string if passed as numeric value from URL
-          description: 'MaStR Grid Operator ID (SNB/GNB)'
+          description: 'MaStR Grid Operator ID (SNB/GNB)',
         },
         assetType: {
           type: 'enum',
           values: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'],
-          description: 'Type of asset to extract'
+          description: 'Type of asset to extract',
         },
         location: {
           type: 'string',
           optional: true,
           min: 1,
-          description: 'City, region or postal code to narrow search'
+          description: 'City, region or postal code to narrow search',
         },
         commissioningYear: {
           type: 'number',
           optional: true,
           min: 1900,
           max: 2100,
-          convert: true
+          convert: true,
         },
         minCapacityKW: {
           type: 'number',
           optional: true,
           min: 0,
-          convert: true
+          convert: true,
         },
         maxCapacityKW: {
           type: 'number',
           optional: true,
           min: 0,
-          convert: true
+          convert: true,
         },
         limit: {
           type: 'number',
           optional: true,
           min: 1,
-          convert: true
+          convert: true,
         },
         redispatch: {
           type: 'boolean',
           optional: true,
           convert: true,
-          description: 'Redispatch 2.0 filter (automatically sets minCapacityKW=100)'
+          description: 'Redispatch 2.0 filter (automatically sets minCapacityKW=100)',
         },
         operationalStatus: {
           type: 'string',
           optional: true,
           default: '35',
-          description: 'Operational status filter: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All statuses, or comma-separated list'
-        }
+          description:
+            'Operational status filter: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All statuses, or comma-separated list',
+        },
       },
       openapi: {
         summary: 'List assets of a distribution network operator (DNO/DSO)',
-        description: 'Retrieves complete installation data from the German Marktstammdatenregister (MaStR). Supports filtering by grid operator (BDEW code or name), asset type, capacity, commissioning year, and operational status. **Default behavior: Only active installations (status 35 - In operation) are returned.** No pagination required - can retrieve millions of installations.',
+        description:
+          'Retrieves complete installation data from the German Marktstammdatenregister (MaStR). Supports filtering by grid operator (BDEW code or name), asset type, capacity, commissioning year, and operational status. **Default behavior: Only active installations (status 35 - In operation) are returned.** No pagination required - can retrieve millions of installations.',
         tags: ['Assets'],
         parameters: [
           {
             name: 'vnbName',
             in: 'query',
             schema: { type: 'string', example: 'Netze BW' },
-            description: 'Name of the distribution network operator (fuzzy matching supported)'
+            description: 'Name of the distribution network operator (fuzzy matching supported)',
           },
           {
             name: 'bdewCode',
             in: 'query',
             schema: { type: 'string', example: '4041407000008' },
-            description: 'BDEW code (13 digits) - more precise than name'
+            description: 'BDEW code (13 digits) - more precise than name',
           },
           {
             name: 'gridOperatorId',
             in: 'query',
             schema: { type: 'string', example: 'SNB948311994307' },
-            description: 'MaStR grid operator ID (SNB/GNB format) - direct ID without resolution'
+            description: 'MaStR grid operator ID (SNB/GNB format) - direct ID without resolution',
           },
           {
             name: 'assetType',
@@ -427,46 +527,48 @@ module.exports = {
             required: true,
             schema: {
               type: 'string',
-              enum: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion']
+              enum: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'],
             },
-            description: 'Asset type: solar (PV), wind, storage (battery), biomass (biogas), hydro (hydropower), combustion'
+            description:
+              'Asset type: solar (PV), wind, storage (battery), biomass (biogas), hydro (hydropower), combustion',
           },
           {
             name: 'location',
             in: 'query',
             schema: { type: 'string', example: 'Heidelberg' },
-            description: 'City/region/postal code for geographic filtering (optional)'
+            description: 'City/region/postal code for geographic filtering (optional)',
           },
           {
             name: 'commissioningYear',
             in: 'query',
             schema: { type: 'number', example: 2020 },
-            description: 'Filter by commissioning year (optional)'
+            description: 'Filter by commissioning year (optional)',
           },
           {
             name: 'minCapacityKW',
             in: 'query',
             schema: { type: 'number', example: 100 },
-            description: 'Minimum capacity in kW (optional)'
+            description: 'Minimum capacity in kW (optional)',
           },
           {
             name: 'maxCapacityKW',
             in: 'query',
             schema: { type: 'number', example: 10000 },
-            description: 'Maximum capacity in kW (optional)'
+            description: 'Maximum capacity in kW (optional)',
           },
           {
             name: 'limit',
             in: 'query',
             schema: { type: 'number', example: 100 },
-            description: 'Maximum number of results (optional, default: all)'
+            description: 'Maximum number of results (optional, default: all)',
           },
           {
             name: 'redispatch',
             in: 'query',
             schema: { type: 'boolean', example: true },
-            description: 'Redispatch 2.0 filter: Only installations ≥100kW (automatically sets minCapacityKW=100)'
-          }
+            description:
+              'Redispatch 2.0 filter: Only installations ≥100kW (automatically sets minCapacityKW=100)',
+          },
         ],
         responses: {
           200: {
@@ -478,30 +580,274 @@ module.exports = {
                   items: {
                     type: 'object',
                     properties: {
-                      'SEE Nummer': { type: 'string', description: 'MaStR unit ID (SEE/SBE/SWE format)', example: 'SEE913735587817' },
-                      'Betreiber': { type: 'string', description: 'Name of the installation operator', example: 'PVA Langenenslingen' },
-                      'Anlagentyp': { type: 'string', description: 'Type of installation', enum: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'] },
-                      'Leistung MW': { type: 'number', description: 'Gross capacity in megawatts (MW)', example: 80.3088 },
-                      'Betriebsstatus': { type: 'string', description: 'Operational status code: 31=Planned, 35=In operation, 37=Temporarily decommissioned, 38=Permanently decommissioned', example: '35', nullable: true },
-                      'Betriebsstatus Name': { type: 'string', description: 'Operational status name in German', example: 'In Betrieb', nullable: true },
-                      'Datum Netzzugang': { type: 'string', format: 'date', description: 'Commissioning date (ISO 8601)', example: '2025-05-27' },
-                      'Wechselrichterleistung': { type: 'number', nullable: true, description: 'Inverter capacity in MW (PV/storage only)' },
-                      'Speicherkapazität': { type: 'number', nullable: true, description: 'Usable storage capacity in MWh (storage only)' },
-                      'Technologie': { type: 'string', description: 'Technology type (e.g., solar, wind)', example: 'solar' },
-                      'Kopplung': { type: 'string', nullable: true, description: 'AC/DC coupling (storage only)' },
-                      'Marktaktuer MaStR': { type: 'string', nullable: true, description: 'MaStR ID of direct marketer' },
-                      'Marktakteuer Name': { type: 'string', nullable: true, description: 'Name of direct marketer' },
-                      'Marktakteur Adresse': { type: 'string', nullable: true, description: 'Address of direct marketer' },
-                      'Einspeiseart': { type: 'string', nullable: true, description: 'Feed-in type (e.g., full feed-in, surplus feed-in)', example: 'Überschusseinspeisung' },
-                      'C_Rate': { type: 'number', nullable: true, description: 'C-Rate for storage (power/capacity)' },
-                      'Postleitzahl': { type: 'string', description: 'Postal code of installation location', example: '88515' },
-                      'Ort': { type: 'string', description: 'City of installation location', example: 'Langenenslingen' },
-                      'Gemeinde': { type: 'string', description: 'Municipality of installation location', example: 'Langenenslingen' },
-                      'Landkreis': { type: 'string', description: 'District of installation location', example: 'Biberach' },
-                      'Bundesland': { type: 'string', description: 'Federal state code', example: '1402' }
+                      // Core identification
+                      'SEE Nummer': {
+                        type: 'string',
+                        description: 'MaStR unit ID (SEE/SBE/SWE format)',
+                        example: 'SEE913735587817',
+                      },
+                      'Einheit Systemstatus': {
+                        type: 'string',
+                        nullable: true,
+                        description: 'System status of the unit',
+                      },
+
+                      // Operator information
+                      Betreiber: {
+                        type: 'string',
+                        description: 'Name of the installation operator',
+                        example: 'PVA Langenenslingen',
+                      },
+                      'Marktaktuer MaStR': {
+                        type: 'string',
+                        nullable: true,
+                        description: 'MaStR ID of direct marketer',
+                      },
+                      'Marktakteuer Name': {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Name of direct marketer',
+                      },
+                      'Marktakteur Adresse': {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Address of direct marketer',
+                      },
+
+                      // Grid operator information
+                      'Netzbetreiber MaStR': {
+                        type: 'string',
+                        nullable: true,
+                        description: 'MaStR ID of grid operator',
+                      },
+                      'Netzbetreiber Name': {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Name of grid operator',
+                      },
+
+                      // Technical specifications
+                      Anlagentyp: {
+                        type: 'string',
+                        description: 'Type of installation',
+                        enum: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'],
+                      },
+                      'Leistung MW': {
+                        type: 'number',
+                        description: 'Gross capacity in megawatts (MW)',
+                        example: 80.3088,
+                      },
+                      'Leistung kW': {
+                        type: 'number',
+                        description: 'Gross capacity in kilowatts (kW)',
+                        example: 80308.8,
+                      },
+                      Wechselrichterleistung: {
+                        type: 'number',
+                        nullable: true,
+                        description: 'Inverter capacity in kW (PV/storage only)',
+                      },
+                      Technologie: {
+                        type: 'string',
+                        description: 'Technology type (e.g., solar, wind)',
+                        example: 'solar',
+                      },
+
+                      // Storage-specific fields
+                      Speicherkapazität: {
+                        type: 'number',
+                        nullable: true,
+                        description: 'Usable storage capacity in kWh (storage only)',
+                      },
+                      C_Rate: {
+                        type: 'number',
+                        nullable: true,
+                        description: 'C-Rate for storage (power/capacity)',
+                      },
+                      'AC Nennleistung': {
+                        type: 'number',
+                        nullable: true,
+                        description: 'AC nominal power in kW (storage only)',
+                      },
+                      'DC Nennleistung': {
+                        type: 'number',
+                        nullable: true,
+                        description: 'DC nominal power in kW (storage only)',
+                      },
+                      Batterietechnologie: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Battery technology type (storage only)',
+                      },
+                      'Hersteller Batteriemodule': {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Battery module manufacturer (storage only)',
+                      },
+
+                      // Solar-specific fields
+                      Hauptausrichtung: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Main orientation (solar only, e.g., Süd, Ost-West)',
+                      },
+                      Neigungswinkel: {
+                        type: 'number',
+                        nullable: true,
+                        description: 'Tilt angle in degrees (solar only)',
+                      },
+                      Leistungsbegrenzung: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Power limitation (solar only)',
+                      },
+
+                      // Wind-specific fields
+                      Nabenhöhe: {
+                        type: 'number',
+                        nullable: true,
+                        description: 'Hub height in meters (wind only)',
+                      },
+                      Rotordurchmesser: {
+                        type: 'number',
+                        nullable: true,
+                        description: 'Rotor diameter in meters (wind only)',
+                      },
+                      Hersteller: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Manufacturer (wind only)',
+                      },
+                      Typenbezeichnung: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Type designation (wind only)',
+                      },
+
+                      // Status and dates
+                      Betriebsstatus: {
+                        type: 'string',
+                        description:
+                          'Operational status code: 31=Planned, 35=In operation, 37=Temporarily decommissioned, 38=Permanently decommissioned',
+                        example: '35',
+                        nullable: true,
+                      },
+                      'Betriebsstatus Name': {
+                        type: 'string',
+                        description: 'Operational status name in German',
+                        example: 'In Betrieb',
+                        nullable: true,
+                      },
+                      'Datum Netzzugang': {
+                        type: 'string',
+                        format: 'date',
+                        description: 'Commissioning date (ISO 8601)',
+                        example: '2025-05-27',
+                      },
+                      Registrierungsdatum: {
+                        type: 'string',
+                        format: 'date',
+                        nullable: true,
+                        description: 'Registration date',
+                      },
+                      Genehmigungsdatum: {
+                        type: 'string',
+                        format: 'date',
+                        nullable: true,
+                        description: 'Approval date',
+                      },
+
+                      // Grid connection
+                      Kopplung: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'AC/DC coupling (storage only)',
+                      },
+                      Einspeiseart: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Feed-in type (e.g., full feed-in, surplus feed-in)',
+                        example: 'Überschusseinspeisung',
+                      },
+                      Spannungsebene: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Voltage level (NS/MS/HS)',
+                      },
+                      Fernsteuerbarkeit: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Remote controllability',
+                      },
+                      Einsatzverantwortlicher: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Deployment responsible party',
+                      },
+
+                      // Location information
+                      Postleitzahl: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Postal code of installation location',
+                        example: '88515',
+                      },
+                      Ort: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'City of installation location',
+                        example: 'Langenenslingen',
+                      },
+                      Gemeinde: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Municipality of installation location',
+                        example: 'Langenenslingen',
+                      },
+                      Landkreis: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'District of installation location',
+                        example: 'Biberach',
+                      },
+                      Bundesland: {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Federal state code',
+                        example: '1402',
+                      },
+                      Längengrad: {
+                        type: 'number',
+                        nullable: true,
+                        description: 'Longitude coordinate',
+                      },
+                      Breitengrad: {
+                        type: 'number',
+                        nullable: true,
+                        description: 'Latitude coordinate',
+                      },
+
+                      // Additional fields
+                      Fläche: { type: 'number', nullable: true, description: 'Used area in m²' },
+                      'Anzahl Module': {
+                        type: 'number',
+                        nullable: true,
+                        description: 'Number of modules (solar only)',
+                      },
+                      'Leistung je Modul': {
+                        type: 'number',
+                        nullable: true,
+                        description: 'Power per module in W (solar only)',
+                      },
                     },
-                    required: ['SEE Nummer', 'Betreiber', 'Anlagentyp', 'Leistung MW', 'Technologie']
-                  }
+                    required: [
+                      'SEE Nummer',
+                      'Betreiber',
+                      'Anlagentyp',
+                      'Leistung MW',
+                      'Technologie',
+                    ],
+                  },
                 },
                 examples: {
                   netze_bw_solar: {
@@ -509,35 +855,35 @@ module.exports = {
                     value: [
                       {
                         'SEE Nummer': 'SEE913735587817',
-                        'Betreiber': 'PVA Langenenslingen',
-                        'Anlagentyp': 'solar',
+                        Betreiber: 'PVA Langenenslingen',
+                        Anlagentyp: 'solar',
                         'Leistung MW': 80.3088,
                         'Datum Netzzugang': '2025-05-27',
-                        'Technologie': 'solar',
-                        'Einspeiseart': 'Überschusseinspeisung',
-                        'Postleitzahl': '88515',
-                        'Ort': 'Langenenslingen',
-                        'Gemeinde': 'Langenenslingen',
-                        'Landkreis': 'Biberach',
-                        'Bundesland': '1402'
-                      }
-                    ]
-                  }
-                }
-              }
-            }
+                        Technologie: 'solar',
+                        Einspeiseart: 'Überschusseinspeisung',
+                        Postleitzahl: '88515',
+                        Ort: 'Langenenslingen',
+                        Gemeinde: 'Langenenslingen',
+                        Landkreis: 'Biberach',
+                        Bundesland: '1402',
+                      },
+                    ],
+                  },
+                },
+              },
+            },
           },
           400: {
-            description: 'Invalid parameters (missing grid operator details or invalid assetType)'
+            description: 'Invalid parameters (missing grid operator details or invalid assetType)',
           },
           500: {
-            description: 'Internal server error during MaStR query'
-          }
-        }
+            description: 'Internal server error during MaStR query',
+          },
+        },
       },
       async handler(ctx) {
         return this._fetchAssets(ctx, [ctx.params.assetType]);
-      }
+      },
     },
 
     /**
@@ -558,28 +904,80 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' }
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List all solar PV installations of a grid operator',
-        description: 'Retrieves all photovoltaic installations of a grid operator. **Default: Only active installations (status 35).** Example: /api/assets/solar?bdewCode=4041407000008&redispatch=true for Netze BW redispatch installations.',
+        description:
+          'Retrieves all photovoltaic installations of a grid operator. **Default: Only active installations (status 35).** Example: /api/assets/solar?bdewCode=4041407000008&redispatch=true for Netze BW redispatch installations.',
         tags: ['Assets'],
         parameters: [
-          { name: 'vnbName', in: 'query', schema: { type: 'string', example: 'Netze BW' }, description: 'Name of grid operator' },
-          { name: 'bdewCode', in: 'query', schema: { type: 'string', example: '4041407000008' }, description: 'BDEW code (13 digits)' },
-          { name: 'gridOperatorId', in: 'query', schema: { type: 'string', example: 'SNB948311994307' }, description: 'MaStR grid operator ID' },
-          { name: 'location', in: 'query', schema: { type: 'string', example: 'Heidelberg' }, description: 'City/region/postal code' },
-          { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
-          { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
-          { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', example: 100 }, description: 'Max. number of results' },
-          { name: 'redispatch', in: 'query', schema: { type: 'boolean', example: true }, description: 'Redispatch 2.0 filter (≥100kW)' },
-          { name: 'operationalStatus', in: 'query', schema: { type: 'string', default: '35', example: '35' }, description: 'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All statuses' }
-        ]
+          {
+            name: 'vnbName',
+            in: 'query',
+            schema: { type: 'string', example: 'Netze BW' },
+            description: 'Name of grid operator',
+          },
+          {
+            name: 'bdewCode',
+            in: 'query',
+            schema: { type: 'string', example: '4041407000008' },
+            description: 'BDEW code (13 digits)',
+          },
+          {
+            name: 'gridOperatorId',
+            in: 'query',
+            schema: { type: 'string', example: 'SNB948311994307' },
+            description: 'MaStR grid operator ID',
+          },
+          {
+            name: 'location',
+            in: 'query',
+            schema: { type: 'string', example: 'Heidelberg' },
+            description: 'City/region/postal code',
+          },
+          {
+            name: 'commissioningYear',
+            in: 'query',
+            schema: { type: 'number', example: 2020 },
+            description: 'Commissioning year',
+          },
+          {
+            name: 'minCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 100 },
+            description: 'Min. capacity in kW',
+          },
+          {
+            name: 'maxCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 10000 },
+            description: 'Max. capacity in kW',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'number', example: 100 },
+            description: 'Max. number of results',
+          },
+          {
+            name: 'redispatch',
+            in: 'query',
+            schema: { type: 'boolean', example: true },
+            description: 'Redispatch 2.0 filter (≥100kW)',
+          },
+          {
+            name: 'operationalStatus',
+            in: 'query',
+            schema: { type: 'string', default: '35', example: '35' },
+            description:
+              'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All statuses',
+          },
+        ],
       },
       async handler(ctx) {
         return this._fetchAssets(ctx, ['solar']);
-      }
+      },
     },
 
     /**
@@ -601,7 +999,7 @@ module.exports = {
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' }
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List all wind power installations of a grid operator',
@@ -616,13 +1014,24 @@ module.exports = {
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'limit', in: 'query', schema: { type: 'number' } },
-          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' },
-          { name: 'operationalStatus', in: 'query', schema: { type: 'string', default: '35' }, description: 'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All' }
-        ]
+          {
+            name: 'redispatch',
+            in: 'query',
+            schema: { type: 'boolean' },
+            description: 'Redispatch 2.0 (≥100kW)',
+          },
+          {
+            name: 'operationalStatus',
+            in: 'query',
+            schema: { type: 'string', default: '35' },
+            description:
+              'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
+          },
+        ],
       },
       async handler(ctx) {
         return this._fetchAssets(ctx, ['wind']);
-      }
+      },
     },
 
     /**
@@ -643,7 +1052,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' }
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List all battery storage installations of a grid operator',
@@ -658,13 +1067,24 @@ module.exports = {
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'limit', in: 'query', schema: { type: 'number' } },
-          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' },
-          { name: 'operationalStatus', in: 'query', schema: { type: 'string', default: '35' }, description: 'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All' }
-        ]
+          {
+            name: 'redispatch',
+            in: 'query',
+            schema: { type: 'boolean' },
+            description: 'Redispatch 2.0 (≥100kW)',
+          },
+          {
+            name: 'operationalStatus',
+            in: 'query',
+            schema: { type: 'string', default: '35' },
+            description:
+              'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
+          },
+        ],
       },
       async handler(ctx) {
         return this._fetchAssets(ctx, ['storage']);
-      }
+      },
     },
 
     /**
@@ -685,7 +1105,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' }
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List all biomass installations of a grid operator',
@@ -700,13 +1120,24 @@ module.exports = {
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'limit', in: 'query', schema: { type: 'number' } },
-          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' },
-          { name: 'operationalStatus', in: 'query', schema: { type: 'string', default: '35' }, description: 'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All' }
-        ]
+          {
+            name: 'redispatch',
+            in: 'query',
+            schema: { type: 'boolean' },
+            description: 'Redispatch 2.0 (≥100kW)',
+          },
+          {
+            name: 'operationalStatus',
+            in: 'query',
+            schema: { type: 'string', default: '35' },
+            description:
+              'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
+          },
+        ],
       },
       async handler(ctx) {
         return this._fetchAssets(ctx, ['biomass']);
-      }
+      },
     },
 
     /**
@@ -727,7 +1158,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' }
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List all hydropower installations of a grid operator',
@@ -742,13 +1173,24 @@ module.exports = {
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'limit', in: 'query', schema: { type: 'number' } },
-          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' },
-          { name: 'operationalStatus', in: 'query', schema: { type: 'string', default: '35' }, description: 'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All' }
-        ]
+          {
+            name: 'redispatch',
+            in: 'query',
+            schema: { type: 'boolean' },
+            description: 'Redispatch 2.0 (≥100kW)',
+          },
+          {
+            name: 'operationalStatus',
+            in: 'query',
+            schema: { type: 'string', default: '35' },
+            description:
+              'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
+          },
+        ],
       },
       async handler(ctx) {
         return this._fetchAssets(ctx, ['hydro']);
-      }
+      },
     },
 
     /**
@@ -769,7 +1211,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' }
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List all combustion installations of a grid operator',
@@ -784,13 +1226,24 @@ module.exports = {
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'limit', in: 'query', schema: { type: 'number' } },
-          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' },
-          { name: 'operationalStatus', in: 'query', schema: { type: 'string', default: '35' }, description: 'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All' }
-        ]
+          {
+            name: 'redispatch',
+            in: 'query',
+            schema: { type: 'boolean' },
+            description: 'Redispatch 2.0 (≥100kW)',
+          },
+          {
+            name: 'operationalStatus',
+            in: 'query',
+            schema: { type: 'string', default: '35' },
+            description:
+              'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
+          },
+        ],
       },
       async handler(ctx) {
         return this._fetchAssets(ctx, ['combustion']);
-      }
+      },
     },
 
     /**
@@ -815,39 +1268,96 @@ module.exports = {
         types: {
           type: 'string',
           optional: true,
-          description: 'Comma-separated list of asset types (default: all types)'
-        }
+          description: 'Comma-separated list of asset types (default: all types)',
+        },
       },
       openapi: {
         summary: 'List all installations of a grid operator (all or selected types)',
-        description: 'Retrieves installations of all or selected types from a grid operator. **Default: Only active installations (status 35).** Ideal for asset management and portfolio overview. Example: /api/assets/all?bdewCode=4041407000008&types=solar,wind,storage&redispatch=true',
+        description:
+          'Retrieves installations of all or selected types from a grid operator. **Default: Only active installations (status 35).** Ideal for asset management and portfolio overview. Example: /api/assets/all?bdewCode=4041407000008&types=solar,wind,storage&redispatch=true',
         tags: ['Assets'],
         parameters: [
-          { name: 'vnbName', in: 'query', schema: { type: 'string', example: 'Netze BW' }, description: 'Name of grid operator' },
-          { name: 'bdewCode', in: 'query', schema: { type: 'string', example: '4041407000008' }, description: 'BDEW code (13 digits)' },
-          { name: 'gridOperatorId', in: 'query', schema: { type: 'string', example: 'SNB948311994307' }, description: 'MaStR grid operator ID' },
-          { name: 'location', in: 'query', schema: { type: 'string', example: 'Baden-Württemberg' }, description: 'City/region/postal code' },
-          { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
-          { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
-          { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', example: 100 }, description: 'Max. number of results per type' },
-          { name: 'redispatch', in: 'query', schema: { type: 'boolean', example: true }, description: 'Redispatch 2.0 filter (≥100kW)' },
-          { name: 'types', in: 'query', schema: { type: 'string', example: 'solar,wind,storage' }, description: 'Comma-separated list of installation types. Default: all types (solar,wind,storage,biomass,hydro,combustion)' }
-        ]
+          {
+            name: 'vnbName',
+            in: 'query',
+            schema: { type: 'string', example: 'Netze BW' },
+            description: 'Name of grid operator',
+          },
+          {
+            name: 'bdewCode',
+            in: 'query',
+            schema: { type: 'string', example: '4041407000008' },
+            description: 'BDEW code (13 digits)',
+          },
+          {
+            name: 'gridOperatorId',
+            in: 'query',
+            schema: { type: 'string', example: 'SNB948311994307' },
+            description: 'MaStR grid operator ID',
+          },
+          {
+            name: 'location',
+            in: 'query',
+            schema: { type: 'string', example: 'Baden-Württemberg' },
+            description: 'City/region/postal code',
+          },
+          {
+            name: 'commissioningYear',
+            in: 'query',
+            schema: { type: 'number', example: 2020 },
+            description: 'Commissioning year',
+          },
+          {
+            name: 'minCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 100 },
+            description: 'Min. capacity in kW',
+          },
+          {
+            name: 'maxCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 10000 },
+            description: 'Max. capacity in kW',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'number', example: 100 },
+            description: 'Max. number of results per type',
+          },
+          {
+            name: 'redispatch',
+            in: 'query',
+            schema: { type: 'boolean', example: true },
+            description: 'Redispatch 2.0 filter (≥100kW)',
+          },
+          {
+            name: 'types',
+            in: 'query',
+            schema: { type: 'string', example: 'solar,wind,storage' },
+            description:
+              'Comma-separated list of installation types. Default: all types (solar,wind,storage,biomass,hydro,combustion)',
+          },
+        ],
       },
       async handler(ctx) {
         const allTypes = ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'];
         let types = allTypes;
 
         if (ctx.params.types) {
-          types = ctx.params.types.split(',').map(t => t.trim()).filter(t => allTypes.includes(t));
+          types = ctx.params.types
+            .split(',')
+            .map((t) => t.trim())
+            .filter((t) => allTypes.includes(t));
           if (types.length === 0) {
-            throw new Error('Invalid types parameter. Valid types: solar,wind,storage,biomass,hydro,combustion');
+            throw new Error(
+              'Invalid types parameter. Valid types: solar,wind,storage,biomass,hydro,combustion'
+            );
           }
         }
 
         return this._fetchAssets(ctx, types);
-      }
-    }
-  }
+      },
+    },
+  },
 };

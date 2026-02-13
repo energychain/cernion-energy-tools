@@ -54,7 +54,7 @@ describe('Gas Storage Service', () => {
             success: true,
             data: {
               metric: params.metric,
-              comparison: params.countries.map(country => ({
+              comparison: params.countries.map((country) => ({
                 country,
                 value: 1,
               })),

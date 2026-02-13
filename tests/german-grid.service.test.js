@@ -28,9 +28,7 @@ describe('German Grid Service', () => {
     });
 
     it('should validate required parameters', async () => {
-      await expect(
-        broker.call('german-grid.spotprices', {})
-      ).rejects.toThrow();
+      await expect(broker.call('german-grid.spotprices', {})).rejects.toThrow();
     });
 
     it('should have correct REST endpoint', () => {

@@ -13,7 +13,9 @@ jest.mock('@modelcontextprotocol/sdk/client/streamableHttp.js', () => ({
 }));
 
 const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
-const { StreamableHTTPClientTransport } = require('@modelcontextprotocol/sdk/client/streamableHttp.js');
+const {
+  StreamableHTTPClientTransport,
+} = require('@modelcontextprotocol/sdk/client/streamableHttp.js');
 const CernionMCPClient = require('../src/mcp-client');
 
 describe('CernionMCPClient', () => {

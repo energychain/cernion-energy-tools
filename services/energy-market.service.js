@@ -633,18 +633,21 @@ module.exports = {
         // Filter by operational status (default: only active installations with status 35)
         const operationalStatus = ctx.params.operationalStatus || '35';
         if (operationalStatus && operationalStatus !== 'all' && result?.data?.installations) {
-          const allowedStatuses = operationalStatus.split(',').map(s => s.trim());
-          result.data.installations = result.data.installations.filter(
-            inst => allowedStatuses.includes(inst.einheitBetriebsstatus)
+          const allowedStatuses = operationalStatus.split(',').map((s) => s.trim());
+          result.data.installations = result.data.installations.filter((inst) =>
+            allowedStatuses.includes(inst.einheitBetriebsstatus)
           );
           // Update stats
           if (result.data.stats) {
             result.data.stats.count = result.data.installations.length;
             result.data.stats.totalCapacity = result.data.installations.reduce(
-              (sum, i) => sum + (i.bruttoleistung || 0), 0
+              (sum, i) => sum + (i.bruttoleistung || 0),
+              0
             );
-            result.data.stats.avgCapacity = result.data.stats.count > 0
-              ? result.data.stats.totalCapacity / result.data.stats.count : 0;
+            result.data.stats.avgCapacity =
+              result.data.stats.count > 0
+                ? result.data.stats.totalCapacity / result.data.stats.count
+                : 0;
           }
         }
 

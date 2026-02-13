@@ -66,10 +66,9 @@ class CernionMCPClient {
             // Wait before retry (exponential backoff)
             await new Promise((resolve) => setTimeout(resolve, (4 - retries) * 1000));
             // Recreate transport for retry with same timeout
-            this.transport = new StreamableHTTPClientTransport(
-              new URL(this.baseUrl),
-              { timeout: 120000 }
-            );
+            this.transport = new StreamableHTTPClientTransport(new URL(this.baseUrl), {
+              timeout: 120000,
+            });
           }
         }
       }

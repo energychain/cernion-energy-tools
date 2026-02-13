@@ -240,11 +240,13 @@ module.exports = {
                   },
                   postcodeId: {
                     type: 'string',
-                    description: 'Postcode ID from vnbdigital_search (required for postcode search)',
+                    description:
+                      'Postcode ID from vnbdigital_search (required for postcode search)',
                   },
                   communityId: {
                     type: 'string',
-                    description: 'Community ID from vnbdigital_search (required for community search)',
+                    description:
+                      'Community ID from vnbdigital_search (required for community search)',
                   },
                   filter: {
                     type: 'object',
@@ -529,7 +531,9 @@ module.exports = {
         const { gridOperator, gridOperatorId, gridOperatorBdewCode } = ctx.params;
 
         if (!gridOperator && !gridOperatorId && !gridOperatorBdewCode) {
-          throw new Error('One of gridOperator, gridOperatorId, or gridOperatorBdewCode is required');
+          throw new Error(
+            'One of gridOperator, gridOperatorId, or gridOperatorBdewCode is required'
+          );
         }
 
         // Use auto-polling for async jobs (operator analysis can be slow for large grids)
@@ -779,7 +783,9 @@ module.exports = {
         const { gridOperator, gridOperatorId, gridOperatorBdewCode } = ctx.params;
 
         if (!gridOperator && !gridOperatorId && !gridOperatorBdewCode) {
-          throw new Error('One of gridOperator, gridOperatorId, or gridOperatorBdewCode is required');
+          throw new Error(
+            'One of gridOperator, gridOperatorId, or gridOperatorBdewCode is required'
+          );
         }
 
         // Use auto-polling for async jobs (redispatch export typically returns job ID)
