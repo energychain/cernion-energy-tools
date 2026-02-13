@@ -443,6 +443,7 @@ module.exports = {
         gridOperatorMastrId: { type: 'string', optional: true, min: 1 },
         gridOperatorName: { type: 'string', optional: true, min: 1 },
         gridOperatorBdewCode: { type: 'string', optional: true, min: 1 },
+        operationalStatus: { type: 'string', optional: true, default: '35' },
       },
       openapi: {
         summary: 'Search energy installations in German registry (MaStR)',
@@ -454,6 +455,7 @@ module.exports = {
 **Parameter Details:**
 - **installationType**: Installation type - "solar" (PV), "wind", "storage" (batteries), "biomass", "hydro", "combustion" (CHP, gas turbines)
 - **location**: City name, postal code, or region (deprecated; use bundesland/landkreis/gemeinde/postleitzahl in MCP tool)
+- **operationalStatus**: Operational status filter - Default: "35" (only active/in operation). Values: "31" (planned), "35" (in operation), "37" (temporarily decommissioned), "38" (permanently decommissioned), "all" (all statuses), or comma-separated list (e.g., "35,37")
 - **limit**: Max results (optional)
 - **minCapacityKW**: Minimum installed capacity in kW (e.g., 5 for small installations, 100 for commercial)
 - **maxCapacityKW**: Maximum installed capacity in kW
@@ -621,12 +623,32 @@ module.exports = {
           format: 'detailed',
         };
 
-        return await callWithAutoPoll(
+        const result = await callWithAutoPoll(
           'cernion_installations_local',
           toolParams,
           {},
           ctx.meta.cernionToken
         );
+
+        // Filter by operational status (default: only active installations with status 35)
+        const operationalStatus = ctx.params.operationalStatus || '35';
+        if (operationalStatus && operationalStatus !== 'all' && result?.data?.installations) {
+          const allowedStatuses = operationalStatus.split(',').map(s => s.trim());
+          result.data.installations = result.data.installations.filter(
+            inst => allowedStatuses.includes(inst.einheitBetriebsstatus)
+          );
+          // Update stats
+          if (result.data.stats) {
+            result.data.stats.count = result.data.installations.length;
+            result.data.stats.totalCapacity = result.data.installations.reduce(
+              (sum, i) => sum + (i.bruttoleistung || 0), 0
+            );
+            result.data.stats.avgCapacity = result.data.stats.count > 0
+              ? result.data.stats.totalCapacity / result.data.stats.count : 0;
+          }
+        }
+
+        return result;
       },
     },
   },

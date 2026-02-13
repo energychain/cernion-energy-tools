@@ -24,7 +24,7 @@ module.exports = {
     openapi: {
       info: {
         title: 'Cernion Energy Tools API',
-        version: '0.3.1',
+        version: '0.4.0',
         description:
           'MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.',
       },
@@ -45,6 +45,18 @@ module.exports = {
             bearerFormat: 'JWT',
             description:
               'Optional Cernion MCP token. If not provided, falls back to CERNION_TOKEN from environment. Request token at https://cernion.de/ or by email: dev@stromdao.com.',
+          },
+        },
+        parameters: {
+          TokenQuery: {
+            name: 'token',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+            },
+            description:
+              'Optional Cernion MCP token as URL query parameter. If provided, it overrides CERNION_TOKEN for this request.',
           },
         },
       },
@@ -154,15 +166,51 @@ module.exports = {
 
         logging: true,
 
-        onBeforeCall(ctx, route, req, res) {
-          // Extract Bearer token from Authorization header if present
+        onBeforeCall(ctx, route, req, _res) {
+          // Token precedence:
+          // 1) Request parameter "token" (query/body/path)
+          // 2) Authorization: Bearer <token>
+          // 3) CERNION_TOKEN from environment (fallback in MCP client)
           const authHeader = req.headers['authorization'] || req.headers['Authorization'];
-          if (authHeader && authHeader.startsWith('Bearer ')) {
-            const token = authHeader.substring(7); // Remove 'Bearer ' prefix
-            ctx.meta.cernionToken = token;
-            this.logger.debug('Using Bearer token from request header');
+          const bearerToken =
+            authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : null;
+
+          const paramTokenCandidates = [
+            req?.$params?.token,
+            req?.query?.token,
+            req?.body?.token,
+            req?.params?.token,
+          ];
+
+          const paramToken = paramTokenCandidates.find(
+            (value) => typeof value === 'string' && value.trim().length > 0
+          );
+
+          const tokenToUse = (paramToken || bearerToken || '').trim();
+
+          // Remove token from incoming params so actions don't need to declare it explicitly
+          if (req?.$params && Object.prototype.hasOwnProperty.call(req.$params, 'token')) {
+            delete req.$params.token;
+          }
+          if (req?.query && Object.prototype.hasOwnProperty.call(req.query, 'token')) {
+            delete req.query.token;
+          }
+          if (req?.body && Object.prototype.hasOwnProperty.call(req.body, 'token')) {
+            delete req.body.token;
+          }
+          if (req?.params && Object.prototype.hasOwnProperty.call(req.params, 'token')) {
+            delete req.params.token;
+          }
+
+          if (tokenToUse) {
+            ctx.meta.cernionToken = tokenToUse;
+            if (paramToken) {
+              this.logger.debug('Using token parameter from request (query/body/path)');
+            } else {
+              this.logger.debug('Using Bearer token from request header');
+            }
           } else {
-            this.logger.debug('No Bearer token provided, will use CERNION_TOKEN from environment');
+            this.logger.debug('No request token provided, will use CERNION_TOKEN from environment');
           }
         },
 
@@ -248,7 +296,11 @@ module.exports = {
                   summary: action.description || `${service.name}.${actionName}`,
                   tags: [service.name],
                   operationId: `${service.name}_${actionName.replace(/\./g, '_')}`,
-                  parameters: [],
+                  parameters: [
+                    {
+                      $ref: '#/components/parameters/TokenQuery',
+                    },
+                  ],
                   responses: {
                     200: {
                       description: 'Successful response',
@@ -288,6 +340,23 @@ module.exports = {
                   if (action.openapi.parameters) {
                     paths[fullPath][method].parameters = action.openapi.parameters;
                   }
+                }
+
+                // Ensure token query parameter is always documented for every endpoint
+                if (!Array.isArray(paths[fullPath][method].parameters)) {
+                  paths[fullPath][method].parameters = [];
+                }
+
+                const hasTokenQueryParam = paths[fullPath][method].parameters.some(
+                  (parameter) =>
+                    parameter?.$ref === '#/components/parameters/TokenQuery' ||
+                    (parameter?.name === 'token' && parameter?.in === 'query')
+                );
+
+                if (!hasTokenQueryParam) {
+                  paths[fullPath][method].parameters.push({
+                    $ref: '#/components/parameters/TokenQuery',
+                  });
                 }
 
                 // Add parameters if defined and not already provided by openapi config
@@ -345,6 +414,61 @@ module.exports = {
                         },
                       },
                     };
+                  }
+                }
+
+                // Ensure token in request body is documented for non-GET operations
+                if (method !== 'get') {
+                  const tokenProperty = {
+                    token: {
+                      type: 'string',
+                      description:
+                        'Optional Cernion MCP token for this request. Overrides CERNION_TOKEN when provided.',
+                    },
+                  };
+
+                  const operation = paths[fullPath][method];
+                  const currentRequestBody = operation.requestBody;
+
+                  if (!currentRequestBody) {
+                    operation.requestBody = {
+                      required: false,
+                      content: {
+                        'application/json': {
+                          schema: {
+                            type: 'object',
+                            properties: tokenProperty,
+                          },
+                        },
+                      },
+                    };
+                  } else {
+                    const jsonContent = currentRequestBody.content?.['application/json'];
+                    const existingSchema = jsonContent?.schema;
+
+                    if (existingSchema) {
+                      if (existingSchema.$ref) {
+                        jsonContent.schema = {
+                          allOf: [
+                            { $ref: existingSchema.$ref },
+                            {
+                              type: 'object',
+                              properties: tokenProperty,
+                            },
+                          ],
+                        };
+                      } else {
+                        if (!existingSchema.type) {
+                          existingSchema.type = 'object';
+                        }
+                        if (!existingSchema.properties) {
+                          existingSchema.properties = {};
+                        }
+                        if (!existingSchema.properties.token) {
+                          existingSchema.properties.token = tokenProperty.token;
+                        }
+                      }
+                    }
                   }
                 }
               }

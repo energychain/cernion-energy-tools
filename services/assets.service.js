@@ -27,6 +27,37 @@ module.exports = {
    */
   methods: {
     /**
+     * Convert array of objects to CSV format
+     */
+    convertToCSV(data) {
+      if (!data || data.length === 0) {
+        return '';
+      }
+
+      // Get all unique keys from all objects (some objects might have different fields)
+      const allKeys = [...new Set(data.flatMap(obj => Object.keys(obj)))];
+
+      // Create CSV header
+      const header = allKeys.map(key => `"${key}"`).join(',');
+
+      // Create CSV rows
+      const rows = data.map(obj => {
+        return allKeys.map(key => {
+          const value = obj[key];
+          // Handle null/undefined
+          if (value === null || value === undefined) return '';
+          // Handle numbers
+          if (typeof value === 'number') return value;
+          // Handle strings (escape quotes and wrap in quotes)
+          const stringValue = String(value).replace(/"/g, '""');
+          return `"${stringValue}"`;
+        }).join(',');
+      });
+
+      return [header, ...rows].join('\n');
+    },
+
+    /**
      * Shared handler for fetching assets
      */
     async _fetchAssets(ctx, assetTypes) {
@@ -39,7 +70,9 @@ module.exports = {
         minCapacityKW,
         maxCapacityKW,
         limit,
-        redispatch
+        redispatch,
+        operationalStatus,
+        format
       } = ctx.params;
 
       if (!vnbName && !bdewCode && !gridOperatorId && !location) {
@@ -141,6 +174,7 @@ module.exports = {
         if (effectiveMinCapacity !== undefined) callParams.minCapacityKW = effectiveMinCapacity;
         if (maxCapacityKW !== undefined) callParams.maxCapacityKW = maxCapacityKW;
         if (limit !== undefined) callParams.limit = limit;
+        if (operationalStatus !== undefined) callParams.operationalStatus = operationalStatus;
 
         // VNB filtering now supported for all types (netzbetreiberMastrNummer added to database)
         if (resolvedMastrId) {
@@ -216,11 +250,21 @@ module.exports = {
               commissionDate = commissionDate.split('T')[0];
             }
 
+            // Map status code to readable name
+            const statusCode = item.operationalStatus || item.einheitBetriebsstatus || null;
+            const statusName = statusCode === '31' ? 'Geplant' :
+                             statusCode === '35' ? 'In Betrieb' :
+                             statusCode === '37' ? 'Vorübergehend stillgelegt' :
+                             statusCode === '38' ? 'Endgültig stillgelegt' :
+                             statusCode ? `Status ${statusCode}` : null;
+
             return {
               'SEE Nummer': item.mastrNumber || item.mastrNummer || item.id || 'N/A',
               'Betreiber': item.operatorName || item.operator || item.name || item.betreiber || 'N/A',
               'Anlagentyp': assetType,
               'Leistung MW': capacityMW,
+              'Betriebsstatus': statusCode,
+              'Betriebsstatus Name': statusName,
               'Datum Netzzugang': commissionDate,
               'Wechselrichterleistung': inverterPower,
               'Speicherkapazität': assetType === 'storage' ? storageCapacity : null,
@@ -247,6 +291,19 @@ module.exports = {
           }
           // Continue with other types if fetching multiple
         }
+      }
+
+      // Handle CSV export if requested
+      if (format === 'csv') {
+        const csvContent = this.convertToCSV(allResults);
+
+        // Set response headers for CSV download
+        ctx.meta.$responseHeaders = {
+          'Content-Type': 'text/csv; charset=utf-8',
+          'Content-Disposition': `attachment; filename="assets-${Date.now()}.csv"`
+        };
+
+        return csvContent;
       }
 
       return allResults;
@@ -333,11 +390,17 @@ module.exports = {
           optional: true,
           convert: true,
           description: 'Redispatch 2.0 filter (automatically sets minCapacityKW=100)'
+        },
+        operationalStatus: {
+          type: 'string',
+          optional: true,
+          default: '35',
+          description: 'Operational status filter: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All statuses, or comma-separated list'
         }
       },
       openapi: {
         summary: 'List assets of a distribution network operator (DNO/DSO)',
-        description: 'Retrieves complete installation data from the German Marktstammdatenregister (MaStR). Supports filtering by grid operator (BDEW code or name), asset type, capacity, and commissioning year. No pagination required - can retrieve millions of installations.',
+        description: 'Retrieves complete installation data from the German Marktstammdatenregister (MaStR). Supports filtering by grid operator (BDEW code or name), asset type, capacity, commissioning year, and operational status. **Default behavior: Only active installations (status 35 - In operation) are returned.** No pagination required - can retrieve millions of installations.',
         tags: ['Assets'],
         parameters: [
           {
@@ -419,6 +482,8 @@ module.exports = {
                       'Betreiber': { type: 'string', description: 'Name of the installation operator', example: 'PVA Langenenslingen' },
                       'Anlagentyp': { type: 'string', description: 'Type of installation', enum: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'] },
                       'Leistung MW': { type: 'number', description: 'Gross capacity in megawatts (MW)', example: 80.3088 },
+                      'Betriebsstatus': { type: 'string', description: 'Operational status code: 31=Planned, 35=In operation, 37=Temporarily decommissioned, 38=Permanently decommissioned', example: '35', nullable: true },
+                      'Betriebsstatus Name': { type: 'string', description: 'Operational status name in German', example: 'In Betrieb', nullable: true },
                       'Datum Netzzugang': { type: 'string', format: 'date', description: 'Commissioning date (ISO 8601)', example: '2025-05-27' },
                       'Wechselrichterleistung': { type: 'number', nullable: true, description: 'Inverter capacity in MW (PV/storage only)' },
                       'Speicherkapazität': { type: 'number', nullable: true, description: 'Usable storage capacity in MWh (storage only)' },
@@ -491,11 +556,13 @@ module.exports = {
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
-        redispatch: { type: 'boolean', optional: true, convert: true }
+        redispatch: { type: 'boolean', optional: true, convert: true },
+        operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' }
       },
       openapi: {
         summary: 'List all solar PV installations of a grid operator',
-        description: 'Retrieves all photovoltaic installations of a grid operator. Example: /api/assets/solar?bdewCode=4041407000008&redispatch=true for Netze BW redispatch installations.',
+        description: 'Retrieves all photovoltaic installations of a grid operator. **Default: Only active installations (status 35).** Example: /api/assets/solar?bdewCode=4041407000008&redispatch=true for Netze BW redispatch installations.',
         tags: ['Assets'],
         parameters: [
           { name: 'vnbName', in: 'query', schema: { type: 'string', example: 'Netze BW' }, description: 'Name of grid operator' },
@@ -506,7 +573,8 @@ module.exports = {
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
           { name: 'limit', in: 'query', schema: { type: 'number', example: 100 }, description: 'Max. number of results' },
-          { name: 'redispatch', in: 'query', schema: { type: 'boolean', example: true }, description: 'Redispatch 2.0 filter (≥100kW)' }
+          { name: 'redispatch', in: 'query', schema: { type: 'boolean', example: true }, description: 'Redispatch 2.0 filter (≥100kW)' },
+          { name: 'operationalStatus', in: 'query', schema: { type: 'string', default: '35', example: '35' }, description: 'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All statuses' }
         ]
       },
       async handler(ctx) {
@@ -530,10 +598,14 @@ module.exports = {
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
-        redispatch: { type: 'boolean', optional: true, convert: true }
+        redispatch: { type: 'boolean', optional: true, convert: true },
+        operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' }
       },
       openapi: {
         summary: 'List all wind power installations of a grid operator',
+        description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
         parameters: [
           { name: 'vnbName', in: 'query', schema: { type: 'string' } },
@@ -544,7 +616,8 @@ module.exports = {
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'limit', in: 'query', schema: { type: 'number' } },
-          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' }
+          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' },
+          { name: 'operationalStatus', in: 'query', schema: { type: 'string', default: '35' }, description: 'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All' }
         ]
       },
       async handler(ctx) {
@@ -568,10 +641,13 @@ module.exports = {
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
-        redispatch: { type: 'boolean', optional: true, convert: true }
+        redispatch: { type: 'boolean', optional: true, convert: true },
+        operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' }
       },
       openapi: {
         summary: 'List all battery storage installations of a grid operator',
+        description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
         parameters: [
           { name: 'vnbName', in: 'query', schema: { type: 'string' } },
@@ -582,7 +658,8 @@ module.exports = {
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'limit', in: 'query', schema: { type: 'number' } },
-          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' }
+          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' },
+          { name: 'operationalStatus', in: 'query', schema: { type: 'string', default: '35' }, description: 'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All' }
         ]
       },
       async handler(ctx) {
@@ -606,10 +683,13 @@ module.exports = {
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
-        redispatch: { type: 'boolean', optional: true, convert: true }
+        redispatch: { type: 'boolean', optional: true, convert: true },
+        operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' }
       },
       openapi: {
         summary: 'List all biomass installations of a grid operator',
+        description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
         parameters: [
           { name: 'vnbName', in: 'query', schema: { type: 'string' } },
@@ -620,7 +700,8 @@ module.exports = {
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'limit', in: 'query', schema: { type: 'number' } },
-          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' }
+          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' },
+          { name: 'operationalStatus', in: 'query', schema: { type: 'string', default: '35' }, description: 'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All' }
         ]
       },
       async handler(ctx) {
@@ -644,10 +725,13 @@ module.exports = {
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
-        redispatch: { type: 'boolean', optional: true, convert: true }
+        redispatch: { type: 'boolean', optional: true, convert: true },
+        operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' }
       },
       openapi: {
         summary: 'List all hydropower installations of a grid operator',
+        description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
         parameters: [
           { name: 'vnbName', in: 'query', schema: { type: 'string' } },
@@ -658,7 +742,8 @@ module.exports = {
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'limit', in: 'query', schema: { type: 'number' } },
-          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' }
+          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' },
+          { name: 'operationalStatus', in: 'query', schema: { type: 'string', default: '35' }, description: 'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All' }
         ]
       },
       async handler(ctx) {
@@ -682,10 +767,13 @@ module.exports = {
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
-        redispatch: { type: 'boolean', optional: true, convert: true }
+        redispatch: { type: 'boolean', optional: true, convert: true },
+        operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' }
       },
       openapi: {
         summary: 'List all combustion installations of a grid operator',
+        description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
         parameters: [
           { name: 'vnbName', in: 'query', schema: { type: 'string' } },
@@ -696,7 +784,8 @@ module.exports = {
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number' } },
           { name: 'limit', in: 'query', schema: { type: 'number' } },
-          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' }
+          { name: 'redispatch', in: 'query', schema: { type: 'boolean' }, description: 'Redispatch 2.0 (≥100kW)' },
+          { name: 'operationalStatus', in: 'query', schema: { type: 'string', default: '35' }, description: 'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All' }
         ]
       },
       async handler(ctx) {
@@ -721,6 +810,8 @@ module.exports = {
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
+        operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
         types: {
           type: 'string',
           optional: true,
@@ -729,7 +820,7 @@ module.exports = {
       },
       openapi: {
         summary: 'List all installations of a grid operator (all or selected types)',
-        description: 'Retrieves installations of all or selected types from a grid operator. Ideal for asset management and portfolio overview. Example: /api/assets/all?bdewCode=4041407000008&types=solar,wind,storage&redispatch=true',
+        description: 'Retrieves installations of all or selected types from a grid operator. **Default: Only active installations (status 35).** Ideal for asset management and portfolio overview. Example: /api/assets/all?bdewCode=4041407000008&types=solar,wind,storage&redispatch=true',
         tags: ['Assets'],
         parameters: [
           { name: 'vnbName', in: 'query', schema: { type: 'string', example: 'Netze BW' }, description: 'Name of grid operator' },

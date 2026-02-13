@@ -5,6 +5,50 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-02-13
+
+### Added
+- **CSV Export** - All asset endpoints now support CSV download format
+  - Add `format=csv` query parameter to any `/api/assets/*` endpoint
+  - Automatically sets proper response headers (`Content-Type: text/csv`, `Content-Disposition: attachment`)
+  - CSV includes all fields including new operational status fields
+  - Works with all filters (location, operationalStatus, minCapacityKW, etc.)
+  - Available for all endpoints: list, solar, wind, storage, biomass, hydro, combustion, all
+
+- **Operational Status Filtering** - Smart filtering by installation operational status
+  - **Default behavior**: Only returns active installations (status 35 - "In Betrieb")
+  - Override with `operationalStatus` parameter: `35` (active), `38` (decommissioned), `all`, or comma-separated
+  - Reduces noise in results - most users only need active installations
+  - Status codes: 31=Planned, 35=In operation, 37=Temporarily decommissioned, 38=Permanently decommissioned
+  - Applies to all asset endpoints
+
+- **Status Fields in Output** - Installation operational status now visible in API responses
+  - `Betriebsstatus`: Status code (e.g., "35")
+  - `Betriebsstatus Name`: German status name (e.g., "In Betrieb")
+  - Allows users to verify filter behavior and understand installation state
+  - Included in both JSON and CSV output formats
+
+- **Cernion Token as Request Parameter** - Flexible authentication options
+  - Pass Cernion MCP token as query parameter: `?token=YOUR_TOKEN`
+  - Alternative to Bearer token header authentication
+  - Overrides `CERNION_TOKEN` environment variable for the request
+  - Enables easy browser testing and multi-tenant scenarios
+  - Documented in OpenAPI specification
+
+### Changed
+- **Breaking**: Default behavior change for asset endpoints
+  - Now returns only active installations (status 35) by default
+  - Previous behavior (all statuses): Use `operationalStatus=all`
+  - Rationale: Most users only need active installations; decommissioned units create noise
+  - Easy to override for users who need all installations
+
+### Technical Details
+- CSV conversion with proper escaping and UTF-8 encoding
+- Client-side operational status filtering after MCP tool call with stats recalculation
+- Field mapping includes status extraction from `einheitBetriebsstatus` with German name mapping
+- OpenAPI documentation fully updated with new parameters and response formats
+- Response header manipulation for CSV download behavior
+
 ## [0.3.1] - 2026-02-12
 
 ### Fixed
