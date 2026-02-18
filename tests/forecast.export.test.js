@@ -14,46 +14,46 @@ jest.mock('../src/mcp-client', () => ({
 const { callWithNewSession } = require('../src/mcp-client');
 const ForecastService = require('../services/forecast.service');
 
+const MOCK_FORECASTS = [
+  {
+    timestamp: '2026-02-19T00:00:00.000Z',
+    generationMW: 0.01,
+    capacityFactor: null,
+    weather: { temperature: 4.3, windSpeed: 12.2, solarIrradiance: 30.8, cloudCover: 100 },
+  },
+  {
+    timestamp: '2026-02-20T00:00:00.000Z',
+    generationMW: 0.05,
+    capacityFactor: null,
+    weather: { temperature: 6.1, windSpeed: 8.5, solarIrradiance: 120.0, cloudCover: 60 },
+  },
+  {
+    timestamp: '2026-02-21T00:00:00.000Z',
+    generationMW: 0.03,
+    capacityFactor: null,
+    weather: { temperature: 9.5, windSpeed: 21.6, solarIrradiance: 11.0, cloudCover: 98.9 },
+  },
+];
+
+const MOCK_SUMMARY = {
+  location: 'Netzgebiet SNB935578300972',
+  type: 'all',
+  totalCapacityMW: 25.77,
+  installationCount: 2756,
+  forecastPeriod: { start: '2026-02-19T00:00:00.000Z', end: '2026-02-22T00:00:00.000Z' },
+};
+
 describe('Forecast Service - Export Formats', () => {
   let broker;
 
   beforeAll(async () => {
-    callWithNewSession.mockImplementation(async (toolName, params) => {
-      if (toolName === 'cernion_mastr_generation_forecast') {
+    callWithNewSession.mockImplementation(async (toolName) => {
+      if (toolName === 'mastr_generation_forecast') {
         return {
           success: true,
-          data: {
-            location: params.location,
-            installationType: params.installationType,
-            forecastGenerated: '2026-02-18T12:00:00Z',
-            forecastHorizonHours: params.forecastHorizonHours || 24,
-            totalInstalledCapacityKW: 15420.5,
-            installationCount: 342,
-            forecast: [
-              {
-                timestamp: '2026-02-18T13:00:00Z',
-                generationKW: 8456.2,
-                capacityFactor: 0.548,
-                confidence: 'high',
-              },
-              {
-                timestamp: '2026-02-18T14:00:00Z',
-                generationKW: 9234.7,
-                capacityFactor: 0.599,
-                confidence: 'high',
-              },
-              {
-                timestamp: '2026-02-18T15:00:00Z',
-                generationKW: 7890.3,
-                capacityFactor: 0.512,
-                confidence: 'medium',
-              },
-            ],
-          },
-          metadata: {
-            toolName: 'cernion_mastr_generation_forecast',
-            timestamp: '2026-02-18T12:00:00Z',
-          },
+          summary: MOCK_SUMMARY,
+          forecasts: MOCK_FORECASTS,
+          metadata: { toolName: 'mastr_generation_forecast', timestamp: '2026-02-18T12:00:00Z' },
         };
       }
       return { success: true, data: {} };
@@ -69,55 +69,49 @@ describe('Forecast Service - Export Formats', () => {
   });
 
   describe('CSV Export', () => {
-    it('should return CSV when format=csv', async () => {
+    it('should return CSV string when format=csv', async () => {
       const result = await broker.call('forecast.generationForecast', {
-        location: 'Heidelberg',
-        installationType: 'solar',
+        gridOperatorMastrId: 'SNB935578300972',
+        installationType: 'all',
         format: 'csv',
       });
 
       expect(typeof result).toBe('string');
       expect(result).toContain('Timestamp');
-      expect(result).toContain('Generation (kW)');
+      expect(result).toContain('Generation (MW)');
       expect(result).toContain('Capacity Factor');
-      expect(result).toContain('Confidence');
+      expect(result).toContain('Wind Speed (m/s)');
+      expect(result).toContain('Solar Irradiance (W/m\u00b2)');
     });
 
-    it('should include metadata in CSV comments', async () => {
+    it('should include summary metadata in CSV comments', async () => {
       const result = await broker.call('forecast.generationForecast', {
-        location: 'Heidelberg',
-        installationType: 'solar',
+        gridOperatorMastrId: 'SNB935578300972',
         format: 'csv',
       });
 
-      expect(result).toContain('# Location: Heidelberg');
-      expect(result).toContain('# Installation Type: solar');
-      expect(result).toContain('# Total Capacity:');
+      expect(result).toContain('# Location: Netzgebiet SNB935578300972');
+      expect(result).toContain('# Total Capacity: 25.77 MW');
+      expect(result).toContain('# Installation Count: 2756');
     });
 
-    it('should include forecast data in CSV', async () => {
+    it('should include forecast data rows in CSV', async () => {
       const result = await broker.call('forecast.generationForecast', {
-        location: 'Heidelberg',
-        installationType: 'solar',
+        gridOperatorMastrId: 'SNB935578300972',
         format: 'csv',
       });
 
-      expect(result).toContain('2026-02-18T13:00:00Z');
-      expect(result).toContain('8456.2');
-      expect(result).toContain('0.548');
-      expect(result).toContain('high');
+      expect(result).toContain('2026-02-19T00:00:00.000Z');
+      expect(result).toContain('0.01');
+      expect(result).toContain('4.3');
+      expect(result).toContain('12.2');
     });
 
-    it('should set correct CSV headers', async () => {
+    it('should set correct Content-Type and Content-Disposition headers', async () => {
       const ctx = {
-        params: {
-          location: 'Heidelberg',
-          installationType: 'solar',
-          format: 'csv',
-        },
+        params: { gridOperatorMastrId: 'SNB935578300972', format: 'csv' },
         meta: {},
       };
-
       await broker.call('forecast.generationForecast', ctx.params, { meta: ctx.meta });
 
       expect(ctx.meta.$responseHeaders).toBeDefined();
@@ -127,90 +121,80 @@ describe('Forecast Service - Export Formats', () => {
       );
     });
 
-    it('should handle empty forecast data', async () => {
+    it('should handle empty forecasts array', async () => {
       callWithNewSession.mockImplementationOnce(async () => ({
         success: true,
-        data: {
-          forecast: [],
-        },
+        summary: MOCK_SUMMARY,
+        forecasts: [],
+        metadata: { toolName: 'mastr_generation_forecast', timestamp: '2026-02-18T12:00:00Z' },
       }));
 
-      const result = await broker.call('forecast.generationForecast', {
-        location: 'Heidelberg',
-        installationType: 'solar',
-        format: 'csv',
-      });
-
+      const result = await broker.call('forecast.generationForecast', { format: 'csv' });
       expect(result).toBe('No forecast data available');
     });
   });
 
   describe('XLSX Export', () => {
-    it('should return XLSX buffer when format=xlsx', async () => {
+    it('should return Buffer when format=xlsx', async () => {
       const result = await broker.call('forecast.generationForecast', {
-        location: 'Heidelberg',
-        installationType: 'solar',
+        gridOperatorMastrId: 'SNB935578300972',
         format: 'xlsx',
       });
 
       expect(result).toBeInstanceOf(Buffer);
       expect(result.length).toBeGreaterThan(0);
 
-      // Verify it's a valid XLSX file
       const workbook = XLSX.read(result, { type: 'buffer' });
       expect(workbook.SheetNames).toContain('Forecast');
     });
 
-    it('should include forecast data in XLSX', async () => {
+    it('should include correct columns in Forecast sheet', async () => {
       const result = await broker.call('forecast.generationForecast', {
-        location: 'Heidelberg',
-        installationType: 'solar',
+        gridOperatorMastrId: 'SNB935578300972',
         format: 'xlsx',
       });
 
       const workbook = XLSX.read(result, { type: 'buffer' });
-      const worksheet = workbook.Sheets['Forecast'];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets['Forecast']);
 
       expect(jsonData).toHaveLength(3);
       expect(jsonData[0]).toHaveProperty('Timestamp');
-      expect(jsonData[0]).toHaveProperty('Generation (kW)');
+      expect(jsonData[0]).toHaveProperty('Generation (MW)');
       expect(jsonData[0]).toHaveProperty('Capacity Factor');
-      expect(jsonData[0]).toHaveProperty('Confidence');
+      expect(jsonData[0]).toHaveProperty('Temperature (\u00b0C)');
+      expect(jsonData[0]).toHaveProperty('Wind Speed (m/s)');
+      expect(jsonData[0]).toHaveProperty('Solar Irradiance (W/m\u00b2)');
+      expect(jsonData[0]).toHaveProperty('Cloud Cover (%)');
     });
 
-    it('should include metadata sheet in XLSX', async () => {
+    it('should include Metadata sheet in XLSX', async () => {
       const result = await broker.call('forecast.generationForecast', {
-        location: 'Heidelberg',
-        installationType: 'solar',
+        gridOperatorMastrId: 'SNB935578300972',
         format: 'xlsx',
       });
 
       const workbook = XLSX.read(result, { type: 'buffer' });
       expect(workbook.SheetNames).toContain('Metadata');
 
-      const metadataSheet = workbook.Sheets['Metadata'];
-      const metadataJson = XLSX.utils.sheet_to_json(metadataSheet);
-
+      const metadataJson = XLSX.utils.sheet_to_json(workbook.Sheets['Metadata']);
       expect(metadataJson.length).toBeGreaterThan(0);
-      const locationRow = metadataJson.find((row) => row.Property === 'Location');
+
+      const locationRow = metadataJson.find((r) => r.Property === 'Location');
       expect(locationRow).toBeDefined();
-      expect(locationRow.Value).toBe('Heidelberg');
+      expect(locationRow.Value).toBe('Netzgebiet SNB935578300972');
+
+      const capacityRow = metadataJson.find((r) => r.Property === 'Total Capacity (MW)');
+      expect(capacityRow).toBeDefined();
+      expect(capacityRow.Value).toBe(25.77);
     });
 
     it('should set correct XLSX headers', async () => {
       const ctx = {
-        params: {
-          location: 'Heidelberg',
-          installationType: 'solar',
-          format: 'xlsx',
-        },
+        params: { gridOperatorMastrId: 'SNB935578300972', format: 'xlsx' },
         meta: {},
       };
-
       await broker.call('forecast.generationForecast', ctx.params, { meta: ctx.meta });
 
-      expect(ctx.meta.$responseHeaders).toBeDefined();
       expect(ctx.meta.$responseHeaders['Content-Type']).toBe(
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       );
@@ -219,150 +203,73 @@ describe('Forecast Service - Export Formats', () => {
       );
     });
 
-    it('should handle empty forecast data in XLSX', async () => {
+    it('should handle empty forecasts in XLSX', async () => {
       callWithNewSession.mockImplementationOnce(async () => ({
         success: true,
-        data: {
-          forecast: [],
-        },
+        summary: MOCK_SUMMARY,
+        forecasts: [],
+        metadata: { toolName: 'mastr_generation_forecast', timestamp: '2026-02-18T12:00:00Z' },
       }));
 
-      const result = await broker.call('forecast.generationForecast', {
-        location: 'Heidelberg',
-        installationType: 'solar',
-        format: 'xlsx',
-      });
-
+      const result = await broker.call('forecast.generationForecast', { format: 'xlsx' });
       expect(result).toBeInstanceOf(Buffer);
-
       const workbook = XLSX.read(result, { type: 'buffer' });
       expect(workbook.SheetNames).toContain('Forecast');
     });
   });
 
   describe('Format Parameter Validation', () => {
-    it('should validate format enum', async () => {
+    it('should reject invalid format value', async () => {
       await expect(
-        broker.call('forecast.generationForecast', {
-          location: 'Heidelberg',
-          installationType: 'solar',
-          format: 'invalid',
-        })
+        broker.call('forecast.generationForecast', { format: 'pdf' })
       ).rejects.toThrow();
     });
 
     it('should default to JSON when format not specified', async () => {
-      const result = await broker.call('forecast.generationForecast', {
-        location: 'Heidelberg',
-        installationType: 'solar',
-      });
-
+      const result = await broker.call('forecast.generationForecast', {});
       expect(result).toBeInstanceOf(Object);
       expect(result).not.toBeInstanceOf(Buffer);
       expect(result.success).toBe(true);
     });
 
-    it('should work with format=json explicitly', async () => {
-      const result = await broker.call('forecast.generationForecast', {
-        location: 'Heidelberg',
-        installationType: 'solar',
-        format: 'json',
-      });
-
-      expect(result).toBeInstanceOf(Object);
+    it('should return JSON object when format=json explicitly', async () => {
+      const result = await broker.call('forecast.generationForecast', { format: 'json' });
       expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
+      expect(result.forecasts).toBeDefined();
     });
   });
 
   describe('Method Tests', () => {
     it('should have convertForecastToCSV method', () => {
       const service = broker.getLocalService('forecast');
-      expect(service.convertForecastToCSV).toBeDefined();
       expect(typeof service.convertForecastToCSV).toBe('function');
     });
 
     it('should have convertForecastToXLSX method', () => {
       const service = broker.getLocalService('forecast');
-      expect(service.convertForecastToXLSX).toBeDefined();
       expect(typeof service.convertForecastToXLSX).toBe('function');
     });
 
-    it('should convert forecast array to CSV', () => {
+    it('should convert forecast array to CSV correctly', () => {
       const service = broker.getLocalService('forecast');
-      const testData = [
-        {
-          timestamp: '2026-02-18T13:00:00Z',
-          generationKW: 1000,
-          capacityFactor: 0.5,
-          confidence: 'high',
-        },
-      ];
+      const csv = service.convertForecastToCSV(MOCK_FORECASTS, MOCK_SUMMARY);
 
-      const csv = service.convertForecastToCSV(testData);
-
-      expect(csv).toContain('Timestamp');
-      expect(csv).toContain('2026-02-18T13:00:00Z');
-      expect(csv).toContain('1000');
+      expect(csv).toContain('Generation (MW)');
+      expect(csv).toContain('2026-02-19T00:00:00.000Z');
+      expect(csv).toContain('0.01');
+      expect(csv).toContain('4.3');
     });
 
-    it('should convert forecast array to XLSX', () => {
+    it('should convert forecast array to XLSX correctly', () => {
       const service = broker.getLocalService('forecast');
-      const testData = [
-        {
-          timestamp: '2026-02-18T13:00:00Z',
-          generationKW: 1000,
-          capacityFactor: 0.5,
-          confidence: 'high',
-        },
-      ];
-
-      const buffer = service.convertForecastToXLSX(testData);
+      const buffer = service.convertForecastToXLSX(MOCK_FORECASTS, MOCK_SUMMARY);
 
       expect(buffer).toBeInstanceOf(Buffer);
-
       const workbook = XLSX.read(buffer, { type: 'buffer' });
       expect(workbook.SheetNames).toContain('Forecast');
-    });
-  });
-
-  describe('Integration with Different Parameters', () => {
-    it('should export wind forecasts as CSV', async () => {
-      const result = await broker.call('forecast.generationForecast', {
-        location: 'Bayern',
-        installationType: 'wind',
-        forecastHorizonHours: 48,
-        format: 'csv',
-      });
-
-      expect(typeof result).toBe('string');
-      expect(result).toContain('# Installation Type: wind');
-    });
-
-    it('should export combined forecasts as XLSX', async () => {
-      const result = await broker.call('forecast.generationForecast', {
-        location: 'Deutschland',
-        installationType: 'all',
-        format: 'xlsx',
-      });
-
-      expect(result).toBeInstanceOf(Buffer);
-
-      const workbook = XLSX.read(result, { type: 'buffer' });
-      expect(workbook.SheetNames.length).toBeGreaterThan(0);
-    });
-
-    it('should work with regional filters and CSV export', async () => {
-      const result = await broker.call('forecast.generationForecast', {
-        location: 'Heidelberg',
-        installationType: 'solar',
-        state: 'Baden-Württemberg',
-        postalCode: '69115',
-        format: 'csv',
-      });
-
-      expect(typeof result).toBe('string');
-      expect(result).toContain('Heidelberg');
+      const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets['Forecast']);
+      expect(jsonData[0]).toHaveProperty('Generation (MW)');
     });
   });
 });
+

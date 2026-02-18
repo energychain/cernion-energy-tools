@@ -18,214 +18,170 @@ module.exports = {
   actions: {
     /**
      * Weather-based generation forecast
-     * Tool: cernion_mastr_generation_forecast
+     * Tool: mastr_generation_forecast
      */
     generationForecast: {
       rest: 'POST /generation-forecast',
       params: {
-        location: { type: 'string', min: 1 },
-        installationType: {
-          type: 'enum',
-          values: ['solar', 'wind', 'all'],
-        },
-        forecastHorizonHours: { type: 'number', optional: true, min: 1, max: 168, default: 24 },
-        state: { type: 'string', optional: true },
-        district: { type: 'string', optional: true },
-        municipality: { type: 'string', optional: true },
-        postalCode: { type: 'string', optional: true },
-        minCapacityKW: { type: 'number', optional: true, min: 0 },
-        maxCapacityKW: { type: 'number', optional: true, min: 0 },
-        includeInstallationBreakdown: { type: 'boolean', optional: true, default: false },
-        includeWeatherData: { type: 'boolean', optional: true, default: true },
+        installationType: { type: 'enum', values: ['solar', 'wind', 'all'], optional: true, default: 'solar' },
+        forecastDays: { type: 'number', optional: true, min: 1, max: 14, default: 7 },
+        gridOperatorMastrId: { type: 'string', optional: true },
+        bundesland: { type: 'string', optional: true },
+        landkreis: { type: 'string', optional: true },
+        gemeinde: { type: 'string', optional: true },
+        postleitzahl: { type: 'string', optional: true },
+        latitude: { type: 'number', optional: true },
+        longitude: { type: 'number', optional: true },
+        includeValidation: { type: 'boolean', optional: true, default: false },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Weather-based renewable energy generation forecast',
         tags: ['Renewable Energy Forecasting'],
-        description: `Generate accurate renewable energy production forecasts using real installation data from the German Marktstammdatenregister (MaStR) combined with weather forecasts.
+        description: `Regional Solar/Wind generation forecast based on ACTUAL installed capacity from MaStR, combined with weather forecasts from Visual Crossing API.
+
+**How it works:**
+1. Queries MaStR database for ALL installed solar/wind capacity in the specified area
+2. Fetches weather forecast from Visual Crossing API (24h cache, IEC-compliant)
+3. Calculates expected generation using IEC 61853 (solar) / IEC 61400 (wind) standards
+4. Returns daily MW forecast + weather conditions for up to 14 days
 
 **Key Features:**
 - Real installation data from German MaStR registry (3.7M+ installations)
 - IEC standard compliance (IEC 61853 for solar, IEC 61400 for wind)
-- Hourly forecasts up to 7 days (168 hours)
-- Regional filtering (state, district, municipality, postal code)
-- 24-hour weather data caching for performance
-- Installation-level breakdown available
+- Daily forecasts up to 14 days
+- Filter by grid operator (MaStR ID), federal state, district, municipality, or postal code
+- Optional cross-validation with SMARD data
 
 **Use Cases:**
-- **Energy Suppliers (Stadtwerke)**: Optimize energy procurement by forecasting local renewable generation
-- **Grid Operators (VNB/GNB)**: Anticipate grid congestion and plan redispatch measures
+- **Grid Operators (VNB/GNB)**: Anticipate feed-in volumes and plan redispatch measures
+- **Energy Suppliers (Stadtwerke)**: Optimize procurement by forecasting local renewable generation
 - **Virtual Power Plants (VPP)**: Aggregate forecasts for trading and balancing markets
 - **Energy Trading**: Intraday and day-ahead market positioning
-- **Industrial Consumers**: Plan load shifting and self-consumption optimization
-
-**Technical Details:**
-- **Solar Forecasting**: IEC 61853 standard, considers panel orientation, tilt, shading, temperature coefficients
-- **Wind Forecasting**: IEC 61400 standard, uses hub height, power curves, air density corrections
-- **Weather Source**: Visual Crossing API (temperature, irradiance, wind speed, cloud cover)
-- **Forecast Accuracy**: Typical RMSE 10-15% for day-ahead, 15-25% for day-3
-
-**Business Impact:**
-- Reduce balancing energy costs by 30-50% through accurate procurement
-- Avoid redispatch penalties (€150-300/MWh) by anticipating congestion
-- Optimize intraday trading (spread: €5-20/MWh) with updated forecasts
-- Enable dynamic tariffs based on local generation patterns
 
 **Parameters:**
-- **location** (required): Location filter - city, region, or "Deutschland" for nationwide
-- **installationType** (required): "solar", "wind", or "all" (combined forecast)
-- **forecastHorizonHours**: Forecast period 1-168 hours (default: 24)
-- **state**: German federal state (e.g., "Baden-Württemberg", "Bayern")
-- **district**: District/Kreis (e.g., "Rhein-Neckar-Kreis")
-- **municipality**: Municipality/Gemeinde (e.g., "Heidelberg")
-- **postalCode**: 5-digit postal code (e.g., "69115")
-- **minCapacityKW**: Minimum installation capacity in kW (filters small installations)
-- **maxCapacityKW**: Maximum installation capacity in kW (filters large installations)
-- **includeInstallationBreakdown**: Include per-installation forecasts (default: false)
-- **includeWeatherData**: Include weather forecast details (default: true)`,
+- **installationType**: "solar" (default), "wind", or "all" (combined solar+wind)
+- **forecastDays**: Forecast period 1-14 days (default: 7)
+- **gridOperatorMastrId**: MaStR Netzbetreiber-ID (SNB/GNB...) — use cernion_vnb_lookup to resolve BDEW→MaStR
+- **bundesland**: German federal state (e.g., "Bayern", "Baden-Württemberg")
+- **landkreis**: District/Landkreis name
+- **gemeinde**: Municipality/Gemeinde name
+- **postleitzahl**: 5-digit postal code (e.g., "69115")
+- **latitude/longitude**: Coordinates for precise weather data
+- **includeValidation**: Cross-validate with SMARD data (default: false)`,
         requestBody: {
-          required: true,
+          required: false,
           content: {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['location', 'installationType'],
                 properties: {
-                  location: {
-                    type: 'string',
-                    description: 'Location filter (city, region, "Deutschland")',
-                    example: 'Heidelberg',
-                  },
                   installationType: {
                     type: 'string',
                     enum: ['solar', 'wind', 'all'],
+                    default: 'solar',
                     description: 'Installation type to forecast',
-                    example: 'solar',
+                    example: 'all',
                   },
-                  forecastHorizonHours: {
+                  forecastDays: {
                     type: 'number',
                     minimum: 1,
-                    maximum: 168,
-                    default: 24,
-                    description: 'Forecast horizon in hours (1-168)',
-                    example: 24,
+                    maximum: 14,
+                    default: 7,
+                    description: 'Number of days to forecast (1-14)',
+                    example: 7,
                   },
-                  state: {
+                  gridOperatorMastrId: {
+                    type: 'string',
+                    description: 'MaStR Netzbetreiber-ID (SNB/GNB...). Use cernion_vnb_lookup to resolve BDEW → MaStR ID.',
+                    example: 'SNB935578300972',
+                  },
+                  bundesland: {
                     type: 'string',
                     description: 'German federal state',
-                    example: 'Baden-Württemberg',
+                    example: 'Bayern',
                   },
-                  district: {
+                  landkreis: {
                     type: 'string',
-                    description: 'District/Kreis',
+                    description: 'District/Landkreis name',
                     example: 'Rhein-Neckar-Kreis',
                   },
-                  municipality: {
+                  gemeinde: {
                     type: 'string',
-                    description: 'Municipality/Gemeinde',
+                    description: 'Municipality/Gemeinde name',
                     example: 'Heidelberg',
                   },
-                  postalCode: {
+                  postleitzahl: {
                     type: 'string',
                     pattern: '^[0-9]{5}$',
                     description: '5-digit postal code',
                     example: '69115',
                   },
-                  minCapacityKW: {
+                  latitude: {
                     type: 'number',
-                    minimum: 0,
-                    description: 'Minimum installation capacity in kW',
-                    example: 10,
+                    description: 'Latitude for precise weather data',
+                    example: 49.3988,
                   },
-                  maxCapacityKW: {
+                  longitude: {
                     type: 'number',
-                    minimum: 0,
-                    description: 'Maximum installation capacity in kW',
-                    example: 1000,
+                    description: 'Longitude for precise weather data',
+                    example: 8.6724,
                   },
-                  includeInstallationBreakdown: {
+                  includeValidation: {
                     type: 'boolean',
                     default: false,
-                    description: 'Include per-installation forecasts',
+                    description: 'Cross-validate forecast with SMARD data',
                     example: false,
-                  },
-                  includeWeatherData: {
-                    type: 'boolean',
-                    default: true,
-                    description: 'Include weather forecast details',
-                    example: true,
                   },
                   format: {
                     type: 'string',
                     enum: ['json', 'csv', 'xlsx'],
                     default: 'json',
-                    description: 'Output format - json (default), csv (comma-separated with metadata comments), or xlsx (Excel workbook with Forecast + Metadata sheets)',
+                    description: 'Output format',
                     example: 'json',
                   },
                 },
               },
               examples: {
-                solarDayAhead: {
-                  summary: 'Solar forecast for Heidelberg (24h)',
+                gridOperatorForecast: {
+                  summary: 'All EE generation in a grid operator network',
                   value: {
-                    location: 'Heidelberg',
-                    installationType: 'solar',
-                    forecastHorizonHours: 24,
-                  },
-                },
-                windWeekAhead: {
-                  summary: 'Wind forecast for Bavaria (7 days)',
-                  value: {
-                    location: 'Bayern',
-                    installationType: 'wind',
-                    forecastHorizonHours: 168,
-                    state: 'Bayern',
-                  },
-                },
-                combinedPostalCode: {
-                  summary: 'Combined solar+wind forecast by postal code',
-                  value: {
-                    location: 'Baden-Württemberg',
+                    gridOperatorMastrId: 'SNB935578300972',
                     installationType: 'all',
-                    forecastHorizonHours: 48,
-                    postalCode: '69115',
+                    forecastDays: 7,
                   },
                 },
-                filteredCapacity: {
-                  summary: 'Large-scale solar installations only (>100kW)',
+                solarByPostalCode: {
+                  summary: 'Solar forecast for a specific postal code',
                   value: {
-                    location: 'Deutschland',
+                    postleitzahl: '69115',
                     installationType: 'solar',
-                    forecastHorizonHours: 24,
-                    minCapacityKW: 100,
-                    includeInstallationBreakdown: true,
+                    forecastDays: 3,
                   },
                 },
-                detailedForecast: {
-                  summary: 'Detailed forecast with weather and installation breakdown',
+                windBayern: {
+                  summary: 'Wind forecast for Bavaria (14 days)',
                   value: {
-                    location: 'Mannheim',
-                    installationType: 'solar',
-                    forecastHorizonHours: 24,
-                    includeInstallationBreakdown: true,
-                    includeWeatherData: true,
+                    bundesland: 'Bayern',
+                    installationType: 'wind',
+                    forecastDays: 14,
                   },
                 },
                 csvExport: {
-                  summary: 'Download forecast as CSV file',
+                  summary: 'Download forecast as CSV',
                   value: {
-                    location: 'Heidelberg',
-                    installationType: 'solar',
-                    forecastHorizonHours: 24,
+                    gridOperatorMastrId: 'SNB935578300972',
+                    installationType: 'all',
+                    forecastDays: 7,
                     format: 'csv',
                   },
                 },
                 xlsxExport: {
-                  summary: 'Download forecast as Excel (XLSX) file',
+                  summary: 'Download forecast as Excel (XLSX)',
                   value: {
-                    location: 'Bayern',
-                    installationType: 'wind',
-                    forecastHorizonHours: 48,
+                    bundesland: 'Bayern',
+                    installationType: 'solar',
+                    forecastDays: 7,
                     format: 'xlsx',
                   },
                 },
@@ -241,114 +197,38 @@ module.exports = {
                 schema: {
                   type: 'object',
                   properties: {
-                    success: {
-                      type: 'boolean',
-                      example: true,
-                    },
-                    data: {
+                    success: { type: 'boolean', example: true },
+                    summary: {
                       type: 'object',
                       properties: {
-                        location: {
-                          type: 'string',
-                          example: 'Heidelberg',
-                        },
-                        installationType: {
-                          type: 'string',
-                          example: 'solar',
-                        },
-                        forecastGenerated: {
-                          type: 'string',
-                          format: 'date-time',
-                          example: '2026-02-16T12:00:00Z',
-                        },
-                        forecastHorizonHours: {
-                          type: 'number',
-                          example: 24,
-                        },
-                        totalInstalledCapacityKW: {
-                          type: 'number',
-                          example: 15420.5,
-                        },
-                        installationCount: {
-                          type: 'number',
-                          example: 342,
-                        },
-                        forecast: {
-                          type: 'array',
-                          items: {
-                            type: 'object',
-                            properties: {
-                              timestamp: {
-                                type: 'string',
-                                format: 'date-time',
-                              },
-                              generationKW: {
-                                type: 'number',
-                                description: 'Forecasted generation in kW',
-                              },
-                              capacityFactor: {
-                                type: 'number',
-                                description: 'Capacity factor (0-1)',
-                              },
-                              confidence: {
-                                type: 'string',
-                                enum: ['high', 'medium', 'low'],
-                                description: 'Forecast confidence',
-                              },
-                            },
+                        location: { type: 'string', example: 'Netzgebiet SNB935578300972' },
+                        type: { type: 'string', example: 'all' },
+                        totalCapacityMW: { type: 'number', example: 25.77 },
+                        installationCount: { type: 'number', example: 2756 },
+                        forecastPeriod: {
+                          type: 'object',
+                          properties: {
+                            start: { type: 'string', format: 'date-time' },
+                            end: { type: 'string', format: 'date-time' },
                           },
                         },
-                        weatherForecast: {
-                          type: 'array',
-                          description: 'Weather data (if includeWeatherData=true)',
-                          items: {
+                      },
+                    },
+                    forecasts: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          timestamp: { type: 'string', format: 'date-time' },
+                          generationMW: { type: 'number', description: 'Forecasted generation in MW' },
+                          capacityFactor: { type: 'number', nullable: true, description: 'Capacity factor (0-1)' },
+                          weather: {
                             type: 'object',
                             properties: {
-                              timestamp: {
-                                type: 'string',
-                                format: 'date-time',
-                              },
-                              temperatureCelsius: {
-                                type: 'number',
-                              },
-                              windSpeedMS: {
-                                type: 'number',
-                              },
-                              cloudCoverPercent: {
-                                type: 'number',
-                              },
-                              irradianceWM2: {
-                                type: 'number',
-                              },
-                            },
-                          },
-                        },
-                        installationBreakdown: {
-                          type: 'array',
-                          description: 'Per-installation forecasts (if includeInstallationBreakdown=true)',
-                          items: {
-                            type: 'object',
-                            properties: {
-                              mastrNummer: {
-                                type: 'string',
-                              },
-                              capacityKW: {
-                                type: 'number',
-                              },
-                              forecast: {
-                                type: 'array',
-                                items: {
-                                  type: 'object',
-                                  properties: {
-                                    timestamp: {
-                                      type: 'string',
-                                    },
-                                    generationKW: {
-                                      type: 'number',
-                                    },
-                                  },
-                                },
-                              },
+                              temperature: { type: 'number', description: 'Temperature in °C' },
+                              windSpeed: { type: 'number', description: 'Wind speed in m/s' },
+                              solarIrradiance: { type: 'number', description: 'Solar irradiance in W/m²' },
+                              cloudCover: { type: 'number', description: 'Cloud cover in %' },
                             },
                           },
                         },
@@ -357,109 +237,47 @@ module.exports = {
                     metadata: {
                       type: 'object',
                       properties: {
-                        toolName: {
-                          type: 'string',
-                          example: 'cernion_mastr_generation_forecast',
-                        },
-                        timestamp: {
-                          type: 'string',
-                          format: 'date-time',
-                        },
-                        iecStandardsApplied: {
-                          type: 'array',
-                          items: {
-                            type: 'string',
-                          },
-                          example: ['IEC 61853 (Solar)', 'IEC 61400 (Wind)'],
-                        },
-                        weatherDataCached: {
-                          type: 'boolean',
-                          example: true,
-                        },
+                        toolName: { type: 'string', example: 'mastr_generation_forecast' },
+                        timestamp: { type: 'string', format: 'date-time' },
                       },
                     },
                   },
                 },
                 examples: {
-                  solarForecast: {
-                    summary: 'Solar generation forecast',
+                  gridOperatorForecast: {
+                    summary: 'All EE generation for SNB935578300972',
                     value: {
                       success: true,
-                      data: {
-                        location: 'Heidelberg',
-                        installationType: 'solar',
-                        forecastGenerated: '2026-02-16T12:00:00Z',
-                        forecastHorizonHours: 24,
-                        totalInstalledCapacityKW: 15420.5,
-                        installationCount: 342,
-                        forecast: [
-                          {
-                            timestamp: '2026-02-16T13:00:00Z',
-                            generationKW: 8456.2,
-                            capacityFactor: 0.548,
-                            confidence: 'high',
-                          },
-                          {
-                            timestamp: '2026-02-16T14:00:00Z',
-                            generationKW: 9234.7,
-                            capacityFactor: 0.599,
-                            confidence: 'high',
-                          },
-                          {
-                            timestamp: '2026-02-16T15:00:00Z',
-                            generationKW: 7890.3,
-                            capacityFactor: 0.512,
-                            confidence: 'medium',
-                          },
-                        ],
-                        weatherForecast: [
-                          {
-                            timestamp: '2026-02-16T13:00:00Z',
-                            temperatureCelsius: 12.5,
-                            windSpeedMS: 3.2,
-                            cloudCoverPercent: 25,
-                            irradianceWM2: 650,
-                          },
-                          {
-                            timestamp: '2026-02-16T14:00:00Z',
-                            temperatureCelsius: 14.2,
-                            windSpeedMS: 3.8,
-                            cloudCoverPercent: 15,
-                            irradianceWM2: 720,
-                          },
-                        ],
+                      summary: {
+                        location: 'Netzgebiet SNB935578300972',
+                        type: 'all',
+                        totalCapacityMW: 25.77,
+                        installationCount: 2756,
+                        forecastPeriod: {
+                          start: '2026-02-19T00:00:00.000Z',
+                          end: '2026-02-26T00:00:00.000Z',
+                        },
                       },
-                      metadata: {
-                        toolName: 'cernion_mastr_generation_forecast',
-                        timestamp: '2026-02-16T12:00:00Z',
-                        iecStandardsApplied: ['IEC 61853 (Solar)'],
-                        weatherDataCached: true,
-                      },
+                      forecasts: [
+                        {
+                          timestamp: '2026-02-19T00:00:00.000Z',
+                          generationMW: 0.01,
+                          capacityFactor: null,
+                          weather: { temperature: 4.3, windSpeed: 12.2, solarIrradiance: 30.8, cloudCover: 100 },
+                        },
+                      ],
+                      metadata: { toolName: 'mastr_generation_forecast', timestamp: '2026-02-18T23:21:46.848Z' },
                     },
                   },
                 },
               },
               'text/csv': {
                 description: 'CSV format with metadata comments (when format=csv)',
-                example: `# Renewable Energy Generation Forecast
-# Location: Heidelberg
-# Installation Type: solar
-# Forecast Generated: 2026-02-18T12:00:00Z
-# Forecast Horizon: 24 hours
-# Total Capacity: 15420.50 kW
-# Installation Count: 342
-Timestamp\tGeneration (kW)\tCapacity Factor\tConfidence
-2026-02-18T13:00:00Z\t8456.2\t0.548\thigh
-2026-02-18T14:00:00Z\t9234.7\t0.599\thigh
-2026-02-18T15:00:00Z\t7890.3\t0.512\tmedium`,
+                example: `# Renewable Energy Generation Forecast\n# Location: Netzgebiet SNB935578300972\n# Total Capacity: 25.77 MW\n# Installation Count: 2756\nTimestamp,Generation (MW),Capacity Factor,Temperature (\u00b0C),Wind Speed (m/s),Solar Irradiance (W/m\u00b2),Cloud Cover (%)\n2026-02-19T00:00:00.000Z,0.01,,4.3,12.2,30.8,100`,
               },
               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
-                description: 'Excel XLSX format with two sheets: Forecast (hourly data) + Metadata (forecast context) (when format=xlsx)',
-                schema: {
-                  type: 'string',
-                  format: 'binary',
-                  description: 'Binary Excel file with Forecast sheet (Timestamp, Generation (kW), Capacity Factor, Confidence) and Metadata sheet (Property, Value)',
-                },
+                description: 'Excel XLSX with Forecast sheet (daily data + weather) and Metadata sheet',
+                schema: { type: 'string', format: 'binary' },
               },
             },
           },
@@ -467,13 +285,7 @@ Timestamp\tGeneration (kW)\tCapacity Factor\tConfidence
             description: 'Invalid request parameters',
             content: {
               'application/json': {
-                example: {
-                  success: false,
-                  error: {
-                    code: 'VALIDATION_ERROR',
-                    message: 'Invalid forecastHorizonHours: must be between 1 and 168',
-                  },
-                },
+                example: { success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid forecastDays: must be between 1 and 14' } },
               },
             },
           },
@@ -481,13 +293,7 @@ Timestamp\tGeneration (kW)\tCapacity Factor\tConfidence
             description: 'Server error during forecast generation',
             content: {
               'application/json': {
-                example: {
-                  success: false,
-                  error: {
-                    code: 'FORECAST_ERROR',
-                    message: 'Weather API unavailable',
-                  },
-                },
+                example: { success: false, error: { code: 'FORECAST_ERROR', message: 'Weather API unavailable' } },
               },
             },
           },
@@ -495,18 +301,32 @@ Timestamp\tGeneration (kW)\tCapacity Factor\tConfidence
       },
       async handler(ctx) {
         try {
-          const { format, ...mcpParams } = ctx.params;
+          const { format, bundesland, landkreis, gemeinde, postleitzahl, latitude, longitude, ...rest } = ctx.params;
+
+          // Build nested location object from flat params
+          const locationObj = {};
+          if (bundesland) locationObj.bundesland = bundesland;
+          if (landkreis) locationObj.landkreis = landkreis;
+          if (gemeinde) locationObj.gemeinde = gemeinde;
+          if (postleitzahl) locationObj.postleitzahl = postleitzahl;
+          if (latitude !== undefined) locationObj.latitude = latitude;
+          if (longitude !== undefined) locationObj.longitude = longitude;
+
+          const mcpParams = { ...rest };
+          if (Object.keys(locationObj).length > 0) {
+            mcpParams.location = locationObj;
+          }
 
           const result = await CernionMCPClient.callWithNewSession(
-            'cernion_mastr_generation_forecast',
+            'mastr_generation_forecast',
             mcpParams,
             ctx.meta.cernionToken
           );
 
           // Handle CSV export
           if (format === 'csv') {
-            const forecastData = result?.data?.forecast || [];
-            const csvContent = this.convertForecastToCSV(forecastData, result?.data);
+            const forecastData = result?.forecasts || [];
+            const csvContent = this.convertForecastToCSV(forecastData, result?.summary);
 
             ctx.meta.$responseHeaders = {
               'Content-Type': 'text/csv; charset=utf-8',
@@ -518,8 +338,8 @@ Timestamp\tGeneration (kW)\tCapacity Factor\tConfidence
 
           // Handle XLSX export
           if (format === 'xlsx') {
-            const forecastData = result?.data?.forecast || [];
-            const xlsxBuffer = this.convertForecastToXLSX(forecastData, result?.data);
+            const forecastData = result?.forecasts || [];
+            const xlsxBuffer = this.convertForecastToXLSX(forecastData, result?.summary);
 
             ctx.meta.$responseHeaders = {
               'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -548,37 +368,39 @@ Timestamp\tGeneration (kW)\tCapacity Factor\tConfidence
     /**
      * Convert forecast data to CSV format
      */
-    convertForecastToCSV(forecastData, metadata) {
+    convertForecastToCSV(forecastData, summary) {
       if (!forecastData || forecastData.length === 0) {
         return 'No forecast data available';
       }
 
-      // Create header row
-      const headers = ['Timestamp', 'Generation (kW)', 'Capacity Factor', 'Confidence'];
+      const headers = [
+        'Timestamp', 'Generation (MW)', 'Capacity Factor',
+        'Temperature (°C)', 'Wind Speed (m/s)', 'Solar Irradiance (W/m²)', 'Cloud Cover (%)',
+      ];
 
-      // Add metadata as comment rows
-      let csv = '';
-      if (metadata) {
-        if (metadata.location) csv += `# Location: ${metadata.location}\n`;
-        if (metadata.installationType) csv += `# Installation Type: ${metadata.installationType}\n`;
-        if (metadata.totalInstalledCapacityKW) csv += `# Total Capacity: ${metadata.totalInstalledCapacityKW} kW\n`;
-        if (metadata.installationCount) csv += `# Installation Count: ${metadata.installationCount}\n`;
-        csv += `# Generated: ${metadata.forecastGenerated || new Date().toISOString()}\n`;
-        csv += '\n';
+      let csv = '# Renewable Energy Generation Forecast\n';
+      if (summary) {
+        if (summary.location) csv += `# Location: ${summary.location}\n`;
+        if (summary.type) csv += `# Installation Type: ${summary.type}\n`;
+        if (summary.totalCapacityMW != null) csv += `# Total Capacity: ${summary.totalCapacityMW} MW\n`;
+        if (summary.installationCount != null) csv += `# Installation Count: ${summary.installationCount}\n`;
       }
+      csv += `# Generated: ${new Date().toISOString()}\n\n`;
 
-      // Add header
       csv += headers.map(h => `"${h}"`).join(',') + '\n';
 
-      // Add data rows
       forecastData.forEach(item => {
+        const w = item.weather || {};
         const row = [
-          item.timestamp || '',
-          item.generationKW || 0,
-          item.capacityFactor || 0,
-          item.confidence || 'unknown',
+          `"${item.timestamp || ''}"`,
+          item.generationMW ?? '',
+          item.capacityFactor ?? '',
+          w.temperature ?? '',
+          w.windSpeed ?? '',
+          w.solarIrradiance ?? '',
+          w.cloudCover ?? '',
         ];
-        csv += row.map(v => typeof v === 'number' ? v : `"${v}"`).join(',') + '\n';
+        csv += row.join(',') + '\n';
       });
 
       return csv;
@@ -587,7 +409,10 @@ Timestamp\tGeneration (kW)\tCapacity Factor\tConfidence
     /**
      * Convert forecast data to XLSX format
      */
-    convertForecastToXLSX(forecastData, metadata) {
+    /**
+     * Convert forecast data to XLSX format
+     */
+    convertForecastToXLSX(forecastData, summary) {
       const wb = XLSX.utils.book_new();
 
       if (!forecastData || forecastData.length === 0) {
@@ -596,40 +421,40 @@ Timestamp\tGeneration (kW)\tCapacity Factor\tConfidence
         return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
       }
 
-      // Create forecast data sheet
       const forecastSheet = forecastData.map(item => ({
         'Timestamp': item.timestamp || '',
-        'Generation (kW)': item.generationKW || 0,
-        'Capacity Factor': item.capacityFactor || 0,
-        'Confidence': item.confidence || 'unknown',
+        'Generation (MW)': item.generationMW ?? 0,
+        'Capacity Factor': item.capacityFactor ?? '',
+        'Temperature (°C)': item.weather?.temperature ?? '',
+        'Wind Speed (m/s)': item.weather?.windSpeed ?? '',
+        'Solar Irradiance (W/m²)': item.weather?.solarIrradiance ?? '',
+        'Cloud Cover (%)': item.weather?.cloudCover ?? '',
       }));
 
       const ws = XLSX.utils.json_to_sheet(forecastSheet);
-
-      // Auto-size columns
-      const colWidths = [
+      ws['!cols'] = [
         { wch: 25 }, // Timestamp
-        { wch: 15 }, // Generation
+        { wch: 16 }, // Generation (MW)
         { wch: 15 }, // Capacity Factor
-        { wch: 12 }, // Confidence
+        { wch: 16 }, // Temperature
+        { wch: 16 }, // Wind Speed
+        { wch: 22 }, // Solar Irradiance
+        { wch: 16 }, // Cloud Cover
       ];
-      ws['!cols'] = colWidths;
-
       XLSX.utils.book_append_sheet(wb, ws, 'Forecast');
 
-      // Add metadata sheet
-      if (metadata) {
+      if (summary) {
         const metadataSheet = [
-          { Property: 'Location', Value: metadata.location || 'N/A' },
-          { Property: 'Installation Type', Value: metadata.installationType || 'N/A' },
-          { Property: 'Total Capacity (kW)', Value: metadata.totalInstalledCapacityKW || 0 },
-          { Property: 'Installation Count', Value: metadata.installationCount || 0 },
-          { Property: 'Forecast Horizon (hours)', Value: metadata.forecastHorizonHours || 0 },
-          { Property: 'Generated', Value: metadata.forecastGenerated || new Date().toISOString() },
+          { Property: 'Location', Value: summary.location || 'N/A' },
+          { Property: 'Installation Type', Value: summary.type || 'N/A' },
+          { Property: 'Total Capacity (MW)', Value: summary.totalCapacityMW ?? 0 },
+          { Property: 'Installation Count', Value: summary.installationCount ?? 0 },
+          { Property: 'Forecast Start', Value: summary.forecastPeriod?.start || 'N/A' },
+          { Property: 'Forecast End', Value: summary.forecastPeriod?.end || 'N/A' },
+          { Property: 'Generated', Value: new Date().toISOString() },
         ];
-
         const wsMetadata = XLSX.utils.json_to_sheet(metadataSheet);
-        wsMetadata['!cols'] = [{ wch: 25 }, { wch: 30 }];
+        wsMetadata['!cols'] = [{ wch: 22 }, { wch: 30 }];
         XLSX.utils.book_append_sheet(wb, wsMetadata, 'Metadata');
       }
 
