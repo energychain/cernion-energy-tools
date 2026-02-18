@@ -1,4 +1,5 @@
 const { Service } = require('moleculer');
+const XLSX = require('xlsx');
 
 /**
  * Assets Service
@@ -55,6 +56,49 @@ module.exports = {
       });
 
       return [header, ...rows].join('\n');
+    },
+
+    /**
+     * Convert array of objects to XLSX format
+     */
+    convertToXLSX(data) {
+      if (!data || data.length === 0) {
+        // Create empty workbook with headers only
+        const ws = XLSX.utils.aoa_to_sheet([['No data available']]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Assets');
+        return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      }
+
+      // Create worksheet from JSON data
+      const ws = XLSX.utils.json_to_sheet(data);
+
+      // Auto-size columns
+      const colWidths = [];
+      const range = XLSX.utils.decode_range(ws['!ref']);
+
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        let maxWidth = 10;
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          const cell = ws[cellAddress];
+          if (cell && cell.v) {
+            const cellLength = String(cell.v).length;
+            if (cellLength > maxWidth) {
+              maxWidth = cellLength;
+            }
+          }
+        }
+        colWidths.push({ wch: Math.min(maxWidth + 2, 50) });
+      }
+      ws['!cols'] = colWidths;
+
+      // Create workbook and add worksheet
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Assets');
+
+      // Return as buffer
+      return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     },
 
     /**
@@ -402,6 +446,19 @@ module.exports = {
         };
 
         return csvContent;
+      }
+
+      // Handle XLSX export if requested
+      if (format === 'xlsx') {
+        const xlsxBuffer = this.convertToXLSX(allResults);
+
+        // Set response headers for XLSX download
+        ctx.meta.$responseHeaders = {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="assets-${Date.now()}.xlsx"`,
+        };
+
+        return xlsxBuffer;
       }
 
       return allResults;
@@ -904,7 +961,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List all solar PV installations of a grid operator',
@@ -998,8 +1055,8 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List all wind power installations of a grid operator',
@@ -1052,7 +1109,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List all battery storage installations of a grid operator',
@@ -1105,7 +1162,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List all biomass installations of a grid operator',
@@ -1158,7 +1215,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List all hydropower installations of a grid operator',
@@ -1211,7 +1268,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List all combustion installations of a grid operator',
@@ -1264,7 +1321,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
-        format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         types: {
           type: 'string',
           optional: true,

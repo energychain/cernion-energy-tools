@@ -1,6 +1,6 @@
 {
   "name": "cernion-energy-tools",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "MicroService Agent System for Energy Markets",
   "main": "index.js",
   "scripts": {
@@ -44,7 +44,8 @@
     "moleculer-auto-openapi": "^1.1.7",
     "moleculer-repl": "^0.7.4",
     "moleculer-web": "^0.10.8",
-    "swagger-ui-dist": "^5.11.0"
+    "swagger-ui-dist": "^5.11.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "eslint": "^10.0.0",

@@ -5,6 +5,48 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [0.5.0] - 2026-02-18
+
+### Added
+- **Renewable Energy Generation Forecast Service** - New forecast microservice for weather-based renewable energy generation forecasting
+  - Weather-based generation forecasts using real MaStR installation data
+  - IEC standard compliance (IEC 61853 for solar, IEC 61400 for wind)
+  - Hourly forecasts up to 7 days (168 hours)
+  - Regional filtering (state, district, municipality, postal code)
+  - Installation-level breakdown available
+  - Weather data integration via Visual Crossing API
+  - Use cases: Energy procurement optimization, grid congestion analysis, VPP trading
+  - Endpoint: `POST /api/forecast/generation-forecast`
+  - CSV/XLSX export support with metadata
+  - Full OpenAPI documentation with 7 request examples
+  - 47 comprehensive tests (16 unit + 11 integration + 20 export tests)
+
+- **XLSX Export Support for Assets Service** - Download asset data as Excel spreadsheets
+  - All 7 asset endpoints now support `format=xlsx` parameter in addition to CSV and JSON
+  - Automatic column width adjustment for better readability
+  - Proper Excel MIME types and download headers
+  - Works with all asset types: solar, wind, storage, biomass, hydro, combustion, all
+  - Multi-sheet workbooks with formatted headers
+  - Example: `GET /api/assets/solar?vnbName=Netze BW&format=xlsx`
+
+- **CSV/XLSX Export for Forecast Service** - Download generation forecasts in multiple formats
+  - Added `format` parameter (json, csv, xlsx) to forecast endpoint
+  - CSV format includes metadata comments (location, installation type, capacity)
+  - XLSX format includes two sheets: Forecast data + Metadata sheet
+  - Consistent export interface across all data-heavy services
+  - Content-Type headers and automatic file download support
+
+### Changed
+- **Test Coverage Improvements** - Added 31 new tests across forecast and export functionality
+  - Total test count: 255 tests across 21 test suites
+  - Code coverage: 79.13% overall
+  - 100% test pass rate
+
+### Dependencies
+- Added `xlsx` (SheetJS) library for Excel file generation
+
 ## [0.4.1] - 2026-02-13
 
 ### Fixed

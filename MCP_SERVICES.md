@@ -105,7 +105,29 @@ Official German grid operator data from Netztransparenz.de
 - `POST /api/german-grid/forecast` - Solar/wind generation forecasts
 - `POST /api/german-grid/redispatch` - Redispatch measures
 
-### 10. System Tools Service (`system`)
+### 10. Renewable Energy Forecast Service (`forecast`)
+Weather-based renewable energy generation forecasting using real MaStR installation data
+
+**Endpoints:**
+- `POST /api/forecast/generation-forecast` - Weather-based generation forecasts
+
+**Key Features:**
+- Real installation data from German Marktstammdatenregister (3.7M+ installations)
+- IEC standard compliance (IEC 61853 for solar, IEC 61400 for wind)
+- Hourly forecasts up to 7 days (168 hours)
+- Regional filtering (state, district, municipality, postal code)
+- Installation-level breakdown available
+- Weather data integration via Visual Crossing API
+- 24-hour weather data caching for performance
+
+**Use Cases:**
+- Energy procurement optimization for Stadtwerke
+- Grid congestion anticipation for VNB/GNB
+- Virtual Power Plant (VPP) trading
+- Intraday and day-ahead market positioning
+- Industrial load shifting optimization
+
+### 11. System Tools Service (`system`)
 Status, job management, parameter validation
 
 **Endpoints:**
