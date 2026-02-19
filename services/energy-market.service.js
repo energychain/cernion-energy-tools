@@ -478,7 +478,15 @@ module.exports = {
 | \`netzMastrNummer\` | Grid MaStR-ID (SNE...) |
 | \`netzbetreiberMastrNummer\` | Grid operator MaStR-ID (SNB...) |
 
-**New fields on all installation objects:** \`latitude\`, \`longitude\` (GPS coordinates)
+**New fields on all installation objects:** \`latitude\`, \`longitude\` (GPS coordinates), \`netzbetreiberpruefungStatus\` (grid operator verification status)
+
+| \`netzbetreiberpruefungStatus\` code | Meaning |
+|---|---|
+| \`2954\` | Geprüft ✅ — confirmed by grid operator |
+| \`2955\` | In Prüfung ⏳ — review in progress |
+| \`3075\` | Nicht vorgesehen — no verification applicable |
+| \`null\` | Not available for this record (older data) |
+
 **Wind turbines:** additionally \`typenbezeichnung\` (turbine model, e.g. "E-115"), \`hersteller\` (manufacturer, e.g. "Enercon")
 **Storage systems:** additionally \`batterietechnologie\`, \`acDcKoppelung\`, \`wechselrichterleistung\`, \`einsatzort\`
 
@@ -643,6 +651,7 @@ module.exports = {
                         postalCode: '67063',
                         latitude: 49.4744,
                         longitude: 8.4349,
+                        netzbetreiberpruefungStatus: 2954,
                         napData: {
                           napMastrNummer: 'SAN914634531048',
                           messlokation: 'DE0003976706990000000000000073131',
@@ -663,6 +672,7 @@ module.exports = {
                         postalCode: '69115',
                         latitude: 49.4093,
                         longitude: 8.6942,
+                        netzbetreiberpruefungStatus: null,
                         napData: undefined,
                       },
                     ],

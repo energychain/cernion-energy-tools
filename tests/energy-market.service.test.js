@@ -224,6 +224,7 @@ describe('Energy Market Service', () => {
               einheitBetriebsstatus: '35',
               latitude: 49.4744,
               longitude: 8.4349,
+              netzbetreiberpruefungStatus: 2954,
               napData: napDataFixture,
             },
             {
@@ -233,6 +234,7 @@ describe('Energy Market Service', () => {
               einheitBetriebsstatus: '35',
               latitude: 49.4093,
               longitude: 8.6942,
+              netzbetreiberpruefungStatus: null,
               napData: undefined,
             },
           ],
@@ -350,6 +352,7 @@ describe('Energy Market Service', () => {
               einsatzort: 'Haushalt',
               latitude: 48.1,
               longitude: 11.5,
+              netzbetreiberpruefungStatus: 3075,
               napData: napDataFixture,
             },
           ],
@@ -366,4 +369,150 @@ describe('Energy Market Service', () => {
       expect(storage.wechselrichterleistung).toBe(8.5);
       expect(storage.einsatzort).toBe('Haushalt');
     });
-  });});
+  });
+
+  describe('installations action — netzbetreiberpruefungStatus', () => {
+    const napDataFixture = {
+      napMastrNummer: 'SAN914634531048',
+      messlokation: 'DE0003976706990000000000000073131',
+      spannungsebene: 354,
+      spannungsebeneLabel: 'Niederspannung (LV)',
+      nettoengpassleistung: 6.15,
+      netzMastrNummer: 'SNE985057905075',
+      netzbetreiberMastrNummer: 'SNB935578300972',
+    };
+
+    it('status 2954 (Geprüft) passes through', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            {
+              mastrNummer: 'SEE988149395570',
+              bruttoleistung: 6.15,
+              einheitBetriebsstatus: '35',
+              latitude: 49.4744,
+              longitude: 8.4349,
+              netzbetreiberpruefungStatus: 2954,
+              napData: napDataFixture,
+            },
+          ],
+          stats: { count: 1, totalCapacity: 6.15, avgCapacity: 6.15 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 5,
+      });
+      expect(result.data.installations[0].netzbetreiberpruefungStatus).toBe(2954);
+    });
+
+    it('status 2955 (In Prüfung) passes through', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            {
+              mastrNummer: 'SEE988149395571',
+              bruttoleistung: 9.9,
+              einheitBetriebsstatus: '35',
+              latitude: 49.0,
+              longitude: 8.0,
+              netzbetreiberpruefungStatus: 2955,
+              napData: undefined,
+            },
+          ],
+          stats: { count: 1, totalCapacity: 9.9, avgCapacity: 9.9 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 5,
+      });
+      expect(result.data.installations[0].netzbetreiberpruefungStatus).toBe(2955);
+    });
+
+    it('status 3075 (Nicht vorgesehen) passes through', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            {
+              mastrNummer: 'SEE988149395572',
+              bruttoleistung: 3.8,
+              einheitBetriebsstatus: '35',
+              latitude: 48.5,
+              longitude: 9.0,
+              netzbetreiberpruefungStatus: 3075,
+              napData: undefined,
+            },
+          ],
+          stats: { count: 1, totalCapacity: 3.8, avgCapacity: 3.8 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 5,
+      });
+      expect(result.data.installations[0].netzbetreiberpruefungStatus).toBe(3075);
+    });
+
+    it('status null (older record without value) passes through', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            {
+              mastrNummer: 'SEE900000000002',
+              bruttoleistung: 3.8,
+              einheitBetriebsstatus: '35',
+              latitude: null,
+              longitude: null,
+              netzbetreiberpruefungStatus: null,
+              napData: undefined,
+            },
+          ],
+          stats: { count: 1, totalCapacity: 3.8, avgCapacity: 3.8 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 5,
+      });
+      expect(result.data.installations[0].netzbetreiberpruefungStatus).toBeNull();
+    });
+
+    it('mixed statuses: both 2954 and null present in same response', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            {
+              mastrNummer: 'SEE988149395570',
+              bruttoleistung: 6.15,
+              einheitBetriebsstatus: '35',
+              netzbetreiberpruefungStatus: 2954,
+              napData: napDataFixture,
+            },
+            {
+              mastrNummer: 'SEE900000000002',
+              bruttoleistung: 3.8,
+              einheitBetriebsstatus: '35',
+              netzbetreiberpruefungStatus: null,
+              napData: undefined,
+            },
+          ],
+          stats: { count: 2, totalCapacity: 9.95, avgCapacity: 4.975 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 10,
+      });
+      const statuses = result.data.installations.map((i) => i.netzbetreiberpruefungStatus);
+      expect(statuses).toContain(2954);
+      expect(statuses).toContain(null);
+    });
+  });
+});
+

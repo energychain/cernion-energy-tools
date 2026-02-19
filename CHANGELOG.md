@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.5] - 2026-02-19
+
+### Changed
+- **`energy-market.installations` — `netzbetreiberpruefungStatus` field** (`cernion_installations_local` backend update):
+  - New field **`netzbetreiberpruefungStatus`** (`number | null`) on every installation object — the grid operator verification status from MaStR:
+    | Code | Meaning |
+    |---|---|
+    | `2954` | Geprüft ✅ — confirmed by grid operator |
+    | `2955` | In Prüfung ⏳ — review in progress |
+    | `3075` | Nicht vorgesehen — no verification applicable |
+    | `null` | Not available (older record, value not set in original MaStR export) |
+  - OpenAPI description updated with `netzbetreiberpruefungStatus` code table; response example updated for both installations (one with `2954`, one with `null`).
+
+### Fixed
+- Test file `tests/energy-market.service.test.js`: removed stray `});` that collapsed two `describe` blocks onto one line.
+
+### Testing
+- 5 new tests in new `installations action — netzbetreiberpruefungStatus` describe block (375 total, up from 370):
+  - Status 2954 (Geprüft) passes through
+  - Status 2955 (In Prüfung) passes through
+  - Status 3075 (Nicht vorgesehen) passes through
+  - Status `null` (older record) passes through
+  - Mixed statuses (2954 + null) in same response
+
 ## [0.5.4] - 2026-02-19
 
 ### Changed
