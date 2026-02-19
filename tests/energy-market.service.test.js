@@ -199,4 +199,171 @@ describe('Energy Market Service', () => {
       expect(result.success).toBe(true);
     }, 30000);
   });
-});
+
+  describe('installations action — NAP enrichment (includeNapData)', () => {
+    const napDataFixture = {
+      napMastrNummer: 'SAN914634531048',
+      messlokation: 'DE0003976706990000000000000073131',
+      spannungsebene: 354,
+      spannungsebeneLabel: 'Niederspannung (LV)',
+      nettoengpassleistung: 6.15,
+      netzMastrNummer: 'SNE985057905075',
+      netzbetreiberMastrNummer: 'SNB935578300972',
+    };
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      callWithNewSession.mockResolvedValue({
+        success: true,
+        data: {
+          installations: [
+            {
+              mastrNummer: 'SEE988149395570',
+              name: 'PV 2 Weiler',
+              bruttoleistung: 6.15,
+              einheitBetriebsstatus: '35',
+              latitude: 49.4744,
+              longitude: 8.4349,
+              napData: napDataFixture,
+            },
+            {
+              mastrNummer: 'SEE900000000002',
+              name: 'PV Altanlage 2003',
+              bruttoleistung: 3.8,
+              einheitBetriebsstatus: '35',
+              latitude: 49.4093,
+              longitude: 8.6942,
+              napData: undefined,
+            },
+          ],
+          stats: { count: 2, totalCapacity: 9.95, avgCapacity: 4.975 },
+        },
+      });
+    });
+
+    it('should pass includeNapData: true to MCP tool by default', async () => {
+      await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 10,
+      });
+      const [toolName, params] = callWithNewSession.mock.calls[0];
+      expect(toolName).toBe('cernion_installations_local');
+      expect(params.includeNapData).toBe(true);
+    });
+
+    it('should pass includeNapData: false when explicitly set', async () => {
+      await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 10,
+        includeNapData: false,
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params.includeNapData).toBe(false);
+    });
+
+    it('should pass napData through in installation results', async () => {
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 10,
+      });
+      const installationWithNap = result.data.installations.find(
+        (i) => i.napData !== undefined
+      );
+      expect(installationWithNap).toBeDefined();
+      expect(installationWithNap.napData.napMastrNummer).toBe('SAN914634531048');
+      expect(installationWithNap.napData.messlokation).toBe(
+        'DE0003976706990000000000000073131'
+      );
+      expect(installationWithNap.napData.spannungsebeneLabel).toBe('Niederspannung (LV)');
+      expect(installationWithNap.napData.nettoengpassleistung).toBe(6.15);
+      expect(installationWithNap.napData.netzMastrNummer).toBe('SNE985057905075');
+      expect(installationWithNap.napData.netzbetreiberMastrNummer).toBe('SNB935578300972');
+    });
+
+    it('napData may be undefined for older installations (~48% without MeLo)', async () => {
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 10,
+      });
+      const installationWithoutNap = result.data.installations.find(
+        (i) => i.napData === undefined
+      );
+      expect(installationWithoutNap).toBeDefined();
+      expect(installationWithoutNap.mastrNummer).toBe('SEE900000000002');
+    });
+
+    it('should pass latitude and longitude through in installation results', async () => {
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 10,
+      });
+      const inst = result.data.installations[0];
+      expect(inst.latitude).toBe(49.4744);
+      expect(inst.longitude).toBe(8.4349);
+    });
+
+    it('should work for wind turbines with includeNapData: false', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            {
+              mastrNummer: 'SEW900000000001',
+              name: 'WEA Nordsee 1',
+              bruttoleistung: 3000,
+              einheitBetriebsstatus: '35',
+              typenbezeichnung: 'E-115',
+              hersteller: 'Enercon',
+              latitude: 53.1,
+              longitude: 8.2,
+            },
+          ],
+          stats: { count: 1, totalCapacity: 3000, avgCapacity: 3000 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'wind',
+        minCapacityKW: 1000,
+        limit: 10,
+        includeNapData: false,
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params.includeNapData).toBe(false);
+      const turbine = result.data.installations[0];
+      expect(turbine.typenbezeichnung).toBe('E-115');
+      expect(turbine.hersteller).toBe('Enercon');
+    });
+
+    it('should pass storage-specific fields through', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            {
+              mastrNummer: 'SEP900000000001',
+              name: 'Heimspeicher 1',
+              bruttoleistung: 10,
+              einheitBetriebsstatus: '35',
+              batterietechnologie: 'Lithium-Ionen',
+              acDcKoppelung: 'AC',
+              wechselrichterleistung: 8.5,
+              einsatzort: 'Haushalt',
+              latitude: 48.1,
+              longitude: 11.5,
+              napData: napDataFixture,
+            },
+          ],
+          stats: { count: 1, totalCapacity: 10, avgCapacity: 10 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'storage',
+        limit: 5,
+      });
+      const storage = result.data.installations[0];
+      expect(storage.batterietechnologie).toBe('Lithium-Ionen');
+      expect(storage.acDcKoppelung).toBe('AC');
+      expect(storage.wechselrichterleistung).toBe(8.5);
+      expect(storage.einsatzort).toBe('Haushalt');
+    });
+  });});

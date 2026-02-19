@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-02-19
+
+### Changed
+- **`energy-market.installations` — NAP & GPS enrichment** (`cernion_installations_local` backend update):
+  - New optional parameter **`includeNapData`** (boolean, default: `true`) — pass `false` to skip enrichment for faster responses on large result sets.
+  - When `true`, each installation object now includes a **`napData`** sub-object (or `undefined` for ~48% of older installations that have no MeLo on record):
+    | Field | Description |
+    |---|---|
+    | `napMastrNummer` | NAP identifier (SAN...) |
+    | `messlokation` | MeLo-ID (DE000...) for billing/metering |
+    | `spannungsebene` | Voltage level code |
+    | `spannungsebeneLabel` | Human-readable label (Niederspannung / Mittelspannung / Hochspannung / Höchstspannung) |
+    | `nettoengpassleistung` | Net transfer capacity at NAP in kW |
+    | `netzMastrNummer` | Grid MaStR-ID (SNE...) |
+    | `netzbetreiberMastrNummer` | Grid operator MaStR-ID (SNB...) |
+  - All installation objects now include **`latitude`** and **`longitude`** (GPS coordinates).
+  - Wind turbine objects additionally include **`typenbezeichnung`** (model, e.g. "E-115") and **`hersteller`** (manufacturer, e.g. "Enercon").
+  - Storage system objects additionally include **`batterietechnologie`**, **`acDcKoppelung`**, **`wechselrichterleistung`**, **`einsatzort`**.
+  - OpenAPI updated: `includeNapData` in request schema, two new examples (`withNapData`, `withoutNapData`), response example updated with realistic NAP data + GPS + second installation showing `napData: undefined`.
+  - NAP enrichment uses a single `$in` query — no N+1; typically < 50 ms additional overhead for 1,000 installations.
+
+### Testing
+- 7 new tests in `tests/energy-market.service.test.js` (370 total, up from 363) in new `installations action — NAP enrichment` describe block with isolated `beforeEach` mocks:
+  - `includeNapData: true` passed to MCP tool by default
+  - `includeNapData: false` passed through explicitly
+  - `napData` object fields pass through correctly
+  - `napData` may be `undefined` for older installations
+  - `latitude`/`longitude` fields pass through
+  - Wind turbines with `includeNapData: false` + `typenbezeichnung`/`hersteller` fields
+  - Storage with `batterietechnologie`, `acDcKoppelung`, `wechselrichterleistung`, `einsatzort`
+
 ## [0.5.3] - 2026-02-20
 
 ### Added
