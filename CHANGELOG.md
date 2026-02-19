@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.6] - 2026-02-20
+
+### Changed
+- **`assets` service — NAP enrichment, GPS, and `netzbetreiberpruefungStatus`** (all endpoints: `/list`, `/solar`, `/wind`, `/storage`, `/biomass`, `/hydro`, `/combustion`, `/all`):
+  - New parameter **`includeNapData`** (`boolean`, default `true`) — passed through to `energy-market.installations`.
+  - New flattened output columns in every row:
+    | Column | Type | Description |
+    |---|---|---|
+    | `Netzbetreiberpruefung Status` | `number \| null` | Grid operator review code: 2954=Geprüft, 2955=In Prüfung, 3075=Nicht vorgesehen |
+    | `Netzbetreiberpruefung Status Name` | `string \| null` | Human-readable label |
+    | `NAP MaStR Nummer` | `string \| null` | Grid connection point ID (SAN…) |
+    | `Messlokation (MeLo)` | `string \| null` | DE… metering location ID (33 chars) |
+    | `Spannungsebene NAP` | `string \| null` | Voltage level label at connection point |
+    | `Nettoengpassleistung kW` | `number \| null` | Net bottleneck capacity in kW |
+    | `Netz MaStR Nummer` | `string \| null` | Connected grid ID (SNE…) |
+    | `Netzbetreiber NAP MaStR` | `string \| null` | Grid operator at connection point (SNB…) |
+  - `Breitengrad` / `Längengrad` (GPS) were already present in the mapping; confirmed they pass through correctly from the enriched `energy-market.installations` response.
+  - Fixed duplicate `format` parameter line in `wind` action params.
+  - OpenAPI documentation updated for all endpoints: new `includeNapData` query parameter; `list` action response schema extended with all new fields.
+  - 11 new tests added in `tests/assets.service.test.js` (total now 386).
+
 ## [0.5.5] - 2026-02-19
 
 ### Changed

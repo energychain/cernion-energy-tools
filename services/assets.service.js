@@ -117,6 +117,7 @@ module.exports = {
         redispatch,
         operationalStatus,
         format,
+        includeNapData,
       } = ctx.params;
 
       if (!vnbName && !bdewCode && !gridOperatorId && !location) {
@@ -229,6 +230,7 @@ module.exports = {
         if (maxCapacityKW !== undefined) callParams.maxCapacityKW = maxCapacityKW;
         if (limit !== undefined) callParams.limit = limit;
         if (operationalStatus !== undefined) callParams.operationalStatus = operationalStatus;
+        callParams.includeNapData = includeNapData;
 
         // VNB filtering now supported for all types (netzbetreiberMastrNummer added to database)
         if (resolvedMastrId) {
@@ -339,8 +341,21 @@ module.exports = {
                         ? `Status ${statusCode}`
                         : null;
 
+            // Map Netzbetreiberprüfung status code to readable name
+            const nbpStatus =
+              item.netzbetreiberpruefungStatus !== undefined
+                ? item.netzbetreiberpruefungStatus
+                : null;
+            const nbpStatusName =
+              nbpStatus === 2954
+                ? 'Geprüft'
+                : nbpStatus === 2955
+                  ? 'In Prüfung'
+                  : nbpStatus === 3075
+                    ? 'Nicht vorgesehen'
+                    : null;
+
             return {
-              // Core identification
               'SEE Nummer':
                 item.mastrNumber || item.mastrNummer || item.EinheitMastrNummer || item.id || 'N/A',
               'Einheit Systemstatus': item.einheitSystemstatus || item.systemStatus || null,
@@ -422,6 +437,21 @@ module.exports = {
               Fläche: item.inAnspruchGenommeneFlaeche || item.usedArea || null,
               'Anzahl Module': item.anzahlModule || item.moduleCount || null,
               'Leistung je Modul': item.leistungJeModul || item.powerPerModule || null,
+
+              // Netzbetreiberprüfung
+              'Netzbetreiberpruefung Status': nbpStatus,
+              'Netzbetreiberpruefung Status Name': nbpStatusName,
+
+              // Netzanschlusspunkt (NAP) / Messlokation (MeLo)
+              'NAP MaStR Nummer': item.napData?.napMastrNummer || null,
+              'Messlokation (MeLo)': item.napData?.messlokation || null,
+              'Spannungsebene NAP': item.napData?.spannungsebeneLabel || null,
+              'Nettoengpassleistung kW':
+                item.napData?.nettoengpassleistung != null
+                  ? item.napData.nettoengpassleistung
+                  : null,
+              'Netz MaStR Nummer': item.napData?.netzMastrNummer || null,
+              'Netzbetreiber NAP MaStR': item.napData?.netzbetreiberMastrNummer || null,
             };
           });
 
@@ -553,6 +583,14 @@ module.exports = {
           description:
             'Operational status filter: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All statuses, or comma-separated list',
         },
+        includeNapData: {
+          type: 'boolean',
+          optional: true,
+          default: true,
+          convert: true,
+          description:
+            'Include NAP (Netzanschlusspunkt) data: MeLo, voltage level, grid bottleneck capacity. Default: true',
+        },
       },
       openapi: {
         summary: 'List assets of a distribution network operator (DNO/DSO)',
@@ -625,6 +663,13 @@ module.exports = {
             schema: { type: 'boolean', example: true },
             description:
               'Redispatch 2.0 filter: Only installations ≥100kW (automatically sets minCapacityKW=100)',
+          },
+          {
+            name: 'includeNapData',
+            in: 'query',
+            schema: { type: 'boolean', default: true, example: true },
+            description:
+              'Include NAP data (Netzanschlusspunkt): MeLo, voltage level, grid bottleneck capacity. Default: true. Set to false to speed up large queries.',
           },
         ],
         responses: {
@@ -896,6 +941,61 @@ module.exports = {
                         nullable: true,
                         description: 'Power per module in W (solar only)',
                       },
+
+                      // Netzbetreiberprüfung
+                      'Netzbetreiberpruefung Status': {
+                        type: 'number',
+                        nullable: true,
+                        description:
+                          'Grid operator review status code: 2954=Geprüft, 2955=In Prüfung, 3075=Nicht vorgesehen, null=older record',
+                        example: 2954,
+                      },
+                      'Netzbetreiberpruefung Status Name': {
+                        type: 'string',
+                        nullable: true,
+                        description:
+                          'Grid operator review status label: Geprüft / In Prüfung / Nicht vorgesehen',
+                        example: 'Geprüft',
+                      },
+
+                      // NAP / MeLo (Netzanschlusspunkt)
+                      'NAP MaStR Nummer': {
+                        type: 'string',
+                        nullable: true,
+                        description: 'MaStR ID of the grid connection point (SAN format)',
+                        example: 'SAN914634531048',
+                      },
+                      'Messlokation (MeLo)': {
+                        type: 'string',
+                        nullable: true,
+                        description: 'Metering location ID (DE..., 33 chars)',
+                        example: 'DE0003976706990000000000000073131',
+                      },
+                      'Spannungsebene NAP': {
+                        type: 'string',
+                        nullable: true,
+                        description:
+                          'Voltage level at grid connection: Niederspannung / Mittelspannung / Hochspannung / Höchstspannung',
+                        example: 'Niederspannung (LV)',
+                      },
+                      'Nettoengpassleistung kW': {
+                        type: 'number',
+                        nullable: true,
+                        description: 'Net bottleneck capacity in kW at grid connection point',
+                        example: 6.15,
+                      },
+                      'Netz MaStR Nummer': {
+                        type: 'string',
+                        nullable: true,
+                        description: 'MaStR ID of the connected grid (SNE format)',
+                        example: 'SNE985057905075',
+                      },
+                      'Netzbetreiber NAP MaStR': {
+                        type: 'string',
+                        nullable: true,
+                        description: 'MaStR ID of the grid operator at the connection point (SNB format)',
+                        example: 'SNB935578300972',
+                      },
                     },
                     required: [
                       'SEE Nummer',
@@ -962,6 +1062,7 @@ module.exports = {
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
+        includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
       },
       openapi: {
         summary: 'List all solar PV installations of a grid operator',
@@ -1030,6 +1131,12 @@ module.exports = {
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All statuses',
           },
+          {
+            name: 'includeNapData',
+            in: 'query',
+            schema: { type: 'boolean', default: true },
+            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
+          },
         ],
       },
       async handler(ctx) {
@@ -1056,7 +1163,7 @@ module.exports = {
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
+        includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
       },
       openapi: {
         summary: 'List all wind power installations of a grid operator',
@@ -1084,6 +1191,12 @@ module.exports = {
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
           },
+          {
+            name: 'includeNapData',
+            in: 'query',
+            schema: { type: 'boolean', default: true },
+            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
+          },
         ],
       },
       async handler(ctx) {
@@ -1110,6 +1223,7 @@ module.exports = {
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
+        includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
       },
       openapi: {
         summary: 'List all battery storage installations of a grid operator',
@@ -1137,6 +1251,12 @@ module.exports = {
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
           },
+          {
+            name: 'includeNapData',
+            in: 'query',
+            schema: { type: 'boolean', default: true },
+            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
+          },
         ],
       },
       async handler(ctx) {
@@ -1163,6 +1283,7 @@ module.exports = {
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
+        includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
       },
       openapi: {
         summary: 'List all biomass installations of a grid operator',
@@ -1190,6 +1311,12 @@ module.exports = {
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
           },
+          {
+            name: 'includeNapData',
+            in: 'query',
+            schema: { type: 'boolean', default: true },
+            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
+          },
         ],
       },
       async handler(ctx) {
@@ -1216,6 +1343,7 @@ module.exports = {
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
+        includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
       },
       openapi: {
         summary: 'List all hydropower installations of a grid operator',
@@ -1243,6 +1371,12 @@ module.exports = {
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
           },
+          {
+            name: 'includeNapData',
+            in: 'query',
+            schema: { type: 'boolean', default: true },
+            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
+          },
         ],
       },
       async handler(ctx) {
@@ -1269,6 +1403,7 @@ module.exports = {
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
+        includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
       },
       openapi: {
         summary: 'List all combustion installations of a grid operator',
@@ -1295,6 +1430,12 @@ module.exports = {
             schema: { type: 'string', default: '35' },
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
+          },
+          {
+            name: 'includeNapData',
+            in: 'query',
+            schema: { type: 'boolean', default: true },
+            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
         ],
       },
@@ -1326,6 +1467,14 @@ module.exports = {
           type: 'string',
           optional: true,
           description: 'Comma-separated list of asset types (default: all types)',
+        },
+        includeNapData: {
+          type: 'boolean',
+          optional: true,
+          default: true,
+          convert: true,
+          description:
+            'Include NAP (Netzanschlusspunkt) data: MeLo, voltage level, grid bottleneck capacity. Default: true',
         },
       },
       openapi: {
@@ -1394,6 +1543,12 @@ module.exports = {
             schema: { type: 'string', example: 'solar,wind,storage' },
             description:
               'Comma-separated list of installation types. Default: all types (solar,wind,storage,biomass,hydro,combustion)',
+          },
+          {
+            name: 'includeNapData',
+            in: 'query',
+            schema: { type: 'boolean', default: true },
+            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
         ],
       },
