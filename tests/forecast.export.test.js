@@ -132,6 +132,15 @@ describe('Forecast Service - Export Formats', () => {
       const result = await broker.call('forecast.generationForecast', { format: 'csv' });
       expect(result).toBe('No forecast data available');
     });
+
+    it('should include resolution in CSV metadata comments', async () => {
+      const result = await broker.call('forecast.generationForecast', {
+        gridOperatorMastrId: 'SNB935578300972',
+        resolution: 'hourly',
+        format: 'csv',
+      });
+      expect(result).toContain('# Resolution: hourly');
+    });
   });
 
   describe('XLSX Export', () => {
@@ -216,6 +225,19 @@ describe('Forecast Service - Export Formats', () => {
       const workbook = XLSX.read(result, { type: 'buffer' });
       expect(workbook.SheetNames).toContain('Forecast');
     });
+
+    it('should include Resolution row in XLSX Metadata sheet', async () => {
+      const result = await broker.call('forecast.generationForecast', {
+        gridOperatorMastrId: 'SNB935578300972',
+        resolution: 'hourly',
+        format: 'xlsx',
+      });
+      const workbook = XLSX.read(result, { type: 'buffer' });
+      const metadataJson = XLSX.utils.sheet_to_json(workbook.Sheets['Metadata']);
+      const resolutionRow = metadataJson.find((r) => r.Property === 'Resolution');
+      expect(resolutionRow).toBeDefined();
+      expect(resolutionRow.Value).toBe('hourly');
+    });
   });
 
   describe('Format Parameter Validation', () => {
@@ -269,6 +291,22 @@ describe('Forecast Service - Export Formats', () => {
       expect(workbook.SheetNames).toContain('Forecast');
       const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets['Forecast']);
       expect(jsonData[0]).toHaveProperty('Generation (MW)');
+    });
+
+    it('should include resolution in CSV comments when provided', () => {
+      const service = broker.getLocalService('forecast');
+      const csv = service.convertForecastToCSV(MOCK_FORECASTS, MOCK_SUMMARY, 'hourly');
+      expect(csv).toContain('# Resolution: hourly');
+    });
+
+    it('should include Resolution in XLSX Metadata sheet when provided', () => {
+      const service = broker.getLocalService('forecast');
+      const buffer = service.convertForecastToXLSX(MOCK_FORECASTS, MOCK_SUMMARY, '15min');
+      const workbook = XLSX.read(buffer, { type: 'buffer' });
+      const metadataJson = XLSX.utils.sheet_to_json(workbook.Sheets['Metadata']);
+      const resolutionRow = metadataJson.find((r) => r.Property === 'Resolution');
+      expect(resolutionRow).toBeDefined();
+      expect(resolutionRow.Value).toBe('15min');
     });
   });
 });

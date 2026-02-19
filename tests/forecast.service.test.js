@@ -243,6 +243,39 @@ describe('Forecast Service', () => {
       const calledWith = callWithNewSession.mock.calls[0][1];
       expect(calledWith.installationType).toBe('solar');
     });
+
+    it('should validate resolution enum (invalid value rejects)', async () => {
+      await expect(
+        broker.call('forecast.generationForecast', { resolution: 'weekly' })
+      ).rejects.toThrow();
+    });
+
+    it('should accept all valid resolution values', async () => {
+      for (const res of ['daily', 'hourly', '15min']) {
+        const result = await broker.call('forecast.generationForecast', { resolution: res });
+        expect(result.success).toBe(true);
+      }
+    });
+
+    it('should use default resolution=daily if not provided', async () => {
+      callWithNewSession.mockClear();
+      await broker.call('forecast.generationForecast', { forecastDays: 3 });
+      const calledWith = callWithNewSession.mock.calls[0][1];
+      expect(calledWith.resolution).toBe('daily');
+    });
+
+    it('should pass resolution to the MCP tool', async () => {
+      callWithNewSession.mockClear();
+      await broker.call('forecast.generationForecast', {
+        gridOperatorMastrId: 'SNB935578300972',
+        resolution: 'hourly',
+      });
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'mastr_generation_forecast',
+        expect.objectContaining({ resolution: 'hourly' }),
+        undefined
+      );
+    });
   });
 });
 

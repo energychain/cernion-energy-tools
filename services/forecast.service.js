@@ -25,6 +25,7 @@ module.exports = {
       params: {
         installationType: { type: 'enum', values: ['solar', 'wind', 'all'], optional: true, default: 'solar' },
         forecastDays: { type: 'number', optional: true, min: 1, max: 14, default: 7 },
+        resolution: { type: 'enum', values: ['daily', 'hourly', '15min'], optional: true, default: 'daily' },
         gridOperatorMastrId: { type: 'string', optional: true },
         bundesland: { type: 'string', optional: true },
         landkreis: { type: 'string', optional: true },
@@ -62,6 +63,7 @@ module.exports = {
 **Parameters:**
 - **installationType**: "solar" (default), "wind", or "all" (combined solar+wind)
 - **forecastDays**: Forecast period 1-14 days (default: 7)
+- **resolution**: Time resolution — \`"daily"\` (1 point/day, default), \`"hourly"\` (24 pts/day, intraday trading), \`"15min"\` (96 pts/day, §12 StromNZV balancing/scheduling)
 - **gridOperatorMastrId**: MaStR Netzbetreiber-ID (SNB/GNB...) — use cernion_vnb_lookup to resolve BDEW→MaStR
 - **bundesland**: German federal state (e.g., "Bayern", "Baden-Württemberg")
 - **landkreis**: District/Landkreis name
@@ -90,6 +92,13 @@ module.exports = {
                     default: 7,
                     description: 'Number of days to forecast (1-14)',
                     example: 7,
+                  },
+                  resolution: {
+                    type: 'string',
+                    enum: ['daily', 'hourly', '15min'],
+                    default: 'daily',
+                    description: 'Time resolution of forecast output. "daily" = 1 pt/day (default); "hourly" = 24 pts/day (intraday dispatch/trading); "15min" = 96 pts/day (§12 StromNZV balancing/scheduling, linear interpolation between hourly values)',
+                    example: 'daily',
                   },
                   gridOperatorMastrId: {
                     type: 'string',
@@ -144,11 +153,30 @@ module.exports = {
               },
               examples: {
                 gridOperatorForecast: {
-                  summary: 'All EE generation in a grid operator network',
+                  summary: 'Daily EE generation for a grid operator network',
                   value: {
                     gridOperatorMastrId: 'SNB935578300972',
                     installationType: 'all',
                     forecastDays: 7,
+                    resolution: 'daily',
+                  },
+                },
+                hourlyIntraday: {
+                  summary: 'Hourly Solar+Wind forecast for Bavaria (intraday trading)',
+                  value: {
+                    bundesland: 'Bayern',
+                    installationType: 'all',
+                    forecastDays: 3,
+                    resolution: 'hourly',
+                  },
+                },
+                quarterHourlyBalancing: {
+                  summary: '15-min forecast for §12 StromNZV balancing/scheduling',
+                  value: {
+                    postleitzahl: '67063',
+                    installationType: 'solar',
+                    forecastDays: 2,
+                    resolution: '15min',
                   },
                 },
                 solarByPostalCode: {
@@ -168,20 +196,22 @@ module.exports = {
                   },
                 },
                 csvExport: {
-                  summary: 'Download forecast as CSV',
+                  summary: 'Download hourly forecast as CSV',
                   value: {
                     gridOperatorMastrId: 'SNB935578300972',
                     installationType: 'all',
-                    forecastDays: 7,
+                    forecastDays: 3,
+                    resolution: 'hourly',
                     format: 'csv',
                   },
                 },
                 xlsxExport: {
-                  summary: 'Download forecast as Excel (XLSX)',
+                  summary: 'Download 15-min forecast as Excel (XLSX)',
                   value: {
                     bundesland: 'Bayern',
                     installationType: 'solar',
                     forecastDays: 7,
+                    resolution: '15min',
                     format: 'xlsx',
                   },
                 },
@@ -239,6 +269,13 @@ module.exports = {
                       properties: {
                         toolName: { type: 'string', example: 'mastr_generation_forecast' },
                         timestamp: { type: 'string', format: 'date-time' },
+                        weatherDataSource: { type: 'string', example: 'Visual Crossing' },
+                        iecStandardApplied: { type: 'string', example: 'IEC 61853', description: 'IEC 61853 for solar, IEC 61400 for wind' },
+                        cachingEnabled: { type: 'boolean', example: true },
+                        apiCallsUsed: { type: 'number', example: 1 },
+                        orientationCorrectionApplied: { type: 'boolean', example: true },
+                        portfolioOrientationFactor: { type: 'number', example: 0.9712, description: 'Capacity-weighted azimuth+tilt factor from MaStR Hauptausrichtung' },
+                        orientationDataCoverage: { type: 'number', example: 0.8341, description: 'Fraction of installations with MaStR orientation data' },
                       },
                     },
                   },
@@ -302,6 +339,7 @@ module.exports = {
       async handler(ctx) {
         try {
           const { format, bundesland, landkreis, gemeinde, postleitzahl, latitude, longitude, ...rest } = ctx.params;
+          const resolution = ctx.params.resolution || 'daily';
 
           // Build nested location object from flat params
           const locationObj = {};
@@ -326,7 +364,7 @@ module.exports = {
           // Handle CSV export
           if (format === 'csv') {
             const forecastData = result?.forecasts || [];
-            const csvContent = this.convertForecastToCSV(forecastData, result?.summary);
+            const csvContent = this.convertForecastToCSV(forecastData, result?.summary, resolution);
 
             ctx.meta.$responseHeaders = {
               'Content-Type': 'text/csv; charset=utf-8',
@@ -339,7 +377,7 @@ module.exports = {
           // Handle XLSX export
           if (format === 'xlsx') {
             const forecastData = result?.forecasts || [];
-            const xlsxBuffer = this.convertForecastToXLSX(forecastData, result?.summary);
+            const xlsxBuffer = this.convertForecastToXLSX(forecastData, result?.summary, resolution);
 
             ctx.meta.$responseHeaders = {
               'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -368,7 +406,7 @@ module.exports = {
     /**
      * Convert forecast data to CSV format
      */
-    convertForecastToCSV(forecastData, summary) {
+    convertForecastToCSV(forecastData, summary, resolution) {
       if (!forecastData || forecastData.length === 0) {
         return 'No forecast data available';
       }
@@ -385,6 +423,7 @@ module.exports = {
         if (summary.totalCapacityMW != null) csv += `# Total Capacity: ${summary.totalCapacityMW} MW\n`;
         if (summary.installationCount != null) csv += `# Installation Count: ${summary.installationCount}\n`;
       }
+      if (resolution) csv += `# Resolution: ${resolution}\n`;
       csv += `# Generated: ${new Date().toISOString()}\n\n`;
 
       csv += headers.map(h => `"${h}"`).join(',') + '\n';
@@ -409,10 +448,7 @@ module.exports = {
     /**
      * Convert forecast data to XLSX format
      */
-    /**
-     * Convert forecast data to XLSX format
-     */
-    convertForecastToXLSX(forecastData, summary) {
+    convertForecastToXLSX(forecastData, summary, resolution) {
       const wb = XLSX.utils.book_new();
 
       if (!forecastData || forecastData.length === 0) {
@@ -451,6 +487,7 @@ module.exports = {
           { Property: 'Installation Count', Value: summary.installationCount ?? 0 },
           { Property: 'Forecast Start', Value: summary.forecastPeriod?.start || 'N/A' },
           { Property: 'Forecast End', Value: summary.forecastPeriod?.end || 'N/A' },
+          { Property: 'Resolution', Value: resolution || 'daily' },
           { Property: 'Generated', Value: new Date().toISOString() },
         ];
         const wsMetadata = XLSX.utils.json_to_sheet(metadataSheet);

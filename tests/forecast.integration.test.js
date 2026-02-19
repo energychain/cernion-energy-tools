@@ -22,11 +22,15 @@ describe('Forecast Service Integration', () => {
       if (toolName === 'mastr_generation_forecast') {
         const days = params.forecastDays || 7;
         const type = params.installationType || 'solar';
+        const resolution = params.resolution || 'daily';
+        const pointsPerDay = resolution === '15min' ? 96 : resolution === 'hourly' ? 24 : 1;
+        const intervalMs = resolution === '15min' ? 15 * 60 * 1000 : resolution === 'hourly' ? 60 * 60 * 1000 : 86400000;
+        const totalPoints = days * pointsPerDay;
 
         const forecasts = [];
         const baseDate = new Date('2026-02-19T00:00:00.000Z');
-        for (let i = 0; i < days; i++) {
-          const ts = new Date(baseDate.getTime() + i * 86400000);
+        for (let i = 0; i < totalPoints; i++) {
+          const ts = new Date(baseDate.getTime() + i * intervalMs);
           forecasts.push({
             timestamp: ts.toISOString(),
             generationMW: parseFloat((Math.random() * 20).toFixed(3)),
@@ -60,6 +64,10 @@ describe('Forecast Service Integration', () => {
           metadata: {
             toolName: 'mastr_generation_forecast',
             timestamp: new Date().toISOString(),
+            weatherDataSource: 'Visual Crossing',
+            iecStandardApplied: type === 'wind' ? 'IEC 61400' : 'IEC 61853',
+            cachingEnabled: true,
+            apiCallsUsed: resolution === 'daily' ? 1 : 24,
           },
         };
       }
@@ -185,6 +193,51 @@ describe('Forecast Service Integration', () => {
         undefined
       );
     });
+
+    it('should return 1 point per day with resolution=daily', async () => {
+      const result = await broker.call('forecast.generationForecast', {
+        installationType: 'solar',
+        forecastDays: 3,
+        resolution: 'daily',
+      });
+      expect(result.success).toBe(true);
+      expect(result.forecasts).toHaveLength(3);
+    });
+
+    it('should return 24 points per day with resolution=hourly', async () => {
+      const result = await broker.call('forecast.generationForecast', {
+        installationType: 'solar',
+        forecastDays: 2,
+        resolution: 'hourly',
+      });
+      expect(result.success).toBe(true);
+      expect(result.forecasts).toHaveLength(48); // 2 days × 24
+    });
+
+    it('should return 96 points per day with resolution=15min', async () => {
+      const result = await broker.call('forecast.generationForecast', {
+        postleitzahl: '67063',
+        installationType: 'solar',
+        forecastDays: 2,
+        resolution: '15min',
+      });
+      expect(result.success).toBe(true);
+      expect(result.forecasts).toHaveLength(192); // 2 days × 96
+    });
+
+    it('should pass resolution to MCP tool', async () => {
+      callWithNewSession.mockClear();
+      await broker.call('forecast.generationForecast', {
+        installationType: 'all',
+        forecastDays: 3,
+        resolution: 'hourly',
+      });
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'mastr_generation_forecast',
+        expect.objectContaining({ resolution: 'hourly' }),
+        undefined
+      );
+    });
   });
 
   describe('Edge cases and error handling', () => {
@@ -213,6 +266,12 @@ describe('Forecast Service Integration', () => {
       const result = await broker.call('forecast.generationForecast', {});
       expect(result.success).toBe(false);
       expect(result.error.code).toBe('FORECAST_ERROR');
+    });
+
+    it('should reject invalid resolution value', async () => {
+      await expect(
+        broker.call('forecast.generationForecast', { resolution: 'weekly' })
+      ).rejects.toThrow();
     });
   });
 });
