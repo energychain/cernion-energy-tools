@@ -277,5 +277,161 @@ describe('Forecast Service', () => {
       );
     });
   });
+
+  describe('single-installation forecast (installationMastrNummer)', () => {
+    const singleInstResult = {
+      success: true,
+      summary: {
+        location: '49.48,8.45',
+        type: 'solar',
+        totalCapacityMW: 0.00741,
+        installationCount: 1,
+        forecastPeriod: {
+          start: '2026-02-20T00:00:00.000Z',
+          end: '2026-02-23T00:00:00.000Z',
+        },
+      },
+      forecasts: [
+        {
+          timestamp: '2026-02-20T06:00:00.000Z',
+          generationMW: 0.001,
+          capacityFactor: 0.135,
+          weather: { temperature: 8.2, solarIrradiance: 145.3, cloudCover: 32 },
+        },
+      ],
+      metadata: {
+        toolName: 'mastr_generation_forecast',
+        weatherDataSource: 'Visual Crossing',
+        iecStandardApplied: 'IEC 61853',
+        orientationCorrectionApplied: true,
+        portfolioOrientationFactor: 0.97,
+        orientationDataCoverage: 1.0,
+      },
+    };
+
+    beforeEach(() => {
+      callWithNewSession.mockClear();
+    });
+
+    it('should pass installationMastrNummer to MCP tool', async () => {
+      await broker.call('forecast.generationForecast', {
+        installationMastrNummer: 'SEE984033548619',
+        forecastDays: 3,
+        resolution: 'hourly',
+      });
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'mastr_generation_forecast',
+        expect.objectContaining({ installationMastrNummer: 'SEE984033548619' }),
+        undefined
+      );
+    });
+
+    it('should auto-derive installationType=solar for SEE prefix', async () => {
+      await broker.call('forecast.generationForecast', {
+        installationMastrNummer: 'SEE984033548619',
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params.installationType).toBe('solar');
+    });
+
+    it('should auto-derive installationType=wind for SWE prefix', async () => {
+      await broker.call('forecast.generationForecast', {
+        installationMastrNummer: 'SWE900000000001',
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params.installationType).toBe('wind');
+    });
+
+    it('should NOT include location object when installationMastrNummer is set', async () => {
+      await broker.call('forecast.generationForecast', {
+        installationMastrNummer: 'SEE984033548619',
+        bundesland: 'Bayern', // should be ignored in single-installation mode
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params).not.toHaveProperty('location');
+    });
+
+    it('should return single-installation summary (installationCount: 1)', async () => {
+      callWithNewSession.mockResolvedValueOnce(singleInstResult);
+      const result = await broker.call('forecast.generationForecast', {
+        installationMastrNummer: 'SEE984033548619',
+        forecastDays: 3,
+      });
+      expect(result.success).toBe(true);
+      expect(result.summary.installationCount).toBe(1);
+      expect(result.summary.totalCapacityMW).toBe(0.00741);
+    });
+  });
+
+  describe('single-installation forecast via MeLo (messlokationId)', () => {
+    const meloInstResult = {
+      success: true,
+      summary: {
+        location: '49.47,8.44',
+        type: 'solar',
+        totalCapacityMW: 0.00741,
+        installationCount: 1,
+        forecastPeriod: {
+          start: '2026-02-20T00:00:00.000Z',
+          end: '2026-02-21T00:00:00.000Z',
+        },
+      },
+      forecasts: [
+        {
+          timestamp: '2026-02-20T00:00:00.000Z',
+          generationMW: 0.0,
+          capacityFactor: 0.0,
+          weather: { temperature: 4.1, solarIrradiance: 0, cloudCover: 100 },
+        },
+      ],
+      metadata: { toolName: 'mastr_generation_forecast' },
+    };
+
+    beforeEach(() => {
+      callWithNewSession.mockClear();
+    });
+
+    it('should pass messlokationId to MCP tool', async () => {
+      await broker.call('forecast.generationForecast', {
+        messlokationId: 'DE0010107352900000000000000336372',
+        forecastDays: 1,
+        resolution: '15min',
+      });
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'mastr_generation_forecast',
+        expect.objectContaining({ messlokationId: 'DE0010107352900000000000000336372' }),
+        undefined
+      );
+    });
+
+    it('should NOT include location object when messlokationId is set', async () => {
+      await broker.call('forecast.generationForecast', {
+        messlokationId: 'DE0010107352900000000000000336372',
+        bundesland: 'Baden-Württemberg', // should be ignored
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params).not.toHaveProperty('location');
+    });
+
+    it('should return single-installation forecast result via MeLo', async () => {
+      callWithNewSession.mockResolvedValueOnce(meloInstResult);
+      const result = await broker.call('forecast.generationForecast', {
+        messlokationId: 'DE0010107352900000000000000336372',
+        forecastDays: 1,
+      });
+      expect(result.success).toBe(true);
+      expect(result.summary.installationCount).toBe(1);
+    });
+
+    it('installationMastrNummer takes priority over messlokationId', async () => {
+      await broker.call('forecast.generationForecast', {
+        installationMastrNummer: 'SEE984033548619',
+        messlokationId: 'DE0010107352900000000000000336372',
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params).toHaveProperty('installationMastrNummer', 'SEE984033548619');
+      expect(params).not.toHaveProperty('messlokationId');
+    });
+  });
 });
 

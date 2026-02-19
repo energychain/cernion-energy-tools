@@ -27,6 +27,18 @@ module.exports = {
         forecastDays: { type: 'number', optional: true, min: 1, max: 14, default: 7 },
         resolution: { type: 'enum', values: ['daily', 'hourly', '15min'], optional: true, default: 'daily' },
         gridOperatorMastrId: { type: 'string', optional: true },
+        installationMastrNummer: {
+          type: 'string',
+          optional: true,
+          description:
+            'MaStR unit ID for single-installation forecast (SEE…=solar, SWE…=wind). Highest priority — overrides all regional filters. installationType is auto-derived from prefix.',
+        },
+        messlokationId: {
+          type: 'string',
+          optional: true,
+          description:
+            'Metering location ID (MeLo, 33 chars, starts with DE). Resolved via NAP table. Priority: installationMastrNummer > messlokationId > gridOperatorMastrId > location.',
+        },
         bundesland: { type: 'string', optional: true },
         landkreis: { type: 'string', optional: true },
         gemeinde: { type: 'string', optional: true },
@@ -70,8 +82,9 @@ module.exports = {
 - **gemeinde**: Municipality/Gemeinde name
 - **postleitzahl**: 5-digit postal code (e.g., "69115")
 - **latitude/longitude**: Coordinates for precise weather data
-- **includeValidation**: Cross-validate with SMARD data (default: false)`,
-        requestBody: {
+- **includeValidation**: Cross-validate with SMARD data (default: false)
+- **installationMastrNummer**: Single-installation forecast by MaStR unit ID (SEE…=solar, SWE…=wind). **Highest priority** — overrides all regional filters. installationType is auto-derived from prefix.
+- **messlokationId**: Single-installation forecast via Metering Location ID (MeLo, 33 chars, starts with DE). Resolved via NAP table. Priority: installationMastrNummer > messlokationId > gridOperatorMastrId > location.`,        requestBody: {
           required: false,
           content: {
             'application/json': {
@@ -104,6 +117,18 @@ module.exports = {
                     type: 'string',
                     description: 'MaStR Netzbetreiber-ID (SNB/GNB...). Use cernion_vnb_lookup to resolve BDEW → MaStR ID.',
                     example: 'SNB935578300972',
+                  },
+                  installationMastrNummer: {
+                    type: 'string',
+                    description:
+                      'MaStR unit ID for single-installation forecast (SEE\u2026=solar, SWE\u2026=wind). Highest priority \u2014 overrides all regional filters. installationType is auto-derived from prefix.',
+                    example: 'SEE984033548619',
+                  },
+                  messlokationId: {
+                    type: 'string',
+                    description:
+                      'Metering location ID (MeLo, 33 chars, starts with DE). Resolved via NAP table. Priority: installationMastrNummer > messlokationId > gridOperatorMastrId > location.',
+                    example: 'DE0010107352900000000000000336372',
                   },
                   bundesland: {
                     type: 'string',
@@ -213,6 +238,22 @@ module.exports = {
                     forecastDays: 7,
                     resolution: '15min',
                     format: 'xlsx',
+                  },
+                },
+                singleInstallationMastrNr: {
+                  summary: 'Single PV installation forecast via MaStR-ID',
+                  value: {
+                    installationMastrNummer: 'SEE984033548619',
+                    forecastDays: 3,
+                    resolution: 'hourly',
+                  },
+                },
+                singleInstallationMeLo: {
+                  summary: 'Single installation forecast via Messlokation (MeLo)',
+                  value: {
+                    messlokationId: 'DE0010107352900000000000000336372',
+                    forecastDays: 1,
+                    resolution: '15min',
                   },
                 },
               },
@@ -338,21 +379,43 @@ module.exports = {
       },
       async handler(ctx) {
         try {
-          const { format, bundesland, landkreis, gemeinde, postleitzahl, latitude, longitude, ...rest } = ctx.params;
+          const {
+            format,
+            bundesland, landkreis, gemeinde, postleitzahl, latitude, longitude,
+            installationMastrNummer, messlokationId,
+            ...rest
+          } = ctx.params;
           const resolution = ctx.params.resolution || 'daily';
 
-          // Build nested location object from flat params
-          const locationObj = {};
-          if (bundesland) locationObj.bundesland = bundesland;
-          if (landkreis) locationObj.landkreis = landkreis;
-          if (gemeinde) locationObj.gemeinde = gemeinde;
-          if (postleitzahl) locationObj.postleitzahl = postleitzahl;
-          if (latitude !== undefined) locationObj.latitude = latitude;
-          if (longitude !== undefined) locationObj.longitude = longitude;
-
           const mcpParams = { ...rest };
-          if (Object.keys(locationObj).length > 0) {
-            mcpParams.location = locationObj;
+
+          if (installationMastrNummer) {
+            // Mode 1: single-installation via MaStR ID — highest priority
+            mcpParams.installationMastrNummer = installationMastrNummer;
+            // Auto-derive installationType from prefix to avoid default 'solar' override
+            const prefix = installationMastrNummer.slice(0, 3).toUpperCase();
+            if (prefix === 'SWE') {
+              mcpParams.installationType = 'wind';
+            } else if (prefix !== 'SEE') {
+              // Unknown prefix: let MCP tool search both collections
+              delete mcpParams.installationType;
+            }
+            // SEE prefix: keep as-is (defaults to 'solar', which is correct)
+          } else if (messlokationId) {
+            // Mode 2: single-installation via MeLo — skip regional location object
+            mcpParams.messlokationId = messlokationId;
+          } else {
+            // Regional mode: build nested location object from flat params
+            const locationObj = {};
+            if (bundesland) locationObj.bundesland = bundesland;
+            if (landkreis) locationObj.landkreis = landkreis;
+            if (gemeinde) locationObj.gemeinde = gemeinde;
+            if (postleitzahl) locationObj.postleitzahl = postleitzahl;
+            if (latitude !== undefined) locationObj.latitude = latitude;
+            if (longitude !== undefined) locationObj.longitude = longitude;
+            if (Object.keys(locationObj).length > 0) {
+              mcpParams.location = locationObj;
+            }
           }
 
           const result = await CernionMCPClient.callWithNewSession(

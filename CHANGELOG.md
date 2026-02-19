@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.7] - 2026-02-19
+
+### Changed
+- **`forecast.generationForecast` — single-installation forecast modes** (new MCP tool capability):
+  - New parameter **`installationMastrNummer`** (`string`, optional) — highest-priority single-installation lookup by MaStR unit ID:
+    - `SEE…` prefix → `installationType` auto-derived as `solar`
+    - `SWE…` prefix → `installationType` auto-derived as `wind`
+    - Unknown prefix → `installationType` removed, MCP tool searches both collections
+    - Overrides `messlokationId`, `gridOperatorMastrId`, and `location`
+  - New parameter **`messlokationId`** (`string`, optional) — single-installation lookup via Metering Location ID (MeLo, 33 chars, starts with `DE`). Resolved via `mastr_netzanschlusspunkte` NAP table. Priority: `installationMastrNummer > messlokationId > gridOperatorMastrId > location`.
+  - Handler refactored: single-installation modes skip building the nested `location` object.
+  - OpenAPI updated: new `installationMastrNummer` and `messlokationId` schema properties, two new request body examples (`singleInstallationMastrNr`, `singleInstallationMeLo`), description extended with priority rules.
+  - 9 new tests, total now 395.
+
 ## [0.5.6] - 2026-02-20
 
 ### Changed
