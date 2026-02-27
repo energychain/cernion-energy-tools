@@ -266,6 +266,7 @@ module.exports = {
                     type: 'string',
                     enum: ['Solar', 'Wind'],
                     description: 'Renewable energy type to forecast',
+                    example: 'Solar',
                   },
                   dateFrom: {
                     type: 'string',

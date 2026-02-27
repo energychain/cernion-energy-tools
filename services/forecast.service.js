@@ -45,6 +45,12 @@ module.exports = {
         postleitzahl: { type: 'string', optional: true },
         latitude: { type: 'number', optional: true },
         longitude: { type: 'number', optional: true },
+        startDate: {
+          type: 'string',
+          optional: true,
+          pattern: /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/,
+          description: 'Optional start date (YYYY-MM-DD). Defaults to tomorrow. Past dates use observed weather data (historical mode).',
+        },
         includeValidation: { type: 'boolean', optional: true, default: false },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
       },
@@ -82,6 +88,7 @@ module.exports = {
 - **gemeinde**: Municipality/Gemeinde name
 - **postleitzahl**: 5-digit postal code (e.g., "69115")
 - **latitude/longitude**: Coordinates for precise weather data
+- **startDate**: Optional start date (\`YYYY-MM-DD\`). Omit for default tomorrow behaviour (no breaking change). Past dates retrieve **observed weather data** (Visual Crossing historical observations) — identical IEC calculation, 30-day cache. Response gains \`summary.isHistorical\` and \`summary.dataMode\` fields.
 - **includeValidation**: Cross-validate with SMARD data (default: false)
 - **installationMastrNummer**: Single-installation forecast by MaStR unit ID (SEE…=solar, SWE…=wind). **Highest priority** — overrides all regional filters. installationType is auto-derived from prefix.
 - **messlokationId**: Single-installation forecast via Metering Location ID (MeLo, 33 chars, starts with DE). Resolved via NAP table. Priority: installationMastrNummer > messlokationId > gridOperatorMastrId > location.`,        requestBody: {
@@ -160,6 +167,12 @@ module.exports = {
                     type: 'number',
                     description: 'Longitude for precise weather data',
                     example: 8.6724,
+                  },
+                  startDate: {
+                    type: 'string',
+                    pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$',
+                    description: 'Optional start date (YYYY-MM-DD). Omit for default tomorrow behaviour. Past dates switch to historical observation mode (30-day cache, observed weather instead of forecast).',
+                    example: '2026-01-15',
                   },
                   includeValidation: {
                     type: 'boolean',
@@ -256,6 +269,16 @@ module.exports = {
                     resolution: '15min',
                   },
                 },
+                historicalForecast: {
+                  summary: 'Historical generation analysis (past date, observed weather)',
+                  value: {
+                    gridOperatorMastrId: 'SNB935578300972',
+                    installationType: 'all',
+                    startDate: '2026-01-15',
+                    forecastDays: 7,
+                    resolution: 'daily',
+                  },
+                },
               },
             },
           },
@@ -276,6 +299,17 @@ module.exports = {
                         type: { type: 'string', example: 'all' },
                         totalCapacityMW: { type: 'number', example: 25.77 },
                         installationCount: { type: 'number', example: 2756 },
+                        isHistorical: {
+                          type: 'boolean',
+                          description: 'true when startDate is in the past (observed weather data used)',
+                          example: false,
+                        },
+                        dataMode: {
+                          type: 'string',
+                          enum: ['weather_forecast', 'historical_observation'],
+                          description: '"weather_forecast" for future dates, "historical_observation" for past dates',
+                          example: 'weather_forecast',
+                        },
                         forecastPeriod: {
                           type: 'object',
                           properties: {
@@ -382,12 +416,13 @@ module.exports = {
           const {
             format,
             bundesland, landkreis, gemeinde, postleitzahl, latitude, longitude,
-            installationMastrNummer, messlokationId,
+            installationMastrNummer, messlokationId, startDate,
             ...rest
           } = ctx.params;
-          const resolution = ctx.params.resolution || 'daily';
 
           const mcpParams = { ...rest };
+          if (startDate) mcpParams.startDate = startDate;
+          const resolution = ctx.params.resolution || 'daily';
 
           if (installationMastrNummer) {
             // Mode 1: single-installation via MaStR ID — highest priority

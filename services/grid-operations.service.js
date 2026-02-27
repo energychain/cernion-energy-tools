@@ -68,6 +68,7 @@ module.exports = {
                     type: 'string',
                     enum: ['load', 'frequency', 'flows', 'redispatch'],
                     description: 'Type of grid data to retrieve',
+                    example: 'load',
                   },
                   region: {
                     type: 'string',
@@ -232,6 +233,7 @@ module.exports = {
                     type: 'string',
                     enum: ['coordinates', 'postcode', 'community'],
                     description: 'Lookup type',
+                    example: 'coordinates',
                   },
                   coordinates: {
                     type: 'string',
@@ -242,11 +244,13 @@ module.exports = {
                     type: 'string',
                     description:
                       'Postcode ID from vnbdigital_search (required for postcode search)',
+                    example: 'DEBWhk01000gMZ1V',
                   },
                   communityId: {
                     type: 'string',
                     description:
                       'Community ID from vnbdigital_search (required for community search)',
+                    example: 'DEBWhk01000gMZ2A',
                   },
                   filter: {
                     type: 'object',
@@ -269,6 +273,7 @@ module.exports = {
                         default: true,
                       },
                     },
+                    example: { onlyNap: false, voltageTypes: ['Niederspannung'], withRegions: true },
                   },
                 },
               },
@@ -329,11 +334,12 @@ module.exports = {
       params: {
         bdew: { type: 'string', min: 1 },
         limit: { type: 'number', optional: true, default: 5, min: 1, max: 50 },
+        city: { type: 'string', optional: true },
       },
       openapi: {
         summary: 'Lookup MaStR ID for a VNB (grid operator) using BDEW code',
         tags: ['Grid Operations'],
-        description: `Resolve BDEW codes to MaStR Netzbetreiber IDs (SNB/GNB) for downstream grid-operator queries.`,
+        description: `Resolve BDEW codes to MaStR Netzbetreiber IDs (SNB/GNB) for downstream grid-operator queries. If the primary lookup fails, an optional city param triggers a fallback that extracts the SNB from a sample installation in that city.`,
         requestBody: {
           required: true,
           content: {
@@ -354,6 +360,11 @@ module.exports = {
                     minimum: 1,
                     maximum: 50,
                   },
+                  city: {
+                    type: 'string',
+                    description: 'Optional operator city (e.g. from marketPartners contacts). Used as fallback when cernion_vnb_lookup returns no result — extracts SNB from a sample installation in that city.',
+                    example: 'Hannover',
+                  },
                 },
               },
               examples: {
@@ -370,11 +381,61 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { bdew, limit, city } = ctx.params;
+
+        // Primary lookup via cernion_vnb_lookup
+        const primary = await CernionMCPClient.callWithNewSession(
           'cernion_vnb_lookup',
-          ctx.params,
+          { bdew, limit },
           ctx.meta.cernionToken
         );
+
+        // Return immediately if mastrId was found
+        if (primary?.data?.mastrId) return primary;
+
+        // Fallback: extract SNB from a sample installation in the operator's city
+        if (city) {
+          this.logger.info(
+            `[vnbLookup] cernion_vnb_lookup returned null for BDEW ${bdew}, trying city fallback: ${city}`
+          );
+          try {
+            const fallback = await callWithAutoPoll(
+              'cernion_installations_local',
+              { type: 'solar', gemeinde: city, limit: 1, includeStats: false, format: 'detailed', includeNapData: true },
+              { maxWaitTime: 30 * 1000, pollInterval: 1000 },
+              ctx.meta.cernionToken
+            );
+
+            const installations =
+              fallback?.installations ||
+              fallback?.data?.installations ||
+              [];
+            const snb =
+              installations[0]?.napData?.netzbetreiberMastrNummer ||
+              installations[0]?.nap?.netzbetreiberMaStRNummer;
+
+            if (snb) {
+              this.logger.info(`[vnbLookup] SNB extracted via city fallback: ${snb}`);
+              return {
+                success: true,
+                data: {
+                  bdew,
+                  mastrId: snb,
+                  mastrIds: [snb],
+                  companyName: city,
+                  source: 'city-nap-fallback',
+                  cached: false,
+                  message: `SNB resolved via sample installation in ${city}`,
+                },
+                metadata: primary?.metadata,
+              };
+            }
+          } catch (err) {
+            this.logger.warn(`[vnbLookup] City fallback failed: ${err.message}`);
+          }
+        }
+
+        return primary;
       },
     },
 
@@ -724,6 +785,7 @@ module.exports = {
                       enum: ['solar', 'wind', 'storage', 'combustion', 'biomass'],
                     },
                     description: 'Optional: Filter by installation types',
+                    example: ['solar', 'wind'],
                   },
                   autoConfirm: {
                     type: 'boolean',
@@ -845,6 +907,7 @@ module.exports = {
                     type: 'string',
                     enum: ['solar', 'wind', 'storage', 'wallbox', 'heat-pump', 'other'],
                     description: 'Type of installation to connect',
+                    example: 'solar',
                   },
                   capacityKW: {
                     type: 'number',
@@ -856,6 +919,7 @@ module.exports = {
                     type: 'string',
                     enum: ['NS', 'MS', 'HS'],
                     description: 'Optional: Preferred voltage level (auto-calculated if omitted)',
+                    example: 'NS',
                   },
                   simultaneityFactor: {
                     type: 'number',

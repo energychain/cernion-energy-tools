@@ -28,6 +28,14 @@ module.exports = {
         tags: ['System Tools'],
         description:
           'Check data provider connectivity (Powabase, ENTSO-E, SMARD, GrünstromIndex), cache statistics, and performance metrics',
+        parameters: [
+          {
+            name: 'verbose',
+            in: 'query',
+            schema: { type: 'boolean', default: false },
+            description: 'Include detailed provider diagnostics and cache stats',
+          },
+        ],
       },
       async handler(ctx) {
         return await CernionMCPClient.callWithNewSession(
@@ -51,7 +59,72 @@ module.exports = {
       openapi: {
         summary: 'Validate tool parameters before execution',
         tags: ['System Tools'],
-        description: 'Pre-validation before expensive operations, error prevention',
+        description: 'Pre-validation before expensive operations, error prevention. Validates parameters for any MCP tool before running it, returning detailed error messages and suggestions for corrections.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['tool', 'params'],
+                properties: {
+                  tool: {
+                    type: 'string',
+                    description: 'MCP tool name to validate parameters for',
+                    example: 'mastr_generation_forecast',
+                  },
+                  params: {
+                    type: 'object',
+                    description: 'Parameters object to validate against the tool schema',
+                    example: { region: 'Bayern', forecastDays: 7 },
+                  },
+                },
+              },
+              examples: {
+                validateForecast: {
+                  summary: 'Validate generation forecast params',
+                  value: {
+                    tool: 'mastr_generation_forecast',
+                    params: { bundesland: 'Bayern', installationType: 'solar', forecastDays: 7 },
+                  },
+                },
+                validateResidualLoad: {
+                  summary: 'Validate residual load params',
+                  value: {
+                    tool: 'mastr_net_residual_load',
+                    params: { region: 'Ludwigshafen', resolution: 'hourly', forecastDays: 1 },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Validation result',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    valid: { type: 'boolean', example: true },
+                    errors: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      description: 'List of validation errors (empty when valid)',
+                      example: [],
+                    },
+                    suggestions: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      description: 'Suggestions for fixing invalid parameters',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       async handler(ctx) {
         return await CernionMCPClient.callWithNewSession(
@@ -75,6 +148,15 @@ module.exports = {
         summary: 'Check status of async jobs',
         tags: ['System Tools'],
         description: 'Job states: queued, running, succeeded, failed',
+        parameters: [
+          {
+            name: 'jobId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'job_abc123' },
+            description: 'Async job ID returned by a long-running endpoint',
+          },
+        ],
       },
       async handler(ctx) {
         return await CernionMCPClient.callWithNewSession(
@@ -100,6 +182,15 @@ module.exports = {
         summary: 'Retrieve result of async job',
         tags: ['System Tools'],
         description: 'Polling for long-running operations, retrieve results after completion',
+        parameters: [
+          {
+            name: 'jobId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'job_abc123' },
+            description: 'Async job ID returned by a long-running endpoint',
+          },
+        ],
       },
       async handler(ctx) {
         return await CernionMCPClient.callWithNewSession(

@@ -433,5 +433,82 @@ describe('Forecast Service', () => {
       expect(params).not.toHaveProperty('messlokationId');
     });
   });
+
+  describe('historical forecast (startDate parameter)', () => {
+    beforeEach(() => {
+      callWithNewSession.mockClear();
+    });
+
+    it('passes startDate to the MCP tool when provided', async () => {
+      await broker.call('forecast.generationForecast', {
+        gridOperatorMastrId: 'SNB935578300972',
+        startDate: '2026-01-15',
+        forecastDays: 7,
+      });
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'mastr_generation_forecast',
+        expect.objectContaining({ startDate: '2026-01-15' }),
+        undefined
+      );
+    });
+
+    it('does NOT include startDate in MCP params when omitted', async () => {
+      await broker.call('forecast.generationForecast', {
+        gridOperatorMastrId: 'SNB935578300972',
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params).not.toHaveProperty('startDate');
+    });
+
+    it('returns isHistorical and dataMode from MCP response summary', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        summary: {
+          location: 'Netzgebiet SNB935578300972',
+          type: 'all',
+          totalCapacityMW: 25.77,
+          installationCount: 2756,
+          isHistorical: true,
+          dataMode: 'historical_observation',
+          forecastPeriod: {
+            start: '2026-01-15T00:00:00.000Z',
+            end: '2026-01-22T00:00:00.000Z',
+          },
+        },
+        forecasts: [],
+        metadata: { toolName: 'mastr_generation_forecast' },
+      });
+      const result = await broker.call('forecast.generationForecast', {
+        gridOperatorMastrId: 'SNB935578300972',
+        startDate: '2026-01-15',
+        forecastDays: 7,
+      });
+      expect(result.success).toBe(true);
+      expect(result.summary.isHistorical).toBe(true);
+      expect(result.summary.dataMode).toBe('historical_observation');
+    });
+
+    it('startDate works together with installationMastrNummer', async () => {
+      await broker.call('forecast.generationForecast', {
+        installationMastrNummer: 'SEE984033548619',
+        startDate: '2026-01-10',
+        forecastDays: 3,
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params).toHaveProperty('installationMastrNummer', 'SEE984033548619');
+      expect(params).toHaveProperty('startDate', '2026-01-10');
+    });
+
+    it('startDate works together with messlokationId', async () => {
+      await broker.call('forecast.generationForecast', {
+        messlokationId: 'DE0010107352900000000000000336372',
+        startDate: '2026-02-01',
+        forecastDays: 1,
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params).toHaveProperty('messlokationId', 'DE0010107352900000000000000336372');
+      expect(params).toHaveProperty('startDate', '2026-02-01');
+    });
+  });
 });
 

@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cernion Energy Research Agent</title>
+  <style>
+    /* ── Reset & Tokens ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #0f1117;
+      --surface:     #1a1d27;
+      --surface2:    #22263a;
+      --border:      #2e3350;
+      --accent:      #4ade80;
+      --accent-dim:  #1e4530;
+      --accent2:     #60a5fa;
+      --text:        #e2e8f0;
+      --text-muted:  #8892a4;
+      --danger:      #f87171;
+      --warning:     #fbbf24;
+      --radius:      10px;
+      --shadow:      0 4px 24px rgba(0,0,0,.5);
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    header .logo {
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -.5px;
+    }
+    header .logo span { color: var(--text-muted); font-weight: 400; }
+    header nav { margin-left: auto; display: flex; gap: 12px; }
+    header nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: .85rem;
+      padding: 5px 10px;
+      border-radius: 6px;
+      transition: background .15s, color .15s;
+    }
+    header nav a:hover { background: var(--surface2); color: var(--text); }
+
+    /* ── Main layout ──────────────────────────────────────────────── */
+    main {
+      flex: 1;
+      max-width: 1100px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+
+    /* ── Cards ────────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow);
+    }
+    .card h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card h2 .step-badge {
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-size: .72rem;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-weight: 700;
+      letter-spacing: .5px;
+    }
+
+    /* ── Problem Input ────────────────────────────────────────────── */
+    #problem-card textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-size: 1rem;
+      padding: 14px 16px;
+      resize: vertical;
+      min-height: 110px;
+      outline: none;
+      transition: border-color .2s;
+      line-height: 1.6;
+    }
+    #problem-card textarea:focus { border-color: var(--accent2); }
+    #problem-card textarea::placeholder { color: var(--text-muted); }
+
+    .token-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .token-row label { font-size: .82rem; color: var(--text-muted); white-space: nowrap; }
+    .token-row input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      font-size: .87rem;
+      padding: 8px 12px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .token-row input:focus { border-color: var(--accent2); }
+
+    .action-row {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    /* ── Buttons ──────────────────────────────────────────────────── */
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      font-size: .9rem;
+      font-weight: 600;
+      padding: 10px 22px;
+      transition: opacity .15s, transform .1s;
+    }
+    button:active { transform: scale(.97); }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0a1a10;
+    }
+    .btn-primary:hover:not(:disabled) { opacity: .9; }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--accent2); color: var(--accent2); }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--danger);
+      border: 1px solid var(--danger);
+    }
+    .btn-danger:hover:not(:disabled) { background: rgba(248,113,113,.1); }
+
+    /* ── Status / spinner ─────────────────────────────────────────── */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: .88rem;
+      color: var(--text-muted);
+    }
+    .status-bar.thinking { border-color: var(--accent2); color: var(--accent2); }
+    .status-bar.success  { border-color: var(--accent);  color: var(--accent); }
+    .status-bar.error    { border-color: var(--danger);  color: var(--danger); }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Strategy panel ───────────────────────────────────────────── */
+    #strategy-card .summary-text {
+      background: var(--surface2);
+      border-left: 3px solid var(--accent2);
+      padding: 14px 16px;
+      border-radius: 0 8px 8px 0;
+      font-size: .93rem;
+      line-height: 1.65;
+      color: var(--text);
+      margin-bottom: 20px;
+    }
+
+    .steps-list { display: flex; flex-direction: column; gap: 10px; }
+    .step-item {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+    .step-num {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-size: .8rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .step-content {}
+    .step-action { font-family: 'Fira Code', 'Cascadia Code', monospace; font-size: .82rem; color: var(--accent2); }
+    .step-desc   { font-size: .87rem; color: var(--text-muted); margin-top: 3px; }
+
+    /* ── Dynamic form ─────────────────────────────────────────────── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+    .form-field label {
+      display: block;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: .4px;
+    }
+    .form-field label .required-mark { color: var(--danger); margin-left: 3px; }
+    .form-field .field-desc {
+      font-size: .78rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+    .form-field .field-example {
+      font-size: .75rem;
+      color: var(--accent2);
+      margin-top: 3px;
+    }
+
+    .form-field input,
+    .form-field select,
+    .form-field textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      font-size: .9rem;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .form-field input:focus,
+    .form-field select:focus,
+    .form-field textarea:focus { border-color: var(--accent2); }
+    .form-field select option { background: var(--surface); }
+
+    /* ── Refinement box ───────────────────────────────────────────── */
+    .refinement-box {
+      background: var(--surface2);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 14px;
+    }
+    .refinement-box label {
+      font-size: .82rem;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 8px;
+    }
+    .refinement-box textarea {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      font-size: .88rem;
+      padding: 9px 12px;
+      outline: none;
+      resize: vertical;
+      min-height: 70px;
+    }
+    .refinement-box textarea:focus { border-color: var(--accent2); }
+
+    /* ── Results ──────────────────────────────────────────────────── */
+    #results-card .result-summary {
+      background: var(--accent-dim);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 16px 18px;
+      font-size: .95rem;
+      line-height: 1.65;
+      color: var(--accent);
+      margin-bottom: 22px;
+    }
+
+    .share-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      margin-bottom: 22px;
+    }
+    .share-box .share-label { font-size: .8rem; color: var(--text-muted); white-space: nowrap; }
+    .share-box .share-url {
+      flex: 1;
+      font-family: monospace;
+      font-size: .82rem;
+      color: var(--accent2);
+      word-break: break-all;
+    }
+    .share-box button { padding: 6px 14px; font-size: .8rem; }
+
+    /* ── Data Table ───────────────────────────────────────────────── */
+    .table-controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .table-controls input[type="text"] {
+      flex: 1;
+      min-width: 200px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      font-size: .87rem;
+      padding: 8px 12px;
+      outline: none;
+    }
+    .table-controls input[type="text"]::placeholder { color: var(--text-muted); }
+    .table-controls input[type="text"]:focus { border-color: var(--accent2); }
+    .table-controls .row-count { font-size: .82rem; color: var(--text-muted); }
+
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .87rem;
+    }
+    thead {
+      position: sticky;
+      top: 0;
+      background: var(--surface2);
+      z-index: 2;
+    }
+    thead th {
+      text-align: left;
+      padding: 11px 14px;
+      font-size: .78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--border);
+    }
+    thead th:hover { color: var(--text); }
+    thead th .sort-arrow { margin-left: 4px; opacity: .5; }
+    thead th.sorted-asc .sort-arrow::after  { content: ' ↑'; opacity: 1; color: var(--accent); }
+    thead th.sorted-desc .sort-arrow::after { content: ' ↓'; opacity: 1; color: var(--accent); }
+
+    tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: var(--surface2); }
+    tbody td {
+      padding: 10px 14px;
+      color: var(--text);
+      vertical-align: top;
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    tbody td.wrap { white-space: normal; word-break: break-word; }
+
+    /* ── Follow-up banner ─────────────────────────────────────────── */
+    .followup-banner {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      background: rgba(251,191,36,.08);
+      border: 1px solid var(--warning);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+    }
+    .followup-banner .followup-icon { font-size: 1.3rem; flex-shrink: 0; margin-top: 2px; }
+    .followup-banner .followup-body { flex: 1; }
+    .followup-banner .followup-title {
+      font-size: .85rem;
+      font-weight: 700;
+      color: var(--warning);
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      margin-bottom: 5px;
+    }
+    .followup-banner .followup-question { font-size: .93rem; color: var(--text); line-height: 1.6; }
+    .followup-banner .followup-textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--warning);
+      border-radius: 7px;
+      color: var(--text);
+      font-size: .9rem;
+      padding: 9px 12px;
+      outline: none;
+      resize: vertical;
+      min-height: 70px;
+      margin-top: 10px;
+    }
+    .followup-banner .followup-textarea:focus { border-color: var(--accent2); }
+    .followup-banner .followup-action { margin-top: 10px; }
+
+    /* ── Step result chips ────────────────────────────────────────── */
+    .step-results-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+    .step-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 4px 12px;
+      font-size: .78rem;
+      color: var(--text-muted);
+    }
+    .step-chip.ok  { border-color: var(--accent); color: var(--accent); }
+    .step-chip.err { border-color: var(--danger); color: var(--danger); }
+
+    /* ── no-results-msg ───────────────────────────────────────────── */
+    .no-results-msg {
+      text-align: center;
+      padding: 40px;
+      color: var(--text-muted);
+      font-size: .9rem;
+    }
+
+    /* ── Raw accordion ────────────────────────────────────────────── */
+    details.raw-details {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-top: 18px;
+      overflow: hidden;
+    }
+    details.raw-details summary {
+      padding: 12px 16px;
+      cursor: pointer;
+      font-size: .83rem;
+      color: var(--text-muted);
+      background: var(--surface2);
+      user-select: none;
+    }
+    details.raw-details summary:hover { color: var(--text); }
+    details.raw-details pre {
+      padding: 16px;
+      font-size: .78rem;
+      line-height: 1.5;
+      color: var(--text-muted);
+      overflow-x: auto;
+      background: var(--bg);
+      max-height: 400px;
+    }
+
+    /* ── Hidden ───────────────────────────────────────────────────── */
+    .hidden { display: none !important; }
+
+    /* ── Responsive ───────────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      main { padding: 20px 12px 60px; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡ Cernion <span>Energy Research Agent</span></div>
+  <nav>
+    <a href="/api/docs" target="_blank">API Docs</a>
+    <a href="#" id="nav-reset">New Research</a>
+  </nav>
+</header>
+
+<main>
+
+  <!-- ── Step 1: Problem Input ──────────────────────────────── -->
+  <section class="card" id="problem-card">
+    <h2><span class="step-badge">STEP 1</span> Describe Your Research Problem</h2>
+    <textarea
+      id="problem-input"
+      placeholder="e.g. What is the current gas storage level in Germany and will it be sufficient for the remainder of winter? Or: Show me the renewable energy mix in France for last week."
+    ></textarea>
+
+    <div class="token-row">
+      <label for="token-input">Cernion Token (optional):</label>
+      <input id="token-input" type="password" placeholder="Leave empty to use server default" />
+    </div>
+
+    <div class="action-row">
+      <button class="btn-primary" id="btn-analyze">🧠 Analyze &amp; Plan</button>
+      <button class="btn-secondary hidden" id="btn-reset">↺ Start Over</button>
+    </div>
+  </section>
+
+  <!-- ── Status bar ─────────────────────────────────────────── -->
+  <div class="status-bar hidden" id="status-bar">
+    <div class="spinner" id="status-spinner"></div>
+    <span id="status-text">Thinking…</span>
+  </div>
+
+  <!-- ── Step 2: Strategy ───────────────────────────────────── -->
+  <section class="card hidden" id="strategy-card">
+    <h2><span class="step-badge">STEP 2</span> AI Strategy</h2>
+    <div class="summary-text" id="strategy-summary"></div>
+
+    <div class="steps-list" id="steps-list"></div>
+  </section>
+
+  <!-- ── Step 3: Parameters Form ────────────────────────────── -->
+  <section class="card hidden" id="params-card">
+    <h2><span class="step-badge">STEP 3</span> Provide Required Inputs</h2>
+
+    <div class="form-grid" id="form-grid"></div>
+
+    <div class="refinement-box">
+      <label>💬 Or type a refinement / follow-up question instead of filling the form above:</label>
+      <textarea id="refinement-input" placeholder="e.g. Focus only on the last 30 days, or check France instead…"></textarea>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-primary" id="btn-execute">▶ Run Analysis</button>
+    </div>
+  </section>
+
+  <!-- ── Step 4: Results ────────────────────────────────────── -->
+  <section class="card hidden" id="results-card">
+    <h2><span class="step-badge">STEP 4</span> Results</h2>
+
+    <!-- Follow-up prompt (shown when needsMoreInput=true) -->
+    <div class="followup-banner hidden" id="followup-banner">
+      <div class="followup-icon">💬</div>
+      <div class="followup-body">
+        <div class="followup-title">Follow-up input needed</div>
+        <div class="followup-question" id="followup-question"></div>
+        <textarea class="followup-textarea" id="followup-textarea" placeholder="Type your answer or refinement here…"></textarea>
+        <div class="followup-action">
+          <button class="btn-primary" id="btn-followup-run">▶ Run with this answer</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="result-summary" id="result-summary"></div>
+
+    <!-- Per-step execution status chips -->
+    <div class="step-results-bar" id="step-results-bar"></div>
+
+    <div class="share-box">
+      <span class="share-label">🔗 Shareable URL:</span>
+      <span class="share-url" id="share-url"></span>
+      <button class="btn-secondary" id="btn-copy-url">Copy</button>
+      <a class="btn-secondary" id="btn-live-csv" href="#" target="_blank" style="display:none">⬇ Live CSV</a>
+    </div>
+
+    <div class="table-controls">
+      <input type="text" id="table-search" placeholder="🔍  Filter results…" />
+      <span class="row-count" id="row-count"></span>
+      <button class="btn-secondary" id="btn-export-csv">⬇ Export CSV</button>
+    </div>
+
+    <div class="table-wrapper">
+      <table id="results-table">
+        <thead id="results-thead"></thead>
+        <tbody id="results-tbody"></tbody>
+      </table>
+    </div>
+
+    <details class="raw-details">
+      <summary>🔧 Raw step results (debug)</summary>
+      <pre id="raw-json"></pre>
+    </details>
+
+    <div class="action-row" style="margin-top:20px;">
+      <button class="btn-secondary" id="btn-refine-again">🔄 Refine / Follow-up</button>
+      <button class="btn-secondary" id="btn-reset-bottom">↺ New Research</button>
+    </div>
+  </section>
+
+</main>
+
+<script>
+/* ================================================================
+   Cernion Energy Research Agent – Single-Page Application
+   ================================================================ */
+
+// ── State ──────────────────────────────────────────────────────
+const state = {
+  sessionId: null,
+  plan: null,
+  results: null,
+  allRows: [],
+  columns: [],
+  sortCol: null,
+  sortDir: 'asc',
+};
+
+// ── DOM refs ───────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+
+const problemInput   = $('problem-input');
+const tokenInput     = $('token-input');
+const btnAnalyze     = $('btn-analyze');
+const btnReset       = $('btn-reset');
+const btnResetBottom = $('btn-reset-bottom');
+const btnExecute     = $('btn-execute');
+const btnRefineAgain = $('btn-refine-again');
+const btnCopyUrl     = $('btn-copy-url');
+const btnLiveCsv     = $('btn-live-csv');
+const btnExportCsv   = $('btn-export-csv');
+const statusBar      = $('status-bar');
+const statusSpinner  = $('status-spinner');
+const statusText     = $('status-text');
+const strategyCard   = $('strategy-card');
+const strategySummary= $('strategy-summary');
+const stepsList      = $('steps-list');
+const paramsCard     = $('params-card');
+const formGrid       = $('form-grid');
+const refinementInput= $('refinement-input');
+const resultsCard    = $('results-card');
+const resultSummary  = $('result-summary');
+const shareUrl       = $('share-url');
+const tableSearch    = $('table-search');
+const rowCount       = $('row-count');
+const resultsThead   = $('results-thead');
+const resultsTbody   = $('results-tbody');
+const rawJson        = $('raw-json');
+const followupBanner = $('followup-banner');
+const followupQuestion = $('followup-question');
+const followupTextarea = $('followup-textarea');
+const btnFollowupRun = $('btn-followup-run');
+const stepResultsBar = $('step-results-bar');
+
+// ── Helpers ────────────────────────────────────────────────────
+function setStatus(msg, type = '') {
+  statusBar.className = 'status-bar' + (type ? ' ' + type : '');
+  statusText.textContent = msg;
+  statusSpinner.style.display = (type === 'thinking') ? 'block' : 'none';
+  statusBar.classList.remove('hidden');
+}
+function hideStatus() { statusBar.classList.add('hidden'); }
+
+function show(el) { el.classList.remove('hidden'); }
+function hide(el) { el.classList.add('hidden'); }
+
+function apiHeaders() {
+  const headers = { 'Content-Type': 'application/json' };
+  const tok = tokenInput.value.trim();
+  if (tok) headers['Authorization'] = 'Bearer ' + tok;
+  return headers;
+}
+
+async function apiFetch(path, body) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: apiHeaders(),
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+  return data;
+}
+
+async function apiGet(path) {
+  const res = await fetch(path, { headers: apiHeaders() });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+  return data;
+}
+
+// ── Reset ──────────────────────────────────────────────────────
+function resetAll() {
+  state.sessionId = null;
+  state.plan = null;
+  state.results = null;
+  state.allRows = [];
+  state.columns = [];
+  state.sortCol = null;
+  state.sortDir = 'asc';
+
+  problemInput.value = '';
+  refinementInput.value = '';
+  tokenInput.value = '';
+
+  hide(strategyCard);
+  hide(paramsCard);
+  hide(resultsCard);
+  hide(btnReset);
+  hideStatus();
+  btnAnalyze.disabled = false;
+  window.history.replaceState({}, '', window.location.pathname);
+}
+
+btnReset.addEventListener('click', resetAll);
+btnResetBottom.addEventListener('click', resetAll);
+$('nav-reset').addEventListener('click', (e) => { e.preventDefault(); resetAll(); });
+
+// ── Step 1 → Analyze ──────────────────────────────────────────
+btnAnalyze.addEventListener('click', async () => {
+  const problem = problemInput.value.trim();
+  if (!problem) { alert('Please describe your research problem first.'); return; }
+
+  btnAnalyze.disabled = true;
+  setStatus('🧠 Gemini is analysing your problem and planning the strategy…', 'thinking');
+
+  try {
+    const data = await apiFetch('/api/agent/analyze', { problem });
+    state.sessionId = data.sessionId;
+    state.plan = data;
+
+    renderStrategy(data);
+    renderForm(data.requiredInputs || []);
+    btnExecute.disabled = false;
+
+    show(strategyCard);
+    show(paramsCard);
+    show(btnReset);
+    setStatus(`✅ Strategy ready — ${data.steps.length} step(s) planned.`, 'success');
+    strategyCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    setStatus('❌ ' + err.message, 'error');
+    btnAnalyze.disabled = false;
+  }
+});
+
+// ── Render Strategy ────────────────────────────────────────────
+function renderStrategy(data) {
+  strategySummary.textContent = data.summary;
+  stepsList.innerHTML = (data.steps || []).map(s => `
+    <div class="step-item">
+      <div class="step-num">${s.step}</div>
+      <div class="step-content">
+        <div class="step-action">${esc(s.action)}</div>
+        <div class="step-desc">${esc(s.description || '')}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── Render Dynamic Form ────────────────────────────────────────
+function renderForm(requiredInputs) {
+  if (!requiredInputs || requiredInputs.length === 0) {
+    formGrid.innerHTML = '<p style="color:var(--text-muted);font-size:.88rem;">No additional inputs required — the AI has all the parameters it needs.</p>';
+    btnExecute.disabled = false;
+    return;
+  }
+
+  formGrid.innerHTML = requiredInputs.map(inp => {
+    const id = 'field_' + inp.name;
+    const req = inp.required ? '<span class="required-mark">*</span>' : '';
+    const prefilled = inp.default !== undefined && inp.default !== '';
+    const prefilledBadge = prefilled ? ' <span style="font-size:.75rem;color:var(--accent2);margin-left:4px;" title="Pre-filled from your request — change if needed">✎ from request</span>' : '';
+    let control = '';
+
+    if (inp.type === 'select' && inp.options && inp.options.length) {
+      control = `<select id="${id}" data-field="${inp.name}">
+        <option value="">-- select --</option>
+        ${inp.options.map(o => `<option value="${esc(o)}"${(inp.default===o)?' selected':''}>${esc(o)}</option>`).join('')}
+      </select>`;
+    } else if (inp.type === 'date') {
+      control = `<input type="date" id="${id}" data-field="${inp.name}" value="${esc(inp.default || '')}" />`;
+    } else if (inp.type === 'number') {
+      control = `<input type="number" id="${id}" data-field="${inp.name}" value="${esc(inp.default || '')}" placeholder="${esc(inp.example || '')}" />`;
+    } else {
+      control = `<input type="text" id="${id}" data-field="${inp.name}" value="${esc(inp.default || '')}" placeholder="${esc(inp.example || inp.description || '')}" />`;
+    }
+
+    return `
+      <div class="form-field">
+        <label for="${id}">${esc(inp.label || inp.name)}${req}${prefilledBadge}</label>
+        ${control}
+        ${inp.description ? `<div class="field-desc">${esc(inp.description)}</div>` : ''}
+        ${inp.example && !prefilled ? `<div class="field-example">e.g. ${esc(inp.example)}</div>` : ''}
+      </div>`;
+  }).join('');
+}
+
+// ── Step 3 → Execute ───────────────────────────────────────────
+btnExecute.addEventListener('click', async () => {
+  if (!state.sessionId) return;
+
+  const refinement = refinementInput.value.trim();
+
+  // Collect form values
+  const userInputs = {};
+  formGrid.querySelectorAll('[data-field]').forEach(el => {
+    const v = el.value.trim();
+    if (v) userInputs[el.dataset.field] = v;
+  });
+
+  btnExecute.disabled = true;
+  setStatus('⚙️ Executing service calls…', 'thinking');
+
+  try {
+    const body = { sessionId: state.sessionId, userInputs };
+    if (refinement) body.refinement = refinement;
+
+    const data = await apiFetch('/api/agent/execute', body);
+
+    if (data.status === 'refined') {
+      // Re-plan happened, show new form
+      state.plan = data;
+      renderStrategy(data);
+      renderForm(data.requiredInputs || []);
+      refinementInput.value = '';
+      setStatus('🔄 Plan updated — please review and run again.', 'success');
+      btnExecute.disabled = false;
+      return;
+    }
+
+    state.results = data;
+    renderResults(data);
+    show(resultsCard);
+    setStatus('✅ Analysis complete!', 'success');
+    resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    setStatus('❌ ' + err.message, 'error');
+    btnExecute.disabled = false;
+  }
+});
+
+// ── Render Results ─────────────────────────────────────────────
+function renderResults(data) {
+  resultSummary.textContent = data.summary || '';
+  shareUrl.textContent = data.shareUrl || '';
+
+  // Live CSV link — points to the fresh-re-run endpoint with current form params as GET params
+  if (data.sessionId) {
+    updateCsvUrl();
+    btnLiveCsv.style.display = '';
+  } else {
+    btnLiveCsv.style.display = 'none';
+  }
+
+  const cols = data.tableColumns || [];
+  const rows = data.tableRows || [];
+
+  state.columns = cols;
+  state.allRows = rows;
+  state.sortCol = null;
+
+  rawJson.textContent = JSON.stringify(data.stepResults || [], null, 2);
+
+  // Step-result status chips
+  renderStepChips(data.stepResults || []);
+
+  renderTable(rows, cols);
+
+  // Follow-up banner when the AI needs more information
+  if (data.needsMoreInput && data.followUpQuestion) {
+    followupQuestion.textContent = data.followUpQuestion;
+    followupTextarea.value = '';
+    show(followupBanner);
+    followupBanner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    followupTextarea.focus();
+  } else {
+    hide(followupBanner);
+  }
+}
+
+// ── Live CSV URL builder (keeps GET params in sync with form) ──
+function updateCsvUrl() {
+  if (!state.sessionId) return;
+  const base = `/api/agent/session/${state.sessionId}/csv`;
+  const qs = new URLSearchParams();
+  formGrid.querySelectorAll('[data-field]').forEach(el => {
+    const v = el.value.trim();
+    if (v) qs.set(el.dataset.field, v);
+  });
+  const csvUrl = qs.toString() ? `${base}?${qs.toString()}` : base;
+  btnLiveCsv.href = csvUrl;
+  btnLiveCsv.title = `Re-runs the query live and downloads the latest data as CSV:\n${csvUrl}`;
+}
+
+// Keep the Live CSV URL current whenever any form field changes
+formGrid.addEventListener('input', updateCsvUrl);
+
+// ── Follow-up run ──────────────────────────────────────────────
+btnFollowupRun.addEventListener('click', async () => {
+  const answer = followupTextarea.value.trim();
+  if (!answer) { followupTextarea.focus(); return; }
+
+  btnFollowupRun.disabled = true;
+  hide(resultsCard);
+  setStatus('⚙️ Running with your follow-up answer…', 'thinking');
+
+  try {
+    const data = await apiFetch('/api/agent/execute', {
+      sessionId: state.sessionId,
+      userInputs: {},
+      refinement: answer,
+    });
+
+    if (data.status === 'refined') {
+      state.plan = data;
+      renderStrategy(data);
+      renderForm(data.requiredInputs || []);
+      show(paramsCard);
+      setStatus('🔄 Plan updated — please review and run again.', 'success');
+      btnExecute.disabled = false;
+      btnFollowupRun.disabled = false;
+      return;
+    }
+
+    state.results = data;
+    renderResults(data);
+    show(resultsCard);
+    setStatus('✅ Analysis complete!', 'success');
+    resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    setStatus('❌ ' + err.message, 'error');
+    show(resultsCard);
+  }
+  btnFollowupRun.disabled = false;
+});
+
+// ── Step chips renderer ────────────────────────────────────────
+function renderStepChips(stepResults) {
+  if (!stepResults || !stepResults.length) { stepResultsBar.innerHTML = ''; return; }
+  stepResultsBar.innerHTML = stepResults.map(s => {
+    const cls = s.error ? 'err' : 'ok';
+    const icon = s.error ? '✗' : '✓';
+    return `<span class="step-chip ${cls}">${icon} Step ${s.step}: ${esc(s.action)}</span>`;
+  }).join('');
+}
+
+function renderTable(rows, cols) {
+  // Header
+  resultsThead.innerHTML = '<tr>' + cols.map(c => {
+    const isSort = state.sortCol === c;
+    const cls = isSort ? (state.sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc') : '';
+    return `<th class="${cls}" data-col="${esc(c)}">${esc(c)}<span class="sort-arrow"></span></th>`;
+  }).join('') + '</tr>';
+
+  // Body
+  if (rows.length === 0) {
+    resultsTbody.innerHTML = `<tr><td colspan="${cols.length}" class="no-results-msg">No results to display.</td></tr>`;
+    rowCount.textContent = '0 rows';
+    return;
+  }
+
+  resultsTbody.innerHTML = rows.map(row =>
+    '<tr>' + cols.map(c => {
+      const v = row[c] !== undefined ? String(row[c]) : '';
+      const isLong = v.length > 60;
+      return `<td class="${isLong ? 'wrap' : ''}" title="${esc(v)}">${esc(v)}</td>`;
+    }).join('') + '</tr>'
+  ).join('');
+
+  rowCount.textContent = `${rows.length} row${rows.length !== 1 ? 's' : ''}`;
+}
+
+// Sort
+resultsThead.addEventListener('click', (e) => {
+  const th = e.target.closest('th[data-col]');
+  if (!th) return;
+  const col = th.dataset.col;
+  if (state.sortCol === col) {
+    state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    state.sortCol = col;
+    state.sortDir = 'asc';
+  }
+  const filtered = getFilteredRows();
+  const sorted = sortRows(filtered, state.sortCol, state.sortDir);
+  renderTable(sorted, state.columns);
+});
+
+// Search / filter
+tableSearch.addEventListener('input', () => {
+  const filtered = getFilteredRows();
+  const sorted = sortRows(filtered, state.sortCol, state.sortDir);
+  renderTable(sorted, state.columns);
+});
+
+function getFilteredRows() {
+  const q = tableSearch.value.trim().toLowerCase();
+  if (!q) return state.allRows;
+  return state.allRows.filter(row =>
+    Object.values(row).some(v => String(v).toLowerCase().includes(q))
+  );
+}
+
+function sortRows(rows, col, dir) {
+  if (!col) return rows;
+  return [...rows].sort((a, b) => {
+    const av = a[col] ?? '';
+    const bv = b[col] ?? '';
+    const n = String(av).localeCompare(String(bv), undefined, { numeric: true });
+    return dir === 'asc' ? n : -n;
+  });
+}
+
+// ── Export CSV ─────────────────────────────────────────────────
+btnExportCsv.addEventListener('click', () => {
+  const filtered = getFilteredRows();
+  if (!filtered.length) return;
+  const cols = state.columns;
+  const lines = [
+    cols.map(c => `"${c.replace(/"/g, '""')}"`).join(','),
+    ...filtered.map(row =>
+      cols.map(c => {
+        const v = String(row[c] ?? '').replace(/"/g, '""');
+        return `"${v}"`;
+      }).join(',')
+    ),
+  ];
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `cernion-results-${Date.now()}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+});
+
+// ── Copy URL ───────────────────────────────────────────────────
+btnCopyUrl.addEventListener('click', () => {
+  navigator.clipboard.writeText(shareUrl.textContent).then(() => {
+    btnCopyUrl.textContent = '✓ Copied!';
+    setTimeout(() => { btnCopyUrl.textContent = 'Copy'; }, 2000);
+  });
+});
+
+// ── Refine / Follow-up ────────────────────────────────────────
+btnRefineAgain.addEventListener('click', () => {
+  hide(resultsCard);
+  show(paramsCard);
+  refinementInput.value = '';
+  refinementInput.focus();
+  btnExecute.disabled = false;
+  paramsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+// ── Escape HTML ────────────────────────────────────────────────
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ── Load from shareable URL ────────────────────────────────────
+(async () => {
+  const params = new URLSearchParams(window.location.search);
+  const sid = params.get('session');
+  if (!sid) return;
+
+  setStatus('⏳ Loading session…', 'thinking');
+  try {
+    const session = await apiGet(`/api/agent/session/${sid}`);
+    if (!session || !session.plan) { hideStatus(); return; }
+
+    problemInput.value = session.problem || '';
+    state.sessionId = session.id;
+    state.plan = session.plan;
+
+    renderStrategy(session.plan);
+    renderForm(session.plan.requiredInputs || []);
+    show(strategyCard);
+    show(paramsCard);
+    show(btnReset);
+
+    if (session.status === 'completed' && session.results) {
+      renderResults({
+        ...session.results.interpretation,
+        stepResults: session.results.stepResults,
+        shareUrl: window.location.href,
+        summary: session.results.interpretation?.summary || '',
+        tableColumns: session.results.interpretation?.tableColumns || [],
+        tableRows: session.results.interpretation?.tableRows || [],
+      });
+      show(resultsCard);
+      setStatus('✅ Session restored.', 'success');
+    } else {
+      setStatus('✅ Session loaded — provide inputs and run.', 'success');
+    }
+  } catch (err) {
+    setStatus('⚠️ Could not load session: ' + err.message, 'error');
+  }
+})();
+</script>
+</body>
+</html>

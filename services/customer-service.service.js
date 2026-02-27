@@ -153,6 +153,7 @@ module.exports = {
                       'document_templates',
                     ],
                     description: 'Type of widget to generate',
+                    example: 'installation_lookup',
                   },
                   mode: {
                     type: 'string',
@@ -328,6 +329,7 @@ module.exports = {
                     type: 'string',
                     enum: ['month', 'year'],
                     description: 'Period for the actualYieldKWh value',
+                    example: 'year',
                   },
                   yieldYear: {
                     type: 'number',
@@ -431,6 +433,7 @@ module.exports = {
                       'direct_marketing',
                     ],
                     description: 'Type of change the customer wants to make',
+                    example: 'operator_change',
                   },
                   currentSituation: {
                     type: 'string',

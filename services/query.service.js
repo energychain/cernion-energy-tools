@@ -374,6 +374,7 @@ module.exports = {
                       'examples',
                     ],
                     description: 'Discovery scope - what to explore',
+                    example: 'databases',
                   },
                   database: {
                     type: 'string',

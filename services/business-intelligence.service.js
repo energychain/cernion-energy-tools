@@ -77,6 +77,7 @@ module.exports = {
                     type: 'string',
                     enum: ['solar', 'storage', 'wallbox', 'heatpump'],
                     description: 'Type of installation to find leads for',
+                    example: 'solar',
                   },
                   daysBack: {
                     type: 'number',
@@ -190,6 +191,7 @@ module.exports = {
                     type: 'string',
                     enum: ['dynamic-spot', 'co2-optimized', 'time-of-use'],
                     description: 'Type of dynamic tariff to calculate',
+                    example: 'dynamic-spot',
                   },
                   calculationPeriod: {
                     type: 'string',
@@ -211,6 +213,7 @@ module.exports = {
                         default: false,
                       },
                     },
+                    example: { annualConsumption: 3500, flexibleLoad: true },
                   },
                 },
               },
@@ -339,6 +342,7 @@ module.exports = {
                     type: 'string',
                     enum: ['residential', 'prosumer', 'commercial', 'premium', 'all'],
                     description: 'Customer segment to analyze',
+                    example: 'prosumer',
                   },
                   region: {
                     type: 'string',

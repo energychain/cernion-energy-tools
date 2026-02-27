@@ -8,6 +8,7 @@
 const ApiGateway = require('moleculer-web');
 const OpenapiMixin = require('moleculer-auto-openapi');
 const path = require('path');
+const fs = require('fs');
 
 module.exports = {
   name: 'api',
@@ -24,7 +25,7 @@ module.exports = {
     openapi: {
       info: {
         title: 'Cernion Energy Tools API',
-        version: '0.5.7',
+        version: '0.6.0',
         description:
           'MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.',
       },
@@ -85,6 +86,19 @@ module.exports = {
             res.writeHead(302, { Location: '/api/docs' });
             res.end();
           },
+
+          // Sample Application – AI-powered research agent UI
+          'GET /app'(req, res) {
+            const appHtml = path.join(__dirname, '..', 'src', 'app.html');
+            try {
+              const html = fs.readFileSync(appHtml, 'utf-8');
+              res.setHeader('Content-Type', 'text/html; charset=utf-8');
+              res.end(html);
+            } catch (err) {
+              res.writeHead(500);
+              res.end('Sample app not found: ' + err.message);
+            }
+          },
         },
       },
       // Main API routes
@@ -119,6 +133,20 @@ module.exports = {
     html { box-sizing: border-box; overflow: -moz-scrollbars-vertical; overflow-y: scroll; }
     *, *:before, *:after { box-sizing: inherit; }
     body { margin:0; padding:0; }
+    .topbar-wrapper .link::after { content: " | "; color: #ccc; }
+    .sample-app-link {
+      display: inline-block;
+      padding: 6px 14px;
+      background: #4ade80;
+      color: #0a1a10;
+      font-weight: 700;
+      font-size: .85rem;
+      border-radius: 6px;
+      text-decoration: none;
+      margin-left: 16px;
+      vertical-align: middle;
+    }
+    .sample-app-link:hover { opacity: .85; }
   </style>
 </head>
 <body>
@@ -138,7 +166,18 @@ module.exports = {
         plugins: [
           SwaggerUIBundle.plugins.DownloadUrl
         ],
-        layout: "StandaloneLayout"
+        layout: "StandaloneLayout",
+        onComplete: function() {
+          // Inject sample-app link into topbar
+          const topbarWrapper = document.querySelector('.topbar-wrapper');
+          if (topbarWrapper) {
+            const a = document.createElement('a');
+            a.href = '/app';
+            a.className = 'sample-app-link';
+            a.textContent = '⚡ Open Research Agent';
+            topbarWrapper.appendChild(a);
+          }
+        }
       });
       window.ui = ui;
     };
@@ -522,6 +561,7 @@ module.exports = {
     this.logger.info(`API endpoint: http://localhost:${this.settings.port}/api`);
     this.logger.info(`OpenAPI docs: http://localhost:${this.settings.port}/api/openapi.json`);
     this.logger.info(`Swagger UI: http://localhost:${this.settings.port}/docs`);
+    this.logger.info(`🤖 Sample App: http://localhost:${this.settings.port}/app`);
   },
 
   async stopped() {

@@ -72,6 +72,20 @@ module.exports = {
                 includeOperators: false,
                 includeFacilities: false,
               },
+              examples: {
+                germanyStorage: {
+                  summary: 'Current German gas storage',
+                  value: { country: 'DE', includeOperators: false, includeFacilities: false },
+                },
+                franceStorage: {
+                  summary: 'French storage with operator breakdown',
+                  value: { country: 'FR', includeOperators: true, includeFacilities: false },
+                },
+                italyStorageFull: {
+                  summary: 'Italian storage with full details',
+                  value: { country: 'IT', includeOperators: true, includeFacilities: true },
+                },
+              },
             },
           },
         },
@@ -164,6 +178,16 @@ module.exports = {
               example: {
                 operatorCode: '21X000000001262B',
                 includeFacilities: true,
+              },
+              examples: {
+                rweGasStorage: {
+                  summary: 'RWE Gas Storage West (Germany)',
+                  value: { operatorCode: '21X000000001262B', includeFacilities: true },
+                },
+                rweWithDate: {
+                  summary: 'RWE Gas Storage on specific date',
+                  value: { operatorCode: '21X000000001262B', date: '2024-01-15', includeFacilities: true },
+                },
               },
             },
           },
@@ -267,6 +291,20 @@ module.exports = {
                 to: '2024-12-31',
                 aggregation: 'daily',
               },
+              examples: {
+                germanHistory2024: {
+                  summary: 'Full year 2024 daily data for Germany',
+                  value: { country: 'DE', from: '2024-01-01', to: '2024-12-31', aggregation: 'daily' },
+                },
+                winterSeasonMonthly: {
+                  summary: 'Winter season monthly aggregation',
+                  value: { country: 'DE', from: '2024-10-01', to: '2025-03-31', aggregation: 'monthly' },
+                },
+                quarterlyFrance: {
+                  summary: 'Q1 weekly data for France',
+                  value: { country: 'FR', from: '2024-01-01', to: '2024-03-31', aggregation: 'weekly' },
+                },
+              },
             },
           },
         },
@@ -340,6 +378,16 @@ module.exports = {
               },
               example: {
                 includeCountryBreakdown: false,
+              },
+              examples: {
+                euOverview: {
+                  summary: 'EU aggregate statistics (no country breakdown)',
+                  value: { includeCountryBreakdown: false },
+                },
+                euWithCountries: {
+                  summary: 'EU statistics with per-country breakdown',
+                  value: { includeCountryBreakdown: true },
+                },
               },
             },
           },
@@ -425,6 +473,20 @@ module.exports = {
               example: {
                 countries: ['DE', 'FR', 'IT'],
                 metric: 'fill_percentage',
+              },
+              examples: {
+                deFrItFillLevel: {
+                  summary: 'Compare fill levels: DE, FR, IT',
+                  value: { countries: ['DE', 'FR', 'IT'], metric: 'fill_percentage' },
+                },
+                euBigFiveCapacity: {
+                  summary: 'Compare capacity: 5 largest EU storage countries',
+                  value: { countries: ['DE', 'IT', 'FR', 'NL', 'AT'], metric: 'capacity' },
+                },
+                withdrawalRates: {
+                  summary: 'Compare withdrawal rates',
+                  value: { countries: ['DE', 'FR'], metric: 'withdrawal_rate' },
+                },
               },
             },
           },
@@ -519,6 +581,20 @@ module.exports = {
                 country: 'DE',
                 period: 'month',
               },
+              examples: {
+                germanMonthlyTrend: {
+                  summary: 'German gas storage trend (last 30 days)',
+                  value: { country: 'DE', period: 'month' },
+                },
+                germanQuarterTrend: {
+                  summary: 'German quarterly trend with end date',
+                  value: { country: 'DE', period: 'quarter', endDate: '2024-12-31' },
+                },
+                francYearlyTrend: {
+                  summary: 'French full-year trend',
+                  value: { country: 'FR', period: 'year' },
+                },
+              },
             },
           },
         },
@@ -604,6 +680,20 @@ module.exports = {
               example: {
                 country: 'DE',
                 winterMandateCheck: true,
+              },
+              examples: {
+                germanyFull: {
+                  summary: 'Germany supply security with EU mandate check',
+                  value: { country: 'DE', winterMandateCheck: true },
+                },
+                franceBasic: {
+                  summary: 'France basic security assessment',
+                  value: { country: 'FR', winterMandateCheck: false },
+                },
+                italyWinter: {
+                  summary: 'Italy winter preparedness check',
+                  value: { country: 'IT', winterMandateCheck: true },
+                },
               },
             },
           },

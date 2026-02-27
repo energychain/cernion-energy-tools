@@ -594,4 +594,84 @@ describe('Residual Load Service', () => {
       expect(wb.SheetNames).toContain('Summary');
     });
   });
+
+  // ── historical mode (startDate parameter) ──────────────────────────────────
+
+  describe('netResidualLoad — historical mode (startDate)', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+      callWithNewSession.mockImplementation(async (toolName, params) => {
+        if (toolName === 'mastr_net_residual_load') return buildResidualLoadResponse(params);
+        if (toolName === 'cernion_load_forecast_regional') return buildLoadForecastRegionalResponse(params);
+        throw new Error(`Unexpected tool: ${toolName}`);
+      });
+    });
+
+    it('passes startDate to the MCP tool when provided', async () => {
+      await broker.call('residual-load.netResidualLoad', {
+        region: 'Ludwigshafen',
+        startDate: '2026-02-10',
+      });
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'mastr_net_residual_load',
+        expect.objectContaining({ startDate: '2026-02-10' }),
+        undefined
+      );
+    });
+
+    it('does NOT include startDate in MCP params when omitted', async () => {
+      await broker.call('residual-load.netResidualLoad', { region: 'Ludwigshafen' });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params).not.toHaveProperty('startDate');
+    });
+
+    it('passes startDate combined with forecastDays and resolution', async () => {
+      await broker.call('residual-load.netResidualLoad', {
+        region: 'Bayern',
+        startDate: '2026-02-10',
+        forecastDays: 7,
+        resolution: 'hourly',
+      });
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'mastr_net_residual_load',
+        expect.objectContaining({ startDate: '2026-02-10', forecastDays: 7, resolution: 'hourly' }),
+        undefined
+      );
+    });
+
+    it('returns isHistorical and dataMode from MCP response summary', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        summary: {
+          region: 'Ludwigshafen',
+          isHistorical: true,
+          dataMode: 'historical_observation',
+          resolution: 'hourly',
+          dataPoints: 168,
+          installedCapacity: { totalPV_MW: 42.7, totalWind_MW: 8.1, pvInstallations: 1203, windInstallations: 12 },
+          loadScaling: { populationUsed: '170.000', scalingFactorPct: '0.202%', isActualData: true, dataSource: 'SMARD filter 410 (realized)' },
+          kpis: { peakResidualLoadMW: 87.4, avgResidualLoadMW: 58.9, totalLoadMWh: 1413.6, totalEEGenerationMWh: 38.2, totalResidualLoadMWh: 1375.4, avgEESharePct: 2.7 },
+        },
+        forecast: [],
+        methodology: { residualFormula: 'Residuallast = RegionaleLast \u2212 PV \u2212 Wind' },
+      });
+      const result = await broker.call('residual-load.netResidualLoad', {
+        region: 'Ludwigshafen',
+        startDate: '2026-02-10',
+        forecastDays: 7,
+      });
+      expect(result.summary.isHistorical).toBe(true);
+      expect(result.summary.dataMode).toBe('historical_observation');
+    });
+
+    it('startDate does NOT interfere with location object building', async () => {
+      await broker.call('residual-load.netResidualLoad', {
+        region: 'Heidelberg',
+        bundesland: 'Baden-Württemberg',
+        startDate: '2026-02-01',
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params).toHaveProperty('startDate', '2026-02-01');
+      expect(params).toHaveProperty('location', { bundesland: 'Baden-Württemberg' });
+    });
+  });
 });

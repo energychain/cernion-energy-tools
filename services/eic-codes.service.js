@@ -105,6 +105,7 @@ module.exports = {
                     type: 'string',
                     enum: ['electricity', 'gas'],
                     description: 'Energy sector filter',
+                    example: 'electricity',
                   },
                   limit: {
                     type: 'integer',
@@ -307,7 +308,7 @@ module.exports = {
           {
             name: 'operatorCode',
             in: 'query',
-            schema: { type: 'string' },
+            schema: { type: 'string', example: '21X000000001262B' },
             description: 'Filter by operator EIC code',
             example: '21X000000001262B',
           },

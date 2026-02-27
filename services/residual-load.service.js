@@ -39,6 +39,12 @@ module.exports = {
         forecastDays: { type: 'number', optional: true, min: 1, max: 14, default: 1 },
         resolution: { type: 'enum', values: ['hourly', '15min'], optional: true, default: 'hourly' },
         installationType: { type: 'enum', values: ['solar', 'wind', 'all'], optional: true, default: 'all' },
+        startDate: {
+          type: 'string',
+          optional: true,
+          pattern: /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/,
+          description: 'Optional start date (YYYY-MM-DD). Defaults to tomorrow. Past dates use SMARD filter 410 (realised load) and observed weather data.',
+        },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
       },
       openapi: {
@@ -68,7 +74,11 @@ module.exports = {
 - Load is approximated via population ratio — good for residential/SME, not large industrial consumers
 - Use \`populationOverride\` for known population figures (improves scaling accuracy)
 - EE accuracy ±10–20 % depending on weather forecast quality (degrades D+3 and beyond)
-
+**Historical mode (\`startDate\` in the past):**
+- SMARD automatically switches to filter 410 (realised load, no extra parameter needed)
+- Visual Crossing returns observed weather instead of a forecast — identical IEC calculation
+- Response gains \`summary.isHistorical: true\` and \`summary.dataMode: "historical_observation"\`
+- Historical responses are cached for **30 days** (immutable data, no additional API quota)
 **Use cases:**
 - **Day-ahead procurement**: Determine how much to buy on EPEX (residual load = required purchase)
 - **Intraday management**: Hourly/15-min profile for dispatch optimisation
@@ -124,6 +134,12 @@ module.exports = {
                     default: 'all',
                     description: 'Which EE types to subtract from load',
                     example: 'all',
+                  },
+                  startDate: {
+                    type: 'string',
+                    pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$',
+                    description: 'Optional start date (YYYY-MM-DD). Omit for default tomorrow behaviour. Past dates switch to historical observation mode: SMARD filter 410 (realised) + observed weather, 30-day cache.',
+                    example: '2026-02-10',
                   },
                   format: {
                     type: 'string',
@@ -183,6 +199,16 @@ module.exports = {
                     format: 'xlsx',
                   },
                 },
+                historicalResidualLoad: {
+                  summary: 'Historical residual load analysis (past date, realised SMARD data)',
+                  value: {
+                    region: 'Ludwigshafen',
+                    gridOperatorMastrId: 'SNB935578300972',
+                    startDate: '2026-02-10',
+                    forecastDays: 7,
+                    resolution: 'hourly',
+                  },
+                },
               },
             },
           },
@@ -199,6 +225,17 @@ module.exports = {
                       type: 'object',
                       properties: {
                         region: { type: 'string', example: 'Ludwigshafen' },
+                        isHistorical: {
+                          type: 'boolean',
+                          description: 'true when startDate is in the past (SMARD filter 410 + observed weather used)',
+                          example: false,
+                        },
+                        dataMode: {
+                          type: 'string',
+                          enum: ['weather_forecast', 'historical_observation'],
+                          description: '"weather_forecast" for future dates, "historical_observation" for past dates',
+                          example: 'weather_forecast',
+                        },
                         forecastPeriod: {
                           type: 'object',
                           properties: {
@@ -290,10 +327,11 @@ module.exports = {
       },
       async handler(ctx) {
         try {
-          const { format, bundesland, landkreis, gemeinde, postleitzahl, latitude, longitude, ...rest } = ctx.params;
+          const { format, bundesland, landkreis, gemeinde, postleitzahl, latitude, longitude, startDate, ...rest } = ctx.params;
 
           const locationObj = this.buildLocationObj({ bundesland, landkreis, gemeinde, postleitzahl, latitude, longitude });
           const mcpParams = { ...rest };
+          if (startDate) mcpParams.startDate = startDate;
           if (Object.keys(locationObj).length > 0) {
             mcpParams.location = locationObj;
           }

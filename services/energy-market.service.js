@@ -58,6 +58,7 @@ module.exports = {
                     type: 'string',
                     enum: ['day-ahead', 'intraday', 'futures'],
                     description: 'Market type',
+                    example: 'day-ahead',
                   },
                   region: {
                     type: 'string',
@@ -193,6 +194,7 @@ module.exports = {
                     type: 'string',
                     enum: ['Solar', 'Wind', 'Biomass', 'Nuclear', 'Gas', 'Coal', 'Hydro', 'all'],
                     description: 'Energy source type',
+                    example: 'Solar',
                   },
                   region: {
                     type: 'string',
@@ -315,7 +317,6 @@ module.exports = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['location'],
                 properties: {
                   location: {
                     type: 'string',
@@ -510,6 +511,7 @@ module.exports = {
                     type: 'string',
                     enum: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'],
                     description: 'Type of energy installation',
+                    example: 'solar',
                   },
                   location: {
                     type: 'string',
@@ -520,6 +522,7 @@ module.exports = {
                     type: 'integer',
                     description: 'Maximum number of results (optional)',
                     minimum: 1,
+                    example: 50,
                   },
                   minCapacityKW: {
                     type: 'number',

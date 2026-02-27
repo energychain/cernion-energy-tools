@@ -7,6 +7,97 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-02-27
+
+### Added
+
+- **AI Research Web App** (`src/app.html`, served at `/app`):
+  - Browser-based single-page application for interactive exploration of all microservices — no curl, no Swagger form, no coding required.
+  - Full AI-agent loop: free-text problem description → Gemini-generated multi-step execution plan → editable parameter form → step-by-step execution → sortable/filterable results table → shareable URL.
+  - Step-result status chips show which services were called and whether they succeeded.
+  - Follow-up banner: when the AI determines it needs more information it prompts the user with a targeted question without losing the current session.
+  - Self-healing re-plan: if a step returns an empty or failed result the agent automatically regenerates and retries the plan once (`repairAttempt` guard prevents infinite loops).
+
+- **AI Agent service** (`services/agent.service.js`):
+  - `POST /api/agent/analyze` — converts a free-text query into a numbered multi-step microservice plan using Google Gemini. Returns `requiredInputs` array with editable parameters.
+  - `POST /api/agent/execute` — executes the plan step-by-step, resolves `__step_N.fieldPath` chaining between steps, and returns results together with an AI-generated plain-text summary.
+  - `GET /api/agent/session/:id` — retrieves a previously saved session by UUID (enables shareable URLs).
+  - `GET /api/agent/session/:id/csv?param=value` — re-executes the full plan live and returns the last step's result as a downloadable CSV file. GET query parameters override saved input values, enabling fully parameterised automation URLs.
+  - `POST /api/agent/rerun` — re-runs an existing session with new user inputs.
+  - Sessions are persisted to `.sessions/` (JSON files, git-ignored).
+
+- **Universal parameter extraction (RULE 5)**:
+  - Every concrete user-data value in a step param (names, dates, IDs, postal codes, capacities, search terms, …) is automatically surfaced as a pre-filled, editable `requiredInput` with the extracted value as `default`.
+  - Structural/system parameters (`format`, `limit`, `type`, `installationType`, `resolution`, `forecastDays`, `includeNapData`, …) are exempt and remain hardcoded.
+  - Makes every generated plan a **reusable template**: parameters can be changed in the form and re-run without re-analyzing from scratch.
+
+- **Live CSV with GET parameters** (`GET /api/agent/session/:id/csv`):
+  - Query parameters appended to the URL (`?startDate=2026-03-01&postleitzahl=30159`) override saved values and are applied with the highest priority.
+  - Input priority: `requiredInputs[].default` → `session.userInputs` → **URL GET params** (wins).
+  - The CSV URL in the UI updates in real time as form fields are edited (live `URLSearchParams` builder).
+  - Designed for zero-config integration with Microsoft Power Automate, Excel Power Query, pandas `read_csv(url)`, Grafana, Power BI, cron jobs, or any tool that consumes a CSV URL.
+
+- **`normalizePlan()` helper** — normalises varying LLM key names after every `JSON.parse` (`useTool/tool/service → action`, `args/inputs/input → params`, `label/name → description`).
+
+- **`resolveChainedRef()` enhancements** — strips `{{…}}` mustache wrappers before processing `__step_N.fieldPath` dot-notation chains with array index support.
+
+- **`effectiveInputs` override safety net** — in both main and repair execution loops, any param whose name appears in `requiredInputs` is overridden with the user-supplied (or default) value even if Gemini hardcoded the value in the step — guarantees form field edits are always respected.
+
+- **Auto city injection for DSO pipeline** — executor automatically injects `city` into `grid-operations.vnbLookup` steps by scanning prior `marketPartners` results, independent of what the LLM generates.
+
+- **`vnbLookup` city fallback** (`services/grid-operations.service.js`) — when the primary `cernion_vnb_lookup` cannot resolve a BDEW code to a MaStR ID, falls back to `cernion_installations_local` with `format:'detailed'` and `includeNapData:true` to extract the grid operator SNB from NAP data of a local installation.
+
+- **`.sessions/` added to `.gitignore`** — session files containing user queries are runtime data and must not be committed.
+
+### Changed
+
+- **README.md** — full rewrite: Research Web App and Live CSV sections added; configuration documented as a table; service architecture and AI agent documented; duplicate License section removed; Contributing guidelines expanded.
+- **`services/api.service.js`** — Swagger topbar link to Research Web App (`/app`); OpenAPI version bumped to `0.6.0`.
+
+### Fixed
+
+- Disabled "Run Analysis" button for plans with zero `requiredInputs` — `renderForm()` now enables `btnExecute` immediately when the inputs array is empty.
+- Repair-loop executor used raw `userInputs` only (ignored `requiredInputs[].default` and the `requiredInputNames` override) — unified to use `effectiveInputs` and the same override set as the main loop.
+
+
+
+### Changed
+- **OpenAPI specification audit — complete coverage of required/optional parameters and examples** across all 13 services:
+  - **`system` — `POST /validate-params`**: Added missing `requestBody` with full schema (`tool`, `params`), 2 examples, and `responses.200` schema.
+  - **`assets` — all 8 GET endpoints** (`/list`, `/solar`, `/wind`, `/storage`, `/biomass`, `/hydro`, `/combustion`, `/all`):
+    - All filterable query parameters (`gridOperatorMastrId`, `bundesland`, `landkreis`, `gemeinde`, `postleitzahl`, `minCapacity`, `maxCapacity`, `status`, `includeNapData`, `operationalStatus`, `format`, `limit`, `offset`) now documented in `parameters[]` with type, description, and example.
+    - Named `examples` blocks added to all actions.
+  - **`gas-storage` — all 7 POST endpoints**: Added named `examples` blocks to every action (`country-storage`, `operator-storage`, `historical-data`, `eu-statistics`, `compare-countries`, `storage-trend`, `supply-security-check`).
+  - **`business-intelligence`**: Added missing parameter descriptions and examples to `salesLeads`, `churnPrediction`, `marketPenetration`, `dynamicTariffCalculator`.
+  - **`eic-codes` — `POST /search`**: `required` flag added to `requestBody`; `code`/`name` at-least-one constraint documented.
+  - **`energy-market`**: Added missing `required` flags and tightened parameter descriptions on `prices`, `production`, `co2-intensity`, `installations`.
+  - **`grid-operations`**: Added missing parameter descriptions and examples to `gridData`, `vnbdigital-search`, `vnb-lookup`, `operator-analysis`, `capacity-utilization`, `redispatch-export`, `connection-capacity-check`.
+  - **`query`**: Added missing `requestBody` `required` flags and examples to `ask`, `ask-learned`, `discover`.
+  - **`german-grid`**: Added missing examples to `spotprices`, `negative-prices`, `forecast`, `market-partners`.
+  - **`customer-service`**: Added missing `required` flags and parameter descriptions to `portal-widget`, `installation-health-check`, `installation-change-wizard`.
+  - **No breaking changes** — all parameter names, types, and defaults are unchanged.
+
+## [0.5.8] - 2026-02-19
+
+### Changed
+- **`forecast.generationForecast` and `residual-load.netResidualLoad` — historical predictions via `startDate`** (new MCP tool capability for both `mastr_generation_forecast` and `mastr_net_residual_load`):
+  - New parameter **`startDate`** (`string`, optional, format `YYYY-MM-DD`) on both actions:
+    - Omitting `startDate` preserves the existing default behaviour (starts from tomorrow) — **no breaking change**.
+    - When `startDate` is a past date, Visual Crossing returns **observed weather data** instead of a forecast; the IEC calculation methodology (IEC 61853 / IEC 61400) is identical.
+    - For `netResidualLoad`: SMARD automatically switches to **filter 410** (realised load) for historical requests — no extra parameter needed.
+    - Historical responses are **cached for 30 days** (immutable data, no additional API quota impact).
+  - New fields in the response `summary` object:
+    | Field | Type | Values |
+    |---|---|---|
+    | `isHistorical` | `boolean` | `true` when `startDate` is in the past, `false` otherwise |
+    | `dataMode` | `string` | `"weather_forecast"` or `"historical_observation"` |
+  - OpenAPI updated for both endpoints:
+    - `startDate` schema property added to request body (with pattern `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`).
+    - `isHistorical` and `dataMode` added to the response `summary` schema.
+    - One new request body example each (`historicalForecast`, `historicalResidualLoad`).
+    - Descriptions extended with historical mode section including cache behaviour.
+  - 5 new tests in `forecast.service.test.js`, 6 new tests in `residual-load.service.test.js`.
+
 ## [0.5.7] - 2026-02-19
 
 ### Changed
