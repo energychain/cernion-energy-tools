@@ -189,4 +189,16 @@ describe('Assets Service — NAP enrichment and netzbetreiberpruefungStatus', ()
     await broker.call('assets.storage', { location: '10115' });
     expect(capturedCalls[0].params.includeNapData).toBe(true);
   });
+
+  // ── netzbetreiberPruefungStatus pass-through ─────────────────────────────
+
+  it('should pass netzbetreiberPruefungStatus to energy-market.installations when provided', async () => {
+    await broker.call('assets.solar', { location: '10115', netzbetreiberPruefungStatus: '2955' });
+    expect(capturedCalls[0].params.netzbetreiberPruefungStatus).toBe('2955');
+  });
+
+  it('should NOT pass netzbetreiberPruefungStatus when not provided', async () => {
+    await broker.call('assets.solar', { location: '10115' });
+    expect(capturedCalls[0].params.netzbetreiberPruefungStatus).toBeUndefined();
+  });
 });

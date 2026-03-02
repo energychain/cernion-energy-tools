@@ -70,6 +70,91 @@ describe('Energy Market Service', () => {
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
     }, 30000);
+
+    it('should return PRICE_DATA_UNAVAILABLE when MCP returns a data_mastr database error in text', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: [{
+          type: 'text',
+          text: '✅ Query executed successfully\n\n**Results**: undefined rows\n**Execution time**: 0.23s\n\n**Preview** (first 5 rows):\n| error_message |\n| --- |\n| The MaStR database schema (data_mastr) does not contain price tables |\n',
+        }],
+      });
+
+      const result = await broker.call('energy-market.prices', {
+        market: 'day-ahead',
+        region: 'Deutschland',
+        date: '2026-03-01',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error.code).toBe('PRICE_DATA_UNAVAILABLE');
+      expect(result.error.message).toMatch(/database error/i);
+    });
+
+    it('should return PRICE_DATA_UNAVAILABLE when MCP returns "Error:" text response', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: [{ type: 'text', text: 'Error: Tool execution failed — unknown region' }],
+      });
+
+      const result = await broker.call('energy-market.prices', {
+        market: 'day-ahead',
+        region: 'Deutschland',
+        date: '2026-03-01',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error.code).toBe('PRICE_DATA_UNAVAILABLE');
+    });
+
+    it('should normalize ENTSO-E bidding zone codes to "Deutschland" before calling MCP', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: { prices: [{ timestamp: '2026-03-01T00:00:00Z', priceEURMWh: 42.5 }] },
+      });
+
+      await broker.call('energy-market.prices', {
+        market: 'day-ahead',
+        region: 'DE-LU',
+        date: '2026-03-01',
+      });
+
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'cernion_energy_prices',
+        expect.objectContaining({ region: 'Deutschland' }),
+        undefined
+      );
+    });
+
+    it('should normalize "DE-AT-LU" to "Deutschland"', async () => {
+      callWithNewSession.mockResolvedValueOnce({ success: true, data: {} });
+
+      await broker.call('energy-market.prices', {
+        market: 'day-ahead',
+        region: 'DE-AT-LU',
+        date: '2026-03-01',
+      });
+
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'cernion_energy_prices',
+        expect.objectContaining({ region: 'Deutschland' }),
+        undefined
+      );
+    });
+
+    it('should return PRICE_DATA_UNAVAILABLE when MCP call throws', async () => {
+      callWithNewSession.mockRejectedValueOnce(new Error('MCP connection timeout'));
+
+      const result = await broker.call('energy-market.prices', {
+        market: 'day-ahead',
+        region: 'Deutschland',
+        date: '2026-03-01',
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.error.code).toBe('PRICE_DATA_UNAVAILABLE');
+      expect(result.error.message).toMatch(/timeout/i);
+    });
   });
 
   describe('production action', () => {
@@ -512,6 +597,82 @@ describe('Energy Market Service', () => {
       const statuses = result.data.installations.map((i) => i.netzbetreiberpruefungStatus);
       expect(statuses).toContain(2954);
       expect(statuses).toContain(null);
+    });
+
+    it('should post-filter by netzbetreiberPruefungStatus=2955 and keep only matching records', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            {
+              mastrNummer: 'SEE111',
+              bruttoleistung: 10,
+              einheitBetriebsstatus: '35',
+              netzbetreiberpruefungStatus: 2955,
+              napData: undefined,
+            },
+            {
+              mastrNummer: 'SEE222',
+              bruttoleistung: 20,
+              einheitBetriebsstatus: '35',
+              netzbetreiberpruefungStatus: 2954,
+              napData: undefined,
+            },
+            {
+              mastrNummer: 'SEE333',
+              bruttoleistung: 30,
+              einheitBetriebsstatus: '35',
+              netzbetreiberpruefungStatus: 3075,
+              napData: undefined,
+            },
+          ],
+          stats: { count: 3, totalCapacity: 60, avgCapacity: 20 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        netzbetreiberPruefungStatus: '2955',
+      });
+      expect(result.data.installations).toHaveLength(1);
+      expect(result.data.installations[0].mastrNummer).toBe('SEE111');
+      expect(result.data.installations[0].netzbetreiberpruefungStatus).toBe(2955);
+      expect(result.data.stats.count).toBe(1);
+    });
+
+    it('should combine operationalStatus=35 and netzbetreiberPruefungStatus=2955 filters', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            {
+              mastrNummer: 'SEE001',
+              bruttoleistung: 5,
+              einheitBetriebsstatus: '35',
+              netzbetreiberpruefungStatus: 2955,
+            },
+            {
+              mastrNummer: 'SEE002',
+              bruttoleistung: 5,
+              einheitBetriebsstatus: '31',
+              netzbetreiberpruefungStatus: 2955,
+            },
+            {
+              mastrNummer: 'SEE003',
+              bruttoleistung: 5,
+              einheitBetriebsstatus: '35',
+              netzbetreiberpruefungStatus: 2954,
+            },
+          ],
+          stats: { count: 3, totalCapacity: 15, avgCapacity: 5 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        operationalStatus: '35',
+        netzbetreiberPruefungStatus: '2955',
+      });
+      expect(result.data.installations).toHaveLength(1);
+      expect(result.data.installations[0].mastrNummer).toBe('SEE001');
     });
   });
 });

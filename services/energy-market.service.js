@@ -137,11 +137,68 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
-          'cernion_energy_prices',
-          ctx.params,
-          ctx.meta.cernionToken
-        );
+        // Normalize ENTSO-E bidding zone codes to the human-readable region name the
+        // cernion_energy_prices tool expects.  Gemini sometimes emits "DE-LU" or
+        // "DE-AT-LU" instead of "Deutschland", which causes the MCP tool to route
+        // to the wrong data source.
+        const REGION_ALIASES = {
+          'de-lu': 'Deutschland',
+          'de-at-lu': 'Deutschland',
+          'de': 'Deutschland',
+          'germany': 'Deutschland',
+          '10y1001a1001a63l': 'Deutschland',
+        };
+        const regionRaw = ctx.params.region || '';
+        const regionNorm = REGION_ALIASES[regionRaw.toLowerCase()] || regionRaw;
+        const params = { ...ctx.params, region: regionNorm };
+
+        try {
+          const result = await CernionMCPClient.callWithNewSession(
+            'cernion_energy_prices',
+            params,
+            ctx.meta.cernionToken
+          );
+
+          // Detect when cernion_energy_prices routes to the MaStR SQL engine instead
+          // of the price data source. The tool returns success:true but wraps the SQL
+          // error as a text/markdown table, e.g.:
+          //   { data: [{ type: 'text', text: '✅ Query executed ... | error_message | ... | data_mastr ...' }] }
+          if (Array.isArray(result?.data) && result.data[0]?.type === 'text') {
+            const text = result.data[0].text || '';
+            const isDbError =
+              text.startsWith('Error:') ||
+              text.includes('error_message') ||
+              text.includes('undefined rows') ||
+              text.includes('data_mastr') ||
+              text.includes('does not exist') ||
+              text.includes('no such table');
+            if (isDbError) {
+              this.logger.warn(
+                `[energy-market.prices] MCP tool returned a database error for region="${regionNorm}": ${text.substring(0, 200)}`
+              );
+              return {
+                success: false,
+                error: {
+                  code: 'PRICE_DATA_UNAVAILABLE',
+                  message:
+                    'EPEX day-ahead price data is currently unavailable (cernion_energy_prices ' +
+                    'returned a database error). Monetary analysis cannot be performed.',
+                },
+              };
+            }
+          }
+
+          return result;
+        } catch (error) {
+          this.logger.error('energy-market.prices failed:', error);
+          return {
+            success: false,
+            error: {
+              code: 'PRICE_DATA_UNAVAILABLE',
+              message: error.message || 'Failed to fetch EPEX price data',
+            },
+          };
+        }
       },
     },
 
@@ -445,6 +502,7 @@ module.exports = {
         gridOperatorName: { type: 'string', optional: true, min: 1 },
         gridOperatorBdewCode: { type: 'string', optional: true, min: 1 },
         operationalStatus: { type: 'string', optional: true, default: '35' },
+        netzbetreiberPruefungStatus: { type: 'string', optional: true },
         includeNapData: { type: 'boolean', optional: true, default: true },
       },
       openapi: {
@@ -700,6 +758,7 @@ module.exports = {
           gridOperatorName: ctx.params.gridOperatorName,
           gridOperatorBdewCode: ctx.params.gridOperatorBdewCode,
           includeNapData: ctx.params.includeNapData,
+          netzbetreiberPruefungStatus: ctx.params.netzbetreiberPruefungStatus,
           format: 'detailed',
         };
 
@@ -728,6 +787,36 @@ module.exports = {
               result.data.stats.count > 0
                 ? result.data.stats.totalCapacity / result.data.stats.count
                 : 0;
+          }
+        }
+
+        // Post-filter by netzbetreiberPruefungStatus if cernion_installations_local
+        // did not handle it natively (fallback for older DB versions)
+        const nbpStatus = ctx.params.netzbetreiberPruefungStatus;
+        if (nbpStatus && result?.data?.installations) {
+          const allowedNbp = String(nbpStatus)
+            .split(',')
+            .map((s) => Number(s.trim()))
+            .filter((n) => !isNaN(n));
+          if (allowedNbp.length > 0) {
+            const beforeCount = result.data.installations.length;
+            result.data.installations = result.data.installations.filter((inst) =>
+              allowedNbp.includes(inst.netzbetreiberpruefungStatus)
+            );
+            if (result.data.installations.length === beforeCount) {
+              // cernion_installations_local already filtered — no-op
+            }
+            if (result.data.stats) {
+              result.data.stats.count = result.data.installations.length;
+              result.data.stats.totalCapacity = result.data.installations.reduce(
+                (sum, i) => sum + (i.bruttoleistung || 0),
+                0
+              );
+              result.data.stats.avgCapacity =
+                result.data.stats.count > 0
+                  ? result.data.stats.totalCapacity / result.data.stats.count
+                  : 0;
+            }
           }
         }
 

@@ -27,7 +27,7 @@ module.exports = {
     netResidualLoad: {
       rest: 'POST /net-residual-load',
       params: {
-        region: { type: 'string', min: 1 },
+        region: { type: 'string', optional: true, min: 1 },
         bundesland: { type: 'string', optional: true },
         landkreis: { type: 'string', optional: true },
         gemeinde: { type: 'string', optional: true },
@@ -90,7 +90,7 @@ module.exports = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['region'],
+                required: [],
                 properties: {
                   region: {
                     type: 'string',
@@ -336,11 +336,41 @@ module.exports = {
             mcpParams.location = locationObj;
           }
 
+          // Auto-derive region for SMARD population scaling from location fields
+          // when the caller omitted region (e.g. agent used gemeinde instead).
+          if (!mcpParams.region) {
+            const derivedRegion = gemeinde || landkreis || bundesland;
+            if (derivedRegion) {
+              mcpParams.region = derivedRegion;
+              this.logger.warn(
+                `residual-load: region not provided; auto-derived from location fields: "${derivedRegion}"`
+              );
+            }
+          }
+
           const result = await CernionMCPClient.callWithNewSession(
             'mastr_net_residual_load',
             mcpParams,
             ctx.meta.cernionToken
           );
+
+          // Detect MCP tool error returned as text content (e.g. "Error: Cannot read...").
+          // The MCP client wraps tool errors as { data: [{ type: 'text', text: 'Error: ...' }] }.
+          if (Array.isArray(result?.data) && result.data[0]?.type === 'text' && result.data[0]?.text?.startsWith('Error:')) {
+            throw new Error(result.data[0].text);
+          }
+
+          // Detect SMARD population scaling failure (all loadMW === 0)
+          if (result && Array.isArray(result.forecast) && result.forecast.length > 0) {
+            const allZeroLoad = result.forecast.every((p) => (p.loadMW ?? 0) === 0);
+            if (allZeroLoad && !ctx.params.populationOverride) {
+              result.dataQualityWarning = true;
+              result.dataQualityMessage =
+                'SMARD population scaling returned loadMW=0 for all forecast points. ' +
+                'The region may not be found in the SMARD population database. ' +
+                'Provide "populationOverride" with the city\'s known population (e.g. 247000 for Kiel) to fix scaling.';
+            }
+          }
 
           if (format === 'csv') {
             return this.handleCsvResponse(ctx, result?.forecast || [], result?.summary);
@@ -373,7 +403,7 @@ module.exports = {
     loadForecastRegional: {
       rest: 'POST /load-forecast-regional',
       params: {
-        region: { type: 'string', min: 1 },
+        region: { type: 'string', optional: true, min: 1 },
         forecastDays: { type: 'number', optional: true, min: 1, max: 7, default: 1 },
         populationOverride: { type: 'number', optional: true, min: 1 },
         gridOperatorMastrId: { type: 'string', optional: true },
@@ -406,7 +436,7 @@ module.exports = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['region'],
+                required: [],
                 properties: {
                   region: {
                     type: 'string',

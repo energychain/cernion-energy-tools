@@ -136,6 +136,210 @@ function normalizePlan(plan) {
 }
 
 // ---------------------------------------------------------------------------
+// Type coercion helpers — prevent Moleculer validation errors when HTML form
+// inputs (always strings) are used to fill number/boolean service params.
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a map of paramName → expected JS type by scanning:
+ *  1. requiredInputs[].type declarations (explicit)
+ *  2. Non-null step param VALUES whose typeof is 'number' or 'boolean' (inferred)
+ * This lets us coerce "365" → 365 even when requiredInputs is empty, as long as
+ * the plan had a numeric literal for that param somewhere.
+ */
+function buildTypeHints(plan) {
+  const hints = {};
+  for (const ri of (plan.requiredInputs || [])) {
+    if (ri.type === 'number' || ri.type === 'boolean' || ri.type === 'string') {
+      hints[ri.name] = ri.type;
+    }
+  }
+  for (const step of (plan.steps || [])) {
+    for (const [k, v] of Object.entries(step.params || {})) {
+      if (v !== null && v !== undefined && !(k in hints)) {
+        if (typeof v === 'number') hints[k] = 'number';
+        else if (typeof v === 'boolean') hints[k] = 'boolean';
+      }
+    }
+  }
+  return hints;
+}
+
+/**
+ * Coerce a string value to the hinted type.
+ * Returns the original value unchanged when no hint exists or value is already correct.
+ */
+function coerceValue(value, paramName, typeHints) {
+  if (typeof value !== 'string' || !(paramName in typeHints)) return value;
+  const hint = typeHints[paramName];
+  if (hint === 'number') {
+    const n = Number(value);
+    return isNaN(n) ? value : n;
+  }
+  if (hint === 'boolean') return value === 'true';
+  return value;
+}
+
+// ---------------------------------------------------------------------------
+// Schema-based proactive plan self-repair
+// ---------------------------------------------------------------------------
+
+/** Levenshtein edit distance between two lowercase strings. */
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  const dp = Array.from({ length: m + 1 }, (_, i) =>
+    Array.from({ length: n + 1 }, (_, j) => (i === 0 ? j : j === 0 ? i : 0))
+  );
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] =
+        a[i - 1] === b[j - 1]
+          ? dp[i - 1][j - 1]
+          : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+/**
+ * Static alias table: well-known wrong param names the LLM generates → correct canonical name.
+ * Key is lower-cased. Applied only when the target exists in the action's actual schema.
+ */
+const PARAM_ALIASES = {
+  gemeinde:            'region',              // residual-load: gemeinde ≠ region (SMARD scaling)
+  city:                'region',
+  location_string:     'region',
+  gridoperator:        'gridOperatorMastrId',
+  gridoperatorid:      'gridOperatorMastrId',
+  mastrid:             'gridOperatorMastrId',
+  vnbid:               'gridOperatorMastrId',
+  operatorid:          'gridOperatorMastrId',
+  gridoperatormastr:   'gridOperatorMastrId',
+  date:                'startDate',
+  startdate:           'startDate',
+  enddate:             'endDate',
+  zip:                 'postleitzahl',
+  plz:                 'postleitzahl',
+  postalcode:          'postleitzahl',
+  postal_code:         'postleitzahl',
+  bundesstate:         'bundesland',
+  state:               'bundesland',
+  type:                'installationType',
+  installationtype:    'installationType',
+  forecast_days:       'forecastDays',
+  forecastdays:        'forecastDays',
+  days:                'forecastDays',
+  bdew:                'bdewCode',
+  bdewcode:            'bdewCode',
+  country_code:        'country',
+  countrycode:         'country',
+  eic_code:            'eicCode',
+  eiccode:             'eicCode',
+};
+
+/**
+ * Find the best matching known param name for an unknown one.
+ * Priority: static alias → case-insensitive exact → unique substring → unique edit-distance ≤ 2.
+ * Returns null when no safe candidate is found (ambiguous or too distant).
+ *
+ * @param {string} unknown - The param name used in the plan
+ * @param {Set<string>} knownSet - The action's real param names from Moleculer schema
+ * @returns {string|null}
+ */
+function findBestParamAlias(unknown, knownSet) {
+  const u = unknown.toLowerCase();
+  const known = [...knownSet];
+
+  // 1. Static alias — only apply when the alias target actually exists in this schema
+  const aliasTarget = PARAM_ALIASES[u];
+  if (aliasTarget && knownSet.has(aliasTarget)) return aliasTarget;
+
+  // 2. Case-insensitive exact match (handles camelCase drift, e.g. Forecastdays → forecastDays)
+  const caseMatch = known.find((k) => k.toLowerCase() === u);
+  if (caseMatch && caseMatch !== unknown) return caseMatch;
+
+  // 3. Unique substring match (e.g. 'operatorId' matches 'gridOperatorMastrId' iff only one)
+  const subMatches = known.filter(
+    (k) => k.toLowerCase().includes(u) || u.includes(k.toLowerCase())
+  );
+  if (subMatches.length === 1) return subMatches[0];
+
+  // 4. Unique Levenshtein ≤ 2 (typo correction only when exactly one candidate)
+  const closeMatches = known.filter((k) => levenshtein(u, k.toLowerCase()) <= 2);
+  if (closeMatches.length === 1) return closeMatches[0];
+
+  return null;
+}
+
+/**
+ * Build a param schema index from the live Moleculer service registry.
+ * Returns a Map keyed by full action name (e.g. "residual-load.netResidualLoad")
+ * with the value being the Set of valid param names for that action.
+ *
+ * @param {Array} services - broker.registry.getServiceList({ withActions: true })
+ * @returns {Map<string, Set<string>>}
+ */
+function buildParamSchemaIndex(services) {
+  const index = new Map();
+  const skipServices = new Set(['api', '$node', 'agent']);
+  for (const svc of services) {
+    if (!svc.name || svc.name.startsWith('$') || skipServices.has(svc.name)) continue;
+    if (!svc.actions) continue;
+    for (const [actionName, action] of Object.entries(svc.actions)) {
+      const shortName = actionName.includes('.') ? actionName.split('.').pop() : actionName;
+      const fullName = `${svc.name}.${shortName}`;
+      const params = action.params || {};
+      const keys = Object.keys(params);
+      if (keys.length > 0) {
+        index.set(fullName, new Set(keys));
+      }
+    }
+  }
+  return index;
+}
+
+/**
+ * Repair a plan's step params by correcting unknown param names against the live
+ * Moleculer schema index. Mutates plan.steps[].params in place.
+ *
+ * Chained refs (__step_N…) and null values are never renamed — they resolve at runtime.
+ *
+ * @param {object} plan - The plan object (mutated in place)
+ * @param {Map<string, Set<string>>} schemaIndex - From buildParamSchemaIndex()
+ * @returns {Array<{step, action, original, corrected}>} List of corrections made
+ */
+function repairPlanParams(plan, schemaIndex) {
+  const repairs = [];
+  for (const step of (plan.steps || [])) {
+    const knownParams = schemaIndex.get(step.action);
+    if (!knownParams || knownParams.size === 0) continue; // unknown action — leave untouched
+    const fixed = {};
+    for (const [key, val] of Object.entries(step.params || {})) {
+      // Never rename chained refs or nulls — they resolve (or get filled) at runtime
+      if (val === null || (typeof val === 'string' && val.startsWith('__step_'))) {
+        fixed[key] = val;
+        continue;
+      }
+      if (knownParams.has(key)) {
+        fixed[key] = val;
+        continue;
+      }
+      const candidate = findBestParamAlias(key, knownParams);
+      if (candidate) {
+        repairs.push({ step: step.step, action: step.action, original: key, corrected: candidate });
+        fixed[candidate] = val;
+      } else {
+        fixed[key] = val; // keep unknown param — may be a valid passthrough
+      }
+    }
+    step.params = fixed;
+  }
+  return repairs;
+}
+
+
+// ---------------------------------------------------------------------------
 // Gemini helper
 // ---------------------------------------------------------------------------
 function getGeminiModel() {
@@ -334,8 +538,9 @@ and the step param itself set to null.
 
 Structural params that are EXEMPT (keep hardcoded, do NOT extract):
   format, limit, type, installationType, includeNapData, includeFacilities,
-  includeStats, includeValidation, operationalStatus, verbose, language,
-  outputFormat, resolution, forecastDays, topN, includeTrend, includeDetails
+  includeStats, includeValidation, operationalStatus, netzbetreiberPruefungStatus,
+  verbose, language, outputFormat, resolution, forecastDays, topN,
+  includeTrend, includeDetails
 
 Everything else is a USER DATA param and MUST be extracted:
   - Names: companies, cities, regions, operators, countries, persons
@@ -361,6 +566,86 @@ Example — user says: "Alle Windanlagen bei Stadtwerke München PLZ 80331 seit 
 
 This makes EVERY generated query a reusable template: the user can change any
 value in Step 2 and re-run without re-analyzing from scratch.
+
+RULE 6 — EEG regulatory compliance (§ 51 EEG cutoff):
+Whenever the question involves § 51 EEG risk (negative price compensation loss)
+for a list of PV/wind/storage installations:
+- Only installations with commissioning date (Datum Netzzugang) ≥ 2016-01-01
+  are subject to § 51 EEG. Older installations are NOT affected.
+- Include a note in the plan summary that the results will be filtered to
+  installations commissioned on or after 01.01.2016.
+- When using german-grid.negativePrices for a full-year historical period,
+  note in the description that data availability may be limited and a
+  "dataReliabilityWarning" in the response indicates unreliable zero counts.
+
+RULE 7 — netzbetreiberPruefungStatus vs operationalStatus (CRITICAL distinction):
+These are TWO SEPARATE, INDEPENDENT fields. Never confuse them:
+
+  operationalStatus (Betriebsstatus der Einheit — is the unit grid-connected?):
+    "31" = In Planung (planned — NOT yet connected)
+    "35" = In Betrieb (active — default, currently connected to grid)
+    "37" = Vorübergehend stillgelegt
+    "38" = Dauerhaft stillgelegt
+
+  netzbetreiberPruefungStatus (Netzbetreiberprüfung — grid operator review status):
+    "2955" = In Prüfung (under grid operator review — still being processed)
+    "2954" = Geprüft (review completed by grid operator)
+    "3075" = Nicht vorgesehen (review not applicable)
+
+  ► If the user asks for "aktive Anlagen in Prüfung durch Netzbetreiber" (or similar),
+    the CORRECT plan is:
+      operationalStatus = "35"            ← active / grid-connected
+      netzbetreiberPruefungStatus = "2955" ← grid operator review still open
+    These two filters COMBINE. Do NOT use operationalStatus="30" for this use case —
+    that code does not exist. "In Prüfung durch Netzbetreiber" = netzbetreiberPruefungStatus,
+    NOT operationalStatus.
+
+RULE 8 — Residual load + CO2 intensity (Stadtwerk forecast queries):
+For any query about Residuallast, Beschaffungsplanung, CO2-Intensität, or
+Lastverschiebefenster for a named Stadtwerk or DSO:
+
+1. Run a 4-step plan: VNB pipeline (steps 1–2) + residual load (step 3) + CO2 (step 4):
+     step 1: grid-operations.marketPartners  ← resolve city + operator contacts
+     step 2: grid-operations.vnbLookup       ← resolve mastrId
+     step 3: residual-load.netResidualLoad   ← time-series load forecast
+     step 4: energy-market.co2Intensity      ← CO2 intensity forecast
+
+2. "region" in residual-load.netResidualLoad is STRUCTURAL — derive it from step 1:
+     "region": "__step_1.data.results[0].contacts[0].city"
+   Do NOT put "region" in requiredInputs when the city is resolved in step 1.
+   ⚠️ CRITICAL: "region" is the city name string for SMARD population scaling.
+   It is NOT the same as "gemeinde" (a geographic filter inside location.gemeinde).
+   NEVER use "gemeinde" as a substitute for "region". These are two different params:
+     "region": "Kiel"                     ← CORRECT (SMARD population scaling)
+     "gemeinde": "Kiel"                   ← WRONG for this purpose (ignored by SMARD)
+
+3. Wire step 2's mastrId into step 3:
+     "gridOperatorMastrId": "__step_2.data.mastrId"
+
+4. Wire step 1's city into step 4's location:
+     "location": "__step_1.data.results[0].contacts[0].city"
+
+5. Derive forecastDays from the user message ("48h" → 2, "3 Tage" → 3).
+   Set "forecast": true on co2Intensity. Default resolution is "hourly".
+
+6. Never use query.ask or cernion_ask_learned for load/Residuallast/CO2 forecast
+   queries. residual-load.netResidualLoad uses real SMARD + MaStR + weather — always
+   prefer it over LLM estimation or static SQL for time-series load questions.
+
+7. Always add step 5: energy-market.prices for EPEX Day-Ahead prices (monetary context):
+     "market": "day-ahead",    ← structural, keep hardcoded
+     "region": "Deutschland",  ← structural, keep hardcoded as the EXACT string "Deutschland"
+                                   NEVER use ENTSO-E bidding zone codes here (not "DE-LU",
+                                   not "DE-AT-LU", not "10Y1001A1001A63L"). Only "Deutschland".
+     "startDate": null,        ← extract as requiredInput (default = analysis startDate or today)
+     "endDate": null           ← extract as requiredInput (default = startDate + forecastDays - 1)
+   This enables hourly price correlation: the interpretation will calculate the
+   exact €/MWh difference between optimal and peak windows and express the
+   monetäre Hebelwirkung for flexible load scheduling (heat pumps, EV, storage).
+   Treat "startDate" and "endDate" here as USER DATA params per RULE 5 — both
+   MUST be null in the step params and declared in requiredInputs with computed defaults.
+   Note: if the prices step returns an error (success:false), proceed with EE+CO2 analysis
+   only and clearly note "EPEX-Preisdaten nicht verfügbar" in the interpretation.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Respond ONLY with valid JSON (no markdown, no explanation outside the JSON) in this exact structure.
@@ -412,12 +697,26 @@ IMPORTANT: The keys in each step MUST be exactly "action", "params", and "descri
         }
         plan = normalizePlan(plan);
 
+        // ── Proactive schema-based param repair ─────────────────────────────
+        // Validate every step's param names against the live Moleculer schema.
+        // Corrects common LLM mistakes (e.g. gemeinde→region, bdew→bdewCode)
+        // before any service call is attempted — no extra LLM round-trip needed.
+        const schemaIndex = buildParamSchemaIndex(
+          ctx.broker.registry.getServiceList({ withActions: true })
+        );
+        const planRepairs = repairPlanParams(plan, schemaIndex);
+        if (planRepairs.length > 0) {
+          this.logger.warn('[Agent] Plan auto-repair: corrected param names', planRepairs);
+        }
+        // ────────────────────────────────────────────────────────────────────
+
         const sessionId = crypto.randomUUID();
         const session = {
           id: sessionId,
           createdAt: new Date().toISOString(),
           problem,
           plan,
+          planRepairs: planRepairs.length > 0 ? planRepairs : undefined,
           userInputs: null,
           results: null,
           status: 'awaiting_inputs',
@@ -509,6 +808,14 @@ CRITICAL RULES:
 1. If the user mentions a grid operator/DSO by name, add grid-operations.marketPartners as step 1 to resolve it.
 2. Use "__step_N.fieldPath" chaining syntax to pass values between steps.
 3. Add requiredInputs for any entity identifier not supplied by the user or resolved by a lookup step.
+4. For residual load + CO2 queries (RULE 8): always run the 5-step pipeline:
+   step 1 grid-operations.marketPartners, step 2 grid-operations.vnbLookup,
+   step 3 residual-load.netResidualLoad, step 4 energy-market.co2Intensity,
+   step 5 energy-market.prices (market: "day-ahead", region: "Deutschland",
+   startDate: null, endDate: null extracted as requiredInputs with computed defaults).
+5. NEVER use "gemeinde" as a substitute for "region" in residual-load.netResidualLoad.
+   "region" is the city name for SMARD population scaling. Always wire it from
+   "__step_1.data.results[0].contacts[0].city".
 
 The user originally asked: "${session.problem}"
 Your previous plan was: ${JSON.stringify(session.plan, null, 2)}
@@ -538,6 +845,16 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
           }
           session.plan = normalizePlan(session.plan);
 
+          // Proactive param repair on the refined plan too
+          const siRef = buildParamSchemaIndex(
+            ctx.broker.registry.getServiceList({ withActions: true })
+          );
+          const refRepairs = repairPlanParams(session.plan, siRef);
+          if (refRepairs.length > 0) {
+            this.logger.warn('[Agent] Refinement plan auto-repair:', refRepairs);
+            session.planRepairs = refRepairs;
+          }
+
           session.status = 'awaiting_inputs';
           session.userInputs = null;
           session.results = null;
@@ -561,6 +878,13 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
           }
         }
         Object.assign(effectiveInputs, userInputs); // user-supplied values win
+
+        // Coerce string values to number/boolean where the plan's type hints say so.
+        // HTML form inputs always return strings; Moleculer validators enforce strict types.
+        const typeHints = buildTypeHints(session.plan);
+        for (const [k, v] of Object.entries(effectiveInputs)) {
+          effectiveInputs[k] = coerceValue(v, k, typeHints);
+        }
 
         // Build a set of all declared requiredInput names so we can override
         // even when Gemini hardcoded the value instead of setting it to null
@@ -624,14 +948,19 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
 
           let result;
           let error = null;
-          try {
-            result = await ctx.broker.call(step.action, callParams, {
-              meta: ctx.meta,
-              timeout: this.settings.defaultTimeout,
-            });
-          } catch (err) {
-            error = err.message;
-            result = null;
+          if (!step.action) {
+            error = `Step ${step.step} has no action defined (plan generation error)`;
+            this.logger.error(`[Agent] ${error}`);
+          } else {
+            try {
+              result = await ctx.broker.call(step.action, callParams, {
+                meta: ctx.meta,
+                timeout: this.settings.defaultTimeout,
+              });
+            } catch (err) {
+              error = err.message;
+              result = null;
+            }
           }
 
           stepResults.push({
@@ -733,20 +1062,28 @@ Respond ONLY with valid JSON:
 
             if (repairedPlan && repairedPlan.steps && repairedPlan.steps.length > 0) {
               this.logger.info('[Agent] Self-healing: executing repaired plan');
+              repairedPlan = normalizePlan(repairedPlan);
               session.plan = repairedPlan;
               saveSession(session);
 
               // Re-execute the repaired plan (use same effectiveInputs + requiredInputNames override)
+              // Extend type hints with the repaired plan so newly typed params are also coerced.
+              const repairedTypeHints = buildTypeHints(repairedPlan);
+              const mergedTypeHints = { ...typeHints, ...repairedTypeHints };
+              const coercedEffective = {};
+              for (const [k, v] of Object.entries(effectiveInputs)) {
+                coercedEffective[k] = coerceValue(v, k, mergedTypeHints);
+              }
               const repairedSteps = (repairedPlan.steps || []).map((step) => {
                 const rp = {};
                 for (const [k, v] of Object.entries(step.params || {})) {
-                  if ((v === null || requiredInputNames.has(k)) && effectiveInputs[k] !== undefined) {
-                    rp[k] = effectiveInputs[k];
+                  if ((v === null || requiredInputNames.has(k)) && coercedEffective[k] !== undefined) {
+                    rp[k] = coercedEffective[k];
                   } else {
                     rp[k] = v;
                   }
                 }
-                for (const [k, v] of Object.entries(effectiveInputs)) {
+                for (const [k, v] of Object.entries(coercedEffective)) {
                   if (!(k in rp)) rp[k] = v;
                 }
                 return { ...step, params: rp };
@@ -770,13 +1107,18 @@ Respond ONLY with valid JSON:
                 }
                 let res2 = null;
                 let err2 = null;
-                try {
-                  res2 = await ctx.broker.call(step.action, callP, {
-                    meta: ctx.meta,
-                    timeout: this.settings.defaultTimeout,
-                  });
-                } catch (e) {
-                  err2 = e.message;
+                if (!step.action) {
+                  err2 = `Repair step ${step.step} has no action defined (plan generation error)`;
+                  this.logger.error(`[Agent] ${err2}`);
+                } else {
+                  try {
+                    res2 = await ctx.broker.call(step.action, callP, {
+                      meta: ctx.meta,
+                      timeout: this.settings.defaultTimeout,
+                    });
+                  } catch (e) {
+                    err2 = e.message;
+                  }
                 }
                 stepResults.push({
                   step: step.step,
@@ -803,6 +1145,106 @@ Respond ONLY with valid JSON:
 
 The following microservice calls were made and returned these results:
 ${JSON.stringify(allResults, null, 2)}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REGULATORY DOMAIN KNOWLEDGE — apply these rules unconditionally:
+
+§ 51 EEG (Vergütungsausfall bei negativen Strompreisen):
+- This regulation applies ONLY to EEG-supported installations commissioned
+  on or after 01.01.2016 ("Datum Netzzugang" ≥ 2016-01-01).
+- Installations commissioned BEFORE 01.01.2016 are NOT subject to § 51 EEG
+  and MUST NOT be listed as "at risk" or included in a § 51 risk ranking.
+- When showing a table of installations for § 51 risk, include a column
+  "§51 betroffen" ("Ja" if commissioned ≥ 2016-01-01, "Nein" otherwise)
+  and add a note in the summary explaining this cutoff.
+
+Negative price data reliability:
+- If any step result contains "Plausibilitäts-Hinweis (Datenqualität)" or
+  "dataReliabilityWarning": true, the negative price count is unreliable.
+  MUST mention this prominently in the summary and NOT present 0 as a
+  confirmed fact. Explain it as a data availability issue.
+
+Netzbetreiberprüfung vs. Betriebsstatus (CRITICAL distinction — never confuse):
+- "Betriebsstatus" (operationalStatus) = connection status of the installation:
+    35 = In Betrieb (active, grid-connected)
+    31 = In Planung (planned, NOT yet connected)
+- "Netzbetreiberprüfung Status" (netzbetreiberPruefungStatus) = review by grid operator:
+    2955 = In Prüfung (review still open/in progress)
+    2954 = Geprüft (review completed)
+    3075 = Nicht vorgesehen
+- These are INDEPENDENT. An installation can be "In Betrieb" (Betriebsstatus 35)
+  AND simultaneously "In Prüfung" (Netzbetreiberprüfung 2955).
+- When displaying results filtered by netzbetreiberPruefungStatus=2955, clearly
+  label this column as "Netzbetreiberprüfung" and explain it means the grid
+  operator's review is still ongoing — NOT that the unit is unconnected.
+
+Residuallast + CO2-Intensität + EPEX-Preise (Lastmanagement-Synthese):
+- When results include a residual load time series, a CO2 intensity forecast,
+  AND EPEX day-ahead prices, synthesize all three across the FULL forecast horizon
+  (all timestamps returned — 48 data points for 2 days, NOT just 24 for 1 day):
+
+  TIMESTAMPS: Convert ALL UTC timestamps to MEZ/MESZ (UTC+1/UTC+2) before displaying.
+  For dates in winter (October–March) use UTC+1 (MEZ).
+  For dates in summer (April–September) use UTC+2 (MESZ).
+  Label columns as "Zeitpunkt (MEZ)" or "Zeitpunkt (MESZ)" accordingly.
+  NEVER show bare UTC timestamps to the user.
+
+  COVERING BOTH DAYS: The forecast covers multiple days as specified by the user.
+  The table MUST cover ALL days in the returned forecast data — do not truncate to
+  only day 1 even if CO2 data has fewer points than EE data.
+  When CO2 data is available for fewer hours than EE data, note this gap but still
+  include all EE and load rows in the table.
+
+  DATA QUALITY GATE — check before any synthesis:
+  - If any step result contains "dataQualityWarning": true on residual-load.netResidualLoad,
+    the loadMW series is ALL ZEROS and MUST NOT be used for Residuallast calculations.
+    In this case set needsMoreInput: true and ask the user for "populationOverride".
+    The summary MUST start with:
+      "⚠️ DATENFEHLER: Die Residuallastberechnung ist nicht möglich, weil die
+       SMARD-Lastskalierung 0 MW ergab. Die folgenden Ergebnisse basieren NUR auf
+       EE-Erzeugungsdaten und CO2-Intensität — KEINE echte Residuallastanalyse.
+       Bitte 'Einwohnerzahl (Population Override)' mit dem Wert für die Stadt
+       angeben (z.B. 245.000 für Kiel) und die Analyse neu starten."
+    Then proceed with EE-only analysis, clearly labelling every number.
+
+  OPTIMAL WINDOWS (when loadMW > 0 for all points):
+  ★ Ideal window = timestamps where BOTH CO2 intensity AND residual load are LOW
+    → grid is cheap and clean → ideal for flexible loads (heat pumps, EV, storage)
+  ★ Spitzenlast = timestamps where residualLoadMW is highest →
+    Beschaffungskosten peak; avoid flexible loads here
+  ★ CO2-Spitzen = timestamps where gCO2eqPerKWh is highest → environmentally critical
+
+  OPTIMAL WINDOWS (EE-only, when dataQualityWarning):
+  ★ Rank by PV + Wind generation (eeGenerationMW) descending → highest local
+    renewable generation = maximum self-coverage potential
+  ★ Report EE peak hours in MEZ as the "Grünstromfenster"
+
+  MONETARY ASSESSMENT (always, even in EE-only mode):
+  - If EPEX day-ahead prices are available, correlate them with the CO2/EE windows:
+    • Find the price spread: cheapest hour vs. most expensive hour (€/MWh).
+    • Compute the load-shift saving: (peak_price − optimal_price) × estimatedLoadMW × hours
+    • If loadMW = 0, use an explicit placeholder assumption:
+        "Bei einer angenommenen Stadtwerk-Grundlast von ca. 30 MW (Platzhalter —
+         genaue Berechnung erst nach Eingabe der Einwohnerzahl möglich)"
+      and calculate savings with that figure, marked clearly as estimate.
+    • Show the monetary lever as "Monetärer Hebel (Lastverschiebung)" in €/day.
+  - If EPEX prices are NOT available, explicitly note: "EPEX-Preisdaten nicht verfügbar —
+    monetäre Bewertung nicht möglich."
+
+  TABLE STRUCTURE (requiredColumns):
+  "Zeitpunkt (MEZ)", "CO2 (g/kWh)", "EE-Erzeugung (MW)", "Residuallast (MW)" or "Last (MW)",
+  "EPEX Day-Ahead (€/MWh)", "Bewertung"
+
+  Bewertung column values (choose one):
+    "✅ Optimal (Lastverschiebung)"   ← low CO2 + low residual + low price
+    "🟡 Gut"                          ← low CO2 OR low price, not both
+    "🔴 Vermeiden (CO2-Peak)"         ← CO2 > 250 g/kWh
+    "⛔ Teuer + CO2-Reich"            ← high price AND high CO2
+
+  TOP-3 WINDOWS: List the 3 best consecutive 2-hour windows sorted by:
+    (1) CO2 g/kWh ascending, then (2) EPEX price ascending, then (3) EE generation descending.
+  Show: Start (MEZ), End (MEZ), avg CO2, avg EPEX price, total EE generation, estimated saving €.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Provide:
 1. A concise human-readable summary (3-5 sentences) of the findings.
@@ -864,6 +1306,144 @@ Respond ONLY with valid JSON:
         session.userInputs = userInputs;
         session.results = { stepResults, interpretation };
         session.status = 'completed';
+
+        // ── Data-quality driven requiredInputs injection ───────────────
+        // If any residual-load step returned dataQualityWarning (loadMW=0),
+        // inject populationOverride into requiredInputs so the UI renders a
+        // form field allowing the user to correct and re-run immediately.
+        const populationAlreadyDeclared = (session.plan.requiredInputs || []).some(
+          (ri) => ri.name === 'populationOverride'
+        );
+        if (!populationAlreadyDeclared) {
+          for (const sr of stepResults) {
+            if (sr.result?.dataQualityWarning === true && sr.action === 'residual-load.netResidualLoad') {
+              // Use the population SMARD actually tried (from loadScaling.populationUsed),
+              // stripping locale dots so '245.000' becomes the number 245000.
+              const smardPop = sr.result?.summary?.loadScaling?.populationUsed;
+              const defaultPop = smardPop
+                ? parseInt(String(smardPop).replace(/[^0-9]/g, ''), 10) || undefined
+                : undefined;
+
+              if (!session.plan.requiredInputs) session.plan.requiredInputs = [];
+              session.plan.requiredInputs.push({
+                name: 'populationOverride',
+                label: 'Einwohnerzahl (Population Override)',
+                type: 'number',
+                default: defaultPop,
+                description:
+                  'Die Einwohnerzahl des Netzgebiets für die SMARD-Lastskalierung. ' +
+                  'Wird benötigt, weil die automatische Skalierung 0 MW ergab. ' +
+                  'Beispiel: 247000 für Kiel.',
+                example: 247000,
+                required: true,
+              });
+              this.logger.warn(
+                `[Agent] Injected populationOverride requiredInput (default: ${defaultPop}) ` +
+                `after dataQualityWarning in step ${sr.step}`
+              );
+              saveSession(session); // persist updated plan with new requiredInput
+              break;
+            }
+          }
+        }
+        // ─────────────────────────────────────────────────────────────────
+        // Extract the parameters actually used so Gemini can propose related queries.
+        const usedParams = {};
+        for (const sr of stepResults) {
+          for (const [k, v] of Object.entries(sr.params || {})) {
+            if (v !== null && v !== undefined && typeof v !== 'object') usedParams[k] = v;
+          }
+        }
+        const suggestPrompt = `You are an expert energy analyst assistant.
+
+The user just completed this analysis:
+Original question: "${session.problem}"
+Parameters used: ${JSON.stringify(usedParams)}
+Result summary: ${interpretation.summary}
+
+Suggest exactly 3 follow-up research questions that:
+- Are meaningfully different from the original question (new angle, deeper dive, comparison, trend, etc.)
+- REUSE the same specific parameter values where appropriate (same PLZ, region, operator, date, etc.)
+- Would be actionable with the same set of microservices
+- Are concise (max 15 words each), in the same language as the original question
+
+Examples of good suggestions when PLZ "69" and type "solar" were used:
+- "Entwicklung neuer PV-Anlagen in PLZ 69xxx nach Jahr (2020-2025)"
+- "Windkraftanlagen im gleichen PLZ-Bereich 69xxx"
+- "Vergleich: PV-Leistung PLZ 69xxx vs. PLZ 68xxx"
+
+Respond ONLY with a JSON array of exactly 3 strings:
+["suggestion 1", "suggestion 2", "suggestion 3"]`;
+
+        let suggestions = [];
+        try {
+          const suggestRaw = await callGemini(suggestPrompt);
+          const suggestJson = suggestRaw
+            .replace(/```json\s*/gi, '')
+            .replace(/```\s*/gi, '')
+            .trim();
+          const parsed = JSON.parse(suggestJson);
+          if (Array.isArray(parsed)) suggestions = parsed.slice(0, 3).filter(s => typeof s === 'string');
+        } catch {
+          // Suggestions are best-effort — never block the response
+        }
+
+        session.results.suggestions = suggestions;
+
+        // ── Suggest charts ─────────────────────────────────────────
+        // Only meaningful when there are rows and at least 2 columns.
+        let chartSuggestions = [];
+        if (interpretation.tableColumns?.length >= 2 && interpretation.tableRows?.length >= 1) {
+          const sampleRows = interpretation.tableRows.slice(0, 5);
+          const chartPrompt = `You are a data visualisation expert.
+
+A data table has these columns: ${JSON.stringify(interpretation.tableColumns)}
+Sample rows (up to 5): ${JSON.stringify(sampleRows)}
+Context: the user asked "${session.problem}"
+
+Suggest up to 3 charts that would be most insightful for this data.
+For each chart, choose the BEST available chart type for the data:
+- "bar"  — comparing discrete categories
+- "line" — trends over time or ordered values
+- "pie"  — part-of-whole, use only when there are <= 8 distinct categories
+- "scatter" — correlation between two numeric fields
+
+Rules:
+- xField and yField MUST be exact column names from the list above
+- colorField is optional; use it only when a categorical grouping adds value
+- yField must reference a column that contains numeric data (capacity, count, percentage, MW, kW, etc.)
+- xField should be a label or category (name, year, region, type, date, etc.)
+- Do not suggest a chart if there are no numeric columns
+- Titles must be concise (max 8 words), in the same language as the original question
+
+Respond ONLY with a JSON array (empty array [] if no good chart is possible):
+[
+  {
+    "type": "bar",
+    "title": "Installed capacity by operator",
+    "xField": "Betreiber",
+    "yField": "Leistung kWp",
+    "colorField": null
+  }
+]`;
+          try {
+            const chartRaw = await callGemini(chartPrompt);
+            const chartJson = chartRaw
+              .replace(/```json\s*/gi, '')
+              .replace(/```\s*/gi, '')
+              .trim();
+            const parsed = JSON.parse(chartJson);
+            if (Array.isArray(parsed)) {
+              chartSuggestions = parsed
+                .filter(c => c.type && c.xField && c.yField)
+                .slice(0, 3);
+            }
+          } catch {
+            // Chart suggestions are best-effort — never block the response
+          }
+        }
+
+        session.results.chartSuggestions = chartSuggestions;
         saveSession(session);
 
         return {
@@ -874,7 +1454,10 @@ Respond ONLY with valid JSON:
           tableRows: interpretation.tableRows || [],
           needsMoreInput: interpretation.needsMoreInput || false,
           followUpQuestion: interpretation.followUpQuestion || null,
+          suggestions,
+          chartSuggestions,
           stepResults,
+          requiredInputs: session.plan.requiredInputs || [],
           shareUrl: `${process.env.API_URL || 'http://localhost:3000'}/app?session=${sessionId}`,
         };
       },
@@ -963,6 +1546,11 @@ Respond ONLY with valid JSON:
         // Overlay GET query params (everything in ctx.params except 'id')
         for (const [k, v] of Object.entries(ctx.params)) {
           if (k !== 'id' && v !== undefined && v !== '') effectiveInputsCSV[k] = v;
+        }
+        // Coerce string values (form inputs / URL params) to number/boolean as needed
+        const typeHintsCSV = buildTypeHints(session.plan);
+        for (const [k, v] of Object.entries(effectiveInputsCSV)) {
+          effectiveInputsCSV[k] = coerceValue(v, k, typeHintsCSV);
         }
         const userInputs = effectiveInputsCSV;
 

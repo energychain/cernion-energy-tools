@@ -7,7 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.0] - 2026-02-27
+## [0.6.1] - 2026-03-02
+
+### Added
+
+- **`populationOverride` UI injection on `dataQualityWarning`** (`services/agent.service.js`):
+  - After every `execute` call, the agent scans `stepResults` for any `residual-load.netResidualLoad` step that returned `dataQualityWarning: true` (SMARD returned `loadMW=0`).
+  - When detected, a `populationOverride` entry is automatically injected into `session.plan.requiredInputs` with the SMARD-detected population as the pre-filled `default` (e.g. `245000` parsed from `"245.000"`).
+  - The `execute` return value now always includes `requiredInputs: session.plan.requiredInputs` so the UI re-renders the corrected form in the same response without needing a separate `getSession` round-trip.
+  - Session is immediately persisted after injection so `getSession` also reflects the new field.
+
+- **EPEX Day-Ahead prices step in RULE 8** (`services/agent.service.js`):
+  - Gemini plans for Residuallast/CO2 queries now always include a step 5 calling `energy-market.prices` (market: `day-ahead`, region: `Deutschland`) to enable monetary assessment.
+  - Region MUST be the string `"Deutschland"` — ENTSO-E bidding zone codes (`DE-LU`, `DE-AT-LU`) are explicitly prohibited in the plan prompt.
+  - `startDate`/`endDate` are extracted as `requiredInputs` with computed defaults per RULE 5.
+
+- **`energy-market.prices` — region normalisation** (`services/energy-market.service.js`):
+  - Handler now maps ENTSO-E bidding zone codes to `"Deutschland"` before calling the MCP tool: `DE-LU`, `DE-AT-LU`, `DE`, `Germany`, and the full ENTSO-E EIC code are all accepted.
+
+### Fixed
+
+- **`energy-market.prices` — MCP database error detection** (`services/energy-market.service.js`):
+  - `cernion_energy_prices` sometimes routes to the MaStR SQL engine which has no price tables, returning `success: true` but wrapping a SQL `error_message` row in a markdown text block.
+  - The handler now detects this pattern (`error_message`, `undefined rows`, `data_mastr`, `does not exist`) and returns `{ success: false, error: { code: 'PRICE_DATA_UNAVAILABLE' } }` — a clean structured error the agent can reason about.
+  - Also catches thrown errors and returns the same structured error shape.
+
+- **Residuallast interpretation overhaul** (`services/agent.service.js` — `summaryPrompt` RULE 8):
+  - **UTC → MEZ/MESZ conversion**: All timestamps must be converted to local time (UTC+1 in winter, UTC+2 in summer) and labelled `"Zeitpunkt (MEZ)"` — bare UTC timestamps are now prohibited.
+  - **Full 48-hour coverage**: Interpretation must cover ALL days in the returned forecast; truncating to day 1 only is now explicitly forbidden.
+  - **Data quality gate**: When `dataQualityWarning: true`, the summary must begin with a prominent `⚠️ DATENFEHLER:` block and set `needsMoreInput: true` before any EE-only analysis.
+  - **Monetary assessment**: When EPEX prices are available, interpretation calculates `(peak_price − optimal_price) × load_MW × hours` and reports the monetäre Hebelwirkung in €/day. When `loadMW = 0`, a labelled placeholder assumption (~30 MW) is used.
+  - **Optimal window ranking**: Top-3 windows now ranked by consecutive 2-hour blocks sorted by CO2 ascending, EPEX price ascending, EE generation descending — with quantified Lastverschiebungspotenzial in MWh.
+  - **Table columns standardised**: `Zeitpunkt (MEZ)`, `CO2 (g/kWh)`, `EE-Erzeugung (MW)`, `Residuallast (MW)`, `EPEX Day-Ahead (€/MWh)`, `Bewertung`.
+  - **`Bewertung` taxonomy**: `✅ Optimal`, `🟡 Gut`, `🔴 Vermeiden (CO2-Peak)`, `⛔ Teuer + CO2-Reich`.
+
+- **Refine prompt RULE 8** (`services/agent.service.js`):
+  - The refinement prompt now carries the full 5-step RULE 8 pipeline (including prices step) and the `gemeinde` ≠ `region` guard, keeping refined plans consistent with initial plans.
+
+### Tests
+
+- `tests/agent.service.test.js` — 4 new tests: `populationOverride` injected when `dataQualityWarning: true`; not injected when `false`; no duplicate when already present; `requiredInputs` always present in return value. (28 agent tests total)
+- `tests/energy-market.service.test.js` — 6 new tests: `data_mastr` text error → `PRICE_DATA_UNAVAILABLE`; `Error:` text → `PRICE_DATA_UNAVAILABLE`; `DE-LU` → `Deutschland` normalisation; `DE-AT-LU` → `Deutschland`; thrown error → `PRICE_DATA_UNAVAILABLE`. (36 energy-market tests total)
+- **Total: 457 tests passing (0 failing)**
 
 ### Added
 

@@ -90,7 +90,7 @@ The built-in web application at `/app` lets you explore all microservices using 
 
 ### Workflow
 
-1. **Describe your question** — type in plain English or German, e.g.  
+1. **Describe your question** — type in plain English or German, e.g.
    *"Alle PV-Anlagen im Netz der Enercity in Hannover"*
 
 2. **Review the plan** — the AI decomposes the question into a numbered sequence of microservice calls and shows you exactly which services will be called and with which parameters.

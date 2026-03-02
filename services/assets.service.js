@@ -116,6 +116,7 @@ module.exports = {
         limit,
         redispatch,
         operationalStatus,
+        netzbetreiberPruefungStatus,
         format,
         includeNapData,
       } = ctx.params;
@@ -230,6 +231,7 @@ module.exports = {
         if (maxCapacityKW !== undefined) callParams.maxCapacityKW = maxCapacityKW;
         if (limit !== undefined) callParams.limit = limit;
         if (operationalStatus !== undefined) callParams.operationalStatus = operationalStatus;
+        if (netzbetreiberPruefungStatus !== undefined) callParams.netzbetreiberPruefungStatus = netzbetreiberPruefungStatus;
         callParams.includeNapData = includeNapData;
 
         // VNB filtering now supported for all types (netzbetreiberMastrNummer added to database)
@@ -582,6 +584,13 @@ module.exports = {
           default: '35',
           description:
             'Operational status filter: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All statuses, or comma-separated list',
+        },
+        netzbetreiberPruefungStatus: {
+          type: 'string',
+          optional: true,
+          convert: true,
+          description:
+            'Grid operator verification status filter: 2954=Geprüft, 2955=In Prüfung, 3075=Nicht vorgesehen. Can be comma-separated.',
         },
         includeNapData: {
           type: 'boolean',
@@ -1069,6 +1078,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
       },
@@ -1176,6 +1186,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
       },
@@ -1242,6 +1253,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
       },
@@ -1308,6 +1320,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
       },
@@ -1374,6 +1387,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
       },
@@ -1440,6 +1454,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
       },
@@ -1506,6 +1521,7 @@ module.exports = {
         limit: { type: 'number', optional: true, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
+        netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         types: {
           type: 'string',

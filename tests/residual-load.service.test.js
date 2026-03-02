@@ -166,6 +166,153 @@ describe('Residual Load Service', () => {
       });
     });
 
+    describe('region is optional — Bug 3a19bf97 (agent plan omits region)', () => {
+      it('succeeds without region when gridOperatorMastrId is provided', async () => {
+        const result = await broker.call('residual-load.netResidualLoad', {
+          gridOperatorMastrId: 'SNB935578300972',
+        });
+        expect(result).toHaveProperty('forecast');
+        expect(callWithNewSession).toHaveBeenCalledWith(
+          'mastr_net_residual_load',
+          expect.not.objectContaining({ region: expect.anything() }),
+          undefined
+        );
+      });
+
+      it('succeeds with no params at all — no Moleculer validation error', async () => {
+        await expect(
+          broker.call('residual-load.netResidualLoad', {})
+        ).resolves.toBeDefined();
+      });
+    });
+
+    describe('region auto-derive from location fields — Bug efa24e10 (gemeinde passed, region absent)', () => {
+      it('auto-derives region from gemeinde when region is absent', async () => {
+        await broker.call('residual-load.netResidualLoad', { gemeinde: 'Kiel' });
+        expect(callWithNewSession).toHaveBeenCalledWith(
+          'mastr_net_residual_load',
+          expect.objectContaining({ region: 'Kiel' }),
+          undefined
+        );
+      });
+
+      it('auto-derives region from landkreis when gemeinde is absent', async () => {
+        await broker.call('residual-load.netResidualLoad', { landkreis: 'Plön' });
+        expect(callWithNewSession).toHaveBeenCalledWith(
+          'mastr_net_residual_load',
+          expect.objectContaining({ region: 'Plön' }),
+          undefined
+        );
+      });
+
+      it('auto-derives region from bundesland as last resort', async () => {
+        await broker.call('residual-load.netResidualLoad', { bundesland: 'Schleswig-Holstein' });
+        expect(callWithNewSession).toHaveBeenCalledWith(
+          'mastr_net_residual_load',
+          expect.objectContaining({ region: 'Schleswig-Holstein' }),
+          undefined
+        );
+      });
+
+      it('prefers gemeinde over landkreis over bundesland for derivation', async () => {
+        await broker.call('residual-load.netResidualLoad', {
+          gemeinde: 'Kiel',
+          landkreis: 'Plön',
+          bundesland: 'Schleswig-Holstein',
+        });
+        expect(callWithNewSession).toHaveBeenCalledWith(
+          'mastr_net_residual_load',
+          expect.objectContaining({ region: 'Kiel' }),
+          undefined
+        );
+      });
+
+      it('does NOT override an explicitly provided region', async () => {
+        await broker.call('residual-load.netResidualLoad', {
+          region: 'Kiel',
+          gemeinde: 'SomethingElse',
+        });
+        expect(callWithNewSession).toHaveBeenCalledWith(
+          'mastr_net_residual_load',
+          expect.objectContaining({ region: 'Kiel' }),
+          undefined
+        );
+      });
+    });
+
+    describe('MCP error text detection — Bug efa24e10 (tool returns error in data[])', () => {
+      it('converts MCP error text to a proper service error', async () => {
+        callWithNewSession.mockResolvedValueOnce({
+          success: true,
+          data: [{ type: 'text', text: "Error: Cannot read properties of undefined (reading 'toLowerCase')" }],
+          metadata: { toolName: 'mastr_net_residual_load' },
+        });
+        const result = await broker.call('residual-load.netResidualLoad', { region: 'Kiel' });
+        expect(result.success).toBe(false);
+        expect(result.error.code).toBe('RESIDUAL_LOAD_ERROR');
+        expect(result.error.message).toContain('toLowerCase');
+      });
+
+      it('does NOT treat non-error text data as an error', async () => {
+        callWithNewSession.mockResolvedValueOnce({
+          success: true,
+          data: [{ type: 'text', text: 'Some informational message' }],
+          forecast: [{ timestamp: '2025-01-15T00:00:00Z', loadMW: 42, residualLoadMW: 38 }],
+        });
+        const result = await broker.call('residual-load.netResidualLoad', { region: 'Kiel' });
+        expect(result.success).not.toBe(false);
+      });
+    });
+
+    describe('dataQualityWarning — SMARD population scaling failure (loadMW=0)', () => {
+      it('adds dataQualityWarning when all forecast loadMW are 0', async () => {
+        callWithNewSession.mockResolvedValueOnce({
+          summary: { region: 'Kiel' },
+          forecast: [
+            { timestamp: '2025-01-15T00:00:00Z', loadMW: 0, residualLoadMW: 0 },
+            { timestamp: '2025-01-15T01:00:00Z', loadMW: 0, residualLoadMW: 0 },
+          ],
+        });
+        const result = await broker.call('residual-load.netResidualLoad', { region: 'Kiel' });
+        expect(result.dataQualityWarning).toBe(true);
+        expect(result.dataQualityMessage).toMatch(/populationOverride/);
+        expect(result.dataQualityMessage).toMatch(/Kiel/);
+      });
+
+      it('does NOT add dataQualityWarning when at least one loadMW is non-zero', async () => {
+        callWithNewSession.mockResolvedValueOnce({
+          summary: { region: 'Kiel' },
+          forecast: [
+            { timestamp: '2025-01-15T00:00:00Z', loadMW: 0, residualLoadMW: 0 },
+            { timestamp: '2025-01-15T01:00:00Z', loadMW: 42.3, residualLoadMW: 38.8 },
+          ],
+        });
+        const result = await broker.call('residual-load.netResidualLoad', { region: 'Kiel' });
+        expect(result.dataQualityWarning).toBeUndefined();
+      });
+
+      it('does NOT add dataQualityWarning when populationOverride is provided', async () => {
+        callWithNewSession.mockResolvedValueOnce({
+          summary: { region: 'Kiel' },
+          forecast: [{ timestamp: '2025-01-15T00:00:00Z', loadMW: 0, residualLoadMW: 0 }],
+        });
+        const result = await broker.call('residual-load.netResidualLoad', {
+          region: 'Kiel',
+          populationOverride: 247000,
+        });
+        expect(result.dataQualityWarning).toBeUndefined();
+      });
+
+      it('does NOT add dataQualityWarning when forecast is empty', async () => {
+        callWithNewSession.mockResolvedValueOnce({
+          summary: { region: 'Kiel' },
+          forecast: [],
+        });
+        const result = await broker.call('residual-load.netResidualLoad', { region: 'Kiel' });
+        expect(result.dataQualityWarning).toBeUndefined();
+      });
+    });
+
     describe('optional parameters', () => {
       it('passes gridOperatorMastrId when provided', async () => {
         await broker.call('residual-load.netResidualLoad', {
@@ -411,6 +558,22 @@ describe('Residual Load Service', () => {
           expect.any(Object),
           'bearer-xyz'
         );
+      });
+    });
+
+    describe('region is optional — matches netResidualLoad fix', () => {
+      it('succeeds without region when gridOperatorMastrId is provided', async () => {
+        const result = await broker.call('residual-load.loadForecastRegional', {
+          gridOperatorMastrId: 'GNB123456',
+        });
+        expect(result).toBeDefined();
+        expect(result.success).toBe(true);
+      });
+
+      it('succeeds with no params at all — no Moleculer validation error', async () => {
+        await expect(
+          broker.call('residual-load.loadForecastRegional', {})
+        ).resolves.toBeDefined();
       });
     });
 

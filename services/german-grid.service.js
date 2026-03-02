@@ -229,11 +229,40 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const result = await CernionMCPClient.callWithNewSession(
           'netztransparenz_negative_prices',
           ctx.params,
           ctx.meta.cernionToken
         );
+
+        // ── Data-reliability check ─────────────────────────────────────
+        // Netztransparenz.de sometimes returns "no data" for historical
+        // periods where data simply isn't available yet (not a genuine 0).
+        // Flag this so consumers / Gemini interpretation can treat it correctly.
+        const contentText = result?.data?.content?.[0]?.text || '';
+        if (contentText.includes('No Negative Price Periods Found')) {
+          const { dateFrom, dateTo } = ctx.params;
+          if (dateFrom && dateTo) {
+            const from = new Date(dateFrom);
+            const to = new Date(dateTo);
+            const today = new Date();
+            const daysDiff = (to - from) / (1000 * 60 * 60 * 24);
+            const isPastPeriod = to < today;
+            if (daysDiff > 90 && isPastPeriod) {
+              result.data.content[0].text +=
+                '\n\n⚠️ **Plausibilitäts-Hinweis (Datenqualität)**: Für einen Zeitraum' +
+                ' von über 90 Tagen wurde 0 Stunden negativer Preise zurückgemeldet.' +
+                ' Dies deutet wahrscheinlich auf fehlende oder noch nicht verfügbare' +
+                ' historische Daten im Netztransparenz.de-API hin – NICHT auf eine' +
+                ' tatsächliche Null. Zur Referenz: In Deutschland gab es 2024 über' +
+                ' 300 Stunden negativer Strompreise. Das Ergebnis sollte als' +
+                ' **"Daten nicht verfügbar"** interpretiert werden.';
+              result.data.dataReliabilityWarning = true;
+            }
+          }
+        }
+
+        return result;
       },
     },
 
