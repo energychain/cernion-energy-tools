@@ -39,7 +39,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.26.0",
-    "axios": "^1.13.4",
+    "axios": "^1.13.5",
     "dotenv": "^17.2.4",
     "moleculer": "^0.14.35",
     "moleculer-auto-openapi": "^1.1.7",
