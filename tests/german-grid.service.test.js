@@ -49,6 +49,18 @@ describe('German Grid Service', () => {
       const rest = action.rest;
       expect(rest).toBe('POST /negative-prices');
     });
+
+    it('should declare format param', () => {
+      const action = broker.getLocalService('german-grid').schema.actions.negativePrices;
+      expect(action.params.format).toBeDefined();
+      expect(action.params.format.values).toEqual(['json', 'csv', 'xlsx', 'xls']);
+    });
+
+    it('should have OpenAPI responses block', () => {
+      const action = broker.getLocalService('german-grid').schema.actions.negativePrices;
+      expect(action.openapi.responses).toBeDefined();
+      expect(action.openapi.responses[200]).toBeDefined();
+    });
   });
 
   describe('forecast', () => {

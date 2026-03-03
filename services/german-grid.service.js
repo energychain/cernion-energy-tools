@@ -136,6 +136,7 @@ module.exports = {
         dateTo: { type: 'string' },
         logic: { type: 'enum', values: [1, 2, 3, 4, 6, 15], optional: true, default: 6 },
         includeEegCompliance: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Negative price analysis for §51 EEG 2023 compliance',
@@ -225,6 +226,7 @@ module.exports = {
                     description: 'Include EEG compliance analysis',
                     default: true,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -263,16 +265,38 @@ module.exports = {
                     includeEegCompliance: true,
                   },
                 },
+                csvExport: {
+                  summary: 'Export negative price periods as CSV (Power Automate)',
+                  value: {
+                    dateFrom: 'today-30',
+                    dateTo: 'today',
+                    logic: 6,
+                    includeEegCompliance: true,
+                    format: 'csv',
+                  },
+                },
               },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Negative price analysis retrieved successfully',
+            content: {
+              'application/json': {
+                schema: { type: 'object' },
+              },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
+        const { format, ...rawParams } = ctx.params;
         const resolvedParams = {
-          ...ctx.params,
-          dateFrom: resolveDateAlias(ctx.params.dateFrom),
-          dateTo: resolveDateAlias(ctx.params.dateTo),
+          ...rawParams,
+          dateFrom: resolveDateAlias(rawParams.dateFrom),
+          dateTo: resolveDateAlias(rawParams.dateTo),
         };
         const result = await CernionMCPClient.callWithNewSession(
           'netztransparenz_negative_prices',
@@ -315,6 +339,22 @@ module.exports = {
               result.data.dataReliabilityWarning = true;
             }
           }
+        }
+
+        // ── Format: CSV / XLSX ────────────────────────────────────────
+        // The MCP tool returns a narrative text block, not a data table.
+        // For CSV/XLSX consumers (e.g. Power Automate) we produce one row
+        // per result with the key fields and the full analysis text.
+        if (format && format !== 'json') {
+          const customRows = [{
+            dateFrom: resolvedParams.dateFrom,
+            dateTo: resolvedParams.dateTo,
+            logic: resolvedParams.logic ?? 6,
+            includeEegCompliance: resolvedParams.includeEegCompliance ?? true,
+            analysis: result?.data?.content?.[0]?.text ?? '',
+            dataReliabilityWarning: result?.data?.dataReliabilityWarning ?? false,
+          }];
+          return applyFormat(ctx, result, format, 'negative-prices', 'NegativePrices', customRows);
         }
 
         return result;

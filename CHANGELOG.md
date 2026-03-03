@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-03-03
+
+### Added
+
+- **`format` parameter for `POST /api/german-grid/negative-prices`** — the endpoint
+  now accepts `"format": "csv"` / `"xlsx"` / `"xls"` alongside the default `"json"`.
+  Because the MCP tool returns a narrative text analysis (not a data table), CSV/XLSX
+  output wraps the result into one structured row with the fields:
+  `dateFrom`, `dateTo`, `logic`, `includeEegCompliance`, `analysis`, `dataReliabilityWarning`.
+  This allows Power Automate flows to trigger a file download and read the analysis
+  text without any special JSON parsing.
+
 ## [0.6.5] - 2026-03-03
 
 ### Fixed
