@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Pagination support for installation endpoints** — `energy-market.installations` and all
+  `assets.*` endpoints (`solar`, `wind`, `storage`, `biomass`, `hydro`, `combustion`, `list`,
+  `all`) now accept an `offset` parameter (integer ≥ 0, default `0`) alongside the existing
+  `limit`.
+  - Use `offset=1000&limit=1000` to fetch the second page of results, etc.
+  - Response includes a `pagination` object: `{ offset, limit, count, hasMore }`. When
+    `hasMore: true` the result set was capped by the limit and further records are available
+    downstream.
+  - `limit` default is **1,000**, maximum is **10,000** (passed directly to the MCP tool).
+  - `hasMore` is derived from the raw MCP row count *before* any client-side
+    `operationalStatus` / `netzbetreiberPruefungStatus` post-filtering, so a partially-filtered
+    response still correctly signals truncation.
+  - **Root cause**: `cernion_installations_local` has a server-side default cap of 1,000 rows.
+    Combined with client-side post-filtering, users could receive fewer rows than the limit with
+    no indication that more data existed (e.g. a query returning 999 rows out of a true set of
+    thousands).
+  - OpenAPI documentation updated on all affected endpoints.
+
 ### Removed
 
 - **`test-all-services-json-parsing.sh`** — leftover manual smoke-test shell script superseded by the Jest integration test suite.

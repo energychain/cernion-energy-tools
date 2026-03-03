@@ -662,5 +662,120 @@ describe('Energy Market Service', () => {
       expect(result.data.installations[0].mastrNummer).toBe('SEE001');
     });
   });
+
+  describe('installations action — pagination (offset)', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should pass offset to MCP tool when provided', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [],
+          stats: { count: 0, totalCapacity: 0, avgCapacity: 0 },
+        },
+      });
+      await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        offset: 1000,
+        limit: 1000,
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params.offset).toBe(1000);
+      expect(params.limit).toBe(1000);
+    });
+
+    it('should include pagination metadata in response', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            { mastrNummer: 'SEE001', bruttoleistung: 10, einheitBetriebsstatus: '35' },
+            { mastrNummer: 'SEE002', bruttoleistung: 20, einheitBetriebsstatus: '35' },
+          ],
+          stats: { count: 2, totalCapacity: 30, avgCapacity: 15 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        offset: 0,
+        limit: 10,
+      });
+      expect(result.data.pagination).toBeDefined();
+      expect(result.data.pagination.offset).toBe(0);
+      expect(result.data.pagination.limit).toBe(10);
+      expect(result.data.pagination.count).toBe(2);
+      expect(result.data.pagination.hasMore).toBe(false);
+    });
+
+    it('should set hasMore=true when rawCount equals limit (more data available)', async () => {
+      const installations = Array.from({ length: 100 }, (_, i) => ({
+        mastrNummer: `SEE${String(i).padStart(3, '0')}`,
+        bruttoleistung: 10,
+        einheitBetriebsstatus: '35',
+      }));
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations,
+          stats: { count: 100, totalCapacity: 1000, avgCapacity: 10 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        offset: 0,
+        limit: 100,
+      });
+      expect(result.data.pagination.hasMore).toBe(true);
+      expect(result.data.pagination.count).toBe(100);
+    });
+
+    it('should set hasMore=false when rawCount is less than limit', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            { mastrNummer: 'SEE001', bruttoleistung: 10, einheitBetriebsstatus: '35' },
+          ],
+          stats: { count: 1, totalCapacity: 10, avgCapacity: 10 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        offset: 0,
+        limit: 100,
+      });
+      expect(result.data.pagination.hasMore).toBe(false);
+    });
+
+    it('should reflect post-filter reduction in count but use raw count for hasMore', async () => {
+      // MCP returns 3 rows (rawCount=3), limit=3 → hasMore=true
+      // but operationalStatus filter removes 1 → count=2 in pagination
+      const installations = [
+        { mastrNummer: 'SEE001', bruttoleistung: 10, einheitBetriebsstatus: '35' },
+        { mastrNummer: 'SEE002', bruttoleistung: 20, einheitBetriebsstatus: '35' },
+        { mastrNummer: 'SEE003', bruttoleistung: 30, einheitBetriebsstatus: '31' },
+      ];
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations,
+          stats: { count: 3, totalCapacity: 60, avgCapacity: 20 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        operationalStatus: '35',
+        offset: 0,
+        limit: 3,
+      });
+      // Post-filter removed status '31' record → 2 rows returned
+      expect(result.data.installations).toHaveLength(2);
+      // hasMore=true because rawCount(3) >= limit(3)
+      expect(result.data.pagination.hasMore).toBe(true);
+      expect(result.data.pagination.count).toBe(2);
+    });
+  });
 });
 

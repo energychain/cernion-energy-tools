@@ -497,7 +497,8 @@ module.exports = {
         },
         location: { type: 'string', optional: true, min: 1 },
         postleitzahl: { type: 'string', optional: true, min: 5, max: 5 },
-        limit: { type: 'number', optional: true, min: 1 },
+        limit: { type: 'number', optional: true, min: 1, max: 10000 },
+        offset: { type: 'number', optional: true, min: 0, default: 0 },
         minCapacityKW: { type: 'number', optional: true, min: 0 },
         maxCapacityKW: { type: 'number', optional: true, min: 0 },
         commissioningYear: { type: 'number', optional: true, min: 1900, max: 2100 },
@@ -583,9 +584,18 @@ module.exports = {
                   },
                   limit: {
                     type: 'integer',
-                    description: 'Maximum number of results (optional)',
+                    description: 'Maximum number of results. **Default: 1,000. Maximum: 10,000.** Use `offset` for pagination.',
                     minimum: 1,
-                    example: 50,
+                    maximum: 10000,
+                    default: 1000,
+                    example: 1000,
+                  },
+                  offset: {
+                    type: 'integer',
+                    description: 'Pagination offset — number of records to skip. Use with `limit` to retrieve pages beyond the first 1,000. Example: `offset=1000&limit=1000` fetches records 1,001–2,000.',
+                    minimum: 0,
+                    default: 0,
+                    example: 0,
                   },
                   minCapacityKW: {
                     type: 'number',
@@ -768,6 +778,7 @@ module.exports = {
           type: params.installationType,
           postleitzahl: params.postleitzahl || params.location,
           limit: params.limit,
+          offset: params.offset,
           minCapacity: params.minCapacityKW,
           maxCapacity: params.maxCapacityKW,
           commissioningYear: params.commissioningYear,
@@ -785,6 +796,11 @@ module.exports = {
           {},
           ctx.meta.cernionToken
         );
+
+        // Capture raw count BEFORE post-filtering to power hasMore signal
+        const rawCount = result?.data?.installations?.length || 0;
+        const effectiveLimit = params.limit || 1000;
+        const effectiveOffset = params.offset || 0;
 
         // Filter by operational status (default: only active installations with status 35)
         const operationalStatus = params.operationalStatus || '35';
@@ -838,6 +854,17 @@ module.exports = {
         }
 
         const rows = result?.data?.installations || [];
+
+        // Attach pagination metadata so callers can detect truncation and page
+        if (result?.data) {
+          result.data.pagination = {
+            offset: effectiveOffset,
+            limit: effectiveLimit,
+            count: rows.length,
+            hasMore: rawCount >= effectiveLimit,
+          };
+        }
+
         return applyFormat(ctx, result, format, 'installations', 'Installations', rows);
       },
     },

@@ -201,4 +201,26 @@ describe('Assets Service — NAP enrichment and netzbetreiberpruefungStatus', ()
     await broker.call('assets.solar', { location: '10115' });
     expect(capturedCalls[0].params.netzbetreiberPruefungStatus).toBeUndefined();
   });
+
+  // ── offset / pagination pass-through ────────────────────────────────────
+
+  it('should pass offset to energy-market.installations when provided', async () => {
+    await broker.call('assets.solar', { location: '10115', offset: 1000 });
+    expect(capturedCalls[0].params.offset).toBe(1000);
+  });
+
+  it('should NOT pass offset when not provided', async () => {
+    await broker.call('assets.solar', { location: '10115' });
+    expect(capturedCalls[0].params.offset).toBeUndefined();
+  });
+
+  it('should pass offset for wind endpoint', async () => {
+    await broker.call('assets.wind', { location: '10115', offset: 500 });
+    expect(capturedCalls[0].params.offset).toBe(500);
+  });
+
+  it('should pass offset for storage endpoint', async () => {
+    await broker.call('assets.storage', { location: '10115', offset: 2000 });
+    expect(capturedCalls[0].params.offset).toBe(2000);
+  });
 });

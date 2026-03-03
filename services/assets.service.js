@@ -114,6 +114,7 @@ module.exports = {
         minCapacityKW,
         maxCapacityKW,
         limit,
+        offset,
         redispatch,
         operationalStatus,
         netzbetreiberPruefungStatus,
@@ -230,6 +231,7 @@ module.exports = {
         if (effectiveMinCapacity !== undefined) callParams.minCapacityKW = effectiveMinCapacity;
         if (maxCapacityKW !== undefined) callParams.maxCapacityKW = maxCapacityKW;
         if (limit !== undefined) callParams.limit = limit;
+        if (offset !== undefined) callParams.offset = offset;
         if (operationalStatus !== undefined) callParams.operationalStatus = operationalStatus;
         if (netzbetreiberPruefungStatus !== undefined) callParams.netzbetreiberPruefungStatus = netzbetreiberPruefungStatus;
         callParams.includeNapData = includeNapData;
@@ -572,6 +574,12 @@ module.exports = {
           min: 1,
           convert: true,
         },
+        offset: {
+          type: 'number',
+          optional: true,
+          min: 0,
+          convert: true,
+        },
         redispatch: {
           type: 'boolean',
           optional: true,
@@ -664,8 +672,14 @@ module.exports = {
           {
             name: 'limit',
             in: 'query',
-            schema: { type: 'number', example: 100 },
-            description: 'Maximum number of results (optional, default: all)',
+            schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 },
+            description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**',
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
+            description: 'Pagination offset — number of records to skip. Use with `limit` to page through large result sets (e.g. `offset=1000&limit=1000` fetches records 1,001–2,000).',
           },
           {
             name: 'redispatch',
@@ -1076,6 +1090,7 @@ module.exports = {
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
+        offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
@@ -1133,8 +1148,14 @@ module.exports = {
           {
             name: 'limit',
             in: 'query',
-            schema: { type: 'number', example: 100 },
-            description: 'Max. number of results',
+            schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 },
+            description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**',
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
+            description: 'Pagination offset — skip this many records. Use `offset=1000` to fetch the next page.',
           },
           {
             name: 'redispatch',
@@ -1184,6 +1205,7 @@ module.exports = {
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
+        offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
@@ -1202,7 +1224,8 @@ module.exports = {
           { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', example: 100 }, description: 'Max. number of results' },
+          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 }, description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**' },
+          { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
           {
             name: 'redispatch',
             in: 'query',
@@ -1251,6 +1274,7 @@ module.exports = {
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
+        offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
@@ -1269,7 +1293,8 @@ module.exports = {
           { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', example: 100 }, description: 'Max. number of results' },
+          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 }, description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**' },
+          { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
           {
             name: 'redispatch',
             in: 'query',
@@ -1318,6 +1343,7 @@ module.exports = {
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
+        offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
@@ -1336,7 +1362,8 @@ module.exports = {
           { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', example: 100 }, description: 'Max. number of results' },
+          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 }, description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**' },
+          { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
           {
             name: 'redispatch',
             in: 'query',
@@ -1385,6 +1412,7 @@ module.exports = {
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
+        offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
@@ -1403,7 +1431,8 @@ module.exports = {
           { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', example: 100 }, description: 'Max. number of results' },
+          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 }, description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**' },
+          { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
           {
             name: 'redispatch',
             in: 'query',
@@ -1452,6 +1481,7 @@ module.exports = {
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
+        offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
@@ -1470,7 +1500,8 @@ module.exports = {
           { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', example: 100 }, description: 'Max. number of results' },
+          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 }, description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**' },
+          { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
           {
             name: 'redispatch',
             in: 'query',
@@ -1519,6 +1550,7 @@ module.exports = {
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
         limit: { type: 'number', optional: true, convert: true },
+        offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
         netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
@@ -1588,8 +1620,14 @@ module.exports = {
           {
             name: 'limit',
             in: 'query',
-            schema: { type: 'number', example: 100 },
-            description: 'Max. number of results per type',
+            schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 },
+            description: 'Max. number of results per type. **Default: 1,000. Maximum: 10,000.**',
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
+            description: 'Pagination offset — skip N records to fetch the next page (applied per type).',
           },
           {
             name: 'redispatch',
