@@ -7,6 +7,7 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
+const { applyFormat, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
 
 module.exports = {
   name: 'energy-market',
@@ -28,6 +29,7 @@ module.exports = {
         date: { type: 'string', optional: true },
         startDate: { type: 'string', optional: true },
         endDate: { type: 'string', optional: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Electricity market prices (day-ahead, intraday, futures)',
@@ -83,6 +85,7 @@ module.exports = {
                     description: 'Range end date (YYYY-MM-DD)',
                     example: '2026-02-07',
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -111,6 +114,16 @@ module.exports = {
                     date: '2026-02-07',
                   },
                 },
+                csvExport: {
+                  summary: 'Export prices as CSV',
+                  value: {
+                    market: 'day-ahead',
+                    region: 'Deutschland',
+                    startDate: '2026-02-01',
+                    endDate: '2026-02-07',
+                    format: 'csv',
+                  },
+                },
               },
             },
           },
@@ -132,6 +145,7 @@ module.exports = {
                   },
                 },
               },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
@@ -147,10 +161,12 @@ module.exports = {
           'de': 'Deutschland',
           'germany': 'Deutschland',
           '10y1001a1001a63l': 'Deutschland',
+          '10y1001a1001a82h': 'Deutschland',
         };
-        const regionRaw = ctx.params.region || '';
+        const { format, ...restParams } = ctx.params;
+        const regionRaw = restParams.region || '';
         const regionNorm = REGION_ALIASES[regionRaw.toLowerCase()] || regionRaw;
-        const params = { ...ctx.params, region: regionNorm };
+        const params = { ...restParams, region: regionNorm };
 
         try {
           const result = await CernionMCPClient.callWithNewSession(
@@ -159,36 +175,9 @@ module.exports = {
             ctx.meta.cernionToken
           );
 
-          // Detect when cernion_energy_prices routes to the MaStR SQL engine instead
-          // of the price data source. The tool returns success:true but wraps the SQL
-          // error as a text/markdown table, e.g.:
-          //   { data: [{ type: 'text', text: '✅ Query executed ... | error_message | ... | data_mastr ...' }] }
-          if (Array.isArray(result?.data) && result.data[0]?.type === 'text') {
-            const text = result.data[0].text || '';
-            const isDbError =
-              text.startsWith('Error:') ||
-              text.includes('error_message') ||
-              text.includes('undefined rows') ||
-              text.includes('data_mastr') ||
-              text.includes('does not exist') ||
-              text.includes('no such table');
-            if (isDbError) {
-              this.logger.warn(
-                `[energy-market.prices] MCP tool returned a database error for region="${regionNorm}": ${text.substring(0, 200)}`
-              );
-              return {
-                success: false,
-                error: {
-                  code: 'PRICE_DATA_UNAVAILABLE',
-                  message:
-                    'EPEX day-ahead price data is currently unavailable (cernion_energy_prices ' +
-                    'returned a database error). Monetary analysis cannot be performed.',
-                },
-              };
-            }
-          }
-
-          return result;
+          // Backend (v2+) always returns { success: false, error: { code, message, source } }
+          // for all failure paths — no markdown table parsing needed.
+          return applyFormat(ctx, result, format, 'prices', 'Prices');
         } catch (error) {
           this.logger.error('energy-market.prices failed:', error);
           return {
@@ -221,6 +210,7 @@ module.exports = {
           values: ['quarterhour', 'hour', 'day', 'week', 'month', 'year'],
           optional: true,
         },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Electricity generation data by energy source',
@@ -276,6 +266,7 @@ module.exports = {
                     description: 'Time resolution (default: hour)',
                     default: 'hour',
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -308,6 +299,16 @@ module.exports = {
                     endDate: '2026-02-07',
                   },
                 },
+                csvExport: {
+                  summary: 'Export production time-series as CSV',
+                  value: {
+                    energySource: 'Solar',
+                    region: 'Deutschland',
+                    startDate: '2026-02-01',
+                    endDate: '2026-02-07',
+                    format: 'csv',
+                  },
+                },
               },
             },
           },
@@ -326,16 +327,19 @@ module.exports = {
                   },
                 },
               },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'cernion_energy_production',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'production', 'Production');
       },
     },
 
@@ -504,6 +508,7 @@ module.exports = {
         operationalStatus: { type: 'string', optional: true, default: '35' },
         netzbetreiberPruefungStatus: { type: 'string', optional: true },
         includeNapData: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Search energy installations in German registry (MaStR)',
@@ -627,6 +632,7 @@ module.exports = {
                     default: true,
                     example: true,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -689,6 +695,15 @@ module.exports = {
                     includeNapData: false,
                   },
                 },
+                csvExport: {
+                  summary: 'Export installations as CSV',
+                  value: {
+                    installationType: 'solar',
+                    gridOperatorBdewCode: '9900992720003',
+                    limit: 100,
+                    format: 'csv',
+                  },
+                },
               },
             },
           },
@@ -742,23 +757,25 @@ module.exports = {
                   },
                 },
               },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
+        const { format, ...params } = ctx.params;
         const toolParams = {
-          type: ctx.params.installationType,
-          postleitzahl: ctx.params.postleitzahl || ctx.params.location,
-          limit: ctx.params.limit,
-          minCapacity: ctx.params.minCapacityKW,
-          maxCapacity: ctx.params.maxCapacityKW,
-          commissioningYear: ctx.params.commissioningYear,
-          gridOperatorMastrId: ctx.params.gridOperatorMastrId || ctx.params.gridOperatorId,
-          gridOperatorName: ctx.params.gridOperatorName,
-          gridOperatorBdewCode: ctx.params.gridOperatorBdewCode,
-          includeNapData: ctx.params.includeNapData,
-          netzbetreiberPruefungStatus: ctx.params.netzbetreiberPruefungStatus,
+          type: params.installationType,
+          postleitzahl: params.postleitzahl || params.location,
+          limit: params.limit,
+          minCapacity: params.minCapacityKW,
+          maxCapacity: params.maxCapacityKW,
+          commissioningYear: params.commissioningYear,
+          gridOperatorMastrId: params.gridOperatorMastrId || params.gridOperatorId,
+          gridOperatorName: params.gridOperatorName,
+          gridOperatorBdewCode: params.gridOperatorBdewCode,
+          includeNapData: params.includeNapData,
+          netzbetreiberPruefungStatus: params.netzbetreiberPruefungStatus,
           format: 'detailed',
         };
 
@@ -770,7 +787,7 @@ module.exports = {
         );
 
         // Filter by operational status (default: only active installations with status 35)
-        const operationalStatus = ctx.params.operationalStatus || '35';
+        const operationalStatus = params.operationalStatus || '35';
         if (operationalStatus && operationalStatus !== 'all' && result?.data?.installations) {
           const allowedStatuses = operationalStatus.split(',').map((s) => s.trim());
           result.data.installations = result.data.installations.filter((inst) =>
@@ -792,7 +809,7 @@ module.exports = {
 
         // Post-filter by netzbetreiberPruefungStatus if cernion_installations_local
         // did not handle it natively (fallback for older DB versions)
-        const nbpStatus = ctx.params.netzbetreiberPruefungStatus;
+        const nbpStatus = params.netzbetreiberPruefungStatus;
         if (nbpStatus && result?.data?.installations) {
           const allowedNbp = String(nbpStatus)
             .split(',')
@@ -820,7 +837,8 @@ module.exports = {
           }
         }
 
-        return result;
+        const rows = result?.data?.installations || [];
+        return applyFormat(ctx, result, format, 'installations', 'Installations', rows);
       },
     },
   },

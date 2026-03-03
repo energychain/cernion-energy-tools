@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-03-03
+
+### Added
+
+- **CSV/XLSX export for all tabular API endpoints** — All data-returning endpoints now accept an
+  optional `format` query/body parameter (`json` | `csv` | `xlsx` | `xls`). Passing `csv` or
+  `xlsx`/`xls` triggers a file download with correct `Content-Type` and `Content-Disposition`
+  headers. Affected services and actions:
+  - `energy-market`: `prices`, `production`, `installations`
+  - `gas-storage`: `historicalData`, `compareCountries`
+  - `entsoe`: `dayAheadPrices`, `unavailability`, `physicalFlows`, `actualGeneration`,
+    `windSolarForecast`, `loadForecast`, `aggregatedGeneration`, `windSolarActual`,
+    `generationForecast`
+  - `german-grid`: `spotprices`, `forecast`, `redispatch`
+  - `eic-codes`: `search`, `gasOperators`, `gasFacilities`
+  - `grid-operations`: `marketPartners`
+
+- **`src/format-response.js`** — New shared helper module providing:
+  - `extractRows(result)` — auto-detects the tabular array in a MCP response
+  - `convertToCSV(data)` — RFC 4180-compliant CSV serialiser with nested-object support
+  - `convertToXLSX(data, sheetName)` — XLSX Buffer generator with auto-sized columns
+  - `applyFormat(ctx, result, format, filename, sheetName, customRows)` — main dispatch
+  - `FORMAT_PARAM_SCHEMA` / `FORMAT_RESPONSE_CONTENT` — reusable OpenAPI schema fragments
+
+- **OpenAPI documentation updated** — All affected endpoints document the `format` parameter
+  and `text/csv` / `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` response
+  content types. GET endpoints expose `format` as a query parameter; POST endpoints add it to the
+  request body schema.
+
+- **Missing OpenAPI `responses` blocks backfilled** — `entsoe.loadForecast`,
+  `entsoe.aggregatedGeneration`, `entsoe.windSolarActual`, `entsoe.generationForecast` were
+  missing `responses[200]` entries; these have been added as part of the format rollout.
+
+### Changed
+
+- **`energy-market.prices` — removed `isDbError` text-parsing workaround** (`services/energy-market.service.js`):
+  - Cernion MCP backend deployed three fixes on 2026-03-02:
+    - Bug 1 (Critical): `cernion_energy_prices` now calls `queryENTSOEDayAheadPrices` directly for `market=day-ahead` — the old `executeAskQuery` / MaStR routing has been removed. No more markdown tables with `error_message`/`data_mastr` columns.
+    - Bug 2 (High): All failure paths now return `{ success: false, error: { code: 'PRICE_DATA_UNAVAILABLE', message, source } }` via a shared `errorResponse()` helper. Variable column names (`price_data_not_found`, `not_found`, `no data`, etc.) no longer occur.
+    - Bug 3 (Medium): `normaliseRegion()` + extended `eic-areas.ts` aliases in the backend now accept `DE-LU`, `DE-AT-LU`, `10Y1001A1001A63L`, `10Y1001A1001A82H` as valid inputs.
+  - Client-side `isDbError` markdown-table detection block removed (was dead code against the new backend).
+  - Client-side `REGION_ALIASES` map retained as belt-and-suspenders; `10Y1001A1001A82H` added as new entry (now confirmed alias in `eic-areas.ts`).
+  - 3 dead-code text-pattern tests replaced by 1 backend-passthrough test that asserts the new structured error contract (`source: 'cernion_energy_prices'`). Net test count: 460 → 458.
+
 ## [0.6.1] - 2026-03-02
 
 ### Added

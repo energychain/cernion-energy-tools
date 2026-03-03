@@ -71,13 +71,16 @@ describe('Energy Market Service', () => {
       expect(result.data).toBeDefined();
     }, 30000);
 
-    it('should return PRICE_DATA_UNAVAILABLE when MCP returns a data_mastr database error in text', async () => {
+    it('should pass through backend-structured PRICE_DATA_UNAVAILABLE errors directly', async () => {
+      // Backend v2+ always returns { success: false, error: { code, message, source } }
+      // for all failure paths (wrong source routing, no data, unsupported region, etc.).
       callWithNewSession.mockResolvedValueOnce({
-        success: true,
-        data: [{
-          type: 'text',
-          text: '✅ Query executed successfully\n\n**Results**: undefined rows\n**Execution time**: 0.23s\n\n**Preview** (first 5 rows):\n| error_message |\n| --- |\n| The MaStR database schema (data_mastr) does not contain price tables |\n',
-        }],
+        success: false,
+        error: {
+          code: 'PRICE_DATA_UNAVAILABLE',
+          message: 'Day-Ahead electricity price data not found for region=Deutschland, date=2026-03-01: no data for this date',
+          source: 'cernion_energy_prices',
+        },
       });
 
       const result = await broker.call('energy-market.prices', {
@@ -88,23 +91,7 @@ describe('Energy Market Service', () => {
 
       expect(result.success).toBe(false);
       expect(result.error.code).toBe('PRICE_DATA_UNAVAILABLE');
-      expect(result.error.message).toMatch(/database error/i);
-    });
-
-    it('should return PRICE_DATA_UNAVAILABLE when MCP returns "Error:" text response', async () => {
-      callWithNewSession.mockResolvedValueOnce({
-        success: true,
-        data: [{ type: 'text', text: 'Error: Tool execution failed — unknown region' }],
-      });
-
-      const result = await broker.call('energy-market.prices', {
-        market: 'day-ahead',
-        region: 'Deutschland',
-        date: '2026-03-01',
-      });
-
-      expect(result.success).toBe(false);
-      expect(result.error.code).toBe('PRICE_DATA_UNAVAILABLE');
+      expect(result.error.source).toBe('cernion_energy_prices');
     });
 
     it('should normalize ENTSO-E bidding zone codes to "Deutschland" before calling MCP', async () => {

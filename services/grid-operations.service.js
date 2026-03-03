@@ -7,6 +7,7 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
+const { applyFormat, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
 
 module.exports = {
   name: 'grid-operations',
@@ -998,6 +999,7 @@ module.exports = {
       params: {
         query: { type: 'string', min: 1 },
         limit: { type: 'number', optional: true, default: 10, min: 1, max: 20 },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Search German energy market partners by BDEW code, company name, or city',
@@ -1048,6 +1050,17 @@ module.exports = {
               default: 10,
               minimum: 1,
               maximum: 20,
+            },
+          },
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['json', 'csv', 'xlsx', 'xls'],
+              default: 'json',
+              description: 'Output format. "csv" and "xls"/"xlsx" trigger a file download.',
             },
           },
         ],
@@ -1106,16 +1119,19 @@ module.exports = {
                   },
                 },
               },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'cernion_market_partners',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'market-partners', 'MarketPartners');
       },
     },
   },

@@ -238,6 +238,34 @@ describe('Residual Load Service', () => {
           undefined
         );
       });
+
+      it('returns RESIDUAL_LOAD_MISSING_REGION when no region or location is provided', async () => {
+        // gridOperatorMastrId alone: MCP call IS allowed (tool can work without region)
+        // so just confirm the call goes through without triggering the early exit.
+        const result = await broker.call('residual-load.netResidualLoad', {
+          gridOperatorMastrId: 'SNB973742186519',
+          // no region, no location fields
+        });
+        expect(callWithNewSession).toHaveBeenCalledWith(
+          'mastr_net_residual_load',
+          expect.objectContaining({ gridOperatorMastrId: 'SNB973742186519' }),
+          undefined
+        );
+        expect(result).toBeDefined();
+      });
+
+      it('returns RESIDUAL_LOAD_MISSING_REGION when called with only a MeLo (single-installation misuse)', async () => {
+        // Simulate the agent erroneously calling netResidualLoad with only a MeLo and no region
+        const result = await broker.call('residual-load.netResidualLoad', {
+          // no region, no gridOperatorMastrId, no location fields
+          forecastDays: 2,
+        });
+        expect(result.success).toBe(false);
+        expect(result.error.code).toBe('RESIDUAL_LOAD_MISSING_REGION');
+        expect(result.error.message).toMatch(/generationForecast/);
+        // MCP must NOT have been called
+        expect(callWithNewSession).not.toHaveBeenCalled();
+      });
     });
 
     describe('MCP error text detection — Bug efa24e10 (tool returns error in data[])', () => {

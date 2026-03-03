@@ -6,6 +6,7 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
+const { applyFormat, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
 
 module.exports = {
   name: 'german-grid',
@@ -25,6 +26,7 @@ module.exports = {
         dateFrom: { type: 'string' },
         dateTo: { type: 'string' },
         includeStatistics: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'German spotmarket prices (EPEX/EEX) for dynamic tariffs',
@@ -53,6 +55,7 @@ module.exports = {
                     description: 'Include price statistics (min/max/avg)',
                     default: true,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -80,17 +83,34 @@ module.exports = {
                     includeStatistics: false,
                   },
                 },
+                csvExport: {
+                  summary: 'Export spot prices as CSV',
+                  value: { dateFrom: '2026-02-01', dateTo: '2026-02-07', format: 'csv' },
+                },
               },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Spot price data retrieved successfully',
+            content: {
+              'application/json': {
+                schema: { type: 'object' },
+              },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'netztransparenz_spotprices',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'spotprices', 'Spotprices');
       },
     },
 
@@ -278,6 +298,7 @@ module.exports = {
         dateTo: { type: 'string' },
         includeActual: { type: 'boolean', optional: true, default: false },
         includeOnline: { type: 'boolean', optional: true, default: false },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Solar/wind generation forecasts for grid planning and load forecasting',
@@ -317,6 +338,7 @@ module.exports = {
                     description: 'Include online capacity data',
                     default: false,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -349,17 +371,34 @@ module.exports = {
                     includeOnline: false,
                   },
                 },
+                csvExport: {
+                  summary: 'Export forecast as CSV',
+                  value: { product: 'Solar', dateFrom: '2026-02-08', dateTo: '2026-02-14', format: 'csv' },
+                },
               },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Generation forecast data retrieved successfully',
+            content: {
+              'application/json': {
+                schema: { type: 'object' },
+              },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'netztransparenz_forecast',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'grid-forecast', 'Forecast');
       },
     },
 
@@ -374,6 +413,7 @@ module.exports = {
         dateTo: { type: 'string' },
         includeAnalysis: { type: 'boolean', optional: true, default: true },
         includeCurtailment: { type: 'boolean', optional: true, default: false },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Redispatch measures and grid congestion analysis',
@@ -408,6 +448,7 @@ module.exports = {
                     description: 'Include curtailment data',
                     default: false,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -437,17 +478,34 @@ module.exports = {
                     includeCurtailment: true,
                   },
                 },
+                csvExport: {
+                  summary: 'Export redispatch data as CSV',
+                  value: { dateFrom: '2026-01-01', dateTo: '2026-01-31', format: 'csv' },
+                },
               },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Redispatch data retrieved successfully',
+            content: {
+              'application/json': {
+                schema: { type: 'object' },
+              },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'netztransparenz_redispatch',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'redispatch', 'Redispatch');
       },
     },
   },

@@ -6,6 +6,7 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
+const { applyFormat, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
 
 module.exports = {
   name: 'entsoe',
@@ -26,6 +27,7 @@ module.exports = {
         dateFrom: { type: 'string' },
         dateTo: { type: 'string' },
         includeStatistics: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Direct ENTSO-E day-ahead price queries (faster, bypasses LLM)',
@@ -62,6 +64,7 @@ module.exports = {
                     description: 'Include price statistics (min/max/avg/median)',
                     default: true,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -91,6 +94,10 @@ module.exports = {
                     dateTo: '05.02.2026',
                     includeStatistics: false,
                   },
+                },
+                csvExport: {
+                  summary: 'Export prices as CSV',
+                  value: { region: 'Germany', dateFrom: '2026-02-01', dateTo: '2026-02-07', format: 'csv' },
                 },
               },
             },
@@ -146,16 +153,19 @@ module.exports = {
                   },
                 },
               },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'entsoe_day_ahead_prices',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'day-ahead-prices', 'Prices');
       },
     },
 
@@ -177,6 +187,7 @@ module.exports = {
         },
         psrType: { type: 'string', optional: true },
         includeStatistics: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Query unavailable generation units, transmission assets, and load',
@@ -222,6 +233,7 @@ module.exports = {
                     type: 'boolean',
                     default: true,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -254,6 +266,10 @@ module.exports = {
                     dateTo: '2026-02-28',
                     unavailabilityType: 'transmission',
                   },
+                },
+                csvExport: {
+                  summary: 'Export unavailabilities as CSV',
+                  value: { region: 'Germany', dateFrom: '2026-02-01', dateTo: '2026-02-07', format: 'csv' },
                 },
               },
             },
@@ -305,16 +321,19 @@ module.exports = {
                   },
                 },
               },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'entsoe_unavailability',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'unavailability', 'Unavailability');
       },
     },
 
@@ -336,6 +355,7 @@ module.exports = {
           default: 'hourly',
         },
         includeStatistics: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Query physical cross-border electricity flows between countries/bidding zones',
@@ -381,6 +401,7 @@ module.exports = {
                     type: 'boolean',
                     default: true,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -421,11 +442,13 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'entsoe_physical_flows',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'physical-flows', 'Flows');
       },
     },
 
@@ -447,6 +470,7 @@ module.exports = {
           default: 'hourly',
         },
         includeStatistics: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Query actual electricity generation by production type',
@@ -492,6 +516,7 @@ module.exports = {
                     type: 'boolean',
                     default: true,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -581,16 +606,19 @@ module.exports = {
                   },
                 },
               },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'entsoe_actual_generation',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'actual-generation', 'Generation');
       },
     },
 
@@ -611,6 +639,7 @@ module.exports = {
           default: 'both',
         },
         includeStatistics: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Day-ahead wind and solar generation forecasts',
@@ -651,6 +680,7 @@ module.exports = {
                     type: 'boolean',
                     default: true,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -681,6 +711,10 @@ module.exports = {
                     dateTo: '2026-02-14',
                     forecastType: 'solar',
                   },
+                },
+                csvExport: {
+                  summary: 'Export wind/solar forecast as CSV',
+                  value: { region: 'Germany', dateFrom: '2026-02-08', dateTo: '2026-02-14', format: 'csv' },
                 },
               },
             },
@@ -742,16 +776,19 @@ module.exports = {
                   },
                 },
               },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'entsoe_wind_solar_forecast',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'wind-solar-forecast', 'Forecast');
       },
     },
 
@@ -772,6 +809,7 @@ module.exports = {
           default: 'hourly',
         },
         includeStatistics: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Day-ahead electricity load (demand) forecasts',
@@ -811,6 +849,7 @@ module.exports = {
                     type: 'boolean',
                     default: true,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -833,17 +872,34 @@ module.exports = {
                     resolution: 'daily',
                   },
                 },
+                csvExport: {
+                  summary: 'Export load forecast as CSV',
+                  value: { region: 'Germany', dateFrom: '2026-02-08', dateTo: '2026-02-14', format: 'csv' },
+                },
               },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Load forecast data retrieved successfully',
+            content: {
+              'application/json': {
+                schema: { type: 'object' },
+              },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'entsoe_load_forecast',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'load-forecast', 'LoadForecast');
       },
     },
 
@@ -864,6 +920,7 @@ module.exports = {
           default: 'hourly',
         },
         includeStatistics: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Total actual generation (aggregated across all production types)',
@@ -903,6 +960,7 @@ module.exports = {
                     type: 'boolean',
                     default: true,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -925,17 +983,34 @@ module.exports = {
                     resolution: 'daily',
                   },
                 },
+                csvExport: {
+                  summary: 'Export aggregated generation as CSV',
+                  value: { region: 'Germany', dateFrom: '2026-02-01', dateTo: '2026-02-07', format: 'csv' },
+                },
               },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Aggregated generation data retrieved successfully',
+            content: {
+              'application/json': {
+                schema: { type: 'object' },
+              },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'entsoe_aggregated_generation',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'aggregated-generation', 'Generation');
       },
     },
 
@@ -950,6 +1025,7 @@ module.exports = {
         dateFrom: { type: 'string' },
         dateTo: { type: 'string' },
         includeStatistics: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Actual wind (offshore/onshore) and solar generation',
@@ -991,6 +1067,7 @@ module.exports = {
                     description: 'Include generation statistics (total, avg, max)',
                     default: true,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -1023,17 +1100,34 @@ module.exports = {
                     generationType: 'solar',
                   },
                 },
+                csvExport: {
+                  summary: 'Export wind/solar actual as CSV',
+                  value: { region: 'Germany', dateFrom: '2026-02-01', dateTo: '2026-02-07', format: 'csv' },
+                },
               },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Actual wind and solar generation data retrieved successfully',
+            content: {
+              'application/json': {
+                schema: { type: 'object' },
+              },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'entsoe_wind_solar_actual',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'wind-solar-actual', 'Generation');
       },
     },
 
@@ -1049,6 +1143,7 @@ module.exports = {
         dateTo: { type: 'string' },
         psrType: { type: 'string', optional: true },
         includeStatistics: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Day-ahead electricity generation forecasts by production type',
@@ -1089,6 +1184,7 @@ module.exports = {
                     type: 'boolean',
                     default: true,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -1119,17 +1215,34 @@ module.exports = {
                     psrType: 'B14',
                   },
                 },
+                csvExport: {
+                  summary: 'Export generation forecast as CSV',
+                  value: { region: 'Germany', dateFrom: '2026-02-08', dateTo: '2026-02-14', format: 'csv' },
+                },
               },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Generation forecast data retrieved successfully',
+            content: {
+              'application/json': {
+                schema: { type: 'object' },
+              },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'entsoe_generation_forecast',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'generation-forecast', 'Forecast');
       },
     },
 

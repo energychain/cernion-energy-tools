@@ -345,6 +345,27 @@ module.exports = {
               this.logger.warn(
                 `residual-load: region not provided; auto-derived from location fields: "${derivedRegion}"`
               );
+            } else if (!mcpParams.gridOperatorMastrId) {
+              // No region, no location field, no gridOperatorMastrId — calling
+              // mastr_net_residual_load would crash the MCP tool with a
+              // TypeError on undefined.toLowerCase().  Return a clear structured
+              // error so the agent can handle it gracefully instead of crashing.
+              this.logger.warn(
+                'residual-load.netResidualLoad called without region, gridOperatorMastrId, or ' +
+                'any location field — returning structured error to avoid MCP crash.'
+              );
+              return {
+                success: false,
+                error: {
+                  code: 'RESIDUAL_LOAD_MISSING_REGION',
+                  message:
+                    'residual-load.netResidualLoad requires a region, gridOperatorMastrId, or ' +
+                    'at least one location field (bundesland, landkreis, gemeinde, postleitzahl). ' +
+                    'This action operates at grid-area (Netzgebiet) level, not on individual ' +
+                    'installations. For single-installation forecasts use ' +
+                    'forecast.generationForecast with installationMastrNummer or messlokationId.',
+                },
+              };
             }
           }
 

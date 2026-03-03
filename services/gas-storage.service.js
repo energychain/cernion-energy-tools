@@ -6,6 +6,7 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
+const { applyFormat, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
 
 module.exports = {
   name: 'gas-storage',
@@ -239,6 +240,7 @@ module.exports = {
           optional: true,
           default: 'daily',
         },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Historical time-series data (daily/weekly/monthly) for trend analysis',
@@ -283,6 +285,7 @@ module.exports = {
                     description: 'Data aggregation level',
                     example: 'daily',
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               example: {
@@ -303,6 +306,10 @@ module.exports = {
                 quarterlyFrance: {
                   summary: 'Q1 weekly data for France',
                   value: { country: 'FR', from: '2024-01-01', to: '2024-03-31', aggregation: 'weekly' },
+                },
+                csvExport: {
+                  summary: 'Export historical time-series as CSV',
+                  value: { country: 'DE', from: '2024-01-01', to: '2024-12-31', aggregation: 'daily', format: 'csv' },
                 },
               },
             },
@@ -326,16 +333,19 @@ module.exports = {
                   },
                 },
               },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'agsi_historical_data',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'gas-storage-history', 'History');
       },
     },
 
@@ -433,6 +443,7 @@ module.exports = {
           type: 'enum',
           values: ['fill_percentage', 'capacity', 'withdrawal_rate', 'coverage_days'],
         },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Multi-country comparison (fill levels, capacities, trends)',
@@ -468,6 +479,7 @@ module.exports = {
                     description: 'Comparison metric',
                     example: 'fill_percentage',
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               example: {
@@ -486,6 +498,10 @@ module.exports = {
                 withdrawalRates: {
                   summary: 'Compare withdrawal rates',
                   value: { countries: ['DE', 'FR'], metric: 'withdrawal_rate' },
+                },
+                csvExport: {
+                  summary: 'Export country comparison as CSV',
+                  value: { countries: ['DE', 'FR', 'IT', 'NL', 'AT'], metric: 'fill_percentage', format: 'csv' },
                 },
               },
             },
@@ -508,16 +524,19 @@ module.exports = {
                   },
                 },
               },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'agsi_compare_countries',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'gas-storage-comparison', 'Comparison');
       },
     },
 

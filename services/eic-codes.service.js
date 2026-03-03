@@ -5,6 +5,7 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
+const { applyFormat, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
 
 module.exports = {
   name: 'eic-codes',
@@ -26,6 +27,7 @@ module.exports = {
         country: { type: 'string', optional: true, min: 2, max: 2 },
         sector: { type: 'enum', values: ['electricity', 'gas'], optional: true },
         limit: { type: 'number', optional: true, default: 10, min: 1, max: 100 },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Search EIC code database by code or company name',
@@ -114,6 +116,7 @@ module.exports = {
                     maximum: 100,
                     default: 10,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -149,6 +152,15 @@ module.exports = {
                     limit: 15,
                   },
                 },
+                csvExport: {
+                  summary: 'Export results as CSV',
+                  value: {
+                    name: 'Netze',
+                    country: 'DE',
+                    limit: 50,
+                    format: 'csv',
+                  },
+                },
               },
             },
           },
@@ -175,6 +187,7 @@ module.exports = {
                   },
                 },
               },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
           400: {
@@ -183,11 +196,13 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'cernion_eic_search',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'eic-codes', 'EICCodes');
       },
     },
 
@@ -257,6 +272,7 @@ module.exports = {
       params: {
         country: { type: 'string', optional: true, default: 'DE', min: 2, max: 2 },
         includeMetadata: { type: 'boolean', optional: true, default: false },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List German gas storage operators with EIC codes',
@@ -278,14 +294,34 @@ module.exports = {
             description: 'Include additional operator details',
             example: false,
           },
+          {
+            name: 'format',
+            in: 'query',
+            schema: { type: 'string', enum: ['json', 'csv', 'xlsx', 'xls'], default: 'json' },
+            description: 'Output format. "csv" and "xls"/"xlsx" trigger a file download.',
+            example: 'json',
+          },
         ],
+        responses: {
+          200: {
+            description: 'List of gas storage operators with EIC codes',
+            content: {
+              'application/json': {
+                schema: { type: 'object' },
+              },
+              ...FORMAT_RESPONSE_CONTENT,
+            },
+          },
+        },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'cernion_eic_gas_operators',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'gas-operators', 'GasOperators');
       },
     },
 
@@ -298,6 +334,7 @@ module.exports = {
       params: {
         operatorCode: { type: 'string', optional: true },
         country: { type: 'string', optional: true, default: 'DE', min: 2, max: 2 },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'List German gas storage facilities (UGS) with EIC codes',
@@ -319,14 +356,34 @@ module.exports = {
             description: 'ISO country code',
             example: 'DE',
           },
+          {
+            name: 'format',
+            in: 'query',
+            schema: { type: 'string', enum: ['json', 'csv', 'xlsx', 'xls'], default: 'json' },
+            description: 'Output format. "csv" and "xls"/"xlsx" trigger a file download.',
+            example: 'json',
+          },
         ],
+        responses: {
+          200: {
+            description: 'List of underground gas storage facilities with EIC codes',
+            content: {
+              'application/json': {
+                schema: { type: 'object' },
+              },
+              ...FORMAT_RESPONSE_CONTENT,
+            },
+          },
+        },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const { format, ...mcpParams } = ctx.params;
+        const result = await CernionMCPClient.callWithNewSession(
           'cernion_eic_gas_facilities',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
+        return applyFormat(ctx, result, format, 'gas-facilities', 'GasFacilities');
       },
     },
 

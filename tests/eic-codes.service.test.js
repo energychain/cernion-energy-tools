@@ -143,6 +143,37 @@ describe('EIC Codes Service', () => {
     });
   });
 
+  describe('search format parameter', () => {
+    it('should accept format=json and return JSON result', async () => {
+      const result = await broker.call('eic-codes.search', {
+        name: 'Netze',
+        format: 'json',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('should return CSV string for format=csv', async () => {
+      const result = await broker.call('eic-codes.search', { name: 'Netze', format: 'csv' });
+      expect(typeof result).toBe('string');
+    });
+
+    it('should return Buffer for format=xlsx', async () => {
+      const result = await broker.call('eic-codes.search', { name: 'Netze', format: 'xlsx' });
+      expect(result).toBeInstanceOf(Buffer);
+    });
+
+    it('should return Buffer for format=xls', async () => {
+      const result = await broker.call('eic-codes.search', { name: 'Netze', format: 'xls' });
+      expect(result).toBeInstanceOf(Buffer);
+    });
+
+    it('should reject invalid format value', async () => {
+      await expect(
+        broker.call('eic-codes.search', { name: 'Netze', format: 'pdf' })
+      ).rejects.toThrow();
+    });
+  });
+
   describe('gasOperators action', () => {
     it('should list German gas operators', async () => {
       const result = await broker.call('eic-codes.gasOperators', {
@@ -167,6 +198,16 @@ describe('EIC Codes Service', () => {
 
       expect(result.success).toBe(true);
     }, 30000);
+
+    it('should return Buffer for format=xlsx', async () => {
+      const result = await broker.call('eic-codes.gasOperators', { format: 'xlsx' });
+      expect(result).toBeInstanceOf(Buffer);
+    });
+
+    it('should return CSV string for format=csv', async () => {
+      const result = await broker.call('eic-codes.gasOperators', { format: 'csv' });
+      expect(typeof result).toBe('string');
+    });
   });
 
   describe('gasFacilities action', () => {
@@ -186,6 +227,16 @@ describe('EIC Codes Service', () => {
 
       expect(result.success).toBe(true);
     }, 30000);
+
+    it('should return Buffer for format=xlsx', async () => {
+      const result = await broker.call('eic-codes.gasFacilities', { format: 'xlsx' });
+      expect(result).toBeInstanceOf(Buffer);
+    });
+
+    it('should return CSV string for format=csv', async () => {
+      const result = await broker.call('eic-codes.gasFacilities', { format: 'csv' });
+      expect(typeof result).toBe('string');
+    });
   });
 
   describe('statistics action', () => {

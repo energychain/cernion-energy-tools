@@ -4,15 +4,42 @@
  */
 
 const { ServiceBroker } = require('moleculer');
+
+jest.mock('../src/mcp-client', () => ({
+  callWithNewSession: jest.fn(),
+  callWithAutoPoll: jest.fn(),
+}));
+jest.mock('../src/async-job-poller', () => ({ callWithAutoPoll: jest.fn() }));
+
+const { callWithNewSession } = require('../src/mcp-client');
 const GridOperationsService = require('../services/grid-operations.service');
+
+const MOCK_MARKET_PARTNERS = {
+  results: [
+    {
+      bdew: '9900992720003',
+      name: 'TWL Netz GmbH',
+      address: 'Industriestraße 7, 67063 Ludwigshafen',
+      city: 'Ludwigshafen',
+      postalCode: '67063',
+      roles: ['VNB'],
+    },
+  ],
+  count: 1,
+};
 
 describe('Grid Operations Service - Market Partners', () => {
   let broker;
 
-  beforeAll(() => {
+  beforeAll(async () => {
+    callWithNewSession.mockImplementation(async (toolName) => {
+      if (toolName === 'cernion_market_partners') return MOCK_MARKET_PARTNERS;
+      return { success: true, data: {} };
+    });
+
     broker = new ServiceBroker({ logger: false });
     broker.createService(GridOperationsService);
-    return broker.start();
+    await broker.start();
   });
 
   afterAll(() => broker.stop());
@@ -57,6 +84,57 @@ describe('Grid Operations Service - Market Partners', () => {
 
     it('should require query parameter', async () => {
       await expect(broker.call('grid-operations.marketPartners', {})).rejects.toThrow();
+    });
+
+    it('should not pass format param to MCP tool', async () => {
+      callWithNewSession.mockClear();
+      await broker.call('grid-operations.marketPartners', {
+        query: 'TWL',
+        format: 'csv',
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params).not.toHaveProperty('format');
+    });
+  });
+
+  describe('marketPartners format parameter', () => {
+    it('should accept format=json and return raw result', async () => {
+      const result = await broker.call('grid-operations.marketPartners', {
+        query: 'TWL',
+        format: 'json',
+      });
+      expect(result).toEqual(MOCK_MARKET_PARTNERS);
+    });
+
+    it('should return CSV string for format=csv', async () => {
+      const result = await broker.call('grid-operations.marketPartners', {
+        query: 'TWL',
+        format: 'csv',
+      });
+      expect(typeof result).toBe('string');
+      expect(result).toContain('bdew');
+    });
+
+    it('should return Buffer for format=xlsx', async () => {
+      const result = await broker.call('grid-operations.marketPartners', {
+        query: 'TWL',
+        format: 'xlsx',
+      });
+      expect(result).toBeInstanceOf(Buffer);
+    });
+
+    it('should return Buffer for format=xls', async () => {
+      const result = await broker.call('grid-operations.marketPartners', {
+        query: 'TWL',
+        format: 'xls',
+      });
+      expect(result).toBeInstanceOf(Buffer);
+    });
+
+    it('should reject invalid format value', async () => {
+      await expect(
+        broker.call('grid-operations.marketPartners', { query: 'TWL', format: 'pdf' })
+      ).rejects.toThrow();
     });
   });
 });

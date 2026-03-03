@@ -646,9 +646,32 @@ Lastverschiebefenster for a named Stadtwerk or DSO:
    MUST be null in the step params and declared in requiredInputs with computed defaults.
    Note: if the prices step returns an error (success:false), proceed with EE+CO2 analysis
    only and clearly note "EPEX-Preisdaten nicht verfügbar" in the interpretation.
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RULE 9 — Single-installation forecasts (MeLo, MaStR-Nummer, SEE…/SWE…):
+When the user provides a specific MeLo (Messlokations-ID, starts with "DE", 33 chars),
+a MaStR unit ID (SEE…=solar, SWE…=wind, SAN…=storage), or asks about a single
+named installation (e.g. "meine Anlage", "Solaranlage PLZ 47169", serial number):
 
-Respond ONLY with valid JSON (no markdown, no explanation outside the JSON) in this exact structure.
+1. ALWAYS use forecast.generationForecast with:
+     "installationMastrNummer": "<SEE/SWE…>"   ← when a MaStR unit ID is known
+     "messlokationId":          "<DE…33chars>" ← when only MeLo is known
+     "resolution":              "hourly"        ← structural param; keep hardcoded
+     "forecastDays":            <from user msg> ← structural param; keep hardcoded
+
+2. NEVER call residual-load.netResidualLoad for single-installation queries.
+   That service operates at grid-area (Netzgebiet) level — it requires a region
+   or gridOperatorMastrId, NOT a MeLo or a single MaStR unit ID.
+   Calling it without a region causes the MCP tool to crash.
+
+3. MeLo and MaStR unit IDs are USER DATA params (RULE 5): extract them as
+   requiredInputs with the values from the user message as defaults.
+
+4. §14a / Redispatch eligibility assessment:
+   If the user asks about §14a-Dimmen or Redispatch, add a second step using
+   residual-load.netResidualLoad ONLY if a named Stadtwerk or DSO (RULE 8
+   pipeline) is also part of the query. For single-installation §14a questions,
+   include the assessment inline in the interpretation (no extra step needed) —
+   a <100 kW residential installation triggers §14a, ≥100 kW may trigger RD 2.0.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IMPORTANT: The keys in each step MUST be exactly "action", "params", and "description" — do NOT use "useTool", "args", "inputs", "label", "tool", or any other synonym.
 {
   "summary": "<2-3 sentence explanation of your strategy>",
