@@ -686,6 +686,56 @@ describe('Energy Market Service', () => {
       expect(params.limit).toBe(1000);
     });
 
+    it('should accept limit as string "all" and internally page until exhausted', async () => {
+      // First page returns full 10k (MCP_PAGE_SIZE), second returns 3 → stops
+      const page1 = Array.from({ length: 10000 }, (_, i) => ({
+        mastrNummer: `SEE${String(i).padStart(5, '0')}`,
+        bruttoleistung: 10,
+        einheitBetriebsstatus: '35',
+      }));
+      const page2 = [
+        { mastrNummer: 'SEE99991', bruttoleistung: 10, einheitBetriebsstatus: '35' },
+        { mastrNummer: 'SEE99992', bruttoleistung: 10, einheitBetriebsstatus: '35' },
+        { mastrNummer: 'SEE99993', bruttoleistung: 10, einheitBetriebsstatus: '35' },
+      ];
+      callWithNewSession
+        .mockResolvedValueOnce({ success: true, data: { installations: page1, stats: {} } })
+        .mockResolvedValueOnce({ success: true, data: { installations: page2, stats: {} } });
+
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 'all',
+      });
+      expect(result.data.installations).toHaveLength(10003);
+      expect(result.data.pagination.limit).toBe('all');
+      expect(result.data.pagination.hasMore).toBe(false);
+      expect(callWithNewSession).toHaveBeenCalledTimes(2);
+    });
+
+    it('should accept limit as large number and internally page until exhausted', async () => {
+      const page1 = Array.from({ length: 10000 }, (_, i) => ({
+        mastrNummer: `SEE${String(i).padStart(5, '0')}`,
+        bruttoleistung: 10,
+        einheitBetriebsstatus: '35',
+      }));
+      const page2 = Array.from({ length: 500 }, (_, i) => ({
+        mastrNummer: `SEE5${String(i).padStart(4, '0')}`,
+        bruttoleistung: 10,
+        einheitBetriebsstatus: '35',
+      }));
+      callWithNewSession
+        .mockResolvedValueOnce({ success: true, data: { installations: page1, stats: {} } })
+        .mockResolvedValueOnce({ success: true, data: { installations: page2, stats: {} } });
+
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 1000000,
+      });
+      expect(result.data.installations).toHaveLength(10500);
+      expect(result.data.pagination.hasMore).toBe(false);
+      expect(callWithNewSession).toHaveBeenCalledTimes(2);
+    });
+
     it('should include pagination metadata in response', async () => {
       callWithNewSession.mockResolvedValueOnce({
         success: true,
@@ -727,6 +777,7 @@ describe('Energy Market Service', () => {
         offset: 0,
         limit: 100,
       });
+      // MCP returned exactly 100 (= limit) → data not exhausted → hasMore=true
       expect(result.data.pagination.hasMore).toBe(true);
       expect(result.data.pagination.count).toBe(100);
     });
@@ -750,8 +801,8 @@ describe('Energy Market Service', () => {
     });
 
     it('should reflect post-filter reduction in count but use raw count for hasMore', async () => {
-      // MCP returns 3 rows (rawCount=3), limit=3 → hasMore=true
-      // but operationalStatus filter removes 1 → count=2 in pagination
+      // MCP returns exactly 3 rows (= limit=3) → data not exhausted → hasMore=true
+      // but operationalStatus filter removes 1 row → count=2 in pagination
       const installations = [
         { mastrNummer: 'SEE001', bruttoleistung: 10, einheitBetriebsstatus: '35' },
         { mastrNummer: 'SEE002', bruttoleistung: 20, einheitBetriebsstatus: '35' },
@@ -772,7 +823,7 @@ describe('Energy Market Service', () => {
       });
       // Post-filter removed status '31' record → 2 rows returned
       expect(result.data.installations).toHaveLength(2);
-      // hasMore=true because rawCount(3) >= limit(3)
+      // MCP returned exactly 3 (= limit=3) → not exhausted → hasMore=true
       expect(result.data.pagination.hasMore).toBe(true);
       expect(result.data.pagination.count).toBe(2);
     });

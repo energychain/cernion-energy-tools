@@ -497,7 +497,7 @@ module.exports = {
         },
         location: { type: 'string', optional: true, min: 1 },
         postleitzahl: { type: 'string', optional: true, min: 5, max: 5 },
-        limit: { type: 'number', optional: true, min: 1, max: 10000 },
+        limit: { type: 'any', optional: true },
         offset: { type: 'number', optional: true, min: 0, default: 0 },
         minCapacityKW: { type: 'number', optional: true, min: 0 },
         maxCapacityKW: { type: 'number', optional: true, min: 0 },
@@ -583,10 +583,11 @@ module.exports = {
                     example: 'Heidelberg',
                   },
                   limit: {
-                    type: 'integer',
-                    description: 'Maximum number of results. **Default: 1,000. Maximum: 10,000.** Use `offset` for pagination.',
-                    minimum: 1,
-                    maximum: 10000,
+                    oneOf: [
+                      { type: 'integer', minimum: 1 },
+                      { type: 'string', enum: ['all'] },
+                    ],
+                    description: 'Maximum number of results. Default: **1,000**. Set a high number (e.g. `1000000`) or `"all"` to retrieve the complete result set — the server paginates internally across multiple MCP calls so no offset handling is required on the client side.',
                     default: 1000,
                     example: 1000,
                   },
@@ -635,6 +636,11 @@ module.exports = {
                     type: 'string',
                     description: 'BDEW code (resolved to MaStR Netzbetreiber)',
                     example: '9900992720003',
+                  },
+                  netzbetreiberPruefungStatus: {
+                    type: 'string',
+                    description: 'Filter by grid operator verification status code(s), comma-separated. Values: **2954**=Geprüft ✅, **2955**=In Prüfung ⏳, **3075**=Nicht vorgesehen. Example: `"2955"` or `"2954,2955"`.',
+                    example: '2955',
                   },
                   includeNapData: {
                     type: 'boolean',
@@ -773,12 +779,20 @@ module.exports = {
         },
       },
       async handler(ctx) {
+        const MCP_PAGE_SIZE = 10000;
         const { format, ...params } = ctx.params;
-        const toolParams = {
+        const operationalStatus = params.operationalStatus || '35';
+        const nbpStatus = params.netzbetreiberPruefungStatus;
+        const startOffset = params.offset || 0;
+
+        // Parse limit: accept number, numeric string, or 'all' / undefined (= fetch everything)
+        const rawLimit = params.limit;
+        const isUnlimited = rawLimit === undefined || rawLimit === null || rawLimit === 'all';
+        const requestedLimit = isUnlimited ? Infinity : Math.max(1, Number(rawLimit) || 1000);
+
+        const baseToolParams = {
           type: params.installationType,
           postleitzahl: params.postleitzahl || params.location,
-          limit: params.limit,
-          offset: params.offset,
           minCapacity: params.minCapacityKW,
           maxCapacity: params.maxCapacityKW,
           commissioningYear: params.commissioningYear,
@@ -786,30 +800,56 @@ module.exports = {
           gridOperatorName: params.gridOperatorName,
           gridOperatorBdewCode: params.gridOperatorBdewCode,
           includeNapData: params.includeNapData,
-          netzbetreiberPruefungStatus: params.netzbetreiberPruefungStatus,
+          netzbetreiberPruefungStatus: nbpStatus,
           format: 'detailed',
         };
 
-        const result = await callWithAutoPoll(
-          'cernion_installations_local',
-          toolParams,
-          {},
-          ctx.meta.cernionToken
-        );
+        // Internal pagination loop — transparently assembles the full result set
+        // across multiple MCP calls (each capped at MCP_PAGE_SIZE=10,000 rows).
+        let allInstallations = [];
+        let firstResult = null;
+        let dataExhausted = false;
+        let currentOffset = startOffset;
 
-        // Capture raw count BEFORE post-filtering to power hasMore signal
-        const rawCount = result?.data?.installations?.length || 0;
-        const effectiveLimit = params.limit || 1000;
-        const effectiveOffset = params.offset || 0;
+        while (true) {
+          const pageLimit = isUnlimited
+            ? MCP_PAGE_SIZE
+            : Math.min(requestedLimit - allInstallations.length, MCP_PAGE_SIZE);
 
-        // Filter by operational status (default: only active installations with status 35)
-        const operationalStatus = params.operationalStatus || '35';
+          if (pageLimit <= 0) break;
+
+          const pageResult = await callWithAutoPoll(
+            'cernion_installations_local',
+            { ...baseToolParams, limit: pageLimit, offset: currentOffset },
+            {},
+            ctx.meta.cernionToken
+          );
+
+          if (!firstResult) firstResult = pageResult;
+
+          const pageRows = pageResult?.data?.installations || [];
+          allInstallations.push(...pageRows);
+          currentOffset += pageRows.length;
+
+          if (pageRows.length < pageLimit) {
+            dataExhausted = true; // MCP returned fewer than asked — no more data
+            break;
+          }
+          if (!isUnlimited && allInstallations.length >= requestedLimit) break;
+        }
+
+        // Merge all pages into a single result object
+        const result = firstResult || { success: true, data: { installations: [], stats: {} } };
+        if (result?.data) {
+          result.data.installations = allInstallations;
+        }
+
+        // Post-filter by operational status (default: only active status 35)
         if (operationalStatus && operationalStatus !== 'all' && result?.data?.installations) {
           const allowedStatuses = operationalStatus.split(',').map((s) => s.trim());
           result.data.installations = result.data.installations.filter((inst) =>
             allowedStatuses.includes(inst.einheitBetriebsstatus)
           );
-          // Update stats
           if (result.data.stats) {
             result.data.stats.count = result.data.installations.length;
             result.data.stats.totalCapacity = result.data.installations.reduce(
@@ -823,22 +863,16 @@ module.exports = {
           }
         }
 
-        // Post-filter by netzbetreiberPruefungStatus if cernion_installations_local
-        // did not handle it natively (fallback for older DB versions)
-        const nbpStatus = params.netzbetreiberPruefungStatus;
+        // Post-filter by netzbetreiberPruefungStatus (fallback if MCP did not apply it)
         if (nbpStatus && result?.data?.installations) {
           const allowedNbp = String(nbpStatus)
             .split(',')
             .map((s) => Number(s.trim()))
             .filter((n) => !isNaN(n));
           if (allowedNbp.length > 0) {
-            const beforeCount = result.data.installations.length;
             result.data.installations = result.data.installations.filter((inst) =>
               allowedNbp.includes(inst.netzbetreiberpruefungStatus)
             );
-            if (result.data.installations.length === beforeCount) {
-              // cernion_installations_local already filtered — no-op
-            }
             if (result.data.stats) {
               result.data.stats.count = result.data.installations.length;
               result.data.stats.totalCapacity = result.data.installations.reduce(
@@ -855,13 +889,14 @@ module.exports = {
 
         const rows = result?.data?.installations || [];
 
-        // Attach pagination metadata so callers can detect truncation and page
+        // Pagination metadata: hasMore=true only when we stopped at the requested limit
+        // (not when data was exhausted or unlimited fetch completed)
         if (result?.data) {
           result.data.pagination = {
-            offset: effectiveOffset,
-            limit: effectiveLimit,
+            offset: startOffset,
+            limit: isUnlimited ? 'all' : requestedLimit,
             count: rows.length,
-            hasMore: rawCount >= effectiveLimit,
+            hasMore: !dataExhausted && !isUnlimited,
           };
         }
 

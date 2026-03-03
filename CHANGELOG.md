@@ -9,23 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Pagination support for installation endpoints** — `energy-market.installations` and all
-  `assets.*` endpoints (`solar`, `wind`, `storage`, `biomass`, `hydro`, `combustion`, `list`,
-  `all`) now accept an `offset` parameter (integer ≥ 0, default `0`) alongside the existing
-  `limit`.
-  - Use `offset=1000&limit=1000` to fetch the second page of results, etc.
-  - Response includes a `pagination` object: `{ offset, limit, count, hasMore }`. When
-    `hasMore: true` the result set was capped by the limit and further records are available
-    downstream.
-  - `limit` default is **1,000**, maximum is **10,000** (passed directly to the MCP tool).
-  - `hasMore` is derived from the raw MCP row count *before* any client-side
-    `operationalStatus` / `netzbetreiberPruefungStatus` post-filtering, so a partially-filtered
-    response still correctly signals truncation.
-  - **Root cause**: `cernion_installations_local` has a server-side default cap of 1,000 rows.
-    Combined with client-side post-filtering, users could receive fewer rows than the limit with
-    no indication that more data existed (e.g. a query returning 999 rows out of a true set of
-    thousands).
-  - OpenAPI documentation updated on all affected endpoints.
+- **Unlimited / high-limit fetching for installation endpoints** — `energy-market.installations`
+  and all `assets.*` endpoints now support `limit=all` (or any high number, e.g. `limit=1000000`)
+  to retrieve the **complete result set in a single request**. The server transparently paginates
+  across multiple MCP calls (each capped at 10,000 rows internally) and returns all results
+  merged. Designed for automation tools like Power Automate that cannot loop with offsets.
+  - `pagination.limit` in the response will echo `"all"` or the requested number.
+  - `pagination.hasMore` is `false` whenever all data was retrieved, `true` only when the
+    result was capped at an explicit numeric limit.
+
+- **`netzbetreiberPruefungStatus` exposed in OpenAPI** — The grid operator verification
+  status filter was already accepted as a parameter but was undocumented. It is now visible
+  in the Swagger UI for all `assets.*` endpoints with codes and descriptions:
+  `2954`=Geprüft ✅ / `2955`=In Prüfung ⏳ / `3075`=Nicht vorgesehen.
+
+- **Pagination support for installation endpoints** (from previous unreleased work) —
+  `energy-market.installations` and all `assets.*` endpoints accept an `offset` parameter
+  (integer ≥ 0, default `0`) alongside `limit`. Response includes `pagination` object.
 
 ### Removed
 

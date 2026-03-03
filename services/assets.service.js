@@ -569,10 +569,8 @@ module.exports = {
           convert: true,
         },
         limit: {
-          type: 'number',
+          type: 'any',
           optional: true,
-          min: 1,
-          convert: true,
         },
         offset: {
           type: 'number',
@@ -672,8 +670,8 @@ module.exports = {
           {
             name: 'limit',
             in: 'query',
-            schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 },
-            description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**',
+            schema: { type: 'number', default: 1000, example: 1000 },
+            description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
           },
           {
             name: 'offset',
@@ -694,6 +692,13 @@ module.exports = {
             schema: { type: 'string', default: '35', example: '35' },
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All statuses',
+          },
+          {
+            name: 'netzbetreiberPruefungStatus',
+            in: 'query',
+            schema: { type: 'string', example: '2955' },
+            description:
+              'Filter by grid operator verification status code(s), comma-separated. Values: 2954=Geprüft ✅, 2955=In Prüfung ⏳, 3075=Nicht vorgesehen.',
           },
           {
             name: 'includeNapData',
@@ -1089,7 +1094,7 @@ module.exports = {
         commissioningYear: { type: 'number', optional: true, convert: true },
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
-        limit: { type: 'number', optional: true, convert: true },
+        limit: { type: 'any', optional: true },
         offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
@@ -1148,8 +1153,8 @@ module.exports = {
           {
             name: 'limit',
             in: 'query',
-            schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 },
-            description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**',
+            schema: { type: 'number', default: 1000, example: 1000 },
+            description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
           },
           {
             name: 'offset',
@@ -1169,6 +1174,13 @@ module.exports = {
             schema: { type: 'string', default: '35', example: '35' },
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All statuses',
+          },
+          {
+            name: 'netzbetreiberPruefungStatus',
+            in: 'query',
+            schema: { type: 'string', example: '2955' },
+            description:
+              'Filter by grid operator verification status code(s), comma-separated. Values: 2954=Geprüft ✅, 2955=In Prüfung ⏳, 3075=Nicht vorgesehen.',
           },
           {
             name: 'includeNapData',
@@ -1204,7 +1216,7 @@ module.exports = {
         commissioningYear: { type: 'number', optional: true, convert: true },
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
-        limit: { type: 'number', optional: true, convert: true },
+        limit: { type: 'any', optional: true },
         offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
@@ -1224,7 +1236,7 @@ module.exports = {
           { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 }, description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**' },
+          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, example: 1000 }, description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.' },
           { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
           {
             name: 'redispatch',
@@ -1238,6 +1250,13 @@ module.exports = {
             schema: { type: 'string', default: '35', example: '35' },
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
+          },
+          {
+            name: 'netzbetreiberPruefungStatus',
+            in: 'query',
+            schema: { type: 'string', example: '2955' },
+            description:
+              'Filter by grid operator verification status code(s), comma-separated. Values: 2954=Geprüft ✅, 2955=In Prüfung ⏳, 3075=Nicht vorgesehen.',
           },
           {
             name: 'includeNapData',
@@ -1273,7 +1292,7 @@ module.exports = {
         commissioningYear: { type: 'number', optional: true, convert: true },
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
-        limit: { type: 'number', optional: true, convert: true },
+        limit: { type: 'any', optional: true },
         offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
@@ -1293,7 +1312,7 @@ module.exports = {
           { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 }, description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**' },
+          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, example: 1000 }, description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.' },
           { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
           {
             name: 'redispatch',
@@ -1307,6 +1326,13 @@ module.exports = {
             schema: { type: 'string', default: '35', example: '35' },
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
+          },
+          {
+            name: 'netzbetreiberPruefungStatus',
+            in: 'query',
+            schema: { type: 'string', example: '2955' },
+            description:
+              'Filter by grid operator verification status code(s), comma-separated. Values: 2954=Geprüft ✅, 2955=In Prüfung ⏳, 3075=Nicht vorgesehen.',
           },
           {
             name: 'includeNapData',
@@ -1342,7 +1368,7 @@ module.exports = {
         commissioningYear: { type: 'number', optional: true, convert: true },
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
-        limit: { type: 'number', optional: true, convert: true },
+        limit: { type: 'any', optional: true },
         offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
@@ -1362,7 +1388,7 @@ module.exports = {
           { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 }, description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**' },
+          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, example: 1000 }, description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.' },
           { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
           {
             name: 'redispatch',
@@ -1376,6 +1402,13 @@ module.exports = {
             schema: { type: 'string', default: '35', example: '35' },
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
+          },
+          {
+            name: 'netzbetreiberPruefungStatus',
+            in: 'query',
+            schema: { type: 'string', example: '2955' },
+            description:
+              'Filter by grid operator verification status code(s), comma-separated. Values: 2954=Geprüft ✅, 2955=In Prüfung ⏳, 3075=Nicht vorgesehen.',
           },
           {
             name: 'includeNapData',
@@ -1411,7 +1444,7 @@ module.exports = {
         commissioningYear: { type: 'number', optional: true, convert: true },
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
-        limit: { type: 'number', optional: true, convert: true },
+        limit: { type: 'any', optional: true },
         offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
@@ -1431,7 +1464,7 @@ module.exports = {
           { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 }, description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**' },
+          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, example: 1000 }, description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.' },
           { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
           {
             name: 'redispatch',
@@ -1445,6 +1478,13 @@ module.exports = {
             schema: { type: 'string', default: '35', example: '35' },
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
+          },
+          {
+            name: 'netzbetreiberPruefungStatus',
+            in: 'query',
+            schema: { type: 'string', example: '2955' },
+            description:
+              'Filter by grid operator verification status code(s), comma-separated. Values: 2954=Geprüft ✅, 2955=In Prüfung ⏳, 3075=Nicht vorgesehen.',
           },
           {
             name: 'includeNapData',
@@ -1480,7 +1520,7 @@ module.exports = {
         commissioningYear: { type: 'number', optional: true, convert: true },
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
-        limit: { type: 'number', optional: true, convert: true },
+        limit: { type: 'any', optional: true },
         offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
@@ -1500,7 +1540,7 @@ module.exports = {
           { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
           { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
           { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 }, description: 'Max. number of results. **Default: 1,000. Maximum: 10,000.**' },
+          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, example: 1000 }, description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.' },
           { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
           {
             name: 'redispatch',
@@ -1514,6 +1554,13 @@ module.exports = {
             schema: { type: 'string', default: '35', example: '35' },
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All',
+          },
+          {
+            name: 'netzbetreiberPruefungStatus',
+            in: 'query',
+            schema: { type: 'string', example: '2955' },
+            description:
+              'Filter by grid operator verification status code(s), comma-separated. Values: 2954=Geprüft ✅, 2955=In Prüfung ⏳, 3075=Nicht vorgesehen.',
           },
           {
             name: 'includeNapData',
@@ -1549,7 +1596,7 @@ module.exports = {
         commissioningYear: { type: 'number', optional: true, convert: true },
         minCapacityKW: { type: 'number', optional: true, convert: true },
         maxCapacityKW: { type: 'number', optional: true, convert: true },
-        limit: { type: 'number', optional: true, convert: true },
+        limit: { type: 'any', optional: true },
         offset: { type: 'number', optional: true, min: 0, convert: true },
         redispatch: { type: 'boolean', optional: true, convert: true },
         operationalStatus: { type: 'string', optional: true, default: '35', convert: true },
@@ -1620,8 +1667,8 @@ module.exports = {
           {
             name: 'limit',
             in: 'query',
-            schema: { type: 'number', default: 1000, maximum: 10000, example: 1000 },
-            description: 'Max. number of results per type. **Default: 1,000. Maximum: 10,000.**',
+            schema: { type: 'number', default: 1000, example: 1000 },
+            description: 'Max. number of results per type. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
           },
           {
             name: 'offset',
@@ -1648,6 +1695,13 @@ module.exports = {
             schema: { type: 'string', default: '35', example: '35' },
             description:
               'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All statuses',
+          },
+          {
+            name: 'netzbetreiberPruefungStatus',
+            in: 'query',
+            schema: { type: 'string', example: '2955' },
+            description:
+              'Filter by grid operator verification status code(s), comma-separated. Values: 2954=Geprüft ✅, 2955=In Prüfung ⏳, 3075=Nicht vorgesehen.',
           },
           {
             name: 'format',
