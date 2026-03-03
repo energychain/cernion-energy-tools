@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **`test-all-services-json-parsing.sh`** — leftover manual smoke-test shell script superseded by the Jest integration test suite.
+
 ## [0.6.2] - 2026-03-03
 
 ### Added
