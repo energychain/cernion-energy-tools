@@ -7,6 +7,7 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const { applyFormat, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
+const { resolveDateAlias } = require('../src/date-utils');
 
 module.exports = {
   name: 'german-grid',
@@ -42,13 +43,13 @@ module.exports = {
                 properties: {
                   dateFrom: {
                     type: 'string',
-                    description: 'Start date (YYYY-MM-DD)',
-                    example: '2026-02-01',
+                    description: 'Start date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    example: 'today',
                   },
                   dateTo: {
                     type: 'string',
-                    description: 'End date',
-                    example: '2026-02-07',
+                    description: 'End date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    example: 'today',
                   },
                   includeStatistics: {
                     type: 'boolean',
@@ -83,6 +84,14 @@ module.exports = {
                     includeStatistics: false,
                   },
                 },
+                relativeAlias: {
+                  summary: 'Today\'s prices using relative date alias',
+                  value: { dateFrom: 'today', dateTo: 'today', includeStatistics: true },
+                },
+                recentWeek: {
+                  summary: 'Last 7 days using relative aliases',
+                  value: { dateFrom: 'today-6', dateTo: 'today', includeStatistics: true, format: 'csv' },
+                },
                 csvExport: {
                   summary: 'Export spot prices as CSV',
                   value: { dateFrom: '2026-02-01', dateTo: '2026-02-07', format: 'csv' },
@@ -105,6 +114,8 @@ module.exports = {
       },
       async handler(ctx) {
         const { format, ...mcpParams } = ctx.params;
+        mcpParams.dateFrom = resolveDateAlias(mcpParams.dateFrom);
+        mcpParams.dateTo = resolveDateAlias(mcpParams.dateTo);
         const result = await CernionMCPClient.callWithNewSession(
           'netztransparenz_spotprices',
           mcpParams,
@@ -195,13 +206,13 @@ module.exports = {
                 properties: {
                   dateFrom: {
                     type: 'string',
-                    description: 'Start date',
-                    example: '2026-01-01',
+                    description: 'Start date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    example: 'today-30',
                   },
                   dateTo: {
                     type: 'string',
-                    description: 'End date',
-                    example: '2026-01-31',
+                    description: 'End date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    example: 'today',
                   },
                   logic: {
                     type: 'number',
@@ -243,15 +254,29 @@ module.exports = {
                     logic: 4,
                   },
                 },
+                relativeAlias: {
+                  summary: 'Last 30 days using relative date alias',
+                  value: {
+                    dateFrom: 'today-30',
+                    dateTo: 'today',
+                    logic: 6,
+                    includeEegCompliance: true,
+                  },
+                },
               },
             },
           },
         },
       },
       async handler(ctx) {
+        const resolvedParams = {
+          ...ctx.params,
+          dateFrom: resolveDateAlias(ctx.params.dateFrom),
+          dateTo: resolveDateAlias(ctx.params.dateTo),
+        };
         const result = await CernionMCPClient.callWithNewSession(
           'netztransparenz_negative_prices',
-          ctx.params,
+          resolvedParams,
           ctx.meta.cernionToken
         );
 
@@ -261,7 +286,7 @@ module.exports = {
         // Flag this so consumers / Gemini interpretation can treat it correctly.
         const contentText = result?.data?.content?.[0]?.text || '';
         if (contentText.includes('No Negative Price Periods Found')) {
-          const { dateFrom, dateTo } = ctx.params;
+          const { dateFrom, dateTo } = resolvedParams;
           if (dateFrom && dateTo) {
             const from = new Date(dateFrom);
             const to = new Date(dateTo);
@@ -320,13 +345,13 @@ module.exports = {
                   },
                   dateFrom: {
                     type: 'string',
-                    description: 'Start date',
-                    example: '2026-02-01',
+                    description: 'Start date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    example: 'tomorrow',
                   },
                   dateTo: {
                     type: 'string',
-                    description: 'End date',
-                    example: '2026-02-07',
+                    description: 'End date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    example: 'today+6',
                   },
                   includeActual: {
                     type: 'boolean',
@@ -371,6 +396,10 @@ module.exports = {
                     includeOnline: false,
                   },
                 },
+                relativeAlias: {
+                  summary: 'Solar forecast for next 7 days using relative aliases',
+                  value: { product: 'Solar', dateFrom: 'tomorrow', dateTo: 'today+7', includeOnline: true },
+                },
                 csvExport: {
                   summary: 'Export forecast as CSV',
                   value: { product: 'Solar', dateFrom: '2026-02-08', dateTo: '2026-02-14', format: 'csv' },
@@ -393,6 +422,8 @@ module.exports = {
       },
       async handler(ctx) {
         const { format, ...mcpParams } = ctx.params;
+        mcpParams.dateFrom = resolveDateAlias(mcpParams.dateFrom);
+        mcpParams.dateTo = resolveDateAlias(mcpParams.dateTo);
         const result = await CernionMCPClient.callWithNewSession(
           'netztransparenz_forecast',
           mcpParams,
@@ -430,13 +461,13 @@ module.exports = {
                 properties: {
                   dateFrom: {
                     type: 'string',
-                    description: 'Start date',
-                    example: '2026-01-01',
+                    description: 'Start date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    example: 'today-30',
                   },
                   dateTo: {
                     type: 'string',
-                    description: 'End date',
-                    example: '2026-01-31',
+                    description: 'End date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    example: 'today',
                   },
                   includeAnalysis: {
                     type: 'boolean',
@@ -478,6 +509,10 @@ module.exports = {
                     includeCurtailment: true,
                   },
                 },
+                relativeAlias: {
+                  summary: 'Last 30 days using relative date alias',
+                  value: { dateFrom: 'today-30', dateTo: 'today', includeAnalysis: true, includeCurtailment: true },
+                },
                 csvExport: {
                   summary: 'Export redispatch data as CSV',
                   value: { dateFrom: '2026-01-01', dateTo: '2026-01-31', format: 'csv' },
@@ -500,6 +535,8 @@ module.exports = {
       },
       async handler(ctx) {
         const { format, ...mcpParams } = ctx.params;
+        mcpParams.dateFrom = resolveDateAlias(mcpParams.dateFrom);
+        mcpParams.dateTo = resolveDateAlias(mcpParams.dateTo);
         const result = await CernionMCPClient.callWithNewSession(
           'netztransparenz_redispatch',
           mcpParams,

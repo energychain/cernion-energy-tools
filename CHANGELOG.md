@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-03-03
+
+### Added
+
+- **Relative date aliases for all `german-grid.*` endpoints** — `dateFrom` and `dateTo`
+  parameters on `spotprices`, `negativePrices`, `forecast`, and `redispatch` now accept
+  human-friendly relative aliases alongside literal ISO dates:
+
+  | Alias | Resolves to |
+  |---|---|
+  | `today` | Current date (UTC) |
+  | `yesterday` | Today − 1 day |
+  | `tomorrow` | Today + 1 day |
+  | `today+N` | Today + N days (e.g. `today+7`, `today+30`) |
+  | `today-N` | Today − N days (e.g. `today-7`, `today-90`) |
+
+  Literal ISO dates (`YYYY-MM-DD`) continue to work unchanged.
+
+  Introduced shared utility `src/date-utils.js` (`resolveDateAlias`, `resolveDateParams`)
+  for use by any future service requiring the same behaviour.
+
+  Motivation: automation tools (Power Automate, dashboards) previously had to compute
+  ISO date strings externally. `{ "dateFrom": "today", "dateTo": "today+2" }` now
+  works directly against any german-grid endpoint.
+
+- **42 new tests** in `tests/date-utils.test.js` covering all aliases, case-insensitivity,
+  whitespace trimming, pass-through for literal dates, and edge cases (`null`, `undefined`,
+  non-string values).
+
 ## [0.6.3] - 2026-03-03
 
 ### Added
