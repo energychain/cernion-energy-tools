@@ -264,10 +264,46 @@ describe('applyFormat', () => {
       expect(output).toContain('1');
     });
 
-    it('should return empty string for csv when no rows found', () => {
+    it('should return empty string for csv when no rows found and no error', () => {
       const ctx = makeMockCtx();
       const output = applyFormat(ctx, { unrelated: 'data' }, 'csv', 'export', 'Sheet');
       expect(output).toBe('');
+    });
+
+    it('should throw when result.data.isError is true (csv format)', () => {
+      const ctx = makeMockCtx();
+      const result = {
+        success: true,
+        data: {
+          content: [{ type: 'text', text: 'No price data available for the requested period' }],
+          isError: true,
+        },
+      };
+      expect(() => applyFormat(ctx, result, 'csv', 'export', 'Sheet')).toThrow(
+        'No price data available for the requested period'
+      );
+    });
+
+    it('should throw when result.data.isError is true (json format)', () => {
+      const ctx = makeMockCtx();
+      const result = {
+        data: { content: [{ type: 'text', text: 'Something went wrong' }], isError: true },
+      };
+      expect(() => applyFormat(ctx, result, 'json')).toThrow('Something went wrong');
+    });
+
+    it('should throw when result.data.isError is true (xlsx format)', () => {
+      const ctx = makeMockCtx();
+      const result = {
+        data: { content: [{ type: 'text', text: 'Service unavailable' }], isError: true },
+      };
+      expect(() => applyFormat(ctx, result, 'xlsx')).toThrow('Service unavailable');
+    });
+
+    it('should throw with fallback message when isError has no content text', () => {
+      const ctx = makeMockCtx();
+      const result = { data: { isError: true } };
+      expect(() => applyFormat(ctx, result)).toThrow('Upstream tool returned an error with no details');
     });
   });
 

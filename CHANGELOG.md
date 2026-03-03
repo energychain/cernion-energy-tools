@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-03-03
+
+### Fixed
+
+- **Silent empty file on upstream MCP errors** — when an MCP tool returns
+  `isError: true` (e.g. "No price data available for the requested period"),
+  `applyFormat` previously produced a 0-byte CSV/XLSX with a `200 OK` status,
+  making it impossible to distinguish from a legitimate empty result set.
+  It now throws immediately, so the caller always receives an HTTP `500` with
+  a descriptive JSON error message — regardless of the requested output format.
+  Applies to all services that use `applyFormat` (german-grid, forecast, etc.).
+
+- **`negativePrices` upstream error passthrough** — the `german-grid.negativePrices`
+  handler, which bypasses `applyFormat`, now also performs an explicit `isError`
+  check and throws with the upstream error text rather than silently returning
+  the raw MCP error object.
+
+### Changed
+
+- `tests/api.service.test.js` version assertion updated to `0.6.5`.
+
 ## [0.6.4] - 2026-03-03
 
 ### Added

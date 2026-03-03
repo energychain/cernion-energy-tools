@@ -280,6 +280,16 @@ module.exports = {
           ctx.meta.cernionToken
         );
 
+        // ── Upstream error check ───────────────────────────────────────
+        // Surface tool-level errors so callers get a real HTTP 500 with a
+        // message, not a silent empty/misleading JSON response.
+        if (result?.data?.isError === true) {
+          const errorText =
+            result?.data?.content?.[0]?.text ||
+            'Upstream tool returned an error with no details';
+          throw new Error(errorText);
+        }
+
         // ── Data-reliability check ─────────────────────────────────────
         // Netztransparenz.de sometimes returns "no data" for historical
         // periods where data simply isn't available yet (not a genuine 0).
