@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-03-03
+
 ### Added
 
 - **Unlimited / high-limit fetching for installation endpoints** — `energy-market.installations`
@@ -23,9 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   in the Swagger UI for all `assets.*` endpoints with codes and descriptions:
   `2954`=Geprüft ✅ / `2955`=In Prüfung ⏳ / `3075`=Nicht vorgesehen.
 
-- **Pagination support for installation endpoints** (from previous unreleased work) —
-  `energy-market.installations` and all `assets.*` endpoints accept an `offset` parameter
-  (integer ≥ 0, default `0`) alongside `limit`. Response includes `pagination` object.
+- **Pagination support for installation endpoints** — `energy-market.installations` and all
+  `assets.*` endpoints accept an `offset` parameter (integer ≥ 0, default `0`) alongside
+  `limit`. Response includes a `pagination` object: `{ offset, limit, count, hasMore }`.
+  - `hasMore: true` signals that an explicit numeric limit capped the result and more records
+    are available; use `offset` to fetch the next page when not using `limit=all`.
+  - **Root cause**: `cernion_installations_local` has a server-side default cap of 1,000 rows.
+    Combined with client-side `operationalStatus` post-filtering, users could receive fewer
+    rows than the limit with no indication that more data existed.
+  - OpenAPI documentation updated on all affected endpoints.
 
 ### Removed
 
