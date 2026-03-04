@@ -13,10 +13,21 @@ const { applyFormat, convertToCSV, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT 
 
 /**
  * Extract the narrative text from a churn prediction MCP result.
+ *
+ * Handles two response shapes:
+ *  1. Synchronous MCP response (mcp-client.callTool): result.data is the content array
+ *     directly → [{ type: 'text', text: '...' }]
+ *  2. Async-job-poller wrapped response: result.data is { content: [...] }
  */
 function extractChurnText(result) {
   if (!result) return '';
-  if (result.data?.content?.[0]?.text) return result.data.content[0].text;
+  // Synchronous path: mcp-client returns data as the raw content array
+  if (Array.isArray(result.data) && result.data[0]?.text) return result.data[0].text;
+  // Async-polled path: data is { content: [...] }
+  if (result.data && typeof result.data === 'object' && !Array.isArray(result.data)) {
+    const content = result.data.content;
+    if (Array.isArray(content) && content[0]?.text) return content[0].text;
+  }
   if (typeof result.data === 'string') return result.data;
   if (typeof result === 'string') return result;
   return '';
@@ -26,15 +37,28 @@ function extractChurnText(result) {
  * Parse churn prediction narrative into a structured summary row.
  * The MCP tool uses a heuristic model without individual CRM data;
  * we surface the available aggregate metrics as a single CSV row.
+ *
+ * Multiple regex fallbacks handle wording variations across MCP tool versions.
  */
 function parseChurnPredictionText(text, params) {
-  const atRiskMatch = text.match(/Estimated at-risk customers.*?:\s*(\d+)/i);
+  // At-risk customer count — try progressively broader patterns
+  const atRiskMatch =
+    text.match(/Estimated at-risk customers.*?:\s*(\d+)/i) ||
+    text.match(/at.risk customers.*?:\s*(\d+)/i) ||
+    text.match(/(\d+)\s+(?:customers?\s+)?at.risk/i) ||
+    text.match(/gefährdete\s+Kunden.*?:\s*(\d+)/i);
   const estimatedAtRiskCustomers = atRiskMatch ? parseInt(atRiskMatch[1], 10) : null;
 
-  const rateMatch = text.match(/Assumed churn rate.*?:\s*([\d.]+)%/i);
+  // Churn rate percentage — try progressively broader patterns
+  const rateMatch =
+    text.match(/Assumed churn rate.*?:\s*([\d.]+)%/i) ||
+    text.match(/churn rate.*?:\s*([\d.]+)%/i) ||
+    text.match(/churn.*?:\s*([\d.]+)%/i) ||
+    text.match(/Abwanderungsrate.*?:\s*([\d.]+)%/i);
   const assumedChurnRatePct = rateMatch ? parseFloat(rateMatch[1]) : null;
 
-  const isHeuristicModel = /heuristic model/i.test(text);
+  // Heuristic flag — match "heuristic" or German "Heuristik" in any context
+  const isHeuristicModel = /heuristic/i.test(text) || /heuristik/i.test(text);
 
   return {
     customerSegment: params.customerSegment,

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.24] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/business-intelligence/churn-prediction` — `estimatedAtRiskCustomers`, `assumedChurnRatePct`, `analysisText` empty and `isHeuristicModel: false` in CSV (D11 follow-up)**
+  Root cause: `extractChurnText` only checked `result.data?.content?.[0]?.text`, but `cernion_customer_churn_prediction` responds synchronously (no async job). For synchronous tools, `mcp-client.callTool` places the content array **directly** at `result.data` (i.e. `result.data = [{type:'text', text:'...'}]`), not wrapped in `{content:[...]}`. Accessing `.content` on an array returns `undefined`, so `extractChurnText` silently returned `''` — causing all derived fields to be `null`/`false` and `analysisText` to be an empty string.
+  Fix 1 — `extractChurnText`: now checks `Array.isArray(result.data) && result.data[0]?.text` first (synchronous/direct path), then falls back to `result.data.content[0]?.text` (async-polled path), then string fallbacks.
+  Fix 2 — `parseChurnPredictionText`: added fallback regex patterns for at-risk count, churn rate, and heuristic flag to handle wording variations across MCP tool versions (`at.risk customers.*?`, `churn rate.*?`, `churn.*?`, `Abwanderungsrate`, `Heuristik`).
+  2 new unit tests: real MCP array-format response path (verifies `60,8,"true"` in CSV); German "Heuristik" wording detection.
+
 ## [0.6.23] - 2026-03-04
 
 ### Fixed

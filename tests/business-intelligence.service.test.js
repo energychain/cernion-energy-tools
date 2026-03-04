@@ -138,6 +138,53 @@ describe('Business Intelligence Service', () => {
       );
     });
 
+    it('should extract text from real MCP array-format response (synchronous path)', async () => {
+      // Real mcp-client.callTool returns data as raw content array (not {content:[...]})
+      // when the tool responds synchronously with plain text (no async job).
+      const narrative = [
+        'Estimated at-risk customers (max 100): 60',
+        'Assumed churn rate (segment): 8.0%',
+        'ℹ️ This tool currently uses a heuristic model without customer-level CRM data.',
+      ].join('\n');
+
+      callWithAutoPoll.mockResolvedValueOnce({
+        success: true,
+        data: [{ type: 'text', text: narrative }], // ← array, not { content: [...] }
+      });
+
+      const result = await broker.call(
+        'business-intelligence.churnPrediction',
+        { customerSegment: 'all', region: '67059', format: 'csv' },
+        { meta: {} }
+      );
+
+      expect(typeof result).toBe('string');
+      expect(result).toContain('"all","67059","medium",3,60,8,"true"');
+    });
+
+    it('should detect heuristic model from German wording (Heuristik)', async () => {
+      const narrative = [
+        'Estimated at-risk customers: 15',
+        'Assumed churn rate: 10.5%',
+        'Dieses Tool verwendet ein Heuristik-Modell ohne Kunden-CRM-Daten.',
+      ].join('\n');
+
+      callWithAutoPoll.mockResolvedValueOnce({
+        success: true,
+        data: [{ type: 'text', text: narrative }],
+      });
+
+      const result = await broker.call(
+        'business-intelligence.churnPrediction',
+        { customerSegment: 'residential', region: 'Berlin', format: 'csv' },
+        { meta: {} }
+      );
+
+      expect(result).toContain('"true"'); // isHeuristicModel = true
+      expect(result).toContain('15');     // estimatedAtRiskCustomers
+      expect(result).toContain('10.5');   // assumedChurnRatePct
+    });
+
     it('should return JSON for format=json (default)', async () => {
       const mockResult = { success: true, data: { content: [{ type: 'text', text: 'Estimated at-risk customers (max 100): 30\nAssumed churn rate (segment): 5.0%' }] } };
       callWithAutoPoll.mockResolvedValueOnce(mockResult);
