@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-03-04
+
+### Added
+
+- **EWK Monitoring Service** (`services/ewk-monitoring.service.js`) — new Moleculer service exposing 4 REST endpoints for BNetzA Energiewendekompetenz (EWK) monitoring data of ~820 German distribution grid operators (VNBs). Data source: [vnb-transparenz.de/EWK-Monitoring-BNetzA](https://www.vnb-transparenz.de/EWK-Monitoring-BNetzA). All endpoints expose the `format` parameter (`json` | `csv` | `xlsx` | `xls`) for file download. **Tag:** `EWK Monitoring (BNetzA)`.
+
+  - **`POST /api/ewk-monitoring/anschlussdauer`** — wraps `ewk_anschlussdauer`:
+    Connection waiting times (median weeks) per voltage level (NS/MS/HS) and installation type (EE/Verbrauch) for all VNBs. Supports `vnbName` partial search, `bnr` exact lookup, `voltageLevel`, `installationType`, `sortBy` (`anschlussdauer_asc` | `anschlussdauer_desc` | `name`), `limit`, `offset`, and `includeRanking`. Returns result list with BNetzA indicators 4.3.1–4.3.6 / 5.3.1–5.3.6 plus national distribution statistics.
+
+  - **`POST /api/ewk-monitoring/digitalisierungsindex`** — wraps `ewk_digitalisierungsindex`:
+    Digitalisation scores (0–100 %) across 5 categories (`gesamtscore`, `smart_grids`, `digitale_prozesse`, `datenmanagement`, `kundenmanagement`) and up to 19 sub-indicators for all VNBs. Supports `vnbName`, `bnr`, `category`, `sortBy` (`score_desc` | `score_asc` | `name`), `limit`, `offset`, and `includeRanking`. Scores are normalised from BNetzA's raw 0–1 values to 0–100 %.
+
+  - **`POST /api/ewk-monitoring/umsetzungsquote`** — wraps `ewk_umsetzungsquote`:
+    Implementation rate (% of submitted connection applications that were realised) per voltage level and installation type. Covers BNetzA indicators c010 / c020 / c030 (EE) and c041 / c053 / c064 (Verbrauch/Speicher). Returns rate plus absolute counts (applications submitted vs. realised). Supports same filter/sort parameters as `anschlussdauer`.
+
+  - **`POST /api/ewk-monitoring/benchmark-vnb`** — wraps `ewk_benchmark_vnb`:
+    Combined EWK performance profile for a single VNB (`vnbName` required, `bnr` optional). Returns all three monitoring dimensions (Anschlussdauer, Digitalisierungsindex, Umsetzungsquote) with national ranks in a single response — Markdown tables + structured JSON.
+
+- **29 new unit tests** in `tests/ewk-monitoring.service.test.js` covering:
+  - Service definition (name, action count, timeout)
+  - All 4 actions: default params, enum validation, required-field enforcement, pagination, correct MCP tool name, `format` not forwarded to MCP, combined CSV/XLSX passthrough
+  - `benchmarkVnb` vnbName required + empty string rejection
+
 ## [0.6.25] - 2026-03-04
 
 ### Added
