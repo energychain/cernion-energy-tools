@@ -932,6 +932,15 @@ module.exports = {
 
         if (format === 'csv' || format === 'xlsx' || format === 'xls') {
           const text = extractRedispatchText(result);
+
+          // Guard: MCP-level error flag (isError: true) — e.g. failed async job
+          if (result.data?.isError) {
+            throw new Error(
+              text.replace(/^[❌\s*⚡]+/, '').trim().substring(0, 300) ||
+                'Redispatch export error'
+            );
+          }
+
           const { metadata, rows: previewRows } = parseRedispatchExportText(text);
           const operatorLabel =
             metadata.gridOperatorName ||
@@ -956,13 +965,18 @@ module.exports = {
                   gridOperatorMastrId: resolvedMastrId,
                   minCapacity,
                   type: 'all',
-                  status: 'InBetrieb',
                   format: 'detailed',
                   limit: 10000,
                 },
                 ctx.meta.cernionToken
               );
-              const installations = localResult?.installations || [];
+              // Support both response shapes:
+              //   - callTool JSON-spread: localResult.installations (direct)
+              //   - wrapped:             localResult.data.installations
+              const installations =
+                localResult?.installations ||
+                localResult?.data?.installations ||
+                [];
               // Filter by types when specified (map 'combustion' → any non-standard type)
               const typeSet =
                 Array.isArray(mcpParams.types) && mcpParams.types.length > 0

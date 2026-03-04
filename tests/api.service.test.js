@@ -40,7 +40,7 @@ describe('API Gateway Service', () => {
       expect(ApiService.settings.openapi).toBeDefined();
       expect(ApiService.settings.openapi.info).toBeDefined();
       expect(ApiService.settings.openapi.info.title).toBe('Cernion Energy Tools API');
-      expect(ApiService.settings.openapi.info.version).toBe('0.6.21');
+      expect(ApiService.settings.openapi.info.version).toBe('0.6.22');
     });
 
     it('should have security schemes configured', () => {

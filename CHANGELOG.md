@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.21] - 2026-03-04
+## [0.6.22] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/german-grid/redispatch` — `totalMeasures`/`totalEnergyMWh` empty in CSV (D8 follow-up)**
+  The v0.6.21 summary-row CSV was correct in structure, but the actual Netztransparenz API sometimes uses `Total volume:` instead of `Total energy:` for the aggregate energy field, and can return `isError: true` (HTTP 500 from Netztransparenz) without the outer `success` flag becoming `false`.
+  Fix 1 — `isError` guard: when `result.data?.isError === true`, the handler now throws a descriptive error (`"Netztransparenz API Error: ..."`) instead of silently returning an empty summary row.
+  Fix 2 — flexible regexes: `parseRedispatchMeasuresText` now tries `Total energy:` **and** `Total volume:` (case-insensitive) for the energy field, and strips European digit separators (`1,248,204` / `1.248.204`) before `parseInt`.
+  2 new unit tests: `"Total volume:"` alternate wording, `isError: true` rejection.
+
+- **`POST /api/grid-operations/redispatch-export` — `isError: true` silently returns empty CSV (D7 follow-up)**
+  When the `cernion_redispatch_export` async job completes with `isError: true` in its result envelope (e.g. grid operator not found), the handler now throws a descriptive error instead of returning a preamble-only CSV with `# Total: 0 installations`.
+  Also: removed the `status: 'InBetrieb'` filter from the `cernion_installations_local` secondary lookup (it was unnecessarily restrictive — installations with non-standard status codes were excluded), and added `localResult?.data?.installations` as a fallback access path to handle both direct JSON-spread and wrapped response shapes.
+  1 new unit test: `isError: true` rejection.
+
+
 
 ### Fixed
 

@@ -34,22 +34,29 @@ function extractRedispatchText(result) {
 function parseRedispatchMeasuresText(text) {
   const metadata = {};
 
-  const foundMatch = text.match(/\*\*Found\*\*:\s*([\d,]+)\s*measures?/);
-  if (foundMatch) metadata.totalMeasures = parseInt(foundMatch[1].replace(/,/g, ''), 10);
+  // Total measure count — try multiple patterns for resilience against MCP tool wording changes
+  const foundMatch =
+    text.match(/\*\*Found\*\*:\s*([\d,. ]+)\s*measures?/i) ||
+    text.match(/Found\s*:\s*([\d,. ]+)\s*measures?/i);
+  if (foundMatch) metadata.totalMeasures = parseInt(foundMatch[1].replace(/[,. ]/g, ''), 10);
 
-  const energyMatch = text.match(/Total energy:\s*([\d,]+)\s*MWh/);
-  if (energyMatch) metadata.totalEnergyMWh = parseInt(energyMatch[1].replace(/,/g, ''), 10);
+  // Total energy — actual MCP tool may say "Total volume:" or "Total energy:" (probe varies)
+  const energyMatch =
+    text.match(/Total\s+(?:energy|volume)\s*:\s*([\d,. ]+)\s*MWh/i) ||
+    text.match(/Gesamtvolumen\s*:\s*([\d,. ]+)\s*MWh/i) ||
+    text.match(/Gesamtenergie\s*:\s*([\d,. ]+)\s*MWh/i);
+  if (energyMatch) metadata.totalEnergyMWh = parseInt(energyMatch[1].replace(/[,. ]/g, ''), 10);
 
-  metadata.highCongestion = /High grid congestion/i.test(text);
+  metadata.highCongestion = /High grid congestion|⚠️.*congestion/i.test(text);
 
   // Parse top-reason lines: "  - Reason Name: 922805 MWh (73.9%)"
   const reasons = [];
-  const reasonRegex = /^\s+-\s+(.+?):\s+([\d,]+)\s+MWh\s+\(([\d.]+)%\)/gm;
+  const reasonRegex = /^\s+-\s+(.+?):\s+([\d,. ]+)\s+MWh\s+\(([\d.]+)%\)/gm;
   let m;
   while ((m = reasonRegex.exec(text)) !== null) {
     reasons.push({
       reason: m[1].trim(),
-      energyMWh: parseInt(m[2].replace(/,/g, ''), 10),
+      energyMWh: parseInt(m[2].replace(/[,. ]/g, ''), 10),
       sharePct: parseFloat(m[3]),
     });
   }
@@ -709,6 +716,15 @@ module.exports = {
             result.data?.content?.[0]?.text ||
             'Upstream tool returned an error';
           throw new Error(errMsg);
+        }
+
+        // Guard: MCP-level error flag (isError: true) — e.g. Netztransparenz API 500
+        if (result.data?.isError) {
+          const errText = extractRedispatchText(result);
+          throw new Error(
+            errText.replace(/^[❌\s*⚡]+/, '').trim().substring(0, 300) ||
+              'Netztransparenz API error'
+          );
         }
 
         // CSV / XLSX: the MCP tool returns a 10-row preview with all rows sharing

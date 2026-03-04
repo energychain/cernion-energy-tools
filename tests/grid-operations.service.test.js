@@ -246,6 +246,23 @@ describe('Grid Operations Service', () => {
         undefined
       );
     });
+
+    it('should throw when async job result contains isError: true', async () => {
+      callWithAutoPoll.mockResolvedValueOnce({
+        success: true,
+        data: {
+          content: [{ type: 'text', text: '❌ **Export error**\n\nJob failed: grid operator not found' }],
+          isError: true,
+        },
+      });
+
+      await expect(
+        broker.call('grid-operations.redispatchExport', {
+          gridOperatorId: 'SNB000000000000',
+          format: 'csv',
+        })
+      ).rejects.toThrow(/Export error|grid operator not found/i);
+    });
   });
 
   describe('vnbdigitalSearch action', () => {

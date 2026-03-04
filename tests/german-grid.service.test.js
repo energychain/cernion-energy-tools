@@ -187,6 +187,48 @@ describe('German Grid Service', () => {
         })
       ).rejects.toThrow('Upstream tool error');
     });
+
+    it('should parse "Total volume:" as totalEnergyMWh (alternate wording)', async () => {
+      const narrative = [
+        '**Found**: 280 measures',
+        '- Total volume: 300000 MWh',
+        'Top reasons:',
+        '  - Strombedingter Redispatch: 200000 MWh (66.7%)',
+      ].join('\n');
+
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: { content: [{ type: 'text', text: narrative }] },
+      });
+
+      const result = await broker.call('german-grid.redispatch', {
+        dateFrom: '2026-01-01',
+        dateTo: '2026-01-31',
+        format: 'csv',
+      });
+
+      expect(result).toContain('# Total Measures: 280');
+      expect(result).toContain('# Total Energy: 300000 MWh');
+      expect(result).toContain('"2026-01-01","2026-01-31",280,300000');
+    });
+
+    it('should throw when MCP returns isError: true (Netztransparenz API down)', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          content: [{ type: 'text', text: '❌ **Netztransparenz API Error**\n\nAPI error 500: Internal Server Error' }],
+          isError: true,
+        },
+      });
+
+      await expect(
+        broker.call('german-grid.redispatch', {
+          dateFrom: '2026-02-01',
+          dateTo: '2026-02-28',
+          format: 'csv',
+        })
+      ).rejects.toThrow(/Netztransparenz API Error|Internal Server Error/i);
+    });
   });
 
   describe('spotprices ENTSO-E fallback', () => {
