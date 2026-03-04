@@ -161,25 +161,34 @@ describe('Grid Operations Service', () => {
       expect(result).toEqual(mockResult);
     });
 
-    it('should return CSV string with preamble for format=csv', async () => {
+    it('should return CSV with full installation data from local lookup for format=csv', async () => {
       const narrative = [
         '🔍 **Grid Operator Found**:',
         '   Name: TWL Netze GmbH',
         '   MaStR Number(s): SNB935578300972',
-        '✅ **Query executed successfully**',
         '**Quality Report**:',
-        '   Total Installations: 39',
-        '   Total Capacity: 20590.00 kW',
+        '   Total Installations: 59',
+        '   Total Capacity: 73370.00 kW',
         '**Preview** (first 5 installations):',
         '| Type | Capacity (kW) | City | Status |',
         '| --- | --- | --- | --- |',
-        '| Solar | 100.43 | Ludwigshafen | In Betrieb |',
-        '| Wind | 250.00 | Mannheim | In Betrieb |',
+        '|  | 100.43 | Ludwigshafen | In Betrieb |',
       ].join('\n');
 
       callWithAutoPoll.mockResolvedValueOnce({
         success: true,
         data: { content: [{ type: 'text', text: narrative }] },
+      });
+
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        installations: [
+          { mastrNummer: 'SEE001', type: 'solar',   bruttoleistung: 100.43, ort: 'Ludwigshafen', postleitzahl: '67059', inbetriebnahmedatum: '2020-01-01', einheitBetriebsstatus: '35' },
+          { mastrNummer: 'SEE002', type: 'solar',   bruttoleistung: 212.48, ort: 'Mannheim',     postleitzahl: '68001', inbetriebnahmedatum: '2019-06-15', einheitBetriebsstatus: '35' },
+          { mastrNummer: 'SBE003', type: 'storage', bruttoleistung: 9000,   ort: 'Ludwigshafen', postleitzahl: '67059', inbetriebnahmedatum: '2023-03-10', einheitBetriebsstatus: '35' },
+        ],
+        total: 3,
+        returned: 3,
       });
 
       const ctx = { meta: {} };
@@ -192,11 +201,34 @@ describe('Grid Operations Service', () => {
       expect(typeof result).toBe('string');
       expect(result).toMatch(/^# Redispatch 2\.0 Export/);
       expect(result).toContain('# Grid Operator: TWL Netze GmbH');
-      expect(result).toContain('# Total:');
+      expect(result).toContain('# Total: 3 installations');
       expect(result).toContain('# Generated:');
-      expect(result).toContain('"type","capacity_kW","city","status"');
-      expect(result).toContain('Solar');
+      expect(result).toContain('"mastrNummer","type","capacityKW","city","postalCode","commissioningDate","status"');
+      expect(result).toContain('SEE001');
+      expect(result).toContain('SEE002');
+      expect(result).toContain('SBE003');
       expect(result).toContain('Ludwigshafen');
+      expect(result).not.toContain('# Note: Preview only');
+    });
+
+    it('should call cernion_installations_local with correct params', async () => {
+      callWithAutoPoll.mockResolvedValueOnce({
+        success: true,
+        data: { content: [{ type: 'text', text: 'Name: Test GmbH\n   MaStR Number(s): SNB935578300972\n**Quality Report**:\n   Total Installations: 5\n   Total Capacity: 500.00 kW' }] },
+      });
+      callWithNewSession.mockResolvedValueOnce({ success: true, installations: [], total: 0, returned: 0 });
+
+      await broker.call('grid-operations.redispatchExport', {
+        gridOperatorId: 'SNB935578300972',
+        minCapacity: 150,
+        format: 'csv',
+      });
+
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'cernion_installations_local',
+        expect.objectContaining({ gridOperatorMastrId: 'SNB935578300972', minCapacity: 150, format: 'detailed' }),
+        undefined
+      );
     });
 
     it('should not forward format param to MCP tool', async () => {

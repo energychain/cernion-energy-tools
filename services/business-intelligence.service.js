@@ -7,6 +7,46 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
+const { applyFormat, convertToCSV, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
+
+// ─── Helpers for churn-prediction narrative responses ─────────────────────────
+
+/**
+ * Extract the narrative text from a churn prediction MCP result.
+ */
+function extractChurnText(result) {
+  if (!result) return '';
+  if (result.data?.content?.[0]?.text) return result.data.content[0].text;
+  if (typeof result.data === 'string') return result.data;
+  if (typeof result === 'string') return result;
+  return '';
+}
+
+/**
+ * Parse churn prediction narrative into a structured summary row.
+ * The MCP tool uses a heuristic model without individual CRM data;
+ * we surface the available aggregate metrics as a single CSV row.
+ */
+function parseChurnPredictionText(text, params) {
+  const atRiskMatch = text.match(/Estimated at-risk customers.*?:\s*(\d+)/i);
+  const estimatedAtRiskCustomers = atRiskMatch ? parseInt(atRiskMatch[1], 10) : null;
+
+  const rateMatch = text.match(/Assumed churn rate.*?:\s*([\d.]+)%/i);
+  const assumedChurnRatePct = rateMatch ? parseFloat(rateMatch[1]) : null;
+
+  const isHeuristicModel = /heuristic model/i.test(text);
+
+  return {
+    customerSegment: params.customerSegment,
+    region: params.region,
+    riskThreshold: params.riskThreshold || 'medium',
+    predictionWindowMonths: params.predictionWindowMonths || 3,
+    estimatedAtRiskCustomers,
+    assumedChurnRatePct,
+    isHeuristicModel,
+    analysisText: text.replace(/\n+/g, ' ').substring(0, 500),
+  };
+}
 
 module.exports = {
   name: 'business-intelligence',
@@ -288,6 +328,7 @@ module.exports = {
         includeValueSegmentation: { type: 'boolean', optional: true, default: true },
         includeChurnReasons: { type: 'boolean', optional: true, default: true },
         includeCompetitiveAnalysis: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Predict customer churn risk for energy suppliers',
@@ -426,16 +467,44 @@ module.exports = {
         },
       },
       async handler(ctx) {
+        const { format, ...mcpParams } = ctx.params;
         // Use auto-polling for async jobs (churn prediction can be slow for large customer bases)
-        return await callWithAutoPoll(
+        const result = await callWithAutoPoll(
           'cernion_customer_churn_prediction',
-          ctx.params,
+          mcpParams,
           {
             maxWaitTime: 8 * 60 * 1000, // 8 minutes max
             pollInterval: 3000,
           },
           ctx.meta.cernionToken
         );
+
+        if (format === 'csv' || format === 'xlsx' || format === 'xls') {
+          const text = extractChurnText(result);
+          const summaryRow = parseChurnPredictionText(text, mcpParams);
+
+          const preambleLines = [
+            '# Churn Prediction Export',
+            `# Segment: ${mcpParams.customerSegment}`,
+            `# Region: ${mcpParams.region}`,
+            `# Risk Threshold: ${mcpParams.riskThreshold || 'medium'}`,
+            `# Prediction Window: ${mcpParams.predictionWindowMonths || 3} months`,
+            `# Generated: ${new Date().toISOString()}`,
+            '# Note: Heuristic model — no individual customer CRM data available.',
+          ];
+          const preamble = preambleLines.join('\n');
+
+          if (format === 'csv') {
+            ctx.meta.$responseHeaders = {
+              'Content-Type': 'text/csv; charset=utf-8',
+              'Content-Disposition': `attachment; filename="churn-prediction-${Date.now()}.csv"`,
+            };
+            return `${preamble}\n${convertToCSV([summaryRow])}`;
+          }
+          return applyFormat(ctx, result, format, 'churn-prediction', 'Churn Prediction', [summaryRow]);
+        }
+
+        return result;
       },
     },
 

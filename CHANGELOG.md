@@ -7,7 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.20] - 2026-03-04
+## [0.6.21] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/grid-operations/redispatch-export` — `format=csv` returned only 5-row preview (D7)**
+  The v0.6.20 fix parsed the Markdown `**Preview**` table embedded in the MCP narrative, which contained at most 5 rows. The actual full installation data (up to 10 000 records) is available via `cernion_installations_local` with `format: 'detailed'`.
+  Fix: `parseRedispatchExportText` now extracts the resolved operator MaStR ID from the `MaStR Number(s): SNB…` line. The CSV handler then calls `cernion_installations_local` with that ID to fetch the full structured dataset and maps each record to `{mastrNummer, type, capacityKW, city, postalCode, commissioningDate, status}`. CSV header changed accordingly; the `# Note: Preview only` comment is omitted when full data is available. A preview fallback is used only if the local lookup call fails.
+  Tests updated: old preview-column assertions replaced with full-column and MaStR-number assertions; mock for `callWithNewSession` added.
+
+- **`POST /api/german-grid/redispatch` — `format=csv` returned identical timestamps for all rows (D8)**
+  The MCP tool `netztransparenz_redispatch` always returns exactly 10 preview rows, all sharing the first UTC time slot of the queried period (e.g. `2026-02-01T23:00:00Z`), making per-row CSV output meaningless for PowerBI trend analysis.
+  Fix: `parseRedispatchMeasuresText` now extracts the aggregate summary fields from the narrative (`Found: N measures`, `Total volume:`, `High congestion:`, `Top reasons:` block) instead of the individual preview rows. The handler produces a single summary row per API call with fields `{dateFrom, dateTo, totalMeasures, totalEnergyMWh, highCongestion, topReason1..3 (name/MWh/pct), source}`. The preamble note changed from "Preview only — N of M measures shown" to "Aggregated summary per period. For monthly trend analysis call with monthly date ranges."
+  Tests updated: assertions match new summary-row columns and confirm "Preview only" string is absent.
+
+- **`POST /api/business-intelligence/churn-prediction` — `format=csv` parameter ignored (D11)**
+  The `format` parameter was not declared in the Moleculer params schema and was forwarded directly to the MCP tool `cernion_customer_churn_prediction`, which returned a raw heuristic narrative regardless.
+  Fix: Added `format` to the params schema. The handler strips `format` before calling `callWithAutoPoll`, then parses the narrative with `parseChurnPredictionText` to extract `{customerSegment, region, riskThreshold, predictionWindowMonths, estimatedAtRiskCustomers, assumedChurnRatePct, isHeuristicModel, analysisText}`. For `format=csv`/`xlsx` a single summary row is returned with a `# Churn Prediction Export` preamble including a `# Note: Heuristic model` warning. Default JSON passthrough unchanged.
+  3 new unit tests: CSV preamble, format not forwarded to MCP, JSON default.
+
+
 
 ### Fixed
 

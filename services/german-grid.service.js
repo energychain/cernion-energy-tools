@@ -27,9 +27,9 @@ function extractRedispatchText(result) {
 
 /**
  * Parse the narrative text from netztransparenz_redispatch.
- * Extracts:
- *  - metadata: totalMeasures, totalEnergyMWh
- *  - rows: individual measures as {timestamp, quantityMWh, measureType}
+ * Returns aggregated summary metadata (totalMeasures, totalEnergyMWh, highCongestion,
+ * topReasons[]) — the MCP tool returns only a 10-row preview of individual measures,
+ * so we expose the richer aggregated summary instead for CSV/XLSX consumers.
  */
 function parseRedispatchMeasuresText(text) {
   const metadata = {};
@@ -40,19 +40,22 @@ function parseRedispatchMeasuresText(text) {
   const energyMatch = text.match(/Total energy:\s*([\d,]+)\s*MWh/);
   if (energyMatch) metadata.totalEnergyMWh = parseInt(energyMatch[1].replace(/,/g, ''), 10);
 
-  // Parse bullet lines: "- 2026-02-01T23:00:00Z: 1350 MWh (Strombedingter Redispatch)"
-  const rows = [];
-  const lineRegex = /^-\s+(\S+):\s+([\d,]+)\s+MWh\s+\((.+?)\)/gm;
+  metadata.highCongestion = /High grid congestion/i.test(text);
+
+  // Parse top-reason lines: "  - Reason Name: 922805 MWh (73.9%)"
+  const reasons = [];
+  const reasonRegex = /^\s+-\s+(.+?):\s+([\d,]+)\s+MWh\s+\(([\d.]+)%\)/gm;
   let m;
-  while ((m = lineRegex.exec(text)) !== null) {
-    rows.push({
-      timestamp: m[1],
-      quantityMWh: parseInt(m[2].replace(/,/g, ''), 10),
-      measureType: m[3],
+  while ((m = reasonRegex.exec(text)) !== null) {
+    reasons.push({
+      reason: m[1].trim(),
+      energyMWh: parseInt(m[2].replace(/,/g, ''), 10),
+      sharePct: parseFloat(m[3]),
     });
   }
+  metadata.topReasons = reasons;
 
-  return { metadata, rows };
+  return { metadata };
 }
 
 module.exports = {
@@ -708,11 +711,33 @@ module.exports = {
           throw new Error(errMsg);
         }
 
-        // CSV / XLSX: parse bullet-list measures from the narrative text
+        // CSV / XLSX: the MCP tool returns a 10-row preview with all rows sharing
+        // the same timestamp (first time slot of the period). Instead of exposing
+        // that misleading preview, we return a single aggregated SUMMARY row per
+        // API call — identical to the negativePrices approach.
+        // For monthly trend analysis in PowerBI: call with monthly date ranges.
         if (format === 'csv' || format === 'xlsx' || format === 'xls') {
           const text = extractRedispatchText(result);
-          const { metadata, rows } = parseRedispatchMeasuresText(text);
-          const isPartial = rows.length > 0 && metadata.totalMeasures > rows.length;
+          const { metadata } = parseRedispatchMeasuresText(text);
+          const r = metadata.topReasons || [];
+
+          const summaryRow = {
+            dateFrom: mcpParams.dateFrom,
+            dateTo: mcpParams.dateTo,
+            totalMeasures: metadata.totalMeasures ?? null,
+            totalEnergyMWh: metadata.totalEnergyMWh ?? null,
+            highCongestion: metadata.highCongestion ?? false,
+            topReason1: r[0]?.reason ?? '',
+            topReason1MWh: r[0]?.energyMWh ?? null,
+            topReason1PctStr: r[0] != null ? `${r[0].sharePct}%` : '',
+            topReason2: r[1]?.reason ?? '',
+            topReason2MWh: r[1]?.energyMWh ?? null,
+            topReason2PctStr: r[1] != null ? `${r[1].sharePct}%` : '',
+            topReason3: r[2]?.reason ?? '',
+            topReason3MWh: r[2]?.energyMWh ?? null,
+            topReason3PctStr: r[2] != null ? `${r[2].sharePct}%` : '',
+            source: 'Netztransparenz.de',
+          };
 
           const preambleLines = [
             '# Redispatch Measures Export',
@@ -724,12 +749,9 @@ module.exports = {
               ? [`# Total Energy: ${metadata.totalEnergyMWh} MWh`]
               : []),
             `# Generated: ${new Date().toISOString()}`,
+            '# Note: Aggregated summary per period. For monthly trend analysis',
+            '#       call with monthly date ranges (e.g. 2026-01-01 to 2026-01-31).',
           ];
-          if (isPartial) {
-            preambleLines.push(
-              `# Note: Preview only — ${rows.length} of ${metadata.totalMeasures} measures shown`
-            );
-          }
           const preamble = preambleLines.join('\n');
 
           if (format === 'csv') {
@@ -737,10 +759,10 @@ module.exports = {
               'Content-Type': 'text/csv; charset=utf-8',
               'Content-Disposition': `attachment; filename="redispatch-${Date.now()}.csv"`,
             };
-            return `${preamble}\n${convertToCSV(rows)}`;
+            return `${preamble}\n${convertToCSV([summaryRow])}`;
           }
           // xlsx / xls
-          return applyFormat(ctx, result, format, 'redispatch', 'Redispatch', rows);
+          return applyFormat(ctx, result, format, 'redispatch', 'Redispatch', [summaryRow]);
         }
 
         return applyFormat(ctx, result, format, 'redispatch', 'Redispatch');

@@ -99,15 +99,20 @@ describe('German Grid Service', () => {
       expect(rest).toBe('POST /redispatch');
     });
 
-    it('should return CSV string with preamble for format=csv', async () => {
+    it('should return CSV with aggregated summary row for format=csv', async () => {
       const narrative = [
         '⚡ **Redispatch Measures** (2026-02-02 to 2026-03-04)',
-        '**Found**: 3 measures',
+        '**Found**: 1134 measures',
         '- 2026-02-01T23:00:00Z: 1350 MWh (Strombedingter Redispatch)',
-        '- 2026-02-02T00:00:00Z: 1954 MWh (Strombedingter Redispatch)',
-        '- 2026-02-02T01:00:00Z: 800 MWh (Einspeisemanagement)',
+        '- 2026-02-01T23:00:00Z: 1954 MWh (Strombedingter Redispatch)',
         '**Analysis**:',
-        '- Total energy: 4104 MWh',
+        '- Total energy: 1248204 MWh',
+        '- ⚠️ High grid congestion: 1248204 MWh redispatch',
+        'Top reasons:',
+        '  - Strombedingter Redispatch: 922805 MWh (73.9%)',
+        '  - Einspeisemanagement: 200000 MWh (16.0%)',
+        '  - Probefahrt: 125399 MWh (10.1%)',
+        '**Source**: Netztransparenz.de',
       ].join('\n');
 
       callWithNewSession.mockResolvedValueOnce({
@@ -129,12 +134,17 @@ describe('German Grid Service', () => {
       expect(typeof result).toBe('string');
       expect(result).toMatch(/^# Redispatch Measures Export/);
       expect(result).toContain('# Period: 2026-02-02 to 2026-03-04');
-      expect(result).toContain('# Total Measures: 3');
-      expect(result).toContain('# Total Energy: 4104 MWh');
+      expect(result).toContain('# Total Measures: 1134');
+      expect(result).toContain('# Total Energy: 1248204 MWh');
       expect(result).toContain('# Generated:');
-      expect(result).toContain('"timestamp","quantityMWh","measureType"');
-      expect(result).toContain('2026-02-01T23:00:00Z');
+      expect(result).toContain('# Note: Aggregated summary per period');
+      // Summary row columns — one row per date range
+      expect(result).toContain('"dateFrom","dateTo","totalMeasures","totalEnergyMWh"');
+      expect(result).toContain('"2026-02-02","2026-03-04",1134,1248204');
       expect(result).toContain('Strombedingter Redispatch');
+      expect(result).toContain('73.9%');
+      // NO "Preview only" note
+      expect(result).not.toContain('Preview only');
     });
 
     it('should return JSON for format=json', async () => {

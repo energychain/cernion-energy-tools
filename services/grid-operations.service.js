@@ -41,6 +41,10 @@ function parseRedispatchExportText(text) {
   const nameMatch = text.match(/Name:\s*(.+?)(?:\r?\n|$)/);
   if (nameMatch) metadata.gridOperatorName = nameMatch[1].trim();
 
+  // Extract the first SNB… MaStR ID from "MaStR Number(s): SNB..."
+  const mastrMatch = text.match(/MaStR Number\(s\):\s*(SNB\w+)/);
+  if (mastrMatch) metadata.mastrId = mastrMatch[1].trim();
+
   const totalMatch = text.match(/Total Installations:\s*(\d+)/);
   if (totalMatch) metadata.totalInstallations = parseInt(totalMatch[1], 10);
 
@@ -928,19 +932,73 @@ module.exports = {
 
         if (format === 'csv' || format === 'xlsx' || format === 'xls') {
           const text = extractRedispatchText(result);
-          const { metadata, rows } = parseRedispatchExportText(text);
+          const { metadata, rows: previewRows } = parseRedispatchExportText(text);
           const operatorLabel =
             metadata.gridOperatorName ||
             gridOperatorId ||
             gridOperator ||
             gridOperatorBdewCode ||
             '';
-          const totalStr =
-            metadata.totalInstallations != null
-              ? `${metadata.totalInstallations} installations, ${(metadata.totalCapacityKW || 0).toFixed(2)} kW`
-              : 'unknown';
-          const isPartial = rows.length > 0 && metadata.totalInstallations > rows.length;
 
+          // ── Full data via cernion_installations_local ────────────────
+          // The async export tool returns only a 5-row preview table in its
+          // narrative. For a complete export we query the local MaStR database
+          // directly using the resolved operator MaStR ID.
+          const resolvedMastrId = gridOperatorId || metadata.mastrId;
+          let exportRows;
+          let isPreviewFallback = false;
+
+          if (resolvedMastrId) {
+            try {
+              const localResult = await CernionMCPClient.callWithNewSession(
+                'cernion_installations_local',
+                {
+                  gridOperatorMastrId: resolvedMastrId,
+                  minCapacity,
+                  type: 'all',
+                  status: 'InBetrieb',
+                  format: 'detailed',
+                  limit: 10000,
+                },
+                ctx.meta.cernionToken
+              );
+              const installations = localResult?.installations || [];
+              // Filter by types when specified (map 'combustion' → any non-standard type)
+              const typeSet =
+                Array.isArray(mcpParams.types) && mcpParams.types.length > 0
+                  ? new Set(mcpParams.types)
+                  : null;
+              const filtered = typeSet
+                ? installations.filter(
+                    (inst) =>
+                      typeSet.has(inst.type) ||
+                      (typeSet.has('combustion') &&
+                        !['solar', 'wind', 'storage', 'biomass'].includes(inst.type))
+                  )
+                : installations;
+              exportRows = filtered.map((inst) => ({
+                mastrNummer: inst.mastrNummer,
+                type: inst.type || 'unknown',
+                capacityKW: inst.bruttoleistung || 0,
+                city: inst.ort || inst.gemeinde || '',
+                postalCode: inst.postleitzahl || '',
+                commissioningDate: inst.inbetriebnahmedatum || '',
+                status:
+                  inst.einheitBetriebsstatus === '35'
+                    ? 'In Betrieb'
+                    : (inst.einheitBetriebsstatus || ''),
+              }));
+            } catch (_) {
+              // Local lookup failed — fall back to 5-row narrative preview
+              exportRows = previewRows;
+              isPreviewFallback = true;
+            }
+          } else {
+            exportRows = previewRows;
+            isPreviewFallback = true;
+          }
+
+          const totalStr = `${exportRows.length} installations`;
           const preambleLines = [
             '# Redispatch 2.0 Export',
             `# Grid Operator: ${operatorLabel}`,
@@ -948,24 +1006,12 @@ module.exports = {
             `# Total: ${totalStr}`,
             `# Generated: ${new Date().toISOString()}`,
           ];
-          if (isPartial) {
+          if (isPreviewFallback && metadata.totalInstallations > previewRows.length) {
             preambleLines.push(
-              `# Note: Preview only \u2014 ${rows.length} of ${metadata.totalInstallations} installations shown`
+              `# Note: Preview only \u2014 ${previewRows.length} of ${metadata.totalInstallations} installations shown`
             );
           }
           const preamble = preambleLines.join('\n');
-
-          // Fallback row when the MCP preview table is empty
-          const exportRows =
-            rows.length > 0
-              ? rows
-              : [
-                  {
-                    gridOperator: operatorLabel,
-                    totalInstallations: metadata.totalInstallations ?? 0,
-                    totalCapacityKW: metadata.totalCapacityKW ?? 0,
-                  },
-                ];
 
           if (format === 'csv') {
             ctx.meta.$responseHeaders = {

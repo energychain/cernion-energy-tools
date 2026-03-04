@@ -91,6 +91,64 @@ describe('Business Intelligence Service', () => {
 
       expect(result).toBeDefined();
     });
+
+    it('should return CSV with summary row for format=csv', async () => {
+      const narrative = [
+        '\uD83D\uDCCA **Churn Prediction Analysis**',
+        'Estimated at-risk customers (max 100): 60',
+        'Assumed churn rate (segment): 8.0%',
+        '\u2139\uFE0F This tool currently uses a heuristic model without customer-level CRM data.',
+      ].join('\n');
+
+      callWithAutoPoll.mockResolvedValueOnce({
+        success: true,
+        data: { content: [{ type: 'text', text: narrative }] },
+      });
+
+      const ctx = { meta: {} };
+      const result = await broker.call(
+        'business-intelligence.churnPrediction',
+        { customerSegment: 'all', region: '67059', riskThreshold: 'medium', predictionWindowMonths: 3, format: 'csv' },
+        ctx
+      );
+
+      expect(typeof result).toBe('string');
+      expect(result).toMatch(/^# Churn Prediction Export/);
+      expect(result).toContain('# Segment: all');
+      expect(result).toContain('# Region: 67059');
+      expect(result).toContain('# Note: Heuristic model');
+      expect(result).toContain('"customerSegment","region","riskThreshold","predictionWindowMonths","estimatedAtRiskCustomers","assumedChurnRatePct","isHeuristicModel","analysisText"');
+      expect(result).toContain('"all","67059","medium",3,60,8,"true"');
+    });
+
+    it('should not forward format to MCP tool', async () => {
+      callWithAutoPoll.mockResolvedValueOnce({ success: true, data: {} });
+
+      await broker.call('business-intelligence.churnPrediction', {
+        customerSegment: 'all',
+        region: '67059',
+        format: 'csv',
+      });
+
+      expect(callWithAutoPoll).toHaveBeenCalledWith(
+        'cernion_customer_churn_prediction',
+        expect.not.objectContaining({ format: expect.anything() }),
+        expect.any(Object),
+        undefined
+      );
+    });
+
+    it('should return JSON for format=json (default)', async () => {
+      const mockResult = { success: true, data: { content: [{ type: 'text', text: 'Estimated at-risk customers (max 100): 30\nAssumed churn rate (segment): 5.0%' }] } };
+      callWithAutoPoll.mockResolvedValueOnce(mockResult);
+
+      const result = await broker.call('business-intelligence.churnPrediction', {
+        customerSegment: 'prosumer',
+        region: 'Bayern',
+      });
+
+      expect(result).toEqual(mockResult);
+    });
   });
 
   describe('dynamicTariffCalculator action', () => {
