@@ -396,7 +396,7 @@ module.exports = {
             }
           }
 
-          const result = await CernionMCPClient.callWithNewSession(
+          let result = await CernionMCPClient.callWithNewSession(
             'mastr_net_residual_load',
             mcpParams,
             ctx.meta.cernionToken
@@ -408,15 +408,71 @@ module.exports = {
             throw new Error(result.data[0].text);
           }
 
-          // Detect SMARD population scaling failure (all loadMW === 0)
+          // Detect all-zero loadMW — SMARD filter 411 (day-ahead load forecast) is only
+          // published by the German TSOs once per day (typically after ~14:00 CET). Before
+          // publication the file contains `null` values which the MCP tool maps to 0.
+          // Fix: automatically retry with startDate = D-7 (same weekday, reference week)
+          // which uses SMARD filter 410 (realised load) — always available.
+          // The D-7 reference week is also what the MCP tool uses internally for D+2–D+14
+          // requests, so this is consistent with the documented fallback strategy.
           if (result && Array.isArray(result.forecast) && result.forecast.length > 0) {
             const allZeroLoad = result.forecast.every((p) => (p.loadMW ?? 0) === 0);
-            if (allZeroLoad && !ctx.params.populationOverride) {
-              result.dataQualityWarning = true;
-              result.dataQualityMessage =
-                'SMARD population scaling returned loadMW=0 for all forecast points. ' +
-                'The region may not be found in the SMARD population database. ' +
-                'Provide "populationOverride" with the city\'s known population (e.g. 247000 for Kiel) to fix scaling.';
+            if (allZeroLoad) {
+              // Compute intended start date (tomorrow when no startDate given)
+              const intendedStartStr = startDate || (() => {
+                const d = new Date();
+                d.setDate(d.getDate() + 1);
+                return d.toISOString().split('T')[0];
+              })();
+              const intendedStart = new Date(intendedStartStr);
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+
+              if (intendedStart >= today) {
+                // Future/today date with null load → filter 411 not yet published.
+                // Retry with D-7 (same weekday, realised load via filter 410).
+                const fallbackDate = new Date(intendedStart);
+                fallbackDate.setDate(fallbackDate.getDate() - 7);
+                const fallbackDateStr = fallbackDate.toISOString().split('T')[0];
+
+                this.logger.warn(
+                  `residual-load: SMARD filter 411 returned null for "${intendedStartStr}" ` +
+                  `(day-ahead forecast not yet published). ` +
+                  `Retrying with D-7 reference week startDate="${fallbackDateStr}".`
+                );
+
+                const fallbackResult = await CernionMCPClient.callWithNewSession(
+                  'mastr_net_residual_load',
+                  { ...mcpParams, startDate: fallbackDateStr },
+                  ctx.meta.cernionToken
+                );
+
+                const fallbackHasLoad = Array.isArray(fallbackResult?.forecast) &&
+                  fallbackResult.forecast.some((p) => (p.loadMW ?? 0) > 0);
+
+                if (fallbackHasLoad) {
+                  result = fallbackResult;
+                  result.loadFallbackWarning = true;
+                  result.loadFallbackNote =
+                    `SMARD filter 411 (day-ahead load forecast) not yet published for ${intendedStartStr}. ` +
+                    `Load and generation data use reference week ${fallbackDateStr} (same weekday, D-7) ` +
+                    `via SMARD filter 410 (realised load). ` +
+                    `Re-request after ~14:00 CET for the actual day-ahead load forecast.`;
+                } else {
+                  // D-7 fallback also failed — surface the original warning
+                  result.dataQualityWarning = true;
+                  result.dataQualityMessage =
+                    `SMARD load data unavailable for both "${intendedStartStr}" and D-7 reference week "${fallbackDateStr}". ` +
+                    'Provide "populationOverride" with the known population of the grid area.';
+                }
+              } else {
+                // Historical date with all-zero load → population scaling issue
+                result.dataQualityWarning = true;
+                result.dataQualityMessage =
+                  'SMARD population scaling returned loadMW=0 for all forecast points. ' +
+                  'The region may not be found in the SMARD population database. ' +
+                  'Provide "populationOverride" with the city\'s known population (e.g. 247000 for Kiel) to fix scaling.';
+              }
             }
           }
 

@@ -448,52 +448,144 @@ describe('Residual Load Service', () => {
       });
     });
 
-    describe('dataQualityWarning — SMARD population scaling failure (loadMW=0)', () => {
-      it('adds dataQualityWarning when all forecast loadMW are 0', async () => {
-        callWithNewSession.mockResolvedValueOnce({
-          summary: { region: 'Kiel' },
-          forecast: [
-            { timestamp: '2025-01-15T00:00:00Z', loadMW: 0, residualLoadMW: 0 },
-            { timestamp: '2025-01-15T01:00:00Z', loadMW: 0, residualLoadMW: 0 },
-          ],
-        });
-        const result = await broker.call('residual-load.netResidualLoad', { region: 'Kiel' });
-        expect(result.dataQualityWarning).toBe(true);
-        expect(result.dataQualityMessage).toMatch(/populationOverride/);
-        expect(result.dataQualityMessage).toMatch(/Kiel/);
-      });
+    describe('SMARD filter 411 D-7 fallback (Bug v0.6.17: filter 411 null before ~14:00 CET)', () => {
+      it('triggers D-7 fallback when future-date request returns all-zero loadMW (filter 411 not yet published)', async () => {
+        // Primary call: filter 411 null → all loadMW=0
+        callWithNewSession
+          .mockResolvedValueOnce({
+            summary: { region: 'Bayern' },
+            forecast: [
+              { timestamp: '2030-01-01T00:00:00Z', loadMW: 0, eeGenerationMW: 3.5, residualLoadMW: 0 },
+              { timestamp: '2030-01-01T01:00:00Z', loadMW: 0, eeGenerationMW: 4.0, residualLoadMW: 0 },
+            ],
+          })
+          // D-7 fallback (2029-12-25) returns real load via filter 410
+          .mockResolvedValueOnce({
+            summary: { region: 'Bayern' },
+            forecast: [
+              { timestamp: '2029-12-25T00:00:00Z', loadMW: 7200.5, eeGenerationMW: 3.5, residualLoadMW: 7197 },
+              { timestamp: '2029-12-25T01:00:00Z', loadMW: 7100.2, eeGenerationMW: 4.0, residualLoadMW: 7096.2 },
+            ],
+          });
 
-      it('does NOT add dataQualityWarning when at least one loadMW is non-zero', async () => {
-        callWithNewSession.mockResolvedValueOnce({
-          summary: { region: 'Kiel' },
-          forecast: [
-            { timestamp: '2025-01-15T00:00:00Z', loadMW: 0, residualLoadMW: 0 },
-            { timestamp: '2025-01-15T01:00:00Z', loadMW: 42.3, residualLoadMW: 38.8 },
-          ],
-        });
-        const result = await broker.call('residual-load.netResidualLoad', { region: 'Kiel' });
-        expect(result.dataQualityWarning).toBeUndefined();
-      });
-
-      it('does NOT add dataQualityWarning when populationOverride is provided', async () => {
-        callWithNewSession.mockResolvedValueOnce({
-          summary: { region: 'Kiel' },
-          forecast: [{ timestamp: '2025-01-15T00:00:00Z', loadMW: 0, residualLoadMW: 0 }],
-        });
         const result = await broker.call('residual-load.netResidualLoad', {
+          region: 'Bayern',
+          startDate: '2030-01-01',
+        });
+        expect(result.loadFallbackWarning).toBe(true);
+        expect(result.loadFallbackNote).toMatch(/filter 411/i);
+        expect(result.loadFallbackNote).toMatch(/D-7/i);
+        expect(result.dataQualityWarning).toBeUndefined();
+        // Forecast data should come from the D-7 fallback response
+        expect(result.forecast[0].loadMW).toBe(7200.5);
+      });
+
+      it('D-7 fallback startDate is exactly 7 days before the requested startDate', async () => {
+        callWithNewSession
+          .mockResolvedValueOnce({
+            summary: { region: 'Bayern' },
+            forecast: [{ timestamp: '2030-03-12T00:00:00Z', loadMW: 0, residualLoadMW: 0 }],
+          })
+          .mockImplementationOnce(async (toolName, params) => buildResidualLoadResponse(params));
+
+        await broker.call('residual-load.netResidualLoad', { region: 'Bayern', startDate: '2030-03-12' });
+
+        const calls = callWithNewSession.mock.calls.filter(([t]) => t === 'mastr_net_residual_load');
+        expect(calls).toHaveLength(2);
+        // 2030-03-12 − 7 days = 2030-03-05
+        expect(calls[1][1].startDate).toBe('2030-03-05');
+      });
+
+      it('D-7 fallback preserves populationOverride in the retry call', async () => {
+        callWithNewSession
+          .mockResolvedValueOnce({
+            summary: { region: 'Kiel' },
+            forecast: [{ timestamp: '2030-01-01T00:00:00Z', loadMW: 0, residualLoadMW: 0 }],
+          })
+          .mockImplementationOnce(async (toolName, params) => buildResidualLoadResponse(params));
+
+        await broker.call('residual-load.netResidualLoad', {
           region: 'Kiel',
+          startDate: '2030-01-01',
           populationOverride: 247000,
         });
-        expect(result.dataQualityWarning).toBeUndefined();
+
+        const calls = callWithNewSession.mock.calls.filter(([t]) => t === 'mastr_net_residual_load');
+        expect(calls).toHaveLength(2);
+        expect(calls[1][1].populationOverride).toBe(247000);
+        expect(calls[1][1].startDate).toBe('2029-12-25'); // 2030-01-01 − 7
       });
 
-      it('does NOT add dataQualityWarning when forecast is empty', async () => {
+      it('falls back to dataQualityWarning when D-7 reference week also returns all-zero loadMW', async () => {
+        callWithNewSession
+          .mockResolvedValueOnce({
+            summary: { region: 'UnknownRegion' },
+            forecast: [{ timestamp: '2030-01-01T00:00:00Z', loadMW: 0, residualLoadMW: 0 }],
+          })
+          .mockResolvedValueOnce({
+            summary: { region: 'UnknownRegion' },
+            forecast: [{ timestamp: '2029-12-25T00:00:00Z', loadMW: 0, residualLoadMW: 0 }],
+          });
+
+        const result = await broker.call('residual-load.netResidualLoad', {
+          region: 'UnknownRegion',
+          startDate: '2030-01-01',
+        });
+        expect(result.dataQualityWarning).toBe(true);
+        expect(result.dataQualityMessage).toMatch(/D-7|reference week/i);
+        expect(result.loadFallbackWarning).toBeUndefined();
+      });
+
+      it('does NOT trigger D-7 fallback for a past startDate with all-zero load (population scaling issue)', async () => {
+        callWithNewSession.mockResolvedValueOnce({
+          summary: { region: 'Kiel' },
+          forecast: [
+            { timestamp: '2020-01-15T00:00:00Z', loadMW: 0, residualLoadMW: 0 },
+            { timestamp: '2020-01-15T01:00:00Z', loadMW: 0, residualLoadMW: 0 },
+          ],
+        });
+
+        const result = await broker.call('residual-load.netResidualLoad', {
+          region: 'Kiel',
+          startDate: '2020-01-15',
+        });
+
+        expect(result.dataQualityWarning).toBe(true);
+        expect(result.dataQualityMessage).toMatch(/populationOverride/);
+        expect(result.loadFallbackWarning).toBeUndefined();
+        const calls = callWithNewSession.mock.calls.filter(([t]) => t === 'mastr_net_residual_load');
+        expect(calls).toHaveLength(1); // No D-7 retry for historical past dates
+      });
+
+      it('does NOT trigger D-7 fallback when at least one loadMW is non-zero', async () => {
+        callWithNewSession.mockResolvedValueOnce({
+          summary: { region: 'Bayern' },
+          forecast: [
+            { timestamp: '2030-01-01T00:00:00Z', loadMW: 0 },
+            { timestamp: '2030-01-01T01:00:00Z', loadMW: 7200.5 },
+          ],
+        });
+
+        const result = await broker.call('residual-load.netResidualLoad', {
+          region: 'Bayern',
+          startDate: '2030-01-01',
+        });
+        expect(result.dataQualityWarning).toBeUndefined();
+        expect(result.loadFallbackWarning).toBeUndefined();
+        const calls = callWithNewSession.mock.calls.filter(([t]) => t === 'mastr_net_residual_load');
+        expect(calls).toHaveLength(1);
+      });
+
+      it('does NOT add any warning when forecast is empty', async () => {
         callWithNewSession.mockResolvedValueOnce({
           summary: { region: 'Kiel' },
           forecast: [],
         });
         const result = await broker.call('residual-load.netResidualLoad', { region: 'Kiel' });
         expect(result.dataQualityWarning).toBeUndefined();
+        expect(result.loadFallbackWarning).toBeUndefined();
+        const calls = callWithNewSession.mock.calls.filter(([t]) => t === 'mastr_net_residual_load');
+        expect(calls).toHaveLength(1);
       });
     });
 

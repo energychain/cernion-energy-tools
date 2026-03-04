@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.17] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/residual-load/net-residual-load` — `Load (MW) = 0` for all future-date requests (SMARD filter 411 not yet published before ~14:00 CET)**
+  Root cause confirmed via direct SMARD API probe: SMARD filter 411 ("Prognostizierte Netzlast", day-ahead load forecast) has `null` values for tomorrow's date until the German TSOs publish the day-ahead forecast at approximately 14:00 CET. Before publication, all 96 quarter-hourly slots contain `null`, which the MCP tool maps to `loadMW=0`. The region name (`Rheinland-Pfalz`, `Bayern`, etc.) and population scaling were both correct — the underlying national SMARD load data was simply not yet available.
+  Fix: Automatic **D-7 reference week fallback** — when all `loadMW` values are 0 and the requested date is today or in the future, the service automatically retries with `startDate = requestedDate − 7 days` (same weekday). This uses SMARD filter 410 (realised load), which always has data. The fallback is consistent with the MCP tool's own documented strategy for D+2–D+14 requests. A `loadFallbackWarning: true` and descriptive `loadFallbackNote` field are added to the response. If the D-7 retry also returns all zeros, the original `dataQualityWarning` is surfaced as a last resort.
+  Historical requests (`startDate` in the past) that return all-zero load still receive the `dataQualityWarning` / `populationOverride` guidance (population scaling issue, not a date issue).
+  7 new unit tests covering all fallback branches.
+
 ## [0.6.16] - 2026-03-04
 
 ### Fixed
