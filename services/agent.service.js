@@ -66,10 +66,17 @@ function buildServiceCatalogue(services) {
 
       const paramDefs = action.params
         ? Object.entries(action.params).map(([k, v]) => {
+            // Multi-type param: v is an array of rule objects (e.g. [{type:'array'},{type:'string'}])
+            if (Array.isArray(v)) {
+              const types = v.map((r) => (typeof r === 'object' && r.type ? r.type : 'any')).join('|');
+              return `${k}?: ${types}`;
+            }
             const t = typeof v === 'string' ? v : v.type || 'string';
             const opt = typeof v === 'object' && v.optional ? '?' : '';
             const enumVals =
-              typeof v === 'object' && v.values ? `[${v.values.join('|')}]` : '';
+              typeof v === 'object' && Array.isArray(v.values)
+                ? `[${v.values.join('|')}]`
+                : '';
             const dflt =
               typeof v === 'object' && v.default !== undefined ? `=${v.default}` : '';
             return `${k}${opt}: ${t}${enumVals}${dflt}`;

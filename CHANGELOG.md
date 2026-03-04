@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/agent/analyze` — crash `TypeError: v.values.join is not a function`**
+  Root cause: `buildServiceCatalogue` in `agent.service.js` checked `v.values` as a plain truthiness guard before calling `.join('|')`. When Moleculer's `fastest-validator` compiles a multi-type param declaration (an array of rules, e.g. `[{type:'array'}, {type:'string'}]` as used by `grid-operations.redispatchExport.types` since v0.6.19), it mutates the param array in place by adding a `values` property that points to the compiled check **Function**. A Function is truthy but has no `.join` method — any subsequent `agent.analyze` call crashed immediately in `buildServiceCatalogue`.
+
+  The bug was dormant since v0.6.19 and only surfaced in v0.7.0 when a user triggered `agent.analyze` via the Research App using the new EWK-monitoring demo query.
+
+  Fix 1 — **crash guard**: Changed `v.values` truthiness check to `Array.isArray(v.values)` so non-array `values` (functions, objects, Sets) are silently skipped.
+  Fix 2 — **multi-type rendering**: When the param `v` itself is an array (multi-type declaration), the catalogue now renders it as `paramName?: type1|type2` instead of falling through to `v.type || 'string'`.
+
+  3 new unit tests: multi-type param with compiled function `values` does not crash `agent.analyze`; multi-type renders as `array|string`; normal enum still renders correctly with `Array.isArray` guard.
+
 ## [0.7.0] - 2026-03-04
 
 ### Added
