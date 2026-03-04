@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.25] - 2026-03-04
+
+### Added
+
+- **`POST /api/grid-operations/redispatch-export` — `einsatzverantwortlicher` column in CSV/XLSX output**
+  The Redispatch 2.0 export now includes the MaStR field `einsatzverantwortlicher` (Direktvermarkter / deployment-responsible party) as the last column in every row. The value is taken directly from `inst.einsatzverantwortlicher` in the `cernion_installations_local` result; it is left as an empty string when no Direktvermarkter is registered for the installation. This enables the "Direktvermarktungs-Pipeline" dashboard KPI: installations with an empty `einsatzverantwortlicher` are redispatch-eligible (≥ 100 kW) but lack a Direktvermarkter — they automatically fall under Ausfallvergütung and are high-priority sales leads.
+  **New CSV format:**
+  `mastrNummer,type,capacityKW,city,postalCode,commissioningDate,status,einsatzverantwortlicher`
+  2 new unit tests: populated `einsatzverantwortlicher` appears in output; absent field maps to empty string (trailing `""` in row).
+
 ## [0.6.24] - 2026-03-04
 
 ### Fixed

@@ -1022,6 +1022,7 @@ module.exports = {
                   inst.einheitBetriebsstatus === '35'
                     ? 'In Betrieb'
                     : (inst.einheitBetriebsstatus || ''),
+                einsatzverantwortlicher: inst.einsatzverantwortlicher || '',
               }));
             } catch (_) {
               // Local lookup failed — fall back to 5-row narrative preview
