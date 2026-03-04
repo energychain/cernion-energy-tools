@@ -511,11 +511,15 @@ module.exports = {
             'Content-Type': 'text/csv; charset=utf-8',
             'Content-Disposition': `attachment; filename="co2-intensity-${Date.now()}.csv"`,
           };
+          const dataSource = result?.data_source || '';
+          const generated = result?.timestamp || result?.data?.timestamp || new Date().toISOString();
           const metadata = [
             `# CO2 Intensity Export`,
             `# Location: ${location}`,
             `# Current CO2 Intensity (gCO2eq/kWh): ${currentValue}`,
             `# Average Today (gCO2eq/kWh): ${avgToday}`,
+            ...(dataSource ? [`# Source: ${dataSource}`] : []),
+            `# Generated: ${generated}`,
           ].join('\n');
           return `${metadata}\n${convertToCSV(rows)}`;
         }

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.18] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/energy-market/co2-intensity` — CSV export missing `# Source:` and `# Generated:` comment lines**
+  The `format=csv` response already included `# CO2 Intensity Export`, `# Location:`, `# Current CO2 Intensity`, and `# Average Today` header comments, but omitted the data-source attribution and generation timestamp that are present in the MCP response (`data_source` and `timestamp` fields).
+  Fix: Added `# Source: <data_source>` (conditionally, only when `data_source` is non-empty) and `# Generated: <timestamp>` comment lines to the CSV preamble. The `# Source:` line reflects the upstream provider (e.g., `GrünstromIndex (api.corrently.io)`) and `# Generated:` uses `result.timestamp` (falling back to `result.data.timestamp`, then `new Date().toISOString()`).
+  Updated test mock to include `data_source` and top-level `timestamp`; added two new `toContain` assertions.
+
 ## [0.6.17] - 2026-03-04
 
 ### Fixed

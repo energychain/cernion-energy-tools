@@ -231,6 +231,8 @@ describe('Energy Market Service', () => {
         success: true,
         co2_intensity_gco2eq_kwh: 380,
         average_today_gco2eq_kwh: 364.5,
+        timestamp: '2026-03-04T09:00:00.000Z',
+        data_source: 'GrünstromIndex (api.corrently.io)',
         data: {
           location: 'Heidelberg',
           timestamp: '2026-03-04T09:00:00.000Z',
@@ -249,6 +251,8 @@ describe('Energy Market Service', () => {
       expect(result).toContain('# Location: Heidelberg');
       expect(result).toContain('# Current CO2 Intensity (gCO2eq/kWh): 380');
       expect(result).toContain('# Average Today (gCO2eq/kWh): 364.5');
+      expect(result).toContain('# Source: GrünstromIndex (api.corrently.io)');
+      expect(result).toContain('# Generated: 2026-03-04T09:00:00.000Z');
       expect(result).toContain('"timestamp"');
       expect(result).toContain('"gCO2eqPerKWh"');
       expect(result).toContain('380');
