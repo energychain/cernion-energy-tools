@@ -32,7 +32,7 @@ module.exports = {
       openapi: {
         summary: 'German spotmarket prices (EPEX/EEX) for dynamic tariffs',
         tags: ['German Grid Data'],
-        description: 'Official data from Netztransparenz.de, OAuth2 authenticated',
+        description: 'Official data from Netztransparenz.de, OAuth2 authenticated. **Automatic ENTSO-E fallback**: when Netztransparenz.de has no data or returns an API error (e.g. for recent/future dates), the endpoint transparently retries with ENTSO-E day-ahead prices (hourly, DE bidding zone). The response is annotated with `data.fallback: true` and `data.fallbackSource: "entsoe_day_ahead_prices"` when the fallback is used.',
         requestBody: {
           required: true,
           content: {
@@ -116,11 +116,66 @@ module.exports = {
         const { format, ...mcpParams } = ctx.params;
         mcpParams.dateFrom = resolveDateAlias(mcpParams.dateFrom);
         mcpParams.dateTo = resolveDateAlias(mcpParams.dateTo);
-        const result = await CernionMCPClient.callWithNewSession(
+
+        let result = await CernionMCPClient.callWithNewSession(
           'netztransparenz_spotprices',
           mcpParams,
           ctx.meta.cernionToken
         );
+
+        // ── ENTSO-E fallback ────────────────────────────────────────
+        // Netztransparenz.de has data only up to ~4 days ago and can return
+        // API 500s during outages. When the primary source fails, retry with
+        // ENTSO-E day-ahead prices (hourly, DE bidding zone).
+        // Note: ENTSO-E provides hourly values; Netztransparenz 15-min values.
+        if (result?.data?.isError === true) {
+          const primaryError =
+            result?.data?.content?.[0]?.text ||
+            'Netztransparenz.de returned an error';
+          let combinedError = null;
+          try {
+            const fallbackResult = await CernionMCPClient.callWithNewSession(
+              'entsoe_day_ahead_prices',
+              {
+                region: 'Deutschland',
+                dateFrom: mcpParams.dateFrom,
+                dateTo: mcpParams.dateTo,
+                includeStatistics: mcpParams.includeStatistics ?? true,
+              },
+              ctx.meta.cernionToken
+            );
+            if (fallbackResult?.data?.isError !== true) {
+              // Annotate so callers know this is fallback data
+              if (fallbackResult?.data?.content?.[0]?.text !== undefined) {
+                fallbackResult.data.content[0].text =
+                  `⚠️ **Datenquelle: ENTSO-E (Fallback)** ` +
+                  `(Netztransparenz.de nicht verfügbar: ${primaryError})\n` +
+                  `_Hinweis: ENTSO-E liefert Stundenwerte (Day-Ahead), Netztransparenz 15-Minuten-Werte._\n\n` +
+                  fallbackResult.data.content[0].text;
+              }
+              fallbackResult.data = {
+                ...(fallbackResult.data || {}),
+                fallback: true,
+                fallbackSource: 'entsoe_day_ahead_prices',
+                primaryError,
+              };
+              result = fallbackResult;
+            } else {
+              // Both sources failed — build combined error outside try/catch
+              const entsoeError =
+                fallbackResult?.data?.content?.[0]?.text || 'ENTSO-E returned an error';
+              combinedError =
+                `Beide Datenquellen nicht verfügbar.\n` +
+                `Netztransparenz.de: ${primaryError}\n` +
+                `ENTSO-E Fallback: ${entsoeError}`;
+            }
+          } catch (_fallbackErr) {
+            // ENTSO-E call itself threw — keep original isError result so
+            // applyFormat surfaces the primary error.
+          }
+          if (combinedError) throw new Error(combinedError);
+        }
+
         return applyFormat(ctx, result, format, 'spotprices', 'Spotprices');
       },
     },

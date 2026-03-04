@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.7] - 2026-03-04
+
+### Added
+
+- **Automatic ENTSO-E fallback for `POST /api/german-grid/spotprices`** — when
+  Netztransparenz.de returns an error (no data for the period, API 500, outage),
+  the endpoint transparently retries with ENTSO-E day-ahead prices (DE bidding
+  zone, hourly resolution). Callers can detect the fallback via `data.fallback: true`
+  and `data.fallbackSource: "entsoe_day_ahead_prices"` in the JSON response; the
+  text content is prefixed with a ⚠️ annotation.
+  - If both sources fail: HTTP 500 with a combined error message (`Beide
+    Datenquellen nicht verfügbar`) listing both errors.
+  - If the ENTSO-E call itself throws (network/timeout): original Netztransparenz
+    error is surfaced unchanged.
+  - 6 new unit tests covering all fallback scenarios.
+
 ## [0.6.6] - 2026-03-03
 
 ### Added
