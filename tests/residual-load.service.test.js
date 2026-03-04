@@ -166,17 +166,18 @@ describe('Residual Load Service', () => {
       });
     });
 
-    describe('region is optional — Bug 3a19bf97 (agent plan omits region)', () => {
-      it('succeeds without region when gridOperatorMastrId is provided', async () => {
+    describe('region is always required — Bug 3a19bf97 / gridOperatorMastrId without region crashes MCP', () => {
+      it('returns RESIDUAL_LOAD_MISSING_REGION when only gridOperatorMastrId is provided (no region)', async () => {
+        // mastr_net_residual_load calls .toLowerCase() on region for SMARD population
+        // scaling — undefined crashes it regardless of whether gridOperatorMastrId is set.
         const result = await broker.call('residual-load.netResidualLoad', {
           gridOperatorMastrId: 'SNB935578300972',
         });
-        expect(result).toHaveProperty('forecast');
-        expect(callWithNewSession).toHaveBeenCalledWith(
-          'mastr_net_residual_load',
-          expect.not.objectContaining({ region: expect.anything() }),
-          undefined
-        );
+        expect(result.success).toBe(false);
+        expect(result.error.code).toBe('RESIDUAL_LOAD_MISSING_REGION');
+        expect(result.error.message).toMatch(/region/i);
+        // MCP must NOT have been called — would crash on .toLowerCase()
+        expect(callWithNewSession).not.toHaveBeenCalled();
       });
 
       it('succeeds with no params at all — no Moleculer validation error', async () => {
@@ -239,19 +240,17 @@ describe('Residual Load Service', () => {
         );
       });
 
-      it('returns RESIDUAL_LOAD_MISSING_REGION when no region or location is provided', async () => {
-        // gridOperatorMastrId alone: MCP call IS allowed (tool can work without region)
-        // so just confirm the call goes through without triggering the early exit.
+      it('returns RESIDUAL_LOAD_MISSING_REGION when gridOperatorMastrId is provided but region is absent', async () => {
+        // mastr_net_residual_load crashes on .toLowerCase() when region is undefined,
+        // even when gridOperatorMastrId is set. We must not forward to the MCP tool.
         const result = await broker.call('residual-load.netResidualLoad', {
           gridOperatorMastrId: 'SNB973742186519',
           // no region, no location fields
         });
-        expect(callWithNewSession).toHaveBeenCalledWith(
-          'mastr_net_residual_load',
-          expect.objectContaining({ gridOperatorMastrId: 'SNB973742186519' }),
-          undefined
-        );
-        expect(result).toBeDefined();
+        expect(result.success).toBe(false);
+        expect(result.error.code).toBe('RESIDUAL_LOAD_MISSING_REGION');
+        // MCP must NOT have been called
+        expect(callWithNewSession).not.toHaveBeenCalled();
       });
 
       it('returns RESIDUAL_LOAD_MISSING_REGION when called with only a MeLo (single-installation misuse)', async () => {

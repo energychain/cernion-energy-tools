@@ -348,25 +348,28 @@ module.exports = {
               this.logger.warn(
                 `residual-load: region not provided; auto-derived from location fields: "${derivedRegion}"`
               );
-            } else if (!mcpParams.gridOperatorMastrId) {
-              // No region, no location field, no gridOperatorMastrId — calling
-              // mastr_net_residual_load would crash the MCP tool with a
-              // TypeError on undefined.toLowerCase().  Return a clear structured
-              // error so the agent can handle it gracefully instead of crashing.
+            } else {
+              // No region and none derivable from location fields.
+              // The MCP tool mastr_net_residual_load always calls .toLowerCase() on
+              // region for SMARD population lookup — passing undefined crashes it
+              // regardless of whether gridOperatorMastrId is set.
+              // Return a structured error so the caller gets a clear message instead
+              // of a TypeError surfaced from inside the MCP tool.
               this.logger.warn(
-                'residual-load.netResidualLoad called without region, gridOperatorMastrId, or ' +
-                'any location field — returning structured error to avoid MCP crash.'
+                'residual-load.netResidualLoad called without region or any location field — ' +
+                'returning structured error to avoid MCP crash.'
               );
               return {
                 success: false,
                 error: {
                   code: 'RESIDUAL_LOAD_MISSING_REGION',
                   message:
-                    'residual-load.netResidualLoad requires a region, gridOperatorMastrId, or ' +
-                    'at least one location field (bundesland, landkreis, gemeinde, postleitzahl). ' +
-                    'This action operates at grid-area (Netzgebiet) level, not on individual ' +
-                    'installations. For single-installation forecasts use ' +
-                    'forecast.generationForecast with installationMastrNummer or messlokationId.',
+                    'region is required for SMARD population scaling. ' +
+                    'Provide a region name (city, Landkreis, or Bundesland) alongside ' +
+                    'gridOperatorMastrId (e.g. "Ludwigshafen" for SNB935578300972). ' +
+                    'Alternatively supply bundesland, landkreis, gemeinde, or postleitzahl ' +
+                    'so region can be auto-derived. ' +
+                    'For single-installation forecasts use forecast.generationForecast instead.',
                 },
               };
             }

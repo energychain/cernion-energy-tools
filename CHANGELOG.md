@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.10] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/residual-load/net-residual-load` — crash when only `gridOperatorMastrId` is provided (no `region`)**
+  The MCP tool `mastr_net_residual_load` always calls `.toLowerCase()` on `region`
+  for SMARD population scaling, crashing with
+  `TypeError: Cannot read properties of undefined (reading 'toLowerCase')` when
+  `region` is absent — even when `gridOperatorMastrId` is set. The guard in the
+  service handler was gated on `!gridOperatorMastrId`, so requests that supplied
+  only `gridOperatorMastrId` (without `region`) bypassed it and reached the MCP
+  tool with `region: undefined`. The guard is now unconditional: any call that
+  cannot derive a `region` from `region`, `gemeinde`, `landkreis`, or `bundesland`
+  returns a structured `RESIDUAL_LOAD_MISSING_REGION` error with an actionable
+  message before the MCP tool is contacted. Two unit tests that encoded the
+  incorrect assumption were corrected.
+
 ## [0.6.9] - 2026-03-04
 
 ### Fixed
