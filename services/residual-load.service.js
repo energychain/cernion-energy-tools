@@ -622,7 +622,13 @@ module.exports = {
           [];
         const inst = installations[0];
         if (!inst) return null;
-        return inst.gemeinde || inst.landkreis || inst.bundesland || null;
+        // Prefer bundesland: SMARD only provides load data at Bundesland (state) level.
+        // A gemeinde/city name like "Ludwigshafen am Rhein" is not a valid SMARD region key
+        // and produces loadMW=0 for all timestamps even when populationOverride is set,
+        // because populationOverride scales an already-zero base load.
+        // Using bundesland gives SMARD a match; populationOverride then correctly
+        // scales the state-level load down to the operator's grid area.
+        return inst.bundesland || inst.landkreis || inst.gemeinde || null;
       } catch (err) {
         this.logger.warn(`resolveRegionFromOperatorId failed for ${operatorMastrId}: ${err.message}`);
         return null;

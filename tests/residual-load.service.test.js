@@ -189,10 +189,10 @@ describe('Residual Load Service', () => {
           expect.objectContaining({ gridOperatorMastrId: 'SNB935578300972', limit: 1 }),
           undefined
         );
-        // Second call: main MCP tool with derived region
+        // Second call: main MCP tool with derived region (bundesland preferred over gemeinde)
         expect(callWithNewSession).toHaveBeenCalledWith(
           'mastr_net_residual_load',
-          expect.objectContaining({ gridOperatorMastrId: 'SNB935578300972', region: 'MockCity' }),
+          expect.objectContaining({ gridOperatorMastrId: 'SNB935578300972', region: 'MockState' }),
           undefined
         );
         expect(result).toHaveProperty('forecast');
@@ -226,7 +226,7 @@ describe('Residual Load Service', () => {
         expect(tools).not.toContain('mastr_net_residual_load');
       });
 
-      it('prefers gemeinde over bundesland from installation', async () => {
+      it('prefers bundesland over gemeinde from installation (SMARD needs Bundesland-level region)', async () => {
         callWithNewSession
           .mockResolvedValueOnce({
             success: true,
@@ -238,7 +238,9 @@ describe('Residual Load Service', () => {
         });
         expect(result).toHaveProperty('forecast');
         const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
-        expect(mainCall[1].region).toBe('Ludwigshafen');
+        // 'Rheinland-Pfalz' (bundesland) must be used — not 'Ludwigshafen' (gemeinde) —
+        // because SMARD has no city-level load data; passing a city name returns loadMW=0.
+        expect(mainCall[1].region).toBe('Rheinland-Pfalz');
       });
 
       it('succeeds with no params at all — no Moleculer validation error', async () => {

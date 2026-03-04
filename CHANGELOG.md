@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.13] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/residual-load/net-residual-load` — `Load (MW)` = 0 when region is auto-derived from `gridOperatorMastrId`**
+  When `gridOperatorMastrId` was provided without an explicit `region`, v0.6.11 introduced
+  auto-derivation via `cernion_installations_local`. The method picked `gemeinde` first
+  (e.g. `"Ludwigshafen am Rhein"`), but SMARD only provides load data at Bundesland level
+  (`"Rheinland-Pfalz"`, `"Bayern"`, etc.) — city names are not valid SMARD region keys and
+  silently return `loadMW = 0` for every timestamp. `populationOverride` cannot rescue this
+  because it scales an already-zero base load: `170000 × 0 = 0`.
+  **Fix**: `resolveRegionFromOperatorId` now returns `bundesland` first, then `landkreis`,
+  then `gemeinde` as last resort. For the TWL case this produces `"Rheinland-Pfalz"`, which
+  SMARD resolves correctly; `populationOverride: 170000` then scales the state-level load
+  down to the operator's ~170 K grid area as intended.
+  One unit test updated (`prefers bundesland over gemeinde from installation`).
+
 ## [0.6.12] - 2026-03-04
 
 ### Fixed
