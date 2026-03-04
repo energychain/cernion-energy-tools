@@ -98,6 +98,85 @@ describe('German Grid Service', () => {
       const rest = action.rest;
       expect(rest).toBe('POST /redispatch');
     });
+
+    it('should return CSV string with preamble for format=csv', async () => {
+      const narrative = [
+        '⚡ **Redispatch Measures** (2026-02-02 to 2026-03-04)',
+        '**Found**: 3 measures',
+        '- 2026-02-01T23:00:00Z: 1350 MWh (Strombedingter Redispatch)',
+        '- 2026-02-02T00:00:00Z: 1954 MWh (Strombedingter Redispatch)',
+        '- 2026-02-02T01:00:00Z: 800 MWh (Einspeisemanagement)',
+        '**Analysis**:',
+        '- Total energy: 4104 MWh',
+      ].join('\n');
+
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: { content: [{ type: 'text', text: narrative }] },
+      });
+
+      const ctx = { meta: {} };
+      const result = await broker.call(
+        'german-grid.redispatch',
+        {
+          dateFrom: '2026-02-02',
+          dateTo: '2026-03-04',
+          format: 'csv',
+        },
+        ctx
+      );
+
+      expect(typeof result).toBe('string');
+      expect(result).toMatch(/^# Redispatch Measures Export/);
+      expect(result).toContain('# Period: 2026-02-02 to 2026-03-04');
+      expect(result).toContain('# Total Measures: 3');
+      expect(result).toContain('# Total Energy: 4104 MWh');
+      expect(result).toContain('# Generated:');
+      expect(result).toContain('"timestamp","quantityMWh","measureType"');
+      expect(result).toContain('2026-02-01T23:00:00Z');
+      expect(result).toContain('Strombedingter Redispatch');
+    });
+
+    it('should return JSON for format=json', async () => {
+      const mockResult = {
+        success: true,
+        data: { content: [{ type: 'text', text: '**Found**: 10 measures\n- Total energy: 500 MWh' }] },
+      };
+      callWithNewSession.mockResolvedValueOnce(mockResult);
+
+      const result = await broker.call('german-grid.redispatch', {
+        dateFrom: '2026-02-01',
+        dateTo: '2026-02-28',
+        format: 'json',
+      });
+
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should throw when MCP returns null', async () => {
+      callWithNewSession.mockResolvedValueOnce(null);
+
+      await expect(
+        broker.call('german-grid.redispatch', {
+          dateFrom: '2026-02-01',
+          dateTo: '2026-02-28',
+        })
+      ).rejects.toThrow();
+    });
+
+    it('should throw when MCP returns success=false', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: false,
+        error: { message: 'Upstream tool error' },
+      });
+
+      await expect(
+        broker.call('german-grid.redispatch', {
+          dateFrom: '2026-02-01',
+          dateTo: '2026-02-28',
+        })
+      ).rejects.toThrow('Upstream tool error');
+    });
   });
 
   describe('spotprices ENTSO-E fallback', () => {

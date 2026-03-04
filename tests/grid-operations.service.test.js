@@ -149,6 +149,71 @@ describe('Grid Operations Service', () => {
         undefined
       );
     });
+
+    it('should return JSON by default (no format param)', async () => {
+      const mockResult = { success: true, data: { content: [{ type: 'text', text: 'some narrative' }] } };
+      callWithAutoPoll.mockResolvedValueOnce(mockResult);
+
+      const result = await broker.call('grid-operations.redispatchExport', {
+        gridOperatorId: 'SNB935578300972',
+      });
+
+      expect(result).toEqual(mockResult);
+    });
+
+    it('should return CSV string with preamble for format=csv', async () => {
+      const narrative = [
+        '🔍 **Grid Operator Found**:',
+        '   Name: TWL Netze GmbH',
+        '   MaStR Number(s): SNB935578300972',
+        '✅ **Query executed successfully**',
+        '**Quality Report**:',
+        '   Total Installations: 39',
+        '   Total Capacity: 20590.00 kW',
+        '**Preview** (first 5 installations):',
+        '| Type | Capacity (kW) | City | Status |',
+        '| --- | --- | --- | --- |',
+        '| Solar | 100.43 | Ludwigshafen | In Betrieb |',
+        '| Wind | 250.00 | Mannheim | In Betrieb |',
+      ].join('\n');
+
+      callWithAutoPoll.mockResolvedValueOnce({
+        success: true,
+        data: { content: [{ type: 'text', text: narrative }] },
+      });
+
+      const ctx = { meta: {} };
+      const result = await broker.call(
+        'grid-operations.redispatchExport',
+        { gridOperatorId: 'SNB935578300972', format: 'csv' },
+        ctx
+      );
+
+      expect(typeof result).toBe('string');
+      expect(result).toMatch(/^# Redispatch 2\.0 Export/);
+      expect(result).toContain('# Grid Operator: TWL Netze GmbH');
+      expect(result).toContain('# Total:');
+      expect(result).toContain('# Generated:');
+      expect(result).toContain('"type","capacity_kW","city","status"');
+      expect(result).toContain('Solar');
+      expect(result).toContain('Ludwigshafen');
+    });
+
+    it('should not forward format param to MCP tool', async () => {
+      callWithAutoPoll.mockResolvedValueOnce({ success: true, data: {} });
+
+      await broker.call('grid-operations.redispatchExport', {
+        gridOperatorId: 'SNB935578300972',
+        format: 'csv',
+      });
+
+      expect(callWithAutoPoll).toHaveBeenCalledWith(
+        'cernion_redispatch_export',
+        expect.not.objectContaining({ format: expect.anything() }),
+        expect.any(Object),
+        undefined
+      );
+    });
   });
 
   describe('vnbdigitalSearch action', () => {

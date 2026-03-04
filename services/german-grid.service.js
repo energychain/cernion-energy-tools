@@ -6,8 +6,54 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
-const { applyFormat, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
+const { applyFormat, convertToCSV, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
 const { resolveDateAlias } = require('../src/date-utils');
+
+// ─── Helpers for redispatch text-narrative responses ──────────────────────────
+
+/**
+ * Extract the human-readable narrative text from a redispatch MCP result.
+ */
+function extractRedispatchText(result) {
+  if (!result) return '';
+  if (result.data && typeof result.data === 'object') {
+    const content = result.data.content;
+    if (Array.isArray(content) && content[0] && content[0].text) return content[0].text;
+  }
+  if (typeof result.data === 'string') return result.data;
+  if (typeof result === 'string') return result;
+  return '';
+}
+
+/**
+ * Parse the narrative text from netztransparenz_redispatch.
+ * Extracts:
+ *  - metadata: totalMeasures, totalEnergyMWh
+ *  - rows: individual measures as {timestamp, quantityMWh, measureType}
+ */
+function parseRedispatchMeasuresText(text) {
+  const metadata = {};
+
+  const foundMatch = text.match(/\*\*Found\*\*:\s*([\d,]+)\s*measures?/);
+  if (foundMatch) metadata.totalMeasures = parseInt(foundMatch[1].replace(/,/g, ''), 10);
+
+  const energyMatch = text.match(/Total energy:\s*([\d,]+)\s*MWh/);
+  if (energyMatch) metadata.totalEnergyMWh = parseInt(energyMatch[1].replace(/,/g, ''), 10);
+
+  // Parse bullet lines: "- 2026-02-01T23:00:00Z: 1350 MWh (Strombedingter Redispatch)"
+  const rows = [];
+  const lineRegex = /^-\s+(\S+):\s+([\d,]+)\s+MWh\s+\((.+?)\)/gm;
+  let m;
+  while ((m = lineRegex.exec(text)) !== null) {
+    rows.push({
+      timestamp: m[1],
+      quantityMWh: parseInt(m[2].replace(/,/g, ''), 10),
+      measureType: m[3],
+    });
+  }
+
+  return { metadata, rows };
+}
 
 module.exports = {
   name: 'german-grid',
@@ -647,6 +693,56 @@ module.exports = {
           mcpParams,
           ctx.meta.cernionToken
         );
+
+        // Guard: null / error result from MCP tool
+        if (!result) {
+          throw new Error(
+            `No redispatch data returned for ${mcpParams.dateFrom} – ${mcpParams.dateTo}`
+          );
+        }
+        if (result.success === false) {
+          const errMsg =
+            result.error?.message ||
+            result.data?.content?.[0]?.text ||
+            'Upstream tool returned an error';
+          throw new Error(errMsg);
+        }
+
+        // CSV / XLSX: parse bullet-list measures from the narrative text
+        if (format === 'csv' || format === 'xlsx' || format === 'xls') {
+          const text = extractRedispatchText(result);
+          const { metadata, rows } = parseRedispatchMeasuresText(text);
+          const isPartial = rows.length > 0 && metadata.totalMeasures > rows.length;
+
+          const preambleLines = [
+            '# Redispatch Measures Export',
+            `# Period: ${mcpParams.dateFrom} to ${mcpParams.dateTo}`,
+            ...(metadata.totalMeasures != null
+              ? [`# Total Measures: ${metadata.totalMeasures}`]
+              : []),
+            ...(metadata.totalEnergyMWh != null
+              ? [`# Total Energy: ${metadata.totalEnergyMWh} MWh`]
+              : []),
+            `# Generated: ${new Date().toISOString()}`,
+          ];
+          if (isPartial) {
+            preambleLines.push(
+              `# Note: Preview only — ${rows.length} of ${metadata.totalMeasures} measures shown`
+            );
+          }
+          const preamble = preambleLines.join('\n');
+
+          if (format === 'csv') {
+            ctx.meta.$responseHeaders = {
+              'Content-Type': 'text/csv; charset=utf-8',
+              'Content-Disposition': `attachment; filename="redispatch-${Date.now()}.csv"`,
+            };
+            return `${preamble}\n${convertToCSV(rows)}`;
+          }
+          // xlsx / xls
+          return applyFormat(ctx, result, format, 'redispatch', 'Redispatch', rows);
+        }
+
         return applyFormat(ctx, result, format, 'redispatch', 'Redispatch');
       },
     },

@@ -7,7 +7,59 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
-const { applyFormat, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
+const { applyFormat, convertToCSV, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
+
+// ─── Helpers for redispatch text-narrative responses ──────────────────────────
+
+/**
+ * Extract the human-readable narrative text from a redispatch job result.
+ * Handles the three shapes the MCP layer can produce:
+ *  1. result.data.content[0].text  (most common — async job completion)
+ *  2. result.data  as a plain string
+ *  3. result  as a plain string
+ */
+function extractRedispatchText(result) {
+  if (!result) return '';
+  if (result.data && typeof result.data === 'object') {
+    const content = result.data.content;
+    if (Array.isArray(content) && content[0] && content[0].text) return content[0].text;
+  }
+  if (typeof result.data === 'string') return result.data;
+  if (typeof result === 'string') return result;
+  return '';
+}
+
+/**
+ * Parse the narrative text returned by cernion_redispatch_export.
+ * Extracts:
+ *  - metadata: gridOperatorName, totalInstallations, totalCapacityKW
+ *  - rows: from the Markdown preview table (first 5 installations)
+ */
+function parseRedispatchExportText(text) {
+  const metadata = {};
+
+  const nameMatch = text.match(/Name:\s*(.+?)(?:\r?\n|$)/);
+  if (nameMatch) metadata.gridOperatorName = nameMatch[1].trim();
+
+  const totalMatch = text.match(/Total Installations:\s*(\d+)/);
+  if (totalMatch) metadata.totalInstallations = parseInt(totalMatch[1], 10);
+
+  const capMatch = text.match(/Total Capacity:\s*([\d.]+)\s*kW/);
+  if (capMatch) metadata.totalCapacityKW = parseFloat(capMatch[1]);
+
+  // Parse Markdown preview table — skip header ("Type") and separator ("---") rows
+  const rows = [];
+  const tableRowRegex = /^\|(.+?)\|(.+?)\|(.+?)\|(.+?)\|$/gm;
+  let m;
+  while ((m = tableRowRegex.exec(text)) !== null) {
+    const cells = [m[1], m[2], m[3], m[4]].map((c) => c.trim());
+    if (cells[0].toLowerCase() === 'type') continue; // header
+    if (cells.every((c) => /^-*$/.test(c))) continue; // separator
+    rows.push({ type: cells[0], capacity_kW: cells[1], city: cells[2], status: cells[3] });
+  }
+
+  return { metadata, rows };
+}
 
 module.exports = {
   name: 'grid-operations',
@@ -748,6 +800,7 @@ module.exports = {
           { type: 'string', optional: true },
         ],
         autoConfirm: { type: 'boolean', optional: true, default: true },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Export redispatch 2.0 installations (≥100 kW) per grid operator',
@@ -846,7 +899,8 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { gridOperator, gridOperatorId, gridOperatorBdewCode } = ctx.params;
+        const { gridOperator, gridOperatorId, gridOperatorBdewCode, format, minCapacity = 100 } =
+          ctx.params;
 
         if (!gridOperator && !gridOperatorId && !gridOperatorBdewCode) {
           throw new Error(
@@ -856,12 +910,13 @@ module.exports = {
 
         // Normalize types: accept comma-separated string (e.g. "solar,wind,storage") or array
         const mcpParams = { ...ctx.params };
+        delete mcpParams.format; // strip before forwarding to MCP tool
         if (typeof mcpParams.types === 'string') {
           mcpParams.types = mcpParams.types.split(',').map((t) => t.trim()).filter(Boolean);
         }
 
         // Use auto-polling for async jobs (redispatch export typically returns job ID)
-        return await callWithAutoPoll(
+        const result = await callWithAutoPoll(
           'cernion_redispatch_export',
           mcpParams,
           {
@@ -870,6 +925,67 @@ module.exports = {
           },
           ctx.meta.cernionToken
         );
+
+        if (format === 'csv' || format === 'xlsx' || format === 'xls') {
+          const text = extractRedispatchText(result);
+          const { metadata, rows } = parseRedispatchExportText(text);
+          const operatorLabel =
+            metadata.gridOperatorName ||
+            gridOperatorId ||
+            gridOperator ||
+            gridOperatorBdewCode ||
+            '';
+          const totalStr =
+            metadata.totalInstallations != null
+              ? `${metadata.totalInstallations} installations, ${(metadata.totalCapacityKW || 0).toFixed(2)} kW`
+              : 'unknown';
+          const isPartial = rows.length > 0 && metadata.totalInstallations > rows.length;
+
+          const preambleLines = [
+            '# Redispatch 2.0 Export',
+            `# Grid Operator: ${operatorLabel}`,
+            `# Min Capacity: ${minCapacity} kW`,
+            `# Total: ${totalStr}`,
+            `# Generated: ${new Date().toISOString()}`,
+          ];
+          if (isPartial) {
+            preambleLines.push(
+              `# Note: Preview only \u2014 ${rows.length} of ${metadata.totalInstallations} installations shown`
+            );
+          }
+          const preamble = preambleLines.join('\n');
+
+          // Fallback row when the MCP preview table is empty
+          const exportRows =
+            rows.length > 0
+              ? rows
+              : [
+                  {
+                    gridOperator: operatorLabel,
+                    totalInstallations: metadata.totalInstallations ?? 0,
+                    totalCapacityKW: metadata.totalCapacityKW ?? 0,
+                  },
+                ];
+
+          if (format === 'csv') {
+            ctx.meta.$responseHeaders = {
+              'Content-Type': 'text/csv; charset=utf-8',
+              'Content-Disposition': `attachment; filename="redispatch-export-${Date.now()}.csv"`,
+            };
+            return `${preamble}\n${convertToCSV(exportRows)}`;
+          }
+          // xlsx / xls
+          return applyFormat(
+            ctx,
+            result,
+            format,
+            'redispatch-export',
+            'Redispatch Export',
+            exportRows
+          );
+        }
+
+        return result;
       },
     },
 

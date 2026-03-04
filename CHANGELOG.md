@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.20] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/grid-operations/redispatch-export` — `format=csv` ignored; raw JSON narrative returned (D7)**
+  The `format` parameter was missing from the Moleculer params schema, so it was never extracted from `ctx.params` and was forwarded as-is to the MCP tool; the raw MCP narrative result was then returned unchanged.
+  Fix: Added `format` to the `redispatchExport` params schema. The handler now strips `format` before forwarding to `callWithAutoPoll`, then parses the narrative text with `extractRedispatchText` + `parseRedispatchExportText`. For `format=csv` a proper CSV is returned with a `# Redispatch 2.0 Export` preamble block (grid operator name, min capacity, total installations/capacity, generated timestamp, partial-preview note). For `format=xlsx`/`xls` the parsed rows are passed to `applyFormat`. For `format=json` (default) the raw MCP result is returned unchanged.
+  4 new unit tests: JSON passthrough, CSV preamble content, CSV header row, `format` not forwarded to MCP tool.
+
+- **`POST /api/german-grid/redispatch` — `format=csv` returns empty body (D8)**
+  `applyFormat` was called correctly, but `extractRows()` in `format-response.js` found no known array key in the MCP result — the measures data lives exclusively in `result.data.content[0].text` as a Markdown bullet list — so it always returned `[]`, producing an empty CSV.
+  Fix: Added `extractRedispatchText` + `parseRedispatchMeasuresText` helpers to `german-grid.service.js`. The handler now parses bullet lines of the form `- TIMESTAMP: VALUE MWh (TYPE)` into structured rows `{timestamp, quantityMWh, measureType}` and builds a `# Redispatch Measures Export` preamble (period, total measures, total energy, generated timestamp, partial-preview note). Also added null-result and `success=false` guards that throw descriptive errors instead of returning `null`.
+  4 new unit tests: CSV preamble content, CSV header/data rows, JSON passthrough, null-result error, `success=false` error.
+
 ## [0.6.19] - 2026-03-04
 
 ### Fixed
