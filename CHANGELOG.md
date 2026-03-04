@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.14] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/residual-load/net-residual-load` — numeric AGS `landkreis` code (`1410`) passed to SMARD causing `Load (MW) = 0`**
+  v0.6.13 fixed the `bundesland`-first priority for `resolveRegionFromOperatorId`, but MaStR
+  stores `landkreis` as a numeric AGS Kreisschlüssel (e.g. `"1410"` for Ludwigshafen an der
+  Weinstraße) rather than a human-readable name. When `bundesland` was `null` in an installation
+  record, the code fell through to `landkreis = "1410"` — SMARD does not recognise numeric codes
+  and silently returns `loadMW = 0` for all timestamps.
+  **Fix**: `resolveRegionFromOperatorId` now skips any candidate value that is a purely numeric
+  string (`/^\d+$/.test(s.trim())`). The three candidates (`bundesland`, `landkreis`, `gemeinde`)
+  are evaluated in order and the first non-numeric, non-empty text name is used. For TWL
+  Ludwigshafen this produces `"Rheinland-Pfalz"` regardless of whether `bundesland` comes from
+  the first sampled installation or not.
+  Two new unit tests added: numeric `landkreis` skipped in favour of `bundesland`; numeric
+  `landkreis` skipped with `null` `bundesland` falls back to `gemeinde`.
+
 ## [0.6.13] - 2026-03-04
 
 ### Fixed

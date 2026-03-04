@@ -243,6 +243,38 @@ describe('Residual Load Service', () => {
         expect(mainCall[1].region).toBe('Rheinland-Pfalz');
       });
 
+      it('skips numeric landkreis AGS code and uses bundesland (Bug v0.6.13: landkreis=1410 caused loadMW=0)', async () => {
+        // MaStR stores landkreis as a numeric AGS Kreisschlüssel ("1410"), not a text name.
+        // SMARD rejects numeric codes silently (loadMW=0). Must be skipped.
+        callWithNewSession
+          .mockResolvedValueOnce({
+            success: true,
+            data: { installations: [{ gemeinde: 'Ludwigshafen', landkreis: '1410', bundesland: 'Rheinland-Pfalz' }] },
+          })
+          .mockImplementationOnce(async (toolName, params) => buildResidualLoadResponse(params));
+        const result = await broker.call('residual-load.netResidualLoad', {
+          gridOperatorMastrId: 'SNB935578300972',
+        });
+        expect(result).toHaveProperty('forecast');
+        const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
+        expect(mainCall[1].region).toBe('Rheinland-Pfalz');
+      });
+
+      it('falls back to gemeinde when bundesland absent and landkreis is a numeric AGS code', async () => {
+        callWithNewSession
+          .mockResolvedValueOnce({
+            success: true,
+            data: { installations: [{ gemeinde: 'Kiel', landkreis: '1002', bundesland: null }] },
+          })
+          .mockImplementationOnce(async (toolName, params) => buildResidualLoadResponse(params));
+        const result = await broker.call('residual-load.netResidualLoad', {
+          gridOperatorMastrId: 'SNB000000000001',
+        });
+        expect(result).toHaveProperty('forecast');
+        const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
+        expect(mainCall[1].region).toBe('Kiel');
+      });
+
       it('succeeds with no params at all — no Moleculer validation error', async () => {
         await expect(
           broker.call('residual-load.netResidualLoad', {})
