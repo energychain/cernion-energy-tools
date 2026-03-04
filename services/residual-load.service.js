@@ -37,7 +37,7 @@ module.exports = {
         gridOperatorMastrId: { type: 'string', optional: true },
         populationOverride: { type: 'number', optional: true, min: 1 },
         forecastDays: { type: 'number', optional: true, min: 1, max: 14, default: 1 },
-        resolution: { type: 'enum', values: ['hourly', '15min'], optional: true, default: 'hourly' },
+        resolution: { type: 'enum', values: ['hourly', 'hour', '15min'], optional: true, default: 'hourly' },
         installationType: { type: 'enum', values: ['solar', 'wind', 'all'], optional: true, default: 'all' },
         startDate: {
           type: 'string',
@@ -123,9 +123,9 @@ module.exports = {
                   },
                   resolution: {
                     type: 'string',
-                    enum: ['hourly', '15min'],
+                    enum: ['hourly', 'hour', '15min'],
                     default: 'hourly',
-                    description: '"hourly" = 24 pts/day (trading); "15min" = 96 pts/day (§12 StromNZV Fahrplan)',
+                    description: '`"hourly"` / `"hour"` = 24 pts/day (trading); `"15min"` = 96 pts/day (§12 StromNZV Fahrplan). `"hour"` is accepted as an alias for `"hourly"`.',
                     example: 'hourly',
                   },
                   installationType: {
@@ -328,6 +328,9 @@ module.exports = {
       async handler(ctx) {
         try {
           const { format, bundesland, landkreis, gemeinde, postleitzahl, latitude, longitude, startDate, ...rest } = ctx.params;
+
+          // Normalise resolution alias: 'hour' → 'hourly'
+          if (rest.resolution === 'hour') rest.resolution = 'hourly';
 
           const locationObj = this.buildLocationObj({ bundesland, landkreis, gemeinde, postleitzahl, latitude, longitude });
           const mcpParams = { ...rest };

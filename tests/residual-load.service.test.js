@@ -381,6 +381,24 @@ describe('Residual Load Service', () => {
         );
       });
 
+      it('normalises resolution "hour" alias to "hourly"', async () => {
+        await broker.call('residual-load.netResidualLoad', { region: 'Test', resolution: 'hour' });
+        expect(callWithNewSession).toHaveBeenCalledWith(
+          'mastr_net_residual_load',
+          expect.objectContaining({ resolution: 'hourly' }),
+          undefined
+        );
+      });
+
+      it('accepts "hourly" resolution unchanged', async () => {
+        await broker.call('residual-load.netResidualLoad', { region: 'Test', resolution: 'hourly' });
+        expect(callWithNewSession).toHaveBeenCalledWith(
+          'mastr_net_residual_load',
+          expect.objectContaining({ resolution: 'hourly' }),
+          undefined
+        );
+      });
+
       it('passes installationType "solar" when provided', async () => {
         await broker.call('residual-load.netResidualLoad', { region: 'Test', installationType: 'solar' });
         expect(callWithNewSession).toHaveBeenCalledWith(

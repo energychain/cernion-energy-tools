@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.8] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/residual-load/net-residual-load` — `"resolution": "hour"` now accepted**
+  The parameter validation rejected `"hour"` with a `422 Unprocessable Entity`
+  because the enum only listed `"hourly"` and `"15min"`. `"hour"` is now a valid
+  alias: it passes validation and is normalised to `"hourly"` inside the handler
+  before being forwarded to the MCP tool. Both `"hour"` and `"hourly"` produce
+  identical results.
+
 ## [0.6.7] - 2026-03-04
 
 ### Added
