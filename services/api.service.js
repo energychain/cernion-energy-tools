@@ -25,7 +25,7 @@ module.exports = {
     openapi: {
       info: {
         title: 'Cernion Energy Tools API',
-        version: '0.6.14',
+        version: '0.6.15',
         description:
           'MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.',
       },

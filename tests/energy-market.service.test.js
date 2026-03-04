@@ -221,6 +221,94 @@ describe('Energy Market Service', () => {
     }, 30000);
   });
 
+  describe('co2Intensity action — format parameter', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('returns CSV string with # metadata comments and forecast rows when format=csv', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        co2_intensity_gco2eq_kwh: 380,
+        average_today_gco2eq_kwh: 364.5,
+        data: {
+          location: 'Heidelberg',
+          timestamp: '2026-03-04T09:00:00.000Z',
+          forecast_next_24h_gco2eq_kwh: [380, 190, 220],
+        },
+      });
+
+      const result = await broker.call('energy-market.co2Intensity', {
+        location: 'Heidelberg',
+        forecast: true,
+        format: 'csv',
+      });
+
+      expect(typeof result).toBe('string');
+      expect(result).toContain('# CO2 Intensity Export');
+      expect(result).toContain('# Location: Heidelberg');
+      expect(result).toContain('# Current CO2 Intensity (gCO2eq/kWh): 380');
+      expect(result).toContain('# Average Today (gCO2eq/kWh): 364.5');
+      expect(result).toContain('"timestamp"');
+      expect(result).toContain('"gCO2eqPerKWh"');
+      expect(result).toContain('380');
+    });
+
+    it('returns XLSX buffer when format=xlsx', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          location: 'Berlin',
+          timestamp: '2026-03-04T09:00:00.000Z',
+          forecast_next_24h_gco2eq_kwh: [300, 280],
+        },
+      });
+
+      const result = await broker.call('energy-market.co2Intensity', {
+        location: 'Berlin',
+        format: 'xlsx',
+      });
+
+      expect(Buffer.isBuffer(result)).toBe(true);
+    });
+
+    it('does NOT pass format to the MCP tool cernion_co2_intensity', async () => {
+      callWithNewSession.mockResolvedValueOnce({ success: true, data: {} });
+
+      await broker.call('energy-market.co2Intensity', {
+        location: 'München',
+        format: 'json',
+      });
+
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'cernion_co2_intensity',
+        expect.not.objectContaining({ format: 'json' }),
+        undefined
+      );
+    });
+
+    it('returns JSON unchanged when format=json (default)', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        co2_intensity_gco2eq_kwh: 250,
+        data: {
+          location: 'München',
+          timestamp: '2026-03-04T10:00:00.000Z',
+          forecast_next_24h_gco2eq_kwh: [250, 240],
+        },
+      });
+
+      const result = await broker.call('energy-market.co2Intensity', {
+        location: 'München',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.co2_intensity_gco2eq_kwh).toBe(250);
+      expect(Array.isArray(result.data.forecast)).toBe(true);
+      expect(result.data.forecast[0]).toHaveProperty('gCO2eqPerKWh', 250);
+    });
+  });
+
   describe('installations action', () => {
     it('should require installationType and location', async () => {
       await expect(broker.call('energy-market.installations', {})).rejects.toThrow();

@@ -183,10 +183,10 @@ describe('Residual Load Service', () => {
         const result = await broker.call('residual-load.netResidualLoad', {
           gridOperatorMastrId: 'SNB935578300972',
         });
-        // First call: cernion_installations_local lookup
+        // First call: cernion_installations_local lookup (limit:10 to scan multiple records)
         expect(callWithNewSession).toHaveBeenCalledWith(
           'cernion_installations_local',
-          expect.objectContaining({ gridOperatorMastrId: 'SNB935578300972', limit: 1 }),
+          expect.objectContaining({ gridOperatorMastrId: 'SNB935578300972', limit: 10 }),
           undefined
         );
         // Second call: main MCP tool with derived region (bundesland preferred over gemeinde)
@@ -273,6 +273,31 @@ describe('Residual Load Service', () => {
         expect(result).toHaveProperty('forecast');
         const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
         expect(mainCall[1].region).toBe('Kiel');
+      });
+
+      it('scans all sampled installations — returns bundesland from second record when first has bundesland=null (Bug v0.6.14: limit:1 missed valid bundesland)', async () => {
+        // The first installation returned by cernion_installations_local may have
+        // bundesland=null (incomplete MaStR record). With limit:10 the method scans
+        // all records and picks the bundesland from the second installation.
+        callWithNewSession
+          .mockResolvedValueOnce({
+            success: true,
+            data: {
+              installations: [
+                { gemeinde: 'Ludwigshafen am Rhein', landkreis: '1410', bundesland: null },
+                { gemeinde: 'Ludwigshafen am Rhein', landkreis: '1410', bundesland: 'Rheinland-Pfalz' },
+              ],
+            },
+          })
+          .mockImplementationOnce(async (toolName, params) => buildResidualLoadResponse(params));
+        const result = await broker.call('residual-load.netResidualLoad', {
+          gridOperatorMastrId: 'SNB935578300972',
+        });
+        expect(result).toHaveProperty('forecast');
+        const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
+        // Must use 'Rheinland-Pfalz' from the second record, not 'Ludwigshafen am Rhein'
+        // or numeric '1410', because only Bundesland names are valid SMARD region keys.
+        expect(mainCall[1].region).toBe('Rheinland-Pfalz');
       });
 
       it('succeeds with no params at all — no Moleculer validation error', async () => {

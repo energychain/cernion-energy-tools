@@ -613,24 +613,34 @@ module.exports = {
       try {
         const result = await CernionMCPClient.callWithNewSession(
           'cernion_installations_local',
-          { gridOperatorMastrId: operatorMastrId, limit: 1, format: 'detailed', includeStats: false },
+          { gridOperatorMastrId: operatorMastrId, limit: 10, format: 'detailed', includeStats: false },
           token
         );
         const installations =
           result?.data?.installations ||
           result?.installations ||
           [];
-        const inst = installations[0];
-        if (!inst) return null;
-        // Prefer bundesland, then landkreis, then gemeinde — but skip any purely numeric
-        // value (e.g. AGS Kreisschlüssel "1410" that MaStR stores in the landkreis field).
+        if (!installations.length) return null;
         // SMARD only accepts Bundesland text names ("Rheinland-Pfalz", "Bayern", …);
-        // numeric codes produce loadMW=0 for all timestamps.
-        // Using bundesland gives SMARD a valid match; populationOverride then scales the
-        // state-level load down to the operator's grid area.
+        // city names and numeric AGS codes (e.g. "1410" stored in the landkreis field)
+        // produce loadMW=0 for all timestamps without raising an error.
+        // Sampling 10 installations and scanning ALL of them maximises the chance of
+        // finding a valid bundesland: some MaStR records have bundesland=null, so a
+        // single-record sample silently misses a valid value in an adjacent record.
         const isTextRegion = (s) => s && typeof s === 'string' && !/^\d+$/.test(s.trim());
-        const region = [inst.bundesland, inst.landkreis, inst.gemeinde].find(isTextRegion);
-        return region || null;
+        // Pass 1: prefer bundesland across all sampled installations
+        for (const inst of installations) {
+          if (isTextRegion(inst.bundesland)) return inst.bundesland;
+        }
+        // Pass 2: fall back to a text landkreis name (skip numeric AGS codes)
+        for (const inst of installations) {
+          if (isTextRegion(inst.landkreis)) return inst.landkreis;
+        }
+        // Pass 3: last resort — gemeinde (city name; SMARD may not recognise it)
+        for (const inst of installations) {
+          if (isTextRegion(inst.gemeinde)) return inst.gemeinde;
+        }
+        return null;
       } catch (err) {
         this.logger.warn(`resolveRegionFromOperatorId failed for ${operatorMastrId}: ${err.message}`);
         return null;

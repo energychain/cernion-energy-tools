@@ -7,7 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.14] - 2026-03-04
+## [0.6.15] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/residual-load/net-residual-load` — `Load (MW)` persistently 0 after all previous fix attempts (v0.6.13, v0.6.14)**
+  Root cause: `resolveRegionFromOperatorId` sampled only **one** installation (`limit: 1`) to derive
+  the SMARD region. For TWL Ludwigshafen (`SNB935578300972`) the first installation returned by
+  `cernion_installations_local` has `bundesland: null` in its MaStR record. With `limit: 1` the
+  v0.6.14 `isTextRegion` guard correctly skipped the numeric `landkreis = "1410"`, but then fell
+  through to `gemeinde = "Ludwigshafen am Rhein"` — a city name SMARD does not accept, returning
+  `loadMW = 0` for every timestamp.
+  **Fix**: The sample is increased from `limit: 1` to **`limit: 10`**. The method now scans **all**
+  returned installations in three passes:
+  1. Return the first non-numeric `bundesland` found across all 10 records.
+  2. If no installation has a valid `bundesland`, try `landkreis` (text, non-numeric).
+  3. Last resort: `gemeinde` (city name).
+  For TWL, at least one of the 10 sampled installations has `bundesland: "Rheinland-Pfalz"`, which
+  SMARD resolves correctly; `populationOverride: 170000` then scales the state-level RLP load down
+  to the ~170 K Ludwigshafen grid area.
+  One new unit test added: `resolveRegionFromOperatorId` finds bundesland in second record when
+  first record has `bundesland: null` (two-installation mock).
+
+### Added
+
+- **`POST /api/energy-market/co2-intensity` — `format` parameter (CSV / XLSX export)**
+  The endpoint previously returned only JSON regardless of any `format` parameter in the request
+  body. `format` is now a supported parameter (`json` | `csv` | `xlsx` | `xls`, default `json`):
+  - **`format: "csv"`** — Returns a downloadable CSV with `# CO2 Intensity Export`,
+    `# Location`, `# Current CO2 Intensity (gCO2eq/kWh)`, `# Average Today (gCO2eq/kWh)`
+    comment headers followed by the hourly `timestamp,gCO2eqPerKWh` forecast rows — matching
+    the `# Region: …` comment format used by the forecast and residual-load services.
+  - **`format: "xlsx"`/`"xls"`** — Returns an Excel workbook with the forecast time series.
+  - **`format: "json"`** (default) — Unchanged JSON response.
+  - `format` is stripped before forwarding to the MCP tool `cernion_co2_intensity`.
+  - OpenAPI documentation updated: `format` added to request schema, CSV/XLSX added to
+    `responses[200].content`, new `forecastCsv` example.
+  Four new unit tests added (CSV content, XLSX buffer, `format` not forwarded to MCP, JSON default).
 
 ### Fixed
 

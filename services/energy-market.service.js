@@ -7,7 +7,7 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
-const { applyFormat, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
+const { applyFormat, convertToCSV, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
 
 module.exports = {
   name: 'energy-market',
@@ -353,6 +353,7 @@ module.exports = {
         location: { type: 'string', optional: true, min: 1 },
         timestamp: { type: 'string', optional: true },
         forecast: { type: 'boolean', optional: true, default: false },
+        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Regional CO₂ intensity forecasts (GrünstromIndex)',
@@ -365,12 +366,14 @@ module.exports = {
 - **location**: German city name or postal code (e.g., "Heidelberg", "69115", "München", "10115")
 - **timestamp**: Specific timestamp (ISO 8601 or natural language like "now", "tomorrow 14:00")
 - **forecast**: Get 36-hour forecast instead of current value (default: false)
+- **format**: Output format — "json" (default), "csv", "xlsx"/"xls". CSV includes \`# Location\`, \`# Current CO2 Intensity\`, \`# Average Today\` header comments followed by the hourly forecast rows.
 
 **Use Cases:**
 - CO₂-optimized dynamic tariffs
 - Smart EV charging (charge when grid is greenest)
 - Load shifting for industrial consumers
 - Green energy certificates
+- Power BI / Excel import with \`format=csv\`
 
 **Data Source:** GrünstromIndex provides regional green energy forecasts with 36-hour horizon, factoring in renewable generation, grid mix, and transmission constraints.`,
         requestBody: {
@@ -394,6 +397,7 @@ module.exports = {
                     description: 'Get 36-hour forecast',
                     default: false,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -416,6 +420,14 @@ module.exports = {
                     forecast: true,
                   },
                 },
+                forecastCsv: {
+                  summary: '36-hour forecast as CSV (for Power BI / Excel)',
+                  value: {
+                    location: 'Ludwigshafen',
+                    forecast: true,
+                    format: 'csv',
+                  },
+                },
                 specificTime: {
                   summary: 'CO₂ intensity at specific time',
                   value: {
@@ -434,26 +446,35 @@ module.exports = {
               'application/json': {
                 example: {
                   success: true,
+                  co2_intensity_gco2eq_kwh: 380,
+                  average_today_gco2eq_kwh: 364.5,
                   data: {
                     location: 'Heidelberg',
                     timestamp: '2026-02-07T14:00:00Z',
-                    gCO2eqPerKWh: 287,
-                    grsi: 45,
-                    forecast: [{ timestamp: '2026-02-07T15:00:00Z', gCO2eqPerKWh: 275 }],
+                    forecast: [
+                      { timestamp: '2026-02-07T14:00:00Z', gCO2eqPerKWh: 380 },
+                      { timestamp: '2026-02-07T15:00:00Z', gCO2eqPerKWh: 275 },
+                    ],
                   },
                 },
               },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
       },
       async handler(ctx) {
+        // Strip `format` before forwarding to MCP tool — it has no such parameter.
+        const { format, ...mcpParams } = ctx.params;
+
         const result = await CernionMCPClient.callWithNewSession(
           'cernion_co2_intensity',
-          ctx.params,
+          mcpParams,
           ctx.meta.cernionToken
         );
 
+        // Normalise forecast array: MCP returns an array of raw numbers under
+        // forecast_next_24h_gco2eq_kwh; convert to [{timestamp, gCO2eqPerKWh}] objects.
         const forecastValues =
           result?.data?.forecast_next_24h_gco2eq_kwh ||
           result?.forecast_next_24h_gco2eq_kwh ||
@@ -474,10 +495,35 @@ module.exports = {
 
           result.data = {
             ...(result.data || {}),
-            location: result?.data?.location || result?.location || ctx.params.location,
+            location: result?.data?.location || result?.location || mcpParams.location,
             timestamp: result?.data?.timestamp || result?.timestamp || null,
             forecast,
           };
+        }
+
+        // CSV export: forecast rows + scalar metadata as # comment lines
+        if (format === 'csv') {
+          const rows = result?.data?.forecast || [];
+          const currentValue = result?.co2_intensity_gco2eq_kwh ?? '';
+          const avgToday = result?.average_today_gco2eq_kwh ?? '';
+          const location = result?.data?.location || mcpParams.location || '';
+          ctx.meta.$responseHeaders = {
+            'Content-Type': 'text/csv; charset=utf-8',
+            'Content-Disposition': `attachment; filename="co2-intensity-${Date.now()}.csv"`,
+          };
+          const metadata = [
+            `# CO2 Intensity Export`,
+            `# Location: ${location}`,
+            `# Current CO2 Intensity (gCO2eq/kWh): ${currentValue}`,
+            `# Average Today (gCO2eq/kWh): ${avgToday}`,
+          ].join('\n');
+          return `${metadata}\n${convertToCSV(rows)}`;
+        }
+
+        // XLSX export: forecast rows as worksheet
+        if (format === 'xlsx' || format === 'xls') {
+          const rows = result?.data?.forecast || [];
+          return applyFormat(ctx, result, format, 'co2-intensity', 'CO2 Intensity', rows);
         }
 
         return result;
