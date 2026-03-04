@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.22] - 2026-03-04
+## [0.6.23] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/grid-operations/redispatch-export` — `format=csv` ignored across all four previous fix iterations (D7 root cause found)**
+  The Moleculer `params` schema correctly declared `format` since v0.6.20, and the handler correctly extracted and used it. The actual failure was that the `openapi.requestBody.content['application/json'].schema.properties` block was written out manually and **omitted the `format` property entirely**. Because the Moleculer API Gateway uses the explicit OpenAPI `requestBody` schema (when present) as the authoritative parameter map, `format` was never registered as an accepted request body field — it was silently dropped before reaching the handler in all deployed versions.
+  Fix: Added `format: FORMAT_PARAM_SCHEMA` to the `properties` block of the OpenAPI request schema (matching the pattern used by `german-grid.redispatch` and all other services). Also added a `responses[200]` block with `FORMAT_RESPONSE_CONTENT` so `text/csv` and `application/vnd.openxmlformats...` appear as valid response content types in the published spec. Added a `byMastrIdCsv` example to the Swagger UI.
+
 
 ### Fixed
 

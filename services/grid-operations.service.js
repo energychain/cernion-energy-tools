@@ -853,6 +853,7 @@ module.exports = {
                     description: 'Skip confirmation prompt',
                     default: true,
                   },
+                  format: FORMAT_PARAM_SCHEMA,
                 },
               },
               examples: {
@@ -881,6 +882,15 @@ module.exports = {
                     autoConfirm: true,
                   },
                 },
+                byMastrIdCsv: {
+                  summary: 'Export by MaStR ID — CSV download',
+                  value: {
+                    gridOperatorId: 'SNB935578300972',
+                    minCapacity: 100,
+                    autoConfirm: true,
+                    format: 'csv',
+                  },
+                },
                 byBdewCode: {
                   summary: 'Export by BDEW code',
                   value: {
@@ -898,6 +908,17 @@ module.exports = {
                   },
                 },
               },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Redispatch installations exported successfully',
+            content: {
+              'application/json': {
+                schema: { type: 'object' },
+              },
+              ...FORMAT_RESPONSE_CONTENT,
             },
           },
         },
