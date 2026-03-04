@@ -101,6 +101,54 @@ describe('Grid Operations Service', () => {
 
       expect(result).toBeDefined();
     });
+
+    it('should accept types as an array', async () => {
+      callWithAutoPoll.mockResolvedValueOnce({ success: true, data: [] });
+
+      await broker.call('grid-operations.redispatchExport', {
+        gridOperatorId: 'SNB935578300972',
+        types: ['solar', 'wind', 'storage'],
+      });
+
+      expect(callWithAutoPoll).toHaveBeenCalledWith(
+        'cernion_redispatch_export',
+        expect.objectContaining({ types: ['solar', 'wind', 'storage'] }),
+        expect.any(Object),
+        undefined
+      );
+    });
+
+    it('should coerce comma-separated string types to an array', async () => {
+      callWithAutoPoll.mockResolvedValueOnce({ success: true, data: [] });
+
+      await broker.call('grid-operations.redispatchExport', {
+        gridOperatorId: 'SNB935578300972',
+        types: 'solar,wind,storage',
+      });
+
+      expect(callWithAutoPoll).toHaveBeenCalledWith(
+        'cernion_redispatch_export',
+        expect.objectContaining({ types: ['solar', 'wind', 'storage'] }),
+        expect.any(Object),
+        undefined
+      );
+    });
+
+    it('should coerce comma-separated string types with spaces', async () => {
+      callWithAutoPoll.mockResolvedValueOnce({ success: true, data: [] });
+
+      await broker.call('grid-operations.redispatchExport', {
+        gridOperatorId: 'SNB935578300972',
+        types: 'solar, wind, storage',
+      });
+
+      expect(callWithAutoPoll).toHaveBeenCalledWith(
+        'cernion_redispatch_export',
+        expect.objectContaining({ types: ['solar', 'wind', 'storage'] }),
+        expect.any(Object),
+        undefined
+      );
+    });
   });
 
   describe('vnbdigitalSearch action', () => {

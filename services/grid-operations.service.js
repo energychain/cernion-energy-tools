@@ -743,7 +743,10 @@ module.exports = {
         gridOperatorId: { type: 'string', optional: true, min: 1 },
         gridOperatorBdewCode: { type: 'string', optional: true, min: 1 },
         minCapacity: { type: 'number', optional: true, default: 100, min: 0 },
-        types: { type: 'array', items: 'string', optional: true },
+        types: [
+          { type: 'array', items: 'string', optional: true },
+          { type: 'string', optional: true },
+        ],
         autoConfirm: { type: 'boolean', optional: true, default: true },
       },
       openapi: {
@@ -851,10 +854,16 @@ module.exports = {
           );
         }
 
+        // Normalize types: accept comma-separated string (e.g. "solar,wind,storage") or array
+        const mcpParams = { ...ctx.params };
+        if (typeof mcpParams.types === 'string') {
+          mcpParams.types = mcpParams.types.split(',').map((t) => t.trim()).filter(Boolean);
+        }
+
         // Use auto-polling for async jobs (redispatch export typically returns job ID)
         return await callWithAutoPoll(
           'cernion_redispatch_export',
-          ctx.params,
+          mcpParams,
           {
             maxWaitTime: 10 * 60 * 1000, // 10 minutes max
             pollInterval: 2000, // Poll every 2 seconds

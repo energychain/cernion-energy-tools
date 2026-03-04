@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.19] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/grid-operations/redispatch-export` — 422 Validation Error when `types` is a comma-separated string**
+  The Moleculer params schema declared `types` as `type: 'array'`, so passing `"types": "solar,wind,storage"` (a JSON string) was rejected with `VALIDATION_ERROR 422` before the handler was reached.
+  Fix: The `types` param now accepts both `array` and `string` via a Moleculer multi-type declaration. The handler normalises a string to an array by splitting on `,` and trimming whitespace before forwarding to the MCP tool `cernion_redispatch_export`. Both `["solar","wind"]` and `"solar,wind"` now produce identical results.
+  3 new unit tests: array passthrough, comma-string coercion, comma-string with spaces.
+
 ## [0.6.18] - 2026-03-04
 
 ### Fixed
