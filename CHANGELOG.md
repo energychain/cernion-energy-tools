@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.12] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/forecast/generation-forecast` — `"resolution": "hour"` now accepted**
+  Same alias gap as v0.6.8 fixed for `residual-load`, now patched for the forecast service.
+  The Moleculer params enum only listed `"hourly"` and `"15min"`, so passing `"hour"` returned
+  a `422 Unprocessable Entity`. `"hour"` is now a valid alias: it passes validation and is
+  normalised to `"hourly"` inside the handler before being forwarded to the MCP tool
+  `mastr_generation_forecast`. Both `"hour"` and `"hourly"` produce identical results.
+  Two new unit tests added.
+
 ## [0.6.11] - 2026-03-04
 
 ### Added

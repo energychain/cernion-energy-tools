@@ -25,7 +25,7 @@ module.exports = {
       params: {
         installationType: { type: 'enum', values: ['solar', 'wind', 'all'], optional: true, default: 'solar' },
         forecastDays: { type: 'number', optional: true, min: 1, max: 14, default: 7 },
-        resolution: { type: 'enum', values: ['daily', 'hourly', '15min'], optional: true, default: 'daily' },
+        resolution: { type: 'enum', values: ['daily', 'hourly', 'hour', '15min'], optional: true, default: 'daily' },
         gridOperatorMastrId: { type: 'string', optional: true },
         installationMastrNummer: {
           type: 'string',
@@ -420,9 +420,12 @@ module.exports = {
             ...rest
           } = ctx.params;
 
+          // Normalise resolution alias: 'hour' → 'hourly'
+          if (rest.resolution === 'hour') rest.resolution = 'hourly';
+
           const mcpParams = { ...rest };
           if (startDate) mcpParams.startDate = startDate;
-          const resolution = ctx.params.resolution || 'daily';
+          const resolution = ctx.params.resolution === 'hour' ? 'hourly' : (ctx.params.resolution || 'daily');
 
           if (installationMastrNummer) {
             // Mode 1: single-installation via MaStR ID — highest priority

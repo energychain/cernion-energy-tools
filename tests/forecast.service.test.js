@@ -257,6 +257,20 @@ describe('Forecast Service', () => {
       }
     });
 
+    it('normalises resolution "hour" alias to "hourly"', async () => {
+      callWithNewSession.mockClear();
+      await broker.call('forecast.generationForecast', { resolution: 'hour' });
+      const calledWith = callWithNewSession.mock.calls[0][1];
+      expect(calledWith.resolution).toBe('hourly');
+    });
+
+    it('accepts "hourly" resolution unchanged', async () => {
+      callWithNewSession.mockClear();
+      await broker.call('forecast.generationForecast', { resolution: 'hourly' });
+      const calledWith = callWithNewSession.mock.calls[0][1];
+      expect(calledWith.resolution).toBe('hourly');
+    });
+
     it('should use default resolution=daily if not provided', async () => {
       callWithNewSession.mockClear();
       await broker.call('forecast.generationForecast', { forecastDays: 3 });
