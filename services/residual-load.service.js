@@ -610,6 +610,30 @@ module.exports = {
      * @returns {Promise<string|null>}  Region string or null if unresolvable
      */
     async resolveRegionFromOperatorId(operatorMastrId, token) {
+      // MaStR stores bundesland as a numeric catalog code (e.g. "1410"), never as a
+      // text name.  SMARD only accepts text names ("Rheinland-Pfalz", "Bayern", …),
+      // so we translate the code with this lookup table.
+      // Codes verified empirically via live cernion_installations_local probes across
+      // all 16 Bundesländer (2025-07).
+      const BUNDESLAND_CODES = {
+        '1400': 'Brandenburg',
+        '1401': 'Berlin',
+        '1402': 'Baden-Württemberg',
+        '1403': 'Bayern',
+        '1404': 'Bremen',
+        '1405': 'Hessen',
+        '1406': 'Hamburg',
+        '1407': 'Mecklenburg-Vorpommern',
+        '1408': 'Niedersachsen',
+        '1409': 'Nordrhein-Westfalen',
+        '1410': 'Rheinland-Pfalz',
+        '1411': 'Schleswig-Holstein',
+        '1412': 'Saarland',
+        '1413': 'Sachsen',
+        '1414': 'Sachsen-Anhalt',
+        '1415': 'Thüringen',
+      };
+
       try {
         const result = await CernionMCPClient.callWithNewSession(
           'cernion_installations_local',
@@ -621,22 +645,22 @@ module.exports = {
           result?.installations ||
           [];
         if (!installations.length) return null;
-        // SMARD only accepts Bundesland text names ("Rheinland-Pfalz", "Bayern", …);
-        // city names and numeric AGS codes (e.g. "1410" stored in the landkreis field)
-        // produce loadMW=0 for all timestamps without raising an error.
-        // Sampling 10 installations and scanning ALL of them maximises the chance of
-        // finding a valid bundesland: some MaStR records have bundesland=null, so a
-        // single-record sample silently misses a valid value in an adjacent record.
+
+        // Pass 1: translate MaStR numeric bundesland code → SMARD text name
+        for (const inst of installations) {
+          const code = inst.bundesland != null ? String(inst.bundesland).trim() : null;
+          if (code && BUNDESLAND_CODES[code]) return BUNDESLAND_CODES[code];
+        }
+        // Pass 2: bundesland as plain text (future-proof if MaStR ever stores text)
         const isTextRegion = (s) => s && typeof s === 'string' && !/^\d+$/.test(s.trim());
-        // Pass 1: prefer bundesland across all sampled installations
         for (const inst of installations) {
           if (isTextRegion(inst.bundesland)) return inst.bundesland;
         }
-        // Pass 2: fall back to a text landkreis name (skip numeric AGS codes)
+        // Pass 3: text landkreis name (skip numeric AGS codes)
         for (const inst of installations) {
           if (isTextRegion(inst.landkreis)) return inst.landkreis;
         }
-        // Pass 3: last resort — gemeinde (city name; SMARD may not recognise it)
+        // Pass 4: last resort — gemeinde (city name; SMARD may not recognise it)
         for (const inst of installations) {
           if (isTextRegion(inst.gemeinde)) return inst.gemeinde;
         }

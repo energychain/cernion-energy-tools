@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.16] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/residual-load/net-residual-load` — `Load (MW)` still 0 in v0.6.15 (root cause finally found)**
+  Root cause confirmed via live API probe: MaStR stores the `bundesland` field as a **numeric catalog code** (e.g. `"1410"`) for every single installation — never as a text name like `"Rheinland-Pfalz"`. All previous fix attempts failed because they assumed at least one record would contain a text `bundesland`; `isTextRegion` correctly rejected these numeric codes, so the code fell through to `landkreis = "Ludwigshafen am Rhein"`, which SMARD also silently rejects.
+  Fix: Added a `BUNDESLAND_CODES` static lookup map (all 16 Bundesländer, codes `1400`–`1415`, verified empirically via live probing of every state) as the new Pass 1 of `resolveRegionFromOperatorId`. The numeric code is now translated to the SMARD-accepted text name before any text-region fallback is attempted.
+
 ## [0.6.15] - 2026-03-04
 
 ### Fixed

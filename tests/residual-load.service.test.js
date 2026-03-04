@@ -243,6 +243,42 @@ describe('Residual Load Service', () => {
         expect(mainCall[1].region).toBe('Rheinland-Pfalz');
       });
 
+      it('translates MaStR numeric bundesland code "1410" → "Rheinland-Pfalz" (Bug v0.6.15: MaStR always stores bundesland as catalog code, never as text name)', async () => {
+        // Real MaStR data: bundesland is ALWAYS a numeric catalog code (e.g. "1410"),
+        // never a human-readable text name like "Rheinland-Pfalz".
+        // v0.6.15's isTextRegion filter correctly rejects "1410" as numeric, but then
+        // falls through to landkreis="Ludwigshafen am Rhein" which SMARD also rejects.
+        // Fix: BUNDESLAND_CODES lookup map translates "1410" → "Rheinland-Pfalz" in Pass 1.
+        callWithNewSession
+          .mockResolvedValueOnce({
+            success: true,
+            data: { installations: [{ gemeinde: 'Ludwigshafen am Rhein', landkreis: 'Ludwigshafen am Rhein', bundesland: '1410' }] },
+          })
+          .mockImplementationOnce(async (toolName, params) => buildResidualLoadResponse(params));
+        const result = await broker.call('residual-load.netResidualLoad', {
+          gridOperatorMastrId: 'SNB935578300972',
+        });
+        expect(result).toHaveProperty('forecast');
+        const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
+        // Must be "Rheinland-Pfalz" — never "Ludwigshafen am Rhein" or "1410"
+        expect(mainCall[1].region).toBe('Rheinland-Pfalz');
+      });
+
+      it('translates numeric bundesland code "1403" → "Bayern"', async () => {
+        callWithNewSession
+          .mockResolvedValueOnce({
+            success: true,
+            data: { installations: [{ gemeinde: 'München', landkreis: 'München', bundesland: '1403' }] },
+          })
+          .mockImplementationOnce(async (toolName, params) => buildResidualLoadResponse(params));
+        const result = await broker.call('residual-load.netResidualLoad', {
+          gridOperatorMastrId: 'SNB000000000002',
+        });
+        expect(result).toHaveProperty('forecast');
+        const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
+        expect(mainCall[1].region).toBe('Bayern');
+      });
+
       it('skips numeric landkreis AGS code and uses bundesland (Bug v0.6.13: landkreis=1410 caused loadMW=0)', async () => {
         // MaStR stores landkreis as a numeric AGS Kreisschlüssel ("1410"), not a text name.
         // SMARD rejects numeric codes silently (loadMW=0). Must be skipped.
@@ -275,17 +311,16 @@ describe('Residual Load Service', () => {
         expect(mainCall[1].region).toBe('Kiel');
       });
 
-      it('scans all sampled installations — returns bundesland from second record when first has bundesland=null (Bug v0.6.14: limit:1 missed valid bundesland)', async () => {
-        // The first installation returned by cernion_installations_local may have
-        // bundesland=null (incomplete MaStR record). With limit:10 the method scans
-        // all records and picks the bundesland from the second installation.
+      it('scans all sampled installations — translates numeric bundesland from first record (Bug v0.6.15: all real records have numeric bundesland)', async () => {
+        // Real-world scenario: all 10 MaStR records have bundesland='1410' (numeric).
+        // Pass 1 of the new BUNDESLAND_CODES lookup must resolve the first record immediately.
         callWithNewSession
           .mockResolvedValueOnce({
             success: true,
             data: {
               installations: [
-                { gemeinde: 'Ludwigshafen am Rhein', landkreis: '1410', bundesland: null },
-                { gemeinde: 'Ludwigshafen am Rhein', landkreis: '1410', bundesland: 'Rheinland-Pfalz' },
+                { gemeinde: 'Ludwigshafen am Rhein', landkreis: 'Ludwigshafen am Rhein', bundesland: '1410' },
+                { gemeinde: 'Ludwigshafen am Rhein', landkreis: 'Ludwigshafen am Rhein', bundesland: '1410' },
               ],
             },
           })
@@ -295,8 +330,6 @@ describe('Residual Load Service', () => {
         });
         expect(result).toHaveProperty('forecast');
         const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
-        // Must use 'Rheinland-Pfalz' from the second record, not 'Ludwigshafen am Rhein'
-        // or numeric '1410', because only Bundesland names are valid SMARD region keys.
         expect(mainCall[1].region).toBe('Rheinland-Pfalz');
       });
 
