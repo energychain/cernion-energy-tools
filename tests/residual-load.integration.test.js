@@ -84,6 +84,12 @@ describe('Residual Load Service — Integration Tests', () => {
     callWithNewSession.mockImplementation(async (toolName, params) => {
       if (toolName === 'mastr_net_residual_load') return buildResidualLoadMockResponse(params);
       if (toolName === 'cernion_load_forecast_regional') return { success: true, region: params.region };
+      if (toolName === 'cernion_installations_local') {
+        return {
+          success: true,
+          data: { installations: [{ gemeinde: 'IntegrationCity', bundesland: 'IntegrationState' }] },
+        };
+      }
       throw new Error(`Unexpected tool: ${toolName}`);
     });
 
@@ -101,6 +107,12 @@ describe('Residual Load Service — Integration Tests', () => {
     callWithNewSession.mockImplementation(async (toolName, params) => {
       if (toolName === 'mastr_net_residual_load') return buildResidualLoadMockResponse(params);
       if (toolName === 'cernion_load_forecast_regional') return { success: true, region: params.region };
+      if (toolName === 'cernion_installations_local') {
+        return {
+          success: true,
+          data: { installations: [{ gemeinde: 'IntegrationCity', bundesland: 'IntegrationState' }] },
+        };
+      }
       throw new Error(`Unexpected tool: ${toolName}`);
     });
   });

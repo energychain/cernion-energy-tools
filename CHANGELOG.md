@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.11] - 2026-03-04
+
+### Added
+
+- **`POST /api/residual-load/net-residual-load` — `region` auto-derived from `gridOperatorMastrId`**
+  When a request provides `gridOperatorMastrId` but omits `region` (and all
+  location fields), the handler now automatically resolves the region by fetching
+  one sample installation for that operator via `cernion_installations_local`
+  (`limit: 1`) and using its `gemeinde`, `landkreis`, or `bundesland` as the SMARD
+  population-scaling region. This eliminates the requirement to pass both
+  `gridOperatorMastrId` and `region` separately for standard Stadtwerk/EVU use
+  cases (e.g. TWL Ludwigshafen: `{ gridOperatorMastrId: "SNB935578300972" }`).
+  Falls back gracefully to a structured `RESIDUAL_LOAD_MISSING_REGION` error only
+  when the lookup itself returns no installations. The new `resolveRegionFromOperatorId`
+  helper method follows the same pattern used by `vnbLookup` in the grid-operations
+  service. Covered by 5 new unit tests.
+
 ## [0.6.10] - 2026-03-04
 
 ### Fixed

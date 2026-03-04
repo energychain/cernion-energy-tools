@@ -339,22 +339,45 @@ module.exports = {
             mcpParams.location = locationObj;
           }
 
-          // Auto-derive region for SMARD population scaling from location fields
-          // when the caller omitted region (e.g. agent used gemeinde instead).
+          // Auto-derive region for SMARD population scaling when the caller
+          // omitted region.  Priority order:
+          //  1. gemeinde / landkreis / bundesland from request params
+          //  2. Lookup one sample installation from cernion_installations_local
+          //     using gridOperatorMastrId and extract its municipality
+          //  3. Return a structured error (never pass undefined to the MCP tool —
+          //     mastr_net_residual_load calls .toLowerCase() on region and crashes)
           if (!mcpParams.region) {
-            const derivedRegion = gemeinde || landkreis || bundesland;
-            if (derivedRegion) {
-              mcpParams.region = derivedRegion;
+            const locationDerived = gemeinde || landkreis || bundesland;
+            if (locationDerived) {
+              mcpParams.region = locationDerived;
               this.logger.warn(
-                `residual-load: region not provided; auto-derived from location fields: "${derivedRegion}"`
+                `residual-load: region not provided; auto-derived from location fields: "${locationDerived}"`
               );
+            } else if (mcpParams.gridOperatorMastrId) {
+              const lookedUpRegion = await this.resolveRegionFromOperatorId(
+                mcpParams.gridOperatorMastrId,
+                ctx.meta.cernionToken
+              );
+              if (lookedUpRegion) {
+                mcpParams.region = lookedUpRegion;
+                this.logger.info(
+                  `residual-load: region auto-derived from operator ${mcpParams.gridOperatorMastrId}: "${lookedUpRegion}"`
+                );
+              } else {
+                this.logger.warn(
+                  `residual-load: could not resolve region for operator ${mcpParams.gridOperatorMastrId} — returning structured error.`
+                );
+                return {
+                  success: false,
+                  error: {
+                    code: 'RESIDUAL_LOAD_MISSING_REGION',
+                    message:
+                      `Could not auto-derive region for gridOperatorMastrId "${mcpParams.gridOperatorMastrId}". ` +
+                      'Please provide a region name (city, Landkreis, or Bundesland) explicitly.',
+                  },
+                };
+              }
             } else {
-              // No region and none derivable from location fields.
-              // The MCP tool mastr_net_residual_load always calls .toLowerCase() on
-              // region for SMARD population lookup — passing undefined crashes it
-              // regardless of whether gridOperatorMastrId is set.
-              // Return a structured error so the caller gets a clear message instead
-              // of a TypeError surfaced from inside the MCP tool.
               this.logger.warn(
                 'residual-load.netResidualLoad called without region or any location field — ' +
                 'returning structured error to avoid MCP crash.'
@@ -365,10 +388,8 @@ module.exports = {
                   code: 'RESIDUAL_LOAD_MISSING_REGION',
                   message:
                     'region is required for SMARD population scaling. ' +
-                    'Provide a region name (city, Landkreis, or Bundesland) alongside ' +
-                    'gridOperatorMastrId (e.g. "Ludwigshafen" for SNB935578300972). ' +
-                    'Alternatively supply bundesland, landkreis, gemeinde, or postleitzahl ' +
-                    'so region can be auto-derived. ' +
+                    'Provide a region name (city, Landkreis, or Bundesland), ' +
+                    'gridOperatorMastrId, or a location field (bundesland, landkreis, gemeinde, postleitzahl). ' +
                     'For single-installation forecasts use forecast.generationForecast instead.',
                 },
               };
@@ -576,6 +597,38 @@ module.exports = {
   },
 
   methods: {
+    /**
+     * Fetch one sample installation for the given grid operator from the local
+     * MaStR database and return its municipality as a region name.
+     *
+     * Used to auto-populate `region` when the caller provides only
+     * `gridOperatorMastrId` — avoids requiring two separate parameters for
+     * what is essentially the same piece of information.
+     *
+     * @param {string} operatorMastrId - MaStR Netzbetreiber-ID (SNB/GNB...)
+     * @param {string|null} token      - Bearer token forwarded to MCP
+     * @returns {Promise<string|null>}  Region string or null if unresolvable
+     */
+    async resolveRegionFromOperatorId(operatorMastrId, token) {
+      try {
+        const result = await CernionMCPClient.callWithNewSession(
+          'cernion_installations_local',
+          { gridOperatorMastrId: operatorMastrId, limit: 1, format: 'detailed', includeStats: false },
+          token
+        );
+        const installations =
+          result?.data?.installations ||
+          result?.installations ||
+          [];
+        const inst = installations[0];
+        if (!inst) return null;
+        return inst.gemeinde || inst.landkreis || inst.bundesland || null;
+      } catch (err) {
+        this.logger.warn(`resolveRegionFromOperatorId failed for ${operatorMastrId}: ${err.message}`);
+        return null;
+      }
+    },
+
     /**
      * Build nested location object from optional flat params.
      * Only includes keys that have a defined, non-null value.

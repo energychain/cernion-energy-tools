@@ -92,6 +92,12 @@ describe('Residual Load Service', () => {
     callWithNewSession.mockImplementation(async (toolName, params) => {
       if (toolName === 'mastr_net_residual_load') return buildResidualLoadResponse(params);
       if (toolName === 'cernion_load_forecast_regional') return buildLoadForecastRegionalResponse(params);
+      if (toolName === 'cernion_installations_local') {
+        return {
+          success: true,
+          data: { installations: [{ gemeinde: 'MockCity', bundesland: 'MockState' }] },
+        };
+      }
       throw new Error(`Unexpected tool: ${toolName}`);
     });
 
@@ -109,6 +115,12 @@ describe('Residual Load Service', () => {
     callWithNewSession.mockImplementation(async (toolName, params) => {
       if (toolName === 'mastr_net_residual_load') return buildResidualLoadResponse(params);
       if (toolName === 'cernion_load_forecast_regional') return buildLoadForecastRegionalResponse(params);
+      if (toolName === 'cernion_installations_local') {
+        return {
+          success: true,
+          data: { installations: [{ gemeinde: 'MockCity', bundesland: 'MockState' }] },
+        };
+      }
       throw new Error(`Unexpected tool: ${toolName}`);
     });
   });
@@ -166,18 +178,67 @@ describe('Residual Load Service', () => {
       });
     });
 
-    describe('region is always required — Bug 3a19bf97 / gridOperatorMastrId without region crashes MCP', () => {
-      it('returns RESIDUAL_LOAD_MISSING_REGION when only gridOperatorMastrId is provided (no region)', async () => {
-        // mastr_net_residual_load calls .toLowerCase() on region for SMARD population
-        // scaling — undefined crashes it regardless of whether gridOperatorMastrId is set.
+    describe('region auto-derived from gridOperatorMastrId via cernion_installations_local', () => {
+      it('auto-derives region and calls mastr_net_residual_load when only gridOperatorMastrId is provided', async () => {
         const result = await broker.call('residual-load.netResidualLoad', {
           gridOperatorMastrId: 'SNB935578300972',
         });
+        // First call: cernion_installations_local lookup
+        expect(callWithNewSession).toHaveBeenCalledWith(
+          'cernion_installations_local',
+          expect.objectContaining({ gridOperatorMastrId: 'SNB935578300972', limit: 1 }),
+          undefined
+        );
+        // Second call: main MCP tool with derived region
+        expect(callWithNewSession).toHaveBeenCalledWith(
+          'mastr_net_residual_load',
+          expect.objectContaining({ gridOperatorMastrId: 'SNB935578300972', region: 'MockCity' }),
+          undefined
+        );
+        expect(result).toHaveProperty('forecast');
+      });
+
+      it('passes the token through to cernion_installations_local', async () => {
+        await broker.call(
+          'residual-load.netResidualLoad',
+          { gridOperatorMastrId: 'SNB935578300972' },
+          { meta: { cernionToken: 'bearer-xyz' } }
+        );
+        expect(callWithNewSession).toHaveBeenCalledWith(
+          'cernion_installations_local',
+          expect.objectContaining({ gridOperatorMastrId: 'SNB935578300972' }),
+          'bearer-xyz'
+        );
+      });
+
+      it('returns RESIDUAL_LOAD_MISSING_REGION when cernion_installations_local returns no installations', async () => {
+        callWithNewSession.mockImplementationOnce(async (toolName) => {
+          if (toolName === 'cernion_installations_local')
+            return { success: true, data: { installations: [] } };
+          throw new Error(`Unexpected: ${toolName}`);
+        });
+        const result = await broker.call('residual-load.netResidualLoad', {
+          gridOperatorMastrId: 'SNB000000000000',
+        });
         expect(result.success).toBe(false);
         expect(result.error.code).toBe('RESIDUAL_LOAD_MISSING_REGION');
-        expect(result.error.message).toMatch(/region/i);
-        // MCP must NOT have been called — would crash on .toLowerCase()
-        expect(callWithNewSession).not.toHaveBeenCalled();
+        const tools = callWithNewSession.mock.calls.map(([t]) => t);
+        expect(tools).not.toContain('mastr_net_residual_load');
+      });
+
+      it('prefers gemeinde over bundesland from installation', async () => {
+        callWithNewSession
+          .mockResolvedValueOnce({
+            success: true,
+            data: { installations: [{ gemeinde: 'Ludwigshafen', bundesland: 'Rheinland-Pfalz' }] },
+          })
+          .mockImplementationOnce(async (toolName, params) => buildResidualLoadResponse(params));
+        const result = await broker.call('residual-load.netResidualLoad', {
+          gridOperatorMastrId: 'SNB935578300972',
+        });
+        expect(result).toHaveProperty('forecast');
+        const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
+        expect(mainCall[1].region).toBe('Ludwigshafen');
       });
 
       it('succeeds with no params at all — no Moleculer validation error', async () => {
@@ -240,17 +301,21 @@ describe('Residual Load Service', () => {
         );
       });
 
-      it('returns RESIDUAL_LOAD_MISSING_REGION when gridOperatorMastrId is provided but region is absent', async () => {
-        // mastr_net_residual_load crashes on .toLowerCase() when region is undefined,
-        // even when gridOperatorMastrId is set. We must not forward to the MCP tool.
+      it('returns RESIDUAL_LOAD_MISSING_REGION when gridOperatorMastrId lookup returns empty', async () => {
+        // Verifies the guard still works when the lookup yields nothing.
+        // Only mock cernion_installations_local — mastr_net_residual_load must NOT be called,
+        // so no second mock is needed (an unconsumed mockImplementationOnce would leak into
+        // subsequent tests because jest.clearAllMocks() does not flush the implementation queue).
+        callWithNewSession
+          .mockResolvedValueOnce({ success: true, data: { installations: [] } }); // cernion_installations_local
         const result = await broker.call('residual-load.netResidualLoad', {
           gridOperatorMastrId: 'SNB973742186519',
           // no region, no location fields
         });
         expect(result.success).toBe(false);
         expect(result.error.code).toBe('RESIDUAL_LOAD_MISSING_REGION');
-        // MCP must NOT have been called
-        expect(callWithNewSession).not.toHaveBeenCalled();
+        const tools = callWithNewSession.mock.calls.map(([t]) => t);
+        expect(tools).not.toContain('mastr_net_residual_load');
       });
 
       it('returns RESIDUAL_LOAD_MISSING_REGION when called with only a MeLo (single-installation misuse)', async () => {
@@ -261,7 +326,7 @@ describe('Residual Load Service', () => {
         });
         expect(result.success).toBe(false);
         expect(result.error.code).toBe('RESIDUAL_LOAD_MISSING_REGION');
-        expect(result.error.message).toMatch(/generationForecast/);
+        expect(result.error.message).toMatch(/region/i);
         // MCP must NOT have been called
         expect(callWithNewSession).not.toHaveBeenCalled();
       });
