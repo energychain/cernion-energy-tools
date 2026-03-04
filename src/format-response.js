@@ -17,6 +17,7 @@ const XLSX = require('xlsx');
 // ─── Candidate array field names tried in order ───────────────────────────────
 const TOP_LEVEL_ARRAY_KEYS = [
   'prices',
+  'dataPoints',
   'generation',
   'forecasts',
   'unavailabilities',
@@ -33,6 +34,7 @@ const TOP_LEVEL_ARRAY_KEYS = [
 
 const NESTED_ARRAY_KEYS = [
   'prices',
+  'dataPoints',
   'timeSeries',
   'results',
   'installations',

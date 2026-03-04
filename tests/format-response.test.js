@@ -94,6 +94,22 @@ describe('extractRows', () => {
     const result = { data: { summary: 'only a string', count: 5 } };
     expect(extractRows(result)).toEqual([]);
   });
+
+  it('should extract top-level "dataPoints" array (ENTSO-E day-ahead prices)', () => {
+    const result = {
+      success: true,
+      region: 'Deutschland',
+      eicCode: '10Y1001A1001A82H',
+      dataPoints: SAMPLE_ROWS,
+      statistics: { minPrice: 39.1, maxPrice: 45.5 },
+    };
+    expect(extractRows(result)).toBe(SAMPLE_ROWS);
+  });
+
+  it('should extract nested "dataPoints" inside result.data', () => {
+    const result = { data: { dataPoints: SAMPLE_ROWS, resolution: 'PT60M' } };
+    expect(extractRows(result)).toBe(SAMPLE_ROWS);
+  });
 });
 
 // ─── convertToCSV ─────────────────────────────────────────────────────────────

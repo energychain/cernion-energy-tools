@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.9] - 2026-03-04
+
+### Fixed
+
+- **`POST /api/german-grid/spotprices` with `format=csv` returned empty CSV**
+  The `extractRows` helper in `src/format-response.js` did not recognise
+  `dataPoints` as a price-row array. ENTSO-E day-ahead prices tools return their
+  data under that key (e.g. `{ dataPoints: [{timestamp, priceEURperMWh, …}] }`).
+  Because the `spotprices` handler also uses ENTSO-E as its automatic fallback
+  (since v0.6.7), any request with `format=csv` that triggered the fallback path
+  (dates ≥ today) silently produced an empty file. `dataPoints` is now the second
+  entry in both `TOP_LEVEL_ARRAY_KEYS` and `NESTED_ARRAY_KEYS` so CSV/XLSX export
+  works regardless of whether the primary Netztransparenz source or the ENTSO-E
+  fallback is used. The `entsoe/day-ahead-prices` endpoint with `format=csv` was
+  affected by the same root cause and is fixed by the same change.
+
 ## [0.6.8] - 2026-03-04
 
 ### Fixed

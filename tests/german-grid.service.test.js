@@ -225,6 +225,36 @@ describe('German Grid Service', () => {
       expect(callWithNewSession).toHaveBeenCalledTimes(1);
       expect(result.data.fallback).toBeUndefined();
     });
+
+    it('should return CSV from ENTSO-E fallback dataPoints when format=csv', async () => {
+      const dataPoints = [
+        { timestamp: '2026-03-04T00:00:00Z', hour: 0, priceEURperMWh: 91.22 },
+        { timestamp: '2026-03-04T01:00:00Z', hour: 1, priceEURperMWh: 87.45 },
+      ];
+      callWithNewSession
+        .mockResolvedValueOnce({
+          success: true,
+          data: { content: [{ type: 'text', text: 'No price data available' }], isError: true },
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          dataPoints,
+          region: 'Deutschland',
+          statistics: { minPrice: 87.45, maxPrice: 91.22 },
+        });
+
+      const ctx = { meta: {} };
+      const result = await broker.call('german-grid.spotprices', {
+        dateFrom: '2026-03-04',
+        dateTo: '2026-03-06',
+        format: 'csv',
+      }, { meta: ctx.meta });
+
+      expect(typeof result).toBe('string');
+      expect(result).toContain('timestamp');
+      expect(result).toContain('priceEURperMWh');
+      expect(result).toContain('91.22');
+    });
   });
 
   describe('Service Configuration', () => {
