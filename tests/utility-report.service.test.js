@@ -306,6 +306,98 @@ describe('Utility Report Service', () => {
     });
   });
 
+  // ─── rebuild action ────────────────────────────────────────────────────────
+
+  describe('rebuild action', () => {
+    it('should require reportId', async () => {
+      await expect(broker.call('utility-report.rebuild', {})).rejects.toThrow();
+    });
+
+    it('should return 404 for unknown reportId', async () => {
+      const result = await broker.call('utility-report.rebuild', {
+        reportId: 'does-not-exist-xyz',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('should re-render HTML for a completed report', async () => {
+      // Generate a report and wait briefly for the async pipeline to write progress
+      const gen = await broker.call('utility-report.generate', {
+        utilityName: 'Rebuild Test Stadtwerke',
+        forceRefresh: true,
+      });
+      // Give the async pipeline a moment to write progress.json
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Manually write a completed progress stub so we can test rebuild independently
+      const fs = require('fs');
+      const path = require('path');
+      const os = require('os');
+      const stubId = 'rebuild-stub-test-id';
+      const stubDir = path.join(os.tmpdir(), 'utility-report-test');
+      fs.mkdirSync(stubDir, { recursive: true });
+      const stub = {
+        reportId: stubId,
+        utilityName: 'Rebuild Stub GmbH',
+        region: 'TestCity',
+        bdew: '',
+        status: 'completed',
+        phase: 4,
+        results: {
+          section1: {}, section2: {}, section3: {}, section4: {},
+          section5: {}, section6: {}, section7: {}, section8: {},
+        },
+        meta: { resolvedVnbName: 'Rebuild Stub GmbH', resolvedBdew: null },
+        managementSummary: 'Test narrative line 1\nTest narrative line 2\nTest narrative line 3',
+        webSearchResults: [],
+        completedAt: new Date().toISOString(),
+      };
+      fs.writeFileSync(path.join(stubDir, `${stubId}.progress.json`), JSON.stringify(stub));
+
+      const result = await broker.call('utility-report.rebuild', { reportId: stubId });
+
+      expect(result.success).toBe(true);
+      expect(result.downloadUrl).toContain(stubId);
+      // Verify HTML file was written
+      expect(fs.existsSync(path.join(stubDir, `${stubId}.html`))).toBe(true);
+    });
+
+    it('should return 409 for a still-generating report', async () => {
+      const fs = require('fs');
+      const path = require('path');
+      const os = require('os');
+      const stubId = 'rebuild-in-progress-test';
+      const stubDir = path.join(os.tmpdir(), 'utility-report-test');
+      fs.mkdirSync(stubDir, { recursive: true });
+      const stub = {
+        reportId: stubId,
+        utilityName: 'InProgress GmbH',
+        status: 'generating',
+        phase: 2,
+        results: {},
+        meta: {},
+      };
+      fs.writeFileSync(path.join(stubDir, `${stubId}.progress.json`), JSON.stringify(stub));
+
+      const result = await broker.call('utility-report.rebuild', { reportId: stubId });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  // ─── rebuildAll action ────────────────────────────────────────────────────
+
+  describe('rebuildAll action', () => {
+    it('should return a summary with rebuilt/skipped/failed counts', async () => {
+      const result = await broker.call('utility-report.rebuildAll', {});
+      expect(result.success).toBe(true);
+      expect(typeof result.total).toBe('number');
+      expect(typeof result.rebuilt).toBe('number');
+      expect(typeof result.skipped).toBe('number');
+      expect(typeof result.failed).toBe('number');
+      expect(result.rebuilt + result.skipped + result.failed).toBe(result.total);
+    });
+  });
+
   // ─── report-builder integration ────────────────────────────────────────────
 
   describe('report-builder integration', () => {

@@ -498,6 +498,128 @@ module.exports = {
     // ─────────────────────────────────────────────────────────────────────────
 
     /**
+     * Re-render HTML from stored progress data (no MCP calls, instant).
+     * Use this to refresh the HTML of an existing completed report after a
+     * report-builder code update without re-running the expensive 4-phase pipeline.
+     */
+    rebuild: {
+      rest: 'POST /rebuild/:reportId',
+      params: {
+        reportId: { type: 'string', min: 1 },
+      },
+      openapi: {
+        summary: 'Re-render an existing report from cached data',
+        tags: ['Utility Report'],
+        description:
+          'Reads the stored `.progress.json` for the given reportId and re-runs ' +
+          '`buildHtmlReport()` to overwrite the `.html` file. Instant – no MCP calls needed. ' +
+          'Useful after a report-builder bug fix to refresh already-generated reports.',
+        responses: {
+          200: { description: 'Report re-rendered successfully' },
+          404: { description: 'No progress data found for reportId' },
+          409: { description: 'Report pipeline has not completed yet' },
+        },
+      },
+      async handler(ctx) {
+        const { reportId } = ctx.params;
+        const prog = loadProgress(reportId);
+
+        if (!prog) {
+          ctx.$statusCode = 404;
+          return { success: false, error: 'No progress data found for this reportId', reportId };
+        }
+        if (prog.status !== 'completed' || !prog.results) {
+          ctx.$statusCode = 409;
+          return { success: false, error: 'Report is not yet completed; re-run generate instead', reportId, status: prog.status };
+        }
+
+        const utilityName = prog.utilityName ?? '';
+        const region = prog.region ?? '';
+        const resolvedVnbName = prog.meta?.resolvedVnbName ?? null;
+        const resolvedBdew = prog.meta?.resolvedBdew ?? prog.bdew ?? null;
+        // Reuse stored narrative if available (saved by pipeline since v0.8.2)
+        const managementSummary = prog.managementSummary ?? '';
+        const webSearchResults = prog.webSearchResults ?? [];
+
+        const html = buildHtmlReport({
+          meta: {
+            utilityName,
+            vnbName: resolvedVnbName,
+            region,
+            bdew: resolvedBdew,
+            reportId,
+          },
+          section1: prog.results.section1,
+          section2: prog.results.section2,
+          section3: prog.results.section3,
+          section4: prog.results.section4,
+          section5: prog.results.section5,
+          section6: prog.results.section6,
+          section7: prog.results.section7,
+          section8: prog.results.section8,
+          managementSummary,
+          webSearchResults,
+          generatedAt: new Date().toISOString(),
+        });
+
+        ensureReportsDir();
+        fs.writeFileSync(reportPath(reportId), html, 'utf-8');
+
+        return {
+          success: true,
+          reportId,
+          message: 'Report HTML re-rendered from cached data',
+          downloadUrl: `/api/utility-report/download/${reportId}`,
+        };
+      },
+    },
+
+    /**
+     * Re-render ALL completed reports from stored progress data (batch rebuild).
+     */
+    rebuildAll: {
+      rest: 'POST /rebuild-all',
+      openapi: {
+        summary: 'Re-render all completed reports from cached data',
+        tags: ['Utility Report'],
+        description:
+          'Iterates every `.progress.json` in the reports directory and re-renders the HTML ' +
+          'for every completed report. Returns a summary with counts of rebuilt/skipped/failed entries.',
+        responses: {
+          200: { description: 'Batch rebuild summary' },
+        },
+      },
+      async handler(ctx) {
+        ensureReportsDir();
+        const files = fs.readdirSync(REPORTS_DIR).filter((f) => f.endsWith('.progress.json'));
+        const results = { rebuilt: [], skipped: [], failed: [] };
+
+        for (const file of files) {
+          const reportId = file.replace('.progress.json', '');
+          try {
+            const result = await ctx.call('utility-report.rebuild', { reportId });
+            if (result.success) {
+              results.rebuilt.push(reportId);
+            } else {
+              results.skipped.push({ reportId, reason: result.error });
+            }
+          } catch (err) {
+            results.failed.push({ reportId, error: err.message });
+          }
+        }
+
+        return {
+          success: true,
+          total: files.length,
+          rebuilt: results.rebuilt.length,
+          skipped: results.skipped.length,
+          failed: results.failed.length,
+          details: results,
+        };
+      },
+    },
+
+    /**
      * Download completed HTML report
      */
     download: {
@@ -993,6 +1115,8 @@ module.exports = {
       p.status = 'completed';
       p.phase = 4;
       p.completedAt = new Date().toISOString();
+      p.managementSummary = managementSummary;
+      p.webSearchResults = webSearchResults;
       saveProgress(p);
 
       this.logger.info(`[UtilityReport] ${p.reportId} – Completed!`);
