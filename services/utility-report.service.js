@@ -119,8 +119,13 @@ function indexReport(utilityName, date, reportId) {
  * Never throws – returns { available: false, error } on any failure.
  */
 async function callMcpDirect(toolName, params, token) {
+  const TIMEOUT_MS = 30_000;
   try {
-    const result = await CernionMCPClient.callWithNewSession(toolName, params, token || null);
+    const callPromise = CernionMCPClient.callWithNewSession(toolName, params, token || null);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout after ${TIMEOUT_MS / 1000}s`)), TIMEOUT_MS)
+    );
+    const result = await Promise.race([callPromise, timeoutPromise]);
     if (!result || result.success === false) {
       return { available: false, error: result?.error?.message || 'Tool returned error' };
     }
@@ -138,7 +143,7 @@ async function callBroker(ctx, action, params) {
   try {
     const result = await ctx.broker.call(action, params, {
       meta: ctx.meta,
-      timeout: 10 * 60 * 1000,
+      timeout: 30_000, // 30 s – never block the report pipeline longer than this
     });
     return { available: true, data: result };
   } catch (err) {
@@ -528,7 +533,7 @@ module.exports = {
         ctx.$responseHeaders = {
           'Content-Disposition': `inline; filename="360-report-${reportId}.html"`,
         };
-        return html;
+        return Buffer.from(html, 'utf-8');
       },
     },
   },

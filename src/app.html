@@ -1572,7 +1572,7 @@ function esc(str) {
   const rptDownload  = $('rpt-download-btn');
   const rptHistList  = $('rpt-history-list');
 
-  const RESEARCH_CARDS = [problemCard, strategyCard, paramsCard, resultsCard, statusBar];
+  const RESEARCH_CARDS = [$('problem-card'), strategyCard, paramsCard, resultsCard, statusBar];
   const HISTORY_KEY    = 'cernion_report_history';
   let   pollTimer      = null;
   let   currentToken   = null;

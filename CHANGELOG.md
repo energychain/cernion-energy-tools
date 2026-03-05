@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-03-05
+
+### Fixed
+
+- **360° Report: all KPI values were "–"** — `safeData()` now auto-unwraps the `{success, data: payload}` service envelope that AGSI, EWK, and EIC tools wrap their results in. Previously the renderers received the outer wrapper object and all field lookups missed.
+- **Added `extractEwkJson()` helper** — EWK monitoring services return a text-array where the second element carries a `.json` field with structured benchmark data. The new helper extracts this JSON from any `[{type,text}, {type,text,json:{...}}]` response, enabling section 5 (Regulierung & Compliance) to render real values.
+- **Section 1** — CO₂ intensity now reads `co2_intensity_gco2eq_kwh` (actual field name from GrünstromIndex API) with fallback to the legacy `co2intensity` key. Residual load now traverses `summary.netResidualLoad`.
+- **Section 4** — Gas storage fill level reads `storage.gasInStorage` and `storage.full` from the AGSI nested payload. Supply security status reads `securityStatus` (primary) with fallback to `status`.
+- **Section 5** — EWK KPI rows (Anschlussdauer, Digitalisierungsindex, Smart-Grids, Umsetzungsquote) now extract values from `data[1].json` via `extractEwkJson()`; ranking shown as `{rank} / {total}`.
+- **Section 6** — churn text extracted from `churn[0].text` (array after unwrap) with fallback to `churn.data[0].text` for legacy shapes.
+- **Section 8** — EIC total reads `statistics.total` with flat-object fallback; systemStatus derives 'Online' from `Array.isArray(sysStatus)` when the tool returns a text-array; digitalisierung scores use `extractEwkJson()` with `diScores.gesamtscore * 100`.
+
 ## [0.8.1] - 2026-03-05
 
 ### Changed
