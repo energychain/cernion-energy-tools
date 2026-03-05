@@ -602,6 +602,143 @@
     .chart-canvas-wrap.visible { display: block; }
     .chart-canvas-wrap canvas { max-height: 360px; }
 
+    /* ── 360° Report Panel ──────────────────────────────────────────── */
+    #report-panel .report-form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    #report-panel .report-form-grid label {
+      display: block;
+      font-size: .8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    #report-panel .report-form-grid input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--text);
+      font-size: .9rem;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    #report-panel .report-form-grid input:focus { border-color: var(--accent2); }
+    #report-panel .report-form-grid .field-hint {
+      font-size: .75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .progress-wrap {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      margin-top: 16px;
+    }
+    .progress-wrap .progress-label {
+      font-size: .83rem;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .progress-wrap .progress-label .phase-name { color: var(--accent2); }
+    .progress-track {
+      height: 6px;
+      border-radius: 3px;
+      background: var(--border);
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: var(--accent);
+      transition: width .5s ease;
+      width: 0%;
+    }
+    .report-status-msg {
+      margin-top: 12px;
+      font-size: .85rem;
+      color: var(--text-muted);
+    }
+    .report-status-msg.ok    { color: var(--accent); }
+    .report-status-msg.err   { color: var(--danger); }
+    .report-status-msg.info  { color: var(--accent2); }
+    .report-download-btn {
+      margin-top: 14px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: var(--accent);
+      color: #0a1a10;
+      border: none;
+      border-radius: 7px;
+      font-size: .93rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity .15s;
+    }
+    .report-download-btn:hover { opacity: .85; }
+    .report-history {
+      margin-top: 24px;
+      border-top: 1px solid var(--border);
+      padding-top: 18px;
+    }
+    .report-history-label {
+      font-size: .78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .7px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .report-history-empty {
+      font-size: .87rem;
+      color: var(--text-muted);
+      padding: 12px 0;
+    }
+    .report-history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .report-history-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: .87rem;
+    }
+    .report-history-item .rh-name { flex: 1; color: var(--text); font-weight: 500; }
+    .report-history-item .rh-date { font-size: .77rem; color: var(--text-muted); white-space: nowrap; }
+    .report-history-item a {
+      color: var(--accent2);
+      text-decoration: none;
+      font-size: .82rem;
+      white-space: nowrap;
+    }
+    .report-history-item a:hover { text-decoration: underline; }
+    .report-history-item .rh-clear {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: .85rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .report-history-item .rh-clear:hover { color: var(--danger); }
+
     /* ── Hidden ───────────────────────────────────────────────────── */
     .hidden { display: none !important; }
 
@@ -618,6 +755,7 @@
   <div class="logo">⚡ Cernion <span>Energy Research Agent</span></div>
   <nav>
     <a href="/api/docs" target="_blank">API Docs</a>
+    <a href="#" id="nav-report">📄 360° Bericht</a>
     <a href="#" id="nav-reset">New Research</a>
   </nav>
 </header>
@@ -738,6 +876,63 @@
     <div id="suggestions-section" class="suggestions-section hidden">
       <div class="suggestions-label">💡 Explore further</div>
       <div class="suggestions-grid" id="suggestions-grid"></div>
+    </div>
+  </section>
+
+  <!-- ── 360° Utility Management Report ──────────────────────── -->
+  <section class="card hidden" id="report-panel">
+    <h2>📄 360° Utility Management Report</h2>
+    <p style="font-size:.9rem;color:var(--text-muted);margin-bottom:18px;line-height:1.6">
+      Generates a comprehensive HTML management report for a German energy utility
+      (Stadtwerke / Netzbetreiber) — 8 KPI sections, Chart.js charts, AI narrative.
+      Generation takes 3–8 minutes; results are cached for 7 days.
+    </p>
+
+    <div class="report-form-grid">
+      <div>
+        <label>Versorger / Netzbetreiber <span style="color:var(--danger)">*</span></label>
+        <input id="rpt-utility" type="text" placeholder="z.B. TWL Netze GmbH" />
+        <div class="field-hint">Name des Stadtwerks oder Netzbetreibers</div>
+      </div>
+      <div>
+        <label>Region / Ort (optional)</label>
+        <input id="rpt-region" type="text" placeholder="z.B. Ludwigshafen" />
+        <div class="field-hint">Verbessert regionale Suchergebnisse</div>
+      </div>
+      <div>
+        <label>BDEW-Code (optional)</label>
+        <input id="rpt-bdew" type="text" placeholder="z.B. 9900123450001" />
+        <div class="field-hint">13-stelliger BDEW-Marktpartnercode</div>
+      </div>
+      <div>
+        <label>Cernion Token (optional)</label>
+        <input id="rpt-token" type="password" placeholder="Leer lassen = Server-Default" />
+        <div class="field-hint">Überschreibt den globalen Token oben</div>
+      </div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-primary" id="btn-rpt-generate">🚀 Bericht generieren</button>
+      <button class="btn-secondary hidden" id="btn-rpt-refresh">🔄 Neu generieren (Cache ignorieren)</button>
+    </div>
+
+    <!-- Progress -->
+    <div class="progress-wrap hidden" id="rpt-progress">
+      <div class="progress-label">
+        <span id="rpt-phase-name">Initialisierung…</span>
+        <span id="rpt-pct">0 %</span>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="rpt-fill"></div></div>
+      <div class="report-status-msg" id="rpt-msg">Starte Pipeline…</div>
+      <a class="report-download-btn hidden" id="rpt-download-btn" href="#" target="_blank">
+        ⬇ Bericht öffnen (HTML → als PDF drucken)
+      </a>
+    </div>
+
+    <!-- History -->
+    <div class="report-history" id="rpt-history-section">
+      <div class="report-history-label">📂 Zuletzt generierte Berichte</div>
+      <div id="rpt-history-list"></div>
     </div>
   </section>
 
@@ -1358,6 +1553,174 @@ function esc(str) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+
+// ── 360° Report Panel ────────────────────────────────────────
+(function () {
+  const navReport    = $('nav-report');
+  const reportPanel  = $('report-panel');
+  const rptUtility   = $('rpt-utility');
+  const rptRegion    = $('rpt-region');
+  const rptBdew      = $('rpt-bdew');
+  const rptToken     = $('rpt-token');
+  const btnGenerate  = $('btn-rpt-generate');
+  const btnRefresh   = $('btn-rpt-refresh');
+  const rptProgress  = $('rpt-progress');
+  const rptPhaseName = $('rpt-phase-name');
+  const rptPct       = $('rpt-pct');
+  const rptFill      = $('rpt-fill');
+  const rptMsg       = $('rpt-msg');
+  const rptDownload  = $('rpt-download-btn');
+  const rptHistList  = $('rpt-history-list');
+
+  const RESEARCH_CARDS = [problemCard, strategyCard, paramsCard, resultsCard, statusBar];
+  const HISTORY_KEY    = 'cernion_report_history';
+  let   pollTimer      = null;
+  let   currentToken   = null;
+
+  // ── View toggle ──────────────────────────────────────────────
+  navReport.addEventListener('click', (e) => {
+    e.preventDefault();
+    RESEARCH_CARDS.forEach(hide);
+    show(reportPanel);
+    renderHistory();
+  });
+
+  // When "New Research" is clicked, hide report panel and show research view
+  const origNavReset = $('nav-reset');
+  origNavReset.addEventListener('click', () => hide(reportPanel));
+
+  // ── History helpers ─────────────────────────────────────────
+  function loadHistory() {
+    try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch { return []; }
+  }
+  function saveToHistory(reportId, utilityName) {
+    const hist = loadHistory().filter(h => h.reportId !== reportId);
+    hist.unshift({ reportId, utilityName, date: new Date().toLocaleDateString('de-DE') });
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist.slice(0, 20)));
+    renderHistory();
+  }
+  function removeFromHistory(reportId) {
+    const hist = loadHistory().filter(h => h.reportId !== reportId);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+    renderHistory();
+  }
+  function renderHistory() {
+    const hist = loadHistory();
+    if (!hist.length) {
+      rptHistList.innerHTML = '<div class="report-history-empty">Noch keine Berichte generiert.</div>';
+      return;
+    }
+    rptHistList.innerHTML = hist.map(h => `
+      <div class="report-history-item">
+        <span class="rh-name">${esc(h.utilityName)}</span>
+        <span class="rh-date">${esc(h.date)}</span>
+        <a href="/api/utility-report/download/${esc(h.reportId)}" target="_blank">⬇ Öffnen</a>
+        <button class="rh-clear" data-id="${esc(h.reportId)}" title="Aus Liste entfernen">✕</button>
+      </div>
+    `).join('');
+    rptHistList.querySelectorAll('.rh-clear').forEach(btn => {
+      btn.addEventListener('click', () => removeFromHistory(btn.dataset.id));
+    });
+  }
+
+  // ── Status helpers ───────────────────────────────────────────
+  function setMsg(text, type = '') {
+    rptMsg.textContent = text;
+    rptMsg.className = 'report-status-msg' + (type ? ' ' + type : '');
+  }
+  function setProgress(pct, phaseName) {
+    rptFill.style.width = pct + '%';
+    rptPct.textContent  = pct + ' %';
+    rptPhaseName.textContent = phaseName || 'Läuft…';
+  }
+
+  // ── Generate ────────────────────────────────────────────────
+  async function startGeneration(forceRefresh) {
+    const utilityName = rptUtility.value.trim();
+    if (!utilityName) { rptUtility.focus(); setMsg('⚠ Bitte Versorger eingeben.', 'err'); show(rptProgress); return; }
+
+    clearInterval(pollTimer);
+    currentToken = rptToken.value.trim() || tokenInput.value.trim();
+
+    btnGenerate.disabled = true;
+    show(rptProgress);
+    hide(rptDownload);
+    hide(btnRefresh);
+    setProgress(0, 'Verbindung…');
+    setMsg('Sende Anfrage…', 'info');
+
+    const body = { utilityName };
+    if (rptRegion.value.trim()) body.region = rptRegion.value.trim();
+    if (rptBdew.value.trim())   body.bdew   = rptBdew.value.trim();
+    if (forceRefresh)            body.forceRefresh = true;
+
+    const headers = { 'Content-Type': 'application/json' };
+    if (currentToken) headers['Authorization'] = 'Bearer ' + currentToken;
+
+    try {
+      const res  = await fetch('/api/utility-report/generate', { method: 'POST', headers, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || `HTTP ${res.status}`);
+
+      const reportId = data.reportId;
+
+      if (data.status === 'cached') {
+        setProgress(100, 'Aus Cache');
+        setMsg('✅ Bereits im Cache — sofort verfügbar.', 'ok');
+        showDownload(reportId);
+        saveToHistory(reportId, utilityName);
+        btnGenerate.disabled = false;
+        show(btnRefresh);
+        return;
+      }
+
+      setMsg('Pipeline gestartet — bitte warten…', 'info');
+      pollTimer = setInterval(() => pollStatus(reportId, utilityName), 4000);
+
+    } catch (err) {
+      setMsg('❌ Fehler: ' + err.message, 'err');
+      btnGenerate.disabled = false;
+    }
+  }
+
+  // ── Poll ────────────────────────────────────────────────────
+  async function pollStatus(reportId, utilityName) {
+    const headers = currentToken ? { 'Authorization': 'Bearer ' + currentToken } : {};
+    try {
+      const res  = await fetch(`/api/utility-report/status/${reportId}`, { headers });
+      const data = await res.json();
+
+      setProgress(data.progress || 0, data.phaseName || '');
+
+      if (data.status === 'completed') {
+        clearInterval(pollTimer);
+        setMsg('✅ Bericht fertig!', 'ok');
+        showDownload(reportId);
+        saveToHistory(reportId, utilityName);
+        btnGenerate.disabled = false;
+        show(btnRefresh);
+      } else if (data.status === 'error') {
+        clearInterval(pollTimer);
+        setMsg('❌ Pipeline-Fehler: ' + (data.error || 'Unbekannter Fehler'), 'err');
+        btnGenerate.disabled = false;
+      } else {
+        setMsg(`Phase ${data.phase || 0}/4 läuft… (${data.phaseName || ''})`, 'info');
+      }
+    } catch (_) { /* ignore transient network errors */ }
+  }
+
+  function showDownload(reportId) {
+    rptDownload.href = `/api/utility-report/download/${reportId}`;
+    show(rptDownload);
+  }
+
+  // ── Button bindings ─────────────────────────────────────────
+  btnGenerate.addEventListener('click', () => startGeneration(false));
+  btnRefresh.addEventListener('click',  () => startGeneration(true));
+
+  // Render history on load in case report panel is shown via URL hash
+  renderHistory();
+})();
 
 // ── Load from shareable URL ────────────────────────────────────
 (async () => {

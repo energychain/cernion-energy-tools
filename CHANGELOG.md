@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-03-05
+
+### Changed
+
+- **Gemini model updated** — `utility-report` service now uses `gemini-2.5-flash` (stable GA) instead of the deprecated `gemini-2.0-flash`. `gemini-2.0-flash` is listed as a "Previous model" in the Google AI docs and will be shut down; `gemini-2.5-flash` is the stable price-performance successor with reasoning support.
+
+### Added
+
+- **360° Bericht panel in `/app`** — new UI section in the web application (`src/app.html`) reachable via the "📄 360° Bericht" nav link. Provides a browser-based hook for the `utility-report` service without requiring API clients or `curl`:
+  - Input fields for Versorger name (required), Region, BDEW-Code, and per-request Cernion Token
+  - **Generate** button → `POST /api/utility-report/generate`; animated progress bar polls `GET /api/utility-report/status/:reportId` every 4 s, showing phase name and percentage
+  - **Open report** button appears on completion → opens `GET /api/utility-report/download/:reportId` in a new tab (browser Print → Save as PDF)
+  - **Force-refresh** button ("🔄 Neu generieren") bypasses the 7-day cache via `forceRefresh: true`
+  - **History section** — last 20 generated reports persisted in `localStorage`; each entry shows utility name, date, a re-open link, and a remove button
+
 ## [0.8.0] - 2026-03-05
 
 ### Added
@@ -40,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **Charts (Chart.js CDN):** Transformatorauslastung (bar, section 1), Day-Ahead Preisverlauf (line, section 3), Gasfüllstand-Trend with 90%-Mandat line (line, section 4), Anschlussdauer VNB vs. Bundesmedian (horizontal bar, section 5), Churn-Gründe Branchenverteilung (doughnut, section 6).
 
-  **Gemini integration:** If `GEMINI_API_KEY` is set, uses `gemini-2.0-flash` to generate a 5–7-finding German management summary from collected KPIs; falls back to a static template otherwise.
+  **Gemini integration:** If `GEMINI_API_KEY` is set, uses `gemini-2.5-flash` to generate a 5–7-finding German management summary from collected KPIs; falls back to a static template otherwise.
 
 - **Web Search Service** (`services/web-search.service.js`) — new `web-search` Moleculer service, `POST /api/web-search/query`. Calls `https://search.corrently.cloud/search` (SearXNG, privacy-respecting) via `axios`. Used internally by `utility-report` for context enrichment. Graceful: returns `{ success: false, data: { results: [] } }` on network errors.
 
