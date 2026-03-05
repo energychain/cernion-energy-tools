@@ -7,7 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.8.2] - 2026-03-05
+## [0.8.3] - 2026-03-06
+
+### Added
+
+- **360° Report: 3 new MaStR data-quality KPIs in Section 1** — Parallel `cernion_installations_local` queries now populate:
+  - **Anlagen in Netzbetreiberprüfung** — count of active installations stuck in open grid-operator review (`netzbetreiberPruefungStatus: NetzbetreiberPruefung`). Regulatory deadline: 4 weeks (NS) / 6 weeks (MS/HS).
+  - **Redispatch-/§14a-Anlagen ohne MeLo** — count of active installations ≥100 kW whose NAP record has no linked Messlokation (`napData` absent). Displayed as `missing / total ≥100 kW`.
+  - **Ortsfremde Anlagen (PLZ-Ausreißer)** — two-step detection: sample 100 active installations to derive the dominant 3-digit PLZ prefix, then query `postleitzahlNot: prefix` to count outside-territory registrations.
+- **Action hint boxes on all 8 report sections** — each section now ends with a blue `action-hint` block containing 4–5 concrete, regulation-specific recommendations so readers know exactly what to do next.
+- **`actionHint(title, items)` helper in `report-builder.js`** — generates a styled `<div class="action-hint">` with a bold heading and a bullet list.
+- **`.action-hint` CSS class** — blue left-border box (`border-left: 3px solid var(--accent)`), renders correctly in both screen and print/PDF output.
+- **`postleitzahlNot` parameter for `energy-market.installations`** — new optional string param (min 2, max 6 chars) passed directly to `cernion_installations_local` to filter out a PLZ prefix range.
+
+### Fixed
+
+- **360° Report: `resolvedMastrId` not extracted from vnbLookup response** — `vnbLookup.data.data.mastrId` was present but not read back into `p.meta.resolvedMastrId`. Now tries `vnbData.mastrId`, `vnbData.data.mastrId`, and `vnbData.mastrIds[0]` in order.
+- **360° Report: all solar/wind/storage asset calls failed for VNBs resolved only via BDEW** — `gridOpParams` used `{ gridOperatorMastrId }` (wrong key for the assets broker) and had no BDEW fallback. Fixed to use `{ gridOperatorId: resolvedMastrId }` OR `{ bdewCode: resolvedBdew }`.
+- **360° Report: `redispatchExport` failed with "One of gridOperator, gridOperatorId, or gridOperatorBdewCode is required"** — Added `gridOperatorBdewCode: resolvedBdew` as fallback when `resolvedMastrId` is null.
+
+
 
 ### Fixed
 

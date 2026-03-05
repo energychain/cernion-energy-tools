@@ -717,6 +717,20 @@ module.exports = {
           limit: 1,
         });
         p.meta.vnbLookup = vnbLookup.data ?? null;
+        // Extract mastrId from vnbLookup response if not already resolved from marketPartners
+        if (!p.meta.resolvedMastrId) {
+          const vnbData = vnbLookup.data?.data ?? vnbLookup.data;
+          const mastrFromLookup =
+            vnbData?.mastrId ||
+            vnbData?.data?.mastrId ||
+            vnbData?.mastrIds?.[0] ||
+            vnbData?.data?.mastrIds?.[0] ||
+            null;
+          if (mastrFromLookup) {
+            p.meta.resolvedMastrId = mastrFromLookup;
+            this.logger.info(`[UtilityReport] resolvedMastrId via vnbLookup: ${mastrFromLookup}`);
+          }
+        }
       }
 
       p.phase = 2;
@@ -750,7 +764,11 @@ module.exports = {
     if (p.phase <= 3) {
       this.logger.info(`[UtilityReport] ${p.reportId} – Phase 3: Data collection`);
 
-      const gridOpParams = resolvedMastrId ? { gridOperatorMastrId: resolvedMastrId } : {};
+      const gridOpParams = resolvedMastrId
+        ? { gridOperatorId: resolvedMastrId }
+        : resolvedBdew
+        ? { bdewCode: resolvedBdew }
+        : {};
       const gridOpIdParams = resolvedBdew
         ? { gridOperatorBdewCode: resolvedBdew }
         : resolvedMastrId
@@ -765,7 +783,11 @@ module.exports = {
       const redispatchExport = await gated(
         availableTools, ['cernion_redispatch_export'],
         () => callBroker(ctx, 'grid-operations.redispatchExport', {
-          ...(resolvedMastrId ? { gridOperatorId: resolvedMastrId } : {}),
+          ...(resolvedMastrId
+            ? { gridOperatorId: resolvedMastrId }
+            : resolvedBdew
+            ? { gridOperatorBdewCode: resolvedBdew }
+            : {}),
         })
       );
 
@@ -798,6 +820,75 @@ module.exports = {
         }, cernionToken)
       );
 
+      // ── MaStR data quality checks (parallel, fast local MongoDB) ──────────
+      // Requires at least one grid operator identifier to be meaningful
+      const hasGridOpId = !!(resolvedMastrId || resolvedBdew);
+      const dataQualityBaseParams = hasGridOpId
+        ? { ...(resolvedMastrId ? { gridOperatorMastrId: resolvedMastrId } : { gridOperatorBdewCode: resolvedBdew }) }
+        : null;
+
+      // Run 3 queries in parallel: sample-for-PLZ, in-Prüfung count, ≥100kW ohne MeLo
+      const [sampleForPlz, anlagenInPruefung, installationenOhneMelo] = await Promise.all([
+        dataQualityBaseParams
+          ? callMcpDirect('cernion_installations_local', {
+              ...dataQualityBaseParams,
+              status: 'InBetrieb',
+              format: 'detailed',
+              includeStats: true,
+              limit: 100,
+            }, cernionToken)
+          : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
+        dataQualityBaseParams
+          ? callMcpDirect('cernion_installations_local', {
+              ...dataQualityBaseParams,
+              netzbetreiberPruefungStatus: 'NetzbetreiberPruefung',
+              status: 'InBetrieb',
+              format: 'detailed',
+              includeStats: true,
+              limit: 1,
+            }, cernionToken)
+          : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
+        dataQualityBaseParams
+          ? callMcpDirect('cernion_installations_local', {
+              ...dataQualityBaseParams,
+              minCapacity: 100,
+              status: 'InBetrieb',
+              format: 'detailed',
+              includeStats: true,
+              includeNapData: true,
+              limit: 2000,
+            }, cernionToken)
+          : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
+      ]);
+
+      // Derive dominant PLZ prefix from sample and query ortsfremde Anlagen
+      let ortsfremdeAnlagen = { available: false, error: 'PLZ prefix could not be determined' };
+      if (sampleForPlz.available) {
+        const sampleInsts =
+          sampleForPlz.data?.installations ||
+          sampleForPlz.data?.data?.installations ||
+          [];
+        const plzCounts = {};
+        for (const inst of sampleInsts) {
+          const pfx = String(inst.postleitzahl || '').slice(0, 3);
+          if (pfx.length === 3) plzCounts[pfx] = (plzCounts[pfx] || 0) + 1;
+        }
+        const dominantPrefix = Object.entries(plzCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+        if (dominantPrefix) {
+          ortsfremdeAnlagen = await callMcpDirect('cernion_installations_local', {
+            ...dataQualityBaseParams,
+            postleitzahlNot: dominantPrefix,
+            status: 'InBetrieb',
+            format: 'detailed',
+            includeStats: true,
+            limit: 1,
+          }, cernionToken);
+          if (ortsfremdeAnlagen.available) {
+            ortsfremdeAnlagen.dominantPlzPrefix = dominantPrefix;
+          }
+        }
+      }
+
       p.results.section1 = {
         capacityUtilization,
         redispatchExport,
@@ -806,6 +897,9 @@ module.exports = {
         operatorAnalysis,
         emobilityImpact,
         gridLossAnalysis,
+        anlagenInPruefung,
+        installationenOhneMelo,
+        ortsfremdeAnlagen,
       };
       saveProgress(p);
 

@@ -3,10 +3,10 @@
   "utilityName": "Stadtwerke Eberbach",
   "region": "",
   "bdew": "",
-  "status": "generating",
-  "phase": 3,
+  "status": "completed",
+  "phase": 4,
   "startedAt": "2026-03-05T12:54:58.760Z",
-  "completedAt": null,
+  "completedAt": "2026-03-05T13:01:27.308Z",
   "error": null,
   "results": {
     "phase2": {
@@ -1714,6 +1714,323 @@
             "text": "Error: Tool execution timed out after 25000ms"
           }
         ]
+      }
+    },
+    "section6": {
+      "churnPrediction": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": [
+            {
+              "type": "text",
+              "text": "📊 **Churn Prediction (heuristic)**\n\n- Segment: all\n- Region: Stadtwerke Eberbach\n- Prediction window: 3 months\n- Risk threshold: medium\n\n**Estimated at-risk customers (max 100)**: 60\n**Assumed churn rate (segment)**: 8.0%\n**ARPU / LTV (segment)**: 1200€ / 7000€\n\n**Top churn reasons (heuristic)**:\n- Price sensitivity (40%)\n- Service issues (30%)\n- Innovation needs (20%)\n- Relocation (10%)\n\n**Retention budget guidance**:\n- Recommended max budget per customer: 1500€\n- Prioritize high-LTV customers first\n\n**Retention strategy**:\n- Prevention (Score 0-40): Service + loyalty\n- Early intervention (Score 41-70): Call + 50-200€ offer\n- Win-back (Score 71-100): Price match + executive outreach\n\n**Competitive threats**:\n- Tibber (5-15% cheaper, strong app)\n- E.ON (brand reach)\n- Discounters (intro 28-30 ct in year 1)\n\nℹ️ This tool currently uses a heuristic model without customer-level CRM data."
+            }
+          ],
+          "metadata": {
+            "toolName": "cernion_customer_churn_prediction",
+            "timestamp": "2026-03-05T12:58:04.163Z"
+          }
+        }
+      },
+      "salesLeads": {
+        "available": false,
+        "error": "Request is timed out when call 'business-intelligence.salesLeads' action on 'malta21060-1984933' node."
+      },
+      "marketPenetration": {
+        "available": false,
+        "error": "Request is timed out when call 'business-intelligence.marketPenetration' action on 'malta21060-1984933' node."
+      },
+      "prosumerTariff": {
+        "available": false,
+        "error": "Timeout after 30s"
+      },
+      "directMarketing": {
+        "available": false,
+        "error": "Timeout after 30s"
+      }
+    },
+    "section7": {
+      "investmentBusinessCase": {
+        "available": false,
+        "error": "Cannot read properties of undefined (reading 'toUpperCase')"
+      },
+      "operatorPortfolio": {
+        "available": false,
+        "error": "Timeout after 30s"
+      },
+      "storageOptimization": {
+        "available": false,
+        "error": "Timeout after 30s"
+      },
+      "operatorAnalysis": {
+        "available": false,
+        "error": "Request is timed out when call 'grid-operations.operatorAnalysis' action on 'malta21060-1984933' node."
+      }
+    },
+    "section8": {
+      "systemStatus": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": [
+            {
+              "type": "text",
+              "text": "🚀 **Cernion System Status**\n\n✅ **Cernion MCP Server**: Running\n   - Status: Healthy\n   - Tools Available: 42\n   - Session Management: Active\n\n**Environment**:\n   - Node.js: v22.22.0\n   - Platform: linux\n   - Architecture: x64\n\n**Configuration**:\n   - GOOGLE_AI_API_KEY/GEMINI_API_KEY: ✓ Set\n   - POWABASE_MCP_URL: https://powabase.com/mcp\n\n💡 Use `verbose: true` for extended connectivity checks.\n"
+            }
+          ],
+          "metadata": {
+            "toolName": "cernion_status",
+            "timestamp": "2026-03-05T13:01:04.509Z"
+          }
+        }
+      },
+      "eicStatistics": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": {
+            "success": true,
+            "statistics": {
+              "total": 72580,
+              "byType": [
+                {
+                  "count": 48139,
+                  "type": "party"
+                },
+                {
+                  "count": 17150,
+                  "type": "resource"
+                },
+                {
+                  "count": 2864,
+                  "type": "substation"
+                },
+                {
+                  "count": 1730,
+                  "type": "area"
+                },
+                {
+                  "count": 1264,
+                  "type": "operator"
+                },
+                {
+                  "count": 1164,
+                  "type": "tie-line"
+                },
+                {
+                  "count": 135,
+                  "type": "location"
+                },
+                {
+                  "count": 134,
+                  "type": "facility"
+                }
+              ],
+              "bySector": [
+                {
+                  "count": 72568,
+                  "sector": "electricity"
+                },
+                {
+                  "count": 12,
+                  "sector": "gas"
+                }
+              ],
+              "byCountry": [
+                {
+                  "count": 20368,
+                  "country": "ES"
+                },
+                {
+                  "count": 15315,
+                  "country": "NO"
+                },
+                {
+                  "count": 7642,
+                  "country": "DE"
+                },
+                {
+                  "count": 5431,
+                  "country": "IT"
+                },
+                {
+                  "count": 3698,
+                  "country": "EU"
+                },
+                {
+                  "count": 2177,
+                  "country": "PL"
+                },
+                {
+                  "count": 1809,
+                  "country": "NL"
+                },
+                {
+                  "count": 1723,
+                  "country": "GB"
+                },
+                {
+                  "count": 1273,
+                  "country": "SE"
+                },
+                {
+                  "count": 1139,
+                  "country": "FI"
+                },
+                {
+                  "count": 1134,
+                  "country": "CH"
+                },
+                {
+                  "count": 1092,
+                  "country": "AT"
+                },
+                {
+                  "count": 899,
+                  "country": "FR"
+                },
+                {
+                  "count": 799,
+                  "country": "HU"
+                },
+                {
+                  "count": 780,
+                  "country": "DK"
+                },
+                {
+                  "count": 771,
+                  "country": "CZ"
+                },
+                {
+                  "count": 765,
+                  "country": "UA"
+                },
+                {
+                  "count": 745,
+                  "country": "BE"
+                },
+                {
+                  "count": 666,
+                  "country": "HR"
+                },
+                {
+                  "count": 531,
+                  "country": "LV"
+                }
+              ]
+            },
+            "metadata": {
+              "database": "cernion.eic_codes",
+              "lastUpdated": "2026-03-05T13:01:04.889Z",
+              "sources": [
+                "ENTSO-E",
+                "AGSI/GIE"
+              ]
+            }
+          },
+          "metadata": {
+            "toolName": "cernion_eic_statistics",
+            "timestamp": "2026-03-05T13:01:04.913Z"
+          }
+        }
+      },
+      "digitalisierungsindex": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": [
+            {
+              "type": "text",
+              "text": "## EWK Monitoring 2024 – Digitalisierungsindex\n**Quelle:** BNetzA Energiewendekompetenz-Monitoring via vnb-transparenz.de\n\n**Kategorie:** all\n**Ergebnisse:** 1 VNBs (zeige 1–1)\n\n### Benchmarks (Scores in %, höher = besser)\n- **Gesamtscore** (656 VNBs): Median 30% · Q25 23% · Q75 39% · Max 77%\n- **Smart Grids**: Median 15% · Q75 25%\n- **Digitale Prozesse**: Median 12% · Q75 33%\n- **Datenmanagement**: Median 60% · Q75 67%\n- **Kundenmanagement**: Median 28% · Q75 40%\n\n### Ergebnisse\n- **Stadtwerke Eberbach GmbH** (BNr: 10000580) | Gesamt: 19% | SmartGrid: 6% | DigProz: 0% | DatenMgmt: 43% | Kunden: 28% | Rang: 552 / 656\n\n> Hinweis: Scores basieren auf BNetzA-Selbstauskunft (Berichtsjahr 2024). Skala: 0–100%."
+            },
+            {
+              "type": "text",
+              "text": "{\n  \"metadata\": {\n    \"total\": 1,\n    \"offset\": 0,\n    \"limit\": 1\n  },\n  \"stats\": {\n    \"gesamtscore\": {\n      \"n\": 656,\n      \"min\": 0,\n      \"p25\": 23,\n      \"median\": 30,\n      \"p75\": 39,\n      \"max\": 77,\n      \"mean\": 31.4\n    },\n    \"smart_grids\": {\n      \"n\": 743,\n      \"min\": 0,\n      \"p25\": 8,\n      \"median\": 15,\n      \"p75\": 25,\n      \"max\": 98,\n      \"mean\": 16.8\n    },\n    \"digitale_prozesse\": {\n      \"n\": 777,\n      \"min\": 0,\n      \"p25\": 0,\n      \"median\": 12,\n      \"p75\": 33,\n      \"max\": 95,\n      \"mean\": 18.9\n    },\n    \"datenmanagement\": {\n      \"n\": 778,\n      \"min\": 0,\n      \"p25\": 33,\n      \"median\": 60,\n      \"p75\": 67,\n      \"max\": 100,\n      \"mean\": 53.6\n    },\n    \"kundenmanagement\": {\n      \"n\": 687,\n      \"min\": 0,\n      \"p25\": 23,\n      \"median\": 28,\n      \"p75\": 40,\n      \"max\": 99,\n      \"mean\": 35.5\n    }\n  },\n  \"rows\": [\n    {\n      \"bnr\": \"10000580\",\n      \"firmenname\": \"Stadtwerke Eberbach GmbH\",\n      \"bnetza_name\": \"Stadtwerke Eberbach GmbH\",\n      \"gesamtscore\": 19,\n      \"smart_grids\": 6,\n      \"smart_grids_ns\": 1,\n      \"smart_grids_ms\": 19,\n      \"digitale_prozesse\": 0,\n      \"digitale_prozesse_ns\": 0,\n      \"digitale_prozesse_ms\": 0,\n      \"digitale_prozesse_ai\": 0,\n      \"datenmanagement\": 43,\n      \"datenmanagement_ns\": 33,\n      \"datenmanagement_ms\": 67,\n      \"kundenmanagement\": 28,\n      \"kundenmanagement_ns\": 0,\n      \"kundenmanagement_ms\": 0,\n      \"kundenmanagement_webportale\": 85,\n      \"gesamtscore_rank\": \"552 / 656\"\n    }\n  ]\n}",
+              "json": {
+                "metadata": {
+                  "total": 1,
+                  "offset": 0,
+                  "limit": 1
+                },
+                "stats": {
+                  "gesamtscore": {
+                    "n": 656,
+                    "min": 0,
+                    "p25": 23,
+                    "median": 30,
+                    "p75": 39,
+                    "max": 77,
+                    "mean": 31.4
+                  },
+                  "smart_grids": {
+                    "n": 743,
+                    "min": 0,
+                    "p25": 8,
+                    "median": 15,
+                    "p75": 25,
+                    "max": 98,
+                    "mean": 16.8
+                  },
+                  "digitale_prozesse": {
+                    "n": 777,
+                    "min": 0,
+                    "p25": 0,
+                    "median": 12,
+                    "p75": 33,
+                    "max": 95,
+                    "mean": 18.9
+                  },
+                  "datenmanagement": {
+                    "n": 778,
+                    "min": 0,
+                    "p25": 33,
+                    "median": 60,
+                    "p75": 67,
+                    "max": 100,
+                    "mean": 53.6
+                  },
+                  "kundenmanagement": {
+                    "n": 687,
+                    "min": 0,
+                    "p25": 23,
+                    "median": 28,
+                    "p75": 40,
+                    "max": 99,
+                    "mean": 35.5
+                  }
+                },
+                "rows": [
+                  {
+                    "bnr": "10000580",
+                    "firmenname": "Stadtwerke Eberbach GmbH",
+                    "bnetza_name": "Stadtwerke Eberbach GmbH",
+                    "gesamtscore": 19,
+                    "smart_grids": 6,
+                    "smart_grids_ns": 1,
+                    "smart_grids_ms": 19,
+                    "digitale_prozesse": 0,
+                    "digitale_prozesse_ns": 0,
+                    "digitale_prozesse_ms": 0,
+                    "digitale_prozesse_ai": 0,
+                    "datenmanagement": 43,
+                    "datenmanagement_ns": 33,
+                    "datenmanagement_ms": 67,
+                    "kundenmanagement": 28,
+                    "kundenmanagement_ns": 0,
+                    "kundenmanagement_ms": 0,
+                    "kundenmanagement_webportale": 85,
+                    "gesamtscore_rank": "552 / 656"
+                  }
+                ]
+              }
+            }
+          ],
+          "metadata": {
+            "toolName": "ewk_digitalisierungsindex",
+            "timestamp": "2026-03-05T12:57:38.773Z"
+          }
+        }
       }
     }
   },

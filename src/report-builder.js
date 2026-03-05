@@ -98,6 +98,18 @@ function noDataBox(toolName) {
   return `<div class="no-data">Keine Daten verfügbar${toolName ? ` (${escapeHtml(toolName)})` : ''} – Tool nicht erreichbar oder keine Lizenz.</div>`;
 }
 
+/**
+ * Action hint box — rendered below each section's KPI table.
+ * @param {string} title   Short bold heading (e.g. "Handlungsempfehlung")
+ * @param {string[]} items  One action per array item
+ */
+function actionHint(title, items) {
+  const bullets = items
+    .map((i) => `<li>${escapeHtml(i)}</li>`)
+    .join('');
+  return `<div class="action-hint"><strong>${escapeHtml(title)}</strong><ul>${bullets}</ul></div>`;
+}
+
 // ─── CSS ─────────────────────────────────────────────────────────────────────
 
 function buildCss() {
@@ -159,6 +171,11 @@ function buildCss() {
     .badge-warn { background: #fef9e7; color: var(--warning); padding: 0.5mm 2mm; border-radius: 3px; font-size: 8pt; font-weight: 600; }
     .badge-err { background: #fdedec; color: var(--danger); padding: 0.5mm 2mm; border-radius: 3px; font-size: 8pt; font-weight: 600; }
     .no-data { background: #fdfefe; border: 1px dashed var(--border); color: var(--text-muted); padding: 3mm 4mm; border-radius: 4px; font-size: 8.5pt; font-style: italic; margin: 2mm 0; }
+    .action-hint { background: #eaf4fb; border-left: 3px solid var(--accent); padding: 3mm 4mm; border-radius: 0 4px 4px 0; margin: 3mm 0 5mm; font-size: 8.5pt; color: #1a3a5c; line-height: 1.55; }
+    .action-hint strong { font-weight: 600; }
+    .action-hint ul { margin: 1.5mm 0 0 4mm; padding: 0; }
+    .action-hint li { margin-bottom: 1mm; }
+    .badge-alert { background: #fdedec; color: var(--danger); padding: 0.5mm 2mm; border-radius: 3px; font-size: 8pt; font-weight: 600; }
 
     /* ── Footer ── */
     .report-footer { margin-top: 8mm; padding-top: 3mm; border-top: 1px solid var(--border); font-size: 8pt; color: var(--text-muted); display: flex; justify-content: space-between; }
@@ -254,6 +271,62 @@ function renderSection1(s1) {
     ),
   ];
 
+  // ── MaStR data quality rows ────────────────────────────────────────────────
+  (() => {
+    const pruefung = safeData(s1, 'anlagenInPruefung');
+    const pruefungCount =
+      pruefung?.stats?.total ??
+      pruefung?.stats?.totalCount ??
+      pruefung?.totalCount ??
+      (Array.isArray(pruefung?.installations) ? pruefung.installations.length : null);
+
+    const ohneMeloData = safeData(s1, 'installationenOhneMelo');
+    const ohneMeloInsts =
+      ohneMeloData?.installations ??
+      ohneMeloData?.data?.installations ??
+      [];
+    const ohneMeloCount = Array.isArray(ohneMeloInsts)
+      ? ohneMeloInsts.filter((i) => !i?.napData).length
+      : null;
+    const redispatchTotal =
+      ohneMeloData?.stats?.total ??
+      ohneMeloData?.stats?.totalCount ??
+      (Array.isArray(ohneMeloInsts) ? ohneMeloInsts.length : null);
+
+    const ortsfremd = s1?.ortsfremdeAnlagen;
+    const ortsfremdData = safeData(s1, 'ortsfremdeAnlagen');
+    const ortsfremdCount =
+      ortsfremdData?.stats?.total ??
+      ortsfremdData?.stats?.totalCount ??
+      (Array.isArray(ortsfremdData?.installations) ? ortsfremdData.installations.length : null);
+    const plzPrefix = s1?.ortsfremdeAnlagen?.dominantPlzPrefix ?? null;
+
+    rows.push(
+      kpiRow(
+        'Anlagen in Netzbetreiberprüfung',
+        isAvail(s1, 'anlagenInPruefung') && pruefungCount !== null ? pruefungCount : null,
+        'Anlagen',
+        'Aktive Anlagen mit offener Netzbetreiberprüfung (§14 NABEG) – Frist: 4 Wo. NS / 6 Wo. MS'
+      ),
+      kpiRow(
+        'Redispatch-/§14a-Anlagen ohne MeLo',
+        isAvail(s1, 'installationenOhneMelo') && ohneMeloCount !== null
+          ? `${ohneMeloCount} / ${redispatchTotal ?? '?'}`
+          : null,
+        '',
+        'Anlagen ≥100 kW ohne verknüpfte Messlokation – MSCONS-Stammdaten unvollständig'
+      ),
+      kpiRow(
+        'Ortsfremde Anlagen (PLZ-Ausreißer)',
+        isAvail(s1, 'ortsfremdeAnlagen') && ortsfremdCount !== null ? ortsfremdCount : null,
+        'Anlagen',
+        plzPrefix
+          ? `Außerhalb PLZ-Bereich ${plzPrefix}xx – VNB-Zuordnung im MaStR prüfen`
+          : 'Anlagen außerhalb des dominanten PLZ-Bereichs dieses VNB'
+      )
+    );
+  })();
+
   let chartHtml = '';
   if (chartData) {
     chartHtml = `
@@ -283,6 +356,13 @@ function renderSection1(s1) {
     <h1 class="section-title"><span class="section-number">1</span>Netzbetrieb &amp; Netzplanung</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">Grundlage für Investitionsentscheidungen, NEST-Regulierung und langfristige Infrastrukturplanung.</p>
     ${kpiTable(rows)}
+    ${actionHint('Handlungsempfehlung Netzbetrieb', [
+      'Trafo-Auslastung >80 %: Engpass-Meldung gemäß §11 EnWG und Aufnahme in NEST-Investitionsplanung.',
+      'Redispatch-Anlagen ≥100 kW: fristgerechte §12 StromNZV-Meldung an Übertragungsnetzbetreiber sicherstellen.',
+      'Anlagen in Netzbetreiberprüfung: Bearbeitungsfristen im MaStR-Portal einhalten (4 Wo. NS, 6 Wo. MS/HS).',
+      'Redispatch-/§14a-Anlagen ohne MeLo: Stammdaten im MaStR ergänzen – fehlende MeLo verhindert MSCONS-Abrechnung.',
+      'Ortsfremde Anlagen: VNB-Zuordnung im MaStR korrigieren oder Netzgebiet-Abgrenzung mit BNetzA klären.',
+    ])}
     ${chartHtml}`;
 }
 
@@ -345,7 +425,13 @@ function renderSection2(s2) {
   return `
     <h1 class="section-title"><span class="section-number">2</span>Erneuerbare Energien &amp; Einspeiser</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">MaStR-basierte Analyse des Einspeiserportfolios und dessen Betriebsstatus.</p>
-    ${kpiTable(rows)}`;
+    ${kpiTable(rows)}
+    ${actionHint('Handlungsempfehlung EE-Portfolio', [
+      'Redispatch-Pool: Alle Anlagen ≥100 kW automatisch in Redispatch 2.0 einbinden (§12 StromNZV).',
+      'Speicher als Puffer: Standorte für Quartiersspeicher an EE-Einspeiseschwerpunkten identifizieren.',
+      'PV-Prognose nutzen: Tagesvorschau für Netzbetrieb und Beschaffungsoptimierung einsetzen.',
+      'Direktvermarktung: Anlagen >100 kW mit abgelaufenem EEG-Tarif auf §21 EEG-Marktprämie prüfen.',
+    ])}`;
 }
 
 function renderSection3(s3) {
@@ -445,6 +531,12 @@ function renderSection3(s3) {
     <h1 class="section-title"><span class="section-number">3</span>Energiemarkt &amp; Preise</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">Strom- und Gaspreise, Marktdaten für Beschaffung, Tariffierung und Portfoliosteuerung.</p>
     ${kpiTable(rows)}
+    ${actionHint('Handlungsempfehlung Energiemarkt', [
+      'Negative Preisphasen (§51 EEG): Direktvermarktungsverträge auf Abregelungsklauseln prüfen – Erträge sichern.',
+      'Day-Ahead-Benchmark: Beschaffungspreise quartalsweise gegen EPEX Spot benchmarken und Tarife anpassen.',
+      'Kraftwerksausfälle (ENTSO-E): Versorgungssicherheit und Redispatch-Bedarf täglich überwachen.',
+      'CO₂-Intensität: Grünstromzeiten für §14a-Steuerung und Kundenmarketing nutzen.',
+    ])}
     ${chartHtml}`;
 }
 
@@ -551,6 +643,12 @@ function renderSection4(s4) {
     <h1 class="section-title"><span class="section-number">4</span>Gasinfrastruktur &amp; Versorgungssicherheit</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">Speicherfüllstände, Einspeisung/Entnahme und EU-weite Gasversorgungssicherheit.</p>
     ${kpiTable(rows)}
+    ${actionHint('Handlungsempfehlung Gasversorgung', [
+      'Füllstand <80 % bis Oktober: Einspeisung priorisieren – EU-Mandat 90 % zum 1. November (VO 2022/1032).',
+      'Versorgungssicherheits-Status CRITICAL: Geschäftsführung und Krisenplan aktivieren.',
+      'EU-Vergleich monatlich reporten: DE-Füllstand vs. AT/NL/FR für Frühwarnung nutzen.',
+      'Injection-Trend: Bestehende Gaslieferverträge auf Abrufoptionen für Spitzenzeiten prüfen.',
+    ])}
     ${chartHtml}`;
 }
 
@@ -659,6 +757,13 @@ function renderSection5(s5) {
     <h1 class="section-title"><span class="section-number">5</span>Regulierung, Compliance &amp; Marktprozesse</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">BNetzA-Monitoring, EIC-Register, MaKo-Stammdaten und §14a-Pflichten.</p>
     ${kpiTable(rows)}
+    ${actionHint('Handlungsempfehlung Regulierung & Compliance', [
+      'Anschlussdauer >Bundesmedian: Prozesse für Phase 1 (Angebotserstellung) und Phase 2 (Inbetriebnahme) optimieren – BNetzA-Beschwerderisiko bei >13 Wochen.',
+      'Digitalisierungsindex <50 %: Smart Meter Rollout und SMGW-Integration priorisieren.',
+      'Umsetzungsquote <70 %: Nachbearbeitung offener EE-Anschlussbegehren starten – Quotenverbesserung bis EWK-Stichtag 31. März.',
+      'NEST-Report: §11 Abs. 2 EnWG Nachweispflicht erfüllen, bevor CAPEX-Antrag gestellt wird.',
+      '§14a EnWG: Steuerungsboxen (SMGW + Steuerbox) für alle steuerbaren Verbrauchseinrichtungen bis Ende 2025 installieren.',
+    ])}
     ${chartHtml}`;
 }
 
@@ -749,6 +854,12 @@ function renderSection6(s6) {
     <h1 class="section-title"><span class="section-number">6</span>Kundenmanagement, Vertrieb &amp; Prosumer</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">Churn-Prävention, Prosumer-Tarife, Mieterstrom und Neukundenakquise.</p>
     ${kpiTable(rows)}
+    ${actionHint('Handlungsempfehlung Kundenmanagement', [
+      'Churn-Prävention: Retention-Kampagne für "at-risk"-Kunden starten – Fokus Preis und Service (70 % der Wechselgründe).',
+      'Neukunden-Leads: Neue PV-, Speicher- und Wallbox-Anschlüsse als Sales-Trigger nutzen (3–5× höhere Konversionsrate als Kaltakquise).',
+      'Prosumer-Tarif: EEG-ablaufende Anlagen (>20 Jahre) proaktiv ansprechen – Post-EEG-Tariflösung anbieten.',
+      'Direktvermarktung: §21 EEG-Kandidaten >100 kW im Netzgebiet identifizieren und Marktprämienvertrag anbieten.',
+    ])}
     ${churnDonut}`;
 }
 
@@ -797,7 +908,14 @@ function renderSection7(s7) {
   return `
     <h1 class="section-title"><span class="section-number">7</span>Investitionsplanung &amp; Business Cases</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">Wirtschaftlichkeit von Netzinvestitionen, Speicherprojekten und Eigenanlagen.</p>
-    ${kpiTable(rows)}`;
+    ${kpiTable(rows)}
+    ${actionHint('Handlungsempfehlung Investitionsplanung', [
+      'NEST-Förderung: §11 Abs. 2 EnWG-Engpassnachweis vorlegen, bevor Netzausbau-CAPEX beantragt wird.',
+      'Batteriespeicher: NPV-Berechnung für USW-Standorte mit hoher EE-Einspeisung und Redispatch-Häufigkeit.',
+      'Amortisation Netzausbau vs. Steuerungslösung: §14a-Szenario (40–60 % CAPEX-Einsparung) vor Budgetfreigabe prüfen.',
+      'Portfolioauswertung: Anlagen ohne NAP/MeLo priorisiert nachrüsten – Grundlage für Direktvermarktung und Redispatch.',
+    ])}
+  `;
 }
 
 function renderSection8(s8) {
@@ -856,7 +974,13 @@ function renderSection8(s8) {
   return `
     <h1 class="section-title"><span class="section-number">8</span>Digitalisierung &amp; Systemübersicht</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">Systemstatus, EIC-Register und Infrastruktur-Monitoring.</p>
-    ${kpiTable(rows)}`;
+    ${kpiTable(rows)}
+    ${actionHint('Handlungsempfehlung Digitalisierung', [
+      'EIC-Codes: Alle Redispatch- und §14a-Anlagen benötigen gültige EIC-Codes für ENTSO-E-Meldungen.',
+      'Smart-Grids Score <30 %: SMGW-Rollout-Plan erstellen und Förderanträge (Digitalisierungsoffensive) prüfen.',
+      'Kundenportal-Score: Selbstservice-Angebote für Betreiberwechsel und EEG-Auskunft reduzieren Callcenter-Last um 30–40 %.',
+      'Systemstatus offline: Datenversorgung für Redispatch und MaKo-Prozesse sofort prüfen – regulatorische Meldepflichten beachten.',
+    ])}`;
 }
 
 // ─── Management Summary ───────────────────────────────────────────────────────
