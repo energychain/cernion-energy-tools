@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-03-05
+
+### Added
+
+- **360° Utility Management Report Generator** — new `utility-report` service with 3 REST endpoints that produce a comprehensive ~50-page HTML report (print-to-PDF) for German energy utility decision-makers (Stadtwerke, Netzbetreiber).
+
+  - **`POST /api/utility-report/generate`** — starts (or resumes) report generation. Returns a UUID `reportId` immediately; generation runs asynchronously in a sequential 4-phase pipeline. Supports 7-day disk cache (`.reports/UUID.html`) keyed by SHA-256 of `{utilityName, date}`; `forceRefresh: true` bypasses the cache.
+  - **`GET /api/utility-report/status/:reportId`** — polls generation phase (0–4), percentage progress and error state.
+  - **`GET /api/utility-report/download/:reportId`** — serves the completed HTML document (`text/html`); open in browser and use Print → Save as PDF.
+
+  **Report structure (8 KPI sections matching data scientist KPI list):**
+  1. Netzbetrieb & Netzplanung — capacity utilization, redispatch portfolio, residual load, CO₂, e-mobility
+  2. Erneuerbare Energien & Einspeiser — PV/Wind/Storage from MaStR, ENTSO-E actual generation, generation forecast
+  3. Energiemarkt & Preise — EPEX Day-Ahead, SMARD Spotpreise, ENTSO-E generation/load/unavailability, §51 EEG monitoring
+  4. Gasinfrastruktur & Versorgungssicherheit — AGSI/GIE country & EU storage, trend (90%-Mandat line), supply security
+  5. Regulierung, Compliance & Marktprozesse — full BNetzA EWK benchmark (Anschlussdauer, Digitalisierungsindex, Umsetzungsquote), NEST compliance
+  6. Kundenmanagement, Vertrieb & Prosumer — churn prediction, sales leads, market penetration, prosumer tariff
+  7. Investitionsplanung & Business Cases — investment NPV, operator portfolio, storage optimization
+  8. Digitalisierung & Systemübersicht — Cernion system status, EIC statistics, VNB digitalisation score
+
+  **Pipeline phases:**
+  - Phase 0: `cernion_discover` preflight → builds `Set<toolName>` to gate optional/unconfirmed tools
+  - Phase 1: VNB identification via `grid-operations.marketPartners` + `vnbLookup` (BDEW/MaStrId resolution)
+  - Phase 2: EIC metadata + EWK benchmark
+  - Phase 3: Sequential data collection across all 8 sections (51 wrapped service calls + `callMcpDirect` for 14 unconfirmed tools)
+  - Phase 4: Web search context (3 queries via `web-search.query`), Gemini narrative, `buildHtmlReport()`
+
+  **Resumability:** Progress JSON (`.reports/UUID.progress.json`) saved after each phase. Retrying the same `generate` request resumes from the last completed phase.
+
+  **Graceful degradation:** every service call wrapped in `try/catch` returning `{ available: false }`. The HTML renderer shows "Keine Daten verfügbar" placeholders instead of aborting.
+
+  **Charts (Chart.js CDN):** Transformatorauslastung (bar, section 1), Day-Ahead Preisverlauf (line, section 3), Gasfüllstand-Trend with 90%-Mandat line (line, section 4), Anschlussdauer VNB vs. Bundesmedian (horizontal bar, section 5), Churn-Gründe Branchenverteilung (doughnut, section 6).
+
+  **Gemini integration:** If `GEMINI_API_KEY` is set, uses `gemini-2.0-flash` to generate a 5–7-finding German management summary from collected KPIs; falls back to a static template otherwise.
+
+- **Web Search Service** (`services/web-search.service.js`) — new `web-search` Moleculer service, `POST /api/web-search/query`. Calls `https://search.corrently.cloud/search` (SearXNG, privacy-respecting) via `axios`. Used internally by `utility-report` for context enrichment. Graceful: returns `{ success: false, data: { results: [] } }` on network errors.
+
+- **Report Builder** (`src/report-builder.js`) — pure JS module, no external dependencies. Exports:
+  - `buildHtmlReport(reportData)` → self-contained HTML string with inline CSS, `@media print` A4 rules, Chart.js CDN, 8 German sections, cover page, management summary, footer.
+  - `summarizeForReport(result, sectionKey)` → compact flat object for Gemini (strips large arrays, keeps numeric/boolean KPIs and short strings).
+
+- **KPI Coverage** — 81 KPIs across 8 sections as defined by the data scientist KPI list (March 2026). Tools confirmed available via existing services: 51. Tools attempted via `callMcpDirect` with graceful degradation: 14 (including `cernion_transformer_loading_forecast`, `cernion_investment_business_case`, `cernion_operator_portfolio`, `cernion_storage_optimization`, `cernion_regional_energy_mix`, `cernion_prosumer_tariff_designer`, `cernion_nest_compliance_report`, etc.).
+
+### Tests
+
+- `tests/web-search.service.test.js` — 10 tests: validation (4), successful search (6 including result slicing, field mapping, default language), error handling (2 graceful degradation paths)
+- `tests/utility-report.service.test.js` — 25 tests: parameter validation (3), generate action (4), status action (4), download action (3), report-builder integration (10 including XSS escaping, @media print, chart rendering, summarizeForReport), graceful degradation (1)
+
 ## [0.7.1] - 2026-03-04
 
 ### Fixed
