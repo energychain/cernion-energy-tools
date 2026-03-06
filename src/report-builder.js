@@ -83,6 +83,30 @@ function isAvail(section, key) {
   return section?.[key]?.available === true;
 }
 
+/**
+ * CR-22: Parse summary statistics from a cernion_installations_local markdown
+ * text response.  The tool returns [{type:'text', text:'# MaStR Installations…'}].
+ * After safeData() the payload is still the raw array (not auto-unwrapped).
+ *
+ * @param {Array|null} dataArr - result of safeData(section, 'pvLocal') etc.
+ * @returns {{ count: number|null, totalCapacityKW: number|null }}
+ */
+function parseMaStrLocalStats(dataArr) {
+  const text = Array.isArray(dataArr)
+    ? (dataArr.find((i) => i?.type === 'text' && i?.text)?.text ?? '')
+    : '';
+  if (!text) return { count: null, totalCapacityKW: null };
+
+  const countMatch = text.match(/\*\*Results:\*\*\s+(\d+)\s+installation/i);
+  const count = countMatch ? parseInt(countMatch[1], 10) : null;
+
+  // "**Total capacity (shown):** 4.37 MW (4367.5 kW)"
+  const capKwMatch = text.match(/Total capacity[^:]*:\*\*[^(]*\(\s*([\d.]+)\s*kW\)/i);
+  const totalCapacityKW = capKwMatch ? parseFloat(capKwMatch[1]) : null;
+
+  return { count, totalCapacityKW };
+}
+
 // ─── KPI Row Helper ───────────────────────────────────────────────────────────
 
 function kpiRow(label, value, unit = '', description = '', fallbackReason = '') {
@@ -380,7 +404,7 @@ function renderSection1(s1) {
       kpiRow(
         'Redispatch-/§14a-Anlagen ohne MeLo',
         isAvail(s1, 'installationenOhneMelo') && ohneMeloCount !== null
-          ? `${ohneMeloCount} / ${redispatchTotal ?? '?'}`
+          ? `${ohneMeloCount} ohne MeLo (von ${redispatchTotal ?? '?'} ≥100 kW)`
           : null,
         '',
         'Anlagen ≥100 kW ohne verknüpfte Messlokation – MSCONS-Stammdaten unvollständig'
@@ -445,31 +469,41 @@ function renderSection2(s2) {
   const windLocalData = safeData(s2, 'windLocal');
   const speicherLocalData = safeData(s2, 'speicherLocal');
 
+  // CR-22: cernion_installations_local returns markdown text arrays – parse stats
+  const pvLocalStats = parseMaStrLocalStats(pvLocalData);
+  const windLocalStats = parseMaStrLocalStats(windLocalData);
+  const speicherLocalStats = parseMaStrLocalStats(speicherLocalData);
+
   // Prefer broker service data; fall back to local MaStR direct stats
   const pvCapacity =
     getVal(sol, 'totalCapacityKw', 'totalCapacity', 'totalKwp') ??
     pvLocalData?.stats?.totalCapacityKW ??
     pvLocalData?.stats?.totalCapacity ??
     pvLocalData?.totalCapacityKW ??
+    pvLocalStats.totalCapacityKW ??
     null;
   const pvCount =
     getVal(sol, 'totalCount', 'count', 'total') ??
     pvLocalData?.stats?.total ??
     pvLocalData?.stats?.totalCount ??
+    pvLocalStats.count ??
     null;
   const windCapacity =
     getVal(wind, 'totalCapacityKw', 'totalCapacity', 'totalKw') ??
     windLocalData?.stats?.totalCapacityKW ??
     windLocalData?.stats?.totalCapacity ??
+    windLocalStats.totalCapacityKW ??
     null;
   const windCount =
     getVal(wind, 'totalCount', 'count', 'total') ??
     windLocalData?.stats?.total ??
+    windLocalStats.count ??
     null;
   const speicherCapacity =
     getVal(stor, 'totalCapacityKw', 'totalCapacity', 'totalKw') ??
     speicherLocalData?.stats?.totalCapacityKW ??
     speicherLocalData?.stats?.totalCapacity ??
+    speicherLocalStats.totalCapacityKW ??
     null;
 
   const pvAvail = isAvail(s2, 'solar') || isAvail(s2, 'pvLocal');
@@ -753,7 +787,24 @@ function renderSection4(s4) {
     kpiRow(
       'Speicher-Trendbewertung',
       isAvail(s4, 'storageTrend')
-        ? getVal(trend, 'trendDirection', 'trend', 'direction')
+        ? (() => {
+            // CR-17: trend.trend is the nested trend sub-object; extract only the
+            // direction string to avoid serialising the entire object as [object Object].
+            const dirRaw =
+              (typeof trend?.trend?.direction === 'string' ? trend.trend.direction : null) ??
+              (typeof trend?.trendDirection === 'string' ? trend.trendDirection : null) ??
+              (typeof trend?.direction === 'string' ? trend.direction : null) ??
+              (typeof trend?.status === 'string' ? trend.status : null) ??
+              null;
+            const LABELS = {
+              injection: '↑ Einspeisung',
+              withdrawal: '↓ Entnahme',
+              stable: '→ Stabil',
+              rising: '↑ Steigend',
+              falling: '↓ Fallend',
+            };
+            return dirRaw ? (LABELS[dirRaw.toLowerCase()] ?? dirRaw) : null;
+          })()
         : null,
       '',
       'Injection vs. Withdrawal-Trend',
@@ -1139,6 +1190,41 @@ function renderSection7(s7) {
     opData7, 'totalInstallations', 'total', 'count', 'installationCount', 'anlagenCount'
   );
 
+  // CR-20: Collapse to compact upsell block when all four dedicated tools are unavailable.
+  // Avoids a full page of n/v rows that provides no actionable insight.
+  const anyAvail =
+    isAvail(s7, 'investmentBusinessCase') ||
+    isAvail(s7, 'storageOptimization') ||
+    isAvail(s7, 'operatorPortfolio') ||
+    isAvail(s7, 'operatorAnalysis');
+
+  if (!anyAvail) {
+    return `
+    <h1 class="section-title"><span class="section-number">7</span>Investitionsplanung &amp; Business Cases</h1>
+    <div style="border:1px solid #dee2e6;border-radius:4px;padding:4mm 5mm;margin:3mm 0;background:#f8f9fa">
+      <p style="font-size:9.5pt;font-weight:600;color:#495057;margin:0 0 2mm 0">🔒 Erweiterte Investitionsanalyse nicht verfügbar</p>
+      <p style="font-size:8.5pt;color:#6c757d;margin:0 0 2mm 0">
+        Die folgenden Premium-Funktionen sind in Ihrer aktuellen Lizenzstufe nicht aktiviert oder konnten nicht abgerufen werden:
+      </p>
+      <ul style="font-size:8.5pt;color:#6c757d;margin:0 0 2mm 0;padding-left:4mm">
+        <li><strong>Investment Business Case</strong> – NPV-Kalkulation für Kabel-, Trafo- und Speicherprojekte</li>
+        <li><strong>Storage Optimization</strong> – Standortbewertung für Quartiers- und Industriespeicher</li>
+        <li><strong>Operator Portfolio</strong> – Vollständige Portfolioauswertung inkl. NAP/MeLo-Status</li>
+        <li><strong>Grid Operator Dashboard</strong> – Kapazitäten, Redispatch-Pool, Investitionspriorität</li>
+      </ul>
+      <p style="font-size:8pt;color:#868e96;margin:0">
+        Für Freischaltung wenden Sie sich an Ihren Cernion-Ansprechpartner.
+      </p>
+    </div>
+    ${actionHint('Handlungsempfehlung Investitionsplanung', [
+      'NEST-Förderung: §11 Abs. 2 EnWG-Engpassnachweis vorlegen, bevor Netzausbau-CAPEX beantragt wird.',
+      'Batteriespeicher: NPV-Berechnung für USW-Standorte mit hoher EE-Einspeisung und Redispatch-Häufigkeit.',
+      'Amortisation Netzausbau vs. Steuerungslösung: §14a-Szenario (40–60 % CAPEX-Einsparung) vor Budgetfreigabe prüfen.',
+      'Portfolioauswertung: Anlagen ohne NAP/MeLo priorisiert nachrüsten – Grundlage für Direktvermarktung und Redispatch.',
+    ])}
+  `;
+  }
+
   const rows = [
     kpiRow(
       'NPV Netzinvestition',
@@ -1212,6 +1298,15 @@ function renderSection7(s7) {
  */
 function renderMarktpartnerRegistry(allPartners) {
   if (!Array.isArray(allPartners) || allPartners.length === 0) return '';
+
+  // CR-18: Quality gate – suppress table when fewer than 50 % of entries carry
+  // a resolved Marktrolle.  A table of bare BDEW codes without role information
+  // adds no value and clutters the report.
+  const enrichedCount = allPartners.filter(
+    (p) => Array.isArray(p.roles) && p.roles.length > 0
+  ).length;
+  if (enrichedCount < Math.ceil(allPartners.length * 0.5)) return '';
+
   const rows = allPartners.map((p) => {
     const roles = Array.isArray(p.roles) && p.roles.length ? p.roles.join(', ') : '–';
     const isVnb = /VNB|Verteilnetz|Netzbetreiber/i.test(roles);
@@ -1235,10 +1330,6 @@ function renderMarktpartnerRegistry(allPartners) {
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
-      <p style="font-size:7.5pt;color:#6c757d;margin:1.5mm 0 0 0">
-        <strong>Fett</strong> = für Datenabruf verwendete VNB-Rolle ·
-        Lieferant/Vertrieb-Rollen können ebenfalls Anlagen-Zuordnungen im MaStR haben.
-      </p>
     </div>`;
 }
 
@@ -1373,8 +1464,16 @@ function renderManagementSummary(summaryText, utilityName) {
 // ─── Context Box (Web Search) ─────────────────────────────────────────────────
 
 /**
- * CR-13: Quality filter – returns true only when at least 2 items pass:
- *   (a) title present, (b) snippet >50 chars, (c) snippet does not end with '...'
+ * CR-19: Blacklist for web-scraping artefacts (navigation DOM, login fragments).
+ * Matches snippets that are browser-rendered nav menus rather than editorial text.
+ */
+const SNIPPET_BLACKLIST_RE =
+  /Hauptmen(?:ü|u)|Abmelden|Anmeldung erforderlich|Internet-Planauskunft|Grund der Auskunft|Cookie-Hinweis|Bitte aktivieren Sie JavaScript|Hilfe\s+Hauptmen/i;
+
+/**
+ * CR-13 / CR-19: Quality filter – returns true only when at least 2 items pass:
+ *   (a) title present, (b) snippet >50 chars, (c) snippet does not end with '...',
+ *   (d) snippet does not match the nav-DOM blacklist (CR-19)
  */
 function shouldRenderNewsSection(items) {
   if (!Array.isArray(items)) return false;
@@ -1383,7 +1482,8 @@ function shouldRenderNewsSection(items) {
       item.title &&
       typeof item.snippet === 'string' &&
       item.snippet.length > 50 &&
-      !item.snippet.endsWith('...')
+      !item.snippet.endsWith('...') &&
+      !SNIPPET_BLACKLIST_RE.test(item.snippet)
   );
   return passing.length >= 2;
 }
@@ -1412,7 +1512,8 @@ function renderContextBox(webSearchResults) {
         r.title &&
         typeof r.snippet === 'string' &&
         r.snippet.length > 50 &&
-        !r.snippet.endsWith('...')
+        !r.snippet.endsWith('...') &&
+        !SNIPPET_BLACKLIST_RE.test(r.snippet)
     )
     .map(
       (r) =>

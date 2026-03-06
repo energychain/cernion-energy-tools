@@ -7,6 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.18] - 2026-03-07
+
+### Fixed
+
+- **Report Builder – CR-17 (P0): Gas trend renders `[object Object]`**
+
+  The `cernion_agsi_storage_trend` tool returns a nested response where
+  `storageTrend.data.trend` is a sub-object (`{ direction, startFillLevel,
+  endFillLevel, … }`).  `getVal(trend, 'trendDirection', 'trend', 'direction')`
+  matched the key `'trend'` and returned the whole sub-object, which serialised
+  as `[object Object]` in the KPI table.
+
+  **Fix (`src/report-builder.js`):** Replaced `getVal` with an inline IIFE that
+  checks only string-typed properties in priority order
+  (`trend.trend.direction → trend.trendDirection → trend.direction → trend.status`).
+  Direction values are mapped to labelled German strings
+  (e.g., `withdrawal → ↓ Entnahme`, `injection → ↑ Einspeisung`).
+
+- **Report Builder – CR-19 (P0): Web-scraping navigation artefacts escape news filter**
+
+  Login-page DOM fragments (e.g., `"Internet-Planauskunft Hilfe Hauptmenü
+  Abmelden …"`) passed the existing quality filter because they are longer than
+  50 characters and do not end with `"…"`.  These appeared as news items in
+  Section 8's Context Box.
+
+  **Fix (`src/report-builder.js`):** Added `SNIPPET_BLACKLIST_RE` constant with
+  patterns for `Hauptmenü`, `Abmelden`, `Anmeldung erforderlich`,
+  `Internet-Planauskunft`, `Grund der Auskunft`, `Cookie-Hinweis`,
+  `Bitte aktivieren Sie JavaScript`, and `Hilfe Hauptmen`.  Both
+  `shouldRenderNewsSection` and the inline filter in `renderContextBox` now
+  reject items matching the blacklist.
+
+- **Report Builder – CR-22 (P0): Section 2 EE-Portfolio shows `–` for all KPIs**
+
+  `cernion_installations_local` returns `{ available: true, data: [{type:'text',
+  text:'# MaStR Installations…'}] }`.  `safeData()` returns the raw array
+  (it does not auto-unwrap arrays), so
+  `pvLocalData?.stats?.totalCapacityKW` was always `undefined`.  Meanwhile the
+  Management Summary accessed the same data via a dot-string key path and showed
+  correct values (e.g., "PVA Grenzhof 4.37 MW").
+
+  **Fix (`src/report-builder.js`):** Added `parseMaStrLocalStats(dataArr)` helper
+  that locates the markdown text item inside the array and extracts count
+  (`**Results:** N installations found`) and total capacity
+  (`**Total capacity (shown):** … (XXXX kW)`) via regex.  Appended
+  `pvLocalStats.totalCapacityKW` / `pvLocalStats.count` (and wind, storage
+  equivalents) as the final fallback in each respective chain in
+  `renderSection2`.
+
+- **Report Builder – CR-18 (P1): Market partner table shows empty columns + developer footnote**
+
+  The `renderMarktpartnerRegistry` table was rendered even when the Marktrolle
+  and MaStR-ID columns were mostly `–`, providing no useful information.  A
+  developer-facing footnote ("Fett = für Datenabruf verwendete VNB-Rolle …")
+  also leaked into the customer-facing report.
+
+  **Fix (`src/report-builder.js`):** Added a quality gate that suppresses the
+  table when fewer than 50 % of partner entries carry a resolved `roles` array.
+  Removed the developer footnote `<p>` entirely.
+
+- **Report Builder – CR-21 (P1): `0 / 105` format ambiguous in Section 1**
+
+  The "Redispatch-/§14a-Anlagen ohne MeLo" KPI displayed a bare fraction
+  (`0 / 105`) whose numerator and denominator were not labelled, making the
+  value confusing without the tooltip.
+
+  **Fix (`src/report-builder.js`):** Changed format to
+  `0 ohne MeLo (von 105 ≥100 kW)`, making both parts self-explanatory inline.
+
+- **Report Builder – CR-20 (P2): Section 7 renders a full page of `n/v` rows**
+
+  When all four Section 7 tools (`investmentBusinessCase`, `storageOptimization`,
+  `operatorPortfolio`, `operatorAnalysis`) fail or are not licensed, the section
+  rendered an empty KPI table that wasted a full report page with no actionable
+  content.
+
+  **Fix (`src/report-builder.js`):** Added `anyAvail` guard at the top of
+  `renderSection7`.  When none of the four tools produced data the section
+  collapses to a compact 🔒 upsell/teaser block listing the unavailable features
+  and directing the reader to contact Cernion.  The action-hint recommendation
+  block is still rendered in both paths.
+
 ## [0.8.17] - 2026-03-06
 
 ### Fixed
