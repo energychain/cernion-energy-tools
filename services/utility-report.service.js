@@ -930,6 +930,11 @@ module.exports = {
     const { utilityName, region, bdew } = progress;
     const p = progress;
 
+    // CR-22: ensure the resolved token (which may have come from process.env as fallback)
+    // is always present in ctx.meta so every callBroker() call propagates it to downstream
+    // services (e.g. grid-operations.marketPartners reads ctx.meta.cernionToken for MCP auth).
+    if (cernionToken) ctx.meta.cernionToken = cernionToken;
+
     // ──────────────────────────────────────────────────────────────────────────
     // PHASE 0: Discover available tools
     // ──────────────────────────────────────────────────────────────────────────

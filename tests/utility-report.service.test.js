@@ -1033,4 +1033,57 @@ describe('Utility Report Service', () => {
       expect(result.status).toBe('error');
     });
   });
+
+  // ─── Token propagation (CR-22) ────────────────────────────────────────────
+
+  describe('Token propagation to downstream services (CR-22)', () => {
+    let tokenBroker;
+    let capturedToken;
+
+    beforeAll(async () => {
+      tokenBroker = new ServiceBroker({ logger: false, requestTimeout: 60000 });
+      tokenBroker.createService(UtilityReportService);
+
+      // Capture the token that reaches grid-operations.marketPartners via ctx.meta
+      mockBrokerService(tokenBroker, 'grid-operations', {
+        marketPartners: async (ctx) => {
+          capturedToken = ctx.meta?.cernionToken ?? null;
+          return { results: [{ name: 'Token Test GmbH', bdewCode: '9900000000001', mastrId: 'SNB_TOKEN' }] };
+        },
+        vnbLookup: async () => DEFAULT_MOCK_RESULT,
+        capacityUtilization: async () => DEFAULT_MOCK_RESULT,
+        redispatchExport: async () => ({ ...DEFAULT_MOCK_RESULT, totalCount: 0 }),
+        operatorAnalysis: async () => DEFAULT_MOCK_RESULT,
+      });
+      for (const [name, mocks] of Object.entries(DEFAULT_SERVICE_MOCKS)) {
+        if (name !== 'grid-operations') mockBrokerService(tokenBroker, name, mocks);
+      }
+
+      await tokenBroker.start();
+    }, 30000);
+
+    afterAll(async () => {
+      await tokenBroker.stop();
+    });
+
+    it('should propagate env-fallback token to downstream broker calls (CR-22)', async () => {
+      const savedEnvToken = process.env.CERNION_TOKEN;
+      process.env.CERNION_TOKEN = 'test-env-token-cr22';
+      capturedToken = undefined;
+
+      // Call WITHOUT cernionToken in meta – forces env fallback path
+      const gen = await tokenBroker.call(
+        'utility-report.generate',
+        { utilityName: 'Token Test Stadt', forceRefresh: true },
+        { meta: {} } // no cernionToken in meta
+      );
+
+      await new Promise((r) => setTimeout(r, 600));
+
+      // The token that reached grid-operations.marketPartners must be the env token
+      expect(capturedToken).toBe('test-env-token-cr22');
+
+      process.env.CERNION_TOKEN = savedEnvToken;
+    });
+  });
 });

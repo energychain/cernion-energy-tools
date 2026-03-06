@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.13] - 2026-03-06
+
+### Fixed
+
+- **360° Report – CR-22: Token-Propagation-Bug behoben**
+  - `cernionToken` aus dem `process.env.CERNION_TOKEN`-Fallback wurde in `_runPipeline` nie in `ctx.meta` zurückgeschrieben.
+  - Folge: Alle `callBroker()`-Aufrufe innerhalb der Pipeline propagierten das Token **nicht** zu nachgelagerten Services (z. B. `grid-operations.marketPartners`).
+  - `grid-operations` las `ctx.meta.cernionToken` für MCP-Authentifizierung → erhielt `undefined` → MCP-Auth schlug still fehl → `allPartners: []`, `availableTools: []` für jeden Report.
+  - Fix: Erste Anweisung in `_runPipeline`: `if (cernionToken) ctx.meta.cernionToken = cernionToken;` – stellt sicher, dass das env-aufgelöste Token in `ctx.meta` vorliegt, bevor der erste Broker-Call erfolgt.
+  - 1 neuer Test: prüft, dass das env-Token `process.env.CERNION_TOKEN` korrekt in `ctx.meta.cernionToken` für alle Downstream-Aufrufe gesetzt wird, wenn `ctx.meta` kein Token enthält.
+
 ## [0.8.12] - 2026-03-06
 
 ### Improved
