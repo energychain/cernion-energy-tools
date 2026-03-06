@@ -822,6 +822,15 @@ module.exports = {
             ctx.meta.$statusCode = 202;
             return { success: false, message: 'Report still generating', status: 'generating', reportId };
           }
+          if (prog && prog.status === 'error') {
+            ctx.meta.$statusCode = 422;
+            return {
+              success: false,
+              status: 'error',
+              error: prog.error || 'Report generation failed',
+              reportId,
+            };
+          }
           ctx.meta.$statusCode = 404;
           return { success: false, error: 'Report not found', reportId };
         }
@@ -917,6 +926,18 @@ module.exports = {
     }
 
     const { resolvedBdew, resolvedMastrId, resolvedVnbName } = p.meta;
+
+    // Guard: abort pipeline when the VNB could not be identified in Phase 1.
+    // Without a BDEW code or MaStR-ID every downstream MaStR/grid query returns
+    // empty, producing a misleading all-n/v report.  Fail early instead.
+    if (!resolvedBdew && !resolvedMastrId) {
+      const err = new Error(
+        `VNB nicht erkannt: Für „${utilityName}" konnte weder ein BDEW-Code noch eine MaStR-ID ermittelt werden. ` +
+        `Bitte prüfen Sie die Schreibweise (z. B. „Stadtwerke Heidelberg Netz GmbH") oder übergeben Sie den BDEW-Code direkt (Parameter: bdew).`
+      );
+      err.code = 'VNB_NOT_IDENTIFIED';
+      throw err;
+    }
 
     // ──────────────────────────────────────────────────────────────────────────
     // PHASE 2: Metadata & Stammdaten

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.8] - 2026-03-06
+
+### Fixed
+
+- **360° Report – CR-17: VNB-Identifikations-Abbruch bei unbekanntem Netzbetreiber**
+  - Pipeline now throws `VNB_NOT_IDENTIFIED` immediately after Phase 1 when neither a BDEW code nor a MaStR-ID could be resolved from the market-partners lookup.
+  - Prevents the silent generation of a meaningless all-`n/v` report for unrecognised utility names (e.g. "Stadtwerke Walldorf").
+  - `status.error` receives the full human-readable message including suggestions on how to fix the input (correct name spelling or supply `bdew` parameter directly).
+  - The `/download/:reportId` endpoint now returns HTTP 422 with `{ success: false, status: "error", error: "<message>" }` instead of a silent 404 when the progress file records `status: 'error'`.
+  - 3 new unit tests: download-422 payload, pipeline abort on empty `marketPartners`, no HTML written after abort.
+
 ## [0.8.7] - 2026-03-06
 
 ### Added

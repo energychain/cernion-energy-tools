@@ -321,6 +321,32 @@ describe('Utility Report Service', () => {
       // Clean up
       fs.unlinkSync(path.join(reportsDir, `${fakeId}.html`));
     });
+
+    it('should return error payload for a report that failed pipeline (CR-17)', async () => {
+      const fakeId = 'failed-report-cr17-test';
+      const progressData = {
+        reportId: fakeId,
+        utilityName: 'Unbekannte SW',
+        status: 'error',
+        error: 'VNB nicht erkannt: Für „Unbekannte SW" konnte weder ein BDEW-Code noch eine MaStR-ID ermittelt werden.',
+        phase: 1,
+        startedAt: new Date().toISOString(),
+        completedAt: null,
+        results: {},
+        meta: {},
+      };
+      fs.mkdirSync(tmpReportsDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(tmpReportsDir, `${fakeId}.progress.json`),
+        JSON.stringify(progressData),
+        'utf-8'
+      );
+
+      const result = await broker.call('utility-report.download', { reportId: fakeId });
+      expect(result.success).toBe(false);
+      expect(result.status).toBe('error');
+      expect(result.error).toContain('VNB nicht erkannt');
+    });
   });
 
   // ─── rebuild action ────────────────────────────────────────────────────────
@@ -710,6 +736,62 @@ describe('Utility Report Service', () => {
       // Should not throw or contain undefined
       expect(html).not.toContain('undefined');
       expect(html).not.toContain('[object Object]');
+    });
+  });
+
+  // ─── VNB identification failure (CR-17) ────────────────────────────────────
+
+  describe('VNB identification failure (CR-17)', () => {
+    let abortBroker;
+
+    beforeAll(async () => {
+      abortBroker = new ServiceBroker({ logger: false, requestTimeout: 60000 });
+      abortBroker.createService(UtilityReportService);
+
+      // grid-operations returns no BDEW/MaStR – simulates unknown utility name
+      mockBrokerService(abortBroker, 'grid-operations', {
+        marketPartners: async () => ({ results: [] }),
+        vnbLookup: async () => DEFAULT_MOCK_RESULT,
+      });
+
+      await abortBroker.start();
+    }, 30000);
+
+    afterAll(async () => {
+      await abortBroker.stop();
+    });
+
+    it('should mark report as error when VNB cannot be identified', async () => {
+      const gen = await abortBroker.call('utility-report.generate', {
+        utilityName: 'Stadtwerke Unbekannt XYZ',
+      });
+
+      expect(gen.success).toBe(true);
+      const { reportId } = gen;
+
+      // Pipeline fails fast at Phase 1 guard – wait briefly
+      await new Promise((r) => setTimeout(r, 500));
+
+      const status = await abortBroker.call('utility-report.status', { reportId });
+      expect(status.status).toBe('error');
+      expect(status.error).toContain('VNB nicht erkannt');
+      expect(status.error).toContain('BDEW-Code');
+    });
+
+    it('should not write an HTML report file when identification fails', async () => {
+      const gen = await abortBroker.call('utility-report.generate', {
+        utilityName: 'Phantom Netz GmbH',
+        forceRefresh: true,
+      });
+
+      await new Promise((r) => setTimeout(r, 500));
+
+      // Download should surface the error, not a 404
+      const result = await abortBroker.call('utility-report.download', {
+        reportId: gen.reportId,
+      });
+      expect(result.success).toBe(false);
+      expect(result.status).toBe('error');
     });
   });
 });
