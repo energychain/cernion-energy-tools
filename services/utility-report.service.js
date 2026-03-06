@@ -755,11 +755,79 @@ module.exports = {
           progress: progressPct,
           error: prog.error ?? null,
           downloadUrl: prog.status === 'completed' ? `/api/utility-report/download/${reportId}` : null,
+          vnbIdentification: prog.meta?.vnbIdentification ?? null, // CR-24: transparent VNB selection
         };
       },
     },
 
     // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Check MCP connection health and token validity (CR-24).
+     */
+    health: {
+      rest: 'GET /health',
+      openapi: {
+        summary: 'Check MCP connection health and token validity',
+        tags: ['Utility Report'],
+        description:
+          'Tests the Cernion MCP connection using the configured token. ' +
+          'Returns `status: "ok"` only when the token is present and the MCP server responds successfully. ' +
+          'Use this endpoint to diagnose why report generation fails with MCP_CONNECTION_ERROR.',
+        responses: {
+          200: {
+            description: 'Health check result',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success:      { type: 'boolean' },
+                    status:       { type: 'string', enum: ['ok', 'error'] },
+                    tokenPresent: { type: 'boolean' },
+                    mcpReachable: { type: 'boolean' },
+                    toolCount:    { type: 'number' },
+                    latencyMs:    { type: 'number' },
+                    error:        { type: 'string', nullable: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const cernionToken = ctx.meta?.cernionToken || process.env.CERNION_TOKEN;
+        const tokenPresent = !!cernionToken;
+        const t0 = Date.now();
+        let mcpReachable = false;
+        let mcpError = null;
+        let toolCount = 0;
+
+        if (tokenPresent) {
+          const result = await callMcpDirect('cernion_discover', { scope: 'tools' }, cernionToken);
+          if (result.available) {
+            mcpReachable = true;
+            const tools = result.data?.tools ?? result.data?.data?.tools ?? [];
+            toolCount = Array.isArray(tools) ? tools.length : 0;
+          } else {
+            mcpError = result.error || 'MCP-Verbindung fehlgeschlagen';
+          }
+        }
+
+        return {
+          success: tokenPresent && mcpReachable,
+          status: tokenPresent && mcpReachable ? 'ok' : 'error',
+          tokenPresent,
+          mcpReachable,
+          toolCount,
+          latencyMs: Date.now() - t0,
+          error: !tokenPresent
+            ? 'CERNION_TOKEN nicht konfiguriert (weder im Request noch als Umgebungsvariable)'
+            : mcpError,
+        };
+      },
+    },
 
     /**
      * Re-render HTML from stored progress data (no MCP calls, instant).
@@ -985,6 +1053,14 @@ module.exports = {
         for (const query of searchQueries) {
           // CR-23: run all queries (no early break) to build the richest candidate pool
           const mp = await callBroker(ctx, 'grid-operations.marketPartners', { query, limit: 10 });
+          // CR-24: detect MCP connection failure (callBroker never throws – returns { available: false })
+          // This distinguishes "MCP rejected / 403 token" from "no partners found for this name".
+          if (mp?.available === false) {
+            const errMsg = mp.error || 'MCP-Verbindungsfehler';
+            this.logger.warn(`[UtilityReport] marketPartners MCP error for query "${query}": ${errMsg}`);
+            if (!p.meta.mcpError) p.meta.mcpError = errMsg; // save first error for user message
+            continue;
+          }
           // CR-23: handle both async path (mp.data.results) and sync path (mp.results)
           const rawCandidates =
             mp?.data?.results ||
@@ -1019,6 +1095,23 @@ module.exports = {
             this.logger.info(`[UtilityReport] VNB resolved: ${firstPartner.name || utilityName}`);
           }
         }
+
+        // CR-24: record VNB identification details for transparency (visible via GET /status/:id)
+        p.meta.vnbIdentification = {
+          queriesTried: searchQueries,
+          candidatesFound: allCandidatesMap.size,
+          mcpFailed: !!p.meta.mcpError,
+          selected: firstPartner ? {
+            name: firstPartner.name,
+            bdew: firstPartner.bdew,
+            selectionReason: (() => {
+              const roles = firstPartner.roles ?? [];
+              if (roles.some((r) => /VNB|Netzbetreiber/i.test(r))) return 'VNB-Rolle im BDEW-Register';
+              if (/\bNetz(e)?\b/i.test(firstPartner.name)) return '"Netz" im Unternehmensnamen (Netzbetreiber-Indikator)';
+              return 'Erster Treffer aus kombinierter Suchergebnismenge';
+            })(),
+          } : null,
+        };
 
         // Step 1b: still nothing → derive city name and try a local installations lookup
         // to extract the SNB directly from NAP data of any installation in that city.
@@ -1098,6 +1191,18 @@ module.exports = {
 
     // Guard: abort pipeline when the VNB could not be identified after all fallbacks.
     if (!resolvedBdew && !resolvedMastrId) {
+      // CR-24: if MCP calls failed (bad token / network), tell the user THAT – not "VNB not found"
+      if (p.meta.mcpError) {
+        const err = new Error(
+          `MCP-Verbindungsfehler: Die Cernion-API hat alle Marktpartner-Abfragen abgewiesen.\n` +
+          `Ursache: ${p.meta.mcpError}\n` +
+          `Mögliche Gründe: Ungültiger oder abgelaufener CERNION_TOKEN, keine Netzwerkverbindung.\n` +
+          `Tipp: Prüfen Sie GET /api/utility-report/health auf den aktuellen Verbindungsstatus.\n` +
+          `Alternativ: Übergeben Sie den BDEW-Code direkt (Parameter: bdew, z. B. "9900277000000").`
+        );
+        err.code = 'MCP_CONNECTION_ERROR';
+        throw err;
+      }
       // Build a context-aware error: list what was tried and suggest concrete next steps.
       const triedQueries = buildVnbSearchQueries(utilityName);
       const triedList = triedQueries.map((q) => `„${q}"`).join(', ');

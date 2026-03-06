@@ -1127,4 +1127,87 @@ describe('Utility Report Service', () => {
       process.env.CERNION_TOKEN = savedEnvToken;
     });
   });
+
+  // ─── MCP error detection and VNB transparency (CR-24) ────────────────────
+
+  describe('MCP error detection and VNB identification transparency (CR-24)', () => {
+    let mcpErrorBroker;
+    let transparentBroker;
+
+    beforeAll(async () => {
+      // ── broker 1: marketPartners always returns callBroker-style error ─────
+      mcpErrorBroker = new ServiceBroker({ logger: false, requestTimeout: 60000 });
+      mcpErrorBroker.createService(UtilityReportService);
+      mockBrokerService(mcpErrorBroker, 'grid-operations', {
+        // Simulate what grid-operations does when MCP call throws internally:
+        // callBroker catches it and returns { available: false, error: msg }
+        marketPartners: async () => { throw new Error('Request failed: 403 Forbidden'); },
+        vnbLookup: async () => DEFAULT_MOCK_RESULT,
+      });
+      for (const [name, mocks] of Object.entries(DEFAULT_SERVICE_MOCKS)) {
+        if (name !== 'grid-operations') mockBrokerService(mcpErrorBroker, name, mocks);
+      }
+
+      // ── broker 2: marketPartners succeeds → test transparency fields ──────
+      transparentBroker = new ServiceBroker({ logger: false, requestTimeout: 60000 });
+      transparentBroker.createService(UtilityReportService);
+      mockBrokerService(transparentBroker, 'grid-operations', {
+        marketPartners: async () => ({
+          results: [{ companyName: 'Teststadt Netze GmbH', bdewCode: '9900111222333', roles: [] }],
+        }),
+        vnbLookup: async () => DEFAULT_MOCK_RESULT,
+        capacityUtilization: async () => DEFAULT_MOCK_RESULT,
+        redispatchExport: async () => ({ ...DEFAULT_MOCK_RESULT, totalCount: 0 }),
+        operatorAnalysis: async () => DEFAULT_MOCK_RESULT,
+      });
+      for (const [name, mocks] of Object.entries(DEFAULT_SERVICE_MOCKS)) {
+        if (name !== 'grid-operations') mockBrokerService(transparentBroker, name, mocks);
+      }
+
+      await Promise.all([mcpErrorBroker.start(), transparentBroker.start()]);
+    }, 30000);
+
+    afterAll(async () => {
+      await Promise.all([mcpErrorBroker.stop(), transparentBroker.stop()]);
+    });
+
+    it('should surface MCP_CONNECTION_ERROR instead of VNB_NOT_IDENTIFIED when MCP calls fail (CR-24)', async () => {
+      const gen = await mcpErrorBroker.call('utility-report.generate', {
+        utilityName: 'Heidelberg',
+        forceRefresh: true,
+      });
+      expect(gen.success).toBe(true);
+
+      await new Promise((r) => setTimeout(r, 600));
+
+      const status = await mcpErrorBroker.call('utility-report.status', { reportId: gen.reportId });
+      expect(status.status).toBe('error');
+      // Must say "MCP connection error", NOT "VNB not found"
+      expect(status.error).toContain('MCP-Verbindungsfehler');
+      expect(status.error).not.toContain('VNB nicht erkannt');
+      // Must hint at the health endpoint
+      expect(status.error).toContain('/api/utility-report/health');
+    });
+
+    it('should populate vnbIdentification in status after successful VNB resolution (CR-24)', async () => {
+      const gen = await transparentBroker.call('utility-report.generate', {
+        utilityName: 'Teststadt',
+        forceRefresh: true,
+      });
+      expect(gen.success).toBe(true);
+
+      await new Promise((r) => setTimeout(r, 600));
+
+      const status = await transparentBroker.call('utility-report.status', { reportId: gen.reportId });
+      // Pipeline may or may not have reached error; but vnbIdentification should be populated
+      // once Phase 1 has run (regardless of whether Phase 2+ succeeds)
+      expect(status.vnbIdentification).toBeDefined();
+      expect(status.vnbIdentification.queriesTried).toContain('Teststadt');
+      expect(status.vnbIdentification.candidatesFound).toBeGreaterThan(0);
+      expect(status.vnbIdentification.selected).not.toBeNull();
+      expect(status.vnbIdentification.selected.name).toContain('Teststadt Netze');
+      expect(status.vnbIdentification.selected.bdew).toBe('9900111222333');
+      expect(status.vnbIdentification.selected.selectionReason).toContain('Netz');
+    });
+  });
 });

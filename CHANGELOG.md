@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.15] - 2026-03-06
+
+### Fixed
+
+- **360° Report – CR-24: MCP-Fehler werden jetzt korrekt erkannt und transparent gemeldet**
+
+  **Ursachenanalyse:** Alle bisherigen `VNB_NOT_IDENTIFIED`-Fehler (Heidelberg, Eberbach, usw.) hatten dieselbe Grundursache: der Token `CERNION_TOKEN` in `.env` liefert HTTP 403 vom MCP-Server. `callBroker` fing den Fehler still ab und gab `{ available: false }` zurück – was die Phase-1-Schleife als "keine Ergebnisse" interpretierte. Die Fehlermeldung sagte "VNB nicht im Register" statt "MCP-Authentifizierung fehlgeschlagen".
+
+  **Korrekturen:**
+  - **MCP-Fehlererkennung**: Phase-1-Schleife prüft jetzt `mp?.available === false` → speichert den echten Fehlertext in `p.meta.mcpError` und überspringt den Query (statt leere Kandidaten zu akkumulieren).
+  - **Korrekte Fehlermeldung**: Guard `!resolvedBdew && !resolvedMastrId` prüft zuerst `p.meta.mcpError` → wirft `MCP_CONNECTION_ERROR` mit klarem Hinweis (Token, Netzwerk, Health-Endpoint) statt dem irreführenden `VNB_NOT_IDENTIFIED`.
+  - **VNB-Selektion transparent**: Nach erfolgreicher Phase-1 schreibt die Pipeline `p.meta.vnbIdentification` mit `{ queriesTried, candidatesFound, selected: { name, bdew, selectionReason } }`. Das Feld erscheint in `GET /status/:id` und zeigt dem Nutzer, welcher Marktpartner warum ausgewählt wurde.
+  - **Health-Endpoint**: Neues `GET /api/utility-report/health` – testet die MCP-Verbindung mit dem konfigurierten Token und liefert `{ status, tokenPresent, mcpReachable, toolCount, latencyMs, error }`.
+  - 2 neue Tests: MCP-Fehler führt zu `MCP-Verbindungsfehler` (nicht `VNB_NOT_IDENTIFIED`); erfolgreiche Identifikation befüllt `vnbIdentification.selected`.
+
+### Added
+
+- **`GET /api/utility-report/health`**: Neuer Diagnose-Endpoint prüft Token-Konfiguration und MCP-Erreichbarkeit. Erste Anlaufstelle bei Pipeline-Fehlern.
+
 ## [0.8.14] - 2026-03-06
 
 ### Fixed
