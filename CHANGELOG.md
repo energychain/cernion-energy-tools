@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.6] - 2026-03-06
+
+### Added
+
+- **360° Report – CR-01: EE-Portfolio MaStR direct enrichment (P1)**
+  - Section 2 pipeline now fires 3 parallel `cernion_installations_local` calls (type: solar / wind / storage) when a MaStR-ID is resolved, providing exact capacity and count directly from local MongoDB.
+  - `renderSection2` uses these as fallbacks when the `assets` broker service returns incomplete data; shows `n/v (MaStR-Abfrage nicht verfügbar)` only when both sources fail.
+
+- **360° Report – CR-02: Trafo-Auslastung & Netzbetrieb-Kennzahlen (P1)**
+  - New `cernion_transformer_loading_forecast` gated call (forecastYears=0) added to Section 1 pipeline.
+  - `renderSection1` cascades transformer utilisation from `capacityUtilization` → `transformerLoading.current` → `transformerLoading.transformers`.
+  - `operatorAnalysis` used as secondary source for redispatch count when `redispatchExport` fails.
+
+- **360° Report – CR-03: Residuallast-Warnung (P3)**
+  - Residuallast value cell appends `⚠ warningMessage` when the tool returns a warning; text shown inline in description column.
+
+- **360° Report – CR-04: Day-Ahead-Preisverlauf 24h (P2)**
+  - `energy-market.prices` now fetched with `dateFrom`/`dateTo` (24h window) instead of `date: today`.
+  - Removed `slice(-24)` in `renderSection3`; chart renders all available data points (up to 96 quarter-hour values).
+  - `Preis-Einspeise-Korrelation` row shows actual coefficient when `correlationCoefficient` is returned.
+
+- **360° Report – CR-05: EWK Handlungsempfehlungen dynamisch (P2)**
+  - `renderSection5` action-hint generates text from actual `vnbAnschlussdauer`, `bundesMedian`, `diPct`, and `uqPct` values.
+
+- **360° Report – CR-06/07: Fallback-Reasons für Abschnitte 6 & 7 (P1/P2)**
+  - All kpiRows in Section 6 and 7 carry descriptive `fallbackReason` strings.
+  - Section 7 extracts `totalInstallations` from `operatorAnalysis` as fallback for `Betreiber-Portfolio Gesamt`.
+
+- **360° Report – CR-09: Dynamische Management Summary (P1)**
+  - KPI summary for Gemini now includes **all 8 sections** (previously only 1–3).
+  - `buildStaticNarrative` redesigned with conditional, data-driven findings (gas fill %, PV MW, redispatch count, Anschlussdauer delta, day-ahead price, CO₂) sorted by criticality.
+
+- **360° Report – CR-10: Fallback-Handling – kein nacktes „–" (P1)**
+  - `kpiRow()` gains optional 5th `fallbackReason` parameter; value cell shows `n/v` (italic, muted) with reason appended to description. Bare `–` retained when no reason supplied (backward-compatible).
+  - `.kpi-nvl` CSS class added.
+  - Sections 1, 2, 3, 6, 7 pass `fallbackReason` for all tool-dependent KPI rows.
+
 ## [0.8.4] - 2026-03-07
 
 ### Fixed

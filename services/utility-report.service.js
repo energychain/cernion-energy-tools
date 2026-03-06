@@ -226,21 +226,126 @@ Keine Überschriften, keine Nummerierung, nur die Erkenntnisse.`;
 }
 
 function buildStaticNarrative(utilityName, kpiSummary) {
-  const lines = [
-    `⚡ Netzbetrieb: Die Netzkapazitätsanalyse für ${utilityName} liegt vor – prüfen Sie kritische Stränge auf §14a-Handlungsbedarf.`,
-    '🌱 EE-Portfolio: MaStR-Einspeiserportfolio und Redispatch-Anlagen wurden vollständig inventarisiert.',
-    '📈 Energiemarkt: Strom- und Gasmarktdaten wurden für den Berichtszeitraum erfasst.',
-    '🏛️ Regulierung: BNetzA EWK-Benchmarkdaten zu Anschlussdauer, Digitalisierung und Umsetzungsquote sind ausgewertet.',
-    '👥 Kunden & Vertrieb: Churn-Risiken und Neukundenpotenziale aus dem Netzgebiet wurden identifiziert.',
-    '💡 Digitalisierung: Systemstatus und EIC-Datenbankübersicht wurden dokumentiert.',
-  ];
+  // CR-09: Generate data-driven findings from real KPI values where available
+  const findings = [];
 
-  // Add a data-driven line if we have some KPIs
-  if (kpiSummary && Object.keys(kpiSummary).length > 0) {
-    lines.push('📋 Hinweis: Für eine KI-gestützte Analyse aktivieren Sie GEMINI_API_KEY in der .env-Konfiguration.');
+  // ── Gas fill level (Section 4) ────────────────────────────────────────────
+  const gasFillPct =
+    kpiSummary?.countryStorage?.['storage.fillPercentage'] ??
+    kpiSummary?.countryStorage?.['storage.full'] ??
+    null;
+  if (gasFillPct !== null) {
+    const icon = gasFillPct < 30 ? '🔴' : gasFillPct < 70 ? '⚠️' : '✅';
+    const verdict = gasFillPct >= 90
+      ? 'EU-90%-Mandat erfüllt'
+      : gasFillPct >= 70 ? 'Einspeisung im Plan' : 'Einspeisung priorisieren';
+    findings.push({
+      prio: gasFillPct < 30 ? 1 : 2,
+      text: `${icon} Gasfüllstand DE: ${Number(gasFillPct).toFixed(1)} % – ${verdict} (VO 2022/1032).`,
+    });
   }
 
-  return lines.join('\n');
+  // ── EE-Portfolio (Section 2) ──────────────────────────────────────────────
+  const pvKw =
+    kpiSummary?.solar?.totalCapacityKw ??
+    kpiSummary?.pvLocal?.['stats.totalCapacityKW'] ??
+    null;
+  const pvCount =
+    kpiSummary?.solar?.totalCount ??
+    kpiSummary?.pvLocal?.['stats.total'] ??
+    null;
+  if (pvKw !== null) {
+    const pvMw = (Number(pvKw) / 1000).toFixed(1);
+    const countPart = pvCount !== null ? `, ${pvCount} Anlagen` : '';
+    findings.push({
+      prio: 3,
+      text: `🌱 EE-Portfolio: ${pvMw} MW installierte PV-Leistung${countPart} im Netzgebiet (MaStR).`,
+    });
+  }
+
+  // ── Redispatch Anlagen (Section 1) ───────────────────────────────────────
+  const rdTotal =
+    kpiSummary?.redispatchExport?.totalCount ??
+    kpiSummary?.redispatchExport?.count ??
+    null;
+  if (rdTotal !== null) {
+    findings.push({
+      prio: 2,
+      text: `⚡ Netzbetrieb: ${rdTotal} Redispatch-Anlagen ≥100 kW – §12 StromNZV-Meldefrist und Redispatch-2.0-Einbindung prüfen.`,
+    });
+  }
+
+  // ── Anschlussdauer (Section 5) ────────────────────────────────────────────
+  const vnbAd = kpiSummary?.anschlussdauer?.['rows.0.ee_ns_gesamt_wochen'] ?? null;
+  const medianAd = kpiSummary?.anschlussdauer?.['stats.ee_ns_gesamt.median'] ?? null;
+  if (vnbAd !== null && medianAd !== null) {
+    const delta = Number(vnbAd) - Number(medianAd);
+    if (delta > 0) {
+      findings.push({
+        prio: 1,
+        text: `🏛️ Regulierung: Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.round(delta)} Wo. über Bundesmedian (${Number(medianAd).toFixed(0)} Wo.). BNetzA-Beschwerderisiko bei >13 Wochen.`,
+      });
+    } else {
+      findings.push({
+        prio: 3,
+        text: `🏛️ Regulierung: Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.abs(Math.round(delta))} Wo. unter Bundesmedian (${Number(medianAd).toFixed(0)} Wo.). ✅ Gut positioniert.`,
+      });
+    }
+  } else {
+    findings.push({
+      prio: 3,
+      text: `🏛️ Regulierung: BNetzA EWK-Benchmarkdaten zu Anschlussdauer, Digitalisierung und Umsetzungsquote sind ausgewertet.`,
+    });
+  }
+
+  // ── Day-ahead price (Section 3) ───────────────────────────────────────────
+  const latestDaPrice =
+    kpiSummary?.prices?.latestPrice ??
+    kpiSummary?.prices?.currentPrice ??
+    null;
+  if (latestDaPrice !== null) {
+    findings.push({
+      prio: 3,
+      text: `📈 Energiemarkt: Day-Ahead-Preis ${Number(latestDaPrice).toFixed(2)} €/MWh – Beschaffungsoptimierung und Tarifanpassung quartalsweise prüfen.`,
+    });
+  } else {
+    findings.push({
+      prio: 3,
+      text: `📈 Energiemarkt: Strom- und Gasmarktdaten wurden für den Berichtszeitraum erfasst.`,
+    });
+  }
+
+  // ── CO₂ intensity (Section 1) ─────────────────────────────────────────────
+  const co2Val =
+    kpiSummary?.co2Intensity?.co2_intensity_gco2eq_kwh ??
+    kpiSummary?.co2Intensity?.average_today_gco2eq_kwh ??
+    null;
+  if (co2Val !== null) {
+    findings.push({
+      prio: 3,
+      text: `💡 Digitalisierung: CO₂-Intensität ${Math.round(Number(co2Val))} gCO₂eq/kWh – Grünstromzeiten für §14a-Steuerung und Kundenmarketing nutzen.`,
+    });
+  } else {
+    findings.push({
+      prio: 3,
+      text: `💡 Digitalisierung: Systemstatus und EIC-Datenbankübersicht wurden dokumentiert.`,
+    });
+  }
+
+  // ── Churn risk (Section 6) ────────────────────────────────────────────────
+  findings.push({
+    prio: 3,
+    text: `👥 Kunden & Vertrieb: Churn-Risiken und Neukundenpotenziale aus dem Netzgebiet wurden identifiziert.`,
+  });
+
+  // Sort by priority and take top 6
+  const sorted = findings.sort((a, b) => a.prio - b.prio).slice(0, 6);
+
+  const result = sorted.map((s) => s.text).join('\n');
+  if (!process.env.GEMINI_API_KEY) {
+    return result + '\n📋 Hinweis: Für eine KI-gestützte Analyse aktivieren Sie GEMINI_API_KEY in der .env-Konfiguration.';
+  }
+  return result;
 }
 
 // ─── Pipeline phase helper ─────────────────────────────────────────────────────
@@ -823,6 +928,16 @@ module.exports = {
         }, cernionToken)
       );
 
+      // CR-02: Transformer loading forecast – Ist-Zustand (forecastYears=0)
+      const transformerLoading = await gated(
+        availableTools, ['cernion_transformer_loading_forecast'],
+        () => callMcpDirect('cernion_transformer_loading_forecast', {
+          gridOperator: resolvedVnbName,
+          ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
+          forecastYears: 0,
+        }, cernionToken)
+      );
+
       // ── MaStR data quality checks (parallel, fast local MongoDB) ──────────
       // cernion_installations_local requires gridOperatorMastrId – BDEW code is NOT supported.
       // Skip all three queries when only a BDEW code is available (no MaStR ID resolved).
@@ -900,6 +1015,7 @@ module.exports = {
         operatorAnalysis,
         emobilityImpact,
         gridLossAnalysis,
+        transformerLoading,
         anlagenInPruefung,
         installationenOhneMelo,
         ortsfremdeAnlagen,
@@ -931,6 +1047,39 @@ module.exports = {
         }, cernionToken)
       );
 
+      // CR-01: Direct MaStR enrichment – PV, Wind, Speicher exact counts/capacities
+      // via cernion_installations_local (fast local MongoDB). Used as fallback when
+      // the assets broker service returns incomplete or unavailable data.
+      const [pvLocal, windLocal, speicherLocal] = await Promise.all([
+        dataQualityBaseParams
+          ? callMcpDirect('cernion_installations_local', {
+              ...dataQualityBaseParams,
+              type: 'solar',
+              status: 'InBetrieb',
+              includeStats: true,
+              limit: 1,
+            }, cernionToken)
+          : Promise.resolve({ available: false, error: 'No MaStR ID' }),
+        dataQualityBaseParams
+          ? callMcpDirect('cernion_installations_local', {
+              ...dataQualityBaseParams,
+              type: 'wind',
+              status: 'InBetrieb',
+              includeStats: true,
+              limit: 1,
+            }, cernionToken)
+          : Promise.resolve({ available: false, error: 'No MaStR ID' }),
+        dataQualityBaseParams
+          ? callMcpDirect('cernion_installations_local', {
+              ...dataQualityBaseParams,
+              type: 'storage',
+              status: 'InBetrieb',
+              includeStats: true,
+              limit: 1,
+            }, cernionToken)
+          : Promise.resolve({ available: false, error: 'No MaStR ID' }),
+      ]);
+
       p.results.section2 = {
         solar,
         wind,
@@ -938,14 +1087,20 @@ module.exports = {
         generationForecast,
         windSolarActual,
         regionalEnergyMix,
+        pvLocal,
+        windLocal,
+        speicherLocal,
       };
       saveProgress(p);
 
       // ── Section 3: Energiemarkt ────────────────────────────────────────────
+      // CR-04: Fetch 24h of day-ahead prices for a complete chart
+      const priceDateFrom = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const prices = await callBroker(ctx, 'energy-market.prices', {
         market: 'day-ahead',
         region: 'DE',
-        date: today,
+        dateFrom: priceDateFrom,
+        dateTo: today,
       });
 
       const spotprices = await callBroker(ctx, 'german-grid.spotprices', { date: today });
@@ -1173,9 +1328,18 @@ module.exports = {
         if (res.available) webSearchResults.push(res.data);
       }
 
-      // Build compact KPI summary for Gemini
+      // Build compact KPI summary for Gemini (CR-09: include all 8 sections)
       const kpiSummary = {};
-      const allSections = { ...p.results.section1, ...p.results.section2, ...p.results.section3 };
+      const allSections = {
+        ...p.results.section1,
+        ...p.results.section2,
+        ...p.results.section3,
+        ...p.results.section4,
+        ...p.results.section5,
+        ...p.results.section6,
+        ...p.results.section7,
+        ...p.results.section8,
+      };
       for (const [key, val] of Object.entries(allSections)) {
         Object.assign(kpiSummary, summarizeForReport(val, key));
       }

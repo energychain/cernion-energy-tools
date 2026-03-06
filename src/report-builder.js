@@ -81,11 +81,24 @@ function isAvail(section, key) {
 
 // ─── KPI Row Helper ───────────────────────────────────────────────────────────
 
-function kpiRow(label, value, unit = '', description = '') {
-  const val = value !== null && value !== undefined ? escapeHtml(String(value)) : '–';
-  const unitStr = unit ? `<span class="kpi-unit">${escapeHtml(unit)}</span>` : '';
-  const desc = description
-    ? `<td class="kpi-desc">${escapeHtml(description)}</td>`
+function kpiRow(label, value, unit = '', description = '', fallbackReason = '') {
+  let val;
+  if (value !== null && value !== undefined) {
+    val = escapeHtml(String(value));
+  } else if (fallbackReason) {
+    val = '<span class="kpi-nvl">n/v</span>';
+  } else {
+    val = '\u2013';
+  }
+  const unitStr = (value !== null && value !== undefined && unit)
+    ? `<span class="kpi-unit">${escapeHtml(unit)}</span>`
+    : '';
+  let descHtml = description ? escapeHtml(description) : '';
+  if ((value === null || value === undefined) && fallbackReason) {
+    descHtml += (descHtml ? ' \u00b7 ' : '') + `<em>${escapeHtml(fallbackReason)}</em>`;
+  }
+  const desc = descHtml
+    ? `<td class="kpi-desc">${descHtml}</td>`
     : '<td class="kpi-desc"></td>';
   return `<tr><td class="kpi-label">${escapeHtml(label)}</td><td class="kpi-value">${val}${unitStr}</td>${desc}</tr>`;
 }
@@ -171,6 +184,7 @@ function buildCss() {
     .badge-warn { background: #fef9e7; color: var(--warning); padding: 0.5mm 2mm; border-radius: 3px; font-size: 8pt; font-weight: 600; }
     .badge-err { background: #fdedec; color: var(--danger); padding: 0.5mm 2mm; border-radius: 3px; font-size: 8pt; font-weight: 600; }
     .no-data { background: #fdfefe; border: 1px dashed var(--border); color: var(--text-muted); padding: 3mm 4mm; border-radius: 4px; font-size: 8.5pt; font-style: italic; margin: 2mm 0; }
+    .kpi-nvl { color: var(--text-muted); font-style: italic; font-weight: 400; font-size: 8.5pt; }
     .action-hint { background: #eaf4fb; border-left: 3px solid var(--accent); padding: 3mm 4mm; border-radius: 0 4px 4px 0; margin: 3mm 0 5mm; font-size: 8.5pt; color: #1a3a5c; line-height: 1.55; }
     .action-hint strong { font-weight: 600; }
     .action-hint ul { margin: 1.5mm 0 0 4mm; padding: 0; }
@@ -207,56 +221,90 @@ function renderSection1(s1) {
   const co2Raw = s1?.co2Intensity?.data ?? null;
   const co2 = safeData(s1, 'co2Intensity');
 
-  // Transformer utilization chart data
+  // CR-02: transformer loading fallback + operator analysis enrichment
+  const tl = safeData(s1, 'transformerLoading');
+  const opData = safeData(s1, 'operatorAnalysis');
+
+  // Transformer utilization – primary: capacityUtilization; fallback: transformerLoading (CR-02)
   const voltages = ['NS', 'MS', 'HS'];
   const utilValues = voltages.map((v) => {
-    const lvl = cu?.utilizationByVoltage?.[v] ?? cu?.data?.[v] ?? null;
+    const vl = v.toLowerCase();
+    const lvl =
+      cu?.utilizationByVoltage?.[v] ??
+      cu?.data?.[v] ??
+      tl?.current?.[vl] ??
+      tl?.transformers?.[vl]?.utilizationPercent ??
+      tl?.data?.current?.[vl] ??
+      null;
     return lvl !== null ? Math.round(Number(lvl)) : null;
   });
+  const trafoAvail = isAvail(s1, 'capacityUtilization') || isAvail(s1, 'transformerLoading');
   const hasChart = utilValues.some((v) => v !== null);
   const chartData = hasChart
     ? JSON.stringify({ labels: voltages, values: utilValues.map((v) => v ?? 0) })
     : null;
 
+  // CR-02: enrichment from operatorAnalysis for redispatch/pruefung counts
+  const opRedispatch = getVal(
+    opData, 'redispatchAnlagen', 'redispatch_count', 'redispatchCount', 'redispatchAnlagenCount'
+  );
+
+  // CR-03: residual load warning handling
+  const rlRaw = s1?.residualLoad?.data ?? null;
+  const rlWarning = rlRaw?.warning ?? rlRaw?.warningMessage ?? null;
+  const rlValueMw = isAvail(s1, 'residualLoad')
+    ? fmtMw(
+        rl?.summary?.netResidualLoad ??
+        rl?.summary?.residualLoad ??
+        rl?.summary?.kpis?.avgResidualLoadMW ??
+        getVal(rl, 'netResidualLoad', 'residualLoad', 'avgResidualLoadMW', 'currentLoad')
+      )
+    : null;
+  const rlDisplay = rlValueMw && rlValueMw !== '–'
+    ? (rlWarning ? `${rlValueMw} ⚠` : rlValueMw)
+    : null;
+  const rlDesc = rlWarning
+    ? `Ø Netto-Residuallast (regionaler Forecast) – Hinweis: ${rlWarning}`
+    : 'Ø Netto-Residuallast (regionaler Forecast)';
+
   const rows = [
     kpiRow(
       'Trafo-Auslastung NS',
-      isAvail(s1, 'capacityUtilization') ? fmtPct(utilValues[0]) : null,
+      trafoAvail ? fmtPct(utilValues[0]) : null,
       '',
-      'Niederspannung – aktuelle Auslastung'
+      'Niederspannung – aktuelle Auslastung',
+      trafoAvail ? '' : 'Kapazitätsanalyse-Tool nicht verfügbar'
     ),
     kpiRow(
       'Trafo-Auslastung MS',
-      isAvail(s1, 'capacityUtilization') ? fmtPct(utilValues[1]) : null,
+      trafoAvail ? fmtPct(utilValues[1]) : null,
       '',
-      'Mittelspannung – aktuelle Auslastung'
+      'Mittelspannung – aktuelle Auslastung',
+      trafoAvail ? '' : 'Kapazitätsanalyse-Tool nicht verfügbar'
     ),
     kpiRow(
       'Trafo-Auslastung HS',
-      isAvail(s1, 'capacityUtilization') ? fmtPct(utilValues[2]) : null,
+      trafoAvail ? fmtPct(utilValues[2]) : null,
       '',
-      'Hochspannung – aktuelle Auslastung'
+      'Hochspannung – aktuelle Auslastung',
+      trafoAvail ? '' : 'Kapazitätsanalyse-Tool nicht verfügbar'
     ),
     kpiRow(
       'Redispatch-Anlagen',
       isAvail(s1, 'redispatchExport') && rd?.success !== false
-        ? getVal(rd, 'totalCount', 'count', 'total')
-        : null,
+        ? (getVal(rd, 'totalCount', 'count', 'total') ?? opRedispatch)
+        : (opRedispatch ?? null),
       'Anlagen',
-      'Steuerbare Anlagen ≥100 kW im Netzgebiet'
+      'Steuerbare Anlagen ≥100 kW im Netzgebiet',
+      (!isAvail(s1, 'redispatchExport') && opRedispatch === null)
+        ? 'Redispatch-Export fehlgeschlagen – MaStR-ID erforderlich' : ''
     ),
     kpiRow(
       'Residuallast regional',
-      isAvail(s1, 'residualLoad')
-        ? fmtMw(
-            rl?.summary?.netResidualLoad ??
-            rl?.summary?.residualLoad ??
-            rl?.summary?.kpis?.avgResidualLoadMW ??
-            getVal(rl, 'netResidualLoad', 'residualLoad', 'avgResidualLoadMW', 'currentLoad')
-          )
-        : null,
+      rlDisplay,
       '',
-      'Ø Netto-Residuallast (regionaler Forecast)'
+      rlDesc,
+      !isAvail(s1, 'residualLoad') ? 'Residuallast-Tool nicht erreichbar' : ''
     ),
     kpiRow(
       'CO₂-Intensität Strom',
@@ -269,19 +317,22 @@ function renderSection1(s1) {
           )
         : null,
       'gCO₂eq/kWh',
-      'GrünstromIndex – aktuelle regionale CO₂-Intensität'
+      'GrünstromIndex – aktuelle regionale CO₂-Intensität',
+      !isAvail(s1, 'co2Intensity') ? 'CO₂-Index nicht verfügbar' : ''
     ),
     kpiRow(
       'E-Mobilität Netzauswirkung',
       isAvail(s1, 'emobilityImpact') ? '✓ Analyse verfügbar' : null,
       '',
-      'Kritische Straßenzüge, §14a-Relevanz'
+      'Kritische Straßenzüge, §14a-Relevanz',
+      !isAvail(s1, 'emobilityImpact') ? 'Tool nicht lizenziert' : ''
     ),
     kpiRow(
       'Netzverluste (I²R)',
       isAvail(s1, 'gridLossAnalysis') ? '✓ Analyse verfügbar' : null,
       '',
-      'Monetarisierte Verlustenergie je Netzabschnitt'
+      'Monetarisierte Verlustenergie je Netzabschnitt',
+      !isAvail(s1, 'gridLossAnalysis') ? 'Tool nicht lizenziert' : ''
     ),
   ];
 
@@ -385,36 +436,74 @@ function renderSection2(s2) {
   const wind = safeData(s2, 'wind');
   const stor = safeData(s2, 'storage');
 
+  // CR-01: Direct MaStR enrichment fallbacks (pvLocal/windLocal/speicherLocal)
+  const pvLocalData = safeData(s2, 'pvLocal');
+  const windLocalData = safeData(s2, 'windLocal');
+  const speicherLocalData = safeData(s2, 'speicherLocal');
+
+  // Prefer broker service data; fall back to local MaStR direct stats
+  const pvCapacity =
+    getVal(sol, 'totalCapacityKw', 'totalCapacity', 'totalKwp') ??
+    pvLocalData?.stats?.totalCapacityKW ??
+    pvLocalData?.stats?.totalCapacity ??
+    pvLocalData?.totalCapacityKW ??
+    null;
+  const pvCount =
+    getVal(sol, 'totalCount', 'count', 'total') ??
+    pvLocalData?.stats?.total ??
+    pvLocalData?.stats?.totalCount ??
+    null;
+  const windCapacity =
+    getVal(wind, 'totalCapacityKw', 'totalCapacity', 'totalKw') ??
+    windLocalData?.stats?.totalCapacityKW ??
+    windLocalData?.stats?.totalCapacity ??
+    null;
+  const windCount =
+    getVal(wind, 'totalCount', 'count', 'total') ??
+    windLocalData?.stats?.total ??
+    null;
+  const speicherCapacity =
+    getVal(stor, 'totalCapacityKw', 'totalCapacity', 'totalKw') ??
+    speicherLocalData?.stats?.totalCapacityKW ??
+    speicherLocalData?.stats?.totalCapacity ??
+    null;
+
+  const pvAvail = isAvail(s2, 'solar') || isAvail(s2, 'pvLocal');
+  const windAvail = isAvail(s2, 'wind') || isAvail(s2, 'windLocal');
+  const speicherAvail = isAvail(s2, 'storage') || isAvail(s2, 'speicherLocal');
+
   const rows = [
     kpiRow(
       'Installierte PV-Leistung',
-      isAvail(s2, 'solar')
-        ? fmtKwp(getVal(sol, 'totalCapacityKw', 'totalCapacity', 'totalKwp'))
-        : null,
+      pvAvail ? fmtKwp(pvCapacity) : null,
       '',
-      'Summe aktiver PV-Anlagen (MaStR)'
+      'Summe aktiver PV-Anlagen (MaStR)',
+      !pvAvail ? 'MaStR-Abfrage nicht verfügbar' : ''
     ),
     kpiRow(
       'Anzahl PV-Anlagen',
-      isAvail(s2, 'solar') ? getVal(sol, 'totalCount', 'count', 'total') : null,
+      pvAvail ? pvCount : null,
       'Anlagen',
-      'Aktive Solaranlagen im Netzgebiet'
+      'Aktive Solaranlagen im Netzgebiet',
+      !pvAvail ? 'MaStR-Abfrage nicht verfügbar' : ''
     ),
     kpiRow(
       'Installierte Windleistung',
-      isAvail(s2, 'wind')
-        ? `${fmtNum(getVal(wind, 'totalCapacityKw', 'totalCapacity', 'totalKw'), 0)} kW`
+      windAvail && windCapacity !== null
+        ? `${fmtNum(windCapacity, 0)} kW${windCount !== null ? ` (${windCount} Anlagen)` : ''}`
         : null,
       '',
-      'Onshore-Wind nach Betriebsstatus (MaStR)'
+      'Onshore-Wind nach Betriebsstatus (MaStR)',
+      !windAvail ? 'MaStR-Abfrage nicht verfügbar' : ''
     ),
     kpiRow(
       'Installierte Speicherleistung',
-      isAvail(s2, 'storage')
-        ? `${fmtNum(getVal(stor, 'totalCapacityKw', 'totalCapacity', 'totalKw'), 0)} kW`
+      speicherAvail && speicherCapacity !== null
+        ? `${fmtNum(speicherCapacity, 0)} kW`
         : null,
       '',
-      'Batteriespeicher, Heim- und Großspeicher'
+      'Batteriespeicher, Heim- und Großspeicher',
+      !speicherAvail ? 'MaStR-Abfrage nicht verfügbar' : ''
     ),
     kpiRow(
       'Einspeisung Wind/Solar (Ist)',
@@ -458,7 +547,7 @@ function renderSection3(s3) {
     spot?.dataPoints || spot?.prices || spot?.data?.prices || [];
   const hasChart = Array.isArray(priceTimeSeries) && priceTimeSeries.length > 0;
   const chartSrc = hasChart
-    ? priceTimeSeries.slice(-24).map((p) => ({
+    ? priceTimeSeries.map((p) => ({
         t: p.timestamp || p.startTime || p.time || '',
         v: p.priceEURperMWh ?? p.price ?? p.value ?? 0,
       }))
@@ -528,9 +617,15 @@ function renderSection3(s3) {
     ),
     kpiRow(
       'Preis-Einspeise-Korrelation',
-      isAvail(s3, 'priceProductionAnalysis') ? '✓ Analyse verfügbar' : null,
+      (() => {
+        if (!isAvail(s3, 'priceProductionAnalysis')) return null;
+        const ppa = safeData(s3, 'priceProductionAnalysis');
+        const r = getVal(ppa, 'correlationCoefficient', 'correlation', 'r');
+        return r !== null ? fmtNum(r, 2) : '✓ Analyse verfügbar';
+      })(),
       '',
-      'Korrelation hohe Einspeisung / niedrige Preise'
+      'Korrelation hohe Einspeisung / niedrige Preise (7 Tage)',
+      !isAvail(s3, 'priceProductionAnalysis') ? 'Tool nicht lizenziert' : ''
     ),
   ];
 
@@ -825,17 +920,55 @@ function renderSection5(s5) {
       </script>`;
   }
 
+  // CR-05: Build dynamic recommendations from actual EWK values
+  const ewkHints = (() => {
+    const items = [];
+    // Anschlussdauer vs. Bundesmedian
+    if (vnbAnschlussdauer !== null && bundesMedian !== null) {
+      const diff = Number(vnbAnschlussdauer) - Number(bundesMedian);
+      if (diff > 0) {
+        items.push(
+          `Anschlussdauer ${Number(vnbAnschlussdauer).toFixed(0)} Wo. – ${Math.round(diff)} Wo. über Bundesmedian ` +
+          `(${Number(bundesMedian).toFixed(0)} Wo.): Phase 1 (Angebotserstellung) und Phase 2 (Inbetriebnahme) ` +
+          `optimieren. BNetzA-Beschwerderisiko bei >13 Wochen.`
+        );
+      } else {
+        items.push(
+          `Anschlussdauer ${Number(vnbAnschlussdauer).toFixed(0)} Wo. – ${Math.abs(Math.round(diff))} Wo. unter ` +
+          `Bundesmedian (${Number(bundesMedian).toFixed(0)} Wo.). Niveau halten; Phase-2-Zeiten weiter optimieren.`
+        );
+      }
+    } else {
+      items.push('Anschlussdauer >Bundesmedian: Prozesse für Phase 1 und Phase 2 optimieren – BNetzA-Beschwerderisiko bei >13 Wochen.');
+    }
+    // Digitalisierungsindex
+    const diScore = (diJson?.digitalisierungsindex?.gesamtscore ?? bmJson?.digitalisierungsindex?.gesamtscore);
+    const diPct = diScore != null ? diScore * 100 : null;
+    if (diPct !== null && diPct < 50) {
+      items.push(`Digitalisierungsindex ${diPct.toFixed(0)} % (unter 50 %): SMGW-Rollout priorisieren, Förderanträge Digitalisierungsoffensive stellen.`);
+    } else if (diPct !== null) {
+      items.push(`Digitalisierungsindex ${diPct.toFixed(0)} %: Smart-Meter-Rollout fortführen, §14a-Steuerboxen bis Ende 2025 installieren.`);
+    } else {
+      items.push('Digitalisierungsindex <50 %: Smart Meter Rollout und SMGW-Integration priorisieren.');
+    }
+    // Umsetzungsquote
+    const uqScore = (uqJson?.umsetzungsquote?.umsetzungsquote_ee_ns ?? bmJson?.umsetzungsquote?.umsetzungsquote_ee_ns);
+    const uqPct = uqScore != null ? uqScore * 100 : null;
+    if (uqPct !== null && uqPct < 80) {
+      items.push(`Umsetzungsquote EE NS ${uqPct.toFixed(0)} % – offene Anschlussbegehren bis EWK-Stichtag 31. März nacharbeiten.`);
+    } else {
+      items.push('Umsetzungsquote <70 %: Nachbearbeitung offener EE-Anschlussbegehren starten – Quotenverbesserung bis EWK-Stichtag 31. März.');
+    }
+    items.push('NEST-Report: §11 Abs. 2 EnWG Nachweispflicht erfüllen, bevor CAPEX-Antrag gestellt wird.');
+    items.push('§14a EnWG: Steuerungsboxen (SMGW + Steuerbox) für alle steuerbaren Verbrauchseinrichtungen bis Ende 2025 installieren.');
+    return items;
+  })();
+
   return `
     <h1 class="section-title"><span class="section-number">5</span>Regulierung, Compliance &amp; Marktprozesse</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">BNetzA-Monitoring, EIC-Register, MaKo-Stammdaten und §14a-Pflichten.</p>
     ${kpiTable(rows)}
-    ${actionHint('Handlungsempfehlung Regulierung & Compliance', [
-      'Anschlussdauer >Bundesmedian: Prozesse für Phase 1 (Angebotserstellung) und Phase 2 (Inbetriebnahme) optimieren – BNetzA-Beschwerderisiko bei >13 Wochen.',
-      'Digitalisierungsindex <50 %: Smart Meter Rollout und SMGW-Integration priorisieren.',
-      'Umsetzungsquote <70 %: Nachbearbeitung offener EE-Anschlussbegehren starten – Quotenverbesserung bis EWK-Stichtag 31. März.',
-      'NEST-Report: §11 Abs. 2 EnWG Nachweispflicht erfüllen, bevor CAPEX-Antrag gestellt wird.',
-      '§14a EnWG: Steuerungsboxen (SMGW + Steuerbox) für alle steuerbaren Verbrauchseinrichtungen bis Ende 2025 installieren.',
-    ])}
+    ${actionHint('Handlungsempfehlung Regulierung & Compliance', ewkHints)}
     ${chartHtml}`;
 }
 
@@ -867,19 +1000,24 @@ function renderSection6(s6) {
       'Churn-Risiko-Score (Segment-Ø)',
       isAvail(s6, 'churnPrediction') && churnRate !== null ? fmtPct(churnRate) : null,
       '',
-      'Wechselwahrscheinlichkeit (Heuristik-Modell)'
+      'Wechselwahrscheinlichkeit (Heuristik-Modell)',
+      isAvail(s6, 'churnPrediction') && churnRate === null ? 'Wert nicht extrahierbar' :
+        !isAvail(s6, 'churnPrediction') ? 'Churn-Tool nicht verfügbar' : ''
     ),
     kpiRow(
       'Gefährdete Kunden (geschätzt)',
       isAvail(s6, 'churnPrediction') && atRiskCount !== null ? atRiskCount : null,
       'Kunden',
-      'At-risk Kunden im Analysezeitraum'
+      'At-risk Kunden im Analysezeitraum',
+      isAvail(s6, 'churnPrediction') && atRiskCount === null ? 'Wert nicht extrahierbar' :
+        !isAvail(s6, 'churnPrediction') ? 'Churn-Tool nicht verfügbar' : ''
     ),
     kpiRow(
       'Neukunden-Leads (Neuanlagen)',
       isAvail(s6, 'salesLeads') ? leadsCount : null,
       'Leads',
-      'Neue PV, Wallbox, WP, Speicher im Netzgebiet'
+      'Neue PV, Wallbox, WP, Speicher im Netzgebiet',
+      !isAvail(s6, 'salesLeads') ? 'Leads-Tool nicht verfügbar' : ''
     ),
     kpiRow(
       'Marktdurchdringungsquote',
@@ -887,7 +1025,8 @@ function renderSection6(s6) {
         ? fmtPct(getVal(safeData(s6, 'marketPenetration'), 'penetrationRate', 'marketShare', 'rate'))
         : null,
       '',
-      'Eigene Kunden vs. Gesamtpotenzial im Netzgebiet'
+      'Eigene Kunden vs. Gesamtpotenzial im Netzgebiet',
+      !isAvail(s6, 'marketPenetration') ? 'Tool nicht lizenziert' : ''
     ),
     kpiRow(
       'Direktvermarktungs-Kandidaten',
@@ -895,13 +1034,15 @@ function renderSection6(s6) {
         ? getVal(safeData(s6, 'directMarketing'), 'count', 'total')
         : null,
       'Anlagen',
-      '§21 EEG – identifizierte Wechselkandidaten (>100 kW)'
+      '§21 EEG – identifizierte Wechselkandidaten (>100 kW)',
+      !isAvail(s6, 'directMarketing') ? 'Tool nicht lizenziert' : ''
     ),
     kpiRow(
       'Prosumer-Tarif-Optimierung',
       isAvail(s6, 'prosumerTariff') ? '✓ Analyse verfügbar' : null,
       '',
-      'PV + Speicher + Wallbox + WP – optimaler Tarif'
+      'PV + Speicher + Wallbox + WP – optimaler Tarif',
+      !isAvail(s6, 'prosumerTariff') ? 'Tool nicht lizenziert' : ''
     ),
   ];
 
@@ -940,6 +1081,12 @@ function renderSection6(s6) {
 }
 
 function renderSection7(s7) {
+  // CR-07: Use operatorAnalysis as fallback for portfolio count when dedicated tool is unavailable
+  const opData7 = safeData(s7, 'operatorAnalysis');
+  const totalFromOp = getVal(
+    opData7, 'totalInstallations', 'total', 'count', 'installationCount', 'anlagenCount'
+  );
+
   const rows = [
     kpiRow(
       'NPV Netzinvestition',
@@ -947,7 +1094,8 @@ function renderSection7(s7) {
         ? getVal(safeData(s7, 'investmentBusinessCase'), 'npv', 'netPresentValue')
         : null,
       '€',
-      'CAPEX (Kabel/Trafo/Speicher) vs. Netzalternative'
+      'CAPEX (Kabel/Trafo/Speicher) vs. Netzalternative',
+      !isAvail(s7, 'investmentBusinessCase') ? 'Investment-Business-Case-Tool nicht lizenziert' : ''
     ),
     kpiRow(
       'Amortisationszeit Netzerweiterung',
@@ -955,15 +1103,18 @@ function renderSection7(s7) {
         ? fmtNum(getVal(safeData(s7, 'investmentBusinessCase'), 'paybackYears', 'roi', 'amortization'), 1)
         : null,
       'Jahre',
-      'Break-Even Netzausbau vs. Steuerungslösung'
+      'Break-Even Netzausbau vs. Steuerungslösung',
+      !isAvail(s7, 'investmentBusinessCase') ? 'Investment-Business-Case-Tool nicht lizenziert' : ''
     ),
     kpiRow(
       'Betreiber-Portfolio Gesamt',
       isAvail(s7, 'operatorPortfolio')
         ? getVal(safeData(s7, 'operatorPortfolio'), 'totalInstallations', 'count', 'total')
-        : null,
+        : (totalFromOp ?? null),
       'Anlagen',
-      'Vollständige Portfolioauswertung'
+      'Vollständige Portfolioauswertung',
+      (!isAvail(s7, 'operatorPortfolio') && totalFromOp === null)
+        ? 'Operator-Portfolio-Tool nicht verfügbar' : ''
     ),
     kpiRow(
       'Speicheroptimierungs-Potenzial',
@@ -971,13 +1122,15 @@ function renderSection7(s7) {
         ? getVal(safeData(s7, 'storageOptimization'), 'potentialKwh', 'capacity')
         : null,
       'kWh',
-      'NPV-Analyse Batteriespeicherstandorte'
+      'NPV-Analyse Batteriespeicherstandorte',
+      !isAvail(s7, 'storageOptimization') ? 'Storage-Optimierungs-Tool nicht lizenziert' : ''
     ),
     kpiRow(
       'Grid Operator Vollanalyse',
       isAvail(s7, 'operatorAnalysis') ? '✓ Dashboard verfügbar' : null,
       '',
-      'Alle Anlagen + Kapazitäten + Status im Netzgebiet'
+      'Alle Anlagen + Kapazitäten + Status im Netzgebiet',
+      !isAvail(s7, 'operatorAnalysis') ? 'Grid-Operator-Analyse nicht verfügbar' : ''
     ),
   ];
 

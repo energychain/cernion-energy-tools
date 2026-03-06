@@ -100,7 +100,7 @@ const DEFAULT_SERVICE_MOCKS = {
     wind: async () => ({ totalCapacityKw: 8000, totalCount: 15 }),
     storage: async () => ({ totalCapacityKw: 4500, totalCount: 230 }),
   },
-  forecast: {
+  'business-intelligence': {
     generationForecast: async () => DEFAULT_MOCK_RESULT,
   },
   entsoe: {
@@ -559,6 +559,29 @@ describe('Utility Report Service', () => {
   // ─── Graceful degradation ──────────────────────────────────────────────────
 
   describe('graceful degradation', () => {
+    it('should render "n/v" with reason when tool unavailable and fallbackReason is set', () => {
+      const { buildHtmlReport } = require('../src/report-builder');
+
+      const html = buildHtmlReport({
+        meta: { utilityName: 'Fallback Test GmbH' },
+        section2: {
+          solar: { available: false },
+          wind: { available: false },
+          storage: { available: false },
+          pvLocal: { available: false },
+          windLocal: { available: false },
+          speicherLocal: { available: false },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+
+      // Section2 PV/Wind/Speicher rows have fallbackReason set → should show n/v
+      expect(html).toContain('n/v');
+      expect(html).toContain('MaStR-Abfrage nicht verf\u00fcgbar');
+      expect(html).not.toContain('[object Object]');
+      expect(html).not.toContain('undefined');
+    });
+
     it('should render report with all sections showing "–" when all data unavailable', () => {
       const { buildHtmlReport } = require('../src/report-builder');
 
@@ -573,10 +596,12 @@ describe('Utility Report Service', () => {
           operatorAnalysis: unavailable,
           emobilityImpact: unavailable,
           gridLossAnalysis: unavailable,
+          transformerLoading: unavailable,
         },
         section2: {
           solar: unavailable, wind: unavailable, storage: unavailable,
           generationForecast: unavailable, windSolarActual: unavailable,
+          pvLocal: unavailable, windLocal: unavailable, speicherLocal: unavailable,
         },
         section3: {
           prices: unavailable, spotprices: unavailable, negativePrices: unavailable,
