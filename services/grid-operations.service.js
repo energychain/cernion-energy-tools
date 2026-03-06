@@ -390,7 +390,7 @@ module.exports = {
       rest: 'POST /vnb-lookup',
       params: {
         bdew: { type: 'string', min: 1 },
-        limit: { type: 'number', optional: true, default: 5, min: 1, max: 50 },
+        limit: { type: 'number', optional: true, default: 5, min: 1, max: 50, convert: true },
         city: { type: 'string', optional: true },
       },
       openapi: {
@@ -798,7 +798,7 @@ module.exports = {
         gridOperator: { type: 'string', optional: true, min: 1 },
         gridOperatorId: { type: 'string', optional: true, min: 1 },
         gridOperatorBdewCode: { type: 'string', optional: true, min: 1 },
-        minCapacity: { type: 'number', optional: true, default: 100, min: 0 },
+        minCapacity: { type: 'number', optional: true, default: 100, min: 0, convert: true },
         types: [
           { type: 'array', items: 'string', optional: true },
           { type: 'string', optional: true },
@@ -1084,9 +1084,9 @@ module.exports = {
           type: 'enum',
           values: ['solar', 'wind', 'storage', 'wallbox', 'heat-pump', 'other'],
         },
-        capacityKW: { type: 'number', min: 0 },
+        capacityKW: { type: 'number', min: 0, convert: true },
         voltageLevel: { type: 'enum', values: ['NS', 'MS', 'HS'], optional: true },
-        simultaneityFactor: { type: 'number', optional: true, min: 0, max: 1 },
+        simultaneityFactor: { type: 'number', optional: true, min: 0, max: 1, convert: true },
       },
       openapi: {
         summary: 'Automated grid connection feasibility check (customer self-service)',
@@ -1205,7 +1205,7 @@ module.exports = {
       rest: 'GET /market-partners',
       params: {
         query: { type: 'string', min: 1 },
-        limit: { type: 'number', optional: true, default: 10, min: 1, max: 20 },
+        limit: { type: 'number', optional: true, default: 10, min: 1, max: 20, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {

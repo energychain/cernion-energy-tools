@@ -24,7 +24,7 @@ module.exports = {
       rest: 'POST /generation-forecast',
       params: {
         installationType: { type: 'enum', values: ['solar', 'wind', 'all'], optional: true, default: 'solar' },
-        forecastDays: { type: 'number', optional: true, min: 1, max: 14, default: 7 },
+        forecastDays: { type: 'number', optional: true, min: 1, max: 14, default: 7, convert: true },
         resolution: { type: 'enum', values: ['daily', 'hourly', 'hour', '15min'], optional: true, default: 'daily' },
         gridOperatorMastrId: { type: 'string', optional: true },
         installationMastrNummer: {
@@ -43,8 +43,8 @@ module.exports = {
         landkreis: { type: 'string', optional: true },
         gemeinde: { type: 'string', optional: true },
         postleitzahl: { type: 'string', optional: true },
-        latitude: { type: 'number', optional: true },
-        longitude: { type: 'number', optional: true },
+        latitude: { type: 'number', optional: true, convert: true },
+        longitude: { type: 'number', optional: true, convert: true },
         startDate: {
           type: 'string',
           optional: true,

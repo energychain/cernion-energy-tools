@@ -26,7 +26,7 @@ module.exports = {
         name: { type: 'string', optional: true },
         country: { type: 'string', optional: true, min: 2, max: 2 },
         sector: { type: 'enum', values: ['electricity', 'gas'], optional: true },
-        limit: { type: 'number', optional: true, default: 10, min: 1, max: 100 },
+        limit: { type: 'number', optional: true, default: 10, min: 1, max: 100, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
       },
       openapi: {

@@ -162,7 +162,7 @@ module.exports = {
       rest: 'POST /ask-learned',
       params: {
         query: { type: 'string', min: 1 },
-        confidence: { type: 'number', optional: true, min: 0, max: 1, default: 0.6 },
+        confidence: { type: 'number', optional: true, min: 0, max: 1, default: 0.6, convert: true },
         forceGenerate: { type: 'boolean', optional: true, default: false },
         verbose: { type: 'boolean', optional: true, default: false },
       },

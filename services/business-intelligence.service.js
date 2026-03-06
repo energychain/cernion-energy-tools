@@ -89,9 +89,9 @@ module.exports = {
       params: {
         region: { type: 'string', min: 1 },
         installationType: { type: 'enum', values: ['solar', 'storage', 'wallbox', 'heatpump'] },
-        daysBack: { type: 'number', optional: true, default: 30, min: 1, max: 365 },
-        limit: { type: 'number', optional: true, default: 10, min: 1, max: 100 },
-        minScore: { type: 'number', optional: true, default: 60, min: 0, max: 100 },
+        daysBack: { type: 'number', optional: true, default: 30, min: 1, max: 365, convert: true },
+        limit: { type: 'number', optional: true, default: 10, min: 1, max: 100, convert: true },
+        minScore: { type: 'number', optional: true, default: 60, min: 0, max: 100, convert: true },
       },
       openapi: {
         summary: 'Identify sales leads from MaStR (new PV/wallbox/heatpump/storage installations)',
@@ -229,7 +229,7 @@ module.exports = {
           type: 'object',
           optional: true,
           props: {
-            annualConsumption: { type: 'number', optional: true },
+            annualConsumption: { type: 'number', optional: true, convert: true },
             flexibleLoad: { type: 'boolean', optional: true },
           },
         },
@@ -346,8 +346,8 @@ module.exports = {
           optional: true,
           default: 'medium',
         },
-        limit: { type: 'number', optional: true, default: 100, min: 1, max: 500 },
-        predictionWindowMonths: { type: 'number', optional: true, default: 3, min: 1, max: 12 },
+        limit: { type: 'number', optional: true, default: 100, min: 1, max: 500, convert: true },
+        predictionWindowMonths: { type: 'number', optional: true, default: 3, min: 1, max: 12, convert: true },
         includeRetentionStrategy: { type: 'boolean', optional: true, default: true },
         includeValueSegmentation: { type: 'boolean', optional: true, default: true },
         includeChurnReasons: { type: 'boolean', optional: true, default: true },
@@ -540,7 +540,7 @@ module.exports = {
       rest: 'POST /market-penetration',
       params: {
         region: { type: 'string', min: 1 },
-        currentCustomers: { type: 'number', optional: true, min: 0 },
+        currentCustomers: { type: 'number', optional: true, min: 0, convert: true },
         installationType: {
           type: 'enum',
           values: ['solar', 'wind', 'storage', 'wallbox', 'heat-pump', 'all'],

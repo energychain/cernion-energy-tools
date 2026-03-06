@@ -57,8 +57,8 @@ module.exports = {
         },
         mastrNummer: { type: 'string', optional: true },
         postalCode: { type: 'string', optional: true },
-        installationAge: { type: 'number', optional: true, min: 0 },
-        maxHeight: { type: 'number', optional: true, default: 600, min: 200 },
+        installationAge: { type: 'number', optional: true, min: 0, convert: true },
+        maxHeight: { type: 'number', optional: true, default: 600, min: 200, convert: true },
         includeBranding: { type: 'boolean', optional: true, default: true },
         includeContactCTA: { type: 'boolean', optional: true, default: true },
       },
@@ -273,12 +273,12 @@ module.exports = {
     installationHealthCheck: {
       rest: 'POST /installation-health-check',
       params: {
-        capacityKWp: { type: 'number', min: 0 },
-        commissioningYear: { type: 'number', min: 1900, max: 2100 },
+        capacityKWp: { type: 'number', min: 0, convert: true },
+        commissioningYear: { type: 'number', min: 1900, max: 2100, convert: true },
         postalCode: { type: 'string', min: 5, max: 5 },
-        actualYieldKWh: { type: 'number', min: 0 },
+        actualYieldKWh: { type: 'number', min: 0, convert: true },
         yieldPeriod: { type: 'enum', values: ['month', 'year'] },
-        yieldYear: { type: 'number', optional: true, min: 1900, max: 2100 },
+        yieldYear: { type: 'number', optional: true, min: 1900, max: 2100, convert: true },
       },
       openapi: {
         summary: 'Compare actual vs. expected yield and diagnose performance issues',

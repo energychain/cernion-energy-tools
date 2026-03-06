@@ -27,7 +27,7 @@ module.exports = {
       params: {
         query: { type: 'string', min: 1 },
         language: { type: 'string', optional: true, default: 'de' },
-        numResults: { type: 'number', optional: true, default: 5, min: 1, max: 20 },
+        numResults: { type: 'number', optional: true, default: 5, min: 1, max: 20, convert: true },
       },
       openapi: {
         summary: 'Web search via corrently.cloud (SearXNG)',
