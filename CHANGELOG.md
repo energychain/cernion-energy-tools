@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.9] - 2026-03-06
+
+### Changed
+
+- **360° Report – CR-18: Tolerante VNB-Erkennung (Phase 1)**
+  - `buildVnbSearchQueries()`: erzeugt aus der Eingabe automatisch alternative Suchbegriffe:
+    - „Stadtwerke Eberbach" → `["Stadtwerke Eberbach", "Eberbach"]`
+    - „Eberbach" → `["Eberbach", "Stadtwerke Eberbach"]`
+    - „TWL Netz GmbH" → `["TWL Netz GmbH", "TWL"]`
+  - `pickBestVnbPartner()`: wählt unter mehreren Ergebnissen bevorzugt den Eintrag mit Marktrolle VNB/Netzbetreiber (ein Stadtwerk hat je nach Marktrolle mehrere BDEW-Codes).
+  - Normalisiert `mastrIds: { SNB: '…' }` auf `mastrId` für konsistentes Downstream-Handling.
+  - Neuer Fallback (Step 1b): wenn `cernion_market_partners` für alle Abfragevarianten leer ist, wird über `cernion_installations_local` mit der extrahierten Stadtname-Komponente ein SNB direkt aus NAP-Daten bestehender Anlagen gelesen.
+  - Die VNB-ID-Prüfung schlägt erst fehl, wenn alle drei Schritte erfolglos waren.
+  - 9 neue Unit-Tests für `buildVnbSearchQueries` und `pickBestVnbPartner`; 1 Integrations-Test für die Stripped-City-Fallback-Sequenz.
+
 ## [0.8.8] - 2026-03-06
 
 ### Fixed

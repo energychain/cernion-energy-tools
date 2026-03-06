@@ -382,6 +382,59 @@ async function gated(availableTools, toolNames, fn) {
   return fn();
 }
 
+// ─── VNB resolution helpers (CR-18) ──────────────────────────────────────────
+
+/**
+ * Build a ranked list of search queries for a utility name.
+ * Tries the original input first, then a stripped city-only variant,
+ * then a "Stadtwerke <city>" variant if the input looks like a bare city name.
+ *
+ * Examples:
+ *   "Stadtwerke Eberbach"     → ["Stadtwerke Eberbach", "Eberbach"]
+ *   "Eberbach"                → ["Eberbach", "Stadtwerke Eberbach"]
+ *   "TWL Netz GmbH"           → ["TWL Netz GmbH", "TWL"]
+ */
+function buildVnbSearchQueries(name) {
+  const queries = [name];
+  const stripped = name
+    .replace(/\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+  if (stripped && stripped !== name && stripped.length > 2) {
+    queries.push(stripped);
+  }
+  const hasOrgPrefix = /\b(Stadtwerke|Stadtwerk|Netz|Gemeindewerk|EVN|Energieversorgung)\b/i.test(name);
+  if (!hasOrgPrefix && name.split(/\s+/).length <= 2) {
+    queries.push(`Stadtwerke ${name}`);
+  }
+  return [...new Set(queries)];
+}
+
+/**
+ * Among market-partner candidates, prefer the one with a VNB/Netzbetreiber role
+ * (a Stadtwerk may appear with multiple BDEW codes for different market roles).
+ * Falls back to the first result when no VNB role is found.
+ * Also normalises the BDEW and MaStR-ID into predictable field names.
+ */
+function pickBestVnbPartner(marketPartnersResult) {
+  const candidates =
+    marketPartnersResult?.data?.results ||
+    marketPartnersResult?.data?.data?.results ||
+    marketPartnersResult?.data?.partners ||
+    [];
+  if (!candidates.length) return null;
+  const vnbPartner = candidates.find((p) => {
+    const roles = p.roles ?? p.marketRoles ?? [];
+    return roles.some((r) => /VNB|Verteilnetz|Netzbetreiber/i.test(r));
+  });
+  const best = vnbPartner ?? candidates[0];
+  // Normalise mastrIds object ({ SNB: 'SNB…', GNB: 'GNB…' }) to single mastrId
+  if (!best.mastrId && !best.gridOperatorMastrId && best.mastrIds && typeof best.mastrIds === 'object') {
+    best.mastrId = best.mastrIds.SNB || best.mastrIds.GNB || Object.values(best.mastrIds)[0] || null;
+  }
+  return best;
+}
+
 // ─── VNB fingerprint check (CR-15) ───────────────────────────────────────────
 
 /**
@@ -875,49 +928,93 @@ module.exports = {
     const availableTools = new Set(p.meta.availableTools || []);
 
     // ──────────────────────────────────────────────────────────────────────────
-    // PHASE 1: Identification – resolve VNB from name/BDEW
+    // PHASE 1: Identification – resolve VNB from name/BDEW (CR-18: tolerant)
     // ──────────────────────────────────────────────────────────────────────────
     if (p.phase <= 1) {
       this.logger.info(`[UtilityReport] ${p.reportId} – Phase 1: Identification`);
 
-      const marketPartners = await callBroker(ctx, 'grid-operations.marketPartners', {
-        query: bdew || utilityName,
-        limit: 3,
-      });
+      // If BDEW provided directly, skip the search step entirely.
+      let firstPartner = null;
+      if (!bdew) {
+        // Step 1a: try cernion_market_partners with each alternative query variant.
+        // buildVnbSearchQueries generates: original + stripped city + "Stadtwerke <city>".
+        const searchQueries = buildVnbSearchQueries(utilityName);
+        for (const query of searchQueries) {
+          if (firstPartner) break;
+          const mp = await callBroker(ctx, 'grid-operations.marketPartners', { query, limit: 5 });
+          const picked = pickBestVnbPartner(mp);
+          if (picked?.bdewCode || picked?.bdew || picked?.mastrId || picked?.gridOperatorMastrId) {
+            firstPartner = picked;
+            this.logger.info(`[UtilityReport] VNB resolved via query "${query}": ${picked.name || query}`);
+          }
+        }
 
-      const firstPartner =
-        marketPartners.data?.results?.[0] ||
-        marketPartners.data?.data?.results?.[0] ||
-        marketPartners.data?.partners?.[0] ||
-        null;
+        // Step 1b: still nothing → derive city name and try a local installations lookup
+        // to extract the SNB directly from NAP data of any installation in that city.
+        if (!firstPartner) {
+          const cityGuess = utilityName
+            .replace(/\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi, '')
+            .replace(/\s{2,}/g, ' ')
+            .trim()
+            .split(/\s+/)[0];
+          if (cityGuess && cityGuess.length > 2) {
+            this.logger.info(`[UtilityReport] Trying city-SNB fallback for: ${cityGuess}`);
+            try {
+              const localInst = await callMcpDirect(
+                'cernion_installations_local',
+                { type: 'solar', gemeinde: cityGuess, limit: 1, includeStats: false, format: 'detailed' },
+                cernionToken
+              );
+              const inst0 =
+                localInst?.data?.installations?.[0] ??
+                localInst?.installations?.[0] ??
+                null;
+              const snb =
+                inst0?.napData?.netzbetreiberMastrNummer ??
+                inst0?.nap?.netzbetreiberMaStRNummer ??
+                null;
+              if (snb) {
+                p.meta.resolvedMastrId = snb;
+                p.meta.resolvedBdew = null;
+                p.meta.resolvedVnbName = utilityName;
+                this.logger.info(`[UtilityReport] SNB resolved via city fallback: ${snb} (${cityGuess})`);
+              }
+            } catch (e) {
+              this.logger.warn(`[UtilityReport] City-SNB fallback failed: ${e.message}`);
+            }
+          }
+        }
+      }
 
-      const resolvedBdew = firstPartner?.bdewCode || firstPartner?.bdew || bdew || null;
-      const resolvedMastrId = firstPartner?.mastrId || firstPartner?.gridOperatorMastrId || null;
-      const resolvedVnbName = firstPartner?.name || firstPartner?.displayName || utilityName;
+      // Merge partner fields (when partner was found via market-partners)
+      if (firstPartner) {
+        p.meta.resolvedBdew = firstPartner?.bdewCode || firstPartner?.bdew || bdew || null;
+        p.meta.resolvedMastrId = firstPartner?.mastrId || firstPartner?.gridOperatorMastrId || null;
+        p.meta.resolvedVnbName = firstPartner?.name || firstPartner?.displayName || utilityName;
+      } else if (bdew) {
+        p.meta.resolvedBdew = bdew;
+        p.meta.resolvedVnbName = utilityName;
+      }
+      // resolvedVnbName fallback
+      if (!p.meta.resolvedVnbName) p.meta.resolvedVnbName = utilityName;
 
-      p.meta.resolvedBdew = resolvedBdew;
-      p.meta.resolvedMastrId = resolvedMastrId;
-      p.meta.resolvedVnbName = resolvedVnbName;
-
-      if (resolvedBdew) {
+      // Step 2: resolve MaStR-ID from BDEW via vnbLookup (if BDEW found but no MaStR-ID yet)
+      if (p.meta.resolvedBdew && !p.meta.resolvedMastrId) {
         const vnbLookup = await callBroker(ctx, 'grid-operations.vnbLookup', {
-          bdew: resolvedBdew,
+          bdew: p.meta.resolvedBdew,
           limit: 1,
         });
         p.meta.vnbLookup = vnbLookup.data ?? null;
-        // Extract mastrId from vnbLookup response if not already resolved from marketPartners
-        if (!p.meta.resolvedMastrId) {
-          const vnbData = vnbLookup.data?.data ?? vnbLookup.data;
-          const mastrFromLookup =
-            vnbData?.mastrId ||
-            vnbData?.data?.mastrId ||
-            vnbData?.mastrIds?.[0] ||
-            vnbData?.data?.mastrIds?.[0] ||
-            null;
-          if (mastrFromLookup) {
-            p.meta.resolvedMastrId = mastrFromLookup;
-            this.logger.info(`[UtilityReport] resolvedMastrId via vnbLookup: ${mastrFromLookup}`);
-          }
+        const vnbData = vnbLookup.data?.data ?? vnbLookup.data;
+        const mastrFromLookup =
+          vnbData?.mastrId ||
+          vnbData?.data?.mastrId ||
+          vnbData?.mastrIds?.[0] ||
+          vnbData?.data?.mastrIds?.[0] ||
+          null;
+        if (mastrFromLookup) {
+          p.meta.resolvedMastrId = mastrFromLookup;
+          this.logger.info(`[UtilityReport] resolvedMastrId via vnbLookup: ${mastrFromLookup}`);
         }
       }
 
@@ -927,9 +1024,7 @@ module.exports = {
 
     const { resolvedBdew, resolvedMastrId, resolvedVnbName } = p.meta;
 
-    // Guard: abort pipeline when the VNB could not be identified in Phase 1.
-    // Without a BDEW code or MaStR-ID every downstream MaStR/grid query returns
-    // empty, producing a misleading all-n/v report.  Fail early instead.
+    // Guard: abort pipeline when the VNB could not be identified after all fallbacks.
     if (!resolvedBdew && !resolvedMastrId) {
       const err = new Error(
         `VNB nicht erkannt: Für „${utilityName}" konnte weder ein BDEW-Code noch eine MaStR-ID ermittelt werden. ` +
