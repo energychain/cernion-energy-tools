@@ -821,10 +821,10 @@ module.exports = {
       );
 
       // ── MaStR data quality checks (parallel, fast local MongoDB) ──────────
-      // Requires at least one grid operator identifier to be meaningful
-      const hasGridOpId = !!(resolvedMastrId || resolvedBdew);
-      const dataQualityBaseParams = hasGridOpId
-        ? { ...(resolvedMastrId ? { gridOperatorMastrId: resolvedMastrId } : { gridOperatorBdewCode: resolvedBdew }) }
+      // cernion_installations_local requires gridOperatorMastrId – BDEW code is NOT supported.
+      // Skip all three queries when only a BDEW code is available (no MaStR ID resolved).
+      const dataQualityBaseParams = resolvedMastrId
+        ? { gridOperatorMastrId: resolvedMastrId }
         : null;
 
       // Run 3 queries in parallel: sample-for-PLZ, in-Prüfung count, ≥100kW ohne MeLo

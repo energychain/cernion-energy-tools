@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.4] - 2026-03-07
+
+### Fixed
+
+- **360° Report – 15 renderer data-path bugs that caused "–" for real KPIs in v0.8.3:**
+
+  **Section 1 (Netz & Grid):**
+  - `CO₂-Intensität Strom` — `safeData()` was over-unwrapping into an inner metadata sub-object; added direct `co2Raw = s1?.co2Intensity?.data` read so `co2_intensity_gco2eq_kwh` is always resolved from the top-level envelope.
+  - `Residuallast regional` — renderer looked for `rl?.summary?.netResidualLoad` (nonexistent); corrected to `rl?.summary?.kpis?.avgResidualLoadMW` with fallback chain.
+  - `Redispatch-Anlagen` — returned `success: false` when BDEW-only VNB not found in MaStR; added `rd?.success !== false` guard so "–" no longer masks a known pipeline failure.
+
+  **Section 3 (Energiemarkt):**
+  - `Day-Ahead-Preis` — ENTSO-E tool returns `dataPoints[]` with `priceEURperMWh`; renderer was looking for `prices.prices[].price`. Fixed field names in `priceTimeSeries`, `chartSrc` map and `latestPrice` chain.
+  - `Negative Preisphasen` — tool returns MCP text-content array; parse text for "No Negative Price Periods Found" → renders as `0 h §51 EEG` with a ✅ note.
+  - `Kraftwerksausfälle` — renamed to "Kraftwerksausfälle (Kapazität)"; fixed path from `getVal(..., 'totalUnavailableMW')` to `unavailData?.statistics?.totalCapacityMW` with event count side-label.
+
+  **Section 4 (Gas):**
+  - `Gasfüllstand Deutschland` — AGSI uses field `fillPercentage` not `full`; added as first entry in the fallback chain. Same fix applied to EU aggregate path.
+
+  **Section 5 (Regulierung & Compliance):**
+  - `Anschlussdauer EE NS` — EWK `anschlussdauer` tool returns `rows[0].ee_ns_gesamt_wochen`; added as primary path before legacy `adJson.anschlussdauer.ee_ns_gesamt`.
+  - `Bundesmedian Anschlussdauer EE NS` — was hardcoded `null`; now extracted from `adJson?.stats?.ee_ns_gesamt?.median`. Bundesmedian KPI row added; chart bar now shows real median value.
+  - Added **Digitalisierungsindex Rang** KPI row (`bmJson.rankings.digitalisierungsindex_rank / total`).
+  - Added **DI-Bundesmedian** KPI row (`diJson?.stats?.gesamtscore?.median`).
+
+  **Section 6 (Kundenmanagement):**
+  - `Gefährdete Kunden` — regex failed to match `"at-risk customers (max 100)**: 60"` format. Fixed to `/at-risk customers[^:]*\*{0,2}:\s*\*{0,2}(\d+)/i`.
+
+  **Section 8 (Digitalisierung):**
+  - `Digitalisierungsindex (Gesamt)`, `Smart Grids Score`, `Kundenportal-Score` — renderer used `diJson8?.digitalisierungsindex` (null for standalone tool); corrected to `diJson8?.rows?.[0]`. Scores already in % (0–100); removed incorrect `* 100` multiplier.
+  - `Kundenportal-Score` — corrected field from `kundenportal` → `kundenmanagement_webportale`.
+  - Added **DI-Rang** KPI row (`diScores8.gesamtscore_rank`).
+  - Added **DI-Bundesmedian** KPI row (`diJson8?.stats?.gesamtscore?.median`).
+
+- **360° Report pipeline – MaStR queries skipped when only BDEW code available** — `cernion_installations_local` requires a MaStR ID. `dataQualityBaseParams` is now `null` (and all three MaStR local queries skipped) when `resolvedMastrId` is absent, preventing misleading `{ success: true, error: "BDEW code could not be resolved to MaStR ID" }` responses.
+
 ## [0.8.3] - 2026-03-06
 
 ### Added

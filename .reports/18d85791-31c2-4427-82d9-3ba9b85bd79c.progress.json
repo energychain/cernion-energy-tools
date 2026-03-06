@@ -1,0 +1,2164 @@
+{
+  "reportId": "18d85791-31c2-4427-82d9-3ba9b85bd79c",
+  "utilityName": "Stadtwerke Hockenheim",
+  "region": "",
+  "bdew": "",
+  "status": "completed",
+  "phase": 4,
+  "startedAt": "2026-03-06T07:58:39.566Z",
+  "completedAt": "2026-03-06T08:05:31.317Z",
+  "error": null,
+  "results": {
+    "phase2": {
+      "eicSearch": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": {
+            "success": true,
+            "results": [
+              {
+                "code": "10T-1001-10010AS",
+                "name": "10T-1001-10010AS",
+                "displayName": null,
+                "type": "tie-line",
+                "sector": "electricity",
+                "country": "EU",
+                "status": "active",
+                "source": "entsoe",
+                "description": "Tieline",
+                "metadata": {
+                  "longName": null,
+                  "displayName": null,
+                  "function": "Tieline",
+                  "description": "Tieline",
+                  "docStatus": "A05",
+                  "responsible": null,
+                  "attribute": null
+                }
+              },
+              {
+                "code": "10T1001A1001A012",
+                "name": "10T1001A1001A012",
+                "displayName": null,
+                "type": "tie-line",
+                "sector": "electricity",
+                "country": "EU",
+                "status": "active",
+                "source": "entsoe",
+                "description": "Tieline",
+                "metadata": {
+                  "longName": null,
+                  "displayName": null,
+                  "function": "Tieline",
+                  "description": "Tieline",
+                  "docStatus": "A05",
+                  "responsible": null,
+                  "attribute": null
+                }
+              },
+              {
+                "code": "10T1001A1001A020",
+                "name": "10T1001A1001A020",
+                "displayName": null,
+                "type": "tie-line",
+                "sector": "electricity",
+                "country": "EU",
+                "status": "active",
+                "source": "entsoe",
+                "description": "Tieline",
+                "metadata": {
+                  "longName": null,
+                  "displayName": null,
+                  "function": "Tieline",
+                  "description": "Tieline",
+                  "docStatus": "A05",
+                  "responsible": null,
+                  "attribute": null
+                }
+              }
+            ],
+            "metadata": {
+              "query": {},
+              "resultCount": 3,
+              "limit": 3
+            }
+          },
+          "metadata": {
+            "toolName": "cernion_eic_search",
+            "timestamp": "2026-03-06T07:58:45.878Z"
+          }
+        }
+      },
+      "ewkBenchmark": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": [
+            {
+              "type": "text",
+              "text": "## EWK Benchmark 2024: Stadtwerke Hockenheim\n**BNetzA-Name:** Stadtwerke Hockenheim  |  **BNr:** 10001208\n**Datenquelle:** BNetzA EWK-Monitoring 2024 via vnb-transparenz.de\n\n### ⏱ Anschlussdauer (Median in Wochen)\n**Rang EE-Anlagen NS:** 673 von 740 VNBs\n| Spannungsebene | Typ | Phase 1 (Wo) | Phase 2 (Wo) | Gesamt (Wo) |\n|---|---|---|---|---|\n| NS | EE-Anlagen | 7 | 105 | **112** |\n| MS | EE-Anlagen | 28 | 365 | **393** |\n| NS | Verbrauch/Speicher | 7 | 15 | **22** |\n> Phase 1 = Anschlussbegehren bis Netzanschlusszusage | Phase 2 = Zusage bis Inbetriebnahme\n\n### 💻 Digitalisierungsindex (0–100%)\n**Rang:** 11 von 656 VNBs\n| Kategorie | Score |\n|---|---|\n| **Gesamtscore** | **62%** |\n| Smart Grids | 18% |\n| – davon NS | 8% |\n| – davon MS | 35% |\n| – davon HS | – |\n| Digitale Prozesse & Systeme | 67% |\n| – Künstliche Intelligenz | 0% |\n| Datenmanagement & Analyse | 95% |\n| Kundenmanagement | 69% |\n| – Webportale | 74% |\n\n### ✅ Umsetzungsquote Netzanschlussbegehren\n**Rang EE-Anlagen NS:** 242 von 698 VNBs\n| Spannungsebene | Typ | Anträge | Realisiert | Quote |\n|---|---|---|---|---|\n| NS | EE-Anlagen | 175 | 175 | **100%** |\n| NS | Verbrauch/Speicher | 52 | 47 | **90.4%** |\n\n---\n> **Hinweis:** Alle Daten basieren auf Selbstauskünften der Netzbetreiber im Rahmen des BNetzA EWK-Monitorings 2024. Keine amtliche Stelle – maßgeblich sind die Originaldaten unter vnb-transparenz.de."
+            },
+            {
+              "type": "text",
+              "text": "{\n  \"vnb\": {\n    \"bnr\": \"10001208\",\n    \"vnb_id\": \"e2133912\",\n    \"firmenname\": \"Stadtwerke Hockenheim\",\n    \"bnetza_name\": \"Stadtwerke Hockenheim\"\n  },\n  \"anschlussdauer\": {\n    \"bnr\": \"10001208\",\n    \"vnb_id\": \"e2133912\",\n    \"firmenname\": \"Stadtwerke Hockenheim\",\n    \"bnetza_name\": \"Stadtwerke Hockenheim\",\n    \"ee_ns_phase1\": 7,\n    \"ee_ns_phase2\": 105,\n    \"ee_ns_gesamt\": 112,\n    \"ee_ms_phase1\": 28,\n    \"ee_ms_phase2\": 365,\n    \"ee_ms_gesamt\": 393,\n    \"verbrauch_ns_phase1\": 7,\n    \"verbrauch_ns_phase2\": 15,\n    \"verbrauch_ns_gesamt\": 22\n  },\n  \"digitalisierungsindex\": {\n    \"bnr\": \"10001208\",\n    \"vnb_id\": \"e2133912\",\n    \"firmenname\": \"Stadtwerke Hockenheim\",\n    \"bnetza_name\": \"Stadtwerke Hockenheim\",\n    \"gesamtscore\": 0.62,\n    \"smart_grids\": 0.18,\n    \"digitale_prozesse\": 0.67,\n    \"datenmanagement\": 0.95,\n    \"kundenmanagement\": 0.69,\n    \"smart_grids_ns\": 0.08,\n    \"smart_grids_ms\": 0.35,\n    \"digitale_prozesse_ns\": 1,\n    \"digitale_prozesse_ms\": 1,\n    \"digitale_prozesse_ai\": 0,\n    \"datenmanagement_ns\": 0.93,\n    \"datenmanagement_ms\": 0.97,\n    \"kundenmanagement_ns\": 0.6,\n    \"kundenmanagement_ms\": 0.8,\n    \"kundenmanagement_webportale\": 0.74\n  },\n  \"umsetzungsquote\": {\n    \"bnr\": \"10001208\",\n    \"vnb_id\": \"e2133912\",\n    \"firmenname\": \"Stadtwerke Hockenheim\",\n    \"bnetza_name\": \"Stadtwerke Hockenheim\",\n    \"antraege_ee_ns\": 175,\n    \"realisiert_ee_ns\": 175,\n    \"antraege_verbrauch_ns\": 52,\n    \"realisiert_verbrauch_ns\": 47,\n    \"umsetzungsquote_ee_ns\": 1,\n    \"umsetzungsquote_verbrauch_ns\": 0.9038\n  },\n  \"rankings\": {\n    \"anschlussdauer_ee_ns_rank\": 673,\n    \"anschlussdauer_ee_ns_total\": 740,\n    \"anschlussdauer_verbrauch_ns_rank\": 253,\n    \"anschlussdauer_verbrauch_ns_total\": 708,\n    \"digitalisierungsindex_rank\": 11,\n    \"digitalisierungsindex_total\": 656,\n    \"umsetzungsquote_ee_ns_rank\": 242,\n    \"umsetzungsquote_ee_ns_total\": 698\n  }\n}",
+              "json": {
+                "vnb": {
+                  "bnr": "10001208",
+                  "vnb_id": "e2133912",
+                  "firmenname": "Stadtwerke Hockenheim",
+                  "bnetza_name": "Stadtwerke Hockenheim"
+                },
+                "anschlussdauer": {
+                  "bnr": "10001208",
+                  "vnb_id": "e2133912",
+                  "firmenname": "Stadtwerke Hockenheim",
+                  "bnetza_name": "Stadtwerke Hockenheim",
+                  "ee_ns_phase1": 7,
+                  "ee_ns_phase2": 105,
+                  "ee_ns_gesamt": 112,
+                  "ee_ms_phase1": 28,
+                  "ee_ms_phase2": 365,
+                  "ee_ms_gesamt": 393,
+                  "verbrauch_ns_phase1": 7,
+                  "verbrauch_ns_phase2": 15,
+                  "verbrauch_ns_gesamt": 22
+                },
+                "digitalisierungsindex": {
+                  "bnr": "10001208",
+                  "vnb_id": "e2133912",
+                  "firmenname": "Stadtwerke Hockenheim",
+                  "bnetza_name": "Stadtwerke Hockenheim",
+                  "gesamtscore": 0.62,
+                  "smart_grids": 0.18,
+                  "digitale_prozesse": 0.67,
+                  "datenmanagement": 0.95,
+                  "kundenmanagement": 0.69,
+                  "smart_grids_ns": 0.08,
+                  "smart_grids_ms": 0.35,
+                  "digitale_prozesse_ns": 1,
+                  "digitale_prozesse_ms": 1,
+                  "digitale_prozesse_ai": 0,
+                  "datenmanagement_ns": 0.93,
+                  "datenmanagement_ms": 0.97,
+                  "kundenmanagement_ns": 0.6,
+                  "kundenmanagement_ms": 0.8,
+                  "kundenmanagement_webportale": 0.74
+                },
+                "umsetzungsquote": {
+                  "bnr": "10001208",
+                  "vnb_id": "e2133912",
+                  "firmenname": "Stadtwerke Hockenheim",
+                  "bnetza_name": "Stadtwerke Hockenheim",
+                  "antraege_ee_ns": 175,
+                  "realisiert_ee_ns": 175,
+                  "antraege_verbrauch_ns": 52,
+                  "realisiert_verbrauch_ns": 47,
+                  "umsetzungsquote_ee_ns": 1,
+                  "umsetzungsquote_verbrauch_ns": 0.9038
+                },
+                "rankings": {
+                  "anschlussdauer_ee_ns_rank": 673,
+                  "anschlussdauer_ee_ns_total": 740,
+                  "anschlussdauer_verbrauch_ns_rank": 253,
+                  "anschlussdauer_verbrauch_ns_total": 708,
+                  "digitalisierungsindex_rank": 11,
+                  "digitalisierungsindex_total": 656,
+                  "umsetzungsquote_ee_ns_rank": 242,
+                  "umsetzungsquote_ee_ns_total": 698
+                }
+              }
+            }
+          ],
+          "metadata": {
+            "toolName": "ewk_benchmark_vnb",
+            "timestamp": "2026-03-06T07:58:43.783Z"
+          }
+        }
+      }
+    },
+    "section1": {
+      "capacityUtilization": {
+        "available": false,
+        "error": "Parameters validation error!"
+      },
+      "redispatchExport": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": {
+            "content": [
+              {
+                "type": "text",
+                "text": "🔍 **Grid Operator Found**:\n   Name: Stadtwerke Hockenheim\n   MaStR Number(s): SNB967127819703, GNB945751016644\n\n✅ **Query executed successfully**\n   Installations found: undefined\n   Execution time: 20.41s\n\n**Quality Report**:\n   Total Installations: 43\n   Total Capacity: 12760.00 kW\n\n**Breakdown by Type**:\n   - Solar: 40 installations, 11407.21 kW\n   - Combustion: 2 installations, 1235.00 kW\n   - Biomass: 1 installations, 116.00 kW\n\n⚠️ **Warnings**:\n   - [object Object]\n   - [object Object]\n\n**Preview** (first 5 installations):\n| Type | Capacity (kW) | City | Status |\n| --- | --- | --- | --- |\n|  | 116.00 | Hockenheim | In Betrieb |\n|  | 151.20 | Hockenheim | In Betrieb |\n|  | 138.03 | Hockenheim | In Betrieb |\n|  | 178.20 | Hockenheim | In Betrieb |\n|  | 204.48 | Hockenheim | In Betrieb |\n"
+              }
+            ]
+          },
+          "metadata": {
+            "jobId": "9abd80d7-fe40-4072-a034-7c56848ec545",
+            "status": "succeeded",
+            "totalWaitTime": 487,
+            "completedAt": "2026-03-06T07:59:12.039Z"
+          }
+        }
+      },
+      "residualLoad": {
+        "available": true,
+        "data": {
+          "success": true,
+          "summary": {
+            "region": "Stadtwerke Hockenheim",
+            "forecastPeriod": {
+              "start": "2026-02-28T00:00:00.000Z",
+              "end": "2026-03-01T00:00:00.000Z"
+            },
+            "isHistorical": true,
+            "dataMode": "historical_observation",
+            "resolution": "hourly",
+            "dataPoints": 24,
+            "installedCapacity": {
+              "totalPV_MW": 209.78,
+              "totalWind_MW": 25726.47,
+              "pvInstallations": 10000,
+              "windInstallations": 10000
+            },
+            "loadScaling": {
+              "populationUsed": "200.000",
+              "scalingFactorPct": "0.238%",
+              "isActualData": true,
+              "dataSource": "SMARD DE filter 410 (realized load) scaled by population ratio 0.238%"
+            },
+            "kpis": {
+              "peakResidualLoadMW": 128.9,
+              "peakResidualAt": "2026-02-28T10:00:00.000Z",
+              "minResidualLoadMW": 0,
+              "avgResidualLoadMW": 49.4,
+              "totalLoadMWh": 2815.2,
+              "totalEEGenerationMWh": 91602.4,
+              "totalResidualLoadMWh": 1185.5,
+              "avgEESharePct": 3112.3,
+              "selfCoverageNote": "⚡ EE-Erzeugung übersteigt Last — Überschuss-Export möglich!"
+            }
+          },
+          "forecast": [
+            {
+              "timestamp": "2026-02-28T00:00:00.000Z",
+              "loadMW": 102.3,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 0,
+              "eeGenerationMW": 0,
+              "residualLoadMW": 102.3,
+              "eeSharePct": 0
+            },
+            {
+              "timestamp": "2026-02-28T01:00:00.000Z",
+              "loadMW": 98.4,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 0,
+              "eeGenerationMW": 0,
+              "residualLoadMW": 98.4,
+              "eeSharePct": 0
+            },
+            {
+              "timestamp": "2026-02-28T02:00:00.000Z",
+              "loadMW": 96.7,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 0,
+              "eeGenerationMW": 0,
+              "residualLoadMW": 96.7,
+              "eeSharePct": 0
+            },
+            {
+              "timestamp": "2026-02-28T03:00:00.000Z",
+              "loadMW": 98.7,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 0,
+              "eeGenerationMW": 0,
+              "residualLoadMW": 98.7,
+              "eeSharePct": 0
+            },
+            {
+              "timestamp": "2026-02-28T04:00:00.000Z",
+              "loadMW": 100,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 0,
+              "eeGenerationMW": 0,
+              "residualLoadMW": 100,
+              "eeSharePct": 0
+            },
+            {
+              "timestamp": "2026-02-28T05:00:00.000Z",
+              "loadMW": 102.6,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 0,
+              "eeGenerationMW": 0,
+              "residualLoadMW": 102.6,
+              "eeSharePct": 0
+            },
+            {
+              "timestamp": "2026-02-28T06:00:00.000Z",
+              "loadMW": 110,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 0,
+              "eeGenerationMW": 0,
+              "residualLoadMW": 110,
+              "eeSharePct": 0
+            },
+            {
+              "timestamp": "2026-02-28T07:00:00.000Z",
+              "loadMW": 120.8,
+              "pvGenerationMW": 0.4,
+              "windGenerationMW": 0,
+              "eeGenerationMW": 0.4,
+              "residualLoadMW": 120.4,
+              "eeSharePct": 0.3
+            },
+            {
+              "timestamp": "2026-02-28T08:00:00.000Z",
+              "loadMW": 128,
+              "pvGenerationMW": 5.1,
+              "windGenerationMW": 0,
+              "eeGenerationMW": 5.1,
+              "residualLoadMW": 122.9,
+              "eeSharePct": 4
+            },
+            {
+              "timestamp": "2026-02-28T09:00:00.000Z",
+              "loadMW": 129.4,
+              "pvGenerationMW": 24.8,
+              "windGenerationMW": 0,
+              "eeGenerationMW": 24.8,
+              "residualLoadMW": 104.6,
+              "eeSharePct": 19.2
+            },
+            {
+              "timestamp": "2026-02-28T10:00:00.000Z",
+              "loadMW": 128.9,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 0,
+              "eeGenerationMW": 0,
+              "residualLoadMW": 128.9,
+              "eeSharePct": 0
+            },
+            {
+              "timestamp": "2026-02-28T11:00:00.000Z",
+              "loadMW": 127.2,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 3652.5,
+              "eeGenerationMW": 3652.5,
+              "residualLoadMW": 0,
+              "eeSharePct": 2871.5
+            },
+            {
+              "timestamp": "2026-02-28T12:00:00.000Z",
+              "loadMW": 123.1,
+              "pvGenerationMW": 17.2,
+              "windGenerationMW": 8099.1,
+              "eeGenerationMW": 8116.3,
+              "residualLoadMW": 0,
+              "eeSharePct": 6593.3
+            },
+            {
+              "timestamp": "2026-02-28T13:00:00.000Z",
+              "loadMW": 118.8,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 8496.1,
+              "eeGenerationMW": 8496.1,
+              "residualLoadMW": 0,
+              "eeSharePct": 7151.6
+            },
+            {
+              "timestamp": "2026-02-28T14:00:00.000Z",
+              "loadMW": 121.4,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 11275.2,
+              "eeGenerationMW": 11275.2,
+              "residualLoadMW": 0,
+              "eeSharePct": 9287.6
+            },
+            {
+              "timestamp": "2026-02-28T15:00:00.000Z",
+              "loadMW": 123.1,
+              "pvGenerationMW": 0.5,
+              "windGenerationMW": 9766.5,
+              "eeGenerationMW": 9767,
+              "residualLoadMW": 0,
+              "eeSharePct": 7934.2
+            },
+            {
+              "timestamp": "2026-02-28T16:00:00.000Z",
+              "loadMW": 128.9,
+              "pvGenerationMW": 2.2,
+              "windGenerationMW": 10640,
+              "eeGenerationMW": 10642.2,
+              "residualLoadMW": 0,
+              "eeSharePct": 8256.2
+            },
+            {
+              "timestamp": "2026-02-28T17:00:00.000Z",
+              "loadMW": 135.3,
+              "pvGenerationMW": 0.9,
+              "windGenerationMW": 6431.6,
+              "eeGenerationMW": 6432.5,
+              "residualLoadMW": 0,
+              "eeSharePct": 4754.3
+            },
+            {
+              "timestamp": "2026-02-28T18:00:00.000Z",
+              "loadMW": 132.4,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 5081.8,
+              "eeGenerationMW": 5081.8,
+              "residualLoadMW": 0,
+              "eeSharePct": 3838.2
+            },
+            {
+              "timestamp": "2026-02-28T19:00:00.000Z",
+              "loadMW": 127.5,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 3731.9,
+              "eeGenerationMW": 3731.9,
+              "residualLoadMW": 0,
+              "eeSharePct": 2927
+            },
+            {
+              "timestamp": "2026-02-28T20:00:00.000Z",
+              "loadMW": 123.3,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 6511,
+              "eeGenerationMW": 6511,
+              "residualLoadMW": 0,
+              "eeSharePct": 5280.6
+            },
+            {
+              "timestamp": "2026-02-28T21:00:00.000Z",
+              "loadMW": 118.8,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 6511,
+              "eeGenerationMW": 6511,
+              "residualLoadMW": 0,
+              "eeSharePct": 5480.7
+            },
+            {
+              "timestamp": "2026-02-28T22:00:00.000Z",
+              "loadMW": 113.6,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 6590.4,
+              "eeGenerationMW": 6590.4,
+              "residualLoadMW": 0,
+              "eeSharePct": 5801.4
+            },
+            {
+              "timestamp": "2026-02-28T23:00:00.000Z",
+              "loadMW": 106,
+              "pvGenerationMW": 0,
+              "windGenerationMW": 4764.2,
+              "eeGenerationMW": 4764.2,
+              "residualLoadMW": 0,
+              "eeSharePct": 4494.5
+            }
+          ],
+          "methodology": {
+            "loadModel": "SMARD DE national load (public API) × population ratio. Caveat: large industrial consumers (e.g. BASF) may require populationOverride.",
+            "eeModel": "IEC 61853 (solar PV) + IEC 61400 (wind) applied to MaStR installed capacity. Weather: Visual Crossing API (24h cache).",
+            "residualFormula": "Residuallast = RegionaleLast − PV − Wind",
+            "interpolation": "None (hourly resolution)"
+          },
+          "metadata": {
+            "toolName": "mastr_net_residual_load",
+            "timestamp": "2026-03-06T07:59:17.801Z"
+          },
+          "loadFallbackWarning": true,
+          "loadFallbackNote": "SMARD filter 411 (day-ahead load forecast) not yet published for 2026-03-07. Load and generation data use reference week 2026-02-28 (same weekday, D-7) via SMARD filter 410 (realised load). Re-request after ~14:00 CET for the actual day-ahead load forecast."
+        }
+      },
+      "co2Intensity": {
+        "available": true,
+        "data": {
+          "success": true,
+          "resolved_region": "10117",
+          "co2_intensity_gco2eq_kwh": 143,
+          "average_today_gco2eq_kwh": 358.5,
+          "forecast_next_24h_gco2eq_kwh": [
+            143,
+            143,
+            143,
+            143,
+            143,
+            143,
+            143,
+            143,
+            143,
+            143,
+            208,
+            204,
+            197,
+            194,
+            186,
+            219,
+            219,
+            226,
+            233,
+            208,
+            186,
+            194,
+            183,
+            143
+          ],
+          "timestamp": "2026-03-06T08:00:00.000Z",
+          "data_source": "GrünstromIndex (api.corrently.io)",
+          "note": "Forecast data provided for next 24 hours only.",
+          "metadata": {
+            "toolName": "cernion_co2_intensity",
+            "timestamp": "2026-03-06T07:59:18.178Z"
+          },
+          "data": {
+            "timestamp": "2026-03-06T08:00:00.000Z",
+            "forecast": [
+              {
+                "timestamp": "2026-03-06T08:00:00.000Z",
+                "gCO2eqPerKWh": 143
+              },
+              {
+                "timestamp": "2026-03-06T09:00:00.000Z",
+                "gCO2eqPerKWh": 143
+              },
+              {
+                "timestamp": "2026-03-06T10:00:00.000Z",
+                "gCO2eqPerKWh": 143
+              },
+              {
+                "timestamp": "2026-03-06T11:00:00.000Z",
+                "gCO2eqPerKWh": 143
+              },
+              {
+                "timestamp": "2026-03-06T12:00:00.000Z",
+                "gCO2eqPerKWh": 143
+              },
+              {
+                "timestamp": "2026-03-06T13:00:00.000Z",
+                "gCO2eqPerKWh": 143
+              },
+              {
+                "timestamp": "2026-03-06T14:00:00.000Z",
+                "gCO2eqPerKWh": 143
+              },
+              {
+                "timestamp": "2026-03-06T15:00:00.000Z",
+                "gCO2eqPerKWh": 143
+              },
+              {
+                "timestamp": "2026-03-06T16:00:00.000Z",
+                "gCO2eqPerKWh": 143
+              },
+              {
+                "timestamp": "2026-03-06T17:00:00.000Z",
+                "gCO2eqPerKWh": 143
+              },
+              {
+                "timestamp": "2026-03-06T18:00:00.000Z",
+                "gCO2eqPerKWh": 208
+              },
+              {
+                "timestamp": "2026-03-06T19:00:00.000Z",
+                "gCO2eqPerKWh": 204
+              },
+              {
+                "timestamp": "2026-03-06T20:00:00.000Z",
+                "gCO2eqPerKWh": 197
+              },
+              {
+                "timestamp": "2026-03-06T21:00:00.000Z",
+                "gCO2eqPerKWh": 194
+              },
+              {
+                "timestamp": "2026-03-06T22:00:00.000Z",
+                "gCO2eqPerKWh": 186
+              },
+              {
+                "timestamp": "2026-03-06T23:00:00.000Z",
+                "gCO2eqPerKWh": 219
+              },
+              {
+                "timestamp": "2026-03-07T00:00:00.000Z",
+                "gCO2eqPerKWh": 219
+              },
+              {
+                "timestamp": "2026-03-07T01:00:00.000Z",
+                "gCO2eqPerKWh": 226
+              },
+              {
+                "timestamp": "2026-03-07T02:00:00.000Z",
+                "gCO2eqPerKWh": 233
+              },
+              {
+                "timestamp": "2026-03-07T03:00:00.000Z",
+                "gCO2eqPerKWh": 208
+              },
+              {
+                "timestamp": "2026-03-07T04:00:00.000Z",
+                "gCO2eqPerKWh": 186
+              },
+              {
+                "timestamp": "2026-03-07T05:00:00.000Z",
+                "gCO2eqPerKWh": 194
+              },
+              {
+                "timestamp": "2026-03-07T06:00:00.000Z",
+                "gCO2eqPerKWh": 183
+              },
+              {
+                "timestamp": "2026-03-07T07:00:00.000Z",
+                "gCO2eqPerKWh": 143
+              }
+            ]
+          }
+        }
+      },
+      "operatorAnalysis": {
+        "available": false,
+        "error": "Request is timed out when call 'grid-operations.operatorAnalysis' action on 'malta21060-2183489' node."
+      },
+      "emobilityImpact": {
+        "available": true,
+        "data": {
+          "content": [
+            {
+              "type": "text",
+              "text": "E-MOBILITÄTS-IMPACT-ANALYSE für \"Stadtwerke Hockenheim\" (Stadtwerke Hockenheim):\nZeithorizont: 5 Jahre (bis 2031)\n\n## 1. BESTANDSAUFNAHME E-MOBILITÄT (Ist-Zustand)\n\n### 1.1 KFZ-Zulassungsdaten (Schätzung - keine KBA-Daten verfügbar)\n⚠️ **KBA-Datenbank nicht geladen**. Bitte CSV-Import durchführen.\nAnleitung: https://www.kba.de/DE/Statistik/Fahrzeuge/Bestand/bestand_node.html\n\n### 1.2 Private Wallboxen (Schätzung aus KBA-Daten)\n**WICHTIG**: MaStR enthält keine separate Wallbox-Tabelle.\nLadeeinrichtungen im Netzgebiet (Schätzung basierend auf E-Auto-Zulassungen):\n- Anzahl E-Autos im Netzgebiet: ? (KBA-Daten nicht verfügbar)\n- Davon mit privater Wallbox (Annahme 80%): ?\n- Durchschnittliche Leistung: 11 kW (typisch)\n- Anschlussart: NS-Netz (400V)\n- §14a-steuerbare Wallboxen: ? (= ?% des Bestands, Zielquote)\n\n### 1.3 Öffentliche Ladesäulen\n⚠️ **BNetzA-Datenbank nicht geladen**. Daten werden initial heruntergeladen.\nDatenquelle: https://www.bundesnetzagentur.de/ladesaeulenkarte\n\n### 1.4 Schnelllade-Hubs (High Power Charging)\nHPC-Stationen >150 kW:\n- Anzahl Standorte: ?\n- Anzahl Ladepunkte: ? (typisch 4-8 pro Hub)\n- Leistung pro Punkt: 150-350 kW (DC)\n- Anschlussart: MS-Netz (erforderlich!)\n- Standorte: Autobahnnähe, Gewerbegebiete, Tank & Rast\n- Gleichzeitigkeit: Bis zu 100% (Autobahn-Rushhour)\n\n## 2. E-MOBILITÄTS-PROGNOSE 2031\n\n### 2.1 Politische Rahmenbedingungen\n**Deutsches Regierungsziel**: 15 Millionen E-Autos bis 2030\n- Aktuell (2026): ~2M E-Autos deutschlandweit\n- Ziel 2030: 15M\n- Erforderliche Wachstumsrate: ~50% p.a. (sehr ambitioniert!)\n\n**Netzgebiet-Anteil** (nach Einwohnern hochrechnen):\n- Einwohner Netzgebiet: ?\n- Einwohner Deutschland: ~84M\n- Anteil: ?% der Bundesbevölkerung\n- Erwartete E-Autos 2031: ? × ?% = ?\n\n### 2.2 Lade-Infrastrukturbedarf\n**Annahmen** (aus Studien):\n- 80% der E-Auto-Besitzer laden hauptsächlich zu Hause (private Wallbox)\n- 15% nutzen öffentliche Ladesäulen (Laternenparker, MFH)\n- 5% nutzen Schnelllader (Langstrecke, gewerblich)\n\n**Private Wallboxen 2031**:\n- Anzahl E-Autos × 80% = ? Wallboxen\n- Durchschnittliche Leistung: 11 kW\n- **Gesamt-Anschlussleistung**: ? × 11 kW = ? MW\n- Gleichzeitigkeitsfaktor OHNE §14a: 0.3 (30% laden gleichzeitig, Peak 18-22 Uhr)\n- **Netzlast OHNE §14a**: ? MW × 0.3 = ? MW\n- Gleichzeitigkeitsfaktor MIT §14a: 0.15 (gesteuerte Ladung, Spitzenglättung)\n- **Netzlast MIT §14a**: ? MW × 0.15 = ? MW\n- **CAPEX-Vermeidung durch §14a**: ~50% Reduktion der Netzlast!\n\n**Öffentliche Ladesäulen 2031**:\n- Anzahl E-Autos × 15% = ? Nutzer öffentlicher Infrastruktur\n- Erforderliche Ladepunkte (Annahme: 1 Ladepunkt pro 10 E-Autos): ?\n- Durchschnittliche Leistung: 22 kW (AC)\n- Gesamt-Anschlussleistung: ? MW\n- Gleichzeitigkeitsfaktor: 0.4 (höher als Wallboxen, da öffentlich)\n- **Netzlast**: ? MW\n\n**Schnelllade-Hubs 2031**:\n- Anzahl E-Autos × 5% = ? Nutzer Schnelllader\n- Erforderliche HPC-Standorte (Annahme: 1 Hub pro 500 E-Autos): ?\n- Ladepunkte pro Hub: 6 (Durchschnitt)\n- Leistung pro Punkt: 200 kW (Durchschnitt 150-350 kW)\n- Gesamt-Anschlussleistung: ? Hubs × 6 × 200 kW = ? MW\n- Gleichzeitigkeitsfaktor: 0.6 (Autobahn-Hubs höher, Stadt-Hubs niedriger)\n- **Netzlast**: ? MW\n- **WICHTIG**: MS-Anschluss erforderlich! (>100 kW pro Standort)\n\n## 3. NETZAUSWIRKUNGEN\n\n### 3.1 Gesamt-Zusatzlast E-Mobilität\n**Summierung aller Lade-Kategorien**:\n- Private Wallboxen: ? MW (mit §14a: ? MW)\n- Öffentliche Ladesäulen: ? MW\n- Schnelllade-Hubs: ? MW\n- **Gesamt-Zusatzlast**: ? MW\n- Vergleich: Aktuelle Jahreshöchstlast \"Stadtwerke Hockenheim\": ? MW\n- **Relative Erhöhung**: +?%\n\n### 3.2 Zeitliche Lastverteilung (Tagesprofil)\n**Private Wallboxen** (dominant!):\n- 06:00-08:00 Uhr: Niedrig (5% der Wallboxen aktiv, Nachtladung beendet)\n- 12:00-14:00 Uhr: Mittel (10%, Heimkehrer Frühschicht)\n- 18:00-22:00 Uhr: **PEAK** (30-40% aktiv, Feierabend-Rushhour)\n- 22:00-06:00 Uhr: Mittel-Hoch (20%, Nachtladung mit günstigen Tarifen)\n\n**Mit §14a-Steuerung**:\n- Netz kann Ladung verschieben: 18-22 Uhr → 22-06 Uhr\n- Peak-Reduktion: -50% (von 30% auf 15% Gleichzeitigkeit)\n- Kunde-Garantie: Mindestens 6 kWh in 3 Stunden (reicht für 50 km Reichweite)\n\n**Schnelllade-Hubs**:\n- Autobahn-Hubs: 10:00-20:00 Uhr relativ konstant hoch\n- Stadt-Hubs: Ähnlich private Wallboxen (Abend-Peak)\n\n### 3.3 Spannungsqualität (Voltage Drop)\n**Problem**: Viele Wallboxen in einer Straße → Spannungsabfall im NS-Netz\n- Zulässiger Spannungsabfall: Max. 3% (EN 50160)\n- Bei 10 Wallboxen à 11 kW in einem NS-Strang (400V):\n  * Strom: 10 × 16A = 160A\n  * Spannungsabfall: U = I × R × L (R: Leitungswiderstand, L: Länge)\n  * Beispiel: 100m Leitung, 0.3 Ω/km → ΔU = 160A × 0.03Ω = 4.8V (≈2%)\n- **Kritisch**: Straßen mit >15 Wallboxen pro NS-Strang\n\n## 4. KRITISCHE STRAẞEN IDENTIFIZIEREN\n\n### 4.1 Datenquellen kombinieren\n**HINWEIS**: Detaillierte Straßen-Level-Daten erfordern Netzbetreiber-interne Systeme:\n- **BNetzA Ladesäulenregister**: Öffentliche Ladepunkte (Standort-Koordinaten)\n- **KFZ-Zulassungen**: E-Autos pro Straße (kommunale Statistik, nicht in MaStR)\n- **Netzdaten**: NS-Strang-Zuordnung, Leitungslänge, Querschnitt (interne GIS-Systeme)\n- **Schätzung**: Hochrechnung basierend auf Haushaltsstruktur und E-Auto-Quote\n\n### 4.2 Risiko-Scoring (Methodik)\nFür jede Straße berechnen (sofern Daten verfügbar):\n- **Wallbox-Dichte**: Geschätzte Anzahl Wallboxen / 100m Straßenlänge\n- **NS-Strang-Kapazität**: Maximale Strombelastbarkeit (A)\n- **Auslastungsgrad**: (Wallboxen × 16A) / Strang-Kapazität\n- **Leitungsalter**: Alte Leitungen (>40 Jahre) = höheres Risiko\n- **Zusätzliche Verbraucher**: Wärmepumpen in derselben Straße?\n\n### 4.3 Kritische Straßen (Beispiel-Template)\n**HINWEIS**: Konkrete Straßenliste erfordert Netzbetreiber-Daten.\nSortierung nach Auslastungsgrad (Template):\n1. **Straße XYZ** (Stadtteil ABC):\n   - E-Autos aktuell: ? (Schätzung aus KBA-Daten)\n   - Wallboxen geschätzt: ? (80% der E-Autos)\n   - Wallboxen 2031 (Prognose): ?\n   - Auslastung: ?% (heute) → ?% (2031)\n   - Status: 🔴 KRITISCH (>90%) → Sofortmaßnahme\n   - Empfehlung: NS-Kabel-Verstärkung (? m × 100 €/m = ?k€) ODER §14a-Steuerung Pflicht\n\n2. **Straße DEF** (Stadtteil GHI):\n   - [...]\n\n[Weitere 8 Straßen - Daten aus Netzbetreiber-GIS erforderlich]\n\n### 4.4 Geografische Hotspots (Schätzung)\nWelche Stadtteile/Ortsteile sind besonders betroffen?\n- **Stadtteil A**: ? E-Autos (KBA), geschätzte Wallboxen ?\n- **Stadtteil B**: ? E-Autos (KBA), geschätzte Wallboxen ?\n- Muster: Einfamilienhausgebiete (hohes E-Auto-Aufkommen) + alte NS-Netze = Risiko\n- **Datenqualität**: Für präzise Analysen Netzbetreiber-interne Daten erforderlich\n\n## 5. §14a EnWG INTEGRATION (Steuerbare Verbrauchseinrichtungen)\n\n### 5.1 Rechtliche Grundlage\n**§14a EnWG** (Energiewirtschaftsgesetz):\n- Netzbetreiber darf steuerbare Verbrauchseinrichtungen dimmen (Wallbox, Wärmepumpe)\n- Kunde erhält reduzierte Netzentgelte (Modul 1/2/3)\n- Mindest-Ladeleistung: 4.2 kW (für Wallboxen)\n- Dimmung: Max. 2 Stunden am Stück, dann wieder volle Leistung\n\n### 5.2 Netzentgelt-Reduktion (Kundenanreiz)\n**Modul 1** (Zeitvariable Netzentgelte):\n- Reduktion: 110-160 €/Jahr (je nach Netzbetreiber)\n- Voraussetzung: Netzbetreiber kann Last verschieben\n\n**Modul 2** (Prozentuale Reduktion):\n- Reduktion: 60% der Standard-Netzentgelte\n- Höhere Ersparnis für Vielnutzer\n\n**Modul 3** (Nulleinspeisung):\n- Nur für Anlagen mit PV + Speicher\n- Reduktion: Bis zu 190 €/Jahr\n\n### 5.3 Technische Umsetzung\n**Erforderliche Infrastruktur**:\n- Smart Meter Gateway (SMGW): ~100€ Einbau pro Haushalt\n- Steuerbox Wallbox: ~75€ (CLS-Schnittstelle)\n- Kommunikation: HEMS (Home Energy Management System) oder direkt vom Netzbetreiber\n\n**Kosten-Nutzen für Netzbetreiber**:\n- CAPEX §14a-Ausrüstung: ? Wallboxen × 175€ = ?k€\n- Vermiedener Netzausbau: ? km NS-Kabel × 100k€/km = ?k€\n- **ROI**: Vermiedener Netzausbau / CAPEX §14a = ?\n- Typisch: ROI 3-5 Jahre (sehr attraktiv!)\n\n### 5.4 Kundenkommunikation & Akzeptanz\n**Kritische Erfolgsfaktoren**:\n- Transparente Kommunikation: \"Sie sparen X€/Jahr, Ladung garantiert\"\n- App/Portal: Kunde sieht Lade-Historie, Ersparnis\n- Opt-Out-Option: Kunde kann §14a ablehnen (zahlt dann Standard-Netzentgelt)\n- Erfahrungswerte: 80-90% Akzeptanz bei guter Kommunikation\n\n### 5.5 Netzeffekt §14a\n**Annahme**: 70% aller Wallboxen 2031 sind §14a-steuerbar\n- Wallboxen gesamt: ?\n- Davon §14a-steuerbar: ? × 70% = ?\n- Gleichzeitigkeits-Reduktion: 0.3 → 0.15 (50%)\n- **Vermiedene Netzlast**: ? MW\n- **Vermiedene Investitionen**: ? Mio. € (NS-Kabel-Verstärkung)\n\n## 6. INVESTITIONSPLANUNG E-MOBILITÄT\n\n### 6.1 Szenario A: OHNE §14a-Steuerung\n**NS-Netz-Verstärkung erforderlich**:\n- Anzahl kritische Straßen: ?\n- Durchschnittliche Verstärkungslänge: ? m pro Straße\n- Kosten NS-Kabel: 100 €/m\n- **Gesamt-CAPEX**: ? Straßen × ? m × 100 €/m = ? Mio. €\n\n**Transformator-Upgrades**:\n- Anzahl überlastete Trafos (>90%): ?\n- Upgrade 10 MVA → 20 MVA: 300k€ pro Trafo\n- **Gesamt-CAPEX**: ? Trafos × 300k€ = ? Mio. €\n\n**Gesamtinvestition Szenario A**: ? Mio. €\n\n### 6.2 Szenario B: MIT §14a-Steuerung (70% Abdeckung)\n**§14a-Ausrüstung**:\n- Wallboxen × 70% × 175€ = ? Mio. €\n\n**Reduzierter Netzausbau**:\n- NS-Verstärkung: 50% weniger Straßen = ? Mio. €\n- Transformator-Upgrades: 30% weniger = ? Mio. €\n\n**Gesamtinvestition Szenario B**: ? Mio. €\n**Einsparung vs. Szenario A**: ? Mio. € (≈40-60% Reduktion typisch)\n\n### 6.3 Empfehlung\n**Szenario B** ist wirtschaftlich überlegen:\n- Geringere CAPEX-Belastung\n- Schnellere Umsetzung (keine Tiefbauarbeiten)\n- Flexibler (Software-Updates möglich)\n- Kundenvorteil (reduzierte Netzentgelte)\n\n## 7. ZUSAMMENFASSUNG & HANDLUNGSEMPFEHLUNGEN\n\n### 7.1 Key Findings\n- E-Autos im Netzgebiet 2031: ? (heute: ?)\n- Wallboxen: ? (heute: ?)\n- Zusatzlast OHNE §14a: ? MW (= +?% der Jahreshöchstlast)\n- Zusatzlast MIT §14a: ? MW (= +?%)\n- Investitionsbedarf OHNE §14a: ? Mio. €\n- Investitionsbedarf MIT §14a: ? Mio. € (Einsparung: ? Mio. €)\n\n### 7.2 Sofortmaßnahmen (0-6 Monate)\n1. **§14a-Steuerung verpflichtend machen**: Neue Wallboxen nur mit §14a genehmigen\n2. **Kritische Straßen identifizieren**: Top 10 Liste erstellen (siehe Abschnitt 4.3)\n3. **Kundenkommunikation starten**: Vorteile §14a erklären, Akzeptanz schaffen\n4. **Pilotprojekt**: 100 Wallboxen mit §14a ausstatten, Erfahrungen sammeln\n\n### 7.3 Mittelfristig (6-24 Monate)\n1. **Rollout §14a**: 1.000+ Wallboxen ausrüsten\n2. **NS-Verstärkung**: Top 5 kritischste Straßen verstärken (unvermeidbar)\n3. **Schnelllade-Hub-Planung**: Standorte für HPC identifizieren, MS-Anschluss planen\n4. **Monitoring-System**: Echtzeit-Überwachung Wallbox-Lasten pro NS-Strang\n\n### 7.4 Langfristig (2+ Jahre)\n1. **Vehicle-to-Grid (V2G)**: Bidirektionales Laden testen (E-Auto als Speicher)\n2. **Dynamische Tarife**: Zeit- und lastenabhängige Netzentgelte\n3. **Quartiersspeicher**: Gemeinschaftsspeicher für E-Auto-Ladevorgänge\n4. **Integration PV + Wallbox**: Eigenverbrauchs-Optimierung fördern\n\n---\n\n**KRITISCHER ERFOLGSFAKTOR**: §14a-Steuerung ist der größte CAPEX-Hebel für E-Mobilität!\nOhne §14a drohen Investitionskosten von ? Mio. € für Netzausbau.\nMit §14a: Nur ? Mio. € (Einsparung ?%).\n"
+            }
+          ]
+        }
+      },
+      "gridLossAnalysis": {
+        "available": false,
+        "error": "Timeout after 30s"
+      },
+      "anlagenInPruefung": {
+        "available": true,
+        "data": {
+          "success": true,
+          "error": "BDEW code 9980231000006 could not be resolved to MaStR ID. Company: Unknown",
+          "suggestion": "Please use gridOperatorMastrId directly or check BDEW code.",
+          "metadata": {
+            "toolName": "cernion_installations_local",
+            "timestamp": "2026-03-06T08:00:25.103Z"
+          }
+        }
+      },
+      "installationenOhneMelo": {
+        "available": true,
+        "data": {
+          "success": true,
+          "error": "BDEW code 9980231000006 could not be resolved to MaStR ID. Company: Unknown",
+          "suggestion": "Please use gridOperatorMastrId directly or check BDEW code.",
+          "metadata": {
+            "toolName": "cernion_installations_local",
+            "timestamp": "2026-03-06T08:00:19.999Z"
+          }
+        }
+      },
+      "ortsfremdeAnlagen": {
+        "available": false,
+        "error": "PLZ prefix could not be determined"
+      }
+    },
+    "section2": {
+      "solar": {
+        "available": true,
+        "data": []
+      },
+      "wind": {
+        "available": true,
+        "data": []
+      },
+      "storage": {
+        "available": true,
+        "data": []
+      },
+      "generationForecast": {
+        "available": true,
+        "data": {
+          "success": true,
+          "summary": {
+            "location": "Germany",
+            "type": "solar",
+            "totalCapacityMW": 209.78381400000075,
+            "installationCount": 10000,
+            "forecastPeriod": {
+              "start": "2026-03-07T00:00:00.000Z",
+              "end": "2026-03-08T00:00:00.000Z"
+            },
+            "isHistorical": false,
+            "dataMode": "weather_forecast"
+          },
+          "forecasts": [
+            {
+              "timestamp": "2026-03-07T00:00:00.000Z",
+              "generationMW": 15.86,
+              "capacityFactor": 0.076,
+              "weather": {
+                "temperature": 9.9,
+                "windSpeed": 5.8,
+                "solarIrradiance": 145.6,
+                "cloudCover": 42.7
+              }
+            },
+            {
+              "timestamp": "2026-03-08T00:00:00.000Z",
+              "generationMW": 6.23,
+              "capacityFactor": 0.03,
+              "weather": {
+                "temperature": 10,
+                "windSpeed": 5.4,
+                "solarIrradiance": 128.5,
+                "cloudCover": 74.5
+              }
+            }
+          ],
+          "metadata": {
+            "toolName": "mastr_generation_forecast",
+            "timestamp": "2026-03-06T08:00:28.374Z"
+          }
+        }
+      },
+      "windSolarActual": {
+        "available": true,
+        "data": {
+          "success": true,
+          "error": "Query failed",
+          "message": "Cannot read properties of undefined (reading 'toLowerCase')",
+          "hint": "Check if the region/date parameters are valid and if ENTSO-E API is accessible",
+          "metadata": {
+            "toolName": "entsoe_wind_solar_actual",
+            "timestamp": "2026-03-06T08:00:28.518Z"
+          }
+        }
+      },
+      "regionalEnergyMix": {
+        "available": false,
+        "error": "Timeout after 30s"
+      }
+    },
+    "section3": {
+      "prices": {
+        "available": true,
+        "data": {
+          "success": true,
+          "region": "Deutschland",
+          "eicCode": "10Y1001A1001A82H",
+          "periodStart": "202603060000",
+          "periodEnd": "202603062300",
+          "currency": "EUR",
+          "resolution": "PT15M",
+          "dataPoints": [
+            {
+              "timestamp": "2026-03-05T23:00:00.000Z",
+              "hour": 23,
+              "priceEURperMWh": 103.2
+            },
+            {
+              "timestamp": "2026-03-05T23:15:00.000Z",
+              "hour": 23,
+              "priceEURperMWh": 104.49
+            },
+            {
+              "timestamp": "2026-03-05T23:30:00.000Z",
+              "hour": 23,
+              "priceEURperMWh": 104.44
+            },
+            {
+              "timestamp": "2026-03-05T23:45:00.000Z",
+              "hour": 23,
+              "priceEURperMWh": 104.37
+            },
+            {
+              "timestamp": "2026-03-06T00:00:00.000Z",
+              "hour": 0,
+              "priceEURperMWh": 106.23
+            },
+            {
+              "timestamp": "2026-03-06T00:15:00.000Z",
+              "hour": 0,
+              "priceEURperMWh": 105.85
+            },
+            {
+              "timestamp": "2026-03-06T00:30:00.000Z",
+              "hour": 0,
+              "priceEURperMWh": 106.92
+            },
+            {
+              "timestamp": "2026-03-06T00:45:00.000Z",
+              "hour": 0,
+              "priceEURperMWh": 105
+            },
+            {
+              "timestamp": "2026-03-06T01:00:00.000Z",
+              "hour": 1,
+              "priceEURperMWh": 109.38
+            },
+            {
+              "timestamp": "2026-03-06T01:15:00.000Z",
+              "hour": 1,
+              "priceEURperMWh": 108.04
+            },
+            {
+              "timestamp": "2026-03-06T01:30:00.000Z",
+              "hour": 1,
+              "priceEURperMWh": 108.57
+            },
+            {
+              "timestamp": "2026-03-06T01:45:00.000Z",
+              "hour": 1,
+              "priceEURperMWh": 108.1
+            },
+            {
+              "timestamp": "2026-03-06T02:00:00.000Z",
+              "hour": 2,
+              "priceEURperMWh": 108.83
+            },
+            {
+              "timestamp": "2026-03-06T02:15:00.000Z",
+              "hour": 2,
+              "priceEURperMWh": 108.9
+            },
+            {
+              "timestamp": "2026-03-06T02:30:00.000Z",
+              "hour": 2,
+              "priceEURperMWh": 109.54
+            },
+            {
+              "timestamp": "2026-03-06T02:45:00.000Z",
+              "hour": 2,
+              "priceEURperMWh": 110.83
+            },
+            {
+              "timestamp": "2026-03-06T03:00:00.000Z",
+              "hour": 3,
+              "priceEURperMWh": 110.74
+            },
+            {
+              "timestamp": "2026-03-06T03:15:00.000Z",
+              "hour": 3,
+              "priceEURperMWh": 109.97
+            },
+            {
+              "timestamp": "2026-03-06T03:30:00.000Z",
+              "hour": 3,
+              "priceEURperMWh": 118
+            },
+            {
+              "timestamp": "2026-03-06T03:45:00.000Z",
+              "hour": 3,
+              "priceEURperMWh": 123.29
+            },
+            {
+              "timestamp": "2026-03-06T04:00:00.000Z",
+              "hour": 4,
+              "priceEURperMWh": 114.22
+            },
+            {
+              "timestamp": "2026-03-06T04:15:00.000Z",
+              "hour": 4,
+              "priceEURperMWh": 121.58
+            },
+            {
+              "timestamp": "2026-03-06T04:30:00.000Z",
+              "hour": 4,
+              "priceEURperMWh": 133.16
+            },
+            {
+              "timestamp": "2026-03-06T04:45:00.000Z",
+              "hour": 4,
+              "priceEURperMWh": 149.67
+            },
+            {
+              "timestamp": "2026-03-06T05:00:00.000Z",
+              "hour": 5,
+              "priceEURperMWh": 126.43
+            },
+            {
+              "timestamp": "2026-03-06T05:15:00.000Z",
+              "hour": 5,
+              "priceEURperMWh": 147.36
+            },
+            {
+              "timestamp": "2026-03-06T05:30:00.000Z",
+              "hour": 5,
+              "priceEURperMWh": 161.92
+            },
+            {
+              "timestamp": "2026-03-06T05:45:00.000Z",
+              "hour": 5,
+              "priceEURperMWh": 193.43
+            },
+            {
+              "timestamp": "2026-03-06T06:00:00.000Z",
+              "hour": 6,
+              "priceEURperMWh": 214.51
+            },
+            {
+              "timestamp": "2026-03-06T06:15:00.000Z",
+              "hour": 6,
+              "priceEURperMWh": 195.13
+            },
+            {
+              "timestamp": "2026-03-06T06:30:00.000Z",
+              "hour": 6,
+              "priceEURperMWh": 168.02
+            },
+            {
+              "timestamp": "2026-03-06T06:45:00.000Z",
+              "hour": 6,
+              "priceEURperMWh": 130.44
+            },
+            {
+              "timestamp": "2026-03-06T07:00:00.000Z",
+              "hour": 7,
+              "priceEURperMWh": 184.37
+            },
+            {
+              "timestamp": "2026-03-06T07:15:00.000Z",
+              "hour": 7,
+              "priceEURperMWh": 148.94
+            },
+            {
+              "timestamp": "2026-03-06T07:30:00.000Z",
+              "hour": 7,
+              "priceEURperMWh": 121.4
+            },
+            {
+              "timestamp": "2026-03-06T07:45:00.000Z",
+              "hour": 7,
+              "priceEURperMWh": 98.44
+            },
+            {
+              "timestamp": "2026-03-06T08:00:00.000Z",
+              "hour": 8,
+              "priceEURperMWh": 143.53
+            },
+            {
+              "timestamp": "2026-03-06T08:15:00.000Z",
+              "hour": 8,
+              "priceEURperMWh": 108.6
+            },
+            {
+              "timestamp": "2026-03-06T08:30:00.000Z",
+              "hour": 8,
+              "priceEURperMWh": 103.17
+            },
+            {
+              "timestamp": "2026-03-06T08:45:00.000Z",
+              "hour": 8,
+              "priceEURperMWh": 92.55
+            },
+            {
+              "timestamp": "2026-03-06T09:00:00.000Z",
+              "hour": 9,
+              "priceEURperMWh": 111.98
+            },
+            {
+              "timestamp": "2026-03-06T09:15:00.000Z",
+              "hour": 9,
+              "priceEURperMWh": 100.69
+            },
+            {
+              "timestamp": "2026-03-06T09:30:00.000Z",
+              "hour": 9,
+              "priceEURperMWh": 96.14
+            },
+            {
+              "timestamp": "2026-03-06T09:45:00.000Z",
+              "hour": 9,
+              "priceEURperMWh": 77.19
+            },
+            {
+              "timestamp": "2026-03-06T10:00:00.000Z",
+              "hour": 10,
+              "priceEURperMWh": 87.31
+            },
+            {
+              "timestamp": "2026-03-06T10:15:00.000Z",
+              "hour": 10,
+              "priceEURperMWh": 69.8
+            },
+            {
+              "timestamp": "2026-03-06T10:30:00.000Z",
+              "hour": 10,
+              "priceEURperMWh": 63.2
+            },
+            {
+              "timestamp": "2026-03-06T10:45:00.000Z",
+              "hour": 10,
+              "priceEURperMWh": 46.54
+            },
+            {
+              "timestamp": "2026-03-06T11:00:00.000Z",
+              "hour": 11,
+              "priceEURperMWh": 63.13
+            },
+            {
+              "timestamp": "2026-03-06T11:15:00.000Z",
+              "hour": 11,
+              "priceEURperMWh": 49.39
+            },
+            {
+              "timestamp": "2026-03-06T11:30:00.000Z",
+              "hour": 11,
+              "priceEURperMWh": 51.36
+            },
+            {
+              "timestamp": "2026-03-06T11:45:00.000Z",
+              "hour": 11,
+              "priceEURperMWh": 46.68
+            },
+            {
+              "timestamp": "2026-03-06T12:00:00.000Z",
+              "hour": 12,
+              "priceEURperMWh": 48.25
+            },
+            {
+              "timestamp": "2026-03-06T12:15:00.000Z",
+              "hour": 12,
+              "priceEURperMWh": 47.32
+            },
+            {
+              "timestamp": "2026-03-06T12:30:00.000Z",
+              "hour": 12,
+              "priceEURperMWh": 46.69
+            },
+            {
+              "timestamp": "2026-03-06T12:45:00.000Z",
+              "hour": 12,
+              "priceEURperMWh": 52.35
+            },
+            {
+              "timestamp": "2026-03-06T13:00:00.000Z",
+              "hour": 13,
+              "priceEURperMWh": 45.71
+            },
+            {
+              "timestamp": "2026-03-06T13:15:00.000Z",
+              "hour": 13,
+              "priceEURperMWh": 64.5
+            },
+            {
+              "timestamp": "2026-03-06T13:30:00.000Z",
+              "hour": 13,
+              "priceEURperMWh": 84.59
+            },
+            {
+              "timestamp": "2026-03-06T13:45:00.000Z",
+              "hour": 13,
+              "priceEURperMWh": 100.95
+            },
+            {
+              "timestamp": "2026-03-06T14:00:00.000Z",
+              "hour": 14,
+              "priceEURperMWh": 85.26
+            },
+            {
+              "timestamp": "2026-03-06T14:15:00.000Z",
+              "hour": 14,
+              "priceEURperMWh": 104.01
+            },
+            {
+              "timestamp": "2026-03-06T14:30:00.000Z",
+              "hour": 14,
+              "priceEURperMWh": 105
+            },
+            {
+              "timestamp": "2026-03-06T14:45:00.000Z",
+              "hour": 14,
+              "priceEURperMWh": 134
+            },
+            {
+              "timestamp": "2026-03-06T15:00:00.000Z",
+              "hour": 15,
+              "priceEURperMWh": 90.86
+            },
+            {
+              "timestamp": "2026-03-06T15:15:00.000Z",
+              "hour": 15,
+              "priceEURperMWh": 120.6
+            },
+            {
+              "timestamp": "2026-03-06T15:30:00.000Z",
+              "hour": 15,
+              "priceEURperMWh": 138.87
+            },
+            {
+              "timestamp": "2026-03-06T15:45:00.000Z",
+              "hour": 15,
+              "priceEURperMWh": 171.26
+            },
+            {
+              "timestamp": "2026-03-06T16:00:00.000Z",
+              "hour": 16,
+              "priceEURperMWh": 115.48
+            },
+            {
+              "timestamp": "2026-03-06T16:15:00.000Z",
+              "hour": 16,
+              "priceEURperMWh": 154.67
+            },
+            {
+              "timestamp": "2026-03-06T16:30:00.000Z",
+              "hour": 16,
+              "priceEURperMWh": 190.69
+            },
+            {
+              "timestamp": "2026-03-06T16:45:00.000Z",
+              "hour": 16,
+              "priceEURperMWh": 248.91
+            },
+            {
+              "timestamp": "2026-03-06T17:00:00.000Z",
+              "hour": 17,
+              "priceEURperMWh": 228.15
+            },
+            {
+              "timestamp": "2026-03-06T17:15:00.000Z",
+              "hour": 17,
+              "priceEURperMWh": 244.94
+            },
+            {
+              "timestamp": "2026-03-06T17:30:00.000Z",
+              "hour": 17,
+              "priceEURperMWh": 230.02
+            },
+            {
+              "timestamp": "2026-03-06T17:45:00.000Z",
+              "hour": 17,
+              "priceEURperMWh": 215.1
+            },
+            {
+              "timestamp": "2026-03-06T18:00:00.000Z",
+              "hour": 18,
+              "priceEURperMWh": 238.11
+            },
+            {
+              "timestamp": "2026-03-06T18:15:00.000Z",
+              "hour": 18,
+              "priceEURperMWh": 184.38
+            },
+            {
+              "timestamp": "2026-03-06T18:30:00.000Z",
+              "hour": 18,
+              "priceEURperMWh": 170.41
+            },
+            {
+              "timestamp": "2026-03-06T18:45:00.000Z",
+              "hour": 18,
+              "priceEURperMWh": 166.16
+            },
+            {
+              "timestamp": "2026-03-06T19:00:00.000Z",
+              "hour": 19,
+              "priceEURperMWh": 169.76
+            },
+            {
+              "timestamp": "2026-03-06T19:15:00.000Z",
+              "hour": 19,
+              "priceEURperMWh": 160.05
+            },
+            {
+              "timestamp": "2026-03-06T19:30:00.000Z",
+              "hour": 19,
+              "priceEURperMWh": 153.43
+            },
+            {
+              "timestamp": "2026-03-06T19:45:00.000Z",
+              "hour": 19,
+              "priceEURperMWh": 129.2
+            },
+            {
+              "timestamp": "2026-03-06T20:00:00.000Z",
+              "hour": 20,
+              "priceEURperMWh": 150.39
+            },
+            {
+              "timestamp": "2026-03-06T20:15:00.000Z",
+              "hour": 20,
+              "priceEURperMWh": 141.99
+            },
+            {
+              "timestamp": "2026-03-06T20:30:00.000Z",
+              "hour": 20,
+              "priceEURperMWh": 128.13
+            },
+            {
+              "timestamp": "2026-03-06T20:45:00.000Z",
+              "hour": 20,
+              "priceEURperMWh": 116.26
+            },
+            {
+              "timestamp": "2026-03-06T21:00:00.000Z",
+              "hour": 21,
+              "priceEURperMWh": 135.86
+            },
+            {
+              "timestamp": "2026-03-06T21:15:00.000Z",
+              "hour": 21,
+              "priceEURperMWh": 127.15
+            },
+            {
+              "timestamp": "2026-03-06T21:30:00.000Z",
+              "hour": 21,
+              "priceEURperMWh": 126.83
+            },
+            {
+              "timestamp": "2026-03-06T21:45:00.000Z",
+              "hour": 21,
+              "priceEURperMWh": 119.14
+            },
+            {
+              "timestamp": "2026-03-06T22:00:00.000Z",
+              "hour": 22,
+              "priceEURperMWh": 136.43
+            },
+            {
+              "timestamp": "2026-03-06T22:15:00.000Z",
+              "hour": 22,
+              "priceEURperMWh": 126.95
+            },
+            {
+              "timestamp": "2026-03-06T22:30:00.000Z",
+              "hour": 22,
+              "priceEURperMWh": 124.89
+            },
+            {
+              "timestamp": "2026-03-06T22:45:00.000Z",
+              "hour": 22,
+              "priceEURperMWh": 116.03
+            }
+          ],
+          "statistics": {
+            "minPrice": 45.71,
+            "maxPrice": 248.91,
+            "avgPrice": 123.8,
+            "medianPrice": 115.76,
+            "totalDataPoints": 96
+          },
+          "metadata": {
+            "toolName": "cernion_energy_prices",
+            "timestamp": "2026-03-06T08:01:02.421Z"
+          }
+        }
+      },
+      "spotprices": {
+        "available": false,
+        "error": "Parameters validation error!"
+      },
+      "negativePrices": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": {
+            "content": [
+              {
+                "type": "text",
+                "text": "✅ **No Negative Price Periods Found**\n\n- No remuneration loss\n- EEG §51 compliance: OK\n- Risk level: Low\n\n**Source**: Netztransparenz.de"
+              }
+            ]
+          },
+          "metadata": {
+            "jobId": "994f733c-e560-4cd3-b0ad-774ec9d2ce14",
+            "status": "succeeded",
+            "timestamp": "2026-03-06T08:01:03.699Z"
+          }
+        }
+      },
+      "actualGeneration": {
+        "available": true,
+        "data": {
+          "success": true,
+          "region": "Denmark (West)",
+          "eicCode": "10YDK-1--------W",
+          "period": {
+            "from": "2026-03-06",
+            "to": "2026-03-06"
+          },
+          "resolution": "PT60M",
+          "generation": [],
+          "statistics": {
+            "totalGenerationMWh": 0,
+            "avgGenerationMW": 0,
+            "byPSRType": {},
+            "renewableShare": 0,
+            "fossilShare": 0,
+            "nuclearShare": 0
+          },
+          "metadata": {
+            "toolName": "entsoe_actual_generation",
+            "timestamp": "2026-03-06T08:01:06.852Z"
+          }
+        }
+      },
+      "loadForecast": {
+        "available": true,
+        "data": {
+          "success": true,
+          "error": "Query failed",
+          "message": "Cannot read properties of undefined (reading 'toLowerCase')",
+          "hint": "Check if the region/date parameters are valid and if ENTSO-E API is accessible",
+          "metadata": {
+            "toolName": "entsoe_load_forecast",
+            "timestamp": "2026-03-06T08:01:07.049Z"
+          }
+        }
+      },
+      "unavailability": {
+        "available": true,
+        "data": {
+          "success": true,
+          "region": "Denmark (West)",
+          "eicCode": "10YDK-1--------W",
+          "period": {
+            "from": "2026-03-06",
+            "to": "2026-03-06"
+          },
+          "unavailabilityTypes": [
+            "production"
+          ],
+          "unavailabilities": [],
+          "statistics": {
+            "totalUnavailabilities": 0,
+            "totalCapacityMW": 0,
+            "byPSRType": {},
+            "byBusinessType": {}
+          },
+          "metadata": {
+            "toolName": "entsoe_unavailability",
+            "timestamp": "2026-03-06T08:01:09.299Z"
+          }
+        }
+      },
+      "priceProductionAnalysis": {
+        "available": false,
+        "error": "Timeout after 30s"
+      }
+    },
+    "section4": {
+      "countryStorage": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": {
+            "country": "Germany",
+            "code": "DE",
+            "date": "2026-03-04",
+            "storage": {
+              "gasInStorage": 52.1666,
+              "workingGasVolume": 251.1442,
+              "fillPercentage": 20.77,
+              "trend": -0.06
+            },
+            "operations": {
+              "injection": 243.86,
+              "withdrawal": 405.7,
+              "netFlow": 161.8
+            },
+            "capacity": {
+              "injectionCapacity": 4258,
+              "withdrawalCapacity": 7086.73,
+              "contractedCapacity": 208.0507,
+              "availableCapacity": 44.0267
+            },
+            "consumption": {
+              "annual": 903.9,
+              "coverageDays": 5.77
+            },
+            "status": "E",
+            "updatedAt": "2026-03-05 17:05:03"
+          },
+          "metadata": {
+            "jobId": "5b2b7a92-c41a-41c5-a0f8-47a656bd7c83",
+            "status": "succeeded",
+            "timestamp": "2026-03-06T08:01:40.519Z"
+          }
+        }
+      },
+      "euStatistics": {
+        "available": true,
+        "data": {
+          "success": false,
+          "error": {
+            "code": "JOB_FAILED",
+            "message": "AGSI EU Statistics failed: No data found for country: eu",
+            "jobId": "e9b5aabc-17d2-4147-b09f-f497fb868e0c"
+          }
+        }
+      },
+      "storageTrend": {
+        "available": false,
+        "error": "Parameters validation error!"
+      },
+      "supplySecurityCheck": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": {
+            "country": "Germany",
+            "date": "2026-03-04",
+            "securityStatus": "CRITICAL",
+            "fillLevel": 20.77,
+            "daysOfConsumption": 5.77,
+            "thresholds": {
+              "winter": 90,
+              "critical": 30
+            },
+            "compliance": {
+              "meetsWinterTarget": false,
+              "gapToTarget": 69.23
+            },
+            "recommendation": "Immediate action required - storage level below critical threshold"
+          },
+          "metadata": {
+            "jobId": "eb93f72f-3789-4b6b-a0f2-be0c01e15e8d",
+            "status": "succeeded",
+            "timestamp": "2026-03-06T08:01:43.012Z"
+          }
+        }
+      },
+      "compareCountries": {
+        "available": false,
+        "error": "Parameters validation error!"
+      }
+    },
+    "section5": {
+      "benchmarkVnb": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": [
+            {
+              "type": "text",
+              "text": "## EWK Benchmark 2024: Stadtwerke Hockenheim\n**BNetzA-Name:** Stadtwerke Hockenheim  |  **BNr:** 10001208\n**Datenquelle:** BNetzA EWK-Monitoring 2024 via vnb-transparenz.de\n\n### ⏱ Anschlussdauer (Median in Wochen)\n**Rang EE-Anlagen NS:** 673 von 740 VNBs\n| Spannungsebene | Typ | Phase 1 (Wo) | Phase 2 (Wo) | Gesamt (Wo) |\n|---|---|---|---|---|\n| NS | EE-Anlagen | 7 | 105 | **112** |\n| MS | EE-Anlagen | 28 | 365 | **393** |\n| NS | Verbrauch/Speicher | 7 | 15 | **22** |\n> Phase 1 = Anschlussbegehren bis Netzanschlusszusage | Phase 2 = Zusage bis Inbetriebnahme\n\n### 💻 Digitalisierungsindex (0–100%)\n**Rang:** 11 von 656 VNBs\n| Kategorie | Score |\n|---|---|\n| **Gesamtscore** | **62%** |\n| Smart Grids | 18% |\n| – davon NS | 8% |\n| – davon MS | 35% |\n| – davon HS | – |\n| Digitale Prozesse & Systeme | 67% |\n| – Künstliche Intelligenz | 0% |\n| Datenmanagement & Analyse | 95% |\n| Kundenmanagement | 69% |\n| – Webportale | 74% |\n\n### ✅ Umsetzungsquote Netzanschlussbegehren\n**Rang EE-Anlagen NS:** 242 von 698 VNBs\n| Spannungsebene | Typ | Anträge | Realisiert | Quote |\n|---|---|---|---|---|\n| NS | EE-Anlagen | 175 | 175 | **100%** |\n| NS | Verbrauch/Speicher | 52 | 47 | **90.4%** |\n\n---\n> **Hinweis:** Alle Daten basieren auf Selbstauskünften der Netzbetreiber im Rahmen des BNetzA EWK-Monitorings 2024. Keine amtliche Stelle – maßgeblich sind die Originaldaten unter vnb-transparenz.de."
+            },
+            {
+              "type": "text",
+              "text": "{\n  \"vnb\": {\n    \"bnr\": \"10001208\",\n    \"vnb_id\": \"e2133912\",\n    \"firmenname\": \"Stadtwerke Hockenheim\",\n    \"bnetza_name\": \"Stadtwerke Hockenheim\"\n  },\n  \"anschlussdauer\": {\n    \"bnr\": \"10001208\",\n    \"vnb_id\": \"e2133912\",\n    \"firmenname\": \"Stadtwerke Hockenheim\",\n    \"bnetza_name\": \"Stadtwerke Hockenheim\",\n    \"ee_ns_phase1\": 7,\n    \"ee_ns_phase2\": 105,\n    \"ee_ns_gesamt\": 112,\n    \"ee_ms_phase1\": 28,\n    \"ee_ms_phase2\": 365,\n    \"ee_ms_gesamt\": 393,\n    \"verbrauch_ns_phase1\": 7,\n    \"verbrauch_ns_phase2\": 15,\n    \"verbrauch_ns_gesamt\": 22\n  },\n  \"digitalisierungsindex\": {\n    \"bnr\": \"10001208\",\n    \"vnb_id\": \"e2133912\",\n    \"firmenname\": \"Stadtwerke Hockenheim\",\n    \"bnetza_name\": \"Stadtwerke Hockenheim\",\n    \"gesamtscore\": 0.62,\n    \"smart_grids\": 0.18,\n    \"digitale_prozesse\": 0.67,\n    \"datenmanagement\": 0.95,\n    \"kundenmanagement\": 0.69,\n    \"smart_grids_ns\": 0.08,\n    \"smart_grids_ms\": 0.35,\n    \"digitale_prozesse_ns\": 1,\n    \"digitale_prozesse_ms\": 1,\n    \"digitale_prozesse_ai\": 0,\n    \"datenmanagement_ns\": 0.93,\n    \"datenmanagement_ms\": 0.97,\n    \"kundenmanagement_ns\": 0.6,\n    \"kundenmanagement_ms\": 0.8,\n    \"kundenmanagement_webportale\": 0.74\n  },\n  \"umsetzungsquote\": {\n    \"bnr\": \"10001208\",\n    \"vnb_id\": \"e2133912\",\n    \"firmenname\": \"Stadtwerke Hockenheim\",\n    \"bnetza_name\": \"Stadtwerke Hockenheim\",\n    \"antraege_ee_ns\": 175,\n    \"realisiert_ee_ns\": 175,\n    \"antraege_verbrauch_ns\": 52,\n    \"realisiert_verbrauch_ns\": 47,\n    \"umsetzungsquote_ee_ns\": 1,\n    \"umsetzungsquote_verbrauch_ns\": 0.9038\n  },\n  \"rankings\": {\n    \"anschlussdauer_ee_ns_rank\": 673,\n    \"anschlussdauer_ee_ns_total\": 740,\n    \"anschlussdauer_verbrauch_ns_rank\": 253,\n    \"anschlussdauer_verbrauch_ns_total\": 708,\n    \"digitalisierungsindex_rank\": 11,\n    \"digitalisierungsindex_total\": 656,\n    \"umsetzungsquote_ee_ns_rank\": 242,\n    \"umsetzungsquote_ee_ns_total\": 698\n  }\n}",
+              "json": {
+                "vnb": {
+                  "bnr": "10001208",
+                  "vnb_id": "e2133912",
+                  "firmenname": "Stadtwerke Hockenheim",
+                  "bnetza_name": "Stadtwerke Hockenheim"
+                },
+                "anschlussdauer": {
+                  "bnr": "10001208",
+                  "vnb_id": "e2133912",
+                  "firmenname": "Stadtwerke Hockenheim",
+                  "bnetza_name": "Stadtwerke Hockenheim",
+                  "ee_ns_phase1": 7,
+                  "ee_ns_phase2": 105,
+                  "ee_ns_gesamt": 112,
+                  "ee_ms_phase1": 28,
+                  "ee_ms_phase2": 365,
+                  "ee_ms_gesamt": 393,
+                  "verbrauch_ns_phase1": 7,
+                  "verbrauch_ns_phase2": 15,
+                  "verbrauch_ns_gesamt": 22
+                },
+                "digitalisierungsindex": {
+                  "bnr": "10001208",
+                  "vnb_id": "e2133912",
+                  "firmenname": "Stadtwerke Hockenheim",
+                  "bnetza_name": "Stadtwerke Hockenheim",
+                  "gesamtscore": 0.62,
+                  "smart_grids": 0.18,
+                  "digitale_prozesse": 0.67,
+                  "datenmanagement": 0.95,
+                  "kundenmanagement": 0.69,
+                  "smart_grids_ns": 0.08,
+                  "smart_grids_ms": 0.35,
+                  "digitale_prozesse_ns": 1,
+                  "digitale_prozesse_ms": 1,
+                  "digitale_prozesse_ai": 0,
+                  "datenmanagement_ns": 0.93,
+                  "datenmanagement_ms": 0.97,
+                  "kundenmanagement_ns": 0.6,
+                  "kundenmanagement_ms": 0.8,
+                  "kundenmanagement_webportale": 0.74
+                },
+                "umsetzungsquote": {
+                  "bnr": "10001208",
+                  "vnb_id": "e2133912",
+                  "firmenname": "Stadtwerke Hockenheim",
+                  "bnetza_name": "Stadtwerke Hockenheim",
+                  "antraege_ee_ns": 175,
+                  "realisiert_ee_ns": 175,
+                  "antraege_verbrauch_ns": 52,
+                  "realisiert_verbrauch_ns": 47,
+                  "umsetzungsquote_ee_ns": 1,
+                  "umsetzungsquote_verbrauch_ns": 0.9038
+                },
+                "rankings": {
+                  "anschlussdauer_ee_ns_rank": 673,
+                  "anschlussdauer_ee_ns_total": 740,
+                  "anschlussdauer_verbrauch_ns_rank": 253,
+                  "anschlussdauer_verbrauch_ns_total": 708,
+                  "digitalisierungsindex_rank": 11,
+                  "digitalisierungsindex_total": 656,
+                  "umsetzungsquote_ee_ns_rank": 242,
+                  "umsetzungsquote_ee_ns_total": 698
+                }
+              }
+            }
+          ],
+          "metadata": {
+            "toolName": "ewk_benchmark_vnb",
+            "timestamp": "2026-03-06T07:58:43.783Z"
+          }
+        }
+      },
+      "anschlussdauer": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": [
+            {
+              "type": "text",
+              "text": "## EWK Monitoring 2024 – Anschlussdauer (Netzanschluss-Wartezeiten)\n**Quelle:** BNetzA Energiewendekompetenz-Monitoring via vnb-transparenz.de\n\n**Filter:** Spannungsebene: NS | Typ: EE\n**Ergebnisse:** 1 VNBs gefunden (zeige 0–1)\n\n### Benchmarks (Median-Anschlussdauer in Wochen)\n- **EE-Anlagen NS** (740 VNBs): Median 40 Wo · Q25 20 · Q75 65 · Max 285\n- **EE-Anlagen MS** (502 VNBs): Median 120 Wo · Q25 50 · Q75 236 · Max 1102\n- **Verbrauchsanlagen NS** (708 VNBs): Median 30 Wo · Q25 16 · Q75 51 · Max 385\n\n### Ergebnisse\n- **Stadtwerke Hockenheim** (BNr: 10001208) | EE NS: 112 Wo | Rang: 673 / 740\n\n> Hinweis: Alle Dauern sind Medianwerte (Berichtsjahr 2024). Einheit: Wochen."
+            },
+            {
+              "type": "text",
+              "text": "{\n  \"metadata\": {\n    \"total\": 1,\n    \"offset\": 0,\n    \"limit\": 1\n  },\n  \"stats\": {\n    \"ee_ns_gesamt\": {\n      \"n\": 740,\n      \"min\": 1,\n      \"p25\": 20,\n      \"median\": 40,\n      \"p75\": 65,\n      \"max\": 285,\n      \"mean\": 50.8\n    },\n    \"ee_ms_gesamt\": {\n      \"n\": 502,\n      \"min\": 4,\n      \"p25\": 50,\n      \"median\": 120,\n      \"p75\": 236,\n      \"max\": 1102,\n      \"mean\": 168.6\n    },\n    \"ee_hs_gesamt\": {\n      \"n\": 25,\n      \"min\": 13,\n      \"p25\": 70,\n      \"median\": 148,\n      \"p75\": 300,\n      \"max\": 706,\n      \"mean\": 221.9\n    },\n    \"verbrauch_ns_gesamt\": {\n      \"n\": 708,\n      \"min\": 1,\n      \"p25\": 16,\n      \"median\": 30,\n      \"p75\": 51,\n      \"max\": 385,\n      \"mean\": 42.4\n    },\n    \"verbrauch_ms_gesamt\": {\n      \"n\": 377,\n      \"min\": 1,\n      \"p25\": 53,\n      \"median\": 111,\n      \"p75\": 230,\n      \"max\": 857,\n      \"mean\": 160\n    },\n    \"verbrauch_hs_gesamt\": {\n      \"n\": 22,\n      \"min\": 12,\n      \"p25\": 45,\n      \"median\": 98,\n      \"p75\": 408,\n      \"max\": 1185,\n      \"mean\": 325.5\n    }\n  },\n  \"rows\": [\n    {\n      \"bnr\": \"10001208\",\n      \"firmenname\": \"Stadtwerke Hockenheim\",\n      \"bnetza_name\": \"Stadtwerke Hockenheim\",\n      \"ee_ns_phase1_wochen\": 7,\n      \"ee_ns_phase2_wochen\": 105,\n      \"ee_ns_gesamt_wochen\": 112,\n      \"rank_ee_ns\": \"673 / 740\"\n    }\n  ]\n}",
+              "json": {
+                "metadata": {
+                  "total": 1,
+                  "offset": 0,
+                  "limit": 1
+                },
+                "stats": {
+                  "ee_ns_gesamt": {
+                    "n": 740,
+                    "min": 1,
+                    "p25": 20,
+                    "median": 40,
+                    "p75": 65,
+                    "max": 285,
+                    "mean": 50.8
+                  },
+                  "ee_ms_gesamt": {
+                    "n": 502,
+                    "min": 4,
+                    "p25": 50,
+                    "median": 120,
+                    "p75": 236,
+                    "max": 1102,
+                    "mean": 168.6
+                  },
+                  "ee_hs_gesamt": {
+                    "n": 25,
+                    "min": 13,
+                    "p25": 70,
+                    "median": 148,
+                    "p75": 300,
+                    "max": 706,
+                    "mean": 221.9
+                  },
+                  "verbrauch_ns_gesamt": {
+                    "n": 708,
+                    "min": 1,
+                    "p25": 16,
+                    "median": 30,
+                    "p75": 51,
+                    "max": 385,
+                    "mean": 42.4
+                  },
+                  "verbrauch_ms_gesamt": {
+                    "n": 377,
+                    "min": 1,
+                    "p25": 53,
+                    "median": 111,
+                    "p75": 230,
+                    "max": 857,
+                    "mean": 160
+                  },
+                  "verbrauch_hs_gesamt": {
+                    "n": 22,
+                    "min": 12,
+                    "p25": 45,
+                    "median": 98,
+                    "p75": 408,
+                    "max": 1185,
+                    "mean": 325.5
+                  }
+                },
+                "rows": [
+                  {
+                    "bnr": "10001208",
+                    "firmenname": "Stadtwerke Hockenheim",
+                    "bnetza_name": "Stadtwerke Hockenheim",
+                    "ee_ns_phase1_wochen": 7,
+                    "ee_ns_phase2_wochen": 105,
+                    "ee_ns_gesamt_wochen": 112,
+                    "rank_ee_ns": "673 / 740"
+                  }
+                ]
+              }
+            }
+          ],
+          "metadata": {
+            "toolName": "ewk_anschlussdauer",
+            "timestamp": "2026-03-06T08:01:43.143Z"
+          }
+        }
+      },
+      "digitalisierungsindex": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": [
+            {
+              "type": "text",
+              "text": "## EWK Monitoring 2024 – Digitalisierungsindex\n**Quelle:** BNetzA Energiewendekompetenz-Monitoring via vnb-transparenz.de\n\n**Kategorie:** all\n**Ergebnisse:** 1 VNBs (zeige 1–1)\n\n### Benchmarks (Scores in %, höher = besser)\n- **Gesamtscore** (656 VNBs): Median 30% · Q25 23% · Q75 39% · Max 77%\n- **Smart Grids**: Median 15% · Q75 25%\n- **Digitale Prozesse**: Median 12% · Q75 33%\n- **Datenmanagement**: Median 60% · Q75 67%\n- **Kundenmanagement**: Median 28% · Q75 40%\n\n### Ergebnisse\n- **Stadtwerke Hockenheim** (BNr: 10001208) | Gesamt: 62% | SmartGrid: 18% | DigProz: 67% | DatenMgmt: 95% | Kunden: 69% | Rang: 11 / 656\n\n> Hinweis: Scores basieren auf BNetzA-Selbstauskunft (Berichtsjahr 2024). Skala: 0–100%."
+            },
+            {
+              "type": "text",
+              "text": "{\n  \"metadata\": {\n    \"total\": 1,\n    \"offset\": 0,\n    \"limit\": 1\n  },\n  \"stats\": {\n    \"gesamtscore\": {\n      \"n\": 656,\n      \"min\": 0,\n      \"p25\": 23,\n      \"median\": 30,\n      \"p75\": 39,\n      \"max\": 77,\n      \"mean\": 31.4\n    },\n    \"smart_grids\": {\n      \"n\": 743,\n      \"min\": 0,\n      \"p25\": 8,\n      \"median\": 15,\n      \"p75\": 25,\n      \"max\": 98,\n      \"mean\": 16.8\n    },\n    \"digitale_prozesse\": {\n      \"n\": 777,\n      \"min\": 0,\n      \"p25\": 0,\n      \"median\": 12,\n      \"p75\": 33,\n      \"max\": 95,\n      \"mean\": 18.9\n    },\n    \"datenmanagement\": {\n      \"n\": 778,\n      \"min\": 0,\n      \"p25\": 33,\n      \"median\": 60,\n      \"p75\": 67,\n      \"max\": 100,\n      \"mean\": 53.6\n    },\n    \"kundenmanagement\": {\n      \"n\": 687,\n      \"min\": 0,\n      \"p25\": 23,\n      \"median\": 28,\n      \"p75\": 40,\n      \"max\": 99,\n      \"mean\": 35.5\n    }\n  },\n  \"rows\": [\n    {\n      \"bnr\": \"10001208\",\n      \"firmenname\": \"Stadtwerke Hockenheim\",\n      \"bnetza_name\": \"Stadtwerke Hockenheim\",\n      \"gesamtscore\": 62,\n      \"smart_grids\": 18,\n      \"smart_grids_ns\": 8,\n      \"smart_grids_ms\": 35,\n      \"digitale_prozesse\": 67,\n      \"digitale_prozesse_ns\": 100,\n      \"digitale_prozesse_ms\": 100,\n      \"digitale_prozesse_ai\": 0,\n      \"datenmanagement\": 95,\n      \"datenmanagement_ns\": 93,\n      \"datenmanagement_ms\": 97,\n      \"kundenmanagement\": 69,\n      \"kundenmanagement_ns\": 60,\n      \"kundenmanagement_ms\": 80,\n      \"kundenmanagement_webportale\": 74,\n      \"gesamtscore_rank\": \"11 / 656\"\n    }\n  ]\n}",
+              "json": {
+                "metadata": {
+                  "total": 1,
+                  "offset": 0,
+                  "limit": 1
+                },
+                "stats": {
+                  "gesamtscore": {
+                    "n": 656,
+                    "min": 0,
+                    "p25": 23,
+                    "median": 30,
+                    "p75": 39,
+                    "max": 77,
+                    "mean": 31.4
+                  },
+                  "smart_grids": {
+                    "n": 743,
+                    "min": 0,
+                    "p25": 8,
+                    "median": 15,
+                    "p75": 25,
+                    "max": 98,
+                    "mean": 16.8
+                  },
+                  "digitale_prozesse": {
+                    "n": 777,
+                    "min": 0,
+                    "p25": 0,
+                    "median": 12,
+                    "p75": 33,
+                    "max": 95,
+                    "mean": 18.9
+                  },
+                  "datenmanagement": {
+                    "n": 778,
+                    "min": 0,
+                    "p25": 33,
+                    "median": 60,
+                    "p75": 67,
+                    "max": 100,
+                    "mean": 53.6
+                  },
+                  "kundenmanagement": {
+                    "n": 687,
+                    "min": 0,
+                    "p25": 23,
+                    "median": 28,
+                    "p75": 40,
+                    "max": 99,
+                    "mean": 35.5
+                  }
+                },
+                "rows": [
+                  {
+                    "bnr": "10001208",
+                    "firmenname": "Stadtwerke Hockenheim",
+                    "bnetza_name": "Stadtwerke Hockenheim",
+                    "gesamtscore": 62,
+                    "smart_grids": 18,
+                    "smart_grids_ns": 8,
+                    "smart_grids_ms": 35,
+                    "digitale_prozesse": 67,
+                    "digitale_prozesse_ns": 100,
+                    "digitale_prozesse_ms": 100,
+                    "digitale_prozesse_ai": 0,
+                    "datenmanagement": 95,
+                    "datenmanagement_ns": 93,
+                    "datenmanagement_ms": 97,
+                    "kundenmanagement": 69,
+                    "kundenmanagement_ns": 60,
+                    "kundenmanagement_ms": 80,
+                    "kundenmanagement_webportale": 74,
+                    "gesamtscore_rank": "11 / 656"
+                  }
+                ]
+              }
+            }
+          ],
+          "metadata": {
+            "toolName": "ewk_digitalisierungsindex",
+            "timestamp": "2026-03-06T08:01:43.297Z"
+          }
+        }
+      },
+      "umsetzungsquote": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": [
+            {
+              "type": "text",
+              "text": "## EWK Monitoring 2024 – Umsetzungsquote Netzanschlussbegehren\n**Quelle:** BNetzA Energiewendekompetenz-Monitoring via vnb-transparenz.de\n\n**Filter:** Spannungsebene: NS | Typ: EE\n**Ergebnisse:** 1 VNBs (zeige 1–1)\n\n### Benchmarks (Umsetzungsquote in %, höher = besser)\n- **EE-Anlagen NS** (698 VNBs): Median 100% · Q25 92.3% · Q75 100%\n- **EE-Anlagen MS**: Median 100%\n- **Verbrauchsanlagen NS**: Median 100%\n\n### Ergebnisse\n- **Stadtwerke Hockenheim** (BNr: 10001208) | EE NS: 100% (175/175) | Rang: 242 / 698\n\n> Umsetzungsquote = realisierte Netzanschlüsse / eingereichte Anschlussbegehren (Berichtsjahr 2024)."
+            },
+            {
+              "type": "text",
+              "text": "{\n  \"metadata\": {\n    \"total\": 1,\n    \"offset\": 0,\n    \"limit\": 1\n  },\n  \"stats\": {\n    \"umsetzungsquote_ee_ns\": {\n      \"n\": 698,\n      \"min\": 0.2,\n      \"p25\": 92.3,\n      \"median\": 100,\n      \"p75\": 100,\n      \"max\": 107,\n      \"mean\": 88.4\n    },\n    \"umsetzungsquote_ee_ms\": {\n      \"n\": 288,\n      \"min\": 1.1,\n      \"p25\": 57.1,\n      \"median\": 100,\n      \"p75\": 100,\n      \"max\": 109.1,\n      \"mean\": 78.1\n    },\n    \"umsetzungsquote_ee_hs\": {\n      \"n\": 17,\n      \"min\": 0.4,\n      \"p25\": 9,\n      \"median\": 100,\n      \"p75\": 100,\n      \"max\": 100,\n      \"mean\": 57.3\n    },\n    \"umsetzungsquote_verbrauch_ns\": {\n      \"n\": 668,\n      \"min\": 1.2,\n      \"p25\": 54.2,\n      \"median\": 100,\n      \"p75\": 100,\n      \"max\": 109.3,\n      \"mean\": 77.4\n    }\n  },\n  \"rows\": [\n    {\n      \"bnr\": \"10001208\",\n      \"firmenname\": \"Stadtwerke Hockenheim\",\n      \"bnetza_name\": \"Stadtwerke Hockenheim\",\n      \"antraege_ee_ns\": 175,\n      \"realisiert_ee_ns\": 175,\n      \"umsetzungsquote_ee_ns\": 100,\n      \"rank_umsetzungsquote_ee_ns\": \"242 / 698\"\n    }\n  ]\n}",
+              "json": {
+                "metadata": {
+                  "total": 1,
+                  "offset": 0,
+                  "limit": 1
+                },
+                "stats": {
+                  "umsetzungsquote_ee_ns": {
+                    "n": 698,
+                    "min": 0.2,
+                    "p25": 92.3,
+                    "median": 100,
+                    "p75": 100,
+                    "max": 107,
+                    "mean": 88.4
+                  },
+                  "umsetzungsquote_ee_ms": {
+                    "n": 288,
+                    "min": 1.1,
+                    "p25": 57.1,
+                    "median": 100,
+                    "p75": 100,
+                    "max": 109.1,
+                    "mean": 78.1
+                  },
+                  "umsetzungsquote_ee_hs": {
+                    "n": 17,
+                    "min": 0.4,
+                    "p25": 9,
+                    "median": 100,
+                    "p75": 100,
+                    "max": 100,
+                    "mean": 57.3
+                  },
+                  "umsetzungsquote_verbrauch_ns": {
+                    "n": 668,
+                    "min": 1.2,
+                    "p25": 54.2,
+                    "median": 100,
+                    "p75": 100,
+                    "max": 109.3,
+                    "mean": 77.4
+                  }
+                },
+                "rows": [
+                  {
+                    "bnr": "10001208",
+                    "firmenname": "Stadtwerke Hockenheim",
+                    "bnetza_name": "Stadtwerke Hockenheim",
+                    "antraege_ee_ns": 175,
+                    "realisiert_ee_ns": 175,
+                    "umsetzungsquote_ee_ns": 100,
+                    "rank_umsetzungsquote_ee_ns": "242 / 698"
+                  }
+                ]
+              }
+            }
+          ],
+          "metadata": {
+            "toolName": "ewk_umsetzungsquote",
+            "timestamp": "2026-03-06T08:01:43.422Z"
+          }
+        }
+      },
+      "nestCompliance": {
+        "available": true,
+        "data": [
+          {
+            "type": "text",
+            "text": "Error: Tool execution timed out after 25000ms"
+          }
+        ]
+      }
+    },
+    "section6": {
+      "churnPrediction": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": [
+            {
+              "type": "text",
+              "text": "📊 **Churn Prediction (heuristic)**\n\n- Segment: all\n- Region: Stadtwerke Hockenheim\n- Prediction window: 3 months\n- Risk threshold: medium\n\n**Estimated at-risk customers (max 100)**: 60\n**Assumed churn rate (segment)**: 8.0%\n**ARPU / LTV (segment)**: 1200€ / 7000€\n\n**Top churn reasons (heuristic)**:\n- Price sensitivity (40%)\n- Service issues (30%)\n- Innovation needs (20%)\n- Relocation (10%)\n\n**Retention budget guidance**:\n- Recommended max budget per customer: 1500€\n- Prioritize high-LTV customers first\n\n**Retention strategy**:\n- Prevention (Score 0-40): Service + loyalty\n- Early intervention (Score 41-70): Call + 50-200€ offer\n- Win-back (Score 71-100): Price match + executive outreach\n\n**Competitive threats**:\n- Tibber (5-15% cheaper, strong app)\n- E.ON (brand reach)\n- Discounters (intro 28-30 ct in year 1)\n\nℹ️ This tool currently uses a heuristic model without customer-level CRM data."
+            }
+          ],
+          "metadata": {
+            "toolName": "cernion_customer_churn_prediction",
+            "timestamp": "2026-03-06T08:02:08.748Z"
+          }
+        }
+      },
+      "salesLeads": {
+        "available": false,
+        "error": "Request is timed out when call 'business-intelligence.salesLeads' action on 'malta21060-2183489' node."
+      },
+      "marketPenetration": {
+        "available": false,
+        "error": "Request is timed out when call 'business-intelligence.marketPenetration' action on 'malta21060-2183489' node."
+      },
+      "prosumerTariff": {
+        "available": false,
+        "error": "Timeout after 30s"
+      },
+      "directMarketing": {
+        "available": false,
+        "error": "Timeout after 30s"
+      }
+    },
+    "section7": {
+      "investmentBusinessCase": {
+        "available": false,
+        "error": "Cannot read properties of undefined (reading 'toUpperCase')"
+      },
+      "operatorPortfolio": {
+        "available": false,
+        "error": "Timeout after 30s"
+      },
+      "storageOptimization": {
+        "available": false,
+        "error": "Timeout after 30s"
+      },
+      "operatorAnalysis": {
+        "available": false,
+        "error": "Request is timed out when call 'grid-operations.operatorAnalysis' action on 'malta21060-2183489' node."
+      }
+    },
+    "section8": {
+      "systemStatus": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": [
+            {
+              "type": "text",
+              "text": "🚀 **Cernion System Status**\n\n✅ **Cernion MCP Server**: Running\n   - Status: Healthy\n   - Tools Available: 42\n   - Session Management: Active\n\n**Environment**:\n   - Node.js: v22.22.0\n   - Platform: linux\n   - Architecture: x64\n\n**Configuration**:\n   - GOOGLE_AI_API_KEY/GEMINI_API_KEY: ✓ Set\n   - POWABASE_MCP_URL: https://powabase.com/mcp\n\n💡 Use `verbose: true` for extended connectivity checks.\n"
+            }
+          ],
+          "metadata": {
+            "toolName": "cernion_status",
+            "timestamp": "2026-03-06T08:05:09.172Z"
+          }
+        }
+      },
+      "eicStatistics": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": {
+            "success": true,
+            "statistics": {
+              "total": 72580,
+              "byType": [
+                {
+                  "count": 48139,
+                  "type": "party"
+                },
+                {
+                  "count": 17150,
+                  "type": "resource"
+                },
+                {
+                  "count": 2864,
+                  "type": "substation"
+                },
+                {
+                  "count": 1730,
+                  "type": "area"
+                },
+                {
+                  "count": 1264,
+                  "type": "operator"
+                },
+                {
+                  "count": 1164,
+                  "type": "tie-line"
+                },
+                {
+                  "count": 135,
+                  "type": "location"
+                },
+                {
+                  "count": 134,
+                  "type": "facility"
+                }
+              ],
+              "bySector": [
+                {
+                  "count": 72568,
+                  "sector": "electricity"
+                },
+                {
+                  "count": 12,
+                  "sector": "gas"
+                }
+              ],
+              "byCountry": [
+                {
+                  "count": 20368,
+                  "country": "ES"
+                },
+                {
+                  "count": 15315,
+                  "country": "NO"
+                },
+                {
+                  "count": 7642,
+                  "country": "DE"
+                },
+                {
+                  "count": 5431,
+                  "country": "IT"
+                },
+                {
+                  "count": 3698,
+                  "country": "EU"
+                },
+                {
+                  "count": 2177,
+                  "country": "PL"
+                },
+                {
+                  "count": 1809,
+                  "country": "NL"
+                },
+                {
+                  "count": 1723,
+                  "country": "GB"
+                },
+                {
+                  "count": 1273,
+                  "country": "SE"
+                },
+                {
+                  "count": 1139,
+                  "country": "FI"
+                },
+                {
+                  "count": 1134,
+                  "country": "CH"
+                },
+                {
+                  "count": 1092,
+                  "country": "AT"
+                },
+                {
+                  "count": 899,
+                  "country": "FR"
+                },
+                {
+                  "count": 799,
+                  "country": "HU"
+                },
+                {
+                  "count": 780,
+                  "country": "DK"
+                },
+                {
+                  "count": 771,
+                  "country": "CZ"
+                },
+                {
+                  "count": 765,
+                  "country": "UA"
+                },
+                {
+                  "count": 745,
+                  "country": "BE"
+                },
+                {
+                  "count": 666,
+                  "country": "HR"
+                },
+                {
+                  "count": 531,
+                  "country": "LV"
+                }
+              ]
+            },
+            "metadata": {
+              "database": "cernion.eic_codes",
+              "lastUpdated": "2026-03-06T08:05:09.637Z",
+              "sources": [
+                "ENTSO-E",
+                "AGSI/GIE"
+              ]
+            }
+          },
+          "metadata": {
+            "toolName": "cernion_eic_statistics",
+            "timestamp": "2026-03-06T08:05:09.658Z"
+          }
+        }
+      },
+      "digitalisierungsindex": {
+        "available": true,
+        "data": {
+          "success": true,
+          "data": [
+            {
+              "type": "text",
+              "text": "## EWK Monitoring 2024 – Digitalisierungsindex\n**Quelle:** BNetzA Energiewendekompetenz-Monitoring via vnb-transparenz.de\n\n**Kategorie:** all\n**Ergebnisse:** 1 VNBs (zeige 1–1)\n\n### Benchmarks (Scores in %, höher = besser)\n- **Gesamtscore** (656 VNBs): Median 30% · Q25 23% · Q75 39% · Max 77%\n- **Smart Grids**: Median 15% · Q75 25%\n- **Digitale Prozesse**: Median 12% · Q75 33%\n- **Datenmanagement**: Median 60% · Q75 67%\n- **Kundenmanagement**: Median 28% · Q75 40%\n\n### Ergebnisse\n- **Stadtwerke Hockenheim** (BNr: 10001208) | Gesamt: 62% | SmartGrid: 18% | DigProz: 67% | DatenMgmt: 95% | Kunden: 69% | Rang: 11 / 656\n\n> Hinweis: Scores basieren auf BNetzA-Selbstauskunft (Berichtsjahr 2024). Skala: 0–100%."
+            },
+            {
+              "type": "text",
+              "text": "{\n  \"metadata\": {\n    \"total\": 1,\n    \"offset\": 0,\n    \"limit\": 1\n  },\n  \"stats\": {\n    \"gesamtscore\": {\n      \"n\": 656,\n      \"min\": 0,\n      \"p25\": 23,\n      \"median\": 30,\n      \"p75\": 39,\n      \"max\": 77,\n      \"mean\": 31.4\n    },\n    \"smart_grids\": {\n      \"n\": 743,\n      \"min\": 0,\n      \"p25\": 8,\n      \"median\": 15,\n      \"p75\": 25,\n      \"max\": 98,\n      \"mean\": 16.8\n    },\n    \"digitale_prozesse\": {\n      \"n\": 777,\n      \"min\": 0,\n      \"p25\": 0,\n      \"median\": 12,\n      \"p75\": 33,\n      \"max\": 95,\n      \"mean\": 18.9\n    },\n    \"datenmanagement\": {\n      \"n\": 778,\n      \"min\": 0,\n      \"p25\": 33,\n      \"median\": 60,\n      \"p75\": 67,\n      \"max\": 100,\n      \"mean\": 53.6\n    },\n    \"kundenmanagement\": {\n      \"n\": 687,\n      \"min\": 0,\n      \"p25\": 23,\n      \"median\": 28,\n      \"p75\": 40,\n      \"max\": 99,\n      \"mean\": 35.5\n    }\n  },\n  \"rows\": [\n    {\n      \"bnr\": \"10001208\",\n      \"firmenname\": \"Stadtwerke Hockenheim\",\n      \"bnetza_name\": \"Stadtwerke Hockenheim\",\n      \"gesamtscore\": 62,\n      \"smart_grids\": 18,\n      \"smart_grids_ns\": 8,\n      \"smart_grids_ms\": 35,\n      \"digitale_prozesse\": 67,\n      \"digitale_prozesse_ns\": 100,\n      \"digitale_prozesse_ms\": 100,\n      \"digitale_prozesse_ai\": 0,\n      \"datenmanagement\": 95,\n      \"datenmanagement_ns\": 93,\n      \"datenmanagement_ms\": 97,\n      \"kundenmanagement\": 69,\n      \"kundenmanagement_ns\": 60,\n      \"kundenmanagement_ms\": 80,\n      \"kundenmanagement_webportale\": 74,\n      \"gesamtscore_rank\": \"11 / 656\"\n    }\n  ]\n}",
+              "json": {
+                "metadata": {
+                  "total": 1,
+                  "offset": 0,
+                  "limit": 1
+                },
+                "stats": {
+                  "gesamtscore": {
+                    "n": 656,
+                    "min": 0,
+                    "p25": 23,
+                    "median": 30,
+                    "p75": 39,
+                    "max": 77,
+                    "mean": 31.4
+                  },
+                  "smart_grids": {
+                    "n": 743,
+                    "min": 0,
+                    "p25": 8,
+                    "median": 15,
+                    "p75": 25,
+                    "max": 98,
+                    "mean": 16.8
+                  },
+                  "digitale_prozesse": {
+                    "n": 777,
+                    "min": 0,
+                    "p25": 0,
+                    "median": 12,
+                    "p75": 33,
+                    "max": 95,
+                    "mean": 18.9
+                  },
+                  "datenmanagement": {
+                    "n": 778,
+                    "min": 0,
+                    "p25": 33,
+                    "median": 60,
+                    "p75": 67,
+                    "max": 100,
+                    "mean": 53.6
+                  },
+                  "kundenmanagement": {
+                    "n": 687,
+                    "min": 0,
+                    "p25": 23,
+                    "median": 28,
+                    "p75": 40,
+                    "max": 99,
+                    "mean": 35.5
+                  }
+                },
+                "rows": [
+                  {
+                    "bnr": "10001208",
+                    "firmenname": "Stadtwerke Hockenheim",
+                    "bnetza_name": "Stadtwerke Hockenheim",
+                    "gesamtscore": 62,
+                    "smart_grids": 18,
+                    "smart_grids_ns": 8,
+                    "smart_grids_ms": 35,
+                    "digitale_prozesse": 67,
+                    "digitale_prozesse_ns": 100,
+                    "digitale_prozesse_ms": 100,
+                    "digitale_prozesse_ai": 0,
+                    "datenmanagement": 95,
+                    "datenmanagement_ns": 93,
+                    "datenmanagement_ms": 97,
+                    "kundenmanagement": 69,
+                    "kundenmanagement_ns": 60,
+                    "kundenmanagement_ms": 80,
+                    "kundenmanagement_webportale": 74,
+                    "gesamtscore_rank": "11 / 656"
+                  }
+                ]
+              }
+            }
+          ],
+          "metadata": {
+            "toolName": "ewk_digitalisierungsindex",
+            "timestamp": "2026-03-06T08:01:43.297Z"
+          }
+        }
+      }
+    }
+  },
+  "meta": {
+    "availableTools": [],
+    "resolvedBdew": "9980231000006",
+    "resolvedMastrId": null,
+    "resolvedVnbName": "Stadtwerke Hockenheim",
+    "vnbLookup": {
+      "success": true,
+      "data": {
+        "bdew": "9980231000006",
+        "mastrId": null,
+        "mastrIds": [],
+        "companyName": null,
+        "source": "not-found",
+        "cached": false,
+        "message": "No MaStR ID found for BDEW code"
+      },
+      "metadata": {
+        "jobId": "b22d52aa-5e4a-4fc3-bfab-81a85538c40a",
+        "status": "succeeded",
+        "timestamp": "2026-03-06T07:58:43.613Z"
+      }
+    }
+  },
+  "managementSummary": "🛠️ **Stammdatenprobleme**: Beheben Sie dringend den ungelösten BDEW-Code, um Zugriff auf kritische Daten zu lokalen Anlagen (in Prüfung, ohne MeLo) zu erhalten und Compliance-Risiken zu vermeiden.\n⚠️ **Residuallast-Qualität**: Untersuchen Sie die \"loadFallbackWarning\" bei den Residuallastdaten, um die Datenqualität und somit die Zuverlässigkeit der Netzplanung für Hockenheim sicherzustellen.\n📉 **Transparenzlücke Erzeugung**: Stellen Sie umgehend den Abruf aktueller Wind- und Solarerzeugungsdaten für die Region Hockenheim sicher, um eine fundierte operative Netzsteuerung zu ermöglichen.\n✅ **Hohe CO2-Effizienz**: Kommunizieren Sie die aktuell sehr niedrige CO2-Intensität des Strommixes (143 gCO2eq/kWh) als Erfolg und prüfen Sie Maßnahmen zur Verstetigung dieser positiven Entwicklung.\n📈 **Preisrisikomanagement**: Entwickeln Sie Strategien zur Milderung der hohen Strompreisvolatilität (45,71 - 248,91 EUR/MWh) und zur Nutzung potenzieller Arbitragemöglichkeiten.\n🌍 **Lokale Datenbedarfe**: Implementieren Sie dringend standortspezifische Erzeugungs- und Verbrauchsdaten für Hockenheim, um von den derzeit allgemeinen nationalen Daten abzuweichen und die lokale Netzführung zu optimieren.",
+  "webSearchResults": [
+    {
+      "success": true,
+      "data": {
+        "query": "Stadtwerke Hockenheim Netzausbau 2026",
+        "language": "de",
+        "total": 0,
+        "results": []
+      }
+    },
+    {
+      "success": true,
+      "data": {
+        "query": "Stadtwerke Hockenheim Digitalisierung Energiewende aktuell",
+        "language": "de",
+        "total": 0,
+        "results": []
+      }
+    },
+    {
+      "success": true,
+      "data": {
+        "query": "BNetzA EWK Anschlussdauer Stadtwerke Hockenheim Benchmark",
+        "language": "de",
+        "total": 0,
+        "results": []
+      }
+    }
+  ]
+}

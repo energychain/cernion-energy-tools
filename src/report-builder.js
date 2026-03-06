@@ -201,6 +201,10 @@ function renderSection1(s1) {
   const cu = safeData(s1, 'capacityUtilization');
   const rd = safeData(s1, 'redispatchExport');
   const rl = safeData(s1, 'residualLoad');
+  // CO₂ tool returns {success, co2_intensity_gco2eq_kwh, ..., data:{hourly series}}.
+  // safeData() would unwrap into the inner data object, losing the top-level scalar.
+  // Read the raw .data object directly for scalar KPIs.
+  const co2Raw = s1?.co2Intensity?.data ?? null;
   const co2 = safeData(s1, 'co2Intensity');
 
   // Transformer utilization chart data
@@ -235,7 +239,7 @@ function renderSection1(s1) {
     ),
     kpiRow(
       'Redispatch-Anlagen',
-      isAvail(s1, 'redispatchExport')
+      isAvail(s1, 'redispatchExport') && rd?.success !== false
         ? getVal(rd, 'totalCount', 'count', 'total')
         : null,
       'Anlagen',
@@ -244,15 +248,25 @@ function renderSection1(s1) {
     kpiRow(
       'Residuallast regional',
       isAvail(s1, 'residualLoad')
-        ? fmtMw(rl?.summary?.netResidualLoad ?? rl?.summary?.residualLoad ?? getVal(rl, 'netResidualLoad', 'residualLoad', 'currentLoad'))
+        ? fmtMw(
+            rl?.summary?.netResidualLoad ??
+            rl?.summary?.residualLoad ??
+            rl?.summary?.kpis?.avgResidualLoadMW ??
+            getVal(rl, 'netResidualLoad', 'residualLoad', 'avgResidualLoadMW', 'currentLoad')
+          )
         : null,
       '',
-      'Aktuelle Nettoresiduallaast'
+      'Ø Netto-Residuallast (regionaler Forecast)'
     ),
     kpiRow(
       'CO₂-Intensität Strom',
       isAvail(s1, 'co2Intensity')
-        ? fmtNum(getVal(co2, 'co2_intensity_gco2eq_kwh', 'co2intensity', 'intensity', 'value'), 0)
+        ? fmtNum(
+            co2Raw?.co2_intensity_gco2eq_kwh ??
+            co2Raw?.average_today_gco2eq_kwh ??
+            getVal(co2, 'co2_intensity_gco2eq_kwh', 'co2intensity', 'intensity', 'value'),
+            0
+          )
         : null,
       'gCO₂eq/kWh',
       'GrünstromIndex – aktuelle regionale CO₂-Intensität'
@@ -438,20 +452,44 @@ function renderSection3(s3) {
   const prices = safeData(s3, 'prices');
   const spot = safeData(s3, 'spotprices');
 
-  // Day-ahead price chart – try to build from prices data
+  // Day-ahead price chart – ENTSO-E tool returns dataPoints[] with priceEURperMWh
   const priceTimeSeries =
-    prices?.prices || prices?.data?.prices || spot?.prices || spot?.data?.prices || [];
+    prices?.dataPoints || prices?.prices || prices?.data?.prices ||
+    spot?.dataPoints || spot?.prices || spot?.data?.prices || [];
   const hasChart = Array.isArray(priceTimeSeries) && priceTimeSeries.length > 0;
   const chartSrc = hasChart
     ? priceTimeSeries.slice(-24).map((p) => ({
-        t: p.startTime || p.timestamp || p.time || '',
-        v: p.price ?? p.value ?? 0,
+        t: p.timestamp || p.startTime || p.time || '',
+        v: p.priceEURperMWh ?? p.price ?? p.value ?? 0,
       }))
     : [];
 
+  const latestPt = priceTimeSeries.length > 0 ? priceTimeSeries[priceTimeSeries.length - 1] : null;
   const latestPrice =
     getVal(prices, 'latestPrice', 'currentPrice') ??
-    (priceTimeSeries.length > 0 ? priceTimeSeries[priceTimeSeries.length - 1]?.price : null);
+    (latestPt ? (latestPt.priceEURperMWh ?? latestPt.price ?? null) : null);
+
+  // Negative price periods: tool returns {content:[{type,text}]}; parse count from text
+  const npData = safeData(s3, 'negativePrices');
+  const npText =
+    npData?.content?.[0]?.text ??
+    (Array.isArray(npData) ? npData[0]?.text : null) ?? '';
+  const npCountRaw = npText.match(/(\d+)\s*(?:hours?|Stunden?|h\b)/i)?.[1];
+  const npCount =
+    npCountRaw != null
+      ? parseInt(npCountRaw, 10)
+      : (npText.toLowerCase().includes('no negative') ||
+         npText.toLowerCase().includes('not found') ||
+         npText.toLowerCase().includes('keine negativen'))
+        ? 0
+        : getVal(npData, 'count', 'totalHours', 'periods');
+
+  // Unavailability: tool returns flat {statistics:{totalCapacityMW, totalUnavailabilities}}
+  const unavailData = safeData(s3, 'unavailability');
+  const unavailMW =
+    unavailData?.statistics?.totalCapacityMW ??
+    getVal(unavailData, 'totalUnavailableMW', 'totalMW', 'count');
+  const unavailCount = unavailData?.statistics?.totalUnavailabilities ?? null;
 
   const rows = [
     kpiRow(
@@ -462,19 +500,19 @@ function renderSection3(s3) {
     ),
     kpiRow(
       'Negative Preisphasen',
-      isAvail(s3, 'negativePrices')
-        ? getVal(safeData(s3, 'negativePrices'), 'count', 'totalHours')
-        : null,
-      'h/Monat',
-      '§51 EEG Compliance-Monitoring'
+      isAvail(s3, 'negativePrices') ? npCount : null,
+      'h §51 EEG',
+      npCount === 0
+        ? '✅ Keine negativen Preisphasen im Berichtszeitraum'
+        : '§51 EEG Compliance-Monitoring'
     ),
     kpiRow(
-      'Kraftwerksausfälle',
-      isAvail(s3, 'unavailability')
-        ? getVal(safeData(s3, 'unavailability'), 'totalUnavailableMW', 'totalMW', 'count')
+      'Kraftwerksausfälle (Kapazität)',
+      isAvail(s3, 'unavailability') && unavailMW !== null
+        ? `${fmtNum(unavailMW, 0)} MW${unavailCount !== null ? ` / ${unavailCount} Ereignisse` : ''}`
         : null,
       '',
-      'Ungeplante &amp; geplante Abschaltungen (ENTSO-E)'
+      'Ungeplante &amp; geplante Abschaltungen DE (ENTSO-E)'
     ),
     kpiRow(
       'Tatsächliche Erzeugung (DE)',
@@ -549,10 +587,15 @@ function renderSection4(s4) {
   const fillLevel =
     cs?.storage?.gasInStorage ??
     getVal(cs, 'gasInStorage', 'fillLevel', 'gasinStorage');
+  // AGSI uses fillPercentage; some legacy/test mocks use 'full'
   const fillPct =
+    cs?.storage?.fillPercentage ??
     cs?.storage?.full ??
-    getVal(cs, 'full', 'fillLevelPct', 'percentFull');
-  const euFill = getVal(eu, 'full', 'fillLevelPct', 'euFillLevel');
+    getVal(cs, 'fillPercentage', 'full', 'fillLevelPct', 'percentFull');
+  const euFill =
+    eu?.storage?.fillPercentage ??
+    eu?.storage?.full ??
+    getVal(eu, 'fillPercentage', 'full', 'fillLevelPct', 'euFillLevel');
 
   // Gas storage trend chart
   const trendPoints =
@@ -668,12 +711,17 @@ function renderSection5(s5) {
   const ewkRank = bmJson?.rankings?.anschlussdauer_ee_ns_rank ?? null;
   const ewkTotal = bmJson?.rankings?.anschlussdauer_ee_ns_total ?? null;
 
-  // Anschlussdauer ranking chart (horizontal bar)
+  // Anschlussdauer ranking chart – VNB value vs. Bundesmedian
+  // adJson rows[0] uses ee_ns_gesamt_wochen; older bmJson uses anschlussdauer.ee_ns_gesamt
   const vnbAnschlussdauer =
+    adJson?.rows?.[0]?.ee_ns_gesamt_wochen ??
     adJson?.anschlussdauer?.ee_ns_gesamt ??
     bmJson?.anschlussdauer?.ee_ns_gesamt ??
     null;
-  const bundesMedian = null; // Not returned by API; chart shows VNB value only
+  // Bundesmedian from EWK stats object (anschlussdauer tool returns stats.ee_ns_gesamt.median)
+  const bundesMedian = adJson?.stats?.ee_ns_gesamt?.median ?? null;
+  // Bundesmedian for Digitalisierungsindex (diJson stats.gesamtscore.median)
+  const diMedian = diJson?.stats?.gesamtscore?.median ?? null;
   const hasAdChart = vnbAnschlussdauer !== null;
 
   const rows = [
@@ -694,12 +742,36 @@ function renderSection5(s5) {
       'Gesamtdauer Phase 1 + Phase 2 (BNetzA EWK 2024)'
     ),
     kpiRow(
+      'Bundesmedian Anschlussdauer EE NS',
+      (isAvail(s5, 'anschlussdauer') || isAvail(s5, 'benchmarkVnb')) && bundesMedian !== null
+        ? fmtNum(bundesMedian, 0)
+        : null,
+      'Wochen',
+      'Bundesmedian aller VNBs – Vergleichswert (BNetzA EWK 2024)'
+    ),
+    kpiRow(
       'Digitalisierungsindex (Gesamt)',
       isAvail(s5, 'digitalisierungsindex') || isAvail(s5, 'benchmarkVnb')
         ? fmtPct((diJson?.digitalisierungsindex?.gesamtscore ?? bmJson?.digitalisierungsindex?.gesamtscore) * 100)
         : null,
       '',
       'Smart Grids, Digitale Prozesse, Kundenmanagement'
+    ),
+    kpiRow(
+      'Digitalisierungsindex Rang',
+      isAvail(s5, 'benchmarkVnb') && bmJson?.rankings?.digitalisierungsindex_rank != null
+        ? `${bmJson.rankings.digitalisierungsindex_rank} / ${bmJson.rankings.digitalisierungsindex_total ?? '?'}`
+        : (isAvail(s5, 'digitalisierungsindex') ? (diJson?.rows?.[0]?.gesamtscore_rank ?? null) : null),
+      '',
+      'Rang im bundesweiten VNB-Vergleich (BNetzA EWK 2024)'
+    ),
+    kpiRow(
+      'DI-Bundesmedian (alle VNBs)',
+      (isAvail(s5, 'digitalisierungsindex') || isAvail(s5, 'benchmarkVnb')) && diMedian !== null
+        ? fmtPct(diMedian)
+        : null,
+      '',
+      'Bundesmedian Digitalisierungsindex – Vergleichswert'
     ),
     kpiRow(
       'Smart-Grids Score',
@@ -776,7 +848,11 @@ function renderSection6(s6) {
   const churnText = typeof churn === 'string'
     ? churn
     : (churn?.[0]?.text ?? churn?.data?.[0]?.text ?? '');
-  const atRiskMatch = churnText.match(/(\d+)\s+(?:customers?|Kunden)/i);
+  // Match 'at-risk customers (max 100)**: 60' OR plain '60 customers/Kunden'
+  const atRiskMatch =
+    churnText.match(/at-risk customers[^:]*\*{0,2}:\s*\*{0,2}(\d+)/i) ||
+    churnText.match(/at-risk Kunden[^:]*:\s*(\d+)/i) ||
+    churnText.match(/(\d+)\s+(?:customers?|Kunden)/i);
   const atRiskCount = atRiskMatch ? parseInt(atRiskMatch[1], 10) : null;
   const churnRateMatch = churnText.match(/churn rate.*?:\s*([\d.]+)%/i);
   const churnRate = churnRateMatch ? parseFloat(churnRateMatch[1]) : null;
@@ -923,7 +999,10 @@ function renderSection8(s8) {
   const eicStats = safeData(s8, 'eicStatistics');
   const diData = safeData(s8, 'digitalisierungsindex');
   const diJson8 = extractEwkJson(diData);
-  const diScores8 = diJson8?.digitalisierungsindex ?? null;
+  // digitalisierungsindex tool JSON: {metadata, stats, rows:[{gesamtscore:44,smart_grids:3,...}]}
+  // Scores are already in % (0-100), NOT 0-1 fractions – do NOT multiply by 100.
+  const diScores8 = diJson8?.rows?.[0] ?? null;
+  const diMedian8 = diJson8?.stats?.gesamtscore?.median ?? null;
 
   // systemStatus: production returns text-array (after unwrap); test mocks return flat {status}
   const status =
@@ -947,24 +1026,40 @@ function renderSection8(s8) {
     ),
     kpiRow(
       'Digitalisierungsindex (Gesamt)',
-      isAvail(s8, 'digitalisierungsindex')
-        ? fmtPct(diScores8?.gesamtscore * 100)
+      isAvail(s8, 'digitalisierungsindex') && diScores8 !== null
+        ? fmtPct(diScores8.gesamtscore)
         : null,
       '',
       'VNB Digitalisierungsgesamtscore (BNetzA EWK)'
     ),
     kpiRow(
+      'DI-Rang',
+      isAvail(s8, 'digitalisierungsindex') && diScores8?.gesamtscore_rank != null
+        ? diScores8.gesamtscore_rank
+        : null,
+      '',
+      'Rang im bundesweiten VNB-Vergleich (BNetzA EWK)'
+    ),
+    kpiRow(
+      'DI-Bundesmedian',
+      isAvail(s8, 'digitalisierungsindex') && diMedian8 !== null
+        ? fmtPct(diMedian8)
+        : null,
+      '',
+      'Bundesmedian Digitalisierungsgesamtscore aller VNBs'
+    ),
+    kpiRow(
       'Smart Grids Score',
-      isAvail(s8, 'digitalisierungsindex')
-        ? fmtPct(diScores8?.smart_grids * 100)
+      isAvail(s8, 'digitalisierungsindex') && diScores8 !== null
+        ? fmtPct(diScores8.smart_grids)
         : null,
       '',
       'Teilscore: Smart Grids Infrastruktur'
     ),
     kpiRow(
       'Kundenportal-Score',
-      isAvail(s8, 'digitalisierungsindex')
-        ? fmtPct(diScores8?.kundenportal * 100)
+      isAvail(s8, 'digitalisierungsindex') && diScores8 !== null
+        ? fmtPct(diScores8.kundenmanagement_webportale ?? diScores8.kundenmanagement)
         : null,
       '',
       'Teilscore: Webportal und Kundenportal-Digitalisierung'
