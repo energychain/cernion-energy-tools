@@ -525,11 +525,11 @@ module.exports = {
         const prog = loadProgress(reportId);
 
         if (!prog) {
-          ctx.$statusCode = 404;
+          ctx.meta.$statusCode = 404;
           return { success: false, error: 'No progress data found for this reportId', reportId };
         }
         if (prog.status !== 'completed' || !prog.results) {
-          ctx.$statusCode = 409;
+          ctx.meta.$statusCode = 409;
           return { success: false, error: 'Report is not yet completed; re-run generate instead', reportId, status: prog.status };
         }
 
@@ -643,17 +643,20 @@ module.exports = {
         if (!fs.existsSync(file)) {
           const prog = loadProgress(reportId);
           if (prog && prog.status === 'generating') {
-            ctx.$statusCode = 202;
+            ctx.meta.$statusCode = 202;
             return { success: false, message: 'Report still generating', status: 'generating', reportId };
           }
-          ctx.$statusCode = 404;
+          ctx.meta.$statusCode = 404;
           return { success: false, error: 'Report not found', reportId };
         }
 
         const html = fs.readFileSync(file, 'utf-8');
-        ctx.$responseType = 'text/html; charset=utf-8';
-        ctx.$responseHeaders = {
+        // Moleculer Web 0.10 reads response meta from ctx.meta.$responseType / ctx.meta.$responseHeaders.
+        // 'inline' disposition tells the browser to render in-tab rather than trigger a download.
+        ctx.meta.$responseType = 'text/html; charset=utf-8';
+        ctx.meta.$responseHeaders = {
           'Content-Disposition': `inline; filename="360-report-${reportId}.html"`,
+          'X-Content-Type-Options': 'nosniff',
         };
         return Buffer.from(html, 'utf-8');
       },

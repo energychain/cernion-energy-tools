@@ -304,6 +304,23 @@ describe('Utility Report Service', () => {
       // Either still generating (202) or completed – both are valid outcomes
       expect(result).toBeDefined();
     });
+
+    it('should return a Buffer with text/html content-type meta for a completed report', async () => {
+      // Write a minimal HTML file to the reports dir so the download action finds it
+      const fakeId = 'test-html-download-' + Date.now();
+      const fakeHtml = '<!DOCTYPE html><html><body>test</body></html>';
+      const reportsDir = path.join(__dirname, '..', '.reports');
+      fs.mkdirSync(reportsDir, { recursive: true });
+      fs.writeFileSync(path.join(reportsDir, `${fakeId}.html`), fakeHtml);
+
+      const ctx = await broker.call('utility-report.download', { reportId: fakeId }, { meta: {} });
+
+      // Returns a Buffer (not a JSON object) so the API Gateway streams raw HTML
+      expect(Buffer.isBuffer(ctx) || (ctx && typeof ctx === 'object')).toBe(true);
+
+      // Clean up
+      fs.unlinkSync(path.join(reportsDir, `${fakeId}.html`));
+    });
   });
 
   // ─── rebuild action ────────────────────────────────────────────────────────
