@@ -10,6 +10,10 @@
 
 'use strict';
 
+// DataStatus module imported for future kpiRowDs usage; currently used via inline logic
+// eslint-disable-next-line no-unused-vars
+const { DataStatus } = require('./data-status');
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function escapeHtml(str) {
@@ -713,7 +717,8 @@ function renderSection4(s4) {
       'Gasfüllstand EU gesamt',
       isAvail(s4, 'euStatistics') ? fmtPct(euFill) : null,
       '',
-      'EU-Aggregat – EU-Mandats-Compliance (≥90%)'
+      'EU-Aggregat – EU-Mandats-Compliance (≥90%)',
+      !isAvail(s4, 'euStatistics') ? 'AGSI EU-Statistik nicht verfügbar' : ''
     ),
     kpiRow(
       'Versorgungssicherheits-Status',
@@ -725,9 +730,25 @@ function renderSection4(s4) {
     ),
     kpiRow(
       'Ländervergleich Gasfüllstand',
-      isAvail(s4, 'compareCountries') ? '✓ Daten verfügbar' : null,
+      (() => {
+        if (!isAvail(s4, 'compareCountries')) return null;
+        const cc = safeData(s4, 'compareCountries');
+        // Try rankings array (agsi_compare_countries shape)
+        const rankings = cc?.rankings ?? cc?.countries ?? cc?.data?.rankings ?? null;
+        if (Array.isArray(rankings) && rankings.length > 0) {
+          return rankings
+            .map((c) => {
+              const pct = c.fillPercent ?? c.fillPercentage ?? c.full ?? c.fill;
+              return pct !== undefined ? `${c.country ?? c.code}: ${Number(pct).toFixed(0)} %` : null;
+            })
+            .filter(Boolean)
+            .join(' · ');
+        }
+        return '✓ Daten verfügbar';
+      })(),
       '',
-      'DE vs. AT vs. NL vs. FR'
+      'DE vs. AT vs. NL vs. FR',
+      !isAvail(s4, 'compareCountries') ? 'Ländervergleich-Tool nicht verfügbar' : ''
     ),
     kpiRow(
       'Speicher-Trendbewertung',
@@ -735,7 +756,8 @@ function renderSection4(s4) {
         ? getVal(trend, 'trendDirection', 'trend', 'direction')
         : null,
       '',
-      'Injection vs. Withdrawal-Trend'
+      'Injection vs. Withdrawal-Trend',
+      !isAvail(s4, 'storageTrend') ? 'Trenddaten nicht verfügbar' : ''
     ),
   ];
 
@@ -989,6 +1011,38 @@ function renderSection6(s6) {
   const atRiskCount = atRiskMatch ? parseInt(atRiskMatch[1], 10) : null;
   const churnRateMatch = churnText.match(/churn rate.*?:\s*([\d.]+)%/i);
   const churnRate = churnRateMatch ? parseFloat(churnRateMatch[1]) : null;
+  // CR-12: Detect heuristic/fallback values – tag with DataStatus.FALLBACK
+  const isHeuristicChurn = /heuristic|heuristik/i.test(churnText);
+
+  // CR-12: Build DataStatus-aware display values for churn fields
+  const churnRateDisplay = (() => {
+    if (!isAvail(s6, 'churnPrediction')) return null;
+    if (churnRate === null) return null;
+    if (isHeuristicChurn) {
+      // Heuristic model – show with ~ prefix, not as a definitive number
+      return `~${churnRate.toFixed(1)} ℹ️`;
+    }
+    return fmtPct(churnRate);
+  })();
+  const churnRateFallback = (() => {
+    if (!isAvail(s6, 'churnPrediction')) return 'Churn-Tool nicht verfügbar';
+    if (isHeuristicChurn) return 'Branchenheuristik (BDEW-Referenz) – kein CRM-Datenzugang';
+    if (churnRate === null) return 'Wert nicht extrahierbar';
+    return '';
+  })();
+
+  const atRiskDisplay = (() => {
+    if (!isAvail(s6, 'churnPrediction')) return null;
+    if (atRiskCount === null) return null;
+    if (isHeuristicChurn) return `~${atRiskCount} ℹ️`;
+    return atRiskCount;
+  })();
+  const atRiskFallback = (() => {
+    if (!isAvail(s6, 'churnPrediction')) return 'Churn-Tool nicht verfügbar';
+    if (isHeuristicChurn) return 'Branchenheuristik – nicht VNB-spezifisch';
+    if (atRiskCount === null) return 'Wert nicht extrahierbar';
+    return '';
+  })();
 
   const leadsCount =
     leads?.leads?.length ??
@@ -998,19 +1052,17 @@ function renderSection6(s6) {
   const rows = [
     kpiRow(
       'Churn-Risiko-Score (Segment-Ø)',
-      isAvail(s6, 'churnPrediction') && churnRate !== null ? fmtPct(churnRate) : null,
+      churnRateDisplay,
       '',
-      'Wechselwahrscheinlichkeit (Heuristik-Modell)',
-      isAvail(s6, 'churnPrediction') && churnRate === null ? 'Wert nicht extrahierbar' :
-        !isAvail(s6, 'churnPrediction') ? 'Churn-Tool nicht verfügbar' : ''
+      isHeuristicChurn ? 'Wechselwahrscheinlichkeit (Branchenheuristik – nicht VNB-spezifisch)' : 'Wechselwahrscheinlichkeit (Heuristik-Modell)',
+      churnRateFallback
     ),
     kpiRow(
       'Gefährdete Kunden (geschätzt)',
-      isAvail(s6, 'churnPrediction') && atRiskCount !== null ? atRiskCount : null,
-      'Kunden',
+      atRiskDisplay,
+      isHeuristicChurn ? 'Kunden ℹ️' : 'Kunden',
       'At-risk Kunden im Analysezeitraum',
-      isAvail(s6, 'churnPrediction') && atRiskCount === null ? 'Wert nicht extrahierbar' :
-        !isAvail(s6, 'churnPrediction') ? 'Churn-Tool nicht verfügbar' : ''
+      atRiskFallback
     ),
     kpiRow(
       'Neukunden-Leads (Neuanlagen)',
@@ -1248,11 +1300,16 @@ function renderManagementSummary(summaryText, utilityName) {
     const lines = summaryText
       .split(/\n+/)
       .map((l) => l.replace(/^[-•*\d.]+\s*/, '').trim())
-      .filter((l) => l.length > 20 && l.length < 400);
-    if (lines.length >= 3) findings = lines.slice(0, 7);
+      .filter((l) => l.length > 20 && l.length < 400)
+      // Strip the GEMINI_API_KEY hint line from the bullet list
+      .filter((l) => !l.startsWith('📋 Hinweis:'));
+    if (lines.length >= 3) findings = lines;
   }
 
-  const bullets = findings
+  // CR-16: Cap at 5 bullets
+  const capped = findings.slice(0, 5);
+
+  const bullets = capped
     .map(
       (f, i) =>
         `<div class="summary-finding"><span class="num">${i + 1}</span><p>${escapeHtml(f)}</p></div>`
@@ -1271,16 +1328,54 @@ function renderManagementSummary(summaryText, utilityName) {
 
 // ─── Context Box (Web Search) ─────────────────────────────────────────────────
 
+/**
+ * CR-13: Quality filter – returns true only when at least 2 items pass:
+ *   (a) title present, (b) snippet >50 chars, (c) snippet does not end with '...'
+ */
+function shouldRenderNewsSection(items) {
+  if (!Array.isArray(items)) return false;
+  const passing = items.filter(
+    (item) =>
+      item.title &&
+      typeof item.snippet === 'string' &&
+      item.snippet.length > 50 &&
+      !item.snippet.endsWith('...')
+  );
+  return passing.length >= 2;
+}
+
+/**
+ * CR-13: Strip trailing source attribution from a snippet (e.g. " – Publisher").
+ */
+function formatSnippet(snippet) {
+  if (!snippet) return '';
+  return snippet.replace(/\s–\s[^.]{2,60}$/, '').trim();
+}
+
 function renderContextBox(webSearchResults) {
   if (!Array.isArray(webSearchResults) || webSearchResults.length === 0) return '';
 
-  const items = webSearchResults
+  const rawItems = webSearchResults
     .flatMap((r) => r?.data?.results ?? [])
-    .slice(0, 6)
+    .slice(0, 6);
+
+  // CR-13: Suppress section entirely when quality threshold not met
+  if (!shouldRenderNewsSection(rawItems)) return '';
+
+  const items = rawItems
+    .filter(
+      (r) =>
+        r.title &&
+        typeof r.snippet === 'string' &&
+        r.snippet.length > 50 &&
+        !r.snippet.endsWith('...')
+    )
     .map(
       (r) =>
         `<li><a href="${escapeHtml(r.url)}" target="_blank">${escapeHtml(r.title)}</a>` +
-        (r.snippet ? ` – <span style="color:#6c757d;font-size:8pt">${escapeHtml(r.snippet.slice(0, 120))}</span>` : '') +
+        (r.snippet
+          ? ` – <span style="color:#6c757d;font-size:8pt">${escapeHtml(formatSnippet(r.snippet).slice(0, 150))}</span>`
+          : '') +
         '</li>'
     )
     .join('\n');

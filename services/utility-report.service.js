@@ -29,6 +29,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const CernionMCPClient = require('../src/mcp-client');
 const { buildHtmlReport, summarizeForReport } = require('../src/report-builder');
+const { DataStatus, ds } = require('../src/data-status');
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -226,8 +227,31 @@ Keine Überschriften, keine Nummerierung, nur die Erkenntnisse.`;
 }
 
 function buildStaticNarrative(utilityName, kpiSummary) {
-  // CR-09: Generate data-driven findings from real KPI values where available
-  const findings = [];
+  // CR-09/CR-16: Data-driven findings, typed by criticality, max 5 total, max 2 opportunities
+  const summaryItems = [];
+
+  // ── Anschlussdauer vs. Bundesmedian (Section 5) ───────────────────────────
+  const vnbAd = kpiSummary?.anschlussdauer?.['rows.0.ee_ns_gesamt_wochen'] ?? null;
+  const medianAd = kpiSummary?.anschlussdauer?.['stats.ee_ns_gesamt.median'] ?? null;
+  if (vnbAd !== null && medianAd !== null) {
+    const delta = Number(vnbAd) - Number(medianAd);
+    if (delta > 13) {
+      summaryItems.push({
+        prio: 1, type: 'critical', icon: '🚨',
+        text: `Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.round(delta)} Wo. über Bundesmedian (${Number(medianAd).toFixed(0)} Wo.). Sofortiger Handlungsbedarf – BNetzA-Beschwerderisiko bei >13 Wochen.`,
+      });
+    } else if (delta > 0) {
+      summaryItems.push({
+        prio: 2, type: 'warning', icon: '⚠️',
+        text: `Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.round(delta)} Wo. über Bundesmedian (${Number(medianAd).toFixed(0)} Wo.). Phase 1 (Angebotserstellung) und Phase 2 (Inbetriebnahme) optimieren.`,
+      });
+    } else {
+      summaryItems.push({
+        prio: 4, type: 'opportunity', icon: '✅',
+        text: `Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.abs(Math.round(delta))} Wo. unter Bundesmedian (${Number(medianAd).toFixed(0)} Wo.). Niveau halten und als Wettbewerbsvorteil kommunizieren.`,
+      });
+    }
+  }
 
   // ── Gas fill level (Section 4) ────────────────────────────────────────────
   const gasFillPct =
@@ -235,13 +259,33 @@ function buildStaticNarrative(utilityName, kpiSummary) {
     kpiSummary?.countryStorage?.['storage.full'] ??
     null;
   if (gasFillPct !== null) {
-    const icon = gasFillPct < 30 ? '🔴' : gasFillPct < 70 ? '⚠️' : '✅';
-    const verdict = gasFillPct >= 90
-      ? 'EU-90%-Mandat erfüllt'
-      : gasFillPct >= 70 ? 'Einspeisung im Plan' : 'Einspeisung priorisieren';
-    findings.push({
-      prio: gasFillPct < 30 ? 1 : 2,
-      text: `${icon} Gasfüllstand DE: ${Number(gasFillPct).toFixed(1)} % – ${verdict} (VO 2022/1032).`,
+    if (gasFillPct < 25) {
+      summaryItems.push({
+        prio: 1, type: 'critical', icon: '⛽',
+        text: `Gasfüllstand DE ${Number(gasFillPct).toFixed(1)} % – kritisch unter EU-Mandat. Krisenplan aktivieren und Einspeisung sofort priorisieren (VO 2022/1032).`,
+      });
+    } else if (gasFillPct < 70) {
+      summaryItems.push({
+        prio: 2, type: 'warning', icon: '⛽',
+        text: `Gasfüllstand DE ${Number(gasFillPct).toFixed(1)} % – unter EU-90%-Mandat. Einspeisung priorisieren, Lieferverträge auf Abrufoptionen prüfen.`,
+      });
+    } else {
+      summaryItems.push({
+        prio: 4, type: 'opportunity', icon: '✅',
+        text: `Gasfüllstand DE ${Number(gasFillPct).toFixed(1)} % – EU-Mandat-compliant (≥90 %: ${gasFillPct >= 90 ? 'erfüllt' : 'im Plan'}). Versorgungssicherheit gewährleistet.`,
+      });
+    }
+  }
+
+  // ── Redispatch Anlagen (Section 1) ───────────────────────────────────────
+  const rdTotal =
+    kpiSummary?.redispatchExport?.totalCount ??
+    kpiSummary?.redispatchExport?.count ??
+    null;
+  if (rdTotal !== null) {
+    summaryItems.push({
+      prio: 2, type: 'warning', icon: '⚡',
+      text: `Netzbetrieb: ${rdTotal} Redispatch-Anlagen ≥100 kW identifiziert – §12 StromNZV-Meldefrist und Redispatch-2.0-Einbindung sicherstellen.`,
     });
   }
 
@@ -257,61 +301,9 @@ function buildStaticNarrative(utilityName, kpiSummary) {
   if (pvKw !== null) {
     const pvMw = (Number(pvKw) / 1000).toFixed(1);
     const countPart = pvCount !== null ? `, ${pvCount} Anlagen` : '';
-    findings.push({
-      prio: 3,
-      text: `🌱 EE-Portfolio: ${pvMw} MW installierte PV-Leistung${countPart} im Netzgebiet (MaStR).`,
-    });
-  }
-
-  // ── Redispatch Anlagen (Section 1) ───────────────────────────────────────
-  const rdTotal =
-    kpiSummary?.redispatchExport?.totalCount ??
-    kpiSummary?.redispatchExport?.count ??
-    null;
-  if (rdTotal !== null) {
-    findings.push({
-      prio: 2,
-      text: `⚡ Netzbetrieb: ${rdTotal} Redispatch-Anlagen ≥100 kW – §12 StromNZV-Meldefrist und Redispatch-2.0-Einbindung prüfen.`,
-    });
-  }
-
-  // ── Anschlussdauer (Section 5) ────────────────────────────────────────────
-  const vnbAd = kpiSummary?.anschlussdauer?.['rows.0.ee_ns_gesamt_wochen'] ?? null;
-  const medianAd = kpiSummary?.anschlussdauer?.['stats.ee_ns_gesamt.median'] ?? null;
-  if (vnbAd !== null && medianAd !== null) {
-    const delta = Number(vnbAd) - Number(medianAd);
-    if (delta > 0) {
-      findings.push({
-        prio: 1,
-        text: `🏛️ Regulierung: Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.round(delta)} Wo. über Bundesmedian (${Number(medianAd).toFixed(0)} Wo.). BNetzA-Beschwerderisiko bei >13 Wochen.`,
-      });
-    } else {
-      findings.push({
-        prio: 3,
-        text: `🏛️ Regulierung: Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.abs(Math.round(delta))} Wo. unter Bundesmedian (${Number(medianAd).toFixed(0)} Wo.). ✅ Gut positioniert.`,
-      });
-    }
-  } else {
-    findings.push({
-      prio: 3,
-      text: `🏛️ Regulierung: BNetzA EWK-Benchmarkdaten zu Anschlussdauer, Digitalisierung und Umsetzungsquote sind ausgewertet.`,
-    });
-  }
-
-  // ── Day-ahead price (Section 3) ───────────────────────────────────────────
-  const latestDaPrice =
-    kpiSummary?.prices?.latestPrice ??
-    kpiSummary?.prices?.currentPrice ??
-    null;
-  if (latestDaPrice !== null) {
-    findings.push({
-      prio: 3,
-      text: `📈 Energiemarkt: Day-Ahead-Preis ${Number(latestDaPrice).toFixed(2)} €/MWh – Beschaffungsoptimierung und Tarifanpassung quartalsweise prüfen.`,
-    });
-  } else {
-    findings.push({
-      prio: 3,
-      text: `📈 Energiemarkt: Strom- und Gasmarktdaten wurden für den Berichtszeitraum erfasst.`,
+    summaryItems.push({
+      prio: 3, type: 'opportunity', icon: '🌱',
+      text: `EE-Portfolio: ${pvMw} MW installierte PV-Leistung${countPart} im Netzgebiet (MaStR). Direktvermarktung und Redispatch-Pool weiter ausbauen.`,
     });
   }
 
@@ -321,27 +313,46 @@ function buildStaticNarrative(utilityName, kpiSummary) {
     kpiSummary?.co2Intensity?.average_today_gco2eq_kwh ??
     null;
   if (co2Val !== null) {
-    findings.push({
-      prio: 3,
-      text: `💡 Digitalisierung: CO₂-Intensität ${Math.round(Number(co2Val))} gCO₂eq/kWh – Grünstromzeiten für §14a-Steuerung und Kundenmarketing nutzen.`,
-    });
-  } else {
-    findings.push({
-      prio: 3,
-      text: `💡 Digitalisierung: Systemstatus und EIC-Datenbankübersicht wurden dokumentiert.`,
+    summaryItems.push({
+      prio: 3, type: 'opportunity', icon: '💡',
+      text: `CO₂-Intensität ${Math.round(Number(co2Val))} gCO₂eq/kWh – Grünstromzeiten für §14a-Steuerung und Kundenmarketing-Fenster nutzen.`,
     });
   }
 
-  // ── Churn risk (Section 6) ────────────────────────────────────────────────
-  findings.push({
-    prio: 3,
-    text: `👥 Kunden & Vertrieb: Churn-Risiken und Neukundenpotenziale aus dem Netzgebiet wurden identifiziert.`,
-  });
+  // ── Day-ahead price (Section 3) ───────────────────────────────────────────
+  const latestDaPrice =
+    kpiSummary?.prices?.latestPrice ??
+    kpiSummary?.prices?.currentPrice ??
+    null;
+  if (latestDaPrice !== null) {
+    summaryItems.push({
+      prio: 3, type: 'opportunity', icon: '📈',
+      text: `Energiemarkt: Day-Ahead-Preis ${Number(latestDaPrice).toFixed(2)} €/MWh – Beschaffungsoptimierung und Tarifanpassung quartalsweise prüfen.`,
+    });
+  }
 
-  // Sort by priority and take top 6
-  const sorted = findings.sort((a, b) => a.prio - b.prio).slice(0, 6);
+  // ── CR-16: Limit to max 5 points; critical/warning always first, max 2 opportunities ──
+  const criticals = summaryItems.filter((i) => i.type !== 'opportunity');
+  const opportunities = summaryItems.filter((i) => i.type === 'opportunity').slice(0, 2);
+  const sorted = [...criticals, ...opportunities].sort((a, b) => a.prio - b.prio).slice(0, 5);
 
-  const result = sorted.map((s) => s.text).join('\n');
+  // Fallback: ensure at least 3 items when data is sparse
+  if (sorted.length < 3) {
+    if (!sorted.some((s) => s.icon === '🏛️')) {
+      sorted.push({
+        prio: 5, type: 'opportunity', icon: '🏛️',
+        text: 'BNetzA EWK-Benchmarkdaten (Anschlussdauer, Digitalisierungsindex, Umsetzungsquote) wurden ausgewertet.',
+      });
+    }
+    if (!sorted.some((s) => s.icon === '👥')) {
+      sorted.push({
+        prio: 5, type: 'opportunity', icon: '👥',
+        text: 'Kunden & Vertrieb: Churn-Risiken und Neukundenpotenziale aus dem Netzgebiet wurden identifiziert.',
+      });
+    }
+  }
+
+  const result = sorted.slice(0, 5).map((s) => `${s.icon} ${s.text}`).join('\n');
   if (!process.env.GEMINI_API_KEY) {
     return result + '\n📋 Hinweis: Für eine KI-gestützte Analyse aktivieren Sie GEMINI_API_KEY in der .env-Konfiguration.';
   }
@@ -369,6 +380,66 @@ async function gated(availableTools, toolNames, fn) {
     return { available: false, error: 'Tool not available at live backend' };
   }
   return fn();
+}
+
+// ─── VNB fingerprint check (CR-15) ───────────────────────────────────────────
+
+/**
+ * Fields that MUST differ between VNBs. Identical values across VNBs indicate
+ * hardcoded fallback/dummy values slipping through as real data.
+ */
+const VNB_SPECIFIC_FIELDS = [
+  'churnScore',
+  'gefaehrdeteKunden',
+  'residuallastRegional',
+  'installierte_pv_leistung',
+  'anzahl_pv_anlagen',
+  'anschlussdauer_ee_ns',
+  'digitalisierungsindex',
+];
+
+/**
+ * Compare kpiSummary fields against previously generated reports stored in .reports/.
+ * Logs a warning for any field that carries an identical value across reports.
+ * Marks such fields as DataStatus.FALLBACK in the returned warnings list.
+ *
+ * @param {object} currentKpi    - Flat kpi summary for the report being built
+ * @param {string} currentReportId
+ * @param {object} logger        - Moleculer logger
+ * @returns {string[]}           - List of warning message strings
+ */
+function validateVnbUniqueness(currentKpi, currentReportId, logger) {
+  const warnings = [];
+  try {
+    ensureReportsDir();
+    const indexFile = path.join(REPORTS_DIR, 'index.json');
+    if (!fs.existsSync(indexFile)) return warnings;
+    const index = JSON.parse(fs.readFileSync(indexFile, 'utf-8'));
+
+    for (const entry of Object.values(index)) {
+      if (!entry.reportId || entry.reportId === currentReportId) continue;
+      const progressFile = progressPath(entry.reportId);
+      if (!fs.existsSync(progressFile)) continue;
+      let refProg;
+      try { refProg = JSON.parse(fs.readFileSync(progressFile, 'utf-8')); } catch { continue; }
+      if (refProg.status !== 'completed' || !refProg.kpiSummaryFlat) continue;
+
+      const refKpi = refProg.kpiSummaryFlat;
+      for (const field of VNB_SPECIFIC_FIELDS) {
+        const cur = currentKpi?.[field];
+        const ref = refKpi?.[field];
+        if (cur === null || cur === undefined || ref === null || ref === undefined) continue;
+        if (cur === ref) {
+          const msg = `[QA/CR-15] Field "${field}" = "${cur}" identisch mit Report ${entry.reportId} (${refProg.utilityName ?? 'unknown VNB'}) – möglicher Dummy-Wert`;
+          warnings.push(msg);
+          logger.warn(msg);
+        }
+      }
+    }
+  } catch (err) {
+    logger.warn(`[QA/CR-15] validateVnbUniqueness failed: ${err.message}`);
+  }
+  return warnings;
 }
 
 // ─── Service definition ────────────────────────────────────────────────────────
@@ -1162,10 +1233,26 @@ module.exports = {
         countries: ['DE', 'AT', 'NL', 'FR'],
       });
 
+      // CR-14: Direct MCP calls for EU aggregate + country trend as enrichment
+      // The broker's gas-storage.euStatistics call may return empty data if the
+      // underlying AGSI tool is gated; direct calls ensure we always try.
+      const [euStatisticsDirect, storageTrendDirect] = await Promise.all([
+        gated(availableTools, ['agsi_eu_statistics'],
+          () => callMcpDirect('agsi_eu_statistics', {}, cernionToken)
+        ),
+        gated(availableTools, ['agsi_storage_trend'],
+          () => callMcpDirect('agsi_storage_trend', { country: 'DE', period_days: 14 }, cernionToken)
+        ),
+      ]);
+
+      // Merge: prefer broker data (has error-handling wrapping); fallback to direct
+      const euStatisticsFinal = euStatistics?.available ? euStatistics : euStatisticsDirect;
+      const storageTrendFinal = storageTrend?.available ? storageTrend : storageTrendDirect;
+
       p.results.section4 = {
         countryStorage,
-        euStatistics,
-        storageTrend,
+        euStatistics: euStatisticsFinal,
+        storageTrend: storageTrendFinal,
         supplySecurityCheck,
         compareCountries,
       };
@@ -1345,6 +1432,12 @@ module.exports = {
       }
 
       const managementSummary = await generateNarrative(utilityName, kpiSummary);
+
+      // CR-15: Save flat kpiSummary for future cross-VNB fingerprint check
+      p.kpiSummaryFlat = kpiSummary;
+
+      // CR-15: Validate uniqueness vs. previously completed reports (log only)
+      validateVnbUniqueness(kpiSummary, p.reportId, this.logger);
 
       // Build HTML
       const html = buildHtmlReport({

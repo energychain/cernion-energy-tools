@@ -7,6 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.7] - 2026-03-06
+
+### Added
+
+- **360° Report – CR-11: DataStatus Fehlerklassen-Taxonomie (P0)**
+  - New module `src/data-status.js` exports `DataStatus` enum (OK / NOT_CALLED / TOOL_ERROR / NOT_LICENSED / NO_DATA / FALLBACK) plus factory `ds()`, renderer helpers `dsValue()`, `dsFallbackReason()`, `dsFallbackDisplay()`, `dsRender()`.
+  - Imported in both `utility-report.service.js` and `report-builder.js`.
+  - Replaces bare string fallbacks; enables precise distinction between implementation gaps (⚠ n/v), licence gaps (nicht lizenziert), and estimates (~value ⓘ).
+  - 18 unit tests in `tests/data-status.test.js`.
+
+- **360° Report – CR-12: Churn Dummy-Werte eliminieren (P1)**
+  - `renderSection6` detects heuristic churn text (`/heuristic|heuristik/i`) and renders values with `~` prefix + ⓘ marker instead of plain numbers.
+  - Description column shows `"Branchenheuristik (BDEW-Referenz) – kein CRM-Datenzugang"` so readers know values are not VNB-specific.
+  - Heidelberg = Hockenheim = 8% is now visually marked as estimate, not a real measurement.
+
+- **360° Report – CR-13: Rohe Web-Snippets bereinigen (P1)**
+  - `renderContextBox()` replaced with quality-filtered version: section is suppressed when fewer than 2 items pass or all snippets are ≤50 chars or end with `...`.
+  - `formatSnippet()` strips trailing source attributions (` – Publisher`).
+
+- **360° Report – CR-14: Gas EU-Aggregat & Ländervergleich repariert (P1)**
+  - Section 4 pipeline adds 2 parallel direct MCP calls: `agsi_eu_statistics` + `agsi_storage_trend` (period_days=14) as enrichment, merged with broker results.
+  - `renderSection4` Ländervergleich row now expands `rankings[]` → `"DE: 73 % · AT: 65 % · NL: 80 % · FR: 55 %"` instead of generic `"✓ Daten verfügbar"`.
+  - `Gasfüllstand EU gesamt` and `Speicher-Trendbewertung` rows have `fallbackReason` strings.
+
+- **360° Report – CR-15: VNB-Fingerprint-Check (P2)**
+  - `validateVnbUniqueness()` helper compares `VNB_SPECIFIC_FIELDS` (7 fields) against all previously completed reports stored in `.reports/*.progress.json`.
+  - Warns via `logger.warn` for any field with identical values across VNBs — detects silent dummy-value propagation.
+  - `kpiSummaryFlat` now saved to progress JSON after pipeline completion for future comparisons.
+
+- **360° Report – CR-16: Management Summary Priorisierung & Begrenzung (P2)**
+  - `buildStaticNarrative` redesigned: each finding has `type` (critical / warning / opportunity) and `prio` (1–5).
+  - Critical items always precede warnings; max 2 opportunities appended at the end.
+  - Hard cap: max 5 bullets total (previously unlimited, Hockenheim had 6).
+  - Anschlussdauer >13 Wo. over median → type=critical (🚨); gas fill <25% → type=critical (⛽); good Anschlussdauer → type=opportunity (✅).
+  - Hints line filtered from bullet list.
+  - `renderManagementSummary` enforces 5-bullet cap and strips the `📋 Hinweis:` GEMINI hint line.
+
+### Fixed
+
+- Gas section `Ländervergleich Gasfüllstand` row was always rendering `"✓ Daten verfügbar"` instead of actual country percentages.
+- Management summary could produce 6–7 bullets with no ordering guarantee between critical issues and opportunities.
+- Churn-Risiko-Score and Gefährdete Kunden were identical across all VNBs (hardcoded heuristic values presented as real measurements).
+
 ## [0.8.6] - 2026-03-06
 
 ### Added

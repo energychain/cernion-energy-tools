@@ -534,7 +534,8 @@ describe('Utility Report Service', () => {
           {
             data: {
               results: [
-                { title: 'Netzausbau Artikel', url: 'https://example.com', snippet: 'Kurze Beschreibung' },
+                { title: 'Netzausbau Artikel', url: 'https://example.com', snippet: 'Dies ist ein ausführlicher Beschreibungstext mit mehr als 50 Zeichen, der Informationen über den Netzausbau enthält' },
+                { title: 'Zweiter Artikel', url: 'https://example2.com', snippet: 'Noch ein ausführlicher Artikel über Energiewende mit mehr als 50 Zeichen Inhalt' },
               ],
             },
           },
@@ -544,6 +545,81 @@ describe('Utility Report Service', () => {
 
       expect(html).toContain('Aktuelle Meldungen');
       expect(html).toContain('Netzausbau Artikel');
+    });
+
+    it('should NOT render context box when snippets are raw/short (CR-13)', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR13 Test GmbH' },
+        webSearchResults: [
+          {
+            data: {
+              results: [
+                { title: 'Article 1', url: 'https://x.com', snippet: 'Short...' },
+              ],
+            },
+          },
+        ],
+        generatedAt: new Date().toISOString(),
+      });
+      // Single short/trailing-dots snippet → section suppressed
+      expect(html).not.toContain('Aktuelle Meldungen');
+    });
+
+    it('should render churn with ~ prefix when heuristic model (CR-12)', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'Churn Test GmbH' },
+        section6: {
+          churnPrediction: {
+            available: true,
+            data: [{ type: 'text', text: 'Estimated at-risk customers (max 100)**: 60\nAssumed churn rate: 8.0%\nheuristic model.' }],
+          },
+          salesLeads: { available: false },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      // CR-12: heuristic values must show ~ prefix, not plain number
+      expect(html).toContain('~8.0');
+      expect(html).toContain('~60');
+      expect(html).toContain('ℹ️');
+      expect(html).toContain('Branchenheuristik');
+    });
+
+    it('should render Ländervergleich with country breakdown when data available (CR-14)', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'Gas CR14 GmbH' },
+        section4: {
+          countryStorage: { available: true, data: { full: 72.5, gasInStorage: 180 } },
+          euStatistics: { available: true, data: { full: 68 } },
+          storageTrend: { available: false },
+          supplySecurityCheck: { available: false },
+          compareCountries: {
+            available: true,
+            data: {
+              rankings: [
+                { country: 'DE', fillPercent: 72.5 },
+                { country: 'AT', fillPercent: 65.1 },
+                { country: 'NL', fillPercent: 80.2 },
+                { country: 'FR', fillPercent: 55.0 },
+              ],
+            },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('DE: 73 %');
+      expect(html).toContain('AT: 65 %');
+      expect(html).toContain('NL: 80 %');
+    });
+
+    it('should cap management summary at 5 bullets (CR-16)', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR16 Cap Test GmbH' },
+        managementSummary: 'Line 1: abc def ghi jkl\nLine 2: abc def ghi jkl\nLine 3: abc def ghi jkl\nLine 4: abc def ghi jkl\nLine 5: abc def ghi jkl\nLine 6: abc def ghi jkl\nLine 7: abc def ghi jkl',
+        generatedAt: new Date().toISOString(),
+      });
+      // Count summary-finding divs – must not exceed 5
+      const matches = html.match(/class="summary-finding"/g) ?? [];
+      expect(matches.length).toBeLessThanOrEqual(5);
     });
 
     it('should render @media print styles', () => {
