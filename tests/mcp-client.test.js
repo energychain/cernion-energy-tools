@@ -24,9 +24,6 @@ describe('CernionMCPClient', () => {
 
   beforeEach(() => {
     process.env.CERNION_TOKEN = 'test_token_123';
-    // Reset sequential call queue and disable inter-call delay so tests run fast.
-    CernionMCPClient._callQueue = Promise.resolve();
-    CernionMCPClient.INTER_CALL_DELAY_MS = 0;
     clientInstance = {
       connect: jest.fn(),
       callTool: jest.fn(),
@@ -42,8 +39,6 @@ describe('CernionMCPClient', () => {
       await client.disconnect();
       client = null;
     }
-    CernionMCPClient.INTER_CALL_DELAY_MS = 500; // restore production default
-    CernionMCPClient._callQueue = Promise.resolve();
     jest.restoreAllMocks();
     jest.clearAllMocks();
   });
@@ -248,9 +243,8 @@ describe('CernionMCPClient', () => {
     });
   });
 
-  describe('CR-25: sequential call queue and quota-error retry', () => {
-    // Each test overrides INTER_CALL_DELAY_MS and QUOTA_RETRY_BASE_MS for speed.
-    // The global beforeEach already sets INTER_CALL_DELAY_MS = 0 and resets _callQueue.
+  describe('CR-25/26: quota-error retry', () => {
+    // Each test overrides QUOTA_RETRY_BASE_MS for speed.
 
     it('should retry on quota error and succeed on later attempt', async () => {
       let attempts = 0;
@@ -309,47 +303,5 @@ describe('CernionMCPClient', () => {
       expect(attempts).toBe(1); // no retry
     });
 
-    it('should serialise concurrent calls so they never overlap', async () => {
-      const callOrder = [];
-      CernionMCPClient.INTER_CALL_DELAY_MS = 10; // small non-zero delay
-
-      jest.spyOn(CernionMCPClient.prototype, 'connect').mockResolvedValue(true);
-      jest.spyOn(CernionMCPClient.prototype, 'callTool').mockImplementation(async (name) => {
-        callOrder.push(`start-${name}`);
-        await new Promise((r) => setTimeout(r, 5));
-        callOrder.push(`end-${name}`);
-        return { success: true };
-      });
-      jest.spyOn(CernionMCPClient.prototype, 'disconnect').mockResolvedValue();
-
-      // Fire 3 calls simultaneously (simulating Promise.all in the pipeline)
-      await Promise.all([
-        CernionMCPClient.callWithNewSession('tool-1', {}, 'tok'),
-        CernionMCPClient.callWithNewSession('tool-2', {}, 'tok'),
-        CernionMCPClient.callWithNewSession('tool-3', {}, 'tok'),
-      ]);
-
-      // Sequential queue must prevent interleaving: each call must fully complete
-      // before the next one starts.
-      expect(callOrder).toEqual([
-        'start-tool-1', 'end-tool-1',
-        'start-tool-2', 'end-tool-2',
-        'start-tool-3', 'end-tool-3',
-      ]);
-    });
-
-    it('should handle INTER_CALL_DELAY_MS = 0 without delay', async () => {
-      // INTER_CALL_DELAY_MS is already 0 (set in outer beforeEach)
-      jest.spyOn(CernionMCPClient.prototype, 'connect').mockResolvedValue(true);
-      jest.spyOn(CernionMCPClient.prototype, 'callTool').mockResolvedValue({ success: true });
-      jest.spyOn(CernionMCPClient.prototype, 'disconnect').mockResolvedValue();
-
-      const start = Date.now();
-      await CernionMCPClient.callWithNewSession('test_tool', {}, 'tok');
-      const elapsed = Date.now() - start;
-
-      // Should complete in well under 100ms with no delay
-      expect(elapsed).toBeLessThan(100);
-    });
   });
 });

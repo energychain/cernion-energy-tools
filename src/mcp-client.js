@@ -19,14 +19,7 @@ const {
 } = require('@modelcontextprotocol/sdk/client/streamableHttp.js');
 
 class CernionMCPClient {
-  // ─── Static call-throttle configuration ────────────────────────────────────
-
-  /**
-   * Minimum milliseconds between the end of one MCP call and the start of the
-   * next (process-global). Prevents rapid-fire connections triggering the
-   * server-side rate limiter. Set to 0 in tests to keep them fast.
-   */
-  static INTER_CALL_DELAY_MS = 500;
+  // ─── Static retry configuration ─────────────────────────────────────────────
 
   /**
    * Maximum retry attempts when a call fails with a quota / rate-limit error.
@@ -36,13 +29,6 @@ class CernionMCPClient {
 
   /** Base back-off in ms for quota retries (doubles each attempt). */
   static QUOTA_RETRY_BASE_MS = 1000;
-
-  /**
-   * Sequential call queue – every callWithNewSession invocation chains onto
-   * this promise, ensuring only one MCP session is open at a time.
-   * @private
-   */
-  static _callQueue = Promise.resolve();
 
   /**
    * Returns true when the error message indicates a server-side quota or
@@ -419,13 +405,15 @@ class CernionMCPClient {
   /**
    * Create a new session-based client for a single request.
    *
-   * Guarantees:
-   *  1. **Sequential queue** – only one MCP session is open at a time process-wide.
-   *     Concurrent callers (e.g. from Promise.all) are serialised and each waits
-   *     INTER_CALL_DELAY_MS after the previous call finishes before connecting.
-   *  2. **Quota retry** – if the server returns a quota/rate-limit error the call
-   *     is retried up to MAX_QUOTA_RETRIES times with exponential back-off
-   *     (QUOTA_RETRY_BASE_MS × 2^attempt: 1 s → 2 s → 4 s).
+   * Concurrent calls are allowed — the process-wide serial queue introduced in
+   * CR-25 has been removed (CR-26) because the server-side quota issue that
+   * motivated it was fixed by the Cernion team (2026-03-06). Serialising calls
+   * caused each pipeline stage to wait ~10 s per queued call, exceeding the
+   * 30 s callBroker timeout.
+   *
+   * **Quota retry** – if the server returns a quota/rate-limit error the call
+   * is retried up to MAX_QUOTA_RETRIES times with exponential back-off
+   * (QUOTA_RETRY_BASE_MS × 2^attempt: 1 s → 2 s → 4 s).
    *
    * @param {string} toolName
    * @param {object} [params={}]
@@ -444,57 +432,42 @@ class CernionMCPClient {
       };
     }
 
-    // ── Acquire a slot in the sequential call queue ─────────────────────────
-    // Pattern: each caller chains onto _callQueue and then becomes the new tail.
-    // The finally block resolves the slot so the next waiter can proceed.
-    let releaseSlot;
-    const slot = new Promise((resolve) => { releaseSlot = resolve; });
-    const prevQueue = CernionMCPClient._callQueue;
-    CernionMCPClient._callQueue = slot; // next caller waits for us
-
-    await prevQueue.catch(() => {}); // wait for previous call (ignore its error)
-    if (CernionMCPClient.INTER_CALL_DELAY_MS > 0) {
-      await new Promise((r) => setTimeout(r, CernionMCPClient.INTER_CALL_DELAY_MS));
-    }
-
     // ── Quota-retry loop ─────────────────────────────────────────────────────
+    // Concurrent calls are allowed; the server-side quota issue that originally
+    // motivated serialisation has been resolved (CR-26, 2026-03-06).
     let lastError;
-    try {
-      for (let attempt = 0; attempt <= CernionMCPClient.MAX_QUOTA_RETRIES; attempt++) {
-        if (attempt > 0) {
-          const backoffMs = CernionMCPClient.QUOTA_RETRY_BASE_MS * Math.pow(2, attempt - 1);
-          await new Promise((r) => setTimeout(r, backoffMs));
-        }
-        try {
-          const result = await CernionMCPClient._executeCall(toolName, params, token);
-          // The tool call succeeded at HTTP level but the response body may still
-          // carry a quota error (rare, but handle it).
-          if (CernionMCPClient._isQuotaError(result?.error?.message)) {
-            lastError = new Error(result.error.message);
-            continue; // retry
-          }
-          return result;
-        } catch (err) {
-          lastError = err;
-          if (!CernionMCPClient._isQuotaError(err.message)) {
-            throw err; // non-quota error – propagate immediately, don't retry
-          }
-          // quota error: loop to next attempt
-        }
+    for (let attempt = 0; attempt <= CernionMCPClient.MAX_QUOTA_RETRIES; attempt++) {
+      if (attempt > 0) {
+        const backoffMs = CernionMCPClient.QUOTA_RETRY_BASE_MS * Math.pow(2, attempt - 1);
+        await new Promise((r) => setTimeout(r, backoffMs));
       }
-
-      // All retries exhausted – return structured error instead of throwing
-      return {
-        success: false,
-        error: {
-          code: 'QUOTA_EXHAUSTED',
-          message: lastError?.message || 'Quota exhausted after all retry attempts',
-          toolName,
-        },
-      };
-    } finally {
-      releaseSlot(); // unblock the next queued caller
+      try {
+        const result = await CernionMCPClient._executeCall(toolName, params, token);
+        // The tool call succeeded at HTTP level but the response body may still
+        // carry a quota error (rare, but handle it).
+        if (CernionMCPClient._isQuotaError(result?.error?.message)) {
+          lastError = new Error(result.error.message);
+          continue; // retry
+        }
+        return result;
+      } catch (err) {
+        lastError = err;
+        if (!CernionMCPClient._isQuotaError(err.message)) {
+          throw err; // non-quota error – propagate immediately, don't retry
+        }
+        // quota error: loop to next attempt
+      }
     }
+
+    // All retries exhausted – return structured error instead of throwing
+    return {
+      success: false,
+      error: {
+        code: 'QUOTA_EXHAUSTED',
+        message: lastError?.message || 'Quota exhausted after all retry attempts',
+        toolName,
+      },
+    };
   }
 }
 

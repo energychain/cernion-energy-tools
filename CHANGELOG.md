@@ -7,118 +7,239 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.17] - 2026-03-06
+
+### Fixed
+
+- **MCP Client – CR-26: Remove serial call queue; retain quota-error retry**
+
+  **Root cause of timeouts:** CR-25 introduced a process-wide serial call queue
+  (`_callQueue`) to prevent burst connections from triggering the MCP server's
+  quota detection. The Cernion team confirmed the quota issue was server-side
+  and has since been resolved (2026-03-06). With the queue in place, ~5 pipeline
+  MCP calls × ~10 s each ≈ 50 s total, exceeding the 30 s `callBroker` timeout
+  and causing `RequestTimeoutError` on `energy-market.installations`,
+  `forecast.generationForecast`, and `energy-market.prices`.
+
+  **Changes (`src/mcp-client.js`):**
+  - Removed `static _callQueue` and `INTER_CALL_DELAY_MS` — concurrent calls are
+    now allowed again; `Promise.all` in pipeline stages runs as intended.
+  - Retained quota-error retry (`MAX_QUOTA_RETRIES = 3`, exponential back-off
+    1 s → 2 s → 4 s) as a safety net for transient server-side quota responses.
+  - 2 queue-specific unit tests removed (`should serialise concurrent calls`,
+    `should handle INTER_CALL_DELAY_MS = 0 without delay`); 3 retry tests kept.
+
+- **Parameter validation – `convert: true` on all numeric action params**
+
+  `fastest-validator` 1.x requires `convert: true` per field; there is no global
+  option. HTTP GET query strings deliver all params as strings (`?limit=10` →
+  `"10"`), causing validation errors on `type: 'number'` params. Fixed 21 fields
+  across 10 service files: `grid-operations`, `ewk-monitoring`, `eic-codes`,
+  `business-intelligence`, `query`, `forecast`, `residual-load`, `web-search`,
+  `customer-service`, `energy-market`. (`assets.service.js` already had
+  `convert: true` correctly.)
+
 ## [0.8.16] - 2026-03-06
 
 ### Fixed
 
-- **MCP-Client – CR-25: Serielle Call-Queue + Quota-Fehler-Retry**
+- **MCP Client – CR-25: Sequential call queue + quota-error retry**
 
-  **Ursachenanalyse:** `Promise.all` in den Pipeline-Phasen 2 und 3 feuerte mehrere `callWithNewSession`-Aufrufe gleichzeitig. Jeder Aufruf öffnete eine eigene HTTP-Verbindung zum MCP-Server. Der Server erkannte den Verbindungs-Burst als Quota-Verletzung und lehnte alle ab (`"Token quota exhausted"`). Die Entwickler bestätigten: kein echtes Raten-Limit – das ist reines Burst-Detection-Artefakt.
+  **Root cause analysis:** `Promise.all` in pipeline phases 2 and 3 was firing
+  multiple `callWithNewSession` calls simultaneously. Each call opened its own
+  HTTP connection to the MCP server. The server detected the connection burst as
+  a quota violation and rejected all of them (`"Token quota exhausted"`).
+  Developers confirmed: no real rate limit — this was purely a burst-detection
+  artefact.
 
-  **Korrekturen (`src/mcp-client.js`):**
-  - **Serielle Call-Queue** (`static _callQueue`): Jeder `callWithNewSession`-Aufruf hängt sich an einen prozessweiten Promise-Chain an, sodass immer nur eine MCP-Session gleichzeitig geöffnet ist. `Promise.all` im Pipeline-Code bleibt unverändert – die Serialisierung passiert transparent im Client.
-  - **Inter-Call-Delay** (`INTER_CALL_DELAY_MS = 500`): Nach Abschluss des vorherigen Calls wartet der Client 500 ms, bevor er die nächste Session öffnet. Per Umgebungsvariable/Test auf 0 setzbar.
-  - **Quota-Retry mit Exponential-Backoff** (`MAX_QUOTA_RETRIES = 3`, `QUOTA_RETRY_BASE_MS = 1000`): Bis zu 3 Wiederholungen bei Quota- / Rate-Limit-Fehlern (1 s → 2 s → 4 s Backoff). Nicht-Quota-Fehler werden sofort propagiert.
-  - **`_isQuotaError(msg)`**: Erkennt `"quota"`, `"rate limit"` und `"too many requests"` (case-insensitive).
-  - **`_executeCall(toolName, params, token)`**: Neuer privater Helfer – kapselt connect → callTool → disconnect ohne Queue/Retry.
-  - **`connect()` bricht bei Quota-Fehlern sofort ab** (statt 3×Retry), damit die äußere Retry-Schleife in `callWithNewSession` die Backoff-Steuerung übernimmt.
-  - 5 neue Unit-Tests: Quota-Retry → Erfolg nach 2 Fehlern; alle Retries erschöpft → `QUOTA_EXHAUSTED`; kein Retry bei Nicht-Quota-Fehler; Serialisierungs-Test (3 gleichzeitige Calls → kein Interleaving); Delay=0 → kein Timing-Overhead.
+  **Changes (`src/mcp-client.js`):**
+  - **Serial call queue** (`static _callQueue`): every `callWithNewSession` call
+    chains onto a process-wide Promise chain so that only one MCP session is open
+    at a time. `Promise.all` in pipeline code remains unchanged — serialisation
+    happens transparently in the client.
+  - **Inter-call delay** (`INTER_CALL_DELAY_MS = 500`): after the previous call
+    completes, the client waits 500 ms before opening the next session.
+    Configurable via environment variable / test to 0.
+  - **Quota retry with exponential back-off** (`MAX_QUOTA_RETRIES = 3`,
+    `QUOTA_RETRY_BASE_MS = 1000`): up to 3 retries on quota / rate-limit errors
+    (1 s → 2 s → 4 s back-off). Non-quota errors are propagated immediately.
+  - **`_isQuotaError(msg)`**: detects `"quota"`, `"rate limit"` and
+    `"too many requests"` (case-insensitive).
+  - **`_executeCall(toolName, params, token)`**: new private helper — encapsulates
+    connect → callTool → disconnect without queue/retry.
+  - **`connect()` aborts immediately on quota errors** (instead of 3 retries) so
+    the outer retry loop in `callWithNewSession` controls back-off.
+  - 5 new unit tests: quota retry → success after 2 failures; all retries
+    exhausted → `QUOTA_EXHAUSTED`; no retry on non-quota error; serialisation
+    test (3 concurrent calls → no interleaving); delay=0 → no timing overhead.
 
 ## [0.8.15] - 2026-03-06
 
 ### Fixed
 
-- **360° Report – CR-24: MCP-Fehler werden jetzt korrekt erkannt und transparent gemeldet**
+- **360° Report – CR-24: MCP errors are now correctly detected and transparently reported**
 
-  **Ursachenanalyse:** Alle bisherigen `VNB_NOT_IDENTIFIED`-Fehler (Heidelberg, Eberbach, usw.) hatten dieselbe Grundursache: der Token `CERNION_TOKEN` in `.env` liefert HTTP 403 vom MCP-Server. `callBroker` fing den Fehler still ab und gab `{ available: false }` zurück – was die Phase-1-Schleife als "keine Ergebnisse" interpretierte. Die Fehlermeldung sagte "VNB nicht im Register" statt "MCP-Authentifizierung fehlgeschlagen".
+  **Root cause analysis:** All previous `VNB_NOT_IDENTIFIED` errors (Heidelberg,
+  Eberbach, etc.) shared the same root cause: the token `CERNION_TOKEN` in `.env`
+  returned HTTP 403 from the MCP server. `callBroker` silently caught the error
+  and returned `{ available: false }`, which the Phase 1 loop interpreted as "no
+  results". The error message said "VNB not in registry" instead of "MCP
+  authentication failed".
 
-  **Korrekturen:**
-  - **MCP-Fehlererkennung**: Phase-1-Schleife prüft jetzt `mp?.available === false` → speichert den echten Fehlertext in `p.meta.mcpError` und überspringt den Query (statt leere Kandidaten zu akkumulieren).
-  - **Korrekte Fehlermeldung**: Guard `!resolvedBdew && !resolvedMastrId` prüft zuerst `p.meta.mcpError` → wirft `MCP_CONNECTION_ERROR` mit klarem Hinweis (Token, Netzwerk, Health-Endpoint) statt dem irreführenden `VNB_NOT_IDENTIFIED`.
-  - **VNB-Selektion transparent**: Nach erfolgreicher Phase-1 schreibt die Pipeline `p.meta.vnbIdentification` mit `{ queriesTried, candidatesFound, selected: { name, bdew, selectionReason } }`. Das Feld erscheint in `GET /status/:id` und zeigt dem Nutzer, welcher Marktpartner warum ausgewählt wurde.
-  - **Health-Endpoint**: Neues `GET /api/utility-report/health` – testet die MCP-Verbindung mit dem konfigurierten Token und liefert `{ status, tokenPresent, mcpReachable, toolCount, latencyMs, error }`.
-  - 2 neue Tests: MCP-Fehler führt zu `MCP-Verbindungsfehler` (nicht `VNB_NOT_IDENTIFIED`); erfolgreiche Identifikation befüllt `vnbIdentification.selected`.
+  **Changes:**
+  - **MCP error detection**: the Phase 1 loop now checks `mp?.available === false`
+    → stores the real error text in `p.meta.mcpError` and skips the query (instead
+    of accumulating empty candidates).
+  - **Correct error message**: the guard `!resolvedBdew && !resolvedMastrId` first
+    checks `p.meta.mcpError` → throws `MCP_CONNECTION_ERROR` with a clear hint
+    (token, network, health endpoint) instead of the misleading `VNB_NOT_IDENTIFIED`.
+  - **VNB selection transparency**: after successful Phase 1, the pipeline writes
+    `p.meta.vnbIdentification` with
+    `{ queriesTried, candidatesFound, selected: { name, bdew, selectionReason } }`.
+    The field appears in `GET /status/:id` and shows the user which market partner
+    was selected and why.
+  - **Health endpoint**: new `GET /api/utility-report/health` — tests the MCP
+    connection with the configured token and returns
+    `{ status, tokenPresent, mcpReachable, toolCount, latencyMs, error }`.
+  - 2 new tests: MCP error leads to `MCP_CONNECTION_ERROR` (not
+    `VNB_NOT_IDENTIFIED`); successful identification populates
+    `vnbIdentification.selected`.
 
 ### Added
 
-- **`GET /api/utility-report/health`**: Neuer Diagnose-Endpoint prüft Token-Konfiguration und MCP-Erreichbarkeit. Erste Anlaufstelle bei Pipeline-Fehlern.
+- **`GET /api/utility-report/health`**: new diagnostic endpoint checks token
+  configuration and MCP reachability. First stop when diagnosing pipeline errors.
 
 ## [0.8.14] - 2026-03-06
 
 ### Fixed
 
-- **360° Report – CR-23: Marktpartner-Response-Extraktion und VNB-Selektion korrigiert**
-  - **Ursache 1 – falscher Response-Pfad**: `cernion_market_partners` liefert im synchronen MCP-Pfad die Ergebnisse direkt als `mp.results` (Top-Level), nicht als `mp.data.results`. Der bisherige Code prüfte ausschließlich `data.results` → `rawCandidates = []` für jeden Query → VNB_NOT_IDENTIFIED. Fix: Fallback-Kette um `mp?.results` ergänzt.
-  - **Ursache 2 – falscher Feldname**: Die echte MCP-API liefert `companyName` (nicht `name`) und `bdewCode` (nicht `bdew`). Normalisierung in `allCandidatesMap` um `c.companyName` ergänzt; `city` wird jetzt auch aus `c.contacts?.[0]?.city` extrahiert.
-  - **Ursache 3 – falscher Kandidat**: Mit `limit: 5` erscheint „Stadtwerke Heidelberg Netze GmbH“ (Position 10) nicht in den Ergebnissen; `candidates[0]` wäre „acteno energy GmbH“. Fix: `limit` auf 10 erhöht; `pickBestVnbPartner` bevorzugt jetzt Unternehmen mit „Netz“ im Namen als zweite Priorität (nach expliziter VNB-Rolle).
-  - **Ursache 4 – zu früher Loop-Break**: Die Query-Schleife brach bei JEDEM ersten Treffer ab (auch für Nicht-VNB-Unternehmen). Fix: Alle Queries werden ausgeführt, alle Kandidaten in `allCandidatesMap` gesammelt, bester Treffer erst danach aus dem kombinierten Pool gewählt.
-  - 3 neue Unit-Tests für `pickBestVnbPartner`: Top-Level-Format, „Netz“-Präferenz, explizite VNB-Rolle schlägt „Netz“-Name.
+- **360° Report – CR-23: Market partner response extraction and VNB selection corrected**
+  - **Cause 1 – wrong response path**: `cernion_market_partners` returns results
+    directly as `mp.results` (top-level) in the synchronous MCP path, not as
+    `mp.data.results`. The previous code checked only `data.results` →
+    `rawCandidates = []` for every query → `VNB_NOT_IDENTIFIED`. Fix: added
+    `mp?.results` as a fallback in the extraction chain.
+  - **Cause 2 – wrong field name**: the real MCP API returns `companyName` (not
+    `name`) and `bdewCode` (not `bdew`). Normalisation in `allCandidatesMap`
+    extended to include `c.companyName`; `city` is now also extracted from
+    `c.contacts?.[0]?.city`.
+  - **Cause 3 – wrong candidate**: with `limit: 5`, "Stadtwerke Heidelberg Netze
+    GmbH" (position 10) does not appear in results; `candidates[0]` would be
+    "acteno energy GmbH". Fix: `limit` raised to 10; `pickBestVnbPartner` now
+    prefers companies with "Netz" in the name as second priority (after explicit
+    VNB role).
+  - **Cause 4 – premature loop break**: the query loop broke on the FIRST match
+    (even for non-VNB companies). Fix: all queries are now executed, all
+    candidates collected in `allCandidatesMap`, best match selected afterwards
+    from the combined pool.
+  - 3 new unit tests for `pickBestVnbPartner`: top-level format, "Netz"
+    preference, explicit VNB role beats "Netz" name.
 
 ## [0.8.13] - 2026-03-06
 
 ### Fixed
 
-- **360° Report – CR-22: Token-Propagation-Bug behoben**
-  - `cernionToken` aus dem `process.env.CERNION_TOKEN`-Fallback wurde in `_runPipeline` nie in `ctx.meta` zurückgeschrieben.
-  - Folge: Alle `callBroker()`-Aufrufe innerhalb der Pipeline propagierten das Token **nicht** zu nachgelagerten Services (z. B. `grid-operations.marketPartners`).
-  - `grid-operations` las `ctx.meta.cernionToken` für MCP-Authentifizierung → erhielt `undefined` → MCP-Auth schlug still fehl → `allPartners: []`, `availableTools: []` für jeden Report.
-  - Fix: Erste Anweisung in `_runPipeline`: `if (cernionToken) ctx.meta.cernionToken = cernionToken;` – stellt sicher, dass das env-aufgelöste Token in `ctx.meta` vorliegt, bevor der erste Broker-Call erfolgt.
-  - 1 neuer Test: prüft, dass das env-Token `process.env.CERNION_TOKEN` korrekt in `ctx.meta.cernionToken` für alle Downstream-Aufrufe gesetzt wird, wenn `ctx.meta` kein Token enthält.
+- **360° Report – CR-22: Token propagation bug fixed**
+  - `cernionToken` resolved from `process.env.CERNION_TOKEN` was never written
+    back into `ctx.meta` inside `_runPipeline`.
+  - Consequence: all `callBroker()` calls within the pipeline did **not** propagate
+    the token to downstream services (e.g. `grid-operations.marketPartners`).
+  - `grid-operations` read `ctx.meta.cernionToken` for MCP authentication →
+    received `undefined` → MCP auth silently failed → `allPartners: []`,
+    `availableTools: []` for every report.
+  - Fix: first statement in `_runPipeline`:
+    `if (cernionToken) ctx.meta.cernionToken = cernionToken;` — ensures the
+    env-resolved token is present in `ctx.meta` before the first broker call.
+  - 1 new test: verifies that the env token `process.env.CERNION_TOKEN` is
+    correctly set in `ctx.meta.cernionToken` for all downstream calls when
+    `ctx.meta` contains no token.
 
 ## [0.8.12] - 2026-03-06
 
 ### Improved
 
-- **360° Report – CR-21: Kontextbezogene Fehlermeldung bei VNB_NOT_IDENTIFIED**
-  - Fehlermeldung zeigt jetzt die tatsächlich verwendeten Suchanfragen: *„Gesucht wurde nach: „Eberbach", „Stadtwerke Eberbach", „Stadtwerk Eberbach"."*
-  - Vorschläge werden dynamisch aus dem Eingabewert abgeleitet – kein hardcodiertes „Stadtwerke Heidelberg Netz GmbH" Beispiel mehr.
-  - Bei Eingabe ohne Org-Präfix (z. B. „Eberbach") → konkrete Alternativen: „Stadtwerk Eberbach GmbH", „Stadtwerke Eberbach Netz GmbH", „Eberbach Netz GmbH".
-  - Bei Eingabe mit Org-Präfix (z. B. „Stadtwerke Eberbach") → Varianten: „Eberbach Netz GmbH", „Stadtwerke Eberbach Netz GmbH", „Stadtwerk Eberbach GmbH".
-  - Fehlermeldung enthält weiterhin den Hinweis auf BDEW-Code-Direktübergabe (Parameter: `bdew`).
-  - 1 neuer Test: prüft gesuchte Queries und input-spezifische Vorschläge (nicht Heidelberg) in der Fehlermeldung.
+- **360° Report – CR-21: Context-aware error message for VNB_NOT_IDENTIFIED**
+  - Error message now shows the actual search queries used: *"Searched for:
+    \"Eberbach\", \"Stadtwerke Eberbach\", \"Stadtwerk Eberbach\"."*
+  - Suggestions are derived dynamically from the input value — no more hardcoded
+    "Stadtwerke Heidelberg Netz GmbH" example.
+  - Input without org prefix (e.g. "Eberbach") → concrete alternatives:
+    "Stadtwerk Eberbach GmbH", "Stadtwerke Eberbach Netz GmbH",
+    "Eberbach Netz GmbH".
+  - Input with org prefix (e.g. "Stadtwerke Eberbach") → variants:
+    "Eberbach Netz GmbH", "Stadtwerke Eberbach Netz GmbH",
+    "Stadtwerk Eberbach GmbH".
+  - Error message continues to include a hint about direct BDEW code input
+    (parameter: `bdew`).
+  - 1 new test: verifies searched queries and input-specific suggestions (not
+    Heidelberg) in the error message.
 
 ## [0.8.11] - 2026-03-06
 
 ### Fixed
 
-- **360° Report – CR-20: Stadtwerk singular/plural BDEW-Suche und city-SNB-Fallback**
-  - `buildVnbSearchQueries()` erzeugt jetzt **beide** Stadtwerk-Varianten:
-    - Bare Stadtname (z. B. „Eberbach") → `["Eberbach", "Stadtwerke Eberbach", "Stadtwerk Eberbach"]`
-    - Eingabe mit Plural-Präfix (z. B. „Stadtwerke Eberbach") → fügt Singular-Query `"Stadtwerk Eberbach"` hinzu
-    - Eingabe mit Singular-Präfix (z. B. „Stadtwerk Eberbach GmbH") → fügt Plural-Query `"Stadtwerke Eberbach"` hinzu
-  - Hintergrund: der reale Marktpartner-Datenbankeintrag lautet „**Stadtwerk** Eberbach GmbH" (Singular), nicht „Stadtwerke" – führte zu `allPartners: []` und VNB_NOT_IDENTIFIED-Fehler.
-  - City-SNB-Fallback (Step 1b): `type: 'solar'` → `type: 'all'` – kleine VNBs haben ggf. keine Solaranlagen mit verknüpften NAP-Daten; mit `'all'` werden auch Wind-, Speicher- und Biomasseanlagen berücksichtigt.
-  - 3 neue Unit-Tests für die neuen Queryvarianten (Singular, Plural↔Singular-Cross).
+- **360° Report – CR-20: Stadtwerk singular/plural BDEW search and city-SNB fallback**
+  - `buildVnbSearchQueries()` now generates **both** Stadtwerk variants:
+    - Bare city name (e.g. "Eberbach") →
+      `["Eberbach", "Stadtwerke Eberbach", "Stadtwerk Eberbach"]`
+    - Input with plural prefix (e.g. "Stadtwerke Eberbach") → adds singular query
+      `"Stadtwerk Eberbach"`
+    - Input with singular prefix (e.g. "Stadtwerk Eberbach GmbH") → adds plural
+      query `"Stadtwerke Eberbach"`
+  - Background: the real market partner database entry is "**Stadtwerk** Eberbach
+    GmbH" (singular), not "Stadtwerke" — this caused `allPartners: []` and
+    `VNB_NOT_IDENTIFIED` errors.
+  - City-SNB fallback (Step 1b): `type: 'solar'` → `type: 'all'` — small VNBs
+    may not have solar installations with linked NAP data; `'all'` also considers
+    wind, storage, and biomass installations.
+  - 3 new unit tests for the new query variants (singular, plural↔singular cross).
 
 ## [0.8.10] - 2026-03-06
 
 ### Added
 
-- **360° Report – CR-19: Marktpartner-Register in Sektion 8**
-  - Phase 1 der Report-Pipeline sammelt jetzt **alle** Marktpartner-Kandidaten (bis zu 5 Ergebnisse je Suchanfrage-Variante) in einer `allCandidatesMap` und speichert sie als `p.meta.allPartners`.
-  - Normalisierung jedes Kandidaten: BDEW-Code (`bdewCode` oder `bdew`), Marktrolle(n) (`roles` oder `marketRoles`), MaStR-ID (aus `mastrId`, `gridOperatorMastrId` oder `mastrIds`-Objekt).
-  - `allPartners` wird als Teil von `meta` an `buildHtmlReport()` übergeben – in Pipeline (Phase 4) und im `rebuild`-Endpunkt.
-  - `renderMarktpartnerRegistry(allPartners)`: neue Hilfsfunktion in `report-builder.js`, die eine Tabelle aller gefundenen BDEW-Codes mit Marktrolle und MaStR-ID rendert.
-    - Zeile mit VNB/Netzbetreiber-Rolle wird **fett** dargestellt (verwendete Rolle für Datenabruf).
-    - Hinweistext: *Lieferant/Vertrieb-Rollen können ebenfalls Anlagen-Zuordnungen im MaStR haben.*
-  - `renderSection8()` erhält neuen Parameter `allPartners = []` und ruft `renderMarktpartnerRegistry` am Sektionsende auf.
-  - Bei leerem `allPartners`-Array wird der Block nicht gerendert (kein leerer Abschnitt).
-  - 3 neue Unit-Tests: Tabelle sichtbar, VNB-Zeile fett, leere Liste unterdrückt Abschnitt.
+- **360° Report – CR-19: Market partner registry in Section 8**
+  - Phase 1 of the report pipeline now collects **all** market partner candidates
+    (up to 5 results per search query variant) in an `allCandidatesMap` and stores
+    them as `p.meta.allPartners`.
+  - Each candidate is normalised: BDEW code (`bdewCode` or `bdew`), market
+    role(s) (`roles` or `marketRoles`), MaStR ID (from `mastrId`,
+    `gridOperatorMastrId`, or `mastrIds` object).
+  - `allPartners` is passed as part of `meta` to `buildHtmlReport()` — in the
+    pipeline (Phase 4) and in the `rebuild` endpoint.
+  - `renderMarktpartnerRegistry(allPartners)`: new helper in `report-builder.js`
+    that renders a table of all found BDEW codes with market role and MaStR ID.
+    - The row with VNB/grid operator role is shown in **bold** (the role used for
+      data retrieval).
+    - Notice text: *Supplier/sales roles may also have installation assignments
+      in MaStR.*
+  - `renderSection8()` receives a new `allPartners = []` parameter and calls
+    `renderMarktpartnerRegistry` at the end of the section.
+  - When `allPartners` is empty the block is not rendered (no empty section).
+  - 3 new unit tests: table visible, VNB row bold, empty list suppresses section.
 
 
 
 ### Changed
 
-- **360° Report – CR-18: Tolerante VNB-Erkennung (Phase 1)**
-  - `buildVnbSearchQueries()`: erzeugt aus der Eingabe automatisch alternative Suchbegriffe:
-    - „Stadtwerke Eberbach" → `["Stadtwerke Eberbach", "Eberbach"]`
-    - „Eberbach" → `["Eberbach", "Stadtwerke Eberbach"]`
-    - „TWL Netz GmbH" → `["TWL Netz GmbH", "TWL"]`
-  - `pickBestVnbPartner()`: wählt unter mehreren Ergebnissen bevorzugt den Eintrag mit Marktrolle VNB/Netzbetreiber (ein Stadtwerk hat je nach Marktrolle mehrere BDEW-Codes).
-  - Normalisiert `mastrIds: { SNB: '…' }` auf `mastrId` für konsistentes Downstream-Handling.
-  - Neuer Fallback (Step 1b): wenn `cernion_market_partners` für alle Abfragevarianten leer ist, wird über `cernion_installations_local` mit der extrahierten Stadtname-Komponente ein SNB direkt aus NAP-Daten bestehender Anlagen gelesen.
-  - Die VNB-ID-Prüfung schlägt erst fehl, wenn alle drei Schritte erfolglos waren.
-  - 9 neue Unit-Tests für `buildVnbSearchQueries` und `pickBestVnbPartner`; 1 Integrations-Test für die Stripped-City-Fallback-Sequenz.
+- **360° Report – CR-18: Tolerant VNB identification (Phase 1)**
+  - `buildVnbSearchQueries()`: automatically generates alternative search terms
+    from the input:
+    - "Stadtwerke Eberbach" → `["Stadtwerke Eberbach", "Eberbach"]`
+    - "Eberbach" → `["Eberbach", "Stadtwerke Eberbach"]`
+    - "TWL Netz GmbH" → `["TWL Netz GmbH", "TWL"]`
+  - `pickBestVnbPartner()`: when multiple results are returned, prefers the entry
+    with market role VNB/grid operator (a utility company has several BDEW codes
+    depending on market role).
+  - Normalises `mastrIds: { SNB: '…' }` to `mastrId` for consistent downstream
+    handling.
+  - New fallback (Step 1b): when `cernion_market_partners` returns empty for all
+    query variants, reads an SNB directly from NAP data of existing installations
+    via `cernion_installations_local` with the extracted city-name component.
+  - VNB identification only fails once all three steps have been unsuccessful.
+  - 9 new unit tests for `buildVnbSearchQueries` and `pickBestVnbPartner`; 1
+    integration test for the stripped-city fallback sequence.
 
 ## [0.8.8] - 2026-03-06
 
