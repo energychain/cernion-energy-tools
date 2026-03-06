@@ -209,15 +209,29 @@ describe('pickBestVnbPartner (CR-18)', () => {
   function pickBestVnbPartner(marketPartnersResult) {
     const candidates =
       marketPartnersResult?.data?.results ||
+      marketPartnersResult?.results ||             // CR-23: sync MCP path
       marketPartnersResult?.data?.data?.results ||
       marketPartnersResult?.data?.partners ||
       [];
     if (!candidates.length) return null;
+    function normaliseMastrIds(p) {
+      if (!p.mastrId && !p.gridOperatorMastrId && p.mastrIds && typeof p.mastrIds === 'object') {
+        p.mastrId = p.mastrIds.SNB || p.mastrIds.GNB || Object.values(p.mastrIds)[0] || null;
+      }
+      return p;
+    }
     const vnbPartner = candidates.find((p) => {
       const roles = p.roles ?? p.marketRoles ?? [];
       return roles.some((r) => /VNB|Verteilnetz|Netzbetreiber/i.test(r));
     });
-    const best = vnbPartner ?? candidates[0];
+    if (vnbPartner) return normaliseMastrIds(vnbPartner);
+    // CR-23: prefer "Netz" company name over generic first result
+    const netzPartner = candidates.find((p) => {
+      const name = p.companyName || p.name || p.displayName || '';
+      return /\bNetz(e)?\b/i.test(name);
+    });
+    if (netzPartner) return normaliseMastrIds(netzPartner);
+    const best = candidates[0];
     if (!best.mastrId && !best.gridOperatorMastrId && best.mastrIds && typeof best.mastrIds === 'object') {
       best.mastrId = best.mastrIds.SNB || best.mastrIds.GNB || Object.values(best.mastrIds)[0] || null;
     }
@@ -254,6 +268,33 @@ describe('pickBestVnbPartner (CR-18)', () => {
       },
     };
     expect(pickBestVnbPartner(result).mastrId).toBe('SNB999');
+  });
+
+  it('should handle top-level results (sync MCP path, CR-23)', () => {
+    // MCP client returns { success: true, ...parsedJson } spreading results at top level
+    const result = { results: [{ bdewCode: '123', companyName: 'Test Netz GmbH', roles: [] }] };
+    expect(pickBestVnbPartner(result).bdewCode).toBe('123');
+  });
+
+  it('should prefer "Netz" company name when no explicit VNB role (CR-23)', () => {
+    // Real-world scenario: "Heidelberg" query returns Energie GmbH before Netze GmbH
+    const result = {
+      results: [
+        { bdewCode: '111', name: 'Stadtwerke Heidelberg Energie GmbH', roles: [] },
+        { bdewCode: '222', name: 'Stadtwerke Heidelberg Netze GmbH', roles: [] },
+      ],
+    };
+    expect(pickBestVnbPartner(result).bdewCode).toBe('222');
+  });
+
+  it('should still prefer explicit VNB role over "Netz" name (CR-23)', () => {
+    const result = {
+      results: [
+        { bdewCode: '111', name: 'Stadtwerke Test Netze GmbH', roles: [] },
+        { bdewCode: '222', name: 'Another Energy GmbH', roles: ['VNB'] },
+      ],
+    };
+    expect(pickBestVnbPartner(result).bdewCode).toBe('222');
   });
 });
 

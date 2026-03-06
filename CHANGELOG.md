@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.14] - 2026-03-06
+
+### Fixed
+
+- **360° Report – CR-23: Marktpartner-Response-Extraktion und VNB-Selektion korrigiert**
+  - **Ursache 1 – falscher Response-Pfad**: `cernion_market_partners` liefert im synchronen MCP-Pfad die Ergebnisse direkt als `mp.results` (Top-Level), nicht als `mp.data.results`. Der bisherige Code prüfte ausschließlich `data.results` → `rawCandidates = []` für jeden Query → VNB_NOT_IDENTIFIED. Fix: Fallback-Kette um `mp?.results` ergänzt.
+  - **Ursache 2 – falscher Feldname**: Die echte MCP-API liefert `companyName` (nicht `name`) und `bdewCode` (nicht `bdew`). Normalisierung in `allCandidatesMap` um `c.companyName` ergänzt; `city` wird jetzt auch aus `c.contacts?.[0]?.city` extrahiert.
+  - **Ursache 3 – falscher Kandidat**: Mit `limit: 5` erscheint „Stadtwerke Heidelberg Netze GmbH“ (Position 10) nicht in den Ergebnissen; `candidates[0]` wäre „acteno energy GmbH“. Fix: `limit` auf 10 erhöht; `pickBestVnbPartner` bevorzugt jetzt Unternehmen mit „Netz“ im Namen als zweite Priorität (nach expliziter VNB-Rolle).
+  - **Ursache 4 – zu früher Loop-Break**: Die Query-Schleife brach bei JEDEM ersten Treffer ab (auch für Nicht-VNB-Unternehmen). Fix: Alle Queries werden ausgeführt, alle Kandidaten in `allCandidatesMap` gesammelt, bester Treffer erst danach aus dem kombinierten Pool gewählt.
+  - 3 neue Unit-Tests für `pickBestVnbPartner`: Top-Level-Format, „Netz“-Präferenz, explizite VNB-Rolle schlägt „Netz“-Name.
+
 ## [0.8.13] - 2026-03-06
 
 ### Fixed

@@ -434,20 +434,40 @@ function buildVnbSearchQueries(name) {
 function pickBestVnbPartner(marketPartnersResult) {
   const candidates =
     marketPartnersResult?.data?.results ||
+    marketPartnersResult?.results ||             // CR-23: sync MCP path (results at top level)
     marketPartnersResult?.data?.data?.results ||
     marketPartnersResult?.data?.partners ||
     [];
   if (!candidates.length) return null;
+
+  /**
+   * Normalise mastrIds object ({ SNB: 'SNB…', GNB: 'GNB…' }) to a single mastrId field.
+   * Mutates the candidate in place (candidates are plain objects from mock/API).
+   */
+  function normaliseMastrIds(p) {
+    if (!p.mastrId && !p.gridOperatorMastrId && p.mastrIds && typeof p.mastrIds === 'object') {
+      p.mastrId = p.mastrIds.SNB || p.mastrIds.GNB || Object.values(p.mastrIds)[0] || null;
+    }
+    return p;
+  }
+
+  // 1. Prefer explicit VNB / Netzbetreiber role
   const vnbPartner = candidates.find((p) => {
     const roles = p.roles ?? p.marketRoles ?? [];
     return roles.some((r) => /VNB|Verteilnetz|Netzbetreiber/i.test(r));
   });
-  const best = vnbPartner ?? candidates[0];
-  // Normalise mastrIds object ({ SNB: 'SNB…', GNB: 'GNB…' }) to single mastrId
-  if (!best.mastrId && !best.gridOperatorMastrId && best.mastrIds && typeof best.mastrIds === 'object') {
-    best.mastrId = best.mastrIds.SNB || best.mastrIds.GNB || Object.values(best.mastrIds)[0] || null;
-  }
-  return best;
+  if (vnbPartner) return normaliseMastrIds(vnbPartner);
+
+  // CR-23: 2. Prefer company name containing "Netz" – strong indicator of German grid operator
+  // (e.g. "Stadtwerke Heidelberg Netze GmbH" over "Stadtwerke Heidelberg Energie GmbH")
+  const netzPartner = candidates.find((p) => {
+    const name = p.companyName || p.name || p.displayName || '';
+    return /\bNetz(e)?\b/i.test(name);
+  });
+  if (netzPartner) return normaliseMastrIds(netzPartner);
+
+  // 3. Fallback: first result
+  return normaliseMastrIds(candidates[0]);
 }
 
 // ─── VNB fingerprint check (CR-15) ───────────────────────────────────────────
@@ -963,11 +983,12 @@ module.exports = {
         // CR-19: accumulate ALL market-partner candidates across query variants (keyed by BDEW code)
         const allCandidatesMap = new Map();
         for (const query of searchQueries) {
-          if (firstPartner) break;
-          const mp = await callBroker(ctx, 'grid-operations.marketPartners', { query, limit: 5 });
-          // CR-19: collect raw candidates from this response before picking the best one
+          // CR-23: run all queries (no early break) to build the richest candidate pool
+          const mp = await callBroker(ctx, 'grid-operations.marketPartners', { query, limit: 10 });
+          // CR-23: handle both async path (mp.data.results) and sync path (mp.results)
           const rawCandidates =
             mp?.data?.results ||
+            mp?.results ||                        // CR-23: sync MCP path
             mp?.data?.data?.results ||
             mp?.data?.partners ||
             [];
@@ -976,25 +997,28 @@ module.exports = {
             if (!mastrId && c.mastrIds && typeof c.mastrIds === 'object') {
               mastrId = c.mastrIds.SNB || c.mastrIds.GNB || Object.values(c.mastrIds)[0] || null;
             }
-            const key = c.bdewCode || c.bdew || c.name || `anon-${allCandidatesMap.size}`;
+            const key = c.bdewCode || c.bdew || c.name || c.companyName || `anon-${allCandidatesMap.size}`; // CR-23: +companyName
             if (!allCandidatesMap.has(key)) {
               allCandidatesMap.set(key, {
-                name: c.name || c.displayName || '',
+                name: c.name || c.companyName || c.displayName || '', // CR-23: +companyName
                 bdew: c.bdewCode || c.bdew || null,
                 roles: Array.isArray(c.roles) ? c.roles : (Array.isArray(c.marketRoles) ? c.marketRoles : []),
                 mastrId,
-                city: c.city || '',
+                city: c.city || c.contacts?.[0]?.city || '', // CR-23: extract city from contacts array
               });
             }
-          }
-          const picked = pickBestVnbPartner(mp);
-          if (picked?.bdewCode || picked?.bdew || picked?.mastrId || picked?.gridOperatorMastrId) {
-            firstPartner = picked;
-            this.logger.info(`[UtilityReport] VNB resolved via query "${query}": ${picked.name || query}`);
           }
         }
         // CR-19: persist all candidates so they can be shown in the report
         p.meta.allPartners = Array.from(allCandidatesMap.values());
+        // CR-23: pick the best VNB from the full combined candidate pool (all queries)
+        if (allCandidatesMap.size > 0) {
+          const poolPick = pickBestVnbPartner({ results: p.meta.allPartners });
+          if (poolPick?.bdew || poolPick?.bdewCode || poolPick?.mastrId || poolPick?.gridOperatorMastrId) {
+            firstPartner = poolPick;
+            this.logger.info(`[UtilityReport] VNB resolved: ${firstPartner.name || utilityName}`);
+          }
+        }
 
         // Step 1b: still nothing → derive city name and try a local installations lookup
         // to extract the SNB directly from NAP data of any installation in that city.
