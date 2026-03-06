@@ -148,9 +148,15 @@ describe('buildVnbSearchQueries (CR-18)', () => {
       .replace(/\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi, '')
       .replace(/\s{2,}/g, ' ')
       .trim();
-    if (stripped && stripped !== name && stripped.length > 2) queries.push(stripped);
+    const cityStripped = stripped && stripped !== name && stripped.length > 2 ? stripped : null;
+    if (cityStripped) queries.push(cityStripped);
     const hasOrgPrefix = /\b(Stadtwerke|Stadtwerk|Netz|Gemeindewerk|EVN|Energieversorgung)\b/i.test(name);
-    if (!hasOrgPrefix && name.split(/\s+/).length <= 2) queries.push(`Stadtwerke ${name}`);
+    if (!hasOrgPrefix && name.split(/\s+/).length <= 2) {
+      queries.push(`Stadtwerke ${name}`);
+      queries.push(`Stadtwerk ${name}`);
+    }
+    if (cityStripped && /\bStadtwerke\b/i.test(name)) queries.push(`Stadtwerk ${cityStripped}`);
+    if (cityStripped && /\bStadtwerk\b/i.test(name) && !/\bStadtwerke\b/i.test(name)) queries.push(`Stadtwerke ${cityStripped}`);
     return [...new Set(queries)];
   }
 
@@ -165,6 +171,21 @@ describe('buildVnbSearchQueries (CR-18)', () => {
 
   it('should add "Stadtwerke <city>" when input is bare city name', () => {
     const q = buildVnbSearchQueries('Eberbach');
+    expect(q).toContain('Stadtwerke Eberbach');
+  });
+
+  it('should also add "Stadtwerk <city>" (singular) when input is bare city name (CR-20)', () => {
+    const q = buildVnbSearchQueries('Eberbach');
+    expect(q).toContain('Stadtwerk Eberbach');
+  });
+
+  it('should add singular "Stadtwerk" cross-variant when input starts with "Stadtwerke" (CR-20)', () => {
+    const q = buildVnbSearchQueries('Stadtwerke Eberbach');
+    expect(q).toContain('Stadtwerk Eberbach');
+  });
+
+  it('should add plural "Stadtwerke" cross-variant when input starts with singular "Stadtwerk" (CR-20)', () => {
+    const q = buildVnbSearchQueries('Stadtwerk Eberbach GmbH');
     expect(q).toContain('Stadtwerke Eberbach');
   });
 

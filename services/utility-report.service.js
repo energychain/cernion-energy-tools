@@ -400,12 +400,27 @@ function buildVnbSearchQueries(name) {
     .replace(/\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi, '')
     .replace(/\s{2,}/g, ' ')
     .trim();
-  if (stripped && stripped !== name && stripped.length > 2) {
-    queries.push(stripped);
+  // cityStripped: the bare city/company token after removing all org suffixes
+  const cityStripped = stripped && stripped !== name && stripped.length > 2 ? stripped : null;
+  if (cityStripped) {
+    queries.push(cityStripped);
   }
   const hasOrgPrefix = /\b(Stadtwerke|Stadtwerk|Netz|Gemeindewerk|EVN|Energieversorgung)\b/i.test(name);
+  // For bare city/short names: try BOTH plural and singular Stadtwerk variants.
+  // e.g. "Eberbach" → "Stadtwerke Eberbach" AND "Stadtwerk Eberbach"
   if (!hasOrgPrefix && name.split(/\s+/).length <= 2) {
-    queries.push(`Stadtwerke ${name}`);
+    queries.push(`Stadtwerke ${name}`); // plural
+    queries.push(`Stadtwerk ${name}`);  // singular – actual entity may use either form
+  }
+  // Cross-variant: "Stadtwerke" (plural) → also try "Stadtwerk" (singular) with stripped city.
+  // e.g. "Stadtwerke Eberbach" → "Stadtwerk Eberbach"
+  if (cityStripped && /\bStadtwerke\b/i.test(name)) {
+    queries.push(`Stadtwerk ${cityStripped}`);
+  }
+  // Cross-variant: "Stadtwerk" (singular, not plural) → also try "Stadtwerke" (plural).
+  // e.g. "Stadtwerk Eberbach GmbH" → "Stadtwerke Eberbach"
+  if (cityStripped && /\bStadtwerk\b/i.test(name) && !/\bStadtwerke\b/i.test(name)) {
+    queries.push(`Stadtwerke ${cityStripped}`);
   }
   return [...new Set(queries)];
 }
@@ -989,7 +1004,8 @@ module.exports = {
             try {
               const localInst = await callMcpDirect(
                 'cernion_installations_local',
-                { type: 'solar', gemeinde: cityGuess, limit: 1, includeStats: false, format: 'detailed' },
+                // CR-20: use type:'all' – small VNBs may have no solar with NAP data
+                { type: 'all', gemeinde: cityGuess, limit: 1, includeStats: false, format: 'detailed' },
                 cernionToken
               );
               const inst0 =

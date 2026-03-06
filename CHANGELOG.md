@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.11] - 2026-03-06
+
+### Fixed
+
+- **360° Report – CR-20: Stadtwerk singular/plural BDEW-Suche und city-SNB-Fallback**
+  - `buildVnbSearchQueries()` erzeugt jetzt **beide** Stadtwerk-Varianten:
+    - Bare Stadtname (z. B. „Eberbach") → `["Eberbach", "Stadtwerke Eberbach", "Stadtwerk Eberbach"]`
+    - Eingabe mit Plural-Präfix (z. B. „Stadtwerke Eberbach") → fügt Singular-Query `"Stadtwerk Eberbach"` hinzu
+    - Eingabe mit Singular-Präfix (z. B. „Stadtwerk Eberbach GmbH") → fügt Plural-Query `"Stadtwerke Eberbach"` hinzu
+  - Hintergrund: der reale Marktpartner-Datenbankeintrag lautet „**Stadtwerk** Eberbach GmbH" (Singular), nicht „Stadtwerke" – führte zu `allPartners: []` und VNB_NOT_IDENTIFIED-Fehler.
+  - City-SNB-Fallback (Step 1b): `type: 'solar'` → `type: 'all'` – kleine VNBs haben ggf. keine Solaranlagen mit verknüpften NAP-Daten; mit `'all'` werden auch Wind-, Speicher- und Biomasseanlagen berücksichtigt.
+  - 3 neue Unit-Tests für die neuen Queryvarianten (Singular, Plural↔Singular-Cross).
+
 ## [0.8.10] - 2026-03-06
 
 ### Added
