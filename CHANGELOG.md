@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.16] - 2026-03-06
+
+### Fixed
+
+- **MCP-Client – CR-25: Serielle Call-Queue + Quota-Fehler-Retry**
+
+  **Ursachenanalyse:** `Promise.all` in den Pipeline-Phasen 2 und 3 feuerte mehrere `callWithNewSession`-Aufrufe gleichzeitig. Jeder Aufruf öffnete eine eigene HTTP-Verbindung zum MCP-Server. Der Server erkannte den Verbindungs-Burst als Quota-Verletzung und lehnte alle ab (`"Token quota exhausted"`). Die Entwickler bestätigten: kein echtes Raten-Limit – das ist reines Burst-Detection-Artefakt.
+
+  **Korrekturen (`src/mcp-client.js`):**
+  - **Serielle Call-Queue** (`static _callQueue`): Jeder `callWithNewSession`-Aufruf hängt sich an einen prozessweiten Promise-Chain an, sodass immer nur eine MCP-Session gleichzeitig geöffnet ist. `Promise.all` im Pipeline-Code bleibt unverändert – die Serialisierung passiert transparent im Client.
+  - **Inter-Call-Delay** (`INTER_CALL_DELAY_MS = 500`): Nach Abschluss des vorherigen Calls wartet der Client 500 ms, bevor er die nächste Session öffnet. Per Umgebungsvariable/Test auf 0 setzbar.
+  - **Quota-Retry mit Exponential-Backoff** (`MAX_QUOTA_RETRIES = 3`, `QUOTA_RETRY_BASE_MS = 1000`): Bis zu 3 Wiederholungen bei Quota- / Rate-Limit-Fehlern (1 s → 2 s → 4 s Backoff). Nicht-Quota-Fehler werden sofort propagiert.
+  - **`_isQuotaError(msg)`**: Erkennt `"quota"`, `"rate limit"` und `"too many requests"` (case-insensitive).
+  - **`_executeCall(toolName, params, token)`**: Neuer privater Helfer – kapselt connect → callTool → disconnect ohne Queue/Retry.
+  - **`connect()` bricht bei Quota-Fehlern sofort ab** (statt 3×Retry), damit die äußere Retry-Schleife in `callWithNewSession` die Backoff-Steuerung übernimmt.
+  - 5 neue Unit-Tests: Quota-Retry → Erfolg nach 2 Fehlern; alle Retries erschöpft → `QUOTA_EXHAUSTED`; kein Retry bei Nicht-Quota-Fehler; Serialisierungs-Test (3 gleichzeitige Calls → kein Interleaving); Delay=0 → kein Timing-Overhead.
+
 ## [0.8.15] - 2026-03-06
 
 ### Fixed
