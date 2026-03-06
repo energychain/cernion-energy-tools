@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.12] - 2026-03-06
+
+### Improved
+
+- **360° Report – CR-21: Kontextbezogene Fehlermeldung bei VNB_NOT_IDENTIFIED**
+  - Fehlermeldung zeigt jetzt die tatsächlich verwendeten Suchanfragen: *„Gesucht wurde nach: „Eberbach", „Stadtwerke Eberbach", „Stadtwerk Eberbach"."*
+  - Vorschläge werden dynamisch aus dem Eingabewert abgeleitet – kein hardcodiertes „Stadtwerke Heidelberg Netz GmbH" Beispiel mehr.
+  - Bei Eingabe ohne Org-Präfix (z. B. „Eberbach") → konkrete Alternativen: „Stadtwerk Eberbach GmbH", „Stadtwerke Eberbach Netz GmbH", „Eberbach Netz GmbH".
+  - Bei Eingabe mit Org-Präfix (z. B. „Stadtwerke Eberbach") → Varianten: „Eberbach Netz GmbH", „Stadtwerke Eberbach Netz GmbH", „Stadtwerk Eberbach GmbH".
+  - Fehlermeldung enthält weiterhin den Hinweis auf BDEW-Code-Direktübergabe (Parameter: `bdew`).
+  - 1 neuer Test: prüft gesuchte Queries und input-spezifische Vorschläge (nicht Heidelberg) in der Fehlermeldung.
+
 ## [0.8.11] - 2026-03-06
 
 ### Fixed

@@ -999,6 +999,24 @@ describe('Utility Report Service', () => {
       expect(status.error).toContain('BDEW-Code');
     });
 
+    it('should include tried queries and input-specific suggestions in the error message (CR-21)', async () => {
+      const gen = await abortBroker.call('utility-report.generate', {
+        utilityName: 'Musterstadt',
+      });
+
+      await new Promise((r) => setTimeout(r, 500));
+
+      const status = await abortBroker.call('utility-report.status', { reportId: gen.reportId });
+      expect(status.status).toBe('error');
+      // Must list the queries that were actually tried
+      expect(status.error).toContain('Gesucht wurde nach');
+      expect(status.error).toContain('„Musterstadt"');
+      // Must suggest input-specific alternatives (not hardcoded Heidelberg)
+      expect(status.error).toContain('Stadtwerk Musterstadt');
+      expect(status.error).toContain('Stadtwerke Musterstadt');
+      expect(status.error).not.toContain('Heidelberg');
+    });
+
     it('should not write an HTML report file when identification fails', async () => {
       const gen = await abortBroker.call('utility-report.generate', {
         utilityName: 'Phantom Netz GmbH',

@@ -1069,9 +1069,37 @@ module.exports = {
 
     // Guard: abort pipeline when the VNB could not be identified after all fallbacks.
     if (!resolvedBdew && !resolvedMastrId) {
+      // Build a context-aware error: list what was tried and suggest concrete next steps.
+      const triedQueries = buildVnbSearchQueries(utilityName);
+      const triedList = triedQueries.map((q) => `„${q}"`).join(', ');
+
+      // Derive actionable suggestions based on the input:
+      // - If no org prefix: suggest both Stadtwerk and Stadtwerke plus full legal suffix forms
+      // - If already has prefix: suggest trying with/without "Netz GmbH" suffix
+      const hasOrgPrefix = /\b(Stadtwerke|Stadtwerk|Netz|Gemeindewerk|EVN|Energieversorgung)\b/i.test(utilityName);
+      const cityBase = utilityName
+        .replace(/\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim() || utilityName.split(/\s+/)[0];
+
+      const suggestions = hasOrgPrefix
+        ? [
+            `„${cityBase} Netz GmbH"`,
+            `„Stadtwerke ${cityBase} Netz GmbH"`,
+            `„Stadtwerk ${cityBase} GmbH"`,
+          ]
+        : [
+            `„Stadtwerk ${utilityName} GmbH"`,
+            `„Stadtwerke ${utilityName} Netz GmbH"`,
+            `„${utilityName} Netz GmbH"`,
+          ];
+
       const err = new Error(
-        `VNB nicht erkannt: Für „${utilityName}" konnte weder ein BDEW-Code noch eine MaStR-ID ermittelt werden. ` +
-        `Bitte prüfen Sie die Schreibweise (z. B. „Stadtwerke Heidelberg Netz GmbH") oder übergeben Sie den BDEW-Code direkt (Parameter: bdew).`
+        `VNB nicht erkannt: Für „${utilityName}" konnte weder ein BDEW-Code noch eine MaStR-ID ermittelt werden.\n` +
+        `Gesucht wurde nach: ${triedList}.\n` +
+        `Mögliche Ursachen: Der Marktpartner ist unter einem anderen Namen eingetragen oder besitzt keine VNB-Rolle.\n` +
+        `Versuchen Sie eine der folgenden Schreibweisen: ${suggestions.join(', ')}.\n` +
+        `Alternativ: Übergeben Sie den BDEW-Code direkt (Parameter: bdew, z. B. \"9900123456789\").`
       );
       err.code = 'VNB_NOT_IDENTIFIED';
       throw err;
