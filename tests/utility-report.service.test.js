@@ -759,6 +759,51 @@ describe('Utility Report Service', () => {
       expect(html).toContain('@media print');
       expect(html).toContain('page-break');
     });
+
+    it('should render Marktpartner-Register table with allPartners in Section 8 (CR-19)', () => {
+      const html = buildHtmlReport({
+        meta: {
+          utilityName: 'CR19 Test GmbH',
+          allPartners: [
+            { name: 'CR19 Netz GmbH', bdew: '9900011110001', roles: ['VNB'], mastrId: 'SNB123' },
+            { name: 'CR19 Vertrieb GmbH', bdew: '9900011110002', roles: ['Lieferant'], mastrId: null },
+          ],
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('Marktpartner-Register');
+      expect(html).toContain('9900011110001');
+      expect(html).toContain('9900011110002');
+      expect(html).toContain('Lieferant');
+      expect(html).toContain('SNB123');
+    });
+
+    it('should bold VNB-role rows in Marktpartner-Register (CR-19)', () => {
+      const html = buildHtmlReport({
+        meta: {
+          utilityName: 'CR19 VNB Bold Test GmbH',
+          allPartners: [
+            { name: 'VNB Netz GmbH', bdew: '9900022220001', roles: ['VNB'], mastrId: 'SNB456' },
+            { name: 'Nur Lieferant GmbH', bdew: '9900022220002', roles: ['Lieferant'], mastrId: null },
+          ],
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      // Exactly one bold <tr> in the table – the VNB row
+      const boldRows = (html.match(/<tr style="font-weight:600">/g) || []).length;
+      expect(boldRows).toBe(1);
+      // VNB name is present; Lieferant name is also present but in a plain <tr>
+      expect(html).toContain('VNB Netz GmbH');
+      expect(html).toContain('Nur Lieferant GmbH');
+    });
+
+    it('should not render Marktpartner-Register when allPartners is empty (CR-19)', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR19 Empty Partners GmbH', allPartners: [] },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).not.toContain('Marktpartner-Register');
+    });
   });
 
   // ─── Graceful degradation ──────────────────────────────────────────────────

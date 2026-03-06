@@ -7,7 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.8.9] - 2026-03-06
+## [0.8.10] - 2026-03-06
+
+### Added
+
+- **360° Report – CR-19: Marktpartner-Register in Sektion 8**
+  - Phase 1 der Report-Pipeline sammelt jetzt **alle** Marktpartner-Kandidaten (bis zu 5 Ergebnisse je Suchanfrage-Variante) in einer `allCandidatesMap` und speichert sie als `p.meta.allPartners`.
+  - Normalisierung jedes Kandidaten: BDEW-Code (`bdewCode` oder `bdew`), Marktrolle(n) (`roles` oder `marketRoles`), MaStR-ID (aus `mastrId`, `gridOperatorMastrId` oder `mastrIds`-Objekt).
+  - `allPartners` wird als Teil von `meta` an `buildHtmlReport()` übergeben – in Pipeline (Phase 4) und im `rebuild`-Endpunkt.
+  - `renderMarktpartnerRegistry(allPartners)`: neue Hilfsfunktion in `report-builder.js`, die eine Tabelle aller gefundenen BDEW-Codes mit Marktrolle und MaStR-ID rendert.
+    - Zeile mit VNB/Netzbetreiber-Rolle wird **fett** dargestellt (verwendete Rolle für Datenabruf).
+    - Hinweistext: *Lieferant/Vertrieb-Rollen können ebenfalls Anlagen-Zuordnungen im MaStR haben.*
+  - `renderSection8()` erhält neuen Parameter `allPartners = []` und ruft `renderMarktpartnerRegistry` am Sektionsende auf.
+  - Bei leerem `allPartners`-Array wird der Block nicht gerendert (kein leerer Abschnitt).
+  - 3 neue Unit-Tests: Tabelle sichtbar, VNB-Zeile fett, leere Liste unterdrückt Abschnitt.
+
+
 
 ### Changed
 

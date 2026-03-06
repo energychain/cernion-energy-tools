@@ -777,6 +777,7 @@ module.exports = {
             region,
             bdew: resolvedBdew,
             reportId,
+            allPartners: prog.meta?.allPartners ?? [], // CR-19
           },
           section1: prog.results.section1,
           section2: prog.results.section2,
@@ -939,15 +940,41 @@ module.exports = {
         // Step 1a: try cernion_market_partners with each alternative query variant.
         // buildVnbSearchQueries generates: original + stripped city + "Stadtwerke <city>".
         const searchQueries = buildVnbSearchQueries(utilityName);
+        // CR-19: accumulate ALL market-partner candidates across query variants (keyed by BDEW code)
+        const allCandidatesMap = new Map();
         for (const query of searchQueries) {
           if (firstPartner) break;
           const mp = await callBroker(ctx, 'grid-operations.marketPartners', { query, limit: 5 });
+          // CR-19: collect raw candidates from this response before picking the best one
+          const rawCandidates =
+            mp?.data?.results ||
+            mp?.data?.data?.results ||
+            mp?.data?.partners ||
+            [];
+          for (const c of rawCandidates) {
+            let mastrId = c.mastrId || c.gridOperatorMastrId || null;
+            if (!mastrId && c.mastrIds && typeof c.mastrIds === 'object') {
+              mastrId = c.mastrIds.SNB || c.mastrIds.GNB || Object.values(c.mastrIds)[0] || null;
+            }
+            const key = c.bdewCode || c.bdew || c.name || `anon-${allCandidatesMap.size}`;
+            if (!allCandidatesMap.has(key)) {
+              allCandidatesMap.set(key, {
+                name: c.name || c.displayName || '',
+                bdew: c.bdewCode || c.bdew || null,
+                roles: Array.isArray(c.roles) ? c.roles : (Array.isArray(c.marketRoles) ? c.marketRoles : []),
+                mastrId,
+                city: c.city || '',
+              });
+            }
+          }
           const picked = pickBestVnbPartner(mp);
           if (picked?.bdewCode || picked?.bdew || picked?.mastrId || picked?.gridOperatorMastrId) {
             firstPartner = picked;
             this.logger.info(`[UtilityReport] VNB resolved via query "${query}": ${picked.name || query}`);
           }
         }
+        // CR-19: persist all candidates so they can be shown in the report
+        p.meta.allPartners = Array.from(allCandidatesMap.values());
 
         // Step 1b: still nothing → derive city name and try a local installations lookup
         // to extract the SNB directly from NAP data of any installation in that city.
@@ -1563,6 +1590,7 @@ module.exports = {
           region,
           bdew: resolvedBdew,
           reportId: p.reportId,
+          allPartners: p.meta.allPartners ?? [], // CR-19
         },
         section1: p.results.section1,
         section2: p.results.section2,

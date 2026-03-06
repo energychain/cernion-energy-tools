@@ -1199,7 +1199,50 @@ function renderSection7(s7) {
   `;
 }
 
-function renderSection8(s8) {
+// ─── Marktpartner-Register (CR-19) ───────────────────────────────────────────
+
+/**
+ * Render a small table of ALL market-partner candidates found during Phase 1
+ * VNB resolution.  Shows name, BDEW code, market role(s), and MaStR-ID so
+ * report readers can verify the correct entry was selected and spot any
+ * Lieferant/Vertrieb roles that may have MaStR installation assignments.
+ *
+ * @param {Array<{name:string, bdew:string|null, roles:string[], mastrId:string|null}>} allPartners
+ * @returns {string} HTML fragment (empty string when allPartners is empty)
+ */
+function renderMarktpartnerRegistry(allPartners) {
+  if (!Array.isArray(allPartners) || allPartners.length === 0) return '';
+  const rows = allPartners.map((p) => {
+    const roles = Array.isArray(p.roles) && p.roles.length ? p.roles.join(', ') : '–';
+    const isVnb = /VNB|Verteilnetz|Netzbetreiber/i.test(roles);
+    const rowStyle = isVnb ? ' style="font-weight:600"' : '';
+    return `<tr${rowStyle}>
+      <td style="padding:1.5mm 2mm;border-bottom:1px solid #f0f0f0">${escapeHtml(p.name)}</td>
+      <td style="padding:1.5mm 2mm;border-bottom:1px solid #f0f0f0;font-family:monospace">${escapeHtml(p.bdew || '–')}</td>
+      <td style="padding:1.5mm 2mm;border-bottom:1px solid #f0f0f0">${escapeHtml(roles)}</td>
+      <td style="padding:1.5mm 2mm;border-bottom:1px solid #f0f0f0;font-family:monospace;font-size:7.5pt">${escapeHtml(p.mastrId || '–')}</td>
+    </tr>`;
+  }).join('');
+  return `
+    <div style="margin-top:4mm">
+      <h4 style="font-size:9pt;color:#495057;margin:0 0 1.5mm 0">Marktpartner-Register (alle gefundenen BDEW-Codes)</h4>
+      <table style="width:100%;border-collapse:collapse;font-size:8pt">
+        <thead><tr style="background:#f8f9fa">
+          <th style="text-align:left;padding:1.5mm 2mm;border-bottom:1px solid #dee2e6">Name</th>
+          <th style="text-align:left;padding:1.5mm 2mm;border-bottom:1px solid #dee2e6">BDEW-Code</th>
+          <th style="text-align:left;padding:1.5mm 2mm;border-bottom:1px solid #dee2e6">Marktrolle(n)</th>
+          <th style="text-align:left;padding:1.5mm 2mm;border-bottom:1px solid #dee2e6">MaStR-ID</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="font-size:7.5pt;color:#6c757d;margin:1.5mm 0 0 0">
+        <strong>Fett</strong> = für Datenabruf verwendete VNB-Rolle ·
+        Lieferant/Vertrieb-Rollen können ebenfalls Anlagen-Zuordnungen im MaStR haben.
+      </p>
+    </div>`;
+}
+
+function renderSection8(s8, allPartners = []) {
   const sysStatus = safeData(s8, 'systemStatus');
   const eicStats = safeData(s8, 'eicStatistics');
   const diData = safeData(s8, 'digitalisierungsindex');
@@ -1280,7 +1323,8 @@ function renderSection8(s8) {
       'Smart-Grids Score <30 %: SMGW-Rollout-Plan erstellen und Förderanträge (Digitalisierungsoffensive) prüfen.',
       'Kundenportal-Score: Selbstservice-Angebote für Betreiberwechsel und EEG-Auskunft reduzieren Callcenter-Last um 30–40 %.',
       'Systemstatus offline: Datenversorgung für Redispatch und MaKo-Prozesse sofort prüfen – regulatorische Meldepflichten beachten.',
-    ])}`;
+    ])}
+    ${renderMarktpartnerRegistry(allPartners)}`;
 }
 
 // ─── Management Summary ───────────────────────────────────────────────────────
@@ -1429,6 +1473,7 @@ function buildHtmlReport(reportData) {
   const vnbName = meta.vnbName || '';
   const region = meta.region || '';
   const reportId = meta.reportId || '';
+  const allPartners = Array.isArray(meta.allPartners) ? meta.allPartners : []; // CR-19
   const reportDate = new Date(generatedAt).toLocaleDateString('de-DE', {
     year: 'numeric',
     month: 'long',
@@ -1493,7 +1538,7 @@ function buildHtmlReport(reportData) {
   ${renderSection7(section7)}
 
   <!-- Section 8 -->
-  ${renderSection8(section8)}
+  ${renderSection8(section8, allPartners)}
 
   <!-- Web Search Context -->
   ${renderContextBox(webSearchResults)}
