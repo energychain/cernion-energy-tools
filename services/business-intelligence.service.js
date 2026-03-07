@@ -90,6 +90,7 @@ module.exports = {
      * Tool: cernion_sales_lead_identification
      */
     salesLeads: {
+      timeout: 15 * 60 * 1000, // 15 minutes - lead identification can take up to 8 minutes
       rest: 'POST /sales-leads',
       params: {
         region: { type: 'string', min: 1 },
@@ -225,6 +226,7 @@ module.exports = {
      * Tool: cernion_dynamic_tariff_calculator
      */
     dynamicTariffCalculator: {
+      timeout: 15 * 60 * 1000, // 15 minutes - tariff calculation is async
       rest: 'POST /dynamic-tariff-calculator',
       params: {
         region: { type: 'string', min: 1 },
@@ -338,6 +340,7 @@ module.exports = {
      * Tool: cernion_customer_churn_prediction
      */
     churnPrediction: {
+      timeout: 15 * 60 * 1000, // 15 minutes - churn analysis can be long-running
       rest: 'POST /churn-prediction',
       params: {
         customerSegment: {
@@ -556,6 +559,7 @@ module.exports = {
      * Tool: cernion_market_penetration_analysis
      */
     marketPenetration: {
+      timeout: 15 * 60 * 1000, // 15 minutes - penetration analysis is async
       rest: 'POST /market-penetration',
       params: {
         region: { type: 'string', min: 1 },

@@ -560,6 +560,7 @@ module.exports = {
      * Tool: cernion_installations
      */
     installations: {
+      timeout: 15 * 60 * 1000, // 15 minutes - paginated query with callWithAutoPoll for each page
       rest: 'POST /installations',
       params: {
         installationType: {

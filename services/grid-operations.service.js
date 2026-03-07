@@ -83,6 +83,7 @@ module.exports = {
      * Tool: cernion_grid_data
      */
     gridData: {
+      timeout: 15 * 60 * 1000, // 15 minutes - long-running MCP tool can take up to 12 minutes
       rest: 'POST /grid-data',
       params: {
         dataType: { type: 'enum', values: ['load', 'frequency', 'flows', 'redispatch'] },
@@ -515,6 +516,7 @@ module.exports = {
      * Tool: cernion_grid_operator_analysis
      */
     operatorAnalysis: {
+      timeout: 15 * 60 * 1000, // 15 minutes - matches global requestTimeout for long-running analysis
       rest: 'POST /operator-analysis',
       params: {
         gridOperator: { type: 'string', optional: true, min: 1 },
@@ -686,6 +688,7 @@ module.exports = {
      * Tool: cernion_capacity_utilization
      */
     capacityUtilization: {
+      timeout: 15 * 60 * 1000, // 15 minutes - capacity analysis can take up to 10 minutes
       rest: 'POST /capacity-utilization',
       params: {
         gridOperator: { type: 'string', min: 1 },
@@ -807,6 +810,7 @@ module.exports = {
      * Tool: cernion_redispatch_export
      */
     redispatchExport: {
+      timeout: 15 * 60 * 1000, // 15 minutes - redispatch export is async
       rest: 'POST /redispatch-export',
       params: {
         gridOperator: { type: 'string', optional: true, min: 1 },
@@ -1103,6 +1107,7 @@ module.exports = {
      * Tool: cernion_connection_capacity_check
      */
     connectionCapacityCheck: {
+      timeout: 15 * 60 * 1000, // 15 minutes - capacity check involves MaStR queries
       rest: 'POST /connection-capacity-check',
       params: {
         gridOperator: { type: 'string', min: 1 },
