@@ -223,15 +223,32 @@ async function generateNarrative(utilityName, kpiSummary) {
         .filter(([k]) => !INTERNAL_KEY_RE.test(k))
     );
     const summaryJson = JSON.stringify(cleanedSummary, null, 2).slice(0, 4000);
-    const prompt = `Du bist ein Energieberater und erstellst eine Management Summary für den Jahresbericht von "${utilityName}".
+    const prompt = `Du bist ein Energieberater für integrierte Stadtwerke und erstellst eine Management Summary für "${utilityName}".
 
 Basierend auf diesen KPI-Daten:
 ${summaryJson}
 
-Erstelle 5–7 prägnante, handlungsorientierte Erkenntnisse auf Deutsch (jeweils 1–2 Sätze).
-Format: Eine Erkenntnis pro Zeile, beginnend mit einem Emoji und kurzem Stichwort.
-Fokus: Was bedeuten diese Zahlen für den Geschäftsführer? Was sind die wichtigsten Handlungsfelder?
-Keine Überschriften, keine Nummerierung, nur die Erkenntnisse.`;
+Erstelle 5 prägnante, handlungsorientierte Erkenntnisse auf Deutsch (jeweils 1–2 Sätze).
+Format: Eine Erkenntnis pro Zeile, beginnend mit Emoji und Stichwort.
+
+Priorisierungsregel (IMMER in dieser Reihenfolge einhalten):
+1. Compliance-Risiken mit Frist (§11 EnWG Engpassmeldung, §118 EnWG Prüffristen, §12 StromNZV MeLo-Pflicht) – IMMER zuerst
+2. Finanzielle Hebel >10.000 €/Jahr (Residuallast × Day-Ahead-Preis, MeLo-Fehler × ~3.000 €/Anlage/Jahr Redispatch-Abrechnung)
+3. Strategische Chancen (Top-Quartil EWK-Rang = NEST-Vorteil, 100 % Umsetzungsquote = Wettbewerbsvorteil, Prosumer-Leads)
+4. Monitoring-Hinweise (grüne Kennzahlen, EU-Gasfüllstand, CO₂-Intensität)
+
+Kontext-Regeln (IMMER anwenden):
+- EWK-Rang als Quartil + NEST-Konsequenz: Top-25 % = finanzieller NEST-Vorteil; Bottom-25 % = regulatorischer EO-Nachteil. Nie nur "Rang X von Y" ohne Interpretation.
+- Anschlussdauer: Delta zum Bundesmedian benennen (X Wo. über/unter Median N Wo.)
+- MeLo-Lücken + Fotojahr 2026: auf 60 Monate Wirkung auf Erlösobergrenze hinweisen
+- 1 MW Residuallast ≈ 1,05 Mio. €/Jahr – monetarisieren wenn Residuallast-Daten vorhanden
+- Umsetzungsquote 100 % = echter Wettbewerbsvorteil im EWK-Benchmarking, aktiv kommunizieren
+
+Verboten (NIE ausgeben):
+- camelCase-Variablennamen oder technische Feldnamen
+- Generische Phrasen ohne Zahlenbasis ("gute Netzstabilität", "effizientes Management")
+- Sätze ohne konkreten Handlungsauftrag oder numerische Grundlage
+Keine Überschriften, keine Nummerierung, nur die 5 Erkenntnisse.`;
 
     const result = await model.generateContent(prompt);
     const text = result.response?.text?.() ?? '';
@@ -245,27 +262,48 @@ function buildStaticNarrative(utilityName, kpiSummary) {
   // CR-09/CR-16: Data-driven findings, typed by criticality, max 5 total, max 2 opportunities
   const summaryItems = [];
 
-  // ── Anschlussdauer vs. Bundesmedian (Section 5) ───────────────────────────
+  // ── Anschlussdauer vs. Bundesmedian (Section 5, with quartile + NEST consequence) ──
   const vnbAd = kpiSummary?.anschlussdauer?.['rows.0.ee_ns_gesamt_wochen'] ?? null;
   const medianAd = kpiSummary?.anschlussdauer?.['stats.ee_ns_gesamt.median'] ?? null;
+  const adRankSt = kpiSummary?.anschlussdauer?.['rankings.anschlussdauer_ee_ns_rank'] ?? null;
+  const adTotalSt = kpiSummary?.anschlussdauer?.['rankings.anschlussdauer_ee_ns_total'] ?? null;
+  const adQuartilSt = (() => {
+    if (adRankSt === null || adTotalSt === null || adTotalSt === 0) return null;
+    const pct = adRankSt / adTotalSt;
+    if (pct <= 0.25) return { label: 'Top-25 %', nest: 'finanzieller NEST-Vorteil' };
+    if (pct <= 0.50) return { label: '25–50 %', nest: 'kein Risiko' };
+    if (pct <= 0.75) return { label: '50–75 %', nest: 'EO-Druck möglich (Fotojahr-Logik)' };
+    return { label: 'Bottom-25 %', nest: 'regulatorischer EO-Nachteil' };
+  })();
   if (vnbAd !== null && medianAd !== null) {
     const delta = Number(vnbAd) - Number(medianAd);
+    const quartilCtx = adQuartilSt ? ` (${adQuartilSt.label} – ${adQuartilSt.nest})` : '';
     if (delta > 13) {
       summaryItems.push({
         prio: 1, type: 'critical', icon: '🚨',
-        text: `Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.round(delta)} Wo. über Bundesmedian (${Number(medianAd).toFixed(0)} Wo.). Sofortiger Handlungsbedarf – BNetzA-Beschwerderisiko bei >13 Wochen.`,
+        text: `Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.round(delta)} Wo. über Bundesmedian (${Number(medianAd).toFixed(0)} Wo.)${quartilCtx}. Sofortiger Handlungsbedarf – BNetzA-Beschwerderisiko bei >13 Wochen.`,
       });
     } else if (delta > 0) {
       summaryItems.push({
         prio: 2, type: 'warning', icon: '⚠️',
-        text: `Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.round(delta)} Wo. über Bundesmedian (${Number(medianAd).toFixed(0)} Wo.). Phase 1 (Angebotserstellung) und Phase 2 (Inbetriebnahme) optimieren.`,
+        text: `Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.round(delta)} Wo. über Bundesmedian (${Number(medianAd).toFixed(0)} Wo.)${quartilCtx}. Phase 1 und Phase 2 optimieren.`,
       });
     } else {
       summaryItems.push({
         prio: 4, type: 'opportunity', icon: '✅',
-        text: `Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.abs(Math.round(delta))} Wo. unter Bundesmedian (${Number(medianAd).toFixed(0)} Wo.). Niveau halten und als Wettbewerbsvorteil kommunizieren.`,
+        text: `Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.abs(Math.round(delta))} Wo. unter Bundesmedian (${Number(medianAd).toFixed(0)} Wo.)${quartilCtx}. Als Wettbewerbsvorteil aktiv kommunizieren.`,
       });
     }
+  }
+
+  // ── MeLo-Lücken + Fotojahr 2026 (Section 1) ──────────────────────────────
+  const ohneMeloCount = kpiSummary?.meloCheck?.anlagen_ohne_melo ?? null;
+  if (ohneMeloCount !== null && ohneMeloCount > 0) {
+    const totalGe100 = kpiSummary?.meloCheck?.anlagen_gesamt_ge100kw ?? '?';
+    summaryItems.push({
+      prio: 1, type: 'critical', icon: '🔗',
+      text: `Redispatch-Anlagen ohne MeLo: ${ohneMeloCount} von ${totalGe100} ≥100-kW-Anlagen – ohne Messlokation sind Redispatch-Kosten nicht abrechnebar (~3.000 €/Anlage/Jahr, §12 StromNZV). MaStR-Stammdaten bis Fotojahr 2026 (Q1) korrigieren – Fehler wirken 60 Monate auf Erlösobergrenze.`,
+    });
   }
 
   // ── Gas fill level (Section 4) ────────────────────────────────────────────

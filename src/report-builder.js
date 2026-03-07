@@ -247,6 +247,31 @@ function buildCss() {
 
 // ─── Section Renderers ────────────────────────────────────────────────────────
 
+/**
+ * Domain-semantic Trafo threshold interpretation per domain knowledge.
+ * <70%: normal; 70–80%: observe §14a; >80%: §11 Engpass; >95%: critical
+ */
+function trafoBewertung(v, level) {
+  if (v === null) return `${level} – Auslastung nicht ermittelt`;
+  if (v > 95) return `${level} 🚨 >95 % KRITISCH – Sofortmaßnahme: Netzausbau oder §14a-Steuerung`;
+  if (v > 80) return `${level} 🔴 >80 % ENGPASS – §11 EnWG-Meldepflicht + NEST-Förderantrag prüfen`;
+  if (v > 70) return `${level} ⚠️ 70–80 % Grenzbereich – §14a-Zubau-Prognose (Wallboxen, WP) erstellen`;
+  return `${level} ✅ <70 % Normalbetrieb`;
+}
+
+/**
+ * Compute EWK quartile interpretation from rank and total.
+ * Returns null when data unavailable.
+ */
+function ewkQuartilBewertung(rank, total) {
+  if (rank === null || total === null || total === 0) return null;
+  const pct = rank / total;
+  if (pct <= 0.25) return { label: 'Top-25 %', nestEffect: 'finanzieller Vorteil (NEST/AgNeS)', level: 1 };
+  if (pct <= 0.50) return { label: '25–50 %', nestEffect: 'kein Risiko', level: 2 };
+  if (pct <= 0.75) return { label: '50–75 %', nestEffect: 'EO-Druck möglich (Fotojahr-Logik)', level: 3 };
+  return { label: 'Bottom-25 %', nestEffect: '⚠️ regulatorischer Nachholzwang – EO-Nachteil', level: 4 };
+}
+
 function renderSection1(s1) {
   const cu = safeData(s1, 'capacityUtilization');
   const rd = safeData(s1, 'redispatchExport');
@@ -313,7 +338,7 @@ function renderSection1(s1) {
     : null;
   const rlDesc = rlWarning
     ? `Ø Netto-Residuallast (regionaler Forecast) – Hinweis: ${rlWarning}`
-    : 'Ø Netto-Residuallast (regionaler Forecast)';
+    : 'Ø Netto-Residuallast – Beschaffungsbedarf des Stadtwerks am EPEX Spotmarkt (1 MW × 120 €/MWh × 8.760 h ≈ 1,05 Mio. €/Jahr)';
 
   const rows = [
     // CR-38: When both Trafo tools unavailable, collapse to one honest info row
@@ -326,9 +351,9 @@ function renderSection1(s1) {
         'Tool nicht lizenziert – Tagesaktueller Trafo-Forecast als Ergänzungsmodul verfügbar'
       ),
     ] : [
-      kpiRow('Trafo-Auslastung NS', fmtPct(utilValues[0]), '', 'Niederspannung – aktuelle Auslastung'),
-      kpiRow('Trafo-Auslastung MS', fmtPct(utilValues[1]), '', 'Mittelspannung – aktuelle Auslastung'),
-      kpiRow('Trafo-Auslastung HS', fmtPct(utilValues[2]), '', 'Hochspannung – aktuelle Auslastung'),
+      kpiRow('Trafo-Auslastung NS', fmtPct(utilValues[0]), '', trafoBewertung(utilValues[0], 'Niederspannung')),
+      kpiRow('Trafo-Auslastung MS', fmtPct(utilValues[1]), '', trafoBewertung(utilValues[1], 'Mittelspannung')),
+      kpiRow('Trafo-Auslastung HS', fmtPct(utilValues[2]), '', trafoBewertung(utilValues[2], 'Hochspannung')),
     ]),
     kpiRow(
       'Redispatch-Anlagen',
@@ -430,15 +455,17 @@ function renderSection1(s1) {
         'Anlagen in Netzbetreiberprüfung',
         isAvail(s1, 'anlagenInPruefung') && pruefungCount !== null ? pruefungCount : null,
         'Anlagen',
-        'Aktive Anlagen mit offener Netzbetreiberprüfung (§14 NABEG) – Frist: 4 Wo. NS / 6 Wo. MS'
+'Offene Netzbetreiberprüfung – Fristen: 4 Wo. NS, 6 Wo. MS/HS (§118 EnWG-Bußgeldrisiko). Fotojahr 2026: verschlechtert Umsetzungsquote im EWK-Benchmarking (5-Jahres-EO-Wirkung).'
       ),
       kpiRow(
         'Redispatch-/§14a-Anlagen ohne MeLo',
         isAvail(s1, 'installationenOhneMelo') && ohneMeloCount !== null
-          ? `${ohneMeloCount} ohne MeLo (von ${redispatchTotal ?? '?'} ≥100 kW)`
+          ? (ohneMeloCount === 0
+              ? `✅ Alle ${redispatchTotal ?? '?'} Anlagen mit MeLo`
+              : `${ohneMeloCount} ohne MeLo (von ${redispatchTotal ?? '?'} ≥100 kW)`)
           : null,
         '',
-        'Anlagen ≥100 kW ohne verknüpfte Messlokation – MSCONS-Stammdaten unvollständig'
+        '≥100-kW-Anlagen ohne Messlokation – ohne MeLo: Redispatch-Kosten nicht abrechnebar (§12 StromNZV, ~3.000 €/Anlage/Jahr)'
       ),
       kpiRow(
         'Ortsfremde Anlagen (PLZ-Ausreißer)',
@@ -448,8 +475,8 @@ function renderSection1(s1) {
         //         these are installations MaStR assigns to THIS VNB but whose postal
         //         code is outside the operator's core service territory.
         plzPrefix
-          ? `Im MaStR diesem VNB zugeordnet, PLZ außerhalb Kerngebiet (≠ ${plzPrefix}xx)`
-          : 'Im MaStR diesem VNB zugeordnet, aber PLZ außerhalb des Kerngebiets'
+          ? `Im MaStR diesem VNB zugeordnet, PLZ außerhalb Kerngebiet (≠ ${plzPrefix}xx) – Fotojahr 2026: verfälscht AgNeS-Kapazitätsbilanz (60 Monate Wirkung)`
+          : 'Im MaStR diesem VNB zugeordnet, PLZ außerhalb Kerngebiet – Fotojahr 2026: verfälscht AgNeS-Effizienzwert (60 Monate Wirkung)'
       )
     );
   })();
@@ -526,11 +553,11 @@ function renderSection1(s1) {
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">Grundlage für Investitionsentscheidungen, NEST-Regulierung und langfristige Infrastrukturplanung.</p>
     ${kpiTable(rows)}
     ${actionHint('Handlungsempfehlung Netzbetrieb', [
-      'Trafo-Auslastung >80 %: Engpass-Meldung gemäß §11 EnWG und Aufnahme in NEST-Investitionsplanung.',
-      'Redispatch-Anlagen ≥100 kW: fristgerechte §12 StromNZV-Meldung an Übertragungsnetzbetreiber sicherstellen.',
-      'Anlagen in Netzbetreiberprüfung: Bearbeitungsfristen im MaStR-Portal einhalten (4 Wo. NS, 6 Wo. MS/HS).',
-      'Redispatch-/§14a-Anlagen ohne MeLo: Stammdaten im MaStR ergänzen – fehlende MeLo verhindert MSCONS-Abrechnung.',
-      'Ortsfremde Anlagen: VNB-Zuordnung im MaStR korrigieren oder Netzgebiet-Abgrenzung mit BNetzA klären.',
+      'Trafo-Auslastung >80 %: §11 EnWG-Engpass-Meldepflicht beachten – Grundlage für NEST-Förderantrag und Redispatch-Aktivierung.',
+      'Redispatch-/§14a-Anlagen ohne MeLo: MaStR-Stammdaten innerhalb von 4 Wochen ergänzen – fehlende MeLo = Redispatch-Kosten nicht abrechnebar (§12 StromNZV, ~3.000 €/Anlage/Jahr).',
+      'Anlagen in Netzbetreiberprüfung: Fristen einhalten (4 Wo. NS, 6 Wo. MS/HS) – §118 EnWG-Bußgeldrisiko + EWK-Benchmarking-Nachteil bei Überschreitung.',
+      'Ortsfremde Anlagen (PLZ-Ausreißer): MaStR-Korrektur vor Fotojahr 2026 – fehlerhafte Zuordnungen verfälschen AgNeS-Effizienzwert und Erlösobergrenze (60 Monate Wirkung).',
+      'Residuallast: Day-Ahead-Preis täglich mit Residuallast-Forecast verknüpfen – hohe Residuallast bei hohem Preis = doppelte Dringlichkeit für Beschaffungsoptimierung.',
     ])}
     ${chartHtml}
     ${residualChartHtml}`;
@@ -626,7 +653,7 @@ function renderSection2(s2) {
       'Installierte PV-Leistung',
       pvAvail ? fmtKwp(pvCapacity) : null,
       '',
-      'Summe aktiver PV-Anlagen (MaStR)',
+      'PV im Netzgebiet (MaStR) – VNB: Einspeiser/Redispatch-Basis; Lieferant: Prosumer-Potenzial. Fotojahr 2026: MaStR-Genauigkeit bestimmt AgNeS-Kapazitätsberechnung.',
       !pvAvail ? 'MaStR-Abfrage nicht verfügbar' : ''
     ),
     kpiRow(
@@ -664,7 +691,7 @@ function renderSection2(s2) {
       'Einspeise-Prognose (24h)',
       genFcLabel,
       '',
-      'Regionalprognose auf Basis MaStR-Kapazitäten'
+      'Regionalprognose (MaStR-Kapazitäten × Wetterprofil) – Grundlage für präzise Day-Ahead-Beschaffung am EPEX Spotmarkt'
     ),
     kpiRow(
       'Regionaler Energiemix',
@@ -758,10 +785,10 @@ function renderSection2(s2) {
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">MaStR-basierte Analyse des Einspeiserportfolios und dessen Betriebsstatus.</p>
     ${kpiTable(rows)}
     ${actionHint('Handlungsempfehlung EE-Portfolio', [
-      'Redispatch-Pool: Alle Anlagen ≥100 kW automatisch in Redispatch 2.0 einbinden (§12 StromNZV).',
-      'Speicher als Puffer: Standorte für Quartiersspeicher an EE-Einspeiseschwerpunkten identifizieren.',
-      'PV-Prognose nutzen: Tagesvorschau für Netzbetrieb und Beschaffungsoptimierung einsetzen.',
-      'Direktvermarktung: Anlagen >100 kW mit abgelaufenem EEG-Tarif auf §21 EEG-Marktprämie prüfen.',
+      'Redispatch-Pool: Alle Anlagen ≥100 kW in Redispatch 2.0 einbinden (§12 StromNZV) – MeLo-Verknüpfung im MaStR vollständig sicherstellen.',
+      'MaStR-Qualität Fotojahr 2026: Fehlende MeLo, falsche PLZ und fehlerhafte Leistungsangaben bis Ende Q1 korrigieren – Basis für AgNeS-Effizienzwert (5-Jahres-EO-Wirkung).',
+      'Einspeise-Prognose: Tagesvorschau für Day-Ahead-Beschaffung am EPEX Spotmarkt nutzen – präzise Prognose reduziert Residuallast und Beschaffungskosten.',
+      'Prosumer-Akquise: Neue PV-, Wallbox- und Speicher-Anlagen als Sales-Trigger einsetzen (3–5× höhere Konversion vs. Kaltakquise in ersten 90 Tagen nach Inbetriebnahme).',
     ])}
     ${portfolioChartHtml}
     ${zubauChartHtml}`;
@@ -1169,16 +1196,30 @@ function renderSection4(s4) {
     }
   }
 
+  // CR-semantic: dynamic gas action hints based on fill level + dual Lieferant/VNB perspective
+  const gasHints = (() => {
+    const items = [];
+    if (fillPct !== null && fillPct < 25) {
+      items.push(
+        `Gasfüllstand ${Number(fillPct).toFixed(1)} % KRITISCH: Krisenplan aktivieren – bis 1. November müssen ` +
+        `${Math.round(90 - Number(fillPct))} Prozentpunkte eingespeist werden. Aggressive Einspeisung treibt Gaspreise überproportional (VO 2022/1032).`
+      );
+    } else if (fillPct !== null && fillPct < 70) {
+      items.push(`Gasfüllstand ${Number(fillPct).toFixed(1)} %: EU-Mandat 90 % zum 1. November noch nicht gesichert – Einspeisung priorisieren (VO 2022/1032).`);
+    } else {
+      items.push('Gasfüllstand im grünen Bereich – EU-90%-Mandat auf Kurs. Versorgungssicherheit gewährleistet.');
+    }
+    items.push('Kurzfristig (Lieferant): Gaslieferverträge auf Abrufoptionen prüfen – Beschaffungspreisrisiko steigt mit wachsendem Füllstandsdefizit proportional an.');
+    items.push('Langfristig (VNB): Gasinfrastruktur-Transformationsplan 2026–2045 erstellen – Stillegungspflicht Gasnetz nach EnWG adressieren und Investitionssicherheit klären.');
+    items.push('EU-Ländervergleich: DE-Füllstand vs. AT/NL/FR monatlich tracken – frühe Warnsignale für Preisrisiko-Eskalation und Versorgungsengpässe.');
+    return items;
+  })();
+
   return `
     <h1 class="section-title"><span class="section-number">4</span>Gasinfrastruktur &amp; Versorgungssicherheit</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">Speicherfüllstände, Einspeisung/Entnahme und EU-weite Gasversorgungssicherheit.</p>
     ${kpiTable(rows)}
-    ${actionHint('Handlungsempfehlung Gasversorgung', [
-      'Füllstand <80 % bis Oktober: Einspeisung priorisieren – EU-Mandat 90 % zum 1. November (VO 2022/1032).',
-      'Versorgungssicherheits-Status CRITICAL: Geschäftsführung und Krisenplan aktivieren.',
-      'EU-Vergleich monatlich reporten: DE-Füllstand vs. AT/NL/FR für Frühwarnung nutzen.',
-      'Injection-Trend: Bestehende Gaslieferverträge auf Abrufoptionen für Spitzenzeiten prüfen.',
-    ])}
+    ${actionHint('Handlungsempfehlung Gasversorgung', gasHints)}
     ${chartHtml}
     ${countryChartHtml}`;
 }
@@ -1198,6 +1239,8 @@ function renderSection5(s5) {
   // EWK ranking and benchmark values
   const ewkRank = bmJson?.rankings?.anschlussdauer_ee_ns_rank ?? null;
   const ewkTotal = bmJson?.rankings?.anschlussdauer_ee_ns_total ?? null;
+  // Quartile interpretation for NEST consequence (uses shared helper)
+  const adQuartil = ewkQuartilBewertung(ewkRank, ewkTotal);
 
   // Anschlussdauer ranking chart – VNB value vs. Bundesmedian
   // adJson rows[0] uses ee_ns_gesamt_wochen; older bmJson uses anschlussdauer.ee_ns_gesamt
@@ -1219,7 +1262,9 @@ function renderSection5(s5) {
         ? `${ewkRank} / ${ewkTotal ?? '?'}`
         : null,
       '',
-      'EWK-Rang Anschlussdauer EE NS 2024 (BNetzA)'
+      adQuartil
+        ? `EWK-Rang 2024 (BNetzA) – ${adQuartil.label}: ${adQuartil.nestEffect}`
+        : 'EWK-Rang Anschlussdauer EE NS 2024 (BNetzA)'
     ),
     kpiRow(
       'Anschlussdauer EE NS',
@@ -1243,7 +1288,7 @@ function renderSection5(s5) {
         ? fmtPct((diJson?.digitalisierungsindex?.gesamtscore ?? bmJson?.digitalisierungsindex?.gesamtscore) * 100)
         : null,
       '',
-      'Smart Grids, Digitale Prozesse, Kundenmanagement'
+      'Composite-Score: Smart Grids, Digitale Prozesse, Kundenmanagement – schwächster Teilscore = primäre Handlungspriorität'
     ),
     kpiRow(
       'Digitalisierungsindex Rang',
@@ -1324,49 +1369,71 @@ function renderSection5(s5) {
       const median = Number(bundesMedian);
       const diff = ansch - median;
       const ratio = ansch / median;
+      const quartilPart = adQuartil ? `, Rang ${ewkRank}/${ewkTotal ?? '?'} (${adQuartil.label}, ${adQuartil.nestEffect})` : '';
 
       if (ratio > 1.2) {
         // ACTION: clearly above median
         items.push(
           `Anschlussdauer ${ansch.toFixed(0)} Wo. – ${Math.round(diff)} Wo. über Bundesmedian ` +
-          `(${median.toFixed(0)} Wo.): Phase 1 (Angebotserstellung) und Phase 2 (Inbetriebnahme) ` +
-          `optimieren. BNetzA-Beschwerderisiko bei >13 Wochen.`
+          `(${median.toFixed(0)} Wo.)${quartilPart}. Phase 1 (Angebotserstellung) und Phase 2 (Inbetriebnahme) ` +
+          `optimieren. BNetzA-Beschwerderisiko bei >13 Wochen. Jede eingesparte Woche verbessert den AgNeS-Effizienzwert.`
         );
       } else if (diff > 0) {
         // ACTION-light: slightly above median
         items.push(
           `Anschlussdauer ${ansch.toFixed(0)} Wo. – ${Math.round(diff)} Wo. über Bundesmedian ` +
-          `(${median.toFixed(0)} Wo.). Phase-1/2-Prozesse optimieren.`
+          `(${median.toFixed(0)} Wo.)${quartilPart}. Phase-1/2-Prozesse optimieren.`
         );
       } else if (ratio < 0.75) {
         // LEVERAGE: top ~25 % (below 75 % of median)
         items.push(
-          `Anschlussdauer ${ansch.toFixed(0)} Wo. ✅ Top-Performer – ` +
+          `Anschlussdauer ${ansch.toFixed(0)} Wo. ✅ Top-Performer${quartilPart} – ` +
           `${Math.abs(Math.round(diff))} Wo. unter Bundesmedian (${median.toFixed(0)} Wo.). ` +
-          `Als Qualitätsmerkmal in Kommunikation mit Gemeinde und Projektierer einsetzen.`
+          `Als Qualitätsmerkmal gegenüber Gemeinde, Projektierer und in GF-Berichten einsetzen.`
         );
       } else {
         // HOLD: below median but not top 25 %
         items.push(
           `Anschlussdauer ${ansch.toFixed(0)} Wo. ✅ – ${Math.abs(Math.round(diff))} Wo. unter ` +
-          `Bundesmedian (${median.toFixed(0)} Wo.). Niveau halten; Phase-2-Zeiten weiter optimieren.`
+          `Bundesmedian (${median.toFixed(0)} Wo.)${quartilPart}. Niveau halten; Phase-2-Zeiten weiter optimieren.`
         );
       }
     } else {
-      items.push('Anschlussdauer: Prozesse für Phase 1 und Phase 2 optimieren – BNetzA-Beschwerderisiko bei >13 Wochen.');
+      items.push('Anschlussdauer: Prozesse für Phase 1 und Phase 2 optimieren – BNetzA-Beschwerderisiko bei >13 Wochen. Jede eingesparte Woche verbessert den AgNeS-Effizienzwert (NEST-Logik).');
     }
 
-    // Digitalisierungsindex
+    // Digitalisierungsindex – weakest sub-score as primary action target
     const diScore = (diJson?.digitalisierungsindex?.gesamtscore ?? bmJson?.digitalisierungsindex?.gesamtscore);
     const diPct = diScore != null ? diScore * 100 : null;
+    const diSubScores = diJson?.digitalisierungsindex ?? bmJson?.digitalisierungsindex ?? null;
+    const weakestSub = (() => {
+      if (!diSubScores) return null;
+      const subs = [
+        { name: 'Smart Grids (\u00a714a-Basis)', key: 'smart_grids', consequence: '\u00a714a-Steuerboxen nicht implementierbar' },
+        { name: 'Digitale Prozesse (MaKo/EDI)', key: 'digitale_prozesse', consequence: 'LFW24h-Compliance gef\u00e4hrdet' },
+        { name: 'Kundenmanagement (Self-Service)', key: 'kundenmanagement', consequence: 'hohes Call-Center-Volumen' },
+      ];
+      return subs
+        .filter((s) => diSubScores[s.key] != null)
+        .sort((a, b) => diSubScores[a.key] - diSubScores[b.key])[0] ?? null;
+    })();
     if (diPct !== null && diPct < 50) {
-      items.push(`Digitalisierungsindex ${diPct.toFixed(0)} % (unter 50 %): SMGW-Rollout priorisieren, Förderanträge Digitalisierungsoffensive stellen.`);
+      const weakPart = weakestSub
+        ? ` Schwächster Teilscore: ${weakestSub.name} (${Math.round(Number(diSubScores[weakestSub.key]) * 100)} %) → ${weakestSub.consequence} – hier priorisieren.`
+        : '';
+      items.push(`Digitalisierungsindex ${diPct.toFixed(0)} % (unter Bundesmedian): SMGW-Rollout und Digitalisierungsoffensive priorisieren.${weakPart}`);
     } else if (diPct !== null && diPct >= 70) {
-      items.push(`Digitalisierungsindex ${diPct.toFixed(0)} % ✅ – §14a-Steuerboxen für neue steuerbare Verbrauchseinrichtungen kontinuierlich ausrollen.`);
+      const weakPart = weakestSub
+        ? ` Verbleibender Optimierungsbedarf: ${weakestSub.name} (${Math.round(Number(diSubScores[weakestSub.key]) * 100)} %).`
+        : '';
+      items.push(`Digitalisierungsindex ${diPct.toFixed(0)} % ✅ – §14a-Steuerboxen für alle neuen steuerbaren Verbrauchseinrichtungen kontinuierlich ausrollen.${weakPart}`);
     } else if (diPct !== null) {
-      items.push(`Digitalisierungsindex ${diPct.toFixed(0)} %: Smart-Meter-Rollout fortführen, §14a-Steuerboxen bis Ende 2025 installieren.`);
+      const weakPart = weakestSub
+        ? ` Priorität: ${weakestSub.name} (${Math.round(Number(diSubScores[weakestSub.key]) * 100)} %) → ${weakestSub.consequence}.`
+        : '';
+      items.push(`Digitalisierungsindex ${diPct.toFixed(0)} %: Smart-Meter-Rollout fortführen, §14a-Steuerboxen installieren.${weakPart}`);
     } else {
-      items.push('Digitalisierungsindex: Smart Meter Rollout und SMGW-Integration priorisieren.');
+      items.push('Digitalisierungsindex: Smart Meter Rollout und SMGW-Integration priorisieren – Basis für §14a EnWG und MsbG-Pflichten.');
     }
 
     // CR-24 fix: Umsetzungsquote – correct conditional (was always showing <70 % text for high performers)
@@ -1375,15 +1442,15 @@ function renderSection5(s5) {
     if (uqPct !== null && uqPct < 80) {
       items.push(`Umsetzungsquote EE NS ${uqPct.toFixed(0)} % – offene Anschlussbegehren bis EWK-Stichtag 31. März nacharbeiten.`);
     } else if (uqPct !== null && uqPct >= 100) {
-      items.push(`Umsetzungsquote ${uqPct.toFixed(0)} % ✅ – alle EE-Anschlussbegehren fristgerecht umgesetzt. Standard halten.`);
+      items.push(`Umsetzungsquote ${uqPct.toFixed(0)} % ✅ EXZELLENZ – alle EE-Anschlussbegehren fristgerecht umgesetzt. Echter Wettbewerbsvorteil im EWK-Benchmarking: aktiv kommunizieren (Gemeinde, Projektierer, GF-Bericht).`);
     } else if (uqPct !== null) {
       items.push(`Umsetzungsquote ${uqPct.toFixed(0)} % ✅ – Niveau halten; Restfälle bis EWK-Stichtag 31. März abschließen.`);
     } else {
       items.push('Umsetzungsquote prüfen: EWK-Daten nicht verfügbar – offene EE-Anschlussbegehren bis Stichtag 31. März nacharbeiten.');
     }
 
-    items.push('NEST-Report: §11 Abs. 2 EnWG Nachweispflicht erfüllen, bevor CAPEX-Antrag gestellt wird.');
-    items.push('§14a EnWG: Steuerungsboxen (SMGW + Steuerbox) für alle steuerbaren Verbrauchseinrichtungen fristgerecht installieren.');
+    items.push('NEST-Report: §11 Abs. 2 EnWG Nachweispflicht erfüllen – NEST-Förderantrag erfordert dokumentierten Engpassnachweis, bevor CAPEX-Antrag gestellt wird.');
+    items.push('§14a EnWG: Steuerungsboxen (SMGW + Steuerbox) für alle steuerbaren Verbrauchseinrichtungen installieren – Voraussetzung: ausreichender Smart-Grids-Teilscore im DI.');
     return items;
   })();
 
@@ -1693,18 +1760,17 @@ function renderSection6(s6) {
   const isHeuristicChurn = /heuristic|heuristik/i.test(churnText);
 
   // CR-12: Build DataStatus-aware display values for churn fields
+  // CR-semantic: Heuristic values (BDEW median ~8 %) are NOT VNB-specific.
+  //   Showing ~8.0 ℹ️ creates false confidence. Suppress and show BI-module upsell instead.
   const churnRateDisplay = (() => {
     if (!isAvail(s6, 'churnPrediction')) return null;
     if (churnRate === null) return null;
-    if (isHeuristicChurn) {
-      // Heuristic model – show with ~ prefix, not as a definitive number
-      return `~${churnRate.toFixed(1)} ℹ️`;
-    }
+    if (isHeuristicChurn) return null; // suppress – value is BDEW median, not CRM-derived
     return fmtPct(churnRate);
   })();
   const churnRateFallback = (() => {
     if (!isAvail(s6, 'churnPrediction')) return 'Churn-Tool nicht verfügbar';
-    if (isHeuristicChurn) return 'Branchenheuristik (BDEW-Referenz) – kein CRM-Datenzugang';
+    if (isHeuristicChurn) return '⚠️ Branchenheuristik (BDEW ~8 %) \u2260 VNB-spezifisch – Cernion BI-Modul für valide Churn-Prognose aktivieren';
     if (churnRate === null) return 'Wert nicht extrahierbar';
     return '';
   })();
@@ -1712,12 +1778,12 @@ function renderSection6(s6) {
   const atRiskDisplay = (() => {
     if (!isAvail(s6, 'churnPrediction')) return null;
     if (atRiskCount === null) return null;
-    if (isHeuristicChurn) return `~${atRiskCount} ℹ️`;
+    if (isHeuristicChurn) return null; // suppress – derived from BDEW heuristic, not actual CRM data
     return atRiskCount;
   })();
   const atRiskFallback = (() => {
     if (!isAvail(s6, 'churnPrediction')) return 'Churn-Tool nicht verfügbar';
-    if (isHeuristicChurn) return 'Branchenheuristik – nicht VNB-spezifisch';
+    if (isHeuristicChurn) return '\u26a0\ufe0f Sch\u00e4tzwert auf BDEW-Heuristik-Basis – nicht CRM-validiert';
     if (atRiskCount === null) return 'Wert nicht extrahierbar';
     return '';
   })();
@@ -1732,14 +1798,14 @@ function renderSection6(s6) {
       'Churn-Risiko-Score (Segment-Ø)',
       churnRateDisplay,
       '',
-      isHeuristicChurn ? 'Wechselwahrscheinlichkeit (Branchenheuristik – nicht VNB-spezifisch)' : 'Wechselwahrscheinlichkeit (Heuristik-Modell)',
+      isHeuristicChurn ? 'Wechselwahrscheinlichkeit – VNB-spezifisches ML-Modell nicht aktiviert' : 'Wechselwahrscheinlichkeit (ML-Modell, CRM-basiert)',
       churnRateFallback
     ),
     kpiRow(
       'Gefährdete Kunden (geschätzt)',
       atRiskDisplay,
-      isHeuristicChurn ? 'Kunden ℹ️' : 'Kunden',
-      'At-risk Kunden im Analysezeitraum',
+      'Kunden',
+      isHeuristicChurn ? 'Schätzwert auf BDEW-Heuristik-Basis – Cernion BI-Modul für CRM-Analyse aktivieren' : 'At-risk Kunden im Analysezeitraum',
       atRiskFallback
     ),
     kpiRow(

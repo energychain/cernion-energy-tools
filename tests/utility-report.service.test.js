@@ -768,11 +768,11 @@ describe('Utility Report Service', () => {
         },
         generatedAt: new Date().toISOString(),
       });
-      // CR-12: heuristic values must show ~ prefix, not plain number
-      expect(html).toContain('~8.0');
-      expect(html).toContain('~60');
-      expect(html).toContain('ℹ️');
+      // CR-semantic: heuristic values are suppressed (null → n/v span) and replaced by BI-upsell fallback
+      expect(html).not.toContain('~8.0');
+      expect(html).not.toContain('~60');
       expect(html).toContain('Branchenheuristik');
+      expect(html).toContain('BI-Modul');
     });
 
     it('should render Ländervergleich with country breakdown when data available (CR-14)', () => {
@@ -1276,7 +1276,7 @@ describe('Utility Report Service', () => {
         generatedAt: new Date().toISOString(),
       });
       expect(html).toContain('Im MaStR diesem VNB zugeordnet');
-      expect(html).toContain('au\u00dferhalb des Kerngebiets');
+      expect(html).toContain('au\u00dferhalb Kerngebiet');
     });
   });
 

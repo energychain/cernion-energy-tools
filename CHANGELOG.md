@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.23] - 2026-03-09
+
+### Added
+
+- **Report Builder – Semantic KPI Context (domain-aware action hints)**
+
+  All report sections now carry business-decision context, not just metric labels.
+  Key additions per section:
+
+  **Section 1 – Netztopologie & MaStR-Qualität**
+  - Trafo rows use `trafoBewertung(v, level)` helper: threshold badges `✅/<70%`, `⚠️/70–80%`, `🔴/>80% §11 EnWG Meldepflicht`, `🚨/>95% KRITISCH`.
+  - MeLo row: zero → `✅ Alle X Anlagen mit MeLo`; non-zero description includes `~3.000 €/Anlage/Jahr nicht abrechnebar`.
+  - Anlagen-in-Prüfung description: Fotojahr 2026 EWK-impact + `§118 EnWG Bußgeldrisiko`.
+  - Ortsfremde Anlagen description: Fotojahr 2026 AgNeS-Kapazitätsbilanz note (60 Monate Wirkung).
+  - Action hints: §11 Engpass → NEST-Förderantrag; MeLo → 4-Wochen-Frist; Fotojahr 2026 → Erlösobergrenze; Residuallast × Day-Ahead-Preis monetarisiert.
+
+  **Section 2 – EE-Portfolio**
+  - PV-Kapazität description: dual VNB-/Lieferant-Sicht (Redispatch vs. Prosumer-Potenzial) + Fotojahr 2026 MaStR-Genauigkeit.
+  - Einspeise-Prognose description: Day-Ahead-Beschaffung EPEX Spotmarkt framing.
+  - Action hints: MeLo+Redispatch; Fotojahr MaStR Q1; Einspeise-Prognose EPEX; Prosumer-Akquise 3–5× Konversion.
+
+  **Section 4 – Gas**
+  - Dynamic `gasHints` IIFE: fill-level-dependent primary hint (<25% KRITISCH with delta to EU-90%, <70% warning, else green) + Lieferant (Abrufoptionen) + VNB (Transformationsplan 2026–2045) + EU-Ländervergleich.
+
+  **Section 5 – Regulierung & EWK**
+  - `ewkQuartilBewertung(rank, total)` helper: maps EWK rank to quartile label + NEST consequence (Top-25% = NEST-Vorteil, Bottom-25% = EO-Nachteil).
+  - EWK Anschlussdauer Rang kpiRow description: shows quartile + NEST consequence dynamically.
+  - Digitalisierungsindex description: "schwächster Teilscore = primäre Handlungspriorität".
+  - `ewkHints` IIFE refactored: Anschlussdauer hints include `adQuartil.nestEffect`; DI block detects weakest sub-score (Smart Grids / Digitale Prozesse / Kundenmanagement) with targeted §14a/MaKo/Self-Service consequences; Umsetzungsquote 100% → `EXZELLENZ – echter Wettbewerbsvorteil, aktiv kommunizieren`; NEST-Report hint includes Fotojahr 2026 reference.
+
+  **Section 6 – Kundenmanagement**
+  - Churn heuristic guard: when `isHeuristicChurn`, suppress `~8.0 ℹ️` value (null → n/v) and show BI-upsell fallback `⚠️ Branchenheuristik (BDEW ~8 %) ≠ VNB-spezifisch – Cernion BI-Modul für valide Churn-Prognose aktivieren`.
+  - kpiRow descriptions updated: heuristic → `VNB-spezifisches ML-Modell nicht aktiviert`; non-heuristic → `ML-Modell, CRM-basiert`.
+
+- **Gemini Prompt – Domain-aware 4-tier prioritization**
+
+  `generateNarrative` prompt now includes:
+  - Priority order: Compliance-Risiken (§11/§118/§12) → Financial >10.000 €/Jahr → Strategic (Top-Quartil, 100% UQ) → Monitoring.
+  - Context rules: EWK-Rang als Quartil + NEST-Konsequenz; Anschlussdauer Delta; MeLo-Lücken + Fotojahr 60-Monate; Residuallast monetarisiert; UQ 100% = echter Wettbewerbsvorteil.
+  - Forbidden: camelCase, generic phrases without numbers, sentences without actionable content.
+
+- **`buildStaticNarrative` – Quartile + MeLo/Fotojahr items**
+
+  - Anschlussdauer items include quartile + NEST consequence (computed from `kpiSummary.anschlussdauer.rankings.*`).
+  - New MeLo/Fotojahr critical item (prio 1) when `kpiSummary.meloCheck.anlagen_ohne_melo > 0`: cites `~3.000 €/Anlage/Jahr` and 60-month EO impact.
+
+### Changed
+
+- `tests/utility-report.service.test.js` — 2 tests updated:
+  - CR-41 ortsfremde test: assertion updated from `außerhalb des Kerngebiets` to `außerhalb Kerngebiet` (matches current renderer text).
+  - CR-12 churn heuristic test: assertions updated — heuristic values are now suppressed (`null` → n/v), expect `not.toContain('~8.0')`, `not.toContain('~60')`; expect `Branchenheuristik` and `BI-Modul`.
+
 ## [0.8.22] - 2026-03-09
 
 ### Added
