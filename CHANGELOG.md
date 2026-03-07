@@ -7,6 +7,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.22] - 2026-03-09
+
+### Added
+
+- **Report Builder – CR-48: Residuallast 48h-Chart (Abb. A, Section 1)**
+
+  New time-series area chart appended to Section 1 when `residualLoad.forecast`
+  contains ≥ 6 hourly data points (48h horizon). Two datasets: Netto-Residuallast
+  (blue fill) and Gesamtlast (grey dashed). Canvas ID: `chartResidualLoad`.
+
+- **Report Builder – CR-49: EE-Portfolio-Mix Donut (Abb. B, Section 2)**
+
+  Donut chart visualising PV / Wind / Speicher capacity proportions when at
+  least one capacity value is available. Canvas ID: `chartPortfolioMix`.
+
+- **Report Builder – CR-50: Dual-axis Preis+Solar-Chart (Abb. 2, Section 3)**
+
+  Existing EPEX price line chart upgraded to dual-axis when `windSolarActual`
+  data is cross-referenced from Section 2. Left axis: €/MWh (price);
+  right axis: GW (solar generation). Negative-price periods shaded red.
+  Falls back to single-axis when no solar data is available.
+
+- **Report Builder – CR-51: Ländervergleich Gasfüllstand (Abb. D, Section 4)**
+
+  Grouped horizontal bar chart comparing gas storage fill levels for DE / AT /
+  NL / FR when `compareCountries.rankings` is available. Reference line at 90%
+  (EU mandate). Canvas ID: `chartGasCountry`.
+
+- **Report Builder – CR-52: Digitalisierungsprofil Radar (Abb. E, Section 5)**
+
+  Radar chart showing three digitalization sub-scores (Smart Grids, Digitale
+  Prozesse, Kundenmanagement) for this VNB (blue) vs. Bundesmedian (grey
+  dashed). Canvas ID: `chartDigiRadar`.
+
+- **Report Builder – CR-53: Peer-Benchmark Tornado (Abb. F, Peer-Benchmarking)**
+
+  Divergence / tornado bar chart showing delta to Bundesmedian for
+  Anschlussdauer and Digitalisierungsindex (green = better, red = worse).
+  Rendered only when both metrics have national median data available.
+  Canvas ID: `chartTornado`.
+
+- **Report Builder – CR-54: EE-Zubaukurve kumuliert (Abb. C, Section 2)**
+
+  Cumulative PV capacity growth chart built from `pvLocal` installation
+  commissioning dates, grouped by year. Requires ≥ 5 installations with
+  valid `inbetriebnahmeDatum`. Canvas ID: `chartZubau`.
+
+### Fixed
+
+- **Report Builder – CR-43: Pearson-Korrelation Fallback**
+
+  When `priceProductionAnalysis` tool is unavailable ("nicht lizenziert"),
+  compute Pearson r from EPEX price data points × ENTSO-E solar generation
+  forecasts (last 24h). Requires ≥ 4 paired data points. KPI row now shows
+  `r = X.XX (neg./pos. Korrelation)` instead of a blank value. Falls back
+  to "Datenbasis für Berechnung unzureichend" when fewer than 4 points exist.
+
+- **Service – Residuallast-Aufruf: `gridOperatorId` → `gridOperatorMastrId`**
+
+  Fixed wrong parameter name in Phase 2 `residual-load.netResidualLoad` call.
+  Added `forecastDays: 2` and `resolution: 'hourly'` to ensure 48h hourly
+  data is available for the new Section 1 chart.
+
+- **Service – `churnPrediction`: vollständige Parameter**
+
+  Added `predictionWindowMonths: 12`, `includeRetentionStrategy: true`,
+  `includeChurnReasons: true`, `includeCompetitiveAnalysis: true` to deliver
+  the full 12-month churn analysis as specified in the API reference.
+
+- **Service – `salesLeads`: `installationType` und `limit` korrigiert**
+
+  Changed `installationType` from `'solar'` to `'all'` and raised `limit`
+  from `20` to `50` to capture PV, Speicher and Wallbox leads in one call.
+
+- **Service – `section3.windSolarActual` Cross-Reference**
+
+  `windSolarActual` is now explicitly cross-referenced from `section2` into the
+  `section3` data object so the dual-axis chart in Section 3 can access it
+  without a second MCP call.
+
 ## [0.8.21] - 2026-03-08
 
 ### Fixed

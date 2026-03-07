@@ -1428,4 +1428,249 @@ describe('Utility Report Service', () => {
       expect(status.vnbIdentification.selected.selectionReason).toContain('Netz');
     });
   });
+
+  // ─── CR-48: Residuallast 48h chart ───────────────────────────────────────
+
+  describe('CR-48: Residuallast 48h chart', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    it('should render residual load 48h chart when forecast data is available', () => {
+      const forecasts = Array.from({ length: 24 }, (_, i) => ({
+        timestamp: new Date(Date.now() + i * 3600000).toISOString(),
+        residualLoadMW: 50 + i,
+        loadMW: 80 + i,
+      }));
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR48 Test GmbH' },
+        section1: {
+          residualLoad: { available: true, data: { forecast: forecasts } },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('chartResidualLoad');
+      expect(html).toContain('Abb. A: Netto-Residuallast');
+    });
+
+    it('should not render residual load chart when data is unavailable', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR48 NoData GmbH' },
+        section1: {
+          residualLoad: { available: false },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).not.toContain('chartResidualLoad');
+    });
+  });
+
+  // ─── CR-49: EE Portfolio mix donut ───────────────────────────────────────
+
+  describe('CR-49: EE Portfolio donut chart', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    it('should render portfolio donut chart when PV and wind data available', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR49 Portfolio GmbH' },
+        section2: {
+          solar:   { available: true, data: { totalCapacityKw: 12000 } },
+          wind:    { available: true, data: { totalCapacityKw: 3000 } },
+          storage: { available: true, data: { totalCapacityKw: 1000 } },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('chartPortfolioMix');
+      expect(html).toContain('Abb. B:');
+    });
+
+    it('should not render portfolio donut when all EE data unavailable', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR49 NoData GmbH' },
+        section2: {},
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).not.toContain('chartPortfolioMix');
+    });
+  });
+
+  // ─── CR-43: Pearson correlation fallback ─────────────────────────────────
+
+  describe('CR-43: Pearson correlation fallback', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    it('should compute and show Pearson r when priceProductionAnalysis unavailable', () => {
+      const pricePoints = Array.from({ length: 24 }, (_, i) => ({
+        timestamp: new Date(Date.now() + i * 3600000).toISOString(),
+        priceEURperMWh: 100 - i * 2,
+      }));
+      const solarForecasts = Array.from({ length: 24 }, (_, i) => ({
+        solar: i * 100,
+      }));
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR43 Pearson GmbH' },
+        section3: {
+          prices: { available: true, data: { dataPoints: pricePoints } },
+          priceProductionAnalysis: { available: false },
+          windSolarActual: { available: true, data: { forecasts: solarForecasts } },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('r = ');
+      // Pearson path taken – the correlation row must show a computed r value, not the "unzureichend" fallback
+      expect(html).not.toContain('Datenbasis für Berechnung unzureichend');
+    });
+
+    it('should fall back to n/v note when both tool and data are unavailable', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR43 Fallback GmbH' },
+        section3: {
+          priceProductionAnalysis: { available: false },
+          windSolarActual: { available: false },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('Datenbasis für Berechnung unzureichend');
+    });
+  });
+
+  // ─── CR-50: Dual-axis price+solar chart ──────────────────────────────────
+
+  describe('CR-50: Dual-axis price+solar chart', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    it('should render dual-axis chart when both price and solar data available', () => {
+      const pricePoints = Array.from({ length: 24 }, (_, i) => ({
+        timestamp: new Date(Date.now() + i * 3600000).toISOString(),
+        priceEURperMWh: 50 + i,
+      }));
+      const solarForecasts = Array.from({ length: 24 }, (_, i) => ({ solar: i * 500 }));
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR50 DualAxis GmbH' },
+        section3: {
+          prices: { available: true, data: { dataPoints: pricePoints } },
+          windSolarActual: { available: true, data: { forecasts: solarForecasts } },
+          priceProductionAnalysis: { available: false },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('y2');
+      expect(html).toContain('Solar GW');
+      expect(html).toContain('Abb. 2:');
+    });
+  });
+
+  // ─── CR-51: Gas country comparison chart ─────────────────────────────────
+
+  describe('CR-51: Gas country comparison chart', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    it('should render country comparison chart when compareCountries data available', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR51 Gas GmbH' },
+        section4: {
+          compareCountries: {
+            available: true,
+            data: {
+              rankings: [
+                { country: 'DE', fillPercentage: 72 },
+                { country: 'AT', fillPercentage: 85 },
+                { country: 'NL', fillPercentage: 68 },
+              ],
+            },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('chartGasCountry');
+      expect(html).toContain('Abb. D:');
+    });
+  });
+
+  // ─── CR-52: EWK Radar chart ───────────────────────────────────────────────
+
+  describe('CR-52: EWK Radar chart', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    it('should render radar chart when digitalisierungsindex scores are available', () => {
+      const ewkJson = [{
+        json: {
+          digitalisierungsindex: { gesamtscore: 0.45, smart_grids: 0.25, digitale_prozesse: 0.35, kundenmanagement: 0.60 },
+          rankings: { anschlussdauer_ee_ns_rank: 120, anschlussdauer_ee_ns_total: 780 },
+          anschlussdauer: { ee_ns_gesamt: 18 },
+        },
+      }];
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR52 Radar GmbH' },
+        section5: {
+          benchmarkVnb: { available: true, data: ewkJson },
+          anschlussdauer: { available: true, data: ewkJson },
+          digitalisierungsindex: { available: true, data: ewkJson },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('chartDigiRadar');
+      expect(html).toContain('Abb. E:');
+    });
+  });
+
+  // ─── CR-53: Peer benchmark tornado chart ─────────────────────────────────
+
+  describe('CR-53: Peer benchmark tornado chart', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    it('should render tornado chart in peer benchmark block when data available', () => {
+      // Tornado needs >= 2 metrics: ansch+bundesMedian AND diPct+diMedian
+      const ewkJson = [{
+        json: {
+          digitalisierungsindex: { gesamtscore: 0.55, smart_grids: 0.40, digitale_prozesse: 0.50, kundenmanagement: 0.65 },
+          rankings: { anschlussdauer_ee_ns_rank: 200, anschlussdauer_ee_ns_total: 780, digitalisierungsindex_rank: 150, digitalisierungsindex_total: 780 },
+          rows: [{ ee_ns_gesamt_wochen: 14 }],
+          stats: { ee_ns_gesamt: { median: 18 }, gesamtscore: { median: 0.50 } },
+        },
+      }];
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR53 Tornado GmbH' },
+        section5: {
+          benchmarkVnb: { available: true, data: ewkJson },
+          anschlussdauer: { available: true, data: ewkJson },
+          digitalisierungsindex: { available: true, data: ewkJson },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('chartTornado');
+      expect(html).toContain('Abb. F:');
+    });
+  });
+
+  // ─── CR-54: Zubaukurve ───────────────────────────────────────────────────
+
+  describe('CR-54: EE Zubaukurve chart', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    it('should render zubau chart when pvLocal installations have dates', () => {
+      const installations = Array.from({ length: 20 }, (_, i) => ({
+        inbetriebnahmeDatum: `${2015 + Math.floor(i / 4)}-01-01`,
+        leistungKw: 10 + i,
+      }));
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR54 Zubau GmbH' },
+        section2: {
+          pvLocal: { available: true, data: { installations } },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('chartZubau');
+      expect(html).toContain('Abb. C:');
+    });
+
+    it('should not render zubau chart when pvLocal has fewer than 5 installations', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR54 SmallVNB GmbH' },
+        section2: {
+          pvLocal: { available: true, data: { installations: [{ inbetriebnahmeDatum: '2020-01-01', leistungKw: 5 }] } },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).not.toContain('chartZubau');
+    });
+  });
 });

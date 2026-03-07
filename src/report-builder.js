@@ -479,6 +479,48 @@ function renderSection1(s1) {
       </script>`;
   }
 
+  // CR-48: Residuallast 48h chart (Ist + Prognose) after the trafo chart
+  let residualChartHtml = '';
+  const rlData = safeData(s1, 'residualLoad');
+  const rlForecast = rlData?.forecast ?? rlData?.data?.forecast ?? [];
+  if (isAvail(s1, 'residualLoad') && Array.isArray(rlForecast) && rlForecast.length >= 6) {
+    const rlSlice = rlForecast.slice(0, 48); // max 48h
+    const rlLabels = JSON.stringify(
+      rlSlice.map((p) => {
+        const d = new Date(p.timestamp || '');
+        return isNaN(d) ? '' : d.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+      })
+    );
+    const rlValues = JSON.stringify(rlSlice.map((p) => p.residualLoadMW ?? p.residualLoad ?? null));
+    const rlLoad = JSON.stringify(rlSlice.map((p) => p.loadMW ?? p.load ?? null));
+    residualChartHtml = `
+      <h3 class="sub-sub">Residuallast-Kurve (48h-Horizont)</h3>
+      <div class="chart-wrap no-break" style="height:200px">
+        <canvas id="chartResidualLoad"></canvas>
+      </div>
+      <p class="chart-caption">Abb. A: Netto-Residuallast (MW) – Ist + 48h-Prognose (Regionaler Forecast). Zeigt den Beschaffungsbedarf des Stadtwerks auf dem EPEX Spotmarkt.</p>
+      <script>
+        (function(){
+          new Chart(document.getElementById('chartResidualLoad'),{
+            type:'line',
+            data:{labels:${rlLabels},datasets:[
+              {label:'Residuallast MW',data:${rlValues},
+                borderColor:'#1B4F8A',backgroundColor:'rgba(27,79,138,0.12)',
+                borderWidth:2,pointRadius:1,fill:true,tension:0.4,spanGaps:true},
+              {label:'Gesamtlast MW',data:${rlLoad},
+                borderColor:'#95A5A6',backgroundColor:'transparent',
+                borderWidth:1,pointRadius:0,fill:false,tension:0.4,
+                borderDash:[5,4],spanGaps:true}
+            ]},
+            options:{responsive:true,maintainAspectRatio:false,
+              plugins:{legend:{labels:{font:{size:9}}}},
+              scales:{y:{ticks:{callback:function(v){return v+' MW';}},grid:{color:'#e8e8e8'}},
+                x:{ticks:{maxTicksLimit:12}}}}
+          });
+        })();
+      </script>`;
+  }
+
   return `
     <h1 class="section-title"><span class="section-number">1</span>Netzbetrieb &amp; Netzplanung</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">Grundlage für Investitionsentscheidungen, NEST-Regulierung und langfristige Infrastrukturplanung.</p>
@@ -490,7 +532,8 @@ function renderSection1(s1) {
       'Redispatch-/§14a-Anlagen ohne MeLo: Stammdaten im MaStR ergänzen – fehlende MeLo verhindert MSCONS-Abrechnung.',
       'Ortsfremde Anlagen: VNB-Zuordnung im MaStR korrigieren oder Netzgebiet-Abgrenzung mit BNetzA klären.',
     ])}
-    ${chartHtml}`;
+    ${chartHtml}
+    ${residualChartHtml}`;
 }
 
 function renderSection2(s2) {
@@ -631,6 +674,85 @@ function renderSection2(s2) {
     ),
   ];
 
+  // CR-49: EE-Portfolio Mix Donut – VNB-specific installed base
+  let portfolioChartHtml = '';
+  const portfolioData = (() => {
+    const pv = pvCapacity != null ? Number(pvCapacity) : 0;
+    const wind = windCapacity != null ? Number(windCapacity) : 0;
+    const speicher = speicherCapacity != null ? Number(speicherCapacity) : 0;
+    const total = pv + wind + speicher;
+    if (total <= 0) return null;
+    return { pv: Math.round(pv), wind: Math.round(wind), speicher: Math.round(speicher) };
+  })();
+  if ((pvAvail || windAvail || speicherAvail) && portfolioData !== null) {
+    const donutLabels = JSON.stringify(['PV', 'Wind', 'Speicher']);
+    const donutValues = JSON.stringify([portfolioData.pv, portfolioData.wind, portfolioData.speicher]);
+    portfolioChartHtml = `
+      <h3 class="sub-sub">EE-Portfolio-Mix (installierte Leistung, kW)</h3>
+      <div class="chart-wrap no-break" style="height:180px">
+        <canvas id="chartPortfolioMix"></canvas>
+      </div>
+      <p class="chart-caption">Abb. B: Installiertes EE-Portfolio nach Technologie (kW, MaStR-Bestand, Betrieb). PV · Wind · Speicher.</p>
+      <script>
+        (function(){
+          new Chart(document.getElementById('chartPortfolioMix'),{
+            type:'doughnut',
+            data:{labels:${donutLabels},datasets:[{data:${donutValues},
+              backgroundColor:['#F39C12','#4A9FD4','#27AE60'],
+              borderWidth:2,borderColor:'#fff'}]},
+            options:{responsive:true,maintainAspectRatio:false,
+              plugins:{legend:{position:'right',labels:{font:{size:9}}},
+                tooltip:{callbacks:{label:function(c){
+                  const v=c.raw,t=${donutValues}.reduce(function(a,b){return a+b},0);
+                  return c.label+': '+(v/1000).toFixed(1)+' MW ('+Math.round(v/t*100)+'%)';
+                }}}}}
+          });
+        })();
+      </script>`;
+  }
+
+  // CR-54: Zubaukurve – cumulative capacity by commissioning year from pvLocal data
+  let zubauChartHtml = '';
+  const pvLocalRaw = safeData(s2, 'pvLocal');
+  const pvInstallations = pvLocalRaw?.installations ?? pvLocalRaw?.data?.installations ?? [];
+  if (Array.isArray(pvInstallations) && pvInstallations.length >= 5) {
+    const yearMap = {};
+    for (const inst of pvInstallations) {
+      const year = String(inst.inbetriebnahmeDatum || inst.commissioning || '').slice(0, 4);
+      const yr = parseInt(year, 10);
+      if (yr >= 2000 && yr <= 2030) {
+        yearMap[yr] = (yearMap[yr] || 0) + (inst.leistungKw ?? inst.capacity ?? 0);
+      }
+    }
+    const years = Object.keys(yearMap).map(Number).sort((a, b) => a - b);
+    if (years.length >= 3) {
+      let cum = 0;
+      const cumKw = years.map((y) => { cum += yearMap[y]; return Math.round(cum); });
+      const zubauLabels = JSON.stringify(years);
+      const zubauCum = JSON.stringify(cumKw);
+      zubauChartHtml = `
+      <h3 class="sub-sub">EE-Zubaukurve – kumulierte PV-Leistung</h3>
+      <div class="chart-wrap no-break" style="height:180px">
+        <canvas id="chartZubau"></canvas>
+      </div>
+      <p class="chart-caption">Abb. C: Kumulierte installierte PV-Leistung im Netzgebiet nach Inbetriebnahmejahr (kW, MaStR-Bestand). Zeigt Tempo und Phasen des EE-Ausbaus.</p>
+      <script>
+        (function(){
+          new Chart(document.getElementById('chartZubau'),{
+            type:'line',
+            data:{labels:${zubauLabels},datasets:[{label:'kum. kW',data:${zubauCum},
+              borderColor:'#F39C12',backgroundColor:'rgba(243,156,18,0.15)',
+              borderWidth:2,pointRadius:3,fill:true,tension:0.3}]},
+            options:{responsive:true,maintainAspectRatio:false,
+              plugins:{legend:{display:false}},
+              scales:{y:{ticks:{callback:function(v){return (v/1000).toFixed(0)+' MW';}},
+                grid:{color:'#e8e8e8'}},x:{ticks:{maxTicksLimit:10}}}}
+          });
+        })();
+      </script>`;
+    }
+  }
+
   return `
     <h1 class="section-title"><span class="section-number">2</span>Erneuerbare Energien &amp; Einspeiser</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">MaStR-basierte Analyse des Einspeiserportfolios und dessen Betriebsstatus.</p>
@@ -640,7 +762,29 @@ function renderSection2(s2) {
       'Speicher als Puffer: Standorte für Quartiersspeicher an EE-Einspeiseschwerpunkten identifizieren.',
       'PV-Prognose nutzen: Tagesvorschau für Netzbetrieb und Beschaffungsoptimierung einsetzen.',
       'Direktvermarktung: Anlagen >100 kW mit abgelaufenem EEG-Tarif auf §21 EEG-Marktprämie prüfen.',
-    ])}`;
+    ])}
+    ${portfolioChartHtml}
+    ${zubauChartHtml}`;
+}
+
+// ─── CR-43: Pearson correlation helper ──────────────────────────────────────
+function pearsonCorrelation(xs, ys) {
+  const n = Math.min(xs.length, ys.length);
+  if (n < 4) return null;
+  const xSlice = xs.slice(0, n);
+  const ySlice = ys.slice(0, n);
+  const xMean = xSlice.reduce((a, b) => a + b, 0) / n;
+  const yMean = ySlice.reduce((a, b) => a + b, 0) / n;
+  let num = 0, dx2 = 0, dy2 = 0;
+  for (let i = 0; i < n; i++) {
+    const dx = xSlice[i] - xMean;
+    const dy = ySlice[i] - yMean;
+    num += dx * dy;
+    dx2 += dx * dx;
+    dy2 += dy * dy;
+  }
+  const denom = Math.sqrt(dx2 * dy2);
+  return denom === 0 ? null : num / denom;
 }
 
 function renderSection3(s3) {
@@ -663,6 +807,18 @@ function renderSection3(s3) {
   const latestPrice =
     getVal(prices, 'latestPrice', 'currentPrice') ??
     (latestPt ? (latestPt.priceEURperMWh ?? latestPt.price ?? null) : null);
+
+  // CR-43: Compute Pearson correlation from price time-series + windSolarActual
+  // when the dedicated priceProductionAnalysis tool is unavailable.
+  const windSolarActualS3 = safeData(s3, 'windSolarActual');
+  const solarForecasts = windSolarActualS3?.forecasts ?? windSolarActualS3?.data?.forecasts ?? [];
+  let pearsonR = null;
+  if (!isAvail(s3, 'priceProductionAnalysis') && chartSrc.length >= 4 && Array.isArray(solarForecasts) && solarForecasts.length >= 4) {
+    // Align on index (both series are typically hourly, same time range)
+    const priceArr = chartSrc.map((p) => p.v);
+    const solarArr = solarForecasts.map((f) => f.solar ?? f.total ?? 0);
+    pearsonR = pearsonCorrelation(priceArr, solarArr);
+  }
 
   // Negative price periods: tool returns {content:[{type,text}]}; parse count from text
   const npData = safeData(s3, 'negativePrices');
@@ -724,17 +880,29 @@ function renderSection3(s3) {
     kpiRow(
       'Preis-Einspeise-Korrelation',
       (() => {
-        if (!isAvail(s3, 'priceProductionAnalysis')) return null;
-        const ppa = safeData(s3, 'priceProductionAnalysis');
-        const r = getVal(ppa, 'correlationCoefficient', 'correlation', 'r');
-        return r !== null ? fmtNum(r, 2) : '✓ Analyse verfügbar';
+        if (isAvail(s3, 'priceProductionAnalysis')) {
+          const ppa = safeData(s3, 'priceProductionAnalysis');
+          const r = getVal(ppa, 'correlationCoefficient', 'correlation', 'r');
+          return r !== null ? `r = ${fmtNum(r, 2)}` : '✓ Analyse verfügbar';
+        }
+        // CR-43: Pearson fallback from price + windSolarActual data
+        if (pearsonR !== null) {
+          const desc = pearsonR < -0.3 ? ' (neg. Korrelation)' : pearsonR > 0.3 ? ' (pos. Korrelation)' : ' (schwach)';
+          return `r = ${fmtNum(pearsonR, 2)}${desc}`;
+        }
+        return null;
       })(),
       '',
-      'Korrelation hohe Einspeisung / niedrige Preise (7 Tage)',
-      !isAvail(s3, 'priceProductionAnalysis') ? 'Tool nicht lizenziert' : ''
+      isAvail(s3, 'priceProductionAnalysis')
+        ? 'Korrelation hohe Einspeisung / niedrige Preise (7 Tage)'
+        : pearsonR !== null
+          ? 'Pearson r aus ENTSO-E Preis × Solar (letzte 24h, berechnet)'
+          : 'Korrelation hohe Einspeisung / niedrige Preise (7 Tage)',
+      !isAvail(s3, 'priceProductionAnalysis') && pearsonR === null ? 'Korrelations-Tool nicht lizenziert – Datenbasis für Berechnung unzureichend' : ''
     ),
   ];
 
+  // CR-50: Dual-axis chart (price + solar) when both datasets available
   let chartHtml = '';
   if (chartSrc.length > 0) {
     const labels = JSON.stringify(
@@ -744,7 +912,46 @@ function renderSection3(s3) {
       })
     );
     const values = JSON.stringify(chartSrc.map((p) => p.v));
-    chartHtml = `
+    const hasSolarOverlay = Array.isArray(solarForecasts) && solarForecasts.length >= 4;
+    if (hasSolarOverlay) {
+      // Align solar to same length as price series by index
+      const solarAligned = chartSrc.map((_, i) => {
+        const f = solarForecasts[i];
+        return f ? (f.solar ?? f.total ?? null) : null;
+      });
+      const solarValues = JSON.stringify(solarAligned);
+      // Shade negative price bars red
+      const bgColors = JSON.stringify(chartSrc.map((p) => p.v < 0 ? 'rgba(231,76,60,0.25)' : 'rgba(46,134,193,0.1)'));
+      chartHtml = `
+      <h3 class="sub-sub">Day-Ahead Preis + Solar-Einspeisung DE (letzte 24h)</h3>
+      <div class="chart-wrap no-break">
+        <canvas id="chartPrices"></canvas>
+      </div>
+      <p class="chart-caption">Abb. 2: EPEX Day-Ahead Preis (€/MWh, linke Achse) + ENTSO-E Solar-Einspeisung DE (GW, rechte Achse) – letzte 24h. Rot: negative Preisperioden (§51 EEG).</p>
+      <script>
+        (function(){
+          new Chart(document.getElementById('chartPrices'),{
+            type:'line',
+            data:{labels:${labels},datasets:[
+              {label:'Preis €/MWh',data:${values},yAxisID:'y',
+                borderColor:'#2e86c1',backgroundColor:${bgColors},
+                borderWidth:2,pointRadius:2,fill:true,tension:0.3},
+              {label:'Solar GW',data:${solarValues},yAxisID:'y2',
+                borderColor:'#f39c12',backgroundColor:'rgba(243,156,18,0.08)',
+                borderWidth:1.5,pointRadius:1,fill:false,tension:0.4,
+                borderDash:[4,3]}
+            ]},
+            options:{responsive:true,maintainAspectRatio:false,
+              plugins:{legend:{labels:{font:{size:9}}}},
+              scales:{
+                y:{position:'left',ticks:{callback:function(v){return v+' €';}},grid:{color:'#e8e8e8'}},
+                y2:{position:'right',ticks:{callback:function(v){return v+' GW';}},grid:{drawOnChartArea:false}},
+                x:{ticks:{maxTicksLimit:8}}}}
+          });
+        })();
+      </script>`;
+    } else {
+      chartHtml = `
       <h3 class="sub-sub">Day-Ahead Preisverlauf (letzte 24h)</h3>
       <div class="chart-wrap no-break">
         <canvas id="chartPrices"></canvas>
@@ -764,6 +971,7 @@ function renderSection3(s3) {
           });
         })();
       </script>`;
+    }
   }
 
   return `
@@ -918,6 +1126,49 @@ function renderSection4(s4) {
       </script>`;
   }
 
+  // CR-51: Country comparison chart – stacked or grouped bars for DE/AT/NL/FR
+  let countryChartHtml = '';
+  if (isAvail(s4, 'compareCountries')) {
+    const cc = safeData(s4, 'compareCountries');
+    const rankings = cc?.rankings ?? cc?.countries ?? cc?.data?.rankings ?? null;
+    if (Array.isArray(rankings) && rankings.length >= 2) {
+      const countryLabels = JSON.stringify(rankings.map((c) => c.country ?? c.code ?? '?'));
+      const countryValues = JSON.stringify(rankings.map((c) => {
+        const v = c.fillPercent ?? c.fillPercentage ?? c.full ?? c.fill;
+        return v !== undefined ? parseFloat(String(v).replace(',', '.')) : null;
+      }));
+      const colors = JSON.stringify(
+        rankings.map((c, i) => {
+          const code = (c.country ?? c.code ?? '').toUpperCase();
+          if (code === 'DE') return '#1B4F8A';
+          return ['#4A9FD4','#27AE60','#F39C12','#E74C3C'][i % 4];
+        })
+      );
+      countryChartHtml = `
+      <h3 class="sub-sub">Ländervergleich Gasfüllstand (DE / AT / NL / FR)</h3>
+      <div class="chart-wrap no-break" style="height:140px">
+        <canvas id="chartGasCountry"></canvas>
+      </div>
+      <p class="chart-caption">Abb. D: Aktueller Gasfüllstand (%) im Ländervergleich – gestrichelte Linie = EU-90%-Mandat (AGSI/GIE).</p>
+      <script>
+        (function(){
+          new Chart(document.getElementById('chartGasCountry'),{
+            type:'bar',
+            data:{labels:${countryLabels},datasets:[{label:'Füllstand %',data:${countryValues},
+              backgroundColor:${colors},borderRadius:4},
+              {label:'90%-Mandat',data:Array(${rankings.length}).fill(90),
+              type:'line',borderColor:'#c0392b',borderWidth:1.5,borderDash:[5,4],
+              pointRadius:0,fill:false}]},
+            options:{responsive:true,maintainAspectRatio:false,
+              plugins:{legend:{labels:{font:{size:9}}}},
+              scales:{y:{min:0,max:100,ticks:{callback:function(v){return v+'%';}},
+                grid:{color:'#e8e8e8'}}}}
+          });
+        })();
+      </script>`;
+    }
+  }
+
   return `
     <h1 class="section-title"><span class="section-number">4</span>Gasinfrastruktur &amp; Versorgungssicherheit</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">Speicherfüllstände, Einspeisung/Entnahme und EU-weite Gasversorgungssicherheit.</p>
@@ -928,7 +1179,8 @@ function renderSection4(s4) {
       'EU-Vergleich monatlich reporten: DE-Füllstand vs. AT/NL/FR für Frühwarnung nutzen.',
       'Injection-Trend: Bestehende Gaslieferverträge auf Abrufoptionen für Spitzenzeiten prüfen.',
     ])}
-    ${chartHtml}`;
+    ${chartHtml}
+    ${countryChartHtml}`;
 }
 
 function renderSection5(s5) {
@@ -1135,12 +1387,59 @@ function renderSection5(s5) {
     return items;
   })();
 
+  // CR-52: EWK Radar chart – 5 digitalization categories vs Bundesmedian
+  let radarChartHtml = '';
+  const diScores = diJson?.digitalisierungsindex ?? bmJson?.digitalisierungsindex ?? null;
+  if (diScores) {
+    const radarAxes = ['Smart Grids', 'Digitale Prozesse', 'Kundenmanagement'];
+    const vnbValues = [
+      Math.round((diScores.smart_grids ?? 0) * 100),
+      Math.round((diScores.digitale_prozesse ?? 0) * 100),
+      Math.round((diScores.kundenmanagement ?? 0) * 100),
+    ];
+    // Bundesmedian per category – best available or fallback to 35%
+    const medianSg = diJson?.stats?.smart_grids?.median ?? 35;
+    const medianDp = diJson?.stats?.digitale_prozesse?.median ?? 30;
+    const medianKm = diJson?.stats?.kundenmanagement?.median ?? 40;
+    const medianValues = [
+      Math.round(medianSg * (medianSg <= 1 ? 100 : 1)),
+      Math.round(medianDp * (medianDp <= 1 ? 100 : 1)),
+      Math.round(medianKm * (medianKm <= 1 ? 100 : 1)),
+    ];
+    radarChartHtml = `
+      <h3 class="sub-sub">Digitalisierungsprofil – Radar</h3>
+      <div class="chart-wrap no-break" style="height:200px">
+        <canvas id="chartDigiRadar"></canvas>
+      </div>
+      <p class="chart-caption">Abb. E: Digitalisierungsteilscores (%) – Dieser VNB (blau) vs. Bundesmedian (grau). Quelle: BNetzA EWK 2024.</p>
+      <script>
+        (function(){
+          new Chart(document.getElementById('chartDigiRadar'),{
+            type:'radar',
+            data:{labels:${JSON.stringify(radarAxes)},datasets:[
+              {label:'Dieser VNB',data:${JSON.stringify(vnbValues)},
+                borderColor:'#1B4F8A',backgroundColor:'rgba(27,79,138,0.18)',
+                borderWidth:2,pointRadius:3},
+              {label:'Bundesmedian',data:${JSON.stringify(medianValues)},
+                borderColor:'#95A5A6',backgroundColor:'rgba(149,165,166,0.08)',
+                borderWidth:1.5,pointRadius:2,borderDash:[4,3]}
+            ]},
+            options:{responsive:true,maintainAspectRatio:false,
+              plugins:{legend:{labels:{font:{size:9}}}},
+              scales:{r:{min:0,max:100,ticks:{stepSize:25,font:{size:8}},
+                pointLabels:{font:{size:8.5}}}}}
+          });
+        })();
+      </script>`;
+  }
+
   return `
     <h1 class="section-title"><span class="section-number">5</span>Regulierung, Compliance &amp; Marktprozesse</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">BNetzA-Monitoring, EIC-Register, MaKo-Stammdaten und §14a-Pflichten.</p>
     ${kpiTable(rows)}
     ${actionHint('Handlungsempfehlung Regulierung & Compliance', ewkHints)}
     ${chartHtml}
+    ${radarChartHtml}
     ${renderNestAgnesBlock(s5, bmJson, diJson, diMedian, vnbAnschlussdauer, bundesMedian, ewkRank, ewkTotal)}
     ${renderPeerBenchmarkBlock(bmJson, diJson, vnbAnschlussdauer, bundesMedian, diMedian)}`;
 }
@@ -1295,6 +1594,46 @@ function renderPeerBenchmarkBlock(bmJson, diJson, vnbAnschlussdauer, bundesMedia
     : '';
   const diRankCell = diRank !== null ? `${diRank} / ${diRankTotal ?? '?'}${diRankSuffix}` : '–';
 
+  // CR-53: Tornado/divergence chart – VNB delta vs Bundesmedian
+  let tornadoHtml = '';
+  const tornadoMetrics = [];
+  if (ansch !== null && median !== null) {
+    // For Anschlussdauer: lower = better, so delta = median - VNB (positive means better than median)
+    tornadoMetrics.push({ label: 'Anschlussdauer EE NS (Wo.)', delta: +(median - ansch).toFixed(1), unit: 'Wo.' });
+  }
+  if (diPct !== null && diMedian !== null) {
+    tornadoMetrics.push({ label: 'Digitalisierungsindex (%)', delta: +(diPct - diMedian * 100).toFixed(1), unit: '%' });
+  }
+  if (uqPct !== null) {
+    // Umsetzungsquote: no national median available, skip
+  }
+  if (tornadoMetrics.length >= 2) {
+    const tLabels = JSON.stringify(tornadoMetrics.map((m) => m.label));
+    const tDeltas = JSON.stringify(tornadoMetrics.map((m) => m.delta));
+    const tColors = JSON.stringify(tornadoMetrics.map((m) => m.delta >= 0 ? '#27AE60' : '#E74C3C'));
+    tornadoHtml = `
+      <h3 class="sub-sub" style="margin-top:4mm">Peer-Benchmark – Delta zum Bundesmedian</h3>
+      <div class="chart-wrap no-break" style="height:${tornadoMetrics.length * 55 + 30}px">
+        <canvas id="chartTornado"></canvas>
+      </div>
+      <p class="chart-caption">Abb. F: Abweichung zum Bundesmedian (grün = besser, rot = schlechter). Anschlussdauer: negativer Delta = schlechter; Digitalisierungsindex: positiver Delta = besser.</p>
+      <script>
+        (function(){
+          new Chart(document.getElementById('chartTornado'),{
+            type:'bar',
+            data:{labels:${tLabels},datasets:[{data:${tDeltas},
+              backgroundColor:${tColors},borderRadius:3}]},
+            options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+              plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){
+                return (c.raw>=0?'+':'')+c.raw.toFixed(1)+' vs. Median';
+              }}}},
+              scales:{x:{grid:{color:'#e8e8e8'},ticks:{callback:function(v){return (v>=0?'+':'')+v;}},
+                afterBuildTicks:function(ax){if(!ax.ticks.some(function(t){return t.value===0;})){ax.ticks.push({value:0});}}}}}
+          });
+        })();
+      </script>`;
+  }
+
   return `
     <h2 class="sub-title" style="margin-top:5mm">Peer-Benchmarking (Bundesvergleich)</h2>
     <p style="font-size:8.5pt;color:#6c757d;margin-bottom:2mm;">Vergleich mit allen ~740 deutschen VNBs im BNetzA-EWK-Datensatz 2024. Rang-Percentil: „Top X%" = besser als (100−X)% der VNBs; „besser als Y%" = besser als Y% der VNBs.</p>
@@ -1329,7 +1668,8 @@ function renderPeerBenchmarkBlock(bmJson, diJson, vnbAnschlussdauer, bundesMedia
       </tbody>
     </table>
     <p style="font-size:7.5pt;color:#868e96;margin:0">Quelle: BNetzA EWK 2024 – alle deutschen Verteilnetzbetreiber.
-      Regionaler Peer-Vergleich (Bundesland, Größenklasse) ist als Roadmap-Item für den nächsten EWK-Datensatz geplant.</p>`;
+      Regionaler Peer-Vergleich (Bundesland, Größenklasse) ist als Roadmap-Item für den nächsten EWK-Datensatz geplant.</p>
+    ${tornadoHtml}`;
 }
 
 function renderSection6(s6) {

@@ -1354,8 +1354,12 @@ module.exports = {
       );
 
       const residualLoad = await callBroker(ctx, 'residual-load.netResidualLoad', {
-        ...gridOpParams,
+        // CR-48: gridOperatorMastrId (SNB...) enables MaStR-anchored EE capacity lookup;
+        //        fetch 2 days (today + tomorrow) so the 48h chart in Section 1 has data.
+        ...(resolvedMastrId ? { gridOperatorMastrId: resolvedMastrId } : {}),
         region: region || resolvedVnbName,
+        forecastDays: 2,
+        resolution: 'hourly',
       });
 
       const co2Intensity = await callBroker(ctx, 'energy-market.co2Intensity', {
@@ -1603,6 +1607,8 @@ module.exports = {
         loadForecast,
         unavailability,
         priceProductionAnalysis,
+        // CR-50: Cross-reference windSolarActual from section2 for dual-axis chart
+        windSolarActual: p.results.section2?.windSolarActual ?? { available: false },
       };
       saveProgress(p);
 
@@ -1686,16 +1692,22 @@ module.exports = {
 
       // ── Section 6: Kunden & Vertrieb ──────────────────────────────────────
       const churnPrediction = await callBroker(ctx, 'business-intelligence.churnPrediction', {
+        // CR-06/12: Include retention strategy, churn reasons, 12-month window
         customerSegment: 'all',
         region: region || resolvedVnbName,
         riskThreshold: 'medium',
+        predictionWindowMonths: 12,
+        includeRetentionStrategy: true,
+        includeChurnReasons: true,
+        includeCompetitiveAnalysis: true,
       });
 
       const salesLeads = await callBroker(ctx, 'business-intelligence.salesLeads', {
+        // CR-06/12: Include all installation types (PV + Wallbox + WP + Speicher)
         region: region || resolvedVnbName,
-        installationType: 'solar',
+        installationType: 'all',
         daysBack: 90,
-        limit: 20,
+        limit: 50,
       });
 
       const marketPenetration = await gated(
