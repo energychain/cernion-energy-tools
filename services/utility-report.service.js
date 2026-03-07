@@ -1455,11 +1455,12 @@ module.exports = {
         dataQualityBaseParams
           ? callMcpDirect('cernion_installations_local', {
               ...dataQualityBaseParams,
-              netzbetreiberPruefungStatus: 'NetzbetreiberPruefung',
+              netzbetreiberPruefungStatus: ['NetzbetreiberPruefung', 'InPruefung'],
               status: 'InBetrieb',
               format: 'detailed',
               includeStats: true,
-              limit: 1,
+              includeNapData: true,
+              limit: 500,
             }, cernionToken)
           : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
         dataQualityBaseParams
@@ -1495,7 +1496,8 @@ module.exports = {
             status: 'InBetrieb',
             format: 'detailed',
             includeStats: true,
-            limit: 1,
+            includeNapData: true,
+            limit: 500,
           }, cernionToken);
           if (ortsfremdeAnlagen.available) {
             ortsfremdeAnlagen.dominantPlzPrefix = dominantPrefix;

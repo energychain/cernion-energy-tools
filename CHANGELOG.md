@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.25] - 2026-03-07
+
+### Added
+
+- **Utility Report – Feinarbeiten für CR-83/CR-87 abgeschlossen**
+  - `FOTOJAHR-ALERT` im 90-Tage-Aktionsplan ergänzt (kombinierte Warnung aus Prüfstau + PLZ-Ausreißern, inkl. 60-Monate-EO-Hinweis).
+  - Konkreter Peer-Vergleich im Abschnitt „Peer-Benchmarking“ ergänzt (benannte Referenzen für EE MS und Verbrauch MS, inkl. Gegenüberstellung zum aktuellen VNB-Wert).
+
+### Changed
+
+- **Report Builder – narrative Präzisierung für Vorstandslesbarkeit**
+  - `SCHOCKER`- und `Challenge-Fragen`-Blöcke nutzen nun dynamische, benannte Peer-Referenzen statt statischer Formulierungen.
+  - Section-5-Peerblock nimmt zusätzliche Segmentwerte (`ee_ms`, `verbrauch_ms`) auf und rendert diese konsistent mit CR-83.
+- Bumped application and OpenAPI version to `0.8.25`.
+
+## [0.8.24] - 2026-03-07
+
+### Added
+
+- **Utility Report – CR-74 data-quality query fix (real data, no truncation)**
+  - `anlagenInPruefung` now requests all relevant review states (`['NetzbetreiberPruefung', 'InPruefung']`) with `includeNapData: true` and `limit: 500`.
+  - `ortsfremdeAnlagen` now uses `includeNapData: true` and `limit: 500`.
+  - Enables dynamic, installation-level rendering (MaStR number, capacity, commissioning date) instead of count-only snapshots.
+
+- **Report Builder – Executive modules for CR-78 to CR-90**
+  - New NEST explainer + causality chain + regulatory timeline in Section 5.
+  - New dynamic `SCHOCKER` page (Prüfstau, Verbrauch MS, §14a readiness) generated from fetched data.
+  - New `5 Fragen an Ihr Team` section (prioritized challenge questions from live KPI thresholds).
+  - New `Ihr Aktionsplan – Nächste 90 Tage` section with date-based milestones.
+  - New mandatory glossary section with 12 domain terms.
+
+- **Section 5 KPI depth upgrade**
+  - Anschlussdauer matrix now covers all four segments (EE NS, EE MS, Verbrauch NS, Verbrauch MS) including Phase 1/2, total, median and evaluation.
+  - Digitalisierungsindex radar expanded from 3 to 5 axes (`datenmanagement`, `ki_einsatz` added).
+  - Umsetzungsquote row now includes rank when available.
+  - Added excellence/highlight block for top Umsetzungsquote performance.
+
+- **Management Briefing redesign (CR-70/CR-90)**
+  - Replaces linear bullet summary with three horizons: `SOFORT`, `DIESES QUARTAL`, `IHRE STÄRKEN`.
+  - Automatically enriched from compliance signals and EWK/DI indicators.
+
+### Changed
+
+- Bumped application and OpenAPI version to `0.8.24`.
+
+
 ## [0.8.23] - 2026-03-09
 
 ### Added
