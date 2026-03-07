@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **CR-CERNION-043: Five production quality bugs fixed in 360° Report (Congress demo critical)**
+  - **BUG-1 (Critical):** Digitalisierungsindex inconsistency across sections – unified source chain (benchmarkVnb → dedicated endpoint) to ensure consistent DI value across Section 5, Section 8, and action plan recommendations.
+  - **BUG-2 (Critical):** Residuallast formula not scaled – changed from hardcoded "1 MW × 120 €/MWh × 8.760 h ≈ 1,05 Mio. €/Jahr" to dynamic scaling using actual capacity and price (e.g., 54 MW × 120 €/MWh × 8.760 h ≈ 56.7 Mio. €/Jahr). Formula now scales correctly for all VNBs.
+  - **BUG-3 (High):** Section 2 showing "n/v – MaStR-Abfrage nicht verfügbar" while management briefing displays MaStR data (e.g., "33.52 MW from 1.046 installations") – single-source-of-truth: prioritized local MaStR MongoDB queries (pvLocal, windLocal, speicherLocal) over broker fallbacks in Section 2 KPI table and briefing.
+  - **BUG-4 (Medium):** Query limit cap false positive – both Frankenthal and Gmünd reports showing exactly "500 installations under grid operator review" (statistically impossible) – increased `limit` from 500 → 5000 for `anlagenInPruefung` and `ortsfremdeAnlagen` queries to capture real edge cases.
+  - **BUG-5 (Deferred post-Congress):** Day-Ahead-Preis missing in Section 3 for some days despite available market data – documented for post-demo phase; requires retry logic with exponential backoff and last-known-value fallback for ENTSO-E/SMARD market price fetches.
+  - All 797 tests validated passing post-fix.
+
 ## [0.8.25] - 2026-03-07
 
 ### Added

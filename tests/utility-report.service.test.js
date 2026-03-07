@@ -1001,6 +1001,124 @@ describe('Utility Report Service', () => {
     });
   });
 
+  // ─── BUG-CERNION-042: Ambiguous VNB lookup handling ─────────────────────
+
+  describe('BUG-CERNION-042: VNB disambiguation and identity checks', () => {
+    let ambiguousBroker;
+    let mismatchBroker;
+
+    beforeAll(async () => {
+      ambiguousBroker = new ServiceBroker({ logger: false, requestTimeout: 60000 });
+      ambiguousBroker.createService(UtilityReportService);
+
+      mockBrokerService(ambiguousBroker, 'grid-operations', {
+        marketPartners: async () => ({
+          results: [
+            {
+              name: 'Stadtwerke Schwäbisch Gmünd GmbH',
+              bdewCode: '9907026000009',
+              mastrId: 'SNB_GMUEND_OK',
+              roles: ['VNB'],
+              city: 'Schwäbisch Gmünd',
+            },
+            {
+              name: 'Gemeindewerke Georgensgmünd',
+              bdewCode: '9907011000001',
+              mastrId: 'SNB966216072913',
+              roles: ['VNB'],
+              city: 'Georgensgmünd',
+            },
+          ],
+        }),
+        vnbLookup: async () => DEFAULT_MOCK_RESULT,
+        capacityUtilization: async () => DEFAULT_MOCK_RESULT,
+        redispatchExport: async () => ({ ...DEFAULT_MOCK_RESULT, totalCount: 0 }),
+        operatorAnalysis: async () => DEFAULT_MOCK_RESULT,
+      });
+      for (const [name, mocks] of Object.entries(DEFAULT_SERVICE_MOCKS)) {
+        if (name !== 'grid-operations') mockBrokerService(ambiguousBroker, name, mocks);
+      }
+      await ambiguousBroker.start();
+
+      mismatchBroker = new ServiceBroker({ logger: false, requestTimeout: 60000 });
+      mismatchBroker.createService(UtilityReportService);
+      mockBrokerService(mismatchBroker, 'grid-operations', {
+        marketPartners: async () => ({
+          results: [
+            {
+              name: 'Stadtwerke Schwäbisch Gmünd GmbH',
+              bdewCode: '9907026000009',
+              mastrId: 'SNB_WRONG_FROM_NAME_MATCH',
+              roles: ['VNB'],
+              city: 'Schwäbisch Gmünd',
+            },
+          ],
+        }),
+        vnbLookup: async () => ({ data: { mastrId: 'SNB_CORRECT_FROM_BDEW' } }),
+        capacityUtilization: async () => DEFAULT_MOCK_RESULT,
+        redispatchExport: async () => ({ ...DEFAULT_MOCK_RESULT, totalCount: 0 }),
+        operatorAnalysis: async () => DEFAULT_MOCK_RESULT,
+      });
+      for (const [name, mocks] of Object.entries(DEFAULT_SERVICE_MOCKS)) {
+        if (name !== 'grid-operations') mockBrokerService(mismatchBroker, name, mocks);
+      }
+      await mismatchBroker.start();
+    }, 30000);
+
+    afterAll(async () => {
+      await ambiguousBroker.stop();
+      await mismatchBroker.stop();
+    });
+
+    it.each(['Stadtwerke Gmünd', 'Stadtwerke Villingen', 'Stadtwerke Waiblingen', 'Stadtwerke Schwerin'])(
+      'should trigger disambiguation flow for ambiguous lookup: %s',
+      async (name) => {
+        const gen = await ambiguousBroker.call('utility-report.generate', {
+          utilityName: name,
+          forceRefresh: true,
+        });
+        await new Promise((r) => setTimeout(r, 600));
+        const status = await ambiguousBroker.call('utility-report.status', { reportId: gen.reportId });
+        expect(status.status).toBe('error');
+        expect(status.error).toContain('Mehrdeutige VNB-Suche');
+        expect(status.vnbIdentification?.ambiguous).toBe(true);
+      }
+    );
+
+    it('should resolve ambiguities with explicit BDEW without disambiguation error', async () => {
+      const gen = await ambiguousBroker.call('utility-report.generate', {
+        utilityName: 'Stadtwerke Gmünd',
+        bdew: '9907026000009',
+        forceRefresh: true,
+      });
+      await new Promise((r) => setTimeout(r, 600));
+      const status = await ambiguousBroker.call('utility-report.status', { reportId: gen.reportId });
+      expect(status.status).not.toBe('error');
+    });
+
+    it('should stop report generation on BDEW/MaStR identity mismatch unless explicitly allowed', async () => {
+      const blocked = await mismatchBroker.call('utility-report.generate', {
+        utilityName: 'Stadtwerke Gmünd',
+        bdew: '9907026000009',
+        forceRefresh: true,
+      });
+      await new Promise((r) => setTimeout(r, 600));
+      const blockedStatus = await mismatchBroker.call('utility-report.status', { reportId: blocked.reportId });
+      expect(blockedStatus.status).toBe('error');
+      expect(blockedStatus.error).toContain('VNB-Identitätskonflikt');
+
+      const allowed = await mismatchBroker.call('utility-report.generate', {
+        utilityName: 'Stadtwerke Gmünd',
+        bdew: '9907026000009',
+        allowIdentityMismatch: true,
+        forceRefresh: true,
+      });
+      await new Promise((r) => setTimeout(r, 600));
+      const allowedStatus = await mismatchBroker.call('utility-report.status', { reportId: allowed.reportId });
+      expect(allowedStatus.status).not.toBe('error');
+    });
+  });
+
   // ─── VNB identification failure (CR-17) ────────────────────────────────────
 
   describe('VNB identification failure (CR-17)', () => {
@@ -1169,6 +1287,35 @@ describe('Utility Report Service', () => {
       });
       expect(html).toContain('VNB-BDEW: 9904350000001');
       expect(html).toContain('Lieferant: 9913450000001');
+    });
+
+    it('should show Datengrundlage with BDEW and MaStR on cover page (BUG-CERNION-042)', () => {
+      const html = buildHtmlReport({
+        meta: {
+          utilityName: 'CR42 Identity Cover GmbH',
+          bdew: '9907026000009',
+          mastrId: 'SNB966216072913',
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('Datengrundlage: [BDEW 9907026000009] [MaStR SNB966216072913]');
+      expect(html).toContain('Bitte vor Weitergabe verifizieren');
+    });
+
+    it('should render a red identity warning banner when identityMismatch exists (BUG-CERNION-042)', () => {
+      const html = buildHtmlReport({
+        meta: {
+          utilityName: 'CR42 Identity Warning GmbH',
+          bdew: '9907026000009',
+          mastrId: 'SNB966216072913',
+          identityMismatch: {
+            message: 'BDEW und MaStR zeigen auf unterschiedliche VNBs.',
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('⚠️ IDENTITÄTSWARNUNG');
+      expect(html).toContain('BDEW und MaStR zeigen auf unterschiedliche VNBs.');
     });
 
     it('should not render Marktrollen-Profil when marktRollenProfile is null', () => {
@@ -1425,7 +1572,7 @@ describe('Utility Report Service', () => {
       expect(status.vnbIdentification.selected).not.toBeNull();
       expect(status.vnbIdentification.selected.name).toContain('Teststadt Netze');
       expect(status.vnbIdentification.selected.bdew).toBe('9900111222333');
-      expect(status.vnbIdentification.selected.selectionReason).toContain('Netz');
+      expect(status.vnbIdentification.selected.selectionReason).toMatch(/match|confidence|explicit/i);
     });
   });
 

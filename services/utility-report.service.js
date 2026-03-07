@@ -523,6 +523,96 @@ function pickBestVnbPartner(marketPartnersResult) {
   return normaliseMastrIds(candidates[0]);
 }
 
+function normalizeLookupText(value) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function tokenizeLookupText(value) {
+  return normalizeLookupText(value)
+    .split(' ')
+    .filter((t) => t.length > 1 && !/^(gmbh|ag|mbh|kg|co|und|stadtwerke|stadtwerk|netze|netz|energie|gmbhco)$/.test(t));
+}
+
+function scoreVnbCandidate(candidate, query, region = '', explicitBdew = '') {
+  const name = candidate?.name || '';
+  const city = candidate?.city || '';
+  const bdewCode = candidate?.bdew || candidate?.bdewCode || '';
+  const roles = candidate?.roles || [];
+
+  const queryTokens = tokenizeLookupText(query);
+  const nameTokens = tokenizeLookupText(name);
+  const regionTokens = tokenizeLookupText(region);
+
+  const overlap = queryTokens.filter((t) => nameTokens.includes(t)).length;
+  const overlapScore = queryTokens.length > 0 ? overlap / queryTokens.length : 0;
+  const nameNorm = normalizeLookupText(name);
+  const queryNorm = normalizeLookupText(query);
+  const cityNorm = normalizeLookupText(city);
+  const hasSubstring = queryNorm && (nameNorm.includes(queryNorm) || queryNorm.includes(nameNorm));
+  const regionBoost = regionTokens.some((t) => nameTokens.includes(t) || cityNorm.includes(t)) ? 0.12 : 0;
+  const roleBoost = roles.some((r) => /VNB|Verteilnetz|Netzbetreiber/i.test(r)) ? 0.15 : 0;
+  const prefixBoost = String(bdewCode).startsWith('990') ? 0.08 : 0;
+  const bdewBoost = explicitBdew && bdewCode === explicitBdew ? 1 : 0;
+
+  const score = Math.min(1, bdewBoost || (overlapScore * 0.65 + (hasSubstring ? 0.15 : 0) + regionBoost + roleBoost + prefixBoost));
+  return { score, name, city, bdew: bdewCode, mastrId: candidate?.mastrId || null, roles };
+}
+
+function resolveVnbCandidate(candidates, utilityName, region = '', explicitBdew = '') {
+  const normalized = (Array.isArray(candidates) ? candidates : [])
+    .map((c) => ({
+      ...c,
+      bdew: c?.bdew || c?.bdewCode || null,
+      mastrId: c?.mastrId || c?.gridOperatorMastrId || null,
+    }));
+
+  if (!normalized.length) {
+    return { selected: null, ambiguous: false, reason: 'no-candidates', ranking: [] };
+  }
+
+  const ranking = normalized
+    .map((c) => ({ candidate: c, ...scoreVnbCandidate(c, utilityName, region, explicitBdew) }))
+    .sort((a, b) => b.score - a.score);
+
+  if (explicitBdew) {
+    const byBdew = ranking.find((r) => r.bdew === explicitBdew);
+    if (byBdew) {
+      return {
+        selected: byBdew.candidate,
+        ambiguous: false,
+        reason: 'explicit-bdew-match',
+        ranking,
+      };
+    }
+  }
+
+  const top = ranking[0];
+  const second = ranking[1] || null;
+  const confidence = top?.score ?? 0;
+  const margin = second ? confidence - second.score : confidence;
+  const ambiguous = ranking.length > 1 && (confidence < 0.9 || margin < 0.08);
+
+  return {
+    selected: ambiguous ? null : top?.candidate ?? null,
+    ambiguous,
+    reason: ambiguous ? 'low-confidence-or-close-match' : 'high-confidence-match',
+    ranking,
+  };
+}
+
+function findPartnerByBdew(partners, bdewCode) {
+  if (!Array.isArray(partners) || !bdewCode) return null;
+  return partners.find((p) => (p?.bdew || p?.bdewCode) === bdewCode) || null;
+}
+
 // ─── VNB fingerprint check (CR-15) ───────────────────────────────────────────
 
 /**
@@ -605,6 +695,8 @@ module.exports = {
         utilityName: { type: 'string', min: 1 },
         region: { type: 'string', optional: true },
         bdew: { type: 'string', optional: true },
+        confirmAmbiguousVnb: { type: 'boolean', optional: true, default: false },
+        allowIdentityMismatch: { type: 'boolean', optional: true, default: false },
         forceRefresh: { type: 'boolean', optional: true, default: false },
       },
       openapi: {
@@ -690,7 +782,14 @@ module.exports = {
       },
 
       async handler(ctx) {
-        const { utilityName, region = '', bdew = '', forceRefresh = false } = ctx.params;
+        const {
+          utilityName,
+          region = '',
+          bdew = '',
+          confirmAmbiguousVnb = false,
+          allowIdentityMismatch = false,
+          forceRefresh = false,
+        } = ctx.params;
         const cernionToken = ctx.meta?.cernionToken || process.env.CERNION_TOKEN;
         const today = new Date().toISOString().slice(0, 10);
 
@@ -715,6 +814,8 @@ module.exports = {
           utilityName,
           region,
           bdew,
+          confirmAmbiguousVnb,
+          allowIdentityMismatch,
           status: 'generating',
           phase: 0,
           startedAt: new Date().toISOString(),
@@ -809,6 +910,7 @@ module.exports = {
           error: prog.error ?? null,
           downloadUrl: prog.status === 'completed' ? `/api/utility-report/download/${reportId}` : null,
           vnbIdentification: prog.meta?.vnbIdentification ?? null, // CR-24: transparent VNB selection
+          identityMismatch: prog.meta?.identityMismatch ?? null,
         };
       },
     },
@@ -922,6 +1024,7 @@ module.exports = {
         const region = prog.region ?? '';
         const resolvedVnbName = prog.meta?.resolvedVnbName ?? null;
         const resolvedBdew = prog.meta?.resolvedBdew ?? prog.bdew ?? null;
+        const resolvedMastrId = prog.meta?.resolvedMastrId ?? null;
         // Reuse stored narrative if available (saved by pipeline since v0.8.2)
         const managementSummary = prog.managementSummary ?? '';
         const webSearchResults = prog.webSearchResults ?? [];
@@ -932,8 +1035,11 @@ module.exports = {
             vnbName: resolvedVnbName,
             region,
             bdew: resolvedBdew,
+            mastrId: resolvedMastrId,
+            identityMismatch: prog.meta?.identityMismatch ?? null,
             reportId,
             allPartners: prog.meta?.allPartners ?? [], // CR-19
+            vnbIdentification: prog.meta?.vnbIdentification ?? null,
           },
           section1: prog.results.section1,
           section2: prog.results.section2,
@@ -1163,31 +1269,61 @@ module.exports = {
           direktvermarkter: classifyPartner(/Direktvermarkt|DV\b/i, '994'),
         };
 
-        // CR-23: pick the best VNB from the full combined candidate pool (all queries)
+        // BUG-CERNION-042: score candidates and detect ambiguous selection before choosing one.
         if (allCandidatesMap.size > 0) {
-          const poolPick = pickBestVnbPartner({ results: p.meta.allPartners });
-          if (poolPick?.bdew || poolPick?.bdewCode || poolPick?.mastrId || poolPick?.gridOperatorMastrId) {
-            firstPartner = poolPick;
+          const resolution = resolveVnbCandidate(p.meta.allPartners, utilityName, region, bdew);
+          const rankingPreview = resolution.ranking.slice(0, 5).map((r) => ({
+            name: r.name,
+            bdew: r.bdew,
+            city: r.city,
+            score: Number(r.score.toFixed(3)),
+          }));
+
+          if (resolution.ambiguous && !p.confirmAmbiguousVnb) {
+            p.meta.vnbIdentification = {
+              queriesTried: searchQueries,
+              candidatesFound: allCandidatesMap.size,
+              mcpFailed: !!p.meta.mcpError,
+              ambiguous: true,
+              reason: resolution.reason,
+              topCandidates: rankingPreview,
+              selected: null,
+            };
+            saveProgress(p);
+            const options = rankingPreview
+              .map((r) => `${r.name || 'n/v'} · BDEW ${r.bdew || 'n/v'}${r.city ? ` · ${r.city}` : ''} · Score ${r.score}`)
+              .join('\n');
+            const err = new Error(
+              `Mehrdeutige VNB-Suche für „${utilityName}".\n` +
+              `Bitte Auswahl bestätigen (confirmAmbiguousVnb=true) oder BDEW-Code explizit übergeben.\n` +
+              `Kandidaten:\n${options}`
+            );
+            err.code = 'VNB_AMBIGUOUS';
+            throw err;
+          }
+
+          const selected = resolution.selected || resolution.ranking?.[0]?.candidate || null;
+          if (selected?.bdew || selected?.bdewCode || selected?.mastrId || selected?.gridOperatorMastrId) {
+            firstPartner = selected;
             this.logger.info(`[UtilityReport] VNB resolved: ${firstPartner.name || utilityName}`);
           }
-        }
 
-        // CR-24: record VNB identification details for transparency (visible via GET /status/:id)
-        p.meta.vnbIdentification = {
-          queriesTried: searchQueries,
-          candidatesFound: allCandidatesMap.size,
-          mcpFailed: !!p.meta.mcpError,
-          selected: firstPartner ? {
-            name: firstPartner.name,
-            bdew: firstPartner.bdew,
-            selectionReason: (() => {
-              const roles = firstPartner.roles ?? [];
-              if (roles.some((r) => /VNB|Netzbetreiber/i.test(r))) return 'VNB-Rolle im BDEW-Register';
-              if (/\bNetz(e)?\b/i.test(firstPartner.name)) return '"Netz" im Unternehmensnamen (Netzbetreiber-Indikator)';
-              return 'Erster Treffer aus kombinierter Suchergebnismenge';
-            })(),
-          } : null,
-        };
+          // CR-24 + BUG-CERNION-042: record transparent ranking/selection details.
+          p.meta.vnbIdentification = {
+            queriesTried: searchQueries,
+            candidatesFound: allCandidatesMap.size,
+            mcpFailed: !!p.meta.mcpError,
+            ambiguous: resolution.ambiguous,
+            reason: resolution.reason,
+            topCandidates: rankingPreview,
+            selected: firstPartner ? {
+              name: firstPartner.name,
+              bdew: firstPartner.bdew,
+              mastrId: firstPartner.mastrId || firstPartner.gridOperatorMastrId || null,
+              selectionReason: resolution.reason,
+            } : null,
+          };
+        }
 
         // Step 1b: still nothing → derive city name and try a local installations lookup
         // to extract the SNB directly from NAP data of any installation in that city.
@@ -1227,9 +1363,73 @@ module.exports = {
         }
       }
 
+      // BUG-CERNION-042: Even with explicit BDEW, collect partner candidates for
+      // identity consistency checks (BDEW ↔ MaStR) and transparent metadata.
+      if (bdew) {
+        const searchQueries = buildVnbSearchQueries(utilityName);
+        const allCandidatesMap = new Map();
+
+        for (const query of searchQueries) {
+          const mp = await callBroker(ctx, 'grid-operations.marketPartners', { query, limit: 10 });
+          if (mp?.available === false) {
+            const errMsg = mp.error || 'MCP-Verbindungsfehler';
+            this.logger.warn(`[UtilityReport] marketPartners MCP error for query "${query}": ${errMsg}`);
+            if (!p.meta.mcpError) p.meta.mcpError = errMsg;
+            continue;
+          }
+
+          const rawCandidates =
+            mp?.data?.results ||
+            mp?.results ||
+            mp?.data?.data?.results ||
+            mp?.data?.partners ||
+            [];
+
+          for (const c of rawCandidates) {
+            let mastrId = c.mastrId || c.gridOperatorMastrId || null;
+            if (!mastrId && c.mastrIds && typeof c.mastrIds === 'object') {
+              mastrId = c.mastrIds.SNB || c.mastrIds.GNB || Object.values(c.mastrIds)[0] || null;
+            }
+
+            const key = c.bdewCode || c.bdew || c.name || c.companyName || `anon-${allCandidatesMap.size}`;
+            if (!allCandidatesMap.has(key)) {
+              allCandidatesMap.set(key, {
+                name: c.name || c.companyName || c.displayName || '',
+                bdew: c.bdewCode || c.bdew || null,
+                roles: Array.isArray(c.roles) ? c.roles : (Array.isArray(c.marketRoles) ? c.marketRoles : []),
+                mastrId,
+                city: c.city || c.contacts?.[0]?.city || '',
+              });
+            }
+          }
+        }
+
+        // Keep earlier candidate pool when it already exists; otherwise use explicit-BDEW search results.
+        if (!Array.isArray(p.meta.allPartners) || p.meta.allPartners.length === 0) {
+          p.meta.allPartners = Array.from(allCandidatesMap.values());
+        }
+
+        const explicitPartner = findPartnerByBdew(p.meta.allPartners, bdew);
+        if (explicitPartner) {
+          firstPartner = explicitPartner;
+          p.meta.vnbIdentification = {
+            ...(p.meta.vnbIdentification || {}),
+            ambiguous: false,
+            reason: 'explicit-bdew',
+            selected: {
+              name: explicitPartner.name,
+              bdew: explicitPartner.bdew,
+              mastrId: explicitPartner.mastrId || explicitPartner.gridOperatorMastrId || null,
+              selectionReason: 'explicit-bdew',
+            },
+          };
+          this.logger.info(`[UtilityReport] VNB resolved via explicit BDEW match: ${explicitPartner.name || utilityName}`);
+        }
+      }
+
       // Merge partner fields (when partner was found via market-partners)
       if (firstPartner) {
-        p.meta.resolvedBdew = firstPartner?.bdewCode || firstPartner?.bdew || bdew || null;
+        p.meta.resolvedBdew = bdew || firstPartner?.bdewCode || firstPartner?.bdew || null;
         p.meta.resolvedMastrId = firstPartner?.mastrId || firstPartner?.gridOperatorMastrId || null;
         p.meta.resolvedVnbName = firstPartner?.name || firstPartner?.displayName || utilityName;
       } else if (bdew) {
@@ -1259,7 +1459,8 @@ module.exports = {
       // Step 2: resolve MaStR-ID from BDEW via vnbLookup (if BDEW found but no MaStR-ID yet).
       // CR-39: With CR-37 guaranteeing resolvedBdew is the VNB code (990x), this lookup
       // now reliably targets the Verteilnetz entry in the VNB registry — not a Lieferant.
-      if (p.meta.resolvedBdew && !p.meta.resolvedMastrId) {
+      if (p.meta.resolvedBdew) {
+        const previousMastr = p.meta.resolvedMastrId;
         const vnbLookup = await callBroker(ctx, 'grid-operations.vnbLookup', {
           bdew: p.meta.resolvedBdew,
           limit: 1,
@@ -1275,7 +1476,78 @@ module.exports = {
         if (mastrFromLookup) {
           p.meta.resolvedMastrId = mastrFromLookup;
           this.logger.info(`[UtilityReport] resolvedMastrId via vnbLookup: ${mastrFromLookup}`);
+          if (previousMastr && previousMastr !== mastrFromLookup) {
+            p.meta.identityMismatch = {
+              type: 'MAStrConflict',
+              bdew: p.meta.resolvedBdew,
+              selectedMastr: previousMastr,
+              bdewLookupMastr: mastrFromLookup,
+              message: `MaStR-ID-Konflikt erkannt: Kandidat=${previousMastr}, BDEW-Lookup=${mastrFromLookup}`,
+            };
+            if (!p.allowIdentityMismatch) {
+              saveProgress(p);
+              const err = new Error(
+                `VNB-Identitätskonflikt erkannt.\n` +
+                `Datengrundlage: BDEW ${p.meta.resolvedBdew || 'n/v'} · MaStR ${mastrFromLookup}\n` +
+                `${p.meta.identityMismatch.message}\n` +
+                `Report-Generierung gestoppt. Für Fortsetzung explizit bestätigen: allowIdentityMismatch=true.`
+              );
+              err.code = 'VNB_IDENTITY_MISMATCH';
+              throw err;
+            }
+          }
+
+          const selectedMastrFromPhase1 = p.meta?.vnbIdentification?.selected?.mastrId || null;
+          if (selectedMastrFromPhase1 && selectedMastrFromPhase1 !== mastrFromLookup) {
+            p.meta.identityMismatch = {
+              type: 'BDEW_LOOKUP_CONFLICT',
+              bdew: p.meta.resolvedBdew,
+              selectedMastr: selectedMastrFromPhase1,
+              bdewLookupMastr: mastrFromLookup,
+              message: `MaStR-ID-Konflikt erkannt: Phase-1-Auswahl=${selectedMastrFromPhase1}, BDEW-Lookup=${mastrFromLookup}`,
+            };
+            if (!p.allowIdentityMismatch) {
+              saveProgress(p);
+              const err = new Error(
+                `VNB-Identitätskonflikt erkannt.\n` +
+                `Datengrundlage: BDEW ${p.meta.resolvedBdew || 'n/v'} · MaStR ${mastrFromLookup}\n` +
+                `${p.meta.identityMismatch.message}\n` +
+                `Report-Generierung gestoppt. Für Fortsetzung explizit bestätigen: allowIdentityMismatch=true.`
+              );
+              err.code = 'VNB_IDENTITY_MISMATCH';
+              throw err;
+            }
+          }
         }
+      }
+
+      // BUG-CERNION-042: Final consistency check between resolved BDEW and resolved MaStR
+      // against the market-partner candidate set. If the pair points to different companies,
+      // block report generation unless explicitly confirmed.
+      const partnerForResolvedBdew = findPartnerByBdew(p.meta.allPartners, p.meta.resolvedBdew);
+      const partnerMastr = partnerForResolvedBdew?.mastrId || null;
+      if (partnerForResolvedBdew && partnerMastr && p.meta.resolvedMastrId && partnerMastr !== p.meta.resolvedMastrId) {
+        p.meta.identityMismatch = {
+          type: 'BDEW_MASTR_MISMATCH',
+          bdew: p.meta.resolvedBdew,
+          mastrId: p.meta.resolvedMastrId,
+          expectedMastrId: partnerMastr,
+          bdewName: partnerForResolvedBdew?.name || null,
+          message: `BDEW ${p.meta.resolvedBdew} und MaStR ${p.meta.resolvedMastrId} zeigen auf unterschiedliche VNBs.`,
+        };
+      }
+
+      if (p.meta.identityMismatch && !p.allowIdentityMismatch) {
+        saveProgress(p);
+        const m = p.meta.identityMismatch;
+        const err = new Error(
+          `VNB-Identitätskonflikt erkannt.\n` +
+          `Datengrundlage: BDEW ${m.bdew || p.meta.resolvedBdew || 'n/v'} · MaStR ${m.mastrId || p.meta.resolvedMastrId || 'n/v'}\n` +
+          `${m.message || 'BDEW und MaStR gehören nicht eindeutig zum selben Unternehmen.'}\n` +
+          `Report-Generierung gestoppt. Für Fortsetzung explizit bestätigen: allowIdentityMismatch=true.`
+        );
+        err.code = 'VNB_IDENTITY_MISMATCH';
+        throw err;
       }
 
       p.phase = 2;
@@ -1455,12 +1727,15 @@ module.exports = {
         dataQualityBaseParams
           ? callMcpDirect('cernion_installations_local', {
               ...dataQualityBaseParams,
+              // CR-CERNION-043 BUG-4: Use COUNT(*) to get true total, not query limit.
+              // Set limit high (5000) to capture most real-world edge cases.
+              // Report will show "≥ COUNT result" if count hits limit to indicate potential undercount.
               netzbetreiberPruefungStatus: ['NetzbetreiberPruefung', 'InPruefung'],
               status: 'InBetrieb',
               format: 'detailed',
               includeStats: true,
               includeNapData: true,
-              limit: 500,
+              limit: 5000,
             }, cernionToken)
           : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
         dataQualityBaseParams
@@ -1497,7 +1772,7 @@ module.exports = {
             format: 'detailed',
             includeStats: true,
             includeNapData: true,
-            limit: 500,
+            limit: 5000,  // CR-CERNION-043 BUG-4: Increase ortsfremde limit to 5000 for consistency
           }, cernionToken);
           if (ortsfremdeAnlagen.available) {
             ortsfremdeAnlagen.dominantPlzPrefix = dominantPrefix;
@@ -1906,9 +2181,12 @@ module.exports = {
           vnbName: resolvedVnbName,
           region,
           bdew: resolvedBdew,
+          mastrId: resolvedMastrId,
+          identityMismatch: p.meta.identityMismatch ?? null,
           reportId: p.reportId,
           allPartners: p.meta.allPartners ?? [], // CR-19
           marktRollenProfile: p.meta.marktRollenProfile ?? null, // CR-37/CR-45
+          vnbIdentification: p.meta.vnbIdentification ?? null,
         },
         section1: p.results.section1,
         section2: p.results.section2,

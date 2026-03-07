@@ -122,13 +122,20 @@ function parseMaStrLocalStats(dataArr) {
  * Converts technical metrics to financial impact for executive understanding.
  */
 const euroTranslations = {
-  residuallast_mw: (mw, dayAheadPrice = 80) => ({
-    label: 'Jahresbeschaffungsvolumen',
-    calc: `${mw} MW × ${dayAheadPrice} €/MWh × 8.760 h`,
-    value: Math.round(mw * dayAheadPrice * 8760),
-    einheit: '€/Jahr',
-    hinweis: `1% Beschaffungsoptimierung = ${Math.round(mw * dayAheadPrice * 8760 * 0.01).toLocaleString('de-DE')} €`,
-  }),
+  residuallast_mw: (mw, dayAheadPrice = 80) => {
+    // CR-CERNION-043 BUG-2: Scale formula with actual residual load and price values (not hardcoded 1 MW).
+    // Example: 54 MW × 120 €/MWh × 8.760 h ≈ 56.7 Mio. €/Jahr (NOT 1.05 Mio. €/Jahr)
+    const effectiveMw = mw != null && mw > 0 ? mw : 1; // fallback to 1 MW if missing
+    const effectivePrice = dayAheadPrice != null && dayAheadPrice > 0 ? dayAheadPrice : 80; // fallback to 80 €/MWh
+    const yearlyVolume = Math.round(effectiveMw * effectivePrice * 8760);
+    return {
+      label: 'Jahresbeschaffungsvolumen',
+      calc: `${fmtNum(effectiveMw, 0)} MW × ${fmtNum(effectivePrice, 2)} €/MWh × 8.760 h`,
+      value: yearlyVolume,
+      einheit: '€/Jahr',
+      hinweis: `1% Beschaffungsoptimierung = ${Math.round(yearlyVolume * 0.01).toLocaleString('de-DE')} €`,
+    };
+  },
 
   anlagen_ohne_melo: (count) => ({
     label: 'Nicht abrechenbare Redispatch-Kosten',
@@ -298,8 +305,11 @@ function extractComplianceSignals(section1 = {}, section5 = {}) {
 
   const adRow = ad?.rows?.[0] ?? bm?.rows?.[0] ?? {};
   const adStats = ad?.stats ?? bm?.stats ?? {};
-  const diObj = di?.digitalisierungsindex ?? bm?.digitalisierungsindex ?? {};
-  const diStats = di?.stats ?? bm?.stats ?? {};
+  // CR-CERNION-043 BUG-1: Use benchmarkVnb as single authoritative source for DI to prevent inconsistency.
+  // Fallback chain: benchmarkVnb (unified) → dedicated di endpoint.
+  // This ensures 30% rating + median is always consistent across Section 5, Section 8, and action plan.
+  const diObj = bm?.digitalisierungsindex ?? di?.digitalisierungsindex ?? {};
+  const diStats = bm?.stats ?? di?.stats ?? {};
   const uqObj = uq?.umsetzungsquote ?? bm?.umsetzungsquote ?? {};
 
   const vmIst =
@@ -328,6 +338,10 @@ function extractComplianceSignals(section1 = {}, section5 = {}) {
     asNumber(bm?.rankings?.ewk_total) ??
     null;
 
+  // CR-CERNION-043 BUG-1: Extract overall DI score (not just sub-scores) for consistent reporting.
+  // Sub-scores (Kundenmanagement, Datenmanagement) are components; overall score is what appears in rankings.
+  const diOverall = asPercent(diObj.digitalisierungsindex ?? diObj.score ?? diObj.overall ?? null);
+  const diOverallMedian = asPercent(diStats?.digitalisierungsindex?.median ?? diStats?.median ?? null);
   const diCustomerMgmt = asPercent(diObj.kundenmanagement);
   const diCustomerMedian = asPercent(diStats?.kundenmanagement?.median ?? null);
   const diDataMgmt = asPercent(diObj.datenmanagement);
@@ -1004,11 +1018,14 @@ function renderSection2(s2) {
     pvLocalData?.totalCapacityKW ??
     pvLocalStats.totalCapacityKW ??
     null;
+  // CR-CERNION-043 BUG-3: Use UNIFIED source for MaStR counts across all report sections.
+  // Single-source-of-truth: pvLocal/windLocal/speicherLocal are the authoritative MaStR snapshots.
+  // These same sources feed Section 2 KPI table AND management briefing (to prevent "n/v" vs. data inconsistency).
   const pvCount =
-    getVal(sol, 'totalCount', 'count', 'total') ??
     pvLocalData?.stats?.total ??
     pvLocalData?.stats?.totalCount ??
     pvLocalStats.count ??
+    getVal(sol, 'totalCount', 'count', 'total') ??
     null;
   const windCapacity =
     getVal(wind, 'totalCapacityKw', 'totalCapacity', 'totalKw') ??
@@ -1017,15 +1034,16 @@ function renderSection2(s2) {
     windLocalStats.totalCapacityKW ??
     null;
   const windCount =
-    getVal(wind, 'totalCount', 'count', 'total') ??
     windLocalData?.stats?.total ??
     windLocalStats.count ??
+    getVal(wind, 'totalCount', 'count', 'total') ??
     null;
+  // CR-CERNION-043 BUG-3: Prioritize local MaStR data over broker service to ensure consistency.
   const speicherCapacity =
-    getVal(stor, 'totalCapacityKw', 'totalCapacity', 'totalKw') ??
     speicherLocalData?.stats?.totalCapacityKW ??
     speicherLocalData?.stats?.totalCapacity ??
     speicherLocalStats.totalCapacityKW ??
+    getVal(stor, 'totalCapacityKw', 'totalCapacity', 'totalKw') ??
     null;
 
   const pvAvail = isAvail(s2, 'solar') || isAvail(s2, 'pvLocal');
@@ -3099,6 +3117,9 @@ function buildHtmlReport(reportData) {
   const utilityName = meta.utilityName || 'Unbekannter Energieversorger';
   const vnbName = meta.vnbName || '';
   const region = meta.region || '';
+  const bdew = meta.bdew || '';
+  const mastrId = meta.mastrId || '';
+  const identityMismatch = meta.identityMismatch || null;
   const reportId = meta.reportId || '';
   const allPartners = Array.isArray(meta.allPartners) ? meta.allPartners : []; // CR-19
   const marktRollenProfile = meta.marktRollenProfile ?? null; // CR-37/CR-45
@@ -3113,6 +3134,10 @@ function buildHtmlReport(reportData) {
   });
 
   const coverSubtitle = [vnbName, region].filter(Boolean).join(' · ');
+  const dataBasisLine = [
+    bdew ? `[BDEW ${bdew}]` : null,
+    mastrId ? `[MaStR ${mastrId}]` : null,
+  ].filter(Boolean).join(' ');
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -3134,6 +3159,8 @@ function buildHtmlReport(reportData) {
     ${coverSubtitle ? `<p style="font-size:11pt;opacity:.8;margin-top:2mm">${escapeHtml(coverSubtitle)}</p>` : ''}
     <p class="subtitle">Berichtsstand: ${escapeHtml(reportDate)}</p>
     ${meta.bdew ? `<p style="font-size:8pt;opacity:.55;margin-top:2mm;font-family:monospace">VNB-BDEW: ${escapeHtml(meta.bdew)}${marktRollenProfile?.lieferant?.bdew ? ` &nbsp;&middot;&nbsp; Lieferant: ${escapeHtml(marktRollenProfile.lieferant.bdew)}` : ''}</p>` : ''}
+    ${dataBasisLine ? `<p style="font-size:8pt;opacity:.7;margin-top:1.5mm;font-family:monospace">Datengrundlage: ${escapeHtml(dataBasisLine)} &nbsp;·&nbsp; Bitte vor Weitergabe verifizieren.</p>` : ''}
+    ${identityMismatch ? `<div style="margin-top:3mm;padding:2.5mm 3mm;border:2px solid #c0392b;border-radius:4px;background:#fff0ee;color:#922b21;font-size:8.5pt;line-height:1.45;max-width:150mm;"><strong>⚠️ IDENTITÄTSWARNUNG:</strong> BDEW- und MaStR-Zuordnung sind inkonsistent. ${escapeHtml(identityMismatch.message || 'Bitte VNB-Auswahl vor externer Weitergabe manuell prüfen.')}</div>` : ''}
     <div class="badge">Vertraulich · Nur für internen Gebrauch</div>
     ${reportId ? `<p style="font-size:7pt;opacity:.4;margin-top:6mm">Report-ID: ${escapeHtml(reportId)}</p>` : ''}
   </div>
