@@ -7,6 +7,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.20] - 2026-03-07
+
+### Fixed
+
+- **Report Builder – CR-30 (P0): Code-Variablen-Leak im Management Summary**
+
+  The LLM echoed JavaScript field names from the raw `kpiSummary` JSON (e.g.,
+  *"Das 'loadFallbackWarning' bei der Residuallast…"*).  Two-layer fix:
+
+  1. **`services/utility-report.service.js`** — `generateNarrative` now strips
+     keys matching `/(Warning|Error|Fallback|Flag|Raw|isError|DataStatus|_count$)/`
+     from the kpiSummary before JSON-encoding it into the LLM prompt.
+  2. **`src/report-builder.js`** — Added two additional patterns to
+     `PROMPT_LEAK_PATTERNS` that catch camelCase identifier tokens and known
+     enum names (`DataStatus`, `NOT_LICENSED`, `loadFallback`, etc.) if they
+     slip through to the rendered bullets.
+
+- **Service – CR-31 (P0): MeLo-Datenwiderspruch beseitigt**
+
+  Management Summary said "34 Anlagen ohne MeLo" while Section 1 showed
+  "0 ohne MeLo (von 34 ≥100 kW)".  Root cause: `summarizeForReport` exposed
+  the raw `installationenOhneMelo.installations_count: 34` (total ≥100 kW
+  installations regardless of MeLo status) to the LLM, which misread it as
+  "34 without MeLo".
+
+  Fix: after `summarizeForReport` runs, the service now computes
+  `kpiSummary.meloCheck = { anlagen_ohne_melo, anlagen_gesamt_ge100kw }` using
+  the same `filter((i) => !i?.napData)` logic that `renderSection1` uses, then
+  deletes the ambiguous `kpiSummary.installationenOhneMelo` key.  The LLM now
+  sees the correct, pre-computed value.
+
+- **Report Builder – CR-32 (P0): Rang-Beschriftung „Top X%" invertiert**
+
+  `renderPeerBenchmarkBlock` computed `pctRankAd = round((1 − rank/total) × 100)`
+  then displayed `Top ${100 − pctRankAd}%`, which is always wrong.  For
+  Frankenthal (rank 452/740) this produced "Top 61%" — implying a top-performer
+  — when the VNB is actually below median.
+
+  Fix: compute `betterThan = round((total − rank) / total × 100)` and apply
+  the rule: `betterThan ≥ 75 → "Top X%"` (genuinely top-quartile);
+  otherwise `"besser als Y%"` (unambiguous).  Same fix applied to the
+  Digitalisierungsindex rank column (`betterThanDi`).
+
+- **Report Builder – CR-33 (P1): Empfehlungen ohne Datenbasis unterdrückt**
+
+  Section 8 always emitted "Smart-Grids Score <30 %: SMGW-Rollout…" and
+  "Systemstatus offline: …" even when the underlying KPIs showed "–" (no data
+  available) or were clearly online.
+
+  Fix: the `actionHint` block in `renderSection8` is now built from a
+  conditional array.  The Smart-Grids threshold hint is only added when
+  `isAvail(s8, 'digitalisierungsindex')` and the actual score is known.
+  The offline hint is only added when `status` is truthy and does not match
+  `/online|✅/i`.  The Digitalisierungsindex-not-available path emits a
+  generic EWK-lookup reminder instead.
+
+### Added
+
+- **Report Builder – CR-36 (P1): Redispatch-Anlagen Fallback-Strategie**
+
+  `cernion_redispatch_export` frequently fails with "MaStR-ID erforderlich".
+  `renderSection1` now implements a 3-tier lookup for the KPI value:
+  1. Certified export (`redispatchExport`), if available.
+  2. `operatorAnalysis` enrichment (`opRedispatch`).
+  3. CR-36 Fallback: total count from `installationenOhneMelo` query
+     (same `minCapacity ≥ 100 kW` filter) prefixed with `~` and described as
+     "Schätzung: MaStR-Abfrage ≥100 kW".
+
+  The error text "Redispatch-Export fehlgeschlagen – MaStR-ID erforderlich"
+  is now shown only when all three tiers fail.
+
+### Improved
+
+- **Report Builder – CR-34 (P2): NEST/AgNeS-Sektion – Informative Datenquelle-Hinweise**
+
+  AgNeS-Effizienzwert, Erlösobergrenze, and Regulierungskonto-Saldo were
+  showing bare `n/v` with "EWK-Benchmarkdaten nicht enthalten".  Replaced with
+  an explicit explanation: *"BNetzA-Festsetzungsdaten nicht maschinenlesbar –
+  individuell abrufbar (BNetzA BK8)"*.  When all three AgNeS fields are missing,
+  an additional `<p>` note with a direct link to BNetzA Beschlusskammer 8 is
+  appended below the KPI table.
+
+- **Report Builder – CR-35 (P2): Peer-Benchmarking Rang-Percentil auch für DI**
+
+  Added `betterThanDi` percentile computation for the Digitalisierungsindex
+  rank column, mirroring the CR-32 fix.  Updated the table header from "Rang"
+  to "Rang (national)" and added a footer note explaining the percentile
+  semantics and flagging regional peer comparison (Bundesland / Größenklasse)
+  as a planned Roadmap feature.
+
 ## [0.8.19] - 2026-03-07
 
 ### Fixed

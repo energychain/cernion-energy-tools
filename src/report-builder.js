@@ -285,6 +285,18 @@ function renderSection1(s1) {
     opData, 'redispatchAnlagen', 'redispatch_count', 'redispatchCount', 'redispatchAnlagenCount'
   );
 
+  // CR-36: Pre-compute installationenOhneMelo total here so it can serve as a
+  //         redispatch fallback count (both queries use minCapacity ≥100 kW).
+  const ohneMeloDataEarly = safeData(s1, 'installationenOhneMelo');
+  const ohneMeloInstsEarly =
+    ohneMeloDataEarly?.installations ??
+    ohneMeloDataEarly?.data?.installations ??
+    [];
+  const ohneMeloTotalEarly =
+    ohneMeloDataEarly?.stats?.total ??
+    ohneMeloDataEarly?.stats?.totalCount ??
+    (Array.isArray(ohneMeloInstsEarly) ? ohneMeloInstsEarly.length : null);
+
   // CR-03: residual load warning handling
   const rlRaw = s1?.residualLoad?.data ?? null;
   const rlWarning = rlRaw?.warning ?? rlRaw?.warningMessage ?? null;
@@ -327,13 +339,30 @@ function renderSection1(s1) {
     ),
     kpiRow(
       'Redispatch-Anlagen',
-      isAvail(s1, 'redispatchExport') && rd?.success !== false
-        ? (getVal(rd, 'totalCount', 'count', 'total') ?? opRedispatch)
-        : (opRedispatch ?? null),
+      (() => {
+        // Primary: certified redispatch export
+        if (isAvail(s1, 'redispatchExport') && rd?.success !== false) {
+          return getVal(rd, 'totalCount', 'count', 'total') ?? opRedispatch;
+        }
+        // Secondary: operatorAnalysis enrichment
+        if (opRedispatch !== null) return opRedispatch;
+        // CR-36 Fallback: installations ≥100 kW from MaStR (same capacity threshold,
+        //                 not a certified redispatch list but a valid estimate).
+        if (isAvail(s1, 'installationenOhneMelo') && ohneMeloTotalEarly !== null) {
+          return `~${ohneMeloTotalEarly}`;
+        }
+        return null;
+      })(),
       'Anlagen',
       'Steuerbare Anlagen ≥100 kW im Netzgebiet',
-      (!isAvail(s1, 'redispatchExport') && opRedispatch === null)
-        ? 'Redispatch-Export fehlgeschlagen – MaStR-ID erforderlich' : ''
+      (() => {
+        if (isAvail(s1, 'redispatchExport') && rd?.success !== false) return '';
+        if (opRedispatch !== null) return '';
+        if (isAvail(s1, 'installationenOhneMelo') && ohneMeloTotalEarly !== null) {
+          return 'Schätzung: MaStR-Abfrage ≥100 kW (kein zertifizierter Redispatch-Export)';
+        }
+        return 'Redispatch-Export fehlgeschlagen – MaStR-ID erforderlich';
+      })()
     ),
     kpiRow(
       'Residuallast regional',
@@ -1118,6 +1147,8 @@ function renderNestAgnesBlock(s5, bmJson, diJson, _diMedian, vnbAnschlussdauer, 
     : null;
 
   // Build KPI rows for this sub-block
+  const agnesDataAvailable = agnesEff !== null || erloesobergrenze !== null || regKonto !== null;
+
   const nestRows = [
     kpiRow(
       'NEST-Compliance-Status',
@@ -1131,21 +1162,22 @@ function renderNestAgnesBlock(s5, bmJson, diJson, _diMedian, vnbAnschlussdauer, 
       agnesEff !== null ? fmtPct(agnesEff * 100) : null,
       '',
       'Anreizregulierung – Basis für Erlösobergrenze (BNetzA)',
-      agnesEff === null ? 'EWK-Benchmarkdaten nicht enthalten' : ''
+      // CR-34: informative note instead of bare n/v
+      agnesEff === null ? 'BNetzA-Festsetzungsdaten nicht maschinenlesbar – individuell abrufbar (BNetzA BK8)' : ''
     ),
     kpiRow(
       'Erlösobergrenze (EO)',
       erloesobergrenze !== null ? fmtNum(erloesobergrenze, 0) : null,
       '€',
       'Aktuelle Erlösobergrenze laut BNetzA-Festsetzung',
-      erloesobergrenze === null ? 'EWK-Benchmarkdaten nicht enthalten' : ''
+      erloesobergrenze === null ? 'BNetzA-Festsetzungsdaten nicht maschinenlesbar – individuell abrufbar (BNetzA BK8)' : ''
     ),
     kpiRow(
       'Regulierungskonto-Saldo',
       regKonto !== null ? fmtNum(regKonto, 0) : null,
       '€',
       'Positiv = Nachholpotenzial für Investitionen im Regulierungszeitraum',
-      regKonto === null ? 'EWK-Benchmarkdaten nicht enthalten' : ''
+      regKonto === null ? 'BNetzA-Festsetzungsdaten nicht maschinenlesbar – individuell abrufbar (BNetzA BK8)' : ''
     ),
     kpiRow(
       'EWK-Rang Anschlussdauer',
@@ -1156,13 +1188,26 @@ function renderNestAgnesBlock(s5, bmJson, diJson, _diMedian, vnbAnschlussdauer, 
   ];
 
   // Only render if at least one KPI has data (avoid all-n/v sub-section)
-  const anyData = hasNest || agnesEff !== null || erloesobergrenze !== null || regKonto !== null || rankLabel !== null;
+  const anyData = hasNest || agnesDataAvailable || rankLabel !== null;
   if (!anyData) return '';
+
+  // CR-34: If AgNeS fields are all missing, add an explanatory note so the block
+  //         is not just three n/v rows without context.
+  const agnesNote = !agnesDataAvailable
+    ? `<p style="font-size:8pt;color:#6c757d;margin:1mm 0 2mm;font-style:italic">
+        ℹ️ AgNeS-Effizienzwert und Erlösobergrenze werden von der BNetzA nicht als
+        maschinenlesbare Daten veröffentlicht. Die Werte sind individuell über
+        <a href="https://www.bundesnetzagentur.de/DE/Beschlusskammern/BK08/bk8_node.html"
+           style="color:#1a5276">BNetzA Beschlusskammer 8</a> abrufbar.
+        Cernion-Integration (Option A) ist als Roadmap-Item erfasst.
+      </p>`
+    : '';
 
   return `
     <h2 class="sub-title" style="margin-top:5mm">NEST &amp; Regulierungsrahmen</h2>
     <p style="font-size:8.5pt;color:#6c757d;margin-bottom:2mm;">NEST-Festsetzung, AgNeS-Effizienzwert und Regulierungskonto (§11 EnWG / Anreizregulierungsverordnung).</p>
-    ${kpiTable(nestRows)}`;
+    ${kpiTable(nestRows)}
+    ${agnesNote}`;
 }
 
 // ─── CR-27: Peer Benchmark Sub-section ───────────────────────────────────────
@@ -1188,8 +1233,12 @@ function renderPeerBenchmarkBlock(bmJson, diJson, vnbAnschlussdauer, bundesMedia
   const uqScore = (bmJson?.umsetzungsquote?.umsetzungsquote_ee_ns ?? null);
   const uqPct = uqScore != null ? uqScore * 100 : null;
 
-  // Percentile helper (lower rank = better for Anschlussdauer)
-  const pctRankAd = (ewkRank !== null && ewkTotal) ? Math.round((1 - ewkRank / ewkTotal) * 100) : null;
+  // CR-32: Percentile helper – betterThan = % of VNBs this VNB outperforms.
+  // For Anschlussdauer, lower rank number = better performer (rank 1 = fastest).
+  // "Top X%" is only shown when the VNB genuinely outperforms ≥75% of peers.
+  const betterThanAd = (ewkRank !== null && ewkTotal)
+    ? Math.round((ewkTotal - ewkRank) / ewkTotal * 100)
+    : null;
 
   // At least one data point must exist
   if (ansch === null && diPct === null && uqPct === null) return '';
@@ -1198,22 +1247,33 @@ function renderPeerBenchmarkBlock(bmJson, diJson, vnbAnschlussdauer, bundesMedia
     val !== null ? `${val}${unit}` : '–';
 
   const medianAdCell = median !== null ? fmtCell(Math.round(median), ' Wo.') : '–';
+  // CR-32: "Top X%" only when truly top-quartile; otherwise "besser als X%"
+  const rankAdSuffix = betterThanAd !== null
+    ? (betterThanAd >= 75 ? ` (Top ${100 - betterThanAd} %)` : ` (besser als ${betterThanAd} %)`)
+    : '';
   const rankAdCell = ewkRank !== null
-    ? `${ewkRank} / ${ewkTotal ?? '?'}${pctRankAd !== null ? ` (Top ${100 - pctRankAd} %)` : ''}`
+    ? `${ewkRank} / ${ewkTotal ?? '?'}${rankAdSuffix}`
     : '–';
   const diMedianCell = diMedian !== null ? fmtCell(Math.round(diMedian * 100), ' %') : '–';
-  const diRankCell = diRank !== null ? `${diRank} / ${diRankTotal ?? '?'}` : '–';
+  // CR-35: DI rank percentile (higher DI score = better, same direction as Ad)
+  const betterThanDi = (diRank !== null && diRankTotal)
+    ? Math.round((diRankTotal - diRank) / diRankTotal * 100)
+    : null;
+  const diRankSuffix = betterThanDi !== null
+    ? (betterThanDi >= 75 ? ` (Top ${100 - betterThanDi} %)` : ` (besser als ${betterThanDi} %)`)
+    : '';
+  const diRankCell = diRank !== null ? `${diRank} / ${diRankTotal ?? '?'}${diRankSuffix}` : '–';
 
   return `
     <h2 class="sub-title" style="margin-top:5mm">Peer-Benchmarking (Bundesvergleich)</h2>
-    <p style="font-size:8.5pt;color:#6c757d;margin-bottom:2mm;">Vergleich mit allen ~740 deutschen VNBs im BNetzA-EWK-Datensatz 2024.</p>
+    <p style="font-size:8.5pt;color:#6c757d;margin-bottom:2mm;">Vergleich mit allen ~740 deutschen VNBs im BNetzA-EWK-Datensatz 2024. Rang-Percentil: „Top X%" = besser als (100−X)% der VNBs; „besser als Y%" = besser als Y% der VNBs.</p>
     <table style="width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:3mm">
       <thead>
         <tr style="background:#f8f9fa">
           <th style="text-align:left;padding:1.5mm 2mm;border-bottom:2px solid #dee2e6">Kennzahl</th>
           <th style="text-align:right;padding:1.5mm 2mm;border-bottom:2px solid #dee2e6">Dieser VNB</th>
           <th style="text-align:right;padding:1.5mm 2mm;border-bottom:2px solid #dee2e6">Bundesmedian</th>
-          <th style="text-align:right;padding:1.5mm 2mm;border-bottom:2px solid #dee2e6">Rang</th>
+          <th style="text-align:right;padding:1.5mm 2mm;border-bottom:2px solid #dee2e6">Rang (national)</th>
         </tr>
       </thead>
       <tbody>
@@ -1237,7 +1297,8 @@ function renderPeerBenchmarkBlock(bmJson, diJson, vnbAnschlussdauer, bundesMedia
         </tr>` : ''}
       </tbody>
     </table>
-    <p style="font-size:7.5pt;color:#868e96;margin:0">Quelle: BNetzA EWK 2024 – alle deutschen Verteilnetzbetreiber.</p>`;
+    <p style="font-size:7.5pt;color:#868e96;margin:0">Quelle: BNetzA EWK 2024 – alle deutschen Verteilnetzbetreiber.
+      Regionaler Peer-Vergleich (Bundesland, Größenklasse) ist als Roadmap-Item für den nächsten EWK-Datensatz geplant.</p>`;
 }
 
 function renderSection6(s6) {
@@ -1600,16 +1661,37 @@ function renderSection8(s8, allPartners = []) {
     ),
   ];
 
+  // CR-33: Only emit recommendations that have a factual basis in available data.
+  //         Threshold-triggered hints (score <30%, offline) are suppressed when
+  //         the underlying KPI is unavailable (showing "–").
+  const s8Hints = [
+    // Always relevant – regulatory obligation regardless of DI data
+    'EIC-Codes: Alle Redispatch- und §14a-Anlagen benötigen gültige EIC-Codes für ENTSO-E-Meldungen.',
+  ];
+  if (isAvail(s8, 'digitalisierungsindex') && diScores8 !== null) {
+    if (diScores8.smart_grids < 30) {
+      s8Hints.push(`Smart-Grids Score ${fmtPct(diScores8.smart_grids)}: SMGW-Rollout-Plan erstellen und Förderanträge (Digitalisierungsoffensive) prüfen.`);
+    } else {
+      s8Hints.push(`Smart-Grids Score ${fmtPct(diScores8.smart_grids)}: Niveau halten – Rollout-Plan aktuell halten.`);
+    }
+    const portalScore = diScores8.kundenmanagement_webportale ?? diScores8.kundenmanagement;
+    if (portalScore != null) {
+      s8Hints.push(`Kundenportal-Score ${fmtPct(portalScore)}: Selbstservice-Angebote für Betreiberwechsel und EEG-Auskunft reduzieren Callcenter-Last um 30–40 %.`);
+    }
+  } else {
+    // No DI data – generic hint without triggering a specific threshold
+    s8Hints.push('Digitalisierungsindex: EWK-Datensatz für diesen VNB prüfen – Score und Rang noch nicht verfügbar.');
+  }
+  // CR-33: Systemstatus "offline" hint only when status is actually not online
+  if (status !== null && !/online|✅/i.test(String(status))) {
+    s8Hints.push('Systemstatus offline: Datenversorgung für Redispatch und MaKo-Prozesse sofort prüfen – regulatorische Meldepflichten beachten.');
+  }
+
   return `
     <h1 class="section-title"><span class="section-number">8</span>Digitalisierung &amp; Systemübersicht</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">Systemstatus, EIC-Register und Infrastruktur-Monitoring.</p>
     ${kpiTable(rows)}
-    ${actionHint('Handlungsempfehlung Digitalisierung', [
-      'EIC-Codes: Alle Redispatch- und §14a-Anlagen benötigen gültige EIC-Codes für ENTSO-E-Meldungen.',
-      'Smart-Grids Score <30 %: SMGW-Rollout-Plan erstellen und Förderanträge (Digitalisierungsoffensive) prüfen.',
-      'Kundenportal-Score: Selbstservice-Angebote für Betreiberwechsel und EEG-Auskunft reduzieren Callcenter-Last um 30–40 %.',
-      'Systemstatus offline: Datenversorgung für Redispatch und MaKo-Prozesse sofort prüfen – regulatorische Meldepflichten beachten.',
-    ])}
+    ${actionHint('Handlungsempfehlung Digitalisierung', s8Hints)}
     ${renderMarktpartnerRegistry(allPartners)}`;
 }
 
@@ -1627,6 +1709,8 @@ function renderManagementSummary(summaryText, utilityName) {
   // CR-23: Prompt-leak patterns – the LLM sometimes echoes the prompt as the
   // first output line (classic completion artefact).  Filter these before
   // inserting into the customer-facing report.
+  // CR-30: Also filter lines that contain camelCase JavaScript variable names
+  //         (e.g. 'loadFallbackWarning') which leak from the raw kpiSummary JSON.
   const PROMPT_LEAK_PATTERNS = [
     /^hier ist/i,
     /^die (folgende|nachfolgende)/i,
@@ -1635,6 +1719,9 @@ function renderManagementSummary(summaryText, utilityName) {
     /^im folgenden/i,
     /^(nachfolgend|anbei|hiermit)\b/i,
     /:\s*$/,  // Line ends with bare colon → intro/header sentence
+    // CR-30: camelCase internal identifiers echoed by LLM from kpiSummary JSON keys
+    /['"]?[a-z][a-zA-Z]*(Warning|Error|Status|Fallback|Flag|Raw|Data)['"]?/,
+    /\b(DataStatus|NOT_LICENSED|NOT_CALLED|loadFallback|isError|kpiSummary)\b/i,
   ];
 
   // Try to split Gemini narrative into bullet points

@@ -207,7 +207,22 @@ async function generateNarrative(utilityName, kpiSummary) {
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
-    const summaryJson = JSON.stringify(kpiSummary, null, 2).slice(0, 4000);
+    // CR-30: Strip internal camelCase field names (warnings, flags, status enums)
+    //         from the LLM context so they cannot be echoed into customer-facing text.
+    const INTERNAL_KEY_RE = /(Warning|Error|Fallback|Flag|Raw|isError|DataStatus|_count$)/;
+    const cleanedSummary = Object.fromEntries(
+      Object.entries(kpiSummary)
+        .map(([k, v]) => [
+          k,
+          v && typeof v === 'object'
+            ? Object.fromEntries(
+                Object.entries(v).filter(([ik]) => !INTERNAL_KEY_RE.test(ik))
+              )
+            : v,
+        ])
+        .filter(([k]) => !INTERNAL_KEY_RE.test(k))
+    );
+    const summaryJson = JSON.stringify(cleanedSummary, null, 2).slice(0, 4000);
     const prompt = `Du bist ein Energieberater und erstellst eine Management Summary für den Jahresbericht von "${utilityName}".
 
 Basierend auf diesen KPI-Daten:
@@ -1751,6 +1766,27 @@ module.exports = {
       for (const [key, val] of Object.entries(allSections)) {
         Object.assign(kpiSummary, summarizeForReport(val, key));
       }
+
+      // CR-31: Compute a clear, accurate MeLo count and expose it as a clean
+      //         'meloCheck' key so the LLM sees the correct number (installations
+      //         WITHOUT a linked Messlokation, not the total ≥100 kW count).
+      //         Also remove the ambiguous raw key to avoid the contradiction between
+      //         the Summary ("34 ohne MeLo") and Section 1 ("0 ohne MeLo").
+      const ohneMeloRaw = p.results.section1?.installationenOhneMelo;
+      if (ohneMeloRaw?.available && ohneMeloRaw?.data) {
+        const insts =
+          ohneMeloRaw.data?.installations ??
+          ohneMeloRaw.data?.data?.installations ??
+          [];
+        const withoutMelo = Array.isArray(insts) ? insts.filter((i) => !i?.napData).length : null;
+        const totalGe100kw = Array.isArray(insts) ? insts.length : null;
+        kpiSummary.meloCheck = {
+          anlagen_ohne_melo: withoutMelo,    // TRUE ohne-MeLo count (used in Section 1)
+          anlagen_gesamt_ge100kw: totalGe100kw, // total ≥100 kW (context for LLM)
+        };
+      }
+      // Remove the ambiguous raw key so the LLM cannot misread the array count
+      delete kpiSummary.installationenOhneMelo;
 
       const managementSummary = await generateNarrative(utilityName, kpiSummary);
 
