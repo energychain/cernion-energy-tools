@@ -251,11 +251,15 @@ describe('CernionMCPClient', () => {
       jest.spyOn(CernionMCPClient.prototype, 'connect').mockImplementation(async () => {
         attempts++;
         if (attempts < 3) {
-          throw new Error('Failed to connect to Cernion MCP: Token quota exhausted. Please contact administrator.');
+          throw new Error(
+            'Failed to connect to Cernion MCP: Token quota exhausted. Please contact administrator.'
+          );
         }
         return true;
       });
-      jest.spyOn(CernionMCPClient.prototype, 'callTool').mockResolvedValue({ success: true, data: { ok: true } });
+      jest
+        .spyOn(CernionMCPClient.prototype, 'callTool')
+        .mockResolvedValue({ success: true, data: { ok: true } });
       jest.spyOn(CernionMCPClient.prototype, 'disconnect').mockResolvedValue();
 
       const origBase = CernionMCPClient.QUOTA_RETRY_BASE_MS;
@@ -269,7 +273,8 @@ describe('CernionMCPClient', () => {
     });
 
     it('should return QUOTA_EXHAUSTED error after all retries fail', async () => {
-      jest.spyOn(CernionMCPClient.prototype, 'connect')
+      jest
+        .spyOn(CernionMCPClient.prototype, 'connect')
         .mockRejectedValue(new Error('Token quota exhausted. Please contact administrator.'));
       jest.spyOn(CernionMCPClient.prototype, 'disconnect').mockResolvedValue();
 
@@ -296,12 +301,11 @@ describe('CernionMCPClient', () => {
       });
       jest.spyOn(CernionMCPClient.prototype, 'disconnect').mockResolvedValue();
 
-      await expect(
-        CernionMCPClient.callWithNewSession('test_tool', {}, 'tok')
-      ).rejects.toThrow('connection refused');
+      await expect(CernionMCPClient.callWithNewSession('test_tool', {}, 'tok')).rejects.toThrow(
+        'connection refused'
+      );
 
       expect(attempts).toBe(1); // no retry
     });
-
   });
 });

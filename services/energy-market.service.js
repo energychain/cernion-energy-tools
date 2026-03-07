@@ -7,7 +7,12 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
-const { applyFormat, convertToCSV, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
+const {
+  applyFormat,
+  convertToCSV,
+  FORMAT_PARAM_SCHEMA,
+  FORMAT_RESPONSE_CONTENT,
+} = require('../src/format-response');
 
 module.exports = {
   name: 'energy-market',
@@ -29,7 +34,12 @@ module.exports = {
         date: { type: 'string', optional: true },
         startDate: { type: 'string', optional: true },
         endDate: { type: 'string', optional: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'Electricity market prices (day-ahead, intraday, futures)',
@@ -158,8 +168,8 @@ module.exports = {
         const REGION_ALIASES = {
           'de-lu': 'Deutschland',
           'de-at-lu': 'Deutschland',
-          'de': 'Deutschland',
-          'germany': 'Deutschland',
+          de: 'Deutschland',
+          germany: 'Deutschland',
           '10y1001a1001a63l': 'Deutschland',
           '10y1001a1001a82h': 'Deutschland',
         };
@@ -210,7 +220,12 @@ module.exports = {
           values: ['quarterhour', 'hour', 'day', 'week', 'month', 'year'],
           optional: true,
         },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'Electricity generation data by energy source',
@@ -353,7 +368,12 @@ module.exports = {
         location: { type: 'string', optional: true, min: 1 },
         timestamp: { type: 'string', optional: true },
         forecast: { type: 'boolean', optional: true, default: false },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'Regional CO₂ intensity forecasts (GrünstromIndex)',
@@ -512,7 +532,8 @@ module.exports = {
             'Content-Disposition': `attachment; filename="co2-intensity-${Date.now()}.csv"`,
           };
           const dataSource = result?.data_source || '';
-          const generated = result?.timestamp || result?.data?.timestamp || new Date().toISOString();
+          const generated =
+            result?.timestamp || result?.data?.timestamp || new Date().toISOString();
           const metadata = [
             `# CO2 Intensity Export`,
             `# Location: ${location}`,
@@ -560,7 +581,12 @@ module.exports = {
         operationalStatus: { type: 'string', optional: true, default: '35' },
         netzbetreiberPruefungStatus: { type: 'string', optional: true },
         includeNapData: { type: 'boolean', optional: true, default: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'Search energy installations in German registry (MaStR)',
@@ -638,13 +664,15 @@ module.exports = {
                       { type: 'integer', minimum: 1 },
                       { type: 'string', enum: ['all'] },
                     ],
-                    description: 'Maximum number of results. Default: **1,000**. Set a high number (e.g. `1000000`) or `"all"` to retrieve the complete result set — the server paginates internally across multiple MCP calls so no offset handling is required on the client side.',
+                    description:
+                      'Maximum number of results. Default: **1,000**. Set a high number (e.g. `1000000`) or `"all"` to retrieve the complete result set — the server paginates internally across multiple MCP calls so no offset handling is required on the client side.',
                     default: 1000,
                     example: 1000,
                   },
                   offset: {
                     type: 'integer',
-                    description: 'Pagination offset — number of records to skip. Use with `limit` to retrieve pages beyond the first 1,000. Example: `offset=1000&limit=1000` fetches records 1,001–2,000.',
+                    description:
+                      'Pagination offset — number of records to skip. Use with `limit` to retrieve pages beyond the first 1,000. Example: `offset=1000&limit=1000` fetches records 1,001–2,000.',
                     minimum: 0,
                     default: 0,
                     example: 0,
@@ -690,12 +718,14 @@ module.exports = {
                   },
                   netzbetreiberPruefungStatus: {
                     type: 'string',
-                    description: 'Filter by grid operator verification status code(s), comma-separated. Values: **2954**=Geprüft ✅, **2955**=In Prüfung ⏳, **3075**=Nicht vorgesehen. Example: `"2955"` or `"2954,2955"`.',
+                    description:
+                      'Filter by grid operator verification status code(s), comma-separated. Values: **2954**=Geprüft ✅, **2955**=In Prüfung ⏳, **3075**=Nicht vorgesehen. Example: `"2955"` or `"2954,2955"`.',
                     example: '2955',
                   },
                   includeNapData: {
                     type: 'boolean',
-                    description: 'Include NAP data per installation (MeLo-ID, voltage level, grid operator MaStR-IDs). Default: true. Set to false to skip enrichment for faster responses on large result sets.',
+                    description:
+                      'Include NAP data per installation (MeLo-ID, voltage level, grid operator MaStR-IDs). Default: true. Set to false to skip enrichment for faster responses on large result sets.',
                     default: true,
                     example: true,
                   },

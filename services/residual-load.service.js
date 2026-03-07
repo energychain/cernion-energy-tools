@@ -36,14 +36,32 @@ module.exports = {
         longitude: { type: 'number', optional: true, convert: true },
         gridOperatorMastrId: { type: 'string', optional: true },
         populationOverride: { type: 'number', optional: true, min: 1, convert: true },
-        forecastDays: { type: 'number', optional: true, min: 1, max: 14, default: 1, convert: true },
-        resolution: { type: 'enum', values: ['hourly', 'hour', '15min'], optional: true, default: 'hourly' },
-        installationType: { type: 'enum', values: ['solar', 'wind', 'all'], optional: true, default: 'all' },
+        forecastDays: {
+          type: 'number',
+          optional: true,
+          min: 1,
+          max: 14,
+          default: 1,
+          convert: true,
+        },
+        resolution: {
+          type: 'enum',
+          values: ['hourly', 'hour', '15min'],
+          optional: true,
+          default: 'hourly',
+        },
+        installationType: {
+          type: 'enum',
+          values: ['solar', 'wind', 'all'],
+          optional: true,
+          default: 'all',
+        },
         startDate: {
           type: 'string',
           optional: true,
           pattern: /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/,
-          description: 'Optional start date (YYYY-MM-DD). Defaults to tomorrow. Past dates use SMARD filter 410 (realised load) and observed weather data.',
+          description:
+            'Optional start date (YYYY-MM-DD). Defaults to tomorrow. Past dates use SMARD filter 410 (realised load) and observed weather data.',
         },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
       },
@@ -94,23 +112,51 @@ module.exports = {
                 properties: {
                   region: {
                     type: 'string',
-                    description: 'City or region name for SMARD population scaling (e.g. "Ludwigshafen", "Bayern", "Heidelberg")',
+                    description:
+                      'City or region name for SMARD population scaling (e.g. "Ludwigshafen", "Bayern", "Heidelberg")',
                     example: 'Ludwigshafen',
                   },
                   gridOperatorMastrId: {
                     type: 'string',
-                    description: 'MaStR Netzbetreiber-ID (SNB/GNB...) for EE capacity query. Resolve via cernion_vnb_lookup.',
+                    description:
+                      'MaStR Netzbetreiber-ID (SNB/GNB...) for EE capacity query. Resolve via cernion_vnb_lookup.',
                     example: 'SNB935578300972',
                   },
-                  bundesland: { type: 'string', description: 'Federal state', example: 'Rheinland-Pfalz' },
-                  landkreis: { type: 'string', description: 'Landkreis name', example: 'Ludwigshafen am Rhein' },
-                  gemeinde: { type: 'string', description: 'Municipality name', example: 'Ludwigshafen' },
-                  postleitzahl: { type: 'string', pattern: '^[0-9]{5}$', description: '5-digit postal code', example: '67059' },
-                  latitude: { type: 'number', description: 'Latitude for weather data', example: 49.4744 },
-                  longitude: { type: 'number', description: 'Longitude for weather data', example: 8.4349 },
+                  bundesland: {
+                    type: 'string',
+                    description: 'Federal state',
+                    example: 'Rheinland-Pfalz',
+                  },
+                  landkreis: {
+                    type: 'string',
+                    description: 'Landkreis name',
+                    example: 'Ludwigshafen am Rhein',
+                  },
+                  gemeinde: {
+                    type: 'string',
+                    description: 'Municipality name',
+                    example: 'Ludwigshafen',
+                  },
+                  postleitzahl: {
+                    type: 'string',
+                    pattern: '^[0-9]{5}$',
+                    description: '5-digit postal code',
+                    example: '67059',
+                  },
+                  latitude: {
+                    type: 'number',
+                    description: 'Latitude for weather data',
+                    example: 49.4744,
+                  },
+                  longitude: {
+                    type: 'number',
+                    description: 'Longitude for weather data',
+                    example: 8.4349,
+                  },
                   populationOverride: {
                     type: 'number',
-                    description: 'Known population of the grid area. Overrides internal lookup. Important for industrial locations (e.g. BASF/Ludwigshafen).',
+                    description:
+                      'Known population of the grid area. Overrides internal lookup. Important for industrial locations (e.g. BASF/Ludwigshafen).',
                     example: 170000,
                   },
                   forecastDays: {
@@ -125,7 +171,8 @@ module.exports = {
                     type: 'string',
                     enum: ['hourly', 'hour', '15min'],
                     default: 'hourly',
-                    description: '`"hourly"` / `"hour"` = 24 pts/day (trading); `"15min"` = 96 pts/day (§12 StromNZV Fahrplan). `"hour"` is accepted as an alias for `"hourly"`.',
+                    description:
+                      '`"hourly"` / `"hour"` = 24 pts/day (trading); `"15min"` = 96 pts/day (§12 StromNZV Fahrplan). `"hour"` is accepted as an alias for `"hourly"`.',
                     example: 'hourly',
                   },
                   installationType: {
@@ -138,7 +185,8 @@ module.exports = {
                   startDate: {
                     type: 'string',
                     pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$',
-                    description: 'Optional start date (YYYY-MM-DD). Omit for default tomorrow behaviour. Past dates switch to historical observation mode: SMARD filter 410 (realised) + observed weather, 30-day cache.',
+                    description:
+                      'Optional start date (YYYY-MM-DD). Omit for default tomorrow behaviour. Past dates switch to historical observation mode: SMARD filter 410 (realised) + observed weather, 30-day cache.',
                     example: '2026-02-10',
                   },
                   format: {
@@ -227,13 +275,15 @@ module.exports = {
                         region: { type: 'string', example: 'Ludwigshafen' },
                         isHistorical: {
                           type: 'boolean',
-                          description: 'true when startDate is in the past (SMARD filter 410 + observed weather used)',
+                          description:
+                            'true when startDate is in the past (SMARD filter 410 + observed weather used)',
                           example: false,
                         },
                         dataMode: {
                           type: 'string',
                           enum: ['weather_forecast', 'historical_observation'],
-                          description: '"weather_forecast" for future dates, "historical_observation" for past dates',
+                          description:
+                            '"weather_forecast" for future dates, "historical_observation" for past dates',
                           example: 'weather_forecast',
                         },
                         forecastPeriod: {
@@ -286,10 +336,22 @@ module.exports = {
                           timestamp: { type: 'string', format: 'date-time' },
                           loadMW: { type: 'number', description: 'Regional load in MW' },
                           pvGenerationMW: { type: 'number', description: 'PV generation in MW' },
-                          windGenerationMW: { type: 'number', description: 'Wind generation in MW' },
-                          eeGenerationMW: { type: 'number', description: 'Total EE generation in MW' },
-                          residualLoadMW: { type: 'number', description: 'Net residual load in MW (= loadMW − eeGenerationMW)' },
-                          eeSharePct: { type: 'number', description: 'EE share of total load in %' },
+                          windGenerationMW: {
+                            type: 'number',
+                            description: 'Wind generation in MW',
+                          },
+                          eeGenerationMW: {
+                            type: 'number',
+                            description: 'Total EE generation in MW',
+                          },
+                          residualLoadMW: {
+                            type: 'number',
+                            description: 'Net residual load in MW (= loadMW − eeGenerationMW)',
+                          },
+                          eeSharePct: {
+                            type: 'number',
+                            description: 'EE share of total load in %',
+                          },
                         },
                       },
                     },
@@ -298,7 +360,10 @@ module.exports = {
                       properties: {
                         loadModel: { type: 'string' },
                         eeModel: { type: 'string' },
-                        residualFormula: { type: 'string', example: 'Residuallast = RegionaleLast − PV − Wind' },
+                        residualFormula: {
+                          type: 'string',
+                          example: 'Residuallast = RegionaleLast − PV − Wind',
+                        },
                         interpolation: { type: 'string' },
                       },
                     },
@@ -307,7 +372,8 @@ module.exports = {
               },
               'text/csv': {
                 description: 'CSV with metadata comments (when format=csv)',
-                example: '# Net Residual Load Forecast\n# Region: Ludwigshafen\nTimestamp,Load (MW),PV Generation (MW),Wind Generation (MW),EE Generation (MW),Residual Load (MW),EE Share (%)',
+                example:
+                  '# Net Residual Load Forecast\n# Region: Ludwigshafen\nTimestamp,Load (MW),PV Generation (MW),Wind Generation (MW),EE Generation (MW),Residual Load (MW),EE Share (%)',
               },
               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
                 description: 'Excel XLSX with Forecast + Summary sheets (when format=xlsx)',
@@ -319,7 +385,10 @@ module.exports = {
             description: 'Invalid request parameters',
             content: {
               'application/json': {
-                example: { success: false, error: { code: 'RESIDUAL_LOAD_ERROR', message: 'region is required' } },
+                example: {
+                  success: false,
+                  error: { code: 'RESIDUAL_LOAD_ERROR', message: 'region is required' },
+                },
               },
             },
           },
@@ -327,12 +396,29 @@ module.exports = {
       },
       async handler(ctx) {
         try {
-          const { format, bundesland, landkreis, gemeinde, postleitzahl, latitude, longitude, startDate, ...rest } = ctx.params;
+          const {
+            format,
+            bundesland,
+            landkreis,
+            gemeinde,
+            postleitzahl,
+            latitude,
+            longitude,
+            startDate,
+            ...rest
+          } = ctx.params;
 
           // Normalise resolution alias: 'hour' → 'hourly'
           if (rest.resolution === 'hour') rest.resolution = 'hourly';
 
-          const locationObj = this.buildLocationObj({ bundesland, landkreis, gemeinde, postleitzahl, latitude, longitude });
+          const locationObj = this.buildLocationObj({
+            bundesland,
+            landkreis,
+            gemeinde,
+            postleitzahl,
+            latitude,
+            longitude,
+          });
           const mcpParams = { ...rest };
           if (startDate) mcpParams.startDate = startDate;
           if (Object.keys(locationObj).length > 0) {
@@ -380,7 +466,7 @@ module.exports = {
             } else {
               this.logger.warn(
                 'residual-load.netResidualLoad called without region or any location field — ' +
-                'returning structured error to avoid MCP crash.'
+                  'returning structured error to avoid MCP crash.'
               );
               return {
                 success: false,
@@ -404,7 +490,11 @@ module.exports = {
 
           // Detect MCP tool error returned as text content (e.g. "Error: Cannot read...").
           // The MCP client wraps tool errors as { data: [{ type: 'text', text: 'Error: ...' }] }.
-          if (Array.isArray(result?.data) && result.data[0]?.type === 'text' && result.data[0]?.text?.startsWith('Error:')) {
+          if (
+            Array.isArray(result?.data) &&
+            result.data[0]?.type === 'text' &&
+            result.data[0]?.text?.startsWith('Error:')
+          ) {
             throw new Error(result.data[0].text);
           }
 
@@ -419,11 +509,13 @@ module.exports = {
             const allZeroLoad = result.forecast.every((p) => (p.loadMW ?? 0) === 0);
             if (allZeroLoad) {
               // Compute intended start date (tomorrow when no startDate given)
-              const intendedStartStr = startDate || (() => {
-                const d = new Date();
-                d.setDate(d.getDate() + 1);
-                return d.toISOString().split('T')[0];
-              })();
+              const intendedStartStr =
+                startDate ||
+                (() => {
+                  const d = new Date();
+                  d.setDate(d.getDate() + 1);
+                  return d.toISOString().split('T')[0];
+                })();
               const intendedStart = new Date(intendedStartStr);
               const today = new Date();
               today.setHours(0, 0, 0, 0);
@@ -437,8 +529,8 @@ module.exports = {
 
                 this.logger.warn(
                   `residual-load: SMARD filter 411 returned null for "${intendedStartStr}" ` +
-                  `(day-ahead forecast not yet published). ` +
-                  `Retrying with D-7 reference week startDate="${fallbackDateStr}".`
+                    `(day-ahead forecast not yet published). ` +
+                    `Retrying with D-7 reference week startDate="${fallbackDateStr}".`
                 );
 
                 const fallbackResult = await CernionMCPClient.callWithNewSession(
@@ -447,7 +539,8 @@ module.exports = {
                   ctx.meta.cernionToken
                 );
 
-                const fallbackHasLoad = Array.isArray(fallbackResult?.forecast) &&
+                const fallbackHasLoad =
+                  Array.isArray(fallbackResult?.forecast) &&
                   fallbackResult.forecast.some((p) => (p.loadMW ?? 0) > 0);
 
                 if (fallbackHasLoad) {
@@ -481,7 +574,12 @@ module.exports = {
           }
 
           if (format === 'xlsx') {
-            return this.handleXlsxResponse(ctx, result?.forecast || [], result?.summary, result?.methodology);
+            return this.handleXlsxResponse(
+              ctx,
+              result?.forecast || [],
+              result?.summary,
+              result?.methodology
+            );
           }
 
           return result;
@@ -489,7 +587,10 @@ module.exports = {
           this.logger.error('Net residual load failed:', error);
           return {
             success: false,
-            error: { code: 'RESIDUAL_LOAD_ERROR', message: error.message || 'Failed to calculate residual load' },
+            error: {
+              code: 'RESIDUAL_LOAD_ERROR',
+              message: error.message || 'Failed to calculate residual load',
+            },
           };
         }
       },
@@ -557,7 +658,8 @@ module.exports = {
                   },
                   populationOverride: {
                     type: 'number',
-                    description: 'Known population of the grid area. Improves load scaling accuracy.',
+                    description:
+                      'Known population of the grid area. Improves load scaling accuracy.',
                     example: 320000,
                   },
                   gridOperatorMastrId: {
@@ -565,11 +667,20 @@ module.exports = {
                     description: 'MaStR Netzbetreiber-ID for EE capacity lookup',
                     example: 'SNB935578300972',
                   },
-                  bundesland: { type: 'string', description: 'Federal state for MaStR capacity query', example: 'Baden-Württemberg' },
-                  postleitzahl: { type: 'string', description: '5-digit postal code for MaStR capacity query', example: '68159' },
+                  bundesland: {
+                    type: 'string',
+                    description: 'Federal state for MaStR capacity query',
+                    example: 'Baden-Württemberg',
+                  },
+                  postleitzahl: {
+                    type: 'string',
+                    description: '5-digit postal code for MaStR capacity query',
+                    example: '68159',
+                  },
                   additionalContext: {
                     type: 'string',
-                    description: 'Extra context for the LLM (e.g. "large BASF industrial plant in area")',
+                    description:
+                      'Extra context for the LLM (e.g. "large BASF industrial plant in area")',
                     example: 'Large chemical plant (BASF) adds ~200 MW industrial base load',
                   },
                 },
@@ -596,7 +707,8 @@ module.exports = {
                   value: {
                     region: 'Ludwigshafen',
                     populationOverride: 170000,
-                    additionalContext: 'Large chemical plant (BASF) adds ~200 MW industrial base load',
+                    additionalContext:
+                      'Large chemical plant (BASF) adds ~200 MW industrial base load',
                     forecastDays: 1,
                   },
                 },
@@ -615,7 +727,8 @@ module.exports = {
                     success: { type: 'boolean', example: true },
                     data: {
                       type: 'object',
-                      description: 'LLM-generated load forecast analysis with real MaStR capacity anchors',
+                      description:
+                        'LLM-generated load forecast analysis with real MaStR capacity anchors',
                     },
                   },
                 },
@@ -645,7 +758,10 @@ module.exports = {
           this.logger.error('Regional load forecast failed:', error);
           return {
             success: false,
-            error: { code: 'LOAD_FORECAST_ERROR', message: error.message || 'Failed to generate load forecast' },
+            error: {
+              code: 'LOAD_FORECAST_ERROR',
+              message: error.message || 'Failed to generate load forecast',
+            },
           };
         }
       },
@@ -672,34 +788,36 @@ module.exports = {
       // Codes verified empirically via live cernion_installations_local probes across
       // all 16 Bundesländer (2025-07).
       const BUNDESLAND_CODES = {
-        '1400': 'Brandenburg',
-        '1401': 'Berlin',
-        '1402': 'Baden-Württemberg',
-        '1403': 'Bayern',
-        '1404': 'Bremen',
-        '1405': 'Hessen',
-        '1406': 'Hamburg',
-        '1407': 'Mecklenburg-Vorpommern',
-        '1408': 'Niedersachsen',
-        '1409': 'Nordrhein-Westfalen',
-        '1410': 'Rheinland-Pfalz',
-        '1411': 'Schleswig-Holstein',
-        '1412': 'Saarland',
-        '1413': 'Sachsen',
-        '1414': 'Sachsen-Anhalt',
-        '1415': 'Thüringen',
+        1400: 'Brandenburg',
+        1401: 'Berlin',
+        1402: 'Baden-Württemberg',
+        1403: 'Bayern',
+        1404: 'Bremen',
+        1405: 'Hessen',
+        1406: 'Hamburg',
+        1407: 'Mecklenburg-Vorpommern',
+        1408: 'Niedersachsen',
+        1409: 'Nordrhein-Westfalen',
+        1410: 'Rheinland-Pfalz',
+        1411: 'Schleswig-Holstein',
+        1412: 'Saarland',
+        1413: 'Sachsen',
+        1414: 'Sachsen-Anhalt',
+        1415: 'Thüringen',
       };
 
       try {
         const result = await CernionMCPClient.callWithNewSession(
           'cernion_installations_local',
-          { gridOperatorMastrId: operatorMastrId, limit: 10, format: 'detailed', includeStats: false },
+          {
+            gridOperatorMastrId: operatorMastrId,
+            limit: 10,
+            format: 'detailed',
+            includeStats: false,
+          },
           token
         );
-        const installations =
-          result?.data?.installations ||
-          result?.installations ||
-          [];
+        const installations = result?.data?.installations || result?.installations || [];
         if (!installations.length) return null;
 
         // Pass 1: translate MaStR numeric bundesland code → SMARD text name
@@ -722,7 +840,9 @@ module.exports = {
         }
         return null;
       } catch (err) {
-        this.logger.warn(`resolveRegionFromOperatorId failed for ${operatorMastrId}: ${err.message}`);
+        this.logger.warn(
+          `resolveRegionFromOperatorId failed for ${operatorMastrId}: ${err.message}`
+        );
         return null;
       }
     },
@@ -793,18 +913,27 @@ module.exports = {
       }
 
       const headers = [
-        'Timestamp', 'Load (MW)', 'PV Generation (MW)', 'Wind Generation (MW)',
-        'EE Generation (MW)', 'Residual Load (MW)', 'EE Share (%)',
+        'Timestamp',
+        'Load (MW)',
+        'PV Generation (MW)',
+        'Wind Generation (MW)',
+        'EE Generation (MW)',
+        'Residual Load (MW)',
+        'EE Share (%)',
       ];
 
       let csv = '# Net Residual Load Forecast\n';
       if (summary) {
         if (summary.region) csv += `# Region: ${summary.region}\n`;
         if (summary.resolution) csv += `# Resolution: ${summary.resolution}\n`;
-        if (summary.installedCapacity?.totalPV_MW != null) csv += `# Installed PV: ${summary.installedCapacity.totalPV_MW} MW\n`;
-        if (summary.installedCapacity?.totalWind_MW != null) csv += `# Installed Wind: ${summary.installedCapacity.totalWind_MW} MW\n`;
-        if (summary.kpis?.peakResidualLoadMW != null) csv += `# Peak Residual Load: ${summary.kpis.peakResidualLoadMW} MW\n`;
-        if (summary.kpis?.avgResidualLoadMW != null) csv += `# Avg Residual Load: ${summary.kpis.avgResidualLoadMW} MW\n`;
+        if (summary.installedCapacity?.totalPV_MW != null)
+          csv += `# Installed PV: ${summary.installedCapacity.totalPV_MW} MW\n`;
+        if (summary.installedCapacity?.totalWind_MW != null)
+          csv += `# Installed Wind: ${summary.installedCapacity.totalWind_MW} MW\n`;
+        if (summary.kpis?.peakResidualLoadMW != null)
+          csv += `# Peak Residual Load: ${summary.kpis.peakResidualLoadMW} MW\n`;
+        if (summary.kpis?.avgResidualLoadMW != null)
+          csv += `# Avg Residual Load: ${summary.kpis.avgResidualLoadMW} MW\n`;
       }
       csv += `# Generated: ${new Date().toISOString()}\n\n`;
       csv += headers.map((h) => `"${h}"`).join(',') + '\n';
@@ -844,7 +973,7 @@ module.exports = {
       }
 
       const forecastSheet = forecastData.map((item) => ({
-        'Timestamp': item.timestamp || '',
+        Timestamp: item.timestamp || '',
         'Load (MW)': item.loadMW ?? 0,
         'PV Generation (MW)': item.pvGenerationMW ?? 0,
         'Wind Generation (MW)': item.windGenerationMW ?? 0,
@@ -892,23 +1021,40 @@ module.exports = {
 
       if (summary.region) rows.push({ Property: 'Region', Value: summary.region });
       if (summary.resolution) rows.push({ Property: 'Resolution', Value: summary.resolution });
-      if (summary.dataPoints != null) rows.push({ Property: 'Data Points', Value: summary.dataPoints });
-      if (cap.totalPV_MW != null) rows.push({ Property: 'Installed PV (MW)', Value: cap.totalPV_MW });
-      if (cap.totalWind_MW != null) rows.push({ Property: 'Installed Wind (MW)', Value: cap.totalWind_MW });
-      if (cap.pvInstallations != null) rows.push({ Property: 'PV Installations', Value: cap.pvInstallations });
-      if (cap.windInstallations != null) rows.push({ Property: 'Wind Installations', Value: cap.windInstallations });
-      if (scaling.populationUsed) rows.push({ Property: 'Population Used', Value: scaling.populationUsed });
-      if (scaling.scalingFactorPct) rows.push({ Property: 'Scaling Factor', Value: scaling.scalingFactorPct });
-      if (scaling.dataSource) rows.push({ Property: 'Load Data Source', Value: scaling.dataSource });
-      if (kpis.peakResidualLoadMW != null) rows.push({ Property: 'Peak Residual Load (MW)', Value: kpis.peakResidualLoadMW });
-      if (kpis.peakResidualAt) rows.push({ Property: 'Peak Residual At', Value: kpis.peakResidualAt });
-      if (kpis.minResidualLoadMW != null) rows.push({ Property: 'Min Residual Load (MW)', Value: kpis.minResidualLoadMW });
-      if (kpis.avgResidualLoadMW != null) rows.push({ Property: 'Avg Residual Load (MW)', Value: kpis.avgResidualLoadMW });
-      if (kpis.totalLoadMWh != null) rows.push({ Property: 'Total Load (MWh)', Value: kpis.totalLoadMWh });
-      if (kpis.totalEEGenerationMWh != null) rows.push({ Property: 'Total EE Generation (MWh)', Value: kpis.totalEEGenerationMWh });
-      if (kpis.totalResidualLoadMWh != null) rows.push({ Property: 'Total Residual Load (MWh)', Value: kpis.totalResidualLoadMWh });
-      if (kpis.avgEESharePct != null) rows.push({ Property: 'Avg EE Share (%)', Value: kpis.avgEESharePct });
-      if (methodology?.residualFormula) rows.push({ Property: 'Formula', Value: methodology.residualFormula });
+      if (summary.dataPoints != null)
+        rows.push({ Property: 'Data Points', Value: summary.dataPoints });
+      if (cap.totalPV_MW != null)
+        rows.push({ Property: 'Installed PV (MW)', Value: cap.totalPV_MW });
+      if (cap.totalWind_MW != null)
+        rows.push({ Property: 'Installed Wind (MW)', Value: cap.totalWind_MW });
+      if (cap.pvInstallations != null)
+        rows.push({ Property: 'PV Installations', Value: cap.pvInstallations });
+      if (cap.windInstallations != null)
+        rows.push({ Property: 'Wind Installations', Value: cap.windInstallations });
+      if (scaling.populationUsed)
+        rows.push({ Property: 'Population Used', Value: scaling.populationUsed });
+      if (scaling.scalingFactorPct)
+        rows.push({ Property: 'Scaling Factor', Value: scaling.scalingFactorPct });
+      if (scaling.dataSource)
+        rows.push({ Property: 'Load Data Source', Value: scaling.dataSource });
+      if (kpis.peakResidualLoadMW != null)
+        rows.push({ Property: 'Peak Residual Load (MW)', Value: kpis.peakResidualLoadMW });
+      if (kpis.peakResidualAt)
+        rows.push({ Property: 'Peak Residual At', Value: kpis.peakResidualAt });
+      if (kpis.minResidualLoadMW != null)
+        rows.push({ Property: 'Min Residual Load (MW)', Value: kpis.minResidualLoadMW });
+      if (kpis.avgResidualLoadMW != null)
+        rows.push({ Property: 'Avg Residual Load (MW)', Value: kpis.avgResidualLoadMW });
+      if (kpis.totalLoadMWh != null)
+        rows.push({ Property: 'Total Load (MWh)', Value: kpis.totalLoadMWh });
+      if (kpis.totalEEGenerationMWh != null)
+        rows.push({ Property: 'Total EE Generation (MWh)', Value: kpis.totalEEGenerationMWh });
+      if (kpis.totalResidualLoadMWh != null)
+        rows.push({ Property: 'Total Residual Load (MWh)', Value: kpis.totalResidualLoadMWh });
+      if (kpis.avgEESharePct != null)
+        rows.push({ Property: 'Avg EE Share (%)', Value: kpis.avgEESharePct });
+      if (methodology?.residualFormula)
+        rows.push({ Property: 'Formula', Value: methodology.residualFormula });
       rows.push({ Property: 'Generated', Value: new Date().toISOString() });
 
       return rows;

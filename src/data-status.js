@@ -25,12 +25,12 @@
 // ─── Enum ─────────────────────────────────────────────────────────────────────
 
 const DataStatus = {
-  OK:           'ok',           // Real value, tool successful
-  NOT_CALLED:   'not_called',   // Tool exists but was not called (implementation gap)
-  TOOL_ERROR:   'tool_error',   // Tool was called but returned an error
+  OK: 'ok', // Real value, tool successful
+  NOT_CALLED: 'not_called', // Tool exists but was not called (implementation gap)
+  TOOL_ERROR: 'tool_error', // Tool was called but returned an error
   NOT_LICENSED: 'not_licensed', // Tool not in customer licence scope
-  NO_DATA:      'no_data',      // Tool OK but no data for this VNB
-  FALLBACK:     'fallback',     // Estimated value / industry heuristic – MUST be labelled
+  NO_DATA: 'no_data', // Tool OK but no data for this VNB
+  FALLBACK: 'fallback', // Estimated value / industry heuristic – MUST be labelled
 };
 
 // ─── Factory ──────────────────────────────────────────────────────────────────
@@ -79,9 +79,11 @@ function dsFallbackReason(obj, defaultReason = '') {
   if (!obj || typeof obj !== 'object') return '';
   switch (obj.status) {
     case DataStatus.OK:
-      return '';  // No fallback indicator needed
+      return ''; // No fallback indicator needed
     case DataStatus.NOT_CALLED:
-      return obj.source ? `⚠ n/v – ${obj.source}` : '⚠ n/v – Tool nicht aufgerufen (Implementierungslücke)';
+      return obj.source
+        ? `⚠ n/v – ${obj.source}`
+        : '⚠ n/v – Tool nicht aufgerufen (Implementierungslücke)';
     case DataStatus.TOOL_ERROR:
       return obj.source ? `✗ Fehler – ${obj.source}` : '✗ Fehler beim Tool-Aufruf';
     case DataStatus.NOT_LICENSED:

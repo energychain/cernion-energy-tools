@@ -12,7 +12,11 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
-const { applyFormat, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
+const {
+  applyFormat,
+  FORMAT_PARAM_SCHEMA,
+  FORMAT_RESPONSE_CONTENT,
+} = require('../src/format-response');
 
 module.exports = {
   name: 'ewk-monitoring',
@@ -388,7 +392,13 @@ module.exports = {
           mcpParams,
           ctx.meta.cernionToken
         );
-        return applyFormat(ctx, result, format, 'ewk-digitalisierungsindex', 'Digitalisierungsindex');
+        return applyFormat(
+          ctx,
+          result,
+          format,
+          'ewk-digitalisierungsindex',
+          'Digitalisierungsindex'
+        );
       },
     },
 

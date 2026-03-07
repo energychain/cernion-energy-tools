@@ -7,7 +7,12 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
-const { applyFormat, convertToCSV, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
+const {
+  applyFormat,
+  convertToCSV,
+  FORMAT_PARAM_SCHEMA,
+  FORMAT_RESPONSE_CONTENT,
+} = require('../src/format-response');
 
 // ─── Helpers for churn-prediction narrative responses ─────────────────────────
 
@@ -347,12 +352,24 @@ module.exports = {
           default: 'medium',
         },
         limit: { type: 'number', optional: true, default: 100, min: 1, max: 500, convert: true },
-        predictionWindowMonths: { type: 'number', optional: true, default: 3, min: 1, max: 12, convert: true },
+        predictionWindowMonths: {
+          type: 'number',
+          optional: true,
+          default: 3,
+          min: 1,
+          max: 12,
+          convert: true,
+        },
         includeRetentionStrategy: { type: 'boolean', optional: true, default: true },
         includeValueSegmentation: { type: 'boolean', optional: true, default: true },
         includeChurnReasons: { type: 'boolean', optional: true, default: true },
         includeCompetitiveAnalysis: { type: 'boolean', optional: true, default: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'Predict customer churn risk for energy suppliers',
@@ -525,7 +542,9 @@ module.exports = {
             };
             return `${preamble}\n${convertToCSV([summaryRow])}`;
           }
-          return applyFormat(ctx, result, format, 'churn-prediction', 'Churn Prediction', [summaryRow]);
+          return applyFormat(ctx, result, format, 'churn-prediction', 'Churn Prediction', [
+            summaryRow,
+          ]);
         }
 
         return result;

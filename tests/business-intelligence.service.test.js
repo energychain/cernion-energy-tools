@@ -108,7 +108,13 @@ describe('Business Intelligence Service', () => {
       const ctx = { meta: {} };
       const result = await broker.call(
         'business-intelligence.churnPrediction',
-        { customerSegment: 'all', region: '67059', riskThreshold: 'medium', predictionWindowMonths: 3, format: 'csv' },
+        {
+          customerSegment: 'all',
+          region: '67059',
+          riskThreshold: 'medium',
+          predictionWindowMonths: 3,
+          format: 'csv',
+        },
         ctx
       );
 
@@ -117,7 +123,9 @@ describe('Business Intelligence Service', () => {
       expect(result).toContain('# Segment: all');
       expect(result).toContain('# Region: 67059');
       expect(result).toContain('# Note: Heuristic model');
-      expect(result).toContain('"customerSegment","region","riskThreshold","predictionWindowMonths","estimatedAtRiskCustomers","assumedChurnRatePct","isHeuristicModel","analysisText"');
+      expect(result).toContain(
+        '"customerSegment","region","riskThreshold","predictionWindowMonths","estimatedAtRiskCustomers","assumedChurnRatePct","isHeuristicModel","analysisText"'
+      );
       expect(result).toContain('"all","67059","medium",3,60,8,"true"');
     });
 
@@ -181,12 +189,22 @@ describe('Business Intelligence Service', () => {
       );
 
       expect(result).toContain('"true"'); // isHeuristicModel = true
-      expect(result).toContain('15');     // estimatedAtRiskCustomers
-      expect(result).toContain('10.5');   // assumedChurnRatePct
+      expect(result).toContain('15'); // estimatedAtRiskCustomers
+      expect(result).toContain('10.5'); // assumedChurnRatePct
     });
 
     it('should return JSON for format=json (default)', async () => {
-      const mockResult = { success: true, data: { content: [{ type: 'text', text: 'Estimated at-risk customers (max 100): 30\nAssumed churn rate (segment): 5.0%' }] } };
+      const mockResult = {
+        success: true,
+        data: {
+          content: [
+            {
+              type: 'text',
+              text: 'Estimated at-risk customers (max 100): 30\nAssumed churn rate (segment): 5.0%',
+            },
+          ],
+        },
+      };
       callWithAutoPoll.mockResolvedValueOnce(mockResult);
 
       const result = await broker.call('business-intelligence.churnPrediction', {

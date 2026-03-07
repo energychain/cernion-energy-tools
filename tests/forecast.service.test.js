@@ -38,7 +38,12 @@ describe('Forecast Service', () => {
               timestamp: '2026-02-19T00:00:00.000Z',
               generationMW: 0.01,
               capacityFactor: null,
-              weather: { temperature: 4.3, windSpeed: 12.2, solarIrradiance: 30.8, cloudCover: 100 },
+              weather: {
+                temperature: 4.3,
+                windSpeed: 12.2,
+                solarIrradiance: 30.8,
+                cloudCover: 100,
+              },
             },
             {
               timestamp: '2026-02-20T00:00:00.000Z',
@@ -525,4 +530,3 @@ describe('Forecast Service', () => {
     });
   });
 });
-

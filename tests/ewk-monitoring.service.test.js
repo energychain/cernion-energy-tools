@@ -199,9 +199,7 @@ describe('EWK Monitoring Service', () => {
     });
 
     it('should reject limit below minimum', async () => {
-      await expect(
-        broker.call('ewk-monitoring.anschlussdauer', { limit: 0 })
-      ).rejects.toThrow();
+      await expect(broker.call('ewk-monitoring.anschlussdauer', { limit: 0 })).rejects.toThrow();
     });
 
     it('should call ewk_anschlussdauer MCP tool', async () => {
@@ -370,9 +368,7 @@ describe('EWK Monitoring Service', () => {
     });
 
     it('should reject empty vnbName', async () => {
-      await expect(
-        broker.call('ewk-monitoring.benchmarkVnb', { vnbName: '' })
-      ).rejects.toThrow();
+      await expect(broker.call('ewk-monitoring.benchmarkVnb', { vnbName: '' })).rejects.toThrow();
     });
 
     it('should return combined benchmark profile', async () => {

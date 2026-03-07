@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **UI-Friendly BDEW Code Selection for Report Generation (CR-CERNION-044)**
+  - New `POST /api/utility-report/get-bdew-options` endpoint enables users to discover available BDEW codes without needing prior knowledge.
+  - Returns all BDEW codes for a given utility name, including market roles (Lieferant, Bilanzgruppe, etc.) to help users select the correct one.
+  - Enhanced `POST /api/utility-report/generate` endpoint now validates BDEW code presence and guides users to `get-bdew-options` when missing.
+  - Addresses issue where one Stadtwerk has multiple BDEW codes for different market roles (e.g., Stadtwerke Frankenthal with 3 different codes).
+  - Two-step UX: (1) Call `get-bdew-options` to list available codes, (2) Select one and pass to `generate` endpoint.
+  - OpenAPI documentation includes step-by-step examples for both endpoints.
+
 ### Fixed
 
 - **CR-CERNION-043: Five production quality bugs fixed in 360° Report (Congress demo critical)**

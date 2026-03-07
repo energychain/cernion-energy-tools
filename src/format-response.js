@@ -174,14 +174,20 @@ function convertToXLSX(data, sheetName = 'Data') {
  * @param {Array}  [rows]       Pre-extracted rows (skips auto-detection when provided)
  * @returns {object|string|Buffer}
  */
-function applyFormat(ctx, result, format, filename = 'export', sheetName = 'Data', customRows = null) {
+function applyFormat(
+  ctx,
+  result,
+  format,
+  filename = 'export',
+  sheetName = 'Data',
+  customRows = null
+) {
   // Surface upstream tool errors regardless of the requested output format.
   // Without this guard, CSV/XLSX requests silently return a 0-byte file,
   // making it impossible for the caller to distinguish "no data" from an error.
   if (result?.data?.isError === true) {
     const errorText =
-      result?.data?.content?.[0]?.text ||
-      'Upstream tool returned an error with no details';
+      result?.data?.content?.[0]?.text || 'Upstream tool returned an error with no details';
     throw new Error(errorText);
   }
 

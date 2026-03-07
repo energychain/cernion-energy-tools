@@ -26,7 +26,8 @@ function buildForecastArray(days, resolution) {
     pvGenerationMW: i % 24 >= 8 && i % 24 <= 18 ? 3.5 : 0,
     windGenerationMW: 2.0 + (i % 7) * 0.3,
     eeGenerationMW: (i % 24 >= 8 && i % 24 <= 18 ? 3.5 : 0) + 2.0 + (i % 7) * 0.3,
-    residualLoadMW: 55 + (i % 24) * 1.2 - ((i % 24 >= 8 && i % 24 <= 18 ? 3.5 : 0) + 2.0 + (i % 7) * 0.3),
+    residualLoadMW:
+      55 + (i % 24) * 1.2 - ((i % 24 >= 8 && i % 24 <= 18 ? 3.5 : 0) + 2.0 + (i % 7) * 0.3),
     eeSharePct: 5.0,
   }));
 }
@@ -39,7 +40,10 @@ function buildResidualLoadMockResponse(params) {
   return {
     summary: {
       region: params.region,
-      forecastPeriod: { start: forecast[0].timestamp, end: forecast[forecast.length - 1].timestamp },
+      forecastPeriod: {
+        start: forecast[0].timestamp,
+        end: forecast[forecast.length - 1].timestamp,
+      },
       resolution,
       dataPoints: forecast.length,
       installedCapacity: {
@@ -49,19 +53,31 @@ function buildResidualLoadMockResponse(params) {
         windInstallations: params.region === 'Bayern' ? 1800 : 12,
       },
       loadScaling: {
-        populationUsed: params.populationOverride ? String(params.populationOverride) : (params.region === 'Bayern' ? '13.100.000' : '170.000'),
+        populationUsed: params.populationOverride
+          ? String(params.populationOverride)
+          : params.region === 'Bayern'
+            ? '13.100.000'
+            : '170.000',
         scalingFactorPct: params.region === 'Bayern' ? '15.6%' : '0.202%',
         isActualData: days <= 1,
-        dataSource: days <= 1 ? 'SMARD filter 410 (realized)' : days === 2 ? 'SMARD filter 411 (day-ahead)' : 'SMARD filter 410 reference week',
+        dataSource:
+          days <= 1
+            ? 'SMARD filter 410 (realized)'
+            : days === 2
+              ? 'SMARD filter 411 (day-ahead)'
+              : 'SMARD filter 410 reference week',
       },
       kpis: {
         peakResidualLoadMW: 87.4,
         peakResidualAt: '2025-01-15T18:00:00.000Z',
         minResidualLoadMW: 31.2,
         avgResidualLoadMW: 58.9,
-        totalLoadMWh: forecast.reduce((s, p) => s + p.loadMW, 0) * (resolution === '15min' ? 0.25 : 1),
-        totalEEGenerationMWh: forecast.reduce((s, p) => s + p.eeGenerationMW, 0) * (resolution === '15min' ? 0.25 : 1),
-        totalResidualLoadMWh: forecast.reduce((s, p) => s + p.residualLoadMW, 0) * (resolution === '15min' ? 0.25 : 1),
+        totalLoadMWh:
+          forecast.reduce((s, p) => s + p.loadMW, 0) * (resolution === '15min' ? 0.25 : 1),
+        totalEEGenerationMWh:
+          forecast.reduce((s, p) => s + p.eeGenerationMW, 0) * (resolution === '15min' ? 0.25 : 1),
+        totalResidualLoadMWh:
+          forecast.reduce((s, p) => s + p.residualLoadMW, 0) * (resolution === '15min' ? 0.25 : 1),
         avgEESharePct: 5.0,
       },
     },
@@ -83,11 +99,14 @@ describe('Residual Load Service — Integration Tests', () => {
   beforeAll(async () => {
     callWithNewSession.mockImplementation(async (toolName, params) => {
       if (toolName === 'mastr_net_residual_load') return buildResidualLoadMockResponse(params);
-      if (toolName === 'cernion_load_forecast_regional') return { success: true, region: params.region };
+      if (toolName === 'cernion_load_forecast_regional')
+        return { success: true, region: params.region };
       if (toolName === 'cernion_installations_local') {
         return {
           success: true,
-          data: { installations: [{ gemeinde: 'IntegrationCity', bundesland: 'IntegrationState' }] },
+          data: {
+            installations: [{ gemeinde: 'IntegrationCity', bundesland: 'IntegrationState' }],
+          },
         };
       }
       throw new Error(`Unexpected tool: ${toolName}`);
@@ -106,11 +125,14 @@ describe('Residual Load Service — Integration Tests', () => {
     jest.clearAllMocks();
     callWithNewSession.mockImplementation(async (toolName, params) => {
       if (toolName === 'mastr_net_residual_load') return buildResidualLoadMockResponse(params);
-      if (toolName === 'cernion_load_forecast_regional') return { success: true, region: params.region };
+      if (toolName === 'cernion_load_forecast_regional')
+        return { success: true, region: params.region };
       if (toolName === 'cernion_installations_local') {
         return {
           success: true,
-          data: { installations: [{ gemeinde: 'IntegrationCity', bundesland: 'IntegrationState' }] },
+          data: {
+            installations: [{ gemeinde: 'IntegrationCity', bundesland: 'IntegrationState' }],
+          },
         };
       }
       throw new Error(`Unexpected tool: ${toolName}`);
@@ -311,19 +333,28 @@ describe('Residual Load Service — Integration Tests', () => {
 
   describe('installationType filtering', () => {
     it('passes installationType=solar to MCP', async () => {
-      await broker.call('residual-load.netResidualLoad', { region: 'Test', installationType: 'solar' });
+      await broker.call('residual-load.netResidualLoad', {
+        region: 'Test',
+        installationType: 'solar',
+      });
       const [, params] = callWithNewSession.mock.calls[0];
       expect(params.installationType).toBe('solar');
     });
 
     it('passes installationType=wind to MCP', async () => {
-      await broker.call('residual-load.netResidualLoad', { region: 'Test', installationType: 'wind' });
+      await broker.call('residual-load.netResidualLoad', {
+        region: 'Test',
+        installationType: 'wind',
+      });
       const [, params] = callWithNewSession.mock.calls[0];
       expect(params.installationType).toBe('wind');
     });
 
     it('passes installationType=all to MCP', async () => {
-      await broker.call('residual-load.netResidualLoad', { region: 'Test', installationType: 'all' });
+      await broker.call('residual-load.netResidualLoad', {
+        region: 'Test',
+        installationType: 'all',
+      });
       const [, params] = callWithNewSession.mock.calls[0];
       expect(params.installationType).toBe('all');
     });
@@ -442,7 +473,9 @@ describe('Residual Load Service — Integration Tests', () => {
     });
 
     it('returns success true from mock', async () => {
-      const result = await broker.call('residual-load.loadForecastRegional', { region: 'Mannheim' });
+      const result = await broker.call('residual-load.loadForecastRegional', {
+        region: 'Mannheim',
+      });
       expect(result.success).toBe(true);
     });
 

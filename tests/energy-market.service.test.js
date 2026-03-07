@@ -78,7 +78,8 @@ describe('Energy Market Service', () => {
         success: false,
         error: {
           code: 'PRICE_DATA_UNAVAILABLE',
-          message: 'Day-Ahead electricity price data not found for region=Deutschland, date=2026-03-01: no data for this date',
+          message:
+            'Day-Ahead electricity price data not found for region=Deutschland, date=2026-03-01: no data for this date',
           source: 'cernion_energy_prices',
         },
       });
@@ -432,14 +433,10 @@ describe('Energy Market Service', () => {
         installationType: 'solar',
         limit: 10,
       });
-      const installationWithNap = result.data.installations.find(
-        (i) => i.napData !== undefined
-      );
+      const installationWithNap = result.data.installations.find((i) => i.napData !== undefined);
       expect(installationWithNap).toBeDefined();
       expect(installationWithNap.napData.napMastrNummer).toBe('SAN914634531048');
-      expect(installationWithNap.napData.messlokation).toBe(
-        'DE0003976706990000000000000073131'
-      );
+      expect(installationWithNap.napData.messlokation).toBe('DE0003976706990000000000000073131');
       expect(installationWithNap.napData.spannungsebeneLabel).toBe('Niederspannung (LV)');
       expect(installationWithNap.napData.nettoengpassleistung).toBe(6.15);
       expect(installationWithNap.napData.netzMastrNummer).toBe('SNE985057905075');
@@ -451,9 +448,7 @@ describe('Energy Market Service', () => {
         installationType: 'solar',
         limit: 10,
       });
-      const installationWithoutNap = result.data.installations.find(
-        (i) => i.napData === undefined
-      );
+      const installationWithoutNap = result.data.installations.find((i) => i.napData === undefined);
       expect(installationWithoutNap).toBeDefined();
       expect(installationWithoutNap.mastrNummer).toBe('SEE900000000002');
     });
@@ -921,4 +916,3 @@ describe('Energy Market Service', () => {
     });
   });
 });
-

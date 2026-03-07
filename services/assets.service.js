@@ -233,7 +233,8 @@ module.exports = {
         if (limit !== undefined) callParams.limit = limit;
         if (offset !== undefined) callParams.offset = offset;
         if (operationalStatus !== undefined) callParams.operationalStatus = operationalStatus;
-        if (netzbetreiberPruefungStatus !== undefined) callParams.netzbetreiberPruefungStatus = netzbetreiberPruefungStatus;
+        if (netzbetreiberPruefungStatus !== undefined)
+          callParams.netzbetreiberPruefungStatus = netzbetreiberPruefungStatus;
         callParams.includeNapData = includeNapData;
 
         // VNB filtering now supported for all types (netzbetreiberMastrNummer added to database)
@@ -671,13 +672,15 @@ module.exports = {
             name: 'limit',
             in: 'query',
             schema: { type: 'number', default: 1000, example: 1000 },
-            description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
+            description:
+              'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
           },
           {
             name: 'offset',
             in: 'query',
             schema: { type: 'number', default: 0, minimum: 0, example: 0 },
-            description: 'Pagination offset — number of records to skip. Use with `limit` to page through large result sets (e.g. `offset=1000&limit=1000` fetches records 1,001–2,000).',
+            description:
+              'Pagination offset — number of records to skip. Use with `limit` to page through large result sets (e.g. `offset=1000&limit=1000` fetches records 1,001–2,000).',
           },
           {
             name: 'redispatch',
@@ -1029,7 +1032,8 @@ module.exports = {
                       'Netzbetreiber NAP MaStR': {
                         type: 'string',
                         nullable: true,
-                        description: 'MaStR ID of the grid operator at the connection point (SNB format)',
+                        description:
+                          'MaStR ID of the grid operator at the connection point (SNB format)',
                         example: 'SNB935578300972',
                       },
                     },
@@ -1154,13 +1158,15 @@ module.exports = {
             name: 'limit',
             in: 'query',
             schema: { type: 'number', default: 1000, example: 1000 },
-            description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
+            description:
+              'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
           },
           {
             name: 'offset',
             in: 'query',
             schema: { type: 'number', default: 0, minimum: 0, example: 0 },
-            description: 'Pagination offset — skip this many records. Use `offset=1000` to fetch the next page.',
+            description:
+              'Pagination offset — skip this many records. Use `offset=1000` to fetch the next page.',
           },
           {
             name: 'redispatch',
@@ -1186,7 +1192,8 @@ module.exports = {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
+            description:
+              'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
           {
             name: 'format',
@@ -1229,15 +1236,61 @@ module.exports = {
         description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
         parameters: [
-          { name: 'vnbName', in: 'query', schema: { type: 'string', example: 'Netze BW' }, description: 'Name of grid operator' },
-          { name: 'bdewCode', in: 'query', schema: { type: 'string', example: '4041407000008' }, description: 'BDEW code (13 digits)' },
-          { name: 'gridOperatorId', in: 'query', schema: { type: 'string', example: 'SNB948311994307' }, description: 'MaStR grid operator ID' },
-          { name: 'location', in: 'query', schema: { type: 'string', example: 'Heidelberg' }, description: 'City/region/postal code' },
-          { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
-          { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
-          { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, example: 1000 }, description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.' },
-          { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
+          {
+            name: 'vnbName',
+            in: 'query',
+            schema: { type: 'string', example: 'Netze BW' },
+            description: 'Name of grid operator',
+          },
+          {
+            name: 'bdewCode',
+            in: 'query',
+            schema: { type: 'string', example: '4041407000008' },
+            description: 'BDEW code (13 digits)',
+          },
+          {
+            name: 'gridOperatorId',
+            in: 'query',
+            schema: { type: 'string', example: 'SNB948311994307' },
+            description: 'MaStR grid operator ID',
+          },
+          {
+            name: 'location',
+            in: 'query',
+            schema: { type: 'string', example: 'Heidelberg' },
+            description: 'City/region/postal code',
+          },
+          {
+            name: 'commissioningYear',
+            in: 'query',
+            schema: { type: 'number', example: 2020 },
+            description: 'Commissioning year',
+          },
+          {
+            name: 'minCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 100 },
+            description: 'Min. capacity in kW',
+          },
+          {
+            name: 'maxCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 10000 },
+            description: 'Max. capacity in kW',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'number', default: 1000, example: 1000 },
+            description:
+              'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
+            description: 'Pagination offset — skip N records to fetch the next page.',
+          },
           {
             name: 'redispatch',
             in: 'query',
@@ -1262,7 +1315,8 @@ module.exports = {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
+            description:
+              'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
           {
             name: 'format',
@@ -1305,15 +1359,61 @@ module.exports = {
         description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
         parameters: [
-          { name: 'vnbName', in: 'query', schema: { type: 'string', example: 'Netze BW' }, description: 'Name of grid operator' },
-          { name: 'bdewCode', in: 'query', schema: { type: 'string', example: '4041407000008' }, description: 'BDEW code (13 digits)' },
-          { name: 'gridOperatorId', in: 'query', schema: { type: 'string', example: 'SNB948311994307' }, description: 'MaStR grid operator ID' },
-          { name: 'location', in: 'query', schema: { type: 'string', example: 'Heidelberg' }, description: 'City/region/postal code' },
-          { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
-          { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
-          { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, example: 1000 }, description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.' },
-          { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
+          {
+            name: 'vnbName',
+            in: 'query',
+            schema: { type: 'string', example: 'Netze BW' },
+            description: 'Name of grid operator',
+          },
+          {
+            name: 'bdewCode',
+            in: 'query',
+            schema: { type: 'string', example: '4041407000008' },
+            description: 'BDEW code (13 digits)',
+          },
+          {
+            name: 'gridOperatorId',
+            in: 'query',
+            schema: { type: 'string', example: 'SNB948311994307' },
+            description: 'MaStR grid operator ID',
+          },
+          {
+            name: 'location',
+            in: 'query',
+            schema: { type: 'string', example: 'Heidelberg' },
+            description: 'City/region/postal code',
+          },
+          {
+            name: 'commissioningYear',
+            in: 'query',
+            schema: { type: 'number', example: 2020 },
+            description: 'Commissioning year',
+          },
+          {
+            name: 'minCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 100 },
+            description: 'Min. capacity in kW',
+          },
+          {
+            name: 'maxCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 10000 },
+            description: 'Max. capacity in kW',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'number', default: 1000, example: 1000 },
+            description:
+              'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
+            description: 'Pagination offset — skip N records to fetch the next page.',
+          },
           {
             name: 'redispatch',
             in: 'query',
@@ -1338,7 +1438,8 @@ module.exports = {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
+            description:
+              'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
           {
             name: 'format',
@@ -1381,15 +1482,61 @@ module.exports = {
         description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
         parameters: [
-          { name: 'vnbName', in: 'query', schema: { type: 'string', example: 'Netze BW' }, description: 'Name of grid operator' },
-          { name: 'bdewCode', in: 'query', schema: { type: 'string', example: '4041407000008' }, description: 'BDEW code (13 digits)' },
-          { name: 'gridOperatorId', in: 'query', schema: { type: 'string', example: 'SNB948311994307' }, description: 'MaStR grid operator ID' },
-          { name: 'location', in: 'query', schema: { type: 'string', example: 'Heidelberg' }, description: 'City/region/postal code' },
-          { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
-          { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
-          { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, example: 1000 }, description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.' },
-          { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
+          {
+            name: 'vnbName',
+            in: 'query',
+            schema: { type: 'string', example: 'Netze BW' },
+            description: 'Name of grid operator',
+          },
+          {
+            name: 'bdewCode',
+            in: 'query',
+            schema: { type: 'string', example: '4041407000008' },
+            description: 'BDEW code (13 digits)',
+          },
+          {
+            name: 'gridOperatorId',
+            in: 'query',
+            schema: { type: 'string', example: 'SNB948311994307' },
+            description: 'MaStR grid operator ID',
+          },
+          {
+            name: 'location',
+            in: 'query',
+            schema: { type: 'string', example: 'Heidelberg' },
+            description: 'City/region/postal code',
+          },
+          {
+            name: 'commissioningYear',
+            in: 'query',
+            schema: { type: 'number', example: 2020 },
+            description: 'Commissioning year',
+          },
+          {
+            name: 'minCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 100 },
+            description: 'Min. capacity in kW',
+          },
+          {
+            name: 'maxCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 10000 },
+            description: 'Max. capacity in kW',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'number', default: 1000, example: 1000 },
+            description:
+              'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
+            description: 'Pagination offset — skip N records to fetch the next page.',
+          },
           {
             name: 'redispatch',
             in: 'query',
@@ -1414,7 +1561,8 @@ module.exports = {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
+            description:
+              'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
           {
             name: 'format',
@@ -1457,15 +1605,61 @@ module.exports = {
         description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
         parameters: [
-          { name: 'vnbName', in: 'query', schema: { type: 'string', example: 'Netze BW' }, description: 'Name of grid operator' },
-          { name: 'bdewCode', in: 'query', schema: { type: 'string', example: '4041407000008' }, description: 'BDEW code (13 digits)' },
-          { name: 'gridOperatorId', in: 'query', schema: { type: 'string', example: 'SNB948311994307' }, description: 'MaStR grid operator ID' },
-          { name: 'location', in: 'query', schema: { type: 'string', example: 'Heidelberg' }, description: 'City/region/postal code' },
-          { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
-          { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
-          { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, example: 1000 }, description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.' },
-          { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
+          {
+            name: 'vnbName',
+            in: 'query',
+            schema: { type: 'string', example: 'Netze BW' },
+            description: 'Name of grid operator',
+          },
+          {
+            name: 'bdewCode',
+            in: 'query',
+            schema: { type: 'string', example: '4041407000008' },
+            description: 'BDEW code (13 digits)',
+          },
+          {
+            name: 'gridOperatorId',
+            in: 'query',
+            schema: { type: 'string', example: 'SNB948311994307' },
+            description: 'MaStR grid operator ID',
+          },
+          {
+            name: 'location',
+            in: 'query',
+            schema: { type: 'string', example: 'Heidelberg' },
+            description: 'City/region/postal code',
+          },
+          {
+            name: 'commissioningYear',
+            in: 'query',
+            schema: { type: 'number', example: 2020 },
+            description: 'Commissioning year',
+          },
+          {
+            name: 'minCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 100 },
+            description: 'Min. capacity in kW',
+          },
+          {
+            name: 'maxCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 10000 },
+            description: 'Max. capacity in kW',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'number', default: 1000, example: 1000 },
+            description:
+              'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
+            description: 'Pagination offset — skip N records to fetch the next page.',
+          },
           {
             name: 'redispatch',
             in: 'query',
@@ -1490,7 +1684,8 @@ module.exports = {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
+            description:
+              'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
           {
             name: 'format',
@@ -1533,15 +1728,61 @@ module.exports = {
         description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
         parameters: [
-          { name: 'vnbName', in: 'query', schema: { type: 'string', example: 'Netze BW' }, description: 'Name of grid operator' },
-          { name: 'bdewCode', in: 'query', schema: { type: 'string', example: '4041407000008' }, description: 'BDEW code (13 digits)' },
-          { name: 'gridOperatorId', in: 'query', schema: { type: 'string', example: 'SNB948311994307' }, description: 'MaStR grid operator ID' },
-          { name: 'location', in: 'query', schema: { type: 'string', example: 'Heidelberg' }, description: 'City/region/postal code' },
-          { name: 'commissioningYear', in: 'query', schema: { type: 'number', example: 2020 }, description: 'Commissioning year' },
-          { name: 'minCapacityKW', in: 'query', schema: { type: 'number', example: 100 }, description: 'Min. capacity in kW' },
-          { name: 'maxCapacityKW', in: 'query', schema: { type: 'number', example: 10000 }, description: 'Max. capacity in kW' },
-          { name: 'limit', in: 'query', schema: { type: 'number', default: 1000, example: 1000 }, description: 'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.' },
-          { name: 'offset', in: 'query', schema: { type: 'number', default: 0, minimum: 0, example: 0 }, description: 'Pagination offset — skip N records to fetch the next page.' },
+          {
+            name: 'vnbName',
+            in: 'query',
+            schema: { type: 'string', example: 'Netze BW' },
+            description: 'Name of grid operator',
+          },
+          {
+            name: 'bdewCode',
+            in: 'query',
+            schema: { type: 'string', example: '4041407000008' },
+            description: 'BDEW code (13 digits)',
+          },
+          {
+            name: 'gridOperatorId',
+            in: 'query',
+            schema: { type: 'string', example: 'SNB948311994307' },
+            description: 'MaStR grid operator ID',
+          },
+          {
+            name: 'location',
+            in: 'query',
+            schema: { type: 'string', example: 'Heidelberg' },
+            description: 'City/region/postal code',
+          },
+          {
+            name: 'commissioningYear',
+            in: 'query',
+            schema: { type: 'number', example: 2020 },
+            description: 'Commissioning year',
+          },
+          {
+            name: 'minCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 100 },
+            description: 'Min. capacity in kW',
+          },
+          {
+            name: 'maxCapacityKW',
+            in: 'query',
+            schema: { type: 'number', example: 10000 },
+            description: 'Max. capacity in kW',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'number', default: 1000, example: 1000 },
+            description:
+              'Max. number of results. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            schema: { type: 'number', default: 0, minimum: 0, example: 0 },
+            description: 'Pagination offset — skip N records to fetch the next page.',
+          },
           {
             name: 'redispatch',
             in: 'query',
@@ -1566,7 +1807,8 @@ module.exports = {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
+            description:
+              'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
           {
             name: 'format',
@@ -1668,13 +1910,15 @@ module.exports = {
             name: 'limit',
             in: 'query',
             schema: { type: 'number', default: 1000, example: 1000 },
-            description: 'Max. number of results per type. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
+            description:
+              'Max. number of results per type. Default: **1,000**. Use a high value (e.g. `1000000`) or `all` for the complete result set — the server paginates internally.',
           },
           {
             name: 'offset',
             in: 'query',
             schema: { type: 'number', default: 0, minimum: 0, example: 0 },
-            description: 'Pagination offset — skip N records to fetch the next page (applied per type).',
+            description:
+              'Pagination offset — skip N records to fetch the next page (applied per type).',
           },
           {
             name: 'redispatch',
@@ -1713,7 +1957,8 @@ module.exports = {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description: 'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
+            description:
+              'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
         ],
       },

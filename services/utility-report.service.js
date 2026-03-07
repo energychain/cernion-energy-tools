@@ -78,7 +78,10 @@ function reportExists(reportId) {
 
 function buildCacheKey(utilityName, date) {
   const normalized = utilityName.toLowerCase().trim();
-  return crypto.createHash('sha256').update(JSON.stringify({ utilityName: normalized, date })).digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(JSON.stringify({ utilityName: normalized, date }))
+    .digest('hex');
 }
 
 function findCachedReport(utilityName, date) {
@@ -106,7 +109,11 @@ function indexReport(utilityName, date, reportId) {
   const indexFile = path.join(REPORTS_DIR, 'index.json');
   let index = {};
   if (fs.existsSync(indexFile)) {
-    try { index = JSON.parse(fs.readFileSync(indexFile, 'utf-8')); } catch { /* ignore */ }
+    try {
+      index = JSON.parse(fs.readFileSync(indexFile, 'utf-8'));
+    } catch {
+      /* ignore */
+    }
   }
   index[key] = { reportId, createdAt: new Date().toISOString() };
   fs.writeFileSync(indexFile, JSON.stringify(index, null, 2));
@@ -186,7 +193,9 @@ async function discoverAvailableTools(token) {
         if (Array.isArray(tools)) {
           tools.forEach((t) => t?.name && toolNames.push(t.name));
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
 
     return new Set(toolNames);
@@ -215,9 +224,7 @@ async function generateNarrative(utilityName, kpiSummary) {
         .map(([k, v]) => [
           k,
           v && typeof v === 'object'
-            ? Object.fromEntries(
-                Object.entries(v).filter(([ik]) => !INTERNAL_KEY_RE.test(ik))
-              )
+            ? Object.fromEntries(Object.entries(v).filter(([ik]) => !INTERNAL_KEY_RE.test(ik)))
             : v,
         ])
         .filter(([k]) => !INTERNAL_KEY_RE.test(k))
@@ -271,7 +278,7 @@ function buildStaticNarrative(utilityName, kpiSummary) {
     if (adRankSt === null || adTotalSt === null || adTotalSt === 0) return null;
     const pct = adRankSt / adTotalSt;
     if (pct <= 0.25) return { label: 'Top-25 %', nest: 'finanzieller NEST-Vorteil' };
-    if (pct <= 0.50) return { label: '25–50 %', nest: 'kein Risiko' };
+    if (pct <= 0.5) return { label: '25–50 %', nest: 'kein Risiko' };
     if (pct <= 0.75) return { label: '50–75 %', nest: 'EO-Druck möglich (Fotojahr-Logik)' };
     return { label: 'Bottom-25 %', nest: 'regulatorischer EO-Nachteil' };
   })();
@@ -280,17 +287,23 @@ function buildStaticNarrative(utilityName, kpiSummary) {
     const quartilCtx = adQuartilSt ? ` (${adQuartilSt.label} – ${adQuartilSt.nest})` : '';
     if (delta > 13) {
       summaryItems.push({
-        prio: 1, type: 'critical', icon: '🚨',
+        prio: 1,
+        type: 'critical',
+        icon: '🚨',
         text: `Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.round(delta)} Wo. über Bundesmedian (${Number(medianAd).toFixed(0)} Wo.)${quartilCtx}. Sofortiger Handlungsbedarf – BNetzA-Beschwerderisiko bei >13 Wochen.`,
       });
     } else if (delta > 0) {
       summaryItems.push({
-        prio: 2, type: 'warning', icon: '⚠️',
+        prio: 2,
+        type: 'warning',
+        icon: '⚠️',
         text: `Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.round(delta)} Wo. über Bundesmedian (${Number(medianAd).toFixed(0)} Wo.)${quartilCtx}. Phase 1 und Phase 2 optimieren.`,
       });
     } else {
       summaryItems.push({
-        prio: 4, type: 'opportunity', icon: '✅',
+        prio: 4,
+        type: 'opportunity',
+        icon: '✅',
         text: `Anschlussdauer ${Number(vnbAd).toFixed(0)} Wo. – ${Math.abs(Math.round(delta))} Wo. unter Bundesmedian (${Number(medianAd).toFixed(0)} Wo.)${quartilCtx}. Als Wettbewerbsvorteil aktiv kommunizieren.`,
       });
     }
@@ -301,7 +314,9 @@ function buildStaticNarrative(utilityName, kpiSummary) {
   if (ohneMeloCount !== null && ohneMeloCount > 0) {
     const totalGe100 = kpiSummary?.meloCheck?.anlagen_gesamt_ge100kw ?? '?';
     summaryItems.push({
-      prio: 1, type: 'critical', icon: '🔗',
+      prio: 1,
+      type: 'critical',
+      icon: '🔗',
       text: `Redispatch-Anlagen ohne MeLo: ${ohneMeloCount} von ${totalGe100} ≥100-kW-Anlagen – ohne Messlokation sind Redispatch-Kosten nicht abrechnebar (~3.000 €/Anlage/Jahr, §12 StromNZV). MaStR-Stammdaten bis Fotojahr 2026 (Q1) korrigieren – Fehler wirken 60 Monate auf Erlösobergrenze.`,
     });
   }
@@ -314,17 +329,23 @@ function buildStaticNarrative(utilityName, kpiSummary) {
   if (gasFillPct !== null) {
     if (gasFillPct < 25) {
       summaryItems.push({
-        prio: 1, type: 'critical', icon: '⛽',
+        prio: 1,
+        type: 'critical',
+        icon: '⛽',
         text: `Gasfüllstand DE ${Number(gasFillPct).toFixed(1)} % – kritisch unter EU-Mandat. Krisenplan aktivieren und Einspeisung sofort priorisieren (VO 2022/1032).`,
       });
     } else if (gasFillPct < 70) {
       summaryItems.push({
-        prio: 2, type: 'warning', icon: '⛽',
+        prio: 2,
+        type: 'warning',
+        icon: '⛽',
         text: `Gasfüllstand DE ${Number(gasFillPct).toFixed(1)} % – unter EU-90%-Mandat. Einspeisung priorisieren, Lieferverträge auf Abrufoptionen prüfen.`,
       });
     } else {
       summaryItems.push({
-        prio: 4, type: 'opportunity', icon: '✅',
+        prio: 4,
+        type: 'opportunity',
+        icon: '✅',
         text: `Gasfüllstand DE ${Number(gasFillPct).toFixed(1)} % – EU-Mandat-compliant (≥90 %: ${gasFillPct >= 90 ? 'erfüllt' : 'im Plan'}). Versorgungssicherheit gewährleistet.`,
       });
     }
@@ -332,30 +353,27 @@ function buildStaticNarrative(utilityName, kpiSummary) {
 
   // ── Redispatch Anlagen (Section 1) ───────────────────────────────────────
   const rdTotal =
-    kpiSummary?.redispatchExport?.totalCount ??
-    kpiSummary?.redispatchExport?.count ??
-    null;
+    kpiSummary?.redispatchExport?.totalCount ?? kpiSummary?.redispatchExport?.count ?? null;
   if (rdTotal !== null) {
     summaryItems.push({
-      prio: 2, type: 'warning', icon: '⚡',
+      prio: 2,
+      type: 'warning',
+      icon: '⚡',
       text: `Netzbetrieb: ${rdTotal} Redispatch-Anlagen ≥100 kW identifiziert – §12 StromNZV-Meldefrist und Redispatch-2.0-Einbindung sicherstellen.`,
     });
   }
 
   // ── EE-Portfolio (Section 2) ──────────────────────────────────────────────
   const pvKw =
-    kpiSummary?.solar?.totalCapacityKw ??
-    kpiSummary?.pvLocal?.['stats.totalCapacityKW'] ??
-    null;
-  const pvCount =
-    kpiSummary?.solar?.totalCount ??
-    kpiSummary?.pvLocal?.['stats.total'] ??
-    null;
+    kpiSummary?.solar?.totalCapacityKw ?? kpiSummary?.pvLocal?.['stats.totalCapacityKW'] ?? null;
+  const pvCount = kpiSummary?.solar?.totalCount ?? kpiSummary?.pvLocal?.['stats.total'] ?? null;
   if (pvKw !== null) {
     const pvMw = (Number(pvKw) / 1000).toFixed(1);
     const countPart = pvCount !== null ? `, ${pvCount} Anlagen` : '';
     summaryItems.push({
-      prio: 3, type: 'opportunity', icon: '🌱',
+      prio: 3,
+      type: 'opportunity',
+      icon: '🌱',
       text: `EE-Portfolio: ${pvMw} MW installierte PV-Leistung${countPart} im Netzgebiet (MaStR). Direktvermarktung und Redispatch-Pool weiter ausbauen.`,
     });
   }
@@ -367,19 +385,20 @@ function buildStaticNarrative(utilityName, kpiSummary) {
     null;
   if (co2Val !== null) {
     summaryItems.push({
-      prio: 3, type: 'opportunity', icon: '💡',
+      prio: 3,
+      type: 'opportunity',
+      icon: '💡',
       text: `CO₂-Intensität ${Math.round(Number(co2Val))} gCO₂eq/kWh – Grünstromzeiten für §14a-Steuerung und Kundenmarketing-Fenster nutzen.`,
     });
   }
 
   // ── Day-ahead price (Section 3) ───────────────────────────────────────────
-  const latestDaPrice =
-    kpiSummary?.prices?.latestPrice ??
-    kpiSummary?.prices?.currentPrice ??
-    null;
+  const latestDaPrice = kpiSummary?.prices?.latestPrice ?? kpiSummary?.prices?.currentPrice ?? null;
   if (latestDaPrice !== null) {
     summaryItems.push({
-      prio: 3, type: 'opportunity', icon: '📈',
+      prio: 3,
+      type: 'opportunity',
+      icon: '📈',
       text: `Energiemarkt: Day-Ahead-Preis ${Number(latestDaPrice).toFixed(2)} €/MWh – Beschaffungsoptimierung und Tarifanpassung quartalsweise prüfen.`,
     });
   }
@@ -393,21 +412,31 @@ function buildStaticNarrative(utilityName, kpiSummary) {
   if (sorted.length < 3) {
     if (!sorted.some((s) => s.icon === '🏛️')) {
       sorted.push({
-        prio: 5, type: 'opportunity', icon: '🏛️',
+        prio: 5,
+        type: 'opportunity',
+        icon: '🏛️',
         text: 'BNetzA EWK-Benchmarkdaten (Anschlussdauer, Digitalisierungsindex, Umsetzungsquote) wurden ausgewertet.',
       });
     }
     if (!sorted.some((s) => s.icon === '👥')) {
       sorted.push({
-        prio: 5, type: 'opportunity', icon: '👥',
+        prio: 5,
+        type: 'opportunity',
+        icon: '👥',
         text: 'Kunden & Vertrieb: Churn-Risiken und Neukundenpotenziale aus dem Netzgebiet wurden identifiziert.',
       });
     }
   }
 
-  const result = sorted.slice(0, 5).map((s) => `${s.icon} ${s.text}`).join('\n');
+  const result = sorted
+    .slice(0, 5)
+    .map((s) => `${s.icon} ${s.text}`)
+    .join('\n');
   if (!process.env.GEMINI_API_KEY) {
-    return result + '\n📋 Hinweis: Für eine KI-gestützte Analyse aktivieren Sie GEMINI_API_KEY in der .env-Konfiguration.';
+    return (
+      result +
+      '\n📋 Hinweis: Für eine KI-gestützte Analyse aktivieren Sie GEMINI_API_KEY in der .env-Konfiguration.'
+    );
   }
   return result;
 }
@@ -425,9 +454,7 @@ function buildStaticNarrative(utilityName, kpiSummary) {
  */
 async function gated(availableTools, toolNames, fn) {
   // If discover returned data, check gating; if empty set (preflight failed), allow all
-  const allKnown =
-    availableTools.size === 0 ||
-    toolNames.every((t) => availableTools.has(t));
+  const allKnown = availableTools.size === 0 || toolNames.every((t) => availableTools.has(t));
 
   if (!allKnown) {
     return { available: false, error: 'Tool not available at live backend' };
@@ -450,7 +477,10 @@ async function gated(availableTools, toolNames, fn) {
 function buildVnbSearchQueries(name) {
   const queries = [name];
   const stripped = name
-    .replace(/\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi, '')
+    .replace(
+      /\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi,
+      ''
+    )
     .replace(/\s{2,}/g, ' ')
     .trim();
   // cityStripped: the bare city/company token after removing all org suffixes
@@ -458,12 +488,14 @@ function buildVnbSearchQueries(name) {
   if (cityStripped) {
     queries.push(cityStripped);
   }
-  const hasOrgPrefix = /\b(Stadtwerke|Stadtwerk|Netz|Gemeindewerk|EVN|Energieversorgung)\b/i.test(name);
+  const hasOrgPrefix = /\b(Stadtwerke|Stadtwerk|Netz|Gemeindewerk|EVN|Energieversorgung)\b/i.test(
+    name
+  );
   // For bare city/short names: try BOTH plural and singular Stadtwerk variants.
   // e.g. "Eberbach" → "Stadtwerke Eberbach" AND "Stadtwerk Eberbach"
   if (!hasOrgPrefix && name.split(/\s+/).length <= 2) {
     queries.push(`Stadtwerke ${name}`); // plural
-    queries.push(`Stadtwerk ${name}`);  // singular – actual entity may use either form
+    queries.push(`Stadtwerk ${name}`); // singular – actual entity may use either form
   }
   // Cross-variant: "Stadtwerke" (plural) → also try "Stadtwerk" (singular) with stripped city.
   // e.g. "Stadtwerke Eberbach" → "Stadtwerk Eberbach"
@@ -487,7 +519,7 @@ function buildVnbSearchQueries(name) {
 function pickBestVnbPartner(marketPartnersResult) {
   const candidates =
     marketPartnersResult?.data?.results ||
-    marketPartnersResult?.results ||             // CR-23: sync MCP path (results at top level)
+    marketPartnersResult?.results || // CR-23: sync MCP path (results at top level)
     marketPartnersResult?.data?.data?.results ||
     marketPartnersResult?.data?.partners ||
     [];
@@ -538,7 +570,11 @@ function normalizeLookupText(value) {
 function tokenizeLookupText(value) {
   return normalizeLookupText(value)
     .split(' ')
-    .filter((t) => t.length > 1 && !/^(gmbh|ag|mbh|kg|co|und|stadtwerke|stadtwerk|netze|netz|energie|gmbhco)$/.test(t));
+    .filter(
+      (t) =>
+        t.length > 1 &&
+        !/^(gmbh|ag|mbh|kg|co|und|stadtwerke|stadtwerk|netze|netz|energie|gmbhco)$/.test(t)
+    );
 }
 
 function scoreVnbCandidate(candidate, query, region = '', explicitBdew = '') {
@@ -557,22 +593,27 @@ function scoreVnbCandidate(candidate, query, region = '', explicitBdew = '') {
   const queryNorm = normalizeLookupText(query);
   const cityNorm = normalizeLookupText(city);
   const hasSubstring = queryNorm && (nameNorm.includes(queryNorm) || queryNorm.includes(nameNorm));
-  const regionBoost = regionTokens.some((t) => nameTokens.includes(t) || cityNorm.includes(t)) ? 0.12 : 0;
+  const regionBoost = regionTokens.some((t) => nameTokens.includes(t) || cityNorm.includes(t))
+    ? 0.12
+    : 0;
   const roleBoost = roles.some((r) => /VNB|Verteilnetz|Netzbetreiber/i.test(r)) ? 0.15 : 0;
   const prefixBoost = String(bdewCode).startsWith('990') ? 0.08 : 0;
   const bdewBoost = explicitBdew && bdewCode === explicitBdew ? 1 : 0;
 
-  const score = Math.min(1, bdewBoost || (overlapScore * 0.65 + (hasSubstring ? 0.15 : 0) + regionBoost + roleBoost + prefixBoost));
+  const score = Math.min(
+    1,
+    bdewBoost ||
+      overlapScore * 0.65 + (hasSubstring ? 0.15 : 0) + regionBoost + roleBoost + prefixBoost
+  );
   return { score, name, city, bdew: bdewCode, mastrId: candidate?.mastrId || null, roles };
 }
 
 function resolveVnbCandidate(candidates, utilityName, region = '', explicitBdew = '') {
-  const normalized = (Array.isArray(candidates) ? candidates : [])
-    .map((c) => ({
-      ...c,
-      bdew: c?.bdew || c?.bdewCode || null,
-      mastrId: c?.mastrId || c?.gridOperatorMastrId || null,
-    }));
+  const normalized = (Array.isArray(candidates) ? candidates : []).map((c) => ({
+    ...c,
+    bdew: c?.bdew || c?.bdewCode || null,
+    mastrId: c?.mastrId || c?.gridOperatorMastrId || null,
+  }));
 
   if (!normalized.length) {
     return { selected: null, ambiguous: false, reason: 'no-candidates', ranking: [] };
@@ -601,7 +642,7 @@ function resolveVnbCandidate(candidates, utilityName, region = '', explicitBdew 
   const ambiguous = ranking.length > 1 && (confidence < 0.9 || margin < 0.08);
 
   return {
-    selected: ambiguous ? null : top?.candidate ?? null,
+    selected: ambiguous ? null : (top?.candidate ?? null),
     ambiguous,
     reason: ambiguous ? 'low-confidence-or-close-match' : 'high-confidence-match',
     ranking,
@@ -652,7 +693,11 @@ function validateVnbUniqueness(currentKpi, currentReportId, logger) {
       const progressFile = progressPath(entry.reportId);
       if (!fs.existsSync(progressFile)) continue;
       let refProg;
-      try { refProg = JSON.parse(fs.readFileSync(progressFile, 'utf-8')); } catch { continue; }
+      try {
+        refProg = JSON.parse(fs.readFileSync(progressFile, 'utf-8'));
+      } catch {
+        continue;
+      }
       if (refProg.status !== 'completed' || !refProg.kpiSummaryFlat) continue;
 
       const refKpi = refProg.kpiSummaryFlat;
@@ -683,6 +728,173 @@ module.exports = {
   },
 
   actions: {
+    /**
+     * Get available BDEW code options for a utility name.
+     *
+     * When a user provides a utility name without a BDEW code, this endpoint returns
+     * all matching BDEW codes for different market roles (Lieferant, Bilanzgruppe, etc.).
+     * The user can then select one and provide it to the generate endpoint.
+     *
+     * Returns: { options: [ { bdew, name, roles: [...] }, ... ] }
+     */
+    getBdewOptions: {
+      rest: 'POST /get-bdew-options',
+      params: {
+        utilityName: { type: 'string', min: 1 },
+        region: { type: 'string', optional: true },
+      },
+      openapi: {
+        summary: 'Get available BDEW codes for a utility name',
+        tags: ['Utility Report'],
+        description: `Returns all BDEW codes available for the given utility name, grouped by market role.
+This is useful when a user wants to generate a report but doesn't know the BDEW code.
+A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, Bilanzgruppe, etc.).`,
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['utilityName'],
+                properties: {
+                  utilityName: {
+                    type: 'string',
+                    description: 'Name of the energy utility',
+                    example: 'Stadtwerke Frankenthal',
+                  },
+                  region: {
+                    type: 'string',
+                    description: 'Optional region/city for context',
+                    example: 'Frankenthal',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Available BDEW code options',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    utilityName: { type: 'string' },
+                    optionsCount: { type: 'number' },
+                    options: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          bdew: {
+                            type: 'string',
+                            description: 'BDEW code (e.g., "9907462000006")',
+                          },
+                          name: { type: 'string', description: 'VNB name' },
+                          city: { type: 'string', nullable: true },
+                          roles: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Market roles (e.g., ["Lieferant", "Bilanzgruppe"])',
+                          },
+                        },
+                      },
+                    },
+                    message: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+
+      async handler(ctx) {
+        const { utilityName, region = '' } = ctx.params;
+        const cernionToken = ctx.meta?.cernionToken || process.env.CERNION_TOKEN;
+
+        if (!cernionToken) {
+          return {
+            success: false,
+            error: 'CERNION_TOKEN not configured',
+            utilityName,
+          };
+        }
+
+        try {
+          // Build search queries similar to _resolveVnb logic
+          const searchQueries = buildVnbSearchQueries(utilityName);
+          const bdewOptions = new Map(); // key: bdew code, value: { bdew, name, city, roles }
+
+          for (const query of searchQueries) {
+            const mp = await callBroker(ctx, 'grid-operations.marketPartners', {
+              query,
+              limit: 50, // Get all available options
+            });
+
+            if (mp?.available === false) {
+              this.logger.warn(
+                `[UtilityReport.getBdewOptions] marketPartners failed for "${query}": ${mp.error}`
+              );
+              continue;
+            }
+
+            const rawCandidates =
+              mp?.data?.results ||
+              mp?.results ||
+              mp?.data?.data?.results ||
+              mp?.data?.partners ||
+              [];
+
+            for (const c of rawCandidates) {
+              const bdew = c.bdewCode || c.bdew;
+              if (!bdew) continue;
+
+              const key = String(bdew);
+              if (!bdewOptions.has(key)) {
+                const roles = Array.isArray(c.roles)
+                  ? c.roles
+                  : Array.isArray(c.marketRoles)
+                    ? c.marketRoles
+                    : [];
+
+                bdewOptions.set(key, {
+                  bdew: key,
+                  name: c.name || c.companyName || c.displayName || utilityName,
+                  city: c.city || c.ort || null,
+                  roles: roles,
+                });
+              }
+            }
+          }
+
+          const options = Array.from(bdewOptions.values());
+
+          return {
+            success: true,
+            utilityName,
+            optionsCount: options.length,
+            options: options,
+            message:
+              options.length === 0
+                ? 'Keine BDEW-Codes gefunden. Bitte überprüfen Sie den Namen oder wenden Sie sich an den Support.'
+                : options.length === 1
+                  ? 'Ein BDEW-Code gefunden. Bitte verwenden Sie diesen für die Reportgenerierung.'
+                  : `${options.length} BDEW-Codes gefunden für verschiedene Marktrolle. Bitte wählen Sie einen aus.`,
+          };
+        } catch (err) {
+          this.logger.error(`[UtilityReport.getBdewOptions] Error: ${err.message}`);
+          return {
+            success: false,
+            error: err.message,
+            utilityName,
+          };
+        }
+      },
+    },
+
     /**
      * Generate (or resume) a 360° utility management report.
      * Responds immediately with reportId; use /status/:reportId to poll.
@@ -750,11 +962,19 @@ module.exports = {
               examples: {
                 stadtwerkeHeidelberg: {
                   summary: 'Stadtwerke Heidelberg',
-                  value: { utilityName: 'Stadtwerke Heidelberg GmbH', region: 'Heidelberg', bdew: '9907462000006' },
+                  value: {
+                    utilityName: 'Stadtwerke Heidelberg GmbH',
+                    region: 'Heidelberg',
+                    bdew: '9907462000006',
+                  },
                 },
                 twlNetze: {
                   summary: 'TWL Netze GmbH',
-                  value: { utilityName: 'TWL Netze GmbH', region: 'Ludwigshafen', bdew: '9907462000013' },
+                  value: {
+                    utilityName: 'TWL Netze GmbH',
+                    region: 'Ludwigshafen',
+                    bdew: '9907462000013',
+                  },
                 },
               },
             },
@@ -792,6 +1012,14 @@ module.exports = {
         } = ctx.params;
         const cernionToken = ctx.meta?.cernionToken || process.env.CERNION_TOKEN;
         const today = new Date().toISOString().slice(0, 10);
+
+        // ── Warn if no BDEW provided; suggest using get-bdew-options ─────────
+        if (!bdew || bdew.trim() === '') {
+          this.logger.warn(
+            `[UtilityReport.generate] No BDEW code provided for "${utilityName}". Report quality may be affected. ` +
+              'Recommended: use /get-bdew-options to find available BDEW codes first.'
+          );
+        }
 
         // ── Check cache ──────────────────────────────────────────────────────
         if (!forceRefresh) {
@@ -908,7 +1136,8 @@ module.exports = {
           phaseName: phaseNames[prog.phase] ?? 'Unbekannt',
           progress: progressPct,
           error: prog.error ?? null,
-          downloadUrl: prog.status === 'completed' ? `/api/utility-report/download/${reportId}` : null,
+          downloadUrl:
+            prog.status === 'completed' ? `/api/utility-report/download/${reportId}` : null,
           vnbIdentification: prog.meta?.vnbIdentification ?? null, // CR-24: transparent VNB selection
           identityMismatch: prog.meta?.identityMismatch ?? null,
         };
@@ -937,13 +1166,13 @@ module.exports = {
                 schema: {
                   type: 'object',
                   properties: {
-                    success:      { type: 'boolean' },
-                    status:       { type: 'string', enum: ['ok', 'error'] },
+                    success: { type: 'boolean' },
+                    status: { type: 'string', enum: ['ok', 'error'] },
                     tokenPresent: { type: 'boolean' },
                     mcpReachable: { type: 'boolean' },
-                    toolCount:    { type: 'number' },
-                    latencyMs:    { type: 'number' },
-                    error:        { type: 'string', nullable: true },
+                    toolCount: { type: 'number' },
+                    latencyMs: { type: 'number' },
+                    error: { type: 'string', nullable: true },
                   },
                 },
               },
@@ -1017,7 +1246,12 @@ module.exports = {
         }
         if (prog.status !== 'completed' || !prog.results) {
           ctx.meta.$statusCode = 409;
-          return { success: false, error: 'Report is not yet completed; re-run generate instead', reportId, status: prog.status };
+          return {
+            success: false,
+            error: 'Report is not yet completed; re-run generate instead',
+            reportId,
+            status: prog.status,
+          };
         }
 
         const utilityName = prog.utilityName ?? '';
@@ -1122,7 +1356,8 @@ module.exports = {
       openapi: {
         summary: 'Download a completed HTML report',
         tags: ['Utility Report'],
-        description: 'Returns the raw HTML document. Open in a browser and use Print → Save as PDF.',
+        description:
+          'Returns the raw HTML document. Open in a browser and use Print → Save as PDF.',
         responses: {
           200: { description: 'HTML report document' },
           404: { description: 'Report not found or not yet complete' },
@@ -1136,7 +1371,12 @@ module.exports = {
           const prog = loadProgress(reportId);
           if (prog && prog.status === 'generating') {
             ctx.meta.$statusCode = 202;
-            return { success: false, message: 'Report still generating', status: 'generating', reportId };
+            return {
+              success: false,
+              message: 'Report still generating',
+              status: 'generating',
+              reportId,
+            };
           }
           if (prog && prog.status === 'error') {
             ctx.meta.$statusCode = 422;
@@ -1167,1055 +1407,1190 @@ module.exports = {
   // ─── Methods ─────────────────────────────────────────────────────────────────
 
   methods: {
+    // ─── Pipeline ───────────────────────────────────────────────────────────────
 
-  // ─── Pipeline ───────────────────────────────────────────────────────────────
+    /**
+     * Sequential 4-phase pipeline. Saves progress after each phase for resumability.
+     */
+    async _runPipeline(ctx, progress, cernionToken, today) {
+      const { utilityName, region, bdew } = progress;
+      const p = progress;
 
-  /**
-   * Sequential 4-phase pipeline. Saves progress after each phase for resumability.
-   */
-  async _runPipeline(ctx, progress, cernionToken, today) {
-    const { utilityName, region, bdew } = progress;
-    const p = progress;
+      // CR-22: ensure the resolved token (which may have come from process.env as fallback)
+      // is always present in ctx.meta so every callBroker() call propagates it to downstream
+      // services (e.g. grid-operations.marketPartners reads ctx.meta.cernionToken for MCP auth).
+      if (cernionToken) ctx.meta.cernionToken = cernionToken;
 
-    // CR-22: ensure the resolved token (which may have come from process.env as fallback)
-    // is always present in ctx.meta so every callBroker() call propagates it to downstream
-    // services (e.g. grid-operations.marketPartners reads ctx.meta.cernionToken for MCP auth).
-    if (cernionToken) ctx.meta.cernionToken = cernionToken;
+      // ──────────────────────────────────────────────────────────────────────────
+      // PHASE 0: Discover available tools
+      // ──────────────────────────────────────────────────────────────────────────
+      if (p.phase <= 0) {
+        this.logger.info(`[UtilityReport] ${p.reportId} – Phase 0: Discover tools`);
+        const availableTools = await discoverAvailableTools(cernionToken);
+        p.meta.availableTools = Array.from(availableTools);
+        p.phase = 1;
+        saveProgress(p);
+      }
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // PHASE 0: Discover available tools
-    // ──────────────────────────────────────────────────────────────────────────
-    if (p.phase <= 0) {
-      this.logger.info(`[UtilityReport] ${p.reportId} – Phase 0: Discover tools`);
-      const availableTools = await discoverAvailableTools(cernionToken);
-      p.meta.availableTools = Array.from(availableTools);
-      p.phase = 1;
-      saveProgress(p);
-    }
+      const availableTools = new Set(p.meta.availableTools || []);
 
-    const availableTools = new Set(p.meta.availableTools || []);
+      // ──────────────────────────────────────────────────────────────────────────
+      // PHASE 1: Identification – resolve VNB from name/BDEW (CR-18: tolerant)
+      // ──────────────────────────────────────────────────────────────────────────
+      if (p.phase <= 1) {
+        this.logger.info(`[UtilityReport] ${p.reportId} – Phase 1: Identification`);
 
-    // ──────────────────────────────────────────────────────────────────────────
-    // PHASE 1: Identification – resolve VNB from name/BDEW (CR-18: tolerant)
-    // ──────────────────────────────────────────────────────────────────────────
-    if (p.phase <= 1) {
-      this.logger.info(`[UtilityReport] ${p.reportId} – Phase 1: Identification`);
-
-      // If BDEW provided directly, skip the search step entirely.
-      let firstPartner = null;
-      if (!bdew) {
-        // Step 1a: try cernion_market_partners with each alternative query variant.
-        // buildVnbSearchQueries generates: original + stripped city + "Stadtwerke <city>".
-        const searchQueries = buildVnbSearchQueries(utilityName);
-        // CR-19: accumulate ALL market-partner candidates across query variants (keyed by BDEW code)
-        const allCandidatesMap = new Map();
-        for (const query of searchQueries) {
-          // CR-23: run all queries (no early break) to build the richest candidate pool
-          const mp = await callBroker(ctx, 'grid-operations.marketPartners', { query, limit: 10 });
-          // CR-24: detect MCP connection failure (callBroker never throws – returns { available: false })
-          // This distinguishes "MCP rejected / 403 token" from "no partners found for this name".
-          if (mp?.available === false) {
-            const errMsg = mp.error || 'MCP-Verbindungsfehler';
-            this.logger.warn(`[UtilityReport] marketPartners MCP error for query "${query}": ${errMsg}`);
-            if (!p.meta.mcpError) p.meta.mcpError = errMsg; // save first error for user message
-            continue;
-          }
-          // CR-23: handle both async path (mp.data.results) and sync path (mp.results)
-          const rawCandidates =
-            mp?.data?.results ||
-            mp?.results ||                        // CR-23: sync MCP path
-            mp?.data?.data?.results ||
-            mp?.data?.partners ||
-            [];
-          for (const c of rawCandidates) {
-            let mastrId = c.mastrId || c.gridOperatorMastrId || null;
-            if (!mastrId && c.mastrIds && typeof c.mastrIds === 'object') {
-              mastrId = c.mastrIds.SNB || c.mastrIds.GNB || Object.values(c.mastrIds)[0] || null;
+        // If BDEW provided directly, skip the search step entirely.
+        let firstPartner = null;
+        if (!bdew) {
+          // Step 1a: try cernion_market_partners with each alternative query variant.
+          // buildVnbSearchQueries generates: original + stripped city + "Stadtwerke <city>".
+          const searchQueries = buildVnbSearchQueries(utilityName);
+          // CR-19: accumulate ALL market-partner candidates across query variants (keyed by BDEW code)
+          const allCandidatesMap = new Map();
+          for (const query of searchQueries) {
+            // CR-23: run all queries (no early break) to build the richest candidate pool
+            const mp = await callBroker(ctx, 'grid-operations.marketPartners', {
+              query,
+              limit: 10,
+            });
+            // CR-24: detect MCP connection failure (callBroker never throws – returns { available: false })
+            // This distinguishes "MCP rejected / 403 token" from "no partners found for this name".
+            if (mp?.available === false) {
+              const errMsg = mp.error || 'MCP-Verbindungsfehler';
+              this.logger.warn(
+                `[UtilityReport] marketPartners MCP error for query "${query}": ${errMsg}`
+              );
+              if (!p.meta.mcpError) p.meta.mcpError = errMsg; // save first error for user message
+              continue;
             }
-            const key = c.bdewCode || c.bdew || c.name || c.companyName || `anon-${allCandidatesMap.size}`; // CR-23: +companyName
-            if (!allCandidatesMap.has(key)) {
-              allCandidatesMap.set(key, {
-                name: c.name || c.companyName || c.displayName || '', // CR-23: +companyName
-                bdew: c.bdewCode || c.bdew || null,
-                roles: Array.isArray(c.roles) ? c.roles : (Array.isArray(c.marketRoles) ? c.marketRoles : []),
-                mastrId,
-                city: c.city || c.contacts?.[0]?.city || '', // CR-23: extract city from contacts array
-              });
+            // CR-23: handle both async path (mp.data.results) and sync path (mp.results)
+            const rawCandidates =
+              mp?.data?.results ||
+              mp?.results || // CR-23: sync MCP path
+              mp?.data?.data?.results ||
+              mp?.data?.partners ||
+              [];
+            for (const c of rawCandidates) {
+              let mastrId = c.mastrId || c.gridOperatorMastrId || null;
+              if (!mastrId && c.mastrIds && typeof c.mastrIds === 'object') {
+                mastrId = c.mastrIds.SNB || c.mastrIds.GNB || Object.values(c.mastrIds)[0] || null;
+              }
+              const key =
+                c.bdewCode || c.bdew || c.name || c.companyName || `anon-${allCandidatesMap.size}`; // CR-23: +companyName
+              if (!allCandidatesMap.has(key)) {
+                allCandidatesMap.set(key, {
+                  name: c.name || c.companyName || c.displayName || '', // CR-23: +companyName
+                  bdew: c.bdewCode || c.bdew || null,
+                  roles: Array.isArray(c.roles)
+                    ? c.roles
+                    : Array.isArray(c.marketRoles)
+                      ? c.marketRoles
+                      : [],
+                  mastrId,
+                  city: c.city || c.contacts?.[0]?.city || '', // CR-23: extract city from contacts array
+                });
+              }
             }
           }
-        }
-        // CR-19: persist all candidates so they can be shown in the report
-        p.meta.allPartners = Array.from(allCandidatesMap.values());
+          // CR-19: persist all candidates so they can be shown in the report
+          p.meta.allPartners = Array.from(allCandidatesMap.values());
 
-        // CR-37: Classify all found partners by market role.
-        // Primary: explicit roles[] array; secondary: BDEW prefix heuristic
-        //   990x → VNB (Verteilnetzbetreiber)
-        //   991x → Lieferant / Vertrieb
-        //   992x → MSB (Messstellenbetreiber)
-        //   993x → BKV (Bilanzkreisverantwortlicher)
-        //   994x → Direktvermarkter
-        // Using .find() keeps only the first (best-matching) entry per role.
-        const classifyPartner = (rolePattern, bdewPrefix) =>
-          p.meta.allPartners.find((c) => {
-            const roles = c.roles ?? [];
-            if (roles.some((r) => rolePattern.test(r))) return true;
-            return !roles.length && !!c.bdew?.startsWith(bdewPrefix);
-          });
-        p.meta.marktRollenProfile = {
-          vnb:              classifyPartner(/VNB|Verteilnetz|Netzbetreiber/i, '990'),
-          lieferant:        classifyPartner(/Lieferant|Vertrieb/i, '991'),
-          msb:              classifyPartner(/MSB|Messtellen/i, '992'),
-          bkv:              classifyPartner(/BKV|Bilanzkreis/i, '993'),
-          direktvermarkter: classifyPartner(/Direktvermarkt|DV\b/i, '994'),
-        };
+          // CR-37: Classify all found partners by market role.
+          // Primary: explicit roles[] array; secondary: BDEW prefix heuristic
+          //   990x → VNB (Verteilnetzbetreiber)
+          //   991x → Lieferant / Vertrieb
+          //   992x → MSB (Messstellenbetreiber)
+          //   993x → BKV (Bilanzkreisverantwortlicher)
+          //   994x → Direktvermarkter
+          // Using .find() keeps only the first (best-matching) entry per role.
+          const classifyPartner = (rolePattern, bdewPrefix) =>
+            p.meta.allPartners.find((c) => {
+              const roles = c.roles ?? [];
+              if (roles.some((r) => rolePattern.test(r))) return true;
+              return !roles.length && !!c.bdew?.startsWith(bdewPrefix);
+            });
+          p.meta.marktRollenProfile = {
+            vnb: classifyPartner(/VNB|Verteilnetz|Netzbetreiber/i, '990'),
+            lieferant: classifyPartner(/Lieferant|Vertrieb/i, '991'),
+            msb: classifyPartner(/MSB|Messtellen/i, '992'),
+            bkv: classifyPartner(/BKV|Bilanzkreis/i, '993'),
+            direktvermarkter: classifyPartner(/Direktvermarkt|DV\b/i, '994'),
+          };
 
-        // BUG-CERNION-042: score candidates and detect ambiguous selection before choosing one.
-        if (allCandidatesMap.size > 0) {
-          const resolution = resolveVnbCandidate(p.meta.allPartners, utilityName, region, bdew);
-          const rankingPreview = resolution.ranking.slice(0, 5).map((r) => ({
-            name: r.name,
-            bdew: r.bdew,
-            city: r.city,
-            score: Number(r.score.toFixed(3)),
-          }));
+          // BUG-CERNION-042: score candidates and detect ambiguous selection before choosing one.
+          if (allCandidatesMap.size > 0) {
+            const resolution = resolveVnbCandidate(p.meta.allPartners, utilityName, region, bdew);
+            const rankingPreview = resolution.ranking.slice(0, 5).map((r) => ({
+              name: r.name,
+              bdew: r.bdew,
+              city: r.city,
+              score: Number(r.score.toFixed(3)),
+            }));
 
-          if (resolution.ambiguous && !p.confirmAmbiguousVnb) {
+            if (resolution.ambiguous && !p.confirmAmbiguousVnb) {
+              p.meta.vnbIdentification = {
+                queriesTried: searchQueries,
+                candidatesFound: allCandidatesMap.size,
+                mcpFailed: !!p.meta.mcpError,
+                ambiguous: true,
+                reason: resolution.reason,
+                topCandidates: rankingPreview,
+                selected: null,
+              };
+              saveProgress(p);
+              const options = rankingPreview
+                .map(
+                  (r) =>
+                    `${r.name || 'n/v'} · BDEW ${r.bdew || 'n/v'}${r.city ? ` · ${r.city}` : ''} · Score ${r.score}`
+                )
+                .join('\n');
+              const err = new Error(
+                `Mehrdeutige VNB-Suche für „${utilityName}".\n` +
+                  `Bitte Auswahl bestätigen (confirmAmbiguousVnb=true) oder BDEW-Code explizit übergeben.\n` +
+                  `Kandidaten:\n${options}`
+              );
+              err.code = 'VNB_AMBIGUOUS';
+              throw err;
+            }
+
+            const selected = resolution.selected || resolution.ranking?.[0]?.candidate || null;
+            if (
+              selected?.bdew ||
+              selected?.bdewCode ||
+              selected?.mastrId ||
+              selected?.gridOperatorMastrId
+            ) {
+              firstPartner = selected;
+              this.logger.info(`[UtilityReport] VNB resolved: ${firstPartner.name || utilityName}`);
+            }
+
+            // CR-24 + BUG-CERNION-042: record transparent ranking/selection details.
             p.meta.vnbIdentification = {
               queriesTried: searchQueries,
               candidatesFound: allCandidatesMap.size,
               mcpFailed: !!p.meta.mcpError,
-              ambiguous: true,
+              ambiguous: resolution.ambiguous,
               reason: resolution.reason,
               topCandidates: rankingPreview,
-              selected: null,
+              selected: firstPartner
+                ? {
+                    name: firstPartner.name,
+                    bdew: firstPartner.bdew,
+                    mastrId: firstPartner.mastrId || firstPartner.gridOperatorMastrId || null,
+                    selectionReason: resolution.reason,
+                  }
+                : null,
             };
-            saveProgress(p);
-            const options = rankingPreview
-              .map((r) => `${r.name || 'n/v'} · BDEW ${r.bdew || 'n/v'}${r.city ? ` · ${r.city}` : ''} · Score ${r.score}`)
-              .join('\n');
-            const err = new Error(
-              `Mehrdeutige VNB-Suche für „${utilityName}".\n` +
-              `Bitte Auswahl bestätigen (confirmAmbiguousVnb=true) oder BDEW-Code explizit übergeben.\n` +
-              `Kandidaten:\n${options}`
-            );
-            err.code = 'VNB_AMBIGUOUS';
-            throw err;
           }
 
-          const selected = resolution.selected || resolution.ranking?.[0]?.candidate || null;
-          if (selected?.bdew || selected?.bdewCode || selected?.mastrId || selected?.gridOperatorMastrId) {
-            firstPartner = selected;
-            this.logger.info(`[UtilityReport] VNB resolved: ${firstPartner.name || utilityName}`);
-          }
-
-          // CR-24 + BUG-CERNION-042: record transparent ranking/selection details.
-          p.meta.vnbIdentification = {
-            queriesTried: searchQueries,
-            candidatesFound: allCandidatesMap.size,
-            mcpFailed: !!p.meta.mcpError,
-            ambiguous: resolution.ambiguous,
-            reason: resolution.reason,
-            topCandidates: rankingPreview,
-            selected: firstPartner ? {
-              name: firstPartner.name,
-              bdew: firstPartner.bdew,
-              mastrId: firstPartner.mastrId || firstPartner.gridOperatorMastrId || null,
-              selectionReason: resolution.reason,
-            } : null,
-          };
-        }
-
-        // Step 1b: still nothing → derive city name and try a local installations lookup
-        // to extract the SNB directly from NAP data of any installation in that city.
-        if (!firstPartner) {
-          const cityGuess = utilityName
-            .replace(/\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi, '')
-            .replace(/\s{2,}/g, ' ')
-            .trim()
-            .split(/\s+/)[0];
-          if (cityGuess && cityGuess.length > 2) {
-            this.logger.info(`[UtilityReport] Trying city-SNB fallback for: ${cityGuess}`);
-            try {
-              const localInst = await callMcpDirect(
-                'cernion_installations_local',
-                // CR-20: use type:'all' – small VNBs may have no solar with NAP data
-                { type: 'all', gemeinde: cityGuess, limit: 1, includeStats: false, format: 'detailed' },
-                cernionToken
-              );
-              const inst0 =
-                localInst?.data?.installations?.[0] ??
-                localInst?.installations?.[0] ??
-                null;
-              const snb =
-                inst0?.napData?.netzbetreiberMastrNummer ??
-                inst0?.nap?.netzbetreiberMaStRNummer ??
-                null;
-              if (snb) {
-                p.meta.resolvedMastrId = snb;
-                p.meta.resolvedBdew = null;
-                p.meta.resolvedVnbName = utilityName;
-                this.logger.info(`[UtilityReport] SNB resolved via city fallback: ${snb} (${cityGuess})`);
+          // Step 1b: still nothing → derive city name and try a local installations lookup
+          // to extract the SNB directly from NAP data of any installation in that city.
+          if (!firstPartner) {
+            const cityGuess = utilityName
+              .replace(
+                /\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi,
+                ''
+              )
+              .replace(/\s{2,}/g, ' ')
+              .trim()
+              .split(/\s+/)[0];
+            if (cityGuess && cityGuess.length > 2) {
+              this.logger.info(`[UtilityReport] Trying city-SNB fallback for: ${cityGuess}`);
+              try {
+                const localInst = await callMcpDirect(
+                  'cernion_installations_local',
+                  // CR-20: use type:'all' – small VNBs may have no solar with NAP data
+                  {
+                    type: 'all',
+                    gemeinde: cityGuess,
+                    limit: 1,
+                    includeStats: false,
+                    format: 'detailed',
+                  },
+                  cernionToken
+                );
+                const inst0 =
+                  localInst?.data?.installations?.[0] ?? localInst?.installations?.[0] ?? null;
+                const snb =
+                  inst0?.napData?.netzbetreiberMastrNummer ??
+                  inst0?.nap?.netzbetreiberMaStRNummer ??
+                  null;
+                if (snb) {
+                  p.meta.resolvedMastrId = snb;
+                  p.meta.resolvedBdew = null;
+                  p.meta.resolvedVnbName = utilityName;
+                  this.logger.info(
+                    `[UtilityReport] SNB resolved via city fallback: ${snb} (${cityGuess})`
+                  );
+                }
+              } catch (e) {
+                this.logger.warn(`[UtilityReport] City-SNB fallback failed: ${e.message}`);
               }
-            } catch (e) {
-              this.logger.warn(`[UtilityReport] City-SNB fallback failed: ${e.message}`);
-            }
-          }
-        }
-      }
-
-      // BUG-CERNION-042: Even with explicit BDEW, collect partner candidates for
-      // identity consistency checks (BDEW ↔ MaStR) and transparent metadata.
-      if (bdew) {
-        const searchQueries = buildVnbSearchQueries(utilityName);
-        const allCandidatesMap = new Map();
-
-        for (const query of searchQueries) {
-          const mp = await callBroker(ctx, 'grid-operations.marketPartners', { query, limit: 10 });
-          if (mp?.available === false) {
-            const errMsg = mp.error || 'MCP-Verbindungsfehler';
-            this.logger.warn(`[UtilityReport] marketPartners MCP error for query "${query}": ${errMsg}`);
-            if (!p.meta.mcpError) p.meta.mcpError = errMsg;
-            continue;
-          }
-
-          const rawCandidates =
-            mp?.data?.results ||
-            mp?.results ||
-            mp?.data?.data?.results ||
-            mp?.data?.partners ||
-            [];
-
-          for (const c of rawCandidates) {
-            let mastrId = c.mastrId || c.gridOperatorMastrId || null;
-            if (!mastrId && c.mastrIds && typeof c.mastrIds === 'object') {
-              mastrId = c.mastrIds.SNB || c.mastrIds.GNB || Object.values(c.mastrIds)[0] || null;
-            }
-
-            const key = c.bdewCode || c.bdew || c.name || c.companyName || `anon-${allCandidatesMap.size}`;
-            if (!allCandidatesMap.has(key)) {
-              allCandidatesMap.set(key, {
-                name: c.name || c.companyName || c.displayName || '',
-                bdew: c.bdewCode || c.bdew || null,
-                roles: Array.isArray(c.roles) ? c.roles : (Array.isArray(c.marketRoles) ? c.marketRoles : []),
-                mastrId,
-                city: c.city || c.contacts?.[0]?.city || '',
-              });
             }
           }
         }
 
-        // Keep earlier candidate pool when it already exists; otherwise use explicit-BDEW search results.
-        if (!Array.isArray(p.meta.allPartners) || p.meta.allPartners.length === 0) {
-          p.meta.allPartners = Array.from(allCandidatesMap.values());
+        // BUG-CERNION-042: Even with explicit BDEW, collect partner candidates for
+        // identity consistency checks (BDEW ↔ MaStR) and transparent metadata.
+        if (bdew) {
+          const searchQueries = buildVnbSearchQueries(utilityName);
+          const allCandidatesMap = new Map();
+
+          for (const query of searchQueries) {
+            const mp = await callBroker(ctx, 'grid-operations.marketPartners', {
+              query,
+              limit: 10,
+            });
+            if (mp?.available === false) {
+              const errMsg = mp.error || 'MCP-Verbindungsfehler';
+              this.logger.warn(
+                `[UtilityReport] marketPartners MCP error for query "${query}": ${errMsg}`
+              );
+              if (!p.meta.mcpError) p.meta.mcpError = errMsg;
+              continue;
+            }
+
+            const rawCandidates =
+              mp?.data?.results ||
+              mp?.results ||
+              mp?.data?.data?.results ||
+              mp?.data?.partners ||
+              [];
+
+            for (const c of rawCandidates) {
+              let mastrId = c.mastrId || c.gridOperatorMastrId || null;
+              if (!mastrId && c.mastrIds && typeof c.mastrIds === 'object') {
+                mastrId = c.mastrIds.SNB || c.mastrIds.GNB || Object.values(c.mastrIds)[0] || null;
+              }
+
+              const key =
+                c.bdewCode || c.bdew || c.name || c.companyName || `anon-${allCandidatesMap.size}`;
+              if (!allCandidatesMap.has(key)) {
+                allCandidatesMap.set(key, {
+                  name: c.name || c.companyName || c.displayName || '',
+                  bdew: c.bdewCode || c.bdew || null,
+                  roles: Array.isArray(c.roles)
+                    ? c.roles
+                    : Array.isArray(c.marketRoles)
+                      ? c.marketRoles
+                      : [],
+                  mastrId,
+                  city: c.city || c.contacts?.[0]?.city || '',
+                });
+              }
+            }
+          }
+
+          // Keep earlier candidate pool when it already exists; otherwise use explicit-BDEW search results.
+          if (!Array.isArray(p.meta.allPartners) || p.meta.allPartners.length === 0) {
+            p.meta.allPartners = Array.from(allCandidatesMap.values());
+          }
+
+          const explicitPartner = findPartnerByBdew(p.meta.allPartners, bdew);
+          if (explicitPartner) {
+            firstPartner = explicitPartner;
+            p.meta.vnbIdentification = {
+              ...(p.meta.vnbIdentification || {}),
+              ambiguous: false,
+              reason: 'explicit-bdew',
+              selected: {
+                name: explicitPartner.name,
+                bdew: explicitPartner.bdew,
+                mastrId: explicitPartner.mastrId || explicitPartner.gridOperatorMastrId || null,
+                selectionReason: 'explicit-bdew',
+              },
+            };
+            this.logger.info(
+              `[UtilityReport] VNB resolved via explicit BDEW match: ${explicitPartner.name || utilityName}`
+            );
+          }
         }
 
-        const explicitPartner = findPartnerByBdew(p.meta.allPartners, bdew);
-        if (explicitPartner) {
-          firstPartner = explicitPartner;
-          p.meta.vnbIdentification = {
-            ...(p.meta.vnbIdentification || {}),
-            ambiguous: false,
-            reason: 'explicit-bdew',
-            selected: {
-              name: explicitPartner.name,
-              bdew: explicitPartner.bdew,
-              mastrId: explicitPartner.mastrId || explicitPartner.gridOperatorMastrId || null,
-              selectionReason: 'explicit-bdew',
-            },
+        // Merge partner fields (when partner was found via market-partners)
+        if (firstPartner) {
+          p.meta.resolvedBdew = bdew || firstPartner?.bdewCode || firstPartner?.bdew || null;
+          p.meta.resolvedMastrId =
+            firstPartner?.mastrId || firstPartner?.gridOperatorMastrId || null;
+          p.meta.resolvedVnbName = firstPartner?.name || firstPartner?.displayName || utilityName;
+        } else if (bdew) {
+          p.meta.resolvedBdew = bdew;
+          p.meta.resolvedVnbName = utilityName;
+        }
+        // resolvedVnbName fallback
+        if (!p.meta.resolvedVnbName) p.meta.resolvedVnbName = utilityName;
+
+        // CR-37: Guarantee resolvedBdew is the VNB (Verteilnetzbetreiber) code.
+        // pickBestVnbPartner already prefers the VNB role entry; this override is a
+        // safety net for cases where roles[] is empty and only the BDEW prefix
+        // distinguishes the Netzbetreiber entry from a Lieferant / MSB entry.
+        const _vnbProfile = p.meta.marktRollenProfile?.vnb;
+        if (_vnbProfile?.bdew && p.meta.resolvedBdew !== _vnbProfile.bdew) {
+          this.logger.info(
+            `[UtilityReport] CR-37: resolvedBdew corrected to VNB code ${_vnbProfile.bdew}` +
+              ` (was: ${p.meta.resolvedBdew})`
+          );
+          p.meta.resolvedBdew = _vnbProfile.bdew;
+          if (_vnbProfile.name) p.meta.resolvedVnbName = _vnbProfile.name;
+          if (_vnbProfile.mastrId && !p.meta.resolvedMastrId) {
+            p.meta.resolvedMastrId = _vnbProfile.mastrId;
+          }
+        }
+
+        // Step 2: resolve MaStR-ID from BDEW via vnbLookup (if BDEW found but no MaStR-ID yet).
+        // CR-39: With CR-37 guaranteeing resolvedBdew is the VNB code (990x), this lookup
+        // now reliably targets the Verteilnetz entry in the VNB registry — not a Lieferant.
+        if (p.meta.resolvedBdew) {
+          const previousMastr = p.meta.resolvedMastrId;
+          const vnbLookup = await callBroker(ctx, 'grid-operations.vnbLookup', {
+            bdew: p.meta.resolvedBdew,
+            limit: 1,
+          });
+          p.meta.vnbLookup = vnbLookup.data ?? null;
+          const vnbData = vnbLookup.data?.data ?? vnbLookup.data;
+          const mastrFromLookup =
+            vnbData?.mastrId ||
+            vnbData?.data?.mastrId ||
+            vnbData?.mastrIds?.[0] ||
+            vnbData?.data?.mastrIds?.[0] ||
+            null;
+          if (mastrFromLookup) {
+            p.meta.resolvedMastrId = mastrFromLookup;
+            this.logger.info(`[UtilityReport] resolvedMastrId via vnbLookup: ${mastrFromLookup}`);
+            if (previousMastr && previousMastr !== mastrFromLookup) {
+              p.meta.identityMismatch = {
+                type: 'MAStrConflict',
+                bdew: p.meta.resolvedBdew,
+                selectedMastr: previousMastr,
+                bdewLookupMastr: mastrFromLookup,
+                message: `MaStR-ID-Konflikt erkannt: Kandidat=${previousMastr}, BDEW-Lookup=${mastrFromLookup}`,
+              };
+              if (!p.allowIdentityMismatch) {
+                saveProgress(p);
+                const err = new Error(
+                  `VNB-Identitätskonflikt erkannt.\n` +
+                    `Datengrundlage: BDEW ${p.meta.resolvedBdew || 'n/v'} · MaStR ${mastrFromLookup}\n` +
+                    `${p.meta.identityMismatch.message}\n` +
+                    `Report-Generierung gestoppt. Für Fortsetzung explizit bestätigen: allowIdentityMismatch=true.`
+                );
+                err.code = 'VNB_IDENTITY_MISMATCH';
+                throw err;
+              }
+            }
+
+            const selectedMastrFromPhase1 = p.meta?.vnbIdentification?.selected?.mastrId || null;
+            if (selectedMastrFromPhase1 && selectedMastrFromPhase1 !== mastrFromLookup) {
+              p.meta.identityMismatch = {
+                type: 'BDEW_LOOKUP_CONFLICT',
+                bdew: p.meta.resolvedBdew,
+                selectedMastr: selectedMastrFromPhase1,
+                bdewLookupMastr: mastrFromLookup,
+                message: `MaStR-ID-Konflikt erkannt: Phase-1-Auswahl=${selectedMastrFromPhase1}, BDEW-Lookup=${mastrFromLookup}`,
+              };
+              if (!p.allowIdentityMismatch) {
+                saveProgress(p);
+                const err = new Error(
+                  `VNB-Identitätskonflikt erkannt.\n` +
+                    `Datengrundlage: BDEW ${p.meta.resolvedBdew || 'n/v'} · MaStR ${mastrFromLookup}\n` +
+                    `${p.meta.identityMismatch.message}\n` +
+                    `Report-Generierung gestoppt. Für Fortsetzung explizit bestätigen: allowIdentityMismatch=true.`
+                );
+                err.code = 'VNB_IDENTITY_MISMATCH';
+                throw err;
+              }
+            }
+          }
+        }
+
+        // BUG-CERNION-042: Final consistency check between resolved BDEW and resolved MaStR
+        // against the market-partner candidate set. If the pair points to different companies,
+        // block report generation unless explicitly confirmed.
+        const partnerForResolvedBdew = findPartnerByBdew(p.meta.allPartners, p.meta.resolvedBdew);
+        const partnerMastr = partnerForResolvedBdew?.mastrId || null;
+        if (
+          partnerForResolvedBdew &&
+          partnerMastr &&
+          p.meta.resolvedMastrId &&
+          partnerMastr !== p.meta.resolvedMastrId
+        ) {
+          p.meta.identityMismatch = {
+            type: 'BDEW_MASTR_MISMATCH',
+            bdew: p.meta.resolvedBdew,
+            mastrId: p.meta.resolvedMastrId,
+            expectedMastrId: partnerMastr,
+            bdewName: partnerForResolvedBdew?.name || null,
+            message: `BDEW ${p.meta.resolvedBdew} und MaStR ${p.meta.resolvedMastrId} zeigen auf unterschiedliche VNBs.`,
           };
-          this.logger.info(`[UtilityReport] VNB resolved via explicit BDEW match: ${explicitPartner.name || utilityName}`);
         }
+
+        if (p.meta.identityMismatch && !p.allowIdentityMismatch) {
+          saveProgress(p);
+          const m = p.meta.identityMismatch;
+          const err = new Error(
+            `VNB-Identitätskonflikt erkannt.\n` +
+              `Datengrundlage: BDEW ${m.bdew || p.meta.resolvedBdew || 'n/v'} · MaStR ${m.mastrId || p.meta.resolvedMastrId || 'n/v'}\n` +
+              `${m.message || 'BDEW und MaStR gehören nicht eindeutig zum selben Unternehmen.'}\n` +
+              `Report-Generierung gestoppt. Für Fortsetzung explizit bestätigen: allowIdentityMismatch=true.`
+          );
+          err.code = 'VNB_IDENTITY_MISMATCH';
+          throw err;
+        }
+
+        p.phase = 2;
+        saveProgress(p);
       }
 
-      // Merge partner fields (when partner was found via market-partners)
-      if (firstPartner) {
-        p.meta.resolvedBdew = bdew || firstPartner?.bdewCode || firstPartner?.bdew || null;
-        p.meta.resolvedMastrId = firstPartner?.mastrId || firstPartner?.gridOperatorMastrId || null;
-        p.meta.resolvedVnbName = firstPartner?.name || firstPartner?.displayName || utilityName;
-      } else if (bdew) {
-        p.meta.resolvedBdew = bdew;
-        p.meta.resolvedVnbName = utilityName;
-      }
-      // resolvedVnbName fallback
-      if (!p.meta.resolvedVnbName) p.meta.resolvedVnbName = utilityName;
+      const { resolvedBdew, resolvedMastrId, resolvedVnbName } = p.meta;
 
-      // CR-37: Guarantee resolvedBdew is the VNB (Verteilnetzbetreiber) code.
-      // pickBestVnbPartner already prefers the VNB role entry; this override is a
-      // safety net for cases where roles[] is empty and only the BDEW prefix
-      // distinguishes the Netzbetreiber entry from a Lieferant / MSB entry.
-      const _vnbProfile = p.meta.marktRollenProfile?.vnb;
-      if (_vnbProfile?.bdew && p.meta.resolvedBdew !== _vnbProfile.bdew) {
-        this.logger.info(
-          `[UtilityReport] CR-37: resolvedBdew corrected to VNB code ${_vnbProfile.bdew}` +
-          ` (was: ${p.meta.resolvedBdew})`
+      // Guard: abort pipeline when the VNB could not be identified after all fallbacks.
+      if (!resolvedBdew && !resolvedMastrId) {
+        // CR-24: if MCP calls failed (bad token / network), tell the user THAT – not "VNB not found"
+        if (p.meta.mcpError) {
+          const err = new Error(
+            `MCP-Verbindungsfehler: Die Cernion-API hat alle Marktpartner-Abfragen abgewiesen.\n` +
+              `Ursache: ${p.meta.mcpError}\n` +
+              `Mögliche Gründe: Ungültiger oder abgelaufener CERNION_TOKEN, keine Netzwerkverbindung.\n` +
+              `Tipp: Prüfen Sie GET /api/utility-report/health auf den aktuellen Verbindungsstatus.\n` +
+              `Alternativ: Übergeben Sie den BDEW-Code direkt (Parameter: bdew, z. B. "9900277000000").`
+          );
+          err.code = 'MCP_CONNECTION_ERROR';
+          throw err;
+        }
+        // Build a context-aware error: list what was tried and suggest concrete next steps.
+        const triedQueries = buildVnbSearchQueries(utilityName);
+        const triedList = triedQueries.map((q) => `„${q}"`).join(', ');
+
+        // Derive actionable suggestions based on the input:
+        // - If no org prefix: suggest both Stadtwerk and Stadtwerke plus full legal suffix forms
+        // - If already has prefix: suggest trying with/without "Netz GmbH" suffix
+        const hasOrgPrefix =
+          /\b(Stadtwerke|Stadtwerk|Netz|Gemeindewerk|EVN|Energieversorgung)\b/i.test(utilityName);
+        const cityBase =
+          utilityName
+            .replace(
+              /\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi,
+              ''
+            )
+            .replace(/\s{2,}/g, ' ')
+            .trim() || utilityName.split(/\s+/)[0];
+
+        const suggestions = hasOrgPrefix
+          ? [
+              `„${cityBase} Netz GmbH"`,
+              `„Stadtwerke ${cityBase} Netz GmbH"`,
+              `„Stadtwerk ${cityBase} GmbH"`,
+            ]
+          : [
+              `„Stadtwerk ${utilityName} GmbH"`,
+              `„Stadtwerke ${utilityName} Netz GmbH"`,
+              `„${utilityName} Netz GmbH"`,
+            ];
+
+        const err = new Error(
+          `VNB nicht erkannt: Für „${utilityName}" konnte weder ein BDEW-Code noch eine MaStR-ID ermittelt werden.\n` +
+            `Gesucht wurde nach: ${triedList}.\n` +
+            `Mögliche Ursachen: Der Marktpartner ist unter einem anderen Namen eingetragen oder besitzt keine VNB-Rolle.\n` +
+            `Versuchen Sie eine der folgenden Schreibweisen: ${suggestions.join(', ')}.\n` +
+            `Alternativ: Übergeben Sie den BDEW-Code direkt (Parameter: bdew, z. B. \"9900123456789\").`
         );
-        p.meta.resolvedBdew = _vnbProfile.bdew;
-        if (_vnbProfile.name) p.meta.resolvedVnbName = _vnbProfile.name;
-        if (_vnbProfile.mastrId && !p.meta.resolvedMastrId) {
-          p.meta.resolvedMastrId = _vnbProfile.mastrId;
-        }
+        err.code = 'VNB_NOT_IDENTIFIED';
+        throw err;
       }
 
-      // Step 2: resolve MaStR-ID from BDEW via vnbLookup (if BDEW found but no MaStR-ID yet).
-      // CR-39: With CR-37 guaranteeing resolvedBdew is the VNB code (990x), this lookup
-      // now reliably targets the Verteilnetz entry in the VNB registry — not a Lieferant.
-      if (p.meta.resolvedBdew) {
-        const previousMastr = p.meta.resolvedMastrId;
-        const vnbLookup = await callBroker(ctx, 'grid-operations.vnbLookup', {
-          bdew: p.meta.resolvedBdew,
+      // ──────────────────────────────────────────────────────────────────────────
+      // PHASE 2: Metadata & Stammdaten
+      // ──────────────────────────────────────────────────────────────────────────
+      if (p.phase <= 2) {
+        this.logger.info(`[UtilityReport] ${p.reportId} – Phase 2: Metadata`);
+
+        // CR-44: Use the VNB-specific BDEW code (990x) for the EWK/DI benchmark.
+        // resolvedBdew is already guaranteed to be the VNB code by CR-37; but fall
+        // back to the marktRollenProfile VNB entry as a secondary safety net.
+        const vnbBdewForEwk = p.meta.marktRollenProfile?.vnb?.bdew ?? resolvedBdew;
+
+        const [eicSearch, ewkBenchmark] = await Promise.all([
+          callBroker(ctx, 'eic-codes.search', { query: resolvedVnbName, limit: 3 }),
+          callBroker(ctx, 'ewk-monitoring.benchmarkVnb', {
+            vnbName: resolvedVnbName,
+            ...(vnbBdewForEwk ? { bnr: vnbBdewForEwk } : {}),
+          }),
+        ]);
+
+        p.results.phase2 = { eicSearch, ewkBenchmark };
+        p.phase = 3;
+        saveProgress(p);
+      }
+
+      // ──────────────────────────────────────────────────────────────────────────
+      // PHASE 3: Data collection – 8 sections, fully sequential
+      // ──────────────────────────────────────────────────────────────────────────
+      if (p.phase <= 3) {
+        this.logger.info(`[UtilityReport] ${p.reportId} – Phase 3: Data collection`);
+
+        const gridOpParams = resolvedMastrId
+          ? { gridOperatorId: resolvedMastrId }
+          : resolvedBdew
+            ? { bdewCode: resolvedBdew }
+            : {};
+        const gridOpIdParams = resolvedBdew
+          ? { gridOperatorBdewCode: resolvedBdew }
+          : resolvedMastrId
+            ? { gridOperatorId: resolvedMastrId }
+            : {};
+
+        // ── Section 1: Netzbetrieb ────────────────────────────────────────────
+        const capacityUtilization = await callBroker(ctx, 'grid-operations.capacityUtilization', {
+          ...gridOpIdParams,
+        });
+
+        const redispatchExport = await gated(availableTools, ['cernion_redispatch_export'], () =>
+          callBroker(ctx, 'grid-operations.redispatchExport', {
+            ...(resolvedMastrId
+              ? { gridOperatorId: resolvedMastrId }
+              : resolvedBdew
+                ? { gridOperatorBdewCode: resolvedBdew }
+                : {}),
+          })
+        );
+
+        const residualLoad = await callBroker(ctx, 'residual-load.netResidualLoad', {
+          // CR-48: gridOperatorMastrId (SNB...) enables MaStR-anchored EE capacity lookup;
+          //        fetch 2 days (today + tomorrow) so the 48h chart in Section 1 has data.
+          ...(resolvedMastrId ? { gridOperatorMastrId: resolvedMastrId } : {}),
+          region: region || resolvedVnbName,
+          forecastDays: 2,
+          resolution: 'hourly',
+        });
+
+        const co2Intensity = await callBroker(ctx, 'energy-market.co2Intensity', {
+          region: region || 'DE',
+        });
+
+        const operatorAnalysis = await callBroker(ctx, 'grid-operations.operatorAnalysis', {
+          ...gridOpIdParams,
+        });
+
+        const emobilityImpact = await gated(
+          availableTools,
+          ['cernion_emobility_impact_analysis'],
+          () =>
+            callMcpDirect(
+              'cernion_emobility_impact_analysis',
+              {
+                gridOperator: resolvedVnbName,
+                location: region || resolvedVnbName,
+              },
+              cernionToken
+            )
+        );
+
+        const gridLossAnalysis = await gated(availableTools, ['cernion_grid_loss_analysis'], () =>
+          callMcpDirect(
+            'cernion_grid_loss_analysis',
+            {
+              gridOperator: resolvedVnbName,
+              ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
+            },
+            cernionToken
+          )
+        );
+
+        // CR-02: Transformer loading forecast – Ist-Zustand (forecastYears=0)
+        const transformerLoading = await gated(
+          availableTools,
+          ['cernion_transformer_loading_forecast'],
+          () =>
+            callMcpDirect(
+              'cernion_transformer_loading_forecast',
+              {
+                gridOperator: resolvedVnbName,
+                ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
+                forecastYears: 0,
+              },
+              cernionToken
+            )
+        );
+
+        // ── MaStR data quality checks (parallel, fast local MongoDB) ──────────
+        // cernion_installations_local requires gridOperatorMastrId – BDEW code is NOT supported.
+        // Skip all three queries when only a BDEW code is available (no MaStR ID resolved).
+        const dataQualityBaseParams = resolvedMastrId
+          ? { gridOperatorMastrId: resolvedMastrId }
+          : null;
+
+        // Run 3 queries in parallel: sample-for-PLZ, in-Prüfung count, ≥100kW ohne MeLo
+        const [sampleForPlz, anlagenInPruefung, installationenOhneMelo] = await Promise.all([
+          dataQualityBaseParams
+            ? callMcpDirect(
+                'cernion_installations_local',
+                {
+                  ...dataQualityBaseParams,
+                  status: 'InBetrieb',
+                  format: 'detailed',
+                  includeStats: true,
+                  limit: 100,
+                },
+                cernionToken
+              )
+            : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
+          dataQualityBaseParams
+            ? callMcpDirect(
+                'cernion_installations_local',
+                {
+                  ...dataQualityBaseParams,
+                  // CR-CERNION-043 BUG-4: Use COUNT(*) to get true total, not query limit.
+                  // Set limit high (5000) to capture most real-world edge cases.
+                  // Report will show "≥ COUNT result" if count hits limit to indicate potential undercount.
+                  netzbetreiberPruefungStatus: ['NetzbetreiberPruefung', 'InPruefung'],
+                  status: 'InBetrieb',
+                  format: 'detailed',
+                  includeStats: true,
+                  includeNapData: true,
+                  limit: 5000,
+                },
+                cernionToken
+              )
+            : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
+          dataQualityBaseParams
+            ? callMcpDirect(
+                'cernion_installations_local',
+                {
+                  ...dataQualityBaseParams,
+                  minCapacity: 100,
+                  status: 'InBetrieb',
+                  format: 'detailed',
+                  includeStats: true,
+                  includeNapData: true,
+                  limit: 2000,
+                },
+                cernionToken
+              )
+            : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
+        ]);
+
+        // Derive dominant PLZ prefix from sample and query ortsfremde Anlagen
+        let ortsfremdeAnlagen = { available: false, error: 'PLZ prefix could not be determined' };
+        if (sampleForPlz.available) {
+          const sampleInsts =
+            sampleForPlz.data?.installations || sampleForPlz.data?.data?.installations || [];
+          const plzCounts = {};
+          for (const inst of sampleInsts) {
+            const pfx = String(inst.postleitzahl || '').slice(0, 3);
+            if (pfx.length === 3) plzCounts[pfx] = (plzCounts[pfx] || 0) + 1;
+          }
+          const dominantPrefix = Object.entries(plzCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+          if (dominantPrefix) {
+            ortsfremdeAnlagen = await callMcpDirect(
+              'cernion_installations_local',
+              {
+                ...dataQualityBaseParams,
+                postleitzahlNot: dominantPrefix,
+                status: 'InBetrieb',
+                format: 'detailed',
+                includeStats: true,
+                includeNapData: true,
+                limit: 5000, // CR-CERNION-043 BUG-4: Increase ortsfremde limit to 5000 for consistency
+              },
+              cernionToken
+            );
+            if (ortsfremdeAnlagen.available) {
+              ortsfremdeAnlagen.dominantPlzPrefix = dominantPrefix;
+            }
+          }
+        }
+
+        p.results.section1 = {
+          capacityUtilization,
+          redispatchExport,
+          residualLoad,
+          co2Intensity,
+          operatorAnalysis,
+          emobilityImpact,
+          gridLossAnalysis,
+          transformerLoading,
+          anlagenInPruefung,
+          installationenOhneMelo,
+          ortsfremdeAnlagen,
+        };
+        saveProgress(p);
+
+        // ── Section 2: EE-Portfolio ────────────────────────────────────────────
+        const solar = await callBroker(ctx, 'assets.solar', { ...gridOpParams });
+        const wind = await callBroker(ctx, 'assets.wind', { ...gridOpParams });
+        const storage = await callBroker(ctx, 'assets.storage', { ...gridOpParams });
+
+        const generationForecast = await callBroker(ctx, 'forecast.generationForecast', {
+          ...gridOpParams,
+          installationType: 'solar',
+          forecastDays: 1,
+        });
+
+        const windSolarActual = await callBroker(ctx, 'entsoe.windSolarActual', {
+          region: 'DE',
+          dateFrom: today,
+          dateTo: today,
+        });
+
+        const regionalEnergyMix = await gated(availableTools, ['cernion_regional_energy_mix'], () =>
+          callMcpDirect(
+            'cernion_regional_energy_mix',
+            {
+              gridOperator: resolvedVnbName,
+              ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
+            },
+            cernionToken
+          )
+        );
+
+        // CR-01: Direct MaStR enrichment – PV, Wind, Speicher exact counts/capacities
+        // via cernion_installations_local (fast local MongoDB). Used as fallback when
+        // the assets broker service returns incomplete or unavailable data.
+        const [pvLocal, windLocal, speicherLocal] = await Promise.all([
+          dataQualityBaseParams
+            ? callMcpDirect(
+                'cernion_installations_local',
+                {
+                  ...dataQualityBaseParams,
+                  type: 'solar',
+                  status: 'InBetrieb',
+                  includeStats: true,
+                  limit: 5000,
+                },
+                cernionToken
+              )
+            : Promise.resolve({ available: false, error: 'No MaStR ID' }),
+          dataQualityBaseParams
+            ? callMcpDirect(
+                'cernion_installations_local',
+                {
+                  ...dataQualityBaseParams,
+                  type: 'wind',
+                  status: 'InBetrieb',
+                  includeStats: true,
+                  limit: 5000,
+                },
+                cernionToken
+              )
+            : Promise.resolve({ available: false, error: 'No MaStR ID' }),
+          dataQualityBaseParams
+            ? callMcpDirect(
+                'cernion_installations_local',
+                {
+                  ...dataQualityBaseParams,
+                  type: 'storage',
+                  status: 'InBetrieb',
+                  includeStats: true,
+                  limit: 5000,
+                },
+                cernionToken
+              )
+            : Promise.resolve({ available: false, error: 'No MaStR ID' }),
+        ]);
+
+        p.results.section2 = {
+          solar,
+          wind,
+          storage,
+          generationForecast,
+          windSolarActual,
+          regionalEnergyMix,
+          pvLocal,
+          windLocal,
+          speicherLocal,
+        };
+        saveProgress(p);
+
+        // ── Section 3: Energiemarkt ────────────────────────────────────────────
+        // CR-04: Fetch 24h of day-ahead prices for a complete chart
+        const priceDateFrom = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const prices = await callBroker(ctx, 'energy-market.prices', {
+          market: 'day-ahead',
+          region: 'DE',
+          dateFrom: priceDateFrom,
+          dateTo: today,
+        });
+
+        const spotprices = await callBroker(ctx, 'german-grid.spotprices', { date: today });
+
+        const negativePrices = await callBroker(ctx, 'german-grid.negativePrices', {
+          dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+          dateTo: today,
+        });
+
+        const actualGeneration = await callBroker(ctx, 'entsoe.actualGeneration', {
+          region: 'DE',
+          dateFrom: today,
+          dateTo: today,
+        });
+
+        const loadForecast = await callBroker(ctx, 'entsoe.loadForecast', {
+          region: 'DE',
+          dateFrom: today,
+          dateTo: today,
+        });
+
+        const unavailability = await callBroker(ctx, 'entsoe.unavailability', {
+          region: 'DE',
+          dateFrom: today,
+          dateTo: today,
+        });
+
+        const priceProductionAnalysis = await gated(
+          availableTools,
+          ['cernion_price_production_analysis'],
+          // CR-43: Pass VNB BDEW code (990x, guaranteed by CR-37) so the tool can
+          // check license coverage per market role.  This prevents 'not licensed'
+          // rejections that occur when the token context resolves to a Lieferant role.
+          () =>
+            callMcpDirect(
+              'cernion_price_production_analysis',
+              {
+                region: 'DE',
+                dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+                dateTo: today,
+                ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
+              },
+              cernionToken
+            )
+        );
+
+        p.results.section3 = {
+          prices,
+          spotprices,
+          negativePrices,
+          actualGeneration,
+          loadForecast,
+          unavailability,
+          priceProductionAnalysis,
+          // CR-50: Cross-reference windSolarActual from section2 for dual-axis chart
+          windSolarActual: p.results.section2?.windSolarActual ?? { available: false },
+        };
+        saveProgress(p);
+
+        // ── Section 4: Gas ────────────────────────────────────────────────────
+        const countryStorage = await callBroker(ctx, 'gas-storage.countryStorage', {
+          country: 'DE',
+        });
+        const euStatistics = await callBroker(ctx, 'gas-storage.euStatistics', {});
+        const storageTrend = await callBroker(ctx, 'gas-storage.storageTrend', {
+          country: 'DE',
+          period: 'monthly',
+        });
+        const supplySecurityCheck = await callBroker(ctx, 'gas-storage.supplySecurityCheck', {
+          country: 'DE',
+        });
+        const compareCountries = await callBroker(ctx, 'gas-storage.compareCountries', {
+          countries: ['DE', 'AT', 'NL', 'FR'],
+        });
+
+        // CR-14: Direct MCP calls for EU aggregate + country trend as enrichment
+        // The broker's gas-storage.euStatistics call may return empty data if the
+        // underlying AGSI tool is gated; direct calls ensure we always try.
+        const [euStatisticsDirect, storageTrendDirect] = await Promise.all([
+          gated(availableTools, ['agsi_eu_statistics'], () =>
+            callMcpDirect('agsi_eu_statistics', {}, cernionToken)
+          ),
+          gated(availableTools, ['agsi_storage_trend'], () =>
+            callMcpDirect('agsi_storage_trend', { country: 'DE', period_days: 14 }, cernionToken)
+          ),
+        ]);
+
+        // Merge: prefer broker data (has error-handling wrapping); fallback to direct
+        const euStatisticsFinal = euStatistics?.available ? euStatistics : euStatisticsDirect;
+        const storageTrendFinal = storageTrend?.available ? storageTrend : storageTrendDirect;
+
+        p.results.section4 = {
+          countryStorage,
+          euStatistics: euStatisticsFinal,
+          storageTrend: storageTrendFinal,
+          supplySecurityCheck,
+          compareCountries,
+        };
+        saveProgress(p);
+
+        // ── Section 5: Regulierung ────────────────────────────────────────────
+        const ewkAnschlussdauer = await callBroker(ctx, 'ewk-monitoring.anschlussdauer', {
+          vnbName: resolvedVnbName,
+          voltageLevel: 'NS',
+          installationType: 'EE',
+          limit: 1,
+          includeRanking: true,
+        });
+
+        const ewkDigitalisierungsindex = await callBroker(
+          ctx,
+          'ewk-monitoring.digitalisierungsindex',
+          {
+            vnbName: resolvedVnbName,
+            limit: 1,
+            includeRanking: true,
+          }
+        );
+
+        const ewkUmsetzungsquote = await callBroker(ctx, 'ewk-monitoring.umsetzungsquote', {
+          vnbName: resolvedVnbName,
+          voltageLevel: 'NS',
+          installationType: 'EE',
           limit: 1,
         });
-        p.meta.vnbLookup = vnbLookup.data ?? null;
-        const vnbData = vnbLookup.data?.data ?? vnbLookup.data;
-        const mastrFromLookup =
-          vnbData?.mastrId ||
-          vnbData?.data?.mastrId ||
-          vnbData?.mastrIds?.[0] ||
-          vnbData?.data?.mastrIds?.[0] ||
-          null;
-        if (mastrFromLookup) {
-          p.meta.resolvedMastrId = mastrFromLookup;
-          this.logger.info(`[UtilityReport] resolvedMastrId via vnbLookup: ${mastrFromLookup}`);
-          if (previousMastr && previousMastr !== mastrFromLookup) {
-            p.meta.identityMismatch = {
-              type: 'MAStrConflict',
-              bdew: p.meta.resolvedBdew,
-              selectedMastr: previousMastr,
-              bdewLookupMastr: mastrFromLookup,
-              message: `MaStR-ID-Konflikt erkannt: Kandidat=${previousMastr}, BDEW-Lookup=${mastrFromLookup}`,
-            };
-            if (!p.allowIdentityMismatch) {
-              saveProgress(p);
-              const err = new Error(
-                `VNB-Identitätskonflikt erkannt.\n` +
-                `Datengrundlage: BDEW ${p.meta.resolvedBdew || 'n/v'} · MaStR ${mastrFromLookup}\n` +
-                `${p.meta.identityMismatch.message}\n` +
-                `Report-Generierung gestoppt. Für Fortsetzung explizit bestätigen: allowIdentityMismatch=true.`
-              );
-              err.code = 'VNB_IDENTITY_MISMATCH';
-              throw err;
-            }
-          }
 
-          const selectedMastrFromPhase1 = p.meta?.vnbIdentification?.selected?.mastrId || null;
-          if (selectedMastrFromPhase1 && selectedMastrFromPhase1 !== mastrFromLookup) {
-            p.meta.identityMismatch = {
-              type: 'BDEW_LOOKUP_CONFLICT',
-              bdew: p.meta.resolvedBdew,
-              selectedMastr: selectedMastrFromPhase1,
-              bdewLookupMastr: mastrFromLookup,
-              message: `MaStR-ID-Konflikt erkannt: Phase-1-Auswahl=${selectedMastrFromPhase1}, BDEW-Lookup=${mastrFromLookup}`,
-            };
-            if (!p.allowIdentityMismatch) {
-              saveProgress(p);
-              const err = new Error(
-                `VNB-Identitätskonflikt erkannt.\n` +
-                `Datengrundlage: BDEW ${p.meta.resolvedBdew || 'n/v'} · MaStR ${mastrFromLookup}\n` +
-                `${p.meta.identityMismatch.message}\n` +
-                `Report-Generierung gestoppt. Für Fortsetzung explizit bestätigen: allowIdentityMismatch=true.`
-              );
-              err.code = 'VNB_IDENTITY_MISMATCH';
-              throw err;
-            }
-          }
-        }
-      }
+        const nestCompliance = await gated(availableTools, ['cernion_nest_compliance_report'], () =>
+          callMcpDirect(
+            'cernion_nest_compliance_report',
+            {
+              gridOperator: resolvedVnbName,
+              ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
+            },
+            cernionToken
+          )
+        );
 
-      // BUG-CERNION-042: Final consistency check between resolved BDEW and resolved MaStR
-      // against the market-partner candidate set. If the pair points to different companies,
-      // block report generation unless explicitly confirmed.
-      const partnerForResolvedBdew = findPartnerByBdew(p.meta.allPartners, p.meta.resolvedBdew);
-      const partnerMastr = partnerForResolvedBdew?.mastrId || null;
-      if (partnerForResolvedBdew && partnerMastr && p.meta.resolvedMastrId && partnerMastr !== p.meta.resolvedMastrId) {
-        p.meta.identityMismatch = {
-          type: 'BDEW_MASTR_MISMATCH',
-          bdew: p.meta.resolvedBdew,
-          mastrId: p.meta.resolvedMastrId,
-          expectedMastrId: partnerMastr,
-          bdewName: partnerForResolvedBdew?.name || null,
-          message: `BDEW ${p.meta.resolvedBdew} und MaStR ${p.meta.resolvedMastrId} zeigen auf unterschiedliche VNBs.`,
+        p.results.section5 = {
+          benchmarkVnb: p.results.phase2?.ewkBenchmark ?? { available: false },
+          anschlussdauer: ewkAnschlussdauer,
+          digitalisierungsindex: ewkDigitalisierungsindex,
+          umsetzungsquote: ewkUmsetzungsquote,
+          nestCompliance,
         };
-      }
-
-      if (p.meta.identityMismatch && !p.allowIdentityMismatch) {
         saveProgress(p);
-        const m = p.meta.identityMismatch;
-        const err = new Error(
-          `VNB-Identitätskonflikt erkannt.\n` +
-          `Datengrundlage: BDEW ${m.bdew || p.meta.resolvedBdew || 'n/v'} · MaStR ${m.mastrId || p.meta.resolvedMastrId || 'n/v'}\n` +
-          `${m.message || 'BDEW und MaStR gehören nicht eindeutig zum selben Unternehmen.'}\n` +
-          `Report-Generierung gestoppt. Für Fortsetzung explizit bestätigen: allowIdentityMismatch=true.`
-        );
-        err.code = 'VNB_IDENTITY_MISMATCH';
-        throw err;
-      }
 
-      p.phase = 2;
-      saveProgress(p);
-    }
-
-    const { resolvedBdew, resolvedMastrId, resolvedVnbName } = p.meta;
-
-    // Guard: abort pipeline when the VNB could not be identified after all fallbacks.
-    if (!resolvedBdew && !resolvedMastrId) {
-      // CR-24: if MCP calls failed (bad token / network), tell the user THAT – not "VNB not found"
-      if (p.meta.mcpError) {
-        const err = new Error(
-          `MCP-Verbindungsfehler: Die Cernion-API hat alle Marktpartner-Abfragen abgewiesen.\n` +
-          `Ursache: ${p.meta.mcpError}\n` +
-          `Mögliche Gründe: Ungültiger oder abgelaufener CERNION_TOKEN, keine Netzwerkverbindung.\n` +
-          `Tipp: Prüfen Sie GET /api/utility-report/health auf den aktuellen Verbindungsstatus.\n` +
-          `Alternativ: Übergeben Sie den BDEW-Code direkt (Parameter: bdew, z. B. "9900277000000").`
-        );
-        err.code = 'MCP_CONNECTION_ERROR';
-        throw err;
-      }
-      // Build a context-aware error: list what was tried and suggest concrete next steps.
-      const triedQueries = buildVnbSearchQueries(utilityName);
-      const triedList = triedQueries.map((q) => `„${q}"`).join(', ');
-
-      // Derive actionable suggestions based on the input:
-      // - If no org prefix: suggest both Stadtwerk and Stadtwerke plus full legal suffix forms
-      // - If already has prefix: suggest trying with/without "Netz GmbH" suffix
-      const hasOrgPrefix = /\b(Stadtwerke|Stadtwerk|Netz|Gemeindewerk|EVN|Energieversorgung)\b/i.test(utilityName);
-      const cityBase = utilityName
-        .replace(/\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi, '')
-        .replace(/\s{2,}/g, ' ')
-        .trim() || utilityName.split(/\s+/)[0];
-
-      const suggestions = hasOrgPrefix
-        ? [
-            `„${cityBase} Netz GmbH"`,
-            `„Stadtwerke ${cityBase} Netz GmbH"`,
-            `„Stadtwerk ${cityBase} GmbH"`,
-          ]
-        : [
-            `„Stadtwerk ${utilityName} GmbH"`,
-            `„Stadtwerke ${utilityName} Netz GmbH"`,
-            `„${utilityName} Netz GmbH"`,
-          ];
-
-      const err = new Error(
-        `VNB nicht erkannt: Für „${utilityName}" konnte weder ein BDEW-Code noch eine MaStR-ID ermittelt werden.\n` +
-        `Gesucht wurde nach: ${triedList}.\n` +
-        `Mögliche Ursachen: Der Marktpartner ist unter einem anderen Namen eingetragen oder besitzt keine VNB-Rolle.\n` +
-        `Versuchen Sie eine der folgenden Schreibweisen: ${suggestions.join(', ')}.\n` +
-        `Alternativ: Übergeben Sie den BDEW-Code direkt (Parameter: bdew, z. B. \"9900123456789\").`
-      );
-      err.code = 'VNB_NOT_IDENTIFIED';
-      throw err;
-    }
-
-    // ──────────────────────────────────────────────────────────────────────────
-    // PHASE 2: Metadata & Stammdaten
-    // ──────────────────────────────────────────────────────────────────────────
-    if (p.phase <= 2) {
-      this.logger.info(`[UtilityReport] ${p.reportId} – Phase 2: Metadata`);
-
-      // CR-44: Use the VNB-specific BDEW code (990x) for the EWK/DI benchmark.
-      // resolvedBdew is already guaranteed to be the VNB code by CR-37; but fall
-      // back to the marktRollenProfile VNB entry as a secondary safety net.
-      const vnbBdewForEwk = p.meta.marktRollenProfile?.vnb?.bdew ?? resolvedBdew;
-
-      const [eicSearch, ewkBenchmark] = await Promise.all([
-        callBroker(ctx, 'eic-codes.search', { query: resolvedVnbName, limit: 3 }),
-        callBroker(ctx, 'ewk-monitoring.benchmarkVnb', {
-          vnbName: resolvedVnbName,
-          ...(vnbBdewForEwk ? { bnr: vnbBdewForEwk } : {}),
-        }),
-      ]);
-
-      p.results.phase2 = { eicSearch, ewkBenchmark };
-      p.phase = 3;
-      saveProgress(p);
-    }
-
-    // ──────────────────────────────────────────────────────────────────────────
-    // PHASE 3: Data collection – 8 sections, fully sequential
-    // ──────────────────────────────────────────────────────────────────────────
-    if (p.phase <= 3) {
-      this.logger.info(`[UtilityReport] ${p.reportId} – Phase 3: Data collection`);
-
-      const gridOpParams = resolvedMastrId
-        ? { gridOperatorId: resolvedMastrId }
-        : resolvedBdew
-        ? { bdewCode: resolvedBdew }
-        : {};
-      const gridOpIdParams = resolvedBdew
-        ? { gridOperatorBdewCode: resolvedBdew }
-        : resolvedMastrId
-        ? { gridOperatorId: resolvedMastrId }
-        : {};
-
-      // ── Section 1: Netzbetrieb ────────────────────────────────────────────
-      const capacityUtilization = await callBroker(
-        ctx, 'grid-operations.capacityUtilization', { ...gridOpIdParams }
-      );
-
-      const redispatchExport = await gated(
-        availableTools, ['cernion_redispatch_export'],
-        () => callBroker(ctx, 'grid-operations.redispatchExport', {
-          ...(resolvedMastrId
-            ? { gridOperatorId: resolvedMastrId }
-            : resolvedBdew
-            ? { gridOperatorBdewCode: resolvedBdew }
-            : {}),
-        })
-      );
-
-      const residualLoad = await callBroker(ctx, 'residual-load.netResidualLoad', {
-        // CR-48: gridOperatorMastrId (SNB...) enables MaStR-anchored EE capacity lookup;
-        //        fetch 2 days (today + tomorrow) so the 48h chart in Section 1 has data.
-        ...(resolvedMastrId ? { gridOperatorMastrId: resolvedMastrId } : {}),
-        region: region || resolvedVnbName,
-        forecastDays: 2,
-        resolution: 'hourly',
-      });
-
-      const co2Intensity = await callBroker(ctx, 'energy-market.co2Intensity', {
-        region: region || 'DE',
-      });
-
-      const operatorAnalysis = await callBroker(ctx, 'grid-operations.operatorAnalysis', {
-        ...gridOpIdParams,
-      });
-
-      const emobilityImpact = await gated(
-        availableTools, ['cernion_emobility_impact_analysis'],
-        () => callMcpDirect('cernion_emobility_impact_analysis', {
-          gridOperator: resolvedVnbName,
-          location: region || resolvedVnbName,
-        }, cernionToken)
-      );
-
-      const gridLossAnalysis = await gated(
-        availableTools, ['cernion_grid_loss_analysis'],
-        () => callMcpDirect('cernion_grid_loss_analysis', {
-          gridOperator: resolvedVnbName,
-          ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
-        }, cernionToken)
-      );
-
-      // CR-02: Transformer loading forecast – Ist-Zustand (forecastYears=0)
-      const transformerLoading = await gated(
-        availableTools, ['cernion_transformer_loading_forecast'],
-        () => callMcpDirect('cernion_transformer_loading_forecast', {
-          gridOperator: resolvedVnbName,
-          ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
-          forecastYears: 0,
-        }, cernionToken)
-      );
-
-      // ── MaStR data quality checks (parallel, fast local MongoDB) ──────────
-      // cernion_installations_local requires gridOperatorMastrId – BDEW code is NOT supported.
-      // Skip all three queries when only a BDEW code is available (no MaStR ID resolved).
-      const dataQualityBaseParams = resolvedMastrId
-        ? { gridOperatorMastrId: resolvedMastrId }
-        : null;
-
-      // Run 3 queries in parallel: sample-for-PLZ, in-Prüfung count, ≥100kW ohne MeLo
-      const [sampleForPlz, anlagenInPruefung, installationenOhneMelo] = await Promise.all([
-        dataQualityBaseParams
-          ? callMcpDirect('cernion_installations_local', {
-              ...dataQualityBaseParams,
-              status: 'InBetrieb',
-              format: 'detailed',
-              includeStats: true,
-              limit: 100,
-            }, cernionToken)
-          : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
-        dataQualityBaseParams
-          ? callMcpDirect('cernion_installations_local', {
-              ...dataQualityBaseParams,
-              // CR-CERNION-043 BUG-4: Use COUNT(*) to get true total, not query limit.
-              // Set limit high (5000) to capture most real-world edge cases.
-              // Report will show "≥ COUNT result" if count hits limit to indicate potential undercount.
-              netzbetreiberPruefungStatus: ['NetzbetreiberPruefung', 'InPruefung'],
-              status: 'InBetrieb',
-              format: 'detailed',
-              includeStats: true,
-              includeNapData: true,
-              limit: 5000,
-            }, cernionToken)
-          : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
-        dataQualityBaseParams
-          ? callMcpDirect('cernion_installations_local', {
-              ...dataQualityBaseParams,
-              minCapacity: 100,
-              status: 'InBetrieb',
-              format: 'detailed',
-              includeStats: true,
-              includeNapData: true,
-              limit: 2000,
-            }, cernionToken)
-          : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
-      ]);
-
-      // Derive dominant PLZ prefix from sample and query ortsfremde Anlagen
-      let ortsfremdeAnlagen = { available: false, error: 'PLZ prefix could not be determined' };
-      if (sampleForPlz.available) {
-        const sampleInsts =
-          sampleForPlz.data?.installations ||
-          sampleForPlz.data?.data?.installations ||
-          [];
-        const plzCounts = {};
-        for (const inst of sampleInsts) {
-          const pfx = String(inst.postleitzahl || '').slice(0, 3);
-          if (pfx.length === 3) plzCounts[pfx] = (plzCounts[pfx] || 0) + 1;
-        }
-        const dominantPrefix = Object.entries(plzCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
-        if (dominantPrefix) {
-          ortsfremdeAnlagen = await callMcpDirect('cernion_installations_local', {
-            ...dataQualityBaseParams,
-            postleitzahlNot: dominantPrefix,
-            status: 'InBetrieb',
-            format: 'detailed',
-            includeStats: true,
-            includeNapData: true,
-            limit: 5000,  // CR-CERNION-043 BUG-4: Increase ortsfremde limit to 5000 for consistency
-          }, cernionToken);
-          if (ortsfremdeAnlagen.available) {
-            ortsfremdeAnlagen.dominantPlzPrefix = dominantPrefix;
-          }
-        }
-      }
-
-      p.results.section1 = {
-        capacityUtilization,
-        redispatchExport,
-        residualLoad,
-        co2Intensity,
-        operatorAnalysis,
-        emobilityImpact,
-        gridLossAnalysis,
-        transformerLoading,
-        anlagenInPruefung,
-        installationenOhneMelo,
-        ortsfremdeAnlagen,
-      };
-      saveProgress(p);
-
-      // ── Section 2: EE-Portfolio ────────────────────────────────────────────
-      const solar = await callBroker(ctx, 'assets.solar', { ...gridOpParams });
-      const wind = await callBroker(ctx, 'assets.wind', { ...gridOpParams });
-      const storage = await callBroker(ctx, 'assets.storage', { ...gridOpParams });
-
-      const generationForecast = await callBroker(ctx, 'forecast.generationForecast', {
-        ...gridOpParams,
-        installationType: 'solar',
-        forecastDays: 1,
-      });
-
-      const windSolarActual = await callBroker(ctx, 'entsoe.windSolarActual', {
-        region: 'DE',
-        dateFrom: today,
-        dateTo: today,
-      });
-
-      const regionalEnergyMix = await gated(
-        availableTools, ['cernion_regional_energy_mix'],
-        () => callMcpDirect('cernion_regional_energy_mix', {
-          gridOperator: resolvedVnbName,
-          ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
-        }, cernionToken)
-      );
-
-      // CR-01: Direct MaStR enrichment – PV, Wind, Speicher exact counts/capacities
-      // via cernion_installations_local (fast local MongoDB). Used as fallback when
-      // the assets broker service returns incomplete or unavailable data.
-      const [pvLocal, windLocal, speicherLocal] = await Promise.all([
-        dataQualityBaseParams
-          ? callMcpDirect('cernion_installations_local', {
-              ...dataQualityBaseParams,
-              type: 'solar',
-              status: 'InBetrieb',
-              includeStats: true,
-              limit: 5000,
-            }, cernionToken)
-          : Promise.resolve({ available: false, error: 'No MaStR ID' }),
-        dataQualityBaseParams
-          ? callMcpDirect('cernion_installations_local', {
-              ...dataQualityBaseParams,
-              type: 'wind',
-              status: 'InBetrieb',
-              includeStats: true,
-              limit: 5000,
-            }, cernionToken)
-          : Promise.resolve({ available: false, error: 'No MaStR ID' }),
-        dataQualityBaseParams
-          ? callMcpDirect('cernion_installations_local', {
-              ...dataQualityBaseParams,
-              type: 'storage',
-              status: 'InBetrieb',
-              includeStats: true,
-              limit: 5000,
-            }, cernionToken)
-          : Promise.resolve({ available: false, error: 'No MaStR ID' }),
-      ]);
-
-      p.results.section2 = {
-        solar,
-        wind,
-        storage,
-        generationForecast,
-        windSolarActual,
-        regionalEnergyMix,
-        pvLocal,
-        windLocal,
-        speicherLocal,
-      };
-      saveProgress(p);
-
-      // ── Section 3: Energiemarkt ────────────────────────────────────────────
-      // CR-04: Fetch 24h of day-ahead prices for a complete chart
-      const priceDateFrom = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-      const prices = await callBroker(ctx, 'energy-market.prices', {
-        market: 'day-ahead',
-        region: 'DE',
-        dateFrom: priceDateFrom,
-        dateTo: today,
-      });
-
-      const spotprices = await callBroker(ctx, 'german-grid.spotprices', { date: today });
-
-      const negativePrices = await callBroker(ctx, 'german-grid.negativePrices', {
-        dateFrom: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-        dateTo: today,
-      });
-
-      const actualGeneration = await callBroker(ctx, 'entsoe.actualGeneration', {
-        region: 'DE',
-        dateFrom: today,
-        dateTo: today,
-      });
-
-      const loadForecast = await callBroker(ctx, 'entsoe.loadForecast', {
-        region: 'DE',
-        dateFrom: today,
-        dateTo: today,
-      });
-
-      const unavailability = await callBroker(ctx, 'entsoe.unavailability', {
-        region: 'DE',
-        dateFrom: today,
-        dateTo: today,
-      });
-
-      const priceProductionAnalysis = await gated(
-        availableTools, ['cernion_price_production_analysis'],
-        // CR-43: Pass VNB BDEW code (990x, guaranteed by CR-37) so the tool can
-        // check license coverage per market role.  This prevents 'not licensed'
-        // rejections that occur when the token context resolves to a Lieferant role.
-        () => callMcpDirect('cernion_price_production_analysis', {
-          region: 'DE',
-          dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-          dateTo: today,
-          ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
-        }, cernionToken)
-      );
-
-      p.results.section3 = {
-        prices,
-        spotprices,
-        negativePrices,
-        actualGeneration,
-        loadForecast,
-        unavailability,
-        priceProductionAnalysis,
-        // CR-50: Cross-reference windSolarActual from section2 for dual-axis chart
-        windSolarActual: p.results.section2?.windSolarActual ?? { available: false },
-      };
-      saveProgress(p);
-
-      // ── Section 4: Gas ────────────────────────────────────────────────────
-      const countryStorage = await callBroker(ctx, 'gas-storage.countryStorage', { country: 'DE' });
-      const euStatistics = await callBroker(ctx, 'gas-storage.euStatistics', {});
-      const storageTrend = await callBroker(ctx, 'gas-storage.storageTrend', {
-        country: 'DE',
-        period: 'monthly',
-      });
-      const supplySecurityCheck = await callBroker(ctx, 'gas-storage.supplySecurityCheck', {
-        country: 'DE',
-      });
-      const compareCountries = await callBroker(ctx, 'gas-storage.compareCountries', {
-        countries: ['DE', 'AT', 'NL', 'FR'],
-      });
-
-      // CR-14: Direct MCP calls for EU aggregate + country trend as enrichment
-      // The broker's gas-storage.euStatistics call may return empty data if the
-      // underlying AGSI tool is gated; direct calls ensure we always try.
-      const [euStatisticsDirect, storageTrendDirect] = await Promise.all([
-        gated(availableTools, ['agsi_eu_statistics'],
-          () => callMcpDirect('agsi_eu_statistics', {}, cernionToken)
-        ),
-        gated(availableTools, ['agsi_storage_trend'],
-          () => callMcpDirect('agsi_storage_trend', { country: 'DE', period_days: 14 }, cernionToken)
-        ),
-      ]);
-
-      // Merge: prefer broker data (has error-handling wrapping); fallback to direct
-      const euStatisticsFinal = euStatistics?.available ? euStatistics : euStatisticsDirect;
-      const storageTrendFinal = storageTrend?.available ? storageTrend : storageTrendDirect;
-
-      p.results.section4 = {
-        countryStorage,
-        euStatistics: euStatisticsFinal,
-        storageTrend: storageTrendFinal,
-        supplySecurityCheck,
-        compareCountries,
-      };
-      saveProgress(p);
-
-      // ── Section 5: Regulierung ────────────────────────────────────────────
-      const ewkAnschlussdauer = await callBroker(ctx, 'ewk-monitoring.anschlussdauer', {
-        vnbName: resolvedVnbName,
-        voltageLevel: 'NS',
-        installationType: 'EE',
-        limit: 1,
-        includeRanking: true,
-      });
-
-      const ewkDigitalisierungsindex = await callBroker(ctx, 'ewk-monitoring.digitalisierungsindex', {
-        vnbName: resolvedVnbName,
-        limit: 1,
-        includeRanking: true,
-      });
-
-      const ewkUmsetzungsquote = await callBroker(ctx, 'ewk-monitoring.umsetzungsquote', {
-        vnbName: resolvedVnbName,
-        voltageLevel: 'NS',
-        installationType: 'EE',
-        limit: 1,
-      });
-
-      const nestCompliance = await gated(
-        availableTools, ['cernion_nest_compliance_report'],
-        () => callMcpDirect('cernion_nest_compliance_report', {
-          gridOperator: resolvedVnbName,
-          ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
-        }, cernionToken)
-      );
-
-      p.results.section5 = {
-        benchmarkVnb: p.results.phase2?.ewkBenchmark ?? { available: false },
-        anschlussdauer: ewkAnschlussdauer,
-        digitalisierungsindex: ewkDigitalisierungsindex,
-        umsetzungsquote: ewkUmsetzungsquote,
-        nestCompliance,
-      };
-      saveProgress(p);
-
-      // ── Section 6: Kunden & Vertrieb ──────────────────────────────────────
-      const churnPrediction = await callBroker(ctx, 'business-intelligence.churnPrediction', {
-        // CR-06/12: Include retention strategy, churn reasons, 12-month window
-        customerSegment: 'all',
-        region: region || resolvedVnbName,
-        riskThreshold: 'medium',
-        predictionWindowMonths: 12,
-        includeRetentionStrategy: true,
-        includeChurnReasons: true,
-        includeCompetitiveAnalysis: true,
-      });
-
-      const salesLeads = await callBroker(ctx, 'business-intelligence.salesLeads', {
-        // CR-06/12: Include all installation types (PV + Wallbox + WP + Speicher)
-        region: region || resolvedVnbName,
-        installationType: 'all',
-        daysBack: 90,
-        limit: 50,
-      });
-
-      const marketPenetration = await gated(
-        availableTools, ['cernion_market_penetration_analysis'],
-        () => callBroker(ctx, 'business-intelligence.marketPenetration', {
-          region: region || resolvedVnbName,
-          ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
-        })
-      );
-
-      const prosumerTariff = await gated(
-        availableTools, ['cernion_prosumer_tariff_designer'],
-        () => callMcpDirect('cernion_prosumer_tariff_designer', {
+        // ── Section 6: Kunden & Vertrieb ──────────────────────────────────────
+        const churnPrediction = await callBroker(ctx, 'business-intelligence.churnPrediction', {
+          // CR-06/12: Include retention strategy, churn reasons, 12-month window
           customerSegment: 'all',
           region: region || resolvedVnbName,
-          designGoal: 'customer-acquisition',
-        }, cernionToken)
-      );
+          riskThreshold: 'medium',
+          predictionWindowMonths: 12,
+          includeRetentionStrategy: true,
+          includeChurnReasons: true,
+          includeCompetitiveAnalysis: true,
+        });
 
-      const directMarketing = await gated(
-        availableTools, ['cernion_direct_marketing_opportunity_scanner'],
-        () => callMcpDirect('cernion_direct_marketing_opportunity_scanner', {
-          gridOperator: resolvedVnbName,
-          minCapacity: 100,
+        const salesLeads = await callBroker(ctx, 'business-intelligence.salesLeads', {
+          // CR-06/12: Include all installation types (PV + Wallbox + WP + Speicher)
           region: region || resolvedVnbName,
-        }, cernionToken)
-      );
+          installationType: 'all',
+          daysBack: 90,
+          limit: 50,
+        });
 
-      p.results.section6 = {
-        churnPrediction,
-        salesLeads,
-        marketPenetration,
-        prosumerTariff,
-        directMarketing,
-      };
-      saveProgress(p);
+        const marketPenetration = await gated(
+          availableTools,
+          ['cernion_market_penetration_analysis'],
+          () =>
+            callBroker(ctx, 'business-intelligence.marketPenetration', {
+              region: region || resolvedVnbName,
+              ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
+            })
+        );
 
-      // ── Section 7: Investition ────────────────────────────────────────────
-      const investmentBusinessCase = await gated(
-        availableTools, ['cernion_investment_business_case'],
-        () => callMcpDirect('cernion_investment_business_case', {
-          gridOperator: resolvedVnbName,
-          scenario: 'grid-expansion',
-          region: region || resolvedVnbName,
-        }, cernionToken)
-      );
+        const prosumerTariff = await gated(
+          availableTools,
+          ['cernion_prosumer_tariff_designer'],
+          () =>
+            callMcpDirect(
+              'cernion_prosumer_tariff_designer',
+              {
+                customerSegment: 'all',
+                region: region || resolvedVnbName,
+                designGoal: 'customer-acquisition',
+              },
+              cernionToken
+            )
+        );
 
-      const operatorPortfolio = await gated(
-        availableTools, ['cernion_operator_portfolio'],
-        () => callMcpDirect('cernion_operator_portfolio', {
-          gridOperator: resolvedVnbName,
-          ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
-        }, cernionToken)
-      );
+        const directMarketing = await gated(
+          availableTools,
+          ['cernion_direct_marketing_opportunity_scanner'],
+          () =>
+            callMcpDirect(
+              'cernion_direct_marketing_opportunity_scanner',
+              {
+                gridOperator: resolvedVnbName,
+                minCapacity: 100,
+                region: region || resolvedVnbName,
+              },
+              cernionToken
+            )
+        );
 
-      const storageOptimization = await gated(
-        availableTools, ['cernion_storage_optimization'],
-        () => callMcpDirect('cernion_storage_optimization', {
-          gridOperator: resolvedVnbName,
-          region: region || resolvedVnbName,
-        }, cernionToken)
-      );
-
-      p.results.section7 = {
-        investmentBusinessCase,
-        operatorPortfolio,
-        storageOptimization,
-        operatorAnalysis,
-      };
-      saveProgress(p);
-
-      // ── Section 8: Digitalisierung & System ──────────────────────────────
-      const systemStatus = await callBroker(ctx, 'system.status', {});
-
-      const eicStatistics = await callBroker(ctx, 'eic-codes.statistics', {});
-
-      p.results.section8 = {
-        systemStatus,
-        eicStatistics,
-        digitalisierungsindex: ewkDigitalisierungsindex,
-      };
-      saveProgress(p);
-
-      p.phase = 4;
-      saveProgress(p);
-    }
-
-    // ──────────────────────────────────────────────────────────────────────────
-    // PHASE 4: Context enrichment + HTML rendering
-    // ──────────────────────────────────────────────────────────────────────────
-    if (p.phase <= 4) {
-      this.logger.info(`[UtilityReport] ${p.reportId} – Phase 4: Context & Rendering`);
-
-      // Web search context (3 queries)
-      const searchQueries = [
-        `${resolvedVnbName} Netzausbau ${new Date().getFullYear()}`,
-        `${utilityName} Digitalisierung Energiewende aktuell`,
-        `BNetzA EWK Anschlussdauer ${resolvedVnbName} Benchmark`,
-      ];
-
-      const webSearchResults = [];
-      for (const q of searchQueries) {
-        const res = await callBroker(ctx, 'web-search.query', { query: q, numResults: 3 });
-        if (res.available) webSearchResults.push(res.data);
-      }
-
-      // Build compact KPI summary for Gemini (CR-09: include all 8 sections)
-      const kpiSummary = {};
-      const allSections = {
-        ...p.results.section1,
-        ...p.results.section2,
-        ...p.results.section3,
-        ...p.results.section4,
-        ...p.results.section5,
-        ...p.results.section6,
-        ...p.results.section7,
-        ...p.results.section8,
-      };
-      for (const [key, val] of Object.entries(allSections)) {
-        Object.assign(kpiSummary, summarizeForReport(val, key));
-      }
-
-      // CR-31: Compute a clear, accurate MeLo count and expose it as a clean
-      //         'meloCheck' key so the LLM sees the correct number (installations
-      //         WITHOUT a linked Messlokation, not the total ≥100 kW count).
-      //         Also remove the ambiguous raw key to avoid the contradiction between
-      //         the Summary ("34 ohne MeLo") and Section 1 ("0 ohne MeLo").
-      const ohneMeloRaw = p.results.section1?.installationenOhneMelo;
-      if (ohneMeloRaw?.available && ohneMeloRaw?.data) {
-        const insts =
-          ohneMeloRaw.data?.installations ??
-          ohneMeloRaw.data?.data?.installations ??
-          [];
-        const withoutMelo = Array.isArray(insts) ? insts.filter((i) => !i?.napData).length : null;
-        const totalGe100kw = Array.isArray(insts) ? insts.length : null;
-        kpiSummary.meloCheck = {
-          anlagen_ohne_melo: withoutMelo,    // TRUE ohne-MeLo count (used in Section 1)
-          anlagen_gesamt_ge100kw: totalGe100kw, // total ≥100 kW (context for LLM)
+        p.results.section6 = {
+          churnPrediction,
+          salesLeads,
+          marketPenetration,
+          prosumerTariff,
+          directMarketing,
         };
+        saveProgress(p);
+
+        // ── Section 7: Investition ────────────────────────────────────────────
+        const investmentBusinessCase = await gated(
+          availableTools,
+          ['cernion_investment_business_case'],
+          () =>
+            callMcpDirect(
+              'cernion_investment_business_case',
+              {
+                gridOperator: resolvedVnbName,
+                scenario: 'grid-expansion',
+                region: region || resolvedVnbName,
+              },
+              cernionToken
+            )
+        );
+
+        const operatorPortfolio = await gated(availableTools, ['cernion_operator_portfolio'], () =>
+          callMcpDirect(
+            'cernion_operator_portfolio',
+            {
+              gridOperator: resolvedVnbName,
+              ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
+            },
+            cernionToken
+          )
+        );
+
+        const storageOptimization = await gated(
+          availableTools,
+          ['cernion_storage_optimization'],
+          () =>
+            callMcpDirect(
+              'cernion_storage_optimization',
+              {
+                gridOperator: resolvedVnbName,
+                region: region || resolvedVnbName,
+              },
+              cernionToken
+            )
+        );
+
+        p.results.section7 = {
+          investmentBusinessCase,
+          operatorPortfolio,
+          storageOptimization,
+          operatorAnalysis,
+        };
+        saveProgress(p);
+
+        // ── Section 8: Digitalisierung & System ──────────────────────────────
+        const systemStatus = await callBroker(ctx, 'system.status', {});
+
+        const eicStatistics = await callBroker(ctx, 'eic-codes.statistics', {});
+
+        p.results.section8 = {
+          systemStatus,
+          eicStatistics,
+          digitalisierungsindex: ewkDigitalisierungsindex,
+        };
+        saveProgress(p);
+
+        p.phase = 4;
+        saveProgress(p);
       }
-      // Remove the ambiguous raw key so the LLM cannot misread the array count
-      delete kpiSummary.installationenOhneMelo;
 
-      const managementSummary = await generateNarrative(utilityName, kpiSummary);
+      // ──────────────────────────────────────────────────────────────────────────
+      // PHASE 4: Context enrichment + HTML rendering
+      // ──────────────────────────────────────────────────────────────────────────
+      if (p.phase <= 4) {
+        this.logger.info(`[UtilityReport] ${p.reportId} – Phase 4: Context & Rendering`);
 
-      // CR-15: Save flat kpiSummary for future cross-VNB fingerprint check
-      p.kpiSummaryFlat = kpiSummary;
+        // Web search context (3 queries)
+        const searchQueries = [
+          `${resolvedVnbName} Netzausbau ${new Date().getFullYear()}`,
+          `${utilityName} Digitalisierung Energiewende aktuell`,
+          `BNetzA EWK Anschlussdauer ${resolvedVnbName} Benchmark`,
+        ];
 
-      // CR-15: Validate uniqueness vs. previously completed reports (log only)
-      validateVnbUniqueness(kpiSummary, p.reportId, this.logger);
+        const webSearchResults = [];
+        for (const q of searchQueries) {
+          const res = await callBroker(ctx, 'web-search.query', { query: q, numResults: 3 });
+          if (res.available) webSearchResults.push(res.data);
+        }
 
-      // Build HTML
-      const html = buildHtmlReport({
-        meta: {
-          utilityName,
-          vnbName: resolvedVnbName,
-          region,
-          bdew: resolvedBdew,
-          mastrId: resolvedMastrId,
-          identityMismatch: p.meta.identityMismatch ?? null,
-          reportId: p.reportId,
-          allPartners: p.meta.allPartners ?? [], // CR-19
-          marktRollenProfile: p.meta.marktRollenProfile ?? null, // CR-37/CR-45
-          vnbIdentification: p.meta.vnbIdentification ?? null,
-        },
-        section1: p.results.section1,
-        section2: p.results.section2,
-        section3: p.results.section3,
-        section4: p.results.section4,
-        section5: p.results.section5,
-        section6: p.results.section6,
-        section7: p.results.section7,
-        section8: p.results.section8,
-        managementSummary,
-        webSearchResults,
-        generatedAt: new Date().toISOString(),
-      });
+        // Build compact KPI summary for Gemini (CR-09: include all 8 sections)
+        const kpiSummary = {};
+        const allSections = {
+          ...p.results.section1,
+          ...p.results.section2,
+          ...p.results.section3,
+          ...p.results.section4,
+          ...p.results.section5,
+          ...p.results.section6,
+          ...p.results.section7,
+          ...p.results.section8,
+        };
+        for (const [key, val] of Object.entries(allSections)) {
+          Object.assign(kpiSummary, summarizeForReport(val, key));
+        }
 
-      // Save HTML and index
-      ensureReportsDir();
-      fs.writeFileSync(reportPath(p.reportId), html, 'utf-8');
-      indexReport(utilityName, today, p.reportId);
+        // CR-31: Compute a clear, accurate MeLo count and expose it as a clean
+        //         'meloCheck' key so the LLM sees the correct number (installations
+        //         WITHOUT a linked Messlokation, not the total ≥100 kW count).
+        //         Also remove the ambiguous raw key to avoid the contradiction between
+        //         the Summary ("34 ohne MeLo") and Section 1 ("0 ohne MeLo").
+        const ohneMeloRaw = p.results.section1?.installationenOhneMelo;
+        if (ohneMeloRaw?.available && ohneMeloRaw?.data) {
+          const insts =
+            ohneMeloRaw.data?.installations ?? ohneMeloRaw.data?.data?.installations ?? [];
+          const withoutMelo = Array.isArray(insts) ? insts.filter((i) => !i?.napData).length : null;
+          const totalGe100kw = Array.isArray(insts) ? insts.length : null;
+          kpiSummary.meloCheck = {
+            anlagen_ohne_melo: withoutMelo, // TRUE ohne-MeLo count (used in Section 1)
+            anlagen_gesamt_ge100kw: totalGe100kw, // total ≥100 kW (context for LLM)
+          };
+        }
+        // Remove the ambiguous raw key so the LLM cannot misread the array count
+        delete kpiSummary.installationenOhneMelo;
 
-      p.status = 'completed';
-      p.phase = 4;
-      p.completedAt = new Date().toISOString();
-      p.managementSummary = managementSummary;
-      p.webSearchResults = webSearchResults;
-      saveProgress(p);
+        const managementSummary = await generateNarrative(utilityName, kpiSummary);
 
-      this.logger.info(`[UtilityReport] ${p.reportId} – Completed!`);
-    }
-  },
+        // CR-15: Save flat kpiSummary for future cross-VNB fingerprint check
+        p.kpiSummaryFlat = kpiSummary;
 
+        // CR-15: Validate uniqueness vs. previously completed reports (log only)
+        validateVnbUniqueness(kpiSummary, p.reportId, this.logger);
+
+        // Build HTML
+        const html = buildHtmlReport({
+          meta: {
+            utilityName,
+            vnbName: resolvedVnbName,
+            region,
+            bdew: resolvedBdew,
+            mastrId: resolvedMastrId,
+            identityMismatch: p.meta.identityMismatch ?? null,
+            reportId: p.reportId,
+            allPartners: p.meta.allPartners ?? [], // CR-19
+            marktRollenProfile: p.meta.marktRollenProfile ?? null, // CR-37/CR-45
+            vnbIdentification: p.meta.vnbIdentification ?? null,
+          },
+          section1: p.results.section1,
+          section2: p.results.section2,
+          section3: p.results.section3,
+          section4: p.results.section4,
+          section5: p.results.section5,
+          section6: p.results.section6,
+          section7: p.results.section7,
+          section8: p.results.section8,
+          managementSummary,
+          webSearchResults,
+          generatedAt: new Date().toISOString(),
+        });
+
+        // Save HTML and index
+        ensureReportsDir();
+        fs.writeFileSync(reportPath(p.reportId), html, 'utf-8');
+        indexReport(utilityName, today, p.reportId);
+
+        p.status = 'completed';
+        p.phase = 4;
+        p.completedAt = new Date().toISOString();
+        p.managementSummary = managementSummary;
+        p.webSearchResults = webSearchResults;
+        saveProgress(p);
+
+        this.logger.info(`[UtilityReport] ${p.reportId} – Completed!`);
+      }
+    },
   }, // end methods
 };

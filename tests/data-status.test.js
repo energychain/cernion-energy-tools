@@ -4,7 +4,14 @@
 
 'use strict';
 
-const { DataStatus, ds, dsValue, dsFallbackReason, dsFallbackDisplay, dsRender } = require('../src/data-status');
+const {
+  DataStatus,
+  ds,
+  dsValue,
+  dsFallbackReason,
+  dsFallbackDisplay,
+  dsRender,
+} = require('../src/data-status');
 
 describe('DataStatus (CR-11)', () => {
   describe('enum values', () => {

@@ -6,7 +6,11 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
-const { applyFormat, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
+const {
+  applyFormat,
+  FORMAT_PARAM_SCHEMA,
+  FORMAT_RESPONSE_CONTENT,
+} = require('../src/format-response');
 
 module.exports = {
   name: 'gas-storage',
@@ -187,7 +191,11 @@ module.exports = {
                 },
                 rweWithDate: {
                   summary: 'RWE Gas Storage on specific date',
-                  value: { operatorCode: '21X000000001262B', date: '2024-01-15', includeFacilities: true },
+                  value: {
+                    operatorCode: '21X000000001262B',
+                    date: '2024-01-15',
+                    includeFacilities: true,
+                  },
                 },
               },
             },
@@ -240,7 +248,12 @@ module.exports = {
           optional: true,
           default: 'daily',
         },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'Historical time-series data (daily/weekly/monthly) for trend analysis',
@@ -297,19 +310,40 @@ module.exports = {
               examples: {
                 germanHistory2024: {
                   summary: 'Full year 2024 daily data for Germany',
-                  value: { country: 'DE', from: '2024-01-01', to: '2024-12-31', aggregation: 'daily' },
+                  value: {
+                    country: 'DE',
+                    from: '2024-01-01',
+                    to: '2024-12-31',
+                    aggregation: 'daily',
+                  },
                 },
                 winterSeasonMonthly: {
                   summary: 'Winter season monthly aggregation',
-                  value: { country: 'DE', from: '2024-10-01', to: '2025-03-31', aggregation: 'monthly' },
+                  value: {
+                    country: 'DE',
+                    from: '2024-10-01',
+                    to: '2025-03-31',
+                    aggregation: 'monthly',
+                  },
                 },
                 quarterlyFrance: {
                   summary: 'Q1 weekly data for France',
-                  value: { country: 'FR', from: '2024-01-01', to: '2024-03-31', aggregation: 'weekly' },
+                  value: {
+                    country: 'FR',
+                    from: '2024-01-01',
+                    to: '2024-03-31',
+                    aggregation: 'weekly',
+                  },
                 },
                 csvExport: {
                   summary: 'Export historical time-series as CSV',
-                  value: { country: 'DE', from: '2024-01-01', to: '2024-12-31', aggregation: 'daily', format: 'csv' },
+                  value: {
+                    country: 'DE',
+                    from: '2024-01-01',
+                    to: '2024-12-31',
+                    aggregation: 'daily',
+                    format: 'csv',
+                  },
                 },
               },
             },
@@ -443,7 +477,12 @@ module.exports = {
           type: 'enum',
           values: ['fill_percentage', 'capacity', 'withdrawal_rate', 'coverage_days'],
         },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'Multi-country comparison (fill levels, capacities, trends)',
@@ -501,7 +540,11 @@ module.exports = {
                 },
                 csvExport: {
                   summary: 'Export country comparison as CSV',
-                  value: { countries: ['DE', 'FR', 'IT', 'NL', 'AT'], metric: 'fill_percentage', format: 'csv' },
+                  value: {
+                    countries: ['DE', 'FR', 'IT', 'NL', 'AT'],
+                    metric: 'fill_percentage',
+                    format: 'csv',
+                  },
                 },
               },
             },

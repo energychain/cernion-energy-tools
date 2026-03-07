@@ -150,7 +150,9 @@ describe('German Grid Service', () => {
     it('should return JSON for format=json', async () => {
       const mockResult = {
         success: true,
-        data: { content: [{ type: 'text', text: '**Found**: 10 measures\n- Total energy: 500 MWh' }] },
+        data: {
+          content: [{ type: 'text', text: '**Found**: 10 measures\n- Total energy: 500 MWh' }],
+        },
       };
       callWithNewSession.mockResolvedValueOnce(mockResult);
 
@@ -216,7 +218,12 @@ describe('German Grid Service', () => {
       callWithNewSession.mockResolvedValueOnce({
         success: true,
         data: {
-          content: [{ type: 'text', text: '❌ **Netztransparenz API Error**\n\nAPI error 500: Internal Server Error' }],
+          content: [
+            {
+              type: 'text',
+              text: '❌ **Netztransparenz API Error**\n\nAPI error 500: Internal Server Error',
+            },
+          ],
           isError: true,
         },
       });
@@ -294,7 +301,8 @@ describe('German Grid Service', () => {
     });
 
     it('should include primaryError annotation in fallback result', async () => {
-      const primaryErrorText = '❌ **Netztransparenz API Error**\nAPI error 500: Internal Server Error';
+      const primaryErrorText =
+        '❌ **Netztransparenz API Error**\nAPI error 500: Internal Server Error';
       callWithNewSession
         .mockResolvedValueOnce({
           success: true,
@@ -375,11 +383,15 @@ describe('German Grid Service', () => {
         });
 
       const ctx = { meta: {} };
-      const result = await broker.call('german-grid.spotprices', {
-        dateFrom: '2026-03-04',
-        dateTo: '2026-03-06',
-        format: 'csv',
-      }, { meta: ctx.meta });
+      const result = await broker.call(
+        'german-grid.spotprices',
+        {
+          dateFrom: '2026-03-04',
+          dateTo: '2026-03-06',
+          format: 'csv',
+        },
+        { meta: ctx.meta }
+      );
 
       expect(typeof result).toBe('string');
       expect(result).toContain('timestamp');

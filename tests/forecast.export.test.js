@@ -242,9 +242,7 @@ describe('Forecast Service - Export Formats', () => {
 
   describe('Format Parameter Validation', () => {
     it('should reject invalid format value', async () => {
-      await expect(
-        broker.call('forecast.generationForecast', { format: 'pdf' })
-      ).rejects.toThrow();
+      await expect(broker.call('forecast.generationForecast', { format: 'pdf' })).rejects.toThrow();
     });
 
     it('should default to JSON when format not specified', async () => {
@@ -310,4 +308,3 @@ describe('Forecast Service - Export Formats', () => {
     });
   });
 });
-

@@ -91,7 +91,8 @@ describe('Residual Load Service', () => {
   beforeAll(async () => {
     callWithNewSession.mockImplementation(async (toolName, params) => {
       if (toolName === 'mastr_net_residual_load') return buildResidualLoadResponse(params);
-      if (toolName === 'cernion_load_forecast_regional') return buildLoadForecastRegionalResponse(params);
+      if (toolName === 'cernion_load_forecast_regional')
+        return buildLoadForecastRegionalResponse(params);
       if (toolName === 'cernion_installations_local') {
         return {
           success: true,
@@ -114,7 +115,8 @@ describe('Residual Load Service', () => {
     jest.clearAllMocks();
     callWithNewSession.mockImplementation(async (toolName, params) => {
       if (toolName === 'mastr_net_residual_load') return buildResidualLoadResponse(params);
-      if (toolName === 'cernion_load_forecast_regional') return buildLoadForecastRegionalResponse(params);
+      if (toolName === 'cernion_load_forecast_regional')
+        return buildLoadForecastRegionalResponse(params);
       if (toolName === 'cernion_installations_local') {
         return {
           success: true,
@@ -149,7 +151,9 @@ describe('Residual Load Service', () => {
     });
 
     it('loadForecastRegional has REST POST mapping', () => {
-      expect(ResidualLoadService.actions.loadForecastRegional.rest).toBe('POST /load-forecast-regional');
+      expect(ResidualLoadService.actions.loadForecastRegional.rest).toBe(
+        'POST /load-forecast-regional'
+      );
     });
   });
 
@@ -158,7 +162,9 @@ describe('Residual Load Service', () => {
   describe('netResidualLoad', () => {
     describe('required parameter validation', () => {
       it('succeeds with region only (minimum required)', async () => {
-        const result = await broker.call('residual-load.netResidualLoad', { region: 'Ludwigshafen' });
+        const result = await broker.call('residual-load.netResidualLoad', {
+          region: 'Ludwigshafen',
+        });
         expect(result).toHaveProperty('summary');
         expect(result.summary.region).toBe('Ludwigshafen');
       });
@@ -173,8 +179,16 @@ describe('Residual Load Service', () => {
       });
 
       it('passes cernionToken from ctx.meta', async () => {
-        await broker.call('residual-load.netResidualLoad', { region: 'Test' }, { meta: { cernionToken: 'my-token' } });
-        expect(callWithNewSession).toHaveBeenCalledWith('mastr_net_residual_load', expect.any(Object), 'my-token');
+        await broker.call(
+          'residual-load.netResidualLoad',
+          { region: 'Test' },
+          { meta: { cernionToken: 'my-token' } }
+        );
+        expect(callWithNewSession).toHaveBeenCalledWith(
+          'mastr_net_residual_load',
+          expect.any(Object),
+          'my-token'
+        );
       });
     });
 
@@ -237,7 +251,9 @@ describe('Residual Load Service', () => {
           gridOperatorMastrId: 'SNB935578300972',
         });
         expect(result).toHaveProperty('forecast');
-        const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
+        const mainCall = callWithNewSession.mock.calls.find(
+          ([t]) => t === 'mastr_net_residual_load'
+        );
         // 'Rheinland-Pfalz' (bundesland) must be used — not 'Ludwigshafen' (gemeinde) —
         // because SMARD has no city-level load data; passing a city name returns loadMW=0.
         expect(mainCall[1].region).toBe('Rheinland-Pfalz');
@@ -252,14 +268,24 @@ describe('Residual Load Service', () => {
         callWithNewSession
           .mockResolvedValueOnce({
             success: true,
-            data: { installations: [{ gemeinde: 'Ludwigshafen am Rhein', landkreis: 'Ludwigshafen am Rhein', bundesland: '1410' }] },
+            data: {
+              installations: [
+                {
+                  gemeinde: 'Ludwigshafen am Rhein',
+                  landkreis: 'Ludwigshafen am Rhein',
+                  bundesland: '1410',
+                },
+              ],
+            },
           })
           .mockImplementationOnce(async (toolName, params) => buildResidualLoadResponse(params));
         const result = await broker.call('residual-load.netResidualLoad', {
           gridOperatorMastrId: 'SNB935578300972',
         });
         expect(result).toHaveProperty('forecast');
-        const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
+        const mainCall = callWithNewSession.mock.calls.find(
+          ([t]) => t === 'mastr_net_residual_load'
+        );
         // Must be "Rheinland-Pfalz" — never "Ludwigshafen am Rhein" or "1410"
         expect(mainCall[1].region).toBe('Rheinland-Pfalz');
       });
@@ -268,14 +294,18 @@ describe('Residual Load Service', () => {
         callWithNewSession
           .mockResolvedValueOnce({
             success: true,
-            data: { installations: [{ gemeinde: 'München', landkreis: 'München', bundesland: '1403' }] },
+            data: {
+              installations: [{ gemeinde: 'München', landkreis: 'München', bundesland: '1403' }],
+            },
           })
           .mockImplementationOnce(async (toolName, params) => buildResidualLoadResponse(params));
         const result = await broker.call('residual-load.netResidualLoad', {
           gridOperatorMastrId: 'SNB000000000002',
         });
         expect(result).toHaveProperty('forecast');
-        const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
+        const mainCall = callWithNewSession.mock.calls.find(
+          ([t]) => t === 'mastr_net_residual_load'
+        );
         expect(mainCall[1].region).toBe('Bayern');
       });
 
@@ -285,14 +315,20 @@ describe('Residual Load Service', () => {
         callWithNewSession
           .mockResolvedValueOnce({
             success: true,
-            data: { installations: [{ gemeinde: 'Ludwigshafen', landkreis: '1410', bundesland: 'Rheinland-Pfalz' }] },
+            data: {
+              installations: [
+                { gemeinde: 'Ludwigshafen', landkreis: '1410', bundesland: 'Rheinland-Pfalz' },
+              ],
+            },
           })
           .mockImplementationOnce(async (toolName, params) => buildResidualLoadResponse(params));
         const result = await broker.call('residual-load.netResidualLoad', {
           gridOperatorMastrId: 'SNB935578300972',
         });
         expect(result).toHaveProperty('forecast');
-        const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
+        const mainCall = callWithNewSession.mock.calls.find(
+          ([t]) => t === 'mastr_net_residual_load'
+        );
         expect(mainCall[1].region).toBe('Rheinland-Pfalz');
       });
 
@@ -307,7 +343,9 @@ describe('Residual Load Service', () => {
           gridOperatorMastrId: 'SNB000000000001',
         });
         expect(result).toHaveProperty('forecast');
-        const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
+        const mainCall = callWithNewSession.mock.calls.find(
+          ([t]) => t === 'mastr_net_residual_load'
+        );
         expect(mainCall[1].region).toBe('Kiel');
       });
 
@@ -319,8 +357,16 @@ describe('Residual Load Service', () => {
             success: true,
             data: {
               installations: [
-                { gemeinde: 'Ludwigshafen am Rhein', landkreis: 'Ludwigshafen am Rhein', bundesland: '1410' },
-                { gemeinde: 'Ludwigshafen am Rhein', landkreis: 'Ludwigshafen am Rhein', bundesland: '1410' },
+                {
+                  gemeinde: 'Ludwigshafen am Rhein',
+                  landkreis: 'Ludwigshafen am Rhein',
+                  bundesland: '1410',
+                },
+                {
+                  gemeinde: 'Ludwigshafen am Rhein',
+                  landkreis: 'Ludwigshafen am Rhein',
+                  bundesland: '1410',
+                },
               ],
             },
           })
@@ -329,14 +375,14 @@ describe('Residual Load Service', () => {
           gridOperatorMastrId: 'SNB935578300972',
         });
         expect(result).toHaveProperty('forecast');
-        const mainCall = callWithNewSession.mock.calls.find(([t]) => t === 'mastr_net_residual_load');
+        const mainCall = callWithNewSession.mock.calls.find(
+          ([t]) => t === 'mastr_net_residual_load'
+        );
         expect(mainCall[1].region).toBe('Rheinland-Pfalz');
       });
 
       it('succeeds with no params at all — no Moleculer validation error', async () => {
-        await expect(
-          broker.call('residual-load.netResidualLoad', {})
-        ).resolves.toBeDefined();
+        await expect(broker.call('residual-load.netResidualLoad', {})).resolves.toBeDefined();
       });
     });
 
@@ -398,8 +444,7 @@ describe('Residual Load Service', () => {
         // Only mock cernion_installations_local — mastr_net_residual_load must NOT be called,
         // so no second mock is needed (an unconsumed mockImplementationOnce would leak into
         // subsequent tests because jest.clearAllMocks() does not flush the implementation queue).
-        callWithNewSession
-          .mockResolvedValueOnce({ success: true, data: { installations: [] } }); // cernion_installations_local
+        callWithNewSession.mockResolvedValueOnce({ success: true, data: { installations: [] } }); // cernion_installations_local
         const result = await broker.call('residual-load.netResidualLoad', {
           gridOperatorMastrId: 'SNB973742186519',
           // no region, no location fields
@@ -428,7 +473,12 @@ describe('Residual Load Service', () => {
       it('converts MCP error text to a proper service error', async () => {
         callWithNewSession.mockResolvedValueOnce({
           success: true,
-          data: [{ type: 'text', text: "Error: Cannot read properties of undefined (reading 'toLowerCase')" }],
+          data: [
+            {
+              type: 'text',
+              text: "Error: Cannot read properties of undefined (reading 'toLowerCase')",
+            },
+          ],
           metadata: { toolName: 'mastr_net_residual_load' },
         });
         const result = await broker.call('residual-load.netResidualLoad', { region: 'Kiel' });
@@ -455,16 +505,36 @@ describe('Residual Load Service', () => {
           .mockResolvedValueOnce({
             summary: { region: 'Bayern' },
             forecast: [
-              { timestamp: '2030-01-01T00:00:00Z', loadMW: 0, eeGenerationMW: 3.5, residualLoadMW: 0 },
-              { timestamp: '2030-01-01T01:00:00Z', loadMW: 0, eeGenerationMW: 4.0, residualLoadMW: 0 },
+              {
+                timestamp: '2030-01-01T00:00:00Z',
+                loadMW: 0,
+                eeGenerationMW: 3.5,
+                residualLoadMW: 0,
+              },
+              {
+                timestamp: '2030-01-01T01:00:00Z',
+                loadMW: 0,
+                eeGenerationMW: 4.0,
+                residualLoadMW: 0,
+              },
             ],
           })
           // D-7 fallback (2029-12-25) returns real load via filter 410
           .mockResolvedValueOnce({
             summary: { region: 'Bayern' },
             forecast: [
-              { timestamp: '2029-12-25T00:00:00Z', loadMW: 7200.5, eeGenerationMW: 3.5, residualLoadMW: 7197 },
-              { timestamp: '2029-12-25T01:00:00Z', loadMW: 7100.2, eeGenerationMW: 4.0, residualLoadMW: 7096.2 },
+              {
+                timestamp: '2029-12-25T00:00:00Z',
+                loadMW: 7200.5,
+                eeGenerationMW: 3.5,
+                residualLoadMW: 7197,
+              },
+              {
+                timestamp: '2029-12-25T01:00:00Z',
+                loadMW: 7100.2,
+                eeGenerationMW: 4.0,
+                residualLoadMW: 7096.2,
+              },
             ],
           });
 
@@ -488,9 +558,14 @@ describe('Residual Load Service', () => {
           })
           .mockImplementationOnce(async (toolName, params) => buildResidualLoadResponse(params));
 
-        await broker.call('residual-load.netResidualLoad', { region: 'Bayern', startDate: '2030-03-12' });
+        await broker.call('residual-load.netResidualLoad', {
+          region: 'Bayern',
+          startDate: '2030-03-12',
+        });
 
-        const calls = callWithNewSession.mock.calls.filter(([t]) => t === 'mastr_net_residual_load');
+        const calls = callWithNewSession.mock.calls.filter(
+          ([t]) => t === 'mastr_net_residual_load'
+        );
         expect(calls).toHaveLength(2);
         // 2030-03-12 − 7 days = 2030-03-05
         expect(calls[1][1].startDate).toBe('2030-03-05');
@@ -510,7 +585,9 @@ describe('Residual Load Service', () => {
           populationOverride: 247000,
         });
 
-        const calls = callWithNewSession.mock.calls.filter(([t]) => t === 'mastr_net_residual_load');
+        const calls = callWithNewSession.mock.calls.filter(
+          ([t]) => t === 'mastr_net_residual_load'
+        );
         expect(calls).toHaveLength(2);
         expect(calls[1][1].populationOverride).toBe(247000);
         expect(calls[1][1].startDate).toBe('2029-12-25'); // 2030-01-01 − 7
@@ -553,7 +630,9 @@ describe('Residual Load Service', () => {
         expect(result.dataQualityWarning).toBe(true);
         expect(result.dataQualityMessage).toMatch(/populationOverride/);
         expect(result.loadFallbackWarning).toBeUndefined();
-        const calls = callWithNewSession.mock.calls.filter(([t]) => t === 'mastr_net_residual_load');
+        const calls = callWithNewSession.mock.calls.filter(
+          ([t]) => t === 'mastr_net_residual_load'
+        );
         expect(calls).toHaveLength(1); // No D-7 retry for historical past dates
       });
 
@@ -572,7 +651,9 @@ describe('Residual Load Service', () => {
         });
         expect(result.dataQualityWarning).toBeUndefined();
         expect(result.loadFallbackWarning).toBeUndefined();
-        const calls = callWithNewSession.mock.calls.filter(([t]) => t === 'mastr_net_residual_load');
+        const calls = callWithNewSession.mock.calls.filter(
+          ([t]) => t === 'mastr_net_residual_load'
+        );
         expect(calls).toHaveLength(1);
       });
 
@@ -584,7 +665,9 @@ describe('Residual Load Service', () => {
         const result = await broker.call('residual-load.netResidualLoad', { region: 'Kiel' });
         expect(result.dataQualityWarning).toBeUndefined();
         expect(result.loadFallbackWarning).toBeUndefined();
-        const calls = callWithNewSession.mock.calls.filter(([t]) => t === 'mastr_net_residual_load');
+        const calls = callWithNewSession.mock.calls.filter(
+          ([t]) => t === 'mastr_net_residual_load'
+        );
         expect(calls).toHaveLength(1);
       });
     });
@@ -603,7 +686,10 @@ describe('Residual Load Service', () => {
       });
 
       it('passes populationOverride when provided', async () => {
-        await broker.call('residual-load.netResidualLoad', { region: 'Ludwigshafen', populationOverride: 170000 });
+        await broker.call('residual-load.netResidualLoad', {
+          region: 'Ludwigshafen',
+          populationOverride: 170000,
+        });
         expect(callWithNewSession).toHaveBeenCalledWith(
           'mastr_net_residual_load',
           expect.objectContaining({ populationOverride: 170000 }),
@@ -639,7 +725,10 @@ describe('Residual Load Service', () => {
       });
 
       it('accepts "hourly" resolution unchanged', async () => {
-        await broker.call('residual-load.netResidualLoad', { region: 'Test', resolution: 'hourly' });
+        await broker.call('residual-load.netResidualLoad', {
+          region: 'Test',
+          resolution: 'hourly',
+        });
         expect(callWithNewSession).toHaveBeenCalledWith(
           'mastr_net_residual_load',
           expect.objectContaining({ resolution: 'hourly' }),
@@ -648,7 +737,10 @@ describe('Residual Load Service', () => {
       });
 
       it('passes installationType "solar" when provided', async () => {
-        await broker.call('residual-load.netResidualLoad', { region: 'Test', installationType: 'solar' });
+        await broker.call('residual-load.netResidualLoad', {
+          region: 'Test',
+          installationType: 'solar',
+        });
         expect(callWithNewSession).toHaveBeenCalledWith(
           'mastr_net_residual_load',
           expect.objectContaining({ installationType: 'solar' }),
@@ -659,7 +751,10 @@ describe('Residual Load Service', () => {
 
     describe('location object building', () => {
       it('builds nested location object from flat bundesland', async () => {
-        await broker.call('residual-load.netResidualLoad', { region: 'Bayern', bundesland: 'Bayern' });
+        await broker.call('residual-load.netResidualLoad', {
+          region: 'Bayern',
+          bundesland: 'Bayern',
+        });
         expect(callWithNewSession).toHaveBeenCalledWith(
           'mastr_net_residual_load',
           expect.objectContaining({ location: { bundesland: 'Bayern' } }),
@@ -668,7 +763,10 @@ describe('Residual Load Service', () => {
       });
 
       it('builds nested location object from flat postleitzahl', async () => {
-        await broker.call('residual-load.netResidualLoad', { region: 'Heidelberg', postleitzahl: '69115' });
+        await broker.call('residual-load.netResidualLoad', {
+          region: 'Heidelberg',
+          postleitzahl: '69115',
+        });
         expect(callWithNewSession).toHaveBeenCalledWith(
           'mastr_net_residual_load',
           expect.objectContaining({ location: { postleitzahl: '69115' } }),
@@ -722,7 +820,10 @@ describe('Residual Load Service', () => {
       });
 
       it('does NOT pass flat location fields directly to MCP (only nested)', async () => {
-        await broker.call('residual-load.netResidualLoad', { region: 'Test', bundesland: 'Bayern' });
+        await broker.call('residual-load.netResidualLoad', {
+          region: 'Test',
+          bundesland: 'Bayern',
+        });
         const [, params] = callWithNewSession.mock.calls[0];
         expect(params.bundesland).toBeUndefined();
         expect(params.postleitzahl).toBeUndefined();
@@ -739,7 +840,9 @@ describe('Residual Load Service', () => {
 
     describe('response structure', () => {
       it('returns summary with region', async () => {
-        const result = await broker.call('residual-load.netResidualLoad', { region: 'Ludwigshafen' });
+        const result = await broker.call('residual-load.netResidualLoad', {
+          region: 'Ludwigshafen',
+        });
         expect(result.summary.region).toBe('Ludwigshafen');
       });
 
@@ -766,25 +869,37 @@ describe('Residual Load Service', () => {
 
     describe('CSV format', () => {
       it('returns string when format=csv', async () => {
-        const result = await broker.call('residual-load.netResidualLoad', { region: 'Test', format: 'csv' });
+        const result = await broker.call('residual-load.netResidualLoad', {
+          region: 'Test',
+          format: 'csv',
+        });
         expect(typeof result).toBe('string');
       });
 
       it('CSV contains metadata comment header', async () => {
-        const result = await broker.call('residual-load.netResidualLoad', { region: 'Heidelberg', format: 'csv' });
+        const result = await broker.call('residual-load.netResidualLoad', {
+          region: 'Heidelberg',
+          format: 'csv',
+        });
         expect(result).toContain('# Net Residual Load Forecast');
         expect(result).toContain('# Region: Heidelberg');
       });
 
       it('CSV contains column headers', async () => {
-        const result = await broker.call('residual-load.netResidualLoad', { region: 'Test', format: 'csv' });
+        const result = await broker.call('residual-load.netResidualLoad', {
+          region: 'Test',
+          format: 'csv',
+        });
         expect(result).toContain('Timestamp');
         expect(result).toContain('Residual Load (MW)');
         expect(result).toContain('EE Share (%)');
       });
 
       it('CSV contains data rows', async () => {
-        const result = await broker.call('residual-load.netResidualLoad', { region: 'Test', format: 'csv' });
+        const result = await broker.call('residual-load.netResidualLoad', {
+          region: 'Test',
+          format: 'csv',
+        });
         const lines = result.split('\n').filter((l) => l && !l.startsWith('#'));
         // header + at least one data row
         expect(lines.length).toBeGreaterThan(1);
@@ -793,12 +908,18 @@ describe('Residual Load Service', () => {
 
     describe('XLSX format', () => {
       it('returns Buffer when format=xlsx', async () => {
-        const result = await broker.call('residual-load.netResidualLoad', { region: 'Test', format: 'xlsx' });
+        const result = await broker.call('residual-load.netResidualLoad', {
+          region: 'Test',
+          format: 'xlsx',
+        });
         expect(Buffer.isBuffer(result)).toBe(true);
       });
 
       it('XLSX starts with PK (ZIP magic bytes)', async () => {
-        const result = await broker.call('residual-load.netResidualLoad', { region: 'Test', format: 'xlsx' });
+        const result = await broker.call('residual-load.netResidualLoad', {
+          region: 'Test',
+          format: 'xlsx',
+        });
         expect(result[0]).toBe(0x50); // P
         expect(result[1]).toBe(0x4b); // K
       });
@@ -827,7 +948,9 @@ describe('Residual Load Service', () => {
   describe('loadForecastRegional', () => {
     describe('required parameter', () => {
       it('succeeds with region only', async () => {
-        const result = await broker.call('residual-load.loadForecastRegional', { region: 'Mannheim' });
+        const result = await broker.call('residual-load.loadForecastRegional', {
+          region: 'Mannheim',
+        });
         expect(result).toBeDefined();
         expect(result.success).toBe(true);
       });
@@ -865,15 +988,16 @@ describe('Residual Load Service', () => {
       });
 
       it('succeeds with no params at all — no Moleculer validation error', async () => {
-        await expect(
-          broker.call('residual-load.loadForecastRegional', {})
-        ).resolves.toBeDefined();
+        await expect(broker.call('residual-load.loadForecastRegional', {})).resolves.toBeDefined();
       });
     });
 
     describe('optional parameters', () => {
       it('passes populationOverride', async () => {
-        await broker.call('residual-load.loadForecastRegional', { region: 'Mannheim', populationOverride: 320000 });
+        await broker.call('residual-load.loadForecastRegional', {
+          region: 'Mannheim',
+          populationOverride: 320000,
+        });
         expect(callWithNewSession).toHaveBeenCalledWith(
           'cernion_load_forecast_regional',
           expect.objectContaining({ populationOverride: 320000 }),
@@ -882,7 +1006,10 @@ describe('Residual Load Service', () => {
       });
 
       it('passes forecastDays', async () => {
-        await broker.call('residual-load.loadForecastRegional', { region: 'Mannheim', forecastDays: 3 });
+        await broker.call('residual-load.loadForecastRegional', {
+          region: 'Mannheim',
+          forecastDays: 3,
+        });
         expect(callWithNewSession).toHaveBeenCalledWith(
           'cernion_load_forecast_regional',
           expect.objectContaining({ forecastDays: 3 }),
@@ -917,14 +1044,20 @@ describe('Residual Load Service', () => {
 
     describe('location building', () => {
       it('builds nested location from bundesland', async () => {
-        await broker.call('residual-load.loadForecastRegional', { region: 'Test', bundesland: 'Bayern' });
+        await broker.call('residual-load.loadForecastRegional', {
+          region: 'Test',
+          bundesland: 'Bayern',
+        });
         const [, params] = callWithNewSession.mock.calls[0];
         expect(params.location).toEqual({ bundesland: 'Bayern' });
         expect(params.bundesland).toBeUndefined();
       });
 
       it('builds nested location from postleitzahl', async () => {
-        await broker.call('residual-load.loadForecastRegional', { region: 'Test', postleitzahl: '68159' });
+        await broker.call('residual-load.loadForecastRegional', {
+          region: 'Test',
+          postleitzahl: '68159',
+        });
         const [, params] = callWithNewSession.mock.calls[0];
         expect(params.location).toEqual({ postleitzahl: '68159' });
         expect(params.postleitzahl).toBeUndefined();
@@ -979,7 +1112,10 @@ describe('Residual Load Service', () => {
     });
 
     it('includes only defined fields', () => {
-      const result = serviceInstance.buildLocationObj({ bundesland: 'Bayern', landkreis: undefined });
+      const result = serviceInstance.buildLocationObj({
+        bundesland: 'Bayern',
+        landkreis: undefined,
+      });
       expect(result).toEqual({ bundesland: 'Bayern' });
     });
 
@@ -1006,7 +1142,17 @@ describe('Residual Load Service', () => {
     });
 
     it('includes all required columns', () => {
-      const data = [{ timestamp: 't', loadMW: 60, pvGenerationMW: 1, windGenerationMW: 2, eeGenerationMW: 3, residualLoadMW: 57, eeSharePct: 5 }];
+      const data = [
+        {
+          timestamp: 't',
+          loadMW: 60,
+          pvGenerationMW: 1,
+          windGenerationMW: 2,
+          eeGenerationMW: 3,
+          residualLoadMW: 57,
+          eeSharePct: 5,
+        },
+      ];
       const csv = serviceInstance.convertToCSV(data, null);
       expect(csv).toContain('Load (MW)');
       expect(csv).toContain('Residual Load (MW)');
@@ -1015,7 +1161,17 @@ describe('Residual Load Service', () => {
 
     it('includes region in metadata comment when summary provided', () => {
       const summary = { region: 'Mannheim', resolution: 'hourly', kpis: {}, installedCapacity: {} };
-      const data = [{ timestamp: 't', loadMW: 60, pvGenerationMW: 0, windGenerationMW: 0, eeGenerationMW: 0, residualLoadMW: 60, eeSharePct: 0 }];
+      const data = [
+        {
+          timestamp: 't',
+          loadMW: 60,
+          pvGenerationMW: 0,
+          windGenerationMW: 0,
+          eeGenerationMW: 0,
+          residualLoadMW: 60,
+          eeSharePct: 0,
+        },
+      ];
       expect(serviceInstance.convertToCSV(data, summary)).toContain('# Region: Mannheim');
     });
   });
@@ -1035,7 +1191,17 @@ describe('Residual Load Service', () => {
     });
 
     it('returns valid XLSX buffer for real data', () => {
-      const data = [{ timestamp: 't1', loadMW: 60, pvGenerationMW: 1, windGenerationMW: 2, eeGenerationMW: 3, residualLoadMW: 57, eeSharePct: 5 }];
+      const data = [
+        {
+          timestamp: 't1',
+          loadMW: 60,
+          pvGenerationMW: 1,
+          windGenerationMW: 2,
+          eeGenerationMW: 3,
+          residualLoadMW: 57,
+          eeSharePct: 5,
+        },
+      ];
       const result = serviceInstance.convertToXLSX(data, null, null);
       expect(Buffer.isBuffer(result)).toBe(true);
       expect(result[0]).toBe(0x50); // ZIP/XLSX magic bytes
@@ -1043,8 +1209,30 @@ describe('Residual Load Service', () => {
 
     it('includes summary sheet when summary is provided', () => {
       const XLSX = require('xlsx');
-      const data = [{ timestamp: 't1', loadMW: 60, pvGenerationMW: 1, windGenerationMW: 2, eeGenerationMW: 3, residualLoadMW: 57, eeSharePct: 5 }];
-      const summary = { region: 'Test', resolution: 'hourly', dataPoints: 1, installedCapacity: { totalPV_MW: 10, totalWind_MW: 2, pvInstallations: 10, windInstallations: 1 }, loadScaling: {}, kpis: { peakResidualLoadMW: 60 } };
+      const data = [
+        {
+          timestamp: 't1',
+          loadMW: 60,
+          pvGenerationMW: 1,
+          windGenerationMW: 2,
+          eeGenerationMW: 3,
+          residualLoadMW: 57,
+          eeSharePct: 5,
+        },
+      ];
+      const summary = {
+        region: 'Test',
+        resolution: 'hourly',
+        dataPoints: 1,
+        installedCapacity: {
+          totalPV_MW: 10,
+          totalWind_MW: 2,
+          pvInstallations: 10,
+          windInstallations: 1,
+        },
+        loadScaling: {},
+        kpis: { peakResidualLoadMW: 60 },
+      };
       const buf = serviceInstance.convertToXLSX(data, summary, { residualFormula: 'Test formula' });
       const wb = XLSX.read(buf, { type: 'buffer' });
       expect(wb.SheetNames).toContain('Forecast');
@@ -1059,7 +1247,8 @@ describe('Residual Load Service', () => {
       jest.clearAllMocks();
       callWithNewSession.mockImplementation(async (toolName, params) => {
         if (toolName === 'mastr_net_residual_load') return buildResidualLoadResponse(params);
-        if (toolName === 'cernion_load_forecast_regional') return buildLoadForecastRegionalResponse(params);
+        if (toolName === 'cernion_load_forecast_regional')
+          return buildLoadForecastRegionalResponse(params);
         throw new Error(`Unexpected tool: ${toolName}`);
       });
     });
@@ -1104,9 +1293,26 @@ describe('Residual Load Service', () => {
           dataMode: 'historical_observation',
           resolution: 'hourly',
           dataPoints: 168,
-          installedCapacity: { totalPV_MW: 42.7, totalWind_MW: 8.1, pvInstallations: 1203, windInstallations: 12 },
-          loadScaling: { populationUsed: '170.000', scalingFactorPct: '0.202%', isActualData: true, dataSource: 'SMARD filter 410 (realized)' },
-          kpis: { peakResidualLoadMW: 87.4, avgResidualLoadMW: 58.9, totalLoadMWh: 1413.6, totalEEGenerationMWh: 38.2, totalResidualLoadMWh: 1375.4, avgEESharePct: 2.7 },
+          installedCapacity: {
+            totalPV_MW: 42.7,
+            totalWind_MW: 8.1,
+            pvInstallations: 1203,
+            windInstallations: 12,
+          },
+          loadScaling: {
+            populationUsed: '170.000',
+            scalingFactorPct: '0.202%',
+            isActualData: true,
+            dataSource: 'SMARD filter 410 (realized)',
+          },
+          kpis: {
+            peakResidualLoadMW: 87.4,
+            avgResidualLoadMW: 58.9,
+            totalLoadMWh: 1413.6,
+            totalEEGenerationMWh: 38.2,
+            totalResidualLoadMWh: 1375.4,
+            avgEESharePct: 2.7,
+          },
         },
         forecast: [],
         methodology: { residualFormula: 'Residuallast = RegionaleLast \u2212 PV \u2212 Wind' },

@@ -24,7 +24,12 @@ describe('Forecast Service Integration', () => {
         const type = params.installationType || 'solar';
         const resolution = params.resolution || 'daily';
         const pointsPerDay = resolution === '15min' ? 96 : resolution === 'hourly' ? 24 : 1;
-        const intervalMs = resolution === '15min' ? 15 * 60 * 1000 : resolution === 'hourly' ? 60 * 60 * 1000 : 86400000;
+        const intervalMs =
+          resolution === '15min'
+            ? 15 * 60 * 1000
+            : resolution === 'hourly'
+              ? 60 * 60 * 1000
+              : 86400000;
         const totalPoints = days * pointsPerDay;
 
         const forecasts = [];
@@ -275,4 +280,3 @@ describe('Forecast Service Integration', () => {
     });
   });
 });
-

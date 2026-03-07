@@ -7,7 +7,12 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
-const { applyFormat, convertToCSV, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
+const {
+  applyFormat,
+  convertToCSV,
+  FORMAT_PARAM_SCHEMA,
+  FORMAT_RESPONSE_CONTENT,
+} = require('../src/format-response');
 
 // ─── Helpers for redispatch text-narrative responses ──────────────────────────
 
@@ -330,7 +335,11 @@ module.exports = {
                         default: true,
                       },
                     },
-                    example: { onlyNap: false, voltageTypes: ['Niederspannung'], withRegions: true },
+                    example: {
+                      onlyNap: false,
+                      voltageTypes: ['Niederspannung'],
+                      withRegions: true,
+                    },
                   },
                 },
               },
@@ -419,7 +428,8 @@ module.exports = {
                   },
                   city: {
                     type: 'string',
-                    description: 'Optional operator city (e.g. from marketPartners contacts). Used as fallback when cernion_vnb_lookup returns no result — extracts SNB from a sample installation in that city.',
+                    description:
+                      'Optional operator city (e.g. from marketPartners contacts). Used as fallback when cernion_vnb_lookup returns no result — extracts SNB from a sample installation in that city.',
                     example: 'Hannover',
                   },
                 },
@@ -458,15 +468,19 @@ module.exports = {
           try {
             const fallback = await callWithAutoPoll(
               'cernion_installations_local',
-              { type: 'solar', gemeinde: city, limit: 1, includeStats: false, format: 'detailed', includeNapData: true },
+              {
+                type: 'solar',
+                gemeinde: city,
+                limit: 1,
+                includeStats: false,
+                format: 'detailed',
+                includeNapData: true,
+              },
               { maxWaitTime: 30 * 1000, pollInterval: 1000 },
               ctx.meta.cernionToken
             );
 
-            const installations =
-              fallback?.installations ||
-              fallback?.data?.installations ||
-              [];
+            const installations = fallback?.installations || fallback?.data?.installations || [];
             const snb =
               installations[0]?.napData?.netzbetreiberMastrNummer ||
               installations[0]?.nap?.netzbetreiberMaStRNummer;
@@ -804,7 +818,12 @@ module.exports = {
           { type: 'string', optional: true },
         ],
         autoConfirm: { type: 'boolean', optional: true, default: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'Export redispatch 2.0 installations (≥100 kW) per grid operator',
@@ -924,8 +943,13 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { gridOperator, gridOperatorId, gridOperatorBdewCode, format, minCapacity = 100 } =
-          ctx.params;
+        const {
+          gridOperator,
+          gridOperatorId,
+          gridOperatorBdewCode,
+          format,
+          minCapacity = 100,
+        } = ctx.params;
 
         if (!gridOperator && !gridOperatorId && !gridOperatorBdewCode) {
           throw new Error(
@@ -937,7 +961,10 @@ module.exports = {
         const mcpParams = { ...ctx.params };
         delete mcpParams.format; // strip before forwarding to MCP tool
         if (typeof mcpParams.types === 'string') {
-          mcpParams.types = mcpParams.types.split(',').map((t) => t.trim()).filter(Boolean);
+          mcpParams.types = mcpParams.types
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean);
         }
 
         // Use auto-polling for async jobs (redispatch export typically returns job ID)
@@ -957,8 +984,10 @@ module.exports = {
           // Guard: MCP-level error flag (isError: true) — e.g. failed async job
           if (result.data?.isError) {
             throw new Error(
-              text.replace(/^[❌\s*⚡]+/, '').trim().substring(0, 300) ||
-                'Redispatch export error'
+              text
+                .replace(/^[❌\s*⚡]+/, '')
+                .trim()
+                .substring(0, 300) || 'Redispatch export error'
             );
           }
 
@@ -995,9 +1024,7 @@ module.exports = {
               //   - callTool JSON-spread: localResult.installations (direct)
               //   - wrapped:             localResult.data.installations
               const installations =
-                localResult?.installations ||
-                localResult?.data?.installations ||
-                [];
+                localResult?.installations || localResult?.data?.installations || [];
               // Filter by types when specified (map 'combustion' → any non-standard type)
               const typeSet =
                 Array.isArray(mcpParams.types) && mcpParams.types.length > 0
@@ -1021,7 +1048,7 @@ module.exports = {
                 status:
                   inst.einheitBetriebsstatus === '35'
                     ? 'In Betrieb'
-                    : (inst.einheitBetriebsstatus || ''),
+                    : inst.einheitBetriebsstatus || '',
                 einsatzverantwortlicher: inst.einsatzverantwortlicher || '',
               }));
             } catch (_) {
@@ -1206,7 +1233,12 @@ module.exports = {
       params: {
         query: { type: 'string', min: 1 },
         limit: { type: 'number', optional: true, default: 10, min: 1, max: 20, convert: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'Search German energy market partners by BDEW code, company name, or city',

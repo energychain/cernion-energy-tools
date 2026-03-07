@@ -151,7 +151,10 @@ describe('Grid Operations Service', () => {
     });
 
     it('should return JSON by default (no format param)', async () => {
-      const mockResult = { success: true, data: { content: [{ type: 'text', text: 'some narrative' }] } };
+      const mockResult = {
+        success: true,
+        data: { content: [{ type: 'text', text: 'some narrative' }] },
+      };
       callWithAutoPoll.mockResolvedValueOnce(mockResult);
 
       const result = await broker.call('grid-operations.redispatchExport', {
@@ -183,9 +186,35 @@ describe('Grid Operations Service', () => {
       callWithNewSession.mockResolvedValueOnce({
         success: true,
         installations: [
-          { mastrNummer: 'SEE001', type: 'solar',   bruttoleistung: 100.43, ort: 'Ludwigshafen', postleitzahl: '67059', inbetriebnahmedatum: '2020-01-01', einheitBetriebsstatus: '35', einsatzverantwortlicher: 'Next Kraftwerke GmbH' },
-          { mastrNummer: 'SEE002', type: 'solar',   bruttoleistung: 212.48, ort: 'Mannheim',     postleitzahl: '68001', inbetriebnahmedatum: '2019-06-15', einheitBetriebsstatus: '35', einsatzverantwortlicher: '' },
-          { mastrNummer: 'SBE003', type: 'storage', bruttoleistung: 9000,   ort: 'Ludwigshafen', postleitzahl: '67059', inbetriebnahmedatum: '2023-03-10', einheitBetriebsstatus: '35' },
+          {
+            mastrNummer: 'SEE001',
+            type: 'solar',
+            bruttoleistung: 100.43,
+            ort: 'Ludwigshafen',
+            postleitzahl: '67059',
+            inbetriebnahmedatum: '2020-01-01',
+            einheitBetriebsstatus: '35',
+            einsatzverantwortlicher: 'Next Kraftwerke GmbH',
+          },
+          {
+            mastrNummer: 'SEE002',
+            type: 'solar',
+            bruttoleistung: 212.48,
+            ort: 'Mannheim',
+            postleitzahl: '68001',
+            inbetriebnahmedatum: '2019-06-15',
+            einheitBetriebsstatus: '35',
+            einsatzverantwortlicher: '',
+          },
+          {
+            mastrNummer: 'SBE003',
+            type: 'storage',
+            bruttoleistung: 9000,
+            ort: 'Ludwigshafen',
+            postleitzahl: '67059',
+            inbetriebnahmedatum: '2023-03-10',
+            einheitBetriebsstatus: '35',
+          },
         ],
         total: 3,
         returned: 3,
@@ -203,17 +232,20 @@ describe('Grid Operations Service', () => {
       expect(result).toContain('# Grid Operator: TWL Netze GmbH');
       expect(result).toContain('# Total: 3 installations');
       expect(result).toContain('# Generated:');
-      expect(result).toContain('"mastrNummer","type","capacityKW","city","postalCode","commissioningDate","status","einsatzverantwortlicher"');
+      expect(result).toContain(
+        '"mastrNummer","type","capacityKW","city","postalCode","commissioningDate","status","einsatzverantwortlicher"'
+      );
       expect(result).toContain('SEE001');
       expect(result).toContain('SEE002');
       expect(result).toContain('SBE003');
       expect(result).toContain('Ludwigshafen');
-      expect(result).toContain('Next Kraftwerke GmbH');  // einsatzverantwortlicher populated
+      expect(result).toContain('Next Kraftwerke GmbH'); // einsatzverantwortlicher populated
       expect(result).not.toContain('# Note: Preview only');
     });
 
     it('should use empty string for einsatzverantwortlicher when field absent in MaStR record', async () => {
-      const narrative = '🔍 **Grid Operator Found**:\n   Name: Test Netz\n   MaStR Number(s): SNB000000000001\n**Quality Report**:\n   Total Installations: 1\n   Total Capacity: 500.00 kW';
+      const narrative =
+        '🔍 **Grid Operator Found**:\n   Name: Test Netz\n   MaStR Number(s): SNB000000000001\n**Quality Report**:\n   Total Installations: 1\n   Total Capacity: 500.00 kW';
       callWithAutoPoll.mockResolvedValueOnce({
         success: true,
         data: { content: [{ type: 'text', text: narrative }] },
@@ -222,7 +254,15 @@ describe('Grid Operations Service', () => {
         success: true,
         installations: [
           // No einsatzverantwortlicher field — should map to empty string
-          { mastrNummer: 'SEE999', type: 'solar', bruttoleistung: 500, ort: 'Teststadt', postleitzahl: '10000', inbetriebnahmedatum: '2021-05-01', einheitBetriebsstatus: '35' },
+          {
+            mastrNummer: 'SEE999',
+            type: 'solar',
+            bruttoleistung: 500,
+            ort: 'Teststadt',
+            postleitzahl: '10000',
+            inbetriebnahmedatum: '2021-05-01',
+            einheitBetriebsstatus: '35',
+          },
         ],
         total: 1,
         returned: 1,
@@ -234,7 +274,9 @@ describe('Grid Operations Service', () => {
         { meta: {} }
       );
 
-      expect(result).toContain('"mastrNummer","type","capacityKW","city","postalCode","commissioningDate","status","einsatzverantwortlicher"');
+      expect(result).toContain(
+        '"mastrNummer","type","capacityKW","city","postalCode","commissioningDate","status","einsatzverantwortlicher"'
+      );
       // Row value: einsatzverantwortlicher column is empty (trailing comma with empty quoted string)
       expect(result).toMatch(/"SEE999".*""/);
     });
@@ -242,9 +284,21 @@ describe('Grid Operations Service', () => {
     it('should call cernion_installations_local with correct params', async () => {
       callWithAutoPoll.mockResolvedValueOnce({
         success: true,
-        data: { content: [{ type: 'text', text: 'Name: Test GmbH\n   MaStR Number(s): SNB935578300972\n**Quality Report**:\n   Total Installations: 5\n   Total Capacity: 500.00 kW' }] },
+        data: {
+          content: [
+            {
+              type: 'text',
+              text: 'Name: Test GmbH\n   MaStR Number(s): SNB935578300972\n**Quality Report**:\n   Total Installations: 5\n   Total Capacity: 500.00 kW',
+            },
+          ],
+        },
       });
-      callWithNewSession.mockResolvedValueOnce({ success: true, installations: [], total: 0, returned: 0 });
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        installations: [],
+        total: 0,
+        returned: 0,
+      });
 
       await broker.call('grid-operations.redispatchExport', {
         gridOperatorId: 'SNB935578300972',
@@ -254,7 +308,11 @@ describe('Grid Operations Service', () => {
 
       expect(callWithNewSession).toHaveBeenCalledWith(
         'cernion_installations_local',
-        expect.objectContaining({ gridOperatorMastrId: 'SNB935578300972', minCapacity: 150, format: 'detailed' }),
+        expect.objectContaining({
+          gridOperatorMastrId: 'SNB935578300972',
+          minCapacity: 150,
+          format: 'detailed',
+        }),
         undefined
       );
     });
@@ -279,7 +337,9 @@ describe('Grid Operations Service', () => {
       callWithAutoPoll.mockResolvedValueOnce({
         success: true,
         data: {
-          content: [{ type: 'text', text: '❌ **Export error**\n\nJob failed: grid operator not found' }],
+          content: [
+            { type: 'text', text: '❌ **Export error**\n\nJob failed: grid operator not found' },
+          ],
           isError: true,
         },
       });

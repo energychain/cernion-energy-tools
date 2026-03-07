@@ -142,10 +142,10 @@ describe('Agent Service', () => {
       actions: {
         netResidualLoad: {
           params: {
-            region:              { type: 'string', optional: true },
+            region: { type: 'string', optional: true },
             gridOperatorMastrId: { type: 'string', optional: true },
-            forecastDays:        { type: 'number', optional: true },
-            resolution:          { type: 'enum', values: ['hourly', '15min'], optional: true },
+            forecastDays: { type: 'number', optional: true },
+            resolution: { type: 'enum', values: ['hourly', '15min'], optional: true },
           },
           handler: residualLoadMock,
         },
@@ -410,22 +410,35 @@ describe('Agent Service', () => {
       // Plan with daysBack declared as number-type requiredInput (set to null in step)
       const plan = JSON.stringify({
         summary: 'Sales leads with daysBack param.',
-        steps: [{
-          step: 1,
-          action: 'business-intelligence.salesLeads',
-          description: 'Find new leads',
-          params: { region: '69', installationType: 'solar', daysBack: null, limit: 50 },
-        }],
-        requiredInputs: [{
-          name: 'daysBack', label: 'Days Back', type: 'number', default: '365', required: true,
-        }],
+        steps: [
+          {
+            step: 1,
+            action: 'business-intelligence.salesLeads',
+            description: 'Find new leads',
+            params: { region: '69', installationType: 'solar', daysBack: null, limit: 50 },
+          },
+        ],
+        requiredInputs: [
+          {
+            name: 'daysBack',
+            label: 'Days Back',
+            type: 'number',
+            default: '365',
+            required: true,
+          },
+        ],
       });
       _mockGenerateContent.mockResolvedValueOnce({ response: { text: () => plan } });
-      const analyzed = await broker.call('agent.analyze', { problem: 'New PV installations last year in PLZ 69xxx area' });
+      const analyzed = await broker.call('agent.analyze', {
+        problem: 'New PV installations last year in PLZ 69xxx area',
+      });
 
       mockInterpretAndSuggest();
       broker._salesLeadsMock.mockClear();
-      await broker.call('agent.execute', { sessionId: analyzed.sessionId, userInputs: { daysBack: '365' } });
+      await broker.call('agent.execute', {
+        sessionId: analyzed.sessionId,
+        userInputs: { daysBack: '365' },
+      });
 
       // The service must have received daysBack as a number, not a string
       expect(broker._salesLeadsMock).toHaveBeenCalled();
@@ -439,23 +452,36 @@ describe('Agent Service', () => {
       // — type hint is inferred from the plan value itself
       const plan = JSON.stringify({
         summary: 'Sales leads with hardcoded daysBack.',
-        steps: [{
-          step: 1,
-          action: 'business-intelligence.salesLeads',
-          description: 'Find new leads',
-          params: { region: '69', installationType: 'solar', daysBack: 365, limit: 50 },
-        }],
-        requiredInputs: [{
-          name: 'daysBack', label: 'Days Back', type: 'number', default: '365', required: true,
-        }],
+        steps: [
+          {
+            step: 1,
+            action: 'business-intelligence.salesLeads',
+            description: 'Find new leads',
+            params: { region: '69', installationType: 'solar', daysBack: 365, limit: 50 },
+          },
+        ],
+        requiredInputs: [
+          {
+            name: 'daysBack',
+            label: 'Days Back',
+            type: 'number',
+            default: '365',
+            required: true,
+          },
+        ],
       });
       _mockGenerateContent.mockResolvedValueOnce({ response: { text: () => plan } });
-      const analyzed = await broker.call('agent.analyze', { problem: 'PV installations last 90 days in region 69' });
+      const analyzed = await broker.call('agent.analyze', {
+        problem: 'PV installations last 90 days in region 69',
+      });
 
       mockInterpretAndSuggest();
       broker._salesLeadsMock.mockClear();
       // User changes daysBack to 90 — comes in as string from HTML form
-      await broker.call('agent.execute', { sessionId: analyzed.sessionId, userInputs: { daysBack: '90' } });
+      await broker.call('agent.execute', {
+        sessionId: analyzed.sessionId,
+        userInputs: { daysBack: '90' },
+      });
 
       expect(broker._salesLeadsMock).toHaveBeenCalled();
       const receivedParams = broker._salesLeadsMock.mock.calls[0][0].params;
@@ -467,22 +493,35 @@ describe('Agent Service', () => {
       // region: '69' is a string param — must NOT be converted to number 69
       const plan = JSON.stringify({
         summary: 'Sales leads region check.',
-        steps: [{
-          step: 1,
-          action: 'business-intelligence.salesLeads',
-          description: 'Find leads by region',
-          params: { region: null, installationType: 'solar', daysBack: 30, limit: 50 },
-        }],
-        requiredInputs: [{
-          name: 'region', label: 'Region', type: 'string', default: '69', required: true,
-        }],
+        steps: [
+          {
+            step: 1,
+            action: 'business-intelligence.salesLeads',
+            description: 'Find leads by region',
+            params: { region: null, installationType: 'solar', daysBack: 30, limit: 50 },
+          },
+        ],
+        requiredInputs: [
+          {
+            name: 'region',
+            label: 'Region',
+            type: 'string',
+            default: '69',
+            required: true,
+          },
+        ],
       });
       _mockGenerateContent.mockResolvedValueOnce({ response: { text: () => plan } });
-      const analyzed = await broker.call('agent.analyze', { problem: 'Leads in postal region 69 area search' });
+      const analyzed = await broker.call('agent.analyze', {
+        problem: 'Leads in postal region 69 area search',
+      });
 
       mockInterpretAndSuggest();
       broker._salesLeadsMock.mockClear();
-      await broker.call('agent.execute', { sessionId: analyzed.sessionId, userInputs: { region: '69' } });
+      await broker.call('agent.execute', {
+        sessionId: analyzed.sessionId,
+        userInputs: { region: '69' },
+      });
 
       expect(broker._salesLeadsMock).toHaveBeenCalled();
       const receivedParams = broker._salesLeadsMock.mock.calls[0][0].params;
@@ -528,12 +567,14 @@ describe('Agent Service', () => {
     it('should rename "gemeinde" to "region" for residual-load.netResidualLoad', async () => {
       const wrongPlan = JSON.stringify({
         summary: 'Test plan with wrong param gemeinde.',
-        steps: [{
-          step: 1,
-          action: 'residual-load.netResidualLoad',
-          description: 'Calculate residual load',
-          params: { gemeinde: 'Kiel', forecastDays: 2 },
-        }],
+        steps: [
+          {
+            step: 1,
+            action: 'residual-load.netResidualLoad',
+            description: 'Calculate residual load',
+            params: { gemeinde: 'Kiel', forecastDays: 2 },
+          },
+        ],
         requiredInputs: [],
       });
       _mockGenerateContent.mockResolvedValueOnce({ response: { text: () => wrongPlan } });
@@ -559,12 +600,14 @@ describe('Agent Service', () => {
     it('should not rename a param that is already correct', async () => {
       const correctPlan = JSON.stringify({
         summary: 'Correct plan.',
-        steps: [{
-          step: 1,
-          action: 'residual-load.netResidualLoad',
-          description: 'Calculate residual load',
-          params: { region: 'Kiel', forecastDays: 2 },
-        }],
+        steps: [
+          {
+            step: 1,
+            action: 'residual-load.netResidualLoad',
+            description: 'Calculate residual load',
+            params: { region: 'Kiel', forecastDays: 2 },
+          },
+        ],
         requiredInputs: [],
       });
       _mockGenerateContent.mockResolvedValueOnce({ response: { text: () => correctPlan } });
@@ -583,12 +626,14 @@ describe('Agent Service', () => {
     it('should not rename chained ref values — key is renamed but chain preserved', async () => {
       const chainedPlan = JSON.stringify({
         summary: 'Chained plan.',
-        steps: [{
-          step: 1,
-          action: 'residual-load.netResidualLoad',
-          description: 'Chained residual load',
-          params: { gemeinde: '__step_0.data.city', forecastDays: 2 },
-        }],
+        steps: [
+          {
+            step: 1,
+            action: 'residual-load.netResidualLoad',
+            description: 'Chained residual load',
+            params: { gemeinde: '__step_0.data.city', forecastDays: 2 },
+          },
+        ],
         requiredInputs: [],
       });
       _mockGenerateContent.mockResolvedValueOnce({ response: { text: () => chainedPlan } });
@@ -608,12 +653,14 @@ describe('Agent Service', () => {
     it('should not rename params for unknown actions (not in registry)', async () => {
       const unknownActionPlan = JSON.stringify({
         summary: 'Unknown action plan.',
-        steps: [{
-          step: 1,
-          action: 'nonexistent.someAction',
-          description: 'This action is not in the registry',
-          params: { gemeinde: 'Hamburg', weirdParam: 'value' },
-        }],
+        steps: [
+          {
+            step: 1,
+            action: 'nonexistent.someAction',
+            description: 'This action is not in the registry',
+            params: { gemeinde: 'Hamburg', weirdParam: 'value' },
+          },
+        ],
         requiredInputs: [],
       });
       _mockGenerateContent.mockResolvedValueOnce({ response: { text: () => unknownActionPlan } });
@@ -636,15 +683,22 @@ describe('Agent Service', () => {
     function makeResidualLoadPlan(overrides = {}) {
       const plan = {
         summary: 'Residuallast für Stadtwerke Kiel berechnen.',
-        steps: [{
-          step: 1,
-          service: 'residual-load',
-          action: 'residual-load.netResidualLoad',
-          description: 'Forecast residual load for Kiel',
-          params: { region: 'Kiel', forecastDays: 2 },
-        }],
+        steps: [
+          {
+            step: 1,
+            service: 'residual-load',
+            action: 'residual-load.netResidualLoad',
+            description: 'Forecast residual load for Kiel',
+            params: { region: 'Kiel', forecastDays: 2 },
+          },
+        ],
         requiredInputs: [
-          { name: 'query', label: 'Netzbetreiber / Stadtwerk', type: 'string', default: 'Stadtwerke Kiel' },
+          {
+            name: 'query',
+            label: 'Netzbetreiber / Stadtwerk',
+            type: 'string',
+            default: 'Stadtwerke Kiel',
+          },
         ],
         ...overrides,
       };
@@ -721,8 +775,19 @@ describe('Agent Service', () => {
     it('should not duplicate populationOverride if already present in requiredInputs', async () => {
       const planWithPop = makeResidualLoadPlan({
         requiredInputs: [
-          { name: 'query', label: 'Netzbetreiber / Stadtwerk', type: 'string', default: 'Stadtwerke Kiel' },
-          { name: 'populationOverride', label: 'Einwohnerzahl', type: 'number', default: 247000, required: true },
+          {
+            name: 'query',
+            label: 'Netzbetreiber / Stadtwerk',
+            type: 'string',
+            default: 'Stadtwerke Kiel',
+          },
+          {
+            name: 'populationOverride',
+            label: 'Einwohnerzahl',
+            type: 'number',
+            default: 247000,
+            required: true,
+          },
         ],
       });
       _mockGenerateContent.mockResolvedValueOnce({
@@ -746,7 +811,9 @@ describe('Agent Service', () => {
         userInputs: {},
       });
 
-      const popFields = (result.requiredInputs || []).filter((ri) => ri.name === 'populationOverride');
+      const popFields = (result.requiredInputs || []).filter(
+        (ri) => ri.name === 'populationOverride'
+      );
       expect(popFields).toHaveLength(1);
     });
 
@@ -775,7 +842,10 @@ describe('Agent Service', () => {
     it('should not crash when an action param is a Moleculer multi-type array', async () => {
       // Simulate a service with a multi-type param (like grid-operations.redispatchExport types)
       // After fastest-validator compiles it, the array gets a non-array `values` Function added.
-      const fakeMultiTypeParam = [{ type: 'array', optional: true }, { type: 'string', optional: true }];
+      const fakeMultiTypeParam = [
+        { type: 'array', optional: true },
+        { type: 'string', optional: true },
+      ];
       // Simulate what fastest-validator does: add a compiled `values` property (a Function)
       fakeMultiTypeParam.values = function compiledCheck() {};
 
@@ -811,12 +881,17 @@ describe('Agent Service', () => {
       });
 
       // Should not throw — pre-fix this would crash with "v.values.join is not a function"
-      await expect(broker.call('agent.analyze', { problem: 'test multi-type param robustness' })).resolves.toBeDefined();
+      await expect(
+        broker.call('agent.analyze', { problem: 'test multi-type param robustness' })
+      ).resolves.toBeDefined();
     });
 
     it('should render multi-type params as type1|type2 in catalogue', () => {
       // Unit-test the logic inline (mirrors buildServiceCatalogue)
-      const v = [{ type: 'array', optional: true }, { type: 'string', optional: true }];
+      const v = [
+        { type: 'array', optional: true },
+        { type: 'string', optional: true },
+      ];
       v.values = function compiledCheck() {}; // simulate fastest-validator mutation
 
       let result;
@@ -833,8 +908,9 @@ describe('Agent Service', () => {
       const opt = v.optional ? '?' : '';
       const enumVals = Array.isArray(v.values) ? `[${v.values.join('|')}]` : '';
       const dflt = v.default !== undefined ? `=${v.default}` : '';
-      expect(`voltageLevel${opt}: ${t}${enumVals}${dflt}`).toBe('voltageLevel?: enum[NS|MS|HS|all]=all');
+      expect(`voltageLevel${opt}: ${t}${enumVals}${dflt}`).toBe(
+        'voltageLevel?: enum[NS|MS|HS|all]=all'
+      );
     });
   }); // end buildServiceCatalogue robustness
 }); // end Agent Service
-

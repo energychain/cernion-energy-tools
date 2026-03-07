@@ -68,17 +68,16 @@ function buildServiceCatalogue(services) {
         ? Object.entries(action.params).map(([k, v]) => {
             // Multi-type param: v is an array of rule objects (e.g. [{type:'array'},{type:'string'}])
             if (Array.isArray(v)) {
-              const types = v.map((r) => (typeof r === 'object' && r.type ? r.type : 'any')).join('|');
+              const types = v
+                .map((r) => (typeof r === 'object' && r.type ? r.type : 'any'))
+                .join('|');
               return `${k}?: ${types}`;
             }
             const t = typeof v === 'string' ? v : v.type || 'string';
             const opt = typeof v === 'object' && v.optional ? '?' : '';
             const enumVals =
-              typeof v === 'object' && Array.isArray(v.values)
-                ? `[${v.values.join('|')}]`
-                : '';
-            const dflt =
-              typeof v === 'object' && v.default !== undefined ? `=${v.default}` : '';
+              typeof v === 'object' && Array.isArray(v.values) ? `[${v.values.join('|')}]` : '';
+            const dflt = typeof v === 'object' && v.default !== undefined ? `=${v.default}` : '';
             return `${k}${opt}: ${t}${enumVals}${dflt}`;
           })
         : [];
@@ -135,9 +134,9 @@ function normalizePlan(plan) {
   if (!plan || !Array.isArray(plan.steps)) return plan;
   plan.steps = plan.steps.map((step) => ({
     ...step,
-    action:      step.action      || step.useTool   || step.tool    || step.service || '',
-    params:      step.params      || step.args      || step.inputs  || step.input   || {},
-    description: step.description || step.label     || step.name    || '',
+    action: step.action || step.useTool || step.tool || step.service || '',
+    params: step.params || step.args || step.inputs || step.input || {},
+    description: step.description || step.label || step.name || '',
   }));
   return plan;
 }
@@ -156,12 +155,12 @@ function normalizePlan(plan) {
  */
 function buildTypeHints(plan) {
   const hints = {};
-  for (const ri of (plan.requiredInputs || [])) {
+  for (const ri of plan.requiredInputs || []) {
     if (ri.type === 'number' || ri.type === 'boolean' || ri.type === 'string') {
       hints[ri.name] = ri.type;
     }
   }
-  for (const step of (plan.steps || [])) {
+  for (const step of plan.steps || []) {
     for (const [k, v] of Object.entries(step.params || {})) {
       if (v !== null && v !== undefined && !(k in hints)) {
         if (typeof v === 'number') hints[k] = 'number';
@@ -214,35 +213,35 @@ function levenshtein(a, b) {
  * Key is lower-cased. Applied only when the target exists in the action's actual schema.
  */
 const PARAM_ALIASES = {
-  gemeinde:            'region',              // residual-load: gemeinde ≠ region (SMARD scaling)
-  city:                'region',
-  location_string:     'region',
-  gridoperator:        'gridOperatorMastrId',
-  gridoperatorid:      'gridOperatorMastrId',
-  mastrid:             'gridOperatorMastrId',
-  vnbid:               'gridOperatorMastrId',
-  operatorid:          'gridOperatorMastrId',
-  gridoperatormastr:   'gridOperatorMastrId',
-  date:                'startDate',
-  startdate:           'startDate',
-  enddate:             'endDate',
-  zip:                 'postleitzahl',
-  plz:                 'postleitzahl',
-  postalcode:          'postleitzahl',
-  postal_code:         'postleitzahl',
-  bundesstate:         'bundesland',
-  state:               'bundesland',
-  type:                'installationType',
-  installationtype:    'installationType',
-  forecast_days:       'forecastDays',
-  forecastdays:        'forecastDays',
-  days:                'forecastDays',
-  bdew:                'bdewCode',
-  bdewcode:            'bdewCode',
-  country_code:        'country',
-  countrycode:         'country',
-  eic_code:            'eicCode',
-  eiccode:             'eicCode',
+  gemeinde: 'region', // residual-load: gemeinde ≠ region (SMARD scaling)
+  city: 'region',
+  location_string: 'region',
+  gridoperator: 'gridOperatorMastrId',
+  gridoperatorid: 'gridOperatorMastrId',
+  mastrid: 'gridOperatorMastrId',
+  vnbid: 'gridOperatorMastrId',
+  operatorid: 'gridOperatorMastrId',
+  gridoperatormastr: 'gridOperatorMastrId',
+  date: 'startDate',
+  startdate: 'startDate',
+  enddate: 'endDate',
+  zip: 'postleitzahl',
+  plz: 'postleitzahl',
+  postalcode: 'postleitzahl',
+  postal_code: 'postleitzahl',
+  bundesstate: 'bundesland',
+  state: 'bundesland',
+  type: 'installationType',
+  installationtype: 'installationType',
+  forecast_days: 'forecastDays',
+  forecastdays: 'forecastDays',
+  days: 'forecastDays',
+  bdew: 'bdewCode',
+  bdewcode: 'bdewCode',
+  country_code: 'country',
+  countrycode: 'country',
+  eic_code: 'eicCode',
+  eiccode: 'eicCode',
 };
 
 /**
@@ -318,7 +317,7 @@ function buildParamSchemaIndex(services) {
  */
 function repairPlanParams(plan, schemaIndex) {
   const repairs = [];
-  for (const step of (plan.steps || [])) {
+  for (const step of plan.steps || []) {
     const knownParams = schemaIndex.get(step.action);
     if (!knownParams || knownParams.size === 0) continue; // unknown action — leave untouched
     const fixed = {};
@@ -344,7 +343,6 @@ function repairPlanParams(plan, schemaIndex) {
   }
   return repairs;
 }
-
 
 // ---------------------------------------------------------------------------
 // Gemini helper
@@ -902,7 +900,7 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
         // Merge user inputs into step params (replace nulls)
         // Seed defaults from requiredInputs for any field the user left unchanged
         const effectiveInputs = {};
-        for (const ri of (session.plan.requiredInputs || [])) {
+        for (const ri of session.plan.requiredInputs || []) {
           if (ri.default !== undefined && ri.default !== '') {
             effectiveInputs[ri.name] = ri.default;
           }
@@ -918,7 +916,9 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
 
         // Build a set of all declared requiredInput names so we can override
         // even when Gemini hardcoded the value instead of setting it to null
-        const requiredInputNames = new Set((session.plan.requiredInputs || []).map(ri => ri.name));
+        const requiredInputNames = new Set(
+          (session.plan.requiredInputs || []).map((ri) => ri.name)
+        );
 
         const steps = (session.plan.steps || []).map((step) => {
           const resolvedParams = {};
@@ -1087,7 +1087,9 @@ Respond ONLY with valid JSON:
             try {
               repairedPlan = JSON.parse(repairJson);
             } catch {
-              this.logger.warn('[Agent] Self-healing plan parse failed, continuing with original results');
+              this.logger.warn(
+                '[Agent] Self-healing plan parse failed, continuing with original results'
+              );
             }
 
             if (repairedPlan && repairedPlan.steps && repairedPlan.steps.length > 0) {
@@ -1107,7 +1109,10 @@ Respond ONLY with valid JSON:
               const repairedSteps = (repairedPlan.steps || []).map((step) => {
                 const rp = {};
                 for (const [k, v] of Object.entries(step.params || {})) {
-                  if ((v === null || requiredInputNames.has(k)) && coercedEffective[k] !== undefined) {
+                  if (
+                    (v === null || requiredInputNames.has(k)) &&
+                    coercedEffective[k] !== undefined
+                  ) {
                     rp[k] = coercedEffective[k];
                   } else {
                     rp[k] = v;
@@ -1132,7 +1137,10 @@ Respond ONLY with valid JSON:
                     const city =
                       prev.result?.data?.results?.[0]?.contacts?.[0]?.city ||
                       prev.result?.data?.results?.[0]?.city;
-                    if (city) { callP.city = city; break; }
+                    if (city) {
+                      callP.city = city;
+                      break;
+                    }
                   }
                 }
                 let res2 = null;
@@ -1346,7 +1354,10 @@ Respond ONLY with valid JSON:
         );
         if (!populationAlreadyDeclared) {
           for (const sr of stepResults) {
-            if (sr.result?.dataQualityWarning === true && sr.action === 'residual-load.netResidualLoad') {
+            if (
+              sr.result?.dataQualityWarning === true &&
+              sr.action === 'residual-load.netResidualLoad'
+            ) {
               // Use the population SMARD actually tried (from loadScaling.populationUsed),
               // stripping locale dots so '245.000' becomes the number 245000.
               const smardPop = sr.result?.summary?.loadScaling?.populationUsed;
@@ -1369,7 +1380,7 @@ Respond ONLY with valid JSON:
               });
               this.logger.warn(
                 `[Agent] Injected populationOverride requiredInput (default: ${defaultPop}) ` +
-                `after dataQualityWarning in step ${sr.step}`
+                  `after dataQualityWarning in step ${sr.step}`
               );
               saveSession(session); // persist updated plan with new requiredInput
               break;
@@ -1413,7 +1424,8 @@ Respond ONLY with a JSON array of exactly 3 strings:
             .replace(/```\s*/gi, '')
             .trim();
           const parsed = JSON.parse(suggestJson);
-          if (Array.isArray(parsed)) suggestions = parsed.slice(0, 3).filter(s => typeof s === 'string');
+          if (Array.isArray(parsed))
+            suggestions = parsed.slice(0, 3).filter((s) => typeof s === 'string');
         } catch {
           // Suggestions are best-effort — never block the response
         }
@@ -1464,9 +1476,7 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
               .trim();
             const parsed = JSON.parse(chartJson);
             if (Array.isArray(parsed)) {
-              chartSuggestions = parsed
-                .filter(c => c.type && c.xField && c.yField)
-                .slice(0, 3);
+              chartSuggestions = parsed.filter((c) => c.type && c.xField && c.yField).slice(0, 3);
             }
           } catch {
             // Chart suggestions are best-effort — never block the response
@@ -1569,8 +1579,9 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
         // Seed defaults from requiredInputs, then overlay saved userInputs,
         // then overlay any GET query params passed in the URL (they take highest priority)
         const effectiveInputsCSV = {};
-        for (const ri of (session.plan.requiredInputs || [])) {
-          if (ri.default !== undefined && ri.default !== '') effectiveInputsCSV[ri.name] = ri.default;
+        for (const ri of session.plan.requiredInputs || []) {
+          if (ri.default !== undefined && ri.default !== '')
+            effectiveInputsCSV[ri.name] = ri.default;
         }
         Object.assign(effectiveInputsCSV, session.userInputs || {});
         // Overlay GET query params (everything in ctx.params except 'id')
@@ -1585,7 +1596,9 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
         const userInputs = effectiveInputsCSV;
 
         // Any declared requiredInput name gets overridden even if Gemini hardcoded it
-        const requiredInputNamesCSV = new Set((session.plan.requiredInputs || []).map(ri => ri.name));
+        const requiredInputNamesCSV = new Set(
+          (session.plan.requiredInputs || []).map((ri) => ri.name)
+        );
         const stepResults = [];
 
         for (let i = 0; i < steps.length; i++) {
@@ -1597,7 +1610,10 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
           for (const [k, v] of Object.entries(step.params || {})) {
             let resolved = resolveChainedRef(v, stepResults);
             // Override when: resolved is null OR param is a declared requiredInput
-            if ((resolved === null || requiredInputNamesCSV.has(k)) && userInputs[k] !== undefined) {
+            if (
+              (resolved === null || requiredInputNamesCSV.has(k)) &&
+              userInputs[k] !== undefined
+            ) {
               resolved = userInputs[k];
             }
             callParams[k] = resolved;
@@ -1612,7 +1628,10 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
               const city =
                 prev.result?.data?.results?.[0]?.contacts?.[0]?.city ||
                 prev.result?.data?.results?.[0]?.city;
-              if (city) { callParams.city = city; break; }
+              if (city) {
+                callParams.city = city;
+                break;
+              }
             }
           }
 
@@ -1629,7 +1648,13 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
           } catch (err) {
             error = err.message;
           }
-          stepResults.push({ step: step.step, action: step.action, params: callParams, result, error });
+          stepResults.push({
+            step: step.step,
+            action: step.action,
+            params: callParams,
+            result,
+            error,
+          });
         }
 
         const lastResult = stepResults[stepResults.length - 1]?.result;

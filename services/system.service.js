@@ -59,7 +59,8 @@ module.exports = {
       openapi: {
         summary: 'Validate tool parameters before execution',
         tags: ['System Tools'],
-        description: 'Pre-validation before expensive operations, error prevention. Validates parameters for any MCP tool before running it, returning detailed error messages and suggestions for corrections.',
+        description:
+          'Pre-validation before expensive operations, error prevention. Validates parameters for any MCP tool before running it, returning detailed error messages and suggestions for corrections.',
         requestBody: {
           required: true,
           content: {

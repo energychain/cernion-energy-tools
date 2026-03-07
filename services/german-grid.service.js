@@ -6,7 +6,12 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
-const { applyFormat, convertToCSV, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
+const {
+  applyFormat,
+  convertToCSV,
+  FORMAT_PARAM_SCHEMA,
+  FORMAT_RESPONSE_CONTENT,
+} = require('../src/format-response');
 const { resolveDateAlias } = require('../src/date-utils');
 
 // ─── Helpers for redispatch text-narrative responses ──────────────────────────
@@ -83,12 +88,18 @@ module.exports = {
         dateFrom: { type: 'string' },
         dateTo: { type: 'string' },
         includeStatistics: { type: 'boolean', optional: true, default: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'German spotmarket prices (EPEX/EEX) for dynamic tariffs',
         tags: ['German Grid Data'],
-        description: 'Official data from Netztransparenz.de, OAuth2 authenticated. **Automatic ENTSO-E fallback**: when Netztransparenz.de has no data or returns an API error (e.g. for recent/future dates), the endpoint transparently retries with ENTSO-E day-ahead prices (hourly, DE bidding zone). The response is annotated with `data.fallback: true` and `data.fallbackSource: "entsoe_day_ahead_prices"` when the fallback is used.',
+        description:
+          'Official data from Netztransparenz.de, OAuth2 authenticated. **Automatic ENTSO-E fallback**: when Netztransparenz.de has no data or returns an API error (e.g. for recent/future dates), the endpoint transparently retries with ENTSO-E day-ahead prices (hourly, DE bidding zone). The response is annotated with `data.fallback: true` and `data.fallbackSource: "entsoe_day_ahead_prices"` when the fallback is used.',
         requestBody: {
           required: true,
           content: {
@@ -99,12 +110,14 @@ module.exports = {
                 properties: {
                   dateFrom: {
                     type: 'string',
-                    description: 'Start date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    description:
+                      'Start date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
                     example: 'today',
                   },
                   dateTo: {
                     type: 'string',
-                    description: 'End date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    description:
+                      'End date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
                     example: 'today',
                   },
                   includeStatistics: {
@@ -141,12 +154,17 @@ module.exports = {
                   },
                 },
                 relativeAlias: {
-                  summary: 'Today\'s prices using relative date alias',
+                  summary: "Today's prices using relative date alias",
                   value: { dateFrom: 'today', dateTo: 'today', includeStatistics: true },
                 },
                 recentWeek: {
                   summary: 'Last 7 days using relative aliases',
-                  value: { dateFrom: 'today-6', dateTo: 'today', includeStatistics: true, format: 'csv' },
+                  value: {
+                    dateFrom: 'today-6',
+                    dateTo: 'today',
+                    includeStatistics: true,
+                    format: 'csv',
+                  },
                 },
                 csvExport: {
                   summary: 'Export spot prices as CSV',
@@ -186,8 +204,7 @@ module.exports = {
         // Note: ENTSO-E provides hourly values; Netztransparenz 15-min values.
         if (result?.data?.isError === true) {
           const primaryError =
-            result?.data?.content?.[0]?.text ||
-            'Netztransparenz.de returned an error';
+            result?.data?.content?.[0]?.text || 'Netztransparenz.de returned an error';
           let combinedError = null;
           try {
             const fallbackResult = await CernionMCPClient.callWithNewSession(
@@ -247,7 +264,12 @@ module.exports = {
         dateTo: { type: 'string' },
         logic: { type: 'enum', values: [1, 2, 3, 4, 6, 15], optional: true, default: 6 },
         includeEegCompliance: { type: 'boolean', optional: true, default: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'Negative price analysis for §51 EEG 2023 compliance',
@@ -318,12 +340,14 @@ module.exports = {
                 properties: {
                   dateFrom: {
                     type: 'string',
-                    description: 'Start date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    description:
+                      'Start date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
                     example: 'today-30',
                   },
                   dateTo: {
                     type: 'string',
-                    description: 'End date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    description:
+                      'End date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
                     example: 'today',
                   },
                   logic: {
@@ -420,8 +444,7 @@ module.exports = {
         // message, not a silent empty/misleading JSON response.
         if (result?.data?.isError === true) {
           const errorText =
-            result?.data?.content?.[0]?.text ||
-            'Upstream tool returned an error with no details';
+            result?.data?.content?.[0]?.text || 'Upstream tool returned an error with no details';
           throw new Error(errorText);
         }
 
@@ -457,14 +480,16 @@ module.exports = {
         // For CSV/XLSX consumers (e.g. Power Automate) we produce one row
         // per result with the key fields and the full analysis text.
         if (format && format !== 'json') {
-          const customRows = [{
-            dateFrom: resolvedParams.dateFrom,
-            dateTo: resolvedParams.dateTo,
-            logic: resolvedParams.logic ?? 6,
-            includeEegCompliance: resolvedParams.includeEegCompliance ?? true,
-            analysis: result?.data?.content?.[0]?.text ?? '',
-            dataReliabilityWarning: result?.data?.dataReliabilityWarning ?? false,
-          }];
+          const customRows = [
+            {
+              dateFrom: resolvedParams.dateFrom,
+              dateTo: resolvedParams.dateTo,
+              logic: resolvedParams.logic ?? 6,
+              includeEegCompliance: resolvedParams.includeEegCompliance ?? true,
+              analysis: result?.data?.content?.[0]?.text ?? '',
+              dataReliabilityWarning: result?.data?.dataReliabilityWarning ?? false,
+            },
+          ];
           return applyFormat(ctx, result, format, 'negative-prices', 'NegativePrices', customRows);
         }
 
@@ -484,7 +509,12 @@ module.exports = {
         dateTo: { type: 'string' },
         includeActual: { type: 'boolean', optional: true, default: false },
         includeOnline: { type: 'boolean', optional: true, default: false },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'Solar/wind generation forecasts for grid planning and load forecasting',
@@ -506,12 +536,14 @@ module.exports = {
                   },
                   dateFrom: {
                     type: 'string',
-                    description: 'Start date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    description:
+                      'Start date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
                     example: 'tomorrow',
                   },
                   dateTo: {
                     type: 'string',
-                    description: 'End date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    description:
+                      'End date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
                     example: 'today+6',
                   },
                   includeActual: {
@@ -559,11 +591,21 @@ module.exports = {
                 },
                 relativeAlias: {
                   summary: 'Solar forecast for next 7 days using relative aliases',
-                  value: { product: 'Solar', dateFrom: 'tomorrow', dateTo: 'today+7', includeOnline: true },
+                  value: {
+                    product: 'Solar',
+                    dateFrom: 'tomorrow',
+                    dateTo: 'today+7',
+                    includeOnline: true,
+                  },
                 },
                 csvExport: {
                   summary: 'Export forecast as CSV',
-                  value: { product: 'Solar', dateFrom: '2026-02-08', dateTo: '2026-02-14', format: 'csv' },
+                  value: {
+                    product: 'Solar',
+                    dateFrom: '2026-02-08',
+                    dateTo: '2026-02-14',
+                    format: 'csv',
+                  },
                 },
               },
             },
@@ -605,7 +647,12 @@ module.exports = {
         dateTo: { type: 'string' },
         includeAnalysis: { type: 'boolean', optional: true, default: true },
         includeCurtailment: { type: 'boolean', optional: true, default: false },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'Redispatch measures and grid congestion analysis',
@@ -622,12 +669,14 @@ module.exports = {
                 properties: {
                   dateFrom: {
                     type: 'string',
-                    description: 'Start date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    description:
+                      'Start date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
                     example: 'today-30',
                   },
                   dateTo: {
                     type: 'string',
-                    description: 'End date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
+                    description:
+                      'End date. ISO format (YYYY-MM-DD) or relative alias: `today`, `today+N`, `today-N`, `tomorrow`, `yesterday`.',
                     example: 'today',
                   },
                   includeAnalysis: {
@@ -672,7 +721,12 @@ module.exports = {
                 },
                 relativeAlias: {
                   summary: 'Last 30 days using relative date alias',
-                  value: { dateFrom: 'today-30', dateTo: 'today', includeAnalysis: true, includeCurtailment: true },
+                  value: {
+                    dateFrom: 'today-30',
+                    dateTo: 'today',
+                    includeAnalysis: true,
+                    includeCurtailment: true,
+                  },
                 },
                 csvExport: {
                   summary: 'Export redispatch data as CSV',
@@ -722,8 +776,10 @@ module.exports = {
         if (result.data?.isError) {
           const errText = extractRedispatchText(result);
           throw new Error(
-            errText.replace(/^[❌\s*⚡]+/, '').trim().substring(0, 300) ||
-              'Netztransparenz API error'
+            errText
+              .replace(/^[❌\s*⚡]+/, '')
+              .trim()
+              .substring(0, 300) || 'Netztransparenz API error'
           );
         }
 

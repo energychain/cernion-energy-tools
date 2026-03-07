@@ -42,7 +42,11 @@ jest.mock('path', () => {
     ...realPath,
     join: (...args) => {
       const joined = realPath.join(...args);
-      if (joined.includes('/.reports') || joined.endsWith('/.reports') || joined.endsWith('\\.reports')) {
+      if (
+        joined.includes('/.reports') ||
+        joined.endsWith('/.reports') ||
+        joined.endsWith('\\.reports')
+      ) {
         return joined.replace(/.*[/\\]\.reports/, testReportsBase);
       }
       return joined;
@@ -72,7 +76,9 @@ const DEFAULT_MOCK_RESULT = { success: true, data: { results: [], total: 0, coun
 
 const DEFAULT_SERVICE_MOCKS = {
   'grid-operations': {
-    marketPartners: async () => ({ results: [{ name: 'TWL Netze GmbH', bdewCode: '10002345', mastrId: 'SNB123' }] }),
+    marketPartners: async () => ({
+      results: [{ name: 'TWL Netze GmbH', bdewCode: '10002345', mastrId: 'SNB123' }],
+    }),
     vnbLookup: async () => DEFAULT_MOCK_RESULT,
     capacityUtilization: async () => DEFAULT_MOCK_RESULT,
     redispatchExport: async () => ({ ...DEFAULT_MOCK_RESULT, totalCount: 47 }),
@@ -121,7 +127,14 @@ const DEFAULT_SERVICE_MOCKS = {
     compareCountries: async () => DEFAULT_MOCK_RESULT,
   },
   'business-intelligence': {
-    churnPrediction: async () => ({ data: [{ type: 'text', text: 'Estimated at-risk customers: 150\nAssumed churn rate: 8.5%\nheuristic model.' }] }),
+    churnPrediction: async () => ({
+      data: [
+        {
+          type: 'text',
+          text: 'Estimated at-risk customers: 150\nAssumed churn rate: 8.5%\nheuristic model.',
+        },
+      ],
+    }),
     salesLeads: async () => ({ leads: Array(12).fill({}), totalCount: 12 }),
     marketPenetration: async () => DEFAULT_MOCK_RESULT,
   },
@@ -145,18 +158,24 @@ describe('buildVnbSearchQueries (CR-18)', () => {
   function buildVnbSearchQueries(name) {
     const queries = [name];
     const stripped = name
-      .replace(/\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi, '')
+      .replace(
+        /\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi,
+        ''
+      )
       .replace(/\s{2,}/g, ' ')
       .trim();
     const cityStripped = stripped && stripped !== name && stripped.length > 2 ? stripped : null;
     if (cityStripped) queries.push(cityStripped);
-    const hasOrgPrefix = /\b(Stadtwerke|Stadtwerk|Netz|Gemeindewerk|EVN|Energieversorgung)\b/i.test(name);
+    const hasOrgPrefix = /\b(Stadtwerke|Stadtwerk|Netz|Gemeindewerk|EVN|Energieversorgung)\b/i.test(
+      name
+    );
     if (!hasOrgPrefix && name.split(/\s+/).length <= 2) {
       queries.push(`Stadtwerke ${name}`);
       queries.push(`Stadtwerk ${name}`);
     }
     if (cityStripped && /\bStadtwerke\b/i.test(name)) queries.push(`Stadtwerk ${cityStripped}`);
-    if (cityStripped && /\bStadtwerk\b/i.test(name) && !/\bStadtwerke\b/i.test(name)) queries.push(`Stadtwerke ${cityStripped}`);
+    if (cityStripped && /\bStadtwerk\b/i.test(name) && !/\bStadtwerke\b/i.test(name))
+      queries.push(`Stadtwerke ${cityStripped}`);
     return [...new Set(queries)];
   }
 
@@ -209,7 +228,7 @@ describe('pickBestVnbPartner (CR-18)', () => {
   function pickBestVnbPartner(marketPartnersResult) {
     const candidates =
       marketPartnersResult?.data?.results ||
-      marketPartnersResult?.results ||             // CR-23: sync MCP path
+      marketPartnersResult?.results || // CR-23: sync MCP path
       marketPartnersResult?.data?.data?.results ||
       marketPartnersResult?.data?.partners ||
       [];
@@ -232,8 +251,14 @@ describe('pickBestVnbPartner (CR-18)', () => {
     });
     if (netzPartner) return normaliseMastrIds(netzPartner);
     const best = candidates[0];
-    if (!best.mastrId && !best.gridOperatorMastrId && best.mastrIds && typeof best.mastrIds === 'object') {
-      best.mastrId = best.mastrIds.SNB || best.mastrIds.GNB || Object.values(best.mastrIds)[0] || null;
+    if (
+      !best.mastrId &&
+      !best.gridOperatorMastrId &&
+      best.mastrIds &&
+      typeof best.mastrIds === 'object'
+    ) {
+      best.mastrId =
+        best.mastrIds.SNB || best.mastrIds.GNB || Object.values(best.mastrIds)[0] || null;
     }
     return best;
   }
@@ -321,7 +346,11 @@ describe('Utility Report Service', () => {
   afterAll(async () => {
     await broker.stop();
     // Cleanup temp reports dir
-    try { fs.rmSync(tmpReportsDir, { recursive: true, force: true }); } catch { /* ignore */ }
+    try {
+      fs.rmSync(tmpReportsDir, { recursive: true, force: true });
+    } catch {
+      /* ignore */
+    }
   });
 
   // ─── Parameter validation ──────────────────────────────────────────────────
@@ -332,9 +361,7 @@ describe('Utility Report Service', () => {
     });
 
     it('should reject empty utilityName', async () => {
-      await expect(
-        broker.call('utility-report.generate', { utilityName: '' })
-      ).rejects.toThrow();
+      await expect(broker.call('utility-report.generate', { utilityName: '' })).rejects.toThrow();
     });
 
     it('should accept minimal valid params', async () => {
@@ -493,7 +520,8 @@ describe('Utility Report Service', () => {
         reportId: fakeId,
         utilityName: 'Unbekannte SW',
         status: 'error',
-        error: 'VNB nicht erkannt: Für „Unbekannte SW" konnte weder ein BDEW-Code noch eine MaStR-ID ermittelt werden.',
+        error:
+          'VNB nicht erkannt: Für „Unbekannte SW" konnte weder ein BDEW-Code noch eine MaStR-ID ermittelt werden.',
         phase: 1,
         startedAt: new Date().toISOString(),
         completedAt: null,
@@ -552,8 +580,14 @@ describe('Utility Report Service', () => {
         status: 'completed',
         phase: 4,
         results: {
-          section1: {}, section2: {}, section3: {}, section4: {},
-          section5: {}, section6: {}, section7: {}, section8: {},
+          section1: {},
+          section2: {},
+          section3: {},
+          section4: {},
+          section5: {},
+          section6: {},
+          section7: {},
+          section8: {},
         },
         meta: { resolvedVnbName: 'Rebuild Stub GmbH', resolvedBdew: null },
         managementSummary: 'Test narrative line 1\nTest narrative line 2\nTest narrative line 3',
@@ -696,7 +730,8 @@ describe('Utility Report Service', () => {
     it('should render management summary bullets from Gemini text', () => {
       const html = buildHtmlReport({
         meta: { utilityName: 'Summary Test GmbH' },
-        managementSummary: 'Ergebnis 1: Wichtige Erkenntnis\nErgebnis 2: Weitere Analyse\nErgebnis 3: Handlungsempfehlung abc',
+        managementSummary:
+          'Ergebnis 1: Wichtige Erkenntnis\nErgebnis 2: Weitere Analyse\nErgebnis 3: Handlungsempfehlung abc',
         generatedAt: new Date().toISOString(),
       });
 
@@ -725,8 +760,18 @@ describe('Utility Report Service', () => {
           {
             data: {
               results: [
-                { title: 'Netzausbau Artikel', url: 'https://example.com', snippet: 'Dies ist ein ausführlicher Beschreibungstext mit mehr als 50 Zeichen, der Informationen über den Netzausbau enthält' },
-                { title: 'Zweiter Artikel', url: 'https://example2.com', snippet: 'Noch ein ausführlicher Artikel über Energiewende mit mehr als 50 Zeichen Inhalt' },
+                {
+                  title: 'Netzausbau Artikel',
+                  url: 'https://example.com',
+                  snippet:
+                    'Dies ist ein ausführlicher Beschreibungstext mit mehr als 50 Zeichen, der Informationen über den Netzausbau enthält',
+                },
+                {
+                  title: 'Zweiter Artikel',
+                  url: 'https://example2.com',
+                  snippet:
+                    'Noch ein ausführlicher Artikel über Energiewende mit mehr als 50 Zeichen Inhalt',
+                },
               ],
             },
           },
@@ -744,9 +789,7 @@ describe('Utility Report Service', () => {
         webSearchResults: [
           {
             data: {
-              results: [
-                { title: 'Article 1', url: 'https://x.com', snippet: 'Short...' },
-              ],
+              results: [{ title: 'Article 1', url: 'https://x.com', snippet: 'Short...' }],
             },
           },
         ],
@@ -762,7 +805,12 @@ describe('Utility Report Service', () => {
         section6: {
           churnPrediction: {
             available: true,
-            data: [{ type: 'text', text: 'Estimated at-risk customers (max 100)**: 60\nAssumed churn rate: 8.0%\nheuristic model.' }],
+            data: [
+              {
+                type: 'text',
+                text: 'Estimated at-risk customers (max 100)**: 60\nAssumed churn rate: 8.0%\nheuristic model.',
+              },
+            ],
           },
           salesLeads: { available: false },
         },
@@ -805,7 +853,8 @@ describe('Utility Report Service', () => {
     it('should cap management summary at 5 bullets (CR-16)', () => {
       const html = buildHtmlReport({
         meta: { utilityName: 'CR16 Cap Test GmbH' },
-        managementSummary: 'Line 1: abc def ghi jkl\nLine 2: abc def ghi jkl\nLine 3: abc def ghi jkl\nLine 4: abc def ghi jkl\nLine 5: abc def ghi jkl\nLine 6: abc def ghi jkl\nLine 7: abc def ghi jkl',
+        managementSummary:
+          'Line 1: abc def ghi jkl\nLine 2: abc def ghi jkl\nLine 3: abc def ghi jkl\nLine 4: abc def ghi jkl\nLine 5: abc def ghi jkl\nLine 6: abc def ghi jkl\nLine 7: abc def ghi jkl',
         generatedAt: new Date().toISOString(),
       });
       // Count summary-finding divs – must not exceed 5
@@ -828,7 +877,12 @@ describe('Utility Report Service', () => {
           utilityName: 'CR19 Test GmbH',
           allPartners: [
             { name: 'CR19 Netz GmbH', bdew: '9900011110001', roles: ['VNB'], mastrId: 'SNB123' },
-            { name: 'CR19 Vertrieb GmbH', bdew: '9900011110002', roles: ['Lieferant'], mastrId: null },
+            {
+              name: 'CR19 Vertrieb GmbH',
+              bdew: '9900011110002',
+              roles: ['Lieferant'],
+              mastrId: null,
+            },
           ],
         },
         generatedAt: new Date().toISOString(),
@@ -846,7 +900,12 @@ describe('Utility Report Service', () => {
           utilityName: 'CR19 VNB Bold Test GmbH',
           allPartners: [
             { name: 'VNB Netz GmbH', bdew: '9900022220001', roles: ['VNB'], mastrId: 'SNB456' },
-            { name: 'Nur Lieferant GmbH', bdew: '9900022220002', roles: ['Lieferant'], mastrId: null },
+            {
+              name: 'Nur Lieferant GmbH',
+              bdew: '9900022220002',
+              roles: ['Lieferant'],
+              mastrId: null,
+            },
           ],
         },
         generatedAt: new Date().toISOString(),
@@ -911,31 +970,47 @@ describe('Utility Report Service', () => {
           transformerLoading: unavailable,
         },
         section2: {
-          solar: unavailable, wind: unavailable, storage: unavailable,
-          generationForecast: unavailable, windSolarActual: unavailable,
-          pvLocal: unavailable, windLocal: unavailable, speicherLocal: unavailable,
+          solar: unavailable,
+          wind: unavailable,
+          storage: unavailable,
+          generationForecast: unavailable,
+          windSolarActual: unavailable,
+          pvLocal: unavailable,
+          windLocal: unavailable,
+          speicherLocal: unavailable,
         },
         section3: {
-          prices: unavailable, spotprices: unavailable, negativePrices: unavailable,
-          actualGeneration: unavailable, loadForecast: unavailable, unavailability: unavailable,
+          prices: unavailable,
+          spotprices: unavailable,
+          negativePrices: unavailable,
+          actualGeneration: unavailable,
+          loadForecast: unavailable,
+          unavailability: unavailable,
         },
         section4: {
-          countryStorage: unavailable, euStatistics: unavailable,
-          storageTrend: unavailable, supplySecurityCheck: unavailable,
+          countryStorage: unavailable,
+          euStatistics: unavailable,
+          storageTrend: unavailable,
+          supplySecurityCheck: unavailable,
         },
         section5: {
-          benchmarkVnb: unavailable, anschlussdauer: unavailable,
-          digitalisierungsindex: unavailable, umsetzungsquote: unavailable,
+          benchmarkVnb: unavailable,
+          anschlussdauer: unavailable,
+          digitalisierungsindex: unavailable,
+          umsetzungsquote: unavailable,
         },
         section6: {
-          churnPrediction: unavailable, salesLeads: unavailable,
+          churnPrediction: unavailable,
+          salesLeads: unavailable,
           marketPenetration: unavailable,
         },
         section7: {
-          investmentBusinessCase: unavailable, operatorPortfolio: unavailable,
+          investmentBusinessCase: unavailable,
+          operatorPortfolio: unavailable,
         },
         section8: {
-          systemStatus: unavailable, eicStatistics: unavailable,
+          systemStatus: unavailable,
+          eicStatistics: unavailable,
         },
         generatedAt: new Date().toISOString(),
       });
@@ -966,7 +1041,16 @@ describe('Utility Report Service', () => {
           callCount++;
           const q = ctx.params?.query ?? '';
           if (/Eberbach/.test(q) && callCount >= 2) {
-            return { results: [{ name: 'Stadtwerke Eberbach GmbH', bdewCode: '9900099990001', mastrId: 'SNB_EBERBACH', roles: ['VNB'] }] };
+            return {
+              results: [
+                {
+                  name: 'Stadtwerke Eberbach GmbH',
+                  bdewCode: '9900099990001',
+                  mastrId: 'SNB_EBERBACH',
+                  roles: ['VNB'],
+                },
+              ],
+            };
           }
           return { results: [] };
         },
@@ -1070,20 +1154,24 @@ describe('Utility Report Service', () => {
       await mismatchBroker.stop();
     });
 
-    it.each(['Stadtwerke Gmünd', 'Stadtwerke Villingen', 'Stadtwerke Waiblingen', 'Stadtwerke Schwerin'])(
-      'should trigger disambiguation flow for ambiguous lookup: %s',
-      async (name) => {
-        const gen = await ambiguousBroker.call('utility-report.generate', {
-          utilityName: name,
-          forceRefresh: true,
-        });
-        await new Promise((r) => setTimeout(r, 600));
-        const status = await ambiguousBroker.call('utility-report.status', { reportId: gen.reportId });
-        expect(status.status).toBe('error');
-        expect(status.error).toContain('Mehrdeutige VNB-Suche');
-        expect(status.vnbIdentification?.ambiguous).toBe(true);
-      }
-    );
+    it.each([
+      'Stadtwerke Gmünd',
+      'Stadtwerke Villingen',
+      'Stadtwerke Waiblingen',
+      'Stadtwerke Schwerin',
+    ])('should trigger disambiguation flow for ambiguous lookup: %s', async (name) => {
+      const gen = await ambiguousBroker.call('utility-report.generate', {
+        utilityName: name,
+        forceRefresh: true,
+      });
+      await new Promise((r) => setTimeout(r, 600));
+      const status = await ambiguousBroker.call('utility-report.status', {
+        reportId: gen.reportId,
+      });
+      expect(status.status).toBe('error');
+      expect(status.error).toContain('Mehrdeutige VNB-Suche');
+      expect(status.vnbIdentification?.ambiguous).toBe(true);
+    });
 
     it('should resolve ambiguities with explicit BDEW without disambiguation error', async () => {
       const gen = await ambiguousBroker.call('utility-report.generate', {
@@ -1092,7 +1180,9 @@ describe('Utility Report Service', () => {
         forceRefresh: true,
       });
       await new Promise((r) => setTimeout(r, 600));
-      const status = await ambiguousBroker.call('utility-report.status', { reportId: gen.reportId });
+      const status = await ambiguousBroker.call('utility-report.status', {
+        reportId: gen.reportId,
+      });
       expect(status.status).not.toBe('error');
     });
 
@@ -1103,7 +1193,9 @@ describe('Utility Report Service', () => {
         forceRefresh: true,
       });
       await new Promise((r) => setTimeout(r, 600));
-      const blockedStatus = await mismatchBroker.call('utility-report.status', { reportId: blocked.reportId });
+      const blockedStatus = await mismatchBroker.call('utility-report.status', {
+        reportId: blocked.reportId,
+      });
       expect(blockedStatus.status).toBe('error');
       expect(blockedStatus.error).toContain('VNB-Identitätskonflikt');
 
@@ -1114,7 +1206,9 @@ describe('Utility Report Service', () => {
         forceRefresh: true,
       });
       await new Promise((r) => setTimeout(r, 600));
-      const allowedStatus = await mismatchBroker.call('utility-report.status', { reportId: allowed.reportId });
+      const allowedStatus = await mismatchBroker.call('utility-report.status', {
+        reportId: allowed.reportId,
+      });
       expect(allowedStatus.status).not.toBe('error');
     });
   });
@@ -1207,7 +1301,9 @@ describe('Utility Report Service', () => {
       mockBrokerService(tokenBroker, 'grid-operations', {
         marketPartners: async (ctx) => {
           capturedToken = ctx.meta?.cernionToken ?? null;
-          return { results: [{ name: 'Token Test GmbH', bdewCode: '9900000000001', mastrId: 'SNB_TOKEN' }] };
+          return {
+            results: [{ name: 'Token Test GmbH', bdewCode: '9900000000001', mastrId: 'SNB_TOKEN' }],
+          };
         },
         vnbLookup: async () => DEFAULT_MOCK_RESULT,
         capacityUtilization: async () => DEFAULT_MOCK_RESULT,
@@ -1257,10 +1353,10 @@ describe('Utility Report Service', () => {
           utilityName: 'CR37 Stadtwerke GmbH',
           bdew: '9904350000001',
           marktRollenProfile: {
-            vnb:              { name: 'CR37 Netz GmbH', bdew: '9904350000001', roles: ['VNB'] },
-            lieferant:        { name: 'CR37 Vertrieb GmbH', bdew: '9913450000001', roles: ['Lieferant'] },
-            msb:              null,
-            bkv:              null,
+            vnb: { name: 'CR37 Netz GmbH', bdew: '9904350000001', roles: ['VNB'] },
+            lieferant: { name: 'CR37 Vertrieb GmbH', bdew: '9913450000001', roles: ['Lieferant'] },
+            msb: null,
+            bkv: null,
             direktvermarkter: null,
           },
         },
@@ -1279,7 +1375,7 @@ describe('Utility Report Service', () => {
           utilityName: 'CR45 Cover Test GmbH',
           bdew: '9904350000001',
           marktRollenProfile: {
-            vnb:      { bdew: '9904350000001' },
+            vnb: { bdew: '9904350000001' },
             lieferant: { bdew: '9913450000001' },
           },
         },
@@ -1330,7 +1426,13 @@ describe('Utility Report Service', () => {
       const html = buildHtmlReport({
         meta: {
           utilityName: 'Empty Profile GmbH',
-          marktRollenProfile: { vnb: null, lieferant: null, msb: null, bkv: null, direktvermarkter: null },
+          marktRollenProfile: {
+            vnb: null,
+            lieferant: null,
+            msb: null,
+            bkv: null,
+            direktvermarkter: null,
+          },
         },
         generatedAt: new Date().toISOString(),
       });
@@ -1362,7 +1464,10 @@ describe('Utility Report Service', () => {
       const html = buildHtmlReport({
         meta: { utilityName: 'CR38 Avail Test GmbH' },
         section1: {
-          capacityUtilization: { available: true, data: { utilizationByVoltage: { NS: 45, MS: 60, HS: 30 } } },
+          capacityUtilization: {
+            available: true,
+            data: { utilizationByVoltage: { NS: 45, MS: 60, HS: 30 } },
+          },
         },
         generatedAt: new Date().toISOString(),
       });
@@ -1506,7 +1611,9 @@ describe('Utility Report Service', () => {
       mockBrokerService(mcpErrorBroker, 'grid-operations', {
         // Simulate what grid-operations does when MCP call throws internally:
         // callBroker catches it and returns { available: false, error: msg }
-        marketPartners: async () => { throw new Error('Request failed: 403 Forbidden'); },
+        marketPartners: async () => {
+          throw new Error('Request failed: 403 Forbidden');
+        },
         vnbLookup: async () => DEFAULT_MOCK_RESULT,
       });
       for (const [name, mocks] of Object.entries(DEFAULT_SERVICE_MOCKS)) {
@@ -1563,7 +1670,9 @@ describe('Utility Report Service', () => {
 
       await new Promise((r) => setTimeout(r, 600));
 
-      const status = await transparentBroker.call('utility-report.status', { reportId: gen.reportId });
+      const status = await transparentBroker.call('utility-report.status', {
+        reportId: gen.reportId,
+      });
       // Pipeline may or may not have reached error; but vnbIdentification should be populated
       // once Phase 1 has run (regardless of whether Phase 2+ succeeds)
       expect(status.vnbIdentification).toBeDefined();
@@ -1572,7 +1681,9 @@ describe('Utility Report Service', () => {
       expect(status.vnbIdentification.selected).not.toBeNull();
       expect(status.vnbIdentification.selected.name).toContain('Teststadt Netze');
       expect(status.vnbIdentification.selected.bdew).toBe('9900111222333');
-      expect(status.vnbIdentification.selected.selectionReason).toMatch(/match|confidence|explicit/i);
+      expect(status.vnbIdentification.selected.selectionReason).toMatch(
+        /match|confidence|explicit/i
+      );
     });
   });
 
@@ -1619,8 +1730,8 @@ describe('Utility Report Service', () => {
       const html = buildHtmlReport({
         meta: { utilityName: 'CR49 Portfolio GmbH' },
         section2: {
-          solar:   { available: true, data: { totalCapacityKw: 12000 } },
-          wind:    { available: true, data: { totalCapacityKw: 3000 } },
+          solar: { available: true, data: { totalCapacityKw: 12000 } },
+          wind: { available: true, data: { totalCapacityKw: 3000 } },
           storage: { available: true, data: { totalCapacityKw: 1000 } },
         },
         generatedAt: new Date().toISOString(),
@@ -1738,13 +1849,20 @@ describe('Utility Report Service', () => {
     const { buildHtmlReport } = require('../src/report-builder');
 
     it('should render radar chart when digitalisierungsindex scores are available', () => {
-      const ewkJson = [{
-        json: {
-          digitalisierungsindex: { gesamtscore: 0.45, smart_grids: 0.25, digitale_prozesse: 0.35, kundenmanagement: 0.60 },
-          rankings: { anschlussdauer_ee_ns_rank: 120, anschlussdauer_ee_ns_total: 780 },
-          anschlussdauer: { ee_ns_gesamt: 18 },
+      const ewkJson = [
+        {
+          json: {
+            digitalisierungsindex: {
+              gesamtscore: 0.45,
+              smart_grids: 0.25,
+              digitale_prozesse: 0.35,
+              kundenmanagement: 0.6,
+            },
+            rankings: { anschlussdauer_ee_ns_rank: 120, anschlussdauer_ee_ns_total: 780 },
+            anschlussdauer: { ee_ns_gesamt: 18 },
+          },
         },
-      }];
+      ];
       const html = buildHtmlReport({
         meta: { utilityName: 'CR52 Radar GmbH' },
         section5: {
@@ -1766,14 +1884,26 @@ describe('Utility Report Service', () => {
 
     it('should render tornado chart in peer benchmark block when data available', () => {
       // Tornado needs >= 2 metrics: ansch+bundesMedian AND diPct+diMedian
-      const ewkJson = [{
-        json: {
-          digitalisierungsindex: { gesamtscore: 0.55, smart_grids: 0.40, digitale_prozesse: 0.50, kundenmanagement: 0.65 },
-          rankings: { anschlussdauer_ee_ns_rank: 200, anschlussdauer_ee_ns_total: 780, digitalisierungsindex_rank: 150, digitalisierungsindex_total: 780 },
-          rows: [{ ee_ns_gesamt_wochen: 14 }],
-          stats: { ee_ns_gesamt: { median: 18 }, gesamtscore: { median: 0.50 } },
+      const ewkJson = [
+        {
+          json: {
+            digitalisierungsindex: {
+              gesamtscore: 0.55,
+              smart_grids: 0.4,
+              digitale_prozesse: 0.5,
+              kundenmanagement: 0.65,
+            },
+            rankings: {
+              anschlussdauer_ee_ns_rank: 200,
+              anschlussdauer_ee_ns_total: 780,
+              digitalisierungsindex_rank: 150,
+              digitalisierungsindex_total: 780,
+            },
+            rows: [{ ee_ns_gesamt_wochen: 14 }],
+            stats: { ee_ns_gesamt: { median: 18 }, gesamtscore: { median: 0.5 } },
+          },
         },
-      }];
+      ];
       const html = buildHtmlReport({
         meta: { utilityName: 'CR53 Tornado GmbH' },
         section5: {
@@ -1813,7 +1943,10 @@ describe('Utility Report Service', () => {
       const html = buildHtmlReport({
         meta: { utilityName: 'CR54 SmallVNB GmbH' },
         section2: {
-          pvLocal: { available: true, data: { installations: [{ inbetriebnahmeDatum: '2020-01-01', leistungKw: 5 }] } },
+          pvLocal: {
+            available: true,
+            data: { installations: [{ inbetriebnahmeDatum: '2020-01-01', leistungKw: 5 }] },
+          },
         },
         generatedAt: new Date().toISOString(),
       });

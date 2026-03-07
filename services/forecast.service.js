@@ -23,9 +23,26 @@ module.exports = {
     generationForecast: {
       rest: 'POST /generation-forecast',
       params: {
-        installationType: { type: 'enum', values: ['solar', 'wind', 'all'], optional: true, default: 'solar' },
-        forecastDays: { type: 'number', optional: true, min: 1, max: 14, default: 7, convert: true },
-        resolution: { type: 'enum', values: ['daily', 'hourly', 'hour', '15min'], optional: true, default: 'daily' },
+        installationType: {
+          type: 'enum',
+          values: ['solar', 'wind', 'all'],
+          optional: true,
+          default: 'solar',
+        },
+        forecastDays: {
+          type: 'number',
+          optional: true,
+          min: 1,
+          max: 14,
+          default: 7,
+          convert: true,
+        },
+        resolution: {
+          type: 'enum',
+          values: ['daily', 'hourly', 'hour', '15min'],
+          optional: true,
+          default: 'daily',
+        },
         gridOperatorMastrId: { type: 'string', optional: true },
         installationMastrNummer: {
           type: 'string',
@@ -49,7 +66,8 @@ module.exports = {
           type: 'string',
           optional: true,
           pattern: /^[0-9]{4}-[0-9]{2}-[0-9]{2}$/,
-          description: 'Optional start date (YYYY-MM-DD). Defaults to tomorrow. Past dates use observed weather data (historical mode).',
+          description:
+            'Optional start date (YYYY-MM-DD). Defaults to tomorrow. Past dates use observed weather data (historical mode).',
         },
         includeValidation: { type: 'boolean', optional: true, default: false },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
@@ -91,7 +109,8 @@ module.exports = {
 - **startDate**: Optional start date (\`YYYY-MM-DD\`). Omit for default tomorrow behaviour (no breaking change). Past dates retrieve **observed weather data** (Visual Crossing historical observations) — identical IEC calculation, 30-day cache. Response gains \`summary.isHistorical\` and \`summary.dataMode\` fields.
 - **includeValidation**: Cross-validate with SMARD data (default: false)
 - **installationMastrNummer**: Single-installation forecast by MaStR unit ID (SEE…=solar, SWE…=wind). **Highest priority** — overrides all regional filters. installationType is auto-derived from prefix.
-- **messlokationId**: Single-installation forecast via Metering Location ID (MeLo, 33 chars, starts with DE). Resolved via NAP table. Priority: installationMastrNummer > messlokationId > gridOperatorMastrId > location.`,        requestBody: {
+- **messlokationId**: Single-installation forecast via Metering Location ID (MeLo, 33 chars, starts with DE). Resolved via NAP table. Priority: installationMastrNummer > messlokationId > gridOperatorMastrId > location.`,
+        requestBody: {
           required: false,
           content: {
             'application/json': {
@@ -117,12 +136,14 @@ module.exports = {
                     type: 'string',
                     enum: ['daily', 'hourly', '15min'],
                     default: 'daily',
-                    description: 'Time resolution of forecast output. "daily" = 1 pt/day (default); "hourly" = 24 pts/day (intraday dispatch/trading); "15min" = 96 pts/day (§12 StromNZV balancing/scheduling, linear interpolation between hourly values)',
+                    description:
+                      'Time resolution of forecast output. "daily" = 1 pt/day (default); "hourly" = 24 pts/day (intraday dispatch/trading); "15min" = 96 pts/day (§12 StromNZV balancing/scheduling, linear interpolation between hourly values)',
                     example: 'daily',
                   },
                   gridOperatorMastrId: {
                     type: 'string',
-                    description: 'MaStR Netzbetreiber-ID (SNB/GNB...). Use cernion_vnb_lookup to resolve BDEW → MaStR ID.',
+                    description:
+                      'MaStR Netzbetreiber-ID (SNB/GNB...). Use cernion_vnb_lookup to resolve BDEW → MaStR ID.',
                     example: 'SNB935578300972',
                   },
                   installationMastrNummer: {
@@ -171,7 +192,8 @@ module.exports = {
                   startDate: {
                     type: 'string',
                     pattern: '^[0-9]{4}-[0-9]{2}-[0-9]{2}$',
-                    description: 'Optional start date (YYYY-MM-DD). Omit for default tomorrow behaviour. Past dates switch to historical observation mode (30-day cache, observed weather instead of forecast).',
+                    description:
+                      'Optional start date (YYYY-MM-DD). Omit for default tomorrow behaviour. Past dates switch to historical observation mode (30-day cache, observed weather instead of forecast).',
                     example: '2026-01-15',
                   },
                   includeValidation: {
@@ -301,13 +323,15 @@ module.exports = {
                         installationCount: { type: 'number', example: 2756 },
                         isHistorical: {
                           type: 'boolean',
-                          description: 'true when startDate is in the past (observed weather data used)',
+                          description:
+                            'true when startDate is in the past (observed weather data used)',
                           example: false,
                         },
                         dataMode: {
                           type: 'string',
                           enum: ['weather_forecast', 'historical_observation'],
-                          description: '"weather_forecast" for future dates, "historical_observation" for past dates',
+                          description:
+                            '"weather_forecast" for future dates, "historical_observation" for past dates',
                           example: 'weather_forecast',
                         },
                         forecastPeriod: {
@@ -325,14 +349,24 @@ module.exports = {
                         type: 'object',
                         properties: {
                           timestamp: { type: 'string', format: 'date-time' },
-                          generationMW: { type: 'number', description: 'Forecasted generation in MW' },
-                          capacityFactor: { type: 'number', nullable: true, description: 'Capacity factor (0-1)' },
+                          generationMW: {
+                            type: 'number',
+                            description: 'Forecasted generation in MW',
+                          },
+                          capacityFactor: {
+                            type: 'number',
+                            nullable: true,
+                            description: 'Capacity factor (0-1)',
+                          },
                           weather: {
                             type: 'object',
                             properties: {
                               temperature: { type: 'number', description: 'Temperature in °C' },
                               windSpeed: { type: 'number', description: 'Wind speed in m/s' },
-                              solarIrradiance: { type: 'number', description: 'Solar irradiance in W/m²' },
+                              solarIrradiance: {
+                                type: 'number',
+                                description: 'Solar irradiance in W/m²',
+                              },
                               cloudCover: { type: 'number', description: 'Cloud cover in %' },
                             },
                           },
@@ -345,12 +379,25 @@ module.exports = {
                         toolName: { type: 'string', example: 'mastr_generation_forecast' },
                         timestamp: { type: 'string', format: 'date-time' },
                         weatherDataSource: { type: 'string', example: 'Visual Crossing' },
-                        iecStandardApplied: { type: 'string', example: 'IEC 61853', description: 'IEC 61853 for solar, IEC 61400 for wind' },
+                        iecStandardApplied: {
+                          type: 'string',
+                          example: 'IEC 61853',
+                          description: 'IEC 61853 for solar, IEC 61400 for wind',
+                        },
                         cachingEnabled: { type: 'boolean', example: true },
                         apiCallsUsed: { type: 'number', example: 1 },
                         orientationCorrectionApplied: { type: 'boolean', example: true },
-                        portfolioOrientationFactor: { type: 'number', example: 0.9712, description: 'Capacity-weighted azimuth+tilt factor from MaStR Hauptausrichtung' },
-                        orientationDataCoverage: { type: 'number', example: 0.8341, description: 'Fraction of installations with MaStR orientation data' },
+                        portfolioOrientationFactor: {
+                          type: 'number',
+                          example: 0.9712,
+                          description:
+                            'Capacity-weighted azimuth+tilt factor from MaStR Hauptausrichtung',
+                        },
+                        orientationDataCoverage: {
+                          type: 'number',
+                          example: 0.8341,
+                          description: 'Fraction of installations with MaStR orientation data',
+                        },
                       },
                     },
                   },
@@ -375,10 +422,18 @@ module.exports = {
                           timestamp: '2026-02-19T00:00:00.000Z',
                           generationMW: 0.01,
                           capacityFactor: null,
-                          weather: { temperature: 4.3, windSpeed: 12.2, solarIrradiance: 30.8, cloudCover: 100 },
+                          weather: {
+                            temperature: 4.3,
+                            windSpeed: 12.2,
+                            solarIrradiance: 30.8,
+                            cloudCover: 100,
+                          },
                         },
                       ],
-                      metadata: { toolName: 'mastr_generation_forecast', timestamp: '2026-02-18T23:21:46.848Z' },
+                      metadata: {
+                        toolName: 'mastr_generation_forecast',
+                        timestamp: '2026-02-18T23:21:46.848Z',
+                      },
                     },
                   },
                 },
@@ -388,7 +443,8 @@ module.exports = {
                 example: `# Renewable Energy Generation Forecast\n# Location: Netzgebiet SNB935578300972\n# Total Capacity: 25.77 MW\n# Installation Count: 2756\nTimestamp,Generation (MW),Capacity Factor,Temperature (\u00b0C),Wind Speed (m/s),Solar Irradiance (W/m\u00b2),Cloud Cover (%)\n2026-02-19T00:00:00.000Z,0.01,,4.3,12.2,30.8,100`,
               },
               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': {
-                description: 'Excel XLSX with Forecast sheet (daily data + weather) and Metadata sheet',
+                description:
+                  'Excel XLSX with Forecast sheet (daily data + weather) and Metadata sheet',
                 schema: { type: 'string', format: 'binary' },
               },
             },
@@ -397,7 +453,13 @@ module.exports = {
             description: 'Invalid request parameters',
             content: {
               'application/json': {
-                example: { success: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid forecastDays: must be between 1 and 14' } },
+                example: {
+                  success: false,
+                  error: {
+                    code: 'VALIDATION_ERROR',
+                    message: 'Invalid forecastDays: must be between 1 and 14',
+                  },
+                },
               },
             },
           },
@@ -405,7 +467,10 @@ module.exports = {
             description: 'Server error during forecast generation',
             content: {
               'application/json': {
-                example: { success: false, error: { code: 'FORECAST_ERROR', message: 'Weather API unavailable' } },
+                example: {
+                  success: false,
+                  error: { code: 'FORECAST_ERROR', message: 'Weather API unavailable' },
+                },
               },
             },
           },
@@ -415,8 +480,15 @@ module.exports = {
         try {
           const {
             format,
-            bundesland, landkreis, gemeinde, postleitzahl, latitude, longitude,
-            installationMastrNummer, messlokationId, startDate,
+            bundesland,
+            landkreis,
+            gemeinde,
+            postleitzahl,
+            latitude,
+            longitude,
+            installationMastrNummer,
+            messlokationId,
+            startDate,
             ...rest
           } = ctx.params;
 
@@ -425,7 +497,8 @@ module.exports = {
 
           const mcpParams = { ...rest };
           if (startDate) mcpParams.startDate = startDate;
-          const resolution = ctx.params.resolution === 'hour' ? 'hourly' : (ctx.params.resolution || 'daily');
+          const resolution =
+            ctx.params.resolution === 'hour' ? 'hourly' : ctx.params.resolution || 'daily';
 
           if (installationMastrNummer) {
             // Mode 1: single-installation via MaStR ID — highest priority
@@ -478,7 +551,11 @@ module.exports = {
           // Handle XLSX export
           if (format === 'xlsx') {
             const forecastData = result?.forecasts || [];
-            const xlsxBuffer = this.convertForecastToXLSX(forecastData, result?.summary, resolution);
+            const xlsxBuffer = this.convertForecastToXLSX(
+              forecastData,
+              result?.summary,
+              resolution
+            );
 
             ctx.meta.$responseHeaders = {
               'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -513,23 +590,30 @@ module.exports = {
       }
 
       const headers = [
-        'Timestamp', 'Generation (MW)', 'Capacity Factor',
-        'Temperature (°C)', 'Wind Speed (m/s)', 'Solar Irradiance (W/m²)', 'Cloud Cover (%)',
+        'Timestamp',
+        'Generation (MW)',
+        'Capacity Factor',
+        'Temperature (°C)',
+        'Wind Speed (m/s)',
+        'Solar Irradiance (W/m²)',
+        'Cloud Cover (%)',
       ];
 
       let csv = '# Renewable Energy Generation Forecast\n';
       if (summary) {
         if (summary.location) csv += `# Location: ${summary.location}\n`;
         if (summary.type) csv += `# Installation Type: ${summary.type}\n`;
-        if (summary.totalCapacityMW != null) csv += `# Total Capacity: ${summary.totalCapacityMW} MW\n`;
-        if (summary.installationCount != null) csv += `# Installation Count: ${summary.installationCount}\n`;
+        if (summary.totalCapacityMW != null)
+          csv += `# Total Capacity: ${summary.totalCapacityMW} MW\n`;
+        if (summary.installationCount != null)
+          csv += `# Installation Count: ${summary.installationCount}\n`;
       }
       if (resolution) csv += `# Resolution: ${resolution}\n`;
       csv += `# Generated: ${new Date().toISOString()}\n\n`;
 
-      csv += headers.map(h => `"${h}"`).join(',') + '\n';
+      csv += headers.map((h) => `"${h}"`).join(',') + '\n';
 
-      forecastData.forEach(item => {
+      forecastData.forEach((item) => {
         const w = item.weather || {};
         const row = [
           `"${item.timestamp || ''}"`,
@@ -558,8 +642,8 @@ module.exports = {
         return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
       }
 
-      const forecastSheet = forecastData.map(item => ({
-        'Timestamp': item.timestamp || '',
+      const forecastSheet = forecastData.map((item) => ({
+        Timestamp: item.timestamp || '',
         'Generation (MW)': item.generationMW ?? 0,
         'Capacity Factor': item.capacityFactor ?? '',
         'Temperature (°C)': item.weather?.temperature ?? '',

@@ -5,7 +5,11 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
-const { applyFormat, FORMAT_PARAM_SCHEMA, FORMAT_RESPONSE_CONTENT } = require('../src/format-response');
+const {
+  applyFormat,
+  FORMAT_PARAM_SCHEMA,
+  FORMAT_RESPONSE_CONTENT,
+} = require('../src/format-response');
 
 module.exports = {
   name: 'eic-codes',
@@ -27,7 +31,12 @@ module.exports = {
         country: { type: 'string', optional: true, min: 2, max: 2 },
         sector: { type: 'enum', values: ['electricity', 'gas'], optional: true },
         limit: { type: 'number', optional: true, default: 10, min: 1, max: 100, convert: true },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'Search EIC code database by code or company name',
@@ -272,7 +281,12 @@ module.exports = {
       params: {
         country: { type: 'string', optional: true, default: 'DE', min: 2, max: 2 },
         includeMetadata: { type: 'boolean', optional: true, default: false },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'List German gas storage operators with EIC codes',
@@ -334,7 +348,12 @@ module.exports = {
       params: {
         operatorCode: { type: 'string', optional: true },
         country: { type: 'string', optional: true, default: 'DE', min: 2, max: 2 },
-        format: { type: 'enum', values: ['json', 'csv', 'xlsx', 'xls'], optional: true, default: 'json' },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx', 'xls'],
+          optional: true,
+          default: 'json',
+        },
       },
       openapi: {
         summary: 'List German gas storage facilities (UGS) with EIC codes',

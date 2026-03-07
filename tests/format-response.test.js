@@ -319,7 +319,9 @@ describe('applyFormat', () => {
     it('should throw with fallback message when isError has no content text', () => {
       const ctx = makeMockCtx();
       const result = { data: { isError: true } };
-      expect(() => applyFormat(ctx, result)).toThrow('Upstream tool returned an error with no details');
+      expect(() => applyFormat(ctx, result)).toThrow(
+        'Upstream tool returned an error with no details'
+      );
     });
   });
 
@@ -405,9 +407,7 @@ describe('FORMAT_RESPONSE_CONTENT', () => {
 
   it('should contain an application/vnd.openxmlformats-officedocument.spreadsheetml.sheet entry', () => {
     expect(
-      FORMAT_RESPONSE_CONTENT[
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      ]
+      FORMAT_RESPONSE_CONTENT['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
     ).toBeDefined();
   });
 });
