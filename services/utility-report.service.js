@@ -1449,7 +1449,7 @@ module.exports = {
               type: 'solar',
               status: 'InBetrieb',
               includeStats: true,
-              limit: 1,
+              limit: 5000,
             }, cernionToken)
           : Promise.resolve({ available: false, error: 'No MaStR ID' }),
         dataQualityBaseParams
@@ -1458,7 +1458,7 @@ module.exports = {
               type: 'wind',
               status: 'InBetrieb',
               includeStats: true,
-              limit: 1,
+              limit: 5000,
             }, cernionToken)
           : Promise.resolve({ available: false, error: 'No MaStR ID' }),
         dataQualityBaseParams
@@ -1467,7 +1467,7 @@ module.exports = {
               type: 'storage',
               status: 'InBetrieb',
               includeStats: true,
-              limit: 1,
+              limit: 5000,
             }, cernionToken)
           : Promise.resolve({ available: false, error: 'No MaStR ID' }),
       ]);

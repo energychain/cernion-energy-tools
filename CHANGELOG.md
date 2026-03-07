@@ -7,6 +7,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.19] - 2026-03-07
+
+### Fixed
+
+- **Report Builder – CR-23 (P0): Prompt-leak lines appear in Management Summary**
+
+  The LLM sometimes echoes the prompt context as its first output line
+  (e.g., *"Hier ist die Management Summary für die Stadtwerke Eberbach:"*).
+  Because `renderManagementSummary` parses the response line-by-line, such
+  intro sentences were rendered as bullet point 1.
+
+  **Fix (`src/report-builder.js`):** Added `PROMPT_LEAK_PATTERNS` array
+  (`/^hier ist/i`, `/^management summary für/i`, `/:\s*$/` etc.) applied inside
+  the `.filter()` chain before assigning `findings`. Suppressed lines are
+  logged via `console.warn` for operator visibility.
+
+- **Report Builder – CR-24 (P0): Inverted Umsetzungsquote recommendation**
+
+  The `else` branch of the `umsetzungsquote < 80 %` guard in `renderSection5`
+  still emitted the text *"Umsetzungsquote <70 %: Nachbearbeitung…"* — which
+  fires precisely when the VNB has a high quota (e.g., Eberbach 100 %).
+
+  **Fix (`src/report-builder.js`):** Replaced the incorrect `else` catch-all
+  with an explicit four-way branch:
+  - `< 80 %` → ACTION: "offene Anschlussbegehren nacharbeiten"
+  - `≥ 100 %` → "✅ alle fristgerecht umgesetzt"
+  - `80–99 %` → "✅ Niveau halten; Restfälle abschließen"
+  - `null` → neutral fallback without a threshold claim
+
+- **Service – CR-25 (P1): PV count shows `1` for multi-installation VNBs**
+
+  The `cernion_installations_local` queries for `pvLocal`/`windLocal`/
+  `speicherLocal` used `limit: 1`, so the response said
+  `**Results:** 1 installations found` even when hundreds existed.
+  `parseMaStrLocalStats` read this bounded value as the total count.
+
+  **Fix (`services/utility-report.service.js`):** Changed all three queries
+  from `limit: 1` to `limit: 5000`.
+
+  **Fix (`src/report-builder.js`):** Updated `parseMaStrLocalStats` to prefer
+  the `**Total found:**` line from the Summary Statistics block (accurate total)
+  over the bounded `**Results:**` header.
+
+### Added
+
+- **Report Builder – CR-26 (P1): New NEST & Regulierungsrahmen sub-section**
+
+  Added `renderNestAgnesBlock()` inserted after the action-hint block in
+  `renderSection5`. Shows NEST compliance status and AgNeS KPIs (Effizienzwert,
+  Erlösobergrenze, Regulierungskonto) from EWK benchmark data already
+  retrieved in Section 5. Sub-section is suppressed entirely when no data is
+  available (all-`n/v` guard).
+
+- **Report Builder – CR-27 (P1): New Peer-Benchmarking table**
+
+  Added `renderPeerBenchmarkBlock()` appended after the NEST block in
+  `renderSection5`. Renders a four-column table (Kennzahl / Dieser VNB /
+  Bundesmedian / Rang) for Anschlussdauer, Digitalisierungsindex, and
+  Umsetzungsquote using EWK ranking data already in scope. Includes rank
+  percentile (e.g., "Rang 260 / 740 (Top 65 %)"). Table is suppressed when
+  all three metrics are unavailable.
+
+### Improved
+
+- **Report Builder – CR-28 (P2): ACTION / HOLD / LEVERAGE modes for Anschlussdauer**
+
+  Top-performing VNBs (Anschlussdauer < 75 % of Bundesmedian ≈ top 25 %)
+  now receive a LEVERAGE hint: *"Top-Performer – Als Qualitätsmerkmal in
+  Kommunikation mit Gemeinde und Projektierer einsetzen."* Borderline
+  above-median cases receive a softer ACTION-light message.
+  Digitalisierungsindex ≥ 70 % also gets a positive HOLD message.
+
+- **Report Builder – CR-29 (P2): News relevance scoring replaces simple filter**
+
+  Added `scoreNewsItem(item)` awarding `+2` per energy-sector keyword
+  (netzausbau, photovoltaik, lorawan, §14a, etc.) and deducting `−5` for
+  navigation fragments, download links, and homepage teasers. Items are
+  scored, filtered to `score > 2`, sorted descending, and capped at 4.
+
 ## [0.8.18] - 2026-03-07
 
 ### Fixed

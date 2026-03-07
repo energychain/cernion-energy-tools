@@ -97,8 +97,16 @@ function parseMaStrLocalStats(dataArr) {
     : '';
   if (!text) return { count: null, totalCapacityKW: null };
 
-  const countMatch = text.match(/\*\*Results:\*\*\s+(\d+)\s+installation/i);
-  const count = countMatch ? parseInt(countMatch[1], 10) : null;
+  // CR-25: Prefer "Total found" from the Summary Statistics block (accurate total
+  // across all matching installations).  Fall back to the "Results:" header line
+  // which is bounded by the query limit and may under-count.
+  const totalFoundMatch = text.match(/Total found:\*\*\s+(\d+)\s+installation/i);
+  const resultsMatch = text.match(/\*\*Results:\*\*\s+(\d+)\s+installation/i);
+  const count = totalFoundMatch
+    ? parseInt(totalFoundMatch[1], 10)
+    : resultsMatch
+      ? parseInt(resultsMatch[1], 10)
+      : null;
 
   // "**Total capacity (shown):** 4.37 MW (4367.5 kW)"
   const capKwMatch = text.match(/Total capacity[^:]*:\*\*[^(]*\(\s*([\d.]+)\s*kW\)/i);
@@ -996,44 +1004,74 @@ function renderSection5(s5) {
   // CR-05: Build dynamic recommendations from actual EWK values
   const ewkHints = (() => {
     const items = [];
+
+    // CR-28: Three modes – ACTION (deficit), HOLD (above median), LEVERAGE (top 25 %)
     // Anschlussdauer vs. Bundesmedian
     if (vnbAnschlussdauer !== null && bundesMedian !== null) {
-      const diff = Number(vnbAnschlussdauer) - Number(bundesMedian);
-      if (diff > 0) {
+      const ansch = Number(vnbAnschlussdauer);
+      const median = Number(bundesMedian);
+      const diff = ansch - median;
+      const ratio = ansch / median;
+
+      if (ratio > 1.2) {
+        // ACTION: clearly above median
         items.push(
-          `Anschlussdauer ${Number(vnbAnschlussdauer).toFixed(0)} Wo. – ${Math.round(diff)} Wo. über Bundesmedian ` +
-          `(${Number(bundesMedian).toFixed(0)} Wo.): Phase 1 (Angebotserstellung) und Phase 2 (Inbetriebnahme) ` +
+          `Anschlussdauer ${ansch.toFixed(0)} Wo. – ${Math.round(diff)} Wo. über Bundesmedian ` +
+          `(${median.toFixed(0)} Wo.): Phase 1 (Angebotserstellung) und Phase 2 (Inbetriebnahme) ` +
           `optimieren. BNetzA-Beschwerderisiko bei >13 Wochen.`
         );
-      } else {
+      } else if (diff > 0) {
+        // ACTION-light: slightly above median
         items.push(
-          `Anschlussdauer ${Number(vnbAnschlussdauer).toFixed(0)} Wo. – ${Math.abs(Math.round(diff))} Wo. unter ` +
-          `Bundesmedian (${Number(bundesMedian).toFixed(0)} Wo.). Niveau halten; Phase-2-Zeiten weiter optimieren.`
+          `Anschlussdauer ${ansch.toFixed(0)} Wo. – ${Math.round(diff)} Wo. über Bundesmedian ` +
+          `(${median.toFixed(0)} Wo.). Phase-1/2-Prozesse optimieren.`
+        );
+      } else if (ratio < 0.75) {
+        // LEVERAGE: top ~25 % (below 75 % of median)
+        items.push(
+          `Anschlussdauer ${ansch.toFixed(0)} Wo. ✅ Top-Performer – ` +
+          `${Math.abs(Math.round(diff))} Wo. unter Bundesmedian (${median.toFixed(0)} Wo.). ` +
+          `Als Qualitätsmerkmal in Kommunikation mit Gemeinde und Projektierer einsetzen.`
+        );
+      } else {
+        // HOLD: below median but not top 25 %
+        items.push(
+          `Anschlussdauer ${ansch.toFixed(0)} Wo. ✅ – ${Math.abs(Math.round(diff))} Wo. unter ` +
+          `Bundesmedian (${median.toFixed(0)} Wo.). Niveau halten; Phase-2-Zeiten weiter optimieren.`
         );
       }
     } else {
-      items.push('Anschlussdauer >Bundesmedian: Prozesse für Phase 1 und Phase 2 optimieren – BNetzA-Beschwerderisiko bei >13 Wochen.');
+      items.push('Anschlussdauer: Prozesse für Phase 1 und Phase 2 optimieren – BNetzA-Beschwerderisiko bei >13 Wochen.');
     }
+
     // Digitalisierungsindex
     const diScore = (diJson?.digitalisierungsindex?.gesamtscore ?? bmJson?.digitalisierungsindex?.gesamtscore);
     const diPct = diScore != null ? diScore * 100 : null;
     if (diPct !== null && diPct < 50) {
       items.push(`Digitalisierungsindex ${diPct.toFixed(0)} % (unter 50 %): SMGW-Rollout priorisieren, Förderanträge Digitalisierungsoffensive stellen.`);
+    } else if (diPct !== null && diPct >= 70) {
+      items.push(`Digitalisierungsindex ${diPct.toFixed(0)} % ✅ – §14a-Steuerboxen für neue steuerbare Verbrauchseinrichtungen kontinuierlich ausrollen.`);
     } else if (diPct !== null) {
       items.push(`Digitalisierungsindex ${diPct.toFixed(0)} %: Smart-Meter-Rollout fortführen, §14a-Steuerboxen bis Ende 2025 installieren.`);
     } else {
-      items.push('Digitalisierungsindex <50 %: Smart Meter Rollout und SMGW-Integration priorisieren.');
+      items.push('Digitalisierungsindex: Smart Meter Rollout und SMGW-Integration priorisieren.');
     }
-    // Umsetzungsquote
+
+    // CR-24 fix: Umsetzungsquote – correct conditional (was always showing <70 % text for high performers)
     const uqScore = (uqJson?.umsetzungsquote?.umsetzungsquote_ee_ns ?? bmJson?.umsetzungsquote?.umsetzungsquote_ee_ns);
     const uqPct = uqScore != null ? uqScore * 100 : null;
     if (uqPct !== null && uqPct < 80) {
       items.push(`Umsetzungsquote EE NS ${uqPct.toFixed(0)} % – offene Anschlussbegehren bis EWK-Stichtag 31. März nacharbeiten.`);
+    } else if (uqPct !== null && uqPct >= 100) {
+      items.push(`Umsetzungsquote ${uqPct.toFixed(0)} % ✅ – alle EE-Anschlussbegehren fristgerecht umgesetzt. Standard halten.`);
+    } else if (uqPct !== null) {
+      items.push(`Umsetzungsquote ${uqPct.toFixed(0)} % ✅ – Niveau halten; Restfälle bis EWK-Stichtag 31. März abschließen.`);
     } else {
-      items.push('Umsetzungsquote <70 %: Nachbearbeitung offener EE-Anschlussbegehren starten – Quotenverbesserung bis EWK-Stichtag 31. März.');
+      items.push('Umsetzungsquote prüfen: EWK-Daten nicht verfügbar – offene EE-Anschlussbegehren bis Stichtag 31. März nacharbeiten.');
     }
+
     items.push('NEST-Report: §11 Abs. 2 EnWG Nachweispflicht erfüllen, bevor CAPEX-Antrag gestellt wird.');
-    items.push('§14a EnWG: Steuerungsboxen (SMGW + Steuerbox) für alle steuerbaren Verbrauchseinrichtungen bis Ende 2025 installieren.');
+    items.push('§14a EnWG: Steuerungsboxen (SMGW + Steuerbox) für alle steuerbaren Verbrauchseinrichtungen fristgerecht installieren.');
     return items;
   })();
 
@@ -1042,7 +1080,164 @@ function renderSection5(s5) {
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">BNetzA-Monitoring, EIC-Register, MaKo-Stammdaten und §14a-Pflichten.</p>
     ${kpiTable(rows)}
     ${actionHint('Handlungsempfehlung Regulierung & Compliance', ewkHints)}
-    ${chartHtml}`;
+    ${chartHtml}
+    ${renderNestAgnesBlock(s5, bmJson, diJson, diMedian, vnbAnschlussdauer, bundesMedian, ewkRank, ewkTotal)}
+    ${renderPeerBenchmarkBlock(bmJson, diJson, vnbAnschlussdauer, bundesMedian, diMedian)}`;
+}
+
+// ─── CR-26: NEST / AgNeS Sub-section ─────────────────────────────────────────
+/**
+ * Renders a compact NEST & Regulierungsrahmen sub-section inside Section 5.
+ * Uses EWK benchmark and nestCompliance data already available in scope.
+ */
+function renderNestAgnesBlock(s5, bmJson, diJson, _diMedian, vnbAnschlussdauer, bundesMedian, ewkRank, ewkTotal) {
+  const nestData = safeData(s5, 'nestCompliance');
+  const hasNest = isAvail(s5, 'nestCompliance');
+
+  // AgNeS-Effizienzwert from EWK benchmark JSON (varies by tool version)
+  const agnesEff =
+    bmJson?.agnes?.effizienzwert ??
+    bmJson?.effizienzwert ??
+    bmJson?.agnes_effizienzwert ??
+    null;
+
+  // Regulierungskonto saldo
+  const regKonto =
+    bmJson?.agnes?.regulierungskontoSaldo ??
+    bmJson?.regulierungskontoSaldo ??
+    null;
+
+  // Erlösobergrenze
+  const erloesobergrenze =
+    bmJson?.agnes?.erloesobergrenze ??
+    bmJson?.erloesobergrenze ??
+    null;
+
+  const rankLabel = ewkRank !== null && ewkTotal !== null
+    ? `Rang ${ewkRank} / ${ewkTotal}`
+    : null;
+
+  // Build KPI rows for this sub-block
+  const nestRows = [
+    kpiRow(
+      'NEST-Compliance-Status',
+      hasNest ? '✓ Bericht abgerufen' : null,
+      '',
+      '§11 Abs. 2 EnWG – automatisierter Regulierungsbericht',
+      !hasNest ? 'Bericht nicht verfügbar (Lizenz oder Timeout)' : ''
+    ),
+    kpiRow(
+      'AgNeS-Effizienzwert',
+      agnesEff !== null ? fmtPct(agnesEff * 100) : null,
+      '',
+      'Anreizregulierung – Basis für Erlösobergrenze (BNetzA)',
+      agnesEff === null ? 'EWK-Benchmarkdaten nicht enthalten' : ''
+    ),
+    kpiRow(
+      'Erlösobergrenze (EO)',
+      erloesobergrenze !== null ? fmtNum(erloesobergrenze, 0) : null,
+      '€',
+      'Aktuelle Erlösobergrenze laut BNetzA-Festsetzung',
+      erloesobergrenze === null ? 'EWK-Benchmarkdaten nicht enthalten' : ''
+    ),
+    kpiRow(
+      'Regulierungskonto-Saldo',
+      regKonto !== null ? fmtNum(regKonto, 0) : null,
+      '€',
+      'Positiv = Nachholpotenzial für Investitionen im Regulierungszeitraum',
+      regKonto === null ? 'EWK-Benchmarkdaten nicht enthalten' : ''
+    ),
+    kpiRow(
+      'EWK-Rang Anschlussdauer',
+      rankLabel,
+      '',
+      'Bundesweiter Rang im BNetzA-Effizienzvergleich 2024'
+    ),
+  ];
+
+  // Only render if at least one KPI has data (avoid all-n/v sub-section)
+  const anyData = hasNest || agnesEff !== null || erloesobergrenze !== null || regKonto !== null || rankLabel !== null;
+  if (!anyData) return '';
+
+  return `
+    <h2 class="sub-title" style="margin-top:5mm">NEST &amp; Regulierungsrahmen</h2>
+    <p style="font-size:8.5pt;color:#6c757d;margin-bottom:2mm;">NEST-Festsetzung, AgNeS-Effizienzwert und Regulierungskonto (§11 EnWG / Anreizregulierungsverordnung).</p>
+    ${kpiTable(nestRows)}`;
+}
+
+// ─── CR-27: Peer Benchmark Sub-section ───────────────────────────────────────
+/**
+ * Renders a compact peer-benchmark comparison table using EWK ranking data
+ * already retrieved in renderSection5.  Shows VNB vs. Bundesmedian for the
+ * three core EWK metrics with rank percentile.
+ */
+function renderPeerBenchmarkBlock(bmJson, diJson, vnbAnschlussdauer, bundesMedian, diMedian) {
+  if (!bmJson && !diJson) return '';
+
+  const ansch = vnbAnschlussdauer !== null ? Number(vnbAnschlussdauer) : null;
+  const median = bundesMedian !== null ? Number(bundesMedian) : null;
+
+  const diScore = (diJson?.digitalisierungsindex?.gesamtscore ?? bmJson?.digitalisierungsindex?.gesamtscore);
+  const diPct = diScore != null ? diScore * 100 : null;
+
+  const ewkRank = bmJson?.rankings?.anschlussdauer_ee_ns_rank ?? null;
+  const ewkTotal = bmJson?.rankings?.anschlussdauer_ee_ns_total ?? null;
+  const diRank = bmJson?.rankings?.digitalisierungsindex_rank ?? diJson?.rows?.[0]?.gesamtscore_rank ?? null;
+  const diRankTotal = bmJson?.rankings?.digitalisierungsindex_total ?? null;
+
+  const uqScore = (bmJson?.umsetzungsquote?.umsetzungsquote_ee_ns ?? null);
+  const uqPct = uqScore != null ? uqScore * 100 : null;
+
+  // Percentile helper (lower rank = better for Anschlussdauer)
+  const pctRankAd = (ewkRank !== null && ewkTotal) ? Math.round((1 - ewkRank / ewkTotal) * 100) : null;
+
+  // At least one data point must exist
+  if (ansch === null && diPct === null && uqPct === null) return '';
+
+  const fmtCell = (val, unit = '') =>
+    val !== null ? `${val}${unit}` : '–';
+
+  const medianAdCell = median !== null ? fmtCell(Math.round(median), ' Wo.') : '–';
+  const rankAdCell = ewkRank !== null
+    ? `${ewkRank} / ${ewkTotal ?? '?'}${pctRankAd !== null ? ` (Top ${100 - pctRankAd} %)` : ''}`
+    : '–';
+  const diMedianCell = diMedian !== null ? fmtCell(Math.round(diMedian * 100), ' %') : '–';
+  const diRankCell = diRank !== null ? `${diRank} / ${diRankTotal ?? '?'}` : '–';
+
+  return `
+    <h2 class="sub-title" style="margin-top:5mm">Peer-Benchmarking (Bundesvergleich)</h2>
+    <p style="font-size:8.5pt;color:#6c757d;margin-bottom:2mm;">Vergleich mit allen ~740 deutschen VNBs im BNetzA-EWK-Datensatz 2024.</p>
+    <table style="width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:3mm">
+      <thead>
+        <tr style="background:#f8f9fa">
+          <th style="text-align:left;padding:1.5mm 2mm;border-bottom:2px solid #dee2e6">Kennzahl</th>
+          <th style="text-align:right;padding:1.5mm 2mm;border-bottom:2px solid #dee2e6">Dieser VNB</th>
+          <th style="text-align:right;padding:1.5mm 2mm;border-bottom:2px solid #dee2e6">Bundesmedian</th>
+          <th style="text-align:right;padding:1.5mm 2mm;border-bottom:2px solid #dee2e6">Rang</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${ansch !== null ? `<tr>
+          <td style="padding:1.5mm 2mm;border-bottom:1px solid #f0f0f0">Anschlussdauer EE NS</td>
+          <td style="text-align:right;padding:1.5mm 2mm;border-bottom:1px solid #f0f0f0;font-weight:600">${Math.round(ansch)} Wo.</td>
+          <td style="text-align:right;padding:1.5mm 2mm;border-bottom:1px solid #f0f0f0;color:#6c757d">${medianAdCell}</td>
+          <td style="text-align:right;padding:1.5mm 2mm;border-bottom:1px solid #f0f0f0;color:#6c757d">${rankAdCell}</td>
+        </tr>` : ''}
+        ${diPct !== null ? `<tr>
+          <td style="padding:1.5mm 2mm;border-bottom:1px solid #f0f0f0">Digitalisierungsindex</td>
+          <td style="text-align:right;padding:1.5mm 2mm;border-bottom:1px solid #f0f0f0;font-weight:600">${Math.round(diPct)} %</td>
+          <td style="text-align:right;padding:1.5mm 2mm;border-bottom:1px solid #f0f0f0;color:#6c757d">${diMedianCell}</td>
+          <td style="text-align:right;padding:1.5mm 2mm;border-bottom:1px solid #f0f0f0;color:#6c757d">${diRankCell}</td>
+        </tr>` : ''}
+        ${uqPct !== null ? `<tr>
+          <td style="padding:1.5mm 2mm">Umsetzungsquote EE NS</td>
+          <td style="text-align:right;padding:1.5mm 2mm;font-weight:600">${Math.round(uqPct)} %</td>
+          <td style="text-align:right;padding:1.5mm 2mm;color:#6c757d">–</td>
+          <td style="text-align:right;padding:1.5mm 2mm;color:#6c757d">–</td>
+        </tr>` : ''}
+      </tbody>
+    </table>
+    <p style="font-size:7.5pt;color:#868e96;margin:0">Quelle: BNetzA EWK 2024 – alle deutschen Verteilnetzbetreiber.</p>`;
 }
 
 function renderSection6(s6) {
@@ -1429,6 +1624,19 @@ function renderManagementSummary(summaryText, utilityName) {
     'Churn-Risiken und Neukundenpotenziale aus dem Netzgebiet wurden identifiziert – Handlungsbedarf im Prosumer-Segment prüfen.',
   ];
 
+  // CR-23: Prompt-leak patterns – the LLM sometimes echoes the prompt as the
+  // first output line (classic completion artefact).  Filter these before
+  // inserting into the customer-facing report.
+  const PROMPT_LEAK_PATTERNS = [
+    /^hier ist/i,
+    /^die (folgende|nachfolgende)/i,
+    /^management summary für/i,
+    /^zusammenfassung für/i,
+    /^im folgenden/i,
+    /^(nachfolgend|anbei|hiermit)\b/i,
+    /:\s*$/,  // Line ends with bare colon → intro/header sentence
+  ];
+
   // Try to split Gemini narrative into bullet points
   let findings = defaultFindings;
   if (summaryText && typeof summaryText === 'string' && summaryText.trim().length > 50) {
@@ -1437,7 +1645,13 @@ function renderManagementSummary(summaryText, utilityName) {
       .map((l) => l.replace(/^[-•*\d.]+\s*/, '').trim())
       .filter((l) => l.length > 20 && l.length < 400)
       // Strip the GEMINI_API_KEY hint line from the bullet list
-      .filter((l) => !l.startsWith('📋 Hinweis:'));
+      .filter((l) => !l.startsWith('📋 Hinweis:'))
+      // CR-23: strip prompt-leak lines
+      .filter((l) => {
+        const isLeak = PROMPT_LEAK_PATTERNS.some((p) => p.test(l));
+        if (isLeak) console.warn(`[Summary] Prompt-Leak unterdrückt: "${l.slice(0, 80)}"`);
+        return !isLeak;
+      });
     if (lines.length >= 3) findings = lines;
   }
 
@@ -1462,6 +1676,41 @@ function renderManagementSummary(summaryText, utilityName) {
 }
 
 // ─── Context Box (Web Search) ─────────────────────────────────────────────────
+
+/**
+ * CR-29: Relevance score for a news/web-search item.
+ *
+ * Positive signals: energy-sector keywords in title+snippet → +2 each.
+ * Negative signals: navigation fragments, download links, homepage teasers → -5 each.
+ * Items with score ≤ 2 are rejected; up to 4 items survive (sorted by score desc).
+ *
+ * @param {{ title?: string, snippet?: string }} item
+ * @returns {number}
+ */
+function scoreNewsItem(item) {
+  const text = ((item.title ?? '') + ' ' + (item.snippet ?? '')).toLowerCase();
+  let score = 0;
+
+  const POSITIVE_KW = [
+    'netzausbau', 'photovoltaik', 'solaranlage', 'windkraft', 'speicher',
+    'wärmepumpe', 'smartmeter', 'smart meter', 'digitalisierung', 'förderung',
+    'regulierung', 'eeg', 'wallbox', 'ladeinfrastruktur', 'energiewende',
+    'lorawan', 'smart grid', 'redispatch', 'netzbetreiber', 'stadtwerk',
+    'erneuerbare', 'energieeffizienz', '§14a', 'nest-regulierung',
+  ];
+  score += POSITIVE_KW.filter((kw) => text.includes(kw)).length * 2;
+
+  const NEGATIVE_RE = [
+    /^(downloads?|startseite|impressum|datenschutz|kontakt)\s*[-–]/i,
+    /preise für den messstellenbetrieb/i,
+    /\.(pdf|docx|xlsx)\s*[\(\d]/i,        // Download links with file sizes
+    /hauptmen(?:ü|u)|navigation|anmeldung/i,
+    /^\s*.{0,60}\s*$/,                    // Very short combined text
+  ];
+  score -= NEGATIVE_RE.filter((p) => p.test(item.title + ' ' + (item.snippet ?? ''))).length * 5;
+
+  return score;
+}
 
 /**
  * CR-19: Blacklist for web-scraping artefacts (navigation DOM, login fragments).
@@ -1506,7 +1755,8 @@ function renderContextBox(webSearchResults) {
   // CR-13: Suppress section entirely when quality threshold not met
   if (!shouldRenderNewsSection(rawItems)) return '';
 
-  const items = rawItems
+  // CR-29: Score items for editorial relevance; keep top-4 with score > 2
+  const scoredItems = rawItems
     .filter(
       (r) =>
         r.title &&
@@ -1515,6 +1765,12 @@ function renderContextBox(webSearchResults) {
         !r.snippet.endsWith('...') &&
         !SNIPPET_BLACKLIST_RE.test(r.snippet)
     )
+    .map((r) => ({ ...r, _score: scoreNewsItem(r) }))
+    .filter((r) => r._score >= 2)
+    .sort((a, b) => b._score - a._score)
+    .slice(0, 4);
+
+  const items = scoredItems
     .map(
       (r) =>
         `<li><a href="${escapeHtml(r.url)}" target="_blank">${escapeHtml(r.title)}</a>` +
