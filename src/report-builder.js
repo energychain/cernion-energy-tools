@@ -316,27 +316,20 @@ function renderSection1(s1) {
     : 'Ø Netto-Residuallast (regionaler Forecast)';
 
   const rows = [
-    kpiRow(
-      'Trafo-Auslastung NS',
-      trafoAvail ? fmtPct(utilValues[0]) : null,
-      '',
-      'Niederspannung – aktuelle Auslastung',
-      trafoAvail ? '' : 'Kapazitätsanalyse-Tool nicht verfügbar'
-    ),
-    kpiRow(
-      'Trafo-Auslastung MS',
-      trafoAvail ? fmtPct(utilValues[1]) : null,
-      '',
-      'Mittelspannung – aktuelle Auslastung',
-      trafoAvail ? '' : 'Kapazitätsanalyse-Tool nicht verfügbar'
-    ),
-    kpiRow(
-      'Trafo-Auslastung HS',
-      trafoAvail ? fmtPct(utilValues[2]) : null,
-      '',
-      'Hochspannung – aktuelle Auslastung',
-      trafoAvail ? '' : 'Kapazitätsanalyse-Tool nicht verfügbar'
-    ),
+    // CR-38: When both Trafo tools unavailable, collapse to one honest info row
+    //         instead of three identical 'Tool nicht verfügbar' placeholder rows.
+    ...(!trafoAvail ? [
+      kpiRow(
+        'Trafo-Auslastung (NS/MS/HS)',
+        null, '',
+        'Auslastung nach Spannungsebene – Echtzeit-Kapazitätsanalyse nicht verfügbar',
+        'Tool nicht lizenziert – Tagesaktueller Trafo-Forecast als Ergänzungsmodul verfügbar'
+      ),
+    ] : [
+      kpiRow('Trafo-Auslastung NS', fmtPct(utilValues[0]), '', 'Niederspannung – aktuelle Auslastung'),
+      kpiRow('Trafo-Auslastung MS', fmtPct(utilValues[1]), '', 'Mittelspannung – aktuelle Auslastung'),
+      kpiRow('Trafo-Auslastung HS', fmtPct(utilValues[2]), '', 'Hochspannung – aktuelle Auslastung'),
+    ]),
     kpiRow(
       'Redispatch-Anlagen',
       (() => {
@@ -397,7 +390,8 @@ function renderSection1(s1) {
       isAvail(s1, 'gridLossAnalysis') ? '✓ Analyse verfügbar' : null,
       '',
       'Monetarisierte Verlustenergie je Netzabschnitt',
-      !isAvail(s1, 'gridLossAnalysis') ? 'Tool nicht lizenziert' : ''
+      // CR-40: Route to Section 7 upsell instead of plain 'nicht lizenziert'
+      !isAvail(s1, 'gridLossAnalysis') ? 'Premium-Feature – Upsell-Optionen in Abschnitt 7 gelistet' : ''
     ),
   ];
 
@@ -450,9 +444,12 @@ function renderSection1(s1) {
         'Ortsfremde Anlagen (PLZ-Ausreißer)',
         isAvail(s1, 'ortsfremdeAnlagen') && ortsfremdCount !== null ? ortsfremdCount : null,
         'Anlagen',
+        // CR-41: VNB-centric description – queries already filter by VNB mastrId;
+        //         these are installations MaStR assigns to THIS VNB but whose postal
+        //         code is outside the operator's core service territory.
         plzPrefix
-          ? `Außerhalb PLZ-Bereich ${plzPrefix}xx – VNB-Zuordnung im MaStR prüfen`
-          : 'Anlagen außerhalb des dominanten PLZ-Bereichs dieses VNB'
+          ? `Im MaStR diesem VNB zugeordnet, PLZ außerhalb Kerngebiet (≠ ${plzPrefix}xx)`
+          : 'Im MaStR diesem VNB zugeordnet, aber PLZ außerhalb des Kerngebiets'
       )
     );
   })();
@@ -547,6 +544,40 @@ function renderSection2(s2) {
   const windAvail = isAvail(s2, 'wind') || isAvail(s2, 'windLocal');
   const speicherAvail = isAvail(s2, 'storage') || isAvail(s2, 'speicherLocal');
 
+  // CR-42: Extract actual generation values instead of showing '✓ verfügbar' placeholders.
+  // windSolarActual → average or last-period total MW (national DE, ENTSO-E Ist-Wert)
+  const windSolarData = safeData(s2, 'windSolarActual');
+  const windSolarStats = windSolarData?.statistics ?? windSolarData?.data?.statistics ?? null;
+  const windSolarForecasts = windSolarData?.forecasts ?? windSolarData?.data?.forecasts ?? [];
+  const windSolarLatest = Array.isArray(windSolarForecasts) && windSolarForecasts.length > 0
+    ? windSolarForecasts[windSolarForecasts.length - 1]
+    : null;
+  const windSolarTotalMW =
+    windSolarStats?.avgForecastMW ??
+    windSolarStats?.avgMW ??
+    windSolarStats?.avg ??
+    windSolarLatest?.total ??
+    (windSolarLatest
+      ? ((windSolarLatest.windOnshore ?? 0) + (windSolarLatest.windOffshore ?? 0) + (windSolarLatest.solar ?? 0))
+      : null);
+  const windSolarLabel = isAvail(s2, 'windSolarActual')
+    ? (windSolarTotalMW != null && windSolarTotalMW > 0
+        ? `${fmtMw(windSolarTotalMW)} Ø DE (Ist)`
+        : '✓ Echtzeit-Daten verfügbar')
+    : null;
+
+  // CR-42: generationForecast → first-day generation MW (Netzgebiet-Solar forecast)
+  const genFcData = safeData(s2, 'generationForecast');
+  const genFcForecasts = genFcData?.forecasts ?? genFcData?.data?.forecasts ?? [];
+  const genFcFirstMW = Array.isArray(genFcForecasts) && genFcForecasts.length > 0
+    ? (genFcForecasts[0]?.generationMW ?? null)
+    : null;
+  const genFcLabel = isAvail(s2, 'generationForecast')
+    ? (genFcFirstMW != null && genFcFirstMW >= 0
+        ? `${fmtMw(genFcFirstMW)} morgen (Netzgebiet-Solar)`
+        : '✓ Prognose verfügbar')
+    : null;
+
   const rows = [
     kpiRow(
       'Installierte PV-Leistung',
@@ -582,13 +613,13 @@ function renderSection2(s2) {
     ),
     kpiRow(
       'Einspeisung Wind/Solar (Ist)',
-      isAvail(s2, 'windSolarActual') ? '✓ Echtzeit-Daten verfügbar' : null,
+      windSolarLabel,
       '',
-      'ENTSO-E Echtzeit-Einspeisung'
+      'ENTSO-E Echtzeit-Einspeisung (nationaler DE-Wert)'
     ),
     kpiRow(
       'Einspeise-Prognose (24h)',
-      isAvail(s2, 'generationForecast') ? '✓ Prognose verfügbar' : null,
+      genFcLabel,
       '',
       'Regionalprognose auf Basis MaStR-Kapazitäten'
     ),
@@ -1589,7 +1620,40 @@ function renderMarktpartnerRegistry(allPartners) {
     </div>`;
 }
 
-function renderSection8(s8, allPartners = []) {
+// ─── CR-45: Marktrollen-Profil block ─────────────────────────────────────────
+/**
+ * Renders a compact role badge summary for all classified market roles.
+ * Shows each role (VNB, Lieferant, MSB, BKV, DV) with its BDEW code.
+ *
+ * @param {object|null} marktRollenProfile - { vnb, lieferant, msb, bkv, direktvermarkter }
+ * @returns {string} HTML fragment
+ */
+function renderMarktrollenProfile(marktRollenProfile) {
+  if (!marktRollenProfile) return '';
+  const ROLE_CONFIG = [
+    { key: 'vnb', label: 'VNB', color: '#1a5276' },
+    { key: 'lieferant', label: 'Lieferant', color: '#145a32' },
+    { key: 'msb', label: 'MSB', color: '#4a235a' },
+    { key: 'bkv', label: 'BKV', color: '#784212' },
+    { key: 'direktvermarkter', label: 'DV', color: '#1a3a5c' },
+  ];
+  const active = ROLE_CONFIG.filter(({ key }) => marktRollenProfile[key]?.bdew);
+  if (active.length === 0) return '';
+  const badges = active.map(({ key, label, color }) => {
+    const entry = marktRollenProfile[key];
+    return `<span style="display:inline-block;background:${color};color:#fff;border-radius:2px;` +
+      `padding:0.5mm 1.5mm;font-size:7.5pt;margin:0.5mm 1mm 0.5mm 0;font-family:monospace">` +
+      `${escapeHtml(label)}: ${escapeHtml(entry.bdew)}</span>`;
+  }).join('');
+  return `
+    <div style="margin-top:4mm">
+      <h4 style="font-size:9pt;color:#495057;margin:0 0 1.5mm 0">Marktrollen-Profil (BDEW-Codes nach Rolle)</h4>
+      <p style="font-size:8pt;color:#6c757d;margin:0 0 1.5mm 0">Alle gefundenen Marktrollen aus dem BDEW-Register.</p>
+      <div>${badges}</div>
+    </div>`;
+}
+
+function renderSection8(s8, allPartners = [], marktRollenProfile = null) {
   const sysStatus = safeData(s8, 'systemStatus');
   const eicStats = safeData(s8, 'eicStatistics');
   const diData = safeData(s8, 'digitalisierungsindex');
@@ -1692,7 +1756,8 @@ function renderSection8(s8, allPartners = []) {
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">Systemstatus, EIC-Register und Infrastruktur-Monitoring.</p>
     ${kpiTable(rows)}
     ${actionHint('Handlungsempfehlung Digitalisierung', s8Hints)}
-    ${renderMarktpartnerRegistry(allPartners)}`;
+    ${renderMarktpartnerRegistry(allPartners)}
+    ${renderMarktrollenProfile(marktRollenProfile)}`;
 }
 
 // ─── Management Summary ───────────────────────────────────────────────────────
@@ -1918,6 +1983,7 @@ function buildHtmlReport(reportData) {
   const region = meta.region || '';
   const reportId = meta.reportId || '';
   const allPartners = Array.isArray(meta.allPartners) ? meta.allPartners : []; // CR-19
+  const marktRollenProfile = meta.marktRollenProfile ?? null; // CR-37/CR-45
   const reportDate = new Date(generatedAt).toLocaleDateString('de-DE', {
     year: 'numeric',
     month: 'long',
@@ -1949,6 +2015,7 @@ function buildHtmlReport(reportData) {
     <h2>${escapeHtml(utilityName)}</h2>
     ${coverSubtitle ? `<p style="font-size:11pt;opacity:.8;margin-top:2mm">${escapeHtml(coverSubtitle)}</p>` : ''}
     <p class="subtitle">Berichtsstand: ${escapeHtml(reportDate)}</p>
+    ${meta.bdew ? `<p style="font-size:8pt;opacity:.55;margin-top:2mm;font-family:monospace">VNB-BDEW: ${escapeHtml(meta.bdew)}${marktRollenProfile?.lieferant?.bdew ? ` &nbsp;&middot;&nbsp; Lieferant: ${escapeHtml(marktRollenProfile.lieferant.bdew)}` : ''}</p>` : ''}
     <div class="badge">Vertraulich · Nur für internen Gebrauch</div>
     ${reportId ? `<p style="font-size:7pt;opacity:.4;margin-top:6mm">Report-ID: ${escapeHtml(reportId)}</p>` : ''}
   </div>
@@ -1982,7 +2049,7 @@ function buildHtmlReport(reportData) {
   ${renderSection7(section7)}
 
   <!-- Section 8 -->
-  ${renderSection8(section8, allPartners)}
+  ${renderSection8(section8, allPartners, marktRollenProfile)}
 
   <!-- Web Search Context -->
   ${renderContextBox(webSearchResults)}

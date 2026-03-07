@@ -1128,6 +1128,224 @@ describe('Utility Report Service', () => {
     });
   });
 
+  // ─── CR-37: Marktrollen-Resolution ──────────────────────────────────────
+
+  describe('CR-37: Marktrollen-Resolution (BDEW role classification)', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    it('should render Marktrollen-Profil block when marktRollenProfile has VNB entry', () => {
+      const html = buildHtmlReport({
+        meta: {
+          utilityName: 'CR37 Stadtwerke GmbH',
+          bdew: '9904350000001',
+          marktRollenProfile: {
+            vnb:              { name: 'CR37 Netz GmbH', bdew: '9904350000001', roles: ['VNB'] },
+            lieferant:        { name: 'CR37 Vertrieb GmbH', bdew: '9913450000001', roles: ['Lieferant'] },
+            msb:              null,
+            bkv:              null,
+            direktvermarkter: null,
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('Marktrollen-Profil');
+      expect(html).toContain('9904350000001');
+      expect(html).toContain('9913450000001');
+      expect(html).toContain('VNB:');
+      expect(html).toContain('Lieferant:');
+    });
+
+    it('should show VNB BDEW on cover page', () => {
+      const html = buildHtmlReport({
+        meta: {
+          utilityName: 'CR45 Cover Test GmbH',
+          bdew: '9904350000001',
+          marktRollenProfile: {
+            vnb:      { bdew: '9904350000001' },
+            lieferant: { bdew: '9913450000001' },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('VNB-BDEW: 9904350000001');
+      expect(html).toContain('Lieferant: 9913450000001');
+    });
+
+    it('should not render Marktrollen-Profil when marktRollenProfile is null', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'No Profile GmbH', marktRollenProfile: null },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).not.toContain('Marktrollen-Profil');
+    });
+
+    it('should not render Marktrollen-Profil when all roles are null', () => {
+      const html = buildHtmlReport({
+        meta: {
+          utilityName: 'Empty Profile GmbH',
+          marktRollenProfile: { vnb: null, lieferant: null, msb: null, bkv: null, direktvermarkter: null },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).not.toContain('Marktrollen-Profil');
+    });
+  });
+
+  // ─── CR-38: Trafo-Auslastung honest fallback ─────────────────────────────
+
+  describe('CR-38: Trafo-Auslastung honest fallback row', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    it('should show single combined trafo row when both tools unavailable', () => {
+      const unavailable = { available: false };
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR38 Test GmbH' },
+        section1: {
+          capacityUtilization: unavailable,
+          transformerLoading: unavailable,
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('Trafo-Auslastung (NS/MS/HS)');
+      expect(html).not.toContain('Kapazit\u00e4tsanalyse-Tool nicht verf\u00fcgbar');
+      expect(html).toContain('Erg\u00e4nzungsmodul');
+    });
+
+    it('should show three individual trafo rows when capacity tool is available', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR38 Avail Test GmbH' },
+        section1: {
+          capacityUtilization: { available: true, data: { utilizationByVoltage: { NS: 45, MS: 60, HS: 30 } } },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('Trafo-Auslastung NS');
+      expect(html).toContain('Trafo-Auslastung MS');
+      expect(html).toContain('Trafo-Auslastung HS');
+      expect(html).not.toContain('Trafo-Auslastung (NS/MS/HS)');
+    });
+  });
+
+  // ─── CR-40: Netzverluste upsell note ─────────────────────────────────────
+
+  describe('CR-40: Netzverluste upsell routing note', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    it('should show Section 7 upsell note when gridLossAnalysis not available', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR40 Test GmbH' },
+        section1: { gridLossAnalysis: { available: false } },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('Abschnitt\u00a07');
+      expect(html).not.toContain('Tool nicht lizenziert\u2019');
+    });
+  });
+
+  // ─── CR-41: Ortsfremde VNB-centric description ───────────────────────────
+
+  describe('CR-41: Ortsfremde Anlagen VNB-centric description', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    it('should use VNB-centric description with PLZ prefix', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR41 Test GmbH' },
+        section1: {
+          ortsfremdeAnlagen: {
+            available: true,
+            dominantPlzPrefix: '672',
+            data: { stats: { total: 3 }, installations: [{}, {}, {}] },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('Im MaStR diesem VNB zugeordnet');
+      expect(html).toContain('672xx');
+      expect(html).not.toContain('Au\u00dferhalb PLZ-Bereich');
+    });
+
+    it('should use VNB-centric fallback when no PLZ prefix', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR41 NoPrefix GmbH' },
+        section1: {
+          ortsfremdeAnlagen: {
+            available: true,
+            data: { stats: { total: 2 }, installations: [{}, {}] },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('Im MaStR diesem VNB zugeordnet');
+      expect(html).toContain('au\u00dferhalb des Kerngebiets');
+    });
+  });
+
+  // ─── CR-42: Real MW values for windSolarActual / generationForecast ──────
+
+  describe('CR-42: Einspeise-Kennzahlen real MW values', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    it('should show actual MW value from windSolarActual statistics', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR42 Test GmbH' },
+        section2: {
+          windSolarActual: {
+            available: true,
+            data: {
+              statistics: { avgForecastMW: 43250 },
+              forecasts: [{ windOnshore: 25000, windOffshore: 0, solar: 18250, total: 43250 }],
+            },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('43250 MW');
+      expect(html).toContain('\u00d8 DE (Ist)');
+      expect(html).not.toContain('\u2713 Echtzeit-Daten verf\u00fcgbar');
+    });
+
+    it('should fall back to checkmark when windSolarActual has no numeric data', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR42 Fallback GmbH' },
+        section2: {
+          windSolarActual: { available: true, data: { forecasts: [] } },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('\u2713 Echtzeit-Daten verf\u00fcgbar');
+    });
+
+    it('should show first-day generationMW from forecast', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR42 Forecast GmbH' },
+        section2: {
+          generationForecast: {
+            available: true,
+            data: {
+              forecasts: [
+                { generationMW: 1.23, capacityFactor: 0.05, weather: { temperature: 12 } },
+              ],
+            },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('1 MW morgen (Netzgebiet-Solar)');
+      expect(html).not.toContain('\u2713 Prognose verf\u00fcgbar');
+    });
+
+    it('should fall back to checkmark when generationForecast has no forecasts array', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR42 NoFC GmbH' },
+        section2: {
+          generationForecast: { available: true, data: { summary: { totalCapacityMW: 25 } } },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('\u2713 Prognose verf\u00fcgbar');
+    });
+  });
+
   // ─── MCP error detection and VNB transparency (CR-24) ────────────────────
 
   describe('MCP error detection and VNB identification transparency (CR-24)', () => {

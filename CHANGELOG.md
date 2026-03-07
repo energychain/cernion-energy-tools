@@ -7,6 +7,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.21] - 2026-03-08
+
+### Fixed
+
+- **Service – CR-37 (P0): Marktrollen-Resolution – multi-role BDEW classification**
+
+  Phase 1 identification now classifies ALL market-partner candidates found
+  during the search into role buckets: VNB (990x), Lieferant (991x),
+  MSB (992x), BKV (993x), Direktvermarkter (994x).  Stored as
+  `p.meta.marktRollenProfile`.  A post-merge override guarantees that
+  `resolvedBdew` is always the VNB code (990x) — not a Lieferant or MSB code
+  that might have been picked first.
+
+- **Service – CR-39 (P0): Redispatch VNB-Lookup chain reliability**
+
+  The `vnbLookup` in Phase 1 Step 2 now reliably uses the VNB BDEW code
+  guaranteed by CR-37, eliminating cases where a 991x Lieferant code was
+  passed to the VNB registry and returned no MaStR-ID.
+
+- **Service – CR-44 (P0): EWK/DI Benchmark always via VNB-Code (990x)**
+
+  Phase 2 `ewk-monitoring.benchmarkVnb` now passes `vnbBdewForEwk =
+  marktRollenProfile?.vnb?.bdew ?? resolvedBdew` instead of the raw
+  `resolvedBdew`, ensuring BNetzA EWK queries target the Netzbetreiber entry.
+
+- **Report Builder – CR-38 (P1): Trafo-Auslastung honest fallback**
+
+  When both capacity utilization and transformer loading tools are unavailable,
+  the three identical "Kapazitätsanalyse-Tool nicht verfügbar" placeholder rows
+  are replaced with a single compact row: "Trafo-Auslastung (NS/MS/HS) –
+  Tool nicht lizenziert – Tagesaktueller Trafo-Forecast als Ergänzungsmodul
+  verfügbar".
+
+- **Report Builder – CR-41 (P0): Ortsfremde Anlagen – VNB-centric description**
+
+  The "Ortsfremde Anlagen (PLZ-Ausreißer)" row now correctly explains that
+  queries filter by VNB MaStR-ID (not by PLZ prefix), and that these are
+  installations assigned to this VNB in MaStR whose postal codes lie outside
+  the core service territory.
+
+- **Report Builder – CR-42 (P1): Einspeise-Kennzahlen – real values**
+
+  "Einspeisung Wind/Solar (Ist)" now shows the actual average MW value from
+  the ENTSO-E wind/solar actual data (e.g. "43.250 MW Ø DE (Ist)") instead of
+  the static "✓ Echtzeit-Daten verfügbar" placeholder.
+  "Einspeise-Prognose (24h)" shows the first-day generation MW from the
+  MaStR-based forecast (e.g. "1.2 MW morgen (Netzgebiet-Solar)") when
+  numeric data is available.
+
+- **Service – CR-43 (P1): Preis-Einspeise-Korrelation role-aware license check**
+
+  `cernion_price_production_analysis` call now includes `bdewCode: resolvedBdew`
+  (guaranteed 990x VNB code by CR-37) so the tool can perform a role-specific
+  license check instead of a generic token-level check.
+
+- **Report Builder – CR-40 (P2): Netzverluste – upsell routing to Section 7**
+
+  The fallback note for "Netzverluste (I²R)" changes from "Tool nicht
+  lizenziert" to "Premium-Feature – Upsell-Optionen in Abschnitt 7 gelistet",
+  linking the reader to the existing Section 7 upsell block.
+
+### Added
+
+- **Report Builder – CR-45 (P2): Marktrollen-Profil in Section 8 & cover**
+
+  Section 8 now renders a "Marktrollen-Profil (BDEW-Codes nach Rolle)" block
+  showing all classified roles (VNB, Lieferant, MSB, BKV, DV) with their
+  respective BDEW codes as colour-coded badges.
+  The cover page shows the VNB BDEW code (and Lieferant code when available)
+  in small monospace type below the subtitle.
+
 ## [0.8.20] - 2026-03-07
 
 ### Fixed

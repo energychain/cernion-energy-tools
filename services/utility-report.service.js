@@ -1102,6 +1102,29 @@ module.exports = {
         }
         // CR-19: persist all candidates so they can be shown in the report
         p.meta.allPartners = Array.from(allCandidatesMap.values());
+
+        // CR-37: Classify all found partners by market role.
+        // Primary: explicit roles[] array; secondary: BDEW prefix heuristic
+        //   990x → VNB (Verteilnetzbetreiber)
+        //   991x → Lieferant / Vertrieb
+        //   992x → MSB (Messstellenbetreiber)
+        //   993x → BKV (Bilanzkreisverantwortlicher)
+        //   994x → Direktvermarkter
+        // Using .find() keeps only the first (best-matching) entry per role.
+        const classifyPartner = (rolePattern, bdewPrefix) =>
+          p.meta.allPartners.find((c) => {
+            const roles = c.roles ?? [];
+            if (roles.some((r) => rolePattern.test(r))) return true;
+            return !roles.length && !!c.bdew?.startsWith(bdewPrefix);
+          });
+        p.meta.marktRollenProfile = {
+          vnb:              classifyPartner(/VNB|Verteilnetz|Netzbetreiber/i, '990'),
+          lieferant:        classifyPartner(/Lieferant|Vertrieb/i, '991'),
+          msb:              classifyPartner(/MSB|Messtellen/i, '992'),
+          bkv:              classifyPartner(/BKV|Bilanzkreis/i, '993'),
+          direktvermarkter: classifyPartner(/Direktvermarkt|DV\b/i, '994'),
+        };
+
         // CR-23: pick the best VNB from the full combined candidate pool (all queries)
         if (allCandidatesMap.size > 0) {
           const poolPick = pickBestVnbPartner({ results: p.meta.allPartners });
@@ -1178,7 +1201,26 @@ module.exports = {
       // resolvedVnbName fallback
       if (!p.meta.resolvedVnbName) p.meta.resolvedVnbName = utilityName;
 
-      // Step 2: resolve MaStR-ID from BDEW via vnbLookup (if BDEW found but no MaStR-ID yet)
+      // CR-37: Guarantee resolvedBdew is the VNB (Verteilnetzbetreiber) code.
+      // pickBestVnbPartner already prefers the VNB role entry; this override is a
+      // safety net for cases where roles[] is empty and only the BDEW prefix
+      // distinguishes the Netzbetreiber entry from a Lieferant / MSB entry.
+      const _vnbProfile = p.meta.marktRollenProfile?.vnb;
+      if (_vnbProfile?.bdew && p.meta.resolvedBdew !== _vnbProfile.bdew) {
+        this.logger.info(
+          `[UtilityReport] CR-37: resolvedBdew corrected to VNB code ${_vnbProfile.bdew}` +
+          ` (was: ${p.meta.resolvedBdew})`
+        );
+        p.meta.resolvedBdew = _vnbProfile.bdew;
+        if (_vnbProfile.name) p.meta.resolvedVnbName = _vnbProfile.name;
+        if (_vnbProfile.mastrId && !p.meta.resolvedMastrId) {
+          p.meta.resolvedMastrId = _vnbProfile.mastrId;
+        }
+      }
+
+      // Step 2: resolve MaStR-ID from BDEW via vnbLookup (if BDEW found but no MaStR-ID yet).
+      // CR-39: With CR-37 guaranteeing resolvedBdew is the VNB code (990x), this lookup
+      // now reliably targets the Verteilnetz entry in the VNB registry — not a Lieferant.
       if (p.meta.resolvedBdew && !p.meta.resolvedMastrId) {
         const vnbLookup = await callBroker(ctx, 'grid-operations.vnbLookup', {
           bdew: p.meta.resolvedBdew,
@@ -1260,11 +1302,16 @@ module.exports = {
     if (p.phase <= 2) {
       this.logger.info(`[UtilityReport] ${p.reportId} – Phase 2: Metadata`);
 
+      // CR-44: Use the VNB-specific BDEW code (990x) for the EWK/DI benchmark.
+      // resolvedBdew is already guaranteed to be the VNB code by CR-37; but fall
+      // back to the marktRollenProfile VNB entry as a secondary safety net.
+      const vnbBdewForEwk = p.meta.marktRollenProfile?.vnb?.bdew ?? resolvedBdew;
+
       const [eicSearch, ewkBenchmark] = await Promise.all([
         callBroker(ctx, 'eic-codes.search', { query: resolvedVnbName, limit: 3 }),
         callBroker(ctx, 'ewk-monitoring.benchmarkVnb', {
           vnbName: resolvedVnbName,
-          ...(resolvedBdew ? { bnr: resolvedBdew } : {}),
+          ...(vnbBdewForEwk ? { bnr: vnbBdewForEwk } : {}),
         }),
       ]);
 
@@ -1537,10 +1584,14 @@ module.exports = {
 
       const priceProductionAnalysis = await gated(
         availableTools, ['cernion_price_production_analysis'],
+        // CR-43: Pass VNB BDEW code (990x, guaranteed by CR-37) so the tool can
+        // check license coverage per market role.  This prevents 'not licensed'
+        // rejections that occur when the token context resolves to a Lieferant role.
         () => callMcpDirect('cernion_price_production_analysis', {
           region: 'DE',
           dateFrom: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
           dateTo: today,
+          ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
         }, cernionToken)
       );
 
@@ -1805,6 +1856,7 @@ module.exports = {
           bdew: resolvedBdew,
           reportId: p.reportId,
           allPartners: p.meta.allPartners ?? [], // CR-19
+          marktRollenProfile: p.meta.marktRollenProfile ?? null, // CR-37/CR-45
         },
         section1: p.results.section1,
         section2: p.results.section2,
