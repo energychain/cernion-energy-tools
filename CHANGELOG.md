@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Two-step UX: (1) Call `get-bdew-options` to list available codes, (2) Select one and pass to `generate` endpoint.
   - OpenAPI documentation includes step-by-step examples for both endpoints.
 
+- **Explicit Timeout Configuration for Long-Running MCP Actions**
+  - Added `timeout: 15 * 60 * 1000` to all async actions using `callWithAutoPoll()` to prevent premature request termination.
+  - Fixes timeout issues with `grid-operations.operatorAnalysis` and similar long-running tools that need 8–12 minutes.
+  - Updated services: `grid-operations.service.js` (5 actions), `business-intelligence.service.js` (4 actions), `energy-market.service.js` (1 action).
+
 ### Fixed
 
 - **CR-CERNION-043: Five production quality bugs fixed in 360° Report (Congress demo critical)**
@@ -26,6 +31,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **BUG-4 (Medium):** Query limit cap false positive – both Frankenthal and Gmünd reports showing exactly "500 installations under grid operator review" (statistically impossible) – increased `limit` from 500 → 5000 for `anlagenInPruefung` and `ortsfremdeAnlagen` queries to capture real edge cases.
   - **BUG-5 (Deferred post-Congress):** Day-Ahead-Preis missing in Section 3 for some days despite available market data – documented for post-demo phase; requires retry logic with exponential backoff and last-known-value fallback for ENTSO-E/SMARD market price fetches.
   - All 797 tests validated passing post-fix.
+
+### Known Issues
+
+**COMPREHENSIVE TRACKING:** See [CR-CERNION-043-UPDATE.md](CR-CERNION-043-UPDATE.md) for detailed bug report, v1↔v2 comparison table, verification checklist, and actionable roadmap.
+
+- **BUG-1 (Open):** Digitalisierungsindex inconsistency – Section 5: "30%", Section 8: blank, action plan: "67% Datenmanagement Teilscore" (not labeled). Root cause: three separate data sources without unified normalization. Fix: implement fallback chain + explicit teilscore labels.
+
+- **BUG-2 (🔴 CRITICAL BLOCKER):** Residuallast formula hardcoded – displays "1 MW × 120 €/MWh × 8.760 h ≈ 1,05 Mio. €/Jahr" regardless of actual grid capacity. Example: Frankenthal 54 MW should yield ~57 Mio. €/Jahr, not 1 Mio. €. Day-Ahead price (120.95 €/MWh) is now available in v2, but template variable not updated. **Quick fix: 1 line in [src/report-builder.js](src/report-builder.js) – replace hardcoded "1 MW" with `{residuallast_mw}` template variable.** **MUST FIX BEFORE DEMO 10.3.2026.**
+
+- **BUG-6 (New):** Briefing-Anlagenzahl mismatch – Management page shows "6.476 installations" but Section 2 breakdown totals only ~4.374 (4.372 PV + 1 Wind + unknown storage). Storage installation count missing from KPI table.
+
+- **BUG-7 (New):** Peer comparison hardcoded – Gemeindewerke Baiersbronn (15k EW, rural Baden-Württemberg) appears as benchmark for all utilities, including Frankenthal (50k EW, Rhineland-Palatinate). Needs size-class filtering + Bundesland matching.
+
+- **MCP Backend Offline:** Live verification of MaStR-IDs, real installation counts (500-cap validity), and EWK DI scores pending backend availability.
+
+**Post-Congress (after 10.3.2026):**
+- **BUG-5 Backlog:** Day-Ahead-Preis fetching needs exponential backoff retry logic + last-known-value fallback for ENTSO-E/SMARD API timeouts.
 
 ## [0.8.25] - 2026-03-07
 
