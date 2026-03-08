@@ -263,16 +263,22 @@ function fmtEuro(val, fallback = '–') {
 }
 
 function extractComplianceSignals(section1 = {}, section5 = {}) {
-  const pruefungData = safeData(section1, 'anlagenInPruefung');
-  const pruefungInstallations =
-    pruefungData?.installations ?? pruefungData?.data?.installations ?? [];
-  const pruefungCount =
-    pruefungData?.stats?.total ??
-    pruefungData?.stats?.totalCount ??
-    (Array.isArray(pruefungInstallations) ? pruefungInstallations.length : 0);
+  // CR-CERNION-044 BUG-4: anlagenInPruefung is now format:'summary' – parse "Total found: N" for
+  // the real MongoDB count instead of taking installations.length (bounded by query limit).
+  const pruefungSummaryData = safeData(section1, 'anlagenInPruefung');
+  const { count: pruefungCountParsed } = parseMaStrLocalStats(
+    Array.isArray(pruefungSummaryData) ? pruefungSummaryData : []
+  );
+  const pruefungCount = pruefungCountParsed ?? 0;
+
+  // CR-CERNION-044 BUG-8: example installation comes from anlagenInPruefungBeispiel
+  // (format:'detailed', limit:3, status-filtered) – guaranteed to be InPruefung.
+  const beispielData = safeData(section1, 'anlagenInPruefungBeispiel');
+  const beispielInstallations = beispielData?.installations ?? beispielData?.data?.installations ?? [];
+  const pruefungInstallations = Array.isArray(beispielInstallations) ? beispielInstallations : [];
 
   const largestPruefung =
-    Array.isArray(pruefungInstallations) && pruefungInstallations.length > 0
+    pruefungInstallations.length > 0
       ? pruefungInstallations.reduce((max, current) => {
           const maxCap = asNumber(max?.capacity) ?? 0;
           const curCap = asNumber(current?.capacity) ?? 0;
@@ -280,9 +286,10 @@ function extractComplianceSignals(section1 = {}, section5 = {}) {
         }, pruefungInstallations[0])
       : null;
 
-  const pruefungCapacityKw = Array.isArray(pruefungInstallations)
-    ? pruefungInstallations.reduce((sum, i) => sum + (asNumber(i?.capacity) ?? 0), 0)
-    : 0;
+  const pruefungCapacityKw = pruefungInstallations.reduce(
+    (sum, i) => sum + (asNumber(i?.capacity) ?? 0),
+    0
+  );
 
   const ortsfremdData = safeData(section1, 'ortsfremdeAnlagen');
   const ortsfremdInstallations =
@@ -912,14 +919,51 @@ function renderSection1(s1, s3 = {}) {
     ),
     kpiRow(
       'E-Mobilität Netzauswirkung',
-      isAvail(s1, 'emobilityImpact') ? '✓ Analyse verfügbar' : null,
+      // CR-CERNION-044 BUG-11: Show actual value instead of "✓ Analyse verfügbar"
+      (() => {
+        if (!isAvail(s1, 'emobilityImpact')) return null;
+        const em = safeData(s1, 'emobilityImpact');
+        const streets =
+          em?.criticalStreets?.length ??
+          em?.criticalStreetsCount ??
+          em?.data?.criticalStreets?.length ??
+          null;
+        const s14a =
+          em?.section14aDevices ??
+          em?.section14aInstallations ??
+          em?.data?.section14aDevices ??
+          null;
+        if (streets !== null) {
+          return `${streets} krit. Straßenzüge${s14a !== null ? ` · §14a: ${s14a} Anlagen` : ''}`;
+        }
+        // Data available but no parseable numbers – suppress row rather than show "verfügbar"
+        return null;
+      })(),
       '',
       'Kritische Straßenzüge, §14a-Relevanz',
       !isAvail(s1, 'emobilityImpact') ? 'Tool nicht lizenziert' : ''
     ),
     kpiRow(
       'Netzverluste (I²R)',
-      isAvail(s1, 'gridLossAnalysis') ? '✓ Analyse verfügbar' : null,
+      // CR-CERNION-044 BUG-11: Show actual value instead of "✓ Analyse verfügbar"
+      (() => {
+        if (!isAvail(s1, 'gridLossAnalysis')) return null;
+        const gl = safeData(s1, 'gridLossAnalysis');
+        const lossPct =
+          gl?.lossPercentage ??
+          gl?.totalLossPercentage ??
+          gl?.data?.lossPercentage ??
+          null;
+        const lossEuro =
+          gl?.lossValueEuro ??
+          gl?.estimatedLossEuroPerYear ??
+          gl?.data?.lossValueEuro ??
+          null;
+        if (lossPct !== null) {
+          return `${fmtNum(lossPct, 1)} % Verlust${lossEuro !== null ? ` (≈ ${(lossEuro / 1e6).toFixed(1)} Mio. €/Jahr)` : ''}`;
+        }
+        return null;
+      })(),
       '',
       'Monetarisierte Verlustenergie je Netzabschnitt',
       // CR-40: Route to Section 7 upsell instead of plain 'nicht lizenziert'
@@ -931,12 +975,13 @@ function renderSection1(s1, s3 = {}) {
 
   // ── MaStR data quality rows ────────────────────────────────────────────────
   (() => {
-    const pruefung = safeData(s1, 'anlagenInPruefung');
-    const pruefungCount =
-      pruefung?.stats?.total ??
-      pruefung?.stats?.totalCount ??
-      pruefung?.totalCount ??
-      (Array.isArray(pruefung?.installations) ? pruefung.installations.length : null);
+    // CR-CERNION-044 BUG-4: anlagenInPruefung is now format:'summary' – use parseMaStrLocalStats
+    // to read "Total found: N" (real DB count, not limited by query page size).
+    const pruefungSummary = safeData(s1, 'anlagenInPruefung');
+    const { count: pruefungCountParsed } = parseMaStrLocalStats(
+      Array.isArray(pruefungSummary) ? pruefungSummary : []
+    );
+    const pruefungCount = pruefungCountParsed;
 
     const ohneMeloData = safeData(s1, 'installationenOhneMelo');
     const ohneMeloInsts = ohneMeloData?.installations ?? ohneMeloData?.data?.installations ?? [];
@@ -1018,6 +1063,17 @@ function renderSection1(s1, s3 = {}) {
   const rlForecast = rlData?.forecast ?? rlData?.data?.forecast ?? [];
   if (isAvail(s1, 'residualLoad') && Array.isArray(rlForecast) && rlForecast.length >= 6) {
     const rlSlice = rlForecast.slice(0, 48); // max 48h
+    // CR-CERNION-044 BUG-12: Derive title from actual data length – never show a
+    // "48h-Prognose" title when fewer than 48 data points are present.
+    const rlHorizonH = rlSlice.length;
+    const rlHorizonLabel =
+      rlHorizonH >= 48 ? '48h-Horizont' : rlHorizonH >= 24 ? '24h-Horizont' : `${rlHorizonH}h-Horizont`;
+    const rlPrognoseTitel =
+      rlHorizonH >= 48
+        ? 'Ist + 48h-Prognose'
+        : rlHorizonH >= 24
+          ? 'Ist + 24h-Prognose'
+          : `Ist + ${rlHorizonH}h-Daten`;
     const rlLabels = JSON.stringify(
       rlSlice.map((p) => {
         const d = new Date(p.timestamp || '');
@@ -1029,11 +1085,11 @@ function renderSection1(s1, s3 = {}) {
     const rlValues = JSON.stringify(rlSlice.map((p) => p.residualLoadMW ?? p.residualLoad ?? null));
     const rlLoad = JSON.stringify(rlSlice.map((p) => p.loadMW ?? p.load ?? null));
     residualChartHtml = `
-      <h3 class="sub-sub">Residuallast-Kurve (48h-Horizont)</h3>
+      <h3 class="sub-sub">Residuallast-Kurve (${rlHorizonLabel})</h3>
       <div class="chart-wrap no-break" style="height:200px">
         <canvas id="chartResidualLoad"></canvas>
       </div>
-      <p class="chart-caption">Abb. A: Netto-Residuallast (MW) – Ist + 48h-Prognose (Regionaler Forecast). Zeigt den Beschaffungsbedarf des Stadtwerks auf dem EPEX Spotmarkt.</p>
+      <p class="chart-caption">Abb. A: Netto-Residuallast (MW) – ${rlPrognoseTitel} (Regionaler Forecast). Zeigt den Beschaffungsbedarf des Stadtwerks auf dem EPEX Spotmarkt.</p>
       <script>
         (function(){
           new Chart(document.getElementById('chartResidualLoad'),{
@@ -1148,7 +1204,7 @@ function renderSection2(s2) {
   const windSolarLabel = isAvail(s2, 'windSolarActual')
     ? windSolarTotalMW != null && windSolarTotalMW > 0
       ? `${fmtMw(windSolarTotalMW)} Ø DE (Ist)`
-      : '✓ Echtzeit-Daten verfügbar'
+      : null  // CR-CERNION-044 BUG-13: suppress row when no numeric value parseable
     : null;
 
   // CR-42: generationForecast → first-day generation MW (Netzgebiet-Solar forecast)
@@ -1161,7 +1217,24 @@ function renderSection2(s2) {
   const genFcLabel = isAvail(s2, 'generationForecast')
     ? genFcFirstMW != null && genFcFirstMW >= 0
       ? `${fmtMw(genFcFirstMW)} morgen (Netzgebiet-Solar)`
-      : '✓ Prognose verfügbar'
+      : null  // CR-CERNION-044 BUG-13: suppress row when no numeric value parseable
+    : null;
+
+  // CR-CERNION-044 BUG-13: regionalEnergyMix – extract dominant source + percentage
+  const regionalMixData = safeData(s2, 'regionalEnergyMix');
+  const mixDominant =
+    regionalMixData?.dominantSource ??
+    regionalMixData?.dominant ??
+    regionalMixData?.data?.dominantSource ??
+    null;
+  const mixPct =
+    regionalMixData?.dominantPercentage ??
+    regionalMixData?.data?.dominantPercentage ??
+    null;
+  const regionalMixLabel = isAvail(s2, 'regionalEnergyMix')
+    ? mixDominant !== null
+      ? `${escapeHtml(String(mixDominant))}${mixPct !== null ? `: ${fmtPct(mixPct)}` : ''}`
+      : null  // suppress row when no parseable data
     : null;
 
   const rows = [
@@ -1209,7 +1282,7 @@ function renderSection2(s2) {
     ),
     kpiRow(
       'Regionaler Energiemix',
-      isAvail(s2, 'regionalEnergyMix') ? '✓ Analyse verfügbar' : null,
+      regionalMixLabel,
       '',
       'PV, Wind, Biomasse, KWK im Netzgebiet'
     ),
@@ -1428,13 +1501,39 @@ function renderSection3(s3) {
     ),
     kpiRow(
       'Tatsächliche Erzeugung (DE)',
-      isAvail(s3, 'actualGeneration') ? '✓ Daten verfügbar' : null,
+      // CR-CERNION-044 BUG-13: Show aggregated GW value instead of "✓ Daten verfügbar"
+      (() => {
+        if (!isAvail(s3, 'actualGeneration')) return null;
+        const ag = safeData(s3, 'actualGeneration');
+        const rows = ag?.generationData ?? ag?.data?.generationData ?? ag?.data ?? ag ?? [];
+        if (Array.isArray(rows) && rows.length > 0) {
+          const totalMW = rows.reduce((sum, r) => sum + (asNumber(r?.generationValue ?? r?.value ?? r?.mw) ?? 0), 0);
+          if (totalMW > 0) return `${fmtNum(totalMW / 1000, 1)} GW gesamt (DE)`;
+        }
+        const directMW = asNumber(ag?.totalMW ?? ag?.totalGenerationMW ?? ag?.data?.totalMW);
+        if (directMW !== null && directMW > 0) return `${fmtNum(directMW / 1000, 1)} GW gesamt (DE)`;
+        return null;  // suppress row when no parseable value
+      })(),
       '',
       'ENTSO-E aggregiert nach Erzeugungstyp'
     ),
     kpiRow(
       'Lastprognose (ENTSO-E)',
-      isAvail(s3, 'loadForecast') ? '✓ Daten verfügbar' : null,
+      // CR-CERNION-044 BUG-13: Show peak forecast GW instead of "✓ Daten verfügbar"
+      (() => {
+        if (!isAvail(s3, 'loadForecast')) return null;
+        const lf = safeData(s3, 'loadForecast');
+        const forecasts = lf?.forecasts ?? lf?.data?.forecasts ?? lf?.loadForecast ?? lf?.data ?? [];
+        if (Array.isArray(forecasts) && forecasts.length > 0) {
+          const peakMW = Math.max(
+            ...forecasts.map((f) => asNumber(f?.forecastValue ?? f?.loadMW ?? f?.value ?? f?.mw) ?? 0)
+          );
+          if (peakMW > 0) return `Peak: ${fmtNum(peakMW / 1000, 1)} GW (24h)`;
+        }
+        const directMW = asNumber(lf?.peakMW ?? lf?.maxLoadMW ?? lf?.data?.peakMW);
+        if (directMW !== null && directMW > 0) return `Peak: ${fmtNum(directMW / 1000, 1)} GW`;
+        return null;  // suppress row when no parseable value
+      })(),
       '',
       'Bundesdeutsche Verbrauchserwartung'
     ),

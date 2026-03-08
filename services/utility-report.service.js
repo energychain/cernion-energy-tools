@@ -2024,8 +2024,11 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           ? { gridOperatorMastrId: resolvedMastrId }
           : null;
 
-        // Run 3 queries in parallel: sample-for-PLZ, in-Prüfung count, ≥100kW ohne MeLo
-        const [sampleForPlz, anlagenInPruefung, installationenOhneMelo] = await Promise.all([
+        // Run 4 queries in parallel: sample-for-PLZ, in-Prüfung count (summary), in-Prüfung example (detail), ≥100kW ohne MeLo
+        // CR-CERNION-044 BUG-4/8:
+        //   anlagenInPruefung: format:'summary' → parses "Total found: N" for accurate DB count (not bounded by limit)
+        //   anlagenInPruefungBeispiel: format:'detailed', limit:3, single-value filter → verified InPruefung example
+        const [sampleForPlz, anlagenInPruefung, anlagenInPruefungBeispiel, installationenOhneMelo] = await Promise.all([
           dataQualityBaseParams
             ? callMcpDirect(
                 'cernion_installations_local',
@@ -2044,15 +2047,30 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
                 'cernion_installations_local',
                 {
                   ...dataQualityBaseParams,
-                  // CR-CERNION-043 BUG-4: Use COUNT(*) to get true total, not query limit.
-                  // Set limit high (5000) to capture most real-world edge cases.
-                  // Report will show "≥ COUNT result" if count hits limit to indicate potential undercount.
-                  netzbetreiberPruefungStatus: ['NetzbetreiberPruefung', 'InPruefung'],
+                  // CR-CERNION-044 BUG-4: format:'summary' returns "Total found: N" = real MongoDB count.
+                  // Single string value (not array) to ensure the status filter is applied correctly.
+                  netzbetreiberPruefungStatus: 'NetzbetreiberPruefung',
+                  status: 'InBetrieb',
+                  format: 'summary',
+                  includeStats: true,
+                  limit: 1,
+                },
+                cernionToken
+              )
+            : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
+          dataQualityBaseParams
+            ? callMcpDirect(
+                'cernion_installations_local',
+                {
+                  ...dataQualityBaseParams,
+                  // CR-CERNION-044 BUG-8: Separate query for example – filtered, smallest payload.
+                  // Single string value ensures example is guaranteed InPruefung.
+                  netzbetreiberPruefungStatus: 'NetzbetreiberPruefung',
                   status: 'InBetrieb',
                   format: 'detailed',
-                  includeStats: true,
+                  includeStats: false,
                   includeNapData: true,
-                  limit: 5000,
+                  limit: 3,
                 },
                 cernionToken
               )
@@ -2114,7 +2132,8 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           emobilityImpact,
           gridLossAnalysis,
           transformerLoading,
-          anlagenInPruefung,
+          anlagenInPruefung,           // format:'summary' – accurate count via parseMaStrLocalStats
+          anlagenInPruefungBeispiel,   // format:'detailed', limit:3 – verified InPruefung example
           installationenOhneMelo,
           ortsfremdeAnlagen,
         };
