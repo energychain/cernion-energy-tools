@@ -7,7 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.8.27] - 2026-03-09
+## [0.8.28] - 2026-03-08
+
+### Fixed
+
+- **360° Report: CR-CERNION-044 BUG-4/8 — `anlagenInPruefung` count capped at 5000 / wrong examples shown**
+  The SCHOCKER block in the 360° management report always showed exactly 5000 installations under grid
+  operator review because the MaStR query used `limit: 5000` and the count came from `result.length` (i.e.
+  the page size, not the real database total).
+
+  **Fix:** `anlagenInPruefung` now uses `format: 'summary'` and `parseMaStrLocalStats()` to extract the
+  "Total found: N" line from the MCP response — reflecting the true database count regardless of pagination.
+  A separate `anlagenInPruefungBeispiel` query (`format: 'detailed'`, `limit: 3`, single-value
+  `netzbetreiberPruefungStatus` string filter) provides verified concrete examples for the report narrative.
+  Example: a grid area with 41 pending installations now correctly shows 41, not 5000.
+
+- **360° Report: CR-CERNION-044 BUG-11 — E-mobility / grid-loss KPI rows showing placeholder checkmarks**
+  `emobilityImpact` and `gridLossAnalysis` report rows previously displayed `✓ Analyse verfügbar` as the
+  value when the upstream MCP tool returned a structured result object but no scalar number was extracted.
+
+  **Fix (`src/report-builder.js`):** Both rows now parse real numeric values from the result:
+  - `emobilityImpact` → `criticalStreets.length` (number of at-risk streets) + `section14aDevices` count
+  - `gridLossAnalysis` → `lossPercentage` and `lossValueEuro`
+
+  When no parseable number is present the row returns `null` and is suppressed from the table rather than
+  showing a misleading checkmark.
+
+- **360° Report: CR-CERNION-044 BUG-12 — Residuallast chart title/caption hardcoded to "48h-Horizont"**
+  The Residuallast chart heading and prognosis title were hardcoded strings, causing the report to say
+  "48h-Horizont" even when the actual forecast contained a different number of data points (e.g. 96 h or
+  7 days).
+
+  **Fix (`src/report-builder.js`):** `rlHorizonLabel` and `rlPrognoseTitel` are now derived dynamically from
+  `rlSlice.length` — e.g. 48 entries → "48-Stunden-Horizont", 168 entries → "7-Tage-Horizont".
+
+- **360° Report: CR-CERNION-044 BUG-13 — Energy-mix KPI rows showing placeholder checkmarks**
+  Five KPI rows (`windSolarActual`, `genFcLabel`, `regionalEnergyMix`, `actualGeneration`, `loadForecast`)
+  used `✓ Echtzeit-Daten verfügbar` / `✓ Prognose verfügbar` as fallback values instead of real numbers.
+
+  **Fix (`src/report-builder.js`):** Each row now extracts the real numeric value from the upstream result
+  (MW, GW, percentage as appropriate). When no parseable number exists the row returns `null` and is
+  suppressed, keeping the report data-honest.
+
+### Changed
+
+- Bumped application and OpenAPI version to `0.8.28`.
+
+
 
 ### Fixed
 
