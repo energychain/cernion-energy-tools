@@ -1154,23 +1154,34 @@ describe('Utility Report Service', () => {
       await mismatchBroker.stop();
     });
 
-    it.each([
-      'Stadtwerke Gmünd',
-      'Stadtwerke Villingen',
-      'Stadtwerke Waiblingen',
-      'Stadtwerke Schwerin',
-    ])('should trigger disambiguation flow for ambiguous lookup: %s', async (name) => {
+    it.each(['Stadtwerke Villingen', 'Stadtwerke Waiblingen', 'Stadtwerke Schwerin'])(
+      'should trigger disambiguation flow for ambiguous lookup: %s',
+      async (name) => {
+        const gen = await ambiguousBroker.call('utility-report.generate', {
+          utilityName: name,
+          forceRefresh: true,
+        });
+        await new Promise((r) => setTimeout(r, 600));
+        const status = await ambiguousBroker.call('utility-report.status', {
+          reportId: gen.reportId,
+        });
+        expect(status.status).toBe('error');
+        expect(status.error).toContain('Mehrdeutige VNB-Suche');
+        expect(status.vnbIdentification?.ambiguous).toBe(true);
+      }
+    );
+
+    it('should auto-select dominant candidate without disambiguation for Stadtwerke Gmünd', async () => {
       const gen = await ambiguousBroker.call('utility-report.generate', {
-        utilityName: name,
+        utilityName: 'Stadtwerke Gmünd',
         forceRefresh: true,
       });
       await new Promise((r) => setTimeout(r, 600));
       const status = await ambiguousBroker.call('utility-report.status', {
         reportId: gen.reportId,
       });
-      expect(status.status).toBe('error');
-      expect(status.error).toContain('Mehrdeutige VNB-Suche');
-      expect(status.vnbIdentification?.ambiguous).toBe(true);
+      expect(status.status).not.toBe('error');
+      expect(status.vnbIdentification?.ambiguous).toBe(false);
     });
 
     it('should resolve ambiguities with explicit BDEW without disambiguation error', async () => {

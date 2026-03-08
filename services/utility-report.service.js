@@ -35,6 +35,10 @@ const { DataStatus, ds } = require('../src/data-status');
 
 const REPORTS_DIR = path.join(__dirname, '..', '.reports');
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// IMPORTANT: Report generation orchestrates multiple long-running async MCP tools.
+// Keep this aligned with moleculer.config.js requestTimeout (15 min) to avoid
+// false 30s broker timeouts in logs for operatorAnalysis/marketPenetration.
+const LONG_CALL_TIMEOUT_MS = Number(process.env.UTILITY_REPORT_CALL_TIMEOUT_MS) || 15 * 60 * 1000;
 
 // ─── Directory helpers ─────────────────────────────────────────────────────────
 
@@ -127,7 +131,7 @@ function indexReport(utilityName, date, reportId) {
  * Never throws – returns { available: false, error } on any failure.
  */
 async function callMcpDirect(toolName, params, token) {
-  const TIMEOUT_MS = 30_000;
+  const TIMEOUT_MS = LONG_CALL_TIMEOUT_MS;
   try {
     const callPromise = CernionMCPClient.callWithNewSession(toolName, params, token || null);
     const timeoutPromise = new Promise((_, reject) =>
@@ -151,7 +155,7 @@ async function callBroker(ctx, action, params) {
   try {
     const result = await ctx.broker.call(action, params, {
       meta: ctx.meta,
-      timeout: 30_000, // 30 s – never block the report pipeline longer than this
+      timeout: LONG_CALL_TIMEOUT_MS,
     });
     return { available: true, data: result };
   } catch (err) {
@@ -639,12 +643,14 @@ function resolveVnbCandidate(candidates, utilityName, region = '', explicitBdew 
   const second = ranking[1] || null;
   const confidence = top?.score ?? 0;
   const margin = second ? confidence - second.score : confidence;
-  const ambiguous = ranking.length > 1 && (confidence < 0.9 || margin < 0.08);
+  // BUG-10: Changed OR to AND - only ambiguous if BOTH low confidence AND close margin
+  // Example: "Stadtwerke Frankenthal" scores 0.88 vs 0.08 → margin 0.80 → unambiguous
+  const ambiguous = ranking.length > 1 && confidence < 0.9 && margin < 0.08;
 
   return {
     selected: ambiguous ? null : (top?.candidate ?? null),
     ambiguous,
-    reason: ambiguous ? 'low-confidence-or-close-match' : 'high-confidence-match',
+    reason: ambiguous ? 'low-confidence-and-close-match' : 'high-confidence-match',
     ranking,
   };
 }

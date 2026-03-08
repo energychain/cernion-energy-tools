@@ -4,6 +4,7 @@
 
 const { ServiceBroker } = require('moleculer');
 const ApiService = require('../services/api.service');
+const { version: packageVersion } = require('../package.json');
 
 describe('API Gateway Service', () => {
   let broker;
@@ -40,7 +41,7 @@ describe('API Gateway Service', () => {
       expect(ApiService.settings.openapi).toBeDefined();
       expect(ApiService.settings.openapi.info).toBeDefined();
       expect(ApiService.settings.openapi.info.title).toBe('Cernion Energy Tools API');
-      expect(ApiService.settings.openapi.info.version).toBe('0.8.25');
+      expect(ApiService.settings.openapi.info.version).toBe(packageVersion);
     });
 
     it('should have security schemes configured', () => {

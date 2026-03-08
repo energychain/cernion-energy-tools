@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.26] - 2026-03-08
+
+### Fixed
+
+- **BUG-10: Overly strict ambiguous VNB detection blocking report generation**
+  - Changed ambiguity logic from OR to AND condition: now requires BOTH low confidence (<0.9) AND close margin (<0.08) to trigger ambiguity.
+  - Example: "Stadtwerke Frankenthal" (score 0.88 vs 0.08, margin 0.80) now correctly auto-selects without requiring `confirmAmbiguousVnb=true`.
+  - Previous logic incorrectly flagged cases with dominant candidates as ambiguous due to minor confidence threshold misses.
+
 ### Added
 
 - **UI-Friendly BDEW Code Selection for Report Generation (CR-CERNION-044)**
@@ -31,6 +40,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **BUG-4 (Medium):** Query limit cap false positive – both Frankenthal and Gmünd reports showing exactly "500 installations under grid operator review" (statistically impossible) – increased `limit` from 500 → 5000 for `anlagenInPruefung` and `ortsfremdeAnlagen` queries to capture real edge cases.
   - **BUG-5 (Deferred post-Congress):** Day-Ahead-Preis missing in Section 3 for some days despite available market data – documented for post-demo phase; requires retry logic with exponential backoff and last-known-value fallback for ENTSO-E/SMARD market price fetches.
   - All 797 tests validated passing post-fix.
+
+### Changed
+
+- Bumped application and OpenAPI version to `0.8.26`.
 
 ### Known Issues
 

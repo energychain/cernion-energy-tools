@@ -802,17 +802,17 @@ function renderSection1(s1, s3 = {}) {
     : null;
   const rlDisplay =
     rlValueMw && rlValueMw !== '–' ? (rlWarning ? `${rlValueMw} ⚠` : rlValueMw) : null;
-  
+
   // BUG-2 FIX: Extract numeric MW value and day-ahead price for dynamic formula
   const rlNumericMw = rlValueMw && rlValueMw !== '–' ? parseFloat(rlValueMw.replace(/[^0-9.,]/g, '').replace(',', '.')) : null;
-  
+
   // Get day-ahead price from Section 3
   const prices = safeData(s3, 'prices');
   const spot = safeData(s3, 'spotprices');
   const priceTimeSeries = prices?.dataPoints || prices?.prices || prices?.data?.prices || spot?.dataPoints || spot?.prices || spot?.data?.prices || [];
   const latestPt = priceTimeSeries.length > 0 ? priceTimeSeries[priceTimeSeries.length - 1] : null;
   const dayAheadPrice = getVal(prices, 'latestPrice', 'currentPrice') ?? (latestPt ? (latestPt.priceEURperMWh ?? latestPt.price ?? null) : null);
-  
+
   // Build dynamic formula description
   let rlDesc;
   if (rlWarning) {
