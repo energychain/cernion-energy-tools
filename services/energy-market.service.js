@@ -983,7 +983,25 @@ module.exports = {
           };
         }
 
-        return applyFormat(ctx, result, format, 'installations', 'Installations', rows);
+        // For CSV / XLSX export flatten nested napData into top-level scalar fields.
+        // Without this, convertToCSV would JSON-encode napData as a blob string,
+        // producing "JSON as result" in downloaded files and in the Live CSV endpoint.
+        let exportRows = rows;
+        if (format === 'csv' || format === 'xlsx' || format === 'xls') {
+          exportRows = rows.map(({ napData, ...rest }) => {
+            if (!napData || typeof napData !== 'object') return rest;
+            return {
+              ...rest,
+              napMastrNummer: napData.napMastrNummer || '',
+              messlokation: napData.messlokation || '',
+              spannungsebene: napData.spannungsebeneLabel || String(napData.spannungsebene || ''),
+              netzMastrNummer: napData.netzMastrNummer || '',
+              netzbetreiberMastrNummer: napData.netzbetreiberMastrNummer || '',
+            };
+          });
+        }
+
+        return applyFormat(ctx, result, format, 'installations', 'Installations', exportRows);
       },
     },
   },

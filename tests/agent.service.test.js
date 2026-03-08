@@ -324,6 +324,64 @@ describe('Agent Service', () => {
       expect(result.chartSuggestions[0]).toHaveProperty('yField');
     });
 
+    it('should flatten nested objects in tableRows to prevent JSON blobs in UI / CSV', async () => {
+      // Regression test: Gemini may emit nested objects as cell values (e.g. napData).
+      // The execute handler must stringify any remaining object-valued cells so the
+      // UI table and the Live CSV / Export CSV features never contain "[object Object]".
+      //
+      // Use a plan with no null params to avoid triggering the self-healing path
+      // (which would consume the interpretation mock before the summary prompt).
+      const planNoNulls = JSON.stringify({
+        summary: 'Mock strategy for testing napData flattening.',
+        steps: [
+          {
+            step: 1,
+            action: 'gas-storage.countryStorage',
+            description: 'Fetch current gas storage level for Germany',
+            params: { country: 'de', date: '2026-02-01' },
+          },
+        ],
+        requiredInputs: [],
+      });
+      _mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => planNoNulls },
+      });
+      const analyzed = await broker.call('agent.analyze', {
+        problem: 'Show installations with napData for Stadtwerke Test',
+      });
+
+      // Gemini returns tableRows with a nested napData object — this is the bug scenario
+      mockInterpretAndSuggest({
+        tableColumns: ['mastrNummer', 'bruttoleistung', 'napData', 'tags'],
+        tableRows: [
+          {
+            mastrNummer: 'SEE001',
+            bruttoleistung: 10,
+            napData: { messlokation: 'DE123', spannungsebene: 354 },
+            tags: ['pv', 'nap'],
+          },
+        ],
+      });
+
+      const result = await broker.call('agent.execute', {
+        sessionId: analyzed.sessionId,
+        userInputs: {},
+      });
+
+      expect(result.status).toBe('completed');
+      const row = result.tableRows[0];
+
+      // Nested object must be stringified — never a plain object reference
+      expect(typeof row.napData).toBe('string');
+      expect(row.napData).not.toBeNull();
+      // Array must be joined as comma-separated string
+      expect(typeof row.tags).toBe('string');
+      expect(row.tags).toBe('pv, nap');
+      // Primitives must pass through unchanged
+      expect(row.mastrNummer).toBe('SEE001');
+      expect(row.bruttoleistung).toBe(10);
+    });
+
     it('should update session status to completed after execution', async () => {
       _mockGenerateContent.mockResolvedValueOnce({
         response: { text: () => makePlanResponse() },
@@ -913,4 +971,112 @@ describe('Agent Service', () => {
       );
     });
   }); // end buildServiceCatalogue robustness
+
+  // ── session compaction — RangeError fix ───────────────────────────────────
+  describe('session compaction (RangeError: Invalid string length fix)', () => {
+    // A mock service that returns 200 installation records — big enough to trigger the
+    // old crash if compaction is not applied before session.results is assigned.
+    const LARGE_COUNT = 200;
+
+    beforeAll(async () => {
+      const bigResult = Array.from({ length: LARGE_COUNT }, (_, i) => ({
+        mastrNummer: `SEE${String(i).padStart(12, '0')}`,
+        bruttoleistung: 10 + i,
+        status: 'InBetrieb',
+      }));
+
+      // Register mock "assets" service that returns the large result
+      broker.createService({
+        name: 'assets',
+        actions: {
+          solar: jest.fn().mockResolvedValue(bigResult),
+        },
+      });
+    });
+
+    it('should compact step results to ≤50 rows before persisting the session', async () => {
+      const largePlan = JSON.stringify({
+        summary: 'Fetch large installation list.',
+        steps: [
+          {
+            step: 1,
+            service: 'assets',
+            action: 'assets.solar',
+            description: 'Fetch solar installations — returns large array',
+            params: { vnbName: 'Stadtwerke Test' },
+          },
+        ],
+        requiredInputs: [],
+      });
+      _mockGenerateContent.mockResolvedValueOnce({ response: { text: () => largePlan } });
+      const analyzed = await broker.call('agent.analyze', {
+        problem: 'List solar installations for Stadtwerke Test',
+      });
+
+      // Queue interpretation + suggestions for execute
+      mockInterpretAndSuggest({ summary: 'Found installations.' });
+
+      await broker.call('agent.execute', {
+        sessionId: analyzed.sessionId,
+        userInputs: {},
+      });
+
+      const sessionFile = path.join(SESSION_DIR, `${analyzed.sessionId}.json`);
+      expect(fs.existsSync(sessionFile)).toBe(true);
+
+      const session = JSON.parse(fs.readFileSync(sessionFile, 'utf-8'));
+      expect(session.status).toBe('completed');
+
+      // stepResults must be stored compacted — at most 50 data rows per step
+      const sr = session.results.stepResults;
+      expect(Array.isArray(sr)).toBe(true);
+
+      for (const step of sr) {
+        const result = step.result;
+        if (!result) continue;
+
+        // Check any array-valued key that looks like "data" or "installations"
+        const allArrays = Object.values(result).filter(Array.isArray);
+        for (const arr of allArrays) {
+          expect(arr.length).toBeLessThanOrEqual(50);
+        }
+
+        // Top-level array result (e.g. assets.solar returns an array directly)
+        if (Array.isArray(result)) {
+          expect(result.length).toBeLessThanOrEqual(50);
+        }
+      }
+    });
+
+    it('should still complete successfully despite a large result (no RangeError crash)', async () => {
+      // This is the key regression check: execution must not throw.
+      const largePlan = JSON.stringify({
+        summary: 'Large installations query regression check.',
+        steps: [
+          {
+            step: 1,
+            service: 'assets',
+            action: 'assets.solar',
+            description: 'Fetch solar — large result',
+            params: { vnbName: 'Stadtwerke Test' },
+          },
+        ],
+        requiredInputs: [],
+      });
+      _mockGenerateContent.mockResolvedValueOnce({ response: { text: () => largePlan } });
+      const analyzed = await broker.call('agent.analyze', {
+        problem: 'Regression: large result should not crash saveSession',
+      });
+
+      mockInterpretAndSuggest({ summary: 'Regression OK.' });
+
+      // Must not throw RangeError
+      await expect(
+        broker.call('agent.execute', {
+          sessionId: analyzed.sessionId,
+          userInputs: {},
+        })
+      ).resolves.toMatchObject({ status: 'completed' });
+    });
+  }); // end session compaction
 }); // end Agent Service

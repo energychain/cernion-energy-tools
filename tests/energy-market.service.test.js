@@ -528,6 +528,58 @@ describe('Energy Market Service', () => {
       expect(storage.wechselrichterleistung).toBe(8.5);
       expect(storage.einsatzort).toBe('Haushalt');
     });
+
+    it('format=csv flattens napData into scalar columns — no JSON blobs in output', async () => {
+      // Regression test: format=csv must NOT produce '"napData":"{...json...}"' cells.
+      // napData sub-fields must appear as top-level scalar CSV columns instead.
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 10,
+        format: 'csv',
+      });
+
+      expect(typeof result).toBe('string');
+      // Flat NAP columns must be present as CSV headers
+      expect(result).toContain('"napMastrNummer"');
+      expect(result).toContain('"messlokation"');
+      expect(result).toContain('"spannungsebene"');
+      expect(result).toContain('"netzMastrNummer"');
+      // The raw napData object key must NOT appear (it was destructured away)
+      expect(result).not.toContain('"napData"');
+      // Actual NAP values from the fixture must be present as plain strings
+      expect(result).toContain('SAN914634531048');
+      expect(result).toContain('DE0003976706990000000000000073131');
+      expect(result).toContain('Niederspannung (LV)');
+      expect(result).toContain('SNE985057905075');
+    });
+
+    it('format=csv still works for installations without napData', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            {
+              mastrNummer: 'SEE900000000002',
+              name: 'PV Altanlage 2003',
+              bruttoleistung: 3.8,
+              einheitBetriebsstatus: '35',
+              netzbetreiberpruefungStatus: null,
+              napData: undefined,
+            },
+          ],
+          stats: { count: 1, totalCapacity: 3.8, avgCapacity: 3.8 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 5,
+        format: 'csv',
+      });
+      expect(typeof result).toBe('string');
+      expect(result).toContain('SEE900000000002');
+      // No [object Object] or raw JSON blobs
+      expect(result).not.toContain('[object Object]');
+    });
   });
 
   describe('installations action — netzbetreiberpruefungStatus', () => {

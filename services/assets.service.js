@@ -218,6 +218,21 @@ module.exports = {
         }
       }
 
+      // Guard: if a VNB name was provided but could not be resolved to any MaStR ID or BDEW code,
+      // refuse to execute without a VNB filter. cernion_installations_local does NOT implement
+      // gridOperatorName fuzzy search — passing it silently ignores the filter and returns ALL
+      // installations of the requested type in Germany (potentially millions of records).
+      // This prevents session-oversize crashes (RangeError: Invalid string length in saveSession).
+      if (!resolvedMastrId && !resolvedBdewCode && vnbName && !location && !gridOperatorId) {
+        const notFoundErr = new Error(
+          `Netzbetreiber "${vnbName}" konnte im MaStR nicht gefunden werden ` +
+            `(cernion_market_partners lieferte 0 Treffer). ` +
+            `Bitte BDEW-Code oder MaStR-SNB direkt angeben, oder den Namen prüfen.`
+        );
+        notFoundErr.code = 'VNB_NOT_FOUND';
+        throw notFoundErr;
+      }
+
       // Fetch assets for each type
       const allResults = [];
 

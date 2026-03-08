@@ -29,7 +29,26 @@ function ensureSessionDir() {
 
 function saveSession(session) {
   ensureSessionDir();
-  fs.writeFileSync(path.join(SESSION_DIR, `${session.id}.json`), JSON.stringify(session, null, 2));
+  let payload;
+  try {
+    payload = JSON.stringify(session, null, 2);
+  } catch (e) {
+    if (e instanceof RangeError) {
+      // Session is too large to serialize (e.g. accidental unfiltered installation query).
+      // Strip step results and keep interpretation so the session record is still useful.
+      const slim = {
+        ...session,
+        results: session.results
+          ? { interpretation: session.results.interpretation, stepResults: [] }
+          : null,
+        _saveWarning: 'stepResults omitted — payload exceeded V8 string-size limit',
+      };
+      payload = JSON.stringify(slim, null, 2);
+    } else {
+      throw e;
+    }
+  }
+  fs.writeFileSync(path.join(SESSION_DIR, `${session.id}.json`), payload);
 }
 
 function loadSession(id) {
@@ -361,6 +380,77 @@ async function callGemini(prompt) {
   const result = await model.generateContent(prompt);
   const response = result.response;
   return response.text();
+}
+
+// ---------------------------------------------------------------------------
+// Installation result compaction for Gemini summary prompts
+// ---------------------------------------------------------------------------
+
+/**
+ * Maximum number of installation rows forwarded to Gemini in the summary prompt.
+ * Keeps prompt size manageable and prevents token-limit failures.
+ */
+const PROMPT_MAX_ROWS = 50;
+
+/**
+ * Flatten a single MaStR installation object so every field is a scalar.
+ * Expands napData sub-fields and drops any remaining nested objects.
+ *
+ * @param {object} inst - Raw installation record
+ * @returns {object} - Flat record safe for JSON-serialisation in a prompt
+ */
+function flattenInstallation(inst) {
+  if (!inst || typeof inst !== 'object') return inst;
+  const { napData, ...rest } = inst;
+  const flat = { ...rest };
+  if (napData && typeof napData === 'object') {
+    flat.napMastrNummer = napData.napMastrNummer || '';
+    flat.messlokation = napData.messlokation || '';
+    flat.spannungsebene = napData.spannungsebeneLabel || String(napData.spannungsebene || '');
+    flat.netzMastrNummer = napData.netzMastrNummer || '';
+  }
+  return flat;
+}
+
+/**
+ * Compact a step result so it is safe to embed in the Gemini summary prompt.
+ *
+ * When a step returned data.installations[], the array is:
+ *  - truncated to PROMPT_MAX_ROWS (prevents massive prompts / token overflow)
+ *  - flattened (napData expanded, no nested objects)
+ *
+ * All other results are returned unchanged.
+ *
+ * @param {*} result - Raw step result
+ * @returns {*} - Prompt-safe result
+ */
+function compactStepResult(result) {
+  // Direct array result (e.g. assets.solar / assets.all return a plain array)
+  if (Array.isArray(result)) {
+    if (result.length <= PROMPT_MAX_ROWS) return result;
+    return result.slice(0, PROMPT_MAX_ROWS);
+  }
+
+  // Nested installations array (cernion_installations_local MCP shape)
+  const installations = result?.data?.installations;
+  if (Array.isArray(installations)) {
+    const preview = installations.slice(0, PROMPT_MAX_ROWS).map(flattenInstallation);
+    return {
+      ...result,
+      data: {
+        ...result.data,
+        installations: preview,
+        ...(installations.length > PROMPT_MAX_ROWS
+          ? {
+              _totalCount: installations.length,
+              _previewNote: `First ${PROMPT_MAX_ROWS} of ${installations.length} installations shown`,
+            }
+          : {}),
+      },
+    };
+  }
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -1176,7 +1266,10 @@ Respond ONLY with valid JSON:
           step: s.step,
           action: s.action,
           error: s.error,
-          result: s.result,
+          // Compact installation arrays: truncate to PROMPT_MAX_ROWS and flatten
+          // napData so Gemini never receives nested objects → prevents JSON blobs
+          // appearing as tableRow cell values in the interpretation output.
+          result: compactStepResult(s.result),
         }));
 
         const summaryPrompt = `You are an expert energy analyst. The user asked: "${session.problem}"
@@ -1292,6 +1385,15 @@ Provide:
 5. If needsMoreInput is true, provide a "followUpQuestion" string.
 6. IMPORTANT: If results are empty or null, set needsMoreInput to FALSE and explain in the summary WHY the query returned no data (e.g. operator not in local database, timeout) — do NOT ask the user for a MaStR number or technical ID.
 
+CRITICAL TABLE RULES — violating these prevents automated CSV processing:
+- Every cell value in tableRows MUST be a primitive: string, number, boolean, or null.
+- NEVER put a JSON object or array as a cell value — this breaks CSV export.
+- If a field is a nested object (e.g. napData), add separate flat columns for its
+  sub-fields (e.g. "Messlokation", "Spannungsebene") — do NOT JSON-serialize it.
+- If a field is an array, join its values as a comma-separated string.
+- If data.installations[] is present, map EACH installation to ONE row with flat
+  scalar columns — do NOT put the whole array or a sub-object into one cell.
+
 Respond ONLY with valid JSON:
 {
   "summary": "...",
@@ -1341,8 +1443,37 @@ Respond ONLY with valid JSON:
           };
         }
 
+        // Safety net: ensure every tableRow cell is a primitive.
+        // Despite the prompt instruction, Gemini may occasionally emit nested
+        // objects (e.g. napData) — these would show as [object Object] in the
+        // UI table and break the CSV export / Live CSV endpoint.
+        if (Array.isArray(interpretation.tableRows)) {
+          interpretation.tableRows = interpretation.tableRows.map((row) => {
+            const flat = {};
+            for (const [k, v] of Object.entries(row)) {
+              if (Array.isArray(v)) {
+                flat[k] = v.join(', ');
+              } else if (v !== null && typeof v === 'object') {
+                flat[k] = JSON.stringify(v);
+              } else {
+                flat[k] = v;
+              }
+            }
+            return flat;
+          });
+        }
+
         session.userInputs = userInputs;
-        session.results = { stepResults, interpretation };
+        // Compact step results before storing to prevent session-oversize crashes.
+        // Large result sets (e.g. unfiltered installation queries) can push the
+        // serialized session past V8's string-size limit causing RangeError in
+        // JSON.stringify. compactStepResult caps arrays at 50 rows — sufficient
+        // for interpretation but safe for persistence.
+        const storableStepResults = stepResults.map((s) => ({
+          ...s,
+          result: compactStepResult(s.result),
+        }));
+        session.results = { stepResults: storableStepResults, interpretation };
         session.status = 'completed';
 
         // ── Data-quality driven requiredInputs injection ───────────────

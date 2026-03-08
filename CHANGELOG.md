@@ -7,11 +7,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.27] - 2026-03-09
+
+### Fixed
+
+- **Research Agent: `RangeError: Invalid string length` crash in `saveSession` (unresolvable VNB name)**
+  When the Research Agent executed a query for an unknown VNB name (e.g. "Stadtwerke Vellbert"),
+  a three-bug cascade caused the session JSON serialisation to crash with `RangeError: Invalid string length`:
+
+  1. **Silent unfiltered query** (`services/assets.service.js`): when `cernion_market_partners` returned
+     `count: 0` for the VNB name, `resolvedMastrId` and `resolvedBdewCode` stayed null. The code fell
+     through to `callParams.gridOperatorName = vnbName`, but `cernion_installations_local` **silently
+     ignores** that parameter and returns ALL installations of the requested type in Germany — potentially
+     millions of records — with no limit applied.
+
+  2. **Unbounded session storage** (`services/agent.service.js`): `session.results = { stepResults, ... }`
+     stored the raw, uncompacted step results, including the massive `data.installations[]` array.
+
+  3. **Crash at serialisation** (`services/agent.service.js`): `JSON.stringify(session)` on a
+     multi-million-record payload → `RangeError: Invalid string length` (V8 string-size limit ~512 MB).
+     The self-healing repair loop compounded this by repeating steps 3–5, accumulating more uncompacted
+     data with each iteration.
+
+  **Three-part fix:**
+
+  - `services/assets.service.js` — after the `cernion_market_partners` lookup, if no `resolvedMastrId`
+    and no `resolvedBdewCode` were found AND no `location` / `gridOperatorId` fallback is available,
+    throw a descriptive `VNB_NOT_FOUND` error immediately instead of proceeding with an unfiltered query.
+    This prevents the data explosion at the source.
+
+  - `services/agent.service.js` — extend `compactStepResult()` to also handle direct array results
+    (e.g. `assets.solar` returning a plain array) in addition to `result.data.installations`. Apply
+    `compactStepResult()` to every step result before storing in `session.results`, capping arrays at
+    50 rows so the serialised session is always manageable.
+
+  - `services/agent.service.js` — `saveSession()` is now crash-safe: `JSON.stringify` is wrapped in a
+    try/catch; on `RangeError` the step results are stripped and a `_saveWarning` field is added so the
+    session record (including the interpretation) is still persisted and recoverable.
+
+### Changed
+
+- Bumped application version to `0.8.27`.
+
 ## [0.8.26] - 2026-03-08
 
 ### Fixed
 
-- **BUG-10: Overly strict ambiguous VNB detection blocking report generation**
+- **Research Agent: JSON blobs in table cells and broken Live CSV for installation queries**
+  When a research query returned `energy-market.installations` data (e.g. "Anlagen in Netzbetreiberprüfung"), the
+  `napData` field — a nested object per installation — caused two interrelated bugs:
+
+  1. **UI table showed raw JSON strings** — Gemini received the full `data.installations[]` array with nested
+     `napData` objects and either serialised them as JSON cell values or failed to parse, triggering the
+     fallback that rendered `JSON.stringify(stepResult)` in the result column.
+
+  2. **Live CSV / Export CSV was unusable** — `convertToCSV` JSON-encoded nested objects (→ `"napData":
+     "{...json...}"` blob in every row), making automated downstream processing impossible.
+
+  **Three-layer fix:**
+
+  - `services/energy-market.service.js` — `installations` handler: before calling `applyFormat` for
+    `format=csv/xlsx`, destructure each row's `napData` object and expand its sub-fields
+    (`napMastrNummer`, `messlokation`, `spannungsebene`, `netzMastrNummer`, `netzbetreiberMastrNummer`)
+    into top-level scalar columns. The Live CSV endpoint injects `format=csv` into the last step, so this
+    path now always produces a clean, blob-free CSV.
+
+  - `services/agent.service.js` — new `compactStepResult()` helper + `flattenInstallation()`:
+    before serialising step results into the Gemini summary prompt, `data.installations[]` arrays are
+    (a) truncated to 50 rows (prevents token-limit failures on large result sets) and (b) flattened so
+    napData sub-fields appear as top-level keys. The prompt now also includes an explicit *CRITICAL TABLE
+    RULES* block instructing Gemini never to emit nested objects or arrays as tableRow cell values.
+
+  - `services/agent.service.js` — post-processing safety net: after parsing Gemini's interpretation JSON,
+    any remaining object-valued tableRow cells are `JSON.stringify`-d and arrays are joined with `, ` so
+    the UI table and the fallback CSV path always receive primitive-only rows.
+
+
   - Changed ambiguity logic from OR to AND condition: now requires BOTH low confidence (<0.9) AND close margin (<0.08) to trigger ambiguity.
   - Example: "Stadtwerke Frankenthal" (score 0.88 vs 0.08, margin 0.80) now correctly auto-selects without requiring `confirmAmbiguousVnb=true`.
   - Previous logic incorrectly flagged cases with dominant candidates as ambiguous due to minor confidence threshold misses.

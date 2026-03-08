@@ -56,7 +56,25 @@ describe('Assets Service - XLSX Export', () => {
         };
       }
 
-      // Mock market partners data
+      // Mock market partners lookup — must return a resolved MaStR ID so the
+      // new VNB_NOT_FOUND guard does not fire for 'TWL Netze' in these tests.
+      if (toolName === 'cernion_market_partners') {
+        return {
+          success: true,
+          data: {
+            count: 1,
+            results: [
+              {
+                name: 'TWL Netze GmbH',
+                mastrNetzbetreiberId: 'SNB900012345',
+                bdew: '1234567890123',
+              },
+            ],
+          },
+        };
+      }
+
+      // Legacy mock kept for any leftover cernion_vnbdigital_search calls
       if (toolName === 'cernion_vnbdigital_search') {
         return {
           success: true,
@@ -240,21 +258,32 @@ describe('Assets Service - XLSX Export', () => {
     });
 
     it('should preserve data integrity in XLSX format', async () => {
-      // Mock specific data
-      callWithAutoPoll.mockImplementationOnce(async () => ({
-        success: true,
-        data: {
-          results: [
-            {
-              mastrNummer: 'SEE900012345678',
-              capacityKW: 50.5,
-              operator: 'Test Operator',
-              location: 'Test Location',
-              commissioningDate: '2020-01-01',
-            },
-          ],
-        },
-      }));
+      // The assets service calls cernion_market_partners first (VNB resolution), then the
+      // installation lookup. Both must be mocked in the correct order.
+      callWithAutoPoll
+        .mockImplementationOnce(async () => ({
+          // 1st call: cernion_market_partners — return a resolved MaStR ID
+          success: true,
+          data: {
+            count: 1,
+            results: [{ name: 'TWL Netze GmbH', mastrNetzbetreiberId: 'SNB900012345' }],
+          },
+        }))
+        .mockImplementationOnce(async () => ({
+          // 2nd call: cernion_installations_local — return specific test data
+          success: true,
+          data: {
+            results: [
+              {
+                mastrNummer: 'SEE900012345678',
+                capacityKW: 50.5,
+                operator: 'Test Operator',
+                location: 'Test Location',
+                commissioningDate: '2020-01-01',
+              },
+            ],
+          },
+        }));
 
       const result = await broker.call('assets.solar', {
         vnbName: 'TWL Netze',
