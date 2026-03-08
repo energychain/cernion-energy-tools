@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **BUG-1 (Open):** Digitalisierungsindex inconsistency – Section 5: "30%", Section 8: blank, action plan: "67% Datenmanagement Teilscore" (not labeled). Root cause: three separate data sources without unified normalization. Fix: implement fallback chain + explicit teilscore labels.
 
-- **BUG-2 (🔴 CRITICAL BLOCKER):** Residuallast formula hardcoded – displays "1 MW × 120 €/MWh × 8.760 h ≈ 1,05 Mio. €/Jahr" regardless of actual grid capacity. Example: Frankenthal 54 MW should yield ~57 Mio. €/Jahr, not 1 Mio. €. Day-Ahead price (120.95 €/MWh) is now available in v2, but template variable not updated. **Quick fix: 1 line in [src/report-builder.js](src/report-builder.js) – replace hardcoded "1 MW" with `{residuallast_mw}` template variable.** **MUST FIX BEFORE DEMO 10.3.2026.**
+- ~~**BUG-2 (RESOLVED ✅):**~~ Residuallast formula hardcoded – **FIXED on 8.3.2026** (commit 08e122a). Formula now dynamically scales: `{actualMW} MW × {actualPrice} €/MWh × 8.760 h ≈ {calculatedCost} Mio. €/Jahr`. Example: Frankenthal 54 MW × 120.95 €/MWh now correctly shows ~56.9 Mio. €/Jahr (was: 1.05 Mio. hardcoded). All 797 tests passing. **Demo-ready ✅**
 
 - **BUG-6 (New):** Briefing-Anlagenzahl mismatch – Management page shows "6.476 installations" but Section 2 breakdown totals only ~4.374 (4.372 PV + 1 Wind + unknown storage). Storage installation count missing from KPI table.
 
