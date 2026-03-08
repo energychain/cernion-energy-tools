@@ -1,9 +1,9 @@
 # 🔴 CRITICAL FIX: BUG-2 Residuallast Formula – Pre-Demo Checklist
 
-**Status:** BLOCKING Congress Demo (10.3.2026)  
-**Affected Component:** 360° Report Sektion 1 (Cost Analysis)  
-**Severity:** Critical – Vorstand-facing number is wrong by factor ~54×  
-**Complexity:** 🟢 **TRIVIAL (5 min fix)**  
+**Status:** BLOCKING Congress Demo (10.3.2026)
+**Affected Component:** 360° Report Sektion 1 (Cost Analysis)
+**Severity:** Critical – Vorstand-facing number is wrong by factor ~54×
+**Complexity:** 🟢 **TRIVIAL (5 min fix)**
 
 ---
 
@@ -76,14 +76,14 @@ LINE_NUMBER: ... "1 MW × 120 €/MWh × 8.760 h ≈ 1,05 Mio. €/Jahr" ...
 5. **Commit message:**
    ```
    fix: BUG-2 Scale residuallast formula with actual MW and day-ahead price
-   
-   Changed hardcoded "1 MW × 120 €/MWh" to dynamic "{residuallast_mw} MW × 
+
+   Changed hardcoded "1 MW × 120 €/MWh" to dynamic "{residuallast_mw} MW ×
    {day_ahead_price_eur_mwh} €/MWh" formula in Section 1 cost analysis.
-   
-   Fixes critical calculation error where Frankenthal's 54 MW residuallast 
+
+   Fixes critical calculation error where Frankenthal's 54 MW residuallast
    was displayed as 1 Mio. €/Jahr instead of ~57 Mio. €/Jahr.
-   
-   Test: Frankenthal v3 report Section 1 now shows 57.1 Mio. €/Jahr (54 MW × 
+
+   Test: Frankenthal v3 report Section 1 now shows 57.1 Mio. €/Jahr (54 MW ×
    120.95 €/MWh × 8.760 h).
    ```
 
@@ -128,5 +128,5 @@ LINE_NUMBER: ... "1 MW × 120 €/MWh × 8.760 h ≈ 1,05 Mio. €/Jahr" ...
 
 ---
 
-*CR-CERNION-043 BUG-2 · Critical Blocker · Pre-Congress Fix Checklist*  
+*CR-CERNION-043 BUG-2 · Critical Blocker · Pre-Congress Fix Checklist*
 *Fix Deadline: 10.3.2026 before demo presentation*

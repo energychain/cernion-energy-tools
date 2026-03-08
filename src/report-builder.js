@@ -737,7 +737,7 @@ function ewkQuartilBewertung(rank, total) {
   };
 }
 
-function renderSection1(s1) {
+function renderSection1(s1, s3 = {}) {
   const cu = safeData(s1, 'capacityUtilization');
   const rd = safeData(s1, 'redispatchExport');
   const rl = safeData(s1, 'residualLoad');
@@ -802,9 +802,32 @@ function renderSection1(s1) {
     : null;
   const rlDisplay =
     rlValueMw && rlValueMw !== '–' ? (rlWarning ? `${rlValueMw} ⚠` : rlValueMw) : null;
-  const rlDesc = rlWarning
-    ? `Ø Netto-Residuallast (regionaler Forecast) – Hinweis: ${rlWarning}`
-    : 'Ø Netto-Residuallast – Beschaffungsbedarf des Stadtwerks am EPEX Spotmarkt (1 MW × 120 €/MWh × 8.760 h ≈ 1,05 Mio. €/Jahr)';
+  
+  // BUG-2 FIX: Extract numeric MW value and day-ahead price for dynamic formula
+  const rlNumericMw = rlValueMw && rlValueMw !== '–' ? parseFloat(rlValueMw.replace(/[^0-9.,]/g, '').replace(',', '.')) : null;
+  
+  // Get day-ahead price from Section 3
+  const prices = safeData(s3, 'prices');
+  const spot = safeData(s3, 'spotprices');
+  const priceTimeSeries = prices?.dataPoints || prices?.prices || prices?.data?.prices || spot?.dataPoints || spot?.prices || spot?.data?.prices || [];
+  const latestPt = priceTimeSeries.length > 0 ? priceTimeSeries[priceTimeSeries.length - 1] : null;
+  const dayAheadPrice = getVal(prices, 'latestPrice', 'currentPrice') ?? (latestPt ? (latestPt.priceEURperMWh ?? latestPt.price ?? null) : null);
+  
+  // Build dynamic formula description
+  let rlDesc;
+  if (rlWarning) {
+    rlDesc = `Ø Netto-Residuallast (regionaler Forecast) – Hinweis: ${rlWarning}`;
+  } else if (rlNumericMw && dayAheadPrice) {
+    const annualCostMio = (rlNumericMw * dayAheadPrice * 8760) / 1_000_000;
+    rlDesc = `Ø Netto-Residuallast – Beschaffungsbedarf des Stadtwerks am EPEX Spotmarkt (${fmtNum(rlNumericMw, 1)} MW × ${fmtNum(dayAheadPrice, 2)} €/MWh × 8.760 h ≈ ${fmtNum(annualCostMio, 1)} Mio. €/Jahr)`;
+  } else if (rlNumericMw) {
+    // Fallback: use 80 €/MWh as default if price not available
+    const annualCostMio = (rlNumericMw * 80 * 8760) / 1_000_000;
+    rlDesc = `Ø Netto-Residuallast – Beschaffungsbedarf des Stadtwerks am EPEX Spotmarkt (${fmtNum(rlNumericMw, 1)} MW × 80 €/MWh × 8.760 h ≈ ${fmtNum(annualCostMio, 1)} Mio. €/Jahr)`;
+  } else {
+    // Final fallback: use original hardcoded value if no data available
+    rlDesc = 'Ø Netto-Residuallast – Beschaffungsbedarf des Stadtwerks am EPEX Spotmarkt (1 MW × 120 €/MWh × 8.760 h ≈ 1,05 Mio. €/Jahr)';
+  }
 
   const rows = [
     // CR-38: When both Trafo tools unavailable, collapse to one honest info row
@@ -3456,7 +3479,7 @@ function buildHtmlReport(reportData) {
   ${renderSchockerBlocks(section1, section5, meta)}
 
   <!-- Section 1 -->
-  ${renderSection1(section1)}
+  ${renderSection1(section1, section3)}
 
   <!-- Section 2 -->
   ${renderSection2(section2)}

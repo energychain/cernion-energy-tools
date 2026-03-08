@@ -1,12 +1,12 @@
 # CR-CERNION-043 (UPDATE) · 360° Report Qualität – Delta v1→v2 + offene Bugs
 
-**Report:** Stadtwerke Frankenthal GmbH · BDEW 9900191000003 · MaStR SNB961745390019  
+**Report:** Stadtwerke Frankenthal GmbH · BDEW 9900191000003 · MaStR SNB961745390019
 **Verglichene Versionen:**
 - v1: Report-ID bf3ad501 · Zeitstempel 7.3.2026 16:02
-- v2: Report-ID 83272090 · Zeitstempel 7.3.2026 18:10  
+- v2: Report-ID 83272090 · Zeitstempel 7.3.2026 18:10
 **Gemeldet:** 7. März 2026 · **Status:** PARTIALLY RESOLVED
 
-> ⚠️ Live-Verifikation via Cernion MCP ausstehend – Powabase-Backend nicht erreichbar.  
+> ⚠️ Live-Verifikation via Cernion MCP ausstehend – Powabase-Backend nicht erreichbar.
 > Analyse basiert auf Dokumentenvergleich v1 ↔ v2.
 
 ---
@@ -14,7 +14,7 @@
 ## ✅ Behobene Bugs (v1 → v2)
 
 ### ~~BUG-3~~ · Sektion 2 MaStR-Daten leer → BEHOBEN ✅
-**v1:** Alle MaStR-Felder `n/v – MaStR-Abfrage nicht verfügbar`  
+**v1:** Alle MaStR-Felder `n/v – MaStR-Abfrage nicht verfügbar`
 **v2:** Vollständige Daten vorhanden:
 - Installierte PV-Leistung: **55.691 kWp**
 - Anzahl PV-Anlagen: **4.372 Anlagen**
@@ -27,8 +27,8 @@
 ---
 
 ### ~~BUG-4~~ · 500-Anlagen-Cap → BEHOBEN (Limit erhöht) ✅
-**v1:** `500 Anlagen in Netzbetreiberprüfung` (= Abfragelimit)  
-**v2:** `5.000 Anlagen in Netzbetreiberprüfung` (Limit auf 5.000 erhöht)  
+**v1:** `500 Anlagen in Netzbetreiberprüfung` (= Abfragelimit)
+**v2:** `5.000 Anlagen in Netzbetreiberprüfung` (Limit auf 5.000 erhöht)
 
 **Implementation:** Limit für `anlagenInPruefung` und `ortsfremdeAnlagen` Queries von 500 → 5.000 erhöht in `utility-report.service.js`.
 
@@ -37,7 +37,7 @@
 ---
 
 ### ~~BUG-5~~ · Day-Ahead-Preis fehlend → BEHOBEN ✅
-**v1:** `– €/MWh`  
+**v1:** `– €/MWh`
 **v2:** `120,95 €/MWh` ✅ – inkl. vollständigem 24h-Kurven-Chart
 
 **Implementation:** Integration des Tageskurses aus ENTSO-E/SMARD API in Section 3. Verwendbar für dynamische Formelberechnungen (siehe BUG-2).
@@ -47,8 +47,8 @@
 ---
 
 ### BUG-042 (VNB-Lookup Transparenz) → TEILWEISE BEHOBEN ✅
-**v1:** Kein Hinweis auf verwendete MaStR-ID  
-**v2:** Titelseite zeigt: `Datengrundlage: [BDEW 9900191000003] [MaStR SNB961745390019] · Bitte vor Weitergabe verifizieren.`  
+**v1:** Kein Hinweis auf verwendete MaStR-ID
+**v2:** Titelseite zeigt: `Datengrundlage: [BDEW 9900191000003] [MaStR SNB961745390019] · Bitte vor Weitergabe verifizieren.`
 
 **Implementation:** Transparenz-Anforderung aus BUG-042 Option C umgesetzt (Title-Seite ergänzt um Datengrundlage).
 
@@ -71,7 +71,7 @@
 
 **Auswirkung:** Vorstandsleser verwirrt: „Warum 30%, dann 67%, dann blank?"
 
-**Gewünschtes Verhalten:** 
+**Gewünschtes Verhalten:**
 1. Sektion 8 erhält DI-Wert als Fallback aus Sektion-5-Datensatz (30%)
 2. Aktionsplan kennzeichnet „67,0 % Datenmanagement-Teilscore" explizit als Teilscore, nicht als Gesamt-DI
 3. OpenAPI-Doku klärt: `benchmarkVnb.digitalisierungsindex` = Gesamt-DI für VNB
@@ -149,7 +149,7 @@ In Sektion 5 und im SCHOCKER-Abschnitt wird Gemeindewerke Baiersbronn (ein sehr 
 
 Derselbe Peer (Baiersbronn) taucht identisch im Gmünd-Report auf → deutet auf hartkodierte Peer-Auswahl hin, keine VNB-größenklassenbezogene Selektion.
 
-**Gewünschtes Verhalten:** 
+**Gewünschtes Verhalten:**
 1. Peer-Auswahl nach Größenklasse (Anzahl Anlagen, Netzlänge) und Bundesland filtern
 2. Mindestens 2 Peers zeigen (für Benchmarking Robustheit)
 3. Ähnliche Strukturen bevorzugen (15k–60k EW, ähnliche Energiemix)
@@ -231,6 +231,6 @@ const annualCost = (residuallastMw * dayAheadPrice * 8760) / 1_000_000;
 
 ---
 
-*CR-CERNION-043 · Update nach Report v2 · 7. März 2026*  
-*MCP Live-Verifikation ausstehend – wird nach Backend-Verfügbarkeit ergänzt*  
+*CR-CERNION-043 · Update nach Report v2 · 7. März 2026*
+*MCP Live-Verifikation ausstehend – wird nach Backend-Verfügbarkeit ergänzt*
 *Demo: Stadtwerke-Konferenz 10. März 2026 · KRITISCHER BLOCKER: BUG-2 Residuallast-Formel*
