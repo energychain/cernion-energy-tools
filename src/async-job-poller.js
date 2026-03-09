@@ -219,8 +219,25 @@ function detectAsyncJob(response) {
  * @returns {Promise<object>} - Final result (after polling if needed)
  */
 async function callWithAutoPoll(toolName, params, pollOptions = {}, token = null) {
-  // Call the MCP tool
-  const response = await CernionMCPClient.callWithNewSession(toolName, params, token);
+  const { maxWaitTime = 600000 } = pollOptions;
+  // Bound the initial tool call with maxWaitTime: if the MCP server hangs before
+  // returning (even a job_id), the caller would block indefinitely otherwise.
+  let response;
+  try {
+    const callPromise = CernionMCPClient.callWithNewSession(toolName, params, token);
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`callWithAutoPoll: initial call timeout after ${maxWaitTime / 1000}s`)),
+        maxWaitTime
+      )
+    );
+    response = await Promise.race([callPromise, timeoutPromise]);
+  } catch (err) {
+    return {
+      success: false,
+      error: { code: 'TIMEOUT', message: err.message, toolName },
+    };
+  }
 
   // Check if response indicates async job
   const jobId = detectAsyncJob(response);

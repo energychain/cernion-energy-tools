@@ -39,6 +39,8 @@ const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 // Keep this aligned with moleculer.config.js requestTimeout (15 min) to avoid
 // false 30s broker timeouts in logs for operatorAnalysis/marketPenetration.
 const LONG_CALL_TIMEOUT_MS = Number(process.env.UTILITY_REPORT_CALL_TIMEOUT_MS) || 15 * 60 * 1000;
+/** Timeout for enrichment calls (Sections 6–8): supplementary data, graceful degradation after 90 s */
+const ENRICHMENT_TIMEOUT_MS = Number(process.env.UTILITY_REPORT_ENRICHMENT_TIMEOUT_MS) || 90_000;
 
 // ─── Directory helpers ─────────────────────────────────────────────────────────
 
@@ -130,8 +132,8 @@ function indexReport(utilityName, date, reportId) {
  * Used for tools that are not yet wrapped as services, or for the discover preflight.
  * Never throws – returns { available: false, error } on any failure.
  */
-async function callMcpDirect(toolName, params, token) {
-  const TIMEOUT_MS = LONG_CALL_TIMEOUT_MS;
+async function callMcpDirect(toolName, params, token, timeoutMs = LONG_CALL_TIMEOUT_MS) {
+  const TIMEOUT_MS = timeoutMs;
   try {
     const callPromise = CernionMCPClient.callWithNewSession(toolName, params, token || null);
     const timeoutPromise = new Promise((_, reject) =>
@@ -151,11 +153,11 @@ async function callMcpDirect(toolName, params, token) {
  * Safely call a Moleculer broker service action.
  * Never throws – returns { available: false } on any failure.
  */
-async function callBroker(ctx, action, params) {
+async function callBroker(ctx, action, params, timeoutMs = LONG_CALL_TIMEOUT_MS) {
   try {
     const result = await ctx.broker.call(action, params, {
       meta: ctx.meta,
-      timeout: LONG_CALL_TIMEOUT_MS,
+      timeout: timeoutMs,
     });
     return { available: true, data: result };
   } catch (err) {
@@ -2452,20 +2454,14 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         };
         saveProgress(p);
 
-        // ── Section 6: Kunden & Vertrieb ──────────────────────────────────────
-        const churnPrediction = await callBroker(ctx, 'business-intelligence.churnPrediction', {
-          // CR-06/12: Include retention strategy, churn reasons, 12-month window
-          customerSegment: 'all',
-          region: region || resolvedVnbName,
-          riskThreshold: 'medium',
-          predictionWindowMonths: 12,
-          includeRetentionStrategy: true,
-          includeChurnReasons: true,
-          includeCompetitiveAnalysis: true,
-        });
+        // ── Sections 6–8: Enrichment – run all calls in parallel ─────────────
+        // CR-BUG-2026-03-09: Previously sequential with 15-min timeouts per call.
+        // Worst case: 10 sequential calls × 15 min = 150+ min total wait.
+        // Fix: all enrichment calls run concurrently; each is capped at
+        // ENRICHMENT_TIMEOUT_MS (90 s). Sections 1–5 hold the core compliance
+        // data; sections 6–8 are supplementary and degrade gracefully.
 
-        // CR-52: region must be a geographic name, not the full company name.
-        // Derive city name from VNB name when no explicit region was provided.
+        // CR-52: geoRegion derivation (sync, needed by multiple parallel calls)
         const geoRegion =
           region ||
           resolvedVnbName
@@ -2476,137 +2472,114 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
             .replace(/\s{2,}/g, ' ')
             .trim();
 
-        // CR-06/12: salesLeads service does NOT accept installationType:'all' – run 4 parallel calls
-        // and merge into a synthetic result that mirrors the single-call shape.
-        const salesLeadsTypes = ['solar', 'storage', 'wallbox', 'heatpump'];
-        const salesLeadsResults = await Promise.all(
-          salesLeadsTypes.map((t) =>
-            callBroker(ctx, 'business-intelligence.salesLeads', {
-              region: geoRegion || resolvedVnbName,
-              installationType: t,
-              daysBack: 90,
-              limit: 50,
-            })
-          )
-        );
-        // Merge: aggregate all available results; mark available=false only when ALL calls fail
-        const salesLeadsAny = salesLeadsResults.filter((r) => r.available !== false);
-        const salesLeads =
-          salesLeadsAny.length > 0
-            ? { available: true, data: salesLeadsAny.map((r) => r.data) }
-            : { available: false, error: salesLeadsResults.map((r) => r.error).join('; ') };
-
-        const marketPenetration = await gated(
-          availableTools,
-          ['cernion_market_penetration_analysis'],
-          () =>
-            callBroker(ctx, 'business-intelligence.marketPenetration', {
-              region: geoRegion,
-              ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
-            })
-        );
-
-        const prosumerTariff = await gated(
-          availableTools,
-          ['cernion_prosumer_tariff_designer'],
-          () =>
-            callMcpDirect(
-              'cernion_prosumer_tariff_designer',
-              {
-                customerSegment: 'all',
-                region: geoRegion || resolvedVnbName,
-                designGoal: 'customer-acquisition',
-              },
-              cernionToken
+        // Helper: salesLeads 4-type fan-out with merge (CR-06/12)
+        const fetchSalesLeads = async () => {
+          const results = await Promise.all(
+            ['solar', 'storage', 'wallbox', 'heatpump'].map((t) =>
+              callBroker(
+                ctx,
+                'business-intelligence.salesLeads',
+                { region: geoRegion || resolvedVnbName, installationType: t, daysBack: 90, limit: 50 },
+                ENRICHMENT_TIMEOUT_MS
+              )
             )
-        );
+          );
+          const any = results.filter((r) => r.available !== false);
+          return any.length > 0
+            ? { available: true, data: any.map((r) => r.data) }
+            : { available: false, error: results.map((r) => r.error).join('; ') };
+        };
 
-        const directMarketing = await gated(
-          availableTools,
-          ['cernion_direct_marketing_opportunity_scanner'],
-          () =>
-            callMcpDirect(
-              'cernion_direct_marketing_opportunity_scanner',
-              {
-                gridOperator: resolvedVnbName,
-                minCapacity: 100,
-                region: geoRegion || resolvedVnbName,
-              },
-              cernionToken
-            )
-        );
-
-        p.results.section6 = {
+        const [
           churnPrediction,
           salesLeads,
           marketPenetration,
           prosumerTariff,
           directMarketing,
-        };
-        saveProgress(p);
-
-        // ── Section 7: Investition ────────────────────────────────────────────
-        const investmentBusinessCase = await gated(
-          availableTools,
-          ['cernion_investment_business_case'],
-          () =>
+          investmentBusinessCase,
+          operatorPortfolio,
+          storageOptimization,
+          systemStatus,
+          eicStatistics,
+        ] = await Promise.all([
+          // ── Section 6 ────────────────────────────────────────────────────────
+          callBroker(
+            ctx,
+            'business-intelligence.churnPrediction',
+            {
+              customerSegment: 'all',
+              region: region || resolvedVnbName,
+              riskThreshold: 'medium',
+              predictionWindowMonths: 12,
+              includeRetentionStrategy: true,
+              includeChurnReasons: true,
+              includeCompetitiveAnalysis: true,
+            },
+            ENRICHMENT_TIMEOUT_MS
+          ),
+          fetchSalesLeads(),
+          gated(availableTools, ['cernion_market_penetration_analysis'], () =>
+            callBroker(
+              ctx,
+              'business-intelligence.marketPenetration',
+              { region: geoRegion, ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}) },
+              ENRICHMENT_TIMEOUT_MS
+            )
+          ),
+          gated(availableTools, ['cernion_prosumer_tariff_designer'], () =>
+            callMcpDirect(
+              'cernion_prosumer_tariff_designer',
+              { customerSegment: 'all', region: geoRegion || resolvedVnbName, designGoal: 'customer-acquisition' },
+              cernionToken,
+              ENRICHMENT_TIMEOUT_MS
+            )
+          ),
+          gated(availableTools, ['cernion_direct_marketing_opportunity_scanner'], () =>
+            callMcpDirect(
+              'cernion_direct_marketing_opportunity_scanner',
+              { gridOperator: resolvedVnbName, minCapacity: 100, region: geoRegion || resolvedVnbName },
+              cernionToken,
+              ENRICHMENT_TIMEOUT_MS
+            )
+          ),
+          // ── Section 7 ────────────────────────────────────────────────────────
+          gated(availableTools, ['cernion_investment_business_case'], () =>
             callMcpDirect(
               'cernion_investment_business_case',
               {
                 gridOperator: resolvedVnbName,
-                // NOTE: omit 'scenario' param – it causes a server-side toUpperCase crash
-                // when the gridOperator cannot be resolved server-side (null scenario.toUpperCase()).
-                // The tool works without it and defaults to a full analysis.
+                // NOTE: omit 'scenario' param – server-side toUpperCase crash when no template found.
                 region: region || resolvedVnbName,
                 ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
               },
-              cernionToken
+              cernionToken,
+              ENRICHMENT_TIMEOUT_MS
             )
-        );
-
-        const operatorPortfolio = await gated(availableTools, ['cernion_operator_portfolio'], () =>
-          callMcpDirect(
-            'cernion_operator_portfolio',
-            {
-              gridOperator: resolvedVnbName,
-              ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
-            },
-            cernionToken
-          )
-        );
-
-        const storageOptimization = await gated(
-          availableTools,
-          ['cernion_storage_optimization'],
-          () =>
+          ),
+          gated(availableTools, ['cernion_operator_portfolio'], () =>
+            callMcpDirect(
+              'cernion_operator_portfolio',
+              { gridOperator: resolvedVnbName, ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}) },
+              cernionToken,
+              ENRICHMENT_TIMEOUT_MS
+            )
+          ),
+          gated(availableTools, ['cernion_storage_optimization'], () =>
             callMcpDirect(
               'cernion_storage_optimization',
-              {
-                gridOperator: resolvedVnbName,
-                region: region || resolvedVnbName,
-              },
-              cernionToken
+              { gridOperator: resolvedVnbName, region: region || resolvedVnbName },
+              cernionToken,
+              ENRICHMENT_TIMEOUT_MS
             )
-        );
+          ),
+          // ── Section 8 ────────────────────────────────────────────────────────
+          callBroker(ctx, 'system.status', {}),
+          callBroker(ctx, 'eic-codes.statistics', {}),
+        ]);
 
-        p.results.section7 = {
-          investmentBusinessCase,
-          operatorPortfolio,
-          storageOptimization,
-          operatorAnalysis,
-        };
-        saveProgress(p);
-
-        // ── Section 8: Digitalisierung & System ──────────────────────────────
-        const systemStatus = await callBroker(ctx, 'system.status', {});
-
-        const eicStatistics = await callBroker(ctx, 'eic-codes.statistics', {});
-
-        p.results.section8 = {
-          systemStatus,
-          eicStatistics,
-          digitalisierungsindex: ewkDigitalisierungsindex,
-        };
+        p.results.section6 = { churnPrediction, salesLeads, marketPenetration, prosumerTariff, directMarketing };
+        p.results.section7 = { investmentBusinessCase, operatorPortfolio, storageOptimization, operatorAnalysis };
+        p.results.section8 = { systemStatus, eicStatistics, digitalisierungsindex: ewkDigitalisierungsindex };
         saveProgress(p);
 
         p.phase = 4;
