@@ -85,6 +85,98 @@ function isAvail(section, key) {
   return section?.[key]?.available === true;
 }
 
+// ─── CR-SWF-002: MaStR installation table helpers ────────────────────────────
+
+/** Translate MaStR EinheitTyp codes to short German labels */
+function typLabel(raw) {
+  if (!raw) return '?';
+  const s = String(raw).toLowerCase();
+  if (s.includes('solar') || s.includes('pv') || s.includes('photovolt')) return 'Solar';
+  if (s.includes('wind')) return 'Wind';
+  if (s.includes('speicher') || s.includes('storage') || s.includes('battery')) return 'Speicher';
+  if (s.includes('verbrennung') || s.includes('combustion') || s.includes('bhkw') || s.includes('biogas') || s.includes('biomass') || s.includes('bio')) return 'Verbrennung';
+  if (s.includes('wasser') || s.includes('hydro')) return 'Wasser';
+  if (s.includes('geo')) return 'Geothermie';
+  return raw.length > 12 ? raw.slice(0, 10) + '…' : raw;
+}
+
+/** Translate MaStR Spannungsebene codes to NS/MS/HS */
+function spannungLabel(raw) {
+  if (!raw) return '';
+  const s = String(raw).toLowerCase();
+  if (s === '354' || s.includes('niederspan') || s === 'ns' || s === 'lv') return 'NS';
+  if (s === '352' || s.includes('mittelspan') || s === 'ms' || s === 'mv') return 'MS';
+  if (s === '347' || s.includes('hochspan') || s === 'hs' || s === 'hv') return 'HS';
+  if (s === '342' || s.includes('höchst') || s === 'ehs' || s === 'ehv') return 'EHS';
+  return raw.length > 6 ? raw.slice(0, 4) : raw;
+}
+
+/** Render a compact MaStR installation table as HTML. */
+function renderMaStrTable(installations, opts = {}) {
+  const {
+    showMastr = true,
+    showTyp = true,
+    showSpannung = true,
+    showMelo = true,
+    showStatus = false,
+    showPruefung = false,
+    showOrt = true,
+    highlightPruefung = false,
+    caption = '',
+    maxRows = 20,
+  } = opts;
+
+  const insts = Array.isArray(installations) ? installations.slice(0, maxRows) : [];
+  if (insts.length === 0) return '';
+
+  const headers = [
+    showMastr ? '<th>MaStR</th>' : '',
+    '<th>Name / Anlage</th>',
+    showTyp ? '<th>Typ</th>' : '',
+    '<th style="text-align:right">kW</th>',
+    showSpannung ? '<th>Span.</th>' : '',
+    showOrt ? '<th>Ort</th>' : '',
+    showMelo ? '<th>MeLo</th>' : '',
+    showPruefung ? '<th>Prüfung</th>' : '',
+    showStatus ? '<th>Status</th>' : '',
+  ].filter(Boolean).join('');
+
+  const rows = insts.map((i) => {
+    const mastr = i?.mastrNummer ?? i?.MastrNummer ?? '';
+    const name = i?.anlagenName ?? i?.name ?? mastr ?? '–';
+    const typ = typLabel(i?.einheitTyp ?? i?.type ?? i?.typ ?? '');
+    const kw = asNumber(i?.capacity ?? i?.nettoLeistung ?? i?.bruttoleistung ?? i?.leistungKw ?? i?.leistung);
+    const span = spannungLabel(i?.spannungsebene ?? i?.voltage ?? '');
+    const ort = i?.ort ?? i?.city ?? i?.gemeinde ?? '';
+    const hasMelo = i?.napData != null || i?.meloId != null || i?.melo != null;
+    const pruefStatus = i?.netzbetreiberPruefungStatus ?? i?.pruefungStatus ?? '';
+    const isInPruefung = String(pruefStatus).toLowerCase().includes('pruef') || pruefStatus === '2955';
+    const betriebStatus = i?.betriebsStatus ?? i?.status ?? '';
+    const isStillgelegt = String(betriebStatus).toLowerCase().includes('stillgelegt') || betriebStatus === '38';
+    const rowStyle = (highlightPruefung && isInPruefung) ? ' style="background:#fff3f3;"' : '';
+    return `<tr${rowStyle}>
+      ${showMastr ? `<td style="font-size:7pt;font-family:monospace">${escapeHtml(mastr)}</td>` : ''}
+      <td>${escapeHtml(String(name).slice(0, 35))}</td>
+      ${showTyp ? `<td>${escapeHtml(typ)}</td>` : ''}
+      <td style="text-align:right">${kw !== null ? fmtNum(kw, 0) : '–'}</td>
+      ${showSpannung ? `<td>${escapeHtml(span)}</td>` : ''}
+      ${showOrt ? `<td>${escapeHtml(String(ort).slice(0, 20))}</td>` : ''}
+      ${showMelo ? `<td style="text-align:center">${hasMelo ? '✅' : '❌'}</td>` : ''}
+      ${showPruefung ? `<td style="text-align:center">${isInPruefung ? '⚠️' : '✅'}</td>` : ''}
+      ${showStatus ? `<td>${isStillgelegt ? '🔴 Still.' : '🟢 IB'}</td>` : ''}
+    </tr>`;
+  }).join('');
+
+  const captionHtml = caption ? `<caption style="font-size:8pt;color:#666;caption-side:top;text-align:left;padding-bottom:2mm;">${escapeHtml(caption)}</caption>` : '';
+  return `<div style="overflow-x:auto;margin:2mm 0;">
+    <table style="width:100%;border-collapse:collapse;font-size:8pt;">
+      ${captionHtml}
+      <thead><tr style="background:#f0f3f6;">${headers}</tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
 /**
  * CR-22: Parse summary statistics from a cernion_installations_local markdown
  * text response.  The tool returns [{type:'text', text:'# MaStR Installations…'}].
@@ -272,10 +364,16 @@ function extractComplianceSignals(section1 = {}, section5 = {}) {
   const pruefungCount = pruefungCountParsed ?? 0;
 
   // CR-CERNION-044 BUG-8: example installation comes from anlagenInPruefungBeispiel
-  // (format:'detailed', limit:3, status-filtered) – guaranteed to be InPruefung.
+  // (format:'detailed', limit:10, no status filter) – top-10 by capacity incl. stillgelegte.
   const beispielData = safeData(section1, 'anlagenInPruefungBeispiel');
   const beispielInstallations = beispielData?.installations ?? beispielData?.data?.installations ?? [];
   const pruefungInstallations = Array.isArray(beispielInstallations) ? beispielInstallations : [];
+
+  // CR-SWF-002 CR-02: Stillgelegte Anlagen mit offenem Prüfstatus
+  const stillgelegtData = safeData(section1, 'anlagenStillgelegtInPruefung');
+  const stillgelegtRaw = stillgelegtData?.installations ?? stillgelegtData?.data?.installations ?? [];
+  const stillgelegtInstallations = Array.isArray(stillgelegtRaw) ? stillgelegtRaw : [];
+  const stillgelegtCount = stillgelegtInstallations.length;
 
   const largestPruefung =
     pruefungInstallations.length > 0
@@ -364,6 +462,8 @@ function extractComplianceSignals(section1 = {}, section5 = {}) {
     pruefungInstallations,
     largestPruefung,
     pruefungCapacityKw,
+    stillgelegtCount,
+    stillgelegtInstallations,
     ortsfremdCount,
     ortsfremdInstallations,
     dominantPlzPrefix,
@@ -398,26 +498,63 @@ function renderSchockerBlocks(section1 = {}, section5 = {}, meta = {}) {
       s.pruefungCount,
       s.pruefungCapacityKw
     ).redispatch_entgang;
+
+    // CR-SWF-002 CR-01: Type breakdown from top-10 example installations
+    const typeCounts = {};
+    for (const inst of s.pruefungInstallations) {
+      const t = typLabel(inst?.einheitTyp ?? inst?.type ?? inst?.typ ?? '');
+      typeCounts[t] = (typeCounts[t] || 0) + 1;
+    }
+    const typeBreakdown = Object.entries(typeCounts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([t, n]) => `${t}\u00a0${n}`)
+      .join(' \u00b7 ');
+
+    const top10Table = s.pruefungInstallations.length > 0
+      ? renderMaStrTable(
+          [...s.pruefungInstallations].sort(
+            (a, b) => (asNumber(b?.capacity) ?? 0) - (asNumber(a?.capacity) ?? 0)
+          ),
+          {
+            showMastr: true, showTyp: true, showSpannung: true, showMelo: true,
+            showStatus: true, showPruefung: false, highlightPruefung: false,
+            caption: `Top-${Math.min(s.pruefungInstallations.length, 10)} Anlagen in Netzbetreiberpr\u00fcfung (nach Leistung)`,
+            maxRows: 10,
+          }
+        )
+      : '';
+
+    // CR-SWF-002 CR-02: Callout for decommissioned units with open Pr\u00fcfstatus
+    const stillgelegtNote = s.stillgelegtCount > 0
+      ? `<p style="color:#c0392b;font-weight:600;">\u26a0\ufe0f Darunter ${s.stillgelegtCount} dauerhaft stillgelegte Anlage${s.stillgelegtCount > 1 ? 'n' : ''} mit offenem Pr\u00fcfstatus \u2013 MaStR-Abschluss + \u00a76 EEG-Meldung fehlen (verf\u00e4lscht AgNES-Kapazit\u00e4tsbilanz).</p>`
+      : '';
+
     blocks.push(`
       <div class="no-break" style="margin:4mm 0;border:2px solid #c0392b;border-radius:4px;background:#fff8f7;">
-        <div style="background:#c0392b;color:#fff;padding:2.5mm 3mm;font-weight:700;font-size:9.5pt;">🚨 ${s.pruefungCount} Anlagen warten auf Ihre Freigabe</div>
+        <div style="background:#c0392b;color:#fff;padding:2.5mm 3mm;font-weight:700;font-size:9.5pt;">\ud83d\udea8 ${s.pruefungCount} Anlagen warten auf Ihre Freigabe</div>
         <div style="padding:3mm 3.5mm;font-size:8.8pt;line-height:1.55;">
-          <p><strong>WAS IST PASSIERT:</strong><br>Im MaStR stehen in Ihrem Netz ${s.pruefungCount} Anlagen auf "in Prüfung". Das ist ein Compliance-Risiko mit direktem EWK-Einfluss im Fotojahr.</p>
-          <p><strong>EIN KONKRETES BEISPIEL AUS IHREM NETZ:</strong><br>${escapeHtml(exampleName)}${exampleCap !== null ? ` · ${fmtNum(exampleCap, 0)} kW` : ''}${example?.inbetriebnahme ? ` · Inbetriebnahme ${escapeHtml(String(example.inbetriebnahme))}` : ''}<br>${exampleMastr}</p>
-          <p><strong>WAS PASSIERT WENN SIE NICHTS TUN:</strong><br>§118 EnWG-Bußgeldrisiko + EWK-Rangverlust im Fotojahr. Potenziell nicht abrechenbare Redispatch-Kosten: <strong>${fmtEuro(redispatchLoss)}</strong> pro Jahr.</p>
-          <p><strong>WAS SIE DIESE WOCHE TUN KÖNNEN:</strong><br>Owner: MaStR-Beauftragter · Frist: 14 Tage · Maßnahme: alle offenen Prüfstatus auf „Geprüft“ setzen (Start mit größter Anlage).</p>
+          <p><strong>WAS IST PASSIERT:</strong><br>Im MaStR stehen in Ihrem Netz ${s.pruefungCount} Anlagen auf "in Pr\u00fcfung".${typeBreakdown ? ` Aufschl\u00fcsselung aus Top-10:\u00a0${escapeHtml(typeBreakdown)}.` : ''} Das ist ein Compliance-Risiko mit direktem EWK-Einfluss im Fotojahr.</p>
+          <p><strong>DIE GR\u00d6\u00dfTE OFFENE PR\u00dcFUNG IN IHREM NETZ:</strong><br>${escapeHtml(exampleName)}${exampleCap !== null ? ` \u00b7 ${fmtNum(exampleCap, 0)} kW` : ''}${example?.inbetriebnahme ? ` \u00b7 Inbetriebnahme ${escapeHtml(String(example.inbetriebnahme))}` : ''}<br>${exampleMastr}</p>
+          ${top10Table}
+          ${stillgelegtNote}
+          <p><strong>WAS PASSIERT WENN SIE NICHTS TUN:</strong><br>\u00a7118 EnWG-Bu\u00dfgeldrisiko + EWK-Rangverlust im Fotojahr. Potenziell nicht abrechenbare Redispatch-Kosten: <strong>${fmtEuro(redispatchLoss)}</strong> pro Jahr.</p>
+          <p><strong>WAS SIE DIESE WOCHE TUN K\u00d6NNEN:</strong><br>Owner: MaStR-Beauftragter \u00b7 Frist: 14 Tage \u00b7 Ma\u00dfnahme: alle offenen Pr\u00fcfstatus auf \u201eGepr\u00fcft\u201c setzen (Start mit gr\u00f6\u00dfter Anlage).</p>
         </div>
       </div>`);
   }
 
   if (s.vmIst !== null && s.vmMedian !== null && s.vmIst > s.vmMedian * 1.5) {
     const deltaPct = Math.round((s.vmIst / s.vmMedian - 1) * 100);
+    // CR-SWF-002 CR-09: structural context note to prevent Extremwert dramatisation
+    const peerContextNote = vmPeer
+      ? ` (Strukturhinweis: Ausrei\u00dferwert \u2013 Netzgr\u00f6\u00dfe und Prozessstruktur ber\u00fccksichtigen)`
+      : '';
     blocks.push(`
       <div class="no-break" style="margin:4mm 0;border:2px solid #d68910;border-radius:4px;background:#fffdf5;">
-        <div style="background:#d68910;color:#fff;padding:2.5mm 3mm;font-weight:700;font-size:9.5pt;">🚨 Verbrauch MS ist der Schock: ${fmtNum(s.vmIst, 0)} Wochen statt ${fmtNum(s.vmMedian, 0)}</div>
+        <div style="background:#d68910;color:#fff;padding:2.5mm 3mm;font-weight:700;font-size:9.5pt;">\ud83d\udea8 Verbrauch MS ist der Schock: ${fmtNum(s.vmIst, 0)} Wochen statt ${fmtNum(s.vmMedian, 0)}</div>
         <div style="padding:3mm 3.5mm;font-size:8.8pt;line-height:1.55;">
-          <p><strong>WAS IST PASSIERT:</strong><br>Ihr Median für Verbrauchsanlagen in Mittelspannung liegt bei ${fmtNum(s.vmIst, 0)} Wochen. Das sind ${deltaPct}% über Bundesmedian.</p>
-          <p><strong>PEER-VERGLEICH:</strong><br>${vmPeer ? `${escapeHtml(vmPeer.name)}: ${fmtNum(vmPeer.wochen, 0)} Wochen.` : 'Top-Performer: 5 Wochen.'} Das ist derselbe Auftrag, aber ein anderer Prozess.</p>
+          <p><strong>WAS IST PASSIERT:</strong><br>Ihr Median f\u00fcr Verbrauchsanlagen in Mittelspannung liegt bei ${fmtNum(s.vmIst, 0)} Wochen. Das sind ${deltaPct}% \u00fcber Bundesmedian.</p>
+          <p><strong>PEER-VERGLEICH:</strong><br>${vmPeer ? `${escapeHtml(vmPeer.name)}: ${fmtNum(vmPeer.wochen, 0)} Wochen${escapeHtml(peerContextNote)}.` : 'Top-Performer: 5 Wochen.'} Das ist derselbe Auftrag, aber ein anderer Prozess.</p>
           <p><strong>WAS PASSIERT WENN SIE NICHTS TUN:</strong><br>Projektierer wandern ab, Anschlussprojekte gehen verloren, und die Phase-2-Dauer belastet den EWK-Rang nachhaltig.</p>
           <p><strong>WAS SIE DIESES QUARTAL TUN KÖNNEN:</strong><br>2-Tage-Workshop „Wo liegen die ${fmtNum(s.vmPhase2 ?? 0, 0)} Wochen in Phase 2?“ mit Netzplanung, Bau und Beschaffung. Zielwert Q4: &lt; 80 Wochen.</p>
         </div>
@@ -623,6 +760,23 @@ function actionHint(title, items) {
   const bullets = items.map((i) => `<li>${escapeHtml(i)}</li>`).join('');
   return `<div class="action-hint"><strong>${escapeHtml(title)}</strong><ul>${bullets}</ul></div>`;
 }
+
+/**
+ * CR-SWF-002 CR-11: Render a compact data-source attribution note below a section.
+ * @param {string[]} sources  e.g. ['MaStR (cernion_installations_local)', 'ENTSO-E']
+ * @param {string}   [retrievedAt]  ISO timestamp of data retrieval
+ */
+function renderSourceNote(sources, retrievedAt) {
+  const ts = retrievedAt
+    ? new Date(retrievedAt).toLocaleString('de-DE', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      })
+    : null;
+  const tsNote = ts ? ` \u00b7 Abgerufen: ${ts}` : '';
+  return `<p style="font-size:7.5pt;color:#95a5a6;margin-top:1.5mm;margin-bottom:0;">\ud83d\udcc1 Quellen: ${escapeHtml(sources.join(' \u00b7 '))}${escapeHtml(tsNote)}</p>`;
+}
+
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
 
@@ -830,10 +984,10 @@ function renderSection1(s1, s3 = {}) {
   } else if (rlNumericMw) {
     // Fallback: use 80 €/MWh as default if price not available
     const annualCostMio = (rlNumericMw * 80 * 8760) / 1_000_000;
-    rlDesc = `Ø Netto-Residuallast – Beschaffungsbedarf des Stadtwerks am EPEX Spotmarkt (${fmtNum(rlNumericMw, 1)} MW × 80 €/MWh × 8.760 h ≈ ${fmtNum(annualCostMio, 1)} Mio. €/Jahr)`;
+    rlDesc = `Ø Netto-Residuallast – Beschaffungsbedarf des Stadtwerks am EPEX Spotmarkt (${fmtNum(rlNumericMw, 1)} MW × 80 €/MWh × 8.760 h ≈ ${fmtNum(annualCostMio, 1)} Mio. €/Jahr) · ⚠️ Worst-Case-Schätzung (kein Echtzeit-Preis verfügbar) – kein Planungswert`;
   } else {
     // Final fallback: use original hardcoded value if no data available
-    rlDesc = 'Ø Netto-Residuallast – Beschaffungsbedarf des Stadtwerks am EPEX Spotmarkt (1 MW × 120 €/MWh × 8.760 h ≈ 1,05 Mio. €/Jahr)';
+    rlDesc = '\u00d8 Netto-Residuallast \u2013 Beschaffungsbedarf des Stadtwerks am EPEX Spotmarkt (1 MW \u00d7 120 \u20ac/MWh \u00d7 8.760 h \u2248 1,05 Mio. \u20ac/Jahr) \u00b7 \u26a0\ufe0f Worst-Case-Sch\u00e4tzung (kein Echtzeit-Marktpreis abrufbar) \u2013 kein Planungswert';
   }
 
   const rows = [
@@ -914,7 +1068,7 @@ function renderSection1(s1, s3 = {}) {
           )
         : null,
       'gCO₂eq/kWh',
-      'GrünstromIndex – aktuelle regionale CO₂-Intensität',
+      'Aktueller regionaler Strommix – Echtzeit-Indikator für §14a-Steuerung und Beschaffungsoptimierung (Quelle: GrünstromIndex)',
       !isAvail(s1, 'co2Intensity') ? 'CO₂-Index nicht verfügbar' : ''
     ),
     kpiRow(
@@ -1032,6 +1186,91 @@ function renderSection1(s1, s3 = {}) {
     );
   })();
 
+  // CR-SWF-002 CR-04: Top-10 largest InBetrieb installations
+  let top10SectionHtml = '';
+  if (isAvail(s1, 'allInstallationsSample')) {
+    const sampleData = safeData(s1, 'allInstallationsSample');
+    const sampleInsts = sampleData?.installations ?? sampleData?.data?.installations ?? [];
+    if (Array.isArray(sampleInsts) && sampleInsts.length > 0) {
+      const top10 = [...sampleInsts]
+        .sort((a, b) => (asNumber(b?.capacity) ?? 0) - (asNumber(a?.capacity) ?? 0))
+        .slice(0, 10);
+      top10SectionHtml = `
+        <h3 class="sub-sub" style="margin-top:4mm;">Top-10 Anlagen nach installierter Leistung (InBetrieb)</h3>
+        ${renderMaStrTable(top10, {
+          showMastr: true, showTyp: true, showSpannung: true, showMelo: true,
+          showStatus: false, showPruefung: true, highlightPruefung: true,
+          caption: 'Grundlage: cernion_installations_local \u00b7 Status InBetrieb \u00b7 sortiert nach Leistung (kW)',
+          maxRows: 10,
+        })}`;
+    }
+  }
+
+  // CR-SWF-002 CR-03: Redispatch-/\u00a751-Anlagenpool \u226510 0 kW with open Pr\u00fcfstatus highlighted
+  let redispatchSectionHtml = '';
+  if (isAvail(s1, 'installationenOhneMelo')) {
+    const rdData = safeData(s1, 'installationenOhneMelo');
+    const rdInsts = rdData?.installations ?? rdData?.data?.installations ?? [];
+    if (Array.isArray(rdInsts) && rdInsts.length > 0) {
+      const rdTop = [...rdInsts]
+        .sort((a, b) => (asNumber(b?.capacity) ?? 0) - (asNumber(a?.capacity) ?? 0))
+        .slice(0, 20);
+      redispatchSectionHtml = `
+        <h3 class="sub-sub" style="margin-top:4mm;">Redispatch-/\u00a751-Anlagenpool \u2265100\u00a0kW (InBetrieb)</h3>
+        ${renderMaStrTable(rdTop, {
+          showMastr: true, showTyp: true, showSpannung: true, showMelo: true,
+          showStatus: false, showPruefung: true, highlightPruefung: true,
+          caption: 'Grundlage: cernion_installations_local \u00b7 \u2265100\u00a0kW \u00b7 Status InBetrieb \u00b7 offene Pr\u00fcfung hervorgehoben',
+          maxRows: 20,
+        })}`;
+    }
+  }
+
+  // CR-SWF-002 CR-05: PLZ outliers with MaStR references + dual-risk flag
+  let plzDetailSectionHtml = '';
+  if (isAvail(s1, 'ortsfremdeAnlagen')) {
+    const ortsfremdDetail = safeData(s1, 'ortsfremdeAnlagen');
+    const ortsfremdDetailInsts =
+      ortsfremdDetail?.installations ?? ortsfremdDetail?.data?.installations ?? [];
+    if (Array.isArray(ortsfremdDetailInsts) && ortsfremdDetailInsts.length > 0) {
+      const dualRiskCount = ortsfremdDetailInsts.filter((inst) => {
+        const ps = String(inst?.netzbetreiberPruefungStatus ?? inst?.netzbetreiberPruefung ?? '');
+        return ps.toLowerCase().includes('pr') || ps === '2955';
+      }).length;
+      const dualRiskNote =
+        dualRiskCount > 0
+          ? `<p style="color:#c0392b;font-weight:600;font-size:8pt;">\u26a0\ufe0f ${dualRiskCount} davon haben gleichzeitig offenen Pr\u00fcfstatus (Dual-Risk: PLZ-Fehler + Pr\u00fcfstatus offen).</p>`
+          : '';
+      plzDetailSectionHtml = `
+        <h3 class="sub-sub" style="margin-top:4mm;">Ortsfremde Anlagen \u2013 PLZ-Ausrei\u00dfer mit MaStR-Referenz</h3>
+        ${dualRiskNote}
+        ${renderMaStrTable(ortsfremdDetailInsts, {
+          showMastr: true, showTyp: true, showSpannung: false, showMelo: false,
+          showStatus: true, showPruefung: true, highlightPruefung: true,
+          caption: 'Grundlage: cernion_installations_local \u00b7 PLZ au\u00dferhalb VNB-Kerngebiet \u00b7 Dual-Risk hervorgehoben',
+          maxRows: 20,
+        })}`;
+    }
+  }
+
+  // CR-SWF-002 CR-02: Dauerhaft Stillgelegte with open Pr\u00fcfstatus (table in Section 1)
+  let stillgelegtSectionHtml = '';
+  if (isAvail(s1, 'anlagenStillgelegtInPruefung')) {
+    const stillData = safeData(s1, 'anlagenStillgelegtInPruefung');
+    const stillInsts = stillData?.installations ?? stillData?.data?.installations ?? [];
+    if (Array.isArray(stillInsts) && stillInsts.length > 0) {
+      stillgelegtSectionHtml = `
+        <h3 class="sub-sub" style="margin-top:4mm;color:#c0392b;">\u26a0\ufe0f Dauerhaft Stillgelegte mit offenem Pr\u00fcfstatus (${stillInsts.length})</h3>
+        <p style="font-size:8pt;color:#c0392b;">\u00a76 EEG-Stilllegungsmeldung fehlt \u2013 verf\u00e4lscht AgNeS-Kapazit\u00e4tsbilanz. MaStR-Abschluss und Pr\u00fcfstatus setzen.</p>
+        ${renderMaStrTable(stillInsts, {
+          showMastr: true, showTyp: true, showSpannung: true, showMelo: true,
+          showStatus: true, showPruefung: true, highlightPruefung: true,
+          caption: 'Grundlage: cernion_installations_local \u00b7 Status DauerhaftStillgelegt \u00b7 Pr\u00fcfstatus offen',
+          maxRows: 20,
+        })}`;
+    }
+  }
+
   let chartHtml = '';
   if (chartData) {
     chartHtml = `
@@ -1123,8 +1362,13 @@ function renderSection1(s1, s3 = {}) {
       'Ortsfremde Anlagen (PLZ-Ausreißer): MaStR-Korrektur vor Fotojahr 2026 – fehlerhafte Zuordnungen verfälschen AgNeS-Effizienzwert und Erlösobergrenze (60 Monate Wirkung).',
       'Residuallast: Day-Ahead-Preis täglich mit Residuallast-Forecast verknüpfen – hohe Residuallast bei hohem Preis = doppelte Dringlichkeit für Beschaffungsoptimierung.',
     ])}
+    ${top10SectionHtml}
+    ${redispatchSectionHtml}
+    ${plzDetailSectionHtml}
+    ${stillgelegtSectionHtml}
     ${chartHtml}
-    ${residualChartHtml}`;
+    ${residualChartHtml}
+    ${renderSourceNote(['MaStR (cernion_installations_local)', 'Cernion Grid Tools', 'Cernion Residuallast', 'Cernion CO\u2082-Intensit\u00e4t (Gr\u00fcnstromIndex)'])}`;
 }
 
 function renderSection2(s2) {
@@ -1702,7 +1946,7 @@ function renderSection4(s4) {
         ? getVal(sec, 'securityStatus', 'status', 'complianceStatus', 'level')
         : null,
       '',
-      'EU-90%-Mandat, kritische Schwellen'
+      'Marktkontext DE/EU – EU-90%-Mandat (VO 2022/1032) · Landesweiter Indikator – kein lokaler Netzindikator'
     ),
     kpiRow(
       'Ländervergleich Gasfüllstand',
@@ -1844,16 +2088,16 @@ function renderSection4(s4) {
     const items = [];
     if (fillPct !== null && fillPct < 25) {
       items.push(
-        `Gasfüllstand ${Number(fillPct).toFixed(1)} % KRITISCH: Krisenplan aktivieren – bis 1. November müssen ` +
+        `[Marktkontext DE/EU] Gasfüllstand ${Number(fillPct).toFixed(1)} % KRITISCH: Krisenplan aktivieren – bis 1. November müssen ` +
           `${Math.round(90 - Number(fillPct))} Prozentpunkte eingespeist werden. Aggressive Einspeisung treibt Gaspreise überproportional (VO 2022/1032).`
       );
     } else if (fillPct !== null && fillPct < 70) {
       items.push(
-        `Gasfüllstand ${Number(fillPct).toFixed(1)} %: EU-Mandat 90 % zum 1. November noch nicht gesichert – Einspeisung priorisieren (VO 2022/1032).`
+        `[Marktkontext DE/EU] Gasfüllstand ${Number(fillPct).toFixed(1)} %: EU-Mandat 90 % zum 1. November noch nicht gesichert – Einspeisung priorisieren (VO 2022/1032).`
       );
     } else {
       items.push(
-        'Gasfüllstand im grünen Bereich – EU-90%-Mandat auf Kurs. Versorgungssicherheit gewährleistet.'
+        '[Marktkontext DE/EU] Gasfüllstand im grünen Bereich – EU-90%-Mandat auf Kurs. Versorgungssicherheit gewährleistet.'
       );
     }
     items.push(
@@ -1874,7 +2118,8 @@ function renderSection4(s4) {
     ${kpiTable(rows)}
     ${actionHint('Handlungsempfehlung Gasversorgung', gasHints)}
     ${chartHtml}
-    ${countryChartHtml}`;
+    ${countryChartHtml}
+    ${renderSourceNote(['AGSI/GIE (agsi_country_storage, agsi_eu_statistics)', 'Cernion Gas Storage Tools'])}`;
 }
 
 /**
@@ -1938,7 +2183,7 @@ function renderNestExplainer(
       <div style="border:1px solid #85c1e9;background:#fff;padding:3mm;margin:2mm 0;border-radius:4px;">
         <strong>AgNeS-EFFIZIENZWERT</strong> (BNetzA Beschlusskammer 8)<br>
         Ihr Wert: individuell bei BNetzA BK8 abrufbar<br>
-        Benchmark: ${ewkTotal || '740'} VNBs werden verglichen<br>
+        Benchmark: ${ewkTotal ?? '?'}¹ VNBs werden verglichen<br>
         Wer effizienter ist: bekommt mehr EO
       </div>
 
@@ -1979,9 +2224,11 @@ function renderNestExplainer(
         </p>
 
         <p style="font-size:9pt;line-height:1.6;margin-bottom:2.5mm;">
-          Die Entscheidung fällt nicht willkürlich. Sie basiert auf einem Effizienzvergleich: Die BNetzA misst alle ~${ewkTotal || '740'} deutschen VNBs
+          Die Entscheidung fällt nicht willkürlich. Sie basiert auf einem Effizienzvergleich: Die BNetzA misst alle ${ewkTotal ? `~${ewkTotal}¹` : 'alle¹'} deutschen VNBs
           mit demselben Maßstab (<strong>AgNeS-Effizienzwert</strong>) und belohnt die Besten mit einer höheren EO.
         </p>
+
+        <p style="font-size:8pt;color:#6c757d;margin-bottom:2mm;">¹ Gesamtzahl VNBs gemäß aktuellem BNetzA-EWK-Datensatz – kann je nach Auswertungszeitraum variieren (typisch: 730–750 VNBs).</p>
 
         <p style="font-size:9pt;line-height:1.6;margin-bottom:2.5mm;">
           Das <strong>EWK-Monitoring</strong> ist das Messgerät der BNetzA. Es misst jährlich drei Dinge:
@@ -2512,7 +2759,8 @@ function renderSection5(s5, utilityName = 'Stadtwerke') {
       diMedian,
       segmentData.find((s) => s.key === 'ee_ms')?.gesamt ?? null,
       segmentData.find((s) => s.key === 'verbrauch_ms')?.gesamt ?? null
-    )}`;
+    )}
+    ${renderSourceNote(['BNetzA EWK (cernion_ewk_monitoring)', 'Cernion German Grid (cernion_grid_benchmarking)', 'MaStR (cernion_installations_local)'])}`;
 }
 
 // ─── CR-26: NEST / AgNeS Sub-section ─────────────────────────────────────────

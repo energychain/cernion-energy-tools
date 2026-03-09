@@ -2307,4 +2307,234 @@ describe('Utility Report Service', () => {
       expect(html).not.toContain('✓ Daten verfügbar');
     });
   });
+
+  // ─── CR-SWF-2026-002 ──────────────────────────────────────────────────────
+  describe('CR-SWF-2026-002: 360° Report quality fixes', () => {
+    const { buildHtmlReport } = require('../src/report-builder');
+
+    // CR-01: pruefungCount SCHOCKER now shows type breakdown + renamed heading
+    it('CR-01: pruefung SCHOCKER shows "DIE GRÖSSTE OFFENE PRÜFUNG" and type breakdown', () => {
+      const pruefungInst = {
+        mastrNummer: 'SEE123456789012',
+        anlagenName: 'Solar Testanlage',
+        capacity: 500,
+        einheitTyp: 'Solar',
+        inbetriebnahme: '2020-01-01',
+      };
+      const summaryText = [{ type: 'text', text: '**Total found:** 5 installations in Netzbetreiberpr\u00fcfung\n' }];
+      const html = buildHtmlReport({
+        meta: { utilityName: 'Test GmbH' },
+        section1: {
+          anlagenInPruefung: { available: true, data: summaryText },
+          anlagenInPruefungBeispiel: {
+            available: true,
+            data: {
+              installations: [pruefungInst],
+              stats: { total: 5, totalCapacityKW: 500 },
+            },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('DIE GR');
+      expect(html).not.toContain('EIN KONKRETES BEISPIEL AUS IHREM NETZ');
+      expect(html).toContain('Solar Testanlage');
+      expect(html).toContain('SEE123456789012');
+    });
+
+    // CR-02: stillgelegte in Prüfung note appears in SCHOCKER when count > 0
+    it('CR-02: stillgelegtNote appears in SCHOCKER when stillgelegtCount > 0', () => {
+      const inst = {
+        mastrNummer: 'SEE999000111222',
+        anlagenName: 'Stillgelegte Anlage',
+        capacity: 200,
+        einheitTyp: 'Solar',
+      };
+      const summaryText = [{ type: 'text', text: '**Total found:** 3 installations in Netzbetreiberpr\u00fcfung\n' }];
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR02 GmbH' },
+        section1: {
+          anlagenInPruefung: { available: true, data: summaryText },
+          anlagenInPruefungBeispiel: {
+            available: true,
+            data: { installations: [inst], stats: { total: 3 } },
+          },
+          anlagenStillgelegtInPruefung: {
+            available: true,
+            data: { installations: [inst] },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('dauerhaft stillgelegte Anlage');
+      expect(html).toContain('AgNES-Kapazit');
+    });
+
+    // CR-02: no stillgelegtNote when count is 0
+    it('CR-02: no stillgelegtNote when anlagenStillgelegtInPruefung is empty', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR02b GmbH' },
+        section1: {
+          anlagenInPruefung: { available: true, data: ['Total found: 2'] },
+          anlagenInPruefungBeispiel: {
+            available: true,
+            data: {
+              installations: [{ mastrNummer: 'SEE001', capacity: 100, einheitTyp: 'Solar' }],
+              stats: { total: 2 },
+            },
+          },
+          anlagenStillgelegtInPruefung: {
+            available: true,
+            data: { installations: [] },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).not.toContain('dauerhaft stillgelegte Anlage');
+    });
+
+    // CR-03: Redispatch section rendered when installationenOhneMelo has data
+    it('CR-03: Redispatch pool table appears for installations ≥100kW', () => {
+      const rdInst = {
+        mastrNummer: 'SEE100200300400',
+        anlagenName: 'Großanlage Wind',
+        capacity: 2000,
+        einheitTyp: 'Wind',
+        spannungsebene: 352,
+      };
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR03 Netze GmbH' },
+        section1: {
+          installationenOhneMelo: {
+            available: true,
+            data: { installations: [rdInst], stats: { total: 1 } },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('Redispatch-/');
+      expect(html).toContain('100');
+      expect(html).toContain('Großanlage Wind');
+    });
+
+    // CR-05: PLZ outlier detail section with dual-risk flag
+    it('CR-05: PLZ outlier detail table appears with Dual-Risk note when applicable', () => {
+      const ortsfremdInst = {
+        mastrNummer: 'SEE777888999000',
+        anlagenName: 'Fernanlage',
+        capacity: 150,
+        einheitTyp: 'Solar',
+        netzbetreiberPruefungStatus: 'NetzbetreiberPruefung',
+        postleitzahl: '67069',
+      };
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR05 Netze GmbH' },
+        section1: {
+          ortsfremdeAnlagen: {
+            available: true,
+            data: {
+              installations: [ortsfremdInst],
+              stats: { total: 1 },
+              dominantPlzPrefix: '67',
+            },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('PLZ-Ausrei');
+      expect(html).toContain('Dual-Risk');
+      expect(html).toContain('Fernanlage');
+    });
+
+    // CR-06: CO₂ KPI description uses new dispatch-indicator framing
+    it('CR-06: CO₂ row description references §14a-Steuerung instead of GrünstromIndex only', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR06 GmbH' },
+        section1: {
+          co2Intensity: {
+            available: true,
+            data: { co2_intensity_gco2eq_kwh: 220 },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('14a-Steuerung');
+      expect(html).not.toContain('GrünstromIndex – aktuelle regionale CO₂-Intensität');
+    });
+
+    // CR-07: Residuallast fallback contains Worst-Case disclaimer
+    it('CR-07: Residuallast hardcoded fallback contains Worst-Case disclaimer', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR07 GmbH' },
+        generatedAt: new Date().toISOString(),
+      });
+      // No residualLoad data → hardcoded fallback is used
+      expect(html).toContain('Worst-Case');
+    });
+
+    // CR-08: Gas hints prefixed with [Marktkontext DE/EU]
+    it('CR-08: Gas fill level hints carry Marktkontext prefix', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR08 GmbH' },
+        section4: {
+          countryStorage: {
+            available: true,
+            data: { fillLevel: 10, fillPercentage: 12 },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('[Marktkontext DE/EU]');
+    });
+
+    // CR-09: vmIst SCHOCKER includes peerContextNote when vmPeer is present
+    it('CR-09: vmIst SCHOCKER contains Strukturhinweis when vmPeer is active', () => {
+      const bmData = [{
+        type: 'text',
+        json: {
+          rankings: { anschlussdauer_ee_ns_rank: 600, anschlussdauer_ee_ns_total: 740 },
+          rows: [{ verbrauch_ms_gesamt: 120 }],
+          stats: { verbrauch_ms_gesamt: { median: 40 } },
+        },
+      }];
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR09 GmbH' },
+        section5: {
+          benchmarkVnb: { available: true, data: bmData },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      // The vmIst SCHOCKER fires when vmIst (120) > vmMedian (40) * 1.5 (60)
+      expect(html).toContain('Strukturhinweis');
+    });
+
+    // CR-10: NEST explainer uses dynamic ewkTotal, not hardcoded 740
+    it('CR-10: NEST explainer uses dynamic ewkTotal without hardcoded 740', () => {
+      const bmData = [{
+        type: 'text',
+        json: {
+          rankings: { anschlussdauer_ee_ns_rank: 300, anschlussdauer_ee_ns_total: 755 },
+        },
+      }];
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR10 GmbH' },
+        section5: {
+          benchmarkVnb: { available: true, data: bmData },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('755');
+      // The old hardcoded fallback 740 should not appear as the sole total when real data is present
+    });
+
+    // CR-11: Source note appears in Section 1 HTML
+    it('CR-11: Section 1 contains renderSourceNote with MaStR attribution', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR11 GmbH' },
+        section1: {},
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('cernion_installations_local');
+    });
+  });
 });

@@ -1903,6 +1903,54 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         throw err;
       }
 
+      // ── CR-51: BDEW-only fallback – resolve SNB via gemeinde lookup ──────────
+      // When vnbLookup returns "source: not-found" (common for smaller VNBs like
+      // Stadtwerke Velbert), resolvedMastrId stays null and ALL MaStR-local queries
+      // are skipped (dataQualityBaseParams = null in Phase 3).
+      // Attempt to derive the SNB by querying cernion_installations_local with the
+      // city name extracted from the VNB name.
+      if (p.meta.resolvedBdew && !p.meta.resolvedMastrId) {
+        const cityGuess = p.meta.resolvedVnbName
+          .replace(
+            /\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi,
+            ''
+          )
+          .replace(/\s{2,}/g, ' ')
+          .trim()
+          .split(/\s+/)[0];
+        if (cityGuess && cityGuess.length > 2) {
+          this.logger.info(
+            `[UtilityReport] CR-51: No MaStR-ID from vnbLookup – trying gemeinde fallback: "${cityGuess}"`
+          );
+          try {
+            const localInst = await callMcpDirect(
+              'cernion_installations_local',
+              { type: 'all', gemeinde: cityGuess, limit: 5, includeStats: false, format: 'detailed' },
+              cernionToken
+            );
+            const insts =
+              localInst?.data?.installations ?? localInst?.data?.data?.installations ?? [];
+            // Walk results to find any NAP-linked SNB that matches our BDEW prefix
+            for (const inst of insts) {
+              const snb =
+                inst?.napData?.netzbetreiberMastrNummer ??
+                inst?.nap?.netzbetreiberMaStRNummer ??
+                null;
+              if (snb && snb.startsWith('SNB')) {
+                p.meta.resolvedMastrId = snb;
+                this.logger.info(
+                  `[UtilityReport] CR-51: SNB resolved via gemeinde fallback: ${snb} (${cityGuess})`
+                );
+                saveProgress(p);
+                break;
+              }
+            }
+          } catch (e) {
+            this.logger.warn(`[UtilityReport] CR-51: gemeinde fallback failed: ${e.message}`);
+          }
+        }
+      }
+
       // ──────────────────────────────────────────────────────────────────────────
       // PHASE 2: Metadata & Stammdaten
       // ──────────────────────────────────────────────────────────────────────────
@@ -2024,11 +2072,19 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           ? { gridOperatorMastrId: resolvedMastrId }
           : null;
 
-        // Run 4 queries in parallel: sample-for-PLZ, in-Prüfung count (summary), in-Prüfung example (detail), ≥100kW ohne MeLo
+        // Run 6 queries in parallel: sample-for-PLZ, in-Prüfung count (summary), in-Prüfung top-10 (detail),
+        //   stillgelegte-in-Prüfung (CR-SWF-002 CR-02), ≥100kW pool (CR-SWF-002 CR-03)
         // CR-CERNION-044 BUG-4/8:
         //   anlagenInPruefung: format:'summary' → parses "Total found: N" for accurate DB count (not bounded by limit)
-        //   anlagenInPruefungBeispiel: format:'detailed', limit:3, single-value filter → verified InPruefung example
-        const [sampleForPlz, anlagenInPruefung, anlagenInPruefungBeispiel, installationenOhneMelo] = await Promise.all([
+        //   anlagenInPruefungBeispiel: format:'detailed', limit:10, no status filter → top-10 InPruefung by capacity
+        // CR-SWF-002 CR-01: status:'InBetrieb' removed from count + example queries so stillgelegte are counted too.
+        const [
+          sampleForPlz,
+          anlagenInPruefung,
+          anlagenInPruefungBeispiel,
+          anlagenStillgelegtInPruefung,
+          installationenOhneMelo,
+        ] = await Promise.all([
           dataQualityBaseParams
             ? callMcpDirect(
                 'cernion_installations_local',
@@ -2048,9 +2104,8 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
                 {
                   ...dataQualityBaseParams,
                   // CR-CERNION-044 BUG-4: format:'summary' returns "Total found: N" = real MongoDB count.
-                  // Single string value (not array) to ensure the status filter is applied correctly.
+                  // CR-SWF-002 CR-01: No status filter – counts ALL InPruefung incl. DauerhaftStillgelegt.
                   netzbetreiberPruefungStatus: 'NetzbetreiberPruefung',
-                  status: 'InBetrieb',
                   format: 'summary',
                   includeStats: true,
                   limit: 1,
@@ -2063,14 +2118,30 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
                 'cernion_installations_local',
                 {
                   ...dataQualityBaseParams,
-                  // CR-CERNION-044 BUG-8: Separate query for example – filtered, smallest payload.
-                  // Single string value ensures example is guaranteed InPruefung.
+                  // CR-CERNION-044 BUG-8 / CR-SWF-002 CR-01:
+                  // No status filter → includes stillgelegte for complete top-10 by capacity.
+                  // limit:10 to populate top-10 table in report.
                   netzbetreiberPruefungStatus: 'NetzbetreiberPruefung',
-                  status: 'InBetrieb',
+                  format: 'detailed',
+                  includeStats: true,
+                  includeNapData: true,
+                  limit: 10,
+                },
+                cernionToken
+              )
+            : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
+          // CR-SWF-002 CR-02: Dauerhaft stillgelegte Anlagen mit offenem Prüfstatus.
+          // These require a separate MaStR cleanup (§6 EEG-Meldung) and distort AgNeS capacity balance.
+          dataQualityBaseParams
+            ? callMcpDirect(
+                'cernion_installations_local',
+                {
+                  ...dataQualityBaseParams,
+                  netzbetreiberPruefungStatus: 'NetzbetreiberPruefung',
+                  status: 'DauerhaftStillgelegt',
                   format: 'detailed',
                   includeStats: false,
-                  includeNapData: true,
-                  limit: 3,
+                  limit: 50,
                 },
                 cernionToken
               )
@@ -2132,9 +2203,11 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           emobilityImpact,
           gridLossAnalysis,
           transformerLoading,
-          anlagenInPruefung,           // format:'summary' – accurate count via parseMaStrLocalStats
-          anlagenInPruefungBeispiel,   // format:'detailed', limit:3 – verified InPruefung example
-          installationenOhneMelo,
+          anlagenInPruefung,              // format:'summary' – accurate count via parseMaStrLocalStats (all statuses)
+          anlagenInPruefungBeispiel,      // format:'detailed', limit:10 – top-10 InPruefung by capacity
+          anlagenStillgelegtInPruefung,   // CR-SWF-002 CR-02: DauerhaftStillgelegt + Prüfstatus open
+          installationenOhneMelo,         // ≥100 kW InBetrieb – Redispatch/§51 pool (CR-SWF-002 CR-03)
+          allInstallationsSample: sampleForPlz, // limit:100 InBetrieb – top-10 by capacity (CR-SWF-002 CR-04)
           ortsfremdeAnlagen,
         };
         saveProgress(p);
@@ -2151,7 +2224,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         });
 
         const windSolarActual = await callBroker(ctx, 'entsoe.windSolarActual', {
-          region: 'DE',
+          region: 'Germany',
           dateFrom: today,
           dateTo: today,
         });
@@ -2243,19 +2316,19 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         });
 
         const actualGeneration = await callBroker(ctx, 'entsoe.actualGeneration', {
-          region: 'DE',
+          region: 'Germany',
           dateFrom: today,
           dateTo: today,
         });
 
         const loadForecast = await callBroker(ctx, 'entsoe.loadForecast', {
-          region: 'DE',
+          region: 'Germany',
           dateFrom: today,
           dateTo: today,
         });
 
         const unavailability = await callBroker(ctx, 'entsoe.unavailability', {
-          region: 'DE',
+          region: 'Germany',
           dateFrom: today,
           dateTo: today,
         });
@@ -2391,20 +2464,44 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           includeCompetitiveAnalysis: true,
         });
 
-        const salesLeads = await callBroker(ctx, 'business-intelligence.salesLeads', {
-          // CR-06/12: Include all installation types (PV + Wallbox + WP + Speicher)
-          region: region || resolvedVnbName,
-          installationType: 'all',
-          daysBack: 90,
-          limit: 50,
-        });
+        // CR-52: region must be a geographic name, not the full company name.
+        // Derive city name from VNB name when no explicit region was provided.
+        const geoRegion =
+          region ||
+          resolvedVnbName
+            .replace(
+              /\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi,
+              ''
+            )
+            .replace(/\s{2,}/g, ' ')
+            .trim();
+
+        // CR-06/12: salesLeads service does NOT accept installationType:'all' – run 4 parallel calls
+        // and merge into a synthetic result that mirrors the single-call shape.
+        const salesLeadsTypes = ['solar', 'storage', 'wallbox', 'heatpump'];
+        const salesLeadsResults = await Promise.all(
+          salesLeadsTypes.map((t) =>
+            callBroker(ctx, 'business-intelligence.salesLeads', {
+              region: geoRegion || resolvedVnbName,
+              installationType: t,
+              daysBack: 90,
+              limit: 50,
+            })
+          )
+        );
+        // Merge: aggregate all available results; mark available=false only when ALL calls fail
+        const salesLeadsAny = salesLeadsResults.filter((r) => r.available !== false);
+        const salesLeads =
+          salesLeadsAny.length > 0
+            ? { available: true, data: salesLeadsAny.map((r) => r.data) }
+            : { available: false, error: salesLeadsResults.map((r) => r.error).join('; ') };
 
         const marketPenetration = await gated(
           availableTools,
           ['cernion_market_penetration_analysis'],
           () =>
             callBroker(ctx, 'business-intelligence.marketPenetration', {
-              region: region || resolvedVnbName,
+              region: geoRegion,
               ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
             })
         );
@@ -2417,7 +2514,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
               'cernion_prosumer_tariff_designer',
               {
                 customerSegment: 'all',
-                region: region || resolvedVnbName,
+                region: geoRegion || resolvedVnbName,
                 designGoal: 'customer-acquisition',
               },
               cernionToken
@@ -2433,7 +2530,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
               {
                 gridOperator: resolvedVnbName,
                 minCapacity: 100,
-                region: region || resolvedVnbName,
+                region: geoRegion || resolvedVnbName,
               },
               cernionToken
             )
@@ -2457,8 +2554,11 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
               'cernion_investment_business_case',
               {
                 gridOperator: resolvedVnbName,
-                scenario: 'grid-expansion',
+                // NOTE: omit 'scenario' param – it causes a server-side toUpperCase crash
+                // when the gridOperator cannot be resolved server-side (null scenario.toUpperCase()).
+                // The tool works without it and defaults to a full analysis.
                 region: region || resolvedVnbName,
+                ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
               },
               cernionToken
             )

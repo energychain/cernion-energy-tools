@@ -7,6 +7,97 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.29] - 2026-03-09
+
+### Fixed
+
+- **CR-SWF-2026-002 CR-01 [CRITICAL]: MaStR Prüfung count now includes all statuses**
+  Removed the `status: 'InBetrieb'` filter from `anlagenInPruefung` and `anlagenInPruefungBeispiel`
+  queries — previously suppressed stillgelegte/planned installations, showing 4 instead of 41.
+  SCHOCKER heading renamed to "DIE GRÖSSTE OFFENE PRÜFUNG IN IHREM NETZ"; type breakdown
+  (Solar·N / Speicher·N / …) and top-10 table added via new `renderMaStrTable()` helper.
+
+- **CR-SWF-2026-002 CR-02 [CRITICAL]: Stillgelegte Anlagen mit offenem Prüfstatus**
+  New parallel query `anlagenStillgelegtInPruefung` (status=DauerhaftStillgelegt) feeds a dedicated
+  table in Section 1 and a contextual note in the SCHOCKER block when count > 0.
+
+- **CR-SWF-2026-002 CR-03 [HIGH]: Dedicated Redispatch-/§51-Anlagenpool table in Section 1**
+  Top-10 installations ≥100 kW InBetrieb (sorted by capacity) rendered via `renderMaStrTable()`
+  with MaStR, Name, Typ, kW, Spannung, Ort, MeLo, Prüfung, Status columns.
+
+- **CR-SWF-2026-002 CR-04 [HIGH]: Top-10 largest InBetrieb installations table in Section 1**
+  `allInstallationsSample` (limit 10, includeStats: true) passed through service and rendered
+  as a sortable capacity-descending summary table.
+
+- **CR-SWF-2026-002 CR-05 [HIGH]: PLZ outlier detail table with MaStR references**
+  Ortsfremde Anlagen rendered with address, capacity, and a Dual-Risk badge (⚠️) when the
+  installation is both ortsfremd and has an open Prüfstatus.
+
+- **CR-SWF-2026-002 CR-06 [HIGH]: CO₂ framing reframed as §14a dispatch indicator**
+  Label changed from 'GrünstromIndex – aktuelle regionale CO₂-Intensität' to
+  'Aktueller regionaler Strommix – Echtzeit-Indikator für §14a-Steuerung und
+  Beschaffungsoptimierung (Quelle: GrünstromIndex)'.
+
+- **CR-SWF-2026-002 CR-07 [HIGH]: Residuallast cost formula carries Worst-Case disclaimer**
+  Both the 80 €/MWh fallback and the hardcoded formula fallback now append
+  '⚠️ Worst-Case-Schätzung – kein Planungswert' to prevent misuse as a budgeting figure.
+
+- **CR-SWF-2026-002 CR-08 [HIGH]: Gas fill-level action hints prefixed [Marktkontext DE/EU]**
+  All three fill-level action items (KRITISCH / moderate / green) now start with
+  '[Marktkontext DE/EU]' and the KPI description clarifies the national scope.
+
+- **CR-SWF-2026-002 CR-09 [HIGH]: vmIst SCHOCKER peer comparison includes Strukturhinweis**
+  When the VNB's Verbrauch-MS value is an outlier (>1.5× median) and a peer top-performer
+  exists, a contextual note '(Strukturhinweis: Ausreißerwert – Netzgröße und Prozessstruktur
+  berücksichtigen)' is appended to the PEER-VERGLEICH paragraph.
+
+- **CR-SWF-2026-002 CR-10 [MEDIUM]: NEST explainer uses dynamic ewkTotal with footnote**
+  Replaced hardcoded '740' VNB count with `ewkTotal ?? '?'` from live BNetzA-EWK data;
+  added footnote ¹ 'Gesamtzahl VNBs gemäß aktuellem BNetzA-EWK-Datensatz – typisch 730–750 VNBs'.
+
+- **CR-SWF-2026-002 CR-11 [MEDIUM]: renderSourceNote() helper + source attribution in Sections 1/4/5**
+  New `renderSourceNote(sources, retrievedAt)` helper renders a '📁 Quellen:' attribution line.
+  Called in Section 1 (MaStR/Cernion/CO₂ sources), Section 4 (AGSI gas storage), and
+  Section 5 (BNetzA EWK benchmark) to satisfy data-transparency requirements.
+
+- **[BUG] Report pipeline: `salesLeads` validation error with `installationType: 'all'`**
+  The pipeline passed `installationType: 'all'` to `business-intelligence.salesLeads`, but the
+  service only accepts `['solar', 'storage', 'wallbox', 'heatpump']`, causing a
+  `Parameters validation error!` on every run. Fixed by using `'solar'` as default type so
+  Section 6 salesLeads data is populated without validation rejection.
+
+- **[BUG] Report pipeline: `resolvedMastrId` always `null` for VNBs absent from vnbLookup registry**
+  When `grid-operations.vnbLookup` returns `source: not-found` (e.g. Stadtwerke Velbert BDEW
+  `9906863000008`), `resolvedMastrId` stayed `null`, silently skipping all MaStR-local queries in
+  Sections 1 & 2. Added a city-SNB fallback: queries `cernion_installations_local` with
+  `gemeinde: <cityToken>` and extracts the SNB from the first result's NAP data.
+  Example: Stadtwerke Velbert now resolves to `SNB974492211483`.
+
+- **[BUG] ENTSO-E `windSolarActual` / `loadForecast` crash with `region: 'DE'`**
+  Both tools threw `"Cannot read properties of undefined (reading 'toLowerCase')"` when passed
+  the ISO country code `'DE'`. The ENTSO-E resolver expects a country name; fixed by passing
+  `'Germany'` instead of `'DE'` for all ENTSO-E calls in the pipeline.
+
+- **[BUG] Section 7: `investmentBusinessCase` crashed with `toUpperCase` TypeError**
+  `cernion_investment_business_case` threw a `toUpperCase` TypeError server-side when
+  `scenario: 'grid-expansion'` matched no template. Mitigated locally via `callMcpDirect`'s
+  error wrapper — section renders with `{ available: false }` rather than aborting the pipeline.
+  Root cause is a Cernion MCP server-side bug (reported upstream).
+
+- **[BUG] Section 6/7: market tools received company name instead of geographic region**
+  `marketPenetration`, `prosumerTariff`, and `directMarketing` were passed `resolvedVnbName`
+  (e.g. `"Stadtwerke Velbert GmbH"`) as the `region` parameter. Added `geoRegion` derivation
+  that strips legal suffixes to extract the bare city token (e.g. `"Velbert"`) used as the
+  geographic fallback across all Section 6 & 7 MCP calls.
+
+- **[NOTE] Cernion MCP `cernion_nest_compliance_report` returns no results for any VNB**
+  Tool consistently returns `"✅ Query executed successfully – No results found"`. Identified as
+  a server-side data gap; Section 5 renders gracefully with `{ available: true, data: [] }`.
+
+- **[NOTE] Cernion MCP `agsi_eu_statistics` fails for `country: 'eu'`**
+  Returns `JOB_FAILED: No data found for country: eu`. Identified as a server-side bug; the
+  pipeline falls back to `gas-storage.euStatistics` correctly.
+
 ## [0.8.28] - 2026-03-08
 
 ### Fixed
