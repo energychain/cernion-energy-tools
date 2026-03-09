@@ -1406,7 +1406,8 @@ describe('Utility Report Service', () => {
         generatedAt: new Date().toISOString(),
       });
       expect(html).toContain('Datengrundlage: [BDEW 9907026000009] [MaStR SNB966216072913]');
-      expect(html).toContain('Bitte vor Weitergabe verifizieren');
+      // Note: "Bitte vor Weitergabe verifizieren" removed as per user request (all data sources public)
+      expect(html).toContain('Datengrundlage');
     });
 
     it('should render a red identity warning banner when identityMismatch exists (BUG-CERNION-042)', () => {

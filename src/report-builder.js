@@ -2465,8 +2465,8 @@ function renderSection5(s5, utilityName = 'Stadtwerke') {
     ),
     kpiRow(
       'DI-Bundesmedian (alle VNBs)',
-      (isAvail(s5, 'digitalisierungsindex') || isAvail(s5, 'benchmarkVnb')) && diMedianPct !== null
-        ? fmtPct(diMedianPct)
+      (isAvail(s5, 'digitalisierungsindex') || isAvail(s5, 'benchmarkVnb')) && diMedian !== null
+        ? fmtPct(asNumber(diMedian) * 100)
         : null,
       '',
       'Bundesmedian Digitalisierungsindex – Vergleichswert'
@@ -3913,9 +3913,8 @@ function buildHtmlReport(reportData) {
     ${coverSubtitle ? `<p style="font-size:11pt;opacity:.8;margin-top:2mm">${escapeHtml(coverSubtitle)}</p>` : ''}
     <p class="subtitle">Berichtsstand: ${escapeHtml(reportDate)}</p>
     ${meta.bdew ? `<p style="font-size:8pt;opacity:.55;margin-top:2mm;font-family:monospace">VNB-BDEW: ${escapeHtml(meta.bdew)}${marktRollenProfile?.lieferant?.bdew ? ` &nbsp;&middot;&nbsp; Lieferant: ${escapeHtml(marktRollenProfile.lieferant.bdew)}` : ''}</p>` : ''}
-    ${dataBasisLine ? `<p style="font-size:8pt;opacity:.7;margin-top:1.5mm;font-family:monospace">Datengrundlage: ${escapeHtml(dataBasisLine)} &nbsp;·&nbsp; Bitte vor Weitergabe verifizieren.</p>` : ''}
+    ${dataBasisLine ? `<p style="font-size:8pt;opacity:.7;margin-top:1.5mm;font-family:monospace">Datengrundlage: ${escapeHtml(dataBasisLine)}</p>` : ''}
     ${identityMismatch ? `<div style="margin-top:3mm;padding:2.5mm 3mm;border:2px solid #c0392b;border-radius:4px;background:#fff0ee;color:#922b21;font-size:8.5pt;line-height:1.45;max-width:150mm;"><strong>⚠️ IDENTITÄTSWARNUNG:</strong> BDEW- und MaStR-Zuordnung sind inkonsistent. ${escapeHtml(identityMismatch.message || 'Bitte VNB-Auswahl vor externer Weitergabe manuell prüfen.')}</div>` : ''}
-    <div class="badge">Vertraulich · Nur für internen Gebrauch</div>
     ${reportId ? `<p style="font-size:7pt;opacity:.4;margin-top:6mm">Report-ID: ${escapeHtml(reportId)}</p>` : ''}
   </div>
 </div>

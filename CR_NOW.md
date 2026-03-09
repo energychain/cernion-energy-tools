@@ -1,197 +1,140 @@
-# CR-CERNION-044 · Report Engine Quality
-## Cernion 360° Management Report – Offene Qualitätspunkte
-
-**Status:** OFFEN
-**Priorität:** P0 (BUG-4/8) · P1 (BUG-10, BUG-11) · P2 (BUG-12, BUG-13)
-**Demo-Frist:** 9. März 2026 · 23:59 Uhr (für Congress 10.03.2026)
-**Verifikationsbasis:** Cernion MCP Live · 8. März 2026 · SNB961745390019
+# Change Request CR-SWF-2026-003
+## 360° Management Report v2 – Stadtwerke Frankenthal GmbH
+### Delta-Prüfung nach Neuversand · 9. März 2026
 
 ---
 
-## 🔴 BUG-4 / BUG-8 · MaStR Prüfstatus: Falsche Zählung und falsches Beispiel
-**Priorität: P0 · Blocker**
+| Feld | Inhalt |
+|---|---|
+| **CR-Nummer** | CR-SWF-2026-003 |
+| **Datum** | 9. März 2026 |
+| **Bezug-Report-ID** | 51f51240-5eba-40fe-a712-0f6809f83c9e |
+| **Vorgänger-CR** | CR-SWF-2026-002 (8. März 2026) |
+| **VNB-BDEW / MaStR** | 9900191000003 · SNB961745390019 |
+| **Validierungsbasis** | Cernion MCP API – Live-Abfrage `cernion_installations_local` (9. März 2026) |
+| **Adressat** | Cernion Energy Intelligence / STROMDAO GmbH |
+| **Priorität gesamt** | 2× Kritisch · 3× Offen (aus CR-002 unverändert) |
+| **Ersteller** | Stadtwerke Frankenthal GmbH – Geschäftsführung |
 
-### Ist-Zustand
-Die Report Engine zeigt in SCHOCKER, Sektion 1 und Aktionsplan konsistent **5.000 Anlagen in Netzbetreiberprüfung**. Dieser Wert entspricht nicht dem echten Bestand, sondern dem internen Query-Limit der MaStR-Abfrage.
+---
 
-Zusätzlich wird `SEE911965100844` als Beispielanlage für eine Prüfungsproblem-Lage genannt. Diese Anlage hat laut MCP-Live-Abfrage Status **Geprüft ✅** und befindet sich nicht in Prüfung.
+## 1  Fortschritt gegenüber CR-SWF-2026-002
 
-| | Report-Ausgabe | MCP-Live (Wahrheit) |
+Von 12 geforderten Korrekturen wurden **7 vollständig oder weitgehend umgesetzt**. Dies wird ausdrücklich anerkannt.
+
+| CR-002-Punkt | Status v2 | Bemerkung |
 |---|---|---|
-| Anlagen in Prüfung | **5.000** | **41** |
-| Beispielanlage Status | „in Prüfung" | SEE911965100844 = **Geprüft ✅** |
-| Beispielanlage Quelle | ORDER BY capacity DESC | ORDER BY capacity DESC **ohne Prüfstatus-Filter** |
-
-### Root Cause
-```js
-// FEHLERHAFT: zwei entkoppelte Queries
-const count = await mastr.find(filter, { limit: 5000 }).then(r => r.length); // = 5000
-const beispiel = await mastr.findOne({ gridOperatorId });                      // kein Prüfstatus-Filter
-```
-
-### Fix
-```js
-// FIX-1: echter COUNT
-const count = await mastr.countDocuments({ gridOperatorId, pruefungStatus: 'InPruefung' });
-
-// FIX-2: Beispiel aus gefiltertem Datensatz
-const inPruefung = await mastr.find(
-  { gridOperatorId, pruefungStatus: 'InPruefung' },
-  { limit: 1, sort: { capacity: -1 } }
-);
-if (inPruefung.length === 0) return renderNoSchocker();
-const beispiel = inPruefung[0].mastrId;
-```
-
-### Akzeptanzkriterien
-- [ ] AC-1: Frankenthal-Report zeigt **41** Anlagen in Prüfung (MCP-verifiziert)
-- [ ] AC-2: Beispiel-MaStR-ID ist nachweislich `InPruefung`-Status
-- [ ] AC-3: Bei 0 Anlagen in Prüfung: SCHOCKER-Block wird nicht gerendert
-- [ ] AC-4: Zähler in Sektion 1, Briefing und Aktionsplan identisch (single source of truth)
-- [ ] AC-5: Regressionstest Gmünd-Report (SNB966216072913)
-
-**Aufwand:** FIX-1: ~15 min · FIX-2: ~30 min · Tests: ~30 min · **Gesamt ≤ 2 h**
+| CR-01 Anzahl Prüfungen | ⚠️ Teilweise | Interner Widerspruch – siehe CR-03-A unten |
+| CR-02 Stillgelegte mit Prüfstatus | ✅ Umgesetzt | Eigene Tabelle mit allen 4 Anlagen |
+| CR-03 Redispatch-Pool-Sektion | ⚠️ Teilweise | Tabelle vorhanden, aber neuer Datenfehler – siehe CR-03-B |
+| CR-04 Top-10 mit MaStR-Nummern | ✅ Umgesetzt | Vollständige Tabelle |
+| CR-05 PLZ-Ausreißer mit MaStR-Referenz | ❌ Offen | Weiterhin „–", keine konkreten Nummern |
+| CR-06 CO₂-Framing | ✅ Umgesetzt | Korrekt als §14a-Indikator gelabelt |
+| CR-07 Residuallast-Disclaimer | ✅ Umgesetzt | Caveat „Worst-Case-Schätzung" ergänzt |
+| CR-08 Gasfüllstand-Framing | ✅ Umgesetzt | Als „Marktkontext DE/EU – kein lokaler Netzindikator" |
+| CR-09 Baiersbronn-Extremwert | ✅ Umgesetzt | Strukturhinweis ergänzt |
+| CR-10 VNB-Grundgesamtheit | ❌ Offen | 740 vs. 698 weiterhin ohne Erklärung |
+| CR-11 Zeitstempel/Quellen | ✅ Teilweise | Quellenangaben je Abschnitt vorhanden |
+| CR-12 Ungenutzte Tools | ❌ Offen | Nicht adressiert |
 
 ---
 
-## 🟠 BUG-10 · PLZ-Ausreißer: Geobasierte Filterung statt Postleitzahl-Präfix
-**Priorität: P1**
+## 2  Neue und verbleibende Befunde
 
-### Problem
-Die Engine identifiziert ortsfremde Anlagen aktuell über einen PLZ-Präfix-Ausschluss (`≠ 672xx`). Diese Methode ist für kleine VNBs mit klar abgegrenzten Postleitzahlbereichen ausreichend, **aber bei größeren Stadtwerken strukturell falsch**:
+### 🔴 CR-03-A (Kritisch, NEU) – Interner Widerspruch: Drei verschiedene Prüfungszahlen im selben Report
 
-- Großstädte überspannen mehrere PLZ-Präfixe (z.B. Mannheim: 68xxx, Frankfurt: 60xxx–65xxx)
-- Netzgebiete folgen topografischen, nicht postalischen Grenzen
-- Ein Netz kann PLZ-gebiete nur teilweise abdecken → falsch-positive Ausreißer
-- Ein Nachbar-VNB kann im selben PLZ-Bereich operieren → falsch-negative Überschneidungen
+**Befund:**
+Im Report v2 erscheinen für die Anzahl der Anlagen in Netzbetreiberprüfung drei verschiedene, sich widersprechende Werte:
 
-**Im aktuellen Frankenthal-Fall funktioniert die PLZ-Methode**, weil das Kerngebiet exakt im 672xx-Bereich liegt. Als allgemeine Lösung ist sie jedoch nicht skalierbar.
+| Stelle im Report | Wert |
+|---|---|
+| Management Briefing (SOFORT-Abschnitt, Titel) | **4 Anlagen** |
+| Management Briefing (⚠️ Prüffristen, nächste Zeile) | **24 Anlagen / 2,2 MW** |
+| Aktionsplan (WOCHE 1–2) | **4 offene MaStR-Datenpunkte** |
+| **Live-Abfrage `cernion_installations_local` (9.3.2026)** | **41 Anlagen** |
 
-### Verfügbare bessere Datenquelle
-Die Cernion-Toolchain hat Zugriff auf **VNBDigital** (`vnbdigital_lookup`, `vnbdigital_search`), das die tatsächlichen Netzgebiets-Polygone nach Postleitzahl-ID und Gemeinde-ID enthält. Damit ist eine präzise geografische Abgrenzung möglich:
+Ein Report, der in sich selbst widersprüchlich ist, ist für die interne Kommunikation (Geschäftsführung, Aufsichtsrat) und für externe Zwecke (BNetzA-Korrespondenz, EWK-Dokumentation) nicht verwendbar.
+
+**Geforderte Maßnahme:**
+Einheitliche Zahl auf Basis der Live-Abfrage (41 Anlagen, ~2.354 kW gesamt) in allen Report-Sektionen. Die Schocker-Seite, das Management Briefing und der Aktionsplan müssen denselben Wert tragen. Aufschlüsselung nach Typ (24 Solar, 13 Speicher, 1 Wind, 3 Verbrennung) wie in CR-002 gefordert.
+
+**Frist:** Neuversand innerhalb von 5 Werktagen.
+
+---
+
+### 🔴 CR-03-B (Kritisch, NEU) – Falscher Prüfstatus Vestas V-80 in Redispatch-Tabelle
+
+**Befund:**
+In der neuen Redispatch-/§51-Tabelle wird die Windkraftanlage SEE995453733875 (13458, Vestas V-80, 2.000 kW, MS, Heuchelheim) unter der Spalte „Prüfung" mit **✅ (Geprüft)** ausgewiesen.
+
+Die Live-Abfrage vom 9. März 2026 ergibt eindeutig:
 
 ```
-1. vnbdigital_lookup(coordinates oder postcode_id) → liefert exaktes VNB-Polygon
-2. MaStR-Anlage.koordinaten → Punkt-in-Polygon-Test gegen VNB-Grenze
-3. Abweichung > 0 km vom Polygon → echter Ausreißer
+MaStR: SEE995453733875
+NB-Prüfung: In Prüfung ⏳
+Betriebsstatus: InBetrieb (seit 29.12.2002)
+Spannungsebene: Mittelspannung
 ```
 
-### Anforderung
-Die ortsfremde-Anlagen-Erkennung soll VNBDigital-Geodaten als primäre Quelle verwenden. PLZ-Präfix bleibt als Fallback erhalten, wenn keine Geodaten verfügbar sind.
+Das ist die **größte Einzelanlage im Netzgebiet** (2 MW = 2,8 % der gesamten installierten EE-Leistung) und die einzige Redispatch-pflichtige Windkraftanlage. Ihr seit über 20 Jahren offener Prüfstatus ist der kritischste Compliance-Befund des Netzgebiets – er darf nicht als „Geprüft" dargestellt werden.
 
-### Akzeptanzkriterien
-- [ ] AC-1: Für VNBs mit VNBDigital-Deckung wird Polygon-Test verwendet
-- [ ] AC-2: Korrekte Erkennung bei VNBs mit mehreren PLZ-Präfixen (Regressionstest mit Mannheim, Frankfurt)
-- [ ] AC-3: Fallback auf PLZ-Methode mit explizitem Hinweis `(Methode: PLZ-Näherung)` wenn kein VNBDigital-Polygon verfügbar
-- [ ] AC-4: Report-Text unterscheidet zwischen „außerhalb Netzgebiet (geo-verifiziert)" und „außerhalb PLZ-Bereich (Näherung)"
+**Auswirkung:**
+Ein Netzbetreiber, der aufgrund dieser Fehlanzeige keine Maßnahmen ergreift, riskiert ein §118-EnWG-Bußgeld und nicht abrechenbare Redispatch-Kosten (~3.000 €/Jahr nach §12 StromNZV).
 
-**Aufwand:** ~1 Tag (VNBDigital-Integration + Polygon-Test)
+**Geforderte Maßnahme:**
+- Prüfstatus in der Tabelle korrigieren auf: **⚠️ In Prüfung**
+- Zelle rot hervorheben
+- Hinweis: „Redispatch-pflichtig, Prüfstatus offen seit 29.12.2002 – sofortiger Handlungsbedarf"
+- Konsistenz mit der Top-10-Tabelle der offenen Prüfungen sicherstellen
 
----
-
-## 🟠 BUG-11 · "Analyse verfügbar" ohne Daten: Netzverluste und E-Mobilität
-**Priorität: P1**
-
-### Problem
-Zwei Kennzahlen in Sektion 1 zeigen `✓ Analyse verfügbar` ohne irgendeinen Datenpunkt anzuzeigen:
-
-| Kennzahl | Aktuell | Problem |
-|---|---|---|
-| Netzverluste (I²R) | `✓ Analyse verfügbar` | Führt sofort zu Nachfrage nach der Analyse |
-| E-Mobilität Netzauswirkung | `✓ Analyse verfügbar` | Gleiche Problematik |
-
-Der Text `✓ Analyse verfügbar` erzeugt beim Empfänger eine klare Erwartung: **Er möchte diese Analyse sehen.** Ohne Anzeige des Ergebnisses ist der Eintrag wertlos – und schlimmer: er provoziert eine Konversation über etwas, das nicht gezeigt wird.
-
-### Anforderung
-**Option A (bevorzugt):** Den Schlüsselkennwert der Analyse inline anzeigen.
-
-Beispiele:
-- Netzverluste: `✓ 2,3% der durchgeleiteten Energie (≈ 1,8 Mio. €/Jahr)`
-- E-Mobilität: `✓ 3 kritische Straßenzüge identifiziert · §14a-Relevanz: 12 Anlagen`
-
-**Option B (Fallback):** Wenn kein Inline-Wert verfügbar, keine Zeile anzeigen statt `✓ Analyse verfügbar`. Alternativ: Zeile bleibt, aber Text lautet `Analyse auf Anfrage` (kein Check-Emoji, das Verfügbarkeit suggeriert).
-
-### Akzeptanzkriterien
-- [ ] AC-1: Keine Zeile zeigt ausschließlich `✓ Analyse verfügbar` ohne Datenwert
-- [ ] AC-2: Netzverluste zeigt mindestens Verlustquote in % oder deaktiviert die Zeile
-- [ ] AC-3: E-Mobilität zeigt mindestens Anzahl kritischer Straßenzüge oder deaktiviert die Zeile
-
-**Aufwand:** ~4 h (Template-Logik + Daten-Mapping)
+**Frist:** Neuversand innerhalb von 5 Werktagen (identisch mit CR-03-A).
 
 ---
 
-## 🟡 BUG-12 · Residuallast-Kurve: 48h-Prognose unvollständig
-**Priorität: P2**
+### 🟠 CR-05 (Hoch, aus CR-002 offen) – PLZ-Ausreißer ohne MaStR-Referenz und Prüfstatus
 
-### Problem
-Die Kurve in Abbildung A zeigt den Titel **"Ist + 48h-Prognose"**, aber die Prognose-Datenpunkte (gepunktete Linie) sind leer – die Kurve fällt nach ~20:00 Uhr auf 0 MW und bleibt dort. Das sieht aus wie ein Datenfehler, nicht wie eine fehlende Funktion.
+**Befund:**
+Der Wert „Ortsfremde Anlagen (PLZ-Ausreißer)" ist in Report v2 weiterhin als **„–"** ausgewiesen. Dabei sind zwei konkrete Anlagen bekannt und durch Live-Abfrage validiert:
 
-### Erwartetes Verhalten
-- Wenn 48h-Prognosedaten vollständig verfügbar sind: vollständige Kurve anzeigen
-- Wenn nur 24h-Daten verfügbar sind: Diagrammtitel auf **"Ist + 24h-Prognose"** ändern und 24h-Zeitfenster darstellen
-- Wenn gar keine Prognosedaten verfügbar: nur Ist-Kurve mit Titel **"Ist (kein Prognose-Horizont verfügbar)"**
+| MaStR-Nr. | Typ | PLZ (ist) | PLZ (soll) | NAP | Prüfstatus |
+|---|---|---|---|---|---|
+| SEE954885337037 | Solar, 5,67 kW | 67069 | 672xx | SAN906305299067 | ⚠️ In Prüfung |
+| SEE936879976590 | Speicher, 3,84 kW | 67069 | 672xx | SAN906305299067 | ⚠️ In Prüfung |
 
-Das Diagramm soll immer konsistent mit den tatsächlich vorhandenen Daten betitelt sein. Ein leerer Prognoseteil ist schlimmer als kein Prognosetitel.
+Beide Anlagen teilen denselben NAP und dieselbe MeLo und sind zusätzlich in Netzbetreiberprüfung – eine Doppelproblematik, die im Fotojahr 2026 den AgNeS-Effizienzwert für 60 Monate belastet.
 
-### Akzeptanzkriterien
-- [ ] AC-1: Diagrammtitel entspricht immer dem tatsächlich dargestellten Zeithorizont
-- [ ] AC-2: Keine "leere" Prognose-Kurve (Nulllinie) bei fehlendem Datenhorizont
-- [ ] AC-3: Report-Zeitstempel und Prognosehorizont sind konsistent
+**Geforderte Maßnahme:**
+Tabelle mit MaStR-Nummer, tatsächlicher PLZ, NAP-Nummer und Prüfstatus. Wenn PLZ-Fehler und offener Prüfstatus zusammentreffen: explizite Kennzeichnung als Doppelrisiko.
 
-**Aufwand:** ~2 h (Template-Logik)
+**Frist:** Report v2.1.
 
 ---
 
-## 🟡 BUG-13 · Echtzeit-Daten: "verfügbar" statt Wert anzeigen
-**Priorität: P2**
+### 🔵 CR-10 (Mittel, aus CR-002 offen) – Inkonsistente VNB-Grundgesamtheit (740 vs. 698)
 
-### Problem
-Mehrere Felder zeigen `✓ Echtzeit-Daten verfügbar` oder `✓ Daten verfügbar` ohne den tatsächlichen Wert zum Berichtszeitpunkt:
+**Befund:**
+Unverändert gegenüber CR-002. Im Regulierungsteil wird „Rang 452/740" (Anschlussdauer) und „Rang 187/698" (Umsetzungsquote) nebeneinander ausgewiesen – 42 VNBs Differenz ohne jede Erläuterung.
 
-| Kennzahl | Aktuell | Sollte zeigen |
-|---|---|---|
-| Einspeisung Wind/Solar (Ist) | `✓ Echtzeit-Daten verfügbar` | z.B. `Solar: 9 MW · Wind: 2 MW (08.03.2026 10:55)` |
-| Regionaler Energiemix | `✓ Analyse verfügbar` | Prozentualer Mix zum Berichtszeitpunkt |
-| Tatsächliche Erzeugung (DE) | `✓ Daten verfügbar` | Aggregierter ENTSO-E-Wert in GW zum Berichtszeitpunkt |
-| Lastprognose (ENTSO-E) | `✓ Daten verfügbar` | Prognosewert für nächste 24h (Peak in GW) |
-
-### Hintergrund
-Diese Felder liefern keinen Mehrwert, solange keine Zahl sichtbar ist. Schlimmer: Der Empfänger sieht, dass Daten „verfügbar" sind – und fragt, warum sie nicht gezeigt werden. Für einen Report, der die Analysekompetenz von Cernion demonstrieren soll, ist ein reiner Verfügbarkeitshinweis das schlechtestmögliche Ergebnis.
-
-Der Wert zum **Berichtszeitstempel** dient gleichzeitig als Beleg dafür, dass die Datenquelle tatsächlich live abgefragt wurde – das ist ein Vertrauensbeweis gegenüber dem Kunden.
-
-### Anforderung
-Jede Zeile mit Live-Datenquelle zeigt den konkreten Wert zum Zeitpunkt der Report-Generierung, inklusive Zeitstempel in der Beschreibungsspalte.
-
-Beispielformat:
-```
-Einspeisung Wind/Solar (Ist) | Solar: 9 MW · Wind: 2 MW | ENTSO-E · Stand: 08.03.2026 10:55
-```
-
-### Akzeptanzkriterien
-- [ ] AC-1: Einspeisung Wind/Solar zeigt numerischen Wert (MW) + Zeitstempel
-- [ ] AC-2: Regionaler Energiemix zeigt prozentualen Mix oder mindestens dominante Technologie + Wert
-- [ ] AC-3: Tatsächliche Erzeugung (DE) zeigt ENTSO-E-Aggregatwert in GW
-- [ ] AC-4: Lastprognose zeigt Peak-Prognosewert für nächste 24h
-- [ ] AC-5: Alle Werte tragen Quellenangabe und Zeitstempel
-
-**Aufwand:** ~1 Tag (Template-Binding für bereits abgerufene Daten – Daten sind vorhanden, nur nicht gemappt)
+**Geforderte Maßnahme:**
+Fußnote mit Erklärung der abweichenden Teilmengen (z. B. unterschiedliche EWK-Erhebungsabschnitte). Alternativ: einheitliche Grundgesamtheit mit Hinweis auf Datenprovider.
 
 ---
 
-## Zusammenfassung
+### 🔵 CR-12 (Mittel, aus CR-002 offen) – Verfügbare Cernion-Tools nicht genutzt
 
-| CR | Titel | Prio | Aufwand | Demo-relevant |
-|---|---|---|---|---|
-| BUG-4/8 | MaStR Prüfstatus: falscher COUNT + falsches Beispiel | 🔴 P0 | ≤ 2 h | **JA** |
-| BUG-10 | PLZ-Ausreißer: VNBDigital-Geodaten statt PLZ-Präfix | 🟠 P1 | ~1 Tag | Nein |
-| BUG-11 | "Analyse verfügbar" ohne Datenwert | 🟠 P1 | ~4 h | **JA** |
-| BUG-12 | Residuallast-Kurve: Titel ≠ tatsächlicher Horizont | 🟡 P2 | ~2 h | Ja |
-| BUG-13 | Echtzeit-Felder zeigen Verfügbarkeit statt Wert | 🟡 P2 | ~1 Tag | Ja |
+**Befund:**
+Unverändert gegenüber CR-002. Sieben Tools mit nachgewiesenem fachlichem Mehrwert für Stadtwerke Frankenthal werden im Report nicht genutzt (Trafo-Auslastung, Redispatch-Export, EEG-Ablaufdaten, regionale Netto-Residuallast, stündliche CO₂-Intensität u. a.).
 
-**Gesamtaufwand bis Congress (P0+P1+P2):** ca. 2–3 Tage
+**Geforderte Maßnahme:**
+Roadmap-Abschnitt im Report mit Kennzeichnung „Modul verfügbar – auf Anfrage aktivierbar" statt undokumentiertem Weglassen.
 
 ---
 
-*CR-CERNION-044 · Cernion Energy Intelligence · 8. März 2026*
-*Verifikation: MCP Live SNB961745390019 · Berichtsstand v4 (Report-ID d4902a95)*
+## 3  Akzeptanzkriterien für Report v2.1
+
+- [ ] Eine einzige konsistente Prüfungszahl (41) in allen Report-Sektionen
+- [ ] SEE995453733875 in Redispatch-Tabelle als ⚠️ In Prüfung mit roter Hervorhebung
+- [ ] PLZ-Ausreißer mit MaStR-Nummern, NAP und Prüfstatus
+- [ ] Fußnote zur VNB-Grundgesamtheit (740 vs. 698)
+
+---
