@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.30] - 2026-03-09
+
+### Fixed
+
+- **Report runtime stability: suppress AbortSignal MaxListeners warnings under MCP concurrency**
+  Added an AbortController bootstrap patch so each new `AbortSignal` is created with unlimited
+  listener capacity. This removes noisy `MaxListenersExceededWarning` logs caused by concurrent
+  MCP SSE/fetch usage while preserving normal EventEmitter leak warnings.
+
+- **Report generation timeout behavior: no more indefinite pre-poll hangs**
+  `callWithAutoPoll()` now wraps the initial MCP call in a timeout race using `maxWaitTime`, so
+  long-running tools cannot block forever before returning a `job_id`.
+
+- **Report throughput: Sections 6–8 enrichment now parallelized and bounded**
+  Section 6/7/8 calls are executed in one `Promise.all` with `ENRICHMENT_TIMEOUT_MS` (default 90s)
+  instead of sequential 15-minute waits. This prevents cumulative timeout cascades and keeps report
+  generation responsive under degraded MCP conditions.
+
+- **CR-SWF-2026-003 CR-03-A [CRITICAL]: consistent open-prüfung count across report**
+  Unified deterministic use of the parsed MaStR total (`anlagenInPruefung`) across Management Briefing,
+  SCHOCKER, and 90-day action plan. AI narrative lines with potentially stale Prüfung/PLZ counts are
+  no longer merged into these canonical bullets.
+
+- **CR-SWF-2026-003 CR-03-B [CRITICAL]: Prüfung status classification corrected**
+  Replaced substring-based logic with robust status normalization (`pruefungStatusInfo`) so
+  `Geprüft` is not misclassified as `In Prüfung`. Redispatch table now shows explicit labels
+  (`⚠️ In Prüfung`, `✅ Geprüft`) and highlights real open-status rows correctly.
+
+- **CR-SWF-2026-003 CR-05 [HIGH]: PLZ outlier detail enriched with MaStR/NAP/status**
+  Added detailed PLZ outlier table columns: MaStR, Anlage, Typ, PLZ (ist), PLZ (soll), NAP,
+  Prüfstatus. Dual-risk detection now flags only true open-prüfung cases. Service-side PLZ prefix
+  extraction now considers multiple postal-code fields and no longer hard-filters to `InBetrieb`.
+
+- **CR-SWF-2026-003 CR-10 [MEDIUM]: denominator mismatch explanation (740 vs 698)**
+  Section 5 now renders a footnote when EWK denominator totals differ between Anschlussdauer and
+  Umsetzungsquote, explaining KPI-specific EWK sub-populations.
+
+- **CR-SWF-2026-003 CR-12 [MEDIUM]: module roadmap transparency**
+  Added a dedicated “Modul-Roadmap (verfügbar · auf Anfrage aktivierbar)” block in Section 8,
+  listing currently available optional modules instead of silent omission.
+
+### Tests
+
+- Added regression tests for CR-SWF-2026-003 items (CR-03-A, CR-03-B, CR-05, CR-10, CR-12).
+- Full suite passes: **845/845 tests**.
+
 ## [0.8.29] - 2026-03-09
 
 ### Fixed
