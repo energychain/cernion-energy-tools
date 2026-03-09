@@ -4,6 +4,27 @@
  * Main entry point for starting the Moleculer broker and services
  */
 
+const { setMaxListeners } = require('events');
+
+// ── Fix: MaxListenersExceededWarning from concurrent MCP/fetch abort signals ──
+// The MCP SDK's StreamableHTTPClientTransport passes each transport's
+// AbortController.signal to every fetch() call (POST tool calls AND SSE streams).
+// When a tool call returns a text/event-stream response, _handleSseStream() is
+// started without await, so the undici abort listener for that stream stays on
+// the signal until the SSE body is fully consumed in the background.
+// With 50+ parallel pipeline calls and sequential polling loops (pollJobResult),
+// listeners accumulate on the same signal and exceed Node.js's default limit (10).
+// Setting max listeners to 0 (unlimited) on every new AbortSignal is the targeted
+// fix: it only affects AbortSignal/EventTarget, not EventEmitter instances, so
+// real memory leaks in other event emitters are still detected.
+const _OriginalAbortController = global.AbortController;
+global.AbortController = class extends _OriginalAbortController {
+  constructor(...args) {
+    super(...args);
+    setMaxListeners(0, this.signal);
+  }
+};
+
 const { ServiceBroker } = require('moleculer');
 const config = require('./moleculer.config');
 const path = require('path');
