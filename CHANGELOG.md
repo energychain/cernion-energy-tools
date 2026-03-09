@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.31] - 2026-03-09
+
+### Fixed
+
+- **Report cover: confidentiality/internal-use disclaimer removed for public-source reports**
+  Removed the cover badge `Vertraulich · Nur für internen Gebrauch` to align with
+  the public data-source positioning of generated management reports.
+
+- **Report cover: transfer-verification disclaimer removed**
+  Removed `Bitte vor Weitergabe verifizieren` from the `Datengrundlage` line on the
+  cover page to avoid implying restricted internal distribution when only public data
+  sources are used.
+
+- **CR-SWV-2026-001 CR-06 [HIGH]: Digitalisierungsindex Bundesmedian scaling corrected**
+  Fixed percentage rendering for `DI-Bundesmedian (alle VNBs)` in Section 5 by using
+  the raw median value from EWK data with a single percent conversion path. This
+  prevents inflated displays such as `3000 %` and restores expected values (e.g. `30 %`).
+
+### Tests
+
+- Updated cover-page regression expectation to reflect removal of the transfer-verification
+  disclaimer while keeping `Datengrundlage` and BDEW/MaStR provenance assertions.
+
 ## [0.8.30] - 2026-03-09
 
 ### Fixed
