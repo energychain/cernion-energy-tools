@@ -2172,8 +2172,14 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
             sampleForPlz.data?.installations || sampleForPlz.data?.data?.installations || [];
           const plzCounts = {};
           for (const inst of sampleInsts) {
-            const pfx = String(inst.postleitzahl || '').slice(0, 3);
-            if (pfx.length === 3) plzCounts[pfx] = (plzCounts[pfx] || 0) + 1;
+            const rawPlz =
+              inst?.postleitzahl ??
+              inst?.plz ??
+              inst?.address?.postalCode ??
+              inst?.napData?.postleitzahl ??
+              '';
+            const pfx = String(rawPlz).slice(0, 3);
+            if (/^\d{3}$/.test(pfx)) plzCounts[pfx] = (plzCounts[pfx] || 0) + 1;
           }
           const dominantPrefix = Object.entries(plzCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
           if (dominantPrefix) {
@@ -2182,7 +2188,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
               {
                 ...dataQualityBaseParams,
                 postleitzahlNot: dominantPrefix,
-                status: 'InBetrieb',
+                // CR-SWF-2026-003 CR-05: include all statuses so open-pruefung outliers are never hidden
                 format: 'detailed',
                 includeStats: true,
                 includeNapData: true,

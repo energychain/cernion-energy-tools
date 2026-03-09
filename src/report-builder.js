@@ -111,6 +111,30 @@ function spannungLabel(raw) {
   return raw.length > 6 ? raw.slice(0, 4) : raw;
 }
 
+/** Normalize Netzbetreiber-Prüfstatus to avoid false positives ("Geprüft" ≠ "In Prüfung"). */
+function pruefungStatusInfo(raw) {
+  const s = String(raw ?? '').toLowerCase();
+  const compact = s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '');
+
+  const isInPruefung =
+    s === '2955' ||
+    compact === '2955' ||
+    compact.includes('inprufung') ||
+    compact.includes('netzbetreiberprufung') ||
+    compact.includes('netzbetreiber-prufung');
+
+  const isGeprueft =
+    s === '2954' || compact === '2954' || compact.includes('gepruft') || compact.includes('geprueft');
+
+  if (isInPruefung) return { isInPruefung: true, label: '⚠️ In Prüfung' };
+  if (isGeprueft) return { isInPruefung: false, label: '✅ Geprüft' };
+  if (!compact) return { isInPruefung: false, label: '–' };
+  return { isInPruefung: false, label: 'ℹ️ n/v' };
+}
+
 /** Render a compact MaStR installation table as HTML. */
 function renderMaStrTable(installations, opts = {}) {
   const {
@@ -150,10 +174,11 @@ function renderMaStrTable(installations, opts = {}) {
     const ort = i?.ort ?? i?.city ?? i?.gemeinde ?? '';
     const hasMelo = i?.napData != null || i?.meloId != null || i?.melo != null;
     const pruefStatus = i?.netzbetreiberPruefungStatus ?? i?.pruefungStatus ?? '';
-    const isInPruefung = String(pruefStatus).toLowerCase().includes('pruef') || pruefStatus === '2955';
+    const pruefInfo = pruefungStatusInfo(pruefStatus);
+    const isInPruefung = pruefInfo.isInPruefung;
     const betriebStatus = i?.betriebsStatus ?? i?.status ?? '';
     const isStillgelegt = String(betriebStatus).toLowerCase().includes('stillgelegt') || betriebStatus === '38';
-    const rowStyle = (highlightPruefung && isInPruefung) ? ' style="background:#fff3f3;"' : '';
+    const rowStyle = highlightPruefung && isInPruefung ? ' style="background:#fff3f3;"' : '';
     return `<tr${rowStyle}>
       ${showMastr ? `<td style="font-size:7pt;font-family:monospace">${escapeHtml(mastr)}</td>` : ''}
       <td>${escapeHtml(String(name).slice(0, 35))}</td>
@@ -162,7 +187,7 @@ function renderMaStrTable(installations, opts = {}) {
       ${showSpannung ? `<td>${escapeHtml(span)}</td>` : ''}
       ${showOrt ? `<td>${escapeHtml(String(ort).slice(0, 20))}</td>` : ''}
       ${showMelo ? `<td style="text-align:center">${hasMelo ? '✅' : '❌'}</td>` : ''}
-      ${showPruefung ? `<td style="text-align:center">${isInPruefung ? '⚠️' : '✅'}</td>` : ''}
+      ${showPruefung ? `<td style="text-align:center;color:${isInPruefung ? '#c0392b' : '#2c3e50'};font-weight:${isInPruefung ? '700' : '500'}">${escapeHtml(pruefInfo.label)}</td>` : ''}
       ${showStatus ? `<td>${isStillgelegt ? '🔴 Still.' : '🟢 IB'}</td>` : ''}
     </tr>`;
   }).join('');
@@ -403,8 +428,8 @@ function extractComplianceSignals(section1 = {}, section5 = {}) {
   const di = extractEwkJson(safeData(section5, 'digitalisierungsindex'));
   const uq = extractEwkJson(safeData(section5, 'umsetzungsquote'));
 
-  const adRow = ad?.rows?.[0] ?? bm?.rows?.[0] ?? {};
-  const adStats = ad?.stats ?? bm?.stats ?? {};
+  const adRow = ad?.rows?.[0] ?? bm?.rows?.[0] ?? bm?.anschlussdauer ?? bm?.anschlussdauer?.vnb ?? {};
+  const adStats = ad?.stats ?? bm?.stats ?? bm?.anschlussdauer?.stats ?? {};
   // CR-CERNION-043 BUG-1: Use benchmarkVnb as single authoritative source for DI to prevent inconsistency.
   // Fallback chain: benchmarkVnb (unified) → dedicated di endpoint.
   // This ensures 30% rating + median is always consistent across Section 5, Section 8, and action plan.
@@ -651,9 +676,9 @@ function renderActionPlan(section1 = {}, section5 = {}, generatedAt = new Date()
       `□ PLZ-Ausreißer korrigieren (${s.ortsfremdCount} Anlagen${s.dominantPlzPrefix ? ` außerhalb ${s.dominantPlzPrefix}xx` : ''}) · Owner: Netzplanung · Frist: ${plusDays(21)}`
     );
   }
-  if (s.pruefungCount > 0 || s.ortsfremdCount > 0) {
+  if (s.pruefungCount > 0) {
     weekItems.push(
-      `□ FOTOJAHR-ALERT: ${s.pruefungCount + s.ortsfremdCount} offene MaStR-Datenpunkte vor Stichtag bereinigen · Wirkung: bis zu 60 Monate auf EWK/EO`
+      `□ FOTOJAHR-ALERT: ${s.pruefungCount} offene Netzbetreiber-Prüfungen vor Stichtag bereinigen · Wirkung: bis zu 60 Monate auf EWK/EO`
     );
   }
 
@@ -1206,7 +1231,7 @@ function renderSection1(s1, s3 = {}) {
     }
   }
 
-  // CR-SWF-002 CR-03: Redispatch-/\u00a751-Anlagenpool \u226510 0 kW with open Pr\u00fcfstatus highlighted
+  // CR-SWF-002/003 CR-03: Redispatch-/§51-Anlagenpool ≥100 kW with explicit open-pruefung callout
   let redispatchSectionHtml = '';
   if (isAvail(s1, 'installationenOhneMelo')) {
     const rdData = safeData(s1, 'installationenOhneMelo');
@@ -1215,41 +1240,91 @@ function renderSection1(s1, s3 = {}) {
       const rdTop = [...rdInsts]
         .sort((a, b) => (asNumber(b?.capacity) ?? 0) - (asNumber(a?.capacity) ?? 0))
         .slice(0, 20);
+      const criticalOpen = rdTop.filter((inst) => {
+        const inPr = pruefungStatusInfo(
+          inst?.netzbetreiberPruefungStatus ?? inst?.netzbetreiberPruefung ?? inst?.pruefungStatus ?? ''
+        ).isInPruefung;
+        const cap = asNumber(inst?.capacity ?? inst?.leistungKw ?? inst?.leistung) ?? 0;
+        return inPr && cap >= 1000;
+      });
+      const criticalNote = criticalOpen.length
+        ? `<p style="color:#c0392b;font-weight:700;font-size:8pt;">⚠️ Redispatch-pflichtig, Prüfstatus offen – sofortiger Handlungsbedarf: ${criticalOpen
+            .slice(0, 3)
+            .map((x) => `${escapeHtml(x?.mastrNummer ?? 'n/v')}${x?.inbetriebnahme ? ` (seit ${escapeHtml(String(x.inbetriebnahme))})` : ''}`)
+            .join(', ')}.</p>`
+        : '';
       redispatchSectionHtml = `
-        <h3 class="sub-sub" style="margin-top:4mm;">Redispatch-/\u00a751-Anlagenpool \u2265100\u00a0kW (InBetrieb)</h3>
+        <h3 class="sub-sub" style="margin-top:4mm;">Redispatch-/§51-Anlagenpool ≥100 kW (InBetrieb)</h3>
         ${renderMaStrTable(rdTop, {
           showMastr: true, showTyp: true, showSpannung: true, showMelo: true,
           showStatus: false, showPruefung: true, highlightPruefung: true,
-          caption: 'Grundlage: cernion_installations_local \u00b7 \u2265100\u00a0kW \u00b7 Status InBetrieb \u00b7 offene Pr\u00fcfung hervorgehoben',
+          caption: 'Grundlage: cernion_installations_local · ≥100 kW · Status InBetrieb · offene Prüfung hervorgehoben',
           maxRows: 20,
-        })}`;
+        })}
+        ${criticalNote}`;
     }
   }
 
-  // CR-SWF-002 CR-05: PLZ outliers with MaStR references + dual-risk flag
+  // CR-SWF-002/003 CR-05: PLZ outliers with explicit MaStR / NAP / Prüfstatus table
   let plzDetailSectionHtml = '';
   if (isAvail(s1, 'ortsfremdeAnlagen')) {
     const ortsfremdDetail = safeData(s1, 'ortsfremdeAnlagen');
     const ortsfremdDetailInsts =
       ortsfremdDetail?.installations ?? ortsfremdDetail?.data?.installations ?? [];
+    const plzPrefix = s1?.ortsfremdeAnlagen?.dominantPlzPrefix ?? null;
     if (Array.isArray(ortsfremdDetailInsts) && ortsfremdDetailInsts.length > 0) {
-      const dualRiskCount = ortsfremdDetailInsts.filter((inst) => {
-        const ps = String(inst?.netzbetreiberPruefungStatus ?? inst?.netzbetreiberPruefung ?? '');
-        return ps.toLowerCase().includes('pr') || ps === '2955';
-      }).length;
+      const dualRiskCount = ortsfremdDetailInsts.filter((inst) =>
+        pruefungStatusInfo(
+          inst?.netzbetreiberPruefungStatus ?? inst?.netzbetreiberPruefung ?? inst?.pruefungStatus ?? ''
+        ).isInPruefung
+      ).length;
       const dualRiskNote =
         dualRiskCount > 0
-          ? `<p style="color:#c0392b;font-weight:600;font-size:8pt;">\u26a0\ufe0f ${dualRiskCount} davon haben gleichzeitig offenen Pr\u00fcfstatus (Dual-Risk: PLZ-Fehler + Pr\u00fcfstatus offen).</p>`
+          ? `<p style="color:#c0392b;font-weight:600;font-size:8pt;">⚠️ ${dualRiskCount} davon sind Dual-Risk-/Doppelrisiko-Fälle (PLZ-Fehler + offene Netzbetreiber-Prüfung).</p>`
           : '';
+
+      const plzRows = ortsfremdDetailInsts.slice(0, 50).map((inst) => {
+        const info = pruefungStatusInfo(
+          inst?.netzbetreiberPruefungStatus ?? inst?.netzbetreiberPruefung ?? inst?.pruefungStatus ?? ''
+        );
+        const nap =
+          inst?.napData?.mastrNummer ??
+          inst?.napData?.napNummer ??
+          inst?.netzanschlusspunktMastrNummer ??
+          '–';
+        const plzIst =
+          inst?.postleitzahl ??
+          inst?.plz ??
+          inst?.address?.postalCode ??
+          inst?.napData?.postleitzahl ??
+          '–';
+        const plzSoll = plzPrefix ? `${plzPrefix}xx` : 'VNB-Kerngebiet';
+        const rowStyle = info.isInPruefung ? ' style="background:#fff3f3;"' : '';
+        return `<tr${rowStyle}>
+          <td style="font-size:7pt;font-family:monospace">${escapeHtml(inst?.mastrNummer ?? '–')}</td>
+          <td>${escapeHtml(String(inst?.anlagenName ?? inst?.name ?? '–').slice(0, 30))}</td>
+          <td>${escapeHtml(typLabel(inst?.einheitTyp ?? inst?.type ?? inst?.typ ?? ''))}</td>
+          <td>${escapeHtml(String(plzIst))}</td>
+          <td>${escapeHtml(String(plzSoll))}</td>
+          <td style="font-size:7pt;font-family:monospace">${escapeHtml(String(nap))}</td>
+          <td style="text-align:center;color:${info.isInPruefung ? '#c0392b' : '#2c3e50'};font-weight:${info.isInPruefung ? '700' : '500'}">${escapeHtml(info.label)}</td>
+        </tr>`;
+      }).join('');
+
       plzDetailSectionHtml = `
-        <h3 class="sub-sub" style="margin-top:4mm;">Ortsfremde Anlagen \u2013 PLZ-Ausrei\u00dfer mit MaStR-Referenz</h3>
+        <h3 class="sub-sub" style="margin-top:4mm;">Ortsfremde Anlagen – PLZ-Ausreißer mit MaStR-/NAP-Referenz</h3>
         ${dualRiskNote}
-        ${renderMaStrTable(ortsfremdDetailInsts, {
-          showMastr: true, showTyp: true, showSpannung: false, showMelo: false,
-          showStatus: true, showPruefung: true, highlightPruefung: true,
-          caption: 'Grundlage: cernion_installations_local \u00b7 PLZ au\u00dferhalb VNB-Kerngebiet \u00b7 Dual-Risk hervorgehoben',
-          maxRows: 20,
-        })}`;
+        <div style="overflow-x:auto;margin:2mm 0;">
+          <table style="width:100%;border-collapse:collapse;font-size:8pt;">
+            <caption style="font-size:8pt;color:#666;caption-side:top;text-align:left;padding-bottom:2mm;">Grundlage: cernion_installations_local · PLZ außerhalb VNB-Kerngebiet · inkl. NAP und Prüfstatus · Dual-Risk markiert</caption>
+            <thead>
+              <tr style="background:#f0f3f6;">
+                <th>MaStR</th><th>Anlage</th><th>Typ</th><th>PLZ (ist)</th><th>PLZ (soll)</th><th>NAP</th><th>Prüfstatus</th>
+              </tr>
+            </thead>
+            <tbody>${plzRows}</tbody>
+          </table>
+        </div>`;
     }
   }
 
@@ -2438,6 +2513,15 @@ function renderSection5(s5, utilityName = 'Stadtwerke') {
     ),
   ];
 
+  const uqTotalRef =
+    uqJson?.umsetzungsquote?.umsetzungsquote_ee_ns_total ??
+    bmJson?.rankings?.umsetzungsquote_ee_ns_total ??
+    null;
+  const ewkBaseDiffNote =
+    ewkTotal !== null && uqTotalRef !== null && ewkTotal !== uqTotalRef
+      ? `<p style="font-size:8pt;color:#6c757d;margin-top:2mm;">¹ Hinweis zur Grundgesamtheit: Anschlussdauer nutzt ${ewkTotal} VNBs, Umsetzungsquote ${uqTotalRef} VNBs. Ursache sind unterschiedliche EWK-Teilpopulationen (nur VNBs mit vollständigen Meldedaten je KPI).</p>`
+      : '';
+
   let chartHtml = '';
   if (hasAdChart) {
     const chartLabels = JSON.stringify(['Dieser VNB', 'Bundesmedian']);
@@ -2745,6 +2829,7 @@ function renderSection5(s5, utilityName = 'Stadtwerke') {
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">BNetzA-Monitoring, EIC-Register, MaKo-Stammdaten und §14a-Pflichten.</p>
     ${renderNestExplainer(ewkRank, ewkTotal, utilityName, vnbAnschlussdauer, diMedianPct)}
     ${kpiTable(rows)}
+    ${ewkBaseDiffNote}
     ${anschlussdauerMatrixHtml}
     ${actionHint('Handlungsempfehlung Regulierung & Compliance', ewkHints)}
     ${chartHtml}
@@ -3488,11 +3573,24 @@ function renderSection8(s8, allPartners = [], marktRollenProfile = null) {
     );
   }
 
+  const moduleRoadmap = `
+    <h3 class="sub-sub" style="margin-top:4mm;">Modul-Roadmap (verfügbar · auf Anfrage aktivierbar)</h3>
+    <div style="font-size:8.7pt;line-height:1.6;border:1px solid #e1e4e8;border-radius:4px;padding:2.5mm 3mm;background:#fbfcfe;">
+      □ Trafo-Auslastungsprognose (NEST-CAPEX) – Modul verfügbar, auf Anfrage aktivierbar<br>
+      □ Redispatch-Export (≥100 kW, MaStR-Detail) – Modul verfügbar, auf Anfrage aktivierbar<br>
+      □ EEG-Ablaufdaten / Post-EEG-Potenziale – Modul verfügbar, auf Anfrage aktivierbar<br>
+      □ Regionale Netto-Residuallast (stündlich) – Modul verfügbar, auf Anfrage aktivierbar<br>
+      □ Stündliche CO₂-Intensität (§14a Dispatch) – Modul verfügbar, auf Anfrage aktivierbar<br>
+      □ E-Mobility Netzauswirkung (kritische Straßenzüge) – Modul verfügbar, auf Anfrage aktivierbar<br>
+      □ Grid-Loss-Analyse (I²R monetarisiert) – Modul verfügbar, auf Anfrage aktivierbar
+    </div>`;
+
   return `
     <h1 class="section-title"><span class="section-number">8</span>Digitalisierung &amp; Systemübersicht</h1>
     <p style="font-size:9pt;color:#6c757d;margin-bottom:3mm;">Systemstatus, EIC-Register und Infrastruktur-Monitoring.</p>
     ${kpiTable(rows)}
     ${actionHint('Handlungsempfehlung Digitalisierung', s8Hints)}
+    ${moduleRoadmap}
     ${renderMarktpartnerRegistry(allPartners)}
     ${renderMarktrollenProfile(marktRollenProfile)}`;
 }
@@ -3553,9 +3651,15 @@ function renderManagementSummary(summaryText, utilityName, section1 = {}, sectio
       .slice(0, 6);
     for (const line of lines) {
       const lower = line.toLowerCase();
+      // CR-SWF-2026-003 CR-03-A: keep report-wide numeric consistency.
+      // Do not import AI text lines that may carry stale/conflicting counts for
+      // Prüfung/PLZ/Fotojahr into deterministic briefing bullets.
+      if (/(prüfung|pruefung|ma?str|fotojahr|plz|ausreißer|ausreisser)/.test(lower)) {
+        continue;
+      }
       if (/stärk|top|vorteil|exzellenz|unter median|gut/.test(lower)) {
         if (staerken.length < 3) staerken.push(line);
-      } else if (/sofort|kritisch|bußgeld|frist|prüfung|fotojahr|engpass/.test(lower)) {
+      } else if (/sofort|kritisch|bußgeld|frist|engpass/.test(lower)) {
         if (sofort.length < 3) sofort.push(line);
       } else if (quartal.length < 3) {
         quartal.push(line);

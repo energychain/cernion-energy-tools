@@ -2536,5 +2536,129 @@ describe('Utility Report Service', () => {
       });
       expect(html).toContain('cernion_installations_local');
     });
+
+    // CR-03-A (CR-SWF-2026-003): single consistent pruefung count in briefing + action plan
+    it('CR-03-A: uses one consistent pruefung count across briefing and action plan', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR03A GmbH' },
+        section1: {
+          anlagenInPruefung: {
+            available: true,
+            data: [{ type: 'text', text: '**Total found:** 41 installations\n' }],
+          },
+          anlagenInPruefungBeispiel: {
+            available: true,
+            data: { installations: [{ mastrNummer: 'SEE1', capacity: 100 }] },
+          },
+          ortsfremdeAnlagen: {
+            available: true,
+            data: { installations: [{ mastrNummer: 'SEE2' }] },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('41 Anlagen in Netzbetreiberprüfung binnen 14 Tagen');
+      expect(html).toContain('FOTOJAHR-ALERT: 41 offene Netzbetreiber-Prüfungen');
+    });
+
+    // CR-03-B (CR-SWF-2026-003): Geprüft must not be marked as In Prüfung
+    it('CR-03-B: redispatch table distinguishes Geprüft from In Prüfung', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR03B GmbH' },
+        section1: {
+          installationenOhneMelo: {
+            available: true,
+            data: {
+              installations: [
+                {
+                  mastrNummer: 'SEE995453733875',
+                  anlagenName: 'Vestas V-80',
+                  capacity: 2000,
+                  netzbetreiberPruefungStatus: 'In Prüfung',
+                  inbetriebnahme: '29.12.2002',
+                },
+                {
+                  mastrNummer: 'SEE111',
+                  anlagenName: 'Geprüfte Anlage',
+                  capacity: 1500,
+                  netzbetreiberPruefungStatus: 'Geprüft',
+                },
+              ],
+            },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('⚠️ In Prüfung');
+      expect(html).toContain('✅ Geprüft');
+      expect(html).toContain('Redispatch-pflichtig, Prüfstatus offen');
+    });
+
+    // CR-05 (CR-SWF-2026-003): PLZ table includes MaStR, NAP and pruefstatus
+    it('CR-05: PLZ outlier detail table shows NAP and pruefstatus', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR05b GmbH' },
+        section1: {
+          ortsfremdeAnlagen: {
+            available: true,
+            dominantPlzPrefix: '672',
+            data: {
+              installations: [
+                {
+                  mastrNummer: 'SEE954885337037',
+                  einheitTyp: 'Solar',
+                  postleitzahl: '67069',
+                  napData: { mastrNummer: 'SAN906305299067' },
+                  netzbetreiberPruefungStatus: 'In Prüfung',
+                },
+              ],
+            },
+          },
+        },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('PLZ (ist)');
+      expect(html).toContain('PLZ (soll)');
+      expect(html).toContain('SAN906305299067');
+      expect(html).toContain('⚠️ In Prüfung');
+    });
+
+    // CR-10 (CR-SWF-2026-003): explain denominator differences (740 vs 698)
+    it('CR-10: renders denominator explanation when EWK totals differ', () => {
+      const bmData = [{
+        type: 'text',
+        json: {
+          rankings: {
+            anschlussdauer_ee_ns_rank: 452,
+            anschlussdauer_ee_ns_total: 740,
+            umsetzungsquote_ee_ns_rank: 187,
+            umsetzungsquote_ee_ns_total: 698,
+          },
+          umsetzungsquote: { umsetzungsquote_ee_ns: 1 },
+          anschlussdauer: { ee_ns_gesamt: 47 },
+          digitalisierungsindex: { gesamtscore: 0.3, smart_grids: 0.1 },
+        },
+      }];
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR10b GmbH' },
+        section5: { benchmarkVnb: { available: true, data: bmData } },
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('Hinweis zur Grundgesamtheit');
+      expect(html).toContain('Anschlussdauer nutzt 740 VNBs');
+      expect(html).toContain('Umsetzungsquote 698 VNBs');
+    });
+
+    // CR-12 (CR-SWF-2026-003): roadmap block for available optional modules
+    it('CR-12: section 8 contains module roadmap block', () => {
+      const html = buildHtmlReport({
+        meta: { utilityName: 'CR12 GmbH' },
+        section8: {},
+        generatedAt: new Date().toISOString(),
+      });
+      expect(html).toContain('Modul-Roadmap (verfügbar · auf Anfrage aktivierbar)');
+      expect(html).toContain('Trafo-Auslastungsprognose');
+      expect(html).toContain('Regionale Netto-Residuallast');
+    });
   });
 });
