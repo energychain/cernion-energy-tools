@@ -9,10 +9,12 @@ module.exports = {
   ],
   coverageThreshold: {
     global: {
-      branches: 30, // Temporarily lowered due to new assets.service.js (needs test coverage in future releases)
-      functions: 50,
-      lines: 50,
-      statements: 50,
+      // Maintenance milestone (Release N): staged ramp-up target.
+      // Release N+1 target: branches 60, functions 75, lines 75, statements 75.
+      branches: 55,
+      functions: 70,
+      lines: 70,
+      statements: 70,
     },
   },
   testMatch: ['**/tests/**/*.test.js', '**/__tests__/**/*.js'],

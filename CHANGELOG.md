@@ -7,6 +7,109 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.32] - 2026-03-12
+
+### Changed
+
+- **Maintenance milestone kickoff: staged quality-gate ramp (Release N)**
+  Increased Jest global coverage thresholds from `30/50/50/50` to `55/70/70/70`
+  (branches/functions/lines/statements) with a documented N+1 ramp target.
+
+- **Testing scripts: explicit unit/integration/e2e split**
+  Added `test:unit` and `test:e2e`, and tightened `test:integration` to
+  `*.integration.test.js` only.
+
+- **Repository hygiene: stale entrypoint cleanup**
+  Replaced legacy placeholder logic in `src/index.js` with a deprecation shim
+  that delegates to the real root entrypoint.
+
+- **Developer tooling: debug launch target corrected**
+  Updated VS Code launch config to start `index.js` instead of legacy
+  `src/index.js`.
+
+- **Operational logging fix: Swagger startup URL corrected**
+  API Gateway startup log now prints the correct Swagger endpoint
+  `/api/docs` (was `/docs`).
+
+- **CI baseline added**
+  Added GitHub Actions maintenance workflow running unit coverage gates,
+  integration-test discovery sanity check, OpenAPI audit, and advisory
+  dependency security audit.
+
+- **OpenAPI quality gate hardened**
+  `scripts/audit-openapi.js` now exits non-zero on findings, supports `rest`
+  object syntax, ignores internal `$$` params, handles union param schemas,
+  and avoids false positives for path/query params documented outside request bodies.
+
+- **Operational hardening via env-driven broker settings**
+  Moleculer reliability and observability controls are now configurable via
+  environment variables (`REQUEST_TIMEOUT_MS`, retry policy, circuit breaker,
+  bulkhead, tracking, metrics, tracing) for safer production rollout.
+
+- **Security automation baseline added**
+  Added GitHub Dependabot configuration and a CodeQL workflow for continuous
+  dependency and static security analysis.
+
+- **Fail-safe logging hardening for async polling**
+  `src/async-job-poller.js` now uses debug-gated logging with redaction and
+  truncation to avoid excessive log volume and accidental sensitive-data
+  exposure. Added `ASYNC_POLLER_DEBUG` and `ASYNC_POLLER_LOG_MAX_CHARS` controls.
+
+- **Error redaction hardening (gateway + MCP client)**
+  Added centralized sanitization for token-bearing error messages in
+  `services/api.service.js` and `src/mcp-client.js` to prevent leaking Bearer,
+  query-token, or MCP-path token fragments in responses/logged errors.
+
+- **CI security policy tightened for pull requests**
+  Added an enforced critical vulnerability audit gate (`npm audit --audit-level=critical`)
+  on PRs while keeping high-level advisory audit reporting.
+
+- **CI test-run stability hardening**
+  Added `test:unit:ci` (`--runInBand --forceExit`) and switched maintenance CI to
+  use it, preventing intermittent Jest open-handle hangs from blocking pipelines.
+
+- **Default port documentation consistency**
+  Aligned `.env.example` and Bearer-auth documentation examples to the default
+  local runtime port `3000` and corrected Swagger docs path examples to `/api/docs`.
+
+- **Maintenance acceptance checklist added**
+  Added `docs/MAINTENANCE_MILESTONE_CHECKLIST.md` as a pass/fail gate list for
+  tests, docs, OSS hygiene, security, fail-safe operations, and resource efficiency.
+
+- **Security audit remediation + policy split**
+  Applied available `npm audit fix` updates and reduced audit findings to a
+  single upstream `xlsx` advisory with no current fix. CI/security scripts now
+  use a blocking `critical` gate plus separate `high` advisory reporting.
+
+- **Release gate consolidation**
+  Added `npm run release:check` to execute the core maintenance release gates
+  (unit coverage, OpenAPI audit, critical security audit) in one command.
+
+### Documentation
+
+- **Quickstart fixed**: replaced missing `./test-integration-services.sh` with
+  `npm run test:integration` and optional `npm run test:e2e`.
+
+- **README script catalog updated** with `test:unit`, `test:integration`,
+  `test:e2e`, `audit:openapi`, and `audit:security`.
+
+- **Auth docs clarified**: both Bearer header and `token` parameter are allowed;
+  Bearer is recommended for production to minimize URL/log token exposure.
+
+- **Token fallback behavior covered by tests**
+  Added MCP client tests for custom-token precedence over env token and
+  env-token fallback when no custom token is provided.
+
+- **OpenAPI completeness fixes (agent + utility report)**
+  Added missing request examples, path parameter examples, and explicit
+  requestBody declarations for body-less POST actions used by rebuild flows.
+
+- **Configuration hardening tests added**
+  Added unit tests for env-driven Moleculer reliability/observability toggles
+  to validate safe defaults and boolean/number parsing behavior.
+
+- **Security policy updated**: supported security-fix release line aligned to `0.8.x`.
+
 ## [0.8.31] - 2026-03-09
 
 ### Fixed

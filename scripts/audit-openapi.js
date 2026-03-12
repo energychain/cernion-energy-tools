@@ -14,8 +14,16 @@ files.forEach((fname) => {
   const svc = require(path.join(servicesDir, fname));
   Object.entries(svc.actions || {}).forEach(([name, action]) => {
     if (!action.rest) return;
-    const method = action.rest.split(' ')[0];
-    const endpoint = action.rest.split(' ')[1];
+    let method = 'POST';
+    let endpoint = '/';
+    if (typeof action.rest === 'string') {
+      const parts = action.rest.split(' ');
+      method = parts[0] || method;
+      endpoint = parts[1] || endpoint;
+    } else if (typeof action.rest === 'object') {
+      method = action.rest.method || method;
+      endpoint = action.rest.path || endpoint;
+    }
     const ob = action.openapi;
     if (!ob) {
       console.log('NO_OPENAPI  ' + fname + '  ' + name);
@@ -36,10 +44,31 @@ files.forEach((fname) => {
         if (!schema) {
           issues.push('MISSING schema in requestBody');
         } else {
+          const nonBodyParams = (ob.parameters || [])
+            .filter(function (p) {
+              return p && (p.in === 'path' || p.in === 'query');
+            })
+            .map(function (p) {
+              return p.name;
+            });
           // Check required[] matches params that are not optional
           const requiredParams = Object.entries(action.params || {})
             .filter(function (e) {
-              return !e[1].optional;
+              const key = e[0];
+              const def = e[1];
+              if (key.startsWith('$$')) return false; // internal Moleculer params
+              if (nonBodyParams.indexOf(key) !== -1) return false; // documented outside request body
+              if (Array.isArray(def)) {
+                // multi-type union; treat as optional if any branch is optional
+                const hasOptionalBranch = def.some(function (r) {
+                  return r && typeof r === 'object' && r.optional === true;
+                });
+                return !hasOptionalBranch;
+              }
+              if (typeof def !== 'object' || def === null) return true;
+              // params with defaults are effectively optional for request bodies
+              if (def.default !== undefined) return false;
+              return !def.optional;
             })
             .map(function (e) {
               return e[0];
@@ -82,7 +111,9 @@ files.forEach((fname) => {
 
     if (method === 'GET') {
       // GET: check parameters array if params exist
-      const paramKeys = Object.keys(action.params || {});
+      const paramKeys = Object.keys(action.params || {}).filter(function (k) {
+        return !k.startsWith('$$');
+      });
       if (paramKeys.length > 0) {
         const oaParams = ob.parameters || [];
         const documented = oaParams.map(function (p) {
@@ -119,3 +150,7 @@ files.forEach((fname) => {
 });
 
 console.log('\n=== Total issues: ' + totalIssues + ' ===');
+
+if (totalIssues > 0) {
+  process.exitCode = 1;
+}

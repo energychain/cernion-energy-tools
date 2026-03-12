@@ -145,6 +145,38 @@ describe('API Gateway Service', () => {
       expect(ctx.meta.cernionToken).toBe('body-token');
       expect(req.body.token).toBeUndefined();
     });
+
+    it('should sanitize secrets in onError response payload', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const res = {
+        _status: null,
+        _headers: {},
+        _body: '',
+        setHeader: jest.fn(function (key, value) {
+          this._headers[key] = value;
+        }),
+        writeHead: jest.fn(function (status) {
+          this._status = status;
+        }),
+        end: jest.fn(function (body) {
+          this._body = body;
+        }),
+      };
+
+      apiRoute.onError({}, res, {
+        code: 500,
+        message:
+          'Failed Bearer abc123 and https://mcp.cernion.de/verySecretToken/mcp?token=querySecret',
+        type: 'MCP_ERROR',
+      });
+
+      const payload = JSON.parse(res._body);
+      expect(payload.message).toContain('Bearer [REDACTED]');
+      expect(payload.message).toContain('https://mcp.cernion.de/[REDACTED]/mcp');
+      expect(payload.message).not.toContain('abc123');
+      expect(payload.message).not.toContain('verySecretToken');
+      expect(payload.message).not.toContain('querySecret');
+    });
   });
 
   describe('Methods', () => {

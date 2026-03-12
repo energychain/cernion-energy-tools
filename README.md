@@ -24,8 +24,8 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - [CHANGELOG.md](CHANGELOG.md) - Release notes and notable changes
 - [MCP_TOOLS.md](MCP_TOOLS.md) - MCP tool reference
 - [MCP_SERVICES.md](MCP_SERVICES.md) - Microservice-to-tool mapping
-- [ASYNC_JOB_POLLING.md](ASYNC_JOB_POLLING.md) - Async job handling
 - [BEARER_TOKEN_AUTHENTICATION.md](BEARER_TOKEN_AUTHENTICATION.md) - Auth guide
+- [docs/MAINTENANCE_MILESTONE_CHECKLIST.md](docs/MAINTENANCE_MILESTONE_CHECKLIST.md) - Pre-milestone quality/security gate checklist
 - [SECURITY.md](SECURITY.md) - Security policy and disclosure
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community guidelines
 
@@ -212,6 +212,16 @@ Copy `.env.example` to `.env` and edit:
 | `CERNION_TOKEN` | — | Cernion MCP token ([request here](https://cernion.de/) or email dev@stromdao.com) |
 | `NAMESPACE` | — | Moleculer namespace for service isolation |
 | `TRANSPORTER` | — | Message transporter (NATS, Redis, MQTT, …) |
+| `REQUEST_TIMEOUT_MS` | `900000` | Broker request timeout in ms |
+| `RETRY_POLICY_ENABLED` | `false` | Enable broker-level retries for retryable errors |
+| `CIRCUIT_BREAKER_ENABLED` | `false` | Enable circuit breaker protection |
+| `BULKHEAD_ENABLED` | `false` | Enable bulkhead concurrency protection |
+| `METRICS_ENABLED` | `false` | Enable Moleculer metrics collection |
+| `TRACING_ENABLED` | `false` | Enable Moleculer tracing |
+| `ASYNC_POLLER_DEBUG` | `false` | Enable verbose async job poller debug logging |
+| `ASYNC_POLLER_LOG_MAX_CHARS` | `400` | Max chars for poller debug payload snippets |
+
+For complete operational options (retry backoff, circuit-breaker thresholds, bulkhead queue limits), see [.env.example](.env.example).
 
 ### Moleculer Configuration
 
@@ -229,8 +239,22 @@ Edit `moleculer.config.js` to customise logger settings, transporter, cacher, ci
 | `npm run lint:fix` | Auto-fix ESLint issues |
 | `npm run format` | Format code with Prettier |
 | `npm test` | Run full test suite with coverage |
+| `npm run test:unit` | Run unit/service tests with coverage thresholds |
+| `npm run test:unit:ci` | CI-safe unit run (`--runInBand --forceExit`) |
+| `npm run test:integration` | Run integration tests (`*.integration.test.js`) |
+| `npm run test:e2e` | Run live end-to-end integration test (`assets.integration.test.js`) |
 | `npm run test:custom` | Run custom tests (no coverage threshold) |
 | `npm run test:watch` | Watch mode |
+| `npm run audit:openapi` | Audit OpenAPI request/parameter quality |
+| `npm run audit:security` | Run blocking dependency audit (critical severity) |
+| `npm run audit:security:advisory` | Run advisory dependency audit (high+) |
+| `npm run release:check` | Run core release gates (unit coverage, OpenAPI, critical security audit) |
+
+### Operational Profiles
+
+- Local development: keep reliability toggles off (`RETRY_POLICY_ENABLED=false`, `CIRCUIT_BREAKER_ENABLED=false`, `BULKHEAD_ENABLED=false`).
+- Production baseline: enable at least `CIRCUIT_BREAKER_ENABLED=true` and `BULKHEAD_ENABLED=true` after validation in staging.
+- Incident debugging: temporarily enable `ASYNC_POLLER_DEBUG=true` with conservative `ASYNC_POLLER_LOG_MAX_CHARS`.
 
 ## Service Architecture
 
@@ -291,8 +315,10 @@ The API Gateway (`services/api.service.js`) provides:
 2. Update `CHANGELOG.md`
 3. Run tests: `npm test` (must pass with coverage thresholds)
 4. Run lint: `npm run lint`
-5. Ensure `custom-services/`, `custom-tests/`, `.sessions/`, and `.env` are not committed
-6. Commit, tag, and push: see [Release Process in copilot-instructions](.github/copilot-instructions.md)
+5. Run OpenAPI audit: `npm run audit:openapi`
+6. Run dependency security audit: `npm run audit:security`
+7. Ensure `custom-services/`, `custom-tests/`, `.sessions/`, and `.env` are not committed
+8. Commit, tag, and push: see [Release Process in copilot-instructions](.github/copilot-instructions.md)
 
 ## Contributing
 

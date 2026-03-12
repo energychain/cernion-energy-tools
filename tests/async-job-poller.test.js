@@ -14,6 +14,10 @@ const {
 } = require('../src/async-job-poller');
 
 describe('Async Job Poller', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   describe('detectAsyncJob', () => {
     it('should detect job ID in response.jobId', () => {
       const response = { jobId: 'test-job-123', status: 'queued' };
@@ -113,6 +117,19 @@ describe('Async Job Poller', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual({ ok: true });
+    });
+
+    it('should not emit debug logs by default', async () => {
+      const logSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+
+      callWithNewSession.mockResolvedValueOnce({ success: true, data: { ok: true } });
+
+      const result = await callWithAutoPoll('test_tool', { foo: 'bar' });
+
+      expect(result.success).toBe(true);
+      expect(logSpy).not.toHaveBeenCalledWith(expect.stringContaining('[AsyncJobPoller]'));
+
+      logSpy.mockRestore();
     });
   });
 });

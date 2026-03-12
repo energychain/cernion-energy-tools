@@ -8,6 +8,49 @@
 
 const CernionMCPClient = require('./mcp-client');
 
+const POLLER_DEBUG = ['1', 'true', 'yes', 'on'].includes(
+  String(process.env.ASYNC_POLLER_DEBUG || '').toLowerCase()
+);
+const POLLER_LOG_MAX_CHARS = Number(process.env.ASYNC_POLLER_LOG_MAX_CHARS || 400);
+
+function debugLog(message, payload) {
+  if (!POLLER_DEBUG) return;
+  if (payload === undefined) {
+    console.log(`[AsyncJobPoller] ${message}`);
+    return;
+  }
+  console.log(`[AsyncJobPoller] ${message}`, payload);
+}
+
+function sanitizeForLog(value, depth = 0) {
+  if (value === null || value === undefined) return value;
+  if (depth > 4) return '[MaxDepth]';
+  if (Array.isArray(value)) return value.slice(0, 10).map((v) => sanitizeForLog(v, depth + 1));
+  if (typeof value !== 'object') return value;
+
+  const redacted = {};
+  for (const [key, val] of Object.entries(value)) {
+    if (/token|authorization|bearer|api[-_]?key|password|secret/i.test(key)) {
+      redacted[key] = '[REDACTED]';
+    } else {
+      redacted[key] = sanitizeForLog(val, depth + 1);
+    }
+  }
+  return redacted;
+}
+
+function summarizeForLog(value, maxChars = POLLER_LOG_MAX_CHARS) {
+  try {
+    const sanitized = sanitizeForLog(value);
+    const str = JSON.stringify(sanitized);
+    if (!str) return '';
+    if (str.length <= maxChars) return str;
+    return `${str.slice(0, maxChars)}…`;
+  } catch {
+    return '[UnserializablePayload]';
+  }
+}
+
 /**
  * Poll an async job until completion
  *
@@ -30,7 +73,7 @@ async function pollJobUntilComplete(jobId, options = {}) {
   const startTime = Date.now();
   let lastStatus = null;
 
-  console.log(`[AsyncJobPoller] Starting poll for job ${jobId}, maxWaitTime=${maxWaitTime}ms`);
+  debugLog(`Starting poll for job ${jobId}, maxWaitTime=${maxWaitTime}ms`);
 
   while (Date.now() - startTime < maxWaitTime) {
     try {
@@ -43,11 +86,8 @@ async function pollJobUntilComplete(jobId, options = {}) {
         token
       );
 
-      // Debug: log raw response structure
-      console.log(
-        `[AsyncJobPoller] Raw status response:`,
-        JSON.stringify(statusResponse, null, 2).substring(0, 500)
-      );
+      // Debug-only raw structure summary (redacted + truncated)
+      debugLog(`Raw status response: ${summarizeForLog(statusResponse)}`);
 
       const status =
         statusResponse.status ||
@@ -56,9 +96,9 @@ async function pollJobUntilComplete(jobId, options = {}) {
         statusResponse.data?.state ||
         statusResponse.metadata?.status;
 
-      // Always log status for debugging
-      console.log(
-        `[AsyncJobPoller] Job ${jobId} status: ${status || 'undefined'} (elapsed: ${Date.now() - startTime}ms)`
+      // Status logging is debug-only to avoid noisy logs in production
+      debugLog(
+        `Job ${jobId} status: ${status || 'undefined'} (elapsed: ${Date.now() - startTime}ms)`
       );
 
       // Call status update callback if provided and status changed
@@ -74,7 +114,7 @@ async function pollJobUntilComplete(jobId, options = {}) {
 
       // Check if job is complete
       if (status === 'succeeded' || status === 'completed' || status === 'success') {
-        console.log(`[AsyncJobPoller] Job ${jobId} completed successfully, fetching result...`);
+        debugLog(`Job ${jobId} completed successfully, fetching result...`);
 
         // Job completed - the statusResponse itself might already be the result
         // if it contains data beyond just status info
@@ -84,7 +124,7 @@ async function pollJobUntilComplete(jobId, options = {}) {
             statusResponse.data.installations ||
             statusResponse.data.results)
         ) {
-          console.log(`[AsyncJobPoller] Result already in status response, returning directly`);
+          debugLog(`Result already in status response, returning directly`);
           return {
             success: !statusResponse.data.error,
             data: statusResponse.data,
@@ -141,7 +181,7 @@ async function pollJobUntilComplete(jobId, options = {}) {
       await sleep(pollInterval);
     } catch (error) {
       // Error checking status
-      console.error(`[AsyncJobPoller] Error polling job ${jobId}:`, error.message);
+      debugLog(`Error polling job ${jobId}: ${error.message}`);
       if (Date.now() - startTime >= maxWaitTime) {
         return {
           success: false,
@@ -244,15 +284,13 @@ async function callWithAutoPoll(toolName, params, pollOptions = {}, token = null
 
   if (jobId) {
     // Async job detected - poll until complete
-    console.log(`[AsyncJobPoller] Detected async job: ${jobId} for tool: ${toolName}`);
+    debugLog(`Detected async job: ${jobId} for tool: ${toolName}`);
 
     const result = await pollJobUntilComplete(jobId, {
       ...pollOptions,
       token, // Pass token through to polling
       onStatusUpdate: (update) => {
-        console.log(
-          `[AsyncJobPoller] Job ${jobId} status: ${update.status} (elapsed: ${update.elapsed}ms)`
-        );
+        debugLog(`Job ${jobId} status: ${update.status} (elapsed: ${update.elapsed}ms)`);
         if (pollOptions.onStatusUpdate) {
           pollOptions.onStatusUpdate(update);
         }

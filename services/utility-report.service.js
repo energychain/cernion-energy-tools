@@ -777,6 +777,15 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
                   },
                 },
               },
+              examples: {
+                frankenthalOptions: {
+                  summary: 'Find BDEW options for Stadtwerke Frankenthal',
+                  value: {
+                    utilityName: 'Stadtwerke Frankenthal',
+                    region: 'Frankenthal',
+                  },
+                },
+              },
             },
           },
         },
@@ -1095,6 +1104,18 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         summary: 'Poll generation status of a utility report',
         tags: ['Utility Report'],
         description: 'Returns current phase, completion percentage and any errors.',
+        parameters: [
+          {
+            name: 'reportId',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              example: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+            },
+            description: 'Report UUID returned by /utility-report/generate',
+          },
+        ],
         responses: {
           200: {
             description: 'Report status',
@@ -1238,6 +1259,36 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           'Reads the stored `.progress.json` for the given reportId and re-runs ' +
           '`buildHtmlReport()` to overwrite the `.html` file. Instant – no MCP calls needed. ' +
           'Useful after a report-builder bug fix to refresh already-generated reports.',
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                description: 'No request body required for this endpoint.',
+                properties: {},
+              },
+              examples: {
+                noBody: {
+                  summary: 'No payload needed',
+                  value: {},
+                },
+              },
+            },
+          },
+        },
+        parameters: [
+          {
+            name: 'reportId',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              example: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+            },
+            description: 'Report UUID to rebuild',
+          },
+        ],
         responses: {
           200: { description: 'Report re-rendered successfully' },
           404: { description: 'No progress data found for reportId' },
@@ -1319,6 +1370,24 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         description:
           'Iterates every `.progress.json` in the reports directory and re-renders the HTML ' +
           'for every completed report. Returns a summary with counts of rebuilt/skipped/failed entries.',
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                description: 'No request body required for this endpoint.',
+                properties: {},
+              },
+              examples: {
+                noBody: {
+                  summary: 'No payload needed',
+                  value: {},
+                },
+              },
+            },
+          },
+        },
         responses: {
           200: { description: 'Batch rebuild summary' },
         },
@@ -1366,6 +1435,18 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         tags: ['Utility Report'],
         description:
           'Returns the raw HTML document. Open in a browser and use Print → Save as PDF.',
+        parameters: [
+          {
+            name: 'reportId',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'string',
+              example: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+            },
+            description: 'Report UUID to download',
+          },
+        ],
         responses: {
           200: { description: 'HTML report document' },
           404: { description: 'Report not found or not yet complete' },

@@ -1,16 +1,27 @@
 # Bearer Token Authentication
 
 **Date**: February 7, 2026
-**Feature**: Optional Bearer token authentication for REST API requests
+**Feature**: Optional request-level token authentication for REST API requests
 
 ## Overview
 
-The REST API Gateway now supports optional Bearer token authentication, allowing API consumers to specify custom Cernion MCP tokens on a per-request basis. This enables:
+The REST API Gateway supports optional request-level token authentication, allowing API consumers to specify custom Cernion MCP tokens per request. Supported input methods are:
+
+- `Authorization: Bearer <token>` header
+- `token` request parameter (query/body/path)
+
+This enables:
 
 - **Multi-tenant scenarios**: Different API consumers with their own Cernion quotas
 - **User-specific tokens**: Individual users authenticate with their own tokens
 - **Flexible authentication**: Choose between shared token (from `.env`) or per-request tokens
-- **Graceful fallback**: If no Bearer token provided, uses `CERNION_TOKEN` from environment
+- **Graceful fallback**: If no request token is provided, uses `CERNION_TOKEN` from environment
+
+### Security note
+
+Both methods are supported for compatibility. For production and internet-facing clients,
+prefer the Bearer header because query parameters can leak via browser history, reverse-proxy
+logs, access logs, and shared URLs.
 
 ## Authentication Flow
 
@@ -72,7 +83,7 @@ The REST API Gateway now supports optional Bearer token authentication, allowing
 ### 1. With Bearer Token (Custom Quota)
 
 ```bash
-curl -X POST http://localhost:3900/api/grid-operations/grid-data \
+curl -X POST http://localhost:3000/api/grid-operations/grid-data \
   -H 'Content-Type: application/json' \
   -H 'Authorization: Bearer your-custom-cernion-token-here' \
   -d '{
@@ -88,7 +99,7 @@ curl -X POST http://localhost:3900/api/grid-operations/grid-data \
 ### 2. Without Bearer Token (Environment Fallback)
 
 ```bash
-curl -X POST http://localhost:3900/api/grid-operations/grid-data \
+curl -X POST http://localhost:3000/api/grid-operations/grid-data \
   -H 'Content-Type: application/json' \
   -d '{
     "dataType": "load",
@@ -103,7 +114,7 @@ curl -X POST http://localhost:3900/api/grid-operations/grid-data \
 ### 3. JavaScript/TypeScript Client
 
 ```javascript
-const API_BASE = 'http://localhost:3900/api';
+const API_BASE = 'http://localhost:3000/api';
 const BEARER_TOKEN = 'your-custom-token';
 
 async function getGridData(params) {
@@ -132,7 +143,7 @@ const result = await getGridData({
 ```python
 import requests
 
-API_BASE = 'http://localhost:3900/api'
+API_BASE = 'http://localhost:3000/api'
 BEARER_TOKEN = 'your-custom-token'
 
 def get_grid_data(params, token=None):
@@ -182,7 +193,7 @@ security:
   - BearerAuth: []  # Optional Bearer token authentication
 ```
 
-**Access OpenAPI docs**: http://localhost:3900/docs
+**Access OpenAPI docs**: http://localhost:3000/api/docs
 
 ## Implementation Details
 
@@ -406,7 +417,7 @@ curl -X POST http://api/grid-operations/grid-data \
 # Remove CERNION_TOKEN from environment
 unset CERNION_TOKEN
 
-curl -X POST http://localhost:3900/api/grid-operations/grid-data \
+curl -X POST http://localhost:3000/api/grid-operations/grid-data \
   -d '{"dataType": "load", "region": "Bayern"}'
 ```
 
@@ -425,7 +436,7 @@ curl -X POST http://localhost:3900/api/grid-operations/grid-data \
 
 **Request**:
 ```bash
-curl -X POST http://localhost:3900/api/grid-operations/grid-data \
+curl -X POST http://localhost:3000/api/grid-operations/grid-data \
   -H "Authorization: Bearer invalid-token-12345" \
   -d '{"dataType": "load", "region": "Bayern"}'
 ```
@@ -508,14 +519,14 @@ app.use((req, res, next) => {
 
 ```bash
 # Test with Bearer token
-curl -X POST http://localhost:3900/api/system/status \
+curl -X POST http://localhost:3000/api/system/status \
   -H "Authorization: Bearer $YOUR_CERNION_TOKEN"
 
 # Test without Bearer token (uses env)
-curl -X POST http://localhost:3900/api/system/status
+curl -X POST http://localhost:3000/api/system/status
 
 # Test with invalid token
-curl -X POST http://localhost:3900/api/system/status \
+curl -X POST http://localhost:3000/api/system/status \
   -H "Authorization: Bearer invalid-token-xyz"
 ```
 
@@ -578,15 +589,14 @@ fetch('/api/grid-operations/grid-data', {
 
 ## Related Documentation
 
-- [ASYNC_JOB_POLLING.md](ASYNC_JOB_POLLING.md) - Async job handling (also supports Bearer tokens)
 - [MCP_TOOLS.md](MCP_TOOLS.md) - Available MCP tools
 - [README.md](README.md) - Project overview
 
 ## Summary
 
-✅ **Implemented**: Optional Bearer token authentication
+✅ **Implemented**: Optional request-level token authentication
 ✅ **Backward compatible**: Falls back to `CERNION_TOKEN` from environment
-✅ **Universal support**: All 47 REST API endpoints support Bearer tokens
+✅ **Universal support**: All REST API endpoints support both Bearer and `token` parameter input
 ✅ **Async job polling**: Token passed through to job status/result checks
 ✅ **OpenAPI documented**: Bearer authentication documented in Swagger UI
 ✅ **Production ready**: No breaking changes, opt-in feature

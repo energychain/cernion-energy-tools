@@ -42,6 +42,24 @@ class CernionMCPClient {
   }
 
   /**
+   * Redact sensitive token-like values from propagated error messages.
+   * @param {string} message
+   * @returns {string}
+   * @private
+   */
+  static _sanitizeErrorMessage(message) {
+    if (!message) return message;
+    let sanitized = String(message);
+    sanitized = sanitized.replace(/(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, '$1[REDACTED]');
+    sanitized = sanitized.replace(/([?&](?:token|api[_-]?key|secret|password)=)[^&\s]+/gi, '$1[REDACTED]');
+    sanitized = sanitized.replace(
+      /(https?:\/\/mcp\.cernion\.de\/)[^/\s]+(\/mcp)/gi,
+      '$1[REDACTED]$2'
+    );
+    return sanitized;
+  }
+
+  /**
    * Execute one MCP tool call: connect → callTool → disconnect.
    * No queue, no retry – used by callWithNewSession which wraps both.
    * @private
@@ -117,7 +135,9 @@ class CernionMCPClient {
 
       throw lastError;
     } catch (error) {
-      throw new Error(`Failed to connect to Cernion MCP: ${error.message}`);
+      throw new Error(
+        `Failed to connect to Cernion MCP: ${CernionMCPClient._sanitizeErrorMessage(error.message)}`
+      );
     }
   }
 
@@ -237,7 +257,7 @@ class CernionMCPClient {
         success: false,
         error: {
           code: error.code || 'TOOL_CALL_ERROR',
-          message: error.message,
+          message: CernionMCPClient._sanitizeErrorMessage(error.message),
           toolName,
         },
       };
@@ -339,7 +359,9 @@ class CernionMCPClient {
               success: false,
               error: {
                 code: 'JOB_FAILED',
-                message: jobStatus.error || jobStatus.message || 'Job execution failed',
+                message: CernionMCPClient._sanitizeErrorMessage(
+                  jobStatus.error || jobStatus.message || 'Job execution failed'
+                ),
                 jobId,
               },
             };
@@ -385,7 +407,7 @@ class CernionMCPClient {
         success: false,
         error: {
           code: 'LIST_TOOLS_ERROR',
-          message: error.message,
+          message: CernionMCPClient._sanitizeErrorMessage(error.message),
         },
       };
     }
@@ -453,7 +475,7 @@ class CernionMCPClient {
       } catch (err) {
         lastError = err;
         if (!CernionMCPClient._isQuotaError(err.message)) {
-          throw err; // non-quota error – propagate immediately, don't retry
+          throw new Error(CernionMCPClient._sanitizeErrorMessage(err.message)); // non-quota error – propagate immediately, don't retry
         }
         // quota error: loop to next attempt
       }
@@ -464,7 +486,9 @@ class CernionMCPClient {
       success: false,
       error: {
         code: 'QUOTA_EXHAUSTED',
-        message: lastError?.message || 'Quota exhausted after all retry attempts',
+        message: CernionMCPClient._sanitizeErrorMessage(
+          lastError?.message || 'Quota exhausted after all retry attempts'
+        ),
         toolName,
       },
     };

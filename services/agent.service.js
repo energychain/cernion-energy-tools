@@ -493,6 +493,15 @@ module.exports = {
                   },
                 },
               },
+              examples: {
+                storageSufficiency: {
+                  summary: 'Analyze a storage sufficiency question',
+                  value: {
+                    problem:
+                      'What is the current gas storage level in Germany and is it sufficient for winter?',
+                  },
+                },
+              },
             },
           },
         },
@@ -876,6 +885,7 @@ IMPORTANT: The keys in each step MUST be exactly "action", "params", and "descri
                   sessionId: {
                     type: 'string',
                     description: 'Session ID returned by /agent/analyze',
+                    example: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
                   },
                   userInputs: {
                     type: 'object',
@@ -885,6 +895,16 @@ IMPORTANT: The keys in each step MUST be exactly "action", "params", and "descri
                   refinement: {
                     type: 'string',
                     description: 'Optional free-text refinement or follow-up question',
+                    example: 'Focus on Bavaria and include the next 7 days',
+                  },
+                },
+              },
+              examples: {
+                executePlan: {
+                  summary: 'Execute an analyzed plan',
+                  value: {
+                    sessionId: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+                    userInputs: { country: 'de', date: '2026-02-01' },
                   },
                 },
               },
@@ -1652,7 +1672,10 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
             name: 'id',
             in: 'path',
             required: true,
-            schema: { type: 'string' },
+            schema: {
+              type: 'string',
+              example: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+            },
             description: 'Session UUID returned by /agent/analyze',
           },
         ],
@@ -1687,7 +1710,10 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
             name: 'id',
             in: 'path',
             required: true,
-            schema: { type: 'string' },
+            schema: {
+              type: 'string',
+              example: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+            },
             description: 'Session UUID',
           },
         ],
@@ -1844,7 +1870,18 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
                 type: 'object',
                 required: ['sessionId'],
                 properties: {
-                  sessionId: { type: 'string' },
+                  sessionId: {
+                    type: 'string',
+                    example: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+                  },
+                },
+              },
+              examples: {
+                rerunSession: {
+                  summary: 'Re-run a previous session',
+                  value: {
+                    sessionId: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+                  },
                 },
               },
             },

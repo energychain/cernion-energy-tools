@@ -45,7 +45,10 @@ You should see:
 
 ### Option 1: Run Integration Tests
 ```bash
-./test-integration-services.sh
+npm run test:integration
+
+# Optional live end-to-end test (requires valid token and reachable MCP backend)
+npm run test:e2e
 ```
 
 ### Option 2: Manual Test

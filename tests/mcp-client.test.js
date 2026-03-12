@@ -78,6 +78,35 @@ describe('CernionMCPClient', () => {
       expect(result.success).toBe(true);
       expect(result.data).toEqual({ ok: true });
     });
+
+    it('should prefer custom token over CERNION_TOKEN from environment', async () => {
+      const connectSpy = jest.spyOn(CernionMCPClient.prototype, 'connect').mockResolvedValue(true);
+      jest.spyOn(CernionMCPClient.prototype, 'callTool').mockResolvedValue({
+        success: true,
+        data: { ok: true },
+      });
+      jest.spyOn(CernionMCPClient.prototype, 'disconnect').mockResolvedValue();
+
+      await CernionMCPClient.callWithNewSession('test_tool', {}, 'custom_token_abc');
+
+      // Instance was created with custom token
+      expect(connectSpy.mock.instances[0].token).toBe('custom_token_abc');
+    });
+
+    it('should use CERNION_TOKEN from environment when custom token is not provided', async () => {
+      process.env.CERNION_TOKEN = 'env_token_xyz';
+      const connectSpy = jest.spyOn(CernionMCPClient.prototype, 'connect').mockResolvedValue(true);
+      jest.spyOn(CernionMCPClient.prototype, 'callTool').mockResolvedValue({
+        success: true,
+        data: { ok: true },
+      });
+      jest.spyOn(CernionMCPClient.prototype, 'disconnect').mockResolvedValue();
+
+      await CernionMCPClient.callWithNewSession('test_tool', {});
+
+      // Instance was created with env token fallback
+      expect(connectSpy.mock.instances[0].token).toBe('env_token_xyz');
+    });
   });
 
   describe('connect', () => {
@@ -306,6 +335,41 @@ describe('CernionMCPClient', () => {
       );
 
       expect(attempts).toBe(1); // no retry
+    });
+
+    it('should sanitize token data in QUOTA_EXHAUSTED error message', async () => {
+      jest
+        .spyOn(CernionMCPClient.prototype, 'connect')
+        .mockRejectedValue(
+          new Error('quota exhausted for https://mcp.cernion.de/superSecretToken/mcp?token=abc123')
+        );
+      jest.spyOn(CernionMCPClient.prototype, 'disconnect').mockResolvedValue();
+
+      const origBase = CernionMCPClient.QUOTA_RETRY_BASE_MS;
+      const origMax = CernionMCPClient.MAX_QUOTA_RETRIES;
+      CernionMCPClient.QUOTA_RETRY_BASE_MS = 0;
+      CernionMCPClient.MAX_QUOTA_RETRIES = 1;
+
+      const result = await CernionMCPClient.callWithNewSession('test_tool', {}, 'tok');
+
+      CernionMCPClient.QUOTA_RETRY_BASE_MS = origBase;
+      CernionMCPClient.MAX_QUOTA_RETRIES = origMax;
+
+      expect(result.success).toBe(false);
+      expect(result.error.message).toContain('https://mcp.cernion.de/[REDACTED]/mcp');
+      expect(result.error.message).not.toContain('superSecretToken');
+      expect(result.error.message).not.toContain('abc123');
+    });
+
+    it('should sanitize token data in thrown non-quota errors', async () => {
+      jest
+        .spyOn(CernionMCPClient.prototype, 'connect')
+        .mockRejectedValue(new Error('connection refused Bearer tokenValue123'));
+      jest.spyOn(CernionMCPClient.prototype, 'disconnect').mockResolvedValue();
+
+      await expect(CernionMCPClient.callWithNewSession('test_tool', {}, 'tok')).rejects.toThrow(
+        'Bearer [REDACTED]'
+      );
     });
   });
 });

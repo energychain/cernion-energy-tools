@@ -10,6 +10,25 @@ const OpenapiMixin = require('moleculer-auto-openapi');
 const path = require('path');
 const fs = require('fs');
 
+function sanitizeErrorMessage(message) {
+  if (!message) return message;
+  let sanitized = String(message);
+
+  // Redact bearer tokens in free-text messages
+  sanitized = sanitized.replace(/(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, '$1[REDACTED]');
+
+  // Redact token-like query/path parameters
+  sanitized = sanitized.replace(/([?&](?:token|api[_-]?key|secret|password)=)[^&\s]+/gi, '$1[REDACTED]');
+
+  // Redact MCP token segment in URL paths
+  sanitized = sanitized.replace(
+    /(https?:\/\/mcp\.cernion\.de\/)[^/\s]+(\/mcp)/gi,
+    '$1[REDACTED]$2'
+  );
+
+  return sanitized;
+}
+
 module.exports = {
   name: 'api',
   mixins: [ApiGateway, OpenapiMixin],
@@ -25,7 +44,7 @@ module.exports = {
     openapi: {
       info: {
         title: 'Cernion Energy Tools API',
-        version: '0.8.31',
+        version: '0.8.32',
         description:
           'MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.',
       },
@@ -57,7 +76,7 @@ module.exports = {
               type: 'string',
             },
             description:
-              'Optional Cernion MCP token as URL query parameter. If provided, it overrides CERNION_TOKEN for this request.',
+              'Optional Cernion MCP token as URL query parameter. If provided, it overrides CERNION_TOKEN for this request. Prefer Authorization Bearer header in production to reduce token exposure in URLs/logs.',
           },
         },
       },
@@ -259,7 +278,7 @@ module.exports = {
           res.end(
             JSON.stringify({
               success: false,
-              message: err.message,
+              message: sanitizeErrorMessage(err.message),
               code: err.code,
               type: err.type,
             })
@@ -560,7 +579,7 @@ module.exports = {
     this.logger.info(`API Gateway started on port ${this.settings.port}`);
     this.logger.info(`API endpoint: http://localhost:${this.settings.port}/api`);
     this.logger.info(`OpenAPI docs: http://localhost:${this.settings.port}/api/openapi.json`);
-    this.logger.info(`Swagger UI: http://localhost:${this.settings.port}/docs`);
+    this.logger.info(`Swagger UI: http://localhost:${this.settings.port}/api/docs`);
     this.logger.info(`🤖 Sample App: http://localhost:${this.settings.port}/app`);
   },
 

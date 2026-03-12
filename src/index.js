@@ -1,15 +1,7 @@
 /**
- * Main entry point for Cernion Energy Tools
- * MicroService Agent System for Energy Markets
+ * @deprecated
+ * Legacy shim kept for local tooling that still points to `src/index.js`.
+ * The real process entrypoint is the repository root `index.js`.
  */
 
-console.log('Cernion Energy Tools - MicroService Agent System');
-console.log('Version: 0.1.0');
-console.log('Starting...');
-
-// TODO: Initialize microservices
-// TODO: Set up API server
-// TODO: Connect to database
-// TODO: Initialize agent system
-
-export default {};
+require('../index.js');
