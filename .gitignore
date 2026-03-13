@@ -146,3 +146,4 @@ vite.config.ts.timestamp-*
 # Agent session persistence (runtime data, may contain user queries)
 .sessions/
 .reports/
+uploads/

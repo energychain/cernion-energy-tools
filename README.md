@@ -9,6 +9,7 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - 🚀 **Moleculer Microservices Framework** — Fast, modern, and powerful microservices framework
 - 🌐 **API Gateway** — HTTP REST API with automatic route generation
 - 🤖 **AI Agent** — Natural-language query planner powered by Google Gemini: describe your energy data need in plain text and the agent generates, executes, and interprets a multi-step microservice plan automatically
+- 🏢 **Inhouse Data Sources** — Register, infer, cache, and discover internal utility datasets (CSV, REST, GeoJSON, XLSX, DOCX, Scraper) alongside public energy tools
 - 🧩 **Research Web App** — Built-in single-page application at `/app` for interactive, browser-based testing of the AI agent — no separate tooling required
 - 📥 **Live CSV Export** — Every agent result exposes a parameterised GET endpoint (`/api/agent/session/:id/csv?param=value`) for zero-config integration with automation tools such as Microsoft Power Automate, Excel Power Query, or cron jobs
 - 🔌 **MCP Support** — Model Context Protocol SDK integration
@@ -173,6 +174,10 @@ cernion-energy-tools/
 │   ├── api.service.js     # API Gateway + Swagger UI
 │   ├── agent.service.js   # AI agent — plan/execute/export
 │   ├── assets.service.js  # MaStR installation assets
+│   ├── datasource-registry.service.js
+│   ├── datasource-connector.service.js
+│   ├── datasource-cache.service.js
+│   ├── datasource-discovery.service.js
 │   ├── forecast.service.js
 │   ├── gas-storage.service.js
 │   ├── german-grid.service.js
@@ -180,9 +185,11 @@ cernion-energy-tools/
 │   └── ...                # See services/ for full list
 ├── src/
 │   ├── app.html           # Research Web App (single-page)
+│   ├── connectors/        # Built-in datasource connector plugins
 │   ├── mcp-client.js      # Centralised MCP tool caller
 │   └── async-job-poller.js
 ├── custom-services/       # Local/custom services (git-ignored)
+├── custom-connectors/     # Local/custom datasource plugins (git-ignored)
 ├── custom-tests/          # Local/custom tests (git-ignored)
 ├── templates/
 │   └── skeleton.service.js
@@ -220,8 +227,64 @@ Copy `.env.example` to `.env` and edit:
 | `TRACING_ENABLED` | `false` | Enable Moleculer tracing |
 | `ASYNC_POLLER_DEBUG` | `false` | Enable verbose async job poller debug logging |
 | `ASYNC_POLLER_LOG_MAX_CHARS` | `400` | Max chars for poller debug payload snippets |
+| `DATASOURCE_MONGO_COLLECTION_REGISTRY` | `datasource_registry` | Collection name for datasource definitions |
+| `DATASOURCE_MONGO_COLLECTION_CACHE` | `datasource_cache` | Collection name for cached datasource rows |
+| `DATASOURCE_MONGO_COLLECTION_AUDIT` | `datasource_audit` | Collection name for privacy/audit records |
+| `DATASOURCE_CONNECTOR_PLUGINS_DIR` | `src/connectors` | Built-in datasource connector directory |
+| `DATASOURCE_CUSTOM_PLUGINS_DIR` | `custom-connectors` | Custom datasource connector directory |
+| `DATASOURCE_MAX_INFER_SAMPLE_ROWS` | `200` | Max sample rows used for schema inference |
+| `DATASOURCE_SCRAPER_TIMEOUT_MS` | `30000` | Timeout for scraper connector page loads |
+| `DATASOURCE_DEFAULT_PRIVACY_CONTEXT` | `ai-agent` | Default privacy mode for datasource reads |
 
 For complete operational options (retry backoff, circuit-breaker thresholds, bulkhead queue limits), see [.env.example](.env.example).
+
+## Inhouse Data Sources (v0.9)
+
+The v0.9 datasource layer adds a second data plane next to MCP-backed public energy tools: internal utility and grid-operator data.
+
+### Services
+
+- `datasource-registry` — CRUD for source definitions, cache policy, Data Dictionary, dictionary version history, and schema inference drafts
+- `datasource-connector` — plugin runtime for reading heterogeneous sources through built-in or custom connectors
+- `datasource-cache` — privacy-aware cached row access, status inspection, refresh, invalidation, and DSGVO audit trail
+- `datasource-discovery` — AI-ready inhouse source descriptors for the agent and future Logic Builder integrations
+
+### Built-in connector plugins
+
+- `csv` — delimited files from disk, including `.gz`
+- `rest` — JSON/CSV HTTP endpoints
+- `geojson` — feature flattening with centroid coordinates
+- `xlsx` — spreadsheet row extraction via SheetJS
+- `docx` — Word extraction scaffold (optional `mammoth` dependency)
+- `scraper` — HTML/table extraction scaffold via `cheerio` or `puppeteer`
+
+### Public REST endpoints
+
+- `POST /api/datasources`
+- `GET /api/datasources`
+- `GET /api/datasources/:id`
+- `PUT /api/datasources/:id`
+- `DELETE /api/datasources/:id`
+- `GET /api/datasources/:id/dictionary`
+- `PUT /api/datasources/:id/dictionary`
+- `GET /api/datasources/:id/dictionary/history`
+- `GET /api/datasources/:id/dictionary/:version`
+- `POST /api/datasources/:id/infer`
+- `POST /api/datasources/:id/refresh`
+- `GET /api/datasource-cache/:sourceId`
+- `GET /api/datasource-cache/:sourceId/status`
+- `GET /api/datasource-cache/:sourceId/audit`
+- `POST /api/datasource-cache/:sourceId/refresh`
+- `DELETE /api/datasource-cache/:sourceId`
+- `GET /api/datasource-discovery`
+- `GET /api/datasource-discovery/search?q=...`
+- `GET /api/datasource-discovery/:sourceId/descriptor`
+
+### Current implementation status
+
+- Implemented: service scaffolds, public REST exposure, OpenAPI tag grouping, in-memory cache/registry flow, connector loader, CSV/REST/GeoJSON/XLSX reads, discovery descriptors, and agent prompt integration
+- Scaffolded with optional dependencies: `docx`, `scraper`
+- Planned follow-up: persistent MongoDB backend, richer connector validation, and Logic Builder integration
 
 ### Moleculer Configuration
 
