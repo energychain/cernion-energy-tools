@@ -7,6 +7,314 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-03-13
+
+### Fixed
+
+- **Datasource dictionary infer/refresh REST alias mapping**
+  Corrected API gateway aliases to existing registry actions:
+  `POST /api/datasources/:id/infer` → `datasource-registry.infer`
+  and `POST /api/datasources/:id/refresh` → `datasource-registry.refresh`.
+
+- **Inference flow now persists inferred dictionary fields in UI**
+  Updated `src/app.html` infer actions to apply the inferred draft through
+  dictionary update, preventing stale views where only legacy fields (e.g. `column_1`)
+  remained visible after infer.
+
+- **CSV delimiter auto-detection for local file connector**
+  Added automatic delimiter detection (`;`, `,`, tab, `|`) when no delimiter is
+  configured, plus BOM-safe header handling, so comma-separated files no longer
+  collapse into a single `column_1` field.
+
+- **Single-column cached CSV row normalization in in-memory analytics**
+  Added normalization for cached rows containing full CSV lines under one column,
+  enabling robust timestamp/consumption extraction in
+  `in-memory-join.meteringSpotCost` and `in-memory-join.compareForecastActual`.
+
+- **Spot-price source resilience in metering cost calculation**
+  Enhanced `in-memory-join.meteringSpotCost` to accept
+  `priceEURperMWh` payloads and to fallback to `german-grid.spotprices` when
+  `energy-market.prices` returns no rows for the requested interval.
+
+- **OpenAPI request-body completeness for in-memory join endpoints**
+  Added request body schemas with required fields and examples for
+  `POST /api/in-memory-join/join`,
+  `POST /api/in-memory-join/metering-spot-cost`, and
+  `POST /api/in-memory-join/compare-forecast-actual` so the OpenAPI audit gate
+  reports zero issues.
+
+### Tests
+
+- Extended `tests/in-memory-join.service.test.js` with regressions for:
+  single-column cached CSV parsing and market-price fallback behavior.
+
+- Extended `tests/datasource-connector.integration.test.js` with a regression
+  that verifies comma delimiter auto-detection when connector delimiter is unset.
+
+### Added
+
+- **Metering fixture for datasource E2E tests**
+  Moved `sample_metering.csv` into `tests/fixtures/` so integration/E2E tests can
+  use a stable, real-world load-profile dataset.
+
+- **Request-based metering cost enrichment in `datasource-cache.query`**
+  Added optional query params `includeCost`, `priceCentPerKWh`, `intervalMinutes`,
+  `consumptionPowerField`, and `feedInPowerField`. When enabled, cached rows are
+  enriched with `netPowerW`, `intervalEnergyKWh`, and `intervalCostEur`.
+
+- **New `in-memory-join` microservice for cross-source joins**
+  Added `POST /api/in-memory-join/join` for generic in-memory joins between
+  datasource rows and arbitrary action outputs (inner/left joins, exact/hourly/daily
+  key matching, collision strategies).
+
+- **Metering + market-price join endpoint for real spot-cost answers**
+  Added `POST /api/in-memory-join/metering-spot-cost` to combine inhouse metering
+  intervals with `energy-market.prices` and calculate interval/hour/day electricity
+  costs using actual market prices (€/MWh), including totals and missing-price
+  diagnostics.
+
+- **Agent planning integration for inhouse metering cost research**
+  Updated `agent.service` planning rules to prefer `in-memory-join.meteringSpotCost`
+  for questions like "Wie sind die Stromkosten von LPTest am 10.03.2026 gewesen?",
+  so the research flow can use real datasource measurements plus market prices.
+
+- **Intent classes for reusable inhouse time-series logic**
+  Implemented deterministic intent-class routing in `agent.analyze` for:
+  `timeseries_cost_enrichment`, `timeseries_compare_actual_vs_forecast`, and
+  `timeseries_delta_analysis`.
+
+- **Auto-alias extraction from filename stem and description tokens in datasource discovery**
+  `datasource-discovery` now calls `extractAliases(source)` when building descriptors.
+  Aliases are derived from: (1) path stem tokens in `connectorConfig.path`
+  (e.g. `GW29_metering_2026.csv` → `['GW29', 'metering', '2026']`) and
+  (2) alphanumeric+digit tokens from `source.description` (e.g. `"Lastprofil GW29"` → `'GW29'`).
+  This means queries containing only a meter ID like `"GW29"` are now automatically routed
+  to the correct datasource without the caller needing to supply an explicit `inhouseSources` list.
+
+- **Description identifier token matching in `resolveInhouseSourceForIntent`**
+  The agent's inhouse source resolver now also extracts digit-containing tokens from
+  `__sourceMeta.sourceDescription` as a secondary fallback, covering cases where
+  discovery descriptors may not yet carry the enriched aliases array.
+
+- **Auto-select single capable source in `buildIntentClassPlan`**
+  When the intent class is detected but no source was resolved by alias, the plan builder
+  now checks if exactly one fresh datasource with the matching capability exists and
+  auto-selects it — no prompt shown to the user. This handles the common single-tenant
+  scenario where a user has one metering CSV and just asks about costs.
+
+- **Named select dropdown instead of raw UUID input in `buildIntentClassPlan`**
+  When multiple capable sources exist and none was auto-resolved, `requiredInputs` now
+  includes a `type: 'select'` field with `{label, value}` options showing human-readable
+  source names (mapped to UUIDs). Replaces the previous text input that asked for a raw UUID.
+
+- **`renderForm` in `app.html` handles `{label, value}` option objects**
+  The UI's dynamic form renderer now handles select options as either plain strings or
+  `{label, value}` objects, enabling the named datasource dropdown.
+
+- **`compareForecastActual` in-memory analytics endpoint**
+  Added `POST /api/in-memory-join/compare-forecast-actual` to execute the
+  generic pattern: fetch forecast data, read inhouse actual data, join on time,
+  calculate deltas, and return table-ready aggregates.
+
+- **Semantic inhouse descriptor enrichment for planner discoverability**
+  `datasource-discovery` descriptors now include `aliases`, `capabilities`, and
+  `semanticHints` (e.g. inferred time field, consumption/feed-in fields,
+  generation field, MaStR/MeLo-like identifiers) to improve automatic plan
+  selection across similar use cases.
+
+### Tests
+
+- Added `tests/datasource-metering.integration.test.js` covering the full v0.9
+  datasource flow (`registry.create` → `cache.refresh` → `cache.query`) and
+  asserting cost enrichment on the sample metering CSV.
+
+- Added `tests/in-memory-join.service.test.js` covering generic hourly join logic
+  and the LPTest-style metering spot-cost calculation workflow.
+
+- Extended `tests/agent.service.test.js` with a regression test that ensures
+  LPTest cost questions are planned with `in-memory-join.meteringSpotCost`
+  (without drifting into MaStR actor lookups).
+
+- Extended `tests/agent.service.test.js` with intent-class coverage for
+  actual-vs-forecast planning (`in-memory-join.compareForecastActual`).
+
+- Extended `tests/in-memory-join.service.test.js` with a forecast-vs-actual
+  delta calculation scenario.
+
+- Extended `tests/datasource-discovery.service.test.js` with assertions for
+  descriptor `aliases`, `capabilities`, and `semanticHints`.
+
+### Fixed
+
+- **API alias mismatch for dictionary history route**
+  Corrected API gateway alias to `datasource-registry.getDictionaryHistory`
+  for `GET /api/datasources/:id/dictionary/history`.
+
+- **API alias mismatch for datasource cache query route**
+  Corrected `GET /api/datasource-cache/:sourceId` to use
+  `datasource-cache.query` (instead of non-existent `datasource-cache.get`).
+
+- **Agent fallback to wrong domain for LPTest-like names**
+  Added deterministic intent handling in `agent.analyze` for inhouse metering
+  cost questions so names like `LPTest` are treated as datasource context, not
+  market-partner/MaStR actor search terms.
+
+## [0.9.1] - 2026-03-12
+
+### Added
+
+- **Data Sources management panel in `src/app.html`** (CR-UI-001 through CR-UI-012)
+  Added a full `#datasources-panel` section to the built-in single-page application.
+  The panel integrates three sub-views — Source List, Source Form, and Dictionary View —
+  each built with Vanilla JS following the established IIFE and CSS-token patterns.
+
+- **`showPanel()` outer-scope dispatcher** (CR-UI-001)
+  Centralises panel switching for Research, 360° Report, and Data Sources.
+  Defined in outer scope (not inside any IIFE) so all three nav targets share
+  one authoritative dispatcher. Retrofits the `nav-reset` handler to restore
+  `problem-card` visibility when returning to research from any secondary panel.
+
+- **Toast notification system** (CR-UI-001)
+  Added `#toast-container` markup and `toast(message, type)` outer-scope helper.
+  All datasource UI interactions use toasts instead of `alert()` or `confirm()`.
+
+- **All new CSS classes via existing custom properties** (CR-UI-012)
+  Added: `.cache-badge` (`.fresh` / `.stale` / `.empty` / `.error`),
+  `.skeleton-row` / `.skeleton-cell` (shimmer animation), `.privacy-toggle`
+  (CSS-only PII toggle), `.dict-table`, `.icon-btn`, `.info-callout`,
+  `.warn-callout`, `.version-badge`, `.ds-section-title`, `.ds-actions-row`,
+  `.ds-filter-input`. All use `var(--*)` tokens; no existing selectors modified.
+
+- **Source List sub-view with skeleton loading** (CR-UI-002)
+  Loads from `GET /api/datasources` + `GET /api/datasource-discovery` (merged
+  by `sourceId`). Displays 5 shimmer skeleton rows while loading. Supports
+  real-time client-side filtering. Shows connector-type icon map, cache-status
+  badges, and per-row actions (Edit, Dictionary, Refresh, Delete).
+
+- **Inline Delete confirmation popover** (CR-UI-006)
+  Replaces the Delete button with an inline `"Delete X? Yes / Cancel"` popover.
+  No `window.confirm()` used anywhere in the datasource code.
+
+- **Inline Refresh with 2 s polling** (CR-UI-007)
+  `POST /api/datasources/:id/refresh` followed by polling
+  `GET /api/datasource-cache/:id/status` every 2 s. Updates the cache badge
+  in place without a full panel reload. Shows `✅ Refreshed — N rows` toast.
+
+- **Source Form sub-view** (CR-UI-003 / CR-UI-004 / CR-UI-005)
+  Three collapsible `<details>` sections: Basic Info, Connector (dynamic
+  config fields rendered from `GET /api/datasources/connector-types` JSON
+  Schema), and Cache Policy (cron/ttl/manual/onDemand with live summary text).
+  Scraper + onDemand conflict auto-resets to cron with toast warning.
+  Actions: `💾 Save Source`, `🤖 Save & Run AI Inference`, `✕ Cancel`.
+
+- **Dictionary View sub-view** (CR-UI-008 / CR-UI-009 / CR-UI-010)
+  Field table with inline privacy-flag CSS toggles (red-tint row + synthetic
+  pattern input reveal on toggle). Inference result diff banner (Apply /
+  Dismiss). Re-run Inference button. Collapsible version history with per-version
+  Restore flow. Wires `PUT /api/datasources/:id/dictionary`,
+  `GET …/dictionary/history`, and `POST …/infer`.
+
+- **Inhouse Source Picker in Research Agent Step 1** (CR-UI-011)
+  Collapsible chip picker below the Step 1 textarea, loaded from
+  `GET /api/datasource-discovery`. Selected source IDs are appended as
+  `inhouseSources: [...]` to `POST /api/agent/analyze` via a capture-phase
+  listener that fires before the outer analyze handler.
+
+- **`GET /api/datasources/connector-types` REST endpoint** (CR-UI-013)
+  Added `rest: 'GET /connector-types'` and a full `openapi:` annotation
+  (`tags: ['DataSources']`, response schema) to the existing `listPlugins`
+  action in `datasource-connector.service.js`. OpenAPI audit gate passes 0 issues.
+
+- **Upload Folder + File Upload UI for local-file connectors**
+  Added backend upload endpoints for datasource workflows:
+  `GET /api/datasources/uploads` (list uploaded files) and
+  `POST /api/datasources/uploads` (store Base64 payload in `uploads/`).
+  Added a new upload component in the Data Sources form (connector section)
+  so users can upload CSV/XLSX/DOCX/GeoJSON files directly from the Web UI and
+  apply the uploaded absolute file path into the connector `path` field with one click.
+  Added drag-and-drop upload support (plus keyboard-accessible click-to-browse)
+  in the connector upload box for faster local-file workflows.
+  Increased API JSON body size limit to `25MB` to support practical file uploads.
+
+### Tests
+
+- Extended `datasource-connector.service.test.js` with 4 new tests covering:
+  REST route presence (`rest` property contains `GET` and `connector-types`),
+  OpenAPI annotation (`tags` includes `DataSources`, `summary` non-empty),
+  response schema shape (`data` array with required plugin fields),
+  and action round-trip returning all built-in connector types with
+  expected shape (`type`, `description`, `configSchema`, `source`).
+
+## [0.9.0] - 2026-06-10
+
+### Added
+
+- **Dictionary version guard endpoint + outdated event**
+  Added `GET /api/datasources/:id/dictionary/check?referencedVersion=...` so a
+  future Logic Builder can validate stored mappings against the current
+  dictionary version. The registry now emits `datasource.dictionary.outdated`
+  when a stale version is detected.
+
+- **Privacy Flag handling across all request contexts**
+  `datasource-cache` now enforces all three privacy modes:
+  `internal` returns raw values, `ai-agent` replaces flagged fields with
+  synthetic substitutes, and `public` omits flagged fields entirely.
+
+- **Synthetic data generation + DSGVO audit trail**
+  Added support for lightweight synthetic patterns such as
+  `{{random.numeric(...)}}`, `{{random.alphanumeric(...)}}`, `{{faker.name}}`,
+  `{{faker.email}}`, `{{faker.iban.de}}`, and `{{const("...")}}`, plus the
+  read-only DSGVO audit endpoint `GET /api/datasource-cache/:sourceId/audit`.
+
+- **v0.9 datasource layer scaffold**
+  Added new services for internal datasource registration, connector execution,
+  privacy-aware cache access, and AI-ready discovery:
+  `datasource-registry`, `datasource-connector`, `datasource-cache`, and
+  `datasource-discovery`.
+
+- **Built-in datasource connector plugins**
+  Added built-in connector modules for `csv`, `rest`, `geojson`, and `xlsx`,
+  plus optional-dependency connectors for `docx` and `scraper`.
+
+- **Agent integration for inhouse sources**
+  `agent.analyze` and refinement planning now inject discoverable inhouse
+  datasource descriptors into the Gemini planning prompt so internal datasets
+  can participate in hybrid analyses.
+
+### Changed
+
+- **Connector delivery scope clarified**
+  `docx` and `scraper` are shipped as functional optional-dependency
+  connectors: they load through the common plugin system, expose config
+  schemas, and execute reads when `mammoth`, `cheerio`, or `puppeteer` are
+  installed, but they intentionally degrade with explicit dependency-missing
+  errors in lean environments.
+
+- **OpenAPI/public datasource route support**
+  API Gateway OpenAPI generation now preserves milestone-style datasource paths
+  such as `/api/datasources`, `/api/datasource-cache/:sourceId`, and
+  `/api/datasource-discovery` under the shared `DataSources` tag.
+  Full OpenAPI annotations (parameters, requestBody, examples) added to all
+  datasource service actions — OpenAPI audit gate passes with 0 issues.
+
+- **Logic Builder backend contract completed**
+  The backend now exposes source discovery, dictionary version history, and a
+  dictionary version-check endpoint for future Logic Builder integration. The
+  actual Logic Builder UI step type and autocomplete are external to this
+  repository.
+
+### Tests
+
+- Added focused coverage for datasource registry, connector, cache, discovery,
+  API exposure, agent prompt integration with inhouse descriptors, and
+  dictionary version-guard event handling.
+- Added connector integration test suite (22 tests, real file I/O, no broker).
+- Verified privacy behavior for all three `privacyContext` modes plus DSGVO
+  audit-log creation in cache service tests.
+- Full suite: 36 test suites / 899 tests — all passing.
+- Coverage: 77% statements, 67% branches, 79% functions, 79% lines
+  (above 55/70/70/70 thresholds).
+
 ## [0.8.32] - 2026-03-12
 
 ### Changed

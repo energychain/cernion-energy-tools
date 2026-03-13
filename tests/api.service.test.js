@@ -4,6 +4,9 @@
 
 const { ServiceBroker } = require('moleculer');
 const ApiService = require('../services/api.service');
+const DatasourceRegistryService = require('../services/datasource-registry.service');
+const DatasourceCacheService = require('../services/datasource-cache.service');
+const DatasourceDiscoveryService = require('../services/datasource-discovery.service');
 const { version: packageVersion } = require('../package.json');
 
 describe('API Gateway Service', () => {
@@ -21,6 +24,9 @@ describe('API Gateway Service', () => {
         port: 0,
       },
     });
+    broker.createService(DatasourceRegistryService);
+    broker.createService(DatasourceCacheService);
+    broker.createService(DatasourceDiscoveryService);
     await broker.start();
   });
 
@@ -88,6 +94,19 @@ describe('API Gateway Service', () => {
           expect(hasTokenQuery).toBe(true);
         });
       });
+    });
+
+    it('should include DataSources tag and public datasource routes', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.tags.some((tag) => tag.name === 'DataSources')).toBe(true);
+      expect(schema.paths['/api/datasources']).toBeDefined();
+      expect(schema.paths['/api/datasources/:id']).toBeDefined();
+      expect(schema.paths['/api/datasource-cache/:sourceId']).toBeDefined();
+      expect(schema.paths['/api/datasource-discovery']).toBeDefined();
+
+      expect(schema.paths['/api/datasources'].get.tags).toContain('DataSources');
+      expect(schema.paths['/api/datasources'].post.tags).toContain('DataSources');
     });
   });
 

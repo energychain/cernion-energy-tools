@@ -10,6 +10,42 @@ const OpenapiMixin = require('moleculer-auto-openapi');
 const path = require('path');
 const fs = require('fs');
 
+const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
+const ALLOWED_UPLOAD_EXTENSIONS = new Set([
+  '.csv',
+  '.tsv',
+  '.txt',
+  '.xlsx',
+  '.xls',
+  '.docx',
+  '.geojson',
+  '.json',
+  '.gz',
+]);
+
+function ensureUploadDir() {
+  if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+  }
+}
+
+function sanitizeUploadFilename(fileName) {
+  const base = path.basename(String(fileName || '').trim());
+  const cleaned = base.replace(/[^a-zA-Z0-9._-]+/g, '_');
+  return cleaned || '';
+}
+
+function buildUploadResponseEntry(fileName) {
+  const fullPath = path.join(UPLOAD_DIR, fileName);
+  const stat = fs.statSync(fullPath);
+  return {
+    fileName,
+    filePath: fullPath,
+    sizeBytes: stat.size,
+    modifiedAt: stat.mtime.toISOString(),
+  };
+}
+
 function sanitizeErrorMessage(message) {
   if (!message) return message;
   let sanitized = String(message);
@@ -44,13 +80,14 @@ module.exports = {
     openapi: {
       info: {
         title: 'Cernion Energy Tools API',
-        version: '0.8.32',
+        version: '0.9.2',
         description:
           'MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.',
       },
       tags: [
         { name: 'Energy', description: 'Energy market operations' },
         { name: 'Example', description: 'Example service endpoints' },
+        { name: 'DataSources', description: 'Inhouse datasource registry, cache, and discovery' },
       ],
       components: {
         securitySchemes: {
@@ -205,6 +242,142 @@ module.exports = {
 </html>
             `);
           },
+
+          // Datasource routes (explicit aliases to avoid fallback mapping to
+          // non-existent "datasources" service names when autoAlias resolution
+          // is not available at runtime)
+          'GET /datasources': 'datasource-registry.list',
+          'POST /datasources': 'datasource-registry.create',
+          'GET /datasources/connector-types': 'datasource-connector.listPlugins',
+          'GET /datasources/:id': 'datasource-registry.get',
+          'PUT /datasources/:id': 'datasource-registry.update',
+          'DELETE /datasources/:id': 'datasource-registry.remove',
+          'GET /datasources/:id/dictionary': 'datasource-registry.getDictionary',
+          'PUT /datasources/:id/dictionary': 'datasource-registry.updateDictionary',
+          'GET /datasources/:id/dictionary/history': 'datasource-registry.getDictionaryHistory',
+          'GET /datasources/:id/dictionary/:version': 'datasource-registry.getDictionaryVersion',
+          'GET /datasources/:id/dictionary/check': 'datasource-registry.checkDictionaryVersion',
+          'POST /datasources/:id/infer': 'datasource-registry.infer',
+          'POST /datasources/:id/refresh': 'datasource-registry.refresh',
+          'GET /datasource-cache/:sourceId/status': 'datasource-cache.status',
+          'GET /datasource-cache/:sourceId': 'datasource-cache.query',
+          'DELETE /datasource-cache/:sourceId': 'datasource-cache.invalidate',
+          'GET /datasource-cache/:sourceId/audit': 'datasource-cache.audit',
+          'GET /datasource-discovery': 'datasource-discovery.list',
+          'GET /datasource-discovery/search': 'datasource-discovery.search',
+          'GET /datasource-discovery/:sourceId/descriptor': 'datasource-discovery.descriptor',
+          'POST /in-memory-join/join': 'in-memory-join.join',
+          'POST /in-memory-join/metering-spot-cost': 'in-memory-join.meteringSpotCost',
+          'POST /in-memory-join/compare-forecast-actual': 'in-memory-join.compareForecastActual',
+
+          // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
+          'GET /datasources/uploads'(req, res) {
+            try {
+              ensureUploadDir();
+              const files = fs
+                .readdirSync(UPLOAD_DIR)
+                .filter((entry) => fs.statSync(path.join(UPLOAD_DIR, entry)).isFile())
+                .sort((a, b) => a.localeCompare(b))
+                .map((fileName) => buildUploadResponseEntry(fileName));
+
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  count: files.length,
+                  uploadDir: UPLOAD_DIR,
+                  data: files,
+                })
+              );
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+              res.end(
+                JSON.stringify({
+                  success: false,
+                  message: sanitizeErrorMessage(err.message),
+                })
+              );
+            }
+          },
+
+          'POST /datasources/uploads'(req, res) {
+            try {
+              ensureUploadDir();
+
+              const params = req?.$params || req?.body || {};
+              const rawFileName = params.fileName;
+              const contentBase64 = params.contentBase64;
+
+              if (!rawFileName || typeof rawFileName !== 'string') {
+                res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(
+                  JSON.stringify({ success: false, message: 'fileName is required.' })
+                );
+                return;
+              }
+
+              if (!contentBase64 || typeof contentBase64 !== 'string') {
+                res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(
+                  JSON.stringify({ success: false, message: 'contentBase64 is required.' })
+                );
+                return;
+              }
+
+              const safeName = sanitizeUploadFilename(rawFileName);
+              if (!safeName) {
+                res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({ success: false, message: 'Invalid fileName.' }));
+                return;
+              }
+
+              const ext = path.extname(safeName).toLowerCase();
+              if (!ALLOWED_UPLOAD_EXTENSIONS.has(ext)) {
+                res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(
+                  JSON.stringify({
+                    success: false,
+                    message: `Unsupported file extension: ${ext || '(none)'}.`,
+                  })
+                );
+                return;
+              }
+
+              const payload = contentBase64.includes(',')
+                ? contentBase64.split(',').pop()
+                : contentBase64;
+
+              const buffer = Buffer.from(payload, 'base64');
+              if (!buffer || buffer.length === 0) {
+                res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({ success: false, message: 'Uploaded payload is empty.' }));
+                return;
+              }
+
+              const finalFileName = fs.existsSync(path.join(UPLOAD_DIR, safeName))
+                ? `${path.basename(safeName, ext)}_${Date.now()}${ext}`
+                : safeName;
+
+              const finalPath = path.join(UPLOAD_DIR, finalFileName);
+              fs.writeFileSync(finalPath, buffer);
+
+              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.end(
+                JSON.stringify({
+                  success: true,
+                  data: buildUploadResponseEntry(finalFileName),
+                })
+              );
+            } catch (err) {
+              res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+              res.end(
+                JSON.stringify({
+                  success: false,
+                  message: sanitizeErrorMessage(err.message),
+                })
+              );
+            }
+          },
         },
 
         callingOptions: {},
@@ -212,11 +385,11 @@ module.exports = {
         bodyParsers: {
           json: {
             strict: false,
-            limit: '1MB',
+            limit: '25MB',
           },
           urlencoded: {
             extended: true,
-            limit: '1MB',
+            limit: '25MB',
           },
         },
 
@@ -339,8 +512,13 @@ module.exports = {
 
                 method = method.toLowerCase();
 
-                // Prepend service name if path doesn't start with it
-                if (!path.startsWith(`/${service.name}`)) {
+                const isAbsolutePublicPath =
+                  path.startsWith('/datasources') ||
+                  path.startsWith('/datasource-cache') ||
+                  path.startsWith('/datasource-discovery');
+
+                // Prepend service name if path doesn't start with it and is not an absolute public path
+                if (!path.startsWith(`/${service.name}`) && !isAbsolutePublicPath) {
                   path = `/${service.name}${path}`;
                 }
 

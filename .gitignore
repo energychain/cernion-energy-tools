@@ -44,6 +44,7 @@ jspm_packages/
 # Custom services/tests (local only)
 custom-services/
 custom-tests/
+custom-connectors/
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/

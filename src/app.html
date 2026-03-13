@@ -197,6 +197,17 @@
     .status-bar.success  { border-color: var(--accent);  color: var(--accent); }
     .status-bar.error    { border-color: var(--danger);  color: var(--danger); }
 
+    .plan-blocked-note {
+      margin-bottom: 18px;
+      background: rgba(248,113,113,.08);
+      border: 1px solid rgba(248,113,113,.35);
+      color: var(--danger);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: .88rem;
+      line-height: 1.5;
+    }
+
     .spinner {
       width: 16px; height: 16px;
       border: 2px solid transparent;
@@ -286,6 +297,28 @@
     .form-field select:focus,
     .form-field textarea:focus { border-color: var(--accent2); }
     .form-field select option { background: var(--surface); }
+
+    .ds-upload-dropzone {
+      margin-top: 10px;
+      background: var(--surface2);
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      color: var(--text-muted);
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .15s, background .15s, color .15s;
+      user-select: none;
+    }
+    .ds-upload-dropzone:hover {
+      border-color: var(--accent2);
+      color: var(--text);
+    }
+    .ds-upload-dropzone.drag-over {
+      border-color: var(--accent);
+      background: var(--accent-dim);
+      color: var(--accent);
+    }
 
     /* ── Refinement box ───────────────────────────────────────────── */
     .refinement-box {
@@ -756,6 +789,7 @@
   <nav>
     <a href="/api/docs" target="_blank">API Docs</a>
     <a href="#" id="nav-report">📄 360° Bericht</a>
+    <a href="#" id="nav-datasources">🗄️ Data Sources</a>
     <a href="#" id="nav-reset">New Research</a>
   </nav>
 </header>
@@ -798,6 +832,8 @@
   <!-- ── Step 3: Parameters Form ────────────────────────────── -->
   <section class="card hidden" id="params-card">
     <h2><span class="step-badge">STEP 3</span> Provide Required Inputs</h2>
+
+    <div class="plan-blocked-note hidden" id="plan-blocked-note"></div>
 
     <div class="form-grid" id="form-grid"></div>
 
@@ -936,7 +972,19 @@
     </div>
   </section>
 
+  <!-- ── Data Sources Panel ──────────────────────────────────── -->
+  <section class="card hidden" id="datasources-panel">
+    <h2>🗄️ Data Sources</h2>
+    <!-- Sub-views injected by the DataSources IIFE -->
+    <div id="ds-view-list"></div>
+    <div id="ds-view-form" class="hidden"></div>
+    <div id="ds-view-dict" class="hidden"></div>
+  </section>
+
 </main>
+
+<!-- ── Toast Notification Container ────────────────────────── -->
+<div id="toast-container" aria-live="polite"></div>
 
 <script>
 /* ================================================================
@@ -975,6 +1023,7 @@ const strategySummary= $('strategy-summary');
 const stepsList      = $('steps-list');
 const paramsCard     = $('params-card');
 const formGrid       = $('form-grid');
+const planBlockedNote= $('plan-blocked-note');
 const refinementInput= $('refinement-input');
 const resultsCard    = $('results-card');
 const resultSummary  = $('result-summary');
@@ -1007,6 +1056,22 @@ function hideStatus() { statusBar.classList.add('hidden'); }
 function show(el) { el.classList.remove('hidden'); }
 function hide(el) { el.classList.add('hidden'); }
 
+function updateExecuteAvailability(plan) {
+  const canExecute = plan?.canExecute !== false;
+  const blockedReason = plan?.blockedReason || '';
+
+  btnExecute.disabled = !canExecute;
+  btnExecute.title = canExecute ? '' : blockedReason;
+
+  if (!canExecute && blockedReason) {
+    planBlockedNote.textContent = blockedReason;
+    show(planBlockedNote);
+  } else {
+    planBlockedNote.textContent = '';
+    hide(planBlockedNote);
+  }
+}
+
 function apiHeaders() {
   const headers = { 'Content-Type': 'application/json' };
   const tok = tokenInput.value.trim();
@@ -1032,6 +1097,42 @@ async function apiGet(path) {
   return data;
 }
 
+// ── Panel Management ───────────────────────────────────────────
+// showPanel() lives in outer scope so Research, Report, and DataSources
+// all share one dispatcher. Never move this into an IIFE.
+function showPanel(panelId) {
+  ['report-panel', 'datasources-panel'].forEach(id => {
+    const el = $(id);
+    if (el) el.classList.add('hidden');
+  });
+  if (panelId) {
+    // Entering a secondary panel — hide the research flow
+    [$('problem-card'), strategyCard, paramsCard, resultsCard, statusBar].forEach(el => {
+      if (el) el.classList.add('hidden');
+    });
+    const target = $(panelId);
+    if (target) target.classList.remove('hidden');
+  } else {
+    // Returning to research — restore problem-card visibility
+    const pc = $('problem-card');
+    if (pc) pc.classList.remove('hidden');
+  }
+}
+
+// ── Toast Notification ─────────────────────────────────────────
+function toast(message, type = 'success') {
+  const container = $('toast-container');
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'toast ' + type;
+  div.textContent = message;
+  container.appendChild(div);
+  setTimeout(() => {
+    div.classList.add('hiding');
+    setTimeout(() => div.remove(), 420);
+  }, 3500);
+}
+
 // ── Reset ──────────────────────────────────────────────────────
 function resetAll() {
   state.sessionId = null;
@@ -1050,14 +1151,18 @@ function resetAll() {
   hide(paramsCard);
   hide(resultsCard);
   hide(btnReset);
+  hide(planBlockedNote);
+  planBlockedNote.textContent = '';
   hideStatus();
   btnAnalyze.disabled = false;
+  btnExecute.disabled = false;
+  btnExecute.title = '';
   window.history.replaceState({}, '', window.location.pathname);
 }
 
 btnReset.addEventListener('click', resetAll);
 btnResetBottom.addEventListener('click', resetAll);
-$('nav-reset').addEventListener('click', (e) => { e.preventDefault(); resetAll(); });
+$('nav-reset').addEventListener('click', (e) => { e.preventDefault(); showPanel(null); resetAll(); });
 
 // ── Step 1 → Analyze ──────────────────────────────────────────
 btnAnalyze.addEventListener('click', async () => {
@@ -1068,13 +1173,18 @@ btnAnalyze.addEventListener('click', async () => {
   setStatus('🧠 Gemini is analysing your problem and planning the strategy…', 'thinking');
 
   try {
-    const data = await apiFetch('/api/agent/analyze', { problem });
+    const analyzeBody = { problem };
+    // CR-UI-011: attach inhouse source IDs collected by the capture-phase listener
+    if (window.__inhouseSources && window.__inhouseSources.length) {
+      analyzeBody.inhouseSources = window.__inhouseSources;
+    }
+    const data = await apiFetch('/api/agent/analyze', analyzeBody);
     state.sessionId = data.sessionId;
     state.plan = data;
 
     renderStrategy(data);
     renderForm(data.requiredInputs || []);
-    btnExecute.disabled = false;
+    updateExecuteAvailability(data);
 
     show(strategyCard);
     show(paramsCard);
@@ -1105,7 +1215,6 @@ function renderStrategy(data) {
 function renderForm(requiredInputs) {
   if (!requiredInputs || requiredInputs.length === 0) {
     formGrid.innerHTML = '<p style="color:var(--text-muted);font-size:.88rem;">No additional inputs required — the AI has all the parameters it needs.</p>';
-    btnExecute.disabled = false;
     return;
   }
 
@@ -1117,9 +1226,15 @@ function renderForm(requiredInputs) {
     let control = '';
 
     if (inp.type === 'select' && inp.options && inp.options.length) {
+      const optionsHtml = inp.options.map(o => {
+        const val = typeof o === 'object' ? (o.value ?? o.label) : o;
+        const lbl = typeof o === 'object' ? (o.label ?? o.value) : o;
+        const sel = (inp.default === val) ? ' selected' : '';
+        return `<option value="${esc(String(val))}"${sel}>${esc(String(lbl))}</option>`;
+      }).join('');
       control = `<select id="${id}" data-field="${inp.name}">
-        <option value="">-- select --</option>
-        ${inp.options.map(o => `<option value="${esc(o)}"${(inp.default===o)?' selected':''}>${esc(o)}</option>`).join('')}
+        <option value="">-- auswählen --</option>
+        ${optionsHtml}
       </select>`;
     } else if (inp.type === 'date') {
       control = `<input type="date" id="${id}" data-field="${inp.name}" value="${esc(inp.default || '')}" />`;
@@ -1166,9 +1281,9 @@ btnExecute.addEventListener('click', async () => {
       state.plan = data;
       renderStrategy(data);
       renderForm(data.requiredInputs || []);
+      updateExecuteAvailability(data);
       refinementInput.value = '';
       setStatus('🔄 Plan updated — please review and run again.', 'success');
-      btnExecute.disabled = false;
       return;
     }
 
@@ -1739,6 +1854,7 @@ function esc(str) {
 
     renderStrategy(session.plan);
     renderForm(session.plan.requiredInputs || []);
+    updateExecuteAvailability(session.plan);
     show(strategyCard);
     show(paramsCard);
     show(btnReset);
@@ -1763,6 +1879,1177 @@ function esc(str) {
     setStatus('⚠️ Could not load session: ' + err.message, 'error');
   }
 })();
+
+// ── Data Sources Panel (CR-UI-002 through CR-UI-011) ─────────
+(function () {
+  /* ── State ─────────────────────────────────────────────────── */
+  const dsState = {
+    sources: [],          // from GET /api/datasources
+    descriptors: [],      // from GET /api/datasource-discovery
+    connectorTypes: [],   // from GET /api/datasources/connector-types
+    uploadedFiles: [],    // from GET /api/datasources/uploads
+    editingSourceId: null,
+    editingDictSourceId: null,
+    filterQuery: '',
+  };
+
+  /* ── Connector type icon map ─────────────────────────────────── */
+  const CONNECTOR_ICONS = {
+    csv:     '📄',
+    rest:    '🌐',
+    scraper: '🕸️',
+    geojson: '🗺️',
+    docx:    '📝',
+    xlsx:    '📊',
+  };
+
+  const DS_ALLOWED_UPLOAD_EXTENSIONS = ['.csv', '.tsv', '.txt', '.xlsx', '.xls', '.docx', '.geojson', '.json', '.gz'];
+  const DS_MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25 MB — matches API body-size limit
+
+  /* ── Nav wiring (additive — follows 360° IIFE pattern) ────────── */
+  const navDS = $('nav-datasources');
+  const dsPanel = $('datasources-panel');
+
+  navDS.addEventListener('click', (e) => {
+    e.preventDefault();
+    showPanel('datasources-panel');
+    dsShowView('list');
+    dsLoadSources();
+  });
+
+  // Hide datasources panel when other nav items are used
+  $('nav-report').addEventListener('click', () => hide(dsPanel));
+  $('nav-reset').addEventListener('click',  () => hide(dsPanel));
+
+  /* ── Sub-view switcher ──────────────────────────────────────── */
+  function dsShowView(view) {
+    ['list', 'form', 'dict'].forEach(v => {
+      const el = $(`ds-view-${v}`);
+      if (el) v === view ? el.classList.remove('hidden') : el.classList.add('hidden');
+    });
+  }
+
+  /* ── Source List (CR-UI-002) ──────────────────────────────────── */
+  function renderSkeletonRows() {
+    return Array.from({ length: 5 }, () => `
+      <tr class="skeleton-row">
+        <td><div class="skeleton-cell" style="width:70%"></div></td>
+        <td><div class="skeleton-cell" style="width:50%"></div></td>
+        <td><div class="skeleton-cell" style="width:60%"></div></td>
+        <td><div class="skeleton-cell" style="width:40%"></div></td>
+        <td><div class="skeleton-cell" style="width:55%"></div></td>
+        <td><div class="skeleton-cell" style="width:80%"></div></td>
+      </tr>`).join('');
+  }
+
+  function renderSourceList() {
+    const container = $('ds-view-list');
+    if (!container) return;
+
+    const filtered = dsState.sources.filter(s => {
+      if (!dsState.filterQuery) return true;
+      const q = dsState.filterQuery.toLowerCase();
+      return (
+        (s.name || '').toLowerCase().includes(q) ||
+        (s.connectorType || '').toLowerCase().includes(q) ||
+        (s.tags || []).join(' ').toLowerCase().includes(q)
+      );
+    });
+
+    const descriptorMap = {};
+    dsState.descriptors.forEach(d => { descriptorMap[d.sourceId] = d; });
+
+    const rows = filtered.length === 0 && dsState.sources.length > 0
+      ? `<tr><td colspan="6" class="no-results-msg">No sources match the current filter.</td></tr>`
+      : filtered.map(s => {
+          const desc = descriptorMap[s.sourceId || s.id];
+          const cacheStatus = desc
+            ? (desc.cacheExists ? (desc.cacheStale ? 'stale' : 'fresh') : 'empty')
+            : 'empty';
+          const lastRefreshed = desc?.lastRefreshed
+            ? new Date(desc.lastRefreshed).toLocaleString('de-DE')
+            : '—';
+          const icon = CONNECTOR_ICONS[s.connectorType] || '🔌';
+          const tags = (s.tags || []).map(t => `<span class="version-badge">${esc(t)}</span>`).join(' ');
+          const srcId = esc(s.sourceId || s.id || '');
+          return `
+            <tr data-source-id="${srcId}">
+              <td><strong>${esc(s.name || s.sourceId)}</strong></td>
+              <td>${icon} ${esc(s.connectorType || '—')}</td>
+              <td>${tags || '<span style="color:var(--text-muted)">—</span>'}</td>
+              <td><span class="cache-badge ${esc(cacheStatus)}">${esc(cacheStatus)}</span></td>
+              <td style="font-size:.82rem;color:var(--text-muted)">${lastRefreshed}</td>
+              <td>
+                <button class="icon-btn ds-btn-edit"   data-id="${srcId}" title="Edit source">✏️</button>
+                <button class="icon-btn ds-btn-dict"   data-id="${srcId}" title="View dictionary">📖</button>
+                <button class="icon-btn ds-btn-refresh" data-id="${srcId}" title="Refresh cache">🔄</button>
+                <button class="icon-btn danger ds-btn-delete" data-id="${srcId}" title="Delete source">🗑</button>
+              </td>
+            </tr>`;
+        }).join('');
+
+    const emptyState = dsState.sources.length === 0
+      ? `<div style="text-align:center;padding:40px 0;color:var(--text-muted)">
+           <div style="font-size:2.5rem;margin-bottom:12px">🗄️</div>
+           <div style="font-size:1rem;margin-bottom:18px">No data sources registered yet.</div>
+           <button class="btn-primary" id="ds-btn-add-first">+ Register your first source</button>
+         </div>`
+      : '';
+
+    container.innerHTML = `
+      <div class="ds-actions-row">
+        <input class="ds-filter-input" id="ds-filter" placeholder="🔍  Filter sources…" value="${esc(dsState.filterQuery)}" />
+        <button class="btn-primary" id="ds-btn-add">+ Add Source</button>
+      </div>
+      ${emptyState}
+      ${dsState.sources.length > 0 ? `
+      <div class="table-wrapper">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:8px 12px;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Name</th>
+              <th style="text-align:left;padding:8px 12px;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Type</th>
+              <th style="text-align:left;padding:8px 12px;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Tags</th>
+              <th style="text-align:left;padding:8px 12px;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Cache</th>
+              <th style="text-align:left;padding:8px 12px;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Last Refreshed</th>
+              <th style="text-align:left;padding:8px 12px;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="ds-list-tbody">${rows}</tbody>
+        </table>
+      </div>` : ''}
+    `;
+
+    // Bind filter
+    const filterInput = $('ds-filter');
+    if (filterInput) {
+      filterInput.addEventListener('input', () => {
+        dsState.filterQuery = filterInput.value;
+        renderSourceList();
+      });
+      // Restore focus after re-render
+      if (dsState.filterQuery) { filterInput.focus(); filterInput.setSelectionRange(9999, 9999); }
+    }
+
+    // Bind Add buttons
+    ['ds-btn-add', 'ds-btn-add-first'].forEach(btnId => {
+      const btn = $(btnId);
+      if (btn) btn.addEventListener('click', () => dsOpenForm(null));
+    });
+
+    // Bind row action buttons (CR-UI-006 inline delete, CR-UI-007 inline refresh)
+    container.querySelectorAll('.ds-btn-edit').forEach(btn => {
+      btn.addEventListener('click', () => dsOpenForm(btn.dataset.id));
+    });
+    container.querySelectorAll('.ds-btn-dict').forEach(btn => {
+      btn.addEventListener('click', () => dsOpenDict(btn.dataset.id));
+    });
+    container.querySelectorAll('.ds-btn-refresh').forEach(btn => {
+      btn.addEventListener('click', () => dsRefreshSource(btn));
+    });
+    container.querySelectorAll('.ds-btn-delete').forEach(btn => {
+      btn.addEventListener('click', () => dsConfirmDelete(btn));
+    });
+  }
+
+  async function dsLoadSources() {
+    const container = $('ds-view-list');
+    if (!container) return;
+
+    // Show skeleton while loading
+    container.innerHTML = `
+      <div class="table-wrapper">
+        <table style="width:100%;border-collapse:collapse">
+          <tbody>${renderSkeletonRows()}</tbody>
+        </table>
+      </div>`;
+
+    try {
+      const [sourcesRes, discoveryRes] = await Promise.all([
+        apiGet('/api/datasources'),
+        apiGet('/api/datasource-discovery').catch(() => ({ data: [] })),
+      ]);
+      dsState.sources     = sourcesRes.data  || [];
+      dsState.descriptors = discoveryRes.data || [];
+      renderSourceList();
+    } catch (err) {
+      container.innerHTML = `<div class="warn-callout">⚠️ Failed to load sources: ${esc(err.message)}</div>`;
+    }
+  }
+
+  /* ── CR-UI-007: Inline Refresh ─────────────────────────────────── */
+  async function dsRefreshSource(btn) {
+    const sourceId = btn.dataset.id;
+    const row = btn.closest('tr');
+    const badgeCell = row ? row.querySelector('.cache-badge') : null;
+
+    btn.disabled = true;
+    btn.textContent = '⏳';
+
+    try {
+      await apiGet(`/api/datasources/${sourceId}/refresh`).catch(() =>
+        fetch(`/api/datasources/${sourceId}/refresh`, { method: 'POST', headers: apiHeaders() }).then(r => r.json())
+      );
+
+      // Poll cache status every 2 s until fresh or error
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        try {
+          const status = await apiGet(`/api/datasource-cache/${sourceId}/status`);
+          if (!status.stale && status.exists) {
+            clearInterval(poll);
+            btn.textContent = '🔄';
+            btn.disabled = false;
+            if (badgeCell) {
+              badgeCell.className = 'cache-badge fresh';
+              badgeCell.textContent = 'fresh';
+            }
+            toast(`✅ ${sourceId} refreshed — ${status.rowCount ?? '?'} rows`);
+            // Reload descriptor to update lastRefreshed
+            dsLoadSources();
+          } else if (attempts >= 15) {
+            clearInterval(poll);
+            btn.textContent = '🔄';
+            btn.disabled = false;
+            toast('⚠️ Refresh timed out — check cache status', 'error');
+          }
+        } catch (_) { /* ignore transient */ }
+      }, 2000);
+    } catch (err) {
+      btn.textContent = '🔄';
+      btn.disabled = false;
+      if (badgeCell) { badgeCell.className = 'cache-badge error'; badgeCell.textContent = 'error'; }
+      toast('❌ Refresh failed: ' + err.message, 'error');
+    }
+  }
+
+  /* ── CR-UI-006: Inline Delete Confirmation Popover ─────────────── */
+  function dsConfirmDelete(btn) {
+    // If a confirm popover already exists, remove it (toggle off)
+    const existing = btn.parentElement.querySelector('.ds-delete-confirm');
+    if (existing) { existing.remove(); btn.style.display = ''; return; }
+
+    btn.style.display = 'none';
+    const sourceId = btn.dataset.id;
+    const source   = dsState.sources.find(s => (s.sourceId || s.id) === sourceId);
+    const label    = esc(source?.name || sourceId);
+
+    const confirm = document.createElement('span');
+    confirm.className = 'ds-delete-confirm';
+    confirm.style.cssText = 'display:inline-flex;align-items:center;gap:6px;font-size:.82rem';
+    confirm.innerHTML = `
+      <span style="color:var(--danger)">Delete <strong>${label}</strong>?</span>
+      <button class="icon-btn danger ds-confirm-yes"  data-id="${esc(sourceId)}">Yes</button>
+      <button class="icon-btn ds-confirm-no">Cancel</button>
+    `;
+    btn.after(confirm);
+
+    confirm.querySelector('.ds-confirm-no').addEventListener('click', () => {
+      confirm.remove();
+      btn.style.display = '';
+    });
+    confirm.querySelector('.ds-confirm-yes').addEventListener('click', async () => {
+      confirm.innerHTML = '<span style="color:var(--text-muted)">Deleting…</span>';
+      try {
+        const res = await fetch(`/api/datasources/${sourceId}`, {
+          method: 'DELETE',
+          headers: apiHeaders(),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        toast(`🗑 Source "${source?.name || sourceId}" deleted`);
+        dsState.sources = dsState.sources.filter(s => (s.sourceId || s.id) !== sourceId);
+        renderSourceList();
+      } catch (err) {
+        confirm.remove();
+        btn.style.display = '';
+        toast('❌ Delete failed: ' + err.message, 'error');
+      }
+    });
+  }
+
+  /* ── CR-UI-003/004/005: Source Form ───────────────────────────── */
+  async function dsOpenForm(sourceId) {
+    dsState.editingSourceId = sourceId;
+    dsShowView('form');
+
+    const container = $('ds-view-form');
+    if (!container) return;
+
+    // Load connector types if not cached
+    if (!dsState.connectorTypes.length) {
+      try {
+        const res = await apiGet('/api/datasources/connector-types');
+        dsState.connectorTypes = res.data || [];
+      } catch (_) { dsState.connectorTypes = []; }
+    }
+
+    let source = null;
+    if (sourceId) {
+      try { source = (await apiGet(`/api/datasources/${sourceId}`)).data; } catch (_) {}
+    }
+
+    const s = source || {};
+    const typeOptions = dsState.connectorTypes.map(ct =>
+      `<option value="${esc(ct.type)}" ${s.connectorType === ct.type ? 'selected' : ''}>${esc(ct.type)} — ${esc(ct.description)}</option>`
+    ).join('');
+
+    const cacheMode   = s.cachePolicy?.mode || 'manual';
+    const cacheCron   = s.cachePolicy?.cron || '0 6 * * *';
+    const cacheTtl    = s.cachePolicy?.ttlSeconds || 3600;
+
+    container.innerHTML = `
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:22px">
+        <button class="icon-btn" id="ds-form-back">← Back</button>
+        <h3 style="font-size:1rem;font-weight:600">${sourceId ? '✏️ Edit Source' : '+ New Source'}</h3>
+      </div>
+
+      <!-- Section A: Basic Info -->
+      <details open>
+        <summary class="ds-section-title" style="cursor:pointer;user-select:none">📋 Basic Info</summary>
+        <div class="form-grid" style="margin-top:14px">
+          <div class="form-field">
+            <label>Name <span style="color:var(--danger)">*</span></label>
+            <input id="ds-f-name" type="text" placeholder="e.g. Netzanschlüsse 2025" value="${esc(s.name || '')}" />
+          </div>
+          <div class="form-field">
+            <label>Description</label>
+            <input id="ds-f-desc" type="text" placeholder="Short description for colleagues and AI" value="${esc(s.description || '')}" />
+          </div>
+          <div class="form-field">
+            <label>Tags (comma-separated)</label>
+            <input id="ds-f-tags" type="text" placeholder="e.g. netz, grid, internal" value="${esc((s.tags || []).join(', '))}" />
+          </div>
+        </div>
+      </details>
+
+      <!-- Section B: Connector -->
+      <details open style="margin-top:16px">
+        <summary class="ds-section-title" style="cursor:pointer;user-select:none">🔌 Connector</summary>
+        <div style="margin-top:14px">
+          <div class="form-field" style="margin-bottom:16px">
+            <label>Connector Type <span style="color:var(--danger)">*</span></label>
+            <select id="ds-f-connector-type">
+              <option value="">— select —</option>
+              ${typeOptions}
+            </select>
+          </div>
+          <div id="ds-f-connector-config-wrap"></div>
+
+          <div id="ds-upload-box" style="margin-top:12px;display:none">
+            <div class="info-callout">
+              📁 Upload Folder: <strong>uploads/</strong> (for CSV/XLSX/DOCX/GeoJSON local-file connectors)
+            </div>
+            <div id="ds-upload-dropzone" class="ds-upload-dropzone" role="button" tabindex="0" aria-label="Drag and drop a file for upload">
+              <div><strong>Drag &amp; drop a file here</strong> or click to browse</div>
+              <div class="field-desc" style="margin-top:6px">Allowed: CSV, TSV, TXT, XLSX, XLS, DOCX, GeoJSON, JSON, GZ &middot; Max 25 MB</div>
+            </div>
+            <div class="form-grid" style="margin-top:10px;align-items:end">
+              <div class="form-field">
+                <label>Select file to upload</label>
+                <input id="ds-upload-file" type="file" accept=".csv,.tsv,.txt,.xlsx,.xls,.docx,.geojson,.json,.gz" />
+              </div>
+              <div class="form-field" style="display:flex;gap:8px;align-items:flex-end">
+                <button class="btn-secondary" id="ds-btn-upload-file" type="button">⬆ Upload File</button>
+                <button class="icon-btn" id="ds-btn-refresh-uploads" type="button" title="Refresh uploaded files">↻ Refresh</button>
+              </div>
+              <div class="form-field">
+                <label>Use uploaded file as connector path</label>
+                <select id="ds-uploaded-file-select">
+                  <option value="">— no uploaded files —</option>
+                </select>
+              </div>
+            </div>
+            <div class="action-row" style="margin-top:8px">
+              <button class="btn-secondary" id="ds-btn-use-uploaded-file" type="button">📌 Use selected file path</button>
+            </div>
+            <div id="ds-upload-status" style="font-size:.8rem;color:var(--text-muted);margin-top:6px"></div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Section C: Cache Policy -->
+      <details style="margin-top:16px">
+        <summary class="ds-section-title" style="cursor:pointer;user-select:none">⏱ Cache Policy</summary>
+        <div class="form-grid" style="margin-top:14px">
+          <div class="form-field">
+            <label>Mode</label>
+            <select id="ds-f-cache-mode">
+              <option value="manual"   ${cacheMode==='manual'    ? 'selected':''}>manual</option>
+              <option value="cron"     ${cacheMode==='cron'      ? 'selected':''}>cron</option>
+              <option value="ttl"      ${cacheMode==='ttl'       ? 'selected':''}>ttl</option>
+              <option value="onDemand" ${cacheMode==='onDemand'  ? 'selected':''}>onDemand</option>
+            </select>
+          </div>
+          <div class="form-field" id="ds-f-cron-wrap" ${cacheMode !== 'cron' ? 'style="display:none"' : ''}>
+            <label>Cron Expression</label>
+            <input id="ds-f-cron" type="text" placeholder="0 6 * * *" value="${esc(cacheCron)}" />
+          </div>
+          <div class="form-field" id="ds-f-ttl-wrap" ${cacheMode !== 'ttl' ? 'style="display:none"' : ''}>
+            <label>TTL (seconds)</label>
+            <input id="ds-f-ttl" type="number" min="60" value="${esc(String(cacheTtl))}" />
+          </div>
+        </div>
+        <div id="ds-cache-summary" class="info-callout" style="margin-top:10px"></div>
+      </details>
+
+      <div class="action-row" style="margin-top:24px">
+        <button class="btn-primary"   id="ds-btn-save">💾 Save Source</button>
+        <button class="btn-secondary" id="ds-btn-save-infer">🤖 Save &amp; Run AI Inference</button>
+        <button class="btn-secondary" id="ds-form-cancel">✕ Cancel</button>
+      </div>
+    `;
+
+    // Back / Cancel
+    ['ds-form-back', 'ds-form-cancel'].forEach(id => {
+      const el = $(id);
+      if (el) el.addEventListener('click', () => { dsShowView('list'); renderSourceList(); });
+    });
+
+    // Connector type → dynamic config fields
+    const connTypeSelect = $('ds-f-connector-type');
+    if (connTypeSelect) {
+      dsRenderConnectorConfig(connTypeSelect.value, s.connectorConfig || {});
+      dsUpdateUploadSectionVisibility(connTypeSelect.value);
+      connTypeSelect.addEventListener('change', () => {
+        // Scraper + onDemand conflict
+        const cacheModeSel = $('ds-f-cache-mode');
+        if (connTypeSelect.value === 'scraper' && cacheModeSel?.value === 'onDemand') {
+          cacheModeSel.value = 'cron';
+          toast('⚠️ scraper + onDemand not supported — cache mode reset to cron', 'error');
+          dsCacheSummary();
+          dsToggleCacheFields('cron');
+        }
+        dsRenderConnectorConfig(connTypeSelect.value, {});
+        dsUpdateUploadSectionVisibility(connTypeSelect.value);
+      });
+    }
+
+    // Upload folder UI wiring
+    dsLoadUploadedFiles();
+    dsBindUploadDragAndDrop();
+    $('ds-btn-upload-file')?.addEventListener('click', () => dsUploadSelectedFile());
+    $('ds-btn-refresh-uploads')?.addEventListener('click', () => dsLoadUploadedFiles(true));
+    $('ds-btn-use-uploaded-file')?.addEventListener('click', () => {
+      const selectedPath = $('ds-uploaded-file-select')?.value;
+      if (!selectedPath) {
+        toast('⚠️ Please select an uploaded file first.', 'error');
+        return;
+      }
+      if (!dsApplyUploadedFilePath(selectedPath)) {
+        toast('⚠️ Current connector has no "path" field in schema.', 'error');
+      }
+    });
+
+    // Cache mode toggle
+    const cacheModeSelect = $('ds-f-cache-mode');
+    if (cacheModeSelect) {
+      dsCacheSummary();
+      cacheModeSelect.addEventListener('change', () => {
+        const mode = cacheModeSelect.value;
+        // Scraper + onDemand conflict
+        if ($('ds-f-connector-type')?.value === 'scraper' && mode === 'onDemand') {
+          cacheModeSelect.value = 'cron';
+          toast('⚠️ scraper + onDemand not supported — reset to cron', 'error');
+          dsToggleCacheFields('cron');
+        } else {
+          dsToggleCacheFields(mode);
+        }
+        dsCacheSummary();
+      });
+    }
+
+    // Save
+    $('ds-btn-save').addEventListener('click', () => dsSaveSource(false));
+    $('ds-btn-save-infer').addEventListener('click', () => dsSaveSource(true));
+  }
+
+  function dsToggleCacheFields(mode) {
+    const cronWrap = $('ds-f-cron-wrap');
+    const ttlWrap  = $('ds-f-ttl-wrap');
+    if (cronWrap) cronWrap.style.display = mode === 'cron' ? '' : 'none';
+    if (ttlWrap)  ttlWrap.style.display  = mode === 'ttl'  ? '' : 'none';
+  }
+
+  function dsCacheSummary() {
+    const el = $('ds-cache-summary');
+    if (!el) return;
+    const mode = $('ds-f-cache-mode')?.value || 'manual';
+    const cron = $('ds-f-cron')?.value || '';
+    const ttl  = $('ds-f-ttl')?.value  || '';
+    const texts = {
+      manual:   '🖐 Manual — cache is only refreshed when you click Refresh.',
+      cron:     `⏰ Scheduled — refreshes automatically via cron: <code>${esc(cron || '—')}</code>`,
+      ttl:      `⏱ TTL — cached data expires after <strong>${esc(ttl || '—')} seconds</strong> and is re-fetched on next query.`,
+      onDemand: '🔁 On-Demand — cache is refreshed automatically when stale data is requested.',
+    };
+    el.innerHTML = texts[mode] || '';
+  }
+
+  function dsRenderConnectorConfig(connType, existingConfig) {
+    const wrap = $('ds-f-connector-config-wrap');
+    if (!wrap) return;
+    if (!connType) { wrap.innerHTML = ''; return; }
+
+    const plugin = dsState.connectorTypes.find(ct => ct.type === connType);
+    if (!plugin) { wrap.innerHTML = `<div class="warn-callout">⚠️ Plugin schema not found for "${esc(connType)}"</div>`; return; }
+
+    const schema = plugin.configSchema || {};
+    const props  = schema.properties || {};
+    const req    = schema.required || [];
+
+    const fields = Object.entries(props).map(([key, def]) => {
+      const isRequired = req.includes(key);
+      const val = existingConfig[key] !== undefined ? existingConfig[key] : (def.default ?? '');
+      const requiredMark = isRequired ? '<span style="color:var(--danger)">*</span>' : '';
+      let control;
+
+      if (def.enum) {
+        control = `<select id="ds-cfg-${esc(key)}" data-cfg-key="${esc(key)}">
+          ${def.enum.map(opt => `<option value="${esc(opt)}" ${val===opt?'selected':''}>${esc(opt)}</option>`).join('')}
+        </select>`;
+      } else if (def.type === 'boolean') {
+        control = `<input type="checkbox" id="ds-cfg-${esc(key)}" data-cfg-key="${esc(key)}" ${val ? 'checked' : ''} style="width:auto" />`;
+      } else if (def.type === 'number' || def.type === 'integer') {
+        control = `<input type="number" id="ds-cfg-${esc(key)}" data-cfg-key="${esc(key)}" value="${esc(String(val))}" placeholder="${esc(def.description || '')}" />`;
+      } else {
+        control = `<input type="text" id="ds-cfg-${esc(key)}" data-cfg-key="${esc(key)}" value="${esc(String(val))}" placeholder="${esc(def.description || def.example || '')}" />`;
+      }
+
+      return `<div class="form-field">
+        <label for="ds-cfg-${esc(key)}">${esc(key)}${requiredMark}</label>
+        ${control}
+        ${def.description ? `<div class="field-desc">${esc(def.description)}</div>` : ''}
+      </div>`;
+    }).join('');
+
+    const callout = connType === 'scraper'
+      ? '<div class="warn-callout">⚠️ Scraper connector requires a running Puppeteer instance and is not compatible with onDemand cache mode.</div>'
+      : '';
+
+    wrap.innerHTML = callout + (fields
+      ? `<div class="form-grid" style="margin-top:10px">${fields}</div>`
+      : `<div class="info-callout">ℹ️ This connector type requires no additional configuration.</div>`);
+
+    // If path exists in existing config (edit mode), keep the upload status in sync.
+    const pathVal = existingConfig?.path;
+    if (pathVal && $('ds-upload-status')) {
+      $('ds-upload-status').textContent = `Current connector path: ${pathVal}`;
+    }
+  }
+
+  function dsConnectorUsesLocalFile(connType) {
+    return ['csv', 'xlsx', 'docx', 'geojson'].includes(String(connType || '').toLowerCase());
+  }
+
+  function dsUpdateUploadSectionVisibility(connType) {
+    const box = $('ds-upload-box');
+    if (!box) return;
+    box.style.display = dsConnectorUsesLocalFile(connType) ? '' : 'none';
+  }
+
+  function dsRenderUploadedFilesSelect() {
+    const select = $('ds-uploaded-file-select');
+    if (!select) return;
+
+    const options = dsState.uploadedFiles.map((item) => {
+      const label = `${item.fileName} (${Math.ceil((item.sizeBytes || 0) / 1024)} KB)`;
+      return `<option value="${esc(item.filePath)}">${esc(label)}</option>`;
+    }).join('');
+
+    select.innerHTML = `<option value="">— ${dsState.uploadedFiles.length ? 'select uploaded file' : 'no uploaded files'} —</option>${options}`;
+  }
+
+  async function dsLoadUploadedFiles(showToastOnError = false) {
+    try {
+      const res = await apiGet('/api/datasources/uploads');
+      dsState.uploadedFiles = res.data || [];
+      dsRenderUploadedFilesSelect();
+    } catch (err) {
+      dsState.uploadedFiles = [];
+      dsRenderUploadedFilesSelect();
+      if (showToastOnError) {
+        toast('❌ Failed to load uploaded files: ' + err.message, 'error');
+      }
+    }
+  }
+
+  async function dsUploadSelectedFile() {
+    const fileInput = $('ds-upload-file');
+    const file = fileInput?.files?.[0];
+
+    if (!file) {
+      toast('⚠️ Please pick a file first.', 'error');
+      return;
+    }
+
+    await dsUploadFile(file);
+  }
+
+  function dsIsAllowedUploadFile(fileName) {
+    const ext = (String(fileName || '').match(/\.[^.]+$/)?.[0] || '').toLowerCase();
+    return DS_ALLOWED_UPLOAD_EXTENSIONS.includes(ext);
+  }
+
+  function dsBindUploadDragAndDrop() {
+    const dropzone = $('ds-upload-dropzone');
+    const fileInput = $('ds-upload-file');
+    const statusEl = $('ds-upload-status');
+    if (!dropzone || !fileInput) return;
+
+    let dragDepth = 0;
+
+    const preventDefaults = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((eventName) => {
+      dropzone.addEventListener(eventName, preventDefaults);
+    });
+
+    dropzone.addEventListener('dragenter', () => {
+      dragDepth += 1;
+      dropzone.classList.add('drag-over');
+    });
+    dropzone.addEventListener('dragover', () => {
+      dropzone.classList.add('drag-over');
+    });
+    dropzone.addEventListener('dragleave', () => {
+      dragDepth = Math.max(0, dragDepth - 1);
+      if (dragDepth === 0) dropzone.classList.remove('drag-over');
+    });
+    dropzone.addEventListener('drop', async (e) => {
+      dragDepth = 0;
+      dropzone.classList.remove('drag-over');
+
+      const files = Array.from(e.dataTransfer?.files || []);
+      if (!files.length) return;
+      if (files.length > 1) {
+        toast('ℹ️ Multiple files dropped — uploading the first file only.');
+      }
+
+      const file = files[0];
+      if (statusEl) statusEl.textContent = `Selected from drag-and-drop: ${file.name}`;
+      await dsUploadFile(file);
+    });
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        fileInput.click();
+      }
+    });
+
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files?.[0];
+      if (statusEl && file) {
+        statusEl.textContent = `Selected: ${file.name}`;
+      }
+    });
+  }
+
+  async function dsUploadFile(file) {
+    const statusEl = $('ds-upload-status');
+    const fileInput = $('ds-upload-file');
+
+    if (!dsIsAllowedUploadFile(file?.name)) {
+      const ext = (String(file?.name || '').match(/\.[^.]+$/)?.[0] || '').toLowerCase();
+      toast(`⚠️ Unsupported file type: ${ext || '(none)'}`, 'error');
+      return;
+    }
+
+    if (file?.size > DS_MAX_UPLOAD_BYTES) {
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+      toast(`⚠️ File too large: ${sizeMB} MB (max 25 MB)`, 'error');
+      return;
+    }
+
+    if (statusEl) statusEl.textContent = `Uploading ${file.name}…`;
+
+    try {
+      const contentBase64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || '').split(',').pop() || '');
+        reader.onerror = () => reject(new Error('Could not read file for upload.'));
+        reader.readAsDataURL(file);
+      });
+
+      const uploadRes = await fetch('/api/datasources/uploads', {
+        method: 'POST',
+        headers: apiHeaders(),
+        body: JSON.stringify({
+          fileName: file.name,
+          contentBase64,
+        }),
+      });
+
+      const uploadJson = await uploadRes.json();
+      if (!uploadRes.ok || !uploadJson.success) {
+        throw new Error(uploadJson.message || `HTTP ${uploadRes.status}`);
+      }
+
+      const uploaded = uploadJson.data;
+      if (statusEl) statusEl.textContent = `Uploaded: ${uploaded.fileName} → ${uploaded.filePath}`;
+      toast(`✅ Uploaded ${uploaded.fileName}`);
+
+      await dsLoadUploadedFiles();
+      const select = $('ds-uploaded-file-select');
+      if (select) {
+        select.value = uploaded.filePath;
+      }
+      if (!dsApplyUploadedFilePath(uploaded.filePath)) {
+        toast('ℹ️ File uploaded. Select a local-file connector to apply the path.', 'error');
+      }
+    } catch (err) {
+      if (statusEl) statusEl.textContent = '';
+      toast('❌ Upload failed: ' + err.message, 'error');
+    } finally {
+      if (fileInput) fileInput.value = '';
+    }
+  }
+
+  function dsApplyUploadedFilePath(filePath) {
+    const pathInput = $('ds-cfg-path');
+    if (!pathInput) return false;
+    pathInput.value = filePath;
+    pathInput.dispatchEvent(new Event('input', { bubbles: true }));
+    const statusEl = $('ds-upload-status');
+    if (statusEl) statusEl.textContent = `Connector path set to: ${filePath}`;
+    return true;
+  }
+
+  function dsCollectConnectorConfig() {
+    const config = {};
+    document.querySelectorAll('#ds-f-connector-config-wrap [data-cfg-key]').forEach(el => {
+      const key = el.dataset.cfgKey;
+      if (el.type === 'checkbox') config[key] = el.checked;
+      else if (el.type === 'number') config[key] = el.value !== '' ? Number(el.value) : undefined;
+      else if (el.value !== '') config[key] = el.value;
+    });
+    return config;
+  }
+
+  async function dsSaveSource(runInfer) {
+    const name          = $('ds-f-name')?.value.trim();
+    const description   = $('ds-f-desc')?.value.trim();
+    const tagsRaw       = $('ds-f-tags')?.value.trim();
+    const connectorType = $('ds-f-connector-type')?.value;
+    const cacheMode     = $('ds-f-cache-mode')?.value || 'manual';
+    const cacheCron     = $('ds-f-cron')?.value.trim();
+    const cacheTtl      = Number($('ds-f-ttl')?.value) || 3600;
+
+    if (!name) {
+      $('ds-f-name').style.borderColor = 'var(--danger)';
+      toast('⚠️ Name is required', 'error');
+      return;
+    }
+    if (!connectorType) {
+      toast('⚠️ Connector type is required', 'error');
+      return;
+    }
+
+    const body = {
+      name,
+      description: description || undefined,
+      tags: tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [],
+      connectorType,
+      connectorConfig: dsCollectConnectorConfig(),
+      cachePolicy: { mode: cacheMode, cron: cacheCron || undefined, ttlSeconds: cacheTtl },
+    };
+
+    const btnSave      = $('ds-btn-save');
+    const btnSaveInfer = $('ds-btn-save-infer');
+    if (btnSave)      btnSave.disabled      = true;
+    if (btnSaveInfer) btnSaveInfer.disabled = true;
+
+    try {
+      let saved;
+      if (dsState.editingSourceId) {
+        const res = await fetch(`/api/datasources/${dsState.editingSourceId}`, {
+          method: 'PUT',
+          headers: apiHeaders(),
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        saved = await res.json();
+      } else {
+        saved = await apiFetch('/api/datasources', body);
+      }
+
+      const savedId = saved.data?.sourceId || saved.sourceId || dsState.editingSourceId;
+      toast(`✅ Source "${name}" saved`);
+
+      if (runInfer && savedId) {
+        toast('🤖 Running AI schema inference…');
+        try {
+          await dsInferAndApply(savedId);
+          dsState.editingDictSourceId = savedId;
+          dsShowView('dict');
+          dsLoadDict(savedId, false);
+          return;
+        } catch (inferErr) {
+          toast('⚠️ Inference failed: ' + inferErr.message, 'error');
+        }
+      }
+
+      dsState.editingSourceId = null;
+      dsShowView('list');
+      dsLoadSources();
+    } catch (err) {
+      toast('❌ Save failed: ' + err.message, 'error');
+    } finally {
+      if (btnSave)      btnSave.disabled      = false;
+      if (btnSaveInfer) btnSaveInfer.disabled = false;
+    }
+  }
+
+  /* ── CR-UI-008/009/010: Dictionary View ─────────────────────────── */
+  async function dsOpenDict(sourceId) {
+    dsState.editingDictSourceId = sourceId;
+    dsShowView('dict');
+    dsLoadDict(sourceId, false);
+  }
+
+  async function dsInferAndApply(sourceId) {
+    const inferRes = await fetch(`/api/datasources/${sourceId}/infer`, {
+      method: 'POST',
+      headers: apiHeaders(),
+    });
+    if (!inferRes.ok) throw new Error(`Inference failed (HTTP ${inferRes.status})`);
+
+    const inferJson = await inferRes.json();
+    const draftFields = inferJson?.dictionary?.fields || [];
+
+    if (!Array.isArray(draftFields) || draftFields.length === 0) {
+      throw new Error('Inference returned no fields. Check datasource parsing / delimiter settings.');
+    }
+
+    const putRes = await fetch(`/api/datasources/${sourceId}/dictionary`, {
+      method: 'PUT',
+      headers: apiHeaders(),
+      body: JSON.stringify({ fields: draftFields }),
+    });
+    if (!putRes.ok) throw new Error(`Apply failed (HTTP ${putRes.status})`);
+
+    return inferJson;
+  }
+
+  async function dsLoadDict(sourceId, showInferenceBanner) {
+    const container = $('ds-view-dict');
+    if (!container) return;
+
+    container.innerHTML = `<div style="color:var(--text-muted);padding:20px 0">Loading dictionary…</div>`;
+
+    try {
+      const [sourceRes, dictRes] = await Promise.all([
+        apiGet(`/api/datasources/${sourceId}`),
+        apiGet(`/api/datasources/${sourceId}/dictionary`),
+      ]);
+      const source = sourceRes.data || {};
+      const dict   = dictRes.data  || {};
+      const fields = dict.fields   || [];
+      const version = dict.version || 1;
+
+      let inferenceBanner = '';
+      if (showInferenceBanner && dictRes.inferenceDiff) {
+        const diff = dictRes.inferenceDiff;
+        const lines = [
+          diff.added?.length    ? `<li>➕ ${diff.added.length} new field(s): ${diff.added.map(f => `<code>${esc(f.name)}</code>`).join(', ')}</li>` : '',
+          diff.removed?.length  ? `<li>➖ ${diff.removed.length} removed field(s): ${diff.removed.map(f => `<code>${esc(f)}</code>`).join(', ')}</li>` : '',
+          diff.typeChanges?.length ? `<li>🔄 ${diff.typeChanges.length} type change(s)</li>` : '',
+          diff.autoPII?.length  ? `<li>🔒 ${diff.autoPII.length} field(s) auto-flagged as PII: ${diff.autoPII.map(f => `<code>${esc(f)}</code>`).join(', ')}</li>` : '',
+        ].filter(Boolean).join('');
+        inferenceBanner = `
+          <div class="warn-callout" id="ds-infer-banner" style="margin-bottom:18px">
+            <strong>🤖 AI Inference Result</strong>
+            <ul style="margin:8px 0 12px 16px;line-height:1.7">${lines || '<li>No changes detected.</li>'}</ul>
+            <div style="display:flex;gap:8px">
+              <button class="btn-primary"   id="ds-infer-apply">✅ Apply Draft</button>
+              <button class="btn-secondary" id="ds-infer-dismiss">✕ Dismiss</button>
+            </div>
+          </div>`;
+      }
+
+      const fieldRows = fields.map((f, i) => {
+        const privOn = f.privacyFlag ? 'privacy-on' : '';
+        return `
+          <tr class="${privOn}" data-field-idx="${i}">
+            <td class="field-name">${esc(f.name)}</td>
+            <td><span class="version-badge">${esc(f.type || 'string')}</span></td>
+            <td>
+              <span class="ds-dict-desc" data-idx="${i}">${esc(f.description || '—')}</span>
+            </td>
+            <td>
+              <label class="privacy-toggle" title="${f.privacyFlag ? 'PII — click to unflag' : 'Click to flag as PII'}">
+                <input type="checkbox" class="ds-privacy-chk" data-idx="${i}" ${f.privacyFlag ? 'checked' : ''} />
+                <span class="pt-slider"></span>
+              </label>
+            </td>
+            <td>
+              <input type="text" class="ds-synth-input" data-idx="${i}"
+                placeholder="{{faker.name}}"
+                value="${esc(f.syntheticPattern || '')}"
+                style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:.82rem;padding:4px 8px;width:100%;${f.privacyFlag ? '' : 'display:none'}" />
+            </td>
+            <td style="color:var(--text-muted);font-size:.82rem;font-family:monospace">${esc(String(f.example ?? '—').slice(0, 40))}</td>
+          </tr>`;
+      }).join('');
+
+      container.innerHTML = `
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap">
+          <button class="icon-btn" id="ds-dict-back">← Back</button>
+          <h3 style="font-size:1rem;font-weight:600">${esc(source.name || sourceId)}</h3>
+          <span class="version-badge">v${esc(String(version))}</span>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button class="icon-btn" id="ds-dict-rerun-infer">🤖 Re-run Inference</button>
+            <button class="btn-primary" id="ds-dict-save">💾 Save Dictionary</button>
+          </div>
+        </div>
+
+        ${inferenceBanner}
+
+        <div class="table-wrapper">
+          <table class="dict-table">
+            <thead>
+              <tr>
+                <th>Field Name</th>
+                <th>Type</th>
+                <th>Description</th>
+                <th>PII</th>
+                <th>Synthetic Pattern</th>
+                <th>Example</th>
+              </tr>
+            </thead>
+            <tbody id="ds-dict-tbody">${fieldRows || '<tr><td colspan="6" style="padding:20px;color:var(--text-muted);text-align:center">No fields in dictionary yet. Run AI Inference to populate.</td></tr>'}</tbody>
+          </table>
+        </div>
+
+        <!-- Version History -->
+        <details style="margin-top:20px">
+          <summary class="ds-section-title" style="cursor:pointer;user-select:none">📜 Version History</summary>
+          <div id="ds-dict-history" style="margin-top:12px;color:var(--text-muted);font-size:.87rem">Loading…</div>
+        </details>
+      `;
+
+      // Wire back button
+      $('ds-dict-back').addEventListener('click', () => { dsShowView('list'); renderSourceList(); });
+
+      // Wire privacy toggles → show/hide synthetic pattern input + row tint
+      container.querySelectorAll('.ds-privacy-chk').forEach(chk => {
+        chk.addEventListener('change', () => {
+          const idx = chk.dataset.idx;
+          const row   = container.querySelector(`tr[data-field-idx="${idx}"]`);
+          const synth = container.querySelector(`.ds-synth-input[data-idx="${idx}"]`);
+          if (chk.checked) {
+            row?.classList.add('privacy-on');
+            if (synth) synth.style.display = '';
+          } else {
+            row?.classList.remove('privacy-on');
+            if (synth) synth.style.display = 'none';
+          }
+        });
+      });
+
+      // Wire Save Dictionary
+      $('ds-dict-save').addEventListener('click', () => dsSaveDictionary(sourceId, fields));
+
+      // Wire Re-run Inference
+      $('ds-dict-rerun-infer').addEventListener('click', async () => {
+        $('ds-dict-rerun-infer').disabled = true;
+        toast('🤖 Running inference…');
+        try {
+          const infer = await dsInferAndApply(sourceId);
+          toast(`✅ Inference applied (${(infer?.dictionary?.fields || []).length} field(s))`);
+          dsLoadDict(sourceId, false);
+        } catch (err) {
+          toast('❌ Inference failed: ' + err.message, 'error');
+        } finally {
+          $('ds-dict-rerun-infer').disabled = false;
+        }
+      });
+
+      // Wire inference banner buttons
+      const applyBtn = $('ds-infer-apply');
+      if (applyBtn) {
+        applyBtn.addEventListener('click', async () => {
+          try {
+            await dsInferAndApply(sourceId);
+            toast('✅ Inference draft applied');
+            dsLoadDict(sourceId, false);
+          } catch (err) {
+            toast('❌ Apply failed: ' + err.message, 'error');
+          }
+        });
+      }
+      const dismissBtn = $('ds-infer-dismiss');
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', () => {
+          const banner = $('ds-infer-banner');
+          if (banner) banner.remove();
+        });
+      }
+
+      // Load version history when <details> is opened
+      const histDetails = container.querySelector('details');
+      if (histDetails) {
+        histDetails.addEventListener('toggle', async () => {
+          if (!histDetails.open) return;
+          const histContainer = $('ds-dict-history');
+          if (!histContainer || histContainer.dataset.loaded) return;
+          histContainer.dataset.loaded = '1';
+          try {
+            const histRes = await apiGet(`/api/datasources/${sourceId}/dictionary/history`);
+            const versions = histRes.data || [];
+            if (!versions.length) {
+              histContainer.textContent = 'No version history available.';
+              return;
+            }
+            histContainer.innerHTML = versions.map(v => `
+              <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">
+                <span class="version-badge">v${esc(String(v.version))}</span>
+                <span>${esc(v.date || v.createdAt || '—')}</span>
+                <span style="flex:1;color:var(--text-muted)">${esc(v.diff || v.description || '—')}</span>
+                <button class="icon-btn ds-history-restore" data-version="${esc(String(v.version))}" data-source="${esc(sourceId)}">Restore</button>
+              </div>`).join('');
+
+            histContainer.querySelectorAll('.ds-history-restore').forEach(btn => {
+              btn.addEventListener('click', async () => {
+                btn.disabled = true;
+                btn.textContent = 'Restoring…';
+                try {
+                  const vRes = await apiGet(`/api/datasources/${btn.dataset.source}/dictionary/history/${btn.dataset.version}`);
+                  const vFields = vRes.data?.fields || [];
+                  const putRes = await fetch(`/api/datasources/${btn.dataset.source}/dictionary`, {
+                    method: 'PUT',
+                    headers: apiHeaders(),
+                    body: JSON.stringify({ fields: vFields }),
+                  });
+                  if (!putRes.ok) throw new Error(`HTTP ${putRes.status}`);
+                  toast(`✅ Restored to v${btn.dataset.version}`);
+                  dsLoadDict(btn.dataset.source, false);
+                } catch (err) {
+                  toast('❌ Restore failed: ' + err.message, 'error');
+                  btn.disabled = false;
+                  btn.textContent = 'Restore';
+                }
+              });
+            });
+          } catch (err) {
+            histContainer.textContent = 'Failed to load history: ' + err.message;
+          }
+        });
+      }
+
+    } catch (err) {
+      container.innerHTML = `<div class="warn-callout">❌ Failed to load dictionary: ${esc(err.message)}</div>
+        <button class="icon-btn" style="margin-top:12px" id="ds-dict-back-err">← Back</button>`;
+      $('ds-dict-back-err')?.addEventListener('click', () => { dsShowView('list'); renderSourceList(); });
+    }
+  }
+
+  async function dsSaveDictionary(sourceId, existingFields) {
+    const tbody = $('ds-dict-tbody');
+    if (!tbody) return;
+
+    const updatedFields = existingFields.map((f, i) => {
+      const descEl  = tbody.querySelector(`.ds-dict-desc[data-idx="${i}"]`);
+      const privChk = tbody.querySelector(`.ds-privacy-chk[data-idx="${i}"]`);
+      const synthEl = tbody.querySelector(`.ds-synth-input[data-idx="${i}"]`);
+      return {
+        ...f,
+        description:      descEl?.textContent !== '—' ? (descEl?.textContent || f.description) : f.description,
+        privacyFlag:      privChk ? privChk.checked : f.privacyFlag,
+        syntheticPattern: synthEl?.value || f.syntheticPattern || undefined,
+      };
+    });
+
+    const btn = $('ds-dict-save');
+    if (btn) btn.disabled = true;
+    try {
+      const res = await fetch(`/api/datasources/${sourceId}/dictionary`, {
+        method: 'PUT',
+        headers: apiHeaders(),
+        body: JSON.stringify({ fields: updatedFields }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      toast('✅ Dictionary saved');
+    } catch (err) {
+      toast('❌ Save failed: ' + err.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  /* ── CR-UI-011: Inhouse Source Picker in Research Agent ──────────── */
+  // Renders a collapsible chip picker below the Step 1 textarea when fresh
+  // inhouse sources are available. Appends inhouseSources:[...] to /api/agent/analyze.
+  (function setupInhouseSourcePicker() {
+    const problemCard = $('problem-card');
+    if (!problemCard) return;
+
+    async function loadAndRenderPicker() {
+      try {
+        const res = await apiGet('/api/datasource-discovery').catch(() => ({ data: [] }));
+        const sources = res.data || [];
+        if (!sources.length) return; // No fresh sources — don't show picker
+
+        let hint = $('inhouse-data-hint');
+        if (!hint) {
+          hint = document.createElement('details');
+          hint.id = 'inhouse-data-hint';
+          hint.style.cssText = 'margin-top:14px';
+          hint.innerHTML = `
+            <summary style="cursor:pointer;font-size:.87rem;color:var(--accent2);user-select:none">
+              🏢 Use inhouse data sources (${sources.length} available)
+            </summary>
+            <div id="inhouse-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px"></div>
+            <div style="font-size:.78rem;color:var(--text-muted);margin-top:6px">Selected sources will be included in the AI's planning context.</div>
+          `;
+          // Insert before the token row
+          const tokenRow = problemCard.querySelector('.token-row');
+          if (tokenRow) problemCard.insertBefore(hint, tokenRow);
+          else problemCard.appendChild(hint);
+        }
+
+        const chipsContainer = $('inhouse-chips');
+        if (!chipsContainer) return;
+        chipsContainer.innerHTML = sources.map(s => `
+          <button class="suggestion-chip inhouse-chip" data-source-id="${esc(s.sourceId)}" title="${esc(s.description || '')}">
+            ${esc(s.name || s.sourceId)}
+          </button>`).join('');
+
+        chipsContainer.querySelectorAll('.inhouse-chip').forEach(chip => {
+          chip.addEventListener('click', () => chip.classList.toggle('selected'));
+        });
+      } catch (_) { /* silently skip */ }
+    }
+
+    // Intercept btnAnalyze to inject inhouseSources into the payload
+    const origAnalyze = $('btn-analyze');
+    if (origAnalyze) {
+      origAnalyze.addEventListener('click', () => {
+        // Collect selected source IDs — picked up by the outer analyze handler via closure
+        const selected = Array.from(document.querySelectorAll('.inhouse-chip.selected'))
+          .map(c => c.dataset.sourceId)
+          .filter(Boolean);
+        if (selected.length) {
+          // Patch: store for the outer analyze click (which fires first due to listener order)
+          window.__inhouseSources = selected;
+        } else {
+          window.__inhouseSources = [];
+        }
+      }, true); // capture phase — fires before the outer listener
+    }
+
+    // Load picker when nav-datasources or problem-card is in view
+    loadAndRenderPicker();
+    // Re-load when returning to research (sources may have changed)
+    $('nav-reset')?.addEventListener('click', () => setTimeout(loadAndRenderPicker, 200));
+  })();
+
+})(); // end DataSources IIFE
 </script>
 </body>
 </html>

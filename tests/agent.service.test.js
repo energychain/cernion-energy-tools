@@ -100,6 +100,7 @@ function mockInterpretAndSuggest(interpretOverrides = {}) {
 describe('Agent Service', () => {
   let broker;
   const SESSION_DIR = path.join(__dirname, '..', '.sessions');
+  let discoveryListMock;
 
   beforeAll(async () => {
     process.env.GEMINI_API_KEY = 'test-api-key';
@@ -153,6 +154,59 @@ describe('Agent Service', () => {
     });
     broker._residualLoadMock = residualLoadMock;
 
+    broker.createService({
+      name: 'datasource-discovery',
+      actions: {
+        list: (discoveryListMock = jest.fn().mockResolvedValue({
+          success: true,
+          data: [
+            {
+              name: 'inhouse__netzanschluesse_twl',
+              sourceId: 'source-123',
+              description:
+                'Internal grid connection list (TWL 2025). Contains: anschlussnummer, kundennummer, plz.',
+              privacyFlaggedFields: ['kundennummer'],
+              aliases: ['GW29', 'Netzanschlüsse TWL 2025', 'netzanschluesse_twl_2025', '2025'],
+              capabilities: ['timeseries', 'timeseries_cost_enrichment'],
+              semanticHints: {
+                timeField: 'Zeit',
+                consumptionPowerField: 'Leistung Bezug (W)',
+                feedInPowerField: null,
+                actualGenerationField: null,
+              },
+              __sourceMeta: {
+                sourceName: 'Netzanschlüsse TWL 2025',
+                sourceDescription: 'Interne Liste aller Netzanschlüsse GW29',
+                tags: ['netz', 'gis'],
+                dictionaryFields: ['Zeit', 'Leistung Bezug (W)', 'Leistung Einspeisung (W)'],
+              },
+            },
+          ],
+        })),
+      },
+    });
+    broker._discoveryListMock = discoveryListMock;
+
+    const meteringSpotCostMock = jest.fn().mockResolvedValue({
+      success: true,
+      sourceId: 'source-123',
+      rows: [
+        {
+          hour: '2026-03-10T00',
+          consumptionKwh: 1.2,
+          priceEurMwh: 95,
+          energyCostEur: 0.114,
+        },
+      ],
+    });
+    broker.createService({
+      name: 'in-memory-join',
+      actions: {
+        meteringSpotCost: meteringSpotCostMock,
+      },
+    });
+    broker._meteringSpotCostMock = meteringSpotCostMock;
+
     await broker.start();
   });
 
@@ -201,6 +255,157 @@ describe('Agent Service', () => {
       expect(result.steps[0].action).toBe('gas-storage.countryStorage');
       expect(result.requiredInputs).toHaveLength(1);
       expect(result.requiredInputs[0].name).toBe('date');
+    });
+
+    it('should include inhouse datasource descriptors in the analyze prompt', async () => {
+      _mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => makePlanResponse() },
+      });
+
+      await broker.call('agent.analyze', {
+        problem: 'Check current gas storage and correlate it with our internal grid connection list.',
+      });
+
+      const prompt = _mockGenerateContent.mock.calls[0][0];
+      expect(prompt).toContain('inhouse__netzanschluesse_twl');
+      expect(prompt).toContain('Internal grid connection list (TWL 2025)');
+      expect(prompt).toContain('Privacy-flagged fields: kundennummer');
+    });
+
+    it('should shortcut LPTest cost questions to intent class timeseries_cost_enrichment', async () => {
+      const result = await broker.call('agent.analyze', {
+        problem: 'Wie sind die Stromkosten von LPTest am 10.03.2026 gewesen?',
+        inhouseSources: ['source-123'],
+      });
+
+      expect(result.summary).toContain('timeseries_cost_enrichment');
+      expect(result.steps).toHaveLength(1);
+      expect(result.steps[0].action).toBe('in-memory-join.meteringSpotCost');
+      expect(result.steps[0].params.sourceId).toBe('source-123');
+      expect(result.requiredInputs.some((i) => i.name === 'date')).toBe(true);
+      expect(_mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('should shortcut actual-vs-forecast comparisons to compareForecastActual intent class', async () => {
+      const result = await broker.call('agent.analyze', {
+        problem:
+          'Vergleiche die tatsächliche Erzeugung von ABCD mit der geplanten Erzeugung am 10.03.2026.',
+        inhouseSources: ['source-123'],
+      });
+
+      expect(result.summary).toContain('timeseries_compare_actual_vs_forecast');
+      expect(result.steps).toHaveLength(1);
+      expect(result.steps[0].action).toBe('in-memory-join.compareForecastActual');
+      expect(result.steps[0].params.sourceId).toBe('source-123');
+      expect(result.requiredInputs.some((i) => i.name === 'installationMastrNummer')).toBe(true);
+      expect(_mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('should auto-resolve source by filename alias GW29 without explicit inhouseSources', async () => {
+      const result = await broker.call('agent.analyze', {
+        problem:
+          'Gleiche das Lastprofil von GW29 mit den Spotmarktpreisen ab. Erstelle einen Überblick über die tatsächlichen Energiekosten des Zählers.',
+      });
+
+      expect(result.summary).toContain('timeseries_cost_enrichment');
+      expect(result.steps).toHaveLength(1);
+      expect(result.steps[0].action).toBe('in-memory-join.meteringSpotCost');
+      expect(result.steps[0].params.sourceId).toBe('source-123');
+      expect(result.requiredInputs.some((i) => i.name === 'date')).toBe(true);
+      // sourceId must NOT be prompted — it was resolved automatically
+      expect(result.requiredInputs.some((i) => i.name === 'sourceId')).toBe(false);
+      expect(_mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('should auto-select single capable source even when no source identifier in query', async () => {
+      // Query has no GW29 / LPTest hint — but there is exactly one capable source in the mock.
+      // The system should auto-select it rather than prompting for a UUID.
+      const result = await broker.call('agent.analyze', {
+        problem: 'Zeige mir die tatsächlichen Energiekosten des Zählers basierend auf Spotmarktpreisen.',
+      });
+
+      expect(result.summary).toContain('timeseries_cost_enrichment');
+      expect(result.steps[0].action).toBe('in-memory-join.meteringSpotCost');
+      expect(result.steps[0].params.sourceId).toBe('source-123');
+      expect(result.requiredInputs.some((i) => i.name === 'sourceId')).toBe(false);
+      expect(_mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('should handle datasource-discovery.list responses returned as a plain array', async () => {
+      broker._discoveryListMock.mockResolvedValueOnce([
+        {
+          name: 'inhouse__netzanschluesse_twl',
+          sourceId: 'source-123',
+          aliases: ['GW29'],
+          capabilities: ['timeseries_cost_enrichment'],
+          semanticHints: {
+            timeField: 'Zeit',
+            consumptionPowerField: 'Leistung Bezug (W)',
+          },
+        },
+      ]);
+
+      const result = await broker.call('agent.analyze', {
+        problem: 'Berechne die Stromkosten für GW29 am 10.03.2026.',
+      });
+
+      expect(result.steps[0].action).toBe('in-memory-join.meteringSpotCost');
+      expect(result.steps[0].params.sourceId).toBe('source-123');
+      expect(result.requiredInputs.some((i) => i.name === 'sourceId')).toBe(false);
+    });
+
+    it('should fall back to generic planner when inhouse descriptors are unavailable', async () => {
+      broker._discoveryListMock.mockResolvedValueOnce({ success: true, data: [] });
+      _mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => makePlanResponse() },
+      });
+
+      const result = await broker.call('agent.analyze', {
+        problem: 'Berechne die Stromkosten aus Lastgang und Spotpreisen für den 10.03.2026.',
+      });
+
+      expect(_mockGenerateContent).toHaveBeenCalled();
+      expect(result.steps[0].action).toBe('gas-storage.countryStorage');
+      expect(result.requiredInputs.some((i) => i.name === 'sourceId')).toBe(false);
+      expect(result.canExecute).toBe(true);
+      expect(result.blockedReason).toBeNull();
+    });
+
+    it('should mark generic inhouse plans as blocked when no inhouse descriptors are available', async () => {
+      broker._discoveryListMock.mockResolvedValueOnce({ success: true, data: [] });
+      _mockGenerateContent.mockResolvedValueOnce({
+        response: {
+          text: () => JSON.stringify({
+            summary: 'Intent-Klasse: timeseries_cost_enrichment (generic fallback plan).',
+            steps: [
+              {
+                step: 1,
+                action: 'in-memory-join.meteringSpotCost',
+                description: 'Join Inhouse-Metering mit Spotmarktpreisen.',
+                params: {
+                  sourceId: null,
+                  date: null,
+                  aggregateBy: 'hourly',
+                  region: 'Deutschland',
+                  market: 'day-ahead',
+                },
+              },
+            ],
+            requiredInputs: [
+              { name: 'sourceId', label: 'Inhouse Data Source ID', type: 'string', required: true },
+              { name: 'date', label: 'Datum', type: 'date', required: true },
+            ],
+          }),
+        },
+      });
+
+      const result = await broker.call('agent.analyze', {
+        problem: 'Berechne die Stromkosten aus Lastgang und Spotpreisen für den 10.03.2026.',
+      });
+
+      expect(result.steps[0].action).toBe('in-memory-join.meteringSpotCost');
+      expect(result.canExecute).toBe(false);
+      expect(result.blockedReason).toMatch(/Inhouse-Datenquelle benötigt/i);
     });
 
     it('should persist the session to disk', async () => {
@@ -322,6 +527,170 @@ describe('Agent Service', () => {
       expect(result.chartSuggestions[0]).toHaveProperty('type');
       expect(result.chartSuggestions[0]).toHaveProperty('xField');
       expect(result.chartSuggestions[0]).toHaveProperty('yField');
+    });
+
+    it('should auto-resolve missing required sourceId during execute', async () => {
+      // Analyze via generic planner with an explicit sourceId-required inhouse plan,
+      // then recover sourceId during execute from descriptors.
+      broker._discoveryListMock
+        .mockResolvedValueOnce({ success: true, data: [] })
+        .mockResolvedValueOnce({
+          success: true,
+          data: [
+            {
+              name: 'inhouse__netzanschluesse_twl',
+              sourceId: 'source-123',
+              aliases: ['GW29', 'LPTest'],
+              capabilities: ['timeseries_cost_enrichment'],
+              semanticHints: {
+                timeField: 'Zeit',
+                consumptionPowerField: 'Leistung Bezug (W)',
+              },
+            },
+          ],
+        });
+
+      const sourceRequiredPlan = JSON.stringify({
+        summary: 'Intent-Klasse: timeseries_cost_enrichment (manual test plan).',
+        steps: [
+          {
+            step: 1,
+            action: 'in-memory-join.meteringSpotCost',
+            description: 'Join Inhouse-Metering mit Spotmarktpreisen.',
+            params: {
+              sourceId: null,
+              date: null,
+              aggregateBy: 'hourly',
+              region: 'Deutschland',
+              market: 'day-ahead',
+            },
+          },
+        ],
+        requiredInputs: [
+          { name: 'sourceId', label: 'Inhouse Data Source ID', type: 'string', required: true },
+          { name: 'date', label: 'Datum', type: 'date', required: true },
+        ],
+      });
+      _mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => sourceRequiredPlan },
+      });
+
+      const analyzed = await broker.call('agent.analyze', {
+        problem: 'Berechne die Stromkosten aus Lastgang und Spotpreisen für den 10.03.2026.',
+      });
+
+      expect(analyzed.requiredInputs.some((i) => i.name === 'sourceId')).toBe(true);
+
+      mockInterpretAndSuggest();
+      broker._meteringSpotCostMock.mockClear();
+
+      const result = await broker.call('agent.execute', {
+        sessionId: analyzed.sessionId,
+        userInputs: { date: '2026-03-10' },
+      });
+
+      expect(result.status).toBe('completed');
+      expect(broker._meteringSpotCostMock).toHaveBeenCalled();
+      const params = broker._meteringSpotCostMock.mock.calls[0][0].params;
+      expect(params.sourceId).toBe('source-123');
+    });
+
+    it('should resolve chained __step ref id to sourceId when discovery returns sourceId field', async () => {
+      // Force generic planner path for this test so the mocked Gemini plan is consumed.
+      broker._discoveryListMock.mockResolvedValueOnce({ success: true, data: [] });
+
+      const chainedPlan = JSON.stringify({
+        summary: 'Chain sourceId from discovery result.',
+        steps: [
+          {
+            step: 1,
+            action: 'datasource-discovery.list',
+            description: 'List discoverable datasource descriptors.',
+            params: {},
+          },
+          {
+            step: 2,
+            action: 'in-memory-join.meteringSpotCost',
+            description: 'Calculate metering spot cost with chained source.',
+            params: {
+              sourceId: '__step_1.data[0].id',
+              date: '2026-03-10',
+              aggregateBy: 'hourly',
+              region: 'Deutschland',
+              market: 'day-ahead',
+            },
+          },
+        ],
+        requiredInputs: [],
+      });
+      _mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => chainedPlan },
+      });
+
+      const analyzed = await broker.call('agent.analyze', {
+        problem: 'Analyse gas storage trend and then use the generated plan.',
+      });
+
+      mockInterpretAndSuggest();
+      broker._meteringSpotCostMock.mockClear();
+
+      const result = await broker.call('agent.execute', {
+        sessionId: analyzed.sessionId,
+        userInputs: {},
+      });
+
+      expect(result.status).toBe('completed');
+      expect(broker._meteringSpotCostMock).toHaveBeenCalled();
+      const params = broker._meteringSpotCostMock.mock.calls[0][0].params;
+      expect(params.sourceId).toBe('source-123');
+    });
+
+    it('should not throw when required sourceId is missing', async () => {
+      broker._discoveryListMock
+        .mockResolvedValueOnce({ success: true, data: [] })
+        .mockResolvedValueOnce({ success: true, data: [] });
+
+      const sourceRequiredPlan = JSON.stringify({
+        summary: 'Intent-Klasse: timeseries_cost_enrichment (manual test plan).',
+        steps: [
+          {
+            step: 1,
+            action: 'in-memory-join.meteringSpotCost',
+            description: 'Join Inhouse-Metering mit Spotmarktpreisen.',
+            params: {
+              sourceId: null,
+              date: null,
+              aggregateBy: 'hourly',
+              region: 'Deutschland',
+              market: 'day-ahead',
+            },
+          },
+        ],
+        requiredInputs: [
+          { name: 'sourceId', label: 'Inhouse Data Source ID', type: 'string', required: true },
+          { name: 'date', label: 'Datum', type: 'date', required: true },
+        ],
+      });
+      _mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => sourceRequiredPlan },
+      });
+
+      const analyzed = await broker.call('agent.analyze', {
+        problem: 'Berechne die Stromkosten für den Lastgang am 10.03.2026.',
+      });
+
+      expect(analyzed.requiredInputs.some((i) => i.name === 'sourceId')).toBe(true);
+
+      const result = await broker.call('agent.execute', {
+        sessionId: analyzed.sessionId,
+        userInputs: { date: '2026-03-10' },
+      });
+
+      expect(['refined', 'completed']).toContain(result.status);
+      if (result.status === 'refined') {
+        expect(Array.isArray(result.requiredInputs)).toBe(true);
+        expect(result.requiredInputs.some((i) => i.name === 'sourceId')).toBe(true);
+      }
     });
 
     it('should flatten nested objects in tableRows to prevent JSON blobs in UI / CSV', async () => {

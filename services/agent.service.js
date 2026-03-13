@@ -132,7 +132,18 @@ function resolveChainedRef(value, completedSteps) {
   const fieldPath = match[2];
   const stepRecord = completedSteps.find((s) => s.step === stepNum);
   if (!stepRecord || stepRecord.error || stepRecord.result == null) return null;
-  return getNestedValue(stepRecord.result, fieldPath);
+  const resolved = getNestedValue(stepRecord.result, fieldPath);
+  if (resolved !== null) return resolved;
+
+  // LLMs often reference generic "id" while datasource descriptors expose "sourceId".
+  // Example: __step_1.data[0].id should gracefully fall back to __step_1.data[0].sourceId.
+  if (/(^|\.)id$/.test(fieldPath)) {
+    const sourceIdPath = fieldPath.replace(/(^|\.)id$/, '$1sourceId');
+    const sourceIdResolved = getNestedValue(stepRecord.result, sourceIdPath);
+    if (sourceIdResolved !== null) return sourceIdResolved;
+  }
+
+  return null;
 }
 
 function getNestedValue(obj, path) {
@@ -382,6 +393,443 @@ async function callGemini(prompt) {
   return response.text();
 }
 
+async function getInhouseDescriptorText(ctx) {
+  try {
+    const response = await ctx.call('datasource-discovery.list', {});
+    const descriptors = Array.isArray(response?.data) ? response.data : [];
+
+    if (!descriptors.length) {
+      return 'No inhouse datasource descriptors are currently available.';
+    }
+
+    return descriptors
+      .slice(0, 25)
+      .map((descriptor) => {
+        const flagged = Array.isArray(descriptor.privacyFlaggedFields)
+          ? descriptor.privacyFlaggedFields.join(', ')
+          : '';
+
+        return (
+          `- **${descriptor.name}** [sourceId=${descriptor.sourceId}]` +
+          `: ${descriptor.description || 'No description available.'}` +
+          `${flagged ? `\n  Privacy-flagged fields: ${flagged}` : ''}`
+        );
+      })
+      .join('\n');
+  } catch (error) {
+    return `Inhouse datasource descriptors unavailable: ${error.message}`;
+  }
+}
+
+async function listInhouseDescriptors(ctx) {
+  const toArray = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (Array.isArray(payload?.data)) return payload.data;
+    if (Array.isArray(payload?.items)) return payload.items;
+    if (Array.isArray(payload?.rows)) return payload.rows;
+    return [];
+  };
+
+  const buildFromRegistry = async () => {
+    const reg = await ctx.call('datasource-registry.list', {});
+    const sources = toArray(reg);
+
+    return sources.map((s) => {
+      const sourceName = s?.name || s?.id || 'inhouse_source';
+      const normalized = String(sourceName)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+
+      const dictionaryFields = (s?.dictionary?.fields || [])
+        .map((f) => f?.name)
+        .filter(Boolean);
+
+      return {
+        name: `inhouse__${normalized || 'source'}`,
+        description: s?.description || '',
+        aliases: [sourceName, s?.id, ...(s?.tags || [])].filter(Boolean),
+        capabilities: [],
+        semanticHints: {},
+        source: 'inhouse',
+        sourceId: s?.sourceId || s?.id || s?.source_id || null,
+        cacheStatus: 'unknown',
+        __sourceMeta: {
+          sourceName,
+          sourceDescription: s?.description || '',
+          tags: s?.tags || [],
+          dictionaryFields,
+        },
+      };
+    }).filter((d) => d.sourceId);
+  };
+
+  try {
+    const response = await ctx.call('datasource-discovery.list', {});
+    const descriptors = toArray(response);
+    if (descriptors.length > 0) return descriptors;
+    return await buildFromRegistry();
+  } catch (error) {
+    try {
+      return await buildFromRegistry();
+    } catch (fallbackError) {
+      if (ctx?.service?.logger) {
+        ctx.service.logger.warn(
+          `[Agent] Inhouse descriptor discovery failed: ${error?.message || error}; registry fallback failed: ${fallbackError?.message || fallbackError}`
+        );
+      }
+      return [];
+    }
+  }
+}
+
+function classifyInhouseIntent(problem) {
+  const text = String(problem || '').toLowerCase();
+
+  const isCostEnrichment =
+    (/stromkosten|energiekosten|verbrauchskosten|kosten/.test(text) &&
+      /mess|verbrauch|leistung|csv|profil|lastgang|spotpreis|marktpreis/.test(text)) ||
+    /spotpreis|day-ahead|marktpreis/.test(text);
+
+  const isCompareActualVsForecast =
+    /(vergle|compare|gegenüber|abweich|delta)/.test(text) &&
+    /(forecast|prognose|geplant|planned|planwert)/.test(text) &&
+    /(ist|actual|tatsäch|erzeug|generation|einspeis)/.test(text);
+
+  if (isCompareActualVsForecast) return 'timeseries_compare_actual_vs_forecast';
+  if (isCostEnrichment) return 'timeseries_cost_enrichment';
+  if (/(delta|abweich|differenz)/.test(text) && /(lastgang|zeitreihe|timeseries|erzeug)/.test(text)) {
+    return 'timeseries_delta_analysis';
+  }
+  return null;
+}
+
+function extractDateFromProblem(problem) {
+  const text = String(problem || '').trim();
+  const de = text.match(/\b(\d{1,2}\.\d{1,2}\.\d{4})\b/);
+  if (de) return de[1];
+  const iso = text.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+  if (iso) return iso[1];
+  return null;
+}
+
+function resolveInhouseSourceForIntent(problem, descriptors, selectedInhouseSources = []) {
+  const selectedId = Array.isArray(selectedInhouseSources) ? selectedInhouseSources[0] : null;
+  if (selectedId) {
+    const selectedMatch = (descriptors || []).find((d) => d.sourceId === selectedId);
+    if (selectedMatch) return selectedMatch;
+    return { sourceId: selectedId, name: selectedId, semanticHints: {}, capabilities: [] };
+  }
+
+  const query = String(problem || '').toLowerCase();
+  return (
+    (descriptors || []).find((d) => {
+      // Extract identifier tokens from description as a fallback (tokens with digit, length >= 2)
+      const descText = String(d.__sourceMeta?.sourceDescription || d.description || '');
+      const descTokens = descText.split(/\s+/).reduce((acc, token) => {
+        const clean = token.replace(/[^a-zA-Z0-9]/g, '');
+        if (clean.length >= 2 && /\d/.test(clean)) acc.push(clean.toLowerCase());
+        return acc;
+      }, []);
+
+      const bag = [
+        d.sourceId,
+        d.name,
+        ...(Array.isArray(d.aliases) ? d.aliases : []),
+        d.__sourceMeta?.sourceName,
+        ...descTokens,
+      ]
+        .filter(Boolean)
+        .map((x) => String(x).toLowerCase());
+      return bag.some((term) => term && query.includes(term));
+    }) || null
+  );
+}
+
+function buildIntentClassPlan({ intentClass, sourceDescriptor, dateDefault, availableDescriptors }) {
+  // Auto-select when no descriptor was resolved but exactly one capable source exists.
+  // Avoids prompting the user for a UUID when the answer is unambiguous.
+  let resolvedDescriptor = sourceDescriptor;
+  const allAvailable = (availableDescriptors || []).filter((d) => d && d.sourceId);
+  const capable = allAvailable.filter(
+    (d) => !intentClass || (Array.isArray(d.capabilities) && d.capabilities.includes(intentClass))
+  );
+  if (!resolvedDescriptor) {
+    if (capable.length === 1) {
+      resolvedDescriptor = capable[0];
+    } else if (allAvailable.length === 1) {
+      // Fallback: if there is only one inhouse source at all, use it even without
+      // semantic capability hints. Better UX than forcing raw UUID input.
+      resolvedDescriptor = allAvailable[0];
+    }
+  }
+
+  const sourceId = resolvedDescriptor?.sourceId || null;
+  const hints = resolvedDescriptor?.semanticHints || {};
+
+  const requiredInputs = [];
+
+  if (!sourceId) {
+    const selectionPool = capable.length > 0 ? capable : allAvailable;
+    if (selectionPool.length > 0) {
+      // Multiple capable sources — show a named select so the user picks by name, not UUID.
+      requiredInputs.push({
+        name: 'sourceId',
+        label: 'Inhouse Datenquelle',
+        type: 'select',
+        options: selectionPool.map((d) => ({
+          label: d.__sourceMeta?.sourceName || d.name,
+          value: d.sourceId,
+        })),
+        description: 'Wähle die Inhouse-Datenquelle aus, die für die Analyse verwendet werden soll.',
+        required: true,
+      });
+    } else {
+      // No cached sources available — last-resort raw text input.
+      requiredInputs.push({
+        name: 'sourceId',
+        label: 'Inhouse Data Source ID',
+        type: 'string',
+        description: 'Source ID of the inhouse dataset.',
+        example: 'a1b2c3d4-0000-0000-0000-000000000000',
+        required: true,
+      });
+    }
+  }
+
+  const defaultDate = dateDefault || new Date().toISOString().slice(0, 10);
+
+  if (intentClass === 'timeseries_cost_enrichment') {
+    requiredInputs.push({
+      name: 'date',
+      label: 'Datum',
+      type: 'date',
+      default: defaultDate,
+      description: 'Tag, für den Stromkosten aus Messwerten und Spotpreisen berechnet werden.',
+      example: '2026-03-10',
+      required: true,
+    });
+
+    return {
+      summary:
+        'Intent-Klasse: timeseries_cost_enrichment. Inhouse-Messwerte werden mit Day-Ahead-Spotpreisen verknüpft und zu stündlichen Kosten aggregiert.',
+      steps: [
+        {
+          step: 1,
+          action: 'in-memory-join.meteringSpotCost',
+          description: 'Join Inhouse-Metering mit Spotmarktpreisen und Kostenberechnung.',
+          params: {
+            sourceId: sourceId || null,
+            date: null,
+            aggregateBy: 'hourly',
+            region: 'Deutschland',
+            market: 'day-ahead',
+            leftTimeField: hints.timeField || 'Zeit',
+            consumptionPowerField: hints.consumptionPowerField || 'Leistung Bezug (W)',
+            feedInPowerField: hints.feedInPowerField || 'Leistung Einspeisung (W)',
+            privacyContext: 'internal',
+          },
+        },
+      ],
+      requiredInputs,
+    };
+  }
+
+  if (
+    intentClass === 'timeseries_compare_actual_vs_forecast' ||
+    intentClass === 'timeseries_delta_analysis'
+  ) {
+    requiredInputs.push(
+      {
+        name: 'date',
+        label: 'Datum',
+        type: 'date',
+        default: defaultDate,
+        description: 'Tag der Ist-vs-Prognose-Vergleichsanalyse.',
+        example: '2026-03-10',
+        required: true,
+      },
+      {
+        name: 'installationMastrNummer',
+        label: 'MaStR Anlagennummer (optional)',
+        type: 'string',
+        description: 'Für die Forecast-Abfrage (z. B. SEE..., SWE...).',
+        example: 'SEE984033548619',
+        required: false,
+      },
+      {
+        name: 'messlokationId',
+        label: 'Messlokations-ID (optional)',
+        type: 'string',
+        description: 'Alternative zur MaStR-ID (DE... 33-stellig).',
+        example: 'DE0010107352900000000000000336372',
+        required: false,
+      }
+    );
+
+    return {
+      summary:
+        'Intent-Klasse: timeseries_compare_actual_vs_forecast. Forecast-Werte werden mit Inhouse-Istwerten zeitlich verknüpft und als Delta-Tabelle bereitgestellt.',
+      steps: [
+        {
+          step: 1,
+          action: 'in-memory-join.compareForecastActual',
+          description: 'Hole Prognosewerte, lese Inhouse-Istwerte, join und berechne Delta.',
+          params: {
+            sourceId: sourceId || null,
+            date: null,
+            aggregateBy: 'hourly',
+            matchMode: 'hourly-time',
+            leftTimeField: hints.timeField || 'Zeit',
+            leftActualField:
+              hints.actualGenerationField || hints.feedInPowerField || 'Leistung Einspeisung (W)',
+            actualUnit: 'W',
+            installationMastrNummer: null,
+            messlokationId: null,
+            privacyContext: 'internal',
+          },
+        },
+      ],
+      requiredInputs,
+    };
+  }
+
+  return null;
+}
+
+function inferIntentClassFromPlan(plan) {
+  const summary = String(plan?.summary || '').toLowerCase();
+  const firstAction = String(plan?.steps?.[0]?.action || '').toLowerCase();
+
+  if (
+    summary.includes('timeseries_compare_actual_vs_forecast') ||
+    firstAction === 'in-memory-join.compareforecastactual'
+  ) {
+    return 'timeseries_compare_actual_vs_forecast';
+  }
+
+  if (
+    summary.includes('timeseries_cost_enrichment') ||
+    firstAction === 'in-memory-join.meteringspotcost'
+  ) {
+    return 'timeseries_cost_enrichment';
+  }
+
+  if (summary.includes('timeseries_delta_analysis')) {
+    return 'timeseries_delta_analysis';
+  }
+
+  return null;
+}
+
+function assessPlanExecutability(plan, { availableDescriptors = [], selectedInhouseSources = [] } = {}) {
+  const steps = Array.isArray(plan?.steps) ? plan.steps : [];
+  const usesInhouseSource = steps.some((step) => {
+    const action = String(step?.action || '');
+    return action.startsWith('in-memory-join.') || action.startsWith('datasource-cache.');
+  });
+
+  if (!usesInhouseSource) {
+    return { canExecute: true, blockedReason: null };
+  }
+
+  const hasRegisteredDescriptor = Array.isArray(availableDescriptors) && availableDescriptors.length > 0;
+  const hasSelectedSource = Array.isArray(selectedInhouseSources) && selectedInhouseSources.length > 0;
+
+  if (hasRegisteredDescriptor || hasSelectedSource) {
+    return { canExecute: true, blockedReason: null };
+  }
+
+  return {
+    canExecute: false,
+    blockedReason:
+      'Für diese Analyse wird eine registrierte Inhouse-Datenquelle benötigt. Aktuell sind keine Inhouse-Datenquellen verfügbar. Bitte registriere oder aktualisiere zuerst die Datenquelle (z. B. GW29/LPTest).',
+  };
+}
+
+async function autoResolveMissingInhouseSourceId(ctx, session, effectiveInputs, logger) {
+  const requiredInputs = Array.isArray(session?.plan?.requiredInputs) ? session.plan.requiredInputs : [];
+  const sourceInput = requiredInputs.find((ri) => ri?.name === 'sourceId' && ri.required);
+  if (!sourceInput) return;
+
+  const existingValue = effectiveInputs.sourceId;
+  const alreadySet =
+    existingValue !== undefined &&
+    existingValue !== null &&
+    !(typeof existingValue === 'string' && existingValue.trim() === '');
+  if (alreadySet) return;
+
+  if (sourceInput.default) {
+    effectiveInputs.sourceId = sourceInput.default;
+    return;
+  }
+
+  const options = Array.isArray(sourceInput.options) ? sourceInput.options : [];
+  if (options.length === 1) {
+    const only = options[0];
+    const value = typeof only === 'object' ? only.value ?? only.label : only;
+    if (value) {
+      effectiveInputs.sourceId = String(value);
+      return;
+    }
+  }
+
+  for (const step of session?.plan?.steps || []) {
+    const candidate = step?.params?.sourceId;
+    if (typeof candidate === 'string' && candidate.trim()) {
+      effectiveInputs.sourceId = candidate.trim();
+      return;
+    }
+  }
+
+  const descriptors = await listInhouseDescriptors(ctx);
+  if (!descriptors.length) return;
+
+  let resolved = resolveInhouseSourceForIntent(session?.problem, descriptors, []);
+  if (!resolved?.sourceId) {
+    const intentClass = inferIntentClassFromPlan(session?.plan);
+    const allAvailable = descriptors.filter((d) => d && d.sourceId);
+    const capable = allAvailable.filter(
+      (d) => !intentClass || (Array.isArray(d.capabilities) && d.capabilities.includes(intentClass))
+    );
+
+    if (capable.length === 1) resolved = capable[0];
+    else if (allAvailable.length === 1) resolved = allAvailable[0];
+  }
+
+  if (resolved?.sourceId) {
+    effectiveInputs.sourceId = resolved.sourceId;
+    logger.info(`[Agent] Auto-resolved missing sourceId=${resolved.sourceId} during execute`);
+  }
+}
+
+async function refreshInhouseSourceRequiredInput(ctx, session) {
+  const requiredInputs = Array.isArray(session?.plan?.requiredInputs) ? session.plan.requiredInputs : [];
+  const idx = requiredInputs.findIndex((ri) => ri?.name === 'sourceId');
+  if (idx < 0) return;
+
+  const descriptors = await listInhouseDescriptors(ctx);
+  const options = (descriptors || [])
+    .filter((d) => d?.sourceId)
+    .map((d) => ({
+      label: d.__sourceMeta?.sourceName || d.name || d.sourceId,
+      value: d.sourceId,
+    }));
+
+  if (options.length > 0) {
+    requiredInputs[idx] = {
+      ...requiredInputs[idx],
+      type: 'select',
+      options,
+      description:
+        'Wähle die Inhouse-Datenquelle aus, die für die Analyse verwendet werden soll.',
+    };
+    if (options.length === 1) requiredInputs[idx].default = options[0].value;
+  }
+
+  session.plan.requiredInputs = requiredInputs;
+}
+
 // ---------------------------------------------------------------------------
 // Installation result compaction for Gemini summary prompts
 // ---------------------------------------------------------------------------
@@ -471,6 +919,11 @@ module.exports = {
       rest: 'POST /analyze',
       params: {
         problem: { type: 'string', min: 5 },
+        inhouseSources: {
+          type: 'array',
+          items: 'string',
+          optional: true,
+        },
       },
       openapi: {
         summary: 'Analyze a natural-language energy problem and return an execution plan',
@@ -551,6 +1004,76 @@ module.exports = {
       },
       async handler(ctx) {
         const { problem } = ctx.params;
+        const selectedInhouseSources = Array.isArray(ctx.params.inhouseSources)
+          ? ctx.params.inhouseSources.filter((id) => typeof id === 'string' && id.trim().length > 0)
+          : [];
+
+        // Intent-class based deterministic shortcuts for inhouse time-series queries.
+        // Avoids LLM drift into unrelated MaStR actor lookups when the query clearly
+        // asks for dataset composition (query → join → calculate).
+        const descriptors = await listInhouseDescriptors(ctx);
+        const sourceDescriptor = resolveInhouseSourceForIntent(
+          problem,
+          descriptors,
+          selectedInhouseSources
+        );
+        this.logger.info(
+          `[Agent] Inhouse descriptor candidates=${descriptors.length}, resolvedSourceId=${sourceDescriptor?.sourceId || 'none'}`
+        );
+        const explicitInhouseCostQuery =
+          !!sourceDescriptor && /stromkosten|energiekosten|verbrauchskosten|kosten/i.test(problem);
+        const intentClass = classifyInhouseIntent(problem) ||
+          (explicitInhouseCostQuery ? 'timeseries_cost_enrichment' : null);
+        const canUseInhouseShortcut =
+          !!sourceDescriptor || descriptors.length > 0 || selectedInhouseSources.length > 0;
+        if (intentClass && canUseInhouseShortcut) {
+
+          const plan = buildIntentClassPlan({
+            intentClass,
+            sourceDescriptor,
+            dateDefault: extractDateFromProblem(problem),
+            availableDescriptors: descriptors,
+          });
+
+          if (!plan) {
+            throw new Error(`Intent class "${intentClass}" has no configured plan template.`);
+          }
+
+          Object.assign(
+            plan,
+            assessPlanExecutability(plan, {
+              availableDescriptors: descriptors,
+              selectedInhouseSources,
+            })
+          );
+
+          const sessionId = crypto.randomUUID();
+          const session = {
+            id: sessionId,
+            createdAt: new Date().toISOString(),
+            problem,
+            plan,
+            userInputs: null,
+            results: null,
+            status: 'awaiting_inputs',
+          };
+          saveSession(session);
+
+          return {
+            sessionId,
+            summary: plan.summary,
+            steps: plan.steps,
+            requiredInputs: plan.requiredInputs || [],
+            canExecute: plan.canExecute,
+            blockedReason: plan.blockedReason,
+          };
+        }
+
+        if (intentClass && !canUseInhouseShortcut) {
+          this.logger.warn(
+            '[Agent] Inhouse intent detected but no inhouse descriptors available; falling back to generic planner'
+          );
+        }
 
         // Collect service catalogue
         const services = ctx.broker.registry.getServiceList({ withActions: true });
@@ -564,6 +1087,7 @@ module.exports = {
               }${c.params.length ? '\n  Params: ' + c.params.join(', ') : ''}`
           )
           .join('\n');
+          const inhouseDescriptorText = await getInhouseDescriptorText(ctx);
 
         const today = new Date().toISOString().slice(0, 10);
 
@@ -571,6 +1095,10 @@ module.exports = {
 You have access to the following microservice actions:
 
 ${catalogueText}
+
+        You also have access to the following inhouse datasource descriptors. Treat them as discoverable internal data assets that can complement the microservice actions above:
+
+        ${inhouseDescriptorText}
 
 The user has the following problem or research request:
 "${problem}"
@@ -775,6 +1303,18 @@ named installation (e.g. "meine Anlage", "Solaranlage PLZ 47169", serial number)
    pipeline) is also part of the query. For single-installation §14a questions,
    include the assessment inline in the interpretation (no extra step needed) —
    a <100 kW residential installation triggers §14a, ≥100 kW may trigger RD 2.0.
+
+RULE 10 — Inhouse metering cost queries with market-price join:
+When the user asks for electricity costs of an inhouse load-profile datasource
+(e.g. "LPTest", "Messwerte", "CSV") for a specific date or period, prefer the
+dedicated join action:
+
+  in-memory-join.meteringSpotCost
+
+Use this action to combine datasource intervals with energy-market spot prices
+and compute interval/hour/day costs. For single-day questions ("am 10.03.2026"),
+set "date" as requiredInput (default extracted from user text) and avoid static
+price assumptions.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IMPORTANT: The keys in each step MUST be exactly "action", "params", and "description" — do NOT use "useTool", "args", "inputs", "label", "tool", or any other synonym.
 {
@@ -823,6 +1363,13 @@ IMPORTANT: The keys in each step MUST be exactly "action", "params", and "descri
           throw new Error(`Failed to parse Gemini plan response: ${rawText.substring(0, 300)}`);
         }
         plan = normalizePlan(plan);
+        Object.assign(
+          plan,
+          assessPlanExecutability(plan, {
+            availableDescriptors: descriptors,
+            selectedInhouseSources,
+          })
+        );
 
         // ── Proactive schema-based param repair ─────────────────────────────
         // Validate every step's param names against the live Moleculer schema.
@@ -855,6 +1402,8 @@ IMPORTANT: The keys in each step MUST be exactly "action", "params", and "descri
           summary: plan.summary,
           steps: plan.steps,
           requiredInputs: plan.requiredInputs || [],
+          canExecute: plan.canExecute,
+          blockedReason: plan.blockedReason,
         };
       },
     },
@@ -935,12 +1484,17 @@ IMPORTANT: The keys in each step MUST be exactly "action", "params", and "descri
                 `- **${c.actionName}** (${c.rest}): ${c.description}${c.params.length ? '\n  Params: ' + c.params.join(', ') : ''}`
             )
             .join('\n');
+          const inhouseDescriptorText = await getInhouseDescriptorText(ctx);
 
           const today2 = new Date().toISOString().slice(0, 10);
           const refinePrompt = `You are an expert energy-data analyst AI. Today's date is ${today2}.
 You have access to the following microservice actions:
 
 ${catalogueText}
+
+You also have access to the following inhouse datasource descriptors. Use them when they are relevant to the refined plan:
+
+${inhouseDescriptorText}
 
 CRITICAL RULES:
 1. If the user mentions a grid operator/DSO by name, add grid-operations.marketPartners as step 1 to resolve it.
@@ -954,6 +1508,8 @@ CRITICAL RULES:
 5. NEVER use "gemeinde" as a substitute for "region" in residual-load.netResidualLoad.
    "region" is the city name for SMARD population scaling. Always wire it from
    "__step_1.data.results[0].contacts[0].city".
+6. For inhouse metering cost questions (e.g. LPTest + date), prefer
+  in-memory-join.meteringSpotCost over manual multi-step joins.
 
 The user originally asked: "${session.problem}"
 Your previous plan was: ${JSON.stringify(session.plan, null, 2)}
@@ -982,6 +1538,13 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
             throw new Error(`Failed to parse refined plan: ${rawText.substring(0, 300)}`);
           }
           session.plan = normalizePlan(session.plan);
+          const refinedDescriptors = await listInhouseDescriptors(ctx);
+          Object.assign(
+            session.plan,
+            assessPlanExecutability(session.plan, {
+              availableDescriptors: refinedDescriptors,
+            })
+          );
 
           // Proactive param repair on the refined plan too
           const siRef = buildParamSchemaIndex(
@@ -1004,6 +1567,8 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
             summary: session.plan.summary,
             steps: session.plan.steps,
             requiredInputs: session.plan.requiredInputs || [],
+            canExecute: session.plan.canExecute,
+            blockedReason: session.plan.blockedReason,
           };
         }
 
@@ -1022,6 +1587,48 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
         const typeHints = buildTypeHints(session.plan);
         for (const [k, v] of Object.entries(effectiveInputs)) {
           effectiveInputs[k] = coerceValue(v, k, typeHints);
+        }
+
+        // Self-heal missing inhouse sourceId when analyze produced a source selector
+        // but execution came without the value (e.g. stale UI state / transient discovery gaps).
+        await autoResolveMissingInhouseSourceId(ctx, session, effectiveInputs, this.logger);
+
+        // Validate required inputs from dynamic plan schema before step execution.
+        for (const ri of session.plan.requiredInputs || []) {
+          if (!ri?.required) continue;
+          const value = effectiveInputs[ri.name];
+          const isMissing =
+            value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
+          if (isMissing) {
+            const isInhouseSourceMissing =
+              ri.name === 'sourceId' || /inhouse\s*data\s*source\s*id/i.test(String(ri.label || ''));
+
+            if (isInhouseSourceMissing) {
+              await refreshInhouseSourceRequiredInput(ctx, session);
+              const refreshedDescriptors = await listInhouseDescriptors(ctx);
+              Object.assign(
+                session.plan,
+                assessPlanExecutability(session.plan, {
+                  availableDescriptors: refreshedDescriptors,
+                })
+              );
+              session.status = 'awaiting_inputs';
+              session.userInputs = userInputs;
+              saveSession(session);
+
+              this.logger.warn('[Agent] Missing inhouse source input during execute; returning requiredInputs for user selection');
+              return {
+                sessionId,
+                status: 'refined',
+                summary: session.plan.summary,
+                steps: session.plan.steps,
+                requiredInputs: session.plan.requiredInputs || [],
+                canExecute: session.plan.canExecute,
+                blockedReason: session.plan.blockedReason,
+              };
+            }
+            throw new Error(`Required input missing: ${ri.label || ri.name}`);
+          }
         }
 
         // Build a set of all declared requiredInput names so we can override
@@ -1173,6 +1780,7 @@ CRITICAL:
 - Service response paths MUST include the "data." wrapper (e.g. "__step_1.data.results[0].bdewCode").
 - For DSO queries, include ALL three fallbacks: gridOperatorId, bdewCode, vnbName.
 - Prefer assets.solar/assets.wind/assets.all over energy-market.installations for VNB-filtered queries.
+- For inhouse metering cost questions, prefer in-memory-join.meteringSpotCost.
 
 Respond ONLY with valid JSON:
 {
