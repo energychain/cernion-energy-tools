@@ -45,7 +45,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 ### Testing Guidelines
 - Write unit tests for all business logic
 - Use Jest as the testing framework
-- Aim for >80% code coverage (configured in `jest.config.js`)
+- Meet the current staged global coverage thresholds in `jest.config.js` (v0.8.32: branches 55%, functions 70%, lines 70%, statements 70%)
 - Write integration tests for API endpoints
 - Use meaningful test descriptions
 - Mock MCP network calls in tests (use `jest.mock('../src/mcp-client')`)
@@ -83,18 +83,33 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Use configuration management for different environments
 - Follow semantic versioning for releases
 
+## Current Project Status (v0.8.32)
+
+- Release `v0.8.32` is published and tagged.
+- Consolidated release gate is available via `npm run release:check`.
+- OpenAPI quality gate is enforced via `npm run audit:openapi` (must return 0 issues).
+- Security scanning is split into:
+	- Blocking critical gate: `npm run audit:security`
+	- Advisory high+ report: `npm run audit:security:advisory`
+- Known risk: `xlsx` has an upstream high advisory with no fix currently available; treat as documented exception and keep monitoring.
+- API token policy: both Bearer auth and token query/body/path parameter usage are supported for compatibility.
+- Operational hardening is in place:
+	- Env-driven reliability/observability toggles in `moleculer.config.js`
+	- Redacted/sanitized error handling in API and MCP client layers
+	- Debug-gated async poller logging controls in `.env.example`
+
 ## Release Process (0.x)
 
 1. Update version in `package.json` and OpenAPI version in `services/api.service.js`.
 2. Update `CHANGELOG.md` with release notes.
-3. Run tests: `npm test` (must pass with coverage thresholds).
+3. Run release gate: `npm run release:check` (tests + OpenAPI + critical security).
 4. Ensure no secrets are present (`.env` must not be committed).
 5. Commit changes: `git add -A && git commit -m "chore: prepare X.Y.Z release"`.
 6. Tag release: `git tag vX.Y.Z`.
 7. Push: `git push && git push --tags`.
 
 Notes:
-- Release 0.1.0 uses mocked MCP responses in tests to avoid external dependencies.
+- Advisory scan (`npm run audit:security:advisory`) may fail on known, documented upstream vulnerabilities; review before release.
 - Do not store tokens or API keys in the repository; use `.env.example` only.
 
 ## What NOT to Do

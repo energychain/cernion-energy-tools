@@ -1,0 +1,15 @@
+{
+  "domain": "procurement",
+  "label": "Beschaffungsportfolio 2026",
+  "description": "Strom-Einkaufsportfolio Stadtwerk Musterstadt, Lieferjahr 2026",
+  "connectorConfig": {
+    "delimiter": ",",
+    "encoding": "utf-8",
+    "skipRows": 0
+  },
+  "acceptanceQueries": [
+    "Wie liegt unser Beschaffungsportfolio im Vergleich zum aktuellen Spotpreis?",
+    "Welche Gegenpartei hat das größte offene Volumen in Q2 2026?",
+    "Was ist der durchschnittliche Beschaffungspreis für Base-Produkte in 2026?"
+  ]
+}

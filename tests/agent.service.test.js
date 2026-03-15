@@ -169,10 +169,14 @@ describe('Agent Service', () => {
               aliases: ['GW29', 'Netzanschlüsse TWL 2025', 'netzanschluesse_twl_2025', '2025'],
               capabilities: ['timeseries', 'timeseries_cost_enrichment'],
               semanticHints: {
+                domain: 'metering',
                 timeField: 'Zeit',
                 consumptionPowerField: 'Leistung Bezug (W)',
                 feedInPowerField: null,
                 actualGenerationField: null,
+                criticalFieldMappings: {
+                  timeReference: 'Zeit',
+                },
               },
               __sourceMeta: {
                 sourceName: 'Netzanschlüsse TWL 2025',
@@ -206,6 +210,43 @@ describe('Agent Service', () => {
       },
     });
     broker._meteringSpotCostMock = meteringSpotCostMock;
+
+    const datasourceCacheQueryMock = jest.fn().mockResolvedValue({
+      success: true,
+      data: [
+        {
+          Lieferperiode: '2026-Q2',
+          Gegenpartei: 'EnBW Trading',
+          Menge_MWh: 1200,
+          Status: 'offen',
+        },
+        {
+          Lieferperiode: '2026-Q2',
+          Gegenpartei: 'AXPO',
+          Menge_MWh: 800,
+          Status: 'offen',
+        },
+      ],
+    });
+    broker.createService({
+      name: 'datasource-cache',
+      actions: {
+        query: datasourceCacheQueryMock,
+      },
+    });
+    broker._datasourceCacheQueryMock = datasourceCacheQueryMock;
+
+    const queryAskMock = jest.fn().mockResolvedValue({ success: true, data: [] });
+    const queryAskLearnedMock = jest.fn().mockResolvedValue({ success: true, data: [] });
+    broker.createService({
+      name: 'query',
+      actions: {
+        ask: queryAskMock,
+        askLearned: queryAskLearnedMock,
+      },
+    });
+    broker._queryAskMock = queryAskMock;
+    broker._queryAskLearnedMock = queryAskLearnedMock;
 
     await broker.start();
   });
@@ -263,7 +304,8 @@ describe('Agent Service', () => {
       });
 
       await broker.call('agent.analyze', {
-        problem: 'Check current gas storage and correlate it with our internal grid connection list.',
+        problem:
+          'Check current gas storage and correlate it with our internal grid connection list.',
       });
 
       const prompt = _mockGenerateContent.mock.calls[0][0];
@@ -283,6 +325,58 @@ describe('Agent Service', () => {
       expect(result.steps[0].action).toBe('in-memory-join.meteringSpotCost');
       expect(result.steps[0].params.sourceId).toBe('source-123');
       expect(result.requiredInputs.some((i) => i.name === 'date')).toBe(true);
+      expect(_mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('should route aggregative inhouse query via datasource-cache.query and not query.ask', async () => {
+      const analyzeResult = await broker.call('agent.analyze', {
+        problem: 'Welche Gegenpartei hat das größte offene Volumen in Q2 2026?',
+        inhouseSources: ['source-123'],
+      });
+
+      expect(analyzeResult.steps).toHaveLength(1);
+      expect(analyzeResult.steps[0].action).toBe('datasource-cache.query');
+
+      mockInterpretAndSuggest();
+      await broker.call('agent.execute', {
+        sessionId: analyzeResult.sessionId,
+        userInputs: {},
+      });
+
+      expect(broker._datasourceCacheQueryMock).toHaveBeenCalled();
+      expect(broker._queryAskMock).not.toHaveBeenCalled();
+      expect(broker._queryAskLearnedMock).not.toHaveBeenCalled();
+    });
+
+    it('should use semanticHints.criticalFieldMappings.timeReference as join key for procurement spot-price queries', async () => {
+      broker._discoveryListMock.mockResolvedValueOnce({
+        success: true,
+        data: [
+          {
+            name: 'inhouse__beschaffungsportfolio_2026',
+            source: 'inhouse',
+            sourceId: 'proc-source-1',
+            aliases: ['beschaffungsportfolio'],
+            capabilities: ['timeseries_cost_enrichment'],
+            semanticHints: {
+              domain: 'procurement',
+              timeField: 'Abschlussdatum',
+              criticalFieldMappings: {
+                timeReference: 'Lieferperiode',
+              },
+            },
+          },
+        ],
+      });
+
+      const result = await broker.call('agent.analyze', {
+        problem: 'Wie liegt unser Beschaffungsportfolio im Vergleich zum aktuellen Spotpreis?',
+        inhouseSources: ['proc-source-1'],
+      });
+
+      expect(result.steps[0].action).toBe('in-memory-join.meteringSpotCost');
+      expect(result.steps[0].params.leftTimeField).toBe('Lieferperiode');
+      expect(result.steps[0].params.leftTimeField).not.toBe('Abschlussdatum');
       expect(_mockGenerateContent).not.toHaveBeenCalled();
     });
 
@@ -321,7 +415,8 @@ describe('Agent Service', () => {
       // Query has no GW29 / LPTest hint — but there is exactly one capable source in the mock.
       // The system should auto-select it rather than prompting for a UUID.
       const result = await broker.call('agent.analyze', {
-        problem: 'Zeige mir die tatsächlichen Energiekosten des Zählers basierend auf Spotmarktpreisen.',
+        problem:
+          'Zeige mir die tatsächlichen Energiekosten des Zählers basierend auf Spotmarktpreisen.',
       });
 
       expect(result.summary).toContain('timeseries_cost_enrichment');
@@ -375,27 +470,33 @@ describe('Agent Service', () => {
       broker._discoveryListMock.mockResolvedValueOnce({ success: true, data: [] });
       _mockGenerateContent.mockResolvedValueOnce({
         response: {
-          text: () => JSON.stringify({
-            summary: 'Intent-Klasse: timeseries_cost_enrichment (generic fallback plan).',
-            steps: [
-              {
-                step: 1,
-                action: 'in-memory-join.meteringSpotCost',
-                description: 'Join Inhouse-Metering mit Spotmarktpreisen.',
-                params: {
-                  sourceId: null,
-                  date: null,
-                  aggregateBy: 'hourly',
-                  region: 'Deutschland',
-                  market: 'day-ahead',
+          text: () =>
+            JSON.stringify({
+              summary: 'Intent-Klasse: timeseries_cost_enrichment (generic fallback plan).',
+              steps: [
+                {
+                  step: 1,
+                  action: 'in-memory-join.meteringSpotCost',
+                  description: 'Join Inhouse-Metering mit Spotmarktpreisen.',
+                  params: {
+                    sourceId: null,
+                    date: null,
+                    aggregateBy: 'hourly',
+                    region: 'Deutschland',
+                    market: 'day-ahead',
+                  },
                 },
-              },
-            ],
-            requiredInputs: [
-              { name: 'sourceId', label: 'Inhouse Data Source ID', type: 'string', required: true },
-              { name: 'date', label: 'Datum', type: 'date', required: true },
-            ],
-          }),
+              ],
+              requiredInputs: [
+                {
+                  name: 'sourceId',
+                  label: 'Inhouse Data Source ID',
+                  type: 'string',
+                  required: true,
+                },
+                { name: 'date', label: 'Datum', type: 'date', required: true },
+              ],
+            }),
         },
       });
 

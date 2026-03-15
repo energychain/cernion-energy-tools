@@ -54,6 +54,33 @@ describe('Datasource Connector Service', () => {
     expect(valid.valid).toBe(true);
   });
 
+  it('should expose csv encoding and skipRows in config schema', async () => {
+    const result = await broker.call('datasource-connector.listPlugins', {});
+    const csvPlugin = result.data.find((plugin) => plugin.type === 'csv');
+
+    expect(csvPlugin).toBeDefined();
+    expect(csvPlugin.configSchema.properties.encoding).toMatchObject({
+      type: 'string',
+      default: 'utf-8',
+      enum: ['utf-8', 'latin1', 'windows-1252'],
+    });
+    expect(csvPlugin.configSchema.properties.skipRows).toMatchObject({
+      type: 'integer',
+      default: 0,
+      minimum: 0,
+    });
+  });
+
+  it('should reject negative skipRows for csv plugin', async () => {
+    const invalid = await broker.call('datasource-connector.validateConfig', {
+      connectorType: 'csv',
+      connectorConfig: { path: '/tmp/example.csv', skipRows: -1 },
+    });
+
+    expect(invalid.valid).toBe(false);
+    expect(invalid.errors).toContain('Invalid value for skipRows: expected >= 0');
+  });
+
   it('should read rows from csv connector', async () => {
     const tmpFile = path.join(os.tmpdir(), `cernion-ds-${Date.now()}.csv`);
     fs.writeFileSync(tmpFile, ['name;value', 'A;1', 'B;2'].join('\n'), 'utf-8');
@@ -94,6 +121,49 @@ describe('Datasource Connector Service', () => {
     expect(result.inferredSchema.fields.map((f) => f.name)).toEqual(
       expect.arrayContaining(['field_a', 'field_b'])
     );
+
+    fs.unlinkSync(tmpFile);
+  });
+
+  it('should skip metadata rows before reading the csv header', async () => {
+    const tmpFile = path.join(os.tmpdir(), `cernion-ds-skip-${Date.now()}.csv`);
+    fs.writeFileSync(
+      tmpFile,
+      ['Export erstellt am 2026-03-14', 'Mandant: TWL', 'name;value', 'A;1', 'B;2'].join('\n'),
+      'utf-8'
+    );
+
+    const result = await broker.call('datasource-connector.read', {
+      connectorType: 'csv',
+      connectorConfig: {
+        path: tmpFile,
+        delimiter: ';',
+        skipRows: 2,
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.rows).toHaveLength(2);
+    expect(result.rows[0]).toEqual({ name: 'A', value: '1' });
+
+    fs.unlinkSync(tmpFile);
+  });
+
+  it('should decode latin1 csv files when configured', async () => {
+    const tmpFile = path.join(os.tmpdir(), `cernion-ds-latin1-${Date.now()}.csv`);
+    fs.writeFileSync(tmpFile, ['name;city', 'Jürgen;München'].join('\n'), 'latin1');
+
+    const result = await broker.call('datasource-connector.read', {
+      connectorType: 'csv',
+      connectorConfig: {
+        path: tmpFile,
+        delimiter: ';',
+        encoding: 'latin1',
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.rows[0]).toEqual({ name: 'Jürgen', city: 'München' });
 
     fs.unlinkSync(tmpFile);
   });

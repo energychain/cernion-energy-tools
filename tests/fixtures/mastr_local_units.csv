@@ -1,0 +1,13 @@
+MaStR_ID,Einheitentyp,Leistung_kWp,Pruefstatus,Netzebene
+SEE100000000001,Solar,9.8,In Prüfung,NS
+SEE100000000002,Solar,12.4,Geprüft,NS
+SAN100000000003,Speicher,7.5,In Prüfung,NS
+SWE100000000004,Wind,2100,Geprüft,MS
+SEE100000000005,Solar,18.2,In Prüfung,MS
+SEE100000000006,Solar,7.1,Geprüft,NS
+SAN100000000007,Speicher,11.4,Geprüft,NS
+SEE100000000008,Solar,15.6,In Prüfung,MS
+SAN100000000009,Speicher,6.8,Geprüft,NS
+SEE100000000010,Solar,24.0,In Prüfung,MS
+SEE100000000011,Solar,10.2,Geprüft,NS
+SAN100000000012,Speicher,8.9,In Prüfung,NS

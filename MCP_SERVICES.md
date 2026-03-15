@@ -4,7 +4,7 @@ Comprehensive MicroService Agent System for Energy Markets, mapping Cernion MCP 
 
 ## Overview
 
-This project provides a complete REST API wrapper around the Cernion Model Context Protocol (MCP) server, exposing 70+ energy data tools through 12 microservices organized by functional categories.
+This project provides a complete REST API wrapper around the Cernion Model Context Protocol (MCP) server, exposing 70+ energy data tools through 12 microservices organized by functional categories. Starting with v0.9, it also includes a parallel inhouse datasource layer for internal utility datasets.
 
 ## Architecture
 
@@ -135,6 +135,56 @@ Status, job management, parameter validation
 - `POST /api/system/validate-params` - Validate tool parameters
 - `GET /api/system/job-status/:jobId` - Check async job status
 - `GET /api/system/job-result/:jobId` - Retrieve async job result
+
+### 12. Inhouse Datasource Registry (`datasource-registry`)
+Datasource registration, dictionary versioning, and schema inference drafts
+
+**Endpoints:**
+- `POST /api/datasources` - Register a new datasource
+- `GET /api/datasources` - List registered datasources
+- `GET /api/datasources/:id` - Get datasource definition
+- `PUT /api/datasources/:id` - Update datasource definition
+- `DELETE /api/datasources/:id` - Remove datasource definition
+- `GET /api/datasources/:id/dictionary` - Get current dictionary
+- `PUT /api/datasources/:id/dictionary` - Replace current dictionary and increment version
+- `GET /api/datasources/:id/dictionary/history` - Get version history
+- `GET /api/datasources/:id/dictionary/:version` - Get specific dictionary version
+- `POST /api/datasources/:id/infer` - Generate inferred draft dictionary
+- `POST /api/datasources/:id/refresh` - Trigger datasource refresh
+
+### 13. Inhouse Datasource Cache (`datasource-cache`)
+Privacy-aware cached datasource row access and audit trail
+
+**Endpoints:**
+- `GET /api/datasource-cache/:sourceId` - Query cached rows
+- `GET /api/datasource-cache/:sourceId/status` - Cache status and staleness
+- `GET /api/datasource-cache/:sourceId/audit` - DSGVO substitution audit log
+- `POST /api/datasource-cache/:sourceId/refresh` - Refresh cache entry now
+- `DELETE /api/datasource-cache/:sourceId` - Invalidate cache entry
+
+### 14. Inhouse Datasource Discovery (`datasource-discovery`)
+AI-ready descriptors for fresh internal data sources
+
+**Endpoints:**
+- `GET /api/datasource-discovery` - List discoverable datasource descriptors
+- `GET /api/datasource-discovery/search?q=...` - Search datasource descriptors
+- `GET /api/datasource-discovery/:sourceId/descriptor` - Get one descriptor
+
+### 15. Inhouse Datasource Connectors (`datasource-connector`)
+Internal plugin runtime for heterogeneous datasource reads (not exposed directly via public REST)
+
+**Built-in plugins:**
+- `csv`
+- `rest`
+- `geojson`
+- `xlsx`
+- `docx` (optional dependency scaffold)
+- `scraper` (optional dependency scaffold)
+
+**Current integration note:**
+- These connectors are consumed by `datasource-registry` and `datasource-cache`
+- `datasource-discovery` publishes fresh sources to the agent as inhouse descriptors
+- `agent.analyze` now includes inhouse datasource descriptors alongside normal microservice actions
 
 ## Setup
 

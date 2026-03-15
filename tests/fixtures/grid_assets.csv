@@ -1,0 +1,13 @@
+Asset_ID,Anlagentyp,Spannungsebene,Installationsjahr,Standort
+AST-1001,Ortsnetzstation,MS,2008,Ludwigshafen Nord
+AST-1002,Trafo,MS,2012,Ludwigshafen Süd
+AST-1003,Kabelverteiler,NS,2017,Frankenthal Mitte
+AST-1004,Schaltanlage,HS,2004,Heidelberg West
+AST-1005,Ortsnetzstation,NS,2019,Worms Ost
+AST-1006,Trafo,MS,2016,Speyer Süd
+AST-1007,Kabelverteiler,NS,2013,Frankenthal Nord
+AST-1008,Schaltanlage,HS,2011,Mannheim Hafen
+AST-1009,Ortsnetzstation,MS,2020,Bad Dürkheim
+AST-1010,Trafo,NS,2018,Neustadt West
+AST-1011,Kabelverteiler,NS,2015,Speyer Nord
+AST-1012,Schaltanlage,MS,2021,Heidelberg Ost

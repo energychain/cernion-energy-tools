@@ -408,10 +408,21 @@ async function getInhouseDescriptorText(ctx) {
         const flagged = Array.isArray(descriptor.privacyFlaggedFields)
           ? descriptor.privacyFlaggedFields.join(', ')
           : '';
+        const domainLabel =
+          descriptor?.semanticHints?.domainLabel || descriptor?.semanticHints?.domain;
+        const criticalFieldMappings = descriptor?.semanticHints?.criticalFieldMappings || {};
+        const mappingText =
+          Object.keys(criticalFieldMappings).length > 0
+            ? `\n  Critical field mappings: ${Object.entries(criticalFieldMappings)
+                .map(([role, column]) => `${role}→${column}`)
+                .join(', ')}`
+            : '';
 
         return (
           `- **${descriptor.name}** [sourceId=${descriptor.sourceId}]` +
           `: ${descriptor.description || 'No description available.'}` +
+          `${domainLabel ? `\n  Domain: ${domainLabel}` : ''}` +
+          mappingText +
           `${flagged ? `\n  Privacy-flagged fields: ${flagged}` : ''}`
         );
       })
@@ -434,34 +445,50 @@ async function listInhouseDescriptors(ctx) {
     const reg = await ctx.call('datasource-registry.list', {});
     const sources = toArray(reg);
 
-    return sources.map((s) => {
-      const sourceName = s?.name || s?.id || 'inhouse_source';
-      const normalized = String(sourceName)
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '_')
-        .replace(/^_+|_+$/g, '');
+    return sources
+      .map((s) => {
+        const sourceName = s?.name || s?.id || 'inhouse_source';
+        const normalized = String(sourceName)
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '_')
+          .replace(/^_+|_+$/g, '');
 
-      const dictionaryFields = (s?.dictionary?.fields || [])
-        .map((f) => f?.name)
-        .filter(Boolean);
+        const dictionaryFields = (s?.dictionary?.fields || []).map((f) => f?.name).filter(Boolean);
 
-      return {
-        name: `inhouse__${normalized || 'source'}`,
-        description: s?.description || '',
-        aliases: [sourceName, s?.id, ...(s?.tags || [])].filter(Boolean),
-        capabilities: [],
-        semanticHints: {},
-        source: 'inhouse',
-        sourceId: s?.sourceId || s?.id || s?.source_id || null,
-        cacheStatus: 'unknown',
-        __sourceMeta: {
-          sourceName,
-          sourceDescription: s?.description || '',
-          tags: s?.tags || [],
-          dictionaryFields,
-        },
-      };
-    }).filter((d) => d.sourceId);
+        return {
+          name: `inhouse__${normalized || 'source'}`,
+          description: s?.description || '',
+          aliases: [sourceName, s?.id, ...(s?.tags || [])].filter(Boolean),
+          capabilities: [],
+          semanticHints: {
+            ...(s?.semanticClassification?.domainId &&
+            s.semanticClassification.domainId !== 'unknown'
+              ? {
+                  domain: s.semanticClassification.domainId,
+                  domainLabel: s.semanticClassification.domainLabel,
+                  criticalFieldMappings:
+                    s.semanticClassification.fieldMappings ||
+                    (s.semanticClassification.criticalFieldStatus || []).reduce((acc, item) => {
+                      if (item?.resolved && item?.mappedColumn) {
+                        acc[item.fieldRole] = item.mappedColumn;
+                      }
+                      return acc;
+                    }, {}),
+                }
+              : {}),
+          },
+          source: 'inhouse',
+          sourceId: s?.sourceId || s?.id || s?.source_id || null,
+          cacheStatus: 'unknown',
+          __sourceMeta: {
+            sourceName,
+            sourceDescription: s?.description || '',
+            tags: s?.tags || [],
+            dictionaryFields,
+          },
+        };
+      })
+      .filter((d) => d.sourceId);
   };
 
   try {
@@ -498,7 +525,20 @@ function classifyInhouseIntent(problem) {
 
   if (isCompareActualVsForecast) return 'timeseries_compare_actual_vs_forecast';
   if (isCostEnrichment) return 'timeseries_cost_enrichment';
-  if (/(delta|abweich|differenz)/.test(text) && /(lastgang|zeitreihe|timeseries|erzeug)/.test(text)) {
+  if (
+    /(anteil|wie\s*viele|wieviele|anzahl|durchschnitt|summe|kumuliert|größte|groesste|höchste|hoechste)/.test(
+      text
+    ) &&
+    /(gegenpartei|volumen|mwh|kwh|trafo|asset|typ|zählpunkt|zaehlpunkt|rollout|status|leistung)/.test(
+      text
+    )
+  ) {
+    return 'inhouse_aggregate';
+  }
+  if (
+    /(delta|abweich|differenz)/.test(text) &&
+    /(lastgang|zeitreihe|timeseries|erzeug)/.test(text)
+  ) {
     return 'timeseries_delta_analysis';
   }
   return null;
@@ -546,7 +586,107 @@ function resolveInhouseSourceForIntent(problem, descriptors, selectedInhouseSour
   );
 }
 
-function buildIntentClassPlan({ intentClass, sourceDescriptor, dateDefault, availableDescriptors }) {
+function isInhouseDescriptor(descriptor) {
+  if (!descriptor || typeof descriptor !== 'object') return false;
+  return (
+    descriptor.__inhouse === true ||
+    descriptor.source === 'inhouse' ||
+    String(descriptor.name || '').startsWith('inhouse__') ||
+    Boolean(descriptor?.semanticHints?.domain)
+  );
+}
+
+function isSqlOrDatabaseAction(actionName) {
+  const action = String(actionName || '').toLowerCase();
+  return (
+    action === 'query.ask' ||
+    action === 'query.asklearned' ||
+    action.startsWith('query.') ||
+    action.includes('sql') ||
+    action.includes('database')
+  );
+}
+
+function enforceInhousePlanningGuard({
+  plan,
+  problem,
+  availableDescriptors,
+  selectedInhouseSources,
+  sourceDescriptor,
+  dateDefault,
+}) {
+  if (!plan || !Array.isArray(plan.steps) || plan.steps.length === 0) {
+    return { plan, rewritten: false };
+  }
+
+  const inhouseSourceIds = new Set(
+    [
+      ...(Array.isArray(selectedInhouseSources) ? selectedInhouseSources : []),
+      ...((availableDescriptors || [])
+        .filter((d) => d?.sourceId && isInhouseDescriptor(d))
+        .map((d) => d.sourceId) || []),
+    ].filter(Boolean)
+  );
+
+  const hasExplicitInhouseContext =
+    inhouseSourceIds.size > 0 ||
+    (Array.isArray(selectedInhouseSources) && selectedInhouseSources.length > 0);
+  if (!hasExplicitInhouseContext) {
+    return { plan, rewritten: false };
+  }
+
+  const hasForbiddenAction = plan.steps.some((step) => isSqlOrDatabaseAction(step?.action));
+  if (!hasForbiddenAction) {
+    return { plan, rewritten: false };
+  }
+
+  const resolved =
+    sourceDescriptor ||
+    resolveInhouseSourceForIntent(
+      problem,
+      availableDescriptors || [],
+      selectedInhouseSources || []
+    );
+  const inferredIntent = classifyInhouseIntent(problem) || 'inhouse_aggregate';
+  const safePlan =
+    buildIntentClassPlan({
+      intentClass: inferredIntent,
+      sourceDescriptor: resolved,
+      dateDefault,
+      availableDescriptors: availableDescriptors || [],
+    }) ||
+    buildIntentClassPlan({
+      intentClass: 'inhouse_aggregate',
+      sourceDescriptor: resolved,
+      dateDefault,
+      availableDescriptors: availableDescriptors || [],
+    });
+
+  if (!safePlan) {
+    return { plan, rewritten: false };
+  }
+
+  const mergedPlan = {
+    ...plan,
+    summary: safePlan.summary,
+    steps: safePlan.steps,
+    requiredInputs: safePlan.requiredInputs || [],
+  };
+
+  return {
+    plan: mergedPlan,
+    rewritten: true,
+    reason:
+      'INHOUSE DATA RULE enforced: replaced SQL/query action with datasource-cache.query + in-memory aggregation plan.',
+  };
+}
+
+function buildIntentClassPlan({
+  intentClass,
+  sourceDescriptor,
+  dateDefault,
+  availableDescriptors,
+}) {
   // Auto-select when no descriptor was resolved but exactly one capable source exists.
   // Avoids prompting the user for a UUID when the answer is unambiguous.
   let resolvedDescriptor = sourceDescriptor;
@@ -566,6 +706,7 @@ function buildIntentClassPlan({ intentClass, sourceDescriptor, dateDefault, avai
 
   const sourceId = resolvedDescriptor?.sourceId || null;
   const hints = resolvedDescriptor?.semanticHints || {};
+  const criticalMappings = hints.criticalFieldMappings || {};
 
   const requiredInputs = [];
 
@@ -581,7 +722,8 @@ function buildIntentClassPlan({ intentClass, sourceDescriptor, dateDefault, avai
           label: d.__sourceMeta?.sourceName || d.name,
           value: d.sourceId,
         })),
-        description: 'Wähle die Inhouse-Datenquelle aus, die für die Analyse verwendet werden soll.',
+        description:
+          'Wähle die Inhouse-Datenquelle aus, die für die Analyse verwendet werden soll.',
         required: true,
       });
     } else {
@@ -624,7 +766,7 @@ function buildIntentClassPlan({ intentClass, sourceDescriptor, dateDefault, avai
             aggregateBy: 'hourly',
             region: 'Deutschland',
             market: 'day-ahead',
-            leftTimeField: hints.timeField || 'Zeit',
+            leftTimeField: criticalMappings.timeReference || hints.timeField || 'Zeit',
             consumptionPowerField: hints.consumptionPowerField || 'Leistung Bezug (W)',
             feedInPowerField: hints.feedInPowerField || 'Leistung Einspeisung (W)',
             privacyContext: 'internal',
@@ -694,7 +836,148 @@ function buildIntentClassPlan({ intentClass, sourceDescriptor, dateDefault, avai
     };
   }
 
+  if (intentClass === 'inhouse_aggregate') {
+    return {
+      summary:
+        'Intent-Klasse: inhouse_aggregate. Inhouse-Zeilen werden über datasource-cache.query geladen und die Kennzahlen in-memory aggregiert (kein SQL).',
+      steps: [
+        {
+          step: 1,
+          action: 'datasource-cache.query',
+          description:
+            'Lese Inhouse-Datenzeilen aus dem Cache für anschließende In-Memory-Aggregation.',
+          params: {
+            sourceId: sourceId || null,
+            privacyContext: 'internal',
+            limit: 10000,
+          },
+        },
+      ],
+      requiredInputs,
+    };
+  }
+
   return null;
+}
+
+function asNumber(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim().replace(',', '.');
+  if (!text) return null;
+  const parsed = Number(text);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function pickFieldByPatterns(fieldNames, patterns) {
+  for (const p of patterns) {
+    const hit = fieldNames.find((name) => p.test(String(name)));
+    if (hit) return hit;
+  }
+  return null;
+}
+
+function buildInhouseAggregationFromRows(problem, rows, descriptor) {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+
+  const text = String(problem || '').toLowerCase();
+  const fieldNames = Object.keys(rows[0] || {});
+  const mappings = descriptor?.semanticHints?.criticalFieldMappings || {};
+
+  const groupByField =
+    pickFieldByPatterns(fieldNames, [/gegenpartei/i, /counterparty/i]) ||
+    pickFieldByPatterns(fieldNames, [/asset[_\s-]*typ/i, /anlagentyp/i, /typ$/i]) ||
+    pickFieldByPatterns(fieldNames, [/anschluss[_\s-]*trafo/i, /trafo/i]) ||
+    pickFieldByPatterns(fieldNames, [/lieferperiode/i, /lieferzeitraum/i]) ||
+    pickFieldByPatterns(fieldNames, [/status/i]);
+
+  const numericField =
+    mappings.quantityMWh ||
+    mappings.capacityKWp ||
+    pickFieldByPatterns(fieldNames, [/menge/i, /volumen/i, /leistung/i, /mwh/i, /kwh/i]) ||
+    fieldNames.find((name) => rows.some((row) => asNumber(row?.[name]) !== null));
+
+  const statusField = pickFieldByPatterns(fieldNames, [/status/i, /rollout[_\s-]*status/i]);
+  const deviceField = pickFieldByPatterns(fieldNames, [/geraeteart/i, /gerät/i]);
+  const consumptionField = pickFieldByPatterns(fieldNames, [/jahresverbrauch/i, /verbrauch.*kwh/i]);
+
+  let workingRows = [...rows];
+  if (/offen/.test(text) && statusField) {
+    workingRows = workingRows.filter((row) => /offen/i.test(String(row?.[statusField] || '')));
+  }
+  if (/(kein\s+i\s*msys|noch\s+kein\s+i\s*msys|kein\s+imsys)/.test(text) && deviceField) {
+    workingRows = workingRows.filter((row) => !/^imsys$/i.test(String(row?.[deviceField] || '')));
+  }
+  const overKwh = text.match(/über\s*(\d{3,6})\s*kwh/i);
+  if (overKwh && consumptionField) {
+    const threshold = Number(overKwh[1]);
+    workingRows = workingRows.filter((row) => {
+      const val = asNumber(row?.[consumptionField]);
+      return val !== null && val > threshold;
+    });
+  }
+  if (/(q2\s*2026|2026\s*-?\s*q2|2026-q2)/i.test(text)) {
+    const periodField = pickFieldByPatterns(fieldNames, [/lieferperiode/i, /lieferzeitraum/i]);
+    if (periodField) {
+      workingRows = workingRows.filter((row) =>
+        /2026\s*-?\s*q2|2026-q2/i.test(String(row?.[periodField] || ''))
+      );
+    }
+  }
+
+  if (!workingRows.length || !groupByField || !numericField) return null;
+
+  const op = /durchschnitt/.test(text)
+    ? 'avg'
+    : /summe|kumuliert|gesamt|größte|groesste|höchste|hoechste|volumen|leistung/.test(text)
+      ? 'sum'
+      : 'count';
+
+  const grouped = new Map();
+  for (const row of workingRows) {
+    const key = String(row?.[groupByField] ?? '—');
+    const entry = grouped.get(key) || { key, sum: 0, count: 0 };
+    const value = asNumber(row?.[numericField]);
+    if (value !== null) entry.sum += value;
+    entry.count += 1;
+    grouped.set(key, entry);
+  }
+
+  let tableRows = Array.from(grouped.values()).map((entry) => {
+    if (op === 'avg') {
+      return {
+        [groupByField]: entry.key,
+        Durchschnitt: Number((entry.sum / Math.max(1, entry.count)).toFixed(3)),
+        Datensaetze: entry.count,
+      };
+    }
+    if (op === 'sum') {
+      return {
+        [groupByField]: entry.key,
+        Summe: Number(entry.sum.toFixed(3)),
+        Datensaetze: entry.count,
+      };
+    }
+    return {
+      [groupByField]: entry.key,
+      Anzahl: entry.count,
+    };
+  });
+
+  tableRows = tableRows.sort((a, b) => {
+    const av = Number(a.Summe ?? a.Durchschnitt ?? a.Anzahl ?? 0);
+    const bv = Number(b.Summe ?? b.Durchschnitt ?? b.Anzahl ?? 0);
+    return bv - av;
+  });
+
+  const tableColumns = Object.keys(tableRows[0] || {});
+  return {
+    summary: `In-Memory-Aggregation über ${workingRows.length} Zeilen (groupBy=${groupByField}, metric=${op}).`,
+    tableColumns,
+    tableRows,
+    needsMoreInput: false,
+    followUpQuestion: null,
+  };
 }
 
 function inferIntentClassFromPlan(plan) {
@@ -722,7 +1005,10 @@ function inferIntentClassFromPlan(plan) {
   return null;
 }
 
-function assessPlanExecutability(plan, { availableDescriptors = [], selectedInhouseSources = [] } = {}) {
+function assessPlanExecutability(
+  plan,
+  { availableDescriptors = [], selectedInhouseSources = [] } = {}
+) {
   const steps = Array.isArray(plan?.steps) ? plan.steps : [];
   const usesInhouseSource = steps.some((step) => {
     const action = String(step?.action || '');
@@ -733,8 +1019,10 @@ function assessPlanExecutability(plan, { availableDescriptors = [], selectedInho
     return { canExecute: true, blockedReason: null };
   }
 
-  const hasRegisteredDescriptor = Array.isArray(availableDescriptors) && availableDescriptors.length > 0;
-  const hasSelectedSource = Array.isArray(selectedInhouseSources) && selectedInhouseSources.length > 0;
+  const hasRegisteredDescriptor =
+    Array.isArray(availableDescriptors) && availableDescriptors.length > 0;
+  const hasSelectedSource =
+    Array.isArray(selectedInhouseSources) && selectedInhouseSources.length > 0;
 
   if (hasRegisteredDescriptor || hasSelectedSource) {
     return { canExecute: true, blockedReason: null };
@@ -748,7 +1036,9 @@ function assessPlanExecutability(plan, { availableDescriptors = [], selectedInho
 }
 
 async function autoResolveMissingInhouseSourceId(ctx, session, effectiveInputs, logger) {
-  const requiredInputs = Array.isArray(session?.plan?.requiredInputs) ? session.plan.requiredInputs : [];
+  const requiredInputs = Array.isArray(session?.plan?.requiredInputs)
+    ? session.plan.requiredInputs
+    : [];
   const sourceInput = requiredInputs.find((ri) => ri?.name === 'sourceId' && ri.required);
   if (!sourceInput) return;
 
@@ -767,7 +1057,7 @@ async function autoResolveMissingInhouseSourceId(ctx, session, effectiveInputs, 
   const options = Array.isArray(sourceInput.options) ? sourceInput.options : [];
   if (options.length === 1) {
     const only = options[0];
-    const value = typeof only === 'object' ? only.value ?? only.label : only;
+    const value = typeof only === 'object' ? (only.value ?? only.label) : only;
     if (value) {
       effectiveInputs.sourceId = String(value);
       return;
@@ -804,7 +1094,9 @@ async function autoResolveMissingInhouseSourceId(ctx, session, effectiveInputs, 
 }
 
 async function refreshInhouseSourceRequiredInput(ctx, session) {
-  const requiredInputs = Array.isArray(session?.plan?.requiredInputs) ? session.plan.requiredInputs : [];
+  const requiredInputs = Array.isArray(session?.plan?.requiredInputs)
+    ? session.plan.requiredInputs
+    : [];
   const idx = requiredInputs.findIndex((ri) => ri?.name === 'sourceId');
   if (idx < 0) return;
 
@@ -821,8 +1113,7 @@ async function refreshInhouseSourceRequiredInput(ctx, session) {
       ...requiredInputs[idx],
       type: 'select',
       options,
-      description:
-        'Wähle die Inhouse-Datenquelle aus, die für die Analyse verwendet werden soll.',
+      description: 'Wähle die Inhouse-Datenquelle aus, die für die Analyse verwendet werden soll.',
     };
     if (options.length === 1) requiredInputs[idx].default = options[0].value;
   }
@@ -1022,12 +1313,12 @@ module.exports = {
         );
         const explicitInhouseCostQuery =
           !!sourceDescriptor && /stromkosten|energiekosten|verbrauchskosten|kosten/i.test(problem);
-        const intentClass = classifyInhouseIntent(problem) ||
+        const intentClass =
+          classifyInhouseIntent(problem) ||
           (explicitInhouseCostQuery ? 'timeseries_cost_enrichment' : null);
         const canUseInhouseShortcut =
           !!sourceDescriptor || descriptors.length > 0 || selectedInhouseSources.length > 0;
         if (intentClass && canUseInhouseShortcut) {
-
           const plan = buildIntentClassPlan({
             intentClass,
             sourceDescriptor,
@@ -1087,7 +1378,7 @@ module.exports = {
               }${c.params.length ? '\n  Params: ' + c.params.join(', ') : ''}`
           )
           .join('\n');
-          const inhouseDescriptorText = await getInhouseDescriptorText(ctx);
+        const inhouseDescriptorText = await getInhouseDescriptorText(ctx);
 
         const today = new Date().toISOString().slice(0, 10);
 
@@ -1315,6 +1606,13 @@ Use this action to combine datasource intervals with energy-market spot prices
 and compute interval/hour/day costs. For single-day questions ("am 10.03.2026"),
 set "date" as requiredInput (default extracted from user text) and avoid static
 price assumptions.
+
+INHOUSE DATA RULE (HARD CONSTRAINT):
+- For any source listed in inhouseSources, NEVER use query.ask, query.askLearned,
+  SQL actions, or database lookups.
+- ALWAYS use datasource-cache.query to read inhouse rows.
+- Perform aggregation and ranking in-memory (agent result-building / in-memory join),
+  never via SQL.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IMPORTANT: The keys in each step MUST be exactly "action", "params", and "description" — do NOT use "useTool", "args", "inputs", "label", "tool", or any other synonym.
 {
@@ -1363,6 +1661,20 @@ IMPORTANT: The keys in each step MUST be exactly "action", "params", and "descri
           throw new Error(`Failed to parse Gemini plan response: ${rawText.substring(0, 300)}`);
         }
         plan = normalizePlan(plan);
+
+        const guardedPlan = enforceInhousePlanningGuard({
+          plan,
+          problem,
+          availableDescriptors: descriptors,
+          selectedInhouseSources,
+          sourceDescriptor,
+          dateDefault: extractDateFromProblem(problem),
+        });
+        plan = guardedPlan.plan;
+        if (guardedPlan.rewritten) {
+          this.logger.warn(`[Agent] ${guardedPlan.reason}`);
+        }
+
         Object.assign(
           plan,
           assessPlanExecutability(plan, {
@@ -1510,6 +1822,9 @@ CRITICAL RULES:
    "__step_1.data.results[0].contacts[0].city".
 6. For inhouse metering cost questions (e.g. LPTest + date), prefer
   in-memory-join.meteringSpotCost over manual multi-step joins.
+7. INHOUSE DATA RULE: For any source listed in inhouseSources, NEVER use query.ask,
+   query.askLearned, SQL actions, or database lookups. ALWAYS use datasource-cache.query
+   and aggregate in-memory.
 
 The user originally asked: "${session.problem}"
 Your previous plan was: ${JSON.stringify(session.plan, null, 2)}
@@ -1539,6 +1854,24 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
           }
           session.plan = normalizePlan(session.plan);
           const refinedDescriptors = await listInhouseDescriptors(ctx);
+
+          const refinedGuard = enforceInhousePlanningGuard({
+            plan: session.plan,
+            problem: session.problem,
+            availableDescriptors: refinedDescriptors,
+            selectedInhouseSources: [],
+            sourceDescriptor: resolveInhouseSourceForIntent(
+              session.problem,
+              refinedDescriptors,
+              []
+            ),
+            dateDefault: extractDateFromProblem(session.problem),
+          });
+          session.plan = refinedGuard.plan;
+          if (refinedGuard.rewritten) {
+            this.logger.warn(`[Agent] ${refinedGuard.reason}`);
+          }
+
           Object.assign(
             session.plan,
             assessPlanExecutability(session.plan, {
@@ -1593,15 +1926,42 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
         // but execution came without the value (e.g. stale UI state / transient discovery gaps).
         await autoResolveMissingInhouseSourceId(ctx, session, effectiveInputs, this.logger);
 
+        // Pre-flight inhouse guard: never allow SQL/query actions for inhouse sources.
+        const runtimeDescriptors = await listInhouseDescriptors(ctx);
+        const selectedRuntimeSources = [];
+        if (typeof effectiveInputs.sourceId === 'string' && effectiveInputs.sourceId.trim()) {
+          selectedRuntimeSources.push(effectiveInputs.sourceId.trim());
+        }
+        const preflightGuard = enforceInhousePlanningGuard({
+          plan: session.plan,
+          problem: session.problem,
+          availableDescriptors: runtimeDescriptors,
+          selectedInhouseSources: selectedRuntimeSources,
+          sourceDescriptor: resolveInhouseSourceForIntent(
+            session.problem,
+            runtimeDescriptors,
+            selectedRuntimeSources
+          ),
+          dateDefault: extractDateFromProblem(session.problem),
+        });
+        if (preflightGuard.rewritten) {
+          this.logger.warn(`[Agent] ${preflightGuard.reason}`);
+          session.plan = preflightGuard.plan;
+          saveSession(session);
+        }
+
         // Validate required inputs from dynamic plan schema before step execution.
         for (const ri of session.plan.requiredInputs || []) {
           if (!ri?.required) continue;
           const value = effectiveInputs[ri.name];
           const isMissing =
-            value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
+            value === undefined ||
+            value === null ||
+            (typeof value === 'string' && value.trim() === '');
           if (isMissing) {
             const isInhouseSourceMissing =
-              ri.name === 'sourceId' || /inhouse\s*data\s*source\s*id/i.test(String(ri.label || ''));
+              ri.name === 'sourceId' ||
+              /inhouse\s*data\s*source\s*id/i.test(String(ri.label || ''));
 
             if (isInhouseSourceMissing) {
               await refreshInhouseSourceRequiredInput(ctx, session);
@@ -1616,7 +1976,9 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
               session.userInputs = userInputs;
               saveSession(session);
 
-              this.logger.warn('[Agent] Missing inhouse source input during execute; returning requiredInputs for user selection');
+              this.logger.warn(
+                '[Agent] Missing inhouse source input during execute; returning requiredInputs for user selection'
+              );
               return {
                 sessionId,
                 status: 'refined',
@@ -1781,6 +2143,8 @@ CRITICAL:
 - For DSO queries, include ALL three fallbacks: gridOperatorId, bdewCode, vnbName.
 - Prefer assets.solar/assets.wind/assets.all over energy-market.installations for VNB-filtered queries.
 - For inhouse metering cost questions, prefer in-memory-join.meteringSpotCost.
+- INHOUSE DATA RULE: For any inhouse source, NEVER use query.ask/query.askLearned/SQL actions.
+  Use datasource-cache.query and in-memory aggregation only.
 
 Respond ONLY with valid JSON:
 {
@@ -1813,6 +2177,21 @@ Respond ONLY with valid JSON:
             if (repairedPlan && repairedPlan.steps && repairedPlan.steps.length > 0) {
               this.logger.info('[Agent] Self-healing: executing repaired plan');
               repairedPlan = normalizePlan(repairedPlan);
+
+              const repairedGuard = enforceInhousePlanningGuard({
+                plan: repairedPlan,
+                problem: session.problem,
+                availableDescriptors: runtimeDescriptors,
+                selectedInhouseSources: selectedRuntimeSources,
+                sourceDescriptor: resolveInhouseSourceForIntent(
+                  session.problem,
+                  runtimeDescriptors,
+                  selectedRuntimeSources
+                ),
+                dateDefault: extractDateFromProblem(session.problem),
+              });
+              repairedPlan = repairedGuard.plan;
+
               session.plan = repairedPlan;
               saveSession(session);
 
@@ -1886,6 +2265,37 @@ Respond ONLY with valid JSON:
                 });
               }
             }
+          }
+        }
+
+        const inhouseCacheStep = stepResults.find(
+          (s) => s.action === 'datasource-cache.query' && !s.error
+        );
+        if (inhouseCacheStep) {
+          const rows = Array.isArray(inhouseCacheStep?.result?.data)
+            ? inhouseCacheStep.result.data
+            : Array.isArray(inhouseCacheStep?.result?.rows)
+              ? inhouseCacheStep.result.rows
+              : [];
+          const descriptorForStep = runtimeDescriptors.find(
+            (d) => d?.sourceId && d.sourceId === inhouseCacheStep?.params?.sourceId
+          );
+          const inMemoryAggregation = buildInhouseAggregationFromRows(
+            session.problem,
+            rows,
+            descriptorForStep || null
+          );
+          if (inMemoryAggregation) {
+            stepResults.push({
+              step: stepResults.length + 1,
+              action: 'agent.inhouseAggregation',
+              description: 'In-memory aggregation over datasource-cache rows.',
+              params: {
+                sourceId: inhouseCacheStep?.params?.sourceId || null,
+              },
+              result: inMemoryAggregation,
+              error: null,
+            });
           }
         }
 

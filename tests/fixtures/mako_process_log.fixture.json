@@ -1,0 +1,15 @@
+{
+  "domain": "mako-process-log",
+  "label": "MaKo Process Log",
+  "description": "Synthetic process log for market communication workflows.",
+  "expectedDictionary": {
+    "Prozessart": { "semanticRole": "processType", "type": "string" },
+    "Eingangszeit": { "semanticRole": "receivedAt", "type": "timestamp" },
+    "Frist": { "semanticRole": "deadline", "type": "timestamp" },
+    "Status": { "semanticRole": "status", "type": "string" }
+  },
+  "exampleQueries": [
+    "Welche Prozesse sind noch offen?",
+    "Wo droht ein Fristverzug?"
+  ]
+}

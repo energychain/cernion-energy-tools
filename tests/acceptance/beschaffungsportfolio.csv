@@ -1,0 +1,51 @@
+Lieferperiode,Produkt,Menge_MWh,Preis_EUR_MWh,Gegenpartei,Handelsart,Abschlussdatum,Status
+Feb 2026,Base,201.3,84.5,Vattenfall,Forward,2025-02-22,offen
+Feb 2026,HH,328.2,93.32,EnBW Trading,Forward,2025-04-22,aktiv
+Jan 2026,HH,204.4,79.93,Statkraft Markets,Spot,2025-04-23,abgerechnet
+Jan 2026,Peak,1809.3,68.39,Vattenfall,OTC,2025-08-05,abgerechnet
+2026-Q3,Base,591.4,113.81,EnBW Trading,Forward,2025-07-14,aktiv
+2026-Q3,Peak,1387.6,116.43,RWE Supply & Trading,OTC,2025-03-05,abgerechnet
+2026-Q1,HH,751.0,105.72,AXPO,OTC,2025-04-09,offen
+2026-Q1,Base,1505.6,114.38,EnBW Trading,Forward,2025-02-21,abgerechnet
+2026-Q3,Peak,1453.2,89.89,AXPO,Spot,2025-04-18,offen
+2026-Q3,HH,2070.1,106.88,Statkraft Markets,OTC,2025-03-29,offen
+Feb 2026,Base,485.0,90.77,Statkraft Markets,Forward,2025-12-17,abgerechnet
+Mar 2026,Base,619.5,69.93,AXPO,Spot,2025-05-18,aktiv
+2026-Q2,HH,1946.6,86.88,RWE Supply & Trading,Spot,2025-11-26,abgerechnet
+2026-Q2,Peak,436.2,112.7,Statkraft Markets,Spot,2025-10-27,abgerechnet
+Jan 2026,Peak,892.1,127.84,Vattenfall,OTC,2025-09-10,aktiv
+Mar 2026,Base,1915.3,77.17,Vattenfall,OTC,2025-08-05,offen
+2026-Q1,Peak,932.3,127.77,Statkraft Markets,Spot,2025-10-11,aktiv
+Feb 2026,HH,384.8,121.09,AXPO,OTC,2025-06-24,aktiv
+2026-Q3,Peak,474.2,68.19,AXPO,OTC,2025-04-02,offen
+2026-Q1,HH,761.8,106.34,Statkraft Markets,Forward,2025-03-20,abgerechnet
+Mar 2026,Base,1255.7,114.72,Statkraft Markets,Forward,2025-11-03,abgerechnet
+2026-Q4,Base,379.3,89.78,AXPO,Forward,2025-01-30,aktiv
+Jan 2026,Base,325.6,97.16,EnBW Trading,OTC,2025-03-06,aktiv
+Feb 2026,Peak,2091.0,77.91,Statkraft Markets,OTC,2025-08-05,aktiv
+Jan 2026,HH,1564.2,110.78,RWE Supply & Trading,OTC,2025-11-29,abgerechnet
+2026-Q4,HH,1075.5,82.87,EnBW Trading,Spot,2025-01-11,offen
+Jan 2026,Base,1356.3,68.43,EnBW Trading,Forward,2025-02-04,aktiv
+Mar 2026,Peak,295.3,82.28,RWE Supply & Trading,Forward,2025-10-04,aktiv
+Feb 2026,HH,1331.2,82.58,RWE Supply & Trading,Spot,2025-04-08,aktiv
+2026-Q1,HH,1033.7,93.41,RWE Supply & Trading,OTC,2025-01-28,offen
+Feb 2026,HH,351.8,92.16,AXPO,Forward,2025-05-08,aktiv
+2026-Q2,HH,1069.7,93.31,AXPO,Spot,2025-05-08,aktiv
+2026-Q4,HH,350.7,107.13,Statkraft Markets,Forward,2025-02-17,aktiv
+2026-Q2,Peak,1145.6,80.82,RWE Supply & Trading,Forward,2025-03-26,abgerechnet
+2026-Q1,Peak,693.7,115.04,RWE Supply & Trading,Spot,2025-08-05,offen
+Feb 2026,HH,1506.8,97.2,Vattenfall,Spot,2025-04-22,aktiv
+Jan 2026,HH,1261.5,112.88,EnBW Trading,Forward,2025-10-27,abgerechnet
+Jan 2026,HH,472.7,125.65,EnBW Trading,Forward,2025-02-05,offen
+2026-Q1,HH,1916.7,92.23,Statkraft Markets,Forward,2025-10-24,offen
+2026-Q1,HH,318.1,107.44,Statkraft Markets,OTC,2025-06-11,abgerechnet
+2026-Q2,HH,1618.2,82.32,RWE Supply & Trading,Forward,2025-12-10,offen
+2026-Q3,Peak,798.2,113.11,EnBW Trading,Forward,2025-08-23,offen
+Jan 2026,Base,300.2,80.79,AXPO,Forward,2025-06-28,aktiv
+2026-Q2,Peak,734.2,94.29,Statkraft Markets,OTC,2025-06-04,offen
+Mar 2026,HH,1234.3,108.07,Statkraft Markets,Spot,2025-12-06,aktiv
+2026-Q2,Peak,386.6,74.42,Statkraft Markets,Forward,2025-05-20,abgerechnet
+Jan 2026,Base,1621.1,80.22,AXPO,OTC,2025-09-08,abgerechnet
+Mar 2026,Base,339.2,93.41,AXPO,Forward,2025-01-02,abgerechnet
+Mar 2026,Base,1456.1,83.72,RWE Supply & Trading,OTC,2025-12-28,abgerechnet
+Jan 2026,Base,379.3,124.7,Vattenfall,OTC,2025-01-19,abgerechnet

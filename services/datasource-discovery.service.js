@@ -164,6 +164,12 @@ module.exports = {
     'datasource.updated'() {
       this.descriptorCache = null;
     },
+    'datasource.classification.updated'() {
+      this.descriptorCache = null;
+    },
+    'datasource.classification.confirmed'() {
+      this.descriptorCache = null;
+    },
     'datasource.deleted'() {
       this.descriptorCache = null;
     },
@@ -192,7 +198,23 @@ module.exports = {
         const flaggedFields = (source?.dictionary?.fields || [])
           .filter((field) => field.privacyFlag)
           .map((field) => field.name);
-        const semanticHints = this.inferSemanticHints(dictionaryFields);
+        const inferredSemantic = this.inferSemanticHints(dictionaryFields);
+        const semanticClassification = source?.semanticClassification || null;
+        const semanticMappings = this.extractCriticalFieldMappings(semanticClassification);
+        const semanticStatus = this.deriveSemanticStatus(semanticClassification);
+        const semanticHints = {
+          capabilities: inferredSemantic.capabilities,
+          hints: {
+            ...inferredSemantic.hints,
+            ...(semanticClassification?.domainId && semanticClassification.domainId !== 'unknown'
+              ? {
+                  domain: semanticClassification.domainId,
+                  domainLabel: semanticClassification.domainLabel,
+                  criticalFieldMappings: semanticMappings,
+                }
+              : {}),
+          },
+        };
         const fileAliases = extractAliases(source);
         const aliases = uniq([
           source.name,
@@ -223,6 +245,10 @@ module.exports = {
           },
           source: 'inhouse',
           sourceId: source.id,
+          semanticStatus,
+          semanticClassification: semanticClassification ? deepClone(semanticClassification) : null,
+          cacheExists: !!statusResponse?.exists,
+          cacheStale: !!statusResponse?.stale,
           cacheStatus: statusResponse?.stale ? 'stale' : 'fresh',
           lastRefreshed: statusResponse.lastRefreshed,
           privacyFlaggedFields: flaggedFields,
@@ -234,6 +260,7 @@ module.exports = {
             aliases,
             capabilities: semanticHints.capabilities,
             semanticHints: semanticHints.hints,
+            semanticClassification: semanticClassification ? deepClone(semanticClassification) : null,
           },
         };
 
@@ -305,6 +332,33 @@ module.exports = {
           messlokationField,
         },
       };
+    },
+
+    extractCriticalFieldMappings(classification) {
+      if (!classification || typeof classification !== 'object') return {};
+      if (classification.fieldMappings && typeof classification.fieldMappings === 'object') {
+        return deepClone(classification.fieldMappings);
+      }
+
+      return (classification.criticalFieldStatus || []).reduce((acc, item) => {
+        if (item?.resolved && item?.mappedColumn) {
+          acc[item.fieldRole] = item.mappedColumn;
+        }
+        return acc;
+      }, {});
+    },
+
+    deriveSemanticStatus(classification) {
+      if (!classification || classification.domainId === 'unknown' || !classification.domainId) {
+        return 'unclassified';
+      }
+
+      const allResolved = (classification.criticalFieldStatus || []).every((item) => item.resolved);
+      if (classification.confirmedByUser && allResolved) {
+        return 'ready';
+      }
+
+      return 'partial';
     },
   },
 

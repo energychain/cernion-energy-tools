@@ -1,0 +1,15 @@
+{
+  "domain": "customer-projects",
+  "label": "Customer Projects",
+  "description": "Synthetic project pipeline for distributed energy services.",
+  "expectedDictionary": {
+    "Projekt_ID": { "semanticRole": "projectId", "type": "string" },
+    "Projektart": { "semanticRole": "projectType", "type": "string" },
+    "Kapazitaet_kW": { "semanticRole": "capacityKW", "type": "float" },
+    "Status": { "semanticRole": "status", "type": "string" }
+  },
+  "exampleQueries": [
+    "Wie viel kW Pipeline ist aktuell im Angebot?",
+    "Welche Projektarten sind bereits in Installation?"
+  ]
+}

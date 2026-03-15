@@ -34,6 +34,36 @@ describe('Datasource Discovery Service', () => {
                       { name: 'kundennummer', privacyFlag: true },
                     ],
                   },
+                  semanticClassification: {
+                    domainId: 'metering',
+                    domainLabel: 'Metering Load Profile',
+                    confirmedByUser: true,
+                    fieldMappings: {
+                      timeReference: 'Zeit',
+                      consumptionKWh: 'Leistung Bezug (W)',
+                      feedInKWh: 'Leistung Einspeisung (W)',
+                    },
+                    criticalFieldStatus: [
+                      {
+                        fieldRole: 'timeReference',
+                        resolved: true,
+                        mappedColumn: 'Zeit',
+                        candidates: ['Zeit'],
+                      },
+                      {
+                        fieldRole: 'consumptionKWh',
+                        resolved: true,
+                        mappedColumn: 'Leistung Bezug (W)',
+                        candidates: ['Leistung Bezug (W)'],
+                      },
+                      {
+                        fieldRole: 'feedInKWh',
+                        resolved: true,
+                        mappedColumn: 'Leistung Einspeisung (W)',
+                        candidates: ['Leistung Einspeisung (W)'],
+                      },
+                    ],
+                  },
                 },
                 {
                   id: 'source-stale',
@@ -105,6 +135,13 @@ describe('Datasource Discovery Service', () => {
     expect(fresh.capabilities).toContain('timeseries');
     expect(fresh.capabilities).toContain('timeseries_cost_enrichment');
     expect(fresh.semanticHints.timeField).toBe('Zeit');
+    expect(fresh.semanticHints.domain).toBe('metering');
+    expect(fresh.semanticHints.criticalFieldMappings).toMatchObject({
+      timeReference: 'Zeit',
+      consumptionKWh: 'Leistung Bezug (W)',
+      feedInKWh: 'Leistung Einspeisung (W)',
+    });
+    expect(fresh.semanticStatus).toBe('ready');
   });
 
   it('should search descriptors by name and fields', async () => {

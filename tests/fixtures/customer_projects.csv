@@ -1,0 +1,13 @@
+Projekt_ID,Projektart,Kapazitaet_kW,Status,Kunde
+PRJ-1001,PV Dachanlage,14.2,Lead,Mueller GmbH
+PRJ-1002,Batteriespeicher,10.0,Angebot,Schmidt KG
+PRJ-1003,Wallbox,11.0,Installation,Weber OHG
+PRJ-1004,Waermepumpe,8.5,Lead,Hoffmann AG
+PRJ-1005,PV Dachanlage,29.8,Angebot,Fischer Logistik
+PRJ-1006,Batteriespeicher,15.4,Vertrag,Bauer Metall
+PRJ-1007,Wallbox,22.0,Installation,Kraus Handel
+PRJ-1008,Waermepumpe,12.0,Angebot,Lenz Immobilien
+PRJ-1009,PV Dachanlage,18.6,Vertrag,Roth Maschinenbau
+PRJ-1010,Batteriespeicher,8.2,Lead,Schulz Hotel
+PRJ-1011,Wallbox,11.0,Vertrag,Huber Klinik
+PRJ-1012,PV Dachanlage,24.1,Installation,Mayer Services

@@ -9,6 +9,7 @@ const ApiGateway = require('moleculer-web');
 const OpenapiMixin = require('moleculer-auto-openapi');
 const path = require('path');
 const fs = require('fs');
+const { version: packageVersion } = require('../package.json');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 const ALLOWED_UPLOAD_EXTENSIONS = new Set([
@@ -80,7 +81,7 @@ module.exports = {
     openapi: {
       info: {
         title: 'Cernion Energy Tools API',
-        version: '0.9.2',
+        version: packageVersion,
         description:
           'MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.',
       },
@@ -257,6 +258,8 @@ module.exports = {
           'GET /datasources/:id/dictionary/history': 'datasource-registry.getDictionaryHistory',
           'GET /datasources/:id/dictionary/:version': 'datasource-registry.getDictionaryVersion',
           'GET /datasources/:id/dictionary/check': 'datasource-registry.checkDictionaryVersion',
+          'GET /datasources/:id/classification': 'datasource-registry.getClassification',
+          'PATCH /datasources/:id/classification': 'datasource-classifier.confirm',
           'POST /datasources/:id/infer': 'datasource-registry.infer',
           'POST /datasources/:id/refresh': 'datasource-registry.refresh',
           'GET /datasource-cache/:sourceId/status': 'datasource-cache.status',

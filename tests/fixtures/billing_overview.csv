@@ -1,0 +1,13 @@
+Kundenkonto,Abrechnungszeitraum,Betrag_EUR,Zahlstatus,Produkt
+KD-10001,2026-01,184.22,bezahlt,Strom Fix
+KD-10002,2026-01,96.14,offen,Gas Komfort
+KD-10003,2026-01,142.08,bezahlt,Strom Natur
+KD-10004,2026-01,211.73,teilbezahlt,Waermestrom
+KD-10005,2026-01,88.11,offen,Strom Fix
+KD-10006,2026-02,201.09,bezahlt,Gas Komfort
+KD-10007,2026-02,154.44,bezahlt,Strom Natur
+KD-10008,2026-02,77.30,offen,Waermestrom
+KD-10009,2026-02,164.27,teilbezahlt,Strom Fix
+KD-10010,2026-02,92.18,bezahlt,Gas Komfort
+KD-10011,2026-03,171.53,offen,Strom Natur
+KD-10012,2026-03,118.75,bezahlt,Waermestrom

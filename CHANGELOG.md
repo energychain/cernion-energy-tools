@@ -7,6 +7,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added `tests/acceptance/` real-world acceptance fixtures for procurement,
+  iMSys rollout, grid incidents, and PV asset inventory, including companion
+  `*.acceptance.json` sidecars with acceptance query sets and connector config.
+
+- Added `tests/acceptance.realworld.test.js` to validate acceptance fixture
+  integrity (row ranges + sidecar metadata) and to assert expected semantic
+  auto-classification with `requiresUserInput: false` for all four datasets.
+
+- Added `docs/use-cases/` documentation entries for passing inhouse–external
+  hybrid query patterns used in the v0.9.3 acceptance flow.
+
+### Fixed
+
+- **Bundesnetzagentur Kraftwerksliste CSV ingestion and semantic classification**
+  Fixed datasource onboarding for raw `Kraftwerksliste_CSV.csv` exports by
+  teaching the CSV connector to preserve quoted multiline header cells,
+  enabling correct parsing of files with metadata preamble rows plus embedded
+  newlines in header labels. This allows Kraftwerksliste-style files to be used
+  with `delimiter: ';'`, `encoding: 'windows-1252'`, and `skipRows: 10`.
+
+- **Manual semantic domain override now persists the selected domain**
+  Updated `datasource-classifier.confirm` / forced classification handling so a
+  user-selected domain is treated as authoritative instead of silently falling
+  back to `unknown` when the auto-classification score is below the heuristic
+  threshold.
+
+- **Grid asset classification coverage for generation-unit inventories**
+  Expanded the `grid-assets` semantic domain to recognize generation asset
+  inventories such as Kraftwerksliste / MaStR-derived power plant extracts,
+  including signals like `MaStR`, `Energieträger`, `Spannungsebene`,
+  `Inbetriebnahme`, `Technologie`, and `Anschlussnetzbetreiber`.
+
+- **Acceptance classification confidence for iMSys and PV fixtures**
+  Expanded semantic indicators for `metering-point-master` (iMSys rollout
+  signals) and `grid-assets` (PV/internal-asset signals) so realistic
+  acceptance datasets classify to the intended domain without manual
+  confirmation.
+
+### Tests
+
+- Added CSV connector regression coverage for quoted multiline header parsing
+  after skipped metadata rows.
+
+- Added semantic-classifier regressions for Kraftwerksliste-style generation
+  CSVs and for authoritative manual domain overrides.
+
+## [0.9.3] - 2026-03-14
+
+### Added
+
+- **Semantic datasource onboarding flow**
+  Added a new semantic classification layer for inhouse datasources with a
+  static domain registry, heuristic `datasource-classifier` service, and sample
+  fixtures covering utility-relevant domains such as metering, procurement,
+  grid assets, billing, receivables, MaKo, redispatch, and MaStR extracts.
+
+- **Datasource classification API and discovery enrichment**
+  Added `GET /api/datasources/:id/classification` and
+  `PATCH /api/datasources/:id/classification`, persisted semantic
+  classifications on datasource records, and propagated confirmed domain hints
+  plus critical field mappings into datasource discovery descriptors and agent
+  planning context.
+
+- **Datasource UI semantic onboarding**
+  Extended the datasource panel in `src/app.html` with semantic readiness
+  badges, an inline onboarding banner for confirm/correct flows, and automatic
+  classification polling after inference.
+
+### Known Limitations
+
+- **Mixed-format `Lieferperiode` not parseable as time reference for spot-price join**
+  The `timeseries_cost_enrichment` intent class requires an ISO-parseable timestamp column. The `procurement` domain's `Lieferperiode` field uses mixed formats (`Feb 2026`, `2026-Q1`, `Jan 2026`) that the current timestamp parser cannot resolve. Spot-price join queries against procurement data will fail until either the fixture data uses ISO dates or a period-normalisation step is added to the intent class planner. Tracked for v0.9.4.
+
+- **EWK-Benchmark not fetched in hybrid PV/asset queries when `inhouse_aggregate` intent is selected**
+  When a query combines an inhouse asset inventory with an external EWK benchmark, the planner currently falls back to pure `inhouse_aggregate` without calling `Cernion:ewk_benchmark_vnb`. The hybrid routing for `grid-assets` × EWK is not yet implemented. Tracked for v0.9.4.
+
 ## [0.9.2] - 2026-03-13
 
 ### Fixed

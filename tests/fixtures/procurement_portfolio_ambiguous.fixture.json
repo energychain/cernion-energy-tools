@@ -1,0 +1,14 @@
+{
+  "domain": "procurement",
+  "label": "Energy Procurement Portfolio Ambiguous",
+  "description": "Synthetic procurement portfolio with intentionally ambiguous numeric columns.",
+  "expectedDictionary": {
+    "Referenz": { "semanticRole": "timeReference", "type": "date-range" },
+    "Wert_A": { "semanticRole": "quantityMWh", "type": "float" },
+    "Wert_B": { "semanticRole": "priceEURperMWh", "type": "float" }
+  },
+  "exampleQueries": [
+    "Which field represents the procurement quantity?",
+    "Resolve the procurement price column."
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "domain": "receivables",
+  "label": "Receivables",
+  "description": "Synthetic receivables list with due dates and dunning levels.",
+  "expectedDictionary": {
+    "Kundennummer": { "semanticRole": "customerId", "type": "string" },
+    "Faelligkeit": { "semanticRole": "dueDate", "type": "timestamp" },
+    "Betrag_EUR": { "semanticRole": "amountEUR", "type": "float" },
+    "Mahnstufe": { "semanticRole": "dunningLevel", "type": "integer" }
+  },
+  "exampleQueries": [
+    "Wie viele Forderungen sind in Mahnstufe 2 oder höher?",
+    "Welcher Betrag ist mehr als 30 Tage überfällig?"
+  ]
+}

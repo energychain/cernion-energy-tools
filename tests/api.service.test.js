@@ -7,6 +7,7 @@ const ApiService = require('../services/api.service');
 const DatasourceRegistryService = require('../services/datasource-registry.service');
 const DatasourceCacheService = require('../services/datasource-cache.service');
 const DatasourceDiscoveryService = require('../services/datasource-discovery.service');
+const DatasourceClassifierService = require('../services/datasource-classifier.service');
 const { version: packageVersion } = require('../package.json');
 
 describe('API Gateway Service', () => {
@@ -27,6 +28,7 @@ describe('API Gateway Service', () => {
     broker.createService(DatasourceRegistryService);
     broker.createService(DatasourceCacheService);
     broker.createService(DatasourceDiscoveryService);
+    broker.createService(DatasourceClassifierService);
     await broker.start();
   });
 
@@ -104,9 +106,12 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/datasources/:id']).toBeDefined();
       expect(schema.paths['/api/datasource-cache/:sourceId']).toBeDefined();
       expect(schema.paths['/api/datasource-discovery']).toBeDefined();
+      expect(schema.paths['/api/datasources/:id/classification']).toBeDefined();
 
       expect(schema.paths['/api/datasources'].get.tags).toContain('DataSources');
       expect(schema.paths['/api/datasources'].post.tags).toContain('DataSources');
+      expect(schema.paths['/api/datasources/:id/classification'].get.tags).toContain('DataSources');
+      expect(schema.paths['/api/datasources/:id/classification'].patch.tags).toContain('DataSources');
     });
   });
 

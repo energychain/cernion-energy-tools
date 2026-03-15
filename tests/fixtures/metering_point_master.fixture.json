@@ -1,0 +1,15 @@
+{
+  "domain": "metering-point-master",
+  "label": "Metering Point Master",
+  "description": "Synthetic MaLo/MeLo master data.",
+  "expectedDictionary": {
+    "MaLo_ID": { "semanticRole": "maloId", "type": "string" },
+    "MeLo_ID": { "semanticRole": "meloId", "type": "string" },
+    "Netzebene": { "semanticRole": "gridLevel", "type": "string" },
+    "Tariftyp": { "semanticRole": "tariffType", "type": "string" }
+  },
+  "exampleQueries": [
+    "Welche Tariftypen gibt es je Netzebene?",
+    "Wie viele vollständige MaLo/MeLo-Paare liegen vor?"
+  ]
+}

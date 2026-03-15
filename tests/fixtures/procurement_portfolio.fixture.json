@@ -1,0 +1,16 @@
+{
+  "domain": "procurement",
+  "label": "Energy Procurement Portfolio",
+  "description": "Synthetic forward and spot procurement positions for a mid-sized Stadtwerk.",
+  "expectedDictionary": {
+    "Lieferzeitraum": { "semanticRole": "timeReference", "type": "date-range" },
+    "Volumen_MWh": { "semanticRole": "quantityMWh", "type": "float" },
+    "Preis_EUR_MWh": { "semanticRole": "priceEURperMWh", "type": "float" },
+    "Counterparty": { "semanticRole": "partyName", "type": "string" },
+    "Produkt": { "semanticRole": "productLabel", "type": "string" }
+  },
+  "exampleQueries": [
+    "What is the average procurement price for Q1 2026?",
+    "Which counterparty delivers the most volume in March?"
+  ]
+}

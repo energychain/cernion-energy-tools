@@ -1,0 +1,15 @@
+{
+  "domain": "grid-assets",
+  "label": "Grid Assets",
+  "description": "Synthetic grid asset master data.",
+  "expectedDictionary": {
+    "Asset_ID": { "semanticRole": "assetId", "type": "string" },
+    "Anlagentyp": { "semanticRole": "assetType", "type": "string" },
+    "Spannungsebene": { "semanticRole": "voltageLevel", "type": "string" },
+    "Installationsjahr": { "semanticRole": "installYear", "type": "integer" }
+  },
+  "exampleQueries": [
+    "Welche Assets wurden vor 2010 installiert?",
+    "Wie viele Mittelspannungs-Assets gibt es?"
+  ]
+}

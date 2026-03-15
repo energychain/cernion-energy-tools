@@ -1,140 +1,290 @@
-# Change Request CR-SWF-2026-003
-## 360° Management Report v2 – Stadtwerke Frankenthal GmbH
-### Delta-Prüfung nach Neuversand · 9. März 2026
+# Cernion Energy Tools v0.9.3 — Real-World Acceptance Test
+## Inhouse × External Data: Use Case Validation
+
+**Purpose:** Validate that the v0.9.3 semantic onboarding flow produces
+research-ready datasources that the agent can use in meaningful hybrid queries
+combining inhouse CSV data with Cernion's external data sources (MCP tools).
+
+**Scope:** Fixture generation, datasource registration, agent research queries,
+result quality assessment, and use-case documentation.
+
+**Prerequisite:** v0.9.3 is fully implemented and all 924 tests pass.
+The Cernion MCP server is reachable at `https://mcp.cernion.de/...`.
 
 ---
 
-| Feld | Inhalt |
-|---|---|
-| **CR-Nummer** | CR-SWF-2026-003 |
-| **Datum** | 9. März 2026 |
-| **Bezug-Report-ID** | 51f51240-5eba-40fe-a712-0f6809f83c9e |
-| **Vorgänger-CR** | CR-SWF-2026-002 (8. März 2026) |
-| **VNB-BDEW / MaStR** | 9900191000003 · SNB961745390019 |
-| **Validierungsbasis** | Cernion MCP API – Live-Abfrage `cernion_installations_local` (9. März 2026) |
-| **Adressat** | Cernion Energy Intelligence / STROMDAO GmbH |
-| **Priorität gesamt** | 2× Kritisch · 3× Offen (aus CR-002 unverändert) |
-| **Ersteller** | Stadtwerke Frankenthal GmbH – Geschäftsführung |
+## Step 1 — Generate Acceptance Test Fixtures
+
+Create the following four CSV files in `tests/acceptance/`. These are
+**realistic synthetic** datasets — plausible column names and values for a
+mid-sized German Stadtwerk, but no real customer or market-partner data.
+
+Each file must also have a companion `*.acceptance.json` sidecar (same format
+as `*.fixture.json`) describing the expected classification domain and a set
+of acceptance query strings.
 
 ---
 
-## 1  Fortschritt gegenüber CR-SWF-2026-002
+### Fixture A — `beschaffungsportfolio.csv`
 
-Von 12 geforderten Korrekturen wurden **7 vollständig oder weitgehend umgesetzt**. Dies wird ausdrücklich anerkannt.
+**Domain:** `procurement`
+**Encoding:** UTF-8, delimiter `,`
+**Rows:** 40–60
+**Description:** Forward and spot electricity purchase positions for a
+mid-sized Stadtwerk covering calendar year 2026.
 
-| CR-002-Punkt | Status v2 | Bemerkung |
-|---|---|---|
-| CR-01 Anzahl Prüfungen | ⚠️ Teilweise | Interner Widerspruch – siehe CR-03-A unten |
-| CR-02 Stillgelegte mit Prüfstatus | ✅ Umgesetzt | Eigene Tabelle mit allen 4 Anlagen |
-| CR-03 Redispatch-Pool-Sektion | ⚠️ Teilweise | Tabelle vorhanden, aber neuer Datenfehler – siehe CR-03-B |
-| CR-04 Top-10 mit MaStR-Nummern | ✅ Umgesetzt | Vollständige Tabelle |
-| CR-05 PLZ-Ausreißer mit MaStR-Referenz | ❌ Offen | Weiterhin „–", keine konkreten Nummern |
-| CR-06 CO₂-Framing | ✅ Umgesetzt | Korrekt als §14a-Indikator gelabelt |
-| CR-07 Residuallast-Disclaimer | ✅ Umgesetzt | Caveat „Worst-Case-Schätzung" ergänzt |
-| CR-08 Gasfüllstand-Framing | ✅ Umgesetzt | Als „Marktkontext DE/EU – kein lokaler Netzindikator" |
-| CR-09 Baiersbronn-Extremwert | ✅ Umgesetzt | Strukturhinweis ergänzt |
-| CR-10 VNB-Grundgesamtheit | ❌ Offen | 740 vs. 698 weiterhin ohne Erklärung |
-| CR-11 Zeitstempel/Quellen | ✅ Teilweise | Quellenangaben je Abschnitt vorhanden |
-| CR-12 Ungenutzte Tools | ❌ Offen | Nicht adressiert |
+**Required columns (use realistic German or mixed names):**
 
----
+| Column | Example values |
+|--------|---------------|
+| `Lieferperiode` | `2026-Q1`, `2026-Q2`, `Jan 2026` |
+| `Produkt` | `Base`, `Peak`, `HH` |
+| `Menge_MWh` | `1200.0`, `800.5` |
+| `Preis_EUR_MWh` | `89.40`, `95.10` |
+| `Gegenpartei` | `EnBW Trading`, `Vattenfall`, `AXPO` |
+| `Handelsart` | `Forward`, `Spot`, `OTC` |
+| `Abschlussdatum` | `2025-09-15`, `2025-11-03` |
+| `Status` | `aktiv`, `abgerechnet`, `offen` |
 
-## 2  Neue und verbleibende Befunde
-
-### 🔴 CR-03-A (Kritisch, NEU) – Interner Widerspruch: Drei verschiedene Prüfungszahlen im selben Report
-
-**Befund:**
-Im Report v2 erscheinen für die Anzahl der Anlagen in Netzbetreiberprüfung drei verschiedene, sich widersprechende Werte:
-
-| Stelle im Report | Wert |
-|---|---|
-| Management Briefing (SOFORT-Abschnitt, Titel) | **4 Anlagen** |
-| Management Briefing (⚠️ Prüffristen, nächste Zeile) | **24 Anlagen / 2,2 MW** |
-| Aktionsplan (WOCHE 1–2) | **4 offene MaStR-Datenpunkte** |
-| **Live-Abfrage `cernion_installations_local` (9.3.2026)** | **41 Anlagen** |
-
-Ein Report, der in sich selbst widersprüchlich ist, ist für die interne Kommunikation (Geschäftsführung, Aufsichtsrat) und für externe Zwecke (BNetzA-Korrespondenz, EWK-Dokumentation) nicht verwendbar.
-
-**Geforderte Maßnahme:**
-Einheitliche Zahl auf Basis der Live-Abfrage (41 Anlagen, ~2.354 kW gesamt) in allen Report-Sektionen. Die Schocker-Seite, das Management Briefing und der Aktionsplan müssen denselben Wert tragen. Aufschlüsselung nach Typ (24 Solar, 13 Speicher, 1 Wind, 3 Verbrennung) wie in CR-002 gefordert.
-
-**Frist:** Neuversand innerhalb von 5 Werktagen.
-
----
-
-### 🔴 CR-03-B (Kritisch, NEU) – Falscher Prüfstatus Vestas V-80 in Redispatch-Tabelle
-
-**Befund:**
-In der neuen Redispatch-/§51-Tabelle wird die Windkraftanlage SEE995453733875 (13458, Vestas V-80, 2.000 kW, MS, Heuchelheim) unter der Spalte „Prüfung" mit **✅ (Geprüft)** ausgewiesen.
-
-Die Live-Abfrage vom 9. März 2026 ergibt eindeutig:
-
-```
-MaStR: SEE995453733875
-NB-Prüfung: In Prüfung ⏳
-Betriebsstatus: InBetrieb (seit 29.12.2002)
-Spannungsebene: Mittelspannung
+**Sidecar `beschaffungsportfolio.acceptance.json`:**
+```json
+{
+  "domain": "procurement",
+  "label": "Beschaffungsportfolio 2026",
+  "description": "Strom-Einkaufsportfolio Stadtwerk Musterstadt, Lieferjahr 2026",
+  "acceptanceQueries": [
+    "Wie liegt unser Beschaffungsportfolio im Vergleich zum aktuellen Spotpreis?",
+    "Welche Gegenpartei hat das größte offene Volumen in Q2 2026?",
+    "Was ist der durchschnittliche Beschaffungspreis für Base-Produkte in 2026?"
+  ]
+}
 ```
 
-Das ist die **größte Einzelanlage im Netzgebiet** (2 MW = 2,8 % der gesamten installierten EE-Leistung) und die einzige Redispatch-pflichtige Windkraftanlage. Ihr seit über 20 Jahren offener Prüfstatus ist der kritischste Compliance-Befund des Netzgebiets – er darf nicht als „Geprüft" dargestellt werden.
+---
 
-**Auswirkung:**
-Ein Netzbetreiber, der aufgrund dieser Fehlanzeige keine Maßnahmen ergreift, riskiert ein §118-EnWG-Bußgeld und nicht abrechenbare Redispatch-Kosten (~3.000 €/Jahr nach §12 StromNZV).
+### Fixture B — `imsys_rollout.csv`
 
-**Geforderte Maßnahme:**
-- Prüfstatus in der Tabelle korrigieren auf: **⚠️ In Prüfung**
-- Zelle rot hervorheben
-- Hinweis: „Redispatch-pflichtig, Prüfstatus offen seit 29.12.2002 – sofortiger Handlungsbedarf"
-- Konsistenz mit der Top-10-Tabelle der offenen Prüfungen sicherstellen
+**Domain:** `metering-point-master`
+**Encoding:** UTF-8, delimiter `;`
+**Rows:** 80–120
+**Description:** iMSys rollout status list for the grid area, one row per
+metering point, covering rollout progress as of Q1 2026.
 
-**Frist:** Neuversand innerhalb von 5 Werktagen (identisch mit CR-03-A).
+**Required columns:**
+
+| Column | Example values |
+|--------|---------------|
+| `Zaehlpunkt_ID` | `DE0001234500000000000000001234567` |
+| `Zaehlernummer` | `1EMH0012345678` |
+| `Geraeteart` | `iMSys`, `mME`, `konventionell` |
+| `Einbaudatum` | `2025-06-12`, (empty if not yet installed) |
+| `Rollout_Status` | `installiert`, `geplant`, `nicht_geplant`, `fehlgeschlagen` |
+| `PLZ` | `67059`, `67061` |
+| `Netzebene` | `NS`, `MS` |
+| `Jahresverbrauch_kWh` | `3200`, `18500` |
+
+**Sidecar `imys_rollout.acceptance.json`:**
+```json
+{
+  "domain": "metering-point-master",
+  "label": "iMSys Rollout-Status Q1 2026",
+  "description": "Rollout-Fortschritt intelligente Messsysteme Netzgebiet Musterstadt",
+  "acceptanceQueries": [
+    "Wie ist unser iMSys-Rollout-Fortschritt im Vergleich zum EWK-Digitalisierungsindex?",
+    "Welcher Anteil unserer Zählpunkte hat bereits ein iMSys installiert?",
+    "Wie viele Zählpunkte mit Jahresverbrauch über 6000 kWh haben noch kein iMSys?"
+  ]
+}
+```
 
 ---
 
-### 🟠 CR-05 (Hoch, aus CR-002 offen) – PLZ-Ausreißer ohne MaStR-Referenz und Prüfstatus
+### Fixture C — `stoerungshistorie.csv`
 
-**Befund:**
-Der Wert „Ortsfremde Anlagen (PLZ-Ausreißer)" ist in Report v2 weiterhin als **„–"** ausgewiesen. Dabei sind zwei konkrete Anlagen bekannt und durch Live-Abfrage validiert:
+**Domain:** `grid-incidents`
+**Encoding:** UTF-8, delimiter `,`
+**Rows:** 50–80
+**Description:** Fault history for grid assets in the distribution network,
+calendar years 2024–2025.
 
-| MaStR-Nr. | Typ | PLZ (ist) | PLZ (soll) | NAP | Prüfstatus |
-|---|---|---|---|---|---|
-| SEE954885337037 | Solar, 5,67 kW | 67069 | 672xx | SAN906305299067 | ⚠️ In Prüfung |
-| SEE936879976590 | Speicher, 3,84 kW | 67069 | 672xx | SAN906305299067 | ⚠️ In Prüfung |
+**Required columns:**
 
-Beide Anlagen teilen denselben NAP und dieselbe MeLo und sind zusätzlich in Netzbetreiberprüfung – eine Doppelproblematik, die im Fotojahr 2026 den AgNeS-Effizienzwert für 60 Monate belastet.
+| Column | Example values |
+|--------|---------------|
+| `Asset_ID` | `TRF-0042`, `KAB-0118`, `OS-0007` |
+| `Asset_Typ` | `Trafo`, `Kabel`, `Ortsnetzstation` |
+| `Stoerungsdatum` | `2024-03-12` |
+| `Dauer_min` | `45`, `210`, `18` |
+| `Ursache` | `Überlast`, `Kabelbruch`, `Alterung`, `Fremdeinwirkung` |
+| `Spannungsebene` | `NS`, `MS` |
+| `Betroffene_Kunden` | `12`, `340`, `4` |
+| `Behebungszeit_min` | `30`, `185`, `15` |
 
-**Geforderte Maßnahme:**
-Tabelle mit MaStR-Nummer, tatsächlicher PLZ, NAP-Nummer und Prüfstatus. Wenn PLZ-Fehler und offener Prüfstatus zusammentreffen: explizite Kennzeichnung als Doppelrisiko.
-
-**Frist:** Report v2.1.
-
----
-
-### 🔵 CR-10 (Mittel, aus CR-002 offen) – Inkonsistente VNB-Grundgesamtheit (740 vs. 698)
-
-**Befund:**
-Unverändert gegenüber CR-002. Im Regulierungsteil wird „Rang 452/740" (Anschlussdauer) und „Rang 187/698" (Umsetzungsquote) nebeneinander ausgewiesen – 42 VNBs Differenz ohne jede Erläuterung.
-
-**Geforderte Maßnahme:**
-Fußnote mit Erklärung der abweichenden Teilmengen (z. B. unterschiedliche EWK-Erhebungsabschnitte). Alternativ: einheitliche Grundgesamtheit mit Hinweis auf Datenprovider.
-
----
-
-### 🔵 CR-12 (Mittel, aus CR-002 offen) – Verfügbare Cernion-Tools nicht genutzt
-
-**Befund:**
-Unverändert gegenüber CR-002. Sieben Tools mit nachgewiesenem fachlichem Mehrwert für Stadtwerke Frankenthal werden im Report nicht genutzt (Trafo-Auslastung, Redispatch-Export, EEG-Ablaufdaten, regionale Netto-Residuallast, stündliche CO₂-Intensität u. a.).
-
-**Geforderte Maßnahme:**
-Roadmap-Abschnitt im Report mit Kennzeichnung „Modul verfügbar – auf Anfrage aktivierbar" statt undokumentiertem Weglassen.
+**Sidecar `stoerungshistorie.acceptance.json`:**
+```json
+{
+  "domain": "grid-incidents",
+  "label": "Störungshistorie Netz 2024-2025",
+  "description": "Störungsmeldungen und Behebungszeiten Verteilnetz Musterstadt",
+  "acceptanceQueries": [
+    "Gibt es eine Korrelation zwischen unseren Störungsereignissen und Redispatch-Aktivierungen im Netzgebiet?",
+    "Welche Asset-Typen haben die längsten durchschnittlichen Störungsdauern?",
+    "Wie hat sich die Störungshäufigkeit 2024 vs. 2025 entwickelt?"
+  ]
+}
+```
 
 ---
 
-## 3  Akzeptanzkriterien für Report v2.1
+### Fixture D — `pv_anlagenliste.csv`
 
-- [ ] Eine einzige konsistente Prüfungszahl (41) in allen Report-Sektionen
-- [ ] SEE995453733875 in Redispatch-Tabelle als ⚠️ In Prüfung mit roter Hervorhebung
-- [ ] PLZ-Ausreißer mit MaStR-Nummern, NAP und Prüfstatus
-- [ ] Fußnote zur VNB-Grundgesamtheit (740 vs. 698)
+**Domain:** `grid-assets`
+**Encoding:** UTF-8, delimiter `;`
+**Rows:** 60–100
+**Description:** Inventory of PV installations connected to the local
+distribution grid, derived from an internal asset register (not raw MaStR
+export — internal column naming).
+
+**Required columns:**
+
+| Column | Example values |
+|--------|---------------|
+| `Anlagen_ID` | `PV-2021-00042`, `PV-2023-00118` |
+| `MaStR_Nummer` | `SEE912345678901`, (may be empty) |
+| `PLZ` | `67059`, `67063` |
+| `Leistung_kWp` | `9.8`, `29.4`, `498.0` |
+| `Inbetriebnahme` | `2021-04-15` |
+| `Netzebene` | `NS`, `MS` |
+| `Anschluss_Trafo` | `TRF-0042`, `TRF-0117` |
+| `Einspeisemanagement` | `ja`, `nein` |
+| `Status` | `aktiv`, `stillgelegt`, `in_pruefung` |
+
+**Sidecar `pv_anlagenliste.acceptance.json`:**
+```json
+{
+  "domain": "grid-assets",
+  "label": "PV-Anlagenliste Netzgebiet",
+  "description": "Interne Anlagenübersicht PV-Einspeisung Verteilnetz Musterstadt",
+  "acceptanceQueries": [
+    "Wie verteilt sich unsere installierte PV-Leistung im Vergleich zum Netzgebietsdurchschnitt laut EWK-Benchmark?",
+    "Welche Trafostationen haben die höchste kumulierte PV-Einspeisung angeschlossen?",
+    "Wie viel kWp sind seit 2023 neu ans Netz gegangen, und wie entwickelt sich der Trend?"
+  ]
+}
+```
 
 ---
+
+## Step 2 — Register and Classify All Four Datasources
+
+For each fixture, perform the following steps via the UI or API:
+
+1. Upload the CSV via `POST /api/datasources/uploads`.
+2. Create the datasource with the correct connector config (`delimiter`,
+   `encoding`, `skipRows: 0` for all four acceptance fixtures).
+3. Click **Save & Run AI Inference**.
+4. Wait for the semantic onboarding banner to appear.
+5. Confirm or correct the suggested domain if needed.
+
+**Expected classification results:**
+
+| Fixture | Expected domain | Max acceptable `requiresUserInput` |
+|---------|----------------|------------------------------------|
+| `beschaffungsportfolio.csv` | `procurement` | `false` |
+| `imys_rollout.csv` | `metering-point-master` | `false` |
+| `stoerungshistorie.csv` | `grid-incidents` | `false` |
+| `pv_anlagenliste.csv` | `grid-assets` | `false` |
+
+If any fixture returns `requiresUserInput: true`, document the reason and
+proceed with manual domain confirmation before running queries.
+
+---
+
+## Step 3 — Execute Acceptance Queries
+
+For each fixture, run **all three** acceptance queries from the sidecar
+JSON via the Research Agent (`POST /api/agent/analyze`), with
+`inhouseSources: [<sourceId>]` set to the registered datasource.
+
+### Evaluation Criteria per Query
+
+Score each query result on three dimensions (1 = poor, 3 = good):
+
+| Dimension | 1 | 2 | 3 |
+|-----------|---|---|---|
+| **Routing** | Wrong tool used or no external source joined | External source called but not joined with inhouse | Correct `in-memory-join` or intent class used |
+| **Completeness** | Answer missing key figures | Answer partial, some figures from inhouse | Answer uses both inhouse and external data fully |
+| **Usefulness** | Generic answer, could come from web search alone | Some inhouse context visible | Answer is only possible because of the inhouse–external combination |
+
+Minimum acceptable score per query: **Routing ≥ 2, Usefulness ≥ 2**.
+
+---
+
+## Step 4 — Document Working Use Cases
+
+For each query that scores Routing ≥ 2 and Usefulness ≥ 2, create a use-case
+entry in `docs/use-cases/` with the following structure:
+
+**File:** `docs/use-cases/<domain>-<slug>.md`
+
+```markdown
+# Use Case: <Short Title>
+
+**Domain:** <domain-id>
+**Department:** <Stadtwerk department>
+**Inhouse datasource:** <fixture filename>
+**External Cernion source:** <MCP tool or action name>
+
+## Query
+
+> <exact query string used>
+
+## What the agent did
+
+1. Resolved inhouse datasource via alias/discovery
+2. Called <external tool> for <date range / context>
+3. Joined on <key field> using <intent class or in-memory-join action>
+4. Calculated <result>
+
+## Result summary
+
+<2–3 sentence description of what the answer contained>
+
+## Why this is only possible with inhouse data
+
+<1–2 sentences explaining what external-only research could NOT have answered>
+
+## Scores
+
+| Routing | Completeness | Usefulness |
+|---------|-------------|------------|
+| 3 | 3 | 3 |
+```
+
+---
+
+## Step 5 — Release Gate
+
+After all four fixture sets have been tested and at least **8 of 12 queries**
+score Routing ≥ 2 + Usefulness ≥ 2:
+
+- [ ] Commit use-case docs to `docs/use-cases/`
+- [ ] Commit acceptance fixtures to `tests/acceptance/`
+- [ ] Run `npm run release:check` — must pass
+- [ ] Run `npm test` — 924+ tests, 0 failures
+- [ ] Tag `v0.9.3` on `main`
+
+If fewer than 8 queries pass the threshold, document the gaps as
+known limitations in `CHANGELOG.md` under `[0.9.3] Known Limitations`
+before tagging.
+
+---
+
+## Appendix — Cernion External Sources Expected per Use Case
+
+| Acceptance query | Expected external Cernion action |
+|-----------------|----------------------------------|
+| Beschaffung vs. Spotpreis | `energy-market.prices` |
+| iMSys-Rollout vs. EWK-Benchmark | `Cernion:ewk_digitalisierungsindex` |
+| Störungen vs. Redispatch | `Cernion:netztransparenz_redispatch` |
+| PV-Leistung vs. Netzgebiet-Benchmark | `Cernion:ewk_benchmark_vnb` or `Cernion:mastr_generation_forecast` |

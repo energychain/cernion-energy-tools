@@ -1,0 +1,15 @@
+{
+  "domain": "grid-incidents",
+  "label": "Grid Incidents",
+  "description": "Synthetic outage and incident log.",
+  "expectedDictionary": {
+    "Asset_ID": { "semanticRole": "assetId", "type": "string" },
+    "Stoerungsdatum": { "semanticRole": "incidentDate", "type": "timestamp" },
+    "Dauer_Min": { "semanticRole": "durationMin", "type": "integer" },
+    "Ursache": { "semanticRole": "cause", "type": "string" }
+  },
+  "exampleQueries": [
+    "Welche Ursache kommt am häufigsten vor?",
+    "Wie lang dauern Störungen durchschnittlich?"
+  ]
+}

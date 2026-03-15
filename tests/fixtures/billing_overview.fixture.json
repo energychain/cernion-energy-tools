@@ -1,0 +1,15 @@
+{
+  "domain": "billing-overview",
+  "label": "Billing Overview",
+  "description": "Synthetic billing overview for monthly invoicing.",
+  "expectedDictionary": {
+    "Kundenkonto": { "semanticRole": "customerId", "type": "string" },
+    "Abrechnungszeitraum": { "semanticRole": "period", "type": "string" },
+    "Betrag_EUR": { "semanticRole": "amountEUR", "type": "float" },
+    "Zahlstatus": { "semanticRole": "paymentStatus", "type": "string" }
+  },
+  "exampleQueries": [
+    "Wie hoch ist der offene Rechnungsbetrag?",
+    "Welche Monate haben die meisten offenen Rechnungen?"
+  ]
+}

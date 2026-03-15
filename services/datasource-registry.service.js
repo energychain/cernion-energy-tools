@@ -6,6 +6,7 @@
  */
 
 const crypto = require('crypto');
+const { getSemanticDomainById, listSemanticDomains } = require('../src/semantic-domains');
 
 function nowIso() {
   return new Date().toISOString();
@@ -83,6 +84,7 @@ module.exports = {
           connectorConfig: ctx.params.connectorConfig || {},
           cachePolicy: ctx.params.cachePolicy || { mode: 'ttl', ttlSeconds: 3600 },
           dictionary,
+          semanticClassification: null,
           tags: ctx.params.tags || [],
           createdAt: timestamp,
           updatedAt: timestamp,
@@ -432,6 +434,114 @@ module.exports = {
     },
 
     /**
+     * Get semantic classification for one datasource.
+     */
+    getClassification: {
+      rest: 'GET /datasources/:id/classification',
+      params: {
+        id: { type: 'string', min: 1 },
+      },
+      openapi: {
+        summary: 'Get semantic datasource classification',
+        tags: ['DataSources'],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' } },
+        ],
+      },
+      async handler(ctx) {
+        const source = this.requireSource(ctx.params.id);
+
+        return {
+          success: true,
+          sourceId: source.id,
+          data: deepClone(source.semanticClassification),
+          availableDomains: listSemanticDomains(),
+        };
+      },
+    },
+
+    /**
+     * Persist semantic classification and merge semanticRole mappings into the dictionary.
+     */
+    updateClassification: {
+      params: {
+        id: { type: 'string', optional: true },
+        sourceId: { type: 'string', optional: true },
+        classification: { type: 'object', optional: true },
+        fieldMappings: { type: 'object', optional: true },
+        confirmedByUser: { type: 'boolean', optional: true, convert: true },
+      },
+      async handler(ctx) {
+        const sourceId = ctx.params.sourceId || ctx.params.id;
+        const source = this.requireSource(sourceId);
+        const timestamp = nowIso();
+        const incomingClassification = deepClone(ctx.params.classification || {});
+        const existingClassification = deepClone(source.semanticClassification || {});
+        const fieldMappings = {
+          ...this.extractFieldMappings(existingClassification),
+          ...(ctx.params.fieldMappings || incomingClassification.fieldMappings || {}),
+        };
+
+        const domainId = incomingClassification.domainId || existingClassification.domainId || 'unknown';
+        const domain = getSemanticDomainById(domainId);
+        const criticalFieldStatus = Array.isArray(incomingClassification.criticalFieldStatus)
+          ? deepClone(incomingClassification.criticalFieldStatus)
+          : Array.isArray(existingClassification.criticalFieldStatus)
+            ? deepClone(existingClassification.criticalFieldStatus)
+            : [];
+
+        const mergedClassification = {
+          ...existingClassification,
+          ...incomingClassification,
+          domainId,
+          domainLabel:
+            incomingClassification.domainLabel || existingClassification.domainLabel || domain?.label || 'Unknown Domain',
+          fieldMappings,
+          criticalFieldStatus: this.mergeCriticalFieldStatus(criticalFieldStatus, fieldMappings),
+          confirmedByUser:
+            ctx.params.confirmedByUser !== undefined
+              ? ctx.params.confirmedByUser
+              : incomingClassification.confirmedByUser === true || existingClassification.confirmedByUser === true,
+          resolvedAt: incomingClassification.resolvedAt || timestamp,
+          updatedAt: timestamp,
+        };
+
+        mergedClassification.requiresUserInput =
+          mergedClassification.requiresUserInput === true ||
+          mergedClassification.domainId === 'unknown' ||
+          mergedClassification.criticalFieldStatus.some((item) => !item.resolved);
+
+        source.dictionary = {
+          ...source.dictionary,
+          fields: this.applyFieldMappings(source.dictionary?.fields || [], fieldMappings),
+        };
+        source.semanticClassification = mergedClassification;
+        source.updatedAt = timestamp;
+        this.registry.set(source.id, source);
+
+        this.broker.emit('datasource.classification.updated', {
+          sourceId: source.id,
+          domainId: mergedClassification.domainId,
+          confirmedByUser: mergedClassification.confirmedByUser,
+        });
+
+        if (mergedClassification.confirmedByUser) {
+          this.broker.emit('datasource.classification.confirmed', {
+            sourceId: source.id,
+            domainId: mergedClassification.domainId,
+            fieldMappings,
+          });
+        }
+
+        return {
+          success: true,
+          sourceId: source.id,
+          data: deepClone(mergedClassification),
+        };
+      },
+    },
+
+    /**
      * Trigger schema inference draft.
      */
     infer: {
@@ -465,6 +575,12 @@ module.exports = {
       },
       async handler(ctx) {
         const source = this.requireSource(ctx.params.id);
+        const inferEventPayload = {
+          sourceId: source.id,
+          filename: source.connectorConfig?.path || source.connectorConfig?.filePath || null,
+          description: source.description || null,
+        };
+        let result;
 
         try {
           const inferResult = await ctx.call('datasource-connector.inferSchema', {
@@ -496,7 +612,7 @@ module.exports = {
 
           const diff = this.computeDictionaryDiff(source.dictionary?.fields || [], draftFields);
 
-          return {
+          result = {
             success: true,
             status: 'draft',
             sourceId: source.id,
@@ -512,7 +628,7 @@ module.exports = {
         } catch (error) {
           this.logger.warn(`Schema inference fallback for ${source.id}: ${error.message}`);
 
-          return {
+          result = {
             success: true,
             status: 'draft',
             sourceId: source.id,
@@ -522,7 +638,11 @@ module.exports = {
             sampleLimit: this.settings.defaultInferSampleRows,
             warning: error.message,
           };
+        } finally {
+          this.broker.emit('datasource.inference.complete', inferEventPayload);
         }
+
+        return result;
       },
     },
 
@@ -652,6 +772,71 @@ module.exports = {
         removed,
         typeChanges,
       };
+    },
+
+    extractFieldMappings(classification) {
+      if (!classification || typeof classification !== 'object') return {};
+      if (classification.fieldMappings && typeof classification.fieldMappings === 'object') {
+        return deepClone(classification.fieldMappings);
+      }
+
+      return (classification.criticalFieldStatus || []).reduce((acc, item) => {
+        if (item?.resolved && item?.mappedColumn) {
+          acc[item.fieldRole] = item.mappedColumn;
+        }
+        return acc;
+      }, {});
+    },
+
+    mergeCriticalFieldStatus(existingStatus, fieldMappings) {
+      const statusByRole = new Map((existingStatus || []).map((item) => [item.fieldRole, deepClone(item)]));
+
+      Object.entries(fieldMappings || {}).forEach(([fieldRole, mappedColumn]) => {
+        const current = statusByRole.get(fieldRole) || {
+          fieldRole,
+          resolved: false,
+          mappedColumn: null,
+          candidates: [],
+        };
+        statusByRole.set(fieldRole, {
+          ...current,
+          resolved: Boolean(mappedColumn),
+          mappedColumn: mappedColumn || null,
+          candidates: Array.from(new Set([...(current.candidates || []), ...(mappedColumn ? [mappedColumn] : [])])),
+        });
+      });
+
+      return Array.from(statusByRole.values());
+    },
+
+    applyFieldMappings(fields, fieldMappings) {
+      const nextFields = deepClone(fields || []);
+      const mappedColumns = new Set(Object.values(fieldMappings || {}).filter(Boolean));
+
+      return nextFields.map((field) => {
+        const assignedRole = Object.entries(fieldMappings || {}).find(([, columnName]) => columnName === field.name)?.[0];
+        const hasMappedRole = mappedColumns.has(field.name);
+
+        if (assignedRole) {
+          return {
+            ...field,
+            semanticRole: assignedRole,
+          };
+        }
+
+        if (hasMappedRole) {
+          return field;
+        }
+
+        const fieldWasMapped = Object.keys(fieldMappings || {}).includes(field.semanticRole);
+        if (fieldWasMapped) {
+          const nextField = { ...field };
+          delete nextField.semanticRole;
+          return nextField;
+        }
+
+        return field;
+      });
     },
   },
 

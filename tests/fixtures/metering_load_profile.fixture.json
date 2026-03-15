@@ -1,0 +1,14 @@
+{
+  "domain": "metering",
+  "label": "Metering Load Profile",
+  "description": "Synthetic hourly load profile with consumption and feed-in values.",
+  "expectedDictionary": {
+    "Zeitstempel": { "semanticRole": "timeReference", "type": "timestamp" },
+    "Verbrauch_kWh": { "semanticRole": "consumptionKWh", "type": "float" },
+    "Einspeisung_kWh": { "semanticRole": "feedInKWh", "type": "float" }
+  },
+  "exampleQueries": [
+    "Wie hoch ist der durchschnittliche Verbrauch pro Stunde?",
+    "Wann ist die Einspeisung am höchsten?"
+  ]
+}

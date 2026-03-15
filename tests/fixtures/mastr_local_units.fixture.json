@@ -1,0 +1,15 @@
+{
+  "domain": "mastr-local",
+  "label": "Local MaStR Units",
+  "description": "Synthetic local MaStR extract with unit type and review status.",
+  "expectedDictionary": {
+    "MaStR_ID": { "semanticRole": "mastrId", "type": "string" },
+    "Einheitentyp": { "semanticRole": "unitType", "type": "string" },
+    "Leistung_kWp": { "semanticRole": "capacityKWp", "type": "float" },
+    "Pruefstatus": { "semanticRole": "status", "type": "string" }
+  },
+  "exampleQueries": [
+    "Wie viele lokale Einheiten sind noch in Prüfung?",
+    "Welche Einheitentypen gibt es im Auszug?"
+  ]
+}

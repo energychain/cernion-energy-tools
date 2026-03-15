@@ -1,0 +1,14 @@
+{
+  "domain": "forecast-vs-actual",
+  "label": "Forecast vs Actual",
+  "description": "Synthetic forecast versus actual energy series.",
+  "expectedDictionary": {
+    "Zeitstempel": { "semanticRole": "timeReference", "type": "timestamp" },
+    "Prognose_MWh": { "semanticRole": "forecastMWh", "type": "float" },
+    "Ist_MWh": { "semanticRole": "actualMWh", "type": "float" }
+  },
+  "exampleQueries": [
+    "Wie hoch ist die mittlere Prognoseabweichung?",
+    "Wann lag der Istwert über der Prognose?"
+  ]
+}

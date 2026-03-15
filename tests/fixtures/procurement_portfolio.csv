@@ -1,0 +1,13 @@
+Lieferzeitraum,Volumen_MWh,Preis_EUR_MWh,Counterparty,Produkt,Hedge_Status
+2026-Q1,120,78.4,Stadtwerke Handel Süd,Base Forward,hedged
+2026-Q1,85,79.1,RheinEnergie Trade,Peak Forward,hedged
+2026-Q1,40,92.3,EPEX Spot,Spot,open
+2026-Q2,130,76.8,Stadtwerke Handel Süd,Base Forward,hedged
+2026-Q2,52,88.6,EPEX Spot,Spot,open
+2026-Q2,45,81.2,Trianel Energy,Peak Forward,hedged
+2026-Q3,140,74.3,Stadtwerke Handel Süd,Base Forward,hedged
+2026-Q3,60,87.5,EPEX Spot,Spot,open
+2026-Q3,42,80.7,Trianel Energy,Peak Forward,hedged
+2026-Q4,138,75.6,Stadtwerke Handel Süd,Base Forward,hedged
+2026-Q4,58,89.1,EPEX Spot,Spot,open
+2026-Q4,47,82.4,RheinEnergie Trade,Peak Forward,hedged

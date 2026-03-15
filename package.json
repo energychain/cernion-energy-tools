@@ -1,6 +1,6 @@
 {
   "name": "cernion-energy-tools",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "MicroService Agent System for Energy Markets",
   "main": "index.js",
   "scripts": {
@@ -20,7 +20,7 @@
     "test:integration": "jest --coverage=false --testMatch=\"**/tests/**/*.integration.test.js\"",
     "test:live": "jest --no-coverage tests/assets.integration.test.js",
     "audit:openapi": "node scripts/audit-openapi.js",
-    "audit:security": "npm audit --audit-level=critical",
+    "audit:security": "node scripts/audit-security.js",
     "audit:security:advisory": "npm audit --audit-level=high",
     "release:check": "npm run test:unit:ci && npm run audit:openapi && npm run audit:security"
   },
@@ -48,6 +48,7 @@
     "@modelcontextprotocol/sdk": "^1.26.0",
     "axios": "^1.13.4",
     "dotenv": "^17.2.4",
+    "iconv-lite": "^0.7.2",
     "moleculer": "^0.14.35",
     "moleculer-auto-openapi": "^1.1.7",
     "moleculer-repl": "^0.7.4",

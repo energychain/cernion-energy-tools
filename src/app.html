@@ -772,6 +772,142 @@
     }
     .report-history-item .rh-clear:hover { color: var(--danger); }
 
+    .info-callout,
+    .warn-callout,
+    .semantic-onboarding-banner {
+      border-radius: 8px;
+      padding: 14px 16px;
+      line-height: 1.55;
+    }
+    .info-callout {
+      background: rgba(96,165,250,.08);
+      border: 1px solid rgba(96,165,250,.28);
+      color: var(--accent2);
+    }
+    .warn-callout {
+      background: rgba(251,191,36,.08);
+      border: 1px solid rgba(251,191,36,.34);
+      color: var(--warning);
+    }
+    .icon-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 7px;
+      font-size: .82rem;
+    }
+    .icon-btn:hover:not(:disabled) { border-color: var(--accent2); color: var(--accent2); }
+    .icon-btn.danger:hover:not(:disabled) { border-color: var(--danger); color: var(--danger); }
+    .version-badge,
+    .cache-badge,
+    .semantic-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: .74rem;
+      font-weight: 700;
+      letter-spacing: .3px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+    .version-badge { color: var(--accent2); border-color: rgba(96,165,250,.3); }
+    .cache-badge.fresh,
+    .semantic-badge.ready {
+      color: var(--accent);
+      border-color: rgba(74,222,128,.35);
+      background: rgba(74,222,128,.08);
+    }
+    .cache-badge.stale,
+    .semantic-badge.partial {
+      color: var(--warning);
+      border-color: rgba(251,191,36,.34);
+      background: rgba(251,191,36,.08);
+    }
+    .cache-badge.empty,
+    .semantic-badge.unclassified,
+    .semantic-badge.confirmed {
+      color: var(--text-muted);
+      border-color: rgba(136,146,164,.28);
+      background: rgba(136,146,164,.08);
+    }
+    .cache-badge.error {
+      color: var(--danger);
+      border-color: rgba(248,113,113,.34);
+      background: rgba(248,113,113,.08);
+    }
+    .semantic-onboarding-banner {
+      margin-bottom: 18px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .semantic-onboarding-banner.high {
+      border-color: rgba(74,222,128,.35);
+      background: rgba(74,222,128,.08);
+    }
+    .semantic-onboarding-banner.medium,
+    .semantic-onboarding-banner.loading {
+      border-color: rgba(251,191,36,.34);
+      background: rgba(251,191,36,.08);
+    }
+    .semantic-onboarding-banner.low {
+      border-color: rgba(248,113,113,.34);
+      background: rgba(248,113,113,.08);
+    }
+    .semantic-onboarding-banner.confirmed {
+      border-color: rgba(136,146,164,.28);
+      background: rgba(136,146,164,.08);
+    }
+    .semantic-banner-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .semantic-banner-title {
+      font-size: .96rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .semantic-banner-meta {
+      font-size: .82rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+    .semantic-banner-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .semantic-field-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .semantic-field-grid .form-field label {
+      text-transform: none;
+      letter-spacing: 0;
+      font-size: .8rem;
+      margin-bottom: 5px;
+    }
+    .skeleton-row .skeleton-cell {
+      height: 12px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, rgba(136,146,164,.12), rgba(136,146,164,.28), rgba(136,146,164,.12));
+      background-size: 200% 100%;
+      animation: shimmer 1.2s linear infinite;
+    }
+    @keyframes shimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
     /* ── Hidden ───────────────────────────────────────────────────── */
     .hidden { display: none !important; }
 
@@ -1891,6 +2027,10 @@ function esc(str) {
     editingSourceId: null,
     editingDictSourceId: null,
     filterQuery: '',
+    classificationPending: {},
+    classificationPollAttempts: {},
+    classificationEditorOpen: {},
+    classificationDismissed: {},
   };
 
   /* ── Connector type icon map ─────────────────────────────────── */
@@ -1938,8 +2078,131 @@ function esc(str) {
         <td><div class="skeleton-cell" style="width:60%"></div></td>
         <td><div class="skeleton-cell" style="width:40%"></div></td>
         <td><div class="skeleton-cell" style="width:55%"></div></td>
+        <td><div class="skeleton-cell" style="width:45%"></div></td>
         <td><div class="skeleton-cell" style="width:80%"></div></td>
       </tr>`).join('');
+  }
+
+  function dsDeriveSemanticStatus(classification, fallbackStatus) {
+    if (fallbackStatus) return fallbackStatus;
+    if (!classification || !classification.domainId || classification.domainId === 'unknown') return 'unclassified';
+    const allResolved = (classification.criticalFieldStatus || []).every(item => item.resolved);
+    return classification.confirmedByUser && allResolved ? 'ready' : 'partial';
+  }
+
+  function dsExtractFieldMappings(classification) {
+    if (!classification) return {};
+    if (classification.fieldMappings) return classification.fieldMappings;
+    return (classification.criticalFieldStatus || []).reduce((acc, item) => {
+      if (item?.resolved && item?.mappedColumn) acc[item.fieldRole] = item.mappedColumn;
+      return acc;
+    }, {});
+  }
+
+  function dsSemanticBadgeLabel(status) {
+    if (status === 'ready') return '🟢 ready';
+    if (status === 'partial') return '🟡 partial';
+    return '⚪ unclassified';
+  }
+
+  function dsRenderSemanticBadge(classification, fallbackStatus) {
+    const semanticStatus = dsDeriveSemanticStatus(classification, fallbackStatus);
+    return `<span class="semantic-badge ${esc(semanticStatus)}">${esc(dsSemanticBadgeLabel(semanticStatus))}</span>`;
+  }
+
+  function dsRenderClassificationBanner(sourceId, classification, availableDomains) {
+    if (dsState.classificationDismissed[sourceId] && classification?.confirmedByUser) return '';
+
+    const editorOpen = dsState.classificationEditorOpen[sourceId] === true;
+    const currentDomainId = classification?.domainId && classification.domainId !== 'unknown'
+      ? classification.domainId
+      : '';
+    const currentMappings = dsExtractFieldMappings(classification);
+    const unresolvedFields = (classification?.criticalFieldStatus || []).filter(item => !item.resolved || editorOpen);
+    const confidencePct = classification?.confidence != null
+      ? Math.round(Number(classification.confidence) * 100)
+      : null;
+
+    if (!classification && dsState.classificationPending[sourceId]) {
+      return `
+        <div class="semantic-onboarding-banner loading">
+          <div class="semantic-banner-head">
+            <div>
+              <div class="semantic-banner-title">⏳ Semantic classification is running…</div>
+              <div class="semantic-banner-meta">The datasource will become research-ready as soon as the suggested domain and field mappings are available.</div>
+            </div>
+            <div class="spinner"></div>
+          </div>
+        </div>`;
+    }
+
+    if (classification?.confirmedByUser && !editorOpen) {
+      return `
+        <div class="semantic-onboarding-banner confirmed">
+          <div class="semantic-banner-head">
+            <div>
+              <div class="semantic-banner-title">Confirmed as: ${esc(classification.domainLabel || classification.domainId || 'Unknown')}</div>
+              <div class="semantic-banner-meta">${Object.keys(currentMappings).length} critical field mapping(s) saved.</div>
+            </div>
+            <div class="semantic-banner-actions">
+              <button class="btn-secondary" id="ds-classification-edit">Edit</button>
+              <button class="btn-secondary" id="ds-classification-dismiss">Dismiss</button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    const stateClass = !classification || classification.domainId === 'unknown'
+      ? 'low'
+      : classification.confidence >= 0.8 && unresolvedFields.length === 0 && !editorOpen
+        ? 'high'
+        : 'medium';
+    const title = !classification || classification.domainId === 'unknown'
+      ? '❓ No reliable semantic domain detected yet.'
+      : stateClass === 'high'
+        ? `✅ This looks like: ${classification.domainLabel || classification.domainId}`
+        : `⚠️ Best guess: ${classification.domainLabel || classification.domainId}`;
+
+    const domainOptions = (availableDomains || []).map((domain) => `
+      <option value="${esc(domain.id)}" ${domain.id === currentDomainId ? 'selected' : ''}>${esc(domain.label)}</option>`).join('');
+
+    const mappingFields = unresolvedFields.map((item) => {
+      const options = (item.candidates || []).map((candidate) => `
+        <option value="${esc(candidate)}" ${currentMappings[item.fieldRole] === candidate ? 'selected' : ''}>${esc(candidate)}</option>`).join('');
+      return `
+        <div class="form-field">
+          <label>${esc(item.fieldRole)}</label>
+          <select class="ds-classification-field" data-role="${esc(item.fieldRole)}">
+            <option value="">— skip —</option>
+            ${options}
+          </select>
+        </div>`;
+    }).join('');
+
+    const showEditor = stateClass !== 'high' || editorOpen || !classification;
+    return `
+      <div class="semantic-onboarding-banner ${esc(stateClass)}">
+        <div class="semantic-banner-head">
+          <div>
+            <div class="semantic-banner-title">${esc(title)}</div>
+            <div class="semantic-banner-meta">${confidencePct != null ? `Confidence: ${confidencePct}%` : 'Classification pending or unknown.'}${classification?.requiresUserInput ? ' · User confirmation recommended.' : ''}</div>
+          </div>
+          <div class="semantic-banner-actions">
+            ${stateClass === 'high' && !editorOpen ? '<button class="btn-primary" id="ds-classification-confirm">✓ Confirm</button><button class="btn-secondary" id="ds-classification-edit">Choose different</button>' : '<button class="btn-primary" id="ds-classification-save">💾 Save Classification</button>'}
+          </div>
+        </div>
+        ${showEditor ? `
+          <div class="semantic-field-grid">
+            <div class="form-field">
+              <label>Domain</label>
+              <select id="ds-classification-domain">
+                <option value="">— select —</option>
+                ${domainOptions}
+              </select>
+            </div>
+            ${mappingFields}
+          </div>` : '<div class="semantic-banner-meta" style="margin-top:12px">All required fields mapped automatically.</div>'}
+      </div>`;
   }
 
   function renderSourceList() {
@@ -1960,12 +2223,11 @@ function esc(str) {
     dsState.descriptors.forEach(d => { descriptorMap[d.sourceId] = d; });
 
     const rows = filtered.length === 0 && dsState.sources.length > 0
-      ? `<tr><td colspan="6" class="no-results-msg">No sources match the current filter.</td></tr>`
+      ? `<tr><td colspan="7" class="no-results-msg">No sources match the current filter.</td></tr>`
       : filtered.map(s => {
           const desc = descriptorMap[s.sourceId || s.id];
-          const cacheStatus = desc
-            ? (desc.cacheExists ? (desc.cacheStale ? 'stale' : 'fresh') : 'empty')
-            : 'empty';
+          const cacheStatus = desc?.cacheStatus || 'empty';
+          const semanticBadge = dsRenderSemanticBadge(s.semanticClassification, desc?.semanticStatus);
           const lastRefreshed = desc?.lastRefreshed
             ? new Date(desc.lastRefreshed).toLocaleString('de-DE')
             : '—';
@@ -1978,6 +2240,7 @@ function esc(str) {
               <td>${icon} ${esc(s.connectorType || '—')}</td>
               <td>${tags || '<span style="color:var(--text-muted)">—</span>'}</td>
               <td><span class="cache-badge ${esc(cacheStatus)}">${esc(cacheStatus)}</span></td>
+              <td>${semanticBadge}</td>
               <td style="font-size:.82rem;color:var(--text-muted)">${lastRefreshed}</td>
               <td>
                 <button class="icon-btn ds-btn-edit"   data-id="${srcId}" title="Edit source">✏️</button>
@@ -2011,6 +2274,7 @@ function esc(str) {
               <th style="text-align:left;padding:8px 12px;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Type</th>
               <th style="text-align:left;padding:8px 12px;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Tags</th>
               <th style="text-align:left;padding:8px 12px;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Cache</th>
+              <th style="text-align:left;padding:8px 12px;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Semantic</th>
               <th style="text-align:left;padding:8px 12px;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Last Refreshed</th>
               <th style="text-align:left;padding:8px 12px;font-size:.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border)">Actions</th>
             </tr>
@@ -2678,7 +2942,7 @@ function esc(str) {
         saved = await apiFetch('/api/datasources', body);
       }
 
-      const savedId = saved.data?.sourceId || saved.sourceId || dsState.editingSourceId;
+      const savedId = saved.data?.sourceId || saved.data?.id || saved.sourceId || dsState.editingSourceId;
       toast(`✅ Source "${name}" saved`);
 
       if (runInfer && savedId) {
@@ -2713,6 +2977,9 @@ function esc(str) {
   }
 
   async function dsInferAndApply(sourceId) {
+    dsState.classificationPending[sourceId] = true;
+    dsState.classificationPollAttempts[sourceId] = 0;
+    dsState.classificationDismissed[sourceId] = false;
     const inferRes = await fetch(`/api/datasources/${sourceId}/infer`, {
       method: 'POST',
       headers: apiHeaders(),
@@ -2743,14 +3010,40 @@ function esc(str) {
     container.innerHTML = `<div style="color:var(--text-muted);padding:20px 0">Loading dictionary…</div>`;
 
     try {
-      const [sourceRes, dictRes] = await Promise.all([
+      const [sourceRes, dictRes, classificationRes] = await Promise.all([
         apiGet(`/api/datasources/${sourceId}`),
         apiGet(`/api/datasources/${sourceId}/dictionary`),
+        apiGet(`/api/datasources/${sourceId}/classification`).catch(() => ({ data: null, availableDomains: [] })),
       ]);
       const source = sourceRes.data || {};
       const dict   = dictRes.data  || {};
       const fields = dict.fields   || [];
       const version = dict.version || 1;
+      const classification = classificationRes.data || null;
+      const availableDomains = classificationRes.availableDomains || [];
+
+      if (classification?.domainId) {
+        dsState.classificationPending[sourceId] = false;
+        dsState.classificationPollAttempts[sourceId] = 0;
+      } else if (dsState.classificationPending[sourceId]) {
+        const attempts = dsState.classificationPollAttempts[sourceId] || 0;
+        if (attempts < 5) {
+          dsState.classificationPollAttempts[sourceId] = attempts + 1;
+          setTimeout(async () => {
+            if (dsState.editingDictSourceId !== sourceId) return;
+            try {
+              const latest = await apiGet(`/api/datasources/${sourceId}/classification`);
+              if (latest?.data?.domainId) {
+                dsState.classificationPending[sourceId] = false;
+                dsState.classificationPollAttempts[sourceId] = 0;
+              }
+              if (dsState.editingDictSourceId === sourceId) dsLoadDict(sourceId, false);
+            } catch (_) {
+              if (dsState.editingDictSourceId === sourceId) dsLoadDict(sourceId, false);
+            }
+          }, 1000);
+        }
+      }
 
       let inferenceBanner = '';
       if (showInferenceBanner && dictRes.inferenceDiff) {
@@ -2808,6 +3101,8 @@ function esc(str) {
           </div>
         </div>
 
+        ${dsRenderClassificationBanner(sourceId, classification, availableDomains)}
+
         ${inferenceBanner}
 
         <div class="table-wrapper">
@@ -2835,6 +3130,40 @@ function esc(str) {
 
       // Wire back button
       $('ds-dict-back').addEventListener('click', () => { dsShowView('list'); renderSourceList(); });
+
+      const confirmBtn = $('ds-classification-confirm');
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', () => dsSaveClassification(
+          sourceId,
+          classification?.domainId,
+          dsExtractFieldMappings(classification)
+        ));
+      }
+      const editBtn = $('ds-classification-edit');
+      if (editBtn) {
+        editBtn.addEventListener('click', () => {
+          dsState.classificationEditorOpen[sourceId] = true;
+          dsLoadDict(sourceId, false);
+        });
+      }
+      const dismissClassificationBtn = $('ds-classification-dismiss');
+      if (dismissClassificationBtn) {
+        dismissClassificationBtn.addEventListener('click', () => {
+          dsState.classificationDismissed[sourceId] = true;
+          dsLoadDict(sourceId, false);
+        });
+      }
+      const saveClassificationBtn = $('ds-classification-save');
+      if (saveClassificationBtn) {
+        saveClassificationBtn.addEventListener('click', () => {
+          const domainId = $('ds-classification-domain')?.value || classification?.domainId || '';
+          const mappings = {};
+          container.querySelectorAll('.ds-classification-field').forEach(el => {
+            if (el.value) mappings[el.dataset.role] = el.value;
+          });
+          dsSaveClassification(sourceId, domainId, mappings);
+        });
+      }
 
       // Wire privacy toggles → show/hide synthetic pattern input + row tint
       container.querySelectorAll('.ds-privacy-chk').forEach(chk => {
@@ -2979,6 +3308,39 @@ function esc(str) {
       toast('❌ Save failed: ' + err.message, 'error');
     } finally {
       if (btn) btn.disabled = false;
+    }
+  }
+
+  async function dsSaveClassification(sourceId, domainId, fieldMappings) {
+    if (!domainId) {
+      toast('⚠️ Please choose a semantic domain first.', 'error');
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/datasources/${sourceId}/classification`, {
+        method: 'PATCH',
+        headers: apiHeaders(),
+        body: JSON.stringify({
+          domainId,
+          confirmedByUser: true,
+          fieldMappings: fieldMappings || {},
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || json.success === false) {
+        throw new Error(json.message || `HTTP ${res.status}`);
+      }
+
+      dsState.classificationEditorOpen[sourceId] = false;
+      dsState.classificationDismissed[sourceId] = false;
+      dsState.classificationPending[sourceId] = false;
+      dsState.classificationPollAttempts[sourceId] = 0;
+      toast('✅ Classification saved');
+      await dsLoadSources();
+      dsLoadDict(sourceId, false);
+    } catch (err) {
+      toast('❌ Classification save failed: ' + err.message, 'error');
     }
   }
 

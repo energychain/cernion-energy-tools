@@ -75,7 +75,8 @@ module.exports = {
       rest: 'GET /connector-types',
       openapi: {
         summary: 'List available connector plugin types',
-        description: 'Returns all loaded connector plugins with their type identifier, description, and JSON Schema for connectorConfig validation. Used by the UI to dynamically render the connector configuration form.',
+        description:
+          'Returns all loaded connector plugins with their type identifier, description, and JSON Schema for connectorConfig validation. Used by the UI to dynamically render the connector configuration form.',
         tags: ['DataSources'],
         responses: {
           200: {
@@ -86,16 +87,19 @@ module.exports = {
                   type: 'object',
                   properties: {
                     success: { type: 'boolean', example: true },
-                    count:   { type: 'integer', example: 6 },
+                    count: { type: 'integer', example: 6 },
                     data: {
                       type: 'array',
                       items: {
                         type: 'object',
                         properties: {
-                          type:         { type: 'string',  example: 'csv' },
-                          description:  { type: 'string',  example: 'Read rows from a CSV or TSV file' },
+                          type: { type: 'string', example: 'csv' },
+                          description: {
+                            type: 'string',
+                            example: 'Read rows from a CSV or TSV file',
+                          },
                           configSchema: { type: 'object' },
-                          source:       { type: 'string',  example: 'built-in' },
+                          source: { type: 'string', example: 'built-in' },
                         },
                       },
                     },
@@ -132,7 +136,10 @@ module.exports = {
       },
       async handler(ctx) {
         const plugin = this.requirePlugin(ctx.params.connectorType);
-        const validation = this.validateAgainstSchema(plugin.configSchema, ctx.params.connectorConfig);
+        const validation = this.validateAgainstSchema(
+          plugin.configSchema,
+          ctx.params.connectorConfig
+        );
 
         return {
           success: validation.valid,
@@ -152,7 +159,10 @@ module.exports = {
       },
       async handler(ctx) {
         const plugin = this.requirePlugin(ctx.params.connectorType);
-        const validation = this.validateAgainstSchema(plugin.configSchema, ctx.params.connectorConfig);
+        const validation = this.validateAgainstSchema(
+          plugin.configSchema,
+          ctx.params.connectorConfig
+        );
 
         if (!validation.valid) {
           const error = new Error(`Invalid connector config: ${validation.errors.join('; ')}`);
@@ -213,7 +223,6 @@ module.exports = {
       const files = fs.readdirSync(baseDir).filter((entry) => entry.endsWith('.connector.js'));
       for (const file of files) {
         const fullPath = path.join(baseDir, file);
-        // eslint-disable-next-line global-require, import/no-dynamic-require
         const plugin = require(fullPath);
 
         if (!plugin || typeof plugin !== 'object') {
@@ -307,6 +316,19 @@ module.exports = {
               errors.push(
                 `Invalid type for ${fieldName}: expected ${expected}, received ${actualType}`
               );
+              continue;
+            }
+          }
+
+          if (typeof fieldValue === 'number' && typeof fieldSchema.minimum === 'number') {
+            if (fieldValue < fieldSchema.minimum) {
+              errors.push(`Invalid value for ${fieldName}: expected >= ${fieldSchema.minimum}`);
+            }
+          }
+
+          if (typeof fieldValue === 'number' && typeof fieldSchema.maximum === 'number') {
+            if (fieldValue > fieldSchema.maximum) {
+              errors.push(`Invalid value for ${fieldName}: expected <= ${fieldSchema.maximum}`);
             }
           }
         }

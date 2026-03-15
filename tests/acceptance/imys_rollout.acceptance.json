@@ -1,0 +1,15 @@
+{
+  "domain": "metering-point-master",
+  "label": "iMSys Rollout-Status Q1 2026",
+  "description": "Rollout-Fortschritt intelligente Messsysteme Netzgebiet Musterstadt",
+  "connectorConfig": {
+    "delimiter": ";",
+    "encoding": "utf-8",
+    "skipRows": 0
+  },
+  "acceptanceQueries": [
+    "Wie ist unser iMSys-Rollout-Fortschritt im Vergleich zum EWK-Digitalisierungsindex?",
+    "Welcher Anteil unserer Zählpunkte hat bereits ein iMSys installiert?",
+    "Wie viele Zählpunkte mit Jahresverbrauch über 6000 kWh haben noch kein iMSys?"
+  ]
+}

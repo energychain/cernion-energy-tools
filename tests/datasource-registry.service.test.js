@@ -4,6 +4,7 @@
 
 const { ServiceBroker } = require('moleculer');
 const DatasourceRegistryService = require('../services/datasource-registry.service');
+const DatasourceClassifierService = require('../services/datasource-classifier.service');
 
 describe('Datasource Registry Service', () => {
   let broker;
@@ -39,7 +40,46 @@ describe('Datasource Registry Service', () => {
         },
       },
     });
+    broker.createService({
+      name: 'datasource-cache',
+      actions: {
+        status: {
+          async handler() {
+            return { success: true, exists: true, stale: false };
+          },
+        },
+        refresh: {
+          async handler() {
+            return { success: true, rowCount: 3 };
+          },
+        },
+        query: {
+          async handler() {
+            return {
+              success: true,
+              data: [
+                {
+                  Lieferzeitraum: '2026-Q1',
+                  Volumen_MWh: '120',
+                  Preis_EUR_MWh: '78.4',
+                  Counterparty: 'Stadtwerke Handel Süd',
+                  Produkt: 'Base Forward',
+                },
+                {
+                  Lieferzeitraum: '2026-Q2',
+                  Volumen_MWh: '130',
+                  Preis_EUR_MWh: '76.8',
+                  Counterparty: 'Trianel Energy',
+                  Produkt: 'Peak Forward',
+                },
+              ],
+            };
+          },
+        },
+      },
+    });
     broker.createService(DatasourceRegistryService);
+    broker.createService(DatasourceClassifierService);
     await broker.start();
   });
 
@@ -210,6 +250,36 @@ describe('Datasource Registry Service', () => {
     expect(refresh.refreshRequested).toBe(true);
   });
 
+  it('should emit inference completion and persist semantic classification', async () => {
+    const created = await broker.call('datasource-registry.create', {
+      name: 'Beschaffungsportfolio Test',
+      description: 'Procurement positions for Stadtwerk',
+      connectorType: 'csv',
+      connectorConfig: { path: '/tmp/procurement_portfolio.csv' },
+    });
+
+    await broker.call('datasource-registry.infer', { id: created.data.id });
+
+    let classification;
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const response = await broker.call('datasource-registry.getClassification', {
+        id: created.data.id,
+      });
+      classification = response.data;
+      if (classification?.domainId) break;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+
+    expect(classification).toBeDefined();
+    expect(classification.domainId).toBe('procurement');
+    expect(classification.confirmedByUser).toBe(false);
+    expect(classification.fieldMappings).toMatchObject({
+      timeReference: 'Lieferzeitraum',
+      quantityMWh: 'Volumen_MWh',
+      priceEURperMWh: 'Preis_EUR_MWh',
+    });
+  });
+
   it('should delete a datasource', async () => {
     const created = await broker.call('datasource-registry.create', {
       name: 'Delete Quelle',
@@ -222,5 +292,79 @@ describe('Datasource Registry Service', () => {
     await expect(broker.call('datasource-registry.get', { id: created.data.id })).rejects.toThrow(
       'Datasource not found'
     );
+  });
+});
+
+describe('Datasource Registry Service – inference error path', () => {
+  let broker;
+
+  beforeAll(async () => {
+    broker = new ServiceBroker({ logger: false, transporter: null });
+    broker.createService({
+      name: 'datasource-connector',
+      actions: {
+        inferSchema: {
+          async handler() {
+            throw new Error('CSV header row is not a valid schema (skipRows required)');
+          },
+        },
+      },
+    });
+    broker.createService({
+      name: 'datasource-cache',
+      actions: {
+        status: {
+          async handler() {
+            return { success: true, exists: true, stale: false };
+          },
+        },
+        refresh: {
+          async handler() {
+            return { success: true, rowCount: 0 };
+          },
+        },
+        query: {
+          async handler() {
+            return { success: true, data: [] };
+          },
+        },
+      },
+    });
+    broker.createService(DatasourceRegistryService);
+    broker.createService(DatasourceClassifierService);
+    await broker.start();
+  });
+
+  afterAll(async () => {
+    await broker.stop();
+  });
+
+  it('should emit inference.complete and classify as unknown when inferSchema throws', async () => {
+    const created = await broker.call('datasource-registry.create', {
+      name: 'Kraftwerksliste',
+      description: 'Bundesnetzagentur power plant list with metadata header rows',
+      connectorType: 'csv',
+      connectorConfig: { path: '/tmp/Kraftwerksliste_CSV.csv' },
+    });
+
+    const infer = await broker.call('datasource-registry.infer', { id: created.data.id });
+    expect(infer.success).toBe(true);
+    expect(infer.status).toBe('draft');
+    expect(infer.warning).toBeDefined();
+
+    let classification;
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const response = await broker.call('datasource-registry.getClassification', {
+        id: created.data.id,
+      });
+      classification = response.data;
+      if (classification?.domainId) break;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+
+    expect(classification).toBeDefined();
+    expect(classification.domainId).toBe('unknown');
+    expect(classification.requiresUserInput).toBe(true);
+    expect(classification.confirmedByUser).toBe(false);
   });
 });

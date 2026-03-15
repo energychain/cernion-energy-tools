@@ -1,0 +1,15 @@
+{
+  "domain": "grid-incidents",
+  "label": "Störungshistorie Netz 2024-2025",
+  "description": "Incident- und Outage-Störungsmeldungen mit Ursache und Dauer im Verteilnetz Musterstadt",
+  "connectorConfig": {
+    "delimiter": ",",
+    "encoding": "utf-8",
+    "skipRows": 0
+  },
+  "acceptanceQueries": [
+    "Gibt es eine Korrelation zwischen unseren Störungsereignissen und Redispatch-Aktivierungen im Netzgebiet?",
+    "Welche Asset-Typen haben die längsten durchschnittlichen Störungsdauern?",
+    "Wie hat sich die Störungshäufigkeit 2024 vs. 2025 entwickelt?"
+  ]
+}

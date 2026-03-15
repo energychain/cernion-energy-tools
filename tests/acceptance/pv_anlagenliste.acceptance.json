@@ -1,0 +1,15 @@
+{
+  "domain": "grid-assets",
+  "label": "PV-Anlagenliste Netzgebiet",
+  "description": "Interne Anlagenübersicht PV-Einspeisung Verteilnetz Musterstadt",
+  "connectorConfig": {
+    "delimiter": ";",
+    "encoding": "utf-8",
+    "skipRows": 0
+  },
+  "acceptanceQueries": [
+    "Wie verteilt sich unsere installierte PV-Leistung im Vergleich zum Netzgebietsdurchschnitt laut EWK-Benchmark?",
+    "Welche Trafostationen haben die höchste kumulierte PV-Einspeisung angeschlossen?",
+    "Wie viel kWp sind seit 2023 neu ans Netz gegangen, und wie entwickelt sich der Trend?"
+  ]
+}

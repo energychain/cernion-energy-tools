@@ -34,7 +34,7 @@ afterAll(() => {
   createdFiles.forEach((f) => {
     try {
       fs.unlinkSync(f);
-    } catch (_) {
+    } catch {
       // best-effort cleanup
     }
   });
@@ -112,6 +112,63 @@ describe('CSV connector integration', () => {
 
     expect(result.rows[0].name).toBe('Smith, John');
     expect(result.rows[0].address).toBe('123 Main St');
+  });
+
+  it('skips metadata rows before the header row', async () => {
+    const content = [
+      'Export erstellt am 2026-03-14',
+      'Netzgebiet: Ludwigshafen',
+      'id;name',
+      '1;Alice',
+    ].join('\n');
+    const filePath = tracked(writeTmp('skiprows.csv', content));
+
+    const result = await csvConnector.read({ path: filePath, delimiter: ';', skipRows: 2 }, {});
+
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]).toEqual({ id: '1', name: 'Alice' });
+  });
+
+  it('parses quoted multiline header cells after skipping metadata rows', async () => {
+    const content = [
+      'Export erstellt am 2026-03-14',
+      'Quelle: Bundesnetzagentur',
+      'MaStR-Nr.;"Wärmeauskopplung (KWK)\n(ja/nein)";Spannungsebene',
+      'SEE123;Ja;Hochspannung',
+    ].join('\n');
+    const filePath = tracked(writeTmp('multiline-header.csv', content));
+
+    const result = await csvConnector.read({ path: filePath, delimiter: ';', skipRows: 2 }, {});
+
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]).toEqual({
+      'MaStR-Nr.': 'SEE123',
+      'Wärmeauskopplung (KWK)\n(ja/nein)': 'Ja',
+      Spannungsebene: 'Hochspannung',
+    });
+    expect(result.inferredSchema.fields.map((field) => field.name)).toEqual([
+      'MaStR-Nr.',
+      'Wärmeauskopplung (KWK)\n(ja/nein)',
+      'Spannungsebene',
+    ]);
+  });
+
+  it('decodes windows-1252 encoded files when configured', async () => {
+    const filePath = tracked(tmpFile('windows-1252.csv'));
+    const contentBytes = Buffer.from([
+      ...Buffer.from('name;note\nPreis;10 '),
+      0x80,
+      ...Buffer.from('\n'),
+    ]);
+    fs.writeFileSync(filePath, contentBytes);
+
+    const result = await csvConnector.read(
+      { path: filePath, delimiter: ';', encoding: 'windows-1252' },
+      {}
+    );
+
+    expect(result.rows).toHaveLength(1);
+    expect(result.rows[0]).toEqual({ name: 'Preis', note: '10 €' });
   });
 });
 
@@ -197,7 +254,16 @@ describe('GeoJSON connector integration', () => {
       features: [
         {
           type: 'Feature',
-          geometry: { type: 'Polygon', coordinates: [[[9.0, 48.0], [9.1, 48.0], [9.0, 48.1]]] },
+          geometry: {
+            type: 'Polygon',
+            coordinates: [
+              [
+                [9.0, 48.0],
+                [9.1, 48.0],
+                [9.0, 48.1],
+              ],
+            ],
+          },
           properties: { region: 'BW' },
         },
       ],

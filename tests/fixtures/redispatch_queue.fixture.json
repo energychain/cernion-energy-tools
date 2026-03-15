@@ -1,0 +1,15 @@
+{
+  "domain": "redispatch-queue",
+  "label": "Redispatch Queue",
+  "description": "Synthetic redispatch request queue.",
+  "expectedDictionary": {
+    "MeLo_ID": { "semanticRole": "meloId", "type": "string" },
+    "Angefordert_kW": { "semanticRole": "requestedKW", "type": "float" },
+    "Zeitpunkt": { "semanticRole": "timeReference", "type": "timestamp" },
+    "Status": { "semanticRole": "status", "type": "string" }
+  },
+  "exampleQueries": [
+    "Welche MeLos haben offene Redispatch-Anforderungen?",
+    "Wie hoch ist die angeforderte Leistung insgesamt?"
+  ]
+}
