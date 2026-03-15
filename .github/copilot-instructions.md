@@ -45,10 +45,10 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 ### Testing Guidelines
 - Write unit tests for all business logic
 - Use Jest as the testing framework
-- Meet the current staged global coverage thresholds in `jest.config.js` (v0.8.32: branches 55%, functions 70%, lines 70%, statements 70%)
-- Write integration tests for API endpoints
-- Use meaningful test descriptions
-- Mock MCP network calls in tests (use `jest.mock('../src/mcp-client')`)
+- Meet coverage thresholds (v0.9.3: branches 55%, functions 70%,
+  lines 70%, statements 70%)
+- Current suite: 941 tests, 40 suites — all must pass after changes
+- Acceptance fixtures in `tests/acceptance/` — do not modify
 
 ### Documentation
 - Update README.md with any significant changes
@@ -83,20 +83,32 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Use configuration management for different environments
 - Follow semantic versioning for releases
 
-## Current Project Status (v0.8.32)
+### Inhouse Data Layer (v0.9+)
+- All inhouse datasource access MUST go through `datasource-cache.query`
+- NEVER use `query.ask`, SQL actions, or database lookups for inhouse sources
+- Inhouse sources are identified by sourceId in `inhouseSources` or
+  `semanticHints.domain` in discovery descriptor
+- Event payloads must remain lean — `datasource.inference.complete` carries
+  only `{ sourceId, filename, description }`, never sampleRows
+- `datasource-classifier` is stateless and fetches sample rows itself
+- Semantic domains are defined in `src/semantic-domains.js`
+- Classifier uses heuristic scoring only — no external AI calls in classif
 
-- Release `v0.8.32` is published and tagged.
-- Consolidated release gate is available via `npm run release:check`.
-- OpenAPI quality gate is enforced via `npm run audit:openapi` (must return 0 issues).
-- Security scanning is split into:
-	- Blocking critical gate: `npm run audit:security`
-	- Advisory high+ report: `npm run audit:security:advisory`
-- Known risk: `xlsx` has an upstream high advisory with no fix currently available; treat as documented exception and keep monitoring.
-- API token policy: both Bearer auth and token query/body/path parameter usage are supported for compatibility.
-- Operational hardening is in place:
-	- Env-driven reliability/observability toggles in `moleculer.config.js`
-	- Redacted/sanitized error handling in API and MCP client layers
-	- Debug-gated async poller logging controls in `.env.example`
+## Current Project Status (v0.9.3)
+
+- Release `v0.9.3` is published and tagged.
+- Datasource layer: registry, connector, cache, discovery, classifier
+  (all in `services/datasource-*.service.js`)
+- Semantic onboarding flow active — new sources are auto-classified
+  after inference via `datasource.inference.complete` event
+- CSV connector supports `encoding` (utf-8/latin1/windows-1252)
+  and `skipRows` for metadata preamble rows
+- Known limitations tracked for v0.9.4:
+  - Mixed-format Lieferperiode not parseable for spot-price join
+  - EWK-Benchmark not fetched in hybrid grid-assets queries
+- Release gate: `npm run release:check` (tests + OpenAPI + security)
+- Known risk: `xlsx` high advisory — documented exception
+
 
 ## Release Process (0.x)
 
