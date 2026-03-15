@@ -15,7 +15,7 @@
     "test:unit": "jest --coverage --testPathIgnorePatterns=\"tests/.*\\.integration\\.test\\.js|custom-tests\"",
     "test:unit:ci": "jest --coverage --runInBand --forceExit --testPathIgnorePatterns=\"tests/.*\\.integration\\.test\\.js|custom-tests\"",
     "test:e2e": "jest --no-coverage tests/assets.integration.test.js",
-    "test:custom": "jest --coverage=false --testPathPattern=custom-tests",
+    "test:custom": "jest --coverage=false --testPathPatterns=custom-tests",
     "test:watch": "jest --watch",
     "test:integration": "jest --coverage=false --testMatch=\"**/tests/**/*.integration.test.js\"",
     "test:live": "jest --no-coverage tests/assets.integration.test.js",
@@ -45,22 +45,22 @@
   "homepage": "https://github.com/energychain/cernion-energy-tools#readme",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "@modelcontextprotocol/sdk": "^1.26.0",
-    "axios": "^1.13.4",
-    "dotenv": "^17.2.4",
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "axios": "^1.13.6",
+    "dotenv": "^17.3.1",
     "iconv-lite": "^0.7.2",
     "moleculer": "^0.14.35",
     "moleculer-auto-openapi": "^1.1.7",
     "moleculer-repl": "^0.7.4",
     "moleculer-web": "^0.10.8",
-    "swagger-ui-dist": "^5.11.0",
+    "swagger-ui-dist": "^5.32.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "eslint": "^10.0.0",
+    "eslint": "^10.0.3",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
-    "jest": "^29.7.0",
+    "jest": "^30.3.0",
     "prettier": "^3.8.1"
   }
 }
