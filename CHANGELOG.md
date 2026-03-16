@@ -55,6 +55,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added semantic-classifier regressions for Kraftwerksliste-style generation
   CSVs and for authoritative manual domain overrides.
 
+## [0.9.4] - 2026-03-16
+
+### Added
+
+- **Period-format normalisation for mixed time references**
+  Added `src/period-normaliser.js` with `normalisePeriod()` and
+  `isPeriodColumn()` to normalize values like `Jan 2026`, `2026-Q1`, and
+  `YYYY-MM` to ISO start dates. Integrated this into
+  `in-memory-join.meteringSpotCost` and agent planning so procurement-style
+  period columns can be joined reliably with spot-price time series.
+
+- **Hybrid inhouse × external benchmark routing**
+  Added intent class `inhouse_benchmark_compare` in `agent.service` for
+  benchmark/comparison queries on `grid-assets` and `metering-point-master`.
+  Added `in-memory-join.benchmarkCompare` plus REST alias
+  `POST /api/in-memory-join/benchmark-compare` for aggregate-vs-benchmark
+  delta, ranking, and narrative output.
+
+- **Automatic VNB identity resolution**
+  Added `src/vnb-identity.js` and integrated auto-resolution into planning and
+  execution flows so VNB context is resolved from environment and datasource
+  metadata before prompting users. Added VNB-related environment keys to
+  `.env.example`.
+
+- **Datasource filesystem watcher**
+  Added `services/datasource-watcher.service.js` to watch `./uploads/`,
+  debounce file change events, refresh mapped datasource caches, and emit
+  `datasource.file.refreshed` events. Added status endpoint wiring via
+  `GET /api/datasource-watcher/status`.
+
+- **Optional LLM-assisted classifier fallback**
+  Extended `datasource-classifier` with opt-in fallback for low-confidence
+  (`< 0.35`) unknown classifications. Added `llmAssisted` and `llmReasoning`
+  outputs, and `CLASSIFIER_LLM_FALLBACK_ENABLED` environment toggle.
+
+### Changed
+
+- **Datasource UI enhancements for v0.9.4 flows**
+  Updated `src/app.html` to surface AI-assisted classification state and to
+  poll watcher status for automatic refresh notifications when upload-backed
+  sources are updated.
+
+### Fixed
+
+- **OpenAPI request-body completeness for benchmark compare endpoint**
+  Added explicit request body schema and property examples for
+  `in-memory-join.benchmarkCompare` so OpenAPI audit passes with zero issues.
+
+- **Release baseline cleanup (formatting + lint auto-fix)**
+  Executed repo-wide Prettier and ESLint auto-fix pass across `services/`,
+  `src/`, `tests/`, and `scripts/` as the v0.9.4 baseline cleanup step.
+
+### Tests
+
+- Added `tests/period-normaliser.test.js` for period parsing and detection.
+- Added `tests/datasource-watcher.service.test.js` for mapped refresh,
+  debounce, and unmapped file handling.
+- Added `tests/vnb-identity.test.js` for env-first, metadata fallback, and
+  unresolved cases.
+- Extended `tests/agent.service.test.js`,
+  `tests/in-memory-join.service.test.js`, and
+  `tests/datasource-classifier.service.test.js` with v0.9.4 routing,
+  normalisation, benchmark, and LLM-fallback regressions.
+
 ## [0.9.3] - 2026-03-14
 
 ### Added
