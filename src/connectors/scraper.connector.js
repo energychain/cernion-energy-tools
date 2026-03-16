@@ -7,7 +7,7 @@ const axios = require('axios');
 function ensureCheerio() {
   try {
     return require('cheerio');
-  } catch (error) {
+  } catch {
     const e = new Error(
       'Scraper connector with cheerio engine requires optional dependency "cheerio".'
     );
@@ -51,7 +51,7 @@ async function runPuppeteerEngine(connectorConfig) {
   let puppeteer;
   try {
     puppeteer = require('puppeteer');
-  } catch (error) {
+  } catch {
     const e = new Error(
       'Scraper connector with puppeteer engine requires optional dependency "puppeteer".'
     );

@@ -7,12 +7,7 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
-const {
-  applyFormat,
-  convertToCSV,
-  FORMAT_PARAM_SCHEMA,
-  FORMAT_RESPONSE_CONTENT,
-} = require('../src/format-response');
+const { applyFormat, convertToCSV } = require('../src/format-response');
 
 // ─── Helpers for churn-prediction narrative responses ─────────────────────────
 

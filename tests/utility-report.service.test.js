@@ -9,7 +9,6 @@
 
 const path = require('path');
 const fs = require('fs');
-const os = require('os');
 const { ServiceBroker } = require('moleculer');
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────────
@@ -59,10 +58,6 @@ const tmpReportsDir = require('path').join(require('os').tmpdir(), REPORTS_TEST_
 const UtilityReportService = require('../services/utility-report.service');
 
 // ─── Test helpers ───────────────────────────────────────────────────────────────
-
-function makeMockService(name, actions) {
-  return { name, actions };
-}
 
 function mockBrokerService(broker, name, actionMocks) {
   const actions = {};
@@ -151,8 +146,6 @@ const DEFAULT_SERVICE_MOCKS = {
 describe('buildVnbSearchQueries (CR-18)', () => {
   // Access the module-level helpers by requiring the service module
   // and exposing via a thin test shim defined inline.
-  const svc = require('../services/utility-report.service');
-
   // The helpers are module-local, so we test them indirectly via the exported
   // service structure. To keep it simple we re-implement the logic inline.
   function buildVnbSearchQueries(name) {
@@ -558,7 +551,7 @@ describe('Utility Report Service', () => {
 
     it('should re-render HTML for a completed report', async () => {
       // Generate a report and wait briefly for the async pipeline to write progress
-      const gen = await broker.call('utility-report.generate', {
+      await broker.call('utility-report.generate', {
         utilityName: 'Rebuild Test Stadtwerke',
         forceRefresh: true,
       });
@@ -1338,7 +1331,7 @@ describe('Utility Report Service', () => {
       capturedToken = undefined;
 
       // Call WITHOUT cernionToken in meta – forces env fallback path
-      const gen = await tokenBroker.call(
+      await tokenBroker.call(
         'utility-report.generate',
         { utilityName: 'Token Test Stadt', forceRefresh: true },
         { meta: {} } // no cernionToken in meta

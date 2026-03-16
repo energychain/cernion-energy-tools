@@ -8,7 +8,7 @@ const path = require('path');
 function ensureMammoth() {
   try {
     return require('mammoth');
-  } catch (error) {
+  } catch {
     const e = new Error(
       'DOCX connector requires optional dependency "mammoth". Install it to enable docx reads.'
     );

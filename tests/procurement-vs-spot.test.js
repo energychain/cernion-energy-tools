@@ -92,7 +92,11 @@ describe('procurementVsSpot action', () => {
     broker.createService({
       name: 'german-grid',
       actions: {
-        spotprices: { handler() { return { success: true, dataPoints: [] }; } },
+        spotprices: {
+          handler() {
+            return { success: true, dataPoints: [] };
+          },
+        },
       },
     });
 
@@ -241,11 +245,23 @@ describe('procurementVsSpot action', () => {
     });
     emptyPricesBroker.createService({
       name: 'energy-market',
-      actions: { prices: { handler() { return { success: true, data: { prices: [] } }; } } },
+      actions: {
+        prices: {
+          handler() {
+            return { success: true, data: { prices: [] } };
+          },
+        },
+      },
     });
     emptyPricesBroker.createService({
       name: 'german-grid',
-      actions: { spotprices: { handler() { return { success: true, dataPoints: [] }; } } },
+      actions: {
+        spotprices: {
+          handler() {
+            return { success: true, dataPoints: [] };
+          },
+        },
+      },
     });
     emptyPricesBroker.createService(InMemoryJoinService);
     await emptyPricesBroker.start();

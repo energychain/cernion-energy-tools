@@ -6,7 +6,6 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
-const { callWithAutoPoll } = require('../src/async-job-poller');
 
 module.exports = {
   name: 'query',

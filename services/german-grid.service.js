@@ -242,7 +242,7 @@ module.exports = {
                 `Netztransparenz.de: ${primaryError}\n` +
                 `ENTSO-E Fallback: ${entsoeError}`;
             }
-          } catch (_fallbackErr) {
+          } catch {
             // ENTSO-E call itself threw — keep original isError result so
             // applyFormat surfaces the primary error.
           }

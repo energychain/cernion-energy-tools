@@ -504,7 +504,8 @@ async function listInhouseDescriptors(ctx) {
     const descriptors = toArray(response).map((descriptor) => {
       const normalizedSourceId =
         descriptor?.sourceId || descriptor?.source_id || descriptor?.id || null;
-      const sourceName = descriptor?.__sourceMeta?.sourceName || descriptor?.name || normalizedSourceId;
+      const sourceName =
+        descriptor?.__sourceMeta?.sourceName || descriptor?.name || normalizedSourceId;
       return {
         ...descriptor,
         sourceId: normalizedSourceId,
@@ -604,13 +605,13 @@ function isProcurementVsSpotSource(descriptor) {
     descriptor.__sourceMeta?.semanticClassification?.domainId;
   if (domainId !== 'procurement') return false;
   const classification =
-    descriptor.semanticClassification ||
-    descriptor.__sourceMeta?.semanticClassification ||
-    {};
+    descriptor.semanticClassification || descriptor.__sourceMeta?.semanticClassification || {};
   const criticalFieldStatus = Array.isArray(classification?.criticalFieldStatus)
     ? classification.criticalFieldStatus
     : [];
-  const timeReferenceStatus = criticalFieldStatus.find((item) => item?.fieldRole === 'timeReference');
+  const timeReferenceStatus = criticalFieldStatus.find(
+    (item) => item?.fieldRole === 'timeReference'
+  );
   return Boolean(timeReferenceStatus?.meta?.periodFormat);
 }
 
@@ -842,7 +843,9 @@ function buildIntentClassPlan({
 
     // Detect period-format on timeReference (drives the critical field status
     // annotation but does not gate routing — isProcurementVsSpotSource already did that)
-    const timeReferenceStatus = criticalFieldStatus.find((item) => item?.fieldRole === 'timeReference');
+    const timeReferenceStatus = criticalFieldStatus.find(
+      (item) => item?.fieldRole === 'timeReference'
+    );
     void timeReferenceStatus; // consumed for potential future meta reads
 
     return {
@@ -880,10 +883,9 @@ function buildIntentClassPlan({
     );
 
     const sampleRows =
-      resolvedDescriptor?.sampleRows ||
-      resolvedDescriptor?.__sourceMeta?.sampleRows ||
-      [];
-    const sampleFields = sampleRows[0] && typeof sampleRows[0] === 'object' ? Object.keys(sampleRows[0]) : [];
+      resolvedDescriptor?.sampleRows || resolvedDescriptor?.__sourceMeta?.sampleRows || [];
+    const sampleFields =
+      sampleRows[0] && typeof sampleRows[0] === 'object' ? Object.keys(sampleRows[0]) : [];
     const dictionaryFields = resolvedDescriptor?.__sourceMeta?.dictionaryFields || [];
     const availableTimeFields = new Set([...sampleFields, ...dictionaryFields].filter(Boolean));
     const timeFieldCandidates = [

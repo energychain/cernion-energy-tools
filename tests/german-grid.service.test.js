@@ -15,7 +15,7 @@ describe('German Grid Service', () => {
   let broker;
 
   beforeAll(async () => {
-    callWithNewSession.mockImplementation(async (toolName, params) => ({
+    callWithNewSession.mockImplementation(async (toolName, _params) => ({
       success: true,
       data: { content: [{ type: 'text', text: `mock response for ${toolName}` }] },
     }));

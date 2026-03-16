@@ -163,7 +163,7 @@ class CernionMCPClient {
 
       // Extract actual data from response
       // MCP tools can return data in content array or as additional fields
-      const { content, isError, _meta, ...additionalData } = response;
+      const { content, ...additionalData } = response;
 
       // Check for async job in additional data fields
       const jobIdFromAdditional =
@@ -188,7 +188,7 @@ class CernionMCPClient {
             const jobId = parsedContent.job_id || parsedContent.jobId;
             return await this.pollJobResult(jobId);
           }
-        } catch (e) {
+        } catch {
           // Not JSON or no job_id, continue with normal processing
         }
       }
@@ -210,7 +210,7 @@ class CernionMCPClient {
                 ...item,
                 json: parsedJson,
               };
-            } catch (e) {
+            } catch {
               // Not JSON or parse error - return as-is (fail-safe)
               return item;
             }
@@ -308,7 +308,7 @@ class CernionMCPClient {
                     timestamp: new Date().toISOString(),
                   },
                 };
-              } catch (parseError) {
+              } catch {
                 // If JSON parse fails, return raw text
                 return {
                   success: true,
@@ -343,7 +343,7 @@ class CernionMCPClient {
                     timestamp: new Date().toISOString(),
                   },
                 };
-              } catch (parseError) {
+              } catch {
                 // If parsing fails, return as-is
               }
             }
@@ -371,7 +371,7 @@ class CernionMCPClient {
           }
           // If status is 'queued' or 'running', continue polling
         }
-      } catch (error) {
+      } catch {
         // Continue polling on error (job might not be ready yet)
       }
 

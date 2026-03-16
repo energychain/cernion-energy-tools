@@ -1055,7 +1055,7 @@ module.exports = {
                     : inst.einheitBetriebsstatus || '',
                 einsatzverantwortlicher: inst.einsatzverantwortlicher || '',
               }));
-            } catch (_) {
+            } catch {
               // Local lookup failed — fall back to 5-row narrative preview
               exportRows = previewRows;
               isPreviewFallback = true;

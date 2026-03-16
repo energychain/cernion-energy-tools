@@ -29,7 +29,6 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const CernionMCPClient = require('../src/mcp-client');
 const { buildHtmlReport, summarizeForReport } = require('../src/report-builder');
-const { DataStatus, ds } = require('../src/data-status');
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -516,51 +515,6 @@ function buildVnbSearchQueries(name) {
   return [...new Set(queries)];
 }
 
-/**
- * Among market-partner candidates, prefer the one with a VNB/Netzbetreiber role
- * (a Stadtwerk may appear with multiple BDEW codes for different market roles).
- * Falls back to the first result when no VNB role is found.
- * Also normalises the BDEW and MaStR-ID into predictable field names.
- */
-function pickBestVnbPartner(marketPartnersResult) {
-  const candidates =
-    marketPartnersResult?.data?.results ||
-    marketPartnersResult?.results || // CR-23: sync MCP path (results at top level)
-    marketPartnersResult?.data?.data?.results ||
-    marketPartnersResult?.data?.partners ||
-    [];
-  if (!candidates.length) return null;
-
-  /**
-   * Normalise mastrIds object ({ SNB: 'SNB…', GNB: 'GNB…' }) to a single mastrId field.
-   * Mutates the candidate in place (candidates are plain objects from mock/API).
-   */
-  function normaliseMastrIds(p) {
-    if (!p.mastrId && !p.gridOperatorMastrId && p.mastrIds && typeof p.mastrIds === 'object') {
-      p.mastrId = p.mastrIds.SNB || p.mastrIds.GNB || Object.values(p.mastrIds)[0] || null;
-    }
-    return p;
-  }
-
-  // 1. Prefer explicit VNB / Netzbetreiber role
-  const vnbPartner = candidates.find((p) => {
-    const roles = p.roles ?? p.marketRoles ?? [];
-    return roles.some((r) => /VNB|Verteilnetz|Netzbetreiber/i.test(r));
-  });
-  if (vnbPartner) return normaliseMastrIds(vnbPartner);
-
-  // CR-23: 2. Prefer company name containing "Netz" – strong indicator of German grid operator
-  // (e.g. "Stadtwerke Heidelberg Netze GmbH" over "Stadtwerke Heidelberg Energie GmbH")
-  const netzPartner = candidates.find((p) => {
-    const name = p.companyName || p.name || p.displayName || '';
-    return /\bNetz(e)?\b/i.test(name);
-  });
-  if (netzPartner) return normaliseMastrIds(netzPartner);
-
-  // 3. Fallback: first result
-  return normaliseMastrIds(candidates[0]);
-}
-
 function normalizeLookupText(value) {
   return String(value || '')
     .toLowerCase()
@@ -829,7 +783,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
       },
 
       async handler(ctx) {
-        const { utilityName, region = '' } = ctx.params;
+        const { utilityName } = ctx.params;
         const cernionToken = ctx.meta?.cernionToken || process.env.CERNION_TOKEN;
 
         if (!cernionToken) {

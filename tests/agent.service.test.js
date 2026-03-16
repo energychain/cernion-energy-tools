@@ -222,7 +222,9 @@ describe('Agent Service', () => {
           positions: [],
           periodsWithoutSpotData: [],
         }),
-        compareForecastActual: jest.fn().mockResolvedValue({ success: true, rowCount: 0, data: [] }),
+        compareForecastActual: jest
+          .fn()
+          .mockResolvedValue({ success: true, rowCount: 0, data: [] }),
       },
     });
     broker._meteringSpotCostMock = meteringSpotCostMock;
@@ -1639,32 +1641,6 @@ describe('Agent Service', () => {
       ];
       // Simulate what fastest-validator does: add a compiled `values` property (a Function)
       fakeMultiTypeParam.values = function compiledCheck() {};
-
-      const fakeBroker = {
-        registry: {
-          getServiceList: () => [
-            {
-              name: 'fake-service',
-              actions: {
-                'fake-service.multiTypeAction': {
-                  rest: 'POST /multi',
-                  params: { types: fakeMultiTypeParam, name: { type: 'string', optional: true } },
-                  openapi: { summary: 'Fake action', description: '' },
-                },
-              },
-            },
-          ],
-        },
-      };
-
-      // Call agent.analyze which internally calls buildServiceCatalogue via ctx.broker
-      // We can't call the internal function directly, so we verify it doesn't throw
-      // by checking the helper function can handle the shape
-      const { buildServiceCatalogue } = (() => {
-        // Re-read the function from the module internals via a broker mock call
-        // Instead, we test indirectly: agent.analyze passes without crashing
-        return { buildServiceCatalogue: null };
-      })();
 
       // Indirect test: agent.analyze uses buildServiceCatalogue; mock broker provides multi-type param
       _mockGenerateContent.mockResolvedValueOnce({

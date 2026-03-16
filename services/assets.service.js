@@ -1,4 +1,3 @@
-const { Service } = require('moleculer');
 const XLSX = require('xlsx');
 
 /**
@@ -176,7 +175,7 @@ module.exports = {
                   if (jsonMatch) {
                     jsonData = JSON.parse(jsonMatch[1] || jsonMatch[0]);
                   }
-                } catch (parseErr) {
+                } catch {
                   const bdewMatch =
                     rawText.match(/BDEW[:\s]*(\d{13})/i) || rawText.match(/\b(\d{13})\b/);
                   if (bdewMatch && !resolvedBdewCode) {

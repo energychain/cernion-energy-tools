@@ -25,12 +25,12 @@ describe('Assets Service - XLSX Export', () => {
 
   beforeAll(async () => {
     // Mock MCP responses with sample data
-    callWithNewSession.mockImplementation(async (toolName) => ({
+    callWithNewSession.mockImplementation(async (_toolName) => ({
       success: true,
       data: [],
     }));
 
-    callWithAutoPoll.mockImplementation(async (toolName, params) => {
+    callWithAutoPoll.mockImplementation(async (toolName, _params) => {
       // Mock installations data
       if (toolName === 'cernion_installations') {
         return {

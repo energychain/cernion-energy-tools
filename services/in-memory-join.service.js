@@ -353,10 +353,22 @@ function getPeriodRange(rawValue) {
   }
 
   const MONTH_NAME_MAP = {
-    jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
-    jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+    jan: 1,
+    feb: 2,
+    mar: 3,
+    apr: 4,
+    may: 5,
+    jun: 6,
+    jul: 7,
+    aug: 8,
+    sep: 9,
+    oct: 10,
+    nov: 11,
+    dec: 12,
   };
-  const monthYearMatch = raw.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})$/i);
+  const monthYearMatch = raw.match(
+    /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})$/i
+  );
   if (monthYearMatch) {
     const month = MONTH_NAME_MAP[monthYearMatch[1].toLowerCase()];
     const year = Number(monthYearMatch[2]);
@@ -836,7 +848,12 @@ module.exports = {
 
         let filteredRows = workingRows;
         if (startBoundary || endBoundary) {
-          filteredRows = filterRowsByDate(workingRows, resolvedTimeField, startBoundary, endBoundary);
+          filteredRows = filterRowsByDate(
+            workingRows,
+            resolvedTimeField,
+            startBoundary,
+            endBoundary
+          );
         }
 
         const parsedTimes = filteredRows
@@ -1081,8 +1098,16 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { sourceId, periodField, volumeField, priceField, region, market, privacyContext, maxRows } =
-          ctx.params;
+        const {
+          sourceId,
+          periodField,
+          volumeField,
+          priceField,
+          region,
+          market,
+          privacyContext,
+          maxRows,
+        } = ctx.params;
 
         const rawRows = await fetchDatasourceRows(ctx, sourceId, { maxRows, privacyContext });
         const rows = normalizeSingleColumnCsvRows(rawRows);
@@ -1190,7 +1215,10 @@ module.exports = {
           const cursor = new Date(startD.getTime());
           while (cursor.getTime() <= endD.getTime()) {
             const b = dailySpotMap.get(toIsoDate(cursor));
-            if (b && b.count > 0) { total += b.sum / b.count; count += 1; }
+            if (b && b.count > 0) {
+              total += b.sum / b.count;
+              count += 1;
+            }
             cursor.setUTCDate(cursor.getUTCDate() + 1);
           }
           if (count > 0) {
@@ -1203,8 +1231,12 @@ module.exports = {
         // Build per-row positions
         const positions = [];
         for (const row of rows) {
-          const rawPeriod = row?.[resolvedPeriodField] ? String(row[resolvedPeriodField]).trim() : null;
-          const normStart = rawPeriod ? (getPeriodRange(rawPeriod) || {}).start || normalizePeriodValue(rawPeriod) : null;
+          const rawPeriod = row?.[resolvedPeriodField]
+            ? String(row[resolvedPeriodField]).trim()
+            : null;
+          const normStart = rawPeriod
+            ? (getPeriodRange(rawPeriod) || {}).start || normalizePeriodValue(rawPeriod)
+            : null;
           const procurementPrice = toNumber(row?.[resolvedPriceField], NaN);
           const volumeMWh = toNumber(row?.[resolvedVolumeField], NaN);
           const spotAvg = rawPeriod != null ? periodSpotMap.get(rawPeriod) : undefined;
@@ -1215,7 +1247,13 @@ module.exports = {
           const deltaPercent =
             delta != null && Math.abs(spotAvg) > 1e-12 ? (delta / spotAvg) * 100 : null;
           const positionType =
-            delta == null ? 'unknown' : delta > 0 ? 'above-spot' : delta < 0 ? 'below-spot' : 'at-spot';
+            delta == null
+              ? 'unknown'
+              : delta > 0
+                ? 'above-spot'
+                : delta < 0
+                  ? 'below-spot'
+                  : 'at-spot';
           positions.push({
             [resolvedPeriodField]: row[resolvedPeriodField],
             normalisedPeriod: normStart,
@@ -1238,8 +1276,14 @@ module.exports = {
           const vol = pos.Menge_MWh;
           if (!Number.isFinite(vol) || vol <= 0) continue;
           totalVolumeMWh += vol;
-          if (Number.isFinite(pos.procurementPrice)) { weightedProcSum += pos.procurementPrice * vol; pricedVolume += vol; }
-          if (Number.isFinite(pos.spotPrice)) { weightedSpotSum += pos.spotPrice * vol; spottedVolume += vol; }
+          if (Number.isFinite(pos.procurementPrice)) {
+            weightedProcSum += pos.procurementPrice * vol;
+            pricedVolume += vol;
+          }
+          if (Number.isFinite(pos.spotPrice)) {
+            weightedSpotSum += pos.spotPrice * vol;
+            spottedVolume += vol;
+          }
         }
         const procurementAvgPrice = pricedVolume > 0 ? weightedProcSum / pricedVolume : null;
         const spotAvgPrice = spottedVolume > 0 ? weightedSpotSum / spottedVolume : null;

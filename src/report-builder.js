@@ -482,12 +482,8 @@ function extractComplianceSignals(section1 = {}, section5 = {}) {
   const ewkTotal =
     asNumber(bm?.rankings?.anschlussdauer_ee_ns_total) ?? asNumber(bm?.rankings?.ewk_total) ?? null;
 
-  // CR-CERNION-043 BUG-1: Extract overall DI score (not just sub-scores) for consistent reporting.
-  // Sub-scores (Kundenmanagement, Datenmanagement) are components; overall score is what appears in rankings.
-  const diOverall = asPercent(diObj.digitalisierungsindex ?? diObj.score ?? diObj.overall ?? null);
-  const diOverallMedian = asPercent(
-    diStats?.digitalisierungsindex?.median ?? diStats?.median ?? null
-  );
+  // CR-CERNION-043 BUG-1: Sub-scores (Kundenmanagement, Datenmanagement) are used
+  // for reporting; overall score is handled in the ranking source payload.
   const diCustomerMgmt = asPercent(diObj.kundenmanagement);
   const diCustomerMedian = asPercent(diStats?.kundenmanagement?.median ?? null);
   const diDataMgmt = asPercent(diObj.datenmanagement);
@@ -800,10 +796,6 @@ function kpiRow(label, value, unit = '', description = '', fallbackReason = '') 
 
 function kpiTable(rows) {
   return `<table class="kpi-table"><thead><tr><th>Kennzahl</th><th>Wert</th><th>Beschreibung</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
-}
-
-function noDataBox(toolName) {
-  return `<div class="no-data">Keine Daten verfügbar${toolName ? ` (${escapeHtml(toolName)})` : ''} – Tool nicht erreichbar oder keine Lizenz.</div>`;
 }
 
 /**
@@ -1211,7 +1203,6 @@ function renderSection1(s1, s3 = {}) {
       ohneMeloData?.stats?.totalCount ??
       (Array.isArray(ohneMeloInsts) ? ohneMeloInsts.length : null);
 
-    const ortsfremd = s1?.ortsfremdeAnlagen;
     const ortsfremdData = safeData(s1, 'ortsfremdeAnlagen');
     const ortsfremdCount =
       ortsfremdData?.stats?.total ??
@@ -2940,7 +2931,6 @@ function renderNestAgnesBlock(
   ewkRank,
   ewkTotal
 ) {
-  const nestData = safeData(s5, 'nestCompliance');
   const hasNest = isAvail(s5, 'nestCompliance');
 
   // AgNeS-Effizienzwert from EWK benchmark JSON (varies by tool version)
