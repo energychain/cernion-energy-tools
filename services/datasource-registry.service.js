@@ -2,10 +2,12 @@
  * Datasource Registry Service
  *
  * Stores and manages inhouse datasource definitions and dictionary versions.
- * Initial implementation uses in-memory storage; persistence is added in later CRs.
+ * Registry data is persisted to disk so definitions survive service restarts.
  */
 
 const crypto = require('crypto');
+const fs = require('fs/promises');
+const path = require('path');
 const { getSemanticDomainById, listSemanticDomains } = require('../src/semantic-domains');
 
 function nowIso() {
@@ -21,6 +23,13 @@ module.exports = {
 
   settings: {
     defaultInferSampleRows: Number(process.env.DATASOURCE_MAX_INFER_SAMPLE_ROWS || 200),
+    persistenceEnabled:
+      process.env.DATASOURCE_REGISTRY_PERSISTENCE_ENABLED === undefined
+        ? process.env.NODE_ENV !== 'test'
+        : process.env.DATASOURCE_REGISTRY_PERSISTENCE_ENABLED !== 'false',
+    persistenceFile:
+      process.env.DATASOURCE_REGISTRY_FILE ||
+      path.join(process.cwd(), 'uploads', '.datasource-registry.json'),
   },
 
   actions: {
@@ -110,6 +119,7 @@ module.exports = {
 
         this.registry.set(sourceId, record);
         this.dictionaryHistory.set(sourceId, [deepClone(dictionary)]);
+        await this.persistState();
 
         this.broker.emit('datasource.registered', {
           sourceId,
@@ -228,6 +238,7 @@ module.exports = {
 
         source.updatedAt = nowIso();
         this.registry.set(source.id, source);
+        await this.persistState();
 
         this.broker.emit('datasource.updated', {
           sourceId: source.id,
@@ -258,6 +269,7 @@ module.exports = {
         const source = this.requireSource(ctx.params.id);
         this.registry.delete(source.id);
         this.dictionaryHistory.delete(source.id);
+        await this.persistState();
 
         this.broker.emit('datasource.deleted', {
           sourceId: source.id,
@@ -336,6 +348,7 @@ module.exports = {
         const history = this.dictionaryHistory.get(source.id) || [];
         history.push(deepClone(dictionary));
         this.dictionaryHistory.set(source.id, history);
+        await this.persistState();
 
         this.broker.emit('datasource.dictionary.updated', {
           sourceId: source.id,
@@ -566,6 +579,7 @@ module.exports = {
         source.semanticClassification = mergedClassification;
         source.updatedAt = timestamp;
         this.registry.set(source.id, source);
+        await this.persistState();
 
         this.broker.emit('datasource.classification.updated', {
           sourceId: source.id,
@@ -903,10 +917,83 @@ module.exports = {
         return field;
       });
     },
+
+    async loadState() {
+      if (!this.settings.persistenceEnabled) {
+        return;
+      }
+
+      let fileContent;
+      try {
+        fileContent = await fs.readFile(this.settings.persistenceFile, 'utf-8');
+      } catch (error) {
+        if (error.code !== 'ENOENT') {
+          this.logger.warn(`Failed to read datasource registry state: ${error.message}`);
+        }
+        return;
+      }
+
+      let state;
+      try {
+        state = JSON.parse(fileContent);
+      } catch (error) {
+        this.logger.warn(`Invalid datasource registry state JSON: ${error.message}`);
+        return;
+      }
+
+      const items = Array.isArray(state?.registry) ? state.registry : [];
+      const historyEntries = Array.isArray(state?.dictionaryHistory) ? state.dictionaryHistory : [];
+
+      this.registry = new Map(
+        items
+          .filter((item) => item && typeof item.id === 'string' && item.id.length > 0)
+          .map((item) => [item.id, item])
+      );
+
+      this.dictionaryHistory = new Map(
+        historyEntries
+          .filter((entry) => entry && typeof entry.sourceId === 'string')
+          .map((entry) => [entry.sourceId, Array.isArray(entry.history) ? entry.history : []])
+      );
+
+      this.logger.info(
+        `Loaded ${this.registry.size} datasource definitions from ${this.settings.persistenceFile}`
+      );
+    },
+
+    async persistState() {
+      if (!this.settings.persistenceEnabled) {
+        return;
+      }
+
+      const state = {
+        version: 1,
+        updatedAt: nowIso(),
+        registry: Array.from(this.registry.values()),
+        dictionaryHistory: Array.from(this.dictionaryHistory.entries()).map(
+          ([sourceId, history]) => ({
+            sourceId,
+            history,
+          })
+        ),
+      };
+
+      const targetFile = this.settings.persistenceFile;
+      const targetDir = path.dirname(targetFile);
+      const tempFile = `${targetFile}.tmp`;
+
+      await fs.mkdir(targetDir, { recursive: true });
+      await fs.writeFile(tempFile, JSON.stringify(state, null, 2), 'utf-8');
+      await fs.rename(tempFile, targetFile);
+    },
   },
 
   created() {
     this.registry = new Map();
     this.dictionaryHistory = new Map();
+  },
+
+  async started() {
+    await this.loadState();
   },
 };

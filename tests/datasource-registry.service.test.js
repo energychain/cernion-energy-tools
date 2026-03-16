@@ -3,6 +3,9 @@
  */
 
 const { ServiceBroker } = require('moleculer');
+const fs = require('fs/promises');
+const os = require('os');
+const path = require('path');
 const DatasourceRegistryService = require('../services/datasource-registry.service');
 const DatasourceClassifierService = require('../services/datasource-classifier.service');
 
@@ -366,5 +369,51 @@ describe('Datasource Registry Service – inference error path', () => {
     expect(classification.domainId).toBe('unknown');
     expect(classification.requiresUserInput).toBe(true);
     expect(classification.confirmedByUser).toBe(false);
+  });
+});
+
+describe('Datasource Registry Service – persistence across restart', () => {
+  const persistenceFile = path.join(
+    os.tmpdir(),
+    `datasource-registry-persistence-${Date.now()}-${Math.random().toString(16).slice(2)}.json`
+  );
+
+  afterAll(async () => {
+    await fs.rm(persistenceFile, { force: true });
+  });
+
+  it('should keep datasource records after broker restart', async () => {
+    const brokerA = new ServiceBroker({ logger: false, transporter: null });
+    brokerA.createService(DatasourceRegistryService, {
+      settings: {
+        persistenceEnabled: true,
+        persistenceFile,
+      },
+    });
+    await brokerA.start();
+
+    const created = await brokerA.call('datasource-registry.create', {
+      name: 'Persisted Quelle',
+      connectorType: 'csv',
+      connectorConfig: { path: '/tmp/persisted.csv' },
+    });
+
+    const sourceId = created.data.id;
+    await brokerA.stop();
+
+    const brokerB = new ServiceBroker({ logger: false, transporter: null });
+    brokerB.createService(DatasourceRegistryService, {
+      settings: {
+        persistenceEnabled: true,
+        persistenceFile,
+      },
+    });
+    await brokerB.start();
+
+    const fetched = await brokerB.call('datasource-registry.get', { id: sourceId });
+    expect(fetched.success).toBe(true);
+    expect(fetched.data.name).toBe('Persisted Quelle');
+
+    await brokerB.stop();
   });
 });
