@@ -16,6 +16,7 @@ module.exports = {
   settings: {
     watchDir: process.env.UPLOADS_DIR || './uploads',
     debounceMs: 2000,
+    autoRebuildOnStart: process.env.NODE_ENV === 'test' ? false : true,
   },
 
   dependencies: ['datasource-registry', 'datasource-cache'],
@@ -73,6 +74,42 @@ module.exports = {
       this.logger.info('[datasource-watcher] mappings rebuilt', {
         trackedFiles: this.fileToSources.size,
       });
+
+      return sources;
+    },
+
+    async rebuildCachesOnStart(sources) {
+      if (!this.settings.autoRebuildOnStart) {
+        this.logger.info('[datasource-watcher] startup cache rebuild disabled');
+        return;
+      }
+
+      const items = Array.isArray(sources) ? sources : [];
+      let refreshedCount = 0;
+
+      for (const source of items) {
+        const sourceId = source?.id || source?.sourceId;
+        if (!sourceId) continue;
+
+        try {
+          const status = await this.broker.call('datasource-cache.status', { sourceId });
+          const shouldRefresh = !status?.exists || status?.stale;
+          if (!shouldRefresh) continue;
+
+          await this.broker.call('datasource-cache.refresh', { sourceId });
+          refreshedCount += 1;
+        } catch (error) {
+          this.logger.warn('[datasource-watcher] startup cache refresh failed', {
+            sourceId,
+            message: error.message,
+          });
+        }
+      }
+
+      this.logger.info('[datasource-watcher] startup cache rebuild complete', {
+        totalSources: items.length,
+        refreshedCount,
+      });
     },
 
     scheduleFileChange(absPath) {
@@ -117,6 +154,7 @@ module.exports = {
 
       if (this.watcher) {
         this.watcher.close();
+        this.watchers.delete(this.watcher);
         this.watcher = null;
       }
 
@@ -125,6 +163,7 @@ module.exports = {
         const absPath = path.join(watchAbs, String(filename));
         this.scheduleFileChange(absPath);
       });
+      this.watchers.add(this.watcher);
 
       this.logger.info('[datasource-watcher] watcher started', {
         watchDir: this.settings.watchDir,
@@ -136,10 +175,12 @@ module.exports = {
     this.fileToSources = new Map();
     this.debounceTimers = new Map();
     this.watcher = null;
+    this.watchers = new Set();
   },
 
   async started() {
-    await this.rebuildMappings();
+    const sources = await this.rebuildMappings();
+    await this.rebuildCachesOnStart(sources);
     this.startWatcher();
   },
 
@@ -149,9 +190,10 @@ module.exports = {
     }
     this.debounceTimers.clear();
 
-    if (this.watcher) {
-      this.watcher.close();
-      this.watcher = null;
+    for (const watcher of this.watchers) {
+      watcher.close();
     }
+    this.watchers.clear();
+    this.watcher = null;
   },
 };

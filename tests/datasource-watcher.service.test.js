@@ -67,6 +67,12 @@ describe('datasource-watcher service', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
+  afterAll(async () => {
+    if (broker) {
+      await broker.stop();
+    }
+  });
+
   it('refreshes mapped datasource on file change', async () => {
     const service = broker.getLocalService('datasource-watcher');
     await service.onFileChange(path.join(tmpDir, 'portfolio.csv'));
