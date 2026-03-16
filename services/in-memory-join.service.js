@@ -1063,6 +1063,19 @@ module.exports = {
                   region: { type: 'string', example: 'Deutschland' },
                 },
               },
+              examples: {
+                beschaffungsportfolio: {
+                  summary: 'Compare procurement portfolio against Day-Ahead spot prices',
+                  value: {
+                    sourceId: 'proc-source-1',
+                    periodField: 'Lieferperiode',
+                    volumeField: 'Menge_MWh',
+                    priceField: 'Preis_EUR_MWh',
+                    region: 'Deutschland',
+                    market: 'day-ahead',
+                  },
+                },
+              },
             },
           },
         },

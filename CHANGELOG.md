@@ -91,6 +91,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Added explicit request body schema and property examples for
   `in-memory-join.benchmarkCompare` so OpenAPI audit passes with zero issues.
 
+- **`procurement_vs_spot` plan parameter binding when discovery uses `source_id`**
+  Fixed `listInhouseDescriptors()` in `agent.service` to normalize all three
+  field-name variants returned by `datasource-discovery.list` —
+  `sourceId` (camelCase), `source_id` (snake_case), and `id` — into the
+  canonical `sourceId` used by plan builders. Before this fix, descriptors
+  with `source_id` resolved to `null`, causing `datasource-cache.query` to
+  fail with "Daten nicht gefunden / fehlende Parameter" before the spot-price
+  fetch was ever reached. Also normalizes `aliases` construction from the
+  resolved `sourceId` in the same pass.
+
+- **Datasource registry persistence for user-confirmed semantic domains**
+  Fixed `datasource-classifier.confirm` so that a manually selected domain is
+  stored as authoritative and is never silently overwritten by the heuristic
+  classifier on the next refresh cycle. Previously, low-confidence sources
+  reverted to `unknown` after cache invalidation even when a domain had been
+  explicitly confirmed by the operator.
+
 - **Release baseline cleanup (formatting + lint auto-fix)**
   Executed repo-wide Prettier and ESLint auto-fix pass across `services/`,
   `src/`, `tests/`, and `scripts/` as the v0.9.4 baseline cleanup step.
