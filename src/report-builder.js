@@ -94,7 +94,15 @@ function typLabel(raw) {
   if (s.includes('solar') || s.includes('pv') || s.includes('photovolt')) return 'Solar';
   if (s.includes('wind')) return 'Wind';
   if (s.includes('speicher') || s.includes('storage') || s.includes('battery')) return 'Speicher';
-  if (s.includes('verbrennung') || s.includes('combustion') || s.includes('bhkw') || s.includes('biogas') || s.includes('biomass') || s.includes('bio')) return 'Verbrennung';
+  if (
+    s.includes('verbrennung') ||
+    s.includes('combustion') ||
+    s.includes('bhkw') ||
+    s.includes('biogas') ||
+    s.includes('biomass') ||
+    s.includes('bio')
+  )
+    return 'Verbrennung';
   if (s.includes('wasser') || s.includes('hydro')) return 'Wasser';
   if (s.includes('geo')) return 'Geothermie';
   return raw.length > 12 ? raw.slice(0, 10) + '…' : raw;
@@ -127,7 +135,10 @@ function pruefungStatusInfo(raw) {
     compact.includes('netzbetreiber-prufung');
 
   const isGeprueft =
-    s === '2954' || compact === '2954' || compact.includes('gepruft') || compact.includes('geprueft');
+    s === '2954' ||
+    compact === '2954' ||
+    compact.includes('gepruft') ||
+    compact.includes('geprueft');
 
   if (isInPruefung) return { isInPruefung: true, label: '⚠️ In Prüfung' };
   if (isGeprueft) return { isInPruefung: false, label: '✅ Geprüft' };
@@ -163,23 +174,29 @@ function renderMaStrTable(installations, opts = {}) {
     showMelo ? '<th>MeLo</th>' : '',
     showPruefung ? '<th>Prüfung</th>' : '',
     showStatus ? '<th>Status</th>' : '',
-  ].filter(Boolean).join('');
+  ]
+    .filter(Boolean)
+    .join('');
 
-  const rows = insts.map((i) => {
-    const mastr = i?.mastrNummer ?? i?.MastrNummer ?? '';
-    const name = i?.anlagenName ?? i?.name ?? mastr ?? '–';
-    const typ = typLabel(i?.einheitTyp ?? i?.type ?? i?.typ ?? '');
-    const kw = asNumber(i?.capacity ?? i?.nettoLeistung ?? i?.bruttoleistung ?? i?.leistungKw ?? i?.leistung);
-    const span = spannungLabel(i?.spannungsebene ?? i?.voltage ?? '');
-    const ort = i?.ort ?? i?.city ?? i?.gemeinde ?? '';
-    const hasMelo = i?.napData != null || i?.meloId != null || i?.melo != null;
-    const pruefStatus = i?.netzbetreiberPruefungStatus ?? i?.pruefungStatus ?? '';
-    const pruefInfo = pruefungStatusInfo(pruefStatus);
-    const isInPruefung = pruefInfo.isInPruefung;
-    const betriebStatus = i?.betriebsStatus ?? i?.status ?? '';
-    const isStillgelegt = String(betriebStatus).toLowerCase().includes('stillgelegt') || betriebStatus === '38';
-    const rowStyle = highlightPruefung && isInPruefung ? ' style="background:#fff3f3;"' : '';
-    return `<tr${rowStyle}>
+  const rows = insts
+    .map((i) => {
+      const mastr = i?.mastrNummer ?? i?.MastrNummer ?? '';
+      const name = i?.anlagenName ?? i?.name ?? mastr ?? '–';
+      const typ = typLabel(i?.einheitTyp ?? i?.type ?? i?.typ ?? '');
+      const kw = asNumber(
+        i?.capacity ?? i?.nettoLeistung ?? i?.bruttoleistung ?? i?.leistungKw ?? i?.leistung
+      );
+      const span = spannungLabel(i?.spannungsebene ?? i?.voltage ?? '');
+      const ort = i?.ort ?? i?.city ?? i?.gemeinde ?? '';
+      const hasMelo = i?.napData != null || i?.meloId != null || i?.melo != null;
+      const pruefStatus = i?.netzbetreiberPruefungStatus ?? i?.pruefungStatus ?? '';
+      const pruefInfo = pruefungStatusInfo(pruefStatus);
+      const isInPruefung = pruefInfo.isInPruefung;
+      const betriebStatus = i?.betriebsStatus ?? i?.status ?? '';
+      const isStillgelegt =
+        String(betriebStatus).toLowerCase().includes('stillgelegt') || betriebStatus === '38';
+      const rowStyle = highlightPruefung && isInPruefung ? ' style="background:#fff3f3;"' : '';
+      return `<tr${rowStyle}>
       ${showMastr ? `<td style="font-size:7pt;font-family:monospace">${escapeHtml(mastr)}</td>` : ''}
       <td>${escapeHtml(String(name).slice(0, 35))}</td>
       ${showTyp ? `<td>${escapeHtml(typ)}</td>` : ''}
@@ -190,9 +207,12 @@ function renderMaStrTable(installations, opts = {}) {
       ${showPruefung ? `<td style="text-align:center;color:${isInPruefung ? '#c0392b' : '#2c3e50'};font-weight:${isInPruefung ? '700' : '500'}">${escapeHtml(pruefInfo.label)}</td>` : ''}
       ${showStatus ? `<td>${isStillgelegt ? '🔴 Still.' : '🟢 IB'}</td>` : ''}
     </tr>`;
-  }).join('');
+    })
+    .join('');
 
-  const captionHtml = caption ? `<caption style="font-size:8pt;color:#666;caption-side:top;text-align:left;padding-bottom:2mm;">${escapeHtml(caption)}</caption>` : '';
+  const captionHtml = caption
+    ? `<caption style="font-size:8pt;color:#666;caption-side:top;text-align:left;padding-bottom:2mm;">${escapeHtml(caption)}</caption>`
+    : '';
   return `<div style="overflow-x:auto;margin:2mm 0;">
     <table style="width:100%;border-collapse:collapse;font-size:8pt;">
       ${captionHtml}
@@ -391,12 +411,14 @@ function extractComplianceSignals(section1 = {}, section5 = {}) {
   // CR-CERNION-044 BUG-8: example installation comes from anlagenInPruefungBeispiel
   // (format:'detailed', limit:10, no status filter) – top-10 by capacity incl. stillgelegte.
   const beispielData = safeData(section1, 'anlagenInPruefungBeispiel');
-  const beispielInstallations = beispielData?.installations ?? beispielData?.data?.installations ?? [];
+  const beispielInstallations =
+    beispielData?.installations ?? beispielData?.data?.installations ?? [];
   const pruefungInstallations = Array.isArray(beispielInstallations) ? beispielInstallations : [];
 
   // CR-SWF-002 CR-02: Stillgelegte Anlagen mit offenem Prüfstatus
   const stillgelegtData = safeData(section1, 'anlagenStillgelegtInPruefung');
-  const stillgelegtRaw = stillgelegtData?.installations ?? stillgelegtData?.data?.installations ?? [];
+  const stillgelegtRaw =
+    stillgelegtData?.installations ?? stillgelegtData?.data?.installations ?? [];
   const stillgelegtInstallations = Array.isArray(stillgelegtRaw) ? stillgelegtRaw : [];
   const stillgelegtCount = stillgelegtInstallations.length;
 
@@ -428,7 +450,8 @@ function extractComplianceSignals(section1 = {}, section5 = {}) {
   const di = extractEwkJson(safeData(section5, 'digitalisierungsindex'));
   const uq = extractEwkJson(safeData(section5, 'umsetzungsquote'));
 
-  const adRow = ad?.rows?.[0] ?? bm?.rows?.[0] ?? bm?.anschlussdauer ?? bm?.anschlussdauer?.vnb ?? {};
+  const adRow =
+    ad?.rows?.[0] ?? bm?.rows?.[0] ?? bm?.anschlussdauer ?? bm?.anschlussdauer?.vnb ?? {};
   const adStats = ad?.stats ?? bm?.stats ?? bm?.anschlussdauer?.stats ?? {};
   // CR-CERNION-043 BUG-1: Use benchmarkVnb as single authoritative source for DI to prevent inconsistency.
   // Fallback chain: benchmarkVnb (unified) → dedicated di endpoint.
@@ -535,24 +558,31 @@ function renderSchockerBlocks(section1 = {}, section5 = {}, meta = {}) {
       .map(([t, n]) => `${t}\u00a0${n}`)
       .join(' \u00b7 ');
 
-    const top10Table = s.pruefungInstallations.length > 0
-      ? renderMaStrTable(
-          [...s.pruefungInstallations].sort(
-            (a, b) => (asNumber(b?.capacity) ?? 0) - (asNumber(a?.capacity) ?? 0)
-          ),
-          {
-            showMastr: true, showTyp: true, showSpannung: true, showMelo: true,
-            showStatus: true, showPruefung: false, highlightPruefung: false,
-            caption: `Top-${Math.min(s.pruefungInstallations.length, 10)} Anlagen in Netzbetreiberpr\u00fcfung (nach Leistung)`,
-            maxRows: 10,
-          }
-        )
-      : '';
+    const top10Table =
+      s.pruefungInstallations.length > 0
+        ? renderMaStrTable(
+            [...s.pruefungInstallations].sort(
+              (a, b) => (asNumber(b?.capacity) ?? 0) - (asNumber(a?.capacity) ?? 0)
+            ),
+            {
+              showMastr: true,
+              showTyp: true,
+              showSpannung: true,
+              showMelo: true,
+              showStatus: true,
+              showPruefung: false,
+              highlightPruefung: false,
+              caption: `Top-${Math.min(s.pruefungInstallations.length, 10)} Anlagen in Netzbetreiberpr\u00fcfung (nach Leistung)`,
+              maxRows: 10,
+            }
+          )
+        : '';
 
     // CR-SWF-002 CR-02: Callout for decommissioned units with open Pr\u00fcfstatus
-    const stillgelegtNote = s.stillgelegtCount > 0
-      ? `<p style="color:#c0392b;font-weight:600;">\u26a0\ufe0f Darunter ${s.stillgelegtCount} dauerhaft stillgelegte Anlage${s.stillgelegtCount > 1 ? 'n' : ''} mit offenem Pr\u00fcfstatus \u2013 MaStR-Abschluss + \u00a76 EEG-Meldung fehlen (verf\u00e4lscht AgNES-Kapazit\u00e4tsbilanz).</p>`
-      : '';
+    const stillgelegtNote =
+      s.stillgelegtCount > 0
+        ? `<p style="color:#c0392b;font-weight:600;">\u26a0\ufe0f Darunter ${s.stillgelegtCount} dauerhaft stillgelegte Anlage${s.stillgelegtCount > 1 ? 'n' : ''} mit offenem Pr\u00fcfstatus \u2013 MaStR-Abschluss + \u00a76 EEG-Meldung fehlen (verf\u00e4lscht AgNES-Kapazit\u00e4tsbilanz).</p>`
+        : '';
 
     blocks.push(`
       <div class="no-break" style="margin:4mm 0;border:2px solid #c0392b;border-radius:4px;background:#fff8f7;">
@@ -794,14 +824,16 @@ function actionHint(title, items) {
 function renderSourceNote(sources, retrievedAt) {
   const ts = retrievedAt
     ? new Date(retrievedAt).toLocaleString('de-DE', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
       })
     : null;
   const tsNote = ts ? ` \u00b7 Abgerufen: ${ts}` : '';
   return `<p style="font-size:7.5pt;color:#95a5a6;margin-top:1.5mm;margin-bottom:0;">\ud83d\udcc1 Quellen: ${escapeHtml(sources.join(' \u00b7 '))}${escapeHtml(tsNote)}</p>`;
 }
-
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
 
@@ -990,14 +1022,26 @@ function renderSection1(s1, s3 = {}) {
     rlValueMw && rlValueMw !== '–' ? (rlWarning ? `${rlValueMw} ⚠` : rlValueMw) : null;
 
   // BUG-2 FIX: Extract numeric MW value and day-ahead price for dynamic formula
-  const rlNumericMw = rlValueMw && rlValueMw !== '–' ? parseFloat(rlValueMw.replace(/[^0-9.,]/g, '').replace(',', '.')) : null;
+  const rlNumericMw =
+    rlValueMw && rlValueMw !== '–'
+      ? parseFloat(rlValueMw.replace(/[^0-9.,]/g, '').replace(',', '.'))
+      : null;
 
   // Get day-ahead price from Section 3
   const prices = safeData(s3, 'prices');
   const spot = safeData(s3, 'spotprices');
-  const priceTimeSeries = prices?.dataPoints || prices?.prices || prices?.data?.prices || spot?.dataPoints || spot?.prices || spot?.data?.prices || [];
+  const priceTimeSeries =
+    prices?.dataPoints ||
+    prices?.prices ||
+    prices?.data?.prices ||
+    spot?.dataPoints ||
+    spot?.prices ||
+    spot?.data?.prices ||
+    [];
   const latestPt = priceTimeSeries.length > 0 ? priceTimeSeries[priceTimeSeries.length - 1] : null;
-  const dayAheadPrice = getVal(prices, 'latestPrice', 'currentPrice') ?? (latestPt ? (latestPt.priceEURperMWh ?? latestPt.price ?? null) : null);
+  const dayAheadPrice =
+    getVal(prices, 'latestPrice', 'currentPrice') ??
+    (latestPt ? (latestPt.priceEURperMWh ?? latestPt.price ?? null) : null);
 
   // Build dynamic formula description
   let rlDesc;
@@ -1012,7 +1056,8 @@ function renderSection1(s1, s3 = {}) {
     rlDesc = `Ø Netto-Residuallast – Beschaffungsbedarf des Stadtwerks am EPEX Spotmarkt (${fmtNum(rlNumericMw, 1)} MW × 80 €/MWh × 8.760 h ≈ ${fmtNum(annualCostMio, 1)} Mio. €/Jahr) · ⚠️ Worst-Case-Schätzung (kein Echtzeit-Preis verfügbar) – kein Planungswert`;
   } else {
     // Final fallback: use original hardcoded value if no data available
-    rlDesc = '\u00d8 Netto-Residuallast \u2013 Beschaffungsbedarf des Stadtwerks am EPEX Spotmarkt (1 MW \u00d7 120 \u20ac/MWh \u00d7 8.760 h \u2248 1,05 Mio. \u20ac/Jahr) \u00b7 \u26a0\ufe0f Worst-Case-Sch\u00e4tzung (kein Echtzeit-Marktpreis abrufbar) \u2013 kein Planungswert';
+    rlDesc =
+      '\u00d8 Netto-Residuallast \u2013 Beschaffungsbedarf des Stadtwerks am EPEX Spotmarkt (1 MW \u00d7 120 \u20ac/MWh \u00d7 8.760 h \u2248 1,05 Mio. \u20ac/Jahr) \u00b7 \u26a0\ufe0f Worst-Case-Sch\u00e4tzung (kein Echtzeit-Marktpreis abrufbar) \u2013 kein Planungswert';
   }
 
   const rows = [
@@ -1129,15 +1174,9 @@ function renderSection1(s1, s3 = {}) {
         if (!isAvail(s1, 'gridLossAnalysis')) return null;
         const gl = safeData(s1, 'gridLossAnalysis');
         const lossPct =
-          gl?.lossPercentage ??
-          gl?.totalLossPercentage ??
-          gl?.data?.lossPercentage ??
-          null;
+          gl?.lossPercentage ?? gl?.totalLossPercentage ?? gl?.data?.lossPercentage ?? null;
         const lossEuro =
-          gl?.lossValueEuro ??
-          gl?.estimatedLossEuroPerYear ??
-          gl?.data?.lossValueEuro ??
-          null;
+          gl?.lossValueEuro ?? gl?.estimatedLossEuroPerYear ?? gl?.data?.lossValueEuro ?? null;
         if (lossPct !== null) {
           return `${fmtNum(lossPct, 1)} % Verlust${lossEuro !== null ? ` (≈ ${(lossEuro / 1e6).toFixed(1)} Mio. €/Jahr)` : ''}`;
         }
@@ -1223,9 +1262,15 @@ function renderSection1(s1, s3 = {}) {
       top10SectionHtml = `
         <h3 class="sub-sub" style="margin-top:4mm;">Top-10 Anlagen nach installierter Leistung (InBetrieb)</h3>
         ${renderMaStrTable(top10, {
-          showMastr: true, showTyp: true, showSpannung: true, showMelo: true,
-          showStatus: false, showPruefung: true, highlightPruefung: true,
-          caption: 'Grundlage: cernion_installations_local \u00b7 Status InBetrieb \u00b7 sortiert nach Leistung (kW)',
+          showMastr: true,
+          showTyp: true,
+          showSpannung: true,
+          showMelo: true,
+          showStatus: false,
+          showPruefung: true,
+          highlightPruefung: true,
+          caption:
+            'Grundlage: cernion_installations_local \u00b7 Status InBetrieb \u00b7 sortiert nach Leistung (kW)',
           maxRows: 10,
         })}`;
     }
@@ -1242,7 +1287,10 @@ function renderSection1(s1, s3 = {}) {
         .slice(0, 20);
       const criticalOpen = rdTop.filter((inst) => {
         const inPr = pruefungStatusInfo(
-          inst?.netzbetreiberPruefungStatus ?? inst?.netzbetreiberPruefung ?? inst?.pruefungStatus ?? ''
+          inst?.netzbetreiberPruefungStatus ??
+            inst?.netzbetreiberPruefung ??
+            inst?.pruefungStatus ??
+            ''
         ).isInPruefung;
         const cap = asNumber(inst?.capacity ?? inst?.leistungKw ?? inst?.leistung) ?? 0;
         return inPr && cap >= 1000;
@@ -1250,15 +1298,24 @@ function renderSection1(s1, s3 = {}) {
       const criticalNote = criticalOpen.length
         ? `<p style="color:#c0392b;font-weight:700;font-size:8pt;">⚠️ Redispatch-pflichtig, Prüfstatus offen – sofortiger Handlungsbedarf: ${criticalOpen
             .slice(0, 3)
-            .map((x) => `${escapeHtml(x?.mastrNummer ?? 'n/v')}${x?.inbetriebnahme ? ` (seit ${escapeHtml(String(x.inbetriebnahme))})` : ''}`)
+            .map(
+              (x) =>
+                `${escapeHtml(x?.mastrNummer ?? 'n/v')}${x?.inbetriebnahme ? ` (seit ${escapeHtml(String(x.inbetriebnahme))})` : ''}`
+            )
             .join(', ')}.</p>`
         : '';
       redispatchSectionHtml = `
         <h3 class="sub-sub" style="margin-top:4mm;">Redispatch-/§51-Anlagenpool ≥100 kW (InBetrieb)</h3>
         ${renderMaStrTable(rdTop, {
-          showMastr: true, showTyp: true, showSpannung: true, showMelo: true,
-          showStatus: false, showPruefung: true, highlightPruefung: true,
-          caption: 'Grundlage: cernion_installations_local · ≥100 kW · Status InBetrieb · offene Prüfung hervorgehoben',
+          showMastr: true,
+          showTyp: true,
+          showSpannung: true,
+          showMelo: true,
+          showStatus: false,
+          showPruefung: true,
+          highlightPruefung: true,
+          caption:
+            'Grundlage: cernion_installations_local · ≥100 kW · Status InBetrieb · offene Prüfung hervorgehoben',
           maxRows: 20,
         })}
         ${criticalNote}`;
@@ -1273,34 +1330,43 @@ function renderSection1(s1, s3 = {}) {
       ortsfremdDetail?.installations ?? ortsfremdDetail?.data?.installations ?? [];
     const plzPrefix = s1?.ortsfremdeAnlagen?.dominantPlzPrefix ?? null;
     if (Array.isArray(ortsfremdDetailInsts) && ortsfremdDetailInsts.length > 0) {
-      const dualRiskCount = ortsfremdDetailInsts.filter((inst) =>
-        pruefungStatusInfo(
-          inst?.netzbetreiberPruefungStatus ?? inst?.netzbetreiberPruefung ?? inst?.pruefungStatus ?? ''
-        ).isInPruefung
+      const dualRiskCount = ortsfremdDetailInsts.filter(
+        (inst) =>
+          pruefungStatusInfo(
+            inst?.netzbetreiberPruefungStatus ??
+              inst?.netzbetreiberPruefung ??
+              inst?.pruefungStatus ??
+              ''
+          ).isInPruefung
       ).length;
       const dualRiskNote =
         dualRiskCount > 0
           ? `<p style="color:#c0392b;font-weight:600;font-size:8pt;">⚠️ ${dualRiskCount} davon sind Dual-Risk-/Doppelrisiko-Fälle (PLZ-Fehler + offene Netzbetreiber-Prüfung).</p>`
           : '';
 
-      const plzRows = ortsfremdDetailInsts.slice(0, 50).map((inst) => {
-        const info = pruefungStatusInfo(
-          inst?.netzbetreiberPruefungStatus ?? inst?.netzbetreiberPruefung ?? inst?.pruefungStatus ?? ''
-        );
-        const nap =
-          inst?.napData?.mastrNummer ??
-          inst?.napData?.napNummer ??
-          inst?.netzanschlusspunktMastrNummer ??
-          '–';
-        const plzIst =
-          inst?.postleitzahl ??
-          inst?.plz ??
-          inst?.address?.postalCode ??
-          inst?.napData?.postleitzahl ??
-          '–';
-        const plzSoll = plzPrefix ? `${plzPrefix}xx` : 'VNB-Kerngebiet';
-        const rowStyle = info.isInPruefung ? ' style="background:#fff3f3;"' : '';
-        return `<tr${rowStyle}>
+      const plzRows = ortsfremdDetailInsts
+        .slice(0, 50)
+        .map((inst) => {
+          const info = pruefungStatusInfo(
+            inst?.netzbetreiberPruefungStatus ??
+              inst?.netzbetreiberPruefung ??
+              inst?.pruefungStatus ??
+              ''
+          );
+          const nap =
+            inst?.napData?.mastrNummer ??
+            inst?.napData?.napNummer ??
+            inst?.netzanschlusspunktMastrNummer ??
+            '–';
+          const plzIst =
+            inst?.postleitzahl ??
+            inst?.plz ??
+            inst?.address?.postalCode ??
+            inst?.napData?.postleitzahl ??
+            '–';
+          const plzSoll = plzPrefix ? `${plzPrefix}xx` : 'VNB-Kerngebiet';
+          const rowStyle = info.isInPruefung ? ' style="background:#fff3f3;"' : '';
+          return `<tr${rowStyle}>
           <td style="font-size:7pt;font-family:monospace">${escapeHtml(inst?.mastrNummer ?? '–')}</td>
           <td>${escapeHtml(String(inst?.anlagenName ?? inst?.name ?? '–').slice(0, 30))}</td>
           <td>${escapeHtml(typLabel(inst?.einheitTyp ?? inst?.type ?? inst?.typ ?? ''))}</td>
@@ -1309,7 +1375,8 @@ function renderSection1(s1, s3 = {}) {
           <td style="font-size:7pt;font-family:monospace">${escapeHtml(String(nap))}</td>
           <td style="text-align:center;color:${info.isInPruefung ? '#c0392b' : '#2c3e50'};font-weight:${info.isInPruefung ? '700' : '500'}">${escapeHtml(info.label)}</td>
         </tr>`;
-      }).join('');
+        })
+        .join('');
 
       plzDetailSectionHtml = `
         <h3 class="sub-sub" style="margin-top:4mm;">Ortsfremde Anlagen – PLZ-Ausreißer mit MaStR-/NAP-Referenz</h3>
@@ -1338,9 +1405,15 @@ function renderSection1(s1, s3 = {}) {
         <h3 class="sub-sub" style="margin-top:4mm;color:#c0392b;">\u26a0\ufe0f Dauerhaft Stillgelegte mit offenem Pr\u00fcfstatus (${stillInsts.length})</h3>
         <p style="font-size:8pt;color:#c0392b;">\u00a76 EEG-Stilllegungsmeldung fehlt \u2013 verf\u00e4lscht AgNeS-Kapazit\u00e4tsbilanz. MaStR-Abschluss und Pr\u00fcfstatus setzen.</p>
         ${renderMaStrTable(stillInsts, {
-          showMastr: true, showTyp: true, showSpannung: true, showMelo: true,
-          showStatus: true, showPruefung: true, highlightPruefung: true,
-          caption: 'Grundlage: cernion_installations_local \u00b7 Status DauerhaftStillgelegt \u00b7 Pr\u00fcfstatus offen',
+          showMastr: true,
+          showTyp: true,
+          showSpannung: true,
+          showMelo: true,
+          showStatus: true,
+          showPruefung: true,
+          highlightPruefung: true,
+          caption:
+            'Grundlage: cernion_installations_local \u00b7 Status DauerhaftStillgelegt \u00b7 Pr\u00fcfstatus offen',
           maxRows: 20,
         })}`;
     }
@@ -1381,7 +1454,11 @@ function renderSection1(s1, s3 = {}) {
     // "48h-Prognose" title when fewer than 48 data points are present.
     const rlHorizonH = rlSlice.length;
     const rlHorizonLabel =
-      rlHorizonH >= 48 ? '48h-Horizont' : rlHorizonH >= 24 ? '24h-Horizont' : `${rlHorizonH}h-Horizont`;
+      rlHorizonH >= 48
+        ? '48h-Horizont'
+        : rlHorizonH >= 24
+          ? '24h-Horizont'
+          : `${rlHorizonH}h-Horizont`;
     const rlPrognoseTitel =
       rlHorizonH >= 48
         ? 'Ist + 48h-Prognose'
@@ -1523,7 +1600,7 @@ function renderSection2(s2) {
   const windSolarLabel = isAvail(s2, 'windSolarActual')
     ? windSolarTotalMW != null && windSolarTotalMW > 0
       ? `${fmtMw(windSolarTotalMW)} Ø DE (Ist)`
-      : null  // CR-CERNION-044 BUG-13: suppress row when no numeric value parseable
+      : null // CR-CERNION-044 BUG-13: suppress row when no numeric value parseable
     : null;
 
   // CR-42: generationForecast → first-day generation MW (Netzgebiet-Solar forecast)
@@ -1536,7 +1613,7 @@ function renderSection2(s2) {
   const genFcLabel = isAvail(s2, 'generationForecast')
     ? genFcFirstMW != null && genFcFirstMW >= 0
       ? `${fmtMw(genFcFirstMW)} morgen (Netzgebiet-Solar)`
-      : null  // CR-CERNION-044 BUG-13: suppress row when no numeric value parseable
+      : null // CR-CERNION-044 BUG-13: suppress row when no numeric value parseable
     : null;
 
   // CR-CERNION-044 BUG-13: regionalEnergyMix – extract dominant source + percentage
@@ -1547,13 +1624,11 @@ function renderSection2(s2) {
     regionalMixData?.data?.dominantSource ??
     null;
   const mixPct =
-    regionalMixData?.dominantPercentage ??
-    regionalMixData?.data?.dominantPercentage ??
-    null;
+    regionalMixData?.dominantPercentage ?? regionalMixData?.data?.dominantPercentage ?? null;
   const regionalMixLabel = isAvail(s2, 'regionalEnergyMix')
     ? mixDominant !== null
       ? `${escapeHtml(String(mixDominant))}${mixPct !== null ? `: ${fmtPct(mixPct)}` : ''}`
-      : null  // suppress row when no parseable data
+      : null // suppress row when no parseable data
     : null;
 
   const rows = [
@@ -1599,12 +1674,7 @@ function renderSection2(s2) {
       '',
       'Regionalprognose (MaStR-Kapazitäten × Wetterprofil) – Grundlage für präzise Day-Ahead-Beschaffung am EPEX Spotmarkt'
     ),
-    kpiRow(
-      'Regionaler Energiemix',
-      regionalMixLabel,
-      '',
-      'PV, Wind, Biomasse, KWK im Netzgebiet'
-    ),
+    kpiRow('Regionaler Energiemix', regionalMixLabel, '', 'PV, Wind, Biomasse, KWK im Netzgebiet'),
   ];
 
   // CR-49: EE-Portfolio Mix Donut – VNB-specific installed base
@@ -1826,12 +1896,16 @@ function renderSection3(s3) {
         const ag = safeData(s3, 'actualGeneration');
         const rows = ag?.generationData ?? ag?.data?.generationData ?? ag?.data ?? ag ?? [];
         if (Array.isArray(rows) && rows.length > 0) {
-          const totalMW = rows.reduce((sum, r) => sum + (asNumber(r?.generationValue ?? r?.value ?? r?.mw) ?? 0), 0);
+          const totalMW = rows.reduce(
+            (sum, r) => sum + (asNumber(r?.generationValue ?? r?.value ?? r?.mw) ?? 0),
+            0
+          );
           if (totalMW > 0) return `${fmtNum(totalMW / 1000, 1)} GW gesamt (DE)`;
         }
         const directMW = asNumber(ag?.totalMW ?? ag?.totalGenerationMW ?? ag?.data?.totalMW);
-        if (directMW !== null && directMW > 0) return `${fmtNum(directMW / 1000, 1)} GW gesamt (DE)`;
-        return null;  // suppress row when no parseable value
+        if (directMW !== null && directMW > 0)
+          return `${fmtNum(directMW / 1000, 1)} GW gesamt (DE)`;
+        return null; // suppress row when no parseable value
       })(),
       '',
       'ENTSO-E aggregiert nach Erzeugungstyp'
@@ -1842,16 +1916,19 @@ function renderSection3(s3) {
       (() => {
         if (!isAvail(s3, 'loadForecast')) return null;
         const lf = safeData(s3, 'loadForecast');
-        const forecasts = lf?.forecasts ?? lf?.data?.forecasts ?? lf?.loadForecast ?? lf?.data ?? [];
+        const forecasts =
+          lf?.forecasts ?? lf?.data?.forecasts ?? lf?.loadForecast ?? lf?.data ?? [];
         if (Array.isArray(forecasts) && forecasts.length > 0) {
           const peakMW = Math.max(
-            ...forecasts.map((f) => asNumber(f?.forecastValue ?? f?.loadMW ?? f?.value ?? f?.mw) ?? 0)
+            ...forecasts.map(
+              (f) => asNumber(f?.forecastValue ?? f?.loadMW ?? f?.value ?? f?.mw) ?? 0
+            )
           );
           if (peakMW > 0) return `Peak: ${fmtNum(peakMW / 1000, 1)} GW (24h)`;
         }
         const directMW = asNumber(lf?.peakMW ?? lf?.maxLoadMW ?? lf?.data?.peakMW);
         if (directMW !== null && directMW > 0) return `Peak: ${fmtNum(directMW / 1000, 1)} GW`;
-        return null;  // suppress row when no parseable value
+        return null; // suppress row when no parseable value
       })(),
       '',
       'Bundesdeutsche Verbrauchserwartung'

@@ -1988,7 +1988,12 @@ describe('Utility Report Service', () => {
             available: true,
             data: {
               installations: [
-                { mastrNummer: 'SEE123456789', capacity: 250, netzbetreiberPruefungStatus: 'NetzbetreiberPruefung', anlagenName: 'PV Testanlage' },
+                {
+                  mastrNummer: 'SEE123456789',
+                  capacity: 250,
+                  netzbetreiberPruefungStatus: 'NetzbetreiberPruefung',
+                  anlagenName: 'PV Testanlage',
+                },
               ],
             },
           },
@@ -2055,8 +2060,7 @@ describe('Utility Report Service', () => {
       const calls = callWithNewSession.mock.calls;
       const pruefungCalls = calls.filter(
         ([tool, params]) =>
-          tool === 'cernion_installations_local' &&
-          params.netzbetreiberPruefungStatus !== undefined
+          tool === 'cernion_installations_local' && params.netzbetreiberPruefungStatus !== undefined
       );
 
       if (pruefungCalls.length > 0) {
@@ -2125,11 +2129,17 @@ describe('Utility Report Service', () => {
       const html = buildHtmlReport({
         meta: { utilityName: 'NoVerfuegbar Test GmbH' },
         section1: {
-          emobilityImpact: { available: true, data: { criticalStreets: [{}], section14aDevices: 5 } },
+          emobilityImpact: {
+            available: true,
+            data: { criticalStreets: [{}], section14aDevices: 5 },
+          },
           gridLossAnalysis: { available: true, data: { lossPercentage: 1.5 } },
         },
         section2: {
-          regionalEnergyMix: { available: true, data: { dominantSource: 'Solar', dominantPercentage: 45 } },
+          regionalEnergyMix: {
+            available: true,
+            data: { dominantSource: 'Solar', dominantPercentage: 45 },
+          },
         },
         generatedAt: new Date().toISOString(),
       });
@@ -2268,11 +2278,7 @@ describe('Utility Report Service', () => {
 
     it('AC-4: loadForecast shows peak GW', () => {
       const forecastData = {
-        forecasts: [
-          { forecastValue: 50000 },
-          { forecastValue: 72000 },
-          { forecastValue: 65000 },
-        ],
+        forecasts: [{ forecastValue: 50000 }, { forecastValue: 72000 }, { forecastValue: 65000 }],
       };
       const html = buildHtmlReport({
         meta: { utilityName: 'LoadFc Test GmbH' },
@@ -2322,7 +2328,9 @@ describe('Utility Report Service', () => {
         einheitTyp: 'Solar',
         inbetriebnahme: '2020-01-01',
       };
-      const summaryText = [{ type: 'text', text: '**Total found:** 5 installations in Netzbetreiberpr\u00fcfung\n' }];
+      const summaryText = [
+        { type: 'text', text: '**Total found:** 5 installations in Netzbetreiberpr\u00fcfung\n' },
+      ];
       const html = buildHtmlReport({
         meta: { utilityName: 'Test GmbH' },
         section1: {
@@ -2351,7 +2359,9 @@ describe('Utility Report Service', () => {
         capacity: 200,
         einheitTyp: 'Solar',
       };
-      const summaryText = [{ type: 'text', text: '**Total found:** 3 installations in Netzbetreiberpr\u00fcfung\n' }];
+      const summaryText = [
+        { type: 'text', text: '**Total found:** 3 installations in Netzbetreiberpr\u00fcfung\n' },
+      ];
       const html = buildHtmlReport({
         meta: { utilityName: 'CR02 GmbH' },
         section1: {
@@ -2490,14 +2500,16 @@ describe('Utility Report Service', () => {
 
     // CR-09: vmIst SCHOCKER includes peerContextNote when vmPeer is present
     it('CR-09: vmIst SCHOCKER contains Strukturhinweis when vmPeer is active', () => {
-      const bmData = [{
-        type: 'text',
-        json: {
-          rankings: { anschlussdauer_ee_ns_rank: 600, anschlussdauer_ee_ns_total: 740 },
-          rows: [{ verbrauch_ms_gesamt: 120 }],
-          stats: { verbrauch_ms_gesamt: { median: 40 } },
+      const bmData = [
+        {
+          type: 'text',
+          json: {
+            rankings: { anschlussdauer_ee_ns_rank: 600, anschlussdauer_ee_ns_total: 740 },
+            rows: [{ verbrauch_ms_gesamt: 120 }],
+            stats: { verbrauch_ms_gesamt: { median: 40 } },
+          },
         },
-      }];
+      ];
       const html = buildHtmlReport({
         meta: { utilityName: 'CR09 GmbH' },
         section5: {
@@ -2511,12 +2523,14 @@ describe('Utility Report Service', () => {
 
     // CR-10: NEST explainer uses dynamic ewkTotal, not hardcoded 740
     it('CR-10: NEST explainer uses dynamic ewkTotal without hardcoded 740', () => {
-      const bmData = [{
-        type: 'text',
-        json: {
-          rankings: { anschlussdauer_ee_ns_rank: 300, anschlussdauer_ee_ns_total: 755 },
+      const bmData = [
+        {
+          type: 'text',
+          json: {
+            rankings: { anschlussdauer_ee_ns_rank: 300, anschlussdauer_ee_ns_total: 755 },
+          },
         },
-      }];
+      ];
       const html = buildHtmlReport({
         meta: { utilityName: 'CR10 GmbH' },
         section5: {
@@ -2626,20 +2640,22 @@ describe('Utility Report Service', () => {
 
     // CR-10 (CR-SWF-2026-003): explain denominator differences (740 vs 698)
     it('CR-10: renders denominator explanation when EWK totals differ', () => {
-      const bmData = [{
-        type: 'text',
-        json: {
-          rankings: {
-            anschlussdauer_ee_ns_rank: 452,
-            anschlussdauer_ee_ns_total: 740,
-            umsetzungsquote_ee_ns_rank: 187,
-            umsetzungsquote_ee_ns_total: 698,
+      const bmData = [
+        {
+          type: 'text',
+          json: {
+            rankings: {
+              anschlussdauer_ee_ns_rank: 452,
+              anschlussdauer_ee_ns_total: 740,
+              umsetzungsquote_ee_ns_rank: 187,
+              umsetzungsquote_ee_ns_total: 698,
+            },
+            umsetzungsquote: { umsetzungsquote_ee_ns: 1 },
+            anschlussdauer: { ee_ns_gesamt: 47 },
+            digitalisierungsindex: { gesamtscore: 0.3, smart_grids: 0.1 },
           },
-          umsetzungsquote: { umsetzungsquote_ee_ns: 1 },
-          anschlussdauer: { ee_ns_gesamt: 47 },
-          digitalisierungsindex: { gesamtscore: 0.3, smart_grids: 0.1 },
         },
-      }];
+      ];
       const html = buildHtmlReport({
         meta: { utilityName: 'CR10b GmbH' },
         section5: { benchmarkVnb: { available: true, data: bmData } },

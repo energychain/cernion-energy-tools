@@ -83,7 +83,8 @@ module.exports = {
     const limit = Number.isInteger(options.limit) ? options.limit : undefined;
 
     const rows = features.slice(0, limit || features.length).map((feature) => {
-      const properties = feature?.properties && typeof feature.properties === 'object' ? feature.properties : {};
+      const properties =
+        feature?.properties && typeof feature.properties === 'object' ? feature.properties : {};
       const geometryType = feature?.geometry?.type || null;
       const coords = centroidFromCoordinates(feature?.geometry?.coordinates);
 

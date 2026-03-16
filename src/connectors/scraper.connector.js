@@ -6,10 +6,11 @@ const axios = require('axios');
 
 function ensureCheerio() {
   try {
-    // eslint-disable-next-line global-require
     return require('cheerio');
   } catch (error) {
-    const e = new Error('Scraper connector with cheerio engine requires optional dependency "cheerio".');
+    const e = new Error(
+      'Scraper connector with cheerio engine requires optional dependency "cheerio".'
+    );
     e.code = 'SCRAPER_DEPENDENCY_MISSING';
     throw e;
   }
@@ -49,10 +50,11 @@ async function runCheerioEngine(connectorConfig) {
 async function runPuppeteerEngine(connectorConfig) {
   let puppeteer;
   try {
-    // eslint-disable-next-line global-require
     puppeteer = require('puppeteer');
   } catch (error) {
-    const e = new Error('Scraper connector with puppeteer engine requires optional dependency "puppeteer".');
+    const e = new Error(
+      'Scraper connector with puppeteer engine requires optional dependency "puppeteer".'
+    );
     e.code = 'SCRAPER_DEPENDENCY_MISSING';
     throw e;
   }
@@ -70,7 +72,9 @@ async function runPuppeteerEngine(connectorConfig) {
     const tableSelector = connectorConfig.tableSelector || 'table';
     const rows = await page.$$eval(`${tableSelector} tr`, (trs) =>
       trs
-        .map((tr) => Array.from(tr.querySelectorAll('th,td')).map((el) => el.textContent?.trim() || ''))
+        .map((tr) =>
+          Array.from(tr.querySelectorAll('th,td')).map((el) => el.textContent?.trim() || '')
+        )
         .filter((cells) => cells.length > 0)
         .map((cells) => {
           const out = {};
@@ -107,9 +111,10 @@ module.exports = {
   async read(connectorConfig) {
     const engine = connectorConfig.engine || 'cheerio';
 
-    const rows = engine === 'puppeteer'
-      ? await runPuppeteerEngine(connectorConfig)
-      : await runCheerioEngine(connectorConfig);
+    const rows =
+      engine === 'puppeteer'
+        ? await runPuppeteerEngine(connectorConfig)
+        : await runCheerioEngine(connectorConfig);
 
     return {
       rows,

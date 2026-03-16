@@ -7,10 +7,11 @@ const path = require('path');
 
 function ensureMammoth() {
   try {
-    // eslint-disable-next-line global-require
     return require('mammoth');
   } catch (error) {
-    const e = new Error('DOCX connector requires optional dependency "mammoth". Install it to enable docx reads.');
+    const e = new Error(
+      'DOCX connector requires optional dependency "mammoth". Install it to enable docx reads.'
+    );
     e.code = 'DOCX_DEPENDENCY_MISSING';
     throw e;
   }
@@ -42,13 +43,17 @@ module.exports = {
     if (mode === 'tables') {
       return {
         rows: [{ table_text: text }],
-        inferredSchema: { fields: [{ name: 'table_text', type: 'string', example: text.slice(0, 80) }] },
+        inferredSchema: {
+          fields: [{ name: 'table_text', type: 'string', example: text.slice(0, 80) }],
+        },
       };
     }
 
     return {
       rows: [{ document_text: text }],
-      inferredSchema: { fields: [{ name: 'document_text', type: 'string', example: text.slice(0, 80) }] },
+      inferredSchema: {
+        fields: [{ name: 'document_text', type: 'string', example: text.slice(0, 80) }],
+      },
     };
   },
 };

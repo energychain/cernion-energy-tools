@@ -48,9 +48,9 @@ describe('Assets Service — VNB guard (VNB_NOT_FOUND)', () => {
       data: { count: 0, results: [], marketPartners: [] },
     });
 
-    await expect(
-      broker.call('assets.solar', { vnbName: 'Stadtwerke Vellbert' })
-    ).rejects.toThrow(/Netzbetreiber "Stadtwerke Vellbert" konnte im MaStR nicht gefunden werden/);
+    await expect(broker.call('assets.solar', { vnbName: 'Stadtwerke Vellbert' })).rejects.toThrow(
+      /Netzbetreiber "Stadtwerke Vellbert" konnte im MaStR nicht gefunden werden/
+    );
   });
 
   it('should set error code VNB_NOT_FOUND on the thrown error', async () => {
@@ -92,9 +92,9 @@ describe('Assets Service — VNB guard (VNB_NOT_FOUND)', () => {
       data: { count: 0, results: [] },
     });
 
-    await expect(
-      broker.call('assets.wind', { vnbName: 'Stadtwerke Vellbert' })
-    ).rejects.toThrow(/Netzbetreiber "Stadtwerke Vellbert"/);
+    await expect(broker.call('assets.wind', { vnbName: 'Stadtwerke Vellbert' })).rejects.toThrow(
+      /Netzbetreiber "Stadtwerke Vellbert"/
+    );
   });
 
   it('should proceed normally when VNB resolves successfully to a MaStR ID', async () => {
@@ -129,9 +129,7 @@ describe('Assets Service — VNB guard (VNB_NOT_FOUND)', () => {
     // location bypasses the VNB guard — it's a valid filter on its own
     broker._installationsMock.mockResolvedValueOnce([]);
 
-    await expect(
-      broker.call('assets.solar', { location: '69115' })
-    ).resolves.toBeDefined();
+    await expect(broker.call('assets.solar', { location: '69115' })).resolves.toBeDefined();
 
     // callWithAutoPoll should NOT have been called — no vnbName given
     expect(callWithAutoPoll).not.toHaveBeenCalled();

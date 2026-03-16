@@ -55,7 +55,10 @@ function sanitizeErrorMessage(message) {
   sanitized = sanitized.replace(/(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, '$1[REDACTED]');
 
   // Redact token-like query/path parameters
-  sanitized = sanitized.replace(/([?&](?:token|api[_-]?key|secret|password)=)[^&\s]+/gi, '$1[REDACTED]');
+  sanitized = sanitized.replace(
+    /([?&](?:token|api[_-]?key|secret|password)=)[^&\s]+/gi,
+    '$1[REDACTED]'
+  );
 
   // Redact MCP token segment in URL paths
   sanitized = sanitized.replace(
@@ -269,8 +272,10 @@ module.exports = {
           'GET /datasource-discovery': 'datasource-discovery.list',
           'GET /datasource-discovery/search': 'datasource-discovery.search',
           'GET /datasource-discovery/:sourceId/descriptor': 'datasource-discovery.descriptor',
+          'GET /datasource-watcher/status': 'datasource-watcher.status',
           'POST /in-memory-join/join': 'in-memory-join.join',
           'POST /in-memory-join/metering-spot-cost': 'in-memory-join.meteringSpotCost',
+          'POST /in-memory-join/benchmark-compare': 'in-memory-join.benchmarkCompare',
           'POST /in-memory-join/compare-forecast-actual': 'in-memory-join.compareForecastActual',
 
           // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
@@ -313,17 +318,13 @@ module.exports = {
 
               if (!rawFileName || typeof rawFileName !== 'string') {
                 res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-                res.end(
-                  JSON.stringify({ success: false, message: 'fileName is required.' })
-                );
+                res.end(JSON.stringify({ success: false, message: 'fileName is required.' }));
                 return;
               }
 
               if (!contentBase64 || typeof contentBase64 !== 'string') {
                 res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
-                res.end(
-                  JSON.stringify({ success: false, message: 'contentBase64 is required.' })
-                );
+                res.end(JSON.stringify({ success: false, message: 'contentBase64 is required.' }));
                 return;
               }
 

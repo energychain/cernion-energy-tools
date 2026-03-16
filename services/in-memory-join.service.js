@@ -7,6 +7,10 @@
  */
 
 const { resolveDateAlias } = require('../src/date-utils');
+const {
+  normalisePeriod: normalizePeriodValue,
+  isPeriodColumn,
+} = require('../src/period-normaliser');
 
 function toNumber(value, fallback = NaN) {
   if (typeof value === 'number') return Number.isFinite(value) ? value : fallback;
@@ -316,6 +320,27 @@ function toActualMW(value, unit) {
   return n / 1000000;
 }
 
+function extractBenchmarkSummary(benchmarkData) {
+  const root = benchmarkData?.data || benchmarkData || {};
+  const digital = root?.digitalisierungsindex || {};
+  const benchmark = root?.benchmark || root?.statistics || {};
+
+  const vnbValue = toNumber(
+    digital?.gesamtscore_pct ?? digital?.gesamtscore ?? benchmark?.vnbValue ?? root?.vnbValue,
+    NaN
+  );
+  const medianValue = toNumber(
+    benchmark?.medianValue ?? benchmark?.median ?? digital?.median_pct ?? root?.medianValue,
+    NaN
+  );
+
+  return {
+    vnbValue: Number.isFinite(vnbValue) ? vnbValue : null,
+    medianValue: Number.isFinite(medianValue) ? medianValue : null,
+    source: root?.source || benchmark?.source || 'ewk-monitoring',
+  };
+}
+
 module.exports = {
   name: 'in-memory-join',
 
@@ -460,7 +485,9 @@ module.exports = {
 
         const fetchRows = async (spec, sideName) => {
           if (spec.kind === 'datasource') {
-            if (!spec.sourceId) throw new Error(`${sideName}.sourceId is required for datasource joins`);
+            if (!spec.sourceId) {
+              throw new Error(`${sideName}.sourceId is required for datasource joins`);
+            }
             return fetchDatasourceRows(ctx, spec.sourceId, {
               maxRows: spec.maxRows,
               privacyContext: spec.privacyContext || 'internal',
@@ -547,7 +574,14 @@ module.exports = {
           optional: true,
           default: 'Leistung Einspeisung (W)',
         },
-        intervalMinutes: { type: 'number', integer: true, min: 1, optional: true, default: 15, convert: true },
+        intervalMinutes: {
+          type: 'number',
+          integer: true,
+          min: 1,
+          optional: true,
+          default: 15,
+          convert: true,
+        },
         priceField: { type: 'string', optional: true, default: 'priceEURMWh' },
         aggregateBy: {
           type: 'enum',
@@ -562,7 +596,15 @@ module.exports = {
           optional: true,
           default: 'internal',
         },
-        maxRows: { type: 'number', integer: true, min: 1, optional: true, default: 50000, convert: true },
+        normalisePeriod: { type: 'boolean', optional: true, default: false, convert: true },
+        maxRows: {
+          type: 'number',
+          integer: true,
+          min: 1,
+          optional: true,
+          default: 50000,
+          convert: true,
+        },
       },
       openapi: {
         summary: 'Join metering datasource with market spot prices and calculate costs',
@@ -618,6 +660,7 @@ module.exports = {
           aggregateBy,
           includeIntervals,
           privacyContext,
+          normalisePeriod,
           maxRows,
         } = ctx.params;
 
@@ -640,9 +683,25 @@ module.exports = {
         const startBoundary = parseDateBoundary(startDate || date, 'start');
         const endBoundary = parseDateBoundary(endDate || date, 'end');
 
-        let filteredRows = rows;
+        const shouldNormalisePeriod =
+          normalisePeriod === true || isPeriodColumn(rows, leftTimeField);
+
+        const workingRows =
+          shouldNormalisePeriod && leftTimeField
+            ? rows.map((row) => {
+                const normalized = normalizePeriodValue(row?.[leftTimeField]);
+                return normalized
+                  ? {
+                      ...row,
+                      [leftTimeField]: normalized,
+                    }
+                  : row;
+              })
+            : rows;
+
+        let filteredRows = workingRows;
         if (startBoundary || endBoundary) {
-          filteredRows = filterRowsByDate(rows, leftTimeField, startBoundary, endBoundary);
+          filteredRows = filterRowsByDate(workingRows, leftTimeField, startBoundary, endBoundary);
         }
 
         const parsedTimes = filteredRows
@@ -693,7 +752,7 @@ module.exports = {
               extractRows(fallback, 'data.dataPoints') ||
               extractRows(fallback, 'data.prices') ||
               extractRows(fallback);
-          } catch (_fallbackError) {
+          } catch {
             // Preserve original error message below.
           }
         }
@@ -791,9 +850,7 @@ module.exports = {
           .map((item) => ({
             ...item,
             avgSpotPriceEurMWh:
-              item.pricedIntervals > 0
-                ? item.avgSpotPriceEurMWh / item.pricedIntervals
-                : null,
+              item.pricedIntervals > 0 ? item.avgSpotPriceEurMWh / item.pricedIntervals : null,
           }))
           .sort((a, b) => String(a.period).localeCompare(String(b.period)));
 
@@ -812,12 +869,121 @@ module.exports = {
           },
           rowCount: intervals.length,
           missingPriceIntervals,
+          periodNormalised: shouldNormalisePeriod,
           totals: {
             totalEnergyKWh,
             totalCostEur,
           },
           data: aggregateBy === 'interval' ? intervals : grouped,
           intervals: includeIntervals ? intervals : undefined,
+        };
+      },
+    },
+
+    benchmarkCompare: {
+      rest: 'POST /benchmark-compare',
+      params: {
+        inhouseRows: { type: 'array', items: 'object' },
+        benchmarkData: { type: 'object' },
+        domain: { type: 'string' },
+        aggregationField: { type: 'string' },
+      },
+      openapi: {
+        summary: 'Compare inhouse aggregate with external benchmark values',
+        tags: ['DataSources', 'Analytics'],
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['inhouseRows', 'benchmarkData', 'domain', 'aggregationField'],
+                properties: {
+                  inhouseRows: {
+                    type: 'array',
+                    items: { type: 'object' },
+                    example: [{ value: 12 }, { value: 18 }, { value: 15 }],
+                  },
+                  benchmarkData: {
+                    type: 'object',
+                    example: {
+                      data: [{ value: '{"vnb":"Netzbetreiber A","score":14,"median":11}' }],
+                    },
+                  },
+                  domain: { type: 'string', example: 'ewk_connection_time' },
+                  aggregationField: { type: 'string', example: 'value' },
+                },
+              },
+              examples: {
+                compareBenchmark: {
+                  summary: 'Compare inhouse values against benchmark median',
+                  value: {
+                    inhouseRows: [{ value: 12 }, { value: 18 }, { value: 15 }],
+                    benchmarkData: {
+                      data: [
+                        {
+                          value: '{"vnb":"Netzbetreiber A","score":14,"median":11}',
+                        },
+                      ],
+                    },
+                    domain: 'ewk_connection_time',
+                    aggregationField: 'value',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { inhouseRows, benchmarkData, domain, aggregationField } = ctx.params;
+
+        const values = (inhouseRows || [])
+          .map((row) => toNumber(row?.[aggregationField], NaN))
+          .filter((value) => Number.isFinite(value));
+
+        const count = values.length;
+        const total = values.reduce((sum, value) => sum + value, 0);
+        const average = count > 0 ? total / count : 0;
+
+        const benchmarkSummary = extractBenchmarkSummary(benchmarkData);
+        const delta =
+          Number.isFinite(benchmarkSummary.vnbValue) &&
+          Number.isFinite(benchmarkSummary.medianValue)
+            ? benchmarkSummary.vnbValue - benchmarkSummary.medianValue
+            : null;
+        const deltaPercent =
+          delta != null && Math.abs(benchmarkSummary.medianValue) > 1e-12
+            ? (delta / benchmarkSummary.medianValue) * 100
+            : null;
+
+        const ranking = delta == null ? 'unknown' : delta >= 0 ? 'above median' : 'below median';
+
+        const unit = /kwh/i.test(aggregationField)
+          ? 'kWh'
+          : /kwp|kw/i.test(aggregationField)
+            ? 'kW'
+            : 'value';
+
+        const narrative =
+          delta == null
+            ? `Inhouse ${domain} totals are ${Number(total.toFixed(2))} (${count} rows); benchmark median is not available.`
+            : `Inhouse ${domain} totals are ${Number(total.toFixed(2))} (${count} rows), while the benchmark is ${ranking} by ${Number(delta.toFixed(2))}.`;
+
+        return {
+          success: true,
+          inhouseSummary: {
+            total,
+            count,
+            average,
+            unit,
+          },
+          benchmarkSummary: {
+            ...benchmarkSummary,
+            ranking,
+          },
+          delta,
+          deltaPercent,
+          narrative,
         };
       },
     },
@@ -858,7 +1024,14 @@ module.exports = {
         landkreis: { type: 'string', optional: true },
         gemeinde: { type: 'string', optional: true },
         postleitzahl: { type: 'string', optional: true },
-        forecastDays: { type: 'number', integer: true, min: 1, max: 14, optional: true, convert: true },
+        forecastDays: {
+          type: 'number',
+          integer: true,
+          min: 1,
+          max: 14,
+          optional: true,
+          convert: true,
+        },
         resolution: {
           type: 'enum',
           values: ['15min', 'hour', 'hourly', 'daily'],
@@ -872,7 +1045,14 @@ module.exports = {
           optional: true,
           default: 'internal',
         },
-        maxRows: { type: 'number', integer: true, min: 1, optional: true, default: 50000, convert: true },
+        maxRows: {
+          type: 'number',
+          integer: true,
+          min: 1,
+          optional: true,
+          default: 50000,
+          convert: true,
+        },
       },
       openapi: {
         summary: 'Compare inhouse actual generation with forecasted generation',
@@ -981,7 +1161,9 @@ module.exports = {
         let resolvedInstallationMastrNummer = installationMastrNummer;
         let resolvedMesslokationId = messlokationId;
         if (!resolvedInstallationMastrNummer) {
-          resolvedInstallationMastrNummer = inferIdFromRows(filteredRows, [/^S(?:EE|WE|AN)[A-Z0-9]+$/i]);
+          resolvedInstallationMastrNummer = inferIdFromRows(filteredRows, [
+            /^S(?:EE|WE|AN)[A-Z0-9]+$/i,
+          ]);
         }
         if (!resolvedMesslokationId) {
           resolvedMesslokationId = inferIdFromRows(filteredRows, [/^DE\d{20,}$/i]);

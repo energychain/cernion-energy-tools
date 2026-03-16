@@ -2008,7 +2008,13 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           try {
             const localInst = await callMcpDirect(
               'cernion_installations_local',
-              { type: 'all', gemeinde: cityGuess, limit: 5, includeStats: false, format: 'detailed' },
+              {
+                type: 'all',
+                gemeinde: cityGuess,
+                limit: 5,
+                includeStats: false,
+                format: 'detailed',
+              },
               cernionToken
             );
             const insts =
@@ -2292,10 +2298,10 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           emobilityImpact,
           gridLossAnalysis,
           transformerLoading,
-          anlagenInPruefung,              // format:'summary' – accurate count via parseMaStrLocalStats (all statuses)
-          anlagenInPruefungBeispiel,      // format:'detailed', limit:10 – top-10 InPruefung by capacity
-          anlagenStillgelegtInPruefung,   // CR-SWF-002 CR-02: DauerhaftStillgelegt + Prüfstatus open
-          installationenOhneMelo,         // ≥100 kW InBetrieb – Redispatch/§51 pool (CR-SWF-002 CR-03)
+          anlagenInPruefung, // format:'summary' – accurate count via parseMaStrLocalStats (all statuses)
+          anlagenInPruefungBeispiel, // format:'detailed', limit:10 – top-10 InPruefung by capacity
+          anlagenStillgelegtInPruefung, // CR-SWF-002 CR-02: DauerhaftStillgelegt + Prüfstatus open
+          installationenOhneMelo, // ≥100 kW InBetrieb – Redispatch/§51 pool (CR-SWF-002 CR-03)
           allInstallationsSample: sampleForPlz, // limit:100 InBetrieb – top-10 by capacity (CR-SWF-002 CR-04)
           ortsfremdeAnlagen,
         };
@@ -2566,7 +2572,12 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
               callBroker(
                 ctx,
                 'business-intelligence.salesLeads',
-                { region: geoRegion || resolvedVnbName, installationType: t, daysBack: 90, limit: 50 },
+                {
+                  region: geoRegion || resolvedVnbName,
+                  installationType: t,
+                  daysBack: 90,
+                  limit: 50,
+                },
                 ENRICHMENT_TIMEOUT_MS
               )
             )
@@ -2616,7 +2627,11 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           gated(availableTools, ['cernion_prosumer_tariff_designer'], () =>
             callMcpDirect(
               'cernion_prosumer_tariff_designer',
-              { customerSegment: 'all', region: geoRegion || resolvedVnbName, designGoal: 'customer-acquisition' },
+              {
+                customerSegment: 'all',
+                region: geoRegion || resolvedVnbName,
+                designGoal: 'customer-acquisition',
+              },
               cernionToken,
               ENRICHMENT_TIMEOUT_MS
             )
@@ -2624,7 +2639,11 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           gated(availableTools, ['cernion_direct_marketing_opportunity_scanner'], () =>
             callMcpDirect(
               'cernion_direct_marketing_opportunity_scanner',
-              { gridOperator: resolvedVnbName, minCapacity: 100, region: geoRegion || resolvedVnbName },
+              {
+                gridOperator: resolvedVnbName,
+                minCapacity: 100,
+                region: geoRegion || resolvedVnbName,
+              },
               cernionToken,
               ENRICHMENT_TIMEOUT_MS
             )
@@ -2646,7 +2665,10 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           gated(availableTools, ['cernion_operator_portfolio'], () =>
             callMcpDirect(
               'cernion_operator_portfolio',
-              { gridOperator: resolvedVnbName, ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}) },
+              {
+                gridOperator: resolvedVnbName,
+                ...(resolvedBdew ? { bdewCode: resolvedBdew } : {}),
+              },
               cernionToken,
               ENRICHMENT_TIMEOUT_MS
             )
@@ -2664,9 +2686,24 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           callBroker(ctx, 'eic-codes.statistics', {}),
         ]);
 
-        p.results.section6 = { churnPrediction, salesLeads, marketPenetration, prosumerTariff, directMarketing };
-        p.results.section7 = { investmentBusinessCase, operatorPortfolio, storageOptimization, operatorAnalysis };
-        p.results.section8 = { systemStatus, eicStatistics, digitalisierungsindex: ewkDigitalisierungsindex };
+        p.results.section6 = {
+          churnPrediction,
+          salesLeads,
+          marketPenetration,
+          prosumerTariff,
+          directMarketing,
+        };
+        p.results.section7 = {
+          investmentBusinessCase,
+          operatorPortfolio,
+          storageOptimization,
+          operatorAnalysis,
+        };
+        p.results.section8 = {
+          systemStatus,
+          eicStatistics,
+          digitalisierungsindex: ewkDigitalisierungsindex,
+        };
         saveProgress(p);
 
         p.phase = 4;

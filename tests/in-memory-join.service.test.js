@@ -33,6 +33,11 @@ describe('In-Memory Join Service', () => {
       { Zeit: '10.03.2026 01:00', 'Leistung Einspeisung (W)': '1800000' },
       { Zeit: '10.03.2026 02:00', 'Leistung Einspeisung (W)': '900000' },
     ],
+    ProcurementPeriods: [
+      { Lieferperiode: '2026-Q1', 'Leistung Bezug (W)': '1000', 'Leistung Einspeisung (W)': '0' },
+      { Lieferperiode: 'Feb 2026', 'Leistung Bezug (W)': '1200', 'Leistung Einspeisung (W)': '0' },
+      { Lieferperiode: '2026-03', 'Leistung Bezug (W)': '800', 'Leistung Einspeisung (W)': '0' },
+    ],
   };
 
   beforeAll(async () => {
@@ -91,15 +96,15 @@ describe('In-Memory Join Service', () => {
             startDate: { type: 'string' },
             endDate: { type: 'string' },
           },
-            handler(ctx) {
-              if (ctx.params.region === 'NoData') {
-                return {
-                  success: true,
-                  data: {
-                    prices: [],
-                  },
-                };
-              }
+          handler(ctx) {
+            if (ctx.params.region === 'NoData') {
+              return {
+                success: true,
+                data: {
+                  prices: [],
+                },
+              };
+            }
             return {
               success: true,
               data: {
@@ -267,5 +272,41 @@ describe('In-Memory Join Service', () => {
     expect(result.data[0].totalCostEur).toBeCloseTo(0.045, 6);
     expect(result.data[1].totalCostEur).toBeCloseTo(0.03, 6);
     expect(result.totals.totalCostEur).toBeCloseTo(0.075, 6);
+  });
+
+  it('should normalize mixed period formats before spot-price join', async () => {
+    const result = await broker.call('in-memory-join.meteringSpotCost', {
+      sourceId: 'ProcurementPeriods',
+      startDate: '2026-01-01',
+      endDate: '2026-03-31',
+      leftTimeField: 'Lieferperiode',
+      aggregateBy: 'daily',
+      normalisePeriod: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.periodNormalised).toBe(true);
+    expect(result.rowCount).toBe(3);
+  });
+
+  it('should compare inhouse summary against benchmark values', async () => {
+    const result = await broker.call('in-memory-join.benchmarkCompare', {
+      inhouseRows: [{ Leistung_kWp: 10 }, { Leistung_kWp: 20 }],
+      benchmarkData: {
+        data: {
+          digitalisierungsindex: { gesamtscore_pct: 62 },
+          benchmark: { median: 55, source: 'BNetzA EWK' },
+        },
+      },
+      domain: 'grid-assets',
+      aggregationField: 'Leistung_kWp',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.inhouseSummary.total).toBe(30);
+    expect(result.benchmarkSummary.vnbValue).toBe(62);
+    expect(result.benchmarkSummary.medianValue).toBe(55);
+    expect(result.delta).toBe(7);
+    expect(result.narrative).toContain('above median');
   });
 });

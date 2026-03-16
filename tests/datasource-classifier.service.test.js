@@ -7,6 +7,7 @@ const DatasourceRegistryService = require('../services/datasource-registry.servi
 const DatasourceConnectorService = require('../services/datasource-connector.service');
 const DatasourceCacheService = require('../services/datasource-cache.service');
 const DatasourceClassifierService = require('../services/datasource-classifier.service');
+const CernionMCPClient = require('../src/mcp-client');
 
 describe('Datasource Classifier Service', () => {
   let broker;
@@ -172,5 +173,131 @@ describe('Datasource Classifier Service', () => {
 
     const stored = await broker.call('datasource-registry.getClassification', { id: sourceId });
     expect(stored.data.domainId).toBe('grid-assets');
+  });
+
+  it('marks procurement timeReference as periodFormat when mixed Lieferperiode values are detected', async () => {
+    const sourceId = await createCsvSource(
+      'procurement_portfolio.csv',
+      'Procurement Period Format'
+    );
+
+    const result = await broker.call('datasource-classifier.classify', {
+      sourceId,
+      filename: 'procurement_portfolio.csv',
+      description: 'Procurement fixture with Lieferperiode',
+    });
+
+    const timeReference = (result.criticalFieldStatus || []).find(
+      (item) => item.fieldRole === 'timeReference'
+    );
+
+    expect(timeReference).toBeDefined();
+    expect(timeReference.meta?.periodFormat).toBe(true);
+  });
+
+  it('does not call LLM fallback when heuristic classification is already above unknown threshold', async () => {
+    const sourceId = await createCsvSource('grid_assets.csv', 'Grid Assets LLM Guard');
+    const spy = jest.spyOn(CernionMCPClient, 'callWithNewSession');
+
+    const service = broker.getLocalService('datasource-classifier');
+    service.settings.llmFallbackEnabled = true;
+
+    const result = await broker.call('datasource-classifier.classify', {
+      sourceId,
+      filename: 'grid_assets.csv',
+      description: 'Clearly classifiable fixture',
+    });
+
+    expect(result.domainId).toBe('grid-assets');
+    expect(spy).not.toHaveBeenCalled();
+    spy.mockRestore();
+  });
+
+  it('uses LLM fallback result when enabled and heuristic result is unknown', async () => {
+    process.env.CERNION_TOKEN = 'test-token';
+
+    const tmpFile = path.join(os.tmpdir(), `cernion-unknown-${Date.now()}.csv`);
+    fs.writeFileSync(tmpFile, 'foo,bar\nalpha,beta\ngamma,delta\n', 'utf-8');
+
+    const sourceId = await createConfiguredCsvSource({
+      filePath: tmpFile,
+      label: 'Unknown CSV',
+      description: 'No obvious domain hints',
+    });
+
+    const spy = jest.spyOn(CernionMCPClient, 'callWithNewSession').mockResolvedValue({
+      data: {
+        content: [
+          {
+            text: JSON.stringify({
+              domainId: 'metering-point-master',
+              confidence: 0.82,
+              reasoning: 'Strong Malo/Melo structure patterns.',
+            }),
+          },
+        ],
+      },
+    });
+
+    const service = broker.getLocalService('datasource-classifier');
+    service.settings.llmFallbackEnabled = true;
+
+    const result = await broker.call('datasource-classifier.classify', {
+      sourceId,
+      filename: 'unknown.csv',
+      description: 'Unknown fixture',
+    });
+
+    expect(spy).toHaveBeenCalled();
+    expect(result.domainId).toBe('metering-point-master');
+    expect(result.llmAssisted).toBe(true);
+    expect(result.llmReasoning).toContain('Strong');
+
+    spy.mockRestore();
+    fs.unlinkSync(tmpFile);
+  });
+
+  it('keeps unknown classification when LLM confidence is below threshold', async () => {
+    process.env.CERNION_TOKEN = 'test-token';
+
+    const tmpFile = path.join(os.tmpdir(), `cernion-unknown-low-${Date.now()}.csv`);
+    fs.writeFileSync(tmpFile, 'foo,bar\nalpha,beta\ngamma,delta\n', 'utf-8');
+
+    const sourceId = await createConfiguredCsvSource({
+      filePath: tmpFile,
+      label: 'Unknown CSV Low Confidence',
+      description: 'No obvious domain hints',
+    });
+
+    const spy = jest.spyOn(CernionMCPClient, 'callWithNewSession').mockResolvedValue({
+      data: {
+        content: [
+          {
+            text: JSON.stringify({
+              domainId: 'grid-assets',
+              confidence: 0.4,
+              reasoning: 'Weak signals only.',
+            }),
+          },
+        ],
+      },
+    });
+
+    const service = broker.getLocalService('datasource-classifier');
+    service.settings.llmFallbackEnabled = true;
+
+    const result = await broker.call('datasource-classifier.classify', {
+      sourceId,
+      filename: 'unknown-low.csv',
+      description: 'Unknown fixture low confidence',
+    });
+
+    expect(spy).toHaveBeenCalled();
+    expect(result.domainId).toBe('unknown');
+    expect(result.requiresUserInput).toBe(true);
+    expect(result.llmAssisted).toBe(true);
+
+    spy.mockRestore();
+    fs.unlinkSync(tmpFile);
   });
 });

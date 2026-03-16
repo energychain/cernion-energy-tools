@@ -50,15 +50,73 @@ module.exports = {
         summary: 'Query cached datasource rows',
         tags: ['DataSources'],
         parameters: [
-          { name: 'sourceId', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' } },
-          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 100, example: 50 } },
-          { name: 'offset', in: 'query', required: false, schema: { type: 'integer', default: 0, example: 0 } },
-          { name: 'includeCost', in: 'query', required: false, schema: { type: 'boolean', default: false, example: true } },
-          { name: 'priceCentPerKWh', in: 'query', required: false, schema: { type: 'number', default: 40, example: 38.5 } },
-          { name: 'intervalMinutes', in: 'query', required: false, schema: { type: 'integer', default: 15, example: 15 } },
-          { name: 'consumptionPowerField', in: 'query', required: false, schema: { type: 'string', default: 'Leistung Bezug (W)', example: 'Leistung Bezug (W)' } },
-          { name: 'feedInPowerField', in: 'query', required: false, schema: { type: 'string', default: 'Leistung Einspeisung (W)', example: 'Leistung Einspeisung (W)' } },
-          { name: 'privacyContext', in: 'query', required: false, schema: { type: 'string', enum: ['internal', 'ai-agent', 'public'], default: 'ai-agent', example: 'ai-agent' } },
+          {
+            name: 'sourceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 100, example: 50 },
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 0, example: 0 },
+          },
+          {
+            name: 'includeCost',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean', default: false, example: true },
+          },
+          {
+            name: 'priceCentPerKWh',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', default: 40, example: 38.5 },
+          },
+          {
+            name: 'intervalMinutes',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 15, example: 15 },
+          },
+          {
+            name: 'consumptionPowerField',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              default: 'Leistung Bezug (W)',
+              example: 'Leistung Bezug (W)',
+            },
+          },
+          {
+            name: 'feedInPowerField',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              default: 'Leistung Einspeisung (W)',
+              example: 'Leistung Einspeisung (W)',
+            },
+          },
+          {
+            name: 'privacyContext',
+            in: 'query',
+            required: false,
+            schema: {
+              type: 'string',
+              enum: ['internal', 'ai-agent', 'public'],
+              default: 'ai-agent',
+              example: 'ai-agent',
+            },
+          },
         ],
       },
       async handler(ctx) {
@@ -71,14 +129,14 @@ module.exports = {
         const limit = ctx.params.limit || 100;
         const offset = ctx.params.offset || 0;
         const privacyContext =
-          ctx.params.privacyContext || ctx.meta.privacyContext || this.settings.defaultPrivacyContext;
+          ctx.params.privacyContext ||
+          ctx.meta.privacyContext ||
+          this.settings.defaultPrivacyContext;
         const includeCost = ctx.params.includeCost === true;
         const priceCentPerKWh = toNumber(ctx.params.priceCentPerKWh, 40);
         const intervalMinutes = toNumber(ctx.params.intervalMinutes, 15);
-        const consumptionPowerField =
-          ctx.params.consumptionPowerField || 'Leistung Bezug (W)';
-        const feedInPowerField =
-          ctx.params.feedInPowerField || 'Leistung Einspeisung (W)';
+        const consumptionPowerField = ctx.params.consumptionPowerField || 'Leistung Bezug (W)';
+        const feedInPowerField = ctx.params.feedInPowerField || 'Leistung Einspeisung (W)';
 
         const windowRows = entry.rows.slice(offset, offset + limit);
         const prepared = this.applyPrivacyContext(windowRows, entry.dictionary, privacyContext);
@@ -129,7 +187,12 @@ module.exports = {
         summary: 'Get datasource cache status',
         tags: ['DataSources'],
         parameters: [
-          { name: 'sourceId', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' } },
+          {
+            name: 'sourceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' },
+          },
         ],
       },
       async handler(ctx) {
@@ -208,8 +271,18 @@ module.exports = {
         summary: 'Get datasource privacy substitution audit log',
         tags: ['DataSources'],
         parameters: [
-          { name: 'sourceId', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' } },
-          { name: 'limit', in: 'query', required: false, schema: { type: 'integer', default: 100, example: 50 } },
+          {
+            name: 'sourceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 100, example: 50 },
+          },
         ],
       },
       async handler(ctx) {
@@ -238,7 +311,12 @@ module.exports = {
         summary: 'Refresh datasource cache entry',
         tags: ['DataSources'],
         parameters: [
-          { name: 'sourceId', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' } },
+          {
+            name: 'sourceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' },
+          },
         ],
         requestBody: {
           content: {
@@ -439,10 +517,7 @@ module.exports = {
       if (typeof rawValue === 'number') return Number.isFinite(rawValue) ? rawValue : NaN;
       if (rawValue === null || rawValue === undefined) return NaN;
 
-      const normalized = String(rawValue)
-        .trim()
-        .replace(/\s+/g, '')
-        .replace(',', '.');
+      const normalized = String(rawValue).trim().replace(/\s+/g, '').replace(',', '.');
       const numeric = Number(normalized);
       return Number.isFinite(numeric) ? numeric : NaN;
     },

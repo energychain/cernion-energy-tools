@@ -111,7 +111,9 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/datasources'].get.tags).toContain('DataSources');
       expect(schema.paths['/api/datasources'].post.tags).toContain('DataSources');
       expect(schema.paths['/api/datasources/:id/classification'].get.tags).toContain('DataSources');
-      expect(schema.paths['/api/datasources/:id/classification'].patch.tags).toContain('DataSources');
+      expect(schema.paths['/api/datasources/:id/classification'].patch.tags).toContain(
+        'DataSources'
+      );
     });
   });
 

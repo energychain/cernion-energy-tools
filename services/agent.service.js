@@ -15,6 +15,8 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
+const { isPeriodColumn } = require('../src/period-normaliser');
+const { resolveVnbIdentity } = require('../src/vnb-identity');
 
 // ---------------------------------------------------------------------------
 // In-process session store (file-backed for persistence across restarts)
@@ -459,7 +461,13 @@ async function listInhouseDescriptors(ctx) {
           name: `inhouse__${normalized || 'source'}`,
           description: s?.description || '',
           aliases: [sourceName, s?.id, ...(s?.tags || [])].filter(Boolean),
-          capabilities: [],
+          capabilities: deriveInhouseIntentCapabilities({
+            capabilities: [],
+            semanticClassification: s?.semanticClassification,
+            semanticHints: {
+              domain: s?.semanticClassification?.domainId,
+            },
+          }),
           semanticHints: {
             ...(s?.semanticClassification?.domainId &&
             s.semanticClassification.domainId !== 'unknown'
@@ -493,7 +501,10 @@ async function listInhouseDescriptors(ctx) {
 
   try {
     const response = await ctx.call('datasource-discovery.list', {});
-    const descriptors = toArray(response);
+    const descriptors = toArray(response).map((descriptor) => ({
+      ...descriptor,
+      capabilities: deriveInhouseIntentCapabilities(descriptor),
+    }));
     if (descriptors.length > 0) return descriptors;
     return await buildFromRegistry();
   } catch (error) {
@@ -523,8 +534,14 @@ function classifyInhouseIntent(problem) {
     /(forecast|prognose|geplant|planned|planwert)/.test(text) &&
     /(ist|actual|tatsäch|erzeug|generation|einspeis)/.test(text);
 
+  const isBenchmarkCompare =
+    /(vergleich|benchmark|durchschnitt|bundesweit|ranking|index|ewk|bnetzagentur|wie\s+stehen\s+wir)/.test(
+      text
+    );
+
   if (isCompareActualVsForecast) return 'timeseries_compare_actual_vs_forecast';
   if (isCostEnrichment) return 'timeseries_cost_enrichment';
+  if (isBenchmarkCompare) return 'inhouse_benchmark_compare';
   if (
     /(anteil|wie\s*viele|wieviele|anzahl|durchschnitt|summe|kumuliert|größte|groesste|höchste|hoechste)/.test(
       text
@@ -542,6 +559,18 @@ function classifyInhouseIntent(problem) {
     return 'timeseries_delta_analysis';
   }
   return null;
+}
+
+function deriveInhouseIntentCapabilities(descriptor) {
+  const base = new Set(Array.isArray(descriptor?.capabilities) ? descriptor.capabilities : []);
+  const domainId =
+    descriptor?.semanticHints?.domain || descriptor?.semanticClassification?.domainId;
+
+  if (domainId === 'grid-assets' || domainId === 'metering-point-master') {
+    base.add('inhouse_benchmark_compare');
+  }
+
+  return [...base];
 }
 
 function extractDateFromProblem(problem) {
@@ -707,6 +736,7 @@ function buildIntentClassPlan({
   const sourceId = resolvedDescriptor?.sourceId || null;
   const hints = resolvedDescriptor?.semanticHints || {};
   const criticalMappings = hints.criticalFieldMappings || {};
+  const domainId = hints.domain || hints.domainId || null;
 
   const requiredInputs = [];
 
@@ -742,6 +772,16 @@ function buildIntentClassPlan({
   const defaultDate = dateDefault || new Date().toISOString().slice(0, 10);
 
   if (intentClass === 'timeseries_cost_enrichment') {
+    const criticalFieldStatus =
+      resolvedDescriptor?.__sourceMeta?.semanticClassification?.criticalFieldStatus || [];
+    const timeReferenceStatus = criticalFieldStatus.find(
+      (item) => item?.fieldRole === 'timeReference'
+    );
+    const shouldNormalisePeriod =
+      Boolean(timeReferenceStatus?.meta?.periodFormat) ||
+      (criticalMappings.timeReference &&
+        isPeriodColumn(resolvedDescriptor?.sampleRows || [], criticalMappings.timeReference));
+
     requiredInputs.push({
       name: 'date',
       label: 'Datum',
@@ -769,7 +809,65 @@ function buildIntentClassPlan({
             leftTimeField: criticalMappings.timeReference || hints.timeField || 'Zeit',
             consumptionPowerField: hints.consumptionPowerField || 'Leistung Bezug (W)',
             feedInPowerField: hints.feedInPowerField || 'Leistung Einspeisung (W)',
+            normalisePeriod: shouldNormalisePeriod,
             privacyContext: 'internal',
+          },
+        },
+      ],
+      requiredInputs,
+    };
+  }
+
+  if (intentClass === 'inhouse_benchmark_compare') {
+    const aggregationField =
+      criticalMappings.capacityKWp ||
+      criticalMappings.quantityMWh ||
+      hints.capacityField ||
+      'Leistung_kWp';
+    const externalAction =
+      domainId === 'metering-point-master'
+        ? 'ewk-monitoring.digitalisierungsindex'
+        : 'ewk-monitoring.benchmarkVnb';
+
+    requiredInputs.push({
+      name: 'vnbName',
+      label: 'Verteilnetzbetreiber (VNB)',
+      type: 'string',
+      description: 'Name des VNB für den EWK-Benchmarkvergleich.',
+      required: true,
+    });
+
+    return {
+      summary:
+        'Intent-Klasse: inhouse_benchmark_compare. Inhouse-Bestände werden aggregiert und gegen EWK-Benchmarkdaten verglichen.',
+      steps: [
+        {
+          step: 1,
+          action: 'datasource-cache.query',
+          description: 'Lade Inhouse-Datensätze für den Benchmarkvergleich.',
+          params: {
+            sourceId: sourceId || null,
+            privacyContext: 'internal',
+            limit: 500,
+          },
+        },
+        {
+          step: 2,
+          action: externalAction,
+          description: 'Hole passende EWK-Benchmarkdaten für den VNB.',
+          params: {
+            vnbName: null,
+          },
+        },
+        {
+          step: 3,
+          action: 'in-memory-join.benchmarkCompare',
+          description: 'Vergleiche Inhouse-Aggregate mit externen Benchmarkwerten.',
+          params: {
+            inhouseRows: '{{__step_1.data}}',
+            benchmarkData: '{{__step_2}}',
+            domain: domainId || 'grid-assets',
+            aggregationField,
           },
         },
       ],
@@ -1002,6 +1100,13 @@ function inferIntentClassFromPlan(plan) {
     return 'timeseries_delta_analysis';
   }
 
+  if (
+    summary.includes('inhouse_benchmark_compare') ||
+    firstAction === 'in-memory-join.benchmarkcompare'
+  ) {
+    return 'inhouse_benchmark_compare';
+  }
+
   return null;
 }
 
@@ -1119,6 +1224,77 @@ async function refreshInhouseSourceRequiredInput(ctx, session) {
   }
 
   session.plan.requiredInputs = requiredInputs;
+}
+
+async function autoResolveVnbInputs(ctx, session, effectiveInputs, logger) {
+  const requiredInputs = Array.isArray(session?.plan?.requiredInputs)
+    ? session.plan.requiredInputs
+    : [];
+  const vnbInput = requiredInputs.find((ri) => ri?.name === 'vnbName' && ri.required);
+  const bnrInput = requiredInputs.find((ri) => ri?.name === 'bnr' && ri.required);
+
+  const hasVnbName =
+    typeof effectiveInputs.vnbName === 'string' && effectiveInputs.vnbName.trim().length > 0;
+  const hasBnr = typeof effectiveInputs.bnr === 'string' && effectiveInputs.bnr.trim().length > 0;
+
+  if ((!vnbInput || hasVnbName) && (!bnrInput || hasBnr)) return;
+
+  const identity = await resolveVnbIdentity(ctx?.broker);
+  if (!identity) return;
+
+  if (vnbInput && !hasVnbName && identity.name) {
+    effectiveInputs.vnbName = identity.name;
+  }
+  if (bnrInput && !hasBnr && identity.bdewCode) {
+    effectiveInputs.bnr = identity.bdewCode;
+  }
+
+  if (vnbInput && !vnbInput.default && identity.name) vnbInput.default = identity.name;
+  if (bnrInput && !bnrInput.default && identity.bdewCode) bnrInput.default = identity.bdewCode;
+
+  logger.info('[Agent] Auto-resolved VNB identity for execution inputs', {
+    vnbName: effectiveInputs.vnbName || null,
+    bnr: effectiveInputs.bnr || null,
+    mastrId: identity.mastrId || null,
+  });
+}
+
+async function applyResolvedVnbIdentityToPlan(ctx, plan, logger) {
+  if (!plan || !Array.isArray(plan.requiredInputs)) return;
+
+  const hasVnbInput = plan.requiredInputs.some((ri) => ri?.name === 'vnbName');
+  const hasBnrInput = plan.requiredInputs.some((ri) => ri?.name === 'bnr');
+  if (!hasVnbInput && !hasBnrInput) return;
+
+  const identity = await resolveVnbIdentity(ctx?.broker);
+  if (!identity) return;
+
+  for (const ri of plan.requiredInputs) {
+    if (ri?.name === 'vnbName' && identity.name) {
+      ri.default = ri.default || identity.name;
+      ri.required = false;
+    }
+    if (ri?.name === 'bnr' && identity.bdewCode) {
+      ri.default = ri.default || identity.bdewCode;
+      ri.required = false;
+    }
+  }
+
+  for (const step of plan.steps || []) {
+    if (!step?.params || typeof step.params !== 'object') continue;
+    if ((step.params.vnbName === null || step.params.vnbName === undefined) && identity.name) {
+      step.params.vnbName = identity.name;
+    }
+    if ((step.params.bnr === null || step.params.bnr === undefined) && identity.bdewCode) {
+      step.params.bnr = identity.bdewCode;
+    }
+  }
+
+  logger.info('[Agent] Injected resolved VNB identity into plan defaults', {
+    vnbName: identity.name || null,
+    bnr: identity.bdewCode || null,
+    mastrId: identity.mastrId || null,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1329,6 +1505,8 @@ module.exports = {
           if (!plan) {
             throw new Error(`Intent class "${intentClass}" has no configured plan template.`);
           }
+
+          await applyResolvedVnbIdentityToPlan(ctx, plan, this.logger);
 
           Object.assign(
             plan,
@@ -1661,6 +1839,7 @@ IMPORTANT: The keys in each step MUST be exactly "action", "params", and "descri
           throw new Error(`Failed to parse Gemini plan response: ${rawText.substring(0, 300)}`);
         }
         plan = normalizePlan(plan);
+        await applyResolvedVnbIdentityToPlan(ctx, plan, this.logger);
 
         const guardedPlan = enforceInhousePlanningGuard({
           plan,
@@ -1853,6 +2032,7 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
             throw new Error(`Failed to parse refined plan: ${rawText.substring(0, 300)}`);
           }
           session.plan = normalizePlan(session.plan);
+          await applyResolvedVnbIdentityToPlan(ctx, session.plan, this.logger);
           const refinedDescriptors = await listInhouseDescriptors(ctx);
 
           const refinedGuard = enforceInhousePlanningGuard({
@@ -1925,6 +2105,7 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
         // Self-heal missing inhouse sourceId when analyze produced a source selector
         // but execution came without the value (e.g. stale UI state / transient discovery gaps).
         await autoResolveMissingInhouseSourceId(ctx, session, effectiveInputs, this.logger);
+        await autoResolveVnbInputs(ctx, session, effectiveInputs, this.logger);
 
         // Pre-flight inhouse guard: never allow SQL/query actions for inhouse sources.
         const runtimeDescriptors = await listInhouseDescriptors(ctx);

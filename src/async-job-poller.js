@@ -267,7 +267,8 @@ async function callWithAutoPoll(toolName, params, pollOptions = {}, token = null
     const callPromise = CernionMCPClient.callWithNewSession(toolName, params, token);
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(
-        () => reject(new Error(`callWithAutoPoll: initial call timeout after ${maxWaitTime / 1000}s`)),
+        () =>
+          reject(new Error(`callWithAutoPoll: initial call timeout after ${maxWaitTime / 1000}s`)),
         maxWaitTime
       )
     );

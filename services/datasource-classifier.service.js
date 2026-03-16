@@ -1,4 +1,6 @@
 const { listSemanticDomains, semanticDomains } = require('../src/semantic-domains');
+const CernionMCPClient = require('../src/mcp-client');
+const { isPeriodColumn } = require('../src/period-normaliser');
 
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -132,7 +134,8 @@ module.exports = {
   settings: {
     sampleSize: 50,
     confidenceThreshold: 0.65,
-    unknownThreshold: 0.28,
+    unknownThreshold: 0.35,
+    llmFallbackEnabled: process.env.CLASSIFIER_LLM_FALLBACK_ENABLED === 'true',
   },
 
   dependencies: ['datasource-cache', 'datasource-registry'],
@@ -230,7 +233,9 @@ module.exports = {
         '';
       const description =
         options.description !== undefined ? options.description : source.description || '';
-      const rows = await this.loadRows(ctx, options.sourceId);
+      const rows = Array.isArray(source.sampleRows)
+        ? source.sampleRows
+        : await this.loadRows(ctx, options.sourceId);
       const columnProfiles = buildColumnProfiles(rows, source.dictionary?.fields || []);
       const metadataTokens = uniq([...tokenize(filename), ...tokenize(description)]);
 
@@ -300,10 +305,35 @@ module.exports = {
           : null;
 
       if (!winningEntry) {
+        const heuristicConfidence = Number((scores[0]?.score || 0).toFixed(2));
+        const llmFallback = await this.tryLlmFallback({
+          filename,
+          description,
+          rows,
+          heuristicConfidence,
+        });
+
+        if (llmFallback && llmFallback.confidence >= 0.65) {
+          const llmDomain = semanticDomains.find((domain) => domain.id === llmFallback.domainId);
+          if (llmDomain) {
+            return this.buildClassificationForDomain({
+              domain: llmDomain,
+              confidence: llmFallback.confidence,
+              scores,
+              source,
+              columnProfiles,
+              fieldMappings: options.fieldMappings || {},
+              confirmedByUser: options.confirmedByUser === true,
+              llmAssisted: true,
+              llmReasoning: llmFallback.reasoning || '',
+            });
+          }
+        }
+
         return {
           domainId: 'unknown',
           domainLabel: 'Unknown Domain',
-          confidence: Number((scores[0]?.score || 0).toFixed(2)),
+          confidence: heuristicConfidence,
           alternativeDomains: scores.slice(0, 2).map((entry) => ({
             domainId: entry.domain.id,
             domainLabel: entry.domain.label,
@@ -311,6 +341,8 @@ module.exports = {
           })),
           criticalFieldStatus: [],
           fieldMappings: {},
+          llmAssisted: Boolean(llmFallback),
+          llmReasoning: llmFallback?.reasoning || '',
           requiresUserInput: true,
           confirmedByUser: options.confirmedByUser === true,
           resolvedAt: nowIso(),
@@ -326,6 +358,8 @@ module.exports = {
         columnProfiles,
         fieldMappings: options.fieldMappings || {},
         confirmedByUser: options.confirmedByUser === true,
+        llmAssisted: false,
+        llmReasoning: '',
       });
 
       return classification;
@@ -339,11 +373,14 @@ module.exports = {
       columnProfiles,
       fieldMappings,
       confirmedByUser,
+      llmAssisted,
+      llmReasoning,
     }) {
       const roleProfiles = buildRoleProfiles(domain);
       const existingMappings = this.extractFieldMappings(source.semanticClassification);
       const overrides = { ...existingMappings, ...(fieldMappings || {}) };
       const usedColumns = new Set();
+      const sampleRows = source?.sampleRows || [];
       const criticalFieldStatus = roleProfiles.map((roleProfile) => {
         const rankedCandidates = columnProfiles
           .map((columnProfile) => ({
@@ -366,12 +403,21 @@ module.exports = {
           .slice(0, 4)
           .map((candidate) => candidate.columnName);
 
-        return {
+        const statusEntry = {
           fieldRole: roleProfile.role,
           resolved,
           mappedColumn: resolved ? bestCandidate.columnName : null,
           candidates: uniq([...(overrideColumn ? [overrideColumn] : []), ...candidates]),
         };
+
+        if (roleProfile.role === 'timeReference' && statusEntry.mappedColumn) {
+          const periodFormat = isPeriodColumn(sampleRows, statusEntry.mappedColumn);
+          if (periodFormat) {
+            statusEntry.meta = { ...(statusEntry.meta || {}), periodFormat: true };
+          }
+        }
+
+        return statusEntry;
       });
 
       const mappedFields = criticalFieldStatus.reduce((acc, item) => {
@@ -395,12 +441,67 @@ module.exports = {
           })),
         criticalFieldStatus,
         fieldMappings: mappedFields,
+        llmAssisted: llmAssisted === true,
+        llmReasoning: llmReasoning || '',
         requiresUserInput:
           confidence < this.settings.confidenceThreshold ||
           criticalFieldStatus.some((item) => !item.resolved),
         confirmedByUser,
         resolvedAt: nowIso(),
       };
+    },
+
+    async tryLlmFallback({ filename, description, rows, heuristicConfidence }) {
+      if (!this.settings.llmFallbackEnabled) return null;
+      if (heuristicConfidence >= this.settings.unknownThreshold) return null;
+      if (!process.env.CERNION_TOKEN) return null;
+
+      const sampleRows = Array.isArray(rows) ? rows.slice(0, 3) : [];
+      const columnNames = sampleRows[0] ? Object.keys(sampleRows[0]) : [];
+
+      const domainList = semanticDomains
+        .map((domain) => `- ${domain.id}: ${domain.description}`)
+        .join('\n');
+
+      const prompt = `You are a data classification assistant for German energy utilities.
+Given the following column names and sample values from an uploaded CSV,
+identify the most likely semantic domain from this list:
+${domainList}
+
+Column names: ${JSON.stringify(columnNames)}
+Sample values (3 rows): ${JSON.stringify(sampleRows)}
+Filename: ${filename}
+Description: ${description}
+
+Respond with JSON only:
+{ "domainId": "...", "confidence": 0.0-1.0, "reasoning": "..." }`;
+
+      try {
+        const response = await CernionMCPClient.callWithNewSession(
+          'cernion_ask',
+          { query: prompt },
+          null
+        );
+        const content =
+          response?.data?.content?.[0]?.text ||
+          response?.data?.[0]?.text ||
+          response?.data?.text ||
+          response?.content?.[0]?.text ||
+          '';
+        if (!content) return null;
+        const parsed = JSON.parse(String(content).trim());
+        if (!parsed?.domainId) return null;
+        return {
+          domainId: String(parsed.domainId),
+          confidence: Number(parsed.confidence) || 0,
+          reasoning: String(parsed.reasoning || ''),
+        };
+      } catch (error) {
+        this.logger.warn('LLM fallback classification failed', {
+          message: error.message,
+        });
+        return null;
+      }
     },
 
     extractFieldMappings(classification) {
@@ -414,11 +515,6 @@ module.exports = {
         }
         return acc;
       }, {});
-    },
-
-    async loadSource(ctx, sourceId) {
-      const sourceResponse = await ctx.call('datasource-registry.get', { id: sourceId });
-      return sourceResponse?.data || sourceResponse;
     },
 
     async loadRows(ctx, sourceId) {
@@ -440,6 +536,16 @@ module.exports = {
           : [];
 
       return rows;
+    },
+
+    async loadSource(ctx, sourceId) {
+      const sourceResponse = await ctx.call('datasource-registry.get', { id: sourceId });
+      const source = sourceResponse?.data || sourceResponse;
+      const sampleRows = await this.loadRows(ctx, sourceId);
+      return {
+        ...source,
+        sampleRows,
+      };
     },
   },
 };

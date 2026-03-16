@@ -207,9 +207,42 @@ describe('Agent Service', () => {
       name: 'in-memory-join',
       actions: {
         meteringSpotCost: meteringSpotCostMock,
+        benchmarkCompare: jest.fn().mockResolvedValue({
+          success: true,
+          narrative: 'Mock benchmark comparison.',
+          delta: 5,
+        }),
       },
     });
     broker._meteringSpotCostMock = meteringSpotCostMock;
+
+    broker.createService({
+      name: 'ewk-monitoring',
+      actions: {
+        benchmarkVnb: jest.fn().mockResolvedValue({
+          success: true,
+          data: {
+            digitalisierungsindex: {
+              gesamtscore_pct: 60,
+            },
+            benchmark: {
+              median: 55,
+            },
+          },
+        }),
+        digitalisierungsindex: jest.fn().mockResolvedValue({
+          success: true,
+          data: {
+            digitalisierungsindex: {
+              gesamtscore_pct: 61,
+            },
+            benchmark: {
+              median: 54,
+            },
+          },
+        }),
+      },
+    });
 
     const datasourceCacheQueryMock = jest.fn().mockResolvedValue({
       success: true,
@@ -365,6 +398,18 @@ describe('Agent Service', () => {
                 timeReference: 'Lieferperiode',
               },
             },
+            __sourceMeta: {
+              semanticClassification: {
+                criticalFieldStatus: [
+                  {
+                    fieldRole: 'timeReference',
+                    resolved: true,
+                    mappedColumn: 'Lieferperiode',
+                    meta: { periodFormat: true },
+                  },
+                ],
+              },
+            },
           },
         ],
       });
@@ -376,8 +421,70 @@ describe('Agent Service', () => {
 
       expect(result.steps[0].action).toBe('in-memory-join.meteringSpotCost');
       expect(result.steps[0].params.leftTimeField).toBe('Lieferperiode');
+      expect(result.steps[0].params.normalisePeriod).toBe(true);
       expect(result.steps[0].params.leftTimeField).not.toBe('Abschlussdatum');
       expect(_mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('should route benchmark comparison query to inhouse_benchmark_compare intent', async () => {
+      broker._discoveryListMock.mockResolvedValueOnce({
+        success: true,
+        data: [
+          {
+            name: 'inhouse__pv_assets',
+            source: 'inhouse',
+            sourceId: 'grid-source-1',
+            capabilities: ['inhouse_benchmark_compare'],
+            semanticHints: {
+              domain: 'grid-assets',
+              criticalFieldMappings: {
+                capacityKWp: 'Leistung_kWp',
+              },
+            },
+          },
+        ],
+      });
+
+      const result = await broker.call('agent.analyze', {
+        problem: 'Wie stehen wir im EWK Benchmark bundesweit im Vergleich?',
+        inhouseSources: ['grid-source-1'],
+      });
+
+      expect(result.summary).toContain('inhouse_benchmark_compare');
+      expect(result.steps[1].action).toBe('ewk-monitoring.benchmarkVnb');
+      expect(result.steps[2].action).toBe('in-memory-join.benchmarkCompare');
+    });
+
+    it('should prefill VNB input from env for benchmark plans', async () => {
+      const oldVnbName = process.env.CERNION_VNB_NAME;
+      process.env.CERNION_VNB_NAME = 'Stadtwerke Test';
+
+      broker._discoveryListMock.mockResolvedValueOnce({
+        success: true,
+        data: [
+          {
+            name: 'inhouse__pv_assets',
+            source: 'inhouse',
+            sourceId: 'grid-source-2',
+            capabilities: ['inhouse_benchmark_compare'],
+            semanticHints: {
+              domain: 'grid-assets',
+            },
+          },
+        ],
+      });
+
+      const result = await broker.call('agent.analyze', {
+        problem: 'EWK benchmark Vergleich für unser Netzgebiet',
+        inhouseSources: ['grid-source-2'],
+      });
+
+      const vnbInput = result.requiredInputs.find((item) => item.name === 'vnbName');
+      expect(vnbInput).toBeDefined();
+      expect(vnbInput.default).toBe('Stadtwerke Test');
+      expect(vnbInput.required).toBe(false);
+
+      process.env.CERNION_VNB_NAME = oldVnbName;
     });
 
     it('should shortcut actual-vs-forecast comparisons to compareForecastActual intent class', async () => {

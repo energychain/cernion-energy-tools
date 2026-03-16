@@ -51,8 +51,16 @@ module.exports = {
                   name: { type: 'string', example: 'Customer Master' },
                   description: { type: 'string', example: 'Main customer data table', default: '' },
                   connectorType: { type: 'string', example: 'csv' },
-                  connectorConfig: { type: 'object', example: { filePath: '/data/customers.csv' }, default: {} },
-                  cachePolicy: { type: 'object', example: { mode: 'ttl', ttlSeconds: 3600 }, default: {} },
+                  connectorConfig: {
+                    type: 'object',
+                    example: { filePath: '/data/customers.csv' },
+                    default: {},
+                  },
+                  cachePolicy: {
+                    type: 'object',
+                    example: { mode: 'ttl', ttlSeconds: 3600 },
+                    default: {},
+                  },
                   dictionary: { type: 'object', example: {}, default: null },
                   tags: { type: 'array', items: { type: 'string' }, example: ['crm'], default: [] },
                 },
@@ -60,11 +68,21 @@ module.exports = {
               examples: {
                 csvSource: {
                   summary: 'Register a CSV datasource',
-                  value: { name: 'Customer Master', connectorType: 'csv', connectorConfig: { filePath: '/data/customers.csv' }, tags: ['crm'] },
+                  value: {
+                    name: 'Customer Master',
+                    connectorType: 'csv',
+                    connectorConfig: { filePath: '/data/customers.csv' },
+                    tags: ['crm'],
+                  },
                 },
                 restSource: {
                   summary: 'Register a REST API datasource',
-                  value: { name: 'Live Prices', connectorType: 'rest', connectorConfig: { url: 'https://api.example.com/prices' }, cachePolicy: { mode: 'ttl', ttlSeconds: 900 } },
+                  value: {
+                    name: 'Live Prices',
+                    connectorType: 'rest',
+                    connectorConfig: { url: 'https://api.example.com/prices' },
+                    cachePolicy: { mode: 'ttl', ttlSeconds: 900 },
+                  },
                 },
               },
             },
@@ -153,7 +171,12 @@ module.exports = {
         summary: 'Get datasource definition',
         tags: ['DataSources'],
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' } },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' },
+          },
         ],
       },
       async handler(ctx) {
@@ -260,7 +283,12 @@ module.exports = {
         summary: 'Get current Data Dictionary',
         tags: ['DataSources'],
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' } },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' },
+          },
         ],
       },
       async handler(ctx) {
@@ -334,7 +362,12 @@ module.exports = {
         summary: 'List Data Dictionary history',
         tags: ['DataSources'],
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' } },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' },
+          },
         ],
       },
       async handler(ctx) {
@@ -361,7 +394,12 @@ module.exports = {
         summary: 'Get a specific Data Dictionary version',
         tags: ['DataSources'],
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' } },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' },
+          },
           { name: 'version', in: 'path', required: true, schema: { type: 'integer', example: 2 } },
         ],
       },
@@ -445,7 +483,12 @@ module.exports = {
         summary: 'Get semantic datasource classification',
         tags: ['DataSources'],
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' } },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' },
+          },
         ],
       },
       async handler(ctx) {
@@ -482,7 +525,8 @@ module.exports = {
           ...(ctx.params.fieldMappings || incomingClassification.fieldMappings || {}),
         };
 
-        const domainId = incomingClassification.domainId || existingClassification.domainId || 'unknown';
+        const domainId =
+          incomingClassification.domainId || existingClassification.domainId || 'unknown';
         const domain = getSemanticDomainById(domainId);
         const criticalFieldStatus = Array.isArray(incomingClassification.criticalFieldStatus)
           ? deepClone(incomingClassification.criticalFieldStatus)
@@ -495,13 +539,17 @@ module.exports = {
           ...incomingClassification,
           domainId,
           domainLabel:
-            incomingClassification.domainLabel || existingClassification.domainLabel || domain?.label || 'Unknown Domain',
+            incomingClassification.domainLabel ||
+            existingClassification.domainLabel ||
+            domain?.label ||
+            'Unknown Domain',
           fieldMappings,
           criticalFieldStatus: this.mergeCriticalFieldStatus(criticalFieldStatus, fieldMappings),
           confirmedByUser:
             ctx.params.confirmedByUser !== undefined
               ? ctx.params.confirmedByUser
-              : incomingClassification.confirmedByUser === true || existingClassification.confirmedByUser === true,
+              : incomingClassification.confirmedByUser === true ||
+                existingClassification.confirmedByUser === true,
           resolvedAt: incomingClassification.resolvedAt || timestamp,
           updatedAt: timestamp,
         };
@@ -553,7 +601,12 @@ module.exports = {
         summary: 'Trigger AI-assisted schema inference',
         tags: ['DataSources'],
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' } },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' },
+          },
         ],
         requestBody: {
           content: {
@@ -606,7 +659,8 @@ module.exports = {
               privacyFlag: existing?.privacyFlag ?? suggestedPrivacy,
               example: field.example ?? existing?.example ?? null,
               syntheticPattern:
-                existing?.syntheticPattern || (suggestedPrivacy ? '{{const("REDACTED")}}' : undefined),
+                existing?.syntheticPattern ||
+                (suggestedPrivacy ? '{{const("REDACTED")}}' : undefined),
             };
           });
 
@@ -658,7 +712,12 @@ module.exports = {
         summary: 'Trigger datasource refresh',
         tags: ['DataSources'],
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' } },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' },
+          },
         ],
         requestBody: {
           content: {
@@ -789,7 +848,9 @@ module.exports = {
     },
 
     mergeCriticalFieldStatus(existingStatus, fieldMappings) {
-      const statusByRole = new Map((existingStatus || []).map((item) => [item.fieldRole, deepClone(item)]));
+      const statusByRole = new Map(
+        (existingStatus || []).map((item) => [item.fieldRole, deepClone(item)])
+      );
 
       Object.entries(fieldMappings || {}).forEach(([fieldRole, mappedColumn]) => {
         const current = statusByRole.get(fieldRole) || {
@@ -802,7 +863,9 @@ module.exports = {
           ...current,
           resolved: Boolean(mappedColumn),
           mappedColumn: mappedColumn || null,
-          candidates: Array.from(new Set([...(current.candidates || []), ...(mappedColumn ? [mappedColumn] : [])])),
+          candidates: Array.from(
+            new Set([...(current.candidates || []), ...(mappedColumn ? [mappedColumn] : [])])
+          ),
         });
       });
 
@@ -814,7 +877,9 @@ module.exports = {
       const mappedColumns = new Set(Object.values(fieldMappings || {}).filter(Boolean));
 
       return nextFields.map((field) => {
-        const assignedRole = Object.entries(fieldMappings || {}).find(([, columnName]) => columnName === field.name)?.[0];
+        const assignedRole = Object.entries(fieldMappings || {}).find(
+          ([, columnName]) => columnName === field.name
+        )?.[0];
         const hasMappedRole = mappedColumns.has(field.name);
 
         if (assignedRole) {

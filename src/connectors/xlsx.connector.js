@@ -41,7 +41,9 @@ module.exports = {
 
     const sheetName =
       connectorConfig.sheetName ||
-      workbook.SheetNames[Number.isInteger(connectorConfig.sheetIndex) ? connectorConfig.sheetIndex : 0];
+      workbook.SheetNames[
+        Number.isInteger(connectorConfig.sheetIndex) ? connectorConfig.sheetIndex : 0
+      ];
 
     const worksheet = workbook.Sheets[sheetName];
     if (!worksheet) {

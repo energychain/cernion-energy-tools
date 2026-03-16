@@ -88,11 +88,18 @@ module.exports = {
         summary: 'Search discoverable inhouse datasource descriptors',
         tags: ['DataSources'],
         parameters: [
-          { name: 'q', in: 'query', required: true, schema: { type: 'string', example: 'customer' } },
+          {
+            name: 'q',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: 'customer' },
+          },
         ],
       },
       async handler(ctx) {
-        const query = String(ctx.params.q || '').toLowerCase().trim();
+        const query = String(ctx.params.q || '')
+          .toLowerCase()
+          .trim();
         const descriptors = await this.buildDescriptors(ctx);
 
         const filtered = descriptors.filter((descriptor) => {
@@ -133,7 +140,12 @@ module.exports = {
         summary: 'Get AI descriptor for one datasource',
         tags: ['DataSources'],
         parameters: [
-          { name: 'sourceId', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' } },
+          {
+            name: 'sourceId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000000' },
+          },
         ],
       },
       async handler(ctx) {
@@ -198,8 +210,11 @@ module.exports = {
         const flaggedFields = (source?.dictionary?.fields || [])
           .filter((field) => field.privacyFlag)
           .map((field) => field.name);
-        const inferredSemantic = this.inferSemanticHints(dictionaryFields);
         const semanticClassification = source?.semanticClassification || null;
+        const inferredSemantic = this.inferSemanticHints(
+          dictionaryFields,
+          semanticClassification?.domainId
+        );
         const semanticMappings = this.extractCriticalFieldMappings(semanticClassification);
         const semanticStatus = this.deriveSemanticStatus(semanticClassification);
         const semanticHints = {
@@ -260,7 +275,9 @@ module.exports = {
             aliases,
             capabilities: semanticHints.capabilities,
             semanticHints: semanticHints.hints,
-            semanticClassification: semanticClassification ? deepClone(semanticClassification) : null,
+            semanticClassification: semanticClassification
+              ? deepClone(semanticClassification)
+              : null,
           },
         };
 
@@ -281,8 +298,11 @@ module.exports = {
         .trim();
     },
 
-    inferSemanticHints(fields) {
-      const normalized = (fields || []).map((f) => ({ raw: f, key: String(f || '').toLowerCase() }));
+    inferSemanticHints(fields, domainId) {
+      const normalized = (fields || []).map((f) => ({
+        raw: f,
+        key: String(f || '').toLowerCase(),
+      }));
 
       const pick = (candidates) => {
         for (const f of normalized) {
@@ -319,6 +339,9 @@ module.exports = {
       if (timeField && (actualGenerationField || feedInPowerField)) {
         capabilities.push('timeseries_compare_actual_vs_forecast');
         capabilities.push('timeseries_delta_analysis');
+      }
+      if (domainId === 'grid-assets' || domainId === 'metering-point-master') {
+        capabilities.push('inhouse_benchmark_compare');
       }
 
       return {

@@ -51,7 +51,10 @@ class CernionMCPClient {
     if (!message) return message;
     let sanitized = String(message);
     sanitized = sanitized.replace(/(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, '$1[REDACTED]');
-    sanitized = sanitized.replace(/([?&](?:token|api[_-]?key|secret|password)=)[^&\s]+/gi, '$1[REDACTED]');
+    sanitized = sanitized.replace(
+      /([?&](?:token|api[_-]?key|secret|password)=)[^&\s]+/gi,
+      '$1[REDACTED]'
+    );
     sanitized = sanitized.replace(
       /(https?:\/\/mcp\.cernion\.de\/)[^/\s]+(\/mcp)/gi,
       '$1[REDACTED]$2'
