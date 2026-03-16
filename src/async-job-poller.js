@@ -311,7 +311,10 @@ async function callWithAutoPoll(toolName, params, pollOptions = {}, token = null
  * Sleep helper
  */
 function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    timer.unref();
+  });
 }
 
 module.exports = {
