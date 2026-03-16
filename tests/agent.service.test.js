@@ -212,6 +212,17 @@ describe('Agent Service', () => {
           narrative: 'Mock benchmark comparison.',
           delta: 5,
         }),
+        procurementVsSpot: jest.fn().mockResolvedValue({
+          success: true,
+          procurementAvgPrice: 52.5,
+          spotAvgPrice: 40.0,
+          delta: 12.5,
+          deltaPercent: 31.25,
+          totalVolumeMWh: 570,
+          positions: [],
+          periodsWithoutSpotData: [],
+        }),
+        compareForecastActual: jest.fn().mockResolvedValue({ success: true, rowCount: 0, data: [] }),
       },
     });
     broker._meteringSpotCostMock = meteringSpotCostMock;
@@ -419,11 +430,156 @@ describe('Agent Service', () => {
         inhouseSources: ['proc-source-1'],
       });
 
+      // Sources with domain:procurement + meta.periodFormat:true are routed to procurement_vs_spot
+      expect(result.summary).toContain('procurement_vs_spot');
+      expect(result.steps[0].action).toBe('in-memory-join.procurementVsSpot');
+      expect(result.steps[0].params.periodField).toBe('Lieferperiode');
+      expect(result.steps[0].params.periodField).not.toBe('Abschlussdatum');
+      expect(result.steps[0].params).toHaveProperty('volumeField');
+      expect(result.steps[0].params).toHaveProperty('priceField');
+      expect(_mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('should detect period-formatted timeReference from sampleRows when meta flag is missing', async () => {
+      broker._discoveryListMock.mockResolvedValueOnce({
+        success: true,
+        data: [
+          {
+            name: 'inhouse__beschaffungsportfolio_2026',
+            source: 'inhouse',
+            sourceId: 'proc-source-2',
+            aliases: ['beschaffungsportfolio'],
+            capabilities: ['timeseries_cost_enrichment'],
+            sampleRows: [
+              { Lieferperiode: 'Feb 2026', Menge_MWh: '201.3' },
+              { Lieferperiode: '2026-Q1', Menge_MWh: '751.0' },
+            ],
+            semanticHints: {
+              domain: 'procurement',
+              timeField: 'Abschlussdatum',
+              criticalFieldMappings: {
+                timeReference: 'Lieferperiode',
+              },
+            },
+            __sourceMeta: {
+              semanticClassification: {
+                criticalFieldStatus: [
+                  {
+                    fieldRole: 'timeReference',
+                    resolved: true,
+                    mappedColumn: 'Lieferperiode',
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+
+      const result = await broker.call('agent.analyze', {
+        problem: 'Was kostet unser Beschaffungsportfolio laut Spotpreis?',
+        inhouseSources: ['proc-source-2'],
+      });
+
       expect(result.steps[0].action).toBe('in-memory-join.meteringSpotCost');
       expect(result.steps[0].params.leftTimeField).toBe('Lieferperiode');
       expect(result.steps[0].params.normalisePeriod).toBe(true);
-      expect(result.steps[0].params.leftTimeField).not.toBe('Abschlussdatum');
+    });
+
+    it('should select procurement_vs_spot (not timeseries_cost_enrichment) for procurement source with meta.periodFormat:true', async () => {
+      // The query triggers timeseries_cost_enrichment via text ("Kosten", "Spotpreis")
+      // but the source has domain:procurement + meta.periodFormat:true → upgrade to procurement_vs_spot
+      broker._discoveryListMock.mockResolvedValueOnce({
+        success: true,
+        data: [
+          {
+            name: 'inhouse__beschaffungsportfolio_2026',
+            source: 'inhouse',
+            sourceId: 'proc-source-3',
+            aliases: ['beschaffungsportfolio'],
+            capabilities: ['procurement_vs_spot'],
+            semanticHints: {
+              domain: 'procurement',
+              criticalFieldMappings: {
+                timeReference: 'Lieferperiode',
+                quantityMWh: 'Menge_MWh',
+                price: 'Preis_EUR_MWh',
+              },
+            },
+            __sourceMeta: {
+              semanticClassification: {
+                criticalFieldStatus: [
+                  {
+                    fieldRole: 'timeReference',
+                    resolved: true,
+                    mappedColumn: 'Lieferperiode',
+                    meta: { periodFormat: true },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+
+      const result = await broker.call('agent.analyze', {
+        // Query text triggers isCostEnrichment (Kosten + Spotpreis) but NOT isProcurementVsSpot
+        // (no "beschaffungsportfolio" or "lieferperiode" in text)
+        problem: 'Was sind die Energiekosten laut aktuellem Spotpreis?',
+        inhouseSources: ['proc-source-3'],
+      });
+
+      expect(result.summary).toContain('procurement_vs_spot');
+      expect(result.summary).not.toContain('timeseries_cost_enrichment');
+      expect(result.steps).toHaveLength(1);
+      expect(result.steps[0].action).toBe('in-memory-join.procurementVsSpot');
+      expect(result.steps[0].params.periodField).toBe('Lieferperiode');
+      expect(result.steps[0].params.volumeField).toBe('Menge_MWh');
+      expect(result.steps[0].params.priceField).toBe('Preis_EUR_MWh');
       expect(_mockGenerateContent).not.toHaveBeenCalled();
+    });
+
+    it('should bind sourceId for procurement_vs_spot when discovery uses source_id field', async () => {
+      broker._discoveryListMock.mockResolvedValueOnce({
+        success: true,
+        data: [
+          {
+            name: 'inhouse__portfolio_2026',
+            source: 'inhouse',
+            source_id: 'proc-source-snake-1',
+            aliases: ['beschaffungsportfolio'],
+            semanticHints: {
+              domain: 'procurement',
+              criticalFieldMappings: {
+                timeReference: 'Lieferperiode',
+                quantityMWh: 'Menge_MWh',
+                price: 'Preis_EUR_MWh',
+              },
+            },
+            __sourceMeta: {
+              dictionaryFields: ['Lieferperiode', 'Menge_MWh', 'Preis_EUR_MWh'],
+              semanticClassification: {
+                criticalFieldStatus: [
+                  {
+                    fieldRole: 'timeReference',
+                    mappedColumn: 'Lieferperiode',
+                    meta: { periodFormat: true },
+                  },
+                ],
+              },
+            },
+          },
+        ],
+      });
+
+      const result = await broker.call('agent.analyze', {
+        problem: 'Wie liegt unser Beschaffungsportfolio im Vergleich zum aktuellen Spotpreis?',
+      });
+
+      expect(result.summary).toContain('procurement_vs_spot');
+      expect(result.steps[0].action).toBe('in-memory-join.procurementVsSpot');
+      expect(result.steps[0].params.sourceId).toBe('proc-source-snake-1');
+      expect(result.requiredInputs.some((i) => i.name === 'sourceId')).toBe(false);
     });
 
     it('should route benchmark comparison query to inhouse_benchmark_compare intent', async () => {

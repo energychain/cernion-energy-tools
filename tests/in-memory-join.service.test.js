@@ -2,11 +2,33 @@
  * In-Memory Join Service Tests
  */
 
+const fs = require('fs');
+const path = require('path');
 const { ServiceBroker } = require('moleculer');
 const InMemoryJoinService = require('../services/in-memory-join.service');
 
 describe('In-Memory Join Service', () => {
   let broker;
+
+  const parseCsvFixture = (relativePath) => {
+    const csvPath = path.join(__dirname, relativePath);
+    const lines = fs
+      .readFileSync(csvPath, 'utf-8')
+      .split(/\r?\n/)
+      .filter((line) => line.trim().length > 0);
+
+    if (lines.length < 2) return [];
+
+    const headers = lines[0].split(',').map((h) => h.trim());
+    return lines.slice(1).map((line) => {
+      const cells = line.split(',');
+      const row = {};
+      headers.forEach((header, index) => {
+        row[header] = cells[index] ?? '';
+      });
+      return row;
+    });
+  };
 
   const datasets = {
     'left-source': [
@@ -38,6 +60,7 @@ describe('In-Memory Join Service', () => {
       { Lieferperiode: 'Feb 2026', 'Leistung Bezug (W)': '1200', 'Leistung Einspeisung (W)': '0' },
       { Lieferperiode: '2026-03', 'Leistung Bezug (W)': '800', 'Leistung Einspeisung (W)': '0' },
     ],
+    BeschaffungsportfolioFixture: parseCsvFixture('./acceptance/beschaffungsportfolio.csv'),
   };
 
   beforeAll(async () => {
@@ -287,6 +310,24 @@ describe('In-Memory Join Service', () => {
     expect(result.success).toBe(true);
     expect(result.periodNormalised).toBe(true);
     expect(result.rowCount).toBe(3);
+  });
+
+  it('should handle beschaffungsportfolio fixture with mixed Lieferperiode formats', async () => {
+    const result = await broker.call('in-memory-join.meteringSpotCost', {
+      sourceId: 'BeschaffungsportfolioFixture',
+      startDate: '2026-01-01',
+      endDate: '2026-03-31',
+      leftTimeField: 'Lieferzeitraum',
+      consumptionPowerField: 'Menge_MWh',
+      feedInPowerField: 'Menge_Einspeisung_MWh',
+      aggregateBy: 'daily',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.warning).toBeUndefined();
+    expect(result.periodNormalised).toBe(true);
+    expect(result.timeFieldUsed).toBe('Lieferperiode');
+    expect(result.rowCount).toBeGreaterThan(0);
   });
 
   it('should compare inhouse summary against benchmark values', async () => {

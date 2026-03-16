@@ -272,6 +272,124 @@ function filterRowsByDate(rows, timeField, startDate, endDate) {
   });
 }
 
+function resolveBestTimeField(rows, preferredField) {
+  if (!Array.isArray(rows) || rows.length === 0) return preferredField;
+
+  const firstRow = rows.find((row) => row && typeof row === 'object');
+  const availableFields = firstRow ? Object.keys(firstRow) : [];
+  if (!availableFields.length) return preferredField;
+
+  if (preferredField && availableFields.includes(preferredField)) {
+    return preferredField;
+  }
+
+  if (preferredField) {
+    const caseInsensitiveMatch = availableFields.find(
+      (field) => String(field).toLowerCase() === String(preferredField).toLowerCase()
+    );
+    if (caseInsensitiveMatch) {
+      return caseInsensitiveMatch;
+    }
+  }
+
+  const keywordPreferred = availableFields.find((field) =>
+    /(lieferperiode|lieferzeitraum|zeit|timestamp|datum|time)/i.test(field)
+  );
+
+  let bestField = keywordPreferred || availableFields[0];
+  let bestScore = -1;
+
+  for (const field of availableFields) {
+    let nonEmpty = 0;
+    let parseable = 0;
+
+    for (const row of rows) {
+      const raw = row?.[field];
+      if (raw === null || raw === undefined) continue;
+      const text = String(raw).trim();
+      if (!text) continue;
+
+      nonEmpty += 1;
+      const normalizedPeriod = normalizePeriodValue(text);
+      const parsed = parseDateFlexible(normalizedPeriod || text);
+      if (parsed) parseable += 1;
+    }
+
+    if (!nonEmpty) continue;
+    const score = parseable / nonEmpty;
+    if (score > bestScore) {
+      bestScore = score;
+      bestField = field;
+    }
+  }
+
+  return bestField;
+}
+
+/**
+ * Return the calendar start and end date for a raw procurement period string.
+ * Supports quarterly (2026-Q1), month-name (Feb 2026), year-month (2026-03)
+ * and ISO date (2026-03-15) formats.
+ * @param {string} rawValue
+ * @returns {{ start: string, end: string, granularity: string }|null}
+ */
+function getPeriodRange(rawValue) {
+  if (rawValue === null || rawValue === undefined) return null;
+  const raw = String(rawValue).trim();
+  if (!raw) return null;
+
+  const quarterMatch = raw.match(/^(\d{4})-Q([1-4])$/i);
+  if (quarterMatch) {
+    const year = Number(quarterMatch[1]);
+    const q = Number(quarterMatch[2]);
+    const startMonth = (q - 1) * 3 + 1;
+    const endMonth = q * 3;
+    const endDay = new Date(Date.UTC(year, endMonth, 0)).getUTCDate();
+    return {
+      start: `${year}-${String(startMonth).padStart(2, '0')}-01`,
+      end: `${year}-${String(endMonth).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`,
+      granularity: 'quarterly',
+    };
+  }
+
+  const MONTH_NAME_MAP = {
+    jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+    jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+  };
+  const monthYearMatch = raw.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})$/i);
+  if (monthYearMatch) {
+    const month = MONTH_NAME_MAP[monthYearMatch[1].toLowerCase()];
+    const year = Number(monthYearMatch[2]);
+    const endDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const mm = String(month).padStart(2, '0');
+    return {
+      start: `${year}-${mm}-01`,
+      end: `${year}-${mm}-${String(endDay).padStart(2, '0')}`,
+      granularity: 'monthly',
+    };
+  }
+
+  const yearMonthMatch = raw.match(/^(\d{4})-(\d{2})$/);
+  if (yearMonthMatch) {
+    const year = Number(yearMonthMatch[1]);
+    const month = Number(yearMonthMatch[2]);
+    if (month < 1 || month > 12) return null;
+    const endDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    return {
+      start: `${year}-${yearMonthMatch[2]}-01`,
+      end: `${year}-${yearMonthMatch[2]}-${String(endDay).padStart(2, '0')}`,
+      granularity: 'monthly',
+    };
+  }
+
+  const isoDateMatch = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoDateMatch) {
+    return { start: raw, end: raw, granularity: 'daily' };
+  }
+
+  return null;
+}
+
 function parseDateBoundary(input, mode) {
   if (!input) return null;
   const resolved = resolveDateAlias(String(input));
@@ -683,29 +801,46 @@ module.exports = {
         const startBoundary = parseDateBoundary(startDate || date, 'start');
         const endBoundary = parseDateBoundary(endDate || date, 'end');
 
+        const resolvedTimeField = resolveBestTimeField(rows, leftTimeField);
         const shouldNormalisePeriod =
-          normalisePeriod === true || isPeriodColumn(rows, leftTimeField);
+          normalisePeriod === true || isPeriodColumn(rows, resolvedTimeField);
 
+        const normalisedSamples = [];
         const workingRows =
-          shouldNormalisePeriod && leftTimeField
+          shouldNormalisePeriod && resolvedTimeField
             ? rows.map((row) => {
-                const normalized = normalizePeriodValue(row?.[leftTimeField]);
+                const rawValue = row?.[resolvedTimeField];
+                const normalized = normalizePeriodValue(rawValue);
+                if (normalized && String(rawValue) !== normalized && normalisedSamples.length < 8) {
+                  normalisedSamples.push({
+                    before: rawValue,
+                    after: normalized,
+                  });
+                }
                 return normalized
                   ? {
                       ...row,
-                      [leftTimeField]: normalized,
+                      [resolvedTimeField]: normalized,
                     }
                   : row;
               })
             : rows;
 
+        if (shouldNormalisePeriod && normalisedSamples.length > 0) {
+          this.logger.debug('meteringSpotCost period normalisation samples', {
+            sourceId,
+            timeField: resolvedTimeField,
+            values: normalisedSamples,
+          });
+        }
+
         let filteredRows = workingRows;
         if (startBoundary || endBoundary) {
-          filteredRows = filterRowsByDate(workingRows, leftTimeField, startBoundary, endBoundary);
+          filteredRows = filterRowsByDate(workingRows, resolvedTimeField, startBoundary, endBoundary);
         }
 
         const parsedTimes = filteredRows
-          .map((row) => parseDateFlexible(row?.[leftTimeField]))
+          .map((row) => parseDateFlexible(row?.[resolvedTimeField]))
           .filter(Boolean)
           .sort((a, b) => a.getTime() - b.getTime());
 
@@ -715,7 +850,8 @@ module.exports = {
             sourceId,
             rowCount: 0,
             data: [],
-            warning: `No parseable timestamps found in field "${leftTimeField}"`,
+            timeFieldUsed: resolvedTimeField,
+            warning: `No parseable timestamps found in field "${resolvedTimeField}"`,
           };
         }
 
@@ -774,7 +910,7 @@ module.exports = {
         let missingPriceIntervals = 0;
 
         for (const row of filteredRows) {
-          const timestamp = parseDateFlexible(row?.[leftTimeField]);
+          const timestamp = parseDateFlexible(row?.[resolvedTimeField]);
           if (!timestamp) continue;
 
           const hourKey = normalizeJoinKey(timestamp, 'hourly-time');
@@ -803,7 +939,7 @@ module.exports = {
 
         const aggregate = new Map();
         for (const interval of intervals) {
-          const timestamp = parseDateFlexible(interval?.[leftTimeField]);
+          const timestamp = parseDateFlexible(interval?.[resolvedTimeField]);
           if (!timestamp) continue;
 
           const key =
@@ -870,12 +1006,249 @@ module.exports = {
           rowCount: intervals.length,
           missingPriceIntervals,
           periodNormalised: shouldNormalisePeriod,
+          timeFieldUsed: resolvedTimeField,
           totals: {
             totalEnergyKWh,
             totalCostEur,
           },
           data: aggregateBy === 'interval' ? intervals : grouped,
           intervals: includeIntervals ? intervals : undefined,
+        };
+      },
+    },
+
+    procurementVsSpot: {
+      rest: 'POST /procurement-vs-spot',
+      params: {
+        sourceId: { type: 'string', min: 1 },
+        periodField: { type: 'string', optional: true },
+        volumeField: { type: 'string', optional: true },
+        priceField: { type: 'string', optional: true },
+        region: { type: 'string', optional: true, default: 'Deutschland' },
+        market: {
+          type: 'enum',
+          values: ['day-ahead', 'intraday', 'futures'],
+          optional: true,
+          default: 'day-ahead',
+        },
+        privacyContext: {
+          type: 'enum',
+          values: ['internal', 'ai-agent', 'public'],
+          optional: true,
+          default: 'internal',
+        },
+        maxRows: {
+          type: 'number',
+          integer: true,
+          min: 1,
+          optional: true,
+          default: 50000,
+          convert: true,
+        },
+      },
+      openapi: {
+        summary: 'Compare procurement portfolio periods against Day-Ahead spot prices',
+        tags: ['DataSources', 'Analytics'],
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['sourceId'],
+                properties: {
+                  sourceId: { type: 'string', example: 'proc-source-1' },
+                  periodField: { type: 'string', example: 'Lieferperiode' },
+                  volumeField: { type: 'string', example: 'Menge_MWh' },
+                  priceField: { type: 'string', example: 'Preis_EUR_MWh' },
+                  region: { type: 'string', example: 'Deutschland' },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { sourceId, periodField, volumeField, priceField, region, market, privacyContext, maxRows } =
+          ctx.params;
+
+        const rawRows = await fetchDatasourceRows(ctx, sourceId, { maxRows, privacyContext });
+        const rows = normalizeSingleColumnCsvRows(rawRows);
+
+        if (!rows.length) {
+          return {
+            success: true,
+            sourceId,
+            procurementAvgPrice: null,
+            spotAvgPrice: null,
+            delta: null,
+            deltaPercent: null,
+            totalVolumeMWh: 0,
+            positions: [],
+            periodsWithoutSpotData: [],
+          };
+        }
+
+        const resolvedPeriodField = resolveBestTimeField(rows, periodField);
+        const fieldNames = Object.keys(rows[0] || {});
+        const resolvedVolumeField =
+          (volumeField && fieldNames.includes(volumeField) ? volumeField : null) ||
+          fieldNames.find((f) => /^menge/i.test(f)) ||
+          fieldNames.find((f) => /^volumen?/i.test(f)) ||
+          fieldNames.find((f) => /menge|volumen?/i.test(f) && !/preis|price|eur/i.test(f)) ||
+          null;
+        const resolvedPriceField =
+          (priceField && fieldNames.includes(priceField) ? priceField : null) ||
+          fieldNames.find((f) => /preis_eur|price_eur/i.test(f)) ||
+          fieldNames.find((f) => /preis|price|eur/i.test(f)) ||
+          null;
+
+        // Build unique period → date-range map using raw period values as keys
+        const periodRangeMap = new Map();
+        for (const row of rows) {
+          const rawPeriod = row?.[resolvedPeriodField];
+          if (!rawPeriod) continue;
+          const raw = String(rawPeriod).trim();
+          if (!periodRangeMap.has(raw)) {
+            const range = getPeriodRange(raw) || getPeriodRange(normalizePeriodValue(raw));
+            if (range) periodRangeMap.set(raw, range);
+          }
+        }
+
+        // Fetch spot prices for the union of all period date ranges
+        const allStarts = [...periodRangeMap.values()].map((r) => r.start).sort();
+        const allEnds = [...periodRangeMap.values()].map((r) => r.end).sort();
+        const overallStart = allStarts[0];
+        const overallEnd = allEnds[allEnds.length - 1];
+
+        let priceRows = [];
+        if (overallStart && overallEnd) {
+          try {
+            const pricesResult = await ctx.call(
+              'energy-market.prices',
+              { market, region, startDate: overallStart, endDate: overallEnd },
+              { meta: ctx.meta }
+            );
+            priceRows = extractRows(pricesResult, 'data.prices') || extractRows(pricesResult) || [];
+          } catch {
+            // fall through to fallback
+          }
+          if (!priceRows.length) {
+            try {
+              const fallback = await ctx.call(
+                'german-grid.spotprices',
+                { dateFrom: overallStart, dateTo: overallEnd, includeStatistics: false },
+                { meta: ctx.meta }
+              );
+              priceRows =
+                extractRows(fallback, 'dataPoints') ||
+                extractRows(fallback, 'data.dataPoints') ||
+                extractRows(fallback, 'data.prices') ||
+                extractRows(fallback) ||
+                [];
+            } catch {
+              // no spot data available
+            }
+          }
+        }
+
+        // Compute daily average spot price from (hourly) spot rows
+        const dailySpotMap = new Map();
+        for (const priceRow of priceRows) {
+          const ts = parseDateFlexible(priceRow?.timestamp || priceRow?.time);
+          if (!ts) continue;
+          const dayKey = toIsoDate(ts);
+          const eurMWh = extractPriceEurMWh(priceRow, 'priceEURMWh');
+          if (!Number.isFinite(eurMWh)) continue;
+          if (!dailySpotMap.has(dayKey)) dailySpotMap.set(dayKey, { sum: 0, count: 0 });
+          const b = dailySpotMap.get(dayKey);
+          b.sum += eurMWh;
+          b.count += 1;
+        }
+
+        // Average spot price per procurement period
+        const periodSpotMap = new Map();
+        const periodsWithoutSpotData = [];
+        for (const [rawPeriod, range] of periodRangeMap) {
+          const startD = parseDateFlexible(range.start);
+          const endD = parseDateFlexible(range.end);
+          if (!startD || !endD) continue;
+          let total = 0;
+          let count = 0;
+          const cursor = new Date(startD.getTime());
+          while (cursor.getTime() <= endD.getTime()) {
+            const b = dailySpotMap.get(toIsoDate(cursor));
+            if (b && b.count > 0) { total += b.sum / b.count; count += 1; }
+            cursor.setUTCDate(cursor.getUTCDate() + 1);
+          }
+          if (count > 0) {
+            periodSpotMap.set(rawPeriod, total / count);
+          } else {
+            periodsWithoutSpotData.push(rawPeriod);
+          }
+        }
+
+        // Build per-row positions
+        const positions = [];
+        for (const row of rows) {
+          const rawPeriod = row?.[resolvedPeriodField] ? String(row[resolvedPeriodField]).trim() : null;
+          const normStart = rawPeriod ? (getPeriodRange(rawPeriod) || {}).start || normalizePeriodValue(rawPeriod) : null;
+          const procurementPrice = toNumber(row?.[resolvedPriceField], NaN);
+          const volumeMWh = toNumber(row?.[resolvedVolumeField], NaN);
+          const spotAvg = rawPeriod != null ? periodSpotMap.get(rawPeriod) : undefined;
+          const delta =
+            Number.isFinite(procurementPrice) && Number.isFinite(spotAvg)
+              ? procurementPrice - spotAvg
+              : null;
+          const deltaPercent =
+            delta != null && Math.abs(spotAvg) > 1e-12 ? (delta / spotAvg) * 100 : null;
+          const positionType =
+            delta == null ? 'unknown' : delta > 0 ? 'above-spot' : delta < 0 ? 'below-spot' : 'at-spot';
+          positions.push({
+            [resolvedPeriodField]: row[resolvedPeriodField],
+            normalisedPeriod: normStart,
+            Menge_MWh: Number.isFinite(volumeMWh) ? volumeMWh : null,
+            procurementPrice: Number.isFinite(procurementPrice) ? procurementPrice : null,
+            spotPrice: Number.isFinite(spotAvg) ? spotAvg : null,
+            delta,
+            deltaPercent,
+            positionType,
+          });
+        }
+
+        // Volume-weighted aggregate totals
+        let totalVolumeMWh = 0;
+        let weightedProcSum = 0;
+        let weightedSpotSum = 0;
+        let pricedVolume = 0;
+        let spottedVolume = 0;
+        for (const pos of positions) {
+          const vol = pos.Menge_MWh;
+          if (!Number.isFinite(vol) || vol <= 0) continue;
+          totalVolumeMWh += vol;
+          if (Number.isFinite(pos.procurementPrice)) { weightedProcSum += pos.procurementPrice * vol; pricedVolume += vol; }
+          if (Number.isFinite(pos.spotPrice)) { weightedSpotSum += pos.spotPrice * vol; spottedVolume += vol; }
+        }
+        const procurementAvgPrice = pricedVolume > 0 ? weightedProcSum / pricedVolume : null;
+        const spotAvgPrice = spottedVolume > 0 ? weightedSpotSum / spottedVolume : null;
+        const aggDelta =
+          procurementAvgPrice != null && spotAvgPrice != null
+            ? procurementAvgPrice - spotAvgPrice
+            : null;
+        const aggDeltaPercent =
+          aggDelta != null && Math.abs(spotAvgPrice) > 1e-12
+            ? (aggDelta / spotAvgPrice) * 100
+            : null;
+
+        return {
+          success: true,
+          sourceId,
+          procurementAvgPrice,
+          spotAvgPrice,
+          delta: aggDelta,
+          deltaPercent: aggDeltaPercent,
+          totalVolumeMWh,
+          positions,
+          periodsWithoutSpotData,
         };
       },
     },

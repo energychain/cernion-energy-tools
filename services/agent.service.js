@@ -501,10 +501,22 @@ async function listInhouseDescriptors(ctx) {
 
   try {
     const response = await ctx.call('datasource-discovery.list', {});
-    const descriptors = toArray(response).map((descriptor) => ({
-      ...descriptor,
-      capabilities: deriveInhouseIntentCapabilities(descriptor),
-    }));
+    const descriptors = toArray(response).map((descriptor) => {
+      const normalizedSourceId =
+        descriptor?.sourceId || descriptor?.source_id || descriptor?.id || null;
+      const sourceName = descriptor?.__sourceMeta?.sourceName || descriptor?.name || normalizedSourceId;
+      return {
+        ...descriptor,
+        sourceId: normalizedSourceId,
+        aliases: Array.isArray(descriptor?.aliases)
+          ? descriptor.aliases
+          : [descriptor?.name, sourceName, normalizedSourceId].filter(Boolean),
+        capabilities: deriveInhouseIntentCapabilities({
+          ...descriptor,
+          sourceId: normalizedSourceId,
+        }),
+      };
+    });
     if (descriptors.length > 0) return descriptors;
     return await buildFromRegistry();
   } catch (error) {
@@ -570,7 +582,36 @@ function deriveInhouseIntentCapabilities(descriptor) {
     base.add('inhouse_benchmark_compare');
   }
 
+  if (domainId === 'procurement') {
+    base.add('procurement_vs_spot');
+  }
+
   return [...base];
+}
+
+/**
+ * Returns true when a descriptor represents a procurement source with period-formatted
+ * time references — the trigger condition for routing to procurement_vs_spot instead of
+ * timeseries_cost_enrichment.
+ */
+function isProcurementVsSpotSource(descriptor) {
+  if (!descriptor) return false;
+  const hints = descriptor.semanticHints || {};
+  const domainId =
+    hints.domain ||
+    hints.domainId ||
+    descriptor.semanticClassification?.domainId ||
+    descriptor.__sourceMeta?.semanticClassification?.domainId;
+  if (domainId !== 'procurement') return false;
+  const classification =
+    descriptor.semanticClassification ||
+    descriptor.__sourceMeta?.semanticClassification ||
+    {};
+  const criticalFieldStatus = Array.isArray(classification?.criticalFieldStatus)
+    ? classification.criticalFieldStatus
+    : [];
+  const timeReferenceStatus = criticalFieldStatus.find((item) => item?.fieldRole === 'timeReference');
+  return Boolean(timeReferenceStatus?.meta?.periodFormat);
 }
 
 function extractDateFromProblem(problem) {
@@ -771,16 +812,98 @@ function buildIntentClassPlan({
 
   const defaultDate = dateDefault || new Date().toISOString().slice(0, 10);
 
+  if (intentClass === 'procurement_vs_spot') {
+    const semanticClassification =
+      resolvedDescriptor?.semanticClassification ||
+      resolvedDescriptor?.__sourceMeta?.semanticClassification ||
+      {};
+    const criticalFieldStatus = semanticClassification?.criticalFieldStatus || [];
+
+    const sampleRows =
+      resolvedDescriptor?.sampleRows || resolvedDescriptor?.__sourceMeta?.sampleRows || [];
+    const sampleFields = sampleRows[0] ? Object.keys(sampleRows[0]) : [];
+    const dictionaryFields = resolvedDescriptor?.__sourceMeta?.dictionaryFields || [];
+    const availableFields = new Set([...sampleFields, ...dictionaryFields].filter(Boolean));
+
+    const periodFieldCandidates = [
+      criticalMappings.timeReference,
+      hints.timeField,
+      'Lieferperiode',
+      'Lieferzeitraum',
+    ].filter(Boolean);
+    const resolvedPeriodField =
+      periodFieldCandidates.find((f) => availableFields.has(f)) ||
+      periodFieldCandidates[0] ||
+      'Lieferperiode';
+
+    const volumeField = criticalMappings.quantityMWh || hints.volumeField || 'Menge_MWh';
+    const priceField =
+      criticalMappings.price || criticalMappings.priceEurMWh || hints.priceField || 'Preis_EUR_MWh';
+
+    // Detect period-format on timeReference (drives the critical field status
+    // annotation but does not gate routing — isProcurementVsSpotSource already did that)
+    const timeReferenceStatus = criticalFieldStatus.find((item) => item?.fieldRole === 'timeReference');
+    void timeReferenceStatus; // consumed for potential future meta reads
+
+    return {
+      summary:
+        'Intent-Klasse: procurement_vs_spot. Beschaffungsportfolio-Perioden werden mit Day-Ahead-Spotpreisen verglichen und Delta-Positionen berechnet.',
+      steps: [
+        {
+          step: 1,
+          action: 'in-memory-join.procurementVsSpot',
+          description:
+            'Lade Beschaffungsportfolio, normalisiere Perioden, vergleiche mit Spotpreisen und berechne Delta-Positionen.',
+          params: {
+            sourceId: sourceId || null,
+            region: 'Deutschland',
+            market: 'day-ahead',
+            periodField: resolvedPeriodField,
+            volumeField,
+            priceField,
+            privacyContext: 'internal',
+          },
+        },
+      ],
+      requiredInputs,
+    };
+  }
+
   if (intentClass === 'timeseries_cost_enrichment') {
-    const criticalFieldStatus =
-      resolvedDescriptor?.__sourceMeta?.semanticClassification?.criticalFieldStatus || [];
+    const semanticClassification =
+      resolvedDescriptor?.semanticClassification ||
+      resolvedDescriptor?.__sourceMeta?.semanticClassification ||
+      {};
+    const criticalFieldStatus = semanticClassification?.criticalFieldStatus || [];
     const timeReferenceStatus = criticalFieldStatus.find(
       (item) => item?.fieldRole === 'timeReference'
     );
+
+    const sampleRows =
+      resolvedDescriptor?.sampleRows ||
+      resolvedDescriptor?.__sourceMeta?.sampleRows ||
+      [];
+    const sampleFields = sampleRows[0] && typeof sampleRows[0] === 'object' ? Object.keys(sampleRows[0]) : [];
+    const dictionaryFields = resolvedDescriptor?.__sourceMeta?.dictionaryFields || [];
+    const availableTimeFields = new Set([...sampleFields, ...dictionaryFields].filter(Boolean));
+    const timeFieldCandidates = [
+      criticalMappings.timeReference,
+      hints.timeField,
+      'Lieferperiode',
+      'Lieferzeitraum',
+      'Zeit',
+      'timestamp',
+      'Datum',
+    ].filter(Boolean);
+
+    const resolvedTimeReference =
+      timeFieldCandidates.find((field) => availableTimeFields.has(field)) ||
+      timeFieldCandidates[0] ||
+      'Zeit';
+
     const shouldNormalisePeriod =
       Boolean(timeReferenceStatus?.meta?.periodFormat) ||
-      (criticalMappings.timeReference &&
-        isPeriodColumn(resolvedDescriptor?.sampleRows || [], criticalMappings.timeReference));
+      isPeriodColumn(sampleRows, resolvedTimeReference);
 
     requiredInputs.push({
       name: 'date',
@@ -806,7 +929,7 @@ function buildIntentClassPlan({
             aggregateBy: 'hourly',
             region: 'Deutschland',
             market: 'day-ahead',
-            leftTimeField: criticalMappings.timeReference || hints.timeField || 'Zeit',
+            leftTimeField: resolvedTimeReference,
             consumptionPowerField: hints.consumptionPowerField || 'Leistung Bezug (W)',
             feedInPowerField: hints.feedInPowerField || 'Leistung Einspeisung (W)',
             normalisePeriod: shouldNormalisePeriod,
@@ -1081,6 +1204,13 @@ function buildInhouseAggregationFromRows(problem, rows, descriptor) {
 function inferIntentClassFromPlan(plan) {
   const summary = String(plan?.summary || '').toLowerCase();
   const firstAction = String(plan?.steps?.[0]?.action || '').toLowerCase();
+
+  if (
+    summary.includes('procurement_vs_spot') ||
+    firstAction === 'in-memory-join.procurementvsspot'
+  ) {
+    return 'procurement_vs_spot';
+  }
 
   if (
     summary.includes('timeseries_compare_actual_vs_forecast') ||
@@ -1489,9 +1619,17 @@ module.exports = {
         );
         const explicitInhouseCostQuery =
           !!sourceDescriptor && /stromkosten|energiekosten|verbrauchskosten|kosten/i.test(problem);
-        const intentClass =
+        let intentClass =
           classifyInhouseIntent(problem) ||
           (explicitInhouseCostQuery ? 'timeseries_cost_enrichment' : null);
+        // Upgrade timeseries_cost_enrichment to procurement_vs_spot when the resolved
+        // source is a procurement dataset with period-format time references.
+        if (
+          intentClass === 'timeseries_cost_enrichment' &&
+          isProcurementVsSpotSource(sourceDescriptor)
+        ) {
+          intentClass = 'procurement_vs_spot';
+        }
         const canUseInhouseShortcut =
           !!sourceDescriptor || descriptors.length > 0 || selectedInhouseSources.length > 0;
         if (intentClass && canUseInhouseShortcut) {
