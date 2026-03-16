@@ -45,9 +45,9 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 ### Testing Guidelines
 - Write unit tests for all business logic
 - Use Jest as the testing framework
-- Meet coverage thresholds (v0.9.3: branches 55%, functions 70%,
+- Meet coverage thresholds (v0.9.4: branches 55%, functions 70%,
   lines 70%, statements 70%)
-- Current suite: 941 tests, 40 suites — all must pass after changes
+- Current suite: 961 tests, 43 suites — all must pass after changes
 - Acceptance fixtures in `tests/acceptance/` — do not modify
 
 ### Documentation
@@ -93,19 +93,27 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - `datasource-classifier` is stateless and fetches sample rows itself
 - Semantic domains are defined in `src/semantic-domains.js`
 - Classifier uses heuristic scoring only — no external AI calls in classif
+- `src/period-normaliser.js` handles mixed period formats (e.g. `Jan 2026`, `2026-Q1`)
+  for time-series joins
+- `src/vnb-identity.js` resolves VNB identity automatically from env and datasource metadata
+- `services/datasource-watcher.service.js` detects upload file changes and triggers
+  datasource cache refresh
+- LLM classifier fallback is opt-in via `CLASSIFIER_LLM_FALLBACK_ENABLED` and runs only
+  for low-confidence unknown classifications
 
-## Current Project Status (v0.9.3)
+## Current Project Status (v0.9.4)
 
-- Release `v0.9.3` is published and tagged.
+- Release `v0.9.4` is published and tagged.
 - Datasource layer: registry, connector, cache, discovery, classifier
   (all in `services/datasource-*.service.js`)
 - Semantic onboarding flow active — new sources are auto-classified
   after inference via `datasource.inference.complete` event
 - CSV connector supports `encoding` (utf-8/latin1/windows-1252)
   and `skipRows` for metadata preamble rows
-- Known limitations tracked for v0.9.4:
-  - Mixed-format Lieferperiode not parseable for spot-price join
-  - EWK-Benchmark not fetched in hybrid grid-assets queries
+- Known limitations tracked for v0.9.5:
+  - 37 non-blocking ESLint `no-unused-vars` warnings remain — tracked for cleanup
+  - Jest open handles on test exit — likely `fs.watch` teardown in datasource-watcher,
+    tracked for v0.9.5
 - Release gate: `npm run release:check` (tests + OpenAPI + security)
 - Known risk: `xlsx` high advisory — documented exception
 

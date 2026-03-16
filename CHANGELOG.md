@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-03-16
+
 ### Added
 
 - Added `tests/acceptance/` real-world acceptance fixtures for procurement,
@@ -18,46 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   auto-classification with `requiresUserInput: false` for all four datasets.
 
 - Added `docs/use-cases/` documentation entries for passing inhouse–external
-  hybrid query patterns used in the v0.9.3 acceptance flow.
-
-### Fixed
-
-- **Bundesnetzagentur Kraftwerksliste CSV ingestion and semantic classification**
-  Fixed datasource onboarding for raw `Kraftwerksliste_CSV.csv` exports by
-  teaching the CSV connector to preserve quoted multiline header cells,
-  enabling correct parsing of files with metadata preamble rows plus embedded
-  newlines in header labels. This allows Kraftwerksliste-style files to be used
-  with `delimiter: ';'`, `encoding: 'windows-1252'`, and `skipRows: 10`.
-
-- **Manual semantic domain override now persists the selected domain**
-  Updated `datasource-classifier.confirm` / forced classification handling so a
-  user-selected domain is treated as authoritative instead of silently falling
-  back to `unknown` when the auto-classification score is below the heuristic
-  threshold.
-
-- **Grid asset classification coverage for generation-unit inventories**
-  Expanded the `grid-assets` semantic domain to recognize generation asset
-  inventories such as Kraftwerksliste / MaStR-derived power plant extracts,
-  including signals like `MaStR`, `Energieträger`, `Spannungsebene`,
-  `Inbetriebnahme`, `Technologie`, and `Anschlussnetzbetreiber`.
-
-- **Acceptance classification confidence for iMSys and PV fixtures**
-  Expanded semantic indicators for `metering-point-master` (iMSys rollout
-  signals) and `grid-assets` (PV/internal-asset signals) so realistic
-  acceptance datasets classify to the intended domain without manual
-  confirmation.
-
-### Tests
-
-- Added CSV connector regression coverage for quoted multiline header parsing
-  after skipped metadata rows.
-
-- Added semantic-classifier regressions for Kraftwerksliste-style generation
-  CSVs and for authoritative manual domain overrides.
-
-## [0.9.4] - 2026-03-16
-
-### Added
+  hybrid query patterns used in the v0.9.4 acceptance flow.
 
 - **Period-format normalisation for mixed time references**
   Added `src/period-normaliser.js` with `normalisePeriod()` and
@@ -99,6 +62,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Bundesnetzagentur Kraftwerksliste CSV ingestion and semantic classification**
+  Fixed datasource onboarding for raw `Kraftwerksliste_CSV.csv` exports by
+  teaching the CSV connector to preserve quoted multiline header cells,
+  enabling correct parsing of files with metadata preamble rows plus embedded
+  newlines in header labels. This allows Kraftwerksliste-style files to be used
+  with `delimiter: ';'`, `encoding: 'windows-1252'`, and `skipRows: 10`.
+
+- **Manual semantic domain override now persists the selected domain**
+  Updated `datasource-classifier.confirm` / forced classification handling so a
+  user-selected domain is treated as authoritative instead of silently falling
+  back to `unknown` when the auto-classification score is below the heuristic
+  threshold.
+
+- **Grid asset classification coverage for generation-unit inventories**
+  Expanded the `grid-assets` semantic domain to recognize generation asset
+  inventories such as Kraftwerksliste / MaStR-derived power plant extracts,
+  including signals like `MaStR`, `Energieträger`, `Spannungsebene`,
+  `Inbetriebnahme`, `Technologie`, and `Anschlussnetzbetreiber`.
+
+- **Acceptance classification confidence for iMSys and PV fixtures**
+  Expanded semantic indicators for `metering-point-master` (iMSys rollout
+  signals) and `grid-assets` (PV/internal-asset signals) so realistic
+  acceptance datasets classify to the intended domain without manual
+  confirmation.
+
 - **OpenAPI request-body completeness for benchmark compare endpoint**
   Added explicit request body schema and property examples for
   `in-memory-join.benchmarkCompare` so OpenAPI audit passes with zero issues.
@@ -108,6 +96,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `src/`, `tests/`, and `scripts/` as the v0.9.4 baseline cleanup step.
 
 ### Tests
+
+- Added CSV connector regression coverage for quoted multiline header parsing
+  after skipped metadata rows.
+
+- Added semantic-classifier regressions for Kraftwerksliste-style generation
+  CSVs and for authoritative manual domain overrides.
 
 - Added `tests/period-normaliser.test.js` for period parsing and detection.
 - Added `tests/datasource-watcher.service.test.js` for mapped refresh,
