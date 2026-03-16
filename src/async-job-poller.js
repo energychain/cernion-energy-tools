@@ -266,11 +266,13 @@ async function callWithAutoPoll(toolName, params, pollOptions = {}, token = null
   try {
     const callPromise = CernionMCPClient.callWithNewSession(toolName, params, token);
     const timeoutPromise = new Promise((_, reject) =>
+      // .unref() so this timer does not keep the Node event loop alive
+      // when the test suite (or any caller) has already resolved via callPromise.
       setTimeout(
         () =>
           reject(new Error(`callWithAutoPoll: initial call timeout after ${maxWaitTime / 1000}s`)),
         maxWaitTime
-      )
+      ).unref()
     );
     response = await Promise.race([callPromise, timeoutPromise]);
   } catch (err) {
