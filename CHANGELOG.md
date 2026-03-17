@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.5] - 2026-03-17
+
+### Fixed
+
+- Research-Agent: Pure EWK questions no longer fall into the inhouse benchmark
+  shortcut solely because inhouse descriptors exist. This removes the forced
+  `Inhouse Datenquelle` Pflichtfeld for queries such as
+  `"Wie ist die TWL Netze GmbH hinsichtlich der EWK aufgestellt?"` when no
+  inhouse dataset is actually needed.
+- Research-Agent: `vnbName` is now derived from the user question for common
+  EWK/VNB phrasings and injected as a non-required default, so the UI no
+  longer asks again for a VNB that is already named in the prompt.
+
 ## [0.9.4] - 2026-03-16
 
 ### Added

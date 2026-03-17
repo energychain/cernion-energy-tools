@@ -47,7 +47,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Use Jest as the testing framework
 - Meet coverage thresholds (v0.9.4: branches 55%, functions 70%,
   lines 70%, statements 70%)
-- Current suite: 961 tests, 43 suites — all must pass after changes
+- Current suite: 996 tests, 45 suites — all must pass after changes
 - Acceptance fixtures in `tests/acceptance/` — do not modify
 
 ### Documentation
@@ -101,16 +101,16 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - LLM classifier fallback is opt-in via `CLASSIFIER_LLM_FALLBACK_ENABLED` and runs only
   for low-confidence unknown classifications
 
-## Current Project Status (v0.9.4)
+## Current Project Status (v0.9.5)
 
-- Release `v0.9.4` is published and tagged.
+- Release `v0.9.5` is published and tagged.
 - Datasource layer: registry, connector, cache, discovery, classifier
   (all in `services/datasource-*.service.js`)
 - Semantic onboarding flow active — new sources are auto-classified
   after inference via `datasource.inference.complete` event
 - CSV connector supports `encoding` (utf-8/latin1/windows-1252)
   and `skipRows` for metadata preamble rows
-- Known limitations tracked for v0.9.5:
+- Known limitations tracked for v0.9.6:
   - 37 non-blocking ESLint `no-unused-vars` warnings remain — tracked for cleanup
   - Jest open handles on test exit — likely `fs.watch` teardown in datasource-watcher,
     tracked for v0.9.5

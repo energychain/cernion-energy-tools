@@ -645,6 +645,48 @@ describe('Agent Service', () => {
       process.env.CERNION_VNB_NAME = oldVnbName;
     });
 
+    it('should not force inhouse source selection for pure EWK questions when descriptors merely exist', async () => {
+      const ewkOnlyPlan = JSON.stringify({
+        summary: 'EWK benchmark plan for a single VNB.',
+        steps: [
+          {
+            step: 1,
+            action: 'ewk-monitoring.benchmarkVnb',
+            description: 'Hole das EWK-Profil für den angefragten VNB.',
+            params: {
+              vnbName: null,
+            },
+          },
+        ],
+        requiredInputs: [
+          {
+            name: 'vnbName',
+            label: 'Verteilnetzbetreiber (VNB)',
+            type: 'string',
+            description: 'Name des VNB für den EWK-Benchmarkvergleich.',
+            required: true,
+          },
+        ],
+      });
+      _mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => ewkOnlyPlan },
+      });
+
+      const result = await broker.call('agent.analyze', {
+        problem: 'Wie ist die TWL Netze GmbH hinsichtlich der EWK aufgestellt?',
+      });
+
+      expect(_mockGenerateContent).toHaveBeenCalled();
+      expect(result.steps[0].action).toBe('ewk-monitoring.benchmarkVnb');
+      expect(result.requiredInputs.some((i) => i.name === 'sourceId')).toBe(false);
+
+      const vnbInput = result.requiredInputs.find((item) => item.name === 'vnbName');
+      expect(vnbInput).toBeDefined();
+      expect(vnbInput.default).toBe('TWL Netze GmbH');
+      expect(vnbInput.required).toBe(false);
+      expect(result.steps[0].params.vnbName).toBe('TWL Netze GmbH');
+    });
+
     it('should shortcut actual-vs-forecast comparisons to compareForecastActual intent class', async () => {
       const result = await broker.call('agent.analyze', {
         problem:

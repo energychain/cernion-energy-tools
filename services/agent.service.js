@@ -565,12 +565,52 @@ function classifyInhouseIntent(problem) {
   ) {
     return 'inhouse_aggregate';
   }
+
   if (
     /(delta|abweich|differenz)/.test(text) &&
     /(lastgang|zeitreihe|timeseries|erzeug)/.test(text)
   ) {
     return 'timeseries_delta_analysis';
   }
+  return null;
+}
+
+function normaliseRequestedVnbName(value) {
+  const compact = String(value || '')
+    .replace(/[\s\n\r\t]+/g, ' ')
+    .replace(/^[,;:.!?\-–—\s]+|[,;:.!?\-–—\s]+$/g, '')
+    .replace(/^(?:die|der|das)\s+/i, '')
+    .trim();
+
+  if (!compact) return null;
+  if (compact.split(/\s+/).length > 8) return null;
+  if (!/[a-zA-ZÄÖÜäöüß]/.test(compact)) return null;
+
+  const looksLikeOperatorName =
+    /\b(?:gmbh|ag|kg|se|mbh|stadtwerke|werke|energie|netz|netze|netzgesellschaft|versorgung|utilities|power|grid)\b/i.test(
+      compact
+    ) || /\b[A-Z]{2,}\b/.test(compact);
+
+  return looksLikeOperatorName ? compact : null;
+}
+
+function extractVnbNameFromProblem(problem) {
+  const text = String(problem || '')
+    .replace(/[\s\n\r\t]+/g, ' ')
+    .trim();
+  if (!text) return null;
+
+  const patterns = [
+    /(?:wie\s+ist(?:\s+(?:die|der|das))?|wie\s+steht(?:\s+es\s+um)?|analysiere|analyse|bewerte|beurteile|zeige|vergleiche)\s+(.+?)\s+(?:hinsichtlich|im\s+ewk|beim\s+ewk|in\s+der\s+ewk|im\s+vergleich|bundesweit|aufgestellt)\b/i,
+    /(?:für|bei)\s+(.+?)(?:\s+(?:hinsichtlich|im\s+ewk|beim\s+ewk|im\s+vergleich|bundesweit|seit|zum|zur|mit)\b|[?.!,;:]|$)/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    const candidate = normaliseRequestedVnbName(match?.[1]);
+    if (candidate) return candidate;
+  }
+
   return null;
 }
 
@@ -949,6 +989,7 @@ function buildIntentClassPlan({
       criticalMappings.quantityMWh ||
       hints.capacityField ||
       'Leistung_kWp';
+
     const externalAction =
       domainId === 'metering-point-master'
         ? 'ewk-monitoring.digitalisierungsindex'
@@ -1391,41 +1432,46 @@ async function autoResolveVnbInputs(ctx, session, effectiveInputs, logger) {
   });
 }
 
-async function applyResolvedVnbIdentityToPlan(ctx, plan, logger) {
+async function applyResolvedVnbIdentityToPlan(ctx, plan, logger, problem = '') {
   if (!plan || !Array.isArray(plan.requiredInputs)) return;
 
   const hasVnbInput = plan.requiredInputs.some((ri) => ri?.name === 'vnbName');
   const hasBnrInput = plan.requiredInputs.some((ri) => ri?.name === 'bnr');
   if (!hasVnbInput && !hasBnrInput) return;
 
-  const identity = await resolveVnbIdentity(ctx?.broker);
-  if (!identity) return;
+  const requestedVnbName = extractVnbNameFromProblem(problem);
+  const identity = !requestedVnbName || hasBnrInput ? await resolveVnbIdentity(ctx?.broker) : null;
+  const resolvedVnbName = requestedVnbName || identity?.name || null;
+  const resolvedBnr = identity?.bdewCode || null;
+
+  if (!resolvedVnbName && !resolvedBnr) return;
 
   for (const ri of plan.requiredInputs) {
-    if (ri?.name === 'vnbName' && identity.name) {
-      ri.default = ri.default || identity.name;
+    if (ri?.name === 'vnbName' && resolvedVnbName) {
+      ri.default = ri.default || resolvedVnbName;
       ri.required = false;
     }
-    if (ri?.name === 'bnr' && identity.bdewCode) {
-      ri.default = ri.default || identity.bdewCode;
+    if (ri?.name === 'bnr' && resolvedBnr) {
+      ri.default = ri.default || resolvedBnr;
       ri.required = false;
     }
   }
 
   for (const step of plan.steps || []) {
     if (!step?.params || typeof step.params !== 'object') continue;
-    if ((step.params.vnbName === null || step.params.vnbName === undefined) && identity.name) {
-      step.params.vnbName = identity.name;
+    if ((step.params.vnbName === null || step.params.vnbName === undefined) && resolvedVnbName) {
+      step.params.vnbName = resolvedVnbName;
     }
-    if ((step.params.bnr === null || step.params.bnr === undefined) && identity.bdewCode) {
-      step.params.bnr = identity.bdewCode;
+    if ((step.params.bnr === null || step.params.bnr === undefined) && resolvedBnr) {
+      step.params.bnr = resolvedBnr;
     }
   }
 
   logger.info('[Agent] Injected resolved VNB identity into plan defaults', {
-    vnbName: identity.name || null,
-    bnr: identity.bdewCode || null,
-    mastrId: identity.mastrId || null,
+    vnbName: resolvedVnbName,
+    bnr: resolvedBnr,
+    mastrId: identity?.mastrId || null,
+    source: requestedVnbName ? 'problem' : 'environment',
   });
 }
 
@@ -1633,7 +1679,9 @@ module.exports = {
           intentClass = 'procurement_vs_spot';
         }
         const canUseInhouseShortcut =
-          !!sourceDescriptor || descriptors.length > 0 || selectedInhouseSources.length > 0;
+          !!sourceDescriptor ||
+          selectedInhouseSources.length > 0 ||
+          (intentClass !== 'inhouse_benchmark_compare' && descriptors.length > 0);
         if (intentClass && canUseInhouseShortcut) {
           const plan = buildIntentClassPlan({
             intentClass,
@@ -1646,7 +1694,7 @@ module.exports = {
             throw new Error(`Intent class "${intentClass}" has no configured plan template.`);
           }
 
-          await applyResolvedVnbIdentityToPlan(ctx, plan, this.logger);
+          await applyResolvedVnbIdentityToPlan(ctx, plan, this.logger, problem);
 
           Object.assign(
             plan,
@@ -1979,7 +2027,7 @@ IMPORTANT: The keys in each step MUST be exactly "action", "params", and "descri
           throw new Error(`Failed to parse Gemini plan response: ${rawText.substring(0, 300)}`);
         }
         plan = normalizePlan(plan);
-        await applyResolvedVnbIdentityToPlan(ctx, plan, this.logger);
+        await applyResolvedVnbIdentityToPlan(ctx, plan, this.logger, problem);
 
         const guardedPlan = enforceInhousePlanningGuard({
           plan,
@@ -2172,7 +2220,7 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
             throw new Error(`Failed to parse refined plan: ${rawText.substring(0, 300)}`);
           }
           session.plan = normalizePlan(session.plan);
-          await applyResolvedVnbIdentityToPlan(ctx, session.plan, this.logger);
+          await applyResolvedVnbIdentityToPlan(ctx, session.plan, this.logger, session.problem);
           const refinedDescriptors = await listInhouseDescriptors(ctx);
 
           const refinedGuard = enforceInhousePlanningGuard({
