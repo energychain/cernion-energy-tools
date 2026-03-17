@@ -2831,7 +2831,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Google Gemini AI integration
 - Cernion MCP token authentication
 
-## [Unreleased]
+## Roadmap
 
 ### Planned
 - Additional European energy market integrations

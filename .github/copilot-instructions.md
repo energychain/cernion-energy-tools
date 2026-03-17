@@ -111,9 +111,10 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - CSV connector supports `encoding` (utf-8/latin1/windows-1252)
   and `skipRows` for metadata preamble rows
 - Known limitations tracked for v0.9.6:
+  - None new for the `v0.9.5` release.
   - 37 non-blocking ESLint `no-unused-vars` warnings remain — tracked for cleanup
   - Jest open handles on test exit — likely `fs.watch` teardown in datasource-watcher,
-    tracked for v0.9.5
+    tracked for v0.9.6
 - Release gate: `npm run release:check` (tests + OpenAPI + security)
 - Known risk: `xlsx` high advisory — documented exception
 
