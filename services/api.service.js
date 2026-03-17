@@ -92,6 +92,7 @@ module.exports = {
         { name: 'Energy', description: 'Energy market operations' },
         { name: 'Example', description: 'Example service endpoints' },
         { name: 'DataSources', description: 'Inhouse datasource registry, cache, and discovery' },
+        { name: 'VNBMonitor', description: 'VNB (grid operator) KPI monitoring and alerts' },
       ],
       components: {
         securitySchemes: {

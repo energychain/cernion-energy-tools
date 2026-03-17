@@ -1,524 +1,465 @@
-# Feature Specification: Cernion Energy Tools v0.9.4
-## Inhouse Data Layer — Consolidation & Completeness
+# Feature Specification: Cernion Energy Tools v0.9.5
+## VNB Monitor API — KPI Aggregation for Power Automate & Power BI
 
-**Target release:** v0.9.4
+**Target release:** v0.9.5
 **Status:** Draft
-**Prerequisite:** v0.9.3 tagged and all 941 tests passing
-**Scope:** `datasource-classifier`, `datasource-registry`, `datasource-connector`,
-`agent.service`, `src/semantic-domains.js`, `src/app.html`
+**Prerequisite:** v0.9.4 stability pass complete, all 973 tests passing
+**Scope:** New `vnb-monitor.service.js`, `api.service.js` extension,
+`.env.example`, optional `vnb-monitor-alerts.config.json`
 
 ---
 
 ## 1. Motivation
 
-v0.9.3 introduced the semantic onboarding flow and validated it against four
-real-world Stadtwerk use cases. The acceptance test (10/12 queries passing)
-revealed three concrete gaps that limit the practical value of the Inhouse
-Data Layer:
+Cernion's MCP tools already deliver all data needed for a comprehensive
+VNB performance view: EWK benchmarks, MaStR installation counts, pipeline
+capacity, Netzbetreiberprüfung queues, and spot-price context. Today this
+data is consumed interactively via the Research Agent or as a one-off PDF
+report.
 
-1. **Mixed-format time references** — `Lieferperiode` values like `Feb 2026`
-   or `2026-Q1` cannot be parsed as timestamps, blocking spot-price join
-   queries for procurement data.
-2. **Hybrid routing gap** — queries combining inhouse asset inventories with
-   external EWK benchmarks fall back to pure `inhouse_aggregate` instead of
-   fetching the external source.
-3. **VNB identity not resolved** — the agent asks the user for the VNB name
-   even though the system already knows the operator identity from
-   configuration or from registered datasource metadata.
+The next step is to make the same data available as a **stable, machine-readable
+JSON endpoint** that external tools like Microsoft Power Automate and Power BI
+can poll on a schedule — enabling automated alerts, dashboards, and governance
+workflows without any manual Cernion interaction.
 
-Additionally, two items deferred from v0.9.3 are now ready to specify:
-
-4. **Filesystem watcher for `./uploads/`** — automatic cache invalidation
-   when an uploaded file is replaced.
-5. **LLM-assisted classifier fallback** — for files the heuristic classifier
-   cannot confidently classify (confidence < 0.35), an optional LLM call
-   provides a second opinion before asking the user.
-
-Finally, the repo-wide Prettier/ESLint cleanup deferred from v0.9.3 is
-included as a mandatory first step to reduce noise in all subsequent diffs.
+This feature adds a `vnb-monitor` Moleculer service that aggregates KPIs for
+one or more VNBs identified by BDEW code, caches results with a configurable
+TTL, and exposes a REST endpoint with a structured JSON response including
+an `alerts` array for threshold-based notifications.
 
 ---
 
 ## 2. Goals
 
-- Close all two known limitations documented in the v0.9.3 CHANGELOG.
-- Resolve VNB identity automatically without user prompt.
-- Add filesystem watcher so "Live CSV" updates trigger cache refresh
-  without manual intervention.
-- Add LLM-assisted fallback for low-confidence classifier results.
-- Ship a clean, lint-free codebase as the baseline for v0.9.4+.
+- Single REST endpoint returns all KPIs from the EWR analysis report as JSON.
+- Response is stable and schema-versioned so Power Automate flows and Power BI
+  datasets do not break on Cernion updates.
+- TTL cache prevents hammering MCP tools on every poll; configurable per
+  environment.
+- `alerts` array allows Power Automate to act conditionally: only send a Teams
+  message when `alerts.length > 0` or when a specific `severity` is present.
+- Multiple BDEW codes can be compared in a single call (useful for
+  multi-entity Stadtwerk groups like EWR with two registrations).
+- No authentication changes required — existing Bearer token / API key
+  mechanism applies.
 
 ---
 
-## 3. Feature 1 — Repo-wide Cleanup (prerequisite, no logic changes)
+## 3. New REST Endpoints
 
-**Must be the first commit in v0.9.4**, before any feature work.
+### 3.1 `GET /api/vnb-monitor/:bdewCode`
 
-### 3.1 Tasks
+Returns the full KPI snapshot for a single VNB.
 
-```bash
-# 1. Auto-fix formatting
-npx prettier --write services/ src/ tests/ scripts/
+**Path parameter:** `bdewCode` — BDEW registration number, e.g. `10002954`
 
-# 2. Auto-fix lint
-npx eslint --fix services/ src/ tests/ scripts/
+**Query parameters:**
 
-# 3. Remaining manual lint fixes
-#    - No eslint-disable without inline justification comment
-#    - No empty catch blocks
-#    - No console.log in service code (use this.logger)
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `refresh` | boolean | `false` | Force cache bypass and re-fetch all KPIs |
+| `alerts` | boolean | `true` | Include `alerts` array in response |
+| `lang` | string | `de` | Language for alert messages (`de` or `en`) |
 
-# 4. Validate
-npm test          # must pass: 941+ tests
-npm run release:check  # must pass
-```
-
-### 3.2 Commit message
-
-```
-chore: repo-wide prettier + eslint cleanup (post v0.9.3 baseline)
-```
-
-**Do NOT touch:** `tests/fixtures/`, `tests/acceptance/`, `docs/use-cases/`,
-`CHANGELOG.md`, `package-lock.json`, any CSV or JSON data files.
+**Response:** `200 OK` — see Section 5 for full schema.
 
 ---
 
-## 4. Feature 2 — Period-Format Normalisation for Time References
+### 3.2 `GET /api/vnb-monitor`
 
-**Closes known limitation:** *"Mixed-format Lieferperiode not parseable
-as time reference for spot-price join"*
+Returns KPI snapshots for multiple VNBs in a single call. Useful for
+Power BI datasets that visualise a peer comparison (e.g. EWR vs. SW
+Frankenthal vs. SW Walldorf).
 
-### 4.1 Problem
+**Query parameters:**
 
-The `timeseries_cost_enrichment` intent class requires an ISO-parseable
-timestamp column. The `procurement` domain's `Lieferperiode` field uses
-mixed human-readable formats:
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `bdewCodes` | string | — | Comma-separated BDEW codes, e.g. `10002954,9900386000008` |
+| `refresh` | boolean | `false` | Force cache bypass |
+| `lang` | string | `de` | Language for alert messages |
 
-| Input value | Meaning | Required ISO form |
-|-------------|---------|-------------------|
-| `Jan 2026` | January 2026 | `2026-01-01` (start of month) |
-| `Feb 2026` | February 2026 | `2026-02-01` |
-| `Mar 2026` | March 2026 | `2026-03-01` |
-| `2026-Q1` | Q1 2026 | `2026-01-01` (start of quarter) |
-| `2026-Q2` | Q2 2026 | `2026-04-01` |
-| `2026-Q3` | Q3 2026 | `2026-07-01` |
-| `2026-Q4` | Q4 2026 | `2026-10-01` |
-
-### 4.2 New module: `src/period-normaliser.js`
-
-Stateless utility — no broker dependency, importable by any service.
-
-```js
-/**
- * Normalise a human-readable period string to an ISO date string
- * representing the start of that period.
- * Returns null if the format is not recognised.
- *
- * @param {string} value  e.g. 'Feb 2026', '2026-Q2', '2026-03-15'
- * @returns {string|null} ISO date string or null
- */
-function normalisePeriod(value) { ... }
-
-/**
- * Detect whether a column in a set of sample rows contains
- * period-format values (not pure ISO timestamps).
- * Returns true if > 50% of non-empty values match period patterns.
- *
- * @param {Array<object>} rows
- * @param {string} columnName
- * @returns {boolean}
- */
-function isPeriodColumn(rows, columnName) { ... }
-
-module.exports = { normalisePeriod, isPeriodColumn };
-```
-
-**Supported input patterns:**
-
-```
-/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}$/i
-/^\d{4}-Q[1-4]$/
-/^\d{4}-\d{2}$/           (YYYY-MM → first day of month)
-/^\d{4}-\d{2}-\d{2}$/    (already ISO → pass through)
-```
-
-### 4.3 Integration points
-
-**`in-memory-join.meteringSpotCost`** — before joining rows, detect period
-columns via `isPeriodColumn()` and normalise values via `normalisePeriod()`
-so the join key is always a comparable ISO date string.
-
-**`agent.service` — `timeseries_cost_enrichment` intent class** — when
-building the plan, check `semanticHints.criticalFieldMappings.timeReference`
-and apply `isPeriodColumn` to decide whether normalisation is needed.
-Pass `{ normalisePeriod: true }` in the plan params so the join service
-knows to apply the normaliser.
-
-**`datasource-classifier`** — when inferring `criticalFieldStatus` for the
-`timeReference` role, mark period-format columns as `resolved: true` with
-`meta: { periodFormat: true }` so downstream consumers know normalisation
-is required.
-
-### 4.4 Tests
-
-| File | New coverage |
-|------|-------------|
-| `tests/period-normaliser.test.js` | Unit tests for all supported patterns including edge cases (leap years, Q boundaries, already-ISO passthrough, null for unknown formats) |
-| `tests/in-memory-join.service.test.js` | Regression: procurement fixture with mixed Lieferperiode formats produces valid cost enrichment result |
-| `tests/agent.service.test.js` | Regression: `timeseries_cost_enrichment` plan includes `normalisePeriod: true` when timeReference column is period-format |
+**Response:** Array of KPI snapshots, same schema per item.
 
 ---
 
-## 5. Feature 3 — Hybrid Routing: Inhouse × External
+### 3.3 `GET /api/vnb-monitor/:bdewCode/alerts`
 
-**Closes known limitation:** *"EWK-Benchmark not fetched in hybrid
-grid-assets queries when `inhouse_aggregate` intent is selected"*
+Returns only the `alerts` array for a VNB — optimised for Power Automate
+polling where only changed/new alerts trigger a downstream action.
 
-### 5.1 Problem
-
-When a query combines an inhouse asset inventory with an external EWK
-benchmark, the planner currently routes to pure `inhouse_aggregate`
-because the `grid-assets` domain has no hybrid intent class defined.
-
-### 5.2 New intent class: `inhouse_benchmark_compare`
-
-Added to `agent.service` alongside the existing intent classes.
-
-**Trigger conditions** (all must be true):
-- Inhouse source domain is `grid-assets` or `metering-point-master`
-- Query contains benchmark/comparison signals:
-  keywords: `vergleich`, `benchmark`, `durchschnitt`, `bundesweit`,
-  `ranking`, `index`, `ewk`, `bnetzagentur`, `wie stehen wir`
-- At least one external Cernion tool is available that matches the domain:
-  - `grid-assets` → `Cernion:ewk_benchmark_vnb`
-  - `metering-point-master` → `Cernion:ewk_digitalisierungsindex`
-
-**Plan structure:**
-
-```js
+**Response:**
+```json
 {
-  intentClass: 'inhouse_benchmark_compare',
-  steps: [
-    {
-      action: 'datasource-cache.query',
-      params: { sourceId, limit: 500 },
-      resultKey: 'inhouseRows'
-    },
-    {
-      action: externalTool,   // e.g. 'Cernion:ewk_benchmark_vnb'
-      params: { vnb: resolvedVnbId },
-      resultKey: 'benchmarkData'
-    },
-    {
-      action: 'in-memory-join.benchmarkCompare',
-      params: {
-        inhouseRows: '{{inhouseRows}}',
-        benchmarkData: '{{benchmarkData}}',
-        domain: sourceDomain,
-        aggregationField: resolvedCapacityField
-      }
-    }
-  ]
+  "bdewCode": "10002954",
+  "timestamp": "2026-03-16T08:00:00Z",
+  "alertCount": 2,
+  "criticalCount": 1,
+  "alerts": [ ... ]
 }
 ```
 
-### 5.3 New action: `in-memory-join.benchmarkCompare`
-
-```js
-// Input
-{
-  inhouseRows: Array,        // rows from datasource-cache
-  benchmarkData: Object,     // response from external Cernion tool
-  domain: String,            // 'grid-assets' | 'metering-point-master'
-  aggregationField: String   // e.g. 'Leistung_kWp', 'Jahresverbrauch_kWh'
-}
-
-// Output
-{
-  inhouseSummary: {
-    total: Number,
-    count: Number,
-    average: Number,
-    unit: String
-  },
-  benchmarkSummary: {
-    vnbValue: Number,
-    medianValue: Number,
-    ranking: String,   // e.g. 'above median', 'below median'
-    source: String
-  },
-  delta: Number,
-  deltaPercent: Number,
-  narrative: String   // human-readable 1-sentence summary
-}
-```
-
-### 5.4 Tests
-
-| File | New coverage |
-|------|-------------|
-| `tests/agent.service.test.js` | `inhouse_benchmark_compare` intent triggered for PV-list × EWK-benchmark query |
-| `tests/in-memory-join.service.test.js` | `benchmarkCompare` produces correct delta and narrative for mock inhouse + benchmark data |
-
 ---
 
-## 6. Feature 4 — VNB Identity Resolution
+## 4. `vnb-monitor.service.js` — Service Design
 
-### 6.1 Problem
-
-When a query requires an external tool that needs the VNB identifier
-(e.g. `Cernion:ewk_benchmark_vnb`, `Cernion:ewk_digitalisierungsindex`),
-the agent currently asks the user: *"Required input missing: Name des
-Verteilnetzbetreibers (VNB)"* — even though the system may already know
-the operator identity.
-
-### 6.2 Resolution chain
-
-The agent must attempt to resolve the VNB identity automatically via the
-following chain before prompting the user:
-
-**Step 1 — Environment variable**
-```
-process.env.CERNION_VNB_ID     // MaStR-ID, e.g. SNB935578300972
-process.env.CERNION_VNB_NAME   // Human-readable name
-process.env.CERNION_VNB_BDEW   // BDEW code, e.g. 9904350000002
-```
-
-**Step 2 — Registered datasource metadata**
-Check all registered datasources for `semanticHints` containing
-MaStR-like identifiers or `Anschlussnetzbetreiber` field values.
-Use the most recently confirmed datasource.
-
-**Step 3 — `.env` / system config file**
-Read `VNB_ID`, `VNB_NAME`, `VNB_BDEW` from the active environment.
-
-**Step 4 — User prompt (fallback only)**
-If none of the above resolves, prompt the user as before.
-
-### 6.3 New helper: `src/vnb-identity.js`
-
-```js
-/**
- * Resolve VNB identity from available sources.
- * Returns { mastrId, name, bdewCode } or null if unresolvable.
- */
-async function resolveVnbIdentity(broker) { ... }
-```
-
-Called by `agent.service` in any planning step that requires VNB context.
-
-### 6.4 Configuration
-
-Add to `.env.example`:
-
-```
-# VNB Identity (optional — used for automatic EWK/benchmark lookups)
-# If set, the agent will use these values without prompting the user.
-CERNION_VNB_MASTR_ID=
-CERNION_VNB_NAME=
-CERNION_VNB_BDEW=
-```
-
-### 6.5 Tests
-
-| File | New coverage |
-|------|-------------|
-| `tests/vnb-identity.test.js` | Resolution from env vars, from datasource metadata, null when neither available |
-| `tests/agent.service.test.js` | EWK tool call uses resolved VNB ID without user prompt when env var is set |
-
----
-
-## 7. Feature 5 — Filesystem Watcher for `./uploads/`
-
-**Deferred from v0.9.3** (no clear spec at the time — now specified).
-
-### 7.1 Behaviour
-
-When a file in `./uploads/` is replaced or modified, any datasource
-registered with a connector pointing to that file must have its cache
-automatically invalidated and refreshed.
-
-### 7.2 New service: `datasource-watcher.service.js`
-
-Moleculer service using Node.js `fs.watch` (no additional dependencies).
+### 4.1 Service Schema
 
 ```js
 module.exports = {
-  name: 'datasource-watcher',
+  name: 'vnb-monitor',
 
   settings: {
-    watchDir: process.env.UPLOADS_DIR || './uploads',
-    debounceMs: 2000,   // avoid multiple events for single save operation
+    cacheTtlSeconds: 3600,          // 1 hour default; override via env
+    alertThresholds: null,          // loaded from vnb-monitor-alerts.config.json
+    defaultLang: 'de',
   },
 
-  dependencies: ['datasource-registry', 'datasource-cache'],
+  dependencies: [
+    // No hard dependencies — all MCP tools called via broker.call
+    // Gracefully degrades if individual tools are unavailable
+  ],
 
-  async started() {
-    // scan registry for all CSV/XLSX connectors pointing to watchDir
-    // build map: filePath → [sourceId, ...]
-    // start fs.watch on watchDir
+  actions: {
+    snapshot:      { /* GET /api/vnb-monitor/:bdewCode */ },
+    snapshotMulti: { /* GET /api/vnb-monitor */ },
+    alerts:        { /* GET /api/vnb-monitor/:bdewCode/alerts */ },
+    clearCache:    { /* POST /api/vnb-monitor/:bdewCode/cache/clear */ },
+  },
+};
+```
+
+### 4.2 Data Fetching Strategy
+
+Each `snapshot` call triggers **parallel** broker calls to:
+
+| Source | Cernion action | KPI group |
+|--------|---------------|-----------|
+| BNetzA EWK | `Cernion:ewk_benchmark_vnb` | EWK KPIs, ranks, digitalisierungsindex |
+| BNetzA EWK | `Cernion:ewk_anschlussdauer` | Phase 1 / Phase 2 split |
+| BNetzA EWK | `Cernion:ewk_umsetzungsquote` | Realisation rates |
+| BNetzA EWK | `Cernion:ewk_digitalisierungsindex` | Digital sub-scores |
+| MaStR | `Cernion:cernion_installations` | Installed capacity, pipeline, queue |
+| MaStR | `Cernion:cernion_grid_operator_analysis` | Prüfungs-queue details |
+| Spot market | `Cernion:cernion_energy_prices` | Current Day-Ahead price |
+| Gas storage | `Cernion:agsi_eu_statistics` | DE gas storage fill level |
+
+**Graceful degradation:** If an individual source is unavailable, the
+corresponding KPI group is returned as `null` with a `sourceError` flag.
+The response is still valid JSON — it never fails entirely due to one
+source being down.
+
+### 4.3 Caching
+
+Results are cached in-memory per BDEW code with a configurable TTL.
+Cache key: `vnb-monitor:${bdewCode}`.
+
+The cache is **not** persisted across restarts (unlike the datasource registry).
+On restart, the first poll rebuilds the cache from MCP tools.
+
+Cache entries store:
+```js
+{
+  data: { /* full snapshot */ },
+  cachedAt: ISO-timestamp,
+  expiresAt: ISO-timestamp,
+}
+```
+
+---
+
+## 5. Response Schema
+
+```json
+{
+  "schemaVersion": "1.0",
+  "bdewCode": "10002954",
+  "timestamp": "2026-03-16T08:00:00Z",
+  "cachedAt": "2026-03-16T07:00:00Z",
+  "ttlSeconds": 3600,
+
+  "identity": {
+    "name": "EWR Netz GmbH",
+    "mastrId": "SNE953789382174",
+    "bdewCode": "10002954",
+    "location": "Alzey",
+    "resolvedAt": "2026-03-16T07:00:00Z"
   },
 
-  methods: {
-    async onFileChange(filename) {
-      // debounce
-      // find sourceIds mapped to this filename
-      // for each: call datasource-cache.refresh({ sourceId })
-      // emit datasource.file.refreshed { sourceId, filename }
-      // log result
+  "ewk": {
+    "sourceAvailable": true,
+    "reportYear": 2024,
+    "anschlussdauer": {
+      "eeNS_weeks": 82,
+      "eeNS_phase1_weeks": 7,
+      "eeNS_phase2_weeks": 75,
+      "verbrauchNS_weeks": 218,
+      "eeMS_weeks": null,
+      "rankEeNS": 604,
+      "rankVerbrauchNS": 701,
+      "totalVnbs": 740,
+      "bundesmedianEeNS_weeks": 40,
+      "bundesmedianVerbrauchNS_weeks": 30
+    },
+    "umsetzungsquote": {
+      "eeNS_percent": 38.6,
+      "verbrauchNS_percent": 11.7,
+      "verbrauchMS_percent": 98.6,
+      "rankEeNS": 639,
+      "totalVnbs": 698
+    },
+    "digitalisierungsindex": {
+      "gesamt_percent": 24,
+      "smartGrids_percent": 5,
+      "kundenportal_percent": 83,
+      "datenmanagement_percent": 64,
+      "kiEinsatz_percent": 0,
+      "rank": 475,
+      "totalVnbs": 656,
+      "bundesmedian_percent": 30
     }
+  },
+
+  "mastr": {
+    "sourceAvailable": true,
+    "asOf": "2026-03-16",
+    "inBetrieb": {
+      "anlagenCount": 5500,
+      "leistungMW": 224,
+      "pvAnlagen": 4389,
+      "pvLeistungMW": 61,
+      "windAnlagen": 50,
+      "windLeistungMW": 135,
+      "speicherAnlagen": 1000,
+      "speicherLeistungMW": 7
+    },
+    "inPlanung": {
+      "anlagenCount": 157,
+      "leistungMW": 153.6,
+      "percentOfInstalledCapacity": 68.6
+    },
+    "netzbetreiberPruefung": {
+      "anlagenCount": 2066,
+      "leistungMW": 121.5,
+      "davonSpeicher": 356,
+      "davonPv": 605,
+      "davonWind": 17
+    }
+  },
+
+  "market": {
+    "sourceAvailable": true,
+    "dayAheadPrice_eurMWh": 89.08,
+    "co2Intensity_gCO2eqKWh": 196,
+    "gasStorageDE_percent": 22,
+    "gasStorageStatus": "CRITICAL",
+    "timestamp": "2026-03-16T07:00:00Z"
+  },
+
+  "alerts": [
+    {
+      "severity": "critical",
+      "code": "ANSCHLUSSDAUER_VERBRAUCH_CRITICAL",
+      "group": "ewk.anschlussdauer",
+      "field": "verbrauchNS_weeks",
+      "currentValue": 218,
+      "threshold": 100,
+      "rank": "701/708",
+      "message": "Anschlussdauer Verbrauch NS: 218 Wo. (Schwelle: 100 Wo.) — Rang 701/708",
+      "message_en": "Connection time consumption NS: 218 weeks (threshold: 100 weeks) — rank 701/708",
+      "recommendation": "Prozessanalyse Phase 2 Verbrauchsanschlüsse priorisieren",
+      "ewkImpact": true
+    },
+    {
+      "severity": "warning",
+      "code": "UMSETZUNGSQUOTE_EE_LOW",
+      "group": "ewk.umsetzungsquote",
+      "field": "eeNS_percent",
+      "currentValue": 38.6,
+      "threshold": 60,
+      "rank": "639/698",
+      "message": "Umsetzungsquote EE NS: 38,6 % (Schwelle: 60 %) — Rang 639/698",
+      "message_en": "EE NS realisation rate: 38.6% (threshold: 60%) — rank 639/698",
+      "recommendation": "NetzbetreiberPrüfungs-Stau abbauen — §118 EnWG Fristdruck beachten",
+      "ewkImpact": true
+    },
+    {
+      "severity": "warning",
+      "code": "GAS_STORAGE_CRITICAL",
+      "group": "market.gasStorage",
+      "field": "gasStorageDE_percent",
+      "currentValue": 22,
+      "threshold": 30,
+      "message": "DE Gasspeicher 22 % (Schwelle: 30 %) — Handlungsbedarf bis 1. November",
+      "message_en": "DE gas storage 22% (threshold: 30%) — action required by November 1",
+      "recommendation": "Einkaufsstrategie für Q3/Q4 überprüfen",
+      "ewkImpact": false
+    }
+  ],
+
+  "alertSummary": {
+    "total": 3,
+    "critical": 1,
+    "warning": 2,
+    "info": 0,
+    "ewkRelevant": 2
+  },
+
+  "sourceErrors": []
+}
+```
+
+---
+
+## 6. Alert Thresholds Configuration
+
+Default thresholds are defined in `src/vnb-monitor-defaults.js` and can
+be overridden per deployment via `vnb-monitor-alerts.config.json` in the
+project root.
+
+### 6.1 Default Thresholds
+
+```js
+// src/vnb-monitor-defaults.js
+module.exports = {
+  thresholds: {
+    // EWK — Anschlussdauer
+    'ewk.anschlussdauer.eeNS_weeks':       { warning: 60,  critical: 90  },
+    'ewk.anschlussdauer.verbrauchNS_weeks':{ warning: 60,  critical: 100 },
+
+    // EWK — Umsetzungsquote
+    'ewk.umsetzungsquote.eeNS_percent':    { warning: 60,  critical: 40  }, // lower = worse
+    'ewk.umsetzungsquote.verbrauchNS_percent':{ warning: 40, critical: 20 },
+
+    // EWK — Digitalisierungsindex
+    'ewk.digitalisierungsindex.gesamt_percent':    { warning: 25, critical: 15 },
+    'ewk.digitalisierungsindex.smartGrids_percent':{ warning: 10, critical: 5  },
+
+    // MaStR — Prüfungs-Queue
+    'mastr.netzbetreiberPruefung.leistungMW': { warning: 50,  critical: 100 },
+
+    // Market
+    'market.gasStorageDE_percent':            { warning: 30,  critical: 20  },
   }
 };
 ```
 
-**Key constraints:**
-- Stateless between broker restarts — rebuilds the filePath→sourceId map
-  on `started()` by querying `datasource-registry.list`.
-- Debounce of 2000ms prevents multiple refresh calls for a single
-  file-save operation (editors often write in multiple steps).
-- Only watches files in `watchDir` — no recursive watching of subdirectories.
-- Does not trigger re-inference or re-classification — only cache refresh.
-  If the file structure changes significantly, the user must manually
-  re-run inference.
-- Emits `datasource.file.refreshed` so the UI can show a toast notification.
+### 6.2 Override File
 
-### 7.3 UI integration
-
-The datasource list in `src/app.html` should subscribe to
-`datasource.file.refreshed` events (via a polling endpoint or SSE) and
-update the cache badge to `fresh` with a toast:
-*"✅ [Source name] — automatically refreshed (file changed)"*
-
-### 7.4 New REST endpoint
-
-`GET /api/datasource-watcher/status` — returns the current watcher state:
-
+`vnb-monitor-alerts.config.json` (optional, git-ignored):
 ```json
 {
-  "watching": true,
-  "watchDir": "./uploads",
-  "trackedFiles": 4,
-  "mappings": [
-    { "filename": "beschaffungsportfolio.csv", "sourceIds": ["uuid-1"] }
-  ]
+  "thresholds": {
+    "ewk.anschlussdauer.verbrauchNS_weeks": { "warning": 80, "critical": 150 },
+    "mastr.netzbetreiberPruefung.leistungMW": { "warning": 80, "critical": 120 }
+  }
 }
 ```
-
-### 7.5 Tests
-
-| File | New coverage |
-|------|-------------|
-| `tests/datasource-watcher.service.test.js` | File change triggers `datasource-cache.refresh` for mapped source; debounce prevents double-refresh; unmapped file change is ignored |
 
 ---
 
-## 8. Feature 6 — LLM-Assisted Classifier Fallback
+## 7. Power Automate Integration
 
-**Deferred from v0.9.3** (marked as v0.9.4 candidate in the original spec).
-
-### 8.1 Trigger condition
-
-The LLM fallback is invoked only when:
-- Heuristic classifier returns `confidence < 0.35` (i.e. `domainId: 'unknown'`)
-- AND `settings.llmFallbackEnabled` is `true` (default: `false`)
-- AND the Cernion MCP server is reachable
-
-This keeps the classifier deterministic and testable by default.
-LLM fallback is an opt-in enhancement.
-
-### 8.2 Behaviour
-
-When triggered, the classifier calls the Cernion agent with a structured
-prompt:
+### 7.1 Recommended Flow Structure
 
 ```
-You are a data classification assistant for German energy utilities.
-Given the following column names and sample values from an uploaded CSV,
-identify the most likely semantic domain from this list:
-[list of domain IDs and descriptions from semantic-domains.js]
-
-Column names: [...]
-Sample values (3 rows): [...]
-Filename: [...]
-Description: [...]
-
-Respond with JSON only:
-{ "domainId": "...", "confidence": 0.0-1.0, "reasoning": "..." }
+Trigger: Recurrence — Every day at 06:00
+  → HTTP GET https://<cernion-host>/api/vnb-monitor/10002954
+       Headers: Authorization: Bearer <token>
+  → Parse JSON (schema from Section 5)
+  → Condition: alertSummary.critical > 0
+       Yes → Post Teams message (critical alert details)
+  → Condition: alertSummary.ewkRelevant > 0
+         AND current week = week 1 of month
+       Yes → Send Email to Regulierungsbeauftragter
 ```
 
-The LLM response is merged with the heuristic result:
-- If LLM confidence ≥ 0.65: use LLM domain, set `llmAssisted: true`
-- If LLM confidence < 0.65: keep `domainId: 'unknown'`, set
-  `requiresUserInput: true`
+### 7.2 Power BI Direct Query
 
-### 8.3 Configuration
+Power BI can consume the multi-VNB endpoint directly:
 
 ```
-# .env.example
-CLASSIFIER_LLM_FALLBACK_ENABLED=false
+Source: Web
+URL: https://<cernion-host>/api/vnb-monitor?bdewCodes=10002954,9900386000008
+Headers: Authorization: Bearer <token>
 ```
 
-```js
-// datasource-classifier.service.js settings
-settings: {
-  sampleSize: 50,
-  confidenceThreshold: 0.80,
-  unknownThreshold: 0.35,
-  llmFallbackEnabled: process.env.CLASSIFIER_LLM_FALLBACK_ENABLED === 'true',
-}
-```
+The flat structure of the response (no deeply nested arrays except
+`alerts`) is intentional — Power BI's JSON connector handles it without
+transformation.
 
-### 8.4 Classification result additions
+### 7.3 `schemaVersion` Guarantee
 
-```js
-{
-  domainId: String,
-  confidence: Number,
-  llmAssisted: Boolean,      // new: true if LLM fallback was used
-  llmReasoning: String,      // new: LLM explanation (for UI display)
-  requiresUserInput: Boolean
-}
-```
+The `schemaVersion` field in the response is incremented only on
+**breaking changes** to the response structure. Power Automate flows and
+Power BI datasets can check `schemaVersion` and fail gracefully if an
+unexpected version is returned.
 
-### 8.5 UI
-
-When `llmAssisted: true`, the onboarding banner shows a secondary label:
-*"🤖 AI-assisted classification"* alongside the domain suggestion.
-
-### 8.6 Tests
-
-| File | New coverage |
-|------|-------------|
-| `tests/datasource-classifier.service.test.js` | LLM fallback not called when confidence ≥ 0.35 (default off); LLM result used when fallback enabled and heuristic returns unknown; LLM confidence < 0.65 still results in requiresUserInput: true |
+Minor additions (new fields) are non-breaking and do not increment the
+version.
 
 ---
 
-## 9. Acceptance Criteria
+## 8. `.env.example` Additions
 
-- [ ] Repo-wide cleanup commit lands first, all 941+ tests still pass
-- [ ] `period-normaliser.js` handles all 8 input patterns with unit tests
-- [ ] Procurement × Spotpreis query (previously failing) now returns a result
-- [ ] PV-Anlagenliste × EWK-Benchmark query scores Routing ≥ 2, Usefulness ≥ 2
-- [ ] iMSys × EWK query no longer asks for VNB name when env var is set
-- [ ] File replacement in `./uploads/` triggers cache refresh within 3 seconds
-- [ ] LLM fallback disabled by default, opt-in via env var
-- [ ] All new REST endpoints covered by OpenAPI annotations (audit gate: 0 issues)
-- [ ] Full test suite passes (target: 980+ tests across 42+ suites)
+```
+# VNB Monitor
+VNB_MONITOR_CACHE_TTL_SECONDS=3600
+VNB_MONITOR_DEFAULT_BDEW_CODES=10002954,9900386000008
+VNB_MONITOR_ALERT_CONFIG_FILE=./vnb-monitor-alerts.config.json
+```
+
+---
+
+## 9. Tests
+
+| File | Coverage |
+|------|----------|
+| `tests/vnb-monitor.service.test.js` | All three actions; cache hit/miss; graceful degradation when one MCP source fails; alert generation for each threshold category; multi-VNB response shape |
+| `tests/api.service.test.js` | New routes present in OpenAPI; auth enforced; `?refresh=true` bypasses cache |
+| `tests/vnb-monitor.alerts.test.js` | Alert threshold logic: boundary values, critical vs. warning, ewkImpact flag, lang=en message |
+
+---
+
+## 10. OpenAPI Annotations
+
+All three endpoints require full OpenAPI annotations:
+- `tags: ['VNBMonitor']`
+- `summary` and `description`
+- `parameters` (path + query)
+- `responses.200` with full JSON schema reference
+- `responses.404` for unknown BDEW code
+- `responses.503` for all sources unavailable
+
+OpenAPI audit gate must pass with 0 issues after implementation.
+
+---
+
+## 11. Acceptance Criteria
+
+- [ ] `GET /api/vnb-monitor/10002954` returns valid JSON matching schema v1.0
+- [ ] Response includes all KPI groups: `ewk`, `mastr`, `market`, `alerts`
+- [ ] `alertSummary.critical >= 1` for EWR Netz GmbH (known poor performer)
+- [ ] `GET /api/vnb-monitor?bdewCodes=10002954,9900386000008` returns array with 2 items
+- [ ] `GET /api/vnb-monitor/10002954/alerts` returns only alerts, faster response
+- [ ] `?refresh=true` bypasses cache and re-fetches all sources
+- [ ] If one MCP source is unavailable, response still returns with `sourceErrors` populated
+- [ ] `schemaVersion: "1.0"` present in all responses
+- [ ] Power Automate HTTP action can consume the response without transformation
+- [ ] OpenAPI audit: 0 issues
+- [ ] Full test suite passes: 973+ tests
 - [ ] `npm run release:check` passes
 
 ---
 
-## 10. Out of Scope for v0.9.4
+## 12. Out of Scope for v0.9.5
 
-The following are explicitly deferred to v0.10:
-
-- **Process Engine / embedded Node-RED** — event-driven workflow automation
-  with chained agent queries, scheduled execution, and output routing
-  (Email, SharePoint, Webhook). This is a Major feature requiring its own
-  spec and a separate planning session.
-- **Multi-domain sources** — a single file spanning multiple semantic domains.
-- **Real-time streaming** — SSE or WebSocket push for watcher events to UI
-  (polling is sufficient for v0.9.4).
-- **Custom domain definitions** — user-defined semantic domains beyond the
-  built-in registry.
+- **Push/webhook notifications** — Power Automate pull is sufficient;
+  push adds infrastructure complexity without proportional benefit.
+- **Historical KPI tracking** — storing time series of KPIs for trend
+  analysis. Tracked for v0.10.
+- **Unbundling compliance monitoring** — automated Netzbetreiberprüfung
+  timestamp comparison (as described in Section 10 of the EWR report).
+  Requires careful legal framing; tracked for v0.10.
+- **Authentication scoping per BDEW code** — multi-tenant access control.
+  Current single Bearer token is sufficient for v0.9.5.
