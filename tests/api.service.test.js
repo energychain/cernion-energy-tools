@@ -8,12 +8,19 @@ const DatasourceRegistryService = require('../services/datasource-registry.servi
 const DatasourceCacheService = require('../services/datasource-cache.service');
 const DatasourceDiscoveryService = require('../services/datasource-discovery.service');
 const DatasourceClassifierService = require('../services/datasource-classifier.service');
+const TokenManagerService = require('../services/token-manager.service');
 const { version: packageVersion } = require('../package.json');
+const path = require('path');
+const os = require('os');
+const fs = require('fs');
 
 describe('API Gateway Service', () => {
   let broker;
+  let tokenStorageFile;
 
   beforeAll(async () => {
+    tokenStorageFile = path.join(os.tmpdir(), `api-service-token-test-${Date.now()}.json`);
+
     broker = new ServiceBroker({
       logger: false,
       transporter: null,
@@ -29,11 +36,21 @@ describe('API Gateway Service', () => {
     broker.createService(DatasourceCacheService);
     broker.createService(DatasourceDiscoveryService);
     broker.createService(DatasourceClassifierService);
+    broker.createService({
+      ...TokenManagerService,
+      settings: {
+        ...TokenManagerService.settings,
+        storageFile: tokenStorageFile,
+      },
+    });
     await broker.start();
   });
 
   afterAll(async () => {
     await broker.stop();
+    if (fs.existsSync(tokenStorageFile)) {
+      fs.unlinkSync(tokenStorageFile);
+    }
   });
 
   describe('Service Configuration', () => {
@@ -114,6 +131,9 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/datasources/:id/classification'].patch.tags).toContain(
         'DataSources'
       );
+
+      expect(schema.paths['/api/tokens']).toBeDefined();
+      expect(schema.paths['/api/tokens/verify']).toBeDefined();
     });
   });
 
@@ -137,7 +157,7 @@ describe('API Gateway Service', () => {
       expect(typeof apiRoute.onError).toBe('function');
     });
 
-    it('should extract token from URL params with precedence over bearer token', () => {
+    it('should extract token from URL params with precedence over bearer token', async () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       const ctx = { meta: {} };
       const req = {
@@ -146,16 +166,18 @@ describe('API Gateway Service', () => {
         body: {},
         params: {},
         $params: { token: 'query-token' },
+        method: 'GET',
+        url: '/api/agent/analyze',
       };
 
-      apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() } }, ctx, apiRoute, req, {});
+      await apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, ctx, apiRoute, req, {});
 
       expect(ctx.meta.cernionToken).toBe('query-token');
       expect(req.query.token).toBeUndefined();
       expect(req.$params.token).toBeUndefined();
     });
 
-    it('should extract token from body when provided', () => {
+    it('should extract token from body when provided', async () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       const ctx = { meta: {} };
       const req = {
@@ -164,12 +186,61 @@ describe('API Gateway Service', () => {
         body: { token: 'body-token' },
         params: {},
         $params: { token: 'body-token' },
+        method: 'POST',
+        url: '/api/agent/execute',
       };
 
-      apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() } }, ctx, apiRoute, req, {});
+      await apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, ctx, apiRoute, req, {});
 
       expect(ctx.meta.cernionToken).toBe('body-token');
       expect(req.body.token).toBeUndefined();
+    });
+
+    it('should accept valid full-access ck_ token for admin endpoints', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const created = await broker.call('token-manager.create', {
+        name: 'Admin',
+        scope: 'full-access',
+      });
+
+      const ctx = { meta: {} };
+      const req = {
+        headers: { authorization: `Bearer ${created.data.token}` },
+        query: {},
+        body: {},
+        params: {},
+        $params: {},
+        method: 'DELETE',
+        url: '/api/tokens/some-id',
+      };
+
+      await expect(
+        apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, ctx, apiRoute, req, {})
+      ).resolves.toBeUndefined();
+      expect(ctx.meta.apiToken.scope).toBe('full-access');
+    });
+
+    it('should reject read-only ck_ token on write endpoints', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const created = await broker.call('token-manager.create', {
+        name: 'ReadOnly',
+        scope: 'read-only',
+      });
+
+      const ctx = { meta: {} };
+      const req = {
+        headers: { authorization: `Bearer ${created.data.token}` },
+        query: {},
+        body: {},
+        params: {},
+        $params: {},
+        method: 'PUT',
+        url: '/api/vnb-monitor/thresholds',
+      };
+
+      await expect(
+        apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, ctx, apiRoute, req, {})
+      ).rejects.toMatchObject({ code: 403 });
     });
 
     it('should sanitize secrets in onError response payload', () => {

@@ -7,6 +7,7 @@
 
 const ApiGateway = require('moleculer-web');
 const OpenapiMixin = require('moleculer-auto-openapi');
+const { Errors } = require('moleculer');
 const path = require('path');
 const fs = require('fs');
 const { version: packageVersion } = require('../package.json');
@@ -69,6 +70,30 @@ function sanitizeErrorMessage(message) {
   return sanitized;
 }
 
+function isReadMethod(method) {
+  const m = String(method || '').toUpperCase();
+  return m === 'GET' || m === 'HEAD' || m === 'OPTIONS';
+}
+
+function normalizeRequestPath(req) {
+  const raw = String(req?.originalUrl || req?.url || req?.path || '');
+  return raw.split('?')[0] || '';
+}
+
+function requiresFullAccess(method, requestPath) {
+  const m = String(method || '').toUpperCase();
+  const pathOnly = String(requestPath || '').split('?')[0];
+
+  if (pathOnly === '/api/tokens' && m === 'GET') return true;
+  if (pathOnly === '/api/tokens' && m === 'POST') return true;
+  if (pathOnly.startsWith('/api/tokens/') && pathOnly !== '/api/tokens/verify' && m === 'DELETE') {
+    return true;
+  }
+  if (pathOnly === '/api/vnb-monitor/thresholds' && (m === 'PUT' || m === 'DELETE')) return true;
+
+  return false;
+}
+
 module.exports = {
   name: 'api',
   mixins: [ApiGateway, OpenapiMixin],
@@ -93,6 +118,7 @@ module.exports = {
         { name: 'Example', description: 'Example service endpoints' },
         { name: 'DataSources', description: 'Inhouse datasource registry, cache, and discovery' },
         { name: 'VNBMonitor', description: 'VNB (grid operator) KPI monitoring and alerts' },
+        { name: 'IntegrationHub', description: 'Token management and integration helpers' },
       ],
       components: {
         securitySchemes: {
@@ -274,6 +300,13 @@ module.exports = {
           'GET /datasource-discovery/search': 'datasource-discovery.search',
           'GET /datasource-discovery/:sourceId/descriptor': 'datasource-discovery.descriptor',
           'GET /datasource-watcher/status': 'datasource-watcher.status',
+          'GET /tokens': 'token-manager.list',
+          'POST /tokens': 'token-manager.create',
+          'DELETE /tokens/:id': 'token-manager.revoke',
+          'POST /tokens/verify': 'token-manager.verify',
+          'GET /vnb-monitor/thresholds': 'vnb-monitor.getThresholds',
+          'PUT /vnb-monitor/thresholds': 'vnb-monitor.setThresholds',
+          'DELETE /vnb-monitor/thresholds': 'vnb-monitor.resetThresholds',
           'POST /in-memory-join/join': 'in-memory-join.join',
           'POST /in-memory-join/metering-spot-cost': 'in-memory-join.meteringSpotCost',
           'POST /in-memory-join/benchmark-compare': 'in-memory-join.benchmarkCompare',
@@ -402,11 +435,15 @@ module.exports = {
 
         logging: true,
 
-        onBeforeCall(ctx, route, req, _res) {
+        async onBeforeCall(ctx, route, req, _res) {
           // Token precedence:
           // 1) Request parameter "token" (query/body/path)
           // 2) Authorization: Bearer <token>
           // 3) CERNION_TOKEN from environment (fallback in MCP client)
+          const requestPath = normalizeRequestPath(req);
+          const isTokenVerifyEndpoint =
+            requestPath === '/api/tokens/verify' && String(req?.method || '').toUpperCase() === 'POST';
+
           const authHeader = req.headers['authorization'] || req.headers['Authorization'];
           const bearerToken =
             authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : null;
@@ -414,7 +451,7 @@ module.exports = {
           const paramTokenCandidates = [
             req?.$params?.token,
             req?.query?.token,
-            req?.body?.token,
+            isTokenVerifyEndpoint ? undefined : req?.body?.token,
             req?.params?.token,
           ];
 
@@ -431,7 +468,11 @@ module.exports = {
           if (req?.query && Object.prototype.hasOwnProperty.call(req.query, 'token')) {
             delete req.query.token;
           }
-          if (req?.body && Object.prototype.hasOwnProperty.call(req.body, 'token')) {
+          if (
+            !isTokenVerifyEndpoint &&
+            req?.body &&
+            Object.prototype.hasOwnProperty.call(req.body, 'token')
+          ) {
             delete req.body.token;
           }
           if (req?.params && Object.prototype.hasOwnProperty.call(req.params, 'token')) {
@@ -439,11 +480,57 @@ module.exports = {
           }
 
           if (tokenToUse) {
-            ctx.meta.cernionToken = tokenToUse;
-            if (paramToken) {
-              this.logger.debug('Using token parameter from request (query/body/path)');
+            const isApiToken = tokenToUse.startsWith('ck_');
+
+            if (isApiToken) {
+              const verification = await this.broker.call('token-manager.verify', {
+                token: tokenToUse,
+                method: req?.method || 'GET',
+                path: requestPath,
+                trackUsage: true,
+              });
+
+              if (!verification?.valid) {
+                if (verification?.reason === 'SCOPE_VIOLATION') {
+                  throw new Errors.MoleculerClientError(
+                    'Scope violation: read-only token cannot call this endpoint.',
+                    403,
+                    'TOKEN_SCOPE_VIOLATION'
+                  );
+                }
+                throw new Errors.MoleculerClientError('Invalid or revoked API token.', 401, 'INVALID_API_TOKEN');
+              }
+
+              if (verification.scope === 'read-only' && !isReadMethod(req?.method)) {
+                throw new Errors.MoleculerClientError(
+                  'Scope violation: read-only token cannot call write endpoints.',
+                  403,
+                  'TOKEN_SCOPE_VIOLATION'
+                );
+              }
+
+              if (requiresFullAccess(req?.method, requestPath) && verification.scope !== 'full-access') {
+                throw new Errors.MoleculerClientError(
+                  'Scope violation: full-access token required for this endpoint.',
+                  403,
+                  'TOKEN_SCOPE_VIOLATION'
+                );
+              }
+
+              ctx.meta.apiToken = {
+                id: verification.tokenId,
+                name: verification.name,
+                scope: verification.scope,
+                scopes: verification.scopes || [],
+              };
+              this.logger.debug('Using scoped API token from request');
             } else {
-              this.logger.debug('Using Bearer token from request header');
+              ctx.meta.cernionToken = tokenToUse;
+              if (paramToken) {
+                this.logger.debug('Using token parameter from request (query/body/path)');
+              } else {
+                this.logger.debug('Using Bearer token from request header');
+              }
             }
           } else {
             this.logger.debug('No request token provided, will use CERNION_TOKEN from environment');
@@ -520,7 +607,8 @@ module.exports = {
                 const isAbsolutePublicPath =
                   path.startsWith('/datasources') ||
                   path.startsWith('/datasource-cache') ||
-                  path.startsWith('/datasource-discovery');
+                  path.startsWith('/datasource-discovery') ||
+                  path.startsWith('/tokens');
 
                 // Prepend service name if path doesn't start with it and is not an absolute public path
                 if (!path.startsWith(`/${service.name}`) && !isAbsolutePublicPath) {

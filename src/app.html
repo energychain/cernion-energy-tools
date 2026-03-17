@@ -1095,6 +1095,52 @@
         font-size: 0.8rem;
         margin-bottom: 5px;
       }
+      .ih-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 18px;
+      }
+      .ih-subcard {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 16px;
+      }
+      .ih-subcard h3 {
+        font-size: 0.95rem;
+        margin-bottom: 10px;
+      }
+      .ih-inline {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .ih-inline input,
+      .ih-inline select,
+      .ih-inline textarea {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        color: var(--text);
+        padding: 8px 10px;
+      }
+      .ih-snippet {
+        width: 100%;
+        min-height: 120px;
+        font-family: 'Fira Code', 'Cascadia Code', monospace;
+        font-size: 0.8rem;
+        line-height: 1.5;
+      }
+      .ih-token-once {
+        margin-top: 10px;
+        border: 1px solid var(--warning);
+        background: rgba(251, 191, 36, 0.08);
+        color: var(--warning);
+        border-radius: 8px;
+        padding: 10px;
+        font-size: 0.82rem;
+      }
       .skeleton-row .skeleton-cell {
         height: 12px;
         border-radius: 999px;
@@ -1139,6 +1185,7 @@
         <a href="/api/docs" target="_blank">API Docs</a>
         <a href="#" id="nav-report">📄 360° Bericht</a>
         <a href="#" id="nav-datasources">🗄️ Data Sources</a>
+        <a href="#" id="nav-integration">🔌 Integration Hub</a>
         <a href="#" id="nav-reset">New Research</a>
       </nav>
     </header>
@@ -1343,6 +1390,65 @@
         <div id="ds-view-form" class="hidden"></div>
         <div id="ds-view-dict" class="hidden"></div>
       </section>
+
+      <!-- ── Integration Hub Panel ─────────────────────────────── -->
+      <section class="card hidden" id="integration-hub-panel">
+        <h2>🔌 Integration Hub</h2>
+        <div class="ih-grid">
+          <div class="ih-subcard">
+            <h3>🔑 Token Management</h3>
+            <div class="ih-inline" style="margin-bottom:10px">
+              <input id="ih-token-name" type="text" placeholder="Token name (max 60)" style="min-width:240px;flex:1" />
+              <select id="ih-token-scope">
+                <option value="read-only">read-only</option>
+                <option value="full-access">full-access</option>
+              </select>
+              <button class="btn-primary" id="ih-token-create">+ Create Token</button>
+            </div>
+            <div id="ih-token-once" class="ih-token-once hidden"></div>
+            <div class="table-wrapper" style="margin-top:10px">
+              <table>
+                <thead>
+                  <tr><th>Name</th><th>Scope</th><th>Last Used</th><th>Usage</th><th>Action</th></tr>
+                </thead>
+                <tbody id="ih-token-list"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="ih-subcard">
+            <h3>🔌 Connector Generator</h3>
+            <div class="ih-inline" style="margin-bottom:10px">
+              <input id="ih-public-url" type="text" placeholder="Public URL" style="min-width:220px;flex:1" />
+              <input id="ih-bdew" type="text" placeholder="BDEW code(s), comma-separated" style="min-width:220px;flex:1" />
+              <select id="ih-token-select" style="min-width:220px"></select>
+            </div>
+            <div class="ih-inline" style="margin-bottom:10px">
+              <button class="btn-secondary" id="ih-tab-automate">Power Automate</button>
+              <button class="btn-secondary" id="ih-tab-powerbi">Power BI</button>
+              <button class="btn-secondary" id="ih-copy-snippet">Copy Snippet</button>
+              <button class="btn-secondary" id="ih-export-flow">📥 Export Flow JSON</button>
+            </div>
+            <textarea id="ih-snippet" class="ih-snippet" readonly></textarea>
+          </div>
+
+          <div class="ih-subcard">
+            <h3>⚙️ Alert Threshold Editor</h3>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr><th>Metric</th><th>Warning</th><th>Critical</th></tr>
+                </thead>
+                <tbody id="ih-thresholds"></tbody>
+              </table>
+            </div>
+            <div class="ih-inline" style="margin-top:10px">
+              <button class="btn-primary" id="ih-threshold-save">💾 Save</button>
+              <button class="btn-secondary" id="ih-threshold-reset">Auf Standard zurück</button>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- ── Toast Notification Container ────────────────────────── -->
@@ -1469,7 +1575,7 @@
       // showPanel() lives in outer scope so Research, Report, and DataSources
       // all share one dispatcher. Never move this into an IIFE.
       function showPanel(panelId) {
-        ['report-panel', 'datasources-panel'].forEach((id) => {
+        ['report-panel', 'datasources-panel', 'integration-hub-panel'].forEach((id) => {
           const el = $(id);
           if (el) el.classList.add('hidden');
         });
@@ -2135,14 +2241,16 @@
         // ── View toggle ──────────────────────────────────────────────
         navReport.addEventListener('click', (e) => {
           e.preventDefault();
-          RESEARCH_CARDS.forEach(hide);
-          show(reportPanel);
+          showPanel('report-panel');
           renderHistory();
         });
 
         // When "New Research" is clicked, hide report panel and show research view
         const origNavReset = $('nav-reset');
-        origNavReset.addEventListener('click', () => hide(reportPanel));
+        origNavReset.addEventListener('click', () => {
+          hide(reportPanel);
+          hide($('integration-hub-panel'));
+        });
 
         // ── History helpers ─────────────────────────────────────────
         function loadHistory() {
@@ -2294,6 +2402,314 @@
 
         // Render history on load in case report panel is shown via URL hash
         renderHistory();
+      })();
+
+      // ── Integration Hub Panel ─────────────────────────────────────
+      (function () {
+        const navIntegration = $('nav-integration');
+        const panel = $('integration-hub-panel');
+        if (!navIntegration || !panel) return;
+
+        const tokenName = $('ih-token-name');
+        const tokenScope = $('ih-token-scope');
+        const tokenList = $('ih-token-list');
+        const tokenOnce = $('ih-token-once');
+        const tokenSelect = $('ih-token-select');
+        const publicUrlInput = $('ih-public-url');
+        const bdewInput = $('ih-bdew');
+        const snippet = $('ih-snippet');
+
+        const tokenSecrets = {};
+        let tokenRows = [];
+        let thresholdState = {};
+        let activeTab = 'automate';
+
+        function escLocal(str) {
+          return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
+
+        function selectedTokenValue() {
+          const selected = tokenSelect?.value || '';
+          if (!selected) return tokenInput.value.trim() || 'ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+          return tokenSecrets[selected] || 'ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx';
+        }
+
+        function getBaseUrl() {
+          const base = publicUrlInput.value.trim();
+          return base || window.location.origin;
+        }
+
+        function buildAutomateSnippet() {
+          const bdew = (bdewInput.value.trim().split(',')[0] || '10002954').trim();
+          const payload = {
+            inputs: {
+              method: 'GET',
+              uri: `${getBaseUrl()}/api/vnb-monitor/${bdew}/alerts`,
+              headers: {
+                Authorization: `Bearer ${selectedTokenValue()}`,
+                'Content-Type': 'application/json',
+              },
+            },
+          };
+          return JSON.stringify(payload, null, 2);
+        }
+
+        function buildPowerBiSnippet() {
+          const codes = bdewInput.value.trim() || '10002954';
+          const base = getBaseUrl();
+          const token = selectedTokenValue();
+          const codeList = codes
+            .split(',')
+            .map((c) => c.trim())
+            .filter(Boolean);
+
+          if (codeList.length <= 1) {
+            return `let\n    Source = Json.Document(\n        Web.Contents(\n            \"${base}/api/vnb-monitor/${codeList[0] || '10002954'}\",\n            [\n                Headers = [\n                    #\"Authorization\" = \"Bearer ${token}\"\n                ]\n            ]\n        )\n    ),\n    ewk = Source[ewk],\n    ewkTable = Table.FromRecords({[\n        bdewCode = Source[bdewCode],\n        vnbName = Source[identity][name],\n        eeNS_weeks = ewk[anschlussdauer][eeNS_weeks],\n        umsetzungEE = ewk[umsetzungsquote][eeNS_percent],\n        digitalisierung = ewk[digitalisierungsindex][gesamt_percent]\n    ]})\nin\n    ewkTable`;
+          }
+
+          const joined = codeList.join(',');
+          return `let\n    bdewCodes = \"${joined}\",\n    Source = Json.Document(\n        Web.Contents(\n            \"${base}/api/vnb-monitor?bdewCodes=\" & bdewCodes,\n            [Headers = [#\"Authorization\" = \"Bearer ${token}\"]]\n        )\n    ),\n    asTable = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error),\n    expanded = Table.ExpandRecordColumn(asTable, \"Column1\", {\"bdewCode\",\"identity\",\"ewk\",\"mastr\",\"market\",\"alertSummary\"})\nin\n    expanded`;
+        }
+
+        function renderSnippet() {
+          snippet.value = activeTab === 'powerbi' ? buildPowerBiSnippet() : buildAutomateSnippet();
+        }
+
+        function renderTokenSelect() {
+          const options = ['<option value="">Use top token input / placeholder</option>']
+            .concat(
+              tokenRows.map(
+                (row) => `<option value="${escLocal(row.id)}">${escLocal(row.name)} (${escLocal(row.token || 'masked')})</option>`
+              )
+            )
+            .join('');
+          tokenSelect.innerHTML = options;
+          renderSnippet();
+        }
+
+        function renderTokenRows() {
+          if (!tokenRows.length) {
+            tokenList.innerHTML =
+              '<tr><td colspan="5" style="padding:12px;color:var(--text-muted)">No tokens yet.</td></tr>';
+            return;
+          }
+          tokenList.innerHTML = tokenRows
+            .map(
+              (row) => `
+            <tr>
+              <td>${escLocal(row.name)}</td>
+              <td>${escLocal((row.scopes || [row.scope || 'read-only']).join(', '))}</td>
+              <td>${escLocal(row.lastUsedAt ? new Date(row.lastUsedAt).toLocaleString('de-DE') : '—')}</td>
+              <td>${escLocal(String(row.usageCount || 0))}×</td>
+              <td><button class="icon-btn danger ih-revoke" data-id="${escLocal(row.id)}">🗑</button></td>
+            </tr>`
+            )
+            .join('');
+
+          tokenList.querySelectorAll('.ih-revoke').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+              const id = btn.dataset.id;
+              const row = tokenRows.find((entry) => entry.id === id);
+              if (!confirm(`Token \"${row?.name || id}\" wirklich widerrufen?`)) return;
+              try {
+                const res = await fetch(`/api/tokens/${id}`, {
+                  method: 'DELETE',
+                  headers: apiHeaders(),
+                });
+                const data = await res.json();
+                if (!res.ok || data.success === false) throw new Error(data.message || `HTTP ${res.status}`);
+                toast('✅ Token revoked');
+                await loadTokens();
+              } catch (err) {
+                toast('❌ Revoke failed: ' + err.message, 'error');
+              }
+            });
+          });
+        }
+
+        async function loadTokens() {
+          try {
+            const res = await apiGet('/api/tokens');
+            tokenRows = Array.isArray(res?.data) ? res.data : [];
+            renderTokenRows();
+            renderTokenSelect();
+          } catch (err) {
+            tokenRows = [];
+            renderTokenRows();
+            tokenSelect.innerHTML = '<option value="">No token access (full-access token required)</option>';
+          }
+        }
+
+        function renderThresholdTable() {
+          const tbody = $('ih-thresholds');
+          const entries = Object.entries(thresholdState || {});
+          if (!entries.length) {
+            tbody.innerHTML =
+              '<tr><td colspan="3" style="padding:12px;color:var(--text-muted)">No threshold data available.</td></tr>';
+            return;
+          }
+
+          tbody.innerHTML = entries
+            .map(
+              ([field, cfg]) => `
+          <tr data-field="${escLocal(field)}">
+            <td style="font-size:.8rem">${escLocal(cfg.description || field)}</td>
+            <td><input class="ih-warn" type="number" value="${escLocal(String(cfg.warning))}" style="width:120px" /></td>
+            <td><input class="ih-critical" type="number" value="${escLocal(String(cfg.critical))}" style="width:120px" /></td>
+          </tr>`
+            )
+            .join('');
+        }
+
+        async function loadThresholds() {
+          try {
+            const data = await apiGet('/api/vnb-monitor/thresholds');
+            thresholdState = data.thresholds || {};
+            renderThresholdTable();
+          } catch (err) {
+            thresholdState = {};
+            renderThresholdTable();
+          }
+        }
+
+        function collectThresholdPayload() {
+          const next = {};
+          $('ih-thresholds')
+            .querySelectorAll('tr[data-field]')
+            .forEach((row) => {
+              const field = row.dataset.field;
+              const warning = Number(row.querySelector('.ih-warn')?.value);
+              const critical = Number(row.querySelector('.ih-critical')?.value);
+              if (!Number.isFinite(warning) || !Number.isFinite(critical)) return;
+              next[field] = {
+                ...(thresholdState[field] || {}),
+                warning,
+                critical,
+              };
+            });
+          return next;
+        }
+
+        async function initPanel() {
+          publicUrlInput.value = publicUrlInput.value || window.location.origin;
+          await Promise.all([loadTokens(), loadThresholds()]);
+          renderSnippet();
+        }
+
+        navIntegration.addEventListener('click', async (e) => {
+          e.preventDefault();
+          showPanel('integration-hub-panel');
+          await initPanel();
+        });
+
+        $('nav-report')?.addEventListener('click', () => hide(panel));
+        $('nav-datasources')?.addEventListener('click', () => hide(panel));
+        $('nav-reset')?.addEventListener('click', () => hide(panel));
+
+        $('ih-token-create')?.addEventListener('click', async () => {
+          const name = tokenName.value.trim();
+          if (!name) {
+            toast('⚠️ Token name is required.', 'error');
+            return;
+          }
+
+          try {
+            const data = await apiFetch('/api/tokens', {
+              name,
+              scope: tokenScope.value || 'read-only',
+            });
+            const rawToken = data?.data?.token;
+            if (rawToken) {
+              tokenSecrets[data.data.id] = rawToken;
+              tokenOnce.classList.remove('hidden');
+              tokenOnce.innerHTML = `
+                <div><strong>Copy now:</strong> this token is shown only once.</div>
+                <div style="margin-top:6px;font-family:monospace">${escLocal(rawToken)}</div>
+              `;
+              await navigator.clipboard.writeText(rawToken).catch(() => {});
+            }
+            tokenName.value = '';
+            toast('✅ Token created');
+            await loadTokens();
+          } catch (err) {
+            toast('❌ Token creation failed: ' + err.message, 'error');
+          }
+        });
+
+        $('ih-tab-automate')?.addEventListener('click', () => {
+          activeTab = 'automate';
+          renderSnippet();
+        });
+        $('ih-tab-powerbi')?.addEventListener('click', () => {
+          activeTab = 'powerbi';
+          renderSnippet();
+        });
+        [tokenSelect, publicUrlInput, bdewInput].forEach((el) => {
+          el?.addEventListener('input', renderSnippet);
+          el?.addEventListener('change', renderSnippet);
+        });
+
+        $('ih-copy-snippet')?.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(snippet.value || '');
+            toast('✅ Snippet copied');
+          } catch {
+            toast('⚠️ Copy failed', 'error');
+          }
+        });
+
+        $('ih-export-flow')?.addEventListener('click', () => {
+          const flowDef = {
+            name: 'Cernion VNB Alert Flow',
+            createdAt: new Date().toISOString(),
+            httpAction: JSON.parse(buildAutomateSnippet()),
+            condition: 'criticalCount > 0',
+          };
+          const blob = new Blob([JSON.stringify(flowDef, null, 2)], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'cernion-power-automate-flow.json';
+          a.click();
+          URL.revokeObjectURL(url);
+        });
+
+        $('ih-threshold-save')?.addEventListener('click', async () => {
+          try {
+            const body = { thresholds: collectThresholdPayload() };
+            const res = await fetch('/api/vnb-monitor/thresholds', {
+              method: 'PUT',
+              headers: apiHeaders(),
+              body: JSON.stringify(body),
+            });
+            const data = await res.json();
+            if (!res.ok || data.success === false) throw new Error(data.message || `HTTP ${res.status}`);
+            toast('✅ Thresholds saved');
+            await loadThresholds();
+          } catch (err) {
+            toast('❌ Save failed: ' + err.message, 'error');
+          }
+        });
+
+        $('ih-threshold-reset')?.addEventListener('click', async () => {
+          try {
+            const res = await fetch('/api/vnb-monitor/thresholds', {
+              method: 'DELETE',
+              headers: apiHeaders(),
+            });
+            const data = await res.json();
+            if (!res.ok || data.success === false) throw new Error(data.message || `HTTP ${res.status}`);
+            toast('✅ Thresholds reset to defaults');
+            await loadThresholds();
+          } catch (err) {
+            toast('❌ Reset failed: ' + err.message, 'error');
+          }
+        });
       })();
 
       // ── Load from shareable URL ────────────────────────────────────

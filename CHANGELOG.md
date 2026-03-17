@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.6] - 2026-03-18
+
+### Added
+
+- **Integration Hub panel in `src/app.html`**
+  Added a new `#integration-hub-panel` with:
+  - Token management (create/list/revoke, one-time token reveal)
+  - Connector snippet generator for Power Automate + Power BI
+  - Alert-threshold editor for VNB Monitor with save/reset controls
+
+- **`token-manager` microservice**
+  Added `services/token-manager.service.js` with REST endpoints:
+  - `GET /api/tokens`
+  - `POST /api/tokens`
+  - `DELETE /api/tokens/:id`
+  - `POST /api/tokens/verify`
+  Tokens are generated as `ck_` keys, stored hashed (SHA-256), and support
+  `read-only` / `full-access` scopes.
+
+- **VNB Monitor threshold management endpoints**
+  Added to `services/vnb-monitor.service.js`:
+  - `GET /api/vnb-monitor/thresholds`
+  - `PUT /api/vnb-monitor/thresholds`
+  - `DELETE /api/vnb-monitor/thresholds`
+  Includes persisted threshold overrides and automatic cache invalidation.
+
+### Changed
+
+- **API Gateway token handling and scoped auth checks**
+  Extended `services/api.service.js` request preprocessing:
+  - Keeps existing Cernion MCP token behavior intact (`Bearer` / `token` override)
+  - Adds API token verification for `ck_` tokens via `token-manager.verify`
+  - Enforces `read-only` write restrictions and `full-access` route checks
+    on Integration Hub administration endpoints.
+
+- **Environment configuration updates**
+  Added `.env.example` keys:
+  - `TOKEN_STORAGE_FILE`
+  - `CERNION_PUBLIC_URL`
+
+### Fixed
+
+- **OpenAPI `requestBody` annotations for `token-manager` POST endpoints**
+  Added missing `requestBody` schema declarations for `POST /api/tokens` (create)
+  and `POST /api/tokens/verify` so the OpenAPI audit gate reports 0 issues.
+
 ## [0.9.5] - 2026-03-17
 
 ### Fixed

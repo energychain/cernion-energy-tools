@@ -5,12 +5,19 @@
  */
 
 const { ServiceBroker } = require('moleculer');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 describe('vnb-monitor.service', () => {
   let broker;
   let service;
+  let thresholdConfigFile;
 
   beforeAll(() => {
+    thresholdConfigFile = path.join(os.tmpdir(), `vnb-monitor-thresholds-${Date.now()}.json`);
+    process.env.VNB_MONITOR_ALERT_CONFIG_FILE = thresholdConfigFile;
+
     broker = new ServiceBroker({
       logger: false,
     });
@@ -205,7 +212,13 @@ describe('vnb-monitor.service', () => {
     return broker.start();
   });
 
-  afterAll(() => broker.stop());
+  afterAll(async () => {
+    await broker.stop();
+    if (fs.existsSync(thresholdConfigFile)) {
+      fs.unlinkSync(thresholdConfigFile);
+    }
+    delete process.env.VNB_MONITOR_ALERT_CONFIG_FILE;
+  });
 
   describe('snapshot action', () => {
     it('should return object with required top-level properties', async () => {
@@ -485,6 +498,40 @@ describe('vnb-monitor.service', () => {
       });
 
       expect(result.ttlSeconds).toBe(3600);
+    });
+  });
+
+  describe('threshold management actions', () => {
+    it('should return thresholds with source metadata', async () => {
+      const result = await broker.call('vnb-monitor.getThresholds');
+      expect(result).toHaveProperty('source');
+      expect(result).toHaveProperty('configFile');
+      expect(result).toHaveProperty('thresholds');
+      expect(result.thresholds['ewk.anschlussdauer.eeNS_weeks']).toBeDefined();
+    });
+
+    it('should persist threshold overrides and invalidate cache', async () => {
+      const current = await broker.call('vnb-monitor.getThresholds');
+      const next = JSON.parse(JSON.stringify(current.thresholds));
+      next['ewk.anschlussdauer.eeNS_weeks'].warning = 61;
+      next['ewk.anschlussdauer.eeNS_weeks'].critical = 92;
+
+      const setRes = await broker.call('vnb-monitor.setThresholds', { thresholds: next });
+      expect(setRes.success).toBe(true);
+      expect(fs.existsSync(thresholdConfigFile)).toBe(true);
+
+      const getRes = await broker.call('vnb-monitor.getThresholds');
+      expect(getRes.thresholds['ewk.anschlussdauer.eeNS_weeks'].warning).toBe(61);
+      expect(getRes.thresholds['ewk.anschlussdauer.eeNS_weeks'].critical).toBe(92);
+    });
+
+    it('should reset thresholds to defaults', async () => {
+      const resetRes = await broker.call('vnb-monitor.resetThresholds');
+      expect(resetRes.success).toBe(true);
+
+      const getRes = await broker.call('vnb-monitor.getThresholds');
+      expect(getRes.thresholds['ewk.anschlussdauer.eeNS_weeks'].warning).toBe(60);
+      expect(getRes.thresholds['ewk.anschlussdauer.eeNS_weeks'].critical).toBe(90);
     });
   });
 });

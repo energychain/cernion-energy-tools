@@ -30,6 +30,20 @@ function loadAlertConfig() {
   return {};
 }
 
+function saveAlertConfig(thresholds, logger) {
+  try {
+    const payload = {
+      thresholds,
+      updatedAt: new Date().toISOString(),
+    };
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(payload, null, 2), 'utf-8');
+    return true;
+  } catch (err) {
+    logger?.warn(`Failed to persist alert config at ${CONFIG_FILE}:`, err.message);
+    return false;
+  }
+}
+
 function mergeThresholds(defaults, overrides) {
   const merged = { ...defaults };
   Object.assign(merged, overrides);
@@ -981,6 +995,148 @@ module.exports = {
           message: existed ? `Cache cleared for ${bdewCode}` : `No cache entry found for ${bdewCode}`,
         };
       },
+    },
+
+    /**
+     * GET /api/vnb-monitor/thresholds
+     * Returns current alert thresholds
+     */
+    getThresholds: {
+      rest: 'GET /thresholds',
+      openapi: {
+        summary: 'Get active VNB monitor alert thresholds',
+        tags: ['VNBMonitor', 'IntegrationHub'],
+        responses: {
+          200: {
+            description: 'Current thresholds',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    source: { type: 'string' },
+                    configFile: { type: 'string' },
+                    thresholds: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      handler() {
+        return {
+          source: fs.existsSync(CONFIG_FILE) ? 'file' : 'defaults',
+          configFile: CONFIG_FILE,
+          thresholds: this.alertThresholds,
+        };
+      },
+    },
+
+    /**
+     * PUT /api/vnb-monitor/thresholds
+     * Replaces alert thresholds and clears cache
+     */
+    setThresholds: {
+      rest: 'PUT /thresholds',
+      params: {
+        thresholds: { type: 'object', required: true },
+      },
+      openapi: {
+        summary: 'Set VNB monitor alert thresholds (full replace)',
+        tags: ['VNBMonitor', 'IntegrationHub'],
+      },
+      handler(ctx) {
+        const nextThresholds = this.validateThresholds(ctx.params.thresholds);
+        const persisted = saveAlertConfig(nextThresholds, this.logger);
+        if (!persisted) {
+          throw new Error('Failed to persist threshold configuration.');
+        }
+
+        this.alertThresholds = mergeThresholds(VNB_MONITOR_DEFAULTS.thresholds, nextThresholds);
+        this.cache.clear();
+
+        return {
+          success: true,
+          message: 'Alert thresholds updated and cache invalidated.',
+          configFile: CONFIG_FILE,
+          thresholds: this.alertThresholds,
+        };
+      },
+    },
+
+    /**
+     * DELETE /api/vnb-monitor/thresholds
+     * Restores default thresholds and clears cache
+     */
+    resetThresholds: {
+      rest: 'DELETE /thresholds',
+      openapi: {
+        summary: 'Reset VNB monitor alert thresholds to defaults',
+        tags: ['VNBMonitor', 'IntegrationHub'],
+      },
+      handler() {
+        if (fs.existsSync(CONFIG_FILE)) {
+          fs.unlinkSync(CONFIG_FILE);
+        }
+
+        this.alertThresholds = { ...VNB_MONITOR_DEFAULTS.thresholds };
+        this.cache.clear();
+
+        return {
+          success: true,
+          message: 'Alert thresholds reset to defaults and cache invalidated.',
+          configFile: CONFIG_FILE,
+          thresholds: this.alertThresholds,
+        };
+      },
+    },
+  },
+
+  methods: {
+    validateThresholds(candidateThresholds) {
+      if (!candidateThresholds || typeof candidateThresholds !== 'object') {
+        throw new Error('thresholds must be an object.');
+      }
+
+      const defaults = VNB_MONITOR_DEFAULTS.thresholds;
+      const normalized = {};
+
+      Object.entries(defaults).forEach(([fieldPath, defaultRule]) => {
+        const nextRule = candidateThresholds[fieldPath];
+        if (!nextRule || typeof nextRule !== 'object') {
+          throw new Error(`Missing threshold rule: ${fieldPath}`);
+        }
+
+        const warning = Number(nextRule.warning);
+        const critical = Number(nextRule.critical);
+
+        if (!Number.isFinite(warning) || !Number.isFinite(critical)) {
+          throw new Error(`Threshold values must be numeric for ${fieldPath}`);
+        }
+
+        const inverse = defaultRule.inverse === true;
+        if (!inverse && critical < warning) {
+          throw new Error(
+            `Invalid threshold order for ${fieldPath}: critical must be >= warning for non-inverse metrics.`
+          );
+        }
+        if (inverse && critical > warning) {
+          throw new Error(
+            `Invalid threshold order for ${fieldPath}: critical must be <= warning for inverse metrics.`
+          );
+        }
+
+        normalized[fieldPath] = {
+          warning,
+          critical,
+          fieldType: defaultRule.fieldType,
+          inverse,
+          description: defaultRule.description,
+        };
+      });
+
+      return normalized;
     },
   },
 };
