@@ -727,9 +727,13 @@ module.exports = {
         }
 
         const ewkData = await fetchEwkData.call(this, ctx, bdewCode);
-        const ewkHintName = ewkData?.operatorName || null;
-
-        const identity = await resolveVnbIdentity.call(this, ctx, bdewCode, ewkHintName);
+        const identity = await resolveVnbIdentity.call(this, ctx, bdewCode);
+        
+        // Override EWK operatorName with correctly-resolved identity name to ensure consistency
+        if (ewkData.sourceAvailable && identity.name) {
+          ewkData.operatorName = identity.name;
+        }
+        
         const [mastrData, marketData] = await Promise.all([
           fetchMastrData.call(this, ctx, identity),
           fetchMarketData.call(this, ctx),

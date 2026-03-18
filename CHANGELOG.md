@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **VNB Monitor: EWK operatorName mismatch with identity resolution**
+  Fixed inconsistency in the EWK snapshot where `ewk.operatorName` could differ
+  from the correctly-resolved `identity.name`. The EWK tools on the Cernion MCP
+  server may return operator names that don't match the BDEW code's canonical
+  name from the market partner registry. Now `ewk.operatorName` is overridden with
+  the authoritative identity-resolved name after EWK data fetch completes.
+  
+  Impact: VNB monitor snapshots now show consistent operator names across
+  `identity.name` and `ewk.operatorName` fields, preventing confusion from
+  mismatched company names.
+
 - **VNB Monitor: Missing EWK data in snapshot response**
   Fixed parameter mapping issue in `services/ewk-monitoring.service.js`. The three EWK
   monitoring actions (`anschlussdauer`, `umsetzungsquote`, `digitalisierungsindex`) were
