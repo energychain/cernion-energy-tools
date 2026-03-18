@@ -223,4 +223,9 @@ describe('Assets Service — NAP enrichment and netzbetreiberpruefungStatus', ()
     await broker.call('assets.storage', { location: '10115', offset: 2000 });
     expect(capturedCalls[0].params.offset).toBe(2000);
   });
+
+  it('should forward non-13-digit bdewCode as gridOperatorBdewCode', async () => {
+    await broker.call('assets.solar', { bdewCode: '10002954' });
+    expect(capturedCalls[0].params.gridOperatorBdewCode).toBe('10002954');
+  });
 });

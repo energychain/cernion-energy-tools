@@ -90,6 +90,7 @@ function requiresFullAccess(method, requestPath) {
     return true;
   }
   if (pathOnly === '/api/vnb-monitor/thresholds' && (m === 'PUT' || m === 'DELETE')) return true;
+  if (pathOnly === '/api/nbp-monitor/parameters' && (m === 'PUT' || m === 'DELETE')) return true;
 
   return false;
 }
@@ -118,6 +119,7 @@ module.exports = {
         { name: 'Example', description: 'Example service endpoints' },
         { name: 'DataSources', description: 'Inhouse datasource registry, cache, and discovery' },
         { name: 'VNBMonitor', description: 'VNB (grid operator) KPI monitoring and alerts' },
+        { name: 'NBPMonitor', description: 'Netzbetreiberprüfungs-Monitor (MaStR status 2955 queue KPIs)' },
         { name: 'IntegrationHub', description: 'Token management and integration helpers' },
       ],
       components: {
@@ -307,6 +309,10 @@ module.exports = {
           'GET /vnb-monitor/thresholds': 'vnb-monitor.getThresholds',
           'PUT /vnb-monitor/thresholds': 'vnb-monitor.setThresholds',
           'DELETE /vnb-monitor/thresholds': 'vnb-monitor.resetThresholds',
+          'GET /vnb-monitor/:bdewCode/nbp-monitor': 'nbp-monitor.snapshot',
+          'GET /nbp-monitor/parameters': 'nbp-monitor.getParameters',
+          'PUT /nbp-monitor/parameters': 'nbp-monitor.setParameters',
+          'DELETE /nbp-monitor/parameters': 'nbp-monitor.resetParameters',
           'POST /in-memory-join/join': 'in-memory-join.join',
           'POST /in-memory-join/metering-spot-cost': 'in-memory-join.meteringSpotCost',
           'POST /in-memory-join/benchmark-compare': 'in-memory-join.benchmarkCompare',
@@ -608,7 +614,9 @@ module.exports = {
                   path.startsWith('/datasources') ||
                   path.startsWith('/datasource-cache') ||
                   path.startsWith('/datasource-discovery') ||
-                  path.startsWith('/tokens');
+                  path.startsWith('/tokens') ||
+                  path.startsWith('/nbp-monitor') ||
+                  path.startsWith('/vnb-monitor');
 
                 // Prepend service name if path doesn't start with it and is not an absolute public path
                 if (!path.startsWith(`/${service.name}`) && !isAbsolutePublicPath) {

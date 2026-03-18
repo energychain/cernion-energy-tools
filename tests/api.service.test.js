@@ -9,6 +9,7 @@ const DatasourceCacheService = require('../services/datasource-cache.service');
 const DatasourceDiscoveryService = require('../services/datasource-discovery.service');
 const DatasourceClassifierService = require('../services/datasource-classifier.service');
 const TokenManagerService = require('../services/token-manager.service');
+const NbpMonitorService = require('../services/nbp-monitor.service');
 const { version: packageVersion } = require('../package.json');
 const path = require('path');
 const os = require('os');
@@ -41,6 +42,17 @@ describe('API Gateway Service', () => {
       settings: {
         ...TokenManagerService.settings,
         storageFile: tokenStorageFile,
+      },
+    });
+    broker.createService({
+      name: 'assets',
+      actions: { all: { handler: () => [] } },
+    });
+    broker.createService({
+      ...NbpMonitorService,
+      settings: {
+        ...NbpMonitorService.settings,
+        parametersFile: path.join(os.tmpdir(), `api-nbp-params-${Date.now()}.json`),
       },
     });
     await broker.start();
@@ -297,6 +309,79 @@ describe('API Gateway Service', () => {
 
     it('should have stopped hook', () => {
       expect(ApiService.stopped).toBeDefined();
+    });
+  });
+
+  describe('NBP Monitor routes (v0.9.7)', () => {
+    it('should have explicit alias for GET /vnb-monitor/:bdewCode/nbp-monitor', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+      expect(aliases['GET /vnb-monitor/:bdewCode/nbp-monitor']).toBe('nbp-monitor.snapshot');
+    });
+
+    it('should have explicit alias for GET /nbp-monitor/parameters', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+      expect(aliases['GET /nbp-monitor/parameters']).toBe('nbp-monitor.getParameters');
+    });
+
+    it('should have explicit alias for PUT /nbp-monitor/parameters', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+      expect(aliases['PUT /nbp-monitor/parameters']).toBe('nbp-monitor.setParameters');
+    });
+
+    it('should have explicit alias for DELETE /nbp-monitor/parameters', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+      expect(aliases['DELETE /nbp-monitor/parameters']).toBe('nbp-monitor.resetParameters');
+    });
+
+    it('should include NBPMonitor tag in OpenAPI tags', () => {
+      const tags = ApiService.settings.openapi.tags || [];
+      expect(tags.some((t) => t.name === 'NBPMonitor')).toBe(true);
+    });
+
+    it('should document nbp-monitor endpoints in OpenAPI schema', async () => {
+      const schema = await broker.call('api.openapi');
+      const paths = Object.keys(schema.paths);
+      // The nbp-monitor service auto-aliases appear under /api/nbp-monitor/...
+      const hasNbpPath = paths.some((p) => p.includes('nbp-monitor'));
+      expect(hasNbpPath).toBe(true);
+    });
+
+    it('should include token query parameter on nbp-monitor endpoints', async () => {
+      const schema = await broker.call('api.openapi');
+      const nbpPaths = Object.entries(schema.paths).filter(([p]) => p.includes('nbp-monitor'));
+      expect(nbpPaths.length).toBeGreaterThan(0);
+      nbpPaths.forEach(([, pathItem]) => {
+        Object.values(pathItem).forEach((op) => {
+          const hasToken = (op.parameters || []).some(
+            (param) =>
+              param.$ref === '#/components/parameters/TokenQuery' ||
+              (param.name === 'token' && param.in === 'query')
+          );
+          expect(hasToken).toBe(true);
+        });
+      });
+    });
+
+    it('should reject read-only ck_ token on PUT /api/nbp-monitor/parameters', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const created = await broker.call('token-manager.create', {
+        name: 'NbpReadOnly',
+        scope: 'read-only',
+      });
+      const ctx = { meta: {} };
+      const req = {
+        headers: { authorization: `Bearer ${created.data.token}` },
+        query: {}, body: {}, params: {}, $params: {},
+        method: 'PUT',
+        url: '/api/nbp-monitor/parameters',
+      };
+      await expect(
+        apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, ctx, apiRoute, req, {})
+      ).rejects.toMatchObject({ code: 403 });
     });
   });
 });

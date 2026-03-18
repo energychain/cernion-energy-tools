@@ -47,7 +47,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Use Jest as the testing framework
 - Meet coverage thresholds (v0.9.4: branches 55%, functions 70%,
   lines 70%, statements 70%)
-- Current suite: 1004 tests, 46 suites — all must pass after changes
+- Current suite: 1076 tests, 47 suites — all must pass after changes
 - Acceptance fixtures in `tests/acceptance/` — do not modify
 
 ### Documentation
@@ -101,20 +101,23 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - LLM classifier fallback is opt-in via `CLASSIFIER_LLM_FALLBACK_ENABLED` and runs only
   for low-confidence unknown classifications
 
-## Current Project Status (v0.9.6)
+## Current Project Status (v0.9.7)
 
-- Release `v0.9.6` is published and tagged.
+- Release `v0.9.7` is published and tagged.
 - Integration Hub panel (`#integration-hub-panel`) in `src/app.html` with token
   management, Power Automate / Power BI connector generator, and VNB Monitor
-  threshold editor.
+  threshold editor plus NBP Monitor sub-panel.
 - `token-manager` microservice with `ck_` prefix tokens, SHA-256 storage,
   `read-only` / `full-access` scopes, and REST endpoints (`GET/POST/DELETE /api/tokens`).
 - VNB Monitor threshold management (`GET/PUT/DELETE /api/vnb-monitor/thresholds`).
+- NBP Monitor microservice (`services/nbp-monitor.service.js`) with endpoints:
+  - `GET /api/vnb-monitor/:bdewCode/nbp-monitor`
+  - `GET/PUT/DELETE /api/nbp-monitor/parameters`
 - API Gateway extended with scoped `ck_` token verification in `onBeforeCall()`.
-- Known limitations tracked for v0.9.7:
+- Known limitations tracked for v0.9.8:
   - 37 non-blocking ESLint `no-unused-vars` warnings remain — tracked for cleanup
   - Jest open handles on test exit — likely `fs.watch` teardown in datasource-watcher,
-    tracked for v0.9.7
+    tracked for v0.9.8
 - Release gate: `npm run release:check` (tests + OpenAPI + security)
 - Known risk: `xlsx` high advisory — documented exception
 

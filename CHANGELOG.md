@@ -7,6 +7,67 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.7] - 2026-03-18
+
+### Added
+
+- **`nbp-monitor` microservice** (`services/nbp-monitor.service.js`)
+  New Netzbetreiberprüfungs-Monitor service with three strategic KPIs derived
+  from MaStR installations in status 2955 (NetzbetreiberPrüfung ausstehend):
+  - **KPI 1 — Volume Indicator**: total kWp per age class (A/B/C/D) and unit
+    type (PV/Wind/Speicher/Sonstige) with configurable alert thresholds
+    (🟢 < 50 MW / 🟡 50–150 MW / 🔴 > 150 MW).
+  - **KPI 2 — Risk Indicator**: estimated billing uncertainty in € using a
+    configurable formula: `kWp × volllaststunden × einspeisevergütung × years / 1000`.
+    Default parameters per technology are persisted to `NBP_PARAMETERS_FILE`.
+  - **KPI 3 — Process Indicator**: heuristic classification of open tickets into
+    VNB-seitig (> 6 weeks), In Bearbeitung (< 6 weeks), and Altlast (> 52 weeks)
+    based on `DatumLetzteAktualisierung`. Percentage breakdown with disclaimer.
+  - In-memory snapshot cache (default TTL 24 h).
+  - Actions: `snapshot`, `getParameters`, `setParameters`, `resetParameters`.
+
+- **New REST endpoints**
+  - `GET  /api/vnb-monitor/:bdewCode/nbp-monitor` — full NBP Monitor snapshot
+    (explicit alias; also reachable at `/api/nbp-monitor/:bdewCode`)
+  - `GET  /api/nbp-monitor/parameters` — current KPI 2 parameters
+  - `PUT  /api/nbp-monitor/parameters` — save custom parameters (full-access token required)
+  - `DELETE /api/nbp-monitor/parameters` — reset to defaults (full-access token required)
+
+- **Integration Hub NBP Monitor sub-panel** (`src/app.html`)
+  Fifth sub-section added to `#integration-hub-panel`:
+  - BDEW input + Refresh button
+  - KPI 1 stacked bar chart (inline SVG, no external libraries)
+  - KPI 2 risk number card with inline collapsible parameter editor
+  - KPI 3 donut chart (inline SVG, `stroke-dasharray` technique)
+  - PLZ detail table (top 50 PLZ by kWp)
+  - Client-side filters (type, age class) that update charts without
+    server round-trips
+  All charts use existing CSS custom properties for colours.
+
+- **Power BI — NBP Monitor M-Query** in Connector Generator
+  New `Power BI – NBP` tab generates an M-Query for the
+  `/api/vnb-monitor/:bdewCode/nbp-monitor` endpoint with ready-to-use
+  `volumeExpanded`, `riskTable`, and `processTable` sub-queries.
+
+- **`.env.example` additions**
+  `NBP_PARAMETERS_FILE` and `NBP_CACHE_TTL_SECONDS`.
+
+### Changed
+
+- **`api.service.js`**: added `NBPMonitor` OpenAPI tag; added `isAbsolutePublicPath`
+  entries for `/nbp-monitor` and `/vnb-monitor` to prevent path double-prefixing;
+  added full-access scope guard for `PUT/DELETE /api/nbp-monitor/parameters`.
+
+### Tests
+
+- Added `tests/nbp-monitor.service.test.js` (56 tests) covering:
+  snapshot structure and schema, age-class boundary values (A/B/C/D),
+  KPI 2 formula correctness for all four technologies and age classes,
+  KPI 3 6-week and 52-week boundaries, parameter save/reset/validation,
+  cache invalidation on parameter change, empty and error installations.
+- Extended `tests/api.service.test.js` with NBP Monitor route and OpenAPI checks:
+  explicit aliases, NBPMonitor tag, token query param coverage, scope guard.
+
 ## [0.9.6] - 2026-03-18
 
 ### Added

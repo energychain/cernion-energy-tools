@@ -254,7 +254,7 @@ module.exports = {
         // VNB filtering now supported for all types (netzbetreiberMastrNummer added to database)
         if (resolvedMastrId) {
           callParams.gridOperatorId = resolvedMastrId;
-        } else if (resolvedBdewCode && resolvedBdewCode.length === 13) {
+        } else if (resolvedBdewCode) {
           callParams.gridOperatorBdewCode = resolvedBdewCode;
         } else if (vnbName && !location) {
           callParams.gridOperatorName = vnbName;

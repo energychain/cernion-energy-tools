@@ -1425,7 +1425,8 @@
             </div>
             <div class="ih-inline" style="margin-bottom:10px">
               <button class="btn-secondary" id="ih-tab-automate">Power Automate</button>
-              <button class="btn-secondary" id="ih-tab-powerbi">Power BI</button>
+              <button class="btn-secondary" id="ih-tab-powerbi">Power BI – VNB</button>
+              <button class="btn-secondary" id="ih-tab-powerbi-nbp">Power BI – NBP</button>
               <button class="btn-secondary" id="ih-copy-snippet">Copy Snippet</button>
               <button class="btn-secondary" id="ih-export-flow">📥 Export Flow JSON</button>
             </div>
@@ -1445,6 +1446,83 @@
             <div class="ih-inline" style="margin-top:10px">
               <button class="btn-primary" id="ih-threshold-save">💾 Save</button>
               <button class="btn-secondary" id="ih-threshold-reset">Auf Standard zurück</button>
+            </div>
+          </div>
+
+          <!-- NBP Monitor sub-panel -->
+          <div class="ih-subcard" id="nbp-subcard" style="grid-column:1/-1">
+            <h3>📊 Netzbetreiberprüfungs-Monitor</h3>
+            <div class="ih-inline" style="margin-bottom:10px">
+              <label style="font-size:.85rem;margin-right:6px">BDEW:</label>
+              <input id="nbp-bdew" type="text" placeholder="10002954" style="width:160px" />
+              <button class="btn-primary" id="nbp-refresh">🔄 Aktualisieren</button>
+              <span id="nbp-status" style="font-size:.8rem;color:var(--text-muted);margin-left:8px"></span>
+            </div>
+
+            <!-- KPI row -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px" id="nbp-kpi-row">
+              <!-- KPI 1 -->
+              <div>
+                <div style="font-weight:600;margin-bottom:8px;font-size:.9rem">KPI 1 — Volumen (kWp)</div>
+                <svg id="nbp-kpi1-svg" width="100%" height="180" viewBox="0 0 400 180"
+                     style="background:var(--card-bg,#1a1a2e);border-radius:6px;display:block"></svg>
+                <div id="nbp-kpi1-alert" style="margin-top:6px;font-size:.82rem"></div>
+              </div>
+              <!-- KPI 2 + KPI 3 -->
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div>
+                  <div style="font-weight:600;font-size:.9rem;margin-bottom:4px">KPI 2 — Risiko (€)</div>
+                  <div id="nbp-kpi2-value" style="font-size:1.6rem;font-weight:700;color:var(--accent)">—</div>
+                  <div style="font-size:.75rem;color:var(--text-muted);margin-top:2px" id="nbp-kpi2-disclaimer"></div>
+                  <details style="margin-top:8px">
+                    <summary style="cursor:pointer;font-size:.82rem;color:var(--text-muted)">⚙️ Parameter anpassen</summary>
+                    <div id="nbp-params-editor" style="margin-top:8px">
+                      <table class="dict-table" style="font-size:.8rem">
+                        <thead><tr><th>Typ</th><th>Volllaststunden/a</th><th>Einspeisevergütung (ct/kWh)</th></tr></thead>
+                        <tbody id="nbp-params-tbody"></tbody>
+                      </table>
+                      <div class="ih-inline" style="margin-top:8px">
+                        <button class="icon-btn" id="nbp-params-save">💾 Speichern</button>
+                        <button class="icon-btn" id="nbp-params-reset">Auf Standard zurück</button>
+                      </div>
+                    </div>
+                  </details>
+                </div>
+                <div>
+                  <div style="font-weight:600;font-size:.9rem;margin-bottom:4px">KPI 3 — Prozess</div>
+                  <svg id="nbp-kpi3-svg" width="140" height="140" viewBox="0 0 140 140"
+                       style="display:block"></svg>
+                  <div id="nbp-kpi3-legend" style="font-size:.78rem;margin-top:4px"></div>
+                  <div id="nbp-kpi3-disclaimer" style="font-size:.72rem;color:var(--text-muted);margin-top:4px"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filter row -->
+            <div class="ih-inline" style="margin-bottom:10px;flex-wrap:wrap;gap:8px">
+              <select id="nbp-filter-type" style="font-size:.82rem">
+                <option value="">Alle Typen</option>
+                <option value="PV">PV</option>
+                <option value="Wind">Wind</option>
+                <option value="Speicher">Speicher</option>
+                <option value="Sonstige">Sonstige</option>
+              </select>
+              <select id="nbp-filter-class" style="font-size:.82rem">
+                <option value="">Alle Altersklassen</option>
+                <option value="A">A – Aktuell</option>
+                <option value="B">B – 1–3 Jahre</option>
+                <option value="C">C – 3–5 Jahre</option>
+                <option value="D">D – Altlast > 5 J.</option>
+              </select>
+            </div>
+
+            <!-- PLZ detail table -->
+            <div style="font-weight:600;font-size:.85rem;margin-bottom:6px">Detailtabelle: PLZ-Ebene</div>
+            <div class="table-wrapper" style="max-height:240px;overflow-y:auto">
+              <table>
+                <thead><tr><th>PLZ</th><th>Anzahl</th><th>kWp</th><th>Risikoklasse</th></tr></thead>
+                <tbody id="nbp-plz-tbody"></tbody>
+              </table>
             </div>
           </div>
         </div>
@@ -2476,8 +2554,17 @@
           return `let\n    bdewCodes = \"${joined}\",\n    Source = Json.Document(\n        Web.Contents(\n            \"${base}/api/vnb-monitor?bdewCodes=\" & bdewCodes,\n            [Headers = [#\"Authorization\" = \"Bearer ${token}\"]]\n        )\n    ),\n    asTable = Table.FromList(Source, Splitter.SplitByNothing(), null, null, ExtraValues.Error),\n    expanded = Table.ExpandRecordColumn(asTable, \"Column1\", {\"bdewCode\",\"identity\",\"ewk\",\"mastr\",\"market\",\"alertSummary\"})\nin\n    expanded`;
         }
 
+        function buildPowerBiNbpSnippet() {
+          const bdew = (bdewInput.value.trim().split(',')[0] || '10002954').trim();
+          const base = getBaseUrl();
+          const token = selectedTokenValue();
+          return `let\n    Source = Json.Document(\n        Web.Contents(\n            \"${base}/api/vnb-monitor/${bdew}/nbp-monitor\",\n            [ Headers = [ #\"Authorization\" = \"Bearer ${token}\" ] ]\n        )\n    ),\n\n    // KPI 1 — Volume by age class (flat table for bar chart)\n    volumeList = Source[kpi1_volume][byAgeClass],\n    volumeTable = Table.FromList(\n        volumeList, Splitter.SplitByNothing(), null, null, ExtraValues.Error\n    ),\n    volumeExpanded = Table.ExpandRecordColumn(\n        volumeTable, \"Column1\",\n        {\"class\",\"label\",\"kWp\",\"count\"}\n    ),\n\n    // KPI 2 — Risk summary (single-row table for card)\n    riskTable = Table.FromRecords({[\n        totalRiskEur = Source[kpi2_risk][totalRiskEur],\n        disclaimer   = Source[kpi2_risk][disclaimer]\n    ]}),\n\n    // KPI 3 — Process split (three-row table for donut)\n    processTable = Table.FromRecords({[\n        vnbSeitig     = Source[kpi3_process][vnbSeitigPercent],\n        inBearbeitung = Source[kpi3_process][inBearbeitungPercent],\n        altlast       = Source[kpi3_process][altlastPercent]\n    ]})\nin\n    volumeExpanded   // switch to riskTable or processTable as needed`;
+        }
+
         function renderSnippet() {
-          snippet.value = activeTab === 'powerbi' ? buildPowerBiSnippet() : buildAutomateSnippet();
+          if (activeTab === 'powerbi')     snippet.value = buildPowerBiSnippet();
+          else if (activeTab === 'powerbi-nbp') snippet.value = buildPowerBiNbpSnippet();
+          else                            snippet.value = buildAutomateSnippet();
         }
 
         function renderTokenSelect() {
@@ -2598,6 +2685,9 @@
         async function initPanel() {
           publicUrlInput.value = publicUrlInput.value || window.location.origin;
           await Promise.all([loadTokens(), loadThresholds()]);
+          if (typeof window.__nbpLoadParams === 'function') {
+            await window.__nbpLoadParams();
+          }
           renderSnippet();
         }
 
@@ -2647,6 +2737,10 @@
         });
         $('ih-tab-powerbi')?.addEventListener('click', () => {
           activeTab = 'powerbi';
+          renderSnippet();
+        });
+        $('ih-tab-powerbi-nbp')?.addEventListener('click', () => {
+          activeTab = 'powerbi-nbp';
           renderSnippet();
         });
         [tokenSelect, publicUrlInput, bdewInput].forEach((el) => {
@@ -2710,6 +2804,230 @@
             toast('❌ Reset failed: ' + err.message, 'error');
           }
         });
+
+        // ── NBP Monitor sub-panel ────────────────────────────────────
+        (function () {
+          const NBP_COLORS = {
+            PV:       '#f59e0b',
+            Wind:     '#10b981',
+            Speicher: '#6366f1',
+            Sonstige: '#6b7280',
+          };
+          const NBP_AGE_CLASSES = ['A', 'B', 'C', 'D'];
+          let nbpSnapshot = null;
+          let nbpParams = null;
+
+          function nbpAlertEmoji(level) {
+            if (level === 'red')    return '🔴';
+            if (level === 'yellow') return '🟡';
+            return '🟢';
+          }
+
+          function nbpFormatKwp(kWp) {
+            if (kWp >= 1000) return (kWp / 1000).toFixed(1) + ' MW';
+            return kWp.toLocaleString('de-DE') + ' kWp';
+          }
+
+          function renderKpi1Svg(kpi1) {
+            const svg = $('nbp-kpi1-svg');
+            if (!svg || !kpi1) return;
+            const { byAgeClass } = kpi1;
+            const maxKwp = Math.max(...byAgeClass.map((c) => c.kWp), 1);
+            const barH = 28, gap = 10, padL = 70, padR = 20, padT = 10;
+            const width = 400 - padL - padR;
+            let rows = '';
+            byAgeClass.forEach((cls, i) => {
+              const y = padT + i * (barH + gap);
+              let x = 0;
+              const types = ['PV', 'Wind', 'Speicher', 'Sonstige'];
+              types.forEach((t) => {
+                const w = Math.round((cls.byType[t] / maxKwp) * width);
+                if (w > 0) {
+                  rows += `<rect x="${padL + x}" y="${y}" width="${w}" height="${barH}" fill="${NBP_COLORS[t]}" opacity="0.85"/>`;
+                  x += w;
+                }
+              });
+              const totalW = Math.round((cls.kWp / maxKwp) * width);
+              rows += `<text x="${padL - 6}" y="${y + barH / 2 + 4}" text-anchor="end" font-size="11" fill="#ccc">${cls.class}</text>`;
+              rows += `<text x="${padL + totalW + 4}" y="${y + barH / 2 + 4}" font-size="10" fill="#aaa">${nbpFormatKwp(cls.kWp)}</text>`;
+            });
+            // legend
+            let legendX = padL;
+            const legendY = padT + 4 * (barH + gap) + 6;
+            Object.entries(NBP_COLORS).forEach(([label, color]) => {
+              rows += `<rect x="${legendX}" y="${legendY}" width="10" height="10" fill="${color}"/>`;
+              rows += `<text x="${legendX + 13}" y="${legendY + 9}" font-size="9" fill="#aaa">${label}</text>`;
+              legendX += 70;
+            });
+            svg.innerHTML = rows;
+          }
+
+          function renderKpi3Svg(kpi3) {
+            const svg = $('nbp-kpi3-svg');
+            const legend = $('nbp-kpi3-legend');
+            if (!svg || !kpi3) return;
+            const cx = 70, cy = 70, r = 54, stroke = 22;
+            const perims = 2 * Math.PI * r;
+            const segments = [
+              { label: 'VNB-seitig',     pct: kpi3.vnbSeitigPercent,     color: '#ef4444' },
+              { label: 'In Bearbeitung', pct: kpi3.inBearbeitungPercent,  color: '#f59e0b' },
+              { label: 'Altlast',        pct: kpi3.altlastPercent,        color: '#6b7280' },
+            ];
+            let offset = 0;
+            let arcs = '';
+            segments.forEach(({ pct, color }) => {
+              const dash = (pct / 100) * perims;
+              arcs += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}"
+                stroke-dasharray="${dash} ${perims}" stroke-dashoffset="${-offset}" transform="rotate(-90 ${cx} ${cy})"/>`;
+              offset += dash;
+            });
+            svg.innerHTML = arcs +
+              `<text x="${cx}" y="${cy - 6}" text-anchor="middle" font-size="13" font-weight="bold" fill="#fff">${kpi3.totalOpen}</text>` +
+              `<text x="${cx}" y="${cy + 10}" text-anchor="middle" font-size="9" fill="#aaa">offen</text>`;
+            legend.innerHTML = segments
+              .map((s) => `<span style="margin-right:10px"><span style="color:${s.color}">■</span> ${s.label} ${s.pct}%</span>`)
+              .join('');
+            if ($('nbp-kpi3-disclaimer')) $('nbp-kpi3-disclaimer').textContent = kpi3.disclaimer;
+          }
+
+          function renderPlzTable(byPLZ, filterType, filterClass) {
+            const tbody = $('nbp-plz-tbody');
+            if (!tbody) return;
+            let rows = byPLZ || [];
+            if (!rows.length) {
+              tbody.innerHTML = '<tr><td colspan="4" style="padding:10px;color:var(--text-muted)">Keine Daten verfügbar.</td></tr>';
+              return;
+            }
+            // Simple kWp-based risk class for PLZ table
+            const classify = (kWp) => kWp > 5000 ? '🔴 Hoch' : kWp > 1000 ? '🟡 Mittel' : '🟢 Gering';
+            tbody.innerHTML = rows.slice(0, 50).map((row) =>
+              `<tr><td>${escLocal(row.plz)}</td><td>${row.count}</td><td>${nbpFormatKwp(row.kWp)}</td><td>${classify(row.kWp)}</td></tr>`
+            ).join('');
+          }
+
+          function renderNbpParams(params) {
+            const tbody = $('nbp-params-tbody');
+            if (!tbody || !params) return;
+            tbody.innerHTML = ['PV', 'Wind', 'Speicher', 'Sonstige'].map((type) =>
+              `<tr data-type="${type}">
+                <td>${type}</td>
+                <td><input type="number" class="nbp-vl" value="${params[type]?.volllaststunden ?? ''}" style="width:90px" /></td>
+                <td><input type="number" step="0.1" class="nbp-ev" value="${params[type]?.einspeiseverguetung_ctKWh ?? ''}" style="width:90px" /></td>
+              </tr>`
+            ).join('');
+          }
+
+          function renderSnapshot(snap, filterType, filterClass) {
+            if (!snap) return;
+            const kpi1 = snap.kpi1_volume;
+            const kpi2 = snap.kpi2_risk;
+            const kpi3 = snap.kpi3_process;
+
+            renderKpi1Svg(kpi1);
+            if ($('nbp-kpi1-alert') && kpi1) {
+              $('nbp-kpi1-alert').textContent =
+                `${nbpAlertEmoji(kpi1.alertLevel)} Gesamt: ${nbpFormatKwp(kpi1.totalKWp)}` +
+                ` | C+D: ${nbpFormatKwp(kpi1.classCD_kWp)} ${nbpAlertEmoji(kpi1.classCD_alertLevel)}`;
+            }
+            if ($('nbp-kpi2-value') && kpi2) {
+              $('nbp-kpi2-value').textContent = kpi2.totalRiskEur.toLocaleString('de-DE') + ' €';
+            }
+            if ($('nbp-kpi2-disclaimer') && kpi2) {
+              $('nbp-kpi2-disclaimer').textContent = kpi2.disclaimer;
+            }
+            renderKpi3Svg(kpi3);
+            renderPlzTable(snap.byPLZ, filterType, filterClass);
+          }
+
+          async function loadNbpSnapshot(bdewCode, force) {
+            const statusEl = $('nbp-status');
+            if (statusEl) statusEl.textContent = '⏳ Lade…';
+            try {
+              const url = `/api/vnb-monitor/${encodeURIComponent(bdewCode)}/nbp-monitor${force ? '?refresh=true' : ''}`;
+              const res = await fetch(url, { headers: apiHeaders() });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+              nbpSnapshot = data;
+              if (statusEl) statusEl.textContent = `✅ ${new Date(data.cachedAt).toLocaleTimeString('de-DE')}`;
+              renderSnapshot(nbpSnapshot, $('nbp-filter-type')?.value, $('nbp-filter-class')?.value);
+            } catch (err) {
+              if (statusEl) statusEl.textContent = '❌ ' + err.message;
+              toast('❌ NBP Monitor: ' + err.message, 'error');
+            }
+          }
+
+          async function loadNbpParams() {
+            try {
+              const res = await fetch('/api/nbp-monitor/parameters', { headers: apiHeaders() });
+              const data = await res.json();
+              nbpParams = data.parameters || null;
+              renderNbpParams(nbpParams);
+            } catch (_) { /* silently ignore */ }
+          }
+
+          $('nbp-refresh')?.addEventListener('click', () => {
+            const bdew = ($('nbp-bdew')?.value.trim() || $('ih-bdew')?.value.trim() || '').split(',')[0].trim();
+            if (!bdew) { toast('⚠️ BDEW-Code eingeben', 'error'); return; }
+            loadNbpSnapshot(bdew, true);
+          });
+
+          $('nbp-filter-type')?.addEventListener('change', () => {
+            if (nbpSnapshot) renderSnapshot(nbpSnapshot, $('nbp-filter-type')?.value, $('nbp-filter-class')?.value);
+          });
+          $('nbp-filter-class')?.addEventListener('change', () => {
+            if (nbpSnapshot) renderSnapshot(nbpSnapshot, $('nbp-filter-type')?.value, $('nbp-filter-class')?.value);
+          });
+
+          $('nbp-params-save')?.addEventListener('click', async () => {
+            const rows = $('nbp-params-tbody')?.querySelectorAll('tr[data-type]') || [];
+            const parameters = {};
+            rows.forEach((row) => {
+              const type = row.dataset.type;
+              const vl = Number(row.querySelector('.nbp-vl')?.value);
+              const ev = Number(row.querySelector('.nbp-ev')?.value);
+              if (type) parameters[type] = { volllaststunden: vl, einspeiseverguetung_ctKWh: ev };
+            });
+            try {
+              const res = await fetch('/api/nbp-monitor/parameters', {
+                method: 'PUT',
+                headers: apiHeaders(),
+                body: JSON.stringify({ parameters }),
+              });
+              const data = await res.json();
+              if (!res.ok || data.success === false) throw new Error(data.message || `HTTP ${res.status}`);
+              toast('✅ Parameter gespeichert');
+              await loadNbpParams();
+            } catch (err) {
+              toast('❌ ' + err.message, 'error');
+            }
+          });
+
+          $('nbp-params-reset')?.addEventListener('click', async () => {
+            try {
+              const res = await fetch('/api/nbp-monitor/parameters', {
+                method: 'DELETE',
+                headers: apiHeaders(),
+              });
+              const data = await res.json();
+              if (!res.ok || data.success === false) throw new Error(data.message || `HTTP ${res.status}`);
+              toast('✅ Parameter zurückgesetzt');
+              await loadNbpParams();
+            } catch (err) {
+              toast('❌ ' + err.message, 'error');
+            }
+          });
+
+          // Sync BDEW input from main connector generator when it changes
+          $('ih-bdew')?.addEventListener('input', () => {
+            const main = ($('ih-bdew')?.value.trim().split(',')[0] || '').trim();
+            if (main && $('nbp-bdew') && !$('nbp-bdew').value.trim()) {
+              $('nbp-bdew').value = main;
+            }
+          });
+
+          // Expose to initPanel so the panel is loaded on integration-hub open
+          window.__nbpLoadParams = loadNbpParams;
+        })(); // end NBP Monitor IIFE
       })();
 
       // ── Load from shareable URL ────────────────────────────────────
