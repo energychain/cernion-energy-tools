@@ -186,23 +186,33 @@ async function fetchEwkData(ctx, bdewCode) {
   const sourceErrors = [];
 
   try {
-    const [anschlussdauer, umsetzungsquote, digitalisierungsindex] = await Promise.all([
-      ctx.call('ewk-monitoring.anschlussdauer', { bnr: bdewCode }).catch((err) => {
+    // Sequential calls – the Cernion MCP server enforces a ~3-session-per-token
+    // concurrency limit. Firing all three EWK tools in parallel risks a
+    // "-32001 Session not found" error when another concurrent request (e.g.
+    // nbp-monitor calling vnb-monitor.snapshot on a cold cache) opens sessions
+    // at the same time. Sequential calls stay within the limit at the cost of
+    // ~2× latency, which is acceptable given the 1-hour snapshot cache.
+    const anschlussdauer = await ctx
+      .call('ewk-monitoring.anschlussdauer', { bnr: bdewCode })
+      .catch((err) => {
         sourceErrors.push(`anschlussdauer: ${err.message}`);
         this.logger?.warn(`EWK anschlussdauer failed for ${bdewCode}:`, err.message);
         return null;
-      }),
-      ctx.call('ewk-monitoring.umsetzungsquote', { bnr: bdewCode }).catch((err) => {
+      });
+    const umsetzungsquote = await ctx
+      .call('ewk-monitoring.umsetzungsquote', { bnr: bdewCode })
+      .catch((err) => {
         sourceErrors.push(`umsetzungsquote: ${err.message}`);
         this.logger?.warn(`EWK umsetzungsquote failed for ${bdewCode}:`, err.message);
         return null;
-      }),
-      ctx.call('ewk-monitoring.digitalisierungsindex', { bnr: bdewCode }).catch((err) => {
+      });
+    const digitalisierungsindex = await ctx
+      .call('ewk-monitoring.digitalisierungsindex', { bnr: bdewCode })
+      .catch((err) => {
         sourceErrors.push(`digitalisierungsindex: ${err.message}`);
         this.logger?.warn(`EWK digitalisierungsindex failed for ${bdewCode}:`, err.message);
         return null;
-      }),
-    ]);
+      });
 
     const anschlussdauerJson = parseStructuredToolResult(anschlussdauer);
     const umsetzungsquoteJson = parseStructuredToolResult(umsetzungsquote);
