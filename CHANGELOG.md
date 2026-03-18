@@ -12,7 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **VNB Monitor: EWK MCP session-limit collisions on cold-cache concurrent requests**
   Serialized the three EWK sub-requests in `services/vnb-monitor.service.js`
   (`anschlussdauer`, `umsetzungsquote`, `digitalisierungsindex`) instead of
-  firing them in a single `Promise.all`.
+  firing them in a single `Promise.all`. Also serialized the market-data
+  sub-requests (`energy-market.prices`, `gas-storage.countryStorage`) to avoid
+  the same session-limit collision in the market phase.
 
   Root cause: the Cernion MCP server enforces an effective per-token
   concurrent-session limit. When `GET /api/vnb-monitor/:bdewCode` and
@@ -20,8 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   cache, both flows opened EWK MCP sessions at the same time and could trigger
   `-32001 "Session not found"` on the second batch.
 
-  Result: production requests now stay within the MCP session limit and no
-  longer fail intermittently during concurrent VNB/NBP monitor loads.
+  Result: production requests now stay within the MCP session limit across
+  both the EWK and market-data phases and no longer fail intermittently during
+  concurrent VNB/NBP monitor loads.
 
 ## [0.9.7] - 2026-03-18
 

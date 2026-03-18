@@ -418,20 +418,24 @@ async function fetchMarketData(ctx) {
   const sourceErrors = [];
 
   try {
-    const [priceData, gasData] = await Promise.all([
-      ctx.call('energy-market.prices', { market: 'day-ahead', region: 'Deutschland' })
-        .catch((err) => {
-          sourceErrors.push(`prices: ${err.message}`);
-          this.logger?.warn('Market prices fetch failed:', err.message);
-          return null;
-        }),
-      ctx.call('gas-storage.countryStorage', { country: 'DE' })
-        .catch((err) => {
-          sourceErrors.push(`gas-storage: ${err.message}`);
-          this.logger?.warn('Gas storage fetch failed:', err.message);
-          return null;
-        }),
-    ]);
+    // Sequential calls – both endpoints are MCP-backed and can overlap with
+    // the MaStR/identity phases of the same snapshot or with a concurrent
+    // nbp-monitor request for the same VNB. Running them serially avoids
+    // exhausting the upstream per-token session limit.
+    const priceData = await ctx
+      .call('energy-market.prices', { market: 'day-ahead', region: 'Deutschland' })
+      .catch((err) => {
+        sourceErrors.push(`prices: ${err.message}`);
+        this.logger?.warn('Market prices fetch failed:', err.message);
+        return null;
+      });
+    const gasData = await ctx
+      .call('gas-storage.countryStorage', { country: 'DE' })
+      .catch((err) => {
+        sourceErrors.push(`gas-storage: ${err.message}`);
+        this.logger?.warn('Gas storage fetch failed:', err.message);
+        return null;
+      });
 
     if (priceData || gasData) {
       results.sourceAvailable = true;
