@@ -207,7 +207,13 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { format, ...mcpParams } = ctx.params;
+        const { format, bnr, vnbName, ...otherParams } = ctx.params;
+        // Map 'bnr' parameter to 'bdewCode' for Cernion MCP tool compatibility
+        const mcpParams = {
+          ...otherParams,
+          ...(bnr && { bdewCode: bnr }),
+          ...(vnbName && { vnbName }),
+        };
         const result = await CernionMCPClient.callWithNewSession(
           'ewk_anschlussdauer',
           mcpParams,
@@ -386,7 +392,13 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { format, ...mcpParams } = ctx.params;
+        const { format, bnr, vnbName, ...otherParams } = ctx.params;
+        // Map 'bnr' parameter to 'bdewCode' for Cernion MCP tool compatibility
+        const mcpParams = {
+          ...otherParams,
+          ...(bnr && { bdewCode: bnr }),
+          ...(vnbName && { vnbName }),
+        };
         const result = await CernionMCPClient.callWithNewSession(
           'ewk_digitalisierungsindex',
           mcpParams,
@@ -577,7 +589,13 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { format, ...mcpParams } = ctx.params;
+        const { format, bnr, vnbName, ...otherParams } = ctx.params;
+        // Map 'bnr' parameter to 'bdewCode' for Cernion MCP tool compatibility
+        const mcpParams = {
+          ...otherParams,
+          ...(bnr && { bdewCode: bnr }),
+          ...(vnbName && { vnbName }),
+        };
         const result = await CernionMCPClient.callWithNewSession(
           'ewk_umsetzungsquote',
           mcpParams,

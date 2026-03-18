@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **VNB Monitor: Missing EWK data in snapshot response**
+  Fixed parameter mapping issue in `services/ewk-monitoring.service.js`. The three EWK
+  monitoring actions (`anschlussdauer`, `umsetzungsquote`, `digitalisierungsindex`) were
+  passing the `bnr` (BNetzA operator number) parameter directly to the Cernion MCP tools,
+  but the MCP tools expect this parameter to be named `bdewCode`. Added parameter
+  conversion: `bnr` → `bdewCode` in all three handlers before forwarding to MCP.
+
+  Root cause: vnb-monitor.service calls `ewk-monitoring.anschlussdauer({ bnr: bdewCode })`,
+  but the EWK tools on the Cernion MCP server don't recognize `bnr`. The Moleculer-level
+  parameter name (`bnr`) didn't match the MCP tool's expected parameter name (`bdewCode`).
+
+  Impact: Production VNB monitor endpoints now correctly return EWK benchmark data
+  (connection times, implementation rates, digitalization scores) instead of null values.
+
 - **VNB Monitor: EWK MCP session-limit collisions on cold-cache concurrent requests**
   Serialized the three EWK sub-requests in `services/vnb-monitor.service.js`
   (`anschlussdauer`, `umsetzungsquote`, `digitalisierungsindex`) instead of

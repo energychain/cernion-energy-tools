@@ -326,7 +326,7 @@ describe('EWK Monitoring Service', () => {
       await broker.call('ewk-monitoring.umsetzungsquote', { bnr: '10002345' });
       expect(callWithNewSession).toHaveBeenCalledWith(
         'ewk_umsetzungsquote',
-        expect.objectContaining({ bnr: '10002345' }),
+        expect.objectContaining({ bdewCode: '10002345' }),
         undefined
       );
     });
