@@ -114,6 +114,57 @@ function sumCapacityByType(items, type) {
     .reduce((sum, item) => sum + (Number(item['Leistung MW']) || 0), 0);
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetriableError(message) {
+  if (!message || typeof message !== 'string') {
+    return false;
+  }
+
+  const normalized = message.toLowerCase();
+  return (
+    normalized.includes('session not found') ||
+    normalized.includes('request is timed out') ||
+    normalized.includes('timed out') ||
+    normalized.includes('timeout') ||
+    normalized.includes('http 503') ||
+    normalized.includes('service unavailable') ||
+    normalized.includes('upstream tool returned an error with no details')
+  );
+}
+
+async function callActionWithRetry(ctx, actionName, params, options = {}) {
+  const {
+    attempts = 2,
+    backoffMs = 300,
+    timeoutMs = 45000,
+    logger = null,
+    actionLabel = null,
+  } = options;
+
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await ctx.call(actionName, params, { timeout: timeoutMs });
+    } catch (err) {
+      lastError = err;
+      const isRetriable = isRetriableError(err.message);
+      if (!isRetriable || attempt >= attempts) {
+        throw err;
+      }
+
+      logger?.warn(
+        `${actionLabel || actionName} attempt ${attempt}/${attempts} failed (${err.message}). Retrying...`
+      );
+      await sleep(backoffMs * attempt);
+    }
+  }
+
+  throw lastError || new Error(`Unknown error while calling ${actionName}`);
+}
+
 function normalizeOperatorName(value) {
   if (!value || typeof value !== 'string') {
     return '';
@@ -301,7 +352,11 @@ async function fetchEwkData(ctx, bdewCode, options = {}) {
     sourceError: null,
   };
 
-  const sourceErrors = [];
+  const metricErrors = {
+    anschlussdauer: [],
+    umsetzungsquote: [],
+    digitalisierungsindex: [],
+  };
 
   const ewkQueries = [
     { bnr: bdewCode },
@@ -311,44 +366,64 @@ async function fetchEwkData(ctx, bdewCode, options = {}) {
 
   try {
     for (const ewkQuery of ewkQueries) {
-      const queryErrors = [];
+      const queryLabel = ewkQuery.bnr || ewkQuery.vnbName || bdewCode;
 
       // Sequential calls – the Cernion MCP server enforces a ~3-session-per-token
       // concurrency limit. Firing all three EWK tools in parallel risks a
       // "-32001 Session not found" error when another concurrent request opens
       // sessions at the same time.
-      const anschlussdauer = await ctx
-        .call('ewk-monitoring.anschlussdauer', ewkQuery)
-        .catch((err) => {
-          queryErrors.push(`anschlussdauer: ${err.message}`);
-          this.logger?.warn(
-            `EWK anschlussdauer failed for ${ewkQuery.bnr || ewkQuery.vnbName || bdewCode}:`,
-            err.message
-          );
-          return null;
-        });
+      const anschlussdauer = await callActionWithRetry(
+        ctx,
+        'ewk-monitoring.anschlussdauer',
+        ewkQuery,
+        {
+          attempts: 2,
+          backoffMs: 300,
+          timeoutMs: 45000,
+          logger: this.logger,
+          actionLabel: `EWK anschlussdauer (${queryLabel})`,
+        }
+      ).catch((err) => {
+        metricErrors.anschlussdauer.push(`anschlussdauer (${queryLabel}): ${err.message}`);
+        this.logger?.warn(`EWK anschlussdauer failed for ${queryLabel}:`, err.message);
+        return null;
+      });
 
-      const umsetzungsquote = await ctx
-        .call('ewk-monitoring.umsetzungsquote', ewkQuery)
-        .catch((err) => {
-          queryErrors.push(`umsetzungsquote: ${err.message}`);
-          this.logger?.warn(
-            `EWK umsetzungsquote failed for ${ewkQuery.bnr || ewkQuery.vnbName || bdewCode}:`,
-            err.message
-          );
-          return null;
-        });
+      const umsetzungsquote = await callActionWithRetry(
+        ctx,
+        'ewk-monitoring.umsetzungsquote',
+        ewkQuery,
+        {
+          attempts: 2,
+          backoffMs: 300,
+          timeoutMs: 45000,
+          logger: this.logger,
+          actionLabel: `EWK umsetzungsquote (${queryLabel})`,
+        }
+      ).catch((err) => {
+        metricErrors.umsetzungsquote.push(`umsetzungsquote (${queryLabel}): ${err.message}`);
+        this.logger?.warn(`EWK umsetzungsquote failed for ${queryLabel}:`, err.message);
+        return null;
+      });
 
-      const digitalisierungsindex = await ctx
-        .call('ewk-monitoring.digitalisierungsindex', ewkQuery)
-        .catch((err) => {
-          queryErrors.push(`digitalisierungsindex: ${err.message}`);
-          this.logger?.warn(
-            `EWK digitalisierungsindex failed for ${ewkQuery.bnr || ewkQuery.vnbName || bdewCode}:`,
-            err.message
-          );
-          return null;
-        });
+      const digitalisierungsindex = await callActionWithRetry(
+        ctx,
+        'ewk-monitoring.digitalisierungsindex',
+        ewkQuery,
+        {
+          attempts: 2,
+          backoffMs: 300,
+          timeoutMs: 45000,
+          logger: this.logger,
+          actionLabel: `EWK digitalisierungsindex (${queryLabel})`,
+        }
+      ).catch((err) => {
+        metricErrors.digitalisierungsindex.push(
+          `digitalisierungsindex (${queryLabel}): ${err.message}`
+        );
+        this.logger?.warn(`EWK digitalisierungsindex failed for ${queryLabel}:`, err.message);
+        return null;
+      });
 
       const anschlussdauerJson = parseStructuredToolResult(anschlussdauer);
       const umsetzungsquoteJson = parseStructuredToolResult(umsetzungsquote);
@@ -359,7 +434,6 @@ async function fetchEwkData(ctx, bdewCode, options = {}) {
       const digitalisierungsindexRow = digitalisierungsindexJson?.rows?.[0] || null;
 
       if (!(anschlussRow || umsetzungsquoteRow || digitalisierungsindexRow)) {
-        sourceErrors.push(...queryErrors);
         continue;
       }
 
@@ -374,19 +448,16 @@ async function fetchEwkData(ctx, bdewCode, options = {}) {
         providerName &&
         !isLikelySameOperator(candidateOperatorName, providerName)
       ) {
-        sourceErrors.push(...queryErrors);
         this.logger?.warn(
           `EWK provider mismatch for ${bdewCode}: got "${candidateOperatorName}" for query ${JSON.stringify(ewkQuery)}, expected "${providerName}"`
         );
         continue;
       }
 
-      sourceErrors.push(...queryErrors);
-
       results.sourceAvailable = true;
-      results.operatorName = candidateOperatorName;
+      results.operatorName = results.operatorName || candidateOperatorName;
 
-      if (anschlussRow) {
+      if (anschlussRow && !results.anschlussdauer) {
         const eeNsRank = parseRank(anschlussRow.rank_ee_ns);
         const verbrauchNsRank = parseRank(anschlussRow.rank_verbrauch_ns);
         results.anschlussdauer = {
@@ -404,7 +475,7 @@ async function fetchEwkData(ctx, bdewCode, options = {}) {
         };
       }
 
-      if (umsetzungsquoteRow) {
+      if (umsetzungsquoteRow && !results.umsetzungsquote) {
         const eeNsRank = parseRank(umsetzungsquoteRow.rank_umsetzungsquote_ee_ns);
         results.umsetzungsquote = {
           eeNS_percent: umsetzungsquoteRow.umsetzungsquote_ee_ns ?? null,
@@ -415,7 +486,7 @@ async function fetchEwkData(ctx, bdewCode, options = {}) {
         };
       }
 
-      if (digitalisierungsindexRow) {
+      if (digitalisierungsindexRow && !results.digitalisierungsindex) {
         results.digitalisierungsindex = {
           gesamt_percent: digitalisierungsindexJson?.stats?.gesamtscore?.median
             ? Math.round(digitalisierungsindexJson.stats.gesamtscore.median)
@@ -430,15 +501,30 @@ async function fetchEwkData(ctx, bdewCode, options = {}) {
         };
       }
 
-      break;
+      if (results.anschlussdauer && results.umsetzungsquote && results.digitalisierungsindex) {
+        break;
+      }
     }
   } catch (err) {
     results.sourceError = err.message;
     this.logger?.warn(`EWK data fetch failed for ${bdewCode}:`, err.message);
   }
 
-  if (!results.sourceError && sourceErrors.length > 0) {
-    results.sourceError = Array.from(new Set(sourceErrors)).join('; ');
+  if (!results.sourceError) {
+    const unresolvedErrors = [];
+    if (!results.anschlussdauer) {
+      unresolvedErrors.push(...metricErrors.anschlussdauer);
+    }
+    if (!results.umsetzungsquote) {
+      unresolvedErrors.push(...metricErrors.umsetzungsquote);
+    }
+    if (!results.digitalisierungsindex) {
+      unresolvedErrors.push(...metricErrors.digitalisierungsindex);
+    }
+
+    if (unresolvedErrors.length > 0) {
+      results.sourceError = Array.from(new Set(unresolvedErrors)).join('; ');
+    }
   }
 
   return results;
@@ -581,20 +667,89 @@ async function fetchMarketData(ctx) {
   };
 
   const sourceErrors = [];
+  const today = new Date().toISOString().split('T')[0];
 
   try {
     // Sequential calls – both endpoints are MCP-backed and can overlap with
     // the MaStR/identity phases of the same snapshot or with a concurrent
     // nbp-monitor request for the same VNB. Running them serially avoids
     // exhausting the upstream per-token session limit.
-    const priceData = await ctx
-      .call('energy-market.prices', { market: 'day-ahead', region: 'Deutschland' })
-      .catch((err) => {
-        sourceErrors.push(`prices: ${err.message}`);
-        this.logger?.warn('Market prices fetch failed:', err.message);
+    let priceData = await callActionWithRetry(
+      ctx,
+      'energy-market.prices',
+      { market: 'day-ahead', region: 'Deutschland', date: today },
+      {
+        attempts: 2,
+        backoffMs: 300,
+        timeoutMs: 45000,
+        logger: this.logger,
+        actionLabel: 'energy-market.prices',
+      }
+    ).catch((err) => {
+      sourceErrors.push(`prices: ${err.message}`);
+      this.logger?.warn('Market prices fetch failed:', err.message);
+      return null;
+    });
+
+    let primaryPriceError = null;
+    if (priceData?.success === false) {
+      primaryPriceError = priceData.error?.message || 'unknown upstream error';
+    }
+
+    // Fallback to german-grid.spotprices (includes ENTSO-E fallback internally)
+    // if the primary day-ahead endpoint fails or returns no data points.
+    if (
+      !priceData ||
+      priceData?.success === false ||
+      !Array.isArray(priceData?.dataPoints) ||
+      !priceData.dataPoints[0]
+    ) {
+      const fallbackSpot = await callActionWithRetry(
+        ctx,
+        'german-grid.spotprices',
+        { dateFrom: today, dateTo: today, includeStatistics: true },
+        {
+          attempts: 2,
+          backoffMs: 300,
+          timeoutMs: 45000,
+          logger: this.logger,
+          actionLabel: 'german-grid.spotprices',
+        }
+      ).catch((err) => {
+        sourceErrors.push(`prices-fallback: ${err.message}`);
+        this.logger?.warn('Spot prices fallback failed:', err.message);
         return null;
       });
-    const gasData = await ctx.call('gas-storage.countryStorage', { country: 'DE' }).catch((err) => {
+
+      const fallbackJson = parseStructuredToolResult(fallbackSpot);
+      const fallbackPricePoints =
+        fallbackSpot?.dataPoints ||
+        fallbackSpot?.data?.dataPoints ||
+        fallbackJson?.dataPoints ||
+        [];
+
+      if (Array.isArray(fallbackPricePoints) && fallbackPricePoints[0]) {
+        priceData = {
+          success: true,
+          dataPoints: fallbackPricePoints,
+        };
+      } else if (primaryPriceError) {
+        sourceErrors.push(`prices: ${primaryPriceError}`);
+      }
+    }
+
+    const gasData = await callActionWithRetry(
+      ctx,
+      'gas-storage.countryStorage',
+      { country: 'DE' },
+      {
+        attempts: 2,
+        backoffMs: 300,
+        timeoutMs: 60000,
+        logger: this.logger,
+        actionLabel: 'gas-storage.countryStorage',
+      }
+    ).catch((err) => {
       sourceErrors.push(`gas-storage: ${err.message}`);
       this.logger?.warn('Gas storage fetch failed:', err.message);
       return null;

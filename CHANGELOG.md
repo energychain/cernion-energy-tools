@@ -102,6 +102,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Impact: Providers like TWL Netze GmbH (DSO code `9907473000008`) now return
   `ewk.sourceAvailable=true` via their alternate utility BDEW code or name-based lookup.
 
+- **VNB Monitor: hardening against transient MCP/provider failures**
+  Improved resilience of `services/vnb-monitor.service.js` for EWK and market snapshots:
+  - Added retry with backoff and per-call timeout overrides for MCP-backed actions
+    (`callActionWithRetry`, retriable: timeout/503/session/opaque-upstream errors).
+  - `fetchEwkData()` no longer stops at the first partial EWK hit; it now continues
+    through fallback queries and merges missing dimensions (`anschlussdauer`,
+    `umsetzungsquote`, `digitalisierungsindex`) when later queries provide them.
+  - `ewk.sourceError` now reports only unresolved dimensions after all fallback attempts.
+  - `fetchMarketData()` retries price and gas calls, uses explicit date for day-ahead
+    (`date=today`), and falls back to `german-grid.spotprices` when
+    `energy-market.prices` has no usable data.
+
+  Impact: fewer false-negative null sections in snapshots during transient upstream
+  outages, while preserving transparent source error reporting for unresolved metrics.
+
 ## [0.9.7] - 2026-03-18
 
 ### Added
