@@ -114,6 +114,123 @@ function sumCapacityByType(items, type) {
     .reduce((sum, item) => sum + (Number(item['Leistung MW']) || 0), 0);
 }
 
+function normalizeOperatorName(value) {
+  if (!value || typeof value !== 'string') {
+    return '';
+  }
+
+  const LEGAL_SUFFIXES = [
+    'gmbh',
+    'ag',
+    'mbh',
+    'kg',
+    'e\.v',
+    'ev',
+    'gbr',
+    'ug',
+    'ohg',
+    'kgaa',
+    'se',
+    'co',
+    'holding',
+    'gruppe',
+  ];
+
+  return value
+    .toLowerCase()
+    .replace(/[.,/\\()\-]/g, ' ')
+    .replace(new RegExp(`\\b(${LEGAL_SUFFIXES.join('|')})\\b`, 'g'), ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isLikelySameOperator(sourceName, targetName) {
+  if (!sourceName || !targetName) {
+    return true;
+  }
+
+  const normalizedSource = normalizeOperatorName(sourceName);
+  const normalizedTarget = normalizeOperatorName(targetName);
+
+  if (!normalizedSource || !normalizedTarget) {
+    return true;
+  }
+
+  if (normalizedSource === normalizedTarget) {
+    return true;
+  }
+
+  const sourceTokens = new Set(normalizedSource.split(' ').filter((token) => token.length >= 3));
+  const targetTokens = new Set(normalizedTarget.split(' ').filter((token) => token.length >= 3));
+
+  if (sourceTokens.size === 0 || targetTokens.size === 0) {
+    return false;
+  }
+
+  let overlap = 0;
+  for (const token of sourceTokens) {
+    if (targetTokens.has(token)) {
+      overlap += 1;
+    }
+  }
+
+  return overlap >= 1;
+}
+
+function extractBdewCode(partner) {
+  if (!partner || typeof partner !== 'object') {
+    return null;
+  }
+
+  const rawCode =
+    partner.bdewCode || partner.bdew || partner.code || partner.marketPartnerBdewCode || null;
+
+  const code = rawCode ? String(rawCode).trim() : null;
+  if (!code || !/^\d{13}$/.test(code)) {
+    return null;
+  }
+
+  return code;
+}
+
+async function findAlternateBdewCodes(ctx, identity, primaryBdewCode) {
+  if (!identity?.name) {
+    return [];
+  }
+
+  try {
+    const partnerResult = await ctx.call('grid-operations.marketPartners', {
+      query: identity.name,
+      limit: 20,
+    });
+
+    const partners = partnerResult?.data?.results || partnerResult?.results || [];
+    const codes = new Set();
+
+    for (const partner of partners) {
+      const code = extractBdewCode(partner);
+      if (!code || code === primaryBdewCode) {
+        continue;
+      }
+
+      const companyName = partner.companyName || partner.name || null;
+      if (!isLikelySameOperator(companyName, identity.name)) {
+        continue;
+      }
+
+      codes.add(code);
+    }
+
+    return Array.from(codes);
+  } catch (err) {
+    this.logger?.warn(
+      `Failed to resolve alternate BDEW codes for ${identity.name} (${primaryBdewCode}):`,
+      err.message
+    );
+    return [];
+  }
+}
+
 /**
  * Resolves VNB identity (name, MaStR ID) from BDEW code
  */
@@ -170,9 +287,10 @@ async function resolveVnbIdentity(ctx, bdewCode, hintName = null) {
 }
 
 /**
- * Fetches EWK benchmarks in parallel
+ * Fetches EWK benchmarks with BDEW and provider-name fallback
  */
-async function fetchEwkData(ctx, bdewCode) {
+async function fetchEwkData(ctx, bdewCode, options = {}) {
+  const { providerName = null, alternateBdewCodes = [] } = options;
   const results = {
     sourceAvailable: false,
     reportYear: 2024,
@@ -185,50 +303,88 @@ async function fetchEwkData(ctx, bdewCode) {
 
   const sourceErrors = [];
 
+  const ewkQueries = [
+    { bnr: bdewCode },
+    ...alternateBdewCodes.map((code) => ({ bnr: code })),
+    ...(providerName ? [{ vnbName: providerName }] : []),
+  ];
+
   try {
-    // Sequential calls – the Cernion MCP server enforces a ~3-session-per-token
-    // concurrency limit. Firing all three EWK tools in parallel risks a
-    // "-32001 Session not found" error when another concurrent request (e.g.
-    // nbp-monitor calling vnb-monitor.snapshot on a cold cache) opens sessions
-    // at the same time. Sequential calls stay within the limit at the cost of
-    // ~2× latency, which is acceptable given the 1-hour snapshot cache.
-    const anschlussdauer = await ctx
-      .call('ewk-monitoring.anschlussdauer', { bnr: bdewCode })
-      .catch((err) => {
-        sourceErrors.push(`anschlussdauer: ${err.message}`);
-        this.logger?.warn(`EWK anschlussdauer failed for ${bdewCode}:`, err.message);
-        return null;
-      });
-    const umsetzungsquote = await ctx
-      .call('ewk-monitoring.umsetzungsquote', { bnr: bdewCode })
-      .catch((err) => {
-        sourceErrors.push(`umsetzungsquote: ${err.message}`);
-        this.logger?.warn(`EWK umsetzungsquote failed for ${bdewCode}:`, err.message);
-        return null;
-      });
-    const digitalisierungsindex = await ctx
-      .call('ewk-monitoring.digitalisierungsindex', { bnr: bdewCode })
-      .catch((err) => {
-        sourceErrors.push(`digitalisierungsindex: ${err.message}`);
-        this.logger?.warn(`EWK digitalisierungsindex failed for ${bdewCode}:`, err.message);
-        return null;
-      });
+    for (const ewkQuery of ewkQueries) {
+      const queryErrors = [];
 
-    const anschlussdauerJson = parseStructuredToolResult(anschlussdauer);
-    const umsetzungsquoteJson = parseStructuredToolResult(umsetzungsquote);
-    const digitalisierungsindexJson = parseStructuredToolResult(digitalisierungsindex);
+      // Sequential calls – the Cernion MCP server enforces a ~3-session-per-token
+      // concurrency limit. Firing all three EWK tools in parallel risks a
+      // "-32001 Session not found" error when another concurrent request opens
+      // sessions at the same time.
+      const anschlussdauer = await ctx
+        .call('ewk-monitoring.anschlussdauer', ewkQuery)
+        .catch((err) => {
+          queryErrors.push(`anschlussdauer: ${err.message}`);
+          this.logger?.warn(
+            `EWK anschlussdauer failed for ${ewkQuery.bnr || ewkQuery.vnbName || bdewCode}:`,
+            err.message
+          );
+          return null;
+        });
 
-    const anschlussRow = anschlussdauerJson?.rows?.[0] || null;
-    const umsetzungsquoteRow = umsetzungsquoteJson?.rows?.[0] || null;
-    const digitalisierungsindexRow = digitalisierungsindexJson?.rows?.[0] || null;
+      const umsetzungsquote = await ctx
+        .call('ewk-monitoring.umsetzungsquote', ewkQuery)
+        .catch((err) => {
+          queryErrors.push(`umsetzungsquote: ${err.message}`);
+          this.logger?.warn(
+            `EWK umsetzungsquote failed for ${ewkQuery.bnr || ewkQuery.vnbName || bdewCode}:`,
+            err.message
+          );
+          return null;
+        });
 
-    if (anschlussRow || umsetzungsquoteRow || digitalisierungsindexRow) {
-      results.sourceAvailable = true;
-      results.operatorName =
+      const digitalisierungsindex = await ctx
+        .call('ewk-monitoring.digitalisierungsindex', ewkQuery)
+        .catch((err) => {
+          queryErrors.push(`digitalisierungsindex: ${err.message}`);
+          this.logger?.warn(
+            `EWK digitalisierungsindex failed for ${ewkQuery.bnr || ewkQuery.vnbName || bdewCode}:`,
+            err.message
+          );
+          return null;
+        });
+
+      const anschlussdauerJson = parseStructuredToolResult(anschlussdauer);
+      const umsetzungsquoteJson = parseStructuredToolResult(umsetzungsquote);
+      const digitalisierungsindexJson = parseStructuredToolResult(digitalisierungsindex);
+
+      const anschlussRow = anschlussdauerJson?.rows?.[0] || null;
+      const umsetzungsquoteRow = umsetzungsquoteJson?.rows?.[0] || null;
+      const digitalisierungsindexRow = digitalisierungsindexJson?.rows?.[0] || null;
+
+      if (!(anschlussRow || umsetzungsquoteRow || digitalisierungsindexRow)) {
+        sourceErrors.push(...queryErrors);
+        continue;
+      }
+
+      const candidateOperatorName =
         anschlussRow?.firmenname ||
         umsetzungsquoteRow?.firmenname ||
         digitalisierungsindexRow?.firmenname ||
         null;
+
+      if (
+        candidateOperatorName &&
+        providerName &&
+        !isLikelySameOperator(candidateOperatorName, providerName)
+      ) {
+        sourceErrors.push(...queryErrors);
+        this.logger?.warn(
+          `EWK provider mismatch for ${bdewCode}: got "${candidateOperatorName}" for query ${JSON.stringify(ewkQuery)}, expected "${providerName}"`
+        );
+        continue;
+      }
+
+      sourceErrors.push(...queryErrors);
+
+      results.sourceAvailable = true;
+      results.operatorName = candidateOperatorName;
 
       if (anschlussRow) {
         const eeNsRank = parseRank(anschlussRow.rank_ee_ns);
@@ -273,6 +429,8 @@ async function fetchEwkData(ctx, bdewCode) {
           bundesmedian_percent: digitalisierungsindexJson?.stats?.gesamtscore?.median ?? null,
         };
       }
+
+      break;
     }
   } catch (err) {
     results.sourceError = err.message;
@@ -280,7 +438,7 @@ async function fetchEwkData(ctx, bdewCode) {
   }
 
   if (!results.sourceError && sourceErrors.length > 0) {
-    results.sourceError = sourceErrors.join('; ');
+    results.sourceError = Array.from(new Set(sourceErrors)).join('; ');
   }
 
   return results;
@@ -314,34 +472,40 @@ async function fetchMastrData(ctx, identity) {
 
   try {
     const [installedAssets, plannedAssets, queueAssets] = await Promise.all([
-      ctx.call('assets.all', {
-        ...filterParams,
-        limit: 1000,
-        operationalStatus: '35',
-      }).catch((err) => {
-        sourceErrors.push(`inBetrieb: ${err.message}`);
-        this.logger?.warn(`MaStR inBetrieb failed for ${identity.name}:`, err.message);
-        return null;
-      }),
-      ctx.call('assets.all', {
-        ...filterParams,
-        limit: 1000,
-        operationalStatus: '31',
-      }).catch((err) => {
-        sourceErrors.push(`inPlanung: ${err.message}`);
-        this.logger?.warn(`MaStR inPlanung failed for ${identity.name}:`, err.message);
-        return null;
-      }),
-      ctx.call('assets.all', {
-        ...filterParams,
-        limit: 1000,
-        operationalStatus: 'all',
-        netzbetreiberPruefungStatus: '2955',
-      }).catch((err) => {
-        sourceErrors.push(`netzbetreiberPruefung: ${err.message}`);
-        this.logger?.warn(`MaStR queue failed for ${identity.name}:`, err.message);
-        return null;
-      }),
+      ctx
+        .call('assets.all', {
+          ...filterParams,
+          limit: 1000,
+          operationalStatus: '35',
+        })
+        .catch((err) => {
+          sourceErrors.push(`inBetrieb: ${err.message}`);
+          this.logger?.warn(`MaStR inBetrieb failed for ${identity.name}:`, err.message);
+          return null;
+        }),
+      ctx
+        .call('assets.all', {
+          ...filterParams,
+          limit: 1000,
+          operationalStatus: '31',
+        })
+        .catch((err) => {
+          sourceErrors.push(`inPlanung: ${err.message}`);
+          this.logger?.warn(`MaStR inPlanung failed for ${identity.name}:`, err.message);
+          return null;
+        }),
+      ctx
+        .call('assets.all', {
+          ...filterParams,
+          limit: 1000,
+          operationalStatus: 'all',
+          netzbetreiberPruefungStatus: '2955',
+        })
+        .catch((err) => {
+          sourceErrors.push(`netzbetreiberPruefung: ${err.message}`);
+          this.logger?.warn(`MaStR queue failed for ${identity.name}:`, err.message);
+          return null;
+        }),
     ]);
 
     const installedRows = Array.isArray(installedAssets) ? installedAssets : [];
@@ -372,9 +536,7 @@ async function fetchMastrData(ctx, identity) {
           leistungMW: totalPlannedCapacity.toFixed(1),
           percentOfInstalledCapacity:
             results.inBetrieb && Number(results.inBetrieb.leistungMW) > 0
-              ? ((totalPlannedCapacity /
-                  Number(results.inBetrieb.leistungMW)) *
-                  100).toFixed(1)
+              ? ((totalPlannedCapacity / Number(results.inBetrieb.leistungMW)) * 100).toFixed(1)
               : 0,
         };
       }
@@ -391,7 +553,10 @@ async function fetchMastrData(ctx, identity) {
     }
   } catch (err) {
     results.sourceError = err.message;
-    this.logger?.warn(`MaStR data fetch failed for ${identity.name || identity.bdewCode}:`, err.message);
+    this.logger?.warn(
+      `MaStR data fetch failed for ${identity.name || identity.bdewCode}:`,
+      err.message
+    );
   }
 
   if (!results.sourceError && sourceErrors.length > 0) {
@@ -429,18 +594,20 @@ async function fetchMarketData(ctx) {
         this.logger?.warn('Market prices fetch failed:', err.message);
         return null;
       });
-    const gasData = await ctx
-      .call('gas-storage.countryStorage', { country: 'DE' })
-      .catch((err) => {
-        sourceErrors.push(`gas-storage: ${err.message}`);
-        this.logger?.warn('Gas storage fetch failed:', err.message);
-        return null;
-      });
+    const gasData = await ctx.call('gas-storage.countryStorage', { country: 'DE' }).catch((err) => {
+      sourceErrors.push(`gas-storage: ${err.message}`);
+      this.logger?.warn('Gas storage fetch failed:', err.message);
+      return null;
+    });
 
     if (priceData || gasData) {
       results.sourceAvailable = true;
 
-      if (priceData?.success !== false && Array.isArray(priceData?.dataPoints) && priceData.dataPoints[0]) {
+      if (
+        priceData?.success !== false &&
+        Array.isArray(priceData?.dataPoints) &&
+        priceData.dataPoints[0]
+      ) {
         results.dayAheadPrice_eurMWh = Number(priceData.dataPoints[0].priceEURperMWh).toFixed(2);
       } else if (priceData?.success === false) {
         sourceErrors.push(`prices: ${priceData.error?.message || 'unknown upstream error'}`);
@@ -449,14 +616,14 @@ async function fetchMarketData(ctx) {
       if (gasData?.success !== false && gasData?.data?.storage) {
         results.gasStorageDE_percent = Number(gasData.data.storage.fillPercentage).toFixed(1);
         const fillPercent = parseFloat(results.gasStorageDE_percent);
-          results.gasStorageStatus =
-            fillPercent < 20
-              ? 'CRITICAL'
-              : fillPercent < 30
-                ? 'WARNING'
-                : fillPercent < 70
-                  ? 'NORMAL'
-                  : 'FULL';
+        results.gasStorageStatus =
+          fillPercent < 20
+            ? 'CRITICAL'
+            : fillPercent < 30
+              ? 'WARNING'
+              : fillPercent < 70
+                ? 'NORMAL'
+                : 'FULL';
         results.timestamp = gasData?.metadata?.timestamp || results.timestamp;
       } else if (gasData?.success === false) {
         sourceErrors.push(`gas-storage: ${gasData.error?.message || 'unknown upstream error'}`);
@@ -527,9 +694,7 @@ function generateAlerts(data, thresholds, lang = 'de') {
         threshold,
         message: `${config.description}: ${current} (${lang === 'en' ? 'threshold' : 'Schwelle'}: ${threshold})`,
         message_en: `${config.description}: ${current} (threshold: ${threshold})`,
-        recommendation: codeDef
-          ? codeDef[`recommendation_${lang}`]
-          : 'Review operation parameters',
+        recommendation: codeDef ? codeDef[`recommendation_${lang}`] : 'Review operation parameters',
         ewkImpact: codeDef ? codeDef.ewkImpact : false,
       };
     }
@@ -726,14 +891,18 @@ module.exports = {
           }
         }
 
-        const ewkData = await fetchEwkData.call(this, ctx, bdewCode);
         const identity = await resolveVnbIdentity.call(this, ctx, bdewCode);
-        
+        const alternateBdewCodes = await findAlternateBdewCodes.call(this, ctx, identity, bdewCode);
+        const ewkData = await fetchEwkData.call(this, ctx, bdewCode, {
+          providerName: identity.name,
+          alternateBdewCodes,
+        });
+
         // Override EWK operatorName with correctly-resolved identity name to ensure consistency
         if (ewkData.sourceAvailable && identity.name) {
           ewkData.operatorName = identity.name;
         }
-        
+
         const [mastrData, marketData] = await Promise.all([
           fetchMastrData.call(this, ctx, identity),
           fetchMarketData.call(this, ctx),
@@ -756,11 +925,13 @@ module.exports = {
           ewk: ewkData,
           mastr: mastrData,
           market: marketData,
-          alerts: includeAlerts ? generateAlerts(
-            { ewk: ewkData, mastr: mastrData, market: marketData },
-            this.alertThresholds,
-            lang
-          ) : [],
+          alerts: includeAlerts
+            ? generateAlerts(
+                { ewk: ewkData, mastr: mastrData, market: marketData },
+                this.alertThresholds,
+                lang
+              )
+            : [],
           alertSummary: null,
           sourceErrors: [],
         };
@@ -956,7 +1127,8 @@ module.exports = {
       openapi: {
         summary: 'Clear cache for a VNB',
         tags: ['VNBMonitor'],
-        description: 'Removes the cached snapshot for a VNB, forcing a fresh fetch on next request.',
+        description:
+          'Removes the cached snapshot for a VNB, forcing a fresh fetch on next request.',
         parameters: [
           {
             name: 'bdewCode',
@@ -1010,7 +1182,9 @@ module.exports = {
         return {
           bdewCode,
           cleared: true,
-          message: existed ? `Cache cleared for ${bdewCode}` : `No cache entry found for ${bdewCode}`,
+          message: existed
+            ? `Cache cleared for ${bdewCode}`
+            : `No cache entry found for ${bdewCode}`,
         };
       },
     },

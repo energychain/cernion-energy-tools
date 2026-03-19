@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **GitHub Release workflow**
+  Added `.github/workflows/release.yml` to run on version tags (`v*`) and
+  `workflow_dispatch`, executing release quality checks (`npm run release:check`),
+  build validation, and automated GitHub Release publication with generated notes.
+
+- **Contribution governance templates**
+  Added standardized GitHub collaboration templates for transparent OSS workflows:
+  - `.github/pull_request_template.md`
+  - `.github/ISSUE_TEMPLATE/bug_report.yml`
+  - `.github/ISSUE_TEMPLATE/feature_request.yml`
+  - `.github/ISSUE_TEMPLATE/config.yml` (disables blank issues, adds guidance links)
+
+### Changed
+
+- **Maintenance CI pipeline hardening**
+  Extended `.github/workflows/maintenance-ci.yml` with additional transparent
+  quality gates and reporting:
+  - `npm run lint`
+  - `npm run build`
+  - coverage artifact upload (`coverage/lcov.info`, `coverage-final.json`)
+  - Codecov upload for public coverage visibility
+
+- **README transparency badges and policy guidance**
+  Updated `README.md` with CI/CodeQL/Release/Codecov badges and a dedicated
+  CI/CD transparency section describing required checks and recommended branch
+  protection on `main`.
+
 ### Fixed
 
 - **VNB Monitor: EWK operatorName mismatch with identity resolution**
@@ -15,7 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   server may return operator names that don't match the BDEW code's canonical
   name from the market partner registry. Now `ewk.operatorName` is overridden with
   the authoritative identity-resolved name after EWK data fetch completes.
-  
+
   Impact: VNB monitor snapshots now show consistent operator names across
   `identity.name` and `ewk.operatorName` fields, preventing confusion from
   mismatched company names.
@@ -50,6 +79,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Result: production requests now stay within the MCP session limit across
   both the EWK and market-data phases and no longer fail intermittently during
   concurrent VNB/NBP monitor loads.
+
+- **VNB Monitor: `ewk.sourceAvailable=false` for providers with multiple BDEW codes**
+  German DSOs can be registered in the EWK database under a different BDEW code than
+  the one used for DSO market-role operations (e.g. a utility holding code instead of
+  the grid-operator code). `fetchEwkData()` now tries the primary BDEW code first, then
+  all alternate codes found via `grid-operations.marketPartners` for the same provider,
+  and finally falls back to a `vnbName`-based query as last resort.
+
+  Changes in `services/vnb-monitor.service.js`:
+  - Added helpers `normalizeOperatorName()`, `isLikelySameOperator()`, `extractBdewCode()`.
+  - Added `findAlternateBdewCodes()` — queries `grid-operations.marketPartners` by identity
+    name and filters candidates that token-match the expected provider, returning their codes.
+  - `fetchEwkData()` accepts `options = { providerName, alternateBdewCodes }` and iterates
+    through all candidate queries, guarding against cross-provider matches via
+    `isLikelySameOperator()`.
+  - `snapshot` handler now resolves VNB identity first, then finds alternates, then fetches
+    EWK (previously: EWK was fetched before identity was resolved).
+  - Duplicate error strings in `ewk.sourceError` are deduplicated with
+    `Array.from(new Set(sourceErrors))`.
+
+  Impact: Providers like TWL Netze GmbH (DSO code `9907473000008`) now return
+  `ewk.sourceAvailable=true` via their alternate utility BDEW code or name-based lookup.
 
 ## [0.9.7] - 2026-03-18
 

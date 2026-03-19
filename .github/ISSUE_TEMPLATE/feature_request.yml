@@ -1,0 +1,70 @@
+name: Feature request
+description: Propose an improvement or new capability
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the suggestion. Clear problem framing helps prioritization.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What user/business problem are you trying to solve?
+      placeholder: "As a ..., I need ... because ..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the expected behavior/API/UI.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Any workaround or alternate approach?
+  - type: dropdown
+    id: area
+    attributes:
+      label: Primary area
+      options:
+        - API Gateway / OpenAPI
+        - Microservice logic
+        - MCP tool integration
+        - Research Web App UI
+        - Inhouse datasource layer
+        - Security/auth
+        - CI/CD / DevEx
+        - Documentation
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options:
+        - nice-to-have
+        - medium
+        - high
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: Define measurable completion criteria.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submit checks
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true

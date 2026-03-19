@@ -1,0 +1,71 @@
+name: Bug report
+description: Report a reproducible bug in Cernion Energy Tools
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue. Please provide enough detail to reproduce.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened vs. what did you expect?
+      placeholder: "Observed behavior... Expected behavior..."
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include exact requests, payloads, or commands.
+      placeholder: |
+        1. Start service with ...
+        2. Call endpoint ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / stack trace
+      description: Paste relevant logs, error messages, or screenshots.
+      render: shell
+  - type: input
+    id: endpoint
+    attributes:
+      label: Affected endpoint/action
+      placeholder: "GET /api/... or service.action"
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impact
+      options:
+        - low (workaround exists)
+        - medium (blocks some workflows)
+        - high (production blocking)
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Node version, OS, branch/tag, and relevant env flags.
+      placeholder: |
+        Node:
+        OS:
+        Version/commit:
+        Env flags:
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-submit checks
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: I can reproduce this issue on the latest main branch.
+          required: false

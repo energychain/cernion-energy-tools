@@ -2,6 +2,11 @@
 
 MicroService Agent System for Energy Markets
 
+[![Maintenance CI](https://github.com/energychain/cernion-energy-tools/actions/workflows/maintenance-ci.yml/badge.svg?branch=main)](https://github.com/energychain/cernion-energy-tools/actions/workflows/maintenance-ci.yml)
+[![CodeQL](https://github.com/energychain/cernion-energy-tools/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/energychain/cernion-energy-tools/actions/workflows/codeql.yml)
+[![Release](https://github.com/energychain/cernion-energy-tools/actions/workflows/release.yml/badge.svg)](https://github.com/energychain/cernion-energy-tools/actions/workflows/release.yml)
+[![codecov](https://codecov.io/gh/energychain/cernion-energy-tools/branch/main/graph/badge.svg)](https://codecov.io/gh/energychain/cernion-energy-tools)
+
 A modular, scalable microservices platform built with [Moleculer](https://moleculer.services/) for developing energy market applications with AI integration (Google Gemini) and MCP (Model Context Protocol) support.
 
 ## Features
@@ -29,6 +34,14 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - [docs/MAINTENANCE_MILESTONE_CHECKLIST.md](docs/MAINTENANCE_MILESTONE_CHECKLIST.md) - Pre-milestone quality/security gate checklist
 - [SECURITY.md](SECURITY.md) - Security policy and disclosure
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community guidelines
+
+## CI/CD & Transparency
+
+- Pull requests and pushes to `main` run automated quality checks (lint, build, unit coverage gates, integration discovery sanity, OpenAPI audit, security audits).
+- Security analysis is continuously enforced with CodeQL.
+- Version tags (`v*`) trigger a release pipeline (`release:check` + build + GitHub Release).
+- Coverage reports are uploaded and publicly visible via Codecov.
+- Recommended repository setting: enable branch protection on `main` and require `Maintenance CI` + `CodeQL` checks before merge.
 
 ## Quick Start
 

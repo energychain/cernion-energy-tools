@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability disclosure
+    url: https://github.com/energychain/cernion-energy-tools/security/policy
+    about: Please report security issues privately via SECURITY.md guidance.
+  - name: Documentation
+    url: https://github.com/energychain/cernion-energy-tools/blob/main/README.md
+    about: Check setup, scripts, and API documentation before filing an issue.
