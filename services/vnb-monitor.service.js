@@ -556,43 +556,54 @@ async function fetchMastrData(ctx, identity) {
     return results;
   }
 
+  const fetchAssetsSafe = async (params, errorPrefix, logLabel) => {
+    return callActionWithRetry(ctx, 'assets.all', params, {
+      attempts: 2,
+      backoffMs: 350,
+      timeoutMs: 90000,
+      logger: this.logger,
+      actionLabel: `assets.all ${logLabel}`,
+    }).catch((err) => {
+      sourceErrors.push(`${errorPrefix}: ${err.message}`);
+      this.logger?.warn(`MaStR ${logLabel} failed for ${identity.name}:`, err.message);
+      return null;
+    });
+  };
+
   try {
-    const [installedAssets, plannedAssets, queueAssets] = await Promise.all([
-      ctx
-        .call('assets.all', {
-          ...filterParams,
-          limit: 1000,
-          operationalStatus: '35',
-        })
-        .catch((err) => {
-          sourceErrors.push(`inBetrieb: ${err.message}`);
-          this.logger?.warn(`MaStR inBetrieb failed for ${identity.name}:`, err.message);
-          return null;
-        }),
-      ctx
-        .call('assets.all', {
-          ...filterParams,
-          limit: 1000,
-          operationalStatus: '31',
-        })
-        .catch((err) => {
-          sourceErrors.push(`inPlanung: ${err.message}`);
-          this.logger?.warn(`MaStR inPlanung failed for ${identity.name}:`, err.message);
-          return null;
-        }),
-      ctx
-        .call('assets.all', {
-          ...filterParams,
-          limit: 1000,
-          operationalStatus: 'all',
-          netzbetreiberPruefungStatus: '2955',
-        })
-        .catch((err) => {
-          sourceErrors.push(`netzbetreiberPruefung: ${err.message}`);
-          this.logger?.warn(`MaStR queue failed for ${identity.name}:`, err.message);
-          return null;
-        }),
-    ]);
+    // IMPORTANT: keep calls sequential to avoid MCP session spikes.
+    // Each assets.all call fans out internally by technology, so a Promise.all
+    // here can trigger nested concurrency and cause upstream "Session not found".
+    const installedAssets = await fetchAssetsSafe(
+      {
+        ...filterParams,
+        limit: 1000,
+        operationalStatus: '35',
+      },
+      'inBetrieb',
+      'inBetrieb'
+    );
+
+    const plannedAssets = await fetchAssetsSafe(
+      {
+        ...filterParams,
+        limit: 1000,
+        operationalStatus: '31',
+      },
+      'inPlanung',
+      'inPlanung'
+    );
+
+    const queueAssets = await fetchAssetsSafe(
+      {
+        ...filterParams,
+        limit: 1000,
+        operationalStatus: 'all',
+        netzbetreiberPruefungStatus: '2955',
+      },
+      'netzbetreiberPruefung',
+      'netzbetreiberPruefung'
+    );
 
     const installedRows = Array.isArray(installedAssets) ? installedAssets : [];
     const plannedRows = Array.isArray(plannedAssets) ? plannedAssets : [];

@@ -117,6 +117,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Impact: fewer false-negative null sections in snapshots during transient upstream
   outages, while preserving transparent source error reporting for unresolved metrics.
 
+- **VNB Monitor: MaStR `Session not found` reduction under nested asset fan-out**
+  `fetchMastrData()` no longer executes the three `assets.all` requests in a top-level
+  `Promise.all`. Calls are now serialized (`inBetrieb` → `inPlanung` →
+  `netzbetreiberPruefung`) and wrapped with retry/backoff + extended timeout.
+
+  Root cause: each `assets.all` call can fan out internally by installation type; running
+  three of these in parallel caused nested concurrency spikes and upstream MCP session
+  collisions (`-32001 Session not found`).
+
+  Impact: significantly fewer MaStR fetch failures and more stable snapshot completion
+  under concurrent API load.
+
 ## [0.9.7] - 2026-03-18
 
 ### Added
