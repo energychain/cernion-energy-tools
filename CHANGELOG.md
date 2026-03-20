@@ -8,6 +8,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ## [0.9.9] - 2026-03-20
+### Fixed
+
+- **Stale BDEW code identity resolution (Issue #3)**
+  Improved `resolveVnbIdentity()` fallback chain to properly handle stale BDEW codes:
+  - Added explicit check for `success !== false` in vnbLookupCodes response to catch MCP tool errors
+  - Added debug logging for successful canonical resolution via vnbLookupCodes
+  - Improved error message logging when vnbLookupCodes returns error details
+  - Ensures stale codes (like 9904350000002) now resolve to canonical operator name instead of "Unknown"
+  - Prevents downstream EWK tool failures and upstream error noise in logs
+
 ### Added
 
 - **GitHub Release workflow**
