@@ -884,6 +884,9 @@ module.exports = {
           postleitzahlNot: params.postleitzahlNot,
           includeNapData: params.includeNapData,
           netzbetreiberPruefungStatus: nbpStatus,
+          // Pass status directly to cernion_installations_local for DB-level filtering.
+          // Omit when 'all' so the tool returns every status.
+          status: operationalStatus && operationalStatus !== 'all' ? operationalStatus : undefined,
           format: 'detailed',
         };
 
@@ -927,11 +930,13 @@ module.exports = {
           result.data.installations = allInstallations;
         }
 
-        // Post-filter by operational status (default: only active status 35)
+        // Post-filter by operational status (default: only active status 35).
+        // einheitBetriebsstatus is stored as a number in MongoDB; normalise both
+        // sides to string so the comparison works regardless of the stored type.
         if (operationalStatus && operationalStatus !== 'all' && result?.data?.installations) {
           const allowedStatuses = operationalStatus.split(',').map((s) => s.trim());
           result.data.installations = result.data.installations.filter((inst) =>
-            allowedStatuses.includes(inst.einheitBetriebsstatus)
+            allowedStatuses.includes(String(inst.einheitBetriebsstatus))
           );
           if (result.data.stats) {
             result.data.stats.count = result.data.installations.length;
