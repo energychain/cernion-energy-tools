@@ -244,7 +244,99 @@ function extractBdewCode(partner) {
   return code;
 }
 
+function extractCanonicalLookupPayload(lookupResult) {
+  if (!lookupResult || typeof lookupResult !== 'object') {
+    return null;
+  }
+
+  if (lookupResult.data && typeof lookupResult.data === 'object') {
+    return lookupResult.data;
+  }
+
+  return lookupResult;
+}
+
+function isAliasConfidenceUsable(confidenceValue) {
+  if (!confidenceValue) {
+    return true;
+  }
+
+  const normalized = String(confidenceValue).toLowerCase();
+  return normalized === 'high' || normalized === 'medium';
+}
+
+function extractLookupBdewCodes(lookupPayload, primaryBdewCode) {
+  if (!lookupPayload || typeof lookupPayload !== 'object') {
+    return [];
+  }
+
+  const codes = new Set();
+
+  const addCode = (value) => {
+    const code = value ? String(value).trim() : null;
+    if (!code || !/^\d{13}$/.test(code) || code === primaryBdewCode) {
+      return;
+    }
+    codes.add(code);
+  };
+
+  addCode(lookupPayload?.canonical?.bdewCodePrimary);
+
+  const aliases = Array.isArray(lookupPayload.aliases) ? lookupPayload.aliases : [];
+  for (const alias of aliases) {
+    if (!alias || typeof alias !== 'object') {
+      continue;
+    }
+
+    const type = String(alias.type || '').toLowerCase();
+    if (type !== 'bdew') {
+      continue;
+    }
+
+    if (!isAliasConfidenceUsable(alias.confidence)) {
+      continue;
+    }
+
+    addCode(alias.code);
+  }
+
+  return Array.from(codes);
+}
+
 async function findAlternateBdewCodes(ctx, identity, primaryBdewCode) {
+  try {
+    const lookupResult = await ctx.call('grid-operations.vnbLookupCodes', {
+      bdewCode: primaryBdewCode,
+      vnbName: identity?.name || undefined,
+      includeAliases: true,
+      includeTrace: false,
+      limitCandidates: 5,
+    });
+
+    const lookupPayload = extractCanonicalLookupPayload(lookupResult);
+    const sourceConfidence = String(lookupPayload?.sourceConfidence || '').toLowerCase();
+    const conflictFlags = Array.isArray(lookupPayload?.conflictFlags)
+      ? lookupPayload.conflictFlags
+      : [];
+    const lookupCodes = extractLookupBdewCodes(lookupPayload, primaryBdewCode);
+
+    // Conservative behavior on ambiguous lookups:
+    // only trust aliases from high/medium confidence lookups without conflict flags.
+    if (lookupCodes.length > 0 && (sourceConfidence === 'high' || sourceConfidence === 'medium')) {
+      if (conflictFlags.length === 0) {
+        return lookupCodes;
+      }
+
+      this.logger?.warn(
+        `vnb_lookup_codes returned conflict flags for ${primaryBdewCode}; falling back to marketPartners aliases (${conflictFlags.join(', ')})`
+      );
+    }
+  } catch (err) {
+    this.logger?.warn(
+      `vnb_lookup_codes lookup failed for ${primaryBdewCode}; falling back to marketPartners: ${err.message}`
+    );
+  }
+
   if (!identity?.name) {
     return [];
   }
@@ -372,6 +464,14 @@ async function fetchEwkData(ctx, bdewCode, options = {}) {
       // concurrency limit. Firing all three EWK tools in parallel risks a
       // "-32001 Session not found" error when another concurrent request opens
       // sessions at the same time.
+
+      // ── Step 1: anschlussdauer probe ────────────────────────────────────────
+      // Call anschlussdauer first so cross-provider mismatches (e.g. a stale
+      // market-partner DB entry that maps a foreign BDEW code to our operator's
+      // name) are detected before spending two more round-trips on
+      // umsetzungsquote and digitalisierungsindex.  When the probe row names a
+      // different operator we skip the remaining calls immediately (saves 2 EWK
+      // round-trips per stale alternate code in the fallback chain).
       const anschlussdauer = await callActionWithRetry(
         ctx,
         'ewk-monitoring.anschlussdauer',
@@ -389,6 +489,25 @@ async function fetchEwkData(ctx, bdewCode, options = {}) {
         return null;
       });
 
+      const anschlussdauerJson = parseStructuredToolResult(anschlussdauer);
+      const anschlussRow = anschlussdauerJson?.rows?.[0] || null;
+
+      if (anschlussRow) {
+        const probeOperatorName = anschlussRow.firmenname || null;
+        if (
+          probeOperatorName &&
+          providerName &&
+          !isLikelySameOperator(probeOperatorName, providerName)
+        ) {
+          this.logger?.warn(
+            `EWK provider mismatch for ${bdewCode}: got "${probeOperatorName}" for query ` +
+              `${JSON.stringify(ewkQuery)}, expected "${providerName}" – skipping remaining EWK calls`
+          );
+          continue;
+        }
+      }
+
+      // ── Step 2: remaining tools (only reached when probe is clean) ───────────
       const umsetzungsquote = await callActionWithRetry(
         ctx,
         'ewk-monitoring.umsetzungsquote',
@@ -425,11 +544,9 @@ async function fetchEwkData(ctx, bdewCode, options = {}) {
         return null;
       });
 
-      const anschlussdauerJson = parseStructuredToolResult(anschlussdauer);
       const umsetzungsquoteJson = parseStructuredToolResult(umsetzungsquote);
       const digitalisierungsindexJson = parseStructuredToolResult(digitalisierungsindex);
 
-      const anschlussRow = anschlussdauerJson?.rows?.[0] || null;
       const umsetzungsquoteRow = umsetzungsquoteJson?.rows?.[0] || null;
       const digitalisierungsindexRow = digitalisierungsindexJson?.rows?.[0] || null;
 
@@ -443,6 +560,9 @@ async function fetchEwkData(ctx, bdewCode, options = {}) {
         digitalisierungsindexRow?.firmenname ||
         null;
 
+      // Final mismatch guard: covers the edge case where the probe returned no
+      // rows (operator has no anschlussdauer data) but a later call returned
+      // data for a different operator.
       if (
         candidateOperatorName &&
         providerName &&

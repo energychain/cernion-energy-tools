@@ -501,6 +501,314 @@ describe('vnb-monitor.service', () => {
     });
   });
 
+  describe('EWK early-probe mismatch guard', () => {
+    // Regression for Issue #3: stale market-partner DB can return a BDEW code
+    // that belongs to a different company.  The probe (anschlussdauer) detects
+    // the cross-provider mismatch and must skip the remaining two EWK calls for
+    // that query, saving 2 round-trips per stale alternate code.
+    let probeBroker;
+    let umsetzungsquoteCalls;
+    let digitalisierungsindexCalls;
+
+    beforeAll(async () => {
+      umsetzungsquoteCalls = [];
+      digitalisierungsindexCalls = [];
+
+      probeBroker = new ServiceBroker({ logger: false });
+
+      probeBroker.createService({
+        name: 'grid-operations',
+        actions: {
+          // vnbLookup finds nothing – forces name-based fallback path
+          vnbLookup: {
+            handler: () => ({
+              success: true,
+              data: { source: 'not-found', companyName: null, mastrId: null },
+            }),
+          },
+          // marketPartners returns one stale alternate: 9904350000002 appears
+          // under "TWL Netze GmbH" even though the EWK DB maps it to Freiberger.
+          marketPartners: {
+            handler(ctx) {
+              if (ctx.params.query && ctx.params.query.includes('TWL')) {
+                return {
+                  success: true,
+                  data: {
+                    results: [
+                      {
+                        companyName: 'TWL Netze GmbH',
+                        bdewCode: '9904350000002', // stale – actually Freiberger
+                        mastrNetzbetreiberId: null,
+                        contacts: [{ city: 'Ludwigshafen' }],
+                      },
+                    ],
+                  },
+                };
+              }
+              return { success: true, data: { results: [] } };
+            },
+          },
+        },
+      });
+
+      probeBroker.createService({
+        name: 'ewk-monitoring',
+        actions: {
+          anschlussdauer: {
+            handler(ctx) {
+              const code = ctx.params.bnr || '';
+              if (code === '9904350000002') {
+                // Stale code → EWK correctly returns Freiberger data
+                return {
+                  success: true,
+                  data: [
+                    {
+                      type: 'text',
+                      json: {
+                        stats: {},
+                        rows: [
+                          {
+                            firmenname: 'Freiberger Stromversorgung GmbH',
+                            ee_ns_gesamt_wochen: 20,
+                            rank_ee_ns: '100 / 740',
+                            rank_verbrauch_ns: '200 / 740',
+                          },
+                        ],
+                      },
+                    },
+                  ],
+                };
+              }
+              // Primary TWL code or name-based query → no data
+              return {
+                success: true,
+                data: [{ type: 'text', json: { stats: {}, rows: [] } }],
+              };
+            },
+          },
+          umsetzungsquote: {
+            handler(ctx) {
+              umsetzungsquoteCalls.push(ctx.params.bnr || ctx.params.vnbName || 'unknown');
+              return {
+                success: true,
+                data: [{ type: 'text', json: { rows: [] } }],
+              };
+            },
+          },
+          digitalisierungsindex: {
+            handler(ctx) {
+              digitalisierungsindexCalls.push(ctx.params.bnr || ctx.params.vnbName || 'unknown');
+              return {
+                success: true,
+                data: [{ type: 'text', json: { stats: {}, rows: [] } }],
+              };
+            },
+          },
+        },
+      });
+
+      probeBroker.createService({
+        name: 'energy-market',
+        actions: {
+          prices: { handler: () => ({ success: true, dataPoints: [] }) },
+        },
+      });
+
+      probeBroker.createService({
+        name: 'gas-storage',
+        actions: {
+          countryStorage: {
+            handler: () => ({
+              success: true,
+              data: { storage: { fillPercentage: 50 } },
+              metadata: { timestamp: new Date().toISOString() },
+            }),
+          },
+        },
+      });
+
+      probeBroker.createService({
+        name: 'assets',
+        actions: {
+          all: { handler: () => [] },
+        },
+      });
+
+      probeBroker.createService(require('../services/vnb-monitor.service'));
+
+      await probeBroker.start();
+    });
+
+    afterAll(() => probeBroker.stop());
+
+    it('should NOT call umsetzungsquote or digitalisierungsindex for the stale alternate code', async () => {
+      await probeBroker.call('vnb-monitor.snapshot', {
+        bdewCode: '9907473000008',
+        refresh: true,
+        alerts: false,
+      });
+
+      // The bad alternate code (9904350000002) must never appear in the
+      // argument lists of umsetzungsquote / digitalisierungsindex.
+      expect(umsetzungsquoteCalls).not.toContain('9904350000002');
+      expect(digitalisierungsindexCalls).not.toContain('9904350000002');
+    });
+
+    it('should still call umsetzungsquote and digitalisierungsindex for clean queries', async () => {
+      // The primary code and the name-based fallback are clean probes
+      // (anschlussdauer returns empty, not a mismatch), so the remaining two
+      // tools MUST still be attempted for those queries.
+      await probeBroker.call('vnb-monitor.snapshot', {
+        bdewCode: '9907473000008',
+        refresh: true,
+        alerts: false,
+      });
+
+      // At least one clean query (primary code or name fallback) must have
+      // reached umsetzungsquote.
+      const cleanCalls = umsetzungsquoteCalls.filter((c) => c !== '9904350000002');
+      expect(cleanCalls.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe('EWK alternate resolution via vnbLookupCodes', () => {
+    let lookupBroker;
+    let marketPartnersCalls;
+    let anschlussdauerCalls;
+
+    beforeAll(async () => {
+      marketPartnersCalls = 0;
+      anschlussdauerCalls = [];
+
+      lookupBroker = new ServiceBroker({ logger: false });
+
+      lookupBroker.createService({
+        name: 'grid-operations',
+        actions: {
+          vnbLookup: {
+            handler: () => ({
+              success: true,
+              data: {
+                bdew: '9907473000008',
+                mastrId: null,
+                companyName: 'TWL Netze GmbH',
+                source: 'mock',
+              },
+            }),
+          },
+          // New MCP-based canonical lookup returns only trusted aliases.
+          vnbLookupCodes: {
+            handler: () => ({
+              success: true,
+              data: {
+                canonical: {
+                  name: 'TWL Netze GmbH',
+                  bdewCodePrimary: '9907473000008',
+                },
+                aliases: [
+                  {
+                    code: '9907473000999',
+                    type: 'bdew',
+                    role: 'alternate',
+                    confidence: 'high',
+                  },
+                ],
+                sourceConfidence: 'high',
+                conflictFlags: [],
+              },
+            }),
+          },
+          // Should not be needed when vnbLookupCodes is usable.
+          marketPartners: {
+            handler: () => {
+              marketPartnersCalls += 1;
+              return {
+                success: true,
+                data: {
+                  results: [
+                    {
+                      companyName: 'TWL Netze GmbH',
+                      bdewCode: '9904350000002', // stale code (must be ignored)
+                    },
+                  ],
+                },
+              };
+            },
+          },
+        },
+      });
+
+      lookupBroker.createService({
+        name: 'ewk-monitoring',
+        actions: {
+          anschlussdauer: {
+            handler(ctx) {
+              anschlussdauerCalls.push(ctx.params.bnr || ctx.params.vnbName || 'unknown');
+              return {
+                success: true,
+                data: [{ type: 'text', json: { stats: {}, rows: [] } }],
+              };
+            },
+          },
+          umsetzungsquote: {
+            handler: () => ({ success: true, data: [{ type: 'text', json: { rows: [] } }] }),
+          },
+          digitalisierungsindex: {
+            handler: () => ({
+              success: true,
+              data: [{ type: 'text', json: { stats: {}, rows: [] } }],
+            }),
+          },
+        },
+      });
+
+      lookupBroker.createService({
+        name: 'energy-market',
+        actions: {
+          prices: { handler: () => ({ success: true, dataPoints: [] }) },
+        },
+      });
+
+      lookupBroker.createService({
+        name: 'gas-storage',
+        actions: {
+          countryStorage: {
+            handler: () => ({
+              success: true,
+              data: { storage: { fillPercentage: 50 } },
+              metadata: { timestamp: new Date().toISOString() },
+            }),
+          },
+        },
+      });
+
+      lookupBroker.createService({
+        name: 'assets',
+        actions: {
+          all: { handler: () => [] },
+        },
+      });
+
+      lookupBroker.createService(require('../services/vnb-monitor.service'));
+      await lookupBroker.start();
+    });
+
+    afterAll(() => lookupBroker.stop());
+
+    it('should use aliases from vnbLookupCodes and skip stale marketPartners fallback', async () => {
+      await lookupBroker.call('vnb-monitor.snapshot', {
+        bdewCode: '9907473000008',
+        refresh: true,
+        alerts: false,
+      });
+
+      expect(marketPartnersCalls).toBe(0);
+      expect(anschlussdauerCalls).toContain('9907473000008');
+      expect(anschlussdauerCalls).toContain('9907473000999');
+      expect(anschlussdauerCalls).not.toContain('9904350000002');
+    });
+  });
+
   describe('threshold management actions', () => {
     it('should return thresholds with source metadata', async () => {
       const result = await broker.call('vnb-monitor.getThresholds');

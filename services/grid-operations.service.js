@@ -179,6 +179,42 @@ module.exports = {
                   },
                 },
               },
+              examples: {
+                byBdewCode: {
+                  summary: 'Lookup by BDEW code',
+                  value: {
+                    bdewCode: '9907473000008',
+                    includeAliases: true,
+                    includeTrace: false,
+                    limitCandidates: 5,
+                  },
+                },
+                byName: {
+                  summary: 'Lookup by operator name',
+                  value: {
+                    vnbName: 'TWL Netze GmbH',
+                    includeAliases: true,
+                  },
+                },
+              },
+              examples: {
+                byBdewCode: {
+                  summary: 'Lookup via BDEW code',
+                  value: {
+                    bdewCode: '9907473000008',
+                    includeAliases: true,
+                    includeTrace: false,
+                    limitCandidates: 5,
+                  },
+                },
+                byName: {
+                  summary: 'Lookup via VNB name',
+                  value: {
+                    vnbName: 'TWL Netze GmbH',
+                    includeAliases: true,
+                  },
+                },
+              },
             },
           },
         },
@@ -514,6 +550,94 @@ module.exports = {
         }
 
         return primary;
+      },
+    },
+
+    /**
+     * Canonical VNB lookup with consolidated BDEW/BNR/MaStR aliases
+     * Tool: vnb_lookup_codes
+     */
+    vnbLookupCodes: {
+      rest: 'POST /vnb-lookup-codes',
+      params: {
+        bdewCode: { type: 'string', optional: true },
+        bnr: { type: 'string', optional: true },
+        vnbName: { type: 'string', optional: true },
+        mastrId: { type: 'string', optional: true },
+        includeAliases: { type: 'boolean', optional: true, default: true },
+        includeTrace: { type: 'boolean', optional: true, default: false },
+        limitCandidates: {
+          type: 'number',
+          optional: true,
+          default: 5,
+          min: 1,
+          max: 20,
+          convert: true,
+        },
+      },
+      openapi: {
+        summary: 'Canonical VNB lookup with consolidated code aliases',
+        tags: ['Grid Operations'],
+        description:
+          'Resolve one VNB identity from BDEW/BNR/name/MaStR and return canonical mapping + alias codes from MCP tool vnb_lookup_codes.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  bdewCode: { type: 'string', example: '9907473000008' },
+                  bnr: { type: 'string', example: '99074730' },
+                  vnbName: { type: 'string', example: 'TWL Netze GmbH' },
+                  mastrId: { type: 'string', example: 'SNB935578300972' },
+                  includeAliases: { type: 'boolean', default: true },
+                  includeTrace: { type: 'boolean', default: false },
+                  limitCandidates: {
+                    type: 'integer',
+                    minimum: 1,
+                    maximum: 20,
+                    default: 5,
+                  },
+                },
+              },
+              examples: {
+                byBdewCode: {
+                  summary: 'Lookup via BDEW code',
+                  value: {
+                    bdewCode: '9907473000008',
+                    includeAliases: true,
+                    includeTrace: false,
+                    limitCandidates: 5,
+                  },
+                },
+                byName: {
+                  summary: 'Lookup via operator name',
+                  value: {
+                    vnbName: 'TWL Netze GmbH',
+                    includeAliases: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const hasLookupInput = ['bdewCode', 'bnr', 'vnbName', 'mastrId'].some((key) => {
+          const value = ctx.params[key];
+          return value !== undefined && value !== null && String(value).trim() !== '';
+        });
+
+        if (!hasLookupInput) {
+          throw new Error('At least one lookup identifier is required: bdewCode, bnr, vnbName, or mastrId');
+        }
+
+        return await CernionMCPClient.callWithNewSession(
+          'vnb_lookup_codes',
+          ctx.params,
+          ctx.meta.cernionToken
+        );
       },
     },
 

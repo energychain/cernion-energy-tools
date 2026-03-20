@@ -67,6 +67,38 @@ describe('Grid Operations Service', () => {
     });
   });
 
+  describe('vnbLookupCodes action', () => {
+    it('should require at least one lookup identifier', async () => {
+      await expect(broker.call('grid-operations.vnbLookupCodes', {})).rejects.toThrow(
+        'At least one lookup identifier is required'
+      );
+    });
+
+    it('should call MCP tool vnb_lookup_codes with request payload', async () => {
+      callWithNewSession.mockClear();
+
+      await broker.call('grid-operations.vnbLookupCodes', {
+        bdewCode: '9907473000008',
+        vnbName: 'TWL Netze GmbH',
+        includeAliases: true,
+        includeTrace: false,
+        limitCandidates: 5,
+      });
+
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'vnb_lookup_codes',
+        expect.objectContaining({
+          bdewCode: '9907473000008',
+          vnbName: 'TWL Netze GmbH',
+          includeAliases: true,
+          includeTrace: false,
+          limitCandidates: 5,
+        }),
+        undefined
+      );
+    });
+  });
+
   describe('capacityUtilization action', () => {
     it('should validate voltage level enum', async () => {
       await expect(

@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.9.9] - 2026-03-20
 ### Added
 
 - **GitHub Release workflow**
@@ -127,6 +129,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Impact: significantly fewer MaStR fetch failures and more stable snapshot completion
   under concurrent API load.
+
+- **VNB Monitor: wasted EWK round-trips on stale market-partner BDEW mappings**
+  Restructured the inner query loop in `fetchEwkData()` in
+  `services/vnb-monitor.service.js` to use `ewk_anschlussdauer` as an early probe.
+  When the probe row returns a `firmenname` that doesn't match the expected provider,
+  the two remaining EWK calls (`ewk_umsetzungsquote`, `ewk_digitalisierungsindex`) for
+  that query are skipped immediately instead of being executed and then discarded.
+
+  Root cause (Issue #3): the Cernion market-partner database contained a stale record
+  associating BDEW code `9904350000002` ("Freiberger Stromversorgung GmbH") with the
+  name "TWL Netze GmbH". `findAlternateBdewCodes()` accepted the code because the DB
+  record named it correctly from the operator's perspective; the mismatch was only
+  visible once the EWK tool returned data for Freiberger. Previously, all three EWK
+  calls were made before any mismatch check, wasting 2 extra round-trips per stale code.
+
+  The existing final mismatch guard is preserved as a fallback for the edge case where
+  the probe returns no rows but a subsequent call returns data for the wrong operator.
+
+  Impact: for operators with one stale alternate BDEW code in the fallback chain, the
+  number of futile EWK calls drops from 3 to 1 per stale entry. The fix is fully
+  client-side and does not require changes to the Cernion MCP backend.
+
+- **VNB Monitor: canonical alternate-code resolution via MCP `vnb_lookup_codes`**
+  Integrated the new MCP lookup tool into `findAlternateBdewCodes()` in
+  `services/vnb-monitor.service.js`.
+
+  Behavior:
+  - First try `grid-operations.vnbLookupCodes` (MCP tool `vnb_lookup_codes`) to
+    obtain canonical aliases.
+  - Use only 13-digit BDEW aliases with `confidence=high|medium` and no
+    `conflictFlags`.
+  - Fall back to `grid-operations.marketPartners` only if the canonical lookup
+    is unavailable, low-confidence, or conflict-marked.
+
+  Also added new gateway action `grid-operations.vnbLookupCodes`
+  (`POST /api/grid-operations/vnb-lookup-codes`) as direct wrapper around the
+  MCP tool.
+
+  Impact: stale market-partner mappings are bypassed in the primary alias
+  resolution path, reducing false alternate-code selection (Issue #3).
 
 ## [0.9.8] - 2026-03-19
 
