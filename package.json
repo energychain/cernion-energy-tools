@@ -1,6 +1,6 @@
 {
   "name": "cernion-energy-tools",
-  "version": "0.9.9",
+  "version": "0.9.10",
   "description": "MicroService Agent System for Energy Markets",
   "main": "index.js",
   "scripts": {

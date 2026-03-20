@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.10] - 2026-03-20
+### Fixed
+
+- **MaStR status filter type mismatch — `inBetrieb` / `inPlanung` returned identical counts**
+  `einheitBetriebsstatus` is stored as a number in MongoDB, but the post-filter in
+  `energy-market.service.js` compared it against an array of strings (`['35']`),
+  so `allowedStatuses.includes(35)` was always `false` and every row passed regardless
+  of status. Both the `inBetrieb` (status 35) and `inPlanung` (status 31) queries
+  returned the full unfiltered installation set, producing identical counts and
+  capacities. Fixed by: (1) passing `status` directly to `cernion_installations_local`
+  for DB-level filtering, (2) normalising with `String(inst.einheitBetriebsstatus)`
+  in the post-filter safety net.
+
+- **EWK data-gap errors surfaced as `sourceErrors` (CR-MCP-03)**
+  `ewk_umsetzungsquote` and `ewk_digitalisierungsindex` return `isError: true` when
+  a VNB has no data in those datasets (inconsistent with `ewk_anschlussdauer` which
+  returns empty rows). `format-response.js:applyFormat` converts `isError: true` into
+  a thrown error (`"Upstream tool returned an error with no details"`), which then
+  appeared in `ewk.sourceError` even when `anschlussdauer` succeeded. Added
+  `isEwkDataGapError()` helper; when `ewk.sourceAvailable` is `true` (anschlussdauer
+  succeeded), umsetzungsquote/digitalisierungsindex errors matching the data-gap
+  pattern are suppressed and treated as missing dataset coverage rather than failures.
+
+- **MaStR silent empty result for operators resolved via `cernion_market_partners`**
+  `cernion_market_partners` returns annotated MaStR IDs such as
+  `"SNB935578300972 (strom, 100% Match)"`. The annotation suffix was passed verbatim
+  as `gridOperatorId` to `cernion_installations_local`, which cannot match annotated
+  IDs and silently returned 0 results (`mastr.sourceAvailable: false`, no error).
+  Fixed by stripping the annotation with `.split(' ')[0].trim()` in `assets.service.js`.
+
 ## [0.9.9] - 2026-03-20
 ### Fixed
 
