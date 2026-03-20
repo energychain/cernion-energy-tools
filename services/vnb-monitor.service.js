@@ -334,6 +334,15 @@ function extractLookupBdewCodes(lookupPayload, primaryBdewCode) {
 }
 
 async function findAlternateBdewCodes(ctx, identity, primaryBdewCode) {
+  // canonicalBnrCodes is populated inside the try block below and used as a
+  // base for all return paths so the BNr is always passed to fetchEwkData.
+  // The EWK tools (ewk_anschlussdauer, ewk_umsetzungsquote, ewk_digitalisierungsindex)
+  // require the BNr (BNetzA Netzbetreibernummer, 5–10 digits) as their lookup key —
+  // they do NOT accept 13-digit BDEW market-partner codes.  The BNr is returned by
+  // vnb_lookup_codes as canonical.bnr and must be explicitly extracted here because
+  // extractLookupBdewCodes only accepts 13-digit codes.
+  let canonicalBnrCodes = [];
+
   try {
     const lookupResult = await ctx.call('grid-operations.vnbLookupCodes', {
       bdewCode: primaryBdewCode,
@@ -350,11 +359,21 @@ async function findAlternateBdewCodes(ctx, identity, primaryBdewCode) {
       : [];
     const lookupCodes = extractLookupBdewCodes(lookupPayload, primaryBdewCode);
 
+    // Extract the canonical BNr (e.g. "10002977" for TWL Netze GmbH).
+    // It is a direct, unambiguous identifier — safe to use regardless of
+    // conflict flags.  Place it first in the returned array so fetchEwkData
+    // tries { bnr: "10002977" } before { vnbName: "TWL Netze GmbH" }.
+    const rawBnr = lookupPayload?.canonical?.bnr;
+    if (rawBnr && isBnrFormat(rawBnr)) {
+      canonicalBnrCodes = [String(rawBnr).trim()];
+    }
+
     // Conservative behavior on ambiguous lookups:
-    // only trust aliases from high/medium confidence lookups without conflict flags.
+    // only trust BDEW alias codes from high/medium confidence lookups without conflict flags.
     if (lookupCodes.length > 0 && (sourceConfidence === 'high' || sourceConfidence === 'medium')) {
       if (conflictFlags.length === 0) {
-        return lookupCodes;
+        // BNr first, then BDEW aliases (BNr is more precise for EWK tool lookups)
+        return [...canonicalBnrCodes, ...lookupCodes.filter((c) => !canonicalBnrCodes.includes(c))];
       }
 
       this.logger?.warn(
@@ -368,7 +387,7 @@ async function findAlternateBdewCodes(ctx, identity, primaryBdewCode) {
   }
 
   if (!identity?.name) {
-    return [];
+    return canonicalBnrCodes;
   }
 
   try {
@@ -378,7 +397,7 @@ async function findAlternateBdewCodes(ctx, identity, primaryBdewCode) {
     });
 
     const partners = partnerResult?.data?.results || partnerResult?.results || [];
-    const codes = new Set();
+    const codes = new Set(canonicalBnrCodes);
 
     for (const partner of partners) {
       const code = extractBdewCode(partner);
@@ -400,7 +419,7 @@ async function findAlternateBdewCodes(ctx, identity, primaryBdewCode) {
       `Failed to resolve alternate BDEW codes for ${identity.name} (${primaryBdewCode}):`,
       err.message
     );
-    return [];
+    return canonicalBnrCodes;
   }
 }
 
@@ -449,6 +468,9 @@ async function resolveVnbIdentity(ctx, bdewCode, hintName = null) {
       return {
         name: operatorName,
         mastrId: canonical.mastrId || null,
+        // BNr (BNetzA Netzbetreibernummer) — the identifier the EWK tools use.
+        // Distinct from the 13-digit BDEW market-partner code.
+        bnr: canonical.bnr || null,
         bdewCode,
         location: null,
         marketPartnerBdewCode: canonical.bdewCodePrimary || null,
@@ -1316,6 +1338,7 @@ module.exports = {
           identity: {
             name: identity.name,
             mastrId: identity.mastrId,
+            bnr: identity.bnr || null,
             bdewCode,
             location: identity.location,
             resolvedAt: identity.resolvedAt,

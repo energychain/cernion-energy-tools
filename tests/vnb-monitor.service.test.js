@@ -1071,6 +1071,177 @@ describe('vnb-monitor.service', () => {
     });
   });
 
+  describe('BDEW→BNr mapping for EWK lookups (regression)', () => {
+    // For 13-digit BDEW codes the EWK tools require the BNr (BNetzA
+    // Netzbetreibernummer, 5–10 digits).  vnb_lookup_codes returns it as
+    // canonical.bnr.  findAlternateBdewCodes must propagate it so
+    // fetchEwkData builds { bnr: "10002977" } instead of only
+    // { vnbName: "..." } — which fails for umsetzungsquote /
+    // digitalisierungsindex (CR-MCP-03).
+    let broker3;
+    let snapshotResult3;
+    let thresholdFile3;
+    const ewkCallParams = [];
+
+    beforeAll(async () => {
+      thresholdFile3 = path.join(os.tmpdir(), `vnb-monitor-bnr-${Date.now()}.json`);
+      process.env.VNB_MONITOR_ALERT_CONFIG_FILE = thresholdFile3;
+
+      broker3 = new ServiceBroker({ logger: false });
+
+      broker3.createService({
+        name: 'grid-operations',
+        actions: {
+          vnbLookup: {
+            handler: () => ({
+              success: true,
+              data: { bdew: '9907473000008', mastrId: null, companyName: null, source: 'not-found' },
+            }),
+          },
+          // vnbLookupCodes returns canonical.bnr = '10002977'
+          vnbLookupCodes: {
+            handler: () => ({
+              success: true,
+              canonical: {
+                name: 'Test Netze GmbH',
+                bdewCodePrimary: '9907473000008',
+                bnr: '10002977',
+                mastrId: 'SNB999000111222',
+              },
+              aliases: [],
+              codes: ['9907473000008'],
+              sourceConfidence: 'high',
+              conflictFlags: [],
+            }),
+          },
+          marketPartners: { handler: () => ({ success: true, data: { results: [] } }) },
+        },
+      });
+
+      // EWK mock: only responds to bnr queries, returns isError for vnbName
+      broker3.createService({
+        name: 'ewk-monitoring',
+        actions: {
+          anschlussdauer: {
+            handler(ctx) {
+              ewkCallParams.push({ action: 'anschlussdauer', params: { ...ctx.params } });
+              if (ctx.params.bnr === '10002977') {
+                return {
+                  success: true,
+                  data: [{
+                    type: 'text',
+                    json: {
+                      stats: { ee_ns_gesamt: { median: 30 } },
+                      rows: [{ firmenname: 'Test Netze GmbH', ee_ns_gesamt_wochen: 25, rank_ee_ns: '200 / 740' }],
+                    },
+                  }],
+                };
+              }
+              // vnbName fallback → simulates CR-MCP-03 isError response
+              return { isError: true, content: [{ type: 'text', text: '' }] };
+            },
+          },
+          umsetzungsquote: {
+            handler(ctx) {
+              ewkCallParams.push({ action: 'umsetzungsquote', params: { ...ctx.params } });
+              if (ctx.params.bnr === '10002977') {
+                return {
+                  success: true,
+                  data: [{
+                    type: 'text',
+                    json: {
+                      rows: [{ firmenname: 'Test Netze GmbH', umsetzungsquote_ee_ns: 75.5, rank_umsetzungsquote_ee_ns: '150 / 698' }],
+                    },
+                  }],
+                };
+              }
+              return { isError: true, content: [{ type: 'text', text: '' }] };
+            },
+          },
+          digitalisierungsindex: {
+            handler(ctx) {
+              ewkCallParams.push({ action: 'digitalisierungsindex', params: { ...ctx.params } });
+              if (ctx.params.bnr === '10002977') {
+                return {
+                  success: true,
+                  data: [{
+                    type: 'text',
+                    json: {
+                      stats: { gesamtscore: { median: 40, n: 656 } },
+                      rows: [{ firmenname: 'Test Netze GmbH', smart_grids_ns: 50 }],
+                    },
+                  }],
+                };
+              }
+              return { isError: true, content: [{ type: 'text', text: '' }] };
+            },
+          },
+        },
+      });
+      broker3.createService({
+        name: 'energy-market',
+        actions: { prices: { handler: () => ({ success: true, dataPoints: [] }) } },
+      });
+      broker3.createService({
+        name: 'gas-storage',
+        actions: {
+          countryStorage: {
+            handler: () => ({
+              success: true,
+              data: { storage: { fillPercentage: 50 } },
+              metadata: { timestamp: new Date().toISOString() },
+            }),
+          },
+        },
+      });
+      broker3.createService({
+        name: 'assets',
+        actions: { all: { handler: () => [] } },
+      });
+      broker3.createService(require('../services/vnb-monitor.service'));
+      await broker3.start();
+
+      snapshotResult3 = await broker3.call('vnb-monitor.snapshot', {
+        bdewCode: '9907473000008',
+        refresh: true,
+      });
+    });
+
+    afterAll(async () => {
+      await broker3.stop();
+      if (fs.existsSync(thresholdFile3)) fs.unlinkSync(thresholdFile3);
+      process.env.VNB_MONITOR_ALERT_CONFIG_FILE = thresholdConfigFile;
+    });
+
+    it('should call EWK tools with bnr=10002977 (not just vnbName)', () => {
+      const bnrCalls = ewkCallParams.filter((c) => c.params.bnr === '10002977');
+      expect(bnrCalls.length).toBeGreaterThan(0);
+    });
+
+    it('should populate anschlussdauer from BNr-based lookup', () => {
+      expect(snapshotResult3.ewk.anschlussdauer).not.toBeNull();
+      expect(snapshotResult3.ewk.anschlussdauer.eeNS_weeks).toBe(25);
+    });
+
+    it('should populate umsetzungsquote from BNr-based lookup', () => {
+      expect(snapshotResult3.ewk.umsetzungsquote).not.toBeNull();
+      expect(snapshotResult3.ewk.umsetzungsquote.eeNS_percent).toBe(75.5);
+    });
+
+    it('should populate digitalisierungsindex from BNr-based lookup', () => {
+      expect(snapshotResult3.ewk.digitalisierungsindex).not.toBeNull();
+    });
+
+    it('should expose bnr on the identity object', () => {
+      expect(snapshotResult3.identity.bnr).toBe('10002977');
+    });
+
+    it('should have no EWK sourceErrors', () => {
+      const ewkErrors = snapshotResult3.sourceErrors.filter((e) => e.startsWith('ewk:'));
+      expect(ewkErrors).toHaveLength(0);
+    });
+  });
+
   describe('fetchMastrData — no per-type 1000-row cap (regression)', () => {
     let broker2;
     let snapshotResult;
