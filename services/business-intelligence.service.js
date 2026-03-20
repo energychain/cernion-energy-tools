@@ -8,6 +8,7 @@
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
 const { applyFormat, convertToCSV } = require('../src/format-response');
+const jobStore = require('../src/job-store');
 
 // ─── Helpers for churn-prediction narrative responses ─────────────────────────
 
@@ -203,15 +204,20 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        // Use auto-polling for async jobs (lead identification can be slow for large regions)
-        return await callWithAutoPoll(
-          'cernion_sales_lead_identification',
-          ctx.params,
-          {
-            maxWaitTime: 8 * 60 * 1000, // 8 minutes max
-            pollInterval: 3000,
-          },
-          ctx.meta.cernionToken
+        // Start async job (REST gateway) or run synchronously (internal Moleculer call)
+        return await jobStore.startJob(
+          ctx,
+          { service: 'business-intelligence', action: 'salesLeads' },
+          () =>
+            callWithAutoPoll(
+              'cernion_sales_lead_identification',
+              ctx.params,
+              {
+                maxWaitTime: 8 * 60 * 1000, // 8 minutes max
+                pollInterval: 3000,
+              },
+              ctx.meta.cernionToken
+            )
         );
       },
     },
@@ -507,18 +513,18 @@ module.exports = {
       },
       async handler(ctx) {
         const { format, ...mcpParams } = ctx.params;
-        // Use auto-polling for async jobs (churn prediction can be slow for large customer bases)
-        const result = await callWithAutoPoll(
-          'cernion_customer_churn_prediction',
-          mcpParams,
-          {
-            maxWaitTime: 8 * 60 * 1000, // 8 minutes max
-            pollInterval: 3000,
-          },
-          ctx.meta.cernionToken
-        );
 
+        // File-download formats are streamed synchronously (no async job)
         if (format === 'csv' || format === 'xlsx' || format === 'xls') {
+          const result = await callWithAutoPoll(
+            'cernion_customer_churn_prediction',
+            mcpParams,
+            {
+              maxWaitTime: 8 * 60 * 1000, // 8 minutes max
+              pollInterval: 3000,
+            },
+            ctx.meta.cernionToken
+          );
           const text = extractChurnText(result);
           const summaryRow = parseChurnPredictionText(text, mcpParams);
 
@@ -545,7 +551,21 @@ module.exports = {
           ]);
         }
 
-        return result;
+        // JSON format — start async job (REST gateway) or synchronous MCP call (internal)
+        return await jobStore.startJob(
+          ctx,
+          { service: 'business-intelligence', action: 'churnPrediction' },
+          () =>
+            callWithAutoPoll(
+              'cernion_customer_churn_prediction',
+              mcpParams,
+              {
+                maxWaitTime: 8 * 60 * 1000, // 8 minutes max
+                pollInterval: 3000,
+              },
+              ctx.meta.cernionToken
+            )
+        );
       },
     },
 
@@ -668,15 +688,20 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        // Use auto-polling for async jobs (market analysis can be slow)
-        return await callWithAutoPoll(
-          'cernion_market_penetration_analysis',
-          ctx.params,
-          {
-            maxWaitTime: 8 * 60 * 1000, // 8 minutes max
-            pollInterval: 3000,
-          },
-          ctx.meta.cernionToken
+        // Start async job (REST gateway) or run synchronously (internal Moleculer call)
+        return await jobStore.startJob(
+          ctx,
+          { service: 'business-intelligence', action: 'marketPenetration' },
+          () =>
+            callWithAutoPoll(
+              'cernion_market_penetration_analysis',
+              ctx.params,
+              {
+                maxWaitTime: 8 * 60 * 1000, // 8 minutes max
+                pollInterval: 3000,
+              },
+              ctx.meta.cernionToken
+            )
         );
       },
     },

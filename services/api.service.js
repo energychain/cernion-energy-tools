@@ -121,6 +121,7 @@ module.exports = {
         { name: 'VNBMonitor', description: 'VNB (grid operator) KPI monitoring and alerts' },
         { name: 'NBPMonitor', description: 'Netzbetreiberprüfungs-Monitor (MaStR status 2955 queue KPIs)' },
         { name: 'IntegrationHub', description: 'Token management and integration helpers' },
+        { name: 'Jobs', description: 'Async job status and result polling (v0.9.8+)' },
       ],
       components: {
         securitySchemes: {
@@ -317,6 +318,8 @@ module.exports = {
           'POST /in-memory-join/metering-spot-cost': 'in-memory-join.meteringSpotCost',
           'POST /in-memory-join/benchmark-compare': 'in-memory-join.benchmarkCompare',
           'POST /in-memory-join/compare-forecast-actual': 'in-memory-join.compareForecastActual',
+          'GET /jobs/:jobId/status': 'job-status.status',
+          'GET /jobs/:jobId/result': 'job-status.result',
 
           // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
           'GET /datasources/uploads'(req, res) {
@@ -442,6 +445,12 @@ module.exports = {
         logging: true,
 
         async onBeforeCall(ctx, route, req, _res) {
+          // Mark this context as originating from the REST API gateway.
+          // Used by job-aware action handlers to distinguish REST calls
+          // (which get async job responses) from internal Moleculer calls
+          // (which get synchronous results for backward-compatibility).
+          ctx.meta.$gateway = true;
+
           // Token precedence:
           // 1) Request parameter "token" (query/body/path)
           // 2) Authorization: Bearer <token>
@@ -616,7 +625,8 @@ module.exports = {
                   path.startsWith('/datasource-discovery') ||
                   path.startsWith('/tokens') ||
                   path.startsWith('/nbp-monitor') ||
-                  path.startsWith('/vnb-monitor');
+                  path.startsWith('/vnb-monitor') ||
+                  path.startsWith('/jobs');
 
                 // Prepend service name if path doesn't start with it and is not an absolute public path
                 if (!path.startsWith(`/${service.name}`) && !isAbsolutePublicPath) {

@@ -6,7 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
-
 ### Added
 
 - **GitHub Release workflow**
@@ -128,6 +127,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   Impact: significantly fewer MaStR fetch failures and more stable snapshot completion
   under concurrent API load.
+
+## [0.9.8] - 2026-03-19
+
+### Added
+
+- **Async job pattern for long-running REST endpoints (RFC 7231 / HTTP 202)**
+  Introduced a file-backed async job persistence layer (`src/job-store.js`) and
+  a dedicated polling service (`services/job-status.service.js`) with two new
+  REST endpoints:
+  - `GET /api/jobs/:jobId/status` — poll job state (`queued` / `running` / `completed` / `error`)
+  - `GET /api/jobs/:jobId/result` — retrieve completed result payload
+
+  Jobs are persisted in `.jobs/` as `{jobId}.progress.json` + `{jobId}.result.json`
+  with a 24 h TTL (configurable via `JOB_STORE_TTL_SECONDS`).
+  GC runs automatically on service startup.
+
+- **Gateway detection flag** (`ctx.meta.$gateway = true`)
+  Set in `api.service.js` `onBeforeCall` to distinguish REST gateway calls from
+  internal Moleculer service-to-service calls. `startJob()` uses this flag to
+  return a synchronous result for internal callers (backwards-compatible).
+
+- **OpenAPI `Jobs` tag** and explicit aliases for job polling endpoints in
+  `api.service.js`.
+
+- **UI async job polling support in the web app**
+  `src/app.html` now transparently handles `202 Accepted` responses from long-running
+  endpoints by polling `statusUrl` / `resultUrl` and returning the final payload
+  through the shared `apiFetch()` helper.
+
+- **Test coverage for async job infrastructure**
+  Added `tests/job-store.test.js` and `tests/job-status.service.test.js`.
+
+### Changed
+
+- **`grid-operations` service** — 5 long-running actions migrated to async job pattern:
+  `gridData`, `operatorAnalysis`, `capacityUtilization`, `redispatchExport` (JSON format;
+  CSV/XLSX remain synchronous), `connectionCapacityCheck`.
+
+- **`business-intelligence` service** — 3 long-running actions migrated to async job pattern:
+  `salesLeads`, `churnPrediction` (JSON format; CSV/XLSX remain synchronous),
+  `marketPenetration`.
+
+- **`.gitignore`** — added `.jobs/` alongside `.reports/`.
 
 ## [0.9.7] - 2026-03-18
 

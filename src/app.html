@@ -1631,20 +1631,97 @@
         return headers;
       }
 
+      function apiAuthHeaders() {
+        const headers = {};
+        const tok = tokenInput.value.trim();
+        if (tok) headers['Authorization'] = 'Bearer ' + tok;
+        return headers;
+      }
+
+      function normalizeApiPath(url) {
+        if (!url || typeof url !== 'string') return null;
+        if (/^https?:\/\//i.test(url)) return url;
+        return url.startsWith('/') ? url : `/${url}`;
+      }
+
+      function delay(ms) {
+        return new Promise((resolve) => setTimeout(resolve, ms));
+      }
+
+      async function pollJobUntilCompleted(initialJobInfo, initialRetryAfterSeconds) {
+        const timeoutMs = 12 * 60 * 1000; // 12 minutes
+        const startedAt = Date.now();
+
+        const statusUrl = normalizeApiPath(initialJobInfo?.statusUrl);
+        if (!statusUrl) {
+          throw new Error('Async job response missing statusUrl.');
+        }
+
+        let resultUrl = normalizeApiPath(initialJobInfo?.resultUrl);
+        let pollDelayMs = Math.max(1000, (initialRetryAfterSeconds || 5) * 1000);
+
+        while (Date.now() - startedAt < timeoutMs) {
+          await delay(pollDelayMs);
+
+          const statusRes = await fetch(statusUrl, { headers: apiAuthHeaders() });
+          const statusData = await statusRes.json().catch(() => ({}));
+
+          if (!statusRes.ok) {
+            throw new Error(statusData.message || `HTTP ${statusRes.status}`);
+          }
+
+          const state = String(statusData.status || '').toLowerCase();
+          if (state === 'error') {
+            throw new Error(statusData.error || statusData.message || 'Async job failed');
+          }
+
+          if (state === 'completed') {
+            resultUrl = normalizeApiPath(statusData.resultUrl) || resultUrl;
+            if (!resultUrl) {
+              resultUrl = statusUrl.replace(/\/status$/, '/result');
+            }
+
+            const resultRes = await fetch(resultUrl, { headers: apiAuthHeaders() });
+            const resultData = await resultRes.json().catch(() => ({}));
+
+            if (resultRes.status === 202) {
+              // Result endpoint says job is not yet complete; continue polling.
+              pollDelayMs = Math.min(30000, Math.max(1000, pollDelayMs));
+              continue;
+            }
+            if (!resultRes.ok) {
+              throw new Error(resultData.message || `HTTP ${resultRes.status}`);
+            }
+            return resultData;
+          }
+
+          // queued / running -> keep polling
+          pollDelayMs = Math.min(30000, Math.max(1000, pollDelayMs));
+        }
+
+        throw new Error('Async job polling timed out.');
+      }
+
       async function apiFetch(path, body) {
         const res = await fetch(path, {
           method: 'POST',
           headers: apiHeaders(),
           body: JSON.stringify(body),
         });
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+
+        if (res.status === 202 && data?.jobId && data?.statusUrl) {
+          const retryAfterHeader = parseInt(res.headers.get('Retry-After') || '5', 10);
+          return await pollJobUntilCompleted(data, Number.isFinite(retryAfterHeader) ? retryAfterHeader : 5);
+        }
+
         if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
         return data;
       }
 
       async function apiGet(path) {
-        const res = await fetch(path, { headers: apiHeaders() });
-        const data = await res.json();
+        const res = await fetch(path, { headers: apiAuthHeaders() });
+        const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
         return data;
       }

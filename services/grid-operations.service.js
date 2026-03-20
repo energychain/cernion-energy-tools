@@ -7,6 +7,7 @@
 
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
+const jobStore = require('../src/job-store');
 const {
   applyFormat,
   convertToCSV,
@@ -183,15 +184,20 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        // Use auto-polling for async jobs (some grid data queries can take up to 10 minutes)
-        return await callWithAutoPoll(
-          'cernion_grid_data',
-          ctx.params,
-          {
-            maxWaitTime: 12 * 60 * 1000, // 12 minutes max
-            pollInterval: 3000, // Poll every 3 seconds
-          },
-          ctx.meta.cernionToken // Optional Bearer token from request, falls back to env
+        // Use async job pattern for REST calls; internal callers get synchronous result.
+        return await jobStore.startJob(
+          ctx,
+          { service: 'grid-operations', action: 'gridData' },
+          () =>
+            callWithAutoPoll(
+              'cernion_grid_data',
+              ctx.params,
+              {
+                maxWaitTime: 12 * 60 * 1000, // 12 minutes max
+                pollInterval: 3000, // Poll every 3 seconds
+              },
+              ctx.meta.cernionToken
+            )
         );
       },
     },
@@ -670,15 +676,19 @@ module.exports = {
           );
         }
 
-        // Use auto-polling for async jobs (operator analysis can be slow for large grids)
-        return await callWithAutoPoll(
-          'cernion_grid_operator_analysis',
-          ctx.params,
-          {
-            maxWaitTime: 10 * 60 * 1000, // 10 minutes max
-            pollInterval: 3000, // Poll every 3 seconds
-          },
-          ctx.meta.cernionToken
+        return await jobStore.startJob(
+          ctx,
+          { service: 'grid-operations', action: 'operatorAnalysis' },
+          () =>
+            callWithAutoPoll(
+              'cernion_grid_operator_analysis',
+              ctx.params,
+              {
+                maxWaitTime: 10 * 60 * 1000, // 10 minutes max
+                pollInterval: 3000, // Poll every 3 seconds
+              },
+              ctx.meta.cernionToken
+            )
         );
       },
     },
@@ -792,15 +802,19 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        // Use auto-polling for async jobs (capacity analysis can be slow)
-        return await callWithAutoPoll(
-          'cernion_capacity_utilization',
-          ctx.params,
-          {
-            maxWaitTime: 10 * 60 * 1000, // 10 minutes max
-            pollInterval: 3000, // Poll every 3 seconds
-          },
-          ctx.meta.cernionToken
+        return await jobStore.startJob(
+          ctx,
+          { service: 'grid-operations', action: 'capacityUtilization' },
+          () =>
+            callWithAutoPoll(
+              'cernion_capacity_utilization',
+              ctx.params,
+              {
+                maxWaitTime: 10 * 60 * 1000, // 10 minutes max
+                pollInterval: 3000, // Poll every 3 seconds
+              },
+              ctx.meta.cernionToken
+            )
         );
       },
     },
@@ -971,25 +985,25 @@ module.exports = {
             .filter(Boolean);
         }
 
-        // Use auto-polling for async jobs (redispatch export typically returns job ID)
-        const result = await callWithAutoPoll(
-          'cernion_redispatch_export',
-          mcpParams,
-          {
-            maxWaitTime: 10 * 60 * 1000, // 10 minutes max
-            pollInterval: 2000, // Poll every 2 seconds
-          },
-          ctx.meta.cernionToken
-        );
-
+        // File-download formats are always synchronous (client expects an immediate file response)
         if (format === 'csv' || format === 'xlsx' || format === 'xls') {
+          const result = await callWithAutoPoll(
+            'cernion_redispatch_export',
+            mcpParams,
+            {
+              maxWaitTime: 10 * 60 * 1000, // 10 minutes max
+              pollInterval: 2000, // Poll every 2 seconds
+            },
+            ctx.meta.cernionToken
+          );
+
           const text = extractRedispatchText(result);
 
           // Guard: MCP-level error flag (isError: true) — e.g. failed async job
           if (result.data?.isError) {
             throw new Error(
               text
-                .replace(/^[❌\s*⚡]+/, '')
+                .replace(/^[\u274c\s*\u26a1]+/, '')
                 .trim()
                 .substring(0, 300) || 'Redispatch export error'
             );
@@ -1003,10 +1017,6 @@ module.exports = {
             gridOperatorBdewCode ||
             '';
 
-          // ── Full data via cernion_installations_local ────────────────
-          // The async export tool returns only a 5-row preview table in its
-          // narrative. For a complete export we query the local MaStR database
-          // directly using the resolved operator MaStR ID.
           const resolvedMastrId = gridOperatorId || metadata.mastrId;
           let exportRows;
           let isPreviewFallback = false;
@@ -1098,7 +1108,21 @@ module.exports = {
           );
         }
 
-        return result;
+        // JSON format — start async job (REST) or synchronous MCP call (internal)
+        return await jobStore.startJob(
+          ctx,
+          { service: 'grid-operations', action: 'redispatchExport' },
+          () =>
+            callWithAutoPoll(
+              'cernion_redispatch_export',
+              mcpParams,
+              {
+                maxWaitTime: 10 * 60 * 1000, // 10 minutes max
+                pollInterval: 2000, // Poll every 2 seconds
+              },
+              ctx.meta.cernionToken
+            )
+        );
       },
     },
 
@@ -1216,15 +1240,19 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        // Use auto-polling for async jobs
-        return await callWithAutoPoll(
-          'cernion_connection_capacity_check',
-          ctx.params,
-          {
-            maxWaitTime: 8 * 60 * 1000, // 8 minutes max
-            pollInterval: 2000, // Poll every 2 seconds
-          },
-          ctx.meta.cernionToken
+        return await jobStore.startJob(
+          ctx,
+          { service: 'grid-operations', action: 'connectionCapacityCheck' },
+          () =>
+            callWithAutoPoll(
+              'cernion_connection_capacity_check',
+              ctx.params,
+              {
+                maxWaitTime: 8 * 60 * 1000, // 8 minutes max
+                pollInterval: 2000, // Poll every 2 seconds
+              },
+              ctx.meta.cernionToken
+            )
         );
       },
     },
