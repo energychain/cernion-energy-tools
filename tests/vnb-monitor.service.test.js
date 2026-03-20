@@ -858,6 +858,148 @@ describe('vnb-monitor.service', () => {
     });
   });
 
+  // ─── Issue #3 root cause fix ──────────────────────────────────────────────
+  // When vnbLookup AND vnbLookupCodes both fail to resolve a BDEW code,
+  // identity is "Unknown".  The EWK anschlussdauer probe must NOT be skipped
+  // just because identity is "Unknown" – the probe result itself is the
+  // authoritative source for the operator name in this case.
+  describe('EWK identity back-fill when all upstream lookups fail (Issue #3)', () => {
+    let ewkBackfillBroker;
+
+    beforeAll(async () => {
+      ewkBackfillBroker = new ServiceBroker({ logger: false });
+
+      ewkBackfillBroker.createService({
+        name: 'grid-operations',
+        actions: {
+          // Both lookup paths return nothing for this stale code.
+          vnbLookup: {
+            handler: () => ({
+              success: true,
+              data: { bdew: '9904350000002', mastrId: null, companyName: null, source: 'not-found' },
+            }),
+          },
+          vnbLookupCodes: {
+            handler: () => ({
+              success: true,
+              canonical: null,
+              aliases: [],
+              codes: [],
+              candidates: [],
+              conflictFlags: [],
+              sourceConfidence: 'low',
+            }),
+          },
+          marketPartners: {
+            handler: () => ({ success: true, data: { results: [] } }),
+          },
+        },
+      });
+
+      ewkBackfillBroker.createService({
+        name: 'ewk-monitoring',
+        actions: {
+          // EWK probe resolves the stale code directly to its canonical name.
+          anschlussdauer: {
+            handler: () => ({
+              success: true,
+              data: [
+                {
+                  type: 'text',
+                  json: {
+                    stats: {
+                      ee_ns_gesamt: { median: 20 },
+                      verbrauch_ns_gesamt: { median: 18 },
+                    },
+                    rows: [
+                      {
+                        firmenname: 'Freiberger Stromversorgung GmbH',
+                        ee_ns_gesamt_wochen: 14,
+                        ee_ns_phase1_wochen: 5,
+                        ee_ns_phase2_wochen: 9,
+                        ee_ms_gesamt_wochen: 28,
+                        verbrauch_ns_gesamt_wochen: 22,
+                        rank_ee_ns: '150 / 790',
+                        rank_verbrauch_ns: '200 / 790',
+                      },
+                    ],
+                  },
+                },
+              ],
+            }),
+          },
+          umsetzungsquote: {
+            handler: () => ({
+              success: true,
+              data: [{ type: 'text', json: { rows: [{ firmenname: 'Freiberger Stromversorgung GmbH', umsetzungsquote_ee_ns: 80 }] } }],
+            }),
+          },
+          digitalisierungsindex: {
+            handler: () => ({
+              success: true,
+              data: [{ type: 'text', json: { stats: { gesamtscore: { median: 40, n: 790 } }, rows: [{ firmenname: 'Freiberger Stromversorgung GmbH' }] } }],
+            }),
+          },
+        },
+      });
+
+      ewkBackfillBroker.createService({
+        name: 'energy-market',
+        actions: { prices: { handler: () => ({ success: true, dataPoints: [] }) } },
+      });
+
+      ewkBackfillBroker.createService({
+        name: 'gas-storage',
+        actions: {
+          countryStorage: {
+            handler: () => ({
+              success: true,
+              data: { storage: { fillPercentage: 50 } },
+              metadata: { timestamp: new Date().toISOString() },
+            }),
+          },
+        },
+      });
+
+      ewkBackfillBroker.createService({
+        name: 'assets',
+        actions: { all: { handler: () => [] } },
+      });
+
+      ewkBackfillBroker.createService(require('../services/vnb-monitor.service'));
+      await ewkBackfillBroker.start();
+    });
+
+    afterAll(() => ewkBackfillBroker.stop());
+
+    it('should back-fill identity from EWK probe result when upstream lookups return nothing', async () => {
+      const result = await ewkBackfillBroker.call('vnb-monitor.snapshot', {
+        bdewCode: '9904350000002',
+        refresh: true,
+        alerts: false,
+      });
+
+      // Identity must be resolved from EWK, not left as "Unknown"
+      expect(result.identity.name).toBe('Freiberger Stromversorgung GmbH');
+      expect(result.identity.name).not.toBe('Unknown');
+    });
+
+    it('should have EWK data when identity is resolved from probe', async () => {
+      const result = await ewkBackfillBroker.call('vnb-monitor.snapshot', {
+        bdewCode: '9904350000002',
+        refresh: true,
+        alerts: false,
+      });
+
+      expect(result.ewk.sourceAvailable).toBe(true);
+      expect(result.ewk.anschlussdauer).not.toBeNull();
+      expect(result.ewk.anschlussdauer.eeNS_weeks).toBe(14);
+      expect(result.sourceErrors).not.toContain(
+        expect.stringContaining('umsetzungsquote (Unknown)')
+      );
+    });
+  });
+
   describe('threshold management actions', () => {
     it('should return thresholds with source metadata', async () => {
       const result = await broker.call('vnb-monitor.getThresholds');

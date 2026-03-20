@@ -1220,13 +1220,26 @@ module.exports = {
 
         const identity = await resolveVnbIdentity.call(this, ctx, bdewCode);
         const alternateBdewCodes = await findAlternateBdewCodes.call(this, ctx, identity, bdewCode);
+
+        // Pass null as providerName when identity is unresolved so the mismatch guard
+        // in fetchEwkData does not compare against the sentinel string "Unknown".
+        // The EWK anschlussdauer probe itself can resolve the operator name from a
+        // stale/alias BDEW code and we must not discard that result.
+        const resolvedProviderName = identity.name !== 'Unknown' ? identity.name : null;
         const ewkData = await fetchEwkData.call(this, ctx, bdewCode, {
-          providerName: identity.name,
+          providerName: resolvedProviderName,
           alternateBdewCodes,
         });
 
-        // Override EWK operatorName with correctly-resolved identity name to ensure consistency
-        if (ewkData.sourceAvailable && identity.name) {
+        // Back-fill identity from EWK result when upstream lookups (vnbLookup,
+        // vnbLookupCodes) returned no record for this BDEW code.  The EWK probe
+        // is the last authoritative source for resolving stale/alias codes.
+        if (identity.name === 'Unknown' && ewkData.operatorName) {
+          identity.name = ewkData.operatorName;
+        }
+
+        // Keep EWK operatorName consistent with identity only when identity is known.
+        if (ewkData.sourceAvailable && identity.name && identity.name !== 'Unknown') {
           ewkData.operatorName = identity.name;
         }
 
