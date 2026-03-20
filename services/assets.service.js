@@ -190,8 +190,13 @@ module.exports = {
                 if (results.length > 0) {
                   const firstMatch = results[0];
 
-                  resolvedMastrId =
+                  // cernion_market_partners sometimes annotates the MaStR ID:
+                  // "SNB935578300972 (strom, 100% Match)" → strip to "SNB935578300972".
+                  // cernion_installations_local cannot match annotated IDs and
+                  // silently returns 0 results when the annotation is present.
+                  const rawMastrId =
                     firstMatch.mastrNetzbetreiberId || firstMatch.mastrId || firstMatch.mastr_id;
+                  resolvedMastrId = rawMastrId ? rawMastrId.split(' ')[0].trim() : null;
 
                   if (!resolvedMastrId && typeof firstMatch.mastrIds === 'object') {
                     const mastrIds = firstMatch.mastrIds;

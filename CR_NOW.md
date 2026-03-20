@@ -652,3 +652,54 @@ validation error if the value does not match the expected BNR format
 (`/^\d{5,10}$/`).
 
 ---
+
+## CR-MCP-03 · `ewk_umsetzungsquote` and `ewk_digitalisierungsindex` return `isError: true` for valid `vnbName` queries when the operator has no data in that dataset
+
+**Tools:** `ewk_umsetzungsquote`, `ewk_digitalisierungsindex`
+**Severity:** Medium — causes false error surfacing; `ewk_anschlussdauer` with
+the same `vnbName` query succeeds, proving the operator IS in the EWK system.
+
+### Reproduction
+
+```
+ewk_anschlussdauer({ "vnbName": "TWL Netze GmbH", "limit": 1 })
+```
+→ **Returns TWL Netze GmbH data** (rank 306 / 740, 31 weeks EE-NS) ✅
+
+```
+ewk_umsetzungsquote({ "vnbName": "TWL Netze GmbH", "limit": 1 })
+ewk_digitalisierungsindex({ "vnbName": "TWL Netze GmbH", "limit": 1 })
+```
+→ **Both return `isError: true`** with no meaningful error text ❌
+
+### Root cause
+
+The EWK datasets for `Anschlussdauer`, `Umsetzungsquote`, and
+`Digitalisierungsindex` are sourced from separate BNetzA data collections.
+Not all ~820 VNBs report to every dataset.  When a `vnbName` query finds
+no matching record in `Umsetzungsquote` or `Digitalisierungsindex`, the
+tools return `isError: true` instead of an empty result set with `rows: []`.
+`Anschlussdauer` handles the same "not found" case correctly by returning
+empty rows.
+
+### Impact
+
+When `ewk-monitoring.umsetzungsquote`/`ewk-monitoring.digitalisierungsindex`
+are called from `vnb-monitor.service.js`, the `applyFormat` wrapper in
+`format-response.js` converts `isError: true` responses into thrown errors.
+These propagate back as `"Upstream tool returned an error with no details"`
+in `ewk.sourceError`, making the snapshot look broken even though
+`anschlussdauer` data is present and correct.
+
+**Application-level workaround (implemented):** When `ewk.sourceAvailable`
+is `true` (anschlussdauer succeeded) and the umsetzungsquote/digitalisierungsindex
+errors are exclusively the `isError` pattern, they are now suppressed from
+`sourceErrors` — treated as data gaps rather than service failures.
+
+### Requested fix
+
+When `vnbName` matches no record in `ewk_umsetzungsquote` or
+`ewk_digitalisierungsindex`, return an **empty result set**
+(`rows: []`, `metadata.total: 0`) consistent with the behaviour of
+`ewk_anschlussdauer`.  Do **not** set `isError: true` for "no data found"
+cases.

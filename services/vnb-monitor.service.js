@@ -135,6 +135,19 @@ function isRetriableError(message) {
   );
 }
 
+/**
+ * Returns true when an EWK metric error is the generic "tool returned isError"
+ * pattern — meaning the upstream EWK tool signalled "no data for this query".
+ * When anschlussdauer already proved the operator IS in EWK (sourceAvailable),
+ * these secondary-metric errors represent data gaps (VNB absent from that
+ * dataset), not service failures, and should be suppressed from sourceErrors.
+ * Real transient errors (timeout, session-not-found) are NOT matched here.
+ */
+function isEwkDataGapError(message) {
+  if (!message || typeof message !== 'string') return false;
+  return message.toLowerCase().includes('upstream tool returned an error with no details');
+}
+
 async function callActionWithRetry(ctx, actionName, params, options = {}) {
   const {
     attempts = 2,
@@ -697,11 +710,29 @@ async function fetchEwkData(ctx, bdewCode, options = {}) {
     if (!results.anschlussdauer) {
       unresolvedErrors.push(...metricErrors.anschlussdauer);
     }
+    // When anschlussdauer succeeded (operator is confirmed in EWK), suppress
+    // generic "upstream tool returned isError" failures for the secondary metrics.
+    // These indicate the operator is absent from that specific EWK dataset —
+    // a data gap, not a service failure.  Real transient errors (timeout,
+    // session-not-found) are not matched by isEwkDataGapError and still bubble up.
+    const ewkPartialOk = results.sourceAvailable;
     if (!results.umsetzungsquote) {
-      unresolvedErrors.push(...metricErrors.umsetzungsquote);
+      const allDataGap =
+        ewkPartialOk &&
+        metricErrors.umsetzungsquote.length > 0 &&
+        metricErrors.umsetzungsquote.every(isEwkDataGapError);
+      if (!allDataGap) {
+        unresolvedErrors.push(...metricErrors.umsetzungsquote);
+      }
     }
     if (!results.digitalisierungsindex) {
-      unresolvedErrors.push(...metricErrors.digitalisierungsindex);
+      const allDataGap =
+        ewkPartialOk &&
+        metricErrors.digitalisierungsindex.length > 0 &&
+        metricErrors.digitalisierungsindex.every(isEwkDataGapError);
+      if (!allDataGap) {
+        unresolvedErrors.push(...metricErrors.digitalisierungsindex);
+      }
     }
 
     if (unresolvedErrors.length > 0) {

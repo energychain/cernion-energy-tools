@@ -125,6 +125,35 @@ describe('Assets Service — VNB guard (VNB_NOT_FOUND)', () => {
     );
   });
 
+  it('should strip annotation from mastrNetzbetreiberId returned by cernion_market_partners', async () => {
+    // cernion_market_partners returns annotated IDs like
+    // "SNB935578300972 (strom, 100% Match)" — the annotation must be stripped
+    // before passing to cernion_installations_local which cannot match it.
+    callWithAutoPoll.mockResolvedValueOnce({
+      success: true,
+      data: {
+        count: 1,
+        results: [
+          {
+            name: 'TWL Netze GmbH',
+            mastrNetzbetreiberId: 'SNB935578300972 (strom, 100% Match)',
+            bdew: '9904350000002',
+          },
+        ],
+      },
+    });
+    broker._installationsMock.mockResolvedValueOnce([]);
+
+    await expect(
+      broker.call('assets.solar', { vnbName: 'TWL Netze GmbH' })
+    ).resolves.toBeDefined();
+
+    // Must pass clean SNB ID — NOT the annotated string
+    expect(broker._installationsMock.mock.calls[0][0].params.gridOperatorId).toBe(
+      'SNB935578300972'
+    );
+  });
+
   it('should proceed normally when a location filter is provided even if VNB is not resolvable', async () => {
     // location bypasses the VNB guard — it's a valid filter on its own
     broker._installationsMock.mockResolvedValueOnce([]);
