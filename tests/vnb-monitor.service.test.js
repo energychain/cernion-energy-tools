@@ -1070,4 +1070,106 @@ describe('vnb-monitor.service', () => {
       expect(getRes.thresholds['ewk.anschlussdauer.eeNS_weeks'].critical).toBe(90);
     });
   });
+
+  describe('fetchMastrData — no per-type 1000-row cap (regression)', () => {
+    let broker2;
+    let snapshotResult;
+    const capturedAssetParams = [];
+    let thresholdFile2;
+
+    beforeAll(async () => {
+      thresholdFile2 = path.join(os.tmpdir(), `vnb-monitor-cap-${Date.now()}.json`);
+      process.env.VNB_MONITOR_ALERT_CONFIG_FILE = thresholdFile2;
+
+      broker2 = new ServiceBroker({ logger: false });
+
+      broker2.createService({
+        name: 'grid-operations',
+        actions: {
+          vnbLookup: {
+            handler: () => ({
+              success: true,
+              data: {
+                bdew: '10002954',
+                mastrId: 'SNB123456789000',
+                companyName: 'Test VNB GmbH',
+                source: 'found',
+              },
+            }),
+          },
+          vnbLookupCodes: { handler: () => ({ success: true, canonical: null, aliases: [] }) },
+          marketPartners: { handler: () => ({ success: true, data: { results: [] } }) },
+        },
+      });
+      broker2.createService({
+        name: 'ewk-monitoring',
+        actions: {
+          anschlussdauer: { handler: () => ({ success: true, data: [] }) },
+          umsetzungsquote: { handler: () => ({ success: true, data: [] }) },
+          digitalisierungsindex: { handler: () => ({ success: true, data: [] }) },
+        },
+      });
+      broker2.createService({
+        name: 'energy-market',
+        actions: { prices: { handler: () => ({ success: true, dataPoints: [] }) } },
+      });
+      broker2.createService({
+        name: 'gas-storage',
+        actions: {
+          countryStorage: {
+            handler: () => ({
+              success: true,
+              data: { storage: { fillPercentage: 50 } },
+              metadata: { timestamp: new Date().toISOString() },
+            }),
+          },
+        },
+      });
+      // Capturing mock: records every assets.all call's params and returns 1001
+      // solar rows to prove the old per-type cap of 1000 has been removed.
+      broker2.createService({
+        name: 'assets',
+        actions: {
+          all: {
+            handler(ctx) {
+              capturedAssetParams.push({ ...ctx.params });
+              return Array.from({ length: 1001 }, () => ({
+                Anlagentyp: 'solar',
+                'Leistung MW': 0.05,
+              }));
+            },
+          },
+        },
+      });
+      broker2.createService(require('../services/vnb-monitor.service'));
+      await broker2.start();
+      snapshotResult = await broker2.call('vnb-monitor.snapshot', {
+        bdewCode: '10002954',
+        refresh: true,
+      });
+    });
+
+    afterAll(async () => {
+      await broker2.stop();
+      if (fs.existsSync(thresholdFile2)) fs.unlinkSync(thresholdFile2);
+      process.env.VNB_MONITOR_ALERT_CONFIG_FILE = thresholdConfigFile;
+    });
+
+    it('should count all pvAnlagen when mock returns 1001 rows (no per-type cap)', () => {
+      expect(snapshotResult.mastr.inBetrieb.pvAnlagen).toBe(1001);
+      expect(snapshotResult.mastr.inBetrieb.pvAnlagen).not.toBe(1000);
+    });
+
+    it('should not pass limit: 1000 to assets.all (was root cause of truncation)', () => {
+      const inBetriebCall = capturedAssetParams.find((p) => p.operationalStatus === '35');
+      expect(inBetriebCall).toBeDefined();
+      expect(inBetriebCall.limit).not.toBe(1000);
+    });
+
+    it('should pass includeNapData: false to assets.all', () => {
+      const inBetriebCall = capturedAssetParams.find((p) => p.operationalStatus === '35');
+      expect(inBetriebCall).toBeDefined();
+      expect(inBetriebCall.includeNapData).toBe(false);
+    });
+  });
 });

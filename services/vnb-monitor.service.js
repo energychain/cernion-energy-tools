@@ -787,11 +787,17 @@ async function fetchMastrData(ctx, identity) {
     // IMPORTANT: keep calls sequential to avoid MCP session spikes.
     // Each assets.all call fans out internally by technology, so a Promise.all
     // here can trigger nested concurrency and cause upstream "Session not found".
+    //
+    // No limit is passed (→ energy-market uses unlimited pagination) so that VNBs
+    // with >1000 installations of a single type are counted correctly.
+    // includeNapData: false — VNB monitor only aggregates counts/capacity; NAP
+    // fields (MeLo, Spannungsebene, Engpasskapazität) are unused and increase
+    // per-row payload significantly.
     const installedAssets = await fetchAssetsSafe(
       {
         ...filterParams,
-        limit: 1000,
         operationalStatus: '35',
+        includeNapData: false,
       },
       'inBetrieb',
       'inBetrieb'
@@ -800,8 +806,8 @@ async function fetchMastrData(ctx, identity) {
     const plannedAssets = await fetchAssetsSafe(
       {
         ...filterParams,
-        limit: 1000,
         operationalStatus: '31',
+        includeNapData: false,
       },
       'inPlanung',
       'inPlanung'
@@ -810,9 +816,9 @@ async function fetchMastrData(ctx, identity) {
     const queueAssets = await fetchAssetsSafe(
       {
         ...filterParams,
-        limit: 1000,
         operationalStatus: 'all',
         netzbetreiberPruefungStatus: '2955',
+        includeNapData: false,
       },
       'netzbetreiberPruefung',
       'netzbetreiberPruefung'

@@ -966,5 +966,31 @@ describe('Energy Market Service', () => {
       expect(result.data.pagination.hasMore).toBe(true);
       expect(result.data.pagination.count).toBe(2);
     });
+
+    it('should filter correctly when einheitBetriebsstatus is a number (MongoDB stores numeric codes)', async () => {
+      // Regression for type mismatch: allowedStatuses is ['35'] (strings) but
+      // MongoDB returns einheitBetriebsstatus as a number (35). Before the fix,
+      // ['35'].includes(35) === false caused ALL rows to pass the filter regardless
+      // of status, making inBetrieb and inPlanung return identical results.
+      const installations = [
+        { mastrNummer: 'SEE001', bruttoleistung: 10, einheitBetriebsstatus: 35 },  // number
+        { mastrNummer: 'SEE002', bruttoleistung: 20, einheitBetriebsstatus: 31 },  // number
+        { mastrNummer: 'SEE003', bruttoleistung: 30, einheitBetriebsstatus: 35 },  // number
+      ];
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: { installations, stats: {} },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        operationalStatus: '35',
+        limit: 10,
+      });
+      // Only the two status-35 rows should survive the post-filter
+      expect(result.data.installations).toHaveLength(2);
+      expect(result.data.installations.every((i) => String(i.einheitBetriebsstatus) === '35')).toBe(
+        true
+      );
+    });
   });
 });
