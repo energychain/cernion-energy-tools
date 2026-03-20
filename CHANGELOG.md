@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.11] - 2026-03-20
+### Fixed
+
+- **BDEW→BNr mapping for EWK lookups**
+  The EWK tools require the BNetzA Netzbetreibernummer (BNr, 5–10 digits, e.g.
+  `10002977`) as their lookup key — 13-digit BDEW market-partner codes are not
+  accepted and trigger a silent unfiltered fallback (CR-MCP-02). `vnb_lookup_codes`
+  returns the BNr as `canonical.bnr`, but `extractLookupBdewCodes` filtered for
+  `/^\d{13}$/` only, so the BNr was silently dropped. `findAlternateBdewCodes` then
+  returned only 13-digit BDEW aliases, and `fetchEwkData` fell through to
+  `{ vnbName }` as the sole query — which fails for `umsetzungsquote` /
+  `digitalisierungsindex` (CR-MCP-03), leaving both fields `null`.
+  Fixed by explicitly extracting `canonical.bnr` in `findAlternateBdewCodes` and
+  inserting it as the first entry in the query list. The BNr becomes
+  `{ bnr: "10002977" }` in `fetchEwkData`'s `ewkQueries`, tried before the
+  `vnbName` fallback. All three EWK tools respond correctly to BNr lookups.
+  `identity.bnr` is now also exposed in the snapshot API response.
+
+- **MaStR per-type 1000-row cap removed from VNB monitor**
+  `fetchMastrData` passed `limit: 1000` to `assets.all` for each of the three
+  queries (inBetrieb, inPlanung, netzbetreiberPruefung). Since `assets.all` fans
+  out per technology type internally, each type was individually capped at 1000
+  rows — VNBs with >1000 installations of a single type showed `pvAnlagen: 1000`
+  or `speicherAnlagen: 1000` (the limit, not the real count). Fixed by omitting
+  the `limit` parameter so `energy-market.installations` enables unlimited
+  pagination. Also added `includeNapData: false` to skip unused NAP fields and
+  reduce per-row payload.
+
 ## [0.9.10] - 2026-03-20
 ### Fixed
 
