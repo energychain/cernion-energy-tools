@@ -320,7 +320,14 @@ describe('nbp-monitor.service', () => {
     });
 
     it('should classify as inBearbeitung at exactly the 6-week boundary (42 days, not strictly over)', async () => {
-      assetsHandler = () => [makeInst('PV', 10, 42)]; // exactly 6 weeks → NOT > 6w → inBearbeitung
+      // makeInst uses Date.now() internally; by the time computeKpi3 runs a few
+      // ms have elapsed, making ageMs > vnbSeitigMs when using an exact integer
+      // day count.  Subtract 60 s so the age stays safely inside the threshold
+      // regardless of test-runner speed.
+      assetsHandler = () => [{
+        ...makeInst('PV', 10, 41),
+        DatumLetzteAktualisierung: new Date(Date.now() - 42 * 86_400_000 + 60_000).toISOString(),
+      }]; // 42 days ago + 60 s buffer → NOT > 42 days → inBearbeitung
       const r = await broker.call('nbp-monitor.snapshot', { bdewCode: 'K3E', refresh: true });
       expect(r.kpi3_process.inBearbeitung).toBe(1);
       expect(r.kpi3_process.vnbSeitig).toBe(0);

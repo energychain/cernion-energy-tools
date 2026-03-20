@@ -1196,7 +1196,9 @@ describe('Utility Report Service', () => {
         bdew: '9907026000009',
         forceRefresh: true,
       });
-      await new Promise((r) => setTimeout(r, 600));
+      // Async job may take >600ms under full-suite CPU load (isolated: ~1200ms).
+      // Using 1500ms to avoid the pre-existing 600ms flake.
+      await new Promise((r) => setTimeout(r, 1500));
       const blockedStatus = await mismatchBroker.call('utility-report.status', {
         reportId: blocked.reportId,
       });
@@ -1209,7 +1211,7 @@ describe('Utility Report Service', () => {
         allowIdentityMismatch: true,
         forceRefresh: true,
       });
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 1500));
       const allowedStatus = await mismatchBroker.call('utility-report.status', {
         reportId: allowed.reportId,
       });

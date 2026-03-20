@@ -568,11 +568,31 @@ describe('vnb-monitor.service', () => {
       probeBroker.createService({
         name: 'grid-operations',
         actions: {
-          // vnbLookup finds nothing – forces name-based fallback path
+          // vnbLookup resolves the primary code to TWL Netze GmbH so that
+          // providerName is set and a clean { vnbName } query reaches EWK.
+          // The stale alternate code 9904350000002 is still added via
+          // marketPartners but is now rejected by isBnrFormat (13 digits)
+          // before reaching the EWK tools – not by the mismatch guard.
           vnbLookup: {
             handler: () => ({
               success: true,
-              data: { source: 'not-found', companyName: null, mastrId: null },
+              data: {
+                bdew: '9907473000008',
+                mastrId: 'SNB935578300972',
+                companyName: 'TWL Netze GmbH',
+                source: 'mock',
+              },
+            }),
+          },
+          // vnbLookupCodes returns nothing useful → falls back to marketPartners
+          vnbLookupCodes: {
+            handler: () => ({
+              success: true,
+              canonical: null,
+              aliases: [],
+              codes: [],
+              conflictFlags: [],
+              sourceConfidence: 'low',
             }),
           },
           // marketPartners returns one stale alternate: 9904350000002 appears
@@ -852,18 +872,26 @@ describe('vnb-monitor.service', () => {
       });
 
       expect(marketPartnersCalls).toBe(0);
-      expect(anschlussdauerCalls).toContain('9907473000008');
-      expect(anschlussdauerCalls).toContain('9907473000999');
-      expect(anschlussdauerCalls).not.toContain('9904350000002');
+      // 13-digit BDEW codes are blocked by isBnrFormat before reaching EWK tools.
+      // Only the resolved operator name reaches anschlussdauer as a vnbName query.
+      expect(anschlussdauerCalls).toContain('TWL Netze GmbH');
+      expect(anschlussdauerCalls).not.toContain('9907473000008');  // 13-digit → blocked
+      expect(anschlussdauerCalls).not.toContain('9907473000999');  // 13-digit → blocked
+      expect(anschlussdauerCalls).not.toContain('9904350000002');  // 13-digit → blocked
     });
   });
 
-  // ─── Issue #3 root cause fix ──────────────────────────────────────────────
-  // When vnbLookup AND vnbLookupCodes both fail to resolve a BDEW code,
-  // identity is "Unknown".  The EWK anschlussdauer probe must NOT be skipped
-  // just because identity is "Unknown" – the probe result itself is the
-  // authoritative source for the operator name in this case.
-  describe('EWK identity back-fill when all upstream lookups fail (Issue #3)', () => {
+// ─── EWK identity back-fill via BNR-format code ────────────────────────
+  // When vnbLookup AND vnbLookupCodes both fail to resolve a code that IS in
+  // BNR format (5–10 digits, passes isBnrFormat), the EWK anschlussdauer probe
+  // is still attempted with { bnr: bdewCode }.  The probe result then acts as
+  // the authoritative last-resort identity source via back-fill.
+  //
+  // Note: 13-digit BDEW market-partner codes (e.g. 9904350000002) are rejected
+  // by isBnrFormat before reaching EWK, so this scenario requires a genuine
+  // BNR-format code (e.g. TWL's BNR 10002977).  Once CR-MCP-01 is fixed,
+  // 9904350000002 will be resolved correctly by cernion_vnb_lookup before EWK.
+  describe('EWK identity back-fill when upstream lookups fail for BNR-format code', () => {
     let ewkBackfillBroker;
 
     beforeAll(async () => {
@@ -872,11 +900,12 @@ describe('vnb-monitor.service', () => {
       ewkBackfillBroker.createService({
         name: 'grid-operations',
         actions: {
-          // Both lookup paths return nothing for this stale code.
+          // Both lookup paths return nothing — simulates an operator whose BNR
+          // is not yet in the cernion_vnb_lookup table.
           vnbLookup: {
             handler: () => ({
               success: true,
-              data: { bdew: '9904350000002', mastrId: null, companyName: null, source: 'not-found' },
+              data: { bdew: '10002977', mastrId: null, companyName: null, source: 'not-found' },
             }),
           },
           vnbLookupCodes: {
@@ -885,7 +914,6 @@ describe('vnb-monitor.service', () => {
               canonical: null,
               aliases: [],
               codes: [],
-              candidates: [],
               conflictFlags: [],
               sourceConfidence: 'low',
             }),
@@ -899,7 +927,7 @@ describe('vnb-monitor.service', () => {
       ewkBackfillBroker.createService({
         name: 'ewk-monitoring',
         actions: {
-          // EWK probe resolves the stale code directly to its canonical name.
+          // EWK probe resolves BNR 10002977 directly to TWL Netze GmbH.
           anschlussdauer: {
             handler: () => ({
               success: true,
@@ -908,19 +936,19 @@ describe('vnb-monitor.service', () => {
                   type: 'text',
                   json: {
                     stats: {
-                      ee_ns_gesamt: { median: 20 },
-                      verbrauch_ns_gesamt: { median: 18 },
+                      ee_ns_gesamt: { median: 40 },
+                      verbrauch_ns_gesamt: { median: 30 },
                     },
                     rows: [
                       {
-                        firmenname: 'Freiberger Stromversorgung GmbH',
-                        ee_ns_gesamt_wochen: 14,
-                        ee_ns_phase1_wochen: 5,
-                        ee_ns_phase2_wochen: 9,
-                        ee_ms_gesamt_wochen: 28,
-                        verbrauch_ns_gesamt_wochen: 22,
-                        rank_ee_ns: '150 / 790',
-                        rank_verbrauch_ns: '200 / 790',
+                        firmenname: 'TWL Netze GmbH',
+                        ee_ns_gesamt_wochen: 31,
+                        ee_ns_phase1_wochen: 11,
+                        ee_ns_phase2_wochen: 20,
+                        ee_ms_gesamt_wochen: 184,
+                        verbrauch_ns_gesamt_wochen: 31,
+                        rank_ee_ns: '306 / 740',
+                        rank_verbrauch_ns: '280 / 740',
                       },
                     ],
                   },
@@ -931,13 +959,13 @@ describe('vnb-monitor.service', () => {
           umsetzungsquote: {
             handler: () => ({
               success: true,
-              data: [{ type: 'text', json: { rows: [{ firmenname: 'Freiberger Stromversorgung GmbH', umsetzungsquote_ee_ns: 80 }] } }],
+              data: [{ type: 'text', json: { rows: [{ firmenname: 'TWL Netze GmbH', umsetzungsquote_ee_ns: 75 }] } }],
             }),
           },
           digitalisierungsindex: {
             handler: () => ({
               success: true,
-              data: [{ type: 'text', json: { stats: { gesamtscore: { median: 40, n: 790 } }, rows: [{ firmenname: 'Freiberger Stromversorgung GmbH' }] } }],
+              data: [{ type: 'text', json: { stats: { gesamtscore: { median: 35, n: 789 } }, rows: [{ firmenname: 'TWL Netze GmbH' }] } }],
             }),
           },
         },
@@ -945,7 +973,18 @@ describe('vnb-monitor.service', () => {
 
       ewkBackfillBroker.createService({
         name: 'energy-market',
-        actions: { prices: { handler: () => ({ success: true, dataPoints: [] }) } },
+        actions: {
+          // Return a real price point so the german-grid.spotprices fallback
+          // path is never entered (empty dataPoints[] triggers that path and
+          // the ewkBackfillBroker has no german-grid mock, which would cause
+          // a prices-fallback sourceError).
+          prices: {
+            handler: () => ({
+              success: true,
+              dataPoints: [{ timestamp: new Date().toISOString(), priceEURperMWh: 85.0 }],
+            }),
+          },
+        },
       });
 
       ewkBackfillBroker.createService({
@@ -972,31 +1011,29 @@ describe('vnb-monitor.service', () => {
 
     afterAll(() => ewkBackfillBroker.stop());
 
-    it('should back-fill identity from EWK probe result when upstream lookups return nothing', async () => {
+    it('should back-fill identity from EWK probe when upstream lookups return nothing for BNR-format code', async () => {
       const result = await ewkBackfillBroker.call('vnb-monitor.snapshot', {
-        bdewCode: '9904350000002',
+        bdewCode: '10002977',  // TWL's actual BNR (8 digits, passes isBnrFormat)
         refresh: true,
         alerts: false,
       });
 
-      // Identity must be resolved from EWK, not left as "Unknown"
-      expect(result.identity.name).toBe('Freiberger Stromversorgung GmbH');
+      // Identity must be resolved from EWK probe, not left as "Unknown"
+      expect(result.identity.name).toBe('TWL Netze GmbH');
       expect(result.identity.name).not.toBe('Unknown');
     });
 
-    it('should have EWK data when identity is resolved from probe', async () => {
+    it('should have EWK data when identity is back-filled from BNR probe', async () => {
       const result = await ewkBackfillBroker.call('vnb-monitor.snapshot', {
-        bdewCode: '9904350000002',
+        bdewCode: '10002977',
         refresh: true,
         alerts: false,
       });
 
       expect(result.ewk.sourceAvailable).toBe(true);
       expect(result.ewk.anschlussdauer).not.toBeNull();
-      expect(result.ewk.anschlussdauer.eeNS_weeks).toBe(14);
-      expect(result.sourceErrors).not.toContain(
-        expect.stringContaining('umsetzungsquote (Unknown)')
-      );
+      expect(result.ewk.anschlussdauer.eeNS_weeks).toBe(31);
+      expect(result.sourceErrors.length).toBe(0);
     });
   });
 

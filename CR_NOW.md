@@ -525,3 +525,130 @@ NBP_PARAMETERS_FILE=./uploads/.nbp-parameters.json
 - **Power Automate alert integration** — triggering Teams alerts when
   KPI 1 alert level changes. Can be wired manually by customer using
   the generated HTTP snippet; native integration tracked for v0.9.8.
+
+---
+
+---
+
+# MCP Tool Change Requests — Identified 2026-03-20
+
+> These bugs were discovered while diagnosing Issue #3 (stale BDEW code
+> `9904350000002` resolving to "Unknown" in `vnb-monitor`).  Both are
+> defects in upstream MCP tool behaviour that cannot be worked around
+> fully in application code.
+
+---
+
+## CR-MCP-01 · `cernion_vnb_lookup` does not resolve alias BDEW codes to the correct operator
+
+**Tool:** `cernion_vnb_lookup`
+**Severity:** High — causes entire VNB Monitor snapshot to return `identity.name = "Unknown"`
+
+### Reproduction
+
+```
+POST cernion_vnb_lookup
+{ "bdew": "9904350000002" }
+```
+
+**Actual response:**
+```json
+{
+  "bdew": "9904350000002",
+  "mastrId": null,
+  "companyName": null,
+  "source": "not-found",
+  "message": "No MaStR ID found for BDEW code"
+}
+```
+
+**Expected response:**
+```json
+{
+  "bdew": "9904350000002",
+  "mastrId": "SNB935578300972",
+  "companyName": "TWL Netze GmbH",
+  "source": "mastr"
+}
+```
+
+### Evidence
+
+MaStR public record [ID 1000552](https://www.marktstammdatenregister.de/MaStR/Akteur/Marktakteur/Detail/1000552) unambiguously maps this code to:
+
+- **Name:** TWL Netze GmbH
+- **MaStR-Nr.:** SNB935578300972
+- **Status:** Aktiv
+- **Address:** Industriestraße 3, 67063 Ludwigshafen, Rheinland-Pfalz
+
+The BDEW code `9904350000002` is a legitimate market-partner code for this operator.  The tool's MaStR lookup does not find it, meaning the code is either absent from the tool's internal mapping table or the lookup is not querying the full alias set.
+
+### Impact
+
+Any client that queries `/api/vnb-monitor/9904350000002` receives:
+- `identity.name = "Unknown"`, `mastrId = null`
+- No EWK data (secondary consequence of unknown identity)
+- No MaStR asset data
+
+### Requested fix
+
+Extend the `cernion_vnb_lookup` lookup table / MaStR query to include
+all registered BDEW market-partner codes for each operator, including
+alias/secondary codes that appear in MaStR's `Marktrollennetzdaten`.
+
+---
+
+## CR-MCP-02 · `ewk_anschlussdauer`, `ewk_umsetzungsquote`, `ewk_digitalisierungsindex` silently ignore invalid `bnr` values and return all results
+
+**Tools:** `ewk_anschlussdauer`, `ewk_umsetzungsquote`, `ewk_digitalisierungsindex`
+**Severity:** Critical — produces completely wrong data without any error signal
+
+### Reproduction
+
+```
+ewk_anschlussdauer({ "bnr": "9904350000002", "limit": 1 })
+```
+
+**Actual response:** Returns **Freiberger Stromversorgung GmbH** (BNr: `10000868`),
+rank 1 of **789 VNBs** — the nationwide fastest operator, completely unrelated to the query.
+
+**Expected response:** 0 rows, or an error indicating the `bnr` value was not found.
+
+### Root cause
+
+`9904350000002` is a 13-digit BDEW market-partner code.  BNetzA BNR
+(Netzbetreibernummer) codes used in the EWK dataset are 8-digit numbers
+(e.g. TWL Netze GmbH = `10002977`, Freiberger = `10000868`).
+
+When the tool receives a `bnr` value that matches no record in the EWK
+dataset, it silently falls back to returning all ~789 VNBs in the default
+sort order (`anschlussdauer_asc`), making the fastest operator (Freiberger,
+rank #1) appear as a result.  There is no error, no empty result set, and
+no warning — the response is indistinguishable from a successful match.
+
+### Confirmed correct call
+
+```
+ewk_anschlussdauer({ "vnbName": "TWL Netze", "limit": 1 })
+```
+→ Returns TWL Netze GmbH (BNr: `10002977`) — **correct**.
+
+### Impact
+
+Application code that builds EWK queries from BDEW codes (which is the
+natural approach when the BNR is unknown) will silently receive fabricated
+data.  In this case it caused a mismatch guard to fire when the response
+named "Freiberger" but the expected operator was "Unknown", leading to
+all EWK data being discarded.  After removing the mismatch guard, the
+same bug would cause Freiberger's EWK benchmarks to be displayed as
+if they belong to the queried operator.
+
+### Requested fix
+
+When `bnr` is provided and no record with that exact BNR exists in the
+EWK dataset, return an **empty result set** (`rows: []`, `metadata.total: 0`)
+rather than falling back to an unfiltered result.  Optionally, add a
+validation error if the value does not match the expected BNR format
+(`/^\d{5,10}$/`).
+
+---

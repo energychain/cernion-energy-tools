@@ -195,6 +195,23 @@ function normalizeOperatorName(value) {
     .trim();
 }
 
+/**
+ * Returns true only when a code is plausibly a BNetzA BNR
+ * (Netzbetreibernummer) — the identifier the EWK tools use.
+ *
+ * BNRs are short numeric codes (observed range: 5–10 digits, e.g.
+ * 10002977 for TWL Netze GmbH).  They are completely different from
+ * 13-digit BDEW market-partner codes (9904350000002, 9907473000008, …).
+ *
+ * Passing a 13-digit BDEW code as `bnr` to ewk_anschlussdauer /
+ * ewk_umsetzungsquote / ewk_digitalisierungsindex silently returns the
+ * full unfiltered result set (CR-MCP-02) — so we must guard against it.
+ */
+function isBnrFormat(code) {
+  const s = String(code || '').trim();
+  return /^\d{5,10}$/.test(s);
+}
+
 function isLikelySameOperator(sourceName, targetName) {
   if (!sourceName || !targetName) {
     return true;
@@ -492,8 +509,12 @@ async function fetchEwkData(ctx, bdewCode, options = {}) {
   };
 
   const ewkQueries = [
-    { bnr: bdewCode },
-    ...alternateBdewCodes.map((code) => ({ bnr: code })),
+    // Only pass a code as `bnr` when it is in BNR format (5–10 digits).
+    // 13-digit BDEW market-partner codes (9904350000002, 9907473000008 …)
+    // are NOT valid BNRs.  Passing them to the EWK tools triggers a silent
+    // fallback that returns all ~789 VNBs in default sort order (CR-MCP-02).
+    ...(isBnrFormat(bdewCode) ? [{ bnr: bdewCode }] : []),
+    ...alternateBdewCodes.filter(isBnrFormat).map((code) => ({ bnr: code })),
     ...(providerName ? [{ vnbName: providerName }] : []),
   ];
 
