@@ -376,8 +376,14 @@ async function findAlternateBdewCodes(ctx, identity, primaryBdewCode) {
 
 /**
  * Resolves VNB identity (name, MaStR ID) from BDEW code
+ *
+ * Primary: grid-operations.vnbLookup (cernion_vnb_lookup MCP tool)
+ * Fallback 1: grid-operations.vnbLookupCodes (vnb_lookup_codes MCP tool) — resolves stale/alias codes
+ * Fallback 2: grid-operations.marketPartners (if hintName provided)
+ * Final: return "Unknown"
  */
 async function resolveVnbIdentity(ctx, bdewCode, hintName = null) {
+  // Attempt 1: Try vnbLookup (primary, fast lookup)
   try {
     const lookupResult = await ctx.call('grid-operations.vnbLookup', { bdew: bdewCode });
     const lookupData = lookupResult?.data || {};
@@ -393,9 +399,44 @@ async function resolveVnbIdentity(ctx, bdewCode, hintName = null) {
       };
     }
   } catch (err) {
-    this.logger?.warn(`Failed to resolve VNB identity for ${bdewCode}:`, err.message);
+    this.logger?.warn(`Failed to resolve VNB identity for ${bdewCode} via vnbLookup:`, err.message);
   }
 
+  // Attempt 2: Try vnb_lookup_codes MCP tool to resolve stale/alias codes to canonical operator
+  try {
+    const canonicalResult = await ctx.call('grid-operations.vnbLookupCodes', {
+      bdewCode,
+      includeAliases: false,
+      includeTrace: false,
+    });
+
+    // Check if the MCP call succeeded and returned canonical data
+    if (canonicalResult?.success !== false && canonicalResult?.canonical) {
+      const canonical = canonicalResult.canonical;
+      const operatorName = canonical.name || hintName || 'Unknown';
+
+      this.logger?.debug(`Resolved ${bdewCode} via vnbLookupCodes to "${operatorName}"`);
+      return {
+        name: operatorName,
+        mastrId: canonical.mastrId || null,
+        bdewCode,
+        location: null,
+        marketPartnerBdewCode: canonical.bdewCodePrimary || null,
+        resolvedAt: new Date().toISOString(),
+      };
+    }
+
+    // If MCP call failed or returned null canonical, log and continue to next fallback
+    if (canonicalResult?.success === false) {
+      this.logger?.warn(
+        `vnbLookupCodes returned error for ${bdewCode}: ${canonicalResult?.error?.message || 'unknown error'}`
+      );
+    }
+  } catch (err) {
+    this.logger?.warn(`Failed to resolve VNB identity for ${bdewCode} via vnbLookupCodes:`, err.message);
+  }
+
+  // Attempt 3: Try marketPartners with hint name
   if (hintName) {
     try {
       const partnerResult = await ctx.call('grid-operations.marketPartners', {

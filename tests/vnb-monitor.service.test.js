@@ -39,6 +39,39 @@ describe('vnb-monitor.service', () => {
             };
           },
         },
+        vnbLookupCodes: {
+          handler(ctx) {
+            const { bdewCode } = ctx.params;
+            // If querying the stale code, return canonical resolution
+            if (bdewCode === '9904350000002') {
+              return {
+                success: true,
+                canonical: {
+                  name: 'Freiberger Stadtwerke',
+                  bdewCodePrimary: '9904350000002',
+                  bnr: '99043500',
+                  mastrId: 'SNB999999999999',
+                  eic: null,
+                },
+                aliases: [],
+                codes: ['9904350000002'],
+                candidates: [],
+                conflictFlags: [],
+                sourceConfidence: 'high',
+              };
+            }
+            // Default fallback
+            return {
+              success: true,
+              canonical: null,
+              aliases: [],
+              codes: [],
+              candidates: [],
+              conflictFlags: [],
+              sourceConfidence: 'low',
+            };
+          },
+        },
         marketPartners: {
           handler() {
             return {
@@ -271,6 +304,22 @@ describe('vnb-monitor.service', () => {
       expect(result.identity).toHaveProperty('bdewCode');
       expect(result.identity).toHaveProperty('location');
       expect(result.identity).toHaveProperty('resolvedAt');
+    });
+
+    it('should resolve stale BDEW code via vnbLookupCodes fallback (Issue #3)', async () => {
+      // Stale code 9904350000002 has no record in vnbLookup, but should resolve via vnbLookupCodes
+      const result = await broker.call('vnb-monitor.snapshot', {
+        bdewCode: '9904350000002',
+        refresh: true,
+      });
+
+      // Should resolve to canonical operator via vnbLookupCodes
+      expect(result.identity.name).toBe('Freiberger Stadtwerke');
+      expect(result.identity.bdewCode).toBe('9904350000002');
+      expect(result.identity.mastrId).toBe('SNB999999999999');
+      expect(result.identity.resolvedAt).toBeDefined();
+      // Should NOT be "Unknown" anymore
+      expect(result.identity.name).not.toBe('Unknown');
     });
 
     it('should have EWK object structure', async () => {
