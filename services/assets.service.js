@@ -1,4 +1,5 @@
 const XLSX = require('xlsx');
+const { callWithAutoPoll } = require('../src/async-job-poller');
 
 /**
  * Assets Service
@@ -98,6 +99,169 @@ module.exports = {
 
       // Return as buffer
       return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    },
+
+    /**
+     * Map a raw MaStR installation item to the canonical German output format.
+     *
+     * @param {object} item       - Raw installation record from cernion_installations_local
+     * @param {string} assetType  - Installation type string (solar|wind|storage|biomass|…|all)
+     * @returns {object}          - Mapped output record
+     */
+    _mapInstallationItem(item, assetType) {
+      const capacityKW =
+        Number(
+          item.capacityKW ||
+            item.acLeistung ||
+            item.bruttoleistung ||
+            item.nettonennleistung ||
+            item.installierteleistung
+        ) || 0;
+      const capacityMW = capacityKW / 1000;
+
+      const storageCapacity =
+        Number(
+          item.storageCapacityKWh ||
+            item.nutzbareSpeicherkapazitaet ||
+            item.speicherkapazitaet ||
+            item.nutzbareKapazitaet
+        ) || 0;
+
+      let cRate = null;
+      if (assetType === 'storage') {
+        if (capacityKW > 0 && storageCapacity > 0) {
+          cRate = parseFloat((capacityKW / storageCapacity).toFixed(2));
+        }
+      }
+
+      const inverterPower =
+        item.inverterPowerKW || item.wechselrichterleistung
+          ? Number(item.inverterPowerKW || item.wechselrichterleistung)
+          : null;
+
+      let commissionDate =
+        item.commissioningDate || item.inbetriebnahmedatum || item.date || 'N/A';
+      if (commissionDate !== 'N/A' && typeof commissionDate === 'string') {
+        commissionDate = commissionDate.split('T')[0];
+      }
+
+      const statusCode = item.operationalStatus || item.einheitBetriebsstatus || null;
+      const statusName =
+        statusCode === '31'
+          ? 'Geplant'
+          : statusCode === '35'
+            ? 'In Betrieb'
+            : statusCode === '37'
+              ? 'Vorübergehend stillgelegt'
+              : statusCode === '38'
+                ? 'Endgültig stillgelegt'
+                : statusCode
+                  ? `Status ${statusCode}`
+                  : null;
+
+      const nbpStatus =
+        item.netzbetreiberpruefungStatus !== undefined
+          ? item.netzbetreiberpruefungStatus
+          : null;
+      const nbpStatusName =
+        nbpStatus === 2954
+          ? 'Geprüft'
+          : nbpStatus === 2955
+            ? 'In Prüfung'
+            : nbpStatus === 3075
+              ? 'Nicht vorgesehen'
+              : null;
+
+      return {
+        'SEE Nummer':
+          item.mastrNumber || item.mastrNummer || item.EinheitMastrNummer || item.id || 'N/A',
+        'Einheit Systemstatus': item.einheitSystemstatus || item.systemStatus || null,
+
+        Betreiber: item.operatorName || item.operator || item.name || item.betreiber || 'N/A',
+        'Marktaktuer MaStR':
+          item.marketActorId || item.marktakteurMastrNummer || item.marktakteur || null,
+        'Marktakteuer Name':
+          item.marketActorName ||
+          item.marktakteurName ||
+          item.nameMarktakteur ||
+          item.marktakteurFirmenname ||
+          null,
+        'Marktakteur Adresse':
+          item.marketActorAddress ||
+          item.marktakteurAdresse ||
+          item.marktakteurStrasse ||
+          null,
+
+        'Netzbetreiber MaStR':
+          item.netzbetreiberMastrNummer || item.gridOperatorMastrId || null,
+        'Netzbetreiber Name': item.netzbetreiberName || item.gridOperatorName || null,
+
+        Anlagentyp: assetType,
+        'Leistung MW': capacityMW,
+        'Leistung kW': capacityKW,
+        Wechselrichterleistung: inverterPower,
+        Technologie: item.technology || item.technologie || assetType,
+
+        Speicherkapazität: assetType === 'storage' ? storageCapacity : null,
+        C_Rate: cRate,
+        'AC Nennleistung': item.acNennleistung || item.acNominalPower || null,
+        'DC Nennleistung': item.dcNennleistung || item.dcNominalPower || null,
+        Batterietechnologie: item.batterietechnologie || item.batteryTechnology || null,
+        'Hersteller Batteriemodule':
+          item.herstellerBatteriemodule || item.batteryModuleManufacturer || null,
+
+        Hauptausrichtung:
+          item.hauptausrichtung || item.hauptAusrichtung || item.orientation || null,
+        Neigungswinkel: item.neigungswinkel || item.tiltAngle || null,
+        Leistungsbegrenzung: item.leistungsbegrenzung || item.powerLimit || null,
+
+        Nabenhöhe: item.nabenhoehe || item.hubHeight || null,
+        Rotordurchmesser: item.rotordurchmesser || item.rotorDiameter || null,
+        Hersteller: item.hersteller || item.manufacturer || null,
+        Typenbezeichnung: item.typenbezeichnung || item.typeDesignation || null,
+
+        Betriebsstatus: statusCode,
+        'Betriebsstatus Name': statusName,
+        'Datum Netzzugang': commissionDate,
+        Registrierungsdatum: item.registrierungsdatum || item.registrationDate || null,
+        Genehmigungsdatum: item.genehmigungsdatum || item.approvalDate || null,
+
+        Kopplung: item.coupling || item.kopplung || (item.connectedToGrid ? 'AC' : 'DC'),
+        Einspeiseart: item.feedInType || item.einspeiseart || 'Überschusseinspeisung',
+        Spannungsebene: item.spannungsebene || item.voltageLevel || null,
+        Fernsteuerbarkeit: item.fernsteuerbarkeit || item.remoteControllability || null,
+        Einsatzverantwortlicher:
+          item.einsatzverantwortlicher || item.deploymentResponsible || null,
+
+        Postleitzahl: item.postleitzahl || item.postalCode || null,
+        Ort: item.ort || item.city || null,
+        Gemeinde: item.gemeinde || item.municipality || null,
+        Landkreis: item.landkreis || item.district || null,
+        Bundesland: item.bundesland || item.state || null,
+        Längengrad: item.laengengrad || item.longitude || null,
+        Breitengrad: item.breitengrad || item.latitude || null,
+
+        Fläche: item.inAnspruchGenommeneFlaeche || item.usedArea || null,
+        'Anzahl Module': item.anzahlModule || item.moduleCount || null,
+        'Leistung je Modul': item.leistungJeModul || item.powerPerModule || null,
+
+        'Netzbetreiberpruefung Status': nbpStatus,
+        'Netzbetreiberpruefung Status Name': nbpStatusName,
+
+        'NAP MaStR Nummer': item.napData?.napMastrNummer || null,
+        'Messlokation (MeLo)': item.napData?.messlokation || null,
+        'Spannungsebene NAP': item.napData?.spannungsebeneLabel || null,
+        'Nettoengpassleistung kW':
+          item.napData?.nettoengpassleistung != null ? item.napData.nettoengpassleistung : null,
+        'Netz MaStR Nummer': item.napData?.netzMastrNummer || null,
+        'Netzbetreiber NAP MaStR': item.napData?.netzbetreiberMastrNummer || null,
+
+        // Direktvermarktung fields (populated when item originates from a direktvermarkter query)
+        Direktvermarkter: item.direktvermarkterName || null,
+        'Direktvermarkter MaStR': item.direktvermarkterMastrNummer || null,
+        'Direktvermarktung Beginn': item.direktvermarktungBeginn || null,
+        'Direktvermarktung Status': item.direktvermarktungStatus || null,
+      };
     },
 
     /**
@@ -307,177 +471,8 @@ module.exports = {
             throw new Error(items[0].text);
           }
 
-          // Map items to German output format
-          const mappedItems = items.map((item) => {
-            // Handle both field naming conventions (camelCase and German)
-            // For storage: check acLeistung (AC power) first, then bruttoleistung
-            const capacityKW =
-              Number(
-                item.capacityKW ||
-                  item.acLeistung ||
-                  item.bruttoleistung ||
-                  item.nettonennleistung ||
-                  item.installierteleistung
-              ) || 0;
-            const capacityMW = capacityKW / 1000;
-
-            // Storage capacity: check all possible field name variants
-            const storageCapacity =
-              Number(
-                item.storageCapacityKWh ||
-                  item.nutzbareSpeicherkapazitaet ||
-                  item.speicherkapazitaet ||
-                  item.nutzbareKapazitaet
-              ) || 0;
-
-            let cRate = null;
-            if (assetType === 'storage') {
-              if (capacityKW > 0 && storageCapacity > 0) {
-                cRate = parseFloat((capacityKW / storageCapacity).toFixed(2));
-              }
-            }
-
-            const inverterPower =
-              item.inverterPowerKW || item.wechselrichterleistung
-                ? Number(item.inverterPowerKW || item.wechselrichterleistung)
-                : null;
-
-            // Extract commission date (handle ISO format)
-            let commissionDate =
-              item.commissioningDate || item.inbetriebnahmedatum || item.date || 'N/A';
-            if (commissionDate !== 'N/A' && typeof commissionDate === 'string') {
-              // Convert ISO date to YYYY-MM-DD format
-              commissionDate = commissionDate.split('T')[0];
-            }
-
-            // Map status code to readable name
-            const statusCode = item.operationalStatus || item.einheitBetriebsstatus || null;
-            const statusName =
-              statusCode === '31'
-                ? 'Geplant'
-                : statusCode === '35'
-                  ? 'In Betrieb'
-                  : statusCode === '37'
-                    ? 'Vorübergehend stillgelegt'
-                    : statusCode === '38'
-                      ? 'Endgültig stillgelegt'
-                      : statusCode
-                        ? `Status ${statusCode}`
-                        : null;
-
-            // Map Netzbetreiberprüfung status code to readable name
-            const nbpStatus =
-              item.netzbetreiberpruefungStatus !== undefined
-                ? item.netzbetreiberpruefungStatus
-                : null;
-            const nbpStatusName =
-              nbpStatus === 2954
-                ? 'Geprüft'
-                : nbpStatus === 2955
-                  ? 'In Prüfung'
-                  : nbpStatus === 3075
-                    ? 'Nicht vorgesehen'
-                    : null;
-
-            return {
-              'SEE Nummer':
-                item.mastrNumber || item.mastrNummer || item.EinheitMastrNummer || item.id || 'N/A',
-              'Einheit Systemstatus': item.einheitSystemstatus || item.systemStatus || null,
-
-              // Operator information
-              Betreiber: item.operatorName || item.operator || item.name || item.betreiber || 'N/A',
-              'Marktaktuer MaStR':
-                item.marketActorId || item.marktakteurMastrNummer || item.marktakteur || null,
-              'Marktakteuer Name':
-                item.marketActorName ||
-                item.marktakteurName ||
-                item.nameMarktakteur ||
-                item.marktakteurFirmenname ||
-                null,
-              'Marktakteur Adresse':
-                item.marketActorAddress ||
-                item.marktakteurAdresse ||
-                item.marktakteurStrasse ||
-                null,
-
-              // Grid operator information
-              'Netzbetreiber MaStR':
-                item.netzbetreiberMastrNummer || item.gridOperatorMastrId || null,
-              'Netzbetreiber Name': item.netzbetreiberName || item.gridOperatorName || null,
-
-              // Technical specifications
-              Anlagentyp: assetType,
-              'Leistung MW': capacityMW,
-              'Leistung kW': capacityKW,
-              Wechselrichterleistung: inverterPower,
-              Technologie: item.technology || item.technologie || assetType,
-
-              // Storage-specific fields
-              Speicherkapazität: assetType === 'storage' ? storageCapacity : null,
-              C_Rate: cRate,
-              'AC Nennleistung': item.acNennleistung || item.acNominalPower || null,
-              'DC Nennleistung': item.dcNennleistung || item.dcNominalPower || null,
-              Batterietechnologie: item.batterietechnologie || item.batteryTechnology || null,
-              'Hersteller Batteriemodule':
-                item.herstellerBatteriemodule || item.batteryModuleManufacturer || null,
-
-              // Solar-specific fields
-              Hauptausrichtung:
-                item.hauptausrichtung || item.hauptAusrichtung || item.orientation || null,
-              Neigungswinkel: item.neigungswinkel || item.tiltAngle || null,
-              Leistungsbegrenzung: item.leistungsbegrenzung || item.powerLimit || null,
-
-              // Wind-specific fields
-              Nabenhöhe: item.nabenhoehe || item.hubHeight || null,
-              Rotordurchmesser: item.rotordurchmesser || item.rotorDiameter || null,
-              Hersteller: item.hersteller || item.manufacturer || null,
-              Typenbezeichnung: item.typenbezeichnung || item.typeDesignation || null,
-
-              // Status and dates
-              Betriebsstatus: statusCode,
-              'Betriebsstatus Name': statusName,
-              'Datum Netzzugang': commissionDate,
-              Registrierungsdatum: item.registrierungsdatum || item.registrationDate || null,
-              Genehmigungsdatum: item.genehmigungsdatum || item.approvalDate || null,
-
-              // Grid connection
-              Kopplung: item.coupling || item.kopplung || (item.connectedToGrid ? 'AC' : 'DC'),
-              Einspeiseart: item.feedInType || item.einspeiseart || 'Überschusseinspeisung',
-              Spannungsebene: item.spannungsebene || item.voltageLevel || null,
-              Fernsteuerbarkeit: item.fernsteuerbarkeit || item.remoteControllability || null,
-              Einsatzverantwortlicher:
-                item.einsatzverantwortlicher || item.deploymentResponsible || null,
-
-              // Location information
-              Postleitzahl: item.postleitzahl || item.postalCode || null,
-              Ort: item.ort || item.city || null,
-              Gemeinde: item.gemeinde || item.municipality || null,
-              Landkreis: item.landkreis || item.district || null,
-              Bundesland: item.bundesland || item.state || null,
-              Längengrad: item.laengengrad || item.longitude || null,
-              Breitengrad: item.breitengrad || item.latitude || null,
-
-              // Additional fields
-              Fläche: item.inAnspruchGenommeneFlaeche || item.usedArea || null,
-              'Anzahl Module': item.anzahlModule || item.moduleCount || null,
-              'Leistung je Modul': item.leistungJeModul || item.powerPerModule || null,
-
-              // Netzbetreiberprüfung
-              'Netzbetreiberpruefung Status': nbpStatus,
-              'Netzbetreiberpruefung Status Name': nbpStatusName,
-
-              // Netzanschlusspunkt (NAP) / Messlokation (MeLo)
-              'NAP MaStR Nummer': item.napData?.napMastrNummer || null,
-              'Messlokation (MeLo)': item.napData?.messlokation || null,
-              'Spannungsebene NAP': item.napData?.spannungsebeneLabel || null,
-              'Nettoengpassleistung kW':
-                item.napData?.nettoengpassleistung != null
-                  ? item.napData.nettoengpassleistung
-                  : null,
-              'Netz MaStR Nummer': item.napData?.netzMastrNummer || null,
-              'Netzbetreiber NAP MaStR': item.napData?.netzbetreiberMastrNummer || null,
-            };
-          });
+          // Map items to German output format using shared _mapInstallationItem
+          const mappedItems = items.map((item) => this._mapInstallationItem(item, assetType));
 
           allResults.push(...mappedItems);
         } catch (err) {
@@ -1998,6 +1993,244 @@ module.exports = {
         }
 
         return this._fetchAssets(ctx, types);
+      },
+    },
+
+    /**
+     * byDirektvermarkter
+     *
+     * Returns all MaStR installations that are assigned to the given
+     * Direktvermarkter (direct energy marketer).  This is step 2 of the
+     * Direktvermarkter pipeline:
+     *   grid-operations.direktvermarkterLookup  →  assets.byDirektvermarkter
+     *
+     * Calls cernion_installations_local with direktvermarkterName /
+     * direktvermarkterMastrId filter parameters introduced in Phase 1 of
+     * CR-Direktvermarktung.
+     */
+    byDirektvermarkter: {
+      rest: 'POST /by-direktvermarkter',
+      params: {
+        direktvermarkterName: { type: 'string', optional: true, min: 1 },
+        direktvermarkterMastrId: { type: 'string', optional: true, min: 1 },
+        installationType: {
+          type: 'enum',
+          values: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion', 'all'],
+          optional: true,
+          default: 'all',
+        },
+        commissioningYear: {
+          type: 'number',
+          optional: true,
+          min: 1900,
+          max: 2100,
+          convert: true,
+        },
+        minCapacityKW: { type: 'number', optional: true, min: 0, convert: true },
+        maxCapacityKW: { type: 'number', optional: true, min: 0, convert: true },
+        bundesland: { type: 'string', optional: true, min: 1 },
+        limit: {
+          type: 'number',
+          optional: true,
+          default: 1000,
+          min: 1,
+          max: 10000,
+          convert: true,
+        },
+        offset: { type: 'number', optional: true, default: 0, min: 0, convert: true },
+        format: {
+          type: 'enum',
+          values: ['json', 'csv', 'xlsx'],
+          optional: true,
+          default: 'json',
+        },
+      },
+      openapi: {
+        summary: 'List all installations of a Direktvermarkter (direct energy marketer)',
+        tags: ['Assets'],
+        description:
+          'Retrieves MaStR installations assigned to a given direct energy marketer ' +
+          '(Direktvermarkter) using the direktvermarkterName or direktvermarkterMastrId ' +
+          'filter. Step 2 of the Direktvermarkter pipeline. ' +
+          'Supports filtering by type, commissioning year, capacity, and Bundesland.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  direktvermarkterName: {
+                    type: 'string',
+                    description: 'Direktvermarkter company name (fuzzy match)',
+                    example: 'Next Kraftwerke',
+                  },
+                  direktvermarkterMastrId: {
+                    type: 'string',
+                    description: 'Exact MaStR ID of the Direktvermarkter',
+                    example: 'ABR123456789',
+                  },
+                  installationType: {
+                    type: 'string',
+                    enum: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion', 'all'],
+                    default: 'all',
+                    description: 'Filter by installation type (default: all)',
+                  },
+                  commissioningYear: {
+                    type: 'integer',
+                    description: 'Filter by commissioning year',
+                    example: 2025,
+                  },
+                  minCapacityKW: {
+                    type: 'number',
+                    description: 'Minimum installed capacity in kW',
+                    example: 100,
+                  },
+                  maxCapacityKW: {
+                    type: 'number',
+                    description: 'Maximum installed capacity in kW',
+                    example: 5000,
+                  },
+                  bundesland: {
+                    type: 'string',
+                    description: 'Filter by federal state',
+                    example: 'Bayern',
+                  },
+                  limit: {
+                    type: 'integer',
+                    default: 1000,
+                    minimum: 1,
+                    maximum: 10000,
+                    description: 'Maximum number of results (default: 1000)',
+                  },
+                  offset: {
+                    type: 'integer',
+                    default: 0,
+                    description: 'Pagination offset',
+                  },
+                  format: {
+                    type: 'string',
+                    enum: ['json', 'csv', 'xlsx'],
+                    default: 'json',
+                    description: 'Output format',
+                  },
+                },
+              },
+              examples: {
+                byName: {
+                  summary: 'All installations of NextKraftwerke commissioned in 2025',
+                  value: {
+                    direktvermarkterName: 'Next Kraftwerke',
+                    commissioningYear: 2025,
+                    limit: 1000,
+                  },
+                },
+                byMastrId: {
+                  summary: 'Solar portfolio by exact Direktvermarkter MaStR ID',
+                  value: {
+                    direktvermarkterMastrId: 'ABR123456789',
+                    installationType: 'solar',
+                    minCapacityKW: 100,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const {
+          direktvermarkterName,
+          direktvermarkterMastrId,
+          installationType = 'all',
+          commissioningYear,
+          minCapacityKW,
+          maxCapacityKW,
+          bundesland,
+          limit = 1000,
+          offset = 0,
+          format = 'json',
+        } = ctx.params;
+
+        if (!direktvermarkterName && !direktvermarkterMastrId) {
+          throw new Error(
+            'Please provide either "direktvermarkterName" or "direktvermarkterMastrId".'
+          );
+        }
+
+        const mcpParams = {
+          type: installationType,
+          direktvermarkterName: direktvermarkterName || undefined,
+          direktvermarkterMastrId: direktvermarkterMastrId || undefined,
+          commissioningYear: commissioningYear || undefined,
+          minCapacity: minCapacityKW || undefined,
+          maxCapacity: maxCapacityKW || undefined,
+          bundesland: bundesland || undefined,
+          limit,
+          offset,
+          format: 'detailed',
+          includeStats: true,
+        };
+
+        // Remove undefined keys to avoid confusing the MCP tool
+        Object.keys(mcpParams).forEach((k) => {
+          if (mcpParams[k] === undefined) delete mcpParams[k];
+        });
+
+        let result;
+        try {
+          result = await callWithAutoPoll(
+            'cernion_installations_local',
+            mcpParams,
+            { maxWaitTime: 5 * 60 * 1000, pollInterval: 2000 },
+            ctx.meta.cernionToken
+          );
+        } catch (err) {
+          throw new Error(
+            `Direktvermarkter installations query failed: ${err.message}`
+          );
+        }
+
+        // Extract items from the MCP response
+        let items = [];
+        if (result?.data) {
+          if (Array.isArray(result.data)) items = result.data;
+          else if (Array.isArray(result.data.installations)) items = result.data.installations;
+          else if (Array.isArray(result.data.results)) items = result.data.results;
+        } else if (Array.isArray(result?.installations)) {
+          items = result.installations;
+        }
+
+        // Map items using the shared mapper; derive per-item type where available
+        const mappedItems = items.map((item) => {
+          const itemType =
+            item.type ||
+            item.installationType ||
+            item.einheitentyp ||
+            installationType;
+          return this._mapInstallationItem(item, itemType);
+        });
+
+        if (format === 'csv') {
+          const csvContent = this.convertToCSV(mappedItems);
+          ctx.meta.$responseHeaders = {
+            'Content-Type': 'text/csv; charset=utf-8',
+            'Content-Disposition': `attachment; filename="direktvermarkter-assets-${Date.now()}.csv"`,
+          };
+          return csvContent;
+        }
+
+        if (format === 'xlsx') {
+          const xlsxBuffer = this.convertToXLSX(mappedItems);
+          ctx.meta.$responseHeaders = {
+            'Content-Type':
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition': `attachment; filename="direktvermarkter-assets-${Date.now()}.xlsx"`,
+          };
+          return xlsxBuffer;
+        }
+
+        return mappedItems;
       },
     },
   },

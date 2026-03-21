@@ -274,6 +274,13 @@ const PARAM_ALIASES = {
   countrycode: 'country',
   eic_code: 'eicCode',
   eiccode: 'eicCode',
+  // Direktvermarkter pipeline aliases (RULE 11)
+  direktvermarktername: 'direktvermarkterName',
+  direktvermarktermastrid: 'direktvermarkterMastrId',
+  dvname: 'direktvermarkterName',
+  dvmastrid: 'direktvermarkterMastrId',
+  directmarketername: 'direktvermarkterName',
+  directmarketerid: 'direktvermarkterMastrId',
 };
 
 /**
@@ -1979,6 +1986,41 @@ INHOUSE DATA RULE (HARD CONSTRAINT):
 - ALWAYS use datasource-cache.query to read inhouse rows.
 - Perform aggregation and ranking in-memory (agent result-building / in-memory join),
   never via SQL.
+
+RULE 11 — Direktvermarkter (direct energy marketer) pipeline:
+Whenever the user asks about a DIREKTVERMARKTER — a company that markets electricity
+on behalf of installation operators (e.g. "NextKraftwerke", "Statkraft", "BayWa r.e.",
+"EnBW Trading", "Encavis", or phrases like "Direktvermarktung von ...") — you MUST
+use the Direktvermarkter pipeline INSTEAD of the VNB pipeline (RULE 1):
+
+  STEP 1  grid-operations.direktvermarkterLookup
+          params: { "name": "<full company name>" }
+          → resolves MaStR ID, portfolio size, total capacity
+
+  STEP 2  assets.byDirektvermarkter
+          params: {
+            "direktvermarkterMastrId": "__step_1.data.results[0].mastrId",
+            "direktvermarkterName":    "__step_1.data.results[0].name",
+            "installationType":        "<type from user, or 'all' if unspecified>",
+            "commissioningYear":       <year if user mentioned, else omit>
+          }
+          → returns full installation list of the direct marketer
+
+  STEP 3 (optional)  energy-market.prices
+          params: { "market": "day-ahead", "region": "Deutschland", "startDate": null, "endDate": null }
+          → add only when user asks for market value / Marktwert of the portfolio
+
+CRITICAL DISTINCTIONS — do NOT confuse:
+- A Direktvermarkter is NOT a Netzbetreiber (VNB). Never use grid-operations.marketPartners
+  → vnbLookup → assets.solar/wind for Direktvermarkter queries.
+- "Stadtwerke X" is a VNB → use RULE 1. "NextKraftwerke" is a Direktvermarkter → RULE 11.
+- Edge case: if the same company is both VNB and Direktvermarkter (rare), check the
+  user’s intent and prefer the Direktvermarkter pipeline when the question is about
+  the marketed portfolio.
+
+Chaining paths for RULE 11 (copy exactly):
+  "direktvermarkterMastrId": "__step_1.data.results[0].mastrId"
+  "direktvermarkterName":    "__step_1.data.results[0].name"
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IMPORTANT: The keys in each step MUST be exactly "action", "params", and "description" — do NOT use "useTool", "args", "inputs", "label", "tool", or any other synonym.
 {
@@ -2192,6 +2234,15 @@ CRITICAL RULES:
 7. INHOUSE DATA RULE: For any source listed in inhouseSources, NEVER use query.ask,
    query.askLearned, SQL actions, or database lookups. ALWAYS use datasource-cache.query
    and aggregate in-memory.
+8. DIREKTVERMARKTER PIPELINE (RULE 11): If the user mentions a direct energy marketer
+   (Direktvermarkter) such as "NextKraftwerke", "Statkraft", "BayWa r.e.", or uses
+   phrases like "Direktvermarktung von ...", use the 2-step Direktvermarkter pipeline:
+   step 1: grid-operations.direktvermarkterLookup { name: "<company>" }
+   step 2: assets.byDirektvermarkter {
+     direktvermarkterMastrId: "__step_1.data.results[0].mastrId",
+     direktvermarkterName: "__step_1.data.results[0].name"
+   }
+   Do NOT use the VNB pipeline (marketPartners → vnbLookup → assets) for Direktvermarkter.
 
 The user originally asked: "${session.problem}"
 Your previous plan was: ${JSON.stringify(session.plan, null, 2)}

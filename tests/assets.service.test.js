@@ -2,7 +2,14 @@
  * Assets Service Tests
  */
 
+// Top-level mock so byDirektvermarkter can stub callWithAutoPoll.
+// Existing tests that go through the broker's energy-market service are unaffected.
+jest.mock('../src/async-job-poller', () => ({
+  callWithAutoPoll: jest.fn(),
+}));
+
 const { ServiceBroker } = require('moleculer');
+const { callWithAutoPoll } = require('../src/async-job-poller');
 const Service = require('../services/assets.service');
 
 describe('Assets Service', () => {
@@ -227,5 +234,123 @@ describe('Assets Service — NAP enrichment and netzbetreiberpruefungStatus', ()
   it('should forward non-13-digit bdewCode as gridOperatorBdewCode', async () => {
     await broker.call('assets.solar', { bdewCode: '10002954' });
     expect(capturedCalls[0].params.gridOperatorBdewCode).toBe('10002954');
+  });
+});
+
+describe('Assets Service — byDirektvermarkter', () => {
+  let broker;
+
+  const direktvermarkterFixture = [
+    {
+      EinheitMastrNummer: 'SEE900000111001',
+      name: 'PV NextKraftwerke 1',
+      bruttoleistung: 750,
+      einheitBetriebsstatus: '35',
+      type: 'solar',
+      inbetriebnahmedatum: '2025-03-15T00:00:00Z',
+      postleitzahl: '68165',
+      ort: 'Mannheim',
+      bundesland: 'Baden-Württemberg',
+      direktvermarkterName: 'Next Kraftwerke GmbH',
+      direktvermarkterMastrNummer: 'ABR123456789',
+      direktvermarktungBeginn: '2024-01-01',
+      direktvermarktungStatus: 'Aktiv',
+    },
+    {
+      EinheitMastrNummer: 'SWE900000111002',
+      name: 'WEA Hunsrück',
+      bruttoleistung: 3400,
+      einheitBetriebsstatus: '35',
+      type: 'wind',
+      inbetriebnahmedatum: '2025-01-22T00:00:00Z',
+      postleitzahl: '55483',
+      ort: 'Hunsrück',
+      bundesland: 'Rheinland-Pfalz',
+      direktvermarkterName: 'Next Kraftwerke GmbH',
+      direktvermarkterMastrNummer: 'ABR123456789',
+      direktvermarktungBeginn: '2024-06-01',
+      direktvermarktungStatus: 'Aktiv',
+    },
+  ];
+
+  beforeAll(async () => {
+    callWithAutoPoll.mockResolvedValue({
+      success: true,
+      data: { installations: direktvermarkterFixture, stats: { count: 2 } },
+    });
+
+    broker = new ServiceBroker({ logger: false, transporter: null });
+    broker.createService({ name: 'energy-market', actions: {} });
+    broker.createService(Service);
+    await broker.start();
+  });
+
+  afterAll(async () => {
+    await broker.stop();
+  });
+
+  it('should throw when neither direktvermarkterName nor direktvermarkterMastrId is provided', async () => {
+    await expect(broker.call('assets.byDirektvermarkter', {})).rejects.toThrow(
+      '"direktvermarkterName" or "direktvermarkterMastrId"'
+    );
+  });
+
+  it('should return mapped installations for byDirektvermarkter call', async () => {
+    const result = await broker.call('assets.byDirektvermarkter', {
+      direktvermarkterName: 'Next Kraftwerke',
+    });
+
+    expect(Array.isArray(result)).toBe(true);
+    expect(result.length).toBe(2);
+
+    const solarItem = result.find((r) => r['SEE Nummer'] === 'SEE900000111001');
+    expect(solarItem).toBeDefined();
+    expect(solarItem['Direktvermarkter']).toBe('Next Kraftwerke GmbH');
+    expect(solarItem['Direktvermarkter MaStR']).toBe('ABR123456789');
+    expect(solarItem['Direktvermarktung Status']).toBe('Aktiv');
+    expect(solarItem['Datum Netzzugang']).toBe('2025-03-15');
+    expect(solarItem['Betriebsstatus Name']).toBe('In Betrieb');
+  });
+
+  it('should correctly identify wind item type via item.type field', async () => {
+    const result = await broker.call('assets.byDirektvermarkter', {
+      direktvermarkterMastrId: 'ABR123456789',
+      installationType: 'wind',
+    });
+
+    const windItem = result.find((r) => r['SEE Nummer'] === 'SWE900000111002');
+    expect(windItem).toBeDefined();
+    expect(windItem['Anlagentyp']).toBe('wind');
+  });
+
+  it('should call cernion_installations_local with direktvermarkterName param', async () => {
+    callWithAutoPoll.mockClear();
+    callWithAutoPoll.mockResolvedValueOnce({
+      success: true,
+      data: { installations: [], stats: { count: 0 } },
+    });
+
+    await broker.call('assets.byDirektvermarkter', {
+      direktvermarkterName: 'Statkraft',
+      installationType: 'solar',
+      commissioningYear: 2025,
+    });
+
+    expect(callWithAutoPoll).toHaveBeenCalledWith(
+      'cernion_installations_local',
+      expect.objectContaining({
+        direktvermarkterName: 'Statkraft',
+        type: 'solar',
+        commissioningYear: 2025,
+        format: 'detailed',
+      }),
+      expect.any(Object),
+      undefined
+    );
+  });
+
+  it('should expose the action with correct REST path', () => {
+    const svc = broker.getLocalService('assets');
+    expect(svc.actions.byDirektvermarkter).toBeDefined();
   });
 });

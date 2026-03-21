@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.12] - 2026-03-21
+
+### Added
+
+- **Direktvermarkter pipeline — Phase 2 & 3 (CR-Direktvermarktung)**
+  Implements REST-service integration and agent orchestration for
+  direct-energy-marketer (Direktvermarkter) portfolio queries, building on the
+  MCP/MongoDB data layer delivered in Phase 1.
+
+  **Phase 2a — `grid-operations.direktvermarkterLookup`**
+  New action `POST /grid-operations/direktvermarkter-lookup` wraps the MCP tool
+  `cernion_direktvermarkter_lookup`.  Accepts `name` (fuzzy) or `mastrId`
+  (exact) and returns portfolio metadata (portfolioSize, totalCapacityMW, role).
+  Validates that at least one lookup key is supplied.
+
+  **Phase 2b — `assets.byDirektvermarkter`**
+  New action `POST /assets/by-direktvermarkter` queries `cernion_installations_local`
+  with the new `direktvermarkterName` / `direktvermarkterMastrId` filter
+  parameters from Phase 1.  Supports optional filters `installationType`,
+  `commissioningYear`, `minCapacityKW`, `maxCapacityKW`, `bundesland`, `limit`,
+  `offset`, and `format` (json / csv / xlsx).  Results are mapped through the
+  canonical German output format and include four new Direktvermarktung columns:
+  `Direktvermarkter`, `Direktvermarkter MaStR`, `Direktvermarktung Beginn`,
+  `Direktvermarktung Status`.
+
+  **Refactor — `assets._mapInstallationItem`**
+  The inline mapping lambda inside `_fetchAssets` was extracted into a new shared
+  service method `_mapInstallationItem(item, assetType)`.  `_fetchAssets`
+  delegates to it unchanged; `byDirektvermarkter` reuses the same mapper,
+  ensuring consistent output columns across all asset endpoints.
+
+  **Phase 3a — Agent prompt (RULE 11)**
+  Added RULE 11 to the Gemini system prompt and the refinement prompt, defining
+  the two-step Direktvermarkter pipeline
+  (`direktvermarkterLookup` → `byDirektvermarkter`) with exact chain-ref paths.
+  The rule explicitly distinguishes Direktvermarkter from VNB so the agent does
+  not fall back to the VNB pipeline (RULE 1) for direct-marketer queries.
+
+  **Phase 3b/c — PARAM_ALIASES & resolveChainedRef**
+  Added static aliases `direktvermarktername`, `direktvermarktermastrid`,
+  `dvname`, `dvmastrid`, `directmarketername`, `directmarketerid` to
+  `PARAM_ALIASES` so `repairPlanParams` corrects LLM-generated typos/synonyms
+  before execution.  `resolveChainedRef` supports the new chaining paths
+  (`__step_1.data.results[0].mastrId`, `__step_1.data.results[0].name`)
+  without code changes (generic path resolution already handles them).
+
 ## [0.9.11] - 2026-03-20
 ### Fixed
 

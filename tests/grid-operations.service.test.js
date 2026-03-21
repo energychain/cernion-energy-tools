@@ -456,4 +456,74 @@ describe('Grid Operations Service', () => {
       expect(result).toBeDefined();
     });
   });
+
+  describe('direktvermarkterLookup action', () => {
+    it('should throw when neither name nor mastrId is provided', async () => {
+      await expect(broker.call('grid-operations.direktvermarkterLookup', {})).rejects.toThrow(
+        'At least one lookup parameter is required: name or mastrId'
+      );
+    });
+
+    it('should call cernion_direktvermarkter_lookup with name param', async () => {
+      callWithNewSession.mockClear();
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          results: [
+            {
+              name: 'Next Kraftwerke GmbH',
+              mastrId: 'ABR123456789',
+              role: 'Direktvermarkter',
+              portfolioSize: 12453,
+              totalCapacityMW: 3240.5,
+            },
+          ],
+        },
+      });
+
+      const result = await broker.call('grid-operations.direktvermarkterLookup', {
+        name: 'Next Kraftwerke',
+        limit: 5,
+      });
+
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'cernion_direktvermarkter_lookup',
+        expect.objectContaining({ name: 'Next Kraftwerke', limit: 5 }),
+        undefined
+      );
+      expect(result.success).toBe(true);
+    });
+
+    it('should call cernion_direktvermarkter_lookup with mastrId param', async () => {
+      callWithNewSession.mockClear();
+      callWithNewSession.mockResolvedValueOnce({ success: true, data: {} });
+
+      await broker.call('grid-operations.direktvermarkterLookup', {
+        mastrId: 'ABR123456789',
+      });
+
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'cernion_direktvermarkter_lookup',
+        expect.objectContaining({ mastrId: 'ABR123456789' }),
+        undefined
+      );
+    });
+
+    it('should accept onlyActive and limit params', async () => {
+      callWithNewSession.mockClear();
+      callWithNewSession.mockResolvedValueOnce({ success: true, data: {} });
+
+      await broker.call('grid-operations.direktvermarkterLookup', {
+        name: 'Statkraft',
+        onlyActive: true,
+        limit: 10,
+      });
+
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'cernion_direktvermarkter_lookup',
+        expect.objectContaining({ name: 'Statkraft', onlyActive: true, limit: 10 }),
+        undefined
+      );
+    });
+  });
 });

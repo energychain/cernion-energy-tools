@@ -554,6 +554,93 @@ module.exports = {
     },
 
     /**
+     * Lookup Direktvermarkter (direct energy marketer) in MaStR
+     * Tool: cernion_direktvermarkter_lookup
+     */
+    direktvermarkterLookup: {
+      rest: 'POST /direktvermarkter-lookup',
+      params: {
+        name: { type: 'string', optional: true, min: 1 },
+        mastrId: { type: 'string', optional: true, min: 1 },
+        onlyActive: { type: 'boolean', optional: true, default: false },
+        limit: { type: 'number', optional: true, default: 10, min: 1, max: 100, convert: true },
+      },
+      openapi: {
+        summary: 'Lookup Direktvermarkter (direct energy marketer) in MaStR',
+        tags: ['Grid Operations'],
+        description: `Identifies a direct energy marketer (Direktvermarkter) in the MaStR registry and returns portfolio metadata.
+
+**Use Cases**:
+- Identify the MaStR ID of a direct marketer for downstream portfolio queries
+- Get portfolio size (number of installations) and total installed capacity
+- First step of the Direktvermarkter pipeline before fetching all installations
+
+**Direktvermarkter Pipeline**:
+1. \`grid-operations.direktvermarkterLookup\` (this step) → resolves name/ID → MaStR ID + portfolio stats
+2. \`assets.byDirektvermarkter\` → fetches all installations in the Direktvermarkter's portfolio
+
+**Known Direktvermarkter examples**: NextKraftwerke, Statkraft, BayWa r.e., EnBW Trading, Encavis`,
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: {
+                    type: 'string',
+                    description: 'Direktvermarkter company name (fuzzy match)',
+                    example: 'Next Kraftwerke',
+                  },
+                  mastrId: {
+                    type: 'string',
+                    description: 'Exact MaStR ID of the Direktvermarkter (ABR… format)',
+                    example: 'ABR123456789',
+                  },
+                  onlyActive: {
+                    type: 'boolean',
+                    description: 'Restrict portfolio stats to active direct marketing contracts',
+                    default: false,
+                  },
+                  limit: {
+                    type: 'integer',
+                    description: 'Maximum number of matches returned (default: 10, max: 100)',
+                    default: 10,
+                    minimum: 1,
+                    maximum: 100,
+                  },
+                },
+              },
+              examples: {
+                byName: {
+                  summary: 'Lookup by company name',
+                  value: { name: 'Next Kraftwerke', limit: 5 },
+                },
+                byMastrId: {
+                  summary: 'Lookup by exact MaStR ID',
+                  value: { mastrId: 'ABR123456789' },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { name, mastrId } = ctx.params;
+        if (!name && !mastrId) {
+          throw new Error(
+            'At least one lookup parameter is required: name or mastrId'
+          );
+        }
+        return await CernionMCPClient.callWithNewSession(
+          'cernion_direktvermarkter_lookup',
+          ctx.params,
+          ctx.meta.cernionToken
+        );
+      },
+    },
+
+    /**
      * Canonical VNB lookup with consolidated BDEW/BNR/MaStR aliases
      * Tool: vnb_lookup_codes
      */
