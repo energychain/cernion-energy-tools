@@ -2019,13 +2019,6 @@ module.exports = {
           optional: true,
           default: 'all',
         },
-        commissioningYear: {
-          type: 'number',
-          optional: true,
-          min: 1900,
-          max: 2100,
-          convert: true,
-        },
         minCapacityKW: { type: 'number', optional: true, min: 0, convert: true },
         maxCapacityKW: { type: 'number', optional: true, min: 0, convert: true },
         bundesland: { type: 'string', optional: true, min: 1 },
@@ -2076,11 +2069,6 @@ module.exports = {
                     default: 'all',
                     description: 'Filter by installation type (default: all)',
                   },
-                  commissioningYear: {
-                    type: 'integer',
-                    description: 'Filter by commissioning year',
-                    example: 2025,
-                  },
                   minCapacityKW: {
                     type: 'number',
                     description: 'Minimum installed capacity in kW',
@@ -2118,10 +2106,9 @@ module.exports = {
               },
               examples: {
                 byName: {
-                  summary: 'All installations of NextKraftwerke commissioned in 2025',
+                  summary: 'All installations of Next Kraftwerke',
                   value: {
                     direktvermarkterName: 'Next Kraftwerke',
-                    commissioningYear: 2025,
                     limit: 1000,
                   },
                 },
@@ -2143,7 +2130,6 @@ module.exports = {
           direktvermarkterName,
           direktvermarkterMastrId,
           installationType = 'all',
-          commissioningYear,
           minCapacityKW,
           maxCapacityKW,
           bundesland,
@@ -2162,7 +2148,6 @@ module.exports = {
           type: installationType,
           direktvermarkterName: direktvermarkterName || undefined,
           direktvermarkterMastrId: direktvermarkterMastrId || undefined,
-          commissioningYear: commissioningYear || undefined,
           minCapacity: minCapacityKW || undefined,
           maxCapacity: maxCapacityKW || undefined,
           bundesland: bundesland || undefined,

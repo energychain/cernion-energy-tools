@@ -333,7 +333,6 @@ describe('Assets Service — byDirektvermarkter', () => {
     await broker.call('assets.byDirektvermarkter', {
       direktvermarkterName: 'Statkraft',
       installationType: 'solar',
-      commissioningYear: 2025,
     });
 
     expect(callWithAutoPoll).toHaveBeenCalledWith(
@@ -341,7 +340,6 @@ describe('Assets Service — byDirektvermarkter', () => {
       expect.objectContaining({
         direktvermarkterName: 'Statkraft',
         type: 'solar',
-        commissioningYear: 2025,
         format: 'detailed',
       }),
       expect.any(Object),
