@@ -136,6 +136,45 @@ Notes:
 - Advisory scan (`npm run audit:security:advisory`) may fail on known, documented upstream vulnerabilities; review before release.
 - Do not store tokens or API keys in the repository; use `.env.example` only.
 
+## MCP Data Backend — Known Limitations
+
+### Direktvermarktung (Direct Marketing) Data Availability
+
+**What IS available**
+- `cernion_installations_local` supports filtering by `fernsteuerbarkeitDv: true`
+  (field `FernsteuerbarkeitDv` in EinheitenWind.xml / EinheitenSolar.xml, stored as
+  string `"1"` / `"0"`).
+- Combined with `minCapacity: 100` (kW), this is the best public proxy for
+  Redispatch 2.0-eligible installations currently in Direktvermarktung.
+- Available for: **Wind, Biomass** — field is NOT present in Solar/Storage collections.
+- Does NOT reveal which specific Direktvermarkter company manages the unit.
+- Does NOT confirm that a DV contract is currently active (data may be stale).
+
+**What is NOT available — and why**
+- Filtering by a specific Direktvermarkter company (e.g. "all assets of Next Kraftwerke")
+  is **not possible** through any public data source.
+- `DirektvermarkterMastrNummer` exists in the MaStR data model but is **deliberately
+  excluded from all public bulk exports** (BNetzA policy — commercially sensitive data).
+- As a result, the local MongoDB field `direktvermarkterMastrNummer` is not populated
+  and the `direktvermarkterName` / `direktvermarkterMastrId` filter parameters of
+  `cernion_installations_local` will return empty results.
+- The same applies to `cernion_installations` (Powabase) — no DV portfolio method exists
+  in the MaStR SOAP API either.
+
+**Implication for the Direktvermarkter pipeline**
+- `grid-operations.direktvermarkterLookup` → `assets.byDirektvermarkter` is the
+  designed pipeline, but **`byDirektvermarkter` will return 0 results** in practice
+  because the underlying MongoDB filter fields are unpopulated.
+- When a user asks for a specific DV company's portfolio, communicate this limitation
+  and offer `fernsteuerbarkeitDv: true` + `minCapacity: 100` as the best available proxy
+  (for Wind/Biomass only).
+
+**Alternative approaches (informational only)**
+- Authenticated MaStR portal access by the DV company itself.
+- Netztransparenz.de — aggregated MWh volumes per marketing product only.
+- Bilateral data exchange with the Direktvermarkter.
+- BKV-MPID from `MarktakteureUndRollen.xml` for balance group queries.
+
 ## What NOT to Do
 - Don't use `var` - use `const` or `let`
 - Don't ignore errors or use empty catch blocks

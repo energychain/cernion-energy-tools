@@ -1938,6 +1938,74 @@ All tool responses follow this structure:
 - **AGSI API**: No official limit (respectful usage recommended)
 - **Netztransparenz.de**: OAuth2 authenticated (limits not publicly documented)
 
+## Known Data Limitations
+
+### Direktvermarktung (Direct Marketing) — `DirektvermarkterMastrNummer` Not Available
+
+Filtering installations by a specific Direktvermarkter company (e.g. "all assets managed
+by Next Kraftwerke") is **not possible** through any public data source.
+
+**What IS available**
+
+The `cernion_installations_local` tool supports the `fernsteuerbarkeitDv: true` filter.
+This field (`FernsteuerbarkeitDv` in `EinheitenWind.xml` / `EinheitenBiomasse.xml`) is the
+best publicly available proxy for Redispatch 2.0-eligible installations currently in
+Direktvermarktung:
+
+```json
+{
+  "type": "wind",
+  "gridOperatorBdewCode": "9904915000002",
+  "minCapacity": 100,
+  "fernsteuerbarkeitDv": true,
+  "status": "InBetrieb"
+}
+```
+
+Additional combinable filters: `commissioningYear`, `bundesland`, `spannungsebene`, `postleitzahl`.
+
+| Property | Value |
+|----------|-------|
+| Meaning | Unit declared remote controllability via a Direktvermarkter |
+| Source field | `FernsteuerbarkeitDv` in `EinheitenWind.xml` / `EinheitenBiomasse.xml` |
+| Storage type | String `"1"` / `"0"` (not boolean, not integer) |
+| Available for | **Wind, Biomass** — field not present in Solar/Storage collections |
+| Does NOT tell you | Which specific Direktvermarkter company manages the unit |
+| Does NOT tell you | Whether a DV contract is currently active (may be stale data) |
+
+**What is NOT available — and why**
+
+`DirektvermarkterMastrNummer` exists in the MaStR data model but is deliberately excluded
+from all public bulk exports (BNetzA policy — commercially sensitive business data). This
+has been verified exhaustively:
+
+| Source | Verified | Result |
+|--------|----------|--------|
+| MaStR bulk XML (`EinheitenWind.xml`, `EinheitenSolar.xml`, etc.) | ✅ | Field not present |
+| MaStR SOAP API (all 96 methods) | ✅ | No DV portfolio method exists |
+| Netztransparenz.de API | ✅ | Aggregated totals only, no per-company breakdown |
+| Local MongoDB (`direktvermarkterMastrNummer`) | ✅ | Not populated — source data never contained it |
+
+As a consequence:
+- The `direktvermarkterName` and `direktvermarkterMastrId` filter parameters of
+  `cernion_installations_local` (and `assets.byDirektvermarkter`) **will return 0 results**
+  in practice.
+- The `grid-operations.direktvermarkterLookup` → `assets.byDirektvermarkter` pipeline
+  resolves actor-level metadata only; the per-unit portfolio step yields no data.
+
+**Alternative approaches for integrators needing DV company attribution**
+
+- **Direct API access** — the Direktvermarkter itself can query its own portfolio via
+  authenticated MaStR portal access (not a public API).
+- **Netztransparenz.de** — provides aggregated MWh volumes per marketing product
+  (`VermarktungsWind`, `VermarktungsSolar`) but not per-company or per-unit.
+- **Bilateral data exchange** — request portfolio data directly from the Direktvermarkter.
+- **BKV-MPID** — the Bilanzkreisverantwortlicher MPID of a DV company (e.g.
+  Next Kraftwerke: `9906200000009`) can be found in `MarktakteureUndRollen.xml`
+  and used for balance group queries, but does not resolve to individual units.
+
+---
+
 ## Error Handling
 
 Common error codes:

@@ -217,15 +217,26 @@ module.exports = {
         );
         const semanticMappings = this.extractCriticalFieldMappings(semanticClassification);
         const semanticStatus = this.deriveSemanticStatus(semanticClassification);
+        const isOtherDomain = semanticClassification?.domainId === 'other';
         const semanticHints = {
           capabilities: inferredSemantic.capabilities,
           hints: {
             ...inferredSemantic.hints,
-            ...(semanticClassification?.domainId && semanticClassification.domainId !== 'unknown'
+            ...(semanticClassification?.domainId &&
+            semanticClassification.domainId !== 'unknown'
               ? {
                   domain: semanticClassification.domainId,
                   domainLabel: semanticClassification.domainLabel,
                   criticalFieldMappings: semanticMappings,
+                }
+              : {}),
+            // For 'other' domain: expose the description analysis as runtime
+            // context so the AI agent can use the description when building
+            // query plans and interpreting results.
+            ...(isOtherDomain && semanticClassification?.descriptionAnalysis
+              ? {
+                  runtimeContext: deepClone(semanticClassification.descriptionAnalysis),
+                  freeformDescription: source.description || '',
                 }
               : {}),
           },
@@ -344,6 +355,10 @@ module.exports = {
         capabilities.push('inhouse_benchmark_compare');
       }
 
+      if (domainId === 'other') {
+        capabilities.push('description_guided');
+      }
+
       return {
         capabilities: uniq(capabilities),
         hints: {
@@ -374,6 +389,12 @@ module.exports = {
     deriveSemanticStatus(classification) {
       if (!classification || classification.domainId === 'unknown' || !classification.domainId) {
         return 'unclassified';
+      }
+
+      // 'other' domain datasets are always usable — the description provides
+      // the semantic guidance instead of fixed critical field mappings.
+      if (classification.domainId === 'other') {
+        return 'description-guided';
       }
 
       const allResolved = (classification.criticalFieldStatus || []).every((item) => item.resolved);

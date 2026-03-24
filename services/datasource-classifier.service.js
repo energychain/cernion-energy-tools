@@ -330,6 +330,35 @@ module.exports = {
           }
         }
 
+        // When no known domain matches but the description is rich enough AND
+        // the dataset is actually readable (has at least one detectable column),
+        // classify as 'other' so the agent can use the description as runtime
+        // context instead of treating the dataset as completely unusable.
+        // Require columnProfiles.length > 0 so that broken/unreadable files
+        // (where inferSchema throws and rows are empty) still return 'unknown'.
+        const descriptionTokens = tokenize(description);
+        if (descriptionTokens.length >= 8 && columnProfiles.length > 0) {
+          const descriptionAnalysis = this.analyseDescription(description, columnProfiles);
+          return {
+            domainId: 'other',
+            domainLabel: 'Other / Custom Dataset',
+            confidence: heuristicConfidence,
+            alternativeDomains: scores.slice(0, 2).map((entry) => ({
+              domainId: entry.domain.id,
+              domainLabel: entry.domain.label,
+              confidence: Number(entry.score.toFixed(2)),
+            })),
+            criticalFieldStatus: [],
+            fieldMappings: {},
+            descriptionAnalysis,
+            llmAssisted: Boolean(llmFallback),
+            llmReasoning: llmFallback?.reasoning || '',
+            requiresUserInput: false,
+            confirmedByUser: options.confirmedByUser === true,
+            resolvedAt: nowIso(),
+          };
+        }
+
         return {
           domainId: 'unknown',
           domainLabel: 'Unknown Domain',
@@ -502,6 +531,104 @@ Respond with JSON only:
         });
         return null;
       }
+    },
+
+    /**
+     * Analyse a free-text description to infer dataset capabilities and generate
+     * suggested queries for use by the AI agent at runtime.
+     *
+     * @param {string} description - User-provided dataset description
+     * @param {object[]} columnProfiles - Column profiles from the actual data rows
+     * @returns {{ capabilities: string[], suggestedQueries: string[], conceptSummary: string, detectedColumnCount: number }}
+     */
+    analyseDescription(description, columnProfiles) {
+      const text = normalizeToken(description);
+      const capabilities = new Set();
+
+      // Time/date references → timeseries capability
+      if (
+        /\b(datum|date|zeit|time|timestamp|zeitpunkt|period|periode|monat|quartal|jahr|hour|stunde|täglich|monthly|weekly|daily|stündlich|beginn|start|ende|end|intervall)\b/.test(
+          text
+        )
+      ) {
+        capabilities.add('timeseries');
+      }
+
+      // Numeric / aggregation patterns
+      if (
+        /\b(anzahl|count|summe|sum|total|gesamt|average|durchschnitt|menge|betrag|amount|revenue|preis|price|kosten|cost|mwh|kwh|kw|eur|euro|wert|value|leistung|kapazität)\b/.test(
+          text
+        )
+      ) {
+        capabilities.add('aggregate');
+      }
+
+      // Categorical / status columns
+      if (
+        /\b(kategorie|category|typ|type|status|gruppe|group|klasse|class|art|bereich|segment|abteilung|department)\b/.test(
+          text
+        )
+      ) {
+        capabilities.add('categorical');
+      }
+
+      // Geographic information
+      if (
+        /\b(region|standort|location|adresse|address|plz|postleitzahl|ort|city|land|country|bundesland|gemeinde|kreis|bezirk)\b/.test(
+          text
+        )
+      ) {
+        capabilities.add('geographic');
+      }
+
+      // Financial / monetary information
+      if (
+        /\b(preis|price|kosten|cost|eur|euro|betrag|amount|umsatz|revenue|gewinn|profit|budget|zahlung|payment|rabatt|discount|marge|margin)\b/.test(
+          text
+        )
+      ) {
+        capabilities.add('financial');
+      }
+
+      // Identity / reference fields
+      if (
+        /\b(id|identifier|nummer|number|code|schlüssel|key|referenz|reference|kundennummer|kunden|auftrag|order|ticket)\b/.test(
+          text
+        )
+      ) {
+        capabilities.add('identity');
+      }
+
+      // Build suggested queries from detected capabilities
+      const suggestedQueries = [];
+      if (capabilities.has('timeseries')) {
+        suggestedQueries.push('Wie entwickeln sich die Werte im Zeitverlauf?');
+      }
+      if (capabilities.has('aggregate') && capabilities.has('categorical')) {
+        suggestedQueries.push('Wie verteilen sich die Werte nach Kategorie / Typ?');
+        suggestedQueries.push('Was sind die Gesamtwerte je Gruppe?');
+      } else if (capabilities.has('aggregate')) {
+        suggestedQueries.push('Was sind die wichtigsten Kennzahlen in diesem Datensatz?');
+      } else if (capabilities.has('categorical')) {
+        suggestedQueries.push('Wie verteilen sich die Einträge nach den verschiedenen Typen?');
+      }
+      if (capabilities.has('financial')) {
+        suggestedQueries.push('Wie hoch sind die Gesamtbeträge?');
+      }
+      if (capabilities.has('geographic')) {
+        suggestedQueries.push('Welche Regionen sind am stärksten vertreten?');
+      }
+      if (suggestedQueries.length === 0) {
+        suggestedQueries.push('Zeige mir eine Übersicht der Daten in diesem Datensatz.');
+        suggestedQueries.push('Was sind die häufigsten Werte?');
+      }
+
+      return {
+        capabilities: [...capabilities],
+        suggestedQueries: suggestedQueries.slice(0, 5),
+        conceptSummary: String(description).trim().slice(0, 500),
+        detectedColumnCount: (columnProfiles || []).length,
+      };
     },
 
     extractFieldMappings(classification) {

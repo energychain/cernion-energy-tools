@@ -2039,13 +2039,21 @@ module.exports = {
         },
       },
       openapi: {
-        summary: 'List all installations of a Direktvermarkter (direct energy marketer)',
+        summary: 'List installations of a Direktvermarkter (direct energy marketer)',
         tags: ['Assets'],
         description:
           'Retrieves MaStR installations assigned to a given direct energy marketer ' +
           '(Direktvermarkter) using the direktvermarkterName or direktvermarkterMastrId ' +
           'filter. Step 2 of the Direktvermarkter pipeline. ' +
-          'Supports filtering by type, commissioning year, capacity, and Bundesland.',
+          'Supports filtering by type, commissioning year, capacity, and Bundesland.\n\n' +
+          '⚠️ **Data Availability Limitation**: The `DirektvermarkterMastrNummer` field is ' +
+          'deliberately excluded from all public MaStR bulk exports (BNetzA policy — ' +
+          'commercially sensitive data). As a result, the `direktvermarkterName` and ' +
+          '`direktvermarkterMastrId` filter parameters are not populated in the local ' +
+          'MongoDB and **will return 0 results** in practice. ' +
+          'The best available public proxy for installations in Direktvermarktung is ' +
+          '`fernsteuerbarkeitDv: true` combined with `minCapacity: 100` — ' +
+          'available for Wind and Biomass only (field not present in Solar/Storage).',
         requestBody: {
           required: true,
           content: {

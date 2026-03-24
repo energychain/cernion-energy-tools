@@ -579,7 +579,9 @@ module.exports = {
 1. \`grid-operations.direktvermarkterLookup\` (this step) → resolves name/ID → MaStR ID + portfolio stats
 2. \`assets.byDirektvermarkter\` → fetches all installations in the Direktvermarkter's portfolio
 
-**Known Direktvermarkter examples**: NextKraftwerke, Statkraft, BayWa r.e., EnBW Trading, Encavis`,
+**Known Direktvermarkter examples**: NextKraftwerke, Statkraft, BayWa r.e., EnBW Trading, Encavis
+
+⚠️ **Data Availability Limitation**: \`DirektvermarkterMastrNummer\` is deliberately excluded from all public MaStR bulk exports (BNetzA policy — commercially sensitive data). The portfolio stats returned by \`cernion_direktvermarkter_lookup\` are derived from \`MarktakteureUndRollen.xml\` (actor-level data) and may be incomplete or stale. Cross-referencing to individual installation units by DV company is **not possible** through any public source. The \`assets.byDirektvermarkter\` step will return 0 results in practice because the \`direktvermarkterMastrNummer\` field is not populated in the local MongoDB. Use \`fernsteuerbarkeitDv: true\` + \`minCapacity: 100\` via \`energy-market.installations\` as the best available public proxy (Wind/Biomass only).`,
         requestBody: {
           required: true,
           content: {

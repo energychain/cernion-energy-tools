@@ -7,6 +7,105 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.13] - 2026-03-24
+
+### Added
+
+- **Description-guided dataset type (`"other"`) for inhouse data**
+  Real-world uploaded files (XLS / CSV / XML / …) often contain mixed or
+  custom data that does not map to any of the predefined semantic domain types
+  (`metering`, `grid-assets`, `procurement`, etc.).  Previously such datasets
+  ended up in an unusable `"unknown"` state requiring manual domain selection.
+  A new `"other"` / description-guided pathway lets the user's free-text
+  **dataset description act as the semantic guide at runtime**, so the AI agent
+  can query and aggregate those datasets without any fixed critical-field
+  mappings.
+
+  **`src/semantic-domains.js`** — New `"other"` domain entry.  Carries no
+  `columnKeywords` or `filenameTokens` (score = 0, never wins by heuristics)
+  and declares a single `requiredCapabilities: ['description_guided']`.
+  Registered with `"other"` id, label `"Other / Custom Dataset"`.
+
+  **`services/datasource-classifier.service.js`**
+  - New `analyseDescription(description, columnProfiles)` method.  Parses the
+    free-text description via regex patterns and infers a set of runtime
+    capabilities (`timeseries`, `aggregate`, `categorical`, `geographic`,
+    `financial`, `identity`) plus up to five `suggestedQueries` in German.
+    Returns `{ capabilities, suggestedQueries, conceptSummary, detectedColumnCount }`.
+  - After the LLM fallback path, when **no known domain** matches and the
+    description has **≥ 8 tokens AND ≥ 1 readable column**, the source is now
+    classified as `domainId: "other"` with `requiresUserInput: false` and
+    `descriptionAnalysis` attached.  Unreadable files (where inferSchema
+    throws → 0 detected columns) and descriptions with fewer than 8 tokens
+    continue to return `"unknown"` unchanged.
+
+  **`services/datasource-discovery.service.js`**
+  - `inferSemanticHints()` adds the `description_guided` capability for
+    `"other"` domain sources.
+  - `buildDescriptors()` injects `semanticHints.runtimeContext` (the stored
+    `descriptionAnalysis`) and `semanticHints.freeformDescription` into the
+    AI-ready descriptor for `"other"` domain sources.
+  - `deriveSemanticStatus()` returns `"description-guided"` for `"other"`
+    domain sources instead of `"partial"`, giving the UI a distinct,
+    actionable status.
+
+  **`services/agent.service.js`**
+  - `deriveInhouseIntentCapabilities()` adds both `description_guided` and
+    `inhouse_aggregate` for `"other"` domain sources.
+  - `getInhouseDescriptorText()` surfaces `freeformDescription`, inferred
+    capabilities, and suggested queries in the agent's Gemini planning prompt
+    for `"other"` domain descriptors.
+  - `buildIntentClassPlan()` — new `description_guided` intent class.  Loads
+    all rows via `datasource-cache.query` (INHOUSE DATA RULE always respected)
+    with the description context embedded in the step description and plan
+    summary.
+  - `inferIntentClassFromPlan()` recognises `description_guided` from the plan
+    summary string.
+  - The `analyze` action handler auto-sets `intentClass = 'description_guided'`
+    when the resolved descriptor is an `"other"` domain source, keeping it on
+    the deterministic shortcut path instead of falling through to the Gemini
+    LLM planner.
+
+  **Tests added**
+  - `tests/datasource-classifier.service.test.js` — three new cases: `"other"`
+    classification with a rich description, capability inference
+    (`timeseries` / `categorical` / `geographic` / `financial`), and guard
+    that short descriptions (< 8 tokens) still return `"unknown"`.
+  - `tests/datasource-discovery.service.test.js` — one new case: verifies
+    `semanticStatus = "description-guided"`, `capabilities ⊇ ["description_guided"]`,
+    and `semanticHints.runtimeContext` is correctly populated.
+
+### Documentation
+
+- **Direktvermarktung data availability — known limitation documented**
+  Clarified across all relevant files that filtering installations by a specific
+  Direktvermarkter company is **not possible** through any public data source.
+  `DirektvermarkterMastrNummer` is deliberately excluded from all MaStR bulk
+  exports (BNetzA policy — commercially sensitive data), meaning the
+  `direktvermarkterName` / `direktvermarkterMastrId` filter parameters of
+  `cernion_installations_local` and `assets.byDirektvermarkter` **will return
+  0 results** in practice.
+
+  Changes made:
+  - **`.github/copilot-instructions.md`** — New "MCP Data Backend — Known
+    Limitations" section with `fernsteuerbarkeitDv` property table, four-source
+    verification table (MaStR bulk XML, SOAP API, Netztransparenz.de, local
+    MongoDB), practical pipeline implication, and alternative approaches.
+  - **`services/assets.service.js`** — `byDirektvermarkter` OpenAPI description
+    extended with an explicit ⚠️ data availability warning and pointer to the
+    `fernsteuerbarkeitDv: true` + `minCapacity: 100` proxy (Wind/Biomass only).
+  - **`services/grid-operations.service.js`** — `direktvermarkterLookup` OpenAPI
+    description extended with a matching ⚠️ warning covering both the lookup
+    step and the downstream `byDirektvermarkter` step.
+  - **`MCP_TOOLS.md`** — New top-level "Known Data Limitations" section with the
+    complete `fernsteuerbarkeitDv` property table, four-source evidence table,
+    example filter snippet, and all alternative approaches for integrators.
+
+  The `fernsteuerbarkeitDv: true` filter (Wind/Biomass, `minCapacity: 100`) is
+  documented as the best publicly available proxy for Redispatch 2.0-eligible
+  installations currently in Direktvermarktung. It does not reveal which
+  Direktvermarkter company manages a unit or whether the DV contract is active.
+
 ## [0.9.12] - 2026-03-21
 
 ### Added

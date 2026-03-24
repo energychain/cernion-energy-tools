@@ -634,6 +634,12 @@ function deriveInhouseIntentCapabilities(descriptor) {
     base.add('procurement_vs_spot');
   }
 
+  // 'other' domain — dataset is usable via description-guided runtime context
+  if (domainId === 'other') {
+    base.add('description_guided');
+    base.add('inhouse_aggregate');
+  }
+
   return [...base];
 }
 
@@ -1128,6 +1134,37 @@ function buildIntentClassPlan({
     };
   }
 
+  if (intentClass === 'description_guided') {
+    // The dataset uses a free-form description as its semantic guide rather than
+    // pre-defined critical fields. Load all rows via datasource-cache.query so
+    // the agent can aggregate them in-memory using the description context.
+    const runtimeContext = hints.runtimeContext || {};
+    const contextNote = runtimeContext.conceptSummary
+      ? `Datensatz-Kontext (aus Beschreibung): ${runtimeContext.conceptSummary.slice(0, 200)}`
+      : 'Benutzerdefinierter Datensatz — Spaltenstruktur aus den Rohdaten ableiten.';
+    const suggestedQueriesNote = (runtimeContext.suggestedQueries || []).length
+      ? ` Mögliche Analysen: ${runtimeContext.suggestedQueries.join(' | ')}`
+      : '';
+
+    return {
+      summary:
+        `Intent-Klasse: description_guided. ${contextNote}${suggestedQueriesNote} Zugriff ausschließlich über datasource-cache.query (kein SQL).`,
+      steps: [
+        {
+          step: 1,
+          action: 'datasource-cache.query',
+          description: `Lade alle Zeilen des beschreibungsgesteuerten Datensatzes. ${contextNote}`,
+          params: {
+            sourceId: sourceId || null,
+            privacyContext: 'internal',
+            limit: 10000,
+          },
+        },
+      ],
+      requiredInputs,
+    };
+  }
+
   return null;
 }
 
@@ -1285,6 +1322,10 @@ function inferIntentClassFromPlan(plan) {
     firstAction === 'in-memory-join.benchmarkcompare'
   ) {
     return 'inhouse_benchmark_compare';
+  }
+
+  if (summary.includes('description_guided')) {
+    return 'description_guided';
   }
 
   return null;
@@ -1684,6 +1725,15 @@ module.exports = {
           isProcurementVsSpotSource(sourceDescriptor)
         ) {
           intentClass = 'procurement_vs_spot';
+        }
+        // For 'other' domain datasets, route to description_guided instead of
+        // falling through to the Gemini LLM planner so the inhouse data rule
+        // is always enforced and the description context drives the plan.
+        if (
+          !intentClass &&
+          sourceDescriptor?.semanticHints?.domain === 'other'
+        ) {
+          intentClass = 'description_guided';
         }
         const canUseInhouseShortcut =
           !!sourceDescriptor ||

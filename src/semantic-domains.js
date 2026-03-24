@@ -567,6 +567,29 @@ const semanticDomains = [
     ],
   },
   {
+    id: 'other',
+    label: 'Other / Custom Dataset',
+    department: 'General',
+    description:
+      'Custom or mixed dataset that does not fit a predefined type. The dataset description (metadata) provides runtime context for how the data should be queried and used by the AI agent.',
+    indicators: {
+      // No column keywords or filename tokens — this domain is never assigned
+      // by heuristic scoring. It is set programmatically when the description
+      // is rich enough to guide runtime tooling but no known domain matches.
+      columnKeywords: [],
+      filenameTokens: [],
+      requiredCapabilities: ['description_guided'],
+      criticalFields: [],
+    },
+    fieldProfiles: {},
+    fixtureFile: null,
+    exampleQueries: [
+      'What data does this dataset contain?',
+      'Show me an overview of the rows in this dataset.',
+      'What are the unique values in the most important column?',
+    ],
+  },
+  {
     id: 'metering-point-master',
     label: 'Metering Point Master',
     department: 'Energiedatenmanagement',

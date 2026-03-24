@@ -163,4 +163,86 @@ describe('Datasource Discovery Service', () => {
     expect(result.data.name).toContain('inhouse__');
     expect(result.data.source).toBe('inhouse');
   });
+
+  it('should expose description_guided capability and runtimeContext for "other" domain sources', async () => {
+    // Extend the broker's mock registry to include an 'other' domain source
+    const broker2 = new (require('moleculer').ServiceBroker)({ logger: false });
+    broker2.createService({
+      name: 'datasource-registry',
+      actions: {
+        list: {
+          async handler() {
+            return {
+              success: true,
+              data: [
+                {
+                  id: 'source-other',
+                  name: 'Customer Complaints Q1',
+                  description:
+                    'Customer complaints data with complaint identifier, category, date received, resolution date and satisfaction score for Q1 analysis',
+                  tags: ['customer', 'support'],
+                  connectorConfig: { path: '/uploads/complaints_q1.csv' },
+                  dictionary: {
+                    fields: [
+                      { name: 'Complaint_ID', privacyFlag: false },
+                      { name: 'Category', privacyFlag: false },
+                      { name: 'Date_Received', privacyFlag: false },
+                      { name: 'Satisfaction_Score', privacyFlag: false },
+                    ],
+                  },
+                  semanticClassification: {
+                    domainId: 'other',
+                    domainLabel: 'Other / Custom Dataset',
+                    confirmedByUser: false,
+                    fieldMappings: {},
+                    criticalFieldStatus: [],
+                    requiresUserInput: false,
+                    descriptionAnalysis: {
+                      capabilities: ['timeseries', 'aggregate', 'categorical'],
+                      suggestedQueries: [
+                        'Wie entwickeln sich die Werte im Zeitverlauf?',
+                        'Wie verteilen sich die Werte nach Kategorie / Typ?',
+                      ],
+                      conceptSummary:
+                        'Customer complaints data with complaint identifier, category, date received, resolution date and satisfaction score',
+                      detectedColumnCount: 4,
+                    },
+                  },
+                },
+              ],
+            };
+          },
+        },
+      },
+    });
+    broker2.createService({
+      name: 'datasource-cache',
+      actions: {
+        status: {
+          async handler() {
+            return { success: true, exists: true, stale: false, lastRefreshed: '2026-03-20T08:00:00Z' };
+          },
+        },
+      },
+    });
+    broker2.createService(require('../services/datasource-discovery.service'));
+    await broker2.start();
+
+    const result = await broker2.call('datasource-discovery.list', {});
+    expect(result.success).toBe(true);
+    expect(result.count).toBe(1);
+
+    const descriptor = result.data[0];
+    expect(descriptor.sourceId).toBe('source-other');
+    expect(descriptor.semanticStatus).toBe('description-guided');
+    expect(descriptor.capabilities).toContain('description_guided');
+    expect(descriptor.semanticHints.domain).toBe('other');
+    expect(descriptor.semanticHints.freeformDescription).toContain('complaints');
+    expect(descriptor.semanticHints.runtimeContext).toBeDefined();
+    expect(descriptor.semanticHints.runtimeContext.capabilities).toContain('timeseries');
+    expect(descriptor.semanticHints.runtimeContext.suggestedQueries.length).toBeGreaterThan(0);
+    expect(descriptor.semanticHints.runtimeContext.conceptSummary).toContain('complaint');
+
+    await broker2.stop();
+  });
 });

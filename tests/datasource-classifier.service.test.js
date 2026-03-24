@@ -293,11 +293,123 @@ describe('Datasource Classifier Service', () => {
     });
 
     expect(spy).toHaveBeenCalled();
+    // Short description (< 8 tokens) → still 'unknown', not 'other'
     expect(result.domainId).toBe('unknown');
     expect(result.requiresUserInput).toBe(true);
     expect(result.llmAssisted).toBe(true);
 
     spy.mockRestore();
+    fs.unlinkSync(tmpFile);
+  });
+
+  it('classifies as "other" when description is rich but no domain keyword matches', async () => {
+    const tmpFile = path.join(os.tmpdir(), `cernion-other-${Date.now()}.csv`);
+    // CSV content has no domain-specific keywords
+    fs.writeFileSync(
+      tmpFile,
+      [
+        'Complaint_ID,Customer_Name,Category,Date_Received,Resolution_Date,Satisfaction_Score',
+        '1001,Alice Müller,Billing,2026-01-05,2026-01-12,4',
+        '1002,Bob Schmidt,Technical,2026-01-06,,2',
+        '1003,Clara Weber,Billing,2026-01-07,2026-01-09,5',
+      ].join('\n'),
+      'utf-8'
+    );
+
+    const sourceId = await createConfiguredCsvSource({
+      filePath: tmpFile,
+      label: 'Customer Complaints',
+      description:
+        'Customer complaints data containing complaint identifier, customer name, complaint category, date the complaint was received, resolution date, and customer satisfaction score',
+    });
+
+    const service = broker.getLocalService('datasource-classifier');
+    service.settings.llmFallbackEnabled = false;
+
+    const result = await broker.call('datasource-classifier.classify', {
+      sourceId,
+      filename: 'customer_complaints.csv',
+      description:
+        'Customer complaints data containing complaint identifier, customer name, complaint category, date the complaint was received, resolution date, and customer satisfaction score',
+    });
+
+    expect(result.domainId).toBe('other');
+    expect(result.domainLabel).toBe('Other / Custom Dataset');
+    expect(result.requiresUserInput).toBe(false);
+    expect(result.descriptionAnalysis).toBeDefined();
+    expect(result.descriptionAnalysis.conceptSummary).toContain('complaint');
+    expect(Array.isArray(result.descriptionAnalysis.capabilities)).toBe(true);
+    expect(Array.isArray(result.descriptionAnalysis.suggestedQueries)).toBe(true);
+    expect(result.descriptionAnalysis.suggestedQueries.length).toBeGreaterThan(0);
+
+    fs.unlinkSync(tmpFile);
+  });
+
+  it('infers timeseries and categorical capabilities from description for "other" domain', async () => {
+    const tmpFile = path.join(os.tmpdir(), `cernion-other-caps-${Date.now()}.csv`);
+    fs.writeFileSync(
+      tmpFile,
+      [
+        'OrderID,Region,ProductCategory,OrderDate,Revenue',
+        'A001,Bayern,Hardware,2026-02-01,1200.50',
+        'A002,NRW,Software,2026-02-03,850.00',
+        'A003,Bayern,Services,2026-02-05,500.00',
+      ].join('\n'),
+      'utf-8'
+    );
+
+    const sourceId = await createConfiguredCsvSource({
+      filePath: tmpFile,
+      label: 'Sales Orders',
+      description:
+        'Internal sales order data with order identifier, region, product category, order date, and revenue amount per order for quarterly reporting',
+    });
+
+    const service = broker.getLocalService('datasource-classifier');
+    service.settings.llmFallbackEnabled = false;
+
+    const result = await broker.call('datasource-classifier.classify', {
+      sourceId,
+      filename: 'sales_orders.csv',
+      description:
+        'Internal sales order data with order identifier, region, product category, order date, and revenue amount per order for quarterly reporting',
+    });
+
+    expect(result.domainId).toBe('other');
+    expect(result.descriptionAnalysis.capabilities).toContain('timeseries');
+    expect(result.descriptionAnalysis.capabilities).toContain('categorical');
+    expect(result.descriptionAnalysis.capabilities).toContain('geographic');
+    expect(result.descriptionAnalysis.capabilities).toContain('financial');
+
+    fs.unlinkSync(tmpFile);
+  });
+
+  it('still returns "unknown" for very short descriptions even when LLM fails', async () => {
+    // Use clearly ambiguous column names (foo, bar) that won't trigger
+    // any domain's keyword list via substring matching.
+    const tmpFile = path.join(os.tmpdir(), `cernion-short-desc-${Date.now()}.csv`);
+    fs.writeFileSync(tmpFile, 'foo,bar\nalpha,beta\ngamma,delta\n', 'utf-8');
+
+    const sourceId = await createConfiguredCsvSource({
+      filePath: tmpFile,
+      label: 'Minimal CSV',
+      description: 'Short desc', // only 2 tokens — below the 8-token threshold for 'other'
+    });
+
+    const service = broker.getLocalService('datasource-classifier');
+    service.settings.llmFallbackEnabled = false;
+
+    const result = await broker.call('datasource-classifier.classify', {
+      sourceId,
+      filename: 'minimal.csv',
+      description: 'Short desc',
+    });
+
+    // Short description must NOT trigger the 'other' domain
+    expect(result.domainId).toBe('unknown');
+    expect(result.requiresUserInput).toBe(true);
+    expect(result.descriptionAnalysis).toBeUndefined();
+
     fs.unlinkSync(tmpFile);
   });
 });
