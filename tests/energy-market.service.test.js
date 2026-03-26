@@ -802,6 +802,87 @@ describe('Energy Market Service', () => {
     });
   });
 
+  describe('installations action — updatedAfter filter', () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should keep installations with DatumLetzteMeldung after the filter date', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            { mastrNummer: 'SEE001', bruttoleistung: 10, DatumLetzteMeldung: '2026-04-01', einheitBetriebsstatus: '35' },
+            { mastrNummer: 'SEE002', bruttoleistung: 20, DatumLetzteMeldung: '2026-02-01', einheitBetriebsstatus: '35' },
+            { mastrNummer: 'SEE003', bruttoleistung: 30, DatumLetzteMeldung: '2026-03-25', einheitBetriebsstatus: '35' },
+          ],
+          stats: { count: 3, totalCapacity: 60, avgCapacity: 20 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        updatedAfter: '2026-03-24',
+      });
+      const ids = result.data.installations.map((i) => i.mastrNummer);
+      expect(ids).toEqual(['SEE001', 'SEE003']);
+    });
+
+    it('should exclude installations with no DatumLetzteMeldung when filter is active', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            { mastrNummer: 'SEE001', bruttoleistung: 10, DatumLetzteMeldung: '2026-04-01', einheitBetriebsstatus: '35' },
+            { mastrNummer: 'SEE002', bruttoleistung: 20, einheitBetriebsstatus: '35' },
+          ],
+          stats: { count: 2, totalCapacity: 30, avgCapacity: 15 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        updatedAfter: '2026-03-24',
+      });
+      expect(result.data.installations).toHaveLength(1);
+      expect(result.data.installations[0].mastrNummer).toBe('SEE001');
+    });
+
+    it('should fall back to updatedAt field when DatumLetzteMeldung is absent', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            { mastrNummer: 'SEE001', bruttoleistung: 10, updatedAt: '2026-04-01T00:00:00Z', einheitBetriebsstatus: '35' },
+            { mastrNummer: 'SEE002', bruttoleistung: 20, updatedAt: '2026-01-01T00:00:00Z', einheitBetriebsstatus: '35' },
+          ],
+          stats: { count: 2, totalCapacity: 30, avgCapacity: 15 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        updatedAfter: '2026-03-24',
+      });
+      expect(result.data.installations).toHaveLength(1);
+      expect(result.data.installations[0].mastrNummer).toBe('SEE001');
+    });
+
+    it('should not filter when updatedAfter is not provided', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            { mastrNummer: 'SEE001', bruttoleistung: 10, DatumLetzteMeldung: '2020-01-01', einheitBetriebsstatus: '35' },
+            { mastrNummer: 'SEE002', bruttoleistung: 20, einheitBetriebsstatus: '35' },
+          ],
+          stats: { count: 2, totalCapacity: 30, avgCapacity: 15 },
+        },
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+      });
+      expect(result.data.installations).toHaveLength(2);
+    });
+  });
+
   describe('installations action — pagination (offset)', () => {
     beforeEach(() => {
       jest.clearAllMocks();

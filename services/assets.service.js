@@ -283,6 +283,7 @@ module.exports = {
         netzbetreiberPruefungStatus,
         format,
         includeNapData,
+        updatedAfter,
       } = ctx.params;
 
       if (!vnbName && !bdewCode && !gridOperatorId && !location) {
@@ -419,6 +420,7 @@ module.exports = {
         if (netzbetreiberPruefungStatus !== undefined)
           callParams.netzbetreiberPruefungStatus = netzbetreiberPruefungStatus;
         callParams.includeNapData = includeNapData;
+        if (updatedAfter !== undefined) callParams.updatedAfter = updatedAfter;
 
         // VNB filtering now supported for all types (netzbetreiberMastrNummer added to database)
         if (resolvedMastrId) {
@@ -621,6 +623,13 @@ module.exports = {
           description:
             'Include NAP (Netzanschlusspunkt) data: MeLo, voltage level, grid bottleneck capacity. Default: true',
         },
+        updatedAfter: {
+          type: 'string',
+          optional: true,
+          convert: true,
+          description:
+            'ISO date string (e.g. "2026-03-24"). Returns only installations updated after this date (MaStR: DatumLetzteMeldung).',
+        },
       },
       openapi: {
         summary: 'List assets of a distribution network operator (DNO/DSO)',
@@ -723,6 +732,13 @@ module.exports = {
             schema: { type: 'boolean', default: true, example: true },
             description:
               'Include NAP data (Netzanschlusspunkt): MeLo, voltage level, grid bottleneck capacity. Default: true. Set to false to speed up large queries.',
+          },
+          {
+            name: 'updatedAfter',
+            in: 'query',
+            schema: { type: 'string', format: 'date', example: '2026-03-24' },
+            description:
+              'ISO date (YYYY-MM-DD or full ISO 8601). Returns only installations where DatumLetzteMeldung (MaStR last-notification date) is after this date. Useful for incremental sync.',
           },
         ],
         responses: {
@@ -1119,6 +1135,7 @@ module.exports = {
         netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
+        updatedAfter: { type: 'string', optional: true, convert: true },
       },
       openapi: {
         summary: 'List all solar PV installations of a grid operator',
@@ -1210,6 +1227,13 @@ module.exports = {
               'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
           {
+            name: 'updatedAfter',
+            in: 'query',
+            schema: { type: 'string', format: 'date', example: '2026-03-24' },
+            description:
+              'ISO date — only installations with DatumLetzteMeldung after this date.',
+          },
+          {
             name: 'format',
             in: 'query',
             schema: { type: 'string', enum: ['json', 'csv', 'xlsx'], default: 'json' },
@@ -1244,6 +1268,7 @@ module.exports = {
         netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
+        updatedAfter: { type: 'string', optional: true, convert: true },
       },
       openapi: {
         summary: 'List all wind power installations of a grid operator',
@@ -1333,6 +1358,13 @@ module.exports = {
               'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
           {
+            name: 'updatedAfter',
+            in: 'query',
+            schema: { type: 'string', format: 'date', example: '2026-03-24' },
+            description:
+              'ISO date — only installations with DatumLetzteMeldung after this date.',
+          },
+          {
             name: 'format',
             in: 'query',
             schema: { type: 'string', enum: ['json', 'csv', 'xlsx'], default: 'json' },
@@ -1367,6 +1399,7 @@ module.exports = {
         netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
+        updatedAfter: { type: 'string', optional: true, convert: true },
       },
       openapi: {
         summary: 'List all battery storage installations of a grid operator',
@@ -1456,6 +1489,13 @@ module.exports = {
               'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
           {
+            name: 'updatedAfter',
+            in: 'query',
+            schema: { type: 'string', format: 'date', example: '2026-03-24' },
+            description:
+              'ISO date — only installations with DatumLetzteMeldung after this date.',
+          },
+          {
             name: 'format',
             in: 'query',
             schema: { type: 'string', enum: ['json', 'csv', 'xlsx'], default: 'json' },
@@ -1490,6 +1530,7 @@ module.exports = {
         netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
+        updatedAfter: { type: 'string', optional: true, convert: true },
       },
       openapi: {
         summary: 'List all biomass installations of a grid operator',
@@ -1579,6 +1620,13 @@ module.exports = {
               'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
           {
+            name: 'updatedAfter',
+            in: 'query',
+            schema: { type: 'string', format: 'date', example: '2026-03-24' },
+            description:
+              'ISO date — only installations with DatumLetzteMeldung after this date.',
+          },
+          {
             name: 'format',
             in: 'query',
             schema: { type: 'string', enum: ['json', 'csv', 'xlsx'], default: 'json' },
@@ -1613,6 +1661,7 @@ module.exports = {
         netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
+        updatedAfter: { type: 'string', optional: true, convert: true },
       },
       openapi: {
         summary: 'List all hydropower installations of a grid operator',
@@ -1702,6 +1751,13 @@ module.exports = {
               'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
           {
+            name: 'updatedAfter',
+            in: 'query',
+            schema: { type: 'string', format: 'date', example: '2026-03-24' },
+            description:
+              'ISO date — only installations with DatumLetzteMeldung after this date.',
+          },
+          {
             name: 'format',
             in: 'query',
             schema: { type: 'string', enum: ['json', 'csv', 'xlsx'], default: 'json' },
@@ -1736,6 +1792,7 @@ module.exports = {
         netzbetreiberPruefungStatus: { type: 'string', optional: true, convert: true },
         format: { type: 'enum', values: ['json', 'csv', 'xlsx'], optional: true, default: 'json' },
         includeNapData: { type: 'boolean', optional: true, default: true, convert: true },
+        updatedAfter: { type: 'string', optional: true, convert: true },
       },
       openapi: {
         summary: 'List all combustion installations of a grid operator',
@@ -1825,6 +1882,13 @@ module.exports = {
               'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
           },
           {
+            name: 'updatedAfter',
+            in: 'query',
+            schema: { type: 'string', format: 'date', example: '2026-03-24' },
+            description:
+              'ISO date — only installations with DatumLetzteMeldung after this date.',
+          },
+          {
             name: 'format',
             in: 'query',
             schema: { type: 'string', enum: ['json', 'csv', 'xlsx'], default: 'json' },
@@ -1871,6 +1935,7 @@ module.exports = {
           description:
             'Include NAP (Netzanschlusspunkt) data: MeLo, voltage level, grid bottleneck capacity. Default: true',
         },
+        updatedAfter: { type: 'string', optional: true, convert: true },
       },
       openapi: {
         summary: 'List all installations of a grid operator (all or selected types)',
@@ -1973,6 +2038,13 @@ module.exports = {
             schema: { type: 'boolean', default: true },
             description:
               'Include NAP data (MeLo, voltage level, bottleneck capacity). Default: true',
+          },
+          {
+            name: 'updatedAfter',
+            in: 'query',
+            schema: { type: 'string', format: 'date', example: '2026-03-24' },
+            description:
+              'ISO date — only installations with DatumLetzteMeldung after this date.',
           },
         ],
       },

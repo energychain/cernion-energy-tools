@@ -122,6 +122,13 @@ module.exports = {
         { name: 'NBPMonitor', description: 'Netzbetreiberprüfungs-Monitor (MaStR status 2955 queue KPIs)' },
         { name: 'IntegrationHub', description: 'Token management and integration helpers' },
         { name: 'Jobs', description: 'Async job status and result polling (v0.9.8+)' },
+        {
+          name: 'OSM Geo (OpenStreetMap)',
+          description:
+            'Layer 2 Geo-Architecture: physical grid infrastructure from OpenStreetMap via the Overpass API. ' +
+            'Complements authoritative VNBDigital data (Layer 1) with visible substations, transformers, and lines. ' +
+            'Data: © OpenStreetMap contributors, ODbL 1.0 — https://opendatacommons.org/licenses/odbl/',
+        },
       ],
       components: {
         securitySchemes: {

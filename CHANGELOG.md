@@ -7,6 +7,125 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-03-26
+
+### Added
+
+- **`updatedAfter` filter on all asset endpoints**
+  All eight asset endpoints (`GET /api/assets/solar`, `/wind`, `/storage`,
+  `/biomass`, `/hydro`, `/combustion`, `/list`, `/all`) now accept an optional
+  `updatedAfter` query parameter (ISO date, e.g. `2026-03-24`).
+
+  When set, only installations whose MaStR field `DatumLetzteMeldung` (last
+  notification date) — or MongoDB `updatedAt` as fallback — is **strictly
+  after** the supplied date are returned. Installations without either field
+  are excluded when the filter is active.
+
+  The filter is applied as a server-side post-filter after the MCP response
+  is received, stacking with all existing filters (`operationalStatus`,
+  `netzbetreiberPruefungStatus`, `redispatch`, etc.).
+
+  OpenAPI `parameters` entries (type `string`, format `date`) added to all
+  eight endpoint definitions.
+
+  **Typical use-case — incremental sync:**
+  ```
+  GET /api/assets/solar?gridOperatorId=SNB935578300972&updatedAfter=2026-03-24
+  GET /api/assets/all?bdewCode=4041407000008&updatedAfter=2026-03-24
+  ```
+
+  **Tests:** 4 new cases in `tests/energy-market.service.test.js`
+  (`installations action — updatedAfter filter`) covering date-match,
+  no-date-field exclusion, `updatedAt` fallback, and no-op when parameter
+  is omitted.
+
+## [0.10.0] - 2026-03-25
+
+### Added
+
+- **OSM Geo Layer — 4 new endpoints (Layer 2 Geo-Architecture)**
+  Wraps the four new Cernion MCP tools that expose physical grid infrastructure
+  from OpenStreetMap via the Overpass API, complementing the authoritative
+  VNBDigital data (Layer 1) with community-mapped substations, transformers,
+  lines, and cables.
+
+  New service: **`services/osm-geo.service.js`** (`name: 'osm-geo'`)
+
+  | Endpoint | MCP tool | Description |
+  |---|---|---|
+  | `POST /api/osm-geo/validate` | `osm_geo_validate` | Two-layer VNB-assignment plausibility check (L1 authoritative via VNBDigital + L2 physical via Overpass). Detects `DEFINITIVE_MISASSIGNMENT` and `LIKELY_MISASSIGNMENT`. |
+  | `POST /api/osm-geo/infrastructure-nearby` | `osm_infrastructure_nearby` | All energy infrastructure within a radius, sorted by distance. Includes `connectionSuitability` assessment (`SUITABLE_NS`, `SUITABLE_MS`, `SUITABLE_HS`). Optional `constrainToBbox` from `vnbdigital_lookup`. |
+  | `POST /api/osm-geo/substation-finder` | `osm_substation_finder` | Substation inventory for a grid territory or named area. Returns detail list plus aggregated statistics: count by voltage level, operator split, and density label (`SPARSE`/`RURAL`/`SUBURBAN`/`URBAN`). |
+  | `POST /api/osm-geo/grid-topology` | `osm_grid_topology` | Grid topology analysis: node/edge counts, average degree, topology type (`RADIAL`/`MIXED`/`RING`), voltage breakdown. Optional path analysis between two OSM node IDs; optional raw graph data export. |
+
+  **Coordinate inputs:** `mastrNummer` (auto-resolved from local DB), explicit
+  `latitude`+`longitude`, or `location` string where applicable.
+
+  **Scope inputs** for area tools: `location` (place name), `boundingBox`
+  (directly compatible with `vnbdigital_lookup` bbox), or `gridOperator` name.
+
+  **OpenAPI:** new `OSM Geo (OpenStreetMap)` tag registered in
+  `services/api.service.js`. All four actions include full `requestBody` schemas
+  with named examples and `responses.200` example payloads.
+
+  **Runtime guard:** handlers throw a descriptive `Error` when no valid
+  coordinate or scope parameter is supplied (before the MCP call is made).
+
+  **Tests:** `tests/osm-geo.service.test.js` — 37 test cases covering action
+  existence, REST endpoint strings, Moleculer param validation (required
+  fields, enum guards, numeric range checks), happy-path MCP call
+  verification with correct tool names, `cernionToken` propagation from
+  `ctx.meta`, and MCP error-response passthrough.
+
+  **Data license:** All four tools use OpenStreetMap data.
+  © OpenStreetMap contributors, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/).
+  The `dataQuality.disclaimer` field in every response carries this notice.
+
+- **`OVERPASS_ENDPOINT` environment variable** documented in `.env.example`.
+  Leave unset to use the public `overpass-api.de` instance. For production
+  workloads with SLA requirements, point this to a private Overpass instance
+  (setup guide: `docker/overpass/README.md`).
+
+- **Agent RULE 12 — OSM Geo Layer integration**
+  The Gemini planning prompt (`services/agent.service.js`) now carries
+  **RULE 12**, wiring the four `osm-geo.*` actions into the AI research
+  pipeline. `buildServiceCatalogue()` already auto-discovers all Moleculer
+  services, so the actions appear in the LLM tool catalogue automatically;
+  RULE 12 adds explicit routing guidance so the planner reliably selects the
+  right tool for each intent:
+
+  | Intent keywords | Routed to |
+  |---|---|
+  | "VNB assignment", "grid operator validation", "ist SEE… beim richtigen VNB?" | `osm-geo.validate` |
+  | "nearby infrastructure", "what is close to…", "Umkreis Infrastruktur" | `osm-geo.infrastructureNearby` |
+  | "substation inventory", "how many Trafostationen", "find transformer stations" | `osm-geo.substationFinder` |
+  | "grid topology", "ring or radial", "network redundancy", "Netzredundanz" | `osm-geo.gridTopology` |
+
+  The rule also documents how to chain with RULE 1 (DSO pipeline) to obtain
+  `gridOperator` from a prior `marketPartners` step:
+  `"gridOperator": "__step_1.data.results[0].companyName"`.
+
+  The **refinement prompt** carries a condensed RULE 12 summary (item 9)
+  so refined plans stay consistent with initial plans.
+
+  **PARAM_ALIASES** — two new entries added to the static alias table so
+  the proactive schema-repair pass corrects common LLM typos before any
+  service call:
+
+  | LLM typo | Canonical param |
+  |---|---|
+  | `radius` / `umkreis` | `radiusMeters` |
+  | `bbox` / `bounding_box` | `boundingBox` |
+
+  **Tests:** 4 new tests in `tests/agent.service.test.js`:
+  - Prompt contains `RULE 12` and all four `osm-geo.*` action names.
+  - `osm-geo.substationFinder` and `osm-geo.gridTopology` appear in the
+    auto-generated service catalogue text.
+  - `radius` → `radiusMeters` alias applied for `osm-geo.validate`.
+  - `bbox` → `boundingBox` alias applied for `osm-geo.substationFinder`.
+
+  Suite total: **1110 tests** (1106 → +4).
+
 ## [0.9.13] - 2026-03-24
 
 ### Added

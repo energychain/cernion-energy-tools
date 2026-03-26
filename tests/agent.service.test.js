@@ -294,6 +294,61 @@ describe('Agent Service', () => {
     broker._queryAskMock = queryAskMock;
     broker._queryAskLearnedMock = queryAskLearnedMock;
 
+    // Mock osm-geo service with real params schema so plan repair + catalogue tests work
+    broker.createService({
+      name: 'osm-geo',
+      actions: {
+        validate: {
+          params: {
+            mastrNummer: { type: 'string', optional: true },
+            latitude: { type: 'number', optional: true },
+            longitude: { type: 'number', optional: true },
+            radiusMeters: { type: 'number', optional: true },
+            skipOsmLayer: { type: 'boolean', optional: true },
+            voltageLevel: { type: 'enum', values: ['NS', 'MS', 'HS', 'all'], optional: true },
+          },
+          handler: jest.fn().mockResolvedValue({ success: true, data: {} }),
+        },
+        infrastructureNearby: {
+          params: {
+            location: { type: 'string', optional: true },
+            latitude: { type: 'number', optional: true },
+            longitude: { type: 'number', optional: true },
+            mastrNummer: { type: 'string', optional: true },
+            radiusMeters: { type: 'number', optional: true },
+            constrainToBbox: { type: 'object', optional: true },
+            infrastructureTypes: { type: 'array', optional: true },
+            limit: { type: 'number', optional: true },
+          },
+          handler: jest.fn().mockResolvedValue({ success: true, data: {} }),
+        },
+        substationFinder: {
+          params: {
+            location: { type: 'string', optional: true },
+            boundingBox: { type: 'object', optional: true },
+            gridOperator: { type: 'string', optional: true },
+            substationType: { type: 'enum', values: ['all', 'transmission', 'distribution', 'minor'], optional: true },
+            voltageLevel: { type: 'enum', values: ['NS', 'MS', 'HS', 'all'], optional: true },
+            limit: { type: 'number', optional: true },
+          },
+          handler: jest.fn().mockResolvedValue({ success: true, data: {} }),
+        },
+        gridTopology: {
+          params: {
+            location: { type: 'string', optional: true },
+            boundingBox: { type: 'object', optional: true },
+            gridOperator: { type: 'string', optional: true },
+            voltageLevel: { type: 'enum', values: ['NS', 'MS', 'HS', 'all'], optional: true },
+            includePathAnalysis: { type: 'boolean', optional: true },
+            fromOsmId: { type: 'string', optional: true },
+            toOsmId: { type: 'string', optional: true },
+            includeGraphData: { type: 'boolean', optional: true },
+          },
+          handler: jest.fn().mockResolvedValue({ success: true, data: {} }),
+        },
+      },
+    });
+
     await broker.start();
   });
 
@@ -358,6 +413,39 @@ describe('Agent Service', () => {
       expect(prompt).toContain('inhouse__netzanschluesse_twl');
       expect(prompt).toContain('Internal grid connection list (TWL 2025)');
       expect(prompt).toContain('Privacy-flagged fields: kundennummer');
+    });
+
+    it('should include RULE 12 (OSM Geo Layer) in the analyze prompt', async () => {
+      _mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => makePlanResponse() },
+      });
+
+      await broker.call('agent.analyze', {
+        problem: 'What energy infrastructure is near the Stadtwerke Heidelberg area?',
+      });
+
+      const prompt = _mockGenerateContent.mock.calls[0][0];
+      expect(prompt).toContain('RULE 12');
+      expect(prompt).toContain('OSM Geo Layer');
+      expect(prompt).toContain('osm-geo.validate');
+      expect(prompt).toContain('osm-geo.substationFinder');
+      expect(prompt).toContain('osm-geo.gridTopology');
+      expect(prompt).toContain('osm-geo.infrastructureNearby');
+    });
+
+    it('should include osm-geo.substationFinder in the service catalogue text', async () => {
+      _mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => makePlanResponse() },
+      });
+
+      await broker.call('agent.analyze', {
+        problem: 'Find substations in the Heidelberg grid operator territory',
+      });
+
+      const prompt = _mockGenerateContent.mock.calls[0][0];
+      // catalogue entry should be present (auto-discovered via buildServiceCatalogue)
+      expect(prompt).toMatch(/osm-geo\.substationFinder/);
+      expect(prompt).toMatch(/osm-geo\.gridTopology/);
     });
 
     it('should shortcut LPTest cost questions to intent class timeseries_cost_enrichment', async () => {
@@ -1510,6 +1598,72 @@ describe('Agent Service', () => {
       // Params left untouched since action schema is unknown
       expect(session.plan.steps[0].params.gemeinde).toBe('Hamburg');
       expect(session.planRepairs).toBeUndefined();
+    });
+
+    it('should rename "radius" to "radiusMeters" for osm-geo.validate (RULE 12 alias)', async () => {
+      const wrongPlan = JSON.stringify({
+        summary: 'OSM geo validate with wrong radius param.',
+        steps: [
+          {
+            step: 1,
+            action: 'osm-geo.validate',
+            description: 'Validate VNB assignment for installation',
+            params: { mastrNummer: 'SEE900123456789', radius: 500 },
+          },
+        ],
+        requiredInputs: [],
+      });
+      _mockGenerateContent.mockResolvedValueOnce({ response: { text: () => wrongPlan } });
+
+      const result = await broker.call('agent.analyze', {
+        problem: 'Validate that SEE900123456789 is correctly assigned to its grid operator',
+      });
+
+      const sessionFile = path.join(SESSION_DIR, `${result.sessionId}.json`);
+      const session = JSON.parse(fs.readFileSync(sessionFile, 'utf-8'));
+
+      expect(session.plan.steps[0].params.radiusMeters).toBe(500);
+      expect(session.plan.steps[0].params.radius).toBeUndefined();
+      expect(session.planRepairs).toHaveLength(1);
+      expect(session.planRepairs[0]).toMatchObject({
+        step: 1,
+        action: 'osm-geo.validate',
+        original: 'radius',
+        corrected: 'radiusMeters',
+      });
+    });
+
+    it('should rename "bbox" to "boundingBox" for osm-geo.substationFinder (RULE 12 alias)', async () => {
+      const wrongPlan = JSON.stringify({
+        summary: 'OSM substation finder with wrong bbox param.',
+        steps: [
+          {
+            step: 1,
+            action: 'osm-geo.substationFinder',
+            description: 'Find substations within bounding box',
+            params: { bbox: { north: 49.5, south: 49.3, east: 8.7, west: 8.5 } },
+          },
+        ],
+        requiredInputs: [],
+      });
+      _mockGenerateContent.mockResolvedValueOnce({ response: { text: () => wrongPlan } });
+
+      const result = await broker.call('agent.analyze', {
+        problem: 'Find all substations in the Heidelberg area',
+      });
+
+      const sessionFile = path.join(SESSION_DIR, `${result.sessionId}.json`);
+      const session = JSON.parse(fs.readFileSync(sessionFile, 'utf-8'));
+
+      expect(session.plan.steps[0].params.boundingBox).toBeDefined();
+      expect(session.plan.steps[0].params.bbox).toBeUndefined();
+      expect(session.planRepairs).toHaveLength(1);
+      expect(session.planRepairs[0]).toMatchObject({
+        step: 1,
+        action: 'osm-geo.substationFinder',
+        original: 'bbox',
+        corrected: 'boundingBox',
+      });
     });
   }); // end schema-based plan repair
 

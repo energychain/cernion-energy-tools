@@ -281,6 +281,11 @@ const PARAM_ALIASES = {
   dvmastrid: 'direktvermarkterMastrId',
   directmarketername: 'direktvermarkterName',
   directmarketerid: 'direktvermarkterMastrId',
+  // OSM Geo Layer aliases (RULE 12)
+  radius: 'radiusMeters',
+  umkreis: 'radiusMeters',
+  bbox: 'boundingBox',
+  bounding_box: 'boundingBox',
 };
 
 /**
@@ -2071,6 +2076,35 @@ CRITICAL DISTINCTIONS — do NOT confuse:
 Chaining paths for RULE 11 (copy exactly):
   "direktvermarkterMastrId": "__step_1.data.results[0].mastrId"
   "direktvermarkterName":    "__step_1.data.results[0].name"
+
+RULE 12 — OSM Geo Layer (physical grid infrastructure):
+Use the osm-geo microservice for queries about physical infrastructure, substation
+inventory, VNB assignment validation, or network topology (data: OSM ODbL 1.0).
+
+Choose action by intent:
+
+  A. osm-geo.validate — VNB ASSIGNMENT CHECK
+     "Is installation X correctly assigned to its grid operator?"
+     Required: "mastrNummer": null   OR   "latitude": null + "longitude": null
+     Optional: "radiusMeters" (max 5000, default 500)
+
+  B. osm-geo.infrastructureNearby — NEARBY INFRASTRUCTURE SCAN
+     "What energy infrastructure is near [address / installation / MaStR number]?"
+     Required: "location": null   OR   "mastrNummer": null   OR   latitude + longitude
+     Optional: "radiusMeters" (max 10000), "constrainToBbox" (chain from vnbdigital_lookup)
+
+  C. osm-geo.substationFinder — SUBSTATION INVENTORY FOR AN AREA
+     "How many substations does VNB X have?" / "Find transformer stations in area Y"
+     Required: "location": null   OR   "gridOperator": null   OR   "boundingBox": null
+     To chain from RULE 1: "gridOperator": "__step_1.data.results[0].companyName"
+
+  D. osm-geo.gridTopology — NETWORK TOPOLOGY / REDUNDANCY ANALYSIS
+     "Is this grid radial or ring?" / "Network redundancy metrics for city Z"
+     Required: "location": null   OR   "gridOperator": null   OR   "boundingBox": null
+     Optional: "includePathAnalysis": true (also set "fromOsmId" + "toOsmId")
+
+Extract "location", "mastrNummer", "latitude", "longitude", "radiusMeters", "boundingBox",
+"fromOsmId", "toOsmId", and "gridOperator" as requiredInputs per RULE 5.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 IMPORTANT: The keys in each step MUST be exactly "action", "params", and "description" — do NOT use "useTool", "args", "inputs", "label", "tool", or any other synonym.
 {
@@ -2293,6 +2327,13 @@ CRITICAL RULES:
      direktvermarkterName: "__step_1.data.results[0].name"
    }
    Do NOT use the VNB pipeline (marketPartners → vnbLookup → assets) for Direktvermarkter.
+9. OSM GEO LAYER (RULE 12): For physical infrastructure queries, substation inventory,
+   VNB assignment validation, or network topology, use osm-geo microservice actions:
+   - osm-geo.validate: VNB assignment check (mastrNummer OR latitude+longitude required)
+   - osm-geo.infrastructureNearby: nearby scan (location OR mastrNummer OR lat+lng)
+   - osm-geo.substationFinder: substation inventory (location/gridOperator/boundingBox)
+   - osm-geo.gridTopology: topology metrics (location/gridOperator/boundingBox)
+   Chain from RULE 1: "gridOperator": "__step_1.data.results[0].companyName"
 
 The user originally asked: "${session.problem}"
 Your previous plan was: ${JSON.stringify(session.plan, null, 2)}

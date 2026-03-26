@@ -582,6 +582,12 @@ module.exports = {
         operationalStatus: { type: 'string', optional: true, default: '35' },
         netzbetreiberPruefungStatus: { type: 'string', optional: true },
         includeNapData: { type: 'boolean', optional: true, default: true },
+        updatedAfter: {
+          type: 'string',
+          optional: true,
+          description:
+            'ISO date string (e.g. "2026-03-24"). Returns only installations where DatumLetzteMeldung (MaStR last-notification date) or updatedAt is after this date.',
+        },
         format: {
           type: 'enum',
           values: ['json', 'csv', 'xlsx', 'xls'],
@@ -865,6 +871,7 @@ module.exports = {
         const { format, ...params } = ctx.params;
         const operationalStatus = params.operationalStatus || '35';
         const nbpStatus = params.netzbetreiberPruefungStatus;
+        const updatedAfter = params.updatedAfter ? new Date(params.updatedAfter) : null;
         const startOffset = params.offset || 0;
 
         // Parse limit: accept number, numeric string, or 'all' / undefined (= fetch everything)
@@ -972,6 +979,26 @@ module.exports = {
                   ? result.data.stats.totalCapacity / result.data.stats.count
                   : 0;
             }
+          }
+        }
+
+        // Post-filter by updatedAfter — checks DatumLetzteMeldung (MaStR) or updatedAt (MongoDB)
+        if (updatedAfter && !isNaN(updatedAfter.getTime()) && result?.data?.installations) {
+          result.data.installations = result.data.installations.filter((inst) => {
+            const dateStr = inst.DatumLetzteMeldung || inst.updatedAt;
+            if (!dateStr) return false;
+            return new Date(dateStr) > updatedAfter;
+          });
+          if (result.data.stats) {
+            result.data.stats.count = result.data.installations.length;
+            result.data.stats.totalCapacity = result.data.installations.reduce(
+              (sum, i) => sum + (i.bruttoleistung || 0),
+              0
+            );
+            result.data.stats.avgCapacity =
+              result.data.stats.count > 0
+                ? result.data.stats.totalCapacity / result.data.stats.count
+                : 0;
           }
         }
 
