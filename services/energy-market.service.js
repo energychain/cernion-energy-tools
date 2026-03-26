@@ -586,7 +586,7 @@ module.exports = {
           type: 'string',
           optional: true,
           description:
-            'ISO date string (e.g. "2026-03-24"). Returns only installations where DatumLetzteMeldung (MaStR last-notification date) or updatedAt is after this date.',
+            'ISO date string (e.g. "2026-03-24"). Returns only installations where lastUpdatedAt (MaStR DatumLetzteMeldung, stored in MongoDB as lastUpdatedAt) is after this date.',
         },
         format: {
           type: 'enum',
@@ -982,10 +982,10 @@ module.exports = {
           }
         }
 
-        // Post-filter by updatedAfter — checks DatumLetzteMeldung (MaStR) or updatedAt (MongoDB)
+        // Post-filter by updatedAfter — checks lastUpdatedAt (MongoDB field for MaStR DatumLetzteMeldung)
         if (updatedAfter && !isNaN(updatedAfter.getTime()) && result?.data?.installations) {
           result.data.installations = result.data.installations.filter((inst) => {
-            const dateStr = inst.DatumLetzteMeldung || inst.updatedAt;
+            const dateStr = inst.lastUpdatedAt || inst.DatumLetzteMeldung;
             if (!dateStr) return false;
             return new Date(dateStr) > updatedAfter;
           });

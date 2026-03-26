@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.2] - 2026-03-26
+
+### Fixed
+
+- **`updatedAfter` filter — wrong field name (hotfix)**
+  The `updatedAfter` post-filter in `energy-market.installations` was checking
+  `inst.DatumLetzteMeldung`, which does not exist in the local MongoDB schema.
+  The correct MongoDB field for MaStR `DatumLetzteMeldung` is `lastUpdatedAt`.
+
+  Root cause: `DatumLetzteMeldung` is the raw MaStR XML attribute name; the
+  MongoDB importer maps it to `lastUpdatedAt`. The secondary fallback was
+  `updatedAt`, which is the DB-level import/sync timestamp (identical for all
+  records in a given sync run — e.g. `2026-03-06` for all records), so the
+  filter had no discriminating effect and every installation passed through.
+
+  Fix: filter now checks `inst.lastUpdatedAt || inst.DatumLetzteMeldung`
+  (the `DatumLetzteMeldung` arm handles any future data sources that expose the
+  raw MaStR name). The `updatedAt` fallback has been removed since using the
+  sync timestamp produces misleading results.
+
+  Updated: OpenAPI `description` for the `updatedAfter` parameter in all eight
+  asset endpoints now reads `lastUpdatedAt (DatumLetzteMeldung)` to make the
+  field mapping transparent to API consumers.
+
+  Tests updated to use `lastUpdatedAt` in fixtures; fallback test renamed to
+  *"should fall back to DatumLetzteMeldung field when lastUpdatedAt is absent"*.
+
 ## [0.10.1] - 2026-03-26
 
 ### Added
@@ -16,9 +43,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `/biomass`, `/hydro`, `/combustion`, `/list`, `/all`) now accept an optional
   `updatedAfter` query parameter (ISO date, e.g. `2026-03-24`).
 
-  When set, only installations whose MaStR field `DatumLetzteMeldung` (last
-  notification date) — or MongoDB `updatedAt` as fallback — is **strictly
-  after** the supplied date are returned. Installations without either field
+  When set, only installations whose MongoDB field `lastUpdatedAt` (MaStR
+  `DatumLetzteMeldung`, the last-notification date) is **strictly
+  after** the supplied date are returned. Installations without this field
   are excluded when the filter is active.
 
   The filter is applied as a server-side post-filter after the MCP response

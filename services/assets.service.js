@@ -1231,7 +1231,7 @@ module.exports = {
             in: 'query',
             schema: { type: 'string', format: 'date', example: '2026-03-24' },
             description:
-              'ISO date — only installations with DatumLetzteMeldung after this date.',
+              'ISO date — only installations with lastUpdatedAt (DatumLetzteMeldung) after this date.',
           },
           {
             name: 'format',
@@ -1362,7 +1362,7 @@ module.exports = {
             in: 'query',
             schema: { type: 'string', format: 'date', example: '2026-03-24' },
             description:
-              'ISO date — only installations with DatumLetzteMeldung after this date.',
+              'ISO date — only installations with lastUpdatedAt (DatumLetzteMeldung) after this date.',
           },
           {
             name: 'format',
@@ -1493,7 +1493,7 @@ module.exports = {
             in: 'query',
             schema: { type: 'string', format: 'date', example: '2026-03-24' },
             description:
-              'ISO date — only installations with DatumLetzteMeldung after this date.',
+              'ISO date — only installations with lastUpdatedAt (DatumLetzteMeldung) after this date.',
           },
           {
             name: 'format',
@@ -1624,7 +1624,7 @@ module.exports = {
             in: 'query',
             schema: { type: 'string', format: 'date', example: '2026-03-24' },
             description:
-              'ISO date — only installations with DatumLetzteMeldung after this date.',
+              'ISO date — only installations with lastUpdatedAt (DatumLetzteMeldung) after this date.',
           },
           {
             name: 'format',
@@ -1755,7 +1755,7 @@ module.exports = {
             in: 'query',
             schema: { type: 'string', format: 'date', example: '2026-03-24' },
             description:
-              'ISO date — only installations with DatumLetzteMeldung after this date.',
+              'ISO date — only installations with lastUpdatedAt (DatumLetzteMeldung) after this date.',
           },
           {
             name: 'format',
@@ -1886,7 +1886,7 @@ module.exports = {
             in: 'query',
             schema: { type: 'string', format: 'date', example: '2026-03-24' },
             description:
-              'ISO date — only installations with DatumLetzteMeldung after this date.',
+              'ISO date — only installations with lastUpdatedAt (DatumLetzteMeldung) after this date.',
           },
           {
             name: 'format',
@@ -2044,7 +2044,7 @@ module.exports = {
             in: 'query',
             schema: { type: 'string', format: 'date', example: '2026-03-24' },
             description:
-              'ISO date — only installations with DatumLetzteMeldung after this date.',
+              'ISO date — only installations with lastUpdatedAt (DatumLetzteMeldung) after this date.',
           },
         ],
       },
