@@ -881,6 +881,30 @@ describe('Energy Market Service', () => {
       });
       expect(result.data.installations).toHaveLength(2);
     });
+
+    it('should filter correctly when MCP returns flat top-level installations (real response shape)', async () => {
+      // cernion_installations_local returns { installations: [...] } at the top level,
+      // NOT wrapped under { data: { installations: [...] } }.
+      // This test ensures the normalization step handles the real MCP response shape.
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        installations: [
+          { mastrNummer: 'SEE001', bruttoleistung: 10, lastUpdatedAt: '2026-04-01', einheitBetriebsstatus: '35' },
+          { mastrNummer: 'SEE002', bruttoleistung: 20, lastUpdatedAt: '2025-10-01', einheitBetriebsstatus: '35' },
+          { mastrNummer: 'SEE003', bruttoleistung: 30, lastUpdatedAt: '2023-03-23', einheitBetriebsstatus: '35' },
+        ],
+        total: 3,
+        returned: 3,
+        stats: {},
+      });
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        updatedAfter: '2026-03-01',
+      });
+      // Only SEE001 (2026-04-01) passes the filter; SEE002 (2025-10-01) and SEE003 (2023-03-23) are excluded
+      expect(result.data.installations).toHaveLength(1);
+      expect(result.data.installations[0].mastrNummer).toBe('SEE001');
+    });
   });
 
   describe('installations action — pagination (offset)', () => {

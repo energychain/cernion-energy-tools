@@ -920,6 +920,16 @@ module.exports = {
 
           if (!firstResult) firstResult = pageResult;
 
+          // Normalize: cernion_installations_local returns { installations: [...] }
+          // at the top level without a `data` wrapper. Fold it into the expected
+          // shape so the pagination loop and all post-filters work uniformly.
+          if (pageResult && !pageResult.data && Array.isArray(pageResult.installations)) {
+            pageResult.data = {
+              installations: pageResult.installations,
+              stats: pageResult.stats || {},
+            };
+          }
+
           const pageRows = pageResult?.data?.installations || [];
           allInstallations.push(...pageRows);
           currentOffset += pageRows.length;
