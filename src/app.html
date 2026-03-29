@@ -1600,8 +1600,8 @@
       <section id="datapoints-panel" class="card hidden">
         <h2>📌 Managed Datapoints</h2>
         <p style="color:var(--text-muted);font-size:.87rem;margin-bottom:16px;">
-          Benannte, verwaltete Datenquellen mit Lifecycle-Tracking und Health-Monitoring.
-          Erstellt über „Promote to Datapoint" nach einer Research-Analyse.
+          Named, managed data sources with lifecycle tracking and health monitoring.
+          Created via "Promote to Datapoint" after a research analysis.
         </p>
         <div id="dp-health-bar" class="dp-health-bar"></div>
         <div id="dp-content"></div>
@@ -2046,17 +2046,17 @@
           const dialog = document.createElement('div');
           dialog.className = 'promote-dialog';
           dialog.innerHTML = `
-            <label style="font-size:.82rem;color:var(--text-muted);">Datenpunkt-Name (URL-sicher, lowercase)</label>
+            <label style="font-size:.82rem;color:var(--text-muted);">Datapoint name (URL-safe, lowercase)</label>
             <input type="text" id="dp-name-input" value="${esc(slug)}"
               pattern="^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$"
-              placeholder="z.B. pv-portfolio-twl-netze" />
-            <label style="font-size:.82rem;color:var(--text-muted);">Beschreibung (optional)</label>
+              placeholder="e.g. pv-portfolio-twl-netze" />
+            <label style="font-size:.82rem;color:var(--text-muted);">Description (optional)</label>
             <input type="text" id="dp-desc-input" value="${esc(rawText.slice(0, 120))}"
-              placeholder="Kurzbeschreibung des Datenpunkts" />
+              placeholder="Short description of the datapoint" />
             <div class="promote-actions">
-              <button class="btn-sm btn-promote" id="btn-do-promote">📌 Erstellen</button>
-              <button class="btn-sm" id="btn-cancel-promote">Abbrechen</button>
-              <span class="promote-hint">Speichert den Plan als verwalteten Datenpunkt (nur Metadaten, keine Rohdaten).</span>
+              <button class="btn-sm btn-promote" id="btn-do-promote">📌 Create</button>
+              <button class="btn-sm" id="btn-cancel-promote">Cancel</button>
+              <span class="promote-hint">Saves the plan as a managed datapoint (metadata only, no raw data).</span>
             </div>
           `;
           promoteRow.appendChild(dialog);
@@ -2071,12 +2071,12 @@
             const description = $('dp-desc-input').value.trim();
 
             if (!name || !/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(name)) {
-              toast('Name muss 3-64 Zeichen sein: lowercase, Zahlen, Bindestriche', 'warn');
+              toast('Name must be 3–64 characters: lowercase, digits, hyphens', 'warn');
               return;
             }
 
             $('btn-do-promote').disabled = true;
-            $('btn-do-promote').textContent = '⏳ Wird erstellt…';
+            $('btn-do-promote').textContent = '⏳ Creating…';
 
             try {
               const result = await apiFetch('/api/datapoints/promote', {
@@ -2090,18 +2090,18 @@
               if (result.success) {
                 promoteRow.innerHTML = `
                   <div class="promote-success">
-                    ✅ Datenpunkt <strong>${esc(name)}</strong> erstellt.
+                    ✅ Datapoint <strong>${esc(name)}</strong> created.
                     <button class="btn-sm" onclick="showPanel('datapoints-panel'); window.loadDatapoints();">
-                      → Öffnen
+                      → Open
                     </button>
                   </div>
                 `;
-                toast('Datenpunkt erstellt: ' + name, 'success');
+                toast('Datapoint created: ' + name, 'success');
               }
             } catch (err) {
               toast(err.message, 'error');
               $('btn-do-promote').disabled = false;
-              $('btn-do-promote').textContent = '📌 Erstellen';
+              $('btn-do-promote').textContent = '📌 Create';
             }
           });
 
@@ -5087,7 +5087,7 @@
           content.innerHTML = `
             <div class="table-wrap">
               <table class="dp-table">
-                <thead><tr><th>Name</th><th>Status</th><th>Letzter Lauf</th><th>Zeilen</th><th>Aktionen</th></tr></thead>
+                <thead><tr><th>Name</th><th>Status</th><th>Last Run</th><th>Rows</th><th>Actions</th></tr></thead>
                 <tbody>${Array(3).fill('<tr class="skeleton-row"><td colspan="5"><div class="skeleton-cell"></div></td></tr>').join('')}</tbody>
               </table>
             </div>
@@ -5100,7 +5100,7 @@
             healthBar.innerHTML = `
               <div class="dp-health-stat">
                 <div class="dp-stat-value">${data.total}</div>
-                <div class="dp-stat-label">Gesamt</div>
+                <div class="dp-stat-label">Total</div>
               </div>
               <div class="dp-health-stat healthy">
                 <div class="dp-stat-value">${data.healthy}</div>
@@ -5112,7 +5112,7 @@
               </div>
               <div class="dp-health-stat errored">
                 <div class="dp-stat-value">${data.errored}</div>
-                <div class="dp-stat-label">Fehler</div>
+                <div class="dp-stat-label">Errors</div>
               </div>
             `;
 
@@ -5122,9 +5122,9 @@
               content.innerHTML = `
                 <div class="dp-empty">
                   <div class="dp-empty-icon">📌</div>
-                  <div>Noch keine Datenpunkte erstellt.</div>
+                  <div>No datapoints created yet.</div>
                   <div style="font-size:.82rem;color:var(--text-muted);margin-top:6px;">
-                    Führe eine Research-Analyse durch und nutze „Promote to Datapoint" im Ergebnis-Bereich.
+                    Run a research analysis and use "Promote to Datapoint" in the results area.
                   </div>
                 </div>
               `;
@@ -5134,7 +5134,7 @@
             renderDpTable();
 
           } catch (err) {
-            content.innerHTML = `<div class="warn-callout">Fehler beim Laden: ${esc(err.message)}</div>`;
+            content.innerHTML = `<div class="warn-callout">Error loading: ${esc(err.message)}</div>`;
           }
         }
 
@@ -5148,9 +5148,9 @@
               : 'never-run';
 
             const ageText = dp.ageMinutes !== null
-              ? (dp.ageMinutes < 60  ? `vor ${dp.ageMinutes} min`
-                : dp.ageMinutes < 1440 ? `vor ${Math.round(dp.ageMinutes / 60)} h`
-                : `vor ${Math.round(dp.ageMinutes / 1440)} d`)
+              ? (dp.ageMinutes < 60  ? `${dp.ageMinutes} min ago`
+                : dp.ageMinutes < 1440 ? `${Math.round(dp.ageMinutes / 60)} h ago`
+                : `${Math.round(dp.ageMinutes / 1440)} d ago`)
               : '—';
 
             return `
@@ -5165,7 +5165,7 @@
                       onclick="window.refreshDatapoint(${JSON.stringify(dp.name)})">🔄</button>
                     <button class="icon-btn" title="CSV Download"
                       onclick="window.open('/api/datapoints/${encodeURIComponent(dp.name)}/data?format=csv','_blank')">📥</button>
-                    <button class="icon-btn danger" title="Löschen"
+                    <button class="icon-btn danger" title="Delete"
                       onclick="window.deleteDatapoint(${JSON.stringify(dp.name)})">🗑️</button>
                   </div>
                 </td>
@@ -5180,9 +5180,9 @@
                   <tr>
                     <th>Name</th>
                     <th>Status</th>
-                    <th>Letzter Lauf</th>
-                    <th>Zeilen</th>
-                    <th>Aktionen</th>
+                    <th>Last Run</th>
+                    <th>Rows</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>${rows}</tbody>
@@ -5194,22 +5194,22 @@
         // === Actions exposed globally for inline onclick handlers ===
 
         window.refreshDatapoint = async function (name) {
-          toast(`Refresh gestartet: ${name}…`, 'success');
+          toast(`Refreshing ${name}…`, 'success');
           try {
             const result = await apiFetch(`/api/datapoints/${encodeURIComponent(name)}/refresh`, {});
             if (result.success) {
-              toast(`✅ ${name}: ${result.lastRun?.summary?.rowCount ?? '?'} Zeilen, ${result.lastRun?.durationMs ?? '?'} ms`, 'success');
+              toast(`✅ ${name}: ${result.lastRun?.summary?.rowCount ?? '?'} rows, ${result.lastRun?.durationMs ?? '?'} ms`, 'success');
             } else {
-              toast(`⚠️ ${name}: ${result.error || 'Refresh fehlgeschlagen'}`, 'error');
+              toast(`⚠️ ${name}: ${result.error || 'Refresh failed'}`, 'error');
             }
             loadDatapoints();
           } catch (err) {
-            toast(`Refresh fehlgeschlagen: ${err.message}`, 'error');
+            toast(`Refresh failed: ${err.message}`, 'error');
           }
         };
 
         window.deleteDatapoint = async function (name) {
-          if (!confirm(`Datenpunkt "${name}" wirklich löschen? (Session bleibt erhalten)`)) return;
+          if (!confirm(`Delete datapoint "${name}"? (The session is preserved)`)) return;
           try {
             const res = await fetch(`/api/datapoints/${encodeURIComponent(name)}`, {
               method: 'DELETE',
@@ -5219,10 +5219,10 @@
               const errData = await res.json().catch(() => ({}));
               throw new Error(errData.message || `HTTP ${res.status}`);
             }
-            toast(`Datenpunkt "${name}" gelöscht`, 'success');
+            toast(`Datapoint "${name}" deleted`, 'success');
             loadDatapoints();
           } catch (err) {
-            toast(`Löschen fehlgeschlagen: ${err.message}`, 'error');
+            toast(`Delete failed: ${err.message}`, 'error');
           }
         };
 

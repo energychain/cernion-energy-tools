@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.3] - 2026-03-29
+
+### Changed
+
+- **Datapoint Layer UI — full English localisation**
+  All German strings introduced in v0.11.1 have been translated to English for
+  consistency with the rest of the `/app` interface. Affected areas:
+  - Health-bar labels: "Gesamt" → "Total", "Fehler" → "Errors"
+  - Empty state message and hint text
+  - Error callout: "Fehler beim Laden" → "Error loading"
+  - Age display: "vor X min / h / d" → "X min / h / d ago"
+  - Rendered table headers: "Letzter Lauf / Zeilen / Aktionen" → "Last Run / Rows / Actions"
+  - Delete button tooltip: "Löschen" → "Delete"
+  - `refreshDatapoint` toasts: "Refresh gestartet" → "Refreshing", "Zeilen" → "rows", "Refresh fehlgeschlagen" → "Refresh failed"
+  - `deleteDatapoint` confirm dialog and toasts
+
 ## [0.11.2] - 2026-03-29
 
 ### Fixed
