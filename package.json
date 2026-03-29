@@ -60,7 +60,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "eslint": "^10.0.3",
+    "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
     "jest": "^30.3.0",
