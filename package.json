@@ -46,7 +46,7 @@
   "homepage": "https://github.com/energychain/cernion-energy-tools#readme",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/sdk": "^1.28.0",
     "axios": "^1.13.6",
     "dotenv": "^17.3.1",
     "iconv-lite": "^0.7.2",
