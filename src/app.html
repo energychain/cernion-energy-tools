@@ -5162,11 +5162,11 @@
                 <td>
                   <div class="dp-actions">
                     <button class="icon-btn" title="Refresh"
-                      onclick="window.refreshDatapoint(${JSON.stringify(dp.name)})">🔄</button>
+                      onclick="window.refreshDatapoint('${esc(dp.name)}')">🔄</button>
                     <button class="icon-btn" title="CSV Download"
                       onclick="window.open('/api/datapoints/${encodeURIComponent(dp.name)}/data?format=csv','_blank')">📥</button>
                     <button class="icon-btn danger" title="Delete"
-                      onclick="window.deleteDatapoint(${JSON.stringify(dp.name)})">🗑️</button>
+                      onclick="window.deleteDatapoint('${esc(dp.name)}')">🗑️</button>
                   </div>
                 </td>
               </tr>
