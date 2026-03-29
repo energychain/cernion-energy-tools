@@ -1176,6 +1176,203 @@
           grid-template-columns: 1fr;
         }
       }
+
+      /* === Datapoint Layer (v0.11) === */
+
+      /* Convenience aliases for status colours used by the Datapoint Layer */
+      :root {
+        --ok:    var(--accent);
+        --warn:  var(--warning);
+        --err:   var(--danger);
+        --text2: var(--text-muted);
+      }
+
+      /* Small utility button (dialogs, inline actions) */
+      .btn-sm {
+        padding: 5px 12px;
+        font-size: .8rem;
+        background: var(--surface2);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      .btn-sm:hover:not(:disabled) { border-color: var(--accent2); color: var(--accent2); }
+      .btn-sm:disabled { opacity: .45; cursor: not-allowed; }
+
+      /* Promote share row */
+      .share-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .share-row label {
+        font-size: .8rem;
+        color: var(--text-muted);
+        white-space: nowrap;
+      }
+
+      /* Promote-Button (lila, unterscheidet sich von blauen btn-sm) */
+      .btn-promote {
+        background: var(--accent2);
+        color: #fff;
+        border: none;
+        font-weight: 600;
+      }
+      .btn-promote:hover:not(:disabled) { opacity: .88; }
+      .btn-promote:disabled { opacity: .4; cursor: not-allowed; }
+
+      /* Promote inline dialog (expandiert unter dem Button) */
+      .promote-dialog {
+        margin-top: 10px;
+        padding: 12px 14px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .promote-dialog input[type="text"] {
+        padding: 7px 10px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-size: .85rem;
+        font-family: monospace;
+      }
+      .promote-dialog input[type="text"]:focus {
+        border-color: var(--accent2);
+        outline: none;
+      }
+      .promote-dialog .promote-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .promote-dialog .promote-hint {
+        font-size: .78rem;
+        color: var(--text-muted);
+      }
+      .promote-success {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: rgba(34,197,94,.08);
+        border: 1px solid rgba(34,197,94,.25);
+        border-radius: var(--radius);
+        color: var(--ok);
+        font-size: .85rem;
+      }
+
+      /* Datapoints Panel — scrollable table wrapper */
+      .table-wrap {
+        overflow-x: auto;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+      }
+
+      /* Health bar */
+      .dp-health-bar {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      .dp-health-stat {
+        padding: 8px 16px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        text-align: center;
+        min-width: 80px;
+      }
+      .dp-health-stat .dp-stat-value {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text);
+      }
+      .dp-health-stat .dp-stat-label {
+        font-size: .72rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .04em;
+      }
+      .dp-health-stat.healthy .dp-stat-value { color: var(--ok); }
+      .dp-health-stat.stale .dp-stat-value   { color: var(--warn); }
+      .dp-health-stat.errored .dp-stat-value { color: var(--err); }
+
+      /* Datapoint-Status Badge */
+      .dp-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: .72rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+      }
+      .dp-badge.healthy   { background: rgba(34,197,94,.15);  color: var(--ok); }
+      .dp-badge.stale     { background: rgba(245,158,11,.15); color: var(--warn); }
+      .dp-badge.errored   { background: rgba(239,68,68,.15);  color: var(--err); }
+      .dp-badge.never-run { background: rgba(139,148,158,.12); color: var(--text-muted); }
+
+      /* Datapoint table */
+      .dp-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: .83rem;
+      }
+      .dp-table th {
+        background: var(--surface2);
+        padding: 8px 12px;
+        text-align: left;
+        color: var(--text-muted);
+        font-weight: 600;
+        border-bottom: 1px solid var(--border);
+        white-space: nowrap;
+      }
+      .dp-table td {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text);
+        vertical-align: middle;
+      }
+      .dp-table tr:hover td { background: rgba(79,142,247,.05); }
+
+      .dp-name {
+        font-family: monospace;
+        font-weight: 600;
+        color: var(--accent);
+      }
+      .dp-desc {
+        font-size: .78rem;
+        color: var(--text-muted);
+        max-width: 220px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .dp-age {
+        font-size: .78rem;
+        color: var(--text-muted);
+      }
+      .dp-actions {
+        display: flex;
+        gap: 4px;
+      }
+
+      /* Empty state */
+      .dp-empty {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--text-muted);
+      }
+      .dp-empty-icon { font-size: 2rem; margin-bottom: 8px; }
     </style>
   </head>
   <body>
@@ -1185,6 +1382,7 @@
         <a href="/api/docs" target="_blank">API Docs</a>
         <a href="#" id="nav-report">📄 360° Bericht</a>
         <a href="#" id="nav-datasources">🗄️ Data Sources</a>
+        <a href="#" id="nav-datapoints">📌 Datapoints</a>
         <a href="#" id="nav-integration">🔌 Integration Hub</a>
         <a href="#" id="nav-reset">New Research</a>
       </nav>
@@ -1280,6 +1478,13 @@
           <a class="btn-secondary" id="btn-live-csv" href="#" target="_blank" style="display: none"
             >⬇ Live CSV</a
           >
+        </div>
+
+        <div class="share-row" id="promote-row">
+          <label>📌 Datapoint</label>
+          <button class="btn-sm btn-promote" id="btn-promote-dp">
+            Promote to Datapoint…
+          </button>
         </div>
 
         <div class="table-controls">
@@ -1389,6 +1594,17 @@
         <div id="ds-view-list"></div>
         <div id="ds-view-form" class="hidden"></div>
         <div id="ds-view-dict" class="hidden"></div>
+      </section>
+
+      <!-- ── Datapoints Panel ───────────────────────────────────── -->
+      <section id="datapoints-panel" class="card hidden">
+        <h2>📌 Managed Datapoints</h2>
+        <p style="color:var(--text-muted);font-size:.87rem;margin-bottom:16px;">
+          Benannte, verwaltete Datenquellen mit Lifecycle-Tracking und Health-Monitoring.
+          Erstellt über „Promote to Datapoint" nach einer Research-Analyse.
+        </p>
+        <div id="dp-health-bar" class="dp-health-bar"></div>
+        <div id="dp-content"></div>
       </section>
 
       <!-- ── Integration Hub Panel ─────────────────────────────── -->
@@ -1730,7 +1946,7 @@
       // showPanel() lives in outer scope so Research, Report, and DataSources
       // all share one dispatcher. Never move this into an IIFE.
       function showPanel(panelId) {
-        ['report-panel', 'datasources-panel', 'integration-hub-panel'].forEach((id) => {
+        ['report-panel', 'datasources-panel', 'datapoints-panel', 'integration-hub-panel'].forEach((id) => {
           const el = $(id);
           if (el) el.classList.add('hidden');
         });
@@ -1796,6 +2012,105 @@
         showPanel(null);
         resetAll();
       });
+
+      // ── Datapoints nav ─────────────────────────────────────────────
+      $('nav-datapoints').addEventListener('click', (e) => {
+        e.preventDefault();
+        showPanel('datapoints-panel');
+        window.loadDatapoints && window.loadDatapoints();
+      });
+
+      // ── Promote to Datapoint ───────────────────────────────────────
+      (function () {
+        const btnPromote = $('btn-promote-dp');
+        if (!btnPromote) return;
+
+        btnPromote.addEventListener('click', () => {
+          const promoteRow = $('promote-row');
+          // Toggle: if dialog already open, close it
+          if (promoteRow.querySelector('.promote-dialog')) {
+            promoteRow.querySelector('.promote-dialog').remove();
+            return;
+          }
+
+          // Auto-generate URL-safe slug from the research problem
+          const rawText = problemInput.value || state.plan?.summary || 'datapoint';
+          const slug = rawText
+            .toLowerCase()
+            .replace(/[äöüß]/g, (m) => ({ ä: 'ae', ö: 'oe', ü: 'ue', ß: 'ss' }[m] || m))
+            .replace(/[^a-z0-9-]+/g, '-')
+            .replace(/^-|-$/g, '')
+            .slice(0, 40)
+            .replace(/-$/, '');
+
+          const dialog = document.createElement('div');
+          dialog.className = 'promote-dialog';
+          dialog.innerHTML = `
+            <label style="font-size:.82rem;color:var(--text-muted);">Datenpunkt-Name (URL-sicher, lowercase)</label>
+            <input type="text" id="dp-name-input" value="${esc(slug)}"
+              pattern="^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$"
+              placeholder="z.B. pv-portfolio-twl-netze" />
+            <label style="font-size:.82rem;color:var(--text-muted);">Beschreibung (optional)</label>
+            <input type="text" id="dp-desc-input" value="${esc(rawText.slice(0, 120))}"
+              placeholder="Kurzbeschreibung des Datenpunkts" />
+            <div class="promote-actions">
+              <button class="btn-sm btn-promote" id="btn-do-promote">📌 Erstellen</button>
+              <button class="btn-sm" id="btn-cancel-promote">Abbrechen</button>
+              <span class="promote-hint">Speichert den Plan als verwalteten Datenpunkt (nur Metadaten, keine Rohdaten).</span>
+            </div>
+          `;
+          promoteRow.appendChild(dialog);
+
+          $('dp-name-input').focus();
+          $('dp-name-input').select();
+
+          $('btn-cancel-promote').addEventListener('click', () => dialog.remove());
+
+          $('btn-do-promote').addEventListener('click', async () => {
+            const name = $('dp-name-input').value.trim();
+            const description = $('dp-desc-input').value.trim();
+
+            if (!name || !/^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/.test(name)) {
+              toast('Name muss 3-64 Zeichen sein: lowercase, Zahlen, Bindestriche', 'warn');
+              return;
+            }
+
+            $('btn-do-promote').disabled = true;
+            $('btn-do-promote').textContent = '⏳ Wird erstellt…';
+
+            try {
+              const result = await apiFetch('/api/datapoints/promote', {
+                sessionId: state.sessionId,
+                name,
+                description,
+                fixedParams: {},
+                refresh: { strategy: 'manual' },
+              });
+
+              if (result.success) {
+                promoteRow.innerHTML = `
+                  <div class="promote-success">
+                    ✅ Datenpunkt <strong>${esc(name)}</strong> erstellt.
+                    <button class="btn-sm" onclick="showPanel('datapoints-panel'); window.loadDatapoints();">
+                      → Öffnen
+                    </button>
+                  </div>
+                `;
+                toast('Datenpunkt erstellt: ' + name, 'success');
+              }
+            } catch (err) {
+              toast(err.message, 'error');
+              $('btn-do-promote').disabled = false;
+              $('btn-do-promote').textContent = '📌 Erstellen';
+            }
+          });
+
+          // Enter key in name field submits
+          $('dp-name-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') $('btn-do-promote').click();
+          });
+        });
+      })();
 
       // ── Step 1 → Analyze ──────────────────────────────────────────
       btnAnalyze.addEventListener('click', async () => {
@@ -4749,6 +5064,169 @@
           $('nav-reset')?.addEventListener('click', () => setTimeout(loadAndRenderPicker, 200));
         })();
       })(); // end DataSources IIFE
+
+      /* ============================================================
+       * DATAPOINTS PANEL (v0.11 — Managed Datapoints with Health)
+       * ============================================================ */
+      (function () {
+        'use strict';
+
+        let dpList = [];
+
+        // Expose globally so nav handler and promote success button can call it
+        window.loadDatapoints = loadDatapoints;
+
+        async function loadDatapoints() {
+          const panel = $('datapoints-panel');
+          if (!panel || panel.classList.contains('hidden')) return;
+
+          const content = $('dp-content');
+          const healthBar = $('dp-health-bar');
+
+          // Skeleton loading state
+          content.innerHTML = `
+            <div class="table-wrap">
+              <table class="dp-table">
+                <thead><tr><th>Name</th><th>Status</th><th>Letzter Lauf</th><th>Zeilen</th><th>Aktionen</th></tr></thead>
+                <tbody>${Array(3).fill('<tr class="skeleton-row"><td colspan="5"><div class="skeleton-cell"></div></td></tr>').join('')}</tbody>
+              </table>
+            </div>
+          `;
+
+          try {
+            const data = await apiGet('/api/datapoints/health/overview');
+
+            // Health-Bar
+            healthBar.innerHTML = `
+              <div class="dp-health-stat">
+                <div class="dp-stat-value">${data.total}</div>
+                <div class="dp-stat-label">Gesamt</div>
+              </div>
+              <div class="dp-health-stat healthy">
+                <div class="dp-stat-value">${data.healthy}</div>
+                <div class="dp-stat-label">Healthy</div>
+              </div>
+              <div class="dp-health-stat stale">
+                <div class="dp-stat-value">${data.stale}</div>
+                <div class="dp-stat-label">Stale</div>
+              </div>
+              <div class="dp-health-stat errored">
+                <div class="dp-stat-value">${data.errored}</div>
+                <div class="dp-stat-label">Fehler</div>
+              </div>
+            `;
+
+            dpList = data.datapoints || [];
+
+            if (dpList.length === 0) {
+              content.innerHTML = `
+                <div class="dp-empty">
+                  <div class="dp-empty-icon">📌</div>
+                  <div>Noch keine Datenpunkte erstellt.</div>
+                  <div style="font-size:.82rem;color:var(--text-muted);margin-top:6px;">
+                    Führe eine Research-Analyse durch und nutze „Promote to Datapoint" im Ergebnis-Bereich.
+                  </div>
+                </div>
+              `;
+              return;
+            }
+
+            renderDpTable();
+
+          } catch (err) {
+            content.innerHTML = `<div class="warn-callout">Fehler beim Laden: ${esc(err.message)}</div>`;
+          }
+        }
+
+        function renderDpTable() {
+          const content = $('dp-content');
+
+          const rows = dpList.map((dp) => {
+            const badgeClass = dp.status === 'healthy' ? 'healthy'
+              : dp.status === 'stale'   ? 'stale'
+              : dp.status === 'errored' ? 'errored'
+              : 'never-run';
+
+            const ageText = dp.ageMinutes !== null
+              ? (dp.ageMinutes < 60  ? `vor ${dp.ageMinutes} min`
+                : dp.ageMinutes < 1440 ? `vor ${Math.round(dp.ageMinutes / 60)} h`
+                : `vor ${Math.round(dp.ageMinutes / 1440)} d`)
+              : '—';
+
+            return `
+              <tr>
+                <td><div class="dp-name">${esc(dp.name)}</div></td>
+                <td><span class="dp-badge ${badgeClass}">${esc(dp.status)}</span></td>
+                <td><span class="dp-age">${ageText}</span></td>
+                <td>${dp.rowCount !== null ? dp.rowCount : '—'}</td>
+                <td>
+                  <div class="dp-actions">
+                    <button class="icon-btn" title="Refresh"
+                      onclick="window.refreshDatapoint(${JSON.stringify(dp.name)})">🔄</button>
+                    <button class="icon-btn" title="CSV Download"
+                      onclick="window.open('/api/datapoints/${encodeURIComponent(dp.name)}/data?format=csv','_blank')">📥</button>
+                    <button class="icon-btn danger" title="Löschen"
+                      onclick="window.deleteDatapoint(${JSON.stringify(dp.name)})">🗑️</button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+
+          content.innerHTML = `
+            <div class="table-wrap">
+              <table class="dp-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Letzter Lauf</th>
+                    <th>Zeilen</th>
+                    <th>Aktionen</th>
+                  </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+              </table>
+            </div>
+          `;
+        }
+
+        // === Actions exposed globally for inline onclick handlers ===
+
+        window.refreshDatapoint = async function (name) {
+          toast(`Refresh gestartet: ${name}…`, 'success');
+          try {
+            const result = await apiFetch(`/api/datapoints/${encodeURIComponent(name)}/refresh`, {});
+            if (result.success) {
+              toast(`✅ ${name}: ${result.lastRun?.summary?.rowCount ?? '?'} Zeilen, ${result.lastRun?.durationMs ?? '?'} ms`, 'success');
+            } else {
+              toast(`⚠️ ${name}: ${result.error || 'Refresh fehlgeschlagen'}`, 'error');
+            }
+            loadDatapoints();
+          } catch (err) {
+            toast(`Refresh fehlgeschlagen: ${err.message}`, 'error');
+          }
+        };
+
+        window.deleteDatapoint = async function (name) {
+          if (!confirm(`Datenpunkt "${name}" wirklich löschen? (Session bleibt erhalten)`)) return;
+          try {
+            const res = await fetch(`/api/datapoints/${encodeURIComponent(name)}`, {
+              method: 'DELETE',
+              headers: apiAuthHeaders(),
+            });
+            if (!res.ok) {
+              const errData = await res.json().catch(() => ({}));
+              throw new Error(errData.message || `HTTP ${res.status}`);
+            }
+            toast(`Datenpunkt "${name}" gelöscht`, 'success');
+            loadDatapoints();
+          } catch (err) {
+            toast(`Löschen fehlgeschlagen: ${err.message}`, 'error');
+          }
+        };
+
+      })();
     </script>
   </body>
 </html>

@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.1] - 2026-03-29
+
+### Added
+
+- **Datapoint Layer UI** (`src/app.html`) — completes the v0.11.0 Datapoint Layer
+  milestone with full frontend integration (backend shipped in v0.11.0):
+  - **`📌 Datapoints` nav entry** between "Data Sources" and "Integration Hub"
+  - **Datapoints panel** (`#datapoints-panel`) with health-bar summary
+    (Total / Healthy / Stale / Fehler counters) and a sortable table showing
+    name, status badge, last-run age, row count, and per-row action buttons
+  - **"Promote to Datapoint" button** in the results share area — opens an
+    inline dialog with auto-generated URL-safe slug (derived from the research
+    problem text) and a description field; calls `POST /api/datapoints/promote`
+    and replaces the dialog with a success banner linking directly to the panel
+  - **Refresh action** — `POST /api/datapoints/:name/refresh` with toast
+    feedback showing row count and duration
+  - **CSV download** — opens `GET /api/datapoints/:name/data?format=csv` in a
+    new tab
+  - **Delete action** — confirm-guarded `DELETE /api/datapoints/:name` with
+    table reload on success
+  - **Empty state** — helpful call-to-action when no datapoints exist yet
+  - **CSS additions** — all new classes use existing design tokens (`var(--*)`)
+    only; no external dependencies, no new frameworks
+
 ## [0.11.0] - 2026-03-28
 
 ### Added
