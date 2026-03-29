@@ -17,6 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const { isPeriodColumn } = require('../src/period-normaliser');
 const { resolveVnbIdentity } = require('../src/vnb-identity');
+const { scrubForLLM, scrubPromptText } = require('../src/prompt-scrubber');
 
 // ---------------------------------------------------------------------------
 // In-process session store (file-backed for persistence across restarts)
@@ -402,7 +403,9 @@ function getGeminiModel() {
 
 async function callGemini(prompt) {
   const model = getGeminiModel();
-  const result = await model.generateContent(prompt);
+  // Issue #31: Scrub PII from prompt text before sending to external LLM
+  const scrubbedPrompt = scrubPromptText(prompt);
+  const result = await model.generateContent(scrubbedPrompt);
   const response = result.response;
   return response.text();
 }
@@ -2621,6 +2624,25 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
             )
             .join('\n');
 
+          // Issue #31: Scrub step results before sending to LLM for self-healing
+          const repairStepsSummary = stepResults.map((s) => ({
+            step: s.step,
+            action: s.action,
+            params: s.params,
+            error: s.error,
+            resultSummary:
+              s.result == null
+                ? 'NULL'
+                : Array.isArray(s.result)
+                  ? s.result.length === 0
+                    ? 'EMPTY ARRAY'
+                    : s.result.length + ' items'
+                  : typeof s.result === 'object'
+                    ? JSON.stringify(s.result).substring(0, 300)
+                    : String(s.result),
+          }));
+          const { scrubbed: scrubbedRepairSteps } = scrubForLLM(repairStepsSummary);
+
           const repairPrompt = `You are an expert energy analyst. Today is ${new Date().toISOString().slice(0, 10)}.
 You have access to these services:
 ${catText2}
@@ -2628,26 +2650,7 @@ ${catText2}
 The user asked: "${session.problem}"
 
 The previous execution plan FAILED. Here are the step results including errors:
-${JSON.stringify(
-  stepResults.map((s) => ({
-    step: s.step,
-    action: s.action,
-    params: s.params,
-    error: s.error,
-    resultSummary:
-      s.result == null
-        ? 'NULL'
-        : Array.isArray(s.result)
-          ? s.result.length === 0
-            ? 'EMPTY ARRAY'
-            : s.result.length + ' items'
-          : typeof s.result === 'object'
-            ? JSON.stringify(s.result).substring(0, 300)
-            : String(s.result),
-  })),
-  null,
-  2
-)}
+${JSON.stringify(scrubbedRepairSteps, null, 2)}
 
 CRITICAL:
 - DO NOT ask the user for more information. Design a self-contained plan.
@@ -2823,10 +2826,13 @@ Respond ONLY with valid JSON:
           result: compactStepResult(s.result),
         }));
 
+        // Issue #31: Scrub sensitive fields from step results before LLM prompt
+        const { scrubbed: scrubbedResults } = scrubForLLM(allResults);
+
         const summaryPrompt = `You are an expert energy analyst. The user asked: "${session.problem}"
 
 The following microservice calls were made and returned these results:
-${JSON.stringify(allResults, null, 2)}
+${JSON.stringify(scrubbedResults, null, 2)}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REGULATORY DOMAIN KNOWLEDGE — apply these rules unconditionally:
@@ -3405,6 +3411,26 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
       async handler(ctx) {
         const { plan, userInputs } = ctx.params;
 
+        // Issue #32: Collect agent interventions during plan execution
+        const interventions = [];
+
+        // Proactive param repair (same as full execute path)
+        const schemaIndex = buildParamSchemaIndex(
+          ctx.broker.registry.getServiceList({ withActions: true })
+        );
+        const planRepairs = repairPlanParams(plan, schemaIndex);
+        if (planRepairs.length > 0) {
+          for (const repair of planRepairs) {
+            interventions.push({
+              timestamp: new Date().toISOString(),
+              action: 'param_repair',
+              reason: `Auto-corrected param '${repair.original}' → '${repair.corrected}' on step ${repair.step} (${repair.action})`,
+              confidence_score: 0.95,
+              agent_id: 'executePlan',
+            });
+          }
+        }
+
         // Build effective inputs (defaults from requiredInputs, then user overrides)
         const effectiveInputs = {};
         for (const ri of plan.requiredInputs || []) {
@@ -3444,6 +3470,13 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
             });
             stepResults.push({ step: step.step, action: step.action, result, error: null });
           } catch (error) {
+            interventions.push({
+              timestamp: new Date().toISOString(),
+              action: 'step_failure',
+              reason: `Step ${step.step} (${step.action}) failed: ${error.message}`,
+              confidence_score: 1.0,
+              agent_id: 'executePlan',
+            });
             stepResults.push({
               step: step.step,
               action: step.action,
@@ -3457,6 +3490,7 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
         return {
           success: stepResults.every((sr) => sr.error === null),
           stepResults,
+          interventions,
           executedAt: new Date().toISOString(),
         };
       },

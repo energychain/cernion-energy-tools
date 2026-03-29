@@ -454,4 +454,177 @@ describe('datapoint.service', () => {
       expect(h.schemaStable).toBe(false);
     });
   });
+
+  // ── Issue #30: computeProvenanceHash ─────────────────────────────────────
+
+  describe('computeProvenanceHash (method)', () => {
+    let svc;
+    beforeEach(() => {
+      svc = broker.getLocalService('datapoint');
+    });
+
+    it('returns a 64-char hex SHA-256 hash for valid stepResults', () => {
+      const steps = [{ step: 1, action: 'assets.solar', result: [{ id: 1 }], error: null }];
+      const hash = svc.computeProvenanceHash(steps);
+      expect(typeof hash).toBe('string');
+      expect(hash).toHaveLength(64);
+      expect(hash).toMatch(/^[a-f0-9]{64}$/);
+    });
+
+    it('returns null for empty stepResults', () => {
+      expect(svc.computeProvenanceHash([])).toBeNull();
+      expect(svc.computeProvenanceHash(null)).toBeNull();
+    });
+
+    it('returns identical hash for identical data (deterministic)', () => {
+      const steps = [{ step: 1, action: 'a.b', result: { x: 1 }, error: null }];
+      const h1 = svc.computeProvenanceHash(steps);
+      const h2 = svc.computeProvenanceHash(steps);
+      expect(h1).toBe(h2);
+    });
+
+    it('returns different hash when data changes', () => {
+      const s1 = [{ step: 1, action: 'a.b', result: [{ kw: 10 }], error: null }];
+      const s2 = [{ step: 1, action: 'a.b', result: [{ kw: 20 }], error: null }];
+      expect(svc.computeProvenanceHash(s1)).not.toBe(svc.computeProvenanceHash(s2));
+    });
+
+    it('includes action in hash (different action → different hash)', () => {
+      const s1 = [{ step: 1, action: 'assets.solar', result: [{ id: 1 }], error: null }];
+      const s2 = [{ step: 1, action: 'assets.wind', result: [{ id: 1 }], error: null }];
+      expect(svc.computeProvenanceHash(s1)).not.toBe(svc.computeProvenanceHash(s2));
+    });
+  });
+
+  // ── Issue #30: provenanceHash persisted on refresh ──────────────────────
+
+  describe('provenanceHash (refresh integration)', () => {
+    it('stores provenanceHash on the doc after successful refresh', async () => {
+      await promoteFixture(broker);
+      await broker.call('datapoint.refresh', { name: 'test-pv-portfolio' });
+
+      const doc = await broker.call('datapoint.get', { name: 'test-pv-portfolio' });
+      expect(doc.provenanceHash).toBeDefined();
+      expect(doc.provenanceHash).not.toBeNull();
+      expect(doc.provenanceHash).toMatch(/^[a-f0-9]{64}$/);
+    });
+
+    it('initialises provenanceHash as null on promote', async () => {
+      await promoteFixture(broker);
+      const doc = await broker.call('datapoint.get', { name: 'test-pv-portfolio' });
+      expect(doc.provenanceHash).toBeNull();
+    });
+  });
+
+  // ── Issue #32: agent_interventions ──────────────────────────────────────
+
+  describe('agent_interventions (explainability log)', () => {
+    it('initialises agent_interventions as empty array on promote', async () => {
+      await promoteFixture(broker);
+      const doc = await broker.call('datapoint.get', { name: 'test-pv-portfolio' });
+      expect(doc.agent_interventions).toEqual([]);
+    });
+
+    it('appends interventions from executePlan result on refresh', async () => {
+      const brokerLocal = new ServiceBroker({ logger: false });
+      brokerLocal.createService(DatapointService);
+      brokerLocal.createService(
+        buildMockAgentService({
+          executePlan: () =>
+            Promise.resolve({
+              success: true,
+              stepResults: [
+                { step: 1, action: 'assets.solar', result: [{ id: 1 }], error: null },
+              ],
+              interventions: [
+                {
+                  timestamp: '2026-06-01T10:00:00.000Z',
+                  action: 'param_repair',
+                  reason: "Auto-corrected param 'PLZ' → 'postleitzahl' on step 1",
+                  confidence_score: 0.95,
+                  agent_id: 'executePlan',
+                },
+              ],
+              executedAt: new Date().toISOString(),
+            }),
+        })
+      );
+      await brokerLocal.start();
+
+      await brokerLocal.call('datapoint.promote', {
+        sessionId: SESSION_FIXTURE.id,
+        name: 'dp-interventions',
+      });
+      await brokerLocal.call('datapoint.refresh', { name: 'dp-interventions' });
+
+      const doc = await brokerLocal.call('datapoint.get', { name: 'dp-interventions' });
+      expect(doc.agent_interventions).toHaveLength(1);
+      expect(doc.agent_interventions[0].action).toBe('param_repair');
+      expect(doc.agent_interventions[0].confidence_score).toBe(0.95);
+
+      await brokerLocal.stop();
+      try { fs.rmSync(TEST_DB_PATH, { recursive: true, force: true }); } catch { /* ignore */ }
+    });
+
+    it('does not add interventions when executePlan returns empty array', async () => {
+      await promoteFixture(broker);
+      await broker.call('datapoint.refresh', { name: 'test-pv-portfolio' });
+
+      const doc = await broker.call('datapoint.get', { name: 'test-pv-portfolio' });
+      // Default mock returns no interventions property → stays empty
+      expect(doc.agent_interventions).toEqual([]);
+    });
+  });
+
+  // ── Issue #30: oemetadata action ────────────────────────────────────────
+
+  describe('oemetadata', () => {
+    it('returns provenance hash and @context for a refreshed datapoint', async () => {
+      await promoteFixture(broker);
+      await broker.call('datapoint.refresh', { name: 'test-pv-portfolio' });
+
+      const meta = await broker.call('datapoint.oemetadata', { name: 'test-pv-portfolio' });
+
+      // Structure checks
+      expect(meta['@context']).toBeDefined();
+      expect(meta['@context'].oeo).toBeDefined();
+      expect(meta['@context'].schema).toBe('https://schema.org/');
+      expect(meta['@type']).toBe('schema:Dataset');
+      expect(meta.name).toBe('test-pv-portfolio');
+
+      // Provenance
+      expect(meta.provenance).toBeDefined();
+      expect(meta.provenance.algorithm).toBe('SHA-256');
+      expect(meta.provenance.hash).toMatch(/^[a-f0-9]{64}$/);
+      expect(meta.provenance.lastRefresh).toBeDefined();
+      expect(meta.provenance.hashStable).toBe(true);
+
+      // Sources audit trail
+      expect(meta.sources).toHaveLength(1);
+      expect(meta.sources[0].type).toBe('agent-session');
+      expect(meta.sources[0].sessionId).toBe(SESSION_FIXTURE.id);
+
+      // Explainability log
+      expect(Array.isArray(meta.agent_interventions)).toBe(true);
+
+      // Health
+      expect(meta.health).toBeDefined();
+      expect(meta.lastRun).toBeDefined();
+    });
+
+    it('returns null provenance hash for never-refreshed datapoint', async () => {
+      await promoteFixture(broker);
+
+      const meta = await broker.call('datapoint.oemetadata', { name: 'test-pv-portfolio' });
+
+      expect(meta.provenance.hash).toBeNull();
+      expect(meta.provenance.hashStable).toBe(false);
+    });
+
+    it('throws 404 for non-existent datapoint', async () => {
+      await expect(
+        broker.call('datapoint.oemetadata', { name: 'ghost' })
+      ).rejects.toMatchObject({ code: 404, type: 'NOT_FOUND' });
+    });
+  });
 });

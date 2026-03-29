@@ -172,6 +172,10 @@ module.exports = {
             avgDurationMs: 0,
             schemaStable: true,
           },
+          // Issue #32: Explainability-log for automated agent corrections
+          agent_interventions: [],
+          // Issue #30: EU AI Act Art. 12 — data provenance hash
+          provenanceHash: null,
         };
 
         const result = await this.db.put(doc);
@@ -305,6 +309,111 @@ module.exports = {
         );
 
         return base;
+      },
+    },
+
+    // ------------------------------------------------------------------
+    // oemetadata — EU AI Act Art. 12 provenance metadata (Issue #30)
+    // Returns a schema.json-style document with cryptographic provenance
+    // hash, source audit trail, OEO context, and intervention log.
+    // @see https://github.com/energychain/cernion-energy-tools/issues/30
+    // ------------------------------------------------------------------
+    oemetadata: {
+      rest: 'GET /:name/oemetadata',
+      params: {
+        name: { type: 'string' },
+      },
+      openapi: {
+        summary: 'OEMetadata with cryptographic provenance hash (EU AI Act Art. 12)',
+        tags: ['Datapoints'],
+        description:
+          'Returns a schema.json-style document containing a SHA-256 provenance hash ' +
+          'of the raw source data state at last refresh, an audit trail of agent ' +
+          'interventions, OEO class mappings, and metadata for regulatory compliance. ' +
+          'The hash can be used during a regulatory audit to verify the exact inputs ' +
+          'the agent "saw" before making automated corrections.',
+        parameters: [
+          {
+            name: 'name',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'pv-portfolio-twl-netze' },
+          },
+        ],
+      },
+      async handler(ctx) {
+        let doc;
+        try {
+          doc = await this.db.get(`dp:${ctx.params.name}`);
+        } catch (e) {
+          if (e.status === 404) {
+            throw new MoleculerClientError(
+              `Datapoint '${ctx.params.name}' not found`,
+              404,
+              'NOT_FOUND'
+            );
+          }
+          throw e;
+        }
+
+        const {
+          OEO_VERSION,
+          OEO_BASE_IRI,
+          DOMAIN_OEO_MAPPINGS,
+          forDomainResolved,
+        } = require('../src/oeo-mappings');
+
+        // Derive domain from sourceType or first tag
+        const domainId = doc.sourceType || doc.tags?.[0];
+        const oeoClasses = domainId && DOMAIN_OEO_MAPPINGS[domainId]
+          ? forDomainResolved(domainId).map((c) => ({ id: c.id, iri: c.iri, label: c.label }))
+          : [];
+
+        return {
+          '@context': {
+            oeo: OEO_BASE_IRI,
+            schema: 'https://schema.org/',
+            dcterms: 'http://purl.org/dc/terms/',
+          },
+          '@type': 'schema:Dataset',
+          name: doc.name,
+          description: doc.description,
+          oeoVersion: OEO_VERSION,
+          generatedAt: new Date().toISOString(),
+
+          // EU AI Act Art. 12 — cryptographic provenance
+          provenance: {
+            hash: doc.provenanceHash,
+            algorithm: 'SHA-256',
+            scope: 'raw stepResults payload at last refresh',
+            lastRefresh: doc.lastRun?.timestamp || null,
+            hashStable: doc.provenanceHash !== null,
+          },
+
+          // Source audit trail
+          sources: [
+            {
+              type: doc.sourceType,
+              sessionId: doc.sessionId,
+              plan: {
+                stepCount: doc.plan?.steps?.length || 0,
+                actions: (doc.plan?.steps || []).map((s) => s.action),
+              },
+              fixedParams: doc.fixedParams,
+            },
+          ],
+
+          // Issue #32 — Explainability log
+          agent_interventions: doc.agent_interventions || [],
+
+          // OEO semantic mapping
+          oeoClasses,
+          domainId,
+
+          // Health & quality
+          health: doc.health,
+          lastRun: doc.lastRun,
+        };
       },
     },
 
@@ -552,6 +661,9 @@ module.exports = {
           const schemaHash = this.hashSchema(result.stepResults);
           const oldSchemaHash = doc.lastRun.schemaHash;
 
+          // Issue #30: Compute SHA-256 provenance hash of raw step results
+          const provenanceHash = this.computeProvenanceHash(result.stepResults);
+
           doc.lastRun = {
             timestamp: new Date().toISOString(),
             durationMs,
@@ -560,7 +672,16 @@ module.exports = {
             summary,
             schemaHash,
           };
+          doc.provenanceHash = provenanceHash;
           doc.health = this.updateHealth(doc.health, 'success', durationMs, oldSchemaHash, schemaHash);
+
+          // Issue #32: Record agent interventions from executePlan if any
+          if (Array.isArray(result.interventions) && result.interventions.length > 0) {
+            doc.agent_interventions = [
+              ...(doc.agent_interventions || []),
+              ...result.interventions,
+            ];
+          }
 
           await this.db.put(doc);
           return { success: true, name: doc.name, lastRun: doc.lastRun };
@@ -733,6 +854,28 @@ module.exports = {
         .update(JSON.stringify(columns))
         .digest('hex')
         .slice(0, 16);
+    },
+
+    /**
+     * Compute a SHA-256 hash of the full raw step-results payload.
+     * Used for EU AI Act Art. 12 data provenance (Issue #30).
+     * The hash proves the exact data the agent processed at refresh time.
+     */
+    computeProvenanceHash(stepResults) {
+      if (!stepResults || stepResults.length === 0) return null;
+      try {
+        const canonical = JSON.stringify(
+          stepResults.map((sr) => ({
+            step: sr.step,
+            action: sr.action,
+            result: sr.result,
+            error: sr.error,
+          }))
+        );
+        return crypto.createHash('sha256').update(canonical).digest('hex');
+      } catch {
+        return null;
+      }
     },
 
     /**

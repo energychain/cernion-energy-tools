@@ -7,6 +7,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.5] - 2026-03-29
+
+### Added
+
+- **Cryptographic data provenance hash — EU AI Act Art. 12 compliance
+  (Issue #30)**
+  Every datapoint refresh now computes a SHA-256 hash over the canonical
+  step-results payload. The hash is persisted on the PouchDB document
+  (`provenanceHash`) and proves the exact data the agent processed.
+
+  **New endpoint:**
+  - `GET /api/datapoints/:name/oemetadata` — Returns a schema.json-style
+    document with `provenance.hash`, `provenance.algorithm`, source audit
+    trail, OEO class mappings, agent interventions log, and health data.
+    Annotated with full OpenAPI documentation.
+
+  **New method:**
+  - `computeProvenanceHash(stepResults)` on `datapoint.service` — SHA-256
+    of `JSON.stringify([{step, action, result, error}])`.
+
+- **Explainability-log array for automated agent corrections (Issue #32)**
+  Datapoint documents now carry an `agent_interventions` array that
+  records every automated correction the agent made during plan execution.
+
+  **Intervention record shape:**
+  ```json
+  {
+    "timestamp": "ISO-8601",
+    "action": "param_repair | step_failure",
+    "reason": "human-readable description",
+    "confidence_score": 0.95,
+    "agent_id": "executePlan"
+  }
+  ```
+
+  **Integration points:**
+  - `agent.executePlan` now collects interventions from `repairPlanParams`
+    (param corrections) and step failures, returning them in the result.
+  - `datapoint.refresh` appends interventions to the PouchDB document.
+  - `oemetadata` endpoint exposes the full intervention log.
+
+- **Data Masking / Allowlist for external LLM prompts — Edge Privacy
+  (Issue #31)**
+
+  **New module:** `src/prompt-scrubber.js` (~230 lines)
+  - `scrubForLLM(data, options)` — Field-level masking with deterministic
+    SHA-256 pseudonyms (`[MASKED-xxxxxxxx]`). Returns `{ scrubbed,
+    reidentMap, stats }`. Respects energy-domain allowlist (MaStR IDs,
+    PLZ, capacity, status, dates, market data, OEO terms).
+  - `scrubPromptText(text)` — Regex-based PII removal for free-text
+    prompts (emails, IBANs, German phone numbers).
+  - `isSensitiveField(fieldName)` — Safe patterns override sensitive
+    patterns. Energy identifiers are never masked.
+  - `SENSITIVE_PATTERNS` / `SAFE_PATTERNS` — Exported for extensibility.
+
+  **Integration points:**
+  - `callGemini()` in `agent.service.js` now wraps every prompt through
+    `scrubPromptText` before calling Gemini (covers all 7 call sites).
+  - Summary prompt: raw `allResults` data scrubbed via `scrubForLLM`
+    before JSON-serialisation into the LLM context window.
+  - Self-healing repair prompt: step results scrubbed via `scrubForLLM`.
+
+### Changed
+
+- `agent.executePlan` return shape now includes `interventions: []` array
+  (non-breaking — consumers that ignore the field are unaffected).
+- PouchDB document schema for datapoints extended with `agent_interventions`
+  (default `[]`) and `provenanceHash` (default `null`).
+
+### Tests
+
+- `tests/prompt-scrubber.test.js` — 94 tests covering `isSensitiveField`
+  (34 sensitive, 37 safe, edge cases), `scrubForLLM` (12 tests: masking,
+  reidentMap, arrays, truncation, nesting, determinism, additionalBlocklist/
+  Allowlist), `scrubPromptText` (7 tests: email, IBAN, phone, passthrough),
+  pattern array structural checks.
+- `tests/datapoint.service.test.js` — 13 new tests:
+  `computeProvenanceHash` method (5 tests), `provenanceHash` refresh
+  integration (2 tests), `agent_interventions` lifecycle (3 tests),
+  `oemetadata` action (3 tests).
+- `tests/agent-executePlan.test.js` — 3 new tests: interventions array
+  presence, step_failure recording, empty interventions on clean execution.
+
 ## [0.11.4] - 2026-03-29
 
 ### Added

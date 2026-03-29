@@ -331,6 +331,7 @@ module.exports = {
           'GET /datapoints': 'datapoint.list',
           'GET /datapoints/health/overview': 'datapoint.health',
           'GET /datapoints/oeo-context': 'datapoint.oeoContext',
+          'GET /datapoints/:name/oemetadata': 'datapoint.oemetadata',
           'GET /datapoints/:name': 'datapoint.get',
           'PUT /datapoints/:name': 'datapoint.update',
           'DELETE /datapoints/:name': 'datapoint.remove',

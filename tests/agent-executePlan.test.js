@@ -203,4 +203,82 @@ describe('agent.executePlan', () => {
 
     await broker.destroyService(svc);
   });
+
+  // ── Issue #32: Intervention plumbing ──────────────────────────────────
+
+  describe('interventions (Issue #32)', () => {
+    it('returns an interventions array in the result', async () => {
+      const svc = broker.createService(
+        stubService('int-ep1', 'action', () => ({ ok: true }))
+      );
+      await broker.waitForServices(['int-ep1']);
+
+      const plan = {
+        summary: 'Interventions array test',
+        steps: [
+          { step: 1, action: 'int-ep1.action', description: 'Step', params: {} },
+        ],
+        requiredInputs: [],
+      };
+
+      const result = await broker.call('agent.executePlan', { plan, userInputs: {} });
+
+      expect(Array.isArray(result.interventions)).toBe(true);
+
+      await broker.destroyService(svc);
+    });
+
+    it('records step_failure interventions when a step fails', async () => {
+      const svc = broker.createService(
+        stubService('fail-int-ep1', 'action', () => {
+          throw new Error('Upstream timeout');
+        })
+      );
+      await broker.waitForServices(['fail-int-ep1']);
+
+      const plan = {
+        summary: 'Failure intervention test',
+        steps: [
+          { step: 1, action: 'fail-int-ep1.action', description: 'Step', params: {} },
+        ],
+        requiredInputs: [],
+      };
+
+      const result = await broker.call('agent.executePlan', { plan, userInputs: {} });
+
+      expect(result.success).toBe(false);
+      expect(result.interventions.length).toBeGreaterThanOrEqual(1);
+
+      const failIntervention = result.interventions.find((i) => i.action === 'step_failure');
+      expect(failIntervention).toBeDefined();
+      expect(failIntervention.reason).toContain('Upstream timeout');
+      expect(failIntervention.confidence_score).toBe(1.0);
+      expect(failIntervention.agent_id).toBe('executePlan');
+      expect(failIntervention.timestamp).toBeDefined();
+
+      await broker.destroyService(svc);
+    });
+
+    it('returns empty interventions when no repairs or failures occur', async () => {
+      const svc = broker.createService(
+        stubService('clean-ep1', 'action', () => ({ ok: true }))
+      );
+      await broker.waitForServices(['clean-ep1']);
+
+      const plan = {
+        summary: 'Clean execution',
+        steps: [
+          { step: 1, action: 'clean-ep1.action', description: 'Step', params: {} },
+        ],
+        requiredInputs: [],
+      };
+
+      const result = await broker.call('agent.executePlan', { plan, userInputs: {} });
+
+      expect(result.success).toBe(true);
+      expect(result.interventions).toEqual([]);
+
+      await broker.destroyService(svc);
+    });
+  });
 });
