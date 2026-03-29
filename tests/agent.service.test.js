@@ -1452,6 +1452,63 @@ describe('Agent Service', () => {
       expect(typeof receivedParams.region).toBe('string');
       expect(receivedParams.region).toBe('69');
     });
+
+    it('should strip $gateway from meta when calling step actions (prevent async job leakage)', async () => {
+      // Regression test for the bug where agent.execute forwarded $gateway: true
+      // from the HTTP request meta to downstream broker calls, causing services
+      // that use jobStore.startJob (e.g. grid-operations.redispatchExport) to
+      // return a 202 job descriptor instead of the synchronous result.
+
+      // Arrange: capture the meta passed to the step action
+      let capturedMeta = null;
+      const capturingMock = jest.fn().mockImplementation(async (ctx) => {
+        capturedMeta = ctx.meta;
+        return { success: true, country: 'de', level: 0.65, trend: 'stable' };
+      });
+
+      // Temporarily override the gas-storage.countryStorage mock to capture meta
+      const originalImpl = broker.registry.actions.get('gas-storage.countryStorage');
+      const captureService = broker.createService({
+        name: 'meta-capture-helper',
+        actions: {
+          capture: {
+            handler: capturingMock,
+          },
+        },
+      });
+      await captureService._init(); // ensure registered
+
+      _mockGenerateContent.mockResolvedValueOnce({
+        response: { text: () => makePlanResponse({
+          steps: [{
+            step: 1,
+            action: 'meta-capture-helper.capture',
+            description: 'Capture meta for testing',
+            params: { country: 'de' },
+          }],
+          requiredInputs: [],
+        }) },
+      });
+
+      const analyzed = await broker.call('agent.analyze', {
+        problem: 'Test meta stripping — gateway flag must not propagate',
+      });
+
+      mockInterpretAndSuggest();
+
+      // Act: call execute with $gateway: true in meta (simulating an API-gateway request)
+      await broker.call(
+        'agent.execute',
+        { sessionId: analyzed.sessionId, userInputs: {} },
+        { meta: { $gateway: true, cernionToken: 'test-token' } }
+      );
+
+      // Assert: the step action received meta with $gateway stripped/false
+      expect(capturedMeta).not.toBeNull();
+      expect(capturedMeta.$gateway).toBeFalsy();
+      // Other meta fields (e.g. cernionToken) must still be forwarded
+      expect(capturedMeta.cernionToken).toBe('test-token');
+    });
   }); // end execute action
 
   // ── rerun action ──────────────────────────────────────────────

@@ -2574,7 +2574,9 @@ Update the execution plan accordingly. Respond ONLY with valid JSON in the same 
           } else {
             try {
               result = await ctx.broker.call(step.action, callParams, {
-                meta: ctx.meta,
+                // Strip $gateway so downstream services treat this as an internal
+                // call and return synchronous results instead of 202 job handles.
+                meta: { ...ctx.meta, $gateway: false },
                 timeout: this.settings.defaultTimeout,
               });
             } catch (err) {
@@ -2759,7 +2761,7 @@ Respond ONLY with valid JSON:
                 } else {
                   try {
                     res2 = await ctx.broker.call(step.action, callP, {
-                      meta: ctx.meta,
+                      meta: { ...ctx.meta, $gateway: false },
                       timeout: this.settings.defaultTimeout,
                     });
                   } catch (e) {
@@ -3328,7 +3330,7 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
           let error = null;
           try {
             result = await ctx.broker.call(step.action, callParams, {
-              meta: ctx.meta,
+              meta: { ...ctx.meta, $gateway: false },
               timeout: this.settings.defaultTimeout,
             });
           } catch (err) {
@@ -3437,7 +3439,7 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
 
           try {
             const result = await ctx.call(step.action, callParams, {
-              meta: ctx.meta,
+              meta: { ...ctx.meta, $gateway: false },
               timeout: this.settings.defaultTimeout || 120000,
             });
             stepResults.push({ step: step.step, action: step.action, result, error: null });

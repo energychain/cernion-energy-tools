@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.2] - 2026-03-29
+
+### Fixed
+
+- **`$gateway` meta leakage in agent step execution (async job descriptor bug)**
+  When `agent.execute` was called via the REST API gateway, `ctx.meta.$gateway`
+  was set to `true` by `api.service.js`. The agent executor forwarded this meta
+  unchanged into every downstream `broker.call()` for plan steps. Services that
+  use `jobStore.startJob` (e.g. `grid-operations.redispatchExport` for JSON
+  format) check `ctx.meta.$gateway` to decide whether to return a synchronous
+  result or a 202 job descriptor — and since the flag was `true`, they returned
+  `{ jobId, status: "queued", … }` instead of the actual data. The UI then
+  rendered the raw job descriptor as the "result", showing "Job Started".
+
+  **Fix:** All four `broker.call` / `ctx.call` sites inside the agent execute
+  and repair loops now explicitly spread `ctx.meta` and override `$gateway:
+  false`, so downstream services always behave as internal callers while still
+  receiving the forwarded `cernionToken` and other valid metadata.
+
+  **Affected services:** any action backed by `jobStore.startJob` when invoked
+  as an agent plan step (confirmed: `grid-operations.redispatchExport`).
+
+  **Regression test added:** `tests/agent.service.test.js` — "should strip
+  `$gateway` from meta when calling step actions (prevent async job leakage)"
+
 ## [0.11.1] - 2026-03-29
 
 ### Added
