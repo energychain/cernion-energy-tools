@@ -148,3 +148,5 @@ vite.config.ts.timestamp-*
 .reports/
 .jobs/
 uploads/
+.datapoints/
+.datapoints-*/

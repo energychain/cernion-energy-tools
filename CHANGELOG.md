@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-03-28
+
+### Added
+
+- **Datapoint Layer** — new `datapoint.service.js` with PouchDB persistence
+  - Promote agent sessions to named, managed datapoints (`POST /api/datapoints/promote`)
+  - Full CRUD: list, get, update, delete (`GET/PUT/DELETE /api/datapoints/:name`)
+  - Health monitoring and lifecycle tracking for all datapoints (`GET /api/datapoints/health/overview`)
+  - On-demand plan re-execution with metadata update (`POST /api/datapoints/:name/refresh`)
+  - Live data pass-through as JSON or CSV (`GET /api/datapoints/:name/data?format=csv`)
+  - PouchDB stores only metadata — raw data always flows through RAM (KRITIS-compliant:
+    no native bindings, no network port, no external process)
+- **`agent.executePlan` action** — lean plan executor without session lifecycle or LLM
+  involvement, callable via `agent.executePlan { plan, userInputs }` (internal only)
+- **`agent.loadSession` action** — exposes the internal `loadSession` function as a
+  Moleculer action for service-to-service calls (no REST route)
+- **OpenAPI `Datapoints` tag** registered in `api.service.js`
+- **`.datapoints/` directory** added to `.gitignore` (PouchDB runtime data)
+- **`DATAPOINT_DB_PATH` env variable** documented in `.env.example`
+  (default: `./.datapoints`)
+
+### Dependencies
+
+- Added `pouchdb` and `pouchdb-find` (embedded document database, zero external
+  dependencies, pure JavaScript — suitable for KRITIS environments)
+
+### Tests
+
+- `tests/agent-executePlan.test.js` — 5 unit tests for the new `executePlan` action
+- `tests/datapoint.service.test.js` — comprehensive unit tests for all datapoint
+  service actions and helper methods
+- `tests/fixtures/session-pv-twl.json` — session fixture for test isolation
+
 ## [0.10.3] - 2026-03-26
 
 ### Fixed

@@ -123,6 +123,11 @@ module.exports = {
         { name: 'IntegrationHub', description: 'Token management and integration helpers' },
         { name: 'Jobs', description: 'Async job status and result polling (v0.9.8+)' },
         {
+          name: 'Datapoints',
+          description:
+            'Managed data source points with lifecycle tracking and health monitoring (v0.11)',
+        },
+        {
           name: 'OSM Geo (OpenStreetMap)',
           description:
             'Layer 2 Geo-Architecture: physical grid infrastructure from OpenStreetMap via the Overpass API. ' +
@@ -321,6 +326,15 @@ module.exports = {
           'GET /nbp-monitor/parameters': 'nbp-monitor.getParameters',
           'PUT /nbp-monitor/parameters': 'nbp-monitor.setParameters',
           'DELETE /nbp-monitor/parameters': 'nbp-monitor.resetParameters',
+          // Datapoints (v0.11) — health/overview MUST precede /:name to avoid route shadowing
+          'POST /datapoints/promote': 'datapoint.promote',
+          'GET /datapoints': 'datapoint.list',
+          'GET /datapoints/health/overview': 'datapoint.health',
+          'GET /datapoints/:name': 'datapoint.get',
+          'PUT /datapoints/:name': 'datapoint.update',
+          'DELETE /datapoints/:name': 'datapoint.remove',
+          'POST /datapoints/:name/refresh': 'datapoint.refresh',
+          'GET /datapoints/:name/data': 'datapoint.data',
           'POST /in-memory-join/join': 'in-memory-join.join',
           'POST /in-memory-join/metering-spot-cost': 'in-memory-join.meteringSpotCost',
           'POST /in-memory-join/benchmark-compare': 'in-memory-join.benchmarkCompare',

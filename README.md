@@ -17,7 +17,8 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - 🏢 **Inhouse Data Sources** — Register, infer, cache, and discover internal utility datasets (CSV, REST, GeoJSON, XLSX, DOCX, Scraper) alongside public energy tools
 - 🧩 **Research Web App** — Built-in single-page application at `/app` for interactive, browser-based testing of the AI agent — no separate tooling required
 - 📥 **Live CSV Export** — Every agent result exposes a parameterised GET endpoint (`/api/agent/session/:id/csv?param=value`) for zero-config integration with automation tools such as Microsoft Power Automate, Excel Power Query, or cron jobs
-- 🔌 **MCP Support** — Model Context Protocol SDK integration
+- � **Datapoints** — Named, versioned, health-monitored data sources backed by embedded PouchDB. Promote any agent session to a managed datapoint, track refresh history and schema stability, and retrieve live data as JSON or CSV via `/api/datapoints`. See the [health overview](http://localhost:3000/api/datapoints/health/overview) for a dashboard of all registered datapoints.
+- �🔌 **MCP Support** — Model Context Protocol SDK integration
 - 📝 **OpenAPI Documentation** — Automatic API documentation at `/api/docs`
 - 🧭 **DSO/VNB Lookup** — VNBdigital search/lookup and BDEW → MaStR resolution
 - 🛠️ **CLI Tool** — Command-line interface for calling microservices

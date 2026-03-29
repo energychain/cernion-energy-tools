@@ -186,6 +186,64 @@ Internal plugin runtime for heterogeneous datasource reads (not exposed directly
 - `datasource-discovery` publishes fresh sources to the agent as inhouse descriptors
 - `agent.analyze` now includes inhouse datasource descriptors alongside normal microservice actions
 
+### 16. Datapoint Layer (`datapoint`) — v0.11
+
+Named, versioned, health-monitored data sources backed by embedded PouchDB.
+Promotes agent sessions to managed datapoints with lifecycle tracking.
+
+**REST endpoints:**
+
+| Method | Path | Action | Description |
+|--------|------|--------|-------------|
+| `POST` | `/api/datapoints/promote` | `datapoint.promote` | Promote a session to a named datapoint |
+| `GET` | `/api/datapoints` | `datapoint.list` | List all datapoints |
+| `GET` | `/api/datapoints/health/overview` | `datapoint.health` | Health overview of all datapoints |
+| `GET` | `/api/datapoints/:name` | `datapoint.get` | Get full datapoint document |
+| `PUT` | `/api/datapoints/:name` | `datapoint.update` | Update description/tags/fixedParams/refresh |
+| `DELETE` | `/api/datapoints/:name` | `datapoint.remove` | Delete a datapoint |
+| `POST` | `/api/datapoints/:name/refresh` | `datapoint.refresh` | Re-execute plan, update health metadata |
+| `GET` | `/api/datapoints/:name/data` | `datapoint.data` | Get live data (JSON or CSV) |
+
+**Actions (internal):**
+
+- `agent.executePlan { plan, userInputs }` — lean plan executor, no session lifecycle, no LLM
+- `agent.loadSession { id }` — expose internal session loader for service-to-service calls
+
+**Key design decisions:**
+- Only metadata (`lastRun`, `health`) is persisted in PouchDB — raw data flows through RAM
+- `auto_compaction: true` keeps disk footprint minimal
+- KRITIS-compliant: PouchDB is pure JavaScript, no native bindings, no network port, no external process
+- Route ordering: `GET /datapoints/health/overview` is registered before `GET /datapoints/:name`
+  to prevent `health` being captured as a `:name` path parameter
+
+**Example — promote a session:**
+
+```bash
+curl -X POST http://localhost:3000/api/datapoints/promote \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "sessionId": "9209aa45-93f7-471c-8883-76326c4083f1",
+    "name": "pv-portfolio-twl-netze",
+    "description": "PV generation forecast for TWL Netze",
+    "tags": ["solar", "forecast", "twl"],
+    "fixedParams": { "query": "TWL Netze", "forecastDays": 3 }
+  }'
+```
+
+**Example — refresh and check health:**
+
+```bash
+curl -X POST http://localhost:3000/api/datapoints/pv-portfolio-twl-netze/refresh
+curl http://localhost:3000/api/datapoints/health/overview
+```
+
+**Example — live data as CSV:**
+
+```bash
+curl "http://localhost:3000/api/datapoints/pv-portfolio-twl-netze/data?format=csv" \
+  -o pv-forecast.csv
+```
+
 ## Setup
 
 ### 1. Install Dependencies

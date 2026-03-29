@@ -3380,7 +3380,88 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
     },
 
     // ------------------------------------------------------------------
-    // 5. Rerun – Re-execute a completed session (same plan + same inputs)
+    // 5. loadSession – Expose internal loadSession as a Moleculer action
+    //    (no REST route — internal service-to-service use only)
+    // ------------------------------------------------------------------
+    loadSession: {
+      params: { id: { type: 'string', min: 1 } },
+      async handler(ctx) {
+        return loadSession(ctx.params.id);
+      },
+    },
+
+    // ------------------------------------------------------------------
+    // 6. executePlan – Lean plan executor (no session lifecycle, no LLM)
+    //    Used by datapoint.service to refresh a named datapoint.
+    //    No REST route — internal service-to-service use only.
+    // ------------------------------------------------------------------
+    executePlan: {
+      params: {
+        plan: { type: 'object' },
+        userInputs: { type: 'object', optional: true, default: {} },
+      },
+      async handler(ctx) {
+        const { plan, userInputs } = ctx.params;
+
+        // Build effective inputs (defaults from requiredInputs, then user overrides)
+        const effectiveInputs = {};
+        for (const ri of plan.requiredInputs || []) {
+          if (ri.default !== undefined && ri.default !== '') {
+            effectiveInputs[ri.name] = ri.default;
+          }
+        }
+        Object.assign(effectiveInputs, userInputs || {});
+
+        // Execute steps sequentially, resolving chained references
+        const stepResults = [];
+
+        for (const step of plan.steps || []) {
+          const rawParams = { ...step.params };
+
+          // Override nulls and declared requiredInput names with effectiveInputs
+          const requiredInputNames = new Set((plan.requiredInputs || []).map((ri) => ri.name));
+          for (const [k, v] of Object.entries(rawParams)) {
+            if ((v === null || requiredInputNames.has(k)) && effectiveInputs[k] !== undefined) {
+              rawParams[k] = effectiveInputs[k];
+            }
+          }
+          for (const [k, v] of Object.entries(effectiveInputs)) {
+            if (!(k in rawParams)) rawParams[k] = v;
+          }
+
+          // Resolve __step_N.fieldPath chaining references
+          const callParams = {};
+          for (const [k, v] of Object.entries(rawParams)) {
+            callParams[k] = resolveChainedRef(v, stepResults);
+          }
+
+          try {
+            const result = await ctx.call(step.action, callParams, {
+              meta: ctx.meta,
+              timeout: this.settings.defaultTimeout || 120000,
+            });
+            stepResults.push({ step: step.step, action: step.action, result, error: null });
+          } catch (error) {
+            stepResults.push({
+              step: step.step,
+              action: step.action,
+              result: null,
+              error: { message: error.message, code: error.code || 'UNKNOWN' },
+            });
+            break; // Abort on failure (consistent with existing execute behaviour)
+          }
+        }
+
+        return {
+          success: stepResults.every((sr) => sr.error === null),
+          stepResults,
+          executedAt: new Date().toISOString(),
+        };
+      },
+    },
+
+    // ------------------------------------------------------------------
+    // 7. Rerun – Re-execute a completed session (same plan + same inputs)
     // ------------------------------------------------------------------
     rerun: {
       rest: 'POST /rerun',
