@@ -95,6 +95,8 @@ module.exports = {
       openapi: {
         summary: 'Grid operation data (load, frequency, flows, redispatch)',
         tags: ['Grid Operations'],
+        // @OpenEnergyPlatform/ontology — OEO_00000143 electricity grid, OEO_00110020 distribution grid
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143', 'https://openenergyplatform.org/ontology/oeo/OEO_00110020'],
         description: `Query real-time and historical grid operation data for network planning, congestion analysis, and frequency stability studies.
 
 **Data Types**:
@@ -250,6 +252,8 @@ module.exports = {
       openapi: {
         summary: 'Search VNBdigital for address, location, or VNB name',
         tags: ['Grid Operations'],
+        // @OpenEnergyPlatform/ontology — OEO_00110020 distribution grid
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00110020'],
         description: `Search VNBdigital to resolve addresses, locations, or VNB names into IDs for follow-up lookups.
 
 **Use Cases:**
@@ -322,6 +326,8 @@ module.exports = {
       openapi: {
         summary: 'Lookup VNBs and planning regions by coordinates/postcode/community',
         tags: ['Grid Operations'],
+        // @OpenEnergyPlatform/ontology — OEO_00110020 distribution grid
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00110020'],
         description: `Lookup VNBs and planning regions using VNBdigital. Provide one of:
 - **coordinates** for geolocation lookup
 - **postcodeId** from vnbdigital_search
@@ -448,6 +454,8 @@ module.exports = {
       openapi: {
         summary: 'Lookup MaStR ID for a VNB (grid operator) using BDEW code',
         tags: ['Grid Operations'],
+        // @OpenEnergyPlatform/ontology — OEO_00110020 distribution grid
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00110020'],
         description: `Resolve BDEW codes to MaStR Netzbetreiber IDs (SNB/GNB) for downstream grid-operator queries. If the primary lookup fails, an optional city param triggers a fallback that extracts the SNB from a sample installation in that city.`,
         requestBody: {
           required: true,
@@ -568,6 +576,8 @@ module.exports = {
       openapi: {
         summary: 'Lookup Direktvermarkter (direct energy marketer) in MaStR',
         tags: ['Grid Operations'],
+        // @OpenEnergyPlatform/ontology — OEO_00010082 trade
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00010082'],
         description: `Identifies a direct energy marketer (Direktvermarkter) in the MaStR registry and returns portfolio metadata.
 
 **Use Cases**:
@@ -667,6 +677,8 @@ module.exports = {
       openapi: {
         summary: 'Canonical VNB lookup with consolidated code aliases',
         tags: ['Grid Operations'],
+        // @OpenEnergyPlatform/ontology — OEO_00110020 distribution grid
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00110020'],
         description:
           'Resolve one VNB identity from BDEW/BNR/name/MaStR and return canonical mapping + alias codes from MCP tool vnb_lookup_codes.',
         requestBody: {
@@ -749,6 +761,8 @@ module.exports = {
       openapi: {
         summary: 'Comprehensive grid operator analysis (installations, feed-in, redispatch)',
         tags: ['Grid Operations'],
+        // @OpenEnergyPlatform/ontology — OEO_00000143 electricity grid, OEO_00000031 power plant, OEO_00020107 curtailment
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143', 'https://openenergyplatform.org/ontology/oeo/OEO_00000031', 'https://openenergyplatform.org/ontology/oeo/OEO_00020107'],
         description: `Deep-dive analysis of grid operator network including all connected installations, redispatch potential, feed-in patterns, and grid stress points. **Essential for DSO/TSO network planning and investment prioritization.**
 
 **Analysis Components**:
@@ -930,6 +944,8 @@ module.exports = {
       openapi: {
         summary: 'Network capacity utilization analysis (transformers, lines, heatmaps)',
         tags: ['Grid Operations'],
+        // @OpenEnergyPlatform/ontology — OEO_00000143 electricity grid, OEO_00410060 voltage level
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143', 'https://openenergyplatform.org/ontology/oeo/OEO_00410060'],
         description:
           'Calculate equipment loading, temporal heatmaps, and investment prioritization',
         requestBody: {
@@ -1059,6 +1075,8 @@ module.exports = {
       openapi: {
         summary: 'Export redispatch 2.0 installations (≥100 kW) per grid operator',
         tags: ['Grid Operations'],
+        // @OpenEnergyPlatform/ontology — OEO_00140136 dispatch assignment, OEO_00020107 curtailment
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00140136', 'https://openenergyplatform.org/ontology/oeo/OEO_00020107'],
         description: 'Returns installations that participate in redispatch (async job)',
         requestBody: {
           required: true,
@@ -1360,6 +1378,8 @@ module.exports = {
       openapi: {
         summary: 'Automated grid connection feasibility check (customer self-service)',
         tags: ['Grid Operations'],
+        // @OpenEnergyPlatform/ontology — OEO_00000143 electricity grid, OEO_00410060 voltage level
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143', 'https://openenergyplatform.org/ontology/oeo/OEO_00410060'],
         description:
           '6-step analysis: inventory, capacity, simultaneity, decision, alternatives, cost estimates',
         requestBody: {
@@ -1489,6 +1509,8 @@ module.exports = {
       openapi: {
         summary: 'Search German energy market partners by BDEW code, company name, or city',
         tags: ['Grid Operations'],
+        // @OpenEnergyPlatform/ontology — OEO_00010082 trade
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00010082'],
         description: `Search for German energy market participants including grid operators, suppliers, and balancing responsible parties.
 
 **Search Types**:

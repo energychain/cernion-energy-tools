@@ -35,6 +35,8 @@ module.exports = {
         summary:
           'Current gas storage data for European countries (fill level, injection/withdrawal)',
         tags: ['Gas Storage (AGSI)'],
+        // @OpenEnergyPlatform/ontology — OEO_00000159 energy storage object, OEO_00000292 natural gas
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000159', 'https://openenergyplatform.org/ontology/oeo/OEO_00000292'],
         description: `Get comprehensive gas storage data for European countries from AGSI+ platform.
 
 **Data includes:**
@@ -142,6 +144,8 @@ module.exports = {
       openapi: {
         summary: 'Detailed storage data for a specific storage system operator (SSO)',
         tags: ['Gas Storage (AGSI)'],
+        // @OpenEnergyPlatform/ontology — OEO_00000159 energy storage object, OEO_00000292 natural gas
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000159', 'https://openenergyplatform.org/ontology/oeo/OEO_00000292'],
         description: `Get detailed storage data for a specific storage system operator including all managed facilities.
 
 **Use EIC codes to identify operators** (e.g., "21X000000001262B" for RWE Gas Storage West).
@@ -258,6 +262,8 @@ module.exports = {
       openapi: {
         summary: 'Historical time-series data (daily/weekly/monthly) for trend analysis',
         tags: ['Gas Storage (AGSI)'],
+        // @OpenEnergyPlatform/ontology — OEO_00000159 energy storage object, OEO_00000363 time series
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000159', 'https://openenergyplatform.org/ontology/oeo/OEO_00000363'],
         description: `Retrieve historical gas storage time-series data with flexible aggregation.
 
 **Aggregation levels:**
@@ -395,6 +401,8 @@ module.exports = {
       openapi: {
         summary: 'EU-wide aggregate statistics (total capacity, fill level, days of coverage)',
         tags: ['Gas Storage (AGSI)'],
+        // @OpenEnergyPlatform/ontology — OEO_00000159 energy storage object, OEO_00000292 natural gas
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000159', 'https://openenergyplatform.org/ontology/oeo/OEO_00000292'],
         description: `Get EU-wide aggregate gas storage statistics.
 
 **Metrics included:**
@@ -487,6 +495,8 @@ module.exports = {
       openapi: {
         summary: 'Multi-country comparison (fill levels, capacities, trends)',
         tags: ['Gas Storage (AGSI)'],
+        // @OpenEnergyPlatform/ontology — OEO_00000159 energy storage object, OEO_00330013 energy storage level
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000159', 'https://openenergyplatform.org/ontology/oeo/OEO_00330013'],
         description: `Compare gas storage metrics across multiple European countries.
 
 **Available metrics:**
@@ -597,6 +607,8 @@ module.exports = {
       openapi: {
         summary: 'Trend analysis over defined periods (injection/withdrawal patterns, seasonality)',
         tags: ['Gas Storage (AGSI)'],
+        // @OpenEnergyPlatform/ontology — OEO_00000159 energy storage object, OEO_00000363 time series
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000159', 'https://openenergyplatform.org/ontology/oeo/OEO_00000363'],
         description: `Analyze gas storage trends over defined time periods.
 
 **Period options:**
@@ -702,6 +714,8 @@ module.exports = {
       openapi: {
         summary: 'Supply security assessment (fill level vs. consumption, EU 90% mandate)',
         tags: ['Gas Storage (AGSI)'],
+        // @OpenEnergyPlatform/ontology — OEO_00000159 energy storage object, OEO_00000292 natural gas
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000159', 'https://openenergyplatform.org/ontology/oeo/OEO_00000292'],
         description: `Assess gas supply security status for a country.
 
 **Security status levels:**

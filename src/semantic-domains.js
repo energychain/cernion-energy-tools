@@ -1,3 +1,5 @@
+const { DOMAIN_OEO_MAPPINGS } = require('./oeo-mappings');
+
 const semanticDomains = [
   {
     id: 'metering',
@@ -633,6 +635,11 @@ const semanticDomains = [
     ],
   },
 ];
+
+// Attach OEO class IRI mappings to each domain (from @OpenEnergyPlatform/ontology)
+for (const domain of semanticDomains) {
+  domain.oeoMapping = DOMAIN_OEO_MAPPINGS[domain.id] || [];
+}
 
 const semanticDomainMap = new Map(semanticDomains.map((domain) => [domain.id, domain]));
 

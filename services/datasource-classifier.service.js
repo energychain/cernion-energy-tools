@@ -1,4 +1,5 @@
 const { listSemanticDomains, semanticDomains } = require('../src/semantic-domains');
+const { germanLabelsForDomain } = require('../src/oeo-mappings');
 const CernionMCPClient = require('../src/mcp-client');
 const { isPeriodColumn } = require('../src/period-normaliser');
 
@@ -251,7 +252,8 @@ module.exports = {
           );
 
           const keywordHits = columnProfiles.filter((columnProfile) =>
-            (domain.indicators?.columnKeywords || []).some((keyword) => {
+            // Merge OEO German labels (@OpenEnergyPlatform/ontology) into keyword pool
+            [...(domain.indicators?.columnKeywords || []), ...germanLabelsForDomain(domain.id)].some((keyword) => {
               const normalizedKeyword = normalizeKey(keyword);
               return (
                 columnProfile.normalized.includes(normalizedKeyword) ||

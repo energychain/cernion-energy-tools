@@ -330,6 +330,7 @@ module.exports = {
           'POST /datapoints/promote': 'datapoint.promote',
           'GET /datapoints': 'datapoint.list',
           'GET /datapoints/health/overview': 'datapoint.health',
+          'GET /datapoints/oeo-context': 'datapoint.oeoContext',
           'GET /datapoints/:name': 'datapoint.get',
           'PUT /datapoints/:name': 'datapoint.update',
           'DELETE /datapoints/:name': 'datapoint.remove',

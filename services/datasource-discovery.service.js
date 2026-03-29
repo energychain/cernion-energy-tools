@@ -5,6 +5,7 @@
  */
 
 const path = require('path');
+const { forDomainResolved } = require('../src/oeo-mappings');
 
 function slugify(value) {
   return String(value || '')
@@ -228,6 +229,8 @@ module.exports = {
                   domain: semanticClassification.domainId,
                   domainLabel: semanticClassification.domainLabel,
                   criticalFieldMappings: semanticMappings,
+                  // OEO class annotations (from @OpenEnergyPlatform/ontology)
+                  oeoClasses: forDomainResolved(semanticClassification.domainId),
                 }
               : {}),
             // For 'other' domain: expose the description analysis as runtime

@@ -636,6 +636,8 @@ module.exports = {
         description:
           'Retrieves complete installation data from the German Marktstammdatenregister (MaStR). Supports filtering by grid operator (BDEW code or name), asset type, capacity, commissioning year, and operational status. **Default behavior: Only active installations (status 35 - In operation) are returned.** No pagination required - can retrieve millions of installations.',
         tags: ['Assets'],
+        // @OpenEnergyPlatform/ontology — OEO_00000031 power plant
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000031'],
         parameters: [
           {
             name: 'vnbName',
@@ -1142,6 +1144,8 @@ module.exports = {
         description:
           'Retrieves all photovoltaic installations of a grid operator. **Default: Only active installations (status 35).** Example: /api/assets/solar?bdewCode=4041407000008&redispatch=true for Netze BW redispatch installations.',
         tags: ['Assets'],
+        // @OpenEnergyPlatform/ontology — OEO_00000034 solar power unit
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000034'],
         parameters: [
           {
             name: 'vnbName',
@@ -1274,6 +1278,8 @@ module.exports = {
         summary: 'List all wind power installations of a grid operator',
         description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
+        // @OpenEnergyPlatform/ontology — OEO_00000044 wind energy converting unit
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000044'],
         parameters: [
           {
             name: 'vnbName',
@@ -1405,6 +1411,8 @@ module.exports = {
         summary: 'List all battery storage installations of a grid operator',
         description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
+        // @OpenEnergyPlatform/ontology — OEO_00000159 energy storage object
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000159'],
         parameters: [
           {
             name: 'vnbName',
@@ -1536,6 +1544,8 @@ module.exports = {
         summary: 'List all biomass installations of a grid operator',
         description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
+        // @OpenEnergyPlatform/ontology — OEO_00010214 biomass power unit
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00010214'],
         parameters: [
           {
             name: 'vnbName',
@@ -1667,6 +1677,8 @@ module.exports = {
         summary: 'List all hydropower installations of a grid operator',
         description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
+        // @OpenEnergyPlatform/ontology — OEO_00010086 hydro power plant
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00010086'],
         parameters: [
           {
             name: 'vnbName',
@@ -1798,6 +1810,8 @@ module.exports = {
         summary: 'List all combustion installations of a grid operator',
         description: '**Default: Only active installations (status 35).**',
         tags: ['Assets'],
+        // @OpenEnergyPlatform/ontology — OEO_00140038 combustion power plant
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00140038'],
         parameters: [
           {
             name: 'vnbName',
@@ -1942,6 +1956,8 @@ module.exports = {
         description:
           'Retrieves installations of all or selected types from a grid operator. **Default: Only active installations (status 35).** Ideal for asset management and portfolio overview. Example: /api/assets/all?bdewCode=4041407000008&types=solar,wind,storage&redispatch=true',
         tags: ['Assets'],
+        // @OpenEnergyPlatform/ontology — OEO_00000031 power plant
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000031'],
         parameters: [
           {
             name: 'vnbName',
@@ -2113,6 +2129,8 @@ module.exports = {
       openapi: {
         summary: 'List installations of a Direktvermarkter (direct energy marketer)',
         tags: ['Assets'],
+        // @OpenEnergyPlatform/ontology — OEO_00000031 power plant, OEO_00010082 trade
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000031', 'https://openenergyplatform.org/ontology/oeo/OEO_00010082'],
         description:
           'Retrieves MaStR installations assigned to a given direct energy marketer ' +
           '(Direktvermarkter) using the direktvermarkterName or direktvermarkterMastrId ' +

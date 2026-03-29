@@ -234,6 +234,81 @@ module.exports = {
     },
 
     // ------------------------------------------------------------------
+    // oeoContext — JSON-LD @context mapping datapoint fields to OEO IRIs
+    // @OpenEnergyPlatform/ontology
+    // ------------------------------------------------------------------
+    oeoContext: {
+      rest: 'GET /oeo-context',
+      params: {
+        name: { type: 'string', optional: true },
+      },
+      openapi: {
+        summary: 'JSON-LD @context mapping datapoint fields to OEO class IRIs',
+        tags: ['Datapoints'],
+        // @OpenEnergyPlatform/ontology — linked-data context
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/'],
+        description:
+          'Returns a JSON-LD @context document that maps datapoint field names ' +
+          'to Open Energy Ontology (OEO) class IRIs. Optionally scoped to a ' +
+          'specific datapoint (by name) for field-level mappings.',
+        parameters: [
+          {
+            name: 'name',
+            in: 'query',
+            schema: { type: 'string', example: 'my-datapoint' },
+            description: 'Optional datapoint name for field-level OEO mappings',
+          },
+        ],
+      },
+      async handler(ctx) {
+        const {
+          OEO_VERSION,
+          OEO_BASE_IRI,
+          DOMAIN_OEO_MAPPINGS,
+          forDomainResolved,
+        } = require('../src/oeo-mappings');
+
+        const base = {
+          '@context': {
+            oeo: OEO_BASE_IRI,
+            schema: 'https://schema.org/',
+          },
+          oeoVersion: OEO_VERSION,
+          generatedAt: new Date().toISOString(),
+        };
+
+        // If a name is given, enrich with datapoint-specific domain mapping
+        if (ctx.params.name) {
+          try {
+            const doc = await this.db.get(`dp:${ctx.params.name}`);
+            const domainId = doc.sourceType || doc.tags?.[0];
+            if (domainId && DOMAIN_OEO_MAPPINGS[domainId]) {
+              base['@context']['@type'] = forDomainResolved(domainId).map((c) => c.iri);
+              base.domainId = domainId;
+            }
+            // Add field-level mappings if the datapoint has fieldProfiles
+            if (doc.fieldProfiles) {
+              const fieldCtx = this.buildOeoContext(doc.fieldProfiles, domainId);
+              Object.assign(base['@context'], fieldCtx);
+            }
+          } catch (err) {
+            if (err.status === 404) {
+              throw new MoleculerClientError(`Datapoint '${ctx.params.name}' not found`, 404);
+            }
+            throw err;
+          }
+        }
+
+        // Append global domain catalogue
+        base.domainCatalogue = Object.entries(DOMAIN_OEO_MAPPINGS).map(
+          ([id, iris]) => ({ domainId: id, oeoClasses: iris })
+        );
+
+        return base;
+      },
+    },
+
+    // ------------------------------------------------------------------
     // health — aggregated health overview of all datapoints
     // ------------------------------------------------------------------
     health: {
@@ -689,6 +764,41 @@ module.exports = {
       }
 
       return h;
+    },
+
+    /**
+     * Build a JSON-LD @context for a specific datapoint, mapping its field
+     * profiles to OEO class IRIs. Enables linked-data consumers to interpret
+     * datapoint columns using standardised ontology terms.
+     *
+     * @see https://github.com/OpenEnergyPlatform/ontology — @OpenEnergyPlatform/ontology
+     */
+    buildOeoContext(fieldProfiles, domainId) {
+      const { OEO_BASE_IRI, forDomainResolved, UNITS, byCernionType } = require('../src/oeo-mappings');
+      const ctx = {
+        oeo: OEO_BASE_IRI,
+        schema: 'https://schema.org/',
+      };
+
+      // Map domain classes
+      const domainClasses = forDomainResolved(domainId);
+      if (domainClasses.length) {
+        ctx['@type'] = domainClasses.map((c) => c.iri);
+      }
+
+      // Map field profiles to OEO concepts
+      if (fieldProfiles && typeof fieldProfiles === 'object') {
+        for (const [field, profile] of Object.entries(fieldProfiles)) {
+          if (profile.unit && UNITS[profile.unit]) {
+            ctx[field] = { '@id': UNITS[profile.unit].iri, '@type': '@id' };
+          } else if (profile.role === 'technology' && profile.type) {
+            const mapping = byCernionType(profile.type);
+            if (mapping) ctx[field] = { '@id': mapping.iri, '@type': '@id' };
+          }
+        }
+      }
+
+      return ctx;
     },
   },
 };

@@ -304,6 +304,26 @@ The v0.9 datasource layer adds a second data plane next to MCP-backed public ene
 
 Edit `moleculer.config.js` to customise logger settings, transporter, cacher, circuit breaker, metrics, and tracing.
 
+## Open Energy Ontology (OEO) Integration
+
+Since v0.11.4 Cernion is annotated with machine-readable mappings to the
+[Open Energy Ontology](https://github.com/OpenEnergyPlatform/ontology) (v2.11.0).
+
+| Layer | What it does |
+|---|---|
+| `src/oeo-mappings.js` | Static lookup (~150 entries): installation types, grid concepts, voltage levels, market types, ENTSO-E PSR codes, units. Includes German labels. |
+| `x-oeo-class` in OpenAPI | Every REST endpoint carries `x-oeo-class` arrays linking to OEO class IRIs. |
+| `semanticHints.oeoClasses` | Datasource discovery descriptors expose domain-level OEO annotations. |
+| Classifier keyword boost | German OEO labels (e.g. "Solaranlage", "Stromnetz") enrich the heuristic scorer for German-language uploads. |
+| `GET /api/datapoints/oeo-context` | JSON-LD `@context` document mapping datapoint fields to OEO IRIs. |
+| `scripts/sync-oeo.js` | Validates mappings against upstream OEO releases. Run: `npm run sync:oeo`. |
+
+### Upstream dependency
+
+The ontology is maintained by [@OpenEnergyPlatform/ontology](https://github.com/OpenEnergyPlatform/ontology).
+All inline references are tagged with `// @OpenEnergyPlatform/ontology — OEO_XXXXX label`
+so that GitHub search surfaces our dependency to upstream maintainers.
+
 ## Available Scripts
 
 | Script | Description |
@@ -326,6 +346,7 @@ Edit `moleculer.config.js` to customise logger settings, transporter, cacher, ci
 | `npm run audit:security` | Run blocking dependency audit (critical severity) |
 | `npm run audit:security:advisory` | Run advisory dependency audit (high+) |
 | `npm run release:check` | Run core release gates (unit coverage, OpenAPI, critical security audit) |
+| `npm run sync:oeo` | Validate/update OEO mappings from upstream release |
 
 ### Operational Profiles
 

@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.4] - 2026-03-29
+
+### Added
+
+- **Open Energy Ontology (OEO) integration** — Machine-readable semantic
+  annotations linking Cernion concepts to the
+  [Open Energy Ontology](https://github.com/OpenEnergyPlatform/ontology)
+  v2.11.0.
+
+  **New files:**
+  - `src/oeo-mappings.js` — Static OEO lookup module (~150 curated mappings)
+    covering installation types, grid concepts, voltage levels, market types,
+    ENTSO-E PSR codes, energy/forecasting concepts, gas storage concepts,
+    and SI-prefix energy units. Includes German labels (`labelDe`) and
+    sub-type granularity aligned with MaStR data (wind onshore/offshore,
+    hydro run-of-river/pumped/reservoir, etc.).
+  - `scripts/sync-oeo.js` — Download OEO ETD CSV from GitHub releases,
+    validate all referenced OEO IDs still exist, detect label renames, and
+    update `oeo-mappings.js`. Usage: `npm run sync:oeo`.
+  - `tests/oeo-mappings.test.js` — 30+ unit tests for structural integrity,
+    cross-validation, and all helper functions.
+
+  **OpenAPI annotations:**
+  - `x-oeo-class` extension added to all 45+ REST-exposed actions across
+    7 domain services (`energy-market`, `grid-operations`, `assets`,
+    `forecast`, `entsoe`, `gas-storage`, `residual-load`). Each annotation
+    lists the OEO class IRIs relevant to that endpoint. Tagged with
+    `// @OpenEnergyPlatform/ontology` for upstream discoverability.
+
+  **Semantic domain enrichment:**
+  - `src/semantic-domains.js` — Each domain now carries an `oeoMapping`
+    array of OEO class IRIs.
+  - `datasource-discovery.service.js` — Discovery descriptors include
+    `semanticHints.oeoClasses` for downstream consumers.
+  - `datasource-classifier.service.js` — German OEO labels (e.g.
+    "Solaranlage", "Stromnetz") merged into classifier keyword pool,
+    boosting heuristic scoring for German-language uploads.
+
+  **JSON-LD context endpoint:**
+  - `GET /api/datapoints/oeo-context` — Returns a JSON-LD `@context`
+    document mapping Cernion fields to OEO class IRIs. Optionally scoped
+    to a specific datapoint via `?name=...` for field-level mappings.
+    Includes a global domain catalogue.
+
+- `sync:oeo` npm script (`npm run sync:oeo`) added to `package.json`.
+
 ## [0.11.3] - 2026-03-29
 
 ### Changed

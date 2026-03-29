@@ -75,6 +75,8 @@ module.exports = {
       openapi: {
         summary: 'Weather-based renewable energy generation forecast',
         tags: ['Renewable Energy Forecasting'],
+        // @OpenEnergyPlatform/ontology — OEO_00010411 forecast
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00010411'],
         description: `Regional Solar/Wind generation forecast based on ACTUAL installed capacity from MaStR, combined with weather forecasts from Visual Crossing API.
 
 **How it works:**

@@ -41,6 +41,8 @@ module.exports = {
       openapi: {
         summary: 'Direct ENTSO-E day-ahead price queries (faster, bypasses LLM)',
         tags: ['ENTSO-E'],
+        // @OpenEnergyPlatform/ontology — OEO_00020069 market exchange
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00020069'],
         description:
           '✅ FULLY WORKING - Most reliable ENTSOE endpoint. Automatic EIC code selection, multi-format dates, 15-minute resolution. Use this as reference for working ENTSOE integration.',
         'x-backend-status': 'operational',
@@ -211,6 +213,8 @@ module.exports = {
       openapi: {
         summary: 'Query unavailable generation units, transmission assets, and load',
         tags: ['ENTSO-E'],
+        // @OpenEnergyPlatform/ontology — OEO_00000031 power plant
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000031'],
         description:
           '✅ FULLY WORKING - Outage monitoring (planned and unplanned), capacity forecasting. Supports production, transmission, and load unavailability types with PSR type filtering.',
         'x-backend-status': 'operational',
@@ -389,6 +393,8 @@ module.exports = {
       openapi: {
         summary: 'Query physical cross-border electricity flows between countries/bidding zones',
         tags: ['ENTSO-E'],
+        // @OpenEnergyPlatform/ontology — OEO_00360005 bidding zone
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00360005'],
         description:
           '✅ FULLY WORKING - Import/export dependency monitoring, grid stress assessment. Returns hourly or daily cross-border electricity flows with statistics.',
         'x-backend-status': 'operational',
@@ -509,6 +515,8 @@ module.exports = {
       openapi: {
         summary: 'Query actual electricity generation by production type',
         tags: ['ENTSO-E'],
+        // @OpenEnergyPlatform/ontology — OEO_00000139 electrical energy, OEO_00000031 power plant
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000139', 'https://openenergyplatform.org/ontology/oeo/OEO_00000031'],
         description:
           '✅ FULLY WORKING - Energy mix analysis, renewable share monitoring, forecast validation. Returns actual generation data by PSR type (solar, wind, gas, nuclear, etc.).',
         'x-backend-status': 'operational',
@@ -683,6 +691,8 @@ module.exports = {
       openapi: {
         summary: 'Day-ahead wind and solar generation forecasts',
         tags: ['ENTSO-E'],
+        // @OpenEnergyPlatform/ontology — OEO_00010411 forecast
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00010411'],
         description:
           '✅ FULLY WORKING - Renewable energy planning, grid balancing, trading strategies. Returns day-ahead forecasts for wind and solar generation.',
         'x-backend-status': 'operational',
@@ -863,6 +873,8 @@ module.exports = {
       openapi: {
         summary: 'Day-ahead electricity load (demand) forecasts',
         tags: ['ENTSO-E'],
+        // @OpenEnergyPlatform/ontology — OEO_00320062 electricity demand, OEO_00010411 forecast
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00320062', 'https://openenergyplatform.org/ontology/oeo/OEO_00010411'],
         description:
           '✅ FULLY WORKING - Grid planning, demand forecasting for trading, peak load management. Returns day-ahead load/demand forecasts.',
         'x-backend-status': 'operational',
@@ -984,6 +996,8 @@ module.exports = {
       openapi: {
         summary: 'Total actual generation (aggregated across all production types)',
         tags: ['ENTSO-E'],
+        // @OpenEnergyPlatform/ontology — OEO_00000139 electrical energy
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000139'],
         description:
           'Actual electricity generation aggregated across all production types (no PSR breakdown). Use entsoe_actual_generation for per-type details.',
         'x-backend-status': 'operational',
@@ -1099,6 +1113,8 @@ module.exports = {
       openapi: {
         summary: 'Actual wind (offshore/onshore) and solar generation',
         tags: ['ENTSO-E'],
+        // @OpenEnergyPlatform/ontology — OEO_00000139 electrical energy
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000139'],
         description:
           '✅ FULLY WORKING - Renewable energy monitoring, forecast validation. Returns actual generation data for wind (onshore/offshore) and solar power.',
         'x-backend-status': 'operational',
@@ -1227,6 +1243,8 @@ module.exports = {
       openapi: {
         summary: 'Day-ahead electricity generation forecasts by production type',
         tags: ['ENTSO-E'],
+        // @OpenEnergyPlatform/ontology — OEO_00010411 forecast, OEO_00000031 power plant
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00010411', 'https://openenergyplatform.org/ontology/oeo/OEO_00000031'],
         description:
           '✅ FULLY WORKING - Comprehensive generation planning, all production types. Returns day-ahead generation forecasts by PSR type.',
         'x-backend-status': 'operational',
@@ -1340,6 +1358,8 @@ module.exports = {
       openapi: {
         summary: 'Retrieve list of ENTSO-E Production Source Type (PSR) codes',
         tags: ['ENTSO-E'],
+        // @OpenEnergyPlatform/ontology — OEO_00000031 power plant
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000031'],
         description:
           'Static reference data for PSR type codes used in generation queries. Common codes: B01=Biomass, B02=Fossil Brown coal/Lignite, B03=Fossil Coal-derived gas, B04=Fossil Gas, B05=Fossil Hard coal, B06=Fossil Oil, B09=Geothermal, B10=Hydro Pumped Storage, B11=Hydro Run-of-river, B12=Hydro Water Reservoir, B13=Marine, B14=Nuclear, B15=Other renewable, B16=Solar, B17=Waste, B18=Wind Offshore, B19=Wind Onshore, B20=Other',
         responses: {
