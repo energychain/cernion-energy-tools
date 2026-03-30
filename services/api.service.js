@@ -408,11 +408,11 @@ module.exports = {
           'GET /energy-sharing/validations': 'energy-sharing.list',
           'GET /energy-sharing/validations/:id': 'energy-sharing.get',
           // Energy Sharing Allocation (v0.16) — /download must precede /:id
-          'POST /energy-sharing/allocate': 'energy-sharing-allocation.allocate',
-          'GET /energy-sharing/allocations': 'energy-sharing-allocation.list',
-          'GET /energy-sharing/allocations/:id/download': 'energy-sharing-allocation.download',
-          'GET /energy-sharing/allocations/:id': 'energy-sharing-allocation.get',
-          'DELETE /energy-sharing/allocations/:id': 'energy-sharing-allocation.remove',
+          'POST /energy-sharing-allocation/allocate': 'energy-sharing-allocation.allocate',
+          'GET /energy-sharing-allocation/allocations': 'energy-sharing-allocation.list',
+          'GET /energy-sharing-allocation/allocations/:id/download': 'energy-sharing-allocation.download',
+          'GET /energy-sharing-allocation/allocations/:id': 'energy-sharing-allocation.get',
+          'DELETE /energy-sharing-allocation/allocations/:id': 'energy-sharing-allocation.remove',
           // MaStR Data Quality (v0.17)
           'POST /mastr-quality/audit': 'mastr-quality.audit',
           'GET /mastr-quality/audits': 'mastr-quality.list',

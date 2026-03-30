@@ -128,9 +128,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Allocation arithmetic** — Restmengenempfänger pattern: last consumer receives
   remainder (`net − ∑previous`) to guarantee ∑allocations = netGenerationKWh per
   interval (±0.0001 kWh). Rounds to 4 decimal places (kWh billing accuracy).
-- **Five REST endpoints** — `POST /api/energy-sharing/allocate` (120 s timeout),
-  `GET /api/energy-sharing/allocations`, `GET /api/energy-sharing/allocations/:id`,
-  `GET /api/energy-sharing/allocations/:id/download`, `DELETE /api/energy-sharing/allocations/:id`.
+- **Five REST endpoints** — `POST /api/energy-sharing-allocation/allocate` (120 s timeout),
+  `GET /api/energy-sharing-allocation/allocations`, `GET /api/energy-sharing-allocation/allocations/:id`,
+  `GET /api/energy-sharing-allocation/allocations/:id/download`, `DELETE /api/energy-sharing-allocation/allocations/:id`.
   Full OpenAPI annotations on all actions (`Energy Sharing Allocation` tag).
 - **EDM-importable CSV download** — `GET /allocations/:id/download?maloId=` re-computes
   time-series on demand (KRITIS) and returns semicolon-delimited CSV
