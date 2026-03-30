@@ -152,4 +152,6 @@ uploads/
 .datapoints-*/
 .grid-connections/
 .energy-sharing/
+.allocation-engine/
+.mastr-quality/
 src/oemetadata/

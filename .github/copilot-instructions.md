@@ -12,7 +12,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Embedded PouchDB (`pouchdb` + `pouchdb-find`) stores datapoint metadata and snapshots.
   KRITIS-compliant: no native bindings, no network port, no external process.
 
-## Architecture Layers (v0.10–v0.15)
+## Architecture Layers (v0.10–v0.17)
 
 | Layer | Version | Description |
 |---|---|---|
@@ -20,6 +20,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 | Geo Layer | v0.10 | OSM-based grid infrastructure analysis (`osm-geo.*` actions) |
 | Datapoint Layer | v0.11–v0.13 | Named managed data sources with PouchDB, scheduling, OEO/OEMetadata, snapshots |
 | Agent Layer | v0.14–v0.15 | Grid Connection Validation (v0.14) + Energy Sharing Validation (v0.15): deterministic pipelines, PouchDB audit trail, EU AI Act Art. 12 compliance |
+| Agent Layer | v0.17 | MaStR Data Quality Audit (v0.17): 8-step portfolio quality audit, weighted dimension scoring, `skipSteps`, 25 `MQ_*` finding codes (total: 73) |
 
 ## Coding Guidelines
 
@@ -59,7 +60,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Use Jest as the testing framework
 - Meet coverage thresholds: branches 60%, functions 75%, lines 75%,
   statements 75%
-- Current suite: ~1 400 tests, ~55 suites — all must pass after changes
+- Current suite: ~1 660+ tests, ~57 suites — all must pass after changes
 - Run release gate before every release: `npm run release:check`
 - Acceptance fixtures in `tests/acceptance/` — do not modify
 - Custom tests live in `custom-tests/` and are excluded from release coverage
@@ -168,20 +169,23 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Uses Overpass API (public or private instance via `OVERPASS_ENDPOINT` env var)
 - Agent RULE 12 routes geo intents to these actions
 
-## Current Project Status (v0.15.1)
+## Current Project Status (v0.17.0)
 
-- Release `v0.15.1` is the current release.
-- 26 core services in `services/`, ~1 500+ tests across ~56 suites.
+- Release `v0.17.0` is the current release.
+- 27 core services in `services/`, ~1 660+ tests across ~57 suites.
 - **UI Layer (v0.15.1):** All v0.13–v0.15 backend features surfaced in `src/app.html`:
   - Datapoints panel: tag filter input, interventions row-expand (📋 per row), Snapshots sub-section (create/list/validate/delete).
   - Integration Hub: Grid Connection Validation sub-card (v0.14 — Netzanschluss pipeline).
   - Integration Hub: Energy Sharing Validation sub-card (v0.15 — § 42c EnWG, dynamic generator/consumer rows, share-sum validation, decision badges).
   - New CSS tokens: `.decision-badge`, `.val-kpi-row`, `.val-step-timeline`, `.val-findings`, `.dynamic-rows-wrap`, `.dp-snapshots-section`, etc.
-- **Agent Layer (v0.14–0.15):** Two deterministic validation agents:
+- **Agent Layer (v0.14–0.17):** Three deterministic validation/audit agents:
   - `grid-connection.service.js` (v0.14) — 6-step Netzanschluss pipeline.
   - `energy-sharing.service.js` (v0.15) — 6-step Energy Sharing pipeline (§ 42c EnWG),
     regulatory deadline 01.06.2026. PouchDB at `.energy-sharing/`, doc prefix `es:`.
     28 new finding codes in `src/validation-findings.js` (total: 48).
+  - `mastr-quality.service.js` (v0.17) — 8-step MaStR portfolio quality audit.
+    PouchDB at `.mastr-quality/`, doc prefix `mq:`. 25 new `MQ_*` finding codes
+    (total: 73). Weighted quality score across 5 dimensions (0–100). 180s timeout.
 - Integration Hub panel (`#integration-hub-panel`) in `src/app.html` with token
   management, Power Automate / Power BI connector generator, VNB Monitor
   threshold editor, and NBP Monitor sub-panel.
@@ -197,14 +201,18 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Release gate: `npm run release:check` (tests + OpenAPI + security)
 - Known risk: `xlsx` high advisory — documented exception in SECURITY.md
 
-### Agent Layer (v0.14–v0.15)
+### Agent Layer (v0.14–v0.17)
 
-- Both agent services follow the **deterministic pipeline pattern**:
+- All agent services follow the **deterministic pipeline pattern**:
   separate PouchDB, `skipServices` exclusion, MCP calls via `CernionMCPClient.callWithNewSession`,
   no LLM involvement, EU AI Act Art. 12 audit trail.
 - `energy-sharing` adds: generator/consumer input schema, per-generator DV validation,
   MaLo format check, § 42c EnWG eligibility assessment.
-- Future agents: `mastr-quality` (v0.16+), `redispatch-expost` (v0.17+).
+- `mastr-quality` adds: 8-step portfolio audit, weighted dimension scoring
+  (`QUALITY_DIMENSION_WEIGHTS` + `computeDimensionScore` + `computeQualityScore`),
+  `skipSteps` parameter (only steps 3–7 may be skipped), geo spot-check via `osm-geo.validate`,
+  25 `MQ_*` finding codes. PouchDB at `.mastr-quality/`, doc prefix `mq:`.
+- Future agents: `redispatch-expost` (v0.18+).
 
 ## Release Process (0.x)
 

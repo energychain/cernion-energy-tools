@@ -84,6 +84,105 @@ const ES_REJECTED_GENERATOR_INVALID = 'REJECTED_GENERATOR_INVALID';
 const ES_REJECTED_OTHER = 'REJECTED_OTHER';
 
 // ---------------------------------------------------------------------------
+// MaStR Data Quality Agent codes (v0.17) — deterministic 8-step portfolio audit
+// ---------------------------------------------------------------------------
+
+// MQ Step 2 — Inventory
+const MQ_INVENTORY_COMPLETE = 'MQ_INVENTORY_COMPLETE';
+const MQ_INVENTORY_EMPTY    = 'MQ_INVENTORY_EMPTY';
+
+// MQ Step 3 — Status anomalies
+const MQ_STALE_PLANNING            = 'MQ_STALE_PLANNING';
+const MQ_STALE_TEMPORARY_SHUTDOWN  = 'MQ_STALE_TEMPORARY_SHUTDOWN';
+const MQ_MISSING_COMMISSIONING_DATE = 'MQ_MISSING_COMMISSIONING_DATE';
+const MQ_FUTURE_COMMISSIONING      = 'MQ_FUTURE_COMMISSIONING';
+const MQ_NBP_PENDING               = 'MQ_NBP_PENDING';
+const MQ_NBP_NOT_PLANNED           = 'MQ_NBP_NOT_PLANNED';
+
+// MQ Step 4 — Capacity anomalies
+const MQ_ZERO_CAPACITY             = 'MQ_ZERO_CAPACITY';
+const MQ_NEGATIVE_CAPACITY         = 'MQ_NEGATIVE_CAPACITY';
+const MQ_IMPLAUSIBLE_HIGH_CAPACITY = 'MQ_IMPLAUSIBLE_HIGH_CAPACITY';
+const MQ_NETTO_EXCEEDS_BRUTTO      = 'MQ_NETTO_EXCEEDS_BRUTTO';
+const MQ_MISSING_FEED_IN_TYPE      = 'MQ_MISSING_FEED_IN_TYPE';
+
+// MQ Step 5 — Connection point integrity
+const MQ_MISSING_NAP         = 'MQ_MISSING_NAP';
+const MQ_MISSING_MELO        = 'MQ_MISSING_MELO';
+const MQ_NAP_VNB_MISMATCH    = 'MQ_NAP_VNB_MISMATCH';
+const MQ_VOLTAGE_MISMATCH    = 'MQ_VOLTAGE_MISMATCH';
+const MQ_NAP_MULTI_UNIT      = 'MQ_NAP_MULTI_UNIT';
+const MQ_REDISPATCH_NO_NAP   = 'MQ_REDISPATCH_NO_NAP';
+
+// MQ Step 6 — Duplicate detection
+const MQ_PROBABLE_DUPLICATE = 'MQ_PROBABLE_DUPLICATE';
+const MQ_POSSIBLE_DUPLICATE = 'MQ_POSSIBLE_DUPLICATE';
+const MQ_GEO_DUPLICATE      = 'MQ_GEO_DUPLICATE';
+
+// MQ Step 7 — Geo spot check
+const MQ_GEO_PLAUSIBLE      = 'MQ_GEO_PLAUSIBLE';
+const MQ_GEO_MISASSIGNMENT  = 'MQ_GEO_MISASSIGNMENT';
+const MQ_GEO_CHECK_FAILED   = 'MQ_GEO_CHECK_FAILED';
+
+// ---------------------------------------------------------------------------
+// MaStR Quality score helpers (v0.17)
+// ---------------------------------------------------------------------------
+
+/**
+ * Dimension → step number mapping used by computeQualityScore.
+ * Keys match the `qualityDimensions` object returned by the audit pipeline.
+ */
+const QUALITY_DIMENSION_WEIGHTS = {
+  connectionPoints: 0.30,
+  capacity:         0.20,
+  geo:              0.20,
+  status:           0.15,
+  duplicates:       0.15,
+};
+
+/**
+ * Computes a single dimension score from a findings array.
+ * Formula: max(0, 100 − errors×10 − warnings×3), clamped to [0, 100].
+ *
+ * @param {object[]} findings    Full findings array from a pipeline run
+ * @param {number[]} stepNumbers Step numbers that belong to this dimension
+ * @returns {number} Score 0–100
+ */
+function computeDimensionScore(findings, stepNumbers) {
+  const stepSet = new Set(stepNumbers);
+  const dimFindings = findings.filter((f) => stepSet.has(f.step));
+  const errors   = dimFindings.filter((f) => f.severity === 'error').length;
+  const warnings = dimFindings.filter((f) => f.severity === 'warning').length;
+  return Math.max(0, Math.min(100, 100 - errors * 10 - warnings * 3));
+}
+
+/**
+ * Computes the overall quality score as a weighted average over dimensions.
+ * Dimensions with `score: null` (skipped steps) are excluded from the
+ * denominator so the remaining weights are re-normalised automatically.
+ *
+ * @param {{ [dimName: string]: { score: number|null, weight: number } }} dimensions
+ *   Keys must match QUALITY_DIMENSION_WEIGHTS. Each entry must have `score`
+ *   (number 0–100 or null for skipped) and optionally `weight` (overrides
+ *   QUALITY_DIMENSION_WEIGHTS if provided, otherwise default weights are used).
+ * @returns {number} Rounded overall quality score 0–100
+ */
+function computeQualityScore(dimensions) {
+  let weightedSum = 0;
+  let totalWeight = 0;
+
+  for (const [dim, entry] of Object.entries(dimensions)) {
+    if (entry.score === null || entry.score === undefined) continue;
+    const weight = entry.weight !== undefined ? entry.weight : (QUALITY_DIMENSION_WEIGHTS[dim] || 0);
+    weightedSum += entry.score * weight;
+    totalWeight += weight;
+  }
+
+  if (totalWeight === 0) return 0;
+  return Math.round(weightedSum / totalWeight);
+}
+
+// ---------------------------------------------------------------------------
 // Simultaneity factors per installation type
 // Source: cernion_connection_capacity_check documentation (CR §3.3)
 // ---------------------------------------------------------------------------
@@ -232,4 +331,39 @@ module.exports = {
   ES_REJECTED_STRUCTURAL,
   ES_REJECTED_GENERATOR_INVALID,
   ES_REJECTED_OTHER,
+  // MQ Step 2 — Inventory
+  MQ_INVENTORY_COMPLETE,
+  MQ_INVENTORY_EMPTY,
+  // MQ Step 3 — Status anomalies
+  MQ_STALE_PLANNING,
+  MQ_STALE_TEMPORARY_SHUTDOWN,
+  MQ_MISSING_COMMISSIONING_DATE,
+  MQ_FUTURE_COMMISSIONING,
+  MQ_NBP_PENDING,
+  MQ_NBP_NOT_PLANNED,
+  // MQ Step 4 — Capacity anomalies
+  MQ_ZERO_CAPACITY,
+  MQ_NEGATIVE_CAPACITY,
+  MQ_IMPLAUSIBLE_HIGH_CAPACITY,
+  MQ_NETTO_EXCEEDS_BRUTTO,
+  MQ_MISSING_FEED_IN_TYPE,
+  // MQ Step 5 — Connection point integrity
+  MQ_MISSING_NAP,
+  MQ_MISSING_MELO,
+  MQ_NAP_VNB_MISMATCH,
+  MQ_VOLTAGE_MISMATCH,
+  MQ_NAP_MULTI_UNIT,
+  MQ_REDISPATCH_NO_NAP,
+  // MQ Step 6 — Duplicate detection
+  MQ_PROBABLE_DUPLICATE,
+  MQ_POSSIBLE_DUPLICATE,
+  MQ_GEO_DUPLICATE,
+  // MQ Step 7 — Geo spot check
+  MQ_GEO_PLAUSIBLE,
+  MQ_GEO_MISASSIGNMENT,
+  MQ_GEO_CHECK_FAILED,
+  // MQ score helpers
+  QUALITY_DIMENSION_WEIGHTS,
+  computeDimensionScore,
+  computeQualityScore,
 };

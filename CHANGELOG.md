@@ -7,6 +7,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-03-30
+
+### Added
+
+- **MaStR Datenqualitätsagent (`mastr-quality` service, v0.17.0)** —
+  New deterministic 8-step pipeline that audits the entire MaStR portfolio of a VNB
+  and produces structured findings across 5 quality dimensions. Returns a `qualityScore`
+  (0–100) as a weighted average. No LLM involvement — identical inputs always produce
+  identical finding codes. Excluded from LLM agent catalogue (`skipServices`).
+  Regulatory basis: § 14 EnWG (Netzbetreiberpflichten), § 52 EEG (Meldepflichten),
+  Redispatch 2.0 (BDEW/BNetzA), EU AI Act Art. 12 (audit trail).
+
+  **Pipeline steps:**
+  1. `identity` — Resolves VNB identity via `vnb_lookup_codes` MCP tool.
+     Emits `VNB_RESOLVED` / `VNB_AMBIGUOUS` / `VNB_NOT_FOUND`. Best-effort
+     fallback to provided parameters when MCP unavailable.
+  2. `inventory` — Fetches complete portfolio via `cernion_installations_local`
+     (no `status`/`minCapacity` filter — full portfolio including all statuses
+     and sizes). Emits `MQ_INVENTORY_COMPLETE` or `MQ_INVENTORY_EMPTY`.
+  3. `statusAnomalies` — Detects 6 status-related data quality issues:
+     stale planning (>2 years in "InPlanung"), stale temporary shutdown
+     (>365 days), missing commissioning date for operational units, future
+     commissioning dates, NBP "InPrüfung" (2955), and NBP "NichtVorgesehen" (3075).
+  4. `capacityAnomalies` — Detects 5 capacity issues: zero capacity, negative
+     capacity, implausibly high capacity (Solar >50,000 kW / Wind >20,000 kW /
+     others >100,000 kW), netto > brutto (physical impossibility), missing
+     feed-in type (Einspeisungsart) for operational solar units.
+  5. `connectionPoints` — Validates 6 connection point integrity rules: missing NAP,
+     missing MeLo for ≥100 kW operational units, NAP-VNB mismatch, voltage level
+     mismatch (≥100 kW at NS), NAP shared by >3 installations, and Redispatch-
+     relevant units (≥100 kW) without NAP.
+  6. `duplicateDetection` — Heuristic duplicate detection with 3 levels:
+     all-4-criteria match (PLZ + type + capacity±10% + commissioning date±90d) →
+     `MQ_PROBABLE_DUPLICATE`; 3-of-4 → `MQ_POSSIBLE_DUPLICATE`; same-type
+     coordinates within ±0.001° → `MQ_GEO_DUPLICATE`.
+  7. `geoSpotCheck` — Broker calls to `osm-geo.validate` for a sample of
+     portfolio installations. Sample selection prioritises Redispatch-relevant
+     (≥100 kW) units with type diversity. Default 10 installations, configurable
+     up to 50 via `geoSampleSize` parameter.
+  8. `audit` — Seals the report with a PouchDB snapshot reference and
+     `AUDIT_TRAIL_CREATED` finding (EU AI Act Art. 12 compliance).
+
+  **Quality score system:**
+  - 5 dimensions with configurable weights: `connectionPoints` (0.30),
+    `capacity` (0.20), `geo` (0.20), `status` (0.15), `duplicates` (0.15).
+  - `computeDimensionScore(findings, stepNumbers)` → `max(0, 100 − errors×10 − warnings×3)`.
+  - `computeQualityScore(dimensions)` → weighted average; skipped dimensions
+    (`score: null`) are excluded from the denominator (weights re-normalised).
+
+  **`skipSteps` parameter (novel):** Steps 3–7 independently skippable. Steps 1,
+  2, 8 are mandatory. Invalid step numbers throw a descriptive error.
+
+  **Three REST endpoints (via API Gateway):**
+  - `POST /api/mastr-quality/audit` — run 8-step pipeline (180 s timeout)
+  - `GET /api/mastr-quality/audits` — list past reports (newest first,
+    optional `gridOperatorId` filter)
+  - `GET /api/mastr-quality/audits/:id` — retrieve report by UUID
+
+  **25 new `MQ_*` finding codes** added to `src/validation-findings.js`:
+  `MQ_INVENTORY_COMPLETE`, `MQ_INVENTORY_EMPTY` (Step 2);
+  `MQ_STALE_PLANNING`, `MQ_STALE_TEMPORARY_SHUTDOWN`, `MQ_MISSING_COMMISSIONING_DATE`,
+  `MQ_FUTURE_COMMISSIONING`, `MQ_NBP_PENDING`, `MQ_NBP_NOT_PLANNED` (Step 3);
+  `MQ_ZERO_CAPACITY`, `MQ_NEGATIVE_CAPACITY`, `MQ_IMPLAUSIBLE_HIGH_CAPACITY`,
+  `MQ_NETTO_EXCEEDS_BRUTTO`, `MQ_MISSING_FEED_IN_TYPE` (Step 4);
+  `MQ_MISSING_NAP`, `MQ_MISSING_MELO`, `MQ_NAP_VNB_MISMATCH`, `MQ_VOLTAGE_MISMATCH`,
+  `MQ_NAP_MULTI_UNIT`, `MQ_REDISPATCH_NO_NAP` (Step 5);
+  `MQ_PROBABLE_DUPLICATE`, `MQ_POSSIBLE_DUPLICATE`, `MQ_GEO_DUPLICATE` (Step 6);
+  `MQ_GEO_PLAUSIBLE`, `MQ_GEO_MISASSIGNMENT`, `MQ_GEO_CHECK_FAILED` (Step 7).
+
+  **Two new score helper exports** in `src/validation-findings.js`:
+  `computeDimensionScore(findings, stepNumbers)` and `computeQualityScore(dimensions)`.
+
+  **Architecture:** Separate PouchDB at `.mastr-quality/` (`MASTR_QUALITY_DB_PATH` env,
+  default `./.mastr-quality`). Doc prefix `mq:`. Raw installation data never persisted
+  (KRITIS). Service excluded from LLM agent catalogue (`skipServices`). Timeout 180 s
+  (vs 120 s in v0.14/v0.15) to accommodate full portfolio scans.
+
+### Changed
+
+- **`src/validation-findings.js`** — Extended with 25 new `MQ_*` finding-code constants,
+  `QUALITY_DIMENSION_WEIGHTS` map, and two new exported functions `computeDimensionScore`
+  and `computeQualityScore`. Existing 48 codes and all helpers remain unchanged. Total
+  finding codes: 73.
+- **`services/api.service.js`** — Added `MaStR Data Quality` OpenAPI tag and 3 new
+  route aliases (`POST /mastr-quality/audit`, `GET /mastr-quality/audits`,
+  `GET /mastr-quality/audits/:id`).
+- **`services/agent.service.js`** — Added `'mastr-quality'` to the LLM planner
+  `skipServices` set (catalogue builder only, line ~72). Consistent with other agent
+  services (`grid-connection`, `energy-sharing`, `energy-sharing-allocation`).
+- **`.gitignore`** — Added `.mastr-quality/` and `.allocation-engine/` PouchDB data
+  directories (the latter was missing from v0.16.0).
+- **`.env.example`** — Added `MASTR_QUALITY_DB_PATH` configuration variable.
+
 ## [0.16.0] - 2026-03-30
 
 ### Added

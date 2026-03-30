@@ -166,7 +166,18 @@ module.exports = {
             'Stufe B: real iMSys metering data via inhouse CSV upload. ' +
             'KRITIS-compliant: time-series computed in RAM, only metadata persisted. ' +
             'Interimsprozess operative deadline: 01.06.2026 (§ 20b EnWG).',
-        },      ],
+        },
+        {
+          name: 'MaStR Data Quality',
+          description:
+            'Deterministic 8-step MaStR portfolio quality audit (v0.17). ' +
+            'Audits the entire VNB portfolio in MaStR: VNB identity → full inventory → ' +
+            'status anomalies → capacity anomalies → connection point integrity → ' +
+            'duplicate detection → geo spot check → audit trail. ' +
+            'Returns a qualityScore (0–100) across 5 weighted dimensions. ' +
+            'No LLM involvement. Steps 3–7 independently skippable via skipSteps parameter.',
+        },
+      ],
       components: {
         securitySchemes: {
           ApiKeyAuth: {
@@ -402,6 +413,10 @@ module.exports = {
           'GET /energy-sharing/allocations/:id/download': 'energy-sharing-allocation.download',
           'GET /energy-sharing/allocations/:id': 'energy-sharing-allocation.get',
           'DELETE /energy-sharing/allocations/:id': 'energy-sharing-allocation.remove',
+          // MaStR Data Quality (v0.17)
+          'POST /mastr-quality/audit': 'mastr-quality.audit',
+          'GET /mastr-quality/audits': 'mastr-quality.list',
+          'GET /mastr-quality/audits/:id': 'mastr-quality.get',
 
           // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
           'GET /datasources/uploads'(req, res) {
