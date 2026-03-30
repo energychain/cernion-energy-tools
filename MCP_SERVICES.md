@@ -186,37 +186,60 @@ Internal plugin runtime for heterogeneous datasource reads (not exposed directly
 - `datasource-discovery` publishes fresh sources to the agent as inhouse descriptors
 - `agent.analyze` now includes inhouse datasource descriptors alongside normal microservice actions
 
-### 16. Datapoint Layer (`datapoint`) — v0.11
+### 16. Datapoint Management (`datapoint`) — v0.11–v0.13
 
 Named, versioned, health-monitored data sources backed by embedded PouchDB.
-Promotes agent sessions to managed datapoints with lifecycle tracking.
+Promotes agent sessions to managed datapoints with lifecycle tracking (v0.11),
+FAIR provenance metadata and interval scheduling (v0.12), and snapshot-based
+consistency proofs for agent pipelines (v0.13).
 
-**REST endpoints:**
+**REST endpoints — Datapoint CRUD:**
 
 | Method | Path | Action | Description |
 |--------|------|--------|-------------|
 | `POST` | `/api/datapoints/promote` | `datapoint.promote` | Promote a session to a named datapoint |
-| `GET` | `/api/datapoints` | `datapoint.list` | List all datapoints |
-| `GET` | `/api/datapoints/health/overview` | `datapoint.health` | Health overview of all datapoints |
+| `GET` | `/api/datapoints` | `datapoint.list` | List all datapoints (`?tags=`, `?sourceType=`, `?includeHealth=`) |
+| `GET` | `/api/datapoints/health/overview` | `datapoint.health` | Aggregated health overview (healthy / stale / errored / neverRun) |
 | `GET` | `/api/datapoints/:name` | `datapoint.get` | Get full datapoint document |
-| `PUT` | `/api/datapoints/:name` | `datapoint.update` | Update description/tags/fixedParams/refresh |
+| `PUT` | `/api/datapoints/:name` | `datapoint.update` | Update description / tags / fixedParams / refresh strategy |
 | `DELETE` | `/api/datapoints/:name` | `datapoint.remove` | Delete a datapoint |
-| `POST` | `/api/datapoints/:name/refresh` | `datapoint.refresh` | Re-execute plan, update health metadata |
-| `GET` | `/api/datapoints/:name/data` | `datapoint.data` | Get live data (JSON or CSV) |
+| `POST` | `/api/datapoints/:name/refresh` | `datapoint.refresh` | Re-execute plan, update `lastRun` + `health` + `provenanceHash` |
+| `GET` | `/api/datapoints/:name/data` | `datapoint.data` | Get live data (JSON or `?format=csv`; re-executes plan) |
 
-**Actions (internal):**
+**REST endpoints — FAIR Metadata (v0.12):**
 
-- `agent.executePlan { plan, userInputs }` — lean plan executor, no session lifecycle, no LLM
-- `agent.loadSession { id }` — expose internal session loader for service-to-service calls
+| Method | Path | Action | Description |
+|--------|------|--------|-------------|
+| `GET` | `/api/datapoints/:name/oemetadata` | `datapoint.oemetadata` | OEMetadata v2.0 document (EU AI Act Art. 12 provenance hash). Add `?validate=true` for ajv schema validation report. |
+| `GET` | `/api/datapoints/oeo-context` | `datapoint.oeoContext` | JSON-LD `@context` mapping datapoint fields to OEO class IRIs. Optional `?name=` for datapoint-scoped field mappings. |
+
+**REST endpoints — Snapshot Semantik (v0.13):**
+
+| Method | Path | Action | Description |
+|--------|------|--------|-------------|
+| `POST` | `/api/datapoints/snapshot` | `datapoint.createSnapshot` | Create a consistency snapshot over a set of datapoints |
+| `GET` | `/api/datapoints/snapshots` | `datapoint.listSnapshots` | List all snapshots (optional `?status=complete\|partial\|failed`) |
+| `GET` | `/api/datapoints/snapshot/:id` | `datapoint.getSnapshot` | Get full snapshot document |
+| `POST` | `/api/datapoints/snapshot/:id/validate` | `datapoint.validateSnapshot` | Validate snapshot — compare current `provenanceHash` values |
+| `DELETE` | `/api/datapoints/snapshot/:id` | `datapoint.removeSnapshot` | Delete a snapshot |
 
 **Key design decisions:**
-- Only metadata (`lastRun`, `health`) is persisted in PouchDB — raw data flows through RAM
+- Only metadata (`lastRun`, `health`, `provenanceHash`) is persisted in PouchDB — raw data always flows through RAM (KRITIS constraint)
 - `auto_compaction: true` keeps disk footprint minimal
 - KRITIS-compliant: PouchDB is pure JavaScript, no native bindings, no network port, no external process
-- Route ordering: `GET /datapoints/health/overview` is registered before `GET /datapoints/:name`
-  to prevent `health` being captured as a `:name` path parameter
+- Route ordering: all static sub-routes (`/health/overview`, `/oeo-context`, `/snapshot`, `/snapshots`) are registered **before** `/:name` to prevent path-parameter capture
+- `maxConcurrentRefreshes` (env: `DATAPOINT_MAX_CONCURRENT_REFRESHES`, default: `3`) limits simultaneous MCP sessions during scheduled batch refreshes
+- Snapshot `createdBy` field (`manual` / `agent` / `scheduler`) is an optional parameter for forward-compatibility with the v0.14 Agent Layer
 
-**Example — promote a session:**
+**Tag-based filtering (AP3, v0.13):**
+`GET /api/datapoints?tags=solar,twl-netze` returns only datapoints that have **all** specified tags (case-insensitive AND semantics, comma-separated). Works for both direct listing and as input to `createSnapshot`.
+
+**Snapshot creation — three phases:**
+1. **Freshness-Check** — datapoints with `lastRun.status === 'success'` and age ≤ `maxAgeMinutes` are marked `fresh` (no refresh triggered).
+2. **Sequential Refresh** — stale datapoints are refreshed one-by-one (not parallel) to respect MCP session limits.
+3. **Seal** — `snapshotHash` = SHA-256 over alphabetically sorted `provenanceHash` values. Status: `complete` (all ok) / `partial` (some errors) / `failed` (all errors).
+
+**Example — promote and refresh:**
 
 ```bash
 curl -X POST http://localhost:3000/api/datapoints/promote \
@@ -224,24 +247,69 @@ curl -X POST http://localhost:3000/api/datapoints/promote \
   -d '{
     "sessionId": "9209aa45-93f7-471c-8883-76326c4083f1",
     "name": "pv-portfolio-twl-netze",
-    "description": "PV generation forecast for TWL Netze",
-    "tags": ["solar", "forecast", "twl"],
-    "fixedParams": { "query": "TWL Netze", "forecastDays": 3 }
+    "tags": ["solar", "twl-netze"],
+    "fixedParams": { "query": "TWL Netze" },
+    "refresh": { "strategy": "interval", "intervalMinutes": 60 }
   }'
-```
 
-**Example — refresh and check health:**
-
-```bash
 curl -X POST http://localhost:3000/api/datapoints/pv-portfolio-twl-netze/refresh
 curl http://localhost:3000/api/datapoints/health/overview
 ```
 
-**Example — live data as CSV:**
+**Example — OEMetadata v2.0 with validation:**
 
 ```bash
-curl "http://localhost:3000/api/datapoints/pv-portfolio-twl-netze/data?format=csv" \
-  -o pv-forecast.csv
+curl "http://localhost:3000/api/datapoints/pv-portfolio-twl-netze/oemetadata?validate=true"
+```
+
+**Example — create and validate a consistency snapshot:**
+
+```bash
+# By explicit names
+curl -X POST http://localhost:3000/api/datapoints/snapshot \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "datapointNames": ["pv-portfolio-twl-netze", "redispatch-anlagen-twl-netze"],
+    "maxAgeMinutes": 60,
+    "name": "twl-validierung-q1-2026"
+  }'
+
+# By tag filter
+curl -X POST http://localhost:3000/api/datapoints/snapshot \
+  -H 'Content-Type: application/json' \
+  -d '{ "tags": "twl-netze,redispatch-pipeline" }'
+
+# Validate consistency (after running a pipeline)
+curl -X POST http://localhost:3000/api/datapoints/snapshot/<id>/validate
+```
+
+---
+
+### 17. OEP Connector (`oep`) — v0.12
+
+Read-only connector for the Open Energy Platform (OEP) REST API v0.
+Provides access to public energy scenario datasets, NEP reference data,
+and research tables without authentication.
+
+**REST endpoints:**
+
+| Method | Path | Action | Description |
+|--------|------|--------|-------------|
+| `GET` | `/api/oep/schemas` | `oep.listSchemas` | List available OEP database schemas |
+| `GET` | `/api/oep/schemas/:schema/tables` | `oep.listTables` | List tables within a schema |
+| `GET` | `/api/oep/tables/:schema/:table/meta` | `oep.getTableMeta` | Column definitions and data types |
+| `GET` | `/api/oep/tables/:schema/:table/rows` | `oep.query` | Fetch rows (`?limit=`, `?offset=`, `?where=`, `?orderby=`; max 1000/request) |
+| `GET` | `/api/oep/search` | `oep.search` | Case-insensitive substring search over all OEP table names and descriptions |
+
+**Cache:** 24 h in-memory TTL for schema lists, table lists, and metadata. Row queries are not cached.
+
+**Env var:** `OEP_API_BASE_URL` (default: `https://openenergyplatform.org/api/v0`).
+
+**Example — search and query:**
+
+```bash
+curl "http://localhost:3000/api/oep/search?q=photovoltaic"
+curl "http://localhost:3000/api/oep/tables/model_draft/oed_scenario_output/rows?limit=10"
 ```
 
 ## Setup
@@ -288,6 +356,7 @@ npm test
 ```
 
 Run tests in watch mode:
+
 ```bash
 npm run test:watch
 ```

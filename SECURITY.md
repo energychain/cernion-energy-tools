@@ -6,8 +6,8 @@ We provide security updates for the latest minor release series.
 
 | Version | Supported |
 |---------|-----------|
-| 0.8.x   | ✅ Yes |
-| < 0.8   | ❌ No |
+| 0.13.x  | ✅ Yes |
+| < 0.13  | ❌ No |
 
 ## Reporting a Vulnerability
 
@@ -30,7 +30,7 @@ This repository uses automated security checks:
 
 ## Known Dependency Exceptions
 
-As of `0.8.32`, one high-severity advisory remains open for `xlsx` (SheetJS),
+As of `0.13.1`, one high-severity advisory remains open for `xlsx` (SheetJS),
 with **no upstream fix available** in the current dependency line.
 
 - Advisory IDs: `GHSA-4r6h-8v6p-xvw6`, `GHSA-5pgg-2g8v-p4x9`

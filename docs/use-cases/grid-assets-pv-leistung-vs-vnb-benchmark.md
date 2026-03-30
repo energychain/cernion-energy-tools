@@ -32,7 +32,7 @@ Externe Quellen liefern den Markt- oder Benchmark-Kontext, aber nicht die intern
 
 ## Acceptance Test Result
 
-**Status: KNOWN LIMITATION — tracked for v0.9.4**
+**Status: KNOWN LIMITATION — resolved in v0.9.11 (EWK BNr mapping fix)**
 
 ## Root Cause
 

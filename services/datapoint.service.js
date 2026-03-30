@@ -1,11 +1,15 @@
 'use strict';
 
 /**
- * Datapoint Service (v0.11)
+ * Datapoint Service (v0.11–v0.13)
  *
  * Promotes agent sessions to named, versioned, health-monitored data points.
  * Persistence is provided by PouchDB (embedded, zero-config, no external DB).
  * Only metadata is persisted — raw data always flows through RAM.
+ *
+ * v0.12: OEMetadata v2.0, OEO context, interval scheduling.
+ * v0.13: Snapshot-Semantik (AP1), global concurrency limit (AP2),
+ *        tag-based filtering (AP3).
  *
  * KRITIS note: PouchDB has no native C-bindings, no network port, and no
  * external process. It is functionally equivalent to the existing file-based
@@ -24,18 +28,29 @@ module.exports = {
   settings: {
     dbPath: process.env.DATAPOINT_DB_PATH || './.datapoints',
     defaultTimeout: 120000,
+    maxConcurrentRefreshes: parseInt(process.env.DATAPOINT_MAX_CONCURRENT_REFRESHES || '3', 10),
   },
 
   created() {
     this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
+    this.activeRefreshes = new Set();
   },
 
   async started() {
     await this.db.createIndex({ index: { fields: ['sourceType', 'createdAt'] } });
+    await this.db.createIndex({ index: { fields: ['createdAt'] } });
     this.logger.info(`Datapoint DB initialized at ${this.settings.dbPath}`);
+    if (process.env.DATAPOINT_SCHEDULER_ENABLED !== 'false') {
+      this.schedulerInterval = setInterval(() => this.runScheduledRefreshes(), 60_000);
+      this.logger.info('Datapoint scheduler started (60 s tick)');
+    }
   },
 
   async stopped() {
+    if (this.schedulerInterval) {
+      clearInterval(this.schedulerInterval);
+      this.schedulerInterval = null;
+    }
     await this.db.close();
   },
 
@@ -191,6 +206,7 @@ module.exports = {
       params: {
         sourceType: { type: 'string', optional: true },
         includeHealth: { type: 'boolean', optional: true, convert: true, default: true },
+        tags: { type: 'string', optional: true },
       },
       openapi: {
         summary: 'List all registered Datapoints',
@@ -208,6 +224,14 @@ module.exports = {
             required: false,
             schema: { type: 'boolean', default: true },
           },
+          {
+            name: 'tags',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'solar,twl-netze' },
+            description:
+              'Comma-separated tag filter. Returns only datapoints that have ALL specified tags (case-insensitive AND match).',
+          },
         ],
       },
       async handler(ctx) {
@@ -220,6 +244,13 @@ module.exports = {
 
         if (ctx.params.sourceType) {
           docs = docs.filter((d) => d.sourceType === ctx.params.sourceType);
+        }
+
+        if (ctx.params.tags) {
+          const requiredTags = ctx.params.tags.split(',').map((t) => t.trim().toLowerCase());
+          docs = docs.filter((d) =>
+            requiredTags.every((tag) => (d.tags || []).map((t) => t.toLowerCase()).includes(tag))
+          );
         }
 
         return {
@@ -322,22 +353,33 @@ module.exports = {
       rest: 'GET /:name/oemetadata',
       params: {
         name: { type: 'string' },
+        validate: { type: 'boolean', optional: true, convert: true, default: false },
       },
       openapi: {
-        summary: 'OEMetadata with cryptographic provenance hash (EU AI Act Art. 12)',
+        summary: 'OEMetadata v2.0 — FAIR Data metadata for a Datapoint (EU AI Act Art. 12)',
         tags: ['Datapoints'],
         description:
-          'Returns a schema.json-style document containing a SHA-256 provenance hash ' +
-          'of the raw source data state at last refresh, an audit trail of agent ' +
-          'interventions, OEO class mappings, and metadata for regulatory compliance. ' +
-          'The hash can be used during a regulatory audit to verify the exact inputs ' +
-          'the agent "saw" before making automated corrections.',
+          'Returns a fully OEMetadata v2.0 conformant metadata document. Includes a ' +
+          'SHA-256 cryptographic provenance hash (EU AI Act Art. 12), OEO semantic ' +
+          'class mappings, spatial/temporal coverage, source licensing, and a ' +
+          'Cernion-specific extension for agent interventions and scheduling state. ' +
+          'Set ?validate=true to include a JSON-Schema validation report against the ' +
+          'OEMetadata v2.0 schema (requires prior `npm run sync:oemetadata`).',
         parameters: [
           {
             name: 'name',
             in: 'path',
             required: true,
             schema: { type: 'string', example: 'pv-portfolio-twl-netze' },
+          },
+          {
+            name: 'validate',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean', default: false },
+            description:
+              'Run ajv JSON-Schema validation against the OEMetadata v2.0 schema ' +
+              'and append a `_validation` report to the response.',
           },
         ],
       },
@@ -356,63 +398,117 @@ module.exports = {
           throw e;
         }
 
-        const {
-          OEO_VERSION,
-          OEO_BASE_IRI,
-          DOMAIN_OEO_MAPPINGS,
-          forDomainResolved,
-        } = require('../src/oeo-mappings');
+        const { buildOEMetadata, validateAgainstSchema } = require('../src/oemetadata-builder');
+        const metadata = buildOEMetadata(doc);
 
-        // Derive domain from sourceType or first tag
-        const domainId = doc.sourceType || doc.tags?.[0];
-        const oeoClasses = domainId && DOMAIN_OEO_MAPPINGS[domainId]
-          ? forDomainResolved(domainId).map((c) => ({ id: c.id, iri: c.iri, label: c.label }))
-          : [];
+        if (ctx.params.validate) {
+          const validation = await validateAgainstSchema(metadata);
+          return { ...metadata, _validation: validation };
+        }
+
+        return metadata;
+      },
+    },
+
+    // ------------------------------------------------------------------
+    // interventions — dedicated endpoint for the agent_interventions log
+    // Closes Issue #32: explainability-log queryable via dedicated endpoint
+    // ------------------------------------------------------------------
+    interventions: {
+      rest: 'GET /:name/interventions',
+      params: {
+        name: { type: 'string' },
+        limit: { type: 'number', optional: true, convert: true, default: 50, min: 1, max: 500 },
+        since: { type: 'string', optional: true },
+      },
+      openapi: {
+        summary: 'Agent intervention log for a Datapoint (Issue #32)',
+        tags: ['Datapoints'],
+        'x-oeo-class': ['http://openenergy-platform.org/ontology/oeo/OEO_00000143'],
+        description:
+          'Returns the `agent_interventions` array for a Datapoint — a structured log ' +
+          'of every automated correction the agent made during plan execution. ' +
+          'Each entry contains `timestamp`, `action`, `reason`, `confidence_score`, ' +
+          'and `agent_id`. Use `?since=<ISO-8601>` to retrieve only recent entries. ' +
+          'Use `?limit=N` to cap the number of returned entries (default: 50, max: 500). ' +
+          'Satisfies the Explainable AI (XAI) auditability requirement of Issue #32.',
+        parameters: [
+          {
+            name: 'name',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'pv-portfolio-twl-netze' },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 50, minimum: 1, maximum: 500, example: 50 },
+            description: 'Maximum number of intervention entries to return (newest first).',
+          },
+          {
+            name: 'since',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', format: 'date-time', example: '2026-03-01T00:00:00Z' },
+            description:
+              'ISO-8601 timestamp. Only interventions at or after this timestamp are returned.',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Agent intervention log',
+            content: {
+              'application/json': {
+                example: {
+                  name: 'pv-portfolio-twl-netze',
+                  total: 2,
+                  interventions: [
+                    {
+                      timestamp: '2026-03-29T12:00:00.000Z',
+                      action: 'param_repair',
+                      reason: 'Corrected gridOperatorId alias from bnr to bdewCode',
+                      confidence_score: 0.95,
+                      agent_id: 'executePlan',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        let doc;
+        try {
+          doc = await this.db.get(`dp:${ctx.params.name}`);
+        } catch (e) {
+          if (e.status === 404) {
+            throw new MoleculerClientError(
+              `Datapoint '${ctx.params.name}' not found`,
+              404,
+              'NOT_FOUND'
+            );
+          }
+          throw e;
+        }
+
+        let entries = Array.isArray(doc.agent_interventions) ? doc.agent_interventions : [];
+
+        if (ctx.params.since) {
+          const sinceTs = new Date(ctx.params.since).getTime();
+          if (!isNaN(sinceTs)) {
+            entries = entries.filter((e) => new Date(e.timestamp).getTime() >= sinceTs);
+          }
+        }
+
+        // Return newest first, capped at limit
+        const sorted = entries.slice().reverse().slice(0, ctx.params.limit);
 
         return {
-          '@context': {
-            oeo: OEO_BASE_IRI,
-            schema: 'https://schema.org/',
-            dcterms: 'http://purl.org/dc/terms/',
-          },
-          '@type': 'schema:Dataset',
-          name: doc.name,
-          description: doc.description,
-          oeoVersion: OEO_VERSION,
-          generatedAt: new Date().toISOString(),
-
-          // EU AI Act Art. 12 — cryptographic provenance
-          provenance: {
-            hash: doc.provenanceHash,
-            algorithm: 'SHA-256',
-            scope: 'raw stepResults payload at last refresh',
-            lastRefresh: doc.lastRun?.timestamp || null,
-            hashStable: doc.provenanceHash !== null,
-          },
-
-          // Source audit trail
-          sources: [
-            {
-              type: doc.sourceType,
-              sessionId: doc.sessionId,
-              plan: {
-                stepCount: doc.plan?.steps?.length || 0,
-                actions: (doc.plan?.steps || []).map((s) => s.action),
-              },
-              fixedParams: doc.fixedParams,
-            },
-          ],
-
-          // Issue #32 — Explainability log
-          agent_interventions: doc.agent_interventions || [],
-
-          // OEO semantic mapping
-          oeoClasses,
-          domainId,
-
-          // Health & quality
-          health: doc.health,
-          lastRun: doc.lastRun,
+          name: ctx.params.name,
+          total: entries.length,
+          interventions: sorted,
         };
       },
     },
@@ -788,6 +884,448 @@ module.exports = {
         };
       },
     },
+
+    // ------------------------------------------------------------------
+    // createSnapshot — seal a consistent set of datapoints (AP1 v0.13)
+    // Phases: (1) freshness-check, (2) sequential refresh, (3) seal
+    // @see docs/change-requests/snapshot-semantik.md
+    // ------------------------------------------------------------------
+    createSnapshot: {
+      rest: 'POST /snapshot',
+      params: {
+        datapointNames: { type: 'array', items: 'string', optional: true, default: [] },
+        tags: { type: 'string', optional: true },
+        maxAgeMinutes: { type: 'number', optional: true, default: 60, convert: true },
+        name: { type: 'string', optional: true },
+        description: { type: 'string', optional: true, default: '' },
+        createdBy: {
+          type: 'enum',
+          values: ['manual', 'agent', 'scheduler'],
+          optional: true,
+          default: 'manual',
+        },
+      },
+      openapi: {
+        summary: 'Create a Snapshot — seal a consistent set of Datapoints',
+        tags: ['Datapoints'],
+        description:
+          'Refreshes all specified datapoints (sequentially) if their cached data is older ' +
+          'than `maxAgeMinutes`, then seals the consistent state as a snapshot document in ' +
+          'PouchDB. The snapshot records each datapoint`s `provenanceHash` and a combined ' +
+          '`snapshotHash` (SHA-256 over sorted individual hashes). ' +
+          'Accepts either `datapointNames` (array) or `tags` (comma-separated string). ' +
+          'Raw data is NOT stored (KRITIS constraint).',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  datapointNames: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    example: ['pv-portfolio-twl-netze', 'redispatch-anlagen-twl-netze'],
+                  },
+                  tags: {
+                    type: 'string',
+                    example: 'twl-netze,redispatch-pipeline',
+                    description:
+                      'Comma-separated tag filter. Mutually exclusive with datapointNames.',
+                  },
+                  maxAgeMinutes: {
+                    type: 'number',
+                    default: 60,
+                    description: 'Maximum age of a datapoint before a refresh is triggered.',
+                  },
+                  name: { type: 'string', example: 'twl-validierung-q1-2026' },
+                  description: { type: 'string', default: '' },
+                  createdBy: {
+                    type: 'string',
+                    enum: ['manual', 'agent', 'scheduler'],
+                    default: 'manual',
+                  },
+                },
+              },
+              examples: {
+                byNames: {
+                  summary: 'Snapshot by datapoint names',
+                  value: {
+                    datapointNames: ['pv-portfolio-twl-netze', 'ewk-benchmark-twl'],
+                    maxAgeMinutes: 60,
+                    name: 'twl-validierung-q1-2026',
+                    description: 'Consistency check TWL Netze Q1 2026',
+                  },
+                },
+                byTags: {
+                  summary: 'Snapshot by tag filter',
+                  value: { tags: 'twl-netze,redispatch-pipeline', maxAgeMinutes: 30 },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { maxAgeMinutes = 60, name, description = '', createdBy = 'manual' } = ctx.params;
+
+        // Resolve datapointNames: explicit list takes precedence, otherwise tag-based lookup
+        let datapointNames = ctx.params.datapointNames || [];
+        if (datapointNames.length === 0) {
+          if (!ctx.params.tags) {
+            throw new MoleculerClientError(
+              'Either datapointNames or tags must be provided',
+              400,
+              'MISSING_PARAMS'
+            );
+          }
+          const listed = await ctx.call('datapoint.list', {
+            tags: ctx.params.tags,
+            includeHealth: false,
+          });
+          datapointNames = listed.datapoints.map((d) => d.name);
+          if (datapointNames.length === 0) {
+            throw new MoleculerClientError(
+              `No datapoints found for tags '${ctx.params.tags}'`,
+              404,
+              'NO_DATAPOINTS'
+            );
+          }
+        }
+
+        const snapshotId = crypto.randomUUID();
+        const now = Date.now();
+        const results = [];
+
+        // Phase 1 + 2: Freshness-Check + sequential refresh (no parallel → MCP session limits)
+        for (const dpName of datapointNames) {
+          let dp;
+          try {
+            dp = await this.db.get(`dp:${dpName}`);
+          } catch (e) {
+            if (e.status === 404) {
+              results.push({
+                name: dpName,
+                status: 'error',
+                provenanceHash: null,
+                schemaHash: null,
+                timestamp: null,
+                durationMs: null,
+                summary: null,
+                errorMessage: `Datapoint '${dpName}' not found`,
+              });
+              continue;
+            }
+            throw e;
+          }
+
+          const ageMinutes =
+            dp.lastRun?.timestamp
+              ? (now - new Date(dp.lastRun.timestamp).getTime()) / 60000
+              : Infinity;
+
+          if (ageMinutes <= maxAgeMinutes && dp.lastRun?.status === 'success') {
+            // Fresh enough — skip refresh
+            results.push({
+              name: dpName,
+              status: 'fresh',
+              provenanceHash: dp.provenanceHash,
+              schemaHash: dp.lastRun.schemaHash,
+              timestamp: dp.lastRun.timestamp,
+              durationMs: dp.lastRun.durationMs,
+              summary: dp.lastRun.summary,
+              errorMessage: null,
+            });
+          } else {
+            // Needs refresh — sequential to respect MCP session limits
+            try {
+              await ctx.call('datapoint.refresh', { name: dpName });
+              const updated = await this.db.get(`dp:${dpName}`);
+              if (updated.lastRun?.status === 'error') {
+                results.push({
+                  name: dpName,
+                  status: 'error',
+                  provenanceHash: null,
+                  schemaHash: null,
+                  timestamp: updated.lastRun.timestamp,
+                  durationMs: updated.lastRun.durationMs,
+                  summary: null,
+                  errorMessage: updated.lastRun.errorMessage,
+                });
+              } else {
+                results.push({
+                  name: dpName,
+                  status: 'refreshed',
+                  provenanceHash: updated.provenanceHash,
+                  schemaHash: updated.lastRun.schemaHash,
+                  timestamp: updated.lastRun.timestamp,
+                  durationMs: updated.lastRun.durationMs,
+                  summary: updated.lastRun.summary,
+                  errorMessage: null,
+                });
+              }
+            } catch (err) {
+              results.push({
+                name: dpName,
+                status: 'error',
+                provenanceHash: null,
+                schemaHash: null,
+                timestamp: null,
+                durationMs: null,
+                summary: null,
+                errorMessage: err.message,
+              });
+            }
+          }
+        }
+
+        // Phase 3: Seal — compute snapshotHash and final status
+        const hasErrors = results.some((r) => r.status === 'error');
+        const hasSuccesses = results.some((r) => r.status !== 'error');
+        let snapshotStatus;
+        if (!hasErrors) snapshotStatus = 'complete';
+        else if (hasSuccesses) snapshotStatus = 'partial';
+        else snapshotStatus = 'failed';
+
+        let snapshotHash = null;
+        if (snapshotStatus === 'complete') {
+          const hashes = results
+            .map((r) => r.provenanceHash)
+            .filter(Boolean)
+            .sort();
+          if (hashes.length === datapointNames.length) {
+            snapshotHash = crypto.createHash('sha256').update(JSON.stringify(hashes)).digest('hex');
+          }
+        }
+
+        const doc = {
+          _id: `snap:${snapshotId}`,
+          id: snapshotId,
+          name: name || null,
+          description,
+          createdAt: new Date().toISOString(),
+          createdBy,
+          maxAgeMinutes,
+          datapointNames,
+          status: snapshotStatus,
+          datapoints: results,
+          snapshotHash,
+          lastValidation: { timestamp: null, consistent: null, drift: null },
+        };
+
+        await this.db.put(doc);
+        return doc;
+      },
+    },
+
+    // ------------------------------------------------------------------
+    // listSnapshots — list all snapshot documents
+    // ------------------------------------------------------------------
+    listSnapshots: {
+      rest: 'GET /snapshots',
+      params: {
+        status: { type: 'string', optional: true },
+      },
+      openapi: {
+        summary: 'List all Snapshots',
+        tags: ['Datapoints'],
+        description:
+          'Returns all snapshot documents stored in PouchDB, optionally filtered by status. ' +
+          'Snapshots are listed in PouchDB key order (by creation UUID).',
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['complete', 'partial', 'failed'], example: 'complete' },
+            description: 'Filter snapshots by status.',
+          },
+        ],
+      },
+      async handler(ctx) {
+        const result = await this.db.allDocs({
+          include_docs: true,
+          startkey: 'snap:',
+          endkey: 'snap:\ufff0',
+        });
+        let docs = result.rows.map((r) => r.doc);
+        if (ctx.params.status) {
+          docs = docs.filter((d) => d.status === ctx.params.status);
+        }
+        return {
+          count: docs.length,
+          snapshots: docs.map((d) => ({
+            id: d.id,
+            name: d.name,
+            description: d.description,
+            createdAt: d.createdAt,
+            createdBy: d.createdBy,
+            status: d.status,
+            datapointCount: d.datapointNames?.length || 0,
+            snapshotHash: d.snapshotHash,
+            lastValidation: d.lastValidation,
+          })),
+        };
+      },
+    },
+
+    // ------------------------------------------------------------------
+    // getSnapshot — retrieve a single snapshot by id
+    // ------------------------------------------------------------------
+    getSnapshot: {
+      rest: 'GET /snapshot/:id',
+      params: { id: { type: 'string' } },
+      openapi: {
+        summary: 'Get Snapshot details by ID',
+        tags: ['Datapoints'],
+        description:
+          'Returns the full snapshot document including per-datapoint provenance hashes, ' +
+          'refresh status, and the last validation result.',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: '3f1a2b4c-8e9d-4c7a-b1f2-0a3e5d6c7b8a' },
+          },
+        ],
+      },
+      async handler(ctx) {
+        try {
+          return await this.db.get(`snap:${ctx.params.id}`);
+        } catch (e) {
+          if (e.status === 404) {
+            throw new MoleculerClientError(
+              `Snapshot '${ctx.params.id}' not found`,
+              404,
+              'NOT_FOUND'
+            );
+          }
+          throw e;
+        }
+      },
+    },
+
+    // ------------------------------------------------------------------
+    // validateSnapshot — check current provenanceHashes against snapshot
+    // ------------------------------------------------------------------
+    validateSnapshot: {
+      rest: 'POST /snapshot/:id/validate',
+      params: { id: { type: 'string' } },
+      openapi: {
+        summary: 'Validate a Snapshot — check provenance hash consistency',
+        tags: ['Datapoints'],
+        description:
+          'Compares each datapoint`s current `provenanceHash` against the hash recorded ' +
+          'at snapshot creation. Returns `consistent: true` if all hashes match, or ' +
+          '`consistent: false` with a `drift` array listing changed datapoints. ' +
+          'The validation result is persisted back to the snapshot document.',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: '3f1a2b4c-8e9d-4c7a-b1f2-0a3e5d6c7b8a' },
+          },
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: { type: 'object' },
+              examples: {
+                validate: {
+                  summary: 'Trigger validation (no body required)',
+                  value: {},
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        let snap;
+        try {
+          snap = await this.db.get(`snap:${ctx.params.id}`);
+        } catch (e) {
+          if (e.status === 404) {
+            throw new MoleculerClientError(
+              `Snapshot '${ctx.params.id}' not found`,
+              404,
+              'NOT_FOUND'
+            );
+          }
+          throw e;
+        }
+
+        const drift = [];
+        for (const dp of snap.datapoints) {
+          if (!dp.provenanceHash) continue; // skip error entries
+          try {
+            const current = await this.db.get(`dp:${dp.name}`);
+            if (current.provenanceHash !== dp.provenanceHash) {
+              drift.push({
+                name: dp.name,
+                snapshotHash: dp.provenanceHash,
+                currentHash: current.provenanceHash,
+              });
+            }
+          } catch (e) {
+            drift.push({
+              name: dp.name,
+              snapshotHash: dp.provenanceHash,
+              currentHash: null,
+            });
+          }
+        }
+
+        snap.lastValidation = {
+          timestamp: new Date().toISOString(),
+          consistent: drift.length === 0,
+          drift: drift.length > 0 ? drift : null,
+        };
+
+        await this.db.put(snap);
+        return snap.lastValidation;
+      },
+    },
+
+    // ------------------------------------------------------------------
+    // removeSnapshot — delete a snapshot document
+    // ------------------------------------------------------------------
+    removeSnapshot: {
+      rest: 'DELETE /snapshot/:id',
+      params: { id: { type: 'string' } },
+      openapi: {
+        summary: 'Delete a Snapshot',
+        tags: ['Datapoints'],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: '3f1a2b4c-8e9d-4c7a-b1f2-0a3e5d6c7b8a' },
+          },
+        ],
+      },
+      async handler(ctx) {
+        let snap;
+        try {
+          snap = await this.db.get(`snap:${ctx.params.id}`);
+        } catch (e) {
+          if (e.status === 404) {
+            throw new MoleculerClientError(
+              `Snapshot '${ctx.params.id}' not found`,
+              404,
+              'NOT_FOUND'
+            );
+          }
+          throw e;
+        }
+        await this.db.remove(snap);
+        return { success: true, id: ctx.params.id, deleted: true };
+      },
+    },
   },
 
   methods: {
@@ -907,6 +1445,57 @@ module.exports = {
       }
 
       return h;
+    },
+
+    /**
+     * Scan all datapoints with strategy:'interval' and trigger a refresh for
+     * any that are overdue.  The activeRefreshes Set acts as a concurrency
+     * guard — a datapoint that is already refreshing is skipped without error
+     * and retried on the next 60-second tick.
+     */
+    async runScheduledRefreshes() {
+      let docs;
+      try {
+        const result = await this.db.allDocs({
+          include_docs: true,
+          startkey: 'dp:',
+          endkey: 'dp:\ufff0',
+        });
+        docs = result.rows.map((r) => r.doc);
+      } catch (err) {
+        this.logger.warn('Scheduler: failed to list datapoints', err.message);
+        return;
+      }
+
+      const now = Date.now();
+
+      for (const doc of docs) {
+        if (doc.refresh?.strategy !== 'interval') continue;
+        if (!doc.refresh.intervalMinutes || doc.refresh.intervalMinutes <= 0) continue;
+        if (this.activeRefreshes.has(doc.name)) continue;
+
+        if (this.activeRefreshes.size >= this.settings.maxConcurrentRefreshes) {
+          this.logger.debug(`Concurrency limit reached (${this.settings.maxConcurrentRefreshes}), deferring remaining refreshes`);
+          break;
+        }
+
+        const lastRunAt = doc.lastRun?.timestamp
+          ? new Date(doc.lastRun.timestamp).getTime()
+          : 0;
+        const dueAt = lastRunAt + doc.refresh.intervalMinutes * 60 * 1000;
+
+        if (now < dueAt) continue;
+
+        this.activeRefreshes.add(doc.name);
+        this.logger.info(`Scheduler: refreshing '${doc.name}' (overdue by ${Math.round((now - dueAt) / 60000)} min)`);
+
+        this.broker
+          .call('datapoint.refresh', { name: doc.name })
+          .catch((err) =>
+            this.logger.error(`Scheduler: refresh failed for '${doc.name}': ${err.message}`)
+          )
+          .finally(() => this.activeRefreshes.delete(doc.name));
+      }
     },
 
     /**

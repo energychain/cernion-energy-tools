@@ -17,8 +17,12 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - 🏢 **Inhouse Data Sources** — Register, infer, cache, and discover internal utility datasets (CSV, REST, GeoJSON, XLSX, DOCX, Scraper) alongside public energy tools
 - 🧩 **Research Web App** — Built-in single-page application at `/app` for interactive, browser-based testing of the AI agent — no separate tooling required
 - 📥 **Live CSV Export** — Every agent result exposes a parameterised GET endpoint (`/api/agent/session/:id/csv?param=value`) for zero-config integration with automation tools such as Microsoft Power Automate, Excel Power Query, or cron jobs
-- � **Datapoints** — Named, versioned, health-monitored data sources backed by embedded PouchDB. Promote any agent session to a managed datapoint, track refresh history and schema stability, and retrieve live data as JSON or CSV via `/api/datapoints`. See the [health overview](http://localhost:3000/api/datapoints/health/overview) for a dashboard of all registered datapoints.
-- �🔌 **MCP Support** — Model Context Protocol SDK integration
+- � **Datapoints** — Named, versioned, health-monitored data sources backed by embedded PouchDB. Promote any agent session to a managed datapoint, track refresh history and schema stability, and retrieve live data as JSON or CSV via `/api/datapoints`. See the [health overview](http://localhost:3000/api/datapoints/health/overview) for a dashboard of all registered datapoints.- 📸 **Snapshots** — Seal a group of datapoints as a consistent unit with SHA-256 provenance hashing. Create, validate (drift detection), list, and remove snapshots via `/api/datapoints/snapshot*` (v0.13)
+- 🌍 **OSM Geo Layer** — Grid infrastructure analysis via OpenStreetMap/Overpass: VNB assignment validation, nearby infrastructure, substation inventory, and grid topology (v0.10)
+- 🌐 **OEP Connector** — Read-only access to the Open Energy Platform (scenario data, NEP references, research datasets) via `/api/oep/*` (v0.12)
+- 🧠 **OEO / OEMetadata** — Open Energy Ontology annotations on all 45+ REST endpoints, OEMetadata v2.0 export with optional JSON Schema validation (v0.11.4–v0.12)
+- 🔐 **Data Provenance** — SHA-256 provenance hashing on every datapoint refresh for EU AI Act Art. 12 compliance, plus explainability log for agent corrections (v0.11.5)
+- 🧹 **Prompt Scrubber** — Field-level PII masking with energy-domain allowlist before sending data to external LLMs (v0.11.5)- �🔌 **MCP Support** — Model Context Protocol SDK integration
 - 📝 **OpenAPI Documentation** — Automatic API documentation at `/api/docs`
 - 🧭 **DSO/VNB Lookup** — VNBdigital search/lookup and BDEW → MaStR resolution
 - 🛠️ **CLI Tool** — Command-line interface for calling microservices
@@ -188,6 +192,9 @@ cernion-energy-tools/
 │   ├── api.service.js     # API Gateway + Swagger UI
 │   ├── agent.service.js   # AI agent — plan/execute/export
 │   ├── assets.service.js  # MaStR installation assets
+│   ├── datapoint.service.js # Named datapoints + snapshots (v0.11–v0.13)
+│   ├── osm-geo.service.js # OSM geo layer (v0.10)
+│   ├── oep.service.js     # Open Energy Platform (v0.12)
 │   ├── datasource-registry.service.js
 │   ├── datasource-connector.service.js
 │   ├── datasource-cache.service.js
@@ -201,7 +208,10 @@ cernion-energy-tools/
 │   ├── app.html           # Research Web App (single-page)
 │   ├── connectors/        # Built-in datasource connector plugins
 │   ├── mcp-client.js      # Centralised MCP tool caller
-│   └── async-job-poller.js
+│   ├── async-job-poller.js # Async job polling
+│   ├── prompt-scrubber.js  # PII masking for LLM prompts
+│   ├── oeo-mappings.js    # OEO class mappings (~150 entries)
+│   └── oemetadata-builder.js # OEMetadata v2.0 builder
 ├── custom-services/       # Local/custom services (git-ignored)
 ├── custom-connectors/     # Local/custom datasource plugins (git-ignored)
 ├── custom-tests/          # Local/custom tests (git-ignored)
@@ -228,7 +238,7 @@ Copy `.env.example` to `.env` and edit:
 | `PORT` | `3000` | API Gateway port |
 | `LOG_LEVEL` | `info` | Logging level (`info`, `debug`, `warn`, `error`) |
 | `GEMINI_API_KEY` | — | Google Gemini API key (required for AI agent) |
-| `GEMINI_MODEL` | `gemini-2.0-flash` | Gemini model name |
+| `GEMINI_MODEL` | `gemini-3-pro-preview` | Gemini model name |
 | `MCP_SERVER_URL` | — | MCP server URL |
 | `CERNION_TOKEN` | — | Cernion MCP token ([request here](https://cernion.de/) or email dev@stromdao.com) |
 | `NAMESPACE` | — | Moleculer namespace for service isolation |
@@ -347,6 +357,8 @@ so that GitHub search surfaces our dependency to upstream maintainers.
 | `npm run audit:security:advisory` | Run advisory dependency audit (high+) |
 | `npm run release:check` | Run core release gates (unit coverage, OpenAPI, critical security audit) |
 | `npm run sync:oeo` | Validate/update OEO mappings from upstream release |
+| `npm run sync:oemetadata` | Validate/update OEMetadata schema from upstream |
+| `npm run build` | No-op passthrough for CI compatibility |
 
 ### Operational Profiles
 

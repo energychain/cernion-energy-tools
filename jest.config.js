@@ -9,12 +9,12 @@ module.exports = {
   ],
   coverageThreshold: {
     global: {
-      // Maintenance milestone (Release N): staged ramp-up target.
-      // Release N+1 target: branches 60, functions 75, lines 75, statements 75.
-      branches: 55,
-      functions: 70,
-      lines: 70,
-      statements: 70,
+      // Maintenance milestone (v0.13.1): enacted N+1 ramp-up.
+      // Next target (v0.14+): branches 65, functions 78, lines 78, statements 78.
+      branches: 60,
+      functions: 75,
+      lines: 75,
+      statements: 75,
     },
   },
   testMatch: ['**/tests/**/*.test.js', '**/__tests__/**/*.js'],

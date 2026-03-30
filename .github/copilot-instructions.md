@@ -9,6 +9,17 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Long-running tools use `src/async-job-poller.js` (`callWithAutoPoll`).
 - REST endpoints are declared with `rest` in each action and documented via OpenAPI.
 - API Gateway is `services/api.service.js` with OpenAPI at `/api/openapi.json` and Swagger UI at `/api/docs`.
+- Embedded PouchDB (`pouchdb` + `pouchdb-find`) stores datapoint metadata and snapshots.
+  KRITIS-compliant: no native bindings, no network port, no external process.
+
+## Architecture Layers (v0.10–v0.13)
+
+| Layer | Version | Description |
+|---|---|---|
+| Execution Layer | v0.9.x | MCP services, REST gateway, inhouse datasources, AI agent |
+| Geo Layer | v0.10 | OSM-based grid infrastructure analysis (`osm-geo.*` actions) |
+| Datapoint Layer | v0.11–v0.13 | Named managed data sources with PouchDB, scheduling, OEO/OEMetadata, snapshots |
+| Agent Layer | v0.14+ | Planned: autonomous agent pipelines consuming snapshots |
 
 ## Coding Guidelines
 
@@ -21,7 +32,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 
 ### Code Style
 - Use 2 spaces for indentation
-- Use ES6+ modern JavaScript features
+- Use ES6+ modern JavaScript features (CommonJS modules, no TypeScript)
 - Use descriptive variable names (camelCase for variables, PascalCase for classes)
 - Keep functions small and focused (single responsibility)
 - Add JSDoc comments for public APIs and complex functions
@@ -41,20 +52,24 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Validate and sanitize all inputs
 - Implement proper authentication and authorization
 - Follow OWASP security guidelines
+- `src/prompt-scrubber.js` masks PII before sending data to external LLMs
 
 ### Testing Guidelines
 - Write unit tests for all business logic
 - Use Jest as the testing framework
-- Meet coverage thresholds (v0.9.4: branches 55%, functions 70%,
-  lines 70%, statements 70%)
-- Current suite: 1076 tests, 47 suites — all must pass after changes
+- Meet coverage thresholds: branches 60%, functions 75%, lines 75%,
+  statements 75%
+- Current suite: ~1 400 tests, ~55 suites — all must pass after changes
+- Run release gate before every release: `npm run release:check`
 - Acceptance fixtures in `tests/acceptance/` — do not modify
+- Custom tests live in `custom-tests/` and are excluded from release coverage
 
 ### Documentation
 - Update README.md with any significant changes
 - Document API endpoints with examples
 - Include inline comments for complex logic
 - Keep documentation up-to-date with code changes
+- Every REST action MUST have full OpenAPI annotations (`npm run audit:openapi` enforced)
 
 ## Project-Specific Context
 
@@ -70,18 +85,43 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Implement proper service discovery mechanisms
 - Use correlation IDs for distributed tracing
 
+### PouchDB Conventions
+- Datapoint docs use prefix `dp:` (e.g. `dp:solar-assets-twl`)
+- Snapshot docs use prefix `snap:` (e.g. `snap:<uuid>`)
+- Indexes: `['name']`, `['createdAt']`
+- Raw data is NEVER persisted — only metadata and provenance hashes (KRITIS constraint)
+
+### Provenance & Compliance
+- Every datapoint refresh computes a SHA-256 `provenanceHash` over step results
+  (EU AI Act Art. 12 compliance, v0.11.5)
+- Snapshots seal a group of datapoints with a `snapshotHash` (SHA-256 over sorted
+  provenance hashes) for consistency proof (v0.13.0)
+- `agent_interventions` array records every automated agent correction for explainability
+- OEMetadata v2.0 endpoint (`GET /api/datapoints/:name/oemetadata`) with optional
+  `?validate=true` JSON Schema validation (v0.12.0)
+
 ## File Organization
-- `/src` - Source code for microservices
-- `/tests` - Test files (unit and integration)
-- `/docs` - Documentation files
-- `/config` - Configuration files
-- `/scripts` - Build and deployment scripts
+- `/services` — Core microservices (loaded by Moleculer at runtime)
+- `/src` — Shared modules (MCP client, formatters, scrubber, PouchDB builders)
+- `/tests` — Core test suite (Jest)
+- `/custom-services` — Local/custom services (git-ignored)
+- `/custom-tests` — Local/custom tests (git-ignored)
+- `/templates` — Service skeleton template
+- `/scripts` — Build, audit, and sync scripts
+- `/docs` — Documentation and use-case files
+- `/uploads` — User-uploaded inhouse datasets (git-ignored)
 
 ## Common Patterns to Follow
 - Use dependency injection for better testability
 - Implement proper logging with structured logs
 - Use configuration management for different environments
 - Follow semantic versioning for releases
+
+### Async Job Pattern (v0.9.8+)
+- Long-running REST actions return HTTP 202 with a `jobId`
+- File-backed persistence in `src/job-store.js` (`.jobs/` directory, git-ignored)
+- `ctx.meta.$gateway` flag distinguishes REST callers from internal callers
+- Agent executor strips `$gateway` to prevent async descriptor leakage in plan steps
 
 ### Inhouse Data Layer (v0.9+)
 - All inhouse datasource access MUST go through `datasource-cache.query`
@@ -92,7 +132,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
   only `{ sourceId, filename, description }`, never sampleRows
 - `datasource-classifier` is stateless and fetches sample rows itself
 - Semantic domains are defined in `src/semantic-domains.js`
-- Classifier uses heuristic scoring only — no external AI calls in classif
+- Classifier uses heuristic scoring only — no external AI calls in classifier
 - `src/period-normaliser.js` handles mixed period formats (e.g. `Jan 2026`, `2026-Q1`)
   for time-series joins
 - `src/vnb-identity.js` resolves VNB identity automatically from env and datasource metadata
@@ -100,27 +140,52 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
   datasource cache refresh
 - LLM classifier fallback is opt-in via `CLASSIFIER_LLM_FALLBACK_ENABLED` and runs only
   for low-confidence unknown classifications
+- Description-guided `"other"` domain (v0.9.13) allows free-text dataset descriptions
+  as semantic guide for AI queries
 
-## Current Project Status (v0.9.7)
+### Datapoint Layer (v0.11–v0.13)
+- `services/datapoint.service.js` — core CRUD, health, refresh, scheduling, snapshots
+- PouchDB stores only metadata — raw data always flows through RAM
+- Scheduling: 60-second interval tick in `started()`, controlled by
+  `DATAPOINT_SCHEDULER_ENABLED` env var
+- Concurrency guard: `maxConcurrentRefreshes` setting (env: `DATAPOINT_MAX_CONCURRENT_REFRESHES`,
+  default 3) prevents MCP session overflows during scheduled refreshes
+- Tags: datapoints carry a `tags` array; `list` action supports `?tags=solar,twl-netze`
+  (AND semantics, case-insensitive)
+- Snapshots: `createSnapshot` accepts `datapointNames` or `tags`, performs freshness check,
+  sequential refresh, then seals with `snapshotHash`
 
-- Release `v0.9.7` is published and tagged.
+### OEO / OEMetadata (v0.11.4–v0.12)
+- `src/oeo-mappings.js` — ~150 curated OEO class mappings with German labels
+- `x-oeo-class` OpenAPI extension on all 45+ REST actions
+- `src/oemetadata-builder.js` — maps datapoints to OEMetadata v2.0 JSON
+- `src/source-license-map.js` — 14-prefix license mapping (DL-DE, CC-BY, ODbL)
+- `scripts/sync-oeo.js` and `scripts/sync-oemetadata.js` for upstream validation
+
+### OSM Geo Layer (v0.10)
+- `services/osm-geo.service.js` — 4 actions: validate, infrastructureNearby,
+  substationFinder, gridTopology
+- Uses Overpass API (public or private instance via `OVERPASS_ENDPOINT` env var)
+- Agent RULE 12 routes geo intents to these actions
+
+## Current Project Status (v0.13.1)
+
+- Release `v0.13.1` is the current maintenance release.
+- 25 core services in `services/`, ~1 400 tests across ~55 suites.
 - Integration Hub panel (`#integration-hub-panel`) in `src/app.html` with token
-  management, Power Automate / Power BI connector generator, and VNB Monitor
-  threshold editor plus NBP Monitor sub-panel.
+  management, Power Automate / Power BI connector generator, VNB Monitor
+  threshold editor, and NBP Monitor sub-panel.
 - `token-manager` microservice with `ck_` prefix tokens, SHA-256 storage,
-  `read-only` / `full-access` scopes, and REST endpoints (`GET/POST/DELETE /api/tokens`).
-- VNB Monitor threshold management (`GET/PUT/DELETE /api/vnb-monitor/thresholds`).
-- NBP Monitor microservice (`services/nbp-monitor.service.js`) with endpoints:
-  - `GET /api/vnb-monitor/:bdewCode/nbp-monitor`
-  - `GET/PUT/DELETE /api/nbp-monitor/parameters`
-- API Gateway extended with scoped `ck_` token verification in `onBeforeCall()`.
-- Known limitations tracked for v0.9.8:
-  - 37 non-blocking ESLint `no-unused-vars` warnings remain — tracked for cleanup
-  - Jest open handles on test exit — likely `fs.watch` teardown in datasource-watcher,
-    tracked for v0.9.8
+  `read-only` / `full-access` scopes.
+- Datapoint Layer with full lifecycle: promote → CRUD → schedule → refresh →
+  snapshot → validate. Five snapshot REST endpoints in `api.service.js`.
+- OEMetadata v2.0 + OEO integration across all domain services.
+- Known limitations tracked for future releases:
+  - ~37 non-blocking ESLint `no-unused-vars` warnings — tracked for cleanup
+  - Jest open handles on test exit — mitigated with `--forceExit`, root cause
+    likely `fs.watch` teardown in datasource-watcher
 - Release gate: `npm run release:check` (tests + OpenAPI + security)
-- Known risk: `xlsx` high advisory — documented exception
-
+- Known risk: `xlsx` high advisory — documented exception in SECURITY.md
 
 ## Release Process (0.x)
 
@@ -135,6 +200,8 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 Notes:
 - Advisory scan (`npm run audit:security:advisory`) may fail on known, documented upstream vulnerabilities; review before release.
 - Do not store tokens or API keys in the repository; use `.env.example` only.
+- CI workflows reference `npm run build` — this is a no-op passthrough (`echo`) since
+  the project has no build step. It exists solely for CI compatibility.
 
 ## MCP Data Backend — Known Limitations
 

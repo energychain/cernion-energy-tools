@@ -7,7 +7,283 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.2] - 2026-03-30
+
+### Added
+
+- **Dedicated `agent_interventions` endpoint — closes Issue #32**
+  New action `datapoint.interventions` (`GET /api/datapoints/:name/interventions`)
+  exposes the explainability log of a datapoint directly without requiring clients
+  to parse the full OEMetadata v2.0 document.
+
+  **Response shape:**
+  ```json
+  { "name": "pv-portfolio-twl-netze", "total": 3, "interventions": [ … ] }
+  ```
+  Entries are returned newest-first. Each entry retains the full Issue #32 schema:
+  `{ timestamp, action, reason, confidence_score, agent_id }`.
+
+  **Query parameters:**
+  - `?limit=N` — cap returned entries (default 50, max 500)
+  - `?since=<ISO-8601>` — return only entries at or after the given timestamp
+    (enables incremental polling by data stewards and audit systems)
+
+  **OpenAPI:** full annotation with `x-oeo-class` (OEO_00000143 — Explanation),
+  response example, and parameter descriptions. Registered as explicit route
+  alias `GET /datapoints/:name/interventions` before `/:name` in `api.service.js`
+  to prevent route shadowing.
+
+  **Tests:** 6 new tests in `tests/datapoint.service.test.js` covering empty list,
+  post-refresh state, `limit`, `since` filtering, descending sort, and 404.
+
+### Closed Issues
+
+- **#30 — `feat(oemetadata): Inject cryptographic data provenance hash for EU AI Act (Art. 12) compliance`**
+  Implemented in v0.11.5: `computeProvenanceHash()` (SHA-256 over step-results
+  payload), `provenanceHash` field on every PouchDB datapoint document, exposed
+  via `GET /api/datapoints/:name/oemetadata` under `_cernion.provenance.hash`.
+  Acceptance criteria verified: (1) hash present on oemetadata endpoint ✅,
+  (2) hash changes on document mutation ✅ (covered by unit tests in
+  `tests/datapoint.service.test.js`).
+
+- **#31 — `security(agents): Implement Data Masking/Allowlist for external LLM prompts (Edge Privacy)`**
+  Implemented in v0.11.5: `src/prompt-scrubber.js` — field-level masking with
+  deterministic SHA-256 pseudonyms, energy-domain allowlist (MaStR IDs, PLZ,
+  capacity, OEO terms never masked), `reidentMap` for edge re-identification.
+  All 7 `callGemini()` call sites in `agent.service.js` wrapped via
+  `scrubPromptText` / `scrubForLLM`. Covered by 94 tests in
+  `tests/prompt-scrubber.test.js`.
+  Acceptance criteria verified: (1) scrubbing middleware active before LLM ✅,
+  (2) re-identification on edge via `reidentMap` ✅.
+
+- **#32 — `feat(datapoints): Add explainability-log array for automated consistency corrections`**
+  Implemented in v0.11.5 (schema + persistence) and completed in this release
+  (dedicated queryable endpoint).
+  - `agent_interventions: []` initialised on every `promote` ✅
+  - Interventions appended by `datapoint.refresh` from `executePlan` result ✅
+  - `reason` and `confidence_score` fields populated per intervention ✅
+  - Dedicated queryable endpoint `GET /api/datapoints/:name/interventions`
+    with `limit` and `since` filters ✅ (this release)
+
+## [0.13.1] - 2026-03-29
+
+### Changed
+
+- **Coverage thresholds ramped to N+1 targets** — `jest.config.js` coverage
+  gates updated from `branches 55 / functions 70 / lines 70 / statements 70`
+  to `branches 60 / functions 75 / lines 75 / statements 75`. The N+1 target
+  was documented since v0.9.4 but never enacted; this release enforces it.
+  All 1 386 tests pass at the higher bar.
+
+- **`npm run build` no-op script added** — CI workflows (`maintenance-ci.yml`,
+  `release.yml`) reference `npm run build` which did not exist, causing a
+  silent CI failure risk. Added `"build": "echo 'No build step required'"`
+  to `package.json` for CI compatibility.
+
+- **`.env.example` — added `DATAPOINT_MAX_CONCURRENT_REFRESHES`** (v0.13.0
+  setting, default `3`). Was missing from the env template.
+
+### Fixed
+
+- **`.github/copilot-instructions.md` — full rewrite to v0.13.1**
+  The file was frozen at v0.9.7 (test count 1 076 / 47 suites, stale file
+  organization, no mention of v0.10–v0.13 features). Rewritten with:
+  - Architecture Layers table (v0.10–v0.13)
+  - PouchDB Conventions, Provenance & Compliance, Datapoint Layer,
+    OEO/OEMetadata, OSM Geo Layer sections
+  - Async Job Pattern, Description-guided domain documentation
+  - Updated test counts (~1 400 / ~55), coverage thresholds (60/75/75/75)
+  - Current Project Status section updated to v0.13.1
+  - Release Process notes updated (CI build script, `--forceExit`)
+  - "What NOT to Do" section added
+
+- **`SECURITY.md` — supported versions updated to 0.13.x** (was 0.8.x).
+  Advisory baseline updated from `0.8.32` to `0.13.1`.
+
+- **`CONTRIBUTING.md` — project structure and code examples updated**
+  - Project structure expanded to include 25 services, `src/` modules
+    (prompt-scrubber, oeo-mappings, oemetadata-builder), and missing
+    directories (uploads, docs, scripts)
+  - Gemini model reference updated from `gemini-pro` to
+    `process.env.GEMINI_MODEL || 'gemini-3-pro-preview'`
+
+- **`README.md` — v0.10–v0.13 features added**
+  - Features list: Snapshots, OSM Geo Layer, OEP Connector, OEO/OEMetadata,
+    Data Provenance, Prompt Scrubber
+  - Project structure updated with `datapoint.service.js`, `osm-geo.service.js`,
+    `oep.service.js`, and new `src/` modules
+  - Environment variables table: `GEMINI_MODEL` default corrected to
+    `gemini-3-pro-preview`
+  - Available Scripts table: added `sync:oemetadata` and `build`
+
+- **Stale use-case doc references resolved**
+  - `docs/use-cases/procurement-beschaffung-vs-spotpreis.md` — status updated
+    from "tracked for v0.9.4" to "resolved in v0.9.4 (`src/period-normaliser.js`)"
+  - `docs/use-cases/grid-assets-pv-leistung-vs-vnb-benchmark.md` — status
+    updated from "tracked for v0.9.4" to "resolved in v0.9.11 (EWK BNr
+    mapping fix)"
+
+## [0.13.0] - 2026-03-29
+
+### Added
+
+- **AP1 — Snapshot-Semantik: Konsistenz-Beweis für Datenpunkt-Gruppen**
+  Agents können jetzt eine definierte Menge von Datenpunkten als konsistente
+  Einheit versiegeln. Ein Snapshot-Dokument (`snap:<uuid>` in PouchDB) hält
+  die `provenanceHash`-Werte aller beteiligten Datenpunkte zum
+  Erstellungszeitpunkt fest und beweist damit den Datenstand für
+  nachgelagerte Agenten-Pipelines.
+
+  **Snapshot-Lifecycle — 5 neue Actions:**
+  - `datapoint.createSnapshot` (`POST /api/datapoints/snapshot`) — Erstellt
+    einen Snapshot über eine Liste von Datenpunkten oder einen Tag-Filter.
+    Drei Phasen: (1) Freshness-Check (`maxAgeMinutes`, Default 60), (2)
+    sequenzieller Refresh für veraltete Datenpunkte (MCP-Session-Limit-sicher),
+    (3) Versiegelung mit `snapshotHash` (SHA-256 über sortierte
+    `provenanceHash`-Werte). Optionaler `createdBy`-Parameter
+    (`manual` / `agent` / `scheduler`) für nahtlosen Andock-Punkt v0.14.
+  - `datapoint.listSnapshots` (`GET /api/datapoints/snapshots`) — Listet
+    alle Snapshots, optional gefiltert nach `status`.
+  - `datapoint.getSnapshot` (`GET /api/datapoints/snapshot/:id`) — Gibt
+    das vollständige Snapshot-Dokument zurück.
+  - `datapoint.validateSnapshot` (`POST /api/datapoints/snapshot/:id/validate`)
+    — Vergleicht die aktuellen `provenanceHash`-Werte der Datenpunkte mit
+    den im Snapshot gespeicherten Werten. Gibt `consistent: true/false` und
+    ein `drift`-Array zurück. Persistiert das Ergebnis als
+    `lastValidation` im Snapshot-Dokument.
+  - `datapoint.removeSnapshot` (`DELETE /api/datapoints/snapshot/:id`) —
+    Löscht ein Snapshot-Dokument.
+
+  **PouchDB-Schema:** Prefix `snap:`, Felder: `id`, `name`, `description`,
+  `createdAt`, `createdBy`, `maxAgeMinutes`, `datapointNames`, `status`
+  (`complete` / `partial` / `failed`), `datapoints[]` (je Hash + Summary),
+  `snapshotHash`, `lastValidation`. Rohdaten werden NICHT gespeichert
+  (KRITIS-Constraint).
+
+  **PouchDB-Index:** Neuer Index auf `['createdAt']` in `started()` für
+  zukünftige sortierte Snapshot-Abfragen.
+
+  **New test file:** `tests/datapoint-snapshot.test.js` — 19 Tests in 5
+  Suites decken alle Actions inklusive Freshness-Check, Drift-Detection,
+  Partial/Failed-Status und Tag-basierter Erstellung ab.
+
+- **AP3 — Tag-basierte Filterung in der `list`-Action**
+  `GET /api/datapoints?tags=solar,twl-netze` gibt nur Datenpunkte zurück,
+  die ALLE angegebenen Tags besitzen (case-insensitive AND-Semantik,
+  komma-separiert). Kein PouchDB-Index nötig (<100 Datenpunkte: In-Memory
+  ausreichend). Integration mit `createSnapshot`: alternativ zu
+  `datapointNames` kann `tags` übergeben werden.
+
+### Changed
+
+- **AP2 — Globales Concurrency-Limit für Scheduler-Refreshes**
+  `runScheduledRefreshes()` in `services/datapoint.service.js` bricht jetzt
+  ab, sobald `activeRefreshes.size >= maxConcurrentRefreshes`. Verhindert
+  simultane MCP-Session-Überläufe bei vielen überfälligen Datenpunkten.
+  Zurückgestellte Refreshes werden beim nächsten 60 s-Tick nachgeholt.
+
+  - **Neues Setting:** `maxConcurrentRefreshes` (Default: `3`).
+  - **Neue Env-Variable:** `DATAPOINT_MAX_CONCURRENT_REFRESHES` (Default: `3`).
+
+- `services/api.service.js` — 5 neue Route-Aliases für Snapshot-Endpoints.
+  Routing-Kommentar auf `v0.11–v0.13` aktualisiert; Snapshot-Routen stehen
+  korrekt vor `/:name` um Route-Shadowing zu verhindern.
+
+- `MCP_SERVICES.md` — Abschnitt 16 vollständig auf v0.11–v0.13 aufgeholt:
+  alle Datapoint-Endpoints, OEMetadata v2.0, OEO-Context, Snapshots.
+  Neue Section 17 für OEP (Open Energy Platform, v0.12).
+
+## [0.12.0] - 2026-03-29
+
+### Added
+
+- **AP1 — OEMetadata v2.0 Schema Conformity**
+  The `GET /api/datapoints/:name/oemetadata` endpoint now returns a fully
+  OEMetadata v2.0 conformant document instead of the previous proprietary
+  schema.json-style response.
+
+  **New modules:**
+  - `src/source-license-map.js` — static mapping of Moleculer action prefixes
+    to OEMetadata v2.0 `sources` and `licenses` entries (14 service prefixes,
+    covers DL-DE/BY-2.0, CC-BY-4.0, ODbL-1.0, and proprietary).
+  - `src/oemetadata-builder.js` — maps a PouchDB datapoint document to a
+    complete OEMetadata v2.0 JSON structure including spatial/temporal
+    coverage, OEO subject IRIs, field schema from `lastRun.summary.columns`,
+    source licensing, and a Cernion-specific `_cernion` extension namespace
+    (provenance hash, agent_interventions, health, scheduling).
+
+  **Updated endpoint:**
+  - `GET /api/datapoints/:name/oemetadata` — now returns OEMetadata v2.0.
+    New optional `?validate=true` query parameter runs ajv JSON-Schema
+    validation against the pinned schema and appends a `_validation` report.
+
+  **New script:**
+  - `scripts/sync-oemetadata.js` (`npm run sync:oemetadata`) — downloads
+    `schema.json`, `template.json`, and `context.json` from the official
+    OEMetadata GitHub repository at the pinned tag (`v2.0.0`). Use
+    `--latest` flag to track the `production` branch for development.
+    Downloaded files are stored in `src/oemetadata/` (git-ignored).
+
+  **New dependency:** `ajv` ^8.17.1 (JSON Schema validation).
+  **Schema version pinned:** `v2.0.0`.
+
+- **AP2 — OEP Connector (Open Energy Platform)**
+  New read-only microservice `services/oep.service.js` provides structured
+  access to the Open Energy Platform REST API v0. No authentication token
+  is required for public data tables.
+
+  **New actions (5):**
+  - `oep.listSchemas` (`GET /api/oep/schemas`) — list available OEP
+    database schemas.
+  - `oep.listTables` (`GET /api/oep/schemas/:schema/tables`) — list tables
+    within a schema.
+  - `oep.getTableMeta` (`GET /api/oep/tables/:schema/:table/meta`) — column
+    definitions including data types and descriptions.
+  - `oep.query` (`GET /api/oep/tables/:schema/:table/rows`) — fetch rows
+    with optional `limit`, `offset`, `where`, and `orderby` parameters
+    (max 1000 rows per request).
+  - `oep.search` (`GET /api/oep/search`) — case-insensitive substring
+    search over all OEP table names and descriptions; uses cached table
+    list (24 h TTL, no per-search OEP API call).
+
+  **Cache:** module-level `Map` with 24 h TTL for schema lists, table
+  lists, and table metadata. Row queries are not cached.
+
+  **Agent integration (RULE 13):** The Gemini system prompt now routes
+  OEP intents (scenario comparison, NEP references, research datasets) to
+  `oep.search` → `oep.query` via RULE 13 in the planning prompt and item
+  10 in the refine-prompt quick-reference list.
+
+  **New env var:** `OEP_API_BASE_URL` (default:
+  `https://openenergyplatform.org/api/v0`).
+
+- **AP3 — Datapoint Scheduling (interval refresh strategy)**
+  Datapoints promoted with `refresh: { strategy: "interval", intervalMinutes: N }`
+  are now automatically refreshed by a 60-second scheduler tick.
+
+  **Changes to `services/datapoint.service.js`:**
+  - `created()` — initialises `this.activeRefreshes = new Set()`.
+  - `started()` — starts a `setInterval` tick (60 s) when
+    `DATAPOINT_SCHEDULER_ENABLED !== 'false'`.
+  - `stopped()` — clears the interval before closing PouchDB.
+  - `runScheduledRefreshes()` (new method) — iterates all datapoints, skips
+    manual strategy and non-overdue intervals, uses `activeRefreshes` Set
+    as an in-memory concurrency guard (self-healing on restart). Fires
+    `datapoint.refresh` as fire-and-forget with `.finally()` cleanup.
+
+  **New env var:** `DATAPOINT_SCHEDULER_ENABLED` (default: `true`; set to
+  `'false'` to disable).
+
+### Changed
+
+- `services/api.service.js` — added `OEP (Open Energy Platform)` OpenAPI
+  tag and 5 route aliases for the OEP service.
+- `.gitignore` — added `src/oemetadata/` (downloaded schema assets).
+- `.env.example` — added `DATAPOINT_SCHEDULER_ENABLED` and
+  `OEP_API_BASE_URL` documentation.
+
 ## [0.11.5] - 2026-03-29
+
 
 ### Added
 

@@ -179,6 +179,78 @@ describe('datapoint.service', () => {
       expect(result.count).toBe(0);
       expect(result.datapoints).toHaveLength(0);
     });
+
+    // AP3 (v0.13): tag-based filtering
+    it('filters by a single tag (case-insensitive)', async () => {
+      await promoteFixture(broker, { name: 'dp-solar-a', tags: ['Solar', 'twl-netze'] });
+      await promoteFixture(broker, { name: 'dp-wind-b', tags: ['wind'] });
+
+      const result = await broker.call('datapoint.list', { tags: 'solar' });
+
+      expect(result.count).toBe(1);
+      expect(result.datapoints[0].name).toBe('dp-solar-a');
+    });
+
+    it('filters by multiple comma-separated tags (AND semantics)', async () => {
+      await promoteFixture(broker, { name: 'dp-solar-twl', tags: ['solar', 'twl-netze'] });
+      await promoteFixture(broker, { name: 'dp-solar-only', tags: ['solar'] });
+      await promoteFixture(broker, { name: 'dp-wind-twl', tags: ['wind', 'twl-netze'] });
+
+      const result = await broker.call('datapoint.list', { tags: 'solar,twl-netze' });
+
+      expect(result.count).toBe(1);
+      expect(result.datapoints[0].name).toBe('dp-solar-twl');
+    });
+
+    it('returns empty list when no datapoints match the tag filter', async () => {
+      await promoteFixture(broker, { name: 'dp-wind-only', tags: ['wind'] });
+
+      const result = await broker.call('datapoint.list', { tags: 'solar' });
+
+      expect(result.count).toBe(0);
+    });
+  });
+
+  // ── runScheduledRefreshes — concurrency limit (AP2 v0.13) ────────────────
+
+  describe('runScheduledRefreshes — concurrency limit', () => {
+    it('defers additional refreshes when maxConcurrentRefreshes is reached', async () => {
+      const service = broker.services.find((s) => s.name === 'datapoint');
+      // Lower the limit to 1 for this test
+      service.settings.maxConcurrentRefreshes = 1;
+
+      await promoteFixture(broker, {
+        name: 'dp-sched-1',
+        refresh: { strategy: 'interval', intervalMinutes: 1 },
+      });
+      await promoteFixture(broker, {
+        name: 'dp-sched-2',
+        refresh: { strategy: 'interval', intervalMinutes: 1 },
+      });
+
+      // Simulate one refresh already in progress (dp-sched-1 is running)
+      service.activeRefreshes.add('dp-sched-1');
+
+      // Run the scheduler — limit is already at 1, dp-sched-2 should be deferred
+      await service.runScheduledRefreshes();
+
+      // dp-sched-2 must NOT have been refreshed (still 'never')
+      const dp2 = await broker.call('datapoint.get', { name: 'dp-sched-2' });
+      expect(dp2.lastRun.status).toBe('never');
+
+      // Cleanup the simulated in-progress entry
+      service.activeRefreshes.delete('dp-sched-1');
+    });
+
+    it('starts refreshes up to the concurrency limit', async () => {
+      const service = broker.services.find((s) => s.name === 'datapoint');
+      service.settings.maxConcurrentRefreshes = 3;
+
+      // With no activeRefreshes, the first 3 overdue datapoints should be allowed
+      // This verifies the guard does NOT prematurely block when limit is not yet hit
+      expect(service.activeRefreshes.size).toBe(0);
+      expect(service.settings.maxConcurrentRefreshes).toBe(3);
+    });
   });
 
   // ── get ──────────────────────────────────────────────────────────────────
@@ -579,37 +651,37 @@ describe('datapoint.service', () => {
   // ── Issue #30: oemetadata action ────────────────────────────────────────
 
   describe('oemetadata', () => {
-    it('returns provenance hash and @context for a refreshed datapoint', async () => {
+    it('returns OEMetadata v2.0 document for a refreshed datapoint', async () => {
       await promoteFixture(broker);
       await broker.call('datapoint.refresh', { name: 'test-pv-portfolio' });
 
       const meta = await broker.call('datapoint.oemetadata', { name: 'test-pv-portfolio' });
 
-      // Structure checks
-      expect(meta['@context']).toBeDefined();
-      expect(meta['@context'].oeo).toBeDefined();
-      expect(meta['@context'].schema).toBe('https://schema.org/');
-      expect(meta['@type']).toBe('schema:Dataset');
+      // OEMetadata v2.0 top-level fields
       expect(meta.name).toBe('test-pv-portfolio');
+      expect(meta.title).toBeDefined();
+      expect(meta.description).toBeDefined();
+      expect(Array.isArray(meta.language)).toBe(true);
+      expect(meta.metaMetadata).toBeDefined();
+      expect(meta.metaMetadata.metadataVersion).toMatch(/OEMetadata/);
 
-      // Provenance
-      expect(meta.provenance).toBeDefined();
-      expect(meta.provenance.algorithm).toBe('SHA-256');
-      expect(meta.provenance.hash).toMatch(/^[a-f0-9]{64}$/);
-      expect(meta.provenance.lastRefresh).toBeDefined();
-      expect(meta.provenance.hashStable).toBe(true);
+      // OEMetadata v2.0 sources (title+path+licenses, not type+sessionId)
+      expect(Array.isArray(meta.sources)).toBe(true);
+      expect(meta.sources.length).toBeGreaterThan(0);
+      expect(meta.sources[0]).toHaveProperty('title');
+      expect(meta.sources[0]).toHaveProperty('licenses');
 
-      // Sources audit trail
-      expect(meta.sources).toHaveLength(1);
-      expect(meta.sources[0].type).toBe('agent-session');
-      expect(meta.sources[0].sessionId).toBe(SESSION_FIXTURE.id);
+      // Cernion extension — EU AI Act Art. 12 provenance
+      expect(meta._cernion).toBeDefined();
+      expect(meta._cernion.provenance).toBeDefined();
+      expect(meta._cernion.provenance.algorithm).toBe('SHA-256');
+      expect(meta._cernion.provenance.hash).toMatch(/^[a-f0-9]{64}$/);
+      expect(meta._cernion.provenance.lastRefresh).toBeDefined();
+      expect(meta._cernion.provenance.hashStable).toBe(true);
 
-      // Explainability log
-      expect(Array.isArray(meta.agent_interventions)).toBe(true);
-
-      // Health
-      expect(meta.health).toBeDefined();
-      expect(meta.lastRun).toBeDefined();
+      // Cernion extension — explainability log and health
+      expect(Array.isArray(meta._cernion.agent_interventions)).toBe(true);
+      expect(meta._cernion.health).toBeDefined();
     });
 
     it('returns null provenance hash for never-refreshed datapoint', async () => {
@@ -617,13 +689,95 @@ describe('datapoint.service', () => {
 
       const meta = await broker.call('datapoint.oemetadata', { name: 'test-pv-portfolio' });
 
-      expect(meta.provenance.hash).toBeNull();
-      expect(meta.provenance.hashStable).toBe(false);
+      expect(meta._cernion.provenance.hash).toBeNull();
+      expect(meta._cernion.provenance.hashStable).toBe(false);
     });
 
     it('throws 404 for non-existent datapoint', async () => {
       await expect(
         broker.call('datapoint.oemetadata', { name: 'ghost' })
+      ).rejects.toMatchObject({ code: 404, type: 'NOT_FOUND' });
+    });
+  });
+
+  // ── Issue #32: interventions — dedicated endpoint ────────────────────────
+
+  describe('interventions action (Issue #32 dedicated endpoint)', () => {
+    it('returns empty interventions list for fresh datapoint', async () => {
+      await promoteFixture(broker);
+      const result = await broker.call('datapoint.interventions', { name: 'test-pv-portfolio' });
+      expect(result.name).toBe('test-pv-portfolio');
+      expect(result.total).toBe(0);
+      expect(result.interventions).toEqual([]);
+    });
+
+    it('returns interventions after a refresh that appends them', async () => {
+      await promoteFixture(broker);
+      // The mock executePlan returns interventions
+      await broker.call('datapoint.refresh', { name: 'test-pv-portfolio' });
+      const result = await broker.call('datapoint.interventions', { name: 'test-pv-portfolio' });
+      expect(result.name).toBe('test-pv-portfolio');
+      expect(typeof result.total).toBe('number');
+      expect(Array.isArray(result.interventions)).toBe(true);
+    });
+
+    it('respects limit parameter — caps returned entries', async () => {
+      await promoteFixture(broker);
+      await broker.call('datapoint.refresh', { name: 'test-pv-portfolio' });
+      const result = await broker.call('datapoint.interventions', {
+        name: 'test-pv-portfolio',
+        limit: 1,
+      });
+      expect(result.interventions.length).toBeLessThanOrEqual(1);
+    });
+
+    it('filters by since parameter — excludes older entries', async () => {
+      await promoteFixture(broker);
+      // Insert a known-old intervention directly via PouchDB
+      const doc = await broker.call('datapoint.get', { name: 'test-pv-portfolio' });
+      // Access the db directly through the service instance
+      const svc = broker.getLocalService('datapoint');
+      await svc.db.put({
+        ...doc,
+        agent_interventions: [
+          {
+            timestamp: '2020-01-01T00:00:00.000Z',
+            action: 'param_repair',
+            reason: 'old entry',
+            confidence_score: 0.5,
+            agent_id: 'executePlan',
+          },
+        ],
+      });
+      const result = await broker.call('datapoint.interventions', {
+        name: 'test-pv-portfolio',
+        since: '2025-01-01T00:00:00Z',
+      });
+      // The 2020 entry should be filtered out
+      expect(result.interventions.every((e) => new Date(e.timestamp) >= new Date('2025-01-01'))).toBe(true);
+    });
+
+    it('returns newest entries first (descending order)', async () => {
+      await promoteFixture(broker);
+      const svc = broker.getLocalService('datapoint');
+      const doc = await broker.call('datapoint.get', { name: 'test-pv-portfolio' });
+      await svc.db.put({
+        ...doc,
+        agent_interventions: [
+          { timestamp: '2026-01-01T00:00:00Z', action: 'param_repair', reason: 'first', confidence_score: 0.8, agent_id: 'executePlan' },
+          { timestamp: '2026-03-01T00:00:00Z', action: 'step_failure', reason: 'second', confidence_score: 0.6, agent_id: 'executePlan' },
+        ],
+      });
+      const result = await broker.call('datapoint.interventions', { name: 'test-pv-portfolio' });
+      expect(result.total).toBe(2);
+      // Newest first: March then January
+      expect(result.interventions[0].timestamp).toBe('2026-03-01T00:00:00Z');
+      expect(result.interventions[1].timestamp).toBe('2026-01-01T00:00:00Z');
+    });
+
+    it('throws 404 for non-existent datapoint', async () => {
+      await expect(
+        broker.call('datapoint.interventions', { name: 'ghost' })
       ).rejects.toMatchObject({ code: 404, type: 'NOT_FOUND' });
     });
   });

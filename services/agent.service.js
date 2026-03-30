@@ -2108,8 +2108,43 @@ Choose action by intent:
 
 Extract "location", "mastrNummer", "latitude", "longitude", "radiusMeters", "boundingBox",
 "fromOsmId", "toOsmId", and "gridOperator" as requiredInputs per RULE 5.
+
+RULE 13 — Open Energy Platform (OEP) research & scenario datasets:
+Use the oep microservice when the user asks about published research datasets,
+scenario comparisons (NEP, TYNDP, Klimaziele), academic energy models, or any data
+that might be hosted on openenergyplatform.org.
+
+Choose action by intent:
+
+  A. oep.search — DISCOVER DATASETS
+     "Find OEP tables about photovoltaik / NEP 2035 / Kohleausstieg"
+     Required: "q": null   (search term, min 2 chars)
+     Optional: "schema": null   (e.g. model_draft, scenario, supply)
+     Optional: "limit": 20
+
+  B. oep.listSchemas — BROWSE AVAILABLE SCHEMAS
+     "Which schemas / topic areas exist on OEP?"
+     No required params.
+
+  C. oep.listTables — LIST TABLES IN A SCHEMA
+     "What tables are in the model_draft schema?"
+     Required: "schema": null
+
+  D. oep.getTableMeta — COLUMN DEFINITIONS FOR A TABLE
+     "What columns does table oed_scenario_bundle have?"
+     Required: "schema": null   "table": null
+
+  E. oep.query — FETCH ROWS FROM A TABLE
+     "Get the first 100 rows of OEP table X in schema Y"
+     Required: "schema": null   "table": null
+     Optional: "limit" (max 1000), "offset", "where", "orderby"
+
+Typical 2-step chain for scenario lookup:
+  step 1: oep.search  { q: "<keyword>" }
+  step 2: oep.query   { schema: "__step_1.results[0].schema", table: "__step_1.results[0].table" }
+
+Extract "q", "schema", "table", "limit", "offset", "where" as requiredInputs per RULE 5.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-IMPORTANT: The keys in each step MUST be exactly "action", "params", and "description" — do NOT use "useTool", "args", "inputs", "label", "tool", or any other synonym.
 {
   "summary": "<2-3 sentence explanation of your strategy>",
   "steps": [
@@ -2337,6 +2372,14 @@ CRITICAL RULES:
    - osm-geo.substationFinder: substation inventory (location/gridOperator/boundingBox)
    - osm-geo.gridTopology: topology metrics (location/gridOperator/boundingBox)
    Chain from RULE 1: "gridOperator": "__step_1.data.results[0].companyName"
+10. OEP DATASETS (RULE 13): For published research datasets, scenario comparisons (NEP,
+    TYNDP, Klimaziele), or academic energy model data, use oep microservice:
+    - oep.search: discover tables by keyword (q required, schema optional)
+    - oep.listSchemas: list available topic schemas
+    - oep.listTables: tables in a schema (schema required)
+    - oep.getTableMeta: column definitions (schema + table required)
+    - oep.query: fetch rows (schema + table required, limit max 1000)
+    Typical chain: oep.search → oep.query with __step_1.results[0].schema/table
 
 The user originally asked: "${session.problem}"
 Your previous plan was: ${JSON.stringify(session.plan, null, 2)}

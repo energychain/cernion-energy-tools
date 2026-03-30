@@ -133,8 +133,14 @@ module.exports = {
             'Layer 2 Geo-Architecture: physical grid infrastructure from OpenStreetMap via the Overpass API. ' +
             'Complements authoritative VNBDigital data (Layer 1) with visible substations, transformers, and lines. ' +
             'Data: © OpenStreetMap contributors, ODbL 1.0 — https://opendatacommons.org/licenses/odbl/',
-        },
-      ],
+        },        {
+          name: 'OEP (Open Energy Platform)',
+          description:
+            'Read-only access to Open Energy Platform research and scenario datasets. ' +
+            'No authentication required for public tables. ' +
+            'Supports schema/table discovery, column metadata, row queries, and full-text search. ' +
+            'API: https://openenergyplatform.org/api/v0',
+        },      ],
       components: {
         securitySchemes: {
           ApiKeyAuth: {
@@ -326,12 +332,19 @@ module.exports = {
           'GET /nbp-monitor/parameters': 'nbp-monitor.getParameters',
           'PUT /nbp-monitor/parameters': 'nbp-monitor.setParameters',
           'DELETE /nbp-monitor/parameters': 'nbp-monitor.resetParameters',
-          // Datapoints (v0.11) — health/overview MUST precede /:name to avoid route shadowing
+          // Datapoints (v0.11–v0.13) — static routes MUST precede /:name to avoid route shadowing
           'POST /datapoints/promote': 'datapoint.promote',
           'GET /datapoints': 'datapoint.list',
           'GET /datapoints/health/overview': 'datapoint.health',
           'GET /datapoints/oeo-context': 'datapoint.oeoContext',
+          // Snapshots (v0.13) — must be before /:name
+          'POST /datapoints/snapshot': 'datapoint.createSnapshot',
+          'GET /datapoints/snapshots': 'datapoint.listSnapshots',
+          'GET /datapoints/snapshot/:id': 'datapoint.getSnapshot',
+          'POST /datapoints/snapshot/:id/validate': 'datapoint.validateSnapshot',
+          'DELETE /datapoints/snapshot/:id': 'datapoint.removeSnapshot',
           'GET /datapoints/:name/oemetadata': 'datapoint.oemetadata',
+          'GET /datapoints/:name/interventions': 'datapoint.interventions',
           'GET /datapoints/:name': 'datapoint.get',
           'PUT /datapoints/:name': 'datapoint.update',
           'DELETE /datapoints/:name': 'datapoint.remove',
@@ -343,6 +356,12 @@ module.exports = {
           'POST /in-memory-join/compare-forecast-actual': 'in-memory-join.compareForecastActual',
           'GET /jobs/:jobId/status': 'job-status.status',
           'GET /jobs/:jobId/result': 'job-status.result',
+          // OEP (Open Energy Platform) read-only connector (v0.12)
+          'GET /oep/schemas': 'oep.listSchemas',
+          'GET /oep/schemas/:schema/tables': 'oep.listTables',
+          'GET /oep/tables/:schema/:table/meta': 'oep.getTableMeta',
+          'GET /oep/tables/:schema/:table/rows': 'oep.query',
+          'GET /oep/search': 'oep.search',
 
           // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
           'GET /datasources/uploads'(req, res) {

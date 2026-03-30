@@ -67,23 +67,23 @@ Each service should follow this structure:
 module.exports = {
   name: 'service-name',
   version: 1,
-  
+
   settings: {
     // Service settings
   },
-  
+
   actions: {
     // Service actions with OpenAPI docs
   },
-  
+
   events: {
     // Event handlers
   },
-  
+
   methods: {
     // Internal methods
   },
-  
+
   created() {},
   async started() {},
   async stopped() {}
@@ -178,12 +178,36 @@ Fixes #(issue number)
 
 ```
 cernion-energy-tools/
-├── services/          # Active microservices
-├── templates/         # Service templates
-├── cli.js             # CLI tool
-├── create-service.js  # Service creator
-├── index.js           # Main entry point
-└── moleculer.config.js # Configuration
+├── services/              # Core microservices (25 services)
+│   ├── api.service.js     # API Gateway + Swagger UI
+│   ├── agent.service.js   # AI agent — plan/execute/export
+│   ├── assets.service.js  # MaStR installation assets
+│   ├── datapoint.service.js # Named datapoints with PouchDB
+│   ├── osm-geo.service.js # OSM geo layer (v0.10)
+│   ├── oep.service.js     # Open Energy Platform connector (v0.12)
+│   └── ...                # See services/ for full list
+├── src/
+│   ├── app.html           # Research Web App (single-page)
+│   ├── mcp-client.js      # Centralised MCP tool caller
+│   ├── async-job-poller.js # Async job polling
+│   ├── prompt-scrubber.js # PII masking for LLM prompts
+│   ├── oeo-mappings.js    # OEO class mappings (~150 entries)
+│   ├── oemetadata-builder.js # OEMetadata v2.0 builder
+│   └── connectors/        # Built-in datasource connector plugins
+├── custom-services/       # Local/custom services (git-ignored)
+├── custom-tests/          # Local/custom tests (git-ignored)
+├── templates/
+│   └── skeleton.service.js
+├── tests/                 # Core test suite (~1 400 tests)
+├── scripts/               # Build, audit, and sync scripts
+├── docs/                  # Documentation and use-case files
+├── uploads/               # User-uploaded inhouse datasets (git-ignored)
+├── index.js               # Main entry point
+├── cli.js                 # CLI tool
+├── create-service.js      # Interactive service creator
+├── moleculer.config.js    # Moleculer configuration
+├── .env.example           # Environment variables template
+└── package.json
 ```
 
 ## Testing
@@ -255,7 +279,7 @@ async callGemini(prompt) {
 
   const { GoogleGenerativeAI } = require('@google/generative-ai');
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+  const model = genAI.getGenerativeModel({ model: process.env.GEMINI_MODEL || 'gemini-3-pro-preview' });
 
   const result = await model.generateContent(prompt);
   return result.response.text();

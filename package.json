@@ -1,6 +1,6 @@
 {
   "name": "cernion-energy-tools",
-  "version": "0.11.5",
+  "version": "0.13.2",
   "description": "MicroService Agent System for Energy Markets",
   "main": "index.js",
   "scripts": {
@@ -23,7 +23,9 @@
     "audit:security": "node scripts/audit-security.js",
     "audit:security:advisory": "npm audit --audit-level=high",
     "release:check": "npm run test:unit:ci && npm run audit:openapi && npm run audit:security",
-    "sync:oeo": "node scripts/sync-oeo.js"
+    "sync:oeo": "node scripts/sync-oeo.js",
+    "sync:oemetadata": "node scripts/sync-oemetadata.js",
+    "build": "echo 'No build step required'"
   },
   "repository": {
     "type": "git",
@@ -47,6 +49,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.28.0",
+    "ajv": "^8.18.0",
     "axios": "^1.13.6",
     "dotenv": "^17.3.1",
     "iconv-lite": "^0.7.2",
