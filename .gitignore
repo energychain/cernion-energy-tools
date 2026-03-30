@@ -150,4 +150,6 @@ vite.config.ts.timestamp-*
 uploads/
 .datapoints/
 .datapoints-*/
+.grid-connections/
+.energy-sharing/
 src/oemetadata/

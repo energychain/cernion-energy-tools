@@ -489,6 +489,131 @@ cernion-energy-tools/
 └── jest.config.js
 ```
 
+## 18. Grid Connection Validation (v0.14)
+
+Deterministic 6-step Netzanschluss validation pipeline. No LLM involvement.
+
+**Service:** `grid-connection`
+**Source:** `services/grid-connection.service.js`
+
+### Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/grid-connection/validate` | Run 6-step pipeline (120 s timeout) |
+| `GET` | `/api/grid-connection/validations` | List past validation reports |
+| `GET` | `/api/grid-connection/validations/:id` | Get validation report by UUID |
+
+### Pipeline Steps
+
+| Step | Name | Logic |
+|---|---|---|
+| 1 | `inventory` | Fetch installations ≥100 kW via `cernion_installations_local` (Weg A) or tagged datapoint (Weg B) |
+| 2 | `delta` | Detect MaStR duplicates, stale NBP status, voltage level mismatches |
+| 3 | `capacity` | Simultaneity-adjusted capacity by voltage level (`SIMULTANEITY_FACTORS`) |
+| 4 | `benchmark` | EWK connection time + implementation rate via `ewk-monitoring.*` service |
+| 5 | `decision` | Rule engine: `GO_DIRECT` / `GO_CONDITIONAL` / `NO_GO_EXPANSION` / `DATA_QUALITY_INSUFFICIENT` |
+| 6 | `audit` | Snapshot validation + `AUDIT_TRAIL_CREATED` (EU AI Act Art. 12) |
+
+### Key Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `gridOperatorId` | `string` | MaStR SNB/GNB ID (preferred) |
+| `gridOperatorBdew` | `string` | 13-digit BDEW code (resolved via `vnbLookupCodes`) |
+| `gridOperatorName` | `string` | Fuzzy name match via `marketPartners` |
+| `datapointTags` | `string[]` | Tags for datapoint snapshot creation |
+| `skipSteps` | `number[]` | Step numbers to skip (e.g. `[4]` skips EWK benchmark) |
+| `includeCapacityCheck` | `boolean` | Enable `cernion_connection_capacity_check` for headroom data |
+
+### Finding Codes
+
+`INVENTORY_COMPLETE`, `INVENTORY_EMPTY`, `INSTALLATION_NO_NAP`, `INSTALLATION_STATUS_ANOMALY`,
+`MASTR_DUPLICATE_SUSPECTED`, `OPERATOR_DATA_STALE`, `VOLTAGE_LEVEL_MISMATCH`,
+`CAPACITY_HEADROOM_OK`, `CAPACITY_CONDITIONAL`, `CAPACITY_EXPANSION_NEEDED`, `TRANSFORMER_DATA_MISSING`,
+`EWK_BENCHMARK_SLOW`, `EWK_BENCHMARK_FAST`, `EWK_IMPLEMENTATION_LOW`,
+`GO_DIRECT`, `GO_CONDITIONAL`, `NO_GO_EXPANSION`, `DATA_QUALITY_INSUFFICIENT`,
+`AUDIT_TRAIL_CREATED`, `SNAPSHOT_DRIFT_DETECTED`
+
+### Architecture Notes
+
+- PouchDB at `.grid-connections/` (`GRID_CONNECTION_DB_PATH` env), doc prefix `val:`.
+- Raw installation data is **never** persisted — only report metadata (KRITIS).
+- Service excluded from LLM agent catalogue (`skipServices`).
+- `src/validation-findings.js` — 20 finding-code constants, factory, aggregator.
+
+---
+
+## 19. Energy Sharing Validation (v0.15)
+
+Deterministic 6-step Energy Sharing community validation pipeline (§ 42c EnWG).
+Interims-Prozess for VNBs ahead of § 20b EnWG central IT platform (deadline 01.06.2026).
+No LLM involvement.
+
+**Service:** `energy-sharing`
+**Source:** `services/energy-sharing.service.js`
+
+### Endpoints
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/api/energy-sharing/validate` | Run 6-step pipeline (120 s timeout) |
+| `GET` | `/api/energy-sharing/validations` | List past validation reports (filter by `communityId`) |
+| `GET` | `/api/energy-sharing/validations/:id` | Get validation report by UUID |
+
+### Pipeline Steps
+
+| Step | Name | Logic |
+|---|---|---|
+| 1 | `identity` | Resolve VNB identity via `vnb_lookup_codes` MCP tool |
+| 2 | `generators` | Validate each generator MaStR record via `cernion_installations_local` (one bulk call + secondary search for wrong-grid-area detection) |
+| 3 | `directMarketer` | Check `FernsteuerbarkeitDv` flag (§ 21 Abs. 2 EEG mandatory ≥100 kW) + DV register via `cernion_direktvermarkter_lookup` |
+| 4 | `eligibility` | § 42c EnWG conformity: share sums, MaLo format (`DE[0-9]{31}`), duplicates, grid area consistency |
+| 5 | `decision` | Rule engine: `APPROVED` / `APPROVED_WITH_CONDITIONS` / `REJECTED_STRUCTURAL` / `REJECTED_GENERATOR_INVALID` / `REJECTED_OTHER` |
+| 6 | `audit` | Snapshot validation + `AUDIT_TRAIL_CREATED` (EU AI Act Art. 12) |
+
+### Key Parameters
+
+| Parameter | Type | Description |
+|---|---|---|
+| `gridOperatorId` | `string` | MaStR SNB/GNB ID (preferred) |
+| `gridOperatorBdew` | `string` | 13-digit BDEW code |
+| `communityName` | `string` | Name of the Energy Sharing community |
+| `communityId` | `string` | External community ID assigned by the VNB |
+| `generators` | `object[]` | Generator participants: `{ mastrNummer, sharePercent, direktvermarkter? }` |
+| `consumers` | `object[]` | Consumer participants: `{ maloId, sharePercent, name? }` |
+| `datapointTags` | `string[]` | Tags for datapoint Weg B fallback |
+
+### Finding Codes
+
+**VNB Identity:** `VNB_RESOLVED`, `VNB_AMBIGUOUS`, `VNB_NOT_FOUND`
+
+**Generator:** `GENERATOR_VALID`, `GENERATOR_NOT_FOUND`, `GENERATOR_NOT_OPERATIONAL`,
+`GENERATOR_WRONG_GRID_AREA`, `GENERATOR_TYPE_INELIGIBLE`, `GENERATOR_CAPACITY_ZERO`,
+`GENERATOR_NO_NAP`, `GENERATOR_NO_MELO`, `GENERATOR_DUPLICATE`
+
+**Direct Marketer:** `DV_VALID`, `DV_MANDATORY_MISSING`, `DV_NOT_CONTROLLABLE`,
+`DV_NOT_FOUND`, `DV_INACTIVE`, `DV_MASTR_MISMATCH`
+
+**Eligibility:** `ELIGIBILITY_CONFIRMED`, `SHARE_SUM_GENERATORS_INVALID`,
+`SHARE_SUM_CONSUMERS_INVALID`, `NO_GENERATORS`, `NO_CONSUMERS`, `MIXED_GRID_AREAS`,
+`GENERATOR_EXCEEDS_LIMIT`, `CONSUMER_MALO_INVALID`, `CONSUMER_MALO_DUPLICATE`
+
+**Decision:** `APPROVED`, `APPROVED_WITH_CONDITIONS`, `REJECTED_STRUCTURAL`,
+`REJECTED_GENERATOR_INVALID`, `REJECTED_OTHER`
+
+**Audit (reused from v0.14):** `AUDIT_TRAIL_CREATED`, `SNAPSHOT_DRIFT_DETECTED`
+
+### Architecture Notes
+
+- PouchDB at `.energy-sharing/` (`ENERGY_SHARING_DB_PATH` env), doc prefix `es:`.
+- Raw installation data is **never** persisted — only report metadata (KRITIS).
+- Service excluded from LLM agent catalogue (`skipServices`).
+- `src/validation-findings.js` extended with 28 new constants (total: 48 codes).
+- Weg B datapoint fallback via `tryDatapointFallback` helper (mirrors v0.14 pattern).
+
+---
+
 ## Technology Stack
 
 - **Moleculer**: 0.14.35 - Microservices framework

@@ -20,6 +20,7 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - � **Datapoints** — Named, versioned, health-monitored data sources backed by embedded PouchDB. Promote any agent session to a managed datapoint, track refresh history and schema stability, and retrieve live data as JSON or CSV via `/api/datapoints`. See the [health overview](http://localhost:3000/api/datapoints/health/overview) for a dashboard of all registered datapoints.- 📸 **Snapshots** — Seal a group of datapoints as a consistent unit with SHA-256 provenance hashing. Create, validate (drift detection), list, and remove snapshots via `/api/datapoints/snapshot*` (v0.13)
 - 🌍 **OSM Geo Layer** — Grid infrastructure analysis via OpenStreetMap/Overpass: VNB assignment validation, nearby infrastructure, substation inventory, and grid topology (v0.10)
 - 🌐 **OEP Connector** — Read-only access to the Open Energy Platform (scenario data, NEP references, research datasets) via `/api/oep/*` (v0.12)
+- 🔌 **Grid Connection Validation** — Deterministic 6-step Netzanschluss pipeline (`POST /api/grid-connection/validate`): inventory → delta → capacity → EWK benchmark → Go/No-Go decision → audit trail. No LLM — identical inputs, identical findings. Reports sealed with PouchDB snapshots for EU AI Act Art. 12 compliance (v0.14)
 - 🧠 **OEO / OEMetadata** — Open Energy Ontology annotations on all 45+ REST endpoints, OEMetadata v2.0 export with optional JSON Schema validation (v0.11.4–v0.12)
 - 🔐 **Data Provenance** — SHA-256 provenance hashing on every datapoint refresh for EU AI Act Art. 12 compliance, plus explainability log for agent corrections (v0.11.5)
 - 🧹 **Prompt Scrubber** — Field-level PII masking with energy-domain allowlist before sending data to external LLMs (v0.11.5)- �🔌 **MCP Support** — Model Context Protocol SDK integration
@@ -211,6 +212,7 @@ cernion-energy-tools/
 │   ├── async-job-poller.js # Async job polling
 │   ├── prompt-scrubber.js  # PII masking for LLM prompts
 │   ├── oeo-mappings.js    # OEO class mappings (~150 entries)
+│   ├── validation-findings.js # Grid connection finding constants (v0.14)
 │   └── oemetadata-builder.js # OEMetadata v2.0 builder
 ├── custom-services/       # Local/custom services (git-ignored)
 ├── custom-connectors/     # Local/custom datasource plugins (git-ignored)
@@ -259,6 +261,7 @@ Copy `.env.example` to `.env` and edit:
 | `DATASOURCE_MAX_INFER_SAMPLE_ROWS` | `200` | Max sample rows used for schema inference |
 | `DATASOURCE_SCRAPER_TIMEOUT_MS` | `30000` | Timeout for scraper connector page loads |
 | `DATASOURCE_DEFAULT_PRIVACY_CONTEXT` | `ai-agent` | Default privacy mode for datasource reads |
+| `GRID_CONNECTION_DB_PATH` | `./.grid-connections` | PouchDB path for Netzanschluss validation reports (v0.14) |
 
 For complete operational options (retry backoff, circuit-breaker thresholds, bulkhead queue limits), see [.env.example](.env.example).
 

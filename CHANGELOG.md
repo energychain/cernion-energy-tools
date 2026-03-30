@@ -7,8 +7,214 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.13.2] - 2026-03-30
+## [0.16.0] - 2026-03-30
 
+### Added
+
+- **Energy Sharing Allocation Engine (`energy-sharing-allocation` service, v0.16.0)** —
+  New Berechnungsengine for § 42c EnWG Energy Sharing communities (third layer of the
+  ES solution: Validierung v0.15 → Allokation v0.16 → EDM-Integration v0.17+).
+  Deterministic 6-step pipeline: input validation → generation time-series fetch →
+  Redispatch 2.0 deduction → allocation arithmetic → summary assembly → PouchDB persist.
+  KRITIS-compliant: full 15-min time-series computed in RAM, only metadata persisted.
+  Excluded from LLM agent catalogue (`skipServices`).
+  Regulatory basis: § 42c EnWG, § 12 StromNZV (Viertelstundenwerte),
+  § 20b EnWG Interimsprozess (operative deadline 01.06.2026).
+- **Stufe A — Forecast-based allocation** — synthetic 15-min generation profiles via
+  `mastr_generation_forecast` MCP tool (`resolution: "15min"`) per generator.
+  MW → kWh conversion (× 0.25 h). Multi-generator weighted merge by `sharePercent`.
+  Zero-profile conservative fallback when MCP call fails.
+- **Stufe B — Inhouse metering data** — real iMSys data via existing Inhouse-Data
+  upload feature (`datasource-cache.query`). CSV schema validation
+  (`timestamp` + `generation_kwh` required columns). 15-min raster alignment check.
+  Hard error on schema mismatch (data integrity required for billing).
+- **Redispatch 2.0 deduction** — optional TSO-level curtailment overlay via
+  `netztransparenz_redispatch`. Conservative approach: overlapping intervals set to 0.
+  `ALLOC_REDISPATCH_DEDUCTION_APPLIED` warning when deductions are made.
+  `ALLOC_REDISPATCH_DATA_UNAVAILABLE` warning + graceful continuation when MCP unavailable.
+- **Allocation arithmetic** — Restmengenempfänger pattern: last consumer receives
+  remainder (`net − ∑previous`) to guarantee ∑allocations = netGenerationKWh per
+  interval (±0.0001 kWh). Rounds to 4 decimal places (kWh billing accuracy).
+- **Five REST endpoints** — `POST /api/energy-sharing/allocate` (120 s timeout),
+  `GET /api/energy-sharing/allocations`, `GET /api/energy-sharing/allocations/:id`,
+  `GET /api/energy-sharing/allocations/:id/download`, `DELETE /api/energy-sharing/allocations/:id`.
+  Full OpenAPI annotations on all actions (`Energy Sharing Allocation` tag).
+- **EDM-importable CSV download** — `GET /allocations/:id/download?maloId=` re-computes
+  time-series on demand (KRITIS) and returns semicolon-delimited CSV
+  (`timestamp;generation_kwh;redispatch_deduction_kwh;net_generation_kwh;allocation_kwh`).
+  `Content-Disposition` attachment header. ISO-8601 timestamps, 4 dp values.
+- **Soft-delete** — `DELETE /allocations/:id` sets `_deleted: true` + `deletedAt`
+  (non-destructive, EU AI Act Art. 12 audit trail). Idempotent.
+  `GET /allocations?includeDeleted=true` exposes deleted records for audit access.
+- **31-day soft warning** — `ALLOC_WINDOW_EXCEEDS_RECOMMENDED` warning added to result
+  when date range exceeds recommended 31 days; pipeline continues (not aborted).
+- **v0.15 report integration** — optional `validationReportId` parameter loads v0.15
+  validation report via `ctx.call('energy-sharing.get', ...)` (broker call only,
+  no cross-service PouchDB access). Non-APPROVED decisions add
+  `ALLOC_VALIDATION_REPORT_NOT_APPROVED` warning; missing report adds
+  `ALLOC_VALIDATION_REPORT_NOT_FOUND` warning; pipeline continues in both cases.
+- **`src/timeseries-allocation.js`** — pure calculation module (no I/O, no Moleculer).
+  Exports: `buildIntervalGrid`, `mergeGeneratorForecasts`, `applyRedispatchDeductions`,
+  `allocateTimeseries`, `buildConsumerSummary`, `buildTotalSummary`, `formatAsCsv`, `round4`.
+- **`ALLOCATION_ENGINE_DB_PATH`** env var added to `.env.example`
+  (default: `./.allocation-engine`).
+- **`energy-sharing-allocation` added to `skipServices`** in `agent.service.js`
+  (both catalogue-builder and plan-executor sets).
+
+### Architecture
+
+```
+Allocation Engine   (v0.16)  — energy-sharing-allocation.service.js
+Agent Layer         (v0.14–v0.15)
+                    ├── grid-connection.service.js
+                    └── energy-sharing.service.js
+```
+
+The Allocation Engine is a Berechnungsschicht — it transforms data (produces time-series),
+not findings. The Findings pattern from v0.14/v0.15 is intentionally not used here.
+
+
+### Added
+
+- **UI: Datapoints panel tag filter** — Filter datapoints by tags via a new text input;
+  calls `GET /api/datapoints/health/overview?tags=` with comma-separated values.
+- **UI: Datapoints interventions viewer** — Per-row 📋 button toggles an inline
+  expand row loading agent interventions from `GET /api/datapoints/:name/interventions`.
+- **UI: Snapshots sub-section** — New section in the Datapoints panel with create
+  form (datapointNames, tags, maxAgeMinutes) + list table; per-row ✅ validate and
+  🗑 delete actions via the snapshot REST endpoints (v0.13).
+- **UI: Grid Connection Validation sub-card** — Integration Hub sub-card for the
+  Netzanschluss-Validierung pipeline (v0.14). Form accepts MaStR-ID, BDEW code,
+  datapoint tags. Results render decision badge (green/amber/red/grey), KPI boxes,
+  6-step timeline, collapsible findings by severity. History table with click-to-detail.
+- **UI: Energy Sharing Validation sub-card** — Integration Hub sub-card for the
+  § 42c EnWG Gemeinschaftliche Gebäudeversorgung pipeline (v0.15). Dynamic
+  add/remove rows for generators (mastrNummer, sharePercent, direktvermarkter)
+  and consumers (maloId, sharePercent, name) with client-side share-sum validation.
+  Per-generator status table. Results render decision badge, KPI boxes, step timeline,
+  findings accordion. History table with click-to-detail.
+- **CSS: New v0.15.1 tokens** — `.decision-badge` (approved/conditional/rejected/
+  insufficient variants), `.val-kpi-row`/`.val-kpi`, `.val-step-timeline`/`.val-step-item`,
+  `.val-findings` accordion, `.dynamic-rows-wrap`/`.dynamic-row` repeatable form rows,
+  `.dp-tag-filter-row`, `.dp-snapshots-section`, `.dp-interventions-row`,
+  `.val-gen-table`, `.val-history-table`.
+
+## [0.15.0] - 2026-03-30
+
+### Added
+
+- **Energy Sharing Validation Service (v0.15.0) — `energy-sharing` microservice**
+  New Moleculer service implementing a deterministic 6-step Energy Sharing community
+  validation pipeline under § 42c EnWG. Provides automated Interims-Prozess for VNBs
+  ahead of the § 20b EnWG central IT platform. Regulatory deadline: 01.06.2026.
+  No LLM involvement — identical inputs always produce identical finding codes.
+
+  **Pipeline steps:**
+  1. `identity` — Resolves VNB identity via `vnb_lookup_codes`. Emits `VNB_RESOLVED` /
+     `VNB_AMBIGUOUS` / `VNB_NOT_FOUND`. Best-effort fallback to provided IDs when MCP
+     is unavailable.
+  2. `generators` — Validates each generator MaStR record via `cernion_installations_local`
+     (one bulk call per pipeline run, not N calls for N generators). Secondary search
+     without VNB filter detects wrong-grid-area submissions. Emits `GENERATOR_VALID` /
+     `GENERATOR_NOT_FOUND` / `GENERATOR_NOT_OPERATIONAL` / `GENERATOR_WRONG_GRID_AREA` /
+     `GENERATOR_TYPE_INELIGIBLE` / `GENERATOR_CAPACITY_ZERO` / `GENERATOR_NO_NAP` /
+     `GENERATOR_NO_MELO`.
+  3. `directMarketer` — Validates Direktvermarkter status per generator. Checks
+     `FernsteuerbarkeitDv` flag (§ 21 Abs. 2 EEG mandatory for ≥100 kW). DV register
+     cross-check via `cernion_direktvermarkter_lookup` (DV lookup cache prevents duplicate
+     calls for same DV name). Emits `DV_VALID` / `DV_MANDATORY_MISSING` /
+     `DV_NOT_CONTROLLABLE` / `DV_NOT_FOUND` / `DV_INACTIVE` / `DV_MASTR_MISMATCH`.
+  4. `eligibility` — § 42c EnWG conformity checks: generator/consumer share sums (∑ = 100%,
+     ±0.1% tolerance), duplicate MaStR numbers, consumer MaLo format (`DE[0-9]{31}`),
+     duplicate MaLo IDs, mixed grid areas, >1 MW installations. Emits `ELIGIBILITY_CONFIRMED` /
+     `SHARE_SUM_GENERATORS_INVALID` / `SHARE_SUM_CONSUMERS_INVALID` / `NO_GENERATORS` /
+     `NO_CONSUMERS` / `GENERATOR_DUPLICATE` / `CONSUMER_MALO_INVALID` /
+     `CONSUMER_MALO_DUPLICATE` / `MIXED_GRID_AREAS` / `GENERATOR_EXCEEDS_LIMIT`.
+  5. `decision` — Deterministic rule engine per CR decision matrix: `APPROVED` /
+     `APPROVED_WITH_CONDITIONS` / `REJECTED_STRUCTURAL` / `REJECTED_GENERATOR_INVALID` /
+     `REJECTED_OTHER`. Structural errors take priority over generator errors.
+  6. `audit` — Seals the report with a PouchDB snapshot reference and `AUDIT_TRAIL_CREATED`
+     for EU AI Act Art. 12 compliance. Detects `SNAPSHOT_DRIFT_DETECTED` if data changed
+     during pipeline execution.
+
+  **Datapoint fallback (Weg B):** If `datapointTags` are provided and a fresh matching
+  datapoint exists, Step 2 uses `datapoint.data` instead of the MCP call. Isolated
+  helper method `tryDatapointFallback` mirrors the v0.14 grid-connection pattern.
+
+  **REST endpoints (via API Gateway):**
+  - `POST /api/energy-sharing/validate` — run pipeline (120 s timeout, synchronous)
+  - `GET /api/energy-sharing/validations` — list past reports (filter by `communityId`)
+  - `GET /api/energy-sharing/validations/:id` — retrieve report by UUID
+
+  **Supporting codes in `src/validation-findings.js`** — 28 new finding-code constants
+  across 5 groups: `VNB_*`, `GENERATOR_*`, `DV_*`, `CONSUMER_*`, `ELIGIBILITY_*`/
+  `SHARE_*`/`NO_*`, and `ES_*` decision codes. `AUDIT_TRAIL_CREATED` and
+  `SNAPSHOT_DRIFT_DETECTED` are reused from v0.14.
+
+  **Architecture:** Separate PouchDB at `.energy-sharing/` (`ENERGY_SHARING_DB_PATH` env).
+  PouchDB doc prefix `es:`. Raw installation data is never persisted — only report metadata
+  (KRITIS). Service excluded from LLM agent catalogue (`skipServices`).
+
+  **Regulatory basis:** § 42c EnWG (Energy Sharing), § 21 Abs. 2 EEG (Direktvermarktung),
+  § 20b EnWG (Interimspflicht, central platform delayed).
+
+### Changed
+
+- **`src/validation-findings.js`** — Extended with 28 new Energy Sharing finding-code
+  constants. All existing v0.14 grid-connection codes and helpers (`createFinding`,
+  `summarizeFindings`, `SIMULTANEITY_FACTORS`) remain unchanged.
+- **`services/api.service.js`** — Added `Energy Sharing Validation` OpenAPI tag and 3
+  new route aliases (`POST /energy-sharing/validate`, `GET /energy-sharing/validations`,
+  `GET /energy-sharing/validations/:id`).
+- **`services/agent.service.js`** — Added `'energy-sharing'` to the LLM planner
+  `skipServices` set (catalogue builder at line 72). Consistent with `grid-connection`.
+- **`.gitignore`** — Added `.energy-sharing/` PouchDB data directory.
+- **`.env.example`** — Added `ENERGY_SHARING_DB_PATH` configuration variable.
+
+### Housekeeping
+
+- **`package.json` version reconciled from 0.13.2 → 0.14.0 → 0.15.0** (v0.14.0 was
+  fully deployed with CHANGELOG entry and 1,525 tests but `package.json` version was
+  inadvertently not bumped). Documented here per decision in CR v0.15.
+
+## [0.14.0] - 2026-03-30
+
+### Added
+
+- **Grid Connection Validation Service (v0.14.0) — `grid-connection` microservice**
+  New Moleculer service implementing a deterministic 6-step Netzanschluss (grid connection)
+  validation pipeline. No LLM involvement — identical inputs always produce identical finding codes.
+
+  **Pipeline steps:**
+  1. `inventory` — Fetches all installations ≥100 kW via `cernion_installations_local` (Weg A)
+     or from a tagged datapoint (Weg B). Emits `INVENTORY_COMPLETE` / `INVENTORY_EMPTY` /
+     `INSTALLATION_NO_NAP` / `INSTALLATION_STATUS_ANOMALY`.
+  2. `delta` — Cross-system data quality analysis. Detects probable MaStR duplicates,
+     stale NBP review status, and unit-vs-NAP voltage level mismatches.
+  3. `capacity` — Simultaneity-adjusted capacity aggregation by voltage level.
+     KRITIS note: MaStR has no transformer ratings — `TRANSFORMER_DATA_MISSING` is always emitted;
+     `includeCapacityCheck: true` enables `cernion_connection_capacity_check` headroom lookup.
+  4. `benchmark` — EWK regulatory benchmark via `ewk-monitoring.anschlussdauer` and
+     `ewk-monitoring.umsetzungsquote` (reuses existing BNr/BDEW resolution).
+  5. `decision` — Deterministic Go/No-Go rule engine: `GO_DIRECT` / `GO_CONDITIONAL` /
+     `NO_GO_EXPANSION` / `DATA_QUALITY_INSUFFICIENT`.
+  6. `audit` — Seals the report with a PouchDB snapshot reference and `AUDIT_TRAIL_CREATED`
+     finding for EU AI Act Art. 12 compliance.
+
+  **REST endpoints (via API Gateway):**
+  - `POST /api/grid-connection/validate` — run pipeline (120 s timeout, synchronous)
+  - `GET /api/grid-connection/validations` — list past reports
+  - `GET /api/grid-connection/validations/:id` — retrieve report by UUID
+
+  **Supporting module:** `src/validation-findings.js` — 20 finding-code constants,
+  `SIMULTANEITY_FACTORS` map, `createFinding()` factory, `summarizeFindings()` aggregator.
+
+  **Architecture:** Separate PouchDB at `.grid-connections/` (`GRID_CONNECTION_DB_PATH` env).
+  Raw installation data is never persisted — only report metadata and provenance hashes (KRITIS).
+  Service excluded from LLM agent catalogue (`skipServices`).
+
+## [0.13.2] - 2026-03-30
+*
 ### Added
 
 - **Dedicated `agent_interventions` endpoint — closes Issue #32**
@@ -122,7 +328,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `docs/use-cases/grid-assets-pv-leistung-vs-vnb-benchmark.md` — status
     updated from "tracked for v0.9.4" to "resolved in v0.9.11 (EWK BNr
     mapping fix)"
-
+*
 ## [0.13.0] - 2026-03-29
 
 ### Added

@@ -1,0 +1,324 @@
+'use strict';
+
+/**
+ * Timeseries Allocation — pure calculation module (v0.16.0)
+ *
+ * No I/O, no Moleculer dependencies, no MCP calls.
+ * All functions are deterministic: identical inputs → identical outputs.
+ *
+ * Regulatory basis: § 42c EnWG, § 12 StromNZV (15-min resolution).
+ */
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Duration of one allocation interval in milliseconds (15 minutes). */
+const INTERVAL_MS = 15 * 60 * 1000;
+
+/** Number of 15-min intervals per day. */
+const INTERVALS_PER_DAY = 96;
+
+/** Recommended maximum window in days (soft limit — triggers warning, not abort). */
+const RECOMMENDED_MAX_DAYS = 31;
+
+// ---------------------------------------------------------------------------
+// Exports
+// ---------------------------------------------------------------------------
+
+module.exports = {
+  INTERVAL_MS,
+  INTERVALS_PER_DAY,
+  RECOMMENDED_MAX_DAYS,
+  round4,
+  buildIntervalGrid,
+  mergeGeneratorForecasts,
+  applyRedispatchDeductions,
+  allocateTimeseries,
+  buildConsumerSummary,
+  buildTotalSummary,
+  formatAsCsv,
+};
+
+// ---------------------------------------------------------------------------
+// round4
+// ---------------------------------------------------------------------------
+
+/**
+ * Round a number to 4 decimal places (kWh billing accuracy).
+ * @param {number} n
+ * @returns {number}
+ */
+function round4(n) {
+  return Math.round(n * 10000) / 10000;
+}
+
+// ---------------------------------------------------------------------------
+// buildIntervalGrid
+// ---------------------------------------------------------------------------
+
+/**
+ * Build an empty array of 15-min interval skeletons between two ISO-8601 dates
+ * (inclusive of `dateFrom` 00:00:00Z, exclusive of `dateTo+1` 00:00:00Z).
+ *
+ * Each interval carries zero-values so callers can merge data in later steps.
+ *
+ * @param {string} dateFrom  — ISO-8601 date string, e.g. "2026-06-01"
+ * @param {string} dateTo    — ISO-8601 date string, e.g. "2026-06-07"
+ * @returns {Array<{timestamp: string, generationKWh: number, redispatchDeductionKWh: number, netGenerationKWh: number}>}
+ */
+function buildIntervalGrid(dateFrom, dateTo) {
+  const start = new Date(`${dateFrom}T00:00:00Z`).getTime();
+  // dateTo is inclusive — advance to end of that day
+  const end = new Date(`${dateTo}T00:00:00Z`).getTime() + 24 * 60 * 60 * 1000;
+
+  const intervals = [];
+  for (let t = start; t < end; t += INTERVAL_MS) {
+    intervals.push({
+      timestamp: new Date(t).toISOString(),
+      generationKWh: 0,
+      redispatchDeductionKWh: 0,
+      netGenerationKWh: 0,
+    });
+  }
+  return intervals;
+}
+
+// ---------------------------------------------------------------------------
+// mergeGeneratorForecasts
+// ---------------------------------------------------------------------------
+
+/**
+ * Merge one or more generator forecast arrays into a single interval grid,
+ * weighted by each generator's sharePercent.
+ *
+ * Forecast values are expected in MW per 15-min interval.
+ * They are converted to kWh: MW × 0.25h = kWh.
+ *
+ * @param {Array<{timestamp: string, generationKWh: number, generationMW?: number}>} grid
+ *   — The base interval grid produced by `buildIntervalGrid`.
+ * @param {Array<{sharePercent: number, forecastIntervals: Array<{timestamp: string, generationMW?: number, generationKWh?: number}>}>} generators
+ *   — One entry per generator. `forecastIntervals` contains the raw forecast data.
+ * @returns {Array} — The same grid array, mutated with summed generationKWh values.
+ */
+function mergeGeneratorForecasts(grid, generators) {
+  // Build a lookup map from timestamp → grid index for O(1) merging
+  const indexMap = new Map();
+  for (let i = 0; i < grid.length; i++) {
+    indexMap.set(grid[i].timestamp, i);
+  }
+
+  for (const gen of generators) {
+    if (!gen.forecastIntervals || gen.forecastIntervals.length === 0) continue;
+    const weight = (gen.sharePercent || 100) / 100;
+
+    for (const fi of gen.forecastIntervals) {
+      const idx = indexMap.get(fi.timestamp);
+      if (idx === undefined) continue;
+
+      // Accept pre-converted kWh or raw MW (convert MW → kWh for 15-min interval)
+      const kwh = fi.generationKWh != null
+        ? fi.generationKWh
+        : (fi.generationMW != null ? fi.generationMW * 0.25 : 0);
+
+      grid[idx].generationKWh = round4(grid[idx].generationKWh + kwh * weight);
+    }
+  }
+
+  // Compute netGenerationKWh (redispatch starts at 0 here; applied separately)
+  for (const interval of grid) {
+    interval.netGenerationKWh = round4(interval.generationKWh - interval.redispatchDeductionKWh);
+  }
+
+  return grid;
+}
+
+// ---------------------------------------------------------------------------
+// applyRedispatchDeductions
+// ---------------------------------------------------------------------------
+
+/**
+ * Apply redispatch deductions to intervals that fall within curtailment windows.
+ *
+ * Conservative approach (v0.16): if a curtailment window overlaps an interval
+ * timestamp, the full generation for that interval is set to 0 (worst-case).
+ * The `redispatchDeductionKWh` field records the amount subtracted.
+ *
+ * @param {Array} grid — interval grid (mutated in-place)
+ * @param {Array<{startTime: string, endTime: string}>} curtailmentWindows
+ *   — Each entry has ISO-8601 `startTime` and `endTime`.
+ * @returns {Array} — the same grid, mutated.
+ */
+function applyRedispatchDeductions(grid, curtailmentWindows) {
+  if (!curtailmentWindows || curtailmentWindows.length === 0) return grid;
+
+  // Pre-parse windows once
+  const windows = curtailmentWindows.map((w) => ({
+    start: new Date(w.startTime).getTime(),
+    end: new Date(w.endTime).getTime(),
+  }));
+
+  for (const interval of grid) {
+    const t = new Date(interval.timestamp).getTime();
+    const tEnd = t + INTERVAL_MS;
+
+    const overlaps = windows.some((w) => t < w.end && tEnd > w.start);
+    if (overlaps && interval.generationKWh > 0) {
+      interval.redispatchDeductionKWh = round4(interval.generationKWh);
+      interval.netGenerationKWh = 0;
+    } else {
+      interval.netGenerationKWh = round4(interval.generationKWh - interval.redispatchDeductionKWh);
+    }
+  }
+
+  return grid;
+}
+
+// ---------------------------------------------------------------------------
+// allocateTimeseries
+// ---------------------------------------------------------------------------
+
+/**
+ * Core allocation step — distributes net generation per interval across consumers
+ * according to their sharePercent.
+ *
+ * Rounding strategy:
+ *   - Each consumer (except the last) receives: round4(net × share / 100)
+ *   - The LAST consumer receives the remainder: net − ∑previous allocations
+ *     (Restmengenempfänger pattern — guarantees ∑allocations = netGenerationKWh)
+ *
+ * @param {Array} grid — interval grid with netGenerationKWh filled
+ * @param {Array<{maloId: string, sharePercent: number, name?: string}>} consumers
+ * @returns {Array} — same grid, each interval now has an `allocations` object
+ *   keyed by maloId → kWh (rounded to 4 dp).
+ */
+function allocateTimeseries(grid, consumers) {
+  if (!consumers || consumers.length === 0) return grid;
+
+  for (const interval of grid) {
+    const net = interval.netGenerationKWh;
+    const allocations = {};
+    let allocated = 0;
+
+    for (let i = 0; i < consumers.length; i++) {
+      const consumer = consumers[i];
+      if (i === consumers.length - 1) {
+        // Last consumer: assign remainder to eliminate rounding drift
+        allocations[consumer.maloId] = round4(net - allocated);
+      } else {
+        const share = round4(net * consumer.sharePercent / 100);
+        allocations[consumer.maloId] = share;
+        allocated += share;
+      }
+    }
+
+    interval.allocations = allocations;
+  }
+
+  return grid;
+}
+
+// ---------------------------------------------------------------------------
+// buildConsumerSummary
+// ---------------------------------------------------------------------------
+
+/**
+ * Aggregate per-consumer statistics across all intervals.
+ *
+ * @param {Array} grid — fully allocated interval grid
+ * @param {Array<{maloId: string, sharePercent: number, name?: string}>} consumers
+ * @returns {Array<{maloId, name, sharePercent, totalKWh, peakKW, zeroIntervals, intervalCount, avgKWhPerInterval}>}
+ */
+function buildConsumerSummary(grid, consumers) {
+  return consumers.map((consumer) => {
+    let totalKWh = 0;
+    let peakKWh = 0;
+    let zeroIntervals = 0;
+
+    for (const interval of grid) {
+      const kwh = interval.allocations?.[consumer.maloId] ?? 0;
+      totalKWh += kwh;
+      if (kwh > peakKWh) peakKWh = kwh;
+      if (kwh === 0) zeroIntervals++;
+    }
+
+    const count = grid.length;
+    return {
+      maloId: consumer.maloId,
+      name: consumer.name || null,
+      sharePercent: consumer.sharePercent,
+      totalKWh: round4(totalKWh),
+      // kW = kWh / 0.25h (15-min interval → multiply by 4)
+      peakKW: round4(peakKWh * 4),
+      zeroIntervals,
+      intervalCount: count,
+      avgKWhPerInterval: count > 0 ? round4(totalKWh / count) : 0,
+    };
+  });
+}
+
+// ---------------------------------------------------------------------------
+// buildTotalSummary
+// ---------------------------------------------------------------------------
+
+/**
+ * Build the overall allocation summary.
+ *
+ * @param {Array} grid — fully allocated interval grid
+ * @param {string} dateFrom
+ * @param {string} dateTo
+ * @param {string} dataSource — "forecast" | "inhouse"
+ * @param {number} durationMs
+ * @returns {object}
+ */
+function buildTotalSummary(grid, dateFrom, dateTo, dataSource, durationMs) {
+  let totalGenerationKWh = 0;
+  let totalRedispatchDeductionKWh = 0;
+  let totalNetGenerationKWh = 0;
+
+  for (const interval of grid) {
+    totalGenerationKWh += interval.generationKWh;
+    totalRedispatchDeductionKWh += interval.redispatchDeductionKWh;
+    totalNetGenerationKWh += interval.netGenerationKWh;
+  }
+
+  return {
+    totalGenerationKWh: round4(totalGenerationKWh),
+    totalRedispatchDeductionKWh: round4(totalRedispatchDeductionKWh),
+    totalNetGenerationKWh: round4(totalNetGenerationKWh),
+    intervalCount: grid.length,
+    dateFrom,
+    dateTo,
+    dataSource,
+    durationMs,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// formatAsCsv
+// ---------------------------------------------------------------------------
+
+/**
+ * Render the time-series allocation for a single consumer as an EDM-importable
+ * semicolon-delimited CSV string.
+ *
+ * Columns: timestamp;generation_kwh;redispatch_deduction_kwh;net_generation_kwh;allocation_kwh
+ *
+ * @param {Array} grid — fully allocated interval grid
+ * @param {string} maloId — the consumer MaLo-ID to extract allocations for
+ * @returns {string} — CSV string with header + one row per interval
+ */
+function formatAsCsv(grid, maloId) {
+  const header = 'timestamp;generation_kwh;redispatch_deduction_kwh;net_generation_kwh;allocation_kwh';
+  const rows = grid.map((interval) => {
+    const alloc = interval.allocations?.[maloId] ?? 0;
+    return [
+      interval.timestamp,
+      interval.generationKWh.toFixed(4),
+      interval.redispatchDeductionKWh.toFixed(4),
+      interval.netGenerationKWh.toFixed(4),
+      alloc.toFixed(4),
+    ].join(';');
+  });
+  return [header, ...rows].join('\n');
+}

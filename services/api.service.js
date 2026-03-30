@@ -140,6 +140,32 @@ module.exports = {
             'No authentication required for public tables. ' +
             'Supports schema/table discovery, column metadata, row queries, and full-text search. ' +
             'API: https://openenergyplatform.org/api/v0',
+        },
+        {
+          name: 'Grid Connection Validation',
+          description:
+            'Deterministic 6-step Netzanschluss validation pipeline (v0.14). ' +
+            'Produces structured findings and a Go/No-Go decision sealed with a PouchDB snapshot for audit integrity. ' +
+            'No LLM involvement — identical inputs always produce identical finding codes.',
+        },
+        {
+          name: 'Energy Sharing Validation',
+          description:
+            'Deterministic 6-step Energy Sharing community validation pipeline (v0.15). ' +
+            'Validates generator MaStR records, Direktvermarkter status (§ 21 Abs. 2 EEG), ' +
+            'share allocations, and § 42c EnWG eligibility. ' +
+            'Interims-Prozess for VNBs ahead of § 20b EnWG central platform. ' +
+            'No LLM involvement — identical inputs always produce identical finding codes.',
+        },
+        {
+          name: 'Energy Sharing Allocation',
+          description:
+            'Deterministic 6-step Energy Sharing allocation engine (v0.16). ' +
+            'Computes per-consumer 15-min allocation time-series (§ 12 StromNZV) for § 42c EnWG communities. ' +
+            'Stufe A: synthetic forecast via mastr_generation_forecast. ' +
+            'Stufe B: real iMSys metering data via inhouse CSV upload. ' +
+            'KRITIS-compliant: time-series computed in RAM, only metadata persisted. ' +
+            'Interimsprozess operative deadline: 01.06.2026 (§ 20b EnWG).',
         },      ],
       components: {
         securitySchemes: {
@@ -362,6 +388,20 @@ module.exports = {
           'GET /oep/tables/:schema/:table/meta': 'oep.getTableMeta',
           'GET /oep/tables/:schema/:table/rows': 'oep.query',
           'GET /oep/search': 'oep.search',
+          // Grid Connection Validation (v0.14)
+          'POST /grid-connection/validate': 'grid-connection.validate',
+          'GET /grid-connection/validations': 'grid-connection.list',
+          'GET /grid-connection/validations/:id': 'grid-connection.get',
+          // Energy Sharing Validation (v0.15)
+          'POST /energy-sharing/validate': 'energy-sharing.validate',
+          'GET /energy-sharing/validations': 'energy-sharing.list',
+          'GET /energy-sharing/validations/:id': 'energy-sharing.get',
+          // Energy Sharing Allocation (v0.16) — /download must precede /:id
+          'POST /energy-sharing/allocate': 'energy-sharing-allocation.allocate',
+          'GET /energy-sharing/allocations': 'energy-sharing-allocation.list',
+          'GET /energy-sharing/allocations/:id/download': 'energy-sharing-allocation.download',
+          'GET /energy-sharing/allocations/:id': 'energy-sharing-allocation.get',
+          'DELETE /energy-sharing/allocations/:id': 'energy-sharing-allocation.remove',
 
           // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
           'GET /datasources/uploads'(req, res) {

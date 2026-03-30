@@ -1373,6 +1373,209 @@
         color: var(--text-muted);
       }
       .dp-empty-icon { font-size: 2rem; margin-bottom: 8px; }
+
+      /* === v0.15.1: Tag filter, Snapshots, Validation agents === */
+
+      /* Tag filter row above datapoints table */
+      .dp-tag-filter-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+      }
+      .dp-tag-filter-row input {
+        flex: 1;
+        max-width: 340px;
+        font-size: .85rem;
+        padding: 6px 12px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+      }
+
+      /* Interventions expand row */
+      .dp-interventions-row td {
+        background: var(--surface);
+        padding: 10px 16px;
+        font-size: .82rem;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border);
+      }
+      .dp-intervention-item {
+        padding: 4px 0;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      .dp-intervention-item:last-child { border-bottom: none; }
+      .dp-intervention-ts { color: var(--text-muted); font-size: .78rem; white-space: nowrap; }
+      .dp-intervention-code { font-family: monospace; color: var(--accent2); }
+      .dp-intervention-msg { flex: 1; }
+
+      /* Snapshots sub-section */
+      .dp-snapshots-section {
+        border-top: 1px solid var(--border);
+        padding-top: 20px;
+        margin-top: 20px;
+      }
+      .dp-snapshots-section h3 { font-size: .95rem; font-weight: 600; margin-bottom: 14px; }
+      .dp-snap-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: flex-end;
+        margin-bottom: 14px;
+      }
+      .dp-snap-form > div { display: flex; flex-direction: column; gap: 3px; }
+      .dp-snap-form label { font-size: .78rem; color: var(--text-muted); }
+      .dp-snap-form input {
+        font-size: .85rem;
+        padding: 6px 10px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        min-width: 200px;
+      }
+
+      /* Decision badge */
+      .decision-badge {
+        display: inline-block;
+        font-size: .78rem;
+        font-weight: 700;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+        padding: 3px 10px;
+        border-radius: 20px;
+        border: 1px solid currentColor;
+      }
+      .decision-badge.approved    { color: var(--accent);    background: rgba(74,222,128,.12); }
+      .decision-badge.conditional { color: var(--warning);   background: rgba(251,191,36,.12); }
+      .decision-badge.rejected    { color: var(--danger);    background: rgba(248,113,113,.12); }
+      .decision-badge.insufficient{ color: var(--text-muted); background: var(--surface2); border-color: var(--border); }
+
+      /* KPI summary row for validation results */
+      .val-kpi-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 14px 0; }
+      .val-kpi {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 16px;
+        min-width: 100px;
+        text-align: center;
+      }
+      .val-kpi-value { font-size: 1.3rem; font-weight: 700; color: var(--text); }
+      .val-kpi-label { font-size: .72rem; color: var(--text-muted); margin-top: 2px; }
+
+      /* 6-step pipeline timeline */
+      .val-step-timeline { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+      .val-step-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 4px 9px;
+        font-size: .76rem;
+        white-space: nowrap;
+      }
+      .val-step-item.ok   { border-color: var(--accent);  color: var(--accent); }
+      .val-step-item.warn { border-color: var(--warning); color: var(--warning); }
+      .val-step-item.err  { border-color: var(--danger);  color: var(--danger); }
+      .val-step-num { font-weight: 700; }
+
+      /* Findings accordion */
+      .val-findings { margin-top: 14px; }
+      .val-findings details {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 6px;
+        overflow: hidden;
+      }
+      .val-findings details[open] { border-color: var(--accent2); }
+      .val-findings summary {
+        padding: 8px 14px;
+        cursor: pointer;
+        font-size: .84rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        user-select: none;
+        background: var(--surface2);
+        list-style: none;
+      }
+      .val-findings summary:hover { background: var(--surface); }
+      .val-findings .finding-row {
+        padding: 6px 14px;
+        font-size: .81rem;
+        border-top: 1px solid var(--border);
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+      }
+      .val-findings .finding-row:nth-child(even) { background: var(--surface2); }
+      .finding-code { font-family: monospace; color: var(--accent2); white-space: nowrap; font-size: .77rem; }
+      .finding-msg  { flex: 1; }
+      .finding-sev-info    { color: var(--text-muted); }
+      .finding-sev-warning { color: var(--warning); }
+      .finding-sev-error   { color: var(--danger); }
+
+      /* Dynamic rows (generators / consumers) */
+      .dynamic-rows-wrap { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+      .dynamic-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: flex-end;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .dynamic-row .form-field { margin: 0; min-width: 140px; flex: 1; }
+      .dynamic-row .form-field label { font-size: .74rem; }
+      .dynamic-row .form-field input { font-size: .82rem; padding: 5px 8px; }
+      .dynamic-row-remove {
+        background: none;
+        border: none;
+        color: var(--danger);
+        cursor: pointer;
+        font-size: 1rem;
+        padding: 4px 6px;
+        align-self: flex-end;
+        border-radius: 4px;
+        line-height: 1;
+      }
+      .dynamic-row-remove:hover { background: rgba(248,113,113,.1); }
+
+      /* Validation history table */
+      .val-history-table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+      .val-history-table th,
+      .val-history-table td { padding: 7px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+      .val-history-table th { color: var(--text-muted); font-weight: 600; font-size: .74rem; text-transform: uppercase; letter-spacing: .4px; }
+      .val-history-table tr:hover td { background: var(--surface2); cursor: pointer; }
+
+      /* Validation result pane */
+      .val-result-pane { border-top: 1px solid var(--border); padding-top: 16px; margin-top: 14px; }
+      .val-result-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 10px;
+        flex-wrap: wrap;
+      }
+      .val-result-title { font-weight: 600; font-size: .95rem; }
+
+      /* Per-generator status table */
+      .val-gen-table { width: 100%; border-collapse: collapse; font-size: .81rem; margin-top: 10px; }
+      .val-gen-table th,
+      .val-gen-table td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+      .val-gen-table th { color: var(--text-muted); font-size: .73rem; text-transform: uppercase; letter-spacing: .4px; }
     </style>
   </head>
   <body>
@@ -1603,8 +1806,35 @@
           Named, managed data sources with lifecycle tracking and health monitoring.
           Created via "Promote to Datapoint" after a research analysis.
         </p>
+        <div class="dp-tag-filter-row">
+          <input id="dp-tag-filter" type="text" placeholder="🏷️  Filter by tags (comma-separated, e.g. solar,twl-netze)" />
+        </div>
         <div id="dp-health-bar" class="dp-health-bar"></div>
         <div id="dp-content"></div>
+
+        <!-- Snapshots sub-section (v0.13) -->
+        <div class="dp-snapshots-section" id="dp-snapshots-section">
+          <h3>📸 Snapshots</h3>
+          <p style="color:var(--text-muted);font-size:.83rem;margin-bottom:12px;">
+            Seal a group of datapoints into a timestamped, hash-verified snapshot for consistency proofs.
+          </p>
+          <div class="dp-snap-form">
+            <div>
+              <label for="dp-snap-names">Datapoint names (comma-separated, or leave blank for all)</label>
+              <input id="dp-snap-names" type="text" placeholder="e.g. solar-assets-twl, wind-forecast" style="min-width:280px" />
+            </div>
+            <div>
+              <label for="dp-snap-tags">Or filter by tags</label>
+              <input id="dp-snap-tags" type="text" placeholder="e.g. solar,twl-netze" style="min-width:180px" />
+            </div>
+            <div>
+              <label for="dp-snap-age">Max age (minutes)</label>
+              <input id="dp-snap-age" type="number" min="1" value="60" style="width:100px" />
+            </div>
+            <button class="btn-primary" id="dp-snap-create">📸 Create Snapshot</button>
+          </div>
+          <div id="dp-snap-list"></div>
+        </div>
       </section>
 
       <!-- ── Integration Hub Panel ─────────────────────────────── -->
@@ -1662,6 +1892,96 @@
             <div class="ih-inline" style="margin-top:10px">
               <button class="btn-primary" id="ih-threshold-save">💾 Save</button>
               <button class="btn-secondary" id="ih-threshold-reset">Auf Standard zurück</button>
+            </div>
+          </div>
+
+          <!-- Grid Connection Validation sub-card (v0.14) -->
+          <div class="ih-subcard" id="gc-subcard">
+            <h3>🔗 Netzanschluss-Validierung</h3>
+            <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:12px">
+              Deterministische 6-Schritt-Pipeline: Bestand → Delta → Kapazität → EWK-Benchmark → Go/No-Go → Audit.
+            </p>
+            <div class="form-grid" style="margin-bottom:10px">
+              <div class="form-field">
+                <label>MaStR-ID des Netzbetreibers</label>
+                <input id="gc-mastr-id" type="text" placeholder="z.B. SNB935578300972" />
+              </div>
+              <div class="form-field">
+                <label>BDEW-Code (alternativ)</label>
+                <input id="gc-bdew" type="text" placeholder="z.B. 9907473000008" />
+              </div>
+              <div class="form-field">
+                <label>Datapoint-Tags (optional)</label>
+                <input id="gc-dp-tags" type="text" placeholder="z.B. twl-netze,solar" />
+              </div>
+            </div>
+            <div class="ih-inline" style="margin-bottom:12px">
+              <button class="btn-primary" id="gc-run-btn">▶ Validierung starten</button>
+              <button class="btn-secondary" id="gc-history-btn">📋 Verlauf</button>
+            </div>
+            <div id="gc-result-pane" class="val-result-pane" style="display:none"></div>
+            <div id="gc-history-pane" style="display:none">
+              <div class="table-wrapper" style="margin-top:8px">
+                <table class="val-history-table">
+                  <thead><tr><th>Zeitpunkt</th><th>Netzbetreiber</th><th>Entscheidung</th><th>Anlagen</th><th>Findings</th></tr></thead>
+                  <tbody id="gc-history-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Energy Sharing Validation sub-card (v0.15) -->
+          <div class="ih-subcard" id="es-subcard">
+            <h3>⚡ Energy Sharing-Validierung (§ 42c EnWG)</h3>
+            <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:12px">
+              6-Schritt-Pipeline: Identität → Erzeuger → Direktvermarktung → Förderprüfung → Entscheidung → Audit. Frist: 01.06.2026.
+            </p>
+            <div class="form-grid" style="margin-bottom:10px">
+              <div class="form-field">
+                <label>MaStR-ID / BDEW des Netzbetreibers</label>
+                <input id="es-operator" type="text" placeholder="SNB... oder 9907473000008" />
+              </div>
+              <div class="form-field">
+                <label>Gemeinschaftsname (optional)</label>
+                <input id="es-community-name" type="text" placeholder="z.B. Solargemeinschaft Nord" />
+              </div>
+              <div class="form-field">
+                <label>Gemeinschafts-ID (optional)</label>
+                <input id="es-community-id" type="text" placeholder="z.B. GEM-001" />
+              </div>
+            </div>
+
+            <!-- Generators -->
+            <div style="margin-bottom:10px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                <span style="font-size:.85rem;font-weight:600">Erzeuger</span>
+                <button class="btn-secondary" style="padding:3px 10px;font-size:.78rem" id="es-add-gen">+ Erzeuger</button>
+              </div>
+              <div class="dynamic-rows-wrap" id="es-generators"></div>
+            </div>
+
+            <!-- Consumers -->
+            <div style="margin-bottom:12px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+                <span style="font-size:.85rem;font-weight:600">Verbraucher</span>
+                <button class="btn-secondary" style="padding:3px 10px;font-size:.78rem" id="es-add-con">+ Verbraucher</button>
+              </div>
+              <div class="dynamic-rows-wrap" id="es-consumers"></div>
+            </div>
+
+            <div id="es-share-warning" style="display:none;color:var(--warning);font-size:.82rem;margin-bottom:8px"></div>
+            <div class="ih-inline" style="margin-bottom:12px">
+              <button class="btn-primary" id="es-run-btn">▶ Validierung starten</button>
+              <button class="btn-secondary" id="es-history-btn">📋 Verlauf</button>
+            </div>
+            <div id="es-result-pane" class="val-result-pane" style="display:none"></div>
+            <div id="es-history-pane" style="display:none">
+              <div class="table-wrapper" style="margin-top:8px">
+                <table class="val-history-table">
+                  <thead><tr><th>Zeitpunkt</th><th>Gemeinschaft</th><th>Entscheidung</th><th>Erzeuger</th><th>Findings</th></tr></thead>
+                  <tbody id="es-history-tbody"></tbody>
+                </table>
+              </div>
             </div>
           </div>
 
@@ -2018,6 +2338,7 @@
         e.preventDefault();
         showPanel('datapoints-panel');
         window.loadDatapoints && window.loadDatapoints();
+        window.__dpLoadSnapshots && window.__dpLoadSnapshots();
       });
 
       // ── Promote to Datapoint ───────────────────────────────────────
@@ -5066,6 +5387,516 @@
       })(); // end DataSources IIFE
 
       /* ============================================================
+       * GRID CONNECTION VALIDATION (v0.14)
+       * ============================================================ */
+      (function () {
+        'use strict';
+
+        const runBtn     = $('gc-run-btn');
+        const histBtn    = $('gc-history-btn');
+        const resultPane = $('gc-result-pane');
+        const histPane   = $('gc-history-pane');
+        const histTbody  = $('gc-history-tbody');
+        if (!runBtn) return;
+
+        // ── Decision → CSS class mapping ─────────────────────────────
+        function decisionClass(d) {
+          if (!d) return 'insufficient';
+          if (d === 'GO_DIRECT')             return 'approved';
+          if (d === 'GO_CONDITIONAL')        return 'conditional';
+          if (/NO_GO|REJECTED/.test(d))      return 'rejected';
+          if (/INSUFFICIENT|UNKNOWN/.test(d))return 'insufficient';
+          return 'insufficient';
+        }
+
+        function decisionLabel(d) {
+          const MAP = {
+            GO_DIRECT:               '✅ GO — Direct Connection',
+            GO_CONDITIONAL:          '⚠️ GO — Conditional (§14a)',
+            NO_GO_EXPANSION:         '🔴 NO-GO — Grid Expansion Needed',
+            DATA_QUALITY_INSUFFICIENT: '⚫ Insufficient Data Quality',
+          };
+          return MAP[d] || (d || 'Unknown');
+        }
+
+        // ── Findings renderer ────────────────────────────────────────
+        function renderFindings(findings) {
+          if (!findings || !findings.length) return '<p style="color:var(--text-muted);font-size:.82rem">No findings.</p>';
+          const bySeverity = {};
+          findings.forEach((f) => {
+            const sev = f.severity || 'info';
+            (bySeverity[sev] = bySeverity[sev] || []).push(f);
+          });
+          const ORDER = ['error', 'warning', 'info'];
+          const ICONS = { error: '🔴', warning: '🟡', info: '🔵' };
+          return `<div class="val-findings">` +
+            ORDER.filter((s) => bySeverity[s]).map((sev) => {
+              const items = bySeverity[sev];
+              return `<details>
+                <summary>${ICONS[sev]} ${sev.toUpperCase()} (${items.length})</summary>
+                ${items.map((f) => `
+                  <div class="finding-row">
+                    <span class="finding-code finding-sev-${esc(sev)}">${esc(f.code || '—')}</span>
+                    <span class="finding-msg">${esc(f.message || f.description || '—')}</span>
+                  </div>`).join('')}
+              </details>`;
+            }).join('') +
+          `</div>`;
+        }
+
+        // ── Step timeline renderer ───────────────────────────────────
+        function renderStepTimeline(steps) {
+          if (!steps || !steps.length) return '';
+          return `<div class="val-step-timeline">` +
+            steps.map((s) => {
+              const cls = s.error ? 'err' : (s.findings && s.findings.some((f) => f.severity === 'warning') ? 'warn' : 'ok');
+              return `<div class="val-step-item ${cls}">
+                <span class="val-step-num">${s.step}</span>
+                <span>${esc(s.name || s.action || '')}</span>
+                ${s.durationMs ? `<span style="color:var(--text-muted);font-size:.72rem">${s.durationMs}ms</span>` : ''}
+              </div>`;
+            }).join('') +
+          `</div>`;
+        }
+
+        // ── Render full result ───────────────────────────────────────
+        function renderResult(report) {
+          if (!report) return;
+          const d = report.decision || '';
+          const s = report.summary || {};
+          const dc = decisionClass(d);
+          resultPane.style.display = '';
+          resultPane.innerHTML = `
+            <div class="val-result-header">
+              <span class="val-result-title">Ergebnis</span>
+              <span class="decision-badge ${dc}">${esc(decisionLabel(d))}</span>
+              ${report.gridOperator?.name ? `<span style="color:var(--text-muted);font-size:.82rem">${esc(report.gridOperator.name)}</span>` : ''}
+            </div>
+            <div class="val-kpi-row">
+              <div class="val-kpi"><div class="val-kpi-value">${s.totalInstallations ?? '—'}</div><div class="val-kpi-label">Anlagen</div></div>
+              <div class="val-kpi"><div class="val-kpi-value">${s.totalCapacityMW != null ? s.totalCapacityMW.toFixed(1) : '—'}</div><div class="val-kpi-label">MW gesamt</div></div>
+              <div class="val-kpi"><div class="val-kpi-value" style="color:var(--danger)">${s.findingsCount?.error ?? 0}</div><div class="val-kpi-label">Fehler</div></div>
+              <div class="val-kpi"><div class="val-kpi-value" style="color:var(--warning)">${s.findingsCount?.warning ?? 0}</div><div class="val-kpi-label">Warnungen</div></div>
+              <div class="val-kpi"><div class="val-kpi-value" style="color:var(--text-muted)">${s.findingsCount?.info ?? 0}</div><div class="val-kpi-label">Hinweise</div></div>
+              ${s.durationMs ? `<div class="val-kpi"><div class="val-kpi-value" style="font-size:1rem">${(s.durationMs/1000).toFixed(1)}s</div><div class="val-kpi-label">Laufzeit</div></div>` : ''}
+            </div>
+            ${renderStepTimeline(report.steps)}
+            ${renderFindings(report.findings)}
+          `;
+        }
+
+        // ── Run validation ───────────────────────────────────────────
+        runBtn.addEventListener('click', async () => {
+          const mastrId = ($('gc-mastr-id')?.value || '').trim();
+          const bdew    = ($('gc-bdew')?.value     || '').trim();
+          const dpTags  = ($('gc-dp-tags')?.value  || '').trim();
+          if (!mastrId && !bdew) {
+            toast('⚠️ Bitte MaStR-ID oder BDEW-Code angeben.', 'error');
+            return;
+          }
+          const body = {};
+          if (mastrId) body.gridOperatorId = mastrId;
+          if (bdew)    body.gridOperatorBdew = bdew;
+          if (dpTags)  body.datapointTags = dpTags.split(',').map((t) => t.trim()).filter(Boolean);
+
+          runBtn.disabled = true;
+          runBtn.textContent = '⏳ Läuft…';
+          resultPane.style.display = 'none';
+          histPane.style.display = 'none';
+
+          try {
+            const report = await apiFetch('/api/grid-connection/validate', body);
+            renderResult(report);
+            toast('✅ Grid Connection Validation abgeschlossen');
+            loadHistory();
+          } catch (err) {
+            toast('❌ Validierung fehlgeschlagen: ' + err.message, 'error');
+            resultPane.style.display = '';
+            resultPane.innerHTML = `<div class="warn-callout">❌ ${esc(err.message)}</div>`;
+          } finally {
+            runBtn.disabled = false;
+            runBtn.textContent = '▶ Validierung starten';
+          }
+        });
+
+        // ── History ──────────────────────────────────────────────────
+        histBtn.addEventListener('click', () => {
+          const open = histPane.style.display !== 'none';
+          histPane.style.display = open ? 'none' : '';
+          if (!open) loadHistory();
+        });
+
+        async function loadHistory() {
+          if (!histTbody) return;
+          histTbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-muted);padding:10px">Loading…</td></tr>';
+          try {
+            const data = await apiGet('/api/grid-connection/validations');
+            const list = Array.isArray(data) ? data : (data.data || data.validations || []);
+            if (!list.length) {
+              histTbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-muted);padding:10px">Keine Validierungen vorhanden.</td></tr>';
+              return;
+            }
+            histTbody.innerHTML = list.map((v) => {
+              const dc = decisionClass(v.decision || '');
+              return `<tr data-id="${esc(v._id || v.id || '')}">
+                <td style="font-size:.8rem">${esc(v.createdAt ? new Date(v.createdAt).toLocaleString('de-DE') : '—')}</td>
+                <td>${esc(v.gridOperator?.name || v.gridOperator?.mastrId || '—')}</td>
+                <td><span class="decision-badge ${dc}" style="font-size:.7rem">${esc(v.decision || '—')}</span></td>
+                <td>${v.summary?.totalInstallations ?? '—'}</td>
+                <td>${(v.summary?.findingsCount?.error ?? 0)} E / ${(v.summary?.findingsCount?.warning ?? 0)} W</td>
+              </tr>`;
+            }).join('');
+
+            histTbody.querySelectorAll('tr[data-id]').forEach((row) => {
+              row.addEventListener('click', async () => {
+                const id = row.dataset.id;
+                if (!id) return;
+                try {
+                  const report = await apiGet(`/api/grid-connection/validations/${encodeURIComponent(id)}`);
+                  renderResult(report);
+                  resultPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } catch (err) {
+                  toast('❌ ' + err.message, 'error');
+                }
+              });
+            });
+          } catch (err) {
+            histTbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">Error: ${esc(err.message)}</td></tr>`;
+          }
+        }
+      })();
+
+      /* ============================================================
+       * ENERGY SHARING VALIDATION (v0.15 — § 42c EnWG)
+       * ============================================================ */
+      (function () {
+        'use strict';
+
+        const runBtn     = $('es-run-btn');
+        const histBtn    = $('es-history-btn');
+        const resultPane = $('es-result-pane');
+        const histPane   = $('es-history-pane');
+        const histTbody  = $('es-history-tbody');
+        const genWrap    = $('es-generators');
+        const conWrap    = $('es-consumers');
+        const shareWarn  = $('es-share-warning');
+        if (!runBtn) return;
+
+        let genRows = [];
+        let conRows = [];
+        let genCounter = 0;
+        let conCounter = 0;
+
+        // ── Decision mapping ─────────────────────────────────────────
+        function esDecisionClass(d) {
+          if (!d) return 'insufficient';
+          if (d === 'APPROVED') return 'approved';
+          if (d === 'APPROVED_WITH_CONDITIONS') return 'conditional';
+          if (/REJECTED/.test(d)) return 'rejected';
+          return 'insufficient';
+        }
+
+        function esDecisionLabel(d) {
+          const MAP = {
+            APPROVED:                        '✅ Genehmigt',
+            APPROVED_WITH_CONDITIONS:        '⚠️ Genehmigt (mit Auflagen)',
+            REJECTED_ELIGIBILITY:            '🔴 Abgelehnt — Nicht förderfähig',
+            REJECTED_GRID_MISMATCH:          '🔴 Abgelehnt — Netzbereich inkonsistent',
+            REJECTED_DV_MISSING:             '🔴 Abgelehnt — Direktvermarktung fehlt',
+            REJECTED_DATA_QUALITY:           '🔴 Abgelehnt — Datenqualität',
+          };
+          return MAP[d] || (d || 'Unbekannt');
+        }
+
+        // ── Dynamic row helpers ──────────────────────────────────────
+        function addGeneratorRow() {
+          const id = ++genCounter;
+          genRows.push(id);
+          const row = document.createElement('div');
+          row.className = 'dynamic-row';
+          row.dataset.rowId = id;
+          row.innerHTML = `
+            <div class="form-field">
+              <label>MaStR-Nummer</label>
+              <input type="text" class="es-gen-mastr" placeholder="SEE904837264953" />
+            </div>
+            <div class="form-field" style="max-width:110px">
+              <label>Anteil (%)</label>
+              <input type="number" min="0" max="100" step="0.1" class="es-gen-share" placeholder="100" />
+            </div>
+            <div class="form-field">
+              <label>Direktvermarkter (optional)</label>
+              <input type="text" class="es-gen-dv" placeholder="z.B. Next Kraftwerke GmbH" />
+            </div>
+            <button class="dynamic-row-remove" title="Entfernen">✕</button>
+          `;
+          row.querySelector('.dynamic-row-remove').addEventListener('click', () => {
+            genRows = genRows.filter((r) => r !== id);
+            row.remove();
+            validateShares();
+          });
+          row.querySelector('.es-gen-share').addEventListener('input', validateShares);
+          genWrap.appendChild(row);
+        }
+
+        function addConsumerRow() {
+          const id = ++conCounter;
+          conRows.push(id);
+          const row = document.createElement('div');
+          row.className = 'dynamic-row';
+          row.dataset.rowId = id;
+          row.innerHTML = `
+            <div class="form-field">
+              <label>Marktlokations-ID (MaLo)</label>
+              <input type="text" class="es-con-malo" placeholder="DE00056624817M0000000000" style="min-width:190px" />
+            </div>
+            <div class="form-field" style="max-width:110px">
+              <label>Anteil (%)</label>
+              <input type="number" min="0" max="100" step="0.1" class="es-con-share" placeholder="100" />
+            </div>
+            <div class="form-field">
+              <label>Name (optional)</label>
+              <input type="text" class="es-con-name" placeholder="Mieter A" />
+            </div>
+            <button class="dynamic-row-remove" title="Entfernen">✕</button>
+          `;
+          row.querySelector('.dynamic-row-remove').addEventListener('click', () => {
+            conRows = conRows.filter((r) => r !== id);
+            row.remove();
+            validateShares();
+          });
+          row.querySelector('.es-con-share').addEventListener('input', validateShares);
+          conWrap.appendChild(row);
+        }
+
+        function validateShares() {
+          const genTotal = Array.from(genWrap.querySelectorAll('.es-gen-share'))
+            .reduce((s, el) => s + (parseFloat(el.value) || 0), 0);
+          const conTotal = Array.from(conWrap.querySelectorAll('.es-con-share'))
+            .reduce((s, el) => s + (parseFloat(el.value) || 0), 0);
+          const msgs = [];
+          if (genWrap.querySelectorAll('.es-gen-share').length && Math.abs(genTotal - 100) > 0.01)
+            msgs.push(`Erzeuger-Anteile: ${genTotal.toFixed(1)} % (Summe sollte 100 % ergeben)`);
+          if (conWrap.querySelectorAll('.es-con-share').length && Math.abs(conTotal - 100) > 0.01)
+            msgs.push(`Verbraucher-Anteile: ${conTotal.toFixed(1)} % (Summe sollte 100 % ergeben)`);
+          if (msgs.length) {
+            shareWarn.style.display = '';
+            shareWarn.textContent = '⚠️ ' + msgs.join(' | ');
+          } else {
+            shareWarn.style.display = 'none';
+            shareWarn.textContent = '';
+          }
+        }
+
+        function collectGenerators() {
+          return Array.from(genWrap.querySelectorAll('.dynamic-row')).map((row) => {
+            const obj = { mastrNummer: (row.querySelector('.es-gen-mastr')?.value || '').trim() };
+            const share = parseFloat(row.querySelector('.es-gen-share')?.value || '');
+            if (!isNaN(share)) obj.sharePercent = share;
+            const dv = (row.querySelector('.es-gen-dv')?.value || '').trim();
+            if (dv) obj.direktvermarkter = dv;
+            return obj;
+          }).filter((g) => g.mastrNummer);
+        }
+
+        function collectConsumers() {
+          return Array.from(conWrap.querySelectorAll('.dynamic-row')).map((row) => {
+            const obj = { maloId: (row.querySelector('.es-con-malo')?.value || '').trim() };
+            const share = parseFloat(row.querySelector('.es-con-share')?.value || '');
+            if (!isNaN(share)) obj.sharePercent = share;
+            const name = (row.querySelector('.es-con-name')?.value || '').trim();
+            if (name) obj.name = name;
+            return obj;
+          }).filter((c) => c.maloId);
+        }
+
+        // ── Per-generator status table ───────────────────────────────
+        function renderGeneratorTable(generators) {
+          if (!generators || !generators.length) return '';
+          return `
+            <div style="margin-top:10px">
+              <div style="font-size:.82rem;font-weight:600;margin-bottom:6px">Erzeuger-Status</div>
+              <table class="val-gen-table">
+                <thead><tr><th>MaStR-Nr.</th><th>Typ</th><th>kWp</th><th>DV</th><th>Status</th></tr></thead>
+                <tbody>
+                  ${generators.map((g) => `
+                    <tr>
+                      <td style="font-family:monospace;font-size:.76rem">${esc(g.mastrNummer || '—')}</td>
+                      <td>${esc(g.type || '—')}</td>
+                      <td>${g.capacityKWp != null ? g.capacityKWp.toLocaleString('de-DE') : '—'}</td>
+                      <td>${g.direktvermarkter ? `<span style="color:var(--accent2)">${esc(g.direktvermarkter)}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+                      <td>${g.valid ? '<span style="color:var(--accent)">✅</span>' : `<span style="color:var(--danger)">❌ ${esc(g.error || '')}</span>`}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          `;
+        }
+
+        // ── Findings renderer (re-use GC pattern) ────────────────────
+        function renderEsFindings(findings) {
+          if (!findings || !findings.length) return '<p style="color:var(--text-muted);font-size:.82rem">Keine Findings.</p>';
+          const bySeverity = {};
+          findings.forEach((f) => {
+            const sev = f.severity || 'info';
+            (bySeverity[sev] = bySeverity[sev] || []).push(f);
+          });
+          const ORDER = ['error', 'warning', 'info'];
+          const ICONS = { error: '🔴', warning: '🟡', info: '🔵' };
+          return `<div class="val-findings">` +
+            ORDER.filter((s) => bySeverity[s]).map((sev) => {
+              const items = bySeverity[sev];
+              return `<details>
+                <summary>${ICONS[sev]} ${sev.toUpperCase()} (${items.length})</summary>
+                ${items.map((f) => `
+                  <div class="finding-row">
+                    <span class="finding-code finding-sev-${esc(sev)}">${esc(f.code || '—')}</span>
+                    <span class="finding-msg">${esc(f.message || f.description || '—')}</span>
+                  </div>`).join('')}
+              </details>`;
+            }).join('') +
+          `</div>`;
+        }
+
+        // ── Step timeline renderer ───────────────────────────────────
+        function renderEsStepTimeline(steps) {
+          if (!steps || !steps.length) return '';
+          return `<div class="val-step-timeline">` +
+            steps.map((s) => {
+              const cls = s.error ? 'err' : (s.findings && s.findings.some((f) => f.severity === 'warning') ? 'warn' : 'ok');
+              return `<div class="val-step-item ${cls}">
+                <span class="val-step-num">${s.step}</span>
+                <span>${esc(s.name || s.action || '')}</span>
+                ${s.durationMs ? `<span style="color:var(--text-muted);font-size:.72rem">${s.durationMs}ms</span>` : ''}
+              </div>`;
+            }).join('') +
+          `</div>`;
+        }
+
+        // ── Render result ─────────────────────────────────────────────
+        function renderEsResult(report) {
+          if (!report) return;
+          const d = report.decision || '';
+          const s = report.summary || {};
+          const dc = esDecisionClass(d);
+          resultPane.style.display = '';
+          resultPane.innerHTML = `
+            <div class="val-result-header">
+              <span class="val-result-title">Ergebnis</span>
+              <span class="decision-badge ${dc}">${esc(esDecisionLabel(d))}</span>
+              ${report.communityName ? `<span style="color:var(--text-muted);font-size:.82rem">${esc(report.communityName)}</span>` : ''}
+            </div>
+            <div class="val-kpi-row">
+              <div class="val-kpi"><div class="val-kpi-value">${s.generatorsValid ?? '—'}</div><div class="val-kpi-label">Erzeuger ✅</div></div>
+              <div class="val-kpi"><div class="val-kpi-value" style="color:var(--danger)">${s.generatorsInvalid ?? '—'}</div><div class="val-kpi-label">Erzeuger ❌</div></div>
+              <div class="val-kpi"><div class="val-kpi-value">${s.consumers ?? '—'}</div><div class="val-kpi-label">Verbraucher</div></div>
+              ${s.totalCapacityKWp != null ? `<div class="val-kpi"><div class="val-kpi-value">${(s.totalCapacityKWp/1000).toFixed(1)}</div><div class="val-kpi-label">MW gesamt</div></div>` : ''}
+              <div class="val-kpi"><div class="val-kpi-value" style="color:var(--danger)">${s.findingsCount?.error ?? 0}</div><div class="val-kpi-label">Fehler</div></div>
+              <div class="val-kpi"><div class="val-kpi-value" style="color:var(--warning)">${s.findingsCount?.warning ?? 0}</div><div class="val-kpi-label">Warnungen</div></div>
+            </div>
+            ${renderEsStepTimeline(report.steps)}
+            ${renderGeneratorTable(report.generatorDetails || [])}
+            ${renderEsFindings(report.findings)}
+          `;
+        }
+
+        // ── Add row buttons ──────────────────────────────────────────
+        $('es-add-gen')?.addEventListener('click', addGeneratorRow);
+        $('es-add-con')?.addEventListener('click', addConsumerRow);
+
+        // Seed with one empty row each
+        addGeneratorRow();
+        addConsumerRow();
+
+        // ── Run ──────────────────────────────────────────────────────
+        runBtn.addEventListener('click', async () => {
+          const operatorRaw = ($('es-operator')?.value || '').trim();
+          if (!operatorRaw) {
+            toast('⚠️ Bitte MaStR-ID oder BDEW-Code des Netzbetreibers angeben.', 'error');
+            return;
+          }
+
+          const body = {};
+          if (/^SNB|^GNB/.test(operatorRaw)) body.gridOperatorId = operatorRaw;
+          else body.gridOperatorBdew = operatorRaw;
+
+          const cName = ($('es-community-name')?.value || '').trim();
+          const cId   = ($('es-community-id')?.value   || '').trim();
+          if (cName) body.communityName = cName;
+          if (cId)   body.communityId   = cId;
+
+          body.generators = collectGenerators();
+          body.consumers  = collectConsumers();
+
+          runBtn.disabled = true;
+          runBtn.textContent = '⏳ Läuft…';
+          resultPane.style.display = 'none';
+          histPane.style.display = 'none';
+
+          try {
+            const report = await apiFetch('/api/energy-sharing/validate', body);
+            renderEsResult(report);
+            toast('✅ Energy Sharing Validierung abgeschlossen');
+            loadEsHistory();
+          } catch (err) {
+            toast('❌ Validierung fehlgeschlagen: ' + err.message, 'error');
+            resultPane.style.display = '';
+            resultPane.innerHTML = `<div class="warn-callout">❌ ${esc(err.message)}</div>`;
+          } finally {
+            runBtn.disabled = false;
+            runBtn.textContent = '▶ Validierung starten';
+          }
+        });
+
+        // ── History ──────────────────────────────────────────────────
+        histBtn.addEventListener('click', () => {
+          const open = histPane.style.display !== 'none';
+          histPane.style.display = open ? 'none' : '';
+          if (!open) loadEsHistory();
+        });
+
+        async function loadEsHistory() {
+          if (!histTbody) return;
+          histTbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-muted);padding:10px">Loading…</td></tr>';
+          try {
+            const data = await apiGet('/api/energy-sharing/validations');
+            const list = Array.isArray(data) ? data : (data.data || data.validations || []);
+            if (!list.length) {
+              histTbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-muted);padding:10px">Keine Validierungen vorhanden.</td></tr>';
+              return;
+            }
+            histTbody.innerHTML = list.map((v) => {
+              const dc = esDecisionClass(v.decision || '');
+              return `<tr data-id="${esc(v._id || v.id || '')}">
+                <td style="font-size:.8rem">${esc(v.createdAt ? new Date(v.createdAt).toLocaleString('de-DE') : '—')}</td>
+                <td>${esc(v.communityName || v.communityId || '—')}</td>
+                <td><span class="decision-badge ${dc}" style="font-size:.7rem">${esc(v.decision || '—')}</span></td>
+                <td>${v.summary?.generatorsValid ?? '—'} ✅ / ${v.summary?.generatorsInvalid ?? '—'} ❌</td>
+                <td>${(v.summary?.findingsCount?.error ?? 0)} E / ${(v.summary?.findingsCount?.warning ?? 0)} W</td>
+              </tr>`;
+            }).join('');
+
+            histTbody.querySelectorAll('tr[data-id]').forEach((row) => {
+              row.addEventListener('click', async () => {
+                const id = row.dataset.id;
+                if (!id) return;
+                try {
+                  const report = await apiGet(`/api/energy-sharing/validations/${encodeURIComponent(id)}`);
+                  renderEsResult(report);
+                  resultPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } catch (err) {
+                  toast('❌ ' + err.message, 'error');
+                }
+              });
+            });
+          } catch (err) {
+            histTbody.innerHTML = `<tr><td colspan="5" style="color:var(--danger)">Error: ${esc(err.message)}</td></tr>`;
+          }
+        }
+      })();
+
+      /* ============================================================
        * DATAPOINTS PANEL (v0.11 — Managed Datapoints with Health)
        * ============================================================ */
       (function () {
@@ -5075,6 +5906,12 @@
 
         // Expose globally so nav handler and promote success button can call it
         window.loadDatapoints = loadDatapoints;
+
+        // ── Tag filter ──────────────────────────────────────────────
+        const tagFilterInput = $('dp-tag-filter');
+        if (tagFilterInput) {
+          tagFilterInput.addEventListener('input', () => loadDatapoints());
+        }
 
         async function loadDatapoints() {
           const panel = $('datapoints-panel');
@@ -5094,7 +5931,11 @@
           `;
 
           try {
-            const data = await apiGet('/api/datapoints/health/overview');
+            const tagFilter = tagFilterInput ? tagFilterInput.value.trim() : '';
+            const url = tagFilter
+              ? `/api/datapoints/health/overview?tags=${encodeURIComponent(tagFilter)}`
+              : '/api/datapoints/health/overview';
+            const data = await apiGet(url);
 
             // Health-Bar
             healthBar.innerHTML = `
@@ -5153,21 +5994,31 @@
                 : `${Math.round(dp.ageMinutes / 1440)} d ago`)
               : '—';
 
+            const nameSafe = esc(dp.name);
+            const nameEnc = encodeURIComponent(dp.name);
+
             return `
-              <tr>
-                <td><div class="dp-name">${esc(dp.name)}</div></td>
+              <tr id="dp-row-${nameSafe}">
+                <td><div class="dp-name">${nameSafe}</div></td>
                 <td><span class="dp-badge ${badgeClass}">${esc(dp.status)}</span></td>
                 <td><span class="dp-age">${ageText}</span></td>
                 <td>${dp.rowCount !== null ? dp.rowCount : '—'}</td>
                 <td>
                   <div class="dp-actions">
                     <button class="icon-btn" title="Refresh"
-                      onclick="window.refreshDatapoint('${esc(dp.name)}')">🔄</button>
+                      onclick="window.refreshDatapoint('${nameSafe}')">🔄</button>
+                    <button class="icon-btn" title="Interventions"
+                      onclick="window.toggleInterventions('${nameSafe}')">📋</button>
                     <button class="icon-btn" title="CSV Download"
-                      onclick="window.open('/api/datapoints/${encodeURIComponent(dp.name)}/data?format=csv','_blank')">📥</button>
+                      onclick="window.open('/api/datapoints/${nameEnc}/data?format=csv','_blank')">📥</button>
                     <button class="icon-btn danger" title="Delete"
-                      onclick="window.deleteDatapoint('${esc(dp.name)}')">🗑️</button>
+                      onclick="window.deleteDatapoint('${nameSafe}')">🗑️</button>
                   </div>
+                </td>
+              </tr>
+              <tr class="dp-interventions-row" id="dp-int-row-${nameSafe}" style="display:none">
+                <td colspan="5">
+                  <div id="dp-int-${nameSafe}" style="color:var(--text-muted);font-size:.82rem">Loading…</div>
                 </td>
               </tr>
             `;
@@ -5225,6 +6076,124 @@
             toast(`Delete failed: ${err.message}`, 'error');
           }
         };
+
+        // ── Interventions expand ─────────────────────────────────────
+        window.toggleInterventions = async function (name) {
+          const intRow = $(`dp-int-row-${name}`);
+          const intContainer = $(`dp-int-${name}`);
+          if (!intRow) return;
+          const isVisible = intRow.style.display !== 'none';
+          intRow.style.display = isVisible ? 'none' : '';
+          if (isVisible || !intContainer) return;
+
+          intContainer.textContent = 'Loading…';
+          try {
+            const data = await apiGet(`/api/datapoints/${encodeURIComponent(name)}/interventions`);
+            const items = Array.isArray(data) ? data : (data.interventions || data.data || []);
+            if (!items.length) {
+              intContainer.textContent = 'No agent interventions recorded.';
+              return;
+            }
+            intContainer.innerHTML = items.map((iv) => `
+              <div class="dp-intervention-item">
+                <span class="dp-intervention-ts">${esc(iv.timestamp ? new Date(iv.timestamp).toLocaleString('de-DE') : '—')}</span>
+                <span class="dp-intervention-code">${esc(iv.code || iv.type || '—')}</span>
+                <span class="dp-intervention-msg">${esc(iv.message || iv.description || '—')}</span>
+              </div>
+            `).join('');
+          } catch (err) {
+            intContainer.textContent = 'Error: ' + err.message;
+          }
+        };
+
+        // ── Snapshots ────────────────────────────────────────────────
+        async function loadSnapshots() {
+          const list = $('dp-snap-list');
+          if (!list) return;
+          list.innerHTML = '<span style="color:var(--text-muted);font-size:.82rem">Loading snapshots…</span>';
+          try {
+            const data = await apiGet('/api/datapoints/snapshots');
+            const snaps = Array.isArray(data) ? data : (data.data || data.snapshots || []);
+            if (!snaps.length) {
+              list.innerHTML = '<div style="color:var(--text-muted);font-size:.82rem;padding:8px 0">No snapshots yet.</div>';
+              return;
+            }
+            list.innerHTML = `
+              <div class="table-wrap" style="margin-top:8px">
+                <table class="val-history-table">
+                  <thead><tr><th>ID</th><th>Zeitpunkt</th><th>Datapoints</th><th>Hash</th><th>Aktionen</th></tr></thead>
+                  <tbody>
+                    ${snaps.map((s) => `
+                      <tr>
+                        <td style="font-family:monospace;font-size:.75rem">${esc(String(s._id || s.id || '').slice(5, 13))}…</td>
+                        <td style="font-size:.8rem">${esc(s.createdAt ? new Date(s.createdAt).toLocaleString('de-DE') : '—')}</td>
+                        <td style="font-size:.8rem">${esc((s.datapointNames || []).join(', ') || '—')}</td>
+                        <td style="font-family:monospace;font-size:.72rem;color:var(--text-muted)">${esc(String(s.snapshotHash || '—').slice(0, 12))}…</td>
+                        <td>
+                          <button class="icon-btn" title="Validate" onclick="window.validateSnapshot('${esc(s._id || s.id)}')">✅</button>
+                          <button class="icon-btn danger" title="Delete" onclick="window.deleteSnapshot('${esc(s._id || s.id)}')">🗑️</button>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `;
+          } catch (err) {
+            list.innerHTML = `<div class="warn-callout">Error loading snapshots: ${esc(err.message)}</div>`;
+          }
+        }
+
+        const snapCreateBtn = $('dp-snap-create');
+        if (snapCreateBtn) {
+          snapCreateBtn.addEventListener('click', async () => {
+            const namesRaw = ($('dp-snap-names')?.value || '').trim();
+            const tagsRaw  = ($('dp-snap-tags')?.value  || '').trim();
+            const maxAge   = parseInt($('dp-snap-age')?.value || '60', 10);
+            const body = { maxAgeMinutes: maxAge };
+            if (namesRaw) body.datapointNames = namesRaw.split(',').map((n) => n.trim()).filter(Boolean);
+            if (tagsRaw)  body.tags           = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean);
+            snapCreateBtn.disabled = true;
+            snapCreateBtn.textContent = '⏳ Creating…';
+            try {
+              await apiFetch('/api/datapoints/snapshot', body);
+              toast('✅ Snapshot created');
+              loadSnapshots();
+            } catch (err) {
+              toast('❌ Snapshot failed: ' + err.message, 'error');
+            } finally {
+              snapCreateBtn.disabled = false;
+              snapCreateBtn.textContent = '📸 Create Snapshot';
+            }
+          });
+        }
+
+        window.validateSnapshot = async function (id) {
+          try {
+            const data = await apiFetch(`/api/datapoints/snapshot/${encodeURIComponent(id)}/validate`, {});
+            toast(data.valid ? '✅ Snapshot valid — hashes match' : '⚠️ Snapshot INVALID — data may have changed!', data.valid ? 'success' : 'error');
+          } catch (err) {
+            toast('❌ Validate error: ' + err.message, 'error');
+          }
+        };
+
+        window.deleteSnapshot = async function (id) {
+          if (!confirm('Delete this snapshot?')) return;
+          try {
+            const res = await fetch(`/api/datapoints/snapshot/${encodeURIComponent(id)}`, {
+              method: 'DELETE', headers: apiAuthHeaders(),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            toast('🗑 Snapshot deleted');
+            loadSnapshots();
+          } catch (err) {
+            toast('❌ Delete error: ' + err.message, 'error');
+          }
+        };
+
+        // Load snapshots whenever the datapoints panel is opened
+        // (hooked from nav listener below)
+        window.__dpLoadSnapshots = loadSnapshots;
 
       })();
     </script>
