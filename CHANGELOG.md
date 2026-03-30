@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.17.1] - 2026-03-30
+
+### Fixed
+
+- **Energy Sharing Allocation REST path mismatch (hotfix)** —
+  The five explicit route aliases for the `energy-sharing-allocation` service in
+  `services/api.service.js` were using the `/energy-sharing/...` prefix instead of
+  `/energy-sharing-allocation/...`. `autoAliases: true` was simultaneously
+  registering the correct `/energy-sharing-allocation/` paths (derived from the
+  service name), so both URL sets were accessible at runtime — but the OpenAPI spec
+  (which follows service-name derivation) documented only the longer form while the
+  CHANGELOG described the shorter form, creating a silent inconsistency.
+
+  **Fix:** The five explicit aliases now use the `/energy-sharing-allocation/` prefix,
+  matching the OpenAPI-generated paths and eliminating the duplicate route registration.
+  The CHANGELOG v0.16.0 REST endpoint table has been updated accordingly.
+
+  Correct paths (unchanged at the HTTP level):
+  - `POST /api/energy-sharing-allocation/allocate`
+  - `GET /api/energy-sharing-allocation/allocations`
+  - `GET /api/energy-sharing-allocation/allocations/:id`
+  - `GET /api/energy-sharing-allocation/allocations/:id/download`
+  - `DELETE /api/energy-sharing-allocation/allocations/:id`
+
 ## [0.17.0] - 2026-03-30
 
 ### Added
