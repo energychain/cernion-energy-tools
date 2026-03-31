@@ -125,6 +125,40 @@ const MQ_GEO_MISASSIGNMENT  = 'MQ_GEO_MISASSIGNMENT';
 const MQ_GEO_CHECK_FAILED   = 'MQ_GEO_CHECK_FAILED';
 
 // ---------------------------------------------------------------------------
+// Redispatch Ex-Post Agent codes (v0.18) — deterministic 7-step settlement audit
+// Regulatory basis: §§ 13, 13a EnWG, NABEG, StromNZV, Redispatch 2.0 (BDEW/BNetzA)
+// ---------------------------------------------------------------------------
+
+// RD Step 2 — Portfolio inventory
+const RD_PORTFOLIO_COMPLETE          = 'RD_PORTFOLIO_COMPLETE';
+const RD_PORTFOLIO_EMPTY             = 'RD_PORTFOLIO_EMPTY';
+const RD_PORTFOLIO_INCLUDES_INACTIVE = 'RD_PORTFOLIO_INCLUDES_INACTIVE';
+
+// RD Step 3 — Master data validation
+const RD_MISSING_NAP         = 'RD_MISSING_NAP';
+const RD_MISSING_MELO        = 'RD_MISSING_MELO';
+const RD_MISSING_BTR         = 'RD_MISSING_BTR';
+const RD_NAP_VNB_MISMATCH    = 'RD_NAP_VNB_MISMATCH';
+const RD_DV_NOT_CONTROLLABLE = 'RD_DV_NOT_CONTROLLABLE';
+const RD_CAPACITY_ANOMALY    = 'RD_CAPACITY_ANOMALY';
+
+// RD Step 4 — Curtailment correlation (Netztransparenz)
+const RD_CURTAILMENT_VOLUME          = 'RD_CURTAILMENT_VOLUME';
+const RD_HIGH_CURTAILMENT_PERIOD     = 'RD_HIGH_CURTAILMENT_PERIOD';
+const RD_CURTAILMENT_DATA_UNAVAILABLE = 'RD_CURTAILMENT_DATA_UNAVAILABLE';
+const RD_CURTAILMENT_ZERO            = 'RD_CURTAILMENT_ZERO';
+
+// RD Step 5 — Settlement readiness
+const RD_SETTLEMENT_READY    = 'RD_SETTLEMENT_READY';
+const RD_SETTLEMENT_PARTIAL  = 'RD_SETTLEMENT_PARTIAL';
+const RD_SETTLEMENT_CRITICAL = 'RD_SETTLEMENT_CRITICAL';
+
+// RD Step 6 — Risk assessment
+const RD_RISK_LOW    = 'RD_RISK_LOW';
+const RD_RISK_MEDIUM = 'RD_RISK_MEDIUM';
+const RD_RISK_HIGH   = 'RD_RISK_HIGH';
+
+// ---------------------------------------------------------------------------
 // MaStR Quality score helpers (v0.17)
 // ---------------------------------------------------------------------------
 
@@ -261,6 +295,504 @@ function summarizeFindings(findings) {
 }
 
 // ---------------------------------------------------------------------------
+// Finding Code Metadata — UI reference (v0.19)
+// Each entry carries: severity, agent, step, description (EN), descriptionDe (DE)
+// Used by dashboard-api.findingCodes to power UI tooltips and filter chips.
+// ---------------------------------------------------------------------------
+
+/**
+ * Metadata map for all 92 finding codes.
+ * Keys are the canonical finding code strings (SCREAMING_SNAKE_CASE).
+ * @type {Record<string, { severity: string, agent: string, step: number, description: string, descriptionDe: string }>}
+ */
+const FINDING_CODE_METADATA = {
+  // ── Grid Connection (v0.14) — Steps 1–6 ─────────────────────────────────
+  INVENTORY_COMPLETE: {
+    severity: 'info', agent: 'grid-connection', step: 1,
+    description: 'Installation inventory completed successfully',
+    descriptionDe: 'Anlagen-Inventur abgeschlossen',
+  },
+  INVENTORY_EMPTY: {
+    severity: 'warning', agent: 'grid-connection', step: 1,
+    description: 'No installations ≥100 kW found for this grid operator',
+    descriptionDe: 'Keine Anlagen ≥100 kW gefunden',
+  },
+  INSTALLATION_NO_NAP: {
+    severity: 'warning', agent: 'grid-connection', step: 1,
+    description: 'Installation is missing a grid connection point (NAP)',
+    descriptionDe: 'Anlage ohne Netzanschlusspunkt (NAP)',
+  },
+  INSTALLATION_STATUS_ANOMALY: {
+    severity: 'warning', agent: 'grid-connection', step: 1,
+    description: 'Installation status is unexpected for active grid connection',
+    descriptionDe: 'Unerwarteter Betriebsstatus bei aktiver Netzeinbindung',
+  },
+  MASTR_DUPLICATE_SUSPECTED: {
+    severity: 'warning', agent: 'grid-connection', step: 2,
+    description: 'Probable duplicate entry detected in MaStR',
+    descriptionDe: 'Wahrscheinliches Duplikat im MaStR erkannt',
+  },
+  OPERATOR_DATA_STALE: {
+    severity: 'warning', agent: 'grid-connection', step: 2,
+    description: 'Netzbetreiberprüfung (NBP) status is stale (>30 days in review)',
+    descriptionDe: 'Netzbetreiberprüfung seit >30 Tagen offen',
+  },
+  VOLTAGE_LEVEL_MISMATCH: {
+    severity: 'warning', agent: 'grid-connection', step: 2,
+    description: 'Unit voltage level does not match its NAP voltage level',
+    descriptionDe: 'Spannungsebene der Anlage stimmt nicht mit NAP überein',
+  },
+  CAPACITY_HEADROOM_OK: {
+    severity: 'info', agent: 'grid-connection', step: 3,
+    description: 'Sufficient grid capacity headroom confirmed',
+    descriptionDe: 'Ausreichende Netzkapazität vorhanden',
+  },
+  CAPACITY_CONDITIONAL: {
+    severity: 'warning', agent: 'grid-connection', step: 3,
+    description: 'Grid capacity is marginal — conditional connection may apply',
+    descriptionDe: 'Netzkapazität grenzwertig — bedingter Anschluss möglich',
+  },
+  CAPACITY_EXPANSION_NEEDED: {
+    severity: 'error', agent: 'grid-connection', step: 3,
+    description: 'Grid capacity is insufficient — expansion required',
+    descriptionDe: 'Netzkapazität nicht ausreichend — Ausbau erforderlich',
+  },
+  TRANSFORMER_DATA_MISSING: {
+    severity: 'info', agent: 'grid-connection', step: 3,
+    description: 'Transformer ratings not available in MaStR (expected — MaStR limitation)',
+    descriptionDe: 'Transformatordaten nicht im MaStR verfügbar (MaStR-Limitation)',
+  },
+  EWK_BENCHMARK_SLOW: {
+    severity: 'warning', agent: 'grid-connection', step: 4,
+    description: 'VNB connection time is below EWK benchmark',
+    descriptionDe: 'Anschlussdauer unterhalb EWK-Benchmark',
+  },
+  EWK_BENCHMARK_FAST: {
+    severity: 'info', agent: 'grid-connection', step: 4,
+    description: 'VNB connection time meets or exceeds EWK benchmark',
+    descriptionDe: 'Anschlussdauer entspricht oder übertrifft EWK-Benchmark',
+  },
+  EWK_IMPLEMENTATION_LOW: {
+    severity: 'warning', agent: 'grid-connection', step: 4,
+    description: 'EWK implementation rate (Umsetzungsquote) is below target',
+    descriptionDe: 'EWK-Umsetzungsquote unterhalb des Zielwerts',
+  },
+  GO_DIRECT: {
+    severity: 'info', agent: 'grid-connection', step: 5,
+    description: 'Direct grid connection approved — no conditions',
+    descriptionDe: 'Direktanschluss genehmigt — keine Auflagen',
+  },
+  GO_CONDITIONAL: {
+    severity: 'warning', agent: 'grid-connection', step: 5,
+    description: 'Grid connection approved with conditions',
+    descriptionDe: 'Netzanschluss mit Auflagen genehmigt',
+  },
+  NO_GO_EXPANSION: {
+    severity: 'error', agent: 'grid-connection', step: 5,
+    description: 'Grid connection rejected — network expansion required first',
+    descriptionDe: 'Netzanschluss abgelehnt — Netzerweiterung erforderlich',
+  },
+  DATA_QUALITY_INSUFFICIENT: {
+    severity: 'error', agent: 'grid-connection', step: 5,
+    description: 'Decision deferred — MaStR data quality too low',
+    descriptionDe: 'Entscheidung zurückgestellt — MaStR-Datenqualität zu gering',
+  },
+  AUDIT_TRAIL_CREATED: {
+    severity: 'info', agent: 'grid-connection', step: 6,
+    description: 'Audit trail created and sealed in PouchDB (EU AI Act Art. 12)',
+    descriptionDe: 'Audit-Trail erstellt und in PouchDB versiegelt (EU AI Act Art. 12)',
+  },
+  SNAPSHOT_DRIFT_DETECTED: {
+    severity: 'warning', agent: 'grid-connection', step: 6,
+    description: 'Data changed between pipeline start and audit seal — drift detected',
+    descriptionDe: 'Daten haben sich zwischen Pipelinestart und Versiegelung verändert',
+  },
+  // ── Energy Sharing (v0.15) — Steps 1–6 ──────────────────────────────────
+  VNB_RESOLVED: {
+    severity: 'info', agent: 'energy-sharing', step: 1,
+    description: 'VNB identity resolved unambiguously',
+    descriptionDe: 'VNB-Identität eindeutig aufgelöst',
+  },
+  VNB_AMBIGUOUS: {
+    severity: 'warning', agent: 'energy-sharing', step: 1,
+    description: 'Multiple VNB candidates matched — using best candidate',
+    descriptionDe: 'Mehrere VNB-Kandidaten gefunden — besten Kandidaten verwendet',
+  },
+  VNB_NOT_FOUND: {
+    severity: 'error', agent: 'energy-sharing', step: 1,
+    description: 'VNB identity could not be resolved',
+    descriptionDe: 'VNB-Identität konnte nicht aufgelöst werden',
+  },
+  GENERATOR_VALID: {
+    severity: 'info', agent: 'energy-sharing', step: 2,
+    description: 'Generator MaStR record is valid and operational in this grid area',
+    descriptionDe: 'Erzeuger-MaStR-Datensatz gültig und in diesem Netzgebiet betriebsbereit',
+  },
+  GENERATOR_NOT_FOUND: {
+    severity: 'error', agent: 'energy-sharing', step: 2,
+    description: 'Generator MaStR number not found in MaStR',
+    descriptionDe: 'Erzeuger-MaStR-Nummer nicht im MaStR gefunden',
+  },
+  GENERATOR_NOT_OPERATIONAL: {
+    severity: 'error', agent: 'energy-sharing', step: 2,
+    description: 'Generator is not in "InBetrieb" status',
+    descriptionDe: 'Erzeuger ist nicht im Status "InBetrieb"',
+  },
+  GENERATOR_WRONG_GRID_AREA: {
+    severity: 'error', agent: 'energy-sharing', step: 2,
+    description: 'Generator belongs to a different grid operator area',
+    descriptionDe: 'Erzeuger gehört zu einem anderen Netzgebiet',
+  },
+  GENERATOR_TYPE_INELIGIBLE: {
+    severity: 'error', agent: 'energy-sharing', step: 2,
+    description: 'Generator type is not eligible for Energy Sharing (§42c EnWG)',
+    descriptionDe: 'Anlagentyp nicht für Energy Sharing (§42c EnWG) zulässig',
+  },
+  GENERATOR_CAPACITY_ZERO: {
+    severity: 'error', agent: 'energy-sharing', step: 2,
+    description: 'Generator has zero registered capacity',
+    descriptionDe: 'Erzeuger hat Bruttoleistung = 0',
+  },
+  GENERATOR_NO_NAP: {
+    severity: 'warning', agent: 'energy-sharing', step: 2,
+    description: 'Generator is missing a grid connection point (NAP)',
+    descriptionDe: 'Erzeuger ohne Netzanschlusspunkt (NAP)',
+  },
+  GENERATOR_NO_MELO: {
+    severity: 'warning', agent: 'energy-sharing', step: 2,
+    description: 'Generator is missing a Messlokation (MeLo)',
+    descriptionDe: 'Erzeuger ohne Messlokation (MeLo)',
+  },
+  GENERATOR_DUPLICATE: {
+    severity: 'error', agent: 'energy-sharing', step: 4,
+    description: 'Duplicate MaStR number in generator list',
+    descriptionDe: 'Doppelter MaStR-Eintrag in der Erzeugerliste',
+  },
+  DV_VALID: {
+    severity: 'info', agent: 'energy-sharing', step: 3,
+    description: 'Direktvermarkter status confirmed — remote control active',
+    descriptionDe: 'Direktvermarkter-Status bestätigt — Fernsteuerbarkeit aktiv',
+  },
+  DV_MANDATORY_MISSING: {
+    severity: 'error', agent: 'energy-sharing', step: 3,
+    description: 'Direktvermarktung is mandatory for ≥100 kW but not registered',
+    descriptionDe: 'Direktvermarktung für ≥100 kW Pflicht, aber nicht registriert',
+  },
+  DV_NOT_CONTROLLABLE: {
+    severity: 'warning', agent: 'energy-sharing', step: 3,
+    description: 'Direktvermarkter is registered but remote control (FernsteuerbarkeitDv) is inactive',
+    descriptionDe: 'Direktvermarkter registriert, aber Fernsteuerbarkeit (FernsteuerbarkeitDv) inaktiv',
+  },
+  DV_NOT_FOUND: {
+    severity: 'warning', agent: 'energy-sharing', step: 3,
+    description: 'Direktvermarkter name not found in MaStR registry',
+    descriptionDe: 'Direktvermarkter-Name nicht im MaStR-Register gefunden',
+  },
+  DV_INACTIVE: {
+    severity: 'warning', agent: 'energy-sharing', step: 3,
+    description: 'Direktvermarkter assignment appears inactive',
+    descriptionDe: 'Direktvermarkter-Beauftragung scheint inaktiv',
+  },
+  DV_MASTR_MISMATCH: {
+    severity: 'warning', agent: 'energy-sharing', step: 3,
+    description: 'Direktvermarkter name does not match MaStR record',
+    descriptionDe: 'Direktvermarkter-Name stimmt nicht mit MaStR-Eintrag überein',
+  },
+  ELIGIBILITY_CONFIRMED: {
+    severity: 'info', agent: 'energy-sharing', step: 4,
+    description: '§42c EnWG eligibility confirmed — all checks passed',
+    descriptionDe: '§42c EnWG Zulässigkeit bestätigt — alle Prüfungen bestanden',
+  },
+  SHARE_SUM_GENERATORS_INVALID: {
+    severity: 'error', agent: 'energy-sharing', step: 4,
+    description: 'Generator share percentages do not sum to 100% (±0.1% tolerance)',
+    descriptionDe: 'Erzeuger-Anteile ergeben nicht 100% (±0,1%-Toleranz)',
+  },
+  SHARE_SUM_CONSUMERS_INVALID: {
+    severity: 'error', agent: 'energy-sharing', step: 4,
+    description: 'Consumer share percentages do not sum to 100% (±0.1% tolerance)',
+    descriptionDe: 'Verbraucher-Anteile ergeben nicht 100% (±0,1%-Toleranz)',
+  },
+  NO_GENERATORS: {
+    severity: 'error', agent: 'energy-sharing', step: 4,
+    description: 'No generators provided in Energy Sharing application',
+    descriptionDe: 'Keine Erzeuger in der Energy-Sharing-Meldung angegeben',
+  },
+  NO_CONSUMERS: {
+    severity: 'error', agent: 'energy-sharing', step: 4,
+    description: 'No consumers provided in Energy Sharing application',
+    descriptionDe: 'Keine Verbraucher in der Energy-Sharing-Meldung angegeben',
+  },
+  MIXED_GRID_AREAS: {
+    severity: 'error', agent: 'energy-sharing', step: 4,
+    description: 'Generators from different grid operator areas in one community',
+    descriptionDe: 'Erzeuger aus verschiedenen Netzgebieten in einer Gemeinschaft',
+  },
+  GENERATOR_EXCEEDS_LIMIT: {
+    severity: 'warning', agent: 'energy-sharing', step: 4,
+    description: 'Generator capacity exceeds 1 MW limit for Energy Sharing',
+    descriptionDe: 'Erzeugerleistung überschreitet 1-MW-Grenze für Energy Sharing',
+  },
+  CONSUMER_MALO_INVALID: {
+    severity: 'error', agent: 'energy-sharing', step: 4,
+    description: 'Consumer MaLo ID format invalid (expected DE followed by 31 digits)',
+    descriptionDe: 'MaLo-Format ungültig (erwartet: DE gefolgt von 31 Ziffern)',
+  },
+  CONSUMER_MALO_DUPLICATE: {
+    severity: 'error', agent: 'energy-sharing', step: 4,
+    description: 'Duplicate MaLo ID in consumer list',
+    descriptionDe: 'Doppelte MaLo-ID in der Verbraucherliste',
+  },
+  APPROVED: {
+    severity: 'info', agent: 'energy-sharing', step: 5,
+    description: 'Energy Sharing community approved without conditions',
+    descriptionDe: 'Energy-Sharing-Gemeinschaft ohne Auflagen genehmigt',
+  },
+  APPROVED_WITH_CONDITIONS: {
+    severity: 'warning', agent: 'energy-sharing', step: 5,
+    description: 'Energy Sharing community approved with conditions',
+    descriptionDe: 'Energy-Sharing-Gemeinschaft mit Auflagen genehmigt',
+  },
+  REJECTED_STRUCTURAL: {
+    severity: 'error', agent: 'energy-sharing', step: 5,
+    description: 'Energy Sharing community rejected due to structural eligibility failure',
+    descriptionDe: 'Abgelehnt wegen struktureller §42c-Unzulässigkeit',
+  },
+  REJECTED_GENERATOR_INVALID: {
+    severity: 'error', agent: 'energy-sharing', step: 5,
+    description: 'Energy Sharing community rejected — invalid generator data',
+    descriptionDe: 'Abgelehnt wegen ungültiger Erzeugerdaten',
+  },
+  REJECTED_OTHER: {
+    severity: 'error', agent: 'energy-sharing', step: 5,
+    description: 'Energy Sharing community rejected for other reasons',
+    descriptionDe: 'Abgelehnt aus sonstigen Gründen',
+  },
+  // ── MaStR Data Quality (v0.17) — Steps 2–8 ──────────────────────────────
+  MQ_INVENTORY_COMPLETE: {
+    severity: 'info', agent: 'mastr-quality', step: 2,
+    description: 'Portfolio inventory completed successfully',
+    descriptionDe: 'Portfolio-Inventur abgeschlossen',
+  },
+  MQ_INVENTORY_EMPTY: {
+    severity: 'error', agent: 'mastr-quality', step: 2,
+    description: 'No installations found for this VNB in MaStR',
+    descriptionDe: 'Keine Anlagen für diesen VNB im MaStR gefunden',
+  },
+  MQ_STALE_PLANNING: {
+    severity: 'warning', agent: 'mastr-quality', step: 3,
+    description: 'Installation in "InPlanung" status for more than 2 years',
+    descriptionDe: 'Anlage seit mehr als 2 Jahren im Status "InPlanung"',
+  },
+  MQ_STALE_TEMPORARY_SHUTDOWN: {
+    severity: 'warning', agent: 'mastr-quality', step: 3,
+    description: 'Installation temporarily shut down for more than 365 days',
+    descriptionDe: 'Anlage seit mehr als 365 Tagen vorübergehend stillgelegt',
+  },
+  MQ_MISSING_COMMISSIONING_DATE: {
+    severity: 'warning', agent: 'mastr-quality', step: 3,
+    description: 'Operational installation is missing commissioning date',
+    descriptionDe: 'Betriebsbereite Anlage ohne Inbetriebnahmedatum',
+  },
+  MQ_FUTURE_COMMISSIONING: {
+    severity: 'warning', agent: 'mastr-quality', step: 3,
+    description: 'Commissioning date is in the future',
+    descriptionDe: 'Inbetriebnahmedatum liegt in der Zukunft',
+  },
+  MQ_NBP_PENDING: {
+    severity: 'warning', agent: 'mastr-quality', step: 3,
+    description: 'Netzbetreiberprüfung status is "In Prüfung" (code 2955)',
+    descriptionDe: 'Netzbetreiberprüfung im Status "In Prüfung" (Code 2955)',
+  },
+  MQ_NBP_NOT_PLANNED: {
+    severity: 'info', agent: 'mastr-quality', step: 3,
+    description: 'Netzbetreiberprüfung is marked "NichtVorgesehen" (code 3075)',
+    descriptionDe: 'Netzbetreiberprüfung als "NichtVorgesehen" markiert (Code 3075)',
+  },
+  MQ_ZERO_CAPACITY: {
+    severity: 'error', agent: 'mastr-quality', step: 4,
+    description: 'Gross capacity (Bruttoleistung) is zero',
+    descriptionDe: 'Bruttoleistung = 0',
+  },
+  MQ_NEGATIVE_CAPACITY: {
+    severity: 'error', agent: 'mastr-quality', step: 4,
+    description: 'Capacity value is negative — data entry error',
+    descriptionDe: 'Leistungswert negativ — Datenfehler',
+  },
+  MQ_IMPLAUSIBLE_HIGH_CAPACITY: {
+    severity: 'warning', agent: 'mastr-quality', step: 4,
+    description: 'Capacity is implausibly high for this installation type',
+    descriptionDe: 'Leistung für diesen Anlagentyp unplausibel hoch',
+  },
+  MQ_NETTO_EXCEEDS_BRUTTO: {
+    severity: 'error', agent: 'mastr-quality', step: 4,
+    description: 'Net capacity (Nettonennleistung) exceeds gross capacity — physical impossibility',
+    descriptionDe: 'Nettonennleistung überschreitet Bruttoleistung — physikalisch unmöglich',
+  },
+  MQ_MISSING_FEED_IN_TYPE: {
+    severity: 'warning', agent: 'mastr-quality', step: 4,
+    description: 'Operational solar unit is missing Einspeisungsart',
+    descriptionDe: 'Betriebsbereite Solaranlage ohne Einspeisungsart',
+  },
+  MQ_MISSING_NAP: {
+    severity: 'error', agent: 'mastr-quality', step: 5,
+    description: 'Installation is missing a grid connection point (NAP)',
+    descriptionDe: 'Anlage ohne Netzanschlusspunkt (NAP)',
+  },
+  MQ_MISSING_MELO: {
+    severity: 'error', agent: 'mastr-quality', step: 5,
+    description: 'Operational installation ≥100 kW is missing a Messlokation (MeLo)',
+    descriptionDe: 'Betriebsbereite Anlage ≥100 kW ohne Messlokation (MeLo)',
+  },
+  MQ_NAP_VNB_MISMATCH: {
+    severity: 'error', agent: 'mastr-quality', step: 5,
+    description: 'NAP is assigned to a different grid operator',
+    descriptionDe: 'NAP einem anderen Netzbetreiber zugeordnet',
+  },
+  MQ_VOLTAGE_MISMATCH: {
+    severity: 'warning', agent: 'mastr-quality', step: 5,
+    description: 'Installation ≥100 kW connected at low voltage (NS) — unusual',
+    descriptionDe: 'Anlage ≥100 kW an Niederspannung (NS) angeschlossen — ungewöhnlich',
+  },
+  MQ_NAP_MULTI_UNIT: {
+    severity: 'warning', agent: 'mastr-quality', step: 5,
+    description: 'NAP is shared by more than 3 installations',
+    descriptionDe: 'NAP von mehr als 3 Anlagen gemeinsam genutzt',
+  },
+  MQ_REDISPATCH_NO_NAP: {
+    severity: 'error', agent: 'mastr-quality', step: 5,
+    description: 'Redispatch-relevant installation (≥100 kW) is missing a NAP',
+    descriptionDe: 'Redispatch-relevante Anlage (≥100 kW) ohne NAP',
+  },
+  MQ_PROBABLE_DUPLICATE: {
+    severity: 'error', agent: 'mastr-quality', step: 6,
+    description: 'Probable duplicate: all 4 criteria match (PLZ + type + capacity ±10% + date ±90d)',
+    descriptionDe: 'Wahrscheinliches Duplikat: alle 4 Kriterien erfüllt',
+  },
+  MQ_POSSIBLE_DUPLICATE: {
+    severity: 'warning', agent: 'mastr-quality', step: 6,
+    description: 'Possible duplicate: 3 of 4 criteria match',
+    descriptionDe: 'Mögliches Duplikat: 3 von 4 Kriterien erfüllt',
+  },
+  MQ_GEO_DUPLICATE: {
+    severity: 'warning', agent: 'mastr-quality', step: 6,
+    description: 'Same-type installations within ±0.001° at identical coordinates',
+    descriptionDe: 'Gleicher Anlagentyp an identischen Koordinaten (±0,001°)',
+  },
+  MQ_GEO_PLAUSIBLE: {
+    severity: 'info', agent: 'mastr-quality', step: 7,
+    description: 'Geo spot check passed — installation location is plausible',
+    descriptionDe: 'Geo-Stichprobe bestanden — Standort plausibel',
+  },
+  MQ_GEO_MISASSIGNMENT: {
+    severity: 'error', agent: 'mastr-quality', step: 7,
+    description: 'Geo spot check failed — installation location does not match registered grid area',
+    descriptionDe: 'Geo-Stichprobe fehlgeschlagen — Standort stimmt nicht mit Netzgebiet überein',
+  },
+  MQ_GEO_CHECK_FAILED: {
+    severity: 'warning', agent: 'mastr-quality', step: 7,
+    description: 'Geo spot check could not be completed (OSM/Overpass unavailable)',
+    descriptionDe: 'Geo-Stichprobe konnte nicht durchgeführt werden (OSM/Overpass nicht erreichbar)',
+  },
+  // ── Redispatch Ex-Post (v0.18) — Steps 2–7 ──────────────────────────────
+  RD_PORTFOLIO_COMPLETE: {
+    severity: 'info', agent: 'redispatch-expost', step: 2,
+    description: 'Redispatch portfolio (≥100 kW) loaded successfully',
+    descriptionDe: 'Redispatch-Portfolio (≥100 kW) erfolgreich geladen',
+  },
+  RD_PORTFOLIO_EMPTY: {
+    severity: 'error', agent: 'redispatch-expost', step: 2,
+    description: 'No Redispatch-relevant installations (≥100 kW) found',
+    descriptionDe: 'Keine Redispatch-relevanten Anlagen (≥100 kW) gefunden',
+  },
+  RD_PORTFOLIO_INCLUDES_INACTIVE: {
+    severity: 'warning', agent: 'redispatch-expost', step: 2,
+    description: 'Portfolio contains non-operational installations',
+    descriptionDe: 'Portfolio enthält nicht-betriebsbereite Anlagen',
+  },
+  RD_MISSING_NAP: {
+    severity: 'error', agent: 'redispatch-expost', step: 3,
+    description: 'Redispatch-relevant installation is missing a NAP',
+    descriptionDe: 'Redispatch-relevante Anlage ohne NAP',
+  },
+  RD_MISSING_MELO: {
+    severity: 'error', agent: 'redispatch-expost', step: 3,
+    description: 'Redispatch-relevant installation is missing a MeLo',
+    descriptionDe: 'Redispatch-relevante Anlage ohne MeLo',
+  },
+  RD_MISSING_BTR: {
+    severity: 'warning', agent: 'redispatch-expost', step: 3,
+    description: 'Remote control proxy (FernsteuerbarkeitDv) not set — DV assignment excluded from public exports',
+    descriptionDe: 'Fernsteuerbarkeits-Proxy nicht gesetzt — DV-Zuordnung aus öffentlichen Exporten ausgeschlossen',
+  },
+  RD_NAP_VNB_MISMATCH: {
+    severity: 'error', agent: 'redispatch-expost', step: 3,
+    description: 'NAP is assigned to a different grid operator than expected',
+    descriptionDe: 'NAP einem anderen Netzbetreiber zugeordnet als erwartet',
+  },
+  RD_DV_NOT_CONTROLLABLE: {
+    severity: 'warning', agent: 'redispatch-expost', step: 3,
+    description: 'Direktvermarkter registered but remote control is not active',
+    descriptionDe: 'Direktvermarkter registriert, aber Fernsteuerbarkeit nicht aktiv',
+  },
+  RD_CAPACITY_ANOMALY: {
+    severity: 'warning', agent: 'redispatch-expost', step: 3,
+    description: 'Capacity value is anomalous for this installation type',
+    descriptionDe: 'Leistungswert für diesen Anlagentyp anomal',
+  },
+  RD_CURTAILMENT_VOLUME: {
+    severity: 'info', agent: 'redispatch-expost', step: 4,
+    description: 'Curtailment data retrieved from Netztransparenz',
+    descriptionDe: 'Abregelungsdaten von Netztransparenz abgerufen',
+  },
+  RD_HIGH_CURTAILMENT_PERIOD: {
+    severity: 'warning', agent: 'redispatch-expost', step: 4,
+    description: 'High curtailment frequency detected (>100 measures/month)',
+    descriptionDe: 'Hohe Abregelungsfrequenz erkannt (>100 Maßnahmen/Monat)',
+  },
+  RD_CURTAILMENT_DATA_UNAVAILABLE: {
+    severity: 'warning', agent: 'redispatch-expost', step: 4,
+    description: 'Netztransparenz curtailment data unavailable — using 0 GWh fallback',
+    descriptionDe: 'Netztransparenz-Daten nicht verfügbar — 0 GWh-Fallback verwendet',
+  },
+  RD_CURTAILMENT_ZERO: {
+    severity: 'info', agent: 'redispatch-expost', step: 4,
+    description: 'No curtailment recorded in Netztransparenz for this period',
+    descriptionDe: 'Keine Abregelung in Netztransparenz für diesen Zeitraum erfasst',
+  },
+  RD_SETTLEMENT_READY: {
+    severity: 'info', agent: 'redispatch-expost', step: 5,
+    description: 'All installations ready for A96 settlement (100%)',
+    descriptionDe: 'Alle Anlagen abrechnungsbereit (100%)',
+  },
+  RD_SETTLEMENT_PARTIAL: {
+    severity: 'warning', agent: 'redispatch-expost', step: 5,
+    description: 'Partial settlement readiness (80–99%) — some installations blocked',
+    descriptionDe: 'Teilweise Abrechnungsbereitschaft (80–99%) — einzelne Anlagen blockiert',
+  },
+  RD_SETTLEMENT_CRITICAL: {
+    severity: 'error', agent: 'redispatch-expost', step: 5,
+    description: 'Critical settlement readiness (<80%) — majority of installations blocked',
+    descriptionDe: 'Kritische Abrechnungsbereitschaft (<80%) — Mehrheit der Anlagen blockiert',
+  },
+  RD_RISK_LOW: {
+    severity: 'info', agent: 'redispatch-expost', step: 6,
+    description: 'Low financial risk from unsettled redispatch (estimated <€10k)',
+    descriptionDe: 'Geringes finanzielles Risiko durch nicht abgerechneten Redispatch (<10.000 €)',
+  },
+  RD_RISK_MEDIUM: {
+    severity: 'warning', agent: 'redispatch-expost', step: 6,
+    description: 'Medium financial risk from unsettled redispatch (estimated €10k–€100k)',
+    descriptionDe: 'Mittleres finanzielles Risiko (10.000–100.000 €)',
+  },
+  RD_RISK_HIGH: {
+    severity: 'error', agent: 'redispatch-expost', step: 6,
+    description: 'High financial risk from unsettled redispatch (estimated >€100k)',
+    descriptionDe: 'Hohes finanzielles Risiko (>100.000 €)',
+  },
+};
+
+// ---------------------------------------------------------------------------
 // Exports
 // ---------------------------------------------------------------------------
 module.exports = {
@@ -366,4 +898,30 @@ module.exports = {
   QUALITY_DIMENSION_WEIGHTS,
   computeDimensionScore,
   computeQualityScore,
+  // RD Step 2 — Portfolio inventory
+  RD_PORTFOLIO_COMPLETE,
+  RD_PORTFOLIO_EMPTY,
+  RD_PORTFOLIO_INCLUDES_INACTIVE,
+  // RD Step 3 — Master data validation
+  RD_MISSING_NAP,
+  RD_MISSING_MELO,
+  RD_MISSING_BTR,
+  RD_NAP_VNB_MISMATCH,
+  RD_DV_NOT_CONTROLLABLE,
+  RD_CAPACITY_ANOMALY,
+  // RD Step 4 — Curtailment correlation
+  RD_CURTAILMENT_VOLUME,
+  RD_HIGH_CURTAILMENT_PERIOD,
+  RD_CURTAILMENT_DATA_UNAVAILABLE,
+  RD_CURTAILMENT_ZERO,
+  // RD Step 5 — Settlement readiness
+  RD_SETTLEMENT_READY,
+  RD_SETTLEMENT_PARTIAL,
+  RD_SETTLEMENT_CRITICAL,
+  // RD Step 6 — Risk assessment
+  RD_RISK_LOW,
+  RD_RISK_MEDIUM,
+  RD_RISK_HIGH,
+  // UI metadata (v0.19)
+  FINDING_CODE_METADATA,
 };

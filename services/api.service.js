@@ -177,6 +177,30 @@ module.exports = {
             'Returns a qualityScore (0–100) across 5 weighted dimensions. ' +
             'No LLM involvement. Steps 3–7 independently skippable via skipSteps parameter.',
         },
+        {
+          name: 'Redispatch Ex-Post',
+          description:
+            'Deterministic 7-step Redispatch 2.0 Ex-Post settlement audit (v0.18). ' +
+            'Cross-references MaStR portfolio (≥100 kW) with Netztransparenz curtailment data: ' +
+            'VNB identity → portfolio inventory → master data validation → ' +
+            'curtailment correlation → settlement readiness → financial risk assessment → audit trail. ' +
+            'Returns settlementReadiness (% of installations ready for A96 settlement) and ' +
+            'riskAssessment (estimated lost compensation in €). ' +
+            'No LLM involvement. Regulatory basis: §§ 13, 13a EnWG, NABEG, StromNZV, Redispatch 2.0 (BDEW/BNetzA). ' +
+            'Steps 3–6 independently skippable via skipSteps parameter.',
+        },
+        {
+          name: 'Dashboard API',
+          description:
+            'UI-optimised aggregate endpoints (v0.19). ' +
+            'Each endpoint consolidates 4–7 internal service calls into a single response, ' +
+            'reducing the roundtrips required for an Enterprise UI dashboard page to one. ' +
+            'Read-only — no side-effects, no own PouchDB. ' +
+            'Endpoints: vnb-overview (VNB identity + KPIs + latest agent results), ' +
+            'market-snapshot (spot prices + CO₂ + renewable forecast), ' +
+            'quality-summary (recent reports from all agent pipelines), ' +
+            'finding-codes (complete 92-code reference with metadata for UI tooltips).',
+        },
       ],
       components: {
         securitySchemes: {
@@ -417,6 +441,15 @@ module.exports = {
           'POST /mastr-quality/audit': 'mastr-quality.audit',
           'GET /mastr-quality/audits': 'mastr-quality.list',
           'GET /mastr-quality/audits/:id': 'mastr-quality.get',
+          // Redispatch Ex-Post (v0.18)
+          'POST /redispatch/audit': 'redispatch-expost.audit',
+          'GET /redispatch/audits': 'redispatch-expost.list',
+          'GET /redispatch/audits/:id': 'redispatch-expost.get',
+          // Dashboard API (v0.19) — UI-optimised aggregate endpoints
+          'GET /dashboard/vnb-overview':    'dashboard-api.vnbOverview',
+          'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
+          'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
+          'GET /dashboard/finding-codes':   'dashboard-api.findingCodes',
 
           // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
           'GET /datasources/uploads'(req, res) {

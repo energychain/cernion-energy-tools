@@ -614,6 +614,34 @@ No LLM involvement.
 
 ---
 
+## 7. Dashboard API Service (v0.19) — `dashboard-api`
+
+Read-only UI aggregator. Exposes 4 composite endpoints designed to satisfy entire
+dashboard pages with a single API call. No own PouchDB, no state, no side-effects.
+
+**Endpoints:**
+
+| Method | URL | Cache TTL | Description |
+|--------|-----|-----------|-------------|
+| `GET` | `/api/dashboard/vnb-overview` | 5 min | VNB identity, KPIs, latest agent results, alerts |
+| `GET` | `/api/dashboard/market-snapshot` | 15 min | Spot prices, CO₂ intensity, renewable forecast |
+| `GET` | `/api/dashboard/quality-summary` | 5 min | Recent reports from all 5 agent pipelines |
+| `GET` | `/api/dashboard/finding-codes` | 24 h | All 92 finding codes with EN+DE descriptions |
+
+**Architecture notes:**
+
+- All upstream calls fired in parallel via `Promise.allSettled` (< 3s latency target).
+- Each upstream call wrapped in `safeCall()` — failed calls return `null`, service name
+  added to `_errors[]`. Response always returned — never 500 from upstream failure.
+- In-memory cache (`this.cache = new Map()`) with per-action TTLs.
+- Reads `FINDING_CODE_METADATA` from `src/validation-findings.js` for `findingCodes` endpoint.
+- **NOT** in `skipServices` — all 4 endpoints are LLM-accessible read-only tools.
+- Upstream services: `grid-operations`, `vnb-monitor`, `datapoint`, `mastr-quality`,
+  `grid-connection`, `energy-sharing`, `redispatch-expost`, `energy-sharing-allocation`,
+  `energy-market`, `entsoe`, `german-grid`.
+
+---
+
 ## Technology Stack
 
 - **Moleculer**: 0.14.35 - Microservices framework

@@ -12,7 +12,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Embedded PouchDB (`pouchdb` + `pouchdb-find`) stores datapoint metadata and snapshots.
   KRITIS-compliant: no native bindings, no network port, no external process.
 
-## Architecture Layers (v0.10–v0.17)
+## Architecture Layers (v0.10–v0.18)
 
 | Layer | Version | Description |
 |---|---|---|
@@ -21,6 +21,8 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 | Datapoint Layer | v0.11–v0.13 | Named managed data sources with PouchDB, scheduling, OEO/OEMetadata, snapshots |
 | Agent Layer | v0.14–v0.15 | Grid Connection Validation (v0.14) + Energy Sharing Validation (v0.15): deterministic pipelines, PouchDB audit trail, EU AI Act Art. 12 compliance |
 | Agent Layer | v0.17 | MaStR Data Quality Audit (v0.17): 8-step portfolio quality audit, weighted dimension scoring, `skipSteps`, 25 `MQ_*` finding codes (total: 73) |
+| Agent Layer | v0.18 | Redispatch Ex-Post Agent (v0.18): 7-step settlement readiness audit, Weg A/B portfolio, `src/redispatch-risk.js`, 19 `RD_*` finding codes (total: 92) |
+| Dashboard Layer | v0.19 | Dashboard API (v0.19): 4 UI-aggregate endpoints, `Promise.allSettled`, `safeCall`, `FINDING_CODE_METADATA`, in-memory cache, `scripts/export-openapi.js`, 14 UI contracts |
 
 ## Coding Guidelines
 
@@ -169,16 +171,25 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Uses Overpass API (public or private instance via `OVERPASS_ENDPOINT` env var)
 - Agent RULE 12 routes geo intents to these actions
 
-## Current Project Status (v0.17.0)
+## Current Project Status (v0.19.1)
 
-- Release `v0.17.0` is the current release.
-- 27 core services in `services/`, ~1 660+ tests across ~57 suites.
+- Release `v0.19.2` is the current release.
+- 38 core services in `services/`, ~1 782 tests across ~60 suites.
+- **Dashboard Layer (v0.19.1 hotfix):** `dashboard-api.service.js` — read-only UI aggregator:
+  - 4 endpoints: `vnbOverview`, `marketSnapshot`, `qualitySummary`, `findingCodes`
+  - `Promise.allSettled` parallelism, `safeCall` graceful degradation, in-memory cache.
+  - `FINDING_CODE_METADATA` added to `src/validation-findings.js` (all 92 codes, EN+DE).
+  - 4 routes registered in `api.service.js` under new `Dashboard API` OpenAPI tag.
+  - 39 unit tests in `tests/dashboard-api.test.js`.
+  - `scripts/export-openapi.js` + `npm run export:openapi` script.
+  - 14 UI contract docs in `docs/ui-contracts/` (00–13).
+  - `docs/BACKEND_CONTEXT.md` — full backend reference for frontend consumers.
 - **UI Layer (v0.15.1):** All v0.13–v0.15 backend features surfaced in `src/app.html`:
   - Datapoints panel: tag filter input, interventions row-expand (📋 per row), Snapshots sub-section (create/list/validate/delete).
   - Integration Hub: Grid Connection Validation sub-card (v0.14 — Netzanschluss pipeline).
   - Integration Hub: Energy Sharing Validation sub-card (v0.15 — § 42c EnWG, dynamic generator/consumer rows, share-sum validation, decision badges).
   - New CSS tokens: `.decision-badge`, `.val-kpi-row`, `.val-step-timeline`, `.val-findings`, `.dynamic-rows-wrap`, `.dp-snapshots-section`, etc.
-- **Agent Layer (v0.14–0.17):** Three deterministic validation/audit agents:
+- **Agent Layer (v0.14–0.18):** Four deterministic validation/audit agents:
   - `grid-connection.service.js` (v0.14) — 6-step Netzanschluss pipeline.
   - `energy-sharing.service.js` (v0.15) — 6-step Energy Sharing pipeline (§ 42c EnWG),
     regulatory deadline 01.06.2026. PouchDB at `.energy-sharing/`, doc prefix `es:`.
@@ -186,6 +197,10 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
   - `mastr-quality.service.js` (v0.17) — 8-step MaStR portfolio quality audit.
     PouchDB at `.mastr-quality/`, doc prefix `mq:`. 25 new `MQ_*` finding codes
     (total: 73). Weighted quality score across 5 dimensions (0–100). 180s timeout.
+  - `redispatch-expost.service.js` (v0.18) — 7-step Redispatch 2.0 Ex-Post settlement audit.
+    PouchDB at `.redispatch-expost/`, doc prefix `rd:`. 19 new `RD_*` finding codes
+    (total: 92). `src/redispatch-risk.js` pure module (assessSettlementReadiness, assessRisk).
+    Weg A (MCP) / Weg B (datapoint fallback) portfolio. 180s timeout.
 - Integration Hub panel (`#integration-hub-panel`) in `src/app.html` with token
   management, Power Automate / Power BI connector generator, VNB Monitor
   threshold editor, and NBP Monitor sub-panel.
@@ -201,7 +216,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Release gate: `npm run release:check` (tests + OpenAPI + security)
 - Known risk: `xlsx` high advisory — documented exception in SECURITY.md
 
-### Agent Layer (v0.14–v0.17)
+### Agent Layer (v0.14–v0.18)
 
 - All agent services follow the **deterministic pipeline pattern**:
   separate PouchDB, `skipServices` exclusion, MCP calls via `CernionMCPClient.callWithNewSession`,
@@ -212,7 +227,10 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
   (`QUALITY_DIMENSION_WEIGHTS` + `computeDimensionScore` + `computeQualityScore`),
   `skipSteps` parameter (only steps 3–7 may be skipped), geo spot-check via `osm-geo.validate`,
   25 `MQ_*` finding codes. PouchDB at `.mastr-quality/`, doc prefix `mq:`.
-- Future agents: `redispatch-expost` (v0.18+).
+- `redispatch-expost` adds: 7-step Redispatch 2.0 settlement audit, Weg A/Weg B portfolio
+  (`tryDatapointFallback` standalone method with freshness gate), pure risk module at
+  `src/redispatch-risk.js`, `skipSteps` parameter (only steps 3–6 may be skipped),
+  19 `RD_*` finding codes. PouchDB at `.redispatch-expost/`, doc prefix `rd:`.
 
 ## Release Process (0.x)
 

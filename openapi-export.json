@@ -1,0 +1,179 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Cernion Energy Tools API",
+    "version": "0.18.0",
+    "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
+  },
+  "tags": [
+    {
+      "name": "Energy",
+      "description": "Energy market operations"
+    },
+    {
+      "name": "Example",
+      "description": "Example service endpoints"
+    },
+    {
+      "name": "DataSources",
+      "description": "Inhouse datasource registry, cache, and discovery"
+    },
+    {
+      "name": "VNBMonitor",
+      "description": "VNB (grid operator) KPI monitoring and alerts"
+    },
+    {
+      "name": "NBPMonitor",
+      "description": "Netzbetreiberprüfungs-Monitor (MaStR status 2955 queue KPIs)"
+    },
+    {
+      "name": "IntegrationHub",
+      "description": "Token management and integration helpers"
+    },
+    {
+      "name": "Jobs",
+      "description": "Async job status and result polling (v0.9.8+)"
+    },
+    {
+      "name": "Datapoints",
+      "description": "Managed data source points with lifecycle tracking and health monitoring (v0.11)"
+    },
+    {
+      "name": "OSM Geo (OpenStreetMap)",
+      "description": "Layer 2 Geo-Architecture: physical grid infrastructure from OpenStreetMap via the Overpass API. Complements authoritative VNBDigital data (Layer 1) with visible substations, transformers, and lines. Data: © OpenStreetMap contributors, ODbL 1.0 — https://opendatacommons.org/licenses/odbl/"
+    },
+    {
+      "name": "OEP (Open Energy Platform)",
+      "description": "Read-only access to Open Energy Platform research and scenario datasets. No authentication required for public tables. Supports schema/table discovery, column metadata, row queries, and full-text search. API: https://openenergyplatform.org/api/v0"
+    },
+    {
+      "name": "Grid Connection Validation",
+      "description": "Deterministic 6-step Netzanschluss validation pipeline (v0.14). Produces structured findings and a Go/No-Go decision sealed with a PouchDB snapshot for audit integrity. No LLM involvement — identical inputs always produce identical finding codes."
+    },
+    {
+      "name": "Energy Sharing Validation",
+      "description": "Deterministic 6-step Energy Sharing community validation pipeline (v0.15). Validates generator MaStR records, Direktvermarkter status (§ 21 Abs. 2 EEG), share allocations, and § 42c EnWG eligibility. Interims-Prozess for VNBs ahead of § 20b EnWG central platform. No LLM involvement — identical inputs always produce identical finding codes."
+    },
+    {
+      "name": "Energy Sharing Allocation",
+      "description": "Deterministic 6-step Energy Sharing allocation engine (v0.16). Computes per-consumer 15-min allocation time-series (§ 12 StromNZV) for § 42c EnWG communities. Stufe A: synthetic forecast via mastr_generation_forecast. Stufe B: real iMSys metering data via inhouse CSV upload. KRITIS-compliant: time-series computed in RAM, only metadata persisted. Interimsprozess operative deadline: 01.06.2026 (§ 20b EnWG)."
+    },
+    {
+      "name": "MaStR Data Quality",
+      "description": "Deterministic 8-step MaStR portfolio quality audit (v0.17). Audits the entire VNB portfolio in MaStR: VNB identity → full inventory → status anomalies → capacity anomalies → connection point integrity → duplicate detection → geo spot check → audit trail. Returns a qualityScore (0–100) across 5 weighted dimensions. No LLM involvement. Steps 3–7 independently skippable via skipSteps parameter."
+    },
+    {
+      "name": "Redispatch Ex-Post",
+      "description": "Deterministic 7-step Redispatch 2.0 Ex-Post settlement audit (v0.18). Cross-references MaStR portfolio (≥100 kW) with Netztransparenz curtailment data: VNB identity → portfolio inventory → master data validation → curtailment correlation → settlement readiness → financial risk assessment → audit trail. Returns settlementReadiness (% of installations ready for A96 settlement) and riskAssessment (estimated lost compensation in €). No LLM involvement. Regulatory basis: §§ 13, 13a EnWG, NABEG, StromNZV, Redispatch 2.0 (BDEW/BNetzA). Steps 3–6 independently skippable via skipSteps parameter."
+    },
+    {
+      "name": "Dashboard API",
+      "description": "UI-optimised aggregate endpoints (v0.19). Each endpoint consolidates 4–7 internal service calls into a single response, reducing the roundtrips required for an Enterprise UI dashboard page to one. Read-only — no side-effects, no own PouchDB. Endpoints: vnb-overview (VNB identity + KPIs + latest agent results), market-snapshot (spot prices + CO₂ + renewable forecast), quality-summary (recent reports from all agent pipelines), finding-codes (complete 92-code reference with metadata for UI tooltips)."
+    }
+  ],
+  "paths": {
+    "/dashboard/vnb-overview": {
+      "get": {
+        "tags": [
+          "Dashboard API"
+        ],
+        "summary": "VNB overview — aggregated dashboard data for one grid operator",
+        "operationId": "dashboard-api.vnbOverview",
+        "x-ui-page": "dashboard",
+        "parameters": [
+          {
+            "name": "bdewCode",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregated VNB overview"
+          }
+        }
+      }
+    },
+    "/dashboard/market-snapshot": {
+      "get": {
+        "tags": [
+          "Dashboard API"
+        ],
+        "summary": "Market snapshot — current spot prices, CO₂ intensity, renewable forecast",
+        "operationId": "dashboard-api.marketSnapshot",
+        "x-ui-page": "dashboard",
+        "parameters": [
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "Deutschland"
+            }
+          },
+          {
+            "name": "region",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "Germany"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current market snapshot"
+          }
+        }
+      }
+    },
+    "/dashboard/quality-summary": {
+      "get": {
+        "tags": [
+          "Dashboard API"
+        ],
+        "summary": "Quality summary — recent reports from all agent pipelines",
+        "operationId": "dashboard-api.qualitySummary",
+        "x-ui-page": "dashboard",
+        "parameters": [
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Quality summary across all agent pipelines"
+          }
+        }
+      }
+    },
+    "/dashboard/finding-codes": {
+      "get": {
+        "tags": [
+          "Dashboard API"
+        ],
+        "summary": "Finding codes reference — all 92 codes with metadata",
+        "operationId": "dashboard-api.findingCodes",
+        "x-ui-page": "dashboard",
+        "responses": {
+          "200": {
+            "description": "Finding codes reference"
+          }
+        }
+      }
+    }
+  },
+  "x-generated-at": "2026-03-31T09:03:01.523Z",
+  "x-generator": "scripts/export-openapi.js",
+  "x-version": "0.18.0"
+}

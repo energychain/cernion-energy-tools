@@ -21,6 +21,10 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - 🌍 **OSM Geo Layer** — Grid infrastructure analysis via OpenStreetMap/Overpass: VNB assignment validation, nearby infrastructure, substation inventory, and grid topology (v0.10)
 - 🌐 **OEP Connector** — Read-only access to the Open Energy Platform (scenario data, NEP references, research datasets) via `/api/oep/*` (v0.12)
 - 🔌 **Grid Connection Validation** — Deterministic 6-step Netzanschluss pipeline (`POST /api/grid-connection/validate`): inventory → delta → capacity → EWK benchmark → Go/No-Go decision → audit trail. No LLM — identical inputs, identical findings. Reports sealed with PouchDB snapshots for EU AI Act Art. 12 compliance (v0.14)
+- 🤝 **Energy Sharing Validation** — Deterministic 6-step § 42c EnWG pipeline (`POST /api/energy-sharing/validate`): generator/consumer eligibility, MaLo validation, share-sum check, DV validation. Regulatory deadline: 01.06.2026 (v0.15)
+- 📊 **MaStR Data Quality Audit** — 8-step portfolio quality audit (`POST /api/mastr-quality/audit`): registration completeness, capacity plausibility, NAP/MeLo connectivity, duplicate detection, geo spot-check. Weighted 0–100 score across 5 dimensions (v0.17)
+- ⚡ **Redispatch Ex-Post Audit** — 7-step Redispatch 2.0 settlement readiness audit (`POST /api/redispatch/audit`): portfolio assembly (Weg A/B), NAP/MeLo/DV checks, curtailment data, financial risk scoring (v0.18)
+- 🗂️ **Dashboard API** — Read-only UI aggregator with 4 composite endpoints (`GET /api/dashboard/*`): VNB overview, market snapshot, quality summary, finding-codes reference. All upstream calls parallel via `Promise.allSettled`, graceful degradation, 5–15 min cache (v0.19)
 - 🧠 **OEO / OEMetadata** — Open Energy Ontology annotations on all 45+ REST endpoints, OEMetadata v2.0 export with optional JSON Schema validation (v0.11.4–v0.12)
 - 🔐 **Data Provenance** — SHA-256 provenance hashing on every datapoint refresh for EU AI Act Art. 12 compliance, plus explainability log for agent corrections (v0.11.5)
 - 🧹 **Prompt Scrubber** — Field-level PII masking with energy-domain allowlist before sending data to external LLMs (v0.11.5)- �🔌 **MCP Support** — Model Context Protocol SDK integration
@@ -37,6 +41,8 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - [MCP_TOOLS.md](MCP_TOOLS.md) - MCP tool reference
 - [MCP_SERVICES.md](MCP_SERVICES.md) - Microservice-to-tool mapping
 - [BEARER_TOKEN_AUTHENTICATION.md](BEARER_TOKEN_AUTHENTICATION.md) - Auth guide
+- [docs/BACKEND_CONTEXT.md](docs/BACKEND_CONTEXT.md) - Backend architecture reference (services, PouchDB, finding codes, auth)
+- [docs/ui-contracts/](docs/ui-contracts/) - Frontend ↔ backend API contracts (v0.19, 14 docs)
 - [docs/MAINTENANCE_MILESTONE_CHECKLIST.md](docs/MAINTENANCE_MILESTONE_CHECKLIST.md) - Pre-milestone quality/security gate checklist
 - [SECURITY.md](SECURITY.md) - Security policy and disclosure
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community guidelines
@@ -358,6 +364,7 @@ so that GitHub search surfaces our dependency to upstream maintainers.
 | `npm run audit:openapi` | Audit OpenAPI request/parameter quality |
 | `npm run audit:security` | Run blocking dependency audit (critical severity) |
 | `npm run audit:security:advisory` | Run advisory dependency audit (high+) |
+| `npm run export:openapi` | Generate `openapi-export.json` with `x-ui-page` annotations |
 | `npm run release:check` | Run core release gates (unit coverage, OpenAPI, critical security audit) |
 | `npm run sync:oeo` | Validate/update OEO mappings from upstream release |
 | `npm run sync:oemetadata` | Validate/update OEMetadata schema from upstream |

@@ -69,7 +69,7 @@ function loadSession(id) {
 // ---------------------------------------------------------------------------
 function buildServiceCatalogue(services) {
   const catalogue = [];
-  const skipServices = new Set(['api', '$node', 'agent', 'grid-connection', 'energy-sharing', 'energy-sharing-allocation', 'mastr-quality']);
+  const skipServices = new Set(['api', '$node', 'agent', 'grid-connection', 'energy-sharing', 'energy-sharing-allocation', 'mastr-quality', 'redispatch-expost']);
 
   for (const svc of services) {
     if (svc.name.startsWith('$') || skipServices.has(svc.name)) continue;

@@ -7,6 +7,242 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.2] - 2026-03-31
+
+### Fixed
+
+- **dashboard-api: `marketSnapshot` — ENTSO-E call is now conditional on `?region`** —
+  `entsoe.windSolarForecast` only fires when the caller supplies an explicit `region`
+  query param. Without it `renewableForecast24h: null` is returned and no MCP session
+  is consumed. The `region` param no longer carries a `'Germany'` default; UI must hide
+  the forecast card when `renewableForecast24h` is null. Passing `region: 'Germany'`
+  (or any ENTSO-E country name) restores previous behaviour.
+  One new test (`returns null renewableForecast24h and skips ENTSO-E when no region given`)
+  verifies the skip behaviour; `extracts solar/wind peaks from ENTSO-E forecast` now
+  explicitly passes `{ region: 'Germany' }`. Total tests: **1 782** (60 suites).
+
+### Changed
+
+- **dashboard-api: `buildKpis` — `redispatchEligible` roadmap comment** — The `null`
+  placeholder is now documented with two concrete v0.19.3 implementation options:
+  (a) extend `vnb-monitor.snapshot`'s existing MaStR phase with a `minCapacity:100`
+  sub-count, or (b) add a new `assets.redispatchCount` action (MongoDB-only, no MCP)
+  called in Phase 2. Option (b) is preferred.
+
+- **CHANGELOG v0.19.0 errata block added** — An `⚠ Errata (corrected in [0.19.1])`
+  blockquote in the v0.19.0 `Dashboard API Layer` entry lists all seven action-name
+  and response-shape errors that were present in the original release notes
+  (`vnb-monitor.status`, `assets.summary`, `forecast.load`, `forecast.renewables`,
+  `energy-market.dayAheadPrice`, `energy-market.co2intensity`, `loadForecast` key).
+
+## [0.19.1] - 2026-03-31
+
+### Fixed
+
+- **dashboard-api: `marketSnapshot` — `entsoe.windSolarForecast` conditional on `?region`** —
+  The call only fires when the caller supplies an explicit `region` query param. Without
+  it, `renewableForecast24h: null` is returned and no ENTSO-E MCP session is consumed.
+  The `region` param no longer carries a `'Germany'` default; UI must hide the forecast
+  card when `renewableForecast24h` is null. One new test verifies the skip behaviour.
+
+- **dashboard-api: Two-phase execution in `vnbOverview`** — MCP-intensive calls
+  (`grid-operations.vnbLookupCodes`, `vnb-monitor.snapshot`) now run **sequentially**
+  in Phase 1; `datapoint.health` and the four PouchDB-only agent list calls run
+  **in parallel** in Phase 2. Reduces peak concurrent MCP sessions from 15+ to ≤10.
+  `gridOperatorId` extracted from Phase 1 identity is forwarded to all four agent list
+  calls, enabling proper per-operator filtering (was always `null` in v0.19.0).
+  `vnb-monitor.snapshot` call now passes `{ refresh: false, alerts: true, lang: 'de' }`.
+
+- **dashboard-api: Cache stampede guard** — New `cacheGetOrFetch(key, ttlMs, fetchFn)`
+  method replaces direct `cacheGet`/`cacheSet` pairs in all four action handlers.
+  An `inflight` Map deduplicates concurrent requests for the same cache key: a second
+  call that arrives while the first is still in-flight awaits the same promise instead
+  of triggering a redundant upstream fetch.
+
+- **dashboard-api: `buildKpis` field paths corrected** — Now reads from the actual
+  `vnb-monitor.snapshot` nested structure instead of a flat mock-only structure:
+  - `mastr.inBetrieb.anlagenCount` (was: `mastr.totalInstallations`)
+  - `Number(mastr.inBetrieb.leistungMW)` (was: `mastr.totalCapacityMW`)
+  - `ewk.anschlussdauer.eeNS_weeks` (was: `ewk.anschlussdauerWeeks`)
+  - `ewk.digitalisierungsindex.gesamt_percent` (was: `ewk.digitalisierungsScore`)
+  - `ewk.umsetzungsquote.eeNS_percent` (was: `ewk.umsetzungsquote` scalar)
+  - `redispatchEligible` now always `null` (field does not exist in `vnb-monitor.snapshot`;
+    to be derived from redispatch agent in a future release)
+
+- **dashboard-api.test.js: `MOCK_VNB_MONITOR` corrected** — Updated to the real nested
+  structure of `vnb-monitor.snapshot` (`mastr.inBetrieb`, `ewk.anschlussdauer`, etc.).
+  All existing assertions continue to pass.
+
+- **dashboard-api.test.js: 17 new tests** — Sequential Phase 1 call-order verification,
+  `gridOperatorId` forwarding test, two cache-stampede tests (vnbOverview + marketSnapshot),
+  two `cacheGetOrFetch` unit tests, 12 action-existence tests verifying all required
+  downstream actions are registered. Total: **56 tests** (was: 39).
+
+- **UI contracts updated** — `01-dashboard-overview.md`, `02-market-snapshot.md`,
+  `03-quality-summary.md` bumped to v0.19.1; execution model and `redispatchEligible`
+  notes corrected.
+
+## [0.19.0] - 2026-04-03
+
+### Added
+
+- **Dashboard API Layer (`dashboard-api` service, v0.19.0)** —
+  New read-only UI aggregator service exposing 4 composite endpoints that aggregate
+  data from across all agent, monitor, and market services. Designed for direct
+  consumption by frontend dashboards without any LLM routing.
+  Uses `Promise.allSettled` for parallel calls, `safeCall` for graceful degradation,
+  and an in-memory TTL cache (`Map`-based, configurable per endpoint).
+  Included in LLM agent catalogue (not in `skipServices`).
+
+  **Endpoints:**
+  | Method | Path | Action | Cache TTL |
+  |--------|------|---------|-----------|
+  | `GET` | `/api/dashboard/vnb-overview` | `dashboard-api.vnbOverview` | 5 min |
+  | `GET` | `/api/dashboard/market-snapshot` | `dashboard-api.marketSnapshot` | 15 min |
+  | `GET` | `/api/dashboard/quality-summary` | `dashboard-api.qualitySummary` | 5 min |
+  | `GET` | `/api/dashboard/finding-codes` | `dashboard-api.findingCodes` | 24 h |
+
+  **`vnbOverview`** — Composite VNB identity + KPIs + latest agent results + alerts.
+  7 parallel calls: `vnb-monitor.status`, `assets.summary`, `nbp-monitor.status`,
+  `grid-connection.list`, `energy-sharing.list`, `redispatch-expost.list`,
+  `mastr-quality.list`. Returns `{ identity, kpis, latestAgentResults, alerts,
+  timestamp, _errors }`.
+
+  **`marketSnapshot`** — Day-ahead spot price + CO₂ intensity + 24h load forecast.
+  4 parallel calls: `energy-market.dayAheadPrice`, `energy-market.co2intensity`,
+  `forecast.load` (24h horizon), `forecast.renewables` (48h horizon, graceful).
+  Optional `?location` / `?region` query params. Returns `{ spotPrice, co2,
+  loadForecast, timestamp, _errors }`.
+
+  **`qualitySummary`** — Portfolio quality score + per-agent audit summary.
+  5 parallel calls: `mastr-quality.list`, `grid-connection.list`,
+  `energy-sharing.list`, `redispatch-expost.list`, `assets.summary`.
+  Optional `?gridOperatorId` filter (passed through to list calls).
+  Returns `{ overallScore, agents[5], portfolioSize, timestamp, _errors }`.
+
+  **`findingCodes`** — Static catalogue of all 92 finding codes with EN+DE metadata.
+  Reads `FINDING_CODE_METADATA` directly (no upstream calls, 24h cache).
+  Returns `{ codes, agents (by-agent catalogue), totalCodes }`.
+
+  **New `x-oeo-class` annotations:** all 4 actions carry OEO mappings.
+
+  > **⚠ Errata (corrected in [0.19.1]):** Several action names and response shapes
+  > above were incorrect at publication:
+  > - `vnbOverview` — `vnb-monitor.status` → `vnb-monitor.snapshot`; `nbp-monitor.status`
+  >   removed; `assets.summary` removed (phantom action — does not exist); 7-parallel
+  >   execution → two-phase sequential + parallel; `gridOperatorId` forwarding added.
+  > - `marketSnapshot` — `energy-market.dayAheadPrice` → `energy-market.prices`;
+  >   `energy-market.co2intensity` → `energy-market.co2Intensity` (capital I);
+  >   `forecast.load` + `forecast.renewables` → `entsoe.windSolarForecast` (conditional
+  >   on `?region`) + `german-grid.spotprices`; response key `loadForecast` →
+  >   `renewableForecast24h`.
+  > - `qualitySummary` — `assets.summary` removed (phantom action).
+
+- **`FINDING_CODE_METADATA` in `src/validation-findings.js`** —
+  All 92 finding-code constants (GC_*, ES_*, MQ_*, RD_*, AUDIT_*, VNB_*, SNAPSHOT_*)
+  mapped to `{ severity, agent, step, description (EN), descriptionDe (DE) }`.
+  Exported as `FINDING_CODE_METADATA` alongside existing helpers.
+  Used by `dashboard-api.findingCodes` and available for frontend i18n.
+
+- **`scripts/export-openapi.js`** — Static OpenAPI export script.
+  Assembles `openapi-export.json` (dashboard paths + `x-ui-page` annotations) from
+  `services/api.service.js` without starting the broker. `--live` flag fetches from
+  a running server at port 3000. Invoked via `npm run export:openapi`.
+
+- **`docs/BACKEND_CONTEXT.md`** — Comprehensive backend reference for frontend
+  consumers. Covers architecture, all 38 services, PouchDB prefixes, 92 finding
+  codes, async job pattern, auth, KRITIS constraints, key source modules, env vars,
+  test suite, and known limitations.
+
+- **`docs/ui-contracts/`** — 14 UI contract documents (00–13):
+  `00-architecture`, `01-dashboard-overview`, `02-market-snapshot`,
+  `03-quality-summary`, `04-finding-codes`, `05-mastr-quality`,
+  `06-grid-connection`, `07-energy-sharing`, `08-redispatch`,
+  `09-datapoints`, `10-vnb-monitor`, `11-nbp-monitor`, `12-auth`,
+  `13-shared-components`. Each document specifies endpoint URLs, request/response
+  shapes, polling strategy, and error-handling conventions.
+
+- **`npm run export:openapi`** script in `package.json`.
+
+- **4 new route aliases in `api.service.js`** under new `Dashboard API` OpenAPI tag.
+
+### Changed
+
+- `README.md` — Added v0.15–v0.19 feature entries; new docs table rows for
+  `BACKEND_CONTEXT.md` and `docs/ui-contracts/`; `export:openapi` npm script row.
+- `MCP_SERVICES.md` — Added "7. Dashboard API Service (v0.19)" section with
+  endpoint table and architecture notes.
+- `SECURITY.md` — Supported versions updated to `0.19.x` (yes), `0.18.x` (security
+  patches only), `< 0.18` (no).
+- `.github/copilot-instructions.md` — Status block updated to v0.19.0; 38 services;
+  ~1 780+ tests; full dashboard-api description including TDZ limitation note.
+
+## [0.18.0] - 2026-04-02
+
+### Added
+
+- **Redispatch Ex-Post Agent (`redispatch-expost` service, v0.18.0)** —
+  New deterministic 7-step pipeline that audits the Redispatch 2.0 portfolio of a VNB,
+  cross-references MaStR master data (≥100 kW installations) with Netztransparenz
+  curtailment data, and computes settlement readiness and financial risk estimates.
+  No LLM involvement — identical inputs always produce identical finding codes.
+  Excluded from LLM agent catalogue (`skipServices`). Separate PouchDB at
+  `.redispatch-expost/` (`rd:` prefix). 180 s timeout (same as v0.17).
+  Regulatory basis: §§ 13, 13a EnWG, NABEG, StromNZV, Redispatch 2.0 (BDEW/BNetzA),
+  EU AI Act Art. 12 (audit trail).
+
+  **Pipeline steps:**
+  1. `identity` (**mandatory**) — Resolves VNB identity via `vnb_lookup_codes` MCP tool.
+     Emits `VNB_RESOLVED` / `VNB_AMBIGUOUS` / `VNB_NOT_FOUND`. Same pattern as v0.14/v0.15/v0.17.
+  2. `portfolio` (**mandatory**) — Fetches Redispatch-relevant portfolio (≥100 kW) via
+     `cernion_installations_local`. Supports **Weg B** (tagged datapoint fallback with
+     freshness gate, tags `redispatch-portfolio` / `mastr-portfolio`) before **Weg A** (MCP).
+     Emits `RD_PORTFOLIO_COMPLETE` (with `RD_PORTFOLIO_INCLUDES_INACTIVE` if any non-InBetrieb
+     units) or `RD_PORTFOLIO_EMPTY`.
+  3. `masterDataValidation` (**skippable**) — Pure sync per-installation check of 6 rules:
+     `RD_MISSING_NAP` (error), `RD_MISSING_MELO` (error), `RD_MISSING_BTR` (warning —
+     remote-control proxy; DirektvermarkterMastrNummer excluded from public exports by BNetzA),
+     `RD_NAP_VNB_MISMATCH` (error), `RD_DV_NOT_CONTROLLABLE` (warning), `RD_CAPACITY_ANOMALY`
+     (warning). All findings carry `{ mastrNummer }` in `context` for risk-score correlation.
+  4. `curtailmentCorrelation` (**skippable**) — Queries `netztransparenz_redispatch` for
+     the audit period. Aggregates total curtailment GWh. Emits `RD_CURTAILMENT_VOLUME`,
+     `RD_HIGH_CURTAILMENT_PERIOD` (>100 measures/month), `RD_CURTAILMENT_ZERO`, or
+     `RD_CURTAILMENT_DATA_UNAVAILABLE` (graceful fallback — 0 GWh used for risk calculation).
+  5. `settlementReadiness` (**skippable**) — Delegates to `src/redispatch-risk.js`
+     `assessSettlementReadiness`. Emits `RD_SETTLEMENT_READY` (100%), `RD_SETTLEMENT_PARTIAL`
+     (80–99%, warning), or `RD_SETTLEMENT_CRITICAL` (<80%, error). An installation is
+     "blocked" if any error-severity finding references its `mastrNummer`.
+  6. `riskAssessment` (**skippable**) — Delegates to `src/redispatch-risk.js` `assessRisk`.
+     Formula: `estimated€ = GWh × 1000 × blockedFraction × €/MWh` (default: €50/MWh).
+     Emits `RD_RISK_LOW` (<€10k), `RD_RISK_MEDIUM` (€10k–€100k), or `RD_RISK_HIGH` (>€100k).
+  7. `audit` (**mandatory**) — Snapshot + drift detection (same pattern as v0.14/v0.15/v0.17).
+     Emits `AUDIT_TRAIL_CREATED` (and `SNAPSHOT_DRIFT_DETECTED` if applicable).
+
+  **Key design decisions:**
+  - `skipSteps` whitelist: `[3, 4, 5, 6]`; steps 1, 2, 7 always run. Throws on invalid values.
+  - No enforced date range limit for Netztransparenz correlation.
+  - Weg B fallback: standalone `tryDatapointFallback` method (energy-sharing pattern),
+    freshness gate via `maxAgeMinutes`, `$gateway: false`.
+
+  **New finding codes (19 `RD_*` constants):** total codes 73 → 92.
+
+  **New REST endpoints:**
+  | Method | Path | Action |
+  |--------|------|--------|
+  | `POST` | `/api/redispatch/audit` | `redispatch-expost.audit` |
+  | `GET` | `/api/redispatch/audits` | `redispatch-expost.list` |
+  | `GET` | `/api/redispatch/audits/:id` | `redispatch-expost.get` |
+
+- **`src/redispatch-risk.js`** — New pure stateless risk calculation module.
+  `round2`, `assessSettlementReadiness`, `assessRisk`. No I/O, no Moleculer.
+
+- **`src/validation-findings.js`** — 19 new `RD_*` constants added and exported.
+  Total finding codes: 73 → 92.
+
+- **`.gitignore`** — Added `.redispatch-expost/` (PouchDB data directory).
+
+- **`.env.example`** — Added `REDISPATCH_EXPOST_DB_PATH=./.redispatch-expost`.
+
 ## [0.17.1] - 2026-03-30
 
 ### Fixed
