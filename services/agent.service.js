@@ -22,7 +22,7 @@ const { scrubForLLM, scrubPromptText } = require('../src/prompt-scrubber');
 // ---------------------------------------------------------------------------
 // In-process session store (file-backed for persistence across restarts)
 // ---------------------------------------------------------------------------
-const SESSION_DIR = path.join(__dirname, '..', '.sessions');
+const SESSION_DIR = path.join(__dirname, '..', 'data', 'sessions');
 
 function ensureSessionDir() {
   if (!fs.existsSync(SESSION_DIR)) {

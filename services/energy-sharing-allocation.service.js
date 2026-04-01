@@ -45,7 +45,7 @@ module.exports = {
   name: 'energy-sharing-allocation',
 
   settings: {
-    dbPath: process.env.ALLOCATION_ENGINE_DB_PATH || './.allocation-engine',
+    dbPath: process.env.ALLOCATION_ENGINE_DB_PATH || './data/allocation-engine',
   },
 
   created() {

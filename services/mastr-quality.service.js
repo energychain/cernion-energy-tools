@@ -60,7 +60,7 @@ module.exports = {
   name: 'mastr-quality',
 
   settings: {
-    dbPath: process.env.MASTR_QUALITY_DB_PATH || './.mastr-quality',
+    dbPath: process.env.MASTR_QUALITY_DB_PATH || './data/mastr-quality',
   },
 
   created() {

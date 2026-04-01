@@ -37,7 +37,7 @@ module.exports = {
   name: 'grid-connection',
 
   settings: {
-    dbPath: process.env.GRID_CONNECTION_DB_PATH || './.grid-connections',
+    dbPath: process.env.GRID_CONNECTION_DB_PATH || './data/grid-connections',
   },
 
   created() {

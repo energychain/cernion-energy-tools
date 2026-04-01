@@ -143,16 +143,8 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Agent session persistence (runtime data, may contain user queries)
-.sessions/
-.reports/
-.jobs/
+# Runtime data — all PouchDB databases, jobs, sessions and reports live here.
+# Each service creates its own sub-directory on first start.
+data/
 uploads/
-.datapoints/
-.datapoints-*/
-.grid-connections/
-.energy-sharing/
-.allocation-engine/
-.mastr-quality/
-.redispatch-expost/
 src/oemetadata/

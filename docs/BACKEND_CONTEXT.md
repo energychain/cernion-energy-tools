@@ -99,12 +99,12 @@ only metadata, provenance hashes, and audit trails.
 
 | Service | DB path | Doc prefix | Purpose |
 |---------|---------|------------|---------|
-| datapoint | `.datapoints/` | `dp:` | Datapoint metadata |
-| datapoint (snapshots) | `.datapoints/` | `snap:` | Snapshot seals |
-| grid-connection | `.grid-connection/` | `val:` | Validation audit trail |
-| energy-sharing | `.energy-sharing/` | `es:` | Energy sharing audit trail |
-| mastr-quality | `.mastr-quality/` | `mq:` | MaStR quality audit trail |
-| redispatch-expost | `.redispatch-expost/` | `rd:` | Redispatch audit trail |
+| datapoint | `data/datapoints/` | `dp:` | Datapoint metadata |
+| datapoint (snapshots) | `data/datapoints/` | `snap:` | Snapshot seals |
+| grid-connection | `data/grid-connections/` | `val:` | Validation audit trail |
+| energy-sharing | `data/energy-sharing/` | `es:` | Energy sharing audit trail |
+| mastr-quality | `data/mastr-quality/` | `mq:` | MaStR quality audit trail |
+| redispatch-expost | `data/redispatch-expost/` | `rd:` | Redispatch audit trail |
 
 ---
 
@@ -156,7 +156,7 @@ Poll `GET /api/jobs/:jobId` (2s interval, 200s timeout):
 - `{ status: 'failed', error: '...' }` — failed
 - `{ status: 'running', step: N }` — in progress
 
-Jobs are persisted in `.jobs/` (file-backed `src/job-store.js`). Git-ignored.
+Jobs are persisted in `data/jobs/` (file-backed `src/job-store.js`). Git-ignored.
 
 Agents that use async jobs: `mastr-quality`, `grid-connection`, `energy-sharing`, `redispatch-expost`.
 
@@ -227,7 +227,7 @@ All endpoints follow the graceful degradation pattern:
 |--------|------|---------|
 | MCP Client | `src/mcp-client.js` | All Cernion MCP calls |
 | Async Job Poller | `src/async-job-poller.js` | `callWithAutoPoll` for long-running MCP tools |
-| Job Store | `src/job-store.js` | File-backed job persistence (`.jobs/`) |
+| Job Store | `src/job-store.js` | File-backed job persistence (`data/jobs/`) |
 | Validation Findings | `src/validation-findings.js` | 92 finding codes + `FINDING_CODE_METADATA` |
 | Redispatch Risk | `src/redispatch-risk.js` | Pure risk scoring module (Weg A/B) |
 | Prompt Scrubber | `src/prompt-scrubber.js` | PII field masking |

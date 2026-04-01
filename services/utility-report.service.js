@@ -6,8 +6,8 @@
  *
  * Features:
  *  - Sequential 4-phase pipeline covering 8 KPI sections
- *  - 7-day disk cache with UUID filenames (.reports/UUID.html)
- *  - Per-phase progress tracking for resumability (.reports/UUID.progress.json)
+ *  - 7-day disk cache with UUID filenames (data/reports/UUID.html)
+ *  - Per-phase progress tracking for resumability (data/reports/UUID.progress.json)
  *  - Graceful degradation: unavailable/unknown MCP tools return { available: false }
  *  - cernion_discover preflight to verify live tool availability
  *  - Gemini narrative for management summary (optional – falls back to static template)
@@ -32,7 +32,7 @@ const { buildHtmlReport, summarizeForReport } = require('../src/report-builder')
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
-const REPORTS_DIR = path.join(__dirname, '..', '.reports');
+const REPORTS_DIR = path.join(__dirname, '..', 'data', 'reports');
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 // IMPORTANT: Report generation orchestrates multiple long-running async MCP tools.
 // Keep this aligned with moleculer.config.js requestTimeout (15 min) to avoid
@@ -639,7 +639,7 @@ const VNB_SPECIFIC_FIELDS = [
 ];
 
 /**
- * Compare kpiSummary fields against previously generated reports stored in .reports/.
+ * Compare kpiSummary fields against previously generated reports stored in data/reports/.
  * Logs a warning for any field that carries an identical value across reports.
  * Marks such fields as DataStatus.FALLBACK in the returned warnings list.
  *

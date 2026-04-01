@@ -99,7 +99,7 @@ function mockInterpretAndSuggest(interpretOverrides = {}) {
 
 describe('Agent Service', () => {
   let broker;
-  const SESSION_DIR = path.join(__dirname, '..', '.sessions');
+  const SESSION_DIR = path.join(__dirname, '..', 'data', 'sessions');
   let discoveryListMock;
 
   beforeAll(async () => {

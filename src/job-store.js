@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 
 const JOBS_DIR =
-  process.env.JOB_STORE_DIR || path.join(__dirname, '..', '.jobs');
+  process.env.JOB_STORE_DIR || path.join(__dirname, '..', 'data', 'jobs');
 
 const TTL_MS =
   parseInt(process.env.JOB_STORE_TTL_SECONDS || '86400', 10) * 1000;

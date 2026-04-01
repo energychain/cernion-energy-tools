@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.19.3] - 2026-04-01
+
+### Changed
+
+- **Consolidated all runtime data under `data/`** — Every PouchDB database, the
+  job store, session files, and report cache now live inside a single `data/`
+  directory at the project root instead of scattered hidden directories
+  (`.*` names) across the repository root.
+
+  | Old path | New default path | Override env var |
+  |----------|-----------------|-----------------|
+  | `.datapoints/` | `data/datapoints/` | `DATAPOINT_DB_PATH` |
+  | `.grid-connections/` | `data/grid-connections/` | `GRID_CONNECTION_DB_PATH` |
+  | `.energy-sharing/` | `data/energy-sharing/` | `ENERGY_SHARING_DB_PATH` |
+  | `.allocation-engine/` | `data/allocation-engine/` | `ALLOCATION_ENGINE_DB_PATH` |
+  | `.mastr-quality/` | `data/mastr-quality/` | `MASTR_QUALITY_DB_PATH` |
+  | `.redispatch-expost/` | `data/redispatch-expost/` | `REDISPATCH_EXPOST_DB_PATH` |
+  | `.jobs/` | `data/jobs/` | `JOB_STORE_DIR` |
+  | `.sessions/` | `data/sessions/` | _(none — internal only)_ |
+  | `.reports/` | `data/reports/` | _(none — internal only)_ |
+
+  PouchDB mrview index directories (auto-created by LevelDB) now also land
+  inside `data/` (`data/<name>-mrview-<hash>/`) instead of the project root.
+
+  `.gitignore` simplified: the nine individual `.*` entries are replaced by a
+  single `data/` rule. A `data/.gitkeep` marker is committed so the directory
+  exists after a fresh clone. All env-var overrides remain fully functional —
+  deployments using custom paths are unaffected.
+
+- **Services updated:** `datapoint`, `grid-connection`, `energy-sharing`,
+  `energy-sharing-allocation`, `mastr-quality`, `redispatch-expost`
+  (default `dbPath`); `agent` (`SESSION_DIR`); `utility-report` (`REPORTS_DIR`);
+  `src/job-store.js` (`JOBS_DIR` default).
+
+- **Tests updated:** `tests/agent.service.test.js` (`SESSION_DIR` constant),
+  `tests/utility-report.service.test.js` (path-mock intercept pattern for
+  `data/reports` instead of `.reports`).
+
 ## [0.19.2] - 2026-03-31
 
 ### Fixed

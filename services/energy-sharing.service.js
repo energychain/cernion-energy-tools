@@ -51,7 +51,7 @@ module.exports = {
   name: 'energy-sharing',
 
   settings: {
-    dbPath: process.env.ENERGY_SHARING_DB_PATH || './.energy-sharing',
+    dbPath: process.env.ENERGY_SHARING_DB_PATH || './data/energy-sharing',
   },
 
   created() {

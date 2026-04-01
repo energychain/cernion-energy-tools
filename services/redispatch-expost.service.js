@@ -67,7 +67,7 @@ module.exports = {
   name: 'redispatch-expost',
 
   settings: {
-    dbPath: process.env.REDISPATCH_EXPOST_DB_PATH || './.redispatch-expost',
+    dbPath: process.env.REDISPATCH_EXPOST_DB_PATH || './data/redispatch-expost',
   },
 
   created() {

@@ -122,7 +122,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 
 ### Async Job Pattern (v0.9.8+)
 - Long-running REST actions return HTTP 202 with a `jobId`
-- File-backed persistence in `src/job-store.js` (`.jobs/` directory, git-ignored)
+- File-backed persistence in `src/job-store.js` (`data/jobs/` directory, git-ignored)
 - `ctx.meta.$gateway` flag distinguishes REST callers from internal callers
 - Agent executor strips `$gateway` to prevent async descriptor leakage in plan steps
 
@@ -173,7 +173,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 
 ## Current Project Status (v0.19.1)
 
-- Release `v0.19.2` is the current release.
+- Release `v0.19.3` is the current release.
 - 38 core services in `services/`, ~1 782 tests across ~60 suites.
 - **Dashboard Layer (v0.19.1 hotfix):** `dashboard-api.service.js` — read-only UI aggregator:
   - 4 endpoints: `vnbOverview`, `marketSnapshot`, `qualitySummary`, `findingCodes`
@@ -192,13 +192,13 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - **Agent Layer (v0.14–0.18):** Four deterministic validation/audit agents:
   - `grid-connection.service.js` (v0.14) — 6-step Netzanschluss pipeline.
   - `energy-sharing.service.js` (v0.15) — 6-step Energy Sharing pipeline (§ 42c EnWG),
-    regulatory deadline 01.06.2026. PouchDB at `.energy-sharing/`, doc prefix `es:`.
+    regulatory deadline 01.06.2026. PouchDB at `data/energy-sharing/`, doc prefix `es:`.
     28 new finding codes in `src/validation-findings.js` (total: 48).
   - `mastr-quality.service.js` (v0.17) — 8-step MaStR portfolio quality audit.
-    PouchDB at `.mastr-quality/`, doc prefix `mq:`. 25 new `MQ_*` finding codes
+    PouchDB at `data/mastr-quality/`, doc prefix `mq:`. 25 new `MQ_*` finding codes
     (total: 73). Weighted quality score across 5 dimensions (0–100). 180s timeout.
   - `redispatch-expost.service.js` (v0.18) — 7-step Redispatch 2.0 Ex-Post settlement audit.
-    PouchDB at `.redispatch-expost/`, doc prefix `rd:`. 19 new `RD_*` finding codes
+    PouchDB at `data/redispatch-expost/`, doc prefix `rd:`. 19 new `RD_*` finding codes
     (total: 92). `src/redispatch-risk.js` pure module (assessSettlementReadiness, assessRisk).
     Weg A (MCP) / Weg B (datapoint fallback) portfolio. 180s timeout.
 - Integration Hub panel (`#integration-hub-panel`) in `src/app.html` with token
@@ -226,11 +226,11 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - `mastr-quality` adds: 8-step portfolio audit, weighted dimension scoring
   (`QUALITY_DIMENSION_WEIGHTS` + `computeDimensionScore` + `computeQualityScore`),
   `skipSteps` parameter (only steps 3–7 may be skipped), geo spot-check via `osm-geo.validate`,
-  25 `MQ_*` finding codes. PouchDB at `.mastr-quality/`, doc prefix `mq:`.
+  25 `MQ_*` finding codes. PouchDB at `data/mastr-quality/`, doc prefix `mq:`.
 - `redispatch-expost` adds: 7-step Redispatch 2.0 settlement audit, Weg A/Weg B portfolio
   (`tryDatapointFallback` standalone method with freshness gate), pure risk module at
   `src/redispatch-risk.js`, `skipSteps` parameter (only steps 3–6 may be skipped),
-  19 `RD_*` finding codes. PouchDB at `.redispatch-expost/`, doc prefix `rd:`.
+  19 `RD_*` finding codes. PouchDB at `data/redispatch-expost/`, doc prefix `rd:`.
 
 ## Release Process (0.x)
 

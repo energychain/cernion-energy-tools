@@ -13,7 +13,7 @@
  *
  * KRITIS note: PouchDB has no native C-bindings, no network port, and no
  * external process. It is functionally equivalent to the existing file-based
- * stores (.sessions/, .jobs/, .datasource-registry.json) but adds revision
+ * stores (data/sessions/, data/jobs/, .datasource-registry.json) but adds revision
  * semantics and index-based queries.
  */
 
@@ -26,7 +26,7 @@ module.exports = {
   name: 'datapoint',
 
   settings: {
-    dbPath: process.env.DATAPOINT_DB_PATH || './.datapoints',
+    dbPath: process.env.DATAPOINT_DB_PATH || './data/datapoints',
     defaultTimeout: 120000,
     maxConcurrentRefreshes: parseInt(process.env.DATAPOINT_MAX_CONCURRENT_REFRESHES || '3', 10),
   },

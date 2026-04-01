@@ -42,11 +42,11 @@ jest.mock('path', () => {
     join: (...args) => {
       const joined = realPath.join(...args);
       if (
-        joined.includes('/.reports') ||
-        joined.endsWith('/.reports') ||
-        joined.endsWith('\\.reports')
+        joined.includes('/data/reports') ||
+        joined.endsWith('/data/reports') ||
+        joined.endsWith('\\data\\reports')
       ) {
-        return joined.replace(/.*[/\\]\.reports/, testReportsBase);
+        return joined.replace(/.*[/\\]data[/\\]reports/, testReportsBase);
       }
       return joined;
     },
@@ -494,7 +494,7 @@ describe('Utility Report Service', () => {
       // Write a minimal HTML file to the reports dir so the download action finds it
       const fakeId = 'test-html-download-' + Date.now();
       const fakeHtml = '<!DOCTYPE html><html><body>test</body></html>';
-      const reportsDir = path.join(__dirname, '..', '.reports');
+      const reportsDir = path.join(__dirname, '..', 'data', 'reports');
       fs.mkdirSync(reportsDir, { recursive: true });
       fs.writeFileSync(path.join(reportsDir, `${fakeId}.html`), fakeHtml);
 
