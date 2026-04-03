@@ -51,7 +51,7 @@
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.28.0",
     "ajv": "^8.18.0",
-    "axios": "^1.13.6",
+    "axios": "^1.14.0",
     "dotenv": "^17.3.1",
     "iconv-lite": "^0.7.2",
     "moleculer": "^0.14.35",
