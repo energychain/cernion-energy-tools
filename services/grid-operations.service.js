@@ -1672,6 +1672,22 @@ module.exports = {
           mcpParams,
           ctx.meta.cernionToken
         );
+
+        // v0.20.3: Inject companyId + marketRole into each result entry.
+        // Degrades gracefully when company service is unavailable.
+        if (Array.isArray(result?.results) && result.results.length > 0) {
+          try {
+            result.results = await ctx.call('company.enrichResults', {
+              results: result.results,
+            });
+          } catch (enrichErr) {
+            this.logger.warn(
+              '[marketPartners] company.enrichResults failed (degraded mode): ' +
+                enrichErr.message
+            );
+          }
+        }
+
         return applyFormat(ctx, result, format, 'market-partners', 'MarketPartners');
       },
     },

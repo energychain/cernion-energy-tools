@@ -91,6 +91,9 @@ function requiresFullAccess(method, requestPath) {
   }
   if (pathOnly === '/api/vnb-monitor/thresholds' && (m === 'PUT' || m === 'DELETE')) return true;
   if (pathOnly === '/api/nbp-monitor/parameters' && (m === 'PUT' || m === 'DELETE')) return true;
+  if (pathOnly.startsWith('/api/companies') && (m === 'POST' || m === 'PUT' || m === 'DELETE')) {
+    return true;
+  }
 
   return false;
 }
@@ -200,6 +203,16 @@ module.exports = {
             'market-snapshot (spot prices + CO₂ + renewable forecast), ' +
             'quality-summary (recent reports from all agent pipelines), ' +
             'finding-codes (complete 92-code reference with metadata for UI tooltips).',
+        },
+        {
+          name: 'Companies',
+          description:
+            'Company entity management (v0.20.3). ' +
+            'Groups multiple BDEW market-partner codes that belong to the same economic unit ' +
+            '(Konzernverbund / Stadtwerk). ' +
+            'Supports autoDiscover (cernion_market_partners query → draft → confirm flow) ' +
+            'and manual member management. ' +
+            'enrichResults enriches market-partner search results with companyId + marketRole.',
         },
       ],
       components: {
@@ -445,6 +458,13 @@ module.exports = {
           'POST /redispatch/audit': 'redispatch-expost.audit',
           'GET /redispatch/audits': 'redispatch-expost.list',
           'GET /redispatch/audits/:id': 'redispatch-expost.get',
+          // Companies (v0.20.3) — Konzernverbund / Stadtwerk entity management
+          'GET /companies':              'company.list',
+          'POST /companies':             'company.create',
+          'GET /companies/:id':          'company.get',
+          'PUT /companies/:id':          'company.update',
+          'PUT /companies/:id/confirm':  'company.confirm',
+          'DELETE /companies/:id':       'company.delete',
           // Dashboard API (v0.19) — UI-optimised aggregate endpoints
           'GET /dashboard/vnb-overview':    'dashboard-api.vnbOverview',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',

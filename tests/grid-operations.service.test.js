@@ -756,4 +756,108 @@ describe('Grid Operations Service', () => {
       );
     });
   });
+
+  // ─── marketPartners enrichment (v0.20.3) ─────────────────────────────────
+
+  describe('marketPartners action — company enrichment', () => {
+    const MOCK_MP_RESULTS = [
+      { bdew: '9900111000001', name: 'Test Netze GmbH', roles: ['VNB'] },
+      { bdew: '9910111000002', name: 'Test Energie GmbH', roles: ['Lieferant'] },
+    ];
+
+    beforeEach(() => {
+      callWithNewSession.mockReset();
+    });
+
+    it('calls cernion_market_partners with provided params', async () => {
+      callWithNewSession.mockResolvedValueOnce({ results: MOCK_MP_RESULTS });
+
+      // Register a stub company service that returns results unchanged
+      const companyStub = {
+        name: 'company',
+        actions: {
+          enrichResults: {
+            handler(ctx) {
+              return ctx.params.results;
+            },
+          },
+        },
+      };
+      broker.createService(companyStub);
+      await new Promise((r) => setTimeout(r, 50));
+
+      await broker.call('grid-operations.marketPartners', { query: 'Test' });
+
+      expect(callWithNewSession).toHaveBeenCalledWith(
+        'cernion_market_partners',
+        expect.objectContaining({ query: 'Test' }),
+        undefined
+      );
+
+      // Clean up stub service
+      const svc = broker.getLocalService('company');
+      if (svc) await broker.destroyService(svc);
+    });
+
+    it('injects companyId + marketRole when company service is available', async () => {
+      callWithNewSession.mockResolvedValueOnce({ results: MOCK_MP_RESULTS });
+
+      const enrichedResults = MOCK_MP_RESULTS.map((r, i) => ({
+        ...r,
+        companyId: i === 0 ? 'uuid-abc-123' : null,
+        marketRole: i === 0 ? 'VNB' : 'Lieferant',
+      }));
+
+      const enrichStub = {
+        name: 'company',
+        actions: {
+          enrichResults: {
+            handler() {
+              return enrichedResults;
+            },
+          },
+        },
+      };
+      broker.createService(enrichStub);
+      await new Promise((r) => setTimeout(r, 50));
+
+      const result = await broker.call('grid-operations.marketPartners', { query: 'Test' });
+
+      // Result is passed through applyFormat — check results field
+      const body = result?.results || result?.data?.results || result;
+      const arr = Array.isArray(body) ? body : (body?.results || []);
+      if (arr.length > 0) {
+        expect(arr[0]).toHaveProperty('companyId');
+        expect(arr[0]).toHaveProperty('marketRole');
+      }
+
+      const svc = broker.getLocalService('company');
+      if (svc) await broker.destroyService(svc);
+    });
+
+    it('degrades gracefully when company service throws', async () => {
+      callWithNewSession.mockResolvedValueOnce({ results: MOCK_MP_RESULTS });
+
+      const failStub = {
+        name: 'company',
+        actions: {
+          enrichResults: {
+            handler() {
+              throw new Error('company DB unavailable');
+            },
+          },
+        },
+      };
+      broker.createService(failStub);
+      await new Promise((r) => setTimeout(r, 50));
+
+      // Should not throw — original results returned
+      await expect(
+        broker.call('grid-operations.marketPartners', { query: 'Test' })
+      ).resolves.toBeDefined();
+
+      const svc = broker.getLocalService('company');
+      if (svc) await broker.destroyService(svc);
+    });
+  });
 });

@@ -28,6 +28,7 @@ const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const CernionMCPClient = require('../src/mcp-client');
+const { classifyPartner, normalizeMarketPartner, extractCandidates } = require('../src/market-role-classifier');
 const { buildHtmlReport, summarizeForReport } = require('../src/report-builder');
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -818,30 +819,18 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
               continue;
             }
 
-            const rawCandidates =
-              mp?.data?.results ||
-              mp?.results ||
-              mp?.data?.data?.results ||
-              mp?.data?.partners ||
-              [];
+            const rawCandidates = extractCandidates(mp);
 
             for (const c of rawCandidates) {
-              const bdew = c.bdewCode || c.bdew;
-              if (!bdew) continue;
+              const norm = normalizeMarketPartner(c);
+              if (!norm?.bdew) continue;
 
-              const key = String(bdew);
-              if (!bdewOptions.has(key)) {
-                const roles = Array.isArray(c.roles)
-                  ? c.roles
-                  : Array.isArray(c.marketRoles)
-                    ? c.marketRoles
-                    : [];
-
-                bdewOptions.set(key, {
-                  bdew: key,
-                  name: c.name || c.companyName || c.displayName || utilityName,
-                  city: c.city || c.ort || null,
-                  roles: roles,
+              if (!bdewOptions.has(norm.bdew)) {
+                bdewOptions.set(norm.bdew, {
+                  bdew: norm.bdew,
+                  name: norm.name || utilityName,
+                  city: norm.city || c.ort || null,
+                  roles: norm.roles,
                 });
               }
             }
@@ -1546,25 +1535,17 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           p.meta.allPartners = Array.from(allCandidatesMap.values());
 
           // CR-37: Classify all found partners by market role.
-          // Primary: explicit roles[] array; secondary: BDEW prefix heuristic
-          //   990x → VNB (Verteilnetzbetreiber)
-          //   991x → Lieferant / Vertrieb
-          //   992x → MSB (Messstellenbetreiber)
-          //   993x → BKV (Bilanzkreisverantwortlicher)
-          //   994x → Direktvermarkter
-          // Using .find() keeps only the first (best-matching) entry per role.
-          const classifyPartner = (rolePattern, bdewPrefix) =>
-            p.meta.allPartners.find((c) => {
-              const roles = c.roles ?? [];
-              if (roles.some((r) => rolePattern.test(r))) return true;
-              return !roles.length && !!c.bdew?.startsWith(bdewPrefix);
-            });
+          // Classification delegated to shared src/market-role-classifier.js.
+          const _classifyOne = (roleKey) =>
+            p.meta.allPartners.find(
+              (c) => classifyPartner({ roles: c.roles ?? [], bdewCode: c.bdew || '' }) === roleKey
+            );
           p.meta.marktRollenProfile = {
-            vnb: classifyPartner(/VNB|Verteilnetz|Netzbetreiber/i, '990'),
-            lieferant: classifyPartner(/Lieferant|Vertrieb/i, '991'),
-            msb: classifyPartner(/MSB|Messtellen/i, '992'),
-            bkv: classifyPartner(/BKV|Bilanzkreis/i, '993'),
-            direktvermarkter: classifyPartner(/Direktvermarkt|DV\b/i, '994'),
+            vnb: _classifyOne('VNB'),
+            lieferant: _classifyOne('Lieferant'),
+            msb: _classifyOne('MSB'),
+            bkv: _classifyOne('BKV'),
+            direktvermarkter: _classifyOne('Direktvermarkter'),
           };
 
           // BUG-CERNION-042: score candidates and detect ambiguous selection before choosing one.

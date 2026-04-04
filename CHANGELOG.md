@@ -9,6 +9,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.20.3] - 2026-04-04
+
+### Added
+
+- **`src/market-role-classifier.js` — shared BDEW market-role classification module (v0.20.3 / CR-0002)**
+  New shared module extracted from `utility-report.service.js` inline logic.
+  Exports: `MARKET_ROLE_ENUM`, `ROLE_RULES`, `classifyPartner({ roles, bdewCode })`,
+  `normalizeMarketPartner(raw)`, `extractCandidates(mcpResponse)`.
+  BDEW prefix heuristic: 990x→VNB, 991x→Lieferant, 992x→MSB, 993x→BKV, 994x→Direktvermarkter.
+  Handles all known MCP field name variants (bdewCode/bdew, name/companyName,
+  roles/marketRoles, mastrId/gridOperatorMastrId/mastrIds.SNB).
+
+- **`services/company.service.js` — company entity CRUD service (v0.20.3 / CR-0002)**
+  New Moleculer service that groups BDEW market-partner codes belonging to the same
+  economic unit (Konzernverbund / Stadtwerk).
+  Persistence: PouchDB at `data/companies/`, doc prefix `co:`.
+  In-memory BDEW index (`Map<bdewCode, companyId>`) for O(1) enrichment lookups.
+  Actions:
+  - `POST /api/companies` — create company; explicit members or `autoDiscover` draft flow
+  - `PUT /api/companies/:id/confirm` — promote draft → active (with optional member override)
+  - `GET /api/companies/:id` — fetch by UUID
+  - `GET /api/companies` — list/search by name, filter by status
+  - `PUT /api/companies/:id` — update displayName / legalName / members
+  - `DELETE /api/companies/:id` — soft-delete (status → archived); frees BDEW codes
+  - `enrichResults` (internal) — inject `companyId` + `marketRole` into market-partner arrays
+  Error codes: `COMPANY_NOT_FOUND` (404), `COMPANY_NOT_DRAFT` (409), `BDEW_ALREADY_ASSIGNED` (409).
+
+- **`grid-operations.marketPartners` enrichment (v0.20.3 / CR-0002)**
+  After calling `cernion_market_partners`, the handler now calls `company.enrichResults`
+  to inject `companyId` (UUID) and `marketRole` into each result entry.
+  Graceful degradation: if the company service is unavailable, original results are
+  returned unchanged with a `WARN` log (`[marketPartners] company.enrichResults failed`).
+
+- **`api.service.js` — Companies REST routes + access control (v0.20.3)**
+  Six new route aliases under `/api/companies` (all six company actions).
+  `Companies` OpenAPI tag added.
+  `requiresFullAccess` extended: POST / PUT / DELETE on `/api/companies*` require a
+  `full-access` token.
+
+- **`docs/ui-contracts/14-company.md` — UI contract for company entity (v0.20.3)**
+  Documents all 6 REST endpoints with full request/response shapes, MARKET_ROLE_ENUM,
+  BDEW prefix heuristic, member object shape, enriched market-partners response,
+  autoDiscover draft-confirm flow, manual create flow, and error codes.
+  Reserved: `COMPANY_HAS_NO_VNB` error code for Phase 3 (`resolveCompanyBdew`).
+
+### Changed
+
+- **`services/utility-report.service.js`** — refactored to import `classifyPartner`,
+  `normalizeMarketPartner`, and `extractCandidates` from `src/market-role-classifier.js`
+  (removed inline duplicates).
+
+- **`services/agent.service.js`** — `'company'` added to both `skipServices` Sets
+  (primary and secondary) to prevent AI agent from routing queries to the CRUD service.
+
+### Tests
+
+- `tests/company.service.test.js` — 23 new tests covering full CRUD lifecycle,
+  autoDiscover draft-confirm flow, member override, duplicate BDEW guard,
+  `enrichResults` match/no-match/prefix-fallback, and list search.
+- `tests/grid-operations.service.test.js` — 3 new tests for `marketPartners`
+  enrichment integration: MCP call forwarding, enriched result shape,
+  graceful degradation on company service failure.
+- Total tests: ~1,810 (was ~1,784).
+
+---
+
 ## [0.20.2] - 2026-04-02
 
 ### Added
