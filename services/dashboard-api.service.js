@@ -62,7 +62,15 @@ module.exports = {
     vnbOverview: {
       rest: 'GET /vnb-overview',
       params: {
-        bdewCode: { type: 'string', min: 1 },
+        bdewCode: {
+          type: 'string',
+          pattern: /^\d{7,13}$/,
+          messages: {
+            string:        'bdewCode muss eine Zeichenkette sein',
+            stringPattern: 'bdewCode muss 7-13 Ziffern enthalten (Beispiel: 9907473000008)',
+            required:      'bdewCode ist ein Pflichtparameter',
+          },
+        },
       },
       openapi: {
         tags: ['Dashboard API'],
@@ -167,19 +175,23 @@ module.exports = {
             || vnbMonitor?.identity?.mastrId
             || null;
 
-          // ── Phase 2: Parallel PouchDB-only reads (0 MCP sessions) ────────
-          const [health, mqAudits, gcValidations, esValidations, rdAudits] =
+          // ── Phase 2: Parallel reads ───────────────────────────────────────
+          // PouchDB-only calls (0 MCP sessions) + assets.redispatchCount (1 MCP
+          // session via cernion_installations_local, runs in parallel so adds
+          // no latency to the overall Phase 2 wall-clock time).
+          const [health, mqAudits, gcValidations, esValidations, rdAudits, rdCount] =
             await Promise.all([
-              this.safeCall(ctx, 'datapoint.health',       {},                            null, errors, 'datapoint.health'),
-              this.safeCall(ctx, 'mastr-quality.list',     { gridOperatorId, limit: 1 }, null, errors, 'mastr-quality.list'),
-              this.safeCall(ctx, 'grid-connection.list',   { gridOperatorId, limit: 1 }, null, errors, 'grid-connection.list'),
-              this.safeCall(ctx, 'energy-sharing.list',    { limit: 1 },                  null, errors, 'energy-sharing.list'),
-              this.safeCall(ctx, 'redispatch-expost.list', { gridOperatorId, limit: 1 }, null, errors, 'redispatch-expost.list'),
+              this.safeCall(ctx, 'datapoint.health',          {},                            null, errors, 'datapoint.health'),
+              this.safeCall(ctx, 'mastr-quality.list',        { gridOperatorId, limit: 1 }, null, errors, 'mastr-quality.list'),
+              this.safeCall(ctx, 'grid-connection.list',      { gridOperatorId, limit: 1 }, null, errors, 'grid-connection.list'),
+              this.safeCall(ctx, 'energy-sharing.list',       { limit: 1 },                  null, errors, 'energy-sharing.list'),
+              this.safeCall(ctx, 'redispatch-expost.list',    { gridOperatorId, limit: 1 }, null, errors, 'redispatch-expost.list'),
+              this.safeCall(ctx, 'assets.redispatchCount',    { gridOperatorId },            null, errors, 'assets.redispatchCount'),
             ]);
 
           return {
             identity:           this.buildIdentity(identity, bdewCode),
-            kpis:               this.buildKpis(vnbMonitor, health, mqAudits),
+            kpis:               this.buildKpis(vnbMonitor, health, mqAudits, rdCount),
             latestAgentResults: this.buildAgentSummary(mqAudits, gcValidations, esValidations, rdAudits),
             alerts:             vnbMonitor?.alerts || [],
             timestamp:          new Date().toISOString(),
@@ -214,8 +226,23 @@ module.exports = {
     marketSnapshot: {
       rest: 'GET /market-snapshot',
       params: {
-        location: { type: 'string', optional: true, default: 'Deutschland' },
-        region:   { type: 'string', optional: true },
+        location: {
+          type: 'string',
+          optional: true,
+          default: 'Deutschland',
+          min: 2,
+          messages: {
+            stringMin: 'location muss mindestens 2 Zeichen lang sein',
+          },
+        },
+        region: {
+          type: 'string',
+          optional: true,
+          min: 2,
+          messages: {
+            stringMin: 'region muss mindestens 2 Zeichen lang sein',
+          },
+        },
       },
       openapi: {
         tags: ['Dashboard API'],
@@ -357,7 +384,15 @@ module.exports = {
     qualitySummary: {
       rest: 'GET /quality-summary',
       params: {
-        gridOperatorId: { type: 'string', optional: true },
+        gridOperatorId: {
+          type: 'string',
+          optional: true,
+          pattern: /^[SG]NB\d+$/,
+          messages: {
+            stringPattern:
+              'gridOperatorId muss im Format SNBxxx oder GNBxxx sein (Beispiel: SNB935578300972)',
+          },
+        },
       },
       openapi: {
         tags: ['Dashboard API'],
@@ -644,13 +679,15 @@ module.exports = {
     },
 
     /**
-     * Builds the KPIs block from VNB Monitor snapshot and datapoint health.
+     * Builds the KPIs block from VNB Monitor snapshot, datapoint health, and
+     * the redispatch-eligible count from assets.redispatchCount (v0.20.2).
      * @param {object|null} vnbMonitor  vnb-monitor.snapshot result
      * @param {object|null} health      datapoint.health result
      * @param {object|null} mqAudits    mastr-quality.list result (for qualityScore)
-     * @returns {object|null}
+     * @param {object|null} rdCount     assets.redispatchCount result (v0.20.2)
+     * @returns {object}
      */
-    buildKpis(vnbMonitor, health, mqAudits) {
+    buildKpis(vnbMonitor, health, mqAudits, rdCount) {
       // vnb-monitor.snapshot actual structure (v0.9.6+):
       //   mastr.inBetrieb.anlagenCount   — total installed units
       //   mastr.inBetrieb.leistungMW     — total capacity (string, e.g. '145.2')
@@ -666,13 +703,10 @@ module.exports = {
       return {
         totalInstallations:       mastr.inBetrieb?.anlagenCount                 ?? null,
         totalCapacityMW:          mastr.inBetrieb ? (Number(mastr.inBetrieb.leistungMW) || null) : null,
-        // TODO(v0.19.2): redispatchEligible — not in vnb-monitor.snapshot.
-        // Two options: (a) extend vnb-monitor.snapshot's existing MaStR phase with a
-        // minCapacity:100 sub-count (snapshot already calls assets.all, cheap filter), or
-        // (b) add a lightweight assets.redispatchCount action (MongoDB-only, no MCP) and
-        // call it in Phase 2 alongside the PouchDB list calls. Option (b) preferred to
-        // avoid bloating the snapshot payload with a dashboard-specific concern.
-        redispatchEligible:       null,
+        // Populated by assets.redispatchCount (v0.20.2, RES-IR-0001 Option b).
+        // null when assets service is unavailable (safeCall fallback).
+        redispatchEligible:       rdCount?.count       ?? null,
+        redispatchCapacityMW:     rdCount?.totalCapacityMW ?? null,
         ewkAnschlussdauerWeeks:   ewk.anschlussdauer?.eeNS_weeks                ?? null,
         ewkDigitalisierungsScore: ewk.digitalisierungsindex?.gesamt_percent     ?? null,
         ewkUmsetzungsquote:       ewk.umsetzungsquote?.eeNS_percent             ?? null,

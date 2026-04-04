@@ -2085,6 +2085,177 @@ module.exports = {
     },
 
     /**
+     * redispatchCount
+     *
+     * Fast aggregation of redispatch-eligible installations (≥100 kW, InBetrieb)
+     * for a specific grid operator. Returns count, total capacity in MW, and a
+     * breakdown by installation type.
+     *
+     * Calls cernion_installations_local directly with type:'all' and
+     * minCapacity:100 to avoid the per-type loop in energy-market.installations.
+     * No NAP enrichment — this endpoint is optimised for speed, not detail.
+     *
+     * Used by dashboard-api.vnbOverview Phase 2 (parallel) to populate the
+     * redispatchEligible KPI card introduced in v0.20.2.
+     *
+     * @param {String} gridOperatorId - MaStR grid operator ID (SNB/GNB)
+     * @param {String} bdewCode       - BDEW code (alternative to gridOperatorId)
+     */
+    redispatchCount: {
+      rest: 'GET /redispatch-count',
+      params: {
+        gridOperatorId: {
+          type: 'string',
+          optional: true,
+          convert: true,
+          pattern: /^[SG]NB\d+$/,
+          messages: {
+            stringPattern: 'gridOperatorId muss im Format SNBxxx oder GNBxxx sein',
+          },
+        },
+        bdewCode: {
+          type: 'string',
+          optional: true,
+          convert: true,
+          pattern: /^\d{7,13}$/,
+          messages: {
+            stringPattern: 'bdewCode muss 7-13 Ziffern enthalten (Beispiel: 9907473000008)',
+          },
+        },
+      },
+      openapi: {
+        summary: 'Count of redispatch-eligible installations (≥100 kW) for a grid operator',
+        tags: ['Assets'],
+        description:
+          'Aggregation of installations ≥100 kW (InBetrieb) for a grid operator. ' +
+          'Returns count + total capacity in MW + breakdown by type (solar, wind, etc.). ' +
+          'Used by the Dashboard API `vnbOverview` Phase 2 to populate the ' +
+          '`redispatchEligible` KPI card (v0.20.2). ' +
+          'No NAP enrichment — faster than `assets.list` with `redispatch=true`.',
+        parameters: [
+          {
+            name: 'gridOperatorId',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'SNB935578300972' },
+            description: 'MaStR grid operator ID (SNB/GNB format)',
+          },
+          {
+            name: 'bdewCode',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: '9907473000008' },
+            description: 'BDEW code — resolved by local cache inside cernion_installations_local',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Redispatch-eligible installation count and capacity',
+            content: {
+              'application/json': {
+                example: {
+                  count: 59,
+                  totalCapacityMW: 73.4,
+                  byType: {
+                    solar:      { count: 12, capacityKW: 8200 },
+                    wind:       { count: 15, capacityKW: 42000 },
+                    combustion: { count: 25, capacityKW: 18500 },
+                    biomass:    { count:  7, capacityKW:  4700 },
+                  },
+                },
+              },
+            },
+          },
+        },
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000031'],
+      },
+      async handler(ctx) {
+        const { gridOperatorId, bdewCode } = ctx.params;
+
+        if (!gridOperatorId && !bdewCode) {
+          return {
+            count: null,
+            totalCapacityMW: null,
+            byType: {},
+            error: 'gridOperatorId or bdewCode is required',
+          };
+        }
+
+        const mcpParams = {
+          type: 'all',
+          minCapacity: 100,
+          status: 'InBetrieb',
+          format: 'detailed',
+          limit: 10000,
+        };
+
+        if (gridOperatorId) {
+          mcpParams.gridOperatorMastrId = gridOperatorId;
+        } else {
+          mcpParams.gridOperatorBdewCode = bdewCode;
+        }
+
+        let result;
+        try {
+          result = await callWithAutoPoll(
+            'cernion_installations_local',
+            mcpParams,
+            { maxWaitTime: 2 * 60 * 1000, pollInterval: 2000 },
+            ctx.meta.cernionToken
+          );
+        } catch (err) {
+          this.logger.error(`redispatchCount: cernion_installations_local failed: ${err.message}`);
+          return { count: null, totalCapacityMW: null, byType: {}, error: err.message };
+        }
+
+        // Normalise across the various MCP response shapes
+        let items = [];
+        if (result?.data) {
+          if (Array.isArray(result.data)) items = result.data;
+          else if (Array.isArray(result.data.installations)) items = result.data.installations;
+          else if (Array.isArray(result.data.results)) items = result.data.results;
+        } else if (Array.isArray(result?.installations)) {
+          items = result.installations;
+        } else if (Array.isArray(result)) {
+          items = result;
+        }
+
+        // Translate raw MaStR Energieträger catalog codes to readable labels.
+        // cernion_installations_local returns the numeric catalog code in item.type
+        // for detailed format (e.g. '2495' for solar, '2484' for wind onshore).
+        // TODO: Extract to src/installation-type-map.js when used by other handlers.
+        const TYPE_LABEL = {
+          '2495': 'solar',
+          '2483': 'wind',     '2484': 'wind',
+          '2485': 'biomass',
+          '2487': 'hydro',    '2488': 'hydro',
+          '2489': 'combustion', '2490': 'combustion',
+          '2491': 'storage',
+          '2492': 'geothermal',
+        };
+
+        // Aggregate in-process: count, capacity (kW → MW), breakdown by type
+        let totalKW = 0;
+        const typeMap = {};
+        for (const item of items) {
+          const kw = item.bruttoleistung || 0;
+          totalKW += kw;
+          const raw = item.type || item.installationType;
+          const type = TYPE_LABEL[raw] || raw || 'unknown';
+          if (!typeMap[type]) typeMap[type] = { count: 0, capacityKW: 0 };
+          typeMap[type].count++;
+          typeMap[type].capacityKW += kw;
+        }
+
+        return {
+          count: items.length,
+          totalCapacityMW: Math.round((totalKW / 1000) * 10) / 10,
+          byType: typeMap,
+        };
+      },
+    },
+
+    /**
      * byDirektvermarkter
      *
      * Returns all MaStR installations that are assigned to the given

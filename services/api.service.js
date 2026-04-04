@@ -594,10 +594,10 @@ module.exports = {
             authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : null;
 
           const paramTokenCandidates = [
-            req?.$params?.token,
-            req?.query?.token,
+            isTokenVerifyEndpoint ? undefined : req?.$params?.token,
+            isTokenVerifyEndpoint ? undefined : req?.query?.token,
             isTokenVerifyEndpoint ? undefined : req?.body?.token,
-            req?.params?.token,
+            isTokenVerifyEndpoint ? undefined : req?.params?.token,
           ];
 
           const paramToken = paramTokenCandidates.find(
@@ -606,11 +606,20 @@ module.exports = {
 
           const tokenToUse = (paramToken || bearerToken || '').trim();
 
-          // Remove token from incoming params so actions don't need to declare it explicitly
-          if (req?.$params && Object.prototype.hasOwnProperty.call(req.$params, 'token')) {
+          // Remove token from incoming params so actions don't need to declare it explicitly.
+          // For POST /tokens/verify the token IS the action parameter — do not strip it.
+          if (
+            !isTokenVerifyEndpoint &&
+            req?.$params &&
+            Object.prototype.hasOwnProperty.call(req.$params, 'token')
+          ) {
             delete req.$params.token;
           }
-          if (req?.query && Object.prototype.hasOwnProperty.call(req.query, 'token')) {
+          if (
+            !isTokenVerifyEndpoint &&
+            req?.query &&
+            Object.prototype.hasOwnProperty.call(req.query, 'token')
+          ) {
             delete req.query.token;
           }
           if (
@@ -620,7 +629,11 @@ module.exports = {
           ) {
             delete req.body.token;
           }
-          if (req?.params && Object.prototype.hasOwnProperty.call(req.params, 'token')) {
+          if (
+            !isTokenVerifyEndpoint &&
+            req?.params &&
+            Object.prototype.hasOwnProperty.call(req.params, 'token')
+          ) {
             delete req.params.token;
           }
 

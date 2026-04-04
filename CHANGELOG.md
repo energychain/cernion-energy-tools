@@ -7,6 +7,158 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+---
+
+## [0.20.2] - 2026-04-02
+
+### Added
+
+- **`assets.redispatchCount` — fast aggregation of redispatch-eligible installations
+  (RES-IR-0001, Option b)**
+  (`services/assets.service.js`)
+  New action `assets.redispatchCount` that returns the count, total capacity in MW,
+  and a breakdown by type of installations ≥100 kW (InBetrieb) for a given grid operator.
+  Calls `cernion_installations_local` directly with `type: 'all'`, `minCapacity: 100`,
+  `status: 'InBetrieb'`, `format: 'detailed'` — no NAP enrichment.
+  Accepts `gridOperatorId` (SNB/GNB pattern) or `bdewCode` (7–13 digits); returns
+  `{ count, totalCapacityMW, byType }`. Error shape `{ count: null, ... }` on failure.
+  REST: `GET /api/assets/redispatch-count` (autoAlias, tag: Assets).
+
+- **Dashboard API `vnbOverview` — `redispatchEligible` KPI now populated (v0.20.2)**
+  (`services/dashboard-api.service.js`)
+  `assets.redispatchCount` added to Phase 2 `Promise.all` as a 6th parallel call.
+  Forwards `gridOperatorId` extracted from Phase 1 identity. `buildKpis` receives a
+  new 4th parameter `rdCount` and now outputs `redispatchEligible: rdCount.count` and
+  `redispatchCapacityMW: rdCount.totalCapacityMW` instead of the hardcoded `null`.
+  `safeCall` wraps the call — `redispatchEligible` falls back to `null` gracefully
+  when the assets service is unavailable (legacy-backend compatibility preserved).
+  Note: `assets.redispatchCount` uses one MCP session (local MongoDB); it runs in
+  parallel with the existing PouchDB calls so adds no measurable latency to Phase 2.
+
+### Tests
+
+- **`assets.redispatchCount`**: 9 new tests in `tests/assets.service.test.js`
+  (`describe('Assets Service — redispatchCount')`):
+  count/capacity/byType aggregation, gridOperatorMastrId pass-through,
+  bdewCode pass-through, empty result (0 installations), MCP error shape,
+  missing operator shape, invalid pattern rejection, alternate MCP response shape.
+
+- **`dashboard-api.vnbOverview — redispatchEligible`**: 1 new mock service (`assets`)
+  + 4 new tests in `tests/dashboard-api.test.js`:
+  `redispatchEligible`/`redispatchCapacityMW` populated, `gridOperatorId` forwarded,
+  graceful degradation when assets throws, graceful degradation on error shape.
+
+- **BR-0002**: 6 new tests in `tests/grid-operations.service.test.js`
+  (`describe('vnbLookupCodes — error handling (BR-0002)')`):
+  503 on MCP transport error, 404 on null result, `bdewCode` in error data,
+  `vnbName` fallback in error message, `input` in error data, success path
+  unaffected.
+
+  Total: **~1,913 tests, ~65 suites** (estimated; confirm with `npm run test:unit:ci`).
+
+### Changed
+
+- `docs/ui-contracts/01-dashboard-overview.md` — v0.20.2:
+  `redispatchEligible` example updated from `null` to `59`; `redispatchCapacityMW: 73.4`
+  added to response shape; KPI table updated; edge case table reflects live/legacy states.
+  Execution model note updated to mention `assets.redispatchCount` in Phase 2.
+
+- `feedback/RES-IR-0001.md` — status: **resolved** (was: deferred v0.20.2).
+
+### Fixed
+
+- **BR-0002: `vnbLookupCodes` + `vnb-overview` 500 / Socket Hang-Up für Syna GmbH**
+  (`services/grid-operations.service.js`)
+  Root cause: `vnbLookupCodes` had no explicit `timeout` and inherited the global
+  15-minute Moleculer default. The MCP transport (120 s × 3 retries) far exceeded
+  the Next.js proxy timeout (~60 s), which closed the TCP connection before the
+  backend responded — resulting in an empty-body 500 for the frontend.
+  Three fixes applied:
+  1. `timeout: 30 * 1000` on the `vnbLookupCodes` action. The `vnbOverview`
+     endpoint is also covered: `safeCall` catches the resulting `RequestTimeoutError`
+     and returns a degraded 200 with `identity: null` and `_errors` populated.
+  2. `try/catch` around `CernionMCPClient.callWithNewSession` — throws
+     `503 VNB_LOOKUP_ERROR` (structured JSON) on MCP transport errors instead of
+     an unhandled propagation.
+  3. Null-guard for `result == null` — throws `404 VNB_NOT_FOUND` when the MCP
+     tool returns no data for an unknown BDEW code.
+
+## [0.20.1] - 2026-04-01
+
+### Fixed
+
+- **BR-0001: `vnbLookupCodes` MaStR-ID promotion for name-based lookups**
+  (`services/grid-operations.service.js`)
+  When `vnb_lookup_codes` returns a canonical BDEW code without a MaStR-ID
+  (common for VNBs with multiple BDEW codes, e.g. TWL Netze), the handler now
+  iterates BDEW-type aliases and calls `cernion_vnb_lookup` (MongoDB cache) for
+  each. The first alias resolving a MaStR-ID is promoted to primary; the previous
+  primary is demoted to `role: "candidate"` in the aliases list.
+  Fixes `GET /api/dashboard/vnb-overview?bdewCode=9907473000008` returning
+  `identity.mastrId: null` for name-resolved lookups.
+  New helper method: `promoteBdewWithMastrId` in the `methods` block.
+
+### Changed
+
+- **CR-0001: Structured validation error messages in Dashboard API**
+  (`services/dashboard-api.service.js`)
+  All three Dashboard API input actions now carry Fastest-Validator param definitions
+  with German custom messages:
+  - `vnbOverview.bdewCode`: pattern `/^\d{7,13}$/`, messages for `stringPattern`
+    and `required`.
+  - `marketSnapshot.location` / `.region`: `min: 2` with `stringMin` message.
+  - `qualitySummary.gridOperatorId`: pattern `/^[SG]NB\d+$/` with `stringPattern`
+    message.
+  Moleculer returns HTTP 422 with a structured `data[]` array containing
+  `field`, `type`, `message`, and `actual` — ready for inline error display.
+
+### Added
+
+- **Feedback system** (`feedback/`)
+  New directory for cross-repository feedback exchange with `cernion-ui`.
+  Contains `README.md` (workflow, prefix conventions), `TEMPLATE.md`
+  (resolution template), and the first two resolutions:
+  - `RES-IR-0001.md` — `kpis.redispatchEligible` null (deferred to v0.20.2,
+    Option (b): new `assets.redispatchCount` MongoDB action).
+  - `RES-DR-0001.md` — `market-snapshot` `region` has no default; `renewableForecast24h`
+    is `null` when omitted (resolved — UI-Contract corrected).
+- Copilot instructions updated to reference the `feedback/` workflow
+  (`.github/copilot-instructions.md`).
+
+### Documentation
+
+- **`docs/ui-contracts/00-architecture.md`** (v0.20.1) — Added "Validation errors (422)"
+  section with full JSON example and per-endpoint field/pattern/message table.
+- **`docs/ui-contracts/01-dashboard-overview.md`** (v0.20.1) — Added edge cases:
+  "Multiple BDEW codes for same VNB" (BR-0001 promotion behaviour) and
+  "`redispatchEligible` null → hide KPI card" (interim until v0.20.2).
+- **`docs/ui-contracts/02-market-snapshot.md`** (v0.20.1) — Corrected `region`
+  parameter documentation: no default value; `renewableForecast24h` is null when
+  omitted; sub-national regions not supported by ENTSO-E.
+
+### Tests
+
+- `tests/grid-operations.service.test.js` — 6 new tests for `promoteBdewWithMastrId`
+  covering: promotion, BNR copy, no-op when already resolved, graceful error
+  handling, non-BDEW alias skip, no-op when no `canonical` property.
+- `tests/dashboard-api.test.js` — 14 new tests for parameter validation (CR-0001)
+  across all three validated actions.
+
+## [0.20.0] - 2026-04-01
+
+### Changed
+
+- **Version sync with cernion-ui** — Backend version bumped to 0.20.0 to align
+  with the initial Cernion Enterprise UI release. No backend code changes.
+  The UI repository (`cernion-ui`) consumes the REST API documented in
+  `docs/ui-contracts/` and `openapi-export.json` (generated by `npm run export:openapi`).
+
+### Documentation
+
+- Version references in `docs/BACKEND_CONTEXT.md`, `docs/ui-contracts/00-architecture.md`,
+  `.github/copilot-instructions.md`, `README.md` updated to reflect v0.20.0.
+- `docs/ui-contracts/` marked as **backend-owned, frontend-consumed** contract boundary.
+
 ## [0.19.3] - 2026-04-01
 
 ### Changed

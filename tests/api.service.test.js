@@ -383,5 +383,46 @@ describe('API Gateway Service', () => {
         apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, ctx, apiRoute, req, {})
       ).rejects.toMatchObject({ code: 403 });
     });
+
+    // Regression test: POST /api/tokens/verify must NOT strip req.$params.token.
+    // Before the fix, req.$params.token was deleted unconditionally, causing
+    // Fastest-Validator to receive token=undefined and return 422 VALIDATION_ERROR
+    // even for a valid ck_ token produced by POST /api/tokens.
+    it('should preserve req.$params.token for POST /tokens/verify so the action receives it', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const created = await broker.call('token-manager.create', {
+        name: 'VerifyRegressionToken',
+        scope: 'read-only',
+      });
+      const rawToken = created.data.token; // ck_<32 hex chars> — no ck_live_ infix
+
+      const ctx = { meta: {} };
+      const req = {
+        headers: {},
+        query: {},
+        // Moleculer merges body into $params before onBeforeCall runs
+        body: { token: rawToken },
+        params: {},
+        $params: { token: rawToken, method: 'GET', path: '/api/tokens/verify' },
+        method: 'POST',
+        url: '/api/tokens/verify',
+      };
+
+      await apiRoute.onBeforeCall.call(
+        { logger: { debug: jest.fn() }, broker },
+        ctx,
+        apiRoute,
+        req,
+        {}
+      );
+
+      // Token must survive in $params so the action validator can see it
+      expect(req.$params.token).toBe(rawToken);
+
+      // Calling the action with the preserved params must succeed (no 422)
+      const result = await broker.call('token-manager.verify', req.$params);
+      expect(result.valid).toBe(true);
+      expect(result.tokenId).toBe(created.data.id);
+    });
   });
 });

@@ -352,3 +352,203 @@ describe('Assets Service — byDirektvermarkter', () => {
     expect(svc.actions.byDirektvermarkter).toBeDefined();
   });
 });
+
+// ── assets.redispatchCount ────────────────────────────────────────────────────
+
+describe('Assets Service — redispatchCount', () => {
+  let broker;
+
+  const redispatchFixture = [
+    {
+      EinheitMastrNummer: 'SEE900000200001',
+      bruttoleistung: 8200,
+      einheitBetriebsstatus: '35',
+      type: 'solar',
+    },
+    {
+      EinheitMastrNummer: 'SWE900000200002',
+      bruttoleistung: 42000,
+      einheitBetriebsstatus: '35',
+      type: 'wind',
+    },
+    {
+      EinheitMastrNummer: 'SWE900000200003',
+      bruttoleistung: 18500,
+      einheitBetriebsstatus: '35',
+      type: 'combustion',
+    },
+    {
+      EinheitMastrNummer: 'SBE900000200004',
+      bruttoleistung: 4700,
+      einheitBetriebsstatus: '35',
+      type: 'biomass',
+    },
+  ];
+
+  beforeAll(async () => {
+    callWithAutoPoll.mockResolvedValue({
+      success: true,
+      data: { installations: redispatchFixture },
+    });
+
+    broker = new ServiceBroker({ logger: false, transporter: null });
+    broker.createService({ name: 'energy-market', actions: {} });
+    broker.createService(Service);
+    await broker.start();
+  });
+
+  afterAll(async () => {
+    await broker.stop();
+  });
+
+  beforeEach(() => {
+    callWithAutoPoll.mockClear();
+  });
+
+  it('exposes redispatchCount action with GET /redispatch-count rest path', () => {
+    const svc = broker.getLocalService('assets');
+    expect(svc.actions.redispatchCount).toBeDefined();
+  });
+
+  it('returns count, totalCapacityMW and byType for a valid gridOperatorId', async () => {
+    const res = await broker.call('assets.redispatchCount', {
+      gridOperatorId: 'SNB935578300972',
+    });
+
+    expect(res.count).toBe(4);
+    expect(res.totalCapacityMW).toBe(73.4); // (8200+42000+18500+4700)/1000 = 73.4
+    expect(res.byType).toBeDefined();
+    expect(res.byType.solar.count).toBe(1);
+    expect(res.byType.solar.capacityKW).toBe(8200);
+    expect(res.byType.wind.count).toBe(1);
+    expect(res.byType.wind.capacityKW).toBe(42000);
+    expect(res.byType.combustion.count).toBe(1);
+    expect(res.byType.combustion.capacityKW).toBe(18500);
+    expect(res.byType.biomass.count).toBe(1);
+    expect(res.byType.biomass.capacityKW).toBe(4700);
+  });
+
+  it('passes gridOperatorMastrId to cernion_installations_local', async () => {
+    await broker.call('assets.redispatchCount', { gridOperatorId: 'SNB935578300972' });
+
+    expect(callWithAutoPoll).toHaveBeenCalledWith(
+      'cernion_installations_local',
+      expect.objectContaining({
+        gridOperatorMastrId: 'SNB935578300972',
+        type: 'all',
+        minCapacity: 100,
+        status: 'InBetrieb',
+        format: 'detailed',
+      }),
+      expect.any(Object),
+      undefined
+    );
+  });
+
+  it('passes gridOperatorBdewCode when only bdewCode is given', async () => {
+    await broker.call('assets.redispatchCount', { bdewCode: '9907473000008' });
+
+    expect(callWithAutoPoll).toHaveBeenCalledWith(
+      'cernion_installations_local',
+      expect.objectContaining({ gridOperatorBdewCode: '9907473000008' }),
+      expect.any(Object),
+      undefined
+    );
+  });
+
+  it('returns count:0 and empty byType when MCP returns empty installations', async () => {
+    callWithAutoPoll.mockResolvedValueOnce({
+      success: true,
+      data: { installations: [] },
+    });
+
+    const res = await broker.call('assets.redispatchCount', {
+      gridOperatorId: 'SNB000000000000',
+    });
+
+    expect(res.count).toBe(0);
+    expect(res.totalCapacityMW).toBe(0);
+    expect(res.byType).toEqual({});
+  });
+
+  it('returns error shape when MCP call throws', async () => {
+    callWithAutoPoll.mockRejectedValueOnce(new Error('MCP session failed'));
+
+    const res = await broker.call('assets.redispatchCount', {
+      gridOperatorId: 'SNB935578300972',
+    });
+
+    expect(res.count).toBeNull();
+    expect(res.totalCapacityMW).toBeNull();
+    expect(res.error).toMatch('MCP session failed');
+  });
+
+  it('returns error shape when neither gridOperatorId nor bdewCode provided', async () => {
+    const res = await broker.call('assets.redispatchCount', {});
+    expect(res.count).toBeNull();
+    expect(res.error).toMatch('required');
+  });
+
+  it('rejects invalid gridOperatorId pattern', async () => {
+    await expect(
+      broker.call('assets.redispatchCount', { gridOperatorId: 'INVALID123' })
+    ).rejects.toThrow();
+  });
+
+  it('rejects bdewCode with fewer than 7 digits', async () => {
+    await expect(
+      broker.call('assets.redispatchCount', { bdewCode: '12345' })
+    ).rejects.toThrow();
+  });
+
+  it('normalises items returned as top-level array (alternate MCP shape)', async () => {
+    callWithAutoPoll.mockResolvedValueOnce([
+      { bruttoleistung: 500, type: 'solar' },
+      { bruttoleistung: 1000, type: 'wind' },
+    ]);
+
+    const res = await broker.call('assets.redispatchCount', {
+      gridOperatorId: 'SNB935578300972',
+    });
+
+    expect(res.count).toBe(2);
+    expect(res.totalCapacityMW).toBe(1.5);
+  });
+
+  it('translates raw MaStR Energieträger codes to readable byType labels', async () => {
+    callWithAutoPoll.mockResolvedValueOnce({
+      success: true,
+      data: {
+        installations: [
+          { bruttoleistung: 8200,  type: '2495' }, // → solar
+          { bruttoleistung: 42000, type: '2484' }, // → wind (onshore)
+          { bruttoleistung: 18500, type: '2490' }, // → combustion
+          { bruttoleistung: 4700,  type: '2485' }, // → biomass
+          { bruttoleistung: 1200,  type: '2491' }, // → storage
+        ],
+      },
+    });
+
+    const res = await broker.call('assets.redispatchCount', {
+      gridOperatorId: 'SNB935578300972',
+    });
+
+    // readable keys must be present
+    expect(res.byType.solar).toBeDefined();
+    expect(res.byType.wind).toBeDefined();
+    expect(res.byType.combustion).toBeDefined();
+    expect(res.byType.biomass).toBeDefined();
+    expect(res.byType.storage).toBeDefined();
+
+    // raw numeric codes must NOT appear as keys
+    expect(res.byType['2495']).toBeUndefined();
+    expect(res.byType['2484']).toBeUndefined();
+    expect(res.byType['2490']).toBeUndefined();
+    expect(res.byType['2485']).toBeUndefined();
+    expect(res.byType['2491']).toBeUndefined();
+
+    // capacity check for one type
+    expect(res.byType.solar.count).toBe(1);
+    expect(res.byType.solar.capacityKW).toBe(8200);
+  });
+});

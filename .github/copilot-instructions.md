@@ -12,7 +12,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Embedded PouchDB (`pouchdb` + `pouchdb-find`) stores datapoint metadata and snapshots.
   KRITIS-compliant: no native bindings, no network port, no external process.
 
-## Architecture Layers (v0.10–v0.18)
+## Architecture Layers (v0.10–v0.20)
 
 | Layer | Version | Description |
 |---|---|---|
@@ -23,6 +23,7 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 | Agent Layer | v0.17 | MaStR Data Quality Audit (v0.17): 8-step portfolio quality audit, weighted dimension scoring, `skipSteps`, 25 `MQ_*` finding codes (total: 73) |
 | Agent Layer | v0.18 | Redispatch Ex-Post Agent (v0.18): 7-step settlement readiness audit, Weg A/B portfolio, `src/redispatch-risk.js`, 19 `RD_*` finding codes (total: 92) |
 | Dashboard Layer | v0.19 | Dashboard API (v0.19): 4 UI-aggregate endpoints, `Promise.allSettled`, `safeCall`, `FINDING_CODE_METADATA`, in-memory cache, `scripts/export-openapi.js`, 14 UI contracts |
+| UI Sync Layer | v0.20 | Version sync with `cernion-ui` Enterprise UI; no backend code changes; REST API consumed by frontend via `docs/ui-contracts/` |
 
 ## Coding Guidelines
 
@@ -171,10 +172,18 @@ This is a MicroService Agent System for Energy Markets built with Moleculer. It 
 - Uses Overpass API (public or private instance via `OVERPASS_ENDPOINT` env var)
 - Agent RULE 12 routes geo intents to these actions
 
-## Current Project Status (v0.19.1)
+## Current Project Status (v0.20.0)
 
-- Release `v0.19.3` is the current release.
-- 38 core services in `services/`, ~1 782 tests across ~60 suites.
+- Release `v0.20.0` is the current release.
+- **38 Moleculer services** (including dashboard-api aggregator, v0.19)
+- **4 deterministic agents** (grid-connection v0.14, energy-sharing v0.15,
+  mastr-quality v0.17, redispatch-expost v0.18)
+- **1 allocation engine** (energy-sharing-allocation v0.16)
+- **4 dashboard aggregate endpoints** (dashboard-api v0.19)
+- **92 finding codes** with EN+DE metadata (FINDING_CODE_METADATA)
+- **~1,782+ tests**, ~60 test suites
+- **Enterprise UI** consuming this API: `cernion-ui` repository (v0.20.0+)
+- UI contracts: `docs/ui-contracts/` (14 files, backend-owned)
 - **Dashboard Layer (v0.19.1 hotfix):** `dashboard-api.service.js` — read-only UI aggregator:
   - 4 endpoints: `vnbOverview`, `marketSnapshot`, `qualitySummary`, `findingCodes`
   - `Promise.allSettled` parallelism, `safeCall` graceful degradation, in-memory cache.
@@ -286,6 +295,22 @@ Notes:
 - Netztransparenz.de — aggregated MWh volumes per marketing product only.
 - Bilateral data exchange with the Direktvermarkter.
 - BKV-MPID from `MarktakteureUndRollen.xml` for balance group queries.
+
+## Feedback vom Frontend
+
+Das Frontend-Repository (`cernion-ui`) hat ein `feedback/`-Verzeichnis mit
+strukturierten Rückmeldungen (Bug Reports, Change Requests, Information Requests,
+Documentation Requests). Wenn du Feedback-Dateien als Kontext erhältst:
+
+1. Lies die Datei vollständig
+2. Prüfe die betroffene(n) Service-Datei(en) und UI-Contracts
+3. Implementiere den Fix oder beantworte die Frage
+4. Aktualisiere den betroffenen UI-Contract in `docs/ui-contracts/`
+5. Setze den Status in der Feedback-Datei auf `resolved` + Version
+
+Typen: BR- (Bug), CR- (Change Request), IR- (Information Request), DR- (Doku)
+
+Resolutions werden in `feedback/RES-[TYPE]-NNNN.md` abgelegt (Template: `feedback/TEMPLATE.md`).
 
 ## What NOT to Do
 - Don't use `var` - use `const` or `let`

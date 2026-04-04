@@ -1,8 +1,8 @@
 # UI Contract: Energy Market Snapshot Panel
 
 > **Page ID:** `market-snapshot`
-> **Version:** 0.19.1
-> **Last updated:** 2026-03-31
+> **Version:** 0.20.1
+> **Last updated:** 2026-04-01
 
 ---
 
@@ -15,7 +15,11 @@ GET /api/dashboard/market-snapshot?location=Heidelberg&region=Bayern
 
 **Optional parameters:**
 - `location` — CO₂ intensity lookup location (default: `Deutschland`)
-- `region` — wind/solar generation forecast region (default: `Germany`)
+- `region` — ENTSO-E bidding zone for wind/solar generation forecast. **No default.**
+  If omitted, `renewableForecast24h` will be `null` and the ENTSO-E call is skipped.
+  Valid values: country-level only (`Germany`, `France`, `Austria`, `Denmark`, …).
+  Sub-national regions (e.g. `Bayern`) are **not** supported by ENTSO-E.
+  Recommendation: pass `region=Germany` whenever a German VNB is selected.
 
 **Cache TTL:** 15 minutes (backend, keyed by `location` + `region`, stampede-safe)
 **Expected latency:** < 3 seconds (4 parallel upstream calls, 1 MCP session each)

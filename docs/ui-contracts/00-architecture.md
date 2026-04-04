@@ -1,6 +1,6 @@
 # UI Contracts — Architecture Overview
 
-> **Version:** 0.19.0
+> **Version:** 0.20.1
 > **Purpose:** This directory defines the binding contract between the Cernion backend
 > and any frontend consumer (dashboard, admin portal, embedded widgets). Each file
 > describes one UI "page" or "panel" with its API endpoints, response field mapping,
@@ -64,6 +64,35 @@ All errors return a standard envelope:
   "data": [{ "field": "bdewCode", "message": "required" }]
 }
 ```
+
+### Validation errors (422)
+
+All Dashboard API endpoints return structured validation errors when parameters are
+invalid. The `data` array contains one entry per invalid field (v0.20.1):
+
+```json
+{
+  "code": 422,
+  "type": "VALIDATION_ERROR",
+  "message": "Parameters validation error!",
+  "data": [{
+    "type": "stringPattern",
+    "message": "bdewCode muss 7-13 Ziffern enthalten (Beispiel: 9907473000008)",
+    "field": "bdewCode",
+    "actual": "INVALID"
+  }]
+}
+```
+
+Use `data[].field` for inline error highlighting and `data[].message` for the
+error text. Messages are in German (matching the domain language).
+
+| Endpoint | Field | Pattern | Example error message |
+|----------|-------|---------|----------------------|
+| `vnbOverview` | `bdewCode` | `/^\d{7,13}$/` | `bdewCode muss 7-13 Ziffern enthalten (Beispiel: 9907473000008)` |
+| `marketSnapshot` | `location` | min 2 chars | `location muss mindestens 2 Zeichen lang sein` |
+| `marketSnapshot` | `region` | min 2 chars | `region muss mindestens 2 Zeichen lang sein` |
+| `qualitySummary` | `gridOperatorId` | `/^[SG]NB\d+$/` | `gridOperatorId muss im Format SNBxxx oder GNBxxx sein (Beispiel: SNB935578300972)` |
 
 ### Null vs missing fields
 

@@ -5,6 +5,7 @@
  * Maps to Cernion MCP grid operations category
  */
 
+const { MoleculerClientError } = require('moleculer').Errors;
 const CernionMCPClient = require('../src/mcp-client');
 const { callWithAutoPoll } = require('../src/async-job-poller');
 const jobStore = require('../src/job-store');
@@ -657,6 +658,10 @@ module.exports = {
      * Tool: vnb_lookup_codes
      */
     vnbLookupCodes: {
+      // BR-0002: 30s cap prevents socket hang-up when the MCP session is slow for
+      // unknown VNBs (e.g. mastrNetzbetreiberId: null). Moleculer's global default
+      // (15 min) far exceeds the Next.js proxy timeout (~60 s).
+      timeout: 30 * 1000,
       rest: 'POST /vnb-lookup-codes',
       params: {
         bdewCode: { type: 'string', optional: true },
@@ -734,11 +739,40 @@ module.exports = {
           throw new Error('At least one lookup identifier is required: bdewCode, bnr, vnbName, or mastrId');
         }
 
-        return await CernionMCPClient.callWithNewSession(
-          'vnb_lookup_codes',
-          ctx.params,
-          ctx.meta.cernionToken
-        );
+        let result;
+        try {
+          result = await CernionMCPClient.callWithNewSession(
+            'vnb_lookup_codes',
+            ctx.params,
+            ctx.meta.cernionToken
+          );
+        } catch (err) {
+          // BR-0002: Transport / MCP session errors must produce a structured response,
+          // not a silent hang that causes the HTTP proxy to socket hang-up.
+          throw new MoleculerClientError(
+            `VNB lookup failed: ${err.message}`,
+            503,
+            'VNB_LOOKUP_ERROR',
+            { input: ctx.params }
+          );
+        }
+
+        // BR-0002: MCP returned no result — VNB is not known to the system.
+        if (result == null) {
+          const id = ctx.params.bdewCode || ctx.params.bnr || ctx.params.vnbName || ctx.params.mastrId;
+          throw new MoleculerClientError(
+            `${id} ist im System nicht bekannt.`,
+            404,
+            'VNB_NOT_FOUND',
+            { bdewCode: ctx.params.bdewCode || null }
+          );
+        }
+
+        // BR-0001: Promote BDEW alias that resolves a MaStR-ID when primary has null.
+        // Mutates result.canonical in-place.
+        await this.promoteBdewWithMastrId(result, ctx.meta.cernionToken);
+
+        return result;
       },
     },
 
@@ -1640,6 +1674,62 @@ module.exports = {
         );
         return applyFormat(ctx, result, format, 'market-partners', 'MarketPartners');
       },
+    },
+  },
+
+  methods: {
+    /**
+     * BR-0001: Post-processing for vnb_lookup_codes results.
+     *
+     * When the primary BDEW code carries no MaStR-ID, iterates over all BDEW-type
+     * aliases and calls cernion_vnb_lookup (MongoDB cache) for each one. The first
+     * alias that resolves a MaStR-ID is promoted to primary; the former primary is
+     * demoted to role "candidate". Mutates `result.canonical` in-place.
+     *
+     * @param {object} result  Raw vnb_lookup_codes MCP response
+     * @param {string} token   Cernion auth token
+     */
+    async promoteBdewWithMastrId(result, token) {
+      const canonical = result?.canonical;
+      if (!canonical || canonical.mastrId) return; // already resolved — nothing to do
+
+      const aliases = Array.isArray(result.aliases) ? result.aliases : [];
+      const bdewAliases = aliases.filter((a) => a.type === 'bdew');
+      if (!bdewAliases.length) return;
+
+      for (const alias of bdewAliases) {
+        let lookup;
+        try {
+          lookup = await CernionMCPClient.callWithNewSession(
+            'cernion_vnb_lookup',
+            { bdew: alias.code },
+            token
+          );
+        } catch (err) {
+          this.logger.warn(
+            `vnb_lookup_codes: cernion_vnb_lookup failed for ${alias.code} — ${err.message}`
+          );
+          continue;
+        }
+
+        const mastrId = lookup?.data?.mastrId;
+        if (!mastrId) continue;
+
+        const oldPrimary = canonical.bdewCodePrimary;
+        canonical.bdewCodePrimary = alias.code;
+        canonical.mastrId = mastrId;
+        if (lookup.data.bnr) canonical.bnr = lookup.data.bnr;
+
+        // Demote the former primary in the aliases list
+        const oldAlias = aliases.find((a) => a.code === oldPrimary);
+        if (oldAlias) oldAlias.role = 'candidate';
+        alias.role = 'primary';
+
+        this.logger.info(
+          `vnb_lookup_codes: Promoted ${alias.code} over ${oldPrimary} (MaStR-ID: ${mastrId})`
+        );
+        break;
+      }
     },
   },
 };

@@ -1,6 +1,6 @@
 # Cernion Energy Tools — Backend Context Reference
 
-> **Version:** 0.19.0
+> **Version:** 0.20.0
 > **Purpose:** Comprehensive backend context for frontend developers, AI assistants,
 > and new contributors. One document to understand the full system.
 
@@ -44,10 +44,11 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 | Agent Layer | v0.17 | MaStR Data Quality Audit — 8-step, 25 `MQ_*` codes, weighted scoring |
 | Agent Layer | v0.18 | Redispatch Ex-Post Settlement Audit — 7 steps, 19 `RD_*` codes |
 | Dashboard Layer | v0.19 | Read-only UI aggregator (`dashboard-api.service.js`) |
+| UI Integration | v0.20 | Enterprise UI (`cernion-ui`) consuming this REST API; contract boundary: `docs/ui-contracts/` |
 
 ---
 
-## 2. Service Directory (38 services as of v0.19)
+## 2. Service Directory (38 services as of v0.20)
 
 | Service | File | Since | Key actions |
 |---------|------|-------|-------------|
@@ -256,7 +257,7 @@ All endpoints follow the graceful degradation pattern:
 
 - **Framework**: Jest (`jest.config.js`)
 - **Coverage thresholds**: branches 60%, functions/lines/statements 75%
-- **Total**: ~1 780+ tests, ~59 suites (as of v0.19)
+- **Total**: ~1 782+ tests, ~60 suites (as of v0.20)
 - **Release gate**: `npm run release:check` (unit coverage + OpenAPI audit + critical security)
 - Custom tests in `custom-tests/` (git-ignored, excluded from coverage)
 

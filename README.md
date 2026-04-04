@@ -42,7 +42,7 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - [MCP_SERVICES.md](MCP_SERVICES.md) - Microservice-to-tool mapping
 - [BEARER_TOKEN_AUTHENTICATION.md](BEARER_TOKEN_AUTHENTICATION.md) - Auth guide
 - [docs/BACKEND_CONTEXT.md](docs/BACKEND_CONTEXT.md) - Backend architecture reference (services, PouchDB, finding codes, auth)
-- [docs/ui-contracts/](docs/ui-contracts/) - Frontend ↔ backend API contracts (v0.19, 14 docs)
+- [docs/ui-contracts/](docs/ui-contracts/) - Frontend ↔ backend API contracts (v0.20, 14 docs)
 - [docs/MAINTENANCE_MILESTONE_CHECKLIST.md](docs/MAINTENANCE_MILESTONE_CHECKLIST.md) - Pre-milestone quality/security gate checklist
 - [SECURITY.md](SECURITY.md) - Security policy and disclosure
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community guidelines

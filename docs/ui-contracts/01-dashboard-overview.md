@@ -1,8 +1,8 @@
 # UI Contract: Dashboard Overview — VNB Overview Panel
 
 > **Page ID:** `dashboard`
-> **Version:** 0.19.1
-> **Last updated:** 2026-03-31
+> **Version:** 0.20.2
+> **Last updated:** 2026-04-02
 
 ---
 
@@ -17,11 +17,11 @@ GET /api/dashboard/vnb-overview?bdewCode={bdewCode}
 **Expected latency:** < 4 seconds (two-phase: Phase 1 sequential MCP, Phase 2 parallel PouchDB)
 **Auth:** Bearer token (read-only scope sufficient)
 
-> **Execution model (v0.19.1):**
+> **Execution model (v0.19.1 / v0.20.2):**
 > Phase 1 runs `grid-operations.vnbLookupCodes` → `vnb-monitor.snapshot` **sequentially**
 > (limits peak MCP sessions to ≤10). Phase 2 fires `datapoint.health` + 4 agent list calls
-> **in parallel** (PouchDB-only, 0 MCP). `gridOperatorId` from Phase 1 is forwarded to
-> Phase 2 list calls for per-operator filtering.
+> + `assets.redispatchCount` **in parallel**. `gridOperatorId` from Phase 1 is forwarded to
+> all Phase 2 calls. `assets.redispatchCount` uses one MCP session (local MongoDB, fast).
 
 ---
 
@@ -38,7 +38,8 @@ GET /api/dashboard/vnb-overview?bdewCode={bdewCode}
   "kpis": {
     "totalInstallations":       312,
     "totalCapacityMW":          145.2,
-    "redispatchEligible":       null,
+    "redispatchEligible":       59,
+    "redispatchCapacityMW":     73.4,
     "ewkAnschlussdauerWeeks":   35,
     "ewkDigitalisierungsScore": 58.2,
     "ewkUmsetzungsquote":       100,
@@ -97,7 +98,7 @@ GET /api/dashboard/vnb-overview?bdewCode={bdewCode}
 |------|-------|------|-----------|--------|
 | Installations | `kpis.totalInstallations` | — | — | neutral |
 | Capacity | `kpis.totalCapacityMW` | MW, 1 decimal | — | neutral |
-| Redispatch eligible | `kpis.redispatchEligible` | — | — | neutral (null = hide card) |
+| Redispatch eligible | `kpis.redispatchEligible` | — (sub-label: `redispatchCapacityMW` MW) | — | neutral |
 | Anschlussdauer | `kpis.ewkAnschlussdauerWeeks` | Weeks | > 52 → red | traffic-light |
 | Digitalisierung | `kpis.ewkDigitalisierungsScore` | Score 0–100 | < 50 → red, < 70 → yellow | traffic-light |
 | MaStR Quality | `kpis.mastrQualityScore` | Score 0–100 | < 60 → red, < 80 → yellow | traffic-light |
@@ -171,6 +172,9 @@ Each alert: icon (severity) + message text + timestamp if present.
 | `alerts` empty | Hide alerts section entirely |
 | All `latestAgentResults` null | Show empty state with "Run first audit" CTA for each card |
 | bdewCode not found | `identity.name` is null; UI shows "No operator found for this BDEW code" |
+| Multiple BDEW codes for same VNB | Backend promotes BDEW with MaStR-ID (v0.20.1, BR-0001). `identity.mastrId` will be populated if any alias resolves. If no alias resolves, `identity.mastrId` remains null — show warning banner and prompt user to verify the BDEW code. |
+| `redispatchEligible` null | Hide the KPI card (legacy backend without v0.20.2). Reduce 2×5 KPI grid to 2×4. |
+| `redispatchEligible` present | Show card with count as primary value; `redispatchCapacityMW` as sub-label (e.g. "59 Anlagen · 73.4 MW"). |
 | HTTP 401 | Redirect to login / token entry page |
-| HTTP 422 (missing bdewCode) | Show inline field error |
+| HTTP 422 (invalid bdewCode) | Show inline field error: use `data[0].message` from the ValidationError response (e.g. "bdewCode muss 7-13 Ziffern enthalten") |
 | HTTP 503 | Show "Backend unavailable" full-page error with retry button |

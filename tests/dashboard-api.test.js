@@ -197,6 +197,23 @@ describe('dashboard-api.service', () => {
       },
     });
 
+    // Mock assets (v0.20.2 — redispatchCount)
+    broker.createService({
+      name: 'assets',
+      actions: {
+        redispatchCount: makeHandler('assetsRedispatchCount', {
+          count: 59,
+          totalCapacityMW: 73.4,
+          byType: {
+            solar:      { count: 12, capacityKW: 8200 },
+            wind:       { count: 15, capacityKW: 42000 },
+            combustion: { count: 25, capacityKW: 18500 },
+            biomass:    { count:  7, capacityKW:  4700 },
+          },
+        }),
+      },
+    });
+
     // Mock energy-sharing-allocation
     broker.createService({
       name: 'energy-sharing-allocation',
@@ -304,7 +321,7 @@ describe('dashboard-api.service', () => {
     it('degrades gracefully when vnb-monitor throws — kpis still returned', async () => {
       handlers.vnbMonitorSnapshot = () => { throw new Error('Upstream down'); };
 
-      const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: 'BADCODE' });
+      const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000040' });
 
       // Response must still be returned
       expect(result).toHaveProperty('identity');
@@ -342,8 +359,8 @@ describe('dashboard-api.service', () => {
       let callCount = 0;
       handlers.vnbLookupCodes = (ctx) => { callCount++; return MOCK_VNB_IDENTITY; };
 
-      await broker.call('dashboard-api.vnbOverview', { bdewCode: 'CACHED-1' });
-      await broker.call('dashboard-api.vnbOverview', { bdewCode: 'CACHED-1' });
+      await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000010' });
+      await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000010' });
 
       expect(callCount).toBe(1);  // second call served from cache
     });
@@ -352,14 +369,14 @@ describe('dashboard-api.service', () => {
       let callCountA = 0;
       let callCountB = 0;
       handlers.vnbLookupCodes = (ctx) => {
-        if (ctx.params.bdewCode === 'CODE-A') callCountA++;
-        if (ctx.params.bdewCode === 'CODE-B') callCountB++;
+        if (ctx.params.bdewCode === '9900000000020') callCountA++;
+        if (ctx.params.bdewCode === '9900000000021') callCountB++;
         return MOCK_VNB_IDENTITY;
       };
 
-      await broker.call('dashboard-api.vnbOverview', { bdewCode: 'CODE-A' });
-      await broker.call('dashboard-api.vnbOverview', { bdewCode: 'CODE-B' });
-      await broker.call('dashboard-api.vnbOverview', { bdewCode: 'CODE-A' });
+      await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000020' });
+      await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000021' });
+      await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000020' });
 
       expect(callCountA).toBe(1);
       expect(callCountB).toBe(1);
@@ -370,7 +387,7 @@ describe('dashboard-api.service', () => {
       handlers.vnbLookupCodes      = () => { callOrder.push('vnbLookupCodes'); return MOCK_VNB_IDENTITY; };
       handlers.vnbMonitorSnapshot  = () => { callOrder.push('vnbMonitorSnapshot'); return MOCK_VNB_MONITOR; };
 
-      await broker.call('dashboard-api.vnbOverview', { bdewCode: 'ORDER-TEST' });
+      await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000030' });
 
       expect(callOrder[0]).toBe('vnbLookupCodes');
       expect(callOrder[1]).toBe('vnbMonitorSnapshot');
@@ -396,13 +413,57 @@ describe('dashboard-api.service', () => {
       };
 
       const [r1, r2] = await Promise.all([
-        broker.call('dashboard-api.vnbOverview', { bdewCode: 'STAMPEDE-VNB' }),
-        broker.call('dashboard-api.vnbOverview', { bdewCode: 'STAMPEDE-VNB' }),
+        broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000001' }),
+        broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000001' }),
       ]);
 
       expect(callCount).toBe(1); // only one upstream fetch despite two concurrent calls
       expect(r1.identity).toBeDefined();
       expect(r2.identity).toBeDefined();
+    });
+
+    // ── redispatchEligible KPI (v0.20.2) ──────────────────────────────────────
+
+    it('populates redispatchEligible and redispatchCapacityMW from assets.redispatchCount', async () => {
+      const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9907473000008' });
+      expect(result.kpis.redispatchEligible).toBe(59);
+      expect(result.kpis.redispatchCapacityMW).toBe(73.4);
+    });
+
+    it('forwards gridOperatorId to assets.redispatchCount', async () => {
+      let capturedParams;
+      handlers.assetsRedispatchCount = (ctx) => {
+        capturedParams = ctx.params;
+        return { count: 12, totalCapacityMW: 18.5, byType: {} };
+      };
+
+      await broker.call('dashboard-api.vnbOverview', { bdewCode: '9907473000008' });
+
+      // gridOperatorId from MOCK_VNB_IDENTITY.results[0].mastrId
+      expect(capturedParams.gridOperatorId).toBe('SNB935578300972');
+    });
+
+    it('sets redispatchEligible to null when assets.redispatchCount fails (graceful degradation)', async () => {
+      handlers.assetsRedispatchCount = () => { throw new Error('assets down'); };
+
+      const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000050' });
+
+      expect(result.kpis.redispatchEligible).toBeNull();
+      expect(result.kpis.redispatchCapacityMW).toBeNull();
+      expect(result._errors).toContain('assets.redispatchCount');
+    });
+
+    it('sets redispatchEligible to null when assets.redispatchCount returns error shape', async () => {
+      handlers.assetsRedispatchCount = () => ({
+        count: null,
+        totalCapacityMW: null,
+        byType: {},
+        error: 'gridOperatorId or bdewCode is required',
+      });
+
+      const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9907473000008' });
+
+      expect(result.kpis.redispatchEligible).toBeNull();
     });
   });
 
@@ -693,7 +754,7 @@ describe('dashboard-api.service', () => {
 
       // Exercise safeCall indirectly via vnbOverview with failing service
       handlers.vnbMonitorSnapshot = () => { throw new Error('Simulated failure'); };
-      const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: 'FAIL' });
+      const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000002' });
 
       expect(result._errors).toContain('vnb-monitor.snapshot');
     });
@@ -703,7 +764,7 @@ describe('dashboard-api.service', () => {
       handlers.gcList             = () => { throw new Error('fail'); };
       handlers.esList             = () => { throw new Error('fail'); };
 
-      const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: 'MULTI-FAIL' });
+      const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000003' });
 
       expect(result._errors).toContain('vnb-monitor.snapshot');
       expect(result._errors).toContain('grid-connection.list');
@@ -713,7 +774,7 @@ describe('dashboard-api.service', () => {
     it('does not include successful calls in _errors', async () => {
       handlers.vnbMonitorSnapshot = () => { throw new Error('fail'); };
 
-      const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: 'PARTIAL' });
+      const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000004' });
 
       expect(result._errors).not.toContain('grid-operations.vnbLookupCodes');
       expect(result._errors).not.toContain('mastr-quality.list');
@@ -795,5 +856,146 @@ describe('dashboard-api.service', () => {
         expect(registeredActionNames.has(action)).toBe(true);
       });
     }
+  });
+
+  // ── Parameter validation (CR-0001) ─────────────────────────────────────────
+
+  describe('Parameter validation — structured 422 errors (CR-0001)', () => {
+    describe('vnbOverview', () => {
+      it('throws ValidationError for missing bdewCode', async () => {
+        await expect(
+          broker.call('dashboard-api.vnbOverview', {})
+        ).rejects.toMatchObject({
+          name: 'ValidationError',
+          data: expect.arrayContaining([
+            expect.objectContaining({ field: 'bdewCode' }),
+          ]),
+        });
+      });
+
+      it('throws ValidationError for non-numeric bdewCode', async () => {
+        await expect(
+          broker.call('dashboard-api.vnbOverview', { bdewCode: 'INVALID' })
+        ).rejects.toMatchObject({
+          name: 'ValidationError',
+          data: expect.arrayContaining([
+            expect.objectContaining({
+              field: 'bdewCode',
+              message: 'bdewCode muss 7-13 Ziffern enthalten (Beispiel: 9907473000008)',
+            }),
+          ]),
+        });
+      });
+
+      it('throws ValidationError for bdewCode shorter than 7 digits', async () => {
+        await expect(
+          broker.call('dashboard-api.vnbOverview', { bdewCode: '12345' })
+        ).rejects.toMatchObject({
+          name: 'ValidationError',
+          data: expect.arrayContaining([
+            expect.objectContaining({ field: 'bdewCode' }),
+          ]),
+        });
+      });
+
+      it('accepts a valid 13-digit BDEW code', async () => {
+        handlers.vnbLookupCodes = () => MOCK_VNB_IDENTITY;
+        handlers.vnbMonitorSnapshot = () => MOCK_VNB_MONITOR;
+        const result = await broker.call('dashboard-api.vnbOverview', {
+          bdewCode: '9907473000008',
+        });
+        expect(result).toHaveProperty('identity');
+      });
+
+      it('accepts a valid 7-digit BDEW code (BNR-style)', async () => {
+        handlers.vnbLookupCodes = () => MOCK_VNB_IDENTITY;
+        handlers.vnbMonitorSnapshot = () => MOCK_VNB_MONITOR;
+        await expect(
+          broker.call('dashboard-api.vnbOverview', { bdewCode: '9900992' })
+        ).resolves.toBeDefined();
+      });
+    });
+
+    describe('marketSnapshot', () => {
+      it('throws ValidationError for single-character location', async () => {
+        await expect(
+          broker.call('dashboard-api.marketSnapshot', { location: 'X' })
+        ).rejects.toMatchObject({
+          name: 'ValidationError',
+          data: expect.arrayContaining([
+            expect.objectContaining({
+              field: 'location',
+              message: 'location muss mindestens 2 Zeichen lang sein',
+            }),
+          ]),
+        });
+      });
+
+      it('throws ValidationError for single-character region', async () => {
+        await expect(
+          broker.call('dashboard-api.marketSnapshot', { region: 'X' })
+        ).rejects.toMatchObject({
+          name: 'ValidationError',
+          data: expect.arrayContaining([
+            expect.objectContaining({
+              field: 'region',
+              message: 'region muss mindestens 2 Zeichen lang sein',
+            }),
+          ]),
+        });
+      });
+
+      it('accepts request without optional params', async () => {
+        await expect(
+          broker.call('dashboard-api.marketSnapshot', {})
+        ).resolves.toBeDefined();
+      });
+    });
+
+    describe('qualitySummary', () => {
+      it('throws ValidationError for gridOperatorId without SNB/GNB prefix', async () => {
+        await expect(
+          broker.call('dashboard-api.qualitySummary', { gridOperatorId: '12345' })
+        ).rejects.toMatchObject({
+          name: 'ValidationError',
+          data: expect.arrayContaining([
+            expect.objectContaining({
+              field: 'gridOperatorId',
+              message:
+                'gridOperatorId muss im Format SNBxxx oder GNBxxx sein (Beispiel: SNB935578300972)',
+            }),
+          ]),
+        });
+      });
+
+      it('throws ValidationError for malformed GNB gridOperatorId', async () => {
+        await expect(
+          broker.call('dashboard-api.qualitySummary', { gridOperatorId: 'GNB' })
+        ).rejects.toMatchObject({
+          name: 'ValidationError',
+          data: expect.arrayContaining([
+            expect.objectContaining({ field: 'gridOperatorId' }),
+          ]),
+        });
+      });
+
+      it('accepts a valid SNB gridOperatorId', async () => {
+        await expect(
+          broker.call('dashboard-api.qualitySummary', { gridOperatorId: 'SNB935578300972' })
+        ).resolves.toBeDefined();
+      });
+
+      it('accepts a valid GNB gridOperatorId', async () => {
+        await expect(
+          broker.call('dashboard-api.qualitySummary', { gridOperatorId: 'GNB100000000001' })
+        ).resolves.toBeDefined();
+      });
+
+      it('accepts request without gridOperatorId (all operators)', async () => {
+        await expect(
+          broker.call('dashboard-api.qualitySummary', {})
+        ).resolves.toBeDefined();
+      });
+    });
   });
 });
