@@ -148,3 +148,4 @@ vite.config.ts.timestamp-*
 data/
 uploads/
 src/oemetadata/
+tmp/

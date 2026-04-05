@@ -1,7 +1,7 @@
-# UI-Contract Verification — v0.20.2
+# UI-Contract Verification — v0.20.4
 
 > **Purpose:** Verify agent response shapes against `docs/ui-contracts/05–08`
-> before the frontend builds v0.20.3 agent pages.
+> All contracts verified and aligned with actual API shapes as of v0.20.4.
 > **Source:** Static code analysis of agent services vs. UI-Contract field specs.
 > **Generated:** 2026-04-04
 
@@ -21,147 +21,230 @@
 | UI-Contract Field | Actual Field | Match | Notes |
 |---|---|:---:|---|
 | `id` | `id` | ✅ |  |
-| `createdAt` | `metadata.executedAt` | ⚠️ | Not at top level. Stored in PouchDB; use metadata.executedAt in audit response. |
+| `metadata.executedAt` | `metadata.executedAt` | ✅ |  |
 | `gridOperator.name` | `gridOperator.name` | ✅ |  |
 | `gridOperator.mastrId` | `gridOperator.mastrId` | ✅ |  |
 | `qualityScore` | `qualityScore` | ✅ |  |
-| `dimensions` | `qualityDimensions` | ⚠️ | Top-level key is qualityDimensions, not dimensions. |
-| `dimensions.registration` | `qualityDimensions.connectionPoints` | ⚠️ | registration → connectionPoints (QUALITY_DIMENSION_WEIGHTS key in src/validation-findings.js) |
-| `dimensions.registration.score` | `qualityDimensions.connectionPoints.score` | ⚠️ |  |
-| `dimensions.registration.weight` | `qualityDimensions.connectionPoints.weight` | ⚠️ |  |
-| `dimensions.capacity.score` | `qualityDimensions.capacity.score` | ⚠️ | key correct but parent is qualityDimensions |
-| `dimensions.capacity.weight` | `qualityDimensions.capacity.weight` | ⚠️ |  |
-| `dimensions.connectivity` | `qualityDimensions.status` | ⚠️ | connectivity → status |
-| `dimensions.connectivity.score` | `qualityDimensions.status.score` | ⚠️ |  |
-| `dimensions.connectivity.weight` | `qualityDimensions.status.weight` | ⚠️ |  |
-| `dimensions.deduplication` | `qualityDimensions.duplicates` | ⚠️ | deduplication → duplicates |
-| `dimensions.deduplication.score` | `qualityDimensions.duplicates.score` | ⚠️ |  |
-| `dimensions.deduplication.weight` | `qualityDimensions.duplicates.weight` | ⚠️ |  |
-| `dimensions.geo.score` | `qualityDimensions.geo.score` | ⚠️ | key correct but parent is qualityDimensions |
-| `dimensions.geo.weight` | `qualityDimensions.geo.weight` | ⚠️ |  |
-| `findings[].code` | `findings[].finding` | ⚠️ | createFinding() uses field name "finding" not "code" |
+| `qualityDimensions.connectionPoints.score` | `qualityDimensions.connectionPoints.score` | ✅ |  |
+| `qualityDimensions.connectionPoints.weight` | `qualityDimensions.connectionPoints.weight` | ✅ |  |
+| `qualityDimensions.capacity.score` | `qualityDimensions.capacity.score` | ✅ |  |
+| `qualityDimensions.capacity.weight` | `qualityDimensions.capacity.weight` | ✅ |  |
+| `qualityDimensions.geo.score` | `qualityDimensions.geo.score` | ✅ |  |
+| `qualityDimensions.geo.weight` | `qualityDimensions.geo.weight` | ✅ |  |
+| `qualityDimensions.status.score` | `qualityDimensions.status.score` | ✅ |  |
+| `qualityDimensions.status.weight` | `qualityDimensions.status.weight` | ✅ |  |
+| `qualityDimensions.duplicates.score` | `qualityDimensions.duplicates.score` | ✅ |  |
+| `qualityDimensions.duplicates.weight` | `qualityDimensions.duplicates.weight` | ✅ |  |
+| `findings[].finding` | `findings[].finding` | ✅ |  |
 | `findings[].severity` | `findings[].severity` | ✅ |  |
-| `findings[].installationId` | `findings[].context.mastrNummer` | ⚠️ | installationId does not exist; use findings[].context.mastrNummer |
-| `findingsCount` | `summary.findingsCount` | ⚠️ | findingsCount is nested inside summary, not top-level |
-| `findingsCount.info` | `summary.findingsCount.info` | ⚠️ |  |
-| `findingsCount.warning` | `summary.findingsCount.warning` | ⚠️ |  |
-| `findingsCount.error` | `summary.findingsCount.error` | ⚠️ |  |
-| `portfolio` | `summary (restructured)` | ❌ | No top-level portfolio object. Use summary.totalInstallations + summary.installationsByType. |
-| `portfolio.total` | `summary.totalInstallations` | ⚠️ |  |
-| `portfolio.solar` | `summary.installationsByType.solar` | ⚠️ |  |
-| `portfolio.wind` | `summary.installationsByType.wind` | ⚠️ |  |
-| `portfolio.storage` | `summary.installationsByType.storage` | ⚠️ |  |
-| `portfolio.biomass` | `summary.installationsByType.biomass` | ⚠️ |  |
+| `findings[].reason` | `findings[].reason` | ✅ |  |
+| `findings[].context.mastrNummer` | `findings[].context.mastrNummer` | ✅ |  |
+| `summary.findingsCount.info` | `summary.findingsCount.info` | ✅ |  |
+| `summary.findingsCount.warning` | `summary.findingsCount.warning` | ✅ |  |
+| `summary.findingsCount.error` | `summary.findingsCount.error` | ✅ |  |
+| `summary.totalInstallations` | `summary.totalInstallations` | ✅ |  |
+| `summary.installationsByType` | `summary.installationsByType` | ✅ |  |
 
 ## 2. `POST /api/grid-connection/validate`  ->  UI-Contract 06
 
 | UI-Contract Field | Actual Field | Match | Notes |
 |---|---|:---:|---|
 | `id` | `id` | ✅ |  |
-| `createdAt` | `metadata.executedAt` | ⚠️ | Not at top level. Use metadata.executedAt. |
+| `metadata.executedAt` | `metadata.executedAt` | ✅ |  |
 | `gridOperator.name` | `gridOperator.name` | ✅ |  |
 | `gridOperator.mastrId` | `gridOperator.mastrId` | ✅ |  |
 | `decision` | `decision` | ✅ |  |
-| `findings[].code` | `findings[].finding` | ⚠️ | createFinding() uses "finding" not "code" |
+| `findings[].finding` | `findings[].finding` | ✅ |  |
 | `findings[].severity` | `findings[].severity` | ✅ |  |
+| `findings[].reason` | `findings[].reason` | ✅ |  |
 | `findings[].step` | `findings[].step` | ✅ |  |
-| `findings[].detail` | `findings[].reason` | ⚠️ | createFinding() uses "reason" not "detail" |
-| `findingsCount.info` | `summary.findingsCount.info` | ⚠️ | nested in summary |
-| `findingsCount.warning` | `summary.findingsCount.warning` | ⚠️ |  |
-| `findingsCount.error` | `summary.findingsCount.error` | ⚠️ |  |
-| `steps[].id` | `steps[].step` | ⚠️ | step number is in "step" field, not "id" |
+| `summary.findingsCount.info` | `summary.findingsCount.info` | ✅ |  |
+| `summary.findingsCount.warning` | `summary.findingsCount.warning` | ✅ |  |
+| `summary.findingsCount.error` | `summary.findingsCount.error` | ✅ |  |
+| `steps[].step` | `steps[].step` | ✅ |  |
 | `steps[].name` | `steps[].name` | ✅ |  |
 | `steps[].status` | `steps[].status` | ✅ |  |
-| `steps[].findingCode` | `(not present)` | ❌ | stepSummaries do not include findingCode; per-step findings are in the top-level findings[] array filtered by step number |
-| `REQUEST: applicant (object)` | `not validated — gridOperatorId only required` | ✅ | applicant is optional and accepted but not validated or stored |
+| `steps[].findingCode` | `(not present)` | ❌ | Not emitted. Filter findings[] by step number for per-step findings. Tracked CR-0003. |
 
 ## 3. `POST /api/energy-sharing/validate`  ->  UI-Contract 07
 
 | UI-Contract Field | Actual Field | Match | Notes |
 |---|---|:---:|---|
 | `id` | `id` | ✅ |  |
-| `createdAt` | `metadata.executedAt` | ⚠️ | Use metadata.executedAt. |
+| `metadata.executedAt` | `metadata.executedAt` | ✅ |  |
 | `gridOperator.name` | `gridOperator.name` | ✅ |  |
 | `decision` | `decision` | ✅ |  |
-| `findings[].code` | `findings[].finding` | ⚠️ |  |
-| `findingsCount.info` | `summary.findingsCount.info` | ⚠️ | nested in summary |
-| `findingsCount.warning` | `summary.findingsCount.warning` | ⚠️ |  |
-| `findingsCount.error` | `summary.findingsCount.error` | ⚠️ |  |
-| `generatorResults` | `generators` | ⚠️ | Key is "generators" (enriched input array), not "generatorResults" |
-| `generatorResults[].mastrId` | `generators[].mastrNummer` | ⚠️ | Field is mastrNummer (matches MaStR spec), not mastrId |
-| `generatorResults[].status` | `generators[].status` | ⚠️ | Correct value but wrong parent key |
-| `generatorResults[].dvValidated` | `generators[].hasDvFlag` | ⚠️ | dvValidated does not exist; closest is hasDvFlag (boolean) |
-| `REQUEST: generators[].mastrId` | `generators[].mastrNummer` | 🔴 | Service reads gen.mastrNummer; sending mastrId will be ignored |
-| `REQUEST: consumers[].malo` | `consumers[].maloId` | 🔴 | Service checks c.maloId; field in contract is malo (no Id suffix) |
+| `findings[].finding` | `findings[].finding` | ✅ |  |
+| `findings[].severity` | `findings[].severity` | ✅ |  |
+| `summary.findingsCount.info` | `summary.findingsCount.info` | ✅ |  |
+| `summary.findingsCount.warning` | `summary.findingsCount.warning` | ✅ |  |
+| `summary.findingsCount.error` | `summary.findingsCount.error` | ✅ |  |
+| `generators[].mastrNummer` | `generators[].mastrNummer` | ✅ |  |
+| `generators[].status` | `generators[].status` | ✅ |  |
+| `generators[].dvConfirmed` | `generators[].dvConfirmed` | ✅ | Boolean set by step 3 DV check. hasDvFlag is a separate MaStR field (FernsteuerbarkeitDv). |
+| `generators[].hasDvFlag` | `generators[].hasDvFlag` | ✅ |  |
+| `consumers[].maloId` | `consumers[].maloId` | ✅ |  |
 
 ## 4. `POST /api/redispatch/audit`  ->  UI-Contract 08
 
 | UI-Contract Field | Actual Field | Match | Notes |
 |---|---|:---:|---|
 | `id` | `id` | ✅ |  |
-| `createdAt` | `metadata.executedAt` | ⚠️ | Use metadata.executedAt. |
+| `metadata.executedAt` | `metadata.executedAt` | ✅ |  |
 | `gridOperator.name` | `gridOperator.name` | ✅ |  |
 | `gridOperator.mastrId` | `gridOperator.mastrId` | ✅ |  |
-| `period.from` | `period.dateFrom` | ⚠️ | period uses dateFrom/dateTo not from/to |
-| `period.to` | `period.dateTo` | ⚠️ |  |
+| `period.dateFrom` | `period.dateFrom` | ✅ |  |
+| `period.dateTo` | `period.dateTo` | ✅ |  |
+| `settlementReadiness.totalInstallations` | `settlementReadiness.totalInstallations` | ✅ |  |
+| `settlementReadiness.readyForSettlement` | `settlementReadiness.readyForSettlement` | ✅ |  |
 | `settlementReadiness.readinessPercent` | `settlementReadiness.readinessPercent` | ✅ |  |
-| `settlementReadiness.readyCount` | `(not present)` | ❌ | No readyCount field. readinessPercent * totalInstallations / 100 = implied ready count. Use totalInstallations - blockedInstallations. |
-| `settlementReadiness.blockedCount` | `settlementReadiness.blockedInstallations` | ⚠️ |  |
-| `settlementReadiness.totalCount` | `settlementReadiness.totalInstallations` | ⚠️ |  |
-| `riskAssessment.level` | `riskAssessment.riskLevel` | ⚠️ | "level" → "riskLevel" in src/redispatch-risk.js |
-| `riskAssessment.estimatedExposureEur` | `riskAssessment.estimatedLostCompensationEur` | ⚠️ | Full field name: estimatedLostCompensationEur |
-| `curtailment` | `(not present)` | ❌ | No top-level curtailment object. curtailmentGWh available only in findings[step=4].context. highFrequencyFlag is finding RD_HIGH_CURTAILMENT_PERIOD. |
-| `curtailment.totalGWh` | `findings[step=4].context.curtailmentGWh` | ❌ |  |
-| `curtailment.source` | `findings[step=4].context (implied)` | ❌ |  |
-| `curtailment.highFrequencyFlag` | `finding code RD_HIGH_CURTAILMENT_PERIOD` | ❌ | Check findings[].finding === "RD_HIGH_CURTAILMENT_PERIOD" |
-| `findingsCount.info` | `summary.findingsCount.info` | ⚠️ | nested in summary |
-| `findingsCount.warning` | `summary.findingsCount.warning` | ⚠️ |  |
-| `findingsCount.error` | `summary.findingsCount.error` | ⚠️ |  |
-| `portfolio.total` | `(not present)` | ❌ | No top-level portfolio object. Installation count in step 2 finding context. |
-| `portfolio.weg` | `(not present)` | ❌ | usedWegB boolean is in step 2 finding context only (findings[step=2].context.usedWegB) |
-| `REQUEST: periodFrom` | `dateFrom` | 🔴 | Service params are dateFrom/dateTo, not periodFrom/periodTo |
-| `REQUEST: periodTo` | `dateTo` | 🔴 |  |
+| `settlementReadiness.blockedInstallations` | `settlementReadiness.blockedInstallations` | ✅ |  |
+| `riskAssessment.riskLevel` | `riskAssessment.riskLevel` | ✅ |  |
+| `riskAssessment.estimatedLostCompensationEur` | `riskAssessment.estimatedLostCompensationEur` | ✅ |  |
+| `riskAssessment.curtailmentGWh` | `riskAssessment.curtailmentGWh` | ✅ |  |
+| `riskAssessment.blockedFractionPercent` | `riskAssessment.blockedFractionPercent` | ✅ |  |
+| `summary.findingsCount.info` | `summary.findingsCount.info` | ✅ |  |
+| `summary.findingsCount.warning` | `summary.findingsCount.warning` | ✅ |  |
+| `summary.findingsCount.error` | `summary.findingsCount.error` | ✅ |  |
+| `curtailment (top-level)` | `(not present)` | ❌ | No top-level curtailment. curtailmentGWh is in riskAssessment. highFrequencyFlag via finding RD_HIGH_CURTAILMENT_PERIOD. Tracked CR-0003. |
+| `portfolio.weg` | `(not present)` | ❌ | Weg A/B not exposed at top level. Infer from finding RD_USED_WEG_B. Tracked CR-0003. |
 
 ## 5. `GET /api/mastr-quality/list`  ->  UI-Contract 05 (list)
 
 | UI-Contract Field | Actual Field | Match | Notes |
 |---|---|:---:|---|
+| `count` | `count` | ✅ |  |
 | `audits` | `audits` | ✅ |  |
-| `total` | `count` | ⚠️ | list returns { count, audits }, not { total, audits } |
-| `audits[0].id` | `audits[0].id` | ✅ |  |
 | `audits[0].qualityScore` | `audits[0].qualityScore` | ✅ |  |
-| `audits[0].createdAt` | `audits[0].createdAt` | ✅ |  |
 | `audits[0].gridOperator.name` | `audits[0].gridOperator.name` | ✅ |  |
 
 ## 6. `GET /api/grid-connection/list`  ->  UI-Contract 06 (list)
 
 | UI-Contract Field | Actual Field | Match | Notes |
 |---|---|:---:|---|
+| `count` | `count` | ✅ |  |
 | `validations` | `validations` | ✅ |  |
-| `total` | `count` | ⚠️ | list returns { count, validations } |
-| `validations[0].id` | `validations[0].id` | ✅ |  |
 | `validations[0].decision` | `validations[0].decision` | ✅ |  |
-| `validations[0].createdAt` | `validations[0].createdAt` | ✅ |  |
 
 ## 7. `GET /api/energy-sharing/list`  ->  UI-Contract 07 (list)
 
 | UI-Contract Field | Actual Field | Match | Notes |
 |---|---|:---:|---|
+| `count` | `count` | ✅ |  |
 | `validations` | `validations` | ✅ |  |
-| `total` | `count` | ⚠️ | list returns { count, validations } |
-| `validations[0].id` | `validations[0].id` | ✅ |  |
 | `validations[0].decision` | `validations[0].decision` | ✅ |  |
-| `validations[0].createdAt` | `validations[0].createdAt` | ✅ |  |
 
 ## 8. `GET /api/redispatch/list`  ->  UI-Contract 08 (list)
 
 | UI-Contract Field | Actual Field | Match | Notes |
 |---|---|:---:|---|
+| `count` | `count` | ✅ |  |
 | `audits` | `audits` | ✅ |  |
-| `total` | `count` | ⚠️ | list returns { count, audits } |
-| `audits[0].id` | `audits[0].id` | ✅ |  |
-| `audits[0].createdAt` | `audits[0].createdAt` | ✅ |  |
-| `audits[0].settlementReadinessPercent` | `audits[0].settlementReadiness.readinessPercent` | ⚠️ | Not a flat field. Nested: audits[0].settlementReadiness.readinessPercent |
+| `audits[0].settlementReadiness.readinessPercent` | `audits[0].settlementReadiness.readinessPercent` | ✅ |  |
+
+---
+
+## 9. `GET /api/dashboard/quality-summary`  →  dashboard-api.qualitySummary (v0.20.4)
+
+> **Verifikation der internen Feldpfade** — `dashboard-api.service.js` liest aus den
+> jeweiligen Agent-List-Responses. Verifiziert per statischer Code-Analyse (2026-04-05).
+
+| Agent | safeCall-Ziel | collection key | metricKey | Korrekt? |
+|-------|--------------|----------------|-----------|:--------:|
+| mastr-quality | `mastr-quality.list` | `value?.audits` | `qualityScore` | ✅ |
+| grid-connection | `grid-connection.list` | `value?.validations` | `decision` | ✅ |
+| energy-sharing | `energy-sharing.list` | `value?.validations` | `decision` | ✅ |
+| redispatch-expost | `redispatch-expost.list` | `value?.audits` | `settlementReadiness` | ✅ |
+| energy-sharing-allocation | `energy-sharing-allocation.list` | `value?.allocations` | `totalNetGenerationKWh` | ✅ |
+
+**Ergebnis:** Alle fünf Pfade sind korrekt — kein Korrektur-Bedarf in `dashboard-api.service.js`.
+
+**Anmerkung `settlementReadiness`:** `buildAgentEntry` liest `audits[0].settlementReadiness`
+als volles Objekt (nicht als flacher Scalar). `buildKpis` hingegen liest korrekt
+`audit.settlementReadiness?.readinessPercent` für den KPI-Wert. Dieses Verhalten ist
+Contract-konform: `qualitySummary.agents[3].keyMetric.value` ist das vollständige
+`settlementReadiness`-Objekt; das flache `readinessPercent` steht im separaten KPI.
+
+---
+
+## 10. `POST /api/energy-sharing-allocation/allocate` — Live-Test (v0.20.4)
+
+> **Live-Test:** 2026-04-05, Server `10.0.0.8:3900`
+
+### Korrektes Request-Schema
+
+```json
+{
+  "communityId":  "ES-2026-VERIFY",
+  "generators":   [{ "mastrNummer": "SEE904837264953", "sharePercent": 100 }],
+  "consumers":    [{ "maloId": "DE0001234567890123456789012345678", "sharePercent": 100, "name": "Wohnung 1" }],
+  "dateFrom":     "2026-06-01",
+  "dateTo":       "2026-06-03",
+  "dataSource":   "forecast"
+}
+```
+
+### Endpoint-Ergebnisse
+
+| Endpoint | HTTP | Ergebnis |
+|----------|:----:|---------|
+| `POST /allocate` | **200** ✅ | Volles Allokations-Objekt zurückgegeben |
+| `GET /allocations` | **200** ✅ | `{ count: 1, allocations: [...] }` |
+| `GET /allocations/:id` | **200** ✅ | Einzelner Datensatz |
+| `GET /allocations/:id/download?maloId=...` | **200** ✅ | CSV (text/csv, semicolon-delimited) |
+| `GET /allocations/export` (bulk) | **404** — | Kein Bulk-Export-Endpunkt vorhanden (by design) |
+
+### Beispiel-Response `POST /allocate`
+
+```json
+{
+  "success":            true,
+  "id":                 "11bc7d5d-b36e-422d-aaf1-a0b7ef65b4e7",
+  "communityId":        "ES-2026-VERIFY",
+  "validationReportId": null,
+  "dateFrom":           "2026-06-01",
+  "dateTo":             "2026-06-03",
+  "dataSource":         "forecast",
+  "redispatchApplied":  false,
+  "warnings":           [],
+  "generators":         [{ "mastrNummer": "SEE904837264953", "sharePercent": 100 }],
+  "consumers":          [{
+    "maloId":           "DE0001234567890123456789012345678",
+    "name":             "Wohnung 1",
+    "sharePercent":     100,
+    "totalKWh":         0,
+    "peakKW":           0,
+    "zeroIntervals":    288,
+    "intervalCount":    288,
+    "avgKWhPerInterval":0
+  }],
+  "summary": {
+    "totalGenerationKWh":         0,
+    "totalRedispatchDeductionKWh":0,
+    "totalNetGenerationKWh":      0,
+    "intervalCount":              288,
+    "dateFrom":                   "2026-06-01",
+    "dateTo":                     "2026-06-03",
+    "dataSource":                 "forecast",
+    "durationMs":                 1578
+  },
+  "metadata": {
+    "pipelineVersion":  "0.16.0",
+    "executedAt":       "2026-04-05T09:53:38.654Z",
+    "regulatoryBasis":  "§ 42c EnWG, § 12 StromNZV"
+  }
+}
+```
+
+**Anmerkung:** `totalNetGenerationKWh: 0` ist erwartet — die Prognose-Pipeline
+(`dataSource: "forecast"`) liefert für nicht-registrierte MaStR-Nummern eine synthetische
+Null-Zeitreihe. Mit einer realen MaStR-Nummer werden echte Ertragswerte zurückgegeben.
+
+### Wichtig: Früheres 422-Fehlermuster
+
+Das Request-Schema war in der Verifikation zunächst falsch aufgebaut:
+`{ gridOperatorId, validationId, period }` — das liefert **HTTP 422** (VALIDATION_ERROR).
+**Korrekte Pflichtfelder:** `generators`, `consumers`, `dateFrom`, `dateTo`.
 
 ---
 
@@ -169,112 +252,54 @@
 
 | Metric | Count |
 |--------|-------|
-| Total fields checked | 107 |
-| Correct | 37 |
-| Renamed (contract update needed) | 57 |
-| Missing (field absent from response) | 9 |
-| Request body mismatch | 4 |
+| Total fields checked | 86 |
+| Correct | 83 |
+| Renamed (contract update needed) | 0 |
+| Missing (field absent from response) | 3 |
+| Request body mismatch | 0 |
 
-**Match rate:** 35%
-**Actionable:** 70 items
+**Match rate:** 97%
+**Actionable:** 3 items (tracked in `feedback/CR-0003.md` + `feedback/CR-0003-missing-agent-fields.md`)
 
----
+**dashboard-api.qualitySummary:** All 5 internal field paths verified correct (see §9). No code changes required.
 
-## Required UI-Contract Updates
-
-The following UI-Contract files need updating before the frontend builds v0.20.3.
-These are all **code-is-correct, contract-is-wrong** cases.
-
-### docs/ui-contracts/05-mastr-quality.md
-
-```diff
--  "dimensions": {
--    "registration":  { "score": 82, "weight": 0.3 },
--    "connectivity":  { "score": 91, "weight": 0.2 },
--    "deduplication": { "score": 55, "weight": 0.15 }
--  },
--  "findings": [{ "code": "MQ_ZERO_CAPACITY", "installationId": "SEE..." }],
--  "findingsCount": { "info": 12 },
--  "portfolio": { "total": 312, "solar": 201 }
-+  "qualityDimensions": {
-+    "connectionPoints": { "score": 82, "weight": 0.30 },
-+    "status":           { "score": 91, "weight": 0.15 },
-+    "duplicates":       { "score": 55, "weight": 0.15 }
-+  },
-+  "findings": [{ "finding": "MQ_ZERO_CAPACITY", "context": { "mastrNummer": "SEE..." } }],
-+  "summary": { "findingsCount": { "info": 12 }, "totalInstallations": 312, "installationsByType": { "solar": 201 } }
-```
-
-Actual dimension keys (from QUALITY_DIMENSION_WEIGHTS in src/validation-findings.js):
-connectionPoints (0.30) | capacity (0.20) | geo (0.20) | status (0.15) | duplicates (0.15)
-
-### docs/ui-contracts/06-grid-connection.md
-
-```diff
--  "findings": [{ "code": "GO_CONDITIONAL", "detail": "..." }],
--  "findingsCount": { "info": 4 },
--  "steps": [{ "id": 1, "findingCode": "VNB_RESOLVED" }]
-+  "findings": [{ "finding": "GO_CONDITIONAL", "reason": "..." }],
-+  "summary": { "findingsCount": { "info": 4 } },
-+  "steps": [{ "step": 1 }]
-```
-
-Note: steps[].findingCode does not exist. Filter findings[] by step number to get per-step findings.
-
-### docs/ui-contracts/07-energy-sharing.md
-
-```diff
-- Request: generators[].mastrId
-- Request: consumers[].malo
-+ Request: generators[].mastrNummer
-+ Request: consumers[].maloId
-
-- Response: "generatorResults": [{ "mastrId": "SEE...", "dvValidated": true }]
-+ Response: "generators": [{ "mastrNummer": "SEE...", "hasDvFlag": true }]
-```
-
-### docs/ui-contracts/08-redispatch.md
-
-```diff
-- Request: periodFrom / periodTo
-+ Request: dateFrom / dateTo
-
--  "period": { "from": "2025-01-01", "to": "2025-12-31" },
--  "settlementReadiness": { "readyCount": 52, "blockedCount": 7, "totalCount": 59 },
--  "riskAssessment": { "level": "medium", "estimatedExposureEur": 45000 },
--  "curtailment": { "totalGWh": 123.4, "source": "netztransparenz", "highFrequencyFlag": false },
--  "portfolio": { "total": 59, "weg": "A" }
-+  "period": { "dateFrom": "2025-01-01", "dateTo": "2025-12-31" },
-+  "settlementReadiness": { "readinessPercent": 88.1, "blockedInstallations": 7, "totalInstallations": 59 },
-+  "riskAssessment": { "riskLevel": "medium", "estimatedLostCompensationEur": 45000 },
-+  // curtailment: derive from findings[step=4].context.curtailmentGWh
-+  //   highFrequency: findings[].finding === "RD_HIGH_CURTAILMENT_PERIOD"
-+  // portfolio: derive from findings[step=2].context.total + .usedWegB
-```
-
-### All list endpoints (05-08)
-
-```diff
-- { "total": N, "audits": [...] }
-+ { "count": N, "audits": [...] }
-```
-
-Also: redispatch list audits[0].settlementReadinessPercent (flat)
-  -> audits[0].settlementReadiness.readinessPercent (nested object).
+**Allocation endpoints:** All 4 primary endpoints operational (see §10).
 
 ---
 
-## Decision: Update Contracts, Not Code
+## Changes Applied (v0.20.4)
 
-All mismatches are intentional implementation choices — the service code
-is correct. The UI-Contracts were written ahead of implementation (v0.19.0)
-and contain idealized field names that differ from the actual conventions.
+All contract-vs-reality naming mismatches were resolved in v0.20.4. The following changes were applied to `docs/ui-contracts/05–08`:
 
-**Exceptions (potential small code fixes):**
+| Contract | Change |
+|----------|--------|
+| 05, 06, 07, 08 | `async, 202 + jobId polling` → `sync, 200` (all agents return full result immediately) |
+| 05 | `dimensions.*` → `qualityDimensions.*`; dimension keys corrected (registration→connectionPoints, connectivity→status, deduplication→duplicates); weights corrected (30/25/20/15/10 → 30/20/20/15/15) |
+| 05 | `findings[].code` → `findings[].finding`; `findings[].installationId` → `findings[].context.mastrNummer` |
+| 05 | `findingsCount` (top-level) → `summary.findingsCount`; `portfolio.*` → `summary.totalInstallations` / `summary.installationsByType` |
+| 06 | `findings[].code` → `findings[].finding`; `findings[].detail` → `findings[].reason` |
+| 06 | `NO_GO_CRITICAL` removed from decision table (constant does not exist in service) |
+| 07 | Decision values `REJECTED`, `PENDING_DOCUMENTS`, `ELIGIBLE`, `NOT_ELIGIBLE` replaced with `REJECTED_STRUCTURAL`, `REJECTED_GENERATOR_INVALID`, `REJECTED_OTHER` |
+| 07 | `generatorResults[].mastrId` → `generators[].mastrNummer`; `dvValidated` → `dvConfirmed` |
+| 08 | `period.from/to` → `period.dateFrom/dateTo`; `settlementReadiness.*` and `riskAssessment.*` field names corrected |
 
-| Issue | Recommendation |
-|-------|----------------|
-| createdAt absent from audit responses | Add alias: metadata.executedAt -> createdAt |
-| steps[].findingCode missing | Low priority: derive from findings[] filtered by step |
-| curtailment top-level missing | Promote curtailmentGWh + highFrequencyFlag to top-level |
-| portfolio top-level missing | Promote total + usedWegB to top-level in redispatch |
+---
+
+## Open Bugs — CR-0003 (structural gaps)
+
+The 3 remaining ❌ entries are **absent from the service response** — not naming issues.
+The contracts already document workarounds. Actual code changes tracked in CR-0003.
+
+| # | Field | Workaround in contract |
+|---|-------|------------------------|
+| 1 | `steps[].findingCode` (grid-connection) | Filter `findings[]` by `step` number |
+| 2 | `curtailment` top-level (redispatch) | `riskAssessment.curtailmentGWh` + finding `RD_HIGH_CURTAILMENT_PERIOD` |
+| 3 | `portfolio.weg` (redispatch) | Finding `RD_USED_WEG_B` presence indicates Weg B |
+
+---
+
+## Allocation Endpoint Status
+
+`POST /api/energy-sharing-allocation/allocate` → **HTTP 200** — implemented. See §10 for full live-test documentation.
+`GET /api/energy-sharing-allocation/allocations` → **HTTP 200** — implemented.
+`GET /api/energy-sharing-allocation/allocations/:id/download?maloId=...` → **HTTP 200** — CSV download functional.

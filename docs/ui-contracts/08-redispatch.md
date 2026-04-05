@@ -1,8 +1,8 @@
 # UI Contract: Redispatch Ex-Post Audit Page
 
 > **Page ID:** `redispatch`
-> **Version:** 0.19.0
-> **Last updated:** 2026-03-31
+> **Version:** 0.20.4
+> **Last updated:** 2026-04-04
 
 ---
 
@@ -10,11 +10,10 @@
 
 | Method | URL | Purpose |
 |--------|-----|---------|
-| `POST` | `/api/redispatch/audit`    | Start 7-step settlement audit (async, 202) |
-| `GET`  | `/api/jobs/:jobId`         | Poll for completion |
-| `GET`  | `/api/redispatch/list`     | List past audits |
-| `GET`  | `/api/redispatch/:id`      | Get a specific audit |
-| `DELETE` | `/api/redispatch/:id`    | Delete an audit record |
+| `POST` | `/api/redispatch/audit`    | Start 7-step settlement audit (sync, 200) |
+| `GET`  | `/api/redispatch/audits`     | List past audits |
+| `GET`  | `/api/redispatch/audits/:id` | Get a specific audit |
+| `DELETE` | `/api/redispatch/audits/:id` | Delete an audit record — ⚠ not yet implemented (see CR-0003) |
 
 ---
 
@@ -25,24 +24,22 @@
 ```json
 {
   "gridOperatorId": "SNB935578300972",
-  "periodFrom":     "2025-01-01",
-  "periodTo":       "2025-12-31",
+  "dateFrom":       "2025-01-01",
+  "dateTo":         "2025-12-31",
   "skipSteps":      [4]
 }
 ```
 
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
-| `gridOperatorId` | string | Yes | MaStR SNB/GNB ID |
-| `periodFrom` | date string | Yes | ISO 8601 date |
-| `periodTo` | date string | Yes | ISO 8601 date; must be > `periodFrom` |
+| `gridOperatorId` | string | Yes\* | MaStR SNB/GNB ID. One of `gridOperatorId`, `gridOperatorBdew`, or `gridOperatorName` required |
+| `dateFrom` | date string | Yes | ISO 8601 date (`YYYY-MM-DD`) |
+| `dateTo` | date string | Yes | ISO 8601 date; must be > `dateFrom` |
 | `skipSteps` | number[] | No | Only steps 3–6 may be skipped |
 
-### Response (202 Accepted)
+### Response (200 OK)
 
-```json
-{ "jobId": "job_rd123", "status": "queued", "pollUrl": "/api/jobs/job_rd123" }
-```
+Returns the full audit result immediately. Execution may take up to 180 seconds (Moleculer timeout).
 
 ---
 
@@ -50,28 +47,41 @@
 
 ```json
 {
-  "id":           "rd-001",
-  "createdAt":    "2026-03-29T08:00:00Z",
-  "gridOperator": { "name": "TWL Netze GmbH", "mastrId": "SNB935578300972" },
-  "period":       { "from": "2025-01-01", "to": "2025-12-31" },
+  "id":           "550e8400-e29b-41d4-a716-446655440003",
+  "success":      true,
+  "gridOperator": { "name": "TWL Netze GmbH", "mastrId": "SNB935578300972", "bdew": "9907473000008" },
+  "period":       { "dateFrom": "2025-01-01", "dateTo": "2025-12-31" },
   "settlementReadiness": {
-    "readinessPercent": 88.1,
-    "readyCount":       52,
-    "blockedCount":     7,
-    "totalCount":       59
+    "totalInstallations":  59,
+    "readyForSettlement":  52,
+    "readinessPercent":    88.1,
+    "blockedInstallations": 7,
+    "blockedMastrNumbers": ["SEE...", "..."]
   },
   "riskAssessment": {
-    "level":              "medium",
-    "estimatedExposureEur": 45000
+    "blockedFractionPercent":      11.86,
+    "curtailmentGWh":              123.4,
+    "avgCompensationEurPerMWh":    50,
+    "estimatedLostCompensationEur": 45000,
+    "riskLevel":                  "medium"
   },
-  "curtailment": {
-    "totalGWh":          123.4,
-    "source":            "netztransparenz",
-    "highFrequencyFlag": false
+  "summary": {
+    "totalInstallations": 59,
+    "findingsCount": { "info": 3, "warning": 8, "error": 2 },
+    "skippedSteps":  [],
+    "durationMs":    45230
   },
   "findings": [...],
-  "findingsCount": { "info": 3, "warning": 8, "error": 2 },
-  "portfolio": { "total": 59, "weg": "A" }
+  "steps": [
+    { "step": 1, "name": "identity",              "status": "success", "durationMs": 500,  "findingsCount": 1 },
+    { "step": 2, "name": "portfolio",             "status": "success", "durationMs": 3200, "findingsCount": 0 },
+    { "step": 3, "name": "masterDataValidation",  "status": "success", "durationMs": 820,  "findingsCount": 4 },
+    { "step": 4, "name": "curtailmentCorrelation","status": "success", "durationMs": 5100, "findingsCount": 3 },
+    { "step": 5, "name": "settlementReadiness",   "status": "success", "durationMs": 210,  "findingsCount": 2 },
+    { "step": 6, "name": "riskAssessment",        "status": "success", "durationMs": 80,   "findingsCount": 1 },
+    { "step": 7, "name": "audit",                 "status": "success", "durationMs": 100,  "findingsCount": 0 }
+  ],
+  "metadata": { "pipelineVersion": "1.0.0", "executedAt": "2026-03-29T08:00:00Z", "regulatoryBasis": "Redispatch 2.0 (§ 13a EnWG)", "maxAgeMinutes": 120 }
 }
 ```
 
@@ -87,26 +97,36 @@ Large circular gauge:
 - 80–99% → yellow ("⚠ Teilbereit")
 - 100% → green ("✓ Vollständig")
 
-Sub-line: `readyCount / totalCount Anlagen abrechnungsbereit`
+Sub-line: `readyForSettlement / totalInstallations Anlagen abrechnungsbereit`
 
 ### Risk Assessment Card
 
 | Field | Display |
 |-------|---------|
-| `riskAssessment.level` | Badge: low=green, medium=yellow, high=red |
-| `riskAssessment.estimatedExposureEur` | `€ N,NNN` formatted; bold if high risk |
+| `riskAssessment.riskLevel` | Badge: low=green, medium=yellow, high=red |
+| `riskAssessment.estimatedLostCompensationEur` | `€ N,NNN` formatted; bold if high risk |
+| `riskAssessment.curtailmentGWh` | `N.N GWh` abgeregelt |
+| `riskAssessment.blockedFractionPercent` | `N.N%` der Anlagen geblockt |
 
-### Curtailment Summary
+### Curtailment Data
+
+Curtailment volume is available as `riskAssessment.curtailmentGWh` (from step 4 `curtailmentCorrelation`).
+A high-frequency curtailment flag is raised by finding code `RD_HIGH_CURTAILMENT_PERIOD` in the findings array.
 
 | Field | Display |
 |-------|---------|
-| `curtailment.totalGWh` | `N.N GWh` abgeregelt |
-| `curtailment.source` | Attribution: "Quelle: Netztransparenz" |
-| `curtailment.highFrequencyFlag` | If true: yellow chip "⚠ Hohe Abregelungsfrequenz" |
+| `riskAssessment.curtailmentGWh` | `N.N GWh` abgeregelt |
+| `findings[].finding === "RD_HIGH_CURTAILMENT_PERIOD"` | Yellow chip "⚠ Hohe Abregelungsfrequenz" |
+
+> **Note:** Direct curtailment source attribution and `highFrequencyFlag` as a top-level field are
+> not yet implemented. Tracked in CR-0003.
 
 ### Weg A / Weg B Indicator
 
-Pill badge: `portfolio.weg` — "Weg A (MCP)" or "Weg B (Datapoint)"
+> **Note:** A `portfolio.weg` field is not present in the audit response. The portfolio loading
+> method can be inferred from findings: presence of `RD_USED_WEG_B` in `findings[].finding`
+> indicates Weg B (datapoint fallback) was used; absence means Weg A (live MCP data).
+> Direct `portfolio.weg` exposure is tracked in CR-0003.
 
 ### 7-Step Timeline
 
@@ -117,7 +137,7 @@ Steps 1–2 cannot be skipped (show as forced-enabled).
 
 ## Interactions
 
-- **Period date pickers**: `periodFrom` / `periodTo` with calendar — validates `to > from`.
+- **Period date pickers**: `dateFrom` / `dateTo` with calendar — validates `dateTo > dateFrom`.
 - **Skip steps**: checkboxes for steps 3–6 only; 1 and 2 are always greyed out.
 - **Blocked installations list**: expandable section listing `blockedCount` installations with their findings.
 - **Export**: "Export CSV" → all findings; "Export PDF" → browser print.
@@ -129,7 +149,7 @@ Steps 1–2 cannot be skipped (show as forced-enabled).
 | Scenario | Behaviour |
 |----------|-----------|
 | `RD_PORTFOLIO_EMPTY` | Full-page empty state: "Keine Redispatch-relevanten Anlagen gefunden" |
-| Weg B fallback | Yellow info chip: "Portfolio via Datapunkt-Fallback geladen (Weg B)" |
+| Weg B fallback | Yellow info chip: "Portfolio via Datapunkt-Fallback geladen (Weg B)" — detect via `findings[].finding === "RD_USED_WEG_B"` |
 | `RD_CURTAILMENT_DATA_UNAVAILABLE` | Grey info chip: "Netztransparenz-Daten nicht verfügbar — 0 GWh-Fallback" |
-| `estimatedExposureEur` > 100000 | `RD_RISK_HIGH` — red banner at top |
+| `riskAssessment.estimatedLostCompensationEur` > 100000 | `RD_RISK_HIGH` — red banner at top |
 | skipSteps includes 1 or 2 | UI prevents selection; show "Schritte 1–2 können nicht übersprungen werden" |

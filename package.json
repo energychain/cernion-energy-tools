@@ -1,6 +1,6 @@
 {
   "name": "cernion-energy-tools",
-  "version": "0.20.3",
+  "version": "0.20.4",
   "description": "MicroService Agent System for Energy Markets",
   "main": "index.js",
   "scripts": {
@@ -52,14 +52,18 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.28.0",
+    "@turf/boolean-point-in-polygon": "^7.3.4",
+    "@turf/helpers": "^7.3.4",
     "ajv": "^8.18.0",
     "axios": "^1.13.6",
     "dotenv": "^17.3.1",
+    "graphology": "^0.26.0",
     "iconv-lite": "^0.7.2",
     "moleculer": "^0.14.35",
     "moleculer-auto-openapi": "^1.1.7",
     "moleculer-repl": "^0.7.4",
     "moleculer-web": "^0.10.8",
+    "pdf-parse": "^2.4.5",
     "pouchdb": "^9.0.0",
     "pouchdb-find": "^9.0.0",
     "swagger-ui-dist": "^5.32.0",

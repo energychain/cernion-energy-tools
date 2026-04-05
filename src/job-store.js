@@ -55,6 +55,9 @@ function createJob({ service, action }) {
     updatedAt: new Date().toISOString(),
     completedAt: null,
     error: null,
+    phase: null,
+    percent: null,
+    logs: [],
   };
   fs.writeFileSync(progressPath(jobId), JSON.stringify(job));
   return jobId;
@@ -72,6 +75,26 @@ function updateJob(jobId, updates) {
   const updated = { ...job, ...updates, updatedAt: new Date().toISOString() };
   fs.writeFileSync(progressPath(jobId), JSON.stringify(updated));
   return updated;
+}
+
+/**
+ * Append a structured log entry to the job's logs[] array.
+ * Also updates the phase and percent fields for progress tracking.
+ * Safe to call when jobId is null (no-op — used by internal worker calls).
+ *
+ * @param {string|null} jobId
+ * @param {string}  phase    - Short phase identifier, e.g. 'pdf_parse'
+ * @param {number}  percent  - Progress 0–100
+ * @param {string}  message  - Human-readable log message
+ * @returns {Object|null}
+ */
+function appendLog(jobId, phase, percent, message) {
+  if (!jobId) return null; // no-op for internal (non-gateway) worker calls
+  const job = getJob(jobId);
+  if (!job) return null;
+  const logs = Array.isArray(job.logs) ? job.logs : [];
+  logs.push({ timestamp: new Date().toISOString(), phase, percent, message });
+  return updateJob(jobId, { logs, phase, percent });
 }
 
 /**
@@ -161,14 +184,15 @@ function gcExpired(ttlMs = TTL_MS) {
 async function startJob(ctx, jobMeta, worker) {
   // ── Internal call (no gateway flag) — fall through to synchronous result ──
   if (!ctx.meta.$gateway) {
-    return worker();
+    return worker(null); // null jobId: appendLog calls are no-ops for internal callers
   }
 
   // ── REST call — create job, fire worker, return 202 immediately ───────────
   const jobId = createJob(jobMeta);
 
-  // Fire-and-forget: do NOT await — return the 202 response immediately
-  worker()
+  // Fire-and-forget: do NOT await — return the 202 response immediately.
+  // Worker receives jobId so it can call appendLog for progress tracking.
+  worker(jobId)
     .then((result) => saveResult(jobId, result))
     .catch((err) =>
       updateJob(jobId, { status: 'error', error: String(err.message || err) })
@@ -193,6 +217,7 @@ async function startJob(ctx, jobMeta, worker) {
 module.exports = {
   createJob,
   updateJob,
+  appendLog,
   saveResult,
   getJob,
   getResult,

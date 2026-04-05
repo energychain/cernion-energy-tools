@@ -23,6 +23,7 @@ const ALLOWED_UPLOAD_EXTENSIONS = new Set([
   '.geojson',
   '.json',
   '.gz',
+  '.pdf',  // Layer 2: VNB StromNZV §23c structure reports
 ]);
 
 function ensureUploadDir() {
@@ -213,6 +214,17 @@ module.exports = {
             'Supports autoDiscover (cernion_market_partners query → draft → confirm flow) ' +
             'and manual member management. ' +
             'enrichResults enriches market-partner search results with companyId + marketRole.',
+        },
+        {
+          name: 'Zielnetzplanung (ZNP)',
+          description:
+            'Stateful workspace API for target grid planning (v0.20.4). ' +
+            'Each project is an in-memory graphology graph for a geographic bounding box. ' +
+            'Data Layers are loaded iteratively: ' +
+            'Layer 0 (MaStR assets), Layer 1 (OSM buildings — stub), Layer 2 (transformer loads — stub). ' +
+            'All assets in Layer 0 connect to a virtual substation SUB_1 (MaStR has no topology). ' +
+            'Graph state is ephemeral (v1) — lost on service restart. ' +
+            'Project metadata (bbox, layer counts) is persisted in PouchDB.',
         },
       ],
       components: {
@@ -470,6 +482,18 @@ module.exports = {
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
           'GET /dashboard/finding-codes':   'dashboard-api.findingCodes',
+          // Zielnetzplanung (ZNP) — Stateful workspace API (v0.20.4 / v0.23)
+          // NOTE: specific sub-paths MUST precede the bare /:projectId route to
+          // prevent route shadowing. Order: most-specific first.
+          'GET /znp/projects':                                          'znp.listProjects',
+          'POST /znp/projects':                                         'znp.createProject',
+          'GET /znp/projects/:projectId/strategic-prompts':             'znp.strategicPrompts',
+          'POST /znp/projects/:projectId/assumptions':                  'znp.addAssumption',
+          'POST /znp/projects/:projectId/layer0':                       'znp.addLayer0',
+          'POST /znp/projects/:projectId/layer1':                       'znp.addLayer1',
+          'POST /znp/projects/:projectId/layer2':                       'znp.addLayer2',
+          'GET /znp/projects/:projectId/g-factor':                      'znp.calculateGFactor',
+          'GET /znp/projects/:projectId':                               'znp.getProjectMeta',
 
           // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
           'GET /datasources/uploads'(req, res) {

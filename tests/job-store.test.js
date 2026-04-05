@@ -195,6 +195,56 @@ describe('gcExpired', () => {
   });
 });
 
+// ─── appendLog ────────────────────────────────────────────────────────────────
+
+describe('appendLog', () => {
+  it('appends a log entry to the logs array', () => {
+    const id = jobStore.createJob({ service: 's', action: 'a' });
+    jobStore.appendLog(id, 'pdf_parse', 10, 'Lese PDF...');
+    const job = jobStore.getJob(id);
+    expect(job.logs).toHaveLength(1);
+    expect(job.logs[0].phase).toBe('pdf_parse');
+    expect(job.logs[0].percent).toBe(10);
+    expect(job.logs[0].message).toBe('Lese PDF...');
+  });
+
+  it('accumulates multiple log entries in order', () => {
+    const id = jobStore.createJob({ service: 's', action: 'a' });
+    jobStore.appendLog(id, 'step_a', 20, 'Step A done');
+    jobStore.appendLog(id, 'step_b', 60, 'Step B done');
+    jobStore.appendLog(id, 'done',   100, 'Finished');
+    const job = jobStore.getJob(id);
+    expect(job.logs).toHaveLength(3);
+    expect(job.logs[2].phase).toBe('done');
+    expect(job.percent).toBe(100);
+    expect(job.phase).toBe('done');
+  });
+
+  it('includes an ISO timestamp on each log entry', () => {
+    const id = jobStore.createJob({ service: 's', action: 'a' });
+    jobStore.appendLog(id, 'step', 50, 'Mid-point');
+    const { timestamp } = jobStore.getJob(id).logs[0];
+    expect(new Date(timestamp).toISOString()).toBe(timestamp);
+  });
+
+  it('is a no-op and returns null when jobId is null', () => {
+    const result = jobStore.appendLog(null, 'phase', 50, 'msg');
+    expect(result).toBeNull();
+  });
+
+  it('returns null for an unknown job ID', () => {
+    const result = jobStore.appendLog('no-such-id', 'phase', 50, 'msg');
+    expect(result).toBeNull();
+  });
+
+  it('initialises logs[] to an empty array on createJob', () => {
+    const id = jobStore.createJob({ service: 's', action: 'a' });
+    const job = jobStore.getJob(id);
+    expect(Array.isArray(job.logs)).toBe(true);
+    expect(job.logs).toHaveLength(0);
+  });
+});
+
 // ─── startJob ─────────────────────────────────────────────────────────────────
 
 describe('startJob', () => {
@@ -204,7 +254,7 @@ describe('startJob', () => {
       const result = await jobStore.startJob(
         ctx,
         { service: 'svc', action: 'act' },
-        async () => ({ data: 'direct' })
+        async (jobId) => { expect(jobId).toBeNull(); return { data: 'direct' }; }
       );
       expect(result).toEqual({ data: 'direct' });
     });

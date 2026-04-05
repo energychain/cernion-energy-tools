@@ -1,10 +1,10 @@
 # UI-Contract 14 — Company Entity (v0.20.3)
 
-> **Status:** Active  
-> **Backend version:** 0.20.3  
-> **Service:** `company.service.js`  
-> **OpenAPI tag:** `Companies`  
-> **Base path:** `/api/companies`  
+> **Status:** Active
+> **Backend version:** 0.20.3
+> **Service:** `company.service.js`
+> **OpenAPI tag:** `Companies`
+> **Base path:** `/api/companies`
 > **Auth:** Read endpoints — `read-only` or `full-access` token. Write endpoints — `full-access` token required.
 
 ---

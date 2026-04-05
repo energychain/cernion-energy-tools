@@ -1,8 +1,8 @@
 # UI Contract: MaStR Data Quality Audit Page
 
 > **Page ID:** `mastr-quality`
-> **Version:** 0.19.0
-> **Last updated:** 2026-03-31
+> **Version:** 0.20.4
+> **Last updated:** 2026-04-04
 
 ---
 
@@ -10,11 +10,10 @@
 
 | Method | URL | Purpose |
 |--------|-----|---------|
-| `POST` | `/api/mastr-quality/audit` | Start a new 8-step MaStR quality audit (async, 202) |
-| `GET`  | `/api/jobs/:jobId`         | Poll for audit completion |
-| `GET`  | `/api/mastr-quality/list`  | List past audits (paginated) |
-| `GET`  | `/api/mastr-quality/:id`   | Get a specific audit by ID |
-| `DELETE` | `/api/mastr-quality/:id` | Delete an audit record |
+| `POST` | `/api/mastr-quality/audit` | Start a new 8-step MaStR quality audit (sync, 200) |
+| `GET`  | `/api/mastr-quality/audits`     | List past audits (paginated) |
+| `GET`  | `/api/mastr-quality/audits/:id` | Get a specific audit by ID |
+| `DELETE` | `/api/mastr-quality/audits/:id` | Delete an audit record — ⚠ not yet implemented (see CR-0003) |
 
 ---
 
@@ -34,13 +33,9 @@
 | `gridOperatorId` | string | Yes | MaStR SNB/GNB ID |
 | `skipSteps` | number[] | No | Only steps 3–7 may be skipped |
 
-### Response (202 Accepted)
+### Response (200 OK)
 
-```json
-{ "jobId": "job_abc123", "status": "queued", "pollUrl": "/api/jobs/job_abc123" }
-```
-
-Poll `GET /api/jobs/job_abc123` every 2 seconds. Timeout after 180 seconds.
+Returns the full audit result immediately. Execution may take up to 180 seconds (Moleculer timeout).
 
 ---
 
@@ -48,23 +43,39 @@ Poll `GET /api/jobs/job_abc123` every 2 seconds. Timeout after 180 seconds.
 
 ```json
 {
-  "id":           "mq-001",
+  "id":           "550e8400-e29b-41d4-a716-446655440000",
+  "success":      true,
   "gridOperator": { "name": "TWL Netze GmbH", "mastrId": "SNB935578300972" },
-  "createdAt":    "2026-03-31T10:00:00Z",
   "qualityScore": 78,
-  "dimensions": {
-    "registration":  { "score": 82, "weight": 0.3 },
-    "capacity":      { "score": 65, "weight": 0.25 },
-    "connectivity":  { "score": 91, "weight": 0.2 },
-    "deduplication": { "score": 55, "weight": 0.15 },
-    "geo":           { "score": 80, "weight": 0.1 }
+  "qualityDimensions": {
+    "connectionPoints": { "score": 82, "findings": 3, "weight": 0.30 },
+    "capacity":         { "score": 65, "findings": 5, "weight": 0.20 },
+    "geo":              { "score": 80, "findings": 0, "weight": 0.20 },
+    "status":           { "score": 91, "findings": 1, "weight": 0.15 },
+    "duplicates":       { "score": 55, "findings": 2, "weight": 0.15 }
+  },
+  "summary": {
+    "totalInstallations": 312,
+    "installationsByType": { "solar": 201, "wind": 47, "storage": 29, "biomass": 35 },
+    "findingsCount": { "info": 12, "warning": 18, "error": 5 },
+    "skippedSteps": [],
+    "durationMs":   45230
   },
   "findings": [
-    { "code": "MQ_ZERO_CAPACITY", "severity": "error", "installationId": "SEE...", "detail": "..." },
-    { "code": "MQ_MISSING_NAP",   "severity": "error", "installationId": "SEE...", "detail": "..." }
+    { "id": "F-4-001", "step": 4, "stepName": "capacityAnomalies", "finding": "MQ_ZERO_CAPACITY", "severity": "error",   "title": "...", "reason": "...", "context": { "mastrNummer": "SEE..." }, "recommendation": "..." },
+    { "id": "F-5-001", "step": 5, "stepName": "connectionPoints",  "finding": "MQ_MISSING_NAP",   "severity": "error",   "title": "...", "reason": "...", "context": { "mastrNummer": "SEE..." }, "recommendation": "..." }
   ],
-  "findingsCount": { "info": 12, "warning": 18, "error": 5 },
-  "portfolio": { "total": 312, "solar": 201, "wind": 47, "storage": 29, "biomass": 35 }
+  "steps": [
+    { "step": 1, "name": "identity",           "status": "success", "durationMs": 150,  "findingsCount": 1 },
+    { "step": 2, "name": "inventory",          "status": "success", "durationMs": 3200, "findingsCount": 0 },
+    { "step": 3, "name": "statusAnomalies",    "status": "success", "durationMs": 820,  "findingsCount": 4 },
+    { "step": 4, "name": "capacityAnomalies",  "status": "success", "durationMs": 630,  "findingsCount": 5 },
+    { "step": 5, "name": "connectionPoints",   "status": "success", "durationMs": 710,  "findingsCount": 3 },
+    { "step": 6, "name": "duplicateDetection", "status": "success", "durationMs": 290,  "findingsCount": 2 },
+    { "step": 7, "name": "geoSpotCheck",       "status": "success", "durationMs": 950,  "findingsCount": 0 },
+    { "step": 8, "name": "audit",              "status": "success", "durationMs": 100,  "findingsCount": 0 }
+  ],
+  "metadata": { "pipelineVersion": "1.0.0", "executedAt": "2026-03-31T10:00:00Z", "maxAgeMinutes": 120, "geoSampleSize": 10 }
 }
 ```
 
@@ -85,11 +96,11 @@ Poll `GET /api/jobs/job_abc123` every 2 seconds. Timeout after 180 seconds.
 
 | Dimension | Weight | Field |
 |-----------|--------|-------|
-| Registrierung | 30% | `dimensions.registration.score` |
-| Leistung | 25% | `dimensions.capacity.score` |
-| Konnektivität | 20% | `dimensions.connectivity.score` |
-| Deduplizierung | 15% | `dimensions.deduplication.score` |
-| Geo | 10% | `dimensions.geo.score` |
+| Netzanschlusspunkte | 30% | `qualityDimensions.connectionPoints.score` |
+| Leistung | 20% | `qualityDimensions.capacity.score` |
+| Geo | 20% | `qualityDimensions.geo.score` |
+| Betriebsstatus | 15% | `qualityDimensions.status.score` |
+| Duplikate | 15% | `qualityDimensions.duplicates.score` |
 
 ### Findings Table
 
@@ -97,14 +108,14 @@ Filterable table of `findings`:
 
 | Column | Source | Notes |
 |--------|--------|-------|
-| Severity chip | `findings[].severity` | error=red, warning=yellow, info=blue |
-| Code | `findings[].code` | Link to finding-codes reference |
-| Installation | `findings[].installationId` | Truncated; hover → full ID |
-| Detail | `findings[].detail` | Expandable |
+| Severity chip | `findings[].severity`            | error=red, warning=yellow, info=blue |
+| Code          | `findings[].finding`             | Link to finding-codes reference |
+| Installation  | `findings[].context.mastrNummer` | Truncated; hover → full ID |
+| Detail        | `findings[].reason`              | Expandable; `findings[].recommendation` for next steps |
 
 ### Portfolio Summary Chips
 
-Render `portfolio` fields as count chips: Total / Solar / Wind / Storage / Biomass.
+Render `summary.installationsByType` entries as count chips alongside `summary.totalInstallations` as the total. Keys present depend on which installation types exist in the operator's portfolio.
 
 ### Step Timeline
 
@@ -115,7 +126,7 @@ Collapsible 8-step timeline showing which steps were run, skipped, or failed.
 ## Interactions
 
 - **Run new audit**: opens a drawer with `gridOperatorId` input + optional `skipSteps` checkboxes (3–7 only).
-- **Poll progress**: progress bar + "Step N/8 in progress…" message while polling.
+- **Execution progress**: spinner + "Running audit…" indicator during execution (up to 180 seconds); disable form while running.
 - **Finding code tooltip**: hover over code → description from [finding-codes endpoint](04-finding-codes.md).
 - **Export findings CSV**: downloads `findings.csv` with all rows.
 - **Delete audit**: confirmation dialog → DELETE call.
@@ -129,4 +140,4 @@ Collapsible 8-step timeline showing which steps were run, skipped, or failed.
 | No installations found | Empty state with "No MaStR installations found for this operator" |
 | `skipSteps` includes 1 or 2 | UI prevents selection with "Steps 1–2 cannot be skipped" |
 | Audit times out (180s) | Show "Audit timed out — partial results may be available" |
-| Geo step skipped | `dimensions.geo.score` null → show "–" in bar chart |
+| Geo step skipped | `qualityDimensions.geo.score` null → show "–" in bar chart |
