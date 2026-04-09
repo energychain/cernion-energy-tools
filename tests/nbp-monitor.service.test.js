@@ -14,11 +14,11 @@
 'use strict';
 
 const { ServiceBroker } = require('moleculer');
-const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
 const NbpMonitorService = require('../services/nbp-monitor.service');
+const ObjectStoreService = require('../services/object-store.service');
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -37,12 +37,9 @@ function makeInst(type, kWp, ageDays = 0, plz = '67059') {
 
 describe('nbp-monitor.service', () => {
   let broker;
-  let parametersFile;
   let assetsHandler;  // replaced per-test to inject custom installations
 
   beforeAll(async () => {
-    parametersFile = path.join(os.tmpdir(), `nbp-params-${Date.now()}.json`);
-
     broker = new ServiceBroker({ logger: false });
 
     // Mock assets service — handler replaced per test
@@ -58,10 +55,17 @@ describe('nbp-monitor.service', () => {
     });
 
     broker.createService({
+      ...ObjectStoreService,
+      settings: {
+        ...ObjectStoreService.settings,
+        dbPath: path.join(os.tmpdir(), `nbp-test-os-${Date.now()}`),
+      },
+    });
+
+    broker.createService({
       ...NbpMonitorService,
       settings: {
         ...NbpMonitorService.settings,
-        parametersFile,
         cacheTtlSeconds: 3600,
       },
     });
@@ -71,7 +75,6 @@ describe('nbp-monitor.service', () => {
 
   afterAll(async () => {
     await broker.stop();
-    if (fs.existsSync(parametersFile)) fs.unlinkSync(parametersFile);
   });
 
   beforeEach(() => {
@@ -364,12 +367,11 @@ describe('nbp-monitor.service', () => {
     it('should return source and parameters keys', async () => {
       const r = await broker.call('nbp-monitor.getParameters');
       expect(r).toHaveProperty('source');
-      expect(r).toHaveProperty('parametersFile');
       expect(r).toHaveProperty('parameters');
     });
 
-    it('should return defaults when no custom file exists', async () => {
-      if (fs.existsSync(parametersFile)) fs.unlinkSync(parametersFile);
+    it('should return defaults when no entry in store', async () => {
+      await broker.call('nbp-monitor.resetParameters');
       const r = await broker.call('nbp-monitor.getParameters');
       expect(r.source).toBe('defaults');
       expect(r.parameters.PV).toBeDefined();
@@ -384,9 +386,11 @@ describe('nbp-monitor.service', () => {
       Sonstige: { volllaststunden: 900,  einspeiseverguetung_ctKWh: 8.5 },
     };
 
-    it('should persist parameters to file', async () => {
+    it('should persist parameters to object store', async () => {
       await broker.call('nbp-monitor.setParameters', { parameters: validParams });
-      expect(fs.existsSync(parametersFile)).toBe(true);
+      const stored = await broker.call('object-store.get', { namespace: 'nbp_monitor', key: 'parameters' });
+      expect(stored).toBeDefined();
+      expect(stored.payload).toMatchObject({ PV: expect.any(Object) });
     });
 
     it('should return success true', async () => {
@@ -426,7 +430,7 @@ describe('nbp-monitor.service', () => {
   });
 
   describe('resetParameters action', () => {
-    it('should remove the parameters file', async () => {
+    it('should remove parameters from object store', async () => {
       await broker.call('nbp-monitor.setParameters', {
         parameters: {
           PV:       { volllaststunden: 999, einspeiseverguetung_ctKWh: 9 },
@@ -435,9 +439,12 @@ describe('nbp-monitor.service', () => {
           Sonstige: { volllaststunden: 999, einspeiseverguetung_ctKWh: 9 },
         },
       });
-      expect(fs.existsSync(parametersFile)).toBe(true);
+      const stored = await broker.call('object-store.get', { namespace: 'nbp_monitor', key: 'parameters' });
+      expect(stored).toBeDefined();
       await broker.call('nbp-monitor.resetParameters');
-      expect(fs.existsSync(parametersFile)).toBe(false);
+      await expect(
+        broker.call('object-store.get', { namespace: 'nbp_monitor', key: 'parameters' })
+      ).rejects.toThrow();
     });
 
     it('should return success true', async () => {
@@ -462,8 +469,8 @@ describe('nbp-monitor.service', () => {
       expect(callCount).toBe(2);
     });
 
-    it('should succeed even when no file exists', async () => {
-      if (fs.existsSync(parametersFile)) fs.unlinkSync(parametersFile);
+    it('should succeed even when no entry in store', async () => {
+      await broker.call('nbp-monitor.resetParameters'); // ensure clean state
       const r = await broker.call('nbp-monitor.resetParameters');
       expect(r.success).toBe(true);
     });

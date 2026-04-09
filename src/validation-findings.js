@@ -4,6 +4,47 @@
 // Finding code constants — 20 defined codes across 6 pipeline steps
 // ---------------------------------------------------------------------------
 
+/**
+ * NAMING CONVENTION — Finding Code Constants vs. API Values
+ * ==========================================================
+ *
+ * JavaScript constant names carry a PREFIX identifying the agent:
+ *   ES_  = Energy Sharing
+ *   MQ_  = MaStR Quality
+ *   RD_  = Redispatch Ex-Post
+ *   GO_  = Grid Connection (decision values)
+ *   GC_  = Grid Connection (finding codes)
+ *
+ * The VALUES of these constants are the strings that appear in:
+ *   - API responses (findings[].finding)
+ *   - FINDING_CODE_METADATA keys
+ *   - /api/dashboard/finding-codes response
+ *
+ * IMPORTANT INCONSISTENCY (historical, do not change):
+ *   Energy Sharing values do NOT carry the ES_ prefix:
+ *     const ES_REJECTED_STRUCTURAL = 'REJECTED_STRUCTURAL'
+ *     → API sees: 'REJECTED_STRUCTURAL'
+ *
+ *   MaStR Quality and Redispatch values DO carry the prefix:
+ *     const MQ_ZERO_CAPACITY = 'MQ_ZERO_CAPACITY'
+ *     → API sees: 'MQ_ZERO_CAPACITY'
+ *
+ *   Grid Connection decision values have no prefix:
+ *     const GO_DIRECT = 'GO_DIRECT'
+ *     → API sees: 'GO_DIRECT'
+ *
+ * Root cause: Grid Connection codes (v0.14) were defined first without prefix.
+ * MaStR Quality (v0.17) and Redispatch (v0.18) adopted prefixed values for
+ * namespace safety. Energy Sharing (v0.15) predates the prefix convention —
+ * the ES_ prefix was added to the JS constants but not backported to the values
+ * to avoid breaking existing stored reports.
+ *
+ * FRONTEND / API CONSUMERS:
+ *   Always match against VALUES from FINDING_CODE_METADATA keys or the
+ *   /api/dashboard/finding-codes response — never against JS constant names.
+ *   See docs/agent-decision-enums.ts for the verified enum values.
+ */
+
 // Step 1 — Inventory
 const INVENTORY_COMPLETE = 'INVENTORY_COMPLETE';
 const INVENTORY_EMPTY = 'INVENTORY_EMPTY';
@@ -300,10 +341,15 @@ function summarizeFindings(findings) {
 // Used by dashboard-api.findingCodes to power UI tooltips and filter chips.
 // ---------------------------------------------------------------------------
 
+// TODO (v0.21): Add `recommendation` (EN) and `recommendationDe` (DE) fields
+// to every entry in FINDING_CODE_METADATA. These are actionable next-step texts
+// displayed in the UI alongside each finding. Sync document with all 37 error-severity
+// codes and draft recommendations: docs/ui-contracts/14-finding-code-recommendations.md
+
 /**
  * Metadata map for all 92 finding codes.
  * Keys are the canonical finding code strings (SCREAMING_SNAKE_CASE).
- * @type {Record<string, { severity: string, agent: string, step: number, description: string, descriptionDe: string }>}
+ * @type {Record<string, { severity: string, agent: string, step: number, description: string, descriptionDe: string, recommendation?: string, recommendationDe?: string }>}
  */
 const FINDING_CODE_METADATA = {
   // ── Grid Connection (v0.14) — Steps 1–6 ─────────────────────────────────

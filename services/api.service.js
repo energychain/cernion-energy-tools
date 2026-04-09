@@ -23,7 +23,7 @@ const ALLOWED_UPLOAD_EXTENSIONS = new Set([
   '.geojson',
   '.json',
   '.gz',
-  '.pdf',  // Layer 2: VNB StromNZV §23c structure reports
+  '.pdf', // Layer 2: VNB StromNZV §23c structure reports
 ]);
 
 function ensureUploadDir() {
@@ -95,6 +95,9 @@ function requiresFullAccess(method, requestPath) {
   if (pathOnly.startsWith('/api/companies') && (m === 'POST' || m === 'PUT' || m === 'DELETE')) {
     return true;
   }
+  if (pathOnly.startsWith('/api/objects') && (m === 'PUT' || m === 'DELETE')) {
+    return true;
+  }
 
   return false;
 }
@@ -123,7 +126,10 @@ module.exports = {
         { name: 'Example', description: 'Example service endpoints' },
         { name: 'DataSources', description: 'Inhouse datasource registry, cache, and discovery' },
         { name: 'VNBMonitor', description: 'VNB (grid operator) KPI monitoring and alerts' },
-        { name: 'NBPMonitor', description: 'Netzbetreiberprüfungs-Monitor (MaStR status 2955 queue KPIs)' },
+        {
+          name: 'NBPMonitor',
+          description: 'Netzbetreiberprüfungs-Monitor (MaStR status 2955 queue KPIs)',
+        },
         { name: 'IntegrationHub', description: 'Token management and integration helpers' },
         { name: 'Jobs', description: 'Async job status and result polling (v0.9.8+)' },
         {
@@ -137,7 +143,8 @@ module.exports = {
             'Layer 2 Geo-Architecture: physical grid infrastructure from OpenStreetMap via the Overpass API. ' +
             'Complements authoritative VNBDigital data (Layer 1) with visible substations, transformers, and lines. ' +
             'Data: © OpenStreetMap contributors, ODbL 1.0 — https://opendatacommons.org/licenses/odbl/',
-        },        {
+        },
+        {
           name: 'OEP (Open Energy Platform)',
           description:
             'Read-only access to Open Energy Platform research and scenario datasets. ' +
@@ -225,6 +232,21 @@ module.exports = {
             'All assets in Layer 0 connect to a virtual substation SUB_1 (MaStR has no topology). ' +
             'Graph state is ephemeral (v1) — lost on service restart. ' +
             'Project metadata (bbox, layer counts) is persisted in PouchDB.',
+        },
+        {
+          name: 'Object Store',
+          description:
+            'Generic namespaced document store backed by PouchDB (v0.20.5). ' +
+            'Provides CRUD and Mango-query operations for frontend persistence ' +
+            '(ZNP workspaces, user settings, etc.) without backend schema changes. ' +
+            'Documents are keyed as namespace:key; namespace isolation enforced in all queries.',
+        },
+        {
+          name: 'Cookbook',
+          description:
+            'Reusable API workflow recipes (v0.20.5). ' +
+            'Code-managed community cookbook with semantic lookup, runtime relation graph, ' +
+            'and periodic validity checks against live microservice actions.',
         },
       ],
       components: {
@@ -459,41 +481,59 @@ module.exports = {
           // Energy Sharing Allocation (v0.16) — /download must precede /:id
           'POST /energy-sharing-allocation/allocate': 'energy-sharing-allocation.allocate',
           'GET /energy-sharing-allocation/allocations': 'energy-sharing-allocation.list',
-          'GET /energy-sharing-allocation/allocations/:id/download': 'energy-sharing-allocation.download',
+          'GET /energy-sharing-allocation/allocations/:id/download':
+            'energy-sharing-allocation.download',
           'GET /energy-sharing-allocation/allocations/:id': 'energy-sharing-allocation.get',
           'DELETE /energy-sharing-allocation/allocations/:id': 'energy-sharing-allocation.remove',
           // MaStR Data Quality (v0.17)
           'POST /mastr-quality/audit': 'mastr-quality.audit',
           'GET /mastr-quality/audits': 'mastr-quality.list',
+          'GET /mastr-quality/audits/:id/findings/:findingId/details': 'mastr-quality.findingDetails',
           'GET /mastr-quality/audits/:id': 'mastr-quality.get',
           // Redispatch Ex-Post (v0.18)
           'POST /redispatch/audit': 'redispatch-expost.audit',
           'GET /redispatch/audits': 'redispatch-expost.list',
           'GET /redispatch/audits/:id': 'redispatch-expost.get',
           // Companies (v0.20.3) — Konzernverbund / Stadtwerk entity management
-          'GET /companies':              'company.list',
-          'POST /companies':             'company.create',
-          'GET /companies/:id':          'company.get',
-          'PUT /companies/:id':          'company.update',
-          'PUT /companies/:id/confirm':  'company.confirm',
-          'DELETE /companies/:id':       'company.delete',
+          'GET /companies': 'company.list',
+          'POST /companies': 'company.create',
+          'GET /companies/:id': 'company.get',
+          'PUT /companies/:id': 'company.update',
+          'PUT /companies/:id/confirm': 'company.confirm',
+          'DELETE /companies/:id': 'company.delete',
           // Dashboard API (v0.19) — UI-optimised aggregate endpoints
-          'GET /dashboard/vnb-overview':    'dashboard-api.vnbOverview',
+          'GET /dashboard/vnb-overview': 'dashboard-api.vnbOverview',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
-          'GET /dashboard/finding-codes':   'dashboard-api.findingCodes',
+          'GET /dashboard/finding-codes': 'dashboard-api.findingCodes',
           // Zielnetzplanung (ZNP) — Stateful workspace API (v0.20.4 / v0.23)
           // NOTE: specific sub-paths MUST precede the bare /:projectId route to
           // prevent route shadowing. Order: most-specific first.
-          'GET /znp/projects':                                          'znp.listProjects',
-          'POST /znp/projects':                                         'znp.createProject',
-          'GET /znp/projects/:projectId/strategic-prompts':             'znp.strategicPrompts',
-          'POST /znp/projects/:projectId/assumptions':                  'znp.addAssumption',
-          'POST /znp/projects/:projectId/layer0':                       'znp.addLayer0',
-          'POST /znp/projects/:projectId/layer1':                       'znp.addLayer1',
-          'POST /znp/projects/:projectId/layer2':                       'znp.addLayer2',
-          'GET /znp/projects/:projectId/g-factor':                      'znp.calculateGFactor',
-          'GET /znp/projects/:projectId':                               'znp.getProjectMeta',
+          'GET /znp/projects': 'znp.listProjects',
+          'POST /znp/projects': 'znp.createProject',
+          'GET /znp/projects/:projectId/strategic-prompts': 'znp.strategicPrompts',
+          'POST /znp/projects/:projectId/assumptions': 'znp.addAssumption',
+          'POST /znp/projects/:projectId/layer0': 'znp.addLayer0',
+          'POST /znp/projects/:projectId/layer1': 'znp.addLayer1',
+          'POST /znp/projects/:projectId/layer2': 'znp.addLayer2',
+          'GET /znp/projects/:projectId/g-factor': 'znp.calculateGFactor',
+          'GET /znp/projects/:projectId/assets': 'znp.getProjectAssets',
+          'GET /znp/projects/:projectId': 'znp.getProjectMeta',
+
+          // Object Store — Generic namespaced document persistence (v0.20.5)
+          // NOTE: /query sub-path must precede bare /:key to prevent route shadowing.
+          'POST /objects/:namespace/query': 'object-store.query',
+          'GET /objects/:namespace/:key': 'object-store.get',
+          'PUT /objects/:namespace/:key': 'object-store.put',
+          'DELETE /objects/:namespace/:key': 'object-store.delete',
+
+          // Cookbook — reusable implementation recipes (v0.20.5)
+          'GET /cookbook': 'cookbook.list',
+          'GET /cookbook/health': 'cookbook.health',
+          'GET /cookbook/services': 'cookbook.serviceCatalogue',
+          'GET /cookbook/:id': 'cookbook.get',
+          'POST /cookbook/search': 'cookbook.search',
+          'POST /cookbook/validate': 'cookbook.validate',
 
           // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
           'GET /datasources/uploads'(req, res) {
@@ -631,7 +671,8 @@ module.exports = {
           // 3) CERNION_TOKEN from environment (fallback in MCP client)
           const requestPath = normalizeRequestPath(req);
           const isTokenVerifyEndpoint =
-            requestPath === '/api/tokens/verify' && String(req?.method || '').toUpperCase() === 'POST';
+            requestPath === '/api/tokens/verify' &&
+            String(req?.method || '').toUpperCase() === 'POST';
 
           const authHeader = req.headers['authorization'] || req.headers['Authorization'];
           const bearerToken =
@@ -700,7 +741,11 @@ module.exports = {
                     'TOKEN_SCOPE_VIOLATION'
                   );
                 }
-                throw new Errors.MoleculerClientError('Invalid or revoked API token.', 401, 'INVALID_API_TOKEN');
+                throw new Errors.MoleculerClientError(
+                  'Invalid or revoked API token.',
+                  401,
+                  'INVALID_API_TOKEN'
+                );
               }
 
               if (verification.scope === 'read-only' && !isReadMethod(req?.method)) {
@@ -711,7 +756,10 @@ module.exports = {
                 );
               }
 
-              if (requiresFullAccess(req?.method, requestPath) && verification.scope !== 'full-access') {
+              if (
+                requiresFullAccess(req?.method, requestPath) &&
+                verification.scope !== 'full-access'
+              ) {
                 throw new Errors.MoleculerClientError(
                   'Scope violation: full-access token required for this endpoint.',
                   403,

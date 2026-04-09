@@ -1,6 +1,6 @@
 # Cernion Energy Tools — Backend Context Reference
 
-> **Version:** 0.20.0
+> **Version:** 0.20.6
 > **Purpose:** Comprehensive backend context for frontend developers, AI assistants,
 > and new contributors. One document to understand the full system.
 
@@ -25,7 +25,7 @@ HTTP clients
 │   POST /api/energy-sharing/*  → energy-sharing.service  (v0.15) │
 │   POST /api/redispatch/*      → redispatch-expost.svc   (v0.18) │
 │   GET  /api/datapoints/*      → datapoint.service       (v0.11) │
-│   … and 32 more services                                        │
+│   … and 36 more services                                        │
 └─────────────────────────────────────────────────────────────────┘
     │
     ▼ MCP client
@@ -48,7 +48,7 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 
 ---
 
-## 2. Service Directory (38 services as of v0.20)
+## 2. Service Directory (42 services as of v0.20.6)
 
 | Service | File | Since | Key actions |
 |---------|------|-------|-------------|
@@ -56,6 +56,8 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 | agent | `agent.service.js` | v0.9 | Natural-language query planner |
 | assets | `assets.service.js` | v0.9 | MaStR asset lookups |
 | business-intelligence | `business-intelligence.service.js` | v0.9 | Sales leads, tariff design |
+| company | `company.service.js` | v0.20.3 | Company-entity CRUD |
+| cookbook | `cookbook.service.js` | v0.20.5 | API recipes, search, validation |
 | customer-service | `customer-service.service.js` | v0.9 | Customer-facing helpers |
 | **dashboard-api** | `dashboard-api.service.js` | **v0.19** | **4 UI-aggregate endpoints** |
 | datapoint | `datapoint.service.js` | v0.11 | CRUD + refresh + snapshots |
@@ -80,6 +82,7 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 | job-status | `job-status.service.js` | v0.9 | Async job polling |
 | mastr-quality | `mastr-quality.service.js` | v0.17 | MaStR data quality audit |
 | nbp-monitor | `nbp-monitor.service.js` | v0.16 | NBP price/CO₂ monitoring |
+| object-store | `object-store.service.js` | v0.20.4 | Generic object store |
 | oep | `oep.service.js` | v0.12 | Open Energy Platform |
 | osm-geo | `osm-geo.service.js` | v0.10 | OSM/Overpass geo analysis |
 | query | `query.service.js` | v0.9 | LLM query planner |
@@ -90,6 +93,7 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 | utility-report | `utility-report.service.js` | v0.9 | Utility analysis reports |
 | vnb-monitor | `vnb-monitor.service.js` | v0.9 | VNB monitoring + alerts |
 | web-search | `web-search.service.js` | v0.9 | Web search integration |
+| znp | `znp.service.js` | v0.20.4 | Zählpunkt-Netzbetreiber-Prüfung |
 
 ---
 
@@ -102,9 +106,11 @@ only metadata, provenance hashes, and audit trails.
 |---------|---------|------------|---------|
 | datapoint | `data/datapoints/` | `dp:` | Datapoint metadata |
 | datapoint (snapshots) | `data/datapoints/` | `snap:` | Snapshot seals |
+| company | `data/companies/` | — | Company-Entities (BDEW-Marktpartner) |
 | grid-connection | `data/grid-connections/` | `val:` | Validation audit trail |
 | energy-sharing | `data/energy-sharing/` | `es:` | Energy sharing audit trail |
 | mastr-quality | `data/mastr-quality/` | `mq:` | MaStR quality audit trail |
+| object-store | `data/object-store/` | — | Generische Objekte (Agent-Artefakte) |
 | redispatch-expost | `data/redispatch-expost/` | `rd:` | Redispatch audit trail |
 
 ---
@@ -114,6 +120,10 @@ only metadata, provenance hashes, and audit trails.
 All finding codes are defined in `src/validation-findings.js` with:
 - JavaScript constants (e.g. `const MQ_ZERO_CAPACITY = 'MQ_ZERO_CAPACITY'`)
 - `FINDING_CODE_METADATA` map (added v0.19) with `{ severity, agent, step, description, descriptionDe }`
+
+> **Naming-Konvention:** JS-Konstantennamen tragen Agent-Präfixe (ES_, MQ_, RD_, GO_),
+> aber Energy-Sharing-Werte in API-Responses haben KEIN ES_-Präfix. Details:
+> `src/validation-findings.js` (Kommentar-Block am Anfang der Konstanten-Definitionen).
 
 ### By agent
 
@@ -286,6 +296,21 @@ npm run release:check        # Full release gate
   fired simultaneously via `Promise.allSettled`. `mastr-quality.list` is called without
   `gridOperatorId` (returns newest audit regardless of operator). Accepted trade-off for
   latency — will be improved with a sequential identity-first pattern in a future release.
+
+### Known Limitations / Open Risks
+
+**BDEW-Auflösungsrisiko (offen seit v0.20.2):**
+`cernion_installations_local` löst `gridOperatorBdewCode` server-seitig im MCP-Tool
+auf — nicht lokal via `vnbLookupCodes`. Es ist nicht verifiziert, ob der MCP-Server
+dieselbe Mapping-Collection nutzt. Bei BDEW-Codes mit Alias-Konflikten könnte der
+v0.20.0-Bug (falscher Code für TWL Netze) auf dem `bdewCode`-Pfad wieder auftreten.
+Muss vor der nächsten Operator-Onboarding-Welle untersucht werden.
+
+**CR-0003 — Drei fehlende Agent-Response-Felder:**
+`steps[].findingCode` (grid-connection), `curtailment`-Top-Level-Objekt und
+`portfolio.weg` (redispatch) sind nicht implementiert. Frontend-Workarounds produktiv
+seit v0.20.4. Fix geplant für v0.21.x.
+Siehe `feedback/CR-0003-missing-agent-fields.md`.
 
 ---
 

@@ -3,6 +3,7 @@
 const crypto = require('crypto');
 const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
+const { MoleculerClientError } = require('moleculer').Errors;
 const CernionMCPClient = require('../src/mcp-client');
 const {
   createFinding,
@@ -94,6 +95,9 @@ module.exports = {
         gridOperatorId:   { type: 'string', optional: true },
         gridOperatorBdew: { type: 'string', optional: true },
         gridOperatorName: { type: 'string', optional: true },
+        bdewCode:         { type: 'string', optional: true },
+        gridOperatorBnr:  { type: 'string', optional: true },
+        bnr:              { type: 'string', optional: true },
         datapointTags:    { type: 'array', items: 'string', optional: true, default: [] },
         maxAgeMinutes:    { type: 'number', optional: true, default: 120, convert: true },
         skipSteps:        { type: 'array', items: 'number', optional: true, default: [] },
@@ -120,6 +124,9 @@ module.exports = {
                   gridOperatorId:   { type: 'string', description: 'MaStR grid operator ID (SNB.../GNB...)', example: 'SNB935578300972' },
                   gridOperatorBdew: { type: 'string', description: '13-digit BDEW market-partner code', example: '9907473000008' },
                   gridOperatorName: { type: 'string', description: 'Grid operator name (fuzzy match)', example: 'TWL Netze' },
+                  bdewCode:         { type: 'string', description: 'Alias for gridOperatorBdew', example: '9907473000008' },
+                  gridOperatorBnr:  { type: 'string', description: 'Alias BNR input (7/8 digits; tolerant format accepted)', example: '10002977' },
+                  bnr:              { type: 'string', description: 'Alias for gridOperatorBnr', example: '10002977' },
                   datapointTags:    { type: 'array', items: { type: 'string' }, description: 'Tags for datapoint snapshot (Weg B)', example: ['twl-netze'] },
                   maxAgeMinutes:    { type: 'integer', default: 120, description: 'Datapoint freshness threshold in minutes' },
                   skipSteps:        { type: 'array', items: { type: 'integer' }, description: 'Steps to skip (valid: 3–7; steps 1, 2, 8 are mandatory)', example: [7] },
@@ -156,7 +163,29 @@ module.exports = {
                     duplicates:       { score: 100, findings: 0 },
                     geo:              { score: 80, findings: 4 },
                   },
-                  summary: { totalInstallations: 142, findingsCount: { info: 5, warning: 8, error: 2 }, durationMs: 45230 },
+                  summary: {
+                    totalInstallations: 142,
+                    findingsCount: { info: 5, warning: 8, error: 2 },
+                    missingNapFindings: 6,
+                    missingNapDistinctAssets: 4,
+                    missingNapRedispatchFindings: 3,
+                    missingNapRedispatchDistinctAssets: 3,
+                    napFindings: {
+                      missingNapFindings: 6,
+                      missingNapDistinctAssets: 4,
+                      missingNapRedispatchFindings: 3,
+                      missingNapRedispatchDistinctAssets: 3,
+                      distinctAssetsAffected: 4,
+                      perAssetFindingCount: {
+                        SEE900000001: 2,
+                        SEE900000002: 1,
+                      },
+                      duplicateByAsset: {
+                        SEE900000001: 2,
+                      },
+                    },
+                    durationMs: 45230,
+                  },
                 },
               },
             },
@@ -164,10 +193,11 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { gridOperatorId, gridOperatorBdew, gridOperatorName } = ctx.params;
-        if (!gridOperatorId && !gridOperatorBdew && !gridOperatorName) {
+        const normalizedInput = this.normalizeResolverInput(ctx.params);
+        const { gridOperatorId, gridOperatorBdew, gridOperatorName, gridOperatorBnr } = normalizedInput;
+        if (!gridOperatorId && !gridOperatorBdew && !gridOperatorName && !gridOperatorBnr) {
           throw new Error(
-            'At least one of gridOperatorId, gridOperatorBdew, or gridOperatorName is required'
+            'At least one of gridOperatorId, gridOperatorBdew, gridOperatorName, bdewCode, gridOperatorBnr, or bnr is required'
           );
         }
 
@@ -180,7 +210,10 @@ module.exports = {
           );
         }
 
-        const report = await this.runPipeline(ctx, ctx.params);
+        const report = await this.runPipeline(ctx, {
+          ...ctx.params,
+          ...normalizedInput,
+        });
 
         // Persist to PouchDB (KRITIS: raw installation data NOT stored, only report metadata)
         const id = crypto.randomUUID();
@@ -192,6 +225,7 @@ module.exports = {
           qualityScore: report.qualityScore,
           qualityDimensions: report.qualityDimensions,
           summary: report.summary,
+          findings: Array.isArray(report.findings) ? report.findings : [],
           findingsCount: report.summary?.findingsCount,
           skippedSteps: rawSkip,
           steps: report.steps,
@@ -201,11 +235,15 @@ module.exports = {
               gridOperatorId: ctx.params.gridOperatorId || null,
               gridOperatorBdew: ctx.params.gridOperatorBdew || null,
               gridOperatorName: ctx.params.gridOperatorName || null,
+              bdewCode: ctx.params.bdewCode || null,
+              gridOperatorBnr: ctx.params.gridOperatorBnr || null,
+              bnr: ctx.params.bnr || null,
               datapointTags: ctx.params.datapointTags || [],
               maxAgeMinutes: ctx.params.maxAgeMinutes,
               skipSteps: rawSkip,
               geoSampleSize: ctx.params.geoSampleSize || 10,
             },
+            resolver: report.resolver || null,
           },
           pipelineVersion: PIPELINE_VERSION,
           createdAt: new Date().toISOString(),
@@ -307,7 +345,11 @@ module.exports = {
       async handler(ctx) {
         try {
           const doc = await this.db.get(`mq:${ctx.params.id}`);
-          return { success: true, ...doc };
+          return {
+            success: true,
+            ...doc,
+            findings: Array.isArray(doc.findings) ? doc.findings : [],
+          };
         } catch (err) {
           if (err.status === 404 || err.name === 'not_found') {
             ctx.meta.$statusCode = 404;
@@ -315,6 +357,108 @@ module.exports = {
           }
           throw err;
         }
+      },
+    },
+
+    /**
+     * Retrieve enriched details for a single finding within an audit.
+     * Useful for UI drilldown without relying on compact rows only.
+     */
+    findingDetails: {
+      rest: 'GET /audits/:id/findings/:findingId/details',
+      params: {
+        id: { type: 'string' },
+        findingId: { type: 'string' },
+      },
+      openapi: {
+        summary: 'Get details for a specific finding in an audit',
+        description:
+          'Returns the finding row with enriched standardized detail fields from finding.context.details ' +
+          '(installation, connection, measurement).',
+        tags: ['MaStR Data Quality'],
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-1234-5678-90ab-cdef12345678' }, description: 'Audit report UUID' },
+          { name: 'findingId', in: 'path', required: true, schema: { type: 'string', example: 'F-5-002' }, description: 'Finding row ID within the audit (findings[].id)' },
+        ],
+        responses: {
+          200: {
+            description: 'Finding detail object',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  auditId: 'a1b2c3d4-1234-5678-90ab-cdef12345678',
+                  findingId: 'F-5-002',
+                  finding: {
+                    id: 'F-5-002',
+                    finding: 'MQ_REDISPATCH_NO_NAP',
+                    step: 5,
+                    severity: 'error',
+                    context: {
+                      mastrNummer: 'SEE900000001',
+                      details: {
+                        installation: {
+                          mastrNummer: 'SEE900000001',
+                          einheitId: 'EE123',
+                          technology: 'solar',
+                          status: '35',
+                          commissioningDate: '2020-01-15',
+                          brutto: 200,
+                          operatorName: 'Musterbetreiber GmbH',
+                        },
+                        connection: {
+                          napId: null,
+                          napMastrNummer: null,
+                          spannungsebene: null,
+                          netzbetreiberName: null,
+                        },
+                        measurement: {
+                          melo: null,
+                          value: null,
+                          rawValue: null,
+                          resolvedValue: null,
+                          valueSource: null,
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Audit or finding not found',
+          },
+        },
+      },
+      async handler(ctx) {
+        const { id, findingId } = ctx.params;
+
+        let doc;
+        try {
+          doc = await this.db.get(`mq:${id}`);
+        } catch (err) {
+          if (err.status === 404 || err.name === 'not_found') {
+            ctx.meta.$statusCode = 404;
+            return { success: false, message: `Audit ${id} not found` };
+          }
+          throw err;
+        }
+
+        const findings = Array.isArray(doc.findings) ? doc.findings : [];
+        const finding = findings.find((f) => String(f?.id || '') === String(findingId));
+        if (!finding) {
+          ctx.meta.$statusCode = 404;
+          return { success: false, message: `Finding ${findingId} not found in audit ${id}` };
+        }
+
+        return {
+          success: true,
+          auditId: id,
+          findingId,
+          finding,
+          details: finding?.context?.details || null,
+        };
       },
     },
   },
@@ -327,90 +471,277 @@ module.exports = {
     // -------------------------------------------------------------------------
     // Step 1: VNB Identity resolution (MCP vnb_lookup_codes)
     // -------------------------------------------------------------------------
+    normalizeResolverInput(params = {}) {
+      const pick = (...values) => {
+        for (const value of values) {
+          if (value === null || value === undefined) continue;
+          const text = String(value).trim();
+          if (text) return text;
+        }
+        return null;
+      };
+
+      return {
+        gridOperatorId: pick(params.gridOperatorId),
+        gridOperatorBdew: pick(params.gridOperatorBdew, params.bdewCode),
+        gridOperatorName: pick(params.gridOperatorName),
+        gridOperatorBnr: pick(params.gridOperatorBnr, params.bnr),
+      };
+    },
+
+    normalizeMastrId(rawValue) {
+      if (!rawValue) return null;
+      const normalized = String(rawValue).trim().split(' ')[0].toUpperCase();
+      return normalized || null;
+    },
+
+    normalizeDigitCode(rawValue) {
+      if (!rawValue) return null;
+      const digits = String(rawValue).replace(/\D+/g, '');
+      return digits || null;
+    },
+
+    createCodeVariants(rawValue, lengths = []) {
+      const base = this.normalizeDigitCode(rawValue);
+      if (!base) return [];
+      const variants = new Set([base]);
+      for (const len of lengths) {
+        if (!Number.isFinite(len) || len <= 0) continue;
+        if (base.length < len) variants.add(base.padStart(len, '0'));
+        if (base.length > len) variants.add(base.slice(-len));
+      }
+      return Array.from(variants);
+    },
+
+    extractResolverCandidates(lookupResult) {
+      const normalizeCandidate = (candidate, source) => ({
+        mastrId: this.normalizeMastrId(candidate?.mastrId),
+        name: candidate?.name || null,
+        bdew: this.normalizeDigitCode(candidate?.bdew || candidate?.bdewCode || candidate?.bdewCodePrimary),
+        bnr: this.normalizeDigitCode(candidate?.bnr),
+        source,
+      });
+
+      const merged = [];
+      const canonical = lookupResult?.canonical || lookupResult?.data?.canonical;
+      if (canonical) merged.push(normalizeCandidate(canonical, 'canonical'));
+
+      const candidates = lookupResult?.candidates || lookupResult?.data?.candidates || [];
+      for (const candidate of candidates) {
+        merged.push(normalizeCandidate(candidate, 'candidate'));
+      }
+
+      const aliases = lookupResult?.aliases || lookupResult?.data?.aliases || [];
+      for (const alias of aliases) {
+        merged.push(normalizeCandidate(alias, 'alias'));
+      }
+
+      const seen = new Set();
+      return merged.filter((candidate) => {
+        if (!candidate.mastrId && !candidate.name && !candidate.bdew && !candidate.bnr) return false;
+        const key = `${candidate.mastrId || ''}|${candidate.name || ''}|${candidate.bdew || ''}|${candidate.bnr || ''}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+    },
+
+    async resolveByMarketPartnerName(ctx, name, resolver) {
+      if (!name) return null;
+      const callOpts = { meta: { ...ctx.meta, $gateway: false } };
+      try {
+        const result = await ctx.call('grid-operations.marketPartners', { query: name, limit: 5 }, callOpts);
+        const candidates = result?.data?.results || [];
+        const mapped = candidates.map((candidate) => ({
+          mastrId: this.normalizeMastrId(candidate?.mastrId),
+          name: candidate?.companyName || null,
+          bdew: this.normalizeDigitCode(candidate?.bdewCode || candidate?.bdew),
+          bnr: this.normalizeDigitCode(candidate?.bnr),
+          source: 'marketPartners',
+        }));
+
+        resolver.candidates.push(...mapped);
+        const match = mapped.find((candidate) => candidate.mastrId);
+        if (!match) return null;
+
+        resolver.strategy.push({
+          path: 'name→marketPartners',
+          input: name,
+          matched: true,
+          candidateCount: mapped.length,
+        });
+
+        return {
+          mastrId: match.mastrId,
+          name: match.name || name,
+          bdew: match.bdew || null,
+          bnr: match.bnr || null,
+          matchedBy: 'name-marketPartners',
+          confidence: 0.78,
+        };
+      } catch (err) {
+        resolver.strategy.push({
+          path: 'name→marketPartners',
+          input: name,
+          matched: false,
+          error: err.message,
+        });
+        return null;
+      }
+    },
+
     async stepIdentity(ctx, params) {
-      const { gridOperatorId, gridOperatorBdew, gridOperatorName } = params;
+      const normalizedInput = this.normalizeResolverInput(params);
+      const { gridOperatorId, gridOperatorBdew, gridOperatorName, gridOperatorBnr } = normalizedInput;
       const token = ctx.meta?.cernionToken;
       const findings = [];
       let idx = 1;
-      let operator = { mastrId: gridOperatorId || null, name: gridOperatorName || 'Unknown', bdew: gridOperatorBdew || null, bnr: null };
+      let operator = {
+        mastrId: this.normalizeMastrId(gridOperatorId),
+        name: gridOperatorName || 'Unknown',
+        bdew: this.normalizeDigitCode(gridOperatorBdew),
+        bnr: this.normalizeDigitCode(gridOperatorBnr),
+      };
 
-      const lookupCode = gridOperatorBdew || gridOperatorId;
-      if (lookupCode) {
+      const bdewVariants = this.createCodeVariants(gridOperatorBdew, [13, 7]);
+      const bnrVariants = this.createCodeVariants(gridOperatorBnr, [8, 7]);
+      const resolver = {
+        input: {
+          gridOperatorId: params.gridOperatorId || null,
+          gridOperatorBdew: params.gridOperatorBdew || null,
+          gridOperatorName: params.gridOperatorName || null,
+          bdewCode: params.bdewCode || null,
+          gridOperatorBnr: params.gridOperatorBnr || null,
+          bnr: params.bnr || null,
+        },
+        normalized: {
+          gridOperatorId: operator.mastrId,
+          gridOperatorBdew: operator.bdew,
+          gridOperatorName: operator.name === 'Unknown' ? null : operator.name,
+          gridOperatorBnr: operator.bnr,
+          bdewVariants,
+          bnrVariants,
+        },
+        strategy: [],
+        matchedBy: operator.mastrId ? 'gridOperatorId' : null,
+        confidence: operator.mastrId ? 1.0 : 0,
+        candidates: [],
+      };
+
+      const attempts = [];
+      if (operator.mastrId) {
+        attempts.push({ path: 'mastrId', payload: { mastrId: operator.mastrId }, confidence: 0.99 });
+      }
+      for (const code of bdewVariants) {
+        attempts.push({ path: 'bdewCode', payload: { bdewCode: code }, confidence: 0.95 });
+      }
+      for (const code of bnrVariants) {
+        attempts.push({ path: 'bnr', payload: { bnr: code }, confidence: 0.9 });
+      }
+      if (gridOperatorName) {
+        attempts.push({ path: 'vnbName', payload: { vnbName: gridOperatorName }, confidence: 0.8 });
+      }
+
+      for (const attempt of attempts) {
         try {
           const result = await CernionMCPClient.callWithNewSession(
             'vnb_lookup_codes',
-            { code: lookupCode },
+            { ...attempt.payload, includeAliases: true, limitCandidates: 10 },
             token
           );
-          const canonical = result?.canonical || result?.data?.canonical || {};
-          const candidates = result?.candidates || result?.data?.candidates || [];
+          const candidates = this.extractResolverCandidates(result);
+          resolver.candidates.push(...candidates);
 
-          if (canonical && (canonical.mastrId || canonical.name)) {
-            const resolvedId = (canonical.mastrId || '').split(' ')[0].trim() || gridOperatorId || null;
+          const canonical = candidates.find((candidate) => candidate.source === 'canonical') || candidates[0] || null;
+          const matched = Boolean(canonical && canonical.mastrId);
+          resolver.strategy.push({
+            path: attempt.path,
+            input: attempt.payload,
+            matched,
+            candidateCount: candidates.length,
+          });
+
+          if (matched) {
             operator = {
-              mastrId: resolvedId,
+              mastrId: canonical.mastrId,
               name: canonical.name || operator.name,
-              bdew: canonical.bdew || gridOperatorBdew || null,
-              bnr: canonical.bnr || null,
+              bdew: canonical.bdew || operator.bdew,
+              bnr: canonical.bnr || operator.bnr,
             };
-            findings.push(createFinding(
-              1, 'identity', VNB_RESOLVED, 'info',
-              `VNB resolved: ${operator.name}`,
-              `Operator identity confirmed via vnb_lookup_codes. MaStR ID: ${operator.mastrId || 'unknown'}.`,
-              { operator, candidateCount: candidates.length },
-              null, idx++
-            ));
-          } else if (candidates.length > 1) {
-            findings.push(createFinding(
-              1, 'identity', VNB_AMBIGUOUS, 'warning',
-              `Ambiguous VNB: ${candidates.length} candidates found`,
-              `vnb_lookup_codes returned ${candidates.length} candidates without a clear canonical match. Using first candidate.`,
-              { candidates: candidates.slice(0, 5), lookupCode },
-              'Provide a more specific gridOperatorId (MaStR ID) to ensure unambiguous resolution.',
-              idx++
-            ));
-            if (candidates[0]) {
-              const c = candidates[0];
-              operator = {
-                mastrId: (c.mastrId || '').split(' ')[0].trim() || gridOperatorId || null,
-                name: c.name || operator.name,
-                bdew: c.bdew || gridOperatorBdew || null,
-                bnr: c.bnr || null,
-              };
-            }
-          } else {
-            findings.push(createFinding(
-              1, 'identity', VNB_NOT_FOUND, 'warning',
-              `VNB not found in lookup for code: ${lookupCode}`,
-              'vnb_lookup_codes returned no canonical match. Proceeding with provided parameters.',
-              { lookupCode },
-              'Verify the BDEW code or MaStR ID is correct.',
-              idx++
-            ));
+            resolver.matchedBy = attempt.path;
+            resolver.confidence = attempt.confidence;
+            break;
           }
         } catch (err) {
-          this.logger.warn(`stepIdentity: vnb_lookup_codes failed — ${err.message}. Continuing with provided params.`);
-          findings.push(createFinding(
-            1, 'identity', VNB_RESOLVED, 'info',
-            `VNB identity using provided parameters (lookup unavailable)`,
-            `MCP lookup failed: ${err.message}. Using provided operator parameters.`,
-            { gridOperatorId, gridOperatorBdew, gridOperatorName },
-            null, idx++
-          ));
+          resolver.strategy.push({
+            path: attempt.path,
+            input: attempt.payload,
+            matched: false,
+            error: err.message,
+          });
         }
-      } else {
-        // Name-only resolution — best effort
+      }
+
+      if (!operator.mastrId && gridOperatorName) {
+        const mpResolved = await this.resolveByMarketPartnerName(ctx, gridOperatorName, resolver);
+        if (mpResolved?.mastrId) {
+          operator = {
+            mastrId: mpResolved.mastrId,
+            name: mpResolved.name || operator.name,
+            bdew: mpResolved.bdew || operator.bdew,
+            bnr: mpResolved.bnr || operator.bnr,
+          };
+          resolver.matchedBy = mpResolved.matchedBy;
+          resolver.confidence = mpResolved.confidence;
+        }
+      }
+
+      const dedupeResolverCandidates = [];
+      const seen = new Set();
+      for (const candidate of resolver.candidates) {
+        const key = `${candidate.mastrId || ''}|${candidate.name || ''}|${candidate.bdew || ''}|${candidate.bnr || ''}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        dedupeResolverCandidates.push(candidate);
+      }
+      resolver.candidates = dedupeResolverCandidates.slice(0, 20);
+
+      if (operator.mastrId) {
         findings.push(createFinding(
           1, 'identity', VNB_RESOLVED, 'info',
-          `VNB identity from provided name: ${gridOperatorName}`,
-          'No BDEW code or MaStR ID provided. Proceeding with name-based identification.',
-          { gridOperatorName },
-          'Provide gridOperatorBdew or gridOperatorId for more reliable resolution.',
+          `VNB resolved: ${operator.name}`,
+          `Operator identity resolved via ${resolver.matchedBy}. MaStR ID: ${operator.mastrId}.`,
+          {
+            operator,
+            resolver: {
+              matchedBy: resolver.matchedBy,
+              confidence: resolver.confidence,
+              candidateCount: resolver.candidates.length,
+            },
+          },
+          null, idx++
+        ));
+      } else if (resolver.candidates.length > 1) {
+        findings.push(createFinding(
+          1, 'identity', VNB_AMBIGUOUS, 'warning',
+          `Ambiguous VNB: ${resolver.candidates.length} candidates found`,
+          'Resolver could not derive a unique MaStR ID from the provided inputs.',
+          { resolver },
+          'Provide gridOperatorId (MaStR SNB/GNB) or refine BDEW/BNR/name input.',
+          idx++
+        ));
+      } else {
+        findings.push(createFinding(
+          1, 'identity', VNB_NOT_FOUND, 'warning',
+          'VNB not resolved from provided identifiers',
+          'Resolver attempted all lookup paths (BDEW, BNR, name, MaStR) but no MaStR ID could be determined.',
+          { resolver },
+          'Verify BDEW/BNR format or provide explicit gridOperatorId.',
           idx++
         ));
       }
 
-      return { operator, findings };
+      return { operator, findings, resolver };
     },
 
     // -------------------------------------------------------------------------
@@ -480,6 +811,531 @@ module.exports = {
       return { installations, findings };
     },
 
+    normalizeIdentifier(value) {
+      if (value === undefined || value === null) return null;
+      const normalized = String(value).trim();
+      return normalized || null;
+    },
+
+    getFirstNormalizedValue(inst = {}, paths = []) {
+      for (const path of paths) {
+        const segments = String(path).split('.');
+        let current = inst;
+        for (const segment of segments) {
+          if (!current || typeof current !== 'object') {
+            current = null;
+            break;
+          }
+          current = current[segment];
+        }
+        const normalized = this.normalizeIdentifier(current);
+        if (normalized) return normalized;
+      }
+      return null;
+    },
+
+    getInstallationMastrNummer(inst = {}) {
+      return this.getFirstNormalizedValue(inst, [
+        'EinheitMastrNummer',
+        'einheitMastrNummer',
+        'mastrNummer',
+        'mastrnummer',
+        'mastrNumber',
+        'MastrNummer',
+        'einheitNummer',
+      ]);
+    },
+
+    getInstallationMelo(inst = {}) {
+      return this.getFirstNormalizedValue(inst, [
+        'MeLo',
+        'meLo',
+        'melo',
+        'messlokationsId',
+        'MesslokationsId',
+        'messlokation',
+        'Messlokation',
+        'nap.Messlokation',
+        'nap.messlokation',
+        'napData.messlokation',
+      ]);
+    },
+
+    getInstallationNapId(inst = {}) {
+      return this.getFirstNormalizedValue(inst, [
+        'nap.MastrNummer',
+        'nap.mastrNummer',
+        'NapMastrNummer',
+        'napMastrNummer',
+        'napId',
+        'napData.napMastrNummer',
+        'napData.MastrNummer',
+      ]);
+    },
+
+    /**
+     * Get NAP ID with full fallback chain (same paths as detail enrichment).
+     * Matches getNapVoltageLevelWithFallback() logic to ensure checks and enrichment
+     * use the same resolution paths. This prevents false positives like MQ_MISSING_NAP
+     * when enrichment can resolve the NAP but checks cannot.
+     * @returns { napId: string|null, source: string|null }
+     */
+    getInstallationNapIdWithFallback(inst = {}) {
+      // Primary: direct NAP ID
+      let napId = this.getInstallationNapId(inst);
+      if (napId) return { napId, source: 'nap.MastrNummer' };
+
+      // Fallback 1: alternate field paths (same as detail enrichment)
+      napId = this.getFirstNormalizedValue(inst, [
+        'napData.napMastrNummer',
+        'napData.MastrNummer',
+        'napData.mastrNummer',
+      ]);
+      if (napId) return { napId, source: 'napData' };
+
+      // No NAP found via any path
+      return { napId: null, source: null };
+    },
+
+    getInstallationEinheitId(inst = {}) {
+      return this.getFirstNormalizedValue(inst, [
+        'EinheitId',
+        'einheitId',
+        'einheit_id',
+        'unitId',
+        'AnlagenbetreiberMastrNummer',
+      ]);
+    },
+
+    getInstallationCommissioningDate(inst = {}) {
+      return this.getFirstNormalizedValue(inst, [
+        'commissioningDate',
+        'CommissioningDate',
+        'inbetriebnahmedatum',
+        'InbetriebnahmeDatum',
+        'inbetriebnahmeDatum',
+        'Inbetriebnahmedatum',
+      ]);
+    },
+
+    getInstallationOperatorName(inst = {}) {
+      return this.getFirstNormalizedValue(inst, [
+        'AnlagenbetreiberName',
+        'anlagenbetreiberName',
+        'betreiberName',
+        'operatorName',
+      ]);
+    },
+
+    getNapVoltageLevel(inst = {}) {
+      return this.getFirstNormalizedValue(inst, [
+        'nap.Spannungsebene',
+        'nap.spannungsebene',
+        'napSpannungsebene',
+        'spannungsebene',
+      ]);
+    },
+
+    resolveSpannungsebeneLabel(rawValue) {
+      if (rawValue === undefined || rawValue === null) return null;
+      const normalized = String(rawValue).trim();
+      if (!normalized) return null;
+
+      const lower = normalized.toLowerCase();
+      if (lower === '354' || lower === 'ns' || lower === 'lv' || lower.includes('niederspan')) {
+        return 'Niederspannung (LV)';
+      }
+      if (lower === '352' || lower === 'ms' || lower === 'mv' || lower.includes('mittelspan')) {
+        return 'Mittelspannung (MV)';
+      }
+      if (lower === '347' || lower === 'hs' || lower === 'hv' || lower.includes('hochspan')) {
+        return 'Hochspannung (HV)';
+      }
+      if (lower === '342' || lower === 'ehs' || lower === 'ehv' || lower.includes('hoechst') || lower.includes('höchst')) {
+        return 'Höchstspannung (EHV)';
+      }
+
+      return null;
+    },
+
+    getNapOperatorName(inst = {}) {
+      // Try NAP-specific paths first
+      let value = this.getFirstNormalizedValue(inst, [
+        'nap.NetzbetreiberName',
+        'nap.netzbetreiberName',
+        'nap.netzbetreibername',
+        'netzbetreiberName',
+        'napNetzbetreiberName',
+        'napData.netzbetreiberName',
+        'nap.MastrNummer', // Last resort: use NAP MaStR ID to imply netzbetreiber
+      ]);
+      if (value && !value.match(/^SAN|^GAN/)) return value; // Return if not an ID
+      // If we got a NAP ID, we'd need MCP lookup (deferred to detail enrichment)
+      return value && value.match(/^SAN|^GAN/) ? null : value; // Nullify if it's just an ID without name
+    },
+
+    getInstallationOperatorNameWithFallback(inst = {}) {
+      // Primary: explicit operator name field
+      let name = this.getInstallationOperatorName(inst);
+      if (name) return { name, source: 'AnlagenbetreiberName' };
+
+      // Fallback: try to extract from owner data
+      name = this.getFirstNormalizedValue(inst, [
+        'betreiber',
+        'Betreiber',
+        'owner',
+        'Owner',
+      ]);
+      if (name) return { name, source: 'owner-field' };
+
+      // Fallback: operator MaStR ID (would need external lookup)
+      const operatorId = this.getFirstNormalizedValue(inst, [
+        'AnlagenbetreiberMastrNummer',
+        'anlagenbetreiberMastrNummer',
+        'operatorMastrId',
+      ]);
+      if (operatorId) return { name: null, source: 'AnlagenbetreiberMastrNummer', operatorId };
+
+      return { name: null, source: null };
+    },
+
+    getNapOperatorNameWithFallback(inst = {}) {
+      // Primary: NAP operator name
+      let name = this.getNapOperatorName(inst);
+      if (name && !name.match(/^SAN|^GAN/)) return { name, source: 'nap.NetzbetreiberName' };
+
+      // Fallback: try parent structure
+      name = this.getFirstNormalizedValue(inst, [
+        'napData.NetzbetreiberName',
+        'napData.netzbetreiberName',
+        'netzbetreiber',
+        'Netzbetreiber',
+      ]);
+      if (name) return { name, source: 'napData' };
+
+      // Last resort: NAP MaStR ID (would need external lookup)
+      const napId = this.getInstallationNapId(inst);
+      if (napId) return { name: null, source: 'napId', napMastrNummer: napId };
+
+      return { name: null, source: null };
+    },
+
+    getNapVoltageLevelWithFallback(inst = {}) {
+      // Primary: direct voltage level
+      let level = this.getNapVoltageLevel(inst);
+      if (level && !level.match(/^SAN|^GAN/)) return { level, source: 'nap.Spannungsebene' };
+
+      // Fallback: try alternate paths
+      level = this.getFirstNormalizedValue(inst, [
+        'napData.Spannungsebene',
+        'napData.spannungsebene',
+        'Spannungsebene',
+        'voltageLevel',
+        'voltage_level',
+      ]);
+      if (level) return { level, source: 'napData' };
+
+      // Try to infer from capacity (heuristic only)
+      const brutto = inst.bruttoleistung || inst.Bruttoleistung || inst.NettoNennleistung;
+      const brutoNum = Number(brutto);
+      if (Number.isFinite(brutoNum)) {
+        if (brutoNum <= 10) return { level: '354', source: 'inferred-NS' }; // Niederspannung
+        if (brutoNum <= 100) return { level: '352', source: 'inferred-MS' }; // Mittelspannung
+        return { level: '347', source: 'inferred-HS' }; // Hochspannung
+      }
+
+      return { level: null, source: null };
+    },
+
+    getValueSourceInfo(inst = {}, details = {}) {
+      // Determine where measurement data comes from
+      if (details.valueSource) return details.valueSource;
+
+      const melo = this.getInstallationMelo(inst);
+      if (melo) return 'MeLo';
+
+      const napId = this.getInstallationNapId(inst);
+      if (napId) return 'NAP';
+
+      if (inst.datapoint) return 'datapoint';
+      if (inst.value !== undefined && inst.value !== null) return 'context';
+
+      return null;
+    },
+
+    buildStandardizedFindingDetails(inst = {}, details = {}) {
+      const mastrNummer = this.getInstallationMastrNummer(inst);
+      const einheitId = this.getInstallationEinheitId(inst);
+      const commissioningDate = this.getInstallationCommissioningDate(inst);
+      const melo = this.getInstallationMelo(inst);
+      const napId = this.getInstallationNapId(inst);
+
+      const operatorInfo = this.getInstallationOperatorNameWithFallback(inst);
+      const napOpInfo = this.getNapOperatorNameWithFallback(inst);
+      const voltageInfo = this.getNapVoltageLevelWithFallback(inst);
+      const spannungsebeneLabel = this.resolveSpannungsebeneLabel(voltageInfo.level);
+      const valueSource = this.getValueSourceInfo(inst, details);
+
+      const rawBrutto = details.brutto !== undefined
+        ? details.brutto
+        : (inst.bruttoleistung || inst.Bruttoleistung || inst.NettoNennleistung);
+      const brutto = Number.isFinite(Number(rawBrutto)) ? Number(rawBrutto) : null;
+
+      const technology = details.type !== undefined
+        ? details.type
+        : this.deriveInstallationType(inst);
+
+      const status = details.status !== undefined
+        ? String(details.status || '').trim() || null
+        : (String(inst.einheitBetriebsstatus || inst.EinheitBetriebsstatus || '').trim() || null);
+
+      const rawValue = details.rawValue !== undefined ? details.rawValue : null;
+      const resolvedValue = details.resolvedValue !== undefined
+        ? details.resolvedValue
+        : (melo || null);
+
+      return {
+        installation: {
+          mastrNummer: mastrNummer || null,
+          einheitId: einheitId || null,
+          technology: technology || null,
+          status,
+          commissioningDate: commissioningDate || null,
+          brutto,
+          operatorName: operatorInfo.name || null,
+          operatorNameSource: operatorInfo.source,
+          operatorMastrNummer: operatorInfo.operatorId || null,
+        },
+        connection: {
+          napId: napId || null,
+          napMastrNummer: napId || null,
+          spannungsebene: voltageInfo.level || null,
+          spannungsebeneLabel,
+          spannungsebeneSource: voltageInfo.source,
+          netzbetreiberName: napOpInfo.name || null,
+          netzbetreiberNameSource: napOpInfo.source,
+          netzbetreiberMastrNummer: napOpInfo.napMastrNummer || null,
+        },
+        measurement: {
+          melo: melo || null,
+          value: details.value !== undefined ? details.value : null,
+          rawValue,
+          resolvedValue,
+          valueSource: valueSource || null,
+        },
+      };
+    },
+
+    buildInstallationFindingContext(inst, details = {}) {
+      const {
+        datapoint = null,
+        value = null,
+        expectedValue,
+        status,
+        type,
+        brutto,
+        ...rest
+      } = details;
+
+      const mastrNummer = this.getInstallationMastrNummer(inst);
+      const einheitId = this.getInstallationEinheitId(inst);
+      const napId = this.getInstallationNapId(inst);
+      const melo = this.getInstallationMelo(inst);
+
+      const context = {
+        mastrNummer,
+        datapoint,
+        value,
+      };
+
+      if (melo) context.melo = melo;
+      if (einheitId) context.einheitId = einheitId;
+      if (napId) context.napId = napId;
+
+      const resolvedStatus = status !== undefined
+        ? status
+        : String(inst.einheitBetriebsstatus || inst.EinheitBetriebsstatus || '');
+      if (resolvedStatus) context.status = resolvedStatus;
+
+      const resolvedType = type !== undefined ? type : this.deriveInstallationType(inst);
+      if (resolvedType) context.type = resolvedType;
+
+      let resolvedBrutto = brutto;
+      if (resolvedBrutto === undefined) {
+        const rawBrutto = inst.bruttoleistung || inst.Bruttoleistung || inst.NettoNennleistung;
+        if (rawBrutto !== undefined && rawBrutto !== null && rawBrutto !== '') {
+          resolvedBrutto = parseFloat(rawBrutto);
+        }
+      }
+      if (resolvedBrutto !== undefined && resolvedBrutto !== null && Number.isFinite(resolvedBrutto)) {
+        context.brutto = resolvedBrutto;
+      }
+
+      if (expectedValue !== undefined) context.expectedValue = expectedValue;
+
+      if (!context.mastrNummer) {
+        context.mastrNummer = null;
+        if (!einheitId && !napId && !melo) {
+          context.identifierMissing = true;
+          context.identifierReason = 'No traceable installation identifier found (mastrNummer, einheitId, napId, melo)';
+        }
+      }
+
+      const merged = {
+        ...context,
+        ...rest,
+      };
+
+      const standardizedDetails = this.buildStandardizedFindingDetails(inst, {
+        ...details,
+        status: resolvedStatus || null,
+        type: resolvedType || null,
+        brutto: resolvedBrutto,
+        value,
+      });
+
+      merged.details = standardizedDetails;
+      merged.technology = standardizedDetails.installation.technology;
+      merged.commissioningDate = standardizedDetails.installation.commissioningDate;
+      merged.operatorName = standardizedDetails.installation.operatorName;
+      merged.napMastrNummer = standardizedDetails.connection.napMastrNummer;
+      merged.spannungsebene = standardizedDetails.connection.spannungsebene;
+      merged.netzbetreiberName = standardizedDetails.connection.netzbetreiberName;
+      if (merged.rawValue === undefined) merged.rawValue = standardizedDetails.measurement.rawValue;
+      if (merged.resolvedValue === undefined) merged.resolvedValue = standardizedDetails.measurement.resolvedValue;
+      if (merged.valueSource === undefined) merged.valueSource = standardizedDetails.measurement.valueSource;
+
+      return {
+        ...merged,
+        mastr: merged.mastrNummer,
+      };
+    },
+
+    buildPairFindingContext(instA, instB, details = {}) {
+      const {
+        datapoint = null,
+        value = null,
+        expectedValue,
+        status,
+        type,
+        brutto,
+        ...rest
+      } = details;
+
+      const mastrA = this.getInstallationMastrNummer(instA);
+      const mastrB = this.getInstallationMastrNummer(instB);
+      const meloA = this.getInstallationMelo(instA);
+      const meloB = this.getInstallationMelo(instB);
+      const napIdA = this.getInstallationNapId(instA);
+      const napIdB = this.getInstallationNapId(instB);
+      const einheitIdA = this.getInstallationEinheitId(instA);
+      const einheitIdB = this.getInstallationEinheitId(instB);
+
+      const context = {
+        mastrNummer: [mastrA, mastrB],
+        mastrNummerA: mastrA,
+        mastrNummerB: mastrB,
+        datapoint,
+        value,
+      };
+
+      if (meloA || meloB) {
+        context.melo = { a: meloA || null, b: meloB || null };
+      }
+
+      if (status !== undefined) context.status = status;
+      if (type !== undefined) context.type = type;
+      if (brutto !== undefined) context.brutto = brutto;
+      if (expectedValue !== undefined) context.expectedValue = expectedValue;
+
+      if (einheitIdA || einheitIdB) context.einheitId = { a: einheitIdA || null, b: einheitIdB || null };
+      if (napIdA || napIdB) context.napId = { a: napIdA || null, b: napIdB || null };
+
+      const missingA = !mastrA && !einheitIdA && !napIdA && !meloA;
+      const missingB = !mastrB && !einheitIdB && !napIdB && !meloB;
+      if (missingA || missingB) {
+        context.identifierMissing = true;
+        context.identifierReason = {
+          a: missingA ? 'No traceable identifier in source record A (mastrNummer/einheitId/napId/melo)' : null,
+          b: missingB ? 'No traceable identifier in source record B (mastrNummer/einheitId/napId/melo)' : null,
+        };
+      }
+
+      context.details = {
+        a: this.buildStandardizedFindingDetails(instA, {
+          value: value?.a !== undefined ? value.a : value,
+          status,
+          type,
+          brutto: typeof brutto === 'object' && brutto !== null ? brutto.a : brutto,
+        }),
+        b: this.buildStandardizedFindingDetails(instB, {
+          value: value?.b !== undefined ? value.b : value,
+          status,
+          type,
+          brutto: typeof brutto === 'object' && brutto !== null ? brutto.b : brutto,
+        }),
+      };
+
+      return {
+        ...context,
+        mastrA,
+        mastrB,
+        ...rest,
+      };
+    },
+
+    extractFindingMastrNumbers(finding) {
+      const raw = finding?.context?.mastrNummer;
+      if (Array.isArray(raw)) {
+        return raw.filter((v) => typeof v === 'string' && v.trim() !== '');
+      }
+      if (typeof raw === 'string' && raw.trim() !== '') {
+        return [raw];
+      }
+      return [];
+    },
+
+    summarizeNapFindings(findings = []) {
+      const general = findings.filter((f) => f.finding === MQ_MISSING_NAP);
+      const redispatch = findings.filter((f) => f.finding === MQ_REDISPATCH_NO_NAP);
+      const allNap = general.concat(redispatch);
+
+      const uniqueGeneral = new Set();
+      const uniqueRedispatch = new Set();
+      const uniqueAll = new Set();
+      const perAssetFindingCount = {};
+
+      for (const finding of general) {
+        for (const mastr of this.extractFindingMastrNumbers(finding)) {
+          uniqueGeneral.add(mastr);
+          uniqueAll.add(mastr);
+          perAssetFindingCount[mastr] = (perAssetFindingCount[mastr] || 0) + 1;
+        }
+      }
+
+      for (const finding of redispatch) {
+        for (const mastr of this.extractFindingMastrNumbers(finding)) {
+          uniqueRedispatch.add(mastr);
+          uniqueAll.add(mastr);
+          perAssetFindingCount[mastr] = (perAssetFindingCount[mastr] || 0) + 1;
+        }
+      }
+
+      const duplicateByAsset = Object.fromEntries(
+        Object.entries(perAssetFindingCount).filter(([, count]) => count > 1)
+      );
+
+      return {
+        missingNapFindings: general.length,
+        missingNapDistinctAssets: uniqueGeneral.size,
+        missingNapRedispatchFindings: redispatch.length,
+        missingNapRedispatchDistinctAssets: uniqueRedispatch.size,
+        distinctAssetsAffected: uniqueAll.size,
+        perAssetFindingCount,
+        duplicateByAsset,
+      };
+    },
+
     // -------------------------------------------------------------------------
     // Step 3: Status anomalies (pure sync)
     // -------------------------------------------------------------------------
@@ -507,7 +1363,14 @@ module.exports = {
               3, 'statusAnomalies', MQ_STALE_PLANNING, 'warning',
               `${mastr}: stale planning status (${regDateStr})`,
               `Installation has been "InPlanung" since ${regDateStr} (>2 years). Likely abandoned or mislabelled.`,
-              { mastr, registrierungsDatum: regDateStr, ageDays: Math.floor((cutoffDate - regDate) / 86400000) },
+              this.buildInstallationFindingContext(inst, {
+                datapoint: ['einheitBetriebsstatus', 'registrierungsDatum'],
+                value: { status, registrierungsDatum: regDateStr },
+                expectedValue: 'Status progression from InPlanung within 2 years',
+                status,
+                registrierungsDatum: regDateStr,
+                ageDays: Math.floor((cutoffDate - regDate) / 86400000),
+              }),
               'Update MaStR status or deregister if project was abandoned.',
               idx++
             ));
@@ -523,7 +1386,14 @@ module.exports = {
               3, 'statusAnomalies', MQ_STALE_TEMPORARY_SHUTDOWN, 'warning',
               `${mastr}: temporary shutdown exceeds 365 days (${shutdownDateStr})`,
               `Installation has been temporarily shut down since ${shutdownDateStr}. Consider permanent decommissioning.`,
-              { mastr, shutdownDate: shutdownDateStr, ageDays: Math.floor((cutoffDate - shutdownDate) / 86400000) },
+              this.buildInstallationFindingContext(inst, {
+                datapoint: ['einheitBetriebsstatus', 'datumBeginnVoruebergehenderStilllegung'],
+                value: { status, shutdownDate: shutdownDateStr },
+                expectedValue: 'Temporary shutdown should not exceed 365 days',
+                status,
+                shutdownDate: shutdownDateStr,
+                ageDays: Math.floor((cutoffDate - shutdownDate) / 86400000),
+              }),
               'Update MaStR with actual operational status or register permanent decommissioning.',
               idx++
             ));
@@ -531,13 +1401,19 @@ module.exports = {
         }
 
         // Rule 3: Missing commissioning date for operational units
-        const ibDate = inst.inbetriebnahmeDatum || inst.Inbetriebnahmedatum;
+        // Use centralized fallback chain to avoid false positives from field name variants.
+        const ibDate = this.getInstallationCommissioningDate(inst);
         if ((status === '35' || status === 'inbetrieb') && !ibDate) {
           findings.push(createFinding(
             3, 'statusAnomalies', MQ_MISSING_COMMISSIONING_DATE, 'warning',
             `${mastr}: missing commissioning date (operational unit)`,
             'Operational installation has no Inbetriebnahmedatum in MaStR. Required for EEG tariff calculation.',
-            { mastr, status },
+            this.buildInstallationFindingContext(inst, {
+              datapoint: 'commissioningDate | inbetriebnahmedatum (with fallback)',
+              value: null,
+              expectedValue: 'YYYY-MM-DD',
+              status,
+            }),
             'Submit commissioning date correction via MaStR portal.',
             idx++
           ));
@@ -551,7 +1427,13 @@ module.exports = {
               3, 'statusAnomalies', MQ_FUTURE_COMMISSIONING, 'error',
               `${mastr}: commissioning date in the future (${ibDate})`,
               `Inbetriebnahmedatum ${ibDate} is in the future for a registered installation. Data integrity issue.`,
-              { mastr, inbetriebnahmeDatum: ibDate },
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'inbetriebnahmeDatum',
+                value: ibDate,
+                expectedValue: `<= ${cutoffDate.toISOString().slice(0, 10)}`,
+                status,
+                inbetriebnahmeDatum: ibDate,
+              }),
               'Correct the commissioning date in MaStR. If genuinely future-dated, status should be "InPlanung".',
               idx++
             ));
@@ -565,7 +1447,13 @@ module.exports = {
             3, 'statusAnomalies', MQ_NBP_PENDING, 'warning',
             `${mastr}: NBP review pending (InPrüfung)`,
             'NetzbetreiberPrüfung status is 2955 (In Prüfung). Grid operator review not completed.',
-            { mastr, netzbetreiberPruefungStatus: nbpStatus },
+            this.buildInstallationFindingContext(inst, {
+              datapoint: 'netzbetreiberPruefungStatus',
+              value: nbpStatus,
+              expectedValue: '2954 (Geprüft)',
+              status,
+              netzbetreiberPruefungStatus: nbpStatus,
+            }),
             'Complete Netzbetreiberprüfung in MaStR portal.',
             idx++
           ));
@@ -577,7 +1465,13 @@ module.exports = {
             3, 'statusAnomalies', MQ_NBP_NOT_PLANNED, 'warning',
             `${mastr}: NBP review not planned (NichtVorgesehen)`,
             'NetzbetreiberPrüfung status is 3075 (Nicht Vorgesehen). Regulatory review may be required.',
-            { mastr, netzbetreiberPruefungStatus: nbpStatus },
+            this.buildInstallationFindingContext(inst, {
+              datapoint: 'netzbetreiberPruefungStatus',
+              value: nbpStatus,
+              expectedValue: '2954 (Geprüft) or justified exemption',
+              status,
+              netzbetreiberPruefungStatus: nbpStatus,
+            }),
             'Verify if NBP is required for this installation type. Update status if applicable.',
             idx++
           ));
@@ -610,7 +1504,14 @@ module.exports = {
             4, 'capacityAnomalies', MQ_ZERO_CAPACITY, 'error',
             `${mastr}: zero capacity (brutto=0, netto=0)`,
             'Both Bruttoleistung and NettoNennleistung are 0. This installation contributes no capacity to grid calculations.',
-            { mastr, brutto, netto, type },
+            this.buildInstallationFindingContext(inst, {
+              datapoint: ['bruttoleistung', 'nettoNennleistung'],
+              value: { brutto, netto },
+              expectedValue: '> 0',
+              type,
+              brutto,
+              netto,
+            }),
             'Enter correct capacity values in MaStR or deregister.',
             idx++
           ));
@@ -623,7 +1524,14 @@ module.exports = {
             4, 'capacityAnomalies', MQ_NEGATIVE_CAPACITY, 'error',
             `${mastr}: negative capacity (brutto=${brutto}, netto=${netto})`,
             'Negative capacity is physically impossible and indicates a data entry error.',
-            { mastr, brutto, netto, type },
+            this.buildInstallationFindingContext(inst, {
+              datapoint: ['bruttoleistung', 'nettoNennleistung'],
+              value: { brutto, netto },
+              expectedValue: '>= 0',
+              type,
+              brutto,
+              netto,
+            }),
             'Correct capacity values in MaStR.',
             idx++
           ));
@@ -637,7 +1545,15 @@ module.exports = {
             4, 'capacityAnomalies', MQ_IMPLAUSIBLE_HIGH_CAPACITY, 'warning',
             `${mastr}: implausibly high capacity ${brutto.toFixed(0)} kW (type: ${type}, threshold: ${threshold} kW)`,
             `Bruttoleistung of ${brutto} kW exceeds the plausibility threshold for type "${type}". Likely a unit error (kW vs. MW).`,
-            { mastr, brutto, netto, type, threshold },
+            this.buildInstallationFindingContext(inst, {
+              datapoint: 'bruttoleistung',
+              value: brutto,
+              expectedValue: `<= ${threshold} kW`,
+              type,
+              brutto,
+              netto,
+              threshold,
+            }),
             'Verify unit (kW vs. MW). Correct in MaStR if erroneous.',
             idx++
           ));
@@ -649,7 +1565,14 @@ module.exports = {
             4, 'capacityAnomalies', MQ_NETTO_EXCEEDS_BRUTTO, 'error',
             `${mastr}: netto (${netto} kW) > brutto (${brutto} kW)`,
             'NettoNennleistung cannot exceed Bruttoleistung. This violates physics and indicates a data entry error.',
-            { mastr, brutto, netto, type },
+            this.buildInstallationFindingContext(inst, {
+              datapoint: ['nettoNennleistung', 'bruttoleistung'],
+              value: { brutto, netto },
+              expectedValue: 'nettoNennleistung <= bruttoleistung',
+              type,
+              brutto,
+              netto,
+            }),
             'Swap or correct capacity values in MaStR.',
             idx++
           ));
@@ -662,7 +1585,13 @@ module.exports = {
             4, 'capacityAnomalies', MQ_MISSING_FEED_IN_TYPE, 'warning',
             `${mastr}: missing feed-in type (Einspeisungsart)`,
             'Operational solar installation has no Einspeisungsart. Required for EEG tariff and billing.',
-            { mastr, type },
+            this.buildInstallationFindingContext(inst, {
+              datapoint: 'einspeisungsart',
+              value: null,
+              expectedValue: 'Volleinspeisung|Überschusseinspeisung',
+              type,
+              brutto,
+            }),
             'Add Einspeisungsart (Volleinspeisung/Überschusseinspeisung) in MaStR.',
             idx++
           ));
@@ -680,9 +1609,10 @@ module.exports = {
       let idx = 1;
 
       // Build NAP → installations map to detect multi-unit NAPs
+      // Use fallback resolution to match enrichment logic (prevents false positives)
       const napUnits = {};
       for (const inst of installations) {
-        const napId = inst.nap?.MastrNummer || inst.NapMastrNummer || inst.napMastrNummer;
+        const { napId } = this.getInstallationNapIdWithFallback(inst);
         if (napId) {
           if (!napUnits[napId]) napUnits[napId] = [];
           napUnits[napId].push(inst.EinheitMastrNummer || inst.einheitMastrNummer);
@@ -691,30 +1621,54 @@ module.exports = {
 
       for (const inst of installations) {
         const mastr = inst.EinheitMastrNummer || inst.einheitMastrNummer || '?';
-        const napId  = inst.nap?.MastrNummer || inst.NapMastrNummer || inst.napMastrNummer;
-        const melo   = inst.MeLo || inst.meLo || inst.messlokationsId;
+        const { napId, source: napIdSource } = this.getInstallationNapIdWithFallback(inst);
+        // Use getInstallationMelo() for consistency with context builder (same fallback chain)
+        const melo   = this.getInstallationMelo(inst);
         const brutto = parseFloat(inst.bruttoleistung || inst.Bruttoleistung || inst.NettoNennleistung || 0);
         const type   = this.deriveInstallationType(inst);
 
-        // Rule 1: Missing NAP
+        // Rule 1: Missing NAP (now uses fallback resolution like enrichment logic)
+        // Only fire if NAP cannot be resolved via ANY path (direct or fallback).
+        // This eliminates false positives where enrichment successfully resolves NAP
+        // but direct field is null (e.g., NAP via napData structure).
         if (!napId) {
           findings.push(createFinding(
             5, 'connectionPoints', MQ_MISSING_NAP, 'warning',
             `${mastr}: no NAP (Netzanschlusspunkt) assigned`,
-            'Installation has no linked NAP in MaStR. Grid operator routing and voltage level validation not possible.',
-            { mastr, type, brutto },
+            'General data quality issue: installation has no linked NAP in MaStR (checked via direct field and fallback paths). Grid operator routing and voltage level validation are not possible.',
+            this.buildInstallationFindingContext(inst, {
+              datapoint: 'nap.MastrNummer (with fallback)',
+              value: null,
+              expectedValue: 'NAP...',
+              type,
+              brutto,
+              napId: null,
+              napIdSource,
+              rootIssue: 'MISSING_NAP',
+              scope: 'general',
+            }),
             'Assign correct NAP via MaStR portal or request assignment from grid operator.',
             idx++
           ));
         }
 
         // Rule 2: Missing MeLo for operational units ≥100 kW
+        // Check effective MeLo value (using same resolution as getInstallationMelo for consistency)
         if (!melo && brutto >= 100 && String(inst.einheitBetriebsstatus || '') === '35') {
           findings.push(createFinding(
             5, 'connectionPoints', MQ_MISSING_MELO, 'warning',
             `${mastr}: missing MeLo (Messlokation) for ≥100 kW operational unit`,
             'Operational installation ≥100 kW has no Messlokations-ID. Required for billing and metering.',
-            { mastr, brutto, type },
+            this.buildInstallationFindingContext(inst, {
+              datapoint: 'meLo',
+              value: null,
+              expectedValue: 'DE... (33 chars)',
+              type,
+              brutto,
+              rawValue: inst.MeLo || inst.meLo || inst.messlokationsId || null,
+              resolvedValue: null,
+              valueSource: 'Effective MeLo check (no raw value + no fallback)',
+            }),
             'Register Messlokation with metering operator and link in MaStR.',
             idx++
           ));
@@ -728,7 +1682,16 @@ module.exports = {
               5, 'connectionPoints', MQ_NAP_VNB_MISMATCH, 'error',
               `${mastr}: NAP ${napId} belongs to different VNB (${napVnb})`,
               `The NAP assigned to this installation belongs to VNB ${napVnb}, not the audited VNB ${gridOperatorId}.`,
-              { mastr, napId, napVnb, auditedVnb: gridOperatorId },
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'nap.NetzbetreiberMastrNummer',
+                value: napVnb,
+                expectedValue: gridOperatorId,
+                type,
+                brutto,
+                napId,
+                napVnb,
+                auditedVnb: gridOperatorId,
+              }),
               'Verify grid area assignment. Re-assign NAP to correct VNB if needed.',
               idx++
             ));
@@ -743,7 +1706,15 @@ module.exports = {
               5, 'connectionPoints', MQ_VOLTAGE_MISMATCH, 'warning',
               `${mastr}: ${brutto.toFixed(0)} kW connected at Niederspannung (NS) — expected MS or higher`,
               'Installations ≥100 kW are typically connected at Mittelspannung or higher. NS connection may indicate a data error.',
-              { mastr, brutto, napVoltage, napId },
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'nap.Spannungsebene',
+                value: napVoltage,
+                expectedValue: 'MS|HS|EHS',
+                type,
+                brutto,
+                napVoltage,
+                napId,
+              }),
               'Verify voltage level with grid operator. Update NAP voltage level in MaStR if incorrect.',
               idx++
             ));
@@ -758,7 +1729,17 @@ module.exports = {
               5, 'connectionPoints', MQ_NAP_MULTI_UNIT, 'warning',
               `NAP ${napId}: shared by ${napUnits[napId].length} installations`,
               `More than 3 installations share the same NAP (${napId}). This may indicate incorrect NAP assignment or a master-meter grouping.`,
-              { napId, unitCount: napUnits[napId].length, mastrNumbers: napUnits[napId].slice(0, 10) },
+              this.buildInstallationFindingContext(inst, {
+                mastrNummer: napUnits[napId].slice(0, 10),
+                datapoint: 'nap.MastrNummer',
+                value: napId,
+                expectedValue: 'Unique NAP per installation (unless intentional grouping)',
+                type,
+                brutto,
+                napId,
+                unitCount: napUnits[napId].length,
+                mastrNumbers: napUnits[napId].slice(0, 10),
+              }),
               'Review NAP assignment. Each installation should have its own NAP unless intentionally grouped.',
               idx++
             ));
@@ -766,12 +1747,23 @@ module.exports = {
         }
 
         // Rule 6: Redispatch-relevant (≥100 kW) without NAP
+        // Uses fallback resolution (same as Rule 1) to prevent false positives.
         if (!napId && brutto >= 100) {
           findings.push(createFinding(
             5, 'connectionPoints', MQ_REDISPATCH_NO_NAP, 'error',
             `${mastr}: Redispatch-relevant unit (${brutto.toFixed(0)} kW) without NAP`,
-            'Installations ≥100 kW must participate in Redispatch 2.0. Without a NAP, they cannot be registered in the Redispatch process.',
-            { mastr, brutto, type },
+            'Regulatory Redispatch scope (subset of missing NAP): installations ≥100 kW must participate in Redispatch 2.0. Without a NAP (checked via direct field and fallback paths), they cannot be registered in the Redispatch process.',
+            this.buildInstallationFindingContext(inst, {
+              datapoint: 'nap.MastrNummer (with fallback)',
+              value: null,
+              expectedValue: 'NAP... (required for redispatch >=100kW)',
+              type,
+              brutto,
+              napId: null,
+              napIdSource,
+              rootIssue: 'MISSING_NAP',
+              scope: 'redispatch',
+            }),
             'Assign NAP immediately. Report to TSO/DSO for Redispatch registration.',
             idx++
           ));
@@ -823,7 +1815,17 @@ module.exports = {
               6, 'duplicateDetection', MQ_GEO_DUPLICATE, 'warning',
               `Geo duplicate: ${mastrA} / ${mastrB} at same coordinates`,
               `Two ${typeA} installations at nearly identical coordinates (Δlat=${Math.abs(latA - latB).toFixed(4)}°, Δlon=${Math.abs(lonA - lonB).toFixed(4)}°).`,
-              { mastrA, mastrB, latA, lonA, latB, lonB, type: typeA },
+              this.buildPairFindingContext(a, b, {
+                datapoint: ['koordinatenBreitengrad', 'koordinatenLaengengrad'],
+                value: { latA, lonA, latB, lonB },
+                expectedValue: 'Distinct coordinates per physical installation',
+                type: typeA,
+                brutto: { a: capA, b: capB },
+                latA,
+                lonA,
+                latB,
+                lonB,
+              }),
               'Check if these are the same physical installation registered twice. Deregister the duplicate.',
               idx++
             ));
@@ -851,7 +1853,26 @@ module.exports = {
               6, 'duplicateDetection', MQ_PROBABLE_DUPLICATE, 'error',
               `Probable duplicate: ${mastrA} / ${mastrB}`,
               `All 4 criteria match (PLZ, type, capacity ±10%, commissioning date ±90d). Very likely the same physical installation.`,
-              { mastrA, mastrB, plzA, typeA, capA, ibA, capB, ibB },
+              this.buildPairFindingContext(a, b, {
+                datapoint: ['Postleitzahl', 'energietraeger', 'bruttoleistung', 'inbetriebnahmeDatum'],
+                value: {
+                  plz: { a: plzA, b: plzB },
+                  type: { a: typeA, b: typeB },
+                  cap: { a: capA, b: capB },
+                  commissioningDate: { a: ibA, b: ibB },
+                },
+                expectedValue: 'At least one duplicate criterion should differ',
+                type: typeA,
+                brutto: { a: capA, b: capB },
+                plzA,
+                plzB,
+                typeA,
+                typeB,
+                capA,
+                ibA,
+                capB,
+                ibB,
+              }),
               'Review both records. Deregister the duplicate in MaStR immediately.',
               idx++
             ));
@@ -861,7 +1882,25 @@ module.exports = {
               6, 'duplicateDetection', MQ_POSSIBLE_DUPLICATE, 'warning',
               `Possible duplicate: ${mastrA} / ${mastrB} (3/4 criteria match)`,
               `3 of 4 duplicate criteria match (PLZ: ${samePLZ}, type: ${sameType}, cap: ${sameCap}, date: ${sameDate}).`,
-              { mastrA, mastrB, plzA: plzA || plzB, typeA, capA, ibA, capB, ibB, matchedCriteria: { samePLZ, sameType, sameCap, sameDate } },
+              this.buildPairFindingContext(a, b, {
+                datapoint: ['Postleitzahl', 'energietraeger', 'bruttoleistung', 'inbetriebnahmeDatum'],
+                value: {
+                  plz: { a: plzA, b: plzB },
+                  type: { a: typeA, b: typeB },
+                  cap: { a: capA, b: capB },
+                  commissioningDate: { a: ibA, b: ibB },
+                },
+                expectedValue: 'No more than 2 of 4 duplicate criteria should match',
+                type: typeA,
+                brutto: { a: capA, b: capB },
+                plzA: plzA || plzB,
+                typeA,
+                capA,
+                ibA,
+                capB,
+                ibB,
+                matchedCriteria: { samePLZ, sameType, sameCap, sameDate },
+              }),
               'Review both records. Deregister if confirmed duplicate.',
               idx++
             ));
@@ -954,7 +1993,13 @@ module.exports = {
               7, 'geoSpotCheck', MQ_GEO_PLAUSIBLE, 'info',
               `${mastr}: geo assignment plausible (${verdict})`,
               `OSM geo validation confirmed installation is in the correct grid area. Confidence: ${(confidence * 100).toFixed(0)}%.`,
-              { mastr, verdict, confidenceScore: confidence },
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'geoValidation.verdict',
+                value: verdict,
+                expectedValue: 'CONSISTENT',
+                verdict,
+                confidenceScore: confidence,
+              }),
               null, idx++
             ));
           } else if (['DEFINITIVE_MISASSIGNMENT', 'LIKELY_MISASSIGNMENT'].includes(verdict)) {
@@ -962,7 +2007,13 @@ module.exports = {
               7, 'geoSpotCheck', MQ_GEO_MISASSIGNMENT, 'error',
               `${mastr}: geo misassignment detected (${verdict})`,
               `OSM geo validation indicates installation may be assigned to wrong grid operator. Verdict: ${verdict}. Confidence: ${(confidence * 100).toFixed(0)}%.`,
-              { mastr, verdict, confidenceScore: confidence },
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'geoValidation.verdict',
+                value: verdict,
+                expectedValue: 'CONSISTENT',
+                verdict,
+                confidenceScore: confidence,
+              }),
               'Investigate grid area assignment. Escalate to BNetzA if confirmed definitive misassignment.',
               idx++
             ));
@@ -972,7 +2023,13 @@ module.exports = {
               7, 'geoSpotCheck', MQ_GEO_PLAUSIBLE, 'info',
               `${mastr}: geo check inconclusive (${verdict || 'no verdict'})`,
               `OSM geo validation returned an inconclusive result. Not enough data for a definitive assessment.`,
-              { mastr, verdict, confidenceScore: confidence },
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'geoValidation.verdict',
+                value: verdict || null,
+                expectedValue: 'CONSISTENT',
+                verdict,
+                confidenceScore: confidence,
+              }),
               null, idx++
             ));
           }
@@ -981,7 +2038,12 @@ module.exports = {
             7, 'geoSpotCheck', MQ_GEO_CHECK_FAILED, 'warning',
             `${mastr}: geo check failed — ${err.message}`,
             `osm-geo.validate call failed for installation ${mastr}. Geo data not available.`,
-            { mastr, error: err.message },
+            this.buildInstallationFindingContext(inst, {
+              datapoint: 'geoValidation.error',
+              value: err.message,
+              expectedValue: 'Successful geo validation response',
+              error: err.message,
+            }),
             'Check OSM geo service availability. Re-run audit when service is restored.',
             idx++
           ));
@@ -1081,7 +2143,8 @@ module.exports = {
       const stepSummaries = [];
 
       // Helper: run one step, catch errors, record timing
-      const runStep = async (stepNum, stepName, fn) => {
+      const runStep = async (stepNum, stepName, fn, options = {}) => {
+        const { fatal = false } = options;
         if (skip.has(stepNum)) {
           stepSummaries.push({ step: stepNum, name: stepName, status: 'skipped', durationMs: 0, findingsCount: 0 });
           return null;
@@ -1102,6 +2165,7 @@ module.exports = {
             step: stepNum, name: stepName, status: 'error',
             durationMs: Date.now() - t0, findingsCount: 0, error: err.message,
           });
+          if (fatal) throw err;
           return null;
         }
       };
@@ -1113,11 +2177,26 @@ module.exports = {
         bdew: params.gridOperatorBdew || null,
         bnr: null,
       };
+      let resolver = null;
       await runStep(1, 'identity', async () => {
         const res = await this.stepIdentity(ctx, params);
         operator = res.operator;
+        resolver = res.resolver || null;
         return res.findings;
       });
+
+      if (!operator.mastrId) {
+        throw new MoleculerClientError(
+          `VNB could not be resolved from provided identifiers. Unable to continue inventory step for operator "${operator.name || 'Unknown'}".`,
+          422,
+          'VNB_RESOLUTION_FAILED',
+          {
+            resolver,
+            candidates: resolver?.candidates || [],
+            normalized: resolver?.normalized || null,
+          }
+        );
+      }
 
       // Inject resolved operator into params for downstream steps
       params._resolvedOperator = operator;
@@ -1128,7 +2207,7 @@ module.exports = {
         const res = await this.stepInventory(ctx, operator);
         installations = res.installations;
         return res.findings;
-      });
+      }, { fatal: true });
 
       const now = new Date();
 
@@ -1194,6 +2273,7 @@ module.exports = {
       }
 
       const qualityScore = computeQualityScore(qualityDimensions);
+      const napSummary = this.summarizeNapFindings(allFindings);
 
       // Step 8: Audit trail (mandatory)
       let auditResult = null;
@@ -1214,12 +2294,20 @@ module.exports = {
 
       return {
         gridOperator: operator,
+        resolver,
         qualityScore,
         qualityDimensions,
         summary: {
           totalInstallations: installations.length,
           installationsByType: byType,
           findingsCount: summarizeFindings(allFindings),
+          missingNapFindings: napSummary.missingNapFindings,
+          missingNapDistinctAssets: napSummary.missingNapDistinctAssets,
+          missingNapRedispatchFindings: napSummary.missingNapRedispatchFindings,
+          missingNapRedispatchDistinctAssets: napSummary.missingNapRedispatchDistinctAssets,
+          napFindings: {
+            ...napSummary,
+          },
           skippedSteps: skipSteps,
           durationMs: Date.now() - startTime,
         },

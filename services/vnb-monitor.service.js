@@ -9,40 +9,10 @@
  * sources become unavailable.
  */
 
-const fs = require('fs');
-
 const VNB_MONITOR_DEFAULTS = require('../src/vnb-monitor-defaults');
 
-const CONFIG_FILE = process.env.VNB_MONITOR_ALERT_CONFIG_FILE || './vnb-monitor-alerts.config.json';
 const CACHE_TTL_SECONDS = parseInt(process.env.VNB_MONITOR_CACHE_TTL_SECONDS || '3600', 10);
 const SCHEMA_VERSION = '1.0';
-
-function loadAlertConfig() {
-  try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      const raw = fs.readFileSync(CONFIG_FILE, 'utf-8');
-      const config = JSON.parse(raw);
-      return config.thresholds || {};
-    }
-  } catch (err) {
-    this.logger?.warn(`Failed to load alert config from ${CONFIG_FILE}:`, err.message);
-  }
-  return {};
-}
-
-function saveAlertConfig(thresholds, logger) {
-  try {
-    const payload = {
-      thresholds,
-      updatedAt: new Date().toISOString(),
-    };
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(payload, null, 2), 'utf-8');
-    return true;
-  } catch (err) {
-    logger?.warn(`Failed to persist alert config at ${CONFIG_FILE}:`, err.message);
-    return false;
-  }
-}
 
 function mergeThresholds(defaults, overrides) {
   const merged = { ...defaults };
@@ -1205,10 +1175,18 @@ module.exports = {
 
   created() {
     this.cache = new Map();
-    this.alertThresholds = mergeThresholds(
-      VNB_MONITOR_DEFAULTS.thresholds,
-      loadAlertConfig.call(this)
-    );
+    this.alertThresholds = { ...VNB_MONITOR_DEFAULTS.thresholds };
+    this._thresholdsSource = 'defaults';
+  },
+
+  async started() {
+    try {
+      const stored = await this.broker.call('object-store.get', { namespace: 'vnb_monitor', key: 'thresholds' });
+      this.alertThresholds = mergeThresholds(VNB_MONITOR_DEFAULTS.thresholds, stored.payload);
+      this._thresholdsSource = 'store';
+    } catch (_) {
+      // no stored thresholds — keep defaults from created()
+    }
   },
 
   actions: {
@@ -1628,7 +1606,6 @@ module.exports = {
                   type: 'object',
                   properties: {
                     source: { type: 'string' },
-                    configFile: { type: 'string' },
                     thresholds: { type: 'object' },
                   },
                 },
@@ -1639,8 +1616,7 @@ module.exports = {
       },
       handler() {
         return {
-          source: fs.existsSync(CONFIG_FILE) ? 'file' : 'defaults',
-          configFile: CONFIG_FILE,
+          source: this._thresholdsSource,
           thresholds: this.alertThresholds,
         };
       },
@@ -1659,20 +1635,16 @@ module.exports = {
         summary: 'Set VNB monitor alert thresholds (full replace)',
         tags: ['VNBMonitor', 'IntegrationHub'],
       },
-      handler(ctx) {
+      async handler(ctx) {
         const nextThresholds = this.validateThresholds(ctx.params.thresholds);
-        const persisted = saveAlertConfig(nextThresholds, this.logger);
-        if (!persisted) {
-          throw new Error('Failed to persist threshold configuration.');
-        }
-
+        await ctx.call('object-store.put', { namespace: 'vnb_monitor', key: 'thresholds', payload: nextThresholds });
         this.alertThresholds = mergeThresholds(VNB_MONITOR_DEFAULTS.thresholds, nextThresholds);
+        this._thresholdsSource = 'store';
         this.cache.clear();
 
         return {
           success: true,
           message: 'Alert thresholds updated and cache invalidated.',
-          configFile: CONFIG_FILE,
           thresholds: this.alertThresholds,
         };
       },
@@ -1688,18 +1660,19 @@ module.exports = {
         summary: 'Reset VNB monitor alert thresholds to defaults',
         tags: ['VNBMonitor', 'IntegrationHub'],
       },
-      handler() {
-        if (fs.existsSync(CONFIG_FILE)) {
-          fs.unlinkSync(CONFIG_FILE);
+      async handler(ctx) {
+        try {
+          await ctx.call('object-store.delete', { namespace: 'vnb_monitor', key: 'thresholds' });
+        } catch (_) {
+          /* ignore — key may not exist */
         }
-
         this.alertThresholds = { ...VNB_MONITOR_DEFAULTS.thresholds };
+        this._thresholdsSource = 'defaults';
         this.cache.clear();
 
         return {
           success: true,
           message: 'Alert thresholds reset to defaults and cache invalidated.',
-          configFile: CONFIG_FILE,
           thresholds: this.alertThresholds,
         };
       },

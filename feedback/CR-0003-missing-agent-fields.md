@@ -3,7 +3,17 @@
 **Typ:** Change Request (CR)
 **Erstellt:** 2026-04-05
 **Erstellt durch:** Backend (post-gate verification session v0.20.4, `docs/ui-contract-verification.md`)
-**Status:** open
+**Status:** deferred (v0.21.x)
+**Geändert:** 2026-04-06 (war: open)
+**Begründung:** Alle drei Frontend-Workarounds sind seit v0.20.4 produktiv im
+Einsatz. Kein dringender Fix nötig. Wird in v0.21.x zusammen mit der
+Response-Builder-Überarbeitung der Agent-Services adressiert.
+
+**Frontend-Workaround-Status (v0.20.5+):**
+- `steps[].findingCode` → `findings.filter(f => f.step === step.step)` ✅ produktiv
+- `curtailment` Top-Level → `riskAssessment.curtailmentGWh` + RD_HIGH_CURTAILMENT_PERIOD ✅ produktiv
+- `portfolio.weg` → `findings.some(f => f.finding === 'RD_USED_WEG_B')` ✅ produktiv
+
 **Priorität:** medium
 **Ziel-Version:** 0.21.x
 **Verwandt:** `CR-0003.md` (umfassende Version inkl. DELETE-Endpunkte)

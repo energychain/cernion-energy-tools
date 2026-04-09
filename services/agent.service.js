@@ -69,7 +69,20 @@ function loadSession(id) {
 // ---------------------------------------------------------------------------
 function buildServiceCatalogue(services) {
   const catalogue = [];
-  const skipServices = new Set(['api', '$node', 'agent', 'company', 'grid-connection', 'energy-sharing', 'energy-sharing-allocation', 'mastr-quality', 'redispatch-expost', 'znp']);
+  const skipServices = new Set([
+    'api',
+    '$node',
+    'agent',
+    'company',
+    'grid-connection',
+    'energy-sharing',
+    'energy-sharing-allocation',
+    'mastr-quality',
+    'redispatch-expost',
+    'znp',
+    'object-store',
+    'cookbook',
+  ]);
 
   for (const svc of services) {
     if (svc.name.startsWith('$') || skipServices.has(svc.name)) continue;
@@ -333,7 +346,15 @@ function findBestParamAlias(unknown, knownSet) {
  */
 function buildParamSchemaIndex(services) {
   const index = new Map();
-  const skipServices = new Set(['api', '$node', 'agent', 'company', 'energy-sharing-allocation', 'znp']);
+  const skipServices = new Set([
+    'api',
+    '$node',
+    'agent',
+    'company',
+    'energy-sharing-allocation',
+    'znp',
+    'object-store',
+  ]);
   for (const svc of services) {
     if (!svc.name || svc.name.startsWith('$') || skipServices.has(svc.name)) continue;
     if (!svc.actions) continue;
@@ -446,6 +467,40 @@ async function getInhouseDescriptorText(ctx) {
       .join('\n');
   } catch (error) {
     return `Inhouse datasource descriptors unavailable: ${error.message}`;
+  }
+}
+
+async function getCookbookHintsText(ctx, queryText) {
+  const query = String(queryText || '').trim();
+  if (query.length < 5) return 'No cookbook hints available for this query.';
+
+  try {
+    const response = await ctx.call('cookbook.search', {
+      query,
+      limit: 3,
+      includeBroken: false,
+    });
+    const hits = Array.isArray(response?.data) ? response.data : [];
+    if (!hits.length) return 'No cookbook hints available for this query.';
+
+    return hits
+      .map((item, idx) => {
+        const actions = Array.isArray(item.process)
+          ? item.process
+              .map((step) => step.action)
+              .filter(Boolean)
+              .join(' -> ')
+          : '';
+
+        return (
+          `${idx + 1}. ${item.title} [id=${item.id}, status=${item.status}, score=${item.score}]` +
+          `${item.problem ? `\n   Problem: ${item.problem}` : ''}` +
+          `${actions ? `\n   Suggested actions: ${actions}` : ''}`
+        );
+      })
+      .join('\n');
+  } catch (error) {
+    return `Cookbook hints unavailable: ${error.message}`;
   }
 }
 
@@ -1155,8 +1210,7 @@ function buildIntentClassPlan({
       : '';
 
     return {
-      summary:
-        `Intent-Klasse: description_guided. ${contextNote}${suggestedQueriesNote} Zugriff ausschließlich über datasource-cache.query (kein SQL).`,
+      summary: `Intent-Klasse: description_guided. ${contextNote}${suggestedQueriesNote} Zugriff ausschließlich über datasource-cache.query (kein SQL).`,
       steps: [
         {
           step: 1,
@@ -1737,10 +1791,7 @@ module.exports = {
         // For 'other' domain datasets, route to description_guided instead of
         // falling through to the Gemini LLM planner so the inhouse data rule
         // is always enforced and the description context drives the plan.
-        if (
-          !intentClass &&
-          sourceDescriptor?.semanticHints?.domain === 'other'
-        ) {
+        if (!intentClass && sourceDescriptor?.semanticHints?.domain === 'other') {
           intentClass = 'description_guided';
         }
         const canUseInhouseShortcut =
@@ -1810,6 +1861,7 @@ module.exports = {
           )
           .join('\n');
         const inhouseDescriptorText = await getInhouseDescriptorText(ctx);
+        const cookbookHintsText = await getCookbookHintsText(ctx, problem);
 
         const today = new Date().toISOString().slice(0, 10);
 
@@ -1821,6 +1873,10 @@ ${catalogueText}
         You also have access to the following inhouse datasource descriptors. Treat them as discoverable internal data assets that can complement the microservice actions above:
 
         ${inhouseDescriptorText}
+
+      You also have access to implementation cookbook hints. Prefer these workflows when they fit the user request:
+
+      ${cookbookHintsText}
 
 The user has the following problem or research request:
 "${problem}"
@@ -2328,6 +2384,7 @@ Extract "q", "schema", "table", "limit", "offset", "where" as requiredInputs per
             )
             .join('\n');
           const inhouseDescriptorText = await getInhouseDescriptorText(ctx);
+          const cookbookHintsText = await getCookbookHintsText(ctx, refinement);
 
           const today2 = new Date().toISOString().slice(0, 10);
           const refinePrompt = `You are an expert energy-data analyst AI. Today's date is ${today2}.
@@ -2338,6 +2395,10 @@ ${catalogueText}
 You also have access to the following inhouse datasource descriptors. Use them when they are relevant to the refined plan:
 
 ${inhouseDescriptorText}
+
+You also have access to implementation cookbook hints. Prefer these workflows when they fit the refined request:
+
+${cookbookHintsText}
 
 CRITICAL RULES:
 1. If the user mentions a grid operator/DSO by name, add grid-operations.marketPartners as step 1 to resolve it.

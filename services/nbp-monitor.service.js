@@ -16,8 +16,6 @@
 
 'use strict';
 
-const fs = require('fs');
-
 const NBP_SCHEMA_VERSION = '1.0';
 
 const DEFAULT_PARAMETERS = {
@@ -35,28 +33,6 @@ const ALERT_THRESHOLDS = {
   totalKWp:   { green: 50_000, yellow: 150_000 },
   classCDKWp: { green: 10_000, yellow: 50_000 },
 };
-
-// ── Parameter persistence ──────────────────────────────────────────────────
-
-function loadParameters(filePath) {
-  try {
-    if (filePath && fs.existsSync(filePath)) {
-      return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-    }
-  } catch (_) {
-    /* silently fall back to defaults */
-  }
-  return { ...DEFAULT_PARAMETERS };
-}
-
-function saveParameters(filePath, params) {
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(params, null, 2), 'utf-8');
-    return true;
-  } catch (_) {
-    return false;
-  }
-}
 
 // ── Field normalisation ────────────────────────────────────────────────────
 
@@ -366,7 +342,6 @@ module.exports = {
   settings: {
     cacheTtlSeconds:         parseInt(process.env.NBP_CACHE_TTL_SECONDS || '86400', 10),
     defaultParameters:       DEFAULT_PARAMETERS,
-    parametersFile:          process.env.NBP_PARAMETERS_FILE || './uploads/.nbp-parameters.json',
     vnbSeitigThresholdWeeks: 6,
     altlastThresholdWeeks:   52,
   },
@@ -427,7 +402,13 @@ module.exports = {
           if (Date.now() < cached.expiresAt) return cached.data;
         }
 
-        const parameters = loadParameters(this.settings.parametersFile);
+        let parameters;
+        try {
+          const stored = await ctx.call('object-store.get', { namespace: 'nbp_monitor', key: 'parameters' });
+          parameters = stored.payload;
+        } catch (_) {
+          parameters = { ...DEFAULT_PARAMETERS };
+        }
         const { vnbSeitigThresholdWeeks, altlastThresholdWeeks } = this.settings;
 
         let resolvedGridOperatorId = null;
@@ -534,13 +515,19 @@ module.exports = {
           },
         },
       },
-      handler() {
-        const params = loadParameters(this.settings.parametersFile);
-        const source = fs.existsSync(this.settings.parametersFile) ? 'file' : 'defaults';
+      async handler(ctx) {
+        let parameters = { ...DEFAULT_PARAMETERS };
+        let source = 'defaults';
+        try {
+          const stored = await ctx.call('object-store.get', { namespace: 'nbp_monitor', key: 'parameters' });
+          parameters = stored.payload;
+          source = 'store';
+        } catch (_) {
+          // no stored parameters — use defaults
+        }
         return {
           source,
-          parametersFile: this.settings.parametersFile,
-          parameters: params,
+          parameters,
         };
       },
     },
@@ -585,10 +572,9 @@ module.exports = {
           },
         },
       },
-      handler(ctx) {
+      async handler(ctx) {
         const validated = this.validateParameters(ctx.params.parameters);
-        const ok = saveParameters(this.settings.parametersFile, validated);
-        if (!ok) throw new Error('Failed to persist NBP parameters.');
+        await ctx.call('object-store.put', { namespace: 'nbp_monitor', key: 'parameters', payload: validated });
         for (const key of this.cache.keys()) {
           if (key.startsWith('nbp-monitor:')) this.cache.delete(key);
         }
@@ -619,13 +605,11 @@ module.exports = {
           },
         },
       },
-      handler() {
+      async handler(ctx) {
         try {
-          if (fs.existsSync(this.settings.parametersFile)) {
-            fs.unlinkSync(this.settings.parametersFile);
-          }
+          await ctx.call('object-store.delete', { namespace: 'nbp_monitor', key: 'parameters' });
         } catch (_) {
-          /* ignore unlink errors */
+          /* ignore — key may not exist */
         }
         for (const key of this.cache.keys()) {
           if (key.startsWith('nbp-monitor:')) this.cache.delete(key);

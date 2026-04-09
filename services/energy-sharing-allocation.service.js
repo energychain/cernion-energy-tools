@@ -38,6 +38,45 @@ const PIPELINE_VERSION = '0.16.0';
 const MALO_REGEX = /^DE\d{31}$/;
 
 // ---------------------------------------------------------------------------
+// ALLOC Findings Stub (v0.20.5)
+//
+// The allocation engine is a Berechnungsengine (NOT an Agent) and does not
+// follow the deterministic findings pipeline pattern. However, future versions
+// may introduce quality-check findings for allocation results.
+//
+// The following ALLOC_* finding codes are CANDIDATES for a future sprint.
+// They require domain-specific grounding (threshold values, regulatory basis)
+// that has not yet been defined — marked as a gap for the next sprint.
+//
+// Candidate finding codes (not yet registered in FINDING_CODE_METADATA):
+//   ALLOC_ZERO_ALLOCATION_CONSUMER
+//     — Consumer receives 0 kWh in >X% of intervals (threshold TBD)
+//     — Indicates misconfigured share percentages or generation shortfall
+//   ALLOC_CONCENTRATION_RISK
+//     — Single generator accounts for >Y% of total allocation (threshold TBD)
+//     — Relevant for supply security assessment per § 42c EnWG
+//   ALLOC_HIGH_REDISPATCH_DEDUCTION
+//     — Redispatch deduction exceeds Z% of gross generation (threshold TBD)
+//     — Financial impact warning for community participants
+//   ALLOC_RESULT_DRIFT
+//     — Allocation result differs >W% from previous run for same community
+//       and date range (threshold TBD)
+//     — Detects unexpected shifts in generation or share configuration
+//   ALLOC_IMBALANCE_PERIOD
+//     — Extended period (>N consecutive intervals) where total generation
+//       is zero but consumers have demand (threshold TBD)
+//     — Indicates Dunkelflaute exposure in the community
+//
+// When implementing, register codes in src/validation-findings.js under
+// a new section "Energy Sharing Allocation (v0.X)" and add them to
+// FINDING_CODE_METADATA with severity, step, description, descriptionDe.
+//
+// The existing `warnings[]` array with ALLOC_WINDOW_EXCEEDS_RECOMMENDED,
+// ALLOC_VALIDATION_REPORT_NOT_APPROVED, etc. will remain as-is —
+// findings would be a separate, richer structure.
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
 // Service definition
 // ---------------------------------------------------------------------------
 

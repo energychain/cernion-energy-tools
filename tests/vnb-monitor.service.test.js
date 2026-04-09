@@ -5,21 +5,25 @@
  */
 
 const { ServiceBroker } = require('moleculer');
-const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const ObjectStoreService = require('../services/object-store.service');
 
 describe('vnb-monitor.service', () => {
   let broker;
   let service;
-  let thresholdConfigFile;
 
-  beforeAll(() => {
-    thresholdConfigFile = path.join(os.tmpdir(), `vnb-monitor-thresholds-${Date.now()}.json`);
-    process.env.VNB_MONITOR_ALERT_CONFIG_FILE = thresholdConfigFile;
-
+  beforeAll(async () => {
     broker = new ServiceBroker({
       logger: false,
+    });
+
+    broker.createService({
+      ...ObjectStoreService,
+      settings: {
+        ...ObjectStoreService.settings,
+        dbPath: path.join(os.tmpdir(), `vnb-test-os-main-${Date.now()}`),
+      },
     });
 
     // Mock grid-operations service
@@ -242,15 +246,11 @@ describe('vnb-monitor.service', () => {
     // Load the VNB Monitor service
     service = broker.createService(require('../services/vnb-monitor.service'));
 
-    return broker.start();
+    await broker.start();
   });
 
   afterAll(async () => {
     await broker.stop();
-    if (fs.existsSync(thresholdConfigFile)) {
-      fs.unlinkSync(thresholdConfigFile);
-    }
-    delete process.env.VNB_MONITOR_ALERT_CONFIG_FILE;
   });
 
   describe('snapshot action', () => {
@@ -1041,7 +1041,6 @@ describe('vnb-monitor.service', () => {
     it('should return thresholds with source metadata', async () => {
       const result = await broker.call('vnb-monitor.getThresholds');
       expect(result).toHaveProperty('source');
-      expect(result).toHaveProperty('configFile');
       expect(result).toHaveProperty('thresholds');
       expect(result.thresholds['ewk.anschlussdauer.eeNS_weeks']).toBeDefined();
     });
@@ -1054,7 +1053,8 @@ describe('vnb-monitor.service', () => {
 
       const setRes = await broker.call('vnb-monitor.setThresholds', { thresholds: next });
       expect(setRes.success).toBe(true);
-      expect(fs.existsSync(thresholdConfigFile)).toBe(true);
+      const stored = await broker.call('object-store.get', { namespace: 'vnb_monitor', key: 'thresholds' });
+      expect(stored).toBeDefined();
 
       const getRes = await broker.call('vnb-monitor.getThresholds');
       expect(getRes.thresholds['ewk.anschlussdauer.eeNS_weeks'].warning).toBe(61);
@@ -1080,13 +1080,9 @@ describe('vnb-monitor.service', () => {
     // digitalisierungsindex (CR-MCP-03).
     let broker3;
     let snapshotResult3;
-    let thresholdFile3;
     const ewkCallParams = [];
 
     beforeAll(async () => {
-      thresholdFile3 = path.join(os.tmpdir(), `vnb-monitor-bnr-${Date.now()}.json`);
-      process.env.VNB_MONITOR_ALERT_CONFIG_FILE = thresholdFile3;
-
       broker3 = new ServiceBroker({ logger: false });
 
       broker3.createService({
@@ -1209,8 +1205,6 @@ describe('vnb-monitor.service', () => {
 
     afterAll(async () => {
       await broker3.stop();
-      if (fs.existsSync(thresholdFile3)) fs.unlinkSync(thresholdFile3);
-      process.env.VNB_MONITOR_ALERT_CONFIG_FILE = thresholdConfigFile;
     });
 
     it('should call EWK tools with bnr=10002977 (not just vnbName)', () => {
@@ -1246,12 +1240,8 @@ describe('vnb-monitor.service', () => {
     let broker2;
     let snapshotResult;
     const capturedAssetParams = [];
-    let thresholdFile2;
 
     beforeAll(async () => {
-      thresholdFile2 = path.join(os.tmpdir(), `vnb-monitor-cap-${Date.now()}.json`);
-      process.env.VNB_MONITOR_ALERT_CONFIG_FILE = thresholdFile2;
-
       broker2 = new ServiceBroker({ logger: false });
 
       broker2.createService({
@@ -1322,8 +1312,6 @@ describe('vnb-monitor.service', () => {
 
     afterAll(async () => {
       await broker2.stop();
-      if (fs.existsSync(thresholdFile2)) fs.unlinkSync(thresholdFile2);
-      process.env.VNB_MONITOR_ALERT_CONFIG_FILE = thresholdConfigFile;
     });
 
     it('should count all pvAnlagen when mock returns 1001 rows (no per-type cap)', () => {

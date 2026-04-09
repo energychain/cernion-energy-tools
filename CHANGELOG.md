@@ -5,6 +5,178 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+_No changes yet._
+
+---
+
+## [0.20.6] - 2026-04-09
+
+### Fixed
+
+- **🐛 Critical: False-Positive NAP Findings (v0.17.1 hotfix):**
+  Resolved systematic false positives in `MQ_MISSING_NAP` and `MQ_REDISPATCH_NO_NAP`.
+  **Root cause:** Check-logik (stepConnectionPointIntegrity) prüfte nur direkte Felder (`nap.MastrNummer`),
+  während Detail-Enrichment-Logik NAPs über Fallback-Pfade (`napData.*`) aufgelöst hat.
+  **Fix:** Neue Methode `getInstallationNapIdWithFallback()` nutzt identische Auflösungspfade wie `getNapVoltageLevelWithFallback()`.
+  Checks und Enrichment verwenden nun denselben Auflösungspfad.
+
+- **🐛 Critical: False-Positive `MQ_MISSING_COMMISSIONING_DATE` (v0.17.2 hotfix):**
+  Resolved systematic false positives where commissioning dates existed in source data under alias fields
+  (especially `inbetriebnahmedatum`) but status checks still emitted `MQ_MISSING_COMMISSIONING_DATE`.
+  **Root cause:** `stepStatusAnomalies` used a narrow direct-field check
+  (`inbetriebnahmeDatum || Inbetriebnahmedatum`) instead of the centralized alias resolver.
+  **Fix:** `stepStatusAnomalies` now uses `getInstallationCommissioningDate()` and
+  `getInstallationCommissioningDate()` was extended with full alias coverage.
+
+### Added
+
+- **MaStR Quality: NAP-specific aggregation metrics in audit summary (`mastr-quality.audit`):**
+  Added `missingNapFindings`, `missingNapDistinctAssets`,
+  `missingNapRedispatchFindings`, `missingNapRedispatchDistinctAssets` and `napFindings`.
+
+- **MaStR Quality: finding details drilldown endpoint (`GET /api/mastr-quality/audits/:id/findings/:findingId/details`):**
+  Added a read-only details endpoint for reliable UI drilldown per finding.
+
+- **MaStR Quality: enriched detail field mapping with fallback resolution:**
+  Standardized detail enrichment for `operatorName`, `commissioningDate`, `netzbetreiberName`,
+  `spannungsebene`, `spannungsebeneLabel` and `valueSource` with source-tracking (`*Source`).
+
+### Changed
+
+- **MaStR Quality: clarified semantic split between `MQ_MISSING_NAP` and `MQ_REDISPATCH_NO_NAP`:**
+  Both findings now carry normalized context fields for deterministic UI/reporting:
+  `rootIssue: "MISSING_NAP"` and `scope: "general" | "redispatch"`.
+
+- **MaStR Quality: audit persistence now always stores findings and GET returns stable findings array:**
+  `POST /api/mastr-quality/audit` now persists `findings` in the PouchDB audit document.
+  `GET /api/mastr-quality/audits/:id` now always returns `findings` as an array.
+
+- **MaStR Quality: standardized detail fields with explicit null-semantics:**
+  `findings[].context.details` now includes stable `installation`, `connection`, and `measurement`
+  blocks including provenance (`*Source`) for UI transparency and confidence scoring.
+
+- **Version sync with cernion-ui v0.20.6** — Polish milestone. No API changes.
+
+### Documentation
+
+- **`src/validation-findings.js`** — Naming-Konvention-Kommentar hinzugefügt:
+  Erklärt warum ES_-Konstantennamen keinen Präfix in den API-Werten tragen
+  (historische Inkonsistenz seit v0.14/v0.15), und dass Frontend-Consumers
+  immer gegen die VALUES aus FINDING_CODE_METADATA matchen sollen.
+- **`docs/ui-contracts/07-energy-sharing.md`** — Präfix-Konvention explizit
+  dokumentiert: `ES_REJECTED_STRUCTURAL` (JS-Konstante) vs. `REJECTED_STRUCTURAL`
+  (API-Response-Wert). TypeScript-Beispiel für korrektes Matching ergänzt.
+- **`feedback/CR-0003-missing-agent-fields.md`** — Status: open → deferred (v0.21.x).
+  Alle drei Frontend-Workarounds produktiv seit v0.20.4 bestätigt.
+- **`docs/BACKEND_CONTEXT.md`** — Aktualisiert auf aktuellen Stand:
+  Service-Anzahl korrigiert, ZNP/Object-Store/Company-Service ergänzt,
+  neue PouchDB-Stores dokumentiert, Naming-Konvention-Hinweis und
+  Known-Limitations-Abschnitt (BDEW-Auflösungsrisiko, CR-0003) hinzugefügt.
+
+## [0.20.5] - 2026-04-06
+
+### Added
+
+- **`findingsCount` in Quality Summary endpoint (`dashboard-api.qualitySummary`):**
+  Each agent entry in the `GET /api/dashboard/quality-summary` response now includes a
+  `findingsCount` object `{ info, warning, error }` extracted from the most recent report.
+  Returns `null` when no reports exist or when the agent does not produce findings
+  (e.g., `energy-sharing-allocation`). OpenAPI schema updated with nullable object type.
+
+- **Finding Code Recommendations sync document (`docs/ui-contracts/14-finding-code-recommendations.md`):**
+  New UI contract documenting all 37 error-severity finding codes across 4 agents with
+  proposed German recommendation texts (`recommendationDe`). Serves as the specification
+  for the `recommendation`/`recommendationDe` fields to be added to `FINDING_CODE_METADATA`
+  in v0.21. Includes allocation engine candidate finding codes (domain gaps flagged).
+
+- **ALLOC findings stub interface (`energy-sharing-allocation.service.js`):**
+  Documented 5 candidate finding codes for future allocation quality checks:
+  `ALLOC_ZERO_ALLOCATION_CONSUMER`, `ALLOC_CONCENTRATION_RISK`,
+  `ALLOC_HIGH_REDISPATCH_DEDUCTION`, `ALLOC_RESULT_DRIFT`, `ALLOC_IMBALANCE_PERIOD`.
+  Domain-specific thresholds are a gap to be grounded in a future sprint.
+
+- **Trend computation documentation (`docs/ui-contracts/03-quality-summary.md`):**
+  Documented frontend-side trend computation (Option A) using `recentReports` array
+  (up to 5 entries). Backend returns raw data; frontend computes direction from
+  consecutive report metrics.
+
+- **ZNP `getProjectAssets` — MaStR Asset Inventory API (`znp.service.js`, v0.21 Issue 4):**
+  New endpoint `GET /api/znp/projects/:projectId/assets`.
+  Returns a paginated, filtered list of Layer 0 MaStR asset nodes stored in the project
+  graph. Supports filtering by `status` (exact string match, unvalidated — MaStR date
+  formats are notoriously inconsistent) and `assetType`, sorting by capacity (`asc`/`desc`,
+  default `desc`), and offset/limit pagination (`limit` default 100, max 1000).
+  Strategic assumption nodes (Layer 2.5) are intentionally excluded — the endpoint targets
+  physical MaStR base data only.
+  `addLayer0` extended with two new optional item fields: `status` (string, unvalidated)
+  and `commissioningDate` (string, unvalidated). Both are persisted on the Graphology node
+  and surfaced in the `getProjectAssets` response.
+
+- **Generic Object Store Microservice (`object-store.service.js`):**
+  New PouchDB-backed document store providing namespaced CRUD and Mango query operations
+  for frontend clients (ZNP Workspaces, User Settings, etc.) to persist arbitrary JSON
+  without backend schema changes. Documents are keyed as `${namespace}:${key}` for
+  namespace isolation and fast single-document retrieval. Every document stores an
+  internal `ns` field (indexed) so Mango queries are automatically scoped to the
+  requested namespace — callers cannot escape their namespace even if they inject `ns`
+  into the selector. PouchDB `_rev` handling is fully transparent. KRITIS-compliant:
+  no external dependencies, no network port, no native bindings.
+  REST endpoints:
+  - `GET /api/objects/:namespace/:key` — retrieve a document
+  - `PUT /api/objects/:namespace/:key` — create or update (upsert); requires `full-access` token
+  - `DELETE /api/objects/:namespace/:key` — remove a document; requires `full-access` token
+  - `POST /api/objects/:namespace/query` — Mango selector query within namespace
+  Service excluded from LLM agent catalogue (`skipServices`).
+  Environment: `OBJECT_STORE_DB_PATH` (default: `./data/object-store`).
+
+- **Cookbook Microservice + Browser Recipe Generator (`cookbook.service.js`, `/app`):**
+  New code-managed, community-collaborative API cookbook for reusable implementation
+  workflows. Recipes are shipped in source code (`src/cookbook-recipes.js`) and enriched
+  at runtime with semantic lookup (`gemini-embedding-001`), auto-generated
+  `relatedRecipes`, and periodic validity checks against the live Moleculer action
+  registry (scheduled validation interval, default 5 minutes).
+  New REST endpoints:
+  - `GET /api/cookbook` — list recipes with runtime status (`valid`/`degraded`/`broken`/`deprecated`)
+  - `GET /api/cookbook/:id` — get a single recipe
+  - `POST /api/cookbook/search` — semantic recipe lookup by free-text problem
+  - `POST /api/cookbook/validate` — force validation refresh
+  - `GET /api/cookbook/health` — validation summary + scheduler metadata
+  - `GET /api/cookbook/services` — live service/action catalog for generator tooling
+  `/app` now includes a new **📖 Cookbook** panel with:
+  - recipe lookup + status badges
+  - on-demand validation trigger
+  - recipe generator wizard (step builder from live service actions)
+  - copy-ready JSON output for contribution via pull request.
+
+### Changed
+
+- **NBP Monitor + VNB Monitor — file I/O migrated to Object Store (`object-store.service.js`):**
+  Both services previously persisted configuration to flat JSON files on disk
+  (`NBP_PARAMETERS_FILE`, `VNB_MONITOR_ALERT_CONFIG_FILE`). Both now use the generic
+  PouchDB-backed Object Store microservice.
+  - `nbp-monitor`: KPI 2 parameters stored under `namespace: nbp_monitor, key: parameters`;
+    `getParameters` returns `source: 'store' | 'defaults'`; `parametersFile` field removed
+    from response. `NBP_PARAMETERS_FILE` env var retired.
+  - `vnb-monitor`: alert thresholds stored under `namespace: vnb_monitor, key: thresholds`;
+    `getThresholds`/`setThresholds`/`resetThresholds` responses no longer include `configFile`;
+    source tracked via `_thresholdsSource` flag; defaults loaded eagerly in `created()`,
+    stored thresholds merged in `async started()` (EU AI Act Art. 12 compatible).
+    `VNB_MONITOR_ALERT_CONFIG_FILE` env var retired.
+  - Both services: `fs` dependency removed; no disk I/O at all.
+  - Tests updated: temp-file / env-var setup replaced with in-memory Object Store instances.
+
+- **`validation-findings.js` — recommendation field preparation:**
+  Added TODO marker and updated JSDoc `@type` to include optional `recommendation` and
+  `recommendationDe` fields (target: v0.21). No runtime changes.
+
+- **UI contract `03-quality-summary.md` updated to v0.20.5:**
+  Added `findingsCount` to response shape, display specification, and edge cases.
+  Added trend computation section (Option A: frontend-side).
+
+---
+
 ## [0.20.4] - 2026-04-05
 
 ### Added

@@ -274,6 +274,10 @@ describe('mastr-quality service', () => {
     expect(mqService.schema.actions.get.rest).toBe('GET /audits/:id');
   });
 
+  test('findingDetails action is defined with REST GET /audits/:id/findings/:findingId/details', () => {
+    expect(mqService.schema.actions.findingDetails.rest).toBe('GET /audits/:id/findings/:findingId/details');
+  });
+
   test('all actions have openapi annotations with summary and tags', () => {
     for (const [name, action] of Object.entries(mqService.schema.actions)) {
       expect(action.openapi).toBeDefined(), `${name} must have openapi annotations`;
@@ -333,6 +337,18 @@ describe('mastr-quality service', () => {
     expect(findings.some((f) => f.finding === vf.MQ_MISSING_COMMISSIONING_DATE)).toBe(true);
   });
 
+  test('stepStatusAnomalies: lowercase inbetriebnahmedatum prevents false-positive MQ_MISSING_COMMISSIONING_DATE', () => {
+    const withLowercaseDate = makeInstallation({
+      einheitBetriebsstatus: 35,
+      inbetriebnahmeDatum: undefined,
+      Inbetriebnahmedatum: undefined,
+      inbetriebnahmedatum: '1989-02-24T00:00:00.000Z',
+    });
+
+    const findings = mqService.stepStatusAnomalies([withLowercaseDate], new Date('2026-03-30'));
+    expect(findings.some((f) => f.finding === vf.MQ_MISSING_COMMISSIONING_DATE)).toBe(false);
+  });
+
   test('stepStatusAnomalies: MQ_FUTURE_COMMISSIONING for future date', () => {
     const future = makeInstallation({ inbetriebnahmeDatum: '2030-01-01' });
     const findings = mqService.stepStatusAnomalies([future], new Date('2026-03-30'));
@@ -349,6 +365,114 @@ describe('mastr-quality service', () => {
     const nbpNotPlanned = makeInstallation({ netzbetreiberPruefungStatus: '3075' });
     const findings = mqService.stepStatusAnomalies([nbpNotPlanned], new Date('2026-03-30'));
     expect(findings.some((f) => f.finding === vf.MQ_NBP_NOT_PLANNED)).toBe(true);
+  });
+
+  test('stepStatusAnomalies: anlagenbezogenes context payload enthält mastrNummer/melo/datapoint/value', () => {
+    const staleWithMelo = makeInstallation({
+      EinheitMastrNummer: 'SEE-CONTEXT-001',
+      meLo: 'DE000123456789012345678901234567',
+      einheitBetriebsstatus: 31,
+      registrierungsDatum: '2020-01-01',
+    });
+    const findings = mqService.stepStatusAnomalies([staleWithMelo], new Date('2026-03-30'));
+    const finding = findings.find((f) => f.finding === vf.MQ_STALE_PLANNING);
+    expect(finding).toBeDefined();
+    expect(finding.context.mastrNummer).toBe('SEE-CONTEXT-001');
+    expect(finding.context.melo).toBe('DE000123456789012345678901234567');
+    expect(finding.context.datapoint).toEqual(['einheitBetriebsstatus', 'registrierungsDatum']);
+    expect(finding.context.value).toEqual(expect.objectContaining({
+      status: '31',
+      registrierungsDatum: '2020-01-01',
+    }));
+    expect(finding.context.details).toBeDefined();
+    expect(finding.context.details.installation).toEqual(expect.objectContaining({
+      mastrNummer: 'SEE-CONTEXT-001',
+      technology: 'solar',
+    }));
+    expect(finding.context.details.connection).toEqual(expect.objectContaining({
+      napId: 'NAP001',
+      napMastrNummer: 'NAP001',
+      spannungsebene: 'MS',
+    }));
+    // valueSource is now determined from MeLo presence (v0.20.8+)
+    expect(finding.context.details.measurement).toEqual(expect.objectContaining({
+      melo: 'DE000123456789012345678901234567',
+      rawValue: null,
+      resolvedValue: 'DE000123456789012345678901234567',
+      valueSource: 'MeLo', // New: inferred from MeLo field presence
+    }));
+  });
+
+  test('stepStatusAnomalies: fehlende MaStR-ID wird als null + identifierMissing geliefert (kein "?")', () => {
+    const noMastr = makeInstallation({
+      EinheitMastrNummer: undefined,
+      einheitMastrNummer: undefined,
+      EinheitId: 'EID-12345',
+      nap: { MastrNummer: 'NAP-ALT-1', Spannungsebene: 'MS' },
+      einheitBetriebsstatus: 35,
+      inbetriebnahmeDatum: undefined,
+    });
+
+    const findings = mqService.stepStatusAnomalies([noMastr], new Date('2026-03-30'));
+    const finding = findings.find((f) => f.finding === vf.MQ_MISSING_COMMISSIONING_DATE);
+
+    expect(finding).toBeDefined();
+    expect(finding.context.mastrNummer).toBeNull();
+    expect(finding.context.mastr).toBeNull();
+    expect(finding.context.identifierMissing).toBeUndefined();
+    expect(finding.context.identifierReason).toBeUndefined();
+    expect(finding.context.einheitId).toBe('EID-12345');
+    expect(finding.context.napId).toBe('NAP-ALT-1');
+  });
+
+  test('stepStatusAnomalies: identifierMissing=true nur wenn wirklich kein Identifier verfügbar ist', () => {
+    const noIdentifierAtAll = makeInstallation({
+      EinheitMastrNummer: undefined,
+      einheitMastrNummer: undefined,
+      EinheitId: undefined,
+      einheitId: undefined,
+      nap: undefined,
+      NapMastrNummer: undefined,
+      napMastrNummer: undefined,
+      meLo: undefined,
+      MeLo: undefined,
+      messlokationsId: undefined,
+      einheitBetriebsstatus: 35,
+      inbetriebnahmeDatum: undefined,
+    });
+
+    const findings = mqService.stepStatusAnomalies([noIdentifierAtAll], new Date('2026-03-30'));
+    const finding = findings.find((f) => f.finding === vf.MQ_MISSING_COMMISSIONING_DATE);
+
+    expect(finding).toBeDefined();
+    expect(finding.context.mastrNummer).toBeNull();
+    expect(finding.context.identifierMissing).toBe(true);
+    expect(finding.context.identifierReason).toMatch(/No traceable installation identifier/i);
+  });
+
+  test('stepStatusAnomalies: erkennt neue Feldnamen (mastrNummer, napData.napMastrNummer, napData.messlokation)', () => {
+    const modernShape = makeInstallation({
+      EinheitMastrNummer: undefined,
+      mastrNummer: 'SEE-MODERN-001',
+      einheitId: 'UNIT-MODERN-01',
+      nap: undefined,
+      napData: {
+        napMastrNummer: 'SAN-MODERN-01',
+        messlokation: 'DE000123456789012345678901234567',
+      },
+      einheitBetriebsstatus: 35,
+      inbetriebnahmeDatum: undefined,
+    });
+
+    const findings = mqService.stepStatusAnomalies([modernShape], new Date('2026-03-30'));
+    const finding = findings.find((f) => f.finding === vf.MQ_MISSING_COMMISSIONING_DATE);
+
+    expect(finding).toBeDefined();
+    expect(finding.context.mastrNummer).toBe('SEE-MODERN-001');
+    expect(finding.context.einheitId).toBe('UNIT-MODERN-01');
+    expect(finding.context.napId).toBe('SAN-MODERN-01');
+    expect(finding.context.melo).toBe('DE000123456789012345678901234567');
+    expect(finding.context.identifierMissing).toBeUndefined();
   });
 
   // ---- stepCapacityAnomalies ----
@@ -400,6 +524,80 @@ describe('mastr-quality service', () => {
     expect(findings.some((f) => f.finding === vf.MQ_REDISPATCH_NO_NAP)).toBe(true);
   });
 
+  test('stepConnectionPointIntegrity: >100 kW without NAP emits general + redispatch scopes with same root issue', () => {
+    const noNap = makeInstallation({
+      EinheitMastrNummer: 'SEE-NAP-001',
+      bruttoleistung: 200,
+      nap: undefined,
+      NapMastrNummer: undefined,
+      napMastrNummer: undefined,
+    });
+
+    const findings = mqService.stepConnectionPointIntegrity([noNap], MOCK_OPERATOR.mastrId);
+    const general = findings.find((f) => f.finding === vf.MQ_MISSING_NAP);
+    const redispatch = findings.find((f) => f.finding === vf.MQ_REDISPATCH_NO_NAP);
+
+    expect(general).toBeDefined();
+    expect(redispatch).toBeDefined();
+    expect(general.context.rootIssue).toBe('MISSING_NAP');
+    expect(general.context.scope).toBe('general');
+    expect(redispatch.context.rootIssue).toBe('MISSING_NAP');
+    expect(redispatch.context.scope).toBe('redispatch');
+    expect(general.context.mastrNummer).toBe('SEE-NAP-001');
+    expect(redispatch.context.mastrNummer).toBe('SEE-NAP-001');
+  });
+
+  test('stepConnectionPointIntegrity: <100 kW without NAP emits only MQ_MISSING_NAP', () => {
+    const noNapSmall = makeInstallation({
+      EinheitMastrNummer: 'SEE-NAP-002',
+      bruttoleistung: 50,
+      nap: undefined,
+      NapMastrNummer: undefined,
+      napMastrNummer: undefined,
+    });
+
+    const findings = mqService.stepConnectionPointIntegrity([noNapSmall], MOCK_OPERATOR.mastrId);
+    expect(findings.filter((f) => f.finding === vf.MQ_MISSING_NAP)).toHaveLength(1);
+    expect(findings.filter((f) => f.finding === vf.MQ_REDISPATCH_NO_NAP)).toHaveLength(0);
+  });
+
+  test('stepConnectionPointIntegrity: with NAP emits no missing NAP findings', () => {
+    const withNap = makeInstallation({
+      EinheitMastrNummer: 'SEE-NAP-003',
+      bruttoleistung: 200,
+      nap: { MastrNummer: 'NAP-OK-1', Spannungsebene: 'MS' },
+    });
+
+    const findings = mqService.stepConnectionPointIntegrity([withNap], MOCK_OPERATOR.mastrId);
+    expect(findings.filter((f) => [vf.MQ_MISSING_NAP, vf.MQ_REDISPATCH_NO_NAP].includes(f.finding))).toHaveLength(0);
+  });
+
+  test('stepConnectionPointIntegrity: NAP via fallback (napData) does NOT trigger MQ_MISSING_NAP (false-positive fix)', () => {
+    // Critical test: NAP is not in direct field (nap.MastrNummer) but IS in fallback (napData.napMastrNummer)
+    // This was causing 7,268 false positives where enrichment found the NAP but checks did not.
+    const napViaFallback = makeInstallation({
+      EinheitMastrNummer: 'SEE-FALLBACK-NAP',
+      bruttoleistung: 150, // ≥100 kW (redispatch-relevant)
+      nap: undefined, // No direct NAP field
+      NapMastrNummer: undefined,
+      napMastrNummer: undefined,
+      napData: { // NAP in fallback structure
+        napMastrNummer: 'SAN989468825632',
+        netzbetreiberName: 'Stadtwerke Heidelberg',
+        Spannungsebene: '352', // Mittelspannung
+      },
+    });
+
+    const findings = mqService.stepConnectionPointIntegrity([napViaFallback], MOCK_OPERATOR.mastrId);
+
+    // Should NOT fire MQ_MISSING_NAP or MQ_REDISPATCH_NO_NAP despite empty nap.MastrNummer
+    const missingNap = findings.find((f) => f.finding === vf.MQ_MISSING_NAP);
+    const redispatchNoNap = findings.find((f) => f.finding === vf.MQ_REDISPATCH_NO_NAP);
+
+    expect(missingNap).toBeUndefined();
+    expect(redispatchNoNap).toBeUndefined();
+  });
+
   test('stepConnectionPointIntegrity: MQ_VOLTAGE_MISMATCH for ≥100kW at NS', () => {
     const ns = makeInstallation({ bruttoleistung: 200, nap: { MastrNummer: 'NAP999', Spannungsebene: '354' } });
     const findings = mqService.stepConnectionPointIntegrity([ns], MOCK_OPERATOR.mastrId);
@@ -418,6 +616,88 @@ describe('mastr-quality service', () => {
     const findings = mqService.stepConnectionPointIntegrity([makeInstallation()], MOCK_OPERATOR.mastrId);
     expect(findings.filter((f) => f.severity === 'error')).toHaveLength(0);
   });
+
+    // ---- MQ_MISSING_MELO regression tests (raw vs resolved value consistency) ----
+    test('stepConnectionPointIntegrity: MQ_MISSING_MELO for ≥100 kW operational unit without MeLo', () => {
+      const noMelo = makeInstallation({
+        EinheitMastrNummer: 'SEE-MELO-A',
+        bruttoleistung: 150,
+        einheitBetriebsstatus: 35,
+        meLo: undefined,
+        MeLo: undefined,
+        messlokationsId: undefined,
+        nap: { MastrNummer: 'NAP999', Spannungsebene: 'MS' },
+      });
+      const findings = mqService.stepConnectionPointIntegrity([noMelo], MOCK_OPERATOR.mastrId);
+      const meloFinding = findings.find((f) => f.finding === vf.MQ_MISSING_MELO);
+      expect(meloFinding).toBeDefined();
+      expect(meloFinding.context.value).toBeNull();
+      expect(meloFinding.context.melo).toBeUndefined();
+    });
+
+    test('stepConnectionPointIntegrity: NO MQ_MISSING_MELO when raw field empty but fallback present (nap.Messlokation)', () => {
+      const withFallbackMelo = makeInstallation({
+        EinheitMastrNummer: 'SEE-MELO-B',
+        bruttoleistung: 150,
+        einheitBetriebsstatus: 35,
+        meLo: undefined,
+        MeLo: undefined,
+        messlokationsId: undefined,
+        nap: {
+          MastrNummer: 'NAP999',
+          Spannungsebene: 'MS',
+          Messlokation: 'DE000277691200000000000021A129569',
+        },
+      });
+      const findings = mqService.stepConnectionPointIntegrity([withFallbackMelo], MOCK_OPERATOR.mastrId);
+      const meloFinding = findings.find((f) => f.finding === vf.MQ_MISSING_MELO);
+      expect(meloFinding).toBeUndefined();
+    });
+
+    test('stepConnectionPointIntegrity: MQ_MISSING_MELO context includes rawValue + resolvedValue + valueSource', () => {
+      const noMelo = makeInstallation({
+        EinheitMastrNummer: 'SEE-MELO-C',
+        bruttoleistung: 120,
+        einheitBetriebsstatus: 35,
+        meLo: undefined,
+        MeLo: undefined,
+        messlokationsId: undefined,
+        nap: { MastrNummer: 'NAP999', Spannungsebene: 'MS' },
+      });
+      const findings = mqService.stepConnectionPointIntegrity([noMelo], MOCK_OPERATOR.mastrId);
+      const meloFinding = findings.find((f) => f.finding === vf.MQ_MISSING_MELO);
+      expect(meloFinding).toBeDefined();
+      expect(meloFinding.context.value).toBeNull();
+      expect(meloFinding.context.rawValue).toBeNull();
+      expect(meloFinding.context.resolvedValue).toBeNull();
+      expect(meloFinding.context.valueSource).toBe('Effective MeLo check (no raw value + no fallback)');
+    });
+
+    test('stepConnectionPointIntegrity: no MQ_MISSING_MELO for <100 kW (even without MeLo)', () => {
+      const smallNoMelo = makeInstallation({
+        EinheitMastrNummer: 'SEE-MELO-D',
+        bruttoleistung: 50,
+        einheitBetriebsstatus: 35,
+        meLo: undefined,
+        MeLo: undefined,
+      });
+      const findings = mqService.stepConnectionPointIntegrity([smallNoMelo], MOCK_OPERATOR.mastrId);
+      const meloFinding = findings.find((f) => f.finding === vf.MQ_MISSING_MELO);
+      expect(meloFinding).toBeUndefined();
+    });
+
+    test('stepConnectionPointIntegrity: no MQ_MISSING_MELO for non-operational units (status ≠ 35)', () => {
+      const plannedNoMelo = makeInstallation({
+        EinheitMastrNummer: 'SEE-MELO-E',
+        bruttoleistung: 150,
+        einheitBetriebsstatus: 31,
+        meLo: undefined,
+        MeLo: undefined,
+      });
+      const findings = mqService.stepConnectionPointIntegrity([plannedNoMelo], MOCK_OPERATOR.mastrId);
+      const meloFinding = findings.find((f) => f.finding === vf.MQ_MISSING_MELO);
+      expect(meloFinding).toBeUndefined();
+    });
 
   // ---- stepDuplicateDetection ----
   test('stepDuplicateDetection: MQ_PROBABLE_DUPLICATE when all 4 criteria match', () => {
@@ -441,6 +721,51 @@ describe('mastr-quality service', () => {
     const b = makeInstallation({ EinheitMastrNummer: 'SEE002', koordinatenBreitengrad: 49.4775, koordinatenLaengengrad: 8.4453 });
     const findings = mqService.stepDuplicateDetection([a, b]);
     expect(findings.some((f) => f.finding === vf.MQ_GEO_DUPLICATE)).toBe(true);
+  });
+
+  test('stepDuplicateDetection: context enthält mastrNummer/datapoint/value für Paar-Findings', () => {
+    const a = makeInstallation({ EinheitMastrNummer: 'SEE-DUP-A', Postleitzahl: '67063', bruttoleistung: 500, inbetriebnahmeDatum: '2020-01-01' });
+    const b = makeInstallation({ EinheitMastrNummer: 'SEE-DUP-B', Postleitzahl: '67063', bruttoleistung: 510, inbetriebnahmeDatum: '2020-02-01', koordinatenBreitengrad: 51.0, koordinatenLaengengrad: 10.0 });
+    const findings = mqService.stepDuplicateDetection([a, b]);
+    const finding = findings.find((f) => f.finding === vf.MQ_PROBABLE_DUPLICATE);
+    expect(finding).toBeDefined();
+    expect(finding.context.mastrNummer).toEqual(['SEE-DUP-A', 'SEE-DUP-B']);
+    expect(finding.context.datapoint).toEqual(['Postleitzahl', 'energietraeger', 'bruttoleistung', 'inbetriebnahmeDatum']);
+    expect(finding.context.value).toEqual(expect.objectContaining({
+      cap: { a: 500, b: 510 },
+    }));
+  });
+
+  test('stepDuplicateDetection: fehlende MaStR-ID im Paar liefert null + identifierMissing (kein "?")', () => {
+    const a = makeInstallation({
+      EinheitMastrNummer: undefined,
+      einheitMastrNummer: undefined,
+      EinheitId: 'EID-A',
+      Postleitzahl: '67063',
+      bruttoleistung: 500,
+      inbetriebnahmeDatum: '2020-01-01',
+      koordinatenBreitengrad: 49.0,
+      koordinatenLaengengrad: 8.0,
+    });
+    const b = makeInstallation({
+      EinheitMastrNummer: 'SEE-DUP-B2',
+      Postleitzahl: '67063',
+      bruttoleistung: 510,
+      inbetriebnahmeDatum: '2020-02-01',
+      koordinatenBreitengrad: 51.0,
+      koordinatenLaengengrad: 10.0,
+    });
+
+    const findings = mqService.stepDuplicateDetection([a, b]);
+    const finding = findings.find((f) => f.finding === vf.MQ_PROBABLE_DUPLICATE);
+
+    expect(finding).toBeDefined();
+    expect(finding.context.mastrNummerA).toBeNull();
+    expect(finding.context.mastrNummerB).toBe('SEE-DUP-B2');
+    expect(finding.context.mastrNummer).toEqual([null, 'SEE-DUP-B2']);
+    expect(finding.context.identifierMissing).toBeUndefined();
+    expect(finding.context.identifierReason).toBeUndefined();
+    expect(finding.context.einheitId.a).toBe('EID-A');
   });
 
   test('stepDuplicateDetection: no findings for clearly different installations', () => {
@@ -481,6 +806,131 @@ describe('mastr-quality service', () => {
     expect(result.qualityDimensions.duplicates).toBeDefined();
     expect(result.qualityDimensions.geo).toBeDefined();
     expect(result.summary.totalInstallations).toBe(MOCK_INSTALLATIONS.length);
+    expect(result.resolver).toBeDefined();
+    expect(result.resolver.matchedBy).toBeTruthy();
+  });
+
+  test('full pipeline summary: NAP aggregation separates finding count vs distinct assets', async () => {
+    const noNapLarge = makeInstallation({
+      EinheitMastrNummer: 'SEE-NAP-SUM-1',
+      bruttoleistung: 200,
+      nap: undefined,
+      NapMastrNummer: undefined,
+      napMastrNummer: undefined,
+    });
+
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
+      if (tool === 'vnb_lookup_codes') {
+        return { canonical: { mastrId: MOCK_OPERATOR.mastrId, name: MOCK_OPERATOR.name, bdew: MOCK_OPERATOR.bdew } };
+      }
+      if (tool === 'cernion_installations_local') {
+        return { installations: [noNapLarge] };
+      }
+      return {};
+    });
+
+    const result = await broker.call('mastr-quality.audit', {
+      gridOperatorId: MOCK_OPERATOR.mastrId,
+      skipSteps: [7],
+    });
+
+    expect(result.summary.missingNapFindings).toBe(1);
+    expect(result.summary.missingNapDistinctAssets).toBe(1);
+    expect(result.summary.missingNapRedispatchFindings).toBe(1);
+    expect(result.summary.missingNapRedispatchDistinctAssets).toBe(1);
+    expect(result.summary.napFindings.distinctAssetsAffected).toBe(1);
+    expect(result.summary.napFindings.perAssetFindingCount['SEE-NAP-SUM-1']).toBe(2);
+    expect(result.summary.napFindings.duplicateByAsset['SEE-NAP-SUM-1']).toBe(2);
+  });
+
+  test('resolver accepts bdewCode alias and resolves operator', async () => {
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool, params) => {
+      if (tool === 'vnb_lookup_codes') {
+        expect(params.bdewCode).toBe('9900277000000');
+        return {
+          canonical: {
+            mastrId: MOCK_OPERATOR.mastrId,
+            name: MOCK_OPERATOR.name,
+            bdew: '9900277000000',
+            bnr: MOCK_OPERATOR.bnr,
+          },
+        };
+      }
+      if (tool === 'cernion_installations_local') {
+        return { installations: MOCK_INSTALLATIONS };
+      }
+      return {};
+    });
+
+    const result = await broker.call('mastr-quality.audit', {
+      bdewCode: ' 9900277000000 ',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.gridOperator.mastrId).toBe(MOCK_OPERATOR.mastrId);
+    expect(result.resolver.normalized.gridOperatorBdew).toBe('9900277000000');
+  });
+
+  test('resolver accepts bnr alias and resolves operator', async () => {
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool, params) => {
+      if (tool === 'vnb_lookup_codes') {
+        if (params.bnr === '10002977') {
+          return {
+            canonical: {
+              mastrId: MOCK_OPERATOR.mastrId,
+              name: MOCK_OPERATOR.name,
+              bdew: MOCK_OPERATOR.bdew,
+              bnr: '10002977',
+            },
+          };
+        }
+        return { canonical: { mastrId: null, name: null } };
+      }
+      if (tool === 'cernion_installations_local') {
+        return { installations: MOCK_INSTALLATIONS };
+      }
+      return {};
+    });
+
+    const result = await broker.call('mastr-quality.audit', {
+      bnr: ' 10002977 ',
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.gridOperator.mastrId).toBe(MOCK_OPERATOR.mastrId);
+    expect(result.resolver.normalized.gridOperatorBnr).toBe('10002977');
+  });
+
+  test('returns 422 with resolver candidates when VNB cannot be resolved', async () => {
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
+      if (tool === 'vnb_lookup_codes') {
+        return {
+          canonical: { mastrId: null, name: null },
+          candidates: [
+            { name: 'Stadtwerke Beispiel Netz', bdew: '9900277000000', bnr: '10002977' },
+            { name: 'Beispiel Netz GmbH', bdew: '9900277000001', bnr: '10002978' },
+          ],
+        };
+      }
+      return {};
+    });
+
+    await expect(
+      broker.call('mastr-quality.audit', {
+        gridOperatorBdew: '9900277000000',
+      })
+    ).rejects.toMatchObject({
+      code: 422,
+      type: 'VNB_RESOLUTION_FAILED',
+    });
+
+    try {
+      await broker.call('mastr-quality.audit', { gridOperatorBdew: '9900277000000' });
+    } catch (err) {
+      expect(Array.isArray(err.data?.candidates)).toBe(true);
+      expect(err.data?.candidates.length).toBeGreaterThan(0);
+      expect(err.data?.resolver).toBeDefined();
+    }
   });
 
   test('full pipeline: all-clean portfolio returns qualityScore 100', async () => {
@@ -660,6 +1110,65 @@ describe('mastr-quality service', () => {
     expect(getResult.success).toBe(true);
     expect(getResult.id).toBe(id);
     expect(getResult.qualityScore).toBe(auditResult.qualityScore);
+    expect(Array.isArray(getResult.findings)).toBe(true);
+    expect(getResult.findings.length).toBeGreaterThan(0);
+    expect(getResult.findingsCount).toEqual(auditResult.summary.findingsCount);
+  });
+
+  test('findingDetails returns full detail payload for persisted finding', async () => {
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
+      if (tool === 'vnb_lookup_codes') return { canonical: { mastrId: MOCK_OPERATOR.mastrId, name: MOCK_OPERATOR.name } };
+      if (tool === 'cernion_installations_local') return { installations: MOCK_INSTALLATIONS };
+      return {};
+    });
+
+    const auditResult = await broker.call('mastr-quality.audit', {
+      gridOperatorId: MOCK_OPERATOR.mastrId,
+    });
+    const findingWithDetails = auditResult.findings.find((f) => f?.context?.details?.installation);
+    expect(findingWithDetails).toBeDefined();
+
+    const detailsResult = await broker.call('mastr-quality.findingDetails', {
+      id: auditResult.id,
+      findingId: findingWithDetails.id,
+    });
+
+    expect(detailsResult.success).toBe(true);
+    expect(detailsResult.auditId).toBe(auditResult.id);
+    expect(detailsResult.findingId).toBe(findingWithDetails.id);
+    expect(detailsResult.finding.id).toBe(findingWithDetails.id);
+    expect(detailsResult.details).toEqual(expect.objectContaining({
+      installation: expect.any(Object),
+      connection: expect.any(Object),
+      measurement: expect.any(Object),
+    }));
+    expect(detailsResult.details.installation).toEqual(expect.objectContaining({
+      mastrNummer: expect.any(String),
+      technology: expect.any(String),
+      brutto: expect.any(Number),
+    }));
+    expect(detailsResult.details.connection).toHaveProperty('napMastrNummer');
+    expect(detailsResult.details.measurement).toHaveProperty('melo');
+  });
+
+  test('findingDetails returns 404-style payload when finding is unknown', async () => {
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
+      if (tool === 'vnb_lookup_codes') return { canonical: { mastrId: MOCK_OPERATOR.mastrId, name: MOCK_OPERATOR.name } };
+      if (tool === 'cernion_installations_local') return { installations: MOCK_INSTALLATIONS };
+      return {};
+    });
+
+    const auditResult = await broker.call('mastr-quality.audit', {
+      gridOperatorId: MOCK_OPERATOR.mastrId,
+    });
+
+    const notFoundResult = await broker.call('mastr-quality.findingDetails', {
+      id: auditResult.id,
+      findingId: 'F-DOES-NOT-EXIST',
+    });
+
+    expect(notFoundResult.success).toBe(false);
+    expect(notFoundResult.message).toMatch(/not found/i);
   });
 
   test('get returns 404 for unknown ID', async () => {
@@ -727,5 +1236,239 @@ describe('mastr-quality service', () => {
     });
 
     expect(result.metadata.pipelineVersion).toBe('0.17.0');
+  });
+
+  // ---- Detail field enrichment tests (v0.20.8+) ----
+  test('detail fields include operatorName from AnlagenbetreiberName', async () => {
+    const withOperator = makeInstallation({
+      EinheitMastrNummer: 'SEE900000010',
+      AnlagenbetreiberName: 'Müller Energiebau GmbH',
+    });
+
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
+      if (tool === 'vnb_lookup_codes') return { canonical: { mastrId: MOCK_OPERATOR.mastrId, name: MOCK_OPERATOR.name } };
+      if (tool === 'cernion_installations_local') return { installations: [withOperator] };
+      return {};
+    });
+
+    const auditResult = await broker.call('mastr-quality.audit', {
+      gridOperatorId: MOCK_OPERATOR.mastrId,
+    });
+
+    const anyFinding = auditResult.findings.find((f) => f.context?.details?.installation);
+    expect(anyFinding).toBeDefined();
+    expect(anyFinding.context.details.installation.operatorName).toBe('Müller Energiebau GmbH');
+    expect(anyFinding.context.details.installation.operatorNameSource).toBe('AnlagenbetreiberName');
+  });
+
+  test('detail fields include commissioningDate from inbetriebnahmeDatum', async () => {
+    const withDate = makeInstallation({
+      EinheitMastrNummer: 'SEE900000011',
+      inbetriebnahmeDatum: '2019-03-21',
+    });
+
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
+      if (tool === 'vnb_lookup_codes') return { canonical: { mastrId: MOCK_OPERATOR.mastrId, name: MOCK_OPERATOR.name } };
+      if (tool === 'cernion_installations_local') return { installations: [withDate] };
+      return {};
+    });
+
+    const auditResult = await broker.call('mastr-quality.audit', {
+      gridOperatorId: MOCK_OPERATOR.mastrId,
+    });
+
+    const anyFinding = auditResult.findings.find((f) => f.context?.details?.installation);
+    expect(anyFinding).toBeDefined();
+    expect(anyFinding.context.details.installation.commissioningDate).toBe('2019-03-21');
+  });
+
+  test('detail fields include commissioningDate from lowercase inbetriebnahmedatum', async () => {
+    const withLowercaseDate = makeInstallation({
+      EinheitMastrNummer: 'SEE900000021',
+      inbetriebnahmeDatum: undefined,
+      Inbetriebnahmedatum: undefined,
+      commissioningDate: undefined,
+      inbetriebnahmedatum: '2005-07-05T00:00:00.000Z',
+      nap: {
+        MastrNummer: 'SAN900000021',
+        NetzbetreiberName: 'Test VNB',
+        Spannungsebene: '352',
+      },
+    });
+
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
+      if (tool === 'vnb_lookup_codes') return { canonical: { mastrId: MOCK_OPERATOR.mastrId, name: MOCK_OPERATOR.name } };
+      if (tool === 'cernion_installations_local') return { installations: [withLowercaseDate] };
+      return {};
+    });
+
+    const auditResult = await broker.call('mastr-quality.audit', {
+      gridOperatorId: MOCK_OPERATOR.mastrId,
+    });
+
+    const anyFinding = auditResult.findings.find((f) => f.context?.details?.installation);
+    expect(anyFinding).toBeDefined();
+    expect(anyFinding.context.details.installation.commissioningDate).toBe('2005-07-05T00:00:00.000Z');
+  });
+
+  test('detail fields include netzbetreiberName from NAP data', async () => {
+    const withNap = makeInstallation({
+      EinheitMastrNummer: 'SEE900000012',
+      nap: {
+        MastrNummer: 'SAN123456789',
+        Spannungsebene: '352',
+        NetzbetreiberName: 'Stadtwerke Heidelberg Netze GmbH',
+      },
+    });
+
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
+      if (tool === 'vnb_lookup_codes') return { canonical: { mastrId: MOCK_OPERATOR.mastrId, name: MOCK_OPERATOR.name } };
+      if (tool === 'cernion_installations_local') return { installations: [withNap] };
+      return {};
+    });
+
+    const auditResult = await broker.call('mastr-quality.audit', {
+      gridOperatorId: MOCK_OPERATOR.mastrId,
+    });
+
+    const anyFinding = auditResult.findings.find((f) => f.context?.details?.connection);
+    expect(anyFinding).toBeDefined();
+    expect(anyFinding.context.details.connection.netzbetreiberName).toBe('Stadtwerke Heidelberg Netze GmbH');
+    expect(anyFinding.context.details.connection.netzbetreiberNameSource).toBe('nap.NetzbetreiberName');
+  });
+
+  test('detail fields include spannungsebene from NAP data', async () => {
+    const withVoltage = makeInstallation({
+      EinheitMastrNummer: 'SEE900000013',
+      nap: {
+        MastrNummer: 'SAN999999999',
+        Spannungsebene: '347', // Hochspannung
+      },
+    });
+
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
+      if (tool === 'vnb_lookup_codes') return { canonical: { mastrId: MOCK_OPERATOR.mastrId, name: MOCK_OPERATOR.name } };
+      if (tool === 'cernion_installations_local') return { installations: [withVoltage] };
+      return {};
+    });
+
+    const auditResult = await broker.call('mastr-quality.audit', {
+      gridOperatorId: MOCK_OPERATOR.mastrId,
+    });
+
+    const anyFinding = auditResult.findings.find((f) => f.context?.details?.connection?.spannungsebene);
+    expect(anyFinding).toBeDefined();
+    expect(anyFinding.context.details.connection.spannungsebene).toBe('347');
+    expect(anyFinding.context.details.connection.spannungsebeneLabel).toBe('Hochspannung (HV)');
+    expect(anyFinding.context.details.connection.spannungsebeneSource).toBe('nap.Spannungsebene');
+  });
+
+  test('detail fields include valueSource from MeLo when available', async () => {
+    const withMelo = makeInstallation({
+      EinheitMastrNummer: 'SEE900000014',
+      MeLo: 'DE000277691200000000000021A129569',
+    });
+
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
+      if (tool === 'vnb_lookup_codes') return { canonical: { mastrId: MOCK_OPERATOR.mastrId, name: MOCK_OPERATOR.name } };
+      if (tool === 'cernion_installations_local') return { installations: [withMelo] };
+      return {};
+    });
+
+    const auditResult = await broker.call('mastr-quality.audit', {
+      gridOperatorId: MOCK_OPERATOR.mastrId,
+    });
+
+    const anyFinding = auditResult.findings.find((f) => f.context?.details?.measurement?.melo);
+    expect(anyFinding).toBeDefined();
+    expect(anyFinding.context.details.measurement.melo).toBe('DE000277691200000000000021A129569');
+    expect(anyFinding.context.details.measurement.valueSource).toBe('MeLo');
+  });
+
+  test('detail fields are null when source data is missing', async () => {
+    const minimal = makeInstallation({
+      EinheitMastrNummer: 'SEE900000015',
+      AnlagenbetreiberName: undefined, // Explicitly missing
+      inbetriebnahmeDatum: undefined,
+      nap: {},
+      MeLo: undefined,
+    });
+
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
+      if (tool === 'vnb_lookup_codes') return { canonical: { mastrId: MOCK_OPERATOR.mastrId, name: MOCK_OPERATOR.name } };
+      if (tool === 'cernion_installations_local') return { installations: [minimal] };
+      return {};
+    });
+
+    const auditResult = await broker.call('mastr-quality.audit', {
+      gridOperatorId: MOCK_OPERATOR.mastrId,
+    });
+
+    const anyFinding = auditResult.findings.find((f) => f.context?.details);
+    expect(anyFinding).toBeDefined();
+    // Verify null fields
+    expect(anyFinding.context.details.installation.operatorName).toBeNull();
+    expect(anyFinding.context.details.installation.commissioningDate).toBeNull();
+    expect(anyFinding.context.details.connection.netzbetreiberName).toBeNull();
+    expect(anyFinding.context.details.measurement.melo).toBeNull();
+  });
+
+  test('detail fields support spannungsebene heuristic inference from capacity', async () => {
+    // Small capacity → Niederspannung (354)
+    const smallSolar = makeInstallation({
+      EinheitMastrNummer: 'SEE900000016',
+      bruttoleistung: 5,
+      nap: { MastrNummer: 'SAN111', Spannungsebene: undefined }, // No voltage in NAP
+    });
+
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
+      if (tool === 'vnb_lookup_codes') return { canonical: { mastrId: MOCK_OPERATOR.mastrId, name: MOCK_OPERATOR.name } };
+      if (tool === 'cernion_installations_local') return { installations: [smallSolar] };
+      return {};
+    });
+
+    const auditResult = await broker.call('mastr-quality.audit', {
+      gridOperatorId: MOCK_OPERATOR.mastrId,
+    });
+
+    const anyFinding = auditResult.findings.find((f) => f.context?.details?.connection?.spannungsebene);
+    expect(anyFinding).toBeDefined();
+    // Should infer 354 (Niederspannung) from small capacity
+    expect(anyFinding.context.details.connection.spannungsebene).toBe('354');
+    expect(anyFinding.context.details.connection.spannungsebeneLabel).toBe('Niederspannung (LV)');
+    expect(anyFinding.context.details.connection.spannungsebeneSource).toMatch(/inferred/);
+  });
+
+  test('source tracking shows field provenance for UI transparency', async () => {
+    const fullData = makeInstallation({
+      EinheitMastrNummer: 'SEE900000017',
+      AnlagenbetreiberName: 'ABC Solar GmbH',
+      inbetriebnahmeDatum: '2021-05-10',
+      nap: {
+        MastrNummer: 'SAN777',
+        Spannungsebene: '352',
+        NetzbetreiberName: 'Netzbetreiber XYZ',
+      },
+      MeLo: 'DE000000000000000000000000000001',
+    });
+
+    CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
+      if (tool === 'vnb_lookup_codes') return { canonical: { mastrId: MOCK_OPERATOR.mastrId, name: MOCK_OPERATOR.name } };
+      if (tool === 'cernion_installations_local') return { installations: [fullData] };
+      return {};
+    });
+
+    const auditResult = await broker.call('mastr-quality.audit', {
+      gridOperatorId: MOCK_OPERATOR.mastrId,
+    });
+
+    const anyFinding = auditResult.findings.find((f) => f.context?.details);
+    expect(anyFinding).toBeDefined();
+
+    // Verify source fields are present
+    expect(anyFinding.context.details.installation).toHaveProperty('operatorNameSource', 'AnlagenbetreiberName');
+    expect(anyFinding.context.details.connection).toHaveProperty('spannungsebeneSource', 'nap.Spannungsebene');
+    expect(anyFinding.context.details.connection).toHaveProperty('netzbetreiberNameSource', 'nap.NetzbetreiberName');
+    expect(anyFinding.context.details.measurement).toHaveProperty('valueSource', 'MeLo');
   });
 });

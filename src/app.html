@@ -1587,6 +1587,7 @@
         <a href="#" id="nav-datasources">🗄️ Data Sources</a>
         <a href="#" id="nav-datapoints">📌 Datapoints</a>
         <a href="#" id="nav-integration">🔌 Integration Hub</a>
+        <a href="#" id="nav-cookbook">📖 Cookbook</a>
         <a href="#" id="nav-reset">New Research</a>
       </nav>
     </header>
@@ -2063,6 +2064,71 @@
           </div>
         </div>
       </section>
+
+      <!-- ── Cookbook Panel ────────────────────────────────────── -->
+      <section class="card hidden" id="cookbook-panel">
+        <h2>📖 API Cookbook</h2>
+        <div class="ih-grid">
+          <div class="ih-subcard">
+            <h3>🔎 Recipe Lookup</h3>
+            <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:10px">
+              Semantic lookup for existing workflow recipes. Broken/deprecated recipes are flagged automatically.
+            </p>
+            <div class="ih-inline" style="margin-bottom:10px">
+              <input id="cb-search-input" type="text" placeholder="Describe the implementation problem..." style="min-width:260px;flex:1" />
+              <button class="btn-primary" id="cb-search-btn">Search</button>
+              <button class="btn-secondary" id="cb-refresh-btn">Refresh</button>
+              <button class="btn-secondary" id="cb-validate-btn">Validate Recipes</button>
+            </div>
+            <div id="cb-health" style="color:var(--text-muted);font-size:.8rem;margin-bottom:8px">Loading cookbook status…</div>
+            <div id="cb-results" class="dynamic-rows-wrap"></div>
+          </div>
+
+          <div class="ih-subcard">
+            <h3>🧩 Recipe Generator (for PR contribution)</h3>
+            <p style="color:var(--text-muted);font-size:.82rem;margin-bottom:10px">
+              Compose a recipe from live service actions and copy the generated JSON snippet into <code>src/cookbook-recipes.js</code>.
+            </p>
+
+            <div class="form-grid" style="margin-bottom:8px">
+              <div class="form-field">
+                <label>Title</label>
+                <input id="cbg-title" type="text" placeholder="e.g. Find VNB assets from company name" />
+              </div>
+              <div class="form-field">
+                <label>Domain</label>
+                <input id="cbg-domain" type="text" placeholder="e.g. grid-operations" />
+              </div>
+              <div class="form-field">
+                <label>Tags (comma-separated)</label>
+                <input id="cbg-tags" type="text" placeholder="vnb, assets, resolution" />
+              </div>
+              <div class="form-field">
+                <label>Expected Result</label>
+                <input id="cbg-expected" type="text" placeholder="What should be achieved?" />
+              </div>
+            </div>
+
+            <div class="form-field" style="margin-bottom:10px">
+              <label>Business Problem</label>
+              <textarea id="cbg-problem" placeholder="Describe the business problem solved by this recipe"></textarea>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+              <span style="font-size:.85rem;font-weight:600">Process Steps</span>
+              <button class="btn-secondary" style="padding:3px 10px;font-size:.78rem" id="cbg-add-step">+ Step</button>
+              <button class="btn-secondary" style="padding:3px 10px;font-size:.78rem" id="cbg-reload-services">Reload services</button>
+            </div>
+            <div id="cbg-steps" class="dynamic-rows-wrap" style="margin-bottom:10px"></div>
+
+            <div class="ih-inline" style="margin-bottom:8px">
+              <button class="btn-primary" id="cbg-generate">Generate JSON</button>
+              <button class="btn-secondary" id="cbg-copy">Copy</button>
+            </div>
+            <textarea id="cbg-output" class="ih-snippet" style="min-height:200px" placeholder="Generated recipe JSON appears here..." readonly></textarea>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- ── Toast Notification Container ────────────────────────── -->
@@ -2266,7 +2332,7 @@
       // showPanel() lives in outer scope so Research, Report, and DataSources
       // all share one dispatcher. Never move this into an IIFE.
       function showPanel(panelId) {
-        ['report-panel', 'datasources-panel', 'datapoints-panel', 'integration-hub-panel'].forEach((id) => {
+        ['report-panel', 'datasources-panel', 'datapoints-panel', 'integration-hub-panel', 'cookbook-panel'].forEach((id) => {
           const el = $(id);
           if (el) el.classList.add('hidden');
         });
@@ -3741,6 +3807,286 @@
           // Expose to initPanel so the panel is loaded on integration-hub open
           window.__nbpLoadParams = loadNbpParams;
         })(); // end NBP Monitor IIFE
+      })();
+
+      // ── Cookbook Panel ────────────────────────────────────────────
+      (function () {
+        const navCookbook = $('nav-cookbook');
+        const panel = $('cookbook-panel');
+        if (!navCookbook || !panel) return;
+
+        const healthEl = $('cb-health');
+        const resultsEl = $('cb-results');
+        const searchInput = $('cb-search-input');
+
+        const generatorTitle = $('cbg-title');
+        const generatorDomain = $('cbg-domain');
+        const generatorTags = $('cbg-tags');
+        const generatorProblem = $('cbg-problem');
+        const generatorExpected = $('cbg-expected');
+        const generatorSteps = $('cbg-steps');
+        const generatorOutput = $('cbg-output');
+
+        let serviceActions = [];
+
+        function escLocal(str) {
+          return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
+
+        function slugify(value) {
+          return String(value || '')
+            .toLowerCase()
+            .replace(/[äöüß]/g, (m) => ({ ä: 'ae', ö: 'oe', ü: 'ue', ß: 'ss' }[m] || m))
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .slice(0, 80);
+        }
+
+        function actionOptions(selected) {
+          return ['<option value="">Select action…</option>']
+            .concat(
+              serviceActions.map((entry) => {
+                const value = escLocal(entry.action);
+                const isSelected = selected === entry.action ? 'selected' : '';
+                const rest = entry.rest ? ` (${escLocal(entry.rest)})` : '';
+                return `<option value="${value}" ${isSelected}>${value}${rest}</option>`;
+              })
+            )
+            .join('');
+        }
+
+        function addGeneratorStep(initial = {}) {
+          const row = document.createElement('div');
+          row.className = 'dynamic-row';
+          row.innerHTML = `
+            <div class="form-field" style="max-width:120px;min-width:90px">
+              <label>Step</label>
+              <input class="cbg-step-number" type="number" min="1" value="${escLocal(String(initial.step || generatorSteps.children.length + 1))}" />
+            </div>
+            <div class="form-field" style="min-width:320px;flex:2">
+              <label>Action</label>
+              <select class="cbg-step-action">${actionOptions(initial.action)}</select>
+            </div>
+            <div class="form-field" style="min-width:260px;flex:2">
+              <label>Description</label>
+              <input class="cbg-step-description" type="text" value="${escLocal(initial.description || '')}" placeholder="What does this step do?" />
+            </div>
+            <div class="form-field" style="min-width:300px;flex:2">
+              <label>Params JSON</label>
+              <input class="cbg-step-params" type="text" value="${escLocal(initial.paramsText || '{}')}" placeholder='{"query": null, "limit": 3}' />
+            </div>
+            <button class="dynamic-row-remove" title="Remove step">✕</button>
+          `;
+
+          row.querySelector('.dynamic-row-remove')?.addEventListener('click', () => row.remove());
+          generatorSteps.appendChild(row);
+        }
+
+        function parseParamsJson(raw) {
+          const text = String(raw || '').trim();
+          if (!text) return {};
+          return JSON.parse(text);
+        }
+
+        function buildRecipeFromForm() {
+          const title = generatorTitle.value.trim();
+          const domain = generatorDomain.value.trim();
+          const problem = generatorProblem.value.trim();
+          const expectedResult = generatorExpected.value.trim();
+          const tags = generatorTags.value
+            .split(',')
+            .map((tag) => tag.trim())
+            .filter(Boolean);
+
+          if (!title || !domain || !problem || !expectedResult) {
+            throw new Error('Title, Domain, Problem and Expected Result are required.');
+          }
+
+          const process = [];
+          generatorSteps.querySelectorAll('.dynamic-row').forEach((row) => {
+            const step = Number(row.querySelector('.cbg-step-number')?.value || 0);
+            const action = row.querySelector('.cbg-step-action')?.value || '';
+            const description = row.querySelector('.cbg-step-description')?.value || '';
+            const paramsText = row.querySelector('.cbg-step-params')?.value || '{}';
+
+            if (!step || !action || !description) return;
+            const match = serviceActions.find((entry) => entry.action === action);
+            process.push({
+              step,
+              service: action.split('.')[0],
+              action,
+              restPath: match?.rest || '',
+              params: parseParamsJson(paramsText),
+              description,
+            });
+          });
+
+          if (!process.length) {
+            throw new Error('Add at least one valid step.');
+          }
+
+          process.sort((a, b) => a.step - b.step);
+
+          return {
+            id: slugify(title),
+            title,
+            domain,
+            tags,
+            problem,
+            process,
+            expectedResult,
+            prerequisites: [],
+          };
+        }
+
+        function renderRecipes(data) {
+          const rows = Array.isArray(data) ? data : [];
+          if (!rows.length) {
+            resultsEl.innerHTML = '<div style="color:var(--text-muted);font-size:.82rem">No recipes found.</div>';
+            return;
+          }
+
+          resultsEl.innerHTML = rows
+            .map((recipe) => {
+              const score = recipe.score != null ? ` · score ${recipe.score}` : '';
+              const related = Array.isArray(recipe.relatedRecipes) && recipe.relatedRecipes.length
+                ? `<div style="font-size:.76rem;color:var(--text-muted);margin-top:4px">Related: ${recipe.relatedRecipes.join(', ')}</div>`
+                : '';
+              const actions = Array.isArray(recipe.process)
+                ? recipe.process.map((step) => step.action).filter(Boolean).join(' → ')
+                : '';
+
+              return `
+                <div class="dynamic-row" style="display:block">
+                  <div class="val-result-header" style="margin-bottom:6px">
+                    <span class="decision-badge ${recipe.status === 'broken' ? 'rejected' : recipe.status === 'degraded' ? 'conditional' : 'approved'}">${escLocal(recipe.status || 'valid')}</span>
+                    <span class="val-result-title">${escLocal(recipe.title || recipe.id)}${escLocal(score)}</span>
+                  </div>
+                  <div style="font-size:.82rem;color:var(--text-muted)">${escLocal(recipe.problem || '')}</div>
+                  <div style="font-size:.78rem;margin-top:6px"><strong>Actions:</strong> ${escLocal(actions || 'n/a')}</div>
+                  ${related}
+                </div>
+              `;
+            })
+            .join('');
+        }
+
+        async function refreshHealth() {
+          try {
+            const res = await apiGet('/api/cookbook/health');
+            const data = res?.data || {};
+            const summary = data.validationSummary || {};
+            healthEl.textContent = `Recipes: ${data.total || 0} · valid ${summary.valid || 0} · degraded ${summary.degraded || 0} · broken ${summary.broken || 0} · checked ${data.lastValidatedAt || 'n/a'}`;
+          } catch (err) {
+            healthEl.textContent = `Cookbook health unavailable: ${err.message}`;
+          }
+        }
+
+        async function loadServices() {
+          const res = await apiGet('/api/cookbook/services');
+          serviceActions = Array.isArray(res?.data) ? res.data : [];
+          generatorSteps.querySelectorAll('.cbg-step-action').forEach((el) => {
+            const selected = el.value;
+            el.innerHTML = actionOptions(selected);
+            el.value = selected;
+          });
+        }
+
+        async function loadRecipes() {
+          const res = await apiGet('/api/cookbook');
+          renderRecipes(res?.data || []);
+        }
+
+        async function runSearch() {
+          const query = searchInput.value.trim();
+          if (!query || query.length < 5) {
+            toast('⚠️ Please enter at least 5 characters.', 'error');
+            return;
+          }
+          const res = await apiFetch('/api/cookbook/search', { query, limit: 8 });
+          renderRecipes(res?.data || []);
+        }
+
+        navCookbook.addEventListener('click', async (e) => {
+          e.preventDefault();
+          showPanel('cookbook-panel');
+          await Promise.all([refreshHealth(), loadServices(), loadRecipes()]);
+          if (!generatorSteps.children.length) addGeneratorStep();
+        });
+
+        $('cb-search-btn')?.addEventListener('click', async () => {
+          try {
+            await runSearch();
+          } catch (err) {
+            toast('❌ Search failed: ' + err.message, 'error');
+          }
+        });
+
+        $('cb-search-input')?.addEventListener('keydown', async (ev) => {
+          if (ev.key !== 'Enter') return;
+          ev.preventDefault();
+          try {
+            await runSearch();
+          } catch (err) {
+            toast('❌ Search failed: ' + err.message, 'error');
+          }
+        });
+
+        $('cb-refresh-btn')?.addEventListener('click', async () => {
+          try {
+            await Promise.all([refreshHealth(), loadRecipes()]);
+            toast('✅ Cookbook refreshed');
+          } catch (err) {
+            toast('❌ Refresh failed: ' + err.message, 'error');
+          }
+        });
+
+        $('cb-validate-btn')?.addEventListener('click', async () => {
+          try {
+            await apiFetch('/api/cookbook/validate', {});
+            await Promise.all([refreshHealth(), loadRecipes()]);
+            toast('✅ Validation completed');
+          } catch (err) {
+            toast('❌ Validation failed: ' + err.message, 'error');
+          }
+        });
+
+        $('cbg-add-step')?.addEventListener('click', () => addGeneratorStep());
+        $('cbg-reload-services')?.addEventListener('click', async () => {
+          try {
+            await loadServices();
+            toast('✅ Service list reloaded');
+          } catch (err) {
+            toast('❌ Cannot load services: ' + err.message, 'error');
+          }
+        });
+
+        $('cbg-generate')?.addEventListener('click', () => {
+          try {
+            const recipe = buildRecipeFromForm();
+            generatorOutput.value = JSON.stringify(recipe, null, 2) + ',';
+          } catch (err) {
+            toast('❌ Generator error: ' + err.message, 'error');
+          }
+        });
+
+        $('cbg-copy')?.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(generatorOutput.value || '');
+            toast('✅ Recipe JSON copied');
+          } catch {
+            toast('⚠️ Copy failed', 'error');
+          }
+        });
+
+        $('nav-report')?.addEventListener('click', () => hide(panel));
+        $('nav-datasources')?.addEventListener('click', () => hide(panel));
+        $('nav-reset')?.addEventListener('click', () => hide(panel));
       })();
 
       // ── Load from shareable URL ────────────────────────────────────

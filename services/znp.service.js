@@ -287,11 +287,13 @@ module.exports = {
           items: {
             type: 'object',
             props: {
-              mastrNummer: { type: 'string' },
-              capacity:    { type: 'number', convert: true },  // kW — accepts string from form-data
-              assetType:   { type: 'string', optional: true },
-              lat:         { type: 'number', optional: true, convert: true },
-              lon:         { type: 'number', optional: true, convert: true },
+              mastrNummer:      { type: 'string' },
+              capacity:         { type: 'number', convert: true },  // kW — accepts string from form-data
+              assetType:        { type: 'string', optional: true },
+              lat:              { type: 'number', optional: true, convert: true },
+              lon:              { type: 'number', optional: true, convert: true },
+              status:           { type: 'string', optional: true },
+              commissioningDate:{ type: 'string', optional: true },
             },
           },
           min: 1,
@@ -331,11 +333,13 @@ module.exports = {
                       type: 'object',
                       required: ['mastrNummer', 'capacity'],
                       properties: {
-                        mastrNummer: { type: 'string', example: 'SEE900123456789' },
-                        capacity:    { type: 'number', example: 10.5, description: 'kW' },
-                        assetType:   { type: 'string', example: 'solar' },
-                        lat:         { type: 'number', example: 49.491 },
-                        lon:         { type: 'number', example: 8.471 },
+                        mastrNummer:      { type: 'string', example: 'SEE900123456789' },
+                        capacity:         { type: 'number', example: 10.5, description: 'kW' },
+                        assetType:        { type: 'string', example: 'solar' },
+                        lat:              { type: 'number', example: 49.491 },
+                        lon:              { type: 'number', example: 8.471 },
+                        status:           { type: 'string', example: 'InBetrieb', nullable: true, description: 'MaStR Betriebsstatus (optional, unvalidated string — MaStR date formats vary).' },
+                        commissioningDate:{ type: 'string', example: '2024-06-15', nullable: true, description: 'Commissioning date string (unvalidated — MaStR date formats vary).' },
                       },
                     },
                   },
@@ -394,13 +398,15 @@ module.exports = {
 
           // Add asset node with full attributes
           graph.addNode(nodeKey, {
-            type: 'mastr_asset',
-            mastrNummer: asset.mastrNummer,
-            capacity: asset.capacity,        // kW
-            assetType: asset.assetType || 'unknown',
-            lat: asset.lat ?? null,
-            lon: asset.lon ?? null,
-            layer: 0,
+            type:              'mastr_asset',
+            mastrNummer:       asset.mastrNummer,
+            capacity:          asset.capacity,        // kW
+            assetType:         asset.assetType || 'unknown',
+            lat:               asset.lat ?? null,
+            lon:               asset.lon ?? null,
+            layer:             0,
+            status:            asset.status || null,
+            commissioningDate: asset.commissioningDate || null,
           });
           nodesAdded++;
 
@@ -1088,6 +1094,157 @@ module.exports = {
           extracted,
           hasFlexibleNav: extracted.hasFlexibleNav === true,
           graphStats:     { nodes: graph.order, edges: graph.size },
+        };
+      },
+    },
+
+    /**
+     * getProjectAssets — Return a paginated, filtered list of Layer 0 MaStR assets.
+     *
+     * GET /api/znp/projects/:projectId/assets
+     */
+    getProjectAssets: {
+      rest: 'GET /projects/:projectId/assets',
+      params: {
+        projectId:      { type: 'string' },
+        status:         { type: 'string', optional: true },
+        assetType:      { type: 'string', optional: true },
+        limit:          { type: 'number', integer: true, default: 100, max: 1000, convert: true },
+        offset:         { type: 'number', integer: true, default: 0, min: 0, convert: true },
+        sortByCapacity: { type: 'enum', values: ['asc', 'desc'], default: 'desc', optional: true },
+      },
+      openapi: {
+        summary: 'List MaStR assets in a ZNP project (paginated)',
+        tags: ['Zielnetzplanung (ZNP)'],
+        description:
+          'Returns the Layer 0 MaStR asset nodes from the project graph. ' +
+          'Supports filtering by status and assetType, sorting by capacity, and ' +
+          'offset/limit pagination. Strategic assumption nodes (Layer 2.5) are excluded — ' +
+          'use a dedicated assumptions endpoint for those.',
+        parameters: [
+          {
+            name: 'projectId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000001' },
+          },
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'InBetrieb' },
+            description: 'Filter by asset status (exact string match).',
+          },
+          {
+            name: 'assetType',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'solar' },
+            description: 'Filter by asset type (exact string match).',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 100, maximum: 1000, example: 100 },
+            description: 'Maximum number of results to return (1–1000).',
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 0, example: 0 },
+            description: 'Zero-based offset for pagination.',
+          },
+          {
+            name: 'sortByCapacity',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc', example: 'desc' },
+            description: 'Sort direction by capacity (kW). Default: desc (highest capacity first).',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Paginated asset list',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    totalCount: { type: 'integer', example: 42 },
+                    offset:     { type: 'integer', example: 0 },
+                    limit:      { type: 'integer', example: 100 },
+                    assets: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          mastrNummer:       { type: 'string',  example: 'SEE900123456789' },
+                          capacity:          { type: 'number',  example: 10.5 },
+                          assetType:         { type: 'string',  example: 'solar' },
+                          status:            { type: 'string',  example: 'InBetrieb',   nullable: true },
+                          commissioningDate: { type: 'string',  example: '2024-06-15',  nullable: true },
+                          lat:               { type: 'number',  example: 49.491,        nullable: true },
+                          lon:               { type: 'number',  example: 8.471,         nullable: true },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const {
+          projectId,
+          status,
+          assetType,
+          limit  = 100,
+          offset = 0,
+          sortByCapacity = 'desc',
+        } = ctx.params;
+
+        const { graph } = this.getProject(projectId); // throws 404 if not found
+
+        // Collect all mastr_asset nodes (Layer 0 only — excludes assumptions, buildings, etc.)
+        const allAssets = [];
+        graph.forEachNode((_nodeKey, attrs) => {
+          if (attrs.type !== 'mastr_asset') return;
+          allAssets.push(attrs);
+        });
+
+        // Apply optional filters
+        let filtered = allAssets;
+        if (status !== undefined && status !== null) {
+          filtered = filtered.filter((a) => a.status === status);
+        }
+        if (assetType !== undefined && assetType !== null) {
+          filtered = filtered.filter((a) => a.assetType === assetType);
+        }
+
+        // Sort by capacity (ascending or descending)
+        const dir = sortByCapacity === 'asc' ? 1 : -1;
+        filtered.sort((a, b) => dir * (a.capacity - b.capacity));
+
+        const totalCount = filtered.length;
+        const page = filtered.slice(offset, offset + limit);
+
+        return {
+          totalCount,
+          offset,
+          limit,
+          assets: page.map((a) => ({
+            mastrNummer:       a.mastrNummer,
+            capacity:          a.capacity,
+            assetType:         a.assetType,
+            status:            a.status ?? null,
+            commissioningDate: a.commissioningDate ?? null,
+            lat:               a.lat ?? null,
+            lon:               a.lon ?? null,
+          })),
         };
       },
     },

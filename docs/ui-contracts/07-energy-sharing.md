@@ -1,8 +1,8 @@
 # UI Contract: Energy Sharing Validation Page
 
 > **Page ID:** `energy-sharing`
-> **Version:** 0.20.4
-> **Last updated:** 2026-04-04
+> **Version:** 0.20.6
+> **Last updated:** 2026-04-06
 > **Legal basis:** § 42c EnWG — Regulatory deadline: 01.06.2026
 
 ---
@@ -104,13 +104,28 @@ UI MUST validate that `sum(consumers[].sharePercent) === 100` before submission.
 
 Same as [Grid Connection](06-grid-connection.md) but with Energy Sharing decisions:
 
-| Decision | Label | Colour |
-|----------|-------|--------|
+| API-Response-Wert | Label | Colour |
+|-------------------|-------|--------|
 | `APPROVED` | "Energieverbrauch genehmigt" | green |
 | `APPROVED_WITH_CONDITIONS` | "Genehmigt mit Auflagen" | yellow |
 | `REJECTED_STRUCTURAL` | "Strukturell abgelehnt" | red |
 | `REJECTED_GENERATOR_INVALID` | "Anlage nicht qualifiziert" | red |
 | `REJECTED_OTHER` | "Abgelehnt (sonstig)" | red |
+
+> **Wichtig — Präfix-Konvention:** Die JavaScript-Konstantennamen im Backend tragen
+> ein `ES_`-Präfix (z.B. `ES_REJECTED_STRUCTURAL`), aber die **API-Responses
+> verwenden die Werte ohne Präfix** (`REJECTED_STRUCTURAL`). Dies gilt für alle
+> Energy-Sharing-Finding-Codes und Decision-Werte.
+>
+> Matching im Frontend immer gegen den **Wert** (ohne Präfix), nicht gegen den
+> Konstantennamen:
+> ```typescript
+> // ✅ Korrekt
+> decision === 'REJECTED_STRUCTURAL'
+> // ❌ Falsch
+> decision === 'ES_REJECTED_STRUCTURAL'
+> ```
+> Verifizierte Enum-Werte: `docs/agent-decision-enums.ts`
 
 ### Generator / Consumer Input Table
 

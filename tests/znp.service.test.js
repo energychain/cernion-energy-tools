@@ -914,4 +914,94 @@ describe('ZNP Service', () => {
     });
   });
 
+  // ─── getProjectAssets ───────────────────────────────────────────────────────────────────────
+
+  describe('getProjectAssets', () => {
+    let projectId;
+
+    beforeEach(async () => {
+      const result = await broker.call('znp.createProject', { bbox: makeBbox() });
+      projectId = result.projectId;
+    });
+
+    it('returns 404 for unknown projectId', async () => {
+      await expect(
+        broker.call('znp.getProjectAssets', { projectId: 'does-not-exist' })
+      ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
+    });
+
+    it('returns all assets with the correct response shape and field set', async () => {
+      const assets = makeAssets(3);
+      assets[0].status = 'InBetrieb';
+      assets[0].commissioningDate = '2022-01-15';
+      await broker.call('znp.addLayer0', { projectId, assets });
+
+      const result = await broker.call('znp.getProjectAssets', { projectId });
+      expect(result.totalCount).toBe(3);
+      expect(result.offset).toBe(0);
+      expect(result.limit).toBe(100);
+      expect(result.assets).toHaveLength(3);
+
+      const first = result.assets[0];
+      expect(first).toHaveProperty('mastrNummer');
+      expect(first).toHaveProperty('capacity');
+      expect(first).toHaveProperty('assetType');
+      expect(first).toHaveProperty('status');
+      expect(first).toHaveProperty('commissioningDate');
+      expect(first).toHaveProperty('lat');
+      expect(first).toHaveProperty('lon');
+    });
+
+    it('sorts by capacity desc by default (highest capacity first)', async () => {
+      await broker.call('znp.addLayer0', { projectId, assets: makeAssets(3, 10) });
+      const result = await broker.call('znp.getProjectAssets', { projectId, sortByCapacity: 'desc' });
+      const caps = result.assets.map((a) => a.capacity);
+      expect(caps[0]).toBeGreaterThanOrEqual(caps[1]);
+      expect(caps[1]).toBeGreaterThanOrEqual(caps[2]);
+    });
+
+    it('sorts by capacity asc when specified', async () => {
+      await broker.call('znp.addLayer0', { projectId, assets: makeAssets(3, 10) });
+      const result = await broker.call('znp.getProjectAssets', { projectId, sortByCapacity: 'asc' });
+      const caps = result.assets.map((a) => a.capacity);
+      expect(caps[0]).toBeLessThanOrEqual(caps[1]);
+      expect(caps[1]).toBeLessThanOrEqual(caps[2]);
+    });
+
+    it('filters by status — returns only matching nodes', async () => {
+      const assets = makeAssets(3);
+      assets[0].status = 'In Planung';
+      assets[1].status = 'InBetrieb';
+      // assets[2].status is not set → stored as null
+      await broker.call('znp.addLayer0', { projectId, assets });
+
+      const result = await broker.call('znp.getProjectAssets', { projectId, status: 'In Planung' });
+      expect(result.totalCount).toBe(1);
+      expect(result.assets[0].status).toBe('In Planung');
+    });
+
+    it('supports offset/limit pagination', async () => {
+      await broker.call('znp.addLayer0', { projectId, assets: makeAssets(5, 10) });
+      const result = await broker.call('znp.getProjectAssets', { projectId, limit: 2, offset: 2 });
+      expect(result.totalCount).toBe(5);
+      expect(result.assets).toHaveLength(2);
+      expect(result.offset).toBe(2);
+      expect(result.limit).toBe(2);
+    });
+
+    it('excludes strategic assumption nodes (type !== mastr_asset)', async () => {
+      await broker.call('znp.addLayer0', { projectId, assets: makeAssets(2) });
+      // Manually inject an assumption node directly into the in-memory graph
+      const svc       = broker.services.find((s) => s.name === 'znp');
+      const { graph } = svc.activeGraphs.get(projectId);
+      graph.addNode('assumption:excl-test', {
+        type: 'assumption', capacity: 9999, hasFlexibleNav: false, layer: 2.5,
+      });
+
+      const result = await broker.call('znp.getProjectAssets', { projectId });
+      expect(result.totalCount).toBe(2); // only the 2 mastr_asset nodes
+      expect(result.assets.every((a) => a.mastrNummer !== undefined)).toBe(true);
+    });
+  });
+
 });

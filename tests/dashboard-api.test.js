@@ -609,6 +609,7 @@ describe('dashboard-api.service', () => {
         expect(agent).toHaveProperty('label');
         expect(agent).toHaveProperty('lastRun');
         expect(agent).toHaveProperty('keyMetric');
+        expect(agent).toHaveProperty('findingsCount');
         expect(agent).toHaveProperty('recentReports');
         expect(Array.isArray(agent.recentReports)).toBe(true);
       }
@@ -620,6 +621,7 @@ describe('dashboard-api.service', () => {
 
       expect(es.lastRun).toBeNull();
       expect(es.keyMetric).toBeNull();
+      expect(es.findingsCount).toBeNull();
       expect(es.recentReports).toHaveLength(0);
     });
 
@@ -629,6 +631,7 @@ describe('dashboard-api.service', () => {
 
       expect(mqEntry.lastRun).toBe('2026-03-31T10:00:00Z');
       expect(mqEntry.keyMetric).toEqual({ name: 'qualityScore', value: 78 });
+      expect(mqEntry.findingsCount).toEqual({ info: 12, warning: 18, error: 5 });
       expect(mqEntry.recentReports).toHaveLength(1);
     });
 
@@ -654,6 +657,7 @@ describe('dashboard-api.service', () => {
       expect(result._errors).toContain('mastr-quality.list');
       expect(mqEntry.lastRun).toBeNull();
       expect(mqEntry.keyMetric).toBeNull();
+      expect(mqEntry.findingsCount).toBeNull();
     });
   });
 

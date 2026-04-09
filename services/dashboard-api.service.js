@@ -432,6 +432,15 @@ module.exports = {
                           label:         { type: 'string', example: 'MaStR Datenqualität' },
                           lastRun:       { type: 'string', format: 'date-time', nullable: true },
                           keyMetric:     { type: 'object', nullable: true },
+                          findingsCount: {
+                            type: 'object', nullable: true,
+                            description: 'Finding counts from latest report (null for agents without findings pattern)',
+                            properties: {
+                              info:    { type: 'integer', example: 12 },
+                              warning: { type: 'integer', example: 18 },
+                              error:   { type: 'integer', example: 5 },
+                            },
+                          },
                           recentReports: { type: 'array' },
                         },
                       },
@@ -853,7 +862,7 @@ module.exports = {
      */
     buildAgentEntry(type, label, reports, metricKey) {
       if (!reports || !reports.length) {
-        return { type, label, lastRun: null, keyMetric: null, recentReports: [] };
+        return { type, label, lastRun: null, keyMetric: null, findingsCount: null, recentReports: [] };
       }
       const latest     = reports[0];
       const metricValue = latest[metricKey] ?? null;
@@ -862,6 +871,7 @@ module.exports = {
         label,
         lastRun:       latest.createdAt || null,
         keyMetric:     metricValue != null ? { name: metricKey, value: metricValue } : null,
+        findingsCount: latest.findingsCount || null,
         recentReports: reports.map((r) => ({
           id:         r.id,
           executedAt: r.createdAt,

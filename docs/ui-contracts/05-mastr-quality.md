@@ -1,8 +1,8 @@
 # UI Contract: MaStR Data Quality Audit Page
 
 > **Page ID:** `mastr-quality`
-> **Version:** 0.20.4
-> **Last updated:** 2026-04-04
+> **Version:** 0.20.7
+> **Last updated:** 2026-04-09
 
 ---
 
@@ -13,6 +13,7 @@
 | `POST` | `/api/mastr-quality/audit` | Start a new 8-step MaStR quality audit (sync, 200) |
 | `GET`  | `/api/mastr-quality/audits`     | List past audits (paginated) |
 | `GET`  | `/api/mastr-quality/audits/:id` | Get a specific audit by ID |
+| `GET`  | `/api/mastr-quality/audits/:id/findings/:findingId/details` | Get full standardized detail payload for one finding |
 | `DELETE` | `/api/mastr-quality/audits/:id` | Delete an audit record — ⚠ not yet implemented (see CR-0003) |
 
 ---
@@ -58,12 +59,65 @@ Returns the full audit result immediately. Execution may take up to 180 seconds 
     "totalInstallations": 312,
     "installationsByType": { "solar": 201, "wind": 47, "storage": 29, "biomass": 35 },
     "findingsCount": { "info": 12, "warning": 18, "error": 5 },
+    "missingNapFindings": 8,
+    "missingNapDistinctAssets": 6,
+    "missingNapRedispatchFindings": 4,
+    "missingNapRedispatchDistinctAssets": 4,
+    "napFindings": {
+      "missingNapFindings": 8,
+      "missingNapDistinctAssets": 6,
+      "missingNapRedispatchFindings": 4,
+      "missingNapRedispatchDistinctAssets": 4,
+      "distinctAssetsAffected": 6,
+      "perAssetFindingCount": {
+        "SEE900000001": 2,
+        "SEE900000002": 1
+      },
+      "duplicateByAsset": {
+        "SEE900000001": 2
+      }
+    },
     "skippedSteps": [],
     "durationMs":   45230
   },
   "findings": [
-    { "id": "F-4-001", "step": 4, "stepName": "capacityAnomalies", "finding": "MQ_ZERO_CAPACITY", "severity": "error",   "title": "...", "reason": "...", "context": { "mastrNummer": "SEE..." }, "recommendation": "..." },
-    { "id": "F-5-001", "step": 5, "stepName": "connectionPoints",  "finding": "MQ_MISSING_NAP",   "severity": "error",   "title": "...", "reason": "...", "context": { "mastrNummer": "SEE..." }, "recommendation": "..." }
+    {
+      "id": "F-4-001",
+      "step": 4,
+      "stepName": "capacityAnomalies",
+      "finding": "MQ_ZERO_CAPACITY",
+      "severity": "error",
+      "title": "...",
+      "reason": "...",
+      "context": {
+        "mastrNummer": "SEE...",
+        "details": {
+          "installation": {
+            "mastrNummer": "SEE...",
+            "einheitId": "EE...",
+            "technology": "solar",
+            "status": "35",
+            "commissioningDate": "2020-01-15",
+            "brutto": 200,
+            "operatorName": null
+          },
+          "connection": {
+            "napId": "NAP...",
+            "napMastrNummer": "NAP...",
+            "spannungsebene": "MS",
+            "netzbetreiberName": null
+          },
+          "measurement": {
+            "melo": "DE...",
+            "value": { "brutto": 0, "netto": 0 },
+            "rawValue": null,
+            "resolvedValue": "DE...",
+            "valueSource": null
+          }
+        }
+      },
+      "recommendation": "..."
+    }
   ],
   "steps": [
     { "step": 1, "name": "identity",           "status": "success", "durationMs": 150,  "findingsCount": 1 },
@@ -82,6 +136,112 @@ Returns the full audit result immediately. Execution may take up to 180 seconds 
 ---
 
 ## UI Elements
+
+## Standardized finding detail fields (stable contract)
+
+For installation-related findings, the backend enriches `findings[].context.details` with stable field names and explicit null-semantics. Each detail object provides:
+
+### Enriched Field Mapping (v0.20.8+)
+
+- `details.installation`
+  - `mastrNummer` — EinheitMastrNummer from source
+  - `einheitId` — unique EinheitId from source
+  - `technology` — installation type (solar, wind, storage, biomass, other)
+  - `status` — EinheitBetriebsstatus (35=InBetrieb, 31=InPlanung, 37=VoruebergehendStillgelegt, 38=DauerhaftStillgelegt)
+  - `commissioningDate` — Inbetriebnahmedatum (ISO 8601 or null if missing)
+  - `brutto` — Bruttoleistung in kW (numeric or null)
+  - `operatorName` — AnlagenbetreiberName; sourced from explicit field or fallback (owner data); null if not found
+  - `operatorNameSource` — where operatorName came from: `'AnlagenbetreiberName'`, `'owner-field'`, `'AnlagenbetreiberMastrNummer'`, or null
+  - `operatorMastrNummer` — AnlagenbetreiberMastrNummer if operator name was not resolvable but ID exists
+
+- `details.connection`
+  - `napId` — MaStR ID of network connection point (SAN/GAN)
+  - `napMastrNummer` — same as napId (alias for clarity)
+  - `spannungsebene` — voltage level code of NAP (`'354'`=Niederspannung, `'352'`=Mittelspannung, `'347'`=Hochspannung, etc.); sourced from NAP data or inferred from capacity
+  - `spannungsebeneLabel` — human-readable value derived from `spannungsebene` (`Niederspannung (LV)`, `Mittelspannung (MV)`, `Hochspannung (HV)`, `Höchstspannung (EHV)`)
+  - `spannungsebeneSource` — where spannungsebene came from: `'nap.Spannungsebene'`, `'napData'`, `'inferred-NS'`/`'MS'`/`'HS'`, or null
+  - `netzbetreiberName` — operator/grid company managing the NAP; sourced from NAP data or null
+  - `netzbetreiberNameSource` — where netzbetreiberName came from: `'nap.NetzbetreiberName'`, `'napData'`, `'napId'`, or null
+  - `netzbetreiberMastrNummer` — MaStR ID of grid operator if name was not resolvable but NAP ID exists
+
+- `details.measurement`
+  - `melo` — Messlokations-ID (meter location in 33-char format) or null
+  - `value` — contextual measurement value (may be object for multi-field readings like `{brutto, netto}`)
+  - `rawValue` — original/unprocessed value before normalization
+  - `resolvedValue` — melo ID resolved to its canonical form
+  - `valueSource` — provenance of measurement: `'MeLo'`, `'NAP'`, `'datapoint'`, `'context'`, or null
+
+### Null semantics & data source transparency
+
+- **null = genuine data gap**: Field is `null` only when:
+  - The source dataset (MaStR, NAP, meter registry) genuinely does not contain the value.
+  - The value was not resolvable via any fallback path.
+  - The installation is incomplete in the registry.
+
+- **Source fields** (`*Source`, `*MastrNummer`): Attached to fields that may be resolved from multiple sources or fallbacks. Allows UI to:
+  - Display confidence ("sourced from ANB" vs. "inferred from capacity")
+  - Recommend follow-up actions (e.g., "Register grid operator MaStR ID for this NAP")
+
+- **Example interpretation**:
+  - `operatorName: "Max Müller"` + `operatorNameSource: "AnlagenbetreiberName"` → explicitly registered owner name (high confidence)
+  - `operatorName: null` + `operatorMastrNummer: "GNB9999..."` → operator ID available but name not registered (recommend MCP lookup)
+  - `operatorName: null` + `operatorNameSource: null` → no operator info available
+
+- **Legacy audits** (created before v0.20.8): May have no `details` or incomplete details. UI should gracefully fallback to compact context fields at root level.
+
+### Example Detail Response (GET /api/mastr-quality/audits/:id/findings/:findingId/details)
+
+```json
+{
+  "success": true,
+  "auditId": "550e8400-e29b-41d4-a716-446655440000",
+  "findingId": "F-4-001",
+  "finding": {
+    "id": "F-4-001",
+    "step": 4,
+    "stepName": "capacityAnomalies",
+    "finding": "MQ_ZERO_CAPACITY",
+    "severity": "error",
+    "title": "Installation has zero capacity",
+    "reason": "Bruttoleistung is 0 kW, suggesting a data entry error.",
+    "context": {
+      "mastrNummer": "SEE953991032447",
+      "details": {
+        "installation": {
+          "mastrNummer": "SEE953991032447",
+          "einheitId": "EE20240001",
+          "technology": "solar",
+          "status": "35",
+          "commissioningDate": "2020-06-15",
+          "brutto": 0,
+          "operatorName": "Müller Energiebau GmbH",
+          "operatorNameSource": "AnlagenbetreiberName",
+          "operatorMastrNummer": null
+        },
+        "connection": {
+          "napId": "SAN989468825632",
+          "napMastrNummer": "SAN989468825632",
+          "spannungsebene": "352",
+          "spannungsebeneLabel": "Mittelspannung (MV)",
+          "spannungsebeneSource": "nap.Spannungsebene",
+          "netzbetreiberName": "Stadtwerke Heidelberg Netze GmbH",
+          "netzbetreiberNameSource": "nap.NetzbetreiberName",
+          "netzbetreiberMastrNummer": "GNB4005896"
+        },
+        "measurement": {
+          "melo": "DE000277691200000000000021A129569",
+          "value": null,
+          "rawValue": null,
+          "resolvedValue": "DE000277691200000000000021A129569",
+          "valueSource": "MeLo"
+        }
+      }
+    },
+    "recommendation": "Verify actual capacity with operator; update Bruttoleistung in MaStR."
+  },
+  "details": { ... }  // entire details object repeated for convenience
+}
+```
 
 ### Quality Score Gauge
 
@@ -117,6 +277,18 @@ Filterable table of `findings`:
 
 Render `summary.installationsByType` entries as count chips alongside `summary.totalInstallations` as the total. Keys present depend on which installation types exist in the operator's portfolio.
 
+### NAP KPI interpretation (important)
+
+For NAP-related issues, UI must distinguish **findings/events** from **distinct affected assets**:
+
+- `summary.missingNapFindings` = number of `MQ_MISSING_NAP` findings
+- `summary.missingNapDistinctAssets` = distinct `mastrNummer` in `MQ_MISSING_NAP`
+- `summary.missingNapRedispatchFindings` = number of `MQ_REDISPATCH_NO_NAP` findings
+- `summary.missingNapRedispatchDistinctAssets` = distinct `mastrNummer` in `MQ_REDISPATCH_NO_NAP`
+- `summary.napFindings.distinctAssetsAffected` = union of distinct assets across both codes
+
+`summary.napFindings.perAssetFindingCount` and `summary.napFindings.duplicateByAsset` can be used to make overlaps (same installation with both scopes) explicit in the UI.
+
 ### Step Timeline
 
 Collapsible 8-step timeline showing which steps were run, skipped, or failed.
@@ -128,6 +300,7 @@ Collapsible 8-step timeline showing which steps were run, skipped, or failed.
 - **Run new audit**: opens a drawer with `gridOperatorId` input + optional `skipSteps` checkboxes (3–7 only).
 - **Execution progress**: spinner + "Running audit…" indicator during execution (up to 180 seconds); disable form while running.
 - **Finding code tooltip**: hover over code → description from [finding-codes endpoint](04-finding-codes.md).
+- **Finding drilldown**: optional lazy-load via `GET /api/mastr-quality/audits/:id/findings/:findingId/details` for full detail payload.
 - **Export findings CSV**: downloads `findings.csv` with all rows.
 - **Delete audit**: confirmation dialog → DELETE call.
 
