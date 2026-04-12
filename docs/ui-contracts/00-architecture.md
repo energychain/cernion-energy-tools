@@ -30,6 +30,7 @@
 | 11 | [11-nbp-monitor.md](11-nbp-monitor.md) | NBP Monitor panel | `GET /api/nbp-monitor/status` |
 | 12 | [12-auth.md](12-auth.md) | Token management | `GET /api/tokens` |
 | 13 | [13-shared-components.md](13-shared-components.md) | Shared UI components | Multiple |
+| 15 | [15-nova-decision-feed.md](15-nova-decision-feed.md) | NOVA Decision Feed panel | `GET /api/znp/projects/:projectId/nova/pending-decisions` |
 
 ---
 

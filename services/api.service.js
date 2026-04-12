@@ -230,8 +230,8 @@ module.exports = {
             'Data Layers are loaded iteratively: ' +
             'Layer 0 (MaStR assets), Layer 1 (OSM buildings — stub), Layer 2 (transformer loads — stub). ' +
             'All assets in Layer 0 connect to a virtual substation SUB_1 (MaStR has no topology). ' +
-            'Graph state is ephemeral (v1) — lost on service restart. ' +
-            'Project metadata (bbox, layer counts) is persisted in PouchDB.',
+            'Graph state is persisted in PouchDB (meta + graph split docs) and hydrated on service start. ' +
+            'Project metadata (bbox, layer counts) is persisted alongside graph topology.',
         },
         {
           name: 'Object Store',
@@ -518,7 +518,18 @@ module.exports = {
           'POST /znp/projects/:projectId/layer2': 'znp.addLayer2',
           'GET /znp/projects/:projectId/g-factor': 'znp.calculateGFactor',
           'GET /znp/projects/:projectId/assets': 'znp.getProjectAssets',
+
+          // NOVA Decision Feed (project-scoped Phase B endpoints)
+          'GET /znp/projects/:projectId/nova/pending-decisions': 'nova.pendingDecisions',
+          'POST /znp/projects/:projectId/nova/apply/:id': 'nova.apply',
+
           'GET /znp/projects/:projectId': 'znp.getProjectMeta',
+          'DELETE /znp/projects/:projectId': 'znp.deleteProject',
+
+          'GET /nova/stream': 'nova.stream',
+
+          // Asset override (stub endpoint for NOVA workflows)
+          'POST /assets/:assetId/override': 'assets.override',
 
           // Object Store — Generic namespaced document persistence (v0.20.5)
           // NOTE: /query sub-path must precede bare /:key to prevent route shadowing.

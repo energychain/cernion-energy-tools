@@ -1,5 +1,7 @@
 'use strict';
 
+const path = require('path');
+
 /**
  * ZNP — Zielnetzplanung Workspace API (v0.20.4)
  *
@@ -23,7 +25,8 @@
  *   MaStR contains no network topology. Re-wiring to real substations happens in
  *   Layer 1/2 when OSM or VNB structural data becomes available.
  * - Strategic Assumption nodes (layer 2.5) are injected via POST /assumptions.
- *   §14a flex-NAV nodes are excluded from peak load in calculateGFactor (g=0.0).
+ *   §14a flex-NAV nodes are throttled to realistic emergency minimum (g=0.45)
+ *   in calculateGFactor.
  *
  * Graph schema:
  *   Nodes:
@@ -43,10 +46,14 @@ const Graph = require('graphology');
 
 const jobStore = require('../src/job-store');
 const { appendLog } = require('../src/job-store');
-const { extractPeakLoadFromFile } = require('../src/znp-pdf-extractor');
+const {
+  extractLayer2CalibrationFromBuffer,
+  extractLayer2CalibrationFromFile,
+} = require('../src/znp-pdf-extractor');
 const { fetchBuildingsForBbox, mapAssetsToBuildings } = require('../src/znp-osm-buildings');
 const { detectClusters, computeGFactorAdjustment } = require('../src/znp-clustering-heuristics');
 const { generateStructured, SchemaType } = require('../src/llm-client');
+const { normaliseBoolFlag } = require('../src/redispatch-utils');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -237,6 +244,10 @@ module.exports = {
           createdAt,
           layers: [],
           layer1GFactorAdjustment: 1.0,  // updated by addLayer1 when clustering is computed
+          layer2CalibrationFactor: 0,
+          layer2MeasuredPeakLoadKw: 0,
+          layer2TransformerId: null,
+          layer2NominalCapacityKw: 0,
         });
 
         // Persist project metadata to PouchDB (znp:meta: — lightweight, no graph data)
@@ -248,6 +259,10 @@ module.exports = {
           createdAt,
           layers: [],
           layer1GFactorAdjustment: 1.0,
+          layer2CalibrationFactor: 0,
+          layer2MeasuredPeakLoadKw: 0,
+          layer2TransformerId: null,
+          layer2NominalCapacityKw: 0,
           nodeCount: graph.order,
           edgeCount: graph.size,
         };
@@ -294,6 +309,8 @@ module.exports = {
               lon:              { type: 'number', optional: true, convert: true },
               status:           { type: 'string', optional: true },
               commissioningDate:{ type: 'string', optional: true },
+              fernsteuerbarkeitDv: { type: 'boolean', optional: true, convert: true },
+              fernsteuerbarkeitSonstige: { type: 'boolean', optional: true, convert: true },
             },
           },
           min: 1,
@@ -340,6 +357,8 @@ module.exports = {
                         lon:              { type: 'number', example: 8.471 },
                         status:           { type: 'string', example: 'InBetrieb', nullable: true, description: 'MaStR Betriebsstatus (optional, unvalidated string — MaStR date formats vary).' },
                         commissioningDate:{ type: 'string', example: '2024-06-15', nullable: true, description: 'Commissioning date string (unvalidated — MaStR date formats vary).' },
+                        fernsteuerbarkeitDv: { type: 'boolean', example: true, nullable: true, description: 'Optional controlability marker from MaStR exports (stored as normalized boolean).' },
+                        fernsteuerbarkeitSonstige: { type: 'boolean', example: false, nullable: true, description: 'Optional fallback controlability marker from MaStR exports.' },
                       },
                     },
                   },
@@ -361,6 +380,7 @@ module.exports = {
       },
       async handler(ctx) {
         const { projectId, assets } = ctx.params;
+        await this.ensureProjectHydrated(projectId);
         const { graph } = this.getProject(projectId);
 
         let nodesAdded = 0;
@@ -401,12 +421,15 @@ module.exports = {
             type:              'mastr_asset',
             mastrNummer:       asset.mastrNummer,
             capacity:          asset.capacity,        // kW
+            capacity_kw:       asset.capacity,        // kW alias for NOVA/Redispatch logic
             assetType:         asset.assetType || 'unknown',
             lat:               asset.lat ?? null,
             lon:               asset.lon ?? null,
             layer:             0,
             status:            asset.status || null,
             commissioningDate: asset.commissioningDate || null,
+            fernsteuerbarkeitDv: normaliseBoolFlag(asset.fernsteuerbarkeitDv),
+            fernsteuerbarkeitSonstige: normaliseBoolFlag(asset.fernsteuerbarkeitSonstige),
           });
           nodesAdded++;
 
@@ -492,6 +515,7 @@ module.exports = {
       },
       async handler(ctx) {
         const { projectId } = ctx.params;
+        await this.ensureProjectHydrated(projectId);
         const project = this.getProject(projectId);  // throws 404 if unknown
         const { graph, bbox } = project;
         const activeGraphs = this.activeGraphs;
@@ -568,13 +592,15 @@ module.exports = {
     },
 
     /**
-     * addLayer2 — Extract measured transformer peak load from a VNB document (Layer 2).
+     * addLayer2 — Extract measured transformer calibration data from a VNB PDF (Layer 2).
      *
-     * Accepts the path of a PDF already uploaded via POST /api/datasources/uploads.
+     * Accepts either the path of a PDF already uploaded via POST /api/datasources/uploads
+     * or an inline Base64-encoded PDF payload from a SPA.
      * Parses the PDF text, calls Gemini with a strict JSON schema to extract the
-     * Jahreshöchstlast, and attaches a Measurement node to SUB_1 in the graph.
+     * Jahreshöchstlast, transformer ID, and nominal transformer capacity, and attaches
+     * a Measurement node plus a calibration node to SUB_1 in the graph.
      * Enables the Layer 2 short-circuit in calculateGFactor (measured load overrides
-     * the VDE-AR-N 4100 theoretical value).
+     * the theoretical Layer 1 estimate).
      *
      * POST /api/znp/projects/:projectId/layer2
      */
@@ -582,17 +608,22 @@ module.exports = {
       rest: 'POST /projects/:projectId/layer2',
       params: {
         projectId: { type: 'string' },
-        filePath:  { type: 'string', min: 3 },
+        filePath:  { type: 'string', min: 3, optional: true },
+        fileContentBase64: { type: 'string', min: 16, optional: true },
+        fileName: { type: 'string', min: 1, optional: true },
       },
       openapi: {
         summary: 'Load Layer 2 — AI-extracted transformer peak load from PDF (async job)',
         tags: ['Zielnetzplanung (ZNP)'],
         description:
-          'Accepts the path of a PDF uploaded via `POST /api/datasources/uploads`. ' +
+          'Accepts either the path of a PDF uploaded via `POST /api/datasources/uploads` ' +
+          'or an inline Base64-encoded PDF (`fileContentBase64`). ' +
           'Parses the document with pdf-parse, then calls Gemini (structured JSON output) ' +
-          'to extract the maximum simultaneous annual peak transformer load (Jahreshöchstlast). ' +
-          'Adds a Measurement node to the graph and enables the Layer 2 short-circuit in ' +
-          'calculateGFactor: the measured value replaces the theoretical Layer 0 estimate. ' +
+          'to extract the maximum simultaneous annual peak transformer load (Jahreshöchstlast), ' +
+          'transformer ID, and nominal transformer capacity. The nominal capacity is ' +
+          'converted to kW in the extractor using cos(phi)=0.95. Adds a Measurement node ' +
+          'plus a calibration node and enables the Layer 2 short-circuit in calculateGFactor: ' +
+          'the measured value replaces the theoretical Layer 1 estimate. ' +
           'REST callers receive HTTP 202 + jobId; poll GET /api/jobs/:jobId/status for ' +
           'Chain-of-Thought log messages.',
         parameters: [
@@ -608,28 +639,72 @@ module.exports = {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['filePath'],
                 properties: {
                   filePath: { type: 'string', example: '/opt/cernion-energy-tools/uploads/lastprofil_trafo.pdf' },
+                  fileContentBase64: { type: 'string', example: 'JVBERi0xLjQKJcfs...' },
+                  fileName: { type: 'string', example: 'lastprofil_trafo.pdf' },
+                },
+                oneOf: [
+                  { required: ['filePath'] },
+                  { required: ['fileContentBase64'] },
+                ],
+              },
+              examples: {
+                byPath: { value: { filePath: '/opt/cernion-energy-tools/uploads/lastprofil_trafo.pdf' } },
+                byBase64: {
+                  value: {
+                    fileName: 'lastprofil_trafo_2025.pdf',
+                    fileContentBase64: 'data:application/pdf;base64,JVBERi0xLjQKJcfsj6IKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PgplbmRvYmoK',
+                  },
                 },
               },
-              examples: { default: { value: { filePath: '/opt/cernion-energy-tools/uploads/lastprofil_trafo.pdf' } } },
             },
           },
         },
         responses: {
           202: {
             description: 'Job accepted — poll statusUrl for AI extraction logs and result.',
-            content: { 'application/json': { schema: { type: 'object', properties: {
-              jobId:     { type: 'string' },
-              statusUrl: { type: 'string' },
-              resultUrl: { type: 'string' },
-            } } } },
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    jobId:     { type: 'string' },
+                    status: { type: 'string' },
+                    message: { type: 'string' },
+                    statusUrl: { type: 'string' },
+                    resultUrl: { type: 'string' },
+                  },
+                },
+                examples: {
+                  accepted: {
+                    value: {
+                      success: true,
+                      jobId: '6fd6a40e-4f18-4d78-aad0-0a7d4fdfec8d',
+                      status: 'queued',
+                      message: 'Job started. Poll /api/jobs/:jobId/status for progress.',
+                      statusUrl: '/api/jobs/6fd6a40e-4f18-4d78-aad0-0a7d4fdfec8d/status',
+                      resultUrl: '/api/jobs/6fd6a40e-4f18-4d78-aad0-0a7d4fdfec8d/result',
+                    },
+                  },
+                },
+              },
+            },
           },
         },
       },
       async handler(ctx) {
-        const { projectId, filePath } = ctx.params;
+        const { projectId, filePath, fileContentBase64, fileName } = ctx.params;
+        if (!filePath && !fileContentBase64) {
+          throw new MoleculerError(
+            'Layer 2 requires either filePath or fileContentBase64.',
+            400,
+            'ZNP_LAYER2_FILE_REQUIRED'
+          );
+        }
+
+        await this.ensureProjectHydrated(projectId);
         const project      = this.getProject(projectId);  // throws 404 if unknown
         const { graph }    = project;
         const updateMeta   = this.updateProjectMeta.bind(this);
@@ -640,36 +715,126 @@ module.exports = {
           ctx,
           { service: 'znp', action: 'addLayer2' },
           async (jobId) => {
+            if (jobId) jobStore.updateJob(jobId, { status: 'running' });
             appendLog(jobId, 'pdf_parse', 10, 'Lese PDF...');
-            const peakLoadKw = await (async () => {
-              appendLog(jobId, 'llm_extract', 40, 'Übergebe an LLM...');
-              const value = await extractPeakLoadFromFile(filePath);
-              appendLog(jobId, 'llm_extract', 70, `Wert ${value} kW gefunden, aktualisiere Graph...`);
+            const extraction = await (async () => {
+              appendLog(jobId, 'llm_extract', 40, 'Übergebe PDF an LLM-Extraktion...');
+              if (fileContentBase64) {
+                const pdfBuffer = this.decodePdfBase64(fileContentBase64);
+                const value = await extractLayer2CalibrationFromBuffer(pdfBuffer);
+                appendLog(jobId, 'llm_extract', 70, `Peak ${value.peakLoadKw} kW und Trafo ${value.transformerId} extrahiert.`);
+                return value;
+              }
+
+              const value = await extractLayer2CalibrationFromFile(filePath);
+              appendLog(jobId, 'llm_extract', 70, `Peak ${value.peakLoadKw} kW und Trafo ${value.transformerId} extrahiert.`);
               return value;
             })();
 
-            appendLog(jobId, 'graph_update', 80, `Schreibe Measurement-Node (${peakLoadKw} kW) an ${SUBSTATION_KEY}...`);
+            const { peakLoadKw, transformerId, nominalCapacityKw } = extraction;
+            const layer1Result = await this.broker.call('znp.calculateGFactor', {
+              projectId,
+              substationId: SUBSTATION_KEY,
+              target_layer: 1,
+            });
+            const layer1NominalCapacityKw = Math.round((layer1Result.totalCapacityKW || 0) * 1000) / 1000;
+            const calibrationGFactor = layer1NominalCapacityKw > 0
+              ? Math.round((peakLoadKw / layer1NominalCapacityKw) * 1000) / 1000
+              : 0;
+            const sourceFileName = fileName || (filePath ? path.basename(filePath) : 'inline-upload.pdf');
+
+            appendLog(jobId, 'graph_update', 80, `Schreibe Measurement- und Calibration-Node (${peakLoadKw} kW) an ${SUBSTATION_KEY}...`);
             const measurementKey = `measurement:peak_load:${SUBSTATION_KEY}`;
             if (!graph.hasNode(measurementKey)) {
               graph.addNode(measurementKey, {
                 type: 'measurement', metricType: 'peak_load',
                 value: peakLoadKw, unit: 'kW', layer: 2,
+                transformerId,
+                nominalCapacityKw,
+                sourceFileName,
               });
               graph.addEdge(measurementKey, SUBSTATION_KEY, {
                 relationship: 'oeo_measures', metric: 'peak_load_measured', layer: 2,
               });
             } else {
               graph.setNodeAttribute(measurementKey, 'value', peakLoadKw);
+              graph.setNodeAttribute(measurementKey, 'transformerId', transformerId);
+              graph.setNodeAttribute(measurementKey, 'nominalCapacityKw', nominalCapacityKw);
+              graph.setNodeAttribute(measurementKey, 'sourceFileName', sourceFileName);
             }
+
+            const calibrationKey = `calibration:substation:${SUBSTATION_KEY}`;
+            const calibrationPayload = {
+              type: 'calibration_node',
+              metricType: 'layer2_calibration',
+              peakLoadKw,
+              transformerId,
+              nominalCapacityKw,
+              layer1NominalCapacityKw,
+              calibrationGFactor,
+              sourceFileName,
+              layer: 2,
+              updatedAt: new Date().toISOString(),
+            };
+
+            if (!graph.hasNode(calibrationKey)) {
+              graph.addNode(calibrationKey, calibrationPayload);
+              graph.addEdge(calibrationKey, SUBSTATION_KEY, {
+                relationship: 'calibrates',
+                metric: 'layer2_g_factor',
+                layer: 2,
+              });
+            } else {
+              for (const [key, value] of Object.entries(calibrationPayload)) {
+                graph.setNodeAttribute(calibrationKey, key, value);
+              }
+            }
+
+            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2Active', true);
+            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2MeasuredPeakLoadKw', peakLoadKw);
+            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2TransformerId', transformerId);
+            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2NominalCapacityKw', nominalCapacityKw);
+            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2SourceFileName', sourceFileName);
+            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2CalibrationGFactor', calibrationGFactor);
+            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2UpdatedAt', new Date().toISOString());
+
+            project.layer2CalibrationFactor = calibrationGFactor;
+            project.layer2MeasuredPeakLoadKw = peakLoadKw;
+            project.layer2TransformerId = transformerId;
+            project.layer2NominalCapacityKw = nominalCapacityKw;
 
             await updateMeta(projectId, graph, 'layer2');
             await persistGraph(projectId, graph);
 
-            appendLog(jobId, 'done', 100, 'Layer 2 erfolgreich geladen.');
-            logger.info(`[znp] addLayer2 project=${projectId}: peak_load=${peakLoadKw} kW`);
+            this.emitLayer2ActivatedEvent(projectId, {
+              measurementKey,
+              calibrationKey,
+              peakLoadKw,
+              transformerId,
+              nominalCapacityKw,
+              layer1NominalCapacityKw,
+              calibrationGFactor,
+              sourceFileName,
+            });
 
-            return { projectId, measurementKey, peakLoadKw,
-              totalNodes: graph.order, totalEdges: graph.size };
+            appendLog(jobId, 'done', 100, 'Layer 2 erfolgreich geladen.');
+            logger.info(
+              `[znp] addLayer2 project=${projectId}: peak_load=${peakLoadKw} kW, ` +
+              `trafo=${transformerId}, nominal_kw=${nominalCapacityKw}, calibration_g=${calibrationGFactor}`
+            );
+
+            return {
+              projectId,
+              measurementKey,
+              calibrationKey,
+              peakLoadKw,
+              transformerId,
+              nominalCapacityKw,
+              layer1NominalCapacityKw,
+              calibrationGFactor,
+              totalNodes: graph.order,
+              totalEdges: graph.size,
+            };
           }
         );
       },
@@ -754,6 +919,7 @@ module.exports = {
       async handler(ctx) {
         const { projectId, substationId } = ctx.params;
         const targetLayer = ctx.params.target_layer;
+        await this.ensureProjectHydrated(projectId);
         const project = this.getProject(projectId);
         const { graph } = project;
 
@@ -771,7 +937,7 @@ module.exports = {
         // Handles two node types:
         //   mastr_asset    — standard MaStR installation (layer 0/1)
         //   assumption     — strategic planning node (layer 2.5, Issues 3)
-        //                    §14a EnWG: hasFlexibleNav=true → excluded (g=0.0)
+        //                    §14a EnWG: hasFlexibleNav=true → emergency throttle (g=0.45)
         let totalCapacityKW = 0;
         let assetCount      = 0;
         let flexNavExcluded = 0;
@@ -779,15 +945,21 @@ module.exports = {
         graph.forEachInEdge(substationId, (edgeKey, edgeAttrs, sourceKey) => {
           if (edgeAttrs.relationship !== 'CONTRIBUTES_LOAD') return;
           const nodeAttrs = graph.getNodeAttributes(sourceKey);
+          const edgeGFactor = this.normaliseEdgeGFactor(edgeAttrs.gFactor);
 
           if (nodeAttrs.type === 'assumption') {
             // Assumption nodes are visible at target_layer >= 2 (planning horizon)
             if (targetLayer < 2) return;
+            let assumptionGFactor = 1.0;
             if (nodeAttrs.hasFlexibleNav) {
-              // §14a flex-NAV: legally curtailable → does not add to peak load
+              // §14a flex-NAV: legally curtailable → realistic emergency floor
+              assumptionGFactor = 0.45;
               flexNavExcluded++;
-            } else {
-              totalCapacityKW += nodeAttrs.capacity || 0;
+            }
+
+            const effectiveCapacity = (nodeAttrs.capacity || 0) * edgeGFactor * assumptionGFactor;
+            if (effectiveCapacity > 0) {
+              totalCapacityKW += effectiveCapacity;
               assetCount++;
             }
             return;
@@ -796,8 +968,11 @@ module.exports = {
           // Standard layer-filtered traversal for mastr_asset nodes
           if (edgeAttrs.layer > targetLayer) return;
           if (nodeAttrs.type === 'mastr_asset') {
-            totalCapacityKW += nodeAttrs.capacity || 0;
-            assetCount++;
+            const effectiveCapacity = (nodeAttrs.capacity || 0) * edgeGFactor;
+            if (effectiveCapacity > 0) {
+              totalCapacityKW += effectiveCapacity;
+              assetCount++;
+            }
           }
         });
 
@@ -902,6 +1077,7 @@ module.exports = {
       },
       async handler(ctx) {
         const { projectId } = ctx.params;
+        await this.ensureProjectHydrated(projectId);
         const project       = this.getProject(projectId);
         const { graph }     = project;
 
@@ -954,12 +1130,56 @@ module.exports = {
     },
 
     /**
+     * createAssumption — Create a StrategicAssumption node from free text.
+     *
+     * Inserts a lightweight StrategicAssumption node (layer 2.5), applies
+     * deterministic peak-shaving edge overrides, and persists the updated graph.
+     */
+    createAssumption: {
+      params: {
+        projectId: { type: 'string' },
+        text: { type: 'string', min: 1, max: 5000 },
+      },
+      openapi: {
+        summary: 'Create in-memory StrategicAssumption node (stub)',
+        tags: ['Zielnetzplanung (ZNP)'],
+        description:
+          'Creates a Layer 2.5 StrategicAssumption node in the project graph, applies deterministic ' +
+          'peak-shaving edge updates, and persists the resulting graph state to PouchDB.',
+      },
+      async handler(ctx) {
+        const { projectId, text } = ctx.params;
+        await this.ensureProjectHydrated(projectId);
+        const project = this.getProject(projectId);
+        const { graph } = project;
+
+        const id = crypto.randomUUID();
+        const nodeKey = `strategic_assumption:${id}`;
+
+        graph.addNode(nodeKey, {
+          type: 'StrategicAssumption',
+          id,
+          text,
+          layer: 2.5,
+          createdAt: new Date().toISOString(),
+        });
+
+        this.applyAssumptionPeakShaving(graph, text, id);
+  await this.persistGraph(projectId, graph);
+  await this.updateProjectMeta(projectId, graph, 'layer2.5');
+        this.emitAssumptionConfirmedEventAsync(projectId, id, text);
+
+        return { id, text };
+      },
+    },
+
+    /**
      * addAssumption — Ingest a natural-language planning assumption into the graph.
      *
      * Calls Gemini with a strict JSON schema to extract asset type, capacity,
      * status, and §14a flex-NAV flag from free text. Inserts a StrategicAssumption
      * node (layer 2.5) and a CONTRIBUTES_LOAD edge to SUB_1. The flex-NAV flag
-     * controls §14a exclusion in calculateGFactor (hasFlexibleNav=true → g=0.0).
+    * controls §14a throttling in calculateGFactor (hasFlexibleNav=true → g=0.45).
      * Persists the updated graph to PouchDB.
      *
      * POST /api/znp/projects/:projectId/assumptions
@@ -977,8 +1197,11 @@ module.exports = {
           'Uses Gemini (structured JSON schema) to extract asset type, capacity (kW), ' +
           'status, and \u00a714a flex-NAV flag from free-text German input. Inserts a ' +
           'StrategicAssumption node at layer=2.5 and a CONTRIBUTES_LOAD edge to SUB_1. ' +
-          'In calculateGFactor, nodes with hasFlexibleNav=true are excluded from peak load ' +
-          '(legally curtailable under \u00a714a EnWG \u2014 g=0.0). ' +
+          'In calculateGFactor, nodes with hasFlexibleNav=true are throttled to a realistic ' +
+          'emergency minimum (legally curtailable under \u00a714a EnWG \u2014 g=0.45). ' +
+          'On success, backend emits `znp.project.updated` with payload ' +
+          '{ type: "assumption-confirmed", data: { id: "<assumptionId>", text: "<originalText>" } } ' +
+          'for NovaFeedStore/SSE consumers. ' +
           'Requires GEMINI_API_KEY \u2014 returns HTTP 503 if not configured.',
         parameters: [
           { name: 'projectId', in: 'path', required: true, schema: { type: 'string' } },
@@ -1032,6 +1255,7 @@ module.exports = {
       },
       async handler(ctx) {
         const { projectId, text } = ctx.params;
+        await this.ensureProjectHydrated(projectId);
         const project             = this.getProject(projectId);
         const { graph }           = project;
 
@@ -1086,6 +1310,10 @@ module.exports = {
           `[znp] addAssumption project=${projectId}: ` +
           `${extracted.assetType} ${extracted.capacityKW}kW flexNav=${extracted.hasFlexibleNav}`
         );
+
+        // Emit frontend-consumable update event for NovaFeedStore.
+        // Contract: { type: 'assumption-confirmed', data: { id, text } }
+        this.emitAssumptionConfirmedEvent(projectId, assumptionId, text);
 
         return {
           projectId,
@@ -1207,6 +1435,7 @@ module.exports = {
           sortByCapacity = 'desc',
         } = ctx.params;
 
+        await this.ensureProjectHydrated(projectId);
         const { graph } = this.getProject(projectId); // throws 404 if not found
 
         // Collect all mastr_asset nodes (Layer 0 only — excludes assumptions, buildings, etc.)
@@ -1278,6 +1507,7 @@ module.exports = {
       },
       async handler(ctx) {
         const { projectId } = ctx.params;
+        await this.ensureProjectHydrated(projectId);
         const project = this.getProject(projectId); // throws 404 if not found
 
         return {
@@ -1329,11 +1559,174 @@ module.exports = {
       },
     },
 
+    /**
+     * deleteProject — Remove a ZNP project and all its persisted data.
+     *
+     * Deletes both the metadata document (znp:meta:*) and graph document (znp:graph:*)
+     * from PouchDB, then removes the project from the in-memory activeGraphs registry.
+     * This operation is irreversible and intended primarily for test cleanup and workspace
+     * management. Returns success confirmation.
+     *
+     * DELETE /api/znp/projects/:projectId
+     */
+    deleteProject: {
+      rest: 'DELETE /projects/:projectId',
+      params: {
+        projectId: { type: 'string' },
+      },
+      openapi: {
+        summary: 'Delete a ZNP project permanently',
+        tags: ['Zielnetzplanung (ZNP)'],
+        description:
+          'Removes the project from in-memory activeGraphs and deletes all persisted data ' +
+          '(znp:meta and znp:graph documents) from PouchDB. This is irreversible and intended ' +
+          'for test cleanup and workspace management. Returns success confirmation.',
+        parameters: [
+          {
+            name: 'projectId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000001' },
+          },
+        ],
+      },
+      async handler(ctx) {
+        const { projectId } = ctx.params;
+
+        // Check that project exists (in-memory)
+        if (!this.activeGraphs.has(projectId)) {
+          throw new MoleculerError(
+            `Project "${projectId}" not found in active workspace.`,
+            404,
+            'ZNP_PROJECT_NOT_FOUND',
+            { projectId }
+          );
+        }
+
+        const metaDocId = `${DOC_PREFIX_META}${projectId}`;
+        const graphDocId = `${DOC_PREFIX_GRAPH}${projectId}`;
+
+        // Fetch current revisions before deletion (PouchDB requires _rev for delete)
+        let metaRev;
+        let graphRev;
+        try {
+          const metaDoc = await this.db.get(metaDocId);
+          metaRev = metaDoc._rev;
+        } catch (err) {
+          if (err.status !== 404) throw err;
+          // meta doc missing — continue
+        }
+        try {
+          const graphDoc = await this.db.get(graphDocId);
+          graphRev = graphDoc._rev;
+        } catch (err) {
+          if (err.status !== 404) throw err;
+          // graph doc missing — continue
+        }
+
+        // Delete PouchDB documents if they exist
+        const deletePromises = [];
+        if (metaRev) {
+          deletePromises.push(
+            this.db.remove(metaDocId, metaRev)
+              .catch(err => {
+                if (err.status !== 404) {
+                  this.logger.warn(`[znp] Failed to delete meta doc for "${projectId}": ${err.message}`);
+                }
+              })
+          );
+        }
+        if (graphRev) {
+          deletePromises.push(
+            this.db.remove(graphDocId, graphRev)
+              .catch(err => {
+                if (err.status !== 404) {
+                  this.logger.warn(`[znp] Failed to delete graph doc for "${projectId}": ${err.message}`);
+                }
+              })
+          );
+        }
+
+        await Promise.all(deletePromises);
+
+        // Remove from in-memory registry
+        this.activeGraphs.delete(projectId);
+
+        this.logger.info(`[znp] Deleted project ${projectId}`);
+
+        return {
+          success: true,
+          projectId,
+          message: `Project "${projectId}" has been permanently deleted.`,
+        };
+      },
+    },
+
   },
 
   // ─── Methods ────────────────────────────────────────────────────────────────
 
   methods: {
+
+    /**
+     * hydrateGraph — Load one project from PouchDB and import the graphology state.
+     *
+     * @param {string} projectId
+     * @returns {Promise<object>} hydrated project descriptor
+     */
+    async hydrateGraph(projectId) {
+      const metaDocId = `${DOC_PREFIX_META}${projectId}`;
+      const graphDocId = `${DOC_PREFIX_GRAPH}${projectId}`;
+
+      const [meta, graphDoc] = await Promise.all([
+        this.db.get(metaDocId),
+        this.db.get(graphDocId),
+      ]);
+
+      if (!graphDoc.graphData) {
+        throw new Error(`Missing graphData for project "${projectId}".`);
+      }
+
+      const graph = new Graph({ type: 'directed', multi: false });
+      graph.import(graphDoc.graphData);
+
+      const project = {
+        graph,
+        bbox:                    meta.bbox,
+        name:                    meta.name,
+        createdAt:               meta.createdAt,
+        layers:                  meta.layers || [],
+        layer1GFactorAdjustment: meta.layer1GFactorAdjustment || 1.0,
+        layer2CalibrationFactor: meta.layer2CalibrationFactor || 0,
+        layer2MeasuredPeakLoadKw: meta.layer2MeasuredPeakLoadKw || 0,
+        layer2TransformerId:     meta.layer2TransformerId || null,
+        layer2NominalCapacityKw: meta.layer2NominalCapacityKw || 0,
+      };
+
+      this.activeGraphs.set(projectId, project);
+      return project;
+    },
+
+    /**
+     * ensureProjectHydrated — Ensure project is available in-memory; load from PouchDB if needed.
+     *
+     * @param {string} projectId
+     * @returns {Promise<void>}
+     */
+    async ensureProjectHydrated(projectId) {
+      if (this.activeGraphs.has(projectId)) return;
+
+      try {
+        await this.hydrateGraph(projectId);
+      } catch (err) {
+        throw new MoleculerError(
+          `ZNP project "${projectId}" not found.`,
+          404,
+          'ZNP_PROJECT_NOT_FOUND',
+          { projectId, reason: err.message }
+        );
+      }
+    },
 
     /**
      * getProject — Retrieve an active project or throw 404.
@@ -1344,7 +1737,7 @@ module.exports = {
       const project = this.activeGraphs.get(projectId);
       if (!project) {
         throw new MoleculerError(
-          `ZNP project "${projectId}" not found. The graph may have been lost due to a service restart (ephemeral v1).`,
+          `ZNP project "${projectId}" not found.`,
           404,
           'ZNP_PROJECT_NOT_FOUND',
           { projectId }
@@ -1375,6 +1768,10 @@ module.exports = {
           ...doc,
           layers:                  project ? project.layers : doc.layers,
           layer1GFactorAdjustment: project ? project.layer1GFactorAdjustment : (doc.layer1GFactorAdjustment || 1.0),
+          layer2CalibrationFactor: project ? (project.layer2CalibrationFactor || 0) : (doc.layer2CalibrationFactor || 0),
+          layer2MeasuredPeakLoadKw: project ? (project.layer2MeasuredPeakLoadKw || 0) : (doc.layer2MeasuredPeakLoadKw || 0),
+          layer2TransformerId: project ? (project.layer2TransformerId || null) : (doc.layer2TransformerId || null),
+          layer2NominalCapacityKw: project ? (project.layer2NominalCapacityKw || 0) : (doc.layer2NominalCapacityKw || 0),
           nodeCount:               graph.order,
           edgeCount:               graph.size,
           updatedAt:               new Date().toISOString(),
@@ -1397,23 +1794,256 @@ module.exports = {
      */
     async persistGraph(projectId, graph) {
       const docId = `${DOC_PREFIX_GRAPH}${projectId}`;
-      try {
-        let rev;
-        try {
-          const existing = await this.db.get(docId);
-          rev = existing._rev;
-        } catch (_) { /* new document — no _rev needed */ }
+      const maxAttempts = 3;
+      const graphData = graph.export();
 
-        await this.db.put({
-          _id: docId,
-          ...(rev ? { _rev: rev } : {}),
-          projectId,
-          graphData: graph.export(),
-          savedAt:   new Date().toISOString(),
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          let rev;
+          try {
+            const existing = await this.db.get(docId);
+            rev = existing._rev;
+          } catch (_) { /* new document — no _rev needed */ }
+
+          await this.db.put({
+            _id: docId,
+            ...(rev ? { _rev: rev } : {}),
+            projectId,
+            graphData,
+            savedAt:   new Date().toISOString(),
+          });
+          return;
+        } catch (err) {
+          const isConflict = err && (err.status === 409 || err.name === 'conflict');
+          if (isConflict && attempt < maxAttempts) {
+            this.logger.debug(
+              `[znp] Graph persist conflict for project ${projectId} (attempt ${attempt}/${maxAttempts}), retrying...`
+            );
+            continue;
+          }
+
+          this.logger.warn(`[znp] Failed to persist graph for project ${projectId}: ${err.message}`);
+          return;
+        }
+      }
+    },
+
+    /**
+     * emitAssumptionConfirmedEvent — Publish NovaFeed-compatible payload.
+     *
+     * Event name: znp.project.updated
+     * Payload shape (required by NovaFeedStore):
+     *   {
+     *     type: 'assumption-confirmed',
+     *     data: {
+     *       id: '<assumptionId>',
+     *       text: '<originalText>'
+     *     }
+     *   }
+     *
+     * @param {string} projectId
+     * @param {string} assumptionId
+     * @param {string} text
+     */
+    emitAssumptionConfirmedEvent(projectId, assumptionId, text) {
+      try {
+        this.broker.emit('znp.project.updated', {
+          type: 'assumption-confirmed',
+          data: {
+            id: assumptionId,
+            text,
+          },
         });
       } catch (err) {
-        this.logger.warn(`[znp] Failed to persist graph for project ${projectId}: ${err.message}`);
+        this.logger.warn(
+          `[znp] Failed to emit assumption-confirmed event for project ${projectId}: ${err.message}`
+        );
       }
+    },
+
+    /**
+     * emitAssumptionConfirmedEventAsync — Async wrapper for frontend push updates.
+     * @param {string} projectId
+     * @param {string} assumptionId
+     * @param {string} text
+     */
+    emitAssumptionConfirmedEventAsync(projectId, assumptionId, text) {
+      setImmediate(() => {
+        this.emitAssumptionConfirmedEvent(projectId, assumptionId, text);
+      });
+    },
+
+    emitLayer2ActivatedEvent(projectId, payload) {
+      try {
+        this.broker.emit('znp.project.updated', {
+          type: 'layer2-activated',
+          data: {
+            projectId,
+            ...payload,
+          },
+        });
+      } catch (err) {
+        this.logger.warn(
+          `[znp] Failed to emit layer2-activated event for project ${projectId}: ${err.message}`
+        );
+      }
+    },
+
+    decodePdfBase64(fileContentBase64) {
+      const normalized = String(fileContentBase64 || '')
+        .replace(/^data:application\/pdf;base64,/, '')
+        .trim();
+
+      if (!normalized) {
+        throw new MoleculerError(
+          'Layer 2 received empty fileContentBase64 payload.',
+          400,
+          'ZNP_LAYER2_EMPTY_FILE'
+        );
+      }
+
+      try {
+        return Buffer.from(normalized, 'base64');
+      } catch (err) {
+        throw new MoleculerError(
+          `Layer 2 could not decode Base64 PDF payload: ${err.message}`,
+          400,
+          'ZNP_LAYER2_INVALID_BASE64'
+        );
+      }
+    },
+
+    /**
+     * normaliseEdgeGFactor — Return valid edge gFactor (default 1.0).
+     * @param {number|undefined|null} gFactor
+     * @returns {number}
+     */
+    normaliseEdgeGFactor(gFactor) {
+      if (!Number.isFinite(gFactor)) return 1.0;
+      if (gFactor < 0) return 0;
+      if (gFactor > 1) return 1;
+      return gFactor;
+    },
+
+    /**
+     * applyAssumptionPeakShaving — Apply edge-level gFactor overrides from assumption text.
+     *
+     * For matching asset types (e.g. BESS / §14a controllable), all
+    * CONTRIBUTES_LOAD edges to substations are forced to gFactor=0.45.
+     * Afterwards, cumulative capacities are recalculated upwards.
+     *
+     * @param {Graph} graph
+     * @param {string} assumptionText
+     * @param {string} assumptionId
+     */
+    applyAssumptionPeakShaving(graph, assumptionText, assumptionId) {
+      const matchedAssetKeys = [];
+      const affectedSubstations = new Set();
+
+      graph.forEachNode((nodeKey, attrs) => {
+        if (attrs.type !== 'mastr_asset') return;
+        if (this.matchesAssetToAssumption(attrs, assumptionText)) {
+          matchedAssetKeys.push(nodeKey);
+        }
+      });
+
+      for (const assetKey of matchedAssetKeys) {
+        graph.forEachOutboundEdge(assetKey, (edgeKey, edgeAttrs, _sourceKey, targetKey) => {
+          if (edgeAttrs.relationship !== 'CONTRIBUTES_LOAD') return;
+          if (!graph.hasNode(targetKey)) return;
+          if (graph.getNodeAttribute(targetKey, 'type') !== 'substation') return;
+
+          graph.setEdgeAttribute(edgeKey, 'gFactor', 0.45);
+          graph.setEdgeAttribute(edgeKey, 'peakShavingSource', 'createAssumption');
+          graph.setEdgeAttribute(edgeKey, 'peakShavingAssumptionId', assumptionId);
+          affectedSubstations.add(targetKey);
+        });
+      }
+
+      this.recalculateCumulativeCapacitiesUpstream(
+        graph,
+        Array.from(affectedSubstations)
+      );
+    },
+
+    /**
+     * matchesAssetToAssumption — deterministic keyword matching for simulation.
+     * @param {object} assetAttrs
+     * @param {string} assumptionText
+     * @returns {boolean}
+     */
+    matchesAssetToAssumption(assetAttrs, assumptionText) {
+      if (!assumptionText) return false;
+
+      const text = String(assumptionText).toLowerCase();
+      const assetType = String(assetAttrs.assetType || '').toLowerCase();
+
+      const assumptionMentionsStorage =
+        /(bess|batter(y|ie)|speicher|storage)/.test(text);
+      const assumptionMentionsSection14a =
+        /(§\s*14a|14a|steuerbar|steuerbare|controll?able|flex\s*nav|flexibler\s*nav)/.test(text);
+
+      const isStorageAsset = /(storage|speicher|bess|battery|batterie)/.test(assetType);
+      const isSection14aAsset = /(wallbox|heatpump|wärmepumpe|waermepumpe|storage|speicher)/.test(assetType)
+        || assetAttrs.hasFlexibleNav === true
+        || assetAttrs.controllable === true
+        || assetAttrs.section14a === true;
+
+      return (assumptionMentionsStorage && isStorageAsset)
+        || (assumptionMentionsSection14a && isSection14aAsset);
+    },
+
+    /**
+     * recalculateCumulativeCapacitiesUpstream — Recompute cumulative capacities
+     * from affected substations upwards through CONTRIBUTES_LOAD parent edges.
+     *
+     * @param {Graph} graph
+     * @param {string[]} startSubstationKeys
+     */
+    recalculateCumulativeCapacitiesUpstream(graph, startSubstationKeys = []) {
+      const queue = [...new Set(startSubstationKeys.filter((k) => graph.hasNode(k)))];
+      const enqueued = new Set(queue);
+
+      while (queue.length > 0) {
+        const nodeKey = queue.shift();
+        const cumulative = this.calculateNodeCumulativePeakCapacity(graph, nodeKey);
+        graph.setNodeAttribute(nodeKey, 'cumulativePeakCapacityKW', cumulative);
+        graph.setNodeAttribute(nodeKey, 'peakCapacityGraphUpdatedAt', new Date().toISOString());
+
+        graph.forEachOutboundEdge(nodeKey, (edgeKey, edgeAttrs, _sourceKey, targetKey) => {
+          if (edgeAttrs.relationship !== 'CONTRIBUTES_LOAD') return;
+          if (!graph.hasNode(targetKey)) return;
+          if (graph.getNodeAttribute(targetKey, 'type') !== 'substation') return;
+          if (!enqueued.has(targetKey)) {
+            queue.push(targetKey);
+            enqueued.add(targetKey);
+          }
+        });
+      }
+    },
+
+    /**
+     * calculateNodeCumulativePeakCapacity — Sum effective inbound capacity for node.
+     * @param {Graph} graph
+     * @param {string} nodeKey
+     * @returns {number}
+     */
+    calculateNodeCumulativePeakCapacity(graph, nodeKey) {
+      let cumulative = 0;
+
+      graph.forEachInEdge(nodeKey, (edgeKey, edgeAttrs, sourceKey) => {
+        if (edgeAttrs.relationship !== 'CONTRIBUTES_LOAD') return;
+        const gFactor = this.normaliseEdgeGFactor(edgeAttrs.gFactor);
+        const sourceAttrs = graph.getNodeAttributes(sourceKey);
+        const sourceBase = Number.isFinite(sourceAttrs.cumulativePeakCapacityKW)
+          ? sourceAttrs.cumulativePeakCapacityKW
+          : (sourceAttrs.capacity || 0);
+        const effective = sourceBase * gFactor;
+        cumulative += effective;
+        graph.setEdgeAttribute(edgeKey, 'effectiveCapacityKW', Math.round(effective * 1000) / 1000);
+      });
+
+      return Math.round(cumulative * 1000) / 1000;
     },
 
     /**
@@ -1438,20 +2068,7 @@ module.exports = {
           if (!projectId) continue;
 
           try {
-            const graphDoc = await this.db.get(`${DOC_PREFIX_GRAPH}${projectId}`);
-            if (!graphDoc.graphData) throw new Error('graphData field is null or missing');
-
-            const graph = new Graph({ type: 'directed', multi: false });
-            graph.import(graphDoc.graphData);
-
-            this.activeGraphs.set(projectId, {
-              graph,
-              bbox:                   meta.bbox,
-              name:                   meta.name,
-              createdAt:              meta.createdAt,
-              layers:                 meta.layers || [],
-              layer1GFactorAdjustment: meta.layer1GFactorAdjustment || 1.0,
-            });
+            await this.hydrateGraph(projectId);
             restored++;
           } catch (err) {
             this.logger.warn(

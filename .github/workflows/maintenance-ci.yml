@@ -55,6 +55,18 @@ jobs:
       - name: OpenAPI audit report
         run: npm run audit:openapi
 
+      - name: Detect changelog changes
+        id: changelog
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            changelog:
+              - 'CHANGELOG.md'
+
+      - name: LLM context sync check (strict on changelog changes)
+        if: steps.changelog.outputs.changelog == 'true'
+        run: npm run check:llm
+
   security-audit:
     runs-on: ubuntu-latest
     timeout-minutes: 10

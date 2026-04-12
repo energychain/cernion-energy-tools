@@ -1,6 +1,6 @@
 {
   "name": "cernion-energy-tools",
-  "version": "0.20.6",
+  "version": "0.25.0",
   "description": "MicroService Agent System for Energy Markets",
   "main": "index.js",
   "scripts": {
@@ -22,7 +22,9 @@
     "audit:openapi": "node scripts/audit-openapi.js",
     "audit:security": "node scripts/audit-security.js",
     "audit:security:advisory": "npm audit --audit-level=high",
-    "release:check": "npm run test:unit:ci && npm run audit:openapi && npm run audit:security",
+    "generate:llm": "node scripts/generate-llm-txt.js",
+    "check:llm": "node scripts/generate-llm-txt.js --check",
+    "release:check": "npm run test:unit:ci && npm run audit:openapi && npm run check:llm && npm run audit:security",
     "export:openapi": "node scripts/export-openapi.js",
     "sync:oeo": "node scripts/sync-oeo.js",
     "sync:oemetadata": "node scripts/sync-oemetadata.js",

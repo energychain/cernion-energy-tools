@@ -42,6 +42,7 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - [MCP_SERVICES.md](MCP_SERVICES.md) - Microservice-to-tool mapping
 - [BEARER_TOKEN_AUTHENTICATION.md](BEARER_TOKEN_AUTHENTICATION.md) - Auth guide
 - [docs/BACKEND_CONTEXT.md](docs/BACKEND_CONTEXT.md) - Backend architecture reference (services, PouchDB, finding codes, auth)
+- [llm.txt](llm.txt) - Generated LLM context artifact (architecture + domain knowledge + cookbook + OpenAPI)
 - [docs/ui-contracts/](docs/ui-contracts/) - Frontend ↔ backend API contracts (v0.20, 14 docs)
 - [docs/MAINTENANCE_MILESTONE_CHECKLIST.md](docs/MAINTENANCE_MILESTONE_CHECKLIST.md) - Pre-milestone quality/security gate checklist
 - [SECURITY.md](SECURITY.md) - Security policy and disclosure
@@ -52,6 +53,8 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - Pull requests and pushes to `main` run automated quality checks (lint, build, unit coverage gates, integration discovery sanity, OpenAPI audit, security audits).
 - Security analysis is continuously enforced with CodeQL.
 - Version tags (`v*`) trigger a release pipeline (`release:check` + build + GitHub Release).
+- `llm.txt` is validated in release checks and regenerated from source-of-truth files via `npm run generate:llm`.
+- In maintenance CI, `llm.txt` sync is checked strictly when `CHANGELOG.md` changes.
 - Coverage reports are uploaded and publicly visible via Codecov.
 - Recommended repository setting: enable branch protection on `main` and require `Maintenance CI` + `CodeQL` checks before merge.
 

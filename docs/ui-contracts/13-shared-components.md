@@ -1,8 +1,8 @@
 # UI Contract: Shared Components
 
 > **Page ID:** (shared — used across all pages)
-> **Version:** 0.19.0
-> **Last updated:** 2026-03-31
+> **Version:** 0.20.6
+> **Last updated:** 2026-04-09
 
 ---
 
@@ -206,3 +206,26 @@ All HTTP error responses follow the Moleculer envelope. Map to UI messages:
 | 429 | `RATE_LIMIT` | "Zu viele Anfragen — bitte warten" |
 | 500 | `INTERNAL_ERROR` | "Interner Fehler — Support kontaktieren" |
 | 503 | `SERVICE_UNAVAILABLE` | "Backend nicht erreichbar — Verbindung prüfen" |
+
+---
+
+## 14. NovaFeedStore Assumption Confirmation Event
+
+When an assumption is accepted via `POST /api/znp/projects/:projectId/assumptions`,
+the backend emits `znp.project.updated` with a payload that is directly consumable
+by NovaFeedStore (no client-side mapping required):
+
+```json
+{
+  "type": "assumption-confirmed",
+  "data": {
+    "id": "<assumptionId>",
+    "text": "<originalText>"
+  }
+}
+```
+
+Contract notes:
+- `type` is always the literal string `assumption-confirmed`.
+- `data.id` is the backend-generated assumption UUID.
+- `data.text` is the original input text provided by the user.

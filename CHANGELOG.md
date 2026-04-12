@@ -7,7 +7,225 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+## [0.25.0] — 2025-01-15
+
+### Added
+
+- **ZNP Project Hydration & Persistence (v0.23+):**
+  Complete project lifecycle implementation with automatic state recovery:
+  - `POST /api/znp/projects` — Create new graph-backed project workspace
+  - `POST /api/znp/projects/:projectId/layer0` — Load MaStR assets (nodes + edges)
+  - `POST /api/znp/projects/:projectId/layer1` — OSM spatial clustering (async, 202)
+  - `POST /api/znp/projects/:projectId/layer2` — VNB PDF calibration data
+  - `GET /api/znp/projects` — List all active projects (hydrated from PouchDB)
+  - `GET /api/znp/projects/:projectId` — Retrieve project metadata + graph stats
+  - **DELETE /api/znp/projects/:projectId** — Remove project and all persisted data
+  
+  PouchDB dual-doc strategy (v0.23):
+  - `znp:meta:*` — lightweight metadata (bbox, name, layers, stats) for fast list queries
+  - `znp:graph:*` — full graphology export (serialized graph state)
+  
+  Graph persistence automatically triggered after every layer mutation; projects are
+  hydrated from PouchDB on service start, providing session continuity across server
+  restarts.
+
+### Added (Previous Work)
+
+- **Automated `llm.txt` context artifact generation (`scripts/generate-llm-txt.js`):**
+  Added deterministic generation of `./llm.txt` as a release artifact for LLMs.
+  The file now contains a structured implementation snapshot with:
+  architecture context, domain/business constraints, CHANGELOG provenance,
+  complete cookbook recipe inventory, OpenAPI operation index, and canonical
+  OpenAPI JSON.
+
+- **New npm scripts for LLM artifact lifecycle (`package.json`):**
+  Added `npm run generate:llm` and `npm run check:llm` for deterministic update
+  and CI drift detection.
+
+- **ZNP Layer 2 PDF calibration ingestion (`znp.service.js`, `znp-pdf-extractor.js`):**
+  `POST /api/znp/projects/:projectId/layer2` now accepts either `filePath` or
+  `fileContentBase64` in the JSON body for text-based VNB PDFs. Layer 2 extraction
+  now parses Jahreshöchstlast, Trafo-ID, and Trafo-Nennleistung. Nennleistung is
+  normalized in the extractor to kW using `cos(phi)=0.95` for apples-to-apples
+  comparison against Layer 0/1 graph capacities.
+
+- **Layer 2 calibration node + project metadata (`znp.service.js`):**
+  Layer 2 now injects both the existing `measurement:peak_load:SUB_1` node and a new
+  `calibration:substation:SUB_1` node (`type: calibration_node`) with
+  `peakLoadKw`, `transformerId`, `nominalCapacityKw`, `layer1NominalCapacityKw`, and
+  `calibrationGFactor`. Corresponding Layer-2 fields are also persisted in project
+  metadata and hydrated back on restart.
+
+- **NOVA Phase B backend contract (`nova.service.js`, `api.service.js`):**
+  NOVA now computes project-scoped decisions dynamically from the in-memory
+  Graphology model instead of static mocks. Supported endpoints:
+  - `GET /api/znp/projects/:projectId/nova/pending-decisions`
+  - `POST /api/znp/projects/:projectId/nova/apply/:id`
+  - `GET /api/nova/stream`
+  `pendingDecisions` analyses overload at substation level and emits actionable
+  QU/rONT suggestions with calculated `capacity_gain_kw`.
+
+- **NOVA Redispatch curtailment decision MVP (`nova.service.js`):**
+  Added decision type `RD_CURTAILMENT` based on hard Layer-0 asset data.
+  Capacity-only rule: every asset with `capacity_kw >= 100` and
+  `assetType ∈ {solar, wind, biomass}` is treated as redispatch-eligible.
+  Added static heuristic constant `RD_CURTAILMENT_FACTOR = 0.30` (30% curtailment
+  potential). Decision descriptions now include hard evidence:
+  `{count} Redispatch-fähige Großanlagen (>100 kW) ... um {gainKW} kW`.
+
+- **Layer-0 Redispatch metadata support (`znp.service.js`, `src/redispatch-utils.js`):**
+  `znp.addLayer0` now stores `capacity_kw` as explicit alias and accepts optional
+  `fernsteuerbarkeitDv` / `fernsteuerbarkeitSonstige` fields, normalized to booleans
+  for deterministic in-memory graph evaluation.
+
+- **ZNP strategic assumption action (`znp.createAssumption`):**
+  Added a lightweight action for fast frontend workflows:
+  `znp.createAssumption(projectId, text)` inserts a `StrategicAssumption` node,
+  applies deterministic peak-shaving simulation, persists the graph, and returns `{ id, text }`.
+
+- **Asset override stub endpoint (`assets.override`):**
+  Added `POST /api/assets/:assetId/override` as a temporary NOVA workflow stub.
+  Accepts `field`, `value`, and `reason` and currently returns `{ success: true }`
+  without persistence.
+
+### Changed
+
+- **Release gate now enforces `llm.txt` sync (`package.json`):**
+  `release:check` now includes `check:llm` in addition to tests/OpenAPI/security,
+  ensuring release-tag runs always validate the LLM context artifact.
+
+- **Hybrid trigger in CI for `llm.txt` (`.github/workflows/maintenance-ci.yml`):**
+  Added strict sync check only when `CHANGELOG.md` changes (paths filter), while
+  release tags remain covered by the release gate.
+
+- **Deterministic OpenAPI export behavior (`scripts/export-openapi.js`):**
+  Added `OPENAPI_EXPORT_INCLUDE_TIMESTAMP` flag; timestamps are now omitted by
+  default to keep generated artifacts stable across runs.
+
+- **Layer 2 graph mutation now calibrates against Layer 1 theory:**
+  `znp.addLayer2` now computes `calibrationGFactor = peakLoadKw / layer1NominalCapacityKw`
+  and stores the result on the substation node, project metadata, and calibration node.
+  The existing Layer 2 short-circuit in `calculateGFactor` continues to use the measured
+  peak load as authoritative load at `target_layer=2`.
+
+- **Layer 2 now emits frontend update events (`znp.project.updated`):**
+  Successful Layer 2 ingestion emits `{ type: 'layer2-activated', data: { ... } }`
+  so SSE consumers such as the NOVA stream can react immediately when calibration data
+  becomes available.
+
+- **ZNP assumption confirmation event contract aligned with NovaFeedStore:**
+  `znp.addAssumption` and `znp.createAssumption` now emit `znp.project.updated`
+  with the frontend-ready payload:
+  `{ type: 'assumption-confirmed', data: { id, text } }`.
+  `createAssumption` emits this event asynchronously for SSE consumers.
+
+- **ZNP peak-shaving simulation for `createAssumption`:**
+  `createAssumption` now heuristically matches BESS / storage and §14a-controllable
+  assets from the assumption text, sets edge-level `gFactor = 0.45` on matching
+  `CONTRIBUTES_LOAD` edges, and recalculates cumulative peak capacities upstream.
+  `calculateGFactor` now respects edge-level `gFactor` overrides when summing
+  effective capacity.
+
+- **NOVA apply path now supports Redispatch edge throttling (`nova.apply`):**
+  Applying `RD_CURTAILMENT` sets `gFactor = 0.70` on the specific
+  CONTRIBUTES_LOAD edges of redispatch-eligible >100 kW assets (solar/wind/biomass),
+  recalculates upstream cumulative capacities, persists graph/meta, and emits
+  `znp.project.updated` with `type: 'nova-decision-applied'`.
+
+- **NOVA contract cleanup — legacy apply action removed:**
+  Removed the legacy `nova.applyDecision` action and old compatibility route wiring.
+  The only supported write action is now `nova.apply` via
+  `POST /api/znp/projects/:projectId/nova/apply/:id`.
+
+- **ZNP graph hydration/persistence hardening (`znp.service.js`, `nova.service.js`):**
+  Added explicit `hydrateGraph(projectId)` + `ensureProjectHydrated(projectId)` methods
+  so read/write actions and NOVA decisions always operate on hydrated graph state.
+  Graph persistence now retries on PouchDB revision conflicts (409) to reduce
+  race-condition data loss under concurrent mutations.
+
+### Documentation
+
+- **UI contracts updated for NOVA + ZNP realtime integration:**
+  Updated `docs/ui-contracts/15-nova-decision-feed.md` to the exact Phase A DTO and
+  apply contract, `docs/ui-contracts/13-shared-components.md` with the
+  `assumption-confirmed` event payload consumed by NovaFeedStore, and
+  `docs/ui-contracts/00-architecture.md` with the NOVA contract index entry.
+
+### Tests
+
+- **Focused NOVA and ZNP regression coverage added:**
+  Added/updated tests for `nova.pendingDecisions`, `nova.apply`, SSE forwarding,
+  removal of `nova.applyDecision`, `assets.override`, in-memory `znp.createAssumption`,
+  non-persistence, async event emission, and peak-shaving graph recalculation.
+  Added coverage for `RD_CURTAILMENT` decision generation/apply (`gFactor=0.70`
+  only on eligible >100 kW solar/wind/biomass edges) and Layer-0 storage of
+  `capacity_kw` + normalized redispatch control flags.
+
+- **Layer 2 calibration coverage added:**
+  Added focused tests for Base64 Layer-2 uploads, structured extraction wiring,
+  calibration-node creation, `calibrationGFactor` computation, measurement-node updates,
+  and `layer2-activated` SSE event emission.
+
+---
+
+## [0.25.0] - 2026-04-12
+
+### Added
+
+- **ZNP graph persistence and lazy hydration (`znp.service.js`):**
+  Implemented persistent graph storage with PouchDB split-document architecture:
+  - `znp:meta:<projectId>` — lightweight project metadata (bbox, name, layers, stats)
+  - `znp:graph:<projectId>` — full serialized graphology export (graph.export() blob)
+  This split enables fast metadata queries (dashboards, list views) while keeping large
+  graph blobs isolated. Graphs are lazily hydrated on-demand when first accessed.
+
+- **Conflict-safe graph persistence with retry loop (`znp.service.js`):**
+  Added `persistGraph(projectId, graph)` with automatic retry on PouchDB revision conflicts.
+  Retry logic re-fetches the current revision each attempt (max 3 attempts) to handle
+  concurrent mutations gracefully. Logged at debug/warn level for operational visibility.
+
+- **Explicit project deletion lifecycle endpoint (`znp.service.js`, `api.service.js`):**
+  Added `DELETE /api/znp/projects/:projectId` to permanently remove a project from
+  in-memory activeGraphs and PouchDB. Intended for test cleanup and workspace management.
+  Returns `{ success: true, projectId, message }` on successful deletion.
+
+- **Hydration guard on read/write operations (`znp.service.js`):**
+  Added `ensureProjectHydrated(projectId)` helper and injected it into critical handlers:
+  `addLayer0`, `addLayer1`, `addLayer2`, `calculateGFactor`, `strategicPrompts`,
+  `createAssumption`, `addAssumption`, `getProjectAssets`, `getProjectMeta`.
+  Ensures graph state is always current before mutation/read, preventing stale in-memory access.
+
+- **NOVA hydration-aware graph access (`nova.service.js`):**
+  Updated `getProjectGraph(projectId)` to be async and call ZNP's `ensureProjectHydrated`
+  before graph access. Updated `analyseProjectForPendingDecisions` and `apply` paths
+  to properly await hydration. Preserves RD_CURTAILMENT logic and Layer 2 async flow.
+
+### Changed
+
+- **ZNP createAssumption now persisted (`znp.service.js`):**
+  Changed from in-memory-only to async-persistent handler. Graph mutations are now
+  written to PouchDB immediately after node insertion. Project metadata is updated
+  with layer2.5 flag. Emits `znp.project.updated` event asynchronously for SSE consumers.
+
+- **API OpenAPI description updated for ZNP (`api.service.js`):**
+  Removed "ephemeral v1" language from ZNP tag description. Updated to reflect
+  persistent graph state and hydration model.
+
+### Fixed
+
+- **Graph hydration on service start (`znp.service.js`):**
+  Fixed `_hydrateGraphs()` to use new `hydrateGraph(projectId)` method for consistency
+  and to handle missing documents gracefully (skipped with warning).
+
+### Technical Details
+
+- **Persistence guarantee:** All graph mutations via `addLayer0`, `addLayer1`, `addLayer2`,
+  `createAssumption` now call `persistGraph()` and update metadata atomically.
+- **Lazy hydration:** Projects are loaded only when accessed, reducing startup memory footprint.
+  Hydration is transparent to API clients — no additional load operations required.
+- **Conflict resilience:** Concurrent writes to the same project trigger automatic retry.
+  Up to 3 attempts ensure eventual consistency without client-side retry loops.
+- **Test coverage:** Added tests for persistence, hydration regression, and delete lifecycle.
 
 ---
 

@@ -521,6 +521,58 @@ module.exports = {
    */
   actions: {
     /**
+     * override
+     *
+     * Stub endpoint for asset-field overrides from NOVA UI.
+     */
+    override: {
+      rest: 'POST /:assetId/override',
+      params: {
+        assetId: { type: 'string', min: 1 },
+        field: { type: 'string', min: 1 },
+        value: { type: 'any' },
+        reason: { type: 'string', min: 1 },
+      },
+      openapi: {
+        summary: 'Apply asset override (stub)',
+        description:
+          'Temporary stub endpoint for manual overrides from NOVA workflows. ' +
+          'Accepts field/value/reason and returns success=true. No persistence yet.',
+        tags: ['Assets'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['assetId', 'field', 'value', 'reason'],
+                properties: {
+                  assetId: { type: 'string', example: 'trafo-brueckweg' },
+                  field: { type: 'string', example: 'capacityKW' },
+                  value: { example: 1250 },
+                  reason: { type: 'string', example: 'Manual correction from operator' },
+                },
+              },
+              examples: {
+                default: {
+                  value: {
+                    assetId: 'trafo-brueckweg',
+                    field: 'capacityKW',
+                    value: 1250,
+                    reason: 'Manual correction from operator',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      handler() {
+        return { success: true };
+      },
+    },
+
+    /**
      * list
      *
      * Extracts detailed asset list for a VNB.

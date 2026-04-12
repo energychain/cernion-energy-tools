@@ -50,6 +50,8 @@ const path = require('path');
 
 const { version: packageVersion } = require('../package.json');
 
+const SERVICES_DIR = path.join(__dirname, '..', 'services');
+
 // ── Route → UI page mapping ──────────────────────────────────────────────
 
 const UI_PAGE_MAP = [
@@ -135,79 +137,104 @@ async function loadSpec() {
  * definitions that are only generated at runtime by moleculer-auto-openapi.
  * For a complete spec, run the server and use --live flag.
  */
-function buildStaticSpec() {
-  // Attempt to read tags from api.service.js
-  let tags = [];
-  try {
-    // eslint-disable-next-line global-require
-    const apiSvc = require('../services/api.service');
-    tags = apiSvc.settings?.openapi?.tags || [];
-  } catch {
-    // fallback: no tags
+function normaliseApiPath(routePath) {
+  const prefixed = routePath.startsWith('/') ? `/api${routePath}` : `/api/${routePath}`;
+  return prefixed.replace(/\/+/g, '/');
+}
+
+function loadActionRegistry() {
+  const registry = new Map();
+  const files = fs
+    .readdirSync(SERVICES_DIR)
+    .filter((name) => name.endsWith('.service.js'))
+    .sort((a, b) => a.localeCompare(b));
+
+  for (const file of files) {
+    // eslint-disable-next-line global-require, import/no-dynamic-require
+    const svc = require(path.join(SERVICES_DIR, file));
+    if (!svc || !svc.name || !svc.actions || typeof svc.actions !== 'object') continue;
+
+    for (const [actionName, actionDef] of Object.entries(svc.actions)) {
+      registry.set(`${svc.name}.${actionName}`, actionDef);
+    }
   }
+
+  return registry;
+}
+
+function buildOperationFromAction(actionRef, actionDef) {
+  const serviceName = actionRef.split('.')[0];
+  const openapi = actionDef?.openapi || {};
+
+  const operation = {
+    operationId: openapi.operationId || actionRef.replace(/\./g, '_'),
+    summary: openapi.summary || actionRef,
+    tags: Array.isArray(openapi.tags) && openapi.tags.length > 0 ? openapi.tags : [serviceName],
+    responses: openapi.responses || {
+      200: {
+        description: 'Successful response',
+        content: {
+          'application/json': {
+            schema: { type: 'object' },
+          },
+        },
+      },
+    },
+  };
+
+  if (openapi.description) operation.description = openapi.description;
+  if (openapi.parameters) operation.parameters = openapi.parameters;
+  if (openapi.requestBody) operation.requestBody = openapi.requestBody;
+  if (openapi['x-oeo-class']) operation['x-oeo-class'] = openapi['x-oeo-class'];
+
+  return operation;
+}
+
+function buildStaticPaths(apiSvc, actionRegistry) {
+  const routes = apiSvc.settings?.routes || [];
+  const apiRoute = routes.find((route) => route && route.path === '/api');
+  const aliases = apiRoute?.aliases || {};
+  const paths = {};
+
+  for (const [aliasKey, aliasTarget] of Object.entries(aliases)) {
+    if (typeof aliasTarget !== 'string') continue;
+
+    const [methodRaw, ...restParts] = aliasKey.split(' ');
+    if (!methodRaw || restParts.length === 0) continue;
+
+    const method = methodRaw.toLowerCase();
+    const routePath = restParts.join(' ').trim();
+    const openapiPath = normaliseApiPath(routePath);
+
+    if (!paths[openapiPath]) paths[openapiPath] = {};
+
+    const actionDef = actionRegistry.get(aliasTarget);
+    paths[openapiPath][method] = buildOperationFromAction(aliasTarget, actionDef || {});
+  }
+
+  return paths;
+}
+
+function buildStaticSpec() {
+  // eslint-disable-next-line global-require
+  const apiSvc = require('../services/api.service');
+  const tags = apiSvc.settings?.openapi?.tags || [];
+  const actionRegistry = loadActionRegistry();
+  const paths = buildStaticPaths(apiSvc, actionRegistry);
 
   return {
     openapi: '3.0.0',
     info: {
-      title:   'Cernion Energy Tools API',
+      title: 'Cernion Energy Tools API',
       version: packageVersion,
       description:
         'MicroService Agent System for Energy Markets - REST API with AI integration.\n\n' +
         'CERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.',
     },
     tags,
-    paths: {},  // populated below from KNOWN_ROUTES
+    paths,
   };
 }
-
-// ── Known routes (sourced from api.service.js aliases) ───────────────────
-
-// These are the canonical REST routes for annotation. If live spec is
-// unavailable, we inject x-ui-page into these stub path entries.
-const KNOWN_DASHBOARD_PATHS = {
-  '/dashboard/vnb-overview': {
-    get: {
-      tags:        ['Dashboard API'],
-      summary:     'VNB overview — aggregated dashboard data for one grid operator',
-      operationId: 'dashboard-api.vnbOverview',
-      'x-ui-page': 'dashboard',
-      parameters:  [{ name: 'bdewCode', in: 'query', required: true, schema: { type: 'string' } }],
-      responses:   { 200: { description: 'Aggregated VNB overview' } },
-    },
-  },
-  '/dashboard/market-snapshot': {
-    get: {
-      tags:        ['Dashboard API'],
-      summary:     'Market snapshot — current spot prices, CO₂ intensity, renewable forecast',
-      operationId: 'dashboard-api.marketSnapshot',
-      'x-ui-page': 'dashboard',
-      parameters:  [
-        { name: 'location', in: 'query', required: false, schema: { type: 'string', default: 'Deutschland' } },
-        { name: 'region',   in: 'query', required: false, schema: { type: 'string', default: 'Germany' } },
-      ],
-      responses: { 200: { description: 'Current market snapshot' } },
-    },
-  },
-  '/dashboard/quality-summary': {
-    get: {
-      tags:        ['Dashboard API'],
-      summary:     'Quality summary — recent reports from all agent pipelines',
-      operationId: 'dashboard-api.qualitySummary',
-      'x-ui-page': 'dashboard',
-      parameters:  [{ name: 'gridOperatorId', in: 'query', required: false, schema: { type: 'string' } }],
-      responses:   { 200: { description: 'Quality summary across all agent pipelines' } },
-    },
-  },
-  '/dashboard/finding-codes': {
-    get: {
-      tags:        ['Dashboard API'],
-      summary:     'Finding codes reference — all 92 codes with metadata',
-      operationId: 'dashboard-api.findingCodes',
-      'x-ui-page': 'dashboard',
-      responses:   { 200: { description: 'Finding codes reference' } },
-    },
-  },
-};
 
 // ── Main ──────────────────────────────────────────────────────────────────
 
@@ -219,8 +246,6 @@ async function main() {
     spec = await loadSpec();
   } else {
     spec = buildStaticSpec();
-    // Merge known dashboard paths into static spec
-    Object.assign(spec.paths, KNOWN_DASHBOARD_PATHS);
   }
 
   // Inject x-ui-page on all paths, remove excluded paths
@@ -241,13 +266,18 @@ async function main() {
     annotatedPaths[openapiPath] = annotatedPathItem;
   }
 
+  const includeTimestamp = String(process.env.OPENAPI_EXPORT_INCLUDE_TIMESTAMP || 'false') === 'true';
+
   const exportSpec = {
     ...spec,
     paths: annotatedPaths,
-    'x-generated-at': new Date().toISOString(),
     'x-generator':    'scripts/export-openapi.js',
     'x-version':      packageVersion,
   };
+
+  if (includeTimestamp) {
+    exportSpec['x-generated-at'] = new Date().toISOString();
+  }
 
   const outPath = path.join(__dirname, '..', 'openapi-export.json');
   fs.writeFileSync(outPath, JSON.stringify(exportSpec, null, 2), 'utf-8');

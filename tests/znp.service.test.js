@@ -20,6 +20,16 @@
 // These are mocked before the service module is loaded (jest hoisting).
 
 jest.mock('../src/znp-pdf-extractor', () => ({
+  extractLayer2CalibrationFromFile: jest.fn().mockResolvedValue({
+    peakLoadKw: 650,
+    transformerId: 'TRAFO-SUB-1',
+    nominalCapacityKw: 9500,
+  }),
+  extractLayer2CalibrationFromBuffer: jest.fn().mockResolvedValue({
+    peakLoadKw: 650,
+    transformerId: 'TRAFO-SUB-1',
+    nominalCapacityKw: 9500,
+  }),
   extractPeakLoadFromFile: jest.fn().mockResolvedValue(650),
 }));
 
@@ -43,9 +53,13 @@ jest.mock('../src/llm-client', () => ({
   },
 }));
 
-const { extractPeakLoadFromFile }  = require('../src/znp-pdf-extractor');
+const {
+  extractLayer2CalibrationFromFile,
+  extractLayer2CalibrationFromBuffer,
+} = require('../src/znp-pdf-extractor');
 const { fetchBuildingsForBbox, mapAssetsToBuildings } = require('../src/znp-osm-buildings');
 const { detectClusters, computeGFactorAdjustment }   = require('../src/znp-clustering-heuristics');
+const jobStore = require('../src/job-store');
 
 const { ServiceBroker } = require('moleculer');
 const ZnpService = require('../services/znp.service');
@@ -64,6 +78,19 @@ function makeAssets(count = 3, baseCapacity = 10, offset = 0) {
     lat: 49.49 + (offset + i) * 0.001,
     lon: 8.47 + (offset + i) * 0.001,
   }));
+}
+
+async function waitFor(predicate, { timeoutMs = 1000, intervalMs = 10 } = {}) {
+  const startedAt = Date.now();
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const value = predicate();
+    if (value) return value;
+    if (Date.now() - startedAt >= timeoutMs) {
+      throw new Error('Timed out waiting for async condition.');
+    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
 }
 
 // ─── Test suite ──────────────────────────────────────────────────────────────
@@ -233,6 +260,28 @@ describe('ZNP Service', () => {
       });
       expect(result.nodesAdded).toBe(1);
     });
+
+    it('stores capacity_kw alias and normalized redispatch control flags', async () => {
+      await broker.call('znp.addLayer0', {
+        projectId,
+        assets: [{
+          mastrNummer: 'SEE900RD0001',
+          capacity: 250,
+          assetType: 'wind',
+          fernsteuerbarkeitDv: true,
+          fernsteuerbarkeitSonstige: false,
+        }],
+      });
+
+      const svc = broker.services.find((s) => s.name === 'znp');
+      const { graph } = svc.activeGraphs.get(projectId);
+      const attrs = graph.getNodeAttributes('mastr:SEE900RD0001');
+
+      expect(attrs.capacity).toBe(250);
+      expect(attrs.capacity_kw).toBe(250);
+      expect(attrs.fernsteuerbarkeitDv).toBe(true);
+      expect(attrs.fernsteuerbarkeitSonstige).toBe(false);
+    });
   });
 
   // ─── calculateGFactor ─────────────────────────────────────────────────────
@@ -315,7 +364,11 @@ describe('ZNP Service', () => {
 
     it('uses measured load (Layer 2 short-circuit) when target_layer=2', async () => {
       jest.clearAllMocks();
-      extractPeakLoadFromFile.mockResolvedValue(650);
+      extractLayer2CalibrationFromFile.mockResolvedValue({
+        peakLoadKw: 650,
+        transformerId: 'TRAFO-SUB-1',
+        nominalCapacityKw: 9500,
+      });
       await broker.call('znp.addLayer0', { projectId, assets: makeAssets(5, 100) });
       await broker.call('znp.addLayer2', { projectId, filePath: '/uploads/r.pdf' });
 
@@ -443,6 +496,59 @@ describe('ZNP Service', () => {
     });
   });
 
+  // ─── deleteProject ─────────────────────────────────────────────────────────
+
+  describe('deleteProject', () => {
+    it('deletes a project from activeGraphs and PouchDB', async () => {
+      const bbox = makeBbox();
+      const { projectId } = await broker.call('znp.createProject', { bbox, name: 'DeleteTest' });
+      await broker.call('znp.addLayer0', { projectId, assets: makeAssets(2) });
+
+      // Verify project exists
+      let result = await broker.call('znp.getProjectMeta', { projectId });
+      expect(result.projectId).toBe(projectId);
+
+      // Delete the project
+      const deleteResult = await broker.call('znp.deleteProject', { projectId });
+      expect(deleteResult.success).toBe(true);
+      expect(deleteResult.projectId).toBe(projectId);
+
+      // Verify project is gone from in-memory registry
+      await expect(
+        broker.call('znp.getProjectMeta', { projectId })
+      ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
+
+      // Verify project is no longer in listProjects
+      const projects = await broker.call('znp.listProjects', {});
+      const found = projects.projects.find((p) => p.projectId === projectId);
+      expect(found).toBeUndefined();
+    });
+
+    it('throws 404 when attempting to delete a non-existent project', async () => {
+      await expect(
+        broker.call('znp.deleteProject', { projectId: '00000000-0000-0000-0000-000000000000' })
+      ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
+    });
+
+    it('cleans up PouchDB documents (meta and graph)', async () => {
+      const { projectId } = await broker.call('znp.createProject', { bbox: makeBbox(), name: 'PouchDBTest' });
+
+      // Delete the project
+      await broker.call('znp.deleteProject', { projectId });
+
+      // Attempt to fetch the deleted documents from PouchDB directly
+      const znpService = broker.getLocalService('znp');
+      const metaDocId = `znp:meta:${projectId}`;
+      const graphDocId = `znp:graph:${projectId}`;
+
+      // Both docs should be gone
+      await expect(znpService.db.get(metaDocId))
+        .rejects.toMatchObject({ status: 404 });
+      await expect(znpService.db.get(graphDocId))
+        .rejects.toMatchObject({ status: 404 });
+    });
+  });
+
   // ─── addLayer2 ─────────────────────────────────────────────────────────────
 
   describe('addLayer2', () => {
@@ -450,9 +556,19 @@ describe('ZNP Service', () => {
 
     beforeEach(async () => {
       jest.clearAllMocks();
-      extractPeakLoadFromFile.mockResolvedValue(650);
+      extractLayer2CalibrationFromFile.mockResolvedValue({
+        peakLoadKw: 650,
+        transformerId: 'TRAFO-SUB-1',
+        nominalCapacityKw: 9500,
+      });
+      extractLayer2CalibrationFromBuffer.mockResolvedValue({
+        peakLoadKw: 650,
+        transformerId: 'TRAFO-SUB-1',
+        nominalCapacityKw: 9500,
+      });
       const r = await broker.call('znp.createProject', { bbox: makeBbox() });
       projectId = r.projectId;
+      await broker.call('znp.addLayer0', { projectId, assets: makeAssets(3, 100) });
     });
 
     it('adds a Measurement node (layer=2) to the graph', async () => {
@@ -465,6 +581,24 @@ describe('ZNP Service', () => {
       expect(attrs.value).toBe(650);
       expect(attrs.unit).toBe('kW');
       expect(attrs.layer).toBe(2);
+      expect(attrs.transformerId).toBe('TRAFO-SUB-1');
+      expect(attrs.nominalCapacityKw).toBe(9500);
+    });
+
+    it('adds a calibration node with calculated layer-2 calibration factor', async () => {
+      await broker.call('znp.addLayer2', { projectId, filePath: '/uploads/report.pdf' });
+
+      const svc = broker.services.find((s) => s.name === 'znp');
+      const { graph } = svc.activeGraphs.get(projectId);
+      expect(graph.hasNode('calibration:substation:SUB_1')).toBe(true);
+
+      const attrs = graph.getNodeAttributes('calibration:substation:SUB_1');
+      expect(attrs.type).toBe('calibration_node');
+      expect(attrs.peakLoadKw).toBe(650);
+      expect(attrs.transformerId).toBe('TRAFO-SUB-1');
+      expect(attrs.nominalCapacityKw).toBe(9500);
+      expect(attrs.layer1NominalCapacityKw).toBe(303);
+      expect(attrs.calibrationGFactor).toBeCloseTo(2.145, 3);
     });
 
     it('adds an oeo_measures edge from Measurement to SUB_1', async () => {
@@ -475,26 +609,51 @@ describe('ZNP Service', () => {
       expect(graph.hasEdge('measurement:peak_load:SUB_1', 'SUB_1')).toBe(true);
     });
 
-    it('returns projectId, measurementKey, and peakLoadKw', async () => {
+    it('returns projectId, measurementKey, and structured calibration fields', async () => {
       const result = await broker.call('znp.addLayer2', { projectId, filePath: '/uploads/r.pdf' });
       expect(result.projectId).toBe(projectId);
       expect(result.peakLoadKw).toBe(650);
       expect(result.measurementKey).toBe('measurement:peak_load:SUB_1');
+      expect(result.calibrationKey).toBe('calibration:substation:SUB_1');
+      expect(result.transformerId).toBe('TRAFO-SUB-1');
+      expect(result.nominalCapacityKw).toBe(9500);
+      expect(result.layer1NominalCapacityKw).toBe(303);
+      expect(result.calibrationGFactor).toBeCloseTo(2.145, 3);
     });
 
-    it('calls extractPeakLoadFromFile with the given filePath', async () => {
+    it('calls structured extraction with the given filePath', async () => {
       await broker.call('znp.addLayer2', { projectId, filePath: '/uploads/abc.pdf' });
-      expect(extractPeakLoadFromFile).toHaveBeenCalledWith('/uploads/abc.pdf');
+      expect(extractLayer2CalibrationFromFile).toHaveBeenCalledWith('/uploads/abc.pdf');
+    });
+
+    it('accepts base64 PDF content in the JSON body', async () => {
+      await broker.call('znp.addLayer2', {
+        projectId,
+        fileContentBase64: 'data:application/pdf;base64,JVBERi0xLjQK',
+        fileName: 'inline.pdf',
+      });
+
+      expect(extractLayer2CalibrationFromBuffer).toHaveBeenCalledWith(expect.any(Buffer));
+
+      const svc = broker.services.find((s) => s.name === 'znp');
+      const { graph } = svc.activeGraphs.get(projectId);
+      expect(graph.getNodeAttribute('SUB_1', 'layer2Active')).toBe(true);
+      expect(graph.getNodeAttribute('SUB_1', 'layer2SourceFileName')).toBe('inline.pdf');
     });
 
     it('updates the Measurement value idempotently on re-load', async () => {
       await broker.call('znp.addLayer2', { projectId, filePath: '/uploads/r.pdf' });
-      extractPeakLoadFromFile.mockResolvedValueOnce(720);
+      extractLayer2CalibrationFromFile.mockResolvedValueOnce({
+        peakLoadKw: 720,
+        transformerId: 'TRAFO-SUB-2',
+        nominalCapacityKw: 11400,
+      });
       await broker.call('znp.addLayer2', { projectId, filePath: '/uploads/r2.pdf' });
 
       const svc = broker.services.find((s) => s.name === 'znp');
       const { graph } = svc.activeGraphs.get(projectId);
       expect(graph.getNodeAttributes('measurement:peak_load:SUB_1').value).toBe(720);
+      expect(graph.getNodeAttributes('measurement:peak_load:SUB_1').transformerId).toBe('TRAFO-SUB-2');
     });
 
     it('throws 404 ZNP_PROJECT_NOT_FOUND for an unknown projectId', async () => {
@@ -507,10 +666,58 @@ describe('ZNP Service', () => {
     });
 
     it('propagates extraction errors from the LLM helper', async () => {
-      extractPeakLoadFromFile.mockRejectedValueOnce(new Error('LLM timeout'));
+      extractLayer2CalibrationFromFile.mockRejectedValueOnce(new Error('LLM timeout'));
       await expect(
         broker.call('znp.addLayer2', { projectId, filePath: '/uploads/bad.pdf' })
       ).rejects.toThrow('LLM timeout');
+    });
+
+    it('emits znp.project.updated when Layer 2 is activated', async () => {
+      const emitSpy = jest.spyOn(broker, 'emit');
+
+      await broker.call('znp.addLayer2', { projectId, filePath: '/uploads/report.pdf' });
+
+      expect(emitSpy).toHaveBeenCalledWith('znp.project.updated', expect.objectContaining({
+        type: 'layer2-activated',
+        data: expect.objectContaining({
+          projectId,
+          peakLoadKw: 650,
+          transformerId: 'TRAFO-SUB-1',
+          nominalCapacityKw: 9500,
+        }),
+      }));
+
+      emitSpy.mockRestore();
+    });
+
+    it('returns a 202-style job descriptor and persists completed job result for gateway callers', async () => {
+      const meta = { $gateway: true };
+      const result = await broker.call('znp.addLayer2', {
+        projectId,
+        fileContentBase64: 'data:application/pdf;base64,JVBERi0xLjQK',
+        fileName: 'gateway.pdf',
+      }, { meta });
+
+      expect(meta.$statusCode).toBe(202);
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('queued');
+      expect(result.jobId).toBeDefined();
+      expect(result.statusUrl).toBe(`/api/jobs/${result.jobId}/status`);
+      expect(result.resultUrl).toBe(`/api/jobs/${result.jobId}/result`);
+
+      const completedJob = await waitFor(() => {
+        const job = jobStore.getJob(result.jobId);
+        return job && job.status === 'completed' ? job : null;
+      });
+      expect(completedJob.phase).toBe('done');
+
+      const persistedResult = jobStore.getResult(result.jobId);
+      expect(persistedResult).toEqual(expect.objectContaining({
+        projectId,
+        peakLoadKw: 650,
+        transformerId: 'TRAFO-SUB-1',
+        nominalCapacityKw: 9500,
+      }));
     });
   });
 
@@ -697,6 +904,19 @@ describe('ZNP Service', () => {
 
       expect(svc.activeGraphs.get(projectId).layer1GFactorAdjustment).toBe(0.77);
     });
+
+    it('auto-hydrates project on read route when activeGraphs entry is missing', async () => {
+      const { projectId } = await broker.call('znp.createProject', { bbox: makeBbox() });
+      await broker.call('znp.addLayer0', { projectId, assets: makeAssets(2, 25) });
+
+      const svc = broker.services.find((s) => s.name === 'znp');
+      svc.activeGraphs.delete(projectId);
+      expect(svc.activeGraphs.has(projectId)).toBe(false);
+
+      const result = await broker.call('znp.getProjectAssets', { projectId });
+      expect(result.totalCount).toBe(2);
+      expect(svc.activeGraphs.has(projectId)).toBe(true);
+    });
   });
 
   // ─── Issue 2: strategicPrompts ────────────────────────────────────────────
@@ -762,11 +982,17 @@ describe('ZNP Service', () => {
 
   describe('addAssumption — Issue 3 (v0.23)', () => {
     let projectId;
+    let emitSpy;
 
     beforeEach(async () => {
       jest.clearAllMocks();
+      emitSpy = jest.spyOn(broker, 'emit');
       const r = await broker.call('znp.createProject', { bbox: makeBbox() });
       projectId = r.projectId;
+    });
+
+    afterEach(() => {
+      emitSpy.mockRestore();
     });
 
     it('inserts a StrategicAssumption node (layer=2.5) into the graph', async () => {
@@ -844,6 +1070,167 @@ describe('ZNP Service', () => {
         broker.call('znp.addAssumption', { projectId, text: 'Geplante Anlage ohne Key' })
       ).rejects.toMatchObject({ code: 503, type: 'LLM_NOT_CONFIGURED' });
     });
+
+    it('emits znp.project.updated with NovaFeedStore payload shape', async () => {
+      mockGenerateStructured.mockResolvedValueOnce({
+        assetType: 'storage', capacityKW: 5000, status: 'planned', hasFlexibleNav: true,
+      });
+
+      const inputText = 'Wir planen einen 5MW Speicher mit flexiblem NAV am Brückweg';
+      const result = await broker.call('znp.addAssumption', { projectId, text: inputText });
+
+      expect(emitSpy).toHaveBeenCalledWith('znp.project.updated', {
+        type: 'assumption-confirmed',
+        data: {
+          id: result.assumptionId,
+          text: inputText,
+        },
+      });
+    });
+
+    it('does not fail addAssumption when event emission throws', async () => {
+      emitSpy.mockImplementation(() => {
+        throw new Error('emit failed');
+      });
+      mockGenerateStructured.mockResolvedValueOnce({
+        assetType: 'storage', capacityKW: 1200, status: 'planned', hasFlexibleNav: false,
+      });
+
+      await expect(
+        broker.call('znp.addAssumption', { projectId, text: 'Speicher 1.2 MW geplant' })
+      ).resolves.toMatchObject({
+        projectId,
+        extracted: {
+          assetType: 'storage',
+          capacityKW: 1200,
+          status: 'planned',
+          hasFlexibleNav: false,
+        },
+      });
+    });
+  });
+
+  describe('createAssumption (in-memory stub)', () => {
+    let projectId;
+
+    beforeEach(async () => {
+      const r = await broker.call('znp.createProject', { bbox: makeBbox() });
+      projectId = r.projectId;
+    });
+
+    it('returns generated { id, text }', async () => {
+      const result = await broker.call('znp.createAssumption', {
+        projectId,
+        text: 'Neues Gewerbegebiet Ost mit zusätzlicher Last geplant',
+      });
+
+      expect(result).toHaveProperty('id');
+      expect(result.id).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
+      );
+      expect(result.text).toBe('Neues Gewerbegebiet Ost mit zusätzlicher Last geplant');
+    });
+
+    it('creates StrategicAssumption node in in-memory graph (layer 2.5)', async () => {
+      const result = await broker.call('znp.createAssumption', {
+        projectId,
+        text: 'Zusätzliche Ladehubs in Q3',
+      });
+
+      const svc = broker.services.find((s) => s.name === 'znp');
+      const { graph } = svc.activeGraphs.get(projectId);
+      const nodeKey = `strategic_assumption:${result.id}`;
+
+      expect(graph.hasNode(nodeKey)).toBe(true);
+      const attrs = graph.getNodeAttributes(nodeKey);
+      expect(attrs.type).toBe('StrategicAssumption');
+      expect(attrs.layer).toBe(2.5);
+      expect(attrs.text).toBe('Zusätzliche Ladehubs in Q3');
+      expect(attrs.id).toBe(result.id);
+    });
+
+    it('persists createAssumption node to PouchDB', async () => {
+      const result = await broker.call('znp.createAssumption', {
+        projectId,
+        text: 'Temporäre Annahme mit Persistenz',
+      });
+
+      const svc = broker.services.find((s) => s.name === 'znp');
+      const graphDoc = await svc.db.get(`znp:graph:${projectId}`);
+      const persistedNode = graphDoc.graphData.nodes.find(
+        (n) => n.key === `strategic_assumption:${result.id}`
+      );
+
+      expect(persistedNode).toBeDefined();
+    });
+
+    it('forces gFactor=0.45 for matching BESS/storage asset edges to substation', async () => {
+      await broker.call('znp.addLayer0', {
+        projectId,
+        assets: [
+          { mastrNummer: 'SEE900STORAGE1', capacity: 1000, assetType: 'storage', lat: 49.49, lon: 8.47 },
+          { mastrNummer: 'SEE900SOLAR001', capacity: 800, assetType: 'solar', lat: 49.50, lon: 8.48 },
+        ],
+      });
+
+      const result = await broker.call('znp.createAssumption', {
+        projectId,
+        text: 'BESS-Peak-Shaving für den Netzabschnitt Süd aktivieren',
+      });
+
+      const svc = broker.services.find((s) => s.name === 'znp');
+      const { graph } = svc.activeGraphs.get(projectId);
+      const storageEdgeKey = graph.edge('mastr:SEE900STORAGE1', 'SUB_1');
+      const solarEdgeKey = graph.edge('mastr:SEE900SOLAR001', 'SUB_1');
+
+      expect(result.id).toBeDefined();
+      expect(graph.getEdgeAttribute(storageEdgeKey, 'gFactor')).toBe(0.45);
+      expect(graph.getEdgeAttribute(storageEdgeKey, 'peakShavingAssumptionId')).toBe(result.id);
+      expect(graph.getEdgeAttribute(solarEdgeKey, 'gFactor')).toBeUndefined();
+    });
+
+    it('recalculates cumulative peak capacity on SUB_1 after peak-shaving override', async () => {
+      await broker.call('znp.addLayer0', {
+        projectId,
+        assets: [
+          { mastrNummer: 'SEE900WB00001', capacity: 300, assetType: 'wallbox', lat: 49.49, lon: 8.47 },
+          { mastrNummer: 'SEE900SOLAR002', capacity: 700, assetType: 'solar', lat: 49.50, lon: 8.48 },
+        ],
+      });
+
+      await broker.call('znp.createAssumption', {
+        projectId,
+        text: '§14a steuerbare Verbrauchseinrichtungen zur Lastspitzenkappung einsetzen',
+      });
+
+      const svc = broker.services.find((s) => s.name === 'znp');
+      const { graph } = svc.activeGraphs.get(projectId);
+      expect(graph.getNodeAttribute('SUB_1', 'cumulativePeakCapacityKW')).toBe(835);
+
+      const gResult = await broker.call('znp.calculateGFactor', { projectId, target_layer: 0 });
+      expect(gResult.totalCapacityKW).toBe(835);
+    });
+
+    it('emits async znp.project.updated with frontend payload shape', async () => {
+      const emitSpy = jest.spyOn(broker, 'emit');
+
+      const result = await broker.call('znp.createAssumption', {
+        projectId,
+        text: '§14a Szenario für Wallbox-Lastspitzen',
+      });
+
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(emitSpy).toHaveBeenCalledWith('znp.project.updated', {
+        type: 'assumption-confirmed',
+        data: {
+          id: result.id,
+          text: '§14a Szenario für Wallbox-Lastspitzen',
+        },
+      });
+
+      emitSpy.mockRestore();
+    });
   });
 
   // ─── Issue 3: calculateGFactor — §14a flexible NAV ───────────────────────
@@ -864,7 +1251,7 @@ describe('ZNP Service', () => {
       expect(result.flexNavExcluded).toBe(0);
     });
 
-    it('excludes a flex-NAV assumption node from peak load (g=0.0)', async () => {
+    it('throttles a flex-NAV assumption node to realistic minimum (g=0.45)', async () => {
       const svc       = broker.services.find((s) => s.name === 'znp');
       const { graph } = svc.activeGraphs.get(projectId);
       graph.addNode('assumption:flex-test', {
@@ -874,10 +1261,11 @@ describe('ZNP Service', () => {
         relationship: 'CONTRIBUTES_LOAD', layer: 2.5,
       });
 
+      const baseline = await broker.call('znp.calculateGFactor', { projectId, target_layer: 0 });
       const result = await broker.call('znp.calculateGFactor', { projectId, target_layer: 2 });
-      // 5000 kW flex-NAV must NOT inflate totalCapacityKW
+      // 5000 kW flex-NAV contributes at 45% (2250 kW)
       expect(result.flexNavExcluded).toBe(1);
-      expect(result.totalCapacityKW).toBeLessThan(5000);
+      expect(result.totalCapacityKW).toBe(baseline.totalCapacityKW + 2250);
     });
 
     it('includes a non-flex assumption node in peak load (g=1.0)', async () => {
