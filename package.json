@@ -53,7 +53,7 @@
   "homepage": "https://github.com/energychain/cernion-energy-tools#readme",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
-    "@modelcontextprotocol/sdk": "^1.28.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@turf/boolean-point-in-polygon": "^7.3.4",
     "@turf/helpers": "^7.3.4",
     "ajv": "^8.18.0",
