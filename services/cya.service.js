@@ -1,6 +1,10 @@
 'use strict';
 
 const { MoleculerError } = require('moleculer').Errors;
+const { retrieveContextData } = require('../src/cya-data-retriever');
+const { buildRegulatoryGraph } = require('../src/cya-regulatory-graph');
+const { buildGrounding } = require('../src/cya-grounding');
+const { synthesizeNarrative } = require('../src/cya-synthesis');
 
 const PROFILE_ID_PATTERN = /^[a-z0-9_]+$/;
 const ACTOR_ROLES = [
@@ -27,6 +31,9 @@ const FOCUS_AREAS = [
   'section14a',
   'nova',
 ];
+
+const SESSION_NAMESPACE = 'cya_sessions';
+const PROFILE_NAMESPACE = 'cya_profiles';
 
 module.exports = {
   name: 'cya',
@@ -129,7 +136,7 @@ module.exports = {
         };
 
         await ctx.call('object-store.put', {
-          namespace: 'cya_profiles',
+          namespace: PROFILE_NAMESPACE,
           key: profile_id,
           payload,
         });
@@ -272,7 +279,7 @@ module.exports = {
       },
       async handler(ctx) {
         const result = await ctx.call('object-store.query', {
-          namespace: 'cya_profiles',
+          namespace: PROFILE_NAMESPACE,
           selector: {},
           limit: ctx.params.limit,
         });
@@ -305,9 +312,9 @@ module.exports = {
       },
       openapi: {
         tags: ['CYA Agent'],
-        summary: 'Generate profile-aware narrative (stub)',
+        summary: 'Generate profile-aware narrative',
         description:
-          'Stub endpoint for the CYA generation pipeline. Loads the profile and returns a session placeholder.',
+          'Runs the full CYA pipeline: data retrieval, deterministic regulatory graph, grounding, and LLM synthesis. Returns Option-B response structure.',
         requestBody: {
           required: true,
           content: {
@@ -353,15 +360,32 @@ module.exports = {
         },
         responses: {
           200: {
-            description: 'Stub response',
+            description: 'Pipeline result',
             content: {
               'application/json': {
                 schema: {
                   type: 'object',
                   properties: {
+                    success: { type: 'boolean', example: true },
                     session_id: { type: 'string' },
-                    status: { type: 'string', example: 'stub' },
-                    message: { type: 'string', example: 'Phase 1-3 not yet implemented' },
+                    status: { type: 'string', enum: ['completed', 'needs_clarification'] },
+                    profile_id: { type: 'string' },
+                    target_audience: { type: 'string' },
+                    grounding: { type: 'object' },
+                    regulatory_graph: { type: 'object' },
+                    narrative: {
+                      type: 'object',
+                      nullable: true,
+                      properties: {
+                        headline: { type: 'string' },
+                        executiveSummary: { type: 'string' },
+                        keyPoints: { type: 'array', items: { type: 'string' } },
+                        recommendedActions: { type: 'array', items: { type: 'string' } },
+                        riskNotes: { type: 'array', items: { type: 'string' } },
+                      },
+                    },
+                    clarification: { type: 'object', nullable: true },
+                    metadata: { type: 'object' },
                   },
                 },
               },
@@ -370,13 +394,84 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { profile_id, session_id } = ctx.params;
-        await this.loadProfile(ctx, profile_id);
-        return {
-          session_id: session_id || `cya_${Date.now()}`,
-          status: 'stub',
-          message: 'Phase 1-3 not yet implemented',
-        };
+        const { profile_id, target_audience, context } = ctx.params;
+        const profile = await this.loadProfile(ctx, profile_id);
+        const sessionId = ctx.params.session_id || `cya_${Date.now()}`;
+
+        const retrieval = await retrieveContextData(ctx, {
+          profile,
+          target_audience,
+          context,
+        });
+
+        const regulatoryGraph = buildRegulatoryGraph({ retrieval, context, profile });
+        const grounding = buildGrounding({ retrieval, regulatoryGraph, context });
+
+        if (grounding.requiresClarification) {
+          const response = this.buildClarificationResponse({
+            sessionId,
+            profileId: profile_id,
+            targetAudience: target_audience,
+            grounding,
+            regulatoryGraph,
+            context,
+          });
+
+          await this.saveSession(ctx, sessionId, {
+            status: response.status,
+            profile_id,
+            target_audience,
+            context,
+            profile,
+            retrieval,
+            regulatory_graph: regulatoryGraph,
+            grounding,
+            narrative: null,
+            clarification: response.clarification,
+            createdAt: response.metadata.createdAt,
+            updatedAt: response.metadata.updatedAt,
+            history: [],
+          });
+
+          return response;
+        }
+
+        const synthesis = await synthesizeNarrative({
+          mode: 'generate',
+          profile,
+          target_audience,
+          context,
+          grounding,
+          regulatoryGraph,
+        });
+
+        const response = this.buildCompletedResponse({
+          sessionId,
+          profileId: profile_id,
+          targetAudience: target_audience,
+          grounding,
+          regulatoryGraph,
+          context,
+          narrative: synthesis.narrative,
+        });
+
+        await this.saveSession(ctx, sessionId, {
+          status: response.status,
+          profile_id,
+          target_audience,
+          context,
+          profile,
+          retrieval,
+          regulatory_graph: regulatoryGraph,
+          grounding,
+          narrative: synthesis.narrative,
+          clarification: null,
+          createdAt: response.metadata.createdAt,
+          updatedAt: response.metadata.updatedAt,
+          history: [],
+        });
+
+        return response;
       },
     },
 
@@ -389,8 +484,8 @@ module.exports = {
       },
       openapi: {
         tags: ['CYA Agent'],
-        summary: 'Refine a generated narrative (stub)',
-        description: 'Stub endpoint for narrative refinement or HITL clarification handling.',
+        summary: 'Refine a generated narrative',
+        description: 'Refines an existing CYA session with user feedback or clarification input (Option-B response structure).',
         requestBody: {
           required: true,
           content: {
@@ -418,15 +513,22 @@ module.exports = {
         },
         responses: {
           200: {
-            description: 'Stub refinement response',
+            description: 'Refinement result',
             content: {
               'application/json': {
                 schema: {
                   type: 'object',
                   properties: {
+                    success: { type: 'boolean', example: true },
                     session_id: { type: 'string' },
-                    status: { type: 'string', example: 'stub' },
-                    message: { type: 'string', example: 'Refinement not yet implemented' },
+                    status: { type: 'string', enum: ['completed', 'needs_clarification'] },
+                    profile_id: { type: 'string' },
+                    target_audience: { type: 'string' },
+                    grounding: { type: 'object' },
+                    regulatory_graph: { type: 'object' },
+                    narrative: { type: 'object', nullable: true },
+                    clarification: { type: 'object', nullable: true },
+                    metadata: { type: 'object' },
                   },
                 },
               },
@@ -435,11 +537,68 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        return {
-          session_id: ctx.params.session_id,
-          status: 'stub',
-          message: 'Refinement not yet implemented',
+        const session = await this.loadSession(ctx, ctx.params.session_id);
+        const profile = session.profile || (await this.loadProfile(ctx, session.profile_id));
+        const userFeedback = String(ctx.params.user_feedback || '').trim();
+        const clarificationInput = String(ctx.params.agent_clarification_response || '').trim();
+
+        if (session.status === 'needs_clarification' && !clarificationInput) {
+          return this.buildClarificationResponse({
+            sessionId: ctx.params.session_id,
+            profileId: session.profile_id,
+            targetAudience: session.target_audience,
+            grounding: session.grounding,
+            regulatoryGraph: session.regulatory_graph,
+            context: session.context,
+            createdAt: session.createdAt,
+          });
+        }
+
+        const refinedContext = {
+          ...session.context,
+          clarification: clarificationInput || null,
         };
+
+        const synthesis = await synthesizeNarrative({
+          mode: 'refine',
+          profile,
+          target_audience: session.target_audience,
+          context: refinedContext,
+          grounding: session.grounding,
+          regulatoryGraph: session.regulatory_graph,
+          userFeedback,
+          previousNarrative: session.narrative || null,
+        });
+
+        const response = this.buildCompletedResponse({
+          sessionId: ctx.params.session_id,
+          profileId: session.profile_id,
+          targetAudience: session.target_audience,
+          grounding: session.grounding,
+          regulatoryGraph: session.regulatory_graph,
+          context: refinedContext,
+          narrative: synthesis.narrative,
+          createdAt: session.createdAt,
+        });
+
+        const history = Array.isArray(session.history) ? session.history : [];
+        history.push({
+          timestamp: response.metadata.updatedAt,
+          user_feedback: userFeedback || null,
+          agent_clarification_response: clarificationInput || null,
+        });
+
+        await this.saveSession(ctx, ctx.params.session_id, {
+          ...session,
+          status: response.status,
+          context: refinedContext,
+          narrative: synthesis.narrative,
+          clarification: null,
+          updatedAt: response.metadata.updatedAt,
+          history,
+        });
+
+        return response;
       },
     },
   },
@@ -448,7 +607,7 @@ module.exports = {
     async loadProfile(ctx, profileId) {
       try {
         const result = await ctx.call('object-store.get', {
-          namespace: 'cya_profiles',
+          namespace: PROFILE_NAMESPACE,
           key: profileId,
         });
         const profile = result?.payload || null;
@@ -462,6 +621,87 @@ module.exports = {
         }
         throw err;
       }
+    },
+
+    async loadSession(ctx, sessionId) {
+      try {
+        const result = await ctx.call('object-store.get', {
+          namespace: SESSION_NAMESPACE,
+          key: sessionId,
+        });
+        const session = result?.payload || null;
+        if (!session) {
+          throw new MoleculerError('SESSION_NOT_FOUND', 404, 'SESSION_NOT_FOUND');
+        }
+        return session;
+      } catch (err) {
+        if (err?.code === 404 || err?.type === 'OBJECT_NOT_FOUND' || err?.message === 'SESSION_NOT_FOUND') {
+          throw new MoleculerError('SESSION_NOT_FOUND', 404, 'SESSION_NOT_FOUND');
+        }
+        throw err;
+      }
+    },
+
+    async saveSession(ctx, sessionId, payload) {
+      await ctx.call('object-store.put', {
+        namespace: SESSION_NAMESPACE,
+        key: sessionId,
+        payload,
+      });
+    },
+
+    buildCompletedResponse(input) {
+      const now = new Date().toISOString();
+      const createdAt = input.createdAt || now;
+      const updatedAt = now;
+
+      return {
+        success: true,
+        session_id: input.sessionId,
+        status: 'completed',
+        profile_id: input.profileId,
+        target_audience: input.targetAudience,
+        grounding: input.grounding,
+        regulatory_graph: input.regulatoryGraph,
+        narrative: input.narrative,
+        clarification: null,
+        metadata: {
+          createdAt,
+          updatedAt,
+          focus_areas: input.context?.focus_areas || [],
+          trigger: input.context?.trigger || null,
+          location: input.context?.location || null,
+        },
+      };
+    },
+
+    buildClarificationResponse(input) {
+      const now = new Date().toISOString();
+      const createdAt = input.createdAt || now;
+      const updatedAt = now;
+
+      return {
+        success: true,
+        session_id: input.sessionId,
+        status: 'needs_clarification',
+        profile_id: input.profileId,
+        target_audience: input.targetAudience,
+        grounding: input.grounding,
+        regulatory_graph: input.regulatoryGraph,
+        narrative: null,
+        clarification: input.grounding?.clarification || {
+          question: 'Bitte fehlende Kontextinformationen ergänzen.',
+          reason: 'clarification_required',
+          suggestedInputs: [],
+        },
+        metadata: {
+          createdAt,
+          updatedAt,
+          focus_areas: input.context?.focus_areas || [],
+          trigger: input.context?.trigger || null,
+          location: input.context?.location || null,
+        },
+      };
     },
   },
 };

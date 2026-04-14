@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.26.1
-- changelog_latest_release: 0.26.1
+- version: 0.26.2
+- changelog_latest_release: 0.26.2
 - source_files_hash:
-  - CHANGELOG.md: 600f9a3cbb77db934319987095b0e57bd4839eccf6795402106b8527d3a21b51
+  - CHANGELOG.md: 6b35ff7b4e5fac89b03b653ee7ea231b5ebea5896616e051614f032211f313d8
   - README.md: 23b8ff807aaac10adb703b0b80edb676ace5ae28cc2fa66feb7dd5032f5eb333
   - docs/BACKEND_CONTEXT.md: 98e1ea456116d39b57d410b89b9086b1d97b042d8202f5fdfa1aadc311f3a855
   - src/cookbook-recipes.js: 7e92337203ff08ef348bcdb1b91d04ad58683494640c76553b005f6cfdd42109
-  - openapi-export.json: 6fff8989b2b201f121aa9e618b22fc6a082d7a26794209842c0fd47dab49acb0
+  - openapi-export.json: b4796653f1881f80cfeecda81c1d81eefced6c7b3a5c4a5e218290f83809b2b0
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -629,11 +629,11 @@ process:
 - POST /api/cookbook/search | tags: [Cookbook] | operationId: cookbook_search | summary: Semantic recipe lookup
 - GET /api/cookbook/services | tags: [Cookbook] | operationId: cookbook_serviceCatalogue | summary: Live service/action catalogue for recipe generator UI
 - POST /api/cookbook/validate | tags: [Cookbook] | operationId: cookbook_validate | summary: Force cookbook validity check
-- POST /api/cya/generate | tags: [CYA Agent] | operationId: cya_generate | summary: Generate profile-aware narrative (stub)
+- POST /api/cya/generate | tags: [CYA Agent] | operationId: cya_generate | summary: Generate profile-aware narrative
 - POST /api/cya/profile | tags: [CYA Agent] | operationId: cya_createProfile | summary: Create or update a stakeholder profile
 - GET /api/cya/profile/:profile_id | tags: [CYA Agent] | operationId: cya_getProfile | summary: Load a stakeholder profile
 - GET /api/cya/profiles | tags: [CYA Agent] | operationId: cya_listProfiles | summary: List stakeholder profiles
-- POST /api/cya/refine | tags: [CYA Agent] | operationId: cya_refine | summary: Refine a generated narrative (stub)
+- POST /api/cya/refine | tags: [CYA Agent] | operationId: cya_refine | summary: Refine a generated narrative
 - GET /api/dashboard/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
 - GET /api/dashboard/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
 - GET /api/dashboard/quality-summary | tags: [Dashboard API] | operationId: dashboard-api_qualitySummary | summary: Quality summary — recent reports from all agent pipelines
@@ -742,7 +742,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.26.1"
+    "version": "0.26.2"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -1365,7 +1365,7 @@ process:
     },
     "/api/cya/generate": {
       "post": {
-        "description": "Stub endpoint for the CYA generation pipeline. Loads the profile and returns a session placeholder.",
+        "description": "Runs the full CYA pipeline: data retrieval, deterministic regulatory graph, grounding, and LLM synthesis. Returns Option-B response structure.",
         "operationId": "cya_generate",
         "requestBody": {
           "content": {
@@ -1465,15 +1465,67 @@ process:
               "application/json": {
                 "schema": {
                   "properties": {
-                    "message": {
-                      "example": "Phase 1-3 not yet implemented",
+                    "clarification": {
+                      "nullable": true,
+                      "type": "object"
+                    },
+                    "grounding": {
+                      "type": "object"
+                    },
+                    "metadata": {
+                      "type": "object"
+                    },
+                    "narrative": {
+                      "nullable": true,
+                      "properties": {
+                        "executiveSummary": {
+                          "type": "string"
+                        },
+                        "headline": {
+                          "type": "string"
+                        },
+                        "keyPoints": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "recommendedActions": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "riskNotes": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "profile_id": {
                       "type": "string"
+                    },
+                    "regulatory_graph": {
+                      "type": "object"
                     },
                     "session_id": {
                       "type": "string"
                     },
                     "status": {
-                      "example": "stub",
+                      "enum": [
+                        "completed",
+                        "needs_clarification"
+                      ],
+                      "type": "string"
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    },
+                    "target_audience": {
                       "type": "string"
                     }
                   },
@@ -1481,10 +1533,10 @@ process:
                 }
               }
             },
-            "description": "Stub response"
+            "description": "Pipeline result"
           }
         },
-        "summary": "Generate profile-aware narrative (stub)",
+        "summary": "Generate profile-aware narrative",
         "tags": [
           "CYA Agent"
         ]
@@ -1800,7 +1852,7 @@ process:
     },
     "/api/cya/refine": {
       "post": {
-        "description": "Stub endpoint for narrative refinement or HITL clarification handling.",
+        "description": "Refines an existing CYA session with user feedback or clarification input (Option-B response structure).",
         "operationId": "cya_refine",
         "requestBody": {
           "content": {
@@ -1846,15 +1898,41 @@ process:
               "application/json": {
                 "schema": {
                   "properties": {
-                    "message": {
-                      "example": "Refinement not yet implemented",
+                    "clarification": {
+                      "nullable": true,
+                      "type": "object"
+                    },
+                    "grounding": {
+                      "type": "object"
+                    },
+                    "metadata": {
+                      "type": "object"
+                    },
+                    "narrative": {
+                      "nullable": true,
+                      "type": "object"
+                    },
+                    "profile_id": {
                       "type": "string"
+                    },
+                    "regulatory_graph": {
+                      "type": "object"
                     },
                     "session_id": {
                       "type": "string"
                     },
                     "status": {
-                      "example": "stub",
+                      "enum": [
+                        "completed",
+                        "needs_clarification"
+                      ],
+                      "type": "string"
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    },
+                    "target_audience": {
                       "type": "string"
                     }
                   },
@@ -1862,10 +1940,10 @@ process:
                 }
               }
             },
-            "description": "Stub refinement response"
+            "description": "Refinement result"
           }
         },
-        "summary": "Refine a generated narrative (stub)",
+        "summary": "Refine a generated narrative",
         "tags": [
           "CYA Agent"
         ]
@@ -7861,8 +7939,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.26.1"
+  "x-version": "0.26.2"
 }
 
 ## Integrity
-- llm_txt_sha256: 7a84978ce8e30774ec759b2c0875458e85905c7d718da185d46a6a8dc7e34a58
+- llm_txt_sha256: 029e6269686556dac6b316cf60baf70d4342d72d234402c365872e9ad1932ef2

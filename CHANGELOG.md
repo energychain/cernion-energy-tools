@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.2] — 2026-04-14
+
+### Added
+
+- **CYA Pipeline Modules (implemented):** Added full CYA runtime modules for
+  Option-B response orchestration:
+  - `src/cya-data-retriever.js` — focus-area query orchestration via `query.ask`
+  - `src/cya-regulatory-graph.js` — deterministic rule graph with OEO references
+  - `src/cya-grounding.js` — fact extraction, data-gap handling, confidence scoring,
+    clarification trigger
+  - `src/cya-synthesis.js` — LLM-backed narrative synthesis (structured schema)
+
+### Changed
+
+- **CYA `generate` and `refine` are no longer stubs:**
+  - `POST /api/cya/generate` now executes the full pipeline
+  - `POST /api/cya/refine` now refines existing sessions with feedback/clarification
+  - Both endpoints now return Option-B response objects with
+    `status`, `grounding`, `regulatory_graph`, `narrative`, `clarification`, `metadata`
+- Added persistent CYA session state in Object Store namespace `cya_sessions`
+  (session load/save + refinement history)
+
+### Tests
+
+- Added CYA unit test suite:
+  - `tests/cya.service.test.js`
+  - `tests/cya-data-retriever.test.js`
+  - `tests/cya-regulatory-graph.test.js`
+  - `tests/cya-grounding.test.js`
+  - `tests/cya-synthesis.test.js`
+
 ## [0.26.1] — 2026-04-14
 
 ### Fixed

@@ -1,6 +1,6 @@
 # UI Contracts — Architecture Overview
 
-> **Version:** 0.25.0
+> **Version:** 0.26.2
 > **Purpose:** This directory defines the binding contract between the Cernion backend
 > and any frontend consumer (dashboard, admin portal, embedded widgets). Each file
 > describes one UI "page" or "panel" with its API endpoints, response field mapping,
@@ -36,6 +36,7 @@
 | 17 | [17-nova.md](17-nova.md) | NOVA operations and SSE stream | `GET /api/znp/projects/:projectId/nova/pending-decisions` |
 | 18 | [18-cookbook.md](18-cookbook.md) | Cookbook recipes and validation | `GET /api/cookbook` |
 | 19 | [14-company.md](14-company.md) | Company entity management | `GET /api/companies` |
+| 20 | [20-cya.md](20-cya.md) | CYA narrative generation panel | `POST /api/cya/generate` |
 
 ---
 
