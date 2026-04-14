@@ -1,8 +1,8 @@
 # UI Contract: MaStR Data Quality Audit Page
 
 > **Page ID:** `mastr-quality`
-> **Version:** 0.20.7
-> **Last updated:** 2026-04-09
+> **Version:** 0.25.0
+> **Last updated:** 2026-04-14
 
 ---
 
@@ -19,6 +19,77 @@
 ---
 
 ## Trigger (POST /api/mastr-quality/audit)
+
+## Finding Details Drilldown
+
+| Feld | Wert |
+|---|---|
+| Method | GET |
+| Path | /api/mastr-quality/audits/:id/findings/:findingId/details |
+| Action | mastr-quality.findingDetails |
+| Auth | Bearer Token |
+| Sync/Async | Synchron |
+
+### Request-Parameter
+
+- `id`: Audit-Report UUID (Pfad-Parameter)
+- `findingId`: Finding-Row-ID innerhalb des Audits, z. B. `F-5-002` (Pfad-Parameter)
+
+### Response-Shape (200)
+
+```json
+{
+  "success": true,
+  "auditId": "a1b2c3d4-...",
+  "findingId": "F-5-002",
+  "finding": {
+    "id": "F-5-002",
+    "finding": "MQ_REDISPATCH_NO_NAP",
+    "severity": "error",
+    "step": 5,
+    "context": {
+      "mastrNummer": "SEE900000001",
+      "details": {
+        "installation": {
+          "mastrNummer": "SEE900000001",
+          "einheitId": "EE123",
+          "brutto": 200,
+          "status": "35",
+          "technology": "solar",
+          "commissioningDate": "2020-01-15",
+          "operatorName": "Musterbetreiber GmbH"
+        },
+        "connection": {
+          "napId": null,
+          "napMastrNummer": null,
+          "spannungsebene": null,
+          "netzbetreiberName": null
+        },
+        "measurement": {
+          "melo": null,
+          "value": null,
+          "rawValue": null,
+          "resolvedValue": null,
+          "valueSource": null
+        }
+      }
+    }
+  }
+}
+```
+
+### Frontend-Hinweise
+
+- Klickbare Findings in der Tabelle öffnen ein Sheet/Dialog mit Detail-Ansicht.
+- Abschnitte (`installation`/`connection`/`measurement`) ausblenden, wenn alle Felder `null` sind.
+- `*Source`-Felder (z. B. `operatorNameSource`) zeigen die Provenance der Daten.
+
+### Error handling
+
+- `404` when audit does not exist
+- `404` when finding ID is unknown within the audit
+
+UI should keep list rows visible and render drilldown error inline in the details panel.
 
 ### Request body
 

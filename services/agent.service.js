@@ -354,6 +354,7 @@ function buildParamSchemaIndex(services) {
     'energy-sharing-allocation',
     'znp',
     'object-store',
+    'cookbook',
   ]);
   for (const svc of services) {
     if (!svc.name || svc.name.startsWith('$') || skipServices.has(svc.name)) continue;

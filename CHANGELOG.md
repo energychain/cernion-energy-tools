@@ -7,7 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.25.0] — 2025-01-15
+## [0.26.0] — 2026-04-14
+
+### Added
+
+- **CYA Agent (Cover Your Ass Engine):** Stakeholder-perspective argumentation
+  engine with regulatory grounding. 5 REST endpoints (`/api/cya/*`), profile
+  management via Object Store, 3-phase pipeline (Data Retrieval → Regulatory
+  Graph → LLM Synthesis), Human-in-the-Loop via HTTP 428.
+  - `POST /api/cya/profile` — Create/upsert stakeholder profile
+  - `GET /api/cya/profile/:profile_id` — Load profile
+  - `GET /api/cya/profiles` — List profiles
+  - `POST /api/cya/generate` — Generate data-backed, profile-aware narrative
+  - `POST /api/cya/refine` — Refine narrative or respond to HITL clarification
+- **CYA Regulatory Graph:** 8 deterministic rules (NOVA_BLOCKED, HIGH_CURTAILMENT,
+  EWK_BELOW_MEDIAN, MISSING_NAP, SECTION14A_GAP, ENERGY_SHARING_DEADLINE,
+  GRID_TOPOLOGY_RADIAL, HIGH_RENEWABLE_SHARE) with OEO class mappings
+- **CYA Data Retriever:** Focus-area-based service orchestration with location
+  resolution, deduplication, and graceful degradation (11 focus areas, ~20 service calls)
+- **UI-Contract 20:** CYA Agent contract (docs/ui-contracts/20-cya.md)
+
+### Changed
+
+- `agent.service.js`: 'cya' added to both skipServices sets
+- `api.service.js`: CYA Agent OpenAPI tag + 5 route aliases
+
+### Documentation
+
+- UI-Contract 16 (ZNP) created
+- UI-Contract 05 (MaStR Quality) updated with Finding-Details-Drilldown
+- 00-architecture.md index updated (contracts 14–19)
+- BACKEND_CONTEXT.md updated (43 services, 9 PouchDB stores, 92 finding codes)
+- RELEASE_SUMMARY_v0.25.0.md created
+- 'cookbook' added to skipServices
+
+### Tests
+
+- tests/cya.service.test.js (service definition, CRUD, generate, refine)
+- tests/cya-data-retriever.test.js (location resolution, dedup, safeCall, 8 tests)
+- tests/cya-regulatory-graph.test.js (all 8 rules, graceful empty, 11 tests)
+- tests/cya-grounding.test.js (fact extraction, data gaps, HITL trigger)
+- tests/cya-synthesis.test.js (LLM mock, prompt construction, refinement)
+
+## [0.25.0] — 2026-04-12
 
 ### Added
 
@@ -20,16 +62,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `GET /api/znp/projects` — List all active projects (hydrated from PouchDB)
   - `GET /api/znp/projects/:projectId` — Retrieve project metadata + graph stats
   - **DELETE /api/znp/projects/:projectId** — Remove project and all persisted data
-  
+
   PouchDB dual-doc strategy (v0.23):
   - `znp:meta:*` — lightweight metadata (bbox, name, layers, stats) for fast list queries
   - `znp:graph:*` — full graphology export (serialized graph state)
-  
+
   Graph persistence automatically triggered after every layer mutation; projects are
   hydrated from PouchDB on service start, providing session continuity across server
   restarts.
 
-### Added (Previous Work)
+### Added (Earlier in release cycle)
 
 - **Automated `llm.txt` context artifact generation (`scripts/generate-llm-txt.js`):**
   Added deterministic generation of `./llm.txt` as a release artifact for LLMs.
@@ -166,11 +208,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   calibration-node creation, `calibrationGFactor` computation, measurement-node updates,
   and `layer2-activated` SSE event emission.
 
----
-
-## [0.25.0] - 2026-04-12
-
-### Added
+### Added (Release finalization)
 
 - **ZNP graph persistence and lazy hydration (`znp.service.js`):**
   Implemented persistent graph storage with PouchDB split-document architecture:

@@ -1,6 +1,6 @@
 # UI Contracts — Architecture Overview
 
-> **Version:** 0.20.1
+> **Version:** 0.25.0
 > **Purpose:** This directory defines the binding contract between the Cernion backend
 > and any frontend consumer (dashboard, admin portal, embedded widgets). Each file
 > describes one UI "page" or "panel" with its API endpoints, response field mapping,
@@ -30,7 +30,12 @@
 | 11 | [11-nbp-monitor.md](11-nbp-monitor.md) | NBP Monitor panel | `GET /api/nbp-monitor/status` |
 | 12 | [12-auth.md](12-auth.md) | Token management | `GET /api/tokens` |
 | 13 | [13-shared-components.md](13-shared-components.md) | Shared UI components | Multiple |
+| 14 | [14-finding-code-recommendations.md](14-finding-code-recommendations.md) | Finding-Code recommendations panel | `GET /api/dashboard/finding-codes/recommendations` |
 | 15 | [15-nova-decision-feed.md](15-nova-decision-feed.md) | NOVA Decision Feed panel | `GET /api/znp/projects/:projectId/nova/pending-decisions` |
+| 16 | [16-znp.md](16-znp.md) | ZNP workspace and layer lifecycle | `POST /api/znp/projects` |
+| 17 | [17-nova.md](17-nova.md) | NOVA operations and SSE stream | `GET /api/znp/projects/:projectId/nova/pending-decisions` |
+| 18 | [18-cookbook.md](18-cookbook.md) | Cookbook recipes and validation | `GET /api/cookbook` |
+| 19 | [14-company.md](14-company.md) | Company entity management | `GET /api/companies` |
 
 ---
 
