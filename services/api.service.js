@@ -98,6 +98,9 @@ function requiresFullAccess(method, requestPath) {
   if (pathOnly.startsWith('/api/objects') && (m === 'PUT' || m === 'DELETE')) {
     return true;
   }
+  if (pathOnly.startsWith('/api/cya/profile') && m === 'POST') {
+    return true;
+  }
 
   return false;
 }
@@ -247,6 +250,12 @@ module.exports = {
             'Reusable API workflow recipes (v0.20.5). ' +
             'Code-managed community cookbook with semantic lookup, runtime relation graph, ' +
             'and periodic validity checks against live microservice actions.',
+        },
+        {
+          name: 'CYA Agent',
+          description:
+            'Stakeholder-perspective argumentation engine with regulatory grounding (v0.26). ' +
+            'Generates data-backed, profile-aware narratives from Cernion microservice data + OEO regulatory context.',
         },
       ],
       components: {
@@ -545,6 +554,13 @@ module.exports = {
           'GET /cookbook/:id': 'cookbook.get',
           'POST /cookbook/search': 'cookbook.search',
           'POST /cookbook/validate': 'cookbook.validate',
+
+          // CYA Agent (v0.26)
+          'POST /cya/profile': 'cya.createProfile',
+          'GET /cya/profile/:profile_id': 'cya.getProfile',
+          'GET /cya/profiles': 'cya.listProfiles',
+          'POST /cya/generate': 'cya.generate',
+          'POST /cya/refine': 'cya.refine',
 
           // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
           'GET /datasources/uploads'(req, res) {
