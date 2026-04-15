@@ -4,6 +4,11 @@ const { assessTopologyHop } = require('./cya-topology-hop');
 
 
 const DEFAULT_QUERY_TIMEOUT_MS = 45000;
+const MASTR_FACT_FOCUS_AREAS = new Set(['capacity', 'renewables']);
+const LOCATION_POSTAL_CODE_ALIASES = {
+  'höheinöd': '66989',
+  'hoheinod': '66989',
+};
 
 const FOCUS_AREA_QUERY_BUILDERS = {
   capacity: ({ location }) =>
@@ -32,6 +37,196 @@ const FOCUS_AREA_QUERY_BUILDERS = {
 
 function toArray(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function normalizeText(value) {
+  return String(value || '').trim();
+}
+
+function normalizeLocationKey(value) {
+  return normalizeText(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9äöüß\-\s]/g, '')
+    .trim();
+}
+
+function extractPostalCode(location) {
+  const text = normalizeText(location);
+  const directMatch = text.match(/\b\d{5}\b/);
+  if (directMatch) return directMatch[0];
+
+  const alias = LOCATION_POSTAL_CODE_ALIASES[normalizeLocationKey(text)];
+  return alias || null;
+}
+
+function pickNumber(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+function pickDateText(value) {
+  const text = normalizeText(value);
+  if (!text) return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0, 10);
+  return text;
+}
+
+function normalizeInstallation(raw) {
+  return {
+    mastrNummer: raw?.mastrNummer || raw?.mastrNumber || raw?.einheitMastrNummer || null,
+    bruttoleistung: pickNumber(raw?.bruttoleistung ?? raw?.capacityKW ?? raw?.installedCapacityKW),
+    inbetriebnahmeDatum: pickDateText(
+      raw?.inbetriebnahmeDatum
+      || raw?.commissioningDate
+      || raw?.inbetriebnahmedatum
+      || raw?.datumInbetriebnahme
+    ),
+    postleitzahl: normalizeText(raw?.postleitzahl || raw?.postalCode || raw?.plz) || null,
+    ort: normalizeText(raw?.ort || raw?.location || raw?.gemeinde || raw?.stadt) || null,
+  };
+}
+
+function byOldestFirst(a, b) {
+  const aDate = a?.inbetriebnahmeDatum || '9999-12-31';
+  const bDate = b?.inbetriebnahmeDatum || '9999-12-31';
+  return aDate.localeCompare(bDate);
+}
+
+function formatCapacityKw(value) {
+  if (!Number.isFinite(value)) return 'unbekannt';
+  const rounded = Math.round(value * 10) / 10;
+  return `${rounded} kW`;
+}
+
+function formatLegacyAsset(typeLabel, asset) {
+  const id = asset?.mastrNummer || 'unbekannt';
+  const commissioning = asset?.inbetriebnahmeDatum || 'Datum unbekannt';
+  const capacity = formatCapacityKw(asset?.bruttoleistung);
+  return `${typeLabel} ${id} (${capacity}, Inbetriebnahme ${commissioning})`;
+}
+
+async function fetchInstallations(ctx, params) {
+  try {
+    const result = await ctx.call('energy-market.installations', params, {
+      meta: { cernionToken: ctx.meta.cernionToken },
+    });
+    return toArray(result?.data?.installations).map(normalizeInstallation);
+  } catch {
+    return [];
+  }
+}
+
+async function retrieveMastrSituation(ctx, context) {
+  const location = normalizeText(context?.location);
+  if (!location) return null;
+
+  const postleitzahl = extractPostalCode(location);
+  const shared = {
+    limit: 500,
+    operationalStatus: '35',
+  };
+
+  const locationFilter = postleitzahl ? { postleitzahl } : { location };
+
+  const [solarRaw, windRaw, storageRaw] = await Promise.all([
+    fetchInstallations(ctx, {
+      installationType: 'solar',
+      ...shared,
+      ...locationFilter,
+      includeNapData: false,
+    }),
+    fetchInstallations(ctx, {
+      installationType: 'wind',
+      ...shared,
+      ...locationFilter,
+      includeNapData: false,
+    }),
+    fetchInstallations(ctx, {
+      installationType: 'storage',
+      ...shared,
+      ...locationFilter,
+      minCapacityKW: 50,
+      includeNapData: false,
+    }),
+  ]);
+
+  const solar = solarRaw.sort(byOldestFirst);
+  const wind = windRaw.sort(byOldestFirst);
+  const storageUtilityScale = storageRaw;
+
+  if (solar.length === 0 && wind.length === 0) return null;
+
+  const legacySolar = solar[0] || null;
+  const legacyWind = wind[0] || null;
+  const storageDeficit = storageUtilityScale.length === 0;
+  const effectivePostalCode = postleitzahl || solar[0]?.postleitzahl || wind[0]?.postleitzahl || null;
+  const effectiveLocation = location || solar[0]?.ort || wind[0]?.ort || null;
+
+  const legacyParts = [];
+  if (legacySolar) legacyParts.push(formatLegacyAsset('PV', legacySolar));
+  if (legacyWind) legacyParts.push(formatLegacyAsset('Wind', legacyWind));
+
+  const storageSentence = storageDeficit
+    ? 'Es wurden keine Großspeicher > 50 kW gefunden (Speicherdefizit).'
+    : `Es bestehen ${storageUtilityScale.length} Großspeicher > 50 kW.`;
+
+  const locationText = [effectivePostalCode, effectiveLocation].filter(Boolean).join(' ') || effectiveLocation || effectivePostalCode || location;
+
+  const summary = `${locationText}: Altanlagen-Bestand mit ${legacyParts.join(' und ')}. ${storageSentence}`;
+
+  return {
+    location: effectiveLocation,
+    postleitzahl: effectivePostalCode,
+    summary,
+    hasActionableFacts: true,
+    sources: ['cernion_installations_local'],
+    dataProvenance: 'mastr_machine_verified',
+    legacy: {
+      solar: legacySolar,
+      wind: legacyWind,
+    },
+    storageCheck: {
+      thresholdKW: 50,
+      utilityScaleStorageCount: storageUtilityScale.length,
+      deficit: storageDeficit,
+    },
+    counts: {
+      pvTotal: solar.length,
+      windTotal: wind.length,
+      storageTotal: storageUtilityScale.length,
+    },
+  };
+}
+
+function buildMastrFocusItem(focusArea, mastrSituation) {
+  const answerByFocusArea = {
+    capacity: `${mastrSituation.summary} Für die Kapazitätsargumentation ist insbesondere das fehlende Utility-Scale-Storage relevant.`,
+    renewables: `${mastrSituation.summary} Der erneuerbare Bestand ist durch Altanlagen geprägt, ohne große Speicherpuffer.`,
+  };
+
+  return {
+    focusArea,
+    query: 'deterministic_mastr_situation_report',
+    ok: true,
+    durationMs: 0,
+    answer: answerByFocusArea[focusArea] || mastrSituation.summary,
+    data: {
+      location: mastrSituation.location,
+      postleitzahl: mastrSituation.postleitzahl,
+      legacy: mastrSituation.legacy,
+      storageCheck: mastrSituation.storageCheck,
+      counts: mastrSituation.counts,
+    },
+    sources: mastrSituation.sources,
+    metadata: {
+      mode: 'deterministic_mastr',
+    },
+    trusted: false,
+    dataProvenance: mastrSituation.dataProvenance,
+  };
 }
 
 function buildFocusQuery(focusArea, context, actorRole, targetAudience) {
@@ -104,9 +299,15 @@ async function retrieveContextData(ctx, input) {
   const actorRole = input?.profile?.actor?.role;
   const targetAudience = input?.target_audience;
   const context = input?.context || {};
+  const mastrSituation = await retrieveMastrSituation(ctx, context);
 
   const items = [];
   for (const focusArea of focusAreas) {
+    if (mastrSituation?.hasActionableFacts && MASTR_FACT_FOCUS_AREAS.has(focusArea)) {
+      items.push(buildMastrFocusItem(focusArea, mastrSituation));
+      continue;
+    }
+
     const query = buildFocusQuery(focusArea, context, actorRole, targetAudience);
     // Sequential by design: avoids bursty MCP usage for high-cardinality focus lists.
     // Can be parallelized later with bounded concurrency if needed.

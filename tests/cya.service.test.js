@@ -52,6 +52,114 @@ describe('cya.service', () => {
     });
 
     broker.createService({
+      name: 'energy-market',
+      actions: {
+        installations: {
+          handler(ctx) {
+            const location = String(ctx.params.location || '').toLowerCase();
+            const plz = String(ctx.params.postleitzahl || '');
+            const isHoeheinod = location.includes('höheinöd') || location.includes('hoheinod') || plz === '66989';
+            const isBautzen = location.includes('bautzen');
+
+            if (isBautzen) {
+              return { success: true, data: { installations: [] } };
+            }
+
+            if (isHoeheinod) {
+              if (ctx.params.installationType === 'solar') {
+                return {
+                  success: true,
+                  data: {
+                    installations: [
+                      {
+                        mastrNummer: 'SEE999952467552',
+                        bruttoleistung: 2100,
+                        commissioningDate: '2009-12-01',
+                        postleitzahl: '66989',
+                        ort: 'Höheinöd',
+                      },
+                    ],
+                  },
+                };
+              }
+              if (ctx.params.installationType === 'wind') {
+                return {
+                  success: true,
+                  data: {
+                    installations: [
+                      {
+                        mastrNummer: 'SEE969028349266',
+                        bruttoleistung: 3300,
+                        commissioningDate: '2016-09-01',
+                        postleitzahl: '66989',
+                        ort: 'Höheinöd',
+                      },
+                    ],
+                  },
+                };
+              }
+              if (ctx.params.installationType === 'storage') {
+                return { success: true, data: { installations: [] } };
+              }
+            }
+
+            // Default fixture for non-Höheinöd locations
+            if (ctx.params.installationType === 'solar') {
+              return {
+                success: true,
+                data: {
+                  installations: [
+                    {
+                      mastrNummer: 'SEE_HEI_001',
+                      bruttoleistung: 120,
+                      commissioningDate: '2018-01-15',
+                      postleitzahl: '69115',
+                      ort: 'Heidelberg',
+                    },
+                  ],
+                },
+              };
+            }
+            if (ctx.params.installationType === 'wind') {
+              return {
+                success: true,
+                data: {
+                  installations: [
+                    {
+                      mastrNummer: 'SEW_HEI_001',
+                      bruttoleistung: 1500,
+                      commissioningDate: '2019-07-01',
+                      postleitzahl: '69115',
+                      ort: 'Heidelberg',
+                    },
+                  ],
+                },
+              };
+            }
+            if (ctx.params.installationType === 'storage') {
+              return {
+                success: true,
+                data: {
+                  installations: [
+                    {
+                      mastrNummer: 'SES_HEI_001',
+                      bruttoleistung: 100,
+                      commissioningDate: '2021-04-01',
+                      postleitzahl: '69115',
+                      ort: 'Heidelberg',
+                    },
+                  ],
+                },
+              };
+            }
+
+            return { success: true, data: { installations: [] } };
+          },
+        },
+      },
+    });
+
+    broker.createService({
       ...ObjectStoreService,
       settings: {
         ...ObjectStoreService.settings,
@@ -130,6 +238,29 @@ describe('cya.service', () => {
     expect(result.narrative).toBeNull();
     expect(result.clarification).toBeTruthy();
     expect(result.clarification.reason).toBe('insufficient_fact_quality');
+  });
+
+  it('injects granular MaStR facts for Höheinöd and completes synthesis', async () => {
+    const result = await broker.call('cya.generate', {
+      profile_id: 'cya_test_profile',
+      target_audience: 'Aufsichtsrat',
+      context: {
+        location: 'Höheinöd',
+        trigger: 'Lagebild Erneuerbare',
+        focus_areas: ['capacity', 'renewables'],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.status).toBe('completed');
+    expect(result.narrative).toBeTruthy();
+
+    const capacityFact = result.grounding.facts.find((f) => f.focusArea === 'capacity');
+    expect(capacityFact).toBeTruthy();
+    expect(capacityFact.statement).toContain('SEE999952467552');
+    expect(capacityFact.statement).toContain('SEE969028349266');
+    expect(capacityFact.statement).toContain('keine Großspeicher > 50 kW');
+    expect(capacityFact.sources).toContain('cernion_installations_local');
   });
 
   it('refines a generated session', async () => {
@@ -392,6 +523,41 @@ describe('cya.service', () => {
       const phases = (jobRecord.logs || []).map((l) => l.phase);
       expect(phases).toContain('phase_3_grounding');
       expect(phases).not.toContain('phase_4_synthesis');
+    });
+
+    it('completes async Höheinöd run with granular MaStR facts and synthesis', async () => {
+      const gatewayResult = await broker.call(
+        'cya.generate',
+        {
+          profile_id: 'cya_test_profile',
+          target_audience: 'Aufsichtsrat',
+          context: {
+            location: 'Höheinöd',
+            trigger: 'Lagebild Erneuerbare',
+            focus_areas: ['capacity', 'renewables'],
+          },
+        },
+        {
+          meta: {
+            $gateway: true,
+          },
+        }
+      );
+
+      await new Promise((r) => setTimeout(r, 2000));
+
+      const resultPayload = getResult(gatewayResult.jobId);
+      expect(resultPayload).toBeTruthy();
+      expect(resultPayload.status).toBe('completed');
+      expect(resultPayload.narrative).toBeTruthy();
+
+      const capacityFact = resultPayload.grounding.facts.find((f) => f.focusArea === 'capacity');
+      expect(capacityFact.statement).toContain('SEE999952467552');
+      expect(capacityFact.statement).toContain('SEE969028349266');
+
+      const jobRecord = getJob(gatewayResult.jobId);
+      const phases = (jobRecord.logs || []).map((l) => l.phase);
+      expect(phases).toContain('phase_4_synthesis');
     });
   });
 });

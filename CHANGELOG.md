@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.7] — 2026-04-15
+
+### Changed
+
+- **CYA Phase 1 deepened with deterministic MaStR Lagebild (location-driven):**
+  `src/cya-data-retriever.js` now enriches `capacity` and `renewables` focus areas
+  with machine-verified installation evidence via `energy-market.installations`
+  (which reuses `cernion_installations_local` under the hood).
+  - Added deterministic situation report branch (no LLM in Phase 1) for locations
+    with actionable MaStR evidence.
+  - Generates granular facts including legacy assets and storage deficit signal:
+    - legacy PV/Wind examples (MaStR-ID, capacity, commissioning date)
+    - utility-scale storage check (`> 50 kW`) with explicit deficit statement
+  - Injects source-backed retrieval items (`sources: ['cernion_installations_local']`,
+    `dataProvenance: 'mastr_machine_verified'`) so grounding facts are no longer
+    generic placeholder text when data is available.
+  - Added postal-code resolver with alias support for `Höheinöd → 66989` to ensure
+    deterministic local retrieval in the PoC scenario.
+
+### Added
+
+- **Regression tests for Höheinöd granular facts (sync + async):**
+  - `tests/cya-data-retriever.test.js`
+    - deterministic retrieval test validates PV `SEE999952467552`, Wind
+      `SEE969028349266`, and zero storage > 50 kW.
+  - `tests/cya.service.test.js`
+    - sync `cya.generate` completes with granular grounding facts for Höheinöd
+    - async job flow completes through Phase 4 with same deterministic evidence.
+
+### Notes
+
+- Existing Bautzen guardrail from v0.26.6 remains intact:
+  when deterministic evidence is missing, CYA still returns
+  `needs_clarification` and halts before synthesis.
+
 ## [0.26.6] — 2026-04-15
 
 ### Fixed

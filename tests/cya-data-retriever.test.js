@@ -64,10 +64,18 @@ describe('cya-data-retriever', () => {
   it('retrieves all focus areas and summarizes success/failure', async () => {
     const ctx = {
       meta: { cernionToken: 'test-token' },
-      call: jest
-        .fn()
-        .mockResolvedValueOnce({ answer: 'A', data: {}, sources: ['s1'] })
-        .mockRejectedValueOnce(new Error('failed')),
+      call: jest.fn().mockImplementation(async (action, params) => {
+        if (action === 'energy-market.installations') {
+          return { success: true, data: { installations: [] } };
+        }
+        if (action === 'query.ask' && params.query.includes('Netzkapazitätslage')) {
+          return { answer: 'A', data: {}, sources: ['s1'] };
+        }
+        if (action === 'query.ask') {
+          throw new Error('failed');
+        }
+        throw new Error(`unexpected action: ${action}`);
+      }),
     };
 
     const result = await retrieveContextData(ctx, {
@@ -84,18 +92,83 @@ describe('cya-data-retriever', () => {
     expect(result.summary.requested).toBe(2);
     expect(result.summary.success).toBe(1);
     expect(result.summary.failed).toBe(1);
-    expect(ctx.call).toHaveBeenNthCalledWith(
-      1,
+    expect(ctx.call).toHaveBeenCalledWith(
       'query.ask',
       expect.objectContaining({ query: expect.any(String) }),
       { meta: { cernionToken: 'test-token' } }
     );
-    expect(ctx.call).toHaveBeenNthCalledWith(
-      2,
-      'query.ask',
-      expect.objectContaining({ query: expect.any(String) }),
-      { meta: { cernionToken: 'test-token' } }
-    );
+  });
+
+  it('uses deterministic MaStR facts for Höheinöd (66989) and injects storage deficit context', async () => {
+    const ctx = {
+      meta: { cernionToken: 'test-token' },
+      call: jest.fn().mockImplementation(async (action, params) => {
+        if (action === 'energy-market.installations' && params.installationType === 'solar') {
+          return {
+            success: true,
+            data: {
+              installations: [
+                {
+                  mastrNummer: 'SEE999952467552',
+                  bruttoleistung: 2100,
+                  commissioningDate: '2009-12-01',
+                  postleitzahl: '66989',
+                  ort: 'Höheinöd',
+                },
+              ],
+            },
+          };
+        }
+        if (action === 'energy-market.installations' && params.installationType === 'wind') {
+          return {
+            success: true,
+            data: {
+              installations: [
+                {
+                  mastrNummer: 'SEE969028349266',
+                  bruttoleistung: 3300,
+                  commissioningDate: '2016-09-01',
+                  postleitzahl: '66989',
+                  ort: 'Höheinöd',
+                },
+              ],
+            },
+          };
+        }
+        if (action === 'energy-market.installations' && params.installationType === 'storage') {
+          return {
+            success: true,
+            data: {
+              installations: [],
+            },
+          };
+        }
+        throw new Error(`unexpected action: ${action}`);
+      }),
+    };
+
+    const result = await retrieveContextData(ctx, {
+      profile: { actor: { role: 'grid_operator' } },
+      target_audience: 'Vorstand',
+      context: {
+        location: 'Höheinöd',
+        trigger: 'Analyse Lagebild',
+        focus_areas: ['capacity', 'renewables'],
+      },
+    });
+
+    expect(result.summary.requested).toBe(2);
+    expect(result.summary.success).toBe(2);
+    expect(result.summary.failed).toBe(0);
+
+    const capacityItem = result.items.find((i) => i.focusArea === 'capacity');
+    expect(capacityItem.ok).toBe(true);
+    expect(capacityItem.answer).toContain('SEE999952467552');
+    expect(capacityItem.answer).toContain('SEE969028349266');
+    expect(capacityItem.answer).toContain('keine Großspeicher > 50 kW');
+    expect(capacityItem.sources).toEqual(['cernion_installations_local']);
+    expect(capacityItem.data.storageCheck.deficit).toBe(true);
+    expect(capacityItem.data.postleitzahl).toBe('66989');
   });
 
   describe('mergeProvidedData', () => {
