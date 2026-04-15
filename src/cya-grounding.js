@@ -71,6 +71,26 @@ function buildClarification(context, dataGaps) {
   return null;
 }
 
+function needsFactQualityClarification(facts) {
+  if (!Array.isArray(facts) || facts.length === 0) return true;
+  return facts.every((fact) => fact.confidence === 'low');
+}
+
+function buildFactQualityClarification(retrieval) {
+  const requestedFocusAreas = toArray(retrieval?.items)
+    .map((item) => item?.focusArea)
+    .filter(Boolean);
+
+  return {
+    question:
+      'Es liegen keine belastbaren Fakten vor. Bitte ergänzen Sie konkrete Daten (z. B. Kapazität, Netzebene, vorgelagerter Netzbezug/Koppelkapazität) für die betroffenen Themenfelder.',
+    reason: 'insufficient_fact_quality',
+    suggestedInputs: requestedFocusAreas.length > 0
+      ? requestedFocusAreas
+      : ['capacity', 'grid_expansion', 'redispatch'],
+  };
+}
+
 function buildGrounding(input) {
   const retrieval = input?.retrieval || {};
   const context = input?.context || {};
@@ -83,7 +103,11 @@ function buildGrounding(input) {
   const score = computeConfidenceScore(facts.length, requestedCount, dataGaps.length);
   const confidence = toConfidenceLabel(score);
 
-  const clarification = buildClarification(context, dataGaps);
+  const baseClarification = buildClarification(context, dataGaps);
+  const factQualityClarification = needsFactQualityClarification(facts)
+    ? buildFactQualityClarification(retrieval)
+    : null;
+  const clarification = baseClarification || factQualityClarification;
   const requiresClarification = confidence === 'low' || clarification !== null;
 
   return {

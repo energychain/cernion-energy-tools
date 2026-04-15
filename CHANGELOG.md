@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.6] — 2026-04-15
+
+### Fixed
+
+- **CYA Guardrail (Bautzen PoC):** `POST /api/cya/generate` now enforces
+  `needs_clarification` when grounding has no usable evidence.
+  - If `grounding.facts` is empty, pipeline halts before Phase 4 (LLM synthesis).
+  - If all facts are `confidence: 'low'`, pipeline halts before Phase 4.
+  - Result is returned as `status: 'needs_clarification'` with a clarification
+    object (`reason: 'insufficient_fact_quality'`) and suggested focus areas.
+  - Prevents blind narrative generation from non-verified/no-evidence payloads.
+
+### Changed
+
+- `src/cya-grounding.js`
+  - Added fact-quality guardrail helpers: `needsFactQualityClarification()` and
+    `buildFactQualityClarification()`.
+  - Clarification selection now prioritizes existing location/data-gap logic,
+    then applies insufficient-fact-quality fallback.
+- `tests/cya-grounding.test.js`
+  - Added coverage for empty-fact and all-low-confidence-fact scenarios.
+- `tests/cya.service.test.js`
+  - Added end-to-end Bautzen tests for sync and async generate flows.
+  - Async test verifies no `phase_4_synthesis` log entry when clarification is required.
+
 ## [0.26.5] — 2026-04-15
 
 ### Changed

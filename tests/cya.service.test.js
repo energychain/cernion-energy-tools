@@ -29,6 +29,14 @@ describe('cya.service', () => {
       actions: {
         ask: {
           handler(ctx) {
+            if (String(ctx.params.query).toLowerCase().includes('bautzen')) {
+              return {
+                answer: 'Keine belastbare Aussage verfügbar.',
+                data: null,
+                sources: [],
+                metadata: { executionTime: 0.3 },
+              };
+            }
             if (String(ctx.params.query).includes('redispatch')) {
               throw new Error('simulated upstream error');
             }
@@ -104,6 +112,24 @@ describe('cya.service', () => {
     expect(result.success).toBe(true);
     expect(result.status).toBe('needs_clarification');
     expect(result.clarification).toBeTruthy();
+  });
+
+  it('returns needs_clarification for Bautzen when facts are empty/low-confidence only', async () => {
+    const result = await broker.call('cya.generate', {
+      profile_id: 'cya_test_profile',
+      target_audience: 'Vorstand',
+      context: {
+        location: 'Bautzen',
+        trigger: 'Anschlussanfrage Speicher 10 MW',
+        focus_areas: ['capacity', 'grid_expansion'],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.status).toBe('needs_clarification');
+    expect(result.narrative).toBeNull();
+    expect(result.clarification).toBeTruthy();
+    expect(result.clarification.reason).toBe('insufficient_fact_quality');
   });
 
   it('refines a generated session', async () => {
@@ -193,7 +219,7 @@ describe('cya.service', () => {
     }
   });
 
-  describe('async job pattern (v0.26.5)', () => {
+  describe('async job pattern', () => {
     it('returns sync result for internal (non-gateway) calls', async () => {
       // Internal call: no ctx.meta.$gateway flag
       const result = await broker.call('cya.generate', {
@@ -333,6 +359,39 @@ describe('cya.service', () => {
       expect(resultPayload.status).toBe('completed');
       expect(resultPayload.narrative).toBeTruthy();
       expect(resultPayload.session_id).toBeTruthy();
+    });
+
+    it('halts async pipeline before synthesis for Bautzen low-fact scenario', async () => {
+      const gatewayResult = await broker.call(
+        'cya.generate',
+        {
+          profile_id: 'cya_test_profile',
+          target_audience: 'Vorstand',
+          context: {
+            location: 'Bautzen',
+            trigger: 'Anschlussanfrage Speicher 10 MW',
+            focus_areas: ['capacity', 'grid_expansion'],
+          },
+        },
+        {
+          meta: {
+            $gateway: true,
+          },
+        }
+      );
+
+      await new Promise((r) => setTimeout(r, 2000));
+
+      const resultPayload = getResult(gatewayResult.jobId);
+      expect(resultPayload).toBeTruthy();
+      expect(resultPayload.status).toBe('needs_clarification');
+      expect(resultPayload.narrative).toBeNull();
+      expect(resultPayload.clarification.reason).toBe('insufficient_fact_quality');
+
+      const jobRecord = getJob(gatewayResult.jobId);
+      const phases = (jobRecord.logs || []).map((l) => l.phase);
+      expect(phases).toContain('phase_3_grounding');
+      expect(phases).not.toContain('phase_4_synthesis');
     });
   });
 });
