@@ -5,6 +5,7 @@ const { retrieveContextData, mergeProvidedData } = require('../src/cya-data-retr
 const { buildRegulatoryGraph } = require('../src/cya-regulatory-graph');
 const { buildGrounding } = require('../src/cya-grounding');
 const { synthesizeNarrative } = require('../src/cya-synthesis');
+const { startJob, appendLog } = require('../src/job-store');
 
 const PROFILE_ID_PATTERN = /^[a-z0-9_]+$/;
 const ACTOR_ROLES = [
@@ -368,8 +369,36 @@ module.exports = {
           },
         },
         responses: {
+          202: {
+            description: 'Job accepted and queued for async processing',
+            headers: {
+              Location: {
+                schema: { type: 'string' },
+                description: 'Relative URI to job status endpoint (/api/jobs/:jobId/status)',
+              },
+              'Retry-After': {
+                schema: { type: 'string' },
+                description: 'Suggested polling interval in seconds',
+              },
+            },
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    jobId: { type: 'string', example: '6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4' },
+                    status: { type: 'string', enum: ['queued'], example: 'queued' },
+                    message: { type: 'string', example: 'Job started. Poll /api/jobs/:jobId/status for progress.' },
+                    statusUrl: { type: 'string', example: '/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status' },
+                    resultUrl: { type: 'string', example: '/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result' },
+                  },
+                },
+              },
+            },
+          },
           200: {
-            description: 'Pipeline result',
+            description: 'Pipeline result (internal/direct calls only; external callers receive 202)',
             content: {
               'application/json': {
                 schema: {
@@ -403,37 +432,91 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { profile_id, target_audience, context } = ctx.params;
-        const profile = await this.loadProfile(ctx, profile_id);
-        const sessionId = ctx.params.session_id || `cya_${Date.now()}`;
+        return startJob(ctx, { service: 'cya', action: 'generate' }, async (jobId) => {
+          const { profile_id, target_audience, context } = ctx.params;
+          const profile = await this.loadProfile(ctx, profile_id);
+          const sessionId = ctx.params.session_id || `cya_${Date.now()}`;
 
-        const retrieval = await retrieveContextData(ctx, {
-          profile,
-          target_audience,
-          context,
-        });
+          // Phase 1: Data Retrieval
+          appendLog(jobId, 'phase_1_retrieval', 0, 'Starting context data retrieval...');
+          const retrieval = await retrieveContextData(ctx, {
+            profile,
+            target_audience,
+            context,
+          });
+          appendLog(jobId, 'phase_1_retrieval', 33, 'Context data retrieval complete');
 
-        const regulatoryGraph = buildRegulatoryGraph({
-          retrieval,
-          context,
-          profile,
-          topologyHop: retrieval.topologyHop,
-        });
-        const grounding = buildGrounding({
-          retrieval,
-          regulatoryGraph,
-          context,
-          topologyHop: retrieval.topologyHop,
-        });
+          // Phase 2: Regulatory Graph
+          appendLog(jobId, 'phase_2_graph', 33, 'Building deterministic regulatory graph...');
+          const regulatoryGraph = buildRegulatoryGraph({
+            retrieval,
+            context,
+            profile,
+            topologyHop: retrieval.topologyHop,
+          });
+          appendLog(jobId, 'phase_2_graph', 66, 'Regulatory graph complete');
 
-        if (grounding.requiresClarification) {
-          const response = this.buildClarificationResponse({
+          // Phase 3: Grounding & Clarification Check
+          appendLog(jobId, 'phase_3_grounding', 66, 'Merging grounding layer...');
+          const grounding = buildGrounding({
+            retrieval,
+            regulatoryGraph,
+            context,
+            topologyHop: retrieval.topologyHop,
+          });
+          appendLog(jobId, 'phase_3_grounding', 75, 'Grounding merge complete');
+
+          if (grounding.requiresClarification) {
+            appendLog(jobId, 'phase_3_grounding', 85, 'Clarification required — returning HITL prompt');
+            const response = this.buildClarificationResponse({
+              sessionId,
+              profileId: profile_id,
+              targetAudience: target_audience,
+              grounding,
+              regulatoryGraph,
+              context,
+            });
+
+            await this.saveSession(ctx, sessionId, {
+              status: response.status,
+              profile_id,
+              target_audience,
+              context,
+              profile,
+              retrieval,
+              regulatory_graph: regulatoryGraph,
+              grounding,
+              narrative: null,
+              clarification: response.clarification,
+              createdAt: response.metadata.createdAt,
+              updatedAt: response.metadata.updatedAt,
+              history: [],
+            });
+
+            appendLog(jobId, 'phase_3_grounding', 100, 'Clarification session saved');
+            return response;
+          }
+
+          // Phase 4: LLM Synthesis
+          appendLog(jobId, 'phase_4_synthesis', 75, 'Starting LLM synthesis...');
+          const synthesis = await synthesizeNarrative({
+            mode: 'generate',
+            profile,
+            target_audience,
+            context,
+            grounding,
+            regulatoryGraph,
+          });
+          appendLog(jobId, 'phase_4_synthesis', 100, 'LLM synthesis complete');
+
+          const response = this.buildCompletedResponse({
             sessionId,
             profileId: profile_id,
             targetAudience: target_audience,
             grounding,
             regulatoryGraph,
             context,
+            narrative: synthesis.narrative,
           });
 
           await this.saveSession(ctx, sessionId, {
@@ -445,52 +528,15 @@ module.exports = {
             retrieval,
             regulatory_graph: regulatoryGraph,
             grounding,
-            narrative: null,
-            clarification: response.clarification,
+            narrative: synthesis.narrative,
+            clarification: null,
             createdAt: response.metadata.createdAt,
             updatedAt: response.metadata.updatedAt,
             history: [],
           });
 
           return response;
-        }
-
-        const synthesis = await synthesizeNarrative({
-          mode: 'generate',
-          profile,
-          target_audience,
-          context,
-          grounding,
-          regulatoryGraph,
         });
-
-        const response = this.buildCompletedResponse({
-          sessionId,
-          profileId: profile_id,
-          targetAudience: target_audience,
-          grounding,
-          regulatoryGraph,
-          context,
-          narrative: synthesis.narrative,
-        });
-
-        await this.saveSession(ctx, sessionId, {
-          status: response.status,
-          profile_id,
-          target_audience,
-          context,
-          profile,
-          retrieval,
-          regulatory_graph: regulatoryGraph,
-          grounding,
-          narrative: synthesis.narrative,
-          clarification: null,
-          createdAt: response.metadata.createdAt,
-          updatedAt: response.metadata.updatedAt,
-          history: [],
-        });
-
-        return response;
       },
     },
 

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.5] — 2026-04-15
+
+### Changed
+
+- **CYA async job pattern migration:** `/api/cya/generate` now uses the Cernion async job pattern:
+  - REST callers receive HTTP 202 (Accepted) + jobId + Location header immediately
+  - Background worker processes full 4-phase pipeline asynchronously with phase-based progress logging
+  - Phase milestones: phase_1_retrieval (0→33%), phase_2_graph (33→66%), phase_3_grounding (66→75%), phase_4_synthesis (75→100%)
+  - Client polls `/api/jobs/{jobId}/status` for progress and `/api/jobs/{jobId}/result` for final response
+  - Internal service-to-service calls (no `ctx.meta.$gateway` flag) remain synchronous, receiving result directly (backward-compatible)
+  - Resolves timeout issues on complex grounding queries (e.g., Bautzen asset: 10 MW + multiple focus areas + OSM topology detection)
+- **OpenAPI:** Updated `generate` action to document 202 response (jobId, status, statusUrl, resultUrl) + Retry-After header guidance
+
+### Technical Notes
+
+- `src/job-store.js` exports: `startJob(ctx, jobMeta, worker)` detects `ctx.meta.$gateway` flag
+  - REST: fire-and-forget; worker receives jobId, logs phases via `appendLog(jobId, phase, percent, msg)`
+  - Internal: no jobId; appendLog calls are no-ops; worker result returned synchronously
+- `/api/jobs/:jobId/status` and `/api/jobs/:jobId}/result` endpoints already exist in `services/api.service.js` (pre-v0.26.5)
+- Job store: file-backed at `data/jobs/{jobId}.progress.json` and `data/jobs/{jobId}.result.json`
+
 ## [0.26.4] — 2026-04-15
 
 ### Fixed

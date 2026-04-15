@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.26.4",
+    "version": "0.26.5",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -6928,7 +6928,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Pipeline result",
+            "description": "Pipeline result (internal/direct calls only; external callers receive 202)",
             "content": {
               "application/json": {
                 "schema": {
@@ -6996,6 +6996,59 @@
                     },
                     "metadata": {
                       "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Job accepted and queued for async processing",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative URI to job status endpoint (/api/jobs/:jobId/status)"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Suggested polling interval in seconds"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "example": "6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ],
+                      "example": "queued"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Job started. Poll /api/jobs/:jobId/status for progress."
+                    },
+                    "statusUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status"
+                    },
+                    "resultUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result"
                     }
                   }
                 }
@@ -7242,5 +7295,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.26.4"
+  "x-version": "0.26.5"
 }

@@ -3,6 +3,7 @@
 const { ServiceBroker } = require('moleculer');
 const ObjectStoreService = require('../services/object-store.service');
 const CyaService = require('../services/cya.service');
+const { getJob, getResult } = require('../src/job-store');
 
 jest.mock('../src/cya-synthesis', () => ({
   synthesizeNarrative: jest.fn(async () => ({
@@ -190,5 +191,148 @@ describe('cya.service', () => {
         expect(hopSignal.severity).toBe('warning');
       }
     }
+  });
+
+  describe('async job pattern (v0.26.5)', () => {
+    it('returns sync result for internal (non-gateway) calls', async () => {
+      // Internal call: no ctx.meta.$gateway flag
+      const result = await broker.call('cya.generate', {
+        profile_id: 'cya_test_profile',
+        target_audience: 'Aufsichtsrat',
+        context: {
+          location: 'Heidelberg',
+          trigger: 'Presseanfrage',
+          focus_areas: ['capacity'],
+        },
+      });
+
+      // Should return synchronous 200 result, not 202 job descriptor
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('completed');
+      expect(result.narrative).toBeTruthy();
+      expect(result.session_id).toBeTruthy();
+      // No jobId in response — that's only for REST/gateway calls
+      expect(result.jobId).toBeUndefined();
+    });
+
+    it('returns 202 job descriptor for REST (gateway) calls with jobId and polling URLs', async () => {
+      // Simulate REST gateway call by setting ctx.meta.$gateway = true
+      const result = await broker.call(
+        'cya.generate',
+        {
+          profile_id: 'cya_test_profile',
+          target_audience: 'Aufsichtsrat',
+          context: {
+            location: 'Heidelberg',
+            trigger: 'Presseanfrage',
+            focus_areas: ['capacity'],
+          },
+        },
+        {
+          meta: {
+            $gateway: true, // Simulate REST API gateway caller
+          },
+        }
+      );
+
+      // Should return 202 job descriptor immediately (no narrative)
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('queued');
+      expect(result.jobId).toBeTruthy();
+      expect(result.message).toContain('Job started');
+      expect(result.statusUrl).toMatch(/^\/api\/jobs\/.*\/status$/);
+      expect(result.resultUrl).toMatch(/^\/api\/jobs\/.*\/result$/);
+      // No narrative in 202 response
+      expect(result.narrative).toBeUndefined();
+      expect(result.session_id).toBeUndefined();
+
+      // Wait a bit for background worker to process
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Job status should be available
+      const jobRecord = getJob(result.jobId);
+      expect(jobRecord).toBeTruthy();
+      expect(jobRecord.service).toBe('cya');
+      expect(jobRecord.action).toBe('generate');
+    });
+
+    it('logs phase progress via appendLog during async worker execution', async () => {
+      // Gateway call to trigger async job pattern
+      const gatewayResult = await broker.call(
+        'cya.generate',
+        {
+          profile_id: 'cya_test_profile',
+          target_audience: 'Aufsichtsrat',
+          context: {
+            location: 'Heidelberg',
+            trigger: 'Presseanfrage',
+            focus_areas: ['capacity'],
+          },
+        },
+        {
+          meta: {
+            $gateway: true,
+          },
+        }
+      );
+
+      expect(gatewayResult.jobId).toBeTruthy();
+
+      // Wait for background worker to complete
+      await new Promise((r) => setTimeout(r, 2000));
+
+      // Check job record for phase progress logging
+      const jobRecord = getJob(gatewayResult.jobId);
+      expect(jobRecord).toBeTruthy();
+      expect(jobRecord.status).toBe('completed');
+
+      // Should have logged all 4 phases
+      const logs = jobRecord.logs || [];
+      expect(logs.length).toBeGreaterThan(0);
+
+      const phases = logs.map((l) => l.phase);
+      expect(phases).toContain('phase_1_retrieval');
+      expect(phases).toContain('phase_2_graph');
+      expect(phases).toContain('phase_3_grounding');
+      expect(phases).toContain('phase_4_synthesis');
+
+      // Phase progress should be cumulative: 0 → 33 → 66 → 75 → 100
+      const percents = logs.map((l) => l.percent);
+      expect(Math.max(...percents)).toBe(100);
+    });
+
+    it('stores job result that can be retrieved via getResult', async () => {
+      // Gateway call
+      const gatewayResult = await broker.call(
+        'cya.generate',
+        {
+          profile_id: 'cya_test_profile',
+          target_audience: 'Aufsichtsrat',
+          context: {
+            location: 'Heidelberg',
+            trigger: 'Presseanfrage',
+            focus_areas: ['capacity'],
+          },
+        },
+        {
+          meta: {
+            $gateway: true,
+          },
+        }
+      );
+
+      const jobId = gatewayResult.jobId;
+
+      // Wait for completion
+      await new Promise((r) => setTimeout(r, 2000));
+
+      // Retrieve result
+      const resultPayload = getResult(jobId);
+      expect(resultPayload).toBeTruthy();
+      expect(resultPayload.success).toBe(true);
+      expect(resultPayload.status).toBe('completed');
+      expect(resultPayload.narrative).toBeTruthy();
+      expect(resultPayload.session_id).toBeTruthy();
+    });
   });
 });
