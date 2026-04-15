@@ -1,5 +1,8 @@
 'use strict';
 
+const { assessTopologyHop } = require('./cya-topology-hop');
+
+
 const DEFAULT_QUERY_TIMEOUT_MS = 45000;
 
 const FOCUS_AREA_QUERY_BUILDERS = {
@@ -80,6 +83,7 @@ async function runSingleFocusQuery(ctx, focusArea, query) {
 function buildSummary(items) {
   const success = items.filter((item) => item.ok).length;
   const failed = items.length - success;
+  const trusted = items.filter((item) => item.ok && item.trusted === true).length;
   const sourceSet = new Set();
 
   for (const item of items) {
@@ -90,6 +94,7 @@ function buildSummary(items) {
     requested: items.length,
     success,
     failed,
+    trusted,
     sources: Array.from(sourceSet),
   };
 }
@@ -110,12 +115,77 @@ async function retrieveContextData(ctx, input) {
     items.push(result);
   }
 
-  return {
+  const retrieval = {
     retrievedAt: new Date().toISOString(),
     location: context.location || null,
     trigger: context.trigger || null,
     items,
     summary: buildSummary(items),
+  };
+
+  // Best-effort topology hop detection — non-blocking, silent on OSM failure.
+  if (context.location && context.capacity_mw !== undefined && context.capacity_mw !== null) {
+    retrieval.topologyHop = await assessTopologyHop(ctx, {
+      location: context.location,
+      capacityMw: context.capacity_mw,
+    });
+  } else {
+    retrieval.topologyHop = null;
+  }
+
+  return retrieval;
+}
+
+/**
+ * Merge manually provided HITL data into an existing retrieval object.
+ *
+ * Each entry in providedData maps a focusArea string to a user-supplied text.
+ * The item is created (or replaces the existing item) with:
+ *   - ok: true           (no longer a data gap)
+ *   - trusted: true      (EU AI Act Art. 12 — user-asserted, not machine-verified)
+ *   - dataProvenance: 'user_asserted'
+ *   - confidence: 'medium' (enforced downstream in cya-grounding.js)
+ *   - sources: []        (no machine source — user provided)
+ *
+ * Returns a new retrieval object — the original is NOT mutated.
+ *
+ * @param {object} retrieval  - Existing retrieval from retrieveContextData
+ * @param {Record<string, string>} providedData - { focusArea: "user text", … }
+ * @returns {object} Enriched retrieval object
+ */
+function mergeProvidedData(retrieval, providedData) {
+  if (!providedData || typeof providedData !== 'object') return retrieval;
+
+  const mergedItems = toArray(retrieval?.items).map((item) => ({ ...item }));
+
+  for (const [focusArea, userText] of Object.entries(providedData)) {
+    if (!userText || !String(userText).trim()) continue;
+    const existingIndex = mergedItems.findIndex((item) => item.focusArea === focusArea);
+    const merged = {
+      focusArea,
+      query: null,
+      ok: true,
+      trusted: true,
+      dataProvenance: 'user_asserted',
+      durationMs: 0,
+      answer: String(userText).trim(),
+      data: null,
+      sources: [],
+      metadata: null,
+      error: undefined,
+    };
+    if (existingIndex >= 0) {
+      mergedItems[existingIndex] = merged;
+    } else {
+      mergedItems.push(merged);
+    }
+  }
+
+  return {
+    ...retrieval,
+    items: mergedItems,
+    summary: buildSummary(mergedItems),
+    mergedAt: new Date().toISOString(),
   };
 }
 
@@ -123,4 +193,5 @@ module.exports = {
   buildFocusQuery,
   runSingleFocusQuery,
   retrieveContextData,
+  mergeProvidedData,
 };

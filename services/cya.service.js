@@ -1,7 +1,7 @@
 'use strict';
 
 const { MoleculerError } = require('moleculer').Errors;
-const { retrieveContextData } = require('../src/cya-data-retriever');
+const { retrieveContextData, mergeProvidedData } = require('../src/cya-data-retriever');
 const { buildRegulatoryGraph } = require('../src/cya-regulatory-graph');
 const { buildGrounding } = require('../src/cya-grounding');
 const { synthesizeNarrative } = require('../src/cya-synthesis');
@@ -310,6 +310,8 @@ module.exports = {
         },
         session_id: { type: 'string', optional: true },
       },
+      // NOTE: capacity_mw goes inside context (not top-level) so it flows
+      // through to cya-data-retriever.retrieveContextData → assessTopologyHop.
       openapi: {
         tags: ['CYA Agent'],
         summary: 'Generate profile-aware narrative',
@@ -326,7 +328,7 @@ module.exports = {
                   profile_id: { type: 'string', example: 'stadtwerk_regulierung' },
                   target_audience: { type: 'string', example: 'Aufsichtsrat' },
                   context: {
-                    type: 'object',
+            capacity_mw: { type: 'number', optional: true },
                     required: ['trigger', 'focus_areas'],
                     example: {
                       location: 'Ludwigshafen',
@@ -337,6 +339,12 @@ module.exports = {
                       location: { type: 'string', nullable: true },
                       trigger: { type: 'string' },
                       focus_areas: { type: 'array', minItems: 1, items: { type: 'string', enum: FOCUS_AREAS } },
+                      capacity_mw: {
+                        type: 'number',
+                        nullable: true,
+                        description: 'Asset capacity in MW. If >= 10 MW, triggers 110-kV topology hop detection via OSM.',
+                        example: 10,
+                      },
                     },
                   },
                   session_id: { type: 'string', nullable: true, example: 'cya_1713110400000' },
@@ -347,6 +355,7 @@ module.exports = {
                   value: {
                     profile_id: 'stadtwerk_regulierung',
                     target_audience: 'Aufsichtsrat',
+                        capacity_mw: 10,
                     context: {
                       location: 'Ludwigshafen',
                       trigger: 'Presseanfrage zur Netzstabilität',
@@ -404,8 +413,18 @@ module.exports = {
           context,
         });
 
-        const regulatoryGraph = buildRegulatoryGraph({ retrieval, context, profile });
-        const grounding = buildGrounding({ retrieval, regulatoryGraph, context });
+        const regulatoryGraph = buildRegulatoryGraph({
+          retrieval,
+          context,
+          profile,
+          topologyHop: retrieval.topologyHop,
+        });
+        const grounding = buildGrounding({
+          retrieval,
+          regulatoryGraph,
+          context,
+          topologyHop: retrieval.topologyHop,
+        });
 
         if (grounding.requiresClarification) {
           const response = this.buildClarificationResponse({
@@ -481,6 +500,16 @@ module.exports = {
         session_id: { type: 'string' },
         user_feedback: { type: 'string', optional: true },
         agent_clarification_response: { type: 'string', optional: true, nullable: true },
+        // Structured HITL override: supplies hard facts to rebuild the deterministic
+        // Regulatory Graph (Phase 2). Completely separate from agent_clarification_response
+        // which is free-text guidance into Phase 3 (LLM) only.
+        clarification_response: {
+          type: 'object',
+          optional: true,
+          props: {
+            provided_data: { type: 'object', optional: true },
+          },
+        },
       },
       openapi: {
         tags: ['CYA Agent'],
@@ -497,6 +526,24 @@ module.exports = {
                   session_id: { type: 'string', example: 'cya_1713110400000' },
                   user_feedback: { type: 'string', nullable: true, example: 'Bitte stärker auf §14a fokussieren' },
                   agent_clarification_response: { type: 'string', nullable: true, example: 'Bitte Region auf Ludwigshafen eingrenzen' },
+                    clarification_response: {
+                      type: 'object',
+                      nullable: true,
+                      description: 'Structured HITL data override. Supplies hard facts (capacity, redispatch, NOVA, etc.) to rebuild the deterministic Regulatory Graph. Bypasses failed MCP fetch-routines for the listed focus areas. Separate from agent_clarification_response (free-text LLM guidance).',
+                      example: null,
+                      properties: {
+                        provided_data: {
+                          type: 'object',
+                          description: 'Map of focusArea -> user-supplied text. Each entry replaces a failed or missing retrieval item with trusted:true, dataProvenance:"user_asserted".',
+                          example: {
+                            capacity: 'Lokale PV-Durchdringung 8 MW, 10-MW-Speicher muss ans 110-kV-UW Meckesheim (Netze BW).',
+                            redispatch: 'Netzregion leidet unter §13a-Abregelungen von Wind/PV.',
+                            nova: 'Netze BW prüft Trafo-Ausbau, Flexibilität fehlt.',
+                            investment: 'Kommune Mauer will Gewerbesteuer sichern.',
+                          },
+                        },
+                      },
+                    },
                 },
               },
               examples: {
@@ -505,8 +552,23 @@ module.exports = {
                     session_id: 'cya_1713110400000',
                     user_feedback: 'Bitte stärker auf §14a fokussieren',
                     agent_clarification_response: null,
+                      clarification_response: null,
                   },
                 },
+                  hitl_override: {
+                    summary: 'HITL: supply missing focus-area data after needs_clarification',
+                    value: {
+                      session_id: 'cya_1776232540896',
+                      clarification_response: {
+                        provided_data: {
+                          capacity: 'Lokale PV-Durchdringung 8 MW, 10-MW-Speicher muss ans 110-kV-UW Meckesheim (Netze BW).',
+                          redispatch: 'Netzregion leidet unter §13a-Abregelungen von Wind/PV.',
+                          nova: 'Netze BW prüft Trafo-Ausbau, Flexibilität fehlt.',
+                          investment: 'Kommune Mauer will Gewerbesteuer sichern.',
+                        },
+                      },
+                    },
+                  },
               },
             },
           },
@@ -542,6 +604,80 @@ module.exports = {
         const userFeedback = String(ctx.params.user_feedback || '').trim();
         const clarificationInput = String(ctx.params.agent_clarification_response || '').trim();
 
+        const providedData = ctx.params.clarification_response?.provided_data;
+        const hasProvidedData = providedData && typeof providedData === 'object' && Object.keys(providedData).length > 0;
+
+        // HITL structured override path (Phase 2 rebuild):
+        // provided_data supplies hard facts → mergeProvidedData → re-run Regulatory
+        // Graph + Grounding deterministically. No MCP retries. No LLM in Phase 2.
+        // agent_clarification_response (free-text) is only used in Phase 3 below.
+        if (hasProvidedData) {
+          const enrichedRetrieval = mergeProvidedData(session.retrieval, providedData);
+          const topologyHop = enrichedRetrieval.topologyHop || session.retrieval?.topologyHop || null;
+          const enrichedGraph = buildRegulatoryGraph({
+            retrieval: enrichedRetrieval,
+            context: session.context,
+            profile,
+            topologyHop,
+          });
+          const enrichedGrounding = buildGrounding({
+            retrieval: enrichedRetrieval,
+            regulatoryGraph: enrichedGraph,
+            context: session.context,
+            topologyHop,
+          });
+
+          const refinedContext = { ...session.context, clarification: clarificationInput || null };
+          const synthesis = await synthesizeNarrative({
+            mode: 'refine',
+            profile,
+            target_audience: session.target_audience,
+            context: refinedContext,
+            grounding: enrichedGrounding,
+            regulatoryGraph: enrichedGraph,
+            userFeedback,
+            previousNarrative: session.narrative || null,
+          });
+
+          const response = this.buildCompletedResponse({
+            sessionId: ctx.params.session_id,
+            profileId: session.profile_id,
+            targetAudience: session.target_audience,
+            grounding: enrichedGrounding,
+            regulatoryGraph: enrichedGraph,
+            context: refinedContext,
+            narrative: synthesis.narrative,
+            createdAt: session.createdAt,
+          });
+
+          const history = Array.isArray(session.history) ? session.history : [];
+          history.push({
+            timestamp: response.metadata.updatedAt,
+            user_feedback: userFeedback || null,
+            agent_clarification_response: clarificationInput || null,
+            provided_data_keys: Object.keys(providedData),
+          });
+
+          // Re-persist with enriched retrieval so subsequent refine calls use
+          // the repaired grounding state, not the original gap-filled one.
+          await this.saveSession(ctx, ctx.params.session_id, {
+            ...session,
+            status: response.status,
+            retrieval: enrichedRetrieval,
+            regulatory_graph: enrichedGraph,
+            grounding: enrichedGrounding,
+            context: refinedContext,
+            narrative: synthesis.narrative,
+            clarification: null,
+            updatedAt: response.metadata.updatedAt,
+            history,
+          });
+
+          return response;
+        }
+
+        // Standard re-serve guard: if still needs_clarification and no free-text
+        // clarification was given, return the clarification prompt again.
         if (session.status === 'needs_clarification' && !clarificationInput) {
           return this.buildClarificationResponse({
             sessionId: ctx.params.session_id,

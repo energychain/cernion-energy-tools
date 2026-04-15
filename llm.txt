@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.26.2
-- changelog_latest_release: 0.26.2
+- version: 0.26.3
+- changelog_latest_release: 0.26.3
 - source_files_hash:
-  - CHANGELOG.md: 6b35ff7b4e5fac89b03b653ee7ea231b5ebea5896616e051614f032211f313d8
+  - CHANGELOG.md: 59e41e30df6edde176242100afa90942bc72adbb8002f7a035643699c5c25c95
   - README.md: 23b8ff807aaac10adb703b0b80edb676ace5ae28cc2fa66feb7dd5032f5eb333
   - docs/BACKEND_CONTEXT.md: 98e1ea456116d39b57d410b89b9086b1d97b042d8202f5fdfa1aadc311f3a855
   - src/cookbook-recipes.js: 7e92337203ff08ef348bcdb1b91d04ad58683494640c76553b005f6cfdd42109
-  - openapi-export.json: b4796653f1881f80cfeecda81c1d81eefced6c7b3a5c4a5e218290f83809b2b0
+  - openapi-export.json: f8649f21fec89db1d8c2900912f139d2571c44d4c25b8bef3a4a4c8917f2ec13
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -742,7 +742,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.26.2"
+    "version": "0.26.3"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -1373,6 +1373,7 @@ process:
               "examples": {
                 "default": {
                   "value": {
+                    "capacity_mw": 10,
                     "context": {
                       "focus_areas": [
                         "capacity",
@@ -1390,6 +1391,10 @@ process:
               "schema": {
                 "properties": {
                   "context": {
+                    "capacity_mw": {
+                      "optional": true,
+                      "type": "number"
+                    },
                     "example": {
                       "focus_areas": [
                         "capacity",
@@ -1400,6 +1405,12 @@ process:
                       "trigger": "Presseanfrage zur Netzstabilität"
                     },
                     "properties": {
+                      "capacity_mw": {
+                        "description": "Asset capacity in MW. If >= 10 MW, triggers 110-kV topology hop detection via OSM.",
+                        "example": 10,
+                        "nullable": true,
+                        "type": "number"
+                      },
                       "focus_areas": {
                         "items": {
                           "enum": [
@@ -1431,8 +1442,7 @@ process:
                     "required": [
                       "trigger",
                       "focus_areas"
-                    ],
-                    "type": "object"
+                    ]
                   },
                   "profile_id": {
                     "example": "stadtwerk_regulierung",
@@ -1861,8 +1871,23 @@ process:
                 "default": {
                   "value": {
                     "agent_clarification_response": null,
+                    "clarification_response": null,
                     "session_id": "cya_1713110400000",
                     "user_feedback": "Bitte stärker auf §14a fokussieren"
+                  }
+                },
+                "hitl_override": {
+                  "summary": "HITL: supply missing focus-area data after needs_clarification",
+                  "value": {
+                    "clarification_response": {
+                      "provided_data": {
+                        "capacity": "Lokale PV-Durchdringung 8 MW, 10-MW-Speicher muss ans 110-kV-UW Meckesheim (Netze BW).",
+                        "investment": "Kommune Mauer will Gewerbesteuer sichern.",
+                        "nova": "Netze BW prüft Trafo-Ausbau, Flexibilität fehlt.",
+                        "redispatch": "Netzregion leidet unter §13a-Abregelungen von Wind/PV."
+                      }
+                    },
+                    "session_id": "cya_1776232540896"
                   }
                 }
               },
@@ -1872,6 +1897,23 @@ process:
                     "example": "Bitte Region auf Ludwigshafen eingrenzen",
                     "nullable": true,
                     "type": "string"
+                  },
+                  "clarification_response": {
+                    "description": "Structured HITL data override. Supplies hard facts (capacity, redispatch, NOVA, etc.) to rebuild the deterministic Regulatory Graph. Bypasses failed MCP fetch-routines for the listed focus areas. Separate from agent_clarification_response (free-text LLM guidance).",
+                    "nullable": true,
+                    "properties": {
+                      "provided_data": {
+                        "description": "Map of focusArea -> user-supplied text. Each entry replaces a failed or missing retrieval item with trusted:true, dataProvenance:\"user_asserted\".",
+                        "example": {
+                          "capacity": "Lokale PV-Durchdringung 8 MW, 10-MW-Speicher muss ans 110-kV-UW Meckesheim (Netze BW).",
+                          "investment": "Kommune Mauer will Gewerbesteuer sichern.",
+                          "nova": "Netze BW prüft Trafo-Ausbau, Flexibilität fehlt.",
+                          "redispatch": "Netzregion leidet unter §13a-Abregelungen von Wind/PV."
+                        },
+                        "type": "object"
+                      }
+                    },
+                    "type": "object"
                   },
                   "session_id": {
                     "example": "cya_1713110400000",
@@ -7939,8 +7981,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.26.2"
+  "x-version": "0.26.3"
 }
 
 ## Integrity
-- llm_txt_sha256: 029e6269686556dac6b316cf60baf70d4342d72d234402c365872e9ad1932ef2
+- llm_txt_sha256: c17dcbf2fda7de2918e13a85b53d6772a71c385ea1f5ef81e4c2aa9120cdd1a7

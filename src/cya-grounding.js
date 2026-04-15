@@ -17,7 +17,14 @@ function buildFacts(retrieval) {
     focusArea: item.focusArea,
     statement: normalizeStatement(item.answer),
     sources: toArray(item.sources),
-    confidence: item.sources.length > 0 ? 'medium' : 'low',
+    // User-asserted facts (trusted:true) are capped at 'medium' — never 'high'.
+    // EU AI Act Art. 12: provenance must be traceable. 'high' is reserved for
+    // machine-verified API responses with confirmed sources.
+    confidence: item.trusted === true
+      ? 'medium'
+      : item.sources.length > 0 ? 'medium' : 'low',
+    trusted: item.trusted === true ? true : undefined,
+    dataProvenance: item.dataProvenance || undefined,
   }));
 }
 
@@ -68,6 +75,7 @@ function buildGrounding(input) {
   const retrieval = input?.retrieval || {};
   const context = input?.context || {};
   const regulatoryGraph = input?.regulatoryGraph || {};
+  const topologyHop = input?.topologyHop !== undefined ? input.topologyHop : (retrieval?.topologyHop || null);
 
   const facts = buildFacts(retrieval);
   const dataGaps = buildDataGaps(retrieval);
@@ -87,6 +95,7 @@ function buildGrounding(input) {
     facts,
     dataGaps,
     regulatorySignals: toArray(regulatoryGraph?.signals),
+    topologyHop: topologyHop || null,
   };
 }
 

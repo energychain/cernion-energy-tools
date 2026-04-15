@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.26.2",
+    "version": "0.26.3",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -7025,7 +7025,10 @@
                     "example": "Aufsichtsrat"
                   },
                   "context": {
-                    "type": "object",
+                    "capacity_mw": {
+                      "type": "number",
+                      "optional": true
+                    },
                     "required": [
                       "trigger",
                       "focus_areas"
@@ -7066,6 +7069,12 @@
                             "nova"
                           ]
                         }
+                      },
+                      "capacity_mw": {
+                        "type": "number",
+                        "nullable": true,
+                        "description": "Asset capacity in MW. If >= 10 MW, triggers 110-kV topology hop detection via OSM.",
+                        "example": 10
                       }
                     }
                   },
@@ -7081,6 +7090,7 @@
                   "value": {
                     "profile_id": "stadtwerk_regulierung",
                     "target_audience": "Aufsichtsrat",
+                    "capacity_mw": 10,
                     "context": {
                       "location": "Ludwigshafen",
                       "trigger": "Presseanfrage zur Netzstabilität",
@@ -7180,6 +7190,24 @@
                     "type": "string",
                     "nullable": true,
                     "example": "Bitte Region auf Ludwigshafen eingrenzen"
+                  },
+                  "clarification_response": {
+                    "type": "object",
+                    "nullable": true,
+                    "description": "Structured HITL data override. Supplies hard facts (capacity, redispatch, NOVA, etc.) to rebuild the deterministic Regulatory Graph. Bypasses failed MCP fetch-routines for the listed focus areas. Separate from agent_clarification_response (free-text LLM guidance).",
+                    "example": null,
+                    "properties": {
+                      "provided_data": {
+                        "type": "object",
+                        "description": "Map of focusArea -> user-supplied text. Each entry replaces a failed or missing retrieval item with trusted:true, dataProvenance:\"user_asserted\".",
+                        "example": {
+                          "capacity": "Lokale PV-Durchdringung 8 MW, 10-MW-Speicher muss ans 110-kV-UW Meckesheim (Netze BW).",
+                          "redispatch": "Netzregion leidet unter §13a-Abregelungen von Wind/PV.",
+                          "nova": "Netze BW prüft Trafo-Ausbau, Flexibilität fehlt.",
+                          "investment": "Kommune Mauer will Gewerbesteuer sichern."
+                        }
+                      }
+                    }
                   }
                 }
               },
@@ -7188,7 +7216,22 @@
                   "value": {
                     "session_id": "cya_1713110400000",
                     "user_feedback": "Bitte stärker auf §14a fokussieren",
-                    "agent_clarification_response": null
+                    "agent_clarification_response": null,
+                    "clarification_response": null
+                  }
+                },
+                "hitl_override": {
+                  "summary": "HITL: supply missing focus-area data after needs_clarification",
+                  "value": {
+                    "session_id": "cya_1776232540896",
+                    "clarification_response": {
+                      "provided_data": {
+                        "capacity": "Lokale PV-Durchdringung 8 MW, 10-MW-Speicher muss ans 110-kV-UW Meckesheim (Netze BW).",
+                        "redispatch": "Netzregion leidet unter §13a-Abregelungen von Wind/PV.",
+                        "nova": "Netze BW prüft Trafo-Ausbau, Flexibilität fehlt.",
+                        "investment": "Kommune Mauer will Gewerbesteuer sichern."
+                      }
+                    }
                   }
                 }
               }
@@ -7199,5 +7242,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.26.2"
+  "x-version": "0.26.3"
 }

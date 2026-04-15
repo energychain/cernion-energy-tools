@@ -59,6 +59,13 @@ const REGULATORY_RULES = [
       focusAreas.includes('renewables') && /erneuerbar|renewable|einspeis|pv|wind/i.test(text),
     rationale: 'Hohe EE-Dynamik im Kontext identifiziert.',
   },
+  {
+    id: 'VOLTAGE_HOP_REQUIRED',
+    severity: 'warning',
+    oeoClass: 'https://openenergyplatform.org/ontology/oeo/OEO_00020151',
+    evaluate: ({ topologyHop }) => topologyHop?.needsHop === true,
+    rationale: 'Asset-Kapazität erfordert Anschluss an vorgelagerte 110-kV-Ebene (HS). Physikalischer Anschlusspunkt liegt außerhalb der lokalen Netzregion.',
+  },
 ];
 
 function compactText(retrieval) {
@@ -73,9 +80,10 @@ function buildRegulatoryGraph(input) {
   const retrieval = input?.retrieval || {};
   const focusAreas = Array.isArray(input?.context?.focus_areas) ? input.context.focus_areas : [];
   const text = compactText(retrieval);
+  const topologyHop = input?.topologyHop !== undefined ? input.topologyHop : (retrieval?.topologyHop || null);
 
   const signals = REGULATORY_RULES
-    .filter((rule) => rule.evaluate({ text, focusAreas }))
+    .filter((rule) => rule.evaluate({ text, focusAreas, topologyHop }))
     .map((rule) => ({
       ruleId: rule.id,
       severity: rule.severity,

@@ -44,10 +44,27 @@ function buildPrompt(payload) {
   };
   const scrubbed = scrubForLLM(scrubInput).scrubbed;
 
+  // EU AI Act Art. 12 — XAI guardrail:
+  // Annotate user-asserted facts so the LLM cannot represent them as
+  // machine-verified data. The marker is injected into the serialised prompt
+  // text, not just stored in metadata, because the LLM reads only text.
+  if (Array.isArray(scrubbed?.grounding?.facts)) {
+    scrubbed.grounding.facts = scrubbed.grounding.facts.map((fact) => {
+      if (fact.trusted === true) {
+        return {
+          ...fact,
+          statement: `[Nutzerangabe – nicht maschinell verifiziert] ${fact.statement}`,
+        };
+      }
+      return fact;
+    });
+  }
+
   return [
     'Du bist ein Senior-Policy-Advisor für deutsche Energiewirtschaft.',
     'Erstelle eine belastbare, diplomatische und rechtssichere Argumentation.',
     'Nutze nur die übergebenen Fakten. Keine erfundenen Zahlen oder Quellen.',
+    'WICHTIG: Fakten mit dem Präfix "[Nutzerangabe – nicht maschinell verifiziert]" stammen von einem menschlichen Nutzer und wurden NICHT durch offizielle Datenquellen (MaStR, BNetzA, OSM) bestätigt. Kennzeichne diese im Text als Behauptungen oder Angaben des Auftraggebers – niemals als amtliche Messung oder Behördenaussage.',
     `Modus: ${mode}.`,
     `Eingabedaten:\n${JSON.stringify(scrubbed, null, 2)}`,
     'Antwort NUR als JSON gemäß Schema.',

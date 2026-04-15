@@ -7,6 +7,65 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.3] — 2026-04-15
+
+### Added
+
+- **CYA HITL Structured Override (`provided_data`):** `POST /api/cya/refine` now
+  accepts a `clarification_response.provided_data` object that supplies hard facts
+  (capacity, redispatch, NOVA, investment, …) to rebuild Phase 2 (Regulatory Graph)
+  deterministically — bypassing failed MCP/auth fetch-routines entirely.
+  - `mergeProvidedData` in `src/cya-data-retriever.js` merges user-supplied text as
+    `trusted:true / dataProvenance:'user_asserted'` items; recalculates summary with
+    `trusted` count for EU AI Act Art. 12 provenance tracing.
+  - Session is re-persisted with the enriched retrieval so subsequent `refine` calls
+    use the repaired grounding state, not the original gap-filled one.
+  - `agent_clarification_response` (free-text LLM guidance, Phase 3) is preserved as
+    a fully separate parameter — no mixing with deterministic Phase 2.
+
+- **110-kV Topology Hop Detector (`src/cya-topology-hop.js`):** New best-effort
+  module `assessTopologyHop(ctx, { location, capacityMw })` resolves HS substation
+  candidates via `osm-geo.substationFinder` (voltageLevel: `'HS'`, maxResults: 5).
+  - Threshold: `MW_THRESHOLD_110KV = 10`. Assets ≥ 10 MW require HS-level connection.
+  - Non-blocking graceful degradation: OSM/Overpass errors → `{ needsHop: false, reason: 'osm_unavailable' }`.
+  - Returns `physicalConnectionPoint` (nearest HS substation), `inferredOperator`,
+    `rationale` when OSM data is available.
+  - Activated in `retrieveContextData` when `context.capacity_mw` and `location` are set.
+
+- **VOLTAGE_HOP_REQUIRED regulatory rule:** New rule (severity `warning`,
+  OEO class `OEO_00020151`) in `src/cya-regulatory-graph.js` evaluates
+  `topologyHop?.needsHop === true` and injects an actionable signal into the
+  Regulatory Graph when the hop is detected.
+
+- **EU AI Act XAI Guardrail in LLM prompt:** `src/cya-synthesis.js` `buildPrompt`
+  annotates trusted facts with the German marker
+  `[Nutzerangabe – nicht maschinell verifiziert]` inline in the JSON payload sent
+  to the LLM. Accompanying system-prompt instruction explicitly forbids the LLM
+  from presenting user-asserted claims as official measurements or regulatory findings.
+
+- **Trusted fact confidence capping in grounding:** `src/cya-grounding.js`
+  `buildFacts` enforces `confidence:'medium'` (never `'high'`) for items with
+  `trusted:true`. `dataProvenance` field propagated to fact objects.
+  `topologyHop` attached to returned grounding object.
+
+- **`context.capacity_mw` param on `POST /api/cya/generate`:** Optional number
+  (MW). Triggers topology hop detection when combined with `context.location`.
+
+- **Tests:** 9 new tests across 2 new/updated test files:
+  - `tests/cya-topology-hop.test.js` — 4 tests (needsHop cases, OSM degradation,
+    missing location)
+  - `tests/cya-data-retriever.test.js` — 3 new `mergeProvidedData` tests (replace,
+    append, summary recalculation)
+  - `tests/cya.service.test.js` — 2 new integration tests (HITL flow: needs_clarification
+    → provided_data → completed; topology-hop signal with capacity_mw)
+
+### Changed
+
+- `POST /api/cya/refine` OpenAPI schema updated: new `clarification_response` property
+  with `hitl_override` example matching the CR's `curl` payload for Mauer/Speicher use case.
+- `POST /api/cya/generate` OpenAPI schema updated: `context.capacity_mw` property
+  documented with description and example.
+
 ## [0.26.2] — 2026-04-14
 
 ### Added
