@@ -23,6 +23,7 @@ describe('cya-data-retriever', () => {
 
   it('returns successful normalized query result', async () => {
     const ctx = {
+      meta: { cernionToken: 'test-token' },
       call: jest.fn().mockResolvedValue({
         answer: 'Kapazität angespannt.',
         data: { score: 42 },
@@ -37,10 +38,20 @@ describe('cya-data-retriever', () => {
     expect(result.focusArea).toBe('capacity');
     expect(result.answer).toBe('Kapazität angespannt.');
     expect(result.sources).toEqual(['mastr_db']);
+    expect(ctx.call).toHaveBeenCalledWith(
+      'query.ask',
+      {
+        query: 'foo',
+        explain: false,
+        timeout: 45000,
+      },
+      { meta: { cernionToken: 'test-token' } }
+    );
   });
 
   it('returns failed normalized query result on call error', async () => {
     const ctx = {
+      meta: { cernionToken: 'test-token' },
       call: jest.fn().mockRejectedValue(new Error('upstream timeout')),
     };
 
@@ -52,6 +63,7 @@ describe('cya-data-retriever', () => {
 
   it('retrieves all focus areas and summarizes success/failure', async () => {
     const ctx = {
+      meta: { cernionToken: 'test-token' },
       call: jest
         .fn()
         .mockResolvedValueOnce({ answer: 'A', data: {}, sources: ['s1'] })
@@ -72,6 +84,18 @@ describe('cya-data-retriever', () => {
     expect(result.summary.requested).toBe(2);
     expect(result.summary.success).toBe(1);
     expect(result.summary.failed).toBe(1);
+    expect(ctx.call).toHaveBeenNthCalledWith(
+      1,
+      'query.ask',
+      expect.objectContaining({ query: expect.any(String) }),
+      { meta: { cernionToken: 'test-token' } }
+    );
+    expect(ctx.call).toHaveBeenNthCalledWith(
+      2,
+      'query.ask',
+      expect.objectContaining({ query: expect.any(String) }),
+      { meta: { cernionToken: 'test-token' } }
+    );
   });
 
   describe('mergeProvidedData', () => {

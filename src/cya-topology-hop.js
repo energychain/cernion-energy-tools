@@ -52,7 +52,7 @@ async function assessTopologyHop(ctx, { location, capacityMw }) {
       location,
       voltageLevel: 'HS',
       maxResults: 5,
-    });
+    }, { meta: { cernionToken: ctx.meta.cernionToken } });
 
     const substations = result?.data?.substations || [];
     const summary = result?.data?.summary || {};

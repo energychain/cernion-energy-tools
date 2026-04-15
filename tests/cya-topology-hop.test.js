@@ -15,6 +15,7 @@ describe('cya-topology-hop', () => {
 
   it('returns needsHop:true with physicalConnectionPoint for >= 10 MW', async () => {
     const ctx = {
+      meta: { cernionToken: 'test-token' },
       call: jest.fn().mockResolvedValue({
         data: {
           substations: [
@@ -45,11 +46,12 @@ describe('cya-topology-hop', () => {
       location: 'Mauer',
       voltageLevel: 'HS',
       maxResults: 5,
-    });
+    }, { meta: { cernionToken: 'test-token' } });
   });
 
   it('degrades gracefully when OSM call throws', async () => {
     const ctx = {
+      meta: { cernionToken: 'test-token' },
       call: jest.fn().mockRejectedValue(new Error('Overpass timeout')),
     };
 

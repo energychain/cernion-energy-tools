@@ -53,7 +53,7 @@ async function runSingleFocusQuery(ctx, focusArea, query) {
       query,
       explain: false,
       timeout: DEFAULT_QUERY_TIMEOUT_MS,
-    });
+    }, { meta: { cernionToken: ctx.meta.cernionToken } });
 
     return {
       focusArea,

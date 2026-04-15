@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.4] — 2026-04-15
+
+### Fixed
+
+- **CYA explicit token forwarding for downstream internal calls:**
+  - `src/cya-data-retriever.js` now passes `ctx.meta.cernionToken` explicitly as
+    Moleculer call options to `query.ask`, instead of relying on implicit meta propagation.
+  - `src/cya-topology-hop.js` now passes `ctx.meta.cernionToken` explicitly as
+    Moleculer call options to `osm-geo.substationFinder`.
+  - This fixes the CYA Phase-1 grounding path where downstream MCP-backed services
+    could fail with `Unauthorized` / `Invalid access token` if implicit meta propagation
+    did not reach the MCP client.
+
+### Changed
+
+- Updated CYA unit tests to assert the third `ctx.call(..., ..., { meta: { cernionToken } })`
+  argument for both query retrieval and topology-hop lookups.
+
 ## [0.26.3] — 2026-04-15
 
 ### Added
