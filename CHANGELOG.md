@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.8] — 2026-04-16
+
+### Fixed
+
+- **CYA token propagation hardening (Retriever):** `fetchInstallations()` in
+  `src/cya-data-retriever.js` now forwards `ctx.meta.cernionToken` explicitly
+  via third `ctx.call` argument for `energy-market.installations` (MCP-backed),
+  aligned with v0.26.4 standard.
+  - Verification: `assessTopologyHop()` in `src/cya-topology-hop.js` already
+    remained v0.26.4-compliant (osm-geo.substationFinder with explicit token meta).
+
+### Changed
+
+- **Topology-Hop generalized to voltage-level resolver:** Refactored hardcoded
+  `MW_THRESHOLD_110KV = 10` into generic `VOLTAGE_THRESHOLDS` array with 4 tiers:
+  - MS (0–10 MW) → 10 kV / 20 kV, severity: none
+  - MS (10–50 MW) → 20 kV, severity: info
+  - HS (50–150 MW) → 110 kV, severity: warning
+  - HöS (150+ MW) → 220 kV / 380 kV, severity: critical
+  - New `determineRequiredVoltageLevel(capacityMw)` helper resolves voltage class
+  - `VOLTAGE_HOP_REQUIRED` rule in regulatory graph now scales severity with voltage
+  - Supports edge cases: 10 MW (boundary), 10.01 MW (MS tier), 150 MW (boundary), 200 MW (HöS critical)
+
+### Documentation
+
+- **docs/ui-contracts/20-cya.md** updated from v0.26.2 to v0.26.7:
+  - Async job pattern (HTTP 202 responses, polling, retryAfter headers)
+  - `context.capacity_mw` parameter documented with example (50 MW)
+  - `clarification_response.provided_data` override structure (user-asserted facts)
+  - HITL flow with 2-step refinement (clarification → refine)
+  - EU AI Act XAI markers (`[Nutzerangabe – nicht maschinell verifiziert]`)
+  - `topologyHop` response shape with voltage class + threshold
+  - Confidence badges (🟢 High / 🟡 Medium / 🔴 Low)
+  - Fact source icons (📊 MaStR / 🗺️ OSM / 💬 LLM / ⚠️ User-asserted)
+  - Complete Höheinöd PoC flow example with curl commands
+- **docs/RELEASE_SUMMARY_v0.26.7.md** created: consolidated v0.26.0→v0.26.7 feature matrix, platform metrics (75 suites, 2,131 tests), PoC validations (Bautzen, Höheinöd, Mauer)
+- **docs/CYA_ARCHITECTURE.md** created: 4-phase module responsibility contract (input/output, known deviations, error handling)
+- **feedback/CR-CYA-NEXT.md** created: post-v0.26.7 roadmap with 3 architecture refactors (A1–A3) and 3 frontend features (F1–F3), open design questions (Q1–Q3)
+
+### Tests
+
+- **tests/cya-topology-hop.test.js:** 9 new/updated tests for generic voltage resolver:
+  - `5 MW asset → MS voltage class, severity none`
+  - `15 MW asset → HS voltage class, severity warning`
+  - `60 MW asset → HS voltage class, severity warning`
+  - `200 MW asset → HöS voltage class, severity critical`
+  - Edge cases: 10 MW (MS boundary), 10.01 MW (HS tier), 150 MW (HS/HöS boundary), 150.01 MW (HöS tier)
+  - OSM degradation: graceful fallback when Overpass unavailable
+  - Missing input validation (insufficient_input reason)
+
 ## [0.26.7] — 2026-04-15
 
 ### Changed
