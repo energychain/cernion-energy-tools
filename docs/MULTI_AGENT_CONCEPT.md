@@ -2,7 +2,7 @@
 
 > **Type:** Architecture Concept
 > **Status:** Draft
-> **Target Version:** Post-v0.28 (Cernion CYA)
+> **Target Version:** Post-v0.26.8 (Cernion CYA)
 > **Author:** Rhajaina
 > **Date:** 2026-04-16
 
