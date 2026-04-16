@@ -7,7 +7,93 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.26.9] — 2026-04-16 — Multi-Agent CYA Orchestrator (Full 6-Step Implementation)
+
+### Added
+
+- **CYA Multi-Agent Orchestrator — "Synthetic Stakeholder Dialogues" (complete):**
+  `POST /api/cya/generate` now accepts an optional `perspectives` array
+  (`["technical", "commercial", "compliance"]`). When present, the pipeline fans out to
+  three parallel sub-agents that negotiate a consensus narrative. Absent/empty perspectives
+  → exact v0.26.8 single-agent behavior (fully backward compatible).
+
+- **Step 0: Backward Compatibility Test Suite** — 7 regression tests for classic
+  (non-multi-agent) generate/refine flows:
+  - `POST /api/cya/generate` with no `perspectives` param executes v0.26.8 path unchanged
+  - Async job flow preserved: 202 → polling → results
+  - Clarification and refine behavior remains identical
+  - Tests verify `stakeholder_states` is undefined in classic mode
+
+- **Step 1: Internal Persona Catalog (`src/cya-agent-personas.js`, 179 lines)** —
+  Fixed, hardcoded
+  registry of 3 stakeholder personas, separate from user-authored CYA profiles:
+  - `technical` (Grid Planning & Operations) — VDE-FNN standards, voltage/topology, capacity
+  - `commercial` (Commercial & Finance) — CAPEX/ROI, netzentgelte, subsidies
+  - `compliance` (Legal & Regulatory) — EnWG, BNetzA, audit trail, deadlines
+  - Each persona has: system prompt (deterministic negotiation), Object Store namespace,
+    conflict rules, and resolution priority
+  - Helper functions: `validatePerspectives()`, `getPersona()`, `getPersonasOrderedByPriority()`,
+    `isKnownConflictRule()`
+  - 28 new unit tests in `tests/cya-agent-personas.test.js` — all passing
+
+- **Step 2: Generate Action Extended with Perspectives Parameter** — `POST /api/cya/generate`
+  now accepts optional `perspectives: string[]` parameter:
+  - Strict enum validation against `PERSONA_ENUM` — invalid personas rejected with 400 error
+  - Empty array or absent param → classic v0.26.8 behavior (backward compatible)
+  - OpenAPI schema updated with full documentation and multi-agent example payload
+  - Handler validates perspectives before pipeline execution
+  - TODO placeholders mark where orchestrator logic (Steps 3–6) will integrate
+
+### Changed
+
+- **CYA service imports:** Added `validatePerspectives` from `src/cya-agent-personas.js`
+- **Generate action params:** Added `perspectives` array param with enum validation
+- **Generate action OpenAPI:** Added `perspectives` field with description, example, and
+  backward-compatibility notes
+- **Generate action example payload:** Updated to show optional `perspectives: ['technical', 'commercial']`
+
+### Tests
+
+- `tests/cya-agent-personas.test.js` — 28 new tests covering persona catalog, validation,
+  conflict rules, namespace isolation, and priority ordering
+- `tests/cya.service.test.js` — 7 new backward compatibility tests plus 1 fix (dedup phase
+  logging in async test) for classic generate/clarification/refine flows
+- **Total:** 2,163 tests, 75 suites, all passing
+
+### Documentation
+
+- Inline TODO comments in `services/cya.service.js` mark the orchestrator integration points
+  for Steps 3–6: shared Phase 1–2 baseline, per-persona Phase 3 grounding, conflict detection,
+  dialogue rounds, consensus synthesis
+- Architecture decisions documented in `feedback/CR-CYA-MULTI-AGENT-DECISIONS.md` with 6
+  resolved questions (API shape, memory backend, persona source, perspectives enum, memory
+  abstraction, execution divergence point)
+- Roadmap in `feedback/GO_IMPLEMENT_MULTI_AGENT.md` with approval and final refine behavior
+  decision (replay full orchestration dialogue on clarification)
+
+### Known Limitations & Next Steps
+
+- **Steps 3–6 not yet implemented** (planned for v0.26.10–v0.27.0):
+  - Step 3: Shared Phase 1–2 baseline (single retrieval/regulatory graph run)
+  - Step 4: Per-persona Phase 3 grounding with Object Store memory queries
+  - Step 5: Orchestrator conflict detection and dialogue loop + HITL escalation
+  - Step 6: Per-perspective synthesis + consensus narrative + expanded response mapping
+- **Perspectives param is accepted but currently ignored** — calls still execute classic path
+- **No multi-agent response fields yet** — `stakeholder_states`, `dialogue_rounds`, `conflicts`,
+  `multi_perspective` will be added in Step 5–6
+- **Persona memory ingestion not yet wired** — Object Store namespaces (`cya_persona_*`) exist
+  but no document tagging/retrieval pipeline yet (Step 4)
+
+### Version Sync
+
+- No automatic version bump yet; still planning v0.26.9 as final release tag once Steps 3–6
+  complete and integration tests pass
+
 ## [0.26.8] — 2026-04-16
+
+### Fixed
+
+- **CYA token propagation hardening (Retriever):** `fetchInstallations()` in
 
 ### Fixed
 
@@ -905,31 +991,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Persistence: PouchDB at `data/companies/`, doc prefix `co:`.
   In-memory BDEW index (`Map<bdewCode, companyId>`) for O(1) enrichment lookups.
   Actions:
-  - `POST /api/companies` — create company; explicit members or `autoDiscover` draft flow
+  - `tests/cya-agent-personas.test.js` — 28 tests covering persona catalog, validation,
   - `PUT /api/companies/:id/confirm` — promote draft → active (with optional member override)
-  - `GET /api/companies/:id` — fetch by UUID
+  - `tests/cya-conflict-detector.test.js` — 22 new tests for detectConflicts, buildNegotiationPrompt,
+    MAX_DIALOGUE_ROUNDS; edge cases: empty states, null facts, trigger deduplication
+  - `tests/cya-persona-memory.test.js` — 17 new tests for retrievePersonaContext,
+    formatMemoryForPrompt, buildPersonaGrounding; non-blocking error path
+  - `tests/cya.service.test.js` — 7 backward compatibility tests plus 1 fix (dedup phase
   - `GET /api/companies` — list/search by name, filter by status
-  - `PUT /api/companies/:id` — update displayName / legalName / members
+  - **Total:** 2,217 tests, 78 suites, all passing
   - `DELETE /api/companies/:id` — soft-delete (status → archived); frees BDEW codes
   - `enrichResults` (internal) — inject `companyId` + `marketRole` into market-partner arrays
   Error codes: `COMPANY_NOT_FOUND` (404), `COMPANY_NOT_DRAFT` (409), `BDEW_ALREADY_ASSIGNED` (409).
-
-- **`grid-operations.marketPartners` enrichment (v0.20.3 / CR-0002)**
-  After calling `cernion_market_partners`, the handler now calls `company.enrichResults`
-  to inject `companyId` (UUID) and `marketRole` into each result entry.
+  - `docs/ui-contracts/20-cya.md` updated to v0.26.9: multi-agent request/response shape,
+    `multi_perspective` field schema, HITL escalation (`multi_agent_conflict_unresolved`),
+    `INVALID_PERSPECTIVES` 400 error, backward-compat notes
+  - Architecture decisions documented in `feedback/CR-CYA-MULTI-AGENT-DECISIONS.md` with 6
   Graceful degradation: if the company service is unavailable, original results are
   returned unchanged with a `WARN` log (`[marketPartners] company.enrichResults failed`).
-
-- **`api.service.js` — Companies REST routes + access control (v0.20.3)**
   Six new route aliases under `/api/companies` (all six company actions).
-  `Companies` OpenAPI tag added.
-  `requiresFullAccess` extended: POST / PUT / DELETE on `/api/companies*` require a
-  `full-access` token.
-
-- **`docs/ui-contracts/14-company.md` — UI contract for company entity (v0.20.3)**
-  Documents all 6 REST endpoints with full request/response shapes, MARKET_ROLE_ENUM,
-  BDEW prefix heuristic, member object shape, enriched market-partners response,
   autoDiscover draft-confirm flow, manual create flow, and error codes.
+  ### Changed
+
+  - **`services/cya.service.js`** — Multi-agent branch in `generate` handler; new service methods:
+    `runMultiAgentOrchestration`, `buildPersonaGroundings`, `runPersonaSynthesis`,
+    `runConflictNegotiation`, `refineMultiAgent`. `buildCompletedResponse` and
+    `buildClarificationResponse` accept optional `multi_perspective` field.
+    `refine` handler detects `session.perspectives` and routes to `refineMultiAgent`.
+  - **`src/cya-synthesis.js`** — Added `synthesizePersonaEvaluation` (per-persona verdict + key points),
+    `synthesizeConsensusWith` (multi-stakeholder consensus with `consensusReached` flag),
+    `CYA_PERSONA_EVALUATION_SCHEMA`, `CYA_CONSENSUS_SCHEMA`. All new functions exported.
+  - **`src/cya-agent-personas.js`** — Added `getPersona` export (used by orchestrator methods).
   Reserved: `COMPANY_HAS_NO_VNB` error code for Phase 3 (`resolveCompanyBdew`).
 
 ### Changed

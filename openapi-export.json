@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.26.7",
+    "version": "0.26.9",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -7077,6 +7077,25 @@
                     "type": "string",
                     "example": "Aufsichtsrat"
                   },
+                  "perspectives": {
+                    "type": "array",
+                    "nullable": true,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "technical",
+                        "commercial",
+                        "compliance"
+                      ]
+                    },
+                    "minItems": 1,
+                    "maxItems": 3,
+                    "description": "Enable multi-agent orchestration mode with stakeholder perspectives. If omitted, defaults to classic single-agent v0.26.8 behavior.",
+                    "example": [
+                      "technical",
+                      "commercial"
+                    ]
+                  },
                   "context": {
                     "capacity_mw": {
                       "type": "number",
@@ -7143,7 +7162,10 @@
                   "value": {
                     "profile_id": "stadtwerk_regulierung",
                     "target_audience": "Aufsichtsrat",
-                    "capacity_mw": 10,
+                    "perspectives": [
+                      "technical",
+                      "commercial"
+                    ],
                     "context": {
                       "location": "Ludwigshafen",
                       "trigger": "Presseanfrage zur Netzstabilität",
@@ -7151,7 +7173,8 @@
                         "capacity",
                         "compliance",
                         "nova"
-                      ]
+                      ],
+                      "capacity_mw": 10
                     }
                   }
                 }
@@ -7295,5 +7318,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.26.7"
+  "x-version": "0.26.9"
 }

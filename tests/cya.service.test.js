@@ -350,6 +350,188 @@ describe('cya.service', () => {
     }
   });
 
+  describe('backward compatibility: v0.26.8 single-agent behavior (no perspectives)', () => {
+    it('generates classic result when perspectives param is absent (fallback to v0.26.8)', async () => {
+      const result = await broker.call('cya.generate', {
+        profile_id: 'cya_test_profile',
+        target_audience: 'Aufsichtsrat',
+        context: {
+          location: 'Heidelberg',
+          trigger: 'Presseanfrage',
+          focus_areas: ['capacity'],
+          // No perspectives parameter — should execute classic path
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('completed');
+      expect(result.narrative).toBeTruthy();
+      expect(result.narrative.headline).toBeTruthy();
+      expect(result.session_id).toBeTruthy();
+
+      // Classic response shape: no stakeholder_states, no multi_perspective
+      expect(result.stakeholder_states).toBeUndefined();
+      expect(result.multi_perspective).toBeUndefined();
+
+      // Single narrative only
+      expect(Array.isArray(result.narrative)).toBe(false);
+      expect(typeof result.narrative).toBe('object');
+    });
+
+    it('generates classic result when perspectives param is empty array (fallback to v0.26.8)', async () => {
+      const result = await broker.call('cya.generate', {
+        profile_id: 'cya_test_profile',
+        target_audience: 'Aufsichtsrat',
+        context: {
+          location: 'Heidelberg',
+          trigger: 'Presseanfrage',
+          focus_areas: ['capacity'],
+        },
+        perspectives: [], // Empty array — should fallback to classic
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('completed');
+      expect(result.narrative).toBeTruthy();
+      expect(result.stakeholder_states).toBeUndefined();
+    });
+
+    it('refine on classic (non-multi-agent) session preserves v0.26.8 behavior', async () => {
+      // Generate without perspectives
+      const generated = await broker.call('cya.generate', {
+        profile_id: 'cya_test_profile',
+        target_audience: 'Aufsichtsrat',
+        context: {
+          location: 'Heidelberg',
+          trigger: 'Follow-up',
+          focus_areas: ['capacity'],
+        },
+      });
+
+      // Refine without perspectives — should stay in classic mode
+      const refined = await broker.call('cya.refine', {
+        session_id: generated.session_id,
+        user_feedback: 'Bitte Fokus auf Maßnahmen.',
+      });
+
+      expect(refined.success).toBe(true);
+      expect(refined.status).toBe('completed');
+      expect(refined.narrative).toBeTruthy();
+      expect(refined.stakeholder_states).toBeUndefined();
+    });
+
+    it('async classic generate (no perspectives) preserves phase logging', async () => {
+      const gatewayResult = await broker.call(
+        'cya.generate',
+        {
+          profile_id: 'cya_test_profile',
+          target_audience: 'Aufsichtsrat',
+          context: {
+            location: 'Heidelberg',
+            trigger: 'Presseanfrage',
+            focus_areas: ['capacity'],
+          },
+        },
+        {
+          meta: {
+            $gateway: true,
+          },
+        }
+      );
+
+      await new Promise((r) => setTimeout(r, 2000));
+
+      const jobRecord = getJob(gatewayResult.jobId);
+      const phases = jobRecord.logs.map((l) => l.phase);
+      // Dedup in case phases are logged multiple times
+      const uniquePhases = [...new Set(phases)];
+      expect(uniquePhases).toEqual([
+        'phase_1_retrieval',
+        'phase_2_graph',
+        'phase_3_grounding',
+        'phase_4_synthesis',
+      ]);
+
+      const resultPayload = getResult(gatewayResult.jobId);
+      expect(resultPayload.status).toBe('completed');
+      expect(resultPayload.stakeholder_states).toBeUndefined();
+    });
+
+    it('clarification flow (no perspectives) remains v0.26.8: needs_clarification → refine → completed', async () => {
+      // Step 1: no location, low-confidence facts
+      const generated = await broker.call('cya.generate', {
+        profile_id: 'cya_test_profile',
+        target_audience: 'Netzplaner',
+        context: {
+          trigger: 'Speicher geplant',
+          focus_areas: ['redispatch'],
+        },
+      });
+
+      expect(generated.status).toBe('needs_clarification');
+      expect(generated.clarification).toBeTruthy();
+      expect(generated.session_id).toBeTruthy();
+
+      // Step 2: refine with provided_data (classic HITL path)
+      const refined = await broker.call('cya.refine', {
+        session_id: generated.session_id,
+        clarification_response: {
+          provided_data: {
+            capacity: '10 MW Lithium-Speicher an 110-kV-UW Meckesheim',
+            redispatch: 'Regionale Redispatch-Last im Jahr 2025: 450 GWh erwartet.',
+          },
+        },
+      });
+
+      expect(refined.success).toBe(true);
+      expect(refined.status).toBe('completed');
+      expect(refined.narrative).toBeTruthy();
+      expect(refined.stakeholder_states).toBeUndefined();
+    });
+
+    it('clarification + refine in async mode (no perspectives) executes complete classic workflow', async () => {
+      // Generate (async, REST call)
+      const generateResult = await broker.call(
+        'cya.generate',
+        {
+          profile_id: 'cya_test_profile',
+          target_audience: 'Netzplaner',
+          context: {
+            trigger: 'Speicher geplant',
+            focus_areas: ['redispatch'],
+          },
+        },
+        {
+          meta: {
+            $gateway: true,
+          },
+        }
+      );
+
+      await new Promise((r) => setTimeout(r, 1500));
+
+      const generatePayload = getResult(generateResult.jobId);
+      expect(generatePayload.status).toBe('needs_clarification');
+      const sessionId = generatePayload.session_id;
+
+      // Refine (sync, internal call)
+      const refined = await broker.call('cya.refine', {
+        session_id: sessionId,
+        clarification_response: {
+          provided_data: {
+            capacity: '10 MW Lithium-Speicher',
+            redispatch: 'High curtailment expected',
+          },
+        },
+      });
+
+      expect(refined.success).toBe(true);
+      expect(refined.status).toBe('completed');
+      expect(refined.narrative).toBeTruthy();
+      expect(refined.stakeholder_states).toBeUndefined();
+    });
+  });
+
   describe('async job pattern', () => {
     it('returns sync result for internal (non-gateway) calls', async () => {
       // Internal call: no ctx.meta.$gateway flag

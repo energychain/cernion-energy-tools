@@ -4,8 +4,11 @@ const { MoleculerError } = require('moleculer').Errors;
 const { retrieveContextData, mergeProvidedData } = require('../src/cya-data-retriever');
 const { buildRegulatoryGraph } = require('../src/cya-regulatory-graph');
 const { buildGrounding } = require('../src/cya-grounding');
-const { synthesizeNarrative } = require('../src/cya-synthesis');
+const { synthesizeNarrative, synthesizePersonaEvaluation, synthesizeConsensusWith } = require('../src/cya-synthesis');
 const { startJob, appendLog } = require('../src/job-store');
+const { PERSONA_ENUM, validatePerspectives, getPersona } = require('../src/cya-agent-personas');
+const { retrievePersonaContext, buildPersonaGrounding } = require('../src/cya-persona-memory');
+const { MAX_DIALOGUE_ROUNDS, detectConflicts, buildNegotiationPrompt } = require('../src/cya-conflict-detector');
 
 const PROFILE_ID_PATTERN = /^[a-z0-9_]+$/;
 const ACTOR_ROLES = [
@@ -310,6 +313,15 @@ module.exports = {
           },
         },
         session_id: { type: 'string', optional: true },
+        perspectives: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'enum',
+            values: PERSONA_ENUM,
+          },
+          max: PERSONA_ENUM.length,
+        },
       },
       // NOTE: capacity_mw goes inside context (not top-level) so it flows
       // through to cya-data-retriever.retrieveContextData → assessTopologyHop.
@@ -328,6 +340,15 @@ module.exports = {
                 properties: {
                   profile_id: { type: 'string', example: 'stadtwerk_regulierung' },
                   target_audience: { type: 'string', example: 'Aufsichtsrat' },
+                  perspectives: {
+                    type: 'array',
+                    nullable: true,
+                    items: { type: 'string', enum: PERSONA_ENUM },
+                    minItems: 1,
+                    maxItems: PERSONA_ENUM.length,
+                    description: 'Enable multi-agent orchestration mode with stakeholder perspectives. If omitted, defaults to classic single-agent v0.26.8 behavior.',
+                    example: ['technical', 'commercial'],
+                  },
                   context: {
             capacity_mw: { type: 'number', optional: true },
                     required: ['trigger', 'focus_areas'],
@@ -356,11 +377,12 @@ module.exports = {
                   value: {
                     profile_id: 'stadtwerk_regulierung',
                     target_audience: 'Aufsichtsrat',
-                        capacity_mw: 10,
+                    perspectives: ['technical', 'commercial'],
                     context: {
                       location: 'Ludwigshafen',
                       trigger: 'Presseanfrage zur Netzstabilität',
                       focus_areas: ['capacity', 'compliance', 'nova'],
+                      capacity_mw: 10,
                     },
                   },
                 },
@@ -432,8 +454,35 @@ module.exports = {
         },
       },
       async handler(ctx) {
+        const { profile_id, target_audience, context, perspectives } = ctx.params;
+
+        // Validate perspectives if provided
+        if (perspectives && perspectives.length > 0) {
+          const validation = validatePerspectives(perspectives);
+          if (!validation.valid) {
+            throw new MoleculerError(
+              `Invalid perspective(s): ${validation.invalidPersonas.join(', ')}`,
+              400,
+              'INVALID_PERSPECTIVES',
+              { invalidPersonas: validation.invalidPersonas }
+            );
+          }
+          // Multi-agent path: Phase 1–2 shared, Phase 3–4 per-persona, conflict loop
+          return startJob(ctx, { service: 'cya', action: 'generate' }, async (jobId) => {
+            const sessionId = ctx.params.session_id || `cya_${Date.now()}`;
+            return this.runMultiAgentOrchestration(ctx, {
+              jobId,
+              sessionId,
+              profile_id,
+              target_audience,
+              context,
+              perspectives,
+            });
+          });
+        }
+
+        // Classic v0.26.8 single-agent path
         return startJob(ctx, { service: 'cya', action: 'generate' }, async (jobId) => {
-          const { profile_id, target_audience, context } = ctx.params;
           const profile = await this.loadProfile(ctx, profile_id);
           const sessionId = ctx.params.session_id || `cya_${Date.now()}`;
 
@@ -653,6 +702,18 @@ module.exports = {
         const providedData = ctx.params.clarification_response?.provided_data;
         const hasProvidedData = providedData && typeof providedData === 'object' && Object.keys(providedData).length > 0;
 
+        // Multi-agent refine path: re-run orchestration with enriched data or feedback
+        if (session.perspectives?.length > 0) {
+          return this.refineMultiAgent(ctx, {
+            session,
+            profile,
+            sessionId: ctx.params.session_id,
+            userFeedback,
+            clarificationInput,
+            providedData: hasProvidedData ? providedData : null,
+          });
+        }
+
         // HITL structured override path (Phase 2 rebuild):
         // provided_data supplies hard facts → mergeProvidedData → re-run Regulatory
         // Graph + Grounding deterministically. No MCP retries. No LLM in Phase 2.
@@ -837,7 +898,7 @@ module.exports = {
       const createdAt = input.createdAt || now;
       const updatedAt = now;
 
-      return {
+      const response = {
         success: true,
         session_id: input.sessionId,
         status: 'completed',
@@ -855,6 +916,12 @@ module.exports = {
           location: input.context?.location || null,
         },
       };
+
+      if (input.multi_perspective) {
+        response.multi_perspective = input.multi_perspective;
+      }
+
+      return response;
     },
 
     buildClarificationResponse(input) {
@@ -862,7 +929,7 @@ module.exports = {
       const createdAt = input.createdAt || now;
       const updatedAt = now;
 
-      return {
+      const response = {
         success: true,
         session_id: input.sessionId,
         status: 'needs_clarification',
@@ -884,6 +951,293 @@ module.exports = {
           location: input.context?.location || null,
         },
       };
+
+      if (input.multi_perspective) {
+        response.multi_perspective = input.multi_perspective;
+      }
+
+      return response;
+    },
+
+    // -----------------------------------------------------------------------
+    // Multi-agent orchestrator helpers (v0.26.9)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Run the full multi-agent orchestration pipeline.
+     * Phase 1–2 are shared; Phase 3–4 are parallelized per persona.
+     * Conflict detection runs after Phase 4 with up to MAX_DIALOGUE_ROUNDS.
+     *
+     * @param {import('moleculer').Context} ctx
+     * @param {{ jobId: string|null, sessionId: string, profile_id: string, target_audience: string, context: Object, perspectives: string[], preloadedRetrieval?: Object, profile?: Object, createdAt?: string }} args
+     */
+    async runMultiAgentOrchestration(ctx, args) {
+      const {
+        jobId, sessionId, profile_id, target_audience,
+        context, perspectives, preloadedRetrieval, createdAt,
+      } = args;
+
+      const log = (phase, pct, msg) => { if (jobId) appendLog(jobId, phase, pct, msg); };
+
+      // Phase 1 + 2 (shared baseline — skipped when preloaded retrieval supplied)
+      log('phase_1_retrieval', 0, 'Multi-agent: shared context retrieval...');
+      const profile = args.profile || await this.loadProfile(ctx, profile_id);
+      const retrieval = preloadedRetrieval
+        || await retrieveContextData(ctx, { profile, target_audience, context });
+      log('phase_1_retrieval', 20, 'Shared retrieval complete');
+
+      log('phase_2_graph', 20, 'Multi-agent: shared regulatory graph...');
+      const regulatoryGraph = buildRegulatoryGraph({
+        retrieval, context, profile, topologyHop: retrieval.topologyHop,
+      });
+      log('phase_2_graph', 35, 'Shared regulatory graph complete');
+
+      const baselineGrounding = buildGrounding({
+        retrieval, regulatoryGraph, context, topologyHop: retrieval.topologyHop,
+      });
+
+      // Phase 3: parallel per-persona grounding
+      log('phase_3_grounding', 35, `Multi-agent: Phase 3 for [${perspectives.join(', ')}]...`);
+      const personaGroundings = await this.buildPersonaGroundings(ctx, perspectives, baselineGrounding);
+      log('phase_3_grounding', 55, 'Per-persona groundings complete');
+
+      // Phase 4: parallel per-persona synthesis
+      log('phase_4_synthesis', 55, 'Multi-agent: per-persona synthesis...');
+      const stakeholderStates = await this.runPersonaSynthesis(
+        perspectives, personaGroundings,
+        { profile, target_audience, context, regulatoryGraph }
+      );
+      log('phase_4_synthesis', 75, 'Per-persona synthesis complete');
+
+      // Conflict negotiation loop
+      const { finalStates, dialogueRounds, conflictResolved, consensusNarrative } =
+        await this.runConflictNegotiation(
+          stakeholderStates, baselineGrounding.facts,
+          { profile, target_audience, context, regulatoryGraph }
+        );
+      log('phase_4_synthesis', 90, `Conflict resolved: ${conflictResolved}`);
+
+      const multiPerspective = {
+        perspectives,
+        stakeholder_states: finalStates,
+        dialogue_rounds: dialogueRounds.length,
+        conflict_resolved: conflictResolved,
+      };
+
+      // HITL escalation when conflict cannot be resolved automatically
+      if (!conflictResolved) {
+        const { blockers, triggers } = detectConflicts(finalStates);
+        const clarification = {
+          question: `Stakeholder-Konflikt nicht automatisch auflösbar. Blockierende Perspektiven: ${blockers.join(', ')}. Bitte klären Sie: ${triggers.join(', ') || 'fehlende Fakten ergänzen'}.`,
+          reason: 'multi_agent_conflict_unresolved',
+          suggestedInputs: triggers.length > 0 ? triggers : baselineGrounding.dataGaps?.map((g) => g.focusArea) || [],
+        };
+        const hitlGrounding = { ...baselineGrounding, clarification, requiresClarification: true };
+        const hitlResponse = this.buildClarificationResponse({
+          sessionId, profileId: profile_id, targetAudience: target_audience,
+          grounding: hitlGrounding, regulatoryGraph, context, createdAt,
+          multi_perspective: multiPerspective,
+        });
+        await this.saveSession(ctx, sessionId, {
+          status: 'needs_clarification', profile_id, target_audience, context, profile,
+          retrieval, regulatory_graph: regulatoryGraph, grounding: hitlGrounding,
+          narrative: null, clarification, perspectives, stakeholder_states: finalStates,
+          dialogue_rounds: dialogueRounds, conflict_resolved: false,
+          createdAt: hitlResponse.metadata.createdAt,
+          updatedAt: hitlResponse.metadata.updatedAt, history: [],
+        });
+        log('phase_4_synthesis', 100, 'Multi-agent HITL escalation saved');
+        return hitlResponse;
+      }
+
+      // Consensus achieved
+      const narrative = consensusNarrative?.narrative || null;
+      const completedResponse = this.buildCompletedResponse({
+        sessionId, profileId: profile_id, targetAudience: target_audience,
+        grounding: baselineGrounding, regulatoryGraph, context, narrative,
+        createdAt, multi_perspective: multiPerspective,
+      });
+      await this.saveSession(ctx, sessionId, {
+        status: 'completed', profile_id, target_audience, context, profile,
+        retrieval, regulatory_graph: regulatoryGraph, grounding: baselineGrounding,
+        narrative, clarification: null, perspectives, stakeholder_states: finalStates,
+        dialogue_rounds: dialogueRounds, conflict_resolved: true,
+        createdAt: completedResponse.metadata.createdAt,
+        updatedAt: completedResponse.metadata.updatedAt, history: [],
+      });
+      log('phase_4_synthesis', 100, 'Multi-agent session saved');
+      return completedResponse;
+    },
+
+    /**
+     * Build per-persona groundings in parallel (Phase 3 fan-out).
+     * @param {import('moleculer').Context} ctx
+     * @param {string[]} perspectives
+     * @param {Object} baseline - Shared baseline grounding
+     * @returns {Promise<Object.<string, Object>>} Map of personaId → grounding
+     */
+    async buildPersonaGroundings(ctx, perspectives, baseline) {
+      const entries = await Promise.all(
+        perspectives.map(async (personaId) => {
+          const memoryContext = await retrievePersonaContext(ctx, personaId, { limit: 3 });
+          const grounding = buildPersonaGrounding(baseline, memoryContext, personaId);
+          return [personaId, grounding];
+        })
+      );
+      return Object.fromEntries(entries);
+    },
+
+    /**
+     * Run Phase 4 per-persona synthesis in parallel.
+     * @param {string[]} perspectives
+     * @param {Object.<string, Object>} personaGroundings
+     * @param {{ profile: Object, target_audience: string, context: Object, regulatoryGraph: Object }} args
+     * @returns {Promise<Object.<string, Object>>} Map of personaId → stakeholder state
+     */
+    async runPersonaSynthesis(perspectives, personaGroundings, args) {
+      const entries = await Promise.all(
+        perspectives.map(async (personaId) => {
+          const persona = getPersona(personaId);
+          const grounding = personaGroundings[personaId];
+          const state = await synthesizePersonaEvaluation({
+            persona,
+            profile: args.profile,
+            target_audience: args.target_audience,
+            context: args.context,
+            grounding,
+            regulatoryGraph: args.regulatoryGraph,
+          });
+          return [personaId, state];
+        })
+      );
+      return Object.fromEntries(entries);
+    },
+
+    /**
+     * Run the conflict negotiation loop (up to MAX_DIALOGUE_ROUNDS).
+     * Returns early when consensus is reached or no conflict exists.
+     *
+     * @param {Object} stakeholderStates
+     * @param {Object[]} sharedFacts
+     * @param {{ profile: Object, target_audience: string, context: Object, regulatoryGraph: Object }} synthesisArgs
+     * @returns {Promise<{ finalStates: Object, dialogueRounds: Object[], conflictResolved: boolean, consensusNarrative?: Object }>}
+     */
+    async runConflictNegotiation(stakeholderStates, sharedFacts, synthesisArgs) {
+      const dialogueRounds = [];
+      const initialConflict = detectConflicts(stakeholderStates);
+
+      if (!initialConflict.hasConflict) {
+        // No conflict — synthesize consensus immediately
+        const consensus = await synthesizeConsensusWith({
+          ...synthesisArgs, stakeholderStates, sharedFacts, round: 0,
+        });
+        return { finalStates: stakeholderStates, dialogueRounds, conflictResolved: true, consensusNarrative: consensus };
+      }
+
+      let currentStates = { ...stakeholderStates };
+      for (let round = 1; round <= MAX_DIALOGUE_ROUNDS; round++) {
+        const conflict = detectConflicts(currentStates);
+        // eslint-disable-next-line no-await-in-loop
+        const consensus = await synthesizeConsensusWith({
+          ...synthesisArgs, stakeholderStates: currentStates, sharedFacts, round,
+        });
+        dialogueRounds.push({
+          round,
+          blockers: conflict.blockers,
+          triggers: conflict.triggers,
+          consensusReached: consensus.consensusReached,
+          unresolvedConflicts: consensus.unresolvedConflicts,
+        });
+        if (consensus.consensusReached) {
+          return { finalStates: currentStates, dialogueRounds, conflictResolved: true, consensusNarrative: consensus };
+        }
+      }
+
+      return { finalStates: currentStates, dialogueRounds, conflictResolved: false };
+    },
+
+    /**
+     * Handle refine for multi-agent sessions.
+     * If provided_data supplied: re-run full orchestration with enriched retrieval.
+     * Otherwise: re-synthesize consensus with updated user feedback.
+     *
+     * @param {import('moleculer').Context} ctx
+     * @param {{ session: Object, profile: Object, sessionId: string, userFeedback: string, clarificationInput: string, providedData: Object|null }} args
+     */
+    async refineMultiAgent(ctx, { session, profile, sessionId, userFeedback, clarificationInput, providedData }) {
+      if (providedData) {
+        const enrichedRetrieval = mergeProvidedData(session.retrieval, providedData);
+        return this.runMultiAgentOrchestration(ctx, {
+          jobId: null,
+          sessionId,
+          profile_id: session.profile_id,
+          target_audience: session.target_audience,
+          context: session.context,
+          perspectives: session.perspectives,
+          preloadedRetrieval: enrichedRetrieval,
+          profile,
+          createdAt: session.createdAt,
+        });
+      }
+
+      if (session.status === 'needs_clarification' && !clarificationInput) {
+        return this.buildClarificationResponse({
+          sessionId, profileId: session.profile_id, targetAudience: session.target_audience,
+          grounding: session.grounding, regulatoryGraph: session.regulatory_graph,
+          context: session.context, createdAt: session.createdAt,
+          multi_perspective: {
+            perspectives: session.perspectives,
+            stakeholder_states: session.stakeholder_states || {},
+            dialogue_rounds: (session.dialogue_rounds || []).length,
+            conflict_resolved: false,
+          },
+        });
+      }
+
+      // Re-synthesize consensus with updated feedback (no Phase 1–3 re-run)
+      const updatedFeedback = [userFeedback, clarificationInput].filter(Boolean).join(' | ');
+      const consensus = await synthesizeConsensusWith({
+        stakeholderStates: session.stakeholder_states || {},
+        sharedFacts: session.grounding?.facts || [],
+        profile,
+        target_audience: session.target_audience,
+        context: { ...session.context, clarification: updatedFeedback || null },
+        round: (session.dialogue_rounds || []).length + 1,
+      });
+
+      const multiPerspective = {
+        perspectives: session.perspectives,
+        stakeholder_states: session.stakeholder_states || {},
+        dialogue_rounds: (session.dialogue_rounds || []).length + 1,
+        conflict_resolved: consensus.consensusReached,
+      };
+
+      const response = this.buildCompletedResponse({
+        sessionId, profileId: session.profile_id, targetAudience: session.target_audience,
+        grounding: session.grounding, regulatoryGraph: session.regulatory_graph,
+        context: session.context, narrative: consensus.narrative,
+        createdAt: session.createdAt, multi_perspective: multiPerspective,
+      });
+
+      const history = Array.isArray(session.history) ? session.history : [];
+      history.push({
+        timestamp: response.metadata.updatedAt,
+        user_feedback: userFeedback || null,
+        agent_clarification_response: clarificationInput || null,
+        multi_agent_round: true,
+      });
+
+      await this.saveSession(ctx, sessionId, {
+        ...session,
+        status: response.status,
+        narrative: consensus.narrative,
+        clarification: null,
+        updatedAt: response.metadata.updatedAt,
+        dialogue_rounds: session.dialogue_rounds || [],
+        history,
+      });
+
+      return response;
     },
   },
 };

@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.26.7
-- changelog_latest_release: 0.26.8
+- version: 0.26.9
+- changelog_latest_release: 0.26.9
 - source_files_hash:
-  - CHANGELOG.md: 5d9bab49de00131b18c2efc924a2f74fc78a98da34ff2ba7a5cb3a1f40eae98e
+  - CHANGELOG.md: facab0432fc9b5a057001fb5bd352265ae1a23306da83686dd695ab53590ec26
   - README.md: 23b8ff807aaac10adb703b0b80edb676ace5ae28cc2fa66feb7dd5032f5eb333
   - docs/BACKEND_CONTEXT.md: 98e1ea456116d39b57d410b89b9086b1d97b042d8202f5fdfa1aadc311f3a855
   - src/cookbook-recipes.js: 7e92337203ff08ef348bcdb1b91d04ad58683494640c76553b005f6cfdd42109
-  - openapi-export.json: e719c0c4ea688a1ef4909603951afa33d5b2e90ef073b574e8e7793328e11111
+  - openapi-export.json: d646bf02b1d63d14768e3012d4621c46c41ed04ecefcbe507b5a810b5253b2f0
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -742,7 +742,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.26.7"
+    "version": "0.26.9"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -1373,8 +1373,8 @@ process:
               "examples": {
                 "default": {
                   "value": {
-                    "capacity_mw": 10,
                     "context": {
+                      "capacity_mw": 10,
                       "focus_areas": [
                         "capacity",
                         "compliance",
@@ -1383,6 +1383,10 @@ process:
                       "location": "Ludwigshafen",
                       "trigger": "Presseanfrage zur Netzstabilität"
                     },
+                    "perspectives": [
+                      "technical",
+                      "commercial"
+                    ],
                     "profile_id": "stadtwerk_regulierung",
                     "target_audience": "Aufsichtsrat"
                   }
@@ -1443,6 +1447,25 @@ process:
                       "trigger",
                       "focus_areas"
                     ]
+                  },
+                  "perspectives": {
+                    "description": "Enable multi-agent orchestration mode with stakeholder perspectives. If omitted, defaults to classic single-agent v0.26.8 behavior.",
+                    "example": [
+                      "technical",
+                      "commercial"
+                    ],
+                    "items": {
+                      "enum": [
+                        "technical",
+                        "commercial",
+                        "compliance"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 3,
+                    "minItems": 1,
+                    "nullable": true,
+                    "type": "array"
                   },
                   "profile_id": {
                     "example": "stadtwerk_regulierung",
@@ -8035,8 +8058,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.26.7"
+  "x-version": "0.26.9"
 }
 
 ## Integrity
-- llm_txt_sha256: 2213959601d15ef1e1a94a32db70c0d147bd9e392c47e3b3a4d93831152ded01
+- llm_txt_sha256: 884ea88b767f3f9887700362b7c30aa8944a6c8a51951a04c99812791b2ccf07

@@ -1,9 +1,8 @@
 # UI Contract: CYA Agent API
 
 > **Page ID:** `cya`
-> **Version:** 0.26.7
+> **Version:** 0.26.9
 > **Last updated:** 2026-04-16
-
 ---
 
 ## Endpoints & HTTP Patterns
@@ -290,6 +289,110 @@ async function generateNarrative(payload) {
 
 ## Error Responses
 
+## POST /api/cya/generate — Multi-Agent Mode (v0.26.9+)
+
+### Trigger
+
+Pass `"perspectives"` array in the request body. Valid values: `technical`, `commercial`, `compliance`.
+Absent or empty → classic single-agent behavior (backward compatible).
+
+```json
+{
+  "profile_id": "stadtwerk_regulierung",
+  "target_audience": "Aufsichtsrat",
+  "context": { "location": "Höheinöd", "capacity_mw": 50 },
+  "perspectives": ["technical", "commercial", "compliance"]
+}
+```
+
+### Additional Response Fields (when `perspectives` provided)
+
+The response includes all standard fields (`grounding`, `narrative`, `regulatory_graph`, `metadata`)
+**plus** a `multi_perspective` field:
+
+```json
+{
+  "success": true,
+  "session_id": "cya_1713110400000",
+  "status": "completed",
+  "narrative": { "...": "consensus narrative (same shape as classic mode)" },
+  "multi_perspective": {
+    "perspectives": ["technical", "commercial", "compliance"],
+    "stakeholder_states": {
+      "technical": {
+        "personaId": "technical",
+        "personaLabel": "Grid Planning & Operations",
+        "verdict": "conditional",
+        "summary": "Transformer upgrade required at 110 kV substation Meckesheim",
+        "conflictTriggers": ["overload_risk"],
+        "keyPoints": ["Current load 82% of rated capacity", "§14a reduces peak by ~30%"],
+        "riskNotes": ["N-1 redundancy not guaranteed during upgrade period"]
+      },
+      "commercial": {
+        "personaId": "commercial",
+        "personaLabel": "Commercial & Finance",
+        "verdict": "approved",
+        "summary": "ROI positive at 11 years; KfW subsidy reduces capex by 40%",
+        "conflictTriggers": [],
+        "keyPoints": ["Upgrade cost 120k EUR; KfW 270 covers 48k EUR"],
+        "riskNotes": ["Interest rate sensitivity: +1% → +0.8 yr amortization"]
+      },
+      "compliance": {
+        "personaId": "compliance",
+        "personaLabel": "Legal & Regulatory",
+        "verdict": "conditional",
+        "summary": "TA-Netz compliance requires Liegenschaft agreement before commissioning",
+        "conflictTriggers": ["liegenschaft_unsecured"],
+        "keyPoints": ["EnWG §17 grid connection right established", "BNetzA 6-month approval window"],
+        "riskNotes": ["Liegenschaft easement must be notarized before MaStR registration"]
+      }
+    },
+    "dialogue_rounds": 1,
+    "conflict_resolved": true
+  }
+}
+```
+
+### HITL Escalation (Unresolved Conflict)
+
+When all `MAX_DIALOGUE_ROUNDS` (3) are exhausted without consensus, the response uses
+`status: "needs_clarification"` with the blocker details in `clarification.reason = "multi_agent_conflict_unresolved"`:
+
+```json
+{
+  "status": "needs_clarification",
+  "clarification": {
+    "question": "Stakeholder-Konflikt nicht automatisch auflösbar. Blockierende Perspektiven: technical. Bitte klären Sie: overload_risk.",
+    "reason": "multi_agent_conflict_unresolved",
+    "suggestedInputs": ["overload_risk"]
+  },
+  "multi_perspective": {
+    "perspectives": ["technical", "commercial", "compliance"],
+    "stakeholder_states": { "...": "..." },
+    "dialogue_rounds": 3,
+    "conflict_resolved": false
+  }
+}
+```
+
+Resolve by calling `POST /api/cya/refine` with `clarification_response.provided_data` — same as classic HITL.
+The multi-agent pipeline re-runs from Phase 3 with the enriched facts.
+
+### Error: Invalid Perspectives
+
+```json
+{
+  "code": 400,
+  "type": "INVALID_PERSPECTIVES",
+  "message": "Invalid perspective(s): unknown_persona",
+  "data": { "invalidPersonas": ["unknown_persona"] }
+}
+```
+
+---
+
+## Error Responses
+
 | Code | Error | Cause | Recovery |
 |------|-------|-------|----------|
 | 404 | `PROFILE_NOT_FOUND` | profile_id does not exist | Verify profile_id or create profile |
@@ -347,4 +450,4 @@ curl http://localhost:3000/api/jobs/cya_abc123/result
 
 **Document Owner:** Backend/Frontend Sync Team
 **Last Reviewed:** 2026-04-16
-**Next Review:** Post-v0.26.8 (topology-hop generalization)
+**Next Review:** Post-v0.26.9 (multi-agent persona memory enrichment)
