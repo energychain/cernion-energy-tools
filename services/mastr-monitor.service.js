@@ -9,7 +9,9 @@ const { isSmtpConfigured, sendDeltaNotification, sendConfirmationEmail } = requi
 
 const WATCHES_NAMESPACE = 'mastr_watches';
 const SNAPSHOTS_NAMESPACE = 'mastr_snapshots';
+const SNAPSHOT_CHUNKS_NAMESPACE = 'mastr_snapshot_chunks';
 const DELTAS_NAMESPACE = 'mastr_deltas';
+const DELTA_CHUNKS_NAMESPACE = 'mastr_delta_chunks';
 const SUBSCRIPTIONS_NAMESPACE = 'mastr_subscriptions';
 
 function slugify(value) {
@@ -84,6 +86,11 @@ function isAtMostDailyCron(expression) {
   return isSingleNumericCronField(minute) && isSingleNumericCronField(hour);
 }
 
+function readIntEnv(name, fallback) {
+  const parsed = Number.parseInt(String(process.env[name] || ''), 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 module.exports = {
   name: 'mastr-monitor',
   timeout: 120000,
@@ -95,7 +102,9 @@ module.exports = {
       'netzbetreiberpruefungStatus', 'direktvermarkterMastrNummer',
       'direktvermarkterName', 'napData.spannungsebene', 'lastUpdatedAt',
     ],
-    maxInstallationsPerWatch: 5000,
+    maxInstallationsPerWatch: readIntEnv('MASTR_MONITOR_MAX_INSTALLATIONS_PER_WATCH', 50000),
+    chunkingEnabled: String(process.env.MASTR_MONITOR_CHUNKING_ENABLED || 'true').toLowerCase() !== 'false',
+    chunkSize: readIntEnv('MASTR_MONITOR_CHUNK_SIZE', 1000),
     snapshotRetention: 30,
     deltaRetentionDays: 90,
     defaultSchedule: { type: 'preset', preset: 'weekday_morning' },
@@ -339,7 +348,9 @@ module.exports = {
         });
 
         await this.deleteByPrefix(SNAPSHOTS_NAMESPACE, `${ctx.params.watchId}:`);
+        await this.deleteByPrefix(SNAPSHOT_CHUNKS_NAMESPACE, `${ctx.params.watchId}:`);
         await this.deleteByPrefix(DELTAS_NAMESPACE, `${ctx.params.watchId}:`);
+        await this.deleteByPrefix(DELTA_CHUNKS_NAMESPACE, `${ctx.params.watchId}:`);
         await this.deleteByPrefix(SUBSCRIPTIONS_NAMESPACE, `${ctx.params.watchId}:`);
 
         return { success: true, watchId: ctx.params.watchId };
@@ -394,11 +405,18 @@ module.exports = {
         watchId: { type: 'string', min: 1 },
       },
       async handler(ctx) {
-        const deltas = await this.listByPrefix(DELTAS_NAMESPACE, `${ctx.params.watchId}:`);
-        const sorted = deltas.sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')));
+        const docs = await this.listDocsByPrefix(DELTAS_NAMESPACE, `${ctx.params.watchId}:`);
+        const sortedDocs = docs.sort((a, b) => String(b.key || '').localeCompare(String(a.key || '')));
+
+        const deltas = [];
+        for (const doc of sortedDocs) {
+          const hydrated = await this.hydrateDeltaPayload(doc.payload || null);
+          if (hydrated) deltas.push(hydrated);
+        }
+
         return {
           watchId: ctx.params.watchId,
-          deltas: sorted,
+          deltas,
         };
       },
     },
@@ -423,7 +441,7 @@ module.exports = {
         if (!delta) {
           throw new MoleculerClientError('Delta not found', 404, 'DELTA_NOT_FOUND');
         }
-        return delta;
+        return this.hydrateDeltaPayload(delta);
       },
     },
 
@@ -442,8 +460,10 @@ module.exports = {
         format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
       },
       async handler(ctx) {
-        const snapshots = await this.listByPrefix(SNAPSHOTS_NAMESPACE, `${ctx.params.watchId}:`);
-        const latest = pickLatestByTimestamp(snapshots, 'timestamp');
+        const snapshotDocs = await this.listDocsByPrefix(SNAPSHOTS_NAMESPACE, `${ctx.params.watchId}:`);
+        const latestDoc = snapshotDocs
+          .sort((a, b) => String(b.key || '').localeCompare(String(a.key || '')))[0] || null;
+        const latest = await this.hydrateSnapshotPayload(latestDoc?.payload || null);
         if (!latest) {
           throw new MoleculerClientError('Snapshot not found', 404, 'SNAPSHOT_NOT_FOUND');
         }
@@ -666,10 +686,8 @@ module.exports = {
     },
 
     async loadConfirmedSubscriptions(watchId) {
-      const docs = await this.queryObjects(SUBSCRIPTIONS_NAMESPACE, {}, 1000, 0);
-      return docs
-        .map((d) => d?.payload)
-        .filter((p) => p && p.watchId === watchId && p.status === 'confirmed');
+      const docs = await this.listPayloads(SUBSCRIPTIONS_NAMESPACE);
+      return docs.filter((p) => p && p.watchId === watchId && p.status === 'confirmed');
     },
 
     async notifyDelta(watchId, watch, delta) {
@@ -779,6 +797,7 @@ module.exports = {
       const snapshotKey = `${watchId}:${nowIso.split('T')[0]}`;
       const snapshot = {
         watchId,
+        snapshotKey,
         entries,
         count: entries.length,
         timestamp: nowIso,
@@ -795,19 +814,21 @@ module.exports = {
       }
 
       const prevSnapshots = await this.listDocsByPrefix(SNAPSHOTS_NAMESPACE, `${watchId}:`);
-      const prevSnapshot = prevSnapshots
-        .sort((a, b) => String(b.key || '').localeCompare(String(a.key || '')))[0]?.payload || null;
+      const prevSnapshotDoc = prevSnapshots
+        .sort((a, b) => String(b.key || '').localeCompare(String(a.key || '')))[0] || null;
+      const prevSnapshot = await this.hydrateSnapshotPayload(prevSnapshotDoc?.payload || null);
 
-      await this.putObject(SNAPSHOTS_NAMESPACE, snapshotKey, snapshot);
+      await this.persistSnapshot(snapshotKey, snapshot);
 
       let delta = null;
-      if (prevSnapshot?.entries) {
+      if (Array.isArray(prevSnapshot?.entries)) {
         delta = computeDelta(prevSnapshot.entries, entries, watch.watchFields || []);
         delta.watchId = watchId;
         delta.deltaId = snapshotKey.split(':')[1];
+        delta.deltaKey = snapshotKey;
         delta.baseline = prevSnapshot.timestamp || null;
 
-        await this.putObject(DELTAS_NAMESPACE, snapshotKey, delta);
+        await this.persistDelta(snapshotKey, delta);
       }
 
       const watchStillExistsBeforeUpdate = await this.getPayload(WATCHES_NAMESPACE, watchId);
@@ -866,6 +887,7 @@ module.exports = {
           namespace: SNAPSHOTS_NAMESPACE,
           key: item.key,
         });
+        await this.deleteByPrefix(SNAPSHOT_CHUNKS_NAMESPACE, `${item.key}:part:`);
       }
     },
 
@@ -880,6 +902,7 @@ module.exports = {
           namespace: DELTAS_NAMESPACE,
           key: item.key,
         });
+        await this.deleteByPrefix(DELTA_CHUNKS_NAMESPACE, `${item.key}:`);
       }
     },
 
@@ -897,7 +920,7 @@ module.exports = {
       return this.broker.call('object-store.put', { namespace, key, payload });
     },
 
-    mapWatchQueryToEnergyMarketParams(query = {}, installationType) {
+    mapWatchQueryToEnergyMarketParams(query = {}, installationType, limitOverride) {
       const params = {
         installationType,
         gridOperatorMastrId: query.gridOperatorMastrId,
@@ -909,7 +932,7 @@ module.exports = {
         location: query.gemeinde || query.landkreis || query.bundesland,
         netzbetreiberPruefungStatus: query.netzbetreiberPruefungStatus,
         format: 'json',
-        limit: this.settings.maxInstallationsPerWatch,
+        limit: Number(limitOverride) > 0 ? Number(limitOverride) : this.settings.maxInstallationsPerWatch,
       };
 
       // Remove undefined/null/empty values to avoid downstream validation errors
@@ -931,17 +954,170 @@ module.exports = {
           : [requestedType];
 
       const allRows = [];
+      let remaining = this.settings.maxInstallationsPerWatch;
+
       for (const type of types) {
+        if (remaining <= 0) break;
+
         const result = await this.broker.call(
           'energy-market.installations',
-          this.mapWatchQueryToEnergyMarketParams(watch.query || {}, type),
+          this.mapWatchQueryToEnergyMarketParams(watch.query || {}, type, remaining),
           { meta }
         );
         const rows = result?.data?.installations || result?.installations || [];
-        allRows.push(...rows);
+        if (!Array.isArray(rows) || rows.length === 0) continue;
+
+        const slice = rows.slice(0, remaining);
+        allRows.push(...slice);
+        remaining -= slice.length;
       }
 
-      return allRows.slice(0, this.settings.maxInstallationsPerWatch);
+      return allRows;
+    },
+
+    createChunks(items = []) {
+      const chunkSize = Math.max(1, Number(this.settings.chunkSize) || 1000);
+      const chunks = [];
+      for (let index = 0; index < items.length; index += chunkSize) {
+        chunks.push(items.slice(index, index + chunkSize));
+      }
+      return chunks;
+    },
+
+    shouldChunkSnapshot(snapshot) {
+      return !!(this.settings.chunkingEnabled && Array.isArray(snapshot?.entries) && snapshot.entries.length > this.settings.chunkSize);
+    },
+
+    shouldChunkDelta(delta) {
+      if (!this.settings.chunkingEnabled || !delta) return false;
+      const added = Array.isArray(delta.added) ? delta.added.length : 0;
+      const changed = Array.isArray(delta.changed) ? delta.changed.length : 0;
+      const removed = Array.isArray(delta.removed) ? delta.removed.length : 0;
+      return added > this.settings.chunkSize || changed > this.settings.chunkSize || removed > this.settings.chunkSize;
+    },
+
+    async persistSnapshot(snapshotKey, snapshot) {
+      if (!this.shouldChunkSnapshot(snapshot)) {
+        await this.deleteByPrefix(SNAPSHOT_CHUNKS_NAMESPACE, `${snapshotKey}:part:`);
+        await this.putObject(SNAPSHOTS_NAMESPACE, snapshotKey, { ...snapshot, chunked: false });
+        return;
+      }
+
+      await this.deleteByPrefix(SNAPSHOT_CHUNKS_NAMESPACE, `${snapshotKey}:part:`);
+
+      const chunks = this.createChunks(snapshot.entries || []);
+      for (let i = 0; i < chunks.length; i += 1) {
+        await this.putObject(SNAPSHOT_CHUNKS_NAMESPACE, `${snapshotKey}:part:${String(i).padStart(6, '0')}`, {
+          watchId: snapshot.watchId,
+          snapshotKey,
+          index: i,
+          entries: chunks[i],
+          createdAt: snapshot.timestamp,
+        });
+      }
+
+      const manifest = {
+        watchId: snapshot.watchId,
+        snapshotKey,
+        timestamp: snapshot.timestamp,
+        count: snapshot.count,
+        chunked: true,
+        chunkSize: this.settings.chunkSize,
+        chunkCount: chunks.length,
+      };
+      await this.putObject(SNAPSHOTS_NAMESPACE, snapshotKey, manifest);
+    },
+
+    async persistDelta(deltaKey, delta) {
+      if (!this.shouldChunkDelta(delta)) {
+        await this.deleteByPrefix(DELTA_CHUNKS_NAMESPACE, `${deltaKey}:`);
+        await this.putObject(DELTAS_NAMESPACE, deltaKey, { ...delta, chunked: false });
+        return;
+      }
+
+      await this.deleteByPrefix(DELTA_CHUNKS_NAMESPACE, `${deltaKey}:`);
+
+      const sections = ['added', 'changed', 'removed'];
+      for (const section of sections) {
+        const rows = Array.isArray(delta[section]) ? delta[section] : [];
+        const chunks = this.createChunks(rows);
+        for (let i = 0; i < chunks.length; i += 1) {
+          await this.putObject(DELTA_CHUNKS_NAMESPACE, `${deltaKey}:${section}:${String(i).padStart(6, '0')}`, {
+            watchId: delta.watchId,
+            deltaKey,
+            section,
+            index: i,
+            items: chunks[i],
+            timestamp: delta.timestamp,
+          });
+        }
+      }
+
+      const manifest = {
+        watchId: delta.watchId,
+        deltaId: delta.deltaId,
+        deltaKey,
+        baseline: delta.baseline || null,
+        timestamp: delta.timestamp,
+        summary: delta.summary || { added: 0, changed: 0, removed: 0 },
+        chunked: true,
+        chunkSize: this.settings.chunkSize,
+      };
+      await this.putObject(DELTAS_NAMESPACE, deltaKey, manifest);
+    },
+
+    async hydrateSnapshotPayload(snapshot) {
+      if (!snapshot) return null;
+      if (!snapshot.chunked) return snapshot;
+
+      const snapshotKey = snapshot.snapshotKey || `${snapshot.watchId}:${String(snapshot.timestamp || '').split('T')[0]}`;
+      if (!snapshotKey) return { ...snapshot, entries: [] };
+
+      const chunkDocs = await this.listDocsByPrefix(SNAPSHOT_CHUNKS_NAMESPACE, `${snapshotKey}:part:`);
+      const entries = chunkDocs
+        .sort((a, b) => String(a.key || '').localeCompare(String(b.key || '')))
+        .flatMap((doc) => Array.isArray(doc?.payload?.entries) ? doc.payload.entries : []);
+
+      return {
+        ...snapshot,
+        entries,
+        count: Number(snapshot.count || entries.length),
+      };
+    },
+
+    async hydrateDeltaPayload(delta) {
+      if (!delta) return null;
+      if (!delta.chunked) return delta;
+
+      const deltaKey = delta.deltaKey || (delta.watchId && delta.deltaId ? `${delta.watchId}:${delta.deltaId}` : null);
+      if (!deltaKey) {
+        return {
+          ...delta,
+          added: [],
+          changed: [],
+          removed: [],
+        };
+      }
+
+      const readSection = async (section) => {
+        const docs = await this.listDocsByPrefix(DELTA_CHUNKS_NAMESPACE, `${deltaKey}:${section}:`);
+        return docs
+          .sort((a, b) => String(a.key || '').localeCompare(String(b.key || '')))
+          .flatMap((doc) => Array.isArray(doc?.payload?.items) ? doc.payload.items : []);
+      };
+
+      const [added, changed, removed] = await Promise.all([
+        readSection('added'),
+        readSection('changed'),
+        readSection('removed'),
+      ]);
+
+      return {
+        ...delta,
+        added,
+        changed,
+        removed,
+      };
     },
 
     async queryObjects(namespace, selector = {}, limit = 1000, skip = 0) {
@@ -955,8 +1131,22 @@ module.exports = {
       return Array.isArray(result?.docs) ? result.docs : [];
     },
 
+    async listAllDocs(namespace) {
+      const pageSize = 1000;
+      const docs = [];
+      let skip = 0;
+      while (true) {
+        const page = await this.queryObjects(namespace, {}, pageSize, skip);
+        if (!Array.isArray(page) || page.length === 0) break;
+        docs.push(...page);
+        if (page.length < pageSize) break;
+        skip += page.length;
+      }
+      return docs;
+    },
+
     async listPayloads(namespace) {
-      const docs = await this.queryObjects(namespace, {}, 1000, 0);
+      const docs = await this.listAllDocs(namespace);
       return docs.map((doc) => doc.payload).filter(Boolean);
     },
 
@@ -966,14 +1156,13 @@ module.exports = {
     },
 
     async listDocsByPrefix(namespace, keyPrefix) {
-      const docs = await this.queryObjects(namespace, {}, 5000, 0);
+      const docs = await this.listAllDocs(namespace);
       return docs.filter((doc) => String(doc.key || '').startsWith(keyPrefix));
     },
 
     async deleteByPrefix(namespace, keyPrefix) {
-      const docs = await this.queryObjects(namespace, {}, 1000, 0);
-      const hits = docs.filter((doc) => String(doc.key || '').startsWith(keyPrefix));
-      for (const doc of hits) {
+      const docs = await this.listDocsByPrefix(namespace, keyPrefix);
+      for (const doc of docs) {
         await this.broker.call('object-store.delete', {
           namespace,
           key: doc.key,

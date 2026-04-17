@@ -101,9 +101,11 @@ function createObjectStoreMock() {
 describe('mastr-monitor.service', () => {
   let broker;
   let mockedInstallations;
+  let installationCallCount;
 
   beforeAll(async () => {
     mockedInstallations = [];
+    installationCallCount = 0;
     broker = new ServiceBroker({ logger: false });
     broker.createService(createObjectStoreMock());
     broker.createService({
@@ -111,6 +113,7 @@ describe('mastr-monitor.service', () => {
       actions: {
         installations: {
           handler() {
+            installationCallCount += 1;
             return {
               success: true,
               data: {
@@ -123,6 +126,10 @@ describe('mastr-monitor.service', () => {
     });
     broker.createService(MastrMonitorService);
     await broker.start();
+  });
+
+  beforeEach(() => {
+    installationCallCount = 0;
   });
 
   afterAll(async () => {
@@ -176,6 +183,27 @@ describe('mastr-monitor.service', () => {
 
     expect(result.success).toBe(true);
     expect(result.watchId).toBeTruthy();
+  });
+
+  it('service defaults max installations per watch to 50000', () => {
+    const service = broker.getLocalService('mastr-monitor');
+    expect(service.settings.maxInstallationsPerWatch).toBe(50000);
+  });
+
+  it('fetchInstallationsForWatch respects remaining limit across types', async () => {
+    const service = broker.getLocalService('mastr-monitor');
+    const originalMax = service.settings.maxInstallationsPerWatch;
+    service.settings.maxInstallationsPerWatch = 5;
+
+    mockedInstallations = Array.from({ length: 10 }, (_, index) => ({ mastrNummer: `SEE${index}` }));
+
+    try {
+      const rows = await service.fetchInstallationsForWatch({ query: { type: 'all' } }, {});
+      expect(rows).toHaveLength(5);
+      expect(installationCallCount).toBe(1);
+    } finally {
+      service.settings.maxInstallationsPerWatch = originalMax;
+    }
   });
 
   it('createWatch stores watch and returns watchId format', async () => {
@@ -341,6 +369,57 @@ describe('mastr-monitor.service', () => {
         token: sub.token,
       })
     ).rejects.toMatchObject({ code: 404, type: 'SUBSCRIPTION_NOT_FOUND' });
+  });
+
+  it('stores chunked snapshots and deltas and hydrates payloads', async () => {
+    const service = broker.getLocalService('mastr-monitor');
+    const originalChunking = service.settings.chunkingEnabled;
+    const originalChunkSize = service.settings.chunkSize;
+    service.settings.chunkingEnabled = true;
+    service.settings.chunkSize = 2;
+
+    const snapshotKey = 'chunk-watch:2026-04-17';
+    const snapshot = {
+      watchId: 'chunk-watch',
+      snapshotKey,
+      timestamp: '2026-04-17T06:00:00.000Z',
+      count: 5,
+      entries: Array.from({ length: 5 }, (_, index) => ({ mastrNummer: `SEE-S-${index}` })),
+    };
+
+    const delta = {
+      watchId: 'chunk-watch',
+      deltaId: '2026-04-17',
+      deltaKey: snapshotKey,
+      baseline: '2026-04-16T06:00:00.000Z',
+      timestamp: '2026-04-17T06:00:00.000Z',
+      summary: { added: 5, changed: 3, removed: 4 },
+      added: Array.from({ length: 5 }, (_, index) => ({ mastrNummer: `SEE-A-${index}` })),
+      changed: Array.from({ length: 3 }, (_, index) => ({ mastrNummer: `SEE-C-${index}` })),
+      removed: Array.from({ length: 4 }, (_, index) => ({ mastrNummer: `SEE-R-${index}` })),
+    };
+
+    try {
+      await service.persistSnapshot(snapshotKey, snapshot);
+      await service.persistDelta(snapshotKey, delta);
+
+      const storedSnapshot = await service.getPayload('mastr_snapshots', snapshotKey);
+      const storedDelta = await service.getPayload('mastr_deltas', snapshotKey);
+
+      expect(storedSnapshot.chunked).toBe(true);
+      expect(storedDelta.chunked).toBe(true);
+
+      const hydratedSnapshot = await service.hydrateSnapshotPayload(storedSnapshot);
+      const hydratedDelta = await service.hydrateDeltaPayload(storedDelta);
+
+      expect(hydratedSnapshot.entries).toHaveLength(5);
+      expect(hydratedDelta.added).toHaveLength(5);
+      expect(hydratedDelta.changed).toHaveLength(3);
+      expect(hydratedDelta.removed).toHaveLength(4);
+    } finally {
+      service.settings.chunkingEnabled = originalChunking;
+      service.settings.chunkSize = originalChunkSize;
+    }
   });
 
   describe('runWatch (integration)', () => {

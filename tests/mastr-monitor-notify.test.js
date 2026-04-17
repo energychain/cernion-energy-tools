@@ -15,6 +15,7 @@ describe('mastr-monitor-notify', () => {
     delete process.env.SMTP_PORT;
     delete process.env.SMTP_FROM;
     delete process.env.MASTR_MONITOR_BASE_URL;
+    delete process.env.MASTR_MONITOR_EMAIL_DETAIL_LIMIT;
 
     sendMailMock = jest.fn().mockResolvedValue({ messageId: 'test-id' });
     nodemailer.createTransport.mockReturnValue({ sendMail: sendMailMock });
@@ -27,6 +28,7 @@ describe('mastr-monitor-notify', () => {
     delete process.env.SMTP_PORT;
     delete process.env.SMTP_FROM;
     delete process.env.MASTR_MONITOR_BASE_URL;
+    delete process.env.MASTR_MONITOR_EMAIL_DETAIL_LIMIT;
   });
 
   function setSmtp() {
@@ -117,6 +119,26 @@ describe('mastr-monitor-notify', () => {
     const body = sendMailMock.mock.calls[0][0].text;
     expect(body).toContain('https://test.cernion.de/api/mastr-monitor/watches/twl-solar_abc/deltas/2026-04-17');
     expect(body).toContain('https://test.cernion.de/api/mastr-monitor/watches/twl-solar_abc/snapshot?format=csv');
+  });
+
+  test('sendDeltaNotification caps detail lines at 100 and adds truncation hint', async () => {
+    setSmtp();
+    process.env.MASTR_MONITOR_EMAIL_DETAIL_LIMIT = '100';
+
+    const largeDelta = {
+      ...delta,
+      summary: { added: 120, changed: 0, removed: 0 },
+      added: Array.from({ length: 120 }, (_, index) => ({ mastrNummer: `SEE${String(index).padStart(3, '0')}` })),
+      changed: [],
+      removed: [],
+    };
+
+    await sendDeltaNotification(sub, watch, largeDelta, 'https://test.cernion.de');
+
+    const body = sendMailMock.mock.calls[0][0].text;
+    expect(body).toContain('SEE099');
+    expect(body).not.toContain('SEE119');
+    expect(body).toContain('20 weitere Einträge ausgeblendet');
   });
 
   test('sendDeltaNotification uses English when language is en', async () => {

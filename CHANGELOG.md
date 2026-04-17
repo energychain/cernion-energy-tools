@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.3] — 2026-04-17
+
+### Changed
+
+- **MaStR Monitor scalability defaults raised:** `services/mastr-monitor.service.js`
+  now defaults to `50,000` installations per watch run via
+  `MASTR_MONITOR_MAX_INSTALLATIONS_PER_WATCH` (was 5,000).
+
+- **Chunked persistence for large snapshots/deltas:**
+  `services/mastr-monitor.service.js` now stores large snapshot and delta details
+  as manifest + chunk documents in dedicated namespaces
+  (`mastr_snapshot_chunks`, `mastr_delta_chunks`) and hydrates them transparently
+  for API responses (`getSnapshot`, `getDelta`, `getDeltas`).
+
+- **Cross-type fetch limiting refined:** when `query.type=all`, the monitor now
+  applies the remaining global watch limit per installation type call, preventing
+  avoidable over-fetching across solar/wind/storage/biomass.
+
+- **Delta notification detail cap:** `src/mastr-monitor-notify.js` now caps
+  detailed per-section email listings to `100` entries by default
+  (`MASTR_MONITOR_EMAIL_DETAIL_LIMIT`), while preserving full summary counts.
+
+- **Object-store pagination hardening:** list/delete helpers in
+  `services/mastr-monitor.service.js` now page through namespaces to avoid
+  truncation at query-limit boundaries.
+
+### Added
+
+- **New environment variables** in `.env.example`:
+  - `MASTR_MONITOR_MAX_INSTALLATIONS_PER_WATCH`
+  - `MASTR_MONITOR_CHUNKING_ENABLED`
+  - `MASTR_MONITOR_CHUNK_SIZE`
+  - `MASTR_MONITOR_EMAIL_DETAIL_LIMIT`
+
+### Tests
+
+- `tests/mastr-monitor.service.test.js`
+  - coverage for `50,000` default, cross-type limit behavior, and
+    chunked snapshot/delta hydration.
+- `tests/mastr-monitor-notify.test.js`
+  - coverage for email detail truncation behavior (`top 100`).
+
 ## [0.27.2] — 2026-04-17
 
 ### Fixed

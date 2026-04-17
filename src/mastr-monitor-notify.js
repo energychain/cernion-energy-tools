@@ -47,13 +47,22 @@ function fromAddress() {
   return process.env.SMTP_FROM || `MaStR Monitor <noreply@cernion.de>`;
 }
 
+function maxDetailItems() {
+  const parsed = Number.parseInt(String(process.env.MASTR_MONITOR_EMAIL_DETAIL_LIMIT || ''), 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 100;
+}
+
 // ─── text builders ──────────────────────────────────────────────────────────
 
-function buildDeltaSection(label, items, lang) {
+function buildDeltaSection(label, items, lang, detailLimit) {
   if (!Array.isArray(items) || items.length === 0) return '';
   const header = lang === 'en' ? label.en : label.de;
+  const safeLimit = Math.max(1, Number(detailLimit) || 100);
+  const visible = items.slice(0, safeLimit);
+  const omitted = Math.max(0, items.length - visible.length);
+
   const lines = [`${header}:`, '─'.repeat(40)];
-  for (const item of items) {
+  for (const item of visible) {
     const id = item.mastrNummer || item.id || '?';
     if (item.changes && item.changes.length > 0) {
       lines.push(`  ${id}`);
@@ -64,11 +73,18 @@ function buildDeltaSection(label, items, lang) {
       lines.push(`  ${id}`);
     }
   }
+
+  if (omitted > 0) {
+    lines.push(lang === 'en'
+      ? `  … ${omitted} additional entries omitted (detail limit: ${safeLimit}).`
+      : `  … ${omitted} weitere Einträge ausgeblendet (Detail-Limit: ${safeLimit}).`);
+  }
+
   lines.push('');
   return lines.join('\n');
 }
 
-function buildDeltaBody(watch, delta, base, lang) {
+function buildDeltaBody(watch, delta, base, lang, detailLimit) {
   const isEn = lang === 'en';
   const summary = delta?.summary || {};
   const added = Number(summary.added || 0);
@@ -94,17 +110,20 @@ function buildDeltaBody(watch, delta, base, lang) {
     buildDeltaSection(
       { de: 'NEUE ANLAGEN', en: 'NEW INSTALLATIONS' },
       delta.added || [],
-      lang
+      lang,
+      detailLimit
     ),
     buildDeltaSection(
       { de: 'GEÄNDERTE ANLAGEN', en: 'CHANGED INSTALLATIONS' },
       delta.changed || [],
-      lang
+      lang,
+      detailLimit
     ),
     buildDeltaSection(
       { de: 'ENTFERNTE ANLAGEN', en: 'REMOVED INSTALLATIONS' },
       delta.removed || [],
-      lang
+      lang,
+      detailLimit
     ),
     '─'.repeat(40),
     isEn ? `Full delta:    ${deltaUrl}` : `Vollständiges Delta:  ${deltaUrl}`,
@@ -144,13 +163,14 @@ async function sendDeltaNotification(subscription, watch, delta, baseOverride) {
   assertSmtpConfigured();
   const lang = subscription.language || 'de';
   const base = baseOverride || baseUrl();
+  const detailLimit = maxDetailItems();
   const transport = createTransport();
 
   await transport.sendMail({
     from: fromAddress(),
     to: subscription.email,
     subject: buildDeltaSubject(watch.name, delta, lang),
-    text: buildDeltaBody(watch, delta, base, lang),
+    text: buildDeltaBody(watch, delta, base, lang, detailLimit),
   });
 }
 

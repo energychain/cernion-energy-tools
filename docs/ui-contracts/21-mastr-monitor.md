@@ -1,6 +1,6 @@
 # UI-Contract 21 — MaStR Monitoring
 
-Version: 0.27.1
+Version: 0.27.3
 Service: `mastr-monitor`
 Base path: `/api/mastr-monitor`
 
@@ -80,7 +80,19 @@ No account is required. Access is managed via opaque tokens/hash pairs:
 
 - Confirmation email (Double-Opt-In)
 - Delta email (added/removed/changed summary + links)
+  - Detail lists are capped (default: 100 entries per section)
+  - Summary counters always reflect the full delta
 - Optional no-change digest (when `onlyOnChanges=false`)
+
+## Scalability semantics (v0.27.3)
+
+- Default per-run processing limit increased to `50,000` installations
+  (`MASTR_MONITOR_MAX_INSTALLATIONS_PER_WATCH`).
+- Snapshot and delta payloads may be persisted as chunked manifests internally.
+  API responses (`getSnapshot`, `getDelta`, `getDeltas`) remain hydrated and backward compatible.
+- Internal chunking can be controlled via:
+  - `MASTR_MONITOR_CHUNKING_ENABLED=true|false`
+  - `MASTR_MONITOR_CHUNK_SIZE` (default `1000`)
 
 ## Live-CSV integration
 
