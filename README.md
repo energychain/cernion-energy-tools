@@ -25,6 +25,13 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - 📊 **MaStR Data Quality Audit** — 8-step portfolio quality audit (`POST /api/mastr-quality/audit`): registration completeness, capacity plausibility, NAP/MeLo connectivity, duplicate detection, geo spot-check. Weighted 0–100 score across 5 dimensions (v0.17)
 - ⚡ **Redispatch Ex-Post Audit** — 7-step Redispatch 2.0 settlement readiness audit (`POST /api/redispatch/audit`): portfolio assembly (Weg A/B), NAP/MeLo/DV checks, curtailment data, financial risk scoring (v0.18)
 - 🗂️ **Dashboard API** — Read-only UI aggregator with 4 composite endpoints (`GET /api/dashboard/*`): VNB overview, market snapshot, quality summary, finding-codes reference. All upstream calls parallel via `Promise.allSettled`, graceful degradation, 5–15 min cache (v0.19)
+- 📖 **API Cookbook** — Curated REST recipe library with search and validation (`GET /api/cookbook`) — discover common query patterns for the AI agent and REST API (v0.20.5)
+- 🏢 **Company Registry** — BDEW market-partner CRUD with Double-Opt-In confirmation (`POST /api/company/companies`) (v0.20.3)
+- 🗄️ **Object Store** — Generic key-value store for agent artefacts and session data (`GET/PUT/DELETE /api/object-store/:namespace/:key`) (v0.20.4)
+- 🔍 **ZNP — Zählpunkt-Netzbetreiber-Prüfung** — Multi-layer substation graph analysis for Netzanschluss projects with G-Factor scoring and strategic prompts (`POST /api/znp/projects`) (v0.20.4)
+- 🌊 **NOVA Decision Feed** — Real-time SSE decision stream for ZNP grid upgrade proposals with apply/reject workflow (`GET /api/nova/stream`) (v0.24)
+- 🤖 **CYA Agent** — Profile-aware grid-connection narrative generator with multi-stakeholder AI perspectives (Investor, Planer, Betreiber) — generates and refines structured narratives from agent sessions (`POST /api/cya/generate`) (v0.26)
+- 🔔 **MaStR Monitor** — Field-level change detection with SMTP email notifications, Double-Opt-In subscriptions, cron scheduling, and Live-CSV session replay (`POST /api/mastr-monitor/watches`) (v0.27)
 - 🧠 **OEO / OEMetadata** — Open Energy Ontology annotations on all 45+ REST endpoints, OEMetadata v2.0 export with optional JSON Schema validation (v0.11.4–v0.12)
 - 🔐 **Data Provenance** — SHA-256 provenance hashing on every datapoint refresh for EU AI Act Art. 12 compliance, plus explainability log for agent corrections (v0.11.5)
 - 🧹 **Prompt Scrubber** — Field-level PII masking with energy-domain allowlist before sending data to external LLMs (v0.11.5)- �🔌 **MCP Support** — Model Context Protocol SDK integration
@@ -43,7 +50,7 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - [BEARER_TOKEN_AUTHENTICATION.md](BEARER_TOKEN_AUTHENTICATION.md) - Auth guide
 - [docs/BACKEND_CONTEXT.md](docs/BACKEND_CONTEXT.md) - Backend architecture reference (services, PouchDB, finding codes, auth)
 - [llm.txt](llm.txt) - Generated LLM context artifact (architecture + domain knowledge + cookbook + OpenAPI)
-- [docs/ui-contracts/](docs/ui-contracts/) - Frontend ↔ backend API contracts (v0.20, 14 docs)
+- [docs/ui-contracts/](docs/ui-contracts/) - Frontend ↔ backend API contracts (v0.27, 22 docs)
 - [docs/MAINTENANCE_MILESTONE_CHECKLIST.md](docs/MAINTENANCE_MILESTONE_CHECKLIST.md) - Pre-milestone quality/security gate checklist
 - [SECURITY.md](SECURITY.md) - Security policy and disclosure
 - [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) - Community guidelines
@@ -213,7 +220,11 @@ cernion-energy-tools/
 │   ├── gas-storage.service.js
 │   ├── german-grid.service.js
 │   ├── grid-operations.service.js
-│   └── ...                # See services/ for full list
+│   ├── cya.service.js         # CYA narrative agent (v0.26)
+│   ├── mastr-monitor.service.js # MaStR Monitor + subscriptions (v0.27)
+│   ├── nova.service.js        # NOVA SSE decision feed (v0.24)
+│   ├── znp.service.js         # Zählpunkt-Netzbetreiber-Prüfung (v0.20.4)
+│   └── ...                # 45 services total — see services/ for full list
 ├── src/
 │   ├── app.html           # Research Web App (single-page)
 │   ├── connectors/        # Built-in datasource connector plugins
@@ -221,7 +232,11 @@ cernion-energy-tools/
 │   ├── async-job-poller.js # Async job polling
 │   ├── prompt-scrubber.js  # PII masking for LLM prompts
 │   ├── oeo-mappings.js    # OEO class mappings (~150 entries)
-│   ├── validation-findings.js # Grid connection finding constants (v0.14)
+│   ├── validation-findings.js # Finding codes + FINDING_CODE_METADATA (92 codes, v0.19)
+│   ├── mastr-monitor-diff.js  # Field-level delta computation (v0.27)
+│   ├── mastr-monitor-notify.js # SMTP email notifications (v0.27)
+│   ├── mastr-monitor-scheduler.js # Cron preset scheduler (v0.27)
+│   ├── cya-agent-personas.js  # CYA multi-stakeholder personas (v0.26)
 │   └── oemetadata-builder.js # OEMetadata v2.0 builder
 ├── custom-services/       # Local/custom services (git-ignored)
 ├── custom-connectors/     # Local/custom datasource plugins (git-ignored)
@@ -271,6 +286,20 @@ Copy `.env.example` to `.env` and edit:
 | `DATASOURCE_SCRAPER_TIMEOUT_MS` | `30000` | Timeout for scraper connector page loads |
 | `DATASOURCE_DEFAULT_PRIVACY_CONTEXT` | `ai-agent` | Default privacy mode for datasource reads |
 | `GRID_CONNECTION_DB_PATH` | `./.grid-connections` | PouchDB path for Netzanschluss validation reports (v0.14) |
+| `ENERGY_SHARING_DB_PATH` | `./data/energy-sharing` | PouchDB path for Energy Sharing audit trail (v0.15) |
+| `MASTR_QUALITY_DB_PATH` | `./data/mastr-quality` | PouchDB path for MaStR quality audits (v0.17) |
+| `REDISPATCH_DB_PATH` | `./data/redispatch-expost` | PouchDB path for Redispatch Ex-Post audits (v0.18) |
+| `OBJECT_STORE_DB_PATH` | `./data/object-store` | PouchDB path for generic object store (v0.20.4) |
+| `ZNP_DB_PATH` | `./data/znp` | PouchDB path for ZNP projects (v0.20.4) |
+| `COOKBOOK_DB_PATH` | `./data/cookbook` | PouchDB path for API cookbook (v0.20.5) |
+| `COOKBOOK_SEED_FILE` | — | Optional JSON seed file for cookbook recipes |
+| `GEMINI_EMBEDDING_MODEL` | `text-embedding-004` | Gemini embedding model for semantic cookbook search |
+| `SMTP_HOST` | — | SMTP server hostname for MaStR Monitor email notifications (v0.27) |
+| `SMTP_PORT` | `587` | SMTP server port |
+| `SMTP_USER` | — | SMTP authentication username |
+| `SMTP_PASS` | — | SMTP authentication password |
+| `SMTP_FROM` | — | Sender address for notification emails |
+| `MASTR_MONITOR_BASE_URL` | `http://localhost:3000` | Base URL embedded in subscription confirmation links |
 
 For complete operational options (retry backoff, circuit-breaker thresholds, bulkhead queue limits), see [.env.example](.env.example).
 

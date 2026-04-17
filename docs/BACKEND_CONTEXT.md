@@ -1,6 +1,6 @@
 # Cernion Energy Tools — Backend Context Reference
 
-> **Version:** 0.20.6
+> **Version:** 0.27.0
 > **Purpose:** Comprehensive backend context for frontend developers, AI assistants,
 > and new contributors. One document to understand the full system.
 
@@ -44,11 +44,15 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 | Agent Layer | v0.17 | MaStR Data Quality Audit — 8-step, 25 `MQ_*` codes, weighted scoring |
 | Agent Layer | v0.18 | Redispatch Ex-Post Settlement Audit — 7 steps, 19 `RD_*` codes |
 | Dashboard Layer | v0.19 | Read-only UI aggregator (`dashboard-api.service.js`) |
-| UI Integration | v0.20 | Enterprise UI (`cernion-ui`) consuming this REST API; contract boundary: `docs/ui-contracts/` |
+| Platform Layer | v0.20–v0.20.5 | Company CRUD, Object Store, ZNP, API Cookbook (`znp`, `company`, `cookbook`) |
+| Decision Layer | v0.24 | NOVA SSE decision feed (`nova.service.js`) |
+| CYA Layer | v0.26 | Profile-aware narrative generator, multi-stakeholder personas (`cya.service.js`) |
+| Monitor Layer | v0.27 | MaStR field-level change monitor, SMTP notifications, subscriptions (`mastr-monitor.service.js`) |
+| UI Integration | v0.20+ | Enterprise UI (`cernion-ui`) consuming this REST API; contract boundary: `docs/ui-contracts/` |
 
 ---
 
-## 2. Service Directory (42 services as of v0.20.6)
+## 2. Service Directory (45 services as of v0.27.0)
 
 | Service | File | Since | Key actions |
 |---------|------|-------|-------------|
@@ -58,6 +62,7 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 | business-intelligence | `business-intelligence.service.js` | v0.9 | Sales leads, tariff design |
 | company | `company.service.js` | v0.20.3 | Company-entity CRUD |
 | cookbook | `cookbook.service.js` | v0.20.5 | API recipes, search, validation |
+| **cya** | `cya.service.js` | **v0.26** | **`createProfile`, `getProfile`, `listProfiles`, `generate`, `refine`** |
 | customer-service | `customer-service.service.js` | v0.9 | Customer-facing helpers |
 | **dashboard-api** | `dashboard-api.service.js` | **v0.19** | **4 UI-aggregate endpoints** |
 | datapoint | `datapoint.service.js` | v0.11 | CRUD + refresh + snapshots |
@@ -80,8 +85,10 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 | grid-operations | `grid-operations.service.js` | v0.9 | VNB lookup, redispatch export |
 | in-memory-join | `in-memory-join.service.js` | v0.9 | Cross-datasource joins |
 | job-status | `job-status.service.js` | v0.9 | Async job polling |
+| **mastr-monitor** | `mastr-monitor.service.js` | **v0.27** | **`createWatch`, `getWatch`, `listWatches`, `deleteWatch`, `executeWatch`, `getLatestDelta`, `listDeltas`, `subscribe`, `confirmSubscription`, `unsubscribe`, `listSubscriptions`, `createFromSession`** |
 | mastr-quality | `mastr-quality.service.js` | v0.17 | MaStR data quality audit |
 | nbp-monitor | `nbp-monitor.service.js` | v0.16 | NBP price/CO₂ monitoring |
+| **nova** | `nova.service.js` | **v0.24** | **`pendingDecisions`, `apply`, `stream` (SSE)** |
 | object-store | `object-store.service.js` | v0.20.4 | Generic object store |
 | oep | `oep.service.js` | v0.12 | Open Energy Platform |
 | osm-geo | `osm-geo.service.js` | v0.10 | OSM/Overpass geo analysis |
@@ -110,7 +117,11 @@ only metadata, provenance hashes, and audit trails.
 | grid-connection | `data/grid-connections/` | `val:` | Validation audit trail |
 | energy-sharing | `data/energy-sharing/` | `es:` | Energy sharing audit trail |
 | mastr-quality | `data/mastr-quality/` | `mq:` | MaStR quality audit trail |
-| object-store | `data/object-store/` | — | Generische Objekte (Agent-Artefakte) |
+| object-store | `data/object-store/` | — | Generic Objekte (Agent-Artefakte) |
+| object-store (mastr_watches) | `data/object-store/` | `mastr_watches` ns | MaStR Monitor watch definitions |
+| object-store (mastr_snapshots) | `data/object-store/` | `mastr_snapshots` ns | MaStR Monitor installation snapshots |
+| object-store (mastr_deltas) | `data/object-store/` | `mastr_deltas` ns | MaStR Monitor change deltas |
+| object-store (mastr_subscriptions) | `data/object-store/` | `mastr_subscriptions` ns | MaStR Monitor email subscriptions |
 | redispatch-expost | `data/redispatch-expost/` | `rd:` | Redispatch audit trail |
 
 ---
@@ -241,6 +252,10 @@ All endpoints follow the graceful degradation pattern:
 | Job Store | `src/job-store.js` | File-backed job persistence (`data/jobs/`) |
 | Validation Findings | `src/validation-findings.js` | 92 finding codes + `FINDING_CODE_METADATA` |
 | Redispatch Risk | `src/redispatch-risk.js` | Pure risk scoring module (Weg A/B) |
+| MaStR Monitor Diff | `src/mastr-monitor-diff.js` | Field-level delta computation (`computeDelta`, `buildSnapshotEntry`) |
+| MaStR Monitor Notify | `src/mastr-monitor-notify.js` | SMTP email (`sendDeltaNotification`, `sendConfirmationEmail`) |
+| MaStR Monitor Scheduler | `src/mastr-monitor-scheduler.js` | Cron preset matcher (`isDue`, `PRESETS`) |
+| CYA Personas | `src/cya-agent-personas.js` | Multi-stakeholder narrative personas (Investor, Planer, Betreiber) |
 | Prompt Scrubber | `src/prompt-scrubber.js` | PII field masking |
 | Period Normaliser | `src/period-normaliser.js` | Mixed period format → ISO 8601 |
 | VNB Identity | `src/vnb-identity.js` | VNB identity resolution from env + metadata |
@@ -260,6 +275,12 @@ All endpoints follow the graceful degradation pattern:
 | `DATAPOINT_SCHEDULER_ENABLED` | true | Enable/disable auto-refresh scheduler |
 | `DATAPOINT_MAX_CONCURRENT_REFRESHES` | 3 | Concurrency cap for scheduled refreshes |
 | `CLASSIFIER_LLM_FALLBACK_ENABLED` | false | Enable LLM fallback in datasource classifier |
+| `SMTP_HOST` | — | SMTP hostname for MaStR Monitor email (v0.27) |
+| `SMTP_PORT` | `587` | SMTP port |
+| `SMTP_USER` | — | SMTP auth username |
+| `SMTP_PASS` | — | SMTP auth password |
+| `SMTP_FROM` | — | Notification sender address |
+| `MASTR_MONITOR_BASE_URL` | `http://localhost:3000` | Base URL embedded in subscription links |
 
 ---
 
@@ -267,7 +288,7 @@ All endpoints follow the graceful degradation pattern:
 
 - **Framework**: Jest (`jest.config.js`)
 - **Coverage thresholds**: branches 60%, functions/lines/statements 75%
-- **Total**: ~1 782+ tests, ~60 suites (as of v0.20)
+- **Total**: ~2 268+ tests, ~82 suites (as of v0.27.0)
 - **Release gate**: `npm run release:check` (unit coverage + OpenAPI audit + critical security)
 - Custom tests in `custom-tests/` (git-ignored, excluded from coverage)
 
@@ -333,5 +354,6 @@ docs/ui-contracts/
 ├── 10-vnb-monitor.md        GET /vnb-monitor/snapshot
 ├── 11-nbp-monitor.md        GET /nbp-monitor/status
 ├── 12-auth.md               GET/POST /tokens
-└── 13-shared-components.md  Shared UI component specs
+├── 13-shared-components.md  Shared UI component specs
+└── 21-mastr-monitor.md      GET/POST /mastr-monitor/* (v0.27)
 ```
