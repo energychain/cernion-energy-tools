@@ -1326,6 +1326,86 @@ describe('Agent Service', () => {
       expect(result.stepResults[0].error).not.toBeNull();
     });
 
+    it('should not override repaired hardcoded params with stale requiredInputs from original plan', async () => {
+      const zipLookupMock = jest.fn().mockImplementation(async (ctx) => {
+        if (ctx.params.location === '69256') {
+          return [{ mastrNummer: 'SEE931931692562', plz: '69256' }];
+        }
+        return [];
+      });
+
+      const zipService = broker.createService({
+        name: 'asset-zip-check',
+        actions: {
+          list: {
+            handler: zipLookupMock,
+          },
+        },
+      });
+      await zipService._init();
+
+      const initialPlan = JSON.stringify({
+        summary: 'Initial plan with user-provided location input.',
+        steps: [
+          {
+            step: 1,
+            action: 'asset-zip-check.list',
+            description: 'Query assets by location input',
+            params: { location: null, limit: 1000 },
+          },
+        ],
+        requiredInputs: [
+          {
+            name: 'location',
+            label: 'Location',
+            type: 'string',
+            required: true,
+            default: '69256 Mauer',
+          },
+        ],
+      });
+
+      const repairedPlan = JSON.stringify({
+        summary: 'Repaired plan that must force ZIP-only exact filter.',
+        steps: [
+          {
+            step: 1,
+            action: 'asset-zip-check.list',
+            description: 'Query assets by ZIP only',
+            params: { location: '69256', limit: 1000 },
+          },
+        ],
+        requiredInputs: [],
+      });
+
+      _mockGenerateContent.mockResolvedValueOnce({ response: { text: () => initialPlan } });
+      _mockGenerateContent.mockResolvedValueOnce({ response: { text: () => repairedPlan } });
+      mockInterpretAndSuggest({
+        summary: 'One installation found in ZIP 69256.',
+        tableColumns: ['mastrNummer', 'plz'],
+        tableRows: [{ mastrNummer: 'SEE931931692562', plz: '69256' }],
+      });
+
+      const analyzed = await broker.call('agent.analyze', {
+        problem: 'Gebe mir eine Liste aller Erzeugungsanlagen in 69256 Mauer',
+      });
+
+      const result = await broker.call('agent.execute', {
+        sessionId: analyzed.sessionId,
+        userInputs: { location: '69256 Mauer' },
+      });
+
+      expect(result.status).toBe('completed');
+      expect(zipLookupMock).toHaveBeenCalledTimes(2);
+      expect(zipLookupMock.mock.calls[0][0].params.location).toBe('69256 Mauer');
+      expect(zipLookupMock.mock.calls[1][0].params.location).toBe('69256');
+
+      const lastStep = result.stepResults[result.stepResults.length - 1];
+      expect(lastStep.params.location).toBe('69256');
+      expect(Array.isArray(lastStep.result)).toBe(true);
+      expect(lastStep.result).toHaveLength(1);
+    });
+
     // ── Type-coercion regression tests (GitHub issue: string inputs cause
     //    Moleculer validation errors on number/boolean params) ──────────────
 

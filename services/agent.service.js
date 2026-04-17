@@ -2818,10 +2818,13 @@ Respond ONLY with valid JSON:
               session.plan = repairedPlan;
               saveSession(session);
 
-              // Re-execute the repaired plan (use same effectiveInputs + requiredInputNames override)
+              // Re-execute the repaired plan (use same effectiveInputs + repaired requiredInputs override)
               // Extend type hints with the repaired plan so newly typed params are also coerced.
               const repairedTypeHints = buildTypeHints(repairedPlan);
               const mergedTypeHints = { ...typeHints, ...repairedTypeHints };
+              const repairedRequiredInputNames = new Set(
+                (repairedPlan.requiredInputs || []).map((ri) => ri.name)
+              );
               const coercedEffective = {};
               for (const [k, v] of Object.entries(effectiveInputs)) {
                 coercedEffective[k] = coerceValue(v, k, mergedTypeHints);
@@ -2830,7 +2833,7 @@ Respond ONLY with valid JSON:
                 const rp = {};
                 for (const [k, v] of Object.entries(step.params || {})) {
                   if (
-                    (v === null || requiredInputNames.has(k)) &&
+                    (v === null || repairedRequiredInputNames.has(k)) &&
                     coercedEffective[k] !== undefined
                   ) {
                     rp[k] = coercedEffective[k];
