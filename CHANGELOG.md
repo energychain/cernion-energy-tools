@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.2] — 2026-04-17
+
+### Fixed
+
+- **API gateway token path handling for MaStR Monitor:** `services/api.service.js`
+  now preserves business path parameters named `:token` for
+  `GET /api/mastr-monitor/confirm/:token` and
+  `DELETE /api/mastr-monitor/watches/:watchId/subscribe/:token`.
+  This fixes `422 VALIDATION_ERROR` on double-opt-in confirmation links and
+  unsubscribe links caused by generic token stripping in `onBeforeCall`.
+
+- **MaStR Monitor execution stability:** `services/mastr-monitor.service.js`
+  now sanitizes downstream query params before calling
+  `energy-market.installations` (drops `undefined/null/empty` values) and
+  clamps `object-store.query` limit to the service max (`<= 1000`).
+  This fixes baseline/scheduled run failures with `Parameters validation error!`
+  and restores snapshot/delta generation.
+
+- **MaStR Monitor schedule guardrail (minimum daily interval):**
+  `services/mastr-monitor.service.js` now rejects cron expressions that would
+  run more frequently than once per day. `createWatch` returns
+  `422 INVALID_SCHEDULE` for high-frequency schedules (e.g. `*/5 * * * *`).
+  Daily/weekly/monthly schedules remain supported.
+
+### Changed
+
+- **Local E2E mail-trigger test script hardened:**
+  `scripts/local/mastr-monitor-email-e2e.sh` now includes:
+  - language normalization (`MONITOR_LANGUAGE` → `de|en`)
+  - robust confirmation flow (native confirm endpoint + fallback)
+  - run endpoint fallback handling
+  - compact synthetic snapshot injection to avoid shell "Argument list too long"
+  - improved polling/logging behavior for deterministic local validation
+  - schedule policy alignment (daily preset instead of minutely cron)
+
+- **PV Mauer alert setup script added:**
+  `scripts/local/mastr-monitor-new-pv-mauer-alert.sh` creates a watch for
+  `type=solar`, `postleitzahl=69256`, `gemeinde=Mauer` with daily monitoring
+  and email subscription/confirmation bootstrap.
+
+- **Security hygiene:** local manual test scripts are ignored via `.gitignore`
+  (`scripts/local/`) because they may include sensitive test tokens/emails.
+
+- **UI contract updated:** `docs/ui-contracts/21-mastr-monitor.md` updated to
+  `v0.27.1` semantics including schedule guardrail (`min daily`),
+  `422 INVALID_SCHEDULE`, and token-path handling notes for
+  confirm/unsubscribe routes.
+
+### Tests
+
+- `npx jest tests/api.service.test.js --no-coverage`
+- `npx jest tests/mastr-monitor.service.test.js --no-coverage`
+
 ## [0.27.1] — 2026-04-17
 
 ### Changed

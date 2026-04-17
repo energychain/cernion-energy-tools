@@ -110,6 +110,18 @@ function requiresFullAccess(method, requestPath) {
   return false;
 }
 
+function isBusinessTokenPath(method, requestPath) {
+  const m = String(method || '').toUpperCase();
+  const pathOnly = String(requestPath || '').split('?')[0];
+
+  // MaStR monitor confirmation/unsubscribe use :token as business path parameter,
+  // not as authentication token.
+  if (m === 'GET' && /^\/api\/mastr-monitor\/confirm\/[^/]+$/.test(pathOnly)) return true;
+  if (m === 'DELETE' && /^\/api\/mastr-monitor\/watches\/[^/]+\/subscribe\/[^/]+$/.test(pathOnly)) return true;
+
+  return false;
+}
+
 module.exports = {
   name: 'api',
   mixins: [ApiGateway, OpenapiMixin],
@@ -725,6 +737,7 @@ module.exports = {
           const isTokenVerifyEndpoint =
             requestPath === '/api/tokens/verify' &&
             String(req?.method || '').toUpperCase() === 'POST';
+          const preserveBusinessToken = isBusinessTokenPath(req?.method, requestPath);
 
           const authHeader = req.headers['authorization'] || req.headers['Authorization'];
           const bearerToken =
@@ -734,7 +747,7 @@ module.exports = {
             isTokenVerifyEndpoint ? undefined : req?.$params?.token,
             isTokenVerifyEndpoint ? undefined : req?.query?.token,
             isTokenVerifyEndpoint ? undefined : req?.body?.token,
-            isTokenVerifyEndpoint ? undefined : req?.params?.token,
+            isTokenVerifyEndpoint || preserveBusinessToken ? undefined : req?.params?.token,
           ];
 
           const paramToken = paramTokenCandidates.find(
@@ -747,6 +760,7 @@ module.exports = {
           // For POST /tokens/verify the token IS the action parameter — do not strip it.
           if (
             !isTokenVerifyEndpoint &&
+            !preserveBusinessToken &&
             req?.$params &&
             Object.prototype.hasOwnProperty.call(req.$params, 'token')
           ) {
@@ -754,6 +768,7 @@ module.exports = {
           }
           if (
             !isTokenVerifyEndpoint &&
+            !preserveBusinessToken &&
             req?.query &&
             Object.prototype.hasOwnProperty.call(req.query, 'token')
           ) {
@@ -761,6 +776,7 @@ module.exports = {
           }
           if (
             !isTokenVerifyEndpoint &&
+            !preserveBusinessToken &&
             req?.body &&
             Object.prototype.hasOwnProperty.call(req.body, 'token')
           ) {
@@ -768,6 +784,7 @@ module.exports = {
           }
           if (
             !isTokenVerifyEndpoint &&
+            !preserveBusinessToken &&
             req?.params &&
             Object.prototype.hasOwnProperty.call(req.params, 'token')
           ) {

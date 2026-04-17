@@ -9,6 +9,13 @@ describe('mastr-monitor-notify', () => {
   let sendMailMock;
 
   beforeEach(() => {
+    delete process.env.SMTP_HOST;
+    delete process.env.SMTP_USER;
+    delete process.env.SMTP_PASS;
+    delete process.env.SMTP_PORT;
+    delete process.env.SMTP_FROM;
+    delete process.env.MASTR_MONITOR_BASE_URL;
+
     sendMailMock = jest.fn().mockResolvedValue({ messageId: 'test-id' });
     nodemailer.createTransport.mockReturnValue({ sendMail: sendMailMock });
   });

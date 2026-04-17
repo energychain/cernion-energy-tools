@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.26.9",
+    "version": "0.27.2",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -89,6 +89,10 @@
     {
       "name": "CYA Agent",
       "description": "Stakeholder-perspective argumentation engine with regulatory grounding (v0.26). Generates data-backed, profile-aware narratives from Cernion microservice data + OEO regulatory context."
+    },
+    {
+      "name": "MaStR Monitor",
+      "description": "MaStR installation change monitoring with field-level delta detection and email notifications (v0.27). Watches track changes to MaStR installations based on saved queries with configurable schedules."
     }
   ],
   "paths": {
@@ -7315,8 +7319,472 @@
           }
         }
       }
+    },
+    "/api/mastr-monitor/watches": {
+      "post": {
+        "operationId": "mastr-monitor_createWatch",
+        "summary": "Create MaStR monitor watch",
+        "tags": [
+          "MaStR Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "query"
+                ]
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "name": "TWL Solar >100kW Monitoring",
+                    "query": {
+                      "gridOperatorMastrId": "SNB935578300972",
+                      "type": "solar",
+                      "minCapacity": 100
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "mastr-monitor_listWatches",
+        "summary": "List MaStR monitor watches",
+        "tags": [
+          "MaStR Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "email",
+              "example": "netzplanung@twl.de"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 50,
+              "example": 50
+            }
+          }
+        ]
+      }
+    },
+    "/api/mastr-monitor/watches/:watchId": {
+      "get": {
+        "operationId": "mastr-monitor_getWatch",
+        "summary": "Get MaStR monitor watch",
+        "tags": [
+          "MaStR Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "watchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "twl-solar-monitor_ab12cd34"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "mastr-monitor_deleteWatch",
+        "summary": "Delete MaStR monitor watch and all linked objects",
+        "tags": [
+          "MaStR Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mastr-monitor/watches/:watchId/run": {
+      "post": {
+        "operationId": "mastr-monitor_runWatch",
+        "summary": "Run watch now",
+        "tags": [
+          "MaStR Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "watchId"
+                ],
+                "properties": {
+                  "watchId": {
+                    "type": "string",
+                    "example": "twl-solar-monitor_ab12cd34",
+                    "nullable": true
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mastr-monitor/watches/:watchId/deltas": {
+      "get": {
+        "operationId": "mastr-monitor_getDeltas",
+        "summary": "Get delta history for watch",
+        "tags": [
+          "MaStR Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "watchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "twl-solar-monitor_ab12cd34"
+            }
+          }
+        ]
+      }
+    },
+    "/api/mastr-monitor/watches/:watchId/deltas/:deltaId": {
+      "get": {
+        "operationId": "mastr-monitor_getDelta",
+        "summary": "Get one delta by ID",
+        "tags": [
+          "MaStR Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "watchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "twl-solar-monitor_ab12cd34"
+            }
+          },
+          {
+            "name": "deltaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-04-16"
+            }
+          }
+        ]
+      }
+    },
+    "/api/mastr-monitor/watches/:watchId/snapshot": {
+      "get": {
+        "operationId": "mastr-monitor_getSnapshot",
+        "summary": "Get latest snapshot in JSON or CSV",
+        "tags": [
+          "MaStR Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "watchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "twl-solar-monitor_ab12cd34"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "csv"
+              ],
+              "default": "json",
+              "example": "json"
+            }
+          }
+        ]
+      }
+    },
+    "/api/mastr-monitor/watches/:watchId/subscribe": {
+      "post": {
+        "operationId": "mastr-monitor_subscribe",
+        "summary": "Create subscription for watch",
+        "tags": [
+          "MaStR Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "watchId",
+                  "email"
+                ],
+                "properties": {
+                  "watchId": {
+                    "type": "string",
+                    "example": "twl-solar-monitor_ab12cd34",
+                    "nullable": true
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "netzplanung@twl.de"
+                  },
+                  "onlyOnChanges": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "language": {
+                    "type": "string",
+                    "enum": [
+                      "de",
+                      "en"
+                    ],
+                    "default": "de"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "email": "netzplanung@twl.de",
+                    "onlyOnChanges": true,
+                    "language": "de"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mastr-monitor/watches/:watchId/subscribe/:token": {
+      "delete": {
+        "operationId": "mastr-monitor_unsubscribe",
+        "summary": "Unsubscribe token",
+        "tags": [
+          "MaStR Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mastr-monitor/confirm/:token": {
+      "get": {
+        "operationId": "mastr-monitor_confirmSubscription",
+        "summary": "Confirm email subscription by token",
+        "tags": [
+          "MaStR Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "d6f47d6d687adc8f8e5a17f6b63dd3f31fc14e8f67122e4a"
+            }
+          }
+        ]
+      }
+    },
+    "/api/mastr-monitor/from-session": {
+      "post": {
+        "operationId": "mastr-monitor_createFromSession",
+        "summary": "Create watch from Live-CSV session (stub)",
+        "tags": [
+          "MaStR Monitor"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "sessionId": "2a70e478-90ce-4fa5-b996-6f98efdba7cf",
+                    "name": "Monitoring aus CSV-Session"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.26.9"
+  "x-version": "0.27.2"
 }

@@ -149,6 +149,35 @@ describe('mastr-monitor.service', () => {
     ).rejects.toBeTruthy();
   });
 
+  it('createWatch rejects cron schedules more frequent than daily', async () => {
+    await expect(
+      broker.call('mastr-monitor.createWatch', {
+        name: 'Too Frequent Schedule',
+        query: { type: 'solar' },
+        schedule: {
+          type: 'cron',
+          expression: '*/5 * * * *',
+          timezone: 'Europe/Berlin',
+        },
+      })
+    ).rejects.toMatchObject({ code: 422, type: 'INVALID_SCHEDULE' });
+  });
+
+  it('createWatch accepts daily cron schedule', async () => {
+    const result = await broker.call('mastr-monitor.createWatch', {
+      name: 'Daily Cron Schedule',
+      query: { type: 'solar' },
+      schedule: {
+        type: 'cron',
+        expression: '0 6 * * *',
+        timezone: 'Europe/Berlin',
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.watchId).toBeTruthy();
+  });
+
   it('createWatch stores watch and returns watchId format', async () => {
     const result = await broker.call('mastr-monitor.createWatch', {
       name: 'TWL Solar >100kW Monitoring',

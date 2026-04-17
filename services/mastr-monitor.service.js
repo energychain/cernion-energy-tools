@@ -69,6 +69,21 @@ function formatCsv(rows) {
   return lines.join('\n');
 }
 
+function isSingleNumericCronField(field) {
+  return /^\d+$/.test(String(field || '').trim());
+}
+
+function isAtMostDailyCron(expression) {
+  const parts = String(expression || '').trim().split(/\s+/);
+  if (parts.length !== 5) return false;
+
+  const [minute, hour] = parts;
+
+  // Minimum interval policy: daily or less frequent.
+  // This requires exactly one time-of-day trigger (single minute + single hour).
+  return isSingleNumericCronField(minute) && isSingleNumericCronField(hour);
+}
+
 module.exports = {
   name: 'mastr-monitor',
   timeout: 120000,
@@ -707,6 +722,13 @@ module.exports = {
         if (!input.expression || typeof input.expression !== 'string') {
           throw new MoleculerClientError('Missing cron expression', 422, 'INVALID_SCHEDULE');
         }
+        if (!isAtMostDailyCron(input.expression)) {
+          throw new MoleculerClientError(
+            'Invalid schedule: minimum monitoring interval is daily (once per day).',
+            422,
+            'INVALID_SCHEDULE'
+          );
+        }
         return {
           type: 'cron',
           expression: input.expression,
@@ -876,7 +898,7 @@ module.exports = {
     },
 
     mapWatchQueryToEnergyMarketParams(query = {}, installationType) {
-      return {
+      const params = {
         installationType,
         gridOperatorMastrId: query.gridOperatorMastrId,
         gridOperatorBdewCode: query.gridOperatorBdewCode,
@@ -889,6 +911,16 @@ module.exports = {
         format: 'json',
         limit: this.settings.maxInstallationsPerWatch,
       };
+
+      // Remove undefined/null/empty values to avoid downstream validation errors
+      // in energy-market.installations (Fastest-Validator).
+      return Object.fromEntries(
+        Object.entries(params).filter(([, value]) => {
+          if (value === undefined || value === null) return false;
+          if (typeof value === 'string' && value.trim() === '') return false;
+          return true;
+        })
+      );
     },
 
     async fetchInstallationsForWatch(watch, meta = {}) {
@@ -913,10 +945,11 @@ module.exports = {
     },
 
     async queryObjects(namespace, selector = {}, limit = 1000, skip = 0) {
+      const safeLimit = Math.max(1, Math.min(Number(limit) || 1000, 1000));
       const result = await this.broker.call('object-store.query', {
         namespace,
         selector,
-        limit,
+        limit: safeLimit,
         skip,
       });
       return Array.isArray(result?.docs) ? result.docs : [];

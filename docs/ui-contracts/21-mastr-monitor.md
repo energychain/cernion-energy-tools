@@ -1,6 +1,6 @@
 # UI-Contract 21 — MaStR Monitoring
 
-Version: 0.27.0
+Version: 0.27.1
 Service: `mastr-monitor`
 Base path: `/api/mastr-monitor`
 
@@ -56,13 +56,19 @@ Presets:
 - `weekly_monday` → `0 6 * * 1`
 - `monthly_first` → `0 6 1 * *`
 
-Custom cron supported via `schedule: { type: "cron", expression, timezone }`.
+Custom cron is supported via `schedule: { type: "cron", expression, timezone }` **with a minimum interval of daily**.
+
+- Allowed: one execution time per day (or less frequent), e.g. `0 6 * * *`, `30 7 * * 1`, `0 6 1 * *`
+- Rejected: high-frequency schedules (e.g. `*/5 * * * *`, `0 */2 * * *`)
+- Error contract: `422 INVALID_SCHEDULE`
 
 ## Subscription flow
 
 - Subscribe creates a pending subscription (`pending_confirmation`) with token.
 - Confirmation link (`GET /confirm/:token`) activates subscription (`confirmed`).
 - Unsubscribe is token-based (`DELETE /watches/:watchId/subscribe/:token`).
+
+Path parameter `:token` is treated as a **business token** for confirm/unsubscribe routes (not stripped as auth token by gateway preprocessing).
 
 ## Token-link architecture
 
