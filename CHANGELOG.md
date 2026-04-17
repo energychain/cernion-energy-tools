@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.1] — 2026-04-17
+
+### Changed
+
+- **Documentation refresh (v0.27 alignment):**
+  - `README.md` updated with v0.27 feature set (CYA, MaStR Monitor, NOVA, ZNP, cookbook, object store)
+  - `README.md` configuration table expanded with missing environment variables (`SMTP_*`, `MASTR_MONITOR_BASE_URL`, `ZNP_DB_PATH`, `COOKBOOK_*`, `GEMINI_EMBEDDING_MODEL`)
+  - `docs/BACKEND_CONTEXT.md` bumped from `0.20.6` to `0.27.0` context, including service count update (45), new layers, and MaStR Monitor object-store namespaces
+  - `docs/BACKEND_CONTEXT.md` service directory extended with `cya`, `mastr-monitor`, and `nova`
+  - `docs/BACKEND_CONTEXT.md` test-suite figures updated to `~2 268+ tests, ~82 suites`
+  - `QUICKSTART.md` modernized with current service count and endpoint groups for v0.27 platform modules
+
 ## [0.27.0] — 2026-04-17
 
 ### Added
