@@ -1241,3 +1241,21 @@ module.exports = {
     },
   },
 };
+
+// LIVE-CSV-SESSION-SHAPE: {
+//   // Quelle: agent.service.js (GET /agent/session/:id/csv), nicht datasource-* / energy-market
+//   // Storage: File-backed in data/sessions/<sessionId>.json
+//   id: '<sessionId-uuid>',
+//   createdAt: 'ISO-8601',
+//   problem: '<user prompt>',
+//   plan: {
+//     summary: '...',
+//     requiredInputs: [{ name: '...', default: '...' }],
+//     steps: [{ step: 1, action: 'service.action', params: { ... } }],
+//   },
+//   userInputs: { ... },
+//   results: { interpretation: '...', stepResults: [...] } | null,
+//   status: 'awaiting_inputs' | 'completed' | 'needs_clarification',
+//   // Für Live-CSV wird die effektive Query zur Laufzeit gebaut aus:
+//   // requiredInputs defaults + session.userInputs + URL query params; letzter Step erhält format='csv'.
+// }

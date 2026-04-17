@@ -1,0 +1,88 @@
+# UI-Contract 21 — MaStR Monitoring
+
+Version: 0.27.0
+Service: `mastr-monitor`
+Base path: `/api/mastr-monitor`
+
+## Endpoints (12)
+
+1. `POST /watches` — createWatch
+2. `GET /watches` — listWatches
+3. `GET /watches/:watchId` — getWatch
+4. `DELETE /watches/:watchId` — deleteWatch
+5. `POST /watches/:watchId/run` — runWatch
+6. `GET /watches/:watchId/deltas` — getDeltas
+7. `GET /watches/:watchId/deltas/:deltaId` — getDelta
+8. `GET /watches/:watchId/snapshot?format=json|csv` — getSnapshot
+9. `POST /watches/:watchId/subscribe` — subscribe
+10. `DELETE /watches/:watchId/subscribe/:token` — unsubscribe
+11. `GET /confirm/:token` — confirmSubscription
+12. `POST /from-session` — createFromSession
+
+## Delta shape
+
+```json
+{
+  "watchId": "...",
+  "deltaId": "YYYY-MM-DD",
+  "timestamp": "ISO-8601",
+  "baseline": "ISO-8601|null",
+  "summary": { "added": 0, "removed": 0, "changed": 0, "unchanged": 0, "total": 0 },
+  "added": [],
+  "removed": [],
+  "changed": [
+    {
+      "mastrNummer": "SEE...",
+      "fields": [
+        {
+          "field": "netzbetreiberpruefungStatus",
+          "label": "Netzbetreiberprüfung",
+          "from": 2955,
+          "fromLabel": "In Prüfung",
+          "to": 2954,
+          "toLabel": "Geprüft"
+        }
+      ]
+    }
+  ]
+}
+```
+
+## Scheduling
+
+Presets:
+- `daily_morning` → `0 6 * * *`
+- `weekday_morning` → `0 6 * * 1-5`
+- `weekly_monday` → `0 6 * * 1`
+- `monthly_first` → `0 6 1 * *`
+
+Custom cron supported via `schedule: { type: "cron", expression, timezone }`.
+
+## Subscription flow
+
+- Subscribe creates a pending subscription (`pending_confirmation`) with token.
+- Confirmation link (`GET /confirm/:token`) activates subscription (`confirmed`).
+- Unsubscribe is token-based (`DELETE /watches/:watchId/subscribe/:token`).
+
+## Token-link architecture
+
+No account is required. Access is managed via opaque tokens/hash pairs:
+- watch token for manage links
+- subscription token for confirm/unsubscribe links
+
+## Email templates (reference)
+
+- Confirmation email (Double-Opt-In)
+- Delta email (added/removed/changed summary + links)
+- Optional no-change digest (when `onlyOnChanges=false`)
+
+## Live-CSV integration
+
+`POST /from-session` resolves a session, extracts filter params, removes paging/output params (`format`, `limit`, `offset`) and creates a watch.
+
+## Frontend hints
+
+- Use `GET /watches?email=...` to show “Meine Monitorings”.
+- Show latest summary from `watch.lastDelta`.
+- For details, call `GET /watches/:watchId/deltas` and open newest delta.
+- For CSV export, use `GET /watches/:watchId/snapshot?format=csv`.

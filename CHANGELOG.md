@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.0] — 2026-04-17
+
+### Added
+
+- **MaStR Monitoring Service:** Field-level change detection for MaStR
+  installations with email notifications. 12 REST endpoints (`/api/mastr-monitor/*`).
+  - Watch CRUD with saved query filters and configurable schedules
+  - Field-level Delta-Engine with `lastUpdatedAt` pre-filter optimization
+  - Email notifications via SMTP (nodemailer) with Double-Opt-In
+  - Dual-trigger scheduling (cron tick + `mastr.data.refreshed` event)
+  - Token-link based subscription management (no account required)
+  - Live-CSV Session → Watch conversion
+- **MaStR Catalog Labels:** Human-readable labels for coded MaStR fields
+  (Betriebsstatus, Prüfungsstatus, Spannungsebene)
+- **UI-Contract 21:** MaStR Monitoring contract
+
+### Changed
+
+- `.env.example`: `SMTP_*` and `MASTR_MONITOR_BASE_URL` variables added
+- `agent.service.js`: `mastr-monitor` added to skip services handling
+- API routing and OpenAPI updated for MaStR Monitoring endpoints
+
+### Tests
+
+- `tests/mastr-monitor.service.test.js`
+- `tests/mastr-monitor-diff.test.js`
+- `tests/mastr-monitor-notify.test.js`
+- `tests/mastr-monitor-scheduler.test.js`
+
 ## [0.26.9] — 2026-04-16 — Multi-Agent CYA Orchestrator (Full 6-Step Implementation)
 
 ### Added

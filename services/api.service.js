@@ -101,6 +101,11 @@ function requiresFullAccess(method, requestPath) {
   if (pathOnly.startsWith('/api/cya/profile') && m === 'POST') {
     return true;
   }
+  if (pathOnly.startsWith('/api/mastr-monitor/watches') && (m === 'POST' || m === 'DELETE')) {
+    if (pathOnly.includes('/subscribe/')) return false;
+    if (pathOnly.endsWith('/subscribe')) return false;
+    return true;
+  }
 
   return false;
 }
@@ -256,6 +261,12 @@ module.exports = {
           description:
             'Stakeholder-perspective argumentation engine with regulatory grounding (v0.26). ' +
             'Generates data-backed, profile-aware narratives from Cernion microservice data + OEO regulatory context.',
+        },
+        {
+          name: 'MaStR Monitor',
+          description:
+            'MaStR installation change monitoring with field-level delta detection and email notifications (v0.27). ' +
+            'Watches track changes to MaStR installations based on saved queries with configurable schedules.',
         },
       ],
       components: {
@@ -561,6 +572,20 @@ module.exports = {
           'GET /cya/profiles': 'cya.listProfiles',
           'POST /cya/generate': 'cya.generate',
           'POST /cya/refine': 'cya.refine',
+
+          // MaStR Monitor (v0.27)
+          'POST /mastr-monitor/watches': 'mastr-monitor.createWatch',
+          'GET /mastr-monitor/watches': 'mastr-monitor.listWatches',
+          'GET /mastr-monitor/watches/:watchId': 'mastr-monitor.getWatch',
+          'DELETE /mastr-monitor/watches/:watchId': 'mastr-monitor.deleteWatch',
+          'POST /mastr-monitor/watches/:watchId/run': 'mastr-monitor.runWatch',
+          'GET /mastr-monitor/watches/:watchId/deltas': 'mastr-monitor.getDeltas',
+          'GET /mastr-monitor/watches/:watchId/deltas/:deltaId': 'mastr-monitor.getDelta',
+          'GET /mastr-monitor/watches/:watchId/snapshot': 'mastr-monitor.getSnapshot',
+          'POST /mastr-monitor/watches/:watchId/subscribe': 'mastr-monitor.subscribe',
+          'DELETE /mastr-monitor/watches/:watchId/subscribe/:token': 'mastr-monitor.unsubscribe',
+          'GET /mastr-monitor/confirm/:token': 'mastr-monitor.confirmSubscription',
+          'POST /mastr-monitor/from-session': 'mastr-monitor.createFromSession',
 
           // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
           'GET /datasources/uploads'(req, res) {
