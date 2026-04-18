@@ -896,6 +896,8 @@ module.exports = {
         const now = new Date().toISOString();
         const sessionId = session_id || `cya_mp_${Date.now()}`;
         await this.saveSession(ctx, sessionId, {
+          session_id: sessionId,
+          status: 'completed',
           type: 'multi_perspective',
           profile_ids,
           target_audience,

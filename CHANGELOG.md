@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.5] — 2026-04-19
+
+### Added
+
+- **CYA E2E-Integrationtest `tests/cya-e2e-hoeheinoed.test.js`** (31 Tests, Standort Höheinöd/PLZ 66989):
+  - Vollständiger Lifecycle-Test: Phase A (Profile) → B (Generate) → C (Multi-Perspektive) → D (PDF-Export) → E (Refinement) → F (Datenvalidierung).
+  - Echte MaStR-Fixtures für Höheinöd (3 Solaranlagen, 1 Windanlage, 1 Biomasse), vollständig inline gemockte Abhängigkeiten (`llm-client`, `cya-report-builder`).
+  - Abdeckt alle CYA-Actions end-to-end inkl. `compareProfiles`, `exportPdf`, `exportJson`, `refine`.
+
+### Fixed
+
+- **CYA `compareProfiles` — Session-Persistenz-Bug:**
+  - `compareProfiles` speicherte `session_id` und `status: 'completed'` nicht explizit in PouchDB.
+  - `exportPdf` auf Multi-Perspektive-Sessions warf daher fälschlicherweise HTTP 409.
+  - Fix in [services/cya.service.js](services/cya.service.js): `saveSession`-Aufruf ergänzt um `session_id: sessionId, status: 'completed'`.
+
+### Documentation
+
+- **Q2 2026 Feature-Complete Release Summary** in [docs/RELEASE_SUMMARY_Q2_2026.md](docs/RELEASE_SUMMARY_Q2_2026.md): Übersicht aller CYA-Features (v0.27.x), Architektur-Diagramm, Test-Coverage-Kennzahlen, Breaking-Changes-Hinweis (none).
+
 ## [0.27.4] — 2026-04-18
 
 ### Added
