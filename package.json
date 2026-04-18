@@ -70,7 +70,7 @@
     "pdfkit": "^0.18.0",
     "pouchdb": "^9.0.0",
     "pouchdb-find": "^9.0.0",
-    "swagger-ui-dist": "^5.32.0",
+    "swagger-ui-dist": "^5.32.4",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
