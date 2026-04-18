@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.27.4] — 2026-04-18
+
+### Added
+
+- **CYA Profile-Templates (read-only Katalog + Bootstrap-Create):**
+  - Neues Modul [src/cya-profile-templates.js](src/cya-profile-templates.js) mit 6 vorgefertigten Rollen-Profilen
+    (`vnb_defensiv`, `projektierer_offensiv`, `journalist_neutral`,
+    `bnetz_compliant`, `gemeinde_buergermeister`, `stadtwerk_vertrieb`).
+  - Neue CYA Actions in [services/cya.service.js](services/cya.service.js):
+    - `GET /api/cya/templates` → `cya.listTemplates`
+    - `GET /api/cya/templates/:templateId` → `cya.getTemplate`
+    - `POST /api/cya/profile/from-template` → `cya.createFromTemplate`
+      (inkl. `overrides` + `overrideMode=append|replace`).
+  - Neue Route-Aliases in [services/api.service.js](services/api.service.js);
+    GET-Endpunkte sind read-only, Profil-Erstellung bleibt Full-Access-geschützt.
+  - OpenAPI vollständig ergänzt (inkl. Request-Examples); `npm run audit:openapi` ohne Findings.
+
+- **CYA Multi-Perspektive-Generator (`compareProfiles`):**
+  - Neue Action `POST /api/cya/compare-perspectives` in [services/cya.service.js](services/cya.service.js).
+  - Unterstützt `2..5` Perspektiven via `profile_ids` (gemischt aus gespeicherten `profile_id`s und Template-IDs).
+  - Führt Phase 1–3 einmal aus (Retrieval, Regulatory Graph, Grounding) und re-synthetisiert Phase 4 parallel je Perspektive.
+  - Persistiert Ergebnis-Sessions als `type: "multi_perspective"` im Namespace `cya_sessions`.
+  - Neuer Route-Alias in [services/api.service.js](services/api.service.js):
+    - `POST /api/cya/compare-perspectives` → `cya.compareProfiles`
+
+- **CYA PDF- und JSON-Export für Narratives:**
+  - Neues Modul [src/cya-report-builder.js](src/cya-report-builder.js) mit `buildCyaNarrativePdf(session, options)`.
+    - Rendert Single- und Multi-Perspektiven-Sessions als PDF via `pdfkit`.
+    - Sections: Cover, Narrative (Headline, Summary, KeyPoints, Empfehlungen, Risiken), Regulatorischer Kontext,
+      Datenbasis (Confidence, Fakten, Datenlücken), Perspektiven-Seiten + Vergleichstabelle (Multi),
+      EU AI Act Art. 13 Transparenz-Footer.
+    - Optionen: `language` (`de`/`en`), `includeRegulatoryDetails`, `includeDataBasis`, `includeAITransparency`.
+  - Neue CYA Actions in [services/cya.service.js](services/cya.service.js):
+    - `GET /api/cya/sessions/:session_id/export/pdf` → `cya.exportPdf` (gibt `application/pdf` Buffer zurück, `Content-Disposition: attachment`).
+    - `GET /api/cya/sessions/:session_id/export/json` → `cya.exportJson` (gibt vollständiges Session-Objekt zurück).
+    - `exportPdf` wirft `409 SESSION_NOT_COMPLETED` wenn Session-Status ≠ `completed`.
+  - Neue Route-Aliases in [services/api.service.js](services/api.service.js).
+
+### Tests
+
+- Neue Tests: [tests/cya-profile-templates.test.js](tests/cya-profile-templates.test.js)
+- Neue Tests: [tests/cya-report-builder.test.js](tests/cya-report-builder.test.js) — 11 Tests (Buffer-Check, Multi-Perspektive, Null-Safety, Options, EN-Sprache)
+- Erweiterte Service-Tests: [tests/cya.service.test.js](tests/cya.service.test.js)
+  - Abdeckung für `compareProfiles`: 2 Profile, nur Templates, Mixed, min-Validation und `needs_clarification`-Pfad.
+  - Abdeckung für `exportPdf`/`exportJson`: Buffer-Return, 409, 404, Options-Forwarding, JSON-Shape.
+- Verifiziert mit:
+  - `npx jest tests/cya-report-builder.test.js tests/cya.service.test.js --no-coverage`
+  - `npm run audit:openapi`
+
 ## [0.27.3] — 2026-04-17
 
 ### Changed

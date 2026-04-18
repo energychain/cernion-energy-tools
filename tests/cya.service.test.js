@@ -5,8 +5,11 @@ const ObjectStoreService = require('../services/object-store.service');
 const CyaService = require('../services/cya.service');
 const { getJob, getResult } = require('../src/job-store');
 
-jest.mock('../src/cya-synthesis', () => ({
-  synthesizeNarrative: jest.fn(async () => ({
+jest.mock('../src/cya-report-builder', () => ({
+  buildCyaNarrativePdf: jest.fn(async () => Buffer.from('%PDF-1.4\nfake-pdf-content')),
+}));
+
+jest.mock('../src/cya-synthesis', () => ({  synthesizeNarrative: jest.fn(async () => ({
     generatedAt: new Date().toISOString(),
     narrative: {
       headline: 'Belastbare Einordnung',
@@ -188,6 +191,192 @@ describe('cya.service', () => {
     const load = await broker.call('cya.getProfile', { profile_id: 'cya_test_profile' });
     expect(load.success).toBe(true);
     expect(load.profile.actor.role).toBe('grid_operator');
+  });
+
+  describe('profile templates', () => {
+    it('listTemplates returns 6+ templates', async () => {
+      const result = await broker.call('cya.listTemplates');
+
+      expect(result.success).toBe(true);
+      expect(Array.isArray(result.templates)).toBe(true);
+      expect(result.templates.length).toBeGreaterThanOrEqual(6);
+    });
+
+    it('getTemplate returns vnb_defensiv with suggestedAudiences', async () => {
+      const result = await broker.call('cya.getTemplate', { templateId: 'vnb_defensiv' });
+
+      expect(result.success).toBe(true);
+      expect(result.template).toBeTruthy();
+      expect(result.template.templateId).toBe('vnb_defensiv');
+      expect(Array.isArray(result.template.suggestedAudiences)).toBe(true);
+      expect(result.template.suggestedAudiences.length).toBeGreaterThan(0);
+    });
+
+    it('getTemplate returns 404 for unknown template', async () => {
+      await expect(
+        broker.call('cya.getTemplate', { templateId: 'nonexistent' })
+      ).rejects.toMatchObject({
+        code: 404,
+        type: 'TEMPLATE_NOT_FOUND',
+      });
+    });
+
+    it('createFromTemplate creates profile from template', async () => {
+      const createResult = await broker.call('cya.createFromTemplate', {
+        templateId: 'vnb_defensiv',
+        profile_id: 'cya_template_profile',
+      });
+
+      expect(createResult.success).toBe(true);
+      expect(createResult.profile_id).toBe('cya_template_profile');
+      expect(createResult.templateId).toBe('vnb_defensiv');
+      expect(createResult.createdAt).toBeTruthy();
+
+      const loaded = await broker.call('cya.getProfile', { profile_id: 'cya_template_profile' });
+      expect(loaded.success).toBe(true);
+      expect(loaded.profile.actor.role).toBe('grid_operator');
+      expect(loaded.profile.tone).toBe('diplomatisch, rechtssicher, defensiv');
+    });
+
+    it('createFromTemplate overrides organization from overrides', async () => {
+      await broker.call('cya.createFromTemplate', {
+        templateId: 'vnb_defensiv',
+        profile_id: 'cya_template_profile_override',
+        overrides: {
+          organization: 'Stadtwerke Override',
+        },
+      });
+
+      const loaded = await broker.call('cya.getProfile', { profile_id: 'cya_template_profile_override' });
+      expect(loaded.success).toBe(true);
+      expect(loaded.profile.actor.organization).toBe('Stadtwerke Override');
+    });
+
+    it('createFromTemplate returns 404 for unknown template', async () => {
+      await expect(
+        broker.call('cya.createFromTemplate', {
+          templateId: 'nonexistent',
+          profile_id: 'cya_template_unknown',
+        })
+      ).rejects.toMatchObject({
+        code: 404,
+        type: 'TEMPLATE_NOT_FOUND',
+      });
+    });
+  });
+
+  describe('compareProfiles (multi-perspective)', () => {
+    it('generates perspectives for 2 profiles', async () => {
+      await broker.call('cya.createProfile', {
+        profile_id: 'cmp_vnb',
+        actor: { role: 'grid_operator', organization: 'VNB Test' },
+        strategic_goals: ['CAPEX-Schutz'],
+        tone: 'diplomatisch',
+      });
+
+      await broker.call('cya.createProfile', {
+        profile_id: 'cmp_proj',
+        actor: { role: 'project_developer', organization: 'Projektierer Test' },
+        strategic_goals: ['Beschleunigung'],
+        tone: 'bestimmt',
+      });
+
+      const result = await broker.call('cya.compareProfiles', {
+        profile_ids: ['cmp_vnb', 'cmp_proj'],
+        target_audience: 'Aufsichtsrat',
+        context: {
+          location: 'Heidelberg',
+          trigger: 'Vergleichsperspektive',
+          focus_areas: ['capacity'],
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('completed');
+      expect(result.perspectiveCount).toBe(2);
+      expect(Array.isArray(result.perspectives)).toBe(true);
+      expect(result.perspectives).toHaveLength(2);
+      result.perspectives.forEach((perspective) => {
+        expect(perspective.status).toBe('completed');
+        expect(perspective.narrative).toBeTruthy();
+        expect(perspective.narrative.headline).toBeTruthy();
+      });
+    });
+
+    it('accepts template_ids instead of profile_ids', async () => {
+      const result = await broker.call('cya.compareProfiles', {
+        profile_ids: ['vnb_defensiv', 'projektierer_offensiv'],
+        target_audience: 'Vorstand',
+        context: {
+          location: 'Heidelberg',
+          trigger: 'Template-Vergleich',
+          focus_areas: ['capacity'],
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('completed');
+      expect(result.perspectives).toHaveLength(2);
+      expect(result.perspectives[0].profileType).toBe('template');
+      expect(result.perspectives[1].profileType).toBe('template');
+    });
+
+    it('mixed: 1 profile_id + 1 template_id', async () => {
+      await broker.call('cya.createProfile', {
+        profile_id: 'cmp_mixed_profile',
+        actor: { role: 'supplier', organization: 'Stadtwerk Test' },
+        strategic_goals: ['Kundengewinnung'],
+        tone: 'kundenorientiert',
+      });
+
+      const result = await broker.call('cya.compareProfiles', {
+        profile_ids: ['cmp_mixed_profile', 'vnb_defensiv'],
+        target_audience: 'Geschäftsführung',
+        context: {
+          location: 'Heidelberg',
+          trigger: 'Mixed-Vergleich',
+          focus_areas: ['capacity'],
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('completed');
+      expect(result.perspectives).toHaveLength(2);
+      expect(result.perspectives.some((p) => p.profileType === 'profile')).toBe(true);
+      expect(result.perspectives.some((p) => p.profileType === 'template')).toBe(true);
+    });
+
+    it('validates min: 2 profile_ids', async () => {
+      await expect(
+        broker.call('cya.compareProfiles', {
+          profile_ids: ['only_one'],
+          target_audience: 'Vorstand',
+          context: {
+            trigger: 'Ungültiger Vergleich',
+            focus_areas: ['capacity'],
+          },
+        })
+      ).rejects.toMatchObject({
+        code: 422,
+      });
+    });
+
+    it('returns needs_clarification when grounding insufficient', async () => {
+      const result = await broker.call('cya.compareProfiles', {
+        profile_ids: ['vnb_defensiv', 'projektierer_offensiv'],
+        target_audience: 'Vorstand',
+        context: {
+          trigger: 'Schwache Faktenlage',
+          focus_areas: ['redispatch'],
+        },
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('needs_clarification');
+      expect(result.clarification).toBeTruthy();
+      expect(result.regulatory_graph).toBeTruthy();
+      expect(result.grounding).toBeTruthy();
+    });
   });
 
   it('generates completed response when grounding is sufficient', async () => {
@@ -740,6 +929,96 @@ describe('cya.service', () => {
       const jobRecord = getJob(gatewayResult.jobId);
       const phases = (jobRecord.logs || []).map((l) => l.phase);
       expect(phases).toContain('phase_4_synthesis');
+    });
+  });
+
+  describe('exportPdf and exportJson', () => {
+    let completedSessionId;
+    let pendingSessionId;
+
+    beforeAll(async () => {
+      // Create a completed session
+      completedSessionId = `cya_export_test_${Date.now()}`;
+      await broker.call('object-store.put', {
+        namespace: 'cya_sessions',
+        key: completedSessionId,
+        payload: {
+          session_id: completedSessionId,
+          status: 'completed',
+          target_audience: 'Aufsichtsrat',
+          metadata: { createdAt: new Date().toISOString(), location: 'Heidelberg', trigger: 'Test' },
+          narrative: {
+            headline: 'Testbericht',
+            executiveSummary: 'Kurz.',
+            keyPoints: ['Punkt A'],
+            recommendedActions: [],
+            riskNotes: [],
+          },
+          grounding: { confidence: 0.9, facts: [], dataGaps: [] },
+          regulatory_graph: { signals: [] },
+        },
+      });
+
+      // Create a pending session
+      pendingSessionId = `cya_pending_test_${Date.now()}`;
+      await broker.call('object-store.put', {
+        namespace: 'cya_sessions',
+        key: pendingSessionId,
+        payload: {
+          session_id: pendingSessionId,
+          status: 'needs_clarification',
+          narrative: null,
+        },
+      });
+    });
+
+    it('exportPdf returns a Buffer for a completed session', async () => {
+      const result = await broker.call('cya.exportPdf', { session_id: completedSessionId });
+      expect(Buffer.isBuffer(result)).toBe(true);
+      expect(result.toString('utf8', 0, 4)).toBe('%PDF');
+    });
+
+    it('exportPdf throws 409 when session is not completed', async () => {
+      await expect(
+        broker.call('cya.exportPdf', { session_id: pendingSessionId })
+      ).rejects.toMatchObject({ code: 409 });
+    });
+
+    it('exportPdf throws 404 for unknown session', async () => {
+      await expect(
+        broker.call('cya.exportPdf', { session_id: 'non_existent_session_xyz' })
+      ).rejects.toMatchObject({ code: 404 });
+    });
+
+    it('exportPdf forwards options to buildCyaNarrativePdf', async () => {
+      const { buildCyaNarrativePdf } = require('../src/cya-report-builder');
+      buildCyaNarrativePdf.mockClear();
+      await broker.call('cya.exportPdf', {
+        session_id: completedSessionId,
+        language: 'en',
+        includeRegulatoryDetails: false,
+        includeDataBasis: false,
+        includeAITransparency: false,
+      });
+      expect(buildCyaNarrativePdf).toHaveBeenCalledWith(
+        expect.objectContaining({ session_id: completedSessionId }),
+        { language: 'en', includeRegulatoryDetails: false, includeDataBasis: false, includeAITransparency: false }
+      );
+    });
+
+    it('exportJson returns session object', async () => {
+      const result = await broker.call('cya.exportJson', { session_id: completedSessionId });
+      expect(result.success).toBe(true);
+      expect(result.session_id).toBe(completedSessionId);
+      expect(typeof result.exportedAt).toBe('string');
+      expect(result.session).toBeTruthy();
+      expect(result.session.status).toBe('completed');
+    });
+
+    it('exportJson throws 404 for unknown session', async () => {
+      await expect(
+        broker.call('cya.exportJson', { session_id: 'non_existent_session_xyz' })
+      ).rejects.toMatchObject({ code: 404 });
     });
   });
 });

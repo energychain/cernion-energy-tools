@@ -582,6 +582,12 @@ module.exports = {
           'POST /cya/profile': 'cya.createProfile',
           'GET /cya/profile/:profile_id': 'cya.getProfile',
           'GET /cya/profiles': 'cya.listProfiles',
+          'GET /cya/templates': 'cya.listTemplates',
+          'GET /cya/templates/:templateId': 'cya.getTemplate',
+          'POST /cya/profile/from-template': 'cya.createFromTemplate',
+          'POST /cya/compare-perspectives': 'cya.compareProfiles',
+          'GET /cya/sessions/:session_id/export/pdf': 'cya.exportPdf',
+          'GET /cya/sessions/:session_id/export/json': 'cya.exportJson',
           'POST /cya/generate': 'cya.generate',
           'POST /cya/refine': 'cya.refine',
 

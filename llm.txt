@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.27.3
-- changelog_latest_release: 0.27.3
+- version: 0.27.4
+- changelog_latest_release: 0.27.4
 - source_files_hash:
-  - CHANGELOG.md: 56424a4525fc05f7187600bcd954020c5db88ec49c512dfdb2fd0d172d22b62b
+  - CHANGELOG.md: 65a544a347e4d6c3099bf242fc34c6368f3f6c19d4f84071a26969f92f33d10a
   - README.md: 9d55cf0d888898809676b39e02adf2fcd7d1e61db82357c805f96d9154cfcab9
   - docs/BACKEND_CONTEXT.md: db557a71e04a5b23042dc036efa8d48e0e174ff56a04d72d87d1c2e658feea42
   - src/cookbook-recipes.js: 7e92337203ff08ef348bcdb1b91d04ad58683494640c76553b005f6cfdd42109
-  - openapi-export.json: 30efe435ec5fbaf293bd1ffffe7fae1096c5d5ffd0dfa83e9529d0f4a27d2e75
+  - openapi-export.json: b7e08425541ddbaa9d5a2d9021c36f9002149e34e40a8949806b091b587c16f5
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -596,15 +596,15 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 108
-- operation_count: 132
+- path_count: 114
+- operation_count: 138
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
 - Assets: 1 operations
 - Companies: 6 operations
 - Cookbook: 6 operations
-- CYA Agent: 5 operations
+- CYA Agent: 11 operations
 - Dashboard API: 4 operations
 - Datapoints: 16 operations
 - DataSources: 27 operations
@@ -637,11 +637,17 @@ process:
 - POST /api/cookbook/search | tags: [Cookbook] | operationId: cookbook_search | summary: Semantic recipe lookup
 - GET /api/cookbook/services | tags: [Cookbook] | operationId: cookbook_serviceCatalogue | summary: Live service/action catalogue for recipe generator UI
 - POST /api/cookbook/validate | tags: [Cookbook] | operationId: cookbook_validate | summary: Force cookbook validity check
+- POST /api/cya/compare-perspectives | tags: [CYA Agent] | operationId: cya_compareProfiles | summary: Generate multi-perspective comparison from profiles/templates
 - POST /api/cya/generate | tags: [CYA Agent] | operationId: cya_generate | summary: Generate profile-aware narrative
 - POST /api/cya/profile | tags: [CYA Agent] | operationId: cya_createProfile | summary: Create or update a stakeholder profile
 - GET /api/cya/profile/:profile_id | tags: [CYA Agent] | operationId: cya_getProfile | summary: Load a stakeholder profile
+- POST /api/cya/profile/from-template | tags: [CYA Agent] | operationId: cya_createFromTemplate | summary: Create CYA profile from template
 - GET /api/cya/profiles | tags: [CYA Agent] | operationId: cya_listProfiles | summary: List stakeholder profiles
 - POST /api/cya/refine | tags: [CYA Agent] | operationId: cya_refine | summary: Refine a generated narrative
+- GET /api/cya/sessions/:session_id/export/json | tags: [CYA Agent] | operationId: cya_exportJson | summary: Export CYA session as JSON
+- GET /api/cya/sessions/:session_id/export/pdf | tags: [CYA Agent] | operationId: cya_exportPdf | summary: Export CYA session as PDF
+- GET /api/cya/templates | tags: [CYA Agent] | operationId: cya_listTemplates | summary: List prebuilt CYA profile templates
+- GET /api/cya/templates/:templateId | tags: [CYA Agent] | operationId: cya_getTemplate | summary: Load one prebuilt CYA profile template
 - GET /api/dashboard/finding-codes | tags: [Dashboard API] | operationId: dashboard-api_findingCodes | summary: Finding codes reference — all 92 codes with metadata
 - GET /api/dashboard/market-snapshot | tags: [Dashboard API] | operationId: dashboard-api_marketSnapshot | summary: Market snapshot — current spot prices, CO₂ intensity, renewable forecast
 - GET /api/dashboard/quality-summary | tags: [Dashboard API] | operationId: dashboard-api_qualitySummary | summary: Quality summary — recent reports from all agent pipelines
@@ -762,7 +768,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.27.3"
+    "version": "0.27.4"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -1383,6 +1389,181 @@ process:
         ]
       }
     },
+    "/api/cya/compare-perspectives": {
+      "post": {
+        "description": "Runs phases 1–3 once (retrieval/graph/grounding) and executes phase 4 synthesis in parallel for 2–5 profile IDs or template IDs.",
+        "operationId": "cya_compareProfiles",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "context": {
+                      "capacity_mw": 10,
+                      "focus_areas": [
+                        "capacity",
+                        "compliance"
+                      ],
+                      "location": "Heidelberg",
+                      "trigger": "Presseanfrage zur Netzstabilität"
+                    },
+                    "profile_ids": [
+                      "vnb_defensiv",
+                      "projektierer_offensiv"
+                    ],
+                    "target_audience": "Aufsichtsrat"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "context": {
+                    "example": {
+                      "capacity_mw": 10,
+                      "focus_areas": [
+                        "capacity",
+                        "compliance"
+                      ],
+                      "location": "Heidelberg",
+                      "trigger": "Presseanfrage zur Netzstabilität"
+                    },
+                    "properties": {
+                      "capacity_mw": {
+                        "description": "Optional asset capacity in MW for topology-hop logic.",
+                        "example": 10,
+                        "nullable": true,
+                        "type": "number"
+                      },
+                      "focus_areas": {
+                        "example": [
+                          "capacity",
+                          "compliance"
+                        ],
+                        "items": {
+                          "enum": [
+                            "capacity",
+                            "renewables",
+                            "grid_expansion",
+                            "redispatch",
+                            "energy_sharing",
+                            "digitalization",
+                            "compliance",
+                            "customer",
+                            "investment",
+                            "section14a",
+                            "nova"
+                          ],
+                          "type": "string"
+                        },
+                        "minItems": 1,
+                        "type": "array"
+                      },
+                      "location": {
+                        "example": "Heidelberg",
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "trigger": {
+                        "example": "Presseanfrage zur Netzstabilität",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "trigger",
+                      "focus_areas"
+                    ],
+                    "type": "object"
+                  },
+                  "profile_ids": {
+                    "example": [
+                      "vnb_defensiv",
+                      "projektierer_offensiv"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 5,
+                    "minItems": 2,
+                    "type": "array"
+                  },
+                  "session_id": {
+                    "example": "cya_mp_1713110400000",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "target_audience": {
+                    "example": "Aufsichtsrat",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "profile_ids",
+                  "target_audience",
+                  "context"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "grounding": {
+                      "type": "object"
+                    },
+                    "metadata": {
+                      "type": "object"
+                    },
+                    "perspectiveCount": {
+                      "example": 2,
+                      "type": "number"
+                    },
+                    "perspectives": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "regulatory_graph": {
+                      "type": "object"
+                    },
+                    "session_id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "enum": [
+                        "completed",
+                        "needs_clarification"
+                      ],
+                      "type": "string"
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Comparison result"
+          },
+          "404": {
+            "description": "Profile/template not found"
+          }
+        },
+        "summary": "Generate multi-perspective comparison from profiles/templates",
+        "tags": [
+          "CYA Agent"
+        ]
+      }
+    },
     "/api/cya/generate": {
       "post": {
         "description": "Runs the full CYA pipeline: data retrieval, deterministic regulatory graph, grounding, and LLM synthesis. Returns Option-B response structure.",
@@ -1862,6 +2043,131 @@ process:
         ]
       }
     },
+    "/api/cya/profile/from-template": {
+      "post": {
+        "description": "Creates or updates a profile from a predefined template plus optional overrides.",
+        "operationId": "cya_createFromTemplate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "overrideMode": "append",
+                    "overrides": {
+                      "department": "Netzplanung",
+                      "organization": "Stadtwerke Heidelberg Netze GmbH",
+                      "strategic_goals": [
+                        "Transparenz gegenüber Aufsichtsrat stärken"
+                      ],
+                      "tone": "sachlich, rechtssicher"
+                    },
+                    "profile_id": "vnb_heidelberg_reg",
+                    "templateId": "vnb_defensiv"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "overrideMode": {
+                    "default": "replace",
+                    "enum": [
+                      "append",
+                      "replace"
+                    ],
+                    "type": "string"
+                  },
+                  "overrides": {
+                    "example": {
+                      "department": "Regulierung",
+                      "organization": "Stadtwerke Heidelberg Netze GmbH",
+                      "strategic_goals": [
+                        "Transparenz gegenüber Aufsichtsrat stärken"
+                      ],
+                      "tone": "sachlich, rechtssicher"
+                    },
+                    "nullable": true,
+                    "properties": {
+                      "department": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "organization": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "strategic_goals": {
+                        "items": {
+                          "type": "string"
+                        },
+                        "type": "array"
+                      },
+                      "tone": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "profile_id": {
+                    "example": "vnb_heidelberg_reg",
+                    "maxLength": 64,
+                    "pattern": "^[a-z0-9_]+$",
+                    "type": "string"
+                  },
+                  "templateId": {
+                    "example": "vnb_defensiv",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "templateId",
+                  "profile_id"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "createdAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "profile_id": {
+                      "example": "vnb_heidelberg_reg",
+                      "type": "string"
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    },
+                    "templateId": {
+                      "example": "vnb_defensiv",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Profile created from template"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "summary": "Create CYA profile from template",
+        "tags": [
+          "CYA Agent"
+        ]
+      }
+    },
     "/api/cya/profiles": {
       "get": {
         "description": "Lists stored CYA profiles from the Object Store namespace `cya_profiles`.",
@@ -2083,6 +2389,260 @@ process:
           }
         },
         "summary": "Refine a generated narrative",
+        "tags": [
+          "CYA Agent"
+        ]
+      }
+    },
+    "/api/cya/sessions/:session_id/export/json": {
+      "get": {
+        "description": "Returns the full CYA session object as structured JSON for downstream processing.",
+        "operationId": "cya_exportJson",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "example": "cya_1713110400000",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "default": {
+                    "value": {
+                      "exportedAt": "2026-04-18T10:00:00.000Z",
+                      "session": {},
+                      "session_id": "cya_1713110400000",
+                      "success": true
+                    }
+                  }
+                },
+                "schema": {
+                  "properties": {
+                    "exportedAt": {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    "session": {
+                      "type": "object"
+                    },
+                    "session_id": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Session JSON export"
+          },
+          "404": {
+            "description": "Session not found"
+          }
+        },
+        "summary": "Export CYA session as JSON",
+        "tags": [
+          "CYA Agent"
+        ]
+      }
+    },
+    "/api/cya/sessions/:session_id/export/pdf": {
+      "get": {
+        "description": "Renders a completed CYA session (single or multi-perspective) as a PDF document. Returns a binary PDF buffer with Content-Disposition attachment header. Requires session status to be `completed`.",
+        "operationId": "cya_exportPdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "example": "cya_1713110400000",
+              "type": "string"
+            }
+          },
+          {
+            "example": "de",
+            "in": "query",
+            "name": "language",
+            "required": false,
+            "schema": {
+              "default": "de",
+              "enum": [
+                "de",
+                "en"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeRegulatoryDetails",
+            "required": false,
+            "schema": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeDataBasis",
+            "required": false,
+            "schema": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeAITransparency",
+            "required": false,
+            "schema": {
+              "default": true,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "PDF binary stream"
+          },
+          "404": {
+            "description": "Session not found"
+          },
+          "409": {
+            "description": "Session not completed yet"
+          }
+        },
+        "summary": "Export CYA session as PDF",
+        "tags": [
+          "CYA Agent"
+        ]
+      }
+    },
+    "/api/cya/templates": {
+      "get": {
+        "description": "Returns read-only CYA profile templates for bootstrap and onboarding flows.",
+        "operationId": "cya_listTemplates",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    },
+                    "templates": {
+                      "items": {
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "example": "VNB Defensiv",
+                            "type": "string"
+                          },
+                          "role": {
+                            "enum": [
+                              "grid_operator",
+                              "supplier",
+                              "project_developer",
+                              "direct_marketer",
+                              "metering_operator",
+                              "regulator",
+                              "municipality",
+                              "journalist",
+                              "citizen"
+                            ],
+                            "type": "string"
+                          },
+                          "suggestedAudiences": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "templateId": {
+                            "example": "vnb_defensiv",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Template list"
+          }
+        },
+        "summary": "List prebuilt CYA profile templates",
+        "tags": [
+          "CYA Agent"
+        ]
+      }
+    },
+    "/api/cya/templates/:templateId": {
+      "get": {
+        "operationId": "cya_getTemplate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "templateId",
+            "required": true,
+            "schema": {
+              "example": "vnb_defensiv",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    },
+                    "template": {
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Template found"
+          },
+          "404": {
+            "description": "Template not found"
+          }
+        },
+        "summary": "Load one prebuilt CYA profile template",
         "tags": [
           "CYA Agent"
         ]
@@ -8546,8 +9106,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.27.3"
+  "x-version": "0.27.4"
 }
 
 ## Integrity
-- llm_txt_sha256: e15cf27783b84eeaabef40f2be81045d90085dbb9c12ca4794ab5bf68fb4e4b1
+- llm_txt_sha256: a7bd96facda087ffdf7e60684747f105b72e5d93798ed6f1607f76d79776994b

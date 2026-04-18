@@ -7,6 +7,8 @@ const { buildGrounding } = require('../src/cya-grounding');
 const { synthesizeNarrative, synthesizePersonaEvaluation, synthesizeConsensusWith } = require('../src/cya-synthesis');
 const { startJob, appendLog } = require('../src/job-store');
 const { PERSONA_ENUM, validatePerspectives, getPersona } = require('../src/cya-agent-personas');
+const { getTemplate, listTemplates } = require('../src/cya-profile-templates');
+const { buildCyaNarrativePdf } = require('../src/cya-report-builder');
 const { retrievePersonaContext, buildPersonaGrounding } = require('../src/cya-persona-memory');
 const { MAX_DIALOGUE_ROUNDS, detectConflicts, buildNegotiationPrompt } = require('../src/cya-conflict-detector');
 
@@ -289,6 +291,641 @@ module.exports = {
         });
         const items = Array.isArray(result?.docs) ? result.docs : [];
         return { success: true, count: items.length, items };
+      },
+    },
+
+    listTemplates: {
+      rest: 'GET /templates',
+      openapi: {
+        tags: ['CYA Agent'],
+        summary: 'List prebuilt CYA profile templates',
+        description: 'Returns read-only CYA profile templates for bootstrap and onboarding flows.',
+        responses: {
+          200: {
+            description: 'Template list',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    templates: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          templateId: { type: 'string', example: 'vnb_defensiv' },
+                          name: { type: 'string', example: 'VNB Defensiv' },
+                          description: { type: 'string' },
+                          role: { type: 'string', enum: ACTOR_ROLES },
+                          suggestedAudiences: { type: 'array', items: { type: 'string' } },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler() {
+        const templates = listTemplates().map((templateId) => {
+          const template = getTemplate(templateId);
+          return {
+            templateId: template.templateId,
+            name: template.name,
+            description: template.description,
+            role: template.actor.role,
+            suggestedAudiences: template.suggestedAudiences,
+          };
+        });
+
+        return { success: true, templates };
+      },
+    },
+
+    getTemplate: {
+      rest: 'GET /templates/:templateId',
+      params: {
+        templateId: { type: 'string' },
+      },
+      openapi: {
+        tags: ['CYA Agent'],
+        summary: 'Load one prebuilt CYA profile template',
+        parameters: [
+          {
+            name: 'templateId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'vnb_defensiv' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Template found',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    template: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+          404: { description: 'Template not found' },
+        },
+      },
+      async handler(ctx) {
+        const template = getTemplate(ctx.params.templateId);
+        if (!template) {
+          throw new MoleculerError('TEMPLATE_NOT_FOUND', 404, 'TEMPLATE_NOT_FOUND');
+        }
+        return { success: true, template };
+      },
+    },
+
+    createFromTemplate: {
+      rest: 'POST /profile/from-template',
+      params: {
+        templateId: { type: 'string' },
+        profile_id: { type: 'string', pattern: PROFILE_ID_PATTERN, max: 64 },
+        overrideMode: { type: 'enum', values: ['append', 'replace'], optional: true, default: 'replace' },
+        overrides: {
+          type: 'object',
+          optional: true,
+          props: {
+            organization: { type: 'string', optional: true },
+            department: { type: 'string', optional: true },
+            strategic_goals: { type: 'array', items: 'string', optional: true },
+            tone: { type: 'string', optional: true },
+          },
+        },
+      },
+      openapi: {
+        tags: ['CYA Agent'],
+        summary: 'Create CYA profile from template',
+        description: 'Creates or updates a profile from a predefined template plus optional overrides.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['templateId', 'profile_id'],
+                properties: {
+                  templateId: { type: 'string', example: 'vnb_defensiv' },
+                  profile_id: { type: 'string', pattern: '^[a-z0-9_]+$', maxLength: 64, example: 'vnb_heidelberg_reg' },
+                  overrideMode: { type: 'string', enum: ['append', 'replace'], default: 'replace' },
+                  overrides: {
+                    type: 'object',
+                    nullable: true,
+                    example: {
+                      organization: 'Stadtwerke Heidelberg Netze GmbH',
+                      department: 'Regulierung',
+                      strategic_goals: ['Transparenz gegenüber Aufsichtsrat stärken'],
+                      tone: 'sachlich, rechtssicher',
+                    },
+                    properties: {
+                      organization: { type: 'string', nullable: true },
+                      department: { type: 'string', nullable: true },
+                      strategic_goals: { type: 'array', items: { type: 'string' } },
+                      tone: { type: 'string' },
+                    },
+                  },
+                },
+              },
+              examples: {
+                default: {
+                  value: {
+                    templateId: 'vnb_defensiv',
+                    profile_id: 'vnb_heidelberg_reg',
+                    overrideMode: 'append',
+                    overrides: {
+                      organization: 'Stadtwerke Heidelberg Netze GmbH',
+                      department: 'Netzplanung',
+                      strategic_goals: ['Transparenz gegenüber Aufsichtsrat stärken'],
+                      tone: 'sachlich, rechtssicher',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Profile created from template',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    profile_id: { type: 'string', example: 'vnb_heidelberg_reg' },
+                    templateId: { type: 'string', example: 'vnb_defensiv' },
+                    createdAt: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          404: { description: 'Template not found' },
+        },
+      },
+      async handler(ctx) {
+        const { templateId, profile_id, overrideMode = 'replace', overrides = {} } = ctx.params;
+        const template = getTemplate(templateId);
+
+        if (!template) {
+          throw new MoleculerError('TEMPLATE_NOT_FOUND', 404, 'TEMPLATE_NOT_FOUND');
+        }
+
+        const actor = {
+          role: template.actor.role,
+          organization: Object.prototype.hasOwnProperty.call(overrides, 'organization')
+            ? overrides.organization
+            : template.actor.organization,
+          department: Object.prototype.hasOwnProperty.call(overrides, 'department')
+            ? overrides.department
+            : template.actor.department,
+        };
+
+        let strategicGoals = Array.isArray(template.strategic_goals) ? [...template.strategic_goals] : [];
+        if (Array.isArray(overrides.strategic_goals) && overrides.strategic_goals.length > 0) {
+          strategicGoals = overrideMode === 'append'
+            ? [...strategicGoals, ...overrides.strategic_goals]
+            : [...overrides.strategic_goals];
+        }
+
+        const tone = overrides.tone || template.tone || this.settings.defaultTone;
+
+        const createResult = await ctx.call('cya.createProfile', {
+          profile_id,
+          actor,
+          strategic_goals: strategicGoals,
+          tone,
+        });
+
+        return {
+          success: true,
+          profile_id,
+          templateId,
+          createdAt: createResult.createdAt,
+        };
+      },
+    },
+
+    exportPdf: {
+      rest: 'GET /sessions/:session_id/export/pdf',
+      params: {
+        session_id: { type: 'string', example: 'cya_1713110400000' },
+        language: { type: 'string', optional: true, enum: ['de', 'en'], default: 'de' },
+        includeRegulatoryDetails: { type: 'boolean', optional: true, default: true },
+        includeDataBasis: { type: 'boolean', optional: true, default: true },
+        includeAITransparency: { type: 'boolean', optional: true, default: true },
+      },
+      openapi: {
+        tags: ['CYA Agent'],
+        summary: 'Export CYA session as PDF',
+        description:
+          'Renders a completed CYA session (single or multi-perspective) as a PDF document. ' +
+          'Returns a binary PDF buffer with Content-Disposition attachment header. ' +
+          'Requires session status to be `completed`.',
+        parameters: [
+          {
+            in: 'path',
+            name: 'session_id',
+            required: true,
+            schema: { type: 'string', example: 'cya_1713110400000' },
+          },
+          {
+            in: 'query',
+            name: 'language',
+            required: false,
+            schema: { type: 'string', enum: ['de', 'en'], default: 'de' },
+            example: 'de',
+          },
+          {
+            in: 'query',
+            name: 'includeRegulatoryDetails',
+            required: false,
+            schema: { type: 'boolean', default: true },
+          },
+          {
+            in: 'query',
+            name: 'includeDataBasis',
+            required: false,
+            schema: { type: 'boolean', default: true },
+          },
+          {
+            in: 'query',
+            name: 'includeAITransparency',
+            required: false,
+            schema: { type: 'boolean', default: true },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'PDF binary stream',
+            content: {
+              'application/pdf': {
+                schema: { type: 'string', format: 'binary' },
+              },
+            },
+          },
+          404: { description: 'Session not found' },
+          409: { description: 'Session not completed yet' },
+        },
+      },
+      async handler(ctx) {
+        const {
+          session_id,
+          language = 'de',
+          includeRegulatoryDetails = true,
+          includeDataBasis = true,
+          includeAITransparency = true,
+        } = ctx.params;
+
+        const session = await this.loadSession(ctx, session_id);
+
+        if (session.status !== 'completed') {
+          throw new MoleculerError(
+            'Session is not completed yet',
+            409,
+            'SESSION_NOT_COMPLETED',
+            { status: session.status }
+          );
+        }
+
+        const pdfBuffer = await buildCyaNarrativePdf(session, {
+          language,
+          includeRegulatoryDetails,
+          includeDataBasis,
+          includeAITransparency,
+        });
+
+        ctx.meta.$responseType = 'application/pdf';
+        ctx.meta.$responseHeaders = {
+          'Content-Disposition': `attachment; filename="cya-${session_id}.pdf"`,
+        };
+
+        return pdfBuffer;
+      },
+    },
+
+    exportJson: {
+      rest: 'GET /sessions/:session_id/export/json',
+      params: {
+        session_id: { type: 'string', example: 'cya_1713110400000' },
+      },
+      openapi: {
+        tags: ['CYA Agent'],
+        summary: 'Export CYA session as JSON',
+        description: 'Returns the full CYA session object as structured JSON for downstream processing.',
+        parameters: [
+          {
+            in: 'path',
+            name: 'session_id',
+            required: true,
+            schema: { type: 'string', example: 'cya_1713110400000' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Session JSON export',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    session_id: { type: 'string' },
+                    exportedAt: { type: 'string', format: 'date-time' },
+                    session: { type: 'object' },
+                  },
+                },
+                examples: {
+                  default: {
+                    value: {
+                      success: true,
+                      session_id: 'cya_1713110400000',
+                      exportedAt: '2026-04-18T10:00:00.000Z',
+                      session: {},
+                    },
+                  },
+                },
+              },
+            },
+          },
+          404: { description: 'Session not found' },
+        },
+      },
+      async handler(ctx) {
+        const { session_id } = ctx.params;
+        const session = await this.loadSession(ctx, session_id);
+
+        return {
+          success: true,
+          session_id,
+          exportedAt: new Date().toISOString(),
+          session,
+        };
+      },
+    },
+
+    compareProfiles: {
+      rest: 'POST /compare-perspectives',
+      params: {
+        profile_ids: { type: 'array', items: 'string', min: 2, max: 5 },
+        target_audience: { type: 'string' },
+        context: {
+          type: 'object',
+          example: {
+            location: 'Heidelberg',
+            trigger: 'Presseanfrage zur Netzstabilität',
+            focus_areas: ['capacity', 'compliance'],
+            capacity_mw: 10,
+          },
+          props: {
+            location: { type: 'string', optional: true },
+            trigger: { type: 'string' },
+            focus_areas: {
+              type: 'array',
+              min: 1,
+              items: {
+                type: 'enum',
+                values: FOCUS_AREAS,
+              },
+            },
+            capacity_mw: { type: 'number', optional: true },
+          },
+        },
+        session_id: { type: 'string', optional: true },
+      },
+      openapi: {
+        tags: ['CYA Agent'],
+        summary: 'Generate multi-perspective comparison from profiles/templates',
+        description:
+          'Runs phases 1–3 once (retrieval/graph/grounding) and executes phase 4 synthesis in parallel for 2–5 profile IDs or template IDs.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['profile_ids', 'target_audience', 'context'],
+                properties: {
+                  profile_ids: {
+                    type: 'array',
+                    minItems: 2,
+                    maxItems: 5,
+                    items: { type: 'string' },
+                    example: ['vnb_defensiv', 'projektierer_offensiv'],
+                  },
+                  target_audience: { type: 'string', example: 'Aufsichtsrat' },
+                  context: {
+                    type: 'object',
+                    required: ['trigger', 'focus_areas'],
+                    example: {
+                      location: 'Heidelberg',
+                      trigger: 'Presseanfrage zur Netzstabilität',
+                      focus_areas: ['capacity', 'compliance'],
+                      capacity_mw: 10,
+                    },
+                    properties: {
+                      location: { type: 'string', nullable: true, example: 'Heidelberg' },
+                      trigger: { type: 'string', example: 'Presseanfrage zur Netzstabilität' },
+                      focus_areas: {
+                        type: 'array',
+                        minItems: 1,
+                        items: { type: 'string', enum: FOCUS_AREAS },
+                        example: ['capacity', 'compliance'],
+                      },
+                      capacity_mw: {
+                        type: 'number',
+                        nullable: true,
+                        description: 'Optional asset capacity in MW for topology-hop logic.',
+                        example: 10,
+                      },
+                    },
+                  },
+                  session_id: { type: 'string', nullable: true, example: 'cya_mp_1713110400000' },
+                },
+              },
+              examples: {
+                default: {
+                  value: {
+                    profile_ids: ['vnb_defensiv', 'projektierer_offensiv'],
+                    target_audience: 'Aufsichtsrat',
+                    context: {
+                      location: 'Heidelberg',
+                      trigger: 'Presseanfrage zur Netzstabilität',
+                      focus_areas: ['capacity', 'compliance'],
+                      capacity_mw: 10,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Comparison result',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    session_id: { type: 'string' },
+                    status: { type: 'string', enum: ['completed', 'needs_clarification'] },
+                    perspectiveCount: { type: 'number', example: 2 },
+                    grounding: { type: 'object' },
+                    regulatory_graph: { type: 'object' },
+                    perspectives: { type: 'array', items: { type: 'object' } },
+                    metadata: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+          404: { description: 'Profile/template not found' },
+        },
+      },
+      async handler(ctx) {
+        const { profile_ids, target_audience, context, session_id } = ctx.params;
+
+        const profiles = [];
+        for (const id of profile_ids) {
+          let profile = null;
+          try {
+            profile = await this.loadProfile(ctx, id);
+            profile._sourceType = 'profile';
+            profile._sourceId = id;
+          } catch (err) {
+            if (err?.code === 404 || err?.type === 'PROFILE_NOT_FOUND') {
+              const template = getTemplate(id);
+              if (template) {
+                profile = {
+                  actor: template.actor,
+                  strategic_goals: template.strategic_goals,
+                  tone: template.tone,
+                  _sourceType: 'template',
+                  _sourceId: id,
+                };
+              }
+            } else {
+              throw err;
+            }
+          }
+
+          if (!profile) {
+            throw new MoleculerError(`Profile or template '${id}' not found`, 404, 'PROFILE_OR_TEMPLATE_NOT_FOUND');
+          }
+          profiles.push(profile);
+        }
+
+        const retrieval = await retrieveContextData(ctx, {
+          profile: profiles[0],
+          target_audience,
+          context,
+        });
+
+        const regulatoryGraph = buildRegulatoryGraph({
+          retrieval,
+          context,
+          profile: profiles[0],
+          topologyHop: retrieval.topologyHop,
+        });
+
+        const grounding = buildGrounding({
+          retrieval,
+          regulatoryGraph,
+          context,
+          topologyHop: retrieval.topologyHop,
+        });
+
+        if (grounding.requiresClarification || !Array.isArray(grounding.facts) || grounding.facts.length === 0) {
+          return {
+            success: true,
+            status: 'needs_clarification',
+            clarification: grounding.clarification || { reason: 'insufficient_facts' },
+            grounding,
+            regulatory_graph: regulatoryGraph,
+          };
+        }
+
+        const perspectives = await Promise.all(
+          profiles.map(async (profile) => {
+            try {
+              const synthesis = await synthesizeNarrative({
+                mode: 'generate',
+                profile,
+                target_audience,
+                context,
+                grounding,
+                regulatoryGraph,
+              });
+
+              return {
+                profileId: profile._sourceId,
+                profileType: profile._sourceType,
+                role: profile.actor?.role || null,
+                organization: profile.actor?.organization || null,
+                tone: profile.tone || null,
+                narrative: synthesis.narrative,
+                status: 'completed',
+              };
+            } catch (err) {
+              return {
+                profileId: profile._sourceId,
+                profileType: profile._sourceType,
+                role: profile.actor?.role || null,
+                status: 'error',
+                error: String(err?.message || 'synthesis_failed'),
+              };
+            }
+          })
+        );
+
+        const now = new Date().toISOString();
+        const sessionId = session_id || `cya_mp_${Date.now()}`;
+        await this.saveSession(ctx, sessionId, {
+          type: 'multi_perspective',
+          profile_ids,
+          target_audience,
+          context,
+          grounding,
+          regulatory_graph: regulatoryGraph,
+          perspectives,
+          createdAt: now,
+          updatedAt: now,
+        });
+
+        return {
+          success: true,
+          session_id: sessionId,
+          status: 'completed',
+          perspectiveCount: perspectives.length,
+          grounding: {
+            confidence: grounding.confidence,
+            factCount: grounding.facts?.length || 0,
+            dataGaps: grounding.dataGaps,
+          },
+          regulatory_graph: regulatoryGraph,
+          perspectives,
+          metadata: {
+            createdAt: now,
+            focus_areas: context.focus_areas,
+            trigger: context.trigger,
+            location: context.location,
+          },
+        };
       },
     },
 
