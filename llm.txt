@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.27.5
-- changelog_latest_release: 0.27.5
+- version: 0.28.0
+- changelog_latest_release: 0.28.0
 - source_files_hash:
-  - CHANGELOG.md: b56c0300902306888ac493a3b052a3ad6dd0505070d11624a2653383eb45616e
+  - CHANGELOG.md: fe1bcd8d873ebea191ab4b25024e03d759c45054ec04b7afeb5800f50fb388b3
   - README.md: 9d55cf0d888898809676b39e02adf2fcd7d1e61db82357c805f96d9154cfcab9
-  - docs/BACKEND_CONTEXT.md: db557a71e04a5b23042dc036efa8d48e0e174ff56a04d72d87d1c2e658feea42
+  - docs/BACKEND_CONTEXT.md: cdcea6bdb0d7ad6a7996dba56c83a1a015e3508a864b03ff1bd71c434085ed5c
   - src/cookbook-recipes.js: 7e92337203ff08ef348bcdb1b91d04ad58683494640c76553b005f6cfdd42109
-  - openapi-export.json: 1536012c61c3dea5e3fee5157610446312e9781c389aa9c3219d1750465bd54e
+  - openapi-export.json: 244f4ec81ae076ade01a8e18f04fcda6d30d26cf51beb329436d284c3b65860e
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -596,8 +596,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 114
-- operation_count: 138
+- path_count: 123
+- operation_count: 153
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -608,6 +608,7 @@ process:
 - Dashboard API: 4 operations
 - Datapoints: 16 operations
 - DataSources: 27 operations
+- EDM (Energiedatenmanagement): 10 operations
 - Energy Sharing Allocation: 5 operations
 - Energy Sharing Validation: 3 operations
 - Grid Connection Validation: 3 operations
@@ -620,6 +621,7 @@ process:
 - Object Store: 4 operations
 - OEP (Open Energy Platform): 5 operations
 - Redispatch Ex-Post: 3 operations
+- SLP (Standardlastprofile): 5 operations
 - VNBMonitor: 4 operations
 - Zielnetzplanung (ZNP): 11 operations
 
@@ -691,6 +693,16 @@ process:
 - POST /api/datasources/:id/infer | tags: [DataSources] | operationId: datasource-registry_infer | summary: Trigger AI-assisted schema inference
 - POST /api/datasources/:id/refresh | tags: [DataSources] | operationId: datasource-registry_refresh | summary: Trigger datasource refresh
 - GET /api/datasources/connector-types | tags: [DataSources] | operationId: datasource-connector_listPlugins | summary: List available connector plugin types
+- GET /api/edm/melos | tags: [EDM (Energiedatenmanagement)] | operationId: edm_listMelos | summary: List MeLos
+- POST /api/edm/melos | tags: [EDM (Energiedatenmanagement)] | operationId: edm_createMelo | summary: Create a MeLo in EDM registry
+- DELETE /api/edm/melos/:meloId | tags: [EDM (Energiedatenmanagement)] | operationId: edm_deleteMelo | summary: Delete one MeLo
+- GET /api/edm/melos/:meloId | tags: [EDM (Energiedatenmanagement)] | operationId: edm_getMelo | summary: Get one MeLo
+- PUT /api/edm/melos/:meloId | tags: [EDM (Energiedatenmanagement)] | operationId: edm_updateMelo | summary: Update one MeLo
+- POST /api/edm/melos/from-mastr | tags: [EDM (Energiedatenmanagement)] | operationId: edm_createFromMastr | summary: Create MeLos from MaStR installation lookup
+- DELETE /api/edm/timeseries/:meloId | tags: [EDM (Energiedatenmanagement)] | operationId: edm_deleteTimeseries | summary: Delete timeseries data for a MeLo
+- GET /api/edm/timeseries/:meloId | tags: [EDM (Energiedatenmanagement)] | operationId: edm_getTimeseries | summary: Query timeseries data for a MeLo
+- GET /api/edm/timeseries/:meloId/summary | tags: [EDM (Energiedatenmanagement)] | operationId: edm_getTimeseriesSummary | summary: Get aggregated timeseries summary
+- POST /api/edm/timeseries/import | tags: [EDM (Energiedatenmanagement)] | operationId: edm_importTimeseries | summary: Import timeseries data for a MeLo
 - POST /api/energy-sharing-allocation/allocate | tags: [Energy Sharing Allocation] | operationId: energy-sharing-allocation_allocate | summary: Calculate 15-min Energy Sharing allocation time-series (§ 42c EnWG)
 - GET /api/energy-sharing-allocation/allocations | tags: [Energy Sharing Allocation] | operationId: energy-sharing-allocation_list | summary: List past Energy Sharing allocation records
 - DELETE /api/energy-sharing-allocation/allocations/:id | tags: [Energy Sharing Allocation] | operationId: energy-sharing-allocation_remove | summary: Soft-delete an Energy Sharing allocation record
@@ -741,6 +753,11 @@ process:
 - POST /api/redispatch/audit | tags: [Redispatch Ex-Post] | operationId: redispatch-expost_audit | summary: Run Redispatch Ex-Post settlement audit (7-step, deterministic)
 - GET /api/redispatch/audits | tags: [Redispatch Ex-Post] | operationId: redispatch-expost_list | summary: List past Redispatch Ex-Post audit reports
 - GET /api/redispatch/audits/:id | tags: [Redispatch Ex-Post] | operationId: redispatch-expost_get | summary: Get a specific Redispatch Ex-Post audit report by ID
+- POST /api/slp/generate | tags: [SLP (Standardlastprofile)] | operationId: slp_generateTimeseries | summary: Generate 96 quarter-hour SLP values
+- GET /api/slp/profiles | tags: [SLP (Standardlastprofile)] | operationId: slp_listProfiles | summary: List SLP profiles
+- POST /api/slp/profiles | tags: [SLP (Standardlastprofile)] | operationId: slp_createCustomProfile | summary: Create custom SLP profile
+- DELETE /api/slp/profiles/:profileId | tags: [SLP (Standardlastprofile)] | operationId: slp_deleteCustomProfile | summary: Delete custom SLP profile
+- GET /api/slp/profiles/:profileId | tags: [SLP (Standardlastprofile)] | operationId: slp_getProfile | summary: Get one SLP profile
 - GET /api/tokens | tags: [IntegrationHub] | operationId: token-manager_list | summary: List API tokens
 - POST /api/tokens | tags: [IntegrationHub] | operationId: token-manager_create | summary: Create API token
 - DELETE /api/tokens/:id | tags: [IntegrationHub] | operationId: token-manager_revoke | summary: Revoke API token
@@ -768,7 +785,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.27.5"
+    "version": "0.28.0"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -4677,6 +4694,679 @@ process:
         ]
       }
     },
+    "/api/edm/melos": {
+      "get": {
+        "operationId": "edm_listMelos",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "example": "virtual",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gridOperatorMastrId",
+            "required": false,
+            "schema": {
+              "example": "SNB935578300972",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List"
+          }
+        },
+        "summary": "List MeLos",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      },
+      "post": {
+        "operationId": "edm_createMelo",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "gridOperatorMastrId": "SNB935578300972",
+                    "meloId": "DE0012345678901234567890123456789",
+                    "obisRegisters": [
+                      {
+                        "direction": "feedin",
+                        "obis": "1-0:2.8.0"
+                      }
+                    ],
+                    "type": "physical"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "gridOperatorMastrId": {
+                    "example": "SNB935578300972",
+                    "type": "string"
+                  },
+                  "installationMastrNummer": {
+                    "example": "SEE123456789012",
+                    "type": "string"
+                  },
+                  "meloId": {
+                    "example": "DE0012345678901234567890123456789",
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "example": {
+                      "source": "manual"
+                    },
+                    "type": "object"
+                  },
+                  "name": {
+                    "example": "Messlokation Musterstraße 1",
+                    "type": "string"
+                  },
+                  "napMastrNummer": {
+                    "example": "SAN123456789012",
+                    "type": "string"
+                  },
+                  "obisRegisters": {
+                    "example": [
+                      {
+                        "direction": "feedin",
+                        "obis": "1-0:2.8.0"
+                      }
+                    ],
+                    "items": {
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "sourceConfig": {
+                    "example": {},
+                    "type": "object"
+                  },
+                  "sourceType": {
+                    "default": "manual",
+                    "enum": [
+                      "manual",
+                      "mscons",
+                      "rest_poll",
+                      "forecast",
+                      "calc"
+                    ],
+                    "type": "string"
+                  },
+                  "spannungsebene": {
+                    "example": "Niederspannung",
+                    "type": "string"
+                  },
+                  "type": {
+                    "enum": [
+                      "physical",
+                      "virtual",
+                      "dummy"
+                    ],
+                    "example": "physical",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "meloId",
+                  "type"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Created"
+          }
+        },
+        "summary": "Create a MeLo in EDM registry",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
+    "/api/edm/melos/:meloId": {
+      "delete": {
+        "operationId": "edm_deleteMelo",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "cascade": false,
+                    "meloId": "DE0012345678901234567890123456789"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "cascade": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "meloId": {
+                    "example": "DE0012345678901234567890123456789",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "meloId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Delete one MeLo",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      },
+      "get": {
+        "operationId": "edm_getMelo",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "meloId",
+            "required": true,
+            "schema": {
+              "example": "DE0012345678901234567890123456789",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Found"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Get one MeLo",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      },
+      "put": {
+        "operationId": "edm_updateMelo",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "meloId": "DE0012345678901234567890123456789",
+                    "name": "Neue Bezeichnung"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "gridOperatorMastrId": {
+                    "example": "SNB935578300972",
+                    "type": "string"
+                  },
+                  "installationMastrNummer": {
+                    "example": "SEE123456789012",
+                    "type": "string"
+                  },
+                  "meloId": {
+                    "example": "DE0012345678901234567890123456789",
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "example": {
+                      "tag": "updated"
+                    },
+                    "type": "object"
+                  },
+                  "name": {
+                    "example": "Neue Bezeichnung",
+                    "type": "string"
+                  },
+                  "napMastrNummer": {
+                    "example": "SAN123456789012",
+                    "type": "string"
+                  },
+                  "obisRegisters": {
+                    "example": [
+                      {
+                        "direction": "consumption",
+                        "obis": "1-0:1.8.0"
+                      }
+                    ],
+                    "items": {
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "sourceConfig": {
+                    "example": {},
+                    "type": "object"
+                  },
+                  "sourceType": {
+                    "enum": [
+                      "manual",
+                      "mscons",
+                      "rest_poll",
+                      "forecast",
+                      "calc"
+                    ],
+                    "example": "manual",
+                    "type": "string"
+                  },
+                  "spannungsebene": {
+                    "example": "Niederspannung",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "meloId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Update one MeLo",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
+    "/api/edm/melos/from-mastr": {
+      "post": {
+        "operationId": "edm_createFromMastr",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "gridOperatorMastrId": "SNB935578300972",
+                    "limit": 100,
+                    "type": "all"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "gridOperatorMastrId": {
+                    "example": "SNB935578300972",
+                    "type": "string"
+                  },
+                  "limit": {
+                    "default": 100,
+                    "type": "number"
+                  },
+                  "postleitzahl": {
+                    "example": "66989",
+                    "type": "string"
+                  },
+                  "type": {
+                    "default": "all",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Import result"
+          }
+        },
+        "summary": "Create MeLos from MaStR installation lookup",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
+    "/api/edm/timeseries/:meloId": {
+      "delete": {
+        "operationId": "edm_deleteTimeseries",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "from": "2026-04-01T00:00:00.000Z",
+                    "meloId": "DE0012345678901234567890123456789",
+                    "to": "2026-04-02T00:00:00.000Z"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "from": {
+                    "example": "2026-04-01T00:00:00.000Z",
+                    "type": "string"
+                  },
+                  "meloId": {
+                    "example": "DE0012345678901234567890123456789",
+                    "type": "string"
+                  },
+                  "obis": {
+                    "example": "1-0:2.8.0",
+                    "type": "string"
+                  },
+                  "to": {
+                    "example": "2026-04-02T00:00:00.000Z",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "meloId",
+                  "from",
+                  "to"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Delete result"
+          }
+        },
+        "summary": "Delete timeseries data for a MeLo",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      },
+      "get": {
+        "description": "Retrieves timeseries data with optional resolution aggregation. Supports cross-quarter queries transparently.",
+        "operationId": "edm_getTimeseries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "meloId",
+            "required": true,
+            "schema": {
+              "example": "DE0012345678901234567890123456789",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "obis",
+            "required": false,
+            "schema": {
+              "default": "1-0:1.8.0",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "example": "2026-04-01T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "example": "2026-04-02T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resolution",
+            "required": false,
+            "schema": {
+              "default": "15min",
+              "enum": [
+                "15min",
+                "hourly",
+                "daily"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "json",
+              "enum": [
+                "json",
+                "csv"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Timeseries result"
+          }
+        },
+        "summary": "Query timeseries data for a MeLo",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
+    "/api/edm/timeseries/:meloId/summary": {
+      "get": {
+        "operationId": "edm_getTimeseriesSummary",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "meloId",
+            "required": true,
+            "schema": {
+              "example": "DE0012345678901234567890123456789",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "obis",
+            "required": false,
+            "schema": {
+              "default": "1-0:1.8.0",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "example": "2026-04-01T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "example": "2026-04-30T23:59:59.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "groupBy",
+            "required": false,
+            "schema": {
+              "default": "day",
+              "enum": [
+                "day",
+                "week",
+                "month",
+                "year"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Grouped summary"
+          }
+        },
+        "summary": "Get aggregated timeseries summary",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
+    "/api/edm/timeseries/import": {
+      "post": {
+        "description": "Imports measurement data from CSV or JSON format into the SQLite timeseries store. CSV config supports German formats (semicolon delimiter, comma decimal, DD.MM.YYYY timestamps).",
+        "operationId": "edm_importTimeseries",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "json": {
+                  "value": {
+                    "data": [
+                      {
+                        "ts": "2026-04-01T00:00:00.000Z",
+                        "value": 12.4
+                      }
+                    ],
+                    "format": "json",
+                    "meloId": "DE0012345678901234567890123456789",
+                    "obis": "1-0:2.8.0"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "config": {
+                    "example": {
+                      "delimiter": ";",
+                      "timestampColumn": "ts",
+                      "valueColumn": "val"
+                    },
+                    "type": "object"
+                  },
+                  "data": {
+                    "example": [
+                      {
+                        "ts": "2026-04-01T00:00:00.000Z",
+                        "value": 12.4
+                      }
+                    ],
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "array"
+                      }
+                    ]
+                  },
+                  "format": {
+                    "default": "json",
+                    "enum": [
+                      "csv",
+                      "json"
+                    ],
+                    "type": "string"
+                  },
+                  "meloId": {
+                    "example": "DE0012345678901234567890123456789",
+                    "type": "string"
+                  },
+                  "obis": {
+                    "default": "1-0:1.8.0",
+                    "example": "1-0:2.8.0",
+                    "type": "string"
+                  },
+                  "overwriteExisting": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "meloId",
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Import result"
+          }
+        },
+        "summary": "Import timeseries data for a MeLo",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
     "/api/energy-sharing-allocation/allocate": {
       "post": {
         "description": "Executes a 6-step deterministic allocation pipeline: input validation → generation time-series fetch (Stufe A: forecast / Stufe B: inhouse metering) → redispatch deduction → allocation arithmetic → summary assembly → PouchDB persist. Returns metadata and per-consumer summaries. Full 15-min time-series is available for download via GET /energy-sharing/allocations/:id/download. Regulatory basis: § 42c EnWG, § 12 StromNZV (Viertelstundenwerte), § 20b EnWG Interimsprozess (operative deadline 01.06.2026). KRITIS constraint: raw generation data is never persisted — only metadata.",
@@ -7768,6 +8458,435 @@ process:
         ]
       }
     },
+    "/api/slp/generate": {
+      "post": {
+        "operationId": "slp_generateTimeseries",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "annualConsumptionKwh": 3500,
+                    "date": "2026-01-15",
+                    "profileId": "H0"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "annualConsumptionKwh": {
+                    "example": 3500,
+                    "type": "number"
+                  },
+                  "date": {
+                    "example": "2026-01-15",
+                    "type": "string"
+                  },
+                  "profileId": {
+                    "example": "H0",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "profileId",
+                  "date",
+                  "annualConsumptionKwh"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Generated"
+          },
+          "404": {
+            "description": "Profile not found"
+          }
+        },
+        "summary": "Generate 96 quarter-hour SLP values",
+        "tags": [
+          "SLP (Standardlastprofile)"
+        ]
+      }
+    },
+    "/api/slp/profiles": {
+      "get": {
+        "operationId": "slp_listProfiles",
+        "responses": {
+          "200": {
+            "description": "Profile list"
+          }
+        },
+        "summary": "List SLP profiles",
+        "tags": [
+          "SLP (Standardlastprofile)"
+        ]
+      },
+      "post": {
+        "operationId": "slp_createCustomProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "dayType": "all",
+                    "name": "Nachtspeicher-Profil Muster",
+                    "owner": "Stadtwerke Beispiel",
+                    "profileId": "custom_muster_001",
+                    "season": "all",
+                    "values": [
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "baseProfile": {
+                    "example": "H0",
+                    "type": "string"
+                  },
+                  "dayType": {
+                    "enum": [
+                      "weekday",
+                      "saturday",
+                      "sunday",
+                      "all"
+                    ],
+                    "example": "all",
+                    "type": "string"
+                  },
+                  "name": {
+                    "example": "Nachtspeicher-Profil Muster",
+                    "type": "string"
+                  },
+                  "owner": {
+                    "example": "Stadtwerke Beispiel",
+                    "type": "string"
+                  },
+                  "profileId": {
+                    "example": "custom_muster_001",
+                    "type": "string"
+                  },
+                  "season": {
+                    "enum": [
+                      "winter",
+                      "summer",
+                      "transition",
+                      "all"
+                    ],
+                    "example": "all",
+                    "type": "string"
+                  },
+                  "values": {
+                    "example": [
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666,
+                      0.010416666666666666
+                    ],
+                    "items": {
+                      "type": "number"
+                    },
+                    "maxItems": 96,
+                    "minItems": 96,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "profileId",
+                  "name",
+                  "season",
+                  "dayType",
+                  "values"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Created"
+          }
+        },
+        "summary": "Create custom SLP profile",
+        "tags": [
+          "SLP (Standardlastprofile)"
+        ]
+      }
+    },
+    "/api/slp/profiles/:profileId": {
+      "delete": {
+        "operationId": "slp_deleteCustomProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "profileId": "custom_muster_001"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "profileId": {
+                    "example": "custom_muster_001",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "profileId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Standard profile cannot be deleted"
+          }
+        },
+        "summary": "Delete custom SLP profile",
+        "tags": [
+          "SLP (Standardlastprofile)"
+        ]
+      },
+      "get": {
+        "operationId": "slp_getProfile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profileId",
+            "required": true,
+            "schema": {
+              "example": "H0",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "date",
+            "required": false,
+            "schema": {
+              "example": "2026-01-15",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Get one SLP profile",
+        "tags": [
+          "SLP (Standardlastprofile)"
+        ]
+      }
+    },
     "/api/tokens": {
       "get": {
         "operationId": "token-manager_list",
@@ -9101,13 +10220,21 @@ process:
       "name": "CYA Agent"
     },
     {
+      "description": "Meter data management with SQLite-backed timeseries storage, MeLo registry, and measurement concepts (v0.28). KRITIS-compliant embedded storage with quarterly partitioning.",
+      "name": "EDM (Energiedatenmanagement)"
+    },
+    {
+      "description": "Standard load profiles (BDEW H0/G0/L0) and custom profiles for load estimation, settlement, and forecast baseline.",
+      "name": "SLP (Standardlastprofile)"
+    },
+    {
       "description": "MaStR installation change monitoring with field-level delta detection and email notifications (v0.27). Watches track changes to MaStR installations based on saved queries with configurable schedules.",
       "name": "MaStR Monitor"
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.27.5"
+  "x-version": "0.28.0"
 }
 
 ## Integrity
-- llm_txt_sha256: bbdedccb837d1ab88ce65ed62419aa62ff3f307eb67ccd1531ed06db321f22d7
+- llm_txt_sha256: 0b3641247c010b459ee09ae5fd21e1d7f29a9c1e799e5572b6cadf5a86fed57f

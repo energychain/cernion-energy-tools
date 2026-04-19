@@ -85,6 +85,16 @@ function requiresFullAccess(method, requestPath) {
   const m = String(method || '').toUpperCase();
   const pathOnly = String(requestPath || '').split('?')[0];
 
+  if (pathOnly.startsWith('/api/edm/melos') && (m === 'POST' || m === 'PUT' || m === 'DELETE')) {
+    return true;
+  }
+  if (pathOnly.startsWith('/api/edm/timeseries') && (m === 'POST' || m === 'DELETE')) {
+    return true;
+  }
+  if (pathOnly.startsWith('/api/slp/profiles') && (m === 'POST' || m === 'DELETE')) {
+    return true;
+  }
+
   if (pathOnly === '/api/tokens' && m === 'GET') return true;
   if (pathOnly === '/api/tokens' && m === 'POST') return true;
   if (pathOnly.startsWith('/api/tokens/') && pathOnly !== '/api/tokens/verify' && m === 'DELETE') {
@@ -273,6 +283,17 @@ module.exports = {
           description:
             'Stakeholder-perspective argumentation engine with regulatory grounding (v0.26). ' +
             'Generates data-backed, profile-aware narratives from Cernion microservice data + OEO regulatory context.',
+        },
+        {
+          name: 'EDM (Energiedatenmanagement)',
+          description:
+            'Meter data management with SQLite-backed timeseries storage, MeLo registry, and measurement concepts (v0.28). ' +
+            'KRITIS-compliant embedded storage with quarterly partitioning.',
+        },
+        {
+          name: 'SLP (Standardlastprofile)',
+          description:
+            'Standard load profiles (BDEW H0/G0/L0) and custom profiles for load estimation, settlement, and forecast baseline.',
         },
         {
           name: 'MaStR Monitor',
@@ -604,6 +625,25 @@ module.exports = {
           'DELETE /mastr-monitor/watches/:watchId/subscribe/:token': 'mastr-monitor.unsubscribe',
           'GET /mastr-monitor/confirm/:token': 'mastr-monitor.confirmSubscription',
           'POST /mastr-monitor/from-session': 'mastr-monitor.createFromSession',
+
+          // EDM (v0.28)
+          'POST /edm/melos': 'edm.createMelo',
+          'GET /edm/melos': 'edm.listMelos',
+          'GET /edm/melos/:meloId': 'edm.getMelo',
+          'PUT /edm/melos/:meloId': 'edm.updateMelo',
+          'DELETE /edm/melos/:meloId': 'edm.deleteMelo',
+          'POST /edm/melos/from-mastr': 'edm.createFromMastr',
+          'POST /edm/timeseries/import': 'edm.importTimeseries',
+          'GET /edm/timeseries/:meloId/summary': 'edm.getTimeseriesSummary',
+          'GET /edm/timeseries/:meloId': 'edm.getTimeseries',
+          'DELETE /edm/timeseries/:meloId': 'edm.deleteTimeseries',
+
+          // SLP (v0.28)
+          'GET /slp/profiles': 'slp.listProfiles',
+          'GET /slp/profiles/:profileId': 'slp.getProfile',
+          'POST /slp/generate': 'slp.generateTimeseries',
+          'POST /slp/profiles': 'slp.createCustomProfile',
+          'DELETE /slp/profiles/:profileId': 'slp.deleteCustomProfile',
 
           // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
           'GET /datasources/uploads'(req, res) {

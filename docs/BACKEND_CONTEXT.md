@@ -1,6 +1,6 @@
 # Cernion Energy Tools — Backend Context Reference
 
-> **Version:** 0.27.0
+> **Version:** 0.28.0
 > **Purpose:** Comprehensive backend context for frontend developers, AI assistants,
 > and new contributors. One document to understand the full system.
 
@@ -11,7 +11,8 @@
 Cernion Energy Tools is a **Moleculer microservices** system. Each service runs in the
 same process and communicates via Moleculer's in-process transport (no network hops for
 internal calls). A single API Gateway (`services/api.service.js`) exposes all services as
-REST endpoints on port 3000.
+REST endpoints on port 3000. As of v0.28.0, the platform exposes **~149 REST endpoints**
+including the new EDM (`/api/edm/*`) and SLP (`/api/slp/*`) surfaces.
 
 ```
 HTTP clients
@@ -25,7 +26,7 @@ HTTP clients
 │   POST /api/energy-sharing/*  → energy-sharing.service  (v0.15) │
 │   POST /api/redispatch/*      → redispatch-expost.svc   (v0.18) │
 │   GET  /api/datapoints/*      → datapoint.service       (v0.11) │
-│   … and 36 more services                                        │
+│   … and 38 more services                                        │
 └─────────────────────────────────────────────────────────────────┘
     │
     ▼ MCP client
@@ -52,7 +53,7 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 
 ---
 
-## 2. Service Directory (45 services as of v0.27.0)
+## 2. Service Directory (47 services as of v0.28.0)
 
 | Service | File | Since | Key actions |
 |---------|------|-------|-------------|
@@ -73,6 +74,7 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 | datasource-registry | `datasource-registry.service.js` | v0.9 | Datasource CRUD |
 | datasource-watcher | `datasource-watcher.service.js` | v0.9 | File change watcher |
 | eic-codes | `eic-codes.service.js` | v0.9 | EIC code lookup |
+| **edm** | `edm.service.js` | **v0.28** | **MeLo-Registry, Zeitreihen-Import/Query/Summary/Delete (SQLite)** |
 | energy-market | `energy-market.service.js` | v0.9 | Prices, CO₂, installations |
 | energy-sharing | `energy-sharing.service.js` | v0.15 | § 42c EnWG validation |
 | energy-sharing-allocation | `energy-sharing-allocation.service.js` | v0.16 | Allocation engine |
@@ -95,6 +97,7 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 | query | `query.service.js` | v0.9 | LLM query planner |
 | redispatch-expost | `redispatch-expost.service.js` | v0.18 | Redispatch settlement audit |
 | residual-load | `residual-load.service.js` | v0.9 | Residual load analysis |
+| **slp** | `slp.service.js` | **v0.28** | **BDEW H0/G0/L0, Custom-Profile CRUD, Lastprofil-Generierung** |
 | system | `system.service.js` | v0.1 | Health, version |
 | token-manager | `token-manager.service.js` | v0.16 | `ck_` prefix tokens |
 | utility-report | `utility-report.service.js` | v0.9 | Utility analysis reports |
@@ -284,11 +287,17 @@ All endpoints follow the graceful degradation pattern:
 
 ---
 
+## 10.1 Runtime Dependencies (selected)
+
+- `better-sqlite3` — Embedded SQLite engine for EDM (WAL mode, quarterly partitioned timeseries, no external DB server)
+
+---
+
 ## 11. Test Suite
 
 - **Framework**: Jest (`jest.config.js`)
 - **Coverage thresholds**: branches 60%, functions/lines/statements 75%
-- **Total**: ~2 268+ tests, ~82 suites (as of v0.27.0)
+- **Total**: ~2 268+ tests, ~82 suites (as of v0.28.0)
 - **Release gate**: `npm run release:check` (unit coverage + OpenAPI audit + critical security)
 - Custom tests in `custom-tests/` (git-ignored, excluded from coverage)
 

@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.28.0] — 2026-04-20
+
+### Added
+
+- **EDM (Energiedatenmanagement) Core:** SQLite-basiertes Messdaten-
+  Management mit quartalsweiser Partitionierung (better-sqlite3, WAL-Modus,
+  WITHOUT ROWID). KRITIS-konform (embedded, kein externer Server).
+  10 REST-Endpoints (/api/edm/*).
+  - MeLo-Registry CRUD (physisch/virtuell/dummy) mit MaStR-Integration
+  - Zeitreihen-Import (CSV mit deutschem Format, JSON) mit Batch-Insert
+  - Zeitreihen-Query mit Resolution-Aggregation (15min/hourly/daily)
+  - Zeitreihen-Summary mit flexibler Gruppierung (day/week/month/year)
+  - Cross-Quarter-Queries transparent über SQLite-Partitionsgrenzen
+  - OBIS-Code-Registry (Strom, Gas, Wärme)
+  - DSGVO-konforme Retention-Policy (EDM_RETENTION_DAYS in .env)
+- **SLP-Service:** Standardlastprofile (BDEW H0/G0/L0) als dedizierter
+  Microservice mit Custom-Profil-CRUD. 5 REST-Endpoints (/api/slp/*).
+  Individuelle Versorger-/Netzbetreiber-Profile unterstützt.
+- **EDM E2E Demo (Höheinöd):** Full-lifecycle integration test:
+  MaStR → MeLo-Registry → CSV-Import → SLP-Dummy → Zeitreihen-Query
+  → Aggregation → Cleanup. Echte MaStR-Fixtures (PLZ 66989).
+
+### Dependencies
+
+- `better-sqlite3` (SQLite WAL-Modus, embedded TSDB-Alternative)
+
 ## [0.27.5] — 2026-04-19
 
 ### Added
