@@ -551,19 +551,28 @@ headers: {
 ```json
 {
   "searchTerm": "Gerhard Weiser Ring 29, 69256 Mauer",
-  "total": 1,
+  "total": 2,
   "results": [
     {
-      "_id": "DEBWhk01000gMZ1V",
+      "_id": "DEBWhk01000gMZ2A",
       "title": "Gerhard-Weiser-Ring 29, 69256 Mauer, Baden",
       "subtitle": "Mauer, Baden, Baden-Württemberg",
       "logo": null,
       "url": "/overview?coordinates=49.34206,8.80022&searchType=LOCATION",
       "type": "LOCATION"
+    },
+    {
+      "_id": "DEBWhk01000gMZ1V",
+      "title": "Stadtwerke Heidelberg Netze GmbH",
+      "type": "vnb",
+      "profileUrl": "https://www.vnbdigital.de/vnb/DEBWhk01000gMZ1V"
     }
   ]
 }
 ```
+
+**Note**:
+- `profileUrl` is an additive optional field and appears for VNB entries when available.
 
 ---
 
@@ -615,7 +624,61 @@ headers: {
       { "_id": "...", "name": "..." }
     ],
     "vnbs": [
-      { "_id": "...", "name": "...", "voltageTypes": ["Niederspannung"] }
+      {
+        "_id": "DEBWhk01000gMZ1V",
+        "name": "Stadtwerke Heidelberg Netze GmbH",
+        "voltageTypes": ["Niederspannung"],
+        "profileUrl": "https://www.vnbdigital.de/vnb/DEBWhk01000gMZ1V"
+      }
+    ]
+  }
+}
+```
+
+**Note**:
+- `profileUrl` is an additive optional field on `result.vnbs[]` and may be absent.
+
+---
+
+#### vnbdigital_control_measures
+
+**Purpose**: Retrieve §14a control measures for a postcode area or a specific VNB.
+
+**Parameters**:
+```typescript
+{
+  searchType: 'postcode' | 'vnb';
+  postcode?: string;    // Required when searchType='postcode'
+  vnbId?: string;       // Required when searchType='vnb'
+  range?: string[];     // Optional area filter (prefixes/regions)
+}
+```
+
+**Use Cases**:
+- Show all control measures for a VNB
+- Inspect control-measure coverage for a postcode area
+- Analyze §14a rollout and constraints
+
+**Example Request**:
+```json
+{
+  "searchType": "vnb",
+  "vnbId": "7214"
+}
+```
+
+**Example Response**:
+```json
+{
+  "searchType": "vnb",
+  "vnbId": "7214",
+  "result": {
+    "items": [
+      {
+        "id": "...",
+        "name": "...",
+        "status": "active"
+      }
     ]
   }
 }

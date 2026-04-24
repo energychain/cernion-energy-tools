@@ -235,6 +235,7 @@ describe('dashboard-api.service', () => {
     broker.createService({
       name: 'entsoe',
       actions: {
+        dayAheadPrices:    makeHandler('entsoeprices',   MOCK_PRICES),
         windSolarForecast: makeHandler('entsoeforecast', MOCK_FORECAST),
       },
     });
@@ -522,14 +523,12 @@ describe('dashboard-api.service', () => {
     });
 
     it('returns null spotPrice when all price services fail', async () => {
-      handlers.emPrices  = () => { throw new Error('down'); };
-      handlers.germangrid = () => { throw new Error('down'); };
+      handlers.entsoeprices = () => { throw new Error('down'); };
 
       const result = await broker.call('dashboard-api.marketSnapshot', {});
 
       expect(result.spotPrice).toBeNull();
-      expect(result._errors).toContain('energy-market.prices');
-      expect(result._errors).toContain('german-grid.spotprices');
+      expect(result._errors).toContain('entsoe.dayAheadPrices');
     });
 
     it('returns null co2 when co2Intensity service fails', async () => {
@@ -555,7 +554,7 @@ describe('dashboard-api.service', () => {
 
     it('uses different cache keys for different location/region combinations', async () => {
       let callCount = 0;
-      handlers.emPrices = () => { callCount++; return MOCK_PRICES; };
+      handlers.entsoeprices = () => { callCount++; return MOCK_PRICES; };
 
       await broker.call('dashboard-api.marketSnapshot', { location: 'Deutschland', region: 'Germany' });
       await broker.call('dashboard-api.marketSnapshot', { location: 'Bayern', region: 'Germany' });
@@ -566,7 +565,7 @@ describe('dashboard-api.service', () => {
 
     it('deduplicates concurrent requests for same location/region (stampede guard)', async () => {
       let callCount = 0;
-      handlers.emPrices = async () => {
+      handlers.entsoeprices = async () => {
         callCount++;
         await new Promise((r) => setTimeout(r, 20));
         return MOCK_PRICES;
@@ -839,10 +838,9 @@ describe('dashboard-api.service', () => {
       'grid-connection.list',
       'energy-sharing.list',
       'redispatch-expost.list',
-      'energy-market.prices',
       'energy-market.co2Intensity',
+      'entsoe.dayAheadPrices',
       'entsoe.windSolarForecast',
-      'german-grid.spotprices',
       'energy-sharing-allocation.list',
     ];
 

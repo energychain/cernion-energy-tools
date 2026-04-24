@@ -91,6 +91,21 @@ function requiresFullAccess(method, requestPath) {
   if (pathOnly.startsWith('/api/edm/timeseries') && (m === 'POST' || m === 'DELETE')) {
     return true;
   }
+  if (pathOnly === '/api/edm/validate' && m === 'POST') {
+    return true;
+  }
+  if (/^\/api\/edm\/validate\/[^/]+\/fill-gaps$/.test(pathOnly) && m === 'POST') {
+    return true;
+  }
+  if (pathOnly.startsWith('/api/edm/messkonzepte') && (m === 'POST' || m === 'DELETE')) {
+    return true;
+  }
+  if (pathOnly.startsWith('/api/edm/virtual') && m === 'POST') {
+    return true;
+  }
+  if (pathOnly === '/api/mscons/import' && m === 'POST') {
+    return true;
+  }
   if (pathOnly.startsWith('/api/slp/profiles') && (m === 'POST' || m === 'DELETE')) {
     return true;
   }
@@ -637,6 +652,37 @@ module.exports = {
           'GET /edm/timeseries/:meloId/summary': 'edm.getTimeseriesSummary',
           'GET /edm/timeseries/:meloId': 'edm.getTimeseries',
           'DELETE /edm/timeseries/:meloId': 'edm.deleteTimeseries',
+
+          // MSCONS Import (v0.28)
+          'POST /mscons/parse': 'mscons-import.parse',
+          'POST /mscons/import': 'mscons-import.import',
+          'GET /mscons/imports': 'mscons-import.listImports',
+
+          // EDM Messkonzept (v0.21)
+          'POST /edm/messkonzepte/evaluate-all': 'edm-messkonzept.evaluate-all',
+          'POST /edm/messkonzepte/:id/evaluate': 'edm-messkonzept.evaluate',
+          'POST /edm/messkonzepte': 'edm-messkonzept.create',
+          'GET /edm/messkonzepte': 'edm-messkonzept.list',
+          'GET /edm/messkonzepte/:id': 'edm-messkonzept.get',
+          'DELETE /edm/messkonzepte/:id': 'edm-messkonzept.delete',
+
+          // EDM Validation (v0.28)
+          'POST /edm/validate': 'edm-validation.validate',
+          'GET /edm/validate/rules': 'edm-validation.listRules',
+          'GET /edm/validate/:meloId/report': 'edm-validation.getReport',
+          'POST /edm/validate/:meloId/fill-gaps': 'edm-validation.fillGaps',
+
+          // EDM Virtual Auto-Population (v0.29)
+          'POST /edm/virtual/populate-slp': 'edm-virtual.populateBySlp',
+          'POST /edm/virtual/auto-populate/day': 'edm-virtual.autoPopulateDay',
+
+          // EDM Messkonzept (v0.28)
+          'POST /edm/messkonzepte/evaluate-all': 'edm-messkonzept.evaluate-all',
+          'POST /edm/messkonzepte/:id/evaluate': 'edm-messkonzept.evaluate',
+          'POST /edm/messkonzepte': 'edm-messkonzept.create',
+          'GET /edm/messkonzepte': 'edm-messkonzept.list',
+          'GET /edm/messkonzepte/:id': 'edm-messkonzept.get',
+          'DELETE /edm/messkonzepte/:id': 'edm-messkonzept.delete',
 
           // SLP (v0.28)
           'GET /slp/profiles': 'slp.listProfiles',

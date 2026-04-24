@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.28.0",
+    "version": "0.29.0",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -8487,6 +8487,15 @@
             }
           },
           {
+            "name": "sourceType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "mscons"
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "required": false,
@@ -9019,6 +9028,781 @@
         }
       }
     },
+    "/api/mscons/parse": {
+      "post": {
+        "operationId": "mscons-import_parse",
+        "summary": "Parse MSCONS EDIFACT message (no import, read-only)",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Parsed MSCONS result"
+          }
+        },
+        "description": "Parses a MSCONS EDIFACT message and returns structured data without importing into EDM. Use for preview/validation.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "data"
+                ],
+                "properties": {
+                  "data": {
+                    "type": "string",
+                    "example": "UNH+1+MSCONS:D:04B:UN:2.3e'..."
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "data": "UNH+1+MSCONS:D:04B:UN:2.3e'BGM+7+DOC1+9'..."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mscons/import": {
+      "post": {
+        "operationId": "mscons-import_import",
+        "summary": "Import MSCONS EDIFACT message into EDM",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "MSCONS import result"
+          }
+        },
+        "description": "Parses MSCONS, creates MeLos if needed, imports timeseries into EDM SQLite. Fully offline — no external dependencies (KRITIS-compliant).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "data"
+                ],
+                "properties": {
+                  "data": {
+                    "type": "string",
+                    "example": "UNH+1+MSCONS:D:04B:UN:2.3e'..."
+                  },
+                  "autoCreateMelo": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "overwriteExisting": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "validateOnImport": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "gridOperatorMastrId": {
+                    "type": "string",
+                    "example": "SNB961471621746"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "data": "UNH+1+MSCONS:D:04B:UN:2.3e'BGM+7+DOC1+9'...",
+                    "autoCreateMelo": true,
+                    "overwriteExisting": false,
+                    "validateOnImport": true,
+                    "gridOperatorMastrId": "SNB961471621746"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mscons/imports": {
+      "get": {
+        "operationId": "mscons-import_listImports",
+        "summary": "List imported MSCONS MeLos",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of imported MeLos"
+          }
+        }
+      }
+    },
+    "/api/edm/messkonzepte/evaluate-all": {
+      "post": {
+        "operationId": "edm-messkonzept_evaluate-all",
+        "summary": "edm-messkonzept.evaluate-all",
+        "tags": [
+          "edm-messkonzept"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/edm/messkonzepte/:id/evaluate": {
+      "post": {
+        "operationId": "edm-messkonzept_evaluate",
+        "summary": "Evaluate a measurement concept",
+        "tags": [
+          "EDM Messkonzept"
+        ],
+        "responses": {
+          "200": {
+            "description": "Result"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "mk-sum-001"
+                  },
+                  "from": {
+                    "type": "string",
+                    "example": "2026-04-20T00:00:00.000Z"
+                  },
+                  "to": {
+                    "type": "string",
+                    "example": "2026-04-20T12:00:00.000Z"
+                  },
+                  "writeOutput": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "id": "mk-sum-001",
+                    "from": "2026-04-20T00:00:00.000Z",
+                    "to": "2026-04-20T12:00:00.000Z",
+                    "writeOutput": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-oeo-class": "oeo:virtual-measurement"
+      }
+    },
+    "/api/edm/messkonzepte": {
+      "post": {
+        "operationId": "edm-messkonzept_create",
+        "summary": "Create a measurement concept",
+        "tags": [
+          "EDM Messkonzept"
+        ],
+        "responses": {
+          "200": {
+            "description": "Created"
+          },
+          "409": {
+            "description": "Exists"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "name",
+                  "type"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "mk-sum-001"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Total Production"
+                  },
+                  "type": {
+                    "type": "string",
+                    "example": "SUM"
+                  },
+                  "formula": {
+                    "type": "string",
+                    "example": "v0 + v1"
+                  },
+                  "inputs": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "example": [
+                      {
+                        "ref": "v0",
+                        "meloId": "melo-solar",
+                        "obis": "1-0:1.8.0"
+                      }
+                    ]
+                  },
+                  "outputMeloId": {
+                    "type": "string",
+                    "example": "melo-sum-out"
+                  },
+                  "outputObis": {
+                    "type": "string",
+                    "example": "1-0:1.8.0"
+                  },
+                  "schedule": {
+                    "type": "string",
+                    "example": "on_input_change"
+                  },
+                  "validSince": {
+                    "type": "string",
+                    "example": "2026-04-01T00:00:00.000Z"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "id": "mk-sum-001",
+                    "name": "Total Production",
+                    "type": "SUM",
+                    "formula": "v0 + v1",
+                    "inputs": [
+                      {
+                        "ref": "v0",
+                        "meloId": "melo-solar",
+                        "obis": "1-0:1.8.0"
+                      },
+                      {
+                        "ref": "v1",
+                        "meloId": "melo-wind",
+                        "obis": "1-0:1.8.0"
+                      }
+                    ],
+                    "outputMeloId": "melo-sum-out",
+                    "outputObis": "1-0:1.8.0",
+                    "schedule": "on_input_change"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-oeo-class": "oeo:virtual-measurement"
+      },
+      "get": {
+        "operationId": "edm-messkonzept_list",
+        "summary": "List all measurement concepts",
+        "tags": [
+          "EDM Messkonzept"
+        ],
+        "responses": {
+          "200": {
+            "description": "List"
+          }
+        },
+        "x-oeo-class": "oeo:virtual-measurement"
+      }
+    },
+    "/api/edm/messkonzepte/:id": {
+      "get": {
+        "operationId": "edm-messkonzept_get",
+        "summary": "Get a measurement concept",
+        "tags": [
+          "EDM Messkonzept"
+        ],
+        "responses": {
+          "200": {
+            "description": "Found"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "mk-sum-001"
+            }
+          }
+        ],
+        "x-oeo-class": "oeo:virtual-measurement"
+      },
+      "delete": {
+        "operationId": "edm-messkonzept_delete",
+        "summary": "Delete a measurement concept",
+        "tags": [
+          "EDM Messkonzept"
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "x-oeo-class": "oeo:virtual-measurement"
+      }
+    },
+    "/api/edm/validate": {
+      "post": {
+        "operationId": "edm-validation_validate",
+        "summary": "Validate timeseries data and optionally auto-fix gaps",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Runs validation rules against a timeseries range. Returns findings per rule with severity. If autoFix=true, generates replacement values for gaps and writes them to EDM.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "meloId",
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "meloId": {
+                    "type": "string",
+                    "example": "DE0012345678901234567890123456789"
+                  },
+                  "obis": {
+                    "type": "string",
+                    "default": "1-0:1.8.0"
+                  },
+                  "from": {
+                    "type": "string",
+                    "example": "2026-04-01T00:00:00.000Z"
+                  },
+                  "to": {
+                    "type": "string",
+                    "example": "2026-04-01T23:59:59.000Z"
+                  },
+                  "rules": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "GAP_DETECTION"
+                    ]
+                  },
+                  "capacityKw": {
+                    "type": "number",
+                    "example": 10
+                  },
+                  "autoFix": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "meloId": "DE0012345678901234567890123456789",
+                    "obis": "1-0:2.8.0",
+                    "from": "2026-04-01T00:00:00.000Z",
+                    "to": "2026-04-01T23:59:59.000Z",
+                    "rules": [
+                      "BANDWIDTH_CHECK",
+                      "GAP_DETECTION"
+                    ],
+                    "capacityKw": 10,
+                    "autoFix": false
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/edm/validate/rules": {
+      "get": {
+        "operationId": "edm-validation_listRules",
+        "summary": "List available EDM validation rules",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/edm/validate/:meloId/report": {
+      "get": {
+        "operationId": "edm-validation_getReport",
+        "summary": "Get validation report for a timeseries range",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "meloId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "DE0012345678901234567890123456789"
+            }
+          },
+          {
+            "name": "obis",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "1-0:1.8.0"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-04-01T00:00:00.000Z"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-04-01T23:59:59.000Z"
+            }
+          }
+        ]
+      }
+    },
+    "/api/edm/validate/:meloId/fill-gaps": {
+      "post": {
+        "operationId": "edm-validation_fillGaps",
+        "summary": "Fill gaps in timeseries with replacement values",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "meloId",
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "meloId": {
+                    "type": "string",
+                    "example": "DE0012345678901234567890123456789"
+                  },
+                  "obis": {
+                    "type": "string",
+                    "default": "1-0:1.8.0"
+                  },
+                  "from": {
+                    "type": "string",
+                    "example": "2026-04-01T00:00:00.000Z"
+                  },
+                  "to": {
+                    "type": "string",
+                    "example": "2026-04-01T23:59:59.000Z"
+                  },
+                  "method": {
+                    "type": "string",
+                    "enum": [
+                      "interpolate",
+                      "previous_day",
+                      "slp",
+                      "auto"
+                    ],
+                    "default": "auto"
+                  },
+                  "slpProfileId": {
+                    "type": "string",
+                    "default": "H0"
+                  },
+                  "annualConsumptionKwh": {
+                    "type": "number",
+                    "example": 3500
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "meloId": "DE0012345678901234567890123456789",
+                    "obis": "1-0:2.8.0",
+                    "from": "2026-04-01T00:00:00.000Z",
+                    "to": "2026-04-01T23:59:59.000Z",
+                    "method": "auto",
+                    "slpProfileId": "H0",
+                    "annualConsumptionKwh": 3500
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/edm/virtual/populate-slp": {
+      "post": {
+        "operationId": "edm-virtual_populateBySlp",
+        "summary": "Populate one virtual/dummy MeLo from SLP profile",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Virtual timeseries imported"
+          },
+          "404": {
+            "description": "MeLo not found"
+          },
+          "422": {
+            "description": "MeLo type not supported"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "meloId",
+                  "date"
+                ],
+                "properties": {
+                  "meloId": {
+                    "type": "string",
+                    "example": "VIRTUAL_1"
+                  },
+                  "date": {
+                    "type": "string",
+                    "example": "2026-05-01"
+                  },
+                  "profileId": {
+                    "type": "string",
+                    "example": "H0",
+                    "default": "H0"
+                  },
+                  "annualConsumptionKwh": {
+                    "type": "number",
+                    "example": 3200,
+                    "default": 3500
+                  },
+                  "obis": {
+                    "type": "string",
+                    "example": "1-0:1.8.0",
+                    "default": "1-0:1.8.0"
+                  },
+                  "overwriteExisting": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "quality": {
+                    "type": "string",
+                    "example": "synthetic",
+                    "default": "synthetic"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "meloId": "VIRTUAL_1",
+                    "date": "2026-05-01",
+                    "profileId": "H0",
+                    "annualConsumptionKwh": 3200,
+                    "overwriteExisting": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/edm/virtual/auto-populate/day": {
+      "post": {
+        "operationId": "edm-virtual_autoPopulateDay",
+        "summary": "Auto-populate virtual meter data for one day",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Auto-population summary"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "date"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "example": "2026-05-01"
+                  },
+                  "profileId": {
+                    "type": "string",
+                    "example": "H0",
+                    "default": "H0"
+                  },
+                  "annualConsumptionKwh": {
+                    "type": "number",
+                    "example": 3200,
+                    "default": 3500
+                  },
+                  "typeFilter": {
+                    "type": "string",
+                    "enum": [
+                      "virtual",
+                      "dummy",
+                      "all"
+                    ],
+                    "default": "virtual"
+                  },
+                  "includeCalc": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "includeSlp": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "overwriteExisting": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "default": 100
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "date": "2026-05-01",
+                    "profileId": "H0",
+                    "annualConsumptionKwh": 3200,
+                    "typeFilter": "virtual",
+                    "includeCalc": true,
+                    "includeSlp": true,
+                    "overwriteExisting": false,
+                    "limit": 100
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/slp/profiles": {
       "get": {
         "operationId": "slp_listProfiles",
@@ -9450,5 +10234,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.28.0"
+  "x-version": "0.29.0"
 }

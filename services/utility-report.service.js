@@ -41,6 +41,8 @@ const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const LONG_CALL_TIMEOUT_MS = Number(process.env.UTILITY_REPORT_CALL_TIMEOUT_MS) || 15 * 60 * 1000;
 /** Timeout for enrichment calls (Sections 6–8): supplementary data, graceful degradation after 90 s */
 const ENRICHMENT_TIMEOUT_MS = Number(process.env.UTILITY_REPORT_ENRICHMENT_TIMEOUT_MS) || 90_000;
+/** Always-on real-data mode: avoid heuristic identity fallbacks and never synthesize IDs/URLs. */
+const STRICT_REAL_DATA_MODE = true;
 
 // ─── Directory helpers ─────────────────────────────────────────────────────────
 
@@ -420,25 +422,7 @@ function buildStaticNarrative(utilityName, kpiSummary) {
   const opportunities = summaryItems.filter((i) => i.type === 'opportunity').slice(0, 2);
   const sorted = [...criticals, ...opportunities].sort((a, b) => a.prio - b.prio).slice(0, 5);
 
-  // Fallback: ensure at least 3 items when data is sparse
-  if (sorted.length < 3) {
-    if (!sorted.some((s) => s.icon === '🏛️')) {
-      sorted.push({
-        prio: 5,
-        type: 'opportunity',
-        icon: '🏛️',
-        text: 'BNetzA EWK-Benchmarkdaten (Anschlussdauer, Digitalisierungsindex, Umsetzungsquote) wurden ausgewertet.',
-      });
-    }
-    if (!sorted.some((s) => s.icon === '👥')) {
-      sorted.push({
-        prio: 5,
-        type: 'opportunity',
-        icon: '👥',
-        text: 'Kunden & Vertrieb: Churn-Risiken und Neukundenpotenziale aus dem Netzgebiet wurden identifiziert.',
-      });
-    }
-  }
+  // STRICT_REAL_DATA_MODE: no synthetic filler bullets when data is sparse.
 
   const result = sorted
     .slice(0, 5)
@@ -621,6 +605,35 @@ function resolveVnbCandidate(candidates, utilityName, region = '', explicitBdew 
 function findPartnerByBdew(partners, bdewCode) {
   if (!Array.isArray(partners) || !bdewCode) return null;
   return partners.find((p) => (p?.bdew || p?.bdewCode) === bdewCode) || null;
+}
+
+function normalizeVnbdigitalType(value) {
+  return String(value || '').toLowerCase();
+}
+
+function extractVnbdigitalSearchResults(raw) {
+  return raw?.results || raw?.data?.results || raw?.data?.data?.results || [];
+}
+
+function extractVnbdigitalLookupVnbs(raw) {
+  return raw?.result?.vnbs || raw?.data?.result?.vnbs || raw?.data?.data?.result?.vnbs || [];
+}
+
+function extractCoordinatesFromSearchResult(item) {
+  if (typeof item?.coordinates === 'string' && item.coordinates.includes(',')) {
+    return item.coordinates;
+  }
+  if (typeof item?.url === 'string') {
+    const match = item.url.match(/[?&]coordinates=([^&]+)/i);
+    if (match && match[1]) {
+      try {
+        return decodeURIComponent(match[1]);
+      } catch {
+        return match[1];
+      }
+    }
+  }
+  return null;
 }
 
 // ─── VNB fingerprint check (CR-15) ───────────────────────────────────────────
@@ -1614,9 +1627,8 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
             };
           }
 
-          // Step 1b: still nothing → derive city name and try a local installations lookup
-          // to extract the SNB directly from NAP data of any installation in that city.
-          if (!firstPartner) {
+          // Step 1b: heuristic city-SNB fallback (disabled in strict real-data mode).
+          if (!firstPartner && !STRICT_REAL_DATA_MODE) {
             const cityGuess = utilityName
               .replace(
                 /\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi,
@@ -1658,6 +1670,10 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
                 this.logger.warn(`[UtilityReport] City-SNB fallback failed: ${e.message}`);
               }
             }
+          } else if (!firstPartner && STRICT_REAL_DATA_MODE) {
+            this.logger.info(
+              '[UtilityReport] STRICT_REAL_DATA_MODE active: city-SNB heuristic fallback skipped'
+            );
           }
         }
 
@@ -1866,6 +1882,100 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           throw err;
         }
 
+        // VNBDigital canonical identity enrichment (real-data only, additive metadata)
+        // Strategy: search -> optional lookup -> optional code canonicalization.
+        const vnbdigitalSearch = await gated(availableTools, ['vnbdigital_search'], () =>
+          callBroker(ctx, 'grid-operations.vnbdigitalSearch', {
+            searchTerm: p.meta.resolvedVnbName || utilityName,
+          })
+        );
+
+        let selectedVnbdigital = null;
+        let selectedVnbdigitalType = null;
+        const searchResults = vnbdigitalSearch.available
+          ? extractVnbdigitalSearchResults(vnbdigitalSearch.data)
+          : [];
+
+        if (searchResults.length > 0) {
+          selectedVnbdigital = searchResults.find(
+            (r) => normalizeVnbdigitalType(r?.type) === 'vnb'
+          );
+          selectedVnbdigitalType = selectedVnbdigital
+            ? 'vnb'
+            : normalizeVnbdigitalType(searchResults[0]?.type);
+
+          if (!selectedVnbdigital) {
+            const primary = searchResults[0];
+            const primaryType = normalizeVnbdigitalType(primary?.type);
+            let lookupParams = null;
+
+            if (primaryType === 'postcode' && primary?._id) {
+              lookupParams = { searchType: 'postcode', postcodeId: primary._id };
+            } else if (primaryType === 'community' && primary?._id) {
+              lookupParams = { searchType: 'community', communityId: primary._id };
+            } else if (primaryType === 'location') {
+              const coordinates = extractCoordinatesFromSearchResult(primary);
+              if (coordinates) lookupParams = { searchType: 'coordinates', coordinates };
+            }
+
+            if (lookupParams) {
+              const vnbdigitalLookup = await gated(availableTools, ['vnbdigital_lookup'], () =>
+                callBroker(ctx, 'grid-operations.vnbdigitalLookup', lookupParams)
+              );
+              const vnbs = vnbdigitalLookup.available
+                ? extractVnbdigitalLookupVnbs(vnbdigitalLookup.data)
+                : [];
+              if (vnbs.length === 1) {
+                selectedVnbdigital = vnbs[0];
+              }
+            }
+          }
+        }
+
+        const vnbdigitalId = selectedVnbdigital?._id || selectedVnbdigital?.id || null;
+        const vnbdigitalName =
+          selectedVnbdigital?.name || selectedVnbdigital?.title || p.meta.resolvedVnbName || null;
+        const vnbdigitalProfileUrl = selectedVnbdigital?.profileUrl || null;
+
+        const canonicalCodes = await callBroker(ctx, 'grid-operations.vnbLookupCodes', {
+          ...(p.meta.resolvedBdew ? { bdewCode: p.meta.resolvedBdew } : {}),
+          ...(vnbdigitalName ? { vnbName: vnbdigitalName } : {}),
+          includeAliases: true,
+          includeTrace: true,
+          limitCandidates: 5,
+        });
+
+        const canonical = canonicalCodes.available ? canonicalCodes.data?.canonical || null : null;
+        if (!p.meta.resolvedBdew && canonical?.bdewCodePrimary) {
+          p.meta.resolvedBdew = canonical.bdewCodePrimary;
+        }
+        if (!p.meta.resolvedMastrId && canonical?.mastrId) {
+          p.meta.resolvedMastrId = canonical.mastrId;
+        }
+        if (vnbdigitalName) {
+          p.meta.resolvedVnbName = vnbdigitalName;
+        }
+
+        p.meta.vnbdigital = {
+          available: vnbdigitalSearch.available,
+          searchTerm: p.meta.resolvedVnbName || utilityName,
+          searchResultType: selectedVnbdigitalType || null,
+          vnbdigitalId,
+          profileUrl: vnbdigitalProfileUrl,
+          name: vnbdigitalName,
+          searchError: vnbdigitalSearch.available ? null : vnbdigitalSearch.error,
+        };
+
+        p.meta.canonicalIdentity = {
+          vnbName: p.meta.resolvedVnbName || null,
+          bdewCodePrimary: p.meta.resolvedBdew || null,
+          mastrId: p.meta.resolvedMastrId || null,
+          vnbdigitalId: vnbdigitalId || null,
+          profileUrl: vnbdigitalProfileUrl || null,
+          aliases: canonicalCodes.available ? canonicalCodes.data?.aliases || [] : [],
+          resolutionSource: 'marketPartners+vnbdigital+vnbLookupCodes',
+        };
+
         p.phase = 2;
         saveProgress(p);
       }
@@ -1933,7 +2043,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
       // are skipped (dataQualityBaseParams = null in Phase 3).
       // Attempt to derive the SNB by querying cernion_installations_local with the
       // city name extracted from the VNB name.
-      if (p.meta.resolvedBdew && !p.meta.resolvedMastrId) {
+      if (p.meta.resolvedBdew && !p.meta.resolvedMastrId && !STRICT_REAL_DATA_MODE) {
         const cityGuess = p.meta.resolvedVnbName
           .replace(
             /\b(Stadtwerke|Stadtwerk|Gemeindewerk|Gemeindewerke|Energieversorgung|EVN|Netz\s+GmbH|Netz\s+AG|Netze\s+GmbH|Netze\s+AG|GmbH\s+&\s+Co\.\s+KG|GmbH|AG|mbH|KG)\b/gi,
@@ -1979,6 +2089,10 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
             this.logger.warn(`[UtilityReport] CR-51: gemeinde fallback failed: ${e.message}`);
           }
         }
+      } else if (p.meta.resolvedBdew && !p.meta.resolvedMastrId && STRICT_REAL_DATA_MODE) {
+        this.logger.info(
+          '[UtilityReport] STRICT_REAL_DATA_MODE active: CR-51 gemeinde SNB fallback skipped'
+        );
       }
 
       // ──────────────────────────────────────────────────────────────────────────
@@ -2000,7 +2114,12 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           }),
         ]);
 
-        p.results.phase2 = { eicSearch, ewkBenchmark };
+        p.results.phase2 = {
+          eicSearch,
+          ewkBenchmark,
+          vnbdigital: p.meta.vnbdigital || { available: false, error: 'not-resolved' },
+          canonicalIdentity: p.meta.canonicalIdentity || null,
+        };
         p.phase = 3;
         saveProgress(p);
       }
@@ -2108,13 +2227,18 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         //   anlagenInPruefung: format:'summary' → parses "Total found: N" for accurate DB count (not bounded by limit)
         //   anlagenInPruefungBeispiel: format:'detailed', limit:10, no status filter → top-10 InPruefung by capacity
         // CR-SWF-002 CR-01: status:'InBetrieb' removed from count + example queries so stillgelegte are counted too.
+        // HOTFIX v0.28.1: Add heartbeat + timeout to prevent Phase 3 hang
+        p.logs = p.logs || [];
+        p.logs.push(`[Phase 3 Batch 1] Starting MaStR data quality queries...`);
+        saveProgress(p);
+
         const [
           sampleForPlz,
           anlagenInPruefung,
           anlagenInPruefungBeispiel,
           anlagenStillgelegtInPruefung,
           installationenOhneMelo,
-        ] = await Promise.all([
+        ] = await Promise.allSettled([
           dataQualityBaseParams
             ? callMcpDirect(
                 'cernion_installations_local',
@@ -2193,11 +2317,24 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
             : Promise.resolve({ available: false, error: 'No grid operator identifier' }),
         ]);
 
+        // Unpack allSettled results, fallback on timeout
+        const unpackSettled = (result) =>
+          result.status === 'fulfilled' ? result.value : { available: false, error: 'Promise timeout or rejection' };
+
+        const sampleForPlzVal = unpackSettled(sampleForPlz);
+        const anlagenInPruefungVal = unpackSettled(anlagenInPruefung);
+        const anlagenInPruefungBeispielVal = unpackSettled(anlagenInPruefungBeispiel);
+        const anlagenStillgelegtInPruefungVal = unpackSettled(anlagenStillgelegtInPruefung);
+        const installationenOhneMeloVal = unpackSettled(installationenOhneMelo);
+
+        p.logs.push(`[Phase 3 Batch 1] Completed: ${[sampleForPlzVal, anlagenInPruefungVal, anlagenInPruefungBeispielVal].map(r => r?.available ? '✓' : '✗').join('')}`);
+        saveProgress(p);
+
         // Derive dominant PLZ prefix from sample and query ortsfremde Anlagen
         let ortsfremdeAnlagen = { available: false, error: 'PLZ prefix could not be determined' };
-        if (sampleForPlz.available) {
+        if (sampleForPlzVal.available) {
           const sampleInsts =
-            sampleForPlz.data?.installations || sampleForPlz.data?.data?.installations || [];
+            sampleForPlzVal.data?.installations || sampleForPlzVal.data?.data?.installations || [];
           const plzCounts = {};
           for (const inst of sampleInsts) {
             const rawPlz =
@@ -2239,11 +2376,11 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           emobilityImpact,
           gridLossAnalysis,
           transformerLoading,
-          anlagenInPruefung, // format:'summary' – accurate count via parseMaStrLocalStats (all statuses)
-          anlagenInPruefungBeispiel, // format:'detailed', limit:10 – top-10 InPruefung by capacity
-          anlagenStillgelegtInPruefung, // CR-SWF-002 CR-02: DauerhaftStillgelegt + Prüfstatus open
-          installationenOhneMelo, // ≥100 kW InBetrieb – Redispatch/§51 pool (CR-SWF-002 CR-03)
-          allInstallationsSample: sampleForPlz, // limit:100 InBetrieb – top-10 by capacity (CR-SWF-002 CR-04)
+          anlagenInPruefung: anlagenInPruefungVal, // format:'summary' – accurate count via parseMaStrLocalStats (all statuses)
+          anlagenInPruefungBeispiel: anlagenInPruefungBeispielVal, // format:'detailed', limit:10 – top-10 InPruefung by capacity
+          anlagenStillgelegtInPruefung: anlagenStillgelegtInPruefungVal, // CR-SWF-002 CR-02: DauerhaftStillgelegt + Prüfstatus open
+          installationenOhneMelo: installationenOhneMeloVal, // ≥100 kW InBetrieb – Redispatch/§51 pool (CR-SWF-002 CR-03)
+          allInstallationsSample: sampleForPlzVal, // limit:100 InBetrieb – top-10 by capacity (CR-SWF-002 CR-04)
           ortsfremdeAnlagen,
         };
         saveProgress(p);
@@ -2279,7 +2416,11 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         // CR-01: Direct MaStR enrichment – PV, Wind, Speicher exact counts/capacities
         // via cernion_installations_local (fast local MongoDB). Used as fallback when
         // the assets broker service returns incomplete or unavailable data.
-        const [pvLocal, windLocal, speicherLocal] = await Promise.all([
+        // HOTFIX v0.28.1: Add timeout protection via Promise.allSettled
+        p.logs.push(`[Phase 3 Batch 2] Starting MaStR asset queries (solar, wind, storage)...`);
+        saveProgress(p);
+
+        const [pvLocal, windLocal, speicherLocal] = await Promise.allSettled([
           dataQualityBaseParams
             ? callMcpDirect(
                 'cernion_installations_local',
@@ -2321,6 +2462,13 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
             : Promise.resolve({ available: false, error: 'No MaStR ID' }),
         ]);
 
+        const pvLocalVal = unpackSettled(pvLocal);
+        const windLocalVal = unpackSettled(windLocal);
+        const speicherLocalVal = unpackSettled(speicherLocal);
+
+        p.logs.push(`[Phase 3 Batch 2] Completed: ${[pvLocalVal, windLocalVal, speicherLocalVal].map(r => r?.available ? '✓' : '✗').join('')}`);
+        saveProgress(p);
+
         p.results.section2 = {
           solar,
           wind,
@@ -2328,9 +2476,9 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           generationForecast,
           windSolarActual,
           regionalEnergyMix,
-          pvLocal,
-          windLocal,
-          speicherLocal,
+          pvLocal: pvLocalVal,
+          windLocal: windLocalVal,
+          speicherLocal: speicherLocalVal,
         };
         saveProgress(p);
 
@@ -2420,7 +2568,11 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         // CR-14: Direct MCP calls for EU aggregate + country trend as enrichment
         // The broker's gas-storage.euStatistics call may return empty data if the
         // underlying AGSI tool is gated; direct calls ensure we always try.
-        const [euStatisticsDirect, storageTrendDirect] = await Promise.all([
+        // HOTFIX v0.28.1: Add timeout protection
+        p.logs.push(`[Phase 3 Batch 3] Starting AGSI EU statistics queries...`);
+        saveProgress(p);
+
+        const [euStatisticsDirect, storageTrendDirect] = await Promise.allSettled([
           gated(availableTools, ['agsi_eu_statistics'], () =>
             callMcpDirect('agsi_eu_statistics', {}, cernionToken)
           ),
@@ -2429,9 +2581,15 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           ),
         ]);
 
+        const euStatisticsDirectVal = unpackSettled(euStatisticsDirect);
+        const storageTrendDirectVal = unpackSettled(storageTrendDirect);
+
+        p.logs.push(`[Phase 3 Batch 3] Completed: ${[euStatisticsDirectVal, storageTrendDirectVal].map(r => r?.available ? '✓' : '✗').join('')}`);
+        saveProgress(p);
+
         // Merge: prefer broker data (has error-handling wrapping); fallback to direct
-        const euStatisticsFinal = euStatistics?.available ? euStatistics : euStatisticsDirect;
-        const storageTrendFinal = storageTrend?.available ? storageTrend : storageTrendDirect;
+        const euStatisticsFinal = euStatistics?.available ? euStatistics : euStatisticsDirectVal;
+        const storageTrendFinal = storageTrend?.available ? storageTrend : storageTrendDirectVal;
 
         p.results.section4 = {
           countryStorage,
@@ -2479,12 +2637,25 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           )
         );
 
+        const controlMeasures = await gated(availableTools, ['vnbdigital_control_measures'], () =>
+          p.meta.vnbdigital?.vnbdigitalId
+            ? callBroker(ctx, 'grid-operations.controlMeasures', {
+                searchType: 'vnb',
+                vnbId: p.meta.vnbdigital.vnbdigitalId,
+              })
+            : Promise.resolve({
+                available: false,
+                error: 'No VNBDigital VNB ID available for control measures lookup',
+              })
+        );
+
         p.results.section5 = {
           benchmarkVnb: p.results.phase2?.ewkBenchmark ?? { available: false },
           anschlussdauer: ewkAnschlussdauer,
           digitalisierungsindex: ewkDigitalisierungsindex,
           umsetzungsquote: ewkUmsetzungsquote,
           nestCompliance,
+          controlMeasures,
         };
         saveProgress(p);
 
@@ -2529,6 +2700,10 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
             : { available: false, error: results.map((r) => r.error).join('; ') };
         };
 
+        // HOTFIX v0.28.1: Add heartbeat + timeout for major enrichment batch (Sections 6–8)
+        p.logs.push(`[Phase 3 Batch 4] Starting business intelligence enrichment (churn, leads, market penetration)...`);
+        saveProgress(p);
+
         const [
           churnPrediction,
           salesLeads,
@@ -2540,7 +2715,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           storageOptimization,
           systemStatus,
           eicStatistics,
-        ] = await Promise.all([
+        ] = await Promise.allSettled([
           // ── Section 6 ────────────────────────────────────────────────────────
           callBroker(
             ctx,
@@ -2627,23 +2802,45 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           callBroker(ctx, 'eic-codes.statistics', {}),
         ]);
 
+        // Unpack enrichment batch
+        const churnPredictionVal = unpackSettled(churnPrediction);
+        const salesLeadsVal = unpackSettled(salesLeads);
+        const marketPenetrationVal = unpackSettled(marketPenetration);
+        const prosumerTariffVal = unpackSettled(prosumerTariff);
+        const directMarketingVal = unpackSettled(directMarketing);
+        const investmentBusinessCaseVal = unpackSettled(investmentBusinessCase);
+        const operatorPortfolioVal = unpackSettled(operatorPortfolio);
+        const storageOptimizationVal = unpackSettled(storageOptimization);
+        const systemStatusVal = unpackSettled(systemStatus);
+        const eicStatisticsVal = unpackSettled(eicStatistics);
+
+        p.logs.push(`[Phase 3 Batch 4] Completed: ${[churnPredictionVal, salesLeadsVal, marketPenetrationVal, prosumerTariffVal, directMarketingVal, investmentBusinessCaseVal, operatorPortfolioVal, storageOptimizationVal, systemStatusVal, eicStatisticsVal].map(r => r?.available ? '✓' : '✗').join('')}`);
+        saveProgress(p);
+
         p.results.section6 = {
-          churnPrediction,
-          salesLeads,
-          marketPenetration,
-          prosumerTariff,
-          directMarketing,
+          churnPrediction: churnPredictionVal,
+          salesLeads: salesLeadsVal,
+          marketPenetration: marketPenetrationVal,
+          prosumerTariff: prosumerTariffVal,
+          directMarketing: directMarketingVal,
         };
         p.results.section7 = {
-          investmentBusinessCase,
-          operatorPortfolio,
-          storageOptimization,
+          investmentBusinessCase: investmentBusinessCaseVal,
+          operatorPortfolio: operatorPortfolioVal,
+          storageOptimization: storageOptimizationVal,
           operatorAnalysis,
         };
         p.results.section8 = {
-          systemStatus,
-          eicStatistics,
+          systemStatus: systemStatusVal,
+          eicStatistics: eicStatisticsVal,
           digitalisierungsindex: ewkDigitalisierungsindex,
+          vnbdigital: p.meta.vnbdigital || { available: false, error: 'not-resolved' },
+          canonicalIdentity: p.meta.canonicalIdentity || null,
+          controlMeasuresSummary: {
+            available: p.results.section5?.controlMeasures?.available === true,
+            source: 'vnbdigital_control_measures',
+            error: p.results.section5?.controlMeasures?.error || null,
+          },
         };
         saveProgress(p);
 
@@ -2726,6 +2923,8 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
             allPartners: p.meta.allPartners ?? [], // CR-19
             marktRollenProfile: p.meta.marktRollenProfile ?? null, // CR-37/CR-45
             vnbIdentification: p.meta.vnbIdentification ?? null,
+            vnbdigital: p.meta.vnbdigital ?? null,
+            canonicalIdentity: p.meta.canonicalIdentity ?? null,
           },
           section1: p.results.section1,
           section2: p.results.section2,

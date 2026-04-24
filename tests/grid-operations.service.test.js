@@ -627,6 +627,30 @@ describe('Grid Operations Service', () => {
 
       expect(result).toBeDefined();
     });
+
+    it('should passthrough optional profileUrl when returned by MCP', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        searchTerm: 'Heidelberg',
+        total: 1,
+        results: [
+          {
+            _id: 'DEBWhk01000gMZ1V',
+            title: 'Stadtwerke Heidelberg Netze GmbH',
+            type: 'vnb',
+            profileUrl: 'https://www.vnbdigital.de/vnb/DEBWhk01000gMZ1V',
+          },
+        ],
+      });
+
+      const result = await broker.call('grid-operations.vnbdigitalSearch', {
+        searchTerm: 'Heidelberg',
+      });
+
+      expect(result.results[0].profileUrl).toBe('https://www.vnbdigital.de/vnb/DEBWhk01000gMZ1V');
+      expect(result.results[0].entityId).toBe('DEBWhk01000gMZ1V');
+      expect(result.results[0].entityType).toBe('vnb');
+      expect(result.results[0].lookupHint).toBe('profile_or_control_measures');
+    });
   });
 
   describe('vnbdigitalLookup action', () => {
@@ -644,6 +668,89 @@ describe('Grid Operations Service', () => {
         coordinates: '49.34206,8.80022',
       });
 
+      expect(result).toBeDefined();
+    });
+
+    it('should passthrough optional profileUrl in VNB lookup entries', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        searchType: 'coordinates',
+        coordinates: '49.34206,8.80022',
+        result: {
+          vnbs: [
+            {
+              _id: 'DEBWhk01000gMZ1V',
+              name: 'Stadtwerke Heidelberg Netze GmbH',
+              voltageTypes: ['Niederspannung'],
+              profileUrl: 'https://www.vnbdigital.de/vnb/DEBWhk01000gMZ1V',
+            },
+          ],
+        },
+      });
+
+      const result = await broker.call('grid-operations.vnbdigitalLookup', {
+        searchType: 'coordinates',
+        coordinates: '49.34206,8.80022',
+      });
+
+      expect(result.result.vnbs[0].profileUrl).toBe(
+        'https://www.vnbdigital.de/vnb/DEBWhk01000gMZ1V'
+      );
+      expect(result.result.vnbs[0].entityType).toBe('vnb');
+      expect(result.result.vnbs[0].entityId).toBe('DEBWhk01000gMZ1V');
+      expect(result.result.vnbs[0].vnbdigitalId).toBe('DEBWhk01000gMZ1V');
+    });
+
+    it('should remain backward compatible when profileUrl is missing', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        searchType: 'coordinates',
+        coordinates: '49.34206,8.80022',
+        result: {
+          vnbs: [
+            {
+              _id: 'DEBWhk01000gMZ1V',
+              name: 'Stadtwerke Heidelberg Netze GmbH',
+              voltageTypes: ['Niederspannung'],
+            },
+          ],
+        },
+      });
+
+      const result = await broker.call('grid-operations.vnbdigitalLookup', {
+        searchType: 'coordinates',
+        coordinates: '49.34206,8.80022',
+      });
+
+      expect(result.result.vnbs[0].name).toBe('Stadtwerke Heidelberg Netze GmbH');
+      expect(result.result.vnbs[0].profileUrl).toBeUndefined();
+    });
+  });
+
+  describe('controlMeasures action', () => {
+    it('should require postcode when searchType is postcode', async () => {
+      await expect(
+        broker.call('grid-operations.controlMeasures', { searchType: 'postcode' })
+      ).rejects.toThrow();
+    });
+
+    it('should require vnbId when searchType is vnb', async () => {
+      await expect(
+        broker.call('grid-operations.controlMeasures', { searchType: 'vnb' })
+      ).rejects.toThrow();
+    });
+
+    it('should call vnbdigital_control_measures with postcode', async () => {
+      const result = await broker.call('grid-operations.controlMeasures', {
+        searchType: 'postcode',
+        postcode: '69256',
+      });
+      expect(result).toBeDefined();
+    });
+
+    it('should call vnbdigital_control_measures with vnbId', async () => {
+      const result = await broker.call('grid-operations.controlMeasures', {
+        searchType: 'vnb',
+        vnbId: 'DEBWhk01000gMZ1V',
+      });
       expect(result).toBeDefined();
     });
   });

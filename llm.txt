@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.28.0
-- changelog_latest_release: 0.28.0
+- version: 0.29.0
+- changelog_latest_release: 0.29.0
 - source_files_hash:
-  - CHANGELOG.md: fe1bcd8d873ebea191ab4b25024e03d759c45054ec04b7afeb5800f50fb388b3
-  - README.md: 9d55cf0d888898809676b39e02adf2fcd7d1e61db82357c805f96d9154cfcab9
-  - docs/BACKEND_CONTEXT.md: cdcea6bdb0d7ad6a7996dba56c83a1a015e3508a864b03ff1bd71c434085ed5c
+  - CHANGELOG.md: af402beb9174e9f29bffb503df124ef55f3334140aefcd25f0f6fde92ec77f8f
+  - README.md: 83e016de07c70bf1d33e402d2e39e639a5b1e9ef6e052674783fa04d627b8f4f
+  - docs/BACKEND_CONTEXT.md: 71484f3e758dfd4e9e969ce2c27975876ca48e8f560c449584c5e4257d41f2fc
   - src/cookbook-recipes.js: 7e92337203ff08ef348bcdb1b91d04ad58683494640c76553b005f6cfdd42109
-  - openapi-export.json: 244f4ec81ae076ade01a8e18f04fcda6d30d26cf51beb329436d284c3b65860e
+  - openapi-export.json: 9e5ec57fbe3d7fa6b4626df761ccae4301b946f76d3fc2458ce7a41bc62466b1
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -18,6 +18,96 @@ It provides a complete implementation picture: architecture, domain knowledge, c
 ## Release Provenance
 ### Unreleased (from CHANGELOG)
 ## [Unreleased]
+
+### Added
+
+- **`grid-operations.controlMeasures` — §14a Steuerungsmaßnahmen endpoint
+  (`POST /api/grid-operations/control-measures`):**
+  New REST action wrapping the `vnbdigital_control_measures` MCP tool.
+  Retrieves active and planned §14a grid control measures for controllable devices
+  (wallboxes, heat pumps, storage) by postcode area or VNB identifier.
+  - `searchType: "postcode"` → requires `postcode` field
+  - `searchType: "vnb"` → requires `vnbId` field (from `vnbdigital_search`)
+  - Optional `range` array for area filtering
+  - Full OpenAPI annotation with two examples (`byPostcode`, `byVnb`)
+  - 4 new unit tests in `tests/grid-operations.service.test.js`
+
+- **VNBDigital enrichment (`profileUrl`) for integrators:**
+  `vnbdigital_search` and `vnbdigital_lookup` now expose additive optional
+  `profileUrl` fields in the documented API contracts and examples.
+  - `vnbdigital_search.results[]` may include `profileUrl` for VNB entries
+  - `vnbdigital_lookup.result.vnbs[]` may include `profileUrl`
+  - Backward-compatible (optional fields only; existing integrations continue to work)
+  - OpenAPI response schemas updated in `grid-operations.service.js`
+  - Regression tests added for passthrough + no-`profileUrl` compatibility
+
+- **MCP tool docs updated for VNBDigital workflow:**
+  `MCP_TOOLS.md` now includes enriched `vnbdigital_search`/`vnbdigital_lookup`
+  examples with `profileUrl`, plus a dedicated `vnbdigital_control_measures`
+  section for §14a queries.
+
+- **Utility Report 360° VNBDigital enrichment (always-on real-data mode):**
+  `utility-report` now enriches identification and compliance sections with
+  VNBDigital-backed identity context and §14a control-measures data.
+  - Added deterministic VNBDigital identity enrichment in Phase 1
+    (`vnbdigital_search` → optional `vnbdigital_lookup` → `vnbLookupCodes`)
+  - Added canonical identity metadata in Phase 2 (`canonicalIdentity`, `vnbdigital`)
+  - Added Section 5 enrichment with `controlMeasures` via
+    `grid-operations.controlMeasures` (`vnbdigital_control_measures`)
+  - Added Section 8 transparency fields (`vnbdigital`, `canonicalIdentity`,
+    `controlMeasuresSummary`) for `/app` rendering context
+  - Enabled strict real-data policy in report generation:
+    heuristic city/gemeinde SNB fallbacks are skipped and synthetic narrative
+    filler bullets are removed (no mock/placeholder KPI statements)
+
+- **Utility Report Phase 3 hang fix (v0.28.1 hotfix):**
+  All 4 `Promise.all()` batches in Phase 3 converted to `Promise.allSettled()`
+  + `unpackSettled()` helper + heartbeat `saveProgress()` calls between batches.
+  Prevents indefinite hangs caused by stalled MCP upstream calls.
+
+- **EDM Validation Service (`edm-validation`):**
+  6 deterministische Validierungsregeln (Bandbreite, Lücken, Monotonie,
+  Duplikate, SLP-Plausibilität, Negative). Automatische Ersatzwertbildung
+  mit 4-stufiger Fallback-Kette (Interpolation → Vortag → SLP → Zero).
+  4 REST-Endpoints unter `/api/edm/validate/*`.
+
+- **EDM Messkonzept-Engine (`edm-messkonzept`):**
+  Formel-Engine für virtuelle Zähler (SUM/DIFF/NET/CALC/CUSTOM) mit
+  sicherer Expression-Evaluation ohne `eval()`, inkl. `evaluateAll`
+  für Batch-Auswertung. 6 REST-Endpoints unter `/api/edm/messkonzepte/*`.
+
+- **MSCONS-Import (`mscons-import`) mit eingebettetem EDIFACT-Parser:**
+  Neuer offline-fähiger MSCONS-Import ohne externe Abhängigkeiten (KRITIS-konform).
+  - Neuer Parser [src/edm-mscons-parser.js](src/edm-mscons-parser.js)
+    mit `tokenizeSegments()` und `parseMscons()` für UNH/BGM/DTM/NAD/LOC/CCI/QTY/STS.
+  - Neues Service [services/mscons-import.service.js](services/mscons-import.service.js)
+    mit 3 Actions:
+    - `POST /api/mscons/parse` → `mscons-import.parse`
+    - `POST /api/mscons/import` → `mscons-import.import`
+    - `GET /api/mscons/imports` → `mscons-import.listImports`
+  - Importfluss: Auto-Create MeLo (`sourceType='mscons'`), OBIS-/Quality-Mapping,
+    optional `edm-validation`-Validierung pro Zeitreihe.
+  - Neue Tests:
+    [tests/edm-mscons-parser.test.js](tests/edm-mscons-parser.test.js),
+    [tests/mscons-import.service.test.js](tests/mscons-import.service.test.js)
+
+- **EDM Virtual Meter Auto-Population (`edm-virtual`):**
+  Neuer Service für die automatische Befüllung virtueller/dummy MeLos mit
+  viertelstundenscharfen Tagesprofilen (SLP) und optionaler Batch-Auswertung
+  vorhandener Messkonzepte.
+  - Neue REST-Endpunkte:
+    - `POST /api/edm/virtual/populate-slp` → `edm-virtual.populateBySlp`
+    - `POST /api/edm/virtual/auto-populate/day` → `edm-virtual.autoPopulateDay`
+  - Neue Helper in [src/edm-virtual-meter.js](src/edm-virtual-meter.js)
+  - Neue Tests:
+    [tests/edm-virtual-meter.test.js](tests/edm-virtual-meter.test.js),
+    [tests/edm-virtual.service.test.js](tests/edm-virtual.service.test.js)
+
+### Changed
+
+- **`edm.listMelos` erweitert um `sourceType`-Filter:**
+  Optionales Query-Param `sourceType` ergänzt (inkl. SQL-Filter + OpenAPI-Doku),
+  damit MSCONS-importierte MeLos gezielt gelistet werden können.
 
 ## Domain-Specific Business Knowledge (Energy + Utility)
 
@@ -47,6 +137,7 @@ This section captures implementation constraints and regulatory context that gen
 - 🌊 **NOVA Decision Feed** — Real-time SSE decision stream for ZNP grid upgrade proposals with apply/reject workflow (`GET /api/nova/stream`) (v0.24)
 - 🤖 **CYA Agent** — Profile-aware grid-connection narrative generator with multi-stakeholder AI perspectives (Investor, Planer, Betreiber) — generates and refines structured narratives from agent sessions (`POST /api/cya/generate`) (v0.26)
 - 🔔 **MaStR Monitor** — Field-level change detection with SMTP email notifications, Double-Opt-In subscriptions, cron scheduling, and Live-CSV session replay (`POST /api/mastr-monitor/watches`) (v0.27)
+- 🧮 **EDM Virtual Auto-Population** — Automated daily quarter-hour filling for virtual and dummy MeLos via SLP and optional Messkonzept batch evaluation (`POST /api/edm/virtual/*`) (v0.29)
 - 🧠 **OEO / OEMetadata** — Open Energy Ontology annotations on all 45+ REST endpoints, OEMetadata v2.0 export with optional JSON Schema validation (v0.11.4–v0.12)
 - 🔐 **Data Provenance** — SHA-256 provenance hashing on every datapoint refresh for EU AI Act Art. 12 compliance, plus explainability log for agent corrections (v0.11.5)
 - 🧹 **Prompt Scrubber** — Field-level PII masking with energy-domain allowlist before sending data to external LLMs (v0.11.5)- �🔌 **MCP Support** — Model Context Protocol SDK integration
@@ -596,8 +687,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 123
-- operation_count: 153
+- path_count: 136
+- operation_count: 168
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -608,7 +699,9 @@ process:
 - Dashboard API: 4 operations
 - Datapoints: 16 operations
 - DataSources: 27 operations
-- EDM (Energiedatenmanagement): 10 operations
+- EDM (Energiedatenmanagement): 19 operations
+- EDM Messkonzept: 5 operations
+- edm-messkonzept: 1 operations
 - Energy Sharing Allocation: 5 operations
 - Energy Sharing Validation: 3 operations
 - Grid Connection Validation: 3 operations
@@ -699,10 +792,22 @@ process:
 - GET /api/edm/melos/:meloId | tags: [EDM (Energiedatenmanagement)] | operationId: edm_getMelo | summary: Get one MeLo
 - PUT /api/edm/melos/:meloId | tags: [EDM (Energiedatenmanagement)] | operationId: edm_updateMelo | summary: Update one MeLo
 - POST /api/edm/melos/from-mastr | tags: [EDM (Energiedatenmanagement)] | operationId: edm_createFromMastr | summary: Create MeLos from MaStR installation lookup
+- GET /api/edm/messkonzepte | tags: [EDM Messkonzept] | operationId: edm-messkonzept_list | summary: List all measurement concepts
+- POST /api/edm/messkonzepte | tags: [EDM Messkonzept] | operationId: edm-messkonzept_create | summary: Create a measurement concept
+- DELETE /api/edm/messkonzepte/:id | tags: [EDM Messkonzept] | operationId: edm-messkonzept_delete | summary: Delete a measurement concept
+- GET /api/edm/messkonzepte/:id | tags: [EDM Messkonzept] | operationId: edm-messkonzept_get | summary: Get a measurement concept
+- POST /api/edm/messkonzepte/:id/evaluate | tags: [EDM Messkonzept] | operationId: edm-messkonzept_evaluate | summary: Evaluate a measurement concept
+- POST /api/edm/messkonzepte/evaluate-all | tags: [edm-messkonzept] | operationId: edm-messkonzept_evaluate-all | summary: edm-messkonzept.evaluate-all
 - DELETE /api/edm/timeseries/:meloId | tags: [EDM (Energiedatenmanagement)] | operationId: edm_deleteTimeseries | summary: Delete timeseries data for a MeLo
 - GET /api/edm/timeseries/:meloId | tags: [EDM (Energiedatenmanagement)] | operationId: edm_getTimeseries | summary: Query timeseries data for a MeLo
 - GET /api/edm/timeseries/:meloId/summary | tags: [EDM (Energiedatenmanagement)] | operationId: edm_getTimeseriesSummary | summary: Get aggregated timeseries summary
 - POST /api/edm/timeseries/import | tags: [EDM (Energiedatenmanagement)] | operationId: edm_importTimeseries | summary: Import timeseries data for a MeLo
+- POST /api/edm/validate | tags: [EDM (Energiedatenmanagement)] | operationId: edm-validation_validate | summary: Validate timeseries data and optionally auto-fix gaps
+- POST /api/edm/validate/:meloId/fill-gaps | tags: [EDM (Energiedatenmanagement)] | operationId: edm-validation_fillGaps | summary: Fill gaps in timeseries with replacement values
+- GET /api/edm/validate/:meloId/report | tags: [EDM (Energiedatenmanagement)] | operationId: edm-validation_getReport | summary: Get validation report for a timeseries range
+- GET /api/edm/validate/rules | tags: [EDM (Energiedatenmanagement)] | operationId: edm-validation_listRules | summary: List available EDM validation rules
+- POST /api/edm/virtual/auto-populate/day | tags: [EDM (Energiedatenmanagement)] | operationId: edm-virtual_autoPopulateDay | summary: Auto-populate virtual meter data for one day
+- POST /api/edm/virtual/populate-slp | tags: [EDM (Energiedatenmanagement)] | operationId: edm-virtual_populateBySlp | summary: Populate one virtual/dummy MeLo from SLP profile
 - POST /api/energy-sharing-allocation/allocate | tags: [Energy Sharing Allocation] | operationId: energy-sharing-allocation_allocate | summary: Calculate 15-min Energy Sharing allocation time-series (§ 42c EnWG)
 - GET /api/energy-sharing-allocation/allocations | tags: [Energy Sharing Allocation] | operationId: energy-sharing-allocation_list | summary: List past Energy Sharing allocation records
 - DELETE /api/energy-sharing-allocation/allocations/:id | tags: [Energy Sharing Allocation] | operationId: energy-sharing-allocation_remove | summary: Soft-delete an Energy Sharing allocation record
@@ -736,6 +841,9 @@ process:
 - GET /api/mastr-quality/audits | tags: [MaStR Data Quality] | operationId: mastr-quality_list | summary: List past MaStR quality audit reports
 - GET /api/mastr-quality/audits/:id | tags: [MaStR Data Quality] | operationId: mastr-quality_get | summary: Get a specific MaStR quality audit report by ID
 - GET /api/mastr-quality/audits/:id/findings/:findingId/details | tags: [MaStR Data Quality] | operationId: mastr-quality_findingDetails | summary: Get details for a specific finding in an audit
+- POST /api/mscons/import | tags: [EDM (Energiedatenmanagement)] | operationId: mscons-import_import | summary: Import MSCONS EDIFACT message into EDM
+- GET /api/mscons/imports | tags: [EDM (Energiedatenmanagement)] | operationId: mscons-import_listImports | summary: List imported MSCONS MeLos
+- POST /api/mscons/parse | tags: [EDM (Energiedatenmanagement)] | operationId: mscons-import_parse | summary: Parse MSCONS EDIFACT message (no import, read-only)
 - DELETE /api/nbp-monitor/parameters | tags: [NBPMonitor] | operationId: nbp-monitor_resetParameters | summary: Reset NBP Monitor KPI 2 parameters to defaults
 - GET /api/nbp-monitor/parameters | tags: [NBPMonitor] | operationId: nbp-monitor_getParameters | summary: Get current NBP Monitor KPI 2 risk parameters
 - PUT /api/nbp-monitor/parameters | tags: [NBPMonitor] | operationId: nbp-monitor_setParameters | summary: Save custom KPI 2 parameters for NBP Monitor (full replace)
@@ -785,7 +893,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.28.0"
+    "version": "0.29.0"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -4718,6 +4826,15 @@ process:
           },
           {
             "in": "query",
+            "name": "sourceType",
+            "required": false,
+            "schema": {
+              "example": "mscons",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
             "name": "limit",
             "required": false,
             "schema": {
@@ -5075,6 +5192,251 @@ process:
         ]
       }
     },
+    "/api/edm/messkonzepte": {
+      "get": {
+        "operationId": "edm-messkonzept_list",
+        "responses": {
+          "200": {
+            "description": "List"
+          }
+        },
+        "summary": "List all measurement concepts",
+        "tags": [
+          "EDM Messkonzept"
+        ],
+        "x-oeo-class": "oeo:virtual-measurement"
+      },
+      "post": {
+        "operationId": "edm-messkonzept_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "formula": "v0 + v1",
+                    "id": "mk-sum-001",
+                    "inputs": [
+                      {
+                        "meloId": "melo-solar",
+                        "obis": "1-0:1.8.0",
+                        "ref": "v0"
+                      },
+                      {
+                        "meloId": "melo-wind",
+                        "obis": "1-0:1.8.0",
+                        "ref": "v1"
+                      }
+                    ],
+                    "name": "Total Production",
+                    "outputMeloId": "melo-sum-out",
+                    "outputObis": "1-0:1.8.0",
+                    "schedule": "on_input_change",
+                    "type": "SUM"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "formula": {
+                    "example": "v0 + v1",
+                    "type": "string"
+                  },
+                  "id": {
+                    "example": "mk-sum-001",
+                    "type": "string"
+                  },
+                  "inputs": {
+                    "example": [
+                      {
+                        "meloId": "melo-solar",
+                        "obis": "1-0:1.8.0",
+                        "ref": "v0"
+                      }
+                    ],
+                    "items": {
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "name": {
+                    "example": "Total Production",
+                    "type": "string"
+                  },
+                  "outputMeloId": {
+                    "example": "melo-sum-out",
+                    "type": "string"
+                  },
+                  "outputObis": {
+                    "example": "1-0:1.8.0",
+                    "type": "string"
+                  },
+                  "schedule": {
+                    "example": "on_input_change",
+                    "type": "string"
+                  },
+                  "type": {
+                    "example": "SUM",
+                    "type": "string"
+                  },
+                  "validSince": {
+                    "example": "2026-04-01T00:00:00.000Z",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "type"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Created"
+          },
+          "409": {
+            "description": "Exists"
+          }
+        },
+        "summary": "Create a measurement concept",
+        "tags": [
+          "EDM Messkonzept"
+        ],
+        "x-oeo-class": "oeo:virtual-measurement"
+      }
+    },
+    "/api/edm/messkonzepte/:id": {
+      "delete": {
+        "operationId": "edm-messkonzept_delete",
+        "responses": {
+          "200": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Delete a measurement concept",
+        "tags": [
+          "EDM Messkonzept"
+        ],
+        "x-oeo-class": "oeo:virtual-measurement"
+      },
+      "get": {
+        "operationId": "edm-messkonzept_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "mk-sum-001",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Found"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Get a measurement concept",
+        "tags": [
+          "EDM Messkonzept"
+        ],
+        "x-oeo-class": "oeo:virtual-measurement"
+      }
+    },
+    "/api/edm/messkonzepte/:id/evaluate": {
+      "post": {
+        "operationId": "edm-messkonzept_evaluate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "from": "2026-04-20T00:00:00.000Z",
+                    "id": "mk-sum-001",
+                    "to": "2026-04-20T12:00:00.000Z",
+                    "writeOutput": true
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "from": {
+                    "example": "2026-04-20T00:00:00.000Z",
+                    "type": "string"
+                  },
+                  "id": {
+                    "example": "mk-sum-001",
+                    "type": "string"
+                  },
+                  "to": {
+                    "example": "2026-04-20T12:00:00.000Z",
+                    "type": "string"
+                  },
+                  "writeOutput": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "id",
+                  "from",
+                  "to"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Result"
+          },
+          "404": {
+            "description": "Not found"
+          }
+        },
+        "summary": "Evaluate a measurement concept",
+        "tags": [
+          "EDM Messkonzept"
+        ],
+        "x-oeo-class": "oeo:virtual-measurement"
+      }
+    },
+    "/api/edm/messkonzepte/evaluate-all": {
+      "post": {
+        "operationId": "edm-messkonzept_evaluate-all",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "edm-messkonzept.evaluate-all",
+        "tags": [
+          "edm-messkonzept"
+        ]
+      }
+    },
     "/api/edm/timeseries/:meloId": {
       "delete": {
         "operationId": "edm_deleteTimeseries",
@@ -5362,6 +5724,420 @@ process:
           }
         },
         "summary": "Import timeseries data for a MeLo",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
+    "/api/edm/validate": {
+      "post": {
+        "description": "Runs validation rules against a timeseries range. Returns findings per rule with severity. If autoFix=true, generates replacement values for gaps and writes them to EDM.",
+        "operationId": "edm-validation_validate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "autoFix": false,
+                    "capacityKw": 10,
+                    "from": "2026-04-01T00:00:00.000Z",
+                    "meloId": "DE0012345678901234567890123456789",
+                    "obis": "1-0:2.8.0",
+                    "rules": [
+                      "BANDWIDTH_CHECK",
+                      "GAP_DETECTION"
+                    ],
+                    "to": "2026-04-01T23:59:59.000Z"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "autoFix": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "capacityKw": {
+                    "example": 10,
+                    "type": "number"
+                  },
+                  "from": {
+                    "example": "2026-04-01T00:00:00.000Z",
+                    "type": "string"
+                  },
+                  "meloId": {
+                    "example": "DE0012345678901234567890123456789",
+                    "type": "string"
+                  },
+                  "obis": {
+                    "default": "1-0:1.8.0",
+                    "type": "string"
+                  },
+                  "rules": {
+                    "example": [
+                      "GAP_DETECTION"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "to": {
+                    "example": "2026-04-01T23:59:59.000Z",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "meloId",
+                  "from",
+                  "to"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Validate timeseries data and optionally auto-fix gaps",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
+    "/api/edm/validate/:meloId/fill-gaps": {
+      "post": {
+        "operationId": "edm-validation_fillGaps",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "annualConsumptionKwh": 3500,
+                    "from": "2026-04-01T00:00:00.000Z",
+                    "meloId": "DE0012345678901234567890123456789",
+                    "method": "auto",
+                    "obis": "1-0:2.8.0",
+                    "slpProfileId": "H0",
+                    "to": "2026-04-01T23:59:59.000Z"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "annualConsumptionKwh": {
+                    "example": 3500,
+                    "type": "number"
+                  },
+                  "from": {
+                    "example": "2026-04-01T00:00:00.000Z",
+                    "type": "string"
+                  },
+                  "meloId": {
+                    "example": "DE0012345678901234567890123456789",
+                    "type": "string"
+                  },
+                  "method": {
+                    "default": "auto",
+                    "enum": [
+                      "interpolate",
+                      "previous_day",
+                      "slp",
+                      "auto"
+                    ],
+                    "type": "string"
+                  },
+                  "obis": {
+                    "default": "1-0:1.8.0",
+                    "type": "string"
+                  },
+                  "slpProfileId": {
+                    "default": "H0",
+                    "type": "string"
+                  },
+                  "to": {
+                    "example": "2026-04-01T23:59:59.000Z",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "meloId",
+                  "from",
+                  "to"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Fill gaps in timeseries with replacement values",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
+    "/api/edm/validate/:meloId/report": {
+      "get": {
+        "operationId": "edm-validation_getReport",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "meloId",
+            "required": true,
+            "schema": {
+              "example": "DE0012345678901234567890123456789",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "obis",
+            "required": false,
+            "schema": {
+              "default": "1-0:1.8.0",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "example": "2026-04-01T00:00:00.000Z",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "example": "2026-04-01T23:59:59.000Z",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get validation report for a timeseries range",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
+    "/api/edm/validate/rules": {
+      "get": {
+        "operationId": "edm-validation_listRules",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List available EDM validation rules",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
+    "/api/edm/virtual/auto-populate/day": {
+      "post": {
+        "operationId": "edm-virtual_autoPopulateDay",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "annualConsumptionKwh": 3200,
+                    "date": "2026-05-01",
+                    "includeCalc": true,
+                    "includeSlp": true,
+                    "limit": 100,
+                    "overwriteExisting": false,
+                    "profileId": "H0",
+                    "typeFilter": "virtual"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "annualConsumptionKwh": {
+                    "default": 3500,
+                    "example": 3200,
+                    "type": "number"
+                  },
+                  "date": {
+                    "example": "2026-05-01",
+                    "type": "string"
+                  },
+                  "includeCalc": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "includeSlp": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "limit": {
+                    "default": 100,
+                    "type": "integer"
+                  },
+                  "overwriteExisting": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "profileId": {
+                    "default": "H0",
+                    "example": "H0",
+                    "type": "string"
+                  },
+                  "typeFilter": {
+                    "default": "virtual",
+                    "enum": [
+                      "virtual",
+                      "dummy",
+                      "all"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "date"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Auto-population summary"
+          }
+        },
+        "summary": "Auto-populate virtual meter data for one day",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
+    "/api/edm/virtual/populate-slp": {
+      "post": {
+        "operationId": "edm-virtual_populateBySlp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "annualConsumptionKwh": 3200,
+                    "date": "2026-05-01",
+                    "meloId": "VIRTUAL_1",
+                    "overwriteExisting": true,
+                    "profileId": "H0"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "annualConsumptionKwh": {
+                    "default": 3500,
+                    "example": 3200,
+                    "type": "number"
+                  },
+                  "date": {
+                    "example": "2026-05-01",
+                    "type": "string"
+                  },
+                  "meloId": {
+                    "example": "VIRTUAL_1",
+                    "type": "string"
+                  },
+                  "obis": {
+                    "default": "1-0:1.8.0",
+                    "example": "1-0:1.8.0",
+                    "type": "string"
+                  },
+                  "overwriteExisting": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "profileId": {
+                    "default": "H0",
+                    "example": "H0",
+                    "type": "string"
+                  },
+                  "quality": {
+                    "default": "synthetic",
+                    "example": "synthetic",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "meloId",
+                  "date"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Virtual timeseries imported"
+          },
+          "404": {
+            "description": "MeLo not found"
+          },
+          "422": {
+            "description": "MeLo type not supported"
+          }
+        },
+        "summary": "Populate one virtual/dummy MeLo from SLP profile",
         "tags": [
           "EDM (Energiedatenmanagement)"
         ]
@@ -7523,6 +8299,122 @@ process:
         "summary": "Get details for a specific finding in an audit",
         "tags": [
           "MaStR Data Quality"
+        ]
+      }
+    },
+    "/api/mscons/import": {
+      "post": {
+        "description": "Parses MSCONS, creates MeLos if needed, imports timeseries into EDM SQLite. Fully offline — no external dependencies (KRITIS-compliant).",
+        "operationId": "mscons-import_import",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "autoCreateMelo": true,
+                    "data": "UNH+1+MSCONS:D:04B:UN:2.3e'BGM+7+DOC1+9'...",
+                    "gridOperatorMastrId": "SNB961471621746",
+                    "overwriteExisting": false,
+                    "validateOnImport": true
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "autoCreateMelo": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "data": {
+                    "example": "UNH+1+MSCONS:D:04B:UN:2.3e'...",
+                    "type": "string"
+                  },
+                  "gridOperatorMastrId": {
+                    "example": "SNB961471621746",
+                    "type": "string"
+                  },
+                  "overwriteExisting": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "validateOnImport": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "MSCONS import result"
+          }
+        },
+        "summary": "Import MSCONS EDIFACT message into EDM",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
+    "/api/mscons/imports": {
+      "get": {
+        "operationId": "mscons-import_listImports",
+        "responses": {
+          "200": {
+            "description": "List of imported MeLos"
+          }
+        },
+        "summary": "List imported MSCONS MeLos",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
+        ]
+      }
+    },
+    "/api/mscons/parse": {
+      "post": {
+        "description": "Parses a MSCONS EDIFACT message and returns structured data without importing into EDM. Use for preview/validation.",
+        "operationId": "mscons-import_parse",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "data": "UNH+1+MSCONS:D:04B:UN:2.3e'BGM+7+DOC1+9'..."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "data": {
+                    "example": "UNH+1+MSCONS:D:04B:UN:2.3e'...",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "data"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Parsed MSCONS result"
+          }
+        },
+        "summary": "Parse MSCONS EDIFACT message (no import, read-only)",
+        "tags": [
+          "EDM (Energiedatenmanagement)"
         ]
       }
     },
@@ -10233,8 +11125,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.28.0"
+  "x-version": "0.29.0"
 }
 
 ## Integrity
-- llm_txt_sha256: 0b3641247c010b459ee09ae5fd21e1d7f29a9c1e799e5572b6cadf5a86fed57f
+- llm_txt_sha256: df6172e3eb79ad876f91d197bc1a46a769db91636c95d01ce0b4b3943c78ad4e

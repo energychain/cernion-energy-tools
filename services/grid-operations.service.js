@@ -293,13 +293,79 @@ module.exports = {
             },
           },
         },
+        responses: {
+          200: {
+            description: 'VNBdigital search result with mixed entry types',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    searchTerm: { type: 'string' },
+                    total: { type: 'number' },
+                    results: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        description:
+                          'Search result entry. profileUrl is additive and only present for VNB entries when available.',
+                        properties: {
+                          _id: { type: 'string' },
+                          title: { type: 'string' },
+                          type: { type: 'string' },
+                          profileUrl: {
+                            type: 'string',
+                            format: 'uri',
+                            description:
+                              'Direct VNBDigital profile URL (optional, VNB entries only)',
+                          },
+                        },
+                        additionalProperties: true,
+                      },
+                    },
+                  },
+                  additionalProperties: true,
+                },
+              },
+            },
+          },
+        },
       },
       async handler(ctx) {
-        return await CernionMCPClient.callWithNewSession(
+        const response = await CernionMCPClient.callWithNewSession(
           'vnbdigital_search',
           ctx.params,
           ctx.meta.cernionToken
         );
+
+        const container = response?.data && typeof response.data === 'object' ? response.data : null;
+        const results = container?.results || response?.results;
+        if (Array.isArray(results)) {
+          const enriched = results.map((item) => {
+            const normalizedType = String(item?.type || '').toLowerCase();
+            const lookupHint =
+              normalizedType === 'vnb'
+                ? 'profile_or_control_measures'
+                : normalizedType === 'postcode'
+                  ? 'vnbdigital_lookup:postcode'
+                  : normalizedType === 'community'
+                    ? 'vnbdigital_lookup:community'
+                    : normalizedType === 'location'
+                      ? 'vnbdigital_lookup:coordinates'
+                      : null;
+            return {
+              ...item,
+              entityType: normalizedType || null,
+              entityId: item?._id || item?.id || null,
+              lookupHint,
+            };
+          });
+
+          if (container) container.results = enriched;
+          else response.results = enriched;
+        }
+
+        return response;
       },
     },
 
@@ -417,6 +483,58 @@ module.exports = {
             },
           },
         },
+        responses: {
+          200: {
+            description: 'VNBdigital lookup result with regions and VNB list',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    searchType: { type: 'string' },
+                    coordinates: { type: 'string' },
+                    postcodeId: { type: 'string' },
+                    communityId: { type: 'string' },
+                    result: {
+                      type: 'object',
+                      properties: {
+                        regions: {
+                          type: 'array',
+                          items: { type: 'object', additionalProperties: true },
+                        },
+                        vnbs: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            description:
+                              'Responsible VNB entry. profileUrl is additive and optional.',
+                            properties: {
+                              _id: { type: 'string' },
+                              name: { type: 'string' },
+                              profileUrl: {
+                                type: 'string',
+                                format: 'uri',
+                                description:
+                                  'Direct VNBDigital profile URL (optional, present when available)',
+                              },
+                              voltageTypes: {
+                                type: 'array',
+                                items: { type: 'string' },
+                              },
+                            },
+                            additionalProperties: true,
+                          },
+                        },
+                      },
+                      additionalProperties: true,
+                    },
+                  },
+                  additionalProperties: true,
+                },
+              },
+            },
+          },
+        },
       },
       async handler(ctx) {
         const { searchType, coordinates, postcodeId, communityId } = ctx.params;
@@ -435,6 +553,145 @@ module.exports = {
 
         return await CernionMCPClient.callWithNewSession(
           'vnbdigital_lookup',
+          ctx.params,
+          ctx.meta.cernionToken
+        ).then((response) => {
+          const root = response?.data && typeof response.data === 'object' ? response.data : response;
+          const vnbs = root?.result?.vnbs;
+          if (Array.isArray(vnbs)) {
+            root.result.vnbs = vnbs.map((vnb) => ({
+              ...vnb,
+              entityType: 'vnb',
+              entityId: vnb?._id || vnb?.id || null,
+              vnbdigitalId: vnb?._id || vnb?.id || null,
+              canonicalCodes:
+                vnb?.bdewCode || vnb?.bnr || vnb?.mastrId
+                  ? {
+                      bdewCode: vnb?.bdewCode || null,
+                      bnr: vnb?.bnr || null,
+                      mastrId: vnb?.mastrId || null,
+                    }
+                  : null,
+            }));
+          }
+          return response;
+        });
+      },
+    },
+
+    /**
+     * Query §14a / Steuerungsmaßnahmen control measures for a postcode area or VNB
+     * Tool: vnbdigital_control_measures
+     */
+    controlMeasures: {
+      rest: 'POST /control-measures',
+      params: {
+        searchType: { type: 'enum', values: ['postcode', 'vnb'] },
+        postcode: { type: 'string', optional: true },
+        vnbId: { type: 'string', optional: true },
+        range: { type: 'array', items: 'string', optional: true, default: [] },
+      },
+      openapi: {
+        summary: 'Query §14a control measures for a postcode area or VNB',
+        tags: ['Grid Operations'],
+        // @OpenEnergyPlatform/ontology — OEO_00110020 distribution grid
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00110020'],
+        description: `Retrieve §14a Steuerungsmaßnahmen (control measures) data from VNBdigital.
+
+Returns active and planned grid control measures for controllable devices (wallboxes,
+heat pumps, storage systems) in a given postcode area or for a specific VNB.
+
+**Use Cases:**
+- Check §14a implementation status for a service area
+- Identify grid fee reduction eligibility for customers
+- Determine §14a rollout progress for a VNB`,
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['searchType'],
+                properties: {
+                  searchType: {
+                    type: 'string',
+                    enum: ['postcode', 'vnb'],
+                    description: 'Search by postcode area or by VNB identifier',
+                    example: 'postcode',
+                  },
+                  postcode: {
+                    type: 'string',
+                    description: 'Postcode (required when searchType is "postcode")',
+                    example: '69256',
+                  },
+                  vnbId: {
+                    type: 'string',
+                    description: 'VNB identifier from vnbdigital_search (required when searchType is "vnb")',
+                    example: 'DEBWhk01000gMZ1V',
+                  },
+                  range: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Optional area range filter (postcode prefixes or region codes)',
+                    default: [],
+                    example: [],
+                  },
+                },
+              },
+              examples: {
+                byPostcode: {
+                  summary: 'Query by postcode',
+                  value: {
+                    searchType: 'postcode',
+                    postcode: '69256',
+                  },
+                },
+                byVnb: {
+                  summary: 'Query by VNB ID',
+                  value: {
+                    searchType: 'vnb',
+                    vnbId: 'DEBWhk01000gMZ1V',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: '§14a control measures result',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  description: 'Raw VNBdigital control measures response',
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { searchType, postcode, vnbId } = ctx.params;
+
+        if (searchType === 'postcode' && !postcode) {
+          throw new MoleculerClientError(
+            'postcode is required when searchType is "postcode"',
+            422,
+            'VALIDATION_ERROR'
+          );
+        }
+
+        if (searchType === 'vnb' && !vnbId) {
+          throw new MoleculerClientError(
+            'vnbId is required when searchType is "vnb"',
+            422,
+            'VALIDATION_ERROR'
+          );
+        }
+
+        return await CernionMCPClient.callWithNewSession(
+          'vnbdigital_control_measures',
           ctx.params,
           ctx.meta.cernionToken
         );

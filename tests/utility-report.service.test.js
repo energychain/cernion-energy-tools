@@ -75,6 +75,31 @@ const DEFAULT_SERVICE_MOCKS = {
       results: [{ name: 'TWL Netze GmbH', bdewCode: '10002345', mastrId: 'SNB123' }],
     }),
     vnbLookup: async () => DEFAULT_MOCK_RESULT,
+    vnbLookupCodes: async () => ({
+      canonical: {
+        bdewCodePrimary: '10002345',
+        mastrId: 'SNB123',
+        bnr: '10002345',
+      },
+      aliases: [],
+    }),
+    vnbdigitalSearch: async () => ({
+      searchTerm: 'TWL Netze GmbH',
+      total: 1,
+      results: [
+        {
+          _id: 'DEBWhk01000gMZ1V',
+          title: 'TWL Netze GmbH',
+          type: 'vnb',
+          profileUrl: 'https://www.vnbdigital.de/vnb/DEBWhk01000gMZ1V',
+        },
+      ],
+    }),
+    vnbdigitalLookup: async () => ({
+      searchType: 'postcode',
+      result: { vnbs: [{ _id: 'DEBWhk01000gMZ1V', name: 'TWL Netze GmbH' }] },
+    }),
+    controlMeasures: async () => ({ result: { items: [] } }),
     capacityUtilization: async () => DEFAULT_MOCK_RESULT,
     redispatchExport: async () => ({ ...DEFAULT_MOCK_RESULT, totalCount: 47 }),
     operatorAnalysis: async () => DEFAULT_MOCK_RESULT,

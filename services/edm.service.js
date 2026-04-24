@@ -337,6 +337,7 @@ module.exports = {
       params: {
         type: { type: 'string', optional: true },
         gridOperatorMastrId: { type: 'string', optional: true },
+        sourceType: { type: 'string', optional: true },
         limit: { type: 'number', optional: true, default: 100, convert: true },
         offset: { type: 'number', optional: true, default: 0, convert: true },
       },
@@ -346,6 +347,7 @@ module.exports = {
         parameters: [
           { name: 'type', in: 'query', required: false, schema: { type: 'string', example: 'virtual' } },
           { name: 'gridOperatorMastrId', in: 'query', required: false, schema: { type: 'string', example: 'SNB935578300972' } },
+          { name: 'sourceType', in: 'query', required: false, schema: { type: 'string', example: 'mscons' } },
           { name: 'limit', in: 'query', required: false, schema: { type: 'number', default: 100 } },
           { name: 'offset', in: 'query', required: false, schema: { type: 'number', default: 0 } },
         ],
@@ -353,7 +355,7 @@ module.exports = {
       },
       handler(ctx) {
         const db = this.pool.getRegistry();
-        const { type, gridOperatorMastrId, limit, offset } = ctx.params;
+        const { type, gridOperatorMastrId, sourceType, limit, offset } = ctx.params;
 
         const where = [];
         const params = [];
@@ -365,6 +367,10 @@ module.exports = {
         if (gridOperatorMastrId) {
           where.push('grid_operator_mastr_id = ?');
           params.push(gridOperatorMastrId);
+        }
+        if (sourceType) {
+          where.push('source_type = ?');
+          params.push(sourceType);
         }
 
         const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';

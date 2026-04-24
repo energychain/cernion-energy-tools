@@ -329,26 +329,22 @@ module.exports = {
           const today    = new Date().toISOString().slice(0, 10);
           const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 
-          // energy-market.prices, co2Intensity, and german-grid.spotprices always fire
-          // in parallel (lightweight, 1 MCP session each, no internal fan-out).
-          // entsoe.windSolarForecast only fires when the caller provides an explicit
-          // `region` — without it, a Germany-wide forecast is not meaningful for a local
-          // VNB dashboard. UI must hide the renewableForecast24h card when it is null.
-          const [pricesRes, co2Res, spotRes] = await Promise.allSettled([
-            this.safeCall(ctx, 'energy-market.prices', {
-              market: 'day-ahead',
+          // entsoe.dayAheadPrices, co2Intensity always fire in parallel (1 MCP session
+          // each, no internal fan-out). entsoe.windSolarForecast only fires when the
+          // caller provides an explicit `region` — without it, a Germany-wide forecast
+          // is not meaningful for a local VNB dashboard. UI must hide the
+          // renewableForecast24h card when it is null.
+          const [pricesRes, co2Res] = await Promise.allSettled([
+            this.safeCall(ctx, 'entsoe.dayAheadPrices', {
               region: 'Deutschland',
-              date: today,
-            }, null, errors, 'energy-market.prices'),
+              dateFrom: today,
+              dateTo: today,
+              includeStatistics: true,
+            }, null, errors, 'entsoe.dayAheadPrices'),
             this.safeCall(ctx, 'energy-market.co2Intensity', {
               location,
               forecast: true,
             }, null, errors, 'energy-market.co2Intensity'),
-            this.safeCall(ctx, 'german-grid.spotprices', {
-              dateFrom: today,
-              dateTo: today,
-              includeStatistics: true,
-            }, null, errors, 'german-grid.spotprices'),
           ]);
 
           const forecastRaw = region
@@ -361,7 +357,7 @@ module.exports = {
             : null;
 
           return {
-            spotPrice:            this.buildSpotPrice(pricesRes.value, spotRes.value),
+            spotPrice:            this.buildSpotPrice(pricesRes.value),
             co2:                  this.buildCo2(co2Res.value, location),
             renewableForecast24h: forecastRaw ? this.buildForecast(forecastRaw) : null,
             timestamp:            new Date().toISOString(),
@@ -784,22 +780,24 @@ module.exports = {
      * Builds the spotPrice block from energy-market.prices or german-grid.spotprices.
      * Falls back gracefully between the two sources.
      */
-    buildSpotPrice(pricesData, spotData) {
-      // Prefer energy-market.prices (more detailed), fall back to german-grid.spotprices
-      const source = pricesData || spotData;
-      if (!source) return null;
+    buildSpotPrice(pricesData) {
+      if (!pricesData) return null;
 
-      const prices = source.prices || source.data || [];
-      if (!prices.length) return null;
+      // entsoe.dayAheadPrices returns dataPoints[].priceEURperMWh; other sources may use
+      // prices[].price or prices[].priceEURMWh — handle all known shapes.
+      const points = pricesData.dataPoints || pricesData.prices || pricesData.data || [];
+      if (!points.length) return null;
 
-      const values = prices.map((p) => p.price ?? p.value ?? p.priceEur).filter((v) => v != null);
+      const values = points
+        .map((p) => p.priceEURperMWh ?? p.priceEURMWh ?? p.price ?? p.value ?? p.priceEur)
+        .filter((v) => v != null);
       if (!values.length) return null;
 
-      const avg = values.reduce((a, b) => a + b, 0) / values.length;
-      const min = Math.min(...values);
-      const max = Math.max(...values);
-
-      // Trend: compare last value to average
+      // Prefer pre-computed statistics when available (entsoe response includes them)
+      const stats  = pricesData.statistics || {};
+      const avg    = stats.avgPrice    ?? (values.reduce((a, b) => a + b, 0) / values.length);
+      const min    = stats.minPrice    ?? Math.min(...values);
+      const max    = stats.maxPrice    ?? Math.max(...values);
       const current = values[values.length - 1];
       const trend   = current > avg * 1.05 ? 'rising' : current < avg * 0.95 ? 'falling' : 'stable';
 
@@ -809,7 +807,7 @@ module.exports = {
         minToday: Math.round(min      * 100) / 100,
         maxToday: Math.round(max      * 100) / 100,
         trend,
-        source: pricesData ? 'energy-market' : 'german-grid',
+        source: 'entsoe',
       };
     },
 
@@ -818,16 +816,29 @@ module.exports = {
      */
     buildCo2(co2Data, location) {
       if (!co2Data) return null;
-      const current = co2Data.current ?? co2Data.co2Intensity ?? co2Data.value ?? null;
+      // energy-market.co2Intensity returns co2_intensity_gco2eq_kwh (MCP field name);
+      // nested .data sub-object is also checked for forward-compat.
+      const current =
+        co2Data.co2_intensity_gco2eq_kwh ??
+        co2Data.data?.co2_intensity_gco2eq_kwh ??
+        co2Data.current ??
+        co2Data.co2Intensity ??
+        co2Data.value ??
+        null;
       if (current == null) return null;
 
       const signal = current < 300 ? 'green' : current < 450 ? 'yellow' : 'red';
 
       return {
         current:  Math.round(current),
-        avgToday: co2Data.avgToday ?? co2Data.average ?? null,
+        avgToday:
+          co2Data.average_today_gco2eq_kwh ??
+          co2Data.data?.average_today_gco2eq_kwh ??
+          co2Data.avgToday ??
+          co2Data.average ??
+          null,
         signal,
-        location: co2Data.location || location,
+        location: co2Data.data?.location || co2Data.location || location,
       };
     },
 

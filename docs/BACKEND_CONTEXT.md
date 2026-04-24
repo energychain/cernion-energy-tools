@@ -1,6 +1,6 @@
 # Cernion Energy Tools — Backend Context Reference
 
-> **Version:** 0.28.0
+> **Version:** 0.29.0
 > **Purpose:** Comprehensive backend context for frontend developers, AI assistants,
 > and new contributors. One document to understand the full system.
 
@@ -11,7 +11,7 @@
 Cernion Energy Tools is a **Moleculer microservices** system. Each service runs in the
 same process and communicates via Moleculer's in-process transport (no network hops for
 internal calls). A single API Gateway (`services/api.service.js`) exposes all services as
-REST endpoints on port 3000. As of v0.28.0, the platform exposes **~149 REST endpoints**
+REST endpoints on port 3000. As of v0.29.0, the platform exposes **~151 REST endpoints**
 including the new EDM (`/api/edm/*`) and SLP (`/api/slp/*`) surfaces.
 
 ```
@@ -53,7 +53,7 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 
 ---
 
-## 2. Service Directory (47 services as of v0.28.0)
+## 2. Service Directory (48 services as of v0.29.0)
 
 | Service | File | Since | Key actions |
 |---------|------|-------|-------------|
@@ -75,6 +75,7 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 | datasource-watcher | `datasource-watcher.service.js` | v0.9 | File change watcher |
 | eic-codes | `eic-codes.service.js` | v0.9 | EIC code lookup |
 | **edm** | `edm.service.js` | **v0.28** | **MeLo-Registry, Zeitreihen-Import/Query/Summary/Delete (SQLite)** |
+| **edm-virtual** | `edm-virtual.service.js` | **v0.29** | **Auto-Population virtueller/dummy MeLos (SLP + Messkonzept-Batch)** |
 | energy-market | `energy-market.service.js` | v0.9 | Prices, CO₂, installations |
 | energy-sharing | `energy-sharing.service.js` | v0.15 | § 42c EnWG validation |
 | energy-sharing-allocation | `energy-sharing-allocation.service.js` | v0.16 | Allocation engine |

@@ -152,6 +152,21 @@ describe('edm.service', () => {
     expect(res.data[0].gridOperatorMastrId).toBe('SNB_FILTER');
   });
 
+  it("listMelos: Filter nach sourceType='mscons'", async () => {
+    await broker.call('edm.createMelo', {
+      meloId: 'MSCONS_FILTER_1',
+      type: 'physical',
+      sourceType: 'mscons',
+    });
+
+    const res = await broker.call('edm.listMelos', {
+      sourceType: 'mscons',
+    });
+
+    expect(res.data.length).toBeGreaterThanOrEqual(1);
+    expect(res.data.every((item) => item.sourceType === 'mscons')).toBe(true);
+  });
+
   it('updateMelo: Name aktualisiert, updated_at ändert sich', async () => {
     const before = await broker.call('edm.getMelo', { meloId: 'DE_PHYSICAL_1' });
 

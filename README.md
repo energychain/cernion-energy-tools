@@ -32,6 +32,7 @@ A modular, scalable microservices platform built with [Moleculer](https://molecu
 - 🌊 **NOVA Decision Feed** — Real-time SSE decision stream for ZNP grid upgrade proposals with apply/reject workflow (`GET /api/nova/stream`) (v0.24)
 - 🤖 **CYA Agent** — Profile-aware grid-connection narrative generator with multi-stakeholder AI perspectives (Investor, Planer, Betreiber) — generates and refines structured narratives from agent sessions (`POST /api/cya/generate`) (v0.26)
 - 🔔 **MaStR Monitor** — Field-level change detection with SMTP email notifications, Double-Opt-In subscriptions, cron scheduling, and Live-CSV session replay (`POST /api/mastr-monitor/watches`) (v0.27)
+- 🧮 **EDM Virtual Auto-Population** — Automated daily quarter-hour filling for virtual and dummy MeLos via SLP and optional Messkonzept batch evaluation (`POST /api/edm/virtual/*`) (v0.29)
 - 🧠 **OEO / OEMetadata** — Open Energy Ontology annotations on all 45+ REST endpoints, OEMetadata v2.0 export with optional JSON Schema validation (v0.11.4–v0.12)
 - 🔐 **Data Provenance** — SHA-256 provenance hashing on every datapoint refresh for EU AI Act Art. 12 compliance, plus explainability log for agent corrections (v0.11.5)
 - 🧹 **Prompt Scrubber** — Field-level PII masking with energy-domain allowlist before sending data to external LLMs (v0.11.5)- �🔌 **MCP Support** — Model Context Protocol SDK integration

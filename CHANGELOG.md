@@ -7,6 +7,110 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.29.0] — 2026-04-24
+
+### Added
+
+- **`grid-operations.controlMeasures` — §14a Steuerungsmaßnahmen endpoint
+  (`POST /api/grid-operations/control-measures`):**
+  New REST action wrapping the `vnbdigital_control_measures` MCP tool.
+  Retrieves active and planned §14a grid control measures for controllable devices
+  (wallboxes, heat pumps, storage) by postcode area or VNB identifier.
+  - `searchType: "postcode"` → requires `postcode` field
+  - `searchType: "vnb"` → requires `vnbId` field (from `vnbdigital_search`)
+  - Optional `range` array for area filtering
+  - Full OpenAPI annotation with two examples (`byPostcode`, `byVnb`)
+  - 4 new unit tests in `tests/grid-operations.service.test.js`
+
+- **VNBDigital enrichment (`profileUrl`) for integrators:**
+  `vnbdigital_search` and `vnbdigital_lookup` now expose additive optional
+  `profileUrl` fields in the documented API contracts and examples.
+  - `vnbdigital_search.results[]` may include `profileUrl` for VNB entries
+  - `vnbdigital_lookup.result.vnbs[]` may include `profileUrl`
+  - Backward-compatible (optional fields only; existing integrations continue to work)
+  - OpenAPI response schemas updated in `grid-operations.service.js`
+  - Regression tests added for passthrough + no-`profileUrl` compatibility
+
+- **MCP tool docs updated for VNBDigital workflow:**
+  `MCP_TOOLS.md` now includes enriched `vnbdigital_search`/`vnbdigital_lookup`
+  examples with `profileUrl`, plus a dedicated `vnbdigital_control_measures`
+  section for §14a queries.
+
+- **Utility Report 360° VNBDigital enrichment (always-on real-data mode):**
+  `utility-report` now enriches identification and compliance sections with
+  VNBDigital-backed identity context and §14a control-measures data.
+  - Added deterministic VNBDigital identity enrichment in Phase 1
+    (`vnbdigital_search` → optional `vnbdigital_lookup` → `vnbLookupCodes`)
+  - Added canonical identity metadata in Phase 2 (`canonicalIdentity`, `vnbdigital`)
+  - Added Section 5 enrichment with `controlMeasures` via
+    `grid-operations.controlMeasures` (`vnbdigital_control_measures`)
+  - Added Section 8 transparency fields (`vnbdigital`, `canonicalIdentity`,
+    `controlMeasuresSummary`) for `/app` rendering context
+  - Enabled strict real-data policy in report generation:
+    heuristic city/gemeinde SNB fallbacks are skipped and synthetic narrative
+    filler bullets are removed (no mock/placeholder KPI statements)
+
+- **Utility Report Phase 3 hang fix (v0.28.1 hotfix):**
+  All 4 `Promise.all()` batches in Phase 3 converted to `Promise.allSettled()`
+  + `unpackSettled()` helper + heartbeat `saveProgress()` calls between batches.
+  Prevents indefinite hangs caused by stalled MCP upstream calls.
+
+- **EDM Validation Service (`edm-validation`):**
+  6 deterministische Validierungsregeln (Bandbreite, Lücken, Monotonie,
+  Duplikate, SLP-Plausibilität, Negative). Automatische Ersatzwertbildung
+  mit 4-stufiger Fallback-Kette (Interpolation → Vortag → SLP → Zero).
+  4 REST-Endpoints unter `/api/edm/validate/*`.
+
+- **EDM Messkonzept-Engine (`edm-messkonzept`):**
+  Formel-Engine für virtuelle Zähler (SUM/DIFF/NET/CALC/CUSTOM) mit
+  sicherer Expression-Evaluation ohne `eval()`, inkl. `evaluateAll`
+  für Batch-Auswertung. 6 REST-Endpoints unter `/api/edm/messkonzepte/*`.
+
+- **MSCONS-Import (`mscons-import`) mit eingebettetem EDIFACT-Parser:**
+  Neuer offline-fähiger MSCONS-Import ohne externe Abhängigkeiten (KRITIS-konform).
+  - Neuer Parser [src/edm-mscons-parser.js](src/edm-mscons-parser.js)
+    mit `tokenizeSegments()` und `parseMscons()` für UNH/BGM/DTM/NAD/LOC/CCI/QTY/STS.
+  - Neues Service [services/mscons-import.service.js](services/mscons-import.service.js)
+    mit 3 Actions:
+    - `POST /api/mscons/parse` → `mscons-import.parse`
+    - `POST /api/mscons/import` → `mscons-import.import`
+    - `GET /api/mscons/imports` → `mscons-import.listImports`
+  - Importfluss: Auto-Create MeLo (`sourceType='mscons'`), OBIS-/Quality-Mapping,
+    optional `edm-validation`-Validierung pro Zeitreihe.
+  - Neue Tests:
+    [tests/edm-mscons-parser.test.js](tests/edm-mscons-parser.test.js),
+    [tests/mscons-import.service.test.js](tests/mscons-import.service.test.js)
+
+- **EDM Virtual Meter Auto-Population (`edm-virtual`):**
+  Neuer Service für die automatische Befüllung virtueller/dummy MeLos mit
+  viertelstundenscharfen Tagesprofilen (SLP) und optionaler Batch-Auswertung
+  vorhandener Messkonzepte.
+  - Neue REST-Endpunkte:
+    - `POST /api/edm/virtual/populate-slp` → `edm-virtual.populateBySlp`
+    - `POST /api/edm/virtual/auto-populate/day` → `edm-virtual.autoPopulateDay`
+  - Neue Helper in [src/edm-virtual-meter.js](src/edm-virtual-meter.js)
+  - Neue Tests:
+    [tests/edm-virtual-meter.test.js](tests/edm-virtual-meter.test.js),
+    [tests/edm-virtual.service.test.js](tests/edm-virtual.service.test.js)
+
+### Changed
+
+- **`edm.listMelos` erweitert um `sourceType`-Filter:**
+  Optionales Query-Param `sourceType` ergänzt (inkl. SQL-Filter + OpenAPI-Doku),
+  damit MSCONS-importierte MeLos gezielt gelistet werden können.
+
+### Fixed
+
+- **Dashboard `market-snapshot` — alle Felder lieferten `null`:**
+  `dashboard-api.marketSnapshot` rief `energy-market.prices` auf, dessen
+  Antwortstruktur (`prices[].price`) nicht mit den tatsächlich genutzten
+  Feldern übereinstimmte. Umgestellt auf `entsoe.dayAheadPrices`
+  (`dataPoints[].priceEURperMWh` + `statistics`). Gleichzeitig wurde
+  `buildCo2` korrigiert, das nach `co2Data.current` suchte, während
+  `energy-market.co2Intensity` `co2_intensity_gco2eq_kwh` liefert.
+  `german-grid.spotprices` als redundanter dritter Call entfernt.
+  Tests in `tests/dashboard-api.test.js` entsprechend aktualisiert (74 Tests grün).
+
 ## [0.28.0] — 2026-04-20
 
 ### Added
