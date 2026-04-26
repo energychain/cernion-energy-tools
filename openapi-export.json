@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.29.0",
+    "version": "0.31.0",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -97,6 +97,18 @@
     {
       "name": "SLP (Standardlastprofile)",
       "description": "Standard load profiles (BDEW H0/G0/L0) and custom profiles for load estimation, settlement, and forecast baseline."
+    },
+    {
+      "name": "Settlement (Abrechnung)",
+      "description": "Redispatch compensation (§13a/14 EnWG), EEG revenue calculation, and A96 settlement export. Based on EDM timeseries, generation forecasts, and ENTSO-E market prices with KRITIS fallbacks."
+    },
+    {
+      "name": "Forecast (Prognostik)",
+      "description": "Load forecasting (SLP-based with historical correction), generation forecasting (MCP with KRITIS fallback), residual load calculation, Day-Ahead scheduling, storage dispatch optimization, and forecast quality evaluation (RMSE/MAE/MAPE)."
+    },
+    {
+      "name": "Flex (§14a Flexibilitätsmanagement)",
+      "description": "Controllable consumption device management (§14a EnWG). SVE registry, dimming planning with grid capacity analysis, MQTT-based execution, Entlastungsnachweis, and tariff reduction."
     },
     {
       "name": "MaStR Monitor",
@@ -10231,8 +10243,1808 @@
           }
         }
       }
+    },
+    "/api/settlement/redispatch/calculate": {
+      "post": {
+        "operationId": "settlement_calculateRedispatch",
+        "summary": "Calculate Redispatch compensation (§13a/14 EnWG)",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Calculates compensation for curtailment events based on forecast vs. actual generation and market prices. Supports market_price, eeg_minimum and actual_loss (max of both).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "installations",
+                  "period"
+                ],
+                "properties": {
+                  "installations": {
+                    "type": "array",
+                    "example": [
+                      {
+                        "mastrNummer": "SEE999952467552",
+                        "meloId": "DE0003966698900000000000052335107",
+                        "curtailmentEvents": [
+                          {
+                            "start": "2026-04-01T10:00:00Z",
+                            "end": "2026-04-01T12:00:00Z"
+                          }
+                        ]
+                      }
+                    ],
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "period": {
+                    "type": "object",
+                    "example": {
+                      "from": "2026-04-01",
+                      "to": "2026-04-30"
+                    },
+                    "properties": {
+                      "from": {
+                        "type": "string",
+                        "example": "2026-04-01"
+                      },
+                      "to": {
+                        "type": "string",
+                        "example": "2026-04-30"
+                      }
+                    }
+                  },
+                  "compensationMethod": {
+                    "type": "string",
+                    "enum": [
+                      "market_price",
+                      "eeg_minimum",
+                      "actual_loss"
+                    ],
+                    "default": "actual_loss"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "installations": [
+                      {
+                        "mastrNummer": "SEE999952467552",
+                        "meloId": "DE0003966698900000000000052335107",
+                        "capacityKw": 2103.7,
+                        "commissioningDate": "2009-12-16",
+                        "type": "solar",
+                        "curtailmentEvents": [
+                          {
+                            "start": "2026-04-01T10:00:00Z",
+                            "end": "2026-04-01T12:00:00Z",
+                            "reason": "grid_congestion"
+                          }
+                        ]
+                      }
+                    ],
+                    "period": {
+                      "from": "2026-04-01",
+                      "to": "2026-04-30"
+                    },
+                    "compensationMethod": "actual_loss"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settlement/redispatch/report/:settlementId": {
+      "get": {
+        "operationId": "settlement_getRedispatchReport",
+        "summary": "Get a stored Redispatch settlement report",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "settlementId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "redispatch_2026q2_SEE999952467552"
+            }
+          }
+        ]
+      }
+    },
+    "/api/settlement/eeg/calculate": {
+      "post": {
+        "operationId": "settlement_calculateEeg",
+        "summary": "Calculate EEG revenue for an installation",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "mastrNummer",
+                  "period"
+                ],
+                "properties": {
+                  "mastrNummer": {
+                    "type": "string",
+                    "example": "SEE999952467552"
+                  },
+                  "meloId": {
+                    "type": "string",
+                    "example": "DE0003966698900000000000052335107"
+                  },
+                  "period": {
+                    "type": "object",
+                    "example": {
+                      "from": "2026-04-01",
+                      "to": "2026-04-30"
+                    },
+                    "properties": {
+                      "from": {
+                        "type": "string",
+                        "example": "2026-04-01"
+                      },
+                      "to": {
+                        "type": "string",
+                        "example": "2026-04-30"
+                      }
+                    }
+                  },
+                  "commissioningDate": {
+                    "type": "string",
+                    "example": "2010-05-12"
+                  },
+                  "capacityKwp": {
+                    "type": "number",
+                    "example": 9.8
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "solar",
+                      "wind",
+                      "biomass"
+                    ],
+                    "example": "solar"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "mastrNummer": "SEE999952467552",
+                    "meloId": "DE0003966698900000000000052335107",
+                    "period": {
+                      "from": "2026-04-01",
+                      "to": "2026-04-30"
+                    },
+                    "commissioningDate": "2009-12-16",
+                    "capacityKwp": 2103.7,
+                    "type": "solar"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settlement/eeg/report/:settlementId": {
+      "get": {
+        "operationId": "settlement_getEegReport",
+        "summary": "Get a stored EEG settlement report",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "settlementId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "eeg_2026q2_SEE999952467552"
+            }
+          }
+        ]
+      }
+    },
+    "/api/settlement/a96/prepare": {
+      "post": {
+        "operationId": "settlement_prepareA96",
+        "summary": "Prepare A96 export rows from a Redispatch settlement",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "settlementId"
+                ],
+                "properties": {
+                  "settlementId": {
+                    "type": "string",
+                    "example": "redispatch_2026q2_SEE999952467552"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "settlementId": "redispatch_2026q2_SEE999952467552"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/settlement/a96/export/:settlementId": {
+      "get": {
+        "operationId": "settlement_exportA96",
+        "summary": "Export A96 rows as CSV or JSON",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "settlementId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "redispatch_2026q2_SEE999952467552"
+            }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "csv",
+                "json"
+              ],
+              "default": "csv"
+            }
+          }
+        ]
+      }
+    },
+    "/api/settlement/eeg-tariff": {
+      "get": {
+        "operationId": "settlement_lookupEegTariff",
+        "summary": "Read-only EEG tariff lookup",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "commissioningDate",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2024-03-15"
+            }
+          },
+          {
+            "name": "capacityKwp",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "example": 10
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "solar",
+                "wind",
+                "biomass"
+              ],
+              "example": "solar"
+            }
+          }
+        ]
+      }
+    },
+    "/api/settlement": {
+      "get": {
+        "operationId": "settlement_listSettlements",
+        "summary": "List stored settlements",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "redispatch",
+                "eeg",
+                "all"
+              ],
+              "default": "all"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2026q2"
+            }
+          }
+        ]
+      }
+    },
+    "/api/bilanzkreis": {
+      "post": {
+        "operationId": "bilanzkreis_create",
+        "summary": "Create a Bilanzkreis (real or virtual)",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Creates a balance group definition. Real BKs map to MaBiS interfaces. Virtual BKs aggregate multiple MeLos for internal settlement.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "name",
+                  "type",
+                  "participants"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "bk_es_test"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Energy Sharing Test-Quartier"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "real",
+                      "virtual_energy_sharing",
+                      "virtual_mieterstrom",
+                      "virtual_arealnetz",
+                      "virtual_vpp"
+                    ],
+                    "example": "virtual_energy_sharing"
+                  },
+                  "participants": {
+                    "type": "array",
+                    "example": [
+                      {
+                        "meloId": "BK_TEST_PV",
+                        "role": "producer",
+                        "share": 1
+                      },
+                      {
+                        "meloId": "BK_TEST_CONSUMER",
+                        "role": "consumer",
+                        "share": 1
+                      }
+                    ],
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "gridOperatorMastrId": {
+                    "type": "string",
+                    "example": "SNB935578300972"
+                  },
+                  "validFrom": {
+                    "type": "string",
+                    "example": "2026-01-01"
+                  },
+                  "validTo": {
+                    "type": "string",
+                    "example": "2026-12-31"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "example": {
+                      "source": "manual"
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "id": "bk_es_test",
+                    "name": "Energy Sharing Test-Quartier",
+                    "type": "virtual_energy_sharing",
+                    "participants": [
+                      {
+                        "meloId": "BK_TEST_PV",
+                        "role": "producer",
+                        "share": 1
+                      },
+                      {
+                        "meloId": "BK_TEST_CONSUMER",
+                        "role": "consumer",
+                        "share": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "bilanzkreis_list",
+        "summary": "List Bilanzkreise",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "virtual_energy_sharing"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "archived"
+              ],
+              "example": "active"
+            }
+          }
+        ]
+      }
+    },
+    "/api/bilanzkreis/:id/readiness": {
+      "get": {
+        "operationId": "bilanzkreis_checkReadiness",
+        "summary": "Check settlement readiness for a Bilanzkreis",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Verifies data completeness and quality for all participants before running settlement calculations.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "bk_es_test"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-04-01T00:00:00Z"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-04-01T01:00:00Z"
+            }
+          }
+        ]
+      }
+    },
+    "/api/bilanzkreis/:id": {
+      "get": {
+        "operationId": "bilanzkreis_get",
+        "summary": "Get a Bilanzkreis",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "bk_es_test"
+            }
+          }
+        ]
+      },
+      "delete": {
+        "operationId": "bilanzkreis_delete",
+        "summary": "Delete a Bilanzkreis",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "bk_es_test"
+            }
+          }
+        ]
+      }
+    },
+    "/api/bilanzkreis/:id/calculate": {
+      "post": {
+        "operationId": "bilanzkreis_calculate",
+        "summary": "Calculate balance for a Bilanzkreis over a time period",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Loads timeseries for all participants from EDM, calculates saldo per 15-min interval, and returns summary with self-consumption and autarky rates.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "bk_es_test"
+                  },
+                  "from": {
+                    "type": "string",
+                    "example": "2026-04-01T00:00:00Z"
+                  },
+                  "to": {
+                    "type": "string",
+                    "example": "2026-04-01T01:00:00Z"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "id": "bk_es_test",
+                    "from": "2026-04-01T00:00:00Z",
+                    "to": "2026-04-01T01:00:00Z"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast/load": {
+      "post": {
+        "operationId": "forecast-engine_forecastLoad",
+        "summary": "Generate load forecast for a day",
+        "tags": [
+          "Forecast (Prognostik)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Generates a 96-point (15-min) load forecast based on SLP profiles with optional historical correction and temperature adjustment. KRITIS-compliant: no external dependencies.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "date"
+                ],
+                "properties": {
+                  "meloId": {
+                    "type": "string",
+                    "example": "DE0012345678901234567890123456789"
+                  },
+                  "profileId": {
+                    "type": "string",
+                    "default": "H0"
+                  },
+                  "date": {
+                    "type": "string",
+                    "example": "2026-04-20"
+                  },
+                  "annualConsumptionKwh": {
+                    "type": "number",
+                    "default": 3500
+                  },
+                  "temperatureCelsius": {
+                    "type": "number",
+                    "example": 12
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "profileId": "H0",
+                    "date": "2026-04-20",
+                    "annualConsumptionKwh": 3500,
+                    "temperatureCelsius": 12
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast/generation": {
+      "post": {
+        "operationId": "forecast-engine_forecastGeneration",
+        "summary": "Generate generation forecast (solar/wind)",
+        "tags": [
+          "Forecast (Prognostik)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Wraps mastr_generation_forecast MCP tool with KRITIS-safe fallback. If MCP unavailable, uses installed capacity × typical capacity factor as estimate.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "date"
+                ],
+                "properties": {
+                  "gridOperatorMastrId": {
+                    "type": "string",
+                    "example": "SNB935578300972"
+                  },
+                  "postleitzahl": {
+                    "type": "string",
+                    "example": "66989"
+                  },
+                  "installationType": {
+                    "type": "string",
+                    "enum": [
+                      "solar",
+                      "wind",
+                      "all"
+                    ],
+                    "default": "solar"
+                  },
+                  "date": {
+                    "type": "string",
+                    "example": "2026-04-20"
+                  },
+                  "forecastDays": {
+                    "type": "number",
+                    "default": 1
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "postleitzahl": "66989",
+                    "installationType": "solar",
+                    "date": "2026-04-20",
+                    "forecastDays": 1
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast/residual": {
+      "post": {
+        "operationId": "forecast-engine_forecastResidual",
+        "summary": "Calculate residual load (consumption minus generation)",
+        "tags": [
+          "Forecast (Prognostik)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "date"
+                ],
+                "properties": {
+                  "loadForecast": {
+                    "type": "object",
+                    "example": {}
+                  },
+                  "generationForecast": {
+                    "type": "object",
+                    "example": {}
+                  },
+                  "meloId": {
+                    "type": "string",
+                    "example": "DE0012345678901234567890123456789"
+                  },
+                  "profileId": {
+                    "type": "string",
+                    "example": "H0"
+                  },
+                  "annualConsumptionKwh": {
+                    "type": "number",
+                    "example": 3500
+                  },
+                  "postleitzahl": {
+                    "type": "string",
+                    "example": "66989"
+                  },
+                  "date": {
+                    "type": "string",
+                    "example": "2026-04-20"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "profileId": "H0",
+                    "annualConsumptionKwh": 3500,
+                    "postleitzahl": "66989",
+                    "date": "2026-04-20"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast/schedule/day-ahead": {
+      "post": {
+        "operationId": "forecast-engine_createSchedule",
+        "summary": "Create Day-Ahead schedule with optional storage optimization",
+        "tags": [
+          "Forecast (Prognostik)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "date"
+                ],
+                "properties": {
+                  "bilanzkreisId": {
+                    "type": "string",
+                    "example": "bk_es_test"
+                  },
+                  "meloId": {
+                    "type": "string",
+                    "example": "DE0012345678901234567890123456789"
+                  },
+                  "profileId": {
+                    "type": "string",
+                    "example": "H0"
+                  },
+                  "annualConsumptionKwh": {
+                    "type": "number",
+                    "example": 3500
+                  },
+                  "postleitzahl": {
+                    "type": "string",
+                    "example": "66989"
+                  },
+                  "date": {
+                    "type": "string",
+                    "example": "2026-04-20"
+                  },
+                  "storageConfig": {
+                    "type": "object",
+                    "example": {
+                      "capacityKwh": 10,
+                      "maxChargePowerKw": 5,
+                      "maxDischargePowerKw": 5,
+                      "efficiency": 0.92,
+                      "currentSocPercent": 50
+                    }
+                  },
+                  "includeMarketPrices": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "date": "2026-04-20",
+                    "profileId": "H0",
+                    "annualConsumptionKwh": 3500,
+                    "postleitzahl": "66989"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast/schedules": {
+      "get": {
+        "operationId": "forecast-engine_listSchedules",
+        "summary": "List stored schedules",
+        "tags": [
+          "Forecast (Prognostik)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "bilanzkreisId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "bk_es_test"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2026-04-20"
+            }
+          }
+        ]
+      }
+    },
+    "/api/forecast/storage-dispatch": {
+      "post": {
+        "operationId": "forecast-engine_storageDispatch",
+        "summary": "Optimize battery storage dispatch",
+        "tags": [
+          "Forecast (Prognostik)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "storageConfig"
+                ],
+                "properties": {
+                  "residualLoad": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "example": []
+                  },
+                  "meloId": {
+                    "type": "string",
+                    "example": "DE0012345678901234567890123456789"
+                  },
+                  "profileId": {
+                    "type": "string",
+                    "example": "H0"
+                  },
+                  "annualConsumptionKwh": {
+                    "type": "number",
+                    "example": 3500
+                  },
+                  "postleitzahl": {
+                    "type": "string",
+                    "example": "66989"
+                  },
+                  "date": {
+                    "type": "string",
+                    "example": "2026-04-20"
+                  },
+                  "storageConfig": {
+                    "type": "object",
+                    "example": {
+                      "capacityKwh": 10,
+                      "maxChargePowerKw": 5,
+                      "maxDischargePowerKw": 5,
+                      "efficiency": 0.92,
+                      "currentSocPercent": 50
+                    }
+                  },
+                  "marketPrices": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "example": []
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "date": "2026-04-20",
+                    "profileId": "H0",
+                    "annualConsumptionKwh": 3500,
+                    "postleitzahl": "66989",
+                    "storageConfig": {
+                      "capacityKwh": 10,
+                      "maxChargePowerKw": 5,
+                      "maxDischargePowerKw": 5,
+                      "efficiency": 0.92,
+                      "currentSocPercent": 50
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/forecast/schedule/:scheduleId": {
+      "get": {
+        "operationId": "forecast-engine_getSchedule",
+        "summary": "Get stored day-ahead schedule",
+        "tags": [
+          "Forecast (Prognostik)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "scheduleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "schedule_2026-04-20_ab12cd34"
+            }
+          }
+        ]
+      }
+    },
+    "/api/forecast/quality": {
+      "post": {
+        "operationId": "forecast-engine_evaluateQuality",
+        "summary": "Evaluate forecast quality (RMSE/MAE/MAPE)",
+        "tags": [
+          "Forecast (Prognostik)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Compares SLP-based forecast against actual EDM timeseries data. Returns quality metrics and rating.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "meloId",
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "meloId": {
+                    "type": "string",
+                    "example": "DE0012345678901234567890123456789"
+                  },
+                  "obis": {
+                    "type": "string",
+                    "default": "1-0:1.8.0"
+                  },
+                  "from": {
+                    "type": "string",
+                    "example": "2026-04-13T00:00:00Z"
+                  },
+                  "to": {
+                    "type": "string",
+                    "example": "2026-04-14T00:00:00Z"
+                  },
+                  "profileId": {
+                    "type": "string",
+                    "default": "H0"
+                  },
+                  "annualConsumptionKwh": {
+                    "type": "number",
+                    "default": 3500
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "meloId": "DE0012345678901234567890123456789",
+                    "from": "2026-04-13T00:00:00Z",
+                    "to": "2026-04-14T00:00:00Z",
+                    "profileId": "H0",
+                    "annualConsumptionKwh": 3500
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flex/devices": {
+      "post": {
+        "operationId": "flex_registerDevice",
+        "summary": "Register a controllable device (§14a EnWG)",
+        "tags": [
+          "Flex (§14a Flexibilitätsmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Registers a controllable consumption device (wallbox, heat pump, storage) for §14a grid management. Devices are eligible for reduced network tariffs in exchange for temporary dimming.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "deviceId",
+                  "type",
+                  "capacityKw"
+                ],
+                "properties": {
+                  "deviceId": {
+                    "type": "string",
+                    "example": "wb_test_001"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "wallbox",
+                      "heat_pump",
+                      "storage",
+                      "air_conditioning",
+                      "other"
+                    ],
+                    "example": "wallbox"
+                  },
+                  "capacityKw": {
+                    "type": "number",
+                    "example": 11
+                  },
+                  "minDimmingKw": {
+                    "type": "number",
+                    "example": 4.2
+                  },
+                  "meloId": {
+                    "type": "string",
+                    "example": "DE0012345678901234567890123456789"
+                  },
+                  "customerName": {
+                    "type": "string",
+                    "example": "Max Mustermann"
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "example": "66989"
+                  },
+                  "steuerboxId": {
+                    "type": "string",
+                    "example": "STB-001"
+                  },
+                  "registeredSince": {
+                    "type": "string",
+                    "example": "2026-04-26T10:00:00.000Z"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "deviceId": "wb_test_001",
+                    "type": "wallbox",
+                    "capacityKw": 11,
+                    "minDimmingKw": 4.2,
+                    "customerName": "Max Mustermann",
+                    "postalCode": "66989"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "flex_listDevices",
+        "summary": "List registered §14a devices",
+        "tags": [
+          "Flex (§14a Flexibilitätsmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "wallbox"
+            }
+          },
+          {
+            "name": "postalCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "66989"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "active"
+            }
+          }
+        ]
+      }
+    },
+    "/api/flex/devices/:deviceId": {
+      "get": {
+        "operationId": "flex_getDevice",
+        "summary": "Get registered §14a device",
+        "tags": [
+          "Flex (§14a Flexibilitätsmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "wb_test_001"
+            }
+          }
+        ]
+      }
+    },
+    "/api/flex/devices/:deviceId/status": {
+      "put": {
+        "operationId": "flex_updateDeviceStatus",
+        "summary": "Update §14a device status",
+        "tags": [
+          "Flex (§14a Flexibilitätsmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "wb_test_001"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "active",
+                      "inactive",
+                      "maintenance",
+                      "deregistered"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flex/events/plan": {
+      "post": {
+        "operationId": "flex_planDimming",
+        "summary": "Plan dimming events based on load forecast",
+        "tags": [
+          "Flex (§14a Flexibilitätsmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyzes load forecast against grid capacity and generates a dimming plan. Respects §14a constraints: min 4.2 kW, max 2h duration, min 2h cooldown between events.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "date",
+                  "gridCapacityKw"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string",
+                    "example": "2026-04-20"
+                  },
+                  "gridCapacityKw": {
+                    "type": "number",
+                    "example": 100
+                  },
+                  "postalCode": {
+                    "type": "string",
+                    "example": "66989"
+                  },
+                  "threshold": {
+                    "type": "number",
+                    "example": 0.85
+                  },
+                  "loadForecastOverride": {
+                    "type": "array",
+                    "example": [
+                      {
+                        "ts": "2026-04-20T18:00:00.000Z",
+                        "value": 95
+                      },
+                      {
+                        "ts": "2026-04-20T18:15:00.000Z",
+                        "value": 92
+                      }
+                    ],
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "ts": {
+                          "type": "string"
+                        },
+                        "value": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "date": "2026-04-20",
+                    "gridCapacityKw": 100,
+                    "threshold": 0.85,
+                    "postalCode": "66989"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flex/events/execute": {
+      "post": {
+        "operationId": "flex_executeDimming",
+        "summary": "Execute dimming event (real or simulated)",
+        "tags": [
+          "Flex (§14a Flexibilitätsmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Executes a dimming plan or single device dimming. Publishes MQTT command to cernion/flex/{deviceId}/dimming topic and stores events for Entlastungsnachweis.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "planId": {
+                    "type": "string",
+                    "example": "flexplan_1714123456789_ab12cd34"
+                  },
+                  "deviceId": {
+                    "type": "string",
+                    "example": "wb_test_001"
+                  },
+                  "durationMinutes": {
+                    "type": "number",
+                    "example": 30
+                  },
+                  "dimmedPowerKw": {
+                    "type": "number",
+                    "example": 4.2
+                  }
+                }
+              },
+              "examples": {
+                "byPlan": {
+                  "value": {
+                    "planId": "flexplan_1714123456789_ab12cd34"
+                  }
+                },
+                "singleDevice": {
+                  "value": {
+                    "deviceId": "wb_test_001",
+                    "durationMinutes": 30,
+                    "dimmedPowerKw": 4.2
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/flex/relief-proof/:period": {
+      "get": {
+        "operationId": "flex_getReliefProof",
+        "summary": "Generate Entlastungsnachweis for a period",
+        "tags": [
+          "Flex (§14a Flexibilitätsmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Documents effectiveness of §14a dimming measures with event-level and aggregated relief indicators.",
+        "parameters": [
+          {
+            "name": "period",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "2026-04"
+            }
+          },
+          {
+            "name": "postalCode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "66989"
+            }
+          }
+        ]
+      }
+    },
+    "/api/flex/customer/:deviceId/reduction": {
+      "get": {
+        "operationId": "flex_getTariffReduction",
+        "summary": "Calculate §14a tariff reduction for a customer",
+        "tags": [
+          "Flex (§14a Flexibilitätsmanagement)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Calculates annual and monthly network tariff reduction for participating §14a SVE customers.",
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "wb_test_001"
+            }
+          },
+          {
+            "name": "annualHours",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "example": 8760
+            }
+          }
+        ]
+      }
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.29.0"
+  "x-version": "0.31.0"
 }

@@ -1,6 +1,6 @@
 # Cernion Energy Tools — Backend Context Reference
 
-> **Version:** 0.29.0
+> **Version:** 0.31.0
 > **Purpose:** Comprehensive backend context for frontend developers, AI assistants,
 > and new contributors. One document to understand the full system.
 
@@ -11,8 +11,8 @@
 Cernion Energy Tools is a **Moleculer microservices** system. Each service runs in the
 same process and communicates via Moleculer's in-process transport (no network hops for
 internal calls). A single API Gateway (`services/api.service.js`) exposes all services as
-REST endpoints on port 3000. As of v0.29.0, the platform exposes **~151 REST endpoints**
-including the new EDM (`/api/edm/*`) and SLP (`/api/slp/*`) surfaces.
+REST endpoints on port 3000. As of v0.30.1, the platform exposes **~173 REST endpoints**
+including EDM/SLP, Forecast Engine (`/api/forecast/*`), Settlement (`/api/settlement/*`) and Bilanzkreis (`/api/bilanzkreis/*`) surfaces.
 
 ```
 HTTP clients
@@ -26,7 +26,7 @@ HTTP clients
 │   POST /api/energy-sharing/*  → energy-sharing.service  (v0.15) │
 │   POST /api/redispatch/*      → redispatch-expost.svc   (v0.18) │
 │   GET  /api/datapoints/*      → datapoint.service       (v0.11) │
-│   … and 38 more services                                        │
+│   … and 41 more services                                        │
 └─────────────────────────────────────────────────────────────────┘
     │
     ▼ MCP client
@@ -53,7 +53,7 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 
 ---
 
-## 2. Service Directory (48 services as of v0.29.0)
+## 2. Service Directory (52 services as of v0.31.0)
 
 | Service | File | Since | Key actions |
 |---------|------|-------|-------------|
@@ -61,6 +61,7 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 | agent | `agent.service.js` | v0.9 | Natural-language query planner |
 | assets | `assets.service.js` | v0.9 | MaStR asset lookups |
 | business-intelligence | `business-intelligence.service.js` | v0.9 | Sales leads, tariff design |
+| bilanzkreis | `bilanzkreis.service.js` | v0.30 | MaBiS/BKV mapping, virtual balance groups, readiness checks |
 | company | `company.service.js` | v0.20.3 | Company-entity CRUD |
 | cookbook | `cookbook.service.js` | v0.20.5 | API recipes, search, validation |
 | **cya** | `cya.service.js` | **v0.26** | **`createProfile`, `getProfile`, `listProfiles`, `generate`, `refine`** |
@@ -82,6 +83,8 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 | entsoe | `entsoe.service.js` | v0.9 | ENTSO-E generation/forecast data |
 | ewk-monitoring | `ewk-monitoring.service.js` | v0.9 | EWK benchmarking |
 | forecast | `forecast.service.js` | v0.9 | Electricity demand forecasts |
+| forecast-engine | `forecast-engine.service.js` | v0.30.1 | Load/generation forecasting, residual load, day-ahead schedules, storage dispatch |
+| flex | `flex.service.js` | v0.31 | §14a SVE registry, dimming planning/execution, relief proof, tariff reduction |
 | gas-storage | `gas-storage.service.js` | v0.9 | AGSI gas storage data |
 | german-grid | `german-grid.service.js` | v0.9 | SMARD/Netztransparenz data |
 | grid-connection | `grid-connection.service.js` | v0.14 | Netzanschluss validation |
@@ -98,6 +101,7 @@ Cernion MCP server (external HTTP)  ─── MaStR MongoDB (local)
 | query | `query.service.js` | v0.9 | LLM query planner |
 | redispatch-expost | `redispatch-expost.service.js` | v0.18 | Redispatch settlement audit |
 | residual-load | `residual-load.service.js` | v0.9 | Residual load analysis |
+| settlement | `settlement.service.js` | v0.30 | Redispatch compensation, EEG revenue, A96 export |
 | **slp** | `slp.service.js` | **v0.28** | **BDEW H0/G0/L0, Custom-Profile CRUD, Lastprofil-Generierung** |
 | system | `system.service.js` | v0.1 | Health, version |
 | token-manager | `token-manager.service.js` | v0.16 | `ck_` prefix tokens |
@@ -126,6 +130,13 @@ only metadata, provenance hashes, and audit trails.
 | object-store (mastr_snapshots) | `data/object-store/` | `mastr_snapshots` ns | MaStR Monitor installation snapshots |
 | object-store (mastr_deltas) | `data/object-store/` | `mastr_deltas` ns | MaStR Monitor change deltas |
 | object-store (mastr_subscriptions) | `data/object-store/` | `mastr_subscriptions` ns | MaStR Monitor email subscriptions |
+| object-store (settlements) | `data/object-store/` | `settlements` ns | Settlement reports (redispatch/eeg) |
+| object-store (bilanzkreise) | `data/object-store/` | `bilanzkreise` ns | Bilanzkreis definitions |
+| object-store (bk_results) | `data/object-store/` | `bk_results` ns | Bilanzkreis calculation results |
+| object-store (schedules) | `data/object-store/` | `schedules` ns | Forecast-engine day-ahead schedules |
+| object-store (flex_devices) | `data/object-store/` | `flex_devices` ns | §14a SVE device registry |
+| object-store (flex_events) | `data/object-store/` | `flex_events` ns | Executed dimming events |
+| object-store (flex_plans) | `data/object-store/` | `flex_plans` ns | Planned dimming schedules |
 | redispatch-expost | `data/redispatch-expost/` | `rd:` | Redispatch audit trail |
 
 ---

@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.31.0] — 2026-04-26
+
+### Added
+
+- **§14a Flexibilitätsmanagement (`flex`):** Steuerbare Verbrauchseinrichtungen
+  (SVE) Registry, Dimming-Planung basierend auf Netzlast-Prognose,
+  MQTT-basierte Steuerungsausführung (QoS 2), Entlastungsnachweis-Dokumentation,
+  §14a Netzentgelt-Reduktionsberechnung. Respektiert §14a-Constraints:
+  min. 4.2 kW, max. 2h Dimming, min. 2h Cooldown.
+  8 REST-Endpoints (/api/flex/*).
+
+## [0.30.1] — 2026-04-26
+
+### Added
+
+- **Forecast Engine (`forecast-engine`):** Lastprognose (SLP + historische
+  Korrektur + Temperatur), Erzeugungsprognose (MCP mit KRITIS-Fallback),
+  Residuallast-Berechnung, Day-Ahead-Fahrplanmanagement, Speicher-Dispatch-
+  Optimierung (Greedy), Prognosequalitäts-Tracking (RMSE/MAE/MAPE).
+  8 REST-Endpoints (/api/forecast/*).
+
+## [0.30.0] — 2026-04-25
+
+### Added
+
+- **Settlement Service (`settlement`):** Redispatch-Entschädigungsberechnung
+  (§13a/14 EnWG), EEG-Vergütungsberechnung, A96-Settlement-Export.
+  EEG-Tarif-Tabelle mit Degressions-Lookup. KRITIS-konform: Marktpreis-
+  und Prognose-Fallbacks wenn externe Quellen nicht verfügbar.
+  8 REST-Endpoints (/api/settlement/*).
+- **Bilanzkreis Service (`bilanzkreis`):** Reale und virtuelle Bilanzkreise.
+  Unterstützt Energy Sharing (§42c EnWG), Mieterstrom, Arealnetze, VPP.
+  15-min-Intervall-Bilanzierung mit Eigenverbrauchsquote und Autarkiegrad.
+  Settlement-Readiness-Check für Datenvollständigkeit.
+  6 REST-Endpoints (/api/bilanzkreis/*).
+
 ## [0.29.0] — 2026-04-24
 
 ### Added

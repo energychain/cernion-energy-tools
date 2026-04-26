@@ -85,6 +85,21 @@ function requiresFullAccess(method, requestPath) {
   const m = String(method || '').toUpperCase();
   const pathOnly = String(requestPath || '').split('?')[0];
 
+  if (pathOnly.startsWith('/api/forecast/') && m === 'POST') {
+    return true;
+  }
+
+  if (pathOnly.startsWith('/api/flex/') && (m === 'POST' || m === 'PUT')) {
+    return true;
+  }
+
+  if (pathOnly.startsWith('/api/settlement/') && m === 'POST') {
+    return true;
+  }
+  if (pathOnly.startsWith('/api/bilanzkreis') && (m === 'POST' || m === 'DELETE')) {
+    return true;
+  }
+
   if (pathOnly.startsWith('/api/edm/melos') && (m === 'POST' || m === 'PUT' || m === 'DELETE')) {
     return true;
   }
@@ -309,6 +324,23 @@ module.exports = {
           name: 'SLP (Standardlastprofile)',
           description:
             'Standard load profiles (BDEW H0/G0/L0) and custom profiles for load estimation, settlement, and forecast baseline.',
+        },
+        {
+          name: 'Settlement (Abrechnung)',
+          description:
+            'Redispatch compensation (§13a/14 EnWG), EEG revenue calculation, and A96 settlement export. ' +
+            'Based on EDM timeseries, generation forecasts, and ENTSO-E market prices with KRITIS fallbacks.',
+        },
+        {
+          name: 'Forecast (Prognostik)',
+          description:
+            'Load forecasting (SLP-based with historical correction), generation forecasting (MCP with KRITIS fallback), residual load calculation, Day-Ahead scheduling, storage dispatch optimization, and forecast quality evaluation (RMSE/MAE/MAPE).',
+        },
+        {
+          name: 'Flex (§14a Flexibilitätsmanagement)',
+          description:
+            'Controllable consumption device management (§14a EnWG). ' +
+            'SVE registry, dimming planning with grid capacity analysis, MQTT-based execution, Entlastungsnachweis, and tariff reduction.',
         },
         {
           name: 'MaStR Monitor',
@@ -690,6 +722,44 @@ module.exports = {
           'POST /slp/generate': 'slp.generateTimeseries',
           'POST /slp/profiles': 'slp.createCustomProfile',
           'DELETE /slp/profiles/:profileId': 'slp.deleteCustomProfile',
+
+          // Settlement (v0.30)
+          'POST /settlement/redispatch/calculate': 'settlement.calculateRedispatch',
+          'GET /settlement/redispatch/report/:settlementId': 'settlement.getRedispatchReport',
+          'POST /settlement/eeg/calculate': 'settlement.calculateEeg',
+          'GET /settlement/eeg/report/:settlementId': 'settlement.getEegReport',
+          'POST /settlement/a96/prepare': 'settlement.prepareA96',
+          'GET /settlement/a96/export/:settlementId': 'settlement.exportA96',
+          'GET /settlement/eeg-tariff': 'settlement.lookupEegTariff',
+          'GET /settlement': 'settlement.listSettlements',
+
+          // Bilanzkreis (v0.30)
+          'POST /bilanzkreis': 'bilanzkreis.create',
+          'GET /bilanzkreis': 'bilanzkreis.list',
+          'GET /bilanzkreis/:id/readiness': 'bilanzkreis.checkReadiness',
+          'GET /bilanzkreis/:id': 'bilanzkreis.get',
+          'DELETE /bilanzkreis/:id': 'bilanzkreis.delete',
+          'POST /bilanzkreis/:id/calculate': 'bilanzkreis.calculate',
+
+          // Forecast Engine (v0.30.1)
+          'POST /forecast/load': 'forecast-engine.forecastLoad',
+          'POST /forecast/generation': 'forecast-engine.forecastGeneration',
+          'POST /forecast/residual': 'forecast-engine.forecastResidual',
+          'POST /forecast/schedule/day-ahead': 'forecast-engine.createSchedule',
+          'GET /forecast/schedules': 'forecast-engine.listSchedules',
+          'POST /forecast/storage-dispatch': 'forecast-engine.storageDispatch',
+          'GET /forecast/schedule/:scheduleId': 'forecast-engine.getSchedule',
+          'POST /forecast/quality': 'forecast-engine.evaluateQuality',
+
+          // Flex (§14a) (v0.31)
+          'POST /flex/devices': 'flex.registerDevice',
+          'GET /flex/devices': 'flex.listDevices',
+          'GET /flex/devices/:deviceId': 'flex.getDevice',
+          'PUT /flex/devices/:deviceId/status': 'flex.updateDeviceStatus',
+          'POST /flex/events/plan': 'flex.planDimming',
+          'POST /flex/events/execute': 'flex.executeDimming',
+          'GET /flex/relief-proof/:period': 'flex.getReliefProof',
+          'GET /flex/customer/:deviceId/reduction': 'flex.getTariffReduction',
 
           // Local upload folder for datasource file connectors (csv/xlsx/docx/...)
           'GET /datasources/uploads'(req, res) {
