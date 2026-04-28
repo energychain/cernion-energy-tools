@@ -656,6 +656,7 @@ module.exports = {
           'POST /cya/compare-perspectives': 'cya.compareProfiles',
           'GET /cya/sessions/:session_id/export/pdf': 'cya.exportPdf',
           'GET /cya/sessions/:session_id/export/json': 'cya.exportJson',
+          'GET /cya/graph/export/oeo-stub': 'cya.export.oeo-stub',
           'POST /cya/generate': 'cya.generate',
           'POST /cya/refine': 'cya.refine',
 

@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.34.1] — Science-Ready Sprint / OEO Hook für akademische Contributor
+
+### Added
+- **`src/oeo-exporter-stub.js`** — OEO Exporter Stub (intentional contributor hook):
+  - `exportGraphForOeo(graph, options)` — serialisiert den Graphology-Graph + JSON-LD-Skeleton
+  - `transformToOEO(graphologyExport, options)` — wirft `OEO_NOT_IMPLEMENTED` (Contributor Entry Point)
+  - `NODE_TYPE_TO_OEO_CLASS` / `EDGE_TYPE_TO_OEO_PROPERTY` — Stub-Mappings (TODO-annotiert)
+  - Cross-Reference-Links zu ASSUME, oeplatform und OpenEnergyPlatform/ontology
+- **`GET /api/cya/graph/export/oeo-stub`** (`cya.export.oeo-stub`) — neuer REST-Endpoint:
+  - Exportiert den live Graphology-Ontologiegraph als JSON-LD-Skeleton
+  - Demo-Fixture (Solarpark Höheinöd SEE999952467552) wenn kein `operator`-Param gesetzt
+  - `oeoStub: null` + `oeoError.code: OEO_NOT_IMPLEMENTED` bis Contributor implementiert
+  - `_contributor` Block mit Anleitung, Guide-Link und Ziel-Ontologie
+- **`CONTRIBUTING_SCIENCE.md`** — Researcher Contributor Guide:
+  - Daten-Inventar (Node-Typen, Edge-Typen, typische VNB-Counts)
+  - Schritt-für-Schritt Implementierungs-Anleitung mit curl/jest-Kommandos
+  - Einbettung in ASSUME / oeplatform / OEO Entwicklungsumgebungen
+  - Contribution guidelines (Scope, OEO-Version, JSON-LD Framing, Test-Mindestanforderung)
+- **`tests/oeo-exporter-stub.test.js`** — 5 Tests (Höheinöd-Fixture):
+  - `exportGraphForOeo` gibt `graphology.nodes` + `graphology.edges` zurück
+  - `nodeCount` und `edgeCount` stimmen mit Array-Längen überein
+  - `oeoStub` ist `null`, `oeoError.code` ist `OEO_NOT_IMPLEMENTED`
+  - `_contributor.targetOntology` enthält OpenEnergyPlatform-URL
+  - `transformToOEO` wirft Error mit `code: OEO_NOT_IMPLEMENTED`
+
+### Changed
+- `services/api.service.js`: Route-Alias `GET /cya/graph/export/oeo-stub` → `cya.export.oeo-stub` registriert
+
 ## [0.34.0] — Progressive Profiling (Zwiebelmodus)
 
 ### Added

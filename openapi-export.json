@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.34.0",
+    "version": "0.34.1",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -7497,6 +7497,27 @@
         ]
       }
     },
+    "/api/cya/graph/export/oeo-stub": {
+      "get": {
+        "operationId": "cya_export_oeo-stub",
+        "summary": "cya.export.oeo-stub",
+        "tags": [
+          "cya"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/cya/generate": {
       "post": {
         "operationId": "cya_generate",
@@ -12046,5 +12067,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.34.0"
+  "x-version": "0.34.1"
 }

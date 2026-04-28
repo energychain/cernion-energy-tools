@@ -768,6 +768,59 @@ module.exports = {
       },
     },
 
+    'export.oeo-stub': {
+      rest: 'GET /graph/export/oeo-stub',
+      // ─────────────────────────────────────────────────────────────────────
+      // OEO Export Stub — Science-Ready Hook (introduced v0.34.1)
+      //
+      // This endpoint exports the live Graphology ontology graph as a
+      // JSON-LD skeleton, ready for OEO class mapping by external contributors.
+      //
+      // CURRENT STATUS: oeoStub is null (NOT_IMPLEMENTED).
+      //   graphology.nodes + graphology.edges are fully populated.
+      //
+      // TARGET FORMAT: Open Energy Ontology (OEO) JSON-LD
+      //   https://github.com/OpenEnergyPlatform/ontology
+      //
+      // CONTRIBUTOR: implement src/oeo-exporter-stub.js → transformToOEO()
+      //   See CONTRIBUTING_SCIENCE.md for instructions.
+      // ─────────────────────────────────────────────────────────────────────
+      params: {
+        operator: { type: 'string', optional: true },
+        location:  { type: 'string', optional: true },
+        baseIri:   { type: 'string', optional: true },
+      },
+      async handler(ctx) {
+        const { buildOntologyGraph } = require('../src/cya-ontology-graph');
+        const { exportGraphForOeo }  = require('../src/oeo-exporter-stub');
+
+        // Minimaler Graph mit Stub-Knoten wenn keine Operator-Daten übergeben
+        // Forscher können den Endpoint ohne Auth testen
+        const stubInstallations = ctx.params.operator ? [] : [
+          {
+            EinheitMastrNummer: 'SEE999952467552',
+            name: 'Solarpark Höheinöd (Demo)',
+            leistungKw: 2103.7,
+            spannungsebene: 'MS',
+            technologie: 'SOLAR',
+            ibJahr: 2009,
+            status: 35,
+            koordinaten: { lat: 49.2167, lon: 7.6333 },
+          },
+        ];
+
+        const graph = buildOntologyGraph(stubInstallations, null);
+        const payload = exportGraphForOeo(graph, {
+          baseIri: ctx.params.baseIri || 'https://cernion.example/graph/',
+        });
+
+        return {
+          ok: true,
+          ...payload,
+        };
+      },
+    },
+
     compareProfiles: {
       rest: 'POST /compare-perspectives',
       params: {
