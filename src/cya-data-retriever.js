@@ -1,6 +1,7 @@
 'use strict';
 
 const { assessTopologyHop } = require('./cya-topology-hop');
+const { resolveToolSet, isToolAllowed } = require('./cya-tool-registry');
 
 
 const DEFAULT_QUERY_TIMEOUT_MS = 45000;
@@ -294,6 +295,69 @@ function buildSummary(items) {
   };
 }
 
+/**
+ * Build MCP tool call params from context for a given tool name.
+ * @param {string} toolName
+ * @param {{ location?: string, operator?: string, capacity_mw?: number, postleitzahl?: string }} params
+ * @returns {Object}
+ */
+function _buildToolParams(toolName, params) {
+  const location = params.location || null;
+  const operator = params.operator || null;
+  const capacityMw = params.capacity_mw != null ? params.capacity_mw : null;
+  const postleitzahl = params.postleitzahl || null;
+
+  switch (toolName) {
+    case 'cernion_installations_local':
+      return {
+        ...(location ? { gemeinde: location } : {}),
+        ...(postleitzahl ? { postleitzahl } : {}),
+        ...(capacityMw ? { minCapacity: Math.round(capacityMw * 1000) } : {}),
+        format: 'summary',
+      };
+    case 'cernion_grid_data':
+      return { location: location || operator || 'unbekannt' };
+    case 'osm_grid_topology':
+      return { location: location || 'unbekannt', includeSubstations: true };
+    case 'cernion_energy_production':
+      return { region: location || 'Deutschland', type: 'all' };
+    case 'entsoe_day_ahead_prices':
+      return { region: location || 'Deutschland', dateFrom: new Date().toISOString().slice(0, 10) };
+    case 'entsoe_wind_solar_forecast':
+      return { region: location || 'Deutschland', dateFrom: new Date().toISOString().slice(0, 10), dateTo: new Date(Date.now() + 86400000).toISOString().slice(0, 10) };
+    case 'cernion_redispatch_export':
+      return { gridOperator: operator || location || 'unbekannt', minCapacity: 100 };
+    case 'osm_substation_finder':
+      return { location: location || 'unbekannt', voltageLevel: capacityMw && capacityMw >= 150 ? 'HöS' : 'HS', maxResults: 5 };
+    default:
+      return { location };
+  }
+}
+
+/**
+ * Execute MCP direct tool calls for a resolved tool set.
+ * Each call is independent — one failure does not block others.
+ *
+ * @param {import('moleculer').Context} ctx
+ * @param {{ mcpTools: string[] }} toolSet
+ * @param {Object} params
+ * @returns {Promise<Object<string, Object>>}
+ */
+async function _resolveAndFetchMcpDirect(ctx, toolSet, params) {
+  const results = {};
+  for (const tool of toolSet.mcpTools) {
+    try {
+      results[tool] = await ctx.call('mcp-cernion.callTool', {
+        toolName: tool,
+        params: _buildToolParams(tool, params),
+      }, { meta: { cernionToken: ctx.meta?.cernionToken } });
+    } catch (err) {
+      results[tool] = { error: err.message, fallback: true };
+    }
+  }
+  return results;
+}
+
 async function retrieveContextData(ctx, input) {
   const focusAreas = toArray(input?.context?.focus_areas);
   const actorRole = input?.profile?.actor?.role;
@@ -332,6 +396,27 @@ async function retrieveContextData(ctx, input) {
     });
   } else {
     retrieval.topologyHop = null;
+  }
+
+  // Dynamic Tool Router (v0.33.0) — role-aware MCP direct calls, non-blocking.
+  const _routerRole = input?.actorRole || actorRole || null;
+  const _routerSignals = input?.ontologySignals || null;
+  if (_routerRole && (_routerSignals || focusAreas.length > 0)) {
+    try {
+      const toolSet = resolveToolSet(_routerRole, focusAreas, _routerSignals);
+      if (toolSet.mcpTools.length > 0) {
+        retrieval.mcpDirect = await _resolveAndFetchMcpDirect(ctx, toolSet, {
+          location: context.location || null,
+          operator: input?.profile?.actor?.organization || null,
+          capacity_mw: context.capacity_mw || null,
+          postleitzahl: extractPostalCode(context.location || '') || null,
+        });
+        retrieval.toolSetRationale = toolSet.rationale;
+        retrieval.signalOverrides = toolSet.signalOverrides;
+      }
+    } catch (_routerErr) {
+      // Non-blocking — router failure never breaks retrieval
+    }
   }
 
   return retrieval;

@@ -7,6 +7,103 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.34.0] — Progressive Profiling (Zwiebelmodus)
+
+### Added
+- **`src/cya-profile-observer.js`** — Zwiebelmodus profile learning engine:
+  - `extractImplicitSignals(session)` — extracts focusAreas, signalsSeen, toolsUsed, confidence, hadRefinement from completed session
+  - `mergeImplicitIntoProfile(existingProfile, implicitSignals)` — outer-layer only: updates `implicitStats`, `focusAreaFrequency`, `signalReactions`, `toolUsage`, `averageConfidence`, `preferences.focusAreaWeights/preferredTools`
+  - `mergeExplicitIntoProfile(existingProfile, explicitUpdate)` — inner-layer only: updates `constraints`, `explicitPreferences`, `priorityFocusAreas`, `tone`, `strategic_goals`; forbidden fields silently ignored
+  - `deriveToolHints(profile)` — returns `{boostedFocusAreas, preferredTools, avoidSignals}` for tool-registry integration
+- **`src/cya-agent-personas.js`** — `ACTOR_ROLE_PERSONA_NAMESPACE` (frozen object): maps all 9 actor roles → `cya_mem_<role>` PouchDB namespaces
+- **`src/cya-tool-registry.js`** — optional 4th param `profileHints` in `resolveToolSet`: promotes `preferredTools`, boosts `boostedFocusAreas`, suppresses `avoidSignals` ruleIds
+- **`services/cya.service.js`**:
+  - `PATCH /api/cya/profile/:id` (`cya.profile.update`) — explicit inner-layer update; 404 on missing profile; validates id pattern
+  - `_observeAndUpdateProfile(profileId, session)` — non-blocking implicit learning call after every completed session (main + multi-agent pipelines)
+  - `_writePersonaMemory(actorRole, session, signals)` — writes persona-scoped memory doc to `cya_mem_<role>` namespace on session completion
+- 57 new tests: `tests/cya-profile-observer.test.js` (44), `tests/cya-profile-update.test.js` (13)
+
+### Changed
+- `cya.service.js` main pipeline and multi-agent pipeline: observer fires after `saveSession` (non-blocking `.catch` guard)
+- Profile `profileVersion` increments on every implicit or explicit update
+- Persona memory activation: first write on session completion when actor role is present in profile
+
+## [0.33.0] — Dynamic Tool Router / Hyper-Relevance Engine
+
+### Added
+- **`src/cya-tool-registry.js`** — Dynamic Tool Router (v0.33.0): role-aware MCP tool
+  whitelist (`ROLE_TOOL_WHITELIST` for 9 actor roles), focus-area tool priority map
+  (`FOCUS_AREA_TOOL_PRIORITY` for 11 areas incl. `grid_capacity`), 4 signal-override
+  rules (`SIGNAL_OVERRIDE_RULES`). Exports `resolveToolSet`, `isToolAllowed`,
+  `getAllowedTools`. Throws `INVALID_ACTOR_ROLE` (400) / `UNKNOWN_ACTOR_ROLE` (400).
+  Signals accept both string shorthand and `{ruleId, severity}` object form.
+- **`src/cya-data-retriever.js`** — MCP-direct router block after topology-hop step:
+  `resolveToolSet` determines tool set, `_resolveAndFetchMcpDirect` populates
+  `retrieval.mcpDirect`, `retrieval.toolSetRationale`, `retrieval.signalOverrides`.
+  Non-blocking — router failure never breaks existing retrieval. Helper functions
+  `_buildToolParams` and `_resolveAndFetchMcpDirect` added.
+- **`services/cya.service.js`** — All 3 `retrieveContextData` call sites now pass
+  `actorRole` (from profile) and `ontologySignals: null`.
+- **`tests/cya-tool-registry.test.js`** — 31 unit tests covering `resolveToolSet`,
+  `isToolAllowed`, `getAllowedTools`, signal overrides, error cases, whitelist
+  enforcement, citizen budget cap, journalist exclusions.
+
+### Architecture
+- CYA pipeline gains a 4th data lane: `MCP_DIRECT` alongside `MASTR_DETERMINISTIC`,
+  `LLM_RAG`, and topology-hop. Every resolved tool set carries an EU AI Act Art. 12
+  `rationale` string. 175 CYA regression tests pass.
+
+## [0.32.0] — 2026-04-28
+
+### Added
+
+- **Central Asset Ontology Graph (`src/cya-ontology-graph.js`):** Graphology-basierter
+  In-Memory-Directed-Graph aus MaStR-Installationsdaten. Node-Typen: INSTALLATION,
+  NAP, SUBSTATION, VNB, REGION. Edge-Typen: VERBUNDEN_MIT, LIEGT_IN, BETRIEBEN_VON,
+  ZUSTAENDIG_FUER. Exportiert: `buildOntologyGraph`, `queryNodes`, `findPath`,
+  `getNeighbors`, `getSubgraph`, `deriveSignals`.
+  `deriveSignals` ersetzt Regex-Text-Matching durch strukturelle Graph-Property-
+  und Kanten-Existenz-Prüfungen (9 Regeln: MISSING_NAP, VOLTAGE_HOP_REQUIRED,
+  NOVA_BLOCKED, HIGH_CURTAILMENT, EWK_BELOW_MEDIAN, SECTION14A_GAP,
+  ENERGY_SHARING_DEADLINE, GRID_TOPOLOGY_RADIAL, HIGH_RENEWABLE_SHARE).
+  Alle Signals tragen `evidence: [nodeId]` für EU AI Act Art. 12 Traceability.
+
+- **Zwiebelmodus Context Manager (`src/cya-context-manager.js`):** `CyaContextManager`
+  Klasse für iterativen Re-Entry in die CYA-Pipeline. Methoden: `setOuterContext`,
+  `zoomIn` (Subgraph um Knoten, radius-basiert), `zoomOut`, `needsRetrieval`,
+  `getFocusedContext` (mit `breadcrumb`-Pfad), `getIterationLog`.
+  `maxIterations` (default: 3) verhindert Endlos-Loops. Jede Operation im
+  Iteration-Log mit Timestamp (Audit-Trail).
+
+- **`src/cya-regulatory-graph.js` erweitert:** Neue Exports `buildRegulatoryGraphFromOntology`
+  und `OEO_MAPPINGS`. Graph-basierte Evaluation liefert identisches Response-Format
+  wie `buildRegulatoryGraph()` plus `graphBased: true` Flag für Transition-Tracking.
+  Bestehende Regex-Fallback-Funktion unverändert.
+
+- **`services/cya.service.js` — Ontologie in Phase 2:** `_buildOntologyLayer` Helper-Methode
+  (non-blocking, silent-fail) integriert in alle 3 Phase-2-Call-Sites (Multi-Perspective
+  Preload, Main Async Pipeline, Multi-Agent Shared Pipeline). `graphology` erstmals
+  im Runtime-Pfad aktiv genutzt.
+
+- **Tests:** `tests/cya-ontology-graph.test.js` (25 Tests) und
+  `tests/cya-context-manager.test.js` (20 Tests).
+
+### Added
+
+- **Persistent MQTT Broker (`mqtt-broker`):** Neuer eingebetteter, PouchDB-
+  basierter MQTT-Persistenzdienst ohne externe Server/Prozesse (KRITIS-konform).
+  Persistiert ausgehende Nachrichten, QoS-Inflight-Status, Expiry-State und
+  Retained-Metadaten lokal unter `data/mqtt-broker/`.
+  Interne Actions: `publish`, `acknowledge`, `recoverPendingMessages`,
+  `getStats`, `purgeExpired`.
+
+### Changed
+
+- **`flex.executeDimming`:** MQTT-Steuerbefehle werden jetzt mit explizitem
+  `messageType='control_command'`, `retain=false`, kurzer TTL und referenzierbarer
+  `mqttMessageId` persistiert, damit stale Dimming-Befehle nach Restart nicht
+  erneut ausgeführt werden.
+
 ## [0.31.0] — 2026-04-26
 
 ### Added

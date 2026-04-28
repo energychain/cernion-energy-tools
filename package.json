@@ -1,6 +1,6 @@
 {
   "name": "cernion-energy-tools",
-  "version": "0.31.0",
+  "version": "0.34.0",
   "description": "MicroService Agent System for Energy Markets",
   "main": "index.js",
   "scripts": {
@@ -15,6 +15,7 @@
     "test:unit": "jest --coverage --testPathIgnorePatterns=\"tests/.*\\.integration\\.test\\.js|custom-tests\"",
     "test:unit:ci": "jest --coverage --runInBand --forceExit --testPathIgnorePatterns=\"tests/.*\\.integration\\.test\\.js|custom-tests\"",
     "test:e2e": "jest --no-coverage tests/assets.integration.test.js",
+    "test:e2e:enterprise": "jest tests/e2e-enterprise-hoeheinoed.test.js --runInBand --forceExit",
     "test:custom": "jest --coverage=false --testPathPatterns=custom-tests",
     "test:watch": "jest --watch",
     "test:integration": "jest --coverage=false --testMatch=\"**/tests/**/*.integration.test.js\"",

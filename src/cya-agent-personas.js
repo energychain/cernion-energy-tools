@@ -168,9 +168,30 @@ function isKnownConflictRule(ruleId) {
   );
 }
 
+/**
+ * Mapping from actor role (user profile) to persona memory namespace.
+ * Used by cya.service.js _writePersonaMemory to store session summaries
+ * in role-specific Object Store buckets (v0.34.0 — first write activation).
+ *
+ * Roles without a dedicated persona namespace map to null (write skipped).
+ * @type {Object<string, string|null>}
+ */
+const ACTOR_ROLE_PERSONA_NAMESPACE = Object.freeze({
+  grid_operator:     'cya_mem_grid_operator',
+  supplier:          'cya_mem_supplier',
+  project_developer: 'cya_mem_project_developer',
+  direct_marketer:   'cya_mem_direct_marketer',
+  metering_operator: 'cya_mem_metering_operator',
+  regulator:         'cya_mem_regulator',
+  municipality:      'cya_mem_municipality',
+  journalist:        'cya_mem_journalist',
+  citizen:           'cya_mem_citizen',
+});
+
 module.exports = {
   PERSONA_ENUM,
   PERSONAS,
+  ACTOR_ROLE_PERSONA_NAMESPACE,
   validatePerspectives,
   getPersona,
   getPersonasOrderedByPriority,

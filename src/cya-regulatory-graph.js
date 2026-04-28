@@ -109,7 +109,56 @@ function buildRegulatoryGraph(input) {
   };
 }
 
+// ── OEO class mapping (keyed by ruleId) ───────────────────────────────────
+const OEO_MAPPINGS = Object.fromEntries(
+  REGULATORY_RULES.map(r => [r.id, { ruleId: r.id, oeoClass: r.oeoClass, rationale: r.rationale }])
+);
+
+/**
+ * Graph-based regulatory signal evaluation (v0.32.0).
+ * Uses deriveSignals() from cya-ontology-graph.js instead of Regex text-matching.
+ * Return format is identical to buildRegulatoryGraph() for drop-in compatibility.
+ *
+ * @param {import('graphology').Graph} ontologyGraph
+ * @param {string} focusNodeId - e.g. `INSTALLATION:<mastrNummer>`
+ * @returns {Object} Same shape as buildRegulatoryGraph() output, plus graphBased:true
+ */
+function buildRegulatoryGraphFromOntology(ontologyGraph, focusNodeId) {
+  const { deriveSignals } = require('./cya-ontology-graph');
+
+  const rawSignals = deriveSignals(ontologyGraph, focusNodeId);
+
+  const signals = rawSignals.map(s => ({
+    ruleId: s.ruleId,
+    severity: s.severity,
+    oeoClass: s.oeoClass,
+    rationale: s.rationale,
+    confidence: s.severity === 'critical' ? 'high' : 'medium',
+    evidence: s.evidence || [],
+  }));
+
+  const severityCount = signals.reduce(
+    (acc, signal) => {
+      acc[signal.severity] = (acc[signal.severity] || 0) + 1;
+      return acc;
+    },
+    { critical: 0, warning: 0, info: 0 }
+  );
+
+  return {
+    generatedAt: new Date().toISOString(),
+    evaluatedRules: signals.length,
+    triggeredRules: signals.length,
+    severityCount,
+    signals,
+    oeoMappings: signals.map(s => OEO_MAPPINGS[s.ruleId]).filter(Boolean),
+    graphBased: true,
+  };
+}
+
 module.exports = {
   REGULATORY_RULES,
+  OEO_MAPPINGS,
   buildRegulatoryGraph,
+  buildRegulatoryGraphFromOntology,
 };

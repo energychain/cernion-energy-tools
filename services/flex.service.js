@@ -471,8 +471,9 @@ module.exports = {
         const executionErrors = [];
 
         for (const event of events) {
+          let mqttMessageId = null;
           try {
-            await ctx.call('mqtt-broker.publish', {
+            const publishResult = await ctx.call('mqtt-broker.publish', {
               topic: `cernion/flex/${event.deviceId}/dimming`,
               payload: {
                 action: 'dim',
@@ -481,7 +482,13 @@ module.exports = {
                 reason: event.reason,
               },
               qos: 2,
+              retain: false,
+              messageType: 'control_command',
+              ttlSeconds: 300,
+              sourceService: 'flex',
+              sourceRef: event.planId || event.deviceId,
             });
+            mqttMessageId = publishResult.messageId || null;
             mqttPublished += 1;
           } catch (error) {
             if (!isServiceNotFound(error)) {
@@ -500,6 +507,7 @@ module.exports = {
             payload: {
               ...event,
               executedAt: nowIso(),
+              mqttMessageId,
               mqttPublished: !executionErrors.find((entry) => entry.deviceId === event.deviceId),
             },
           });

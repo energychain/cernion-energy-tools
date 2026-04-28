@@ -2,7 +2,9 @@
 
 const { MoleculerError } = require('moleculer').Errors;
 const { retrieveContextData, mergeProvidedData } = require('../src/cya-data-retriever');
-const { buildRegulatoryGraph } = require('../src/cya-regulatory-graph');
+const { buildRegulatoryGraph, buildRegulatoryGraphFromOntology } = require('../src/cya-regulatory-graph');
+const { buildOntologyGraph } = require('../src/cya-ontology-graph');
+const { CyaContextManager } = require('../src/cya-context-manager');
 const { buildGrounding } = require('../src/cya-grounding');
 const { synthesizeNarrative, synthesizePersonaEvaluation, synthesizeConsensusWith } = require('../src/cya-synthesis');
 const { startJob, appendLog } = require('../src/job-store');
@@ -291,6 +293,95 @@ module.exports = {
         });
         const items = Array.isArray(result?.docs) ? result.docs : [];
         return { success: true, count: items.length, items };
+      },
+    },
+
+    'profile.update': {
+      rest: 'PATCH /profile/:id',
+      params: {
+        id:                  { type: 'string', pattern: PROFILE_ID_PATTERN, max: 64 },
+        constraints:         { type: 'array', optional: true, items: { type: 'object', props: { topic: 'string', rule: 'string' } } },
+        explicitPreferences: { type: 'object', optional: true },
+        priorityFocusAreas:  { type: 'array', optional: true, items: 'string' },
+        tone:                { type: 'string', optional: true, max: 200 },
+        strategic_goals:     { type: 'array', optional: true, items: 'string' },
+      },
+      openapi: {
+        tags: ['CYA Agent'],
+        summary: 'Explicit profile update (inner Zwiebel layer)',
+        description:
+          'Merges explicit user preferences into a CYA profile without touching ' +
+          'implicitly derived stats. Part of the Progressive Profiling Zwiebelmodus (v0.34.0).',
+        parameters: [
+          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'stadtwerk_regulierung' } },
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  constraints:         { type: 'array', items: { type: 'object', properties: { topic: { type: 'string' }, rule: { type: 'string' } } }, nullable: true },
+                  explicitPreferences: { type: 'object', nullable: true },
+                  priorityFocusAreas:  { type: 'array', items: { type: 'string' }, nullable: true },
+                  tone:                { type: 'string', nullable: true, example: 'sachlich, rechtssicher' },
+                  strategic_goals:     { type: 'array', items: { type: 'string' }, nullable: true },
+                },
+              },
+              examples: {
+                default: {
+                  value: {
+                    constraints: [{ topic: 'Dunkelflaute', rule: 'Keine spekulativen Szenarien ohne Quellenangabe' }],
+                    priorityFocusAreas: ['redispatch', 'capacity'],
+                    tone: 'sachlich, direkt',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Profile updated',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    id:      { type: 'string' },
+                    profile: { type: 'object' },
+                    updated: { type: 'boolean', example: true },
+                  },
+                },
+              },
+            },
+          },
+          404: { description: 'Profile not found' },
+        },
+      },
+      async handler(ctx) {
+        const { id, ...explicitUpdate } = ctx.params;
+
+        const existing = await ctx.call('object-store.get', {
+          namespace: PROFILE_NAMESPACE,
+          key: id,
+        }).catch(() => null);
+
+        if (!existing?.payload) {
+          throw new MoleculerError(`Profile '${id}' not found`, 404, 'PROFILE_NOT_FOUND');
+        }
+
+        const { mergeExplicitIntoProfile } = require('../src/cya-profile-observer');
+        const updated = mergeExplicitIntoProfile(existing.payload, explicitUpdate);
+
+        await ctx.call('object-store.put', {
+          namespace: PROFILE_NAMESPACE,
+          key: id,
+          payload: updated,
+        });
+
+        return { id, profile: updated, updated: true };
       },
     },
 
@@ -834,9 +925,17 @@ module.exports = {
           profile: profiles[0],
           target_audience,
           context,
+          actorRole: profiles[0]?.actor?.role || null,
+          ontologySignals: null,
         });
 
-        const regulatoryGraph = buildRegulatoryGraph({
+        // Phase 2: Ontology layer (v0.32.0) — non-blocking, falls back to Regex if null
+        const { graphSignals: _gsPreload } = this._buildOntologyLayer(
+          retrieval,
+          context?.goal || null,
+          Array.isArray(context?.focus_areas) ? context.focus_areas : []
+        );
+        const regulatoryGraph = _gsPreload || buildRegulatoryGraph({
           retrieval,
           context,
           profile: profiles[0],
@@ -849,6 +948,9 @@ module.exports = {
           context,
           topologyHop: retrieval.topologyHop,
         });
+        // v0.33 — Dynamic Tool Router transparency fields (EU AI Act Art. 12)
+        if (retrieval.toolSetRationale) grounding.toolSetRationale = retrieval.toolSetRationale;
+        if (retrieval.signalOverrides) grounding.signalOverrides = retrieval.signalOverrides;
 
         if (grounding.requiresClarification || !Array.isArray(grounding.facts) || grounding.facts.length === 0) {
           return {
@@ -1131,12 +1233,19 @@ module.exports = {
             profile,
             target_audience,
             context,
+            actorRole: profile?.actor?.role || null,
+            ontologySignals: null,
           });
           appendLog(jobId, 'phase_1_retrieval', 33, 'Context data retrieval complete');
 
-          // Phase 2: Regulatory Graph
+          // Phase 2: Ontology layer + Regulatory Graph (v0.32.0)
           appendLog(jobId, 'phase_2_graph', 33, 'Building deterministic regulatory graph...');
-          const regulatoryGraph = buildRegulatoryGraph({
+          const { graphSignals: _gsMain } = this._buildOntologyLayer(
+            retrieval,
+            ctx.params.goal || null,
+            Array.isArray(context?.focus_areas) ? context.focus_areas : []
+          );
+          const regulatoryGraph = _gsMain || buildRegulatoryGraph({
             retrieval,
             context,
             profile,
@@ -1152,6 +1261,9 @@ module.exports = {
             context,
             topologyHop: retrieval.topologyHop,
           });
+          // v0.33 — Dynamic Tool Router transparency fields (EU AI Act Art. 12)
+          if (retrieval.toolSetRationale) grounding.toolSetRationale = retrieval.toolSetRationale;
+          if (retrieval.signalOverrides) grounding.signalOverrides = retrieval.signalOverrides;
           appendLog(jobId, 'phase_3_grounding', 75, 'Grounding merge complete');
 
           if (grounding.requiresClarification) {
@@ -1222,6 +1334,19 @@ module.exports = {
             updatedAt: response.metadata.updatedAt,
             history: [],
           });
+
+          // Progressive Profiling: implicit extraction after session close (v0.34.0)
+          // Non-blocking — observer failure must not delay the response
+          {
+            const _completedSession = {
+              status: 'completed', profile_id, context,
+              regulatory_graph: regulatoryGraph, grounding,
+              retrieval, history: [],
+              narrative: synthesis.narrative,
+            };
+            this._observeAndUpdateProfile(profile_id, _completedSession)
+              .catch(err => this.logger.warn('profile-observer failed (non-blocking):', err.message));
+          }
 
           return response;
         });
@@ -1372,6 +1497,9 @@ module.exports = {
             context: session.context,
             topologyHop,
           });
+          // v0.33 — Dynamic Tool Router transparency fields (EU AI Act Art. 12)
+          if (enrichedRetrieval.toolSetRationale) enrichedGrounding.toolSetRationale = enrichedRetrieval.toolSetRationale;
+          if (enrichedRetrieval.signalOverrides) enrichedGrounding.signalOverrides = enrichedRetrieval.signalOverrides;
 
           const refinedContext = { ...session.context, clarification: clarificationInput || null };
           const synthesis = await synthesizeNarrative({
@@ -1486,6 +1614,42 @@ module.exports = {
   },
 
   methods: {
+    /**
+     * Build ontology graph + context manager from retrieval result (Phase 2 helper).
+     * Returns { ontologyGraph, contextManager, graphSignals } or all-null on missing data.
+     * Non-blocking — never throws; failures return null values so Regex fallback kicks in.
+     *
+     * @param {Object} retrieval - Phase 1 retrieval result
+     * @param {string|null} goal
+     * @param {string[]} focusAreas
+     * @returns {{ ontologyGraph, contextManager, graphSignals }}
+     */
+    _buildOntologyLayer(retrieval, goal, focusAreas) {
+      try {
+        const installations = retrieval?.installations;
+        if (!Array.isArray(installations) || installations.length === 0) {
+          return { ontologyGraph: null, contextManager: null, graphSignals: null };
+        }
+
+        const ontologyGraph = buildOntologyGraph(installations, retrieval.topologyHop);
+        const contextManager = new CyaContextManager(ontologyGraph);
+        contextManager.setOuterContext(goal || null, focusAreas || []);
+
+        const firstMastr = installations[0]?.EinheitMastrNummer;
+        let graphSignals = null;
+        if (firstMastr) {
+          const focusNodeId = `INSTALLATION:${firstMastr}`;
+          graphSignals = buildRegulatoryGraphFromOntology(ontologyGraph, focusNodeId);
+        }
+
+        return { ontologyGraph, contextManager, graphSignals };
+      } catch (err) {
+        // Non-blocking — Regex fallback remains intact
+        this.logger?.warn('CYA ontology layer build failed (fallback to regex):', err.message);
+        return { ontologyGraph: null, contextManager: null, graphSignals: null };
+      }
+    },
+
     async loadProfile(ctx, profileId) {
       try {
         const result = await ctx.call('object-store.get', {
@@ -1522,6 +1686,67 @@ module.exports = {
         }
         throw err;
       }
+    },
+
+    /**
+     * Progressive Profiling: extract implicit signals from a completed session
+     * and merge them into the profile (outer Zwiebel layer). Non-blocking.
+     * Also writes a compact session summary into the role-specific persona namespace
+     * (first write activation of persona memory, v0.34.0).
+     * @param {string} profileId
+     * @param {Object} session - Completed session payload
+     */
+    async _observeAndUpdateProfile(profileId, session) {
+      const { extractImplicitSignals, mergeImplicitIntoProfile } = require('../src/cya-profile-observer');
+
+      const existing = await this.broker.call('object-store.get', {
+        namespace: PROFILE_NAMESPACE,
+        key: profileId,
+      }).catch(() => null);
+      if (!existing?.payload) return;
+
+      const signals = extractImplicitSignals(session);
+      const updated = mergeImplicitIntoProfile(existing.payload, signals);
+
+      await this.broker.call('object-store.put', {
+        namespace: PROFILE_NAMESPACE,
+        key: profileId,
+        payload: updated,
+      });
+
+      // Persona memory write (v0.34.0 — first activation)
+      const role = existing.payload?.actor?.role;
+      if (role) {
+        await this._writePersonaMemory(role, session, signals).catch(() => null);
+      }
+    },
+
+    /**
+     * Write a compact session summary into the role-specific persona memory namespace.
+     * @param {string} actorRole
+     * @param {Object} session
+     * @param {Object} signals - extracted implicit signals
+     */
+    async _writePersonaMemory(actorRole, session, signals) {
+      const { ACTOR_ROLE_PERSONA_NAMESPACE } = require('../src/cya-agent-personas');
+      const namespace = ACTOR_ROLE_PERSONA_NAMESPACE[actorRole];
+      if (!namespace) return;
+
+      const memoryDoc = {
+        summary:      session.narrative?.headline || session.narrative?.title || '',
+        focusAreas:   signals.focusAreas,
+        signalsSeen:  signals.signalsSeen,
+        confidence:   signals.confidence,
+        createdAt:    new Date().toISOString(),
+        tags:         signals.focusAreas,
+      };
+
+      const key = `mem_${Date.now()}`;
+      await this.broker.call('object-store.put', {
+        namespace,
+        key,
+        payload: memoryDoc,
+      });
     },
 
     async saveSession(ctx, sessionId, payload) {
@@ -1622,11 +1847,16 @@ module.exports = {
       log('phase_1_retrieval', 0, 'Multi-agent: shared context retrieval...');
       const profile = args.profile || await this.loadProfile(ctx, profile_id);
       const retrieval = preloadedRetrieval
-        || await retrieveContextData(ctx, { profile, target_audience, context });
+        || await retrieveContextData(ctx, { profile, target_audience, context, actorRole: profile?.actor?.role || null, ontologySignals: null });
       log('phase_1_retrieval', 20, 'Shared retrieval complete');
 
       log('phase_2_graph', 20, 'Multi-agent: shared regulatory graph...');
-      const regulatoryGraph = buildRegulatoryGraph({
+      const { graphSignals: _gsMulti } = this._buildOntologyLayer(
+        retrieval,
+        args.goal || null,
+        Array.isArray(context?.focus_areas) ? context.focus_areas : []
+      );
+      const regulatoryGraph = _gsMulti || buildRegulatoryGraph({
         retrieval, context, profile, topologyHop: retrieval.topologyHop,
       });
       log('phase_2_graph', 35, 'Shared regulatory graph complete');
@@ -1705,6 +1935,18 @@ module.exports = {
         updatedAt: completedResponse.metadata.updatedAt, history: [],
       });
       log('phase_4_synthesis', 100, 'Multi-agent session saved');
+
+      // Progressive Profiling: implicit extraction after multi-agent session close (v0.34.0)
+      {
+        const _completedSession = {
+          status: 'completed', profile_id, context,
+          regulatory_graph: regulatoryGraph, grounding: baselineGrounding,
+          retrieval, history: [], narrative,
+        };
+        this._observeAndUpdateProfile(profile_id, _completedSession)
+          .catch(err => this.logger.warn('profile-observer failed (non-blocking):', err.message));
+      }
+
       return completedResponse;
     },
 

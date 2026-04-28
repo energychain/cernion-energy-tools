@@ -1,8 +1,8 @@
 # UI Contract: CYA Agent API
 
 > **Page ID:** `cya`
-> **Version:** 0.26.9
-> **Last updated:** 2026-04-16
+> **Version:** 0.33.0
+> **Last updated:** 2026-04-28
 ---
 
 ## Endpoints & HTTP Patterns
@@ -97,9 +97,19 @@
       "reason": "capacity_below_threshold",
       "thresholdMw": 10
     },
+    "toolSetRationale": "actorRole=grid_operator; focusAreas=[capacity,renewables]; signal-override: HIGH_CURTAILMENT → REDISPATCH added",
+    "signalOverrides": [
+      {
+        "ruleId": "HIGH_CURTAILMENT",
+        "tool": "cernion_redispatch_export",
+        "injectedTool": "cernion_redispatch_export",
+        "reason": "HIGH_CURTAILMENT → REDISPATCH added"
+      }
+    ],
     "dataGaps": []
   },
   "regulatory_graph": {
+    "graphBased": true,
     "evaluatedRules": 9,
     "triggeredRules": ["HIGH_RENEWABLE_SHARE", "SECTION14A_GAP"],
     "severityCount": { "critical": 0, "high": 0, "warning": 2, "info": 0 },
@@ -448,6 +458,171 @@ curl http://localhost:3000/api/jobs/cya_abc123/result
 
 ---
 
+## PATCH /api/cya/profile/:id — Explicit Profile Update (v0.34.0+)
+
+Updates the **inner layer** of a profile (explicit preferences, constraints, strategic goals).
+Implicit/statistical fields (`implicitStats`, `focusAreaFrequency`, etc.) are protected and cannot be overwritten via this endpoint.
+
+**Request**
+
+```http
+PATCH /api/cya/profile/{id}
+Content-Type: application/json
+```
+
+```json
+{
+  "constraints": [{ "type": "regulatory", "value": "§ 14a EnWG", "priority": "high" }],
+  "explicitPreferences": { "language": "de", "detailLevel": "technical" },
+  "priorityFocusAreas": ["grid_connection", "redispatch"],
+  "tone": "formal",
+  "strategic_goals": ["Redispatch 2.0 compliance by Q3 2026"]
+}
+```
+
+All fields are optional. An empty body is a valid no-op (increments `profileVersion` + `updatedAt`).
+
+**Response 200**
+
+```json
+{
+  "id": "vnb_twl",
+  "profile": {
+    "actor": "vnb",
+    "explicitPreferences": { "language": "de", "detailLevel": "technical" },
+    "constraints": [{ "type": "regulatory", "value": "§ 14a EnWG", "priority": "high", "setAt": "2026-04-29T..." }],
+    "priorityFocusAreas": ["grid_connection", "redispatch"],
+    "tone": "formal",
+    "strategic_goals": ["Redispatch 2.0 compliance by Q3 2026"],
+    "implicitStats": { "sessionCount": 5, "averageConfidence": 0.72 },
+    "profileVersion": 4,
+    "updatedAt": "2026-04-29T..."
+  },
+  "updated": true
+}
+```
+
+**Errors**
+
+| Code | Error | Cause |
+|------|-------|-------|
+| 404 | `PROFILE_NOT_FOUND` | Profile with given id does not exist |
+| 422 | `VALIDATION_ERROR` | id contains illegal characters (only `a-z0-9_` allowed) |
+
+---
+
+## Progressive Profiling — Zwiebelmodus (v0.34.0+)
+
+The CYA profile uses a **two-layer (Zwiebel) model**:
+
+| Layer | Fields | Updated by |
+|-------|--------|------------|
+| **Outer (implicit)** | `implicitStats`, `focusAreaFrequency`, `signalReactions`, `toolUsage`, `preferences.focusAreaWeights`, `preferences.preferredTools`, `averageConfidence` | Automatic after every completed session |
+| **Inner (explicit)** | `constraints`, `explicitPreferences`, `priorityFocusAreas`, `tone`, `strategic_goals` | `PATCH /api/cya/profile/:id` only |
+
+**Invariant:** The outer layer never overwrites the inner layer. The inner layer never touches statistical counters.
+
+**Implicit enrichment flow:**
+1. Session completes → `_observeAndUpdateProfile` fires (non-blocking)
+2. `extractImplicitSignals(session)` reads `context.focus_areas`, `regulatory_graph.signals[].ruleId`, `grounding.toolSetRationale`, `grounding.signalOverrides`
+3. `mergeImplicitIntoProfile` increments counters, recomputes `focusAreaWeights` and `preferredTools`
+4. Updated profile persisted to `cya_profiles` PouchDB namespace
+5. If actor role present: `_writePersonaMemory` writes a memory doc to `cya_mem_<role>` namespace
+
+**Tool-registry integration:** On the next `generate` call `deriveToolHints(profile)` feeds `profileHints` into `resolveToolSet` — boosting preferred focus areas, promoting frequently-used tools, suppressing low-sensitivity signals.
+
+**Full profile shape (v0.34.0):**
+
+```json
+{
+  "actor": "vnb",
+  "tone": "formal",
+  "strategic_goals": ["..."],
+  "constraints": [{ "type": "regulatory", "value": "...", "priority": "high", "setAt": "..." }],
+  "explicitPreferences": {},
+  "priorityFocusAreas": [],
+  "implicitStats": {
+    "sessionCount": 12,
+    "averageConfidence": 0.74,
+    "focusAreaFrequency": { "grid_connection": 8, "redispatch": 4 },
+    "signalReactions": { "VOLTAGE_HOP_REQUIRED": { "seen": 3, "refined": 1 } },
+    "toolUsage": { "cernion_grid_data": 9, "osm_substation_finder": 3 }
+  },
+  "preferences": {
+    "focusAreaWeights": { "grid_connection": 1.0, "redispatch": 0.5 },
+    "preferredTools": ["cernion_grid_data", "cernion_installations_local"]
+  },
+  "profileVersion": 7,
+  "createdAt": "2026-04-01T...",
+  "updatedAt": "2026-04-29T...",
+  "lastActiveAt": "2026-04-29T..."
+}
+```
+
+**UI Hints:**
+- Display `preferences.preferredTools` as a "Frequently Used Tools" badge list.
+- Show `focusAreaWeights` as a bar chart (max = 1.0).
+- The `PATCH` endpoint enables a "Meine Einstellungen" form in the UI for explicit overrides.
+- `profileVersion` can be used for optimistic-concurrency display ("Profile last updated...").
+
+---
+
+## Field Reference: v0.32 + v0.33 Additions
+
+### `regulatory_graph.graphBased` (v0.32)
+
+| Field | Type | Always present | Description |
+|-------|------|----------------|-------------|
+| `graphBased` | `boolean` | No (absent when regex fallback used) | `true` when regulatory graph was built from the Central Asset Ontology (Graphology DirectedGraph). `false`/absent = legacy regex pipeline. |
+
+The UI can show a badge (e.g. 🔬 **Ontology-Based**) when `graphBased === true`.
+
+### `grounding.toolSetRationale` (v0.33)
+
+| Field | Type | Always present | Description |
+|-------|------|----------------|-------------|
+| `toolSetRationale` | `string` | No (absent when no actorRole in profile) | Human-readable rationale for which MCP tools were selected. Format: `actorRole=X; focusAreas=[...]; signal-override: ...`. EU AI Act Art. 12 traceability field. |
+
+### `grounding.signalOverrides` (v0.33)
+
+| Field | Type | Always present | Description |
+|-------|------|----------------|-------------|
+| `signalOverrides` | `SignalOverride[]` | No (absent or `[]` when no signals triggered overrides) | Array of tools injected by ontology signal rules. |
+
+**`SignalOverride` shape:**
+```json
+{
+  "ruleId": "HIGH_CURTAILMENT",
+  "tool": "cernion_redispatch_export",
+  "injectedTool": "cernion_redispatch_export",
+  "reason": "HIGH_CURTAILMENT → REDISPATCH added"
+}
+```
+
+**Possible `ruleId` values:**
+
+| ruleId | Injected tool | Trigger condition |
+|--------|--------------|-------------------|
+| `VOLTAGE_HOP_REQUIRED` | `osm_substation_finder` | Capacity requires MS/HS voltage hop |
+| `MISSING_NAP` | `cernion_grid_data` | No Netzanschlusspunkt in MaStR |
+| `HIGH_CURTAILMENT` | `cernion_redispatch_export` | Curtailment signal from ontology |
+| `GRID_TOPOLOGY_RADIAL` | `osm_grid_topology` | Radial grid topology detected |
+
+**UI Hint:** `signalOverrides` can drive a collapsible "Datenquellen-Erweiterungen" panel showing which extra MCP tools were auto-invoked and why.
+
+---
+
+## Changelog
+
+| Version | Date | Changes |
+|---------|------|---------|
+| 0.34.0 | 2026-04-29 | Progressive Profiling (Zwiebelmodus): `PATCH /api/cya/profile/:id` explicit inner-layer update; implicit outer-layer enrichment via `_observeAndUpdateProfile` after every session; `profileHints` integration in tool-registry; persona memory first write. |
+| 0.33.0 | 2026-04-28 | Added `grounding.toolSetRationale`, `grounding.signalOverrides` (Dynamic Tool Router, v0.33). No new REST endpoints. |
+| 0.32.0 | 2026-04-28 | Added `regulatory_graph.graphBased` (Central Asset Ontology, v0.32). No new REST endpoints. |
+| 0.26.9 | 2026-04-16 | Multi-agent mode (`perspectives` array), `multi_perspective` response field. |
+
+---
+
 **Document Owner:** Backend/Frontend Sync Team
-**Last Reviewed:** 2026-04-16
-**Next Review:** Post-v0.26.9 (multi-agent persona memory enrichment)
+**Last Reviewed:** 2026-04-28
+**Next Review:** Post-v0.33.0 (ontologySignals passthrough from UI)
