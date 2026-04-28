@@ -65,7 +65,7 @@
     "iconv-lite": "^0.7.2",
     "moleculer": "^0.14.35",
     "moleculer-auto-openapi": "^1.1.7",
-    "moleculer-repl": "^0.7.4",
+    "moleculer-repl": "^0.8.0",
     "moleculer-web": "^0.10.8",
     "nodemailer": "^8.0.5",
     "pdf-parse": "^2.4.5",
