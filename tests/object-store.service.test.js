@@ -228,6 +228,59 @@ describe('Object Store Service', () => {
     });
   });
 
+  // ─── tenant namespace validation ────────────────────────────────────────────
+
+  describe('tenant namespace validation (CR-TENANT-001)', () => {
+    it('accepts tenant:stadtwerk-a:cya_profiles as a valid namespace', async () => {
+      const result = await broker.call('object-store.put', {
+        namespace: 'tenant:stadtwerk-a:cya_profiles',
+        key: 'user1',
+        payload: { name: 'Test' },
+      });
+      expect(result.namespace).toBe('tenant:stadtwerk-a:cya_profiles');
+    });
+
+    it('accepts tenant:stadtwerk-a:cya_sessions as a valid namespace', async () => {
+      const result = await broker.call('object-store.put', {
+        namespace: 'tenant:stadtwerk-a:cya_sessions',
+        key: 'sess1',
+        payload: { active: true },
+      });
+      expect(result.namespace).toBe('tenant:stadtwerk-a:cya_sessions');
+    });
+
+    it('rejects INVALID:UPPER as an invalid namespace', async () => {
+      await expect(
+        broker.call('object-store.put', {
+          namespace: 'INVALID:UPPER',
+          key: 'k1',
+          payload: {},
+        })
+      ).rejects.toBeDefined();
+    });
+
+    it('rejects :leading-colon as an invalid namespace', async () => {
+      await expect(
+        broker.call('object-store.put', {
+          namespace: ':leading-colon',
+          key: 'k2',
+          payload: {},
+        })
+      ).rejects.toBeDefined();
+    });
+
+    it('existing namespaces without colons remain valid', async () => {
+      for (const ns of ['cya_profiles', 'cya_a2a_messages', 'test_ns', 'ns_a']) {
+        const result = await broker.call('object-store.put', {
+          namespace: ns,
+          key: 'compat_check',
+          payload: { ok: true },
+        });
+        expect(result.namespace).toBe(ns);
+      }
+    });
+  });
+
   // ─── compound keys ──────────────────────────────────────────────────────────
 
   describe('compound keys', () => {

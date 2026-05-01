@@ -1,6 +1,6 @@
 # CR-TENANT-001: object-store NS_PATTERN für Tenant-Namespaces
 
-## Status: OFFEN (v0.38.0)
+## Status: RESOLVED (v0.38.4)
 
 ## Problem
 object-store.service.js akzeptiert nur Namespaces die dem Pattern

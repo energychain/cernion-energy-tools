@@ -25,8 +25,10 @@ const { MoleculerClientError } = require('moleculer').Errors;
 
 const DB_PATH = process.env.OBJECT_STORE_DB_PATH || './data/object-store';
 
-/** Namespace: lowercase letter start, alphanumeric + underscores, 1–64 chars. */
-const NS_PATTERN = /^[a-z][a-z0-9_]{0,63}$/;
+/** Namespace: lowercase letter start, alphanumeric + underscores, optionally
+ * followed by colon-separated segments (alphanumeric + hyphens) for tenant isolation.
+ * Examples: 'cya_profiles', 'tenant:stadtwerk-a:cya_profiles' */
+const NS_PATTERN = /^[a-z][a-z0-9_]*(:[a-z0-9_-]+)*$/;
 
 /** Key: any printable non-whitespace string, 1–256 chars. */
 const KEY_PATTERN = /^[^\s]{1,256}$/;
@@ -51,10 +53,12 @@ function docId(ns, key) {
 function toPublic(doc) {
   // eslint-disable-next-line no-unused-vars
   const { _id, _rev, ns, ...rest } = doc;
-  const colonIdx = _id.indexOf(':');
+  // Use the stored `ns` field to determine the namespace boundary, so that
+  // multi-segment namespaces like 'tenant:stadtwerk-a:cya_profiles' are
+  // returned correctly. The key starts immediately after "namespace:".
   return {
-    namespace: _id.slice(0, colonIdx),
-    key:       _id.slice(colonIdx + 1),
+    namespace: ns,
+    key:       _id.slice(ns.length + 1),
     ...rest,
   };
 }

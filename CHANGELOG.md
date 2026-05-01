@@ -7,7 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.38.3] — OEP Connector Ausbau (TRL5→6)
+## [0.38.4] — CR-TENANT-001: object-store NS_PATTERN Fix
+
+### Fixed
+- **`services/object-store.service.js` — NS_PATTERN erweitert (CR-TENANT-001):**
+  - `NS_PATTERN` von `/^[a-z][a-z0-9_]{0,63}$/` auf `/^[a-z][a-z0-9_]*(:[a-z0-9_-]+)*$/` erweitert.
+  - Erlaubt jetzt Tenant-Namespaces der Form `tenant:stadtwerk-a:cya_profiles` ohne
+    bestehende einfache Namespaces (`cya_profiles`, `cya_a2a_messages` etc.) zu beeinflussen.
+  - Betrifft alle 4 Actions: `put`, `get`, `delete`, `query`.
+- **`services/object-store.service.js` — `toPublic()` für Multi-Segment-Namespaces korrigiert:**
+  - `toPublic()` nutzt jetzt das gespeicherte `ns`-Feld statt `_id.indexOf(':')` zur
+    Namespace-Extraktion. Verhindert, dass `tenant:stadtwerk-a:cya_profiles` als `tenant`
+    zurückgegeben wird (erster Doppelpunkt als Grenze).
+  - Rückwärtskompatibel: einfache Namespaces ohne Doppelpunkt unverändert.
+
+### Tests
+- **`tests/object-store.service.test.js`** — 5 neue Tests (`describe: 'tenant namespace validation (CR-TENANT-001)'`):
+  - `tenant:stadtwerk-a:cya_profiles` ist valider Namespace (put + namespace-Rückgabe).
+  - `tenant:stadtwerk-a:cya_sessions` ist valider Namespace.
+  - `INVALID:UPPER` bleibt ungültig.
+  - `:leading-colon` bleibt ungültig.
+  - Bestehende Namespaces (`cya_profiles`, `cya_a2a_messages`, `test_ns`, `ns_a`) bleiben valide.
+
+ — OEP Connector Ausbau (TRL5→6)
 
 ### Added
 - **`src/oep-tables.js`** — Neues separates Modul für domänen-kontextualisierte OEP-Tabellen:
