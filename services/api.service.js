@@ -415,6 +415,19 @@ module.exports = {
               res.end('Sample app not found: ' + err.message);
             }
           },
+
+          // LLM context file – machine-readable API surface for AI tooling
+          'GET /llm.txt'(req, res) {
+            const llmTxt = path.join(__dirname, '..', 'llm.txt');
+            try {
+              const content = fs.readFileSync(llmTxt, 'utf-8');
+              res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+              res.end(content);
+            } catch (err) {
+              res.writeHead(404);
+              res.end('llm.txt not found: ' + err.message);
+            }
+          },
         },
       },
       // Main API routes
@@ -657,8 +670,11 @@ module.exports = {
           'GET /cya/sessions/:session_id/export/pdf': 'cya.exportPdf',
           'GET /cya/sessions/:session_id/export/json': 'cya.exportJson',
           'GET /cya/graph/export/oeo-stub': 'cya.export.oeo-stub',
+          'GET /cya/graph/cache': 'cya.graph.cacheStatus',
+          'DELETE /cya/graph/cache/:operatorId': 'cya.graph.invalidate',
           'POST /cya/generate': 'cya.generate',
           'POST /cya/refine': 'cya.refine',
+          'GET /cya/sessions/:id/a2a-log': 'cya.session.a2aLog',
 
           // MaStR Monitor (v0.27)
           'POST /mastr-monitor/watches': 'mastr-monitor.createWatch',

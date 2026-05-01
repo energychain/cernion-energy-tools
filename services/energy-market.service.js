@@ -572,6 +572,8 @@ module.exports = {
         installationType: {
           type: 'enum',
           values: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'],
+          description:
+            'Required. Type of installation — solar (PV), wind, storage (batteries/BESS), biomass, hydro, combustion (CHP / gas turbines).',
         },
         location: { type: 'string', optional: true, min: 1 },
         postleitzahl: { type: 'string', optional: true, min: 5, max: 5 },
@@ -885,7 +887,67 @@ module.exports = {
         // Parse limit: accept number, numeric string, or 'all' / undefined (= fetch everything)
         const rawLimit = params.limit;
         const isUnlimited = rawLimit === undefined || rawLimit === null || rawLimit === 'all';
-        const requestedLimit = isUnlimited ? Infinity : Math.max(1, Number(rawLimit) || 1000);
+        // Bug fix: removed '|| 1000' fallback — invalid limit strings must not silently cap at
+        // 1000. The Moleculer validator rejects non-numeric values; undefined/null/"all" → Infinity.
+        const requestedLimit = isUnlimited ? Infinity : Math.max(1, Number(rawLimit));
+
+        // Bug fix: normalise BDEW code — strip all whitespace so "9900 599000003" becomes
+        // "9900599000003". Mixed-format codes from callers fail exact matching in the MCP tool.
+        const rawBdewCode = params.gridOperatorBdewCode;
+        const normalizedBdewCode = rawBdewCode
+          ? String(rawBdewCode).replace(/\s+/g, '').trim() || undefined
+          : undefined;
+
+        // Bug fix: cernion_installations_local has NO fuzzy gridOperatorName support.
+        // Passing the name directly is silently ignored, returning the full local dataset
+        // (which belongs to the env-configured VNB → always the same static SNB in results).
+        // Resolve the name to a MaStR ID via cernion_market_partners first.
+        let resolvedGridOperatorId = params.gridOperatorMastrId || params.gridOperatorId || null;
+        let resolvedBdewCode = normalizedBdewCode || null;
+
+        if (!resolvedGridOperatorId && !resolvedBdewCode && params.gridOperatorName) {
+          this.logger.info(
+            `Resolving gridOperatorName "${params.gridOperatorName}" via cernion_market_partners`
+          );
+          try {
+            const mpResult = await callWithAutoPoll(
+              'cernion_market_partners',
+              { query: params.gridOperatorName, limit: 5 },
+              { maxWaitTime: 2 * 60 * 1000, pollInterval: 2000 },
+              ctx.meta.cernionToken
+            );
+            const mpData = mpResult?.data;
+            const mpResults =
+              (typeof mpData === 'object' && !Array.isArray(mpData)
+                ? mpData.results || mpData.marketPartners
+                : null) || [];
+            if (mpResults.length > 0) {
+              const first = mpResults[0];
+              // Strip annotation suffix: "SNB935578300972 (strom, 100% Match)" → "SNB935578300972"
+              const rawId = first.mastrNetzbetreiberId || first.mastrId || first.mastr_id || null;
+              resolvedGridOperatorId = rawId ? rawId.split(' ')[0].trim() : null;
+              if (!resolvedGridOperatorId && typeof first.mastrIds === 'object') {
+                const ids = first.mastrIds;
+                resolvedGridOperatorId = ids.SNB || ids.GNB || ids.snb || ids.gnb || null;
+              }
+              if (!resolvedBdewCode) {
+                resolvedBdewCode = first.bdew || first.bdewCode || null;
+              }
+              this.logger.info(
+                `Resolved gridOperatorName "${params.gridOperatorName}" → mastrId=${resolvedGridOperatorId}, bdew=${resolvedBdewCode}`
+              );
+            } else {
+              this.logger.warn(
+                `cernion_market_partners returned 0 results for "${params.gridOperatorName}". ` +
+                  'Use gridOperatorMastrId or gridOperatorBdewCode for reliable filtering.'
+              );
+            }
+          } catch (mpErr) {
+            this.logger.warn(
+              `gridOperatorName resolution failed for "${params.gridOperatorName}": ${mpErr.message}`
+            );
+          }
+        }
 
         const baseToolParams = {
           type: params.installationType,
@@ -893,9 +955,10 @@ module.exports = {
           minCapacity: params.minCapacityKW,
           maxCapacity: params.maxCapacityKW,
           commissioningYear: params.commissioningYear,
-          gridOperatorMastrId: params.gridOperatorMastrId || params.gridOperatorId,
-          gridOperatorName: params.gridOperatorName,
-          gridOperatorBdewCode: params.gridOperatorBdewCode,
+          // Bug fix: cernion_installations_local expects 'gridOperatorId', NOT 'gridOperatorMastrId'.
+          // The wrong key caused SNB-ID filtering to be silently dropped → 0 results for SNB queries.
+          gridOperatorId: resolvedGridOperatorId || undefined,
+          gridOperatorBdewCode: resolvedBdewCode || undefined,
           postleitzahlNot: params.postleitzahlNot,
           includeNapData: params.includeNapData,
           netzbetreiberPruefungStatus: nbpStatus,

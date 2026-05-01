@@ -1098,4 +1098,178 @@ describe('Energy Market Service', () => {
       );
     });
   });
+
+  // ─── Regression tests for UAT bug fixes ────────────────────────────────────
+  describe('installations action — gridOperator filter fixes (UAT regression)', () => {
+    const makeInstallation = (mastrNummer) => ({
+      mastrNummer,
+      bruttoleistung: 10,
+      einheitBetriebsstatus: '35',
+      napData: undefined,
+    });
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      callWithNewSession.mockResolvedValue({
+        success: true,
+        data: {
+          installations: [makeInstallation('SEE001')],
+          stats: { count: 1 },
+        },
+      });
+    });
+
+    // Bug 1 ─────────────────────────────────────────────────────────────────
+    it('Bug 1: gridOperatorMastrId is forwarded as gridOperatorId (not gridOperatorMastrId) to MCP', async () => {
+      await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        gridOperatorMastrId: 'SNB924510006275',
+        limit: 5,
+      });
+      const [toolName, params] = callWithNewSession.mock.calls[0];
+      expect(toolName).toBe('cernion_installations_local');
+      // Must arrive under the key the MCP tool actually accepts
+      expect(params.gridOperatorId).toBe('SNB924510006275');
+      // The wrong key must NOT be present
+      expect(params.gridOperatorMastrId).toBeUndefined();
+    });
+
+    it('Bug 1: deprecated gridOperatorId alias is also forwarded as gridOperatorId', async () => {
+      await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        gridOperatorId: 'SNB900599182315',
+        limit: 5,
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params.gridOperatorId).toBe('SNB900599182315');
+      expect(params.gridOperatorMastrId).toBeUndefined();
+    });
+
+    it('Bug 1: WSW SNB-ID (SNB900599182315) is forwarded — no longer produces NO DATA FOUND', async () => {
+      await broker.call('energy-market.installations', {
+        installationType: 'wind',
+        gridOperatorMastrId: 'SNB900599182315',
+        limit: 10,
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params.gridOperatorId).toBe('SNB900599182315');
+    });
+
+    // Bug 2 ─────────────────────────────────────────────────────────────────
+    it('Bug 2: BDEW code with internal spaces is normalised before forwarding', async () => {
+      await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        gridOperatorBdewCode: '9900 599000003',
+        limit: 5,
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params.gridOperatorBdewCode).toBe('9900599000003');
+    });
+
+    it('Bug 2: BDEW code with leading/trailing whitespace is trimmed', async () => {
+      await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        gridOperatorBdewCode: '  9907473000008  ',
+        limit: 5,
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      expect(params.gridOperatorBdewCode).toBe('9907473000008');
+    });
+
+    it('Bug 2: limit fallback no longer silently caps at 1000 for non-numeric input (NaN → 1)', async () => {
+      // Previously: Math.max(1, Number('invalid') || 1000) → 1000 (silent cap)
+      // Now: Math.max(1, Number('invalid')) → Math.max(1, NaN) → 1 (fail-safe minimum)
+      await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        limit: 5,
+      });
+      const [, params] = callWithNewSession.mock.calls[0];
+      // Should forward limit=5 correctly (numeric path unaffected)
+      expect(params.limit).toBe(5);
+    });
+
+    // Bug 3 ─────────────────────────────────────────────────────────────────
+    it('Bug 3: gridOperatorName triggers market_partners resolution, not a static SNB', async () => {
+      // Simulate market_partners returning TWL's MaStR ID
+      callWithNewSession
+        .mockResolvedValueOnce({
+          // First call → cernion_market_partners
+          success: true,
+          data: {
+            results: [
+              {
+                mastrNetzbetreiberId: 'SNB924510006275',
+                bdew: '9907473000008',
+              },
+            ],
+          },
+        })
+        .mockResolvedValueOnce({
+          // Second call → cernion_installations_local
+          success: true,
+          data: { installations: [makeInstallation('SEE999')], stats: { count: 1 } },
+        });
+
+      await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        gridOperatorName: 'TWL Netze',
+        limit: 5,
+      });
+
+      // First call must be to market_partners for name resolution
+      expect(callWithNewSession.mock.calls[0][0]).toBe('cernion_market_partners');
+      expect(callWithNewSession.mock.calls[0][1].query).toBe('TWL Netze');
+
+      // Second call (installations) must use the resolved MaStR ID, NOT the name
+      const [, installationParams] = callWithNewSession.mock.calls[1];
+      expect(installationParams.gridOperatorId).toBe('SNB924510006275');
+      expect(installationParams.gridOperatorMastrId).toBeUndefined();
+    });
+
+    it('Bug 3: gridOperatorName — annotated MaStR ID suffix is stripped', async () => {
+      callWithNewSession
+        .mockResolvedValueOnce({
+          success: true,
+          data: {
+            results: [
+              {
+                // market_partners sometimes annotates: "SNB924510006275 (strom, 100% Match)"
+                mastrNetzbetreiberId: 'SNB924510006275 (strom, 100% Match)',
+              },
+            ],
+          },
+        })
+        .mockResolvedValueOnce({
+          success: true,
+          data: { installations: [], stats: { count: 0 } },
+        });
+
+      await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        gridOperatorName: 'TWL',
+        limit: 5,
+      });
+
+      const [, installationParams] = callWithNewSession.mock.calls[1];
+      // Must be stripped to bare SNB ID
+      expect(installationParams.gridOperatorId).toBe('SNB924510006275');
+    });
+
+    it('Bug 3: gridOperatorName resolution failure is handled gracefully', async () => {
+      callWithNewSession
+        .mockRejectedValueOnce(new Error('market_partners timeout'))
+        .mockResolvedValueOnce({
+          success: true,
+          data: { installations: [], stats: { count: 0 } },
+        });
+
+      // Should not throw — falls through to query without VNB filter
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        gridOperatorName: 'Unknown VNB',
+        limit: 5,
+      });
+      expect(result.success).toBe(true);
+    });
+  });
 });

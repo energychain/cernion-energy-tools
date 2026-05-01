@@ -107,6 +107,7 @@ The API Gateway will start on `http://localhost:3000` by default.
 | `http://localhost:3000/app` | **Research Web App** — AI agent UI for interactive testing |
 | `http://localhost:3000/api/docs` | Swagger UI — full OpenAPI documentation |
 | `http://localhost:3000/api/openapi.json` | Raw OpenAPI spec |
+| `http://localhost:3000/llm.txt` | **LLM context file** — machine-readable API surface for AI-assisted development |
 
 ### Using the CLI
 
@@ -124,6 +125,18 @@ npm run cli -- --help
 ## Research Web App
 
 The built-in web application at `/app` lets you explore all microservices using plain-text natural language — no curl, no Swagger form, no coding required.
+
+## LLM-Assisted Development
+
+The file `llm.txt` in the project root contains a machine-readable summary of all services, actions, and REST endpoints. It is served as a static asset at `/llm.txt` and is updated with every release.
+
+Paste it into any LLM (ChatGPT, Claude, Gemini, …) to give it full context of the API surface before asking questions or generating integration code:
+
+```bash
+curl http://localhost:3000/llm.txt
+```
+
+This drastically reduces the number of back-and-forth iterations needed when building integrations, writing scripts, or debugging API calls against this backend.
 
 ### Workflow
 

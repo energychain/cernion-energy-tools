@@ -7,7 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.34.1] — Science-Ready Sprint / OEO Hook für akademische Contributor
+## [0.36.1] — Bugfix: Installations Grid-Operator Filtering & LLM Context Endpoint
+
+### Added
+- **`GET /llm.txt`** — Static endpoint serving `llm.txt` from the project root via the API Gateway. The file contains a machine-readable summary of all services, actions, and REST endpoints and is updated with every release. Intended to be fed into an LLM for faster development and integration work (`services/api.service.js`).
+
+### Fixed
+- **`POST /api/energy-market/installations` — Bug 1: `gridOperatorMastrId` filter was silently ignored** (`services/energy-market.service.js`): The `baseToolParams` object used the key `gridOperatorMastrId`, but `cernion_installations_local` only accepts `gridOperatorId`. SNB-ID queries (e.g. TWL: `SNB924510006275`, WSW: `SNB900599182315`) always returned `NO DATA FOUND`. Fixed by mapping both `gridOperatorMastrId` and the deprecated `gridOperatorId` alias to the correct MCP key `gridOperatorId`.
+- **`POST /api/energy-market/installations` — Bug 2: `gridOperatorBdewCode` normalisation & hardcoded limit cap** (`services/energy-market.service.js`): BDEW codes with internal whitespace (e.g. `"9900 599000003"`) failed exact matching in the MCP tool. Fixed by stripping all whitespace before forwarding. Also removed the silent `|| 1000` fallback in the `requestedLimit` parser that capped results at 1,000 for any non-numeric `limit` input.
+- **`POST /api/energy-market/installations` — Bug 3: `gridOperatorName` always returned static SNB** (`services/energy-market.service.js`): `cernion_installations_local` has no fuzzy name search — the `gridOperatorName` parameter was silently ignored, causing the full local dataset (scoped to the env-configured VNB) to be returned, making every name query produce the same static SNB. Fixed by resolving the name via `cernion_market_partners` first, then forwarding the resolved `gridOperatorId`. Annotation suffixes such as `"SNB... (strom, 100% Match)"` are stripped. Resolution failures are logged and handled gracefully without crashing.
+- **`POST /api/energy-market/installations` — Bug 4: opaque validation error on missing `installationType`** (`services/energy-market.service.js`): Added a `description` field to the `installationType` enum param so Moleculer validation errors include a human-readable explanation of allowed values.
+- **11 regression tests** added to `tests/energy-market.service.test.js` covering all four bugs.
+
+## [0.36.0] — Central Ontology Graph Persistenz (TRL8)
+
+### Added
+- **`src/cya-graph-cache.js`** — Two-Tier Cache für den Graphology Asset-Graphen:
+  - `GraphCache` Klasse mit L1 (In-Memory `Map`, max. 20 VNBs, TTL 24h) und L2 (Object Store Namespace `cya_ontology_graphs`, überlebt Restart).
+  - `buildKey(operatorIdentifier)` — normalisierter Cache-Key (lowercase, `[^a-z0-9]` → `_`).
+  - `isStale(entry)` — TTL-Prüfung (default 86400s).
+  - `getL1(key)` — synchroner In-Memory-Lookup mit hitCount-Tracking.
+  - `setL1(key, graph, serialized, cachedAt)` — LRU-ähnliche Eviction bei `L1_MAX_ENTRIES` (20).
+  - `getL2(key, brokerCall)` — async Object Store Lookup mit automatischem L1 Warm-up bei Hit.
+  - `set(key, graph, brokerCall)` — L1 synchron, L2 fire-and-forget (non-blocking).
+  - `invalidate(key, brokerCall)` — beide Tiers invalidieren.
+  - `getStats()` — L1-Statistiken für Monitoring (nodeCount, edgeCount, hitCount, stale-Flag).
+  - Singleton-Export `graphCache` — ein Cache pro Prozess.
+- **`_buildOntologyLayer` ist jetzt `async`** in `services/cya.service.js`:
+  - L1-Lookup (synchron, <1ms) → L2-Lookup (async, Object Store) → Cache-Miss: Graph bauen + in beide Tiers schreiben.
+  - Operator-Identifier-Ableitung: `retrieval.operator` → `retrieval.gridOperatorId` → `installations[0].Netzbetreiber` → `'unknown'`.
+  - Alle 3 Call-Sites auf `await this._buildOntologyLayer(...)` aktualisiert.
+- **`GET /api/cya/graph/cache`** (`cya.graph.cacheStatus`) — L1-Cache-Status für Ops-Monitoring.
+- **`DELETE /api/cya/graph/cache/:operatorId`** (`cya.graph.invalidate`) — manuelle Cache-Invalidierung pro VNB.
+- **Moleculer Events:**
+  - `cya.ontology.graph.built` — bei Cache-Miss nach Graph-Aufbau (`cacheKey`, `nodeCount`, `edgeCount`, `timestamp`).
+  - `cya.ontology.graph.invalidated` — bei manueller Invalidierung (`operatorId`, `cacheKey`, `timestamp`).
+- **`events:` Block erweitert:**
+  - `cya.ontology.graph.built` und `cya.ontology.graph.invalidated` Handler (INFO-Logging).
+  - `mastr-monitor.delta.detected` Handler — automatische Cache-Invalidierung wenn MaStR-Delta erkannt (`ctx.params.operator || ctx.params.bdewCode`).
+- **UI Contract** `docs/ui-contracts/20-cya.md` — neue Sektion mit Cache-Endpoints, Lifecycle-Dokumentation, Object-Store-Payload-Shape und Event-Tabelle.
+- **52 neue Tests** across 2 Suites:
+  - `tests/cya-graph-cache.test.js` (43 Tests): `buildKey`, `isStale`, L1 (LRU-Eviction, hitCount, TTL), L2 (Restore, Warm-up, graceful fail), `set`, `invalidate`, `getStats`.
+  - `tests/cya-graph-cache-integration.test.js` (9 Tests): Cache-Miss → L1 befüllt, L1-Hit → kein Event, Operator-Fallback, Invalidate → Rebuild, L2-Warm-up, leere Installations.
+
+### Changed
+- `services/api.service.js`: `GET /cya/graph/cache` und `DELETE /cya/graph/cache/:operatorId` registriert.
+- `_buildOntologyLayer` ist nicht mehr synchron — alle Aufrufer verwenden `await`.
+
+## [0.35.0] — Agent-to-Agent Protokoll (Moleculer Event Bus)
+
+### Added
+- **`src/cya-a2a-protocol.js`** — New A2A envelope module: structured `A2AMessage` format with `messageId` (UUIDv4), `sessionId` (correlation-ID), `fromPersona`, `toPersona`, `payload`, `timestamp`, `protocolVersion: '1.0'`. Five factory functions: `personaEvaluated`, `conflictDetected`, `negotiationRound`, `consensusReached`, `consensusFailed`. `validateMessage` enforces required fields and known event names. `A2A_NAMESPACE: 'cya_a2a_messages'` for object-store persistence.
+- **Moleculer Event Bus integration in `cya.service.js`** — `broker.emit()` is now used for all 5 `cya.a2a.*` events. `_emitA2AMessage` method validates the envelope, emits to broker (fire-and-forget), and persists to `cya_a2a_messages` object-store namespace (non-blocking, error-tolerant).
+- **`events:` block in `cya.service.js`** — First-ever `events:` block in the CYA service. Listens on `cya.a2a.consensus.failed` (WARN log + HITL escalation hook) and `cya.a2a.conflict.detected` (INFO log). Extension point for future alerts, webhooks, and dashboard events.
+- **`GET /api/cya/sessions/:id/a2a-log`** (`cya.session.a2aLog`) — New REST endpoint returning the full A2A communication log for a session, sorted ascending by timestamp. Returns `{ sessionId, messageCount, messages: A2AMessage[] }`. Registered in `api.service.js`.
+- **UI Contract** `docs/ui-contracts/20-cya.md` — New section documenting the `a2a-log` endpoint, `A2AMessage` shape, all 5 event names with payload fields, and Moleculer event bus subscription pattern.
+- **40 new tests** across 2 suites: `tests/cya-a2a-protocol.test.js` (33 tests: `createMessage`, factories, `validateMessage`, broker-mock integration, session log handler logic) and `tests/cya-a2a-bugfix.test.js` (7 tests: currentStates bug-fix scenarios).
+
+### Fixed
+- **Bug: `currentStates` never updated between negotiation rounds** in `runConflictNegotiation`. Round N+1 previously always operated on the same stakeholder states as round N. The fix applies `consensus.updatedStates` (if present in LLM response) before the next round. The hook is additive and backwards-compatible — if `updatedStates` is absent, behaviour is unchanged.
+
+### Changed
+- `runPersonaSynthesis` now accepts `sessionId` via `args` and emits `cya.a2a.persona.evaluated` after each persona evaluation.
+- `runConflictNegotiation` now accepts `sessionId` via `synthesisArgs` and emits conflict/negotiation/consensus events at each stage.
+
+
 
 ### Added
 - **`src/oeo-exporter-stub.js`** — OEO Exporter Stub (intentional contributor hook):
