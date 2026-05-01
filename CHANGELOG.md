@@ -7,6 +7,205 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.38.3] — OEP Connector Ausbau (TRL5→6)
+
+### Added
+- **`src/oep-tables.js`** — Neues separates Modul für domänen-kontextualisierte OEP-Tabellen:
+  - `CERNION_RELEVANT_OEP_TABLES` — Frozen Array mit 5 vorkonifigurierten Einträgen
+    (Pflichtfelder: `schema`, `table`, `description`, `cernionUseCase`, `oeoClass`).
+  - Einträge: `model_draft.oed_source` (EU AI Act Art. 12), `supply.ego_dp_res_powerplant`
+    (MaStR-Vergleich), `demand.ego_dp_loadarea` (Residuallast), `model_draft.oed_scenario_bundle`
+    (NEP/TYNDP), `grid.ego_dp_ehv_substation` (Topologie).
+  - Ausgelagert aus `oep.service.js` für bessere Testbarkeit und einfache Erweiterbarkeit.
+
+- **`services/oep.service.js` — neue Actions (TRL5→6: demonstriert in relevantem Umfeld):**
+  - **`GET /api/oep/energy-tables`** (`oep.energyTables`) — gibt `CERNION_RELEVANT_OEP_TABLES`
+    zurück (`{ tables, count }`). Kein freies Suchen nötig; direkter Einstiegspunkt für
+    VNB-Domänen-Arbeit. `x-oeo-class: oeo:DataCatalog`.
+  - **`POST /api/oep/compare-mastr`** (`oep.compareWithMastr`) — Lädt OEP-Daten und
+    MaStR-Installationen parallel via `Promise.allSettled`. Graceful bei OEP-Ausfall
+    (`oep.available: false`) — produktionskritisch, da OEP externe Abhängigkeit ohne SLA.
+    `x-oeo-class: oeo:PowerPlant`. Felder: `{ oep, mastr, delta: null, oeoMappingNote }`.
+    `installationType` Default `'solar'`; TODO-Kommentar für `'all'` wenn energy-market
+    Enum erweitert. Vollständige OpenAPI-Annotation mit Request-Body-Examples.
+
+### Changed
+- **`services/oep.service.js`** — `CERNION_RELEVANT_OEP_TABLES` via `require('../src/oep-tables')`
+  importiert (nicht mehr inline im Service).
+- **`services/agent.service.js` — RULE 13 erweitert:**
+  - Neuer Unterpunkt **F: `oep.energyTables`** — kuratiierte Cernion-relevante Tabellen ohne
+    Suche; bevorzugen wenn User Domänen-Startpunkte benötigt.
+  - Neuer Unterpunkt **G: `oep.compareWithMastr`** — OEP vs. MaStR Kapazitätsvergleich;
+    immer graceful; MaStR ist primär, OEP sekundär.
+  - Summary-Zeile im Refine-Prompt um beide neuen Actions ergänzt.
+
+### Tests
+- **`tests/oep.service.test.js`** — 14 neue Tests (total: 32):
+  - `energyTables` (4 Tests): ≥3 Einträge, Pflichtfelder, `oeo:`-Präfix, count-Konsistenz.
+  - `compareWithMastr` (7 Tests): available-Flags, fulfilled→true, rejected→false (graceful),
+    `delta: null`, `oeoMappingNote` mit `oeo:PowerPlant`, `oep.source`, `mastr.source`.
+  - `CERNION_RELEVANT_OEP_TABLES` (3 Tests): ≥3 Einträge, Pflichtfelder, keine Duplikate.
+  - RULE 13 Prompt-Check (2 Tests): `oep.compareWithMastr` und `oep.energyTables` im Prompt.
+
+## [0.38.2] — A2A Replay & Log-Analyse
+
+### Added
+- **`src/cya-a2a-analyzer.js`** — Neues Analyse-Modul für persistierte A2A-Kommunikations-Logs:
+  - `analyzeLog(messages)` — wertet einen Session-Log aus: Persona-Verdicts, Konflikt-Anzahl,
+    Negotiation-Runden, Consensus-Ergebnis, HITL-Eskalation, Dauer, Blocker-Personas, Signals.
+  - `aggregateLogs(sessionAnalyses)` — aggregiert mehrere Session-Analysen: Konsens-Rate,
+    Eskalations-Rate, durchschnittliche Runden, häufigster Blocker, häufigstes Signal,
+    mittlere Dauer. Graceful bei leerem Array/null.
+  - `summarizeLog(analysis)` — menschenlesbare deutschsprachige Zusammenfassung einer Analyse.
+- **`GET /api/cya/sessions/:id/a2a-analysis`** (`cya.session.a2aAnalysis`) — neuer REST-Endpoint:
+  - Ruft intern `cya.session.a2aLog` auf (kein direkter Object-Store-Zugriff).
+  - Gibt `{ sessionId, analysis, summary }` zurück; `analysis: null` + erklärende `message`
+    wenn kein A2A-Log für die Session vorhanden.
+  - Vollständige OpenAPI-Annotation mit `x-oeo-class: OEO:AgentCommunication`.
+- **`GET /api/cya/a2a-stats`** (`cya.a2aStats`) — neuer Aggregations-Endpoint:
+  - Lädt alle Messages aus Namespace `cya_a2a_messages`, gruppiert nach `sessionId`,
+    analysiert und aggregiert via `analyzeLog` + `aggregateLogs`.
+  - Query-Parameter `?limit=N` (default: 100, max: 1000) begrenzt ausgewertete Sessions
+    und verhindert Timeouts bei vielen Sessions.
+  - Graceful bei leerem Namespace (keine Exception).
+  - TODO-Kommentar für zukünftige Pagination (analog `mastr-monitor`).
+- **`tests/cya-a2a-analyzer.test.js`** — 29 Tests:
+  - `analyzeLog` (16 Tests): totalMessages, personaEvaluations (3 Personas, verdict/summary),
+    conflictsDetected, negotiationRounds, consensusReached/Round, hitlEscalated (true/false),
+    durationMs, blockerPersonas, signalsSeen, leerer Log, null-Input, HITL-Runden
+  - `aggregateLogs` (8 Tests): consensusRate, avgNegotiationRounds, hitlEscalationRate,
+    mostFrequentBlocker, mostFrequentSignal, leeres Array, null-Input, totalSessions
+  - `summarizeLog` (5 Tests): deutscher String, Konsens-Info, Rundenanzahl, HITL-Erwähnung,
+    leerer Log → Hinweis-String
+
+### Changed
+- `services/api.service.js`: Routen `GET /cya/sessions/:id/a2a-analysis` und
+  `GET /cya/a2a-stats` registriert (zwischen `a2a-log` und `context-state`).
+
+## [0.38.1] — UI Contracts Vollsynchronisation
+
+### Added
+- **`docs/ui-contracts/22-settlement.md`** — Neuer Contract für `settlement`-Service (v0.30.0):
+  8 Endpoints (Redispatch-Entschädigung, EEG-Vergütung, A96-Export, EEG-Tariflookup, Settlement-Liste).
+  Verweis auf `bilanzkreis.checkReadiness` und `redispatch-expost`-Workflow.
+- **`docs/ui-contracts/23-bilanzkreis.md`** — Neuer Contract für `bilanzkreis`-Service (v0.30.0 + v0.38.0):
+  6 Endpoints inkl. `checkReadiness`. Dokumentiert `PARAGRAF_42C_KONFORM` und `A96_FAEHIG`-KPIs
+  für `type: "virtual_energy_sharing"` (neu in v0.38.0).
+- **`docs/ui-contracts/24-forecast-engine.md`** — Neuer Contract für `forecast-engine`-Service (v0.30.1):
+  8 Endpoints (Lastprognose, Erzeugungsprognose, Residuallast, Day-Ahead-Fahrplan,
+  Qualitätsbewertung RMSE/MAE/MAPE, Speicher-Dispatch-Optimierung).
+- **`docs/ui-contracts/25-flex.md`** — Neuer Contract für `flex`-Service §14a (v0.31.0):
+  8 Endpoints (SVE-Registry, Dimming-Plan/Execute, Entlastungsnachweis, Netzentgelt-Reduktion).
+  Dokumentiert §14a-Constraints (4.2 kW min, 2h max Dimming, 2h Cooldown) und
+  MQTT-Persistenz-Semantik (`mqttMessageId`, stale-Command-Schutz).
+- **`docs/ui-contracts/26-edm.md`** — Neuer Contract für alle EDM-Services (v0.28–v0.29), konsolidiert:
+  `edm` (10), `edm-messkonzept` (6), `edm-validation` (4), `edm-virtual` (2), `mscons-import` (3).
+  25 Endpoints total. Dokumentiert Lückenfüllungs-Fallback-Kette und `sourceType`-Filter.
+- **`docs/ui-contracts/27-slp.md`** — Neuer Contract für `slp`-Service (v0.28.0):
+  5 Endpoints (Profilliste, Profildetail, Zeitreihengenerierung, Custom-Profil CRUD).
+  Dokumentiert alle BDEW-Standardprofile (H0/G0-G6/L0-L2) und Custom-Profil-Format.
+- **`docs/RELEASE_SUMMARY_v0.38.md`** — UI-Contract-Status-Tabelle aller 28 Contracts (00–27),
+  Service-Abhängigkeits-Graph, Auth-Anforderungen für RBAC, Breaking-Changes-Hinweis (keine).
+
+### Changed
+- **`docs/ui-contracts/08-redispatch.md`** — Version auf 0.38.1, `Änderungen seit letzter Version`-Block:
+  Settlement-Service-Workflow (v0.30.0) und Hinweis auf §42c-KPIs in Contract 23.
+- **`docs/ui-contracts/12-auth.md`** — Version auf 0.38.1, `Änderungen seit letzter Version`-Block:
+  `tenantId`-Feld bei Token-Create/Verify (v0.38.0), neuer `GET /api/tokens/tenants`-Endpoint,
+  `ctx.meta.tenantId`-Propagation durch den API-Gateway.
+- **`docs/ui-contracts/21-mastr-monitor.md`** — Version auf 0.38.1, `Änderungen seit letzter Version`-Block:
+  Chunked Persistence (v0.27.3), neue Env-Variablen, `limitApplied`-Flag-Hinweis für große Portfolios.
+
+## [0.38.0] — Multi-Tenant Fundament (Namespace-Isolation)
+
+
+### Added
+- **`src/tenant-context.js`** — Neues Modul für Multi-Tenant-Namespace-Isolation (rückwärtskompatibel):
+  - `getTenantId(ctx)` — extrahiert `ctx.meta.tenantId`; gibt `'default'` zurück wenn nicht gesetzt.
+  - `tenantNamespace(baseNamespace, tenantId)` — erzeugt Tenant-präfixierten Namespace-String (`tenant:{id}:{base}`); Default-Tenant → unverändert.
+  - `tenantKey(baseKey, tenantId)` — erzeugt Tenant-präfixierten Key; Default-Tenant → unverändert.
+  - `validateTenantId(tenantId)` — validiert Format (a–z, 0–9, Bindestrich, max 64 Zeichen); `null`/`undefined` → gültig (optional).
+  - `DEFAULT_TENANT = 'default'` — Exportierte Konstante.
+- **`token-manager.service.js` — `tenantId`-Feld:**
+  - `create`-Action: neuer optionaler Param `tenantId` (`/^[a-z0-9-]{1,64}$/`, max 64). Wird als Klartext im Token-Record gespeichert.
+  - `verify`-Action: gibt jetzt `tenantId: record.tenantId ?? null` im Return-Objekt zurück.
+  - Neue Action `token-manager.tenant.list` (`GET /api/tokens/tenants`): Listet alle bekannten (unique) `tenantId`s aus gespeicherten Tokens. Erfordert `full-access`-Scope.
+- **`api.service.js`:**
+  - `onBeforeCall`: Nach erfolgreicher `ck_`-Token-Verifikation wird `ctx.meta.tenantId = verification.tenantId` gesetzt (nur wenn im Token vorhanden).
+  - Route `GET /tokens/tenants` → `token-manager.tenant.list` registriert.
+  - `requiresFullAccess`: `GET /api/tokens/tenants` erfordert `full-access`-Token.
+- **CYA-Service PoC (Proof-of-Concept):**
+  - `services/cya.service.js` importiert `{ getTenantId, tenantNamespace }` aus `src/tenant-context`.
+  - `createProfile`, `getProfile`, `listProfiles`: ermitteln `tenantId = getTenantId(ctx)` und nutzen `tenantNamespace('cya_profiles', tenantId)` statt hardcoded `PROFILE_NAMESPACE`.
+  - `loadProfile`-Methode: optionaler dritter Parameter `namespace` (Default: `PROFILE_NAMESPACE`) — rückwärtskompatibel; `generate`/`refine`-Pipeline unverändert.
+  - Default-Tenant (`ctx.meta.tenantId` nicht gesetzt) → identisches Verhalten wie vor v0.38.0.
+- **`tests/tenant-context.test.js`** — 31 neue Tests:
+  - `getTenantId`: 5 Tests (mit/ohne tenantId, null ctx, leerer String)
+  - `tenantNamespace`: 5 Tests (Präfix, Default, null/undefined, verschiedene Bases)
+  - `tenantKey`: 4 Tests (Präfix, Default, null, undefined)
+  - `validateTenantId`: 10 Tests (valid, Großbuchstabe, Underscore, Sonderzeichen, 65 Zeichen, 64 Zeichen, Error.code)
+  - Token Manager Integration: 5 Tests (create mit/ohne tenantId, verify mit/ohne tenantId, tenant.list)
+  - CYA PoC: 2 Tests (Namespace mit tenantId-Präfix, Namespace für Default-Tenant)
+
+### Notes
+- `tenantNamespace()` erzeugt Strings der Form `tenant:{id}:{base}`. Diese können erst direkt an `object-store.*` übergeben werden, wenn `NS_PATTERN` in `object-store.service.js` um Doppelpunkte erweitert wird (folgt in einer späteren Iteration). Für den PoC werden die Namespace-Strings korrekt erzeugt und in Tests validiert; `object-store`-Calls sind in Tests gemockt.
+- `generate`/`refine`/andere CYA-Actions kommen in einer späteren Iteration.
+
+## [0.37.1] — 360° Utility Report Stabilisierung (TRL6→7)
+
+### Fixed
+- **BUG-5 (Fix A): `fetchWithRetry` für `energy-market.prices`** — Neuer Service-Method `fetchWithRetry(ctx, actionName, params, maxRetries=2, delayMs=1000)` im `utility-report`-Service: bis zu 3 Versuche mit exponentiellem Back-off, `available: false`-Erkennung auch ohne Exception. Phase-3-`energy-market.prices`-Aufruf nutzt jetzt `fetchWithRetry` statt `callBroker`. Fallback auf `p.meta.lastKnownPrice` wenn alle Versuche fehlschlagen; letzter bekannter Preis wird als `_fallback: true` markiert und per WARN geloggt.
+- **BUG-6 (Fix B): Briefing/Section2 Anlagen-Count Konsistenz** — Nach dem Aufbau von `kpiSummary` wird `briefingCount` (Pfad aus `buildStaticNarrative`: `solar.totalCount ?? pvLocal['stats.total']`) mit `section2Count` (direkt aus `p.results.section2.pvLocal.data.stats.total`) verglichen. Bei Diskrepanz wird `[Report] Briefing/Section2 count mismatch: X ≠ Y` als WARN geloggt. Kein Crash wenn eines der Felder `null` ist.
+- **BUG-7 (Fix C): Peer-Benchmark Größenklassen-Filter** — `renderPeerBenchmarkBlock` und `renderSection5` akzeptieren jetzt `totalInstallations` (optional). Neue Funktion `getPeerReference(totalInstallations)` liefert neutralen Größenklassen-Peer: Klein (<500), Mittel (500–2000), Groß (>2000), Default Mittel. Alle hardcodierten echten VNB-Namen (`Stadtwerke Waiblingen`, `Gemeindewerke Baiersbronn`) entfernt. `buildHtmlReport` leitet `totalInstallations` aus `section7.operatorPortfolio` oder `section2.pvLocal.stats.total` ab.
+
+### Changed
+- **Health-Endpoint `phase3Tools`** — Die `health`-Action gibt jetzt `phase3Tools: { available, unavailable, unavailableList }` zurück: Zählt welche der 11 Phase-3-MCP-Tools (`cernion_installations_local`, `cernion_redispatch_export`, etc.) im aktuellen Token-Scope verfügbar sind. OpenAPI-Schema entsprechend erweitert.
+
+### Added
+- **17 neue Unit-Tests** in `tests/utility-report.service.test.js` (describe: `v0.37.1 — 360° Utility Report Stabilisierung`):
+  - Fix A: `fetchWithRetry` success on 1st try, retry on 1st failure, `available:false` nach max retries, `available:false`-Erkennung ohne Exception, `ctx.meta`-Weiterleitung
+  - Fix A: `lastKnownPrice`-Fallback-Logik, Report kein Crash bei komplett fehlgeschlagenem Phase 3
+  - Fix B: Count-Konsistenz bei alignment, WARN-Log bei Divergenz, kein Log bei null/null
+  - Fix C: `getPeerReference` für Klein/Mittel/Groß, kein echter VNB-Name, null→Mittel-Default, Grenzwerte 500/2000
+- **`getPeerReference` exportiert** aus `src/report-builder.js` (vorher private)
+
+## [0.37.0] — Zwiebelmodus Context Manager Persistenz (TRL8)
+
+### Added
+- **`CyaContextManager.serialize()` / `CyaContextManager.deserialize()` (`src/cya-context-manager.js`)** — Serialisierung/Deserialisierung des Zoom-States für Persistenz:
+  - `serialize()` → `{ outerContext, currentDepth, breadcrumb, iterationLog, maxIterations, zoomStack: string[] }` — `zoomStack` enthält nur nodeId-Strings (keine Graphology-Objekte)
+  - `static deserialize(serialized, ontologyGraph)` → `CyaContextManager` — rekonstruiert `zoomStack`-Einträge via `getSubgraph(nodeId, 2)`. Wirft `CONTEXT_DESERIALIZE_FAILED` (400) bei null/ungültigem Input oder fehlendem Graph.
+- **`CyaContextManager.isCompatibleWith(ontologyGraph)` (`src/cya-context-manager.js`)** — prüft ob alle `zoomStack`-nodeIds noch im aktuellen Ontologie-Graphen vorhanden sind. Gibt `false` zurück wenn der Graph `null` ist oder eine nodeId fehlt.
+- **`CyaContextManager.getCompactState()` (`src/cya-context-manager.js`)** — gibt kompakten State für LLM-Prompts zurück: `{ outerContext, currentDepth, breadcrumb, recentIterations }`. `recentIterations` enthält maximal die letzten 3 Einträge aus dem `iterationLog`; der vollständige Log ist nicht enthalten.
+- **`_persistContextState(sessionId, contextManager)` in `services/cya.service.js`** — persistiert den Zoom-State non-blocking (fire-and-forget mit `.catch` Guard) nach jeder Phase-2-Ausführung in Namespace `cya_context_states`, Key `ctx_{sessionId}`.
+- **`_restoreContextState(sessionId, ontologyGraph)` in `services/cya.service.js`** — lädt gespeicherten State aus dem Object Store, führt `CyaContextManager.deserialize` + `isCompatibleWith`-Check durch. Gibt `null` zurück bei fehlendem State, Inkompatibilität oder Store-Fehler (graceful degradation).
+- **`_persistContextState` eingehängt nach `_buildOntologyLayer`** (beide Call-Sites: compareProfiles-Preload-Pfad + Classic-Single-Agent-Async-Pfad) — non-blocking, analog zum `_observeAndUpdateProfile`-Muster.
+- **`_restoreContextState` im `refine`-Handler** — wird am Anfang des Handlers aufgerufen; Ergebnis (`_restoredCtxManager`) ist optional und verursacht keinen Fehler wenn `null`.
+- **`GET /api/cya/sessions/:id/context-state`** (`cya.session.contextState`) — neuer REST-Endpoint:
+  - Gibt persistierten Zoom-State zurück: `{ sessionId, outerContext, currentDepth, breadcrumb, iterationLog, maxIterations, zoomStack, savedAt }`
+  - `404 CONTEXT_STATE_NOT_FOUND` wenn kein State vorhanden
+  - Vollständige OpenAPI-Annotation mit `x-oeo-class: OEO:ContextManagement`
+  - Registriert in `services/api.service.js`
+- **UI Contract `docs/ui-contracts/20-cya.md`** — neue Sektion `GET /api/cya/sessions/:id/context-state` mit Response-Shape, Object-Store-Namespace, Key-Format, Lifecycle-Dokumentation (gespeichert/wiederhergestellt/Kompatibilitätsprüfung) und Fehlercode.
+- **`tests/cya-context-manager-persistence.test.js`** — 28 neue Tests:
+  - `serialize`: 5 Tests (Pflichtfelder, currentDepth, zoomStack-Strings, History, outerContext)
+  - `deserialize`: 6 Tests (outerContext, currentDepth, null/invalid throws, missing graph throws, Idempotenz, iterationLog)
+  - `isCompatibleWith`: 4 Tests (kompatibel, inkompatibel, leer, null-Graph)
+  - `getCompactState`: 5 Tests (outerContext, breadcrumb, max 3 recentIterations, kein iterationLog, letzte N Einträge)
+  - `_persistContextState` (Broker-Mock): 3 Tests (object-store.put aufgerufen, null sessionId, null contextManager)
+  - `_restoreContextState` (Broker-Mock): 4 Tests (null result, inkompatibel, kompatibel, graceful error)
+  - REST-Endpoint-Simulation: 2 Tests (404 CONTEXT_STATE_NOT_FOUND, 200 mit korrektem Shape)
+
+ — §42c Energieteilen Produktionsabnahme-Paket
+
+### Added
+- **`docs/ENERGY_SHARING_ABNAHME.md`** — Formale Abnahme-Checkliste für §42c-konforme Produktivschaltung (Deadline 01.07.2026). 8 Sektionen: Regulatorische Grundlage, Technische Infrastruktur, Validierungs-Pipeline, Allokations-Engine, Settlement-Readiness KPIs, A96-Feldspezifikation (inkl. `[BNetzA-OFFEN]`-Markierungen), Sicherheit & Datenschutz, Betrieb & Monitoring.
+- **`tests/energy-sharing-e2e-abnahme.test.js`** — 18 E2E-Abnahmetests auf Fixture Solarpark Höheinöd (2103.7 kW, SEE999952467552): Suite 1 (Validierungs-Pipeline, 6 Tests), Suite 2 (Allokations-Engine 15-min-Raster, 5 Tests), Suite 3 (Settlement-Readiness §42c-KPIs, 7 Tests).
+
+### Changed
+- **`src/bilanzkreis-calculator.js`** — `calculateSettlementReadiness(bkData, bilanzkreis?)` um optionalen zweiten Parameter `bilanzkreis` erweitert. Für Typ `virtual_energy_sharing` werden zwei neue Felder im Rückgabeobjekt gesetzt: `PARAGRAF_42C_KONFORM` (true wenn keine `missing_data`-Issues) und `A96_FAEHIG` (true wenn zusätzlich keine `low_data_quality`- oder `mscons_incomplete`-Issues). Für alle anderen Bilanzkreis-Typen bleiben die Felder `undefined` (vollständig rückwärtskompatibel).
+- **`services/bilanzkreis.service.js`** — `checkReadiness`-Handler übergibt jetzt das vollständige `bilanzkreis`-Objekt als zweiten Parameter an `calculateSettlementReadiness`, sodass der Typ für die §42c-KPI-Berechnung verfügbar ist.
+
 ## [0.36.1] — Bugfix: Installations Grid-Operator Filtering & LLM Context Endpoint
 
 ### Added

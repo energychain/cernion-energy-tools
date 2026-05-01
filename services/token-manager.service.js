@@ -85,6 +85,12 @@ module.exports = {
           optional: true,
           default: 'read-only',
         },
+        tenantId: {
+          type: 'string',
+          optional: true,
+          pattern: /^[a-z0-9-]{1,64}$/,
+          max: 64,
+        },
       },
       openapi: {
         summary: 'Create API token',
@@ -145,6 +151,7 @@ module.exports = {
           usageCount: 0,
           scope,
           scopes: [scope, 'vnb-monitor'],
+          tenantId: ctx.params.tenantId || null,
           active: true,
         };
 
@@ -277,8 +284,44 @@ module.exports = {
           name: record.name,
           scope,
           scopes: record.scopes || [scope],
+          tenantId: record.tenantId ?? null,
           active: true,
         };
+      },
+    },
+
+    'tenant.list': {
+      rest: 'GET /tokens/tenants',
+      openapi: {
+        summary: 'List known tenant IDs',
+        description:
+          'Returns all unique tenantIds that appear in stored tokens. ' +
+          'Requires full-access scope. Empty list when no tenant-scoped tokens exist.',
+        tags: ['IntegrationHub'],
+        responses: {
+          200: {
+            description: 'List of tenant IDs',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean', example: true },
+                    tenants: { type: 'array', items: { type: 'string' }, example: ['stadtwerk-a', 'stadtwerk-b'] },
+                    count: { type: 'integer', example: 2 },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      handler() {
+        const tokens = this.loadTokens();
+        const tenants = [
+          ...new Set(tokens.filter((t) => t.tenantId).map((t) => t.tenantId)),
+        ];
+        return { success: true, tenants, count: tenants.length };
       },
     },
   },

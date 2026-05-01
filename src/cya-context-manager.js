@@ -141,6 +141,92 @@ class CyaContextManager {
     return [...this._iterationLog];
   }
 
+  // ── Persistence (v0.37.0) ─────────────────────────────────────────────
+
+  /**
+   * Serializes the current zoom-state for persistence.
+   * zoomStack entries contain only nodeId strings — subGraph objects are NOT serialized.
+   * @returns {{ outerContext: Object|null, currentDepth: number, breadcrumb: string[], iterationLog: Object[], maxIterations: number, zoomStack: string[] }}
+   */
+  serialize() {
+    return {
+      outerContext: this._outerContext
+        ? { goal: this._outerContext.goal, focusArea: this._outerContext.focusArea }
+        : null,
+      currentDepth: this._zoomStack.length,
+      breadcrumb: this._buildBreadcrumb(null),
+      iterationLog: [...this._iterationLog],
+      maxIterations: this._maxIterations,
+      zoomStack: this._zoomStack.map((frame) => frame.nodeId),
+    };
+  }
+
+  /**
+   * Restores a CyaContextManager from a serialized state.
+   * zoomStack nodeIds are reconstructed via getSubgraph (radius defaults to 2).
+   * @param {Object} serialized - from serialize()
+   * @param {import('graphology').Graph} ontologyGraph
+   * @returns {CyaContextManager}
+   */
+  static deserialize(serialized, ontologyGraph) {
+    if (!serialized || typeof serialized !== 'object') {
+      throw new (require('moleculer').Errors.MoleculerError)(
+        'Cannot deserialize null or invalid context state', 400, 'CONTEXT_DESERIALIZE_FAILED'
+      );
+    }
+    if (!ontologyGraph) {
+      throw new (require('moleculer').Errors.MoleculerError)(
+        'Cannot deserialize without ontologyGraph', 400, 'CONTEXT_DESERIALIZE_FAILED'
+      );
+    }
+    const cm = new CyaContextManager(ontologyGraph, serialized.maxIterations);
+    if (serialized.outerContext) {
+      cm._outerContext = { ...serialized.outerContext, setAt: new Date().toISOString() };
+    }
+    const zoomIds = Array.isArray(serialized.zoomStack) ? serialized.zoomStack : [];
+    for (const nodeId of zoomIds) {
+      try {
+        const subGraph = getSubgraph(ontologyGraph, nodeId, 2);
+        cm._zoomStack.push({ nodeId, radius: 2, subGraph });
+        cm._zoomCounter++;
+      } catch {
+        // Node no longer in graph — skip silently
+      }
+    }
+    cm._iterationLog = Array.isArray(serialized.iterationLog) ? [...serialized.iterationLog] : [];
+    return cm;
+  }
+
+  /**
+   * Checks whether the restored state is compatible with the current graph
+   * (i.e. all persisted nodeIds still exist in the graph).
+   * @param {import('graphology').Graph} ontologyGraph
+   * @returns {boolean}
+   */
+  isCompatibleWith(ontologyGraph) {
+    if (!ontologyGraph) return false;
+    for (const frame of this._zoomStack) {
+      if (!ontologyGraph.hasNode(frame.nodeId)) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Returns a compact state suitable for LLM prompts.
+   * Contains only the last 3 iteration log entries; full iterationLog omitted.
+   * @returns {{ outerContext: Object|null, currentDepth: number, breadcrumb: string[], recentIterations: Object[] }}
+   */
+  getCompactState() {
+    return {
+      outerContext: this._outerContext
+        ? { goal: this._outerContext.goal, focusArea: this._outerContext.focusArea }
+        : null,
+      currentDepth: this._zoomStack.length,
+      breadcrumb: this._buildBreadcrumb(null),
+      recentIterations: this._iterationLog.slice(-3),
+    };
+  }
+
   // ── Private ───────────────────────────────────────────────────────────
 
   _log(operation, nodeId, meta) {

@@ -2218,6 +2218,20 @@ Choose action by intent:
      Required: "schema": null   "table": null
      Optional: "limit" (max 1000), "offset", "where", "orderby"
 
+  F. oep.energyTables — CURATED CERNION-RELEVANT TABLES (NO SEARCH NEEDED)
+     "Which OEP tables are relevant for my VNB / grid operator work?"
+     No params — returns pre-configured list of 5+ tables with cernionUseCase.
+     Prefer this over oep.search when the user needs domain-specific starting points.
+
+  G. oep.compareWithMastr — OEP vs. MaStR CAPACITY COMPARISON
+     "Compare OEP research data with MaStR installations for grid operator X"
+     Required: "gridOperatorId": null   (MaStR SNB ID)
+     Optional: "oepSchema" (default: supply), "oepTable" (default: ego_dp_res_powerplant),
+               "installationType" (default: solar), "limit" (max 1000)
+     Note: OEP is an EXTERNAL dependency without SLA — oep.compareWithMastr is always
+     graceful (Promise.allSettled). oep.available=false means OEP offline, MaStR data
+     is still returned. MaStR is ALWAYS primary; OEP data is SECONDARY/supplemental.
+
 Typical 2-step chain for scenario lookup:
   step 1: oep.search  { q: "<keyword>" }
   step 2: oep.query   { schema: "__step_1.results[0].schema", table: "__step_1.results[0].table" }
@@ -2463,6 +2477,9 @@ CRITICAL RULES:
     - oep.listTables: tables in a schema (schema required)
     - oep.getTableMeta: column definitions (schema + table required)
     - oep.query: fetch rows (schema + table required, limit max 1000)
+    - oep.energyTables: curated Cernion-relevant tables — no search needed (domain starting points)
+    - oep.compareWithMastr: OEP vs. MaStR capacity comparison (gridOperatorId required);
+      always graceful — OEP is external/no-SLA; MaStR is primary, OEP is supplemental
     Typical chain: oep.search → oep.query with __step_1.results[0].schema/table
 
 The user originally asked: "${session.problem}"

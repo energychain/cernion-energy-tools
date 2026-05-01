@@ -127,6 +127,7 @@ function requiresFullAccess(method, requestPath) {
 
   if (pathOnly === '/api/tokens' && m === 'GET') return true;
   if (pathOnly === '/api/tokens' && m === 'POST') return true;
+  if (pathOnly === '/api/tokens/tenants' && m === 'GET') return true;
   if (pathOnly.startsWith('/api/tokens/') && pathOnly !== '/api/tokens/verify' && m === 'DELETE') {
     return true;
   }
@@ -546,6 +547,7 @@ module.exports = {
           'POST /tokens': 'token-manager.create',
           'DELETE /tokens/:id': 'token-manager.revoke',
           'POST /tokens/verify': 'token-manager.verify',
+          'GET /tokens/tenants': 'token-manager.tenant.list',
           'GET /vnb-monitor/thresholds': 'vnb-monitor.getThresholds',
           'PUT /vnb-monitor/thresholds': 'vnb-monitor.setThresholds',
           'DELETE /vnb-monitor/thresholds': 'vnb-monitor.resetThresholds',
@@ -675,6 +677,9 @@ module.exports = {
           'POST /cya/generate': 'cya.generate',
           'POST /cya/refine': 'cya.refine',
           'GET /cya/sessions/:id/a2a-log': 'cya.session.a2aLog',
+          'GET /cya/sessions/:id/a2a-analysis': 'cya.session.a2aAnalysis',
+          'GET /cya/a2a-stats': 'cya.a2aStats',
+          'GET /cya/sessions/:id/context-state': 'cya.session.contextState',
 
           // MaStR Monitor (v0.27)
           'POST /mastr-monitor/watches': 'mastr-monitor.createWatch',
@@ -1021,6 +1026,9 @@ module.exports = {
                 scope: verification.scope,
                 scopes: verification.scopes || [],
               };
+              if (verification.tenantId) {
+                ctx.meta.tenantId = verification.tenantId;
+              }
               this.logger.debug('Using scoped API token from request');
             } else {
               ctx.meta.cernionToken = tokenToUse;

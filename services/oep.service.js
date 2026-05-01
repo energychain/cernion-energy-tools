@@ -22,6 +22,7 @@
 
 const axios = require('axios');
 const { MoleculerClientError } = require('moleculer').Errors;
+const { CERNION_RELEVANT_OEP_TABLES } = require('../src/oep-tables');
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -308,6 +309,214 @@ module.exports = {
 
         const rows = Array.isArray(data) ? data : [];
         return { schema, table, rowCount: rows.length, limit, offset, rows };
+      },
+    },
+
+    // ------------------------------------------------------------------
+    // energyTables — vorkonfigurierte Cernion-relevante OEP-Tabellen (TRL6)
+    // ------------------------------------------------------------------
+    energyTables: {
+      rest: 'GET /energy-tables',
+      params: {},
+      openapi: {
+        summary: 'List pre-configured Cernion-relevant OEP tables',
+        tags: ['OEP (Open Energy Platform)'],
+        description:
+          'Returns the curated list of OEP tables that are directly relevant for the Cernion/VNB ' +
+          'context — EU AI Act Art. 12 data provenance, MaStR comparison, residual load validation, ' +
+          'and energy scenario planning. No free-text search needed; tables are immediately usable. ' +
+          'TRL5→6: demonstrated in relevant energy domain environment.',
+        'x-oeo-class': 'oeo:DataCatalog',
+        responses: {
+          200: {
+            description: 'List of pre-configured OEP tables with Cernion use cases',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    tables: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          schema: { type: 'string', example: 'supply' },
+                          table: { type: 'string', example: 'ego_dp_res_powerplant' },
+                          description: { type: 'string' },
+                          cernionUseCase: { type: 'string' },
+                          oeoClass: { type: 'string', example: 'oeo:PowerPlant' },
+                        },
+                      },
+                    },
+                    count: { type: 'integer', example: 5 },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler() {
+        return {
+          tables: CERNION_RELEVANT_OEP_TABLES,
+          count: CERNION_RELEVANT_OEP_TABLES.length,
+        };
+      },
+    },
+
+    // ------------------------------------------------------------------
+    // compareWithMastr — OEP ↔ MaStR Kapazitätsvergleich
+    // ------------------------------------------------------------------
+    compareWithMastr: {
+      rest: 'POST /compare-mastr',
+      params: {
+        gridOperatorId: { type: 'string' },
+        oepSchema: { type: 'string', optional: true, default: 'supply' },
+        oepTable: { type: 'string', optional: true, default: 'ego_dp_res_powerplant' },
+        // TODO: use installationType: 'all' once energy-market.installations Enum erweitert
+        installationType: {
+          type: 'enum',
+          values: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'],
+          optional: true,
+          default: 'solar',
+        },
+        limit: { type: 'number', optional: true, default: 100, max: 1000, convert: true },
+      },
+      openapi: {
+        summary: 'Compare OEP research data with MaStR installations for a grid operator',
+        tags: ['OEP (Open Energy Platform)'],
+        description:
+          'Loads OEP table rows and MaStR installations in parallel (Promise.allSettled) and ' +
+          'returns a side-by-side capacity comparison. Graceful when OEP is offline — ' +
+          'oep.available will be false but the MaStR data is still returned. ' +
+          'Semantic linking via oeo:PowerPlant is planned via src/oeo-exporter-stub.js.',
+        'x-oeo-class': 'oeo:PowerPlant',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['gridOperatorId'],
+                properties: {
+                  gridOperatorId: {
+                    type: 'string',
+                    description: 'MaStR grid operator ID (SNB…)',
+                    example: 'SNB924510006275',
+                  },
+                  oepSchema: {
+                    type: 'string',
+                    default: 'supply',
+                    example: 'supply',
+                  },
+                  oepTable: {
+                    type: 'string',
+                    default: 'ego_dp_res_powerplant',
+                    example: 'ego_dp_res_powerplant',
+                  },
+                  installationType: {
+                    type: 'string',
+                    default: 'solar',
+                    enum: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'],
+                    description:
+                      'Installation type for MaStR query. TODO: support "all" once energy-market enum is extended.',
+                  },
+                  limit: {
+                    type: 'integer',
+                    default: 100,
+                    maximum: 1000,
+                  },
+                },
+              },
+              examples: {
+                twlNetze: {
+                  summary: 'Compare OEP renewable plants with TWL Netze MaStR data',
+                  value: {
+                    gridOperatorId: 'SNB924510006275',
+                    oepSchema: 'supply',
+                    oepTable: 'ego_dp_res_powerplant',
+                    installationType: 'solar',
+                    limit: 100,
+                  },
+                },
+                windComparison: {
+                  summary: 'Compare wind installations for a grid operator',
+                  value: {
+                    gridOperatorId: 'SNB900599182315',
+                    installationType: 'wind',
+                    limit: 200,
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'OEP and MaStR counts with availability flags',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    oep: {
+                      type: 'object',
+                      properties: {
+                        available: { type: 'boolean' },
+                        count: { type: 'integer' },
+                        source: { type: 'string' },
+                      },
+                    },
+                    mastr: {
+                      type: 'object',
+                      properties: {
+                        available: { type: 'boolean' },
+                        count: { type: 'integer' },
+                        source: { type: 'string' },
+                      },
+                    },
+                    delta: { type: 'object', nullable: true },
+                    oeoMappingNote: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { gridOperatorId, oepSchema, oepTable, installationType, limit } = ctx.params;
+
+        const [oepData, mastrData] = await Promise.allSettled([
+          ctx.call('oep.query', {
+            schema: oepSchema,
+            table: oepTable,
+            limit,
+          }),
+          ctx.call('energy-market.installations', {
+            gridOperatorId,
+            // TODO: use installationType: 'all' once energy-market.installations Enum erweitert
+            installationType: installationType || 'solar',
+            limit,
+          }),
+        ]);
+
+        return {
+          oep: {
+            available: oepData.status === 'fulfilled',
+            count: oepData.value?.rows?.length ?? 0,
+            source: `${oepSchema}.${oepTable}`,
+          },
+          mastr: {
+            available: mastrData.status === 'fulfilled',
+            count: mastrData.value?.data?.installations?.length ?? 0,
+            source: 'MaStR (cernion_installations_local)',
+          },
+          delta: null, // TODO: semantische Verknüpfung via OEO-Klassen
+          oeoMappingNote:
+            'Verknüpfung über oeo:PowerPlant — ' +
+            'Implementierung via src/oeo-exporter-stub.js erwartet',
+        };
       },
     },
 

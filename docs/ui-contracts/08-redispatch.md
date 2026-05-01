@@ -1,8 +1,8 @@
 # UI Contract: Redispatch Ex-Post Audit Page
 
 > **Page ID:** `redispatch`
-> **Version:** 0.20.4
-> **Last updated:** 2026-04-04
+> **Version:** 0.38.1
+> **Last updated:** 2026-05-01
 
 ---
 
@@ -153,3 +153,23 @@ Steps 1–2 cannot be skipped (show as forced-enabled).
 | `RD_CURTAILMENT_DATA_UNAVAILABLE` | Grey info chip: "Netztransparenz-Daten nicht verfügbar — 0 GWh-Fallback" |
 | `riskAssessment.estimatedLostCompensationEur` > 100000 | `RD_RISK_HIGH` — red banner at top |
 | skipSteps includes 1 or 2 | UI prevents selection; show "Schritte 1–2 können nicht übersprungen werden" |
+
+---
+
+## Änderungen seit letzter Version
+
+### v0.30.0 — Settlement-Service
+
+Der neue `settlement`-Service (→ Contract 22) ergänzt den Redispatch-Audit um konkrete
+Vergütungsberechnungen. Der Redispatch-Audit identifiziert blockierte Installationen;
+`settlement.calculateRedispatch` berechnet daraus die §13a/14-EnWG-Entschädigung.
+
+Typischer Workflow:
+1. `POST /api/redispatch/audit` → ermittelt `blockedInstallations` und `curtailmentGWh`
+2. `POST /api/settlement/redispatch/calculate` → berechnet `compensationEur`
+3. `POST /api/settlement/a96/prepare` → A96-Export für BNetzA-Meldung
+
+### v0.38.0 — Keine Änderungen am Redispatch-Audit-Contract
+
+Der Redispatch-Audit-Service selbst wurde in v0.31–v0.38 nicht geändert.
+Die §42c-Erweiterungen betreffen `bilanzkreis.checkReadiness` (→ Contract 23).

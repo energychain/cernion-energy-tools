@@ -1162,6 +1162,15 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
                     tokenPresent: { type: 'boolean' },
                     mcpReachable: { type: 'boolean' },
                     toolCount: { type: 'number' },
+                    phase3Tools: {
+                      type: 'object',
+                      nullable: true,
+                      properties: {
+                        available: { type: 'number' },
+                        unavailable: { type: 'number' },
+                        unavailableList: { type: 'array', items: { type: 'string' } },
+                      },
+                    },
                     latencyMs: { type: 'number' },
                     error: { type: 'string', nullable: true },
                   },
@@ -1178,16 +1187,46 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         let mcpReachable = false;
         let mcpError = null;
         let toolCount = 0;
+        let _discoverResult = null;
 
         if (tokenPresent) {
-          const result = await callMcpDirect('cernion_discover', { scope: 'tools' }, cernionToken);
-          if (result.available) {
+          _discoverResult = await callMcpDirect('cernion_discover', { scope: 'tools' }, cernionToken);
+          if (_discoverResult.available) {
             mcpReachable = true;
-            const tools = result.data?.tools ?? result.data?.data?.tools ?? [];
+            const tools = _discoverResult.data?.tools ?? _discoverResult.data?.data?.tools ?? [];
             toolCount = Array.isArray(tools) ? tools.length : 0;
           } else {
-            mcpError = result.error || 'MCP-Verbindung fehlgeschlagen';
+            mcpError = _discoverResult.error || 'MCP-Verbindung fehlgeschlagen';
           }
+        }
+
+        // Phase-3-Tool availability check (v0.37.1)
+        const PHASE3_TOOLS = [
+          'cernion_price_production_analysis',
+          'cernion_nest_compliance_report',
+          'cernion_grid_benchmarking',
+          'cernion_ewk_monitoring',
+          'cernion_installations_local',
+          'cernion_redispatch_export',
+          'cernion_emobility_impact_analysis',
+          'cernion_sales_lead_identification',
+          'cernion_grid_operator_analysis',
+          'cernion_eeg_calculator_customer',
+          'cernion_customer_churn_prediction',
+        ];
+        let phase3Tools = null;
+        if (mcpReachable) {
+          const toolSet = new Set();
+          try {
+            const raw = _discoverResult.data?.tools ?? _discoverResult.data?.data?.tools ?? [];
+            if (Array.isArray(raw)) raw.forEach((t) => toolSet.add(typeof t === 'string' ? t : t?.name));
+          } catch (_) { /* ignore */ }
+          const unavailableList = PHASE3_TOOLS.filter((t) => !toolSet.has(t));
+          phase3Tools = {
+            available: PHASE3_TOOLS.length - unavailableList.length,
+            unavailable: unavailableList.length,
+            unavailableList,
+          };
         }
 
         return {
@@ -1196,6 +1235,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           tokenPresent,
           mcpReachable,
           toolCount,
+          phase3Tools,
           latencyMs: Date.now() - t0,
           error: !tokenPresent
             ? 'CERNION_TOKEN nicht konfiguriert (weder im Request noch als Umgebungsvariable)'
@@ -1458,6 +1498,33 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
   // ─── Methods ─────────────────────────────────────────────────────────────────
 
   methods: {
+    // ─── Retry helper (Fix A, v0.37.1) ─────────────────────────────────────────
+
+    /**
+     * Retry wrapper for broker service calls with exponential back-off.
+     * Returns the first successful result where `available !== false`.
+     * Falls through to `{ available: false }` after all retries are exhausted.
+     *
+     * @param {object|null} ctx        - Moleculer context (forwarded to broker for token meta).
+     * @param {string}      actionName - Moleculer action to call.
+     * @param {object}      params     - Action parameters.
+     * @param {number}      maxRetries - Number of additional attempts after first failure (default 2).
+     * @param {number}      delayMs    - Base delay in ms; multiplied by attempt index (default 1000).
+     */
+    async fetchWithRetry(ctx, actionName, params, maxRetries = 2, delayMs = 1000) {
+      const callOptions = ctx ? { meta: ctx.meta, timeout: 30000 } : { timeout: 30000 };
+      for (let i = 0; i <= maxRetries; i++) {
+        try {
+          const result = await this.broker.call(actionName, params, callOptions);
+          if (result?.available !== false) return result;
+        } catch (err) {
+          if (i === maxRetries) return { available: false, error: err.message };
+        }
+        if (i < maxRetries) await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
+      }
+      return { available: false };
+    },
+
     // ─── Pipeline ───────────────────────────────────────────────────────────────
 
     /**
@@ -2484,13 +2551,26 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
 
         // ── Section 3: Energiemarkt ────────────────────────────────────────────
         // CR-04: Fetch 24h of day-ahead prices for a complete chart
+        // Fix A (v0.37.1): Use fetchWithRetry (max 2 retries, exponential back-off).
+        // lastKnownPrice fallback: if all retries fail, use the last persisted price.
         const priceDateFrom = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        const prices = await callBroker(ctx, 'energy-market.prices', {
+        let prices = await this.fetchWithRetry(ctx, 'energy-market.prices', {
           market: 'day-ahead',
           region: 'DE',
           dateFrom: priceDateFrom,
           dateTo: today,
         });
+        if (!prices?.available) {
+          // lastKnownPrice fallback: reuse the price from the most recent completed report
+          const lastKnownPrice = p.meta?.lastKnownPrice ?? null;
+          if (lastKnownPrice !== null) {
+            this.logger.warn(`[UtilityReport] ${p.reportId} – energy-market.prices unavailable; using lastKnownPrice fallback: ${lastKnownPrice}`);
+            prices = { available: true, data: { latestPrice: lastKnownPrice, _fallback: true } };
+          }
+        } else if (prices?.data?.latestPrice != null) {
+          // Persist the last known good price for future fallback
+          p.meta.lastKnownPrice = prices.data.latestPrice;
+        }
 
         const spotprices = await callBroker(ctx, 'german-grid.spotprices', { date: today });
 
@@ -2901,6 +2981,22 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         }
         // Remove the ambiguous raw key so the LLM cannot misread the array count
         delete kpiSummary.installationenOhneMelo;
+
+        // Fix B (v0.37.1): Briefing/Section2 count consistency check.
+        // briefingCount = what buildStaticNarrative uses for EE-Portfolio (canonical source).
+        // section2Count = pvLocal.stats.total from the raw section2 result.
+        // Both should be identical; a mismatch indicates a data-path divergence.
+        const briefingCount =
+          kpiSummary?.solar?.totalCount ??
+          kpiSummary?.pvLocal?.['stats.total'] ??
+          null;
+        const section2Count = (() => {
+          const pvLocalData = p.results.section2?.pvLocal?.data;
+          return pvLocalData?.stats?.total ?? pvLocalData?.stats?.totalCount ?? null;
+        })();
+        if (briefingCount !== null && section2Count !== null && briefingCount !== section2Count) {
+          this.logger.warn('[Report] Briefing/Section2 count mismatch:', briefingCount, '≠', section2Count);
+        }
 
         const managementSummary = await generateNarrative(utilityName, kpiSummary);
 

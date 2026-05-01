@@ -1,6 +1,6 @@
 # UI-Contract 21 — MaStR Monitoring
 
-Version: 0.27.3
+Version: 0.38.1
 Service: `mastr-monitor`
 Base path: `/api/mastr-monitor`
 
@@ -104,3 +104,29 @@ No account is required. Access is managed via opaque tokens/hash pairs:
 - Show latest summary from `watch.lastDelta`.
 - For details, call `GET /watches/:watchId/deltas` and open newest delta.
 - For CSV export, use `GET /watches/:watchId/snapshot?format=csv`.
+
+---
+
+## Änderungen seit letzter Version
+
+### v0.27.3 — Chunked Persistence für große Snapshots/Deltas
+
+Snapshots und Delta-Details werden intern in Chunks von 1.000 Einträgen in der
+PouchDB gespeichert um Dokument-Größenlimits zu vermeiden. Die API-Responses
+(`getSnapshot`, `getDelta`, `getDeltas`) sind hydratisiert und rückwärtskompatibel.
+
+Neue Umgebungsvariablen (optional):
+- `MASTR_MONITOR_CHUNKING_ENABLED` — Chunking aktivieren/deaktivieren (default: `true`)
+- `MASTR_MONITOR_CHUNK_SIZE` — Chunk-Größe (default: `1000`)
+- `MASTR_MONITOR_MAX_INSTALLATIONS_PER_WATCH` — Limit pro Watch-Lauf (default: `50000`, war: `5000`)
+- `MASTR_MONITOR_EMAIL_DETAIL_LIMIT` — Max. Einträge in Detail-Listen in E-Mails (default: `100`)
+
+**Pagination-Hinweis für große Portfolios:**
+Bei VNBs mit >50.000 Installationen werden Watch-Läufe automatisch auf
+`MASTR_MONITOR_MAX_INSTALLATIONS_PER_WATCH` begrenzt. Das UI sollte
+`watch.lastDelta.summary.limitApplied: true` prüfen und ggf. einen
+Info-Banner zeigen: „Portfolio-Limit erreicht — nicht alle Anlagen geprüft".
+
+### v0.38.0 — Keine Änderungen am MaStR-Monitor-Contract
+
+Der MaStR-Monitor-Service wurde in v0.28\u2013v0.38 nicht geändert.

@@ -186,7 +186,7 @@ function calculateVirtualBkBalance(participants, interval = '15min') {
   };
 }
 
-function calculateSettlementReadiness(bkData) {
+function calculateSettlementReadiness(bkData, bilanzkreis = {}) {
   const participants = Array.isArray(bkData?.participants) ? bkData.participants : [];
   const issues = [];
 
@@ -209,11 +209,25 @@ function calculateSettlementReadiness(bkData) {
     ? participants.reduce((sum, participant) => sum + toNumber(participant.dataQuality, 0), 0) / participants.length
     : 0;
 
-  return {
+  const result = {
     ready: issues.length === 0,
     issues,
     dataQuality: round(dataQuality, 4),
   };
+
+  // §42c-spezifische KPIs — nur für Energieteilen-Bilanzkreise
+  const isEnergySharing = typeof bilanzkreis?.type === 'string' &&
+    bilanzkreis.type.includes('energy_sharing');
+  if (isEnergySharing) {
+    const hasMissingData = issues.some((i) => i.startsWith('missing_data'));
+    const hasQualityIssue = issues.some(
+      (i) => i.startsWith('low_data_quality') || i.startsWith('mscons_incomplete')
+    );
+    result.PARAGRAF_42C_KONFORM = !hasMissingData;
+    result.A96_FAEHIG = !hasMissingData && !hasQualityIssue;
+  }
+
+  return result;
 }
 
 module.exports = {

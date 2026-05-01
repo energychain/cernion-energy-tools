@@ -616,6 +616,7 @@ The UI can show a badge (e.g. 🔬 **Ontology-Based**) when `graphBased === true
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 0.35.0 | 2026-04-28 | Agent-to-Agent Protocol: new `GET /api/cya/sessions/:id/a2a-log` endpoint; Moleculer event bus (`cya.a2a.*`); bug-fix `currentStates` update between negotiation rounds. |
 | 0.34.0 | 2026-04-29 | Progressive Profiling (Zwiebelmodus): `PATCH /api/cya/profile/:id` explicit inner-layer update; implicit outer-layer enrichment via `_observeAndUpdateProfile` after every session; `profileHints` integration in tool-registry; persona memory first write. |
 | 0.33.0 | 2026-04-28 | Added `grounding.toolSetRationale`, `grounding.signalOverrides` (Dynamic Tool Router, v0.33). No new REST endpoints. |
 | 0.32.0 | 2026-04-28 | Added `regulatory_graph.graphBased` (Central Asset Ontology, v0.32). No new REST endpoints. |
@@ -625,4 +626,171 @@ The UI can show a badge (e.g. 🔬 **Ontology-Based**) when `graphBased === true
 
 **Document Owner:** Backend/Frontend Sync Team
 **Last Reviewed:** 2026-04-28
-**Next Review:** Post-v0.33.0 (ontologySignals passthrough from UI)
+**Next Review:** Post-v0.35.0 (A2A log UI panel)
+
+---
+
+## GET /api/cya/sessions/:id/a2a-log (v0.35.0)
+
+Returns the full Agent-to-Agent communication log for a CYA session.
+Each entry is a structured `A2AMessage` envelope emitted during multi-agent orchestration.
+
+**Request:**
+```
+GET /api/cya/sessions/{sessionId}/a2a-log
+```
+
+**Response:**
+```json
+{
+  "sessionId": "cya_1713110400000",
+  "messageCount": 5,
+  "messages": [ /* A2AMessage[] sorted by timestamp */ ]
+}
+```
+
+**`A2AMessage` shape:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `messageId` | `string` (UUID) | Unique envelope ID |
+| `eventName` | `string` (enum) | See event names below |
+| `sessionId` | `string` | CYA Session correlation ID |
+| `fromPersona` | `string` | Sender: `'technical'`, `'commercial'`, `'compliance'`, `'orchestrator'` |
+| `toPersona` | `string \| null` | Recipient (null = broadcast to all) |
+| `payload` | `object` | Event-specific data (see below) |
+| `timestamp` | `string` (ISO 8601) | Emission time |
+| `protocolVersion` | `'1.0'` | A2A protocol version |
+
+**Event names:**
+
+| `eventName` | Emitted by | `payload` fields |
+|---|---|---|
+| `cya.a2a.persona.evaluated` | Each persona (→ orchestrator) | `verdict`, `summary`, `conflictTriggers`, `keyPoints`, `riskNotes` |
+| `cya.a2a.conflict.detected` | Orchestrator (broadcast) | `blockers[]`, `approvers[]`, `conflictTriggers[]` |
+| `cya.a2a.negotiation.round` | Orchestrator (broadcast) | `round`, `blockers[]`, `triggers[]`, `consensusReached`, `unresolvedConflicts[]` |
+| `cya.a2a.consensus.reached` | Orchestrator (broadcast) | `narrative`, `round` |
+| `cya.a2a.consensus.failed` | Orchestrator (broadcast) | `unresolvedConflicts[]`, `roundsAttempted`, `escalation: 'HITL'` |
+
+**Moleculer Event Bus:** All 5 events are also published on the Moleculer broker
+(`this.broker.emit`) for external subscribers (dashboards, alerts, webhooks).
+Messages are persisted in the `cya_a2a_messages` object-store namespace.
+
+**UI Hint:** An "A2A Kommunikations-Log" timeline panel can be built from this endpoint,
+showing the dialogue flow between personas and the conflict resolution rounds.
+Only relevant for sessions with `multi_perspective.perspectives` set (multi-agent mode).
+
+---
+
+## GET /api/cya/graph/cache (neu in v0.36.0)
+
+Gibt den aktuellen L1-Cache-Status des Ontologie-Graphen zurück.
+Für Ops-Monitoring und Debugging. Kein Auth erforderlich (read-only).
+
+**Response:**
+
+```json
+{
+  "ok": true,
+  "cache": {
+    "l1Entries": 2,
+    "ttlSeconds": 86400,
+    "namespace": "cya_ontology_graphs",
+    "entries": [
+      {
+        "key": "ontology_snb961471621746",
+        "nodeCount": 6,
+        "edgeCount": 5,
+        "cachedAt": "2026-04-28T08:00:00.000Z",
+        "hitCount": 12,
+        "stale": false
+      }
+    ]
+  }
+}
+```
+
+## DELETE /api/cya/graph/cache/:operatorId (neu in v0.36.0)
+
+Invalidiert den Ontologie-Graphen für einen VNB (beide Cache-Tiers).
+Wird automatisch ausgelöst bei `mastr-monitor.delta.detected`.
+Kann manuell nach MaStR-Datenaktualisierungen aufgerufen werden.
+
+**Path-Param:** `operatorId` — BDEW-Code, MaStR-ID oder VNB-Kurzname (max. 100 Zeichen)
+
+**Response:**
+
+```json
+{
+  "key": "ontology_snb961471621746",
+  "invalidated": true
+}
+```
+
+## Ontologie-Graph Lifecycle (v0.36.0 Two-Tier Cache)
+
+```
+Aufbau:        Beim ersten Pipeline-Aufruf pro operatorId (Cache-Miss)
+L1-Cache:      In-Memory Map, max. 20 VNBs, TTL 24h (stirbt bei Restart)
+L2-Cache:      Object Store 'cya_ontology_graphs', überlebt Restart
+Warm-up:       L2-Hit befüllt automatisch L1 (nächste Abfrage = <1ms)
+Invalidierung: Automatisch via mastr-monitor.delta.detected
+               Manuell via DELETE /api/cya/graph/cache/:operatorId
+```
+
+**Moleculer Events:**
+
+| Event | Wann | `params` |
+|-------|------|----------|
+| `cya.ontology.graph.built` | Bei Cache-Miss (Graph neu gebaut) | `cacheKey`, `nodeCount`, `edgeCount`, `timestamp` |
+| `cya.ontology.graph.invalidated` | Bei manueller Invalidierung | `operatorId`, `cacheKey`, `timestamp` |
+
+**Object Store Namespace:** `cya_ontology_graphs`
+
+**Payload-Shape im Object Store:**
+```json
+{
+  "serialized": { "attributes": {}, "nodes": [...], "edges": [...] },
+  "cachedAt": "2026-04-28T08:00:00.000Z",
+  "nodeCount": 6,
+  "edgeCount": 5,
+  "ttlSeconds": 86400
+}
+```
+---
+
+## GET /api/cya/sessions/:id/context-state (neu in v0.37.0)
+
+Gibt den persistierten Zwiebelmodus-Zustand einer Session zurück.
+Ermöglicht Session-Wiederaufnahme mit identischem Zoom-Kontext.
+
+**Path-Param:** `id` — CYA Session ID (z.B. `cya_1713110400000`)
+
+**Response:**
+```json
+{
+  "sessionId":    "cya_1713110400000",
+  "outerContext": { "goal": "Netzkapazitätsanalyse", "focusArea": ["capacity"] },
+  "currentDepth": 1,
+  "breadcrumb":   ["Ziel: Netzkapazitätsanalyse", "Fokus: SEE999952467552 (r=2)"],
+  "iterationLog": [
+    { "operation": "set_outer_context", "nodeId": null, "meta": {}, "timestamp": "..." },
+    { "operation": "zoom_in", "nodeId": "SEE999952467552", "meta": { "radius": 2, "subGraphNodes": 5 }, "timestamp": "..." }
+  ],
+  "maxIterations": 3,
+  "zoomStack":    ["SEE999952467552"],
+  "savedAt":      "2026-05-01T10:00:00.000Z"
+}
+```
+
+**Object Store Namespace:** `cya_context_states`
+
+**Key-Format:** `ctx_{sessionId}`
+
+**Lifecycle:**
+- Gespeichert: nach jeder Phase-2-Ausführung (non-blocking, fire-and-forget)
+- Wiederhergestellt: am Anfang jedes `POST /api/cya/refine`-Calls
+- Kompatibilitätsprüfung: alle `zoomStack`-nodeIds werden gegen den aktuellen Ontologie-Graphen geprüft; bei Inkompatibilität wird `null` zurückgegeben und der State verworfen
+
+**Fehler:**
+- `404 CONTEXT_STATE_NOT_FOUND` — kein State für die Session vorhanden

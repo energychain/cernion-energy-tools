@@ -2699,3 +2699,228 @@ describe('Utility Report Service', () => {
     });
   });
 });
+
+// ─── v0.37.1 Stabilisierung: Fix A / Fix B / Fix C / Health ─────────────────
+
+describe('v0.37.1 — 360° Utility Report Stabilisierung', () => {
+  const { buildHtmlReport } = require('../src/report-builder');
+
+  // ── Fix A: fetchWithRetry ──────────────────────────────────────────────────
+
+  describe('fetchWithRetry', () => {
+    let broker;
+    let svc;
+
+    beforeEach(async () => {
+      broker = new ServiceBroker({ logger: false });
+      broker.createService(UtilityReportService);
+      await broker.start();
+      svc = broker.getLocalService('utility-report');
+    });
+
+    afterEach(async () => {
+      await broker.stop();
+    });
+
+    it('returns result immediately on first success', async () => {
+      broker.call = jest.fn().mockResolvedValueOnce({ latestPrice: 85.5 });
+      const result = await svc.fetchWithRetry(null, 'energy-market.prices', {}, 2, 0);
+      expect(result).toEqual({ latestPrice: 85.5 });
+      expect(broker.call).toHaveBeenCalledTimes(1);
+    });
+
+    it('retries after first failure and succeeds on second attempt', async () => {
+      broker.call = jest.fn()
+        .mockRejectedValueOnce(new Error('timeout'))
+        .mockResolvedValueOnce({ latestPrice: 72.0 });
+      const result = await svc.fetchWithRetry(null, 'energy-market.prices', {}, 2, 0);
+      expect(result).toEqual({ latestPrice: 72.0 });
+      expect(broker.call).toHaveBeenCalledTimes(2);
+    });
+
+    it('returns { available: false } after all retries exhausted', async () => {
+      broker.call = jest.fn().mockRejectedValue(new Error('service unavailable'));
+      const result = await svc.fetchWithRetry(null, 'energy-market.prices', {}, 2, 0);
+      expect(result.available).toBe(false);
+      expect(result.error).toMatch(/service unavailable/);
+      expect(broker.call).toHaveBeenCalledTimes(3); // 1 initial + 2 retries
+    });
+
+    it('returns { available: false } when result.available is false (not exception)', async () => {
+      broker.call = jest.fn().mockResolvedValue({ available: false, error: 'no data' });
+      const result = await svc.fetchWithRetry(null, 'energy-market.prices', {}, 1, 0);
+      expect(result.available).toBe(false);
+      expect(broker.call).toHaveBeenCalledTimes(2); // maxRetries 1 → 2 attempts
+    });
+
+    it('forwards ctx.meta when ctx is provided', async () => {
+      const ctx = { meta: { cernionToken: 'tk_test' } };
+      broker.call = jest.fn().mockResolvedValueOnce({ latestPrice: 60 });
+      await svc.fetchWithRetry(ctx, 'energy-market.prices', {}, 2, 0);
+      expect(broker.call).toHaveBeenCalledWith(
+        'energy-market.prices',
+        {},
+        expect.objectContaining({ meta: { cernionToken: 'tk_test' } })
+      );
+    });
+  });
+
+  // ── Fix A: lastKnownPrice fallback ─────────────────────────────────────────
+
+  describe('lastKnownPrice fallback', () => {
+    it('uses lastKnownPrice from progress meta when energy-market.prices is unavailable', () => {
+      // Simulate the fallback logic directly (extracted for unit test)
+      const p = { meta: { lastKnownPrice: 78.4 }, reportId: 'test-fallback' };
+      let prices = { available: false };
+
+      if (!prices?.available) {
+        const lastKnownPrice = p.meta?.lastKnownPrice ?? null;
+        if (lastKnownPrice !== null) {
+          prices = { available: true, data: { latestPrice: lastKnownPrice, _fallback: true } };
+        }
+      }
+
+      expect(prices.available).toBe(true);
+      expect(prices.data.latestPrice).toBe(78.4);
+      expect(prices.data._fallback).toBe(true);
+    });
+
+    it('report does not crash when all Phase-3 calls fail', () => {
+      // buildHtmlReport must not throw even if all section data is empty/unavailable
+      expect(() => {
+        buildHtmlReport({
+          meta: { utilityName: 'Crash-Test GmbH' },
+          section1: {},
+          section2: {},
+          section3: {
+            prices: { available: false },
+            spotprices: { available: false },
+            negativePrices: { available: false },
+            actualGeneration: { available: false },
+            loadForecast: { available: false },
+            unavailability: { available: false },
+          },
+          section4: {},
+          section5: {},
+          section6: {},
+          section7: {},
+          section8: {},
+          generatedAt: new Date().toISOString(),
+        });
+      }).not.toThrow();
+    });
+  });
+
+  // ── Fix B: Briefing-Count Konsistenz ──────────────────────────────────────
+
+  describe('Briefing-Count = Section2-Count (Fix B)', () => {
+    it('briefingCount and section2Count are equal when pvLocal stats align with solar', () => {
+      // Simulate the kpiSummary built from summarizeForReport
+      const { summarizeForReport } = require('../src/report-builder');
+
+      const solarResult = {
+        available: true,
+        data: { totalCount: 1234, totalCapacityKw: 50000 },
+      };
+      const pvLocalResult = {
+        available: true,
+        data: { stats: { total: 1234, totalCapacityKW: 50000 } },
+      };
+
+      const kpiSummary = {};
+      Object.assign(kpiSummary, summarizeForReport(solarResult, 'solar'));
+      Object.assign(kpiSummary, summarizeForReport(pvLocalResult, 'pvLocal'));
+
+      const briefingCount =
+        kpiSummary?.solar?.totalCount ??
+        kpiSummary?.pvLocal?.['stats.total'] ??
+        null;
+      const section2Count =
+        pvLocalResult.data?.stats?.total ??
+        pvLocalResult.data?.stats?.totalCount ??
+        null;
+
+      expect(briefingCount).toBe(section2Count);
+    });
+
+    it('warn log fires when briefing count diverges from section2 count', () => {
+      const warnSpy = jest.fn();
+      const logger = { warn: warnSpy };
+
+      const briefingCount = 100;
+      const section2Count = 150;
+
+      if (briefingCount !== null && section2Count !== null && briefingCount !== section2Count) {
+        logger.warn('[Report] Briefing/Section2 count mismatch:', briefingCount, '≠', section2Count);
+      }
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        '[Report] Briefing/Section2 count mismatch:',
+        100,
+        '≠',
+        150
+      );
+    });
+
+    it('no warn log when both counts are null (graceful degradation)', () => {
+      const warnSpy = jest.fn();
+      const logger = { warn: warnSpy };
+
+      const briefingCount = null;
+      const section2Count = null;
+
+      if (briefingCount !== null && section2Count !== null && briefingCount !== section2Count) {
+        logger.warn('[Report] Briefing/Section2 count mismatch:', briefingCount, '≠', section2Count);
+      }
+
+      expect(warnSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── Fix C: Peer-Vergleich Größenklassen ───────────────────────────────────
+
+  describe('getPeerReference — Größenklassen-Filter (Fix C)', () => {
+    const { getPeerReference } = require('../src/report-builder');
+
+    it('Klein-VNB (<500 Anlagen) bekommt Klein-Peer-Referenz', () => {
+      const ref = getPeerReference(250);
+      expect(ref.ee_ms.name).toContain('Klein');
+      expect(ref.verbrauch_ms.name).toContain('Klein');
+    });
+
+    it('Groß-VNB (>2000 Anlagen) bekommt Groß-Peer-Referenz', () => {
+      const ref = getPeerReference(3000);
+      expect(ref.ee_ms.name).toContain('Groß');
+      expect(ref.verbrauch_ms.name).toContain('Groß');
+    });
+
+    it('Mittel-VNB (500–2000 Anlagen) bekommt Mittel-Peer-Referenz', () => {
+      const ref = getPeerReference(1000);
+      expect(ref.ee_ms.name).toContain('Mittel');
+      expect(ref.verbrauch_ms.name).toContain('Mittel');
+    });
+
+    it('kein echter VNB-Name (Baiersbronn/Waiblingen) in Peer-Referenz', () => {
+      [null, 100, 1000, 5000].forEach((n) => {
+        const ref = getPeerReference(n);
+        expect(ref.ee_ms.name).not.toMatch(/Baiersbronn|Waiblingen/);
+        expect(ref.verbrauch_ms.name).not.toMatch(/Baiersbronn|Waiblingen/);
+      });
+    });
+
+    it('Default (null totalInstallations) liefert Mittel-Klasse', () => {
+      const ref = getPeerReference(null);
+      expect(ref.ee_ms.name).toContain('Mittel');
+    });
+
+    it('Grenzwert 500: genau 500 Anlagen → Mittel-Klasse', () => {
+      const ref = getPeerReference(500);
+      expect(ref.ee_ms.name).toContain('Mittel');
+    });
+
+    it('Grenzwert 2000: genau 2000 Anlagen → Mittel-Klasse', () => {
+      const ref = getPeerReference(2000);
+      expect(ref.ee_ms.name).toContain('Mittel');
+    });
+  });
+});

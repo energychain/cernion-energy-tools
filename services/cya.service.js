@@ -13,6 +13,9 @@ const { getTemplate, listTemplates } = require('../src/cya-profile-templates');
 const { buildCyaNarrativePdf } = require('../src/cya-report-builder');
 const { retrievePersonaContext, buildPersonaGrounding } = require('../src/cya-persona-memory');
 const { MAX_DIALOGUE_ROUNDS, detectConflicts, buildNegotiationPrompt } = require('../src/cya-conflict-detector');
+const a2a = require('../src/cya-a2a-protocol');
+const { graphCache } = require('../src/cya-graph-cache');
+const { getTenantId, tenantNamespace } = require('../src/tenant-context');
 
 const PROFILE_ID_PATTERN = /^[a-z0-9_]+$/;
 const ACTOR_ROLES = [
@@ -143,8 +146,11 @@ module.exports = {
           createdAt: new Date().toISOString(),
         };
 
+        const tenantId = getTenantId(ctx);
+        const ns = tenantNamespace(PROFILE_NAMESPACE, tenantId);
+
         await ctx.call('object-store.put', {
-          namespace: PROFILE_NAMESPACE,
+          namespace: ns,
           key: profile_id,
           payload,
         });
@@ -212,7 +218,9 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const profile = await this.loadProfile(ctx, ctx.params.profile_id);
+        const tenantId = getTenantId(ctx);
+        const ns = tenantNamespace(PROFILE_NAMESPACE, tenantId);
+        const profile = await this.loadProfile(ctx, ctx.params.profile_id, ns);
         return { success: true, profile_id: ctx.params.profile_id, profile };
       },
     },
@@ -286,8 +294,10 @@ module.exports = {
         },
       },
       async handler(ctx) {
+        const tenantId = getTenantId(ctx);
+        const ns = tenantNamespace(PROFILE_NAMESPACE, tenantId);
         const result = await ctx.call('object-store.query', {
-          namespace: PROFILE_NAMESPACE,
+          namespace: ns,
           selector: {},
           limit: ctx.params.limit,
         });
@@ -768,6 +778,312 @@ module.exports = {
       },
     },
 
+    'session.a2aLog': {
+      rest: 'GET /sessions/:id/a2a-log',
+      params: {
+        id: { type: 'string' },
+      },
+      openapi: {
+        tags: ['CYA Agent'],
+        summary: 'Get A2A message log for a CYA session (v0.35.0)',
+        description: 'Returns the full Agent-to-Agent communication log for a session, sorted by timestamp. Each entry is an A2AMessage envelope.',
+        'x-oeo-class': 'OEO:AgentCommunication',
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string', example: 'cya_1713110400000' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'A2A message log',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    sessionId: { type: 'string' },
+                    messageCount: { type: 'integer' },
+                    messages: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          messageId: { type: 'string', format: 'uuid' },
+                          eventName: { type: 'string' },
+                          sessionId: { type: 'string' },
+                          fromPersona: { type: 'string' },
+                          toPersona: { type: 'string', nullable: true },
+                          payload: { type: 'object' },
+                          timestamp: { type: 'string', format: 'date-time' },
+                          protocolVersion: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { id } = ctx.params;
+        let all = [];
+        try {
+          all = await ctx.call('object-store.list', { namespace: a2a.A2A_NAMESPACE }) || [];
+        } catch (err) {
+          this.logger.warn('[A2A] object-store.list failed:', err.message);
+        }
+        const messages = all
+          .filter((entry) => entry && entry.payload && entry.payload.sessionId === id)
+          .sort((x, y) => new Date(x.payload.timestamp) - new Date(y.payload.timestamp))
+          .map((entry) => entry.payload);
+        return {
+          sessionId: id,
+          messageCount: messages.length,
+          messages,
+        };
+      },
+    },
+
+    'session.a2aAnalysis': {
+      rest: 'GET /sessions/:id/a2a-analysis',
+      params: {
+        id: { type: 'string' },
+      },
+      openapi: {
+        tags: ['CYA Agent'],
+        summary: 'Analyse des A2A-Logs für eine CYA-Session (v0.38.2)',
+        description: 'Wertet den persistierten Agent-to-Agent Kommunikations-Log einer Session aus. Liefert strukturierte Insights über Persona-Verdicts, Konflikte, Negotiation-Runden und Consensus-Ergebnis.',
+        'x-oeo-class': 'OEO:AgentCommunication',
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string', example: 'cya_1713110400000' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'A2A-Log-Analyse',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    sessionId: { type: 'string' },
+                    analysis: {
+                      type: 'object',
+                      nullable: true,
+                      properties: {
+                        totalMessages: { type: 'integer' },
+                        conflictsDetected: { type: 'integer' },
+                        negotiationRounds: { type: 'integer' },
+                        consensusReached: { type: 'boolean' },
+                        consensusRound: { type: 'integer', nullable: true },
+                        hitlEscalated: { type: 'boolean' },
+                        durationMs: { type: 'number', nullable: true },
+                        blockerPersonas: { type: 'array', items: { type: 'string' } },
+                        signalsSeen: { type: 'array', items: { type: 'string' } },
+                      },
+                    },
+                    summary: { type: 'string', nullable: true },
+                    message: { type: 'string', nullable: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { analyzeLog, summarizeLog } = require('../src/cya-a2a-analyzer');
+        const logResult = await ctx.call('cya.session.a2aLog', { id: ctx.params.id });
+        if (!logResult || !logResult.messages || logResult.messages.length === 0) {
+          return {
+            sessionId: ctx.params.id,
+            analysis: null,
+            summary: null,
+            message: 'Kein A2A-Log für diese Session vorhanden',
+          };
+        }
+        const analysis = analyzeLog(logResult.messages);
+        return {
+          sessionId: ctx.params.id,
+          analysis,
+          summary: summarizeLog(analysis),
+        };
+      },
+    },
+
+    'a2aStats': {
+      rest: 'GET /a2a-stats',
+      params: {
+        limit: { type: 'number', convert: true, optional: true, default: 100, min: 1, max: 1000 },
+      },
+      openapi: {
+        tags: ['CYA Agent'],
+        summary: 'Globale A2A-Statistiken über alle Sessions (v0.38.2)',
+        description: 'Aggregiert A2A-Logs aus allen gespeicherten Sessions und liefert Konsens-Rate, Eskalations-Rate, häufigste Blocker-Persona und häufigste Signals. Limit-Parameter verhindert Timeout bei vielen Sessions.',
+        'x-oeo-class': 'OEO:AgentCommunication',
+        parameters: [
+          {
+            in: 'query',
+            name: 'limit',
+            required: false,
+            schema: { type: 'integer', default: 100, minimum: 1, maximum: 1000, example: 100 },
+            description: 'Maximale Anzahl ausgewerteter Sessions (default: 100, max: 1000)',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Aggregierte A2A-Statistiken',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    sessionCount: { type: 'integer' },
+                    stats: {
+                      type: 'object',
+                      properties: {
+                        totalSessions: { type: 'integer' },
+                        consensusRate: { type: 'number' },
+                        avgNegotiationRounds: { type: 'number' },
+                        hitlEscalationRate: { type: 'number' },
+                        mostFrequentBlocker: { type: 'string', nullable: true },
+                        mostFrequentSignal: { type: 'string', nullable: true },
+                        avgDurationMs: { type: 'number', nullable: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { analyzeLog, aggregateLogs } = require('../src/cya-a2a-analyzer');
+        const limit = ctx.params.limit || 100;
+
+        // TODO: Pagination für >1000 Sessions (analog mastr-monitor)
+        let all = [];
+        try {
+          all = await ctx.call('object-store.list', { namespace: a2a.A2A_NAMESPACE }) || [];
+        } catch (err) {
+          this.logger.warn('[A2A Stats] object-store.list failed:', err.message);
+        }
+
+        if (all.length === 0) {
+          const { aggregateLogs: agg } = require('../src/cya-a2a-analyzer');
+          return { sessionCount: 0, stats: agg([]) };
+        }
+
+        // Alle Messages nach sessionId gruppieren
+        const sessionMap = {};
+        for (const entry of all) {
+          const msg = entry && entry.payload ? entry.payload : null;
+          if (!msg || !msg.sessionId) continue;
+          if (!sessionMap[msg.sessionId]) sessionMap[msg.sessionId] = [];
+          sessionMap[msg.sessionId].push(msg);
+        }
+
+        // Sessions auf limit begrenzen (neueste zuerst, anhand erster Message)
+        const sessions = Object.values(sessionMap)
+          .sort((a, b) => {
+            const ta = a[0] && a[0].timestamp ? new Date(a[0].timestamp).getTime() : 0;
+            const tb = b[0] && b[0].timestamp ? new Date(b[0].timestamp).getTime() : 0;
+            return tb - ta;
+          })
+          .slice(0, limit);
+
+        const sessionAnalyses = sessions.map((msgs) => analyzeLog(msgs));
+
+        return {
+          sessionCount: sessions.length,
+          stats: aggregateLogs(sessionAnalyses),
+        };
+      },
+    },
+
+    'session.contextState': {
+      rest: 'GET /sessions/:id/context-state',
+      params: {
+        id: { type: 'string' },
+      },
+      openapi: {
+        tags: ['CYA Agent'],
+        summary: 'Get persisted Zwiebelmodus context state for a CYA session (v0.37.0)',
+        description: 'Returns the serialized CyaContextManager zoom-state for session resumption. Enables refine calls to continue with identical onion context. Object Store namespace: cya_context_states.',
+        'x-oeo-class': 'OEO:ContextManagement',
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string', example: 'cya_1713110400000' },
+            description: 'CYA Session ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Persisted context state',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    sessionId: { type: 'string' },
+                    outerContext: {
+                      type: 'object',
+                      nullable: true,
+                      properties: {
+                        goal: { type: 'string', nullable: true },
+                        focusArea: { type: 'array', items: { type: 'string' } },
+                      },
+                    },
+                    currentDepth: { type: 'integer', example: 1 },
+                    breadcrumb: { type: 'array', items: { type: 'string' } },
+                    iterationLog: { type: 'array', items: { type: 'object' } },
+                    maxIterations: { type: 'integer', example: 3 },
+                    zoomStack: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      description: 'nodeId history for zoomIn operations',
+                    },
+                    savedAt: { type: 'string', format: 'date-time' },
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'No context state found for this session',
+          },
+        },
+      },
+      async handler(ctx) {
+        const { id } = ctx.params;
+        const result = await ctx.call('object-store.get', {
+          namespace: 'cya_context_states',
+          key: `ctx_${id}`,
+        }).catch(() => null);
+        if (!result?.payload) {
+          throw new MoleculerClientError(
+            `No context state for session '${id}'`,
+            404,
+            'CONTEXT_STATE_NOT_FOUND'
+          );
+        }
+        return { sessionId: id, ...result.payload };
+      },
+    },
+
     'export.oeo-stub': {
       rest: 'GET /graph/export/oeo-stub',
       // ─────────────────────────────────────────────────────────────────────
@@ -818,6 +1134,66 @@ module.exports = {
           ok: true,
           ...payload,
         };
+      },
+    },
+
+    'graph.cacheStatus': {
+      rest: 'GET /graph/cache',
+      openapi: {
+        summary: 'Ontologie-Graph Cache Status',
+        description: 'Gibt den aktuellen L1-Cache-Status des Ontologie-Graphen zurück. Für Ops-Monitoring und Debugging.',
+        tags: ['CYA Agent'],
+        responses: {
+          200: {
+            description: 'Cache-Statistiken',
+            content: { 'application/json': { schema: { type: 'object', properties: {
+              ok: { type: 'boolean' },
+              cache: { type: 'object' },
+            }}}},
+          },
+        },
+      },
+      // Gibt den aktuellen L1-Cache-Status zurück (für Monitoring/Ops)
+      handler(ctx) {  // eslint-disable-line no-unused-vars
+        return {
+          ok: true,
+          cache: graphCache.getStats(),
+        };
+      },
+    },
+
+    'graph.invalidate': {
+      rest: 'DELETE /graph/cache/:operatorId',
+      params: {
+        operatorId: { type: 'string', min: 1, max: 100 },
+      },
+      openapi: {
+        summary: 'Ontologie-Graph Cache invalidieren',
+        description: 'Invalidiert den Graphen für einen VNB. Wird automatisch ausgelöst bei mastr-monitor.delta.detected.',
+        tags: ['CYA Agent'],
+        responses: {
+          200: {
+            description: 'Invalidierungsbestätigung',
+            content: { 'application/json': { schema: { type: 'object', properties: {
+              key:         { type: 'string' },
+              invalidated: { type: 'boolean' },
+            }}}},
+          },
+        },
+      },
+      // Invalidiert den Graphen für einen VNB (z.B. nach MaStR-Update)
+      async handler(ctx) {
+        const key = graphCache.buildKey(ctx.params.operatorId);
+        const result = await graphCache.invalidate(
+          key,
+          ctx.call.bind(ctx)
+        );
+        this.broker.emit('cya.ontology.graph.invalidated', {
+          operatorId: ctx.params.operatorId,
+          cacheKey: key,
+          timestamp: new Date().toISOString(),
+        });
+        return result;
       },
     },
 
@@ -982,12 +1358,18 @@ module.exports = {
           ontologySignals: null,
         });
 
-        // Phase 2: Ontology layer (v0.32.0) — non-blocking, falls back to Regex if null
-        const { graphSignals: _gsPreload } = this._buildOntologyLayer(
+        // Phase 2: Ontology layer (v0.32.0+v0.36.0 cached) — non-blocking, falls back to Regex if null
+        const { graphSignals: _gsPreload, contextManager: _cmPreload } = await this._buildOntologyLayer(
           retrieval,
           context?.goal || null,
           Array.isArray(context?.focus_areas) ? context.focus_areas : []
         );
+        // v0.37.0 — Persist context state non-blocking
+        const _preloadSessionId = ctx.params.session_id || null;
+        if (_cmPreload && _preloadSessionId) {
+          this._persistContextState(_preloadSessionId, _cmPreload)
+            .catch((err) => this.logger.warn('[ContextManager] persist failed:', err.message));
+        }
         const regulatoryGraph = _gsPreload || buildRegulatoryGraph({
           retrieval,
           context,
@@ -1293,11 +1675,16 @@ module.exports = {
 
           // Phase 2: Ontology layer + Regulatory Graph (v0.32.0)
           appendLog(jobId, 'phase_2_graph', 33, 'Building deterministic regulatory graph...');
-          const { graphSignals: _gsMain } = this._buildOntologyLayer(
+          const { graphSignals: _gsMain, contextManager: _cmMain } = await this._buildOntologyLayer(
             retrieval,
             ctx.params.goal || null,
             Array.isArray(context?.focus_areas) ? context.focus_areas : []
           );
+          // v0.37.0 — Persist context state non-blocking
+          if (_cmMain && sessionId) {
+            this._persistContextState(sessionId, _cmMain)
+              .catch((err) => this.logger.warn('[ContextManager] persist failed:', err.message));
+          }
           const regulatoryGraph = _gsMain || buildRegulatoryGraph({
             retrieval,
             context,
@@ -1516,6 +1903,17 @@ module.exports = {
         const userFeedback = String(ctx.params.user_feedback || '').trim();
         const clarificationInput = String(ctx.params.agent_clarification_response || '').trim();
 
+        // v0.37.0 — Restore Zwiebelmodus context state (non-blocking, optional)
+        // ontologyGraph is not directly available here; restore is best-effort from saved state.
+        // The restored contextManager is available for downstream re-use if needed.
+        const _restoredCtxManager = await this._restoreContextState(
+          ctx.params.session_id,
+          session._ontologyGraph || null
+        ).catch(() => null);
+        if (_restoredCtxManager) {
+          this.logger.info('[ContextManager] Restored zoom context for session:', ctx.params.session_id);
+        }
+
         const providedData = ctx.params.clarification_response?.provided_data;
         const hasProvidedData = providedData && typeof providedData === 'object' && Object.keys(providedData).length > 0;
 
@@ -1677,14 +2075,44 @@ module.exports = {
      * @param {string[]} focusAreas
      * @returns {{ ontologyGraph, contextManager, graphSignals }}
      */
-    _buildOntologyLayer(retrieval, goal, focusAreas) {
+    async _buildOntologyLayer(retrieval, goal, focusAreas) {
       try {
         const installations = retrieval?.installations;
         if (!Array.isArray(installations) || installations.length === 0) {
           return { ontologyGraph: null, contextManager: null, graphSignals: null };
         }
 
-        const ontologyGraph = buildOntologyGraph(installations, retrieval.topologyHop);
+        // ── Cache-Key aus Operator-Identifier ableiten ───────────────────────
+        const operatorId =
+          retrieval.operator ||
+          retrieval.gridOperatorId ||
+          retrieval.installations?.[0]?.Netzbetreiber ||
+          'unknown';
+        const cacheKey = graphCache.buildKey(operatorId);
+
+        // ── L1-Lookup (synchron, <1ms) ────────────────────────────────────────
+        let ontologyGraph = graphCache.getL1(cacheKey);
+
+        // ── L2-Lookup (async, Object Store) ──────────────────────────────────
+        if (!ontologyGraph) {
+          ontologyGraph = await graphCache.getL2(cacheKey, this.broker.call.bind(this.broker));
+        }
+
+        // ── Cache-Miss: Graph neu bauen und persistieren ──────────────────────
+        if (!ontologyGraph) {
+          ontologyGraph = buildOntologyGraph(installations, retrieval.topologyHop || null);
+          graphCache.set(cacheKey, ontologyGraph, this.broker.call.bind(this.broker))
+            .catch(err => this.logger?.warn('[GraphCache] write failed:', err.message));
+
+          this.broker.emit('cya.ontology.graph.built', {
+            cacheKey,
+            nodeCount: ontologyGraph.order,
+            edgeCount: ontologyGraph.size,
+            timestamp: new Date().toISOString(),
+          });
+        }
+
+        // ── Context Manager (unverändert) ─────────────────────────────────────
         const contextManager = new CyaContextManager(ontologyGraph);
         contextManager.setOuterContext(goal || null, focusAreas || []);
 
@@ -1703,10 +2131,10 @@ module.exports = {
       }
     },
 
-    async loadProfile(ctx, profileId) {
+    async loadProfile(ctx, profileId, namespace = PROFILE_NAMESPACE) {
       try {
         const result = await ctx.call('object-store.get', {
-          namespace: PROFILE_NAMESPACE,
+          namespace,
           key: profileId,
         });
         const profile = result?.payload || null;
@@ -1904,7 +2332,7 @@ module.exports = {
       log('phase_1_retrieval', 20, 'Shared retrieval complete');
 
       log('phase_2_graph', 20, 'Multi-agent: shared regulatory graph...');
-      const { graphSignals: _gsMulti } = this._buildOntologyLayer(
+      const { graphSignals: _gsMulti } = await this._buildOntologyLayer(
         retrieval,
         args.goal || null,
         Array.isArray(context?.focus_areas) ? context.focus_areas : []
@@ -1927,7 +2355,7 @@ module.exports = {
       log('phase_4_synthesis', 55, 'Multi-agent: per-persona synthesis...');
       const stakeholderStates = await this.runPersonaSynthesis(
         perspectives, personaGroundings,
-        { profile, target_audience, context, regulatoryGraph }
+        { profile, target_audience, context, regulatoryGraph, sessionId }
       );
       log('phase_4_synthesis', 75, 'Per-persona synthesis complete');
 
@@ -1935,7 +2363,7 @@ module.exports = {
       const { finalStates, dialogueRounds, conflictResolved, consensusNarrative } =
         await this.runConflictNegotiation(
           stakeholderStates, baselineGrounding.facts,
-          { profile, target_audience, context, regulatoryGraph }
+          { profile, target_audience, context, regulatoryGraph, sessionId }
         );
       log('phase_4_synthesis', 90, `Conflict resolved: ${conflictResolved}`);
 
@@ -2041,6 +2469,10 @@ module.exports = {
             grounding,
             regulatoryGraph: args.regulatoryGraph,
           });
+          // A2A: Persona hat Verdict abgegeben
+          if (args.sessionId) {
+            await this._emitA2AMessage(a2a.personaEvaluated(args.sessionId, personaId, state));
+          }
           return [personaId, state];
         })
       );
@@ -2058,6 +2490,7 @@ module.exports = {
      */
     async runConflictNegotiation(stakeholderStates, sharedFacts, synthesisArgs) {
       const dialogueRounds = [];
+      const sessionId = synthesisArgs.sessionId || null;
       const initialConflict = detectConflicts(stakeholderStates);
 
       if (!initialConflict.hasConflict) {
@@ -2065,7 +2498,19 @@ module.exports = {
         const consensus = await synthesizeConsensusWith({
           ...synthesisArgs, stakeholderStates, sharedFacts, round: 0,
         });
+        if (sessionId) {
+          await this._emitA2AMessage(a2a.consensusReached(sessionId, { narrative: consensus.narrative, round: 0 }));
+        }
         return { finalStates: stakeholderStates, dialogueRounds, conflictResolved: true, consensusNarrative: consensus };
+      }
+
+      // Conflict detected — emit once before loop
+      if (sessionId) {
+        await this._emitA2AMessage(a2a.conflictDetected(sessionId, {
+          blockers: initialConflict.blockers,
+          approvers: initialConflict.approvers,
+          triggers: initialConflict.triggers,
+        }));
       }
 
       let currentStates = { ...stakeholderStates };
@@ -2075,16 +2520,43 @@ module.exports = {
         const consensus = await synthesizeConsensusWith({
           ...synthesisArgs, stakeholderStates: currentStates, sharedFacts, round,
         });
-        dialogueRounds.push({
+
+        // Bug-fix: update currentStates if LLM returns updatedStates (hook for future rounds)
+        if (consensus.updatedStates) {
+          currentStates = consensus.updatedStates;
+        }
+
+        const roundEntry = {
           round,
           blockers: conflict.blockers,
           triggers: conflict.triggers,
           consensusReached: consensus.consensusReached,
           unresolvedConflicts: consensus.unresolvedConflicts,
-        });
+        };
+        dialogueRounds.push(roundEntry);
+
+        if (sessionId) {
+          // eslint-disable-next-line no-await-in-loop
+          await this._emitA2AMessage(a2a.negotiationRound(sessionId, roundEntry));
+        }
+
         if (consensus.consensusReached) {
+          if (sessionId) {
+            // eslint-disable-next-line no-await-in-loop
+            await this._emitA2AMessage(a2a.consensusReached(sessionId, { narrative: consensus.narrative, round }));
+          }
           return { finalStates: currentStates, dialogueRounds, conflictResolved: true, consensusNarrative: consensus };
         }
+      }
+
+      if (sessionId) {
+        const lastUnresolved = dialogueRounds.length > 0
+          ? dialogueRounds[dialogueRounds.length - 1].unresolvedConflicts
+          : [];
+        await this._emitA2AMessage(a2a.consensusFailed(sessionId, {
+          unresolvedConflicts: lastUnresolved,
+          roundsAttempted: MAX_DIALOGUE_ROUNDS,
+        }));
       }
 
       return { finalStates: currentStates, dialogueRounds, conflictResolved: false };
@@ -2172,6 +2644,133 @@ module.exports = {
       });
 
       return response;
+    },
+
+    /**
+     * Persist the CyaContextManager zoom-state for a session into Object Store.
+     * Fire-and-forget (non-blocking) — errors are logged as warnings only.
+     * Namespace: cya_context_states, Key: ctx_{sessionId}
+     * @param {string} sessionId
+     * @param {import('../src/cya-context-manager').CyaContextManager} contextManager
+     */
+    async _persistContextState(sessionId, contextManager) {
+      if (!sessionId || !contextManager) return;
+      const state = contextManager.serialize();
+      this.broker.call('object-store.put', {
+        namespace: 'cya_context_states',
+        key: `ctx_${sessionId}`,
+        payload: {
+          ...state,
+          savedAt: new Date().toISOString(),
+          sessionId,
+        },
+      }).catch((err) =>
+        this.logger.warn('[ContextManager] persist failed (non-blocking):', err.message)
+      );
+    },
+
+    /**
+     * Restore a CyaContextManager from Object Store for a session.
+     * Returns null if state not found, deserialization fails, or graph is incompatible.
+     * @param {string} sessionId
+     * @param {import('graphology').Graph} ontologyGraph
+     * @returns {Promise<import('../src/cya-context-manager').CyaContextManager|null>}
+     */
+    async _restoreContextState(sessionId, ontologyGraph) {
+      if (!sessionId || !ontologyGraph) return null;
+      try {
+        const { CyaContextManager } = require('../src/cya-context-manager');
+        const result = await this.broker.call('object-store.get', {
+          namespace: 'cya_context_states',
+          key: `ctx_${sessionId}`,
+        });
+        if (!result?.payload) return null;
+        const cm = CyaContextManager.deserialize(result.payload, ontologyGraph);
+        if (!cm.isCompatibleWith(ontologyGraph)) {
+          this.logger.info('[ContextManager] state incompatible with current graph, rebuilding');
+          return null;
+        }
+        return cm;
+      } catch {
+        return null;
+      }
+    },
+
+    /**
+     * Emit and persist an A2A message envelope.
+     * Fire-and-forget for persistence; validates before emit.
+     *
+     * @param {object} msg - A2AMessage envelope from cya-a2a-protocol
+     */
+    async _emitA2AMessage(msg) {
+      a2a.validateMessage(msg);
+      this.broker.emit(msg.eventName, msg);
+      this.broker.call('object-store.put', {
+        namespace: a2a.A2A_NAMESPACE,
+        key: msg.messageId,
+        payload: msg,
+      }).catch((err) =>
+        this.logger.warn('[A2A] persist failed (non-blocking):', err.message)
+      );
+    },
+  },
+
+  events: {
+    // A2A-Event-Monitoring: CYA reagiert auf eigene A2A-Events
+    // (Basis für künftige externe Subscriber, z.B. Dashboard-Alerts)
+    'cya.a2a.consensus.failed': {
+      async handler(ctx) {
+        this.logger.warn(
+          '[A2A] Consensus failed for session:',
+          ctx.params.sessionId,
+          '— HITL escalation triggered'
+        );
+        // Erweiterungspunkt: Alert, Webhook, Dashboard-Event
+      },
+    },
+    'cya.a2a.conflict.detected': {
+      async handler(ctx) {
+        this.logger.info(
+          '[A2A] Conflict detected in session:',
+          ctx.params.sessionId,
+          '— blockers:', ctx.params.payload && ctx.params.payload.blockers
+        );
+      },
+    },
+
+    // ── Ontologie-Graph Cache Events (v0.36.0) ────────────────────────────────
+    'cya.ontology.graph.built': {
+      handler(ctx) {
+        this.logger.info(
+          '[OntologyGraph] Built and cached:',
+          ctx.params.cacheKey,
+          `(${ctx.params.nodeCount} nodes, ${ctx.params.edgeCount} edges)`
+        );
+      },
+    },
+    'cya.ontology.graph.invalidated': {
+      handler(ctx) {
+        this.logger.info(
+          '[OntologyGraph] Cache invalidated for operator:',
+          ctx.params.operatorId
+        );
+      },
+    },
+
+    // ── MaStR-Monitor Auto-Invalidierung (v0.36.0) ───────────────────────────
+    'mastr-monitor.delta.detected': {
+      // Automatische Cache-Invalidierung wenn MaStR-Delta erkannt
+      async handler(ctx) {
+        const operatorId = ctx.params?.operator || ctx.params?.bdewCode;
+        if (!operatorId) return;
+        const key = graphCache.buildKey(operatorId);
+        await graphCache.invalidate(key, this.broker.call.bind(this.broker))
+          .catch(() => null);
+        this.logger.info(
+          '[OntologyGraph] Auto-invalidated after MaStR delta for:',
+          operatorId
+        );
+      },
     },
   },
 };

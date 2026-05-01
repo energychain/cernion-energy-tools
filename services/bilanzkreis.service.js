@@ -480,7 +480,7 @@ module.exports = {
           });
         }
 
-        const readiness = calculateSettlementReadiness({ participants: participantStatus });
+        const readiness = calculateSettlementReadiness({ participants: participantStatus }, bilanzkreis);
 
         return {
           ...readiness,

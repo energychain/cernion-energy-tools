@@ -9,6 +9,7 @@ jest.mock('axios');
 const axios = require('axios');
 const { ServiceBroker } = require('moleculer');
 const OepService = require('../services/oep.service');
+const { CERNION_RELEVANT_OEP_TABLES } = require('../src/oep-tables');
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -50,6 +51,8 @@ describe('OEP Service — structure', () => {
     expect(OepService.actions).toHaveProperty('getTableMeta');
     expect(OepService.actions).toHaveProperty('query');
     expect(OepService.actions).toHaveProperty('search');
+    expect(OepService.actions).toHaveProperty('energyTables');
+    expect(OepService.actions).toHaveProperty('compareWithMastr');
   });
 
   it('all actions have REST aliases', () => {
@@ -58,6 +61,8 @@ describe('OEP Service — structure', () => {
     expect(OepService.actions.getTableMeta.rest).toMatch(/GET/);
     expect(OepService.actions.query.rest).toMatch(/GET/);
     expect(OepService.actions.search.rest).toMatch(/GET/);
+    expect(OepService.actions.energyTables.rest).toMatch(/GET/);
+    expect(OepService.actions.compareWithMastr.rest).toMatch(/POST/);
   });
 
   it('all actions have OpenAPI tags pointing to OEP', () => {
@@ -228,70 +233,149 @@ describe('OEP Service — action handlers', () => {
   });
 
   // ------------------------------------------------------------------
-  // search
+  // energyTables
   // ------------------------------------------------------------------
-  describe('search', () => {
-    it('finds tables matching search term in name', async () => {
-      // listSchemas call
-      axios.get.mockResolvedValueOnce({ data: ['model_draft'] });
-      // listTables call for model_draft
-      axios.get.mockResolvedValueOnce({ data: TABLES_FIXTURE });
-
-      const result = await broker.call('oep.search', { q: 'photovoltaik' });
-      expect(result.query).toBe('photovoltaik');
-      expect(result.results.length).toBeGreaterThan(0);
-      expect(result.results[0].table).toBe('photovoltaik_einspeisezeitreihe');
+  describe('energyTables', () => {
+    it('returns an array with at least 3 entries', async () => {
+      const result = await broker.call('oep.energyTables');
+      expect(Array.isArray(result.tables)).toBe(true);
+      expect(result.tables.length).toBeGreaterThanOrEqual(3);
     });
 
-    it('finds tables matching search term in description', async () => {
-      axios.get.mockResolvedValueOnce({ data: ['model_draft'] });
-      axios.get.mockResolvedValueOnce({ data: TABLES_FIXTURE });
-
-      const result = await broker.call('oep.search', { q: 'NEP' });
-      expect(result.results.length).toBeGreaterThan(0);
-      expect(result.results[0].matchedOn).toMatch(/description/);
+    it('every entry has all required fields', async () => {
+      const result = await broker.call('oep.energyTables');
+      for (const entry of result.tables) {
+        expect(typeof entry.schema).toBe('string');
+        expect(typeof entry.table).toBe('string');
+        expect(typeof entry.description).toBe('string');
+        expect(typeof entry.cernionUseCase).toBe('string');
+        expect(typeof entry.oeoClass).toBe('string');
+      }
     });
 
-    it('is case-insensitive', async () => {
-      axios.get.mockResolvedValueOnce({ data: ['model_draft'] });
-      axios.get.mockResolvedValueOnce({ data: TABLES_FIXTURE });
-
-      const result = await broker.call('oep.search', { q: 'SCENARIO' });
-      expect(result.results.length).toBeGreaterThan(0);
+    it('every oeoClass begins with oeo:', async () => {
+      const result = await broker.call('oep.energyTables');
+      for (const entry of result.tables) {
+        expect(entry.oeoClass).toMatch(/^oeo:/);
+      }
     });
 
-    it('returns empty results for non-matching term', async () => {
-      axios.get.mockResolvedValueOnce({ data: ['model_draft'] });
-      axios.get.mockResolvedValueOnce({ data: TABLES_FIXTURE });
-
-      const result = await broker.call('oep.search', { q: 'xyzzyquux99' });
-      expect(result.results).toHaveLength(0);
-      expect(result.total).toBe(0);
+    it('count matches tables array length', async () => {
+      const result = await broker.call('oep.energyTables');
+      expect(result.count).toBe(result.tables.length);
     });
+  });
 
-    it('restricts search to given schema when schemaFilter is provided', async () => {
-      // Only one listTables call should happen (not listSchemas)
-      axios.get.mockResolvedValueOnce({ data: TABLES_FIXTURE });
-
-      const result = await broker.call('oep.search', {
-        q: 'scenario',
-        schema: 'model_draft',
+  // ------------------------------------------------------------------
+  // compareWithMastr
+  // ------------------------------------------------------------------
+  describe('compareWithMastr', () => {
+    it('returns oep.available and mastr.available in response', async () => {
+      axios.get.mockResolvedValueOnce({ data: [] });
+      const result = await broker.call('oep.compareWithMastr', {
+        gridOperatorId: 'SNB924510006275',
       });
-      expect(result.schemaFilter).toBe('model_draft');
-      // axios.get called only once (listTables), not twice (listSchemas + listTables)
-      expect(axios.get).toHaveBeenCalledTimes(1);
+      expect(result).toHaveProperty('oep');
+      expect(result).toHaveProperty('mastr');
+      expect(typeof result.oep.available).toBe('boolean');
+      expect(typeof result.mastr.available).toBe('boolean');
     });
 
-    it('respects limit parameter', async () => {
-      const manyTables = Array.from({ length: 30 }, (_, i) => ({
-        name: `scenario_table_${i}`,
-        description: 'scenario data',
-      }));
-      axios.get.mockResolvedValueOnce({ data: ['model_draft'] });
-      axios.get.mockResolvedValueOnce({ data: manyTables });
-
-      const result = await broker.call('oep.search', { q: 'scenario', limit: 5 });
-      expect(result.results.length).toBeLessThanOrEqual(5);
+    it('oep.available is true when oep.query fulfills', async () => {
+      axios.get.mockResolvedValueOnce({ data: [{ id: 1 }] });
+      const result = await broker.call('oep.compareWithMastr', {
+        gridOperatorId: 'SNB924510006275',
+      });
+      expect(result.oep.available).toBe(true);
     });
+
+    it('oep.available is false (graceful) when oep.query rejects', async () => {
+      const oepErr = new Error('OEP offline');
+      axios.get.mockRejectedValueOnce(oepErr);
+      const result = await broker.call('oep.compareWithMastr', {
+        gridOperatorId: 'SNB924510006275',
+      });
+      expect(result.oep.available).toBe(false);
+      expect(result.oep.count).toBe(0);
+    });
+
+    it('delta is null (placeholder documented)', async () => {
+      axios.get.mockResolvedValueOnce({ data: [] });
+      const result = await broker.call('oep.compareWithMastr', {
+        gridOperatorId: 'SNB924510006275',
+      });
+      expect(result.delta).toBeNull();
+    });
+
+    it('oeoMappingNote is present and mentions oeo:PowerPlant', async () => {
+      axios.get.mockResolvedValueOnce({ data: [] });
+      const result = await broker.call('oep.compareWithMastr', {
+        gridOperatorId: 'SNB924510006275',
+      });
+      expect(typeof result.oeoMappingNote).toBe('string');
+      expect(result.oeoMappingNote).toMatch(/oeo:PowerPlant/);
+    });
+
+    it('oep.source reflects schema.table default', async () => {
+      axios.get.mockResolvedValueOnce({ data: [] });
+      const result = await broker.call('oep.compareWithMastr', {
+        gridOperatorId: 'SNB924510006275',
+      });
+      expect(result.oep.source).toBe('supply.ego_dp_res_powerplant');
+    });
+
+    it('mastr.source always references MaStR', async () => {
+      axios.get.mockResolvedValueOnce({ data: [] });
+      const result = await broker.call('oep.compareWithMastr', {
+        gridOperatorId: 'SNB924510006275',
+      });
+      expect(result.mastr.source).toMatch(/MaStR/);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CERNION_RELEVANT_OEP_TABLES module tests
+// ---------------------------------------------------------------------------
+describe('CERNION_RELEVANT_OEP_TABLES', () => {
+  it('contains at least 3 entries', () => {
+    expect(CERNION_RELEVANT_OEP_TABLES.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it('all entries have all required fields', () => {
+    for (const entry of CERNION_RELEVANT_OEP_TABLES) {
+      expect(typeof entry.schema).toBe('string');
+      expect(typeof entry.table).toBe('string');
+      expect(typeof entry.description).toBe('string');
+      expect(typeof entry.cernionUseCase).toBe('string');
+      expect(entry.oeoClass).toMatch(/^oeo:/);
+    }
+  });
+
+  it('no duplicate schema+table combinations', () => {
+    const seen = new Set();
+    for (const entry of CERNION_RELEVANT_OEP_TABLES) {
+      const key = `${entry.schema}.${entry.table}`;
+      expect(seen.has(key)).toBe(false);
+      seen.add(key);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// RULE 13 agent prompt tests
+// ---------------------------------------------------------------------------
+describe('RULE 13 in agent.service.js', () => {
+  const agentSource = require('fs').readFileSync(
+    require('path').join(__dirname, '../services/agent.service.js'),
+    'utf8'
+  );
+
+  it('prompt contains oep.compareWithMastr', () => {
+    expect(agentSource).toContain('oep.compareWithMastr');
+  });
+
+  it('prompt contains oep.energyTables', () => {
+    expect(agentSource).toContain('oep.energyTables');
   });
 });

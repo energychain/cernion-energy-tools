@@ -342,15 +342,48 @@ const euroTranslations = {
 
 /**
  * Top-performing VNBs for peer comparison (CR-83).
- * Provides concrete names for benchmarking, not just abstract medians.
+ * Provides neutral size-class references for benchmarking (Fix C, v0.37.1).
+ * No real VNB names — anonymous placeholders prevent bias toward specific operators.
+ *
+ * Thresholds (totalInstallations):
+ *   < 500      → Klein-VNB  (typical rural Gemeindewerk)
+ *   500–2000   → Mittel-VNB (typical Stadtwerk)
+ *   > 2000     → Groß-VNB  (regional / überregional)
  */
+function getPeerReference(totalInstallations) {
+  if (totalInstallations === null || totalInstallations === undefined) {
+    return {
+      ee_ms:        { name: 'Vergleichbarer VNB (Mittel)', wochen: 5 },
+      verbrauch_ms: { name: 'Vergleichbarer VNB (Mittel)', wochen: 6 },
+      label: 'Mittel',
+    };
+  }
+  const n = Number(totalInstallations);
+  if (n < 500) {
+    return {
+      ee_ms:        { name: 'Vergleichbarer VNB (Klein)', wochen: 4 },
+      verbrauch_ms: { name: 'Vergleichbarer VNB (Klein)', wochen: 5 },
+      label: 'Klein',
+    };
+  }
+  if (n <= 2000) {
+    return {
+      ee_ms:        { name: 'Vergleichbarer VNB (Mittel)', wochen: 5 },
+      verbrauch_ms: { name: 'Vergleichbarer VNB (Mittel)', wochen: 6 },
+      label: 'Mittel',
+    };
+  }
+  return {
+    ee_ms:        { name: 'Vergleichbarer VNB (Groß)', wochen: 6 },
+    verbrauch_ms: { name: 'Vergleichbarer VNB (Groß)', wochen: 7 },
+    label: 'Groß',
+  };
+}
+
+// Keep the legacy constant for non-benchmark contexts (e.g. Section 5 detail rows).
 const peerComparison = {
-  ee_ms: {
-    top_performer: { name: 'Stadtwerke Waiblingen', wochen: 4, bnr: '10000726' },
-  },
-  verbrauch_ms: {
-    top_performer: { name: 'Gemeindewerke Baiersbronn', wochen: 5, bnr: '10001510' },
-  },
+  ee_ms:        { top_performer: { name: 'Vergleichbarer VNB (Mittel)', wochen: 5, bnr: null } },
+  verbrauch_ms: { top_performer: { name: 'Vergleichbarer VNB (Mittel)', wochen: 6, bnr: null } },
 };
 
 // ─── Glossary Definitions (CR-84) ─────────────────────────────────────────────
@@ -2408,7 +2441,7 @@ function renderNestExplainer(
   `;
 }
 
-function renderSection5(s5, utilityName = 'Stadtwerke') {
+function renderSection5(s5, utilityName = 'Stadtwerke', totalInstallations = null) {
   const bm = safeData(s5, 'benchmarkVnb');
   const ad = safeData(s5, 'anschlussdauer');
   const di = safeData(s5, 'digitalisierungsindex');
@@ -2911,7 +2944,8 @@ function renderSection5(s5, utilityName = 'Stadtwerke') {
       bundesMedian,
       diMedian,
       segmentData.find((s) => s.key === 'ee_ms')?.gesamt ?? null,
-      segmentData.find((s) => s.key === 'verbrauch_ms')?.gesamt ?? null
+      segmentData.find((s) => s.key === 'verbrauch_ms')?.gesamt ?? null,
+      totalInstallations
     )}
     ${renderSourceNote(['BNetzA EWK (cernion_ewk_monitoring)', 'Cernion German Grid (cernion_grid_benchmarking)', 'MaStR (cernion_installations_local)'])}`;
 }
@@ -3028,7 +3062,8 @@ function renderPeerBenchmarkBlock(
   bundesMedian,
   diMedian,
   eeMsWeeks = null,
-  verbrauchMsWeeks = null
+  verbrauchMsWeeks = null,
+  totalInstallations = null
 ) {
   if (!bmJson && !diJson) return '';
 
@@ -3132,8 +3167,8 @@ function renderPeerBenchmarkBlock(
       </script>`;
   }
 
-  const eePeer = peerComparison.ee_ms?.top_performer;
-  const vmPeer = peerComparison.verbrauch_ms?.top_performer;
+  const eePeer = getPeerReference(totalInstallations).ee_ms;
+  const vmPeer = getPeerReference(totalInstallations).verbrauch_ms;
   const peerReferenceHtml = `
     <div style="margin-top:2.5mm;padding:2.5mm 3mm;background:#f8f9fa;border-left:3px solid #95a5a6;border-radius:0 3px 3px 0;font-size:8.3pt;line-height:1.55;color:#495057;">
       <strong>Konkreter Peer-Vergleich (CR-83):</strong><br>
@@ -4008,7 +4043,16 @@ function buildHtmlReport(reportData) {
   ${renderSection4(section4)}
 
   <!-- Section 5 -->
-  ${renderSection5(section5, utilityName)}
+  ${renderSection5(section5, utilityName, (() => {
+    // Fix C (v0.37.1): derive totalInstallations for peer size-class selection.
+    // Prefer section7 operatorPortfolio, fall back to section2 pvLocal stats.
+    const opData = safeData(section7, 'operatorPortfolio');
+    const pvData = safeData(section2, 'pvLocal');
+    return getVal(opData, 'totalInstallations', 'count', 'total') ??
+           pvData?.stats?.total ??
+           pvData?.stats?.totalCount ??
+           null;
+  })())}
 
   <!-- Section 6 -->
   ${renderSection6(section6)}
@@ -4081,4 +4125,4 @@ function summarizeForReport(result, sectionKey) {
   return { [sectionKey]: summary };
 }
 
-module.exports = { buildHtmlReport, summarizeForReport, escapeHtml };
+module.exports = { buildHtmlReport, summarizeForReport, escapeHtml, getPeerReference };
