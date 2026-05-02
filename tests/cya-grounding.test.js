@@ -8,8 +8,18 @@ describe('cya-grounding', () => {
       context: { location: 'Mannheim' },
       retrieval: {
         items: [
-          { ok: true, focusArea: 'capacity', answer: 'Netzkapazität ist angespannt.', sources: ['mastr'] },
-          { ok: true, focusArea: 'compliance', answer: 'Regulatorische Anforderungen steigen.', sources: ['bnetza'] },
+          {
+            ok: true,
+            focusArea: 'capacity',
+            answer: 'Netzkapazität ist angespannt.',
+            sources: ['mastr'],
+          },
+          {
+            ok: true,
+            focusArea: 'compliance',
+            answer: 'Regulatorische Anforderungen steigen.',
+            sources: ['bnetza'],
+          },
         ],
       },
       regulatoryGraph: { signals: [{ ruleId: 'HIGH_CURTAILMENT', severity: 'warning' }] },

@@ -212,7 +212,7 @@ describe('appendLog', () => {
     const id = jobStore.createJob({ service: 's', action: 'a' });
     jobStore.appendLog(id, 'step_a', 20, 'Step A done');
     jobStore.appendLog(id, 'step_b', 60, 'Step B done');
-    jobStore.appendLog(id, 'done',   100, 'Finished');
+    jobStore.appendLog(id, 'done', 100, 'Finished');
     const job = jobStore.getJob(id);
     expect(job.logs).toHaveLength(3);
     expect(job.logs[2].phase).toBe('done');
@@ -254,7 +254,10 @@ describe('startJob', () => {
       const result = await jobStore.startJob(
         ctx,
         { service: 'svc', action: 'act' },
-        async (jobId) => { expect(jobId).toBeNull(); return { data: 'direct' }; }
+        async (jobId) => {
+          expect(jobId).toBeNull();
+          return { data: 'direct' };
+        }
       );
       expect(result).toEqual({ data: 'direct' });
     });
@@ -278,11 +281,9 @@ describe('startJob', () => {
   describe('REST gateway call ($gateway = true)', () => {
     it('should return a 202 job descriptor immediately', async () => {
       const ctx = { meta: { $gateway: true } };
-      const result = await jobStore.startJob(
-        ctx,
-        { service: 'svc', action: 'act' },
-        async () => ({ data: 'result' })
-      );
+      const result = await jobStore.startJob(ctx, { service: 'svc', action: 'act' }, async () => ({
+        data: 'result',
+      }));
       expect(result.status).toBe('queued');
       expect(result.jobId).toBeDefined();
       expect(result.statusUrl).toMatch(/^\/api\/jobs\//);
@@ -304,11 +305,9 @@ describe('startJob', () => {
 
     it('should create a job file on disk', async () => {
       const ctx = { meta: { $gateway: true } };
-      const res = await jobStore.startJob(
-        ctx,
-        { service: 'svc', action: 'act' },
-        async () => ({ ok: true })
-      );
+      const res = await jobStore.startJob(ctx, { service: 'svc', action: 'act' }, async () => ({
+        ok: true,
+      }));
       const { jobId } = res;
       const job = jobStore.getJob(jobId);
       expect(job).not.toBeNull();
@@ -320,10 +319,8 @@ describe('startJob', () => {
       const ctx = { meta: { $gateway: true } };
       const payload = { magic: 42 };
       // Worker resolves on next tick
-      const res = await jobStore.startJob(
-        ctx,
-        { service: 's', action: 'a' },
-        () => Promise.resolve(payload)
+      const res = await jobStore.startJob(ctx, { service: 's', action: 'a' }, () =>
+        Promise.resolve(payload)
       );
       // Wait for fire-and-forget worker
       await new Promise((r) => setTimeout(r, 30));
@@ -333,10 +330,8 @@ describe('startJob', () => {
 
     it('should mark job as "error" when worker rejects', async () => {
       const ctx = { meta: { $gateway: true } };
-      const res = await jobStore.startJob(
-        ctx,
-        { service: 's', action: 'a' },
-        () => Promise.reject(new Error('boom'))
+      const res = await jobStore.startJob(ctx, { service: 's', action: 'a' }, () =>
+        Promise.reject(new Error('boom'))
       );
       await new Promise((r) => setTimeout(r, 30));
       const job = jobStore.getJob(res.jobId);

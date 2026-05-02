@@ -12,48 +12,90 @@ function buildConsensusLog(sessionId = 'ses_001') {
   const t = (offsetMs) => new Date(1_700_000_000_000 + offsetMs).toISOString();
   return [
     {
-      messageId: 'msg-1', eventName: 'cya.a2a.persona.evaluated',
-      sessionId, fromPersona: 'technical', toPersona: 'orchestrator',
+      messageId: 'msg-1',
+      eventName: 'cya.a2a.persona.evaluated',
+      sessionId,
+      fromPersona: 'technical',
+      toPersona: 'orchestrator',
       payload: { verdict: 'approve', summary: 'Technisch machbar.' },
-      timestamp: t(0), protocolVersion: '1.0',
+      timestamp: t(0),
+      protocolVersion: '1.0',
     },
     {
-      messageId: 'msg-2', eventName: 'cya.a2a.persona.evaluated',
-      sessionId, fromPersona: 'commercial', toPersona: 'orchestrator',
+      messageId: 'msg-2',
+      eventName: 'cya.a2a.persona.evaluated',
+      sessionId,
+      fromPersona: 'commercial',
+      toPersona: 'orchestrator',
       payload: { verdict: 'reject', summary: 'Kosten zu hoch.' },
-      timestamp: t(1000), protocolVersion: '1.0',
+      timestamp: t(1000),
+      protocolVersion: '1.0',
     },
     {
-      messageId: 'msg-3', eventName: 'cya.a2a.persona.evaluated',
-      sessionId, fromPersona: 'compliance', toPersona: 'orchestrator',
+      messageId: 'msg-3',
+      eventName: 'cya.a2a.persona.evaluated',
+      sessionId,
+      fromPersona: 'compliance',
+      toPersona: 'orchestrator',
       payload: { verdict: 'approve', summary: 'Konform.' },
-      timestamp: t(2000), protocolVersion: '1.0',
+      timestamp: t(2000),
+      protocolVersion: '1.0',
     },
     {
-      messageId: 'msg-4', eventName: 'cya.a2a.conflict.detected',
-      sessionId, fromPersona: 'orchestrator', toPersona: null,
-      payload: { blockers: ['commercial'], approvers: ['technical', 'compliance'],
-        conflictTriggers: ['HIGH_CURTAILMENT', 'COST_THRESHOLD'] },
-      timestamp: t(3000), protocolVersion: '1.0',
+      messageId: 'msg-4',
+      eventName: 'cya.a2a.conflict.detected',
+      sessionId,
+      fromPersona: 'orchestrator',
+      toPersona: null,
+      payload: {
+        blockers: ['commercial'],
+        approvers: ['technical', 'compliance'],
+        conflictTriggers: ['HIGH_CURTAILMENT', 'COST_THRESHOLD'],
+      },
+      timestamp: t(3000),
+      protocolVersion: '1.0',
     },
     {
-      messageId: 'msg-5', eventName: 'cya.a2a.negotiation.round',
-      sessionId, fromPersona: 'orchestrator', toPersona: null,
-      payload: { round: 1, blockers: ['commercial'], triggers: ['COST_THRESHOLD'],
-        consensusReached: false, unresolvedConflicts: ['COST_THRESHOLD'] },
-      timestamp: t(4000), protocolVersion: '1.0',
+      messageId: 'msg-5',
+      eventName: 'cya.a2a.negotiation.round',
+      sessionId,
+      fromPersona: 'orchestrator',
+      toPersona: null,
+      payload: {
+        round: 1,
+        blockers: ['commercial'],
+        triggers: ['COST_THRESHOLD'],
+        consensusReached: false,
+        unresolvedConflicts: ['COST_THRESHOLD'],
+      },
+      timestamp: t(4000),
+      protocolVersion: '1.0',
     },
     {
-      messageId: 'msg-6', eventName: 'cya.a2a.negotiation.round',
-      sessionId, fromPersona: 'orchestrator', toPersona: null,
-      payload: { round: 2, blockers: [], triggers: [], consensusReached: true, unresolvedConflicts: [] },
-      timestamp: t(5000), protocolVersion: '1.0',
+      messageId: 'msg-6',
+      eventName: 'cya.a2a.negotiation.round',
+      sessionId,
+      fromPersona: 'orchestrator',
+      toPersona: null,
+      payload: {
+        round: 2,
+        blockers: [],
+        triggers: [],
+        consensusReached: true,
+        unresolvedConflicts: [],
+      },
+      timestamp: t(5000),
+      protocolVersion: '1.0',
     },
     {
-      messageId: 'msg-7', eventName: 'cya.a2a.consensus.reached',
-      sessionId, fromPersona: 'orchestrator', toPersona: null,
+      messageId: 'msg-7',
+      eventName: 'cya.a2a.consensus.reached',
+      sessionId,
+      fromPersona: 'orchestrator',
+      toPersona: null,
       payload: { narrative: { text: 'Einigung erzielt.' }, round: 2 },
-      timestamp: t(6000), protocolVersion: '1.0',
+      timestamp: t(6000),
+      protocolVersion: '1.0',
     },
   ];
 }
@@ -66,56 +108,106 @@ function buildHitlLog(sessionId = 'ses_002') {
   const t = (offsetMs) => new Date(1_700_100_000_000 + offsetMs).toISOString();
   return [
     {
-      messageId: 'h-1', eventName: 'cya.a2a.persona.evaluated',
-      sessionId, fromPersona: 'technical', toPersona: 'orchestrator',
+      messageId: 'h-1',
+      eventName: 'cya.a2a.persona.evaluated',
+      sessionId,
+      fromPersona: 'technical',
+      toPersona: 'orchestrator',
       payload: { verdict: 'approve', summary: 'OK.' },
-      timestamp: t(0), protocolVersion: '1.0',
+      timestamp: t(0),
+      protocolVersion: '1.0',
     },
     {
-      messageId: 'h-2', eventName: 'cya.a2a.persona.evaluated',
-      sessionId, fromPersona: 'commercial', toPersona: 'orchestrator',
+      messageId: 'h-2',
+      eventName: 'cya.a2a.persona.evaluated',
+      sessionId,
+      fromPersona: 'commercial',
+      toPersona: 'orchestrator',
       payload: { verdict: 'reject', summary: 'Ablehnung.' },
-      timestamp: t(500), protocolVersion: '1.0',
+      timestamp: t(500),
+      protocolVersion: '1.0',
     },
     {
-      messageId: 'h-3', eventName: 'cya.a2a.persona.evaluated',
-      sessionId, fromPersona: 'compliance', toPersona: 'orchestrator',
+      messageId: 'h-3',
+      eventName: 'cya.a2a.persona.evaluated',
+      sessionId,
+      fromPersona: 'compliance',
+      toPersona: 'orchestrator',
       payload: { verdict: 'reject', summary: 'Regulatorisch unklar.' },
-      timestamp: t(1000), protocolVersion: '1.0',
+      timestamp: t(1000),
+      protocolVersion: '1.0',
     },
     {
-      messageId: 'h-4', eventName: 'cya.a2a.conflict.detected',
-      sessionId, fromPersona: 'orchestrator', toPersona: null,
-      payload: { blockers: ['commercial', 'compliance'],
-        approvers: ['technical'], conflictTriggers: ['NOVA_BLOCKED'] },
-      timestamp: t(2000), protocolVersion: '1.0',
+      messageId: 'h-4',
+      eventName: 'cya.a2a.conflict.detected',
+      sessionId,
+      fromPersona: 'orchestrator',
+      toPersona: null,
+      payload: {
+        blockers: ['commercial', 'compliance'],
+        approvers: ['technical'],
+        conflictTriggers: ['NOVA_BLOCKED'],
+      },
+      timestamp: t(2000),
+      protocolVersion: '1.0',
     },
     {
-      messageId: 'h-5', eventName: 'cya.a2a.negotiation.round',
-      sessionId, fromPersona: 'orchestrator', toPersona: null,
-      payload: { round: 1, blockers: ['commercial', 'compliance'],
-        triggers: ['NOVA_BLOCKED'], consensusReached: false, unresolvedConflicts: ['NOVA_BLOCKED'] },
-      timestamp: t(3000), protocolVersion: '1.0',
+      messageId: 'h-5',
+      eventName: 'cya.a2a.negotiation.round',
+      sessionId,
+      fromPersona: 'orchestrator',
+      toPersona: null,
+      payload: {
+        round: 1,
+        blockers: ['commercial', 'compliance'],
+        triggers: ['NOVA_BLOCKED'],
+        consensusReached: false,
+        unresolvedConflicts: ['NOVA_BLOCKED'],
+      },
+      timestamp: t(3000),
+      protocolVersion: '1.0',
     },
     {
-      messageId: 'h-6', eventName: 'cya.a2a.negotiation.round',
-      sessionId, fromPersona: 'orchestrator', toPersona: null,
-      payload: { round: 2, blockers: ['commercial'], triggers: ['NOVA_BLOCKED'],
-        consensusReached: false, unresolvedConflicts: ['NOVA_BLOCKED'] },
-      timestamp: t(4000), protocolVersion: '1.0',
+      messageId: 'h-6',
+      eventName: 'cya.a2a.negotiation.round',
+      sessionId,
+      fromPersona: 'orchestrator',
+      toPersona: null,
+      payload: {
+        round: 2,
+        blockers: ['commercial'],
+        triggers: ['NOVA_BLOCKED'],
+        consensusReached: false,
+        unresolvedConflicts: ['NOVA_BLOCKED'],
+      },
+      timestamp: t(4000),
+      protocolVersion: '1.0',
     },
     {
-      messageId: 'h-7', eventName: 'cya.a2a.negotiation.round',
-      sessionId, fromPersona: 'orchestrator', toPersona: null,
-      payload: { round: 3, blockers: ['commercial'], triggers: ['NOVA_BLOCKED'],
-        consensusReached: false, unresolvedConflicts: ['NOVA_BLOCKED'] },
-      timestamp: t(5000), protocolVersion: '1.0',
+      messageId: 'h-7',
+      eventName: 'cya.a2a.negotiation.round',
+      sessionId,
+      fromPersona: 'orchestrator',
+      toPersona: null,
+      payload: {
+        round: 3,
+        blockers: ['commercial'],
+        triggers: ['NOVA_BLOCKED'],
+        consensusReached: false,
+        unresolvedConflicts: ['NOVA_BLOCKED'],
+      },
+      timestamp: t(5000),
+      protocolVersion: '1.0',
     },
     {
-      messageId: 'h-8', eventName: 'cya.a2a.consensus.failed',
-      sessionId, fromPersona: 'orchestrator', toPersona: null,
+      messageId: 'h-8',
+      eventName: 'cya.a2a.consensus.failed',
+      sessionId,
+      fromPersona: 'orchestrator',
+      toPersona: null,
       payload: { unresolvedConflicts: ['NOVA_BLOCKED'], roundsAttempted: 3, escalation: 'HITL' },
-      timestamp: t(6000), protocolVersion: '1.0',
+      timestamp: t(6000),
+      protocolVersion: '1.0',
     },
   ];
 }
@@ -218,47 +310,32 @@ describe('analyzeLog', () => {
 
 describe('aggregateLogs', () => {
   test('consensusRate = 0.5 bei 1 von 2 Sessions mit Konsens', () => {
-    const analyses = [
-      analyzeLog(buildConsensusLog()),
-      analyzeLog(buildHitlLog()),
-    ];
+    const analyses = [analyzeLog(buildConsensusLog()), analyzeLog(buildHitlLog())];
     const stats = aggregateLogs(analyses);
     expect(stats.consensusRate).toBe(0.5);
   });
 
   test('avgNegotiationRounds korrekt (2+3)/2 = 2.5', () => {
-    const analyses = [
-      analyzeLog(buildConsensusLog()),
-      analyzeLog(buildHitlLog()),
-    ];
+    const analyses = [analyzeLog(buildConsensusLog()), analyzeLog(buildHitlLog())];
     const stats = aggregateLogs(analyses);
     expect(stats.avgNegotiationRounds).toBe(2.5);
   });
 
   test('hitlEscalationRate = 0.5 bei 1 von 2 HITL', () => {
-    const analyses = [
-      analyzeLog(buildConsensusLog()),
-      analyzeLog(buildHitlLog()),
-    ];
+    const analyses = [analyzeLog(buildConsensusLog()), analyzeLog(buildHitlLog())];
     const stats = aggregateLogs(analyses);
     expect(stats.hitlEscalationRate).toBe(0.5);
   });
 
   test('mostFrequentBlocker korrekt', () => {
-    const analyses = [
-      analyzeLog(buildConsensusLog()),
-      analyzeLog(buildHitlLog()),
-    ];
+    const analyses = [analyzeLog(buildConsensusLog()), analyzeLog(buildHitlLog())];
     const stats = aggregateLogs(analyses);
     // commercial erscheint in beiden Logs als Blocker
     expect(stats.mostFrequentBlocker).toBe('commercial');
   });
 
   test('mostFrequentSignal korrekt', () => {
-    const analyses = [
-      analyzeLog(buildConsensusLog()),
-      analyzeLog(buildHitlLog()),
-    ];
+    const analyses = [analyzeLog(buildConsensusLog()), analyzeLog(buildHitlLog())];
     const stats = aggregateLogs(analyses);
     // NOVA_BLOCKED nur im HITL-Log, HIGH_CURTAILMENT+COST_THRESHOLD im Konsens-Log
     expect(typeof stats.mostFrequentSignal).toBe('string');

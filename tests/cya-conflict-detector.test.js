@@ -43,7 +43,11 @@ describe('cya-conflict-detector', () => {
 
     it('detects conflict with conditional approver', () => {
       const states = {
-        compliance: { verdict: 'blocked', summary: 'deadline missed', conflictTriggers: ['regulatory_deadline_missed'] },
+        compliance: {
+          verdict: 'blocked',
+          summary: 'deadline missed',
+          conflictTriggers: ['regulatory_deadline_missed'],
+        },
         technical: { verdict: 'conditional', summary: 'needs upgrade', conflictTriggers: [] },
       };
       const result = detectConflicts(states);
@@ -96,7 +100,11 @@ describe('cya-conflict-detector', () => {
       triggers: ['overload_risk'],
     };
     const states = {
-      technical: { verdict: 'blocked', summary: 'Overload at transformer', conflictTriggers: ['overload_risk'] },
+      technical: {
+        verdict: 'blocked',
+        summary: 'Overload at transformer',
+        conflictTriggers: ['overload_risk'],
+      },
       commercial: { verdict: 'approved', summary: 'ROI positive', conflictTriggers: [] },
     };
     const facts = [

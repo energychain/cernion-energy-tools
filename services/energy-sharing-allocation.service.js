@@ -116,16 +116,21 @@ module.exports = {
       rest: 'POST /allocate',
       timeout: 120_000,
       params: {
-        communityId:               { type: 'string', optional: true, default: '' },
-        validationReportId:        { type: 'string', optional: true, default: '' },
-        generators:                { type: 'array', items: 'object', min: 1 },
-        consumers:                 { type: 'array', items: 'object', min: 1 },
-        dateFrom:                  { type: 'string' },
-        dateTo:                    { type: 'string' },
-        dataSource:                { type: 'enum', values: ['forecast', 'inhouse'], default: 'forecast' },
-        inhouseSourceId:           { type: 'string', optional: true, default: '' },
-        includeRedispatchDeduction: { type: 'boolean', optional: true, default: true, convert: true },
-        gridOperatorId:            { type: 'string', optional: true, default: '' },
+        communityId: { type: 'string', optional: true, default: '' },
+        validationReportId: { type: 'string', optional: true, default: '' },
+        generators: { type: 'array', items: 'object', min: 1 },
+        consumers: { type: 'array', items: 'object', min: 1 },
+        dateFrom: { type: 'string' },
+        dateTo: { type: 'string' },
+        dataSource: { type: 'enum', values: ['forecast', 'inhouse'], default: 'forecast' },
+        inhouseSourceId: { type: 'string', optional: true, default: '' },
+        includeRedispatchDeduction: {
+          type: 'boolean',
+          optional: true,
+          default: true,
+          convert: true,
+        },
+        gridOperatorId: { type: 'string', optional: true, default: '' },
       },
       openapi: {
         summary: 'Calculate 15-min Energy Sharing allocation time-series (§ 42c EnWG)',
@@ -147,16 +152,71 @@ module.exports = {
                 type: 'object',
                 required: ['generators', 'consumers', 'dateFrom', 'dateTo'],
                 properties: {
-                  communityId:    { type: 'string', description: 'External community ID from VNB', example: 'ES-2026-001' },
-                  validationReportId: { type: 'string', description: 'Optional v0.15 validation report UUID — skips redundant generator/consumer validation when set', example: 'a1b2c3d4-...' },
-                  generators:     { type: 'array', items: { type: 'object' }, description: 'Generator list with mastrNummer and sharePercent (must sum to 100)', example: [{ mastrNummer: 'SEE904837264953', sharePercent: 100 }] },
-                  consumers:      { type: 'array', items: { type: 'object' }, description: 'Consumer list with maloId, sharePercent (must sum to 100), optional name', example: [{ maloId: 'DE0001234567890123456789012345678', sharePercent: 100, name: 'Whg. 1' }] },
-                  dateFrom:       { type: 'string', description: 'Start date (inclusive), ISO-8601 date', example: '2026-06-01' },
-                  dateTo:         { type: 'string', description: 'End date (inclusive), ISO-8601 date', example: '2026-06-30' },
-                  dataSource:     { type: 'string', enum: ['forecast', 'inhouse'], default: 'forecast', description: 'Stufe A: synthetic forecast (default); Stufe B: real metering data from inhouse CSV upload' },
-                  inhouseSourceId: { type: 'string', description: 'datasource-cache sourceId for Stufe B (required when dataSource=inhouse)', example: 'pv-generation-es-2026-001' },
-                  includeRedispatchDeduction: { type: 'boolean', default: true, description: 'Apply Redispatch 2.0 deductions (affected intervals → generation = 0)' },
-                  gridOperatorId: { type: 'string', description: 'MaStR grid operator ID (SNB...) for redispatch context lookup', example: 'SNB935578300972' },
+                  communityId: {
+                    type: 'string',
+                    description: 'External community ID from VNB',
+                    example: 'ES-2026-001',
+                  },
+                  validationReportId: {
+                    type: 'string',
+                    description:
+                      'Optional v0.15 validation report UUID — skips redundant generator/consumer validation when set',
+                    example: 'a1b2c3d4-...',
+                  },
+                  generators: {
+                    type: 'array',
+                    items: { type: 'object' },
+                    description:
+                      'Generator list with mastrNummer and sharePercent (must sum to 100)',
+                    example: [{ mastrNummer: 'SEE904837264953', sharePercent: 100 }],
+                  },
+                  consumers: {
+                    type: 'array',
+                    items: { type: 'object' },
+                    description:
+                      'Consumer list with maloId, sharePercent (must sum to 100), optional name',
+                    example: [
+                      {
+                        maloId: 'DE0001234567890123456789012345678',
+                        sharePercent: 100,
+                        name: 'Whg. 1',
+                      },
+                    ],
+                  },
+                  dateFrom: {
+                    type: 'string',
+                    description: 'Start date (inclusive), ISO-8601 date',
+                    example: '2026-06-01',
+                  },
+                  dateTo: {
+                    type: 'string',
+                    description: 'End date (inclusive), ISO-8601 date',
+                    example: '2026-06-30',
+                  },
+                  dataSource: {
+                    type: 'string',
+                    enum: ['forecast', 'inhouse'],
+                    default: 'forecast',
+                    description:
+                      'Stufe A: synthetic forecast (default); Stufe B: real metering data from inhouse CSV upload',
+                  },
+                  inhouseSourceId: {
+                    type: 'string',
+                    description:
+                      'datasource-cache sourceId for Stufe B (required when dataSource=inhouse)',
+                    example: 'pv-generation-es-2026-001',
+                  },
+                  includeRedispatchDeduction: {
+                    type: 'boolean',
+                    default: true,
+                    description:
+                      'Apply Redispatch 2.0 deductions (affected intervals → generation = 0)',
+                  },
+                  gridOperatorId: {
+                    type: 'string',
+                    description: 'MaStR grid operator ID (SNB...) for redispatch context lookup',
+                    example: 'SNB935578300972',
+                  },
                 },
               },
               examples: {
@@ -165,8 +225,16 @@ module.exports = {
                     communityId: 'ES-2026-001',
                     generators: [{ mastrNummer: 'SEE904837264953', sharePercent: 100 }],
                     consumers: [
-                      { maloId: 'DE0001234567890123456789012345678', sharePercent: 30, name: 'Müller' },
-                      { maloId: 'DE0009876543210987654321098765432', sharePercent: 70, name: 'Schmidt' },
+                      {
+                        maloId: 'DE0001234567890123456789012345678',
+                        sharePercent: 30,
+                        name: 'Müller',
+                      },
+                      {
+                        maloId: 'DE0009876543210987654321098765432',
+                        sharePercent: 70,
+                        name: 'Schmidt',
+                      },
                     ],
                     dateFrom: '2026-06-01',
                     dateTo: '2026-06-07',
@@ -180,8 +248,16 @@ module.exports = {
                     communityId: 'ES-2026-002',
                     generators: [{ mastrNummer: 'SEE904837264953', sharePercent: 100 }],
                     consumers: [
-                      { maloId: 'DE0001234567890123456789012345678', sharePercent: 50, name: 'Haus A' },
-                      { maloId: 'DE0009876543210987654321098765432', sharePercent: 50, name: 'Haus B' },
+                      {
+                        maloId: 'DE0001234567890123456789012345678',
+                        sharePercent: 50,
+                        name: 'Haus A',
+                      },
+                      {
+                        maloId: 'DE0009876543210987654321098765432',
+                        sharePercent: 50,
+                        name: 'Haus B',
+                      },
                     ],
                     dateFrom: '2026-06-01',
                     dateTo: '2026-06-07',
@@ -196,7 +272,8 @@ module.exports = {
         },
         responses: {
           200: {
-            description: 'Allocation metadata with per-consumer summaries. Time-series available via /download endpoint.',
+            description:
+              'Allocation metadata with per-consumer summaries. Time-series available via /download endpoint.',
             content: {
               'application/json': {
                 example: {
@@ -209,10 +286,32 @@ module.exports = {
                   redispatchApplied: false,
                   warnings: [],
                   consumers: [
-                    { maloId: 'DE0001234567890123456789012345678', name: 'Müller', sharePercent: 30, totalKWh: 37.62, peakKW: 0.84, zeroIntervals: 288, intervalCount: 672 },
-                    { maloId: 'DE0009876543210987654321098765432', name: 'Schmidt', sharePercent: 70, totalKWh: 87.78, peakKW: 1.96, zeroIntervals: 288, intervalCount: 672 },
+                    {
+                      maloId: 'DE0001234567890123456789012345678',
+                      name: 'Müller',
+                      sharePercent: 30,
+                      totalKWh: 37.62,
+                      peakKW: 0.84,
+                      zeroIntervals: 288,
+                      intervalCount: 672,
+                    },
+                    {
+                      maloId: 'DE0009876543210987654321098765432',
+                      name: 'Schmidt',
+                      sharePercent: 70,
+                      totalKWh: 87.78,
+                      peakKW: 1.96,
+                      zeroIntervals: 288,
+                      intervalCount: 672,
+                    },
                   ],
-                  summary: { totalGenerationKWh: 125.4, totalRedispatchDeductionKWh: 0, totalNetGenerationKWh: 125.4, intervalCount: 672, durationMs: 6500 },
+                  summary: {
+                    totalGenerationKWh: 125.4,
+                    totalRedispatchDeductionKWh: 0,
+                    totalNetGenerationKWh: 125.4,
+                    intervalCount: 672,
+                    durationMs: 6500,
+                  },
                 },
               },
             },
@@ -226,12 +325,21 @@ module.exports = {
         const callOpts = { meta: { ...ctx.meta, $gateway: false } };
 
         // ── Step 1: Input validation ──────────────────────────────────────────
-        const { warnings, generators, consumers } = await this.stepValidateInput(ctx, params, callOpts);
+        const { warnings, generators, consumers } = await this.stepValidateInput(
+          ctx,
+          params,
+          callOpts
+        );
 
         // ── Step 2: Fetch generation time-series ─────────────────────────────
-        const grid = params.dataSource === 'inhouse'
-          ? await this.stepFetchGenerationInhouseCtx(ctx, buildIntervalGrid(params.dateFrom, params.dateTo), params)
-          : await this.stepFetchGeneration(params, generators, token);
+        const grid =
+          params.dataSource === 'inhouse'
+            ? await this.stepFetchGenerationInhouseCtx(
+                ctx,
+                buildIntervalGrid(params.dateFrom, params.dateTo),
+                params
+              )
+            : await this.stepFetchGeneration(params, generators, token);
 
         // ── Step 3: Redispatch deduction ─────────────────────────────────────
         const redispatchApplied = await this.stepRedispatchDeduction(grid, params, token, warnings);
@@ -262,7 +370,10 @@ module.exports = {
           dataSource: params.dataSource || 'forecast',
           inhouseSourceId: params.inhouseSourceId || null,
           gridOperatorId: params.gridOperatorId || null,
-          generators: generators.map((g) => ({ mastrNummer: g.mastrNummer, sharePercent: g.sharePercent })),
+          generators: generators.map((g) => ({
+            mastrNummer: g.mastrNummer,
+            sharePercent: g.sharePercent,
+          })),
           consumers: consumerSummaries,
           summary: totalSummary,
           redispatchApplied,
@@ -304,25 +415,54 @@ module.exports = {
     list: {
       rest: 'GET /allocations',
       params: {
-        communityId:     { type: 'string', optional: true },
-        includeDeleted:  { type: 'boolean', optional: true, default: false, convert: true },
-        limit:           { type: 'number', optional: true, default: 20, convert: true, max: 100 },
+        communityId: { type: 'string', optional: true },
+        includeDeleted: { type: 'boolean', optional: true, default: false, convert: true },
+        limit: { type: 'number', optional: true, default: 20, convert: true, max: 100 },
       },
       openapi: {
         summary: 'List past Energy Sharing allocation records',
-        description: 'Returns allocation metadata records stored in PouchDB, newest first. Soft-deleted records are excluded unless includeDeleted=true.',
+        description:
+          'Returns allocation metadata records stored in PouchDB, newest first. Soft-deleted records are excluded unless includeDeleted=true.',
         tags: ['Energy Sharing Allocation'],
         parameters: [
-          { name: 'communityId', in: 'query', schema: { type: 'string', example: 'ES-2026-001' }, description: 'Filter by external community ID' },
-          { name: 'includeDeleted', in: 'query', schema: { type: 'boolean', default: false }, description: 'Include soft-deleted records (for audit access)' },
-          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 }, description: 'Maximum number of results' },
+          {
+            name: 'communityId',
+            in: 'query',
+            schema: { type: 'string', example: 'ES-2026-001' },
+            description: 'Filter by external community ID',
+          },
+          {
+            name: 'includeDeleted',
+            in: 'query',
+            schema: { type: 'boolean', default: false },
+            description: 'Include soft-deleted records (for audit access)',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'integer', default: 20, maximum: 100 },
+            description: 'Maximum number of results',
+          },
         ],
         responses: {
           200: {
             description: 'Paginated list of allocation metadata summaries',
             content: {
               'application/json': {
-                example: { count: 1, allocations: [{ id: '...', communityId: 'ES-2026-001', dateFrom: '2026-06-01', dateTo: '2026-06-07', dataSource: 'forecast', redispatchApplied: false, createdAt: '2026-06-01T...' }] },
+                example: {
+                  count: 1,
+                  allocations: [
+                    {
+                      id: '...',
+                      communityId: 'ES-2026-001',
+                      dateFrom: '2026-06-01',
+                      dateTo: '2026-06-07',
+                      dataSource: 'forecast',
+                      redispatchApplied: false,
+                      createdAt: '2026-06-01T...',
+                    },
+                  ],
+                },
               },
             },
           },
@@ -381,10 +521,17 @@ module.exports = {
       },
       openapi: {
         summary: 'Get a specific Energy Sharing allocation record by ID',
-        description: 'Returns the full allocation metadata including per-consumer summaries, warnings, and pipeline metadata. Time-series must be re-fetched via /download.',
+        description:
+          'Returns the full allocation metadata including per-consumer summaries, warnings, and pipeline metadata. Time-series must be re-fetched via /download.',
         tags: ['Energy Sharing Allocation'],
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'b2c3d4e5-...' }, description: 'Allocation UUID' },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'b2c3d4e5-...' },
+            description: 'Allocation UUID',
+          },
         ],
         responses: {
           200: { description: 'Full allocation metadata document' },
@@ -412,7 +559,7 @@ module.exports = {
     download: {
       rest: 'GET /allocations/:id/download',
       params: {
-        id:     { type: 'string' },
+        id: { type: 'string' },
         maloId: { type: 'string' },
         format: { type: 'string', optional: true, default: 'csv' },
       },
@@ -424,12 +571,32 @@ module.exports = {
           'KRITIS: time-series is never persisted — this endpoint re-runs the computation from stored metadata.',
         tags: ['Energy Sharing Allocation'],
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'b2c3d4e5-f6a7-b8c9-d0e1-f2a3b4c5d6e7' }, description: 'Allocation UUID' },
-          { name: 'maloId', in: 'query', required: true, schema: { type: 'string', example: 'DE0001234567890123456789012345678' }, description: 'Consumer MaLo-ID to export' },
-          { name: 'format', in: 'query', schema: { type: 'string', default: 'csv' }, description: 'Output format (currently only "csv" supported)' },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'b2c3d4e5-f6a7-b8c9-d0e1-f2a3b4c5d6e7' },
+            description: 'Allocation UUID',
+          },
+          {
+            name: 'maloId',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: 'DE0001234567890123456789012345678' },
+            description: 'Consumer MaLo-ID to export',
+          },
+          {
+            name: 'format',
+            in: 'query',
+            schema: { type: 'string', default: 'csv' },
+            description: 'Output format (currently only "csv" supported)',
+          },
         ],
         responses: {
-          200: { description: 'Semicolon-delimited CSV file, one row per 15-min interval', content: { 'text/csv': {} } },
+          200: {
+            description: 'Semicolon-delimited CSV file, one row per 15-min interval',
+            content: { 'text/csv': {} },
+          },
           404: { description: 'Allocation not found or maloId not part of this allocation' },
         },
       },
@@ -513,7 +680,13 @@ module.exports = {
           'EU AI Act Art. 12 compliance: deletion is non-destructive.',
         tags: ['Energy Sharing Allocation'],
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string' }, description: 'Allocation UUID to soft-delete' },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Allocation UUID to soft-delete',
+          },
         ],
         responses: {
           200: { description: 'Soft-delete confirmed' },
@@ -585,7 +758,9 @@ module.exports = {
       const dateTo = new Date(`${params.dateTo}T00:00:00Z`);
 
       if (isNaN(dateFrom.getTime()) || isNaN(dateTo.getTime())) {
-        throw new Error('Invalid dateFrom or dateTo — expected ISO-8601 date strings (e.g. "2026-06-01")');
+        throw new Error(
+          'Invalid dateFrom or dateTo — expected ISO-8601 date strings (e.g. "2026-06-01")'
+        );
       }
       if (dateFrom > dateTo) {
         throw new Error('dateFrom must be ≤ dateTo');
@@ -595,7 +770,8 @@ module.exports = {
       if (daysDelta > RECOMMENDED_MAX_DAYS) {
         warnings.push({
           code: 'ALLOC_WINDOW_EXCEEDS_RECOMMENDED',
-          message: `Date range spans ${daysDelta} days — recommended maximum is ${RECOMMENDED_MAX_DAYS}. ` +
+          message:
+            `Date range spans ${daysDelta} days — recommended maximum is ${RECOMMENDED_MAX_DAYS}. ` +
             'Calculation may take longer. Consider splitting into monthly batches.',
         });
       }
@@ -606,7 +782,9 @@ module.exports = {
       }
       const genShareSum = generators.reduce((s, g) => s + (g.sharePercent || 0), 0);
       if (Math.abs(genShareSum - 100) > 0.1) {
-        throw new Error(`Generator sharePercent values must sum to 100 (got ${genShareSum.toFixed(2)})`);
+        throw new Error(
+          `Generator sharePercent values must sum to 100 (got ${genShareSum.toFixed(2)})`
+        );
       }
 
       // ── Consumer validation ─────────────────────────────────────────────
@@ -615,13 +793,17 @@ module.exports = {
       }
       const conShareSum = consumers.reduce((s, c) => s + (c.sharePercent || 0), 0);
       if (Math.abs(conShareSum - 100) > 0.1) {
-        throw new Error(`Consumer sharePercent values must sum to 100 (got ${conShareSum.toFixed(2)})`);
+        throw new Error(
+          `Consumer sharePercent values must sum to 100 (got ${conShareSum.toFixed(2)})`
+        );
       }
 
       const seenMalos = new Set();
       for (const consumer of consumers) {
         if (!MALO_REGEX.test(consumer.maloId)) {
-          throw new Error(`Invalid MaLo-ID format: "${consumer.maloId}" — expected DE followed by 31 digits`);
+          throw new Error(
+            `Invalid MaLo-ID format: "${consumer.maloId}" — expected DE followed by 31 digits`
+          );
         }
         if (seenMalos.has(consumer.maloId)) {
           throw new Error(`Duplicate MaLo-ID: ${consumer.maloId}`);
@@ -670,10 +852,11 @@ module.exports = {
      */
     async stepFetchGeneration(params, generators, token) {
       const grid = buildIntervalGrid(params.dateFrom, params.dateTo);
-      const daysDelta = Math.round(
-        (new Date(`${params.dateTo}T00:00:00Z`) - new Date(`${params.dateFrom}T00:00:00Z`)) /
-          (24 * 60 * 60 * 1000)
-      ) + 1;
+      const daysDelta =
+        Math.round(
+          (new Date(`${params.dateTo}T00:00:00Z`) - new Date(`${params.dateFrom}T00:00:00Z`)) /
+            (24 * 60 * 60 * 1000)
+        ) + 1;
 
       if (params.dataSource === 'inhouse') {
         return this.stepFetchGenerationInhouse(grid, params);
@@ -684,12 +867,16 @@ module.exports = {
       for (const gen of generators) {
         let forecastIntervals = [];
         try {
-          const result = await this.callMcp('mastr_generation_forecast', {
-            installationMastrNummer: gen.mastrNummer,
-            startDate: params.dateFrom,
-            forecastDays: daysDelta,
-            resolution: '15min',
-          }, token);
+          const result = await this.callMcp(
+            'mastr_generation_forecast',
+            {
+              installationMastrNummer: gen.mastrNummer,
+              startDate: params.dateFrom,
+              forecastDays: daysDelta,
+              resolution: '15min',
+            },
+            token
+          );
 
           // mastr_generation_forecast returns { data: [ { timestamp, generationMW, ... } ] }
           const rawIntervals = result?.data || result?.intervals || result?.forecast || [];
@@ -724,10 +911,14 @@ module.exports = {
       }
 
       const callOpts = { meta: { ...ctx.meta, $gateway: false } };
-      const response = await ctx.call('datasource-cache.query', {
-        sourceId: params.inhouseSourceId,
-        privacyContext: 'internal',
-      }, callOpts);
+      const response = await ctx.call(
+        'datasource-cache.query',
+        {
+          sourceId: params.inhouseSourceId,
+          privacyContext: 'internal',
+        },
+        callOpts
+      );
 
       const rows = response?.data?.rows || response?.rows || [];
       if (rows.length === 0) {
@@ -800,12 +991,16 @@ module.exports = {
 
       let curtailmentWindows = [];
       try {
-        const result = await this.callMcp('netztransparenz_redispatch', {
-          dateFrom: `${params.dateFrom}T00:00:00Z`,
-          dateTo: `${params.dateTo}T23:59:59Z`,
-          includeAnalysis: true,
-          includeCurtailment: true,
-        }, token);
+        const result = await this.callMcp(
+          'netztransparenz_redispatch',
+          {
+            dateFrom: `${params.dateFrom}T00:00:00Z`,
+            dateTo: `${params.dateTo}T23:59:59Z`,
+            includeAnalysis: true,
+            includeCurtailment: true,
+          },
+          token
+        );
 
         // Extract curtailment windows from result
         const events = result?.curtailmentEvents || result?.events || result?.data || [];
@@ -815,10 +1010,13 @@ module.exports = {
               .map((e) => ({ startTime: e.startTime, endTime: e.endTime }))
           : [];
       } catch (err) {
-        this.logger.warn(`stepRedispatchDeduction: redispatch call failed — skipping. ${err.message}`);
+        this.logger.warn(
+          `stepRedispatchDeduction: redispatch call failed — skipping. ${err.message}`
+        );
         warnings.push({
           code: 'ALLOC_REDISPATCH_DATA_UNAVAILABLE',
-          message: `Redispatch data could not be retrieved (${err.message}). No deductions applied. ` +
+          message:
+            `Redispatch data could not be retrieved (${err.message}). No deductions applied. ` +
             'Verify manually if the period included grid curtailment events.',
         });
         return false;
@@ -831,7 +1029,8 @@ module.exports = {
       const deducted = grid.filter((i) => i.redispatchDeductionKWh > 0).length;
       warnings.push({
         code: 'ALLOC_REDISPATCH_DEDUCTION_APPLIED',
-        message: `Redispatch deduction applied to ${deducted} interval(s) based on TSO-level curtailment data. ` +
+        message:
+          `Redispatch deduction applied to ${deducted} interval(s) based on TSO-level curtailment data. ` +
           'Note: v0.16 uses conservative TSO-level data. Precise plant-level deductions require FPF data (v0.17+).',
       });
 

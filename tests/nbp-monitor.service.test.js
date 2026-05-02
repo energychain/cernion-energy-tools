@@ -26,10 +26,10 @@ const ObjectStoreService = require('../services/object-store.service');
 function makeInst(type, kWp, ageDays = 0, plz = '67059') {
   const lastUpdate = new Date(Date.now() - ageDays * 86_400_000).toISOString();
   return {
-    Einheittyp:                  type,          // PV / Wind / Speicher / Sonstige
-    Nettonennleistung:           kWp,
-    DatumLetzteAktualisierung:   lastUpdate,
-    Postleitzahl:                plz,
+    Einheittyp: type, // PV / Wind / Speicher / Sonstige
+    Nettonennleistung: kWp,
+    DatumLetzteAktualisierung: lastUpdate,
+    Postleitzahl: plz,
   };
 }
 
@@ -37,7 +37,7 @@ function makeInst(type, kWp, ageDays = 0, plz = '67059') {
 
 describe('nbp-monitor.service', () => {
   let broker;
-  let assetsHandler;  // replaced per-test to inject custom installations
+  let assetsHandler; // replaced per-test to inject custom installations
 
   beforeAll(async () => {
     broker = new ServiceBroker({ logger: false });
@@ -88,34 +88,59 @@ describe('nbp-monitor.service', () => {
 
   describe('snapshot — structure', () => {
     it('should have correct schema version', async () => {
-      const result = await broker.call('nbp-monitor.snapshot', { bdewCode: '10002954', refresh: true });
+      const result = await broker.call('nbp-monitor.snapshot', {
+        bdewCode: '10002954',
+        refresh: true,
+      });
       expect(result.schemaVersion).toBe('1.0');
     });
 
     it('should echo bdewCode', async () => {
-      const result = await broker.call('nbp-monitor.snapshot', { bdewCode: '10002954', refresh: true });
+      const result = await broker.call('nbp-monitor.snapshot', {
+        bdewCode: '10002954',
+        refresh: true,
+      });
       expect(result.bdewCode).toBe('10002954');
     });
 
     it('should have all required top-level keys', async () => {
-      const result = await broker.call('nbp-monitor.snapshot', { bdewCode: '10002954', refresh: true });
+      const result = await broker.call('nbp-monitor.snapshot', {
+        bdewCode: '10002954',
+        refresh: true,
+      });
       for (const key of [
-        'schemaVersion', 'bdewCode', 'timestamp', 'cachedAt', 'ttlSeconds',
-        'summary', 'kpi1_volume', 'kpi2_risk', 'kpi3_process', 'byType', 'byPLZ', 'filters',
+        'schemaVersion',
+        'bdewCode',
+        'timestamp',
+        'cachedAt',
+        'ttlSeconds',
+        'summary',
+        'kpi1_volume',
+        'kpi2_risk',
+        'kpi3_process',
+        'byType',
+        'byPLZ',
+        'filters',
       ]) {
         expect(result).toHaveProperty(key);
       }
     });
 
     it('should have valid ISO timestamps', async () => {
-      const result = await broker.call('nbp-monitor.snapshot', { bdewCode: '10002954', refresh: true });
+      const result = await broker.call('nbp-monitor.snapshot', {
+        bdewCode: '10002954',
+        refresh: true,
+      });
       expect(result.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T/);
       expect(result.cachedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     });
 
     it('should return cached result on second call', async () => {
       let callCount = 0;
-      assetsHandler = () => { callCount++; return []; };
+      assetsHandler = () => {
+        callCount++;
+        return [];
+      };
       await broker.call('nbp-monitor.snapshot', { bdewCode: 'X1', refresh: true });
       await broker.call('nbp-monitor.snapshot', { bdewCode: 'X1', refresh: false });
       expect(callCount).toBe(1);
@@ -123,7 +148,10 @@ describe('nbp-monitor.service', () => {
 
     it('should bypass cache when refresh=true', async () => {
       let callCount = 0;
-      assetsHandler = () => { callCount++; return []; };
+      assetsHandler = () => {
+        callCount++;
+        return [];
+      };
       await broker.call('nbp-monitor.snapshot', { bdewCode: 'X2', refresh: true });
       await broker.call('nbp-monitor.snapshot', { bdewCode: 'X2', refresh: true });
       expect(callCount).toBe(2);
@@ -131,7 +159,10 @@ describe('nbp-monitor.service', () => {
 
     it('should return empty-safe snapshot when assets.all returns no rows', async () => {
       assetsHandler = () => [];
-      const result = await broker.call('nbp-monitor.snapshot', { bdewCode: '00000000', refresh: true });
+      const result = await broker.call('nbp-monitor.snapshot', {
+        bdewCode: '00000000',
+        refresh: true,
+      });
       expect(result.summary.totalOpenCount).toBe(0);
       expect(result.kpi1_volume.totalKWp).toBe(0);
       expect(result.kpi2_risk.totalRiskEur).toBe(0);
@@ -139,7 +170,9 @@ describe('nbp-monitor.service', () => {
     });
 
     it('should survive when assets.all throws', async () => {
-      assetsHandler = () => { throw new Error('MaStR offline'); };
+      assetsHandler = () => {
+        throw new Error('MaStR offline');
+      };
       const result = await broker.call('nbp-monitor.snapshot', { bdewCode: 'ERR1', refresh: true });
       expect(result.summary.totalOpenCount).toBe(0);
     });
@@ -195,7 +228,9 @@ describe('nbp-monitor.service', () => {
     });
 
     it('should parse fallback date field "Datum Netzzugang"', async () => {
-      assetsHandler = () => [{ Einheittyp: 'PV', Nettonennleistung: 5, 'Datum Netzzugang': '2020-01-15' }];
+      assetsHandler = () => [
+        { Einheittyp: 'PV', Nettonennleistung: 5, 'Datum Netzzugang': '2020-01-15' },
+      ];
       const r = await broker.call('nbp-monitor.snapshot', { bdewCode: 'AC5B', refresh: true });
       expect(r.summary.oldestTicketDays).toBeGreaterThan(0);
       const clsA = r.kpi1_volume.byAgeClass.find((c) => c.class === 'A');
@@ -204,7 +239,11 @@ describe('nbp-monitor.service', () => {
 
     it('should parse German DD.MM.YYYY date format', async () => {
       assetsHandler = () => [
-        { Einheittyp: 'PV', Nettonennleistung: 5, DatumLetzteAktualisierung: '31.01.2019 00:00:00' },
+        {
+          Einheittyp: 'PV',
+          Nettonennleistung: 5,
+          DatumLetzteAktualisierung: '31.01.2019 00:00:00',
+        },
       ];
       const r = await broker.call('nbp-monitor.snapshot', { bdewCode: 'AC5C', refresh: true });
       expect(r.summary.oldestTicketDays).toBeGreaterThan(0);
@@ -244,17 +283,19 @@ describe('nbp-monitor.service', () => {
 
   describe('KPI 2 — risk formula per technology', () => {
     const DEFAULT_PARAMS = {
-      PV:       { volllaststunden: 950,  einspeiseverguetung_ctKWh: 8.2 },
-      Wind:     { volllaststunden: 1800, einspeiseverguetung_ctKWh: 6.5 },
-      Speicher: { volllaststunden: 500,  einspeiseverguetung_ctKWh: 8.2 },
-      Sonstige: { volllaststunden: 800,  einspeiseverguetung_ctKWh: 8.0 },
+      PV: { volllaststunden: 950, einspeiseverguetung_ctKWh: 8.2 },
+      Wind: { volllaststunden: 1800, einspeiseverguetung_ctKWh: 6.5 },
+      Speicher: { volllaststunden: 500, einspeiseverguetung_ctKWh: 8.2 },
+      Sonstige: { volllaststunden: 800, einspeiseverguetung_ctKWh: 8.0 },
     };
 
     // formula: kWp × volllaststunden × ctKWh × midpointYears / 1000
     function expectedRisk(type, kWp, ageClass) {
       const midpoints = { A: 0.5, B: 2.0, C: 4.0, D: 6.5 };
       const p = DEFAULT_PARAMS[type];
-      return Math.round((kWp * p.volllaststunden * p.einspeiseverguetung_ctKWh * midpoints[ageClass]) / 1000);
+      return Math.round(
+        (kWp * p.volllaststunden * p.einspeiseverguetung_ctKWh * midpoints[ageClass]) / 1000
+      );
     }
 
     ['PV', 'Wind', 'Speicher', 'Sonstige'].forEach((type) => {
@@ -262,7 +303,10 @@ describe('nbp-monitor.service', () => {
         const ageDays = { A: 30, B: 2 * 365, C: 4 * 365, D: 6 * 365 };
         it(`should compute correct risk for ${type} in class ${cls}`, async () => {
           assetsHandler = () => [makeInst(type, 100, ageDays[cls])];
-          const r = await broker.call('nbp-monitor.snapshot', { bdewCode: `R_${type}_${cls}`, refresh: true });
+          const r = await broker.call('nbp-monitor.snapshot', {
+            bdewCode: `R_${type}_${cls}`,
+            refresh: true,
+          });
           const byAgeCls = r.kpi2_risk.byAgeClass.find((c) => c.class === cls);
           expect(byAgeCls.riskEur).toBe(expectedRisk(type, 100, cls));
           expect(r.kpi2_risk.totalRiskEur).toBe(expectedRisk(type, 100, cls));
@@ -279,16 +323,16 @@ describe('nbp-monitor.service', () => {
       // Set doubled volllaststunden for PV
       await broker.call('nbp-monitor.setParameters', {
         parameters: {
-          PV:       { volllaststunden: 1900, einspeiseverguetung_ctKWh: 8.2 },
-          Wind:     { volllaststunden: 1800, einspeiseverguetung_ctKWh: 6.5 },
-          Speicher: { volllaststunden: 500,  einspeiseverguetung_ctKWh: 8.2 },
-          Sonstige: { volllaststunden: 800,  einspeiseverguetung_ctKWh: 8.0 },
+          PV: { volllaststunden: 1900, einspeiseverguetung_ctKWh: 8.2 },
+          Wind: { volllaststunden: 1800, einspeiseverguetung_ctKWh: 6.5 },
+          Speicher: { volllaststunden: 500, einspeiseverguetung_ctKWh: 8.2 },
+          Sonstige: { volllaststunden: 800, einspeiseverguetung_ctKWh: 8.0 },
         },
       });
       assetsHandler = () => [makeInst('PV', 100, 30)]; // class A
       const r = await broker.call('nbp-monitor.snapshot', { bdewCode: 'CUSTOM1', refresh: true });
       // expected: 100 × 1900 × 8.2 × 0.5 / 1000 = 779
-      expect(r.kpi2_risk.totalRiskEur).toBe(Math.round(100 * 1900 * 8.2 * 0.5 / 1000));
+      expect(r.kpi2_risk.totalRiskEur).toBe(Math.round((100 * 1900 * 8.2 * 0.5) / 1000));
       await broker.call('nbp-monitor.resetParameters');
     });
   });
@@ -327,10 +371,12 @@ describe('nbp-monitor.service', () => {
       // ms have elapsed, making ageMs > vnbSeitigMs when using an exact integer
       // day count.  Subtract 60 s so the age stays safely inside the threshold
       // regardless of test-runner speed.
-      assetsHandler = () => [{
-        ...makeInst('PV', 10, 41),
-        DatumLetzteAktualisierung: new Date(Date.now() - 42 * 86_400_000 + 60_000).toISOString(),
-      }]; // 42 days ago + 60 s buffer → NOT > 42 days → inBearbeitung
+      assetsHandler = () => [
+        {
+          ...makeInst('PV', 10, 41),
+          DatumLetzteAktualisierung: new Date(Date.now() - 42 * 86_400_000 + 60_000).toISOString(),
+        },
+      ]; // 42 days ago + 60 s buffer → NOT > 42 days → inBearbeitung
       const r = await broker.call('nbp-monitor.snapshot', { bdewCode: 'K3E', refresh: true });
       expect(r.kpi3_process.inBearbeitung).toBe(1);
       expect(r.kpi3_process.vnbSeitig).toBe(0);
@@ -344,14 +390,15 @@ describe('nbp-monitor.service', () => {
 
     it('should compute percentage totals summing to ~100', async () => {
       assetsHandler = () => [
-        makeInst('PV', 10, 20),  // inBearbeitung
-        makeInst('PV', 10, 50),  // vnbSeitig
+        makeInst('PV', 10, 20), // inBearbeitung
+        makeInst('PV', 10, 50), // vnbSeitig
         makeInst('PV', 10, 400), // altlast
       ];
       const r = await broker.call('nbp-monitor.snapshot', { bdewCode: 'K3F', refresh: true });
-      const sum = r.kpi3_process.vnbSeitigPercent +
-                  r.kpi3_process.inBearbeitungPercent +
-                  r.kpi3_process.altlastPercent;
+      const sum =
+        r.kpi3_process.vnbSeitigPercent +
+        r.kpi3_process.inBearbeitungPercent +
+        r.kpi3_process.altlastPercent;
       expect(Math.round(sum)).toBe(100);
     });
 
@@ -380,15 +427,18 @@ describe('nbp-monitor.service', () => {
 
   describe('setParameters action', () => {
     const validParams = {
-      PV:       { volllaststunden: 1000, einspeiseverguetung_ctKWh: 9.0 },
-      Wind:     { volllaststunden: 2000, einspeiseverguetung_ctKWh: 7.0 },
-      Speicher: { volllaststunden: 600,  einspeiseverguetung_ctKWh: 9.0 },
-      Sonstige: { volllaststunden: 900,  einspeiseverguetung_ctKWh: 8.5 },
+      PV: { volllaststunden: 1000, einspeiseverguetung_ctKWh: 9.0 },
+      Wind: { volllaststunden: 2000, einspeiseverguetung_ctKWh: 7.0 },
+      Speicher: { volllaststunden: 600, einspeiseverguetung_ctKWh: 9.0 },
+      Sonstige: { volllaststunden: 900, einspeiseverguetung_ctKWh: 8.5 },
     };
 
     it('should persist parameters to object store', async () => {
       await broker.call('nbp-monitor.setParameters', { parameters: validParams });
-      const stored = await broker.call('object-store.get', { namespace: 'nbp_monitor', key: 'parameters' });
+      const stored = await broker.call('object-store.get', {
+        namespace: 'nbp_monitor',
+        key: 'parameters',
+      });
       expect(stored).toBeDefined();
       expect(stored.payload).toMatchObject({ PV: expect.any(Object) });
     });
@@ -400,7 +450,10 @@ describe('nbp-monitor.service', () => {
 
     it('should invalidate snapshot cache on parameter change', async () => {
       let callCount = 0;
-      assetsHandler = () => { callCount++; return []; };
+      assetsHandler = () => {
+        callCount++;
+        return [];
+      };
       // Prime the cache
       await broker.call('nbp-monitor.snapshot', { bdewCode: 'CACHE1', refresh: true });
       expect(callCount).toBe(1);
@@ -413,9 +466,7 @@ describe('nbp-monitor.service', () => {
 
     it('should reject missing technology entry', async () => {
       const bad = { PV: { volllaststunden: 100, einspeiseverguetung_ctKWh: 1 } }; // missing Wind etc.
-      await expect(
-        broker.call('nbp-monitor.setParameters', { parameters: bad })
-      ).rejects.toThrow();
+      await expect(broker.call('nbp-monitor.setParameters', { parameters: bad })).rejects.toThrow();
     });
 
     it('should reject non-positive volllaststunden', async () => {
@@ -423,9 +474,7 @@ describe('nbp-monitor.service', () => {
         ...validParams,
         PV: { volllaststunden: 0, einspeiseverguetung_ctKWh: 8.2 },
       };
-      await expect(
-        broker.call('nbp-monitor.setParameters', { parameters: bad })
-      ).rejects.toThrow();
+      await expect(broker.call('nbp-monitor.setParameters', { parameters: bad })).rejects.toThrow();
     });
   });
 
@@ -433,13 +482,16 @@ describe('nbp-monitor.service', () => {
     it('should remove parameters from object store', async () => {
       await broker.call('nbp-monitor.setParameters', {
         parameters: {
-          PV:       { volllaststunden: 999, einspeiseverguetung_ctKWh: 9 },
-          Wind:     { volllaststunden: 999, einspeiseverguetung_ctKWh: 9 },
+          PV: { volllaststunden: 999, einspeiseverguetung_ctKWh: 9 },
+          Wind: { volllaststunden: 999, einspeiseverguetung_ctKWh: 9 },
           Speicher: { volllaststunden: 999, einspeiseverguetung_ctKWh: 9 },
           Sonstige: { volllaststunden: 999, einspeiseverguetung_ctKWh: 9 },
         },
       });
-      const stored = await broker.call('object-store.get', { namespace: 'nbp_monitor', key: 'parameters' });
+      const stored = await broker.call('object-store.get', {
+        namespace: 'nbp_monitor',
+        key: 'parameters',
+      });
       expect(stored).toBeDefined();
       await broker.call('nbp-monitor.resetParameters');
       await expect(
@@ -461,7 +513,10 @@ describe('nbp-monitor.service', () => {
 
     it('should invalidate cache on reset', async () => {
       let callCount = 0;
-      assetsHandler = () => { callCount++; return []; };
+      assetsHandler = () => {
+        callCount++;
+        return [];
+      };
       await broker.call('nbp-monitor.snapshot', { bdewCode: 'CACHE2', refresh: true });
       expect(callCount).toBe(1);
       await broker.call('nbp-monitor.resetParameters');
@@ -483,7 +538,7 @@ describe('nbp-monitor.service', () => {
       assetsHandler = () => [
         makeInst('PV', 100, 30, '67059'),
         makeInst('Wind', 200, 30, '67059'),
-        makeInst('PV', 50,  30, '67061'),
+        makeInst('PV', 50, 30, '67061'),
       ];
       const r = await broker.call('nbp-monitor.snapshot', { bdewCode: 'PLZ1', refresh: true });
       const plz59 = r.byPLZ.find((p) => p.plz === '67059');
@@ -493,10 +548,7 @@ describe('nbp-monitor.service', () => {
     });
 
     it('should skip installations without PLZ', async () => {
-      assetsHandler = () => [
-        makeInst('PV', 10, 30, ''),
-        makeInst('PV', 10, 30, '67060'),
-      ];
+      assetsHandler = () => [makeInst('PV', 10, 30, ''), makeInst('PV', 10, 30, '67060')];
       const r = await broker.call('nbp-monitor.snapshot', { bdewCode: 'PLZ2', refresh: true });
       expect(r.byPLZ.length).toBe(1);
       expect(r.byPLZ[0].plz).toBe('67060');

@@ -14,7 +14,7 @@
 
 const SOURCE_LICENSE_MAP = {
   // MaStR-backed sources (Marktstammdatenregister)
-  'assets': {
+  assets: {
     title: 'Marktstammdatenregister (MaStR) — Installation Data',
     path: '/api/assets',
     licenses: [
@@ -22,7 +22,8 @@ const SOURCE_LICENSE_MAP = {
         name: 'DL-DE/BY-2.0',
         title: 'Data licence Germany – attribution – Version 2.0',
         path: 'https://www.govdata.de/dl-de/by-2-0',
-        instruction: 'Ensure proper attribution to the Marktstammdatenregister (MaStR), Bundesnetzagentur.',
+        instruction:
+          'Ensure proper attribution to the Marktstammdatenregister (MaStR), Bundesnetzagentur.',
       },
     ],
   },
@@ -34,7 +35,8 @@ const SOURCE_LICENSE_MAP = {
         name: 'DL-DE/BY-2.0',
         title: 'Data licence Germany – attribution – Version 2.0',
         path: 'https://www.govdata.de/dl-de/by-2-0',
-        instruction: 'Ensure proper attribution to the Marktstammdatenregister (MaStR), Bundesnetzagentur.',
+        instruction:
+          'Ensure proper attribution to the Marktstammdatenregister (MaStR), Bundesnetzagentur.',
       },
     ],
   },
@@ -46,13 +48,14 @@ const SOURCE_LICENSE_MAP = {
         name: 'DL-DE/BY-2.0',
         title: 'Data licence Germany – attribution – Version 2.0',
         path: 'https://www.govdata.de/dl-de/by-2-0',
-        instruction: 'Ensure proper attribution to the Marktstammdatenregister (MaStR), Bundesnetzagentur.',
+        instruction:
+          'Ensure proper attribution to the Marktstammdatenregister (MaStR), Bundesnetzagentur.',
       },
     ],
   },
 
   // ENTSO-E sources
-  'entsoe': {
+  entsoe: {
     title: 'ENTSO-E Transparency Platform — European Power System Data',
     path: '/api/entsoe',
     licenses: [
@@ -60,11 +63,12 @@ const SOURCE_LICENSE_MAP = {
         name: 'CC-BY-4.0',
         title: 'Creative Commons Attribution 4.0 International',
         path: 'https://creativecommons.org/licenses/by/4.0/',
-        instruction: 'Credit ENTSO-E as the data source. See https://transparency.entsoe.eu/content/static_content/Static%20content/terms%20and%20conditions/terms%20and%20conditions.html',
+        instruction:
+          'Credit ENTSO-E as the data source. See https://transparency.entsoe.eu/content/static_content/Static%20content/terms%20and%20conditions/terms%20and%20conditions.html',
       },
     ],
   },
-  'forecast': {
+  forecast: {
     title: 'ENTSO-E / Cernion — Energy Forecast Data',
     path: '/api/forecast',
     licenses: [
@@ -140,13 +144,14 @@ const SOURCE_LICENSE_MAP = {
         name: 'ODbL-1.0',
         title: 'Open Data Commons Open Database License 1.0',
         path: 'https://opendatacommons.org/licenses/odbl/',
-        instruction: '© OpenStreetMap contributors. This data is made available under the Open Database License (ODbL). Any rights in individual contents of the database are licensed under the Database Contents License.',
+        instruction:
+          '© OpenStreetMap contributors. This data is made available under the Open Database License (ODbL). Any rights in individual contents of the database are licensed under the Database Contents License.',
       },
     ],
   },
 
   // Open Energy Platform
-  'oep': {
+  oep: {
     title: 'Open Energy Platform (OEP) — Research & Scenario Data',
     path: '/api/oep',
     licenses: [
@@ -154,7 +159,8 @@ const SOURCE_LICENSE_MAP = {
         name: 'CC-BY-4.0',
         title: 'Creative Commons Attribution 4.0 International',
         path: 'https://creativecommons.org/licenses/by/4.0/',
-        instruction: 'Credit the Open Energy Platform (openenergyplatform.org) and the original dataset authors. Individual tables may carry different licenses — check table metadata.',
+        instruction:
+          'Credit the Open Energy Platform (openenergyplatform.org) and the original dataset authors. Individual tables may carry different licenses — check table metadata.',
       },
     ],
   },
@@ -194,7 +200,8 @@ const SOURCE_LICENSE_MAP = {
         name: 'DL-DE/BY-2.0',
         title: 'Data licence Germany – attribution – Version 2.0',
         path: 'https://www.govdata.de/dl-de/by-2-0',
-        instruction: 'Attribution required for underlying data sources (MaStR, ENTSO-E, operator data).',
+        instruction:
+          'Attribution required for underlying data sources (MaStR, ENTSO-E, operator data).',
       },
     ],
   },
@@ -230,9 +237,7 @@ function resolveSourceMeta(actionName) {
   }
 
   // Fallback: generate a readable title from the service name
-  const humanTitle = prefix
-    .replace(/-/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  const humanTitle = prefix.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
   return {
     title: `${humanTitle} — Cernion Energy Tools`,

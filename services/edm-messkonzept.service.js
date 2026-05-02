@@ -39,29 +39,29 @@ module.exports = {
   actions: {
     create: {
       rest: 'POST /messkonzepte',
-        params: {
-          id: { type: 'string', min: 1 },
-          name: { type: 'string', min: 1 },
-          type: { type: 'string', enum: ['SUM', 'AVG', 'MIN', 'MAX', 'CALC'] },
-          formula: { type: 'string', optional: true },
-            inputs: {
-              type: 'array',
-              items: {
-                type: 'object',
-                props: {
-                  ref: { type: 'string' },
-                  meloId: { type: 'string' },
-                  obis: { type: 'string', optional: true },
-                }
-              },
-              optional: true,
-              default: []
+      params: {
+        id: { type: 'string', min: 1 },
+        name: { type: 'string', min: 1 },
+        type: { type: 'string', enum: ['SUM', 'AVG', 'MIN', 'MAX', 'CALC'] },
+        formula: { type: 'string', optional: true },
+        inputs: {
+          type: 'array',
+          items: {
+            type: 'object',
+            props: {
+              ref: { type: 'string' },
+              meloId: { type: 'string' },
+              obis: { type: 'string', optional: true },
             },
-          outputMeloId: { type: 'string', optional: true },
-          outputObis: { type: 'string', optional: true, default: '1-0:1.8.0' },
-          schedule: { type: 'string', optional: true },
-          validSince: { type: 'string', optional: true },
+          },
+          optional: true,
+          default: [],
         },
+        outputMeloId: { type: 'string', optional: true },
+        outputObis: { type: 'string', optional: true, default: '1-0:1.8.0' },
+        schedule: { type: 'string', optional: true },
+        validSince: { type: 'string', optional: true },
+      },
       openapi: {
         summary: 'Create a measurement concept',
         tags: ['EDM Messkonzept'],
@@ -113,17 +113,8 @@ module.exports = {
       },
       async handler(ctx) {
         const db = this.pool.getRegistry();
-        const {
-          id,
-          name,
-          type,
-          formula,
-          inputs,
-          outputMeloId,
-          outputObis,
-          schedule,
-          validSince,
-        } = ctx.params;
+        const { id, name, type, formula, inputs, outputMeloId, outputObis, schedule, validSince } =
+          ctx.params;
 
         // 409 wenn ID existiert
         const existing = db.prepare('SELECT id FROM messkonzepte WHERE id = ?').get(id);
@@ -151,11 +142,21 @@ module.exports = {
         // INSERT (synchron)
         db.prepare(
           'INSERT INTO messkonzepte (id, name, type, formula, inputs, output_melo_id, output_obis, schedule, valid_since) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        ).run(id, name, type, formula, JSON.stringify(inputs), outputMeloId, outputObis, schedule, validSince || null);
+        ).run(
+          id,
+          name,
+          type,
+          formula,
+          JSON.stringify(inputs),
+          outputMeloId,
+          outputObis,
+          schedule,
+          validSince || null
+        );
 
         ctx.meta.$statusCode = 201;
         return { success: true, id, outputMeloId };
-      }
+      },
     },
 
     list: {
@@ -170,7 +171,7 @@ module.exports = {
         const db = this.pool.getRegistry();
         const rows = db.prepare('SELECT * FROM messkonzepte ORDER BY created_at DESC').all();
         return { success: true, data: rows.map(mapKonzept) };
-      }
+      },
     },
 
     get: {
@@ -181,7 +182,12 @@ module.exports = {
         tags: ['EDM Messkonzept'],
         'x-oeo-class': 'oeo:virtual-measurement',
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'mk-sum-001' } },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'mk-sum-001' },
+          },
         ],
         responses: { 200: { description: 'Found' }, 404: { description: 'Not found' } },
       },
@@ -192,7 +198,7 @@ module.exports = {
           throw new MoleculerClientError('Messkonzept not found', 404, 'MESSKONZEPT_NOT_FOUND');
         }
         return { success: true, data: mapKonzept(row) };
-      }
+      },
     },
 
     delete: {
@@ -212,7 +218,7 @@ module.exports = {
         }
         db.prepare('DELETE FROM messkonzepte WHERE id = ?').run(ctx.params.id);
         return { success: true, id: ctx.params.id };
-      }
+      },
     },
 
     evaluate: {
@@ -316,9 +322,7 @@ module.exports = {
         }
 
         // Summary
-        const numeric = results
-          .map((r) => r.value)
-          .filter((v) => v !== null && Number.isFinite(v));
+        const numeric = results.map((r) => r.value).filter((v) => v !== null && Number.isFinite(v));
 
         return {
           success: true,
@@ -333,11 +337,13 @@ module.exports = {
             total: numeric.reduce((sum, value) => sum + value, 0),
             min: numeric.length ? Math.min(...numeric) : null,
             max: numeric.length ? Math.max(...numeric) : null,
-            avg: numeric.length ? numeric.reduce((sum, value) => sum + value, 0) / numeric.length : null,
+            avg: numeric.length
+              ? numeric.reduce((sum, value) => sum + value, 0) / numeric.length
+              : null,
             nullCount: results.filter((r) => r.value === null).length,
           },
         };
-      }
+      },
     },
 
     evaluateAll: {
@@ -407,7 +413,7 @@ module.exports = {
         }
 
         return { success: true, evaluated: results.length, results };
-      }
+      },
     },
   },
 };

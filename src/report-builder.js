@@ -353,7 +353,7 @@ const euroTranslations = {
 function getPeerReference(totalInstallations) {
   if (totalInstallations === null || totalInstallations === undefined) {
     return {
-      ee_ms:        { name: 'Vergleichbarer VNB (Mittel)', wochen: 5 },
+      ee_ms: { name: 'Vergleichbarer VNB (Mittel)', wochen: 5 },
       verbrauch_ms: { name: 'Vergleichbarer VNB (Mittel)', wochen: 6 },
       label: 'Mittel',
     };
@@ -361,20 +361,20 @@ function getPeerReference(totalInstallations) {
   const n = Number(totalInstallations);
   if (n < 500) {
     return {
-      ee_ms:        { name: 'Vergleichbarer VNB (Klein)', wochen: 4 },
+      ee_ms: { name: 'Vergleichbarer VNB (Klein)', wochen: 4 },
       verbrauch_ms: { name: 'Vergleichbarer VNB (Klein)', wochen: 5 },
       label: 'Klein',
     };
   }
   if (n <= 2000) {
     return {
-      ee_ms:        { name: 'Vergleichbarer VNB (Mittel)', wochen: 5 },
+      ee_ms: { name: 'Vergleichbarer VNB (Mittel)', wochen: 5 },
       verbrauch_ms: { name: 'Vergleichbarer VNB (Mittel)', wochen: 6 },
       label: 'Mittel',
     };
   }
   return {
-    ee_ms:        { name: 'Vergleichbarer VNB (Groß)', wochen: 6 },
+    ee_ms: { name: 'Vergleichbarer VNB (Groß)', wochen: 6 },
     verbrauch_ms: { name: 'Vergleichbarer VNB (Groß)', wochen: 7 },
     label: 'Groß',
   };
@@ -382,7 +382,7 @@ function getPeerReference(totalInstallations) {
 
 // Keep the legacy constant for non-benchmark contexts (e.g. Section 5 detail rows).
 const peerComparison = {
-  ee_ms:        { top_performer: { name: 'Vergleichbarer VNB (Mittel)', wochen: 5, bnr: null } },
+  ee_ms: { top_performer: { name: 'Vergleichbarer VNB (Mittel)', wochen: 5, bnr: null } },
   verbrauch_ms: { top_performer: { name: 'Vergleichbarer VNB (Mittel)', wochen: 6, bnr: null } },
 };
 
@@ -4043,16 +4043,22 @@ function buildHtmlReport(reportData) {
   ${renderSection4(section4)}
 
   <!-- Section 5 -->
-  ${renderSection5(section5, utilityName, (() => {
-    // Fix C (v0.37.1): derive totalInstallations for peer size-class selection.
-    // Prefer section7 operatorPortfolio, fall back to section2 pvLocal stats.
-    const opData = safeData(section7, 'operatorPortfolio');
-    const pvData = safeData(section2, 'pvLocal');
-    return getVal(opData, 'totalInstallations', 'count', 'total') ??
-           pvData?.stats?.total ??
-           pvData?.stats?.totalCount ??
-           null;
-  })())}
+  ${renderSection5(
+    section5,
+    utilityName,
+    (() => {
+      // Fix C (v0.37.1): derive totalInstallations for peer size-class selection.
+      // Prefer section7 operatorPortfolio, fall back to section2 pvLocal stats.
+      const opData = safeData(section7, 'operatorPortfolio');
+      const pvData = safeData(section2, 'pvLocal');
+      return (
+        getVal(opData, 'totalInstallations', 'count', 'total') ??
+        pvData?.stats?.total ??
+        pvData?.stats?.totalCount ??
+        null
+      );
+    })()
+  )}
 
   <!-- Section 6 -->
   ${renderSection6(section6)}

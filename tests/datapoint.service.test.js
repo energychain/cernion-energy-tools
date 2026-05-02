@@ -267,9 +267,10 @@ describe('datapoint.service', () => {
     });
 
     it('throws 404 for an unknown datapoint name', async () => {
-      await expect(
-        broker.call('datapoint.get', { name: 'does-not-exist' })
-      ).rejects.toMatchObject({ code: 404, type: 'NOT_FOUND' });
+      await expect(broker.call('datapoint.get', { name: 'does-not-exist' })).rejects.toMatchObject({
+        code: 404,
+        type: 'NOT_FOUND',
+      });
     });
   });
 
@@ -307,9 +308,10 @@ describe('datapoint.service', () => {
     });
 
     it('throws 404 when deleting a non-existent datapoint', async () => {
-      await expect(
-        broker.call('datapoint.remove', { name: 'ghost' })
-      ).rejects.toMatchObject({ code: 404, type: 'NOT_FOUND' });
+      await expect(broker.call('datapoint.remove', { name: 'ghost' })).rejects.toMatchObject({
+        code: 404,
+        type: 'NOT_FOUND',
+      });
     });
   });
 
@@ -369,13 +371,15 @@ describe('datapoint.service', () => {
       await brokerLocal.stop();
       try {
         fs.rmSync(TEST_DB_PATH, { recursive: true, force: true });
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     });
 
     it('increments _rev on second refresh (PouchDB revisioning)', async () => {
       await promoteFixture(broker);
 
-      const r1 = await broker.call('datapoint.refresh', { name: 'test-pv-portfolio' });
+      await broker.call('datapoint.refresh', { name: 'test-pv-portfolio' });
       const doc1 = await broker.call('datapoint.get', { name: 'test-pv-portfolio' });
 
       await broker.call('datapoint.refresh', { name: 'test-pv-portfolio' });
@@ -412,7 +416,10 @@ describe('datapoint.service', () => {
         })
       );
       await brokerErr.start();
-      await brokerErr.call('datapoint.promote', { sessionId: SESSION_FIXTURE.id, name: 'dp-errored' });
+      await brokerErr.call('datapoint.promote', {
+        sessionId: SESSION_FIXTURE.id,
+        name: 'dp-errored',
+      });
       await brokerErr.call('datapoint.refresh', { name: 'dp-errored' });
 
       const errHealth = await brokerErr.call('datapoint.health', {});
@@ -421,7 +428,11 @@ describe('datapoint.service', () => {
       expect(errHealth.neverRun).toBe(0);
 
       await brokerErr.stop();
-      try { fs.rmSync(errDbPath, { recursive: true, force: true }); } catch { /* ignore */ }
+      try {
+        fs.rmSync(errDbPath, { recursive: true, force: true });
+      } catch {
+        /* ignore */
+      }
       // restore env
       process.env.DATAPOINT_DB_PATH = TEST_DB_PATH;
 
@@ -451,7 +462,10 @@ describe('datapoint.service', () => {
     });
 
     it('summarises an array result', () => {
-      const rows = [{ id: 1, kw: 10 }, { id: 2, kw: 20 }];
+      const rows = [
+        { id: 1, kw: 10 },
+        { id: 2, kw: 20 },
+      ];
       const summary = svc.buildSummary([{ step: 1, result: rows, error: null }]);
       expect(summary.rowCount).toBe(2);
       expect(summary.columns).toEqual(expect.arrayContaining(['id', 'kw']));
@@ -522,7 +536,13 @@ describe('datapoint.service', () => {
     });
 
     it('marks schemaStable=false when schema hash changes', () => {
-      const h = svc.updateHealth({ ...initialHealth }, 'success', 100, 'aabbccddeeff0011', 'deadbeef12345678');
+      const h = svc.updateHealth(
+        { ...initialHealth },
+        'success',
+        100,
+        'aabbccddeeff0011',
+        'deadbeef12345678'
+      );
       expect(h.schemaStable).toBe(false);
     });
   });
@@ -605,9 +625,7 @@ describe('datapoint.service', () => {
           executePlan: () =>
             Promise.resolve({
               success: true,
-              stepResults: [
-                { step: 1, action: 'assets.solar', result: [{ id: 1 }], error: null },
-              ],
+              stepResults: [{ step: 1, action: 'assets.solar', result: [{ id: 1 }], error: null }],
               interventions: [
                 {
                   timestamp: '2026-06-01T10:00:00.000Z',
@@ -635,7 +653,11 @@ describe('datapoint.service', () => {
       expect(doc.agent_interventions[0].confidence_score).toBe(0.95);
 
       await brokerLocal.stop();
-      try { fs.rmSync(TEST_DB_PATH, { recursive: true, force: true }); } catch { /* ignore */ }
+      try {
+        fs.rmSync(TEST_DB_PATH, { recursive: true, force: true });
+      } catch {
+        /* ignore */
+      }
     });
 
     it('does not add interventions when executePlan returns empty array', async () => {
@@ -694,9 +716,10 @@ describe('datapoint.service', () => {
     });
 
     it('throws 404 for non-existent datapoint', async () => {
-      await expect(
-        broker.call('datapoint.oemetadata', { name: 'ghost' })
-      ).rejects.toMatchObject({ code: 404, type: 'NOT_FOUND' });
+      await expect(broker.call('datapoint.oemetadata', { name: 'ghost' })).rejects.toMatchObject({
+        code: 404,
+        type: 'NOT_FOUND',
+      });
     });
   });
 
@@ -754,7 +777,9 @@ describe('datapoint.service', () => {
         since: '2025-01-01T00:00:00Z',
       });
       // The 2020 entry should be filtered out
-      expect(result.interventions.every((e) => new Date(e.timestamp) >= new Date('2025-01-01'))).toBe(true);
+      expect(
+        result.interventions.every((e) => new Date(e.timestamp) >= new Date('2025-01-01'))
+      ).toBe(true);
     });
 
     it('returns newest entries first (descending order)', async () => {
@@ -764,8 +789,20 @@ describe('datapoint.service', () => {
       await svc.db.put({
         ...doc,
         agent_interventions: [
-          { timestamp: '2026-01-01T00:00:00Z', action: 'param_repair', reason: 'first', confidence_score: 0.8, agent_id: 'executePlan' },
-          { timestamp: '2026-03-01T00:00:00Z', action: 'step_failure', reason: 'second', confidence_score: 0.6, agent_id: 'executePlan' },
+          {
+            timestamp: '2026-01-01T00:00:00Z',
+            action: 'param_repair',
+            reason: 'first',
+            confidence_score: 0.8,
+            agent_id: 'executePlan',
+          },
+          {
+            timestamp: '2026-03-01T00:00:00Z',
+            action: 'step_failure',
+            reason: 'second',
+            confidence_score: 0.6,
+            agent_id: 'executePlan',
+          },
         ],
       });
       const result = await broker.call('datapoint.interventions', { name: 'test-pv-portfolio' });
@@ -776,9 +813,9 @@ describe('datapoint.service', () => {
     });
 
     it('throws 404 for non-existent datapoint', async () => {
-      await expect(
-        broker.call('datapoint.interventions', { name: 'ghost' })
-      ).rejects.toMatchObject({ code: 404, type: 'NOT_FOUND' });
+      await expect(broker.call('datapoint.interventions', { name: 'ghost' })).rejects.toMatchObject(
+        { code: 404, type: 'NOT_FOUND' }
+      );
     });
   });
 });

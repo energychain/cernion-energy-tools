@@ -1,6 +1,10 @@
 'use strict';
 
-const { retrievePersonaContext, formatMemoryForPrompt, buildPersonaGrounding } = require('../src/cya-persona-memory');
+const {
+  retrievePersonaContext,
+  formatMemoryForPrompt,
+  buildPersonaGrounding,
+} = require('../src/cya-persona-memory');
 
 const makeMockCtx = (callResult) => ({
   call: jest.fn().mockResolvedValue(callResult),
@@ -20,9 +24,12 @@ describe('cya-persona-memory', () => {
       const result = await retrievePersonaContext(ctx, 'technical');
       expect(result.personaId).toBe('technical');
       expect(result.memories).toHaveLength(1);
-      expect(ctx.call).toHaveBeenCalledWith('object-store.query', expect.objectContaining({
-        namespace: 'cya_persona_technical',
-      }));
+      expect(ctx.call).toHaveBeenCalledWith(
+        'object-store.query',
+        expect.objectContaining({
+          namespace: 'cya_persona_technical',
+        })
+      );
     });
 
     it('respects the limit option', async () => {

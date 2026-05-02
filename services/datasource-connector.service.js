@@ -296,7 +296,11 @@ module.exports = {
           const fieldValue = cfg[fieldName];
           if (fieldValue === undefined || fieldValue === null) continue;
 
-          if (fieldSchema.enum && Array.isArray(fieldSchema.enum) && !fieldSchema.enum.includes(fieldValue)) {
+          if (
+            fieldSchema.enum &&
+            Array.isArray(fieldSchema.enum) &&
+            !fieldSchema.enum.includes(fieldValue)
+          ) {
             errors.push(
               `Invalid value for ${fieldName}: expected one of [${fieldSchema.enum.join(', ')}]`
             );
@@ -318,11 +322,19 @@ module.exports = {
             }
           }
 
-          if (typeof fieldValue === 'number' && typeof fieldSchema.minimum === 'number' && fieldValue < fieldSchema.minimum) {
+          if (
+            typeof fieldValue === 'number' &&
+            typeof fieldSchema.minimum === 'number' &&
+            fieldValue < fieldSchema.minimum
+          ) {
             errors.push(`Invalid value for ${fieldName}: expected >= ${fieldSchema.minimum}`);
           }
 
-          if (typeof fieldValue === 'number' && typeof fieldSchema.maximum === 'number' && fieldValue > fieldSchema.maximum) {
+          if (
+            typeof fieldValue === 'number' &&
+            typeof fieldSchema.maximum === 'number' &&
+            fieldValue > fieldSchema.maximum
+          ) {
             errors.push(`Invalid value for ${fieldName}: expected <= ${fieldSchema.maximum}`);
           }
         }

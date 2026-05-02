@@ -97,7 +97,10 @@ module.exports = {
         summary: 'Grid operation data (load, frequency, flows, redispatch)',
         tags: ['Grid Operations'],
         // @OpenEnergyPlatform/ontology — OEO_00000143 electricity grid, OEO_00110020 distribution grid
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143', 'https://openenergyplatform.org/ontology/oeo/OEO_00110020'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000143',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00110020',
+        ],
         description: `Query real-time and historical grid operation data for network planning, congestion analysis, and frequency stability studies.
 
 **Data Types**:
@@ -338,7 +341,8 @@ module.exports = {
           ctx.meta.cernionToken
         );
 
-        const container = response?.data && typeof response.data === 'object' ? response.data : null;
+        const container =
+          response?.data && typeof response.data === 'object' ? response.data : null;
         const results = container?.results || response?.results;
         if (Array.isArray(results)) {
           const enriched = results.map((item) => {
@@ -556,7 +560,8 @@ module.exports = {
           ctx.params,
           ctx.meta.cernionToken
         ).then((response) => {
-          const root = response?.data && typeof response.data === 'object' ? response.data : response;
+          const root =
+            response?.data && typeof response.data === 'object' ? response.data : response;
           const vnbs = root?.result?.vnbs;
           if (Array.isArray(vnbs)) {
             root.result.vnbs = vnbs.map((vnb) => ({
@@ -626,7 +631,8 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                   },
                   vnbId: {
                     type: 'string',
-                    description: 'VNB identifier from vnbdigital_search (required when searchType is "vnb")',
+                    description:
+                      'VNB identifier from vnbdigital_search (required when searchType is "vnb")',
                     example: 'DEBWhk01000gMZ1V',
                   },
                   range: {
@@ -898,9 +904,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
       async handler(ctx) {
         const { name, mastrId } = ctx.params;
         if (!name && !mastrId) {
-          throw new Error(
-            'At least one lookup parameter is required: name or mastrId'
-          );
+          throw new Error('At least one lookup parameter is required: name or mastrId');
         }
         return await CernionMCPClient.callWithNewSession(
           'cernion_direktvermarkter_lookup',
@@ -993,7 +997,9 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         });
 
         if (!hasLookupInput) {
-          throw new Error('At least one lookup identifier is required: bdewCode, bnr, vnbName, or mastrId');
+          throw new Error(
+            'At least one lookup identifier is required: bdewCode, bnr, vnbName, or mastrId'
+          );
         }
 
         let result;
@@ -1016,7 +1022,8 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
 
         // BR-0002: MCP returned no result — VNB is not known to the system.
         if (result == null) {
-          const id = ctx.params.bdewCode || ctx.params.bnr || ctx.params.vnbName || ctx.params.mastrId;
+          const id =
+            ctx.params.bdewCode || ctx.params.bnr || ctx.params.vnbName || ctx.params.mastrId;
           throw new MoleculerClientError(
             `${id} ist im System nicht bekannt.`,
             404,
@@ -1053,7 +1060,11 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         summary: 'Comprehensive grid operator analysis (installations, feed-in, redispatch)',
         tags: ['Grid Operations'],
         // @OpenEnergyPlatform/ontology — OEO_00000143 electricity grid, OEO_00000031 power plant, OEO_00020107 curtailment
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143', 'https://openenergyplatform.org/ontology/oeo/OEO_00000031', 'https://openenergyplatform.org/ontology/oeo/OEO_00020107'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000143',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000031',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00020107',
+        ],
         description: `Deep-dive analysis of grid operator network including all connected installations, redispatch potential, feed-in patterns, and grid stress points. **Essential for DSO/TSO network planning and investment prioritization.**
 
 **Analysis Components**:
@@ -1236,7 +1247,10 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         summary: 'Network capacity utilization analysis (transformers, lines, heatmaps)',
         tags: ['Grid Operations'],
         // @OpenEnergyPlatform/ontology — OEO_00000143 electricity grid, OEO_00410060 voltage level
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143', 'https://openenergyplatform.org/ontology/oeo/OEO_00410060'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000143',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00410060',
+        ],
         description:
           'Calculate equipment loading, temporal heatmaps, and investment prioritization',
         requestBody: {
@@ -1367,7 +1381,10 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         summary: 'Export redispatch 2.0 installations (≥100 kW) per grid operator',
         tags: ['Grid Operations'],
         // @OpenEnergyPlatform/ontology — OEO_00140136 dispatch assignment, OEO_00020107 curtailment
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00140136', 'https://openenergyplatform.org/ontology/oeo/OEO_00020107'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00140136',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00020107',
+        ],
         description: 'Returns installations that participate in redispatch (async job)',
         requestBody: {
           required: true,
@@ -1670,7 +1687,10 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         summary: 'Automated grid connection feasibility check (customer self-service)',
         tags: ['Grid Operations'],
         // @OpenEnergyPlatform/ontology — OEO_00000143 electricity grid, OEO_00410060 voltage level
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143', 'https://openenergyplatform.org/ontology/oeo/OEO_00410060'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000143',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00410060',
+        ],
         description:
           '6-step analysis: inventory, capacity, simultaneity, decision, alternatives, cost estimates',
         requestBody: {
@@ -1939,8 +1959,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
             });
           } catch (enrichErr) {
             this.logger.warn(
-              '[marketPartners] company.enrichResults failed (degraded mode): ' +
-                enrichErr.message
+              '[marketPartners] company.enrichResults failed (degraded mode): ' + enrichErr.message
             );
           }
         }

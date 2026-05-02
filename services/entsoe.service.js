@@ -516,7 +516,10 @@ module.exports = {
         summary: 'Query actual electricity generation by production type',
         tags: ['ENTSO-E'],
         // @OpenEnergyPlatform/ontology — OEO_00000139 electrical energy, OEO_00000031 power plant
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000139', 'https://openenergyplatform.org/ontology/oeo/OEO_00000031'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000139',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000031',
+        ],
         description:
           '✅ FULLY WORKING - Energy mix analysis, renewable share monitoring, forecast validation. Returns actual generation data by PSR type (solar, wind, gas, nuclear, etc.).',
         'x-backend-status': 'operational',
@@ -874,7 +877,10 @@ module.exports = {
         summary: 'Day-ahead electricity load (demand) forecasts',
         tags: ['ENTSO-E'],
         // @OpenEnergyPlatform/ontology — OEO_00320062 electricity demand, OEO_00010411 forecast
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00320062', 'https://openenergyplatform.org/ontology/oeo/OEO_00010411'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00320062',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00010411',
+        ],
         description:
           '✅ FULLY WORKING - Grid planning, demand forecasting for trading, peak load management. Returns day-ahead load/demand forecasts.',
         'x-backend-status': 'operational',
@@ -1244,7 +1250,10 @@ module.exports = {
         summary: 'Day-ahead electricity generation forecasts by production type',
         tags: ['ENTSO-E'],
         // @OpenEnergyPlatform/ontology — OEO_00010411 forecast, OEO_00000031 power plant
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00010411', 'https://openenergyplatform.org/ontology/oeo/OEO_00000031'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00010411',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000031',
+        ],
         description:
           '✅ FULLY WORKING - Comprehensive generation planning, all production types. Returns day-ahead generation forecasts by PSR type.',
         'x-backend-status': 'operational',

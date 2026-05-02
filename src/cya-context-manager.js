@@ -29,7 +29,7 @@ class CyaContextManager {
     this._graph = ontologyGraph;
     this._maxIterations = maxIterations != null ? maxIterations : MAX_ITERATIONS_DEFAULT;
     this._outerContext = null;
-    this._zoomStack = [];      // stack of { nodeId, radius, subGraph }
+    this._zoomStack = []; // stack of { nodeId, radius, subGraph }
     this._iterationLog = [];
     this._zoomCounter = 0;
   }
@@ -43,7 +43,7 @@ class CyaContextManager {
   setOuterContext(goal, focusArea) {
     this._outerContext = {
       goal: goal || null,
-      focusArea: Array.isArray(focusArea) ? focusArea : (focusArea ? [focusArea] : []),
+      focusArea: Array.isArray(focusArea) ? focusArea : focusArea ? [focusArea] : [],
       setAt: new Date().toISOString(),
     };
     this._log('set_outer_context', null, { goal, focusArea });
@@ -100,7 +100,7 @@ class CyaContextManager {
     const attrs = this._graph.getNodeAttributes(nodeId);
     if (attrs.nodeType !== NODE_TYPE.INSTALLATION) return false;
 
-    const hasNap = this._graph.outEdges(nodeId).some(e => {
+    const hasNap = this._graph.outEdges(nodeId).some((e) => {
       const ea = this._graph.getEdgeAttributes(e);
       return ea.edgeType === 'VERBUNDEN_MIT';
     });
@@ -115,9 +115,10 @@ class CyaContextManager {
    * @returns {{ nodes: Object[], edges: Object[], breadcrumb: string[] }}
    */
   getFocusedContext(nodeId) {
-    const currentGraph = this._zoomStack.length > 0
-      ? this._zoomStack[this._zoomStack.length - 1].subGraph
-      : this._graph;
+    const currentGraph =
+      this._zoomStack.length > 0
+        ? this._zoomStack[this._zoomStack.length - 1].subGraph
+        : this._graph;
 
     const nodes = [];
     currentGraph.forEachNode((id, attrs) => nodes.push({ id, attrs }));
@@ -171,12 +172,16 @@ class CyaContextManager {
   static deserialize(serialized, ontologyGraph) {
     if (!serialized || typeof serialized !== 'object') {
       throw new (require('moleculer').Errors.MoleculerError)(
-        'Cannot deserialize null or invalid context state', 400, 'CONTEXT_DESERIALIZE_FAILED'
+        'Cannot deserialize null or invalid context state',
+        400,
+        'CONTEXT_DESERIALIZE_FAILED'
       );
     }
     if (!ontologyGraph) {
       throw new (require('moleculer').Errors.MoleculerError)(
-        'Cannot deserialize without ontologyGraph', 400, 'CONTEXT_DESERIALIZE_FAILED'
+        'Cannot deserialize without ontologyGraph',
+        400,
+        'CONTEXT_DESERIALIZE_FAILED'
       );
     }
     const cm = new CyaContextManager(ontologyGraph, serialized.maxIterations);

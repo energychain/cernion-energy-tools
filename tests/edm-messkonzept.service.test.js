@@ -12,43 +12,43 @@ describe('EDM Messkonzept Service', () => {
   let tempDir;
 
   beforeAll(async () => {
-      // Clear require cache for edm-sqlite-pool to reload with updated schema
-      delete require.cache[require.resolve('../src/edm-sqlite-pool')];
-      delete require.cache[require.resolve('../services/edm.service')];
-      delete require.cache[require.resolve('../services/edm-messkonzept.service')];
+    // Clear require cache for edm-sqlite-pool to reload with updated schema
+    delete require.cache[require.resolve('../src/edm-sqlite-pool')];
+    delete require.cache[require.resolve('../services/edm.service')];
+    delete require.cache[require.resolve('../services/edm-messkonzept.service')];
 
-      // Load fresh EdmSqlitePool after clearing cache
-      const EdmSqlitePool = require('../src/edm-sqlite-pool');
+    // Load fresh EdmSqlitePool after clearing cache
+    const EdmSqlitePool = require('../src/edm-sqlite-pool');
 
-      // Create temp directory for test DB - use process ID + random to avoid collisions
-      const unique = `${process.pid}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      tempDir = path.join(os.tmpdir(), `edm-test-${unique}`);
+    // Create temp directory for test DB - use process ID + random to avoid collisions
+    const unique = `${process.pid}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    tempDir = path.join(os.tmpdir(), `edm-test-${unique}`);
 
-      // Clean up temp directory if it exists (shouldn't happen but just in case)
-      const fs = require('fs');
-      if (fs.existsSync(tempDir)) {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
+    // Clean up temp directory if it exists (shouldn't happen but just in case)
+    const fs = require('fs');
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
 
-      // Ensure the directory is created fresh
-      fs.mkdirSync(tempDir, { recursive: true });
+    // Ensure the directory is created fresh
+    fs.mkdirSync(tempDir, { recursive: true });
 
-      process.env.EDM_DATA_DIR = tempDir;
-      process.env.EDM_DB_PATH = tempDir;
+    process.env.EDM_DATA_DIR = tempDir;
+    process.env.EDM_DB_PATH = tempDir;
 
-      // Load services after environment is set so settings pick up test DB path
-      EDMService = require('../services/edm.service');
-      MesskonzeptService = require('../services/edm-messkonzept.service');
+    // Load services after environment is set so settings pick up test DB path
+    EDMService = require('../services/edm.service');
+    MesskonzeptService = require('../services/edm-messkonzept.service');
 
-      // Delete database files BEFORE broker starts so EDMService initializes with fresh schema
-      const dbFilePath = path.join(tempDir, 'registry.sqlite');
-      if (fs.existsSync(dbFilePath)) {
-        fs.unlinkSync(dbFilePath);
-      }
-      const walPath = `${dbFilePath}-wal`;
-      const shmPath = `${dbFilePath}-shm`;
-      if (fs.existsSync(walPath)) fs.unlinkSync(walPath);
-      if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath);
+    // Delete database files BEFORE broker starts so EDMService initializes with fresh schema
+    const dbFilePath = path.join(tempDir, 'registry.sqlite');
+    if (fs.existsSync(dbFilePath)) {
+      fs.unlinkSync(dbFilePath);
+    }
+    const walPath = `${dbFilePath}-wal`;
+    const shmPath = `${dbFilePath}-shm`;
+    if (fs.existsSync(walPath)) fs.unlinkSync(walPath);
+    if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath);
 
     broker = new ServiceBroker({
       logger: false,
@@ -64,28 +64,28 @@ describe('EDM Messkonzept Service', () => {
     const edmService = broker.getLocalService('edm');
     if (edmService && edmService.pool) {
       edmService.pool.closeAll();
-        // Delete the database file to ensure fresh schema
-        const dbFilePath = path.join(tempDir, 'registry.sqlite');
-        const fs = require('fs');
-        if (fs.existsSync(dbFilePath)) {
-          fs.unlinkSync(dbFilePath);
-        }
-        // Also delete WAL and SHM files
-        const walPath = `${dbFilePath}-wal`;
-        const shmPath = `${dbFilePath}-shm`;
-        if (fs.existsSync(walPath)) fs.unlinkSync(walPath);
-        if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath);
-        edmService.pool = new EdmSqlitePool(process.env.EDM_DB_PATH);
-          // Call getRegistry() to initialize the pool with fresh schema
-          edmService.pool.getRegistry();
+      // Delete the database file to ensure fresh schema
+      const dbFilePath = path.join(tempDir, 'registry.sqlite');
+      const fs = require('fs');
+      if (fs.existsSync(dbFilePath)) {
+        fs.unlinkSync(dbFilePath);
+      }
+      // Also delete WAL and SHM files
+      const walPath = `${dbFilePath}-wal`;
+      const shmPath = `${dbFilePath}-shm`;
+      if (fs.existsSync(walPath)) fs.unlinkSync(walPath);
+      if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath);
+      edmService.pool = new EdmSqlitePool(process.env.EDM_DB_PATH);
+      // Call getRegistry() to initialize the pool with fresh schema
+      edmService.pool.getRegistry();
 
-            // Ensure correct table schema - drop and recreate if needed
-            try {
-              const db = edmService.pool.getRegistry();
-              // Try to drop the old table (may fail if it doesn't exist or is already correct)
-              db.exec('DROP TABLE IF EXISTS messkonzepte');
-              // Recreate with correct schema
-              db.exec(`
+      // Ensure correct table schema - drop and recreate if needed
+      try {
+        const db = edmService.pool.getRegistry();
+        // Try to drop the old table (may fail if it doesn't exist or is already correct)
+        db.exec('DROP TABLE IF EXISTS messkonzepte');
+        // Recreate with correct schema
+        db.exec(`
                 CREATE TABLE IF NOT EXISTS messkonzepte (
                   id TEXT PRIMARY KEY,
                   name TEXT NOT NULL,
@@ -99,27 +99,31 @@ describe('EDM Messkonzept Service', () => {
                   created_at TEXT NOT NULL DEFAULT (datetime('now'))
                 )
               `);
-            } catch (err) {
-                // Log error for debugging
-                console.log('Error recreating messkonzepte table:', err.message);
-            }
+      } catch (err) {
+        // Log error for debugging
+        console.log('Error recreating messkonzepte table:', err.message);
+      }
     }
 
     // Create test MeLos
-    await broker.call('edm.createMelo', {
-      meloId: 'melo-solar',
-      type: 'physical',
-      name: 'Test Solar',
-      obisRegisters: [{ obis: '1-0:1.8.0' }],
-      }).catch((err) => {
+    await broker
+      .call('edm.createMelo', {
+        meloId: 'melo-solar',
+        type: 'physical',
+        name: 'Test Solar',
+        obisRegisters: [{ obis: '1-0:1.8.0' }],
+      })
+      .catch((err) => {
         if (err.code !== 'MELO_EXISTS') throw err;
       });
-      await broker.call('edm.createMelo', {
-      meloId: 'melo-wind',
-      type: 'physical',
-      name: 'Test Wind',
-      obisRegisters: [{ obis: '1-0:1.8.0' }],
-      }).catch((err) => {
+    await broker
+      .call('edm.createMelo', {
+        meloId: 'melo-wind',
+        type: 'physical',
+        name: 'Test Wind',
+        obisRegisters: [{ obis: '1-0:1.8.0' }],
+      })
+      .catch((err) => {
         if (err.code !== 'MELO_EXISTS') throw err;
       });
 
@@ -151,28 +155,28 @@ describe('EDM Messkonzept Service', () => {
 
   afterAll(async () => {
     await broker.stop();
-      // Clean up temp directory
-      const fs = require('fs');
-      if (fs.existsSync(tempDir)) {
-        fs.rmSync(tempDir, { recursive: true, force: true });
-      }
-      // Clear environment variable
-        delete process.env.EDM_DATA_DIR;
-        delete process.env.EDM_DB_PATH;
+    // Clean up temp directory
+    const fs = require('fs');
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+    // Clear environment variable
+    delete process.env.EDM_DATA_DIR;
+    delete process.env.EDM_DB_PATH;
   });
 
   describe('create action', () => {
-     beforeEach(() => {
-        const db = broker.getLocalService('edm').pool.getRegistry();
-        db.prepare('DELETE FROM messkonzepte').run();
-      });
+    beforeEach(() => {
+      const db = broker.getLocalService('edm').pool.getRegistry();
+      db.prepare('DELETE FROM messkonzepte').run();
+    });
 
     it('should create a SUM messkonzept', async () => {
       const result = await broker.call('edm-messkonzept.create', {
         id: 'mk-sum-001',
         name: 'Total Production',
         type: 'SUM',
-          formula: 'v0 + v1',
+        formula: 'v0 + v1',
         inputs: [
           { ref: 'v0', meloId: 'melo-solar', obis: '1-0:1.8.0' },
           { ref: 'v1', meloId: 'melo-wind', obis: '1-0:1.8.0' },
@@ -190,7 +194,7 @@ describe('EDM Messkonzept Service', () => {
         id: 'mk-dup',
         name: 'Test',
         type: 'SUM',
-          formula: 'v0 + v1',
+        formula: 'v0 + v1',
         inputs: [{ ref: 'v0', meloId: 'melo-solar' }],
         outputMeloId: 'melo-dup-out',
       });
@@ -209,7 +213,7 @@ describe('EDM Messkonzept Service', () => {
   });
 
   describe('list action', () => {
-     beforeEach(() => {
+    beforeEach(() => {
       const db = broker.getLocalService('edm').pool.getRegistry();
       db.prepare('DELETE FROM messkonzepte').run();
     });
@@ -257,7 +261,7 @@ describe('EDM Messkonzept Service', () => {
   });
 
   describe('get action', () => {
-     beforeEach(() => {
+    beforeEach(() => {
       const db = broker.getLocalService('edm').pool.getRegistry();
       db.prepare('DELETE FROM messkonzepte').run();
     });
@@ -303,7 +307,7 @@ describe('EDM Messkonzept Service', () => {
   });
 
   describe('delete action', () => {
-     beforeEach(() => {
+    beforeEach(() => {
       const db = broker.getLocalService('edm').pool.getRegistry();
       db.prepare('DELETE FROM messkonzepte').run();
     });
@@ -334,7 +338,7 @@ describe('EDM Messkonzept Service', () => {
   });
 
   describe('evaluate action', () => {
-     beforeEach(() => {
+    beforeEach(() => {
       const db = broker.getLocalService('edm').pool.getRegistry();
       db.prepare('DELETE FROM messkonzepte').run();
     });
@@ -396,7 +400,7 @@ describe('EDM Messkonzept Service', () => {
   });
 
   describe('evaluateAll action', () => {
-     beforeEach(() => {
+    beforeEach(() => {
       const db = broker.getLocalService('edm').pool.getRegistry();
       db.prepare('DELETE FROM messkonzepte').run();
     });
@@ -476,7 +480,7 @@ describe('EDM Messkonzept Service', () => {
   });
 
   describe('Integration - CALC formula with multiple inputs', () => {
-     beforeEach(() => {
+    beforeEach(() => {
       const db = broker.getLocalService('edm').pool.getRegistry();
       db.prepare('DELETE FROM messkonzepte').run();
     });

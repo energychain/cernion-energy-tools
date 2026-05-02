@@ -337,9 +337,10 @@ module.exports = {
         }
 
         // Append global domain catalogue
-        base.domainCatalogue = Object.entries(DOMAIN_OEO_MAPPINGS).map(
-          ([id, iris]) => ({ domainId: id, oeoClasses: iris })
-        );
+        base.domainCatalogue = Object.entries(DOMAIN_OEO_MAPPINGS).map(([id, iris]) => ({
+          domainId: id,
+          oeoClasses: iris,
+        }));
 
         return base;
       },
@@ -543,10 +544,7 @@ module.exports = {
           } else if (d.lastRun.status === 'error') {
             status = 'errored';
             summary.errored++;
-          } else if (
-            d.refresh.strategy === 'interval' &&
-            d.refresh.intervalMinutes
-          ) {
+          } else if (d.refresh.strategy === 'interval' && d.refresh.intervalMinutes) {
             const ageMs = now - new Date(d.lastRun.timestamp).getTime();
             const staleThresholdMs = d.refresh.intervalMinutes * 60 * 1000 * 2;
             if (ageMs > staleThresholdMs) {
@@ -770,14 +768,17 @@ module.exports = {
             schemaHash,
           };
           doc.provenanceHash = provenanceHash;
-          doc.health = this.updateHealth(doc.health, 'success', durationMs, oldSchemaHash, schemaHash);
+          doc.health = this.updateHealth(
+            doc.health,
+            'success',
+            durationMs,
+            oldSchemaHash,
+            schemaHash
+          );
 
           // Issue #32: Record agent interventions from executePlan if any
           if (Array.isArray(result.interventions) && result.interventions.length > 0) {
-            doc.agent_interventions = [
-              ...(doc.agent_interventions || []),
-              ...result.interventions,
-            ];
+            doc.agent_interventions = [...(doc.agent_interventions || []), ...result.interventions];
           }
 
           await this.db.put(doc);
@@ -1020,10 +1021,9 @@ module.exports = {
             throw e;
           }
 
-          const ageMinutes =
-            dp.lastRun?.timestamp
-              ? (now - new Date(dp.lastRun.timestamp).getTime()) / 60000
-              : Infinity;
+          const ageMinutes = dp.lastRun?.timestamp
+            ? (now - new Date(dp.lastRun.timestamp).getTime()) / 60000
+            : Infinity;
 
           if (ageMinutes <= maxAgeMinutes && dp.lastRun?.status === 'success') {
             // Fresh enough — skip refresh
@@ -1138,7 +1138,11 @@ module.exports = {
             name: 'status',
             in: 'query',
             required: false,
-            schema: { type: 'string', enum: ['complete', 'partial', 'failed'], example: 'complete' },
+            schema: {
+              type: 'string',
+              enum: ['complete', 'partial', 'failed'],
+              example: 'complete',
+            },
             description: 'Filter snapshots by status.',
           },
         ],
@@ -1388,11 +1392,7 @@ module.exports = {
         columns = Object.keys(data.forecasts[0]).sort();
       }
 
-      return crypto
-        .createHash('sha256')
-        .update(JSON.stringify(columns))
-        .digest('hex')
-        .slice(0, 16);
+      return crypto.createHash('sha256').update(JSON.stringify(columns)).digest('hex').slice(0, 16);
     },
 
     /**
@@ -1476,19 +1476,21 @@ module.exports = {
         if (this.activeRefreshes.has(doc.name)) continue;
 
         if (this.activeRefreshes.size >= this.settings.maxConcurrentRefreshes) {
-          this.logger.debug(`Concurrency limit reached (${this.settings.maxConcurrentRefreshes}), deferring remaining refreshes`);
+          this.logger.debug(
+            `Concurrency limit reached (${this.settings.maxConcurrentRefreshes}), deferring remaining refreshes`
+          );
           break;
         }
 
-        const lastRunAt = doc.lastRun?.timestamp
-          ? new Date(doc.lastRun.timestamp).getTime()
-          : 0;
+        const lastRunAt = doc.lastRun?.timestamp ? new Date(doc.lastRun.timestamp).getTime() : 0;
         const dueAt = lastRunAt + doc.refresh.intervalMinutes * 60 * 1000;
 
         if (now < dueAt) continue;
 
         this.activeRefreshes.add(doc.name);
-        this.logger.info(`Scheduler: refreshing '${doc.name}' (overdue by ${Math.round((now - dueAt) / 60000)} min)`);
+        this.logger.info(
+          `Scheduler: refreshing '${doc.name}' (overdue by ${Math.round((now - dueAt) / 60000)} min)`
+        );
 
         this.broker
           .call('datapoint.refresh', { name: doc.name })
@@ -1507,7 +1509,12 @@ module.exports = {
      * @see https://github.com/OpenEnergyPlatform/ontology — @OpenEnergyPlatform/ontology
      */
     buildOeoContext(fieldProfiles, domainId) {
-      const { OEO_BASE_IRI, forDomainResolved, UNITS, byCernionType } = require('../src/oeo-mappings');
+      const {
+        OEO_BASE_IRI,
+        forDomainResolved,
+        UNITS,
+        byCernionType,
+      } = require('../src/oeo-mappings');
       const ctx = {
         oeo: OEO_BASE_IRI,
         schema: 'https://schema.org/',

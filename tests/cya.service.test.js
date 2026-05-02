@@ -9,7 +9,8 @@ jest.mock('../src/cya-report-builder', () => ({
   buildCyaNarrativePdf: jest.fn(async () => Buffer.from('%PDF-1.4\nfake-pdf-content')),
 }));
 
-jest.mock('../src/cya-synthesis', () => ({  synthesizeNarrative: jest.fn(async () => ({
+jest.mock('../src/cya-synthesis', () => ({
+  synthesizeNarrative: jest.fn(async () => ({
     generatedAt: new Date().toISOString(),
     narrative: {
       headline: 'Belastbare Einordnung',
@@ -61,7 +62,8 @@ describe('cya.service', () => {
           handler(ctx) {
             const location = String(ctx.params.location || '').toLowerCase();
             const plz = String(ctx.params.postleitzahl || '');
-            const isHoeheinod = location.includes('höheinöd') || location.includes('hoheinod') || plz === '66989';
+            const isHoeheinod =
+              location.includes('höheinöd') || location.includes('hoheinod') || plz === '66989';
             const isBautzen = location.includes('bautzen');
 
             if (isBautzen) {
@@ -247,7 +249,9 @@ describe('cya.service', () => {
         },
       });
 
-      const loaded = await broker.call('cya.getProfile', { profile_id: 'cya_template_profile_override' });
+      const loaded = await broker.call('cya.getProfile', {
+        profile_id: 'cya_template_profile_override',
+      });
       expect(loaded.success).toBe(true);
       expect(loaded.profile.actor.organization).toBe('Stadtwerke Override');
     });
@@ -946,7 +950,11 @@ describe('cya.service', () => {
           session_id: completedSessionId,
           status: 'completed',
           target_audience: 'Aufsichtsrat',
-          metadata: { createdAt: new Date().toISOString(), location: 'Heidelberg', trigger: 'Test' },
+          metadata: {
+            createdAt: new Date().toISOString(),
+            location: 'Heidelberg',
+            trigger: 'Test',
+          },
           narrative: {
             headline: 'Testbericht',
             executiveSummary: 'Kurz.',
@@ -1002,7 +1010,12 @@ describe('cya.service', () => {
       });
       expect(buildCyaNarrativePdf).toHaveBeenCalledWith(
         expect.objectContaining({ session_id: completedSessionId }),
-        { language: 'en', includeRegulatoryDetails: false, includeDataBasis: false, includeAITransparency: false }
+        {
+          language: 'en',
+          includeRegulatoryDetails: false,
+          includeDataBasis: false,
+          includeAITransparency: false,
+        }
       );
     });
 

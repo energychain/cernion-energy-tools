@@ -52,7 +52,9 @@ module.exports = {
 
         const db = this.pool.getRegistry();
         const customRows = db
-          .prepare('SELECT profile_id, name, base_profile, season, day_type, owner FROM custom_slp ORDER BY created_at DESC')
+          .prepare(
+            'SELECT profile_id, name, base_profile, season, day_type, owner FROM custom_slp ORDER BY created_at DESC'
+          )
           .all();
 
         const customProfiles = customRows.map((row) => ({
@@ -82,8 +84,18 @@ module.exports = {
         summary: 'Get one SLP profile',
         tags: ['SLP (Standardlastprofile)'],
         parameters: [
-          { name: 'profileId', in: 'path', required: true, schema: { type: 'string', example: 'H0' } },
-          { name: 'date', in: 'query', required: false, schema: { type: 'string', example: '2026-01-15' } },
+          {
+            name: 'profileId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'H0' },
+          },
+          {
+            name: 'date',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: '2026-01-15' },
+          },
         ],
         responses: { 200: { description: 'Profile' }, 404: { description: 'Not found' } },
       },
@@ -102,7 +114,9 @@ module.exports = {
         }
 
         const db = this.pool.getRegistry();
-        const row = db.prepare('SELECT * FROM custom_slp WHERE profile_id = ?').get(ctx.params.profileId);
+        const row = db
+          .prepare('SELECT * FROM custom_slp WHERE profile_id = ?')
+          .get(ctx.params.profileId);
 
         if (!row) {
           throw new MoleculerClientError('Profile not found', 404, 'PROFILE_NOT_FOUND');
@@ -110,7 +124,11 @@ module.exports = {
 
         const values = parseCustomValues(row.values);
         if (!values || values.length !== 96) {
-          throw new MoleculerClientError('Invalid custom profile values', 500, 'PROFILE_DATA_INVALID');
+          throw new MoleculerClientError(
+            'Invalid custom profile values',
+            500,
+            'PROFILE_DATA_INVALID'
+          );
         }
 
         return {
@@ -177,7 +195,11 @@ module.exports = {
 
           const values = parseCustomValues(row.values);
           if (!values || values.length !== 96) {
-            throw new MoleculerClientError('Invalid custom profile values', 500, 'PROFILE_DATA_INVALID');
+            throw new MoleculerClientError(
+              'Invalid custom profile values',
+              500,
+              'PROFILE_DATA_INVALID'
+            );
           }
 
           profile = {
@@ -191,7 +213,11 @@ module.exports = {
 
         const sum = profile.values.reduce((acc, value) => acc + Number(value || 0), 0);
         if (sum <= 0) {
-          throw new MoleculerClientError('Profile values must sum to > 0', 400, 'PROFILE_VALUES_INVALID');
+          throw new MoleculerClientError(
+            'Profile values must sum to > 0',
+            400,
+            'PROFILE_VALUES_INVALID'
+          );
         }
 
         const dailyConsumption = annualConsumptionKwh / 365;
@@ -240,9 +266,23 @@ module.exports = {
                   profileId: { type: 'string', example: 'custom_muster_001' },
                   name: { type: 'string', example: 'Nachtspeicher-Profil Muster' },
                   baseProfile: { type: 'string', example: 'H0' },
-                  season: { type: 'string', enum: ['winter', 'summer', 'transition', 'all'], example: 'all' },
-                  dayType: { type: 'string', enum: ['weekday', 'saturday', 'sunday', 'all'], example: 'all' },
-                  values: { type: 'array', items: { type: 'number' }, minItems: 96, maxItems: 96, example: new Array(96).fill(1 / 96) },
+                  season: {
+                    type: 'string',
+                    enum: ['winter', 'summer', 'transition', 'all'],
+                    example: 'all',
+                  },
+                  dayType: {
+                    type: 'string',
+                    enum: ['weekday', 'saturday', 'sunday', 'all'],
+                    example: 'all',
+                  },
+                  values: {
+                    type: 'array',
+                    items: { type: 'number' },
+                    minItems: 96,
+                    maxItems: 96,
+                    example: new Array(96).fill(1 / 96),
+                  },
                   owner: { type: 'string', example: 'Stadtwerke Beispiel' },
                 },
               },
@@ -266,20 +306,28 @@ module.exports = {
       handler(ctx) {
         const { profileId, name, baseProfile, season, dayType, values, owner } = ctx.params;
         if (STANDARD_PROFILES[profileId]) {
-          throw new MoleculerClientError('Standard profile IDs are reserved', 400, 'PROFILE_RESERVED');
+          throw new MoleculerClientError(
+            'Standard profile IDs are reserved',
+            400,
+            'PROFILE_RESERVED'
+          );
         }
 
         const db = this.pool.getRegistry();
-        const existing = db.prepare('SELECT profile_id FROM custom_slp WHERE profile_id = ?').get(profileId);
+        const existing = db
+          .prepare('SELECT profile_id FROM custom_slp WHERE profile_id = ?')
+          .get(profileId);
         if (existing) {
           throw new MoleculerClientError('Profile already exists', 409, 'PROFILE_EXISTS');
         }
 
-        db.prepare(`
+        db.prepare(
+          `
           INSERT INTO custom_slp (
             profile_id, name, base_profile, season, day_type, "values", owner
           ) VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).run(
+        `
+        ).run(
           profileId,
           name,
           baseProfile || null,
@@ -318,7 +366,10 @@ module.exports = {
             },
           },
         },
-        responses: { 200: { description: 'Deleted' }, 400: { description: 'Standard profile cannot be deleted' } },
+        responses: {
+          200: { description: 'Deleted' },
+          400: { description: 'Standard profile cannot be deleted' },
+        },
       },
       handler(ctx) {
         const { profileId } = ctx.params;
@@ -332,7 +383,9 @@ module.exports = {
         }
 
         const db = this.pool.getRegistry();
-        const existing = db.prepare('SELECT profile_id FROM custom_slp WHERE profile_id = ?').get(profileId);
+        const existing = db
+          .prepare('SELECT profile_id FROM custom_slp WHERE profile_id = ?')
+          .get(profileId);
         if (!existing) {
           throw new MoleculerClientError('Profile not found', 404, 'PROFILE_NOT_FOUND');
         }

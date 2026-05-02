@@ -157,9 +157,7 @@ function buildSpatial(doc) {
  * @returns {object}
  */
 function buildTemporal(doc) {
-  const referenceDate = doc.lastRun?.timestamp
-    ? doc.lastRun.timestamp.slice(0, 10)
-    : null;
+  const referenceDate = doc.lastRun?.timestamp ? doc.lastRun.timestamp.slice(0, 10) : null;
 
   return {
     referenceDate,
@@ -283,7 +281,8 @@ function buildOEMetadata(doc) {
   return {
     // JSON-LD / identification
     '@id': `urn:cernion:datapoint:${doc.name}`,
-    '@context': 'https://raw.githubusercontent.com/OpenEnergyPlatform/oemetadata/v2.0.0/metadata/v200/context.json',
+    '@context':
+      'https://raw.githubusercontent.com/OpenEnergyPlatform/oemetadata/v2.0.0/metadata/v200/context.json',
 
     // Collection-level (required: Iron badge)
     name: doc.name,
@@ -383,9 +382,7 @@ function buildOEMetadata(doc) {
       // Scheduling
       scheduling: {
         strategy: doc.refresh?.strategy || 'manual',
-        ...(doc.refresh?.intervalMinutes
-          ? { intervalMinutes: doc.refresh.intervalMinutes }
-          : {}),
+        ...(doc.refresh?.intervalMinutes ? { intervalMinutes: doc.refresh.intervalMinutes } : {}),
       },
     },
   };
@@ -433,12 +430,13 @@ function validateAgainstSchema(metadata) {
   const validate = ajv.compile(schema);
 
   // Validate without the _cernion extension field
-  const { _cernion: _ext, ...cleanMetadata } = metadata;
+  const cleanMetadata = { ...metadata };
+  delete cleanMetadata._cernion;
   const valid = validate(cleanMetadata);
 
   return {
     valid,
-    errors: valid ? null : (validate.errors || []),
+    errors: valid ? null : validate.errors || [],
     warnings,
   };
 }

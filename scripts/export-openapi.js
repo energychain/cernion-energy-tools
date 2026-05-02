@@ -93,10 +93,7 @@ function resolveUiPage(openapiPath) {
 
 // ── Paths to exclude from the export ─────────────────────────────────────
 
-const EXCLUDED_PATH_PATTERNS = [
-  /^\/upload/,
-  /^\/system\//,
-];
+const EXCLUDED_PATH_PATTERNS = [/^\/upload/, /^\/system\//];
 
 function shouldExclude(openapiPath) {
   return EXCLUDED_PATH_PATTERNS.some((re) => re.test(openapiPath));
@@ -150,7 +147,7 @@ function loadActionRegistry() {
     .sort((a, b) => a.localeCompare(b));
 
   for (const file of files) {
-    // eslint-disable-next-line global-require, import/no-dynamic-require
+    // eslint-disable-next-line global-require
     const svc = require(path.join(SERVICES_DIR, file));
     if (!svc || !svc.name || !svc.actions || typeof svc.actions !== 'object') continue;
 
@@ -266,13 +263,14 @@ async function main() {
     annotatedPaths[openapiPath] = annotatedPathItem;
   }
 
-  const includeTimestamp = String(process.env.OPENAPI_EXPORT_INCLUDE_TIMESTAMP || 'false') === 'true';
+  const includeTimestamp =
+    String(process.env.OPENAPI_EXPORT_INCLUDE_TIMESTAMP || 'false') === 'true';
 
   const exportSpec = {
     ...spec,
     paths: annotatedPaths,
-    'x-generator':    'scripts/export-openapi.js',
-    'x-version':      packageVersion,
+    'x-generator': 'scripts/export-openapi.js',
+    'x-version': packageVersion,
   };
 
   if (includeTimestamp) {

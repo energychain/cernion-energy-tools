@@ -66,8 +66,18 @@ describe('agent.executePlan', () => {
     const plan = {
       summary: 'Mock 2-step plan',
       steps: [
-        { step: 1, action: 'gas-storage-ep1.step1', description: 'Step 1', params: { country: 'de' } },
-        { step: 2, action: 'energy-market-ep1.step2', description: 'Step 2', params: { market: 'day-ahead' } },
+        {
+          step: 1,
+          action: 'gas-storage-ep1.step1',
+          description: 'Step 1',
+          params: { country: 'de' },
+        },
+        {
+          step: 2,
+          action: 'energy-market-ep1.step2',
+          description: 'Step 2',
+          params: { market: 'day-ahead' },
+        },
       ],
       requiredInputs: [],
     };
@@ -130,7 +140,12 @@ describe('agent.executePlan', () => {
     const plan = {
       summary: 'Input merge test',
       steps: [
-        { step: 1, action: 'merge-ep1.action', description: 'Step', params: { country: null, days: null } },
+        {
+          step: 1,
+          action: 'merge-ep1.action',
+          description: 'Step',
+          params: { country: null, days: null },
+        },
       ],
       requiredInputs: [
         { name: 'country', default: 'de', required: true },
@@ -167,8 +182,18 @@ describe('agent.executePlan', () => {
     const plan = {
       summary: 'Chaining test',
       steps: [
-        { step: 1, action: 'lookup-ep1.marketPartners', description: 'Lookup', params: { query: 'TWL' } },
-        { step: 2, action: 'assets-ep1.solar', description: 'Assets', params: { bdewCode: '__step_1.data.results[0].bdewCode' } },
+        {
+          step: 1,
+          action: 'lookup-ep1.marketPartners',
+          description: 'Lookup',
+          params: { query: 'TWL' },
+        },
+        {
+          step: 2,
+          action: 'assets-ep1.solar',
+          description: 'Assets',
+          params: { bdewCode: '__step_1.data.results[0].bdewCode' },
+        },
       ],
       requiredInputs: [],
     };
@@ -183,16 +208,12 @@ describe('agent.executePlan', () => {
   });
 
   it('returns executedAt as ISO timestamp', async () => {
-    const svc = broker.createService(
-      stubService('health-ep1', 'ping', () => ({ pong: true }))
-    );
+    const svc = broker.createService(stubService('health-ep1', 'ping', () => ({ pong: true })));
     await broker.waitForServices(['health-ep1']);
 
     const plan = {
       summary: 'Timestamp test',
-      steps: [
-        { step: 1, action: 'health-ep1.ping', description: 'Ping', params: {} },
-      ],
+      steps: [{ step: 1, action: 'health-ep1.ping', description: 'Ping', params: {} }],
       requiredInputs: [],
     };
 
@@ -208,16 +229,12 @@ describe('agent.executePlan', () => {
 
   describe('interventions (Issue #32)', () => {
     it('returns an interventions array in the result', async () => {
-      const svc = broker.createService(
-        stubService('int-ep1', 'action', () => ({ ok: true }))
-      );
+      const svc = broker.createService(stubService('int-ep1', 'action', () => ({ ok: true })));
       await broker.waitForServices(['int-ep1']);
 
       const plan = {
         summary: 'Interventions array test',
-        steps: [
-          { step: 1, action: 'int-ep1.action', description: 'Step', params: {} },
-        ],
+        steps: [{ step: 1, action: 'int-ep1.action', description: 'Step', params: {} }],
         requiredInputs: [],
       };
 
@@ -238,9 +255,7 @@ describe('agent.executePlan', () => {
 
       const plan = {
         summary: 'Failure intervention test',
-        steps: [
-          { step: 1, action: 'fail-int-ep1.action', description: 'Step', params: {} },
-        ],
+        steps: [{ step: 1, action: 'fail-int-ep1.action', description: 'Step', params: {} }],
         requiredInputs: [],
       };
 
@@ -260,16 +275,12 @@ describe('agent.executePlan', () => {
     });
 
     it('returns empty interventions when no repairs or failures occur', async () => {
-      const svc = broker.createService(
-        stubService('clean-ep1', 'action', () => ({ ok: true }))
-      );
+      const svc = broker.createService(stubService('clean-ep1', 'action', () => ({ ok: true })));
       await broker.waitForServices(['clean-ep1']);
 
       const plan = {
         summary: 'Clean execution',
-        steps: [
-          { step: 1, action: 'clean-ep1.action', description: 'Step', params: {} },
-        ],
+        steps: [{ step: 1, action: 'clean-ep1.action', description: 'Step', params: {} }],
         requiredInputs: [],
       };
 

@@ -10,10 +10,7 @@ const EdmMesskonzeptService = require('../services/edm-messkonzept.service');
 const EdmVirtualService = require('../services/edm-virtual.service');
 
 function createTempDir() {
-  return path.join(
-    os.tmpdir(),
-    `edm-virtual-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  );
+  return path.join(os.tmpdir(), `edm-virtual-${Date.now()}-${Math.random().toString(16).slice(2)}`);
 }
 
 describe('edm-virtual.service', () => {

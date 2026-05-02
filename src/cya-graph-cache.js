@@ -17,16 +17,16 @@
 const Graph = require('graphology');
 
 const GRAPH_NAMESPACE = 'cya_ontology_graphs';
-const DEFAULT_TTL_SEC = 86400;  // 24h
-const L1_MAX_ENTRIES  = 20;     // max VNBs im In-Memory-Cache
+const DEFAULT_TTL_SEC = 86400; // 24h
+const L1_MAX_ENTRIES = 20; // max VNBs im In-Memory-Cache
 
 // ── L1: In-Memory ────────────────────────────────────────────────────────────
 
 class GraphCache {
   constructor(options = {}) {
     this.ttlSeconds = options.ttlSeconds || DEFAULT_TTL_SEC;
-    this.l1         = new Map();  // key → { graph, serialized, cachedAt, hitCount }
-    this.namespace  = GRAPH_NAMESPACE;
+    this.l1 = new Map(); // key → { graph, serialized, cachedAt, hitCount }
+    this.namespace = GRAPH_NAMESPACE;
   }
 
   /**
@@ -79,8 +79,9 @@ class GraphCache {
    */
   setL1(key, graph, serialized, cachedAt) {
     if (this.l1.size >= L1_MAX_ENTRIES) {
-      const oldest = [...this.l1.entries()]
-        .sort((a, b) => new Date(a[1].cachedAt) - new Date(b[1].cachedAt))[0];
+      const oldest = [...this.l1.entries()].sort(
+        (a, b) => new Date(a[1].cachedAt) - new Date(b[1].cachedAt)
+      )[0];
       if (oldest) this.l1.delete(oldest[0]);
     }
     this.l1.set(key, { graph, serialized, cachedAt, hitCount: 0 });
@@ -113,7 +114,7 @@ class GraphCache {
 
       return graph;
     } catch {
-      return null;  // L2-Fehler → Cache-Miss, kein Crash
+      return null; // L2-Fehler → Cache-Miss, kein Crash
     }
   }
 
@@ -128,7 +129,7 @@ class GraphCache {
    */
   async set(key, graph, brokerCall) {
     const serialized = graph.export();
-    const cachedAt   = new Date().toISOString();
+    const cachedAt = new Date().toISOString();
 
     // L1 synchron
     this.setL1(key, graph, serialized, cachedAt);
@@ -144,7 +145,7 @@ class GraphCache {
         edgeCount: graph.size,
         ttlSeconds: this.ttlSeconds,
       },
-    }).catch(() => null);  // L2-Fehler ignorieren — L1 genügt für laufende Session
+    }).catch(() => null); // L2-Fehler ignorieren — L1 genügt für laufende Session
   }
 
   /**
@@ -173,15 +174,15 @@ class GraphCache {
     const entries = [...this.l1.entries()].map(([key, e]) => ({
       key,
       nodeCount: e.graph?.order || 0,
-      edgeCount: e.graph?.size  || 0,
-      cachedAt:  e.cachedAt,
-      hitCount:  e.hitCount,
-      stale:     this.isStale(e),
+      edgeCount: e.graph?.size || 0,
+      cachedAt: e.cachedAt,
+      hitCount: e.hitCount,
+      stale: this.isStale(e),
     }));
     return {
-      l1Entries:  entries.length,
+      l1Entries: entries.length,
       ttlSeconds: this.ttlSeconds,
-      namespace:  this.namespace,
+      namespace: this.namespace,
       entries,
     };
   }

@@ -30,8 +30,14 @@ describe('NOVA Service', () => {
       projectId,
       assets: [
         { mastrNummer: 'SEE900PV00001', capacity: 500, assetType: 'solar', lat: 49.49, lon: 8.47 },
-        { mastrNummer: 'SEE900PV00002', capacity: 400, assetType: 'solar', lat: 49.50, lon: 8.48 },
-        { mastrNummer: 'SEE900WB00003', capacity: 300, assetType: 'wallbox', lat: 49.51, lon: 8.49 },
+        { mastrNummer: 'SEE900PV00002', capacity: 400, assetType: 'solar', lat: 49.5, lon: 8.48 },
+        {
+          mastrNummer: 'SEE900WB00003',
+          capacity: 300,
+          assetType: 'wallbox',
+          lat: 49.51,
+          lon: 8.49,
+        },
       ],
     });
 
@@ -98,8 +104,14 @@ describe('NOVA Service', () => {
       projectId: rdProjectId,
       assets: [
         { mastrNummer: 'SEE900RDPV001', capacity: 500, assetType: 'solar', lat: 49.49, lon: 8.47 },
-        { mastrNummer: 'SEE900RDPV002', capacity: 400, assetType: 'solar', lat: 49.50, lon: 8.48 },
-        { mastrNummer: 'SEE900RDWB003', capacity: 300, assetType: 'wallbox', lat: 49.51, lon: 8.49 },
+        { mastrNummer: 'SEE900RDPV002', capacity: 400, assetType: 'solar', lat: 49.5, lon: 8.48 },
+        {
+          mastrNummer: 'SEE900RDWB003',
+          capacity: 300,
+          assetType: 'wallbox',
+          lat: 49.51,
+          lon: 8.49,
+        },
       ],
     });
 
@@ -126,8 +138,8 @@ describe('NOVA Service', () => {
     const pvEdge2 = graph.edge('mastr:SEE900RDPV002', 'SUB_1');
     const wallboxEdge = graph.edge('mastr:SEE900RDWB003', 'SUB_1');
 
-    expect(graph.getEdgeAttribute(pvEdge1, 'gFactor')).toBe(0.70);
-    expect(graph.getEdgeAttribute(pvEdge2, 'gFactor')).toBe(0.70);
+    expect(graph.getEdgeAttribute(pvEdge1, 'gFactor')).toBe(0.7);
+    expect(graph.getEdgeAttribute(pvEdge2, 'gFactor')).toBe(0.7);
     expect(graph.getEdgeAttribute(wallboxEdge, 'gFactor')).toBeUndefined();
 
     expect(graph.getNodeAttribute('mastr:SEE900RDPV001', 'is_rd_curtailed')).toBe(true);
@@ -139,14 +151,12 @@ describe('NOVA Service', () => {
       (edge) => edge.source === 'mastr:SEE900RDPV001' && edge.target === 'SUB_1'
     );
     expect(pvEdgeDoc).toBeDefined();
-    expect(pvEdgeDoc.attributes.gFactor).toBe(0.70);
+    expect(pvEdgeDoc.attributes.gFactor).toBe(0.7);
     expect(pvEdgeDoc.attributes.is_rd_curtailed).toBe(true);
   });
 
   it('does not expose the removed legacy action nova.applyDecision', async () => {
-    await expect(
-      broker.call('nova.applyDecision', { id: 'dec_001' })
-    ).rejects.toMatchObject({
+    await expect(broker.call('nova.applyDecision', { id: 'dec_001' })).rejects.toMatchObject({
       code: 404,
     });
   });

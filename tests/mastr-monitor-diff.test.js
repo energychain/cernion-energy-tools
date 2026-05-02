@@ -63,20 +63,24 @@ describe('mastr-monitor-diff', () => {
   });
 
   it('computeDelta CHANGED includes fields and label mappings', () => {
-    const prev = [{
-      mastrNummer: 'SEE001',
-      name: 'A',
-      einheitBetriebsstatus: '35',
-      netzbetreiberpruefungStatus: 2955,
-      lastUpdatedAt: '2026-04-16T00:00:00.000Z',
-    }];
-    const curr = [{
-      mastrNummer: 'SEE001',
-      name: 'A',
-      einheitBetriebsstatus: '37',
-      netzbetreiberpruefungStatus: 2954,
-      lastUpdatedAt: '2026-04-17T00:00:00.000Z',
-    }];
+    const prev = [
+      {
+        mastrNummer: 'SEE001',
+        name: 'A',
+        einheitBetriebsstatus: '35',
+        netzbetreiberpruefungStatus: 2955,
+        lastUpdatedAt: '2026-04-16T00:00:00.000Z',
+      },
+    ];
+    const curr = [
+      {
+        mastrNummer: 'SEE001',
+        name: 'A',
+        einheitBetriebsstatus: '37',
+        netzbetreiberpruefungStatus: 2954,
+        lastUpdatedAt: '2026-04-17T00:00:00.000Z',
+      },
+    ];
 
     const delta = computeDelta(prev, curr, watchFields);
     expect(delta.changed).toHaveLength(1);
@@ -101,7 +105,9 @@ describe('mastr-monitor-diff', () => {
   });
 
   it('computeDelta NO CHANGE handles identical and empty snapshots', () => {
-    const identical = [{ mastrNummer: 'SEE001', einheitBetriebsstatus: '35', lastUpdatedAt: 'same' }];
+    const identical = [
+      { mastrNummer: 'SEE001', einheitBetriebsstatus: '35', lastUpdatedAt: 'same' },
+    ];
     const deltaIdentical = computeDelta(identical, identical, watchFields);
     expect(deltaIdentical.summary.changed).toBe(0);
 
@@ -127,10 +133,7 @@ describe('mastr-monitor-diff', () => {
 
     const delta = computeDelta(prev, curr, watchFields);
     const sum =
-      delta.summary.added +
-      delta.summary.removed +
-      delta.summary.changed +
-      delta.summary.unchanged;
+      delta.summary.added + delta.summary.removed + delta.summary.changed + delta.summary.unchanged;
 
     expect(sum).toBe(delta.summary.total);
   });

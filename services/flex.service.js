@@ -321,7 +321,12 @@ module.exports = {
         date: { type: 'string' },
         gridCapacityKw: { type: 'number', convert: true, positive: true },
         postalCode: { type: 'string', optional: true },
-        threshold: { type: 'number', optional: true, default: DEFAULT_OPTIONS.threshold, convert: true },
+        threshold: {
+          type: 'number',
+          optional: true,
+          default: DEFAULT_OPTIONS.threshold,
+          convert: true,
+        },
         loadForecastOverride: { type: 'array', optional: true, items: { type: 'object' } },
       },
       openapi: {
@@ -393,7 +398,12 @@ module.exports = {
           priorityOrder: DEFAULT_OPTIONS.priorityOrder,
         };
 
-        const plan = calculateDimmingPlan(devices, loadForecast, ctx.params.gridCapacityKw, options);
+        const plan = calculateDimmingPlan(
+          devices,
+          loadForecast,
+          ctx.params.gridCapacityKw,
+          options
+        );
         const planId = createId('flexplan');
 
         await ctx.call('object-store.put', {
@@ -584,7 +594,10 @@ module.exports = {
             for (const row of values) {
               const current = toNumber(row?.value, 0);
               loadBefore.push({ ts: row.ts, value: current });
-              loadAfter.push({ ts: row.ts, value: Math.max(0, current - toNumber(event.reductionKw, 0)) });
+              loadAfter.push({
+                ts: row.ts,
+                value: Math.max(0, current - toNumber(event.reductionKw, 0)),
+              });
             }
           } catch (_error) {
             // KRITIS fallback: proof can still be generated from event payloads.

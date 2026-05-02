@@ -42,7 +42,12 @@ const sessionWithSignalOverrides = {
     confidence: 'medium',
     toolSetRationale: 'actorRole=grid_operator; focusAreas=[grid_expansion]',
     signalOverrides: [
-      { ruleId: 'VOLTAGE_HOP_REQUIRED', tool: 'osm_substation_finder', injectedTool: 'osm_substation_finder', reason: 'VOLTAGE_HOP_REQUIRED → SUBSTATION_FINDER forced' },
+      {
+        ruleId: 'VOLTAGE_HOP_REQUIRED',
+        tool: 'osm_substation_finder',
+        injectedTool: 'osm_substation_finder',
+        reason: 'VOLTAGE_HOP_REQUIRED → SUBSTATION_FINDER forced',
+      },
     ],
   },
   retrieval: { toolSetRationale: null, signalOverrides: [] },
@@ -60,7 +65,9 @@ const emptyProfile = {
 const profileWithExplicit = {
   ...emptyProfile,
   explicitPreferences: { reportFormat: 'pdf' },
-  constraints: [{ topic: 'Dunkelflaute', rule: 'Keine Spekulation', setAt: '2026-04-10T00:00:00.000Z' }],
+  constraints: [
+    { topic: 'Dunkelflaute', rule: 'Keine Spekulation', setAt: '2026-04-10T00:00:00.000Z' },
+  ],
 };
 
 // ── extractImplicitSignals ────────────────────────────────────────────────

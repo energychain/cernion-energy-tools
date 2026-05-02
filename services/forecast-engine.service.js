@@ -167,7 +167,9 @@ module.exports = {
 
         let historical = null;
         if (meloId) {
-          const from = new Date(new Date(`${toDateOnly(date)}T00:00:00.000Z`).getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+          const from = new Date(
+            new Date(`${toDateOnly(date)}T00:00:00.000Z`).getTime() - 30 * 24 * 60 * 60 * 1000
+          ).toISOString();
           const to = new Date(`${toDateOnly(date)}T00:00:00.000Z`).toISOString();
 
           const historicalResult = await ctx.call('edm.getTimeseries', {
@@ -207,7 +209,14 @@ module.exports = {
           default: 'solar',
         },
         date: { type: 'string' },
-        forecastDays: { type: 'number', optional: true, default: 1, min: 1, max: 14, convert: true },
+        forecastDays: {
+          type: 'number',
+          optional: true,
+          default: 1,
+          min: 1,
+          max: 14,
+          convert: true,
+        },
       },
       openapi: {
         summary: 'Generate generation forecast (solar/wind)',
@@ -224,7 +233,11 @@ module.exports = {
                 properties: {
                   gridOperatorMastrId: { type: 'string', example: 'SNB935578300972' },
                   postleitzahl: { type: 'string', example: '66989' },
-                  installationType: { type: 'string', enum: ['solar', 'wind', 'all'], default: 'solar' },
+                  installationType: {
+                    type: 'string',
+                    enum: ['solar', 'wind', 'all'],
+                    default: 'solar',
+                  },
                   date: { type: 'string', example: '2026-04-20' },
                   forecastDays: { type: 'number', default: 1 },
                 },
@@ -253,23 +266,29 @@ module.exports = {
         } = ctx.params;
 
         try {
-          const mcpResult = await ctx.call('forecast.generationForecast', {
-            installationType,
-            forecastDays,
-            resolution: '15min',
-            gridOperatorMastrId,
-            postleitzahl,
-            startDate: toDateOnly(date),
-            format: 'json',
-          }, {
-            meta: { cernionToken: ctx.meta.cernionToken },
-          });
+          const mcpResult = await ctx.call(
+            'forecast.generationForecast',
+            {
+              installationType,
+              forecastDays,
+              resolution: '15min',
+              gridOperatorMastrId,
+              postleitzahl,
+              startDate: toDateOnly(date),
+              format: 'json',
+            },
+            {
+              meta: { cernionToken: ctx.meta.cernionToken },
+            }
+          );
 
-          const rows = parseRows(mcpResult).map((row) => ({
-            ts: row.ts || row.timestamp,
-            value: toNumber(row.value ?? row.generationMW ?? row.generationMWh ?? row.powerKw, 0),
-            quality: 'forecast',
-          })).filter((row) => toIso(row.ts));
+          const rows = parseRows(mcpResult)
+            .map((row) => ({
+              ts: row.ts || row.timestamp,
+              value: toNumber(row.value ?? row.generationMW ?? row.generationMWh ?? row.powerKw, 0),
+              quality: 'forecast',
+            }))
+            .filter((row) => toIso(row.ts));
 
           if (rows.length > 0) {
             return {
@@ -282,7 +301,11 @@ module.exports = {
           // KRITIS fallback below
         }
 
-        const rows = buildFallbackGenerationForecast(toDateOnly(date), forecastDays, installationType === 'all' ? 'solar' : installationType);
+        const rows = buildFallbackGenerationForecast(
+          toDateOnly(date),
+          forecastDays,
+          installationType === 'all' ? 'solar' : installationType
+        );
 
         return {
           success: true,
@@ -350,12 +373,14 @@ module.exports = {
 
         let resolvedLoad = loadForecast;
         if (!resolvedLoad || !Array.isArray(resolvedLoad.values)) {
-          resolvedLoad = (await ctx.call('forecast-engine.forecastLoad', {
-            meloId,
-            profileId: profileId || this.settings.defaultProfile,
-            date,
-            annualConsumptionKwh: annualConsumptionKwh || this.settings.defaultAnnualKwh,
-          })).forecast;
+          resolvedLoad = (
+            await ctx.call('forecast-engine.forecastLoad', {
+              meloId,
+              profileId: profileId || this.settings.defaultProfile,
+              date,
+              annualConsumptionKwh: annualConsumptionKwh || this.settings.defaultAnnualKwh,
+            })
+          ).forecast;
         }
 
         let resolvedGeneration = generationForecast;
@@ -409,7 +434,16 @@ module.exports = {
                   annualConsumptionKwh: { type: 'number', example: 3500 },
                   postleitzahl: { type: 'string', example: '66989' },
                   date: { type: 'string', example: '2026-04-20' },
-                  storageConfig: { type: 'object', example: { capacityKwh: 10, maxChargePowerKw: 5, maxDischargePowerKw: 5, efficiency: 0.92, currentSocPercent: 50 } },
+                  storageConfig: {
+                    type: 'object',
+                    example: {
+                      capacityKwh: 10,
+                      maxChargePowerKw: 5,
+                      maxDischargePowerKw: 5,
+                      efficiency: 0.92,
+                      currentSocPercent: 50,
+                    },
+                  },
                   includeMarketPrices: { type: 'boolean', default: false },
                 },
               },
@@ -450,19 +484,24 @@ module.exports = {
         let marketPrices = null;
         if (includeMarketPrices) {
           try {
-            const pricesResult = await ctx.call('entsoe.dayAheadPrices', {
-              region: 'Germany',
-              dateFrom: toDateOnly(date),
-              dateTo: toDateOnly(date),
-            }, {
-              meta: { cernionToken: ctx.meta.cernionToken },
-            });
+            const pricesResult = await ctx.call(
+              'entsoe.dayAheadPrices',
+              {
+                region: 'Germany',
+                dateFrom: toDateOnly(date),
+                dateTo: toDateOnly(date),
+              },
+              {
+                meta: { cernionToken: ctx.meta.cernionToken },
+              }
+            );
 
-            marketPrices = parseRows(pricesResult).length > 0
-              ? parseRows(pricesResult)
-              : Array.isArray(pricesResult?.prices)
-                ? pricesResult.prices
-                : null;
+            marketPrices =
+              parseRows(pricesResult).length > 0
+                ? parseRows(pricesResult)
+                : Array.isArray(pricesResult?.prices)
+                  ? pricesResult.prices
+                  : null;
           } catch (_error) {
             marketPrices = null;
           }
@@ -661,7 +700,16 @@ module.exports = {
                   annualConsumptionKwh: { type: 'number', example: 3500 },
                   postleitzahl: { type: 'string', example: '66989' },
                   date: { type: 'string', example: '2026-04-20' },
-                  storageConfig: { type: 'object', example: { capacityKwh: 10, maxChargePowerKw: 5, maxDischargePowerKw: 5, efficiency: 0.92, currentSocPercent: 50 } },
+                  storageConfig: {
+                    type: 'object',
+                    example: {
+                      capacityKwh: 10,
+                      maxChargePowerKw: 5,
+                      maxDischargePowerKw: 5,
+                      efficiency: 0.92,
+                      currentSocPercent: 50,
+                    },
+                  },
                   marketPrices: { type: 'array', items: { type: 'object' }, example: [] },
                 },
               },
@@ -755,7 +803,11 @@ module.exports = {
           limit: 1000,
         });
 
-        const entries = Array.isArray(result?.data) ? result.data : Array.isArray(result) ? result : [];
+        const entries = Array.isArray(result?.data)
+          ? result.data
+          : Array.isArray(result)
+            ? result
+            : [];
 
         const filtered = entries.filter((entry) => {
           const payload = entry?.payload || {};

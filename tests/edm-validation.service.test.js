@@ -100,7 +100,9 @@ describe('edm-validation.service', () => {
       capacityKw: 10,
     });
 
-    const bandwidthFindings = result.findings.filter((finding) => finding.ruleId === 'BANDWIDTH_CHECK');
+    const bandwidthFindings = result.findings.filter(
+      (finding) => finding.ruleId === 'BANDWIDTH_CHECK'
+    );
     expect(bandwidthFindings.length).toBeGreaterThan(0);
     expect(bandwidthFindings[0].value).toBe(500);
   });

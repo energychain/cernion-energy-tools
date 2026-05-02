@@ -112,9 +112,7 @@ function buildPersonaEvaluationPrompt(payload) {
   const grounding = payload.grounding || {};
   const regulatoryGraph = payload.regulatoryGraph || {};
 
-  const factsSnippet = Array.isArray(grounding.facts)
-    ? grounding.facts.slice(0, 8)
-    : [];
+  const factsSnippet = Array.isArray(grounding.facts) ? grounding.facts.slice(0, 8) : [];
 
   const memoryHint = grounding.personaMemoryHint
     ? `\n\nHINTERGRUND-ERINNERUNGEN:\n${grounding.personaMemoryHint}`
@@ -152,9 +150,7 @@ async function synthesizePersonaEvaluation(payload) {
     personaLabel: payload.persona?.label || '',
     verdict: VALID_VERDICTS.includes(response?.verdict) ? response.verdict : 'conditional',
     summary: String(response?.summary || '').trim(),
-    conflictTriggers: Array.isArray(response?.conflictTriggers)
-      ? response.conflictTriggers
-      : [],
+    conflictTriggers: Array.isArray(response?.conflictTriggers) ? response.conflictTriggers : [],
     keyPoints: Array.isArray(response?.keyPoints) ? response.keyPoints : [],
     riskNotes: Array.isArray(response?.riskNotes) ? response.riskNotes : [],
   };
@@ -187,8 +183,7 @@ const CYA_CONSENSUS_SCHEMA = {
 };
 
 function buildConsensusPrompt(payload) {
-  const { stakeholderStates, sharedFacts, profile, target_audience, context, round } =
-    payload;
+  const { stakeholderStates, sharedFacts, profile, target_audience, context, round } = payload;
 
   const statesStr = Object.entries(stakeholderStates || {})
     .map(([id, s]) => {

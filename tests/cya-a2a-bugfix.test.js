@@ -17,8 +17,20 @@ const { MAX_DIALOGUE_ROUNDS } = require('../src/cya-conflict-detector');
 
 function makeStates(overrides = {}) {
   return {
-    technical: { verdict: 'approved', summary: 'ok', conflictTriggers: [], keyPoints: [], riskNotes: [] },
-    compliance: { verdict: 'blocked', summary: 'blocked', conflictTriggers: ['capacity'], keyPoints: [], riskNotes: [] },
+    technical: {
+      verdict: 'approved',
+      summary: 'ok',
+      conflictTriggers: [],
+      keyPoints: [],
+      riskNotes: [],
+    },
+    compliance: {
+      verdict: 'blocked',
+      summary: 'blocked',
+      conflictTriggers: ['capacity'],
+      keyPoints: [],
+      riskNotes: [],
+    },
     ...overrides,
   };
 }
@@ -38,14 +50,23 @@ async function runConflictNegotiationLogic(
 
   if (!initialConflict.hasConflict) {
     const consensus = await synthesizeConsensusFn({ stakeholderStates, sharedFacts, round: 0 });
-    return { finalStates: stakeholderStates, dialogueRounds, conflictResolved: true, consensusNarrative: consensus };
+    return {
+      finalStates: stakeholderStates,
+      dialogueRounds,
+      conflictResolved: true,
+      consensusNarrative: consensus,
+    };
   }
 
   let currentStates = { ...stakeholderStates };
   for (let round = 1; round <= maxRounds; round++) {
     const conflict = detectConflictsFn(currentStates);
     // eslint-disable-next-line no-await-in-loop
-    const consensus = await synthesizeConsensusFn({ stakeholderStates: currentStates, sharedFacts, round });
+    const consensus = await synthesizeConsensusFn({
+      stakeholderStates: currentStates,
+      sharedFacts,
+      round,
+    });
 
     // Bug-fix: update currentStates if LLM returns updatedStates
     if (consensus.updatedStates) {
@@ -61,7 +82,12 @@ async function runConflictNegotiationLogic(
     });
 
     if (consensus.consensusReached) {
-      return { finalStates: currentStates, dialogueRounds, conflictResolved: true, consensusNarrative: consensus };
+      return {
+        finalStates: currentStates,
+        dialogueRounds,
+        conflictResolved: true,
+        consensusNarrative: consensus,
+      };
     }
   }
 
@@ -75,10 +101,24 @@ const { detectConflicts } = require('../src/cya-conflict-detector');
 describe('runConflictNegotiation — currentStates bug-fix', () => {
   it('no conflict: returns conflictResolved=true without entering the loop', async () => {
     const states = {
-      technical: { verdict: 'approved', summary: 'ok', conflictTriggers: [], keyPoints: [], riskNotes: [] },
-      commercial: { verdict: 'approved', summary: 'ok', conflictTriggers: [], keyPoints: [], riskNotes: [] },
+      technical: {
+        verdict: 'approved',
+        summary: 'ok',
+        conflictTriggers: [],
+        keyPoints: [],
+        riskNotes: [],
+      },
+      commercial: {
+        verdict: 'approved',
+        summary: 'ok',
+        conflictTriggers: [],
+        keyPoints: [],
+        riskNotes: [],
+      },
     };
-    const synthesize = jest.fn().mockResolvedValue({ consensusReached: true, unresolvedConflicts: [], narrative: {} });
+    const synthesize = jest
+      .fn()
+      .mockResolvedValue({ consensusReached: true, unresolvedConflicts: [], narrative: {} });
     const result = await runConflictNegotiationLogic(states, [], 3, synthesize, detectConflicts);
     expect(result.conflictResolved).toBe(true);
     // synthesize called once with round 0 (immediate consensus)
@@ -88,9 +128,17 @@ describe('runConflictNegotiation — currentStates bug-fix', () => {
 
   it('no conflict: currentStates is not mutated (no updatedStates in response)', async () => {
     const states = {
-      technical: { verdict: 'approved', summary: 'ok', conflictTriggers: [], keyPoints: [], riskNotes: [] },
+      technical: {
+        verdict: 'approved',
+        summary: 'ok',
+        conflictTriggers: [],
+        keyPoints: [],
+        riskNotes: [],
+      },
     };
-    const synthesize = jest.fn().mockResolvedValue({ consensusReached: true, unresolvedConflicts: [], narrative: {} });
+    const synthesize = jest
+      .fn()
+      .mockResolvedValue({ consensusReached: true, unresolvedConflicts: [], narrative: {} });
     const result = await runConflictNegotiationLogic(states, [], 3, synthesize, detectConflicts);
     // finalStates should reference same data
     expect(result.finalStates).toEqual(states);
@@ -99,8 +147,20 @@ describe('runConflictNegotiation — currentStates bug-fix', () => {
   it('with conflict: currentStates is updated after round 1 when updatedStates returned', async () => {
     const initialStates = makeStates();
     const updatedStates = {
-      technical: { verdict: 'approved', summary: 'ok updated', conflictTriggers: [], keyPoints: [], riskNotes: [] },
-      compliance: { verdict: 'conditional', summary: 'now conditional', conflictTriggers: [], keyPoints: [], riskNotes: [] },
+      technical: {
+        verdict: 'approved',
+        summary: 'ok updated',
+        conflictTriggers: [],
+        keyPoints: [],
+        riskNotes: [],
+      },
+      compliance: {
+        verdict: 'conditional',
+        summary: 'now conditional',
+        conflictTriggers: [],
+        keyPoints: [],
+        riskNotes: [],
+      },
     };
 
     const synthesizeCalls = [];
@@ -112,7 +172,13 @@ describe('runConflictNegotiation — currentStates bug-fix', () => {
       return { consensusReached: true, unresolvedConflicts: [], narrative: {} };
     });
 
-    const result = await runConflictNegotiationLogic(initialStates, [], 3, synthesize, detectConflicts);
+    const result = await runConflictNegotiationLogic(
+      initialStates,
+      [],
+      3,
+      synthesize,
+      detectConflicts
+    );
     expect(result.conflictResolved).toBe(true);
     // Round 1 operated on initialStates
     expect(synthesizeCalls[0].compliance.verdict).toBe('blocked');
@@ -139,9 +205,17 @@ describe('runConflictNegotiation — currentStates bug-fix', () => {
 
   it('MAX_DIALOGUE_ROUNDS is not exceeded (3 rounds max)', async () => {
     const states = makeStates();
-    const synthesize = jest.fn().mockResolvedValue({ consensusReached: false, unresolvedConflicts: ['x'] });
+    const synthesize = jest
+      .fn()
+      .mockResolvedValue({ consensusReached: false, unresolvedConflicts: ['x'] });
 
-    const result = await runConflictNegotiationLogic(states, [], MAX_DIALOGUE_ROUNDS, synthesize, detectConflicts);
+    const result = await runConflictNegotiationLogic(
+      states,
+      [],
+      MAX_DIALOGUE_ROUNDS,
+      synthesize,
+      detectConflicts
+    );
     expect(result.conflictResolved).toBe(false);
     expect(synthesize).toHaveBeenCalledTimes(MAX_DIALOGUE_ROUNDS);
     expect(result.dialogueRounds).toHaveLength(MAX_DIALOGUE_ROUNDS);
@@ -149,7 +223,10 @@ describe('runConflictNegotiation — currentStates bug-fix', () => {
 
   it('conflictResolved is false after 3 unsuccessful rounds', async () => {
     const states = makeStates();
-    const synthesize = jest.fn().mockResolvedValue({ consensusReached: false, unresolvedConflicts: ['capacity', 'missing_data'] });
+    const synthesize = jest.fn().mockResolvedValue({
+      consensusReached: false,
+      unresolvedConflicts: ['capacity', 'missing_data'],
+    });
 
     const result = await runConflictNegotiationLogic(states, [], 3, synthesize, detectConflicts);
     expect(result.conflictResolved).toBe(false);
@@ -158,7 +235,11 @@ describe('runConflictNegotiation — currentStates bug-fix', () => {
 
   it('early exit on round 1 consensus does not run further rounds', async () => {
     const states = makeStates();
-    const synthesize = jest.fn().mockResolvedValue({ consensusReached: true, unresolvedConflicts: [], narrative: { headline: 'Agreed' } });
+    const synthesize = jest.fn().mockResolvedValue({
+      consensusReached: true,
+      unresolvedConflicts: [],
+      narrative: { headline: 'Agreed' },
+    });
 
     const result = await runConflictNegotiationLogic(states, [], 3, synthesize, detectConflicts);
     expect(result.conflictResolved).toBe(true);

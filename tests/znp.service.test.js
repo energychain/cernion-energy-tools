@@ -35,11 +35,11 @@ jest.mock('../src/znp-pdf-extractor', () => ({
 
 jest.mock('../src/znp-osm-buildings', () => ({
   fetchBuildingsForBbox: jest.fn().mockResolvedValue([]),
-  mapAssetsToBuildings:  jest.fn().mockReturnValue([]),
+  mapAssetsToBuildings: jest.fn().mockReturnValue([]),
 }));
 
 jest.mock('../src/znp-clustering-heuristics', () => ({
-  detectClusters:           jest.fn().mockReturnValue([]),
+  detectClusters: jest.fn().mockReturnValue([]),
   computeGFactorAdjustment: jest.fn().mockReturnValue(1.0),
 }));
 
@@ -48,8 +48,11 @@ const mockGenerateStructured = jest.fn();
 jest.mock('../src/llm-client', () => ({
   generateStructured: mockGenerateStructured,
   SchemaType: {
-    OBJECT: 'OBJECT', ARRAY: 'ARRAY',
-    STRING: 'STRING', NUMBER: 'NUMBER', BOOLEAN: 'BOOLEAN',
+    OBJECT: 'OBJECT',
+    ARRAY: 'ARRAY',
+    STRING: 'STRING',
+    NUMBER: 'NUMBER',
+    BOOLEAN: 'BOOLEAN',
   },
 }));
 
@@ -58,7 +61,7 @@ const {
   extractLayer2CalibrationFromBuffer,
 } = require('../src/znp-pdf-extractor');
 const { fetchBuildingsForBbox, mapAssetsToBuildings } = require('../src/znp-osm-buildings');
-const { detectClusters, computeGFactorAdjustment }   = require('../src/znp-clustering-heuristics');
+const { detectClusters, computeGFactorAdjustment } = require('../src/znp-clustering-heuristics');
 const jobStore = require('../src/job-store');
 
 const { ServiceBroker } = require('moleculer');
@@ -256,7 +259,15 @@ describe('ZNP Service', () => {
     it('coerces string capacity to number (convert:true — Issue 2)', async () => {
       const result = await broker.call('znp.addLayer0', {
         projectId,
-        assets: [{ mastrNummer: 'SEE900STR0001', capacity: '12.5', assetType: 'solar', lat: 49.49, lon: 8.47 }],
+        assets: [
+          {
+            mastrNummer: 'SEE900STR0001',
+            capacity: '12.5',
+            assetType: 'solar',
+            lat: 49.49,
+            lon: 8.47,
+          },
+        ],
       });
       expect(result.nodesAdded).toBe(1);
     });
@@ -264,13 +275,15 @@ describe('ZNP Service', () => {
     it('stores capacity_kw alias and normalized redispatch control flags', async () => {
       await broker.call('znp.addLayer0', {
         projectId,
-        assets: [{
-          mastrNummer: 'SEE900RD0001',
-          capacity: 250,
-          assetType: 'wind',
-          fernsteuerbarkeitDv: true,
-          fernsteuerbarkeitSonstige: false,
-        }],
+        assets: [
+          {
+            mastrNummer: 'SEE900RD0001',
+            capacity: 250,
+            assetType: 'wind',
+            fernsteuerbarkeitDv: true,
+            fernsteuerbarkeitSonstige: false,
+          },
+        ],
       });
 
       const svc = broker.services.find((s) => s.name === 'znp');
@@ -308,7 +321,7 @@ describe('ZNP Service', () => {
       await broker.call('znp.addLayer0', { projectId, assets: makeAssets(3, CAPACITY_PER_ASSET) });
       const result = await broker.call('znp.calculateGFactor', { projectId, target_layer: 0 });
 
-      expect(result.simultaneityFactor).toBe(0.80);
+      expect(result.simultaneityFactor).toBe(0.8);
       // 33 * 0.80 = 26.4
       expect(result.adjustedCapacityKW).toBeCloseTo(26.4, 2);
     });
@@ -465,7 +478,10 @@ describe('ZNP Service', () => {
 
   describe('listProjects', () => {
     it('includes newly created projects', async () => {
-      const { projectId } = await broker.call('znp.createProject', { bbox: makeBbox(), name: 'ListTest' });
+      const { projectId } = await broker.call('znp.createProject', {
+        bbox: makeBbox(),
+        name: 'ListTest',
+      });
       const result = await broker.call('znp.listProjects', {});
       const found = result.projects.find((p) => p.projectId === projectId);
       expect(found).toBeDefined();
@@ -514,9 +530,10 @@ describe('ZNP Service', () => {
       expect(deleteResult.projectId).toBe(projectId);
 
       // Verify project is gone from in-memory registry
-      await expect(
-        broker.call('znp.getProjectMeta', { projectId })
-      ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
+      await expect(broker.call('znp.getProjectMeta', { projectId })).rejects.toMatchObject({
+        code: 404,
+        type: 'ZNP_PROJECT_NOT_FOUND',
+      });
 
       // Verify project is no longer in listProjects
       const projects = await broker.call('znp.listProjects', {});
@@ -531,7 +548,10 @@ describe('ZNP Service', () => {
     });
 
     it('cleans up PouchDB documents (meta and graph)', async () => {
-      const { projectId } = await broker.call('znp.createProject', { bbox: makeBbox(), name: 'PouchDBTest' });
+      const { projectId } = await broker.call('znp.createProject', {
+        bbox: makeBbox(),
+        name: 'PouchDBTest',
+      });
 
       // Delete the project
       await broker.call('znp.deleteProject', { projectId });
@@ -542,10 +562,8 @@ describe('ZNP Service', () => {
       const graphDocId = `znp:graph:${projectId}`;
 
       // Both docs should be gone
-      await expect(znpService.db.get(metaDocId))
-        .rejects.toMatchObject({ status: 404 });
-      await expect(znpService.db.get(graphDocId))
-        .rejects.toMatchObject({ status: 404 });
+      await expect(znpService.db.get(metaDocId)).rejects.toMatchObject({ status: 404 });
+      await expect(znpService.db.get(graphDocId)).rejects.toMatchObject({ status: 404 });
     });
   });
 
@@ -653,7 +671,9 @@ describe('ZNP Service', () => {
       const svc = broker.services.find((s) => s.name === 'znp');
       const { graph } = svc.activeGraphs.get(projectId);
       expect(graph.getNodeAttributes('measurement:peak_load:SUB_1').value).toBe(720);
-      expect(graph.getNodeAttributes('measurement:peak_load:SUB_1').transformerId).toBe('TRAFO-SUB-2');
+      expect(graph.getNodeAttributes('measurement:peak_load:SUB_1').transformerId).toBe(
+        'TRAFO-SUB-2'
+      );
     });
 
     it('throws 404 ZNP_PROJECT_NOT_FOUND for an unknown projectId', async () => {
@@ -677,26 +697,33 @@ describe('ZNP Service', () => {
 
       await broker.call('znp.addLayer2', { projectId, filePath: '/uploads/report.pdf' });
 
-      expect(emitSpy).toHaveBeenCalledWith('znp.project.updated', expect.objectContaining({
-        type: 'layer2-activated',
-        data: expect.objectContaining({
-          projectId,
-          peakLoadKw: 650,
-          transformerId: 'TRAFO-SUB-1',
-          nominalCapacityKw: 9500,
-        }),
-      }));
+      expect(emitSpy).toHaveBeenCalledWith(
+        'znp.project.updated',
+        expect.objectContaining({
+          type: 'layer2-activated',
+          data: expect.objectContaining({
+            projectId,
+            peakLoadKw: 650,
+            transformerId: 'TRAFO-SUB-1',
+            nominalCapacityKw: 9500,
+          }),
+        })
+      );
 
       emitSpy.mockRestore();
     });
 
     it('returns a 202-style job descriptor and persists completed job result for gateway callers', async () => {
       const meta = { $gateway: true };
-      const result = await broker.call('znp.addLayer2', {
-        projectId,
-        fileContentBase64: 'data:application/pdf;base64,JVBERi0xLjQK',
-        fileName: 'gateway.pdf',
-      }, { meta });
+      const result = await broker.call(
+        'znp.addLayer2',
+        {
+          projectId,
+          fileContentBase64: 'data:application/pdf;base64,JVBERi0xLjQK',
+          fileName: 'gateway.pdf',
+        },
+        { meta }
+      );
 
       expect(meta.$statusCode).toBe(202);
       expect(result.success).toBe(true);
@@ -712,12 +739,14 @@ describe('ZNP Service', () => {
       expect(completedJob.phase).toBe('done');
 
       const persistedResult = jobStore.getResult(result.jobId);
-      expect(persistedResult).toEqual(expect.objectContaining({
-        projectId,
-        peakLoadKw: 650,
-        transformerId: 'TRAFO-SUB-1',
-        nominalCapacityKw: 9500,
-      }));
+      expect(persistedResult).toEqual(
+        expect.objectContaining({
+          projectId,
+          peakLoadKw: 650,
+          transformerId: 'TRAFO-SUB-1',
+          nominalCapacityKw: 9500,
+        })
+      );
     });
   });
 
@@ -753,11 +782,17 @@ describe('ZNP Service', () => {
     });
 
     it('adds OSM_Building nodes and oeo_located_in edges from mappings', async () => {
-      const fakeMappings = [{
-        assetNodeKey: 'mastr:SEE900100000000',
-        buildingOsmId: 'way/123456',
-        building: { osmId: 'way/123456', centroid: { lat: 49.49, lon: 8.47 }, geoJsonPolygon: {} },
-      }];
+      const fakeMappings = [
+        {
+          assetNodeKey: 'mastr:SEE900100000000',
+          buildingOsmId: 'way/123456',
+          building: {
+            osmId: 'way/123456',
+            centroid: { lat: 49.49, lon: 8.47 },
+            geoJsonPolygon: {},
+          },
+        },
+      ];
       await broker.call('znp.addLayer0', { projectId, assets: makeAssets(1) });
       mapAssetsToBuildings.mockReturnValueOnce(fakeMappings);
 
@@ -795,20 +830,20 @@ describe('ZNP Service', () => {
     });
 
     it.each([
-      [0,   0   ],
-      [1,   1.00],
-      [2,   0.80],
-      [5,   0.80],
-      [6,   0.65],
-      [10,  0.65],
-      [11,  0.55],
-      [25,  0.55],
-      [26,  0.45],
-      [50,  0.45],
-      [51,  0.38],
+      [0, 0],
+      [1, 1.0],
+      [2, 0.8],
+      [5, 0.8],
+      [6, 0.65],
+      [10, 0.65],
+      [11, 0.55],
+      [25, 0.55],
+      [26, 0.45],
+      [50, 0.45],
+      [51, 0.38],
       [100, 0.38],
-      [101, 0.30],
-      [500, 0.30],
+      [101, 0.3],
+      [500, 0.3],
     ])('n=%i → g=%s', (n, expected) => {
       expect(svc.getSimultaneityFactor(n)).toBe(expected);
     });
@@ -819,16 +854,16 @@ describe('ZNP Service', () => {
   describe('graph persistence — Issue 1 (v0.23)', () => {
     it('createProject writes a znp:graph: document to PouchDB', async () => {
       const { projectId } = await broker.call('znp.createProject', { bbox: makeBbox() });
-      const svc           = broker.services.find((s) => s.name === 'znp');
-      const graphDoc      = await svc.db.get(`znp:graph:${projectId}`);
+      const svc = broker.services.find((s) => s.name === 'znp');
+      const graphDoc = await svc.db.get(`znp:graph:${projectId}`);
       expect(graphDoc.graphData).toBeDefined();
       expect(Array.isArray(graphDoc.graphData.nodes)).toBe(true);
     });
 
     it('createProject writes a znp:meta: document (not znp:) to PouchDB', async () => {
       const { projectId } = await broker.call('znp.createProject', { bbox: makeBbox() });
-      const svc           = broker.services.find((s) => s.name === 'znp');
-      const metaDoc       = await svc.db.get(`znp:meta:${projectId}`);
+      const svc = broker.services.find((s) => s.name === 'znp');
+      const metaDoc = await svc.db.get(`znp:meta:${projectId}`);
       expect(metaDoc.projectId).toBe(projectId);
       // Must NOT contain the graph blob
       expect(metaDoc.graphData).toBeUndefined();
@@ -837,7 +872,7 @@ describe('ZNP Service', () => {
     it('addLayer0 updates znp:graph: with the new nodes', async () => {
       const { projectId } = await broker.call('znp.createProject', { bbox: makeBbox() });
       await broker.call('znp.addLayer0', { projectId, assets: makeAssets(2) });
-      const svc      = broker.services.find((s) => s.name === 'znp');
+      const svc = broker.services.find((s) => s.name === 'znp');
       const graphDoc = await svc.db.get(`znp:graph:${projectId}`);
       // SUB_1 + 2 mastr_asset nodes
       expect(graphDoc.graphData.nodes.length).toBe(3);
@@ -845,7 +880,8 @@ describe('ZNP Service', () => {
 
     it('hydrates graph from PouchDB on _hydrateGraphs() (round-trip)', async () => {
       const { projectId } = await broker.call('znp.createProject', {
-        bbox: makeBbox(), name: 'Hydration Test',
+        bbox: makeBbox(),
+        name: 'Hydration Test',
       });
       await broker.call('znp.addLayer0', { projectId, assets: makeAssets(3) });
 
@@ -865,7 +901,8 @@ describe('ZNP Service', () => {
     it('hydration restores project name and bbox', async () => {
       const bbox = makeBbox();
       const { projectId } = await broker.call('znp.createProject', {
-        bbox, name: 'Restore Name Test',
+        bbox,
+        name: 'Restore Name Test',
       });
       const svc = broker.services.find((s) => s.name === 'znp');
       svc.activeGraphs.clear();
@@ -882,7 +919,7 @@ describe('ZNP Service', () => {
 
       // Corrupt the graph doc
       const graphDocId = `znp:graph:${projectId}`;
-      const doc        = await svc.db.get(graphDocId);
+      const doc = await svc.db.get(graphDocId);
       await svc.db.put({ ...doc, graphData: null });
 
       svc.activeGraphs.clear();
@@ -894,7 +931,7 @@ describe('ZNP Service', () => {
     it('hydrates layer1GFactorAdjustment from metadata', async () => {
       const { projectId } = await broker.call('znp.createProject', { bbox: makeBbox() });
       // Inject adjustment directly into the project and persist it via updateProjectMeta
-      const svc     = broker.services.find((s) => s.name === 'znp');
+      const svc = broker.services.find((s) => s.name === 'znp');
       const project = svc.activeGraphs.get(projectId);
       project.layer1GFactorAdjustment = 0.77;
       await svc.updateProjectMeta(projectId, project.graph, 'layer1');
@@ -933,7 +970,10 @@ describe('ZNP Service', () => {
 
     it('returns an array of questions and graphSummary', async () => {
       mockGenerateStructured.mockResolvedValueOnce({
-        questions: ['Gibt es Anschlussbegehren für Rechenzentren?', 'Planen Sie §14a-konforme Ladepunkte?'],
+        questions: [
+          'Gibt es Anschlussbegehren für Rechenzentren?',
+          'Planen Sie §14a-konforme Ladepunkte?',
+        ],
       });
       const result = await broker.call('znp.strategicPrompts', { projectId });
       expect(Array.isArray(result.questions)).toBe(true);
@@ -966,9 +1006,10 @@ describe('ZNP Service', () => {
       mockGenerateStructured.mockRejectedValueOnce(
         new MoleculerError('No key', 503, 'LLM_NOT_CONFIGURED')
       );
-      await expect(
-        broker.call('znp.strategicPrompts', { projectId })
-      ).rejects.toMatchObject({ code: 503, type: 'LLM_NOT_CONFIGURED' });
+      await expect(broker.call('znp.strategicPrompts', { projectId })).rejects.toMatchObject({
+        code: 503,
+        type: 'LLM_NOT_CONFIGURED',
+      });
     });
 
     it('throws 404 ZNP_PROJECT_NOT_FOUND for unknown projectId', async () => {
@@ -997,17 +1038,21 @@ describe('ZNP Service', () => {
 
     it('inserts a StrategicAssumption node (layer=2.5) into the graph', async () => {
       mockGenerateStructured.mockResolvedValueOnce({
-        assetType: 'storage', capacityKW: 5000, status: 'planned', hasFlexibleNav: true,
+        assetType: 'storage',
+        capacityKW: 5000,
+        status: 'planned',
+        hasFlexibleNav: true,
       });
       const result = await broker.call('znp.addAssumption', {
-        projectId, text: 'Wir planen einen 5MW Speicher mit flexiblem NAV am Brückweg',
+        projectId,
+        text: 'Wir planen einen 5MW Speicher mit flexiblem NAV am Brückweg',
       });
 
       expect(result.assumptionId).toBeDefined();
       expect(result.hasFlexibleNav).toBe(true);
       expect(result.extracted.assetType).toBe('storage');
 
-      const svc   = broker.services.find((s) => s.name === 'znp');
+      const svc = broker.services.find((s) => s.name === 'znp');
       const { graph } = svc.activeGraphs.get(projectId);
       expect(graph.hasNode(`assumption:${result.assumptionId}`)).toBe(true);
       const attrs = graph.getNodeAttributes(`assumption:${result.assumptionId}`);
@@ -1018,26 +1063,34 @@ describe('ZNP Service', () => {
 
     it('connects the assumption node to SUB_1 via CONTRIBUTES_LOAD', async () => {
       mockGenerateStructured.mockResolvedValueOnce({
-        assetType: 'datacenter', capacityKW: 10000, status: 'planned', hasFlexibleNav: false,
+        assetType: 'datacenter',
+        capacityKW: 10000,
+        status: 'planned',
+        hasFlexibleNav: false,
       });
       const result = await broker.call('znp.addAssumption', {
-        projectId, text: '10 MW Rechenzentrum im Gewerbegebiet Nord',
+        projectId,
+        text: '10 MW Rechenzentrum im Gewerbegebiet Nord',
       });
-      const svc   = broker.services.find((s) => s.name === 'znp');
+      const svc = broker.services.find((s) => s.name === 'znp');
       const { graph } = svc.activeGraphs.get(projectId);
       expect(graph.hasEdge(`assumption:${result.assumptionId}`, 'SUB_1')).toBe(true);
     });
 
     it('persists the graph to znp:graph: after assumption insertion', async () => {
       mockGenerateStructured.mockResolvedValueOnce({
-        assetType: 'heatpump', capacityKW: 8, status: 'planned', hasFlexibleNav: false,
+        assetType: 'heatpump',
+        capacityKW: 8,
+        status: 'planned',
+        hasFlexibleNav: false,
       });
       const result = await broker.call('znp.addAssumption', {
-        projectId, text: 'Wärmepumpe 8 kW geplant',
+        projectId,
+        text: 'Wärmepumpe 8 kW geplant',
       });
-      const svc      = broker.services.find((s) => s.name === 'znp');
+      const svc = broker.services.find((s) => s.name === 'znp');
       const graphDoc = await svc.db.get(`znp:graph:${projectId}`);
-      const node     = graphDoc.graphData.nodes.find(
+      const node = graphDoc.graphData.nodes.find(
         (n) => n.key === `assumption:${result.assumptionId}`
       );
       expect(node).toBeDefined();
@@ -1045,7 +1098,10 @@ describe('ZNP Service', () => {
 
     it('throws 422 ASSUMPTION_EXTRACTION_FAILED for non-positive capacityKW', async () => {
       mockGenerateStructured.mockResolvedValueOnce({
-        assetType: 'storage', capacityKW: -1, status: 'planned', hasFlexibleNav: false,
+        assetType: 'storage',
+        capacityKW: -1,
+        status: 'planned',
+        hasFlexibleNav: false,
       });
       await expect(
         broker.call('znp.addAssumption', { projectId, text: 'Ungültige Anlage ohne Kapazität' })
@@ -1056,7 +1112,7 @@ describe('ZNP Service', () => {
       await expect(
         broker.call('znp.addAssumption', {
           projectId: '00000000-0000-0000-0000-000000000000',
-          text:      'Irgendeine Anlage',
+          text: 'Irgendeine Anlage',
         })
       ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
     });
@@ -1073,7 +1129,10 @@ describe('ZNP Service', () => {
 
     it('emits znp.project.updated with NovaFeedStore payload shape', async () => {
       mockGenerateStructured.mockResolvedValueOnce({
-        assetType: 'storage', capacityKW: 5000, status: 'planned', hasFlexibleNav: true,
+        assetType: 'storage',
+        capacityKW: 5000,
+        status: 'planned',
+        hasFlexibleNav: true,
       });
 
       const inputText = 'Wir planen einen 5MW Speicher mit flexiblem NAV am Brückweg';
@@ -1093,7 +1152,10 @@ describe('ZNP Service', () => {
         throw new Error('emit failed');
       });
       mockGenerateStructured.mockResolvedValueOnce({
-        assetType: 'storage', capacityKW: 1200, status: 'planned', hasFlexibleNav: false,
+        assetType: 'storage',
+        capacityKW: 1200,
+        status: 'planned',
+        hasFlexibleNav: false,
       });
 
       await expect(
@@ -1125,9 +1187,7 @@ describe('ZNP Service', () => {
       });
 
       expect(result).toHaveProperty('id');
-      expect(result.id).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-      );
+      expect(result.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
       expect(result.text).toBe('Neues Gewerbegebiet Ost mit zusätzlicher Last geplant');
     });
 
@@ -1168,8 +1228,20 @@ describe('ZNP Service', () => {
       await broker.call('znp.addLayer0', {
         projectId,
         assets: [
-          { mastrNummer: 'SEE900STORAGE1', capacity: 1000, assetType: 'storage', lat: 49.49, lon: 8.47 },
-          { mastrNummer: 'SEE900SOLAR001', capacity: 800, assetType: 'solar', lat: 49.50, lon: 8.48 },
+          {
+            mastrNummer: 'SEE900STORAGE1',
+            capacity: 1000,
+            assetType: 'storage',
+            lat: 49.49,
+            lon: 8.47,
+          },
+          {
+            mastrNummer: 'SEE900SOLAR001',
+            capacity: 800,
+            assetType: 'solar',
+            lat: 49.5,
+            lon: 8.48,
+          },
         ],
       });
 
@@ -1193,8 +1265,20 @@ describe('ZNP Service', () => {
       await broker.call('znp.addLayer0', {
         projectId,
         assets: [
-          { mastrNummer: 'SEE900WB00001', capacity: 300, assetType: 'wallbox', lat: 49.49, lon: 8.47 },
-          { mastrNummer: 'SEE900SOLAR002', capacity: 700, assetType: 'solar', lat: 49.50, lon: 8.48 },
+          {
+            mastrNummer: 'SEE900WB00001',
+            capacity: 300,
+            assetType: 'wallbox',
+            lat: 49.49,
+            lon: 8.47,
+          },
+          {
+            mastrNummer: 'SEE900SOLAR002',
+            capacity: 700,
+            assetType: 'solar',
+            lat: 49.5,
+            lon: 8.48,
+          },
         ],
       });
 
@@ -1252,13 +1336,17 @@ describe('ZNP Service', () => {
     });
 
     it('throttles a flex-NAV assumption node to realistic minimum (g=0.45)', async () => {
-      const svc       = broker.services.find((s) => s.name === 'znp');
+      const svc = broker.services.find((s) => s.name === 'znp');
       const { graph } = svc.activeGraphs.get(projectId);
       graph.addNode('assumption:flex-test', {
-        type: 'assumption', capacity: 5000, hasFlexibleNav: true, layer: 2.5,
+        type: 'assumption',
+        capacity: 5000,
+        hasFlexibleNav: true,
+        layer: 2.5,
       });
       graph.addEdge('assumption:flex-test', 'SUB_1', {
-        relationship: 'CONTRIBUTES_LOAD', layer: 2.5,
+        relationship: 'CONTRIBUTES_LOAD',
+        layer: 2.5,
       });
 
       const baseline = await broker.call('znp.calculateGFactor', { projectId, target_layer: 0 });
@@ -1269,16 +1357,20 @@ describe('ZNP Service', () => {
     });
 
     it('includes a non-flex assumption node in peak load (g=1.0)', async () => {
-      const svc       = broker.services.find((s) => s.name === 'znp');
+      const svc = broker.services.find((s) => s.name === 'znp');
       const { graph } = svc.activeGraphs.get(projectId);
       graph.addNode('assumption:nonflex-test', {
-        type: 'assumption', capacity: 500, hasFlexibleNav: false, layer: 2.5,
+        type: 'assumption',
+        capacity: 500,
+        hasFlexibleNav: false,
+        layer: 2.5,
       });
       graph.addEdge('assumption:nonflex-test', 'SUB_1', {
-        relationship: 'CONTRIBUTES_LOAD', layer: 2.5,
+        relationship: 'CONTRIBUTES_LOAD',
+        layer: 2.5,
       });
 
-      const base  = await broker.call('znp.calculateGFactor', { projectId, target_layer: 0 });
+      const base = await broker.call('znp.calculateGFactor', { projectId, target_layer: 0 });
       const after = await broker.call('znp.calculateGFactor', { projectId, target_layer: 2 });
       // Non-flex assumption adds 500 kW → totalCapacityKW is higher at target_layer=2
       expect(after.totalCapacityKW).toBeGreaterThan(base.totalCapacityKW);
@@ -1286,13 +1378,17 @@ describe('ZNP Service', () => {
     });
 
     it('does NOT include assumption nodes at target_layer=0', async () => {
-      const svc       = broker.services.find((s) => s.name === 'znp');
+      const svc = broker.services.find((s) => s.name === 'znp');
       const { graph } = svc.activeGraphs.get(projectId);
       graph.addNode('assumption:gate-test', {
-        type: 'assumption', capacity: 9999, hasFlexibleNav: false, layer: 2.5,
+        type: 'assumption',
+        capacity: 9999,
+        hasFlexibleNav: false,
+        layer: 2.5,
       });
       graph.addEdge('assumption:gate-test', 'SUB_1', {
-        relationship: 'CONTRIBUTES_LOAD', layer: 2.5,
+        relationship: 'CONTRIBUTES_LOAD',
+        layer: 2.5,
       });
 
       const result = await broker.call('znp.calculateGFactor', { projectId, target_layer: 0 });
@@ -1342,7 +1438,10 @@ describe('ZNP Service', () => {
 
     it('sorts by capacity desc by default (highest capacity first)', async () => {
       await broker.call('znp.addLayer0', { projectId, assets: makeAssets(3, 10) });
-      const result = await broker.call('znp.getProjectAssets', { projectId, sortByCapacity: 'desc' });
+      const result = await broker.call('znp.getProjectAssets', {
+        projectId,
+        sortByCapacity: 'desc',
+      });
       const caps = result.assets.map((a) => a.capacity);
       expect(caps[0]).toBeGreaterThanOrEqual(caps[1]);
       expect(caps[1]).toBeGreaterThanOrEqual(caps[2]);
@@ -1350,7 +1449,10 @@ describe('ZNP Service', () => {
 
     it('sorts by capacity asc when specified', async () => {
       await broker.call('znp.addLayer0', { projectId, assets: makeAssets(3, 10) });
-      const result = await broker.call('znp.getProjectAssets', { projectId, sortByCapacity: 'asc' });
+      const result = await broker.call('znp.getProjectAssets', {
+        projectId,
+        sortByCapacity: 'asc',
+      });
       const caps = result.assets.map((a) => a.capacity);
       expect(caps[0]).toBeLessThanOrEqual(caps[1]);
       expect(caps[1]).toBeLessThanOrEqual(caps[2]);
@@ -1380,10 +1482,13 @@ describe('ZNP Service', () => {
     it('excludes strategic assumption nodes (type !== mastr_asset)', async () => {
       await broker.call('znp.addLayer0', { projectId, assets: makeAssets(2) });
       // Manually inject an assumption node directly into the in-memory graph
-      const svc       = broker.services.find((s) => s.name === 'znp');
+      const svc = broker.services.find((s) => s.name === 'znp');
       const { graph } = svc.activeGraphs.get(projectId);
       graph.addNode('assumption:excl-test', {
-        type: 'assumption', capacity: 9999, hasFlexibleNav: false, layer: 2.5,
+        type: 'assumption',
+        capacity: 9999,
+        hasFlexibleNav: false,
+        layer: 2.5,
       });
 
       const result = await broker.call('znp.getProjectAssets', { projectId });
@@ -1391,5 +1496,4 @@ describe('ZNP Service', () => {
       expect(result.assets.every((a) => a.mastrNummer !== undefined)).toBe(true);
     });
   });
-
 });

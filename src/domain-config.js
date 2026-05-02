@@ -18,16 +18,16 @@
 const HOTSPOT_THRESHOLDS = {
   // Thermal loading limits (Kabel / Transformator)
   thermal: {
-    warningLevel: 0.80, // 80% utilization → warning alert
-    alertLevel: 1.00,   // 100% utilization → hard congestion alert
+    warningLevel: 0.8, // 80% utilization → warning alert
+    alertLevel: 1.0, // 100% utilization → hard congestion alert
     unit: 'percent utilization',
   },
 
   // Voltage band compliance (Niederspannung / LV)
   voltage: {
     toleranceBand: {
-      min: -0.10,       // -10% from nominal
-      max: 0.10,        // +10% from nominal
+      min: -0.1, // -10% from nominal
+      max: 0.1, // +10% from nominal
       unit: 'per unit (p.u.) deviation from nominal',
     },
     flagCriterion: 'Alarm raised when simulation edge breaches tolerance',
@@ -36,7 +36,7 @@ const HOTSPOT_THRESHOLDS = {
 
   // TWL Netze specific (N-1 security)
   twlNetze: {
-    operatingLimit: 81,  // MVA
+    operatingLimit: 81, // MVA
     level: 'Mittelspannung / Hochspannung',
     criterion: 'N-1 safe operating margin',
     description: 'Hard threshold for interconnection capacity; triggers NEST justification',
@@ -51,9 +51,9 @@ const HOTSPOT_THRESHOLDS = {
 const CAPEX_ASSUMPTIONS = {
   // Regelbare Ortsnetztrafo (rONT) - Smart Transformer with voltage regulation
   rONT: {
-    incrementalCost: 5500,      // EUR, premium over standard transformer
+    incrementalCost: 5500, // EUR, premium over standard transformer
     spannungCapacityFactor: 2.0, // 2.0x–4.0x → voltage band lift (conservative: 2.0x)
-    thermalCapacityFactor: 1.0,  // No thermal benefit
+    thermalCapacityFactor: 1.0, // No thermal benefit
     unit: 'EUR per device',
     useCase: 'Deferral of NS voltage violations; ~2–3 year typical ROI in PV-dense areas',
   },
@@ -61,8 +61,8 @@ const CAPEX_ASSUMPTIONS = {
   // Kabel (Tiefbau / Underground cable + labor)
   cable: {
     costPerMeter: {
-      min: 100,   // EUR/m, simple trench
-      max: 300,   // EUR/m, complex urban/protected area
+      min: 100, // EUR/m, simple trench
+      max: 300, // EUR/m, complex urban/protected area
       typical: 150,
     },
     costPerKilometer: {
@@ -124,17 +124,17 @@ const SECTION_14A_POLICY = {
   // Dynamic scaling based on number of controllable units in aggregate
   simultaneityFactorTable: {
     // n = number of controlled devices (Wallbox, Wärmepumpe, Storage)
-    1: 1.0,     // 100% (single unit, no diversity)
-    2: 0.85,    // 85%
-    3: 0.75,    // 75%
-    4: 0.70,    // 70% (typical small residential cluster)
+    1: 1.0, // 100% (single unit, no diversity)
+    2: 0.85, // 85%
+    3: 0.75, // 75%
+    4: 0.7, // 70% (typical small residential cluster)
     5: 0.65,
-    6: 0.60,
+    6: 0.6,
     7: 0.55,
-    8: 0.50,
-    9: 0.45,    // threshold for "large" aggregates
+    8: 0.5,
+    9: 0.45, // threshold for "large" aggregates
     10: 0.45,
-    100: 0.45,  // asymptotic minimum
+    100: 0.45, // asymptotic minimum
   },
 
   // Formula: P_min = 4.2 kW + (n - 1) × g × 4.2 kW
@@ -143,8 +143,8 @@ const SECTION_14A_POLICY = {
 
   // Comparative: Uncontrolled heat pump behavior for reference
   uncontrolledHeatPumpSimultaneityFactor: {
-    coldDay_winter: 0.75,   // ~75% overlap on cold winter days
-    mildDay_spring: 0.40,
+    coldDay_winter: 0.75, // ~75% overlap on cold winter days
+    mildDay_spring: 0.4,
     reference: 'BNetzA basis for §14a differentiation',
   },
 
@@ -170,23 +170,23 @@ const SECTION_42C_HEURISTICS = {
   spatialClustering: {
     // Gebäude-Footprints (Building typology)
     pvCandidate: {
-      minCapacity_kWp: 30,  // PV >30 kWp on MFH (Mehrfamilienhaus)
+      minCapacity_kWp: 30, // PV >30 kWp on MFH (Mehrfamilienhaus)
       rooftop_preference: true,
     },
     geometry: {
-      distanceThreshold_m: 500,  // clustering radius
+      distanceThreshold_m: 500, // clustering radius
       method: 'OSM building footprints + nearest-neighbor grouping',
     },
 
     // Profile Mix (Landuse Diversity Impact)
     landUseDiversity: {
       residential_commercial_mix: {
-        peakLoadReduction: -0.15,  // -15%
+        peakLoadReduction: -0.15, // -15%
         rationale: 'H0 (residential) + G0 (commercial) profiles run asynchronously',
       },
       peakLoadReduction_range: {
         min: -0.15,
-        max: -0.20,
+        max: -0.2,
         comment: 'Conservative estimate: -15–20% in mixed zones',
       },
     },
@@ -208,14 +208,15 @@ const SECTION_42C_HEURISTICS = {
 
     // Status labels
     status_sharing_capable: 'Anlage in Direktvermarktung + §20 service provider available',
-    status_sharing_incapable: 'Still in EEG fixed tariff; can join after tariff expires or model change',
+    status_sharing_incapable:
+      'Still in EEG fixed tariff; can join after tariff expires or model change',
   },
 
   // Cluster composition rules
   clusterComposition: {
     minGenerators: 1,
     maxConsumers_per_generator: 'Unlimited (subject to physical line limits)',
-    maxDistance_generator_consumer: 30_000,  // meters
+    maxDistance_generator_consumer: 30_000, // meters
     metricNetwork: 'Geographical distance (OSM routing)',
   },
 

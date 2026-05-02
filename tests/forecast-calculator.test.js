@@ -24,8 +24,12 @@ describe('forecast-calculator', () => {
   test('calculateLoadForecast: mit historischen Daten → slp_corrected', () => {
     const slpProfile = { values: new Array(96).fill(0.1) };
     const historical = new Array(96).fill(null).map((_, i) => ({
-      ts: '2026-04-08T' + String(Math.floor(i / 4)).padStart(2, '0') + ':' +
-        String((i % 4) * 15).padStart(2, '0') + ':00Z',
+      ts:
+        '2026-04-08T' +
+        String(Math.floor(i / 4)).padStart(2, '0') +
+        ':' +
+        String((i % 4) * 15).padStart(2, '0') +
+        ':00Z',
       value: 0.12,
     }));
     const result = calculateLoadForecast(historical, slpProfile, {
@@ -39,10 +43,14 @@ describe('forecast-calculator', () => {
   test('calculateLoadForecast: Temperaturkorrektur bei Kälte', () => {
     const slpProfile = { values: new Array(96).fill(0.1) };
     const resultWarm = calculateLoadForecast(null, slpProfile, {
-      annualConsumptionKwh: 3500, date: '2026-04-15', temperatureCelsius: 20,
+      annualConsumptionKwh: 3500,
+      date: '2026-04-15',
+      temperatureCelsius: 20,
     });
     const resultCold = calculateLoadForecast(null, slpProfile, {
-      annualConsumptionKwh: 3500, date: '2026-04-15', temperatureCelsius: 5,
+      annualConsumptionKwh: 3500,
+      date: '2026-04-15',
+      temperatureCelsius: 5,
     });
     expect(resultCold.totalKwh).toBeGreaterThan(resultWarm.totalKwh);
   });
@@ -65,10 +73,12 @@ describe('forecast-calculator', () => {
 
   test('calculateResidualLoad: autarkyRate berechnet', () => {
     const load = [
-      { ts: '2026-04-15T00:00:00Z', value: 100 }, { ts: '2026-04-15T00:15:00Z', value: 50 },
+      { ts: '2026-04-15T00:00:00Z', value: 100 },
+      { ts: '2026-04-15T00:15:00Z', value: 50 },
     ];
     const generation = [
-      { ts: '2026-04-15T00:00:00Z', value: 80 }, { ts: '2026-04-15T00:15:00Z', value: 30 },
+      { ts: '2026-04-15T00:00:00Z', value: 80 },
+      { ts: '2026-04-15T00:15:00Z', value: 30 },
     ];
     const result = calculateResidualLoad(load, generation);
     expect(result.summary.autarkyRate).toBeGreaterThan(0.5);
@@ -111,8 +121,11 @@ describe('forecast-calculator', () => {
       { ts: '2026-04-15T00:45:00Z', residual_kw: 60, direction: 'import' },
     ];
     const storageConfig = {
-      capacityKwh: 10, maxChargePowerKw: 5, maxDischargePowerKw: 5,
-      efficiency: 0.92, currentSocPercent: 50,
+      capacityKwh: 10,
+      maxChargePowerKw: 5,
+      maxDischargePowerKw: 5,
+      efficiency: 0.92,
+      currentSocPercent: 50,
     };
     const result = optimizeStorageDispatch(residual, storageConfig, null);
     const charges = result.schedule.filter((s) => s.storageAction === 'charge');

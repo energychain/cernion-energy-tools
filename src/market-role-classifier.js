@@ -25,12 +25,12 @@ const MARKET_ROLE_ENUM = ['VNB', 'ÜNB', 'MSB', 'Lieferant', 'BKV', 'Direktverma
  * Each rule has a regex tested against elements of roles[], and a BDEW prefix fallback.
  */
 const ROLE_RULES = [
-  { role: 'VNB',            pattern: /VNB|Verteilnetz|Netzbetreiber/i, prefix: '990' },
-  { role: 'ÜNB',            pattern: /ÜNB|Übertragungsnetz/i,          prefix: null  },
-  { role: 'MSB',            pattern: /MSB|Messtellen/i,                 prefix: '992' },
-  { role: 'Lieferant',      pattern: /Lieferant|Vertrieb/i,             prefix: '991' },
-  { role: 'BKV',            pattern: /BKV|Bilanzkreis/i,                prefix: '993' },
-  { role: 'Direktvermarkter', pattern: /Direktvermarkt|DV\b/i,          prefix: '994' },
+  { role: 'VNB', pattern: /VNB|Verteilnetz|Netzbetreiber/i, prefix: '990' },
+  { role: 'ÜNB', pattern: /ÜNB|Übertragungsnetz/i, prefix: null },
+  { role: 'MSB', pattern: /MSB|Messtellen/i, prefix: '992' },
+  { role: 'Lieferant', pattern: /Lieferant|Vertrieb/i, prefix: '991' },
+  { role: 'BKV', pattern: /BKV|Bilanzkreis/i, prefix: '993' },
+  { role: 'Direktvermarkter', pattern: /Direktvermarkt|DV\b/i, prefix: '994' },
 ];
 
 /**
@@ -68,11 +68,7 @@ function normalizeMarketPartner(raw) {
       ? raw.marketRoles
       : [];
   const mastrId =
-    raw.mastrId ||
-    raw.gridOperatorMastrId ||
-    raw.mastrIds?.SNB ||
-    raw.mastrIds?.GNB ||
-    null;
+    raw.mastrId || raw.gridOperatorMastrId || raw.mastrIds?.SNB || raw.mastrIds?.GNB || null;
 
   return {
     bdew: bdew ? String(bdew) : null,

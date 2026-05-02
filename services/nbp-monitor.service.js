@@ -19,10 +19,10 @@
 const NBP_SCHEMA_VERSION = '1.0';
 
 const DEFAULT_PARAMETERS = {
-  PV:       { volllaststunden: 950,  einspeiseverguetung_ctKWh: 8.2 },
-  Wind:     { volllaststunden: 1800, einspeiseverguetung_ctKWh: 6.5 },
-  Speicher: { volllaststunden: 500,  einspeiseverguetung_ctKWh: 8.2 },
-  Sonstige: { volllaststunden: 800,  einspeiseverguetung_ctKWh: 8.0 },
+  PV: { volllaststunden: 950, einspeiseverguetung_ctKWh: 8.2 },
+  Wind: { volllaststunden: 1800, einspeiseverguetung_ctKWh: 6.5 },
+  Speicher: { volllaststunden: 500, einspeiseverguetung_ctKWh: 8.2 },
+  Sonstige: { volllaststunden: 800, einspeiseverguetung_ctKWh: 8.0 },
 };
 
 /** KPI 2: age class midpoints in years for the risk formula */
@@ -30,7 +30,7 @@ const AGE_CLASS_MIDPOINTS = { A: 0.5, B: 2.0, C: 4.0, D: 6.5 };
 
 /** KPI 1 alert thresholds (in kWp; 50 MW / 150 MW for total; 10 MW / 50 MW for C+D) */
 const ALERT_THRESHOLDS = {
-  totalKWp:   { green: 50_000, yellow: 150_000 },
+  totalKWp: { green: 50_000, yellow: 150_000 },
   classCDKWp: { green: 10_000, yellow: 50_000 },
 };
 
@@ -42,9 +42,9 @@ const ALERT_THRESHOLDS = {
  */
 function normalizeUnitType(inst) {
   const raw = String(inst.Einheittyp || inst.Anlagentyp || '').toLowerCase();
-  if (raw.includes('pv') || raw.includes('solar'))            return 'PV';
-  if (raw.includes('wind'))                                   return 'Wind';
-  if (raw.includes('speicher') || raw.includes('storage'))    return 'Speicher';
+  if (raw.includes('pv') || raw.includes('solar')) return 'PV';
+  if (raw.includes('wind')) return 'Wind';
+  if (raw.includes('speicher') || raw.includes('storage')) return 'Speicher';
   return 'Sonstige';
 }
 
@@ -54,7 +54,7 @@ function normalizeUnitType(inst) {
  */
 function getCapacityKWp(inst) {
   if (inst.Nettonennleistung != null) return Number(inst.Nettonennleistung);
-  if (inst['Leistung MW']    != null) return Number(inst['Leistung MW']) * 1000;
+  if (inst['Leistung MW'] != null) return Number(inst['Leistung MW']) * 1000;
   return 0;
 }
 
@@ -100,9 +100,7 @@ function parseDateValue(raw) {
   }
 
   // DD.MM.YYYY [HH:mm[:ss]]
-  const dmy = text.match(
-    /^(\d{2})\.(\d{2})\.(\d{4})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/
-  );
+  const dmy = text.match(/^(\d{2})\.(\d{2})\.(\d{4})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
   if (dmy) {
     const hour = dmy[4] || '00';
     const min = dmy[5] || '00';
@@ -147,16 +145,16 @@ function getAgeClass(inst) {
   const ageDays = Math.floor((Date.now() - d.getTime()) / 86_400_000);
   const ageYears = ageDays / 365;
   let ageClass;
-  if (ageYears < 1)      ageClass = 'A';
+  if (ageYears < 1) ageClass = 'A';
   else if (ageYears < 3) ageClass = 'B';
   else if (ageYears < 5) ageClass = 'C';
-  else                   ageClass = 'D';
+  else ageClass = 'D';
   return { ageClass, ageDays };
 }
 
 function resolveAlertLevel(value, { green, yellow }) {
   if (value > yellow) return 'red';
-  if (value > green)  return 'yellow';
+  if (value > green) return 'yellow';
   return 'green';
 }
 
@@ -168,32 +166,52 @@ function resolveAlertLevel(value, { green, yellow }) {
  */
 function computeKpi1(installations) {
   const byClass = {
-    A: { label: 'Aktuell (< 1 J.)',  kWp: 0, count: 0, byType: { PV: 0, Wind: 0, Speicher: 0, Sonstige: 0 } },
-    B: { label: '1–3 Jahre',         kWp: 0, count: 0, byType: { PV: 0, Wind: 0, Speicher: 0, Sonstige: 0 } },
-    C: { label: '3–5 Jahre',         kWp: 0, count: 0, byType: { PV: 0, Wind: 0, Speicher: 0, Sonstige: 0 } },
-    D: { label: 'Altlast > 5 J.',    kWp: 0, count: 0, byType: { PV: 0, Wind: 0, Speicher: 0, Sonstige: 0 } },
+    A: {
+      label: 'Aktuell (< 1 J.)',
+      kWp: 0,
+      count: 0,
+      byType: { PV: 0, Wind: 0, Speicher: 0, Sonstige: 0 },
+    },
+    B: {
+      label: '1–3 Jahre',
+      kWp: 0,
+      count: 0,
+      byType: { PV: 0, Wind: 0, Speicher: 0, Sonstige: 0 },
+    },
+    C: {
+      label: '3–5 Jahre',
+      kWp: 0,
+      count: 0,
+      byType: { PV: 0, Wind: 0, Speicher: 0, Sonstige: 0 },
+    },
+    D: {
+      label: 'Altlast > 5 J.',
+      kWp: 0,
+      count: 0,
+      byType: { PV: 0, Wind: 0, Speicher: 0, Sonstige: 0 },
+    },
   };
 
   for (const inst of installations) {
     const type = normalizeUnitType(inst);
-    const kWp  = getCapacityKWp(inst);
+    const kWp = getCapacityKWp(inst);
     const { ageClass } = getAgeClass(inst);
-    byClass[ageClass].kWp              += kWp;
-    byClass[ageClass].count            += 1;
-    byClass[ageClass].byType[type]     += kWp;
+    byClass[ageClass].kWp += kWp;
+    byClass[ageClass].count += 1;
+    byClass[ageClass].byType[type] += kWp;
   }
 
-  const totalKWp   = Object.values(byClass).reduce((s, c) => s + c.kWp, 0);
+  const totalKWp = Object.values(byClass).reduce((s, c) => s + c.kWp, 0);
   const classCDKWp = byClass.C.kWp + byClass.D.kWp;
 
   const byAgeClass = ['A', 'B', 'C', 'D'].map((cls) => ({
-    class:  cls,
-    label:  byClass[cls].label,
-    kWp:    Math.round(byClass[cls].kWp),
-    count:  byClass[cls].count,
+    class: cls,
+    label: byClass[cls].label,
+    kWp: Math.round(byClass[cls].kWp),
+    count: byClass[cls].count,
     byType: {
-      PV:       Math.round(byClass[cls].byType.PV),
-      Wind:     Math.round(byClass[cls].byType.Wind),
+      PV: Math.round(byClass[cls].byType.PV),
+      Wind: Math.round(byClass[cls].byType.Wind),
       Speicher: Math.round(byClass[cls].byType.Speicher),
       Sonstige: Math.round(byClass[cls].byType.Sonstige),
     },
@@ -201,9 +219,9 @@ function computeKpi1(installations) {
 
   return {
     byAgeClass,
-    totalKWp:           Math.round(totalKWp),
-    alertLevel:         resolveAlertLevel(totalKWp,   ALERT_THRESHOLDS.totalKWp),
-    classCD_kWp:        Math.round(classCDKWp),
+    totalKWp: Math.round(totalKWp),
+    alertLevel: resolveAlertLevel(totalKWp, ALERT_THRESHOLDS.totalKWp),
+    classCD_kWp: Math.round(classCDKWp),
     classCD_alertLevel: resolveAlertLevel(classCDKWp, ALERT_THRESHOLDS.classCDKWp),
   };
 }
@@ -218,21 +236,21 @@ function computeKpi2(installations, parameters) {
   const byClass = { A: 0, B: 0, C: 0, D: 0 };
 
   for (const inst of installations) {
-    const type             = normalizeUnitType(inst);
-    const kWp              = getCapacityKWp(inst);
-    const { ageClass }     = getAgeClass(inst);
-    const params           = parameters[type] || parameters.Sonstige;
-    const midpoint         = AGE_CLASS_MIDPOINTS[ageClass];
+    const type = normalizeUnitType(inst);
+    const kWp = getCapacityKWp(inst);
+    const { ageClass } = getAgeClass(inst);
+    const params = parameters[type] || parameters.Sonstige;
+    const midpoint = AGE_CLASS_MIDPOINTS[ageClass];
     const riskEur =
       (kWp * params.volllaststunden * params.einspeiseverguetung_ctKWh * midpoint) / 1000;
-    totalRiskEur      += riskEur;
+    totalRiskEur += riskEur;
     byClass[ageClass] += riskEur;
   }
 
   return {
     totalRiskEur: Math.round(totalRiskEur),
-    byAgeClass:   ['A', 'B', 'C', 'D'].map((cls) => ({
-      class:   cls,
+    byAgeClass: ['A', 'B', 'C', 'D'].map((cls) => ({
+      class: cls,
       riskEur: Math.round(byClass[cls]),
     })),
     parametersUsed: { ...parameters },
@@ -250,7 +268,7 @@ function computeKpi2(installations, parameters) {
  */
 function computeKpi3(installations, vnbSeitigWeeks, altlastWeeks) {
   const vnbSeitigMs = vnbSeitigWeeks * 7 * 86_400_000;
-  const altlastMs   = altlastWeeks   * 7 * 86_400_000;
+  const altlastMs = altlastWeeks * 7 * 86_400_000;
   const now = Date.now();
 
   let vnbSeitig = 0;
@@ -259,39 +277,41 @@ function computeKpi3(installations, vnbSeitigWeeks, altlastWeeks) {
 
   for (const inst of installations) {
     const d = getInstallationDate(inst);
-    if (!d) { inBearbeitung++; continue; }
+    if (!d) {
+      inBearbeitung++;
+      continue;
+    }
     const ageMs = now - d.getTime();
-    if      (ageMs > altlastMs)   altlast++;
+    if (ageMs > altlastMs) altlast++;
     else if (ageMs > vnbSeitigMs) vnbSeitig++;
-    else                          inBearbeitung++;
+    else inBearbeitung++;
   }
 
   const total = vnbSeitig + inBearbeitung + altlast;
   return {
-    totalOpen:           total,
+    totalOpen: total,
     vnbSeitig,
     inBearbeitung,
     altlast,
-    vnbSeitigPercent:     total > 0 ? Math.round((vnbSeitig     / total) * 1000) / 10 : 0,
+    vnbSeitigPercent: total > 0 ? Math.round((vnbSeitig / total) * 1000) / 10 : 0,
     inBearbeitungPercent: total > 0 ? Math.round((inBearbeitung / total) * 1000) / 10 : 0,
-    altlastPercent:       total > 0 ? Math.round((altlast       / total) * 1000) / 10 : 0,
-    disclaimer:
-      'Heuristik basierend auf MaStR-Zeitstempeln — nicht rechtssicher.',
+    altlastPercent: total > 0 ? Math.round((altlast / total) * 1000) / 10 : 0,
+    disclaimer: 'Heuristik basierend auf MaStR-Zeitstempeln — nicht rechtssicher.',
   };
 }
 
 /** Aggregates count and kWp by normalised unit type */
 function buildByType(installations) {
   const acc = {
-    PV:       { count: 0, kWp: 0 },
-    Wind:     { count: 0, kWp: 0 },
+    PV: { count: 0, kWp: 0 },
+    Wind: { count: 0, kWp: 0 },
     Speicher: { count: 0, kWp: 0 },
     Sonstige: { count: 0, kWp: 0 },
   };
   for (const inst of installations) {
     const type = normalizeUnitType(inst);
     acc[type].count += 1;
-    acc[type].kWp   += getCapacityKWp(inst);
+    acc[type].kWp += getCapacityKWp(inst);
   }
   return Object.fromEntries(
     Object.entries(acc).map(([k, v]) => [k, { count: v.count, kWp: Math.round(v.kWp) }])
@@ -306,7 +326,7 @@ function buildByPlz(installations) {
     if (!plz) continue;
     if (!map[plz]) map[plz] = { plz, count: 0, kWp: 0 };
     map[plz].count += 1;
-    map[plz].kWp   += getCapacityKWp(inst);
+    map[plz].kWp += getCapacityKWp(inst);
   }
   return Object.values(map)
     .sort((a, b) => b.kWp - a.kWp)
@@ -327,8 +347,8 @@ function buildSummary(installations, kpi1) {
     })
     .filter((d) => d >= 0);
   return {
-    totalOpenCount:   installations.length,
-    totalOpenKWp:     kpi1.totalKWp,
+    totalOpenCount: installations.length,
+    totalOpenKWp: kpi1.totalKWp,
     oldestTicketDays: ages.length ? Math.max(...ages) : 0,
     newestTicketDays: ages.length ? Math.min(...ages) : 0,
   };
@@ -340,10 +360,10 @@ module.exports = {
   name: 'nbp-monitor',
 
   settings: {
-    cacheTtlSeconds:         parseInt(process.env.NBP_CACHE_TTL_SECONDS || '86400', 10),
-    defaultParameters:       DEFAULT_PARAMETERS,
+    cacheTtlSeconds: parseInt(process.env.NBP_CACHE_TTL_SECONDS || '86400', 10),
+    defaultParameters: DEFAULT_PARAMETERS,
     vnbSeitigThresholdWeeks: 6,
-    altlastThresholdWeeks:   52,
+    altlastThresholdWeeks: 52,
   },
 
   created() {
@@ -360,8 +380,8 @@ module.exports = {
       rest: 'GET /:bdewCode',
       params: {
         bdewCode: { type: 'string', required: true },
-        refresh:  { type: 'boolean', optional: true, default: false, convert: true },
-        lang:     { type: 'enum', values: ['de', 'en'], optional: true, default: 'de' },
+        refresh: { type: 'boolean', optional: true, default: false, convert: true },
+        lang: { type: 'enum', values: ['de', 'en'], optional: true, default: 'de' },
       },
       openapi: {
         summary: 'Get Netzbetreiberprüfungs-Monitor snapshot for a VNB',
@@ -371,17 +391,21 @@ module.exports = {
           'KPIs: Volume (kWp by age class), Risk (€ billing uncertainty), Process (VNB vs. external).',
         parameters: [
           {
-            name: 'bdewCode', in: 'path', required: true,
+            name: 'bdewCode',
+            in: 'path',
+            required: true,
             schema: { type: 'string', example: '10002954' },
             description: 'BDEW registration number of the grid operator',
           },
           {
-            name: 'refresh', in: 'query',
+            name: 'refresh',
+            in: 'query',
             schema: { type: 'boolean', default: false },
             description: 'Force cache bypass and re-fetch from MaStR',
           },
           {
-            name: 'lang', in: 'query',
+            name: 'lang',
+            in: 'query',
             schema: { type: 'string', enum: ['de', 'en'], default: 'de' },
             description: 'Language for labels and disclaimers',
           },
@@ -404,7 +428,10 @@ module.exports = {
 
         let parameters;
         try {
-          const stored = await ctx.call('object-store.get', { namespace: 'nbp_monitor', key: 'parameters' });
+          const stored = await ctx.call('object-store.get', {
+            namespace: 'nbp_monitor',
+            key: 'parameters',
+          });
           parameters = stored.payload;
         } catch (_) {
           parameters = { ...DEFAULT_PARAMETERS };
@@ -427,7 +454,10 @@ module.exports = {
 
         if (!resolvedGridOperatorId) {
           try {
-            const lookup = await ctx.call('grid-operations.vnbLookup', { bdew: bdewCode, limit: 1 });
+            const lookup = await ctx.call('grid-operations.vnbLookup', {
+              bdew: bdewCode,
+              limit: 1,
+            });
             resolvedGridOperatorId = lookup?.data?.mastrId || null;
           } catch (_) {
             resolvedGridOperatorId = null;
@@ -473,19 +503,19 @@ module.exports = {
         const snapshot = {
           schemaVersion: NBP_SCHEMA_VERSION,
           bdewCode,
-          timestamp:  new Date().toISOString(),
-          cachedAt:   new Date().toISOString(),
+          timestamp: new Date().toISOString(),
+          cachedAt: new Date().toISOString(),
           ttlSeconds: this.settings.cacheTtlSeconds,
-          summary:    buildSummary(installations, kpi1),
-          kpi1_volume:  kpi1,
-          kpi2_risk:    kpi2,
+          summary: buildSummary(installations, kpi1),
+          kpi1_volume: kpi1,
+          kpi2_risk: kpi2,
           kpi3_process: kpi3,
-          byType:  buildByType(installations),
-          byPLZ:   buildByPlz(installations),
+          byType: buildByType(installations),
+          byPLZ: buildByPlz(installations),
           filters: {
-            ageClasses:    ['A', 'B', 'C', 'D'],
-            types:         ['PV', 'Wind', 'Speicher', 'Sonstige'],
-            powerClasses:  ['<10kWp', '10-100kWp', '>100kWp'],
+            ageClasses: ['A', 'B', 'C', 'D'],
+            types: ['PV', 'Wind', 'Speicher', 'Sonstige'],
+            powerClasses: ['<10kWp', '10-100kWp', '>100kWp'],
             voltageLevels: ['NS', 'MS', 'HS'],
           },
         };
@@ -519,7 +549,10 @@ module.exports = {
         let parameters = { ...DEFAULT_PARAMETERS };
         let source = 'defaults';
         try {
-          const stored = await ctx.call('object-store.get', { namespace: 'nbp_monitor', key: 'parameters' });
+          const stored = await ctx.call('object-store.get', {
+            namespace: 'nbp_monitor',
+            key: 'parameters',
+          });
           parameters = stored.payload;
           source = 'store';
         } catch (_) {
@@ -574,7 +607,11 @@ module.exports = {
       },
       async handler(ctx) {
         const validated = this.validateParameters(ctx.params.parameters);
-        await ctx.call('object-store.put', { namespace: 'nbp_monitor', key: 'parameters', payload: validated });
+        await ctx.call('object-store.put', {
+          namespace: 'nbp_monitor',
+          key: 'parameters',
+          payload: validated,
+        });
         for (const key of this.cache.keys()) {
           if (key.startsWith('nbp-monitor:')) this.cache.delete(key);
         }

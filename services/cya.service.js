@@ -2,11 +2,18 @@
 
 const { MoleculerError } = require('moleculer').Errors;
 const { retrieveContextData, mergeProvidedData } = require('../src/cya-data-retriever');
-const { buildRegulatoryGraph, buildRegulatoryGraphFromOntology } = require('../src/cya-regulatory-graph');
+const {
+  buildRegulatoryGraph,
+  buildRegulatoryGraphFromOntology,
+} = require('../src/cya-regulatory-graph');
 const { buildOntologyGraph } = require('../src/cya-ontology-graph');
 const { CyaContextManager } = require('../src/cya-context-manager');
 const { buildGrounding } = require('../src/cya-grounding');
-const { synthesizeNarrative, synthesizePersonaEvaluation, synthesizeConsensusWith } = require('../src/cya-synthesis');
+const {
+  synthesizeNarrative,
+  synthesizePersonaEvaluation,
+  synthesizeConsensusWith,
+} = require('../src/cya-synthesis');
 const { startJob, appendLog } = require('../src/job-store');
 const { PERSONA_ENUM, validatePerspectives, getPersona } = require('../src/cya-agent-personas');
 const { getTemplate, listTemplates } = require('../src/cya-profile-templates');
@@ -87,7 +94,12 @@ module.exports = {
                 type: 'object',
                 required: ['profile_id', 'actor', 'strategic_goals'],
                 properties: {
-                  profile_id: { type: 'string', pattern: '^[a-z0-9_]+$', maxLength: 64, example: 'stadtwerk_regulierung' },
+                  profile_id: {
+                    type: 'string',
+                    pattern: '^[a-z0-9_]+$',
+                    maxLength: 64,
+                    example: 'stadtwerk_regulierung',
+                  },
                   actor: {
                     type: 'object',
                     required: ['role'],
@@ -102,7 +114,13 @@ module.exports = {
                       department: { type: 'string', nullable: true },
                     },
                   },
-                  strategic_goals: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string' }, example: ['Rechtssicherheit stärken', 'Investitionsargumentation verbessern'] },
+                  strategic_goals: {
+                    type: 'array',
+                    minItems: 1,
+                    maxItems: 10,
+                    items: { type: 'string' },
+                    example: ['Rechtssicherheit stärken', 'Investitionsargumentation verbessern'],
+                  },
                   tone: { type: 'string', nullable: true, example: DEFAULT_TONE },
                 },
               },
@@ -115,7 +133,10 @@ module.exports = {
                       organization: 'Stadtwerke Beispiel',
                       department: 'Regulierung',
                     },
-                    strategic_goals: ['Rechtssicherheit stärken', 'Investitionsargumentation verbessern'],
+                    strategic_goals: [
+                      'Rechtssicherheit stärken',
+                      'Investitionsargumentation verbessern',
+                    ],
                     tone: DEFAULT_TONE,
                   },
                 },
@@ -207,7 +228,11 @@ module.exports = {
                       success: true,
                       profile_id: 'stadtwerk_regulierung',
                       profile: {
-                        actor: { role: 'grid_operator', organization: 'Stadtwerke Beispiel', department: 'Regulierung' },
+                        actor: {
+                          role: 'grid_operator',
+                          organization: 'Stadtwerke Beispiel',
+                          department: 'Regulierung',
+                        },
                         strategic_goals: ['Rechtssicherheit stärken'],
                         tone: DEFAULT_TONE,
                         createdAt: '2026-04-14T16:00:00.000Z',
@@ -313,12 +338,16 @@ module.exports = {
     'profile.update': {
       rest: 'PATCH /profile/:id',
       params: {
-        id:                  { type: 'string', pattern: PROFILE_ID_PATTERN, max: 64 },
-        constraints:         { type: 'array', optional: true, items: { type: 'object', props: { topic: 'string', rule: 'string' } } },
+        id: { type: 'string', pattern: PROFILE_ID_PATTERN, max: 64 },
+        constraints: {
+          type: 'array',
+          optional: true,
+          items: { type: 'object', props: { topic: 'string', rule: 'string' } },
+        },
         explicitPreferences: { type: 'object', optional: true },
-        priorityFocusAreas:  { type: 'array', optional: true, items: 'string' },
-        tone:                { type: 'string', optional: true, max: 200 },
-        strategic_goals:     { type: 'array', optional: true, items: 'string' },
+        priorityFocusAreas: { type: 'array', optional: true, items: 'string' },
+        tone: { type: 'string', optional: true, max: 200 },
+        strategic_goals: { type: 'array', optional: true, items: 'string' },
       },
       openapi: {
         tags: ['CYA Agent'],
@@ -327,7 +356,12 @@ module.exports = {
           'Merges explicit user preferences into a CYA profile without touching ' +
           'implicitly derived stats. Part of the Progressive Profiling Zwiebelmodus (v0.34.0).',
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'stadtwerk_regulierung' } },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'stadtwerk_regulierung' },
+          },
         ],
         requestBody: {
           required: false,
@@ -336,17 +370,29 @@ module.exports = {
               schema: {
                 type: 'object',
                 properties: {
-                  constraints:         { type: 'array', items: { type: 'object', properties: { topic: { type: 'string' }, rule: { type: 'string' } } }, nullable: true },
+                  constraints: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: { topic: { type: 'string' }, rule: { type: 'string' } },
+                    },
+                    nullable: true,
+                  },
                   explicitPreferences: { type: 'object', nullable: true },
-                  priorityFocusAreas:  { type: 'array', items: { type: 'string' }, nullable: true },
-                  tone:                { type: 'string', nullable: true, example: 'sachlich, rechtssicher' },
-                  strategic_goals:     { type: 'array', items: { type: 'string' }, nullable: true },
+                  priorityFocusAreas: { type: 'array', items: { type: 'string' }, nullable: true },
+                  tone: { type: 'string', nullable: true, example: 'sachlich, rechtssicher' },
+                  strategic_goals: { type: 'array', items: { type: 'string' }, nullable: true },
                 },
               },
               examples: {
                 default: {
                   value: {
-                    constraints: [{ topic: 'Dunkelflaute', rule: 'Keine spekulativen Szenarien ohne Quellenangabe' }],
+                    constraints: [
+                      {
+                        topic: 'Dunkelflaute',
+                        rule: 'Keine spekulativen Szenarien ohne Quellenangabe',
+                      },
+                    ],
                     priorityFocusAreas: ['redispatch', 'capacity'],
                     tone: 'sachlich, direkt',
                   },
@@ -363,7 +409,7 @@ module.exports = {
                 schema: {
                   type: 'object',
                   properties: {
-                    id:      { type: 'string' },
+                    id: { type: 'string' },
                     profile: { type: 'object' },
                     updated: { type: 'boolean', example: true },
                   },
@@ -377,10 +423,12 @@ module.exports = {
       async handler(ctx) {
         const { id, ...explicitUpdate } = ctx.params;
 
-        const existing = await ctx.call(OS_GET, {
-          namespace: PROFILE_NAMESPACE,
-          key: id,
-        }).catch(() => null);
+        const existing = await ctx
+          .call(OS_GET, {
+            namespace: PROFILE_NAMESPACE,
+            key: id,
+          })
+          .catch(() => null);
 
         if (!existing?.payload) {
           throw new MoleculerError(`Profile '${id}' not found`, 404, 'PROFILE_NOT_FOUND');
@@ -498,7 +546,12 @@ module.exports = {
       params: {
         templateId: { type: 'string' },
         profile_id: { type: 'string', pattern: PROFILE_ID_PATTERN, max: 64 },
-        overrideMode: { type: 'enum', values: ['append', 'replace'], optional: true, default: 'replace' },
+        overrideMode: {
+          type: 'enum',
+          values: ['append', 'replace'],
+          optional: true,
+          default: 'replace',
+        },
         overrides: {
           type: 'object',
           optional: true,
@@ -513,7 +566,8 @@ module.exports = {
       openapi: {
         tags: ['CYA Agent'],
         summary: 'Create CYA profile from template',
-        description: 'Creates or updates a profile from a predefined template plus optional overrides.',
+        description:
+          'Creates or updates a profile from a predefined template plus optional overrides.',
         requestBody: {
           required: true,
           content: {
@@ -523,7 +577,12 @@ module.exports = {
                 required: ['templateId', 'profile_id'],
                 properties: {
                   templateId: { type: 'string', example: 'vnb_defensiv' },
-                  profile_id: { type: 'string', pattern: '^[a-z0-9_]+$', maxLength: 64, example: 'vnb_heidelberg_reg' },
+                  profile_id: {
+                    type: 'string',
+                    pattern: '^[a-z0-9_]+$',
+                    maxLength: 64,
+                    example: 'vnb_heidelberg_reg',
+                  },
                   overrideMode: { type: 'string', enum: ['append', 'replace'], default: 'replace' },
                   overrides: {
                     type: 'object',
@@ -599,11 +658,14 @@ module.exports = {
             : template.actor.department,
         };
 
-        let strategicGoals = Array.isArray(template.strategic_goals) ? [...template.strategic_goals] : [];
+        let strategicGoals = Array.isArray(template.strategic_goals)
+          ? [...template.strategic_goals]
+          : [];
         if (Array.isArray(overrides.strategic_goals) && overrides.strategic_goals.length > 0) {
-          strategicGoals = overrideMode === 'append'
-            ? [...strategicGoals, ...overrides.strategic_goals]
-            : [...overrides.strategic_goals];
+          strategicGoals =
+            overrideMode === 'append'
+              ? [...strategicGoals, ...overrides.strategic_goals]
+              : [...overrides.strategic_goals];
         }
 
         const tone = overrides.tone || template.tone || this.settings.defaultTone;
@@ -698,12 +760,9 @@ module.exports = {
         const session = await this.loadSession(ctx, session_id);
 
         if (session.status !== 'completed') {
-          throw new MoleculerError(
-            'Session is not completed yet',
-            409,
-            'SESSION_NOT_COMPLETED',
-            { status: session.status }
-          );
+          throw new MoleculerError('Session is not completed yet', 409, 'SESSION_NOT_COMPLETED', {
+            status: session.status,
+          });
         }
 
         const pdfBuffer = await buildCyaNarrativePdf(session, {
@@ -730,7 +789,8 @@ module.exports = {
       openapi: {
         tags: ['CYA Agent'],
         summary: 'Export CYA session as JSON',
-        description: 'Returns the full CYA session object as structured JSON for downstream processing.',
+        description:
+          'Returns the full CYA session object as structured JSON for downstream processing.',
         parameters: [
           {
             in: 'path',
@@ -790,7 +850,8 @@ module.exports = {
       openapi: {
         tags: ['CYA Agent'],
         summary: 'Get A2A message log for a CYA session (v0.35.0)',
-        description: 'Returns the full Agent-to-Agent communication log for a session, sorted by timestamp. Each entry is an A2AMessage envelope.',
+        description:
+          'Returns the full Agent-to-Agent communication log for a session, sorted by timestamp. Each entry is an A2AMessage envelope.',
         'x-oeo-class': 'OEO:AgentCommunication',
         parameters: [
           {
@@ -837,7 +898,7 @@ module.exports = {
         const { id } = ctx.params;
         let all = [];
         try {
-          all = await ctx.call('object-store.list', { namespace: a2a.A2A_NAMESPACE }) || [];
+          all = (await ctx.call('object-store.list', { namespace: a2a.A2A_NAMESPACE })) || [];
         } catch (err) {
           this.logger.warn('[A2A] object-store.list failed:', err.message);
         }
@@ -861,7 +922,8 @@ module.exports = {
       openapi: {
         tags: ['CYA Agent'],
         summary: 'Analyse des A2A-Logs für eine CYA-Session (v0.38.2)',
-        description: 'Wertet den persistierten Agent-to-Agent Kommunikations-Log einer Session aus. Liefert strukturierte Insights über Persona-Verdicts, Konflikte, Negotiation-Runden und Consensus-Ergebnis.',
+        description:
+          'Wertet den persistierten Agent-to-Agent Kommunikations-Log einer Session aus. Liefert strukturierte Insights über Persona-Verdicts, Konflikte, Negotiation-Runden und Consensus-Ergebnis.',
         'x-oeo-class': 'OEO:AgentCommunication',
         parameters: [
           {
@@ -924,7 +986,7 @@ module.exports = {
       },
     },
 
-    'a2aStats': {
+    a2aStats: {
       rest: 'GET /a2a-stats',
       params: {
         limit: { type: 'number', convert: true, optional: true, default: 100, min: 1, max: 1000 },
@@ -932,7 +994,8 @@ module.exports = {
       openapi: {
         tags: ['CYA Agent'],
         summary: 'Globale A2A-Statistiken über alle Sessions (v0.38.2)',
-        description: 'Aggregiert A2A-Logs aus allen gespeicherten Sessions und liefert Konsens-Rate, Eskalations-Rate, häufigste Blocker-Persona und häufigste Signals. Limit-Parameter verhindert Timeout bei vielen Sessions.',
+        description:
+          'Aggregiert A2A-Logs aus allen gespeicherten Sessions und liefert Konsens-Rate, Eskalations-Rate, häufigste Blocker-Persona und häufigste Signals. Limit-Parameter verhindert Timeout bei vielen Sessions.',
         'x-oeo-class': 'OEO:AgentCommunication',
         parameters: [
           {
@@ -978,7 +1041,7 @@ module.exports = {
         // TODO: Pagination für >1000 Sessions (analog mastr-monitor)
         let all = [];
         try {
-          all = await ctx.call('object-store.list', { namespace: a2a.A2A_NAMESPACE }) || [];
+          all = (await ctx.call('object-store.list', { namespace: a2a.A2A_NAMESPACE })) || [];
         } catch (err) {
           this.logger.warn('[A2A Stats] object-store.list failed:', err.message);
         }
@@ -1023,7 +1086,8 @@ module.exports = {
       openapi: {
         tags: ['CYA Agent'],
         summary: 'Get persisted Zwiebelmodus context state for a CYA session (v0.37.0)',
-        description: 'Returns the serialized CyaContextManager zoom-state for session resumption. Enables refine calls to continue with identical onion context. Object Store namespace: cya_context_states.',
+        description:
+          'Returns the serialized CyaContextManager zoom-state for session resumption. Enables refine calls to continue with identical onion context. Object Store namespace: cya_context_states.',
         'x-oeo-class': 'OEO:ContextManagement',
         parameters: [
           {
@@ -1073,10 +1137,12 @@ module.exports = {
       },
       async handler(ctx) {
         const { id } = ctx.params;
-        const result = await ctx.call(OS_GET, {
-          namespace: 'cya_context_states',
-          key: `ctx_${id}`,
-        }).catch(() => null);
+        const result = await ctx
+          .call(OS_GET, {
+            namespace: 'cya_context_states',
+            key: `ctx_${id}`,
+          })
+          .catch(() => null);
         if (!result?.payload) {
           throw new MoleculerClientError(
             `No context state for session '${id}'`,
@@ -1107,8 +1173,8 @@ module.exports = {
       // ─────────────────────────────────────────────────────────────────────
       params: {
         operator: { type: 'string', optional: true },
-        location:  { type: 'string', optional: true },
-        baseIri:   { type: 'string', optional: true },
+        location: { type: 'string', optional: true },
+        baseIri: { type: 'string', optional: true },
       },
       openapi: {
         summary: 'OEO Export Stub (Science Hook)',
@@ -1118,39 +1184,71 @@ module.exports = {
         tags: ['CYA Agent'],
         'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'],
         parameters: [
-          { name: 'operator', in: 'query', required: false, schema: { type: 'string', example: 'Stadtwerke Beispiel' }, description: 'Optional operator name for graph seed' },
-          { name: 'location', in: 'query', required: false, schema: { type: 'string', example: 'Ludwigshafen' }, description: 'Optional location filter' },
-          { name: 'baseIri', in: 'query', required: false, schema: { type: 'string', example: 'https://cernion.example/graph/' }, description: 'Base IRI for JSON-LD output' },
+          {
+            name: 'operator',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'Stadtwerke Beispiel' },
+            description: 'Optional operator name for graph seed',
+          },
+          {
+            name: 'location',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'Ludwigshafen' },
+            description: 'Optional location filter',
+          },
+          {
+            name: 'baseIri',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'https://cernion.example/graph/' },
+            description: 'Base IRI for JSON-LD output',
+          },
         ],
         responses: {
           200: {
             description: 'OEO JSON-LD skeleton export',
-            content: { 'application/json': { schema: { type: 'object', properties: {
-              ok: { type: 'boolean' },
-              oeoStub: { type: 'object', nullable: true, description: 'OEO JSON-LD stub (null until oeo-exporter-stub.js is implemented)' },
-              graphology: { type: 'object', description: 'Raw Graphology graph data' },
-            }}}},
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean' },
+                    oeoStub: {
+                      type: 'object',
+                      nullable: true,
+                      description:
+                        'OEO JSON-LD stub (null until oeo-exporter-stub.js is implemented)',
+                    },
+                    graphology: { type: 'object', description: 'Raw Graphology graph data' },
+                  },
+                },
+              },
+            },
           },
         },
       },
       async handler(ctx) {
         const { buildOntologyGraph } = require('../src/cya-ontology-graph');
-        const { exportGraphForOeo }  = require('../src/oeo-exporter-stub');
+        const { exportGraphForOeo } = require('../src/oeo-exporter-stub');
 
         // Minimaler Graph mit Stub-Knoten wenn keine Operator-Daten übergeben
         // Forscher können den Endpoint ohne Auth testen
-        const stubInstallations = ctx.params.operator ? [] : [
-          {
-            EinheitMastrNummer: 'SEE999952467552',
-            name: 'Solarpark Höheinöd (Demo)',
-            leistungKw: 2103.7,
-            spannungsebene: 'MS',
-            technologie: 'SOLAR',
-            ibJahr: 2009,
-            status: 35,
-            koordinaten: { lat: 49.2167, lon: 7.6333 },
-          },
-        ];
+        const stubInstallations = ctx.params.operator
+          ? []
+          : [
+              {
+                EinheitMastrNummer: 'SEE999952467552',
+                name: 'Solarpark Höheinöd (Demo)',
+                leistungKw: 2103.7,
+                spannungsebene: 'MS',
+                technologie: 'SOLAR',
+                ibJahr: 2009,
+                status: 35,
+                koordinaten: { lat: 49.2167, lon: 7.6333 },
+              },
+            ];
 
         const graph = buildOntologyGraph(stubInstallations, null);
         const payload = exportGraphForOeo(graph, {
@@ -1168,20 +1266,29 @@ module.exports = {
       rest: 'GET /graph/cache',
       openapi: {
         summary: 'Ontologie-Graph Cache Status',
-        description: 'Gibt den aktuellen L1-Cache-Status des Ontologie-Graphen zurück. Für Ops-Monitoring und Debugging.',
+        description:
+          'Gibt den aktuellen L1-Cache-Status des Ontologie-Graphen zurück. Für Ops-Monitoring und Debugging.',
         tags: ['CYA Agent'],
         responses: {
           200: {
             description: 'Cache-Statistiken',
-            content: { 'application/json': { schema: { type: 'object', properties: {
-              ok: { type: 'boolean' },
-              cache: { type: 'object' },
-            }}}},
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    ok: { type: 'boolean' },
+                    cache: { type: 'object' },
+                  },
+                },
+              },
+            },
           },
         },
       },
       // Gibt den aktuellen L1-Cache-Status zurück (für Monitoring/Ops)
-      handler(ctx) {  // eslint-disable-line no-unused-vars
+      handler(_ctx) {
+        // eslint-disable-line no-unused-vars
         return {
           ok: true,
           cache: graphCache.getStats(),
@@ -1196,25 +1303,30 @@ module.exports = {
       },
       openapi: {
         summary: 'Ontologie-Graph Cache invalidieren',
-        description: 'Invalidiert den Graphen für einen VNB. Wird automatisch ausgelöst bei mastr-monitor.delta.detected.',
+        description:
+          'Invalidiert den Graphen für einen VNB. Wird automatisch ausgelöst bei mastr-monitor.delta.detected.',
         tags: ['CYA Agent'],
         responses: {
           200: {
             description: 'Invalidierungsbestätigung',
-            content: { 'application/json': { schema: { type: 'object', properties: {
-              key:         { type: 'string' },
-              invalidated: { type: 'boolean' },
-            }}}},
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    key: { type: 'string' },
+                    invalidated: { type: 'boolean' },
+                  },
+                },
+              },
+            },
           },
         },
       },
       // Invalidiert den Graphen für einen VNB (z.B. nach MaStR-Update)
       async handler(ctx) {
         const key = graphCache.buildKey(ctx.params.operatorId);
-        const result = await graphCache.invalidate(
-          key,
-          ctx.call.bind(ctx)
-        );
+        const result = await graphCache.invalidate(key, ctx.call.bind(ctx));
         this.broker.emit('cya.ontology.graph.invalidated', {
           operatorId: ctx.params.operatorId,
           cacheKey: key,
@@ -1372,7 +1484,11 @@ module.exports = {
           }
 
           if (!profile) {
-            throw new MoleculerError(`Profile or template '${id}' not found`, 404, 'PROFILE_OR_TEMPLATE_NOT_FOUND');
+            throw new MoleculerError(
+              `Profile or template '${id}' not found`,
+              404,
+              'PROFILE_OR_TEMPLATE_NOT_FOUND'
+            );
           }
           profiles.push(profile);
         }
@@ -1386,23 +1502,27 @@ module.exports = {
         });
 
         // Phase 2: Ontology layer (v0.32.0+v0.36.0 cached) — non-blocking, falls back to Regex if null
-        const { graphSignals: _gsPreload, contextManager: _cmPreload } = await this._buildOntologyLayer(
-          retrieval,
-          context?.goal || null,
-          Array.isArray(context?.focus_areas) ? context.focus_areas : []
-        );
+        const { graphSignals: _gsPreload, contextManager: _cmPreload } =
+          await this._buildOntologyLayer(
+            retrieval,
+            context?.goal || null,
+            Array.isArray(context?.focus_areas) ? context.focus_areas : []
+          );
         // v0.37.0 — Persist context state non-blocking
         const _preloadSessionId = ctx.params.session_id || null;
         if (_cmPreload && _preloadSessionId) {
-          this._persistContextState(_preloadSessionId, _cmPreload)
-            .catch((err) => this.logger.warn('[ContextManager] persist failed:', err.message));
+          this._persistContextState(_preloadSessionId, _cmPreload).catch((err) =>
+            this.logger.warn('[ContextManager] persist failed:', err.message)
+          );
         }
-        const regulatoryGraph = _gsPreload || buildRegulatoryGraph({
-          retrieval,
-          context,
-          profile: profiles[0],
-          topologyHop: retrieval.topologyHop,
-        });
+        const regulatoryGraph =
+          _gsPreload ||
+          buildRegulatoryGraph({
+            retrieval,
+            context,
+            profile: profiles[0],
+            topologyHop: retrieval.topologyHop,
+          });
 
         const grounding = buildGrounding({
           retrieval,
@@ -1414,7 +1534,11 @@ module.exports = {
         if (retrieval.toolSetRationale) grounding.toolSetRationale = retrieval.toolSetRationale;
         if (retrieval.signalOverrides) grounding.signalOverrides = retrieval.signalOverrides;
 
-        if (grounding.requiresClarification || !Array.isArray(grounding.facts) || grounding.facts.length === 0) {
+        if (
+          grounding.requiresClarification ||
+          !Array.isArray(grounding.facts) ||
+          grounding.facts.length === 0
+        ) {
           return {
             success: true,
             status: 'needs_clarification',
@@ -1549,11 +1673,12 @@ module.exports = {
                     items: { type: 'string', enum: PERSONA_ENUM },
                     minItems: 1,
                     maxItems: PERSONA_ENUM.length,
-                    description: 'Enable multi-agent orchestration mode with stakeholder perspectives. If omitted, defaults to classic single-agent v0.26.8 behavior.',
+                    description:
+                      'Enable multi-agent orchestration mode with stakeholder perspectives. If omitted, defaults to classic single-agent v0.26.8 behavior.',
                     example: ['technical', 'commercial'],
                   },
                   context: {
-            capacity_mw: { type: 'number', optional: true },
+                    capacity_mw: { type: 'number', optional: true },
                     required: ['trigger', 'focus_areas'],
                     example: {
                       location: 'Ludwigshafen',
@@ -1563,11 +1688,16 @@ module.exports = {
                     properties: {
                       location: { type: 'string', nullable: true },
                       trigger: { type: 'string' },
-                      focus_areas: { type: 'array', minItems: 1, items: { type: 'string', enum: FOCUS_AREAS } },
+                      focus_areas: {
+                        type: 'array',
+                        minItems: 1,
+                        items: { type: 'string', enum: FOCUS_AREAS },
+                      },
                       capacity_mw: {
                         type: 'number',
                         nullable: true,
-                        description: 'Asset capacity in MW. If >= 10 MW, triggers 110-kV topology hop detection via OSM.',
+                        description:
+                          'Asset capacity in MW. If >= 10 MW, triggers 110-kV topology hop detection via OSM.',
                         example: 10,
                       },
                     },
@@ -1614,16 +1744,26 @@ module.exports = {
                     success: { type: 'boolean', example: true },
                     jobId: { type: 'string', example: '6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4' },
                     status: { type: 'string', enum: ['queued'], example: 'queued' },
-                    message: { type: 'string', example: 'Job started. Poll /api/jobs/:jobId/status for progress.' },
-                    statusUrl: { type: 'string', example: '/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status' },
-                    resultUrl: { type: 'string', example: '/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result' },
+                    message: {
+                      type: 'string',
+                      example: 'Job started. Poll /api/jobs/:jobId/status for progress.',
+                    },
+                    statusUrl: {
+                      type: 'string',
+                      example: '/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status',
+                    },
+                    resultUrl: {
+                      type: 'string',
+                      example: '/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result',
+                    },
                   },
                 },
               },
             },
           },
           200: {
-            description: 'Pipeline result (internal/direct calls only; external callers receive 202)',
+            description:
+              'Pipeline result (internal/direct calls only; external callers receive 202)',
             content: {
               'application/json': {
                 schema: {
@@ -1709,15 +1849,18 @@ module.exports = {
           );
           // v0.37.0 — Persist context state non-blocking
           if (_cmMain && sessionId) {
-            this._persistContextState(sessionId, _cmMain)
-              .catch((err) => this.logger.warn('[ContextManager] persist failed:', err.message));
+            this._persistContextState(sessionId, _cmMain).catch((err) =>
+              this.logger.warn('[ContextManager] persist failed:', err.message)
+            );
           }
-          const regulatoryGraph = _gsMain || buildRegulatoryGraph({
-            retrieval,
-            context,
-            profile,
-            topologyHop: retrieval.topologyHop,
-          });
+          const regulatoryGraph =
+            _gsMain ||
+            buildRegulatoryGraph({
+              retrieval,
+              context,
+              profile,
+              topologyHop: retrieval.topologyHop,
+            });
           appendLog(jobId, 'phase_2_graph', 66, 'Regulatory graph complete');
 
           // Phase 3: Grounding & Clarification Check
@@ -1734,7 +1877,12 @@ module.exports = {
           appendLog(jobId, 'phase_3_grounding', 75, 'Grounding merge complete');
 
           if (grounding.requiresClarification) {
-            appendLog(jobId, 'phase_3_grounding', 85, 'Clarification required — returning HITL prompt');
+            appendLog(
+              jobId,
+              'phase_3_grounding',
+              85,
+              'Clarification required — returning HITL prompt'
+            );
             const response = this.buildClarificationResponse({
               sessionId,
               profileId: profile_id,
@@ -1806,13 +1954,18 @@ module.exports = {
           // Non-blocking — observer failure must not delay the response
           {
             const _completedSession = {
-              status: 'completed', profile_id, context,
-              regulatory_graph: regulatoryGraph, grounding,
-              retrieval, history: [],
+              status: 'completed',
+              profile_id,
+              context,
+              regulatory_graph: regulatoryGraph,
+              grounding,
+              retrieval,
+              history: [],
               narrative: synthesis.narrative,
             };
-            this._observeAndUpdateProfile(profile_id, _completedSession)
-              .catch(err => this.logger.warn('profile-observer failed (non-blocking):', err.message));
+            this._observeAndUpdateProfile(profile_id, _completedSession).catch((err) =>
+              this.logger.warn('profile-observer failed (non-blocking):', err.message)
+            );
           }
 
           return response;
@@ -1840,7 +1993,8 @@ module.exports = {
       openapi: {
         tags: ['CYA Agent'],
         summary: 'Refine a generated narrative',
-        description: 'Refines an existing CYA session with user feedback or clarification input (Option-B response structure).',
+        description:
+          'Refines an existing CYA session with user feedback or clarification input (Option-B response structure).',
         requestBody: {
           required: true,
           content: {
@@ -1850,26 +2004,37 @@ module.exports = {
                 required: ['session_id'],
                 properties: {
                   session_id: { type: 'string', example: 'cya_1713110400000' },
-                  user_feedback: { type: 'string', nullable: true, example: 'Bitte stärker auf §14a fokussieren' },
-                  agent_clarification_response: { type: 'string', nullable: true, example: 'Bitte Region auf Ludwigshafen eingrenzen' },
-                    clarification_response: {
-                      type: 'object',
-                      nullable: true,
-                      description: 'Structured HITL data override. Supplies hard facts (capacity, redispatch, NOVA, etc.) to rebuild the deterministic Regulatory Graph. Bypasses failed MCP fetch-routines for the listed focus areas. Separate from agent_clarification_response (free-text LLM guidance).',
-                      example: null,
-                      properties: {
-                        provided_data: {
-                          type: 'object',
-                          description: 'Map of focusArea -> user-supplied text. Each entry replaces a failed or missing retrieval item with trusted:true, dataProvenance:"user_asserted".',
-                          example: {
-                            capacity: 'Lokale PV-Durchdringung 8 MW, 10-MW-Speicher muss ans 110-kV-UW Meckesheim (Netze BW).',
-                            redispatch: 'Netzregion leidet unter §13a-Abregelungen von Wind/PV.',
-                            nova: 'Netze BW prüft Trafo-Ausbau, Flexibilität fehlt.',
-                            investment: 'Kommune Mauer will Gewerbesteuer sichern.',
-                          },
+                  user_feedback: {
+                    type: 'string',
+                    nullable: true,
+                    example: 'Bitte stärker auf §14a fokussieren',
+                  },
+                  agent_clarification_response: {
+                    type: 'string',
+                    nullable: true,
+                    example: 'Bitte Region auf Ludwigshafen eingrenzen',
+                  },
+                  clarification_response: {
+                    type: 'object',
+                    nullable: true,
+                    description:
+                      'Structured HITL data override. Supplies hard facts (capacity, redispatch, NOVA, etc.) to rebuild the deterministic Regulatory Graph. Bypasses failed MCP fetch-routines for the listed focus areas. Separate from agent_clarification_response (free-text LLM guidance).',
+                    example: null,
+                    properties: {
+                      provided_data: {
+                        type: 'object',
+                        description:
+                          'Map of focusArea -> user-supplied text. Each entry replaces a failed or missing retrieval item with trusted:true, dataProvenance:"user_asserted".',
+                        example: {
+                          capacity:
+                            'Lokale PV-Durchdringung 8 MW, 10-MW-Speicher muss ans 110-kV-UW Meckesheim (Netze BW).',
+                          redispatch: 'Netzregion leidet unter §13a-Abregelungen von Wind/PV.',
+                          nova: 'Netze BW prüft Trafo-Ausbau, Flexibilität fehlt.',
+                          investment: 'Kommune Mauer will Gewerbesteuer sichern.',
                         },
                       },
                     },
+                  },
                 },
               },
               examples: {
@@ -1878,23 +2043,24 @@ module.exports = {
                     session_id: 'cya_1713110400000',
                     user_feedback: 'Bitte stärker auf §14a fokussieren',
                     agent_clarification_response: null,
-                      clarification_response: null,
+                    clarification_response: null,
                   },
                 },
-                  hitl_override: {
-                    summary: 'HITL: supply missing focus-area data after needs_clarification',
-                    value: {
-                      session_id: 'cya_1776232540896',
-                      clarification_response: {
-                        provided_data: {
-                          capacity: 'Lokale PV-Durchdringung 8 MW, 10-MW-Speicher muss ans 110-kV-UW Meckesheim (Netze BW).',
-                          redispatch: 'Netzregion leidet unter §13a-Abregelungen von Wind/PV.',
-                          nova: 'Netze BW prüft Trafo-Ausbau, Flexibilität fehlt.',
-                          investment: 'Kommune Mauer will Gewerbesteuer sichern.',
-                        },
+                hitl_override: {
+                  summary: 'HITL: supply missing focus-area data after needs_clarification',
+                  value: {
+                    session_id: 'cya_1776232540896',
+                    clarification_response: {
+                      provided_data: {
+                        capacity:
+                          'Lokale PV-Durchdringung 8 MW, 10-MW-Speicher muss ans 110-kV-UW Meckesheim (Netze BW).',
+                        redispatch: 'Netzregion leidet unter §13a-Abregelungen von Wind/PV.',
+                        nova: 'Netze BW prüft Trafo-Ausbau, Flexibilität fehlt.',
+                        investment: 'Kommune Mauer will Gewerbesteuer sichern.',
                       },
                     },
                   },
+                },
               },
             },
           },
@@ -1938,11 +2104,15 @@ module.exports = {
           session._ontologyGraph || null
         ).catch(() => null);
         if (_restoredCtxManager) {
-          this.logger.info('[ContextManager] Restored zoom context for session:', ctx.params.session_id);
+          this.logger.info(
+            '[ContextManager] Restored zoom context for session:',
+            ctx.params.session_id
+          );
         }
 
         const providedData = ctx.params.clarification_response?.provided_data;
-        const hasProvidedData = providedData && typeof providedData === 'object' && Object.keys(providedData).length > 0;
+        const hasProvidedData =
+          providedData && typeof providedData === 'object' && Object.keys(providedData).length > 0;
 
         // Multi-agent refine path: re-run orchestration with enriched data or feedback
         if (session.perspectives?.length > 0) {
@@ -1962,7 +2132,8 @@ module.exports = {
         // agent_clarification_response (free-text) is only used in Phase 3 below.
         if (hasProvidedData) {
           const enrichedRetrieval = mergeProvidedData(session.retrieval, providedData);
-          const topologyHop = enrichedRetrieval.topologyHop || session.retrieval?.topologyHop || null;
+          const topologyHop =
+            enrichedRetrieval.topologyHop || session.retrieval?.topologyHop || null;
           const enrichedGraph = buildRegulatoryGraph({
             retrieval: enrichedRetrieval,
             context: session.context,
@@ -1976,8 +2147,10 @@ module.exports = {
             topologyHop,
           });
           // v0.33 — Dynamic Tool Router transparency fields (EU AI Act Art. 12)
-          if (enrichedRetrieval.toolSetRationale) enrichedGrounding.toolSetRationale = enrichedRetrieval.toolSetRationale;
-          if (enrichedRetrieval.signalOverrides) enrichedGrounding.signalOverrides = enrichedRetrieval.signalOverrides;
+          if (enrichedRetrieval.toolSetRationale)
+            enrichedGrounding.toolSetRationale = enrichedRetrieval.toolSetRationale;
+          if (enrichedRetrieval.signalOverrides)
+            enrichedGrounding.signalOverrides = enrichedRetrieval.signalOverrides;
 
           const refinedContext = { ...session.context, clarification: clarificationInput || null };
           const synthesis = await synthesizeNarrative({
@@ -2128,8 +2301,9 @@ module.exports = {
         // ── Cache-Miss: Graph neu bauen und persistieren ──────────────────────
         if (!ontologyGraph) {
           ontologyGraph = buildOntologyGraph(installations, retrieval.topologyHop || null);
-          graphCache.set(cacheKey, ontologyGraph, this.broker.call.bind(this.broker))
-            .catch(err => this.logger?.warn('[GraphCache] write failed:', err.message));
+          graphCache
+            .set(cacheKey, ontologyGraph, this.broker.call.bind(this.broker))
+            .catch((err) => this.logger?.warn('[GraphCache] write failed:', err.message));
 
           this.broker.emit('cya.ontology.graph.built', {
             cacheKey,
@@ -2170,7 +2344,11 @@ module.exports = {
         }
         return profile;
       } catch (err) {
-        if (err?.code === 404 || err?.type === 'OBJECT_NOT_FOUND' || err?.message === 'PROFILE_NOT_FOUND') {
+        if (
+          err?.code === 404 ||
+          err?.type === 'OBJECT_NOT_FOUND' ||
+          err?.message === 'PROFILE_NOT_FOUND'
+        ) {
           throw new MoleculerError('PROFILE_NOT_FOUND', 404, 'PROFILE_NOT_FOUND');
         }
         throw err;
@@ -2189,7 +2367,11 @@ module.exports = {
         }
         return session;
       } catch (err) {
-        if (err?.code === 404 || err?.type === 'OBJECT_NOT_FOUND' || err?.message === 'SESSION_NOT_FOUND') {
+        if (
+          err?.code === 404 ||
+          err?.type === 'OBJECT_NOT_FOUND' ||
+          err?.message === 'SESSION_NOT_FOUND'
+        ) {
           throw new MoleculerError('SESSION_NOT_FOUND', 404, 'SESSION_NOT_FOUND');
         }
         throw err;
@@ -2205,12 +2387,17 @@ module.exports = {
      * @param {Object} session - Completed session payload
      */
     async _observeAndUpdateProfile(profileId, session) {
-      const { extractImplicitSignals, mergeImplicitIntoProfile } = require('../src/cya-profile-observer');
+      const {
+        extractImplicitSignals,
+        mergeImplicitIntoProfile,
+      } = require('../src/cya-profile-observer');
 
-      const existing = await this.broker.call(OS_GET, {
-        namespace: PROFILE_NAMESPACE,
-        key: profileId,
-      }).catch(() => null);
+      const existing = await this.broker
+        .call(OS_GET, {
+          namespace: PROFILE_NAMESPACE,
+          key: profileId,
+        })
+        .catch(() => null);
       if (!existing?.payload) return;
 
       const signals = extractImplicitSignals(session);
@@ -2241,12 +2428,12 @@ module.exports = {
       if (!namespace) return;
 
       const memoryDoc = {
-        summary:      session.narrative?.headline || session.narrative?.title || '',
-        focusAreas:   signals.focusAreas,
-        signalsSeen:  signals.signalsSeen,
-        confidence:   signals.confidence,
-        createdAt:    new Date().toISOString(),
-        tags:         signals.focusAreas,
+        summary: session.narrative?.headline || session.narrative?.title || '',
+        focusAreas: signals.focusAreas,
+        signalsSeen: signals.signalsSeen,
+        confidence: signals.confidence,
+        createdAt: new Date().toISOString(),
+        tags: signals.focusAreas,
       };
 
       const key = `mem_${Date.now()}`;
@@ -2345,17 +2532,32 @@ module.exports = {
      */
     async runMultiAgentOrchestration(ctx, args) {
       const {
-        jobId, sessionId, profile_id, target_audience,
-        context, perspectives, preloadedRetrieval, createdAt,
+        jobId,
+        sessionId,
+        profile_id,
+        target_audience,
+        context,
+        perspectives,
+        preloadedRetrieval,
+        createdAt,
       } = args;
 
-      const log = (phase, pct, msg) => { if (jobId) appendLog(jobId, phase, pct, msg); };
+      const log = (phase, pct, msg) => {
+        if (jobId) appendLog(jobId, phase, pct, msg);
+      };
 
       // Phase 1 + 2 (shared baseline — skipped when preloaded retrieval supplied)
       log('phase_1_retrieval', 0, 'Multi-agent: shared context retrieval...');
-      const profile = args.profile || await this.loadProfile(ctx, profile_id);
-      const retrieval = preloadedRetrieval
-        || await retrieveContextData(ctx, { profile, target_audience, context, actorRole: profile?.actor?.role || null, ontologySignals: null });
+      const profile = args.profile || (await this.loadProfile(ctx, profile_id));
+      const retrieval =
+        preloadedRetrieval ||
+        (await retrieveContextData(ctx, {
+          profile,
+          target_audience,
+          context,
+          actorRole: profile?.actor?.role || null,
+          ontologySignals: null,
+        }));
       log('phase_1_retrieval', 20, 'Shared retrieval complete');
 
       log('phase_2_graph', 20, 'Multi-agent: shared regulatory graph...');
@@ -2364,34 +2566,52 @@ module.exports = {
         args.goal || null,
         Array.isArray(context?.focus_areas) ? context.focus_areas : []
       );
-      const regulatoryGraph = _gsMulti || buildRegulatoryGraph({
-        retrieval, context, profile, topologyHop: retrieval.topologyHop,
-      });
+      const regulatoryGraph =
+        _gsMulti ||
+        buildRegulatoryGraph({
+          retrieval,
+          context,
+          profile,
+          topologyHop: retrieval.topologyHop,
+        });
       log('phase_2_graph', 35, 'Shared regulatory graph complete');
 
       const baselineGrounding = buildGrounding({
-        retrieval, regulatoryGraph, context, topologyHop: retrieval.topologyHop,
+        retrieval,
+        regulatoryGraph,
+        context,
+        topologyHop: retrieval.topologyHop,
       });
 
       // Phase 3: parallel per-persona grounding
       log('phase_3_grounding', 35, `Multi-agent: Phase 3 for [${perspectives.join(', ')}]...`);
-      const personaGroundings = await this.buildPersonaGroundings(ctx, perspectives, baselineGrounding);
+      const personaGroundings = await this.buildPersonaGroundings(
+        ctx,
+        perspectives,
+        baselineGrounding
+      );
       log('phase_3_grounding', 55, 'Per-persona groundings complete');
 
       // Phase 4: parallel per-persona synthesis
       log('phase_4_synthesis', 55, 'Multi-agent: per-persona synthesis...');
-      const stakeholderStates = await this.runPersonaSynthesis(
-        perspectives, personaGroundings,
-        { profile, target_audience, context, regulatoryGraph, sessionId }
-      );
+      const stakeholderStates = await this.runPersonaSynthesis(perspectives, personaGroundings, {
+        profile,
+        target_audience,
+        context,
+        regulatoryGraph,
+        sessionId,
+      });
       log('phase_4_synthesis', 75, 'Per-persona synthesis complete');
 
       // Conflict negotiation loop
       const { finalStates, dialogueRounds, conflictResolved, consensusNarrative } =
-        await this.runConflictNegotiation(
-          stakeholderStates, baselineGrounding.facts,
-          { profile, target_audience, context, regulatoryGraph, sessionId }
-        );
+        await this.runConflictNegotiation(stakeholderStates, baselineGrounding.facts, {
+          profile,
+          target_audience,
+          context,
+          regulatoryGraph,
+          sessionId,
+        });
       log('phase_4_synthesis', 90, `Conflict resolved: ${conflictResolved}`);
 
       const multiPerspective = {
@@ -2407,21 +2627,40 @@ module.exports = {
         const clarification = {
           question: `Stakeholder-Konflikt nicht automatisch auflösbar. Blockierende Perspektiven: ${blockers.join(', ')}. Bitte klären Sie: ${triggers.join(', ') || 'fehlende Fakten ergänzen'}.`,
           reason: 'multi_agent_conflict_unresolved',
-          suggestedInputs: triggers.length > 0 ? triggers : baselineGrounding.dataGaps?.map((g) => g.focusArea) || [],
+          suggestedInputs:
+            triggers.length > 0
+              ? triggers
+              : baselineGrounding.dataGaps?.map((g) => g.focusArea) || [],
         };
         const hitlGrounding = { ...baselineGrounding, clarification, requiresClarification: true };
         const hitlResponse = this.buildClarificationResponse({
-          sessionId, profileId: profile_id, targetAudience: target_audience,
-          grounding: hitlGrounding, regulatoryGraph, context, createdAt,
+          sessionId,
+          profileId: profile_id,
+          targetAudience: target_audience,
+          grounding: hitlGrounding,
+          regulatoryGraph,
+          context,
+          createdAt,
           multi_perspective: multiPerspective,
         });
         await this.saveSession(ctx, sessionId, {
-          status: 'needs_clarification', profile_id, target_audience, context, profile,
-          retrieval, regulatory_graph: regulatoryGraph, grounding: hitlGrounding,
-          narrative: null, clarification, perspectives, stakeholder_states: finalStates,
-          dialogue_rounds: dialogueRounds, conflict_resolved: false,
+          status: 'needs_clarification',
+          profile_id,
+          target_audience,
+          context,
+          profile,
+          retrieval,
+          regulatory_graph: regulatoryGraph,
+          grounding: hitlGrounding,
+          narrative: null,
+          clarification,
+          perspectives,
+          stakeholder_states: finalStates,
+          dialogue_rounds: dialogueRounds,
+          conflict_resolved: false,
           createdAt: hitlResponse.metadata.createdAt,
-          updatedAt: hitlResponse.metadata.updatedAt, history: [],
+          updatedAt: hitlResponse.metadata.updatedAt,
+          history: [],
         });
         log('phase_4_synthesis', 100, 'Multi-agent HITL escalation saved');
         return hitlResponse;
@@ -2430,29 +2669,52 @@ module.exports = {
       // Consensus achieved
       const narrative = consensusNarrative?.narrative || null;
       const completedResponse = this.buildCompletedResponse({
-        sessionId, profileId: profile_id, targetAudience: target_audience,
-        grounding: baselineGrounding, regulatoryGraph, context, narrative,
-        createdAt, multi_perspective: multiPerspective,
+        sessionId,
+        profileId: profile_id,
+        targetAudience: target_audience,
+        grounding: baselineGrounding,
+        regulatoryGraph,
+        context,
+        narrative,
+        createdAt,
+        multi_perspective: multiPerspective,
       });
       await this.saveSession(ctx, sessionId, {
-        status: 'completed', profile_id, target_audience, context, profile,
-        retrieval, regulatory_graph: regulatoryGraph, grounding: baselineGrounding,
-        narrative, clarification: null, perspectives, stakeholder_states: finalStates,
-        dialogue_rounds: dialogueRounds, conflict_resolved: true,
+        status: 'completed',
+        profile_id,
+        target_audience,
+        context,
+        profile,
+        retrieval,
+        regulatory_graph: regulatoryGraph,
+        grounding: baselineGrounding,
+        narrative,
+        clarification: null,
+        perspectives,
+        stakeholder_states: finalStates,
+        dialogue_rounds: dialogueRounds,
+        conflict_resolved: true,
         createdAt: completedResponse.metadata.createdAt,
-        updatedAt: completedResponse.metadata.updatedAt, history: [],
+        updatedAt: completedResponse.metadata.updatedAt,
+        history: [],
       });
       log('phase_4_synthesis', 100, 'Multi-agent session saved');
 
       // Progressive Profiling: implicit extraction after multi-agent session close (v0.34.0)
       {
         const _completedSession = {
-          status: 'completed', profile_id, context,
-          regulatory_graph: regulatoryGraph, grounding: baselineGrounding,
-          retrieval, history: [], narrative,
+          status: 'completed',
+          profile_id,
+          context,
+          regulatory_graph: regulatoryGraph,
+          grounding: baselineGrounding,
+          retrieval,
+          history: [],
+          narrative,
         };
-        this._observeAndUpdateProfile(profile_id, _completedSession)
-          .catch(err => this.logger.warn('profile-observer failed (non-blocking):', err.message));
+        this._observeAndUpdateProfile(profile_id, _completedSession).catch((err) =>
+          this.logger.warn('profile-observer failed (non-blocking):', err.message)
+        );
       }
 
       return completedResponse;
@@ -2523,21 +2785,33 @@ module.exports = {
       if (!initialConflict.hasConflict) {
         // No conflict — synthesize consensus immediately
         const consensus = await synthesizeConsensusWith({
-          ...synthesisArgs, stakeholderStates, sharedFacts, round: 0,
+          ...synthesisArgs,
+          stakeholderStates,
+          sharedFacts,
+          round: 0,
         });
         if (sessionId) {
-          await this._emitA2AMessage(a2a.consensusReached(sessionId, { narrative: consensus.narrative, round: 0 }));
+          await this._emitA2AMessage(
+            a2a.consensusReached(sessionId, { narrative: consensus.narrative, round: 0 })
+          );
         }
-        return { finalStates: stakeholderStates, dialogueRounds, conflictResolved: true, consensusNarrative: consensus };
+        return {
+          finalStates: stakeholderStates,
+          dialogueRounds,
+          conflictResolved: true,
+          consensusNarrative: consensus,
+        };
       }
 
       // Conflict detected — emit once before loop
       if (sessionId) {
-        await this._emitA2AMessage(a2a.conflictDetected(sessionId, {
-          blockers: initialConflict.blockers,
-          approvers: initialConflict.approvers,
-          triggers: initialConflict.triggers,
-        }));
+        await this._emitA2AMessage(
+          a2a.conflictDetected(sessionId, {
+            blockers: initialConflict.blockers,
+            approvers: initialConflict.approvers,
+            triggers: initialConflict.triggers,
+          })
+        );
       }
 
       let currentStates = { ...stakeholderStates };
@@ -2545,7 +2819,10 @@ module.exports = {
         const conflict = detectConflicts(currentStates);
         // eslint-disable-next-line no-await-in-loop
         const consensus = await synthesizeConsensusWith({
-          ...synthesisArgs, stakeholderStates: currentStates, sharedFacts, round,
+          ...synthesisArgs,
+          stakeholderStates: currentStates,
+          sharedFacts,
+          round,
         });
 
         // Bug-fix: update currentStates if LLM returns updatedStates (hook for future rounds)
@@ -2570,20 +2847,30 @@ module.exports = {
         if (consensus.consensusReached) {
           if (sessionId) {
             // eslint-disable-next-line no-await-in-loop
-            await this._emitA2AMessage(a2a.consensusReached(sessionId, { narrative: consensus.narrative, round }));
+            await this._emitA2AMessage(
+              a2a.consensusReached(sessionId, { narrative: consensus.narrative, round })
+            );
           }
-          return { finalStates: currentStates, dialogueRounds, conflictResolved: true, consensusNarrative: consensus };
+          return {
+            finalStates: currentStates,
+            dialogueRounds,
+            conflictResolved: true,
+            consensusNarrative: consensus,
+          };
         }
       }
 
       if (sessionId) {
-        const lastUnresolved = dialogueRounds.length > 0
-          ? dialogueRounds[dialogueRounds.length - 1].unresolvedConflicts
-          : [];
-        await this._emitA2AMessage(a2a.consensusFailed(sessionId, {
-          unresolvedConflicts: lastUnresolved,
-          roundsAttempted: MAX_DIALOGUE_ROUNDS,
-        }));
+        const lastUnresolved =
+          dialogueRounds.length > 0
+            ? dialogueRounds[dialogueRounds.length - 1].unresolvedConflicts
+            : [];
+        await this._emitA2AMessage(
+          a2a.consensusFailed(sessionId, {
+            unresolvedConflicts: lastUnresolved,
+            roundsAttempted: MAX_DIALOGUE_ROUNDS,
+          })
+        );
       }
 
       return { finalStates: currentStates, dialogueRounds, conflictResolved: false };
@@ -2597,7 +2884,10 @@ module.exports = {
      * @param {import('moleculer').Context} ctx
      * @param {{ session: Object, profile: Object, sessionId: string, userFeedback: string, clarificationInput: string, providedData: Object|null }} args
      */
-    async refineMultiAgent(ctx, { session, profile, sessionId, userFeedback, clarificationInput, providedData }) {
+    async refineMultiAgent(
+      ctx,
+      { session, profile, sessionId, userFeedback, clarificationInput, providedData }
+    ) {
       if (providedData) {
         const enrichedRetrieval = mergeProvidedData(session.retrieval, providedData);
         return this.runMultiAgentOrchestration(ctx, {
@@ -2615,9 +2905,13 @@ module.exports = {
 
       if (session.status === 'needs_clarification' && !clarificationInput) {
         return this.buildClarificationResponse({
-          sessionId, profileId: session.profile_id, targetAudience: session.target_audience,
-          grounding: session.grounding, regulatoryGraph: session.regulatory_graph,
-          context: session.context, createdAt: session.createdAt,
+          sessionId,
+          profileId: session.profile_id,
+          targetAudience: session.target_audience,
+          grounding: session.grounding,
+          regulatoryGraph: session.regulatory_graph,
+          context: session.context,
+          createdAt: session.createdAt,
           multi_perspective: {
             perspectives: session.perspectives,
             stakeholder_states: session.stakeholder_states || {},
@@ -2646,10 +2940,15 @@ module.exports = {
       };
 
       const response = this.buildCompletedResponse({
-        sessionId, profileId: session.profile_id, targetAudience: session.target_audience,
-        grounding: session.grounding, regulatoryGraph: session.regulatory_graph,
-        context: session.context, narrative: consensus.narrative,
-        createdAt: session.createdAt, multi_perspective: multiPerspective,
+        sessionId,
+        profileId: session.profile_id,
+        targetAudience: session.target_audience,
+        grounding: session.grounding,
+        regulatoryGraph: session.regulatory_graph,
+        context: session.context,
+        narrative: consensus.narrative,
+        createdAt: session.createdAt,
+        multi_perspective: multiPerspective,
       });
 
       const history = Array.isArray(session.history) ? session.history : [];
@@ -2683,17 +2982,19 @@ module.exports = {
     async _persistContextState(sessionId, contextManager) {
       if (!sessionId || !contextManager) return;
       const state = contextManager.serialize();
-      this.broker.call(OS_PUT, {
-        namespace: 'cya_context_states',
-        key: `ctx_${sessionId}`,
-        payload: {
-          ...state,
-          savedAt: new Date().toISOString(),
-          sessionId,
-        },
-      }).catch((err) =>
-        this.logger.warn('[ContextManager] persist failed (non-blocking):', err.message)
-      );
+      this.broker
+        .call(OS_PUT, {
+          namespace: 'cya_context_states',
+          key: `ctx_${sessionId}`,
+          payload: {
+            ...state,
+            savedAt: new Date().toISOString(),
+            sessionId,
+          },
+        })
+        .catch((err) =>
+          this.logger.warn('[ContextManager] persist failed (non-blocking):', err.message)
+        );
     },
 
     /**
@@ -2732,13 +3033,13 @@ module.exports = {
     async _emitA2AMessage(msg) {
       a2a.validateMessage(msg);
       this.broker.emit(msg.eventName, msg);
-      this.broker.call(OS_PUT, {
-        namespace: a2a.A2A_NAMESPACE,
-        key: msg.messageId,
-        payload: msg,
-      }).catch((err) =>
-        this.logger.warn('[A2A] persist failed (non-blocking):', err.message)
-      );
+      this.broker
+        .call(OS_PUT, {
+          namespace: a2a.A2A_NAMESPACE,
+          key: msg.messageId,
+          payload: msg,
+        })
+        .catch((err) => this.logger.warn('[A2A] persist failed (non-blocking):', err.message));
     },
   },
 
@@ -2760,7 +3061,8 @@ module.exports = {
         this.logger.info(
           '[A2A] Conflict detected in session:',
           ctx.params.sessionId,
-          '— blockers:', ctx.params.payload && ctx.params.payload.blockers
+          '— blockers:',
+          ctx.params.payload && ctx.params.payload.blockers
         );
       },
     },
@@ -2777,10 +3079,7 @@ module.exports = {
     },
     'cya.ontology.graph.invalidated': {
       handler(ctx) {
-        this.logger.info(
-          '[OntologyGraph] Cache invalidated for operator:',
-          ctx.params.operatorId
-        );
+        this.logger.info('[OntologyGraph] Cache invalidated for operator:', ctx.params.operatorId);
       },
     },
 
@@ -2791,12 +3090,8 @@ module.exports = {
         const operatorId = ctx.params?.operator || ctx.params?.bdewCode;
         if (!operatorId) return;
         const key = graphCache.buildKey(operatorId);
-        await graphCache.invalidate(key, this.broker.call.bind(this.broker))
-          .catch(() => null);
-        this.logger.info(
-          '[OntologyGraph] Auto-invalidated after MaStR delta for:',
-          operatorId
-        );
+        await graphCache.invalidate(key, this.broker.call.bind(this.broker)).catch(() => null);
+        this.logger.info('[OntologyGraph] Auto-invalidated after MaStR delta for:', operatorId);
       },
     },
   },

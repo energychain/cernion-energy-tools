@@ -1,10 +1,6 @@
 'use strict';
 
-const {
-  PROFILE_TEMPLATES,
-  getTemplate,
-  listTemplates,
-} = require('../src/cya-profile-templates');
+const { PROFILE_TEMPLATES, getTemplate, listTemplates } = require('../src/cya-profile-templates');
 
 describe('cya-profile-templates', () => {
   it('PROFILE_TEMPLATES has at least 6 entries', () => {

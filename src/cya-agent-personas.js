@@ -49,12 +49,7 @@ Konflikte mit anderen Perspektiven (z.B. Commercial sagt "Budget nicht verfügba
 - Priorisieren Sie physische Sicherheit über Kosten
 - Schlagen Sie technische Alternativen vor, um Konflikte zu lösen
   (z.B. flexible NAV §14a statt teurer Transformator-Upgrade)`,
-    conflictRules: [
-      'high_missing_nap',
-      'voltage_mismatch',
-      'overload_risk',
-      'no_redundancy',
-    ],
+    conflictRules: ['high_missing_nap', 'voltage_mismatch', 'overload_risk', 'no_redundancy'],
     resolutionPriority: 1,
   },
 
@@ -152,9 +147,7 @@ function getPersona(personaId) {
  * @returns {Object[]}
  */
 function getPersonasOrderedByPriority() {
-  return Object.values(PERSONAS).sort(
-    (a, b) => a.resolutionPriority - b.resolutionPriority
-  );
+  return Object.values(PERSONAS).sort((a, b) => a.resolutionPriority - b.resolutionPriority);
 }
 
 /**
@@ -163,9 +156,7 @@ function getPersonasOrderedByPriority() {
  * @returns {boolean}
  */
 function isKnownConflictRule(ruleId) {
-  return Object.values(PERSONAS).some((p) =>
-    p.conflictRules.includes(ruleId)
-  );
+  return Object.values(PERSONAS).some((p) => p.conflictRules.includes(ruleId));
 }
 
 /**
@@ -177,15 +168,15 @@ function isKnownConflictRule(ruleId) {
  * @type {Object<string, string|null>}
  */
 const ACTOR_ROLE_PERSONA_NAMESPACE = Object.freeze({
-  grid_operator:     'cya_mem_grid_operator',
-  supplier:          'cya_mem_supplier',
+  grid_operator: 'cya_mem_grid_operator',
+  supplier: 'cya_mem_supplier',
   project_developer: 'cya_mem_project_developer',
-  direct_marketer:   'cya_mem_direct_marketer',
+  direct_marketer: 'cya_mem_direct_marketer',
   metering_operator: 'cya_mem_metering_operator',
-  regulator:         'cya_mem_regulator',
-  municipality:      'cya_mem_municipality',
-  journalist:        'cya_mem_journalist',
-  citizen:           'cya_mem_citizen',
+  regulator: 'cya_mem_regulator',
+  municipality: 'cya_mem_municipality',
+  journalist: 'cya_mem_journalist',
+  citizen: 'cya_mem_citizen',
 });
 
 module.exports = {

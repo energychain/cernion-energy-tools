@@ -587,8 +587,8 @@ module.exports = {
             if (matches.length >= limit) break;
 
             // OEP returns either a string name or an object with name/description
-            const name = typeof entry === 'string' ? entry : (entry.name || '');
-            const description = typeof entry === 'object' ? (entry.description || '') : '';
+            const name = typeof entry === 'string' ? entry : entry.name || '';
+            const description = typeof entry === 'object' ? entry.description || '' : '';
 
             const nameMatch = name.toLowerCase().includes(term);
             const descMatch = description.toLowerCase().includes(term);
@@ -598,7 +598,8 @@ module.exports = {
                 schema,
                 table: name,
                 description: description || null,
-                matchedOn: nameMatch && descMatch ? 'name+description' : nameMatch ? 'name' : 'description',
+                matchedOn:
+                  nameMatch && descMatch ? 'name+description' : nameMatch ? 'name' : 'description',
               });
             }
           }

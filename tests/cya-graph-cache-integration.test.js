@@ -81,8 +81,8 @@ describe('_buildOntologyLayer — Cache integration (v0.36.0)', () => {
   test('first call: broker.emit cya.ontology.graph.built fires on Cache-Miss', async () => {
     const retrieval = { installations: INSTALLATIONS_A, operator: VNB_A };
     await svc._buildOntologyLayer(retrieval, null, []);
-    await new Promise(r => setImmediate(r));
-    const built = svc._emittedEvents.find(e => e.eventName === 'cya.ontology.graph.built');
+    await new Promise((r) => setImmediate(r));
+    const built = svc._emittedEvents.find((e) => e.eventName === 'cya.ontology.graph.built');
     expect(built).toBeDefined();
     expect(built.params.nodeCount).toBeGreaterThan(0);
   });
@@ -92,8 +92,8 @@ describe('_buildOntologyLayer — Cache integration (v0.36.0)', () => {
     await svc._buildOntologyLayer(retrieval, null, []);
     svc._emittedEvents.length = 0;
     await svc._buildOntologyLayer(retrieval, null, []);
-    await new Promise(r => setImmediate(r));
-    const built = svc._emittedEvents.find(e => e.eventName === 'cya.ontology.graph.built');
+    await new Promise((r) => setImmediate(r));
+    const built = svc._emittedEvents.find((e) => e.eventName === 'cya.ontology.graph.built');
     expect(built).toBeUndefined();
   });
 
@@ -111,8 +111,8 @@ describe('_buildOntologyLayer — Cache integration (v0.36.0)', () => {
     await graphCache.invalidate(key, jest.fn().mockResolvedValue(null));
     svc._emittedEvents.length = 0;
     await svc._buildOntologyLayer(retrieval, null, []);
-    await new Promise(r => setImmediate(r));
-    const built = svc._emittedEvents.find(e => e.eventName === 'cya.ontology.graph.built');
+    await new Promise((r) => setImmediate(r));
+    const built = svc._emittedEvents.find((e) => e.eventName === 'cya.ontology.graph.built');
     expect(built).toBeDefined();
   });
 
@@ -150,7 +150,7 @@ describe('_buildOntologyLayer — Cache integration (v0.36.0)', () => {
     await svc._buildOntologyLayer(retrieval, null, []);
     const key = graphCache.buildKey(VNB_A);
     expect(graphCache.getL1(key)).not.toBeNull();
-    const built = svc._emittedEvents.find(e => e.eventName === 'cya.ontology.graph.built');
+    const built = svc._emittedEvents.find((e) => e.eventName === 'cya.ontology.graph.built');
     expect(built).toBeUndefined();
   });
 });

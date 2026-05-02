@@ -46,7 +46,7 @@ function requireApiKey() {
  */
 function buildModel(generationConfig = {}) {
   const apiKey = requireApiKey();
-  const genAI  = new GoogleGenerativeAI(apiKey);
+  const genAI = new GoogleGenerativeAI(apiKey);
   return genAI.getGenerativeModel({
     model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
     generationConfig,

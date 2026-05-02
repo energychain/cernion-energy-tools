@@ -125,9 +125,18 @@ describe('oeo-mappings — structural integrity', () => {
 describe('oeo-mappings — DOMAIN_OEO_MAPPINGS', () => {
   test('maps all 14 semantic domain ids', () => {
     const expectedDomains = [
-      'metering', 'grid-assets', 'grid-incidents', 'redispatch-queue',
-      'mastr-local', 'procurement', 'forecast-vs-actual', 'billing-overview',
-      'receivables', 'mako-process-log', 'customer-projects', 'other',
+      'metering',
+      'grid-assets',
+      'grid-incidents',
+      'redispatch-queue',
+      'mastr-local',
+      'procurement',
+      'forecast-vs-actual',
+      'billing-overview',
+      'receivables',
+      'mako-process-log',
+      'customer-projects',
+      'other',
       'metering-point-master',
     ];
     for (const d of expectedDomains) {

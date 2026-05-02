@@ -208,19 +208,16 @@ module.exports = {
       },
       async handler(ctx) {
         // Start async job (REST gateway) or run synchronously (internal Moleculer call)
-        return await jobStore.startJob(
-          ctx,
-          { service: SERVICE_NAME, action: 'salesLeads' },
-          () =>
-            callWithAutoPoll(
-              'cernion_sales_lead_identification',
-              ctx.params,
-              {
-                maxWaitTime: 8 * 60 * 1000, // 8 minutes max
-                pollInterval: 3000,
-              },
-              ctx.meta.cernionToken
-            )
+        return await jobStore.startJob(ctx, { service: SERVICE_NAME, action: 'salesLeads' }, () =>
+          callWithAutoPoll(
+            'cernion_sales_lead_identification',
+            ctx.params,
+            {
+              maxWaitTime: 8 * 60 * 1000, // 8 minutes max
+              pollInterval: 3000,
+            },
+            ctx.meta.cernionToken
+          )
         );
       },
     },

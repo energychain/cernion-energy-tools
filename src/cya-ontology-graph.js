@@ -34,15 +34,15 @@ const EDGE_TYPE = {
 
 // ── OEO class URIs (mirrored from cya-regulatory-graph.js) ────────────────
 const SIGNAL_OEO = {
-  NOVA_BLOCKED:          'https://openenergyplatform.org/ontology/oeo/OEO_00020143',
-  HIGH_CURTAILMENT:      'https://openenergyplatform.org/ontology/oeo/OEO_00020144',
-  EWK_BELOW_MEDIAN:      'https://openenergyplatform.org/ontology/oeo/OEO_00020145',
-  MISSING_NAP:           'https://openenergyplatform.org/ontology/oeo/OEO_00020146',
-  SECTION14A_GAP:        'https://openenergyplatform.org/ontology/oeo/OEO_00020147',
+  NOVA_BLOCKED: 'https://openenergyplatform.org/ontology/oeo/OEO_00020143',
+  HIGH_CURTAILMENT: 'https://openenergyplatform.org/ontology/oeo/OEO_00020144',
+  EWK_BELOW_MEDIAN: 'https://openenergyplatform.org/ontology/oeo/OEO_00020145',
+  MISSING_NAP: 'https://openenergyplatform.org/ontology/oeo/OEO_00020146',
+  SECTION14A_GAP: 'https://openenergyplatform.org/ontology/oeo/OEO_00020147',
   ENERGY_SHARING_DEADLINE: 'https://openenergyplatform.org/ontology/oeo/OEO_00020148',
-  GRID_TOPOLOGY_RADIAL:  'https://openenergyplatform.org/ontology/oeo/OEO_00020149',
-  HIGH_RENEWABLE_SHARE:  'https://openenergyplatform.org/ontology/oeo/OEO_00020150',
-  VOLTAGE_HOP_REQUIRED:  'https://openenergyplatform.org/ontology/oeo/OEO_00020151',
+  GRID_TOPOLOGY_RADIAL: 'https://openenergyplatform.org/ontology/oeo/OEO_00020149',
+  HIGH_RENEWABLE_SHARE: 'https://openenergyplatform.org/ontology/oeo/OEO_00020150',
+  VOLTAGE_HOP_REQUIRED: 'https://openenergyplatform.org/ontology/oeo/OEO_00020151',
 };
 
 // ── Internal helpers ───────────────────────────────────────────────────────
@@ -57,18 +57,17 @@ function _addInstallationNode(graph, inst, topologyHop) {
       leistungKw: inst.Bruttoleistung || inst.NettoLeistung || null,
       spannungsebene: inst.Spannungsebene || null,
       technologie: inst.Technologie || inst.EinheitTyp || null,
-      ibJahr: inst.InbetriebnahmeDatum
-        ? new Date(inst.InbetriebnahmeDatum).getFullYear()
-        : null,
+      ibJahr: inst.InbetriebnahmeDatum ? new Date(inst.InbetriebnahmeDatum).getFullYear() : null,
       status: inst.EinheitBetriebsstatus || null,
-      koordinaten: (inst.Laengengrad && inst.Breitengrad)
-        ? { lat: inst.Breitengrad, lon: inst.Laengengrad }
-        : null,
-      novaStatus:       inst.novaStatus       || null,
-      abregelungQuote:  inst.abregelungQuote  != null ? inst.abregelungQuote : null,
-      ewkBelowMedian:   inst.ewkBelowMedian   || false,
+      koordinaten:
+        inst.Laengengrad && inst.Breitengrad
+          ? { lat: inst.Breitengrad, lon: inst.Laengengrad }
+          : null,
+      novaStatus: inst.novaStatus || null,
+      abregelungQuote: inst.abregelungQuote != null ? inst.abregelungQuote : null,
+      ewkBelowMedian: inst.ewkBelowMedian || false,
       section14aStatus: inst.section14aStatus || null,
-      needsHop:         topologyHop?.needsHop || false,
+      needsHop: topologyHop?.needsHop || false,
     });
   }
   return id;
@@ -133,7 +132,7 @@ function _addSubstationFromHop(graph, topologyHop) {
       substationId: pcp.name || 'hop-substation',
       name: pcp.name || null,
       spannungsebene: topologyHop.voltageClass || null,
-      koordinaten: (pcp.lat && pcp.lon) ? { lat: pcp.lat, lon: pcp.lon } : null,
+      koordinaten: pcp.lat && pcp.lon ? { lat: pcp.lat, lon: pcp.lon } : null,
     });
   }
 
@@ -163,8 +162,9 @@ function _addSubstationFromHop(graph, topologyHop) {
 // ── Signal deriver helpers ────────────────────────────────────────────────
 
 function _signalMissingNap(graph, instId, _attrs) {
-  const hasNap = graph.outEdges(instId)
-    .some(e => graph.getEdgeAttributes(e).edgeType === EDGE_TYPE.VERBUNDEN_MIT);
+  const hasNap = graph
+    .outEdges(instId)
+    .some((e) => graph.getEdgeAttributes(e).edgeType === EDGE_TYPE.VERBUNDEN_MIT);
   if (!hasNap) {
     return {
       ruleId: 'MISSING_NAP',
@@ -244,12 +244,14 @@ function _signalSection14aGap(graph, instId, attrs) {
 
 function _signalRadialTopology(graph, instId) {
   // Find connected NAP; radial = NAP has exactly 1 inbound INSTALLATION edge
-  const napEdges = graph.outEdges(instId)
-    .filter(e => graph.getEdgeAttributes(e).edgeType === EDGE_TYPE.VERBUNDEN_MIT);
+  const napEdges = graph
+    .outEdges(instId)
+    .filter((e) => graph.getEdgeAttributes(e).edgeType === EDGE_TYPE.VERBUNDEN_MIT);
   if (napEdges.length === 0) return null;
   const napId = graph.target(napEdges[0]);
-  const inboundInstallations = graph.inEdges(napId)
-    .filter(e => graph.getEdgeAttributes(e).edgeType === EDGE_TYPE.VERBUNDEN_MIT);
+  const inboundInstallations = graph
+    .inEdges(napId)
+    .filter((e) => graph.getEdgeAttributes(e).edgeType === EDGE_TYPE.VERBUNDEN_MIT);
   if (inboundInstallations.length === 1) {
     return {
       ruleId: 'GRID_TOPOLOGY_RADIAL',
@@ -270,7 +272,7 @@ function _signalHighRenewableShare(graph) {
     if (attrs.nodeType !== NODE_TYPE.INSTALLATION) return;
     totalCount++;
     const tech = (attrs.technologie || '').toLowerCase();
-    if (renewable.some(r => tech.includes(r))) renewableCount++;
+    if (renewable.some((r) => tech.includes(r))) renewableCount++;
   });
   if (totalCount > 0 && renewableCount / totalCount >= 0.7) {
     return {
@@ -286,9 +288,7 @@ function _signalHighRenewableShare(graph) {
 
 function _signalEnergySharingDeadline(graph, focusNodeId) {
   // Triggered when any INSTALLATION has energySharingEligible property set
-  const attrs = graph.hasNode(focusNodeId)
-    ? graph.getNodeAttributes(focusNodeId)
-    : {};
+  const attrs = graph.hasNode(focusNodeId) ? graph.getNodeAttributes(focusNodeId) : {};
   if (attrs.energySharingEligible === true) {
     return {
       ruleId: 'ENERGY_SHARING_DEADLINE',
@@ -365,7 +365,7 @@ function findPath(graph, fromId, toId) {
       if (visited.has(neighbor)) continue;
       const newPath = [...path, neighbor];
       if (neighbor === toId) {
-        return newPath.map(id => ({ id, attrs: graph.getNodeAttributes(id) }));
+        return newPath.map((id) => ({ id, attrs: graph.getNodeAttributes(id) }));
       }
       visited.add(neighbor);
       queue.push(newPath);
@@ -387,9 +387,10 @@ function getNeighbors(graph, nodeId, edgeType) {
   const result = [];
   graph.forEachNeighbor(nodeId, (neighborId, neighborAttrs) => {
     if (edgeType) {
-      const connecting = graph.edges(nodeId, neighborId)
+      const connecting = graph
+        .edges(nodeId, neighborId)
         .concat(graph.edges(neighborId, nodeId))
-        .find(e => graph.getEdgeAttributes(e).edgeType === edgeType);
+        .find((e) => graph.getEdgeAttributes(e).edgeType === edgeType);
       if (!connecting) return;
     }
     result.push({ id: neighborId, attrs: neighborAttrs });
@@ -455,7 +456,9 @@ function deriveSignals(graph, focusNodeId) {
   const isInstallation = attrs.nodeType === NODE_TYPE.INSTALLATION;
   const signals = [];
 
-  const push = (s) => { if (s) signals.push(s); };
+  const push = (s) => {
+    if (s) signals.push(s);
+  };
 
   if (isInstallation) {
     push(_signalMissingNap(graph, focusNodeId, attrs));

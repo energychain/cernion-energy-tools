@@ -8,11 +8,13 @@ const {
 
 describe('settlement-calculator', () => {
   test('calculateRedispatchCompensation: einfaches Beispiel', () => {
-    const events = [{
-      installationMastrNummer: 'SEE123',
-      start: '2026-04-01T14:00:00Z',
-      end: '2026-04-01T16:00:00Z',
-    }];
+    const events = [
+      {
+        installationMastrNummer: 'SEE123',
+        start: '2026-04-01T14:00:00Z',
+        end: '2026-04-01T16:00:00Z',
+      },
+    ];
     const forecastData = [
       { ts: '2026-04-01T14:00:00Z', value: 500 },
       { ts: '2026-04-01T14:15:00Z', value: 520 },
@@ -34,16 +36,11 @@ describe('settlement-calculator', () => {
       { ts: '2026-04-01T15:45:00Z', value: 150 },
     ];
     const marketPrices = [
-      { hour: '2026-04-01T14:00:00Z', price_eur_mwh: 45.20 },
-      { hour: '2026-04-01T15:00:00Z', price_eur_mwh: 42.80 },
+      { hour: '2026-04-01T14:00:00Z', price_eur_mwh: 45.2 },
+      { hour: '2026-04-01T15:00:00Z', price_eur_mwh: 42.8 },
     ];
 
-    const result = calculateRedispatchCompensation(
-      events,
-      forecastData,
-      actualData,
-      marketPrices
-    );
+    const result = calculateRedispatchCompensation(events, forecastData, actualData, marketPrices);
 
     expect(result.events.length).toBe(1);
     expect(result.summary.totalLostKwh).toBeGreaterThan(0);
@@ -64,16 +61,18 @@ describe('settlement-calculator', () => {
 
   test('prepareA96Export: generiert CSV-kompatible Rows', () => {
     const compensationResult = {
-      events: [{
-        installationMastrNummer: 'SEE123',
-        from: '2026-04-01T14:00:00Z',
-        to: '2026-04-01T16:00:00Z',
-        forecast_kwh: 3680,
-        actual_kwh: 1460,
-        lost_kwh: 2220,
-        marketPrice_eur_mwh: 44.0,
-        compensation_eur: 97.68,
-      }],
+      events: [
+        {
+          installationMastrNummer: 'SEE123',
+          from: '2026-04-01T14:00:00Z',
+          to: '2026-04-01T16:00:00Z',
+          forecast_kwh: 3680,
+          actual_kwh: 1460,
+          lost_kwh: 2220,
+          marketPrice_eur_mwh: 44.0,
+          compensation_eur: 97.68,
+        },
+      ],
     };
     const rows = prepareA96Export(compensationResult, {
       mastrNummer: 'SEE123',

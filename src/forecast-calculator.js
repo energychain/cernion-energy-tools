@@ -136,7 +136,10 @@ function calculateLoadForecast(historicalData, slpProfile, options = {}) {
     quality: 'forecast',
   }));
 
-  const totalKwh = round(values.reduce((sum, row) => sum + row.value, 0), 6);
+  const totalKwh = round(
+    values.reduce((sum, row) => sum + row.value, 0),
+    6
+  );
   const peakKw = round(Math.max(...values.map((row) => row.value)) * 4, 4);
 
   return {
@@ -323,12 +326,20 @@ function generateDayAheadSchedule(residualLoad, marketPrices, storageConfig) {
       const availableDischargeKwh = ((socPercent - minSocPercent) / 100) * capacityKwh;
 
       if (residualKw < 0 && availableChargeKwh > 0) {
-        const chargeFromSurplusKw = Math.min(Math.abs(residualKw), maxChargePowerKw, availableChargeKwh / 0.25);
+        const chargeFromSurplusKw = Math.min(
+          Math.abs(residualKw),
+          maxChargePowerKw,
+          availableChargeKwh / 0.25
+        );
         if (chargeFromSurplusKw > 0) {
           storageAction = 'charge';
           storagePowerKw = chargeFromSurplusKw;
           const chargedKwh = chargeFromSurplusKw * 0.25 * efficiency;
-          socPercent = clamp(socPercent + (chargedKwh / capacityKwh) * 100, minSocPercent, maxSocPercent);
+          socPercent = clamp(
+            socPercent + (chargedKwh / capacityKwh) * 100,
+            minSocPercent,
+            maxSocPercent
+          );
           gridFlowKw = residualKw + chargeFromSurplusKw;
         }
       } else if (residualKw > 0 && availableDischargeKwh > 0) {
@@ -337,7 +348,11 @@ function generateDayAheadSchedule(residualLoad, marketPrices, storageConfig) {
           storageAction = 'discharge';
           storagePowerKw = dischargeKw;
           const dischargedKwh = dischargeKw * 0.25;
-          socPercent = clamp(socPercent - (dischargedKwh / efficiency / capacityKwh) * 100, minSocPercent, maxSocPercent);
+          socPercent = clamp(
+            socPercent - (dischargedKwh / efficiency / capacityKwh) * 100,
+            minSocPercent,
+            maxSocPercent
+          );
           gridFlowKw = residualKw - dischargeKw;
           dischargeEnergyKwh += dischargedKwh;
         }
@@ -381,7 +396,10 @@ function generateDayAheadSchedule(residualLoad, marketPrices, storageConfig) {
       estimatedRevenue_eur: priceMap.size > 0 ? round(estimatedRevenueEur, 6) : null,
       savingsVsNoStorage_eur:
         priceMap.size > 0
-          ? round((baselineCostEur - estimatedCostEur) + (estimatedRevenueEur - baselineRevenueEur), 6)
+          ? round(
+              baselineCostEur - estimatedCostEur + (estimatedRevenueEur - baselineRevenueEur),
+              6
+            )
           : null,
     },
   };

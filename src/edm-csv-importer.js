@@ -62,9 +62,9 @@ function isBerlinSummerTimeLocal(year, month, day, hour) {
 }
 
 function parseGermanDateTime(value, timezone) {
-  const match = String(value || '').trim().match(
-    /^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/
-  );
+  const match = String(value || '')
+    .trim()
+    .match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
 
   if (!match) return null;
 
@@ -118,8 +118,7 @@ function parseTimestamp(value, timestampFormat, timezone) {
     return parseIsoDateTime(value);
   }
 
-  return parseGermanDateTime(value, timezone) ||
-    parseIsoDateTime(value);
+  return parseGermanDateTime(value, timezone) || parseIsoDateTime(value);
 }
 
 function parseValue(rawValue, decimalSeparator) {
@@ -127,9 +126,8 @@ function parseValue(rawValue, decimalSeparator) {
     return { value: null, quality: 'missing' };
   }
 
-  const normalized = decimalSeparator === ','
-    ? String(rawValue).trim().replace(',', '.')
-    : String(rawValue).trim();
+  const normalized =
+    decimalSeparator === ',' ? String(rawValue).trim().replace(',', '.') : String(rawValue).trim();
 
   const parsed = Number.parseFloat(normalized);
   if (!Number.isFinite(parsed)) {
@@ -190,7 +188,11 @@ function parseCsvTimeseries(data, config = {}) {
     total += 1;
     const columns = splitCsvLine(sourceLine, delimiter);
     const timestampRaw = columns[timestampIndex];
-    const timestamp = parseTimestamp(timestampRaw, options.timestampFormat || 'auto', options.timezone);
+    const timestamp = parseTimestamp(
+      timestampRaw,
+      options.timestampFormat || 'auto',
+      options.timezone
+    );
 
     if (!timestamp || Number.isNaN(timestamp.getTime())) {
       skipped += 1;

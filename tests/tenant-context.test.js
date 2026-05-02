@@ -46,19 +46,19 @@ describe('tenantNamespace', () => {
     expect(tenantNamespace('cya_profiles', 'stadtwerk-a')).toBe('tenant:stadtwerk-a:cya_profiles');
   });
 
-  test("mit DEFAULT_TENANT: Namespace unverändert", () => {
+  test('mit DEFAULT_TENANT: Namespace unverändert', () => {
     expect(tenantNamespace('cya_profiles', DEFAULT_TENANT)).toBe('cya_profiles');
   });
 
-  test("ohne tenantId (undefined): Namespace unverändert", () => {
+  test('ohne tenantId (undefined): Namespace unverändert', () => {
     expect(tenantNamespace('cya_profiles', undefined)).toBe('cya_profiles');
   });
 
-  test("ohne tenantId (null): Namespace unverändert", () => {
+  test('ohne tenantId (null): Namespace unverändert', () => {
     expect(tenantNamespace('cya_profiles', null)).toBe('cya_profiles');
   });
 
-  test("verschiedene Basis-Namespaces werden korrekt präfixiert", () => {
+  test('verschiedene Basis-Namespaces werden korrekt präfixiert', () => {
     expect(tenantNamespace('cya_sessions', 'vnb-x')).toBe('tenant:vnb-x:cya_sessions');
   });
 });
@@ -94,11 +94,11 @@ describe('validateTenantId', () => {
     expect(validateTenantId('abc123')).toBe(true);
   });
 
-  test("null → valid (optional)", () => {
+  test('null → valid (optional)', () => {
     expect(validateTenantId(null)).toBe(true);
   });
 
-  test("undefined → valid (optional)", () => {
+  test('undefined → valid (optional)', () => {
     expect(validateTenantId(undefined)).toBe(true);
   });
 
@@ -114,17 +114,17 @@ describe('validateTenantId', () => {
     expect(() => validateTenantId('stadtwerk@a')).toThrow('INVALID_TENANT_ID');
   });
 
-  test("65 Zeichen → wirft INVALID_TENANT_ID", () => {
+  test('65 Zeichen → wirft INVALID_TENANT_ID', () => {
     const longId = 'a'.repeat(65);
     expect(() => validateTenantId(longId)).toThrow('INVALID_TENANT_ID');
   });
 
-  test("64 Zeichen → valid (Grenzwert)", () => {
+  test('64 Zeichen → valid (Grenzwert)', () => {
     const maxId = 'a'.repeat(64);
     expect(validateTenantId(maxId)).toBe(true);
   });
 
-  test("Error hat code: INVALID_TENANT_ID", () => {
+  test('Error hat code: INVALID_TENANT_ID', () => {
     try {
       validateTenantId('INVALID!');
       fail('should have thrown');

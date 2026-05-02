@@ -154,8 +154,6 @@ describe('mscons-import.service', () => {
   });
 
   test('parse: ungültiger EDIFACT gibt Fehler', async () => {
-    await expect(
-      broker.call('mscons-import.parse', { data: 'NOT EDIFACT' })
-    ).rejects.toBeTruthy();
+    await expect(broker.call('mscons-import.parse', { data: 'NOT EDIFACT' })).rejects.toBeTruthy();
   });
 });

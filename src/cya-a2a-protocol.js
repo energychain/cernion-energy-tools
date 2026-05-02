@@ -36,7 +36,7 @@ function createMessage(eventName, sessionId, fromPersona, toPersona, payload) {
     eventName,
     sessionId,
     fromPersona,
-    toPersona,       // null = broadcast an alle Personas
+    toPersona, // null = broadcast an alle Personas
     payload,
     timestamp: new Date().toISOString(),
     protocolVersion: '1.0',
@@ -52,13 +52,13 @@ function createMessage(eventName, sessionId, fromPersona, toPersona, payload) {
  */
 function personaEvaluated(sessionId, personaId, state) {
   const { verdict, summary, conflictTriggers, keyPoints, riskNotes } = state;
-  return createMessage(
-    'cya.a2a.persona.evaluated',
-    sessionId,
-    personaId,
-    'orchestrator',
-    { verdict, summary, conflictTriggers, keyPoints, riskNotes }
-  );
+  return createMessage('cya.a2a.persona.evaluated', sessionId, personaId, 'orchestrator', {
+    verdict,
+    summary,
+    conflictTriggers,
+    keyPoints,
+    riskNotes,
+  });
 }
 
 /**
@@ -71,7 +71,7 @@ function conflictDetected(sessionId, conflict) {
     'cya.a2a.conflict.detected',
     sessionId,
     'orchestrator',
-    null,  // broadcast
+    null, // broadcast
     { blockers, approvers, conflictTriggers: triggers }
   );
 }
@@ -82,13 +82,13 @@ function conflictDetected(sessionId, conflict) {
  */
 function negotiationRound(sessionId, roundData) {
   const { round, blockers, triggers, consensusReached, unresolvedConflicts } = roundData;
-  return createMessage(
-    'cya.a2a.negotiation.round',
-    sessionId,
-    'orchestrator',
-    null,
-    { round, blockers, triggers, consensusReached, unresolvedConflicts }
-  );
+  return createMessage('cya.a2a.negotiation.round', sessionId, 'orchestrator', null, {
+    round,
+    blockers,
+    triggers,
+    consensusReached,
+    unresolvedConflicts,
+  });
 }
 
 /**
@@ -97,13 +97,10 @@ function negotiationRound(sessionId, roundData) {
  */
 function consensusReached(sessionId, data) {
   const { narrative, round } = data;
-  return createMessage(
-    'cya.a2a.consensus.reached',
-    sessionId,
-    'orchestrator',
-    null,
-    { narrative, round }
-  );
+  return createMessage('cya.a2a.consensus.reached', sessionId, 'orchestrator', null, {
+    narrative,
+    round,
+  });
 }
 
 /**
@@ -112,13 +109,11 @@ function consensusReached(sessionId, data) {
  */
 function consensusFailed(sessionId, data) {
   const { unresolvedConflicts, roundsAttempted } = data;
-  return createMessage(
-    'cya.a2a.consensus.failed',
-    sessionId,
-    'orchestrator',
-    null,
-    { unresolvedConflicts, roundsAttempted, escalation: 'HITL' }
-  );
+  return createMessage('cya.a2a.consensus.failed', sessionId, 'orchestrator', null, {
+    unresolvedConflicts,
+    roundsAttempted,
+    escalation: 'HITL',
+  });
 }
 
 // ── Validation ───────────────────────────────────────────────────────────────

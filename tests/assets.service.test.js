@@ -496,9 +496,7 @@ describe('Assets Service — redispatchCount', () => {
   });
 
   it('rejects bdewCode with fewer than 7 digits', async () => {
-    await expect(
-      broker.call('assets.redispatchCount', { bdewCode: '12345' })
-    ).rejects.toThrow();
+    await expect(broker.call('assets.redispatchCount', { bdewCode: '12345' })).rejects.toThrow();
   });
 
   it('normalises items returned as top-level array (alternate MCP shape)', async () => {
@@ -520,11 +518,11 @@ describe('Assets Service — redispatchCount', () => {
       success: true,
       data: {
         installations: [
-          { bruttoleistung: 8200,  type: '2495' }, // → solar
+          { bruttoleistung: 8200, type: '2495' }, // → solar
           { bruttoleistung: 42000, type: '2484' }, // → wind (onshore)
           { bruttoleistung: 18500, type: '2490' }, // → combustion
-          { bruttoleistung: 4700,  type: '2485' }, // → biomass
-          { bruttoleistung: 1200,  type: '2491' }, // → storage
+          { bruttoleistung: 4700, type: '2485' }, // → biomass
+          { bruttoleistung: 1200, type: '2491' }, // → storage
         ],
       },
     });

@@ -1,10 +1,6 @@
 'use strict';
 
-const {
-  getEegTariff,
-  getPostEegRate,
-  isPostEeg,
-} = require('../src/eeg-tariff-tables');
+const { getEegTariff, getPostEegRate, isPostEeg } = require('../src/eeg-tariff-tables');
 
 describe('eeg-tariff-tables', () => {
   test('getEegTariff: PV 10 kWp IBN 2024-03 → 8.11 Cent/kWh', () => {

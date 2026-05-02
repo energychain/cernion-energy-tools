@@ -198,20 +198,14 @@ function scrubPromptText(text) {
 
   let scrubbed = text;
   // Email addresses
-  scrubbed = scrubbed.replace(
-    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,
-    '[EMAIL-MASKED]'
-  );
+  scrubbed = scrubbed.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL-MASKED]');
   // German IBANs
   scrubbed = scrubbed.replace(
     /\bDE\d{2}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{4}\s?\d{2}\b/g,
     '[IBAN-MASKED]'
   );
   // Phone numbers (German formats)
-  scrubbed = scrubbed.replace(
-    /(\+49|0049|0)\s?[\d\s/.-]{8,15}/g,
-    '[PHONE-MASKED]'
-  );
+  scrubbed = scrubbed.replace(/(\+49|0049|0)\s?[\d\s/.-]{8,15}/g, '[PHONE-MASKED]');
 
   return scrubbed;
 }

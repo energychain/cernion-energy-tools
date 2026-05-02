@@ -98,15 +98,15 @@ module.exports = {
       rest: 'POST /audit',
       timeout: 180_000,
       params: {
-        gridOperatorId:            { type: 'string', optional: true },
-        gridOperatorBdew:          { type: 'string', optional: true },
-        gridOperatorName:          { type: 'string', optional: true },
-        dateFrom:                  { type: 'string', optional: true },
-        dateTo:                    { type: 'string', optional: true },
-        datapointTags:             { type: 'array', items: 'string', optional: true, default: [] },
-        maxAgeMinutes:             { type: 'number', optional: true, default: 120, convert: true },
-        skipSteps:                 { type: 'array', items: 'number', optional: true, default: [] },
-        avgCompensationEurPerMWh:  { type: 'number', optional: true, default: 50, convert: true },
+        gridOperatorId: { type: 'string', optional: true },
+        gridOperatorBdew: { type: 'string', optional: true },
+        gridOperatorName: { type: 'string', optional: true },
+        dateFrom: { type: 'string', optional: true },
+        dateTo: { type: 'string', optional: true },
+        datapointTags: { type: 'array', items: 'string', optional: true, default: [] },
+        maxAgeMinutes: { type: 'number', optional: true, default: 120, convert: true },
+        skipSteps: { type: 'array', items: 'number', optional: true, default: [] },
+        avgCompensationEurPerMWh: { type: 'number', optional: true, default: 50, convert: true },
       },
       openapi: {
         summary: 'Run Redispatch Ex-Post settlement audit (7-step, deterministic)',
@@ -174,7 +174,8 @@ module.exports = {
                   avgCompensationEurPerMWh: {
                     type: 'number',
                     default: 50,
-                    description: 'Average Redispatch compensation rate in €/MWh for risk calculation',
+                    description:
+                      'Average Redispatch compensation rate in €/MWh for risk calculation',
                   },
                 },
               },
@@ -204,7 +205,8 @@ module.exports = {
         },
         responses: {
           200: {
-            description: 'RedispatchAuditReport with settlementReadiness, riskAssessment, and findings',
+            description:
+              'RedispatchAuditReport with settlementReadiness, riskAssessment, and findings',
             content: {
               'application/json': {
                 example: {
@@ -296,11 +298,12 @@ module.exports = {
       rest: 'GET /audits',
       params: {
         gridOperatorId: { type: 'string', optional: true },
-        limit:          { type: 'number', optional: true, default: 20, convert: true, max: 100 },
+        limit: { type: 'number', optional: true, default: 20, convert: true, max: 100 },
       },
       openapi: {
         summary: 'List past Redispatch Ex-Post audit reports',
-        description: 'Returns audit reports stored in PouchDB, newest first. Filter by gridOperatorId.',
+        description:
+          'Returns audit reports stored in PouchDB, newest first. Filter by gridOperatorId.',
         tags: ['Redispatch Ex-Post'],
         parameters: [
           {
@@ -418,7 +421,6 @@ module.exports = {
   // Methods — pipeline steps and helpers
   // ---------------------------------------------------------------------------
   methods: {
-
     // -------------------------------------------------------------------------
     // Step 1: VNB Identity resolution (MCP vnb_lookup_codes)
     // Identical pattern to v0.14/v0.15/v0.17.
@@ -447,29 +449,41 @@ module.exports = {
           const candidates = result?.candidates || result?.data?.candidates || [];
 
           if (canonical && (canonical.mastrId || canonical.name)) {
-            const resolvedId = (canonical.mastrId || '').split(' ')[0].trim() || gridOperatorId || null;
+            const resolvedId =
+              (canonical.mastrId || '').split(' ')[0].trim() || gridOperatorId || null;
             operator = {
               mastrId: resolvedId,
               name: canonical.name || operator.name,
               bdew: canonical.bdew || gridOperatorBdew || null,
               bnr: canonical.bnr || null,
             };
-            findings.push(createFinding(
-              1, 'identity', VNB_RESOLVED, 'info',
-              `VNB resolved: ${operator.name}`,
-              `Operator identity confirmed via vnb_lookup_codes. MaStR ID: ${operator.mastrId || 'unknown'}.`,
-              { operator, candidateCount: candidates.length },
-              null, idx++
-            ));
+            findings.push(
+              createFinding(
+                1,
+                'identity',
+                VNB_RESOLVED,
+                'info',
+                `VNB resolved: ${operator.name}`,
+                `Operator identity confirmed via vnb_lookup_codes. MaStR ID: ${operator.mastrId || 'unknown'}.`,
+                { operator, candidateCount: candidates.length },
+                null,
+                idx++
+              )
+            );
           } else if (candidates.length > 1) {
-            findings.push(createFinding(
-              1, 'identity', VNB_AMBIGUOUS, 'warning',
-              `Ambiguous VNB: ${candidates.length} candidates found`,
-              `vnb_lookup_codes returned ${candidates.length} candidates without a clear canonical match. Using first candidate.`,
-              { candidates: candidates.slice(0, 5), lookupCode },
-              'Provide a more specific gridOperatorId (MaStR ID) to ensure unambiguous resolution.',
-              idx++
-            ));
+            findings.push(
+              createFinding(
+                1,
+                'identity',
+                VNB_AMBIGUOUS,
+                'warning',
+                `Ambiguous VNB: ${candidates.length} candidates found`,
+                `vnb_lookup_codes returned ${candidates.length} candidates without a clear canonical match. Using first candidate.`,
+                { candidates: candidates.slice(0, 5), lookupCode },
+                'Provide a more specific gridOperatorId (MaStR ID) to ensure unambiguous resolution.',
+                idx++
+              )
+            );
             if (candidates[0]) {
               const c = candidates[0];
               operator = {
@@ -480,37 +494,53 @@ module.exports = {
               };
             }
           } else {
-            findings.push(createFinding(
-              1, 'identity', VNB_NOT_FOUND, 'warning',
-              `VNB not found in lookup for code: ${lookupCode}`,
-              'vnb_lookup_codes returned no canonical match. Proceeding with provided parameters.',
-              { lookupCode },
-              'Verify the BDEW code or MaStR ID is correct.',
-              idx++
-            ));
+            findings.push(
+              createFinding(
+                1,
+                'identity',
+                VNB_NOT_FOUND,
+                'warning',
+                `VNB not found in lookup for code: ${lookupCode}`,
+                'vnb_lookup_codes returned no canonical match. Proceeding with provided parameters.',
+                { lookupCode },
+                'Verify the BDEW code or MaStR ID is correct.',
+                idx++
+              )
+            );
           }
         } catch (err) {
           this.logger.warn(
             `stepIdentity: vnb_lookup_codes failed — ${err.message}. Continuing with provided params.`
           );
-          findings.push(createFinding(
-            1, 'identity', VNB_RESOLVED, 'info',
-            'VNB identity using provided parameters (lookup unavailable)',
-            `MCP lookup failed: ${err.message}. Using provided operator parameters.`,
-            { gridOperatorId, gridOperatorBdew, gridOperatorName },
-            null, idx++
-          ));
+          findings.push(
+            createFinding(
+              1,
+              'identity',
+              VNB_RESOLVED,
+              'info',
+              'VNB identity using provided parameters (lookup unavailable)',
+              `MCP lookup failed: ${err.message}. Using provided operator parameters.`,
+              { gridOperatorId, gridOperatorBdew, gridOperatorName },
+              null,
+              idx++
+            )
+          );
         }
       } else {
         // Name-only resolution — best effort
-        findings.push(createFinding(
-          1, 'identity', VNB_RESOLVED, 'info',
-          `VNB identity from provided name: ${gridOperatorName}`,
-          'No BDEW code or MaStR ID provided. Proceeding with name-based identification.',
-          { gridOperatorName },
-          'Provide gridOperatorBdew or gridOperatorId for more reliable resolution.',
-          idx++
-        ));
+        findings.push(
+          createFinding(
+            1,
+            'identity',
+            VNB_RESOLVED,
+            'info',
+            `VNB identity from provided name: ${gridOperatorName}`,
+            'No BDEW code or MaStR ID provided. Proceeding with name-based identification.',
+            { gridOperatorName },
+            'Provide gridOperatorBdew or gridOperatorId for more reliable resolution.',
+            idx++
+          )
+        );
       }
 
       return { operator, findings };
@@ -535,7 +565,7 @@ module.exports = {
         if (!operator.mastrId) {
           throw new Error(
             `Cannot fetch Redispatch portfolio: MaStR ID not resolved for operator "${operator.name}". ` +
-            'Provide gridOperatorId or a resolvable gridOperatorBdew.'
+              'Provide gridOperatorId or a resolvable gridOperatorBdew.'
           );
         }
 
@@ -556,16 +586,21 @@ module.exports = {
       }
 
       if (installations.length === 0) {
-        findings.push(createFinding(
-          2, 'portfolio', RD_PORTFOLIO_EMPTY, 'error',
-          'No Redispatch-relevant installations found (≥100 kW)',
-          usedWegB
-            ? 'Datapoint returned 0 installations. Refresh the datapoint or switch to Weg A.'
-            : 'cernion_installations_local returned 0 installations ≥100 kW. The MaStR ID may be incorrect.',
-          { gridOperatorMastrId: operator.mastrId, minCapacity: 100, usedWegB },
-          'Verify the MaStR grid operator ID. Check if installations ≥100 kW are registered.',
-          idx++
-        ));
+        findings.push(
+          createFinding(
+            2,
+            'portfolio',
+            RD_PORTFOLIO_EMPTY,
+            'error',
+            'No Redispatch-relevant installations found (≥100 kW)',
+            usedWegB
+              ? 'Datapoint returned 0 installations. Refresh the datapoint or switch to Weg A.'
+              : 'cernion_installations_local returned 0 installations ≥100 kW. The MaStR ID may be incorrect.',
+            { gridOperatorMastrId: operator.mastrId, minCapacity: 100, usedWegB },
+            'Verify the MaStR grid operator ID. Check if installations ≥100 kW are registered.',
+            idx++
+          )
+        );
         return { installations: [], findings };
       }
 
@@ -576,15 +611,20 @@ module.exports = {
       }).length;
 
       if (inactiveCount > 0) {
-        findings.push(createFinding(
-          2, 'portfolio', RD_PORTFOLIO_INCLUDES_INACTIVE, 'warning',
-          `${inactiveCount} of ${installations.length} installations are not "InBetrieb"`,
-          `Portfolio includes ${inactiveCount} installations with status ≠ InBetrieb (35). ` +
-          'These may affect historical settlement calculations.',
-          { inactiveCount, totalCount: installations.length },
-          'Verify whether inactive installations had curtailment events in the audit period.',
-          idx++
-        ));
+        findings.push(
+          createFinding(
+            2,
+            'portfolio',
+            RD_PORTFOLIO_INCLUDES_INACTIVE,
+            'warning',
+            `${inactiveCount} of ${installations.length} installations are not "InBetrieb"`,
+            `Portfolio includes ${inactiveCount} installations with status ≠ InBetrieb (35). ` +
+              'These may affect historical settlement calculations.',
+            { inactiveCount, totalCount: installations.length },
+            'Verify whether inactive installations had curtailment events in the audit period.',
+            idx++
+          )
+        );
       }
 
       // Type breakdown for the summary finding
@@ -598,20 +638,27 @@ module.exports = {
         return sum + parseFloat(i.bruttoleistung || i.Bruttoleistung || i.NettoNennleistung || 0);
       }, 0);
 
-      findings.push(createFinding(
-        2, 'portfolio', RD_PORTFOLIO_COMPLETE, 'info',
-        `${installations.length} Redispatch-relevant installations (${(totalKW / 1000).toFixed(1)} MW)`,
-        `Portfolio inventory complete: ${Object.entries(byType).map(([k, v]) => `${v} ${k}`).join(', ')}. ` +
-        `Data source: ${usedWegB ? 'Weg B (datapoint)' : 'Weg A (MCP)'}.`,
-        {
-          total: installations.length,
-          capacityMW: parseFloat((totalKW / 1000).toFixed(2)),
-          byType,
-          inactiveCount,
-          usedWegB,
-        },
-        null, idx++
-      ));
+      findings.push(
+        createFinding(
+          2,
+          'portfolio',
+          RD_PORTFOLIO_COMPLETE,
+          'info',
+          `${installations.length} Redispatch-relevant installations (${(totalKW / 1000).toFixed(1)} MW)`,
+          `Portfolio inventory complete: ${Object.entries(byType)
+            .map(([k, v]) => `${v} ${k}`)
+            .join(', ')}. ` + `Data source: ${usedWegB ? 'Weg B (datapoint)' : 'Weg A (MCP)'}.`,
+          {
+            total: installations.length,
+            capacityMW: parseFloat((totalKW / 1000).toFixed(2)),
+            byType,
+            inactiveCount,
+            usedWegB,
+          },
+          null,
+          idx++
+        )
+      );
 
       return { installations, findings };
     },
@@ -632,31 +679,42 @@ module.exports = {
         );
 
         // Rule 1: Missing NAP → Redispatch control impossible
-        const nap = inst.netzanschlusspunktMastrNummer || inst.NetzanschlusspunktMastrNummer || null;
+        const nap =
+          inst.netzanschlusspunktMastrNummer || inst.NetzanschlusspunktMastrNummer || null;
         if (!nap) {
-          findings.push(createFinding(
-            3, 'masterDataValidation', RD_MISSING_NAP, 'error',
-            `${mastr}: missing NAP — Redispatch control impossible`,
-            'Installation ≥100 kW has no Netzanschlusspunkt (NAP) in MaStR. ' +
-            'Redispatch control signal cannot be dispatched without a valid NAP.',
-            { mastrNummer: mastr, capacity },
-            'Register the Netzanschlusspunkt for this installation in MaStR.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              3,
+              'masterDataValidation',
+              RD_MISSING_NAP,
+              'error',
+              `${mastr}: missing NAP — Redispatch control impossible`,
+              'Installation ≥100 kW has no Netzanschlusspunkt (NAP) in MaStR. ' +
+                'Redispatch control signal cannot be dispatched without a valid NAP.',
+              { mastrNummer: mastr, capacity },
+              'Register the Netzanschlusspunkt for this installation in MaStR.',
+              idx++
+            )
+          );
         }
 
         // Rule 2: Missing MeLo → A96 settlement impossible
         const melo = inst.marktlokationId || inst.MarktlokationId || null;
         if (!melo) {
-          findings.push(createFinding(
-            3, 'masterDataValidation', RD_MISSING_MELO, 'error',
-            `${mastr}: missing MeLo — A96 settlement impossible`,
-            'Installation ≥100 kW has no Marktlokation-ID (MeLo) in MaStR. ' +
-            'A96 settlement process requires a valid MeLo for billing.',
-            { mastrNummer: mastr, capacity },
-            'Register the MeLo ID for this installation in MaStR.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              3,
+              'masterDataValidation',
+              RD_MISSING_MELO,
+              'error',
+              `${mastr}: missing MeLo — A96 settlement impossible`,
+              'Installation ≥100 kW has no Marktlokation-ID (MeLo) in MaStR. ' +
+                'A96 settlement process requires a valid MeLo for billing.',
+              { mastrNummer: mastr, capacity },
+              'Register the MeLo ID for this installation in MaStR.',
+              idx++
+            )
+          );
         }
 
         // Rule 3: Missing BTR (Einsatzverantwortlicher) → settlement chain broken
@@ -664,67 +722,86 @@ module.exports = {
         // We check the FernsteuerbarkeitDv flag as a proxy for BTR presence.
         // If neither controllability flag is set, the BTR role is likely unassigned.
         const hasDv = this.hasDvFlag(inst);
-        const hasRemoteControl = hasDv
-          || inst.FernsteuerbarkeitSonstige === '1'
-          || inst.FernsteuerbarkeitSonstige === 1;
+        const hasRemoteControl =
+          hasDv || inst.FernsteuerbarkeitSonstige === '1' || inst.FernsteuerbarkeitSonstige === 1;
         if (!hasRemoteControl && capacity >= 100) {
-          findings.push(createFinding(
-            3, 'masterDataValidation', RD_MISSING_BTR, 'warning',
-            `${mastr}: no BTR/remote-control assignment — settlement chain may be broken`,
-            'No DV or other remote-control flag found. The Einsatzverantwortlicher (BTR) role ' +
-            'may be unassigned. Note: DirektvermarkterMastrNummer is excluded from public MaStR ' +
-            'bulk exports — this check is a best-effort proxy.',
-            { mastrNummer: mastr, capacity, fernsteuerbarkeitDv: hasDv },
-            'Verify BTR assignment in the MaStR portal or with the installation operator.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              3,
+              'masterDataValidation',
+              RD_MISSING_BTR,
+              'warning',
+              `${mastr}: no BTR/remote-control assignment — settlement chain may be broken`,
+              'No DV or other remote-control flag found. The Einsatzverantwortlicher (BTR) role ' +
+                'may be unassigned. Note: DirektvermarkterMastrNummer is excluded from public MaStR ' +
+                'bulk exports — this check is a best-effort proxy.',
+              { mastrNummer: mastr, capacity, fernsteuerbarkeitDv: hasDv },
+              'Verify BTR assignment in the MaStR portal or with the installation operator.',
+              idx++
+            )
+          );
         }
 
         // Rule 4: NAP-VNB mismatch → wrong assignment in settlement chain
         if (nap) {
           const napVnb =
-            inst.netzanschlusspunktNetzebetreiber
-            || inst.NetzanschlusspunktNetzbetreiber
-            || inst.napNetzbetreiber
-            || null;
+            inst.netzanschlusspunktNetzebetreiber ||
+            inst.NetzanschlusspunktNetzbetreiber ||
+            inst.napNetzbetreiber ||
+            null;
           if (napVnb && operator.mastrId && napVnb !== operator.mastrId) {
-            findings.push(createFinding(
-              3, 'masterDataValidation', RD_NAP_VNB_MISMATCH, 'error',
-              `${mastr}: NAP belongs to different VNB (${napVnb} ≠ ${operator.mastrId})`,
-              'The NAP is registered under a different grid operator than the audited VNB. ' +
-              'This causes incorrect assignment in the A96 settlement chain (e.g., TWL KOM vs TWL Netze).',
-              { mastrNummer: mastr, napMastrId: nap, napVnb, expectedVnb: operator.mastrId },
-              'Correct NAP ownership in MaStR or re-assign installation to the correct VNB.',
-              idx++
-            ));
+            findings.push(
+              createFinding(
+                3,
+                'masterDataValidation',
+                RD_NAP_VNB_MISMATCH,
+                'error',
+                `${mastr}: NAP belongs to different VNB (${napVnb} ≠ ${operator.mastrId})`,
+                'The NAP is registered under a different grid operator than the audited VNB. ' +
+                  'This causes incorrect assignment in the A96 settlement chain (e.g., TWL KOM vs TWL Netze).',
+                { mastrNummer: mastr, napMastrId: nap, napVnb, expectedVnb: operator.mastrId },
+                'Correct NAP ownership in MaStR or re-assign installation to the correct VNB.',
+                idx++
+              )
+            );
           }
         }
 
         // Rule 5: ≥100 kW without DV remote-controllability (§21 Abs. 2 EEG)
         if (!hasDv && capacity >= 100) {
-          findings.push(createFinding(
-            3, 'masterDataValidation', RD_DV_NOT_CONTROLLABLE, 'warning',
-            `${mastr}: ≥100 kW without DV remote-controllability flag`,
-            'FernsteuerbarkeitDv is not set. Installations ≥100 kW should be remotely ' +
-            'controllable under §21 Abs. 2 EEG. Curtailment may not be technically possible.',
-            { mastrNummer: mastr, capacity, fernsteuerbarkeitDv: hasDv },
-            'Verify DV contract and update FernsteuerbarkeitDv flag in MaStR.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              3,
+              'masterDataValidation',
+              RD_DV_NOT_CONTROLLABLE,
+              'warning',
+              `${mastr}: ≥100 kW without DV remote-controllability flag`,
+              'FernsteuerbarkeitDv is not set. Installations ≥100 kW should be remotely ' +
+                'controllable under §21 Abs. 2 EEG. Curtailment may not be technically possible.',
+              { mastrNummer: mastr, capacity, fernsteuerbarkeitDv: hasDv },
+              'Verify DV contract and update FernsteuerbarkeitDv flag in MaStR.',
+              idx++
+            )
+          );
         }
 
         // Rule 6: Capacity anomaly (zero or implausibly high) → wrong compensation calculation
         const nettoKW = parseFloat(inst.nettonennleistung ?? inst.Nettonennleistung ?? capacity);
         if (capacity <= 0 || nettoKW <= 0) {
-          findings.push(createFinding(
-            3, 'masterDataValidation', RD_CAPACITY_ANOMALY, 'warning',
-            `${mastr}: zero or missing capacity — compensation calculation will be wrong`,
-            `Bruttoleistung=${capacity} kW, Nettonennleistung=${nettoKW} kW. ` +
-            'Cannot compute correct Redispatch compensation without valid capacity data.',
-            { mastrNummer: mastr, bruttoleistungKW: capacity, nettonennleistungKW: nettoKW },
-            'Correct capacity data in MaStR portal.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              3,
+              'masterDataValidation',
+              RD_CAPACITY_ANOMALY,
+              'warning',
+              `${mastr}: zero or missing capacity — compensation calculation will be wrong`,
+              `Bruttoleistung=${capacity} kW, Nettonennleistung=${nettoKW} kW. ` +
+                'Cannot compute correct Redispatch compensation without valid capacity data.',
+              { mastrNummer: mastr, bruttoleistungKW: capacity, nettonennleistungKW: nettoKW },
+              'Correct capacity data in MaStR portal.',
+              idx++
+            )
+          );
         }
       }
 
@@ -752,18 +829,28 @@ module.exports = {
           token
         );
 
-        const measures = result?.measures || result?.data?.measures
-          || result?.redispatch || result?.data?.redispatch || [];
+        const measures =
+          result?.measures ||
+          result?.data?.measures ||
+          result?.redispatch ||
+          result?.data?.redispatch ||
+          [];
 
         if (measures.length === 0) {
-          findings.push(createFinding(
-            4, 'curtailmentCorrelation', RD_CURTAILMENT_ZERO, 'info',
-            'No Redispatch measures found in the specified period',
-            `Netztransparenz returned 0 measures for ${dateFrom || 'any start'} – ${dateTo || 'any end'}. ` +
-            'Either no curtailment events occurred or the VNB is not in the affected area.',
-            { dateFrom, dateTo, measureCount: 0 },
-            null, idx++
-          ));
+          findings.push(
+            createFinding(
+              4,
+              'curtailmentCorrelation',
+              RD_CURTAILMENT_ZERO,
+              'info',
+              'No Redispatch measures found in the specified period',
+              `Netztransparenz returned 0 measures for ${dateFrom || 'any start'} – ${dateTo || 'any end'}. ` +
+                'Either no curtailment events occurred or the VNB is not in the affected area.',
+              { dateFrom, dateTo, measureCount: 0 },
+              null,
+              idx++
+            )
+          );
           return { curtailmentGWh: 0, findings };
         }
 
@@ -775,44 +862,66 @@ module.exports = {
         curtailmentGWh = parseFloat((totalMWh / 1000).toFixed(3));
 
         // Check for high-density periods (>100 measures/month)
-        const periodDays = dateFrom && dateTo
-          ? Math.max(1, Math.round((new Date(dateTo) - new Date(dateFrom)) / 86400000))
-          : 90;
+        const periodDays =
+          dateFrom && dateTo
+            ? Math.max(1, Math.round((new Date(dateTo) - new Date(dateFrom)) / 86400000))
+            : 90;
         const periodMonths = Math.max(1, periodDays / 30);
         const measuresPerMonth = measures.length / periodMonths;
 
         if (measuresPerMonth > 100) {
-          findings.push(createFinding(
-            4, 'curtailmentCorrelation', RD_HIGH_CURTAILMENT_PERIOD, 'warning',
-            `High curtailment density: ${measures.length} measures / ${periodMonths.toFixed(1)} months`,
-            `Average ${measuresPerMonth.toFixed(0)} measures/month exceeds 100. This indicates a ` +
-            'systemic grid congestion pattern. Settlement volume and risk are elevated.',
-            { measureCount: measures.length, periodMonths: parseFloat(periodMonths.toFixed(1)), measuresPerMonth: parseFloat(measuresPerMonth.toFixed(0)) },
-            'Investigate root causes of recurring congestion (transformer bottlenecks, wind feed-in peaks).',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              4,
+              'curtailmentCorrelation',
+              RD_HIGH_CURTAILMENT_PERIOD,
+              'warning',
+              `High curtailment density: ${measures.length} measures / ${periodMonths.toFixed(1)} months`,
+              `Average ${measuresPerMonth.toFixed(0)} measures/month exceeds 100. This indicates a ` +
+                'systemic grid congestion pattern. Settlement volume and risk are elevated.',
+              {
+                measureCount: measures.length,
+                periodMonths: parseFloat(periodMonths.toFixed(1)),
+                measuresPerMonth: parseFloat(measuresPerMonth.toFixed(0)),
+              },
+              'Investigate root causes of recurring congestion (transformer bottlenecks, wind feed-in peaks).',
+              idx++
+            )
+          );
         }
 
-        findings.push(createFinding(
-          4, 'curtailmentCorrelation', RD_CURTAILMENT_VOLUME, 'info',
-          `${measures.length} Redispatch measures, total ${curtailmentGWh} GWh (${dateFrom || '?'} – ${dateTo || '?'})`,
-          `Netztransparenz data retrieved. Note: TSO-level data — not VNB-specific. ` +
-          `Volume used for proportional financial risk estimate only.`,
-          { measureCount: measures.length, curtailmentGWh, dateFrom, dateTo },
-          null, idx++
-        ));
-
+        findings.push(
+          createFinding(
+            4,
+            'curtailmentCorrelation',
+            RD_CURTAILMENT_VOLUME,
+            'info',
+            `${measures.length} Redispatch measures, total ${curtailmentGWh} GWh (${dateFrom || '?'} – ${dateTo || '?'})`,
+            `Netztransparenz data retrieved. Note: TSO-level data — not VNB-specific. ` +
+              `Volume used for proportional financial risk estimate only.`,
+            { measureCount: measures.length, curtailmentGWh, dateFrom, dateTo },
+            null,
+            idx++
+          )
+        );
       } catch (err) {
-        this.logger.warn(`stepCurtailmentCorrelation: Netztransparenz call failed — ${err.message}`);
-        findings.push(createFinding(
-          4, 'curtailmentCorrelation', RD_CURTAILMENT_DATA_UNAVAILABLE, 'warning',
-          'Netztransparenz data unavailable — risk calculation uses 0 GWh',
-          `netztransparenz_redispatch call failed: ${err.message}. ` +
-          'Financial risk estimate will be 0 (conservative — actual risk unknown).',
-          { error: err.message, dateFrom, dateTo },
-          'Check Netztransparenz API availability. Re-run audit when data is accessible.',
-          idx++
-        ));
+        this.logger.warn(
+          `stepCurtailmentCorrelation: Netztransparenz call failed — ${err.message}`
+        );
+        findings.push(
+          createFinding(
+            4,
+            'curtailmentCorrelation',
+            RD_CURTAILMENT_DATA_UNAVAILABLE,
+            'warning',
+            'Netztransparenz data unavailable — risk calculation uses 0 GWh',
+            `netztransparenz_redispatch call failed: ${err.message}. ` +
+              'Financial risk estimate will be 0 (conservative — actual risk unknown).',
+            { error: err.message, dateFrom, dateTo },
+            'Check Netztransparenz API availability. Re-run audit when data is accessible.',
+            idx++
+          )
+        );
         return { curtailmentGWh: 0, findings };
       }
 
@@ -833,36 +942,52 @@ module.exports = {
       }
 
       if (readiness.readinessPercent === 100) {
-        findings.push(createFinding(
-          5, 'settlementReadiness', RD_SETTLEMENT_READY, 'info',
-          `100% settlement readiness — all ${readiness.totalInstallations} installations ready`,
-          'All installations in the Redispatch portfolio meet A96 settlement prerequisites ' +
-          '(NAP and MeLo present, no NAP-VNB mismatch).',
-          { ...readiness },
-          null, idx++
-        ));
+        findings.push(
+          createFinding(
+            5,
+            'settlementReadiness',
+            RD_SETTLEMENT_READY,
+            'info',
+            `100% settlement readiness — all ${readiness.totalInstallations} installations ready`,
+            'All installations in the Redispatch portfolio meet A96 settlement prerequisites ' +
+              '(NAP and MeLo present, no NAP-VNB mismatch).',
+            { ...readiness },
+            null,
+            idx++
+          )
+        );
       } else if (readiness.readinessPercent >= 80) {
-        findings.push(createFinding(
-          5, 'settlementReadiness', RD_SETTLEMENT_PARTIAL, 'warning',
-          `${readiness.readinessPercent}% settlement readiness — ${readiness.blockedInstallations} installation(s) blocked`,
-          `${readiness.blockedInstallations} of ${readiness.totalInstallations} installations have errors ` +
-          'that prevent A96 settlement (missing NAP/MeLo or NAP-VNB mismatch). ' +
-          'Proceed with settlement but remediate blocked installations promptly.',
-          { ...readiness },
-          'Prioritise remediation of the blocked MaStR numbers listed in blockedMastrNumbers.',
-          idx++
-        ));
+        findings.push(
+          createFinding(
+            5,
+            'settlementReadiness',
+            RD_SETTLEMENT_PARTIAL,
+            'warning',
+            `${readiness.readinessPercent}% settlement readiness — ${readiness.blockedInstallations} installation(s) blocked`,
+            `${readiness.blockedInstallations} of ${readiness.totalInstallations} installations have errors ` +
+              'that prevent A96 settlement (missing NAP/MeLo or NAP-VNB mismatch). ' +
+              'Proceed with settlement but remediate blocked installations promptly.',
+            { ...readiness },
+            'Prioritise remediation of the blocked MaStR numbers listed in blockedMastrNumbers.',
+            idx++
+          )
+        );
       } else {
-        findings.push(createFinding(
-          5, 'settlementReadiness', RD_SETTLEMENT_CRITICAL, 'error',
-          `${readiness.readinessPercent}% settlement readiness — critical data quality issue`,
-          `${readiness.blockedInstallations} of ${readiness.totalInstallations} installations (${100 - readiness.readinessPercent}%) ` +
-          'have settlement-blocking errors. This indicates a systematic data quality problem that ' +
-          'must be resolved before settlement.',
-          { ...readiness },
-          'Conduct an emergency MaStR data quality remediation before submitting A96 settlement.',
-          idx++
-        ));
+        findings.push(
+          createFinding(
+            5,
+            'settlementReadiness',
+            RD_SETTLEMENT_CRITICAL,
+            'error',
+            `${readiness.readinessPercent}% settlement readiness — critical data quality issue`,
+            `${readiness.blockedInstallations} of ${readiness.totalInstallations} installations (${100 - readiness.readinessPercent}%) ` +
+              'have settlement-blocking errors. This indicates a systematic data quality problem that ' +
+              'must be resolved before settlement.',
+            { ...readiness },
+            'Conduct an emergency MaStR data quality remediation before submitting A96 settlement.',
+            idx++
+          )
+        );
       }
 
       return { readiness, findings };
@@ -895,14 +1020,21 @@ module.exports = {
         high: `Estimated compensation loss >100,000 € (${risk.estimatedLostCompensationEur.toLocaleString('de-DE')} €). Immediate action required — systematic master data deficiencies.`,
       };
 
-      findings.push(createFinding(
-        6, 'riskAssessment', riskCodeMap[risk.riskLevel], severityMap[risk.riskLevel],
-        `${risk.riskLevel.toUpperCase()} financial risk: ~${risk.estimatedLostCompensationEur.toLocaleString('de-DE')} €`,
-        descriptions[risk.riskLevel],
-        { ...risk },
-        risk.riskLevel === 'low' ? null : 'Remediate blocked installations to reduce settlement risk before the next billing cycle.',
-        idx++
-      ));
+      findings.push(
+        createFinding(
+          6,
+          'riskAssessment',
+          riskCodeMap[risk.riskLevel],
+          severityMap[risk.riskLevel],
+          `${risk.riskLevel.toUpperCase()} financial risk: ~${risk.estimatedLostCompensationEur.toLocaleString('de-DE')} €`,
+          descriptions[risk.riskLevel],
+          { ...risk },
+          risk.riskLevel === 'low'
+            ? null
+            : 'Remediate blocked installations to reduce settlement risk before the next billing cycle.',
+          idx++
+        )
+      );
 
       return { risk, findings };
     },
@@ -918,13 +1050,17 @@ module.exports = {
 
       if (datapointTags.length > 0) {
         try {
-          const snap = await ctx.call('datapoint.createSnapshot', {
-            tags: datapointTags.join(','),
-            maxAgeMinutes,
-            createdBy: 'agent',
-            name: `rd-${(operator.mastrId || 'unknown').replace(/[^a-z0-9]/gi, '-')}-${Date.now()}`,
-            description: `Redispatch Ex-Post audit snapshot for ${operator.name || 'unknown'}`,
-          }, callOpts);
+          const snap = await ctx.call(
+            'datapoint.createSnapshot',
+            {
+              tags: datapointTags.join(','),
+              maxAgeMinutes,
+              createdBy: 'agent',
+              name: `rd-${(operator.mastrId || 'unknown').replace(/[^a-z0-9]/gi, '-')}-${Date.now()}`,
+              description: `Redispatch Ex-Post audit snapshot for ${operator.name || 'unknown'}`,
+            },
+            callOpts
+          );
 
           if (snap?.id) {
             try {
@@ -934,14 +1070,19 @@ module.exports = {
                 callOpts
               );
               if (snapshotValidation?.drift?.length > 0) {
-                findings.push(createFinding(
-                  7, 'audit', SNAPSHOT_DRIFT_DETECTED, 'warning',
-                  `Data drift detected in ${snapshotValidation.drift.length} datapoint(s)`,
-                  'One or more datapoints changed during pipeline execution. Results may be inconsistent.',
-                  { drift: snapshotValidation.drift, snapshotId: snap.id },
-                  'Re-run audit after data refresh for a consistent result.',
-                  idx++
-                ));
+                findings.push(
+                  createFinding(
+                    7,
+                    'audit',
+                    SNAPSHOT_DRIFT_DETECTED,
+                    'warning',
+                    `Data drift detected in ${snapshotValidation.drift.length} datapoint(s)`,
+                    'One or more datapoints changed during pipeline execution. Results may be inconsistent.',
+                    { drift: snapshotValidation.drift, snapshotId: snap.id },
+                    'Re-run audit after data refresh for a consistent result.',
+                    idx++
+                  )
+                );
               }
             } catch (err) {
               this.logger.debug(`stepAudit: snapshot validation skipped — ${err.message}`);
@@ -952,22 +1093,28 @@ module.exports = {
         }
       }
 
-      findings.push(createFinding(
-        7, 'audit', AUDIT_TRAIL_CREATED, 'info',
-        `Audit trail created — pipeline v${PIPELINE_VERSION}`,
-        `Deterministic Redispatch Ex-Post pipeline v${PIPELINE_VERSION} completed. ` +
-        `No LLM involvement. Total findings: ${reportData.allFindingsCount + findings.length}. ` +
-        `Settlement readiness: ${reportData.readinessPercent ?? 'n/a'}%.`,
-        {
-          pipelineVersion: PIPELINE_VERSION,
-          readinessPercent: reportData.readinessPercent,
-          riskLevel: reportData.riskLevel,
-          totalInstallations: reportData.totalInstallations,
-          findingsTotal: reportData.allFindingsCount + findings.length,
-          consistent: snapshotValidation?.consistent ?? null,
-        },
-        null, idx++
-      ));
+      findings.push(
+        createFinding(
+          7,
+          'audit',
+          AUDIT_TRAIL_CREATED,
+          'info',
+          `Audit trail created — pipeline v${PIPELINE_VERSION}`,
+          `Deterministic Redispatch Ex-Post pipeline v${PIPELINE_VERSION} completed. ` +
+            `No LLM involvement. Total findings: ${reportData.allFindingsCount + findings.length}. ` +
+            `Settlement readiness: ${reportData.readinessPercent ?? 'n/a'}%.`,
+          {
+            pipelineVersion: PIPELINE_VERSION,
+            readinessPercent: reportData.readinessPercent,
+            riskLevel: reportData.riskLevel,
+            totalInstallations: reportData.totalInstallations,
+            findingsTotal: reportData.allFindingsCount + findings.length,
+            consistent: snapshotValidation?.consistent ?? null,
+          },
+          null,
+          idx++
+        )
+      );
 
       return { findings, snapshotValidation };
     },
@@ -981,7 +1128,11 @@ module.exports = {
       if (!datapointTags || datapointTags.length === 0) return null;
       try {
         const callOpts = { meta: { ...ctx.meta, $gateway: false } };
-        const dpList = await ctx.call('datapoint.list', { tags: datapointTags.join(',') }, callOpts);
+        const dpList = await ctx.call(
+          'datapoint.list',
+          { tags: datapointTags.join(',') },
+          callOpts
+        );
         const dp = (dpList.datapoints || []).find((d) =>
           (d.tags || []).some((t) =>
             ['redispatch-portfolio', 'mastr-portfolio', 'grid-connection-inventory'].includes(t)
@@ -1015,9 +1166,11 @@ module.exports = {
       ).toLowerCase();
       if (['solar', 'photovoltaik', 'pv'].some((t) => et.includes(t))) return 'solar';
       if (['wind', 'windkraft'].some((t) => et.includes(t))) return 'wind';
-      if (['speicher', 'battery', 'batterie', 'storage'].some((t) => et.includes(t))) return 'storage';
+      if (['speicher', 'battery', 'batterie', 'storage'].some((t) => et.includes(t)))
+        return 'storage';
       if (['biomasse', 'biogas', 'biomethan'].some((t) => et.includes(t))) return 'biomass';
-      if (['verbrennung', 'gas', 'kohle', 'combustion'].some((t) => et.includes(t))) return 'combustion';
+      if (['verbrennung', 'gas', 'kohle', 'combustion'].some((t) => et.includes(t)))
+        return 'combustion';
       if (inst.Modulanzahl || inst.GrossflächePv) return 'solar';
       if (inst.Nabenhoehe || inst.Rotordurchmesser) return 'wind';
       if (inst.Speicherkapazitaet) return 'storage';
@@ -1048,18 +1201,25 @@ module.exports = {
       const runStep = async (stepNum, stepName, fn) => {
         if (skip.has(stepNum)) {
           stepSummaries.push({
-            step: stepNum, name: stepName, status: 'skipped', durationMs: 0, findingsCount: 0,
+            step: stepNum,
+            name: stepName,
+            status: 'skipped',
+            durationMs: 0,
+            findingsCount: 0,
           });
           return null;
         }
         const t0 = Date.now();
         try {
           const result = await fn();
-          const stepFindings = Array.isArray(result) ? result : (result?.findings || []);
+          const stepFindings = Array.isArray(result) ? result : result?.findings || [];
           allFindings.push(...stepFindings);
           stepSummaries.push({
-            step: stepNum, name: stepName, status: 'success',
-            durationMs: Date.now() - t0, findingsCount: stepFindings.length,
+            step: stepNum,
+            name: stepName,
+            status: 'success',
+            durationMs: Date.now() - t0,
+            findingsCount: stepFindings.length,
           });
           return result;
         } catch (err) {
@@ -1067,8 +1227,12 @@ module.exports = {
             `Redispatch Ex-Post pipeline step ${stepNum} (${stepName}) failed: ${err.message}`
           );
           stepSummaries.push({
-            step: stepNum, name: stepName, status: 'error',
-            durationMs: Date.now() - t0, findingsCount: 0, error: err.message,
+            step: stepNum,
+            name: stepName,
+            status: 'error',
+            durationMs: Date.now() - t0,
+            findingsCount: 0,
+            error: err.message,
           });
           return null;
         }
@@ -1108,7 +1272,11 @@ module.exports = {
         });
       } else {
         stepSummaries.push({
-          step: 3, name: 'masterDataValidation', status: 'skipped', durationMs: 0, findingsCount: 0,
+          step: 3,
+          name: 'masterDataValidation',
+          status: 'skipped',
+          durationMs: 0,
+          findingsCount: 0,
         });
       }
 
@@ -1122,7 +1290,11 @@ module.exports = {
         });
       } else {
         stepSummaries.push({
-          step: 4, name: 'curtailmentCorrelation', status: 'skipped', durationMs: 0, findingsCount: 0,
+          step: 4,
+          name: 'curtailmentCorrelation',
+          status: 'skipped',
+          durationMs: 0,
+          findingsCount: 0,
         });
       }
 
@@ -1136,7 +1308,11 @@ module.exports = {
         });
       } else {
         stepSummaries.push({
-          step: 5, name: 'settlementReadiness', status: 'skipped', durationMs: 0, findingsCount: 0,
+          step: 5,
+          name: 'settlementReadiness',
+          status: 'skipped',
+          durationMs: 0,
+          findingsCount: 0,
         });
         // Provide a null-safe default for downstream risk step
         settlementReadiness = assessSettlementReadiness(installations, masterDataFindings);
@@ -1147,7 +1323,11 @@ module.exports = {
       if (!skip.has(6)) {
         await runStep(6, 'riskAssessment', () => {
           const res = this.stepRiskAssessment(
-            settlementReadiness || { readinessPercent: 100, totalInstallations: 0, blockedInstallations: 0 },
+            settlementReadiness || {
+              readinessPercent: 100,
+              totalInstallations: 0,
+              blockedInstallations: 0,
+            },
             curtailmentGWh,
             avgCompensationEurPerMWh
           );
@@ -1156,18 +1336,27 @@ module.exports = {
         });
       } else {
         stepSummaries.push({
-          step: 6, name: 'riskAssessment', status: 'skipped', durationMs: 0, findingsCount: 0,
+          step: 6,
+          name: 'riskAssessment',
+          status: 'skipped',
+          durationMs: 0,
+          findingsCount: 0,
         });
       }
 
       // Step 7: Audit trail (mandatory)
       await runStep(7, 'audit', async () => {
-        const res = await this.stepAudit(ctx, params, {
-          readinessPercent: settlementReadiness?.readinessPercent ?? null,
-          riskLevel: riskAssessment?.riskLevel ?? null,
-          totalInstallations: installations.length,
-          allFindingsCount: allFindings.length,
-        }, callOpts);
+        const res = await this.stepAudit(
+          ctx,
+          params,
+          {
+            readinessPercent: settlementReadiness?.readinessPercent ?? null,
+            riskLevel: riskAssessment?.riskLevel ?? null,
+            totalInstallations: installations.length,
+            allFindingsCount: allFindings.length,
+          },
+          callOpts
+        );
         return res.findings;
       });
 

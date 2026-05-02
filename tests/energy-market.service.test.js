@@ -812,9 +812,24 @@ describe('Energy Market Service', () => {
         success: true,
         data: {
           installations: [
-            { mastrNummer: 'SEE001', bruttoleistung: 10, lastUpdatedAt: '2026-04-01', einheitBetriebsstatus: '35' },
-            { mastrNummer: 'SEE002', bruttoleistung: 20, lastUpdatedAt: '2026-02-01', einheitBetriebsstatus: '35' },
-            { mastrNummer: 'SEE003', bruttoleistung: 30, lastUpdatedAt: '2026-03-25', einheitBetriebsstatus: '35' },
+            {
+              mastrNummer: 'SEE001',
+              bruttoleistung: 10,
+              lastUpdatedAt: '2026-04-01',
+              einheitBetriebsstatus: '35',
+            },
+            {
+              mastrNummer: 'SEE002',
+              bruttoleistung: 20,
+              lastUpdatedAt: '2026-02-01',
+              einheitBetriebsstatus: '35',
+            },
+            {
+              mastrNummer: 'SEE003',
+              bruttoleistung: 30,
+              lastUpdatedAt: '2026-03-25',
+              einheitBetriebsstatus: '35',
+            },
           ],
           stats: { count: 3, totalCapacity: 60, avgCapacity: 20 },
         },
@@ -832,7 +847,12 @@ describe('Energy Market Service', () => {
         success: true,
         data: {
           installations: [
-            { mastrNummer: 'SEE001', bruttoleistung: 10, lastUpdatedAt: '2026-04-01', einheitBetriebsstatus: '35' },
+            {
+              mastrNummer: 'SEE001',
+              bruttoleistung: 10,
+              lastUpdatedAt: '2026-04-01',
+              einheitBetriebsstatus: '35',
+            },
             { mastrNummer: 'SEE002', bruttoleistung: 20, einheitBetriebsstatus: '35' },
           ],
           stats: { count: 2, totalCapacity: 30, avgCapacity: 15 },
@@ -851,8 +871,18 @@ describe('Energy Market Service', () => {
         success: true,
         data: {
           installations: [
-            { mastrNummer: 'SEE001', bruttoleistung: 10, DatumLetzteMeldung: '2026-04-01T00:00:00Z', einheitBetriebsstatus: '35' },
-            { mastrNummer: 'SEE002', bruttoleistung: 20, DatumLetzteMeldung: '2026-01-01T00:00:00Z', einheitBetriebsstatus: '35' },
+            {
+              mastrNummer: 'SEE001',
+              bruttoleistung: 10,
+              DatumLetzteMeldung: '2026-04-01T00:00:00Z',
+              einheitBetriebsstatus: '35',
+            },
+            {
+              mastrNummer: 'SEE002',
+              bruttoleistung: 20,
+              DatumLetzteMeldung: '2026-01-01T00:00:00Z',
+              einheitBetriebsstatus: '35',
+            },
           ],
           stats: { count: 2, totalCapacity: 30, avgCapacity: 15 },
         },
@@ -870,7 +900,12 @@ describe('Energy Market Service', () => {
         success: true,
         data: {
           installations: [
-            { mastrNummer: 'SEE001', bruttoleistung: 10, lastUpdatedAt: '2020-01-01', einheitBetriebsstatus: '35' },
+            {
+              mastrNummer: 'SEE001',
+              bruttoleistung: 10,
+              lastUpdatedAt: '2020-01-01',
+              einheitBetriebsstatus: '35',
+            },
             { mastrNummer: 'SEE002', bruttoleistung: 20, einheitBetriebsstatus: '35' },
           ],
           stats: { count: 2, totalCapacity: 30, avgCapacity: 15 },
@@ -889,9 +924,24 @@ describe('Energy Market Service', () => {
       callWithNewSession.mockResolvedValueOnce({
         success: true,
         installations: [
-          { mastrNummer: 'SEE001', bruttoleistung: 10, lastUpdatedAt: '2026-04-01', einheitBetriebsstatus: '35' },
-          { mastrNummer: 'SEE002', bruttoleistung: 20, lastUpdatedAt: '2025-10-01', einheitBetriebsstatus: '35' },
-          { mastrNummer: 'SEE003', bruttoleistung: 30, lastUpdatedAt: '2023-03-23', einheitBetriebsstatus: '35' },
+          {
+            mastrNummer: 'SEE001',
+            bruttoleistung: 10,
+            lastUpdatedAt: '2026-04-01',
+            einheitBetriebsstatus: '35',
+          },
+          {
+            mastrNummer: 'SEE002',
+            bruttoleistung: 20,
+            lastUpdatedAt: '2025-10-01',
+            einheitBetriebsstatus: '35',
+          },
+          {
+            mastrNummer: 'SEE003',
+            bruttoleistung: 30,
+            lastUpdatedAt: '2023-03-23',
+            einheitBetriebsstatus: '35',
+          },
         ],
         total: 3,
         returned: 3,
@@ -1078,9 +1128,9 @@ describe('Energy Market Service', () => {
       // ['35'].includes(35) === false caused ALL rows to pass the filter regardless
       // of status, making inBetrieb and inPlanung return identical results.
       const installations = [
-        { mastrNummer: 'SEE001', bruttoleistung: 10, einheitBetriebsstatus: 35 },  // number
-        { mastrNummer: 'SEE002', bruttoleistung: 20, einheitBetriebsstatus: 31 },  // number
-        { mastrNummer: 'SEE003', bruttoleistung: 30, einheitBetriebsstatus: 35 },  // number
+        { mastrNummer: 'SEE001', bruttoleistung: 10, einheitBetriebsstatus: 35 }, // number
+        { mastrNummer: 'SEE002', bruttoleistung: 20, einheitBetriebsstatus: 31 }, // number
+        { mastrNummer: 'SEE003', bruttoleistung: 30, einheitBetriebsstatus: 35 }, // number
       ];
       callWithNewSession.mockResolvedValueOnce({
         success: true,

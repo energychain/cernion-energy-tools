@@ -58,7 +58,7 @@ function toPublic(doc) {
   // returned correctly. The key starts immediately after "namespace:".
   return {
     namespace: ns,
-    key:       _id.slice(ns.length + 1),
+    key: _id.slice(ns.length + 1),
     ...rest,
   };
 }
@@ -90,7 +90,6 @@ module.exports = {
   // ─── Actions ────────────────────────────────────────────────────────────────
 
   actions: {
-
     /**
      * get — Retrieve a single document by namespace + key.
      *
@@ -100,7 +99,7 @@ module.exports = {
       rest: 'GET /:namespace/:key',
       params: {
         namespace: { type: 'string', pattern: NS_PATTERN },
-        key:       { type: 'string', pattern: KEY_PATTERN },
+        key: { type: 'string', pattern: KEY_PATTERN },
       },
       openapi: {
         summary: 'Get a document from the Object Store',
@@ -114,7 +113,8 @@ module.exports = {
             in: 'path',
             required: true,
             schema: { type: 'string', example: 'znp_projects' },
-            description: 'Logical namespace (lowercase letter start, underscores allowed, 1–64 chars).',
+            description:
+              'Logical namespace (lowercase letter start, underscores allowed, 1–64 chars).',
           },
           {
             name: 'key',
@@ -132,11 +132,11 @@ module.exports = {
                 schema: {
                   type: 'object',
                   properties: {
-                    namespace:  { type: 'string', example: 'znp_projects' },
-                    key:        { type: 'string', example: 'a1b2c3d4' },
-                    payload:    { type: 'object', example: { name: 'My Project' } },
-                    createdAt:  { type: 'string', example: '2026-04-06T12:00:00.000Z' },
-                    updatedAt:  { type: 'string', example: '2026-04-06T12:00:00.000Z' },
+                    namespace: { type: 'string', example: 'znp_projects' },
+                    key: { type: 'string', example: 'a1b2c3d4' },
+                    payload: { type: 'object', example: { name: 'My Project' } },
+                    createdAt: { type: 'string', example: '2026-04-06T12:00:00.000Z' },
+                    updatedAt: { type: 'string', example: '2026-04-06T12:00:00.000Z' },
                   },
                 },
               },
@@ -173,8 +173,8 @@ module.exports = {
       rest: 'PUT /:namespace/:key',
       params: {
         namespace: { type: 'string', pattern: NS_PATTERN },
-        key:       { type: 'string', pattern: KEY_PATTERN },
-        payload:   { type: 'object' },
+        key: { type: 'string', pattern: KEY_PATTERN },
+        payload: { type: 'object' },
       },
       openapi: {
         summary: 'Create or update a document in the Object Store (upsert)',
@@ -228,8 +228,8 @@ module.exports = {
                   type: 'object',
                   properties: {
                     namespace: { type: 'string', example: 'znp_projects' },
-                    key:       { type: 'string', example: 'a1b2c3d4' },
-                    payload:   { type: 'object', example: { name: 'My Project' } },
+                    key: { type: 'string', example: 'a1b2c3d4' },
+                    payload: { type: 'object', example: { name: 'My Project' } },
                     createdAt: { type: 'string', example: '2026-04-06T12:00:00.000Z' },
                     updatedAt: { type: 'string', example: '2026-04-06T12:00:00.000Z' },
                   },
@@ -241,14 +241,14 @@ module.exports = {
       },
       async handler(ctx) {
         const { namespace, key, payload } = ctx.params;
-        const id  = docId(namespace, key);
+        const id = docId(namespace, key);
         const now = new Date().toISOString();
 
         let rev;
         let createdAt = now;
         try {
           const existing = await this.db.get(id);
-          rev       = existing._rev;
+          rev = existing._rev;
           createdAt = existing.createdAt || now;
         } catch (_) {
           // New document — no _rev needed.
@@ -257,7 +257,7 @@ module.exports = {
         const doc = {
           _id: id,
           ...(rev ? { _rev: rev } : {}),
-          ns:        namespace,
+          ns: namespace,
           payload,
           createdAt,
           updatedAt: now,
@@ -278,7 +278,7 @@ module.exports = {
       rest: 'DELETE /:namespace/:key',
       params: {
         namespace: { type: 'string', pattern: NS_PATTERN },
-        key:       { type: 'string', pattern: KEY_PATTERN },
+        key: { type: 'string', pattern: KEY_PATTERN },
       },
       openapi: {
         summary: 'Delete a document from the Object Store',
@@ -307,9 +307,9 @@ module.exports = {
                 schema: {
                   type: 'object',
                   properties: {
-                    success:   { type: 'boolean', example: true },
-                    namespace: { type: 'string',  example: 'znp_projects' },
-                    key:       { type: 'string',  example: 'a1b2c3d4' },
+                    success: { type: 'boolean', example: true },
+                    namespace: { type: 'string', example: 'znp_projects' },
+                    key: { type: 'string', example: 'a1b2c3d4' },
                   },
                 },
               },
@@ -351,9 +351,17 @@ module.exports = {
       rest: 'POST /:namespace/query',
       params: {
         namespace: { type: 'string', pattern: NS_PATTERN },
-        selector:  { type: 'object', default: {}, optional: true },
-        limit:     { type: 'number', integer: true, default: 50, max: 1000, min: 1, convert: true, optional: true },
-        skip:      { type: 'number', integer: true, default: 0, min: 0, convert: true, optional: true },
+        selector: { type: 'object', default: {}, optional: true },
+        limit: {
+          type: 'number',
+          integer: true,
+          default: 50,
+          max: 1000,
+          min: 1,
+          convert: true,
+          optional: true,
+        },
+        skip: { type: 'number', integer: true, default: 0, min: 0, convert: true, optional: true },
       },
       openapi: {
         summary: 'Query documents in a namespace (Mango selector)',
@@ -381,7 +389,8 @@ module.exports = {
                   selector: {
                     type: 'object',
                     example: { 'payload.status': 'active' },
-                    description: 'Mango selector for payload fields (namespace guard injected automatically).',
+                    description:
+                      'Mango selector for payload fields (namespace guard injected automatically).',
                   },
                   limit: {
                     type: 'integer',
@@ -420,8 +429,8 @@ module.exports = {
                         type: 'object',
                         properties: {
                           namespace: { type: 'string', example: 'znp_projects' },
-                          key:       { type: 'string', example: 'a1b2c3d4' },
-                          payload:   { type: 'object' },
+                          key: { type: 'string', example: 'a1b2c3d4' },
+                          payload: { type: 'object' },
                           createdAt: { type: 'string', example: '2026-04-06T12:00:00.000Z' },
                           updatedAt: { type: 'string', example: '2026-04-06T12:00:00.000Z' },
                         },
@@ -454,6 +463,5 @@ module.exports = {
         return { docs, totalDocs: docs.length };
       },
     },
-
   },
 };

@@ -7,10 +7,10 @@
  */
 
 const PRESETS = {
-  daily_morning:   '0 6 * * *',
+  daily_morning: '0 6 * * *',
   weekday_morning: '0 6 * * 1-5',
-  weekly_monday:   '0 6 * * 1',
-  monthly_first:   '0 6 1 * *',
+  weekly_monday: '0 6 * * 1',
+  monthly_first: '0 6 1 * *',
 };
 
 /** Debounce: skip if last run was within the same hour */
@@ -36,7 +36,9 @@ function resolvePreset(preset) {
  * @returns {{ minute: string, hour: string, dayOfMonth: string, month: string, dayOfWeek: string }}
  */
 function parseCronExpression(expr) {
-  const parts = String(expr || '').trim().split(/\s+/);
+  const parts = String(expr || '')
+    .trim()
+    .split(/\s+/);
   if (parts.length !== 5) {
     throw new Error(`Invalid cron expression (must have 5 fields): "${expr}"`);
   }

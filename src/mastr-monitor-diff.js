@@ -2,10 +2,10 @@
 
 const MASTR_LABELS = {
   einheitBetriebsstatus: {
-    '31': 'In Planung',
-    '35': 'In Betrieb',
-    '37': 'Vorübergehend stillgelegt',
-    '38': 'Dauerhaft stillgelegt',
+    31: 'In Planung',
+    35: 'In Betrieb',
+    37: 'Vorübergehend stillgelegt',
+    38: 'Dauerhaft stillgelegt',
   },
   netzbetreiberpruefungStatus: {
     2954: 'Geprüft',
@@ -110,8 +110,7 @@ function computeDelta(prevSnapshot, currSnapshot, watchFields = []) {
       const status = String(prev?.einheitBetriebsstatus || '');
       removed.push({
         ...prev,
-        removalReason:
-          status === '37' || status === '38' ? 'Stilllegung' : 'Nicht mehr im Filter',
+        removalReason: status === '37' || status === '38' ? 'Stilllegung' : 'Nicht mehr im Filter',
       });
     }
   }

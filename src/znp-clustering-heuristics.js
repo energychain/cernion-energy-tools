@@ -61,9 +61,7 @@ function haversineDistanceM(lat1, lon1, lat2, lon2) {
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-    Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLon / 2) ** 2;
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -80,9 +78,9 @@ function haversineDistanceM(lat1, lon1, lat2, lon2) {
  * @returns {Array<{ assetType, memberCount, centroid, memberNodeKeys }>}
  */
 function detectClusters(assets, radiusM = CLUSTER_RADIUS_M, minAssets = CLUSTER_MIN_ASSETS) {
-  const clusters  = [];
-  const assigned  = new Set();
-  const valid     = assets.filter((a) => a.lat != null && a.lon != null);
+  const clusters = [];
+  const assigned = new Set();
+  const valid = assets.filter((a) => a.lat != null && a.lon != null);
 
   for (let i = 0; i < valid.length; i++) {
     if (assigned.has(i)) continue;
@@ -101,9 +99,9 @@ function detectClusters(assets, radiusM = CLUSTER_RADIUS_M, minAssets = CLUSTER_
     if (members.length >= minAssets) {
       members.forEach((idx) => assigned.add(idx));
       clusters.push({
-        assetType:      seed.assetType || 'unknown',
-        memberCount:    members.length,
-        centroid:       { lat: seed.lat, lon: seed.lon },
+        assetType: seed.assetType || 'unknown',
+        memberCount: members.length,
+        centroid: { lat: seed.lat, lon: seed.lon },
         memberNodeKeys: members.map((idx) => valid[idx].nodeKey),
       });
     }

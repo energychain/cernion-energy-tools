@@ -19,11 +19,7 @@ describe('edm-validation-rules', () => {
   });
 
   test('GAP_DETECTION: findet fehlende Timestamps', () => {
-    const timestamps = [
-      '2026-04-01T00:00:00Z',
-      '2026-04-01T00:15:00Z',
-      '2026-04-01T00:45:00Z',
-    ];
+    const timestamps = ['2026-04-01T00:00:00Z', '2026-04-01T00:15:00Z', '2026-04-01T00:45:00Z'];
 
     const gaps = findGaps(timestamps, 900);
     expect(gaps.length).toBe(1);
@@ -31,11 +27,7 @@ describe('edm-validation-rules', () => {
   });
 
   test('GAP_DETECTION: keine Lücken → leer', () => {
-    const timestamps = [
-      '2026-04-01T00:00:00Z',
-      '2026-04-01T00:15:00Z',
-      '2026-04-01T00:30:00Z',
-    ];
+    const timestamps = ['2026-04-01T00:00:00Z', '2026-04-01T00:15:00Z', '2026-04-01T00:30:00Z'];
 
     expect(findGaps(timestamps, 900).length).toBe(0);
   });

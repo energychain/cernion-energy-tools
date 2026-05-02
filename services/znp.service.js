@@ -61,7 +61,7 @@ const { normaliseBoolFlag } = require('../src/redispatch-utils');
 const SUBSTATION_KEY = 'SUB_1';
 
 /** PouchDB document prefix — metadata documents (bbox, name, layers, stats). */
-const DOC_PREFIX_META  = 'znp:meta:';
+const DOC_PREFIX_META = 'znp:meta:';
 
 /** PouchDB document prefix — serialised graph data (graphology export blob). */
 const DOC_PREFIX_GRAPH = 'znp:graph:';
@@ -87,9 +87,9 @@ const STRATEGIC_PROMPTS_SCHEMA = {
 const ASSUMPTION_SCHEMA = {
   type: SchemaType.OBJECT,
   properties: {
-    assetType:      { type: SchemaType.STRING },
-    capacityKW:     { type: SchemaType.NUMBER },
-    status:         { type: SchemaType.STRING },
+    assetType: { type: SchemaType.STRING },
+    capacityKW: { type: SchemaType.NUMBER },
+    status: { type: SchemaType.STRING },
     hasFlexibleNav: { type: SchemaType.BOOLEAN },
   },
   required: ['assetType', 'capacityKW', 'status', 'hasFlexibleNav'],
@@ -132,7 +132,6 @@ module.exports = {
   // ─── Actions ────────────────────────────────────────────────────────────────
 
   actions: {
-
     /**
      * createProject — Create a new empty ZNP workspace graph.
      *
@@ -150,9 +149,9 @@ module.exports = {
           type: 'object',
           props: {
             south: { type: 'number', convert: true },
-            west:  { type: 'number', convert: true },
+            west: { type: 'number', convert: true },
             north: { type: 'number', convert: true },
-            east:  { type: 'number', convert: true },
+            east: { type: 'number', convert: true },
           },
         },
         name: { type: 'string', optional: true, max: 120 },
@@ -180,9 +179,9 @@ module.exports = {
                     example: { south: 49.47, west: 8.43, north: 49.52, east: 8.52 },
                     properties: {
                       south: { type: 'number', example: 49.47 },
-                      west:  { type: 'number', example: 8.43 },
+                      west: { type: 'number', example: 8.43 },
                       north: { type: 'number', example: 49.52 },
-                      east:  { type: 'number', example: 8.52 },
+                      east: { type: 'number', example: 8.52 },
                     },
                   },
                   name: { type: 'string', example: 'Ludwigshafen Nord Q3-2026' },
@@ -207,10 +206,10 @@ module.exports = {
                 schema: {
                   type: 'object',
                   properties: {
-                    projectId:  { type: 'string', example: 'a1b2c3d4-...' },
-                    name:       { type: 'string' },
-                    bbox:       { type: 'object' },
-                    createdAt:  { type: 'string', format: 'date-time' },
+                    projectId: { type: 'string', example: 'a1b2c3d4-...' },
+                    name: { type: 'string' },
+                    bbox: { type: 'object' },
+                    createdAt: { type: 'string', format: 'date-time' },
                     graphStats: { type: 'object' },
                   },
                 },
@@ -243,7 +242,7 @@ module.exports = {
           name: projectName,
           createdAt,
           layers: [],
-          layer1GFactorAdjustment: 1.0,  // updated by addLayer1 when clustering is computed
+          layer1GFactorAdjustment: 1.0, // updated by addLayer1 when clustering is computed
           layer2CalibrationFactor: 0,
           layer2MeasuredPeakLoadKw: 0,
           layer2TransformerId: null,
@@ -302,13 +301,13 @@ module.exports = {
           items: {
             type: 'object',
             props: {
-              mastrNummer:      { type: 'string' },
-              capacity:         { type: 'number', convert: true },  // kW — accepts string from form-data
-              assetType:        { type: 'string', optional: true },
-              lat:              { type: 'number', optional: true, convert: true },
-              lon:              { type: 'number', optional: true, convert: true },
-              status:           { type: 'string', optional: true },
-              commissioningDate:{ type: 'string', optional: true },
+              mastrNummer: { type: 'string' },
+              capacity: { type: 'number', convert: true }, // kW — accepts string from form-data
+              assetType: { type: 'string', optional: true },
+              lat: { type: 'number', optional: true, convert: true },
+              lon: { type: 'number', optional: true, convert: true },
+              status: { type: 'string', optional: true },
+              commissioningDate: { type: 'string', optional: true },
               fernsteuerbarkeitDv: { type: 'boolean', optional: true, convert: true },
               fernsteuerbarkeitSonstige: { type: 'boolean', optional: true, convert: true },
             },
@@ -343,22 +342,58 @@ module.exports = {
                   assets: {
                     type: 'array',
                     example: [
-                      { mastrNummer: 'SEE900123456789', capacity: 10.5, assetType: 'solar', lat: 49.491, lon: 8.471 },
-                      { mastrNummer: 'SEE900987654321', capacity: 7.0, assetType: 'solar', lat: 49.492, lon: 8.472 },
+                      {
+                        mastrNummer: 'SEE900123456789',
+                        capacity: 10.5,
+                        assetType: 'solar',
+                        lat: 49.491,
+                        lon: 8.471,
+                      },
+                      {
+                        mastrNummer: 'SEE900987654321',
+                        capacity: 7.0,
+                        assetType: 'solar',
+                        lat: 49.492,
+                        lon: 8.472,
+                      },
                     ],
                     items: {
                       type: 'object',
                       required: ['mastrNummer', 'capacity'],
                       properties: {
-                        mastrNummer:      { type: 'string', example: 'SEE900123456789' },
-                        capacity:         { type: 'number', example: 10.5, description: 'kW' },
-                        assetType:        { type: 'string', example: 'solar' },
-                        lat:              { type: 'number', example: 49.491 },
-                        lon:              { type: 'number', example: 8.471 },
-                        status:           { type: 'string', example: 'InBetrieb', nullable: true, description: 'MaStR Betriebsstatus (optional, unvalidated string — MaStR date formats vary).' },
-                        commissioningDate:{ type: 'string', example: '2024-06-15', nullable: true, description: 'Commissioning date string (unvalidated — MaStR date formats vary).' },
-                        fernsteuerbarkeitDv: { type: 'boolean', example: true, nullable: true, description: 'Optional controlability marker from MaStR exports (stored as normalized boolean).' },
-                        fernsteuerbarkeitSonstige: { type: 'boolean', example: false, nullable: true, description: 'Optional fallback controlability marker from MaStR exports.' },
+                        mastrNummer: { type: 'string', example: 'SEE900123456789' },
+                        capacity: { type: 'number', example: 10.5, description: 'kW' },
+                        assetType: { type: 'string', example: 'solar' },
+                        lat: { type: 'number', example: 49.491 },
+                        lon: { type: 'number', example: 8.471 },
+                        status: {
+                          type: 'string',
+                          example: 'InBetrieb',
+                          nullable: true,
+                          description:
+                            'MaStR Betriebsstatus (optional, unvalidated string — MaStR date formats vary).',
+                        },
+                        commissioningDate: {
+                          type: 'string',
+                          example: '2024-06-15',
+                          nullable: true,
+                          description:
+                            'Commissioning date string (unvalidated — MaStR date formats vary).',
+                        },
+                        fernsteuerbarkeitDv: {
+                          type: 'boolean',
+                          example: true,
+                          nullable: true,
+                          description:
+                            'Optional controlability marker from MaStR exports (stored as normalized boolean).',
+                        },
+                        fernsteuerbarkeitSonstige: {
+                          type: 'boolean',
+                          example: false,
+                          nullable: true,
+                          description:
+                            'Optional fallback controlability marker from MaStR exports.',
+                        },
                       },
                     },
                   },
@@ -368,8 +403,20 @@ module.exports = {
                 default: {
                   value: {
                     assets: [
-                      { mastrNummer: 'SEE900123456789', capacity: 10.5, assetType: 'solar', lat: 49.491, lon: 8.471 },
-                      { mastrNummer: 'SEE900987654321', capacity: 7.0, assetType: 'solar', lat: 49.492, lon: 8.472 },
+                      {
+                        mastrNummer: 'SEE900123456789',
+                        capacity: 10.5,
+                        assetType: 'solar',
+                        lat: 49.491,
+                        lon: 8.471,
+                      },
+                      {
+                        mastrNummer: 'SEE900987654321',
+                        capacity: 7.0,
+                        assetType: 'solar',
+                        lat: 49.492,
+                        lon: 8.472,
+                      },
                     ],
                   },
                 },
@@ -418,15 +465,15 @@ module.exports = {
 
           // Add asset node with full attributes
           graph.addNode(nodeKey, {
-            type:              'mastr_asset',
-            mastrNummer:       asset.mastrNummer,
-            capacity:          asset.capacity,        // kW
-            capacity_kw:       asset.capacity,        // kW alias for NOVA/Redispatch logic
-            assetType:         asset.assetType || 'unknown',
-            lat:               asset.lat ?? null,
-            lon:               asset.lon ?? null,
-            layer:             0,
-            status:            asset.status || null,
+            type: 'mastr_asset',
+            mastrNummer: asset.mastrNummer,
+            capacity: asset.capacity, // kW
+            capacity_kw: asset.capacity, // kW alias for NOVA/Redispatch logic
+            assetType: asset.assetType || 'unknown',
+            lat: asset.lat ?? null,
+            lon: asset.lon ?? null,
+            layer: 0,
+            status: asset.status || null,
             commissioningDate: asset.commissioningDate || null,
             fernsteuerbarkeitDv: normaliseBoolFlag(asset.fernsteuerbarkeitDv),
             fernsteuerbarkeitSonstige: normaliseBoolFlag(asset.fernsteuerbarkeitSonstige),
@@ -447,7 +494,7 @@ module.exports = {
 
         this.logger.info(
           `[znp] addLayer0 project=${projectId}: +${nodesAdded} nodes, +${edgesAdded} edges` +
-          (skipped.length ? `, skipped=${skipped.length}` : '')
+            (skipped.length ? `, skipped=${skipped.length}` : '')
         );
 
         return {
@@ -505,89 +552,113 @@ module.exports = {
         responses: {
           202: {
             description: 'Job accepted — poll statusUrl for progress logs and result.',
-            content: { 'application/json': { schema: { type: 'object', properties: {
-              jobId:     { type: 'string' },
-              statusUrl: { type: 'string' },
-              resultUrl: { type: 'string' },
-            } } } },
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    jobId: { type: 'string' },
+                    statusUrl: { type: 'string' },
+                    resultUrl: { type: 'string' },
+                  },
+                },
+              },
+            },
           },
         },
       },
       async handler(ctx) {
         const { projectId } = ctx.params;
         await this.ensureProjectHydrated(projectId);
-        const project = this.getProject(projectId);  // throws 404 if unknown
+        const project = this.getProject(projectId); // throws 404 if unknown
         const { graph, bbox } = project;
         const activeGraphs = this.activeGraphs;
-        const updateMeta   = this.updateProjectMeta.bind(this);
+        const updateMeta = this.updateProjectMeta.bind(this);
         const persistGraph = this.persistGraph.bind(this);
-        const logger       = this.logger;
+        const logger = this.logger;
 
-        return jobStore.startJob(
-          ctx,
-          { service: 'znp', action: 'addLayer1' },
-          async (jobId) => {
-            appendLog(jobId, 'osm_fetch', 10, `Lade OSM-Gebäude für BBox (${TILE_N}×${TILE_N} Kacheln)...`);
+        return jobStore.startJob(ctx, { service: 'znp', action: 'addLayer1' }, async (jobId) => {
+          appendLog(
+            jobId,
+            'osm_fetch',
+            10,
+            `Lade OSM-Gebäude für BBox (${TILE_N}×${TILE_N} Kacheln)...`
+          );
 
-            const buildings = await fetchBuildingsForBbox(bbox, (tileNum, total) => {
-              const pct = 10 + Math.round((tileNum / total) * 30);
-              appendLog(jobId, 'osm_fetch', pct, `Lade Kachel ${tileNum}/${total}...`);
-            });
+          const buildings = await fetchBuildingsForBbox(bbox, (tileNum, total) => {
+            const pct = 10 + Math.round((tileNum / total) * 30);
+            appendLog(jobId, 'osm_fetch', pct, `Lade Kachel ${tileNum}/${total}...`);
+          });
 
-            appendLog(jobId, 'spatial_mapping', 45, `Mappe Assets auf ${buildings.length} Gebäude...`);
+          appendLog(
+            jobId,
+            'spatial_mapping',
+            45,
+            `Mappe Assets auf ${buildings.length} Gebäude...`
+          );
 
-            const assetNodes = [];
-            graph.forEachNode((nodeKey, attrs) => {
-              if (attrs.type === 'mastr_asset' && attrs.lat != null && attrs.lon != null) {
-                assetNodes.push({ nodeKey, ...attrs });
-              }
-            });
-
-            const mappings = mapAssetsToBuildings(assetNodes, buildings);
-            let buildingNodesAdded    = 0;
-            let locatedInEdgesAdded   = 0;
-
-            for (const { assetNodeKey, buildingOsmId, building } of mappings) {
-              const bKey = `osm:${buildingOsmId}`;
-              if (!graph.hasNode(bKey)) {
-                graph.addNode(bKey, {
-                  type: 'OSM_Building', osmId: buildingOsmId,
-                  centroidLat: building.centroid.lat,
-                  centroidLon: building.centroid.lon,
-                  layer: 1,
-                });
-                buildingNodesAdded++;
-              }
-              if (!graph.hasEdge(assetNodeKey, bKey)) {
-                graph.addEdge(assetNodeKey, bKey, { relationship: 'oeo_located_in', layer: 1 });
-                locatedInEdgesAdded++;
-              }
+          const assetNodes = [];
+          graph.forEachNode((nodeKey, attrs) => {
+            if (attrs.type === 'mastr_asset' && attrs.lat != null && attrs.lon != null) {
+              assetNodes.push({ nodeKey, ...attrs });
             }
+          });
 
-            appendLog(jobId, 'clustering', 70, 'Berechne Cluster-Dichte und g-Faktor-Anpassung...');
+          const mappings = mapAssetsToBuildings(assetNodes, buildings);
+          let buildingNodesAdded = 0;
+          let locatedInEdgesAdded = 0;
 
-            const clusters          = detectClusters(assetNodes);
-            const gFactorAdjustment = computeGFactorAdjustment(clusters);
-
-            const updatedProject = activeGraphs.get(projectId);
-            if (updatedProject) updatedProject.layer1GFactorAdjustment = gFactorAdjustment;
-
-            await updateMeta(projectId, graph, 'layer1');
-            await persistGraph(projectId, graph);
-
-            appendLog(
-              jobId, 'done', 100,
-              `Layer 1 geladen: ${buildingNodesAdded} Gebäude, ${clusters.length} Cluster. ` +
-              `g-Faktor Anpassung: ×${gFactorAdjustment.toFixed(2)}`
-            );
-            logger.info(`[znp] addLayer1 project=${projectId}: +${buildingNodesAdded} buildings, ` +
-              `${clusters.length} clusters, g×${gFactorAdjustment.toFixed(2)}`);
-
-            return { projectId, buildingNodesAdded, locatedInEdgesAdded,
-              clusterCount: clusters.length, gFactorAdjustment,
-              totalNodes: graph.order, totalEdges: graph.size };
+          for (const { assetNodeKey, buildingOsmId, building } of mappings) {
+            const bKey = `osm:${buildingOsmId}`;
+            if (!graph.hasNode(bKey)) {
+              graph.addNode(bKey, {
+                type: 'OSM_Building',
+                osmId: buildingOsmId,
+                centroidLat: building.centroid.lat,
+                centroidLon: building.centroid.lon,
+                layer: 1,
+              });
+              buildingNodesAdded++;
+            }
+            if (!graph.hasEdge(assetNodeKey, bKey)) {
+              graph.addEdge(assetNodeKey, bKey, { relationship: 'oeo_located_in', layer: 1 });
+              locatedInEdgesAdded++;
+            }
           }
-        );
+
+          appendLog(jobId, 'clustering', 70, 'Berechne Cluster-Dichte und g-Faktor-Anpassung...');
+
+          const clusters = detectClusters(assetNodes);
+          const gFactorAdjustment = computeGFactorAdjustment(clusters);
+
+          const updatedProject = activeGraphs.get(projectId);
+          if (updatedProject) updatedProject.layer1GFactorAdjustment = gFactorAdjustment;
+
+          await updateMeta(projectId, graph, 'layer1');
+          await persistGraph(projectId, graph);
+
+          appendLog(
+            jobId,
+            'done',
+            100,
+            `Layer 1 geladen: ${buildingNodesAdded} Gebäude, ${clusters.length} Cluster. ` +
+              `g-Faktor Anpassung: ×${gFactorAdjustment.toFixed(2)}`
+          );
+          logger.info(
+            `[znp] addLayer1 project=${projectId}: +${buildingNodesAdded} buildings, ` +
+              `${clusters.length} clusters, g×${gFactorAdjustment.toFixed(2)}`
+          );
+
+          return {
+            projectId,
+            buildingNodesAdded,
+            locatedInEdgesAdded,
+            clusterCount: clusters.length,
+            gFactorAdjustment,
+            totalNodes: graph.order,
+            totalEdges: graph.size,
+          };
+        });
       },
     },
 
@@ -608,7 +679,7 @@ module.exports = {
       rest: 'POST /projects/:projectId/layer2',
       params: {
         projectId: { type: 'string' },
-        filePath:  { type: 'string', min: 3, optional: true },
+        filePath: { type: 'string', min: 3, optional: true },
         fileContentBase64: { type: 'string', min: 16, optional: true },
         fileName: { type: 'string', min: 1, optional: true },
       },
@@ -640,21 +711,24 @@ module.exports = {
               schema: {
                 type: 'object',
                 properties: {
-                  filePath: { type: 'string', example: '/opt/cernion-energy-tools/uploads/lastprofil_trafo.pdf' },
+                  filePath: {
+                    type: 'string',
+                    example: '/opt/cernion-energy-tools/uploads/lastprofil_trafo.pdf',
+                  },
                   fileContentBase64: { type: 'string', example: 'JVBERi0xLjQKJcfs...' },
                   fileName: { type: 'string', example: 'lastprofil_trafo.pdf' },
                 },
-                oneOf: [
-                  { required: ['filePath'] },
-                  { required: ['fileContentBase64'] },
-                ],
+                oneOf: [{ required: ['filePath'] }, { required: ['fileContentBase64'] }],
               },
               examples: {
-                byPath: { value: { filePath: '/opt/cernion-energy-tools/uploads/lastprofil_trafo.pdf' } },
+                byPath: {
+                  value: { filePath: '/opt/cernion-energy-tools/uploads/lastprofil_trafo.pdf' },
+                },
                 byBase64: {
                   value: {
                     fileName: 'lastprofil_trafo_2025.pdf',
-                    fileContentBase64: 'data:application/pdf;base64,JVBERi0xLjQKJcfsj6IKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PgplbmRvYmoK',
+                    fileContentBase64:
+                      'data:application/pdf;base64,JVBERi0xLjQKJcfsj6IKMSAwIG9iago8PC9UeXBlL0NhdGFsb2c+PgplbmRvYmoK',
                   },
                 },
               },
@@ -670,7 +744,7 @@ module.exports = {
                   type: 'object',
                   properties: {
                     success: { type: 'boolean' },
-                    jobId:     { type: 'string' },
+                    jobId: { type: 'string' },
                     status: { type: 'string' },
                     message: { type: 'string' },
                     statusUrl: { type: 'string' },
@@ -705,138 +779,157 @@ module.exports = {
         }
 
         await this.ensureProjectHydrated(projectId);
-        const project      = this.getProject(projectId);  // throws 404 if unknown
-        const { graph }    = project;
-        const updateMeta   = this.updateProjectMeta.bind(this);
+        const project = this.getProject(projectId); // throws 404 if unknown
+        const { graph } = project;
+        const updateMeta = this.updateProjectMeta.bind(this);
         const persistGraph = this.persistGraph.bind(this);
-        const logger       = this.logger;
+        const logger = this.logger;
 
-        return jobStore.startJob(
-          ctx,
-          { service: 'znp', action: 'addLayer2' },
-          async (jobId) => {
-            if (jobId) jobStore.updateJob(jobId, { status: 'running' });
-            appendLog(jobId, 'pdf_parse', 10, 'Lese PDF...');
-            const extraction = await (async () => {
-              appendLog(jobId, 'llm_extract', 40, 'Übergebe PDF an LLM-Extraktion...');
-              if (fileContentBase64) {
-                const pdfBuffer = this.decodePdfBase64(fileContentBase64);
-                const value = await extractLayer2CalibrationFromBuffer(pdfBuffer);
-                appendLog(jobId, 'llm_extract', 70, `Peak ${value.peakLoadKw} kW und Trafo ${value.transformerId} extrahiert.`);
-                return value;
-              }
-
-              const value = await extractLayer2CalibrationFromFile(filePath);
-              appendLog(jobId, 'llm_extract', 70, `Peak ${value.peakLoadKw} kW und Trafo ${value.transformerId} extrahiert.`);
+        return jobStore.startJob(ctx, { service: 'znp', action: 'addLayer2' }, async (jobId) => {
+          if (jobId) jobStore.updateJob(jobId, { status: 'running' });
+          appendLog(jobId, 'pdf_parse', 10, 'Lese PDF...');
+          const extraction = await (async () => {
+            appendLog(jobId, 'llm_extract', 40, 'Übergebe PDF an LLM-Extraktion...');
+            if (fileContentBase64) {
+              const pdfBuffer = this.decodePdfBase64(fileContentBase64);
+              const value = await extractLayer2CalibrationFromBuffer(pdfBuffer);
+              appendLog(
+                jobId,
+                'llm_extract',
+                70,
+                `Peak ${value.peakLoadKw} kW und Trafo ${value.transformerId} extrahiert.`
+              );
               return value;
-            })();
+            }
 
-            const { peakLoadKw, transformerId, nominalCapacityKw } = extraction;
-            const layer1Result = await this.broker.call('znp.calculateGFactor', {
-              projectId,
-              substationId: SUBSTATION_KEY,
-              target_layer: 1,
-            });
-            const layer1NominalCapacityKw = Math.round((layer1Result.totalCapacityKW || 0) * 1000) / 1000;
-            const calibrationGFactor = layer1NominalCapacityKw > 0
+            const value = await extractLayer2CalibrationFromFile(filePath);
+            appendLog(
+              jobId,
+              'llm_extract',
+              70,
+              `Peak ${value.peakLoadKw} kW und Trafo ${value.transformerId} extrahiert.`
+            );
+            return value;
+          })();
+
+          const { peakLoadKw, transformerId, nominalCapacityKw } = extraction;
+          const layer1Result = await this.broker.call('znp.calculateGFactor', {
+            projectId,
+            substationId: SUBSTATION_KEY,
+            target_layer: 1,
+          });
+          const layer1NominalCapacityKw =
+            Math.round((layer1Result.totalCapacityKW || 0) * 1000) / 1000;
+          const calibrationGFactor =
+            layer1NominalCapacityKw > 0
               ? Math.round((peakLoadKw / layer1NominalCapacityKw) * 1000) / 1000
               : 0;
-            const sourceFileName = fileName || (filePath ? path.basename(filePath) : 'inline-upload.pdf');
+          const sourceFileName =
+            fileName || (filePath ? path.basename(filePath) : 'inline-upload.pdf');
 
-            appendLog(jobId, 'graph_update', 80, `Schreibe Measurement- und Calibration-Node (${peakLoadKw} kW) an ${SUBSTATION_KEY}...`);
-            const measurementKey = `measurement:peak_load:${SUBSTATION_KEY}`;
-            if (!graph.hasNode(measurementKey)) {
-              graph.addNode(measurementKey, {
-                type: 'measurement', metricType: 'peak_load',
-                value: peakLoadKw, unit: 'kW', layer: 2,
-                transformerId,
-                nominalCapacityKw,
-                sourceFileName,
-              });
-              graph.addEdge(measurementKey, SUBSTATION_KEY, {
-                relationship: 'oeo_measures', metric: 'peak_load_measured', layer: 2,
-              });
-            } else {
-              graph.setNodeAttribute(measurementKey, 'value', peakLoadKw);
-              graph.setNodeAttribute(measurementKey, 'transformerId', transformerId);
-              graph.setNodeAttribute(measurementKey, 'nominalCapacityKw', nominalCapacityKw);
-              graph.setNodeAttribute(measurementKey, 'sourceFileName', sourceFileName);
-            }
-
-            const calibrationKey = `calibration:substation:${SUBSTATION_KEY}`;
-            const calibrationPayload = {
-              type: 'calibration_node',
-              metricType: 'layer2_calibration',
-              peakLoadKw,
-              transformerId,
-              nominalCapacityKw,
-              layer1NominalCapacityKw,
-              calibrationGFactor,
-              sourceFileName,
+          appendLog(
+            jobId,
+            'graph_update',
+            80,
+            `Schreibe Measurement- und Calibration-Node (${peakLoadKw} kW) an ${SUBSTATION_KEY}...`
+          );
+          const measurementKey = `measurement:peak_load:${SUBSTATION_KEY}`;
+          if (!graph.hasNode(measurementKey)) {
+            graph.addNode(measurementKey, {
+              type: 'measurement',
+              metricType: 'peak_load',
+              value: peakLoadKw,
+              unit: 'kW',
               layer: 2,
-              updatedAt: new Date().toISOString(),
-            };
-
-            if (!graph.hasNode(calibrationKey)) {
-              graph.addNode(calibrationKey, calibrationPayload);
-              graph.addEdge(calibrationKey, SUBSTATION_KEY, {
-                relationship: 'calibrates',
-                metric: 'layer2_g_factor',
-                layer: 2,
-              });
-            } else {
-              for (const [key, value] of Object.entries(calibrationPayload)) {
-                graph.setNodeAttribute(calibrationKey, key, value);
-              }
-            }
-
-            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2Active', true);
-            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2MeasuredPeakLoadKw', peakLoadKw);
-            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2TransformerId', transformerId);
-            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2NominalCapacityKw', nominalCapacityKw);
-            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2SourceFileName', sourceFileName);
-            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2CalibrationGFactor', calibrationGFactor);
-            graph.setNodeAttribute(SUBSTATION_KEY, 'layer2UpdatedAt', new Date().toISOString());
-
-            project.layer2CalibrationFactor = calibrationGFactor;
-            project.layer2MeasuredPeakLoadKw = peakLoadKw;
-            project.layer2TransformerId = transformerId;
-            project.layer2NominalCapacityKw = nominalCapacityKw;
-
-            await updateMeta(projectId, graph, 'layer2');
-            await persistGraph(projectId, graph);
-
-            this.emitLayer2ActivatedEvent(projectId, {
-              measurementKey,
-              calibrationKey,
-              peakLoadKw,
               transformerId,
               nominalCapacityKw,
-              layer1NominalCapacityKw,
-              calibrationGFactor,
               sourceFileName,
             });
-
-            appendLog(jobId, 'done', 100, 'Layer 2 erfolgreich geladen.');
-            logger.info(
-              `[znp] addLayer2 project=${projectId}: peak_load=${peakLoadKw} kW, ` +
-              `trafo=${transformerId}, nominal_kw=${nominalCapacityKw}, calibration_g=${calibrationGFactor}`
-            );
-
-            return {
-              projectId,
-              measurementKey,
-              calibrationKey,
-              peakLoadKw,
-              transformerId,
-              nominalCapacityKw,
-              layer1NominalCapacityKw,
-              calibrationGFactor,
-              totalNodes: graph.order,
-              totalEdges: graph.size,
-            };
+            graph.addEdge(measurementKey, SUBSTATION_KEY, {
+              relationship: 'oeo_measures',
+              metric: 'peak_load_measured',
+              layer: 2,
+            });
+          } else {
+            graph.setNodeAttribute(measurementKey, 'value', peakLoadKw);
+            graph.setNodeAttribute(measurementKey, 'transformerId', transformerId);
+            graph.setNodeAttribute(measurementKey, 'nominalCapacityKw', nominalCapacityKw);
+            graph.setNodeAttribute(measurementKey, 'sourceFileName', sourceFileName);
           }
-        );
+
+          const calibrationKey = `calibration:substation:${SUBSTATION_KEY}`;
+          const calibrationPayload = {
+            type: 'calibration_node',
+            metricType: 'layer2_calibration',
+            peakLoadKw,
+            transformerId,
+            nominalCapacityKw,
+            layer1NominalCapacityKw,
+            calibrationGFactor,
+            sourceFileName,
+            layer: 2,
+            updatedAt: new Date().toISOString(),
+          };
+
+          if (!graph.hasNode(calibrationKey)) {
+            graph.addNode(calibrationKey, calibrationPayload);
+            graph.addEdge(calibrationKey, SUBSTATION_KEY, {
+              relationship: 'calibrates',
+              metric: 'layer2_g_factor',
+              layer: 2,
+            });
+          } else {
+            for (const [key, value] of Object.entries(calibrationPayload)) {
+              graph.setNodeAttribute(calibrationKey, key, value);
+            }
+          }
+
+          graph.setNodeAttribute(SUBSTATION_KEY, 'layer2Active', true);
+          graph.setNodeAttribute(SUBSTATION_KEY, 'layer2MeasuredPeakLoadKw', peakLoadKw);
+          graph.setNodeAttribute(SUBSTATION_KEY, 'layer2TransformerId', transformerId);
+          graph.setNodeAttribute(SUBSTATION_KEY, 'layer2NominalCapacityKw', nominalCapacityKw);
+          graph.setNodeAttribute(SUBSTATION_KEY, 'layer2SourceFileName', sourceFileName);
+          graph.setNodeAttribute(SUBSTATION_KEY, 'layer2CalibrationGFactor', calibrationGFactor);
+          graph.setNodeAttribute(SUBSTATION_KEY, 'layer2UpdatedAt', new Date().toISOString());
+
+          project.layer2CalibrationFactor = calibrationGFactor;
+          project.layer2MeasuredPeakLoadKw = peakLoadKw;
+          project.layer2TransformerId = transformerId;
+          project.layer2NominalCapacityKw = nominalCapacityKw;
+
+          await updateMeta(projectId, graph, 'layer2');
+          await persistGraph(projectId, graph);
+
+          this.emitLayer2ActivatedEvent(projectId, {
+            measurementKey,
+            calibrationKey,
+            peakLoadKw,
+            transformerId,
+            nominalCapacityKw,
+            layer1NominalCapacityKw,
+            calibrationGFactor,
+            sourceFileName,
+          });
+
+          appendLog(jobId, 'done', 100, 'Layer 2 erfolgreich geladen.');
+          logger.info(
+            `[znp] addLayer2 project=${projectId}: peak_load=${peakLoadKw} kW, ` +
+              `trafo=${transformerId}, nominal_kw=${nominalCapacityKw}, calibration_g=${calibrationGFactor}`
+          );
+
+          return {
+            projectId,
+            measurementKey,
+            calibrationKey,
+            peakLoadKw,
+            transformerId,
+            nominalCapacityKw,
+            layer1NominalCapacityKw,
+            calibrationGFactor,
+            totalNodes: graph.order,
+            totalEdges: graph.size,
+          };
+        });
       },
     },
 
@@ -857,8 +950,16 @@ module.exports = {
     calculateGFactor: {
       rest: 'GET /projects/:projectId/g-factor',
       params: {
-        projectId:    { type: 'string' },
-        target_layer: { type: 'number', integer: true, optional: true, default: 0, min: 0, max: 2, convert: true },
+        projectId: { type: 'string' },
+        target_layer: {
+          type: 'number',
+          integer: true,
+          optional: true,
+          default: 0,
+          min: 0,
+          max: 2,
+          convert: true,
+        },
         substationId: { type: 'string', optional: true, default: SUBSTATION_KEY },
       },
       openapi: {
@@ -902,13 +1003,13 @@ module.exports = {
                 schema: {
                   type: 'object',
                   properties: {
-                    projectId:            { type: 'string' },
-                    substationId:         { type: 'string' },
-                    targetLayer:          { type: 'integer' },
-                    assetCount:           { type: 'integer' },
-                    totalCapacityKW:      { type: 'number' },
-                    simultaneityFactor:   { type: 'number' },
-                    adjustedCapacityKW:   { type: 'number' },
+                    projectId: { type: 'string' },
+                    substationId: { type: 'string' },
+                    targetLayer: { type: 'integer' },
+                    assetCount: { type: 'integer' },
+                    totalCapacityKW: { type: 'number' },
+                    simultaneityFactor: { type: 'number' },
+                    adjustedCapacityKW: { type: 'number' },
                   },
                 },
               },
@@ -939,7 +1040,7 @@ module.exports = {
         //   assumption     — strategic planning node (layer 2.5, Issues 3)
         //                    §14a EnWG: hasFlexibleNav=true → emergency throttle (g=0.45)
         let totalCapacityKW = 0;
-        let assetCount      = 0;
+        let assetCount = 0;
         let flexNavExcluded = 0;
 
         graph.forEachInEdge(substationId, (edgeKey, edgeAttrs, sourceKey) => {
@@ -983,12 +1084,14 @@ module.exports = {
           const measurementKey = `measurement:peak_load:${substationId}`;
           if (graph.hasNode(measurementKey)) {
             const measuredLoad = graph.getNodeAttributes(measurementKey).value;
-            const gFactor = totalCapacityKW > 0
-              ? Math.round((measuredLoad / totalCapacityKW) * 1000) / 1000
-              : 0;
+            const gFactor =
+              totalCapacityKW > 0 ? Math.round((measuredLoad / totalCapacityKW) * 1000) / 1000 : 0;
             return {
-              projectId, substationId, targetLayer, assetCount,
-              totalCapacityKW:    Math.round(totalCapacityKW * 1000) / 1000,
+              projectId,
+              substationId,
+              targetLayer,
+              assetCount,
+              totalCapacityKW: Math.round(totalCapacityKW * 1000) / 1000,
               simultaneityFactor: gFactor,
               adjustedCapacityKW: Math.round(measuredLoad * 1000) / 1000,
               layer2ShortCircuit: true,
@@ -1003,15 +1106,15 @@ module.exports = {
 
         // ── Layer 1 clustering adjustment (multiplied on top of VDE factor) ───
         const clusterMultiplier =
-          (targetLayer >= 1 && project.layer1GFactorAdjustment)
+          targetLayer >= 1 && project.layer1GFactorAdjustment
             ? project.layer1GFactorAdjustment
             : 1.0;
         const adjustedCapacityKW = totalCapacityKW * simultaneityFactor * clusterMultiplier;
 
         this.logger.debug(
           `[znp] G-Factor project=${projectId} layer≤${targetLayer}: ` +
-          `n=${assetCount}, Σ=${totalCapacityKW} kW, g=${simultaneityFactor}, ` +
-          `cluster×${clusterMultiplier}, adj=${adjustedCapacityKW.toFixed(2)} kW`
+            `n=${assetCount}, Σ=${totalCapacityKW} kW, g=${simultaneityFactor}, ` +
+            `cluster×${clusterMultiplier}, adj=${adjustedCapacityKW.toFixed(2)} kW`
         );
 
         return {
@@ -1019,7 +1122,7 @@ module.exports = {
           substationId,
           targetLayer,
           assetCount,
-          totalCapacityKW:    Math.round(totalCapacityKW * 1000) / 1000,
+          totalCapacityKW: Math.round(totalCapacityKW * 1000) / 1000,
           simultaneityFactor: Math.round(simultaneityFactor * clusterMultiplier * 1000) / 1000,
           adjustedCapacityKW: Math.round(adjustedCapacityKW * 1000) / 1000,
           flexNavExcluded,
@@ -1052,7 +1155,9 @@ module.exports = {
           'as LLM context. Requires GEMINI_API_KEY \u2014 returns HTTP 503 if not configured.',
         parameters: [
           {
-            name: 'projectId', in: 'path', required: true,
+            name: 'projectId',
+            in: 'path',
+            required: true,
             schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000001' },
           },
         ],
@@ -1064,8 +1169,8 @@ module.exports = {
                 schema: {
                   type: 'object',
                   properties: {
-                    projectId:    { type: 'string' },
-                    questions:    { type: 'array', items: { type: 'string' } },
+                    projectId: { type: 'string' },
+                    questions: { type: 'array', items: { type: 'string' } },
                     graphSummary: { type: 'object' },
                   },
                 },
@@ -1078,8 +1183,8 @@ module.exports = {
       async handler(ctx) {
         const { projectId } = ctx.params;
         await this.ensureProjectHydrated(projectId);
-        const project       = this.getProject(projectId);
-        const { graph }     = project;
+        const project = this.getProject(projectId);
+        const { graph } = project;
 
         // ── Build graph summary for LLM context ──────────────────────────────
         const assetTypes = {};
@@ -1099,14 +1204,14 @@ module.exports = {
         });
 
         const graphSummary = {
-          nodeCount:          graph.order,
-          edgeCount:          graph.size,
-          layers:             project.layers,
+          nodeCount: graph.order,
+          edgeCount: graph.size,
+          layers: project.layers,
           assetTypes,
-          totalCapacityKW:    Math.round(totalCapacityKW),
+          totalCapacityKW: Math.round(totalCapacityKW),
           hasMeasurements,
           assumptionCount,
-          bbox:               project.bbox,
+          bbox: project.bbox,
         };
 
         const prompt =
@@ -1123,7 +1228,7 @@ module.exports = {
 
         return {
           projectId,
-          questions:    Array.isArray(result.questions) ? result.questions : [],
+          questions: Array.isArray(result.questions) ? result.questions : [],
           graphSummary,
         };
       },
@@ -1165,8 +1270,8 @@ module.exports = {
         });
 
         this.applyAssumptionPeakShaving(graph, text, id);
-  await this.persistGraph(projectId, graph);
-  await this.updateProjectMeta(projectId, graph, 'layer2.5');
+        await this.persistGraph(projectId, graph);
+        await this.updateProjectMeta(projectId, graph, 'layer2.5');
         this.emitAssumptionConfirmedEventAsync(projectId, id, text);
 
         return { id, text };
@@ -1179,7 +1284,7 @@ module.exports = {
      * Calls Gemini with a strict JSON schema to extract asset type, capacity,
      * status, and §14a flex-NAV flag from free text. Inserts a StrategicAssumption
      * node (layer 2.5) and a CONTRIBUTES_LOAD edge to SUB_1. The flex-NAV flag
-    * controls §14a throttling in calculateGFactor (hasFlexibleNav=true → g=0.45).
+     * controls §14a throttling in calculateGFactor (hasFlexibleNav=true → g=0.45).
      * Persists the updated graph to PouchDB.
      *
      * POST /api/znp/projects/:projectId/assumptions
@@ -1188,7 +1293,7 @@ module.exports = {
       rest: 'POST /projects/:projectId/assumptions',
       params: {
         projectId: { type: 'string' },
-        text:      { type: 'string', min: 10, max: 2000 },
+        text: { type: 'string', min: 10, max: 2000 },
       },
       openapi: {
         summary: 'Ingest a natural-language planning assumption into the graph (AI)',
@@ -1203,9 +1308,7 @@ module.exports = {
           '{ type: "assumption-confirmed", data: { id: "<assumptionId>", text: "<originalText>" } } ' +
           'for NovaFeedStore/SSE consumers. ' +
           'Requires GEMINI_API_KEY \u2014 returns HTTP 503 if not configured.',
-        parameters: [
-          { name: 'projectId', in: 'path', required: true, schema: { type: 'string' } },
-        ],
+        parameters: [{ name: 'projectId', in: 'path', required: true, schema: { type: 'string' } }],
         requestBody: {
           content: {
             'application/json': {
@@ -1221,10 +1324,14 @@ module.exports = {
               },
               examples: {
                 flexNav: {
-                  value: { text: 'Wir planen einen 5 MW Speicher mit flexiblem NAV am Br\u00fcckweg.' },
+                  value: {
+                    text: 'Wir planen einen 5 MW Speicher mit flexiblem NAV am Br\u00fcckweg.',
+                  },
                 },
                 datacenter: {
-                  value: { text: 'Ein neues Rechenzentrum mit 3000 kW Anschlussleistung ist im Gewerbegebiet Nord geplant.' },
+                  value: {
+                    text: 'Ein neues Rechenzentrum mit 3000 kW Anschlussleistung ist im Gewerbegebiet Nord geplant.',
+                  },
                 },
               },
             },
@@ -1238,26 +1345,29 @@ module.exports = {
                 schema: {
                   type: 'object',
                   properties: {
-                    projectId:      { type: 'string' },
-                    assumptionId:   { type: 'string' },
-                    nodeKey:        { type: 'string' },
-                    extracted:      { type: 'object' },
+                    projectId: { type: 'string' },
+                    assumptionId: { type: 'string' },
+                    nodeKey: { type: 'string' },
+                    extracted: { type: 'object' },
                     hasFlexibleNav: { type: 'boolean' },
-                    graphStats:     { type: 'object' },
+                    graphStats: { type: 'object' },
                   },
                 },
               },
             },
           },
-          422: { description: 'HTTP 422 ASSUMPTION_EXTRACTION_FAILED \u2014 LLM could not extract valid capacity' },
+          422: {
+            description:
+              'HTTP 422 ASSUMPTION_EXTRACTION_FAILED \u2014 LLM could not extract valid capacity',
+          },
           503: { description: 'HTTP 503 LLM_NOT_CONFIGURED \u2014 GEMINI_API_KEY not set' },
         },
       },
       async handler(ctx) {
         const { projectId, text } = ctx.params;
         await this.ensureProjectHydrated(projectId);
-        const project             = this.getProject(projectId);
-        const { graph }           = project;
+        const project = this.getProject(projectId);
+        const { graph } = project;
 
         // ── LLM extraction ────────────────────────────────────────────────────
         const prompt =
@@ -1283,23 +1393,23 @@ module.exports = {
 
         // ── Graph mutation ────────────────────────────────────────────────────
         const assumptionId = crypto.randomUUID();
-        const nodeKey      = `assumption:${assumptionId}`;
+        const nodeKey = `assumption:${assumptionId}`;
 
         graph.addNode(nodeKey, {
-          type:           'assumption',
+          type: 'assumption',
           assumptionId,
-          assetType:      extracted.assetType,
-          capacity:       extracted.capacityKW,
-          status:         extracted.status,
+          assetType: extracted.assetType,
+          capacity: extracted.capacityKW,
+          status: extracted.status,
           hasFlexibleNav: extracted.hasFlexibleNav === true,
-          layer:          2.5,
-          sourceText:     text.slice(0, 200),
-          createdAt:      new Date().toISOString(),
+          layer: 2.5,
+          sourceText: text.slice(0, 200),
+          createdAt: new Date().toISOString(),
         });
 
         graph.addEdge(nodeKey, SUBSTATION_KEY, {
           relationship: 'CONTRIBUTES_LOAD',
-          layer:        2.5,
+          layer: 2.5,
         });
 
         // Persist updated graph state
@@ -1308,7 +1418,7 @@ module.exports = {
 
         this.logger.info(
           `[znp] addAssumption project=${projectId}: ` +
-          `${extracted.assetType} ${extracted.capacityKW}kW flexNav=${extracted.hasFlexibleNav}`
+            `${extracted.assetType} ${extracted.capacityKW}kW flexNav=${extracted.hasFlexibleNav}`
         );
 
         // Emit frontend-consumable update event for NovaFeedStore.
@@ -1321,7 +1431,7 @@ module.exports = {
           nodeKey,
           extracted,
           hasFlexibleNav: extracted.hasFlexibleNav === true,
-          graphStats:     { nodes: graph.order, edges: graph.size },
+          graphStats: { nodes: graph.order, edges: graph.size },
         };
       },
     },
@@ -1334,11 +1444,11 @@ module.exports = {
     getProjectAssets: {
       rest: 'GET /projects/:projectId/assets',
       params: {
-        projectId:      { type: 'string' },
-        status:         { type: 'string', optional: true },
-        assetType:      { type: 'string', optional: true },
-        limit:          { type: 'number', integer: true, default: 100, max: 1000, convert: true },
-        offset:         { type: 'number', integer: true, default: 0, min: 0, convert: true },
+        projectId: { type: 'string' },
+        status: { type: 'string', optional: true },
+        assetType: { type: 'string', optional: true },
+        limit: { type: 'number', integer: true, default: 100, max: 1000, convert: true },
+        offset: { type: 'number', integer: true, default: 0, min: 0, convert: true },
         sortByCapacity: { type: 'enum', values: ['asc', 'desc'], default: 'desc', optional: true },
       },
       openapi: {
@@ -1401,20 +1511,24 @@ module.exports = {
                   type: 'object',
                   properties: {
                     totalCount: { type: 'integer', example: 42 },
-                    offset:     { type: 'integer', example: 0 },
-                    limit:      { type: 'integer', example: 100 },
+                    offset: { type: 'integer', example: 0 },
+                    limit: { type: 'integer', example: 100 },
                     assets: {
                       type: 'array',
                       items: {
                         type: 'object',
                         properties: {
-                          mastrNummer:       { type: 'string',  example: 'SEE900123456789' },
-                          capacity:          { type: 'number',  example: 10.5 },
-                          assetType:         { type: 'string',  example: 'solar' },
-                          status:            { type: 'string',  example: 'InBetrieb',   nullable: true },
-                          commissioningDate: { type: 'string',  example: '2024-06-15',  nullable: true },
-                          lat:               { type: 'number',  example: 49.491,        nullable: true },
-                          lon:               { type: 'number',  example: 8.471,         nullable: true },
+                          mastrNummer: { type: 'string', example: 'SEE900123456789' },
+                          capacity: { type: 'number', example: 10.5 },
+                          assetType: { type: 'string', example: 'solar' },
+                          status: { type: 'string', example: 'InBetrieb', nullable: true },
+                          commissioningDate: {
+                            type: 'string',
+                            example: '2024-06-15',
+                            nullable: true,
+                          },
+                          lat: { type: 'number', example: 49.491, nullable: true },
+                          lon: { type: 'number', example: 8.471, nullable: true },
                         },
                       },
                     },
@@ -1430,7 +1544,7 @@ module.exports = {
           projectId,
           status,
           assetType,
-          limit  = 100,
+          limit = 100,
           offset = 0,
           sortByCapacity = 'desc',
         } = ctx.params;
@@ -1466,13 +1580,13 @@ module.exports = {
           offset,
           limit,
           assets: page.map((a) => ({
-            mastrNummer:       a.mastrNummer,
-            capacity:          a.capacity,
-            assetType:         a.assetType,
-            status:            a.status ?? null,
+            mastrNummer: a.mastrNummer,
+            capacity: a.capacity,
+            assetType: a.assetType,
+            status: a.status ?? null,
             commissioningDate: a.commissioningDate ?? null,
-            lat:               a.lat ?? null,
-            lon:               a.lon ?? null,
+            lat: a.lat ?? null,
+            lon: a.lon ?? null,
           })),
         };
       },
@@ -1628,22 +1742,24 @@ module.exports = {
         const deletePromises = [];
         if (metaRev) {
           deletePromises.push(
-            this.db.remove(metaDocId, metaRev)
-              .catch(err => {
-                if (err.status !== 404) {
-                  this.logger.warn(`[znp] Failed to delete meta doc for "${projectId}": ${err.message}`);
-                }
-              })
+            this.db.remove(metaDocId, metaRev).catch((err) => {
+              if (err.status !== 404) {
+                this.logger.warn(
+                  `[znp] Failed to delete meta doc for "${projectId}": ${err.message}`
+                );
+              }
+            })
           );
         }
         if (graphRev) {
           deletePromises.push(
-            this.db.remove(graphDocId, graphRev)
-              .catch(err => {
-                if (err.status !== 404) {
-                  this.logger.warn(`[znp] Failed to delete graph doc for "${projectId}": ${err.message}`);
-                }
-              })
+            this.db.remove(graphDocId, graphRev).catch((err) => {
+              if (err.status !== 404) {
+                this.logger.warn(
+                  `[znp] Failed to delete graph doc for "${projectId}": ${err.message}`
+                );
+              }
+            })
           );
         }
 
@@ -1661,13 +1777,11 @@ module.exports = {
         };
       },
     },
-
   },
 
   // ─── Methods ────────────────────────────────────────────────────────────────
 
   methods: {
-
     /**
      * hydrateGraph — Load one project from PouchDB and import the graphology state.
      *
@@ -1678,10 +1792,7 @@ module.exports = {
       const metaDocId = `${DOC_PREFIX_META}${projectId}`;
       const graphDocId = `${DOC_PREFIX_GRAPH}${projectId}`;
 
-      const [meta, graphDoc] = await Promise.all([
-        this.db.get(metaDocId),
-        this.db.get(graphDocId),
-      ]);
+      const [meta, graphDoc] = await Promise.all([this.db.get(metaDocId), this.db.get(graphDocId)]);
 
       if (!graphDoc.graphData) {
         throw new Error(`Missing graphData for project "${projectId}".`);
@@ -1692,14 +1803,14 @@ module.exports = {
 
       const project = {
         graph,
-        bbox:                    meta.bbox,
-        name:                    meta.name,
-        createdAt:               meta.createdAt,
-        layers:                  meta.layers || [],
+        bbox: meta.bbox,
+        name: meta.name,
+        createdAt: meta.createdAt,
+        layers: meta.layers || [],
         layer1GFactorAdjustment: meta.layer1GFactorAdjustment || 1.0,
         layer2CalibrationFactor: meta.layer2CalibrationFactor || 0,
         layer2MeasuredPeakLoadKw: meta.layer2MeasuredPeakLoadKw || 0,
-        layer2TransformerId:     meta.layer2TransformerId || null,
+        layer2TransformerId: meta.layer2TransformerId || null,
         layer2NominalCapacityKw: meta.layer2NominalCapacityKw || 0,
       };
 
@@ -1756,7 +1867,7 @@ module.exports = {
     async updateProjectMeta(projectId, graph, layerName) {
       const docId = `${DOC_PREFIX_META}${projectId}`;
       try {
-        const doc     = await this.db.get(docId);
+        const doc = await this.db.get(docId);
         const project = this.activeGraphs.get(projectId);
 
         // Track which layers have been loaded (idempotent push)
@@ -1766,19 +1877,31 @@ module.exports = {
 
         await this.db.put({
           ...doc,
-          layers:                  project ? project.layers : doc.layers,
-          layer1GFactorAdjustment: project ? project.layer1GFactorAdjustment : (doc.layer1GFactorAdjustment || 1.0),
-          layer2CalibrationFactor: project ? (project.layer2CalibrationFactor || 0) : (doc.layer2CalibrationFactor || 0),
-          layer2MeasuredPeakLoadKw: project ? (project.layer2MeasuredPeakLoadKw || 0) : (doc.layer2MeasuredPeakLoadKw || 0),
-          layer2TransformerId: project ? (project.layer2TransformerId || null) : (doc.layer2TransformerId || null),
-          layer2NominalCapacityKw: project ? (project.layer2NominalCapacityKw || 0) : (doc.layer2NominalCapacityKw || 0),
-          nodeCount:               graph.order,
-          edgeCount:               graph.size,
-          updatedAt:               new Date().toISOString(),
+          layers: project ? project.layers : doc.layers,
+          layer1GFactorAdjustment: project
+            ? project.layer1GFactorAdjustment
+            : doc.layer1GFactorAdjustment || 1.0,
+          layer2CalibrationFactor: project
+            ? project.layer2CalibrationFactor || 0
+            : doc.layer2CalibrationFactor || 0,
+          layer2MeasuredPeakLoadKw: project
+            ? project.layer2MeasuredPeakLoadKw || 0
+            : doc.layer2MeasuredPeakLoadKw || 0,
+          layer2TransformerId: project
+            ? project.layer2TransformerId || null
+            : doc.layer2TransformerId || null,
+          layer2NominalCapacityKw: project
+            ? project.layer2NominalCapacityKw || 0
+            : doc.layer2NominalCapacityKw || 0,
+          nodeCount: graph.order,
+          edgeCount: graph.size,
+          updatedAt: new Date().toISOString(),
         });
       } catch (err) {
         // Non-fatal: metadata update failure must not break the graph operation
-        this.logger.warn(`[znp] Failed to update metadata for project ${projectId}: ${err.message}`);
+        this.logger.warn(
+          `[znp] Failed to update metadata for project ${projectId}: ${err.message}`
+        );
       }
     },
 
@@ -1803,14 +1926,16 @@ module.exports = {
           try {
             const existing = await this.db.get(docId);
             rev = existing._rev;
-          } catch (_) { /* new document — no _rev needed */ }
+          } catch (_) {
+            /* new document — no _rev needed */
+          }
 
           await this.db.put({
             _id: docId,
             ...(rev ? { _rev: rev } : {}),
             projectId,
             graphData,
-            savedAt:   new Date().toISOString(),
+            savedAt: new Date().toISOString(),
           });
           return;
         } catch (err) {
@@ -1822,7 +1947,9 @@ module.exports = {
             continue;
           }
 
-          this.logger.warn(`[znp] Failed to persist graph for project ${projectId}: ${err.message}`);
+          this.logger.warn(
+            `[znp] Failed to persist graph for project ${projectId}: ${err.message}`
+          );
           return;
         }
       }
@@ -1929,7 +2056,7 @@ module.exports = {
      * applyAssumptionPeakShaving — Apply edge-level gFactor overrides from assumption text.
      *
      * For matching asset types (e.g. BESS / §14a controllable), all
-    * CONTRIBUTES_LOAD edges to substations are forced to gFactor=0.45.
+     * CONTRIBUTES_LOAD edges to substations are forced to gFactor=0.45.
      * Afterwards, cumulative capacities are recalculated upwards.
      *
      * @param {Graph} graph
@@ -1960,10 +2087,7 @@ module.exports = {
         });
       }
 
-      this.recalculateCumulativeCapacitiesUpstream(
-        graph,
-        Array.from(affectedSubstations)
-      );
+      this.recalculateCumulativeCapacitiesUpstream(graph, Array.from(affectedSubstations));
     },
 
     /**
@@ -1978,19 +2102,21 @@ module.exports = {
       const text = String(assumptionText).toLowerCase();
       const assetType = String(assetAttrs.assetType || '').toLowerCase();
 
-      const assumptionMentionsStorage =
-        /(bess|batter(y|ie)|speicher|storage)/.test(text);
+      const assumptionMentionsStorage = /(bess|batter(y|ie)|speicher|storage)/.test(text);
       const assumptionMentionsSection14a =
         /(§\s*14a|14a|steuerbar|steuerbare|controll?able|flex\s*nav|flexibler\s*nav)/.test(text);
 
       const isStorageAsset = /(storage|speicher|bess|battery|batterie)/.test(assetType);
-      const isSection14aAsset = /(wallbox|heatpump|wärmepumpe|waermepumpe|storage|speicher)/.test(assetType)
-        || assetAttrs.hasFlexibleNav === true
-        || assetAttrs.controllable === true
-        || assetAttrs.section14a === true;
+      const isSection14aAsset =
+        /(wallbox|heatpump|wärmepumpe|waermepumpe|storage|speicher)/.test(assetType) ||
+        assetAttrs.hasFlexibleNav === true ||
+        assetAttrs.controllable === true ||
+        assetAttrs.section14a === true;
 
-      return (assumptionMentionsStorage && isStorageAsset)
-        || (assumptionMentionsSection14a && isSection14aAsset);
+      return (
+        (assumptionMentionsStorage && isStorageAsset) ||
+        (assumptionMentionsSection14a && isSection14aAsset)
+      );
     },
 
     /**
@@ -2037,7 +2163,7 @@ module.exports = {
         const sourceAttrs = graph.getNodeAttributes(sourceKey);
         const sourceBase = Number.isFinite(sourceAttrs.cumulativePeakCapacityKW)
           ? sourceAttrs.cumulativePeakCapacityKW
-          : (sourceAttrs.capacity || 0);
+          : sourceAttrs.capacity || 0;
         const effective = sourceBase * gFactor;
         cumulative += effective;
         graph.setEdgeAttribute(edgeKey, 'effectiveCapacityKW', Math.round(effective * 1000) / 1000);
@@ -2056,14 +2182,14 @@ module.exports = {
     async _hydrateGraphs() {
       try {
         const result = await this.db.allDocs({
-          startkey:     DOC_PREFIX_META,
-          endkey:       `${DOC_PREFIX_META}\uffff`,
+          startkey: DOC_PREFIX_META,
+          endkey: `${DOC_PREFIX_META}\uffff`,
           include_docs: true,
         });
 
         let restored = 0;
         for (const row of result.rows) {
-          const meta      = row.doc;
+          const meta = row.doc;
           const projectId = meta.projectId;
           if (!projectId) continue;
 
@@ -2073,7 +2199,7 @@ module.exports = {
           } catch (err) {
             this.logger.warn(
               `[znp] Skipping project ${projectId} during hydration — ` +
-              `graph data missing or corrupt: ${err.message}`
+                `graph data missing or corrupt: ${err.message}`
             );
           }
         }
@@ -2104,15 +2230,14 @@ module.exports = {
      * @returns {number}  Simultaneity factor (0–1)
      */
     getSimultaneityFactor(n) {
-      if (n <= 0)   return 0;
-      if (n === 1)  return 1.00;
-      if (n <= 5)   return 0.80;
-      if (n <= 10)  return 0.65;
-      if (n <= 25)  return 0.55;
-      if (n <= 50)  return 0.45;
+      if (n <= 0) return 0;
+      if (n === 1) return 1.0;
+      if (n <= 5) return 0.8;
+      if (n <= 10) return 0.65;
+      if (n <= 25) return 0.55;
+      if (n <= 50) return 0.45;
       if (n <= 100) return 0.38;
-      return 0.30;
+      return 0.3;
     },
-
   },
 };

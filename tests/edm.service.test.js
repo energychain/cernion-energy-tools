@@ -7,10 +7,7 @@ const { ServiceBroker } = require('moleculer');
 const EdmService = require('../services/edm.service');
 
 function createTempDir() {
-  return path.join(
-    os.tmpdir(),
-    `edm-service-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  );
+  return path.join(os.tmpdir(), `edm-service-${Date.now()}-${Math.random().toString(16).slice(2)}`);
 }
 
 describe('edm.service', () => {
@@ -244,7 +241,12 @@ describe('edm.service', () => {
         meloId: TEST_MELO,
         obis: '1-0:2.8.0',
         format: 'csv',
-        config: { delimiter: ';', timestampColumn: 'ts', valueColumn: 'val', timestampFormat: 'ISO' },
+        config: {
+          delimiter: ';',
+          timestampColumn: 'ts',
+          valueColumn: 'val',
+          timestampFormat: 'ISO',
+        },
         data: csv,
       });
       expect(result.success).toBe(true);

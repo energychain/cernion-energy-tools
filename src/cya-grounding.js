@@ -5,7 +5,9 @@ function toArray(value) {
 }
 
 function normalizeStatement(answer) {
-  const text = String(answer || '').replace(/\s+/g, ' ').trim();
+  const text = String(answer || '')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!text) return 'Keine belastbare Aussage verfügbar.';
   return text.length > 260 ? `${text.slice(0, 257)}...` : text;
 }
@@ -20,9 +22,7 @@ function buildFacts(retrieval) {
     // User-asserted facts (trusted:true) are capped at 'medium' — never 'high'.
     // EU AI Act Art. 12: provenance must be traceable. 'high' is reserved for
     // machine-verified API responses with confirmed sources.
-    confidence: item.trusted === true
-      ? 'medium'
-      : item.sources.length > 0 ? 'medium' : 'low',
+    confidence: item.trusted === true ? 'medium' : item.sources.length > 0 ? 'medium' : 'low',
     trusted: item.trusted === true ? true : undefined,
     dataProvenance: item.dataProvenance || undefined,
   }));
@@ -85,9 +85,10 @@ function buildFactQualityClarification(retrieval) {
     question:
       'Es liegen keine belastbaren Fakten vor. Bitte ergänzen Sie konkrete Daten (z. B. Kapazität, Netzebene, vorgelagerter Netzbezug/Koppelkapazität) für die betroffenen Themenfelder.',
     reason: 'insufficient_fact_quality',
-    suggestedInputs: requestedFocusAreas.length > 0
-      ? requestedFocusAreas
-      : ['capacity', 'grid_expansion', 'redispatch'],
+    suggestedInputs:
+      requestedFocusAreas.length > 0
+        ? requestedFocusAreas
+        : ['capacity', 'grid_expansion', 'redispatch'],
   };
 }
 
@@ -95,7 +96,8 @@ function buildGrounding(input) {
   const retrieval = input?.retrieval || {};
   const context = input?.context || {};
   const regulatoryGraph = input?.regulatoryGraph || {};
-  const topologyHop = input?.topologyHop !== undefined ? input.topologyHop : (retrieval?.topologyHop || null);
+  const topologyHop =
+    input?.topologyHop !== undefined ? input.topologyHop : retrieval?.topologyHop || null;
 
   const facts = buildFacts(retrieval);
   const dataGaps = buildDataGaps(retrieval);

@@ -32,61 +32,229 @@ function iri(localId) {
 const INSTALLATION_TYPES = [
   // --- Solar (no sub-types — MaStR has no explicit rooftop/ground field) ------
   // @OpenEnergyPlatform/ontology OEO_00000034 solar power unit
-  { id: 'solar', iri: iri('OEO_00000034'), label: 'solar power unit', labelDe: 'Solaranlage', cernionType: 'solar', cernionSubtype: null, psrCode: 'B16' },
+  {
+    id: 'solar',
+    iri: iri('OEO_00000034'),
+    label: 'solar power unit',
+    labelDe: 'Solaranlage',
+    cernionType: 'solar',
+    cernionSubtype: null,
+    psrCode: 'B16',
+  },
   // @OpenEnergyPlatform/ontology OEO_00000324 photovoltaic power plant
-  { id: 'solar-pv-plant', iri: iri('OEO_00000324'), label: 'photovoltaic power plant', labelDe: 'Photovoltaikkraftwerk', cernionType: 'solar', cernionSubtype: null, psrCode: 'B16' },
+  {
+    id: 'solar-pv-plant',
+    iri: iri('OEO_00000324'),
+    label: 'photovoltaic power plant',
+    labelDe: 'Photovoltaikkraftwerk',
+    cernionType: 'solar',
+    cernionSubtype: null,
+    psrCode: 'B16',
+  },
 
   // --- Wind (onshore/offshore via MaStR Lage field, ENTSO-E B18/B19) ---------
   // @OpenEnergyPlatform/ontology OEO_00000044 wind energy converting unit
-  { id: 'wind', iri: iri('OEO_00000044'), label: 'wind energy converting unit', labelDe: 'Windenergieanlage', cernionType: 'wind', cernionSubtype: null, psrCode: null },
+  {
+    id: 'wind',
+    iri: iri('OEO_00000044'),
+    label: 'wind energy converting unit',
+    labelDe: 'Windenergieanlage',
+    cernionType: 'wind',
+    cernionSubtype: null,
+    psrCode: null,
+  },
   // @OpenEnergyPlatform/ontology OEO_00000311 onshore wind farm
-  { id: 'wind-onshore', iri: iri('OEO_00000311'), label: 'onshore wind farm', labelDe: 'Onshore-Windpark', cernionType: 'wind', cernionSubtype: 'onshore', psrCode: 'B19' },
+  {
+    id: 'wind-onshore',
+    iri: iri('OEO_00000311'),
+    label: 'onshore wind farm',
+    labelDe: 'Onshore-Windpark',
+    cernionType: 'wind',
+    cernionSubtype: 'onshore',
+    psrCode: 'B19',
+  },
   // @OpenEnergyPlatform/ontology OEO_00000308 offshore wind farm
-  { id: 'wind-offshore', iri: iri('OEO_00000308'), label: 'offshore wind farm', labelDe: 'Offshore-Windpark', cernionType: 'wind', cernionSubtype: 'offshore', psrCode: 'B18' },
+  {
+    id: 'wind-offshore',
+    iri: iri('OEO_00000308'),
+    label: 'offshore wind farm',
+    labelDe: 'Offshore-Windpark',
+    cernionType: 'wind',
+    cernionSubtype: 'offshore',
+    psrCode: 'B18',
+  },
 
   // --- Biomass (solid/biogas/biofuel via MaStR Hauptbrennstoff) --------------
   // @OpenEnergyPlatform/ontology OEO_00010214 biomass
-  { id: 'biomass', iri: iri('OEO_00010214'), label: 'biomass', labelDe: 'Biomasse', cernionType: 'biomass', cernionSubtype: null, psrCode: 'B01' },
+  {
+    id: 'biomass',
+    iri: iri('OEO_00010214'),
+    label: 'biomass',
+    labelDe: 'Biomasse',
+    cernionType: 'biomass',
+    cernionSubtype: null,
+    psrCode: 'B01',
+  },
   // @OpenEnergyPlatform/ontology OEO_00000074 biogas
-  { id: 'biomass-biogas', iri: iri('OEO_00000074'), label: 'biogas', labelDe: 'Biogas', cernionType: 'biomass', cernionSubtype: 'biogas', psrCode: 'B01' },
+  {
+    id: 'biomass-biogas',
+    iri: iri('OEO_00000074'),
+    label: 'biogas',
+    labelDe: 'Biogas',
+    cernionType: 'biomass',
+    cernionSubtype: 'biogas',
+    psrCode: 'B01',
+  },
 
   // --- Hydro (run-of-river/pumped/reservoir via MaStR ArtDerWasserkraftanlage)
   // @OpenEnergyPlatform/ontology OEO_00010086 hydro power plant
-  { id: 'hydro', iri: iri('OEO_00010086'), label: 'hydro power plant', labelDe: 'Wasserkraftwerk', cernionType: 'hydro', cernionSubtype: null, psrCode: null },
+  {
+    id: 'hydro',
+    iri: iri('OEO_00010086'),
+    label: 'hydro power plant',
+    labelDe: 'Wasserkraftwerk',
+    cernionType: 'hydro',
+    cernionSubtype: null,
+    psrCode: null,
+  },
   // @OpenEnergyPlatform/ontology OEO_00010087 run of river power plant
-  { id: 'hydro-run-of-river', iri: iri('OEO_00010087'), label: 'run of river power plant', labelDe: 'Laufwasserkraftwerk', cernionType: 'hydro', cernionSubtype: 'run-of-river', psrCode: 'B11' },
+  {
+    id: 'hydro-run-of-river',
+    iri: iri('OEO_00010087'),
+    label: 'run of river power plant',
+    labelDe: 'Laufwasserkraftwerk',
+    cernionType: 'hydro',
+    cernionSubtype: 'run-of-river',
+    psrCode: 'B11',
+  },
   // @OpenEnergyPlatform/ontology OEO_00010089 pumped hydro storage power plant
-  { id: 'hydro-pumped-storage', iri: iri('OEO_00010089'), label: 'pumped hydro storage power plant', labelDe: 'Pumpspeicherkraftwerk', cernionType: 'hydro', cernionSubtype: 'pumped-storage', psrCode: 'B10' },
+  {
+    id: 'hydro-pumped-storage',
+    iri: iri('OEO_00010089'),
+    label: 'pumped hydro storage power plant',
+    labelDe: 'Pumpspeicherkraftwerk',
+    cernionType: 'hydro',
+    cernionSubtype: 'pumped-storage',
+    psrCode: 'B10',
+  },
   // @OpenEnergyPlatform/ontology OEO_00010094 reservoir hydro storage power plant
-  { id: 'hydro-reservoir', iri: iri('OEO_00010094'), label: 'reservoir hydro storage power plant', labelDe: 'Speicherwasserkraftwerk', cernionType: 'hydro', cernionSubtype: 'reservoir', psrCode: 'B12' },
+  {
+    id: 'hydro-reservoir',
+    iri: iri('OEO_00010094'),
+    label: 'reservoir hydro storage power plant',
+    labelDe: 'Speicherwasserkraftwerk',
+    cernionType: 'hydro',
+    cernionSubtype: 'reservoir',
+    psrCode: 'B12',
+  },
 
   // --- Storage (battery vs pumped-hydro vs other via MaStR Batterietechnologie)
   // @OpenEnergyPlatform/ontology OEO_00000159 energy storage object
-  { id: 'storage', iri: iri('OEO_00000159'), label: 'energy storage object', labelDe: 'Energiespeicher', cernionType: 'storage', cernionSubtype: null, psrCode: null },
+  {
+    id: 'storage',
+    iri: iri('OEO_00000159'),
+    label: 'energy storage object',
+    labelDe: 'Energiespeicher',
+    cernionType: 'storage',
+    cernionSubtype: null,
+    psrCode: null,
+  },
   // @OpenEnergyPlatform/ontology OEO_00000068 battery
-  { id: 'storage-battery', iri: iri('OEO_00000068'), label: 'battery', labelDe: 'Batterie', cernionType: 'storage', cernionSubtype: 'battery', psrCode: null },
+  {
+    id: 'storage-battery',
+    iri: iri('OEO_00000068'),
+    label: 'battery',
+    labelDe: 'Batterie',
+    cernionType: 'storage',
+    cernionSubtype: 'battery',
+    psrCode: null,
+  },
   // @OpenEnergyPlatform/ontology OEO_00010089 pumped hydro storage power plant (shared with hydro)
-  { id: 'storage-pumped-hydro', iri: iri('OEO_00010089'), label: 'pumped hydro storage power plant', labelDe: 'Pumpspeicherkraftwerk', cernionType: 'storage', cernionSubtype: 'pumped-hydro', psrCode: 'B10' },
+  {
+    id: 'storage-pumped-hydro',
+    iri: iri('OEO_00010089'),
+    label: 'pumped hydro storage power plant',
+    labelDe: 'Pumpspeicherkraftwerk',
+    cernionType: 'storage',
+    cernionSubtype: 'pumped-hydro',
+    psrCode: 'B10',
+  },
 
   // --- Combustion (gas/hard-coal/lignite/oil via MaStR Hauptbrennstoff) ------
   // @OpenEnergyPlatform/ontology OEO_00140038 combustion
-  { id: 'combustion', iri: iri('OEO_00140038'), label: 'combustion', labelDe: 'Verbrennung', cernionType: 'combustion', cernionSubtype: null, psrCode: null },
+  {
+    id: 'combustion',
+    iri: iri('OEO_00140038'),
+    label: 'combustion',
+    labelDe: 'Verbrennung',
+    cernionType: 'combustion',
+    cernionSubtype: null,
+    psrCode: null,
+  },
   // @OpenEnergyPlatform/ontology OEO_00000185 gas turbine
-  { id: 'combustion-gas', iri: iri('OEO_00000185'), label: 'gas turbine', labelDe: 'Gasturbine', cernionType: 'combustion', cernionSubtype: 'gas', psrCode: 'B04' },
+  {
+    id: 'combustion-gas',
+    iri: iri('OEO_00000185'),
+    label: 'gas turbine',
+    labelDe: 'Gasturbine',
+    cernionType: 'combustion',
+    cernionSubtype: 'gas',
+    psrCode: 'B04',
+  },
   // @OpenEnergyPlatform/ontology OEO_00000021 hard coal power unit
-  { id: 'combustion-hard-coal', iri: iri('OEO_00000021'), label: 'hard coal power unit', labelDe: 'Steinkohlekraftwerk', cernionType: 'combustion', cernionSubtype: 'hard-coal', psrCode: 'B05' },
+  {
+    id: 'combustion-hard-coal',
+    iri: iri('OEO_00000021'),
+    label: 'hard coal power unit',
+    labelDe: 'Steinkohlekraftwerk',
+    cernionType: 'combustion',
+    cernionSubtype: 'hard-coal',
+    psrCode: 'B05',
+  },
   // @OpenEnergyPlatform/ontology OEO_00000024 lignite power unit
-  { id: 'combustion-lignite', iri: iri('OEO_00000024'), label: 'lignite power unit', labelDe: 'Braunkohlekraftwerk', cernionType: 'combustion', cernionSubtype: 'lignite', psrCode: 'B02' },
+  {
+    id: 'combustion-lignite',
+    iri: iri('OEO_00000024'),
+    label: 'lignite power unit',
+    labelDe: 'Braunkohlekraftwerk',
+    cernionType: 'combustion',
+    cernionSubtype: 'lignite',
+    psrCode: 'B02',
+  },
   // @OpenEnergyPlatform/ontology OEO_00000030 oil power unit
-  { id: 'combustion-oil', iri: iri('OEO_00000030'), label: 'oil power unit', labelDe: 'Ölkraftwerk', cernionType: 'combustion', cernionSubtype: 'oil', psrCode: 'B06' },
+  {
+    id: 'combustion-oil',
+    iri: iri('OEO_00000030'),
+    label: 'oil power unit',
+    labelDe: 'Ölkraftwerk',
+    cernionType: 'combustion',
+    cernionSubtype: 'oil',
+    psrCode: 'B06',
+  },
 
   // --- Nuclear ---------------------------------------------------------------
   // @OpenEnergyPlatform/ontology OEO_00000303 nuclear power plant
-  { id: 'nuclear', iri: iri('OEO_00000303'), label: 'nuclear power plant', labelDe: 'Kernkraftwerk', cernionType: 'nuclear', cernionSubtype: null, psrCode: 'B14' },
+  {
+    id: 'nuclear',
+    iri: iri('OEO_00000303'),
+    label: 'nuclear power plant',
+    labelDe: 'Kernkraftwerk',
+    cernionType: 'nuclear',
+    cernionSubtype: null,
+    psrCode: 'B14',
+  },
 
   // --- Geothermal ------------------------------------------------------------
   // @OpenEnergyPlatform/ontology OEO_00000192 geothermal power plant
-  { id: 'geothermal', iri: iri('OEO_00000192'), label: 'geothermal power plant', labelDe: 'Geothermiekraftwerk', cernionType: 'geothermal', cernionSubtype: null, psrCode: 'B09' },
+  {
+    id: 'geothermal',
+    iri: iri('OEO_00000192'),
+    label: 'geothermal power plant',
+    labelDe: 'Geothermiekraftwerk',
+    cernionType: 'geothermal',
+    cernionSubtype: null,
+    psrCode: 'B09',
+  },
 ];
 
 // =============================================================================
@@ -95,23 +263,58 @@ const INSTALLATION_TYPES = [
 // =============================================================================
 const GRID_CONCEPTS = [
   // @OpenEnergyPlatform/ontology OEO_00000143 electricity grid
-  { id: 'electricity-grid', iri: iri('OEO_00000143'), label: 'electricity grid', labelDe: 'Stromnetz' },
+  {
+    id: 'electricity-grid',
+    iri: iri('OEO_00000143'),
+    label: 'electricity grid',
+    labelDe: 'Stromnetz',
+  },
   // @OpenEnergyPlatform/ontology OEO_00110019 transmission grid
-  { id: 'transmission-grid', iri: iri('OEO_00110019'), label: 'transmission grid', labelDe: 'Übertragungsnetz' },
+  {
+    id: 'transmission-grid',
+    iri: iri('OEO_00110019'),
+    label: 'transmission grid',
+    labelDe: 'Übertragungsnetz',
+  },
   // @OpenEnergyPlatform/ontology OEO_00110020 distribution grid
-  { id: 'distribution-grid', iri: iri('OEO_00110020'), label: 'distribution grid', labelDe: 'Verteilnetz' },
+  {
+    id: 'distribution-grid',
+    iri: iri('OEO_00110020'),
+    label: 'distribution grid',
+    labelDe: 'Verteilnetz',
+  },
   // @OpenEnergyPlatform/ontology OEO_00000144 electricity grid component
-  { id: 'grid-component', iri: iri('OEO_00000144'), label: 'electricity grid component', labelDe: 'Netzkomponente' },
+  {
+    id: 'grid-component',
+    iri: iri('OEO_00000144'),
+    label: 'electricity grid component',
+    labelDe: 'Netzkomponente',
+  },
   // @OpenEnergyPlatform/ontology OEO_00410060 electricity grid voltage level
-  { id: 'voltage-level', iri: iri('OEO_00410060'), label: 'electricity grid voltage level', labelDe: 'Spannungsebene' },
+  {
+    id: 'voltage-level',
+    iri: iri('OEO_00410060'),
+    label: 'electricity grid voltage level',
+    labelDe: 'Spannungsebene',
+  },
   // @OpenEnergyPlatform/ontology OEO_00000031 power plant
   { id: 'power-plant', iri: iri('OEO_00000031'), label: 'power plant', labelDe: 'Kraftwerk' },
   // @OpenEnergyPlatform/ontology OEO_00020107 curtailment
   { id: 'curtailment', iri: iri('OEO_00020107'), label: 'curtailment', labelDe: 'Abregelung' },
   // @OpenEnergyPlatform/ontology OEO_00140136 dispatch assignment
-  { id: 'dispatch-assignment', iri: iri('OEO_00140136'), label: 'dispatch assignment', labelDe: 'Einsatzplanung' },
+  {
+    id: 'dispatch-assignment',
+    iri: iri('OEO_00140136'),
+    label: 'dispatch assignment',
+    labelDe: 'Einsatzplanung',
+  },
   // @OpenEnergyPlatform/ontology OEO_00240011 combined heat and power plant
-  { id: 'chp-plant', iri: iri('OEO_00240011'), label: 'combined heat and power plant', labelDe: 'Kraft-Wärme-Kopplungsanlage' },
+  {
+    id: 'chp-plant',
+    iri: iri('OEO_00240011'),
+    label: 'combined heat and power plant',
+    labelDe: 'Kraft-Wärme-Kopplungsanlage',
+  },
 ];
 
 // =============================================================================
@@ -120,13 +323,29 @@ const GRID_CONCEPTS = [
 // =============================================================================
 const VOLTAGE_LEVELS = {
   // @OpenEnergyPlatform/ontology OEO_00410051 low electricity grid voltage level
-  NS: { iri: iri('OEO_00410051'), label: 'low electricity grid voltage level', labelDe: 'Niederspannung' },
+  NS: {
+    iri: iri('OEO_00410051'),
+    label: 'low electricity grid voltage level',
+    labelDe: 'Niederspannung',
+  },
   // @OpenEnergyPlatform/ontology OEO_00410052 medium electricity grid voltage level
-  MS: { iri: iri('OEO_00410052'), label: 'medium electricity grid voltage level', labelDe: 'Mittelspannung' },
+  MS: {
+    iri: iri('OEO_00410052'),
+    label: 'medium electricity grid voltage level',
+    labelDe: 'Mittelspannung',
+  },
   // @OpenEnergyPlatform/ontology OEO_00410053 high electricity grid voltage level
-  HS: { iri: iri('OEO_00410053'), label: 'high electricity grid voltage level', labelDe: 'Hochspannung' },
+  HS: {
+    iri: iri('OEO_00410053'),
+    label: 'high electricity grid voltage level',
+    labelDe: 'Hochspannung',
+  },
   // @OpenEnergyPlatform/ontology OEO_00410054 extra high electricity grid voltage level
-  'HöS': { iri: iri('OEO_00410054'), label: 'extra high electricity grid voltage level', labelDe: 'Höchstspannung' },
+  HöS: {
+    iri: iri('OEO_00410054'),
+    label: 'extra high electricity grid voltage level',
+    labelDe: 'Höchstspannung',
+  },
 };
 
 // =============================================================================
@@ -135,11 +354,19 @@ const VOLTAGE_LEVELS = {
 // =============================================================================
 const MARKET_TYPES = {
   // @OpenEnergyPlatform/ontology OEO_00020069 market exchange
-  'day-ahead': { iri: iri('OEO_00020069'), label: 'market exchange (day-ahead)', labelDe: 'Day-Ahead-Markt' },
+  'day-ahead': {
+    iri: iri('OEO_00020069'),
+    label: 'market exchange (day-ahead)',
+    labelDe: 'Day-Ahead-Markt',
+  },
   // @OpenEnergyPlatform/ontology OEO_00020069 market exchange
-  'intraday': { iri: iri('OEO_00020069'), label: 'market exchange (intraday)', labelDe: 'Intraday-Markt' },
+  intraday: {
+    iri: iri('OEO_00020069'),
+    label: 'market exchange (intraday)',
+    labelDe: 'Intraday-Markt',
+  },
   // @OpenEnergyPlatform/ontology OEO_00010082 trade
-  'futures': { iri: iri('OEO_00010082'), label: 'trade (futures)', labelDe: 'Terminmarkt' },
+  futures: { iri: iri('OEO_00010082'), label: 'trade (futures)', labelDe: 'Terminmarkt' },
 };
 
 // =============================================================================
@@ -187,11 +414,26 @@ const ENERGY_CONCEPTS = [
   // @OpenEnergyPlatform/ontology OEO_00010411 forecast
   { id: 'forecast', iri: iri('OEO_00010411'), label: 'forecast', labelDe: 'Prognose' },
   // @OpenEnergyPlatform/ontology OEO_00010233 forecast error
-  { id: 'forecast-error', iri: iri('OEO_00010233'), label: 'forecast error', labelDe: 'Prognosefehler' },
+  {
+    id: 'forecast-error',
+    iri: iri('OEO_00010233'),
+    label: 'forecast error',
+    labelDe: 'Prognosefehler',
+  },
   // @OpenEnergyPlatform/ontology OEO_00320062 electricity demand
-  { id: 'electricity-demand', iri: iri('OEO_00320062'), label: 'electricity demand', labelDe: 'Strombedarf' },
+  {
+    id: 'electricity-demand',
+    iri: iri('OEO_00320062'),
+    label: 'electricity demand',
+    labelDe: 'Strombedarf',
+  },
   // @OpenEnergyPlatform/ontology OEO_00000139 electrical energy
-  { id: 'electrical-energy', iri: iri('OEO_00000139'), label: 'electrical energy', labelDe: 'Elektrische Energie' },
+  {
+    id: 'electrical-energy',
+    iri: iri('OEO_00000139'),
+    label: 'electrical energy',
+    labelDe: 'Elektrische Energie',
+  },
   // @OpenEnergyPlatform/ontology OEO_00000006 carbon dioxide
   { id: 'co2', iri: iri('OEO_00000006'), label: 'carbon dioxide', labelDe: 'Kohlendioxid' },
   // @OpenEnergyPlatform/ontology OEO_00260007 CO2 emission
@@ -210,11 +452,26 @@ const ENERGY_CONCEPTS = [
 // =============================================================================
 const GAS_STORAGE_CONCEPTS = [
   // @OpenEnergyPlatform/ontology OEO_00000159 energy storage object
-  { id: 'energy-storage', iri: iri('OEO_00000159'), label: 'energy storage object', labelDe: 'Energiespeicher' },
+  {
+    id: 'energy-storage',
+    iri: iri('OEO_00000159'),
+    label: 'energy storage object',
+    labelDe: 'Energiespeicher',
+  },
   // @OpenEnergyPlatform/ontology OEO_00330013 energy storage level
-  { id: 'storage-level', iri: iri('OEO_00330013'), label: 'energy storage level', labelDe: 'Speicherstand' },
+  {
+    id: 'storage-level',
+    iri: iri('OEO_00330013'),
+    label: 'energy storage level',
+    labelDe: 'Speicherstand',
+  },
   // @OpenEnergyPlatform/ontology OEO_00230000 energy storage capacity
-  { id: 'storage-capacity', iri: iri('OEO_00230000'), label: 'energy storage capacity', labelDe: 'Speicherkapazität' },
+  {
+    id: 'storage-capacity',
+    iri: iri('OEO_00230000'),
+    label: 'energy storage capacity',
+    labelDe: 'Speicherkapazität',
+  },
   // @OpenEnergyPlatform/ontology OEO_00000292 natural gas
   { id: 'natural-gas', iri: iri('OEO_00000292'), label: 'natural gas', labelDe: 'Erdgas' },
 ];
@@ -241,28 +498,38 @@ const UNITS = {
 // =============================================================================
 const DOMAIN_OEO_MAPPINGS = {
   // @OpenEnergyPlatform/ontology OEO_00030034, OEO_00000139
-  'metering': [iri('OEO_00030034'), iri('OEO_00000139')],
+  metering: [iri('OEO_00030034'), iri('OEO_00000139')],
   // @OpenEnergyPlatform/ontology OEO_00000143, OEO_00000144, OEO_00410060, OEO_00000031
-  'grid-assets': [iri('OEO_00000143'), iri('OEO_00000144'), iri('OEO_00410060'), iri('OEO_00000031')],
+  'grid-assets': [
+    iri('OEO_00000143'),
+    iri('OEO_00000144'),
+    iri('OEO_00410060'),
+    iri('OEO_00000031'),
+  ],
   // @OpenEnergyPlatform/ontology OEO_00020107, OEO_00000143
   'grid-incidents': [iri('OEO_00020107'), iri('OEO_00000143')],
   // @OpenEnergyPlatform/ontology OEO_00140136, OEO_00020107
   'redispatch-queue': [iri('OEO_00140136'), iri('OEO_00020107')],
   // @OpenEnergyPlatform/ontology OEO_00000031, OEO_00000034, OEO_00000044
-  'mastr-local': [iri('OEO_00000031'), iri('OEO_00000034'), iri('OEO_00000044'), iri('OEO_00000159')],
+  'mastr-local': [
+    iri('OEO_00000031'),
+    iri('OEO_00000034'),
+    iri('OEO_00000044'),
+    iri('OEO_00000159'),
+  ],
   // @OpenEnergyPlatform/ontology OEO_00010082, OEO_00020069
-  'procurement': [iri('OEO_00010082'), iri('OEO_00020069')],
+  procurement: [iri('OEO_00010082'), iri('OEO_00020069')],
   // @OpenEnergyPlatform/ontology OEO_00010411, OEO_00010233, OEO_00030034
   'forecast-vs-actual': [iri('OEO_00010411'), iri('OEO_00010233'), iri('OEO_00030034')],
   // @OpenEnergyPlatform/ontology OEO_00010082
   'billing-overview': [iri('OEO_00010082')],
   // @OpenEnergyPlatform/ontology OEO_00010082
-  'receivables': [iri('OEO_00010082')],
+  receivables: [iri('OEO_00010082')],
   // @OpenEnergyPlatform/ontology OEO_00010082 (market communication as trade process)
   'mako-process-log': [iri('OEO_00010082')],
   // @OpenEnergyPlatform/ontology OEO_00000034, OEO_00000068, OEO_00000031
   'customer-projects': [iri('OEO_00000034'), iri('OEO_00000068'), iri('OEO_00000031')],
-  'other': [],
+  other: [],
   // @OpenEnergyPlatform/ontology OEO_00000143, OEO_00410060
   'metering-point-master': [iri('OEO_00000143'), iri('OEO_00410060')],
 };
@@ -273,9 +540,11 @@ const DOMAIN_OEO_MAPPINGS = {
 
 /** All entries from all mapping tables, indexed by id */
 const _allEntries = new Map();
-[...INSTALLATION_TYPES, ...GRID_CONCEPTS, ...ENERGY_CONCEPTS, ...GAS_STORAGE_CONCEPTS].forEach((entry) => {
-  _allEntries.set(entry.id, entry);
-});
+[...INSTALLATION_TYPES, ...GRID_CONCEPTS, ...ENERGY_CONCEPTS, ...GAS_STORAGE_CONCEPTS].forEach(
+  (entry) => {
+    _allEntries.set(entry.id, entry);
+  }
+);
 
 /**
  * Look up an OEO mapping entry by its Cernion slug id.
@@ -311,9 +580,11 @@ function byCernionType(type, subtype) {
     );
     if (specific) return specific;
   }
-  return INSTALLATION_TYPES.find(
-    (entry) => entry.cernionType === type && entry.cernionSubtype === null
-  ) || null;
+  return (
+    INSTALLATION_TYPES.find(
+      (entry) => entry.cernionType === type && entry.cernionSubtype === null
+    ) || null
+  );
 }
 
 /**
@@ -343,7 +614,9 @@ function forDomainResolved(domainId) {
   const iris = forDomain(domainId);
   return iris.map((classIri) => {
     const entry = byIri(classIri);
-    return entry ? { iri: entry.iri, label: entry.label } : { iri: classIri, label: classIri.split('/').pop() };
+    return entry
+      ? { iri: entry.iri, label: entry.label }
+      : { iri: classIri, label: classIri.split('/').pop() };
   });
 }
 

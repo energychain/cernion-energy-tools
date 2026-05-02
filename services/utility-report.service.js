@@ -28,7 +28,11 @@ const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const CernionMCPClient = require('../src/mcp-client');
-const { classifyPartner, normalizeMarketPartner, extractCandidates } = require('../src/market-role-classifier');
+const {
+  classifyPartner,
+  normalizeMarketPartner,
+  extractCandidates,
+} = require('../src/market-role-classifier');
 const { buildHtmlReport, summarizeForReport } = require('../src/report-builder');
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -1184,7 +1188,11 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         let _discoverResult = null;
 
         if (tokenPresent) {
-          _discoverResult = await callMcpDirect('cernion_discover', { scope: 'tools' }, cernionToken);
+          _discoverResult = await callMcpDirect(
+            'cernion_discover',
+            { scope: 'tools' },
+            cernionToken
+          );
           if (_discoverResult.available) {
             mcpReachable = true;
             const tools = _discoverResult.data?.tools ?? _discoverResult.data?.data?.tools ?? [];
@@ -1213,8 +1221,11 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           const toolSet = new Set();
           try {
             const raw = _discoverResult.data?.tools ?? _discoverResult.data?.data?.tools ?? [];
-            if (Array.isArray(raw)) raw.forEach((t) => toolSet.add(typeof t === 'string' ? t : t?.name));
-          } catch (_) { /* ignore */ }
+            if (Array.isArray(raw))
+              raw.forEach((t) => toolSet.add(typeof t === 'string' ? t : t?.name));
+          } catch (_) {
+            /* ignore */
+          }
           const unavailableList = PHASE3_TOOLS.filter((t) => !toolSet.has(t));
           phase3Tools = {
             available: PHASE3_TOOLS.length - unavailableList.length,
@@ -2380,7 +2391,9 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
 
         // Unpack allSettled results, fallback on timeout
         const unpackSettled = (result) =>
-          result.status === 'fulfilled' ? result.value : { available: false, error: 'Promise timeout or rejection' };
+          result.status === 'fulfilled'
+            ? result.value
+            : { available: false, error: 'Promise timeout or rejection' };
 
         const sampleForPlzVal = unpackSettled(sampleForPlz);
         const anlagenInPruefungVal = unpackSettled(anlagenInPruefung);
@@ -2388,7 +2401,9 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         const anlagenStillgelegtInPruefungVal = unpackSettled(anlagenStillgelegtInPruefung);
         const installationenOhneMeloVal = unpackSettled(installationenOhneMelo);
 
-        p.logs.push(`[Phase 3 Batch 1] Completed: ${[sampleForPlzVal, anlagenInPruefungVal, anlagenInPruefungBeispielVal].map(r => r?.available ? '✓' : '✗').join('')}`);
+        p.logs.push(
+          `[Phase 3 Batch 1] Completed: ${[sampleForPlzVal, anlagenInPruefungVal, anlagenInPruefungBeispielVal].map((r) => (r?.available ? '✓' : '✗')).join('')}`
+        );
         saveProgress(p);
 
         // Derive dominant PLZ prefix from sample and query ortsfremde Anlagen
@@ -2527,7 +2542,9 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         const windLocalVal = unpackSettled(windLocal);
         const speicherLocalVal = unpackSettled(speicherLocal);
 
-        p.logs.push(`[Phase 3 Batch 2] Completed: ${[pvLocalVal, windLocalVal, speicherLocalVal].map(r => r?.available ? '✓' : '✗').join('')}`);
+        p.logs.push(
+          `[Phase 3 Batch 2] Completed: ${[pvLocalVal, windLocalVal, speicherLocalVal].map((r) => (r?.available ? '✓' : '✗')).join('')}`
+        );
         saveProgress(p);
 
         p.results.section2 = {
@@ -2558,7 +2575,9 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           // lastKnownPrice fallback: reuse the price from the most recent completed report
           const lastKnownPrice = p.meta?.lastKnownPrice ?? null;
           if (lastKnownPrice !== null) {
-            this.logger.warn(`[UtilityReport] ${p.reportId} – energy-market.prices unavailable; using lastKnownPrice fallback: ${lastKnownPrice}`);
+            this.logger.warn(
+              `[UtilityReport] ${p.reportId} – energy-market.prices unavailable; using lastKnownPrice fallback: ${lastKnownPrice}`
+            );
             prices = { available: true, data: { latestPrice: lastKnownPrice, _fallback: true } };
           }
         } else if (prices?.data?.latestPrice != null) {
@@ -2658,7 +2677,9 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         const euStatisticsDirectVal = unpackSettled(euStatisticsDirect);
         const storageTrendDirectVal = unpackSettled(storageTrendDirect);
 
-        p.logs.push(`[Phase 3 Batch 3] Completed: ${[euStatisticsDirectVal, storageTrendDirectVal].map(r => r?.available ? '✓' : '✗').join('')}`);
+        p.logs.push(
+          `[Phase 3 Batch 3] Completed: ${[euStatisticsDirectVal, storageTrendDirectVal].map((r) => (r?.available ? '✓' : '✗')).join('')}`
+        );
         saveProgress(p);
 
         // Merge: prefer broker data (has error-handling wrapping); fallback to direct
@@ -2775,7 +2796,9 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         };
 
         // HOTFIX v0.28.1: Add heartbeat + timeout for major enrichment batch (Sections 6–8)
-        p.logs.push(`[Phase 3 Batch 4] Starting business intelligence enrichment (churn, leads, market penetration)...`);
+        p.logs.push(
+          `[Phase 3 Batch 4] Starting business intelligence enrichment (churn, leads, market penetration)...`
+        );
         saveProgress(p);
 
         const [
@@ -2888,7 +2911,9 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         const systemStatusVal = unpackSettled(systemStatus);
         const eicStatisticsVal = unpackSettled(eicStatistics);
 
-        p.logs.push(`[Phase 3 Batch 4] Completed: ${[churnPredictionVal, salesLeadsVal, marketPenetrationVal, prosumerTariffVal, directMarketingVal, investmentBusinessCaseVal, operatorPortfolioVal, storageOptimizationVal, systemStatusVal, eicStatisticsVal].map(r => r?.available ? '✓' : '✗').join('')}`);
+        p.logs.push(
+          `[Phase 3 Batch 4] Completed: ${[churnPredictionVal, salesLeadsVal, marketPenetrationVal, prosumerTariffVal, directMarketingVal, investmentBusinessCaseVal, operatorPortfolioVal, storageOptimizationVal, systemStatusVal, eicStatisticsVal].map((r) => (r?.available ? '✓' : '✗')).join('')}`
+        );
         saveProgress(p);
 
         p.results.section6 = {
@@ -2981,15 +3006,18 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         // section2Count = pvLocal.stats.total from the raw section2 result.
         // Both should be identical; a mismatch indicates a data-path divergence.
         const briefingCount =
-          kpiSummary?.solar?.totalCount ??
-          kpiSummary?.pvLocal?.['stats.total'] ??
-          null;
+          kpiSummary?.solar?.totalCount ?? kpiSummary?.pvLocal?.['stats.total'] ?? null;
         const section2Count = (() => {
           const pvLocalData = p.results.section2?.pvLocal?.data;
           return pvLocalData?.stats?.total ?? pvLocalData?.stats?.totalCount ?? null;
         })();
         if (briefingCount !== null && section2Count !== null && briefingCount !== section2Count) {
-          this.logger.warn('[Report] Briefing/Section2 count mismatch:', briefingCount, '≠', section2Count);
+          this.logger.warn(
+            '[Report] Briefing/Section2 count mismatch:',
+            briefingCount,
+            '≠',
+            section2Count
+          );
         }
 
         const managementSummary = await generateNarrative(utilityName, kpiSummary);

@@ -135,7 +135,9 @@ describe('forecast-engine.service', () => {
       annualConsumptionKwh: 3500,
     });
     expect(result.success).toBe(true);
-    expect(['slp_corrected', 'slp_only', 'slp_temperature_corrected']).toContain(result.forecast.method);
+    expect(['slp_corrected', 'slp_only', 'slp_temperature_corrected']).toContain(
+      result.forecast.method
+    );
   });
 
   test('forecastGeneration: gibt Prognose zurück (Fallback)', async () => {

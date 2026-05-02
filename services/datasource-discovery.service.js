@@ -223,8 +223,7 @@ module.exports = {
           capabilities: inferredSemantic.capabilities,
           hints: {
             ...inferredSemantic.hints,
-            ...(semanticClassification?.domainId &&
-            semanticClassification.domainId !== 'unknown'
+            ...(semanticClassification?.domainId && semanticClassification.domainId !== 'unknown'
               ? {
                   domain: semanticClassification.domainId,
                   domainLabel: semanticClassification.domainLabel,

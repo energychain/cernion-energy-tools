@@ -35,15 +35,15 @@ module.exports = {
 
   settings: {
     cacheTtlMs: {
-      vnbOverview:     5  * 60 * 1000,  // 5 min
-      marketSnapshot:  15 * 60 * 1000,  // 15 min
-      qualitySummary:  5  * 60 * 1000,  // 5 min
-      findingCodes:    24 * 60 * 60 * 1000, // 24 h (static)
+      vnbOverview: 5 * 60 * 1000, // 5 min
+      marketSnapshot: 15 * 60 * 1000, // 15 min
+      qualitySummary: 5 * 60 * 1000, // 5 min
+      findingCodes: 24 * 60 * 60 * 1000, // 24 h (static)
     },
   },
 
   created() {
-    this.cache   = new Map();
+    this.cache = new Map();
     this.inflight = new Map();
   },
 
@@ -72,9 +72,9 @@ module.exports = {
           type: 'string',
           pattern: /^\d{7,13}$/,
           messages: {
-            string:        'bdewCode muss eine Zeichenkette sein',
+            string: 'bdewCode muss eine Zeichenkette sein',
             stringPattern: 'bdewCode muss 7-13 Ziffern enthalten (Beispiel: 9907473000008)',
-            required:      'bdewCode ist ein Pflichtparameter',
+            required: 'bdewCode ist ein Pflichtparameter',
           },
         },
       },
@@ -115,25 +115,27 @@ module.exports = {
                       nullable: true,
                       description: 'VNB identity from grid-operations.vnbLookupCodes',
                       properties: {
-                        name:    { type: 'string', example: 'TWL Netze GmbH' },
+                        name: { type: 'string', example: 'TWL Netze GmbH' },
                         mastrId: { type: 'string', example: 'SNB935578300972' },
-                        bdew:    { type: 'string', example: '9907473000008' },
-                        bnr:     { type: 'string', nullable: true },
+                        bdew: { type: 'string', example: '9907473000008' },
+                        bnr: { type: 'string', nullable: true },
                       },
                     },
                     kpis: {
                       type: 'object',
                       nullable: true,
-                      description: 'Key performance indicators aggregated from VNB Monitor and Datapoint health',
+                      description:
+                        'Key performance indicators aggregated from VNB Monitor and Datapoint health',
                     },
                     latestAgentResults: {
                       type: 'object',
-                      description: 'Most recent report summary for each agent pipeline (null if no report exists)',
+                      description:
+                        'Most recent report summary for each agent pipeline (null if no report exists)',
                       properties: {
-                        mastrQuality:   { type: 'object', nullable: true },
+                        mastrQuality: { type: 'object', nullable: true },
                         gridConnection: { type: 'object', nullable: true },
-                        energySharing:  { type: 'object', nullable: true },
-                        redispatch:     { type: 'object', nullable: true },
+                        energySharing: { type: 'object', nullable: true },
+                        redispatch: { type: 'object', nullable: true },
                       },
                     },
                     alerts: {
@@ -166,20 +168,28 @@ module.exports = {
           //   internally since v0.9.9). Sequential execution caps peak concurrent
           //   sessions at ≤10 per request instead of 15+ with full parallelism.
           const identity = await this.safeCall(
-            ctx, 'grid-operations.vnbLookupCodes',
-            { bdewCode }, null, errors, 'grid-operations.vnbLookupCodes'
+            ctx,
+            'grid-operations.vnbLookupCodes',
+            { bdewCode },
+            null,
+            errors,
+            'grid-operations.vnbLookupCodes'
           );
           const vnbMonitor = await this.safeCall(
-            ctx, 'vnb-monitor.snapshot',
+            ctx,
+            'vnb-monitor.snapshot',
             { bdewCode, refresh: false, alerts: true, lang: 'de' },
-            null, errors, 'vnb-monitor.snapshot'
+            null,
+            errors,
+            'vnb-monitor.snapshot'
           );
 
           // Extract mastrId from Phase 1 for per-operator filtering in Phase 2.
-          const gridOperatorId = identity?.results?.[0]?.mastrId
-            || identity?.mastrId
-            || vnbMonitor?.identity?.mastrId
-            || null;
+          const gridOperatorId =
+            identity?.results?.[0]?.mastrId ||
+            identity?.mastrId ||
+            vnbMonitor?.identity?.mastrId ||
+            null;
 
           // ── Phase 2: Parallel reads ───────────────────────────────────────
           // PouchDB-only calls (0 MCP sessions) + assets.redispatchCount (1 MCP
@@ -187,21 +197,54 @@ module.exports = {
           // no latency to the overall Phase 2 wall-clock time).
           const [health, mqAudits, gcValidations, esValidations, rdAudits, rdCount] =
             await Promise.all([
-              this.safeCall(ctx, 'datapoint.health',          {},                            null, errors, 'datapoint.health'),
-              this.safeCall(ctx, ACTION_MQ_LIST,        { gridOperatorId, limit: 1 }, null, errors, ACTION_MQ_LIST),
-              this.safeCall(ctx, ACTION_GC_LIST,      { gridOperatorId, limit: 1 }, null, errors, ACTION_GC_LIST),
-              this.safeCall(ctx, ACTION_ES_LIST,       { limit: 1 },                  null, errors, ACTION_ES_LIST),
-              this.safeCall(ctx, ACTION_RD_LIST,    { gridOperatorId, limit: 1 }, null, errors, ACTION_RD_LIST),
-              this.safeCall(ctx, 'assets.redispatchCount',    { gridOperatorId },            null, errors, 'assets.redispatchCount'),
+              this.safeCall(ctx, 'datapoint.health', {}, null, errors, 'datapoint.health'),
+              this.safeCall(
+                ctx,
+                ACTION_MQ_LIST,
+                { gridOperatorId, limit: 1 },
+                null,
+                errors,
+                ACTION_MQ_LIST
+              ),
+              this.safeCall(
+                ctx,
+                ACTION_GC_LIST,
+                { gridOperatorId, limit: 1 },
+                null,
+                errors,
+                ACTION_GC_LIST
+              ),
+              this.safeCall(ctx, ACTION_ES_LIST, { limit: 1 }, null, errors, ACTION_ES_LIST),
+              this.safeCall(
+                ctx,
+                ACTION_RD_LIST,
+                { gridOperatorId, limit: 1 },
+                null,
+                errors,
+                ACTION_RD_LIST
+              ),
+              this.safeCall(
+                ctx,
+                'assets.redispatchCount',
+                { gridOperatorId },
+                null,
+                errors,
+                'assets.redispatchCount'
+              ),
             ]);
 
           return {
-            identity:           this.buildIdentity(identity, bdewCode),
-            kpis:               this.buildKpis(vnbMonitor, health, mqAudits, rdCount),
-            latestAgentResults: this.buildAgentSummary(mqAudits, gcValidations, esValidations, rdAudits),
-            alerts:             vnbMonitor?.alerts || [],
-            timestamp:          new Date().toISOString(),
-            _errors:            errors,
+            identity: this.buildIdentity(identity, bdewCode),
+            kpis: this.buildKpis(vnbMonitor, health, mqAudits, rdCount),
+            latestAgentResults: this.buildAgentSummary(
+              mqAudits,
+              gcValidations,
+              esValidations,
+              rdAudits
+            ),
+            alerts: vnbMonitor?.alerts || [],
+            timestamp: new Date().toISOString(),
+            _errors: errors,
           };
         });
       },
@@ -256,7 +299,7 @@ module.exports = {
         description:
           'Aggregates current day-ahead spot prices, CO₂ intensity (with forecast), and ' +
           'wind/solar generation forecast for the next 24 hours into a single response.\n\n' +
-          'Fixed upstream parameters: `market: day-ahead`, today\'s date, `forecastType: both`.\n\n' +
+          "Fixed upstream parameters: `market: day-ahead`, today's date, `forecastType: both`.\n\n" +
           'Optional overrides:\n' +
           '- `?location=Heidelberg` overrides the CO₂ intensity location (default: Deutschland)\n' +
           '- `?region=Bayern` enables the ENTSO-E wind/solar forecast (region-specific); ' +
@@ -275,7 +318,8 @@ module.exports = {
             in: 'query',
             required: false,
             schema: { type: 'string', example: 'Bayern' },
-            description: 'Region for ENTSO-E wind/solar generation forecast. When omitted, renewableForecast24h is null and the ENTSO-E call is skipped.',
+            description:
+              'Region for ENTSO-E wind/solar generation forecast. When omitted, renewableForecast24h is null and the ENTSO-E call is skipped.',
           },
         ],
         responses: {
@@ -290,21 +334,21 @@ module.exports = {
                       type: 'object',
                       nullable: true,
                       properties: {
-                        current:  { type: 'number', description: '€/MWh', example: 45.2 },
+                        current: { type: 'number', description: '€/MWh', example: 45.2 },
                         avgToday: { type: 'number', description: '€/MWh' },
                         minToday: { type: 'number', description: '€/MWh' },
                         maxToday: { type: 'number', description: '€/MWh' },
-                        trend:    { type: 'string', enum: ['rising', 'falling', 'stable'] },
-                        source:   { type: 'string', example: 'netztransparenz' },
+                        trend: { type: 'string', enum: ['rising', 'falling', 'stable'] },
+                        source: { type: 'string', example: 'netztransparenz' },
                       },
                     },
                     co2: {
                       type: 'object',
                       nullable: true,
                       properties: {
-                        current:  { type: 'number', description: 'gCO2eq/kWh', example: 380 },
+                        current: { type: 'number', description: 'gCO2eq/kWh', example: 380 },
                         avgToday: { type: 'number' },
-                        signal:   { type: 'string', enum: ['green', 'yellow', 'red'] },
+                        signal: { type: 'string', enum: ['green', 'yellow', 'red'] },
                         location: { type: 'string', example: 'Deutschland' },
                       },
                     },
@@ -312,13 +356,13 @@ module.exports = {
                       type: 'object',
                       nullable: true,
                       properties: {
-                        solarPeakMW:      { type: 'number', example: 32500 },
-                        windPeakMW:       { type: 'number', example: 18200 },
-                        combinedPeakAt:   { type: 'string', format: 'date-time' },
+                        solarPeakMW: { type: 'number', example: 32500 },
+                        windPeakMW: { type: 'number', example: 18200 },
+                        combinedPeakAt: { type: 'string', format: 'date-time' },
                       },
                     },
                     timestamp: { type: 'string', format: 'date-time' },
-                    _errors:   { type: 'array', items: { type: 'string' } },
+                    _errors: { type: 'array', items: { type: 'string' } },
                   },
                 },
               },
@@ -332,7 +376,7 @@ module.exports = {
         const cacheKey = `market-snapshot:${location}:${region}`;
         return this.cacheGetOrFetch(cacheKey, this.settings.cacheTtlMs.marketSnapshot, async () => {
           const errors = [];
-          const today    = new Date().toISOString().slice(0, 10);
+          const today = new Date().toISOString().slice(0, 10);
           const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 
           // entsoe.dayAheadPrices, co2Intensity always fire in parallel (1 MCP session
@@ -341,33 +385,54 @@ module.exports = {
           // is not meaningful for a local VNB dashboard. UI must hide the
           // renewableForecast24h card when it is null.
           const [pricesRes, co2Res] = await Promise.allSettled([
-            this.safeCall(ctx, 'entsoe.dayAheadPrices', {
-              region: 'Deutschland',
-              dateFrom: today,
-              dateTo: today,
-              includeStatistics: true,
-            }, null, errors, 'entsoe.dayAheadPrices'),
-            this.safeCall(ctx, 'energy-market.co2Intensity', {
-              location,
-              forecast: true,
-            }, null, errors, 'energy-market.co2Intensity'),
+            this.safeCall(
+              ctx,
+              'entsoe.dayAheadPrices',
+              {
+                region: 'Deutschland',
+                dateFrom: today,
+                dateTo: today,
+                includeStatistics: true,
+              },
+              null,
+              errors,
+              'entsoe.dayAheadPrices'
+            ),
+            this.safeCall(
+              ctx,
+              'energy-market.co2Intensity',
+              {
+                location,
+                forecast: true,
+              },
+              null,
+              errors,
+              'energy-market.co2Intensity'
+            ),
           ]);
 
           const forecastRaw = region
-            ? await this.safeCall(ctx, 'entsoe.windSolarForecast', {
-                region,
-                dateFrom: today,
-                dateTo: tomorrow,
-                forecastType: 'both',
-              }, null, errors, 'entsoe.windSolarForecast')
+            ? await this.safeCall(
+                ctx,
+                'entsoe.windSolarForecast',
+                {
+                  region,
+                  dateFrom: today,
+                  dateTo: tomorrow,
+                  forecastType: 'both',
+                },
+                null,
+                errors,
+                'entsoe.windSolarForecast'
+              )
             : null;
 
           return {
-            spotPrice:            this.buildSpotPrice(pricesRes.value),
-            co2:                  this.buildCo2(co2Res.value, location),
+            spotPrice: this.buildSpotPrice(pricesRes.value),
+            co2: this.buildCo2(co2Res.value, location),
             renewableForecast24h: forecastRaw ? this.buildForecast(forecastRaw) : null,
-            timestamp:            new Date().toISOString(),
-            _errors:              errors,
+            timestamp: new Date().toISOString(),
+            _errors: errors,
           };
         });
       },
@@ -430,17 +495,19 @@ module.exports = {
                       items: {
                         type: 'object',
                         properties: {
-                          type:          { type: 'string', example: 'mastr-quality' },
-                          label:         { type: 'string', example: 'MaStR Datenqualität' },
-                          lastRun:       { type: 'string', format: 'date-time', nullable: true },
-                          keyMetric:     { type: 'object', nullable: true },
+                          type: { type: 'string', example: 'mastr-quality' },
+                          label: { type: 'string', example: 'MaStR Datenqualität' },
+                          lastRun: { type: 'string', format: 'date-time', nullable: true },
+                          keyMetric: { type: 'object', nullable: true },
                           findingsCount: {
-                            type: 'object', nullable: true,
-                            description: 'Finding counts from latest report (null for agents without findings pattern)',
+                            type: 'object',
+                            nullable: true,
+                            description:
+                              'Finding counts from latest report (null for agents without findings pattern)',
                             properties: {
-                              info:    { type: 'integer', example: 12 },
+                              info: { type: 'integer', example: 12 },
                               warning: { type: 'integer', example: 18 },
-                              error:   { type: 'integer', example: 5 },
+                              error: { type: 'integer', example: 5 },
                             },
                           },
                           recentReports: { type: 'array' },
@@ -448,7 +515,7 @@ module.exports = {
                       },
                     },
                     timestamp: { type: 'string', format: 'date-time' },
-                    _errors:   { type: 'array', items: { type: 'string' } },
+                    _errors: { type: 'array', items: { type: 'string' } },
                   },
                 },
               },
@@ -465,25 +532,78 @@ module.exports = {
           const baseFilter = gridOperatorId ? { gridOperatorId } : {};
 
           const [mqRes, gcRes, esRes, rdRes, allocRes] = await Promise.allSettled([
-            this.safeCall(ctx, ACTION_MQ_LIST,             { ...baseFilter, limit: 5 }, null, errors, ACTION_MQ_LIST),
-            this.safeCall(ctx, ACTION_GC_LIST,           { ...baseFilter, limit: 5 }, null, errors, ACTION_GC_LIST),
-            this.safeCall(ctx, ACTION_ES_LIST,            { limit: 5 },                null, errors, ACTION_ES_LIST),
-            this.safeCall(ctx, ACTION_RD_LIST,         { ...baseFilter, limit: 5 }, null, errors, ACTION_RD_LIST),
-            this.safeCall(ctx, 'energy-sharing-allocation.list', { limit: 5 },                null, errors, 'energy-sharing-allocation.list'),
+            this.safeCall(
+              ctx,
+              ACTION_MQ_LIST,
+              { ...baseFilter, limit: 5 },
+              null,
+              errors,
+              ACTION_MQ_LIST
+            ),
+            this.safeCall(
+              ctx,
+              ACTION_GC_LIST,
+              { ...baseFilter, limit: 5 },
+              null,
+              errors,
+              ACTION_GC_LIST
+            ),
+            this.safeCall(ctx, ACTION_ES_LIST, { limit: 5 }, null, errors, ACTION_ES_LIST),
+            this.safeCall(
+              ctx,
+              ACTION_RD_LIST,
+              { ...baseFilter, limit: 5 },
+              null,
+              errors,
+              ACTION_RD_LIST
+            ),
+            this.safeCall(
+              ctx,
+              'energy-sharing-allocation.list',
+              { limit: 5 },
+              null,
+              errors,
+              'energy-sharing-allocation.list'
+            ),
           ]);
 
           const agents = [
-            this.buildAgentEntry('mastr-quality',             'MaStR Datenqualität',         mqRes.value?.audits,         'qualityScore'),
-            this.buildAgentEntry('grid-connection',           'Netzanschluss-Validierung',    gcRes.value?.validations,    'decision'),
-            this.buildAgentEntry('energy-sharing',            'Energy Sharing Validierung',   esRes.value?.validations,    'decision'),
-            this.buildAgentEntry('redispatch-expost',         'Redispatch Ex-Post',           rdRes.value?.audits,         'settlementReadiness'),
-            this.buildAgentEntry('energy-sharing-allocation', 'Energy Sharing Allokation',    allocRes.value?.allocations, 'totalNetGenerationKWh'),
+            this.buildAgentEntry(
+              'mastr-quality',
+              'MaStR Datenqualität',
+              mqRes.value?.audits,
+              'qualityScore'
+            ),
+            this.buildAgentEntry(
+              'grid-connection',
+              'Netzanschluss-Validierung',
+              gcRes.value?.validations,
+              'decision'
+            ),
+            this.buildAgentEntry(
+              'energy-sharing',
+              'Energy Sharing Validierung',
+              esRes.value?.validations,
+              'decision'
+            ),
+            this.buildAgentEntry(
+              'redispatch-expost',
+              'Redispatch Ex-Post',
+              rdRes.value?.audits,
+              'settlementReadiness'
+            ),
+            this.buildAgentEntry(
+              'energy-sharing-allocation',
+              'Energy Sharing Allokation',
+              allocRes.value?.allocations,
+              'totalNetGenerationKWh'
+            ),
           ];
 
           return {
             agents,
             timestamp: new Date().toISOString(),
-            _errors:   errors,
+            _errors: errors,
           };
         });
       },
@@ -524,10 +644,10 @@ module.exports = {
                       additionalProperties: {
                         type: 'object',
                         properties: {
-                          severity:      { type: 'string', enum: ['info', 'warning', 'error'] },
-                          agent:         { type: 'string', example: 'mastr-quality' },
-                          step:          { type: 'integer', example: 4 },
-                          description:   { type: 'string', description: 'English description' },
+                          severity: { type: 'string', enum: ['info', 'warning', 'error'] },
+                          agent: { type: 'string', example: 'mastr-quality' },
+                          step: { type: 'integer', example: 4 },
+                          description: { type: 'string', description: 'English description' },
                           descriptionDe: { type: 'string', description: 'German description' },
                         },
                       },
@@ -551,30 +671,30 @@ module.exports = {
             codes: FINDING_CODE_METADATA,
             agents: {
               'grid-connection': {
-                label:   'Netzanschluss-Validierung',
+                label: 'Netzanschluss-Validierung',
                 version: '0.14.0',
-                steps:   6,
+                steps: 6,
                 pouchdbPrefix: 'val:',
                 endpoint: 'POST /api/grid-connection/validate',
               },
               'energy-sharing': {
-                label:   'Energy Sharing Validierung',
+                label: 'Energy Sharing Validierung',
                 version: '0.15.0',
-                steps:   6,
+                steps: 6,
                 pouchdbPrefix: 'es:',
                 endpoint: 'POST /api/energy-sharing/validate',
               },
               'mastr-quality': {
-                label:   'MaStR Datenqualität',
+                label: 'MaStR Datenqualität',
                 version: '0.17.0',
-                steps:   8,
+                steps: 8,
                 pouchdbPrefix: 'mq:',
                 endpoint: 'POST /api/mastr-quality/audit',
               },
               'redispatch-expost': {
-                label:   'Redispatch Ex-Post',
+                label: 'Redispatch Ex-Post',
                 version: '0.18.0',
-                steps:   7,
+                steps: 7,
                 pouchdbPrefix: 'rd:',
                 endpoint: 'POST /api/redispatch/audit',
               },
@@ -682,10 +802,10 @@ module.exports = {
       if (!identityData) return { bdew: bdewCode, name: null, mastrId: null, bnr: null };
       const hit = identityData.results?.[0] || identityData;
       return {
-        name:    hit.name    || hit.providerName  || null,
-        mastrId: hit.mastrId || hit.mastrSnbId    || null,
-        bdew:    hit.bdew    || hit.bdewCode       || bdewCode,
-        bnr:     hit.bnr     || hit.bnrCode        || null,
+        name: hit.name || hit.providerName || null,
+        mastrId: hit.mastrId || hit.mastrSnbId || null,
+        bdew: hit.bdew || hit.bdewCode || bdewCode,
+        bnr: hit.bnr || hit.bnrCode || null,
       };
     },
 
@@ -706,25 +826,25 @@ module.exports = {
       //   ewk.digitalisierungsindex.gesamt_percent — overall digitalisation score
       //   ewk.umsetzungsquote.eeNS_percent         — EE/NS implementation rate (%)
       const mastr = vnbMonitor?.mastr || {};
-      const ewk   = vnbMonitor?.ewk   || {};
-      const dp    = health?.overview  || health || {};
+      const ewk = vnbMonitor?.ewk || {};
+      const dp = health?.overview || health || {};
 
       const latestMqScore = mqAudits?.audits?.[0]?.qualityScore ?? null;
 
       return {
-        totalInstallations:       mastr.inBetrieb?.anlagenCount                 ?? null,
-        totalCapacityMW:          mastr.inBetrieb ? (Number(mastr.inBetrieb.leistungMW) || null) : null,
+        totalInstallations: mastr.inBetrieb?.anlagenCount ?? null,
+        totalCapacityMW: mastr.inBetrieb ? Number(mastr.inBetrieb.leistungMW) || null : null,
         // Populated by assets.redispatchCount (v0.20.2, RES-IR-0001 Option b).
         // null when assets service is unavailable (safeCall fallback).
-        redispatchEligible:       rdCount?.count       ?? null,
-        redispatchCapacityMW:     rdCount?.totalCapacityMW ?? null,
-        ewkAnschlussdauerWeeks:   ewk.anschlussdauer?.eeNS_weeks                ?? null,
-        ewkDigitalisierungsScore: ewk.digitalisierungsindex?.gesamt_percent     ?? null,
-        ewkUmsetzungsquote:       ewk.umsetzungsquote?.eeNS_percent             ?? null,
-        mastrQualityScore:        latestMqScore,
-        datapointsHealthy:        dp.healthy  ?? null,
-        datapointsStale:          dp.stale    ?? null,
-        datapointsErrored:        dp.errored  ?? null,
+        redispatchEligible: rdCount?.count ?? null,
+        redispatchCapacityMW: rdCount?.totalCapacityMW ?? null,
+        ewkAnschlussdauerWeeks: ewk.anschlussdauer?.eeNS_weeks ?? null,
+        ewkDigitalisierungsScore: ewk.digitalisierungsindex?.gesamt_percent ?? null,
+        ewkUmsetzungsquote: ewk.umsetzungsquote?.eeNS_percent ?? null,
+        mastrQualityScore: latestMqScore,
+        datapointsHealthy: dp.healthy ?? null,
+        datapointsStale: dp.stale ?? null,
+        datapointsErrored: dp.errored ?? null,
       };
     },
 
@@ -734,18 +854,18 @@ module.exports = {
      */
     buildAgentSummary(mqAudits, gcValidations, esValidations, rdAudits) {
       return {
-        mastrQuality:   this._summariseMq(mqAudits?.audits?.[0]),
+        mastrQuality: this._summariseMq(mqAudits?.audits?.[0]),
         gridConnection: this._summariseGc(gcValidations?.validations?.[0]),
-        energySharing:  this._summariseEs(esValidations?.validations?.[0]),
-        redispatch:     this._summariseRd(rdAudits?.audits?.[0]),
+        energySharing: this._summariseEs(esValidations?.validations?.[0]),
+        redispatch: this._summariseRd(rdAudits?.audits?.[0]),
       };
     },
 
     _summariseMq(audit) {
       if (!audit) return null;
       return {
-        id:           audit.id,
-        executedAt:   audit.createdAt,
+        id: audit.id,
+        executedAt: audit.createdAt,
         qualityScore: audit.qualityScore,
         findingsCount: audit.findingsCount || null,
       };
@@ -754,9 +874,9 @@ module.exports = {
     _summariseGc(report) {
       if (!report) return null;
       return {
-        id:           report.id,
-        executedAt:   report.createdAt,
-        decision:     report.decision,
+        id: report.id,
+        executedAt: report.createdAt,
+        decision: report.decision,
         findingsCount: report.findingsCount || null,
       };
     },
@@ -764,9 +884,9 @@ module.exports = {
     _summariseEs(report) {
       if (!report) return null;
       return {
-        id:           report.id,
-        executedAt:   report.createdAt,
-        decision:     report.decision,
+        id: report.id,
+        executedAt: report.createdAt,
+        decision: report.decision,
         findingsCount: report.findingsCount || null,
       };
     },
@@ -774,11 +894,11 @@ module.exports = {
     _summariseRd(audit) {
       if (!audit) return null;
       return {
-        id:                          audit.id,
-        executedAt:                  audit.createdAt,
-        settlementReadinessPercent:  audit.settlementReadiness?.readinessPercent ?? null,
-        riskLevel:                   audit.riskAssessment?.level ?? null,
-        findingsCount:               audit.findingsCount || null,
+        id: audit.id,
+        executedAt: audit.createdAt,
+        settlementReadinessPercent: audit.settlementReadiness?.readinessPercent ?? null,
+        riskLevel: audit.riskAssessment?.level ?? null,
+        findingsCount: audit.findingsCount || null,
       };
     },
 
@@ -800,18 +920,18 @@ module.exports = {
       if (!values.length) return null;
 
       // Prefer pre-computed statistics when available (entsoe response includes them)
-      const stats  = pricesData.statistics || {};
-      const avg    = stats.avgPrice    ?? (values.reduce((a, b) => a + b, 0) / values.length);
-      const min    = stats.minPrice    ?? Math.min(...values);
-      const max    = stats.maxPrice    ?? Math.max(...values);
+      const stats = pricesData.statistics || {};
+      const avg = stats.avgPrice ?? values.reduce((a, b) => a + b, 0) / values.length;
+      const min = stats.minPrice ?? Math.min(...values);
+      const max = stats.maxPrice ?? Math.max(...values);
       const current = values[values.length - 1];
-      const trend   = current > avg * 1.05 ? 'rising' : current < avg * 0.95 ? 'falling' : 'stable';
+      const trend = current > avg * 1.05 ? 'rising' : current < avg * 0.95 ? 'falling' : 'stable';
 
       return {
-        current:  Math.round(current  * 100) / 100,
-        avgToday: Math.round(avg      * 100) / 100,
-        minToday: Math.round(min      * 100) / 100,
-        maxToday: Math.round(max      * 100) / 100,
+        current: Math.round(current * 100) / 100,
+        avgToday: Math.round(avg * 100) / 100,
+        minToday: Math.round(min * 100) / 100,
+        maxToday: Math.round(max * 100) / 100,
         trend,
         source: 'entsoe',
       };
@@ -836,7 +956,7 @@ module.exports = {
       const signal = current < 300 ? 'green' : current < 450 ? 'yellow' : 'red';
 
       return {
-        current:  Math.round(current),
+        current: Math.round(current),
         avgToday:
           co2Data.average_today_gco2eq_kwh ??
           co2Data.data?.average_today_gco2eq_kwh ??
@@ -854,16 +974,16 @@ module.exports = {
     buildForecast(forecastData) {
       if (!forecastData) return null;
       const solar = forecastData.solar || forecastData.solarForecast || [];
-      const wind  = forecastData.wind  || forecastData.windForecast  || [];
+      const wind = forecastData.wind || forecastData.windForecast || [];
 
       const solarPeakMW = solar.length ? Math.max(...solar.map((p) => p.value ?? p.mw ?? 0)) : null;
-      const windPeakMW  = wind.length  ? Math.max(...wind.map((p) => p.value ?? p.mw ?? 0))  : null;
+      const windPeakMW = wind.length ? Math.max(...wind.map((p) => p.value ?? p.mw ?? 0)) : null;
 
       // Find combined peak timestamp
       let combinedPeakAt = null;
       if (solar.length && wind.length) {
         const solarPeak = solar.reduce((a, b) => ((a.value ?? 0) > (b.value ?? 0) ? a : b));
-        combinedPeakAt  = solarPeak.timestamp || solarPeak.time || null;
+        combinedPeakAt = solarPeak.timestamp || solarPeak.time || null;
       }
 
       return { solarPeakMW, windPeakMW, combinedPeakAt };
@@ -879,18 +999,25 @@ module.exports = {
      */
     buildAgentEntry(type, label, reports, metricKey) {
       if (!reports || !reports.length) {
-        return { type, label, lastRun: null, keyMetric: null, findingsCount: null, recentReports: [] };
+        return {
+          type,
+          label,
+          lastRun: null,
+          keyMetric: null,
+          findingsCount: null,
+          recentReports: [],
+        };
       }
-      const latest     = reports[0];
+      const latest = reports[0];
       const metricValue = latest[metricKey] ?? null;
       return {
         type,
         label,
-        lastRun:       latest.createdAt || null,
-        keyMetric:     metricValue != null ? { name: metricKey, value: metricValue } : null,
+        lastRun: latest.createdAt || null,
+        keyMetric: metricValue != null ? { name: metricKey, value: metricValue } : null,
         findingsCount: latest.findingsCount || null,
         recentReports: reports.map((r) => ({
-          id:         r.id,
+          id: r.id,
           executedAt: r.createdAt,
           [metricKey]: r[metricKey] ?? null,
         })),

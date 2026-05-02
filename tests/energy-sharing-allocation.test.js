@@ -29,7 +29,6 @@ const {
   applyRedispatchDeductions,
   allocateTimeseries,
   buildConsumerSummary,
-  buildTotalSummary,
   formatAsCsv,
   INTERVAL_MS,
   INTERVALS_PER_DAY,
@@ -38,11 +37,23 @@ const {
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
-const CONSUMER_A = { maloId: 'DE0001234567890123456789012345678', sharePercent: 30, name: 'Müller' };
-const CONSUMER_B = { maloId: 'DE0009876543210987654321098765432', sharePercent: 70, name: 'Schmidt' };
+const CONSUMER_A = {
+  maloId: 'DE0001234567890123456789012345678',
+  sharePercent: 30,
+  name: 'Müller',
+};
+const CONSUMER_B = {
+  maloId: 'DE0009876543210987654321098765432',
+  sharePercent: 70,
+  name: 'Schmidt',
+};
 const CONSUMERS_2 = [CONSUMER_A, CONSUMER_B];
 
-const CONSUMER_C = { maloId: 'DE0005555555555555555555555555555', sharePercent: 20, name: 'Haus C' };
+const CONSUMER_C = {
+  maloId: 'DE0005555555555555555555555555555',
+  sharePercent: 20,
+  name: 'Haus C',
+};
 const CONSUMERS_3 = [
   { ...CONSUMER_A, sharePercent: 30 },
   { ...CONSUMER_B, sharePercent: 50 },
@@ -187,7 +198,9 @@ describe('timeseries-allocation — pure unit tests', () => {
 
     test('handles empty forecastIntervals without throwing', () => {
       const grid = buildIntervalGrid('2026-06-01', '2026-06-01');
-      expect(() => mergeGeneratorForecasts(grid, [{ sharePercent: 100, forecastIntervals: [] }])).not.toThrow();
+      expect(() =>
+        mergeGeneratorForecasts(grid, [{ sharePercent: 100, forecastIntervals: [] }])
+      ).not.toThrow();
       expect(grid[0].generationKWh).toBe(0);
     });
   });
@@ -354,7 +367,9 @@ describe('timeseries-allocation — pure unit tests', () => {
       allocateTimeseries(grid, CONSUMERS_2);
       const csv = formatAsCsv(grid, CONSUMER_A.maloId);
       const header = csv.split('\n')[0];
-      expect(header).toBe('timestamp;generation_kwh;redispatch_deduction_kwh;net_generation_kwh;allocation_kwh');
+      expect(header).toBe(
+        'timestamp;generation_kwh;redispatch_deduction_kwh;net_generation_kwh;allocation_kwh'
+      );
     });
 
     test('uses semicolon delimiter', () => {
@@ -375,7 +390,10 @@ describe('timeseries-allocation — pure unit tests', () => {
 
     test('allocation_kwh column uses 4 decimal places', () => {
       const grid = buildIntervalGrid('2026-06-01', '2026-06-01');
-      for (const i of grid) { i.generationKWh = 1.0; i.netGenerationKWh = 1.0; }
+      for (const i of grid) {
+        i.generationKWh = 1.0;
+        i.netGenerationKWh = 1.0;
+      }
       allocateTimeseries(grid, CONSUMERS_2);
       const csv = formatAsCsv(grid, CONSUMER_A.maloId);
       const dataRow = csv.split('\n')[1];
@@ -396,9 +414,7 @@ describe('energy-sharing-allocation service', () => {
   beforeAll(async () => {
     broker = new ServiceBroker({ logger: false });
 
-    allocService = broker.createService(
-      require('../services/energy-sharing-allocation.service')
-    );
+    allocService = broker.createService(require('../services/energy-sharing-allocation.service'));
 
     // Stub energy-sharing service for validationReportId lookups
     broker.createService({
@@ -485,7 +501,7 @@ describe('energy-sharing-allocation service', () => {
   });
 
   test('all actions have openapi annotations with correct tag', () => {
-    for (const [name, action] of Object.entries(allocService.schema.actions)) {
+    for (const [, action] of Object.entries(allocService.schema.actions)) {
       expect(action.openapi?.summary).toBeTruthy();
       expect(action.openapi?.tags).toContain('Energy Sharing Allocation');
     }
@@ -506,7 +522,9 @@ describe('energy-sharing-allocation service', () => {
 
     const totalA = result.consumers.find((c) => c.maloId === CONSUMER_A.maloId).totalKWh;
     const totalB = result.consumers.find((c) => c.maloId === CONSUMER_B.maloId).totalKWh;
-    expect(Math.abs(totalA + totalB - result.summary.totalNetGenerationKWh)).toBeLessThanOrEqual(0.001);
+    expect(Math.abs(totalA + totalB - result.summary.totalNetGenerationKWh)).toBeLessThanOrEqual(
+      0.001
+    );
   });
 
   test('allocate persists document to PouchDB', async () => {
@@ -728,8 +746,14 @@ describe('energy-sharing-allocation service', () => {
 
   // ── list ──────────────────────────────────────────────────────────────────────
   test('list returns allocations sorted newest first', async () => {
-    await broker.call('energy-sharing-allocation.allocate', makeAllocateParams({ communityId: 'LIST-TEST-A' }));
-    await broker.call('energy-sharing-allocation.allocate', makeAllocateParams({ communityId: 'LIST-TEST-B' }));
+    await broker.call(
+      'energy-sharing-allocation.allocate',
+      makeAllocateParams({ communityId: 'LIST-TEST-A' })
+    );
+    await broker.call(
+      'energy-sharing-allocation.allocate',
+      makeAllocateParams({ communityId: 'LIST-TEST-B' })
+    );
 
     const result = await broker.call('energy-sharing-allocation.list', {});
     expect(result.count).toBeGreaterThanOrEqual(2);
@@ -740,9 +764,14 @@ describe('energy-sharing-allocation service', () => {
   });
 
   test('list filters by communityId', async () => {
-    await broker.call('energy-sharing-allocation.allocate', makeAllocateParams({ communityId: 'FILTER-UNIQUE-XYZ' }));
+    await broker.call(
+      'energy-sharing-allocation.allocate',
+      makeAllocateParams({ communityId: 'FILTER-UNIQUE-XYZ' })
+    );
 
-    const result = await broker.call('energy-sharing-allocation.list', { communityId: 'FILTER-UNIQUE-XYZ' });
+    const result = await broker.call('energy-sharing-allocation.list', {
+      communityId: 'FILTER-UNIQUE-XYZ',
+    });
     expect(result.count).toBeGreaterThanOrEqual(1);
     result.allocations.forEach((a) => expect(a.communityId).toBe('FILTER-UNIQUE-XYZ'));
   });
@@ -754,7 +783,9 @@ describe('energy-sharing-allocation service', () => {
     );
     await broker.call('energy-sharing-allocation.remove', { id: created.id });
 
-    const result = await broker.call('energy-sharing-allocation.list', { communityId: 'DELETE-TEST' });
+    const result = await broker.call('energy-sharing-allocation.list', {
+      communityId: 'DELETE-TEST',
+    });
     const deleted = result.allocations.find((a) => a.id === created.id);
     expect(deleted).toBeUndefined();
   });

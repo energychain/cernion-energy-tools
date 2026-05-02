@@ -131,13 +131,8 @@ module.exports = {
         responses: { 200: { description: 'MSCONS import result' } },
       },
       async handler(ctx) {
-        const {
-          data,
-          autoCreateMelo,
-          overwriteExisting,
-          validateOnImport,
-          gridOperatorMastrId,
-        } = ctx.params;
+        const { data, autoCreateMelo, overwriteExisting, validateOnImport, gridOperatorMastrId } =
+          ctx.params;
 
         const parsed = parseMscons(data);
 

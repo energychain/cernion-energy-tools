@@ -3,12 +3,11 @@
 const { assessTopologyHop } = require('./cya-topology-hop');
 const { resolveToolSet } = require('./cya-tool-registry');
 
-
 const DEFAULT_QUERY_TIMEOUT_MS = 45000;
 const MASTR_FACT_FOCUS_AREAS = new Set(['capacity', 'renewables']);
 const LOCATION_POSTAL_CODE_ALIASES = {
-  'höheinöd': '66989',
-  'hoheinod': '66989',
+  höheinöd: '66989',
+  hoheinod: '66989',
 };
 
 const FOCUS_AREA_QUERY_BUILDERS = {
@@ -80,10 +79,10 @@ function normalizeInstallation(raw) {
     mastrNummer: raw?.mastrNummer || raw?.mastrNumber || raw?.einheitMastrNummer || null,
     bruttoleistung: pickNumber(raw?.bruttoleistung ?? raw?.capacityKW ?? raw?.installedCapacityKW),
     inbetriebnahmeDatum: pickDateText(
-      raw?.inbetriebnahmeDatum
-      || raw?.commissioningDate
-      || raw?.inbetriebnahmedatum
-      || raw?.datumInbetriebnahme
+      raw?.inbetriebnahmeDatum ||
+        raw?.commissioningDate ||
+        raw?.inbetriebnahmedatum ||
+        raw?.datumInbetriebnahme
     ),
     postleitzahl: normalizeText(raw?.postleitzahl || raw?.postalCode || raw?.plz) || null,
     ort: normalizeText(raw?.ort || raw?.location || raw?.gemeinde || raw?.stadt) || null,
@@ -163,7 +162,8 @@ async function retrieveMastrSituation(ctx, context) {
   const legacySolar = solar[0] || null;
   const legacyWind = wind[0] || null;
   const storageDeficit = storageUtilityScale.length === 0;
-  const effectivePostalCode = postleitzahl || solar[0]?.postleitzahl || wind[0]?.postleitzahl || null;
+  const effectivePostalCode =
+    postleitzahl || solar[0]?.postleitzahl || wind[0]?.postleitzahl || null;
   const effectiveLocation = location || solar[0]?.ort || wind[0]?.ort || null;
 
   const legacyParts = [];
@@ -174,7 +174,11 @@ async function retrieveMastrSituation(ctx, context) {
     ? 'Es wurden keine Großspeicher > 50 kW gefunden (Speicherdefizit).'
     : `Es bestehen ${storageUtilityScale.length} Großspeicher > 50 kW.`;
 
-  const locationText = [effectivePostalCode, effectiveLocation].filter(Boolean).join(' ') || effectiveLocation || effectivePostalCode || location;
+  const locationText =
+    [effectivePostalCode, effectiveLocation].filter(Boolean).join(' ') ||
+    effectiveLocation ||
+    effectivePostalCode ||
+    location;
 
   const summary = `${locationText}: Altanlagen-Bestand mit ${legacyParts.join(' und ')}. ${storageSentence}`;
 
@@ -245,11 +249,15 @@ function buildFocusQuery(focusArea, context, actorRole, targetAudience) {
 async function runSingleFocusQuery(ctx, focusArea, query) {
   const started = Date.now();
   try {
-    const response = await ctx.call('query.ask', {
-      query,
-      explain: false,
-      timeout: DEFAULT_QUERY_TIMEOUT_MS,
-    }, { meta: { cernionToken: ctx.meta.cernionToken } });
+    const response = await ctx.call(
+      'query.ask',
+      {
+        query,
+        explain: false,
+        timeout: DEFAULT_QUERY_TIMEOUT_MS,
+      },
+      { meta: { cernionToken: ctx.meta.cernionToken } }
+    );
 
     return {
       focusArea,
@@ -324,11 +332,19 @@ function _buildToolParams(toolName, params) {
     case 'entsoe_day_ahead_prices':
       return { region: location || 'Deutschland', dateFrom: new Date().toISOString().slice(0, 10) };
     case 'entsoe_wind_solar_forecast':
-      return { region: location || 'Deutschland', dateFrom: new Date().toISOString().slice(0, 10), dateTo: new Date(Date.now() + 86400000).toISOString().slice(0, 10) };
+      return {
+        region: location || 'Deutschland',
+        dateFrom: new Date().toISOString().slice(0, 10),
+        dateTo: new Date(Date.now() + 86400000).toISOString().slice(0, 10),
+      };
     case 'cernion_redispatch_export':
       return { gridOperator: operator || location || 'unbekannt', minCapacity: 100 };
     case 'osm_substation_finder':
-      return { location: location || 'unbekannt', voltageLevel: capacityMw && capacityMw >= 150 ? 'HöS' : 'HS', maxResults: 5 };
+      return {
+        location: location || 'unbekannt',
+        voltageLevel: capacityMw && capacityMw >= 150 ? 'HöS' : 'HS',
+        maxResults: 5,
+      };
     default:
       return { location };
   }
@@ -347,10 +363,14 @@ async function _resolveAndFetchMcpDirect(ctx, toolSet, params) {
   const results = {};
   for (const tool of toolSet.mcpTools) {
     try {
-      results[tool] = await ctx.call('mcp-cernion.callTool', {
-        toolName: tool,
-        params: _buildToolParams(tool, params),
-      }, { meta: { cernionToken: ctx.meta?.cernionToken } });
+      results[tool] = await ctx.call(
+        'mcp-cernion.callTool',
+        {
+          toolName: tool,
+          params: _buildToolParams(tool, params),
+        },
+        { meta: { cernionToken: ctx.meta?.cernionToken } }
+      );
     } catch (err) {
       results[tool] = { error: err.message, fallback: true };
     }

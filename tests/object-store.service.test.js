@@ -76,7 +76,7 @@ describe('Object Store Service', () => {
       });
 
       expect(v2.payload.version).toBe(2);
-      expect(v2.createdAt).toBe(v1.createdAt);    // preserved
+      expect(v2.createdAt).toBe(v1.createdAt); // preserved
       expect(v2.updatedAt >= v1.updatedAt).toBe(true); // advanced
     });
   });
@@ -114,7 +114,10 @@ describe('Object Store Service', () => {
         payload: { temp: true },
       });
 
-      const result = await broker.call('object-store.delete', { namespace: 'test_ns', key: 'del1' });
+      const result = await broker.call('object-store.delete', {
+        namespace: 'test_ns',
+        key: 'del1',
+      });
       expect(result).toEqual({ success: true, namespace: 'test_ns', key: 'del1' });
 
       await expect(
@@ -158,7 +161,10 @@ describe('Object Store Service', () => {
     });
 
     it('empty selector returns all documents in the namespace', async () => {
-      const result = await broker.call('object-store.query', { namespace: 'query_ns', selector: {} });
+      const result = await broker.call('object-store.query', {
+        namespace: 'query_ns',
+        selector: {},
+      });
       expect(result.totalDocs).toBe(3);
       expect(result.docs.every((d) => d.namespace === 'query_ns')).toBe(true);
     });
@@ -182,8 +188,12 @@ describe('Object Store Service', () => {
     });
 
     it('respects the skip parameter', async () => {
-      const all     = await broker.call('object-store.query', { namespace: 'query_ns', selector: {} });
-      const skipped = await broker.call('object-store.query', { namespace: 'query_ns', selector: {}, skip: 1 });
+      const all = await broker.call('object-store.query', { namespace: 'query_ns', selector: {} });
+      const skipped = await broker.call('object-store.query', {
+        namespace: 'query_ns',
+        selector: {},
+        skip: 1,
+      });
       expect(skipped.totalDocs).toBe(all.totalDocs - 1);
     });
 
@@ -202,7 +212,7 @@ describe('Object Store Service', () => {
         namespace: 'query_ns',
         selector: { ns: 'other_ns' },
       });
-      expect(result.totalDocs).toBe(3);                                  // all query_ns docs
+      expect(result.totalDocs).toBe(3); // all query_ns docs
       expect(result.docs.every((d) => d.namespace === 'query_ns')).toBe(true);
       expect(result.docs.find((d) => d.payload && d.payload.priority === 99)).toBeUndefined();
     });
@@ -299,5 +309,4 @@ describe('Object Store Service', () => {
       expect(result.payload.nested).toBe(true);
     });
   });
-
 });

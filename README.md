@@ -21,6 +21,8 @@ Entscheidungen. Aktueller Stand: **v0.38.7**, 56 Services, 1 782+ Tests.
 
 ## Schnellstart
 
+Voraussetzung: **Node.js 22+**
+
 ```bash
 git clone https://github.com/energychain/cernion-energy-tools.git
 cd cernion-energy-tools

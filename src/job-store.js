@@ -14,11 +14,9 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const JOBS_DIR =
-  process.env.JOB_STORE_DIR || path.join(__dirname, '..', 'data', 'jobs');
+const JOBS_DIR = process.env.JOB_STORE_DIR || path.join(__dirname, '..', 'data', 'jobs');
 
-const TTL_MS =
-  parseInt(process.env.JOB_STORE_TTL_SECONDS || '86400', 10) * 1000;
+const TTL_MS = parseInt(process.env.JOB_STORE_TTL_SECONDS || '86400', 10) * 1000;
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -147,15 +145,21 @@ function gcExpired(ttlMs = TTL_MS) {
   try {
     ensureDir();
     const now = Date.now();
-    const files = fs
-      .readdirSync(JOBS_DIR)
-      .filter((f) => f.endsWith('.progress.json'));
+    const files = fs.readdirSync(JOBS_DIR).filter((f) => f.endsWith('.progress.json'));
     for (const f of files) {
       const id = f.replace('.progress.json', '');
       const job = getJob(id);
       if (job && now - new Date(job.createdAt).getTime() >= ttlMs) {
-        try { fs.unlinkSync(progressPath(id)); } catch { /* ignore */ }
-        try { fs.unlinkSync(resultPath(id)); } catch { /* ignore */ }
+        try {
+          fs.unlinkSync(progressPath(id));
+        } catch {
+          /* ignore */
+        }
+        try {
+          fs.unlinkSync(resultPath(id));
+        } catch {
+          /* ignore */
+        }
       }
     }
   } catch {
@@ -194,9 +198,7 @@ async function startJob(ctx, jobMeta, worker) {
   // Worker receives jobId so it can call appendLog for progress tracking.
   worker(jobId)
     .then((result) => saveResult(jobId, result))
-    .catch((err) =>
-      updateJob(jobId, { status: 'error', error: String(err.message || err) })
-    );
+    .catch((err) => updateJob(jobId, { status: 'error', error: String(err.message || err) }));
 
   ctx.meta.$statusCode = 202;
   ctx.meta.$responseHeaders = Object.assign(ctx.meta.$responseHeaders || {}, {

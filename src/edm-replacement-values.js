@@ -113,13 +113,14 @@ function generateReplacementValues(gaps, context = {}) {
     for (const strategy of methodOrder) {
       if (strategy === 'INTERPOLATE') {
         const { before, after } = findNeighbors(sortedAvailable, targetMs);
-        const interpolated = before && after
-          ? interpolateLinear(
-            { ts: before.ts, value: before._value },
-            { ts: after.ts, value: after._value },
-            ts
-          )
-          : null;
+        const interpolated =
+          before && after
+            ? interpolateLinear(
+                { ts: before.ts, value: before._value },
+                { ts: after.ts, value: after._value },
+                ts
+              )
+            : null;
 
         if (Number.isFinite(interpolated)) {
           replacement = {
@@ -145,7 +146,12 @@ function generateReplacementValues(gaps, context = {}) {
         }
       }
 
-      if (strategy === 'SLP_BASED' && !replacement && Array.isArray(slpValues) && slpValues.length === 96) {
+      if (
+        strategy === 'SLP_BASED' &&
+        !replacement &&
+        Array.isArray(slpValues) &&
+        slpValues.length === 96
+      ) {
         const date = new Date(targetMs);
         const slot = date.getUTCHours() * 4 + Math.floor(date.getUTCMinutes() / 15);
         const base = Number(slpValues[slot]);

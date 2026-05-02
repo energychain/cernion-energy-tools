@@ -15,26 +15,58 @@ beforeAll(async () => {
   // Minimal stub services needed for cya.service.js to start
   broker.createService({
     name: 'query',
-    actions: { ask: { handler() { return { answer: 'ok', sources: [], metadata: {} }; } } },
+    actions: {
+      ask: {
+        handler() {
+          return { answer: 'ok', sources: [], metadata: {} };
+        },
+      },
+    },
   });
   broker.createService({
     name: 'energy-market',
-    actions: { installations: { handler() { return { success: true, data: { installations: [] }, stats: { count: 0 } }; } } },
+    actions: {
+      installations: {
+        handler() {
+          return { success: true, data: { installations: [] }, stats: { count: 0 } };
+        },
+      },
+    },
   });
   broker.createService({
     name: 'grid-operations',
-    actions: { marketPartners: { handler() { return { results: [], count: 0 }; } } },
+    actions: {
+      marketPartners: {
+        handler() {
+          return { results: [], count: 0 };
+        },
+      },
+    },
   });
   broker.createService({
     name: 'osm-geo',
     actions: {
-      substationFinder: { handler() { return { nearestSubstations: [] }; } },
-      validate:         { handler() { return { valid: true }; } },
+      substationFinder: {
+        handler() {
+          return { nearestSubstations: [] };
+        },
+      },
+      validate: {
+        handler() {
+          return { valid: true };
+        },
+      },
     },
   });
   broker.createService({
     name: 'mcp-cernion',
-    actions: { callTool: { handler() { return {}; } } },
+    actions: {
+      callTool: {
+        handler() {
+          return {};
+        },
+      },
+    },
   });
 
   broker.createService({
@@ -154,15 +186,11 @@ describe('PATCH /api/cya/profile/:id (cya.profile.update)', () => {
   });
 
   test('id mit Sonderzeichen gibt Fehler', async () => {
-    await expect(
-      broker.call('cya.profile.update', { id: 'invalid-id!@#' })
-    ).rejects.toBeDefined();
+    await expect(broker.call('cya.profile.update', { id: 'invalid-id!@#' })).rejects.toBeDefined();
   });
 
   test('id mit Leerzeichen gibt Fehler', async () => {
-    await expect(
-      broker.call('cya.profile.update', { id: 'invalid id' })
-    ).rejects.toBeDefined();
+    await expect(broker.call('cya.profile.update', { id: 'invalid id' })).rejects.toBeDefined();
   });
 
   test('priorityFocusAreas wird gespeichert', async () => {

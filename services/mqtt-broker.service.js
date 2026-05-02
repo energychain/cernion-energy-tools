@@ -25,7 +25,10 @@ function ensureDir(dirPath) {
 }
 
 function sha256(value) {
-  return crypto.createHash('sha256').update(String(value || ''), 'utf8').digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(String(value || ''), 'utf8')
+    .digest('hex');
 }
 
 function stableStringify(value) {
@@ -51,7 +54,9 @@ function calculatePayloadHash(payload) {
 }
 
 function isControlTopic(topic, messageType) {
-  return messageType === 'control_command' || /^cernion\/flex\/[^/]+\/dimming$/.test(String(topic || ''));
+  return (
+    messageType === 'control_command' || /^cernion\/flex\/[^/]+\/dimming$/.test(String(topic || ''))
+  );
 }
 
 function isTerminalMessageState(state) {
@@ -62,10 +67,15 @@ function parseOptionalIso(value, fieldName) {
   if (!value) return null;
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) {
-    throw new MoleculerClientError(`Invalid ${fieldName} timestamp`, 422, 'MQTT_INVALID_TIMESTAMP', {
-      field: fieldName,
-      value,
-    });
+    throw new MoleculerClientError(
+      `Invalid ${fieldName} timestamp`,
+      422,
+      'MQTT_INVALID_TIMESTAMP',
+      {
+        field: fieldName,
+        value,
+      }
+    );
   }
   return parsed.toISOString();
 }
@@ -157,7 +167,13 @@ module.exports = {
         qos: { type: 'enum', values: [0, 1, 2], optional: true, default: 0, convert: true },
         retain: { type: 'boolean', optional: true, default: false, convert: true },
         messageType: { type: 'string', optional: true, default: 'generic', trim: true },
-        ttlSeconds: { type: 'number', integer: true, positive: true, optional: true, convert: true },
+        ttlSeconds: {
+          type: 'number',
+          integer: true,
+          positive: true,
+          optional: true,
+          convert: true,
+        },
         expiresAt: { type: 'string', optional: true },
         sourceService: { type: 'string', optional: true, trim: true },
         sourceRef: { type: 'string', optional: true, trim: true },
@@ -256,7 +272,12 @@ module.exports = {
         }
 
         if (retain) {
-          await this.upsertRetainedMessage({ topic, messageId, createdAt, expiresAt: resolvedExpiresAt });
+          await this.upsertRetainedMessage({
+            topic,
+            messageId,
+            createdAt,
+            expiresAt: resolvedExpiresAt,
+          });
         }
 
         ctx.emit('mqtt.message.persisted', {
@@ -293,12 +314,21 @@ module.exports = {
         const inflight = await this.getDocOrNull(`inf:${messageId}`);
         const timestamp = nowIso();
 
-        if (message.expiresAt && Date.parse(message.expiresAt) <= Date.now() && !isTerminalMessageState(message.state)) {
+        if (
+          message.expiresAt &&
+          Date.parse(message.expiresAt) <= Date.now() &&
+          !isTerminalMessageState(message.state)
+        ) {
           await this.markMessageExpired(message, inflight, timestamp);
           return {
             success: true,
             expired: true,
-            ...toPublicMessage({ ...message, state: 'expired', expiredAt: timestamp, updatedAt: timestamp }),
+            ...toPublicMessage({
+              ...message,
+              state: 'expired',
+              expiredAt: timestamp,
+              updatedAt: timestamp,
+            }),
           };
         }
 
@@ -351,7 +381,14 @@ module.exports = {
 
     recoverPendingMessages: {
       params: {
-        limit: { type: 'number', integer: true, positive: true, optional: true, default: 100, convert: true },
+        limit: {
+          type: 'number',
+          integer: true,
+          positive: true,
+          optional: true,
+          default: 100,
+          convert: true,
+        },
         topicPrefix: { type: 'string', optional: true, trim: true },
       },
       async handler(ctx) {

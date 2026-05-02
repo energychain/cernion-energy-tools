@@ -22,9 +22,7 @@ async function retrievePersonaContext(ctx, personaId, options = {}) {
   try {
     const result = await ctx.call('object-store.query', {
       namespace: persona.objectStoreNamespace,
-      selector: options.tags?.length
-        ? { tags: { $elemMatch: { $in: options.tags } } }
-        : {},
+      selector: options.tags?.length ? { tags: { $elemMatch: { $in: options.tags } } } : {},
       limit,
       sort: [{ createdAt: 'desc' }],
     });
@@ -49,10 +47,7 @@ function formatMemoryForPrompt(memoryContext) {
 
   const lines = memories.slice(0, 5).map((m, i) => {
     const payload = m.payload || m;
-    const summary =
-      typeof payload === 'string'
-        ? payload
-        : JSON.stringify(payload).slice(0, 200);
+    const summary = typeof payload === 'string' ? payload : JSON.stringify(payload).slice(0, 200);
     return `[Erinnerung ${i + 1}] ${summary}`;
   });
 

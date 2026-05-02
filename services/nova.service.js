@@ -5,10 +5,10 @@ const { MoleculerError } = require('moleculer').Errors;
 const { isRedispatchEligibleCapacityOnly } = require('../src/redispatch-utils');
 
 const QU_GAIN_FACTOR = 0.15;
-const RONT_PV_GAIN_FACTOR = 0.50;
+const RONT_PV_GAIN_FACTOR = 0.5;
 const RONT_WPEV_GAIN_FACTOR = 0.25;
 const RONT_CAPEX_EUR = 5500;
-const RD_CURTAILMENT_FACTOR = 0.30;
+const RD_CURTAILMENT_FACTOR = 0.3;
 
 module.exports = {
   name: 'nova',
@@ -324,8 +324,8 @@ module.exports = {
         }
 
         const rontGainRaw =
-          (profile.pvEffectiveKW * RONT_PV_GAIN_FACTOR) +
-          (profile.wpEvEffectiveKW * RONT_WPEV_GAIN_FACTOR);
+          profile.pvEffectiveKW * RONT_PV_GAIN_FACTOR +
+          profile.wpEvEffectiveKW * RONT_WPEV_GAIN_FACTOR;
         const rontGain = Math.round(rontGainRaw * 1000) / 1000;
         if (rontGain > 0 && rontGain >= profile.overloadKW) {
           decisions.push({
@@ -376,7 +376,12 @@ module.exports = {
       const redispatchAssetKeys = [];
 
       for (const asset of assets) {
-        const gFactor = this.resolveContributionGFactor(graph, asset.nodeKey, substationKey, asset.attrs);
+        const gFactor = this.resolveContributionGFactor(
+          graph,
+          asset.nodeKey,
+          substationKey,
+          asset.attrs
+        );
         const effectiveKW = (asset.capacityKW || 0) * gFactor;
 
         if (this.isPvAsset(asset.attrs)) pvEffectiveKW += effectiveKW;
@@ -512,7 +517,11 @@ module.exports = {
         const sourceCapacity = Number(sourceAttrs.capacity || 0);
         const boost = Math.round(sourceCapacity * QU_GAIN_FACTOR * 1000) / 1000;
         const currentBoost = Number(graph.getEdgeAttribute(edgeKey, 'capacity_boost_kw') || 0);
-        graph.setEdgeAttribute(edgeKey, 'capacity_boost_kw', Math.round((currentBoost + boost) * 1000) / 1000);
+        graph.setEdgeAttribute(
+          edgeKey,
+          'capacity_boost_kw',
+          Math.round((currentBoost + boost) * 1000) / 1000
+        );
       });
     },
 
@@ -525,11 +534,13 @@ module.exports = {
       const attrs = graph.getNodeAttributes(substationKey);
       const limitKey = Number.isFinite(attrs.thermalLimitKW)
         ? 'thermalLimitKW'
-        : (Number.isFinite(attrs.capacity_kw)
+        : Number.isFinite(attrs.capacity_kw)
           ? 'capacity_kw'
-          : (Number.isFinite(attrs.capacityKW)
+          : Number.isFinite(attrs.capacityKW)
             ? 'capacityKW'
-            : (Number.isFinite(attrs.maxCapacityKW) ? 'maxCapacityKW' : 'thermalLimitKW')));
+            : Number.isFinite(attrs.maxCapacityKW)
+              ? 'maxCapacityKW'
+              : 'thermalLimitKW';
       const currentLimit = Number(attrs[limitKey] || 0);
       graph.setNodeAttribute(
         substationKey,
@@ -551,8 +562,14 @@ module.exports = {
         if (multiplier <= 0) return;
 
         const additionalCapacity = Math.round(sourceCapacity * multiplier * 1000) / 1000;
-        const currentCapacity = Number(graph.getEdgeAttribute(edgeKey, 'capacity_kw') || sourceCapacity);
-        graph.setEdgeAttribute(edgeKey, 'capacity_kw', Math.round((currentCapacity + additionalCapacity) * 1000) / 1000);
+        const currentCapacity = Number(
+          graph.getEdgeAttribute(edgeKey, 'capacity_kw') || sourceCapacity
+        );
+        graph.setEdgeAttribute(
+          edgeKey,
+          'capacity_kw',
+          Math.round((currentCapacity + additionalCapacity) * 1000) / 1000
+        );
         graph.setEdgeAttribute(edgeKey, 'is_rONT_applied', true);
       });
     },
@@ -560,9 +577,7 @@ module.exports = {
     applyRdCurtailmentDecision(graph, substationKey, redispatchAssetKeys) {
       if (!graph.hasNode(substationKey)) return;
 
-      const eligibleKeys = Array.isArray(redispatchAssetKeys)
-        ? redispatchAssetKeys
-        : [];
+      const eligibleKeys = Array.isArray(redispatchAssetKeys) ? redispatchAssetKeys : [];
 
       for (const assetKey of eligibleKeys) {
         if (!graph.hasNode(assetKey)) continue;
@@ -574,7 +589,7 @@ module.exports = {
         const edgeAttrs = graph.getEdgeAttributes(edgeKey);
         if (edgeAttrs.relationship !== 'CONTRIBUTES_LOAD') continue;
 
-        graph.setEdgeAttribute(edgeKey, 'gFactor', 0.70);
+        graph.setEdgeAttribute(edgeKey, 'gFactor', 0.7);
         graph.setEdgeAttribute(edgeKey, 'is_rd_curtailed', true);
         graph.setNodeAttribute(assetKey, 'is_rd_curtailed', true);
       }

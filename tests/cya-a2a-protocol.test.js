@@ -14,21 +14,39 @@ const {
 
 // ── UUID pattern ─────────────────────────────────────────────────────────────
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ISO_RE  = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
 
 describe('cya-a2a-protocol — createMessage', () => {
   it('returns an object with messageId in UUID v4 format', () => {
-    const msg = createMessage('cya.a2a.persona.evaluated', 'sess-1', 'technical', 'orchestrator', {});
+    const msg = createMessage(
+      'cya.a2a.persona.evaluated',
+      'sess-1',
+      'technical',
+      'orchestrator',
+      {}
+    );
     expect(msg.messageId).toMatch(UUID_RE);
   });
 
   it('timestamp is ISO 8601', () => {
-    const msg = createMessage('cya.a2a.persona.evaluated', 'sess-1', 'technical', 'orchestrator', {});
+    const msg = createMessage(
+      'cya.a2a.persona.evaluated',
+      'sess-1',
+      'technical',
+      'orchestrator',
+      {}
+    );
     expect(msg.timestamp).toMatch(ISO_RE);
   });
 
   it('protocolVersion is "1.0"', () => {
-    const msg = createMessage('cya.a2a.persona.evaluated', 'sess-1', 'technical', 'orchestrator', {});
+    const msg = createMessage(
+      'cya.a2a.persona.evaluated',
+      'sess-1',
+      'technical',
+      'orchestrator',
+      {}
+    );
     expect(msg.protocolVersion).toBe('1.0');
   });
 
@@ -50,7 +68,13 @@ describe('cya-a2a-protocol — createMessage', () => {
 
   it('payload is passed through', () => {
     const payload = { verdict: 'blocked', summary: 'test' };
-    const msg = createMessage('cya.a2a.persona.evaluated', 's', 'technical', 'orchestrator', payload);
+    const msg = createMessage(
+      'cya.a2a.persona.evaluated',
+      's',
+      'technical',
+      'orchestrator',
+      payload
+    );
     expect(msg.payload).toEqual(payload);
   });
 
@@ -63,18 +87,36 @@ describe('cya-a2a-protocol — createMessage', () => {
 
 describe('cya-a2a-protocol — factory functions', () => {
   it('personaEvaluated: eventName is "cya.a2a.persona.evaluated"', () => {
-    const msg = personaEvaluated('s1', 'technical', { verdict: 'approved', summary: 'ok', conflictTriggers: [], keyPoints: [], riskNotes: [] });
+    const msg = personaEvaluated('s1', 'technical', {
+      verdict: 'approved',
+      summary: 'ok',
+      conflictTriggers: [],
+      keyPoints: [],
+      riskNotes: [],
+    });
     expect(msg.eventName).toBe('cya.a2a.persona.evaluated');
   });
 
   it('personaEvaluated: fromPersona is personaId, toPersona is "orchestrator"', () => {
-    const msg = personaEvaluated('s1', 'compliance', { verdict: 'blocked', summary: '', conflictTriggers: [], keyPoints: [], riskNotes: [] });
+    const msg = personaEvaluated('s1', 'compliance', {
+      verdict: 'blocked',
+      summary: '',
+      conflictTriggers: [],
+      keyPoints: [],
+      riskNotes: [],
+    });
     expect(msg.fromPersona).toBe('compliance');
     expect(msg.toPersona).toBe('orchestrator');
   });
 
   it('personaEvaluated: payload contains verdict and summary', () => {
-    const state = { verdict: 'conditional', summary: 'needs more data', conflictTriggers: ['capacity'], keyPoints: ['k1'], riskNotes: ['r1'] };
+    const state = {
+      verdict: 'conditional',
+      summary: 'needs more data',
+      conflictTriggers: ['capacity'],
+      keyPoints: ['k1'],
+      riskNotes: ['r1'],
+    };
     const msg = personaEvaluated('s1', 'commercial', state);
     expect(msg.payload.verdict).toBe('conditional');
     expect(msg.payload.summary).toBe('needs more data');
@@ -82,7 +124,11 @@ describe('cya-a2a-protocol — factory functions', () => {
   });
 
   it('conflictDetected: toPersona is null (broadcast)', () => {
-    const msg = conflictDetected('s2', { blockers: ['compliance'], approvers: ['technical'], triggers: ['capacity'] });
+    const msg = conflictDetected('s2', {
+      blockers: ['compliance'],
+      approvers: ['technical'],
+      triggers: ['capacity'],
+    });
     expect(msg.toPersona).toBeNull();
     expect(msg.fromPersona).toBe('orchestrator');
   });
@@ -93,13 +139,23 @@ describe('cya-a2a-protocol — factory functions', () => {
   });
 
   it('conflictDetected: payload contains blockers and approvers', () => {
-    const msg = conflictDetected('s2', { blockers: ['compliance'], approvers: ['technical', 'commercial'], triggers: ['T1'] });
+    const msg = conflictDetected('s2', {
+      blockers: ['compliance'],
+      approvers: ['technical', 'commercial'],
+      triggers: ['T1'],
+    });
     expect(msg.payload.blockers).toEqual(['compliance']);
     expect(msg.payload.approvers).toEqual(['technical', 'commercial']);
   });
 
   it('negotiationRound: payload.round is correct', () => {
-    const msg = negotiationRound('s3', { round: 2, blockers: ['c'], triggers: ['t'], consensusReached: false, unresolvedConflicts: ['uc'] });
+    const msg = negotiationRound('s3', {
+      round: 2,
+      blockers: ['c'],
+      triggers: ['t'],
+      consensusReached: false,
+      unresolvedConflicts: ['uc'],
+    });
     expect(msg.payload.round).toBe(2);
     expect(msg.eventName).toBe('cya.a2a.negotiation.round');
   });
@@ -120,7 +176,14 @@ describe('cya-a2a-protocol — factory functions', () => {
 });
 
 describe('cya-a2a-protocol — validateMessage', () => {
-  const validMsg = () => personaEvaluated('s1', 'technical', { verdict: 'approved', summary: '', conflictTriggers: [], keyPoints: [], riskNotes: [] });
+  const validMsg = () =>
+    personaEvaluated('s1', 'technical', {
+      verdict: 'approved',
+      summary: '',
+      conflictTriggers: [],
+      keyPoints: [],
+      riskNotes: [],
+    });
 
   it('does not throw for a valid message', () => {
     expect(() => validateMessage(validMsg())).not.toThrow();
@@ -193,11 +256,13 @@ describe('cya-a2a-protocol — _emitA2AMessage integration (broker mock)', () =>
         const { validateMessage: vld, A2A_NAMESPACE: ns } = require('../src/cya-a2a-protocol');
         vld(msg);
         this.broker.emit(msg.eventName, msg);
-        this.broker.call('object-store.put', {
-          namespace: ns,
-          key: msg.messageId,
-          payload: msg,
-        }).catch((err) => this.logger.warn('[A2A] persist failed:', err.message));
+        this.broker
+          .call('object-store.put', {
+            namespace: ns,
+            key: msg.messageId,
+            payload: msg,
+          })
+          .catch((err) => this.logger.warn('[A2A] persist failed:', err.message));
       },
     };
   }
@@ -205,7 +270,13 @@ describe('cya-a2a-protocol — _emitA2AMessage integration (broker mock)', () =>
   it('broker.emit is called with correct eventName', async () => {
     const broker = makeBroker();
     const svc = makeService(broker);
-    const msg = personaEvaluated('s1', 'technical', { verdict: 'approved', summary: '', conflictTriggers: [], keyPoints: [], riskNotes: [] });
+    const msg = personaEvaluated('s1', 'technical', {
+      verdict: 'approved',
+      summary: '',
+      conflictTriggers: [],
+      keyPoints: [],
+      riskNotes: [],
+    });
     await svc._emitA2AMessage(msg);
     expect(broker.emittedEvents).toHaveLength(1);
     expect(broker.emittedEvents[0].eventName).toBe('cya.a2a.persona.evaluated');
@@ -214,7 +285,11 @@ describe('cya-a2a-protocol — _emitA2AMessage integration (broker mock)', () =>
   it('object-store.put is called with correct namespace and key', async () => {
     const broker = makeBroker();
     const svc = makeService(broker);
-    const msg = conflictDetected('s2', { blockers: ['compliance'], approvers: ['technical'], triggers: ['cap'] });
+    const msg = conflictDetected('s2', {
+      blockers: ['compliance'],
+      approvers: ['technical'],
+      triggers: ['cap'],
+    });
     await svc._emitA2AMessage(msg);
     expect(broker.calledActions).toHaveLength(1);
     expect(broker.calledActions[0].action).toBe('object-store.put');
@@ -225,7 +300,13 @@ describe('cya-a2a-protocol — _emitA2AMessage integration (broker mock)', () =>
   it('invalid envelope throws before broker.emit is called', async () => {
     const broker = makeBroker();
     const svc = makeService(broker);
-    const badMsg = { messageId: null, sessionId: 's1', eventName: 'cya.a2a.persona.evaluated', fromPersona: 'technical', payload: {} };
+    const badMsg = {
+      messageId: null,
+      sessionId: 's1',
+      eventName: 'cya.a2a.persona.evaluated',
+      fromPersona: 'technical',
+      payload: {},
+    };
     await expect(svc._emitA2AMessage(badMsg)).rejects.toThrow('A2A_INVALID_ENVELOPE');
     expect(broker.emittedEvents).toHaveLength(0);
   });

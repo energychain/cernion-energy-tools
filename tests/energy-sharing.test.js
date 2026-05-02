@@ -59,7 +59,11 @@ const MOCK_INSTALLATION_NO_DV = {
   MeloMastrNummer: 'MEL003',
 };
 
-const MOCK_INSTALLATIONS = [MOCK_INSTALLATION_SOLAR, MOCK_INSTALLATION_WIND_LARGE, MOCK_INSTALLATION_NO_DV];
+const MOCK_INSTALLATIONS = [
+  MOCK_INSTALLATION_SOLAR,
+  MOCK_INSTALLATION_WIND_LARGE,
+  MOCK_INSTALLATION_NO_DV,
+];
 
 const MOCK_GENERATORS_VALID = [
   { mastrNummer: 'SEE904837264953', sharePercent: 100, direktvermarkter: 'Next Kraftwerke GmbH' },
@@ -71,7 +75,14 @@ const MOCK_CONSUMERS_VALID = [
 ];
 
 const MOCK_DV_RESULT = {
-  data: [{ mastrId: 'DV123456', name: 'Next Kraftwerke GmbH', portfolioSize: 500, totalCapacityKW: 250000 }],
+  data: [
+    {
+      mastrId: 'DV123456',
+      name: 'Next Kraftwerke GmbH',
+      portfolioSize: 500,
+      totalCapacityKW: 250000,
+    },
+  ],
 };
 
 // ---------------------------------------------------------------------------
@@ -87,9 +98,15 @@ describe('validation-findings — Energy Sharing codes', () => {
 
   test('exports all ES Step 2 (Generator) finding code constants', () => {
     const expected = [
-      'GENERATOR_VALID', 'GENERATOR_NOT_FOUND', 'GENERATOR_NOT_OPERATIONAL',
-      'GENERATOR_WRONG_GRID_AREA', 'GENERATOR_TYPE_INELIGIBLE', 'GENERATOR_CAPACITY_ZERO',
-      'GENERATOR_NO_NAP', 'GENERATOR_NO_MELO', 'GENERATOR_DUPLICATE',
+      'GENERATOR_VALID',
+      'GENERATOR_NOT_FOUND',
+      'GENERATOR_NOT_OPERATIONAL',
+      'GENERATOR_WRONG_GRID_AREA',
+      'GENERATOR_TYPE_INELIGIBLE',
+      'GENERATOR_CAPACITY_ZERO',
+      'GENERATOR_NO_NAP',
+      'GENERATOR_NO_MELO',
+      'GENERATOR_DUPLICATE',
     ];
     for (const code of expected) {
       expect(vf[code]).toBe(code);
@@ -98,8 +115,12 @@ describe('validation-findings — Energy Sharing codes', () => {
 
   test('exports all ES Step 3 (DV) finding code constants', () => {
     const expected = [
-      'DV_VALID', 'DV_MANDATORY_MISSING', 'DV_NOT_CONTROLLABLE',
-      'DV_NOT_FOUND', 'DV_INACTIVE', 'DV_MASTR_MISMATCH',
+      'DV_VALID',
+      'DV_MANDATORY_MISSING',
+      'DV_NOT_CONTROLLABLE',
+      'DV_NOT_FOUND',
+      'DV_INACTIVE',
+      'DV_MASTR_MISMATCH',
     ];
     for (const code of expected) {
       expect(vf[code]).toBe(code);
@@ -108,9 +129,15 @@ describe('validation-findings — Energy Sharing codes', () => {
 
   test('exports all ES Step 4 (Eligibility) finding code constants', () => {
     const expected = [
-      'ELIGIBILITY_CONFIRMED', 'SHARE_SUM_GENERATORS_INVALID', 'SHARE_SUM_CONSUMERS_INVALID',
-      'NO_GENERATORS', 'NO_CONSUMERS', 'MIXED_GRID_AREAS', 'GENERATOR_EXCEEDS_LIMIT',
-      'CONSUMER_MALO_INVALID', 'CONSUMER_MALO_DUPLICATE',
+      'ELIGIBILITY_CONFIRMED',
+      'SHARE_SUM_GENERATORS_INVALID',
+      'SHARE_SUM_CONSUMERS_INVALID',
+      'NO_GENERATORS',
+      'NO_CONSUMERS',
+      'MIXED_GRID_AREAS',
+      'GENERATOR_EXCEEDS_LIMIT',
+      'CONSUMER_MALO_INVALID',
+      'CONSUMER_MALO_DUPLICATE',
     ];
     for (const code of expected) {
       expect(vf[code]).toBe(code);
@@ -153,7 +180,12 @@ describe('energy-sharing service', () => {
       actions: {
         createSnapshot: {
           async handler() {
-            return { id: 'snap-es-123', status: 'complete', snapshotHash: 'hash-es-abc', datapointNames: [] };
+            return {
+              id: 'snap-es-123',
+              status: 'complete',
+              snapshotHash: 'hash-es-abc',
+              datapointNames: [],
+            };
           },
         },
         validateSnapshot: {
@@ -162,10 +194,14 @@ describe('energy-sharing service', () => {
           },
         },
         list: {
-          async handler() { return { count: 0, datapoints: [] }; },
+          async handler() {
+            return { count: 0, datapoints: [] };
+          },
         },
         data: {
-          async handler() { throw new Error('datapoint not found'); },
+          async handler() {
+            throw new Error('datapoint not found');
+          },
         },
       },
     });
@@ -216,7 +252,7 @@ describe('energy-sharing service', () => {
   });
 
   test('all actions have openapi annotations with Energy Sharing Validation tag', () => {
-    for (const [name, action] of Object.entries(esService.schema.actions)) {
+    for (const [, action] of Object.entries(esService.schema.actions)) {
       expect(action.openapi).toBeDefined();
       expect(action.openapi.summary).toBeTruthy();
       expect(Array.isArray(action.openapi.tags)).toBe(true);
@@ -269,13 +305,19 @@ describe('energy-sharing service', () => {
 
   // ---- stepEligibility ----
   test('stepEligibility returns NO_GENERATORS error for empty generators array', () => {
-    const findings = esService.stepEligibility({ generators: [], consumers: MOCK_CONSUMERS_VALID }, []);
+    const findings = esService.stepEligibility(
+      { generators: [], consumers: MOCK_CONSUMERS_VALID },
+      []
+    );
     expect(findings.some((f) => f.finding === vf.NO_GENERATORS)).toBe(true);
     expect(findings.find((f) => f.finding === vf.NO_GENERATORS).severity).toBe('error');
   });
 
   test('stepEligibility returns NO_CONSUMERS error for empty consumers array', () => {
-    const findings = esService.stepEligibility({ generators: MOCK_GENERATORS_VALID, consumers: [] }, []);
+    const findings = esService.stepEligibility(
+      { generators: MOCK_GENERATORS_VALID, consumers: [] },
+      []
+    );
     expect(findings.some((f) => f.finding === vf.NO_CONSUMERS)).toBe(true);
   });
 
@@ -284,7 +326,10 @@ describe('energy-sharing service', () => {
       { mastrNummer: 'SEE1', sharePercent: 60 },
       { mastrNummer: 'SEE2', sharePercent: 30 },
     ];
-    const findings = esService.stepEligibility({ generators: badGens, consumers: MOCK_CONSUMERS_VALID }, []);
+    const findings = esService.stepEligibility(
+      { generators: badGens, consumers: MOCK_CONSUMERS_VALID },
+      []
+    );
     expect(findings.some((f) => f.finding === vf.SHARE_SUM_GENERATORS_INVALID)).toBe(true);
   });
 
@@ -293,24 +338,39 @@ describe('energy-sharing service', () => {
       { maloId: 'DE00012345678901234567890123456789', sharePercent: 60 },
       { maloId: 'DE00098765432109876543210987654321', sharePercent: 30 },
     ];
-    const findings = esService.stepEligibility({ generators: MOCK_GENERATORS_VALID, consumers: badCons }, []);
+    const findings = esService.stepEligibility(
+      { generators: MOCK_GENERATORS_VALID, consumers: badCons },
+      []
+    );
     expect(findings.some((f) => f.finding === vf.SHARE_SUM_CONSUMERS_INVALID)).toBe(true);
   });
 
   test('stepEligibility returns CONSUMER_MALO_INVALID for wrong format', () => {
-    const badCons = [
-      { maloId: 'INVALID123', sharePercent: 100 },
-    ];
-    const findings = esService.stepEligibility({ generators: MOCK_GENERATORS_VALID, consumers: badCons }, []);
+    const badCons = [{ maloId: 'INVALID123', sharePercent: 100 }];
+    const findings = esService.stepEligibility(
+      { generators: MOCK_GENERATORS_VALID, consumers: badCons },
+      []
+    );
     expect(findings.some((f) => f.finding === vf.CONSUMER_MALO_INVALID)).toBe(true);
     expect(findings.find((f) => f.finding === vf.CONSUMER_MALO_INVALID).severity).toBe('error');
   });
 
   test('stepEligibility accepts valid DE MaLo format (DE + 31 digits)', () => {
-    const findings = esService.stepEligibility({
-      generators: MOCK_GENERATORS_VALID,
-      consumers: MOCK_CONSUMERS_VALID,
-    }, [{ mastrNummer: 'SEE904837264953', status: 'valid', capacityKW: 350, gridArea: 'SNB935578300972', findings: [vf.GENERATOR_VALID] }]);
+    const findings = esService.stepEligibility(
+      {
+        generators: MOCK_GENERATORS_VALID,
+        consumers: MOCK_CONSUMERS_VALID,
+      },
+      [
+        {
+          mastrNummer: 'SEE904837264953',
+          status: 'valid',
+          capacityKW: 350,
+          gridArea: 'SNB935578300972',
+          findings: [vf.GENERATOR_VALID],
+        },
+      ]
+    );
     expect(findings.some((f) => f.finding === vf.CONSUMER_MALO_INVALID)).toBe(false);
   });
 
@@ -319,7 +379,10 @@ describe('energy-sharing service', () => {
       { maloId: 'DE00012345678901234567890123456789', sharePercent: 50 },
       { maloId: 'DE00012345678901234567890123456789', sharePercent: 50 },
     ];
-    const findings = esService.stepEligibility({ generators: MOCK_GENERATORS_VALID, consumers: dupCons }, []);
+    const findings = esService.stepEligibility(
+      { generators: MOCK_GENERATORS_VALID, consumers: dupCons },
+      []
+    );
     expect(findings.some((f) => f.finding === vf.CONSUMER_MALO_DUPLICATE)).toBe(true);
   });
 
@@ -328,29 +391,51 @@ describe('energy-sharing service', () => {
       { mastrNummer: 'SEE904837264953', sharePercent: 50 },
       { mastrNummer: 'SEE904837264953', sharePercent: 50 },
     ];
-    const findings = esService.stepEligibility({ generators: dupGens, consumers: MOCK_CONSUMERS_VALID }, []);
+    const findings = esService.stepEligibility(
+      { generators: dupGens, consumers: MOCK_CONSUMERS_VALID },
+      []
+    );
     expect(findings.some((f) => f.finding === vf.GENERATOR_DUPLICATE)).toBe(true);
   });
 
   test('stepEligibility returns GENERATOR_EXCEEDS_LIMIT for >1 MW generator', () => {
-    const largeGen = [{ mastrNummer: 'SWE100000000001', status: 'valid', capacityKW: 1500, gridArea: 'SNB1', findings: [] }];
-    const findings = esService.stepEligibility({
-      generators: [{ mastrNummer: 'SWE100000000001', sharePercent: 100 }],
-      consumers: MOCK_CONSUMERS_VALID,
-    }, largeGen);
+    const largeGen = [
+      {
+        mastrNummer: 'SWE100000000001',
+        status: 'valid',
+        capacityKW: 1500,
+        gridArea: 'SNB1',
+        findings: [],
+      },
+    ];
+    const findings = esService.stepEligibility(
+      {
+        generators: [{ mastrNummer: 'SWE100000000001', sharePercent: 100 }],
+        consumers: MOCK_CONSUMERS_VALID,
+      },
+      largeGen
+    );
     expect(findings.some((f) => f.finding === vf.GENERATOR_EXCEEDS_LIMIT)).toBe(true);
     expect(findings.find((f) => f.finding === vf.GENERATOR_EXCEEDS_LIMIT).severity).toBe('warning');
   });
 
   test('stepEligibility returns ELIGIBILITY_CONFIRMED when all checks pass', () => {
-    const enriched = [{
-      mastrNummer: 'SEE904837264953', status: 'valid', capacityKW: 350,
-      gridArea: 'SNB935578300972', findings: [vf.GENERATOR_VALID],
-    }];
-    const findings = esService.stepEligibility({
-      generators: MOCK_GENERATORS_VALID,
-      consumers: MOCK_CONSUMERS_VALID,
-    }, enriched);
+    const enriched = [
+      {
+        mastrNummer: 'SEE904837264953',
+        status: 'valid',
+        capacityKW: 350,
+        gridArea: 'SNB935578300972',
+        findings: [vf.GENERATOR_VALID],
+      },
+    ];
+    const findings = esService.stepEligibility(
+      {
+        generators: MOCK_GENERATORS_VALID,
+        consumers: MOCK_CONSUMERS_VALID,
+      },
+      enriched
+    );
     expect(findings.some((f) => f.finding === vf.ELIGIBILITY_CONFIRMED)).toBe(true);
     expect(findings.find((f) => f.finding === vf.ELIGIBILITY_CONFIRMED).severity).toBe('info');
   });
@@ -361,7 +446,10 @@ describe('energy-sharing service', () => {
       { mastrNummer: 'SEE2', status: 'valid', capacityKW: 100, gridArea: 'SNB222', findings: [] },
     ];
     const params = {
-      generators: [{ mastrNummer: 'SEE1', sharePercent: 50 }, { mastrNummer: 'SEE2', sharePercent: 50 }],
+      generators: [
+        { mastrNummer: 'SEE1', sharePercent: 50 },
+        { mastrNummer: 'SEE2', sharePercent: 50 },
+      ],
       consumers: MOCK_CONSUMERS_VALID,
     };
     const findings = esService.stepEligibility(params, mixedGens);
@@ -448,7 +536,10 @@ describe('energy-sharing service', () => {
   // ---- buildGeneratorFindings ----
   test('buildGeneratorFindings emits GENERATOR_VALID for clean installation', () => {
     const { genCodes } = esService.buildGeneratorFindings(
-      MOCK_GENERATORS_VALID[0], MOCK_INSTALLATION_SOLAR, false, 1
+      MOCK_GENERATORS_VALID[0],
+      MOCK_INSTALLATION_SOLAR,
+      false,
+      1
     );
     expect(genCodes).toContain(vf.GENERATOR_VALID);
     expect(genCodes).not.toContain(vf.GENERATOR_NOT_OPERATIONAL);
@@ -456,39 +547,67 @@ describe('energy-sharing service', () => {
 
   test('buildGeneratorFindings emits GENERATOR_WRONG_GRID_AREA when wrongGridArea=true', () => {
     const { genCodes } = esService.buildGeneratorFindings(
-      MOCK_GENERATORS_VALID[0], MOCK_INSTALLATION_SOLAR, true, 1
+      MOCK_GENERATORS_VALID[0],
+      MOCK_INSTALLATION_SOLAR,
+      true,
+      1
     );
     expect(genCodes).toContain(vf.GENERATOR_WRONG_GRID_AREA);
   });
 
   test('buildGeneratorFindings emits GENERATOR_NOT_OPERATIONAL for non-35 status', () => {
     const notOp = { ...MOCK_INSTALLATION_SOLAR, einheitBetriebsstatus: 31 };
-    const { genCodes } = esService.buildGeneratorFindings(MOCK_GENERATORS_VALID[0], notOp, false, 1);
+    const { genCodes } = esService.buildGeneratorFindings(
+      MOCK_GENERATORS_VALID[0],
+      notOp,
+      false,
+      1
+    );
     expect(genCodes).toContain(vf.GENERATOR_NOT_OPERATIONAL);
     expect(genCodes).not.toContain(vf.GENERATOR_VALID);
   });
 
   test('buildGeneratorFindings emits GENERATOR_TYPE_INELIGIBLE for combustion type', () => {
     const combustion = { ...MOCK_INSTALLATION_SOLAR, energietraeger: 'verbrennung' };
-    const { genCodes } = esService.buildGeneratorFindings(MOCK_GENERATORS_VALID[0], combustion, false, 1);
+    const { genCodes } = esService.buildGeneratorFindings(
+      MOCK_GENERATORS_VALID[0],
+      combustion,
+      false,
+      1
+    );
     expect(genCodes).toContain(vf.GENERATOR_TYPE_INELIGIBLE);
   });
 
   test('buildGeneratorFindings emits GENERATOR_CAPACITY_ZERO for zero capacity', () => {
     const zeroCap = { ...MOCK_INSTALLATION_SOLAR, NettoNennleistung: 0 };
-    const { genCodes } = esService.buildGeneratorFindings(MOCK_GENERATORS_VALID[0], zeroCap, false, 1);
+    const { genCodes } = esService.buildGeneratorFindings(
+      MOCK_GENERATORS_VALID[0],
+      zeroCap,
+      false,
+      1
+    );
     expect(genCodes).toContain(vf.GENERATOR_CAPACITY_ZERO);
   });
 
   test('buildGeneratorFindings emits GENERATOR_NO_NAP when NAP missing', () => {
     const noNap = { ...MOCK_INSTALLATION_SOLAR, NapMastrNummer: null };
-    const { genCodes } = esService.buildGeneratorFindings(MOCK_GENERATORS_VALID[0], noNap, false, 1);
+    const { genCodes } = esService.buildGeneratorFindings(
+      MOCK_GENERATORS_VALID[0],
+      noNap,
+      false,
+      1
+    );
     expect(genCodes).toContain(vf.GENERATOR_NO_NAP);
   });
 
   test('buildGeneratorFindings emits GENERATOR_NO_MELO when MeLo missing', () => {
     const noMelo = { ...MOCK_INSTALLATION_SOLAR, MeloMastrNummer: null };
-    const { genCodes } = esService.buildGeneratorFindings(MOCK_GENERATORS_VALID[0], noMelo, false, 1);
+    const { genCodes } = esService.buildGeneratorFindings(
+      MOCK_GENERATORS_VALID[0],
+      noMelo,
+      false,
+      1
+    );
     expect(genCodes).toContain(vf.GENERATOR_NO_MELO);
   });
 
@@ -508,13 +627,25 @@ describe('energy-sharing service', () => {
   });
 
   test('buildDvFindings emits DV_VALID when DV flag set and no DV name declared', () => {
-    const gen = { mastrNummer: 'SEE1', capacityKW: 350, hasDvFlag: true, dvMastrId: null, direktvermarkter: null };
+    const gen = {
+      mastrNummer: 'SEE1',
+      capacityKW: 350,
+      hasDvFlag: true,
+      dvMastrId: null,
+      direktvermarkter: null,
+    };
     const findings = esService.buildDvFindings(gen, null, 1);
     expect(findings.some((f) => f.finding === vf.DV_VALID)).toBe(true);
   });
 
   test('buildDvFindings emits DV_NOT_FOUND when DV name declared but lookup returns empty', () => {
-    const gen = { mastrNummer: 'SEE1', capacityKW: 350, hasDvFlag: true, dvMastrId: null, direktvermarkter: 'Unknown DV' };
+    const gen = {
+      mastrNummer: 'SEE1',
+      capacityKW: 350,
+      hasDvFlag: true,
+      dvMastrId: null,
+      direktvermarkter: 'Unknown DV',
+    };
     const findings = esService.buildDvFindings(gen, { data: [] }, 1);
     expect(findings.some((f) => f.finding === vf.DV_NOT_FOUND)).toBe(true);
     expect(findings.find((f) => f.finding === vf.DV_NOT_FOUND).severity).toBe('error');
@@ -522,8 +653,11 @@ describe('energy-sharing service', () => {
 
   test('buildDvFindings emits DV_MASTR_MISMATCH when installation DV ID ≠ register DV ID', () => {
     const gen = {
-      mastrNummer: 'SEE1', capacityKW: 350, hasDvFlag: true,
-      dvMastrId: 'DV_DIFFERENT', direktvermarkter: 'Next Kraftwerke GmbH',
+      mastrNummer: 'SEE1',
+      capacityKW: 350,
+      hasDvFlag: true,
+      dvMastrId: 'DV_DIFFERENT',
+      direktvermarkter: 'Next Kraftwerke GmbH',
     };
     const findings = esService.buildDvFindings(gen, { data: [{ mastrId: 'DV_FROM_REGISTER' }] }, 1);
     expect(findings.some((f) => f.finding === vf.DV_MASTR_MISMATCH)).toBe(true);
@@ -532,8 +666,11 @@ describe('energy-sharing service', () => {
 
   test('buildDvFindings emits DV_VALID when DV confirmed in register', () => {
     const gen = {
-      mastrNummer: 'SEE1', capacityKW: 350, hasDvFlag: true,
-      dvMastrId: 'DV123456', direktvermarkter: 'Next Kraftwerke GmbH',
+      mastrNummer: 'SEE1',
+      capacityKW: 350,
+      hasDvFlag: true,
+      dvMastrId: 'DV123456',
+      direktvermarkter: 'Next Kraftwerke GmbH',
     };
     const findings = esService.buildDvFindings(gen, MOCK_DV_RESULT, 1);
     expect(findings.some((f) => f.finding === vf.DV_VALID)).toBe(true);
@@ -542,7 +679,9 @@ describe('energy-sharing service', () => {
   // ---- stepIdentity ----
   test('stepIdentity emits VNB_RESOLVED for successful lookup', async () => {
     const ctx = { meta: {} };
-    const { identity, findings } = await esService.stepIdentity(ctx, { gridOperatorId: MOCK_IDENTITY.mastrId });
+    const { identity, findings } = await esService.stepIdentity(ctx, {
+      gridOperatorId: MOCK_IDENTITY.mastrId,
+    });
     expect(identity.mastrId).toBe(MOCK_IDENTITY.mastrId);
     expect(findings.some((f) => f.finding === vf.VNB_RESOLVED)).toBe(true);
   });
@@ -553,14 +692,18 @@ describe('energy-sharing service', () => {
       candidates: [MOCK_IDENTITY, { ...MOCK_IDENTITY, name: 'Other VNB' }],
     });
     const ctx = { meta: {} };
-    const { findings } = await esService.stepIdentity(ctx, { gridOperatorId: MOCK_IDENTITY.mastrId });
+    const { findings } = await esService.stepIdentity(ctx, {
+      gridOperatorId: MOCK_IDENTITY.mastrId,
+    });
     expect(findings.some((f) => f.finding === vf.VNB_AMBIGUOUS)).toBe(true);
   });
 
   test('stepIdentity emits VNB_NOT_FOUND when lookup returns no canonical', async () => {
     CernionMCPClient.callWithNewSession.mockResolvedValueOnce({ canonical: {}, candidates: [] });
     const ctx = { meta: {} };
-    const { identity, findings } = await esService.stepIdentity(ctx, { gridOperatorId: 'SNB_NONEXISTENT' });
+    const { identity, findings } = await esService.stepIdentity(ctx, {
+      gridOperatorId: 'SNB_NONEXISTENT',
+    });
     expect(identity).toBeNull();
     expect(findings.some((f) => f.finding === vf.VNB_NOT_FOUND)).toBe(true);
     expect(findings.find((f) => f.finding === vf.VNB_NOT_FOUND).severity).toBe('error');
@@ -569,7 +712,9 @@ describe('energy-sharing service', () => {
   test('stepIdentity falls back to provided ID when MCP unavailable', async () => {
     CernionMCPClient.callWithNewSession.mockRejectedValueOnce(new Error('MCP unavailable'));
     const ctx = { meta: {} };
-    const { identity, findings } = await esService.stepIdentity(ctx, { gridOperatorId: MOCK_IDENTITY.mastrId });
+    const { identity, findings } = await esService.stepIdentity(ctx, {
+      gridOperatorId: MOCK_IDENTITY.mastrId,
+    });
     expect(identity).not.toBeNull();
     expect(identity.mastrId).toBe(MOCK_IDENTITY.mastrId);
     expect(findings.some((f) => f.finding === vf.VNB_RESOLVED)).toBe(true);
@@ -579,7 +724,10 @@ describe('energy-sharing service', () => {
     CernionMCPClient.callWithNewSession.mockRejectedValueOnce(new Error('MCP error'));
     const ctx = { meta: {} };
     // Force a lookup where both id fields are null but we try with bdew
-    const { identity, findings } = await esService.stepIdentity(ctx, { gridOperatorBdew: null, gridOperatorId: null });
+    const { findings } = await esService.stepIdentity(ctx, {
+      gridOperatorBdew: null,
+      gridOperatorId: null,
+    });
     // With null/null, the code falls into best-effort and both IDs are null → VNB_NOT_FOUND
     expect(findings.length).toBeGreaterThan(0);
   });
@@ -607,7 +755,8 @@ describe('energy-sharing service', () => {
 
   test('validate returns REJECTED_GENERATOR_INVALID for unknown MaStR number', async () => {
     CernionMCPClient.callWithNewSession.mockImplementation((toolName) => {
-      if (toolName === 'vnb_lookup_codes') return Promise.resolve({ canonical: MOCK_IDENTITY, candidates: [MOCK_IDENTITY] });
+      if (toolName === 'vnb_lookup_codes')
+        return Promise.resolve({ canonical: MOCK_IDENTITY, candidates: [MOCK_IDENTITY] });
       // Both primary and secondary searches return empty
       if (toolName === 'cernion_installations_local') return Promise.resolve({ installations: [] });
       return Promise.resolve({});
@@ -651,8 +800,10 @@ describe('energy-sharing service', () => {
   test('validate detects §21 violation: ≥100 kW without DV flag', async () => {
     // Return an installation with FernsteuerbarkeitDv = '0'
     CernionMCPClient.callWithNewSession.mockImplementation((toolName) => {
-      if (toolName === 'vnb_lookup_codes') return Promise.resolve({ canonical: MOCK_IDENTITY, candidates: [MOCK_IDENTITY] });
-      if (toolName === 'cernion_installations_local') return Promise.resolve({ installations: [MOCK_INSTALLATION_NO_DV] });
+      if (toolName === 'vnb_lookup_codes')
+        return Promise.resolve({ canonical: MOCK_IDENTITY, candidates: [MOCK_IDENTITY] });
+      if (toolName === 'cernion_installations_local')
+        return Promise.resolve({ installations: [MOCK_INSTALLATION_NO_DV] });
       return Promise.resolve({});
     });
 
@@ -663,15 +814,19 @@ describe('energy-sharing service', () => {
     });
 
     expect(result.findings.some((f) => f.finding === vf.DV_MANDATORY_MISSING)).toBe(true);
-    expect(result.findings.find((f) => f.finding === vf.DV_MANDATORY_MISSING).severity).toBe('error');
+    expect(result.findings.find((f) => f.finding === vf.DV_MANDATORY_MISSING).severity).toBe(
+      'error'
+    );
     expect(result.decision).toBe('REJECTED_GENERATOR_INVALID');
   });
 
   test('validate returns APPROVED_WITH_CONDITIONS when generator lacks NAP', async () => {
     const noNapInst = { ...MOCK_INSTALLATION_SOLAR, NapMastrNummer: null };
     CernionMCPClient.callWithNewSession.mockImplementation((toolName) => {
-      if (toolName === 'vnb_lookup_codes') return Promise.resolve({ canonical: MOCK_IDENTITY, candidates: [MOCK_IDENTITY] });
-      if (toolName === 'cernion_installations_local') return Promise.resolve({ installations: [noNapInst] });
+      if (toolName === 'vnb_lookup_codes')
+        return Promise.resolve({ canonical: MOCK_IDENTITY, candidates: [MOCK_IDENTITY] });
+      if (toolName === 'cernion_installations_local')
+        return Promise.resolve({ installations: [noNapInst] });
       if (toolName === 'cernion_direktvermarkter_lookup') return Promise.resolve(MOCK_DV_RESULT);
       return Promise.resolve({});
     });
@@ -688,7 +843,8 @@ describe('energy-sharing service', () => {
 
   test('validate identifies wrong grid area (GENERATOR_WRONG_GRID_AREA)', async () => {
     CernionMCPClient.callWithNewSession.mockImplementation((toolName, params) => {
-      if (toolName === 'vnb_lookup_codes') return Promise.resolve({ canonical: MOCK_IDENTITY, candidates: [MOCK_IDENTITY] });
+      if (toolName === 'vnb_lookup_codes')
+        return Promise.resolve({ canonical: MOCK_IDENTITY, candidates: [MOCK_IDENTITY] });
       if (toolName === 'cernion_installations_local') {
         // Primary search (with VNB filter) returns empty; secondary (no filter) returns the installation
         if (params.gridOperatorMastrId) return Promise.resolve({ installations: [] });
@@ -708,10 +864,12 @@ describe('energy-sharing service', () => {
   });
 
   test('validate throws when neither gridOperatorId nor gridOperatorBdew provided', async () => {
-    await expect(broker.call('energy-sharing.validate', {
-      generators: MOCK_GENERATORS_VALID,
-      consumers: MOCK_CONSUMERS_VALID,
-    })).rejects.toThrow();
+    await expect(
+      broker.call('energy-sharing.validate', {
+        generators: MOCK_GENERATORS_VALID,
+        consumers: MOCK_CONSUMERS_VALID,
+      })
+    ).rejects.toThrow();
   });
 
   test('validate returns correct summary fields', async () => {
@@ -727,7 +885,11 @@ describe('energy-sharing service', () => {
       consumersSubmitted: 2,
       totalGeneratorCapacityKW: expect.any(Number),
       dvStatus: expect.stringMatching(/^(all_confirmed|partial|none_confirmed|not_applicable)$/),
-      findingsCount: expect.objectContaining({ info: expect.any(Number), warning: expect.any(Number), error: expect.any(Number) }),
+      findingsCount: expect.objectContaining({
+        info: expect.any(Number),
+        warning: expect.any(Number),
+        error: expect.any(Number),
+      }),
       durationMs: expect.any(Number),
     });
   });

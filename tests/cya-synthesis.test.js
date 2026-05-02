@@ -20,7 +20,11 @@ describe('cya-synthesis', () => {
 
   it('builds synthesis prompt with sanitized payload', () => {
     const prompt = buildPrompt({
-      profile: { actor: { role: 'grid_operator' }, strategic_goals: ['Sicherheit'], tone: 'sachlich' },
+      profile: {
+        actor: { role: 'grid_operator' },
+        strategic_goals: ['Sicherheit'],
+        tone: 'sachlich',
+      },
       target_audience: 'Aufsichtsrat',
       context: { trigger: 'Anfrage', location: 'Mannheim', focus_areas: ['capacity'] },
       grounding: { facts: [], dataGaps: [], confidence: 'high' },

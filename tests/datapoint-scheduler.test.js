@@ -124,9 +124,7 @@ describe('Datapoint Scheduler — lifecycle', () => {
     delete process.env.DATAPOINT_SCHEDULER_ENABLED;
 
     // 60_000 ms interval must NOT have been registered
-    const calledWith60k = setIntervalSpy.mock.calls.some(
-      ([, ms]) => ms === 60_000
-    );
+    const calledWith60k = setIntervalSpy.mock.calls.some(([, ms]) => ms === 60_000);
     expect(calledWith60k).toBe(false);
   });
 

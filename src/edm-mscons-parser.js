@@ -8,10 +8,10 @@ const CCI_TO_OBIS = {
 };
 
 const STATUS_TO_QUALITY = {
-  '67': 'measured',
-  '79': 'estimated',
-  '68': 'provisional',
-  '220': 'corrected',
+  67: 'measured',
+  79: 'estimated',
+  68: 'provisional',
+  220: 'corrected',
 };
 
 function splitEscaped(input, delimiter, releaseChar) {
@@ -50,7 +50,7 @@ function parseUnaAndBody(raw) {
   const separators = {
     element: '+',
     component: ':',
-    segment: '\'',
+    segment: "'",
     release: '?',
   };
 
@@ -299,9 +299,7 @@ function parseMscons(edifactString) {
 
       currentContext = 'timeseries';
 
-      let timeseries = currentLocation.timeseries.find(
-        (item) => item.cciCode === currentCciCode
-      );
+      let timeseries = currentLocation.timeseries.find((item) => item.cciCode === currentCciCode);
       if (!timeseries) {
         const obisEquivalent = CCI_TO_OBIS[currentCciCode] || null;
         if (!obisEquivalent) {

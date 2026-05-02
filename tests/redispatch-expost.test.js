@@ -64,11 +64,7 @@ const MOCK_INSTALLATIONS = [
   }),
 ];
 
-const MOCK_MEASURES = [
-  { volumeMWh: 1500 },
-  { volumeMWh: 2000 },
-  { volumeMWh: 800 },
-];
+const MOCK_MEASURES = [{ volumeMWh: 1500 }, { volumeMWh: 2000 }, { volumeMWh: 800 }];
 
 // ---------------------------------------------------------------------------
 // Suite 1 — RD_* finding code constants
@@ -150,9 +146,7 @@ describe('assessSettlementReadiness', () => {
   });
 
   test('blocks installation on error finding with matching mastrNummer', () => {
-    const findings = [
-      { severity: 'error', context: { mastrNummer: 'SEE01' } },
-    ];
+    const findings = [{ severity: 'error', context: { mastrNummer: 'SEE01' } }];
     const r = assessSettlementReadiness(
       [makeInstallation({ EinheitMastrNummer: 'SEE01' })],
       findings
@@ -164,11 +158,12 @@ describe('assessSettlementReadiness', () => {
   });
 
   test('partial readiness — 1 of 2 blocked', () => {
-    const findings = [
-      { severity: 'error', context: { mastrNummer: 'SEE01' } },
-    ];
+    const findings = [{ severity: 'error', context: { mastrNummer: 'SEE01' } }];
     const r = assessSettlementReadiness(
-      [makeInstallation({ EinheitMastrNummer: 'SEE01' }), makeInstallation({ EinheitMastrNummer: 'SEE02' })],
+      [
+        makeInstallation({ EinheitMastrNummer: 'SEE01' }),
+        makeInstallation({ EinheitMastrNummer: 'SEE02' }),
+      ],
       findings
     );
     expect(r.totalInstallations).toBe(2);
@@ -184,7 +179,10 @@ describe('assessSettlementReadiness', () => {
       { severity: 'error', context: { mastrNummer: 'SEE01' } },
     ];
     const r = assessSettlementReadiness(
-      [makeInstallation({ EinheitMastrNummer: 'SEE01' }), makeInstallation({ EinheitMastrNummer: 'SEE02' })],
+      [
+        makeInstallation({ EinheitMastrNummer: 'SEE01' }),
+        makeInstallation({ EinheitMastrNummer: 'SEE02' }),
+      ],
       findings
     );
     expect(r.blockedInstallations).toBe(1);
@@ -208,7 +206,7 @@ describe('assessSettlementReadiness', () => {
 describe('assessRisk', () => {
   const fullReadiness = { readinessPercent: 100, totalInstallations: 2, blockedInstallations: 0 };
   const halfReadiness = { readinessPercent: 50, totalInstallations: 2, blockedInstallations: 1 };
-  const noReadiness  = { readinessPercent: 0,   totalInstallations: 1, blockedInstallations: 1 };
+  const noReadiness = { readinessPercent: 0, totalInstallations: 1, blockedInstallations: 1 };
 
   test('low risk when readiness is 100%', () => {
     const r = assessRisk(fullReadiness, 5, 50);
@@ -308,7 +306,7 @@ describe('redispatch-expost service', () => {
     jest.clearAllMocks();
 
     // Default MCP mocks
-    CernionMCPClient.callWithNewSession.mockImplementation(async (toolName, params) => {
+    CernionMCPClient.callWithNewSession.mockImplementation(async (toolName, _params) => {
       if (toolName === 'vnb_lookup_codes') {
         return {
           canonical: {
@@ -418,7 +416,8 @@ describe('redispatch-expost service', () => {
         EinheitBetriebsstatus: 37,
       });
       CernionMCPClient.callWithNewSession.mockImplementation(async (tool) => {
-        if (tool === 'cernion_installations_local') return { installations: [...MOCK_INSTALLATIONS, inactive] };
+        if (tool === 'cernion_installations_local')
+          return { installations: [...MOCK_INSTALLATIONS, inactive] };
         return {};
       });
       const ctx = { meta: {}, call: jest.fn().mockResolvedValue({ datapoints: [] }) };
@@ -433,11 +432,13 @@ describe('redispatch-expost service', () => {
         call: jest.fn().mockImplementation(async (action) => {
           if (action === 'datapoint.list') {
             return {
-              datapoints: [{
-                name: 'rd-portfolio',
-                tags: ['redispatch-portfolio'],
-                lastRun: { timestamp: new Date().toISOString() },
-              }],
+              datapoints: [
+                {
+                  name: 'rd-portfolio',
+                  tags: ['redispatch-portfolio'],
+                  lastRun: { timestamp: new Date().toISOString() },
+                },
+              ],
             };
           }
           if (action === 'datapoint.data') {
@@ -513,7 +514,9 @@ describe('redispatch-expost service', () => {
       const inst = makeInstallation({ FernsteuerbarkeitDv: '0' });
       const findings = rdService.stepMasterDataValidation([inst], MOCK_OPERATOR);
       expect(findings.some((f) => f.finding === vf.RD_DV_NOT_CONTROLLABLE)).toBe(true);
-      expect(findings.find((f) => f.finding === vf.RD_DV_NOT_CONTROLLABLE).severity).toBe('warning');
+      expect(findings.find((f) => f.finding === vf.RD_DV_NOT_CONTROLLABLE).severity).toBe(
+        'warning'
+      );
     });
 
     test('emits RD_CAPACITY_ANOMALY when bruttoleistung is zero', () => {
@@ -566,7 +569,9 @@ describe('redispatch-expost service', () => {
       const res = await rdService.stepCurtailmentCorrelation(ctx, MOCK_OPERATOR, {});
       expect(res.curtailmentGWh).toBe(0);
       expect(res.findings.some((f) => f.finding === vf.RD_CURTAILMENT_DATA_UNAVAILABLE)).toBe(true);
-      expect(res.findings.find((f) => f.finding === vf.RD_CURTAILMENT_DATA_UNAVAILABLE).severity).toBe('warning');
+      expect(
+        res.findings.find((f) => f.finding === vf.RD_CURTAILMENT_DATA_UNAVAILABLE).severity
+      ).toBe('warning');
     });
 
     test('emits RD_HIGH_CURTAILMENT_PERIOD when density >100/month', async () => {
@@ -606,7 +611,9 @@ describe('redispatch-expost service', () => {
       expect(res.readiness.readinessPercent).toBeGreaterThanOrEqual(80);
       expect(res.readiness.readinessPercent).toBeLessThan(100);
       expect(res.findings.some((f) => f.finding === vf.RD_SETTLEMENT_PARTIAL)).toBe(true);
-      expect(res.findings.find((f) => f.finding === vf.RD_SETTLEMENT_PARTIAL).severity).toBe('warning');
+      expect(res.findings.find((f) => f.finding === vf.RD_SETTLEMENT_PARTIAL).severity).toBe(
+        'warning'
+      );
     });
 
     test('emits RD_SETTLEMENT_CRITICAL when readiness <80%', () => {
@@ -622,7 +629,9 @@ describe('redispatch-expost service', () => {
       const res = rdService.stepSettlementReadiness(installations, findings);
       expect(res.readiness.readinessPercent).toBe(0);
       expect(res.findings.some((f) => f.finding === vf.RD_SETTLEMENT_CRITICAL)).toBe(true);
-      expect(res.findings.find((f) => f.finding === vf.RD_SETTLEMENT_CRITICAL).severity).toBe('error');
+      expect(res.findings.find((f) => f.finding === vf.RD_SETTLEMENT_CRITICAL).severity).toBe(
+        'error'
+      );
     });
 
     test('returns empty findings for empty portfolio', () => {
@@ -676,12 +685,17 @@ describe('redispatch-expost service', () => {
           return { consistent: true, drift: [] };
         }),
       };
-      const res = await rdService.stepAudit(ctx, { datapointTags: [], _resolvedOperator: MOCK_OPERATOR }, {
-        readinessPercent: 88,
-        riskLevel: 'medium',
-        totalInstallations: 2,
-        allFindingsCount: 5,
-      }, {});
+      const res = await rdService.stepAudit(
+        ctx,
+        { datapointTags: [], _resolvedOperator: MOCK_OPERATOR },
+        {
+          readinessPercent: 88,
+          riskLevel: 'medium',
+          totalInstallations: 2,
+          allFindingsCount: 5,
+        },
+        {}
+      );
       expect(res.findings.some((f) => f.finding === vf.AUDIT_TRAIL_CREATED)).toBe(true);
     });
 
@@ -692,13 +706,22 @@ describe('redispatch-expost service', () => {
           if (action === 'datapoint.createSnapshot') {
             return { id: 'snap-002', status: 'complete', snapshotHash: 'abc' };
           }
-          return { consistent: false, drift: [{ name: 'dp-1', changed: true }], snapshotHash: 'abc' };
+          return {
+            consistent: false,
+            drift: [{ name: 'dp-1', changed: true }],
+            snapshotHash: 'abc',
+          };
         }),
       };
-      const res = await rdService.stepAudit(ctx, {
-        datapointTags: ['redispatch-portfolio'],
-        _resolvedOperator: MOCK_OPERATOR,
-      }, { allFindingsCount: 3 }, {});
+      const res = await rdService.stepAudit(
+        ctx,
+        {
+          datapointTags: ['redispatch-portfolio'],
+          _resolvedOperator: MOCK_OPERATOR,
+        },
+        { allFindingsCount: 3 },
+        {}
+      );
       expect(res.findings.some((f) => f.finding === vf.SNAPSHOT_DRIFT_DETECTED)).toBe(true);
     });
   });
@@ -730,11 +753,13 @@ describe('redispatch-expost service', () => {
         call: jest.fn().mockImplementation(async (action) => {
           if (action === 'datapoint.list') {
             return {
-              datapoints: [{
-                name: 'rd-portfolio',
-                tags: ['redispatch-portfolio'],
-                lastRun: { timestamp: staleTimestamp },
-              }],
+              datapoints: [
+                {
+                  name: 'rd-portfolio',
+                  tags: ['redispatch-portfolio'],
+                  lastRun: { timestamp: staleTimestamp },
+                },
+              ],
             };
           }
           return { data: { rows: MOCK_INSTALLATIONS } };
@@ -750,11 +775,13 @@ describe('redispatch-expost service', () => {
         call: jest.fn().mockImplementation(async (action) => {
           if (action === 'datapoint.list') {
             return {
-              datapoints: [{
-                name: 'rd-portfolio',
-                tags: ['redispatch-portfolio'],
-                lastRun: { timestamp: new Date().toISOString() },
-              }],
+              datapoints: [
+                {
+                  name: 'rd-portfolio',
+                  tags: ['redispatch-portfolio'],
+                  lastRun: { timestamp: new Date().toISOString() },
+                },
+              ],
             };
           }
           return { data: { rows: MOCK_INSTALLATIONS } };
@@ -837,9 +864,9 @@ describe('redispatch-expost service', () => {
     });
 
     test('throws when neither gridOperatorId, gridOperatorBdew nor gridOperatorName provided', async () => {
-      await expect(
-        broker.call('redispatch-expost.audit', {})
-      ).rejects.toThrow(/At least one of gridOperatorId/);
+      await expect(broker.call('redispatch-expost.audit', {})).rejects.toThrow(
+        /At least one of gridOperatorId/
+      );
     });
 
     test('throws on invalid skipSteps values', async () => {

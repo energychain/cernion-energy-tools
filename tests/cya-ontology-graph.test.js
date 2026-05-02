@@ -44,10 +44,7 @@ const installations = [
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 function buildTestGraph(overrideInstallations, topologyHop) {
-  return buildOntologyGraph(
-    overrideInstallations || installations,
-    topologyHop || null
-  );
+  return buildOntologyGraph(overrideInstallations || installations, topologyHop || null);
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────
@@ -84,7 +81,12 @@ describe('buildOntologyGraph', () => {
     const hop = {
       needsHop: true,
       voltageClass: 'HS',
-      physicalConnectionPoint: { name: 'UW Kaiserslautern', lat: 49.45, lon: 7.75, distance_km: 12 },
+      physicalConnectionPoint: {
+        name: 'UW Kaiserslautern',
+        lat: 49.45,
+        lon: 7.75,
+        distance_km: 12,
+      },
       inferredOperator: 'Pfalzwerke Netz AG',
     };
     const graph = buildTestGraph(null, hop);
@@ -106,12 +108,12 @@ describe('queryNodes', () => {
     const graph = buildTestGraph();
     const result = queryNodes(graph, NODE_TYPE.INSTALLATION);
     expect(result.length).toBe(3);
-    expect(result.every(n => n.attrs.nodeType === NODE_TYPE.INSTALLATION)).toBe(true);
+    expect(result.every((n) => n.attrs.nodeType === NODE_TYPE.INSTALLATION)).toBe(true);
   });
 
   it('filters by custom filterFn', () => {
     const graph = buildTestGraph();
-    const result = queryNodes(graph, NODE_TYPE.INSTALLATION, a => a.leistungKw > 10);
+    const result = queryNodes(graph, NODE_TYPE.INSTALLATION, (a) => a.leistungKw > 10);
     expect(result.length).toBe(1);
     expect(result[0].attrs.mastrNummer).toBe('SEE976608984557');
   });
@@ -213,7 +215,7 @@ describe('deriveSignals', () => {
     withoutNap[0].NetzanschlusspunktMastrNummer = undefined;
     const graph = buildOntologyGraph(withoutNap, null);
     const signals = deriveSignals(graph, 'INSTALLATION:SEE999952467552');
-    const missing = signals.find(s => s.ruleId === 'MISSING_NAP');
+    const missing = signals.find((s) => s.ruleId === 'MISSING_NAP');
     expect(missing).toBeDefined();
     expect(missing.severity).toBe('critical');
   });
@@ -221,27 +223,31 @@ describe('deriveSignals', () => {
   it('does NOT return MISSING_NAP when NAP edge exists', () => {
     const graph = buildTestGraph();
     const signals = deriveSignals(graph, 'INSTALLATION:SEE999952467552');
-    expect(signals.find(s => s.ruleId === 'MISSING_NAP')).toBeUndefined();
+    expect(signals.find((s) => s.ruleId === 'MISSING_NAP')).toBeUndefined();
   });
 
   it('returns VOLTAGE_HOP_REQUIRED when topologyHop.needsHop=true', () => {
     const withHop = [makeInstallation('SEE999952467552', { extra: {} })];
-    const hop = { needsHop: true, voltageClass: 'HS', physicalConnectionPoint: { name: 'UW-X', lat: 49, lon: 7, distance_km: 10 } };
+    const hop = {
+      needsHop: true,
+      voltageClass: 'HS',
+      physicalConnectionPoint: { name: 'UW-X', lat: 49, lon: 7, distance_km: 10 },
+    };
     const graph = buildOntologyGraph(withHop, hop);
     const signals = deriveSignals(graph, 'INSTALLATION:SEE999952467552');
-    expect(signals.find(s => s.ruleId === 'VOLTAGE_HOP_REQUIRED')).toBeDefined();
+    expect(signals.find((s) => s.ruleId === 'VOLTAGE_HOP_REQUIRED')).toBeDefined();
   });
 
   it('does NOT return VOLTAGE_HOP_REQUIRED when needsHop=false', () => {
     const graph = buildTestGraph();
     const signals = deriveSignals(graph, 'INSTALLATION:SEE999952467552');
-    expect(signals.find(s => s.ruleId === 'VOLTAGE_HOP_REQUIRED')).toBeUndefined();
+    expect(signals.find((s) => s.ruleId === 'VOLTAGE_HOP_REQUIRED')).toBeUndefined();
   });
 
   it('returns HIGH_RENEWABLE_SHARE for 3/3 solar installations', () => {
     const graph = buildTestGraph();
     const signals = deriveSignals(graph, 'INSTALLATION:SEE999952467552');
-    expect(signals.find(s => s.ruleId === 'HIGH_RENEWABLE_SHARE')).toBeDefined();
+    expect(signals.find((s) => s.ruleId === 'HIGH_RENEWABLE_SHARE')).toBeDefined();
   });
 
   it('returns empty array for unknown focusNodeId', () => {

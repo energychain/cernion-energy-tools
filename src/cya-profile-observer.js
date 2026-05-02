@@ -34,9 +34,9 @@ const PREFERRED_TOOL_MIN_USAGE = 2;
 
 /** Confidence string → numeric map for moving average */
 const CONFIDENCE_NUMERIC = Object.freeze({
-  high:   1.0,
+  high: 1.0,
   medium: 0.5,
-  low:    0.1,
+  low: 0.1,
 });
 
 /** Fields that explicitUpdate is NOT allowed to set */
@@ -60,7 +60,9 @@ function _parseToolsFromRationale(rationale) {
   if (!rationale || typeof rationale !== 'string') return [];
   // Tools are snake_case identifiers separated by whitespace, '→', ';', or ','
   const tokens = rationale.split(/[\s,;→]+/);
-  return tokens.filter(t => t.includes('_') && t.length > 5 && !t.includes('=') && !t.includes('['));
+  return tokens.filter(
+    (t) => t.includes('_') && t.length > 5 && !t.includes('=') && !t.includes('[')
+  );
 }
 
 /**
@@ -91,12 +93,12 @@ function _clone(obj) {
  */
 function _defaultImplicitStats() {
   return {
-    sessionCount:        0,
-    lastActiveAt:        null,
-    focusAreaFrequency:  {},
-    signalReactions:     {},
-    toolUsage:           {},
-    averageConfidence:   null,
+    sessionCount: 0,
+    lastActiveAt: null,
+    focusAreaFrequency: {},
+    signalReactions: {},
+    toolUsage: {},
+    averageConfidence: null,
   };
 }
 
@@ -106,9 +108,9 @@ function _defaultImplicitStats() {
  */
 function _defaultPreferences() {
   return {
-    focusAreaWeights:  {},
+    focusAreaWeights: {},
     signalSensitivity: {},
-    preferredTools:    [],
+    preferredTools: [],
   };
 }
 
@@ -128,30 +130,34 @@ function _defaultPreferences() {
  */
 function extractImplicitSignals(session) {
   if (!session || typeof session !== 'object') {
-    return { focusAreas: [], signalsSeen: [], toolsUsed: [], confidence: null, hadRefinement: false };
+    return {
+      focusAreas: [],
+      signalsSeen: [],
+      toolsUsed: [],
+      confidence: null,
+      hadRefinement: false,
+    };
   }
 
   // focusAreas — from context
   const focusAreas = Array.isArray(session.context?.focus_areas)
-    ? session.context.focus_areas.filter(a => typeof a === 'string')
+    ? session.context.focus_areas.filter((a) => typeof a === 'string')
     : [];
 
   // signalsSeen — from regulatory_graph.signals[].ruleId
   const signalsSeen = Array.isArray(session.regulatory_graph?.signals)
-    ? session.regulatory_graph.signals
-        .map(s => s.ruleId)
-        .filter(Boolean)
+    ? session.regulatory_graph.signals.map((s) => s.ruleId).filter(Boolean)
     : [];
 
   // toolsUsed — from grounding.toolSetRationale (parse) + grounding.signalOverrides[].tool
   const toolsFromRationale = _parseToolsFromRationale(session.grounding?.toolSetRationale);
   const toolsFromOverrides = Array.isArray(session.grounding?.signalOverrides)
-    ? session.grounding.signalOverrides.map(o => o.tool || o.injectedTool).filter(Boolean)
+    ? session.grounding.signalOverrides.map((o) => o.tool || o.injectedTool).filter(Boolean)
     : [];
   // Also check retrieval-level fields (belt-and-suspenders)
   const toolsFromRetrievalRationale = _parseToolsFromRationale(session.retrieval?.toolSetRationale);
   const toolsFromRetrievalOverrides = Array.isArray(session.retrieval?.signalOverrides)
-    ? session.retrieval.signalOverrides.map(o => o.tool || o.injectedTool).filter(Boolean)
+    ? session.retrieval.signalOverrides.map((o) => o.tool || o.injectedTool).filter(Boolean)
     : [];
 
   const toolsUsed = [
@@ -161,7 +167,7 @@ function extractImplicitSignals(session) {
       ...toolsFromRetrievalRationale,
       ...toolsFromRetrievalOverrides,
     ]),
-  ].filter(t => typeof t === 'string' && t.length > 0);
+  ].filter((t) => typeof t === 'string' && t.length > 0);
 
   // confidence — from grounding
   const confidence = session.grounding?.confidence || null;
@@ -210,13 +216,13 @@ function mergeImplicitIntoProfile(existingProfile, implicitSignals) {
 
   // focusAreaFrequency
   if (!stats.focusAreaFrequency) stats.focusAreaFrequency = {};
-  for (const area of (implicitSignals.focusAreas || [])) {
+  for (const area of implicitSignals.focusAreas || []) {
     stats.focusAreaFrequency[area] = (stats.focusAreaFrequency[area] || 0) + 1;
   }
 
   // signalReactions
   if (!stats.signalReactions) stats.signalReactions = {};
-  for (const ruleId of (implicitSignals.signalsSeen || [])) {
+  for (const ruleId of implicitSignals.signalsSeen || []) {
     if (!stats.signalReactions[ruleId]) {
       stats.signalReactions[ruleId] = { seen: 0, refined: 0 };
     }
@@ -228,7 +234,7 @@ function mergeImplicitIntoProfile(existingProfile, implicitSignals) {
 
   // toolUsage
   if (!stats.toolUsage) stats.toolUsage = {};
-  for (const tool of (implicitSignals.toolsUsed || [])) {
+  for (const tool of implicitSignals.toolsUsed || []) {
     stats.toolUsage[tool] = (stats.toolUsage[tool] || 0) + 1;
   }
 
@@ -285,24 +291,25 @@ function mergeExplicitIntoProfile(existingProfile, explicitUpdate) {
 
     if (key === 'constraints') {
       profile.constraints = Array.isArray(value)
-        ? value.map(c => ({
+        ? value.map((c) => ({
             topic: String(c.topic || ''),
-            rule:  String(c.rule  || ''),
+            rule: String(c.rule || ''),
             setAt: new Date().toISOString(),
           }))
         : profile.constraints || [];
     } else if (key === 'explicitPreferences') {
-      profile.explicitPreferences = (value && typeof value === 'object')
-        ? { ...(profile.explicitPreferences || {}), ...value }
-        : profile.explicitPreferences || {};
+      profile.explicitPreferences =
+        value && typeof value === 'object'
+          ? { ...(profile.explicitPreferences || {}), ...value }
+          : profile.explicitPreferences || {};
     } else if (key === 'priorityFocusAreas') {
       profile.priorityFocusAreas = Array.isArray(value)
-        ? value.filter(a => typeof a === 'string')
+        ? value.filter((a) => typeof a === 'string')
         : profile.priorityFocusAreas || [];
     } else if (key === 'tone' && typeof value === 'string') {
       profile.tone = value;
     } else if (key === 'strategic_goals' && Array.isArray(value)) {
-      profile.strategic_goals = value.filter(g => typeof g === 'string');
+      profile.strategic_goals = value.filter((g) => typeof g === 'string');
     }
     // unknown keys are silently dropped
   }

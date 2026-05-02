@@ -1,11 +1,7 @@
 'use strict';
 
 const { MoleculerClientError } = require('moleculer').Errors;
-const {
-  getEegTariff,
-  getPostEegRate,
-  isPostEeg,
-} = require('../src/eeg-tariff-tables');
+const { getEegTariff, getPostEegRate, isPostEeg } = require('../src/eeg-tariff-tables');
 const {
   calculateRedispatchCompensation,
   calculateEegRevenue,
@@ -66,10 +62,12 @@ function mapPriceRows(result) {
       ? result.data.prices
       : [];
 
-  return rows.map((row) => ({
-    hour: row.timestamp || row.hour || row.ts,
-    price_eur_mwh: toNumber(row.price ?? row.value),
-  })).filter((row) => row.hour);
+  return rows
+    .map((row) => ({
+      hour: row.timestamp || row.hour || row.ts,
+      price_eur_mwh: toNumber(row.price ?? row.value),
+    }))
+    .filter((row) => row.hour);
 }
 
 function parseForecastRows(result) {
@@ -185,7 +183,15 @@ module.exports = {
                 properties: {
                   installations: {
                     type: 'array',
-                    example: [{ mastrNummer: 'SEE999952467552', meloId: 'DE0003966698900000000000052335107', curtailmentEvents: [{ start: '2026-04-01T10:00:00Z', end: '2026-04-01T12:00:00Z' }] }],
+                    example: [
+                      {
+                        mastrNummer: 'SEE999952467552',
+                        meloId: 'DE0003966698900000000000052335107',
+                        curtailmentEvents: [
+                          { start: '2026-04-01T10:00:00Z', end: '2026-04-01T12:00:00Z' },
+                        ],
+                      },
+                    ],
                     items: { type: 'object' },
                   },
                   period: {
@@ -206,18 +212,22 @@ module.exports = {
               examples: {
                 default: {
                   value: {
-                    installations: [{
-                      mastrNummer: 'SEE999952467552',
-                      meloId: 'DE0003966698900000000000052335107',
-                      capacityKw: 2103.7,
-                      commissioningDate: '2009-12-16',
-                      type: 'solar',
-                      curtailmentEvents: [{
-                        start: '2026-04-01T10:00:00Z',
-                        end: '2026-04-01T12:00:00Z',
-                        reason: 'grid_congestion',
-                      }],
-                    }],
+                    installations: [
+                      {
+                        mastrNummer: 'SEE999952467552',
+                        meloId: 'DE0003966698900000000000052335107',
+                        capacityKw: 2103.7,
+                        commissioningDate: '2009-12-16',
+                        type: 'solar',
+                        curtailmentEvents: [
+                          {
+                            start: '2026-04-01T10:00:00Z',
+                            end: '2026-04-01T12:00:00Z',
+                            reason: 'grid_congestion',
+                          },
+                        ],
+                      },
+                    ],
                     period: { from: '2026-04-01', to: '2026-04-30' },
                     compensationMethod: 'actual_loss',
                   },
@@ -241,7 +251,8 @@ module.exports = {
 
         for (const installation of installations) {
           const installationType = installation.type || 'solar';
-          const meloId = installation.meloId || await this.resolveMeloId(ctx, installation.mastrNummer);
+          const meloId =
+            installation.meloId || (await this.resolveMeloId(ctx, installation.mastrNummer));
           if (!meloId) {
             throw new MoleculerClientError(
               `MeLo not found for installation ${installation.mastrNummer}`,
@@ -302,7 +313,8 @@ module.exports = {
             totalCompensation_eur: round(totalCompensation, 2),
             avgMarketPrice_eur_mwh: round(
               marketPrices.length
-                ? marketPrices.reduce((sum, item) => sum + toNumber(item.price_eur_mwh), 0) / marketPrices.length
+                ? marketPrices.reduce((sum, item) => sum + toNumber(item.price_eur_mwh), 0) /
+                    marketPrices.length
                 : this.settings.defaultMarketPriceEurMwh,
               4
             ),
@@ -426,7 +438,10 @@ module.exports = {
           resolvedType
         );
 
-        const meloId = ctx.params.meloId || installationMeta.meloId || await this.resolveMeloId(ctx, mastrNummer);
+        const meloId =
+          ctx.params.meloId ||
+          installationMeta.meloId ||
+          (await this.resolveMeloId(ctx, mastrNummer));
         if (!meloId) {
           throw new MoleculerClientError(
             `MeLo not found for installation ${mastrNummer}`,
@@ -676,11 +691,13 @@ module.exports = {
         const filtered = docs.filter((doc) => {
           const key = doc.key || '';
           const payloadType = doc.payload?.type || null;
-          const typeMatches = ctx.params.type === 'all'
-            ? true
-            : payloadType === ctx.params.type || key.startsWith(`${ctx.params.type}_`);
+          const typeMatches =
+            ctx.params.type === 'all'
+              ? true
+              : payloadType === ctx.params.type || key.startsWith(`${ctx.params.type}_`);
           const periodMatches = ctx.params.period
-            ? key.includes(ctx.params.period) || String(doc.payload?.period?.from || '').includes(ctx.params.period)
+            ? key.includes(ctx.params.period) ||
+              String(doc.payload?.period?.from || '').includes(ctx.params.period)
             : true;
           return typeMatches && periodMatches;
         });
@@ -715,13 +732,17 @@ module.exports = {
 
     async getMarketPrices(ctx, dateFrom, dateTo) {
       try {
-        const result = await ctx.call('entsoe.dayAheadPrices', {
-          region: 'Germany',
-          dateFrom,
-          dateTo,
-          includeStatistics: true,
-          format: 'json',
-        }, { meta: { cernionToken: ctx.meta.cernionToken } });
+        const result = await ctx.call(
+          'entsoe.dayAheadPrices',
+          {
+            region: 'Germany',
+            dateFrom,
+            dateTo,
+            includeStatistics: true,
+            format: 'json',
+          },
+          { meta: { cernionToken: ctx.meta.cernionToken } }
+        );
 
         const prices = mapPriceRows(result);
         if (prices.length > 0) return prices;
@@ -729,10 +750,12 @@ module.exports = {
         this.logger.warn(`ENTSO-E prices unavailable, fallback active: ${error.message}`);
       }
 
-      return [{
-        hour: `${dateFrom}T00:00:00.000Z`,
-        price_eur_mwh: this.settings.defaultMarketPriceEurMwh,
-      }];
+      return [
+        {
+          hour: `${dateFrom}T00:00:00.000Z`,
+          price_eur_mwh: this.settings.defaultMarketPriceEurMwh,
+        },
+      ];
     },
 
     async getForecastData(ctx, installation, period, actualData) {
@@ -750,14 +773,18 @@ module.exports = {
 
     async tryForecastTool(ctx, installation, period) {
       try {
-        const result = await ctx.call('forecast.generationForecast', {
-          installationMastrNummer: installation.mastrNummer,
-          installationType: installation.type || 'solar',
-          resolution: '15min',
-          startDate: period.from.slice(0, 10),
-          forecastDays: dayDiff(period.from, period.to),
-          format: 'json',
-        }, { meta: { cernionToken: ctx.meta.cernionToken } });
+        const result = await ctx.call(
+          'forecast.generationForecast',
+          {
+            installationMastrNummer: installation.mastrNummer,
+            installationType: installation.type || 'solar',
+            resolution: '15min',
+            startDate: period.from.slice(0, 10),
+            forecastDays: dayDiff(period.from, period.to),
+            format: 'json',
+          },
+          { meta: { cernionToken: ctx.meta.cernionToken } }
+        );
 
         return parseForecastRows(result);
       } catch (error) {
@@ -772,7 +799,10 @@ module.exports = {
         const end = new Date(period.to);
         const rows = [];
 
-        const targetAverage = average((actualData || []).map((row) => toNumber(row.value)), 5);
+        const targetAverage = average(
+          (actualData || []).map((row) => toNumber(row.value)),
+          5
+        );
 
         for (let day = new Date(start); day <= end; day.setUTCDate(day.getUTCDate() + 1)) {
           const date = day.toISOString().slice(0, 10);
@@ -801,12 +831,16 @@ module.exports = {
 
     async resolveMeloId(ctx, mastrNummer) {
       try {
-        const result = await ctx.call('energy-market.installations', {
-          mastrNummer,
-          limit: 1,
-          includeNapData: true,
-          format: 'detailed',
-        }, { meta: { cernionToken: ctx.meta.cernionToken } });
+        const result = await ctx.call(
+          'energy-market.installations',
+          {
+            mastrNummer,
+            limit: 1,
+            includeNapData: true,
+            format: 'detailed',
+          },
+          { meta: { cernionToken: ctx.meta.cernionToken } }
+        );
 
         const installation = Array.isArray(result?.data?.installations)
           ? result.data.installations[0]
@@ -828,12 +862,16 @@ module.exports = {
 
     async getInstallationMeta(ctx, mastrNummer) {
       try {
-        const result = await ctx.call('energy-market.installations', {
-          mastrNummer,
-          limit: 1,
-          includeNapData: true,
-          format: 'detailed',
-        }, { meta: { cernionToken: ctx.meta.cernionToken } });
+        const result = await ctx.call(
+          'energy-market.installations',
+          {
+            mastrNummer,
+            limit: 1,
+            includeNapData: true,
+            format: 'detailed',
+          },
+          { meta: { cernionToken: ctx.meta.cernionToken } }
+        );
 
         const installation = Array.isArray(result?.data?.installations)
           ? result.data.installations[0]
@@ -846,13 +884,12 @@ module.exports = {
         return {
           commissioningDate:
             installation.inbetriebnahmedatum || installation.Inbetriebnahmedatum || null,
-          capacityKwp:
-            toNumber(
-              installation.nettonennleistung ||
+          capacityKwp: toNumber(
+            installation.nettonennleistung ||
               installation.Nettonennleistung ||
               installation.powerKw,
-              0
-            ),
+            0
+          ),
           type: installation.type || installation.installationType || 'solar',
           meloId: installation?.napData?.messlokation || null,
         };

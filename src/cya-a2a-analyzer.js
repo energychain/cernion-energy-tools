@@ -215,9 +215,7 @@ function summarizeLog(analysis) {
   }
 
   if (analysis.consensusReached) {
-    const roundInfo = analysis.consensusRound != null
-      ? ` (Runde ${analysis.consensusRound})`
-      : '';
+    const roundInfo = analysis.consensusRound != null ? ` (Runde ${analysis.consensusRound})` : '';
     parts.push(`Konsens erreicht${roundInfo}.`);
   } else if (analysis.hitlEscalated) {
     parts.push('Konsens nicht erreicht — HITL-Eskalation ausgelöst.');

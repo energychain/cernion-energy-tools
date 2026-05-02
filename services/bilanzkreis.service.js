@@ -67,7 +67,13 @@ module.exports = {
         name: { type: 'string', min: 1 },
         type: {
           type: 'enum',
-          values: ['real', 'virtual_energy_sharing', 'virtual_mieterstrom', 'virtual_arealnetz', 'virtual_vpp'],
+          values: [
+            'real',
+            'virtual_energy_sharing',
+            'virtual_mieterstrom',
+            'virtual_arealnetz',
+            'virtual_vpp',
+          ],
         },
         participants: {
           type: 'array',
@@ -77,7 +83,14 @@ module.exports = {
             props: {
               meloId: { type: 'string' },
               role: { type: 'enum', values: ['producer', 'consumer', 'prosumer'] },
-              share: { type: 'number', optional: true, default: 1.0, min: 0, max: 1, convert: true },
+              share: {
+                type: 'number',
+                optional: true,
+                default: 1.0,
+                min: 0,
+                max: 1,
+                convert: true,
+              },
               label: { type: 'string', optional: true },
             },
           },
@@ -104,7 +117,13 @@ module.exports = {
                   name: { type: 'string', example: 'Energy Sharing Test-Quartier' },
                   type: {
                     type: 'string',
-                    enum: ['real', 'virtual_energy_sharing', 'virtual_mieterstrom', 'virtual_arealnetz', 'virtual_vpp'],
+                    enum: [
+                      'real',
+                      'virtual_energy_sharing',
+                      'virtual_mieterstrom',
+                      'virtual_arealnetz',
+                      'virtual_vpp',
+                    ],
                     example: 'virtual_energy_sharing',
                   },
                   participants: {
@@ -352,11 +371,23 @@ module.exports = {
 
           for (const participant of participants) {
             if (participant.role === 'producer' || participant.role === 'prosumer') {
-              const rows = await this.getTimeseries(ctx, participant.meloId, OBIS_FEEDIN, fromIso, toIsoValue);
+              const rows = await this.getTimeseries(
+                ctx,
+                participant.meloId,
+                OBIS_FEEDIN,
+                fromIso,
+                toIsoValue
+              );
               feedinSeries.push(rows);
             }
             if (participant.role === 'consumer' || participant.role === 'prosumer') {
-              const rows = await this.getTimeseries(ctx, participant.meloId, OBIS_CONSUMPTION, fromIso, toIsoValue);
+              const rows = await this.getTimeseries(
+                ctx,
+                participant.meloId,
+                OBIS_CONSUMPTION,
+                fromIso,
+                toIsoValue
+              );
               consumptionSeries.push(rows);
             }
           }
@@ -371,14 +402,38 @@ module.exports = {
 
           for (const participant of participants) {
             if (participant.role === 'producer') {
-              const data = await this.getTimeseries(ctx, participant.meloId, OBIS_FEEDIN, fromIso, toIsoValue);
+              const data = await this.getTimeseries(
+                ctx,
+                participant.meloId,
+                OBIS_FEEDIN,
+                fromIso,
+                toIsoValue
+              );
               participantData.push({ ...participant, data });
             } else if (participant.role === 'consumer') {
-              const data = await this.getTimeseries(ctx, participant.meloId, OBIS_CONSUMPTION, fromIso, toIsoValue);
+              const data = await this.getTimeseries(
+                ctx,
+                participant.meloId,
+                OBIS_CONSUMPTION,
+                fromIso,
+                toIsoValue
+              );
               participantData.push({ ...participant, data });
             } else {
-              const feedinData = await this.getTimeseries(ctx, participant.meloId, OBIS_FEEDIN, fromIso, toIsoValue);
-              const consumptionData = await this.getTimeseries(ctx, participant.meloId, OBIS_CONSUMPTION, fromIso, toIsoValue);
+              const feedinData = await this.getTimeseries(
+                ctx,
+                participant.meloId,
+                OBIS_FEEDIN,
+                fromIso,
+                toIsoValue
+              );
+              const consumptionData = await this.getTimeseries(
+                ctx,
+                participant.meloId,
+                OBIS_CONSUMPTION,
+                fromIso,
+                toIsoValue
+              );
               participantData.push({
                 ...participant,
                 feedinData,
@@ -460,16 +515,44 @@ module.exports = {
           let rows = [];
 
           if (participant.role === 'producer') {
-            rows = await this.getTimeseries(ctx, participant.meloId, OBIS_FEEDIN, fromIso, toIsoValue);
+            rows = await this.getTimeseries(
+              ctx,
+              participant.meloId,
+              OBIS_FEEDIN,
+              fromIso,
+              toIsoValue
+            );
           } else if (participant.role === 'consumer') {
-            rows = await this.getTimeseries(ctx, participant.meloId, OBIS_CONSUMPTION, fromIso, toIsoValue);
+            rows = await this.getTimeseries(
+              ctx,
+              participant.meloId,
+              OBIS_CONSUMPTION,
+              fromIso,
+              toIsoValue
+            );
           } else {
-            const feedinRows = await this.getTimeseries(ctx, participant.meloId, OBIS_FEEDIN, fromIso, toIsoValue);
-            const consumptionRows = await this.getTimeseries(ctx, participant.meloId, OBIS_CONSUMPTION, fromIso, toIsoValue);
-            rows = [...feedinRows, ...consumptionRows].sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
+            const feedinRows = await this.getTimeseries(
+              ctx,
+              participant.meloId,
+              OBIS_FEEDIN,
+              fromIso,
+              toIsoValue
+            );
+            const consumptionRows = await this.getTimeseries(
+              ctx,
+              participant.meloId,
+              OBIS_CONSUMPTION,
+              fromIso,
+              toIsoValue
+            );
+            rows = [...feedinRows, ...consumptionRows].sort((a, b) =>
+              String(a.ts).localeCompare(String(b.ts))
+            );
           }
 
-          const measuredCount = rows.filter((row) => String(row.quality || '').toLowerCase() === 'measured').length;
+          const measuredCount = rows.filter(
+            (row) => String(row.quality || '').toLowerCase() === 'measured'
+          ).length;
           const dataQuality = rows.length > 0 ? measuredCount / rows.length : 0;
 
           participantStatus.push({
@@ -481,7 +564,10 @@ module.exports = {
           });
         }
 
-        const readiness = calculateSettlementReadiness({ participants: participantStatus }, bilanzkreis);
+        const readiness = calculateSettlementReadiness(
+          { participants: participantStatus },
+          bilanzkreis
+        );
 
         return {
           ...readiness,

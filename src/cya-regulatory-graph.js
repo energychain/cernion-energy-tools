@@ -33,7 +33,8 @@ const REGULATORY_RULES = [
     id: 'SECTION14A_GAP',
     severity: 'warning',
     oeoClass: 'https://openenergyplatform.org/ontology/oeo/OEO_00020147',
-    evaluate: ({ text }) => /14a|steuerbar|steuerbox|smart.?meter/i.test(text) && /lücke|fehl|ungeklärt/i.test(text),
+    evaluate: ({ text }) =>
+      /14a|steuerbar|steuerbox|smart.?meter/i.test(text) && /lücke|fehl|ungeklärt/i.test(text),
     rationale: '§14a-bezogene Umsetzungslücke im Kontext erkannt.',
   },
   {
@@ -64,7 +65,8 @@ const REGULATORY_RULES = [
     severity: 'warning',
     oeoClass: 'https://openenergyplatform.org/ontology/oeo/OEO_00020151',
     evaluate: ({ topologyHop }) => topologyHop?.needsHop === true,
-    rationale: 'Asset-Kapazität erfordert Anschluss an vorgelagerte 110-kV-Ebene (HS). Physikalischer Anschlusspunkt liegt außerhalb der lokalen Netzregion.',
+    rationale:
+      'Asset-Kapazität erfordert Anschluss an vorgelagerte 110-kV-Ebene (HS). Physikalischer Anschlusspunkt liegt außerhalb der lokalen Netzregion.',
   },
 ];
 
@@ -80,17 +82,18 @@ function buildRegulatoryGraph(input) {
   const retrieval = input?.retrieval || {};
   const focusAreas = Array.isArray(input?.context?.focus_areas) ? input.context.focus_areas : [];
   const text = compactText(retrieval);
-  const topologyHop = input?.topologyHop !== undefined ? input.topologyHop : (retrieval?.topologyHop || null);
+  const topologyHop =
+    input?.topologyHop !== undefined ? input.topologyHop : retrieval?.topologyHop || null;
 
-  const signals = REGULATORY_RULES
-    .filter((rule) => rule.evaluate({ text, focusAreas, topologyHop }))
-    .map((rule) => ({
-      ruleId: rule.id,
-      severity: rule.severity,
-      oeoClass: rule.oeoClass,
-      rationale: rule.rationale,
-      confidence: rule.severity === 'critical' ? 'high' : 'medium',
-    }));
+  const signals = REGULATORY_RULES.filter((rule) =>
+    rule.evaluate({ text, focusAreas, topologyHop })
+  ).map((rule) => ({
+    ruleId: rule.id,
+    severity: rule.severity,
+    oeoClass: rule.oeoClass,
+    rationale: rule.rationale,
+    confidence: rule.severity === 'critical' ? 'high' : 'medium',
+  }));
 
   const severityCount = signals.reduce(
     (acc, signal) => {
@@ -111,7 +114,10 @@ function buildRegulatoryGraph(input) {
 
 // ── OEO class mapping (keyed by ruleId) ───────────────────────────────────
 const OEO_MAPPINGS = Object.fromEntries(
-  REGULATORY_RULES.map(r => [r.id, { ruleId: r.id, oeoClass: r.oeoClass, rationale: r.rationale }])
+  REGULATORY_RULES.map((r) => [
+    r.id,
+    { ruleId: r.id, oeoClass: r.oeoClass, rationale: r.rationale },
+  ])
 );
 
 /**
@@ -128,7 +134,7 @@ function buildRegulatoryGraphFromOntology(ontologyGraph, focusNodeId) {
 
   const rawSignals = deriveSignals(ontologyGraph, focusNodeId);
 
-  const signals = rawSignals.map(s => ({
+  const signals = rawSignals.map((s) => ({
     ruleId: s.ruleId,
     severity: s.severity,
     oeoClass: s.oeoClass,
@@ -151,7 +157,7 @@ function buildRegulatoryGraphFromOntology(ontologyGraph, focusNodeId) {
     triggeredRules: signals.length,
     severityCount,
     signals,
-    oeoMappings: signals.map(s => OEO_MAPPINGS[s.ruleId]).filter(Boolean),
+    oeoMappings: signals.map((s) => OEO_MAPPINGS[s.ruleId]).filter(Boolean),
     graphBased: true,
   };
 }

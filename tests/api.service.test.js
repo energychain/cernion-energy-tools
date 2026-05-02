@@ -182,7 +182,13 @@ describe('API Gateway Service', () => {
         url: '/api/agent/analyze',
       };
 
-      await apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, ctx, apiRoute, req, {});
+      await apiRoute.onBeforeCall.call(
+        { logger: { debug: jest.fn() }, broker },
+        ctx,
+        apiRoute,
+        req,
+        {}
+      );
 
       expect(ctx.meta.cernionToken).toBe('query-token');
       expect(req.query.token).toBeUndefined();
@@ -202,7 +208,13 @@ describe('API Gateway Service', () => {
         url: '/api/agent/execute',
       };
 
-      await apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, ctx, apiRoute, req, {});
+      await apiRoute.onBeforeCall.call(
+        { logger: { debug: jest.fn() }, broker },
+        ctx,
+        apiRoute,
+        req,
+        {}
+      );
 
       expect(ctx.meta.cernionToken).toBe('body-token');
       expect(req.body.token).toBeUndefined();
@@ -375,7 +387,10 @@ describe('API Gateway Service', () => {
       const ctx = { meta: {} };
       const req = {
         headers: { authorization: `Bearer ${created.data.token}` },
-        query: {}, body: {}, params: {}, $params: {},
+        query: {},
+        body: {},
+        params: {},
+        $params: {},
         method: 'PUT',
         url: '/api/nbp-monitor/parameters',
       };

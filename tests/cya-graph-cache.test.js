@@ -7,7 +7,12 @@
  */
 
 const Graph = require('graphology');
-const { GraphCache, GRAPH_NAMESPACE, DEFAULT_TTL_SEC, L1_MAX_ENTRIES } = require('../src/cya-graph-cache');
+const {
+  GraphCache,
+  GRAPH_NAMESPACE,
+  DEFAULT_TTL_SEC,
+  L1_MAX_ENTRIES,
+} = require('../src/cya-graph-cache');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -278,7 +283,7 @@ describe('GraphCache — set', () => {
     const brokerCall = makeMockBrokerCall();
     await c.set('mykey', g, brokerCall);
     // L2 put is fire-and-forget so we need to flush
-    await new Promise(r => setImmediate(r));
+    await new Promise((r) => setImmediate(r));
     const putCall = brokerCall.mock.calls.find(([action]) => action === 'object-store.put');
     expect(putCall).toBeDefined();
     expect(putCall[1].namespace).toBe(GRAPH_NAMESPACE);
@@ -291,7 +296,7 @@ describe('GraphCache — set', () => {
     const l2Store = {};
     const brokerCall = makeMockBrokerCall(l2Store);
     await c.set('mykey', g, brokerCall);
-    await new Promise(r => setImmediate(r));
+    await new Promise((r) => setImmediate(r));
     const stored = l2Store['mykey']?.payload;
     expect(stored).toBeDefined();
     expect(stored.serialized).toBeDefined();
@@ -361,7 +366,7 @@ describe('GraphCache — getStats', () => {
 
   test('entries contain correct nodeCount and edgeCount', () => {
     const c = new GraphCache();
-    const g = makeGraph(3);  // 3 nodes, 1 edge from helper
+    const g = makeGraph(3); // 3 nodes, 1 edge from helper
     c.setL1('k', g, g.export(), new Date().toISOString());
     const { entries } = c.getStats();
     expect(entries[0].nodeCount).toBe(3);
@@ -381,8 +386,8 @@ describe('GraphCache — getStats', () => {
     c.setL1('fresh', g, g.export(), new Date().toISOString());
     c.setL1('stale', g, g.export(), pastIso(5000));
     const { entries } = c.getStats();
-    const freshEntry = entries.find(e => e.key === 'fresh');
-    const staleEntry = entries.find(e => e.key === 'stale');
+    const freshEntry = entries.find((e) => e.key === 'fresh');
+    const staleEntry = entries.find((e) => e.key === 'stale');
     expect(freshEntry.stale).toBe(false);
     expect(staleEntry.stale).toBe(true);
   });

@@ -36,10 +36,7 @@ function mapMelo(row) {
 
 function inferInstallationType(installation) {
   const value = String(
-    installation?.installationType ||
-      installation?.type ||
-      installation?.Einheittyp ||
-      ''
+    installation?.installationType || installation?.type || installation?.Einheittyp || ''
   ).toLowerCase();
 
   if (value.includes('storage') || value.includes('speicher')) {
@@ -81,7 +78,11 @@ function ensureMeloExists(db, meloId) {
 
 function parseJsonTimeseriesRows(input) {
   if (!Array.isArray(input)) {
-    throw new MoleculerClientError('JSON data must be an array of timeseries rows', 400, 'INVALID_DATA');
+    throw new MoleculerClientError(
+      'JSON data must be an array of timeseries rows',
+      400,
+      'INVALID_DATA'
+    );
   }
 
   return {
@@ -141,9 +142,10 @@ function aggregateByResolution(rows, resolution) {
   const groups = new Map();
 
   for (const row of rows) {
-    const key = resolution === 'hourly'
-      ? `${row.ts.slice(0, 13)}:00:00.000Z`
-      : `${row.ts.slice(0, 10)}T00:00:00.000Z`;
+    const key =
+      resolution === 'hourly'
+        ? `${row.ts.slice(0, 13)}:00:00.000Z`
+        : `${row.ts.slice(0, 10)}T00:00:00.000Z`;
     const current = groups.get(key) || {
       ts: key,
       value: 0,
@@ -163,9 +165,7 @@ function aggregateByResolution(rows, resolution) {
 }
 
 function computeTimeseriesSummary(rows) {
-  const numeric = rows
-    .map((row) => Number(row.value))
-    .filter((value) => Number.isFinite(value));
+  const numeric = rows.map((row) => Number(row.value)).filter((value) => Number.isFinite(value));
 
   const total = numeric.reduce((sum, value) => sum + value, 0);
   const min = numeric.length ? Math.min(...numeric) : 0;
@@ -191,7 +191,7 @@ function isoWeekKey(ts) {
   utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day);
 
   const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1));
-  const week = Math.ceil((((utcDate - yearStart) / 86400000) + 1) / 7);
+  const week = Math.ceil(((utcDate - yearStart) / 86400000 + 1) / 7);
   return `${utcDate.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
 }
 
@@ -260,14 +260,26 @@ module.exports = {
                 required: ['meloId', 'type'],
                 properties: {
                   meloId: { type: 'string', example: 'DE0012345678901234567890123456789' },
-                  type: { type: 'string', enum: ['physical', 'virtual', 'dummy'], example: 'physical' },
+                  type: {
+                    type: 'string',
+                    enum: ['physical', 'virtual', 'dummy'],
+                    example: 'physical',
+                  },
                   name: { type: 'string', example: 'Messlokation Musterstraße 1' },
                   napMastrNummer: { type: 'string', example: 'SAN123456789012' },
                   installationMastrNummer: { type: 'string', example: 'SEE123456789012' },
                   gridOperatorMastrId: { type: 'string', example: 'SNB935578300972' },
                   spannungsebene: { type: 'string', example: 'Niederspannung' },
-                  obisRegisters: { type: 'array', items: { type: 'object' }, example: [{ obis: '1-0:2.8.0', direction: 'feedin' }] },
-                  sourceType: { type: 'string', enum: ['manual', 'mscons', 'rest_poll', 'forecast', 'calc'], default: 'manual' },
+                  obisRegisters: {
+                    type: 'array',
+                    items: { type: 'object' },
+                    example: [{ obis: '1-0:2.8.0', direction: 'feedin' }],
+                  },
+                  sourceType: {
+                    type: 'string',
+                    enum: ['manual', 'mscons', 'rest_poll', 'forecast', 'calc'],
+                    default: 'manual',
+                  },
                   sourceConfig: { type: 'object', example: {} },
                   metadata: { type: 'object', example: { source: 'manual' } },
                 },
@@ -308,13 +320,15 @@ module.exports = {
           throw new MoleculerClientError('MeLo already exists', 409, 'MELO_EXISTS');
         }
 
-        db.prepare(`
+        db.prepare(
+          `
           INSERT INTO melos (
             melo_id, type, name, nap_mastr_nummer,
             installation_mastr_nummer, grid_operator_mastr_id, spannungsebene,
             obis_registers, source_type, source_config, metadata
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `).run(
+        `
+        ).run(
           meloId,
           type,
           name || null,
@@ -345,9 +359,24 @@ module.exports = {
         summary: 'List MeLos',
         tags: ['EDM (Energiedatenmanagement)'],
         parameters: [
-          { name: 'type', in: 'query', required: false, schema: { type: 'string', example: 'virtual' } },
-          { name: 'gridOperatorMastrId', in: 'query', required: false, schema: { type: 'string', example: 'SNB935578300972' } },
-          { name: 'sourceType', in: 'query', required: false, schema: { type: 'string', example: 'mscons' } },
+          {
+            name: 'type',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'virtual' },
+          },
+          {
+            name: 'gridOperatorMastrId',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'SNB935578300972' },
+          },
+          {
+            name: 'sourceType',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'mscons' },
+          },
           { name: 'limit', in: 'query', required: false, schema: { type: 'number', default: 100 } },
           { name: 'offset', in: 'query', required: false, schema: { type: 'number', default: 0 } },
         ],
@@ -395,7 +424,12 @@ module.exports = {
         summary: 'Get one MeLo',
         tags: ['EDM (Energiedatenmanagement)'],
         parameters: [
-          { name: 'meloId', in: 'path', required: true, schema: { type: 'string', example: 'DE0012345678901234567890123456789' } },
+          {
+            name: 'meloId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'DE0012345678901234567890123456789' },
+          },
         ],
         responses: { 200: { description: 'Found' }, 404: { description: 'Not found' } },
       },
@@ -446,8 +480,16 @@ module.exports = {
                   installationMastrNummer: { type: 'string', example: 'SEE123456789012' },
                   gridOperatorMastrId: { type: 'string', example: 'SNB935578300972' },
                   spannungsebene: { type: 'string', example: 'Niederspannung' },
-                  obisRegisters: { type: 'array', items: { type: 'object' }, example: [{ obis: '1-0:1.8.0', direction: 'consumption' }] },
-                  sourceType: { type: 'string', enum: ['manual', 'mscons', 'rest_poll', 'forecast', 'calc'], example: 'manual' },
+                  obisRegisters: {
+                    type: 'array',
+                    items: { type: 'object' },
+                    example: [{ obis: '1-0:1.8.0', direction: 'consumption' }],
+                  },
+                  sourceType: {
+                    type: 'string',
+                    enum: ['manual', 'mscons', 'rest_poll', 'forecast', 'calc'],
+                    example: 'manual',
+                  },
                   sourceConfig: { type: 'object', example: {} },
                   metadata: { type: 'object', example: { tag: 'updated' } },
                 },
@@ -481,11 +523,16 @@ module.exports = {
           grid_operator_mastr_id: ctx.params.gridOperatorMastrId,
           spannungsebene: ctx.params.spannungsebene,
           obis_registers:
-            ctx.params.obisRegisters !== undefined ? JSON.stringify(ctx.params.obisRegisters) : undefined,
+            ctx.params.obisRegisters !== undefined
+              ? JSON.stringify(ctx.params.obisRegisters)
+              : undefined,
           source_type: ctx.params.sourceType,
           source_config:
-            ctx.params.sourceConfig !== undefined ? JSON.stringify(ctx.params.sourceConfig) : undefined,
-          metadata: ctx.params.metadata !== undefined ? JSON.stringify(ctx.params.metadata) : undefined,
+            ctx.params.sourceConfig !== undefined
+              ? JSON.stringify(ctx.params.sourceConfig)
+              : undefined,
+          metadata:
+            ctx.params.metadata !== undefined ? JSON.stringify(ctx.params.metadata) : undefined,
         };
 
         const set = [];
@@ -641,20 +688,27 @@ module.exports = {
 
           const obisRegisters = inferObisRegisters(installation);
 
-          db.prepare(`
+          db.prepare(
+            `
             INSERT INTO melos (
               melo_id, type, name, nap_mastr_nummer,
               installation_mastr_nummer, grid_operator_mastr_id, spannungsebene,
               obis_registers, source_type, source_config, metadata
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `).run(
+          `
+          ).run(
             meloId,
             'physical',
             installation?.name || installation?.EinheitName || null,
             installation?.napData?.napMastrNummer || installation?.napData?.MastrNummer || null,
-            installation?.mastrNummer || installation?.mastrNumber || installation?.EinheitMastrNummer || null,
+            installation?.mastrNummer ||
+              installation?.mastrNumber ||
+              installation?.EinheitMastrNummer ||
+              null,
             installation?.napData?.netzbetreiberMastrNummer || gridOperatorMastrId || null,
-            installation?.napData?.spannungsebeneLabel || installation?.napData?.spannungsebene || null,
+            installation?.napData?.spannungsebeneLabel ||
+              installation?.napData?.spannungsebene ||
+              null,
             JSON.stringify(obisRegisters),
             'manual',
             JSON.stringify({ importedFrom: 'energy-market.installations' }),
@@ -699,8 +753,14 @@ module.exports = {
                   meloId: { type: 'string', example: 'DE0012345678901234567890123456789' },
                   obis: { type: 'string', default: '1-0:1.8.0', example: '1-0:2.8.0' },
                   format: { type: 'string', enum: ['csv', 'json'], default: 'json' },
-                  config: { type: 'object', example: { delimiter: ';', timestampColumn: 'ts', valueColumn: 'val' } },
-                  data: { oneOf: [{ type: 'string' }, { type: 'array' }], example: [{ ts: '2026-04-01T00:00:00.000Z', value: 12.4 }] },
+                  config: {
+                    type: 'object',
+                    example: { delimiter: ';', timestampColumn: 'ts', valueColumn: 'val' },
+                  },
+                  data: {
+                    oneOf: [{ type: 'string' }, { type: 'array' }],
+                    example: [{ ts: '2026-04-01T00:00:00.000Z', value: 12.4 }],
+                  },
                   overwriteExisting: { type: 'boolean', default: false },
                 },
               },
@@ -725,9 +785,8 @@ module.exports = {
         const registryDb = this.pool.getRegistry();
         ensureMeloExists(registryDb, meloId);
 
-        const parsed = format === 'csv'
-          ? parseCsvTimeseries(data, config || {})
-          : parseJsonTimeseriesRows(data);
+        const parsed =
+          format === 'csv' ? parseCsvTimeseries(data, config || {}) : parseJsonTimeseriesRows(data);
 
         const validated = validateTimeseriesRows(parsed.rows || []);
         const partitionKey = this.pool.resolvePartition(meloId);
@@ -747,8 +806,12 @@ module.exports = {
         for (const quarter of affectedQuarters) {
           const db = this.pool.getTimeseries(partitionKey, quarter);
           const statement = overwriteExisting
-            ? db.prepare('INSERT OR REPLACE INTO timeseries (melo_id, obis, ts, value, quality, source) VALUES (?, ?, ?, ?, ?, ?)')
-            : db.prepare('INSERT OR IGNORE INTO timeseries (melo_id, obis, ts, value, quality, source) VALUES (?, ?, ?, ?, ?, ?)');
+            ? db.prepare(
+                'INSERT OR REPLACE INTO timeseries (melo_id, obis, ts, value, quality, source) VALUES (?, ?, ?, ?, ?, ?)'
+              )
+            : db.prepare(
+                'INSERT OR IGNORE INTO timeseries (melo_id, obis, ts, value, quality, source) VALUES (?, ?, ?, ?, ?, ?)'
+              );
 
           const insertMany = db.transaction((rows) => {
             let inserted = 0;
@@ -798,20 +861,56 @@ module.exports = {
         obis: { type: 'string', optional: true, default: '1-0:1.8.0' },
         from: { type: 'string' },
         to: { type: 'string' },
-        resolution: { type: 'enum', values: ['15min', 'hourly', 'daily'], optional: true, default: '15min' },
+        resolution: {
+          type: 'enum',
+          values: ['15min', 'hourly', 'daily'],
+          optional: true,
+          default: '15min',
+        },
         format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
       },
       openapi: {
         summary: 'Query timeseries data for a MeLo',
         tags: ['EDM (Energiedatenmanagement)'],
-        description: 'Retrieves timeseries data with optional resolution aggregation. Supports cross-quarter queries transparently.',
+        description:
+          'Retrieves timeseries data with optional resolution aggregation. Supports cross-quarter queries transparently.',
         parameters: [
-          { name: 'meloId', in: 'path', required: true, schema: { type: 'string', example: 'DE0012345678901234567890123456789' } },
-          { name: 'obis', in: 'query', required: false, schema: { type: 'string', default: '1-0:1.8.0' } },
-          { name: 'from', in: 'query', required: true, schema: { type: 'string', example: '2026-04-01T00:00:00.000Z' } },
-          { name: 'to', in: 'query', required: true, schema: { type: 'string', example: '2026-04-02T00:00:00.000Z' } },
-          { name: 'resolution', in: 'query', required: false, schema: { type: 'string', enum: ['15min', 'hourly', 'daily'], default: '15min' } },
-          { name: 'format', in: 'query', required: false, schema: { type: 'string', enum: ['json', 'csv'], default: 'json' } },
+          {
+            name: 'meloId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'DE0012345678901234567890123456789' },
+          },
+          {
+            name: 'obis',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: '1-0:1.8.0' },
+          },
+          {
+            name: 'from',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: '2026-04-01T00:00:00.000Z' },
+          },
+          {
+            name: 'to',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: '2026-04-02T00:00:00.000Z' },
+          },
+          {
+            name: 'resolution',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['15min', 'hourly', 'daily'], default: '15min' },
+          },
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['json', 'csv'], default: 'json' },
+          },
         ],
         responses: { 200: { description: 'Timeseries result' } },
       },
@@ -825,9 +924,11 @@ module.exports = {
         const allRows = [];
 
         for (const { db } of partitions) {
-          const rows = db.prepare(
-            'SELECT ts, value, quality, source FROM timeseries WHERE melo_id = ? AND obis = ? AND ts >= ? AND ts < ? ORDER BY ts'
-          ).all(meloId, obis, from, to);
+          const rows = db
+            .prepare(
+              'SELECT ts, value, quality, source FROM timeseries WHERE melo_id = ? AND obis = ? AND ts >= ? AND ts < ? ORDER BY ts'
+            )
+            .all(meloId, obis, from, to);
           allRows.push(...rows);
         }
 
@@ -862,17 +963,47 @@ module.exports = {
         obis: { type: 'string', optional: true, default: '1-0:1.8.0' },
         from: { type: 'string' },
         to: { type: 'string' },
-        groupBy: { type: 'enum', values: ['day', 'week', 'month', 'year'], optional: true, default: 'day' },
+        groupBy: {
+          type: 'enum',
+          values: ['day', 'week', 'month', 'year'],
+          optional: true,
+          default: 'day',
+        },
       },
       openapi: {
         summary: 'Get aggregated timeseries summary',
         tags: ['EDM (Energiedatenmanagement)'],
         parameters: [
-          { name: 'meloId', in: 'path', required: true, schema: { type: 'string', example: 'DE0012345678901234567890123456789' } },
-          { name: 'obis', in: 'query', required: false, schema: { type: 'string', default: '1-0:1.8.0' } },
-          { name: 'from', in: 'query', required: true, schema: { type: 'string', example: '2026-04-01T00:00:00.000Z' } },
-          { name: 'to', in: 'query', required: true, schema: { type: 'string', example: '2026-04-30T23:59:59.000Z' } },
-          { name: 'groupBy', in: 'query', required: false, schema: { type: 'string', enum: ['day', 'week', 'month', 'year'], default: 'day' } },
+          {
+            name: 'meloId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'DE0012345678901234567890123456789' },
+          },
+          {
+            name: 'obis',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: '1-0:1.8.0' },
+          },
+          {
+            name: 'from',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: '2026-04-01T00:00:00.000Z' },
+          },
+          {
+            name: 'to',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: '2026-04-30T23:59:59.000Z' },
+          },
+          {
+            name: 'groupBy',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['day', 'week', 'month', 'year'], default: 'day' },
+          },
         ],
         responses: { 200: { description: 'Grouped summary' } },
       },
@@ -886,9 +1017,11 @@ module.exports = {
         const allRows = [];
 
         for (const { db } of partitions) {
-          const rows = db.prepare(
-            'SELECT ts, value, quality FROM timeseries WHERE melo_id = ? AND obis = ? AND ts >= ? AND ts < ? ORDER BY ts'
-          ).all(meloId, obis, from, to);
+          const rows = db
+            .prepare(
+              'SELECT ts, value, quality FROM timeseries WHERE melo_id = ? AND obis = ? AND ts >= ? AND ts < ? ORDER BY ts'
+            )
+            .all(meloId, obis, from, to);
           allRows.push(...rows);
         }
 
@@ -925,7 +1058,7 @@ module.exports = {
             measured: group.measured,
             min_kw: Number(((group.minVal || 0) * 4).toFixed(6)),
             max_kw: Number(((group.maxVal || 0) * 4).toFixed(6)),
-            avg_kw: Number((((group.count ? group.total_kwh / group.count : 0)) * 4).toFixed(6)),
+            avg_kw: Number(((group.count ? group.total_kwh / group.count : 0) * 4).toFixed(6)),
             dataQuality: group.count ? Number((group.measured / group.count).toFixed(6)) : 0,
           }));
 
@@ -990,8 +1123,14 @@ module.exports = {
 
         for (const { db } of partitions) {
           const result = obis
-            ? db.prepare('DELETE FROM timeseries WHERE melo_id = ? AND obis = ? AND ts >= ? AND ts < ?').run(meloId, obis, from, to)
-            : db.prepare('DELETE FROM timeseries WHERE melo_id = ? AND ts >= ? AND ts < ?').run(meloId, from, to);
+            ? db
+                .prepare(
+                  'DELETE FROM timeseries WHERE melo_id = ? AND obis = ? AND ts >= ? AND ts < ?'
+                )
+                .run(meloId, obis, from, to)
+            : db
+                .prepare('DELETE FROM timeseries WHERE melo_id = ? AND ts >= ? AND ts < ?')
+                .run(meloId, from, to);
 
           totalDeletedRows += result.changes || 0;
         }

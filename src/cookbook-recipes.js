@@ -13,7 +13,12 @@
  * @version 0.20.6
  */
 
-const { HOTSPOT_THRESHOLDS, CAPEX_ASSUMPTIONS, SECTION_14A_POLICY, SECTION_42C_HEURISTICS } = require('./domain-config');
+const {
+  HOTSPOT_THRESHOLDS,
+  CAPEX_ASSUMPTIONS,
+  SECTION_14A_POLICY,
+  SECTION_42C_HEURISTICS,
+} = require('./domain-config');
 
 const COOKBOOK_RECIPE_SCHEMA = {
   type: 'object',
@@ -352,7 +357,8 @@ const COOKBOOK_RECIPES = [
         action: 'vnb-monitor.snapshot',
         restPath: 'GET /api/vnb-monitor/:bdewCode',
         params: { bdewCode: null, refresh: false, alerts: true, lang: 'de' },
-        description: 'Fetch composite VNB snapshot including MaStR assets, EWK benchmarks, and alerts.',
+        description:
+          'Fetch composite VNB snapshot including MaStR assets, EWK benchmarks, and alerts.',
         expectedOutput: 'mastr, ewk, alerts fields with current KPI values.',
       },
       {
@@ -365,7 +371,8 @@ const COOKBOOK_RECIPES = [
         expectedOutput: 'Array of alert objects with severity, threshold, and current value.',
       },
     ],
-    expectedResult: 'Complete operator health report with KPI status and active alert list for dashboard display.',
+    expectedResult:
+      'Complete operator health report with KPI status and active alert list for dashboard display.',
     prerequisites: ['BDEW code of the grid operator'],
   },
   {
@@ -413,7 +420,8 @@ const COOKBOOK_RECIPES = [
         action: 'dashboard-api.vnbOverview',
         restPath: 'GET /api/dashboard/vnb-overview',
         params: { bdewCode: null },
-        description: 'Fetch 5-minute-cached composite overview: identity, KPIs, agent results, alerts.',
+        description:
+          'Fetch 5-minute-cached composite overview: identity, KPIs, agent results, alerts.',
         expectedOutput: '{ identity, kpis, latestAgentResults, alerts, timestamp, _errors }',
       },
     ],
@@ -668,7 +676,8 @@ const COOKBOOK_RECIPES = [
         restPath: 'POST /api/datapoints/snapshot/:id/validate',
         params: { id: '__step_1.data.id' },
         description: 'Re-compute provenanceHashes and compare against the sealed snapshot.',
-        expectedOutput: 'Drift detection result: consistent or drift list with affected datapoints.',
+        expectedOutput:
+          'Drift detection result: consistent or drift list with affected datapoints.',
       },
       {
         step: 3,
@@ -748,7 +757,8 @@ const COOKBOOK_RECIPES = [
         expectedOutput: 'GeoJSON FeatureCollection of nearby infrastructure elements.',
       },
     ],
-    expectedResult: 'Georeferenced list of grid assets within the search radius for capacity planning.',
+    expectedResult:
+      'Georeferenced list of grid assets within the search radius for capacity planning.',
     prerequisites: ['Coordinates (lat/lon) of the target site', 'Search radius in meters'],
   },
   {
@@ -819,8 +829,7 @@ const COOKBOOK_RECIPES = [
         action: 'znp.calculateGFactor',
         restPath: 'GET /api/znp/projects/:projectId/g-factor',
         params: { projectId: '__step_1.data.id', target_layer: 0 },
-        description:
-          'Compute VDE-AR-N 4100 theoretical g-factor from Layer 0 asset inventory.',
+        description: 'Compute VDE-AR-N 4100 theoretical g-factor from Layer 0 asset inventory.',
         expectedOutput: 'g-factor value, peak load estimate in kW, and asset breakdown.',
       },
     ],
@@ -869,8 +878,7 @@ const COOKBOOK_RECIPES = [
         expectedOutput: 'Updated g-factor with flexNavExcluded count and assumption contribution.',
       },
     ],
-    expectedResult:
-      'Forward-looking g-factor estimate incorporating unregistered planned loads.',
+    expectedResult: 'Forward-looking g-factor estimate incorporating unregistered planned loads.',
     prerequisites: [
       'Existing ZNP project ID (from znp-layer0-to-gfactor)',
       'German free-text assumption string',
@@ -926,16 +934,12 @@ const COOKBOOK_RECIPES = [
         params: { projectId: null },
         description:
           'Generate 2–3 strategic planning questions from the current ZNP graph topology, layers, and capacity mix.',
-        expectedOutput:
-          'Questions array plus graphSummary context used for the LLM prompt.',
+        expectedOutput: 'Questions array plus graphSummary context used for the LLM prompt.',
       },
     ],
     expectedResult:
       'A conversational planning prompt set highlighting blind spots that are not visible in MaStR or OSM alone.',
-    prerequisites: [
-      'Existing ZNP project ID',
-      'Configured GEMINI_API_KEY',
-    ],
+    prerequisites: ['Existing ZNP project ID', 'Configured GEMINI_API_KEY'],
   },
   {
     id: 'znp-layer2-pdf-extraction',
@@ -1031,7 +1035,10 @@ const COOKBOOK_RECIPES = [
       },
     ],
     expectedResult: 'End-to-end validated allocation with downloadable EDM CSV ready for billing.',
-    prerequisites: ['Validated generator and consumer list with MaLo IDs', 'Allocation period dates'],
+    prerequisites: [
+      'Validated generator and consumer list with MaLo IDs',
+      'Allocation period dates',
+    ],
   },
   {
     id: 'utility-report-ewk',
@@ -1140,8 +1147,7 @@ const COOKBOOK_RECIPES = [
           bbox: null,
           name: 'Flexible NAV Stresstest',
         },
-        description:
-          'Create a ZNP project workspace for the target district.',
+        description: 'Create a ZNP project workspace for the target district.',
       },
       {
         step: 2,
@@ -1153,8 +1159,7 @@ const COOKBOOK_RECIPES = [
           bdewCode: null,
           includeStorage: true,
         },
-        description:
-          'Load baseline MaStR assets as Layer 0 for the planning area.',
+        description: 'Load baseline MaStR assets as Layer 0 for the planning area.',
       },
       {
         step: 3,
@@ -1206,8 +1211,7 @@ const COOKBOOK_RECIPES = [
           location: null,
           limit: 1000,
         },
-        description:
-          'Find larger rooftop PV candidates (>30 kWp) suitable for §42c clustering.',
+        description: 'Find larger rooftop PV candidates (>30 kWp) suitable for §42c clustering.',
       },
       {
         step: 2,
@@ -1231,13 +1235,14 @@ const COOKBOOK_RECIPES = [
           operatorId: null,
           generators: null,
           consumers: null,
-          require_direktvermarktung: SECTION_42C_HEURISTICS.regulatoryRequirements.direktvermarktung_mandatory,
-          require_service_provider: SECTION_42C_HEURISTICS.regulatoryRequirements.dienstleister_required,
+          require_direktvermarktung:
+            SECTION_42C_HEURISTICS.regulatoryRequirements.direktvermarktung_mandatory,
+          require_service_provider:
+            SECTION_42C_HEURISTICS.regulatoryRequirements.dienstleister_required,
         },
         description:
           'Validate shortlisted clusters against deterministic §42c regulatory checks (Direktvermarktung + §20 service contract).',
-        expectedOutput:
-          'Eligibility decision and finding timeline per candidate community.',
+        expectedOutput: 'Eligibility decision and finding timeline per candidate community.',
       },
     ],
     expectedResult:
@@ -1276,8 +1281,7 @@ const COOKBOOK_RECIPES = [
           location: null,
           limit: 3,
         },
-        description:
-          'Identify candidate substations in the hotspot region.',
+        description: 'Identify candidate substations in the hotspot region.',
       },
       {
         step: 3,
@@ -1292,8 +1296,7 @@ const COOKBOOK_RECIPES = [
         },
         description:
           'Check surrounding land-use suitability for utility-scale storage co-location.',
-        expectedOutput:
-          'Nearby infrastructure/land-use profile for siting pre-assessment.',
+        expectedOutput: 'Nearby infrastructure/land-use profile for siting pre-assessment.',
       },
     ],
     expectedResult:
@@ -1318,8 +1321,7 @@ const COOKBOOK_RECIPES = [
           refresh: true,
           lang: 'de',
         },
-        description:
-          'Load NBP process backlog and risk KPIs as baseline compliance signal.',
+        description: 'Load NBP process backlog and risk KPIs as baseline compliance signal.',
       },
       {
         step: 2,
@@ -1332,8 +1334,7 @@ const COOKBOOK_RECIPES = [
           alerts: true,
           lang: 'de',
         },
-        description:
-          'Correlate NBP backlog with VNB alert state and operator-level KPI context.',
+        description: 'Correlate NBP backlog with VNB alert state and operator-level KPI context.',
       },
       {
         step: 3,
@@ -1369,8 +1370,7 @@ const COOKBOOK_RECIPES = [
           projectId: null,
           target_layer: 0,
         },
-        description:
-          'Capture baseline load pressure from current Layer 0 asset stack.',
+        description: 'Capture baseline load pressure from current Layer 0 asset stack.',
       },
       {
         step: 2,
@@ -1381,8 +1381,7 @@ const COOKBOOK_RECIPES = [
           projectId: null,
           text: `rONT deployment (€${CAPEX_ASSUMPTIONS.rONT.incrementalCost} incremental cost, ${CAPEX_ASSUMPTIONS.rONT.spannungCapacityFactor}x voltage capacity) to defer cable expansion (€${CAPEX_ASSUMPTIONS.cable.costPerKilometer.typical}/km).`,
         },
-        description:
-          'Inject optimization scenario (NOVA "Optimize" phase) into planning graph.',
+        description: 'Inject optimization scenario (NOVA "Optimize" phase) into planning graph.',
       },
       {
         step: 3,
@@ -1434,10 +1433,8 @@ const COOKBOOK_RECIPES = [
           language: 'de',
           includeContactCTA: true,
         },
-        description:
-          'Generate a self-service clarification widget for affected customer cohorts.',
-        expectedOutput:
-          'Embeddable widget payload for digital customer clarification journeys.',
+        description: 'Generate a self-service clarification widget for affected customer cohorts.',
+        expectedOutput: 'Embeddable widget payload for digital customer clarification journeys.',
       },
       {
         step: 3,

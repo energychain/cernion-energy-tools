@@ -69,7 +69,7 @@ describe('CyaContextManager.zoomIn', () => {
     const mgr = makeManager(3);
     mgr.zoomIn(INST_ID, 1);
     mgr.zoomIn(INST_ID, 1);
-    expect(mgr.getIterationLog().filter(e => e.operation === 'zoom_in').length).toBe(2);
+    expect(mgr.getIterationLog().filter((e) => e.operation === 'zoom_in').length).toBe(2);
   });
 
   it('throws CONTEXT_MAX_ITERATIONS when maxIterations exceeded', () => {
@@ -84,7 +84,11 @@ describe('CyaContextManager.zoomIn', () => {
     const mgr = makeManager(3);
     for (let i = 0; i < 3; i++) mgr.zoomIn(INST_ID, 1);
     let err;
-    try { mgr.zoomIn(INST_ID, 1); } catch (e) { err = e; }
+    try {
+      mgr.zoomIn(INST_ID, 1);
+    } catch (e) {
+      err = e;
+    }
     expect(err.type).toBe('CONTEXT_MAX_ITERATIONS');
   });
 });
@@ -94,7 +98,7 @@ describe('CyaContextManager.zoomOut', () => {
     const mgr = makeManager(3);
     mgr.zoomIn(INST_ID, 1);
     mgr.zoomOut();
-    const log = mgr.getIterationLog().filter(e => e.operation === 'zoom_out');
+    const log = mgr.getIterationLog().filter((e) => e.operation === 'zoom_out');
     expect(log.length).toBe(1);
   });
 
@@ -168,7 +172,7 @@ describe('CyaContextManager.getFocusedContext', () => {
     mgr.setOuterContext('Ziel', 'renewables');
     mgr.zoomIn(INST_ID, 1);
     const { breadcrumb } = mgr.getFocusedContext(INST_ID);
-    expect(breadcrumb.some(c => c.startsWith('Fokus:'))).toBe(true);
+    expect(breadcrumb.some((c) => c.startsWith('Fokus:'))).toBe(true);
   });
 });
 
@@ -177,7 +181,7 @@ describe('CyaContextManager.getIterationLog', () => {
     const mgr = makeManager(3);
     mgr.zoomIn(INST_ID, 1);
     mgr.zoomIn(INST_ID, 2);
-    const log = mgr.getIterationLog().filter(e => e.operation === 'zoom_in');
+    const log = mgr.getIterationLog().filter((e) => e.operation === 'zoom_in');
     expect(log.length).toBe(2);
   });
 

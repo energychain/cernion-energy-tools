@@ -72,7 +72,10 @@ const HOEHEINOED_INSTALLATIONS = [
 ];
 
 function createTempDir() {
-  return path.join(os.tmpdir(), `edm-e2e-hoeheinoed-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+  return path.join(
+    os.tmpdir(),
+    `edm-e2e-hoeheinoed-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  );
 }
 
 describe('EDM E2E Demo — Höheinöd (PLZ 66989)', () => {
@@ -413,9 +416,10 @@ describe('EDM E2E Demo — Höheinöd (PLZ 66989)', () => {
     });
 
     test('E4: Fixture-Daten sind plausibel', () => {
-      const totalMW = HOEHEINOED_INSTALLATIONS.reduce((sum, installation) => {
-        return sum + (installation.nettonennleistung || 0);
-      }, 0) / 1000;
+      const totalMW =
+        HOEHEINOED_INSTALLATIONS.reduce((sum, installation) => {
+          return sum + (installation.nettonennleistung || 0);
+        }, 0) / 1000;
 
       expect(totalMW).toBeGreaterThan(5);
       expect(totalMW).toBeLessThan(10);

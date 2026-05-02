@@ -44,11 +44,11 @@
  */
 const OEO_CONTEXT_STUB = {
   '@vocab': 'http://openenergy-platform.org/ontology/oeo/',
-  'xsd': 'http://www.w3.org/2001/XMLSchema#',
-  'rdfs': 'http://www.w3.org/2000/01/rdf-schema#',
+  xsd: 'http://www.w3.org/2001/XMLSchema#',
+  rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
   // TODO (contributor): add full OEO prefix mappings
-  'oeo': 'http://openenergy-platform.org/ontology/oeo/',
-  'mastr': 'https://www.marktstammdatenregister.de/MaStR/Einheit/Detail/IndexOeffentlich/',
+  oeo: 'http://openenergy-platform.org/ontology/oeo/',
+  mastr: 'https://www.marktstammdatenregister.de/MaStR/Einheit/Detail/IndexOeffentlich/',
 };
 
 /**
@@ -58,21 +58,21 @@ const OEO_CONTEXT_STUB = {
  * @see https://github.com/OpenEnergyPlatform/ontology/tree/dev/src/imports
  */
 const NODE_TYPE_TO_OEO_CLASS = {
-  INSTALLATION: 'oeo:PowerPlant',            // TODO: differentiate by technologie
-  NAP:          'oeo:GridConnectionPoint',    // TODO: verify OEO term
-  SUBSTATION:   'oeo:Substation',             // TODO: verify OEO term
-  VNB:          'oeo:ElectricityGridOperator',// TODO: verify OEO term
-  REGION:       'oeo:Region',                 // TODO: verify OEO term
+  INSTALLATION: 'oeo:PowerPlant', // TODO: differentiate by technologie
+  NAP: 'oeo:GridConnectionPoint', // TODO: verify OEO term
+  SUBSTATION: 'oeo:Substation', // TODO: verify OEO term
+  VNB: 'oeo:ElectricityGridOperator', // TODO: verify OEO term
+  REGION: 'oeo:Region', // TODO: verify OEO term
 };
 
 /**
  * Edge-type → OEO object property mapping stub.
  */
 const EDGE_TYPE_TO_OEO_PROPERTY = {
-  VERBUNDEN_MIT:    'oeo:connectedTo',        // TODO: verify OEO property
-  LIEGT_IN:         'oeo:locatedIn',          // TODO: verify OEO property
-  BETRIEBEN_VON:    'oeo:operatedBy',         // TODO: verify OEO property
-  ZUSTAENDIG_FUER:  'oeo:responsibleFor',     // TODO: verify OEO property
+  VERBUNDEN_MIT: 'oeo:connectedTo', // TODO: verify OEO property
+  LIEGT_IN: 'oeo:locatedIn', // TODO: verify OEO property
+  BETRIEBEN_VON: 'oeo:operatedBy', // TODO: verify OEO property
+  ZUSTAENDIG_FUER: 'oeo:responsibleFor', // TODO: verify OEO property
 };
 
 /**
@@ -106,8 +106,8 @@ function transformToOEO(graphologyExport, options = {}) {
   if (NOT_IMPLEMENTED) {
     const err = new Error(
       'OEO mapping not yet implemented. ' +
-      'See src/oeo-exporter-stub.js and CONTRIBUTING_SCIENCE.md. ' +
-      'Pull Requests welcome: https://github.com/OpenEnergyPlatform/ontology'
+        'See src/oeo-exporter-stub.js and CONTRIBUTING_SCIENCE.md. ' +
+        'Pull Requests welcome: https://github.com/OpenEnergyPlatform/ontology'
     );
     err.code = 'OEO_NOT_IMPLEMENTED';
     throw err;
@@ -116,27 +116,27 @@ function transformToOEO(graphologyExport, options = {}) {
   // --- STUB SKELETON (active after NOT_IMPLEMENTED = false) ---
   const baseIri = options.baseIri || 'https://cernion.example/graph/';
 
-  const nodes = (graphologyExport.nodes || []).map(node => ({
+  const nodes = (graphologyExport.nodes || []).map((node) => ({
     '@id': `${baseIri}${node.key}`,
     '@type': NODE_TYPE_TO_OEO_CLASS[node.attributes?.type] || 'oeo:EnergyAsset',
     'rdfs:label': node.attributes?.name || node.key,
     // TODO (contributor): map remaining node.attributes to OEO properties
-    '_stub': true,
+    _stub: true,
   }));
 
-  const edges = (graphologyExport.edges || []).map(edge => ({
+  const edges = (graphologyExport.edges || []).map((edge) => ({
     '@id': `${baseIri}edge/${edge.key || edge.source + '_' + edge.target}`,
     '@type': EDGE_TYPE_TO_OEO_PROPERTY[edge.attributes?.type] || 'oeo:relatedTo',
     'oeo:source': { '@id': `${baseIri}${edge.source}` },
     'oeo:target': { '@id': `${baseIri}${edge.target}` },
     // TODO (contributor): add OEO edge properties
-    '_stub': true,
+    _stub: true,
   }));
 
   return {
     '@context': OEO_CONTEXT_STUB,
     '@graph': [...nodes, ...edges],
-    '_meta': {
+    _meta: {
       generator: 'cernion-energy-tools/oeo-exporter-stub',
       version: '0.34.1',
       status: 'STUB — not OEO-compliant',
@@ -187,4 +187,9 @@ function exportGraphForOeo(graph, options = {}) {
   };
 }
 
-module.exports = { transformToOEO, exportGraphForOeo, NODE_TYPE_TO_OEO_CLASS, EDGE_TYPE_TO_OEO_PROPERTY };
+module.exports = {
+  transformToOEO,
+  exportGraphForOeo,
+  NODE_TYPE_TO_OEO_CLASS,
+  EDGE_TYPE_TO_OEO_PROPERTY,
+};

@@ -75,9 +75,11 @@ function buildDeltaSection(label, items, lang, detailLimit) {
   }
 
   if (omitted > 0) {
-    lines.push(lang === 'en'
-      ? `  … ${omitted} additional entries omitted (detail limit: ${safeLimit}).`
-      : `  … ${omitted} weitere Einträge ausgeblendet (Detail-Limit: ${safeLimit}).`);
+    lines.push(
+      lang === 'en'
+        ? `  … ${omitted} additional entries omitted (detail limit: ${safeLimit}).`
+        : `  … ${omitted} weitere Einträge ausgeblendet (Detail-Limit: ${safeLimit}).`
+    );
   }
 
   lines.push('');
@@ -197,7 +199,9 @@ async function sendConfirmationEmail(subscription, watch, baseOverride) {
       ? `Please confirm your subscription for MaStR Monitor watch "${watch.name}".`
       : `Bitte bestätigen Sie Ihre Anmeldung für den MaStR Monitor „${watch.name}".`,
     '',
-    isEn ? 'Click the link below to activate notifications:' : 'Klicken Sie auf den folgenden Link, um Benachrichtigungen zu aktivieren:',
+    isEn
+      ? 'Click the link below to activate notifications:'
+      : 'Klicken Sie auf den folgenden Link, um Benachrichtigungen zu aktivieren:',
     '',
     confirmUrl,
     '',
@@ -237,7 +241,9 @@ async function sendNoChangesNotification(subscription, watch, baseOverride) {
       ? `MaStR Monitor ran for "${watch.name}" — no changes detected.`
       : `MaStR Monitor-Lauf für „${watch.name}" abgeschlossen — keine Änderungen.`,
     '',
-    isEn ? `Total installations: ${watch.installationCount || 0}` : `Anlagen gesamt: ${watch.installationCount || 0}`,
+    isEn
+      ? `Total installations: ${watch.installationCount || 0}`
+      : `Anlagen gesamt: ${watch.installationCount || 0}`,
     isEn ? `Last run: ${watch.lastRun || '-'}` : `Letzter Lauf: ${watch.lastRun || '-'}`,
     '',
     isEn ? `Snapshot CSV: ${snapshotUrl}` : `Snapshot CSV: ${snapshotUrl}`,

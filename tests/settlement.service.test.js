@@ -11,10 +11,7 @@ const ObjectStoreService = require('../services/object-store.service');
 const SettlementService = require('../services/settlement.service');
 
 function createTempPath(prefix) {
-  return path.join(
-    os.tmpdir(),
-    `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  );
+  return path.join(os.tmpdir(), `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`);
 }
 
 describe('settlement.service', () => {
@@ -95,15 +92,17 @@ describe('settlement.service', () => {
           handler() {
             return {
               data: {
-                installations: [{
-                  mastrNummer: MASTR_SOLARPARK,
-                  inbetriebnahmedatum: '2009-12-16',
-                  nettonennleistung: 2103.7,
-                  type: 'solar',
-                  napData: {
-                    messlokation: MELO_SOLARPARK,
+                installations: [
+                  {
+                    mastrNummer: MASTR_SOLARPARK,
+                    inbetriebnahmedatum: '2009-12-16',
+                    nettonennleistung: 2103.7,
+                    type: 'solar',
+                    napData: {
+                      messlokation: MELO_SOLARPARK,
+                    },
                   },
-                }],
+                ],
               },
             };
           },
@@ -147,18 +146,22 @@ describe('settlement.service', () => {
 
   test('calculateRedispatch: berechnet Entschädigung', async () => {
     const result = await broker.call('settlement.calculateRedispatch', {
-      installations: [{
-        mastrNummer: MASTR_SOLARPARK,
-        meloId: MELO_SOLARPARK,
-        capacityKw: 2103.7,
-        commissioningDate: '2009-12-16',
-        type: 'solar',
-        curtailmentEvents: [{
-          start: '2026-04-01T10:00:00Z',
-          end: '2026-04-01T12:00:00Z',
-          reason: 'grid_congestion',
-        }],
-      }],
+      installations: [
+        {
+          mastrNummer: MASTR_SOLARPARK,
+          meloId: MELO_SOLARPARK,
+          capacityKw: 2103.7,
+          commissioningDate: '2009-12-16',
+          type: 'solar',
+          curtailmentEvents: [
+            {
+              start: '2026-04-01T10:00:00Z',
+              end: '2026-04-01T12:00:00Z',
+              reason: 'grid_congestion',
+            },
+          ],
+        },
+      ],
       period: { from: '2026-04-01', to: '2026-04-30' },
     });
 

@@ -1,7 +1,7 @@
 # Quick Start Guide - Cernion MCP Microservices
 
 ## Prerequisites
-- Node.js 18+ installed
+- Node.js 22+ installed
 - Cernion MCP token (get from https://cernion.de)
 
 ## Installation (3 minutes)
@@ -208,7 +208,7 @@ npm run dev
 ### Services won't start
 - Check CERNION_TOKEN is set in .env
 - Verify port 3000 is available: `lsof -i :3000`
-- Check Node.js version: `node --version` (should be 18+)
+- Check Node.js version: `node --version` (should be 22+)
 
 ### Connection errors
 - Verify your Cernion token is valid

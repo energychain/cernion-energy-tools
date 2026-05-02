@@ -23,10 +23,16 @@
  * @type {Array<{minMw: number, maxMw: number, voltageClass: string, voltageKv: string, severity: string}>}
  */
 const VOLTAGE_THRESHOLDS = [
-  { minMw: 0,   maxMw: 10,   voltageClass: 'MS',  voltageKv: '10 kV',    severity: 'none' },
-  { minMw: 10,  maxMw: 50,   voltageClass: 'MS',  voltageKv: '20 kV',    severity: 'info' },
-  { minMw: 50,  maxMw: 150,  voltageClass: 'HS',  voltageKv: '110 kV',   severity: 'warning' },
-  { minMw: 150, maxMw: Infinity, voltageClass: 'HöS', voltageKv: '220/380 kV', severity: 'critical' },
+  { minMw: 0, maxMw: 10, voltageClass: 'MS', voltageKv: '10 kV', severity: 'none' },
+  { minMw: 10, maxMw: 50, voltageClass: 'MS', voltageKv: '20 kV', severity: 'info' },
+  { minMw: 50, maxMw: 150, voltageClass: 'HS', voltageKv: '110 kV', severity: 'warning' },
+  {
+    minMw: 150,
+    maxMw: Infinity,
+    voltageClass: 'HöS',
+    voltageKv: '220/380 kV',
+    severity: 'critical',
+  },
 ];
 
 /**
@@ -39,7 +45,7 @@ function determineRequiredVoltageLevel(capacityMw) {
   if (capacityMw === null || capacityMw === undefined) {
     return null;
   }
-  return VOLTAGE_THRESHOLDS.find(t => capacityMw >= t.minMw && capacityMw < t.maxMw);
+  return VOLTAGE_THRESHOLDS.find((t) => capacityMw >= t.minMw && capacityMw < t.maxMw);
 }
 
 /**

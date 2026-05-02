@@ -11,7 +11,6 @@ const ObjectStoreService = require('../services/object-store.service');
 
 describe('vnb-monitor.service', () => {
   let broker;
-  let service;
 
   beforeAll(async () => {
     broker = new ServiceBroker({
@@ -244,7 +243,7 @@ describe('vnb-monitor.service', () => {
     });
 
     // Load the VNB Monitor service
-    service = broker.createService(require('../services/vnb-monitor.service'));
+    broker.createService(require('../services/vnb-monitor.service'));
 
     await broker.start();
   });
@@ -875,13 +874,13 @@ describe('vnb-monitor.service', () => {
       // 13-digit BDEW codes are blocked by isBnrFormat before reaching EWK tools.
       // Only the resolved operator name reaches anschlussdauer as a vnbName query.
       expect(anschlussdauerCalls).toContain('TWL Netze GmbH');
-      expect(anschlussdauerCalls).not.toContain('9907473000008');  // 13-digit → blocked
-      expect(anschlussdauerCalls).not.toContain('9907473000999');  // 13-digit → blocked
-      expect(anschlussdauerCalls).not.toContain('9904350000002');  // 13-digit → blocked
+      expect(anschlussdauerCalls).not.toContain('9907473000008'); // 13-digit → blocked
+      expect(anschlussdauerCalls).not.toContain('9907473000999'); // 13-digit → blocked
+      expect(anschlussdauerCalls).not.toContain('9904350000002'); // 13-digit → blocked
     });
   });
 
-// ─── EWK identity back-fill via BNR-format code ────────────────────────
+  // ─── EWK identity back-fill via BNR-format code ────────────────────────
   // When vnbLookup AND vnbLookupCodes both fail to resolve a code that IS in
   // BNR format (5–10 digits, passes isBnrFormat), the EWK anschlussdauer probe
   // is still attempted with { bnr: bdewCode }.  The probe result then acts as
@@ -959,13 +958,26 @@ describe('vnb-monitor.service', () => {
           umsetzungsquote: {
             handler: () => ({
               success: true,
-              data: [{ type: 'text', json: { rows: [{ firmenname: 'TWL Netze GmbH', umsetzungsquote_ee_ns: 75 }] } }],
+              data: [
+                {
+                  type: 'text',
+                  json: { rows: [{ firmenname: 'TWL Netze GmbH', umsetzungsquote_ee_ns: 75 }] },
+                },
+              ],
             }),
           },
           digitalisierungsindex: {
             handler: () => ({
               success: true,
-              data: [{ type: 'text', json: { stats: { gesamtscore: { median: 35, n: 789 } }, rows: [{ firmenname: 'TWL Netze GmbH' }] } }],
+              data: [
+                {
+                  type: 'text',
+                  json: {
+                    stats: { gesamtscore: { median: 35, n: 789 } },
+                    rows: [{ firmenname: 'TWL Netze GmbH' }],
+                  },
+                },
+              ],
             }),
           },
         },
@@ -1013,7 +1025,7 @@ describe('vnb-monitor.service', () => {
 
     it('should back-fill identity from EWK probe when upstream lookups return nothing for BNR-format code', async () => {
       const result = await ewkBackfillBroker.call('vnb-monitor.snapshot', {
-        bdewCode: '10002977',  // TWL's actual BNR (8 digits, passes isBnrFormat)
+        bdewCode: '10002977', // TWL's actual BNR (8 digits, passes isBnrFormat)
         refresh: true,
         alerts: false,
       });
@@ -1053,7 +1065,10 @@ describe('vnb-monitor.service', () => {
 
       const setRes = await broker.call('vnb-monitor.setThresholds', { thresholds: next });
       expect(setRes.success).toBe(true);
-      const stored = await broker.call('object-store.get', { namespace: 'vnb_monitor', key: 'thresholds' });
+      const stored = await broker.call('object-store.get', {
+        namespace: 'vnb_monitor',
+        key: 'thresholds',
+      });
       expect(stored).toBeDefined();
 
       const getRes = await broker.call('vnb-monitor.getThresholds');
@@ -1091,7 +1106,12 @@ describe('vnb-monitor.service', () => {
           vnbLookup: {
             handler: () => ({
               success: true,
-              data: { bdew: '9907473000008', mastrId: null, companyName: null, source: 'not-found' },
+              data: {
+                bdew: '9907473000008',
+                mastrId: null,
+                companyName: null,
+                source: 'not-found',
+              },
             }),
           },
           // vnbLookupCodes returns canonical.bnr = '10002977'
@@ -1124,13 +1144,21 @@ describe('vnb-monitor.service', () => {
               if (ctx.params.bnr === '10002977') {
                 return {
                   success: true,
-                  data: [{
-                    type: 'text',
-                    json: {
-                      stats: { ee_ns_gesamt: { median: 30 } },
-                      rows: [{ firmenname: 'Test Netze GmbH', ee_ns_gesamt_wochen: 25, rank_ee_ns: '200 / 740' }],
+                  data: [
+                    {
+                      type: 'text',
+                      json: {
+                        stats: { ee_ns_gesamt: { median: 30 } },
+                        rows: [
+                          {
+                            firmenname: 'Test Netze GmbH',
+                            ee_ns_gesamt_wochen: 25,
+                            rank_ee_ns: '200 / 740',
+                          },
+                        ],
+                      },
                     },
-                  }],
+                  ],
                 };
               }
               // vnbName fallback → simulates CR-MCP-03 isError response
@@ -1143,12 +1171,20 @@ describe('vnb-monitor.service', () => {
               if (ctx.params.bnr === '10002977') {
                 return {
                   success: true,
-                  data: [{
-                    type: 'text',
-                    json: {
-                      rows: [{ firmenname: 'Test Netze GmbH', umsetzungsquote_ee_ns: 75.5, rank_umsetzungsquote_ee_ns: '150 / 698' }],
+                  data: [
+                    {
+                      type: 'text',
+                      json: {
+                        rows: [
+                          {
+                            firmenname: 'Test Netze GmbH',
+                            umsetzungsquote_ee_ns: 75.5,
+                            rank_umsetzungsquote_ee_ns: '150 / 698',
+                          },
+                        ],
+                      },
                     },
-                  }],
+                  ],
                 };
               }
               return { isError: true, content: [{ type: 'text', text: '' }] };
@@ -1160,13 +1196,15 @@ describe('vnb-monitor.service', () => {
               if (ctx.params.bnr === '10002977') {
                 return {
                   success: true,
-                  data: [{
-                    type: 'text',
-                    json: {
-                      stats: { gesamtscore: { median: 40, n: 656 } },
-                      rows: [{ firmenname: 'Test Netze GmbH', smart_grids_ns: 50 }],
+                  data: [
+                    {
+                      type: 'text',
+                      json: {
+                        stats: { gesamtscore: { median: 40, n: 656 } },
+                        rows: [{ firmenname: 'Test Netze GmbH', smart_grids_ns: 50 }],
+                      },
                     },
-                  }],
+                  ],
                 };
               }
               return { isError: true, content: [{ type: 'text', text: '' }] };

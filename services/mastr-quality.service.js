@@ -47,11 +47,11 @@ const PIPELINE_VERSION = '0.17.0';
 
 // Dimension → step number mapping for score computation
 const DIMENSION_STEPS = {
-  status:           [3],
-  capacity:         [4],
+  status: [3],
+  capacity: [4],
   connectionPoints: [5],
-  duplicates:       [6],
-  geo:              [7],
+  duplicates: [6],
+  geo: [7],
 };
 
 // ---------------------------------------------------------------------------
@@ -92,16 +92,16 @@ module.exports = {
       rest: 'POST /audit',
       timeout: 180_000,
       params: {
-        gridOperatorId:   { type: 'string', optional: true },
+        gridOperatorId: { type: 'string', optional: true },
         gridOperatorBdew: { type: 'string', optional: true },
         gridOperatorName: { type: 'string', optional: true },
-        bdewCode:         { type: 'string', optional: true },
-        gridOperatorBnr:  { type: 'string', optional: true },
-        bnr:              { type: 'string', optional: true },
-        datapointTags:    { type: 'array', items: 'string', optional: true, default: [] },
-        maxAgeMinutes:    { type: 'number', optional: true, default: 120, convert: true },
-        skipSteps:        { type: 'array', items: 'number', optional: true, default: [] },
-        geoSampleSize:    { type: 'number', optional: true, default: 10, convert: true, max: 50 },
+        bdewCode: { type: 'string', optional: true },
+        gridOperatorBnr: { type: 'string', optional: true },
+        bnr: { type: 'string', optional: true },
+        datapointTags: { type: 'array', items: 'string', optional: true, default: [] },
+        maxAgeMinutes: { type: 'number', optional: true, default: 120, convert: true },
+        skipSteps: { type: 'array', items: 'number', optional: true, default: [] },
+        geoSampleSize: { type: 'number', optional: true, default: 10, convert: true, max: 50 },
       },
       openapi: {
         summary: 'Run MaStR portfolio quality audit (8-step, deterministic)',
@@ -121,16 +121,59 @@ module.exports = {
               schema: {
                 type: 'object',
                 properties: {
-                  gridOperatorId:   { type: 'string', description: 'MaStR grid operator ID (SNB.../GNB...)', example: 'SNB935578300972' },
-                  gridOperatorBdew: { type: 'string', description: '13-digit BDEW market-partner code', example: '9907473000008' },
-                  gridOperatorName: { type: 'string', description: 'Grid operator name (fuzzy match)', example: 'TWL Netze' },
-                  bdewCode:         { type: 'string', description: 'Alias for gridOperatorBdew', example: '9907473000008' },
-                  gridOperatorBnr:  { type: 'string', description: 'Alias BNR input (7/8 digits; tolerant format accepted)', example: '10002977' },
-                  bnr:              { type: 'string', description: 'Alias for gridOperatorBnr', example: '10002977' },
-                  datapointTags:    { type: 'array', items: { type: 'string' }, description: 'Tags for datapoint snapshot (Weg B)', example: ['twl-netze'] },
-                  maxAgeMinutes:    { type: 'integer', default: 120, description: 'Datapoint freshness threshold in minutes' },
-                  skipSteps:        { type: 'array', items: { type: 'integer' }, description: 'Steps to skip (valid: 3–7; steps 1, 2, 8 are mandatory)', example: [7] },
-                  geoSampleSize:    { type: 'integer', default: 10, maximum: 50, description: 'Number of installations to geo-validate in step 7' },
+                  gridOperatorId: {
+                    type: 'string',
+                    description: 'MaStR grid operator ID (SNB.../GNB...)',
+                    example: 'SNB935578300972',
+                  },
+                  gridOperatorBdew: {
+                    type: 'string',
+                    description: '13-digit BDEW market-partner code',
+                    example: '9907473000008',
+                  },
+                  gridOperatorName: {
+                    type: 'string',
+                    description: 'Grid operator name (fuzzy match)',
+                    example: 'TWL Netze',
+                  },
+                  bdewCode: {
+                    type: 'string',
+                    description: 'Alias for gridOperatorBdew',
+                    example: '9907473000008',
+                  },
+                  gridOperatorBnr: {
+                    type: 'string',
+                    description: 'Alias BNR input (7/8 digits; tolerant format accepted)',
+                    example: '10002977',
+                  },
+                  bnr: {
+                    type: 'string',
+                    description: 'Alias for gridOperatorBnr',
+                    example: '10002977',
+                  },
+                  datapointTags: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Tags for datapoint snapshot (Weg B)',
+                    example: ['twl-netze'],
+                  },
+                  maxAgeMinutes: {
+                    type: 'integer',
+                    default: 120,
+                    description: 'Datapoint freshness threshold in minutes',
+                  },
+                  skipSteps: {
+                    type: 'array',
+                    items: { type: 'integer' },
+                    description: 'Steps to skip (valid: 3–7; steps 1, 2, 8 are mandatory)',
+                    example: [7],
+                  },
+                  geoSampleSize: {
+                    type: 'integer',
+                    default: 10,
+                    maximum: 50,
+                    description: 'Number of installations to geo-validate in step 7',
+                  },
                 },
               },
               examples: {
@@ -149,7 +192,8 @@ module.exports = {
         },
         responses: {
           200: {
-            description: 'AuditReport with qualityScore, dimensions, and findings from all executed pipeline steps',
+            description:
+              'AuditReport with qualityScore, dimensions, and findings from all executed pipeline steps',
             content: {
               'application/json': {
                 example: {
@@ -157,11 +201,11 @@ module.exports = {
                   id: 'a1b2c3d4-...',
                   qualityScore: 82,
                   qualityDimensions: {
-                    status:           { score: 90, findings: 2 },
-                    capacity:         { score: 85, findings: 3 },
+                    status: { score: 90, findings: 2 },
+                    capacity: { score: 85, findings: 3 },
                     connectionPoints: { score: 70, findings: 5 },
-                    duplicates:       { score: 100, findings: 0 },
-                    geo:              { score: 80, findings: 4 },
+                    duplicates: { score: 100, findings: 0 },
+                    geo: { score: 80, findings: 4 },
                   },
                   summary: {
                     totalInstallations: 142,
@@ -194,7 +238,8 @@ module.exports = {
       },
       async handler(ctx) {
         const normalizedInput = this.normalizeResolverInput(ctx.params);
-        const { gridOperatorId, gridOperatorBdew, gridOperatorName, gridOperatorBnr } = normalizedInput;
+        const { gridOperatorId, gridOperatorBdew, gridOperatorName, gridOperatorBnr } =
+          normalizedInput;
         if (!gridOperatorId && !gridOperatorBdew && !gridOperatorName && !gridOperatorBnr) {
           throw new Error(
             'At least one of gridOperatorId, gridOperatorBdew, gridOperatorName, bdewCode, gridOperatorBnr, or bnr is required'
@@ -262,15 +307,26 @@ module.exports = {
       rest: 'GET /audits',
       params: {
         gridOperatorId: { type: 'string', optional: true },
-        limit:          { type: 'number', optional: true, default: 20, convert: true, max: 100 },
+        limit: { type: 'number', optional: true, default: 20, convert: true, max: 100 },
       },
       openapi: {
         summary: 'List past MaStR quality audit reports',
-        description: 'Returns audit reports stored in PouchDB, newest first. Filter by gridOperatorId.',
+        description:
+          'Returns audit reports stored in PouchDB, newest first. Filter by gridOperatorId.',
         tags: ['MaStR Data Quality'],
         parameters: [
-          { name: 'gridOperatorId', in: 'query', schema: { type: 'string', example: 'SNB935578300972' }, description: 'Filter by MaStR grid operator ID' },
-          { name: 'limit', in: 'query', schema: { type: 'integer', default: 20, maximum: 100 }, description: 'Maximum number of results' },
+          {
+            name: 'gridOperatorId',
+            in: 'query',
+            schema: { type: 'string', example: 'SNB935578300972' },
+            description: 'Filter by MaStR grid operator ID',
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'integer', default: 20, maximum: 100 },
+            description: 'Maximum number of results',
+          },
         ],
         responses: {
           200: {
@@ -280,7 +336,12 @@ module.exports = {
                 example: {
                   count: 2,
                   audits: [
-                    { id: '...', gridOperator: { name: 'TWL Netze' }, qualityScore: 82, createdAt: '2026-03-31T...' },
+                    {
+                      id: '...',
+                      gridOperator: { name: 'TWL Netze' },
+                      qualityScore: 82,
+                      createdAt: '2026-03-31T...',
+                    },
                   ],
                 },
               },
@@ -332,10 +393,17 @@ module.exports = {
       },
       openapi: {
         summary: 'Get a specific MaStR quality audit report by ID',
-        description: 'Returns the full AuditReport document including all findings and quality dimensions.',
+        description:
+          'Returns the full AuditReport document including all findings and quality dimensions.',
         tags: ['MaStR Data Quality'],
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-1234-5678-90ab-cdef12345678' }, description: 'Audit report UUID' },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-1234-5678-90ab-cdef12345678' },
+            description: 'Audit report UUID',
+          },
         ],
         responses: {
           200: { description: 'Full AuditReport document' },
@@ -377,8 +445,20 @@ module.exports = {
           '(installation, connection, measurement).',
         tags: ['MaStR Data Quality'],
         parameters: [
-          { name: 'id', in: 'path', required: true, schema: { type: 'string', example: 'a1b2c3d4-1234-5678-90ab-cdef12345678' }, description: 'Audit report UUID' },
-          { name: 'findingId', in: 'path', required: true, schema: { type: 'string', example: 'F-5-002' }, description: 'Finding row ID within the audit (findings[].id)' },
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-1234-5678-90ab-cdef12345678' },
+            description: 'Audit report UUID',
+          },
+          {
+            name: 'findingId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'F-5-002' },
+            description: 'Finding row ID within the audit (findings[].id)',
+          },
         ],
         responses: {
           200: {
@@ -467,7 +547,6 @@ module.exports = {
   // Methods — pipeline steps and helpers
   // ---------------------------------------------------------------------------
   methods: {
-
     // -------------------------------------------------------------------------
     // Step 1: VNB Identity resolution (MCP vnb_lookup_codes)
     // -------------------------------------------------------------------------
@@ -517,7 +596,9 @@ module.exports = {
       const normalizeCandidate = (candidate, source) => ({
         mastrId: this.normalizeMastrId(candidate?.mastrId),
         name: candidate?.name || null,
-        bdew: this.normalizeDigitCode(candidate?.bdew || candidate?.bdewCode || candidate?.bdewCodePrimary),
+        bdew: this.normalizeDigitCode(
+          candidate?.bdew || candidate?.bdewCode || candidate?.bdewCodePrimary
+        ),
         bnr: this.normalizeDigitCode(candidate?.bnr),
         source,
       });
@@ -538,7 +619,8 @@ module.exports = {
 
       const seen = new Set();
       return merged.filter((candidate) => {
-        if (!candidate.mastrId && !candidate.name && !candidate.bdew && !candidate.bnr) return false;
+        if (!candidate.mastrId && !candidate.name && !candidate.bdew && !candidate.bnr)
+          return false;
         const key = `${candidate.mastrId || ''}|${candidate.name || ''}|${candidate.bdew || ''}|${candidate.bnr || ''}`;
         if (seen.has(key)) return false;
         seen.add(key);
@@ -550,7 +632,11 @@ module.exports = {
       if (!name) return null;
       const callOpts = { meta: { ...ctx.meta, $gateway: false } };
       try {
-        const result = await ctx.call('grid-operations.marketPartners', { query: name, limit: 5 }, callOpts);
+        const result = await ctx.call(
+          'grid-operations.marketPartners',
+          { query: name, limit: 5 },
+          callOpts
+        );
         const candidates = result?.data?.results || [];
         const mapped = candidates.map((candidate) => ({
           mastrId: this.normalizeMastrId(candidate?.mastrId),
@@ -592,7 +678,8 @@ module.exports = {
 
     async stepIdentity(ctx, params) {
       const normalizedInput = this.normalizeResolverInput(params);
-      const { gridOperatorId, gridOperatorBdew, gridOperatorName, gridOperatorBnr } = normalizedInput;
+      const { gridOperatorId, gridOperatorBdew, gridOperatorName, gridOperatorBnr } =
+        normalizedInput;
       const token = ctx.meta?.cernionToken;
       const findings = [];
       let idx = 1;
@@ -630,7 +717,11 @@ module.exports = {
 
       const attempts = [];
       if (operator.mastrId) {
-        attempts.push({ path: 'mastrId', payload: { mastrId: operator.mastrId }, confidence: 0.99 });
+        attempts.push({
+          path: 'mastrId',
+          payload: { mastrId: operator.mastrId },
+          confidence: 0.99,
+        });
       }
       for (const code of bdewVariants) {
         attempts.push({ path: 'bdewCode', payload: { bdewCode: code }, confidence: 0.95 });
@@ -652,7 +743,10 @@ module.exports = {
           const candidates = this.extractResolverCandidates(result);
           resolver.candidates.push(...candidates);
 
-          const canonical = candidates.find((candidate) => candidate.source === 'canonical') || candidates[0] || null;
+          const canonical =
+            candidates.find((candidate) => candidate.source === 'canonical') ||
+            candidates[0] ||
+            null;
           const matched = Boolean(canonical && canonical.mastrId);
           resolver.strategy.push({
             path: attempt.path,
@@ -707,38 +801,54 @@ module.exports = {
       resolver.candidates = dedupeResolverCandidates.slice(0, 20);
 
       if (operator.mastrId) {
-        findings.push(createFinding(
-          1, 'identity', VNB_RESOLVED, 'info',
-          `VNB resolved: ${operator.name}`,
-          `Operator identity resolved via ${resolver.matchedBy}. MaStR ID: ${operator.mastrId}.`,
-          {
-            operator,
-            resolver: {
-              matchedBy: resolver.matchedBy,
-              confidence: resolver.confidence,
-              candidateCount: resolver.candidates.length,
+        findings.push(
+          createFinding(
+            1,
+            'identity',
+            VNB_RESOLVED,
+            'info',
+            `VNB resolved: ${operator.name}`,
+            `Operator identity resolved via ${resolver.matchedBy}. MaStR ID: ${operator.mastrId}.`,
+            {
+              operator,
+              resolver: {
+                matchedBy: resolver.matchedBy,
+                confidence: resolver.confidence,
+                candidateCount: resolver.candidates.length,
+              },
             },
-          },
-          null, idx++
-        ));
+            null,
+            idx++
+          )
+        );
       } else if (resolver.candidates.length > 1) {
-        findings.push(createFinding(
-          1, 'identity', VNB_AMBIGUOUS, 'warning',
-          `Ambiguous VNB: ${resolver.candidates.length} candidates found`,
-          'Resolver could not derive a unique MaStR ID from the provided inputs.',
-          { resolver },
-          'Provide gridOperatorId (MaStR SNB/GNB) or refine BDEW/BNR/name input.',
-          idx++
-        ));
+        findings.push(
+          createFinding(
+            1,
+            'identity',
+            VNB_AMBIGUOUS,
+            'warning',
+            `Ambiguous VNB: ${resolver.candidates.length} candidates found`,
+            'Resolver could not derive a unique MaStR ID from the provided inputs.',
+            { resolver },
+            'Provide gridOperatorId (MaStR SNB/GNB) or refine BDEW/BNR/name input.',
+            idx++
+          )
+        );
       } else {
-        findings.push(createFinding(
-          1, 'identity', VNB_NOT_FOUND, 'warning',
-          'VNB not resolved from provided identifiers',
-          'Resolver attempted all lookup paths (BDEW, BNR, name, MaStR) but no MaStR ID could be determined.',
-          { resolver },
-          'Verify BDEW/BNR format or provide explicit gridOperatorId.',
-          idx++
-        ));
+        findings.push(
+          createFinding(
+            1,
+            'identity',
+            VNB_NOT_FOUND,
+            'warning',
+            'VNB not resolved from provided identifiers',
+            'Resolver attempted all lookup paths (BDEW, BNR, name, MaStR) but no MaStR ID could be determined.',
+            { resolver },
+            'Verify BDEW/BNR format or provide explicit gridOperatorId.',
+            idx++
+          )
+        );
       }
 
       return { operator, findings, resolver };
@@ -754,7 +864,7 @@ module.exports = {
       if (!operator.mastrId) {
         throw new Error(
           `Cannot fetch inventory: MaStR ID not resolved for operator "${operator.name}". ` +
-          'Provide gridOperatorId or a resolvable gridOperatorBdew.'
+            'Provide gridOperatorId or a resolvable gridOperatorBdew.'
         );
       }
 
@@ -775,14 +885,19 @@ module.exports = {
       let idx = 1;
 
       if (installations.length === 0) {
-        findings.push(createFinding(
-          2, 'inventory', MQ_INVENTORY_EMPTY, 'error',
-          'No installations found in MaStR for this grid operator',
-          'cernion_installations_local returned 0 installations. The MaStR ID may be incorrect or the portfolio is unregistered.',
-          { gridOperatorMastrId: operator.mastrId },
-          'Verify the MaStR grid operator ID. Check MaStR portal for portfolio registrations.',
-          idx++
-        ));
+        findings.push(
+          createFinding(
+            2,
+            'inventory',
+            MQ_INVENTORY_EMPTY,
+            'error',
+            'No installations found in MaStR for this grid operator',
+            'cernion_installations_local returned 0 installations. The MaStR ID may be incorrect or the portfolio is unregistered.',
+            { gridOperatorMastrId: operator.mastrId },
+            'Verify the MaStR grid operator ID. Check MaStR portal for portfolio registrations.',
+            idx++
+          )
+        );
         return { installations: [], findings };
       }
 
@@ -800,13 +915,26 @@ module.exports = {
         return sum + parseFloat(i.bruttoleistung || i.Bruttoleistung || i.NettoNennleistung || 0);
       }, 0);
 
-      findings.push(createFinding(
-        2, 'inventory', MQ_INVENTORY_COMPLETE, 'info',
-        `${installations.length} installations found (${(totalBruttoKW / 1000).toFixed(1)} MW total)`,
-        `Full portfolio inventory complete: ${Object.entries(byType).map(([k, v]) => `${v} ${k}`).join(', ')}.`,
-        { total: installations.length, capacityMW: parseFloat((totalBruttoKW / 1000).toFixed(2)), byType, byStatus },
-        null, idx++
-      ));
+      findings.push(
+        createFinding(
+          2,
+          'inventory',
+          MQ_INVENTORY_COMPLETE,
+          'info',
+          `${installations.length} installations found (${(totalBruttoKW / 1000).toFixed(1)} MW total)`,
+          `Full portfolio inventory complete: ${Object.entries(byType)
+            .map(([k, v]) => `${v} ${k}`)
+            .join(', ')}.`,
+          {
+            total: installations.length,
+            capacityMW: parseFloat((totalBruttoKW / 1000).toFixed(2)),
+            byType,
+            byStatus,
+          },
+          null,
+          idx++
+        )
+      );
 
       return { installations, findings };
     },
@@ -951,7 +1079,13 @@ module.exports = {
       if (lower === '347' || lower === 'hs' || lower === 'hv' || lower.includes('hochspan')) {
         return 'Hochspannung (HV)';
       }
-      if (lower === '342' || lower === 'ehs' || lower === 'ehv' || lower.includes('hoechst') || lower.includes('höchst')) {
+      if (
+        lower === '342' ||
+        lower === 'ehs' ||
+        lower === 'ehv' ||
+        lower.includes('hoechst') ||
+        lower.includes('höchst')
+      ) {
         return 'Höchstspannung (EHV)';
       }
 
@@ -980,12 +1114,7 @@ module.exports = {
       if (name) return { name, source: 'AnlagenbetreiberName' };
 
       // Fallback: try to extract from owner data
-      name = this.getFirstNormalizedValue(inst, [
-        'betreiber',
-        'Betreiber',
-        'owner',
-        'Owner',
-      ]);
+      name = this.getFirstNormalizedValue(inst, ['betreiber', 'Betreiber', 'owner', 'Owner']);
       if (name) return { name, source: 'owner-field' };
 
       // Fallback: operator MaStR ID (would need external lookup)
@@ -1076,23 +1205,23 @@ module.exports = {
       const spannungsebeneLabel = this.resolveSpannungsebeneLabel(voltageInfo.level);
       const valueSource = this.getValueSourceInfo(inst, details);
 
-      const rawBrutto = details.brutto !== undefined
-        ? details.brutto
-        : (inst.bruttoleistung || inst.Bruttoleistung || inst.NettoNennleistung);
+      const rawBrutto =
+        details.brutto !== undefined
+          ? details.brutto
+          : inst.bruttoleistung || inst.Bruttoleistung || inst.NettoNennleistung;
       const brutto = Number.isFinite(Number(rawBrutto)) ? Number(rawBrutto) : null;
 
-      const technology = details.type !== undefined
-        ? details.type
-        : this.deriveInstallationType(inst);
+      const technology =
+        details.type !== undefined ? details.type : this.deriveInstallationType(inst);
 
-      const status = details.status !== undefined
-        ? String(details.status || '').trim() || null
-        : (String(inst.einheitBetriebsstatus || inst.EinheitBetriebsstatus || '').trim() || null);
+      const status =
+        details.status !== undefined
+          ? String(details.status || '').trim() || null
+          : String(inst.einheitBetriebsstatus || inst.EinheitBetriebsstatus || '').trim() || null;
 
       const rawValue = details.rawValue !== undefined ? details.rawValue : null;
-      const resolvedValue = details.resolvedValue !== undefined
-        ? details.resolvedValue
-        : (melo || null);
+      const resolvedValue =
+        details.resolvedValue !== undefined ? details.resolvedValue : melo || null;
 
       return {
         installation: {
@@ -1152,9 +1281,10 @@ module.exports = {
       if (einheitId) context.einheitId = einheitId;
       if (napId) context.napId = napId;
 
-      const resolvedStatus = status !== undefined
-        ? status
-        : String(inst.einheitBetriebsstatus || inst.EinheitBetriebsstatus || '');
+      const resolvedStatus =
+        status !== undefined
+          ? status
+          : String(inst.einheitBetriebsstatus || inst.EinheitBetriebsstatus || '');
       if (resolvedStatus) context.status = resolvedStatus;
 
       const resolvedType = type !== undefined ? type : this.deriveInstallationType(inst);
@@ -1167,7 +1297,11 @@ module.exports = {
           resolvedBrutto = parseFloat(rawBrutto);
         }
       }
-      if (resolvedBrutto !== undefined && resolvedBrutto !== null && Number.isFinite(resolvedBrutto)) {
+      if (
+        resolvedBrutto !== undefined &&
+        resolvedBrutto !== null &&
+        Number.isFinite(resolvedBrutto)
+      ) {
         context.brutto = resolvedBrutto;
       }
 
@@ -1177,7 +1311,8 @@ module.exports = {
         context.mastrNummer = null;
         if (!einheitId && !napId && !melo) {
           context.identifierMissing = true;
-          context.identifierReason = 'No traceable installation identifier found (mastrNummer, einheitId, napId, melo)';
+          context.identifierReason =
+            'No traceable installation identifier found (mastrNummer, einheitId, napId, melo)';
         }
       }
 
@@ -1202,8 +1337,10 @@ module.exports = {
       merged.spannungsebene = standardizedDetails.connection.spannungsebene;
       merged.netzbetreiberName = standardizedDetails.connection.netzbetreiberName;
       if (merged.rawValue === undefined) merged.rawValue = standardizedDetails.measurement.rawValue;
-      if (merged.resolvedValue === undefined) merged.resolvedValue = standardizedDetails.measurement.resolvedValue;
-      if (merged.valueSource === undefined) merged.valueSource = standardizedDetails.measurement.valueSource;
+      if (merged.resolvedValue === undefined)
+        merged.resolvedValue = standardizedDetails.measurement.resolvedValue;
+      if (merged.valueSource === undefined)
+        merged.valueSource = standardizedDetails.measurement.valueSource;
 
       return {
         ...merged,
@@ -1248,7 +1385,8 @@ module.exports = {
       if (brutto !== undefined) context.brutto = brutto;
       if (expectedValue !== undefined) context.expectedValue = expectedValue;
 
-      if (einheitIdA || einheitIdB) context.einheitId = { a: einheitIdA || null, b: einheitIdB || null };
+      if (einheitIdA || einheitIdB)
+        context.einheitId = { a: einheitIdA || null, b: einheitIdB || null };
       if (napIdA || napIdB) context.napId = { a: napIdA || null, b: napIdB || null };
 
       const missingA = !mastrA && !einheitIdA && !napIdA && !meloA;
@@ -1256,8 +1394,12 @@ module.exports = {
       if (missingA || missingB) {
         context.identifierMissing = true;
         context.identifierReason = {
-          a: missingA ? 'No traceable identifier in source record A (mastrNummer/einheitId/napId/melo)' : null,
-          b: missingB ? 'No traceable identifier in source record B (mastrNummer/einheitId/napId/melo)' : null,
+          a: missingA
+            ? 'No traceable identifier in source record A (mastrNummer/einheitId/napId/melo)'
+            : null,
+          b: missingB
+            ? 'No traceable identifier in source record B (mastrNummer/einheitId/napId/melo)'
+            : null,
         };
       }
 
@@ -1342,12 +1484,11 @@ module.exports = {
       const findings = [];
       let idx = 1;
       const cutoffDate = now || new Date();
-      const TWO_YEARS_MS  = 2 * 365 * 24 * 60 * 60 * 1000;
-      const ONE_YEAR_MS   = 365 * 24 * 60 * 60 * 1000;
+      const TWO_YEARS_MS = 2 * 365 * 24 * 60 * 60 * 1000;
+      const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
 
-      const statusLabel = (inst) => String(
-        inst.einheitBetriebsstatus || inst.EinheitBetriebsstatus || ''
-      ).toLowerCase();
+      const statusLabel = (inst) =>
+        String(inst.einheitBetriebsstatus || inst.EinheitBetriebsstatus || '').toLowerCase();
 
       for (const inst of installations) {
         const mastr = inst.EinheitMastrNummer || inst.einheitMastrNummer || '?';
@@ -1357,45 +1498,57 @@ module.exports = {
         const regDateStr = inst.registrierungsDatum || inst.Registrierungsdatum;
         if ((status === '31' || status === 'inplanung') && regDateStr) {
           const regDate = new Date(regDateStr);
-          if (!isNaN(regDate) && (cutoffDate - regDate) > TWO_YEARS_MS) {
-            findings.push(createFinding(
-              3, 'statusAnomalies', MQ_STALE_PLANNING, 'warning',
-              `${mastr}: stale planning status (${regDateStr})`,
-              `Installation has been "InPlanung" since ${regDateStr} (>2 years). Likely abandoned or mislabelled.`,
-              this.buildInstallationFindingContext(inst, {
-                datapoint: ['einheitBetriebsstatus', 'registrierungsDatum'],
-                value: { status, registrierungsDatum: regDateStr },
-                expectedValue: 'Status progression from InPlanung within 2 years',
-                status,
-                registrierungsDatum: regDateStr,
-                ageDays: Math.floor((cutoffDate - regDate) / 86400000),
-              }),
-              'Update MaStR status or deregister if project was abandoned.',
-              idx++
-            ));
+          if (!isNaN(regDate) && cutoffDate - regDate > TWO_YEARS_MS) {
+            findings.push(
+              createFinding(
+                3,
+                'statusAnomalies',
+                MQ_STALE_PLANNING,
+                'warning',
+                `${mastr}: stale planning status (${regDateStr})`,
+                `Installation has been "InPlanung" since ${regDateStr} (>2 years). Likely abandoned or mislabelled.`,
+                this.buildInstallationFindingContext(inst, {
+                  datapoint: ['einheitBetriebsstatus', 'registrierungsDatum'],
+                  value: { status, registrierungsDatum: regDateStr },
+                  expectedValue: 'Status progression from InPlanung within 2 years',
+                  status,
+                  registrierungsDatum: regDateStr,
+                  ageDays: Math.floor((cutoffDate - regDate) / 86400000),
+                }),
+                'Update MaStR status or deregister if project was abandoned.',
+                idx++
+              )
+            );
           }
         }
 
         // Rule 2: Stale temporary shutdown >365 days
-        const shutdownDateStr = inst.datumBeginnVoruebergehenderStilllegung || inst.DatumBeginnVoruebergehenderStilllegung;
+        const shutdownDateStr =
+          inst.datumBeginnVoruebergehenderStilllegung ||
+          inst.DatumBeginnVoruebergehenderStilllegung;
         if ((status === '37' || status === 'voruebergehendstillgelegt') && shutdownDateStr) {
           const shutdownDate = new Date(shutdownDateStr);
-          if (!isNaN(shutdownDate) && (cutoffDate - shutdownDate) > ONE_YEAR_MS) {
-            findings.push(createFinding(
-              3, 'statusAnomalies', MQ_STALE_TEMPORARY_SHUTDOWN, 'warning',
-              `${mastr}: temporary shutdown exceeds 365 days (${shutdownDateStr})`,
-              `Installation has been temporarily shut down since ${shutdownDateStr}. Consider permanent decommissioning.`,
-              this.buildInstallationFindingContext(inst, {
-                datapoint: ['einheitBetriebsstatus', 'datumBeginnVoruebergehenderStilllegung'],
-                value: { status, shutdownDate: shutdownDateStr },
-                expectedValue: 'Temporary shutdown should not exceed 365 days',
-                status,
-                shutdownDate: shutdownDateStr,
-                ageDays: Math.floor((cutoffDate - shutdownDate) / 86400000),
-              }),
-              'Update MaStR with actual operational status or register permanent decommissioning.',
-              idx++
-            ));
+          if (!isNaN(shutdownDate) && cutoffDate - shutdownDate > ONE_YEAR_MS) {
+            findings.push(
+              createFinding(
+                3,
+                'statusAnomalies',
+                MQ_STALE_TEMPORARY_SHUTDOWN,
+                'warning',
+                `${mastr}: temporary shutdown exceeds 365 days (${shutdownDateStr})`,
+                `Installation has been temporarily shut down since ${shutdownDateStr}. Consider permanent decommissioning.`,
+                this.buildInstallationFindingContext(inst, {
+                  datapoint: ['einheitBetriebsstatus', 'datumBeginnVoruebergehenderStilllegung'],
+                  value: { status, shutdownDate: shutdownDateStr },
+                  expectedValue: 'Temporary shutdown should not exceed 365 days',
+                  status,
+                  shutdownDate: shutdownDateStr,
+                  ageDays: Math.floor((cutoffDate - shutdownDate) / 86400000),
+                }),
+                'Update MaStR with actual operational status or register permanent decommissioning.',
+                idx++
+              )
+            );
           }
         }
 
@@ -1403,77 +1556,97 @@ module.exports = {
         // Use centralized fallback chain to avoid false positives from field name variants.
         const ibDate = this.getInstallationCommissioningDate(inst);
         if ((status === '35' || status === 'inbetrieb') && !ibDate) {
-          findings.push(createFinding(
-            3, 'statusAnomalies', MQ_MISSING_COMMISSIONING_DATE, 'warning',
-            `${mastr}: missing commissioning date (operational unit)`,
-            'Operational installation has no Inbetriebnahmedatum in MaStR. Required for EEG tariff calculation.',
-            this.buildInstallationFindingContext(inst, {
-              datapoint: 'commissioningDate | inbetriebnahmedatum (with fallback)',
-              value: null,
-              expectedValue: 'YYYY-MM-DD',
-              status,
-            }),
-            'Submit commissioning date correction via MaStR portal.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              3,
+              'statusAnomalies',
+              MQ_MISSING_COMMISSIONING_DATE,
+              'warning',
+              `${mastr}: missing commissioning date (operational unit)`,
+              'Operational installation has no Inbetriebnahmedatum in MaStR. Required for EEG tariff calculation.',
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'commissioningDate | inbetriebnahmedatum (with fallback)',
+                value: null,
+                expectedValue: 'YYYY-MM-DD',
+                status,
+              }),
+              'Submit commissioning date correction via MaStR portal.',
+              idx++
+            )
+          );
         }
 
         // Rule 4: Future commissioning date
         if (ibDate) {
           const ibDateObj = new Date(ibDate);
           if (!isNaN(ibDateObj) && ibDateObj > cutoffDate) {
-            findings.push(createFinding(
-              3, 'statusAnomalies', MQ_FUTURE_COMMISSIONING, 'error',
-              `${mastr}: commissioning date in the future (${ibDate})`,
-              `Inbetriebnahmedatum ${ibDate} is in the future for a registered installation. Data integrity issue.`,
-              this.buildInstallationFindingContext(inst, {
-                datapoint: 'inbetriebnahmeDatum',
-                value: ibDate,
-                expectedValue: `<= ${cutoffDate.toISOString().slice(0, 10)}`,
-                status,
-                inbetriebnahmeDatum: ibDate,
-              }),
-              'Correct the commissioning date in MaStR. If genuinely future-dated, status should be "InPlanung".',
-              idx++
-            ));
+            findings.push(
+              createFinding(
+                3,
+                'statusAnomalies',
+                MQ_FUTURE_COMMISSIONING,
+                'error',
+                `${mastr}: commissioning date in the future (${ibDate})`,
+                `Inbetriebnahmedatum ${ibDate} is in the future for a registered installation. Data integrity issue.`,
+                this.buildInstallationFindingContext(inst, {
+                  datapoint: 'inbetriebnahmeDatum',
+                  value: ibDate,
+                  expectedValue: `<= ${cutoffDate.toISOString().slice(0, 10)}`,
+                  status,
+                  inbetriebnahmeDatum: ibDate,
+                }),
+                'Correct the commissioning date in MaStR. If genuinely future-dated, status should be "InPlanung".',
+                idx++
+              )
+            );
           }
         }
 
         // Rule 5: NBP status = "InPrüfung" (2955)
         const nbpStatus = String(inst.netzbetreiberPruefungStatus || '');
         if (nbpStatus === '2955') {
-          findings.push(createFinding(
-            3, 'statusAnomalies', MQ_NBP_PENDING, 'warning',
-            `${mastr}: NBP review pending (InPrüfung)`,
-            'NetzbetreiberPrüfung status is 2955 (In Prüfung). Grid operator review not completed.',
-            this.buildInstallationFindingContext(inst, {
-              datapoint: 'netzbetreiberPruefungStatus',
-              value: nbpStatus,
-              expectedValue: '2954 (Geprüft)',
-              status,
-              netzbetreiberPruefungStatus: nbpStatus,
-            }),
-            'Complete Netzbetreiberprüfung in MaStR portal.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              3,
+              'statusAnomalies',
+              MQ_NBP_PENDING,
+              'warning',
+              `${mastr}: NBP review pending (InPrüfung)`,
+              'NetzbetreiberPrüfung status is 2955 (In Prüfung). Grid operator review not completed.',
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'netzbetreiberPruefungStatus',
+                value: nbpStatus,
+                expectedValue: '2954 (Geprüft)',
+                status,
+                netzbetreiberPruefungStatus: nbpStatus,
+              }),
+              'Complete Netzbetreiberprüfung in MaStR portal.',
+              idx++
+            )
+          );
         }
 
         // Rule 6: NBP status = "NichtVorgesehen" (3075)
         if (nbpStatus === '3075') {
-          findings.push(createFinding(
-            3, 'statusAnomalies', MQ_NBP_NOT_PLANNED, 'warning',
-            `${mastr}: NBP review not planned (NichtVorgesehen)`,
-            'NetzbetreiberPrüfung status is 3075 (Nicht Vorgesehen). Regulatory review may be required.',
-            this.buildInstallationFindingContext(inst, {
-              datapoint: 'netzbetreiberPruefungStatus',
-              value: nbpStatus,
-              expectedValue: '2954 (Geprüft) or justified exemption',
-              status,
-              netzbetreiberPruefungStatus: nbpStatus,
-            }),
-            'Verify if NBP is required for this installation type. Update status if applicable.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              3,
+              'statusAnomalies',
+              MQ_NBP_NOT_PLANNED,
+              'warning',
+              `${mastr}: NBP review not planned (NichtVorgesehen)`,
+              'NetzbetreiberPrüfung status is 3075 (Nicht Vorgesehen). Regulatory review may be required.',
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'netzbetreiberPruefungStatus',
+                value: nbpStatus,
+                expectedValue: '2954 (Geprüft) or justified exemption',
+                status,
+                netzbetreiberPruefungStatus: nbpStatus,
+              }),
+              'Verify if NBP is required for this installation type. Update status if applicable.',
+              idx++
+            )
+          );
         }
       }
 
@@ -1493,107 +1666,134 @@ module.exports = {
 
       for (const inst of installations) {
         const mastr = inst.EinheitMastrNummer || inst.einheitMastrNummer || '?';
-        const brutto = parseFloat(inst.bruttoleistung || inst.Bruttoleistung || inst.NettoNennleistung || 0);
-        const netto  = parseFloat(inst.nettoNennleistung || inst.NettoNennleistung || 0);
-        const type   = this.deriveInstallationType(inst);
+        const brutto = parseFloat(
+          inst.bruttoleistung || inst.Bruttoleistung || inst.NettoNennleistung || 0
+        );
+        const netto = parseFloat(inst.nettoNennleistung || inst.NettoNennleistung || 0);
+        const type = this.deriveInstallationType(inst);
 
         // Rule 1: Zero capacity
         if (brutto === 0 && netto === 0) {
-          findings.push(createFinding(
-            4, 'capacityAnomalies', MQ_ZERO_CAPACITY, 'error',
-            `${mastr}: zero capacity (brutto=0, netto=0)`,
-            'Both Bruttoleistung and NettoNennleistung are 0. This installation contributes no capacity to grid calculations.',
-            this.buildInstallationFindingContext(inst, {
-              datapoint: ['bruttoleistung', 'nettoNennleistung'],
-              value: { brutto, netto },
-              expectedValue: '> 0',
-              type,
-              brutto,
-              netto,
-            }),
-            'Enter correct capacity values in MaStR or deregister.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              4,
+              'capacityAnomalies',
+              MQ_ZERO_CAPACITY,
+              'error',
+              `${mastr}: zero capacity (brutto=0, netto=0)`,
+              'Both Bruttoleistung and NettoNennleistung are 0. This installation contributes no capacity to grid calculations.',
+              this.buildInstallationFindingContext(inst, {
+                datapoint: ['bruttoleistung', 'nettoNennleistung'],
+                value: { brutto, netto },
+                expectedValue: '> 0',
+                type,
+                brutto,
+                netto,
+              }),
+              'Enter correct capacity values in MaStR or deregister.',
+              idx++
+            )
+          );
           continue;
         }
 
         // Rule 2: Negative capacity
         if (brutto < 0 || netto < 0) {
-          findings.push(createFinding(
-            4, 'capacityAnomalies', MQ_NEGATIVE_CAPACITY, 'error',
-            `${mastr}: negative capacity (brutto=${brutto}, netto=${netto})`,
-            'Negative capacity is physically impossible and indicates a data entry error.',
-            this.buildInstallationFindingContext(inst, {
-              datapoint: ['bruttoleistung', 'nettoNennleistung'],
-              value: { brutto, netto },
-              expectedValue: '>= 0',
-              type,
-              brutto,
-              netto,
-            }),
-            'Correct capacity values in MaStR.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              4,
+              'capacityAnomalies',
+              MQ_NEGATIVE_CAPACITY,
+              'error',
+              `${mastr}: negative capacity (brutto=${brutto}, netto=${netto})`,
+              'Negative capacity is physically impossible and indicates a data entry error.',
+              this.buildInstallationFindingContext(inst, {
+                datapoint: ['bruttoleistung', 'nettoNennleistung'],
+                value: { brutto, netto },
+                expectedValue: '>= 0',
+                type,
+                brutto,
+                netto,
+              }),
+              'Correct capacity values in MaStR.',
+              idx++
+            )
+          );
           continue;
         }
 
         // Rule 3: Implausibly high capacity
         const threshold = HIGH_THRESHOLDS[type] || DEFAULT_HIGH;
         if (brutto > threshold) {
-          findings.push(createFinding(
-            4, 'capacityAnomalies', MQ_IMPLAUSIBLE_HIGH_CAPACITY, 'warning',
-            `${mastr}: implausibly high capacity ${brutto.toFixed(0)} kW (type: ${type}, threshold: ${threshold} kW)`,
-            `Bruttoleistung of ${brutto} kW exceeds the plausibility threshold for type "${type}". Likely a unit error (kW vs. MW).`,
-            this.buildInstallationFindingContext(inst, {
-              datapoint: 'bruttoleistung',
-              value: brutto,
-              expectedValue: `<= ${threshold} kW`,
-              type,
-              brutto,
-              netto,
-              threshold,
-            }),
-            'Verify unit (kW vs. MW). Correct in MaStR if erroneous.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              4,
+              'capacityAnomalies',
+              MQ_IMPLAUSIBLE_HIGH_CAPACITY,
+              'warning',
+              `${mastr}: implausibly high capacity ${brutto.toFixed(0)} kW (type: ${type}, threshold: ${threshold} kW)`,
+              `Bruttoleistung of ${brutto} kW exceeds the plausibility threshold for type "${type}". Likely a unit error (kW vs. MW).`,
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'bruttoleistung',
+                value: brutto,
+                expectedValue: `<= ${threshold} kW`,
+                type,
+                brutto,
+                netto,
+                threshold,
+              }),
+              'Verify unit (kW vs. MW). Correct in MaStR if erroneous.',
+              idx++
+            )
+          );
         }
 
         // Rule 4: NettoNennleistung > Bruttoleistung (physical impossibility)
         if (netto > 0 && brutto > 0 && netto > brutto) {
-          findings.push(createFinding(
-            4, 'capacityAnomalies', MQ_NETTO_EXCEEDS_BRUTTO, 'error',
-            `${mastr}: netto (${netto} kW) > brutto (${brutto} kW)`,
-            'NettoNennleistung cannot exceed Bruttoleistung. This violates physics and indicates a data entry error.',
-            this.buildInstallationFindingContext(inst, {
-              datapoint: ['nettoNennleistung', 'bruttoleistung'],
-              value: { brutto, netto },
-              expectedValue: 'nettoNennleistung <= bruttoleistung',
-              type,
-              brutto,
-              netto,
-            }),
-            'Swap or correct capacity values in MaStR.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              4,
+              'capacityAnomalies',
+              MQ_NETTO_EXCEEDS_BRUTTO,
+              'error',
+              `${mastr}: netto (${netto} kW) > brutto (${brutto} kW)`,
+              'NettoNennleistung cannot exceed Bruttoleistung. This violates physics and indicates a data entry error.',
+              this.buildInstallationFindingContext(inst, {
+                datapoint: ['nettoNennleistung', 'bruttoleistung'],
+                value: { brutto, netto },
+                expectedValue: 'nettoNennleistung <= bruttoleistung',
+                type,
+                brutto,
+                netto,
+              }),
+              'Swap or correct capacity values in MaStR.',
+              idx++
+            )
+          );
         }
 
         // Rule 5: Missing Einspeisungsart (feed-in type) for operational solar
         const feedInType = inst.einspeisungsart || inst.Einspeisungsart;
         if (type === 'solar' && !feedInType && String(inst.einheitBetriebsstatus || '') === '35') {
-          findings.push(createFinding(
-            4, 'capacityAnomalies', MQ_MISSING_FEED_IN_TYPE, 'warning',
-            `${mastr}: missing feed-in type (Einspeisungsart)`,
-            'Operational solar installation has no Einspeisungsart. Required for EEG tariff and billing.',
-            this.buildInstallationFindingContext(inst, {
-              datapoint: 'einspeisungsart',
-              value: null,
-              expectedValue: 'Volleinspeisung|Überschusseinspeisung',
-              type,
-              brutto,
-            }),
-            'Add Einspeisungsart (Volleinspeisung/Überschusseinspeisung) in MaStR.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              4,
+              'capacityAnomalies',
+              MQ_MISSING_FEED_IN_TYPE,
+              'warning',
+              `${mastr}: missing feed-in type (Einspeisungsart)`,
+              'Operational solar installation has no Einspeisungsart. Required for EEG tariff and billing.',
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'einspeisungsart',
+                value: null,
+                expectedValue: 'Volleinspeisung|Überschusseinspeisung',
+                type,
+                brutto,
+              }),
+              'Add Einspeisungsart (Volleinspeisung/Überschusseinspeisung) in MaStR.',
+              idx++
+            )
+          );
         }
       }
 
@@ -1622,78 +1822,95 @@ module.exports = {
         const mastr = inst.EinheitMastrNummer || inst.einheitMastrNummer || '?';
         const { napId, source: napIdSource } = this.getInstallationNapIdWithFallback(inst);
         // Use getInstallationMelo() for consistency with context builder (same fallback chain)
-        const melo   = this.getInstallationMelo(inst);
-        const brutto = parseFloat(inst.bruttoleistung || inst.Bruttoleistung || inst.NettoNennleistung || 0);
-        const type   = this.deriveInstallationType(inst);
+        const melo = this.getInstallationMelo(inst);
+        const brutto = parseFloat(
+          inst.bruttoleistung || inst.Bruttoleistung || inst.NettoNennleistung || 0
+        );
+        const type = this.deriveInstallationType(inst);
 
         // Rule 1: Missing NAP (now uses fallback resolution like enrichment logic)
         // Only fire if NAP cannot be resolved via ANY path (direct or fallback).
         // This eliminates false positives where enrichment successfully resolves NAP
         // but direct field is null (e.g., NAP via napData structure).
         if (!napId) {
-          findings.push(createFinding(
-            5, 'connectionPoints', MQ_MISSING_NAP, 'warning',
-            `${mastr}: no NAP (Netzanschlusspunkt) assigned`,
-            'General data quality issue: installation has no linked NAP in MaStR (checked via direct field and fallback paths). Grid operator routing and voltage level validation are not possible.',
-            this.buildInstallationFindingContext(inst, {
-              datapoint: 'nap.MastrNummer (with fallback)',
-              value: null,
-              expectedValue: 'NAP...',
-              type,
-              brutto,
-              napId: null,
-              napIdSource,
-              rootIssue: 'MISSING_NAP',
-              scope: 'general',
-            }),
-            'Assign correct NAP via MaStR portal or request assignment from grid operator.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              5,
+              'connectionPoints',
+              MQ_MISSING_NAP,
+              'warning',
+              `${mastr}: no NAP (Netzanschlusspunkt) assigned`,
+              'General data quality issue: installation has no linked NAP in MaStR (checked via direct field and fallback paths). Grid operator routing and voltage level validation are not possible.',
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'nap.MastrNummer (with fallback)',
+                value: null,
+                expectedValue: 'NAP...',
+                type,
+                brutto,
+                napId: null,
+                napIdSource,
+                rootIssue: 'MISSING_NAP',
+                scope: 'general',
+              }),
+              'Assign correct NAP via MaStR portal or request assignment from grid operator.',
+              idx++
+            )
+          );
         }
 
         // Rule 2: Missing MeLo for operational units ≥100 kW
         // Check effective MeLo value (using same resolution as getInstallationMelo for consistency)
         if (!melo && brutto >= 100 && String(inst.einheitBetriebsstatus || '') === '35') {
-          findings.push(createFinding(
-            5, 'connectionPoints', MQ_MISSING_MELO, 'warning',
-            `${mastr}: missing MeLo (Messlokation) for ≥100 kW operational unit`,
-            'Operational installation ≥100 kW has no Messlokations-ID. Required for billing and metering.',
-            this.buildInstallationFindingContext(inst, {
-              datapoint: 'meLo',
-              value: null,
-              expectedValue: 'DE... (33 chars)',
-              type,
-              brutto,
-              rawValue: inst.MeLo || inst.meLo || inst.messlokationsId || null,
-              resolvedValue: null,
-              valueSource: 'Effective MeLo check (no raw value + no fallback)',
-            }),
-            'Register Messlokation with metering operator and link in MaStR.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              5,
+              'connectionPoints',
+              MQ_MISSING_MELO,
+              'warning',
+              `${mastr}: missing MeLo (Messlokation) for ≥100 kW operational unit`,
+              'Operational installation ≥100 kW has no Messlokations-ID. Required for billing and metering.',
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'meLo',
+                value: null,
+                expectedValue: 'DE... (33 chars)',
+                type,
+                brutto,
+                rawValue: inst.MeLo || inst.meLo || inst.messlokationsId || null,
+                resolvedValue: null,
+                valueSource: 'Effective MeLo check (no raw value + no fallback)',
+              }),
+              'Register Messlokation with metering operator and link in MaStR.',
+              idx++
+            )
+          );
         }
 
         // Rule 3: NAP VNB mismatch (if NAP data available with VNB info)
         if (napId && gridOperatorId) {
           const napVnb = inst.nap?.NetzbetreiberMastrNummer || inst.napNetzbetreiberMastrNummer;
           if (napVnb && napVnb !== gridOperatorId) {
-            findings.push(createFinding(
-              5, 'connectionPoints', MQ_NAP_VNB_MISMATCH, 'error',
-              `${mastr}: NAP ${napId} belongs to different VNB (${napVnb})`,
-              `The NAP assigned to this installation belongs to VNB ${napVnb}, not the audited VNB ${gridOperatorId}.`,
-              this.buildInstallationFindingContext(inst, {
-                datapoint: 'nap.NetzbetreiberMastrNummer',
-                value: napVnb,
-                expectedValue: gridOperatorId,
-                type,
-                brutto,
-                napId,
-                napVnb,
-                auditedVnb: gridOperatorId,
-              }),
-              'Verify grid area assignment. Re-assign NAP to correct VNB if needed.',
-              idx++
-            ));
+            findings.push(
+              createFinding(
+                5,
+                'connectionPoints',
+                MQ_NAP_VNB_MISMATCH,
+                'error',
+                `${mastr}: NAP ${napId} belongs to different VNB (${napVnb})`,
+                `The NAP assigned to this installation belongs to VNB ${napVnb}, not the audited VNB ${gridOperatorId}.`,
+                this.buildInstallationFindingContext(inst, {
+                  datapoint: 'nap.NetzbetreiberMastrNummer',
+                  value: napVnb,
+                  expectedValue: gridOperatorId,
+                  type,
+                  brutto,
+                  napId,
+                  napVnb,
+                  auditedVnb: gridOperatorId,
+                }),
+                'Verify grid area assignment. Re-assign NAP to correct VNB if needed.',
+                idx++
+              )
+            );
           }
         }
 
@@ -1701,68 +1918,88 @@ module.exports = {
         if (napId && brutto >= 100) {
           const napVoltage = String(inst.nap?.Spannungsebene || inst.napSpannungsebene || '');
           if (napVoltage === '354' || napVoltage.toLowerCase() === 'ns') {
-            findings.push(createFinding(
-              5, 'connectionPoints', MQ_VOLTAGE_MISMATCH, 'warning',
-              `${mastr}: ${brutto.toFixed(0)} kW connected at Niederspannung (NS) — expected MS or higher`,
-              'Installations ≥100 kW are typically connected at Mittelspannung or higher. NS connection may indicate a data error.',
-              this.buildInstallationFindingContext(inst, {
-                datapoint: 'nap.Spannungsebene',
-                value: napVoltage,
-                expectedValue: 'MS|HS|EHS',
-                type,
-                brutto,
-                napVoltage,
-                napId,
-              }),
-              'Verify voltage level with grid operator. Update NAP voltage level in MaStR if incorrect.',
-              idx++
-            ));
+            findings.push(
+              createFinding(
+                5,
+                'connectionPoints',
+                MQ_VOLTAGE_MISMATCH,
+                'warning',
+                `${mastr}: ${brutto.toFixed(0)} kW connected at Niederspannung (NS) — expected MS or higher`,
+                'Installations ≥100 kW are typically connected at Mittelspannung or higher. NS connection may indicate a data error.',
+                this.buildInstallationFindingContext(inst, {
+                  datapoint: 'nap.Spannungsebene',
+                  value: napVoltage,
+                  expectedValue: 'MS|HS|EHS',
+                  type,
+                  brutto,
+                  napVoltage,
+                  napId,
+                }),
+                'Verify voltage level with grid operator. Update NAP voltage level in MaStR if incorrect.',
+                idx++
+              )
+            );
           }
         }
 
         // Rule 5: NAP shared by >3 units — may indicate master-meter grouping issue
-        if (napId && napUnits[napId] && napUnits[napId].length > 3 && napUnits[napId][0] === mastr) {
-          findings.push(createFinding(
-            5, 'connectionPoints', MQ_NAP_MULTI_UNIT, 'warning',
-            `NAP ${napId}: shared by ${napUnits[napId].length} installations`,
-            `More than 3 installations share the same NAP (${napId}). This may indicate incorrect NAP assignment or a master-meter grouping.`,
-            this.buildInstallationFindingContext(inst, {
-              mastrNummer: napUnits[napId].slice(0, 10),
-              datapoint: 'nap.MastrNummer',
-              value: napId,
-              expectedValue: 'Unique NAP per installation (unless intentional grouping)',
-              type,
-              brutto,
-              napId,
-              unitCount: napUnits[napId].length,
-              mastrNumbers: napUnits[napId].slice(0, 10),
-            }),
-            'Review NAP assignment. Each installation should have its own NAP unless intentionally grouped.',
-            idx++
-          ));
+        if (
+          napId &&
+          napUnits[napId] &&
+          napUnits[napId].length > 3 &&
+          napUnits[napId][0] === mastr
+        ) {
+          findings.push(
+            createFinding(
+              5,
+              'connectionPoints',
+              MQ_NAP_MULTI_UNIT,
+              'warning',
+              `NAP ${napId}: shared by ${napUnits[napId].length} installations`,
+              `More than 3 installations share the same NAP (${napId}). This may indicate incorrect NAP assignment or a master-meter grouping.`,
+              this.buildInstallationFindingContext(inst, {
+                mastrNummer: napUnits[napId].slice(0, 10),
+                datapoint: 'nap.MastrNummer',
+                value: napId,
+                expectedValue: 'Unique NAP per installation (unless intentional grouping)',
+                type,
+                brutto,
+                napId,
+                unitCount: napUnits[napId].length,
+                mastrNumbers: napUnits[napId].slice(0, 10),
+              }),
+              'Review NAP assignment. Each installation should have its own NAP unless intentionally grouped.',
+              idx++
+            )
+          );
         }
 
         // Rule 6: Redispatch-relevant (≥100 kW) without NAP
         // Uses fallback resolution (same as Rule 1) to prevent false positives.
         if (!napId && brutto >= 100) {
-          findings.push(createFinding(
-            5, 'connectionPoints', MQ_REDISPATCH_NO_NAP, 'error',
-            `${mastr}: Redispatch-relevant unit (${brutto.toFixed(0)} kW) without NAP`,
-            'Regulatory Redispatch scope (subset of missing NAP): installations ≥100 kW must participate in Redispatch 2.0. Without a NAP (checked via direct field and fallback paths), they cannot be registered in the Redispatch process.',
-            this.buildInstallationFindingContext(inst, {
-              datapoint: 'nap.MastrNummer (with fallback)',
-              value: null,
-              expectedValue: 'NAP... (required for redispatch >=100kW)',
-              type,
-              brutto,
-              napId: null,
-              napIdSource,
-              rootIssue: 'MISSING_NAP',
-              scope: 'redispatch',
-            }),
-            'Assign NAP immediately. Report to TSO/DSO for Redispatch registration.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              5,
+              'connectionPoints',
+              MQ_REDISPATCH_NO_NAP,
+              'error',
+              `${mastr}: Redispatch-relevant unit (${brutto.toFixed(0)} kW) without NAP`,
+              'Regulatory Redispatch scope (subset of missing NAP): installations ≥100 kW must participate in Redispatch 2.0. Without a NAP (checked via direct field and fallback paths), they cannot be registered in the Redispatch process.',
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'nap.MastrNummer (with fallback)',
+                value: null,
+                expectedValue: 'NAP... (required for redispatch >=100kW)',
+                type,
+                brutto,
+                napId: null,
+                napIdSource,
+                rootIssue: 'MISSING_NAP',
+                scope: 'redispatch',
+              }),
+              'Assign NAP immediately. Report to TSO/DSO for Redispatch registration.',
+              idx++
+            )
+          );
         }
       }
 
@@ -1793,46 +2030,57 @@ module.exports = {
 
           const typeA = this.deriveInstallationType(a);
           const typeB = this.deriveInstallationType(b);
-          const plzA  = a.Postleitzahl || a.postleitzahl;
-          const plzB  = b.Postleitzahl || b.postleitzahl;
-          const capA  = parseFloat(a.bruttoleistung || a.Bruttoleistung || a.NettoNennleistung || 0);
-          const capB  = parseFloat(b.bruttoleistung || b.Bruttoleistung || b.NettoNennleistung || 0);
-          const ibA   = a.inbetriebnahmeDatum || a.Inbetriebnahmedatum;
-          const ibB   = b.inbetriebnahmeDatum || b.Inbetriebnahmedatum;
-          const latA  = parseFloat(a.koordinatenBreitengrad || a.lat || 0);
-          const latB  = parseFloat(b.koordinatenBreitengrad || b.lat || 0);
-          const lonA  = parseFloat(a.koordinatenLaengengrad || a.lon || 0);
-          const lonB  = parseFloat(b.koordinatenLaengengrad || b.lon || 0);
+          const plzA = a.Postleitzahl || a.postleitzahl;
+          const plzB = b.Postleitzahl || b.postleitzahl;
+          const capA = parseFloat(a.bruttoleistung || a.Bruttoleistung || a.NettoNennleistung || 0);
+          const capB = parseFloat(b.bruttoleistung || b.Bruttoleistung || b.NettoNennleistung || 0);
+          const ibA = a.inbetriebnahmeDatum || a.Inbetriebnahmedatum;
+          const ibB = b.inbetriebnahmeDatum || b.Inbetriebnahmedatum;
+          const latA = parseFloat(a.koordinatenBreitengrad || a.lat || 0);
+          const latB = parseFloat(b.koordinatenBreitengrad || b.lat || 0);
+          const lonA = parseFloat(a.koordinatenLaengengrad || a.lon || 0);
+          const lonB = parseFloat(b.koordinatenLaengengrad || b.lon || 0);
 
           // Geo duplicate: same type + coordinates within 0.001°
-          if (typeA === typeB && latA !== 0 && latB !== 0 &&
-              Math.abs(latA - latB) <= 0.001 && Math.abs(lonA - lonB) <= 0.001) {
-            findings.push(createFinding(
-              6, 'duplicateDetection', MQ_GEO_DUPLICATE, 'warning',
-              `Geo duplicate: ${mastrA} / ${mastrB} at same coordinates`,
-              `Two ${typeA} installations at nearly identical coordinates (Δlat=${Math.abs(latA - latB).toFixed(4)}°, Δlon=${Math.abs(lonA - lonB).toFixed(4)}°).`,
-              this.buildPairFindingContext(a, b, {
-                datapoint: ['koordinatenBreitengrad', 'koordinatenLaengengrad'],
-                value: { latA, lonA, latB, lonB },
-                expectedValue: 'Distinct coordinates per physical installation',
-                type: typeA,
-                brutto: { a: capA, b: capB },
-                latA,
-                lonA,
-                latB,
-                lonB,
-              }),
-              'Check if these are the same physical installation registered twice. Deregister the duplicate.',
-              idx++
-            ));
+          if (
+            typeA === typeB &&
+            latA !== 0 &&
+            latB !== 0 &&
+            Math.abs(latA - latB) <= 0.001 &&
+            Math.abs(lonA - lonB) <= 0.001
+          ) {
+            findings.push(
+              createFinding(
+                6,
+                'duplicateDetection',
+                MQ_GEO_DUPLICATE,
+                'warning',
+                `Geo duplicate: ${mastrA} / ${mastrB} at same coordinates`,
+                `Two ${typeA} installations at nearly identical coordinates (Δlat=${Math.abs(latA - latB).toFixed(4)}°, Δlon=${Math.abs(lonA - lonB).toFixed(4)}°).`,
+                this.buildPairFindingContext(a, b, {
+                  datapoint: ['koordinatenBreitengrad', 'koordinatenLaengengrad'],
+                  value: { latA, lonA, latB, lonB },
+                  expectedValue: 'Distinct coordinates per physical installation',
+                  type: typeA,
+                  brutto: { a: capA, b: capB },
+                  latA,
+                  lonA,
+                  latB,
+                  lonB,
+                }),
+                'Check if these are the same physical installation registered twice. Deregister the duplicate.',
+                idx++
+              )
+            );
             reported.add(pairKey);
             continue;
           }
 
           // Criteria matching
-          const samePLZ     = plzA && plzB && plzA === plzB;
-          const sameType    = typeA === typeB;
-          const sameCap     = capA > 0 && capB > 0 && Math.abs(capA - capB) / Math.max(capA, capB) <= 0.10;
+          const samePLZ = plzA && plzB && plzA === plzB;
+          const sameType = typeA === typeB;
+          const sameCap =
+            capA > 0 && capB > 0 && Math.abs(capA - capB) / Math.max(capA, capB) <= 0.1;
           let sameDate = false;
           if (ibA && ibB) {
             const dA = new Date(ibA);
@@ -1845,61 +2093,81 @@ module.exports = {
           const score = [samePLZ, sameType, sameCap, sameDate].filter(Boolean).length;
 
           if (score === 4) {
-            findings.push(createFinding(
-              6, 'duplicateDetection', MQ_PROBABLE_DUPLICATE, 'error',
-              `Probable duplicate: ${mastrA} / ${mastrB}`,
-              `All 4 criteria match (PLZ, type, capacity ±10%, commissioning date ±90d). Very likely the same physical installation.`,
-              this.buildPairFindingContext(a, b, {
-                datapoint: ['Postleitzahl', 'energietraeger', 'bruttoleistung', 'inbetriebnahmeDatum'],
-                value: {
-                  plz: { a: plzA, b: plzB },
-                  type: { a: typeA, b: typeB },
-                  cap: { a: capA, b: capB },
-                  commissioningDate: { a: ibA, b: ibB },
-                },
-                expectedValue: 'At least one duplicate criterion should differ',
-                type: typeA,
-                brutto: { a: capA, b: capB },
-                plzA,
-                plzB,
-                typeA,
-                typeB,
-                capA,
-                ibA,
-                capB,
-                ibB,
-              }),
-              'Review both records. Deregister the duplicate in MaStR immediately.',
-              idx++
-            ));
+            findings.push(
+              createFinding(
+                6,
+                'duplicateDetection',
+                MQ_PROBABLE_DUPLICATE,
+                'error',
+                `Probable duplicate: ${mastrA} / ${mastrB}`,
+                `All 4 criteria match (PLZ, type, capacity ±10%, commissioning date ±90d). Very likely the same physical installation.`,
+                this.buildPairFindingContext(a, b, {
+                  datapoint: [
+                    'Postleitzahl',
+                    'energietraeger',
+                    'bruttoleistung',
+                    'inbetriebnahmeDatum',
+                  ],
+                  value: {
+                    plz: { a: plzA, b: plzB },
+                    type: { a: typeA, b: typeB },
+                    cap: { a: capA, b: capB },
+                    commissioningDate: { a: ibA, b: ibB },
+                  },
+                  expectedValue: 'At least one duplicate criterion should differ',
+                  type: typeA,
+                  brutto: { a: capA, b: capB },
+                  plzA,
+                  plzB,
+                  typeA,
+                  typeB,
+                  capA,
+                  ibA,
+                  capB,
+                  ibB,
+                }),
+                'Review both records. Deregister the duplicate in MaStR immediately.',
+                idx++
+              )
+            );
             reported.add(pairKey);
           } else if (score === 3) {
-            findings.push(createFinding(
-              6, 'duplicateDetection', MQ_POSSIBLE_DUPLICATE, 'warning',
-              `Possible duplicate: ${mastrA} / ${mastrB} (3/4 criteria match)`,
-              `3 of 4 duplicate criteria match (PLZ: ${samePLZ}, type: ${sameType}, cap: ${sameCap}, date: ${sameDate}).`,
-              this.buildPairFindingContext(a, b, {
-                datapoint: ['Postleitzahl', 'energietraeger', 'bruttoleistung', 'inbetriebnahmeDatum'],
-                value: {
-                  plz: { a: plzA, b: plzB },
-                  type: { a: typeA, b: typeB },
-                  cap: { a: capA, b: capB },
-                  commissioningDate: { a: ibA, b: ibB },
-                },
-                expectedValue: 'No more than 2 of 4 duplicate criteria should match',
-                type: typeA,
-                brutto: { a: capA, b: capB },
-                plzA: plzA || plzB,
-                typeA,
-                capA,
-                ibA,
-                capB,
-                ibB,
-                matchedCriteria: { samePLZ, sameType, sameCap, sameDate },
-              }),
-              'Review both records. Deregister if confirmed duplicate.',
-              idx++
-            ));
+            findings.push(
+              createFinding(
+                6,
+                'duplicateDetection',
+                MQ_POSSIBLE_DUPLICATE,
+                'warning',
+                `Possible duplicate: ${mastrA} / ${mastrB} (3/4 criteria match)`,
+                `3 of 4 duplicate criteria match (PLZ: ${samePLZ}, type: ${sameType}, cap: ${sameCap}, date: ${sameDate}).`,
+                this.buildPairFindingContext(a, b, {
+                  datapoint: [
+                    'Postleitzahl',
+                    'energietraeger',
+                    'bruttoleistung',
+                    'inbetriebnahmeDatum',
+                  ],
+                  value: {
+                    plz: { a: plzA, b: plzB },
+                    type: { a: typeA, b: typeB },
+                    cap: { a: capA, b: capB },
+                    commissioningDate: { a: ibA, b: ibB },
+                  },
+                  expectedValue: 'No more than 2 of 4 duplicate criteria should match',
+                  type: typeA,
+                  brutto: { a: capA, b: capB },
+                  plzA: plzA || plzB,
+                  typeA,
+                  capA,
+                  ibA,
+                  capB,
+                  ibB,
+                  matchedCriteria: { samePLZ, sameType, sameCap, sameDate },
+                }),
+                'Review both records. Deregister if confirmed duplicate.',
+                idx++
+              )
+            );
             reported.add(pairKey);
           }
         }
@@ -1930,24 +2198,29 @@ module.exports = {
       });
 
       if (withCoords.length === 0) {
-        findings.push(createFinding(
-          7, 'geoSpotCheck', MQ_GEO_CHECK_FAILED, 'warning',
-          'Geo spot check skipped: no installations with coordinates',
-          'None of the portfolio installations have coordinate data in MaStR. Geo validation not possible.',
-          { total: installations.length, withCoords: 0 },
-          'Register coordinates for installations in MaStR portal.',
-          idx++
-        ));
+        findings.push(
+          createFinding(
+            7,
+            'geoSpotCheck',
+            MQ_GEO_CHECK_FAILED,
+            'warning',
+            'Geo spot check skipped: no installations with coordinates',
+            'None of the portfolio installations have coordinate data in MaStR. Geo validation not possible.',
+            { total: installations.length, withCoords: 0 },
+            'Register coordinates for installations in MaStR portal.',
+            idx++
+          )
+        );
         return findings;
       }
 
       // Priority 1: Redispatch-relevant (≥100 kW)
-      const redispatch = withCoords.filter((i) =>
-        parseFloat(i.bruttoleistung || i.Bruttoleistung || i.NettoNennleistung || 0) >= 100
+      const redispatch = withCoords.filter(
+        (i) => parseFloat(i.bruttoleistung || i.Bruttoleistung || i.NettoNennleistung || 0) >= 100
       );
       // Build a diverse sample: alternate types
       const typeGroups = {};
-      for (const inst of (redispatch.length > 0 ? redispatch : withCoords)) {
+      for (const inst of redispatch.length > 0 ? redispatch : withCoords) {
         const t = this.deriveInstallationType(inst);
         if (!typeGroups[t]) typeGroups[t] = [];
         typeGroups[t].push(inst);
@@ -1985,64 +2258,86 @@ module.exports = {
           const confidence = geoResult?.data?.validation?.confidenceScore || 0;
 
           if (verdict === 'CONSISTENT') {
-            findings.push(createFinding(
-              7, 'geoSpotCheck', MQ_GEO_PLAUSIBLE, 'info',
-              `${mastr}: geo assignment plausible (${verdict})`,
-              `OSM geo validation confirmed installation is in the correct grid area. Confidence: ${(confidence * 100).toFixed(0)}%.`,
-              this.buildInstallationFindingContext(inst, {
-                datapoint: 'geoValidation.verdict',
-                value: verdict,
-                expectedValue: 'CONSISTENT',
-                verdict,
-                confidenceScore: confidence,
-              }),
-              null, idx++
-            ));
+            findings.push(
+              createFinding(
+                7,
+                'geoSpotCheck',
+                MQ_GEO_PLAUSIBLE,
+                'info',
+                `${mastr}: geo assignment plausible (${verdict})`,
+                `OSM geo validation confirmed installation is in the correct grid area. Confidence: ${(confidence * 100).toFixed(0)}%.`,
+                this.buildInstallationFindingContext(inst, {
+                  datapoint: 'geoValidation.verdict',
+                  value: verdict,
+                  expectedValue: 'CONSISTENT',
+                  verdict,
+                  confidenceScore: confidence,
+                }),
+                null,
+                idx++
+              )
+            );
           } else if (['DEFINITIVE_MISASSIGNMENT', 'LIKELY_MISASSIGNMENT'].includes(verdict)) {
-            findings.push(createFinding(
-              7, 'geoSpotCheck', MQ_GEO_MISASSIGNMENT, 'error',
-              `${mastr}: geo misassignment detected (${verdict})`,
-              `OSM geo validation indicates installation may be assigned to wrong grid operator. Verdict: ${verdict}. Confidence: ${(confidence * 100).toFixed(0)}%.`,
-              this.buildInstallationFindingContext(inst, {
-                datapoint: 'geoValidation.verdict',
-                value: verdict,
-                expectedValue: 'CONSISTENT',
-                verdict,
-                confidenceScore: confidence,
-              }),
-              'Investigate grid area assignment. Escalate to BNetzA if confirmed definitive misassignment.',
-              idx++
-            ));
+            findings.push(
+              createFinding(
+                7,
+                'geoSpotCheck',
+                MQ_GEO_MISASSIGNMENT,
+                'error',
+                `${mastr}: geo misassignment detected (${verdict})`,
+                `OSM geo validation indicates installation may be assigned to wrong grid operator. Verdict: ${verdict}. Confidence: ${(confidence * 100).toFixed(0)}%.`,
+                this.buildInstallationFindingContext(inst, {
+                  datapoint: 'geoValidation.verdict',
+                  value: verdict,
+                  expectedValue: 'CONSISTENT',
+                  verdict,
+                  confidenceScore: confidence,
+                }),
+                'Investigate grid area assignment. Escalate to BNetzA if confirmed definitive misassignment.',
+                idx++
+              )
+            );
           } else {
             // UNCERTAIN, INSUFFICIENT_DATA — informational
-            findings.push(createFinding(
-              7, 'geoSpotCheck', MQ_GEO_PLAUSIBLE, 'info',
-              `${mastr}: geo check inconclusive (${verdict || 'no verdict'})`,
-              `OSM geo validation returned an inconclusive result. Not enough data for a definitive assessment.`,
-              this.buildInstallationFindingContext(inst, {
-                datapoint: 'geoValidation.verdict',
-                value: verdict || null,
-                expectedValue: 'CONSISTENT',
-                verdict,
-                confidenceScore: confidence,
-              }),
-              null, idx++
-            ));
+            findings.push(
+              createFinding(
+                7,
+                'geoSpotCheck',
+                MQ_GEO_PLAUSIBLE,
+                'info',
+                `${mastr}: geo check inconclusive (${verdict || 'no verdict'})`,
+                `OSM geo validation returned an inconclusive result. Not enough data for a definitive assessment.`,
+                this.buildInstallationFindingContext(inst, {
+                  datapoint: 'geoValidation.verdict',
+                  value: verdict || null,
+                  expectedValue: 'CONSISTENT',
+                  verdict,
+                  confidenceScore: confidence,
+                }),
+                null,
+                idx++
+              )
+            );
           }
         } catch (err) {
-          findings.push(createFinding(
-            7, 'geoSpotCheck', MQ_GEO_CHECK_FAILED, 'warning',
-            `${mastr}: geo check failed — ${err.message}`,
-            `osm-geo.validate call failed for installation ${mastr}. Geo data not available.`,
-            this.buildInstallationFindingContext(inst, {
-              datapoint: 'geoValidation.error',
-              value: err.message,
-              expectedValue: 'Successful geo validation response',
-              error: err.message,
-            }),
-            'Check OSM geo service availability. Re-run audit when service is restored.',
-            idx++
-          ));
+          findings.push(
+            createFinding(
+              7,
+              'geoSpotCheck',
+              MQ_GEO_CHECK_FAILED,
+              'warning',
+              `${mastr}: geo check failed — ${err.message}`,
+              `osm-geo.validate call failed for installation ${mastr}. Geo data not available.`,
+              this.buildInstallationFindingContext(inst, {
+                datapoint: 'geoValidation.error',
+                value: err.message,
+                expectedValue: 'Successful geo validation response',
+                error: err.message,
+              }),
+              'Check OSM geo service availability. Re-run audit when service is restored.',
+              idx++
+            )
+          );
         }
       }
 
@@ -2060,26 +2355,39 @@ module.exports = {
 
       if (datapointTags.length > 0) {
         try {
-          const snap = await ctx.call('datapoint.createSnapshot', {
-            tags: datapointTags.join(','),
-            maxAgeMinutes,
-            createdBy: 'agent',
-            name: `mq-${(operator.mastrId || 'unknown').replace(/[^a-z0-9]/gi, '-')}-${Date.now()}`,
-            description: `MaStR quality audit snapshot for ${operator.name || 'unknown'}`,
-          }, callOpts);
+          const snap = await ctx.call(
+            'datapoint.createSnapshot',
+            {
+              tags: datapointTags.join(','),
+              maxAgeMinutes,
+              createdBy: 'agent',
+              name: `mq-${(operator.mastrId || 'unknown').replace(/[^a-z0-9]/gi, '-')}-${Date.now()}`,
+              description: `MaStR quality audit snapshot for ${operator.name || 'unknown'}`,
+            },
+            callOpts
+          );
 
           if (snap?.id) {
             try {
-              snapshotValidation = await ctx.call('datapoint.validateSnapshot', { id: snap.id }, callOpts);
+              snapshotValidation = await ctx.call(
+                'datapoint.validateSnapshot',
+                { id: snap.id },
+                callOpts
+              );
               if (snapshotValidation?.drift?.length > 0) {
-                findings.push(createFinding(
-                  8, 'audit', SNAPSHOT_DRIFT_DETECTED, 'warning',
-                  `Data drift detected in ${snapshotValidation.drift.length} datapoint(s)`,
-                  'One or more datapoints changed during pipeline execution. Results may be inconsistent.',
-                  { drift: snapshotValidation.drift, snapshotId: snap.id },
-                  'Re-run audit after data refresh for a consistent result.',
-                  idx++
-                ));
+                findings.push(
+                  createFinding(
+                    8,
+                    'audit',
+                    SNAPSHOT_DRIFT_DETECTED,
+                    'warning',
+                    `Data drift detected in ${snapshotValidation.drift.length} datapoint(s)`,
+                    'One or more datapoints changed during pipeline execution. Results may be inconsistent.',
+                    { drift: snapshotValidation.drift, snapshotId: snap.id },
+                    'Re-run audit after data refresh for a consistent result.',
+                    idx++
+                  )
+                );
               }
             } catch (err) {
               this.logger.debug(`stepAudit: snapshot validation skipped — ${err.message}`);
@@ -2090,21 +2398,27 @@ module.exports = {
         }
       }
 
-      findings.push(createFinding(
-        8, 'audit', AUDIT_TRAIL_CREATED, 'info',
-        `Audit trail created — pipeline v${PIPELINE_VERSION}`,
-        `Deterministic MaStR quality pipeline v${PIPELINE_VERSION} completed. ` +
-        `No LLM involvement. Total findings: ${reportData.allFindingsCount + findings.length}. ` +
-        `qualityScore: ${reportData.qualityScore}.`,
-        {
-          pipelineVersion: PIPELINE_VERSION,
-          qualityScore: reportData.qualityScore,
-          totalInstallations: reportData.totalInstallations,
-          findingsTotal: reportData.allFindingsCount + findings.length,
-          consistent: snapshotValidation?.consistent ?? null,
-        },
-        null, idx++
-      ));
+      findings.push(
+        createFinding(
+          8,
+          'audit',
+          AUDIT_TRAIL_CREATED,
+          'info',
+          `Audit trail created — pipeline v${PIPELINE_VERSION}`,
+          `Deterministic MaStR quality pipeline v${PIPELINE_VERSION} completed. ` +
+            `No LLM involvement. Total findings: ${reportData.allFindingsCount + findings.length}. ` +
+            `qualityScore: ${reportData.qualityScore}.`,
+          {
+            pipelineVersion: PIPELINE_VERSION,
+            qualityScore: reportData.qualityScore,
+            totalInstallations: reportData.totalInstallations,
+            findingsTotal: reportData.allFindingsCount + findings.length,
+            consistent: snapshotValidation?.consistent ?? null,
+          },
+          null,
+          idx++
+        )
+      );
 
       return { findings, snapshotValidation };
     },
@@ -2118,9 +2432,11 @@ module.exports = {
       ).toLowerCase();
       if (['solar', 'photovoltaik', 'pv'].some((t) => et.includes(t))) return 'solar';
       if (['wind', 'windkraft'].some((t) => et.includes(t))) return 'wind';
-      if (['speicher', 'battery', 'batterie', 'storage'].some((t) => et.includes(t))) return 'storage';
+      if (['speicher', 'battery', 'batterie', 'storage'].some((t) => et.includes(t)))
+        return 'storage';
       if (['biomasse', 'biogas', 'biomethan'].some((t) => et.includes(t))) return 'biomass';
-      if (['verbrennung', 'gas', 'kohle', 'combustion'].some((t) => et.includes(t))) return 'combustion';
+      if (['verbrennung', 'gas', 'kohle', 'combustion'].some((t) => et.includes(t)))
+        return 'combustion';
       if (inst.Modulanzahl || inst.GrossflächePv) return 'solar';
       if (inst.Nabenhoehe || inst.Rotordurchmesser) return 'wind';
       if (inst.Speicherkapazitaet) return 'storage';
@@ -2142,24 +2458,39 @@ module.exports = {
       const runStep = async (stepNum, stepName, fn, options = {}) => {
         const { fatal = false } = options;
         if (skip.has(stepNum)) {
-          stepSummaries.push({ step: stepNum, name: stepName, status: 'skipped', durationMs: 0, findingsCount: 0 });
+          stepSummaries.push({
+            step: stepNum,
+            name: stepName,
+            status: 'skipped',
+            durationMs: 0,
+            findingsCount: 0,
+          });
           return null;
         }
         const t0 = Date.now();
         try {
           const result = await fn();
-          const stepFindings = Array.isArray(result) ? result : (result?.findings || []);
+          const stepFindings = Array.isArray(result) ? result : result?.findings || [];
           allFindings.push(...stepFindings);
           stepSummaries.push({
-            step: stepNum, name: stepName, status: 'success',
-            durationMs: Date.now() - t0, findingsCount: stepFindings.length,
+            step: stepNum,
+            name: stepName,
+            status: 'success',
+            durationMs: Date.now() - t0,
+            findingsCount: stepFindings.length,
           });
           return result;
         } catch (err) {
-          this.logger.error(`MaStR quality pipeline step ${stepNum} (${stepName}) failed: ${err.message}`);
+          this.logger.error(
+            `MaStR quality pipeline step ${stepNum} (${stepName}) failed: ${err.message}`
+          );
           stepSummaries.push({
-            step: stepNum, name: stepName, status: 'error',
-            durationMs: Date.now() - t0, findingsCount: 0, error: err.message,
+            step: stepNum,
+            name: stepName,
+            status: 'error',
+            durationMs: Date.now() - t0,
+            findingsCount: 0,
+            error: err.message,
           });
           if (fatal) throw err;
           return null;
@@ -2199,30 +2530,43 @@ module.exports = {
 
       // Step 2: Inventory (mandatory)
       let installations = [];
-      await runStep(2, 'inventory', async () => {
-        const res = await this.stepInventory(ctx, operator);
-        installations = res.installations;
-        return res.findings;
-      }, { fatal: true });
+      await runStep(
+        2,
+        'inventory',
+        async () => {
+          const res = await this.stepInventory(ctx, operator);
+          installations = res.installations;
+          return res.findings;
+        },
+        { fatal: true }
+      );
 
       const now = new Date();
 
       // Step 3: Status anomalies (skippable)
       if (!skip.has(3)) {
-        await runStep(3, 'statusAnomalies', () =>
-          this.stepStatusAnomalies(installations, now)
-        );
+        await runStep(3, 'statusAnomalies', () => this.stepStatusAnomalies(installations, now));
       } else {
-        stepSummaries.push({ step: 3, name: 'statusAnomalies', status: 'skipped', durationMs: 0, findingsCount: 0 });
+        stepSummaries.push({
+          step: 3,
+          name: 'statusAnomalies',
+          status: 'skipped',
+          durationMs: 0,
+          findingsCount: 0,
+        });
       }
 
       // Step 4: Capacity anomalies (skippable)
       if (!skip.has(4)) {
-        await runStep(4, 'capacityAnomalies', () =>
-          this.stepCapacityAnomalies(installations)
-        );
+        await runStep(4, 'capacityAnomalies', () => this.stepCapacityAnomalies(installations));
       } else {
-        stepSummaries.push({ step: 4, name: 'capacityAnomalies', status: 'skipped', durationMs: 0, findingsCount: 0 });
+        stepSummaries.push({
+          step: 4,
+          name: 'capacityAnomalies',
+          status: 'skipped',
+          durationMs: 0,
+          findingsCount: 0,
+        });
       }
 
       // Step 5: Connection point integrity (skippable)
@@ -2231,16 +2575,26 @@ module.exports = {
           this.stepConnectionPointIntegrity(installations, operator.mastrId)
         );
       } else {
-        stepSummaries.push({ step: 5, name: 'connectionPoints', status: 'skipped', durationMs: 0, findingsCount: 0 });
+        stepSummaries.push({
+          step: 5,
+          name: 'connectionPoints',
+          status: 'skipped',
+          durationMs: 0,
+          findingsCount: 0,
+        });
       }
 
       // Step 6: Duplicate detection (skippable)
       if (!skip.has(6)) {
-        await runStep(6, 'duplicateDetection', () =>
-          this.stepDuplicateDetection(installations)
-        );
+        await runStep(6, 'duplicateDetection', () => this.stepDuplicateDetection(installations));
       } else {
-        stepSummaries.push({ step: 6, name: 'duplicateDetection', status: 'skipped', durationMs: 0, findingsCount: 0 });
+        stepSummaries.push({
+          step: 6,
+          name: 'duplicateDetection',
+          status: 'skipped',
+          durationMs: 0,
+          findingsCount: 0,
+        });
       }
 
       // Step 7: Geo spot check (skippable)
@@ -2249,7 +2603,13 @@ module.exports = {
           this.stepGeoSpotCheck(ctx, installations, params, callOpts)
         );
       } else {
-        stepSummaries.push({ step: 7, name: 'geoSpotCheck', status: 'skipped', durationMs: 0, findingsCount: 0 });
+        stepSummaries.push({
+          step: 7,
+          name: 'geoSpotCheck',
+          status: 'skipped',
+          durationMs: 0,
+          findingsCount: 0,
+        });
       }
 
       // Compute quality dimensions and scores
@@ -2257,7 +2617,11 @@ module.exports = {
       for (const [dim, stepNums] of Object.entries(DIMENSION_STEPS)) {
         const stepSkipped = stepNums.every((s) => skip.has(s));
         if (stepSkipped) {
-          qualityDimensions[dim] = { score: null, findings: 0, weight: QUALITY_DIMENSION_WEIGHTS[dim] };
+          qualityDimensions[dim] = {
+            score: null,
+            findings: 0,
+            weight: QUALITY_DIMENSION_WEIGHTS[dim],
+          };
         } else {
           const dimFindings = allFindings.filter((f) => stepNums.includes(f.step));
           qualityDimensions[dim] = {
@@ -2274,11 +2638,16 @@ module.exports = {
       // Step 8: Audit trail (mandatory)
       let auditResult = null;
       await runStep(8, 'audit', async () => {
-        auditResult = await this.stepAudit(ctx, params, {
-          qualityScore,
-          totalInstallations: installations.length,
-          allFindingsCount: allFindings.length,
-        }, callOpts);
+        auditResult = await this.stepAudit(
+          ctx,
+          params,
+          {
+            qualityScore,
+            totalInstallations: installations.length,
+            allFindingsCount: allFindings.length,
+          },
+          callOpts
+        );
         return auditResult.findings;
       });
 

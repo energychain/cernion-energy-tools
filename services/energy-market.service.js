@@ -45,7 +45,10 @@ module.exports = {
         summary: 'Electricity market prices (day-ahead, intraday, futures)',
         tags: ['Energy Market Data'],
         // @OpenEnergyPlatform/ontology — OEO_00020069 market exchange, OEO_00010082 trade
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00020069', 'https://openenergyplatform.org/ontology/oeo/OEO_00010082'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00020069',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00010082',
+        ],
         description: `Query electricity prices from ENTSO-E Transparency Platform and SMARD.de.
 
 **All parameters are required.**
@@ -233,7 +236,10 @@ module.exports = {
         summary: 'Electricity generation data by energy source',
         tags: ['Energy Market Data'],
         // @OpenEnergyPlatform/ontology — OEO_00000139 electrical energy, OEO_00000031 power plant
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000139', 'https://openenergyplatform.org/ontology/oeo/OEO_00000031'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000139',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000031',
+        ],
         description: `Query generation data from SMARD.de and ENTSO-E Transparency Platform.
 
 **All parameters are required except resolution.**
@@ -383,7 +389,10 @@ module.exports = {
         summary: 'Regional CO₂ intensity forecasts (GrünstromIndex)',
         tags: ['Energy Market Data'],
         // @OpenEnergyPlatform/ontology — OEO_00260007 CO2 emission, OEO_00010411 forecast
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00260007', 'https://openenergyplatform.org/ontology/oeo/OEO_00010411'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00260007',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00010411',
+        ],
         description: `Query CO2 intensity for any location in Germany from GrünstromIndex.
 
 **Only 'location' is required.**
@@ -607,7 +616,10 @@ module.exports = {
         summary: 'Search energy installations in German registry (MaStR)',
         tags: ['Energy Market Data'],
         // @OpenEnergyPlatform/ontology — OEO_00000031 power plant, OEO_00000034 solar power unit
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000031', 'https://openenergyplatform.org/ontology/oeo/OEO_00000034'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000031',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000034',
+        ],
         description: `Search Marktstammdatenregister (MaStR) for energy installations.
 
 **'installationType' is required.**

@@ -64,7 +64,9 @@ describe('flex-calculator', () => {
   });
 
   test('calculateDimmingPlan: respektiert 4.2 kW Minimum', () => {
-    const devices = [{ deviceId: 'd1', type: 'wallbox', capacityKw: 11, minDimmingKw: 4.2, status: 'active' }];
+    const devices = [
+      { deviceId: 'd1', type: 'wallbox', capacityKw: 11, minDimmingKw: 4.2, status: 'active' },
+    ];
     const loadForecast = [{ ts: '2026-04-20T00:00:00.000Z', value: 90 }];
 
     const result = calculateDimmingPlan(devices, loadForecast, 100, {

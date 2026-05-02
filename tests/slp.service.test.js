@@ -7,10 +7,7 @@ const { ServiceBroker } = require('moleculer');
 const SlpService = require('../services/slp.service');
 
 function createTempDir() {
-  return path.join(
-    os.tmpdir(),
-    `slp-service-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  );
+  return path.join(os.tmpdir(), `slp-service-${Date.now()}-${Math.random().toString(16).slice(2)}`);
 }
 
 describe('slp.service', () => {

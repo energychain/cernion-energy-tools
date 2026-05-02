@@ -21,7 +21,12 @@ function makeDoc(overrides = {}) {
     fixedParams: { gridOperator: 'Stadtwerke Test', city: 'Teststadt' },
     plan: {
       steps: [
-        { step: 1, action: 'assets.solarForecast', description: 'Fetch solar forecast', params: { gridOperator: null } },
+        {
+          step: 1,
+          action: 'assets.solarForecast',
+          description: 'Fetch solar forecast',
+          params: { gridOperator: null },
+        },
         { step: 2, action: 'energy-market.spotPrice', description: 'Spot prices', params: {} },
       ],
     },
@@ -34,7 +39,9 @@ function makeDoc(overrides = {}) {
       summary: {
         rowCount: 42,
         columns: ['timestamp', 'capacity_mw', 'price_eur'],
-        sampleValues: { firstRow: { timestamp: '2025-06-01T00:00:00Z', capacity_mw: 12.5, price_eur: 85.3 } },
+        sampleValues: {
+          firstRow: { timestamp: '2025-06-01T00:00:00Z', capacity_mw: 12.5, price_eur: 85.3 },
+        },
       },
       schemaHash: 'abc1234567890abc',
     },
@@ -48,7 +55,12 @@ function makeDoc(overrides = {}) {
       lastFailure: null,
     },
     agent_interventions: [
-      { timestamp: '2025-06-01T11:00:00Z', type: 'correction', field: 'capacity_mw', reason: 'outlier removed' },
+      {
+        timestamp: '2025-06-01T11:00:00Z',
+        type: 'correction',
+        field: 'capacity_mw',
+        reason: 'outlier removed',
+      },
     ],
     createdAt: '2025-01-01T00:00:00.000Z',
     ...overrides,

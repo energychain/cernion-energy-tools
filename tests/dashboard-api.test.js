@@ -20,12 +20,14 @@ const { FINDING_CODE_METADATA } = require('../src/validation-findings');
 // ── Fixtures ──────────────────────────────────────────────────────────────
 
 const MOCK_VNB_IDENTITY = {
-  results: [{
-    name:    'TWL Netze GmbH',
-    mastrId: 'SNB935578300972',
-    bdew:    '9907473000008',
-    bnr:     '10002345',
-  }],
+  results: [
+    {
+      name: 'TWL Netze GmbH',
+      mastrId: 'SNB935578300972',
+      bdew: '9907473000008',
+      bnr: '10002345',
+    },
+  ],
 };
 
 const MOCK_VNB_MONITOR = {
@@ -33,21 +35,26 @@ const MOCK_VNB_MONITOR = {
   // Real structure from vnb-monitor.service.js fetchMastrData / fetchEwkData
   mastr: {
     inBetrieb: {
-      anlagenCount:    312,
-      leistungMW:      '145.2',
-      pvAnlagen:       180,
-      windAnlagen:     90,
+      anlagenCount: 312,
+      leistungMW: '145.2',
+      pvAnlagen: 180,
+      windAnlagen: 90,
       speicherAnlagen: 42,
     },
-    inPlanung:              { anlagenCount: 20, leistungMW: '15.0' },
-    netzbetreiberPruefung:  { anlagenCount: 5,  leistungMW: '3.2'  },
+    inPlanung: { anlagenCount: 20, leistungMW: '15.0' },
+    netzbetreiberPruefung: { anlagenCount: 5, leistungMW: '3.2' },
   },
   ewk: {
-    anschlussdauer:      { eeNS_weeks: 35, eeNS_phase1_weeks: 12, eeNS_phase2_weeks: 23, verbrauchNS_weeks: 28 },
-    umsetzungsquote:     { eeNS_percent: 100, verbrauchNS_percent: 95 },
+    anschlussdauer: {
+      eeNS_weeks: 35,
+      eeNS_phase1_weeks: 12,
+      eeNS_phase2_weeks: 23,
+      verbrauchNS_weeks: 28,
+    },
+    umsetzungsquote: { eeNS_percent: 100, verbrauchNS_percent: 95 },
     digitalisierungsindex: { gesamt_percent: 58, smartGrids_percent: 72 },
   },
-  alerts:       [{ id: 'A1', severity: 'warning', message: 'Test alert' }],
+  alerts: [{ id: 'A1', severity: 'warning', message: 'Test alert' }],
   alertSummary: { total: 1, critical: 0, warning: 1, info: 0, ewkRelevant: 0 },
 };
 
@@ -57,22 +64,26 @@ const MOCK_HEALTH = {
 
 const MOCK_MQ_AUDITS = {
   count: 1,
-  audits: [{
-    id: 'mq-001',
-    createdAt: '2026-03-31T10:00:00Z',
-    qualityScore: 78,
-    findingsCount: { info: 12, warning: 18, error: 5 },
-  }],
+  audits: [
+    {
+      id: 'mq-001',
+      createdAt: '2026-03-31T10:00:00Z',
+      qualityScore: 78,
+      findingsCount: { info: 12, warning: 18, error: 5 },
+    },
+  ],
 };
 
 const MOCK_GC_VALIDATIONS = {
   count: 1,
-  validations: [{
-    id: 'gc-001',
-    createdAt: '2026-03-30T14:00:00Z',
-    decision: 'GO_CONDITIONAL',
-    findingsCount: { info: 4, warning: 7, error: 1 },
-  }],
+  validations: [
+    {
+      id: 'gc-001',
+      createdAt: '2026-03-30T14:00:00Z',
+      decision: 'GO_CONDITIONAL',
+      findingsCount: { info: 4, warning: 7, error: 1 },
+    },
+  ],
 };
 
 const MOCK_ES_VALIDATIONS = {
@@ -82,13 +93,15 @@ const MOCK_ES_VALIDATIONS = {
 
 const MOCK_RD_AUDITS = {
   count: 1,
-  audits: [{
-    id: 'rd-001',
-    createdAt: '2026-03-29T08:00:00Z',
-    settlementReadiness: { readinessPercent: 88.1 },
-    riskAssessment: { level: 'medium' },
-    findingsCount: { info: 3, warning: 8, error: 2 },
-  }],
+  audits: [
+    {
+      id: 'rd-001',
+      createdAt: '2026-03-29T08:00:00Z',
+      settlementReadiness: { readinessPercent: 88.1 },
+      riskAssessment: { level: 'medium' },
+      findingsCount: { info: 3, warning: 8, error: 2 },
+    },
+  ],
 };
 
 const MOCK_PRICES = {
@@ -205,10 +218,10 @@ describe('dashboard-api.service', () => {
           count: 59,
           totalCapacityMW: 73.4,
           byType: {
-            solar:      { count: 12, capacityKW: 8200 },
-            wind:       { count: 15, capacityKW: 42000 },
+            solar: { count: 12, capacityKW: 8200 },
+            wind: { count: 15, capacityKW: 42000 },
             combustion: { count: 25, capacityKW: 18500 },
-            biomass:    { count:  7, capacityKW:  4700 },
+            biomass: { count: 7, capacityKW: 4700 },
           },
         }),
       },
@@ -226,7 +239,7 @@ describe('dashboard-api.service', () => {
     broker.createService({
       name: 'energy-market',
       actions: {
-        prices:       makeHandler('emPrices', MOCK_PRICES),
+        prices: makeHandler('emPrices', MOCK_PRICES),
         co2Intensity: makeHandler('emCo2', MOCK_CO2),
       },
     });
@@ -235,7 +248,7 @@ describe('dashboard-api.service', () => {
     broker.createService({
       name: 'entsoe',
       actions: {
-        dayAheadPrices:    makeHandler('entsoeprices',   MOCK_PRICES),
+        dayAheadPrices: makeHandler('entsoeprices', MOCK_PRICES),
         windSolarForecast: makeHandler('entsoeforecast', MOCK_FORECAST),
       },
     });
@@ -261,7 +274,7 @@ describe('dashboard-api.service', () => {
     // Reset handler overrides and cache before each test
     handlers = {};
     const svc = broker.getLocalService('dashboard-api');
-    if (svc && svc.cache)    svc.cache.clear();
+    if (svc && svc.cache) svc.cache.clear();
     if (svc && svc.inflight) svc.inflight.clear();
   });
 
@@ -307,7 +320,7 @@ describe('dashboard-api.service', () => {
       expect(lar.mastrQuality.qualityScore).toBe(78);
       expect(lar.gridConnection.id).toBe('gc-001');
       expect(lar.gridConnection.decision).toBe('GO_CONDITIONAL');
-      expect(lar.energySharing).toBeNull();  // empty list → null
+      expect(lar.energySharing).toBeNull(); // empty list → null
       expect(lar.redispatch.id).toBe('rd-001');
       expect(lar.redispatch.settlementReadinessPercent).toBe(88.1);
       expect(lar.redispatch.riskLevel).toBe('medium');
@@ -320,7 +333,9 @@ describe('dashboard-api.service', () => {
     });
 
     it('degrades gracefully when vnb-monitor throws — kpis still returned', async () => {
-      handlers.vnbMonitorSnapshot = () => { throw new Error('Upstream down'); };
+      handlers.vnbMonitorSnapshot = () => {
+        throw new Error('Upstream down');
+      };
 
       const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000040' });
 
@@ -333,7 +348,9 @@ describe('dashboard-api.service', () => {
     });
 
     it('degrades gracefully when identity lookup throws — bdew code used as fallback', async () => {
-      handlers.vnbLookupCodes = () => { throw new Error('MCP timeout'); };
+      handlers.vnbLookupCodes = () => {
+        throw new Error('MCP timeout');
+      };
 
       const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '1234567890000' });
 
@@ -343,9 +360,15 @@ describe('dashboard-api.service', () => {
     });
 
     it('degrades gracefully when multiple services throw — rest of response intact', async () => {
-      handlers.vnbMonitorSnapshot = () => { throw new Error('down'); };
-      handlers.mqList             = () => { throw new Error('down'); };
-      handlers.rdList             = () => { throw new Error('down'); };
+      handlers.vnbMonitorSnapshot = () => {
+        throw new Error('down');
+      };
+      handlers.mqList = () => {
+        throw new Error('down');
+      };
+      handlers.rdList = () => {
+        throw new Error('down');
+      };
 
       const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9907473000008' });
 
@@ -358,12 +381,15 @@ describe('dashboard-api.service', () => {
 
     it('returns cached response on second call within TTL', async () => {
       let callCount = 0;
-      handlers.vnbLookupCodes = (ctx) => { callCount++; return MOCK_VNB_IDENTITY; };
+      handlers.vnbLookupCodes = (_ctx) => {
+        callCount++;
+        return MOCK_VNB_IDENTITY;
+      };
 
       await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000010' });
       await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000010' });
 
-      expect(callCount).toBe(1);  // second call served from cache
+      expect(callCount).toBe(1); // second call served from cache
     });
 
     it('uses different cache keys for different bdewCodes', async () => {
@@ -385,8 +411,14 @@ describe('dashboard-api.service', () => {
 
     it('calls vnb-monitor.snapshot after vnbLookupCodes (Phase 1 is sequential)', async () => {
       const callOrder = [];
-      handlers.vnbLookupCodes      = () => { callOrder.push('vnbLookupCodes'); return MOCK_VNB_IDENTITY; };
-      handlers.vnbMonitorSnapshot  = () => { callOrder.push('vnbMonitorSnapshot'); return MOCK_VNB_MONITOR; };
+      handlers.vnbLookupCodes = () => {
+        callOrder.push('vnbLookupCodes');
+        return MOCK_VNB_IDENTITY;
+      };
+      handlers.vnbMonitorSnapshot = () => {
+        callOrder.push('vnbMonitorSnapshot');
+        return MOCK_VNB_MONITOR;
+      };
 
       await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000030' });
 
@@ -396,7 +428,10 @@ describe('dashboard-api.service', () => {
 
     it('forwards gridOperatorId extracted from identity to Phase 2 list calls', async () => {
       let capturedMqParams;
-      handlers.mqList = (ctx) => { capturedMqParams = ctx.params; return MOCK_MQ_AUDITS; };
+      handlers.mqList = (ctx) => {
+        capturedMqParams = ctx.params;
+        return MOCK_MQ_AUDITS;
+      };
 
       await broker.call('dashboard-api.vnbOverview', { bdewCode: '9907473000008' });
 
@@ -445,7 +480,9 @@ describe('dashboard-api.service', () => {
     });
 
     it('sets redispatchEligible to null when assets.redispatchCount fails (graceful degradation)', async () => {
-      handlers.assetsRedispatchCount = () => { throw new Error('assets down'); };
+      handlers.assetsRedispatchCount = () => {
+        throw new Error('assets down');
+      };
 
       const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000050' });
 
@@ -513,7 +550,10 @@ describe('dashboard-api.service', () => {
 
     it('returns null renewableForecast24h and skips ENTSO-E when no region given', async () => {
       let forecastCalled = false;
-      handlers.entsoeforecast = () => { forecastCalled = true; return MOCK_FORECAST; };
+      handlers.entsoeforecast = () => {
+        forecastCalled = true;
+        return MOCK_FORECAST;
+      };
 
       const result = await broker.call('dashboard-api.marketSnapshot', {});
 
@@ -523,7 +563,9 @@ describe('dashboard-api.service', () => {
     });
 
     it('returns null spotPrice when all price services fail', async () => {
-      handlers.entsoeprices = () => { throw new Error('down'); };
+      handlers.entsoeprices = () => {
+        throw new Error('down');
+      };
 
       const result = await broker.call('dashboard-api.marketSnapshot', {});
 
@@ -532,7 +574,9 @@ describe('dashboard-api.service', () => {
     });
 
     it('returns null co2 when co2Intensity service fails', async () => {
-      handlers.emCo2 = () => { throw new Error('down'); };
+      handlers.emCo2 = () => {
+        throw new Error('down');
+      };
 
       const result = await broker.call('dashboard-api.marketSnapshot', {});
 
@@ -547,20 +591,32 @@ describe('dashboard-api.service', () => {
         return MOCK_CO2;
       };
 
-      await broker.call('dashboard-api.marketSnapshot', { location: 'Heidelberg', region: 'Bayern' });
+      await broker.call('dashboard-api.marketSnapshot', {
+        location: 'Heidelberg',
+        region: 'Bayern',
+      });
 
       expect(capturedCo2Params.location).toBe('Heidelberg');
     });
 
     it('uses different cache keys for different location/region combinations', async () => {
       let callCount = 0;
-      handlers.entsoeprices = () => { callCount++; return MOCK_PRICES; };
+      handlers.entsoeprices = () => {
+        callCount++;
+        return MOCK_PRICES;
+      };
 
-      await broker.call('dashboard-api.marketSnapshot', { location: 'Deutschland', region: 'Germany' });
+      await broker.call('dashboard-api.marketSnapshot', {
+        location: 'Deutschland',
+        region: 'Germany',
+      });
       await broker.call('dashboard-api.marketSnapshot', { location: 'Bayern', region: 'Germany' });
-      await broker.call('dashboard-api.marketSnapshot', { location: 'Deutschland', region: 'Germany' });
+      await broker.call('dashboard-api.marketSnapshot', {
+        location: 'Deutschland',
+        region: 'Germany',
+      });
 
-      expect(callCount).toBe(2);  // third call same key → cache hit
+      expect(callCount).toBe(2); // third call same key → cache hit
     });
 
     it('deduplicates concurrent requests for same location/region (stampede guard)', async () => {
@@ -595,7 +651,7 @@ describe('dashboard-api.service', () => {
 
     it('agent entries have required shape', async () => {
       const result = await broker.call('dashboard-api.qualitySummary', {});
-      const types  = result.agents.map((a) => a.type);
+      const types = result.agents.map((a) => a.type);
 
       expect(types).toContain('mastr-quality');
       expect(types).toContain('grid-connection');
@@ -625,7 +681,7 @@ describe('dashboard-api.service', () => {
     });
 
     it('populates keyMetric for mastr-quality (qualityScore)', async () => {
-      const result  = await broker.call('dashboard-api.qualitySummary', {});
+      const result = await broker.call('dashboard-api.qualitySummary', {});
       const mqEntry = result.agents.find((a) => a.type === 'mastr-quality');
 
       expect(mqEntry.lastRun).toBe('2026-03-31T10:00:00Z');
@@ -648,9 +704,11 @@ describe('dashboard-api.service', () => {
     });
 
     it('degrades gracefully when one list service fails', async () => {
-      handlers.mqList = () => { throw new Error('PouchDB unavailable'); };
+      handlers.mqList = () => {
+        throw new Error('PouchDB unavailable');
+      };
 
-      const result  = await broker.call('dashboard-api.qualitySummary', {});
+      const result = await broker.call('dashboard-api.qualitySummary', {});
       const mqEntry = result.agents.find((a) => a.type === 'mastr-quality');
 
       expect(result._errors).toContain('mastr-quality.list');
@@ -685,9 +743,14 @@ describe('dashboard-api.service', () => {
     it('every code entry has severity, agent, step, description, descriptionDe', async () => {
       const result = await broker.call('dashboard-api.findingCodes', {});
       const VALID_SEVERITIES = ['info', 'warning', 'error'];
-      const VALID_AGENTS     = ['grid-connection', 'energy-sharing', 'mastr-quality', 'redispatch-expost'];
+      const VALID_AGENTS = [
+        'grid-connection',
+        'energy-sharing',
+        'mastr-quality',
+        'redispatch-expost',
+      ];
 
-      for (const [code, meta] of Object.entries(result.codes)) {
+      for (const [, meta] of Object.entries(result.codes)) {
         expect(VALID_SEVERITIES).toContain(meta.severity);
         expect(VALID_AGENTS).toContain(meta.agent);
         expect(typeof meta.step).toBe('number');
@@ -730,7 +793,7 @@ describe('dashboard-api.service', () => {
 
     it('MQ_ZERO_CAPACITY has correct metadata', async () => {
       const result = await broker.call('dashboard-api.findingCodes', {});
-      const meta   = result.codes.MQ_ZERO_CAPACITY;
+      const meta = result.codes.MQ_ZERO_CAPACITY;
 
       expect(meta.severity).toBe('error');
       expect(meta.agent).toBe('mastr-quality');
@@ -739,7 +802,7 @@ describe('dashboard-api.service', () => {
 
     it('RD_RISK_HIGH has correct metadata', async () => {
       const result = await broker.call('dashboard-api.findingCodes', {});
-      const meta   = result.codes.RD_RISK_HIGH;
+      const meta = result.codes.RD_RISK_HIGH;
 
       expect(meta.severity).toBe('error');
       expect(meta.agent).toBe('redispatch-expost');
@@ -751,21 +814,25 @@ describe('dashboard-api.service', () => {
 
   describe('safeCall (method)', () => {
     it('returns fallback value when action throws', async () => {
-      const svc    = broker.getLocalService('dashboard-api');
-      const errors = [];
-      const ctx    = await broker.call('dashboard-api.findingCodes', {}).then(() => null).catch(() => null);
-
       // Exercise safeCall indirectly via vnbOverview with failing service
-      handlers.vnbMonitorSnapshot = () => { throw new Error('Simulated failure'); };
+      handlers.vnbMonitorSnapshot = () => {
+        throw new Error('Simulated failure');
+      };
       const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000002' });
 
       expect(result._errors).toContain('vnb-monitor.snapshot');
     });
 
     it('records multiple failures in _errors array', async () => {
-      handlers.vnbMonitorSnapshot = () => { throw new Error('fail'); };
-      handlers.gcList             = () => { throw new Error('fail'); };
-      handlers.esList             = () => { throw new Error('fail'); };
+      handlers.vnbMonitorSnapshot = () => {
+        throw new Error('fail');
+      };
+      handlers.gcList = () => {
+        throw new Error('fail');
+      };
+      handlers.esList = () => {
+        throw new Error('fail');
+      };
 
       const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000003' });
 
@@ -775,7 +842,9 @@ describe('dashboard-api.service', () => {
     });
 
     it('does not include successful calls in _errors', async () => {
-      handlers.vnbMonitorSnapshot = () => { throw new Error('fail'); };
+      handlers.vnbMonitorSnapshot = () => {
+        throw new Error('fail');
+      };
 
       const result = await broker.call('dashboard-api.vnbOverview', { bdewCode: '9900000000004' });
 
@@ -865,13 +934,9 @@ describe('dashboard-api.service', () => {
   describe('Parameter validation — structured 422 errors (CR-0001)', () => {
     describe('vnbOverview', () => {
       it('throws ValidationError for missing bdewCode', async () => {
-        await expect(
-          broker.call('dashboard-api.vnbOverview', {})
-        ).rejects.toMatchObject({
+        await expect(broker.call('dashboard-api.vnbOverview', {})).rejects.toMatchObject({
           name: 'ValidationError',
-          data: expect.arrayContaining([
-            expect.objectContaining({ field: 'bdewCode' }),
-          ]),
+          data: expect.arrayContaining([expect.objectContaining({ field: 'bdewCode' })]),
         });
       });
 
@@ -894,9 +959,7 @@ describe('dashboard-api.service', () => {
           broker.call('dashboard-api.vnbOverview', { bdewCode: '12345' })
         ).rejects.toMatchObject({
           name: 'ValidationError',
-          data: expect.arrayContaining([
-            expect.objectContaining({ field: 'bdewCode' }),
-          ]),
+          data: expect.arrayContaining([expect.objectContaining({ field: 'bdewCode' })]),
         });
       });
 
@@ -948,9 +1011,7 @@ describe('dashboard-api.service', () => {
       });
 
       it('accepts request without optional params', async () => {
-        await expect(
-          broker.call('dashboard-api.marketSnapshot', {})
-        ).resolves.toBeDefined();
+        await expect(broker.call('dashboard-api.marketSnapshot', {})).resolves.toBeDefined();
       });
     });
 
@@ -975,9 +1036,7 @@ describe('dashboard-api.service', () => {
           broker.call('dashboard-api.qualitySummary', { gridOperatorId: 'GNB' })
         ).rejects.toMatchObject({
           name: 'ValidationError',
-          data: expect.arrayContaining([
-            expect.objectContaining({ field: 'gridOperatorId' }),
-          ]),
+          data: expect.arrayContaining([expect.objectContaining({ field: 'gridOperatorId' })]),
         });
       });
 
@@ -994,9 +1053,7 @@ describe('dashboard-api.service', () => {
       });
 
       it('accepts request without gridOperatorId (all operators)', async () => {
-        await expect(
-          broker.call('dashboard-api.qualitySummary', {})
-        ).resolves.toBeDefined();
+        await expect(broker.call('dashboard-api.qualitySummary', {})).resolves.toBeDefined();
       });
     });
   });

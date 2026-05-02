@@ -25,11 +25,7 @@ describe('cya-agent-personas', () => {
 
   describe('PERSONAS registry', () => {
     it('contains all three personas', () => {
-      expect(Object.keys(PERSONAS)).toEqual([
-        'technical',
-        'commercial',
-        'compliance',
-      ]);
+      expect(Object.keys(PERSONAS)).toEqual(['technical', 'commercial', 'compliance']);
     });
 
     it('is frozen', () => {
@@ -50,9 +46,7 @@ describe('cya-agent-personas', () => {
     });
 
     it('each persona has a unique resolutionPriority', () => {
-      const priorities = Object.values(PERSONAS).map(
-        (p) => p.resolutionPriority
-      );
+      const priorities = Object.values(PERSONAS).map((p) => p.resolutionPriority);
       expect(new Set(priorities).size).toBe(priorities.length);
     });
 
@@ -71,9 +65,7 @@ describe('cya-agent-personas', () => {
       });
 
       it('has technical conflict rules', () => {
-        expect(PERSONAS.technical.conflictRules).toContain(
-          'high_missing_nap'
-        );
+        expect(PERSONAS.technical.conflictRules).toContain('high_missing_nap');
         expect(PERSONAS.technical.conflictRules).toContain('voltage_mismatch');
       });
     });
@@ -87,9 +79,7 @@ describe('cya-agent-personas', () => {
       });
 
       it('has commercial conflict rules', () => {
-        expect(PERSONAS.commercial.conflictRules).toContain(
-          'capex_exceeds_budget'
-        );
+        expect(PERSONAS.commercial.conflictRules).toContain('capex_exceeds_budget');
         expect(PERSONAS.commercial.conflictRules).toContain('poor_roi_forecast');
       });
     });
@@ -103,12 +93,8 @@ describe('cya-agent-personas', () => {
       });
 
       it('has compliance conflict rules', () => {
-        expect(PERSONAS.compliance.conflictRules).toContain(
-          'regulatory_deadline_missed'
-        );
-        expect(PERSONAS.compliance.conflictRules).toContain(
-          'eeg_termination_imminent'
-        );
+        expect(PERSONAS.compliance.conflictRules).toContain('regulatory_deadline_missed');
+        expect(PERSONAS.compliance.conflictRules).toContain('eeg_termination_imminent');
       });
     });
   });
@@ -127,11 +113,7 @@ describe('cya-agent-personas', () => {
     });
 
     it('returns valid:true for multiple valid personas', () => {
-      const result = validatePerspectives([
-        'technical',
-        'commercial',
-        'compliance',
-      ]);
+      const result = validatePerspectives(['technical', 'commercial', 'compliance']);
       expect(result.valid).toBe(true);
       expect(result.invalidPersonas).toBeUndefined();
     });
@@ -218,9 +200,7 @@ describe('cya-agent-personas', () => {
     it('priorities are strictly ascending', () => {
       const ordered = getPersonasOrderedByPriority();
       for (let i = 0; i < ordered.length - 1; i++) {
-        expect(ordered[i].resolutionPriority).toBeLessThan(
-          ordered[i + 1].resolutionPriority
-        );
+        expect(ordered[i].resolutionPriority).toBeLessThan(ordered[i + 1].resolutionPriority);
       }
     });
   });
@@ -249,9 +229,7 @@ describe('cya-agent-personas', () => {
     });
 
     it('recognizes all conflict rules from all personas', () => {
-      const allRules = Object.values(PERSONAS).flatMap((p) =>
-        p.conflictRules
-      );
+      const allRules = Object.values(PERSONAS).flatMap((p) => p.conflictRules);
       allRules.forEach((rule) => {
         expect(isKnownConflictRule(rule)).toBe(true);
       });
@@ -260,9 +238,7 @@ describe('cya-agent-personas', () => {
 
   describe('object store namespace isolation', () => {
     it('each persona has a unique namespace', () => {
-      const namespaces = Object.values(PERSONAS).map(
-        (p) => p.objectStoreNamespace
-      );
+      const namespaces = Object.values(PERSONAS).map((p) => p.objectStoreNamespace);
       expect(new Set(namespaces).size).toBe(namespaces.length);
     });
 

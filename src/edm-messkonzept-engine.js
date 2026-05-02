@@ -19,20 +19,27 @@ function validateCalcFormula(formula) {
 
   // Blocklist: dangerous identifiers — literal regex, no user input in pattern
   // Uses two separate literals to avoid /g lastIndex state issues between .test() and .match()
-  const BLOCKLIST_RE_TEST = /\b(eval|Function|require|import|process|global|__dirname|__filename|fs|child_process|http|https|module|exports|console|setTimeout|setInterval)\b/;
-  const BLOCKLIST_RE_MATCH = /\b(eval|Function|require|import|process|global|__dirname|__filename|fs|child_process|http|https|module|exports|console|setTimeout|setInterval)\b/g;
+  const BLOCKLIST_RE_TEST =
+    /\b(eval|Function|require|import|process|global|__dirname|__filename|fs|child_process|http|https|module|exports|console|setTimeout|setInterval)\b/;
+  const BLOCKLIST_RE_MATCH =
+    /\b(eval|Function|require|import|process|global|__dirname|__filename|fs|child_process|http|https|module|exports|console|setTimeout|setInterval)\b/g;
   if (BLOCKLIST_RE_TEST.test(formula)) {
-    throw new Error(`Formula contains blocked identifiers: ${formula.match(BLOCKLIST_RE_MATCH).join(', ')}`);
+    throw new Error(
+      `Formula contains blocked identifiers: ${formula.match(BLOCKLIST_RE_MATCH).join(', ')}`
+    );
   }
 
   // Allowlist: only +, -, *, /, (, ), numbers, decimals, spaces, v0-v99, Math.{max,min,abs}
   const tokens = formula.match(/[\w.]+|[+\-*/()]/g) || [];
   for (const token of tokens) {
     // Skip numbers, basic operators, parentheses, variable refs, and Math functions
-    if (!/^\d+(\.\d+)?$/.test(token) && // not a number
-        !/^[+\-*/()]$/.test(token) &&   // not an operator/paren
-        !/^v\d+$/.test(token) &&        // not a variable ref (v0-v99)
-        !/^Math\.(max|min|abs)$/.test(token)) { // not Math.function
+    if (
+      !/^\d+(\.\d+)?$/.test(token) && // not a number
+      !/^[+\-*/()]$/.test(token) && // not an operator/paren
+      !/^v\d+$/.test(token) && // not a variable ref (v0-v99)
+      !/^Math\.(max|min|abs)$/.test(token)
+    ) {
+      // not Math.function
       throw new Error(`Formula contains disallowed token: ${token}`);
     }
   }
@@ -124,7 +131,7 @@ function evaluateCalcExpression(formula, values) {
     const restrictedMath = {
       max: Math.max,
       min: Math.min,
-      abs: Math.abs
+      abs: Math.abs,
     };
 
     // Create function code that uses the restricted Math
@@ -185,7 +192,7 @@ function evaluateMesskonzept(konzept, inputData) {
         ts: merged.ts,
         value: hasNull ? null : sum,
         quality: hasNull ? 'missing_input' : 'virtual',
-        source: 'messkonzept:sum'
+        source: 'messkonzept:sum',
       });
     }
   } else if (type === 'DIFF') {
@@ -197,19 +204,19 @@ function evaluateMesskonzept(konzept, inputData) {
           ts: merged.ts,
           value: null,
           quality: 'missing_input',
-          source: 'messkonzept:diff'
+          source: 'messkonzept:diff',
         });
       } else {
         let diff = main;
         for (let i = 1; i < inputs.length; i++) {
           const sub = merged.values[`v${i}`];
-          diff -= (sub !== null ? sub : 0);
+          diff -= sub !== null ? sub : 0;
         }
         results.push({
           ts: merged.ts,
           value: diff,
           quality: 'virtual',
-          source: 'messkonzept:diff'
+          source: 'messkonzept:diff',
         });
       }
     }
@@ -226,14 +233,14 @@ function evaluateMesskonzept(konzept, inputData) {
           ts: merged.ts,
           value: null,
           quality: 'missing_input',
-          source: 'messkonzept:net'
+          source: 'messkonzept:net',
         });
       } else {
         results.push({
           ts: merged.ts,
           value: v0 - v1,
           quality: 'virtual',
-          source: 'messkonzept:net'
+          source: 'messkonzept:net',
         });
       }
     }
@@ -245,7 +252,7 @@ function evaluateMesskonzept(konzept, inputData) {
         ts: merged.ts,
         value,
         quality: value === null ? 'missing_input' : 'virtual',
-        source: type === 'CUSTOM' ? 'messkonzept:custom' : 'messkonzept:calc'
+        source: type === 'CUSTOM' ? 'messkonzept:custom' : 'messkonzept:calc',
       });
     }
   }
@@ -258,5 +265,5 @@ module.exports = {
   alignTimestamps,
   mergeByTimestamp,
   evaluateCalcExpression,
-  evaluateMesskonzept
+  evaluateMesskonzept,
 };

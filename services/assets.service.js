@@ -163,8 +163,7 @@ module.exports = {
           ? Number(item.inverterPowerKW || item.wechselrichterleistung)
           : null;
 
-      let commissionDate =
-        item.commissioningDate || item.inbetriebnahmedatum || item.date || 'N/A';
+      let commissionDate = item.commissioningDate || item.inbetriebnahmedatum || item.date || 'N/A';
       if (commissionDate !== 'N/A' && typeof commissionDate === 'string') {
         commissionDate = commissionDate.split('T')[0];
       }
@@ -184,9 +183,7 @@ module.exports = {
                   : null;
 
       const nbpStatus =
-        item.netzbetreiberpruefungStatus !== undefined
-          ? item.netzbetreiberpruefungStatus
-          : null;
+        item.netzbetreiberpruefungStatus !== undefined ? item.netzbetreiberpruefungStatus : null;
       const nbpStatusName =
         nbpStatus === 2954
           ? 'Geprüft'
@@ -211,13 +208,9 @@ module.exports = {
           item.marktakteurFirmenname ||
           null,
         'Marktakteur Adresse':
-          item.marketActorAddress ||
-          item.marktakteurAdresse ||
-          item.marktakteurStrasse ||
-          null,
+          item.marketActorAddress || item.marktakteurAdresse || item.marktakteurStrasse || null,
 
-        'Netzbetreiber MaStR':
-          item.netzbetreiberMastrNummer || item.gridOperatorMastrId || null,
+        'Netzbetreiber MaStR': item.netzbetreiberMastrNummer || item.gridOperatorMastrId || null,
         'Netzbetreiber Name': item.netzbetreiberName || item.gridOperatorName || null,
 
         Anlagentyp: assetType,
@@ -254,8 +247,7 @@ module.exports = {
         Einspeiseart: item.feedInType || item.einspeiseart || 'Überschusseinspeisung',
         Spannungsebene: item.spannungsebene || item.voltageLevel || null,
         Fernsteuerbarkeit: item.fernsteuerbarkeit || item.remoteControllability || null,
-        Einsatzverantwortlicher:
-          item.einsatzverantwortlicher || item.deploymentResponsible || null,
+        Einsatzverantwortlicher: item.einsatzverantwortlicher || item.deploymentResponsible || null,
 
         Postleitzahl: item.postleitzahl || item.postalCode || null,
         Ort: item.ort || item.city || null,
@@ -773,8 +765,7 @@ module.exports = {
             name: 'limit',
             in: 'query',
             schema: { type: 'number', default: 1000, example: 1000 },
-            description:
-              PARAM_DESC_LIMIT,
+            description: PARAM_DESC_LIMIT,
           },
           {
             name: 'offset',
@@ -794,15 +785,13 @@ module.exports = {
             name: 'operationalStatus',
             in: 'query',
             schema: { type: 'string', default: '35', example: '35' },
-            description:
-              PARAM_DESC_OP_STATUS,
+            description: PARAM_DESC_OP_STATUS,
           },
           {
             name: 'netzbetreiberPruefungStatus',
             in: 'query',
             schema: { type: 'string', example: '2955' },
-            description:
-              PARAM_DESC_PRUEFUNG_STATUS,
+            description: PARAM_DESC_PRUEFUNG_STATUS,
           },
           {
             name: 'includeNapData',
@@ -1269,8 +1258,7 @@ module.exports = {
             name: 'limit',
             in: 'query',
             schema: { type: 'number', default: 1000, example: 1000 },
-            description:
-              PARAM_DESC_LIMIT,
+            description: PARAM_DESC_LIMIT,
           },
           {
             name: 'offset',
@@ -1289,29 +1277,25 @@ module.exports = {
             name: 'operationalStatus',
             in: 'query',
             schema: { type: 'string', default: '35', example: '35' },
-            description:
-              PARAM_DESC_OP_STATUS,
+            description: PARAM_DESC_OP_STATUS,
           },
           {
             name: 'netzbetreiberPruefungStatus',
             in: 'query',
             schema: { type: 'string', example: '2955' },
-            description:
-              PARAM_DESC_PRUEFUNG_STATUS,
+            description: PARAM_DESC_PRUEFUNG_STATUS,
           },
           {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description:
-              PARAM_DESC_NAP,
+            description: PARAM_DESC_NAP,
           },
           {
             name: 'updatedAfter',
             in: 'query',
             schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
-            description:
-              PARAM_DESC_UPDATED_AFTER,
+            description: PARAM_DESC_UPDATED_AFTER,
           },
           {
             name: 'format',
@@ -1403,8 +1387,7 @@ module.exports = {
             name: 'limit',
             in: 'query',
             schema: { type: 'number', default: 1000, example: 1000 },
-            description:
-              PARAM_DESC_LIMIT,
+            description: PARAM_DESC_LIMIT,
           },
           {
             name: 'offset',
@@ -1422,29 +1405,25 @@ module.exports = {
             name: 'operationalStatus',
             in: 'query',
             schema: { type: 'string', default: '35', example: '35' },
-            description:
-              PARAM_DESC_OP_STATUS_SHORT,
+            description: PARAM_DESC_OP_STATUS_SHORT,
           },
           {
             name: 'netzbetreiberPruefungStatus',
             in: 'query',
             schema: { type: 'string', example: '2955' },
-            description:
-              PARAM_DESC_PRUEFUNG_STATUS,
+            description: PARAM_DESC_PRUEFUNG_STATUS,
           },
           {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description:
-              PARAM_DESC_NAP,
+            description: PARAM_DESC_NAP,
           },
           {
             name: 'updatedAfter',
             in: 'query',
             schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
-            description:
-              PARAM_DESC_UPDATED_AFTER,
+            description: PARAM_DESC_UPDATED_AFTER,
           },
           {
             name: 'format',
@@ -1536,8 +1515,7 @@ module.exports = {
             name: 'limit',
             in: 'query',
             schema: { type: 'number', default: 1000, example: 1000 },
-            description:
-              PARAM_DESC_LIMIT,
+            description: PARAM_DESC_LIMIT,
           },
           {
             name: 'offset',
@@ -1555,29 +1533,25 @@ module.exports = {
             name: 'operationalStatus',
             in: 'query',
             schema: { type: 'string', default: '35', example: '35' },
-            description:
-              PARAM_DESC_OP_STATUS_SHORT,
+            description: PARAM_DESC_OP_STATUS_SHORT,
           },
           {
             name: 'netzbetreiberPruefungStatus',
             in: 'query',
             schema: { type: 'string', example: '2955' },
-            description:
-              PARAM_DESC_PRUEFUNG_STATUS,
+            description: PARAM_DESC_PRUEFUNG_STATUS,
           },
           {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description:
-              PARAM_DESC_NAP,
+            description: PARAM_DESC_NAP,
           },
           {
             name: 'updatedAfter',
             in: 'query',
             schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
-            description:
-              PARAM_DESC_UPDATED_AFTER,
+            description: PARAM_DESC_UPDATED_AFTER,
           },
           {
             name: 'format',
@@ -1669,8 +1643,7 @@ module.exports = {
             name: 'limit',
             in: 'query',
             schema: { type: 'number', default: 1000, example: 1000 },
-            description:
-              PARAM_DESC_LIMIT,
+            description: PARAM_DESC_LIMIT,
           },
           {
             name: 'offset',
@@ -1688,29 +1661,25 @@ module.exports = {
             name: 'operationalStatus',
             in: 'query',
             schema: { type: 'string', default: '35', example: '35' },
-            description:
-              PARAM_DESC_OP_STATUS_SHORT,
+            description: PARAM_DESC_OP_STATUS_SHORT,
           },
           {
             name: 'netzbetreiberPruefungStatus',
             in: 'query',
             schema: { type: 'string', example: '2955' },
-            description:
-              PARAM_DESC_PRUEFUNG_STATUS,
+            description: PARAM_DESC_PRUEFUNG_STATUS,
           },
           {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description:
-              PARAM_DESC_NAP,
+            description: PARAM_DESC_NAP,
           },
           {
             name: 'updatedAfter',
             in: 'query',
             schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
-            description:
-              PARAM_DESC_UPDATED_AFTER,
+            description: PARAM_DESC_UPDATED_AFTER,
           },
           {
             name: 'format',
@@ -1802,8 +1771,7 @@ module.exports = {
             name: 'limit',
             in: 'query',
             schema: { type: 'number', default: 1000, example: 1000 },
-            description:
-              PARAM_DESC_LIMIT,
+            description: PARAM_DESC_LIMIT,
           },
           {
             name: 'offset',
@@ -1821,29 +1789,25 @@ module.exports = {
             name: 'operationalStatus',
             in: 'query',
             schema: { type: 'string', default: '35', example: '35' },
-            description:
-              PARAM_DESC_OP_STATUS_SHORT,
+            description: PARAM_DESC_OP_STATUS_SHORT,
           },
           {
             name: 'netzbetreiberPruefungStatus',
             in: 'query',
             schema: { type: 'string', example: '2955' },
-            description:
-              PARAM_DESC_PRUEFUNG_STATUS,
+            description: PARAM_DESC_PRUEFUNG_STATUS,
           },
           {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description:
-              PARAM_DESC_NAP,
+            description: PARAM_DESC_NAP,
           },
           {
             name: 'updatedAfter',
             in: 'query',
             schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
-            description:
-              PARAM_DESC_UPDATED_AFTER,
+            description: PARAM_DESC_UPDATED_AFTER,
           },
           {
             name: 'format',
@@ -1935,8 +1899,7 @@ module.exports = {
             name: 'limit',
             in: 'query',
             schema: { type: 'number', default: 1000, example: 1000 },
-            description:
-              PARAM_DESC_LIMIT,
+            description: PARAM_DESC_LIMIT,
           },
           {
             name: 'offset',
@@ -1954,29 +1917,25 @@ module.exports = {
             name: 'operationalStatus',
             in: 'query',
             schema: { type: 'string', default: '35', example: '35' },
-            description:
-              PARAM_DESC_OP_STATUS_SHORT,
+            description: PARAM_DESC_OP_STATUS_SHORT,
           },
           {
             name: 'netzbetreiberPruefungStatus',
             in: 'query',
             schema: { type: 'string', example: '2955' },
-            description:
-              PARAM_DESC_PRUEFUNG_STATUS,
+            description: PARAM_DESC_PRUEFUNG_STATUS,
           },
           {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description:
-              PARAM_DESC_NAP,
+            description: PARAM_DESC_NAP,
           },
           {
             name: 'updatedAfter',
             in: 'query',
             schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
-            description:
-              PARAM_DESC_UPDATED_AFTER,
+            description: PARAM_DESC_UPDATED_AFTER,
           },
           {
             name: 'format',
@@ -2108,15 +2067,13 @@ module.exports = {
             name: 'operationalStatus',
             in: 'query',
             schema: { type: 'string', default: '35', example: '35' },
-            description:
-              PARAM_DESC_OP_STATUS,
+            description: PARAM_DESC_OP_STATUS,
           },
           {
             name: 'netzbetreiberPruefungStatus',
             in: 'query',
             schema: { type: 'string', example: '2955' },
-            description:
-              PARAM_DESC_PRUEFUNG_STATUS,
+            description: PARAM_DESC_PRUEFUNG_STATUS,
           },
           {
             name: 'format',
@@ -2128,15 +2085,13 @@ module.exports = {
             name: 'includeNapData',
             in: 'query',
             schema: { type: 'boolean', default: true },
-            description:
-              PARAM_DESC_NAP,
+            description: PARAM_DESC_NAP,
           },
           {
             name: 'updatedAfter',
             in: 'query',
             schema: { type: 'string', format: 'date', example: EXAMPLE_DATE },
-            description:
-              PARAM_DESC_UPDATED_AFTER,
+            description: PARAM_DESC_UPDATED_AFTER,
           },
         ],
       },
@@ -2233,10 +2188,10 @@ module.exports = {
                   count: 59,
                   totalCapacityMW: 73.4,
                   byType: {
-                    solar:      { count: 12, capacityKW: 8200 },
-                    wind:       { count: 15, capacityKW: 42000 },
+                    solar: { count: 12, capacityKW: 8200 },
+                    wind: { count: 15, capacityKW: 42000 },
                     combustion: { count: 25, capacityKW: 18500 },
-                    biomass:    { count:  7, capacityKW:  4700 },
+                    biomass: { count: 7, capacityKW: 4700 },
                   },
                 },
               },
@@ -2301,13 +2256,16 @@ module.exports = {
         // for detailed format (e.g. '2495' for solar, '2484' for wind onshore).
         // TODO: Extract to src/installation-type-map.js when used by other handlers.
         const TYPE_LABEL = {
-          '2495': 'solar',
-          '2483': 'wind',     '2484': 'wind',
-          '2485': 'biomass',
-          '2487': 'hydro',    '2488': 'hydro',
-          '2489': 'combustion', '2490': 'combustion',
-          '2491': 'storage',
-          '2492': 'geothermal',
+          2495: 'solar',
+          2483: 'wind',
+          2484: 'wind',
+          2485: 'biomass',
+          2487: 'hydro',
+          2488: 'hydro',
+          2489: 'combustion',
+          2490: 'combustion',
+          2491: 'storage',
+          2492: 'geothermal',
         };
 
         // Aggregate in-process: count, capacity (kW → MW), breakdown by type
@@ -2377,7 +2335,10 @@ module.exports = {
         summary: 'List installations of a Direktvermarkter (direct energy marketer)',
         tags: ['Assets'],
         // @OpenEnergyPlatform/ontology — OEO_00000031 power plant, OEO_00010082 trade
-        [OEO_CLASS_KEY]: [OEO_URL_POWER_PLANT, 'https://openenergyplatform.org/ontology/oeo/OEO_00010082'],
+        [OEO_CLASS_KEY]: [
+          OEO_URL_POWER_PLANT,
+          'https://openenergyplatform.org/ontology/oeo/OEO_00010082',
+        ],
         description:
           'Retrieves MaStR installations assigned to a given direct energy marketer ' +
           '(Direktvermarkter) using the direktvermarkterName or direktvermarkterMastrId ' +
@@ -2516,9 +2477,7 @@ module.exports = {
             ctx.meta.cernionToken
           );
         } catch (err) {
-          throw new Error(
-            `Direktvermarkter installations query failed: ${err.message}`
-          );
+          throw new Error(`Direktvermarkter installations query failed: ${err.message}`);
         }
 
         // Extract items from the MCP response
@@ -2534,10 +2493,7 @@ module.exports = {
         // Map items using the shared mapper; derive per-item type where available
         const mappedItems = items.map((item) => {
           const itemType =
-            item.type ||
-            item.installationType ||
-            item.einheitentyp ||
-            installationType;
+            item.type || item.installationType || item.einheitentyp || installationType;
           return this._mapInstallationItem(item, itemType);
         });
 
@@ -2553,8 +2509,7 @@ module.exports = {
         if (format === 'xlsx') {
           const xlsxBuffer = this.convertToXLSX(mappedItems);
           ctx.meta.$responseHeaders = {
-            'Content-Type':
-              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             'Content-Disposition': `attachment; filename="direktvermarkter-assets-${Date.now()}.xlsx"`,
           };
           return xlsxBuffer;

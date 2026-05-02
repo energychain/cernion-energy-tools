@@ -27,11 +27,11 @@ function normaliseBoolFlag(value) {
 function normaliseAssetType(attrs = {}) {
   const raw = String(
     attrs.assetType ||
-    attrs.technology ||
-    attrs.technologie ||
-    attrs.energietraeger ||
-    attrs.Energietraeger ||
-    ''
+      attrs.technology ||
+      attrs.technologie ||
+      attrs.energietraeger ||
+      attrs.Energietraeger ||
+      ''
   ).toLowerCase();
 
   if (/(solar|pv|photovoltaik)/.test(raw)) return 'solar';

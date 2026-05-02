@@ -39,18 +39,18 @@ const TEST_ES_DB_PATH = path.join(os.tmpdir(), `cernion-es-e2e-ent-${TS}`);
 const TEST_MQ_DB_PATH = path.join(os.tmpdir(), `cernion-mq-e2e-ent-${TS}`);
 
 process.env.GRID_CONNECTION_DB_PATH = TEST_GC_DB_PATH;
-process.env.ENERGY_SHARING_DB_PATH  = TEST_ES_DB_PATH;
-process.env.MASTR_QUALITY_DB_PATH   = TEST_MQ_DB_PATH;
+process.env.ENERGY_SHARING_DB_PATH = TEST_ES_DB_PATH;
+process.env.MASTR_QUALITY_DB_PATH = TEST_MQ_DB_PATH;
 process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
 
 // ---------------------------------------------------------------------------
 // Service imports (after env vars + jest.mock)
 // ---------------------------------------------------------------------------
-const GridConnectionService    = require('../services/grid-connection.service');
-const EnergySharingService     = require('../services/energy-sharing.service');
-const MastrQualityService      = require('../services/mastr-quality.service');
-const DashboardApiService      = require('../services/dashboard-api.service');
-const TokenManagerService      = require('../services/token-manager.service');
+const GridConnectionService = require('../services/grid-connection.service');
+const EnergySharingService = require('../services/energy-sharing.service');
+const MastrQualityService = require('../services/mastr-quality.service');
+const DashboardApiService = require('../services/dashboard-api.service');
+const TokenManagerService = require('../services/token-manager.service');
 const { FINDING_CODE_METADATA } = require('../src/validation-findings');
 
 // ---------------------------------------------------------------------------
@@ -270,9 +270,9 @@ function mcpMockImpl(tool) {
     return {
       canonical: {
         mastrId: MOCK_MCP_OPERATOR.mastrId,
-        name:    MOCK_MCP_OPERATOR.name,
-        bdew:    MOCK_MCP_OPERATOR.bdew,
-        bnr:     MOCK_MCP_OPERATOR.bnr,
+        name: MOCK_MCP_OPERATOR.name,
+        bdew: MOCK_MCP_OPERATOR.bdew,
+        bnr: MOCK_MCP_OPERATOR.bnr,
       },
     };
   }
@@ -281,12 +281,14 @@ function mcpMockImpl(tool) {
   }
   if (tool === 'cernion_direktvermarkter_lookup') {
     return {
-      data: [{
-        mastrId: 'DV961471000001',
-        name: 'Next Kraftwerke GmbH',
-        portfolioSize: 500,
-        totalCapacityKW: 250000,
-      }],
+      data: [
+        {
+          mastrId: 'DV961471000001',
+          name: 'Next Kraftwerke GmbH',
+          portfolioSize: 500,
+          totalCapacityKW: 250000,
+        },
+      ],
     };
   }
   return {};
@@ -302,26 +304,39 @@ const MOCK_VNB_MONITOR = {
     bdewCode: MOCK_MCP_OPERATOR.bdew,
   },
   mastr: {
-    inBetrieb:             { anlagenCount: 24, leistungMW: '6.8', pvAnlagen: 4, windAnlagen: 16, speicherAnlagen: 4 },
-    inPlanung:             { anlagenCount: 2, leistungMW: '14.0' },
+    inBetrieb: {
+      anlagenCount: 24,
+      leistungMW: '6.8',
+      pvAnlagen: 4,
+      windAnlagen: 16,
+      speicherAnlagen: 4,
+    },
+    inPlanung: { anlagenCount: 2, leistungMW: '14.0' },
     netzbetreiberPruefung: { anlagenCount: 2, leistungMW: '14.0' },
   },
   ewk: {
-    anschlussdauer:        { eeNS_weeks: 22, eeNS_phase1_weeks: 8, eeNS_phase2_weeks: 14, verbrauchNS_weeks: 18 },
-    umsetzungsquote:       { eeNS_percent: 100, verbrauchNS_percent: 98 },
+    anschlussdauer: {
+      eeNS_weeks: 22,
+      eeNS_phase1_weeks: 8,
+      eeNS_phase2_weeks: 14,
+      verbrauchNS_weeks: 18,
+    },
+    umsetzungsquote: { eeNS_percent: 100, verbrauchNS_percent: 98 },
     digitalisierungsindex: { gesamt_percent: 61, smartGrids_percent: 74 },
   },
-  alerts:       [],
+  alerts: [],
   alertSummary: { total: 0, critical: 0, warning: 0, info: 0, ewkRelevant: 0 },
 };
 
 const MOCK_VNB_IDENTITY = {
-  results: [{
-    name:    MOCK_MCP_OPERATOR.name,
-    mastrId: MOCK_MCP_OPERATOR.mastrId,
-    bdew:    MOCK_MCP_OPERATOR.bdew,
-    bnr:     MOCK_MCP_OPERATOR.bnr,
-  }],
+  results: [
+    {
+      name: MOCK_MCP_OPERATOR.name,
+      mastrId: MOCK_MCP_OPERATOR.mastrId,
+      bdew: MOCK_MCP_OPERATOR.bdew,
+      bnr: MOCK_MCP_OPERATOR.bnr,
+    },
+  ],
 };
 
 // ---------------------------------------------------------------------------
@@ -389,7 +404,18 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
       name: 'grid-operations',
       actions: {
         vnbLookupCodes: { handler: () => MOCK_VNB_IDENTITY },
-        marketPartners:  { handler: () => ({ results: [{ companyName: MOCK_MCP_OPERATOR.name, bdewCode: MOCK_MCP_OPERATOR.bdew, mastrId: MOCK_MCP_OPERATOR.mastrId }], count: 1 }) },
+        marketPartners: {
+          handler: () => ({
+            results: [
+              {
+                companyName: MOCK_MCP_OPERATOR.name,
+                bdewCode: MOCK_MCP_OPERATOR.bdew,
+                mastrId: MOCK_MCP_OPERATOR.mastrId,
+              },
+            ],
+            count: 1,
+          }),
+        },
       },
     });
 
@@ -403,9 +429,9 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
     broker.createService({
       name: 'datapoint',
       actions: {
-        health:           { handler: () => ({ overview: { healthy: 3, stale: 0, errored: 0 } }) },
+        health: { handler: () => ({ overview: { healthy: 3, stale: 0, errored: 0 } }) },
         validateSnapshot: { handler: () => ({ consistent: true, drift: [] }) },
-        createSnapshot:   { handler: () => ({ id: null }) },
+        createSnapshot: { handler: () => ({ id: null }) },
       },
     });
 
@@ -416,7 +442,11 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
           handler: () => ({
             count: 3,
             totalCapacityMW: 4.0,
-            byType: { wind: { count: 1, capacityKW: 3300 }, solar: { count: 1, capacityKW: 2103 }, biomass: { count: 1, capacityKW: 600 } },
+            byType: {
+              wind: { count: 1, capacityKW: 3300 },
+              solar: { count: 1, capacityKW: 2103 },
+              biomass: { count: 1, capacityKW: 600 },
+            },
           }),
         },
       },
@@ -432,7 +462,7 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
     broker.createService({
       name: 'energy-market',
       actions: {
-        prices:       { handler: () => ({ data: [{ value: 42.5 }, { value: 44.1 }] }) },
+        prices: { handler: () => ({ data: [{ value: 42.5 }, { value: 44.1 }] }) },
         co2Intensity: { handler: () => ({ current: 340, avgToday: 320, location: 'Deutschland' }) },
       },
     });
@@ -440,7 +470,7 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
     broker.createService({
       name: 'entsoe',
       actions: {
-        dayAheadPrices:    { handler: () => ({ data: [{ value: 41.0 }] }) },
+        dayAheadPrices: { handler: () => ({ data: [{ value: 41.0 }] }) },
         windSolarForecast: { handler: () => ({ solar: [], wind: [] }) },
       },
     });
@@ -455,7 +485,7 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
     broker.createService({
       name: 'redispatch-expost',
       actions: {
-        list:  { handler: () => ({ count: 0, audits: [] }) },
+        list: { handler: () => ({ count: 0, audits: [] }) },
         audit: { handler: () => ({ success: true, id: 'rd-mock-001' }) },
       },
     });
@@ -490,7 +520,7 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
       readOnlyTokenId = result.data.id;
-      readOnlyToken   = result.data.token;
+      readOnlyToken = result.data.token;
     });
 
     test('A2: read-only token starts with ck_', () => {
@@ -535,7 +565,7 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
       });
       expect(result.success).toBe(true);
       fullAccessTokenId = result.data.id;
-      fullAccessToken   = result.data.token;
+      fullAccessToken = result.data.token;
       expect(fullAccessToken.startsWith('ck_')).toBe(true);
     });
 
@@ -575,7 +605,12 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
     });
 
     test('B2: decision is a known validation decision', () => {
-      const knownDecisions = ['GO_DIRECT', 'GO_CONDITIONAL', 'NO_GO_EXPANSION', 'DATA_QUALITY_INSUFFICIENT'];
+      const knownDecisions = [
+        'GO_DIRECT',
+        'GO_CONDITIONAL',
+        'NO_GO_EXPANSION',
+        'DATA_QUALITY_INSUFFICIENT',
+      ];
       expect(knownDecisions).toContain(gcResult.decision);
     });
 
@@ -595,9 +630,7 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
     });
 
     test('B6: AUDIT_TRAIL_CREATED finding is present in findings', () => {
-      const auditFinding = gcResult.findings.find(
-        (f) => f.finding === 'AUDIT_TRAIL_CREATED'
-      );
+      const auditFinding = gcResult.findings.find((f) => f.finding === 'AUDIT_TRAIL_CREATED');
       expect(auditFinding).toBeDefined();
       expect(auditFinding.severity).toBe('info');
     });
@@ -626,9 +659,7 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
     });
 
     test('B10: validate without operator identifier throws error', async () => {
-      await expect(
-        broker.call('grid-connection.validate', {})
-      ).rejects.toThrow();
+      await expect(broker.call('grid-connection.validate', {})).rejects.toThrow();
     });
   });
 
@@ -639,7 +670,7 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
     let esResult;
 
     const COMMUNITY_NAME = 'Solargemeinschaft Höheinöd';
-    const COMMUNITY_ID   = 'ES-HOE-2026-001';
+    const COMMUNITY_ID = 'ES-HOE-2026-001';
 
     const GENERATORS = [
       {
@@ -657,10 +688,10 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
     test('C1: validate returns success and id', async () => {
       esResult = await broker.call('energy-sharing.validate', {
         gridOperatorId: MOCK_MCP_OPERATOR.mastrId,
-        communityName:  COMMUNITY_NAME,
-        communityId:    COMMUNITY_ID,
-        generators:     GENERATORS,
-        consumers:      CONSUMERS,
+        communityName: COMMUNITY_NAME,
+        communityId: COMMUNITY_ID,
+        generators: GENERATORS,
+        consumers: CONSUMERS,
       });
       expect(esResult.success).toBe(true);
       expect(esResult.id).toBeTruthy();
@@ -717,7 +748,7 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
         broker.call('energy-sharing.validate', {
           communityName: 'Test',
           generators: [],
-          consumers:  [],
+          consumers: [],
         })
       ).rejects.toThrow();
     });
@@ -814,15 +845,15 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
     beforeAll(async () => {
       // Clear dashboard cache so we get fresh results reflecting Phases B–D
       const svc = broker.getLocalService('dashboard-api');
-      if (svc && svc.cache)    svc.cache.clear();
+      if (svc && svc.cache) svc.cache.clear();
       if (svc && svc.inflight) svc.inflight.clear();
 
       [vnbOverviewResult, marketSnapshotResult, qualitySummaryResult, findingCodesResult] =
         await Promise.all([
-          broker.call('dashboard-api.vnbOverview',      { bdewCode: MOCK_MCP_OPERATOR.bdew }),
-          broker.call('dashboard-api.marketSnapshot',   {}),
-          broker.call('dashboard-api.qualitySummary',   {}),
-          broker.call('dashboard-api.findingCodes',     {}),
+          broker.call('dashboard-api.vnbOverview', { bdewCode: MOCK_MCP_OPERATOR.bdew }),
+          broker.call('dashboard-api.marketSnapshot', {}),
+          broker.call('dashboard-api.qualitySummary', {}),
+          broker.call('dashboard-api.findingCodes', {}),
         ]);
     });
 
@@ -873,9 +904,7 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
     test('E9: findingCodes returns all codes from FINDING_CODE_METADATA', () => {
       expect(findingCodesResult).toHaveProperty('codes');
       expect(findingCodesResult).toHaveProperty('totalCodes');
-      expect(findingCodesResult.totalCodes).toBe(
-        Object.keys(FINDING_CODE_METADATA).length
-      );
+      expect(findingCodesResult.totalCodes).toBe(Object.keys(FINDING_CODE_METADATA).length);
     });
 
     test('E10: every finding code entry has description and descriptionDe', () => {
@@ -906,34 +935,27 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
     });
 
     test('F2: Gesamtkapazität ist plausibel (20–30 MW)', () => {
-      const totalMW = HOEHEINOED_INSTALLATIONS.reduce(
-        (sum, i) => sum + (i.nettonennleistung || 0), 0
-      ) / 1000;
+      const totalMW =
+        HOEHEINOED_INSTALLATIONS.reduce((sum, i) => sum + (i.nettonennleistung || 0), 0) / 1000;
       expect(totalMW).toBeGreaterThan(20);
       expect(totalMW).toBeLessThan(30);
     });
 
     test('F3: WEA HOE01 (SEE969028349266) ist in Betrieb (Status 35)', () => {
-      const hoe01 = HOEHEINOED_INSTALLATIONS.find(
-        (i) => i.mastrNummer === 'SEE969028349266'
-      );
+      const hoe01 = HOEHEINOED_INSTALLATIONS.find((i) => i.mastrNummer === 'SEE969028349266');
       expect(hoe01).toBeDefined();
       expect(hoe01.einheitBetriebsstatus).toBe('35');
     });
 
     test('F4: Solarpark (SEE999952467552) hat keine Fernsteuerbarkeit (null)', () => {
-      const solarpark = HOEHEINOED_INSTALLATIONS.find(
-        (i) => i.mastrNummer === 'SEE999952467552'
-      );
+      const solarpark = HOEHEINOED_INSTALLATIONS.find((i) => i.mastrNummer === 'SEE999952467552');
       expect(solarpark).toBeDefined();
       expect(solarpark.fernsteuerbarkeitDv).toBeNull();
       expect(solarpark.inbetriebnahmedatum).toContain('2009');
     });
 
     test('F5: Genau 2 geplante WEA (Status 31) im Fixture', () => {
-      const planned = HOEHEINOED_INSTALLATIONS.filter(
-        (i) => i.einheitBetriebsstatus === '31'
-      );
+      const planned = HOEHEINOED_INSTALLATIONS.filter((i) => i.einheitBetriebsstatus === '31');
       expect(planned.length).toBe(2);
       expect(planned.every((i) => i.nettonennleistung === 7000)).toBe(true);
     });
@@ -946,9 +968,7 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
     });
 
     test('F7: Speicher (SEE982890040772) liegt im Niederspannungsnetz (354)', () => {
-      const storage = HOEHEINOED_INSTALLATIONS.find(
-        (i) => i.mastrNummer === 'SEE982890040772'
-      );
+      const storage = HOEHEINOED_INSTALLATIONS.find((i) => i.mastrNummer === 'SEE982890040772');
       expect(storage).toBeDefined();
       expect(storage.napData.spannungsebene).toBe(354);
     });

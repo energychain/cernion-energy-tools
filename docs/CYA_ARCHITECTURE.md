@@ -5,6 +5,8 @@
 **Last Updated:** 2026-04-16
 
 ---
+ben den Pipeline-Fehler, indem wir Laufzeit und Lockfile konsistent machen: CI auf Node 22 anheben (passend zu aktuellen Moleculer-Versionen), Lockfile auf Node 22 neu erzeugen, und die Node-Baseline im Projekt explizit dokumentieren. So verschwinden sowohl EBADENGINE-Warnungen als auch der npm ci-Sync-Fehler (graphology-types im Lockfile).
+
 
 ## Overview
 

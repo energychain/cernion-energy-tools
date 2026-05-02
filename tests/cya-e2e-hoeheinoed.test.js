@@ -165,7 +165,9 @@ jest.mock('../src/llm-client', () => ({
 }));
 
 jest.mock('../src/cya-report-builder', () => ({
-  buildCyaNarrativePdf: jest.fn(async () => Buffer.from('%PDF-1.4\nHöheinöd CYA Demo Report\n%%EOF')),
+  buildCyaNarrativePdf: jest.fn(async () =>
+    Buffer.from('%PDF-1.4\nHöheinöd CYA Demo Report\n%%EOF')
+  ),
 }));
 
 const CyaService = require('../services/cya.service');
@@ -232,7 +234,8 @@ describe('CYA E2E Demo — Höheinöd (PLZ 66989)', () => {
             }
             if (q.includes('nova')) {
               return {
-                answer: 'NOVA-Kontext: netzorientierte Priorisierung möglich, sofern Steuerbarkeit gegeben ist.',
+                answer:
+                  'NOVA-Kontext: netzorientierte Priorisierung möglich, sofern Steuerbarkeit gegeben ist.',
                 data: { nova: 'limited' },
                 sources: ['grid_policy_notes'],
                 metadata: { executionTime: 0.31 },
@@ -240,7 +243,8 @@ describe('CYA E2E Demo — Höheinöd (PLZ 66989)', () => {
             }
             if (q.includes('grid_expansion')) {
               return {
-                answer: 'Netzausbau priorisiert für Zubauachsen, Dauer abhängig von Mittelspannungsanbindung.',
+                answer:
+                  'Netzausbau priorisiert für Zubauachsen, Dauer abhängig von Mittelspannungsanbindung.',
                 data: { expansion: 'ongoing' },
                 sources: ['vnb_planing'],
                 metadata: { executionTime: 0.37 },
@@ -264,7 +268,10 @@ describe('CYA E2E Demo — Höheinöd (PLZ 66989)', () => {
           handler(ctx) {
             const location = String(ctx.params.location || '').toLowerCase();
             const postleitzahl = String(ctx.params.postleitzahl || '');
-            const isHoeheinod = postleitzahl === '66989' || location.includes('höheinöd') || location.includes('hoheinod');
+            const isHoeheinod =
+              postleitzahl === '66989' ||
+              location.includes('höheinöd') ||
+              location.includes('hoheinod');
             if (!isHoeheinod) {
               return { success: true, data: { installations: [] }, stats: { count: 0 } };
             }
@@ -273,8 +280,9 @@ describe('CYA E2E Demo — Höheinöd (PLZ 66989)', () => {
             const statusFilter = String(ctx.params.operationalStatus || '');
             const minCapacityKW = Number(ctx.params.minCapacityKW || 0);
 
-            const installations = HOEHEINOED_INSTALLATIONS
-              .filter((i) => type === 'all' || i.type === type)
+            const installations = HOEHEINOED_INSTALLATIONS.filter(
+              (i) => type === 'all' || i.type === type
+            )
               .filter((i) => !statusFilter || String(i.einheitBetriebsstatus) === statusFilter)
               .filter((i) => (i.bruttoleistung || 0) >= minCapacityKW)
               .map(normalizeInstallationForRetriever);
@@ -317,7 +325,7 @@ describe('CYA E2E Demo — Höheinöd (PLZ 66989)', () => {
             return {
               nearestSubstations: [
                 {
-                  lat: 49.30,
+                  lat: 49.3,
                   lon: 7.62,
                   name: 'UW Höheinöd',
                   distance_km: 0.8,
@@ -421,8 +429,9 @@ describe('CYA E2E Demo — Höheinöd (PLZ 66989)', () => {
       expect(generateResult.grounding).toBeDefined();
       expect(generateResult.grounding.facts.length).toBeGreaterThan(0);
       const mastrFacts = generateResult.grounding.facts.filter(
-        (f) => f.dataProvenance === 'mastr_machine_verified'
-          || (f.sources && f.sources.includes('cernion_installations_local'))
+        (f) =>
+          f.dataProvenance === 'mastr_machine_verified' ||
+          (f.sources && f.sources.includes('cernion_installations_local'))
       );
       expect(mastrFacts.length).toBeGreaterThan(0);
     });
@@ -454,11 +463,7 @@ describe('CYA E2E Demo — Höheinöd (PLZ 66989)', () => {
   describe('Phase C: Multi-Perspektive — VNB vs. Projektierer vs. Journalist', () => {
     test('C1: compareProfiles mit 2 gespeicherten + 1 Template-Profil', async () => {
       compareResult = await broker.call('cya.compareProfiles', {
-        profile_ids: [
-          'e2e_pfalzwerke_netz',
-          'e2e_windpark_gmbh',
-          'journalist_neutral',
-        ],
+        profile_ids: ['e2e_pfalzwerke_netz', 'e2e_windpark_gmbh', 'journalist_neutral'],
         target_audience: 'Gemeinderat Höheinöd',
         context: {
           location: '66989 Höheinöd',
@@ -601,9 +606,7 @@ describe('CYA E2E Demo — Höheinöd (PLZ 66989)', () => {
 
   describe('Phase F: Höheinöd-spezifische Datenvalidierung', () => {
     test('F1: MaStR-Mock enthält die erwarteten Schlüssel-Installationen', () => {
-      const solarpark = HOEHEINOED_INSTALLATIONS.find(
-        (i) => i.mastrNummer === 'SEE999952467552'
-      );
+      const solarpark = HOEHEINOED_INSTALLATIONS.find((i) => i.mastrNummer === 'SEE999952467552');
       expect(solarpark).toBeDefined();
       expect(solarpark.nettonennleistung).toBe(2103.7);
       expect(solarpark.fernsteuerbarkeitDv).toBeNull();
@@ -611,9 +614,7 @@ describe('CYA E2E Demo — Höheinöd (PLZ 66989)', () => {
     });
 
     test('F2: 2× geplante 7 MW WEA sind im Mock', () => {
-      const planned = HOEHEINOED_INSTALLATIONS.filter(
-        (i) => i.einheitBetriebsstatus === '31'
-      );
+      const planned = HOEHEINOED_INSTALLATIONS.filter((i) => i.einheitBetriebsstatus === '31');
       expect(planned.length).toBe(2);
       expect(planned.every((i) => i.nettonennleistung === 7000)).toBe(true);
     });
@@ -633,9 +634,8 @@ describe('CYA E2E Demo — Höheinöd (PLZ 66989)', () => {
     });
 
     test('F5: Gesamtkapazität im Fixture plausibel', () => {
-      const totalMW = HOEHEINOED_INSTALLATIONS.reduce(
-        (sum, i) => sum + (i.nettonennleistung || 0), 0
-      ) / 1000;
+      const totalMW =
+        HOEHEINOED_INSTALLATIONS.reduce((sum, i) => sum + (i.nettonennleistung || 0), 0) / 1000;
       expect(totalMW).toBeGreaterThan(20);
       expect(totalMW).toBeLessThan(40);
     });

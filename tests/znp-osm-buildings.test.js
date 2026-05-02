@@ -12,7 +12,6 @@ jest.mock('axios', () => ({
 
 // Turf is a pure math library — no need to mock it.
 
-const axios = require('axios');
 const { tileBbox, parseOverpassWay, mapAssetsToBuildings } = require('../src/znp-osm-buildings');
 
 // ─── tileBbox ─────────────────────────────────────────────────────────────────
@@ -29,8 +28,8 @@ describe('tileBbox', () => {
     const tiles = tileBbox(bbox, 2);
     const minSouth = Math.min(...tiles.map((t) => t.south));
     const maxNorth = Math.max(...tiles.map((t) => t.north));
-    const minWest  = Math.min(...tiles.map((t) => t.west));
-    const maxEast  = Math.max(...tiles.map((t) => t.east));
+    const minWest = Math.min(...tiles.map((t) => t.west));
+    const maxEast = Math.max(...tiles.map((t) => t.east));
     expect(minSouth).toBeCloseTo(bbox.south, 6);
     expect(maxNorth).toBeCloseTo(bbox.north, 6);
     expect(minWest).toBeCloseTo(bbox.west, 6);
@@ -58,7 +57,8 @@ describe('parseOverpassWay', () => {
 
   it('parses a valid way into a building object', () => {
     const el = {
-      type: 'way', id: 123456,
+      type: 'way',
+      id: 123456,
       geometry: [
         { lat: 49.49, lon: 8.47 },
         { lat: 49.491, lon: 8.47 },
@@ -77,7 +77,8 @@ describe('parseOverpassWay', () => {
 
   it('closes an open ring automatically', () => {
     const el = {
-      type: 'way', id: 99,
+      type: 'way',
+      id: 99,
       geometry: [
         { lat: 0, lon: 0 },
         { lat: 1, lon: 0 },
@@ -90,7 +91,7 @@ describe('parseOverpassWay', () => {
     const result = parseOverpassWay(el);
     const coords = result.geoJsonPolygon.coordinates[0];
     const first = coords[0];
-    const last  = coords[coords.length - 1];
+    const last = coords[coords.length - 1];
     expect(first).toEqual(last);
   });
 });
@@ -108,7 +109,15 @@ describe('mapAssetsToBuildings', () => {
       osmId: 'way/1',
       geoJsonPolygon: {
         type: 'Polygon',
-        coordinates: [[[8.46, 49.48], [8.48, 49.48], [8.48, 49.50], [8.46, 49.50], [8.46, 49.48]]],
+        coordinates: [
+          [
+            [8.46, 49.48],
+            [8.48, 49.48],
+            [8.48, 49.5],
+            [8.46, 49.5],
+            [8.46, 49.48],
+          ],
+        ],
       },
       centroid: { lat: 49.49, lon: 8.47 },
       tags: {},
@@ -122,7 +131,15 @@ describe('mapAssetsToBuildings', () => {
       geoJsonPolygon: {
         type: 'Polygon',
         // Large box covering lat 49.48–49.50, lon 8.46–8.48
-        coordinates: [[[8.46, 49.48], [8.48, 49.48], [8.48, 49.50], [8.46, 49.50], [8.46, 49.48]]],
+        coordinates: [
+          [
+            [8.46, 49.48],
+            [8.48, 49.48],
+            [8.48, 49.5],
+            [8.46, 49.5],
+            [8.46, 49.48],
+          ],
+        ],
       },
       centroid: { lat: 49.49, lon: 8.47 },
       tags: {},
@@ -140,7 +157,15 @@ describe('mapAssetsToBuildings', () => {
       geoJsonPolygon: {
         type: 'Polygon',
         // Tiny box in the North Sea
-        coordinates: [[[3.0, 54.0], [3.1, 54.0], [3.1, 54.1], [3.0, 54.1], [3.0, 54.0]]],
+        coordinates: [
+          [
+            [3.0, 54.0],
+            [3.1, 54.0],
+            [3.1, 54.1],
+            [3.0, 54.1],
+            [3.0, 54.0],
+          ],
+        ],
       },
       centroid: { lat: 54.05, lon: 3.05 },
       tags: {},
@@ -154,7 +179,15 @@ describe('mapAssetsToBuildings', () => {
       osmId: 'way/7',
       geoJsonPolygon: {
         type: 'Polygon',
-        coordinates: [[[8.46, 49.48], [8.48, 49.48], [8.48, 49.50], [8.46, 49.50], [8.46, 49.48]]],
+        coordinates: [
+          [
+            [8.46, 49.48],
+            [8.48, 49.48],
+            [8.48, 49.5],
+            [8.46, 49.5],
+            [8.46, 49.48],
+          ],
+        ],
       },
       centroid: { lat: 49.49, lon: 8.47 },
       tags: {},

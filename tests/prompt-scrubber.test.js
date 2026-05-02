@@ -246,10 +246,7 @@ describe('scrubForLLM', () => {
   });
 
   it('produces deterministic pseudonyms within same scrub call', () => {
-    const data = [
-      { name: 'Alice' },
-      { name: 'Alice' },
-    ];
+    const data = [{ name: 'Alice' }, { name: 'Alice' }];
 
     const { scrubbed } = scrubForLLM(data);
 

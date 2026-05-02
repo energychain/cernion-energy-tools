@@ -176,7 +176,10 @@ function addRegulatorySection(doc, t, regulatoryGraph) {
   for (const sig of signals.slice(0, 20)) {
     const label = sig.label || sig.id || sig.name || '';
     const status = sig.status || sig.state || '';
-    doc.fontSize(11).font('Helvetica').text(`• ${label}${status ? ` [${status}]` : ''}`);
+    doc
+      .fontSize(11)
+      .font('Helvetica')
+      .text(`• ${label}${status ? ` [${status}]` : ''}`);
   }
 }
 
@@ -324,7 +327,8 @@ const LABELS_EN = {
   tone: 'Communication Tone',
   comparisonTable: 'Comparison Overview',
   aiTransparency: 'AI Transparency Notice (EU AI Act Art. 13)',
-  aiArt13Line1: 'This document was created with the assistance of an AI system (Cernion CYA Agent).',
+  aiArt13Line1:
+    'This document was created with the assistance of an AI system (Cernion CYA Agent).',
   aiArt13Line2:
     'The statements contained herein are based on data from public sources (MaStR, ENTSO-E, BNetzA). ' +
     'All information is provided without warranty and does not substitute legal or regulatory advice.',

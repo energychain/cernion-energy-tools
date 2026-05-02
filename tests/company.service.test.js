@@ -154,9 +154,10 @@ describe('company.service', () => {
     });
 
     it('rejects confirm on already-active company', async () => {
-      await expect(
-        broker.call('company.confirm', { id: draftId })
-      ).rejects.toMatchObject({ code: 409, type: 'COMPANY_NOT_DRAFT' });
+      await expect(broker.call('company.confirm', { id: draftId })).rejects.toMatchObject({
+        code: 409,
+        type: 'COMPANY_NOT_DRAFT',
+      });
     });
   });
 
@@ -203,9 +204,7 @@ describe('company.service', () => {
       // Confirm keeping only the VNB member, discarding the unrelated one
       const confirmed = await broker.call('company.confirm', {
         id: draft.companyId,
-        members: [
-          { bdewCode: '9900333000020', role: 'VNB', legalEntity: 'VNB A GmbH' },
-        ],
+        members: [{ bdewCode: '9900333000020', role: 'VNB', legalEntity: 'VNB A GmbH' }],
       });
 
       expect(confirmed.members).toHaveLength(1);
@@ -241,9 +240,10 @@ describe('company.service', () => {
     });
 
     it('throws 404 for unknown companyId', async () => {
-      await expect(
-        broker.call('company.get', { id: 'does-not-exist' })
-      ).rejects.toMatchObject({ code: 404, type: 'COMPANY_NOT_FOUND' });
+      await expect(broker.call('company.get', { id: 'does-not-exist' })).rejects.toMatchObject({
+        code: 404,
+        type: 'COMPANY_NOT_FOUND',
+      });
     });
 
     it('lists active companies matching query', async () => {
@@ -347,9 +347,7 @@ describe('company.service', () => {
 
     it('injects companyId for known BDEW code', async () => {
       const results = await broker.call('company.enrichResults', {
-        results: [
-          { bdew: '9900123456789', name: 'Enrich Test GmbH', roles: ['VNB'] },
-        ],
+        results: [{ bdew: '9900123456789', name: 'Enrich Test GmbH', roles: ['VNB'] }],
       });
 
       expect(results[0].companyId).toBe(knownCompanyId);
@@ -358,9 +356,7 @@ describe('company.service', () => {
 
     it('injects companyId=null for unknown BDEW code', async () => {
       const results = await broker.call('company.enrichResults', {
-        results: [
-          { bdew: '9900000000000', name: 'Unknown GmbH', roles: [] },
-        ],
+        results: [{ bdew: '9900000000000', name: 'Unknown GmbH', roles: [] }],
       });
 
       expect(results[0].companyId).toBeNull();
@@ -368,9 +364,7 @@ describe('company.service', () => {
 
     it('classifies marketRole from roles[] array', async () => {
       const results = await broker.call('company.enrichResults', {
-        results: [
-          { bdew: '9910999000001', name: 'Lieferant GmbH', roles: ['Lieferant'] },
-        ],
+        results: [{ bdew: '9910999000001', name: 'Lieferant GmbH', roles: ['Lieferant'] }],
       });
 
       expect(results[0].marketRole).toBe('Lieferant');
@@ -378,9 +372,7 @@ describe('company.service', () => {
 
     it('falls back to BDEW prefix heuristic when roles[] is empty', async () => {
       const results = await broker.call('company.enrichResults', {
-        results: [
-          { bdew: '9920999000001', name: 'MSB GmbH', roles: [] },
-        ],
+        results: [{ bdew: '9920999000001', name: 'MSB GmbH', roles: [] }],
       });
 
       expect(results[0].marketRole).toBe('MSB');
@@ -388,9 +380,7 @@ describe('company.service', () => {
 
     it('normalizes bdewCode field alias', async () => {
       const results = await broker.call('company.enrichResults', {
-        results: [
-          { bdewCode: '9900123456789', name: 'Enrich via bdewCode alias', roles: ['VNB'] },
-        ],
+        results: [{ bdewCode: '9900123456789', name: 'Enrich via bdewCode alias', roles: ['VNB'] }],
       });
 
       expect(results[0].companyId).toBe(knownCompanyId);

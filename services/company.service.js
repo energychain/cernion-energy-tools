@@ -149,8 +149,14 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { displayName, legalName, members: explicitMembers, autoDiscover, autoConfirm, query } =
-          ctx.params;
+        const {
+          displayName,
+          legalName,
+          members: explicitMembers,
+          autoDiscover,
+          autoConfirm,
+          query,
+        } = ctx.params;
 
         let suggestedMembers = [];
         let isDraft = false;
@@ -184,13 +190,15 @@ module.exports = {
           isDraft = !autoConfirm;
         }
 
-        const members = autoDiscover ? suggestedMembers : (explicitMembers || []).map((m) => ({
-          bdewCode: m.bdewCode,
-          role: m.role || classifyPartner({ bdewCode: m.bdewCode }),
-          legalEntity: m.legalEntity || null,
-          mastrId: m.mastrId || null,
-          active: true,
-        }));
+        const members = autoDiscover
+          ? suggestedMembers
+          : (explicitMembers || []).map((m) => ({
+              bdewCode: m.bdewCode,
+              role: m.role || classifyPartner({ bdewCode: m.bdewCode }),
+              legalEntity: m.legalEntity || null,
+              mastrId: m.mastrId || null,
+              active: true,
+            }));
 
         // Guard: reject BDEW codes already owned by another company
         await this._assertNoDuplicateBdew(members.map((m) => m.bdewCode));
@@ -278,7 +286,9 @@ module.exports = {
 
         // Check for duplicate BDEW codes excluding this company's own codes
         const existingBdews = new Set(doc.members.map((m) => m.bdewCode));
-        const newBdews = members.filter((m) => !existingBdews.has(m.bdewCode)).map((m) => m.bdewCode);
+        const newBdews = members
+          .filter((m) => !existingBdews.has(m.bdewCode))
+          .map((m) => m.bdewCode);
         if (newBdews.length > 0) {
           await this._assertNoDuplicateBdew(newBdews);
         }
@@ -307,7 +317,14 @@ module.exports = {
       openapi: {
         summary: 'Get company entity by ID',
         tags: ['Companies'],
-        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', example: '550e8400-e29b-41d4-a716-446655440000' } }],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: '550e8400-e29b-41d4-a716-446655440000' },
+          },
+        ],
       },
       async handler(ctx) {
         const doc = await this._loadDoc(ctx.params.id);
@@ -337,7 +354,11 @@ module.exports = {
             name: 'query',
             in: 'query',
             required: false,
-            schema: { type: 'string', example: 'Stadtwerke Heidelberg', description: 'Search by company name (case-insensitive)' },
+            schema: {
+              type: 'string',
+              example: 'Stadtwerke Heidelberg',
+              description: 'Search by company name (case-insensitive)',
+            },
           },
           {
             name: 'limit',
@@ -349,7 +370,11 @@ module.exports = {
             name: 'status',
             in: 'query',
             required: false,
-            schema: { type: 'string', enum: ['draft', 'active', 'archived', 'all'], default: 'active' },
+            schema: {
+              type: 'string',
+              enum: ['draft', 'active', 'archived', 'all'],
+              default: 'active',
+            },
           },
         ],
       },

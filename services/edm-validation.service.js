@@ -1,11 +1,7 @@
 'use strict';
 
 const { MoleculerClientError } = require('moleculer').Errors;
-const {
-  VALIDATION_RULES,
-  findGaps,
-  calculateRMSE,
-} = require('../src/edm-validation-rules');
+const { VALIDATION_RULES, findGaps, calculateRMSE } = require('../src/edm-validation-rules');
 const { generateReplacementValues } = require('../src/edm-replacement-values');
 const { getObisDirection, getObisUnit } = require('../src/obis-codes');
 
@@ -72,7 +68,9 @@ function computeSummary(rows, findings, autoFixed) {
 
   const problematicTimestamps = new Set(
     findings
-      .filter((item) => (item.severity === 'error' || item.severity === 'warning') && item.timestamp)
+      .filter(
+        (item) => (item.severity === 'error' || item.severity === 'warning') && item.timestamp
+      )
       .map((item) => item.timestamp)
   );
 
@@ -100,13 +98,17 @@ function collectRecommendations(findings) {
   const recommendations = [];
 
   if (hasGaps) {
-    recommendations.push('Lücken erkannt: Gap-Filling mit Interpolation oder Vortagswerten ausführen.');
+    recommendations.push(
+      'Lücken erkannt: Gap-Filling mit Interpolation oder Vortagswerten ausführen.'
+    );
   }
   if (hasBandwidth) {
     recommendations.push('Ausreißer erkannt: Messkonfiguration und Anlagenkapazität prüfen.');
   }
   if (hasNegative) {
-    recommendations.push('Negative Energiewerte erkannt: Zählerzuordnung und Vorzeichenlogik prüfen.');
+    recommendations.push(
+      'Negative Energiewerte erkannt: Zählerzuordnung und Vorzeichenlogik prüfen.'
+    );
   }
   if (hasMonotony) {
     recommendations.push('Monotonie verletzt: Zählerstand/Reset oder Mappingfehler untersuchen.');
@@ -195,9 +197,7 @@ module.exports = {
           ? ctx.params.rules
           : this.settings.defaultRules;
 
-        const rules = selectedRuleIds
-          .map((id) => this.ruleIndex.get(id))
-          .filter(Boolean);
+        const rules = selectedRuleIds.map((id) => this.ruleIndex.get(id)).filter(Boolean);
 
         if (!rules.length) {
           throw new MoleculerClientError('No valid rules selected', 400, 'NO_VALID_RULES');
@@ -379,7 +379,10 @@ module.exports = {
 
         if (autoFix && rules.some((rule) => rule.id === 'GAP_DETECTION')) {
           if (!detectedGaps.length && gapRule) {
-            detectedGaps = findGaps(rows.map((row) => row.ts), 900);
+            detectedGaps = findGaps(
+              rows.map((row) => row.ts),
+              900
+            );
           }
 
           const maxAutoFill = this.settings.maxGapFillHours * 4;
@@ -473,10 +476,30 @@ module.exports = {
         summary: 'Get validation report for a timeseries range',
         tags: ['EDM (Energiedatenmanagement)'],
         parameters: [
-          { name: 'meloId', in: 'path', required: true, schema: { type: 'string', example: 'DE0012345678901234567890123456789' } },
-          { name: 'obis', in: 'query', required: false, schema: { type: 'string', default: '1-0:1.8.0' } },
-          { name: 'from', in: 'query', required: true, schema: { type: 'string', example: '2026-04-01T00:00:00.000Z' } },
-          { name: 'to', in: 'query', required: true, schema: { type: 'string', example: '2026-04-01T23:59:59.000Z' } },
+          {
+            name: 'meloId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'DE0012345678901234567890123456789' },
+          },
+          {
+            name: 'obis',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', default: '1-0:1.8.0' },
+          },
+          {
+            name: 'from',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: '2026-04-01T00:00:00.000Z' },
+          },
+          {
+            name: 'to',
+            in: 'query',
+            required: true,
+            schema: { type: 'string', example: '2026-04-01T23:59:59.000Z' },
+          },
         ],
       },
       async handler(ctx) {
@@ -508,7 +531,12 @@ module.exports = {
         obis: { type: 'string', optional: true, default: '1-0:1.8.0' },
         from: { type: 'string', min: 1 },
         to: { type: 'string', min: 1 },
-        method: { type: 'enum', values: ['interpolate', 'previous_day', 'slp', 'auto'], optional: true, default: 'auto' },
+        method: {
+          type: 'enum',
+          values: ['interpolate', 'previous_day', 'slp', 'auto'],
+          optional: true,
+          default: 'auto',
+        },
         slpProfileId: { type: 'string', optional: true, default: 'H0' },
         annualConsumptionKwh: { type: 'number', optional: true, convert: true },
       },
@@ -569,7 +597,10 @@ module.exports = {
         ]);
 
         const rows = mapTimeseriesRows(seriesResponse);
-        const gaps = findGaps(rows.map((row) => row.ts), 900);
+        const gaps = findGaps(
+          rows.map((row) => row.ts),
+          900
+        );
 
         if (!gaps.length) {
           return {
@@ -607,9 +638,10 @@ module.exports = {
           const slp = await ctx.call('slp.generateTimeseries', {
             profileId: slpProfileId,
             date: new Date(from).toISOString().slice(0, 10),
-            annualConsumptionKwh: Number(annualConsumptionKwh)
-              || Number(meloResponse?.data?.metadata?.annualConsumptionKwh)
-              || 3500,
+            annualConsumptionKwh:
+              Number(annualConsumptionKwh) ||
+              Number(meloResponse?.data?.metadata?.annualConsumptionKwh) ||
+              3500,
           });
           slpValues = slp?.values || null;
         } catch (_err) {

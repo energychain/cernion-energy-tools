@@ -160,7 +160,8 @@ function isBusinessTokenPath(method, requestPath) {
   // MaStR monitor confirmation/unsubscribe use :token as business path parameter,
   // not as authentication token.
   if (m === 'GET' && /^\/api\/mastr-monitor\/confirm\/[^/]+$/.test(pathOnly)) return true;
-  if (m === 'DELETE' && /^\/api\/mastr-monitor\/watches\/[^/]+\/subscribe\/[^/]+$/.test(pathOnly)) return true;
+  if (m === 'DELETE' && /^\/api\/mastr-monitor\/watches\/[^/]+\/subscribe\/[^/]+$/.test(pathOnly))
+    return true;
 
   return false;
 }
@@ -605,7 +606,8 @@ module.exports = {
           // MaStR Data Quality (v0.17)
           'POST /mastr-quality/audit': 'mastr-quality.audit',
           'GET /mastr-quality/audits': 'mastr-quality.list',
-          'GET /mastr-quality/audits/:id/findings/:findingId/details': 'mastr-quality.findingDetails',
+          'GET /mastr-quality/audits/:id/findings/:findingId/details':
+            'mastr-quality.findingDetails',
           'GET /mastr-quality/audits/:id': 'mastr-quality.get',
           // Redispatch Ex-Post (v0.18)
           'POST /redispatch/audit': 'redispatch-expost.audit',

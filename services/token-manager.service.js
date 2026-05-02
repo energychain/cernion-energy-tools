@@ -20,7 +20,10 @@ function ensureDirForFile(filePath) {
 }
 
 function sha256(value) {
-  return crypto.createHash('sha256').update(String(value || ''), 'utf8').digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(String(value || ''), 'utf8')
+    .digest('hex');
 }
 
 function maskToken(token) {
@@ -307,7 +310,11 @@ module.exports = {
                   type: 'object',
                   properties: {
                     success: { type: 'boolean', example: true },
-                    tenants: { type: 'array', items: { type: 'string' }, example: ['stadtwerk-a', 'stadtwerk-b'] },
+                    tenants: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      example: ['stadtwerk-a', 'stadtwerk-b'],
+                    },
                     count: { type: 'integer', example: 2 },
                   },
                 },
@@ -318,9 +325,7 @@ module.exports = {
       },
       handler() {
         const tokens = this.loadTokens();
-        const tenants = [
-          ...new Set(tokens.filter((t) => t.tenantId).map((t) => t.tenantId)),
-        ];
+        const tenants = [...new Set(tokens.filter((t) => t.tenantId).map((t) => t.tenantId))];
         return { success: true, tenants, count: tenants.length };
       },
     },

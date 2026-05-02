@@ -20,21 +20,21 @@ const { MoleculerError } = require('moleculer').Errors;
 
 const DATA_PATHS = Object.freeze({
   MASTR_DETERMINISTIC: 'energy-market.installations',
-  LLM_RAG:             'query.ask',
-  MCP_DIRECT:          'mcp_direct',
+  LLM_RAG: 'query.ask',
+  MCP_DIRECT: 'mcp_direct',
 });
 
 // ── MCP tool handles ──────────────────────────────────────────────────────
 
 const MCP_TOOLS = Object.freeze({
-  INSTALLATIONS_LOCAL:  'cernion_installations_local',
-  GRID_DATA:            'cernion_grid_data',
-  GRID_TOPOLOGY:        'osm_grid_topology',
-  ENERGY_PRODUCTION:    'cernion_energy_production',
-  DAY_AHEAD_PRICES:     'entsoe_day_ahead_prices',
-  WIND_SOLAR_FORECAST:  'entsoe_wind_solar_forecast',
-  REDISPATCH:           'cernion_redispatch_export',
-  SUBSTATION_FINDER:    'osm_substation_finder',
+  INSTALLATIONS_LOCAL: 'cernion_installations_local',
+  GRID_DATA: 'cernion_grid_data',
+  GRID_TOPOLOGY: 'osm_grid_topology',
+  ENERGY_PRODUCTION: 'cernion_energy_production',
+  DAY_AHEAD_PRICES: 'entsoe_day_ahead_prices',
+  WIND_SOLAR_FORECAST: 'entsoe_wind_solar_forecast',
+  REDISPATCH: 'cernion_redispatch_export',
+  SUBSTATION_FINDER: 'osm_substation_finder',
 });
 
 // ── Valid actor roles (mirrors ACTOR_ROLES in cya.service.js) ─────────────
@@ -80,43 +80,36 @@ const ROLE_TOOL_WHITELIST = Object.freeze({
     MCP_TOOLS.ENERGY_PRODUCTION,
     MCP_TOOLS.WIND_SOLAR_FORECAST,
   ],
-  metering_operator: [
-    MCP_TOOLS.INSTALLATIONS_LOCAL,
-    MCP_TOOLS.GRID_DATA,
-  ],
-  regulator: [
-    MCP_TOOLS.INSTALLATIONS_LOCAL,
-    MCP_TOOLS.GRID_DATA,
-    MCP_TOOLS.REDISPATCH,
-  ],
-  municipality: [
-    MCP_TOOLS.INSTALLATIONS_LOCAL,
-    MCP_TOOLS.ENERGY_PRODUCTION,
-  ],
-  journalist: [
-    MCP_TOOLS.ENERGY_PRODUCTION,
-    MCP_TOOLS.DAY_AHEAD_PRICES,
-  ],
-  citizen: [
-    MCP_TOOLS.ENERGY_PRODUCTION,
-  ],
+  metering_operator: [MCP_TOOLS.INSTALLATIONS_LOCAL, MCP_TOOLS.GRID_DATA],
+  regulator: [MCP_TOOLS.INSTALLATIONS_LOCAL, MCP_TOOLS.GRID_DATA, MCP_TOOLS.REDISPATCH],
+  municipality: [MCP_TOOLS.INSTALLATIONS_LOCAL, MCP_TOOLS.ENERGY_PRODUCTION],
+  journalist: [MCP_TOOLS.ENERGY_PRODUCTION, MCP_TOOLS.DAY_AHEAD_PRICES],
+  citizen: [MCP_TOOLS.ENERGY_PRODUCTION],
 });
 
 // ── focusArea → ordered tool priority ────────────────────────────────────
 
 const FOCUS_AREA_TOOL_PRIORITY = Object.freeze({
-  capacity:       [MCP_TOOLS.INSTALLATIONS_LOCAL, DATA_PATHS.MASTR_DETERMINISTIC],
-  grid_capacity:  [MCP_TOOLS.INSTALLATIONS_LOCAL, MCP_TOOLS.GRID_DATA, DATA_PATHS.MASTR_DETERMINISTIC],
-  renewables:     [MCP_TOOLS.INSTALLATIONS_LOCAL, MCP_TOOLS.WIND_SOLAR_FORECAST, DATA_PATHS.MASTR_DETERMINISTIC],
+  capacity: [MCP_TOOLS.INSTALLATIONS_LOCAL, DATA_PATHS.MASTR_DETERMINISTIC],
+  grid_capacity: [
+    MCP_TOOLS.INSTALLATIONS_LOCAL,
+    MCP_TOOLS.GRID_DATA,
+    DATA_PATHS.MASTR_DETERMINISTIC,
+  ],
+  renewables: [
+    MCP_TOOLS.INSTALLATIONS_LOCAL,
+    MCP_TOOLS.WIND_SOLAR_FORECAST,
+    DATA_PATHS.MASTR_DETERMINISTIC,
+  ],
   grid_expansion: [MCP_TOOLS.GRID_TOPOLOGY, MCP_TOOLS.GRID_DATA, DATA_PATHS.LLM_RAG],
-  redispatch:     [MCP_TOOLS.REDISPATCH, MCP_TOOLS.GRID_DATA, DATA_PATHS.LLM_RAG],
+  redispatch: [MCP_TOOLS.REDISPATCH, MCP_TOOLS.GRID_DATA, DATA_PATHS.LLM_RAG],
   energy_sharing: [MCP_TOOLS.INSTALLATIONS_LOCAL, DATA_PATHS.LLM_RAG],
   digitalization: [DATA_PATHS.LLM_RAG],
-  compliance:     [DATA_PATHS.LLM_RAG],
-  customer:       [DATA_PATHS.LLM_RAG],
-  investment:     [MCP_TOOLS.DAY_AHEAD_PRICES, DATA_PATHS.LLM_RAG],
-  section14a:     [MCP_TOOLS.INSTALLATIONS_LOCAL, MCP_TOOLS.GRID_DATA, DATA_PATHS.LLM_RAG],
-  nova:           [MCP_TOOLS.GRID_DATA, MCP_TOOLS.INSTALLATIONS_LOCAL, DATA_PATHS.LLM_RAG],
+  compliance: [DATA_PATHS.LLM_RAG],
+  customer: [DATA_PATHS.LLM_RAG],
+  investment: [MCP_TOOLS.DAY_AHEAD_PRICES, DATA_PATHS.LLM_RAG],
+  section14a: [MCP_TOOLS.INSTALLATIONS_LOCAL, MCP_TOOLS.GRID_DATA, DATA_PATHS.LLM_RAG],
+  nova: [MCP_TOOLS.GRID_DATA, MCP_TOOLS.INSTALLATIONS_LOCAL, DATA_PATHS.LLM_RAG],
 });
 
 // ── Signal-override rules ─────────────────────────────────────────────────
@@ -156,7 +149,7 @@ const SIGNAL_OVERRIDE_RULES = [
  */
 function _extractMcpToolNames(toolList) {
   const dataPathValues = new Set(Object.values(DATA_PATHS));
-  return toolList.filter(t => !dataPathValues.has(t));
+  return toolList.filter((t) => !dataPathValues.has(t));
 }
 
 /**
@@ -194,12 +187,9 @@ function isToolAllowed(actorRole, mcpToolName) {
  */
 function getAllowedTools(actorRole) {
   if (!ROLE_TOOL_WHITELIST[actorRole]) {
-    throw new MoleculerError(
-      `Unknown actor role: ${actorRole}`,
-      400,
-      'UNKNOWN_ACTOR_ROLE',
-      { actorRole }
-    );
+    throw new MoleculerError(`Unknown actor role: ${actorRole}`, 400, 'UNKNOWN_ACTOR_ROLE', {
+      actorRole,
+    });
   }
   return Array.from(ROLE_TOOL_WHITELIST[actorRole]);
 }
@@ -222,19 +212,12 @@ function getAllowedTools(actorRole) {
  */
 function resolveToolSet(actorRole, focusAreas, ontologySignals, profileHints) {
   if (!actorRole) {
-    throw new MoleculerError(
-      'actorRole is required for resolveToolSet',
-      400,
-      'INVALID_ACTOR_ROLE'
-    );
+    throw new MoleculerError('actorRole is required for resolveToolSet', 400, 'INVALID_ACTOR_ROLE');
   }
   if (!VALID_ACTOR_ROLES.includes(actorRole)) {
-    throw new MoleculerError(
-      `Unknown actor role: ${actorRole}`,
-      400,
-      'UNKNOWN_ACTOR_ROLE',
-      { actorRole }
-    );
+    throw new MoleculerError(`Unknown actor role: ${actorRole}`, 400, 'UNKNOWN_ACTOR_ROLE', {
+      actorRole,
+    });
   }
 
   const areas = Array.isArray(focusAreas) ? focusAreas : [];
@@ -274,9 +257,10 @@ function resolveToolSet(actorRole, focusAreas, ontologySignals, profileHints) {
     // full object ({ ruleId, severity }) forms.
     // String shorthand uses 'critical' so all severity tiers match.
     const signalRuleId = typeof rawSignal === 'string' ? rawSignal : rawSignal.ruleId;
-    const signalSeverity = typeof rawSignal === 'string' ? 'critical' : (rawSignal.severity || 'warning');
+    const signalSeverity =
+      typeof rawSignal === 'string' ? 'critical' : rawSignal.severity || 'warning';
     const rule = SIGNAL_OVERRIDE_RULES.find(
-      r => r.ruleId === signalRuleId && r.severities.includes(signalSeverity)
+      (r) => r.ruleId === signalRuleId && r.severities.includes(signalSeverity)
     );
     if (!rule) continue;
     if (!allowedTools.includes(rule.injectTool)) continue; // role gate
@@ -293,7 +277,7 @@ function resolveToolSet(actorRole, focusAreas, ontologySignals, profileHints) {
   }
 
   // Step 3: Profile hints (v0.34.0) — optional, non-blocking
-  const hints = (profileHints && typeof profileHints === 'object') ? profileHints : null;
+  const hints = profileHints && typeof profileHints === 'object' ? profileHints : null;
   if (hints) {
     // boostedFocusAreas: treat as additional focusAreas for tool resolution
     const boosted = Array.isArray(hints.boostedFocusAreas) ? hints.boostedFocusAreas : [];
@@ -317,7 +301,7 @@ function resolveToolSet(actorRole, focusAreas, ontologySignals, profileHints) {
     const avoid = new Set(Array.isArray(hints.avoidSignals) ? hints.avoidSignals : []);
     if (avoid.size > 0) {
       const before = signalOverrides.length;
-      const filtered = signalOverrides.filter(o => !avoid.has(o.ruleId));
+      const filtered = signalOverrides.filter((o) => !avoid.has(o.ruleId));
       if (filtered.length < before) {
         rationaleLines.push(`profile-avoid: [${[...avoid].join(',')}]`);
       }
@@ -331,9 +315,9 @@ function resolveToolSet(actorRole, focusAreas, ontologySignals, profileHints) {
 
   // Promote preferredTools to front of mcpTools list
   if (hints?.preferredTools?.length > 0) {
-    const preferred = new Set(hints.preferredTools.filter(t => allowedTools.includes(t)));
-    const front = mcpTools.filter(t => preferred.has(t));
-    const rest  = mcpTools.filter(t => !preferred.has(t));
+    const preferred = new Set(hints.preferredTools.filter((t) => allowedTools.includes(t)));
+    const front = mcpTools.filter((t) => preferred.has(t));
+    const rest = mcpTools.filter((t) => !preferred.has(t));
     mcpTools.length = 0;
     for (const t of [...front, ...rest]) mcpTools.push(t);
   }

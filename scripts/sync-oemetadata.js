@@ -105,9 +105,7 @@ async function main() {
     console.log(
       `⚠️  --latest flag active: fetching from branch '${OEM_LATEST_REF}' (not the pinned tag).`
     );
-    console.log(
-      '   Use this for development / upstream-tracking only. Never in production.\n'
-    );
+    console.log('   Use this for development / upstream-tracking only. Never in production.\n');
   } else {
     console.log(`🔄 OEMetadata Sync — pinned version: ${OEM_VERSION}`);
   }
@@ -180,9 +178,7 @@ async function main() {
 
   if (!useLatest) {
     console.log(`\n📌 Pinned to OEMetadata ${OEM_VERSION}.`);
-    console.log(
-      '   To upgrade: change OEM_VERSION in scripts/sync-oemetadata.js and re-run.\n'
-    );
+    console.log('   To upgrade: change OEM_VERSION in scripts/sync-oemetadata.js and re-run.\n');
   }
 }
 

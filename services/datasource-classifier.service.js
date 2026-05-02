@@ -253,7 +253,10 @@ module.exports = {
 
           const keywordHits = columnProfiles.filter((columnProfile) =>
             // Merge OEO German labels (@OpenEnergyPlatform/ontology) into keyword pool
-            [...(domain.indicators?.columnKeywords || []), ...germanLabelsForDomain(domain.id)].some((keyword) => {
+            [
+              ...(domain.indicators?.columnKeywords || []),
+              ...germanLabelsForDomain(domain.id),
+            ].some((keyword) => {
               const normalizedKeyword = normalizeKey(keyword);
               return (
                 columnProfile.normalized.includes(normalizedKeyword) ||

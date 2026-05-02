@@ -193,9 +193,10 @@ describe('datapoint.service — Snapshot Semantik (v0.13)', () => {
     });
 
     it('throws 400 when neither datapointNames nor tags are provided', async () => {
-      await expect(
-        broker.call('datapoint.createSnapshot', {})
-      ).rejects.toMatchObject({ code: 400, type: 'MISSING_PARAMS' });
+      await expect(broker.call('datapoint.createSnapshot', {})).rejects.toMatchObject({
+        code: 400,
+        type: 'MISSING_PARAMS',
+      });
     });
 
     it('throws 404 when tags match no datapoints', async () => {
@@ -360,9 +361,9 @@ describe('datapoint.service — Snapshot Semantik (v0.13)', () => {
       expect(result.id).toBe(snap.id);
 
       // Subsequent get must return 404
-      await expect(
-        broker.call('datapoint.getSnapshot', { id: snap.id })
-      ).rejects.toMatchObject({ code: 404 });
+      await expect(broker.call('datapoint.getSnapshot', { id: snap.id })).rejects.toMatchObject({
+        code: 404,
+      });
     });
 
     it('throws 404 for unknown snapshot id', async () => {

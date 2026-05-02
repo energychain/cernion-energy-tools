@@ -104,20 +104,32 @@ describe('deserialize', () => {
 
   test('throws CONTEXT_DESERIALIZE_FAILED for null input', () => {
     let err;
-    try { CyaContextManager.deserialize(null, graph); } catch (e) { err = e; }
+    try {
+      CyaContextManager.deserialize(null, graph);
+    } catch (e) {
+      err = e;
+    }
     expect(err?.type).toBe('CONTEXT_DESERIALIZE_FAILED');
   });
 
   test('throws CONTEXT_DESERIALIZE_FAILED for non-object input', () => {
     let err;
-    try { CyaContextManager.deserialize('bad', graph); } catch (e) { err = e; }
+    try {
+      CyaContextManager.deserialize('bad', graph);
+    } catch (e) {
+      err = e;
+    }
     expect(err?.type).toBe('CONTEXT_DESERIALIZE_FAILED');
   });
 
   test('throws CONTEXT_DESERIALIZE_FAILED when ontologyGraph is missing', () => {
     const cm = new CyaContextManager(graph);
     let err;
-    try { CyaContextManager.deserialize(cm.serialize(), null); } catch (e) { err = e; }
+    try {
+      CyaContextManager.deserialize(cm.serialize(), null);
+    } catch (e) {
+      err = e;
+    }
     expect(err?.type).toBe('CONTEXT_DESERIALIZE_FAILED');
   });
 
@@ -245,11 +257,15 @@ describe('_persistContextState', () => {
       async _persistContextState(sessionId, contextManager) {
         if (!sessionId || !contextManager) return;
         const state = contextManager.serialize();
-        this.broker.call('object-store.put', {
-          namespace: 'cya_context_states',
-          key: `ctx_${sessionId}`,
-          payload: { ...state, savedAt: new Date().toISOString(), sessionId },
-        }).catch((err) => this.logger.warn('[ContextManager] persist failed (non-blocking):', err.message));
+        this.broker
+          .call('object-store.put', {
+            namespace: 'cya_context_states',
+            key: `ctx_${sessionId}`,
+            payload: { ...state, savedAt: new Date().toISOString(), sessionId },
+          })
+          .catch((err) =>
+            this.logger.warn('[ContextManager] persist failed (non-blocking):', err.message)
+          );
       },
       async _restoreContextState(sessionId, ontologyGraph) {
         if (!sessionId || !ontologyGraph) return null;
@@ -398,8 +414,9 @@ describe('REST endpoint simulation', () => {
     const { MoleculerClientError } = require('moleculer').Errors;
     return async function handler(ctxParams) {
       const { id } = ctxParams;
-      const result = await Promise.resolve(storedPayload ? { payload: storedPayload } : null)
-        .catch(() => null);
+      const result = await Promise.resolve(storedPayload ? { payload: storedPayload } : null).catch(
+        () => null
+      );
       if (!result?.payload) {
         throw new MoleculerClientError(
           `No context state for session '${id}'`,
@@ -413,8 +430,10 @@ describe('REST endpoint simulation', () => {
 
   test('throws 404 CONTEXT_STATE_NOT_FOUND when no state stored', async () => {
     const handler = makeCtxStateHandler(null);
-    await expect(handler({ id: 'cya_missing' }))
-      .rejects.toMatchObject({ code: 404, type: 'CONTEXT_STATE_NOT_FOUND' });
+    await expect(handler({ id: 'cya_missing' })).rejects.toMatchObject({
+      code: 404,
+      type: 'CONTEXT_STATE_NOT_FOUND',
+    });
   });
 
   test('returns correct shape with sessionId when state exists', async () => {

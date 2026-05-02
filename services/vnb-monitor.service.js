@@ -441,7 +441,10 @@ async function resolveVnbIdentity(ctx, bdewCode, hintName = null) {
       );
     }
   } catch (err) {
-    this.logger?.warn(`Failed to resolve VNB identity for ${bdewCode} via vnbLookupCodes:`, err.message);
+    this.logger?.warn(
+      `Failed to resolve VNB identity for ${bdewCode} via vnbLookupCodes:`,
+      err.message
+    );
   }
 
   // Attempt 3: Try marketPartners with hint name
@@ -1167,7 +1170,10 @@ module.exports = {
 
   async started() {
     try {
-      const stored = await this.broker.call('object-store.get', { namespace: 'vnb_monitor', key: 'thresholds' });
+      const stored = await this.broker.call('object-store.get', {
+        namespace: 'vnb_monitor',
+        key: 'thresholds',
+      });
       this.alertThresholds = mergeThresholds(VNB_MONITOR_DEFAULTS.thresholds, stored.payload);
       this._thresholdsSource = 'store';
     } catch (_) {
@@ -1621,7 +1627,11 @@ module.exports = {
       },
       async handler(ctx) {
         const nextThresholds = this.validateThresholds(ctx.params.thresholds);
-        await ctx.call('object-store.put', { namespace: 'vnb_monitor', key: 'thresholds', payload: nextThresholds });
+        await ctx.call('object-store.put', {
+          namespace: 'vnb_monitor',
+          key: 'thresholds',
+          payload: nextThresholds,
+        });
         this.alertThresholds = mergeThresholds(VNB_MONITOR_DEFAULTS.thresholds, nextThresholds);
         this._thresholdsSource = 'store';
         this.cache.clear();

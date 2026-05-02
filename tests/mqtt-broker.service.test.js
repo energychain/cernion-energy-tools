@@ -117,7 +117,9 @@ describe('mqtt-broker.service', () => {
     await broker.call('mqtt-broker.purgeExpired');
 
     const recovered = await broker.call('mqtt-broker.recoverPendingMessages');
-    expect(recovered.messages.find((entry) => entry.messageId === shortLived.messageId)).toBeFalsy();
+    expect(
+      recovered.messages.find((entry) => entry.messageId === shortLived.messageId)
+    ).toBeFalsy();
 
     const stats = await broker.call('mqtt-broker.getStats');
     expect(stats.stats.expired).toBeGreaterThanOrEqual(1);

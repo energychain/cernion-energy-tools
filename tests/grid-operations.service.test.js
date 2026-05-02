@@ -100,9 +100,9 @@ describe('Grid Operations Service', () => {
   });
 
   describe('vnbLookupCodes — MaStR-ID promotion (BR-0001)', () => {
-    const BDEW_NO_MASTR   = '9904350000002';
+    const BDEW_NO_MASTR = '9904350000002';
     const BDEW_WITH_MASTR = '9907473000008';
-    const MASTR_ID        = 'SNB935578300972';
+    const MASTR_ID = 'SNB935578300972';
 
     beforeEach(() => callWithNewSession.mockClear());
 
@@ -128,7 +128,10 @@ describe('Grid Operations Service', () => {
       // cernion_vnb_lookup was called for the alias code
       expect(callWithNewSession).toHaveBeenCalledTimes(2);
       expect(callWithNewSession).toHaveBeenNthCalledWith(
-        2, 'cernion_vnb_lookup', { bdew: BDEW_WITH_MASTR }, undefined
+        2,
+        'cernion_vnb_lookup',
+        { bdew: BDEW_WITH_MASTR },
+        undefined
       );
     });
 
@@ -137,11 +140,11 @@ describe('Grid Operations Service', () => {
         .mockResolvedValueOnce({
           canonical: { bdewCodePrimary: BDEW_NO_MASTR, mastrId: null, bnr: null },
           aliases: [
-            { type: 'bdew', code: BDEW_NO_MASTR,   role: 'primary'   }, // old primary also in aliases
+            { type: 'bdew', code: BDEW_NO_MASTR, role: 'primary' }, // old primary also in aliases
             { type: 'bdew', code: BDEW_WITH_MASTR, role: 'candidate' },
           ],
         })
-        .mockResolvedValueOnce({ data: { mastrId: null } })        // BDEW_NO_MASTR — no mastrId
+        .mockResolvedValueOnce({ data: { mastrId: null } }) // BDEW_NO_MASTR — no mastrId
         .mockResolvedValueOnce({ data: { bdew: BDEW_WITH_MASTR, mastrId: MASTR_ID } }); // promoted
 
       const result = await broker.call('grid-operations.vnbLookupCodes', {
@@ -151,7 +154,7 @@ describe('Grid Operations Service', () => {
       const oldAlias = result.aliases.find((a) => a.code === BDEW_NO_MASTR);
       const newAlias = result.aliases.find((a) => a.code === BDEW_WITH_MASTR);
       expect(oldAlias.role).toBe('candidate'); // demoted
-      expect(newAlias.role).toBe('primary');   // promoted
+      expect(newAlias.role).toBe('primary'); // promoted
     });
 
     it('copies bnr from lookup result when promoting', async () => {
@@ -206,7 +209,7 @@ describe('Grid Operations Service', () => {
         .mockResolvedValueOnce({
           canonical: { bdewCodePrimary: BDEW_NO_MASTR, mastrId: null, bnr: null },
           aliases: [
-            { type: 'bnr',  code: '10002345',      role: 'candidate' },
+            { type: 'bnr', code: '10002345', role: 'candidate' },
             { type: 'bdew', code: BDEW_WITH_MASTR, role: 'candidate' },
           ],
         })
@@ -260,9 +263,11 @@ describe('Grid Operations Service', () => {
     it('throws 503 VNB_LOOKUP_ERROR when MCP transport throws', async () => {
       callWithNewSession.mockRejectedValueOnce(new Error('socket hang up'));
 
-      const err = await broker.call('grid-operations.vnbLookupCodes', {
-        bdewCode: '9906311000005',
-      }).catch((e) => e);
+      const err = await broker
+        .call('grid-operations.vnbLookupCodes', {
+          bdewCode: '9906311000005',
+        })
+        .catch((e) => e);
 
       expect(err).toBeDefined();
       expect(err.message).toMatch(/VNB lookup failed/);
@@ -273,9 +278,11 @@ describe('Grid Operations Service', () => {
     it('throws 404 VNB_NOT_FOUND when MCP returns null', async () => {
       callWithNewSession.mockResolvedValueOnce(null);
 
-      const err = await broker.call('grid-operations.vnbLookupCodes', {
-        bdewCode: '9906311000005',
-      }).catch((e) => e);
+      const err = await broker
+        .call('grid-operations.vnbLookupCodes', {
+          bdewCode: '9906311000005',
+        })
+        .catch((e) => e);
 
       expect(err).toBeDefined();
       expect(err.message).toMatch(/nicht bekannt/);
@@ -286,9 +293,11 @@ describe('Grid Operations Service', () => {
     it('includes bdewCode in VNB_NOT_FOUND error data', async () => {
       callWithNewSession.mockResolvedValueOnce(null);
 
-      const err = await broker.call('grid-operations.vnbLookupCodes', {
-        bdewCode: '9906311000005',
-      }).catch((e) => e);
+      const err = await broker
+        .call('grid-operations.vnbLookupCodes', {
+          bdewCode: '9906311000005',
+        })
+        .catch((e) => e);
 
       expect(err.data).toMatchObject({ bdewCode: '9906311000005' });
     });
@@ -296,9 +305,11 @@ describe('Grid Operations Service', () => {
     it('uses vnbName in error message when bdewCode is absent', async () => {
       callWithNewSession.mockResolvedValueOnce(null);
 
-      const err = await broker.call('grid-operations.vnbLookupCodes', {
-        vnbName: 'Syna GmbH',
-      }).catch((e) => e);
+      const err = await broker
+        .call('grid-operations.vnbLookupCodes', {
+          vnbName: 'Syna GmbH',
+        })
+        .catch((e) => e);
 
       expect(err.message).toMatch(/Syna GmbH/);
       expect(err.code).toBe(404);
@@ -307,9 +318,11 @@ describe('Grid Operations Service', () => {
     it('includes input params in VNB_LOOKUP_ERROR data', async () => {
       callWithNewSession.mockRejectedValueOnce(new Error('ETIMEDOUT'));
 
-      const err = await broker.call('grid-operations.vnbLookupCodes', {
-        bdewCode: '9906311000005',
-      }).catch((e) => e);
+      const err = await broker
+        .call('grid-operations.vnbLookupCodes', {
+          bdewCode: '9906311000005',
+        })
+        .catch((e) => e);
 
       expect(err.type).toBe('VNB_LOOKUP_ERROR');
       expect(err.data).toHaveProperty('input');
@@ -932,7 +945,7 @@ describe('Grid Operations Service', () => {
 
       // Result is passed through applyFormat — check results field
       const body = result?.results || result?.data?.results || result;
-      const arr = Array.isArray(body) ? body : (body?.results || []);
+      const arr = Array.isArray(body) ? body : body?.results || [];
       if (arr.length > 0) {
         expect(arr[0]).toHaveProperty('companyId');
         expect(arr[0]).toHaveProperty('marketRole');

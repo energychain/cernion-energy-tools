@@ -69,7 +69,10 @@ module.exports = {
         summary: 'Net residual load forecast (SMARD load − MaStR EE generation)',
         tags: ['Residual Load'],
         // @OpenEnergyPlatform/ontology — OEO_00320062 electricity demand, OEO_00010411 forecast
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00320062', 'https://openenergyplatform.org/ontology/oeo/OEO_00010411'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00320062',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00010411',
+        ],
         description: `Calculates **net residual load** for a grid area or region — the electricity volume a Stadtwerk or EVU must procure on the EPEX spot market:
 
 **Residual Load = Regional Load − PV Generation − Wind Generation**
@@ -622,7 +625,10 @@ module.exports = {
         summary: 'Regional load forecast with LLM reasoning and real MaStR capacity anchors',
         tags: ['Residual Load'],
         // @OpenEnergyPlatform/ontology — OEO_00320062 electricity demand, OEO_00010411 forecast
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00320062', 'https://openenergyplatform.org/ontology/oeo/OEO_00010411'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00320062',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00010411',
+        ],
         description: `LLM-based regional load forecast enriched with **real MaStR installation data** injected into the reasoning prompt.
 
 **What is real vs. LLM-estimated:**

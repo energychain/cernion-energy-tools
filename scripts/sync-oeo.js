@@ -108,9 +108,10 @@ async function main() {
     if (firstComma < 0) continue;
     const secondComma = line.indexOf(',', firstComma + 1);
     const id = line.slice(0, firstComma).trim();
-    const label = secondComma > 0
-      ? line.slice(firstComma + 1, secondComma).trim()
-      : line.slice(firstComma + 1).trim();
+    const label =
+      secondComma > 0
+        ? line.slice(firstComma + 1, secondComma).trim()
+        : line.slice(firstComma + 1).trim();
     if (id && label && /^OEO_\d+$/.test(id)) {
       entries.set(id, label);
     }
@@ -128,7 +129,9 @@ async function main() {
   const renamed = [];
 
   if (missing.length > 0) {
-    console.warn(`\n  ⚠️  ${missing.length} OEO IDs referenced in oeo-mappings.js not found in glossary:`);
+    console.warn(
+      `\n  ⚠️  ${missing.length} OEO IDs referenced in oeo-mappings.js not found in glossary:`
+    );
     missing.forEach((id) => console.warn(`     - ${id}`));
     console.warn('  These may have been renamed or removed. Manual review required.\n');
   }

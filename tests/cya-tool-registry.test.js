@@ -26,8 +26,15 @@ describe('cya-tool-registry — DATA_PATHS + MCP_TOOLS constants', () => {
 
   test('VALID_ACTOR_ROLES includes all 9 roles', () => {
     const expected = [
-      'grid_operator', 'supplier', 'project_developer', 'direct_marketer',
-      'metering_operator', 'regulator', 'municipality', 'journalist', 'citizen',
+      'grid_operator',
+      'supplier',
+      'project_developer',
+      'direct_marketer',
+      'metering_operator',
+      'regulator',
+      'municipality',
+      'journalist',
+      'citizen',
     ];
     for (const role of expected) {
       expect(VALID_ACTOR_ROLES).toContain(role);
@@ -90,27 +97,25 @@ describe('cya-tool-registry — resolveToolSet', () => {
 
   test('VOLTAGE_HOP_REQUIRED signal → SUBSTATION_FINDER in signalOverrides', () => {
     const ts = resolveToolSet('grid_operator', [], ['VOLTAGE_HOP_REQUIRED']);
-    const hasSubstation = ts.signalOverrides.some(
-      o => o.tool === MCP_TOOLS.SUBSTATION_FINDER
-    );
+    const hasSubstation = ts.signalOverrides.some((o) => o.tool === MCP_TOOLS.SUBSTATION_FINDER);
     expect(hasSubstation).toBe(true);
   });
 
   test('MISSING_NAP signal → GRID_DATA in signalOverrides', () => {
     const ts = resolveToolSet('grid_operator', [], ['MISSING_NAP']);
-    const hasGrid = ts.signalOverrides.some(o => o.tool === MCP_TOOLS.GRID_DATA);
+    const hasGrid = ts.signalOverrides.some((o) => o.tool === MCP_TOOLS.GRID_DATA);
     expect(hasGrid).toBe(true);
   });
 
   test('HIGH_CURTAILMENT signal → REDISPATCH in signalOverrides', () => {
     const ts = resolveToolSet('grid_operator', [], ['HIGH_CURTAILMENT']);
-    const hasRd = ts.signalOverrides.some(o => o.tool === MCP_TOOLS.REDISPATCH);
+    const hasRd = ts.signalOverrides.some((o) => o.tool === MCP_TOOLS.REDISPATCH);
     expect(hasRd).toBe(true);
   });
 
   test('GRID_TOPOLOGY_RADIAL signal → GRID_TOPOLOGY in signalOverrides', () => {
     const ts = resolveToolSet('grid_operator', [], ['GRID_TOPOLOGY_RADIAL']);
-    const hasTopo = ts.signalOverrides.some(o => o.tool === MCP_TOOLS.GRID_TOPOLOGY);
+    const hasTopo = ts.signalOverrides.some((o) => o.tool === MCP_TOOLS.GRID_TOPOLOGY);
     expect(hasTopo).toBe(true);
   });
 
@@ -132,9 +137,7 @@ describe('cya-tool-registry — resolveToolSet', () => {
 
 describe('cya-tool-registry — error handling', () => {
   test('null actorRole throws INVALID_ACTOR_ROLE (400)', () => {
-    expect(() => resolveToolSet(null, [], null)).toThrow(
-      expect.objectContaining({ code: 400 })
-    );
+    expect(() => resolveToolSet(null, [], null)).toThrow(expect.objectContaining({ code: 400 }));
   });
 
   test('undefined actorRole throws INVALID_ACTOR_ROLE', () => {
@@ -149,7 +152,11 @@ describe('cya-tool-registry — error handling', () => {
 
   test('UNKNOWN_ACTOR_ROLE error type string', () => {
     let err;
-    try { resolveToolSet('unknown_role_xyz', [], null); } catch (e) { err = e; }
+    try {
+      resolveToolSet('unknown_role_xyz', [], null);
+    } catch (e) {
+      err = e;
+    }
     expect(err).toBeDefined();
     expect(err.type || err.message).toMatch(/UNKNOWN_ACTOR_ROLE|unknown/i);
   });

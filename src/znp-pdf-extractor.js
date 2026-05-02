@@ -30,7 +30,8 @@ const LAYER2_EXTRACTION_SCHEMA = {
   properties: {
     peak_load_value: {
       type: SchemaType.NUMBER,
-      description: 'Maximum simultaneous annual peak load (Jahreshöchstlast) at the transformer, numeric only.',
+      description:
+        'Maximum simultaneous annual peak load (Jahreshöchstlast) at the transformer, numeric only.',
     },
     peak_load_unit: {
       type: SchemaType.STRING,
@@ -49,7 +50,13 @@ const LAYER2_EXTRACTION_SCHEMA = {
       description: 'Unit of the nominal transformer capacity, typically kVA or MVA.',
     },
   },
-  required: ['peak_load_value', 'peak_load_unit', 'transformer_id', 'nominal_capacity_value', 'nominal_capacity_unit'],
+  required: [
+    'peak_load_value',
+    'peak_load_unit',
+    'transformer_id',
+    'nominal_capacity_value',
+    'nominal_capacity_unit',
+  ],
 };
 
 /** Maximum characters of PDF text forwarded to the LLM (avoids token overflow). */
@@ -70,7 +77,9 @@ async function parsePdfBufferToText(buffer) {
   const data = await pdfParse(buffer);
   const text = String(data.text || '').trim();
   if (!text) {
-    throw new Error('PDF enthält keinen extrahierbaren Text. Nur native textbasierte PDFs werden in V1 unterstützt.');
+    throw new Error(
+      'PDF enthält keinen extrahierbaren Text. Nur native textbasierte PDFs werden in V1 unterstützt.'
+    );
   }
   return text;
 }
@@ -85,7 +94,9 @@ function normalizePowerToKw(value, unit, { applyCosPhi: _applyCosPhi = false } =
     throw new Error(`Ungültiger Leistungswert: ${value}`);
   }
 
-  const normalizedUnit = String(unit || '').trim().toLowerCase();
+  const normalizedUnit = String(unit || '')
+    .trim()
+    .toLowerCase();
   let kwValue;
 
   if (normalizedUnit === 'kw') {
@@ -115,9 +126,13 @@ function normalizePowerToKw(value, unit, { applyCosPhi: _applyCosPhi = false } =
  */
 async function extractLayer2CalibrationFromText(text) {
   // Truncate before embedding in prompt; llm-client applies PII scrubbing internally
-  const truncated = String(text || '').trim().slice(0, MAX_TEXT_CHARS);
+  const truncated = String(text || '')
+    .trim()
+    .slice(0, MAX_TEXT_CHARS);
   if (!truncated) {
-    throw new Error('PDF enthält keinen extrahierbaren Text. Nur native textbasierte PDFs werden in V1 unterstützt.');
+    throw new Error(
+      'PDF enthält keinen extrahierbaren Text. Nur native textbasierte PDFs werden in V1 unterstützt.'
+    );
   }
 
   const prompt =
@@ -149,7 +164,10 @@ async function extractLayer2CalibrationFromText(text) {
   if (typeof parsed.peak_load_value !== 'number' || !isFinite(parsed.peak_load_value)) {
     throw new Error(`LLM returned invalid peak_load_value: ${JSON.stringify(parsed)}`);
   }
-  if (typeof parsed.nominal_capacity_value !== 'number' || !isFinite(parsed.nominal_capacity_value)) {
+  if (
+    typeof parsed.nominal_capacity_value !== 'number' ||
+    !isFinite(parsed.nominal_capacity_value)
+  ) {
     throw new Error(`LLM returned invalid nominal_capacity_value: ${JSON.stringify(parsed)}`);
   }
 
@@ -161,7 +179,11 @@ async function extractLayer2CalibrationFromText(text) {
   return {
     peakLoadKw: normalizePowerToKw(parsed.peak_load_value, parsed.peak_load_unit),
     transformerId,
-    nominalCapacityKw: normalizePowerToKw(parsed.nominal_capacity_value, parsed.nominal_capacity_unit, { applyCosPhi: true }),
+    nominalCapacityKw: normalizePowerToKw(
+      parsed.nominal_capacity_value,
+      parsed.nominal_capacity_unit,
+      { applyCosPhi: true }
+    ),
     peakLoadUnit: String(parsed.peak_load_unit || '').trim(),
     nominalCapacityUnit: String(parsed.nominal_capacity_unit || '').trim(),
   };

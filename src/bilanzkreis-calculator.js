@@ -95,7 +95,7 @@ function calculateBalance(feedinData, consumptionData, interval = '15min') {
   };
 }
 
-function calculateVirtualBkBalance(participants, interval = '15min') {
+function calculateVirtualBkBalance(participants, _interval = '15min') {
   const producers = [];
   const consumers = [];
 
@@ -106,17 +106,19 @@ function calculateVirtualBkBalance(participants, interval = '15min') {
     } else if (role === 'consumer') {
       consumers.push({ ...participant, map: toTsMap(participant.data || []) });
     } else if (role === 'prosumer') {
-      producers.push({ ...participant, map: toTsMap(participant.feedinData || participant.data || []) });
-      consumers.push({ ...participant, map: toTsMap(participant.consumptionData || participant.data || []) });
+      producers.push({
+        ...participant,
+        map: toTsMap(participant.feedinData || participant.data || []),
+      });
+      consumers.push({
+        ...participant,
+        map: toTsMap(participant.consumptionData || participant.data || []),
+      });
     }
   }
 
-  const allMaps = [
-    ...producers.map((item) => item.map),
-    ...consumers.map((item) => item.map),
-  ];
+  const allMaps = [...producers.map((item) => item.map), ...consumers.map((item) => item.map)];
   const keys = collectSortedKeys(...allMaps);
-  const _hours = intervalHours(interval);
 
   const intervals = [];
   let totalShared = 0;
@@ -135,9 +137,10 @@ function calculateVirtualBkBalance(participants, interval = '15min') {
     const sharedEnergy = Math.min(totalProduction, totalCons);
     const residualGrid = Math.max(0, totalCons - sharedEnergy);
 
-    const consumerShareSum = consumers.reduce((sum, consumer) => {
-      return sum + toNumber(consumer.share, 1);
-    }, 0) || 1;
+    const consumerShareSum =
+      consumers.reduce((sum, consumer) => {
+        return sum + toNumber(consumer.share, 1);
+      }, 0) || 1;
 
     const participantRows = [];
 
@@ -206,7 +209,8 @@ function calculateSettlementReadiness(bkData, bilanzkreis = {}) {
   }
 
   const dataQuality = participants.length
-    ? participants.reduce((sum, participant) => sum + toNumber(participant.dataQuality, 0), 0) / participants.length
+    ? participants.reduce((sum, participant) => sum + toNumber(participant.dataQuality, 0), 0) /
+      participants.length
     : 0;
 
   const result = {
@@ -216,8 +220,8 @@ function calculateSettlementReadiness(bkData, bilanzkreis = {}) {
   };
 
   // §42c-spezifische KPIs — nur für Energieteilen-Bilanzkreise
-  const isEnergySharing = typeof bilanzkreis?.type === 'string' &&
-    bilanzkreis.type.includes('energy_sharing');
+  const isEnergySharing =
+    typeof bilanzkreis?.type === 'string' && bilanzkreis.type.includes('energy_sharing');
   if (isEnergySharing) {
     const hasMissingData = issues.some((i) => i.startsWith('missing_data'));
     const hasQualityIssue = issues.some(

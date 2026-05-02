@@ -195,7 +195,9 @@ describe('mastr-monitor.service', () => {
     const originalMax = service.settings.maxInstallationsPerWatch;
     service.settings.maxInstallationsPerWatch = 5;
 
-    mockedInstallations = Array.from({ length: 10 }, (_, index) => ({ mastrNummer: `SEE${index}` }));
+    mockedInstallations = Array.from({ length: 10 }, (_, index) => ({
+      mastrNummer: `SEE${index}`,
+    }));
 
     try {
       const rows = await service.fetchInstallationsForWatch({ query: { type: 'all' } }, {});
@@ -433,11 +435,7 @@ describe('mastr-monitor.service', () => {
           query: {
             type: 'solar',
           },
-          watchFields: [
-            'einheitBetriebsstatus',
-            'netzbetreiberpruefungStatus',
-            'lastUpdatedAt',
-          ],
+          watchFields: ['einheitBetriebsstatus', 'netzbetreiberpruefungStatus', 'lastUpdatedAt'],
         });
 
         mockedInstallations = [

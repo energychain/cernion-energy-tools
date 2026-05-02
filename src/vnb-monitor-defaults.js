@@ -138,81 +138,65 @@ module.exports = {
     ANSCHLUSSDAUER_EE_NS_WARNING: {
       severity: 'warning',
       ewkImpact: true,
-      recommendation_de:
-        'Anschlussdauer EE NS beobachten — Prozessoptimierung erwägen',
+      recommendation_de: 'Anschlussdauer EE NS beobachten — Prozessoptimierung erwägen',
       recommendation_en: 'Monitor EE NS connection time — consider process optimization',
     },
     ANSCHLUSSDAUER_VERBRAUCH_CRITICAL: {
       severity: 'critical',
       ewkImpact: true,
-      recommendation_de:
-        'Prozessanalyse Phase 2 Verbrauchsanschlüsse priorisieren',
-      recommendation_en:
-        'Process analysis: prioritize Phase 2 consumption connection time',
+      recommendation_de: 'Prozessanalyse Phase 2 Verbrauchsanschlüsse priorisieren',
+      recommendation_en: 'Process analysis: prioritize Phase 2 consumption connection time',
     },
     ANSCHLUSSDAUER_VERBRAUCH_WARNING: {
       severity: 'warning',
       ewkImpact: true,
-      recommendation_de:
-        'Verbrauchsanschlussdauer beobachten — Kapazitäten überprüfen',
-      recommendation_en:
-        'Monitor consumption connection time — review capacity planning',
+      recommendation_de: 'Verbrauchsanschlussdauer beobachten — Kapazitäten überprüfen',
+      recommendation_en: 'Monitor consumption connection time — review capacity planning',
     },
     UMSETZUNGSQUOTE_EE_NS_CRITICAL: {
       severity: 'critical',
       ewkImpact: true,
-      recommendation_de:
-        'NetzbetreiberPrüfungs-Stau abbauen — §118 EnWG Fristdruck beachten',
+      recommendation_de: 'NetzbetreiberPrüfungs-Stau abbauen — §118 EnWG Fristdruck beachten',
       recommendation_en:
         'Reduce grid operator verification backlog — note §118 EnWG deadline pressure',
     },
     UMSETZUNGSQUOTE_EE_NS_WARNING: {
       severity: 'warning',
       ewkImpact: true,
-      recommendation_de:
-        'Umsetzungsquote EE NS überwachen — Prüfungsprozess optimieren',
-      recommendation_en:
-        'Monitor EE NS realisation rate — optimize verification process',
+      recommendation_de: 'Umsetzungsquote EE NS überwachen — Prüfungsprozess optimieren',
+      recommendation_en: 'Monitor EE NS realisation rate — optimize verification process',
     },
     UMSETZUNGSQUOTE_VERBRAUCH_CRITICAL: {
       severity: 'critical',
       ewkImpact: true,
-      recommendation_de:
-        'Verbrauchsprüfungs-Rückstände abbauen — Kapazitäten ausbauen',
-      recommendation_en:
-        'Clear consumption verification backlog — expand capacity',
+      recommendation_de: 'Verbrauchsprüfungs-Rückstände abbauen — Kapazitäten ausbauen',
+      recommendation_en: 'Clear consumption verification backlog — expand capacity',
     },
     DIGITALISIERUNGSINDEX_CRITICAL: {
       severity: 'critical',
       ewkImpact: true,
       recommendation_de:
         'Digitalisierungsstrategie überarbeiten — Smart-Grid-Investitionen erhöhen',
-      recommendation_en:
-        'Revise digitalization strategy — increase Smart Grid investments',
+      recommendation_en: 'Revise digitalization strategy — increase Smart Grid investments',
     },
     PRÜFUNG_QUEUE_CRITICAL: {
       severity: 'critical',
       ewkImpact: false,
       recommendation_de:
         'NetzbetreiberPrüfungs-Backlog reduzieren — Ressourcen allocation überprüfen',
-      recommendation_en:
-        'Reduce grid operator verification backlog — review resource allocation',
+      recommendation_en: 'Reduce grid operator verification backlog — review resource allocation',
     },
     GAS_STORAGE_CRITICAL: {
       severity: 'critical',
       ewkImpact: false,
-      recommendation_de:
-        'Einkaufsstrategie überprüfen — Gasimport-Diversifizierung prüfen',
-      recommendation_en:
-        'Review procurement strategy — assess gas import diversification',
+      recommendation_de: 'Einkaufsstrategie überprüfen — Gasimport-Diversifizierung prüfen',
+      recommendation_en: 'Review procurement strategy — assess gas import diversification',
     },
     GAS_STORAGE_WARNING: {
       severity: 'warning',
       ewkImpact: false,
-      recommendation_de:
-        'Gasspeicher-Lage beobachten — Vorbereitungsmaßnahmen einleiten',
-      recommendation_en:
-        'Monitor gas storage situation — initiate preparatory measures',
+      recommendation_de: 'Gasspeicher-Lage beobachten — Vorbereitungsmaßnahmen einleiten',
+      recommendation_en: 'Monitor gas storage situation — initiate preparatory measures',
     },
   },
 };

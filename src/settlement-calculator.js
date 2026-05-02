@@ -107,9 +107,7 @@ function calculateRedispatchCompensation(
       weightedPrice += priceEurMwh * diff;
     }
 
-    const avgEventMarketPriceEurMwh = lostKwh > 0
-      ? weightedPrice / lostKwh
-      : defaultMarketPrice;
+    const avgEventMarketPriceEurMwh = lostKwh > 0 ? weightedPrice / lostKwh : defaultMarketPrice;
     const marketCompensation = lostKwh * (avgEventMarketPriceEurMwh / 1000);
 
     const eegTariff = toNumber(event.eegTariff_cent_kwh);

@@ -195,7 +195,10 @@ function calculateDimmingPlan(devices, loadForecast, gridCapacity, options = {})
     }
 
     totalReductionKwh += intervalReductionKw * INTERVAL_HOURS;
-    peakLoadWithDimmingKw = Math.max(peakLoadWithDimmingKw, Math.max(0, intervalLoadKw - intervalReductionKw));
+    peakLoadWithDimmingKw = Math.max(
+      peakLoadWithDimmingKw,
+      Math.max(0, intervalLoadKw - intervalReductionKw)
+    );
   }
 
   const affectedDevices = new Set(events.map((event) => event.deviceId)).size;
@@ -357,7 +360,10 @@ function classifyDevice(installationData) {
     };
   }
 
-  if ((name.includes('wallbox') || name.includes('ladeeinrichtung')) && capacityKw >= DEFAULT_OPTIONS.minPowerKw) {
+  if (
+    (name.includes('wallbox') || name.includes('ladeeinrichtung')) &&
+    capacityKw >= DEFAULT_OPTIONS.minPowerKw
+  ) {
     return {
       deviceType: 'wallbox',
       section14aEligible: true,

@@ -117,9 +117,12 @@ function mergeGeneratorForecasts(grid, generators) {
       if (idx === undefined) continue;
 
       // Accept pre-converted kWh or raw MW (convert MW → kWh for 15-min interval)
-      const kwh = fi.generationKWh != null
-        ? fi.generationKWh
-        : (fi.generationMW != null ? fi.generationMW * 0.25 : 0);
+      const kwh =
+        fi.generationKWh != null
+          ? fi.generationKWh
+          : fi.generationMW != null
+            ? fi.generationMW * 0.25
+            : 0;
 
       grid[idx].generationKWh = round4(grid[idx].generationKWh + kwh * weight);
     }
@@ -206,7 +209,7 @@ function allocateTimeseries(grid, consumers) {
         // Last consumer: assign remainder to eliminate rounding drift
         allocations[consumer.maloId] = round4(net - allocated);
       } else {
-        const share = round4(net * consumer.sharePercent / 100);
+        const share = round4((net * consumer.sharePercent) / 100);
         allocations[consumer.maloId] = share;
         allocated += share;
       }
@@ -309,7 +312,8 @@ function buildTotalSummary(grid, dateFrom, dateTo, dataSource, durationMs) {
  * @returns {string} — CSV string with header + one row per interval
  */
 function formatAsCsv(grid, maloId) {
-  const header = 'timestamp;generation_kwh;redispatch_deduction_kwh;net_generation_kwh;allocation_kwh';
+  const header =
+    'timestamp;generation_kwh;redispatch_deduction_kwh;net_generation_kwh;allocation_kwh';
   const rows = grid.map((interval) => {
     const alloc = interval.allocations?.[maloId] ?? 0;
     return [

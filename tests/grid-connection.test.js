@@ -56,12 +56,26 @@ const MOCK_INSTALLATIONS = [
 describe('validation-findings helper', () => {
   test('exports all 20 finding code constants', () => {
     const expected = [
-      'INVENTORY_COMPLETE', 'INVENTORY_EMPTY', 'INSTALLATION_NO_NAP', 'INSTALLATION_STATUS_ANOMALY',
-      'MASTR_DUPLICATE_SUSPECTED', 'OPERATOR_DATA_STALE', 'VOLTAGE_LEVEL_MISMATCH',
-      'CAPACITY_HEADROOM_OK', 'CAPACITY_CONDITIONAL', 'CAPACITY_EXPANSION_NEEDED', 'TRANSFORMER_DATA_MISSING',
-      'EWK_BENCHMARK_SLOW', 'EWK_BENCHMARK_FAST', 'EWK_IMPLEMENTATION_LOW',
-      'GO_DIRECT', 'GO_CONDITIONAL', 'NO_GO_EXPANSION', 'DATA_QUALITY_INSUFFICIENT',
-      'AUDIT_TRAIL_CREATED', 'SNAPSHOT_DRIFT_DETECTED',
+      'INVENTORY_COMPLETE',
+      'INVENTORY_EMPTY',
+      'INSTALLATION_NO_NAP',
+      'INSTALLATION_STATUS_ANOMALY',
+      'MASTR_DUPLICATE_SUSPECTED',
+      'OPERATOR_DATA_STALE',
+      'VOLTAGE_LEVEL_MISMATCH',
+      'CAPACITY_HEADROOM_OK',
+      'CAPACITY_CONDITIONAL',
+      'CAPACITY_EXPANSION_NEEDED',
+      'TRANSFORMER_DATA_MISSING',
+      'EWK_BENCHMARK_SLOW',
+      'EWK_BENCHMARK_FAST',
+      'EWK_IMPLEMENTATION_LOW',
+      'GO_DIRECT',
+      'GO_CONDITIONAL',
+      'NO_GO_EXPANSION',
+      'DATA_QUALITY_INSUFFICIENT',
+      'AUDIT_TRAIL_CREATED',
+      'SNAPSHOT_DRIFT_DETECTED',
     ];
     for (const code of expected) {
       expect(vf[code]).toBe(code);
@@ -78,8 +92,17 @@ describe('validation-findings helper', () => {
   });
 
   test('createFinding produces correct shape with padded ID', () => {
-    const f = vf.createFinding(1, 'inventory', vf.INVENTORY_COMPLETE, 'info',
-      'Test title', 'Test reason', { foo: 'bar' }, 'Do something', 3);
+    const f = vf.createFinding(
+      1,
+      'inventory',
+      vf.INVENTORY_COMPLETE,
+      'info',
+      'Test title',
+      'Test reason',
+      { foo: 'bar' },
+      'Do something',
+      3
+    );
     expect(f.id).toBe('F-1-003');
     expect(f.step).toBe(1);
     expect(f.stepName).toBe('inventory');
@@ -139,7 +162,12 @@ describe('grid-connection service', () => {
       actions: {
         createSnapshot: {
           async handler() {
-            return { id: 'snap-test-123', status: 'complete', snapshotHash: 'hash-abc', datapointNames: [] };
+            return {
+              id: 'snap-test-123',
+              status: 'complete',
+              snapshotHash: 'hash-abc',
+              datapointNames: [],
+            };
           },
         },
         validateSnapshot: {
@@ -148,10 +176,14 @@ describe('grid-connection service', () => {
           },
         },
         list: {
-          async handler() { return { count: 0, datapoints: [] }; },
+          async handler() {
+            return { count: 0, datapoints: [] };
+          },
         },
         data: {
-          async handler() { throw new Error('datapoint not found'); },
+          async handler() {
+            throw new Error('datapoint not found');
+          },
         },
       },
     });
@@ -163,12 +195,21 @@ describe('grid-connection service', () => {
         vnbLookupCodes: {
           async handler() {
             return {
-              data: { canonical: { name: MOCK_OPERATOR.name, bdew: MOCK_OPERATOR.bdew, bnr: MOCK_OPERATOR.bnr, mastrId: MOCK_OPERATOR.mastrId } },
+              data: {
+                canonical: {
+                  name: MOCK_OPERATOR.name,
+                  bdew: MOCK_OPERATOR.bdew,
+                  bnr: MOCK_OPERATOR.bnr,
+                  mastrId: MOCK_OPERATOR.mastrId,
+                },
+              },
             };
           },
         },
         marketPartners: {
-          async handler() { return { data: { results: [] } }; },
+          async handler() {
+            return { data: { results: [] } };
+          },
         },
       },
     });
@@ -178,10 +219,14 @@ describe('grid-connection service', () => {
       name: 'ewk-monitoring',
       actions: {
         anschlussdauer: {
-          async handler() { return { data: { rows: ewkMocks.anschlussdauer } }; },
+          async handler() {
+            return { data: { rows: ewkMocks.anschlussdauer } };
+          },
         },
         umsetzungsquote: {
-          async handler() { return { data: { rows: ewkMocks.umsetzungsquote } }; },
+          async handler() {
+            return { data: { rows: ewkMocks.umsetzungsquote } };
+          },
         },
       },
     });
@@ -223,7 +268,7 @@ describe('grid-connection service', () => {
 
   test('all actions have openapi annotations', () => {
     for (const [name, action] of Object.entries(gcService.schema.actions)) {
-      expect(action.openapi).toBeDefined(), `${name} must have openapi annotations`;
+      (expect(action.openapi).toBeDefined(), `${name} must have openapi annotations`);
       expect(action.openapi.summary).toBeTruthy();
       expect(Array.isArray(action.openapi.tags)).toBe(true);
     }
@@ -264,7 +309,12 @@ describe('grid-connection service', () => {
 
   test('buildInventoryFindings emits INSTALLATION_NO_NAP when NAP missing', () => {
     const noNapInst = [
-      { EinheitMastrNummer: 'SEE1', einheitBetriebsstatus: 35, NettoNennleistung: 200, energietraeger: 'solar' },
+      {
+        EinheitMastrNummer: 'SEE1',
+        einheitBetriebsstatus: 35,
+        NettoNennleistung: 200,
+        energietraeger: 'solar',
+      },
     ];
     const findings = gcService.buildInventoryFindings(noNapInst);
     expect(findings.some((f) => f.finding === vf.INSTALLATION_NO_NAP)).toBe(true);
@@ -272,7 +322,13 @@ describe('grid-connection service', () => {
 
   test('buildInventoryFindings emits INSTALLATION_STATUS_ANOMALY for non-35 status', () => {
     const anomalous = [
-      { EinheitMastrNummer: 'SEE2', einheitBetriebsstatus: 31, NettoNennleistung: 300, energietraeger: 'solar', nap: {} },
+      {
+        EinheitMastrNummer: 'SEE2',
+        einheitBetriebsstatus: 31,
+        NettoNennleistung: 300,
+        energietraeger: 'solar',
+        nap: {},
+      },
     ];
     const findings = gcService.buildInventoryFindings(anomalous);
     expect(findings.some((f) => f.finding === vf.INSTALLATION_STATUS_ANOMALY)).toBe(true);
@@ -299,7 +355,12 @@ describe('grid-connection service', () => {
 
   test('stepDelta flags stale NBP status', () => {
     const stale = [
-      { EinheitMastrNummer: 'SEE20', netzbetreiberPruefungStatus: 2955, Postleitzahl: '11111', NettoNennleistung: 500 },
+      {
+        EinheitMastrNummer: 'SEE20',
+        netzbetreiberPruefungStatus: 2955,
+        Postleitzahl: '11111',
+        NettoNennleistung: 500,
+      },
     ];
     const findings = gcService.stepDelta(stale);
     expect(findings.some((f) => f.finding === vf.OPERATOR_DATA_STALE)).toBe(true);
@@ -356,36 +417,28 @@ describe('grid-connection service', () => {
   });
 
   test('stepDecision returns GO_CONDITIONAL on CAPACITY_CONDITIONAL', () => {
-    const findings = [
-      { finding: vf.CAPACITY_CONDITIONAL, severity: 'warning' },
-    ];
+    const findings = [{ finding: vf.CAPACITY_CONDITIONAL, severity: 'warning' }];
     const d = gcService.stepDecision(findings);
     expect(d.finding).toBe(vf.GO_CONDITIONAL);
     expect(d.severity).toBe('warning');
   });
 
   test('stepDecision returns NO_GO_EXPANSION on CAPACITY_EXPANSION_NEEDED', () => {
-    const findings = [
-      { finding: vf.CAPACITY_EXPANSION_NEEDED, severity: 'error' },
-    ];
+    const findings = [{ finding: vf.CAPACITY_EXPANSION_NEEDED, severity: 'error' }];
     const d = gcService.stepDecision(findings);
     expect(d.finding).toBe(vf.NO_GO_EXPANSION);
     expect(d.severity).toBe('error');
   });
 
   test('stepDecision returns DATA_QUALITY_INSUFFICIENT on INVENTORY_EMPTY', () => {
-    const findings = [
-      { finding: vf.INVENTORY_EMPTY, severity: 'error' },
-    ];
+    const findings = [{ finding: vf.INVENTORY_EMPTY, severity: 'error' }];
     const d = gcService.stepDecision(findings);
     expect(d.finding).toBe(vf.DATA_QUALITY_INSUFFICIENT);
     expect(d.severity).toBe('error');
   });
 
   test('stepDecision returns DATA_QUALITY_INSUFFICIENT on VOLTAGE_LEVEL_MISMATCH', () => {
-    const findings = [
-      { finding: vf.VOLTAGE_LEVEL_MISMATCH, severity: 'error' },
-    ];
+    const findings = [{ finding: vf.VOLTAGE_LEVEL_MISMATCH, severity: 'error' }];
     const d = gcService.stepDecision(findings);
     expect(d.finding).toBe(vf.DATA_QUALITY_INSUFFICIENT);
   });
@@ -399,10 +452,16 @@ describe('grid-connection service', () => {
   });
 
   test('stepBenchmark emits EWK_BENCHMARK_SLOW when avgDays > bundesmedian', async () => {
-    ewkMocks.anschlussdauer = [{ durchschnittliche_anschlussdauer_tage: 90, bundesmedian_tage: 60 }];
-    const result = await broker.call('grid-connection.validate', {
-      gridOperatorId: MOCK_OPERATOR.mastrId,
-    }, { meta: {} });
+    ewkMocks.anschlussdauer = [
+      { durchschnittliche_anschlussdauer_tage: 90, bundesmedian_tage: 60 },
+    ];
+    const result = await broker.call(
+      'grid-connection.validate',
+      {
+        gridOperatorId: MOCK_OPERATOR.mastrId,
+      },
+      { meta: {} }
+    );
     // Use callWithNewSession mock to return installations
     // This test triggers the full pipeline - check EWK slow finding exists
     CernionMCPClient.callWithNewSession.mockResolvedValue({ installations: MOCK_INSTALLATIONS });
@@ -415,8 +474,9 @@ describe('grid-connection service', () => {
 
   // ---- stepInventory ----
   test('stepInventory calls MCP and returns flat installations array', async () => {
-    CernionMCPClient.callWithNewSession.mockResolvedValueOnce({ installations: MOCK_INSTALLATIONS });
-    const ctx = broker.call.bind(broker);
+    CernionMCPClient.callWithNewSession.mockResolvedValueOnce({
+      installations: MOCK_INSTALLATIONS,
+    });
     const installations = await gcService.stepInventory(
       { call: jest.fn(), meta: {} },
       MOCK_OPERATOR,
@@ -433,25 +493,47 @@ describe('grid-connection service', () => {
   test('stepInventory throws when no MaStR ID and no datapoint', async () => {
     const ctx = { call: jest.fn().mockResolvedValue({ count: 0, datapoints: [] }), meta: {} };
     const noIdOperator = { mastrId: null, name: 'Unknown', bdew: null, bnr: null };
-    await expect(gcService.stepInventory(ctx, noIdOperator, { datapointTags: [] }))
-      .rejects.toThrow(/MaStR ID not resolved/);
+    await expect(gcService.stepInventory(ctx, noIdOperator, { datapointTags: [] })).rejects.toThrow(
+      /MaStR ID not resolved/
+    );
   });
 
   // ---- resolveOperator ----
   test('resolveOperator returns mastrId directly when gridOperatorId provided', async () => {
-    const result = await broker.call('grid-operations.vnbLookupCodes', { bdewCode: MOCK_OPERATOR.bdew });
+    await broker.call('grid-operations.vnbLookupCodes', {
+      bdewCode: MOCK_OPERATOR.bdew,
+    });
     const ctx = {
-      call: jest.fn().mockResolvedValue({ data: { canonical: { name: MOCK_OPERATOR.name, bdew: MOCK_OPERATOR.bdew, bnr: MOCK_OPERATOR.bnr } } }),
+      call: jest.fn().mockResolvedValue({
+        data: {
+          canonical: {
+            name: MOCK_OPERATOR.name,
+            bdew: MOCK_OPERATOR.bdew,
+            bnr: MOCK_OPERATOR.bnr,
+          },
+        },
+      }),
       meta: {},
     };
-    const op = await gcService.resolveOperator(ctx, { gridOperatorId: MOCK_OPERATOR.mastrId, gridOperatorBdew: MOCK_OPERATOR.bdew });
+    const op = await gcService.resolveOperator(ctx, {
+      gridOperatorId: MOCK_OPERATOR.mastrId,
+      gridOperatorBdew: MOCK_OPERATOR.bdew,
+    });
     expect(op.mastrId).toBe(MOCK_OPERATOR.mastrId);
     expect(op.bdew).toBe(MOCK_OPERATOR.bdew);
   });
 
   test('resolveOperator resolves mastrId from BDEW code via vnbLookupCodes', async () => {
     const ctx = {
-      call: jest.fn().mockResolvedValue({ data: { canonical: { mastrId: MOCK_OPERATOR.mastrId, name: MOCK_OPERATOR.name, bnr: MOCK_OPERATOR.bnr } } }),
+      call: jest.fn().mockResolvedValue({
+        data: {
+          canonical: {
+            mastrId: MOCK_OPERATOR.mastrId,
+            name: MOCK_OPERATOR.name,
+            bnr: MOCK_OPERATOR.bnr,
+          },
+        },
+      }),
       meta: {},
     };
     const op = await gcService.resolveOperator(ctx, { gridOperatorBdew: MOCK_OPERATOR.bdew });
@@ -462,7 +544,15 @@ describe('grid-connection service', () => {
   test('resolveOperator strips annotation from marketPartners result', async () => {
     const ctx = {
       call: jest.fn().mockResolvedValue({
-        data: { results: [{ mastrId: 'SNB935578300972 (strom, 100% Match)', companyName: 'TWL Netze GmbH', bdewCode: null }] },
+        data: {
+          results: [
+            {
+              mastrId: 'SNB935578300972 (strom, 100% Match)',
+              companyName: 'TWL Netze GmbH',
+              bdewCode: null,
+            },
+          ],
+        },
       }),
       meta: {},
     };
@@ -472,7 +562,9 @@ describe('grid-connection service', () => {
 
   // ---- Full validate integration ----
   test('validate action returns success=true with id, decision, summary, findings', async () => {
-    CernionMCPClient.callWithNewSession.mockResolvedValueOnce({ installations: MOCK_INSTALLATIONS });
+    CernionMCPClient.callWithNewSession.mockResolvedValueOnce({
+      installations: MOCK_INSTALLATIONS,
+    });
     const result = await broker.call('grid-connection.validate', {
       gridOperatorId: MOCK_OPERATOR.mastrId,
     });
@@ -485,7 +577,9 @@ describe('grid-connection service', () => {
   });
 
   test('validate persists report to PouchDB (retrievable via get)', async () => {
-    CernionMCPClient.callWithNewSession.mockResolvedValueOnce({ installations: MOCK_INSTALLATIONS });
+    CernionMCPClient.callWithNewSession.mockResolvedValueOnce({
+      installations: MOCK_INSTALLATIONS,
+    });
     const created = await broker.call('grid-connection.validate', {
       gridOperatorId: MOCK_OPERATOR.mastrId,
     });
@@ -496,7 +590,9 @@ describe('grid-connection service', () => {
   });
 
   test('validate produces GO_DIRECT decision for clean inventory', async () => {
-    CernionMCPClient.callWithNewSession.mockResolvedValueOnce({ installations: MOCK_INSTALLATIONS });
+    CernionMCPClient.callWithNewSession.mockResolvedValueOnce({
+      installations: MOCK_INSTALLATIONS,
+    });
     const result = await broker.call('grid-connection.validate', {
       gridOperatorId: MOCK_OPERATOR.mastrId,
       skipSteps: [4],
@@ -505,7 +601,9 @@ describe('grid-connection service', () => {
   });
 
   test('validate with skipSteps=[4] skips benchmark, step 4 shows skipped', async () => {
-    CernionMCPClient.callWithNewSession.mockResolvedValueOnce({ installations: MOCK_INSTALLATIONS });
+    CernionMCPClient.callWithNewSession.mockResolvedValueOnce({
+      installations: MOCK_INSTALLATIONS,
+    });
     const result = await broker.call('grid-connection.validate', {
       gridOperatorId: MOCK_OPERATOR.mastrId,
       skipSteps: [4],
@@ -515,7 +613,9 @@ describe('grid-connection service', () => {
   });
 
   test('validate audit step emits AUDIT_TRAIL_CREATED finding', async () => {
-    CernionMCPClient.callWithNewSession.mockResolvedValueOnce({ installations: MOCK_INSTALLATIONS });
+    CernionMCPClient.callWithNewSession.mockResolvedValueOnce({
+      installations: MOCK_INSTALLATIONS,
+    });
     const result = await broker.call('grid-connection.validate', {
       gridOperatorId: MOCK_OPERATOR.mastrId,
     });
@@ -523,8 +623,7 @@ describe('grid-connection service', () => {
   });
 
   test('validate returns 400-style error when no operator input provided', async () => {
-    await expect(broker.call('grid-connection.validate', {}))
-      .rejects.toThrow();
+    await expect(broker.call('grid-connection.validate', {})).rejects.toThrow();
   });
 
   // ---- list action ----

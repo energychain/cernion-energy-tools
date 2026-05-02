@@ -25,11 +25,10 @@ describe('edm-virtual-meter helpers', () => {
 
   test('buildTimeseriesRows maps values with quality/source', () => {
     const timestamps = buildQuarterHourTimestamps('2026-05-01');
-    const rows = buildTimeseriesRows(
-      timestamps,
-      new Array(QUARTER_HOURS_PER_DAY).fill(1.25),
-      { quality: 'synthetic', source: 'virtual:test' }
-    );
+    const rows = buildTimeseriesRows(timestamps, new Array(QUARTER_HOURS_PER_DAY).fill(1.25), {
+      quality: 'synthetic',
+      source: 'virtual:test',
+    });
 
     expect(rows).toHaveLength(QUARTER_HOURS_PER_DAY);
     expect(rows[0]).toEqual({

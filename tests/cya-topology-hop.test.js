@@ -1,6 +1,6 @@
 'use strict';
 
-const { assessTopologyHop, VOLTAGE_THRESHOLDS, determineRequiredVoltageLevel } = require('../src/cya-topology-hop');
+const { assessTopologyHop, determineRequiredVoltageLevel } = require('../src/cya-topology-hop');
 
 describe('cya-topology-hop', () => {
   describe('determineRequiredVoltageLevel', () => {

@@ -327,7 +327,11 @@ describe('Agent Service', () => {
             location: { type: 'string', optional: true },
             boundingBox: { type: 'object', optional: true },
             gridOperator: { type: 'string', optional: true },
-            substationType: { type: 'enum', values: ['all', 'transmission', 'distribution', 'minor'], optional: true },
+            substationType: {
+              type: 'enum',
+              values: ['all', 'transmission', 'distribution', 'minor'],
+              optional: true,
+            },
             voltageLevel: { type: 'enum', values: ['NS', 'MS', 'HS', 'all'], optional: true },
             limit: { type: 'number', optional: true },
           },
@@ -1547,7 +1551,6 @@ describe('Agent Service', () => {
       });
 
       // Temporarily override the gas-storage.countryStorage mock to capture meta
-      const originalImpl = broker.registry.actions.get('gas-storage.countryStorage');
       const captureService = broker.createService({
         name: 'meta-capture-helper',
         actions: {
@@ -1559,15 +1562,20 @@ describe('Agent Service', () => {
       await captureService._init(); // ensure registered
 
       _mockGenerateContent.mockResolvedValueOnce({
-        response: { text: () => makePlanResponse({
-          steps: [{
-            step: 1,
-            action: 'meta-capture-helper.capture',
-            description: 'Capture meta for testing',
-            params: { country: 'de' },
-          }],
-          requiredInputs: [],
-        }) },
+        response: {
+          text: () =>
+            makePlanResponse({
+              steps: [
+                {
+                  step: 1,
+                  action: 'meta-capture-helper.capture',
+                  description: 'Capture meta for testing',
+                  params: { country: 'de' },
+                },
+              ],
+              requiredInputs: [],
+            }),
+        },
       });
 
       const analyzed = await broker.call('agent.analyze', {

@@ -24,11 +24,11 @@ const { calculateSettlementReadiness } = require('../src/bilanzkreis-calculator'
 
 // Unique PouchDB paths per test file
 const TS = Date.now();
-const ES_DB_PATH   = path.join(os.tmpdir(), `abnahme-es-${TS}`);
+const ES_DB_PATH = path.join(os.tmpdir(), `abnahme-es-${TS}`);
 const ALLOC_DB_PATH = path.join(os.tmpdir(), `abnahme-alloc-${TS}`);
 
-process.env.ENERGY_SHARING_DB_PATH     = ES_DB_PATH;
-process.env.ALLOCATION_ENGINE_DB_PATH  = ALLOC_DB_PATH;
+process.env.ENERGY_SHARING_DB_PATH = ES_DB_PATH;
+process.env.ALLOCATION_ENGINE_DB_PATH = ALLOC_DB_PATH;
 process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
 
 // ---------------------------------------------------------------------------
@@ -57,7 +57,14 @@ const MOCK_INSTALLATION_HOEHEINOED = {
 };
 
 const MOCK_DV_RESULT = {
-  data: [{ mastrId: 'DV987654321', name: 'Energiedienstleister GmbH', portfolioSize: 120, totalCapacityKW: 45000 }],
+  data: [
+    {
+      mastrId: 'DV987654321',
+      name: 'Energiedienstleister GmbH',
+      portfolioSize: 120,
+      totalCapacityKW: 45000,
+    },
+  ],
 };
 
 const CONSUMERS_VALID = [
@@ -66,7 +73,11 @@ const CONSUMERS_VALID = [
 ];
 
 const GENERATORS_VALID = [
-  { mastrNummer: HOEHEINOED_MASTR, sharePercent: 100, direktvermarkter: 'Energiedienstleister GmbH' },
+  {
+    mastrNummer: HOEHEINOED_MASTR,
+    sharePercent: 100,
+    direktvermarkter: 'Energiedienstleister GmbH',
+  },
 ];
 
 /** Build 96 × 15-min forecast intervals for a single day */
@@ -95,10 +106,26 @@ describe('Abnahme Suite 1 — Validierungs-Pipeline (Höheinöd)', () => {
     broker.createService({
       name: 'datapoint',
       actions: {
-        createSnapshot:   { async handler() { return { id: 'snap-1', status: 'complete', snapshotHash: 'h1', datapointNames: [] }; } },
-        validateSnapshot: { async handler() { return { id: 'snap-1', consistent: true, drift: [] }; } },
-        list:             { async handler() { return { count: 0, datapoints: [] }; } },
-        data:             { async handler() { throw new Error('no data'); } },
+        createSnapshot: {
+          async handler() {
+            return { id: 'snap-1', status: 'complete', snapshotHash: 'h1', datapointNames: [] };
+          },
+        },
+        validateSnapshot: {
+          async handler() {
+            return { id: 'snap-1', consistent: true, drift: [] };
+          },
+        },
+        list: {
+          async handler() {
+            return { count: 0, datapoints: [] };
+          },
+        },
+        data: {
+          async handler() {
+            throw new Error('no data');
+          },
+        },
       },
     });
     await broker.start();
@@ -314,7 +341,9 @@ describe('Abnahme Suite 2 — Allokations-Engine (Höheinöd)', () => {
 
     await broker.call('energy-sharing-allocation.remove', { id: alloc.id });
 
-    const list = await broker.call('energy-sharing-allocation.list', { communityId: 'ES-HHN-DEL-001' });
+    const list = await broker.call('energy-sharing-allocation.list', {
+      communityId: 'ES-HHN-DEL-001',
+    });
     const ids = (list.allocations || []).map((a) => a.id);
     expect(ids).not.toContain(alloc.id);
   });
@@ -325,15 +354,18 @@ describe('Abnahme Suite 2 — Allokations-Engine (Höheinöd)', () => {
 // ---------------------------------------------------------------------------
 describe('Abnahme Suite 3 — Settlement-Readiness KPIs (§42c)', () => {
   const ENERGY_SHARING_BK = { type: 'virtual_energy_sharing', id: 'BK-HHN-001' };
-  const REAL_BK           = { type: 'real', id: 'BK-REAL-001' };
+  const REAL_BK = { type: 'real', id: 'BK-REAL-001' };
 
   test('12 — ready:true + PARAGRAF_42C_KONFORM:true + A96_FAEHIG:true für vollständige Daten', () => {
-    const result = calculateSettlementReadiness({
-      participants: [
-        { meloId: 'MEL001', hasData: true, dataQuality: 0.98, gapHours: 0, msconsComplete: true },
-        { meloId: 'MEL002', hasData: true, dataQuality: 0.97, gapHours: 0, msconsComplete: true },
-      ],
-    }, ENERGY_SHARING_BK);
+    const result = calculateSettlementReadiness(
+      {
+        participants: [
+          { meloId: 'MEL001', hasData: true, dataQuality: 0.98, gapHours: 0, msconsComplete: true },
+          { meloId: 'MEL002', hasData: true, dataQuality: 0.97, gapHours: 0, msconsComplete: true },
+        ],
+      },
+      ENERGY_SHARING_BK
+    );
 
     expect(result.ready).toBe(true);
     expect(result.issues).toHaveLength(0);
@@ -342,11 +374,14 @@ describe('Abnahme Suite 3 — Settlement-Readiness KPIs (§42c)', () => {
   });
 
   test('13 — missing_data → PARAGRAF_42C_KONFORM:false, A96_FAEHIG:false', () => {
-    const result = calculateSettlementReadiness({
-      participants: [
-        { meloId: 'MEL001', hasData: false, dataQuality: 0, gapHours: 0, msconsComplete: true },
-      ],
-    }, ENERGY_SHARING_BK);
+    const result = calculateSettlementReadiness(
+      {
+        participants: [
+          { meloId: 'MEL001', hasData: false, dataQuality: 0, gapHours: 0, msconsComplete: true },
+        ],
+      },
+      ENERGY_SHARING_BK
+    );
 
     expect(result.ready).toBe(false);
     expect(result.PARAGRAF_42C_KONFORM).toBe(false);
@@ -354,23 +389,29 @@ describe('Abnahme Suite 3 — Settlement-Readiness KPIs (§42c)', () => {
   });
 
   test('14 — low_data_quality → PARAGRAF_42C_KONFORM:true, A96_FAEHIG:false', () => {
-    const result = calculateSettlementReadiness({
-      participants: [
-        { meloId: 'MEL001', hasData: true, dataQuality: 0.90, gapHours: 0, msconsComplete: true },
-      ],
-    }, ENERGY_SHARING_BK);
+    const result = calculateSettlementReadiness(
+      {
+        participants: [
+          { meloId: 'MEL001', hasData: true, dataQuality: 0.9, gapHours: 0, msconsComplete: true },
+        ],
+      },
+      ENERGY_SHARING_BK
+    );
 
     expect(result.ready).toBe(false);
-    expect(result.PARAGRAF_42C_KONFORM).toBe(true);  // data present, §42c kann geprüft werden
-    expect(result.A96_FAEHIG).toBe(false);           // Qualität zu niedrig für A96
+    expect(result.PARAGRAF_42C_KONFORM).toBe(true); // data present, §42c kann geprüft werden
+    expect(result.A96_FAEHIG).toBe(false); // Qualität zu niedrig für A96
   });
 
   test('15 — large_gaps blockiert ready, aber nicht §42c KPIs', () => {
-    const result = calculateSettlementReadiness({
-      participants: [
-        { meloId: 'MEL001', hasData: true, dataQuality: 0.97, gapHours: 3, msconsComplete: true },
-      ],
-    }, ENERGY_SHARING_BK);
+    const result = calculateSettlementReadiness(
+      {
+        participants: [
+          { meloId: 'MEL001', hasData: true, dataQuality: 0.97, gapHours: 3, msconsComplete: true },
+        ],
+      },
+      ENERGY_SHARING_BK
+    );
 
     expect(result.ready).toBe(false);
     expect(result.PARAGRAF_42C_KONFORM).toBe(true);
@@ -378,22 +419,34 @@ describe('Abnahme Suite 3 — Settlement-Readiness KPIs (§42c)', () => {
   });
 
   test('16 — mscons_incomplete → A96_FAEHIG:false', () => {
-    const result = calculateSettlementReadiness({
-      participants: [
-        { meloId: 'MEL001', hasData: true, dataQuality: 0.98, gapHours: 0, msconsComplete: false },
-      ],
-    }, ENERGY_SHARING_BK);
+    const result = calculateSettlementReadiness(
+      {
+        participants: [
+          {
+            meloId: 'MEL001',
+            hasData: true,
+            dataQuality: 0.98,
+            gapHours: 0,
+            msconsComplete: false,
+          },
+        ],
+      },
+      ENERGY_SHARING_BK
+    );
 
     expect(result.A96_FAEHIG).toBe(false);
     expect(result.PARAGRAF_42C_KONFORM).toBe(true);
   });
 
   test('17 — Nicht-Energieteilen-BK enthält keine §42c KPIs', () => {
-    const result = calculateSettlementReadiness({
-      participants: [
-        { meloId: 'MEL001', hasData: true, dataQuality: 0.99, gapHours: 0, msconsComplete: true },
-      ],
-    }, REAL_BK);
+    const result = calculateSettlementReadiness(
+      {
+        participants: [
+          { meloId: 'MEL001', hasData: true, dataQuality: 0.99, gapHours: 0, msconsComplete: true },
+        ],
+      },
+      REAL_BK
+    );
 
     expect(result.ready).toBe(true);
     expect(result.PARAGRAF_42C_KONFORM).toBeUndefined();

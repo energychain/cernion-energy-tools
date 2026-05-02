@@ -5,7 +5,11 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const { startJob } = require('../src/job-store');
 const { computeDelta, buildSnapshotEntry } = require('../src/mastr-monitor-diff');
 const { isDue } = require('../src/mastr-monitor-scheduler');
-const { isSmtpConfigured, sendDeltaNotification, sendConfirmationEmail } = require('../src/mastr-monitor-notify');
+const {
+  isSmtpConfigured,
+  sendDeltaNotification,
+  sendConfirmationEmail,
+} = require('../src/mastr-monitor-notify');
 
 const WATCHES_NAMESPACE = 'mastr_watches';
 const SNAPSHOTS_NAMESPACE = 'mastr_snapshots';
@@ -27,7 +31,10 @@ function shortUuid(length = 8) {
 }
 
 function hashToken(token) {
-  return crypto.createHash('sha256').update(String(token || '')).digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(String(token || ''))
+    .digest('hex');
 }
 
 function toIsoNow() {
@@ -76,7 +83,9 @@ function isSingleNumericCronField(field) {
 }
 
 function isAtMostDailyCron(expression) {
-  const parts = String(expression || '').trim().split(/\s+/);
+  const parts = String(expression || '')
+    .trim()
+    .split(/\s+/);
   if (parts.length !== 5) return false;
 
   const [minute, hour] = parts;
@@ -97,13 +106,20 @@ module.exports = {
 
   settings: {
     defaultWatchFields: [
-      'einheitBetriebsstatus', 'nettonennleistung', 'bruttoleistung',
-      'inbetriebnahmedatum', 'fernsteuerbarkeitDv',
-      'netzbetreiberpruefungStatus', 'direktvermarkterMastrNummer',
-      'direktvermarkterName', 'napData.spannungsebene', 'lastUpdatedAt',
+      'einheitBetriebsstatus',
+      'nettonennleistung',
+      'bruttoleistung',
+      'inbetriebnahmedatum',
+      'fernsteuerbarkeitDv',
+      'netzbetreiberpruefungStatus',
+      'direktvermarkterMastrNummer',
+      'direktvermarkterName',
+      'napData.spannungsebene',
+      'lastUpdatedAt',
     ],
     maxInstallationsPerWatch: readIntEnv('MASTR_MONITOR_MAX_INSTALLATIONS_PER_WATCH', 50000),
-    chunkingEnabled: String(process.env.MASTR_MONITOR_CHUNKING_ENABLED || 'true').toLowerCase() !== 'false',
+    chunkingEnabled:
+      String(process.env.MASTR_MONITOR_CHUNKING_ENABLED || 'true').toLowerCase() !== 'false',
     chunkSize: readIntEnv('MASTR_MONITOR_CHUNK_SIZE', 1000),
     snapshotRetention: 30,
     deltaRetentionDays: 90,
@@ -156,7 +172,11 @@ module.exports = {
                 default: {
                   value: {
                     name: 'TWL Solar >100kW Monitoring',
-                    query: { gridOperatorMastrId: 'SNB935578300972', type: 'solar', minCapacity: 100 },
+                    query: {
+                      gridOperatorMastrId: 'SNB935578300972',
+                      type: 'solar',
+                      minCapacity: 100,
+                    },
                   },
                 },
               },
@@ -166,42 +186,64 @@ module.exports = {
       },
       params: {
         name: { type: 'string', min: 3, max: 200 },
-        query: { type: 'object', props: {
-          gridOperatorMastrId: { type: 'string', optional: true },
-          gridOperatorBdewCode: { type: 'string', optional: true },
-          type: { type: 'enum', values: ['solar', 'wind', 'storage', 'biomass', 'all'], optional: true, default: 'all' },
-          minCapacity: { type: 'number', optional: true },
-          maxCapacity: { type: 'number', optional: true },
-          status: { type: 'string', optional: true },
-          postleitzahl: { type: 'string', optional: true },
-          gemeinde: { type: 'string', optional: true },
-          landkreis: { type: 'string', optional: true },
-          bundesland: { type: 'string', optional: true },
-          fernsteuerbarkeitDv: { type: 'boolean', optional: true },
-          netzbetreiberPruefungStatus: { type: 'string', optional: true },
-        } },
-        watchFields: { type: 'array', items: 'string', optional: true },
-        schedule: { type: 'object', optional: true, props: {
-          type: { type: 'enum', values: ['cron', 'preset'] },
-          expression: { type: 'string', optional: true },
-          preset: { type: 'enum', values: ['daily_morning', 'weekday_morning', 'weekly_monday', 'monthly_first'], optional: true },
-          timezone: { type: 'string', optional: true, default: 'Europe/Berlin' },
-        } },
-        notifications: { type: 'array', optional: true, items: {
-          type: 'object', props: {
-            channel: { type: 'enum', values: ['email'] },
-            to: { type: 'email' },
-            onlyOnChanges: { type: 'boolean', optional: true, default: true },
-            language: { type: 'enum', values: ['de', 'en'], optional: true, default: 'de' },
+        query: {
+          type: 'object',
+          props: {
+            gridOperatorMastrId: { type: 'string', optional: true },
+            gridOperatorBdewCode: { type: 'string', optional: true },
+            type: {
+              type: 'enum',
+              values: ['solar', 'wind', 'storage', 'biomass', 'all'],
+              optional: true,
+              default: 'all',
+            },
+            minCapacity: { type: 'number', optional: true },
+            maxCapacity: { type: 'number', optional: true },
+            status: { type: 'string', optional: true },
+            postleitzahl: { type: 'string', optional: true },
+            gemeinde: { type: 'string', optional: true },
+            landkreis: { type: 'string', optional: true },
+            bundesland: { type: 'string', optional: true },
+            fernsteuerbarkeitDv: { type: 'boolean', optional: true },
+            netzbetreiberPruefungStatus: { type: 'string', optional: true },
           },
-        } },
+        },
+        watchFields: { type: 'array', items: 'string', optional: true },
+        schedule: {
+          type: 'object',
+          optional: true,
+          props: {
+            type: { type: 'enum', values: ['cron', 'preset'] },
+            expression: { type: 'string', optional: true },
+            preset: {
+              type: 'enum',
+              values: ['daily_morning', 'weekday_morning', 'weekly_monday', 'monthly_first'],
+              optional: true,
+            },
+            timezone: { type: 'string', optional: true, default: 'Europe/Berlin' },
+          },
+        },
+        notifications: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'object',
+            props: {
+              channel: { type: 'enum', values: ['email'] },
+              to: { type: 'email' },
+              onlyOnChanges: { type: 'boolean', optional: true, default: true },
+              language: { type: 'enum', values: ['de', 'en'], optional: true, default: 'de' },
+            },
+          },
+        },
       },
       async handler(ctx) {
         const createdAt = toIsoNow();
         const watchId = `${slugify(ctx.params.name)}_${shortUuid(8)}`;
-        const watchFields = Array.isArray(ctx.params.watchFields) && ctx.params.watchFields.length > 0
-          ? [...new Set(ctx.params.watchFields)]
-          : [...this.settings.defaultWatchFields];
+        const watchFields =
+          Array.isArray(ctx.params.watchFields) && ctx.params.watchFields.length > 0
+            ? [...new Set(ctx.params.watchFields)]
+            : [...this.settings.defaultWatchFields];
 
         const schedule = this.resolveSchedule(ctx.params.schedule);
         const watchToken = crypto.randomBytes(24).toString('hex');
@@ -263,8 +305,18 @@ module.exports = {
         summary: 'List MaStR monitor watches',
         tags: ['MaStR Monitor'],
         parameters: [
-          { name: 'email', in: 'query', required: false, schema: { type: 'string', format: 'email', example: 'netzplanung@twl.de' } },
-          { name: 'limit', in: 'query', required: false, schema: { type: 'number', default: 50, example: 50 } },
+          {
+            name: 'email',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', format: 'email', example: 'netzplanung@twl.de' },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', default: 50, example: 50 },
+          },
         ],
       },
       params: {
@@ -298,7 +350,12 @@ module.exports = {
         summary: 'Get MaStR monitor watch',
         tags: ['MaStR Monitor'],
         parameters: [
-          { name: 'watchId', in: 'path', required: true, schema: { type: 'string', example: 'twl-solar-monitor_ab12cd34' } },
+          {
+            name: 'watchId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'twl-solar-monitor_ab12cd34' },
+          },
         ],
       },
       params: {
@@ -370,7 +427,11 @@ module.exports = {
                 type: 'object',
                 required: ['watchId'],
                 properties: {
-                  watchId: { type: 'string', example: 'twl-solar-monitor_ab12cd34', nullable: true },
+                  watchId: {
+                    type: 'string',
+                    example: 'twl-solar-monitor_ab12cd34',
+                    nullable: true,
+                  },
                 },
               },
               examples: {
@@ -398,7 +459,12 @@ module.exports = {
         summary: 'Get delta history for watch',
         tags: ['MaStR Monitor'],
         parameters: [
-          { name: 'watchId', in: 'path', required: true, schema: { type: 'string', example: 'twl-solar-monitor_ab12cd34' } },
+          {
+            name: 'watchId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'twl-solar-monitor_ab12cd34' },
+          },
         ],
       },
       params: {
@@ -406,7 +472,9 @@ module.exports = {
       },
       async handler(ctx) {
         const docs = await this.listDocsByPrefix(DELTAS_NAMESPACE, `${ctx.params.watchId}:`);
-        const sortedDocs = docs.sort((a, b) => String(b.key || '').localeCompare(String(a.key || '')));
+        const sortedDocs = docs.sort((a, b) =>
+          String(b.key || '').localeCompare(String(a.key || ''))
+        );
 
         const deltas = [];
         for (const doc of sortedDocs) {
@@ -427,8 +495,18 @@ module.exports = {
         summary: 'Get one delta by ID',
         tags: ['MaStR Monitor'],
         parameters: [
-          { name: 'watchId', in: 'path', required: true, schema: { type: 'string', example: 'twl-solar-monitor_ab12cd34' } },
-          { name: 'deltaId', in: 'path', required: true, schema: { type: 'string', example: '2026-04-16' } },
+          {
+            name: 'watchId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'twl-solar-monitor_ab12cd34' },
+          },
+          {
+            name: 'deltaId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: '2026-04-16' },
+          },
         ],
       },
       params: {
@@ -451,8 +529,18 @@ module.exports = {
         summary: 'Get latest snapshot in JSON or CSV',
         tags: ['MaStR Monitor'],
         parameters: [
-          { name: 'watchId', in: 'path', required: true, schema: { type: 'string', example: 'twl-solar-monitor_ab12cd34' } },
-          { name: 'format', in: 'query', required: false, schema: { type: 'string', enum: ['json', 'csv'], default: 'json', example: 'json' } },
+          {
+            name: 'watchId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'twl-solar-monitor_ab12cd34' },
+          },
+          {
+            name: 'format',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['json', 'csv'], default: 'json', example: 'json' },
+          },
         ],
       },
       params: {
@@ -460,9 +548,13 @@ module.exports = {
         format: { type: 'enum', values: ['json', 'csv'], optional: true, default: 'json' },
       },
       async handler(ctx) {
-        const snapshotDocs = await this.listDocsByPrefix(SNAPSHOTS_NAMESPACE, `${ctx.params.watchId}:`);
-        const latestDoc = snapshotDocs
-          .sort((a, b) => String(b.key || '').localeCompare(String(a.key || '')))[0] || null;
+        const snapshotDocs = await this.listDocsByPrefix(
+          SNAPSHOTS_NAMESPACE,
+          `${ctx.params.watchId}:`
+        );
+        const latestDoc =
+          snapshotDocs.sort((a, b) => String(b.key || '').localeCompare(String(a.key || '')))[0] ||
+          null;
         const latest = await this.hydrateSnapshotPayload(latestDoc?.payload || null);
         if (!latest) {
           throw new MoleculerClientError('Snapshot not found', 404, 'SNAPSHOT_NOT_FOUND');
@@ -499,7 +591,11 @@ module.exports = {
                 type: 'object',
                 required: ['watchId', 'email'],
                 properties: {
-                  watchId: { type: 'string', example: 'twl-solar-monitor_ab12cd34', nullable: true },
+                  watchId: {
+                    type: 'string',
+                    example: 'twl-solar-monitor_ab12cd34',
+                    nullable: true,
+                  },
                   email: { type: 'string', format: 'email', example: 'netzplanung@twl.de' },
                   onlyOnChanges: { type: 'boolean', default: true },
                   language: { type: 'string', enum: ['de', 'en'], default: 'de' },
@@ -593,7 +689,12 @@ module.exports = {
         summary: 'Confirm email subscription by token',
         tags: ['MaStR Monitor'],
         parameters: [
-          { name: 'token', in: 'path', required: true, schema: { type: 'string', example: 'd6f47d6d687adc8f8e5a17f6b63dd3f31fc14e8f67122e4a' } },
+          {
+            name: 'token',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'd6f47d6d687adc8f8e5a17f6b63dd3f31fc14e8f67122e4a' },
+          },
         ],
       },
       params: {
@@ -669,7 +770,10 @@ module.exports = {
       try {
         watches = await this.listPayloads(WATCHES_NAMESPACE);
       } catch (err) {
-        this.logger.error('[mastr-monitor] checkScheduledWatches: listPayloads failed:', err.message);
+        this.logger.error(
+          '[mastr-monitor] checkScheduledWatches: listPayloads failed:',
+          err.message
+        );
         return;
       }
 
@@ -680,7 +784,10 @@ module.exports = {
 
         this.logger.info(`[mastr-monitor] Scheduled run for watch: ${watch.watchId}`);
         this.executeWatch(watch.watchId, {}).catch((err) =>
-          this.logger.error(`[mastr-monitor] Scheduled executeWatch failed for ${watch.watchId}:`, err.message)
+          this.logger.error(
+            `[mastr-monitor] Scheduled executeWatch failed for ${watch.watchId}:`,
+            err.message
+          )
         );
       }
     },
@@ -697,20 +804,27 @@ module.exports = {
       try {
         subs = await this.loadConfirmedSubscriptions(watchId);
       } catch (err) {
-        this.logger.warn(`[mastr-monitor] notifyDelta: loadConfirmedSubscriptions failed: ${err.message}`);
+        this.logger.warn(
+          `[mastr-monitor] notifyDelta: loadConfirmedSubscriptions failed: ${err.message}`
+        );
         return;
       }
 
       for (const sub of subs) {
         try {
-          if (delta && (delta.summary.added > 0 || delta.summary.changed > 0 || delta.summary.removed > 0)) {
+          if (
+            delta &&
+            (delta.summary.added > 0 || delta.summary.changed > 0 || delta.summary.removed > 0)
+          ) {
             await sendDeltaNotification(sub, watch, delta);
           } else if (!sub.onlyOnChanges) {
             const { sendNoChangesNotification } = require('../src/mastr-monitor-notify');
             await sendNoChangesNotification(sub, watch);
           }
         } catch (err) {
-          this.logger.warn(`[mastr-monitor] notifyDelta: send failed for ${sub.email}: ${err.message}`);
+          this.logger.warn(
+            `[mastr-monitor] notifyDelta: send failed for ${sub.email}: ${err.message}`
+          );
         }
       }
     },
@@ -723,12 +837,16 @@ module.exports = {
       try {
         await sendConfirmationEmail(subscription, watch);
       } catch (err) {
-        this.logger.warn(`[mastr-monitor] sendConfirmationEmail failed for ${subscription.email}: ${err.message}`);
+        this.logger.warn(
+          `[mastr-monitor] sendConfirmationEmail failed for ${subscription.email}: ${err.message}`
+        );
       }
     },
 
     buildWatchTokenUrl(rawToken) {
-      const baseUrl = String(process.env.MASTR_MONITOR_BASE_URL || 'https://api.cernion.de').replace(/\/$/, '');
+      const baseUrl = String(
+        process.env.MASTR_MONITOR_BASE_URL || 'https://api.cernion.de'
+      ).replace(/\/$/, '');
       return `${baseUrl}/api/mastr-monitor/watch/${rawToken}`;
     },
 
@@ -773,10 +891,8 @@ module.exports = {
         meta: { $gateway: true },
       };
 
-      return startJob(
-        pseudoCtx,
-        { service: 'mastr-monitor', action: 'baseline' },
-        async () => this.executeWatch(watchId, {})
+      return startJob(pseudoCtx, { service: 'mastr-monitor', action: 'baseline' }, async () =>
+        this.executeWatch(watchId, {})
       );
     },
 
@@ -814,8 +930,9 @@ module.exports = {
       }
 
       const prevSnapshots = await this.listDocsByPrefix(SNAPSHOTS_NAMESPACE, `${watchId}:`);
-      const prevSnapshotDoc = prevSnapshots
-        .sort((a, b) => String(b.key || '').localeCompare(String(a.key || '')))[0] || null;
+      const prevSnapshotDoc =
+        prevSnapshots.sort((a, b) => String(b.key || '').localeCompare(String(a.key || '')))[0] ||
+        null;
       const prevSnapshot = await this.hydrateSnapshotPayload(prevSnapshotDoc?.payload || null);
 
       await this.persistSnapshot(snapshotKey, snapshot);
@@ -878,7 +995,9 @@ module.exports = {
 
     async cleanupOldSnapshots(watchId) {
       const snapshots = await this.listDocsByPrefix(SNAPSHOTS_NAMESPACE, `${watchId}:`);
-      const sorted = snapshots.sort((a, b) => String(b.key || '').localeCompare(String(a.key || '')));
+      const sorted = snapshots.sort((a, b) =>
+        String(b.key || '').localeCompare(String(a.key || ''))
+      );
       if (sorted.length <= this.settings.snapshotRetention) return;
 
       const deletions = sorted.slice(this.settings.snapshotRetention);
@@ -932,7 +1051,10 @@ module.exports = {
         location: query.gemeinde || query.landkreis || query.bundesland,
         netzbetreiberPruefungStatus: query.netzbetreiberPruefungStatus,
         format: 'json',
-        limit: Number(limitOverride) > 0 ? Number(limitOverride) : this.settings.maxInstallationsPerWatch,
+        limit:
+          Number(limitOverride) > 0
+            ? Number(limitOverride)
+            : this.settings.maxInstallationsPerWatch,
       };
 
       // Remove undefined/null/empty values to avoid downstream validation errors
@@ -949,9 +1071,7 @@ module.exports = {
     async fetchInstallationsForWatch(watch, meta = {}) {
       const requestedType = watch?.query?.type || 'all';
       const types =
-        requestedType === 'all'
-          ? ['solar', 'wind', 'storage', 'biomass']
-          : [requestedType];
+        requestedType === 'all' ? ['solar', 'wind', 'storage', 'biomass'] : [requestedType];
 
       const allRows = [];
       let remaining = this.settings.maxInstallationsPerWatch;
@@ -985,7 +1105,11 @@ module.exports = {
     },
 
     shouldChunkSnapshot(snapshot) {
-      return !!(this.settings.chunkingEnabled && Array.isArray(snapshot?.entries) && snapshot.entries.length > this.settings.chunkSize);
+      return !!(
+        this.settings.chunkingEnabled &&
+        Array.isArray(snapshot?.entries) &&
+        snapshot.entries.length > this.settings.chunkSize
+      );
     },
 
     shouldChunkDelta(delta) {
@@ -993,7 +1117,11 @@ module.exports = {
       const added = Array.isArray(delta.added) ? delta.added.length : 0;
       const changed = Array.isArray(delta.changed) ? delta.changed.length : 0;
       const removed = Array.isArray(delta.removed) ? delta.removed.length : 0;
-      return added > this.settings.chunkSize || changed > this.settings.chunkSize || removed > this.settings.chunkSize;
+      return (
+        added > this.settings.chunkSize ||
+        changed > this.settings.chunkSize ||
+        removed > this.settings.chunkSize
+      );
     },
 
     async persistSnapshot(snapshotKey, snapshot) {
@@ -1007,13 +1135,17 @@ module.exports = {
 
       const chunks = this.createChunks(snapshot.entries || []);
       for (let i = 0; i < chunks.length; i += 1) {
-        await this.putObject(SNAPSHOT_CHUNKS_NAMESPACE, `${snapshotKey}:part:${String(i).padStart(6, '0')}`, {
-          watchId: snapshot.watchId,
-          snapshotKey,
-          index: i,
-          entries: chunks[i],
-          createdAt: snapshot.timestamp,
-        });
+        await this.putObject(
+          SNAPSHOT_CHUNKS_NAMESPACE,
+          `${snapshotKey}:part:${String(i).padStart(6, '0')}`,
+          {
+            watchId: snapshot.watchId,
+            snapshotKey,
+            index: i,
+            entries: chunks[i],
+            createdAt: snapshot.timestamp,
+          }
+        );
       }
 
       const manifest = {
@@ -1042,14 +1174,18 @@ module.exports = {
         const rows = Array.isArray(delta[section]) ? delta[section] : [];
         const chunks = this.createChunks(rows);
         for (let i = 0; i < chunks.length; i += 1) {
-          await this.putObject(DELTA_CHUNKS_NAMESPACE, `${deltaKey}:${section}:${String(i).padStart(6, '0')}`, {
-            watchId: delta.watchId,
-            deltaKey,
-            section,
-            index: i,
-            items: chunks[i],
-            timestamp: delta.timestamp,
-          });
+          await this.putObject(
+            DELTA_CHUNKS_NAMESPACE,
+            `${deltaKey}:${section}:${String(i).padStart(6, '0')}`,
+            {
+              watchId: delta.watchId,
+              deltaKey,
+              section,
+              index: i,
+              items: chunks[i],
+              timestamp: delta.timestamp,
+            }
+          );
         }
       }
 
@@ -1070,13 +1206,18 @@ module.exports = {
       if (!snapshot) return null;
       if (!snapshot.chunked) return snapshot;
 
-      const snapshotKey = snapshot.snapshotKey || `${snapshot.watchId}:${String(snapshot.timestamp || '').split('T')[0]}`;
+      const snapshotKey =
+        snapshot.snapshotKey ||
+        `${snapshot.watchId}:${String(snapshot.timestamp || '').split('T')[0]}`;
       if (!snapshotKey) return { ...snapshot, entries: [] };
 
-      const chunkDocs = await this.listDocsByPrefix(SNAPSHOT_CHUNKS_NAMESPACE, `${snapshotKey}:part:`);
+      const chunkDocs = await this.listDocsByPrefix(
+        SNAPSHOT_CHUNKS_NAMESPACE,
+        `${snapshotKey}:part:`
+      );
       const entries = chunkDocs
         .sort((a, b) => String(a.key || '').localeCompare(String(b.key || '')))
-        .flatMap((doc) => Array.isArray(doc?.payload?.entries) ? doc.payload.entries : []);
+        .flatMap((doc) => (Array.isArray(doc?.payload?.entries) ? doc.payload.entries : []));
 
       return {
         ...snapshot,
@@ -1089,7 +1230,9 @@ module.exports = {
       if (!delta) return null;
       if (!delta.chunked) return delta;
 
-      const deltaKey = delta.deltaKey || (delta.watchId && delta.deltaId ? `${delta.watchId}:${delta.deltaId}` : null);
+      const deltaKey =
+        delta.deltaKey ||
+        (delta.watchId && delta.deltaId ? `${delta.watchId}:${delta.deltaId}` : null);
       if (!deltaKey) {
         return {
           ...delta,
@@ -1103,7 +1246,7 @@ module.exports = {
         const docs = await this.listDocsByPrefix(DELTA_CHUNKS_NAMESPACE, `${deltaKey}:${section}:`);
         return docs
           .sort((a, b) => String(a.key || '').localeCompare(String(b.key || '')))
-          .flatMap((doc) => Array.isArray(doc?.payload?.items) ? doc.payload.items : []);
+          .flatMap((doc) => (Array.isArray(doc?.payload?.items) ? doc.payload.items : []));
       };
 
       const [added, changed, removed] = await Promise.all([

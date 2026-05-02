@@ -103,8 +103,7 @@ Detects both **DEFINITIVE_MISASSIGNMENT** (L1 mismatch, authoritative) and **LIK
                   },
                   skipOsmLayer: {
                     type: 'boolean',
-                    description:
-                      'Only run L1 (no Overpass call). Faster for batch runs.',
+                    description: 'Only run L1 (no Overpass call). Faster for batch runs.',
                     default: false,
                     example: false,
                   },
@@ -201,9 +200,7 @@ Detects both **DEFINITIVE_MISASSIGNMENT** (L1 mismatch, authoritative) and **LIK
       async handler(ctx) {
         const { mastrNummer, latitude, longitude } = ctx.params;
         if (!mastrNummer && (latitude === undefined || longitude === undefined)) {
-          throw new Error(
-            'Either mastrNummer or both latitude and longitude must be provided.'
-          );
+          throw new Error('Either mastrNummer or both latitude and longitude must be provided.');
         }
         return await CernionMCPClient.callWithNewSession(
           'osm_geo_validate',
@@ -277,8 +274,7 @@ Use \`constrainToBbox\` (directly from a \`vnbdigital_lookup\` bbox field) to re
                   },
                   mastrNummer: {
                     type: 'string',
-                    description:
-                      'MaStR number — coordinates resolved from local DB.',
+                    description: 'MaStR number — coordinates resolved from local DB.',
                     example: 'SEE900012345678',
                   },
                   radiusMeters: {
@@ -466,8 +462,7 @@ Returns both a detail list and **aggregated statistics**:
                 properties: {
                   location: {
                     type: 'string',
-                    description:
-                      'Area name (Gemeinde, Stadt, Landkreis) for OSM area query.',
+                    description: 'Area name (Gemeinde, Stadt, Landkreis) for OSM area query.',
                     example: 'Ludwigshafen am Rhein',
                   },
                   boundingBox: {
@@ -484,8 +479,7 @@ Returns both a detail list and **aggregated statistics**:
                   },
                   gridOperator: {
                     type: 'string',
-                    description:
-                      'VNB name — used as OSM area name fallback.',
+                    description: 'VNB name — used as OSM area name fallback.',
                     example: 'TWL Netze GmbH',
                   },
                   gridOperatorId: {
@@ -687,8 +681,7 @@ Returns both a detail list and **aggregated statistics**:
                   },
                   fromOsmId: {
                     type: 'string',
-                    description:
-                      'Start-node OSM ID for path analysis (e.g. "node/1234567").',
+                    description: 'Start-node OSM ID for path analysis (e.g. "node/1234567").',
                     example: 'node/123456789',
                   },
                   toOsmId: {
@@ -698,8 +691,7 @@ Returns both a detail list and **aggregated statistics**:
                   },
                   includePathAnalysis: {
                     type: 'boolean',
-                    description:
-                      'Compute shortest path between fromOsmId → toOsmId.',
+                    description: 'Compute shortest path between fromOsmId → toOsmId.',
                     default: false,
                     example: false,
                   },

@@ -66,7 +66,12 @@ describe('mastr-monitor-notify', () => {
     deltaId: '2026-04-17',
     summary: { added: 2, changed: 1, removed: 0 },
     added: [{ mastrNummer: 'SEE900000001' }, { mastrNummer: 'SEE900000002' }],
-    changed: [{ mastrNummer: 'SEE900000003', changes: [{ field: 'nettonennleistung', from: '100', to: '110' }] }],
+    changed: [
+      {
+        mastrNummer: 'SEE900000003',
+        changes: [{ field: 'nettonennleistung', from: '100', to: '110' }],
+      },
+    ],
     removed: [],
   };
 
@@ -84,8 +89,9 @@ describe('mastr-monitor-notify', () => {
   // ─── sendDeltaNotification ───────────────────────────────────────────────
 
   test('sendDeltaNotification throws SMTP_NOT_CONFIGURED when env missing', async () => {
-    await expect(sendDeltaNotification(sub, watch, delta))
-      .rejects.toMatchObject({ code: 'SMTP_NOT_CONFIGURED' });
+    await expect(sendDeltaNotification(sub, watch, delta)).rejects.toMatchObject({
+      code: 'SMTP_NOT_CONFIGURED',
+    });
   });
 
   test('sendDeltaNotification sends email with correct subject (DE)', async () => {
@@ -117,8 +123,12 @@ describe('mastr-monitor-notify', () => {
     await sendDeltaNotification(sub, watch, delta, 'https://test.cernion.de');
 
     const body = sendMailMock.mock.calls[0][0].text;
-    expect(body).toContain('https://test.cernion.de/api/mastr-monitor/watches/twl-solar_abc/deltas/2026-04-17');
-    expect(body).toContain('https://test.cernion.de/api/mastr-monitor/watches/twl-solar_abc/snapshot?format=csv');
+    expect(body).toContain(
+      'https://test.cernion.de/api/mastr-monitor/watches/twl-solar_abc/deltas/2026-04-17'
+    );
+    expect(body).toContain(
+      'https://test.cernion.de/api/mastr-monitor/watches/twl-solar_abc/snapshot?format=csv'
+    );
   });
 
   test('sendDeltaNotification caps detail lines at 100 and adds truncation hint', async () => {
@@ -128,7 +138,9 @@ describe('mastr-monitor-notify', () => {
     const largeDelta = {
       ...delta,
       summary: { added: 120, changed: 0, removed: 0 },
-      added: Array.from({ length: 120 }, (_, index) => ({ mastrNummer: `SEE${String(index).padStart(3, '0')}` })),
+      added: Array.from({ length: 120 }, (_, index) => ({
+        mastrNummer: `SEE${String(index).padStart(3, '0')}`,
+      })),
       changed: [],
       removed: [],
     };
@@ -155,8 +167,9 @@ describe('mastr-monitor-notify', () => {
   // ─── sendConfirmationEmail ───────────────────────────────────────────────
 
   test('sendConfirmationEmail throws SMTP_NOT_CONFIGURED when env missing', async () => {
-    await expect(sendConfirmationEmail(sub, watch))
-      .rejects.toMatchObject({ code: 'SMTP_NOT_CONFIGURED' });
+    await expect(sendConfirmationEmail(sub, watch)).rejects.toMatchObject({
+      code: 'SMTP_NOT_CONFIGURED',
+    });
   });
 
   test('sendConfirmationEmail sends email with confirmation URL', async () => {

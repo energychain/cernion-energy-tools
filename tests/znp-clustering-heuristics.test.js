@@ -9,7 +9,6 @@ const {
   detectClusters,
   computeGFactorAdjustment,
   CLUSTER_RADIUS_M,
-  CLUSTER_MIN_ASSETS,
   G_FACTOR_RULES,
 } = require('../src/znp-clustering-heuristics');
 
@@ -72,10 +71,7 @@ describe('detectClusters', () => {
   });
 
   it('skips assets with null coordinates', () => {
-    const assets = [
-      makeAsset(1, null, null, 'solar'),
-      makeAsset(2, undefined, undefined, 'solar'),
-    ];
+    const assets = [makeAsset(1, null, null, 'solar'), makeAsset(2, undefined, undefined, 'solar')];
     expect(detectClusters(assets)).toEqual([]);
   });
 

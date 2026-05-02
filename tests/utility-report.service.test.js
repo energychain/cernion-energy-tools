@@ -2730,7 +2730,8 @@ describe('v0.37.1 — 360° Utility Report Stabilisierung', () => {
     });
 
     it('retries after first failure and succeeds on second attempt', async () => {
-      broker.call = jest.fn()
+      broker.call = jest
+        .fn()
         .mockRejectedValueOnce(new Error('timeout'))
         .mockResolvedValueOnce({ latestPrice: 72.0 });
       const result = await svc.fetchWithRetry(null, 'energy-market.prices', {}, 2, 0);
@@ -2832,13 +2833,9 @@ describe('v0.37.1 — 360° Utility Report Stabilisierung', () => {
       Object.assign(kpiSummary, summarizeForReport(pvLocalResult, 'pvLocal'));
 
       const briefingCount =
-        kpiSummary?.solar?.totalCount ??
-        kpiSummary?.pvLocal?.['stats.total'] ??
-        null;
+        kpiSummary?.solar?.totalCount ?? kpiSummary?.pvLocal?.['stats.total'] ?? null;
       const section2Count =
-        pvLocalResult.data?.stats?.total ??
-        pvLocalResult.data?.stats?.totalCount ??
-        null;
+        pvLocalResult.data?.stats?.total ?? pvLocalResult.data?.stats?.totalCount ?? null;
 
       expect(briefingCount).toBe(section2Count);
     });
@@ -2851,7 +2848,12 @@ describe('v0.37.1 — 360° Utility Report Stabilisierung', () => {
       const section2Count = 150;
 
       if (briefingCount !== null && section2Count !== null && briefingCount !== section2Count) {
-        logger.warn('[Report] Briefing/Section2 count mismatch:', briefingCount, '≠', section2Count);
+        logger.warn(
+          '[Report] Briefing/Section2 count mismatch:',
+          briefingCount,
+          '≠',
+          section2Count
+        );
       }
 
       expect(warnSpy).toHaveBeenCalledWith(
@@ -2870,7 +2872,12 @@ describe('v0.37.1 — 360° Utility Report Stabilisierung', () => {
       const section2Count = null;
 
       if (briefingCount !== null && section2Count !== null && briefingCount !== section2Count) {
-        logger.warn('[Report] Briefing/Section2 count mismatch:', briefingCount, '≠', section2Count);
+        logger.warn(
+          '[Report] Briefing/Section2 count mismatch:',
+          briefingCount,
+          '≠',
+          section2Count
+        );
       }
 
       expect(warnSpy).not.toHaveBeenCalled();

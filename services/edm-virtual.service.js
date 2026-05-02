@@ -1,10 +1,7 @@
 'use strict';
 
 const { Errors } = require('moleculer');
-const {
-  normalizeDayWindow,
-  buildRowsFromSlp,
-} = require('../src/edm-virtual-meter');
+const { normalizeDayWindow, buildRowsFromSlp } = require('../src/edm-virtual-meter');
 
 const { MoleculerClientError } = Errors;
 
@@ -66,7 +63,8 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { meloId, date, profileId, annualConsumptionKwh, overwriteExisting, quality } = ctx.params;
+        const { meloId, date, profileId, annualConsumptionKwh, overwriteExisting, quality } =
+          ctx.params;
         const meloRes = await ctx.call('edm.getMelo', { meloId });
         const melo = meloRes.data;
 
@@ -87,7 +85,9 @@ module.exports = {
 
         const obis =
           ctx.params.obis ||
-          (Array.isArray(melo.obisRegisters) && melo.obisRegisters[0] && melo.obisRegisters[0].obis) ||
+          (Array.isArray(melo.obisRegisters) &&
+            melo.obisRegisters[0] &&
+            melo.obisRegisters[0].obis) ||
           '1-0:1.8.0';
 
         const data = buildRowsFromSlp(day, profile.values, {
@@ -121,11 +121,24 @@ module.exports = {
         date: { type: 'string', min: 10 },
         profileId: { type: 'string', optional: true, default: 'H0' },
         annualConsumptionKwh: { type: 'number', convert: true, optional: true, default: 3500 },
-        typeFilter: { type: 'enum', values: ['virtual', 'dummy', 'all'], optional: true, default: 'virtual' },
+        typeFilter: {
+          type: 'enum',
+          values: ['virtual', 'dummy', 'all'],
+          optional: true,
+          default: 'virtual',
+        },
         includeCalc: { type: 'boolean', convert: true, optional: true, default: true },
         includeSlp: { type: 'boolean', convert: true, optional: true, default: true },
         overwriteExisting: { type: 'boolean', convert: true, optional: true, default: false },
-        limit: { type: 'number', convert: true, integer: true, optional: true, default: 100, min: 1, max: 1000 },
+        limit: {
+          type: 'number',
+          convert: true,
+          integer: true,
+          optional: true,
+          default: 100,
+          min: 1,
+          max: 1000,
+        },
       },
       openapi: {
         summary: 'Auto-populate virtual meter data for one day',
@@ -141,7 +154,11 @@ module.exports = {
                   date: { type: 'string', example: '2026-05-01' },
                   profileId: { type: 'string', example: 'H0', default: 'H0' },
                   annualConsumptionKwh: { type: 'number', example: 3200, default: 3500 },
-                  typeFilter: { type: 'string', enum: ['virtual', 'dummy', 'all'], default: 'virtual' },
+                  typeFilter: {
+                    type: 'string',
+                    enum: ['virtual', 'dummy', 'all'],
+                    default: 'virtual',
+                  },
                   includeCalc: { type: 'boolean', default: true },
                   includeSlp: { type: 'boolean', default: true },
                   overwriteExisting: { type: 'boolean', default: false },

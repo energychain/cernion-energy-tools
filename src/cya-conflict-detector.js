@@ -27,18 +27,14 @@ const APPROVED_VERDICTS = ['approved', 'conditional'];
 function detectConflicts(stakeholderStates) {
   const entries = Object.entries(stakeholderStates || {});
 
-  const blockers = entries
-    .filter(([, s]) => s?.verdict === BLOCKING_VERDICT)
-    .map(([id]) => id);
+  const blockers = entries.filter(([, s]) => s?.verdict === BLOCKING_VERDICT).map(([id]) => id);
 
   const approvers = entries
     .filter(([, s]) => APPROVED_VERDICTS.includes(s?.verdict))
     .map(([id]) => id);
 
   const triggers = [
-    ...new Set(
-      blockers.flatMap((id) => stakeholderStates[id]?.conflictTriggers || [])
-    ),
+    ...new Set(blockers.flatMap((id) => stakeholderStates[id]?.conflictTriggers || [])),
   ];
 
   return {

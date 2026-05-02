@@ -220,7 +220,12 @@ describe('Datasource Discovery Service', () => {
       actions: {
         status: {
           async handler() {
-            return { success: true, exists: true, stale: false, lastRefreshed: '2026-03-20T08:00:00Z' };
+            return {
+              success: true,
+              exists: true,
+              stale: false,
+              lastRefreshed: '2026-03-20T08:00:00Z',
+            };
           },
         },
       },
