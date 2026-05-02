@@ -63,7 +63,7 @@
     "dotenv": "^17.4.2",
     "graphology": "^0.26.0",
     "iconv-lite": "^0.7.2",
-    "moleculer": "^0.14.35",
+    "moleculer": "^0.15.0",
     "moleculer-auto-openapi": "^1.1.7",
     "moleculer-repl": "^0.8.0",
     "moleculer-web": "^0.11.0",
