@@ -39,7 +39,7 @@ describe('Datasource Registry Service', () => {
       name: 'datasource-registry-test-listener',
       events: {
         'datasource.dictionary.outdated'(payload) {
-          outdatedEvents.push(payload);
+          outdatedEvents.push(payload?.params || payload);
         },
       },
     });
@@ -384,8 +384,10 @@ describe('Datasource Registry Service – persistence across restart', () => {
 
   it('should keep datasource records after broker restart', async () => {
     const brokerA = new ServiceBroker({ logger: false, transporter: null });
-    brokerA.createService(DatasourceRegistryService, {
+    brokerA.createService({
+      ...DatasourceRegistryService,
       settings: {
+        ...DatasourceRegistryService.settings,
         persistenceEnabled: true,
         persistenceFile,
       },
@@ -402,8 +404,10 @@ describe('Datasource Registry Service – persistence across restart', () => {
     await brokerA.stop();
 
     const brokerB = new ServiceBroker({ logger: false, transporter: null });
-    brokerB.createService(DatasourceRegistryService, {
+    brokerB.createService({
+      ...DatasourceRegistryService,
       settings: {
+        ...DatasourceRegistryService.settings,
         persistenceEnabled: true,
         persistenceFile,
       },
