@@ -55,28 +55,28 @@ const SERVICES_DIR = path.join(__dirname, '..', 'services');
 // ── Route → UI page mapping ──────────────────────────────────────────────
 
 const UI_PAGE_MAP = [
-  [/^\/dashboard\//,          'dashboard'],
-  [/^\/vnb-monitor\//,        'vnb-monitor'],
-  [/^\/nbp-monitor\//,        'nbp-monitor'],
-  [/^\/mastr-quality\//,      'mastr-quality'],
-  [/^\/grid-connection\//,    'grid-connection'],
-  [/^\/energy-sharing\//,     'energy-sharing'],
+  [/^\/dashboard\//, 'dashboard'],
+  [/^\/vnb-monitor\//, 'vnb-monitor'],
+  [/^\/nbp-monitor\//, 'nbp-monitor'],
+  [/^\/mastr-quality\//, 'mastr-quality'],
+  [/^\/grid-connection\//, 'grid-connection'],
+  [/^\/energy-sharing\//, 'energy-sharing'],
   [/^\/energy-sharing-alloc/, 'energy-sharing-allocation'],
-  [/^\/redispatch\//,         'redispatch'],
-  [/^\/datapoints\//,         'datapoints'],
-  [/^\/energy-market\//,      'energy-market'],
-  [/^\/gas-storage\//,        'gas-storage'],
-  [/^\/osm-geo\//,            'geo'],
-  [/^\/grid\//,               'grid'],
-  [/^\/tokens\//,             'auth'],
-  [/^\/jobs\//,               'jobs'],
-  [/^\/eic\//,                'eic'],
-  [/^\/entsoe\//,             'entsoe'],
-  [/^\/forecast\//,           'forecast'],
-  [/^\/residual-load\//,      'residual-load'],
-  [/^\/query\//,              'query'],
-  [/^\/agent\//,              'agent'],
-  [/^\/system\//,             'system'],
+  [/^\/redispatch\//, 'redispatch'],
+  [/^\/datapoints\//, 'datapoints'],
+  [/^\/energy-market\//, 'energy-market'],
+  [/^\/gas-storage\//, 'gas-storage'],
+  [/^\/osm-geo\//, 'geo'],
+  [/^\/grid\//, 'grid'],
+  [/^\/tokens\//, 'auth'],
+  [/^\/jobs\//, 'jobs'],
+  [/^\/eic\//, 'eic'],
+  [/^\/entsoe\//, 'entsoe'],
+  [/^\/forecast\//, 'forecast'],
+  [/^\/residual-load\//, 'residual-load'],
+  [/^\/query\//, 'query'],
+  [/^\/agent\//, 'agent'],
+  [/^\/system\//, 'system'],
 ];
 
 /**
@@ -112,7 +112,7 @@ function shouldExclude(openapiPath) {
  */
 async function loadSpec() {
   const port = process.env.PORT || 3000;
-  const url  = `http://localhost:${port}/api/openapi.json`;
+  const url = `http://localhost:${port}/api/openapi.json`;
 
   try {
     const { default: fetch } = await import('node-fetch').catch(() => {

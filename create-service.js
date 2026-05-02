@@ -23,7 +23,6 @@ const MAX_ATTEMPTS = 3;
 const TEST_FIX_ATTEMPTS = 2;
 const CORE_SERVICES_DIR = path.join(__dirname, 'services');
 const CUSTOM_SERVICES_DIR = path.join(__dirname, 'custom-services');
-const CORE_TESTS_DIR = path.join(__dirname, 'tests');
 const CUSTOM_TESTS_DIR = path.join(__dirname, 'custom-tests');
 const CUSTOM_FIXTURES_DIR = path.join(CUSTOM_TESTS_DIR, 'fixtures');
 
