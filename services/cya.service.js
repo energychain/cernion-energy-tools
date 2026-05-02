@@ -12,7 +12,7 @@ const { PERSONA_ENUM, validatePerspectives, getPersona } = require('../src/cya-a
 const { getTemplate, listTemplates } = require('../src/cya-profile-templates');
 const { buildCyaNarrativePdf } = require('../src/cya-report-builder');
 const { retrievePersonaContext, buildPersonaGrounding } = require('../src/cya-persona-memory');
-const { MAX_DIALOGUE_ROUNDS, detectConflicts, buildNegotiationPrompt } = require('../src/cya-conflict-detector');
+const { MAX_DIALOGUE_ROUNDS, detectConflicts } = require('../src/cya-conflict-detector');
 const a2a = require('../src/cya-a2a-protocol');
 const { graphCache } = require('../src/cya-graph-cache');
 const { getTenantId, tenantNamespace } = require('../src/tenant-context');
@@ -45,13 +45,17 @@ const FOCUS_AREAS = [
 
 const SESSION_NAMESPACE = 'cya_sessions';
 const PROFILE_NAMESPACE = 'cya_profiles';
+const DEFAULT_TONE = 'diplomatisch, rechtssicher';
+const OS_PUT = 'object-store.put';
+const OS_GET = 'object-store.get';
+const EXAMPLE_TRIGGER = 'Presseanfrage zur Netzstabilität';
 
 module.exports = {
   name: 'cya',
   timeout: 180000,
 
   settings: {
-    defaultTone: 'diplomatisch, rechtssicher',
+    defaultTone: DEFAULT_TONE,
   },
 
   actions: {
@@ -99,7 +103,7 @@ module.exports = {
                     },
                   },
                   strategic_goals: { type: 'array', minItems: 1, maxItems: 10, items: { type: 'string' }, example: ['Rechtssicherheit stärken', 'Investitionsargumentation verbessern'] },
-                  tone: { type: 'string', nullable: true, example: 'diplomatisch, rechtssicher' },
+                  tone: { type: 'string', nullable: true, example: DEFAULT_TONE },
                 },
               },
               examples: {
@@ -112,7 +116,7 @@ module.exports = {
                       department: 'Regulierung',
                     },
                     strategic_goals: ['Rechtssicherheit stärken', 'Investitionsargumentation verbessern'],
-                    tone: 'diplomatisch, rechtssicher',
+                    tone: DEFAULT_TONE,
                   },
                 },
               },
@@ -149,7 +153,7 @@ module.exports = {
         const tenantId = getTenantId(ctx);
         const ns = tenantNamespace(PROFILE_NAMESPACE, tenantId);
 
-        await ctx.call('object-store.put', {
+        await ctx.call(OS_PUT, {
           namespace: ns,
           key: profile_id,
           payload,
@@ -205,7 +209,7 @@ module.exports = {
                       profile: {
                         actor: { role: 'grid_operator', organization: 'Stadtwerke Beispiel', department: 'Regulierung' },
                         strategic_goals: ['Rechtssicherheit stärken'],
-                        tone: 'diplomatisch, rechtssicher',
+                        tone: DEFAULT_TONE,
                         createdAt: '2026-04-14T16:00:00.000Z',
                       },
                     },
@@ -279,7 +283,7 @@ module.exports = {
                           payload: {
                             actor: { role: 'grid_operator' },
                             strategic_goals: ['Rechtssicherheit stärken'],
-                            tone: 'diplomatisch, rechtssicher',
+                            tone: DEFAULT_TONE,
                           },
                           createdAt: '2026-04-14T16:00:00.000Z',
                           updatedAt: '2026-04-14T16:00:00.000Z',
@@ -373,7 +377,7 @@ module.exports = {
       async handler(ctx) {
         const { id, ...explicitUpdate } = ctx.params;
 
-        const existing = await ctx.call('object-store.get', {
+        const existing = await ctx.call(OS_GET, {
           namespace: PROFILE_NAMESPACE,
           key: id,
         }).catch(() => null);
@@ -385,7 +389,7 @@ module.exports = {
         const { mergeExplicitIntoProfile } = require('../src/cya-profile-observer');
         const updated = mergeExplicitIntoProfile(existing.payload, explicitUpdate);
 
-        await ctx.call('object-store.put', {
+        await ctx.call(OS_PUT, {
           namespace: PROFILE_NAMESPACE,
           key: id,
           payload: updated,
@@ -1069,7 +1073,7 @@ module.exports = {
       },
       async handler(ctx) {
         const { id } = ctx.params;
-        const result = await ctx.call('object-store.get', {
+        const result = await ctx.call(OS_GET, {
           namespace: 'cya_context_states',
           key: `ctx_${id}`,
         }).catch(() => null);
@@ -1105,6 +1109,29 @@ module.exports = {
         operator: { type: 'string', optional: true },
         location:  { type: 'string', optional: true },
         baseIri:   { type: 'string', optional: true },
+      },
+      openapi: {
+        summary: 'OEO Export Stub (Science Hook)',
+        description:
+          'Exports the live Graphology ontology graph as a JSON-LD skeleton for OEO class mapping. ' +
+          'Current status: oeoStub is null (NOT_IMPLEMENTED). See CONTRIBUTING_SCIENCE.md.',
+        tags: ['CYA Agent'],
+        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'],
+        parameters: [
+          { name: 'operator', in: 'query', required: false, schema: { type: 'string', example: 'Stadtwerke Beispiel' }, description: 'Optional operator name for graph seed' },
+          { name: 'location', in: 'query', required: false, schema: { type: 'string', example: 'Ludwigshafen' }, description: 'Optional location filter' },
+          { name: 'baseIri', in: 'query', required: false, schema: { type: 'string', example: 'https://cernion.example/graph/' }, description: 'Base IRI for JSON-LD output' },
+        ],
+        responses: {
+          200: {
+            description: 'OEO JSON-LD skeleton export',
+            content: { 'application/json': { schema: { type: 'object', properties: {
+              ok: { type: 'boolean' },
+              oeoStub: { type: 'object', nullable: true, description: 'OEO JSON-LD stub (null until oeo-exporter-stub.js is implemented)' },
+              graphology: { type: 'object', description: 'Raw Graphology graph data' },
+            }}}},
+          },
+        },
       },
       async handler(ctx) {
         const { buildOntologyGraph } = require('../src/cya-ontology-graph');
@@ -1206,7 +1233,7 @@ module.exports = {
           type: 'object',
           example: {
             location: 'Heidelberg',
-            trigger: 'Presseanfrage zur Netzstabilität',
+            trigger: EXAMPLE_TRIGGER,
             focus_areas: ['capacity', 'compliance'],
             capacity_mw: 10,
           },
@@ -1252,13 +1279,13 @@ module.exports = {
                     required: ['trigger', 'focus_areas'],
                     example: {
                       location: 'Heidelberg',
-                      trigger: 'Presseanfrage zur Netzstabilität',
+                      trigger: EXAMPLE_TRIGGER,
                       focus_areas: ['capacity', 'compliance'],
                       capacity_mw: 10,
                     },
                     properties: {
                       location: { type: 'string', nullable: true, example: 'Heidelberg' },
-                      trigger: { type: 'string', example: 'Presseanfrage zur Netzstabilität' },
+                      trigger: { type: 'string', example: EXAMPLE_TRIGGER },
                       focus_areas: {
                         type: 'array',
                         minItems: 1,
@@ -1283,7 +1310,7 @@ module.exports = {
                     target_audience: 'Aufsichtsrat',
                     context: {
                       location: 'Heidelberg',
-                      trigger: 'Presseanfrage zur Netzstabilität',
+                      trigger: EXAMPLE_TRIGGER,
                       focus_areas: ['capacity', 'compliance'],
                       capacity_mw: 10,
                     },
@@ -1530,7 +1557,7 @@ module.exports = {
                     required: ['trigger', 'focus_areas'],
                     example: {
                       location: 'Ludwigshafen',
-                      trigger: 'Presseanfrage zur Netzstabilität',
+                      trigger: EXAMPLE_TRIGGER,
                       focus_areas: ['capacity', 'compliance', 'nova'],
                     },
                     properties: {
@@ -1556,7 +1583,7 @@ module.exports = {
                     perspectives: ['technical', 'commercial'],
                     context: {
                       location: 'Ludwigshafen',
-                      trigger: 'Presseanfrage zur Netzstabilität',
+                      trigger: EXAMPLE_TRIGGER,
                       focus_areas: ['capacity', 'compliance', 'nova'],
                       capacity_mw: 10,
                     },
@@ -2133,7 +2160,7 @@ module.exports = {
 
     async loadProfile(ctx, profileId, namespace = PROFILE_NAMESPACE) {
       try {
-        const result = await ctx.call('object-store.get', {
+        const result = await ctx.call(OS_GET, {
           namespace,
           key: profileId,
         });
@@ -2152,7 +2179,7 @@ module.exports = {
 
     async loadSession(ctx, sessionId) {
       try {
-        const result = await ctx.call('object-store.get', {
+        const result = await ctx.call(OS_GET, {
           namespace: SESSION_NAMESPACE,
           key: sessionId,
         });
@@ -2180,7 +2207,7 @@ module.exports = {
     async _observeAndUpdateProfile(profileId, session) {
       const { extractImplicitSignals, mergeImplicitIntoProfile } = require('../src/cya-profile-observer');
 
-      const existing = await this.broker.call('object-store.get', {
+      const existing = await this.broker.call(OS_GET, {
         namespace: PROFILE_NAMESPACE,
         key: profileId,
       }).catch(() => null);
@@ -2189,7 +2216,7 @@ module.exports = {
       const signals = extractImplicitSignals(session);
       const updated = mergeImplicitIntoProfile(existing.payload, signals);
 
-      await this.broker.call('object-store.put', {
+      await this.broker.call(OS_PUT, {
         namespace: PROFILE_NAMESPACE,
         key: profileId,
         payload: updated,
@@ -2223,7 +2250,7 @@ module.exports = {
       };
 
       const key = `mem_${Date.now()}`;
-      await this.broker.call('object-store.put', {
+      await this.broker.call(OS_PUT, {
         namespace,
         key,
         payload: memoryDoc,
@@ -2231,7 +2258,7 @@ module.exports = {
     },
 
     async saveSession(ctx, sessionId, payload) {
-      await ctx.call('object-store.put', {
+      await ctx.call(OS_PUT, {
         namespace: SESSION_NAMESPACE,
         key: sessionId,
         payload,
@@ -2656,7 +2683,7 @@ module.exports = {
     async _persistContextState(sessionId, contextManager) {
       if (!sessionId || !contextManager) return;
       const state = contextManager.serialize();
-      this.broker.call('object-store.put', {
+      this.broker.call(OS_PUT, {
         namespace: 'cya_context_states',
         key: `ctx_${sessionId}`,
         payload: {
@@ -2680,7 +2707,7 @@ module.exports = {
       if (!sessionId || !ontologyGraph) return null;
       try {
         const { CyaContextManager } = require('../src/cya-context-manager');
-        const result = await this.broker.call('object-store.get', {
+        const result = await this.broker.call(OS_GET, {
           namespace: 'cya_context_states',
           key: `ctx_${sessionId}`,
         });
@@ -2705,7 +2732,7 @@ module.exports = {
     async _emitA2AMessage(msg) {
       a2a.validateMessage(msg);
       this.broker.emit(msg.eventName, msg);
-      this.broker.call('object-store.put', {
+      this.broker.call(OS_PUT, {
         namespace: a2a.A2A_NAMESPACE,
         key: msg.messageId,
         payload: msg,

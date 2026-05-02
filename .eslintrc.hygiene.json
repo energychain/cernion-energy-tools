@@ -1,0 +1,23 @@
+{
+  "env": { "node": true, "es2022": true },
+  "plugins": ["sonarjs", "security"],
+  "rules": {
+    "sonarjs/cognitive-complexity":        ["warn", 15],
+    "sonarjs/no-duplicate-string":         ["warn", { "threshold": 3 }],
+    "sonarjs/no-identical-functions":      "warn",
+    "sonarjs/no-collapsible-if":           "warn",
+    "sonarjs/no-redundant-boolean":        "warn",
+    "sonarjs/prefer-immediate-return":     "warn",
+    "sonarjs/no-unused-collection":        "warn",
+
+    "no-unused-vars":                      ["warn", { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_" }],
+    "no-empty":                            "warn",
+    "no-empty-catch": "off",
+    "no-unreachable":                      "warn",
+
+    "security/detect-object-injection":    "warn",
+    "security/detect-non-literal-regexp":  "warn",
+
+    "node/handle-callback-err":            "warn"
+  }
+}

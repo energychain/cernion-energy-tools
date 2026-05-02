@@ -80,7 +80,7 @@ async function parsePdfToText(filePath) {
   return parsePdfBufferToText(buf);
 }
 
-function normalizePowerToKw(value, unit, { applyCosPhi = false } = {}) {
+function normalizePowerToKw(value, unit, { applyCosPhi: _applyCosPhi = false } = {}) {
   if (typeof value !== 'number' || !isFinite(value)) {
     throw new Error(`Ungültiger Leistungswert: ${value}`);
   }

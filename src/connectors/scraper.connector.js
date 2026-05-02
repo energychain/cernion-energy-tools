@@ -70,7 +70,7 @@ async function runPuppeteerEngine(connectorConfig) {
     }
 
     const tableSelector = connectorConfig.tableSelector || 'table';
-    const rows = await page.$$eval(`${tableSelector} tr`, (trs) =>
+    return await page.$$eval(`${tableSelector} tr`, (trs) =>
       trs
         .map((tr) =>
           Array.from(tr.querySelectorAll('th,td')).map((el) => el.textContent?.trim() || '')
@@ -84,8 +84,6 @@ async function runPuppeteerEngine(connectorConfig) {
           return out;
         })
     );
-
-    return rows;
   } finally {
     await browser.close();
   }

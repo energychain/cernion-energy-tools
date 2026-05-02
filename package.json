@@ -1,6 +1,6 @@
 {
   "name": "cernion-energy-tools",
-  "version": "0.38.4",
+  "version": "0.38.7",
   "description": "MicroService Agent System for Energy Markets",
   "main": "index.js",
   "scripts": {
@@ -10,6 +10,7 @@
     "create": "node create-service.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "lint:hygiene": "ESLINT_USE_FLAT_CONFIG=false eslint services/ src/ --config .eslintrc.hygiene.json --format unix --no-eslintrc 2>/dev/null > feedback/eslint-findings.txt && wc -l feedback/eslint-findings.txt",
     "format": "prettier --write \"**/*.js\"",
     "test": "jest --coverage",
     "test:unit": "jest --coverage --testPathIgnorePatterns=\"tests/.*\\.integration\\.test\\.js|custom-tests\"",
@@ -76,9 +77,12 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "eslint": "^10.1.0",
+    "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^5.5.5",
+    "eslint-plugin-security": "^4.0.0",
+    "eslint-plugin-sonarjs": "^4.0.3",
     "jest": "^30.3.0",
     "prettier": "^3.8.1"
   }

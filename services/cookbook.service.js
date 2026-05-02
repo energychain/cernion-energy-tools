@@ -20,6 +20,9 @@ const {
 } = require('../src/cookbook-embeddings');
 const { MoleculerClientError } = require('moleculer').Errors;
 
+const OEO_CLASS_KEY = 'x-oeo-class';
+const OEO_CLASS_URL = 'https://openenergyplatform.org/ontology/oeo/OEO_00000143';
+
 function cloneRecipe(recipe) {
   return JSON.parse(JSON.stringify(recipe));
 }
@@ -98,7 +101,7 @@ module.exports = {
         tags: ['Cookbook'],
         description:
           'Returns all cookbook recipes with runtime metadata (status, relatedRecipes, validation timestamps).',
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'],
+        [OEO_CLASS_KEY]: [OEO_CLASS_URL],
         parameters: [
           {
             name: 'domain',
@@ -166,7 +169,7 @@ module.exports = {
         summary: 'Get a single cookbook recipe',
         tags: ['Cookbook'],
         description: 'Returns one recipe by id including validation status and related recipes.',
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'],
+        [OEO_CLASS_KEY]: [OEO_CLASS_URL],
         parameters: [
           {
             name: 'id',
@@ -214,7 +217,7 @@ module.exports = {
         tags: ['Cookbook'],
         description:
           'Finds best-matching cookbook recipes for a free-text implementation problem using Gemini embeddings with keyword fallback.',
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'],
+        [OEO_CLASS_KEY]: [OEO_CLASS_URL],
         requestBody: {
           content: {
             'application/json': {
@@ -269,7 +272,7 @@ module.exports = {
         tags: ['Cookbook'],
         description:
           'Re-validates all recipes against the live action registry and refreshes runtime statuses.',
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'],
+        [OEO_CLASS_KEY]: [OEO_CLASS_URL],
         requestBody: {
           content: {
             'application/json': {
@@ -299,7 +302,7 @@ module.exports = {
         summary: 'Cookbook service health',
         tags: ['Cookbook'],
         description: 'Returns recipe counts and latest validation timestamp.',
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'],
+        [OEO_CLASS_KEY]: [OEO_CLASS_URL],
       },
       async handler() {
         return {
@@ -321,7 +324,7 @@ module.exports = {
         summary: 'Live service/action catalogue for recipe generator UI',
         tags: ['Cookbook'],
         description: 'Returns all REST-exposed actions from the live Moleculer registry.',
-        'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'],
+        [OEO_CLASS_KEY]: [OEO_CLASS_URL],
       },
       async handler() {
         const actions = this.getActionRegistry();
@@ -530,7 +533,7 @@ module.exports = {
         this.logger.warn(`[cookbook] query embedding failed: ${err.message}`);
       }
 
-      const rows = this.recipes
+      return this.recipes
         .filter(
           (recipe) =>
             includeBroken || (recipe.status !== 'broken' && recipe.status !== 'deprecated')
@@ -548,8 +551,6 @@ module.exports = {
         })
         .sort((a, b) => b.score - a.score)
         .slice(0, limit);
-
-      return rows;
     },
   },
 };

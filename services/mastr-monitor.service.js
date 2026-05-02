@@ -131,7 +131,7 @@ module.exports = {
   },
 
   events: {
-    'mastr.data.refreshed'(payload) {
+    'mastr.data.refreshed'(_payload) {
       this.checkScheduledWatches().catch((err) =>
         this.logger.error('[mastr-monitor] checkScheduledWatches error:', err.message)
       );

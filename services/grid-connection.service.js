@@ -825,10 +825,8 @@ module.exports = {
       await runStep(2, 'delta', () => this.stepDelta(installations));
 
       // Step 3: Capacity
-      let capacityByVoltage = {};
       await runStep(3, 'capacity', () => {
         const result = this.stepCapacity(installations);
-        capacityByVoltage = result.capacityByVoltage;
         return result.findings;
       });
 

@@ -23,6 +23,8 @@ const { scrubForLLM, scrubPromptText } = require('../src/prompt-scrubber');
 // In-process session store (file-backed for persistence across restarts)
 // ---------------------------------------------------------------------------
 const SESSION_DIR = path.join(__dirname, '..', 'data', 'sessions');
+const ACTION_DS_CACHE_QUERY = 'datasource-cache.query';
+const EXAMPLE_SESSION_ID = '2a70e478-90ce-4fa5-b996-6f98efdba7cf';
 
 function ensureSessionDir() {
   if (!fs.existsSync(SESSION_DIR)) {
@@ -1108,7 +1110,7 @@ function buildIntentClassPlan({
       steps: [
         {
           step: 1,
-          action: 'datasource-cache.query',
+          action: ACTION_DS_CACHE_QUERY,
           description: 'Lade Inhouse-Datensätze für den Benchmarkvergleich.',
           params: {
             sourceId: sourceId || null,
@@ -1206,7 +1208,7 @@ function buildIntentClassPlan({
       steps: [
         {
           step: 1,
-          action: 'datasource-cache.query',
+          action: ACTION_DS_CACHE_QUERY,
           description:
             'Lese Inhouse-Datenzeilen aus dem Cache für anschließende In-Memory-Aggregation.',
           params: {
@@ -1237,7 +1239,7 @@ function buildIntentClassPlan({
       steps: [
         {
           step: 1,
-          action: 'datasource-cache.query',
+          action: ACTION_DS_CACHE_QUERY,
           description: `Lade alle Zeilen des beschreibungsgesteuerten Datensatzes. ${contextNote}`,
           params: {
             sourceId: sourceId || null,
@@ -2370,7 +2372,7 @@ Extract "q", "schema", "table", "limit", "offset", "where" as requiredInputs per
                   sessionId: {
                     type: 'string',
                     description: 'Session ID returned by /agent/analyze',
-                    example: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+                    example: EXAMPLE_SESSION_ID,
                   },
                   userInputs: {
                     type: 'object',
@@ -2388,7 +2390,7 @@ Extract "q", "schema", "table", "limit", "offset", "where" as requiredInputs per
                 executePlan: {
                   summary: 'Execute an analyzed plan',
                   value: {
-                    sessionId: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+                    sessionId: EXAMPLE_SESSION_ID,
                     userInputs: { country: 'de', date: '2026-02-01' },
                   },
                 },
@@ -2932,7 +2934,7 @@ Respond ONLY with valid JSON:
         }
 
         const inhouseCacheStep = stepResults.find(
-          (s) => s.action === 'datasource-cache.query' && !s.error
+          (s) => s.action === ACTION_DS_CACHE_QUERY && !s.error
         );
         if (inhouseCacheStep) {
           const rows = Array.isArray(inhouseCacheStep?.result?.data)
@@ -3358,7 +3360,7 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
             required: true,
             schema: {
               type: 'string',
-              example: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+              example: EXAMPLE_SESSION_ID,
             },
             description: 'Session UUID returned by /agent/analyze',
           },
@@ -3396,7 +3398,7 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
             required: true,
             schema: {
               type: 'string',
-              example: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+              example: EXAMPLE_SESSION_ID,
             },
             description: 'Session UUID',
           },
@@ -3665,7 +3667,7 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
                 properties: {
                   sessionId: {
                     type: 'string',
-                    example: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+                    example: EXAMPLE_SESSION_ID,
                   },
                 },
               },
@@ -3673,7 +3675,7 @@ Respond ONLY with a JSON array (empty array [] if no good chart is possible):
                 rerunSession: {
                   summary: 'Re-run a previous session',
                   value: {
-                    sessionId: '2a70e478-90ce-4fa5-b996-6f98efdba7cf',
+                    sessionId: EXAMPLE_SESSION_ID,
                   },
                 },
               },

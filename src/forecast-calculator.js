@@ -302,7 +302,6 @@ function generateDayAheadSchedule(residualLoad, marketPrices, storageConfig) {
 
   let totalGridImportKwh = 0;
   let totalGridExportKwh = 0;
-  let chargeEnergyKwh = 0;
   let dischargeEnergyKwh = 0;
   let estimatedCostEur = 0;
   let estimatedRevenueEur = 0;
@@ -331,7 +330,6 @@ function generateDayAheadSchedule(residualLoad, marketPrices, storageConfig) {
           const chargedKwh = chargeFromSurplusKw * 0.25 * efficiency;
           socPercent = clamp(socPercent + (chargedKwh / capacityKwh) * 100, minSocPercent, maxSocPercent);
           gridFlowKw = residualKw + chargeFromSurplusKw;
-          chargeEnergyKwh += chargedKwh;
         }
       } else if (residualKw > 0 && availableDischargeKwh > 0) {
         const dischargeKw = Math.min(residualKw, maxDischargePowerKw, availableDischargeKwh / 0.25);

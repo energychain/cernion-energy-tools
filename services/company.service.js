@@ -363,8 +363,8 @@ module.exports = {
 
         let docs = result.docs;
         if (query) {
-          const re = new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-          docs = docs.filter((d) => re.test(d.displayName));
+          const queryLower = query.toLowerCase();
+          docs = docs.filter((d) => d.displayName.toLowerCase().includes(queryLower));
         }
 
         return {

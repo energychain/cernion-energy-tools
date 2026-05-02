@@ -22,6 +22,8 @@ PouchDB.plugin(require('pouchdb-find'));
 const crypto = require('crypto');
 const { MoleculerClientError } = require('moleculer').Errors;
 
+const EXAMPLE_DATAPOINT_NAME = 'pv-portfolio-twl-netze';
+
 module.exports = {
   name: 'datapoint',
 
@@ -94,7 +96,7 @@ module.exports = {
                   },
                   name: {
                     type: 'string',
-                    example: 'pv-portfolio-twl-netze',
+                    example: EXAMPLE_DATAPOINT_NAME,
                   },
                   description: { type: 'string', default: '' },
                   owner: { type: 'string', default: '' },
@@ -116,7 +118,7 @@ module.exports = {
                   summary: 'Promote a PV forecast session',
                   value: {
                     sessionId: '9209aa45-93f7-471c-8883-76326c4083f1',
-                    name: 'pv-portfolio-twl-netze',
+                    name: EXAMPLE_DATAPOINT_NAME,
                     description: 'PV generation forecast for TWL Netze',
                     tags: ['solar', 'forecast', 'twl'],
                     fixedParams: { query: 'TWL Netze', forecastDays: 3 },
@@ -370,7 +372,7 @@ module.exports = {
             name: 'name',
             in: 'path',
             required: true,
-            schema: { type: 'string', example: 'pv-portfolio-twl-netze' },
+            schema: { type: 'string', example: EXAMPLE_DATAPOINT_NAME },
           },
           {
             name: 'validate',
@@ -437,7 +439,7 @@ module.exports = {
             name: 'name',
             in: 'path',
             required: true,
-            schema: { type: 'string', example: 'pv-portfolio-twl-netze' },
+            schema: { type: 'string', example: EXAMPLE_DATAPOINT_NAME },
           },
           {
             name: 'limit',
@@ -461,7 +463,7 @@ module.exports = {
             content: {
               'application/json': {
                 example: {
-                  name: 'pv-portfolio-twl-netze',
+                  name: EXAMPLE_DATAPOINT_NAME,
                   total: 2,
                   interventions: [
                     {
@@ -522,7 +524,7 @@ module.exports = {
         summary: 'Health overview of all Datapoints',
         tags: ['Datapoints'],
       },
-      async handler(ctx) {
+      async handler(_ctx) {
         const result = await this.db.allDocs({
           include_docs: true,
           startkey: 'dp:',
@@ -593,14 +595,13 @@ module.exports = {
             name: 'name',
             in: 'path',
             required: true,
-            schema: { type: 'string', example: 'pv-portfolio-twl-netze' },
+            schema: { type: 'string', example: EXAMPLE_DATAPOINT_NAME },
           },
         ],
       },
       async handler(ctx) {
         try {
-          const doc = await this.db.get(`dp:${ctx.params.name}`);
-          return doc;
+          return await this.db.get(`dp:${ctx.params.name}`);
         } catch (e) {
           if (e.status === 404) {
             throw new MoleculerClientError(
@@ -703,7 +704,7 @@ module.exports = {
             name: 'name',
             in: 'path',
             required: true,
-            schema: { type: 'string', example: 'pv-portfolio-twl-netze' },
+            schema: { type: 'string', example: EXAMPLE_DATAPOINT_NAME },
           },
         ],
         requestBody: {
@@ -820,7 +821,7 @@ module.exports = {
             name: 'name',
             in: 'path',
             required: true,
-            schema: { type: 'string', example: 'pv-portfolio-twl-netze' },
+            schema: { type: 'string', example: EXAMPLE_DATAPOINT_NAME },
           },
           {
             name: 'format',
@@ -925,7 +926,7 @@ module.exports = {
                   datapointNames: {
                     type: 'array',
                     items: { type: 'string' },
-                    example: ['pv-portfolio-twl-netze', 'redispatch-anlagen-twl-netze'],
+                    example: [EXAMPLE_DATAPOINT_NAME, 'redispatch-anlagen-twl-netze'],
                   },
                   tags: {
                     type: 'string',
@@ -951,7 +952,7 @@ module.exports = {
                 byNames: {
                   summary: 'Snapshot by datapoint names',
                   value: {
-                    datapointNames: ['pv-portfolio-twl-netze', 'ewk-benchmark-twl'],
+                    datapointNames: [EXAMPLE_DATAPOINT_NAME, 'ewk-benchmark-twl'],
                     maxAgeMinutes: 60,
                     name: 'twl-validierung-q1-2026',
                     description: 'Consistency check TWL Netze Q1 2026',

@@ -7,7 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.38.4] — CR-TENANT-001: object-store NS_PATTERN Fix
+## [0.38.7] — Hygiene Sprint Prio 5 (Security: non-literal RegExp)
+
+### Fixed
+- `services/company.service.js:366` — non-literal RegExp gesichert: `new RegExp(escapedQuery, 'i')` durch `String.includes` ersetzt (kein RegExp mehr nötig)
+- `services/vnb-monitor.service.js:176` — non-literal RegExp gesichert: dynamisch aufgebautes `new RegExp(LEGAL_SUFFIXES.join('|'))` durch statische Literal-Regex `/\b(gmbh|ag|…)\b/g` ersetzt
+- `src/edm-messkonzept-engine.js:26` — non-literal RegExp gesichert: `blocklist.join('|')` durch zwei Literal-Regex-Konstanten ersetzt (`BLOCKLIST_RE_TEST` ohne `/g` + `BLOCKLIST_RE_MATCH` mit `/g` — verhindert auch `/g`-lastIndex-Problem)
+
+
+### Changed
+- **Hygiene Sprint — Prio 3 Block A: no-duplicate-string (Magic Strings → Konstanten):**
+  - `services/agent.service.js` — `ACTION_DS_CACHE_QUERY`, `EXAMPLE_SESSION_ID`
+  - `services/api.service.js` — `CONTENT_TYPE_HEADER`, `CONTENT_TYPE_JSON`
+  - `services/assets.service.js` — 20 Beschreibungs- und Metadaten-Konstanten (`OEO_CLASS_KEY`, `PARAM_DESC_*`, `OEO_URL_POWER_PLANT`, `EXAMPLE_DATE` u.a.)
+  - `services/bilanzkreis.service.js` — `OPENAPI_TAG`
+  - `services/business-intelligence.service.js` — `SERVICE_NAME`, `OPENAPI_TAG`
+  - `services/cookbook.service.js` — `OEO_CLASS_KEY`, `OEO_CLASS_URL`
+  - `services/cya.service.js` — `DEFAULT_TONE`, `OS_PUT`, `OS_GET`, `EXAMPLE_TRIGGER`
+  - `services/dashboard-api.service.js` — `OPENAPI_TAG`, `ACTION_MQ_LIST`, `ACTION_RD_LIST`, `ACTION_ES_LIST`, `ACTION_GC_LIST`
+  - `services/datapoint.service.js` — `EXAMPLE_DATAPOINT_NAME`
+  - `services/datasource-cache.service.js` — `COL_LEISTUNG_BEZUG`, `COL_LEISTUNG_EINSPEISUNG`
+- Alle 3116 Tests weiterhin grün
+
+## [0.38.5] — Hygiene Sprint Prio 1+2
+
+### Changed
+- **Hygiene Sprint — Prio 1: no-unused-vars (22 Findings behoben):**
+  - `services/cya.service.js` — `buildNegotiationPrompt` aus Import entfernt
+  - `services/datapoint.service.js` — ungenutzter `ctx`-Parameter in health-overview-Handler auf `_ctx` umbenannt
+  - `services/energy-sharing.service.js` — `DV_INACTIVE` aus Import entfernt; `params` → `_params` in `stepDirectMarketer`
+  - `services/grid-connection.service.js` — ungenutztes `capacityByVoltage`-Assignment entfernt
+  - `services/mastr-monitor.service.js` — `payload` → `_payload` in Event-Handler
+  - `services/mastr-quality.service.js` — ungenutztes `allNap`-Assignment entfernt
+  - `services/utility-report.service.js` — unbenutzten `scrubReportPrompt`-Import + Kommentar entfernt
+  - `src/cya-context-manager.js` — `queryNodes` aus Import entfernt
+  - `src/cya-data-retriever.js` — `isToolAllowed` aus Import entfernt
+  - `src/cya-ontology-graph.js` — `attrs` → `_attrs` in `_signalMissingNap`
+  - `src/forecast-calculator.js` — ungenutztes `chargeEnergyKwh`-Akkumulator entfernt
+  - `src/oemetadata-builder.js` — `INSTALLATION_TYPES` aus internem Import entfernt
+  - `src/znp-pdf-extractor.js` — `applyCosPhi` → `_applyCosPhi` (Destructuring-Param)
+  - `.eslintrc.hygiene.json` — `no-unused-vars` mit `varsIgnorePattern`/`argsIgnorePattern: "^_"` konfiguriert
+- **Hygiene Sprint — Prio 2: prefer-immediate-return (11 Findings behoben):**
+  - `services/cookbook.service.js:533` — `rows`-Variable direkt zurückgegeben
+  - `services/datapoint.service.js:602` — `doc`-Variable direkt zurückgegeben
+  - `services/datasource-classifier.service.js:384,661` — `classification`- und `rows`-Variablen direkt zurückgegeben
+  - `services/residual-load.service.js:754` — `result`-Variable direkt zurückgegeben
+  - `services/vnb-monitor.service.js:1426` — `results`-Variable direkt zurückgegeben
+  - `src/async-job-poller.js:292` — `result`-Variable direkt zurückgegeben
+  - `src/connectors/scraper.connector.js:73` — `rows`-Variable direkt zurückgegeben
+  - `src/edm-csv-importer.js:122` — `autoParsed`-Variable direkt zurückgegeben
+  - `src/edm-validation-rules.js:144` — `overflowDetected`-Variable direkt zurückgegeben
+  - `src/oemetadata-builder.js:283` — `metadata`-Variable direkt zurückgegeben
+- **Hygiene Sprint — Prio 2: no-collapsible-if (6 Findings behoben):**
+  - `services/assets.service.js:131` — Verschachtelte `if`-Statements in `cRate`-Berechnung zusammengeführt
+  - `services/datasource-connector.service.js:299,323,329` — Enum-, Minimum- und Maximum-Checks zusammengeführt
+  - `services/mastr-quality.service.js:1725` — NAP-Multi-Unit-Check zusammengeführt
+  - `src/cya-ontology-graph.js:435` — `hasNode`/`hasEdge`-Check zusammengeführt
+
+
 
 ### Fixed
 - **`services/object-store.service.js` — NS_PATTERN erweitert (CR-TENANT-001):**

@@ -10,6 +10,9 @@ const { callWithAutoPoll } = require('../src/async-job-poller');
 const { applyFormat, convertToCSV } = require('../src/format-response');
 const jobStore = require('../src/job-store');
 
+const SERVICE_NAME = 'business-intelligence';
+const OPENAPI_TAG = 'Business Intelligence';
+
 // ─── Helpers for churn-prediction narrative responses ─────────────────────────
 
 /**
@@ -74,7 +77,7 @@ function parseChurnPredictionText(text, params) {
 }
 
 module.exports = {
-  name: 'business-intelligence',
+  name: SERVICE_NAME,
 
   settings: {
     defaultTimeout: 10 * 60 * 1000, // 10 minutes for long-running analysis
@@ -97,7 +100,7 @@ module.exports = {
       },
       openapi: {
         summary: 'Identify sales leads from MaStR (new PV/wallbox/heatpump/storage installations)',
-        tags: ['Business Intelligence'],
+        tags: [OPENAPI_TAG],
         description: `Identify high-quality B2C sales leads from new installations in MaStR registry. **Lead scoring system (0-100 points)**:
 
 **Scoring Components**:
@@ -207,7 +210,7 @@ module.exports = {
         // Start async job (REST gateway) or run synchronously (internal Moleculer call)
         return await jobStore.startJob(
           ctx,
-          { service: 'business-intelligence', action: 'salesLeads' },
+          { service: SERVICE_NAME, action: 'salesLeads' },
           () =>
             callWithAutoPoll(
               'cernion_sales_lead_identification',
@@ -244,7 +247,7 @@ module.exports = {
       },
       openapi: {
         summary: 'Calculate dynamic electricity tariffs based on market prices or CO₂ intensity',
-        tags: ['Business Intelligence'],
+        tags: [OPENAPI_TAG],
         description: 'Dynamic tariff product design and customer savings calculation',
         requestBody: {
           required: true,
@@ -377,7 +380,7 @@ module.exports = {
       },
       openapi: {
         summary: 'Predict customer churn risk for energy suppliers',
-        tags: ['Business Intelligence'],
+        tags: [OPENAPI_TAG],
         description: `Predict and prevent customer churn with ML-powered risk scoring. **Churn scoring system (0-100 points)**:
 
 **Scoring Components**:
@@ -554,7 +557,7 @@ module.exports = {
         // JSON format — start async job (REST gateway) or synchronous MCP call (internal)
         return await jobStore.startJob(
           ctx,
-          { service: 'business-intelligence', action: 'churnPrediction' },
+          { service: SERVICE_NAME, action: 'churnPrediction' },
           () =>
             callWithAutoPoll(
               'cernion_customer_churn_prediction',
@@ -594,7 +597,7 @@ module.exports = {
       },
       openapi: {
         summary: 'Analyze market penetration rates for energy suppliers in specific regions',
-        tags: ['Business Intelligence'],
+        tags: [OPENAPI_TAG],
         description:
           'Identify growth opportunities, untapped segments, and competitive positioning',
         requestBody: {
@@ -691,7 +694,7 @@ module.exports = {
         // Start async job (REST gateway) or run synchronously (internal Moleculer call)
         return await jobStore.startJob(
           ctx,
-          { service: 'business-intelligence', action: 'marketPenetration' },
+          { service: SERVICE_NAME, action: 'marketPenetration' },
           () =>
             callWithAutoPoll(
               'cernion_market_penetration_analysis',

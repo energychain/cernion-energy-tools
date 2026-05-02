@@ -26,7 +26,7 @@ const {
   GENERATOR_NO_NAP, GENERATOR_NO_MELO, GENERATOR_DUPLICATE,
   // ES Step 3 — Direct Marketer (§ 21 Abs. 2 EEG)
   DV_VALID, DV_MANDATORY_MISSING, DV_NOT_CONTROLLABLE,
-  DV_NOT_FOUND, DV_INACTIVE, DV_MASTR_MISMATCH,
+  DV_NOT_FOUND, DV_MASTR_MISMATCH,
   // ES Step 4 — Eligibility
   ELIGIBILITY_CONFIRMED, SHARE_SUM_GENERATORS_INVALID, SHARE_SUM_CONSUMERS_INVALID,
   NO_GENERATORS, NO_CONSUMERS, MIXED_GRID_AREAS, GENERATOR_EXCEEDS_LIMIT,
@@ -655,7 +655,7 @@ module.exports = {
      * Step 3: Validate direct marketer status for all generators.
      * Returns { enrichedGenerators, findings }.
      */
-    async stepDirectMarketer(ctx, enrichedGenerators, params) {
+    async stepDirectMarketer(ctx, enrichedGenerators, _params) {
       const token = ctx.meta?.cernionToken;
       const findings = [];
 

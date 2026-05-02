@@ -751,13 +751,11 @@ module.exports = {
             mcpParams.location = locationObj;
           }
 
-          const result = await CernionMCPClient.callWithNewSession(
+          return await CernionMCPClient.callWithNewSession(
             'cernion_load_forecast_regional',
             mcpParams,
             ctx.meta.cernionToken
           );
-
-          return result;
         } catch (error) {
           this.logger.error('Regional load forecast failed:', error);
           return {

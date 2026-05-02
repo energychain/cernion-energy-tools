@@ -11,6 +11,7 @@ const NS_BILANZKREISE = 'bilanzkreise';
 const NS_BK_RESULTS = 'bk_results';
 const OBIS_CONSUMPTION = '1-0:1.8.0';
 const OBIS_FEEDIN = '1-0:2.8.0';
+const OPENAPI_TAG = 'Settlement (Abrechnung)';
 
 function toIso(value) {
   const date = new Date(value);
@@ -88,7 +89,7 @@ module.exports = {
       },
       openapi: {
         summary: 'Create a Bilanzkreis (real or virtual)',
-        tags: ['Settlement (Abrechnung)'],
+        tags: [OPENAPI_TAG],
         description:
           'Creates a balance group definition. Real BKs map to MaBiS interfaces. Virtual BKs aggregate multiple MeLos for internal settlement.',
         requestBody: {
@@ -207,7 +208,7 @@ module.exports = {
       },
       openapi: {
         summary: 'List Bilanzkreise',
-        tags: ['Settlement (Abrechnung)'],
+        tags: [OPENAPI_TAG],
         parameters: [
           {
             name: 'type',
@@ -248,7 +249,7 @@ module.exports = {
       },
       openapi: {
         summary: 'Get a Bilanzkreis',
-        tags: ['Settlement (Abrechnung)'],
+        tags: [OPENAPI_TAG],
         parameters: [
           {
             name: 'id',
@@ -275,7 +276,7 @@ module.exports = {
       },
       openapi: {
         summary: 'Delete a Bilanzkreis',
-        tags: ['Settlement (Abrechnung)'],
+        tags: [OPENAPI_TAG],
         parameters: [
           {
             name: 'id',
@@ -303,7 +304,7 @@ module.exports = {
       },
       openapi: {
         summary: 'Calculate balance for a Bilanzkreis over a time period',
-        tags: ['Settlement (Abrechnung)'],
+        tags: [OPENAPI_TAG],
         description:
           'Loads timeseries for all participants from EDM, calculates saldo per 15-min interval, and returns summary with self-consumption and autarky rates.',
         requestBody: {
@@ -419,7 +420,7 @@ module.exports = {
       },
       openapi: {
         summary: 'Check settlement readiness for a Bilanzkreis',
-        tags: ['Settlement (Abrechnung)'],
+        tags: [OPENAPI_TAG],
         description:
           'Verifies data completeness and quality for all participants before running settlement calculations.',
         parameters: [
