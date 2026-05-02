@@ -53,9 +53,6 @@
     "url": "https://github.com/energychain/cernion-energy-tools/issues"
   },
   "homepage": "https://github.com/energychain/cernion-energy-tools#readme",
-  "engines": {
-    "node": ">=22"
-  },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.29.0",

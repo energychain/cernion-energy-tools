@@ -21,6 +21,12 @@ jobs:
           node-version: '22'
           cache: npm
 
+        - name: Update package-lock.json for Node 22
+          run: npm install --package-lock-only
+
+        - name: Update package-lock.json for Node 22
+          run: npm install --package-lock-only
+
       - name: Install dependencies
         run: npm ci
 
@@ -80,6 +86,9 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+
+        - name: Update package-lock.json for Node 22
+          run: npm install --package-lock-only
 
       - name: Install dependencies
         run: npm ci
