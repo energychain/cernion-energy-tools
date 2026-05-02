@@ -17,15 +17,12 @@ function validateCalcFormula(formula) {
     throw new Error('Formula must be a non-empty string');
   }
 
-  // Blocklist: dangerous identifiers
-  const blocklist = [
-    'eval', 'Function', 'require', 'import', 'process', 'global',
-    '__dirname', '__filename', 'fs', 'child_process', 'http', 'https',
-    'module', 'exports', 'console', 'setTimeout', 'setInterval'
-  ];
-  const blocklistRegex = new RegExp(`\\b(${blocklist.join('|')})\\b`, 'g');
-  if (blocklistRegex.test(formula)) {
-    throw new Error(`Formula contains blocked identifiers: ${formula.match(blocklistRegex).join(', ')}`);
+  // Blocklist: dangerous identifiers — literal regex, no user input in pattern
+  // Uses two separate literals to avoid /g lastIndex state issues between .test() and .match()
+  const BLOCKLIST_RE_TEST = /\b(eval|Function|require|import|process|global|__dirname|__filename|fs|child_process|http|https|module|exports|console|setTimeout|setInterval)\b/;
+  const BLOCKLIST_RE_MATCH = /\b(eval|Function|require|import|process|global|__dirname|__filename|fs|child_process|http|https|module|exports|console|setTimeout|setInterval)\b/g;
+  if (BLOCKLIST_RE_TEST.test(formula)) {
+    throw new Error(`Formula contains blocked identifiers: ${formula.match(BLOCKLIST_RE_MATCH).join(', ')}`);
   }
 
   // Allowlist: only +, -, *, /, (, ), numbers, decimals, spaces, v0-v99, Math.{max,min,abs}

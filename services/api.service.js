@@ -13,6 +13,8 @@ const fs = require('fs');
 const { version: packageVersion } = require('../package.json');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
+const CONTENT_TYPE_HEADER = 'Content-Type';
+const CONTENT_TYPE_JSON = 'application/json; charset=utf-8';
 const ALLOWED_UPLOAD_EXTENSIONS = new Set([
   '.csv',
   '.tsv',
@@ -409,7 +411,7 @@ module.exports = {
             const appHtml = path.join(__dirname, '..', 'src', 'app.html');
             try {
               const html = fs.readFileSync(appHtml, 'utf-8');
-              res.setHeader('Content-Type', 'text/html; charset=utf-8');
+              res.setHeader(CONTENT_TYPE_HEADER, 'text/html; charset=utf-8');
               res.end(html);
             } catch (err) {
               res.writeHead(500);
@@ -422,7 +424,7 @@ module.exports = {
             const llmTxt = path.join(__dirname, '..', 'llm.txt');
             try {
               const content = fs.readFileSync(llmTxt, 'utf-8');
-              res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+              res.setHeader(CONTENT_TYPE_HEADER, 'text/plain; charset=utf-8');
               res.end(content);
             } catch (err) {
               res.writeHead(404);
@@ -451,7 +453,7 @@ module.exports = {
           'GET /openapi.json': 'api.openapi',
           'GET /docs'(req, res) {
             // Serve Swagger UI HTML
-            res.setHeader('Content-Type', 'text/html');
+            res.setHeader(CONTENT_TYPE_HEADER, 'text/html');
             res.end(`
 <!DOCTYPE html>
 <html lang="en">
@@ -793,7 +795,7 @@ module.exports = {
                 .sort((a, b) => a.localeCompare(b))
                 .map((fileName) => buildUploadResponseEntry(fileName));
 
-              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
               res.end(
                 JSON.stringify({
                   success: true,
@@ -803,7 +805,7 @@ module.exports = {
                 })
               );
             } catch (err) {
-              res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+              res.writeHead(500, { CONTENT_TYPE_HEADER: CONTENT_TYPE_JSON });
               res.end(
                 JSON.stringify({
                   success: false,
@@ -822,27 +824,27 @@ module.exports = {
               const contentBase64 = params.contentBase64;
 
               if (!rawFileName || typeof rawFileName !== 'string') {
-                res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.writeHead(400, { CONTENT_TYPE_HEADER: CONTENT_TYPE_JSON });
                 res.end(JSON.stringify({ success: false, message: 'fileName is required.' }));
                 return;
               }
 
               if (!contentBase64 || typeof contentBase64 !== 'string') {
-                res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.writeHead(400, { CONTENT_TYPE_HEADER: CONTENT_TYPE_JSON });
                 res.end(JSON.stringify({ success: false, message: 'contentBase64 is required.' }));
                 return;
               }
 
               const safeName = sanitizeUploadFilename(rawFileName);
               if (!safeName) {
-                res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.writeHead(400, { CONTENT_TYPE_HEADER: CONTENT_TYPE_JSON });
                 res.end(JSON.stringify({ success: false, message: 'Invalid fileName.' }));
                 return;
               }
 
               const ext = path.extname(safeName).toLowerCase();
               if (!ALLOWED_UPLOAD_EXTENSIONS.has(ext)) {
-                res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.writeHead(400, { CONTENT_TYPE_HEADER: CONTENT_TYPE_JSON });
                 res.end(
                   JSON.stringify({
                     success: false,
@@ -858,7 +860,7 @@ module.exports = {
 
               const buffer = Buffer.from(payload, 'base64');
               if (!buffer || buffer.length === 0) {
-                res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.writeHead(400, { CONTENT_TYPE_HEADER: CONTENT_TYPE_JSON });
                 res.end(JSON.stringify({ success: false, message: 'Uploaded payload is empty.' }));
                 return;
               }
@@ -870,7 +872,7 @@ module.exports = {
               const finalPath = path.join(UPLOAD_DIR, finalFileName);
               fs.writeFileSync(finalPath, buffer);
 
-              res.setHeader('Content-Type', 'application/json; charset=utf-8');
+              res.setHeader(CONTENT_TYPE_HEADER, CONTENT_TYPE_JSON);
               res.end(
                 JSON.stringify({
                   success: true,
@@ -878,7 +880,7 @@ module.exports = {
                 })
               );
             } catch (err) {
-              res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+              res.writeHead(500, { CONTENT_TYPE_HEADER: CONTENT_TYPE_JSON });
               res.end(
                 JSON.stringify({
                   success: false,
@@ -1044,7 +1046,7 @@ module.exports = {
         },
 
         onError(req, res, err) {
-          res.setHeader('Content-Type', 'application/json');
+          res.setHeader(CONTENT_TYPE_HEADER, 'application/json');
           res.writeHead(err.code || 500);
           res.end(
             JSON.stringify({

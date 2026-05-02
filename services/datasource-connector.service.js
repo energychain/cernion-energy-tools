@@ -296,12 +296,10 @@ module.exports = {
           const fieldValue = cfg[fieldName];
           if (fieldValue === undefined || fieldValue === null) continue;
 
-          if (fieldSchema.enum && Array.isArray(fieldSchema.enum)) {
-            if (!fieldSchema.enum.includes(fieldValue)) {
-              errors.push(
-                `Invalid value for ${fieldName}: expected one of [${fieldSchema.enum.join(', ')}]`
-              );
-            }
+          if (fieldSchema.enum && Array.isArray(fieldSchema.enum) && !fieldSchema.enum.includes(fieldValue)) {
+            errors.push(
+              `Invalid value for ${fieldName}: expected one of [${fieldSchema.enum.join(', ')}]`
+            );
           }
 
           if (fieldSchema.type) {
@@ -320,16 +318,12 @@ module.exports = {
             }
           }
 
-          if (typeof fieldValue === 'number' && typeof fieldSchema.minimum === 'number') {
-            if (fieldValue < fieldSchema.minimum) {
-              errors.push(`Invalid value for ${fieldName}: expected >= ${fieldSchema.minimum}`);
-            }
+          if (typeof fieldValue === 'number' && typeof fieldSchema.minimum === 'number' && fieldValue < fieldSchema.minimum) {
+            errors.push(`Invalid value for ${fieldName}: expected >= ${fieldSchema.minimum}`);
           }
 
-          if (typeof fieldValue === 'number' && typeof fieldSchema.maximum === 'number') {
-            if (fieldValue > fieldSchema.maximum) {
-              errors.push(`Invalid value for ${fieldName}: expected <= ${fieldSchema.maximum}`);
-            }
+          if (typeof fieldValue === 'number' && typeof fieldSchema.maximum === 'number' && fieldValue > fieldSchema.maximum) {
+            errors.push(`Invalid value for ${fieldName}: expected <= ${fieldSchema.maximum}`);
           }
         }
       }

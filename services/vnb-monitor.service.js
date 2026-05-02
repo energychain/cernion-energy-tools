@@ -153,27 +153,13 @@ function normalizeOperatorName(value) {
     return '';
   }
 
-  const LEGAL_SUFFIXES = [
-    'gmbh',
-    'ag',
-    'mbh',
-    'kg',
-    'e\.v',
-    'ev',
-    'gbr',
-    'ug',
-    'ohg',
-    'kgaa',
-    'se',
-    'co',
-    'holding',
-    'gruppe',
-  ];
+  // Static literal — derived from the LEGAL_SUFFIXES list (all safe, no user input)
+  const LEGAL_SUFFIXES_RE = /\b(gmbh|ag|mbh|kg|e\.v|ev|gbr|ug|ohg|kgaa|se|co|holding|gruppe)\b/g;
 
   return value
     .toLowerCase()
     .replace(/[.,/\\()\-]/g, ' ')
-    .replace(new RegExp(`\\b(${LEGAL_SUFFIXES.join('|')})\\b`, 'g'), ' ')
+    .replace(LEGAL_SUFFIXES_RE, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
@@ -1423,7 +1409,7 @@ module.exports = {
         const { bdewCodes, refresh, lang } = ctx.params;
         const codes = bdewCodes.split(',').map((c) => c.trim());
 
-        const results = await Promise.all(
+        return await Promise.all(
           codes.map((code) =>
             ctx.call('vnb-monitor.snapshot', {
               bdewCode: code,
@@ -1433,8 +1419,6 @@ module.exports = {
             })
           )
         );
-
-        return results;
       },
     },
 

@@ -16,7 +16,7 @@
  */
 
 const { MoleculerError } = require('moleculer').Errors;
-const { getSubgraph, queryNodes, NODE_TYPE } = require('./cya-ontology-graph');
+const { getSubgraph, NODE_TYPE } = require('./cya-ontology-graph');
 
 const MAX_ITERATIONS_DEFAULT = 3;
 

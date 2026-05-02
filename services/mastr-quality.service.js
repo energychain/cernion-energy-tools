@@ -1298,7 +1298,6 @@ module.exports = {
     summarizeNapFindings(findings = []) {
       const general = findings.filter((f) => f.finding === MQ_MISSING_NAP);
       const redispatch = findings.filter((f) => f.finding === MQ_REDISPATCH_NO_NAP);
-      const allNap = general.concat(redispatch);
 
       const uniqueGeneral = new Set();
       const uniqueRedispatch = new Set();
@@ -1722,28 +1721,25 @@ module.exports = {
         }
 
         // Rule 5: NAP shared by >3 units — may indicate master-meter grouping issue
-        if (napId && napUnits[napId] && napUnits[napId].length > 3) {
-          // Only emit once per NAP
-          if (napUnits[napId][0] === mastr) {
-            findings.push(createFinding(
-              5, 'connectionPoints', MQ_NAP_MULTI_UNIT, 'warning',
-              `NAP ${napId}: shared by ${napUnits[napId].length} installations`,
-              `More than 3 installations share the same NAP (${napId}). This may indicate incorrect NAP assignment or a master-meter grouping.`,
-              this.buildInstallationFindingContext(inst, {
-                mastrNummer: napUnits[napId].slice(0, 10),
-                datapoint: 'nap.MastrNummer',
-                value: napId,
-                expectedValue: 'Unique NAP per installation (unless intentional grouping)',
-                type,
-                brutto,
-                napId,
-                unitCount: napUnits[napId].length,
-                mastrNumbers: napUnits[napId].slice(0, 10),
-              }),
-              'Review NAP assignment. Each installation should have its own NAP unless intentionally grouped.',
-              idx++
-            ));
-          }
+        if (napId && napUnits[napId] && napUnits[napId].length > 3 && napUnits[napId][0] === mastr) {
+          findings.push(createFinding(
+            5, 'connectionPoints', MQ_NAP_MULTI_UNIT, 'warning',
+            `NAP ${napId}: shared by ${napUnits[napId].length} installations`,
+            `More than 3 installations share the same NAP (${napId}). This may indicate incorrect NAP assignment or a master-meter grouping.`,
+            this.buildInstallationFindingContext(inst, {
+              mastrNummer: napUnits[napId].slice(0, 10),
+              datapoint: 'nap.MastrNummer',
+              value: napId,
+              expectedValue: 'Unique NAP per installation (unless intentional grouping)',
+              type,
+              brutto,
+              napId,
+              unitCount: napUnits[napId].length,
+              mastrNumbers: napUnits[napId].slice(0, 10),
+            }),
+            'Review NAP assignment. Each installation should have its own NAP unless intentionally grouped.',
+            idx++
+          ));
         }
 
         // Rule 6: Redispatch-relevant (≥100 kW) without NAP

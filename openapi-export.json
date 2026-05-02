@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.34.1",
+    "version": "0.38.7",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -1196,6 +1196,48 @@
             }
           }
         }
+      }
+    },
+    "/api/tokens/tenants": {
+      "get": {
+        "operationId": "token-manager_tenant_list",
+        "summary": "List known tenant IDs",
+        "tags": [
+          "IntegrationHub"
+        ],
+        "responses": {
+          "200": {
+            "description": "List of tenant IDs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "tenants": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "stadtwerk-a",
+                        "stadtwerk-b"
+                      ]
+                    },
+                    "count": {
+                      "type": "integer",
+                      "example": 2
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns all unique tenantIds that appear in stored tokens. Requires full-access scope. Empty list when no tenant-scoped tokens exist."
       }
     },
     "/api/vnb-monitor/thresholds": {
@@ -7500,22 +7542,132 @@
     "/api/cya/graph/export/oeo-stub": {
       "get": {
         "operationId": "cya_export_oeo-stub",
-        "summary": "cya.export.oeo-stub",
+        "summary": "OEO Export Stub (Science Hook)",
         "tags": [
-          "cya"
+          "CYA Agent"
         ],
         "responses": {
           "200": {
-            "description": "Successful response",
+            "description": "OEO JSON-LD skeleton export",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object"
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "oeoStub": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "OEO JSON-LD stub (null until oeo-exporter-stub.js is implemented)"
+                    },
+                    "graphology": {
+                      "type": "object",
+                      "description": "Raw Graphology graph data"
+                    }
+                  }
                 }
               }
             }
           }
-        }
+        },
+        "description": "Exports the live Graphology ontology graph as a JSON-LD skeleton for OEO class mapping. Current status: oeoStub is null (NOT_IMPLEMENTED). See CONTRIBUTING_SCIENCE.md.",
+        "parameters": [
+          {
+            "name": "operator",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "Stadtwerke Beispiel"
+            },
+            "description": "Optional operator name for graph seed"
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "Ludwigshafen"
+            },
+            "description": "Optional location filter"
+          },
+          {
+            "name": "baseIri",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "https://cernion.example/graph/"
+            },
+            "description": "Base IRI for JSON-LD output"
+          }
+        ],
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
+        ]
+      }
+    },
+    "/api/cya/graph/cache": {
+      "get": {
+        "operationId": "cya_graph_cacheStatus",
+        "summary": "Ontologie-Graph Cache Status",
+        "tags": [
+          "CYA Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Cache-Statistiken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    },
+                    "cache": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Gibt den aktuellen L1-Cache-Status des Ontologie-Graphen zurück. Für Ops-Monitoring und Debugging."
+      }
+    },
+    "/api/cya/graph/cache/:operatorId": {
+      "delete": {
+        "operationId": "cya_graph_invalidate",
+        "summary": "Ontologie-Graph Cache invalidieren",
+        "tags": [
+          "CYA Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Invalidierungsbestätigung",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "invalidated": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Invalidiert den Graphen für einen VNB. Wird automatisch ausgelöst bei mastr-monitor.delta.detected."
       }
     },
     "/api/cya/generate": {
@@ -7913,6 +8065,333 @@
             }
           }
         }
+      }
+    },
+    "/api/cya/sessions/:id/a2a-log": {
+      "get": {
+        "operationId": "cya_session_a2aLog",
+        "summary": "Get A2A message log for a CYA session (v0.35.0)",
+        "tags": [
+          "CYA Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "A2A message log",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "messageCount": {
+                      "type": "integer"
+                    },
+                    "messages": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "messageId": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "eventName": {
+                            "type": "string"
+                          },
+                          "sessionId": {
+                            "type": "string"
+                          },
+                          "fromPersona": {
+                            "type": "string"
+                          },
+                          "toPersona": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "payload": {
+                            "type": "object"
+                          },
+                          "timestamp": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "protocolVersion": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns the full Agent-to-Agent communication log for a session, sorted by timestamp. Each entry is an A2AMessage envelope.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "cya_1713110400000"
+            }
+          }
+        ],
+        "x-oeo-class": "OEO:AgentCommunication"
+      }
+    },
+    "/api/cya/sessions/:id/a2a-analysis": {
+      "get": {
+        "operationId": "cya_session_a2aAnalysis",
+        "summary": "Analyse des A2A-Logs für eine CYA-Session (v0.38.2)",
+        "tags": [
+          "CYA Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "A2A-Log-Analyse",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "analysis": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "totalMessages": {
+                          "type": "integer"
+                        },
+                        "conflictsDetected": {
+                          "type": "integer"
+                        },
+                        "negotiationRounds": {
+                          "type": "integer"
+                        },
+                        "consensusReached": {
+                          "type": "boolean"
+                        },
+                        "consensusRound": {
+                          "type": "integer",
+                          "nullable": true
+                        },
+                        "hitlEscalated": {
+                          "type": "boolean"
+                        },
+                        "durationMs": {
+                          "type": "number",
+                          "nullable": true
+                        },
+                        "blockerPersonas": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "signalsSeen": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "summary": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "message": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Wertet den persistierten Agent-to-Agent Kommunikations-Log einer Session aus. Liefert strukturierte Insights über Persona-Verdicts, Konflikte, Negotiation-Runden und Consensus-Ergebnis.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "cya_1713110400000"
+            }
+          }
+        ],
+        "x-oeo-class": "OEO:AgentCommunication"
+      }
+    },
+    "/api/cya/a2a-stats": {
+      "get": {
+        "operationId": "cya_a2aStats",
+        "summary": "Globale A2A-Statistiken über alle Sessions (v0.38.2)",
+        "tags": [
+          "CYA Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregierte A2A-Statistiken",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionCount": {
+                      "type": "integer"
+                    },
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "totalSessions": {
+                          "type": "integer"
+                        },
+                        "consensusRate": {
+                          "type": "number"
+                        },
+                        "avgNegotiationRounds": {
+                          "type": "number"
+                        },
+                        "hitlEscalationRate": {
+                          "type": "number"
+                        },
+                        "mostFrequentBlocker": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "mostFrequentSignal": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "avgDurationMs": {
+                          "type": "number",
+                          "nullable": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Aggregiert A2A-Logs aus allen gespeicherten Sessions und liefert Konsens-Rate, Eskalations-Rate, häufigste Blocker-Persona und häufigste Signals. Limit-Parameter verhindert Timeout bei vielen Sessions.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 1000,
+              "example": 100
+            },
+            "description": "Maximale Anzahl ausgewerteter Sessions (default: 100, max: 1000)"
+          }
+        ],
+        "x-oeo-class": "OEO:AgentCommunication"
+      }
+    },
+    "/api/cya/sessions/:id/context-state": {
+      "get": {
+        "operationId": "cya_session_contextState",
+        "summary": "Get persisted Zwiebelmodus context state for a CYA session (v0.37.0)",
+        "tags": [
+          "CYA Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Persisted context state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "outerContext": {
+                      "type": "object",
+                      "nullable": true,
+                      "properties": {
+                        "goal": {
+                          "type": "string",
+                          "nullable": true
+                        },
+                        "focusArea": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "currentDepth": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "breadcrumb": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "iterationLog": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "maxIterations": {
+                      "type": "integer",
+                      "example": 3
+                    },
+                    "zoomStack": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "nodeId history for zoomIn operations"
+                    },
+                    "savedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No context state found for this session"
+          }
+        },
+        "description": "Returns the serialized CyaContextManager zoom-state for session resumption. Enables refine calls to continue with identical onion context. Object Store namespace: cya_context_states.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "cya_1713110400000"
+            },
+            "description": "CYA Session ID"
+          }
+        ],
+        "x-oeo-class": "OEO:ContextManagement"
       }
     },
     "/api/mastr-monitor/watches": {
@@ -12067,5 +12546,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.34.1"
+  "x-version": "0.38.7"
 }

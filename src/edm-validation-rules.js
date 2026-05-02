@@ -141,9 +141,7 @@ const VALIDATION_RULES = [
 
       const counterMax = Number(context.counterMax);
       const assumedMax = Number.isFinite(counterMax) && counterMax > 0 ? counterMax : 1_000_000_000;
-      const overflowDetected = previousValue >= assumedMax * 0.95 && current <= assumedMax * 0.05;
-
-      return overflowDetected;
+      return previousValue >= assumedMax * 0.95 && current <= assumedMax * 0.05;
     },
   },
   {

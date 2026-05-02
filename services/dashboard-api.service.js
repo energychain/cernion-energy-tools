@@ -24,6 +24,12 @@
 
 const { FINDING_CODE_METADATA } = require('../src/validation-findings');
 
+const OPENAPI_TAG = 'Dashboard API';
+const ACTION_MQ_LIST = 'mastr-quality.list';
+const ACTION_RD_LIST = 'redispatch-expost.list';
+const ACTION_ES_LIST = 'energy-sharing.list';
+const ACTION_GC_LIST = 'grid-connection.list';
+
 module.exports = {
   name: 'dashboard-api',
 
@@ -73,7 +79,7 @@ module.exports = {
         },
       },
       openapi: {
-        tags: ['Dashboard API'],
+        tags: [OPENAPI_TAG],
         summary: 'VNB overview — aggregated dashboard data for one grid operator',
         description:
           'Returns VNB identity, KPIs (installations, capacity, EWK scores, MaStR quality), ' +
@@ -182,10 +188,10 @@ module.exports = {
           const [health, mqAudits, gcValidations, esValidations, rdAudits, rdCount] =
             await Promise.all([
               this.safeCall(ctx, 'datapoint.health',          {},                            null, errors, 'datapoint.health'),
-              this.safeCall(ctx, 'mastr-quality.list',        { gridOperatorId, limit: 1 }, null, errors, 'mastr-quality.list'),
-              this.safeCall(ctx, 'grid-connection.list',      { gridOperatorId, limit: 1 }, null, errors, 'grid-connection.list'),
-              this.safeCall(ctx, 'energy-sharing.list',       { limit: 1 },                  null, errors, 'energy-sharing.list'),
-              this.safeCall(ctx, 'redispatch-expost.list',    { gridOperatorId, limit: 1 }, null, errors, 'redispatch-expost.list'),
+              this.safeCall(ctx, ACTION_MQ_LIST,        { gridOperatorId, limit: 1 }, null, errors, ACTION_MQ_LIST),
+              this.safeCall(ctx, ACTION_GC_LIST,      { gridOperatorId, limit: 1 }, null, errors, ACTION_GC_LIST),
+              this.safeCall(ctx, ACTION_ES_LIST,       { limit: 1 },                  null, errors, ACTION_ES_LIST),
+              this.safeCall(ctx, ACTION_RD_LIST,    { gridOperatorId, limit: 1 }, null, errors, ACTION_RD_LIST),
               this.safeCall(ctx, 'assets.redispatchCount',    { gridOperatorId },            null, errors, 'assets.redispatchCount'),
             ]);
 
@@ -245,7 +251,7 @@ module.exports = {
         },
       },
       openapi: {
-        tags: ['Dashboard API'],
+        tags: [OPENAPI_TAG],
         summary: 'Market snapshot — current spot prices, CO₂ intensity, renewable forecast',
         description:
           'Aggregates current day-ahead spot prices, CO₂ intensity (with forecast), and ' +
@@ -391,7 +397,7 @@ module.exports = {
         },
       },
       openapi: {
-        tags: ['Dashboard API'],
+        tags: [OPENAPI_TAG],
         summary: 'Quality summary — recent reports from all agent pipelines',
         description:
           'Returns the five most recent reports from each of the five agent pipelines ' +
@@ -459,10 +465,10 @@ module.exports = {
           const baseFilter = gridOperatorId ? { gridOperatorId } : {};
 
           const [mqRes, gcRes, esRes, rdRes, allocRes] = await Promise.allSettled([
-            this.safeCall(ctx, 'mastr-quality.list',             { ...baseFilter, limit: 5 }, null, errors, 'mastr-quality.list'),
-            this.safeCall(ctx, 'grid-connection.list',           { ...baseFilter, limit: 5 }, null, errors, 'grid-connection.list'),
-            this.safeCall(ctx, 'energy-sharing.list',            { limit: 5 },                null, errors, 'energy-sharing.list'),
-            this.safeCall(ctx, 'redispatch-expost.list',         { ...baseFilter, limit: 5 }, null, errors, 'redispatch-expost.list'),
+            this.safeCall(ctx, ACTION_MQ_LIST,             { ...baseFilter, limit: 5 }, null, errors, ACTION_MQ_LIST),
+            this.safeCall(ctx, ACTION_GC_LIST,           { ...baseFilter, limit: 5 }, null, errors, ACTION_GC_LIST),
+            this.safeCall(ctx, ACTION_ES_LIST,            { limit: 5 },                null, errors, ACTION_ES_LIST),
+            this.safeCall(ctx, ACTION_RD_LIST,         { ...baseFilter, limit: 5 }, null, errors, ACTION_RD_LIST),
             this.safeCall(ctx, 'energy-sharing-allocation.list', { limit: 5 },                null, errors, 'energy-sharing-allocation.list'),
           ]);
 
@@ -495,7 +501,7 @@ module.exports = {
     findingCodes: {
       rest: 'GET /finding-codes',
       openapi: {
-        tags: ['Dashboard API'],
+        tags: [OPENAPI_TAG],
         summary: 'Finding codes reference — all 92 codes with metadata',
         description:
           'Returns the complete finding-code reference for all agent pipelines ' +

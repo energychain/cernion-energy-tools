@@ -289,7 +289,7 @@ async function callWithAutoPoll(toolName, params, pollOptions = {}, token = null
     // Async job detected - poll until complete
     debugLog(`Detected async job: ${jobId} for tool: ${toolName}`);
 
-    const result = await pollJobUntilComplete(jobId, {
+    return await pollJobUntilComplete(jobId, {
       ...pollOptions,
       token, // Pass token through to polling
       onStatusUpdate: (update) => {
@@ -299,8 +299,6 @@ async function callWithAutoPoll(toolName, params, pollOptions = {}, token = null
         }
       },
     });
-
-    return result;
   }
 
   // Not an async job - return response directly

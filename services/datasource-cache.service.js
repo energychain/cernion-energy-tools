@@ -9,6 +9,9 @@ function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
+const COL_LEISTUNG_BEZUG = 'Leistung Bezug (W)';
+const COL_LEISTUNG_EINSPEISUNG = 'Leistung Einspeisung (W)';
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -92,8 +95,8 @@ module.exports = {
             required: false,
             schema: {
               type: 'string',
-              default: 'Leistung Bezug (W)',
-              example: 'Leistung Bezug (W)',
+              default: COL_LEISTUNG_BEZUG,
+              example: COL_LEISTUNG_BEZUG,
             },
           },
           {
@@ -102,8 +105,8 @@ module.exports = {
             required: false,
             schema: {
               type: 'string',
-              default: 'Leistung Einspeisung (W)',
-              example: 'Leistung Einspeisung (W)',
+              default: COL_LEISTUNG_EINSPEISUNG,
+              example: COL_LEISTUNG_EINSPEISUNG,
             },
           },
           {
@@ -135,8 +138,8 @@ module.exports = {
         const includeCost = ctx.params.includeCost === true;
         const priceCentPerKWh = toNumber(ctx.params.priceCentPerKWh, 40);
         const intervalMinutes = toNumber(ctx.params.intervalMinutes, 15);
-        const consumptionPowerField = ctx.params.consumptionPowerField || 'Leistung Bezug (W)';
-        const feedInPowerField = ctx.params.feedInPowerField || 'Leistung Einspeisung (W)';
+        const consumptionPowerField = ctx.params.consumptionPowerField || COL_LEISTUNG_BEZUG;
+        const feedInPowerField = ctx.params.feedInPowerField || COL_LEISTUNG_EINSPEISUNG;
 
         const windowRows = entry.rows.slice(offset, offset + limit);
         const prepared = this.applyPrivacyContext(windowRows, entry.dictionary, privacyContext);
@@ -525,8 +528,8 @@ module.exports = {
     addMeteringCost(rows, options) {
       const priceCentPerKWh = Math.max(0, toNumber(options?.priceCentPerKWh, 40));
       const intervalMinutes = Math.max(1, toNumber(options?.intervalMinutes, 15));
-      const consumptionPowerField = options?.consumptionPowerField || 'Leistung Bezug (W)';
-      const feedInPowerField = options?.feedInPowerField || 'Leistung Einspeisung (W)';
+      const consumptionPowerField = options?.consumptionPowerField || COL_LEISTUNG_BEZUG;
+      const feedInPowerField = options?.feedInPowerField || COL_LEISTUNG_EINSPEISUNG;
 
       const intervalHours = intervalMinutes / 60;
 

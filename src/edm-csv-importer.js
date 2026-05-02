@@ -118,11 +118,8 @@ function parseTimestamp(value, timestampFormat, timezone) {
     return parseIsoDateTime(value);
   }
 
-  const autoParsed =
-    parseGermanDateTime(value, timezone) ||
+  return parseGermanDateTime(value, timezone) ||
     parseIsoDateTime(value);
-
-  return autoParsed;
 }
 
 function parseValue(rawValue, decimalSeparator) {

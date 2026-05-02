@@ -162,7 +162,7 @@ function _addSubstationFromHop(graph, topologyHop) {
 
 // ── Signal deriver helpers ────────────────────────────────────────────────
 
-function _signalMissingNap(graph, instId, attrs) {
+function _signalMissingNap(graph, instId, _attrs) {
   const hasNap = graph.outEdges(instId)
     .some(e => graph.getEdgeAttributes(e).edgeType === EDGE_TYPE.VERBUNDEN_MIT);
   if (!hasNap) {
@@ -432,10 +432,8 @@ function getSubgraph(graph, centerNodeId, radius) {
 
   // Add all edges between included nodes
   graph.forEachEdge((edgeId, edgeAttrs, source, target) => {
-    if (subGraph.hasNode(source) && subGraph.hasNode(target)) {
-      if (!subGraph.hasEdge(source, target)) {
-        subGraph.addEdge(source, target, edgeAttrs);
-      }
+    if (subGraph.hasNode(source) && subGraph.hasNode(target) && !subGraph.hasEdge(source, target)) {
+      subGraph.addEdge(source, target, edgeAttrs);
     }
   });
 

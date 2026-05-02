@@ -65,7 +65,7 @@ function inferFieldType(value) {
  * @returns {object[]} - array of { name: string, path: string }
  */
 function collectOeoSubjects(steps) {
-  const { forDomainResolved, byCernionType, INSTALLATION_TYPES } = require('./oeo-mappings');
+  const { forDomainResolved, byCernionType } = require('./oeo-mappings');
 
   const subjects = new Map(); // IRI → { name, path }
 
@@ -280,7 +280,7 @@ function buildOEMetadata(doc) {
     : new Date().toISOString().slice(0, 10);
 
   // OEMetadata v2.0 conformant structure
-  const metadata = {
+  return {
     // JSON-LD / identification
     '@id': `urn:cernion:datapoint:${doc.name}`,
     '@context': 'https://raw.githubusercontent.com/OpenEnergyPlatform/oemetadata/v2.0.0/metadata/v200/context.json',
@@ -389,8 +389,6 @@ function buildOEMetadata(doc) {
       },
     },
   };
-
-  return metadata;
 }
 
 // ---------------------------------------------------------------------------

@@ -381,7 +381,7 @@ module.exports = {
       }
 
       const domain = winningEntry.domain;
-      const classification = this.buildClassificationForDomain({
+      return this.buildClassificationForDomain({
         domain,
         confidence: winningEntry.score,
         scores,
@@ -392,8 +392,6 @@ module.exports = {
         llmAssisted: false,
         llmReasoning: '',
       });
-
-      return classification;
     },
 
     buildClassificationForDomain({
@@ -658,13 +656,11 @@ Respond with JSON only:
         privacyContext: 'internal',
       });
 
-      const rows = Array.isArray(queryResponse?.data)
+      return Array.isArray(queryResponse?.data)
         ? queryResponse.data
         : Array.isArray(queryResponse?.rows)
           ? queryResponse.rows
           : [];
-
-      return rows;
     },
 
     async loadSource(ctx, sourceId) {

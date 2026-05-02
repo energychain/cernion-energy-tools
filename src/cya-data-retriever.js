@@ -1,7 +1,7 @@
 'use strict';
 
 const { assessTopologyHop } = require('./cya-topology-hop');
-const { resolveToolSet, isToolAllowed } = require('./cya-tool-registry');
+const { resolveToolSet } = require('./cya-tool-registry');
 
 
 const DEFAULT_QUERY_TIMEOUT_MS = 45000;

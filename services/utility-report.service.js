@@ -273,12 +273,6 @@ Keine Überschriften, keine Nummerierung, nur die 5 Erkenntnisse.`;
   }
 }
 
-// Issue #31: Import prompt scrubber for text-level PII masking
-const { scrubPromptText: scrubReportPrompt } = require('../src/prompt-scrubber');
-// NOTE: scrubReportPrompt is available for future use when raw data enters the
-// utility-report LLM prompt. Currently the prompt only receives sanitised
-// KPI summary objects (camelCase keys already stripped above).
-
 function buildStaticNarrative(utilityName, kpiSummary) {
   // CR-09/CR-16: Data-driven findings, typed by criticality, max 5 total, max 2 opportunities
   const summaryItems = [];
