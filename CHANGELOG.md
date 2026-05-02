@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.38.8] — CI/CD Remediation: Node.js 22 Upgrade (Option A)
+
+### Changed
+- **CI/CD Infrastructure Upgrade:**
+  - All GitHub Actions workflows updated to Node.js 22 (from Node.js 20):
+    - `.github/workflows/codeql.yml` — CodeQL analysis now runs on Node.js 22
+    - `.github/workflows/maintenance-ci.yml` — Quality checks, security audit, and critical gate now run on Node.js 22 (3 jobs)
+    - `.github/workflows/release.yml` — Release workflow now runs on Node.js 22
+  - `package.json` — Added `"engines": { "node": ">=22" }` to explicitly declare Node.js requirement
+  - `.nvmrc` — Created NVM configuration file for local developer convenience (pinning to Node 22)
+  - `package-lock.json` — Regenerated to include missing peer dependency `graphology-types@0.24.8`
+
+### Fixed
+- **CodeQL Pipeline Failure:** Resolved EBADENGINE warnings and npm ci sync failure caused by Node.js version mismatch between CI runners (Node 20) and dependency engine requirements (moleculer >=22)
+  - **Root Cause:** Transitive peer dependencies (graphology → graphology-types) declared Node.js >=22 requirement, but CI was locked to Node.js 20, causing `npm ci` to fail with "Missing: graphology-types@0.24.8 from lock file"
+  - **Resolution:** Upgraded CI infrastructure to Node.js 22, aligning with dependency declarations; regenerated lockfile to capture all peer dependencies
+  - **Validation:** `npm ci` now succeeds cleanly (843 packages, 5s, no errors)
+
+### Documentation
+- `README.md` — Updated prerequisite: added "Voraussetzung: **Node.js 22+**" in Schnellstart section
+- `QUICKSTART.md` — Updated all Node.js version references from 18+ to 22+ (setup guide + troubleshooting section)
+
+**Test Status:** All 1782+ tests passing; all validation gates (lint, build, audit:openapi, check:llm) passing
+
 ## [0.38.7] — Hygiene Sprint Prio 5 (Security: non-literal RegExp)
 
 ### Fixed

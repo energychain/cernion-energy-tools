@@ -1,6 +1,6 @@
 {
   "name": "cernion-energy-tools",
-  "version": "0.38.7",
+  "version": "0.38.8",
   "description": "MicroService Agent System for Energy Markets",
   "main": "index.js",
   "scripts": {
@@ -53,6 +53,9 @@
     "url": "https://github.com/energychain/cernion-energy-tools/issues"
   },
   "homepage": "https://github.com/energychain/cernion-energy-tools#readme",
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
