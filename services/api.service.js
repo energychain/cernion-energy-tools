@@ -217,6 +217,12 @@ module.exports = {
             'API: https://openenergyplatform.org/api/v0',
         },
         {
+          name: 'Knowledge RAG',
+          description:
+            'HyDE-aware RAG access to the Cernion knowledge base via cernion_rag_search. ' +
+            'Supports semantic search, scroll pagination, point fetch by IDs, and collection metadata.',
+        },
+        {
           name: 'Grid Connection Validation',
           description:
             'Deterministic 6-step Netzanschluss validation pipeline (v0.14). ' +

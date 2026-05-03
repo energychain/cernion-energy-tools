@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.38.7
-- changelog_latest_release: 0.38.7
+- version: 0.39.0
+- changelog_latest_release: 0.39.0
 - source_files_hash:
-  - CHANGELOG.md: 0cbdedb06de20e74680b87cc9534078b9479bd5b996378642ae4cc0b6284dae9
-  - README.md: b093a73ab6238165daf24ab156162f7b9e4b00e6d663626229e7e4e0df418094
+  - CHANGELOG.md: 6646cbff1bcd158d44b9bc1293bf96b477e0860bc1c668f93ee53e082fa2fca3
+  - README.md: e1ede8ad6c37eb332e9714b5aee0cf14db17638c356b700403da076a5991c14b
   - docs/BACKEND_CONTEXT.md: 53a3ff14e056ee973b081bfc8e61f336099296e30803aa351633f685e9e453e3
-  - src/cookbook-recipes.js: 7e92337203ff08ef348bcdb1b91d04ad58683494640c76553b005f6cfdd42109
-  - openapi-export.json: 3593ed928aa63a0f09bfb91959a6ad4b7e815d2a1c6e6162722e508e2f58ebea
+  - src/cookbook-recipes.js: aceb7040f4dfd31e1df55020814eee4fa13149671688fc18bb1d5517fcd14f39
+  - openapi-export.json: c308b888d8c7967f48438ffda71bc15bbf96274a54b1d65609d5f63994ee87f6
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -24,39 +24,7 @@ It provides a complete implementation picture: architecture, domain knowledge, c
 This section captures implementation constraints and regulatory context that generic LLMs typically do not know.
 
 ### From README Features
-## Features
-
-- 🚀 **Moleculer Microservices Framework** — Fast, modern, and powerful microservices framework
-- 🌐 **API Gateway** — HTTP REST API with automatic route generation
-- 🤖 **AI Agent** — Natural-language query planner powered by Google Gemini: describe your energy data need in plain text and the agent generates, executes, and interprets a multi-step microservice plan automatically
-- 🏢 **Inhouse Data Sources** — Register, infer, cache, and discover internal utility datasets (CSV, REST, GeoJSON, XLSX, DOCX, Scraper) alongside public energy tools
-- 🧩 **Research Web App** — Built-in single-page application at `/app` for interactive, browser-based testing of the AI agent — no separate tooling required
-- 📥 **Live CSV Export** — Every agent result exposes a parameterised GET endpoint (`/api/agent/session/:id/csv?param=value`) for zero-config integration with automation tools such as Microsoft Power Automate, Excel Power Query, or cron jobs
-- � **Datapoints** — Named, versioned, health-monitored data sources backed by embedded PouchDB. Promote any agent session to a managed datapoint, track refresh history and schema stability, and retrieve live data as JSON or CSV via `/api/datapoints`. See the [health overview](http://localhost:3000/api/datapoints/health/overview) for a dashboard of all registered datapoints.- 📸 **Snapshots** — Seal a group of datapoints as a consistent unit with SHA-256 provenance hashing. Create, validate (drift detection), list, and remove snapshots via `/api/datapoints/snapshot*` (v0.13)
-- 🌍 **OSM Geo Layer** — Grid infrastructure analysis via OpenStreetMap/Overpass: VNB assignment validation, nearby infrastructure, substation inventory, and grid topology (v0.10)
-- 🌐 **OEP Connector** — Read-only access to the Open Energy Platform (scenario data, NEP references, research datasets) via `/api/oep/*` (v0.12)
-- 🔌 **Grid Connection Validation** — Deterministic 6-step Netzanschluss pipeline (`POST /api/grid-connection/validate`): inventory → delta → capacity → EWK benchmark → Go/No-Go decision → audit trail. No LLM — identical inputs, identical findings. Reports sealed with PouchDB snapshots for EU AI Act Art. 12 compliance (v0.14)
-- 🤝 **Energy Sharing Validation** — Deterministic 6-step § 42c EnWG pipeline (`POST /api/energy-sharing/validate`): generator/consumer eligibility, MaLo validation, share-sum check, DV validation. Regulatory deadline: 01.06.2026 (v0.15)
-- 📊 **MaStR Data Quality Audit** — 8-step portfolio quality audit (`POST /api/mastr-quality/audit`): registration completeness, capacity plausibility, NAP/MeLo connectivity, duplicate detection, geo spot-check. Weighted 0–100 score across 5 dimensions (v0.17)
-- ⚡ **Redispatch Ex-Post Audit** — 7-step Redispatch 2.0 settlement readiness audit (`POST /api/redispatch/audit`): portfolio assembly (Weg A/B), NAP/MeLo/DV checks, curtailment data, financial risk scoring (v0.18)
-- 🗂️ **Dashboard API** — Read-only UI aggregator with 4 composite endpoints (`GET /api/dashboard/*`): VNB overview, market snapshot, quality summary, finding-codes reference. All upstream calls parallel via `Promise.allSettled`, graceful degradation, 5–15 min cache (v0.19)
-- 📖 **API Cookbook** — Curated REST recipe library with search and validation (`GET /api/cookbook`) — discover common query patterns for the AI agent and REST API (v0.20.5)
-- 🏢 **Company Registry** — BDEW market-partner CRUD with Double-Opt-In confirmation (`POST /api/company/companies`) (v0.20.3)
-- 🗄️ **Object Store** — Generic key-value store for agent artefacts and session data (`GET/PUT/DELETE /api/object-store/:namespace/:key`) (v0.20.4)
-- 🔍 **ZNP — Zählpunkt-Netzbetreiber-Prüfung** — Multi-layer substation graph analysis for Netzanschluss projects with G-Factor scoring and strategic prompts (`POST /api/znp/projects`) (v0.20.4)
-- 🌊 **NOVA Decision Feed** — Real-time SSE decision stream for ZNP grid upgrade proposals with apply/reject workflow (`GET /api/nova/stream`) (v0.24)
-- 🤖 **CYA Agent** — Profile-aware grid-connection narrative generator with multi-stakeholder AI perspectives (Investor, Planer, Betreiber) — generates and refines structured narratives from agent sessions (`POST /api/cya/generate`) (v0.26)
-- 🔔 **MaStR Monitor** — Field-level change detection with SMTP email notifications, Double-Opt-In subscriptions, cron scheduling, and Live-CSV session replay (`POST /api/mastr-monitor/watches`) (v0.27)
-- 🧮 **EDM Virtual Auto-Population** — Automated daily quarter-hour filling for virtual and dummy MeLos via SLP and optional Messkonzept batch evaluation (`POST /api/edm/virtual/*`) (v0.29)
-- 🧠 **OEO / OEMetadata** — Open Energy Ontology annotations on all 45+ REST endpoints, OEMetadata v2.0 export with optional JSON Schema validation (v0.11.4–v0.12)
-- 🔐 **Data Provenance** — SHA-256 provenance hashing on every datapoint refresh for EU AI Act Art. 12 compliance, plus explainability log for agent corrections (v0.11.5)
-- 🧹 **Prompt Scrubber** — Field-level PII masking with energy-domain allowlist before sending data to external LLMs (v0.11.5)- �🔌 **MCP Support** — Model Context Protocol SDK integration
-- 📝 **OpenAPI Documentation** — Automatic API documentation at `/api/docs`
-- 🧭 **DSO/VNB Lookup** — VNBdigital search/lookup and BDEW → MaStR resolution
-- 🛠️ **CLI Tool** — Command-line interface for calling microservices
-- 📦 **Service Templates** — Ready-to-use skeleton service template
-- 🔄 **Hot Reload** — Automatic service reloading during development
-- 🎯 **Best Practices** — ESLint, Prettier, and structured project layout
+n/a
 
 ### From Backend Context (KRITIS, Findings, Async jobs)
 ## 8. KRITIS Compliance Constraints
@@ -844,7 +812,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.38.7"
+    "version": "0.39.0"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -13319,6 +13287,10 @@ process:
       "name": "OEP (Open Energy Platform)"
     },
     {
+      "description": "HyDE-aware RAG access to the Cernion knowledge base via cernion_rag_search. Supports semantic search, scroll pagination, point fetch by IDs, and collection metadata.",
+      "name": "Knowledge RAG"
+    },
+    {
       "description": "Deterministic 6-step Netzanschluss validation pipeline (v0.14). Produces structured findings and a Go/No-Go decision sealed with a PouchDB snapshot for audit integrity. No LLM involvement — identical inputs always produce identical finding codes.",
       "name": "Grid Connection Validation"
     },
@@ -13388,8 +13360,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.38.7"
+  "x-version": "0.39.0"
 }
 
 ## Integrity
-- llm_txt_sha256: 668400df959bf7ec12ce2934e8c6f2e5f5934030ca68d227baca7907a507bce7
+- llm_txt_sha256: 8e70030c2db7db3930b83c88e47b4e21fe1a2d2bf9c793aaad57f2023e3c5538

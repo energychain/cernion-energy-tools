@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.39.0] — Knowledge RAG Service (cernion_rag_search)
+
+### Added
+- **`services/knowledge-rag.service.js`** — New microservice wrapping MCP tool `cernion_rag_search` with async REST job pattern (`202` + `/api/jobs/:jobId/status|result`) and internal synchronous execution for service-to-service calls.
+  - Canonical endpoint: `POST /api/knowledge-rag/query`
+  - Convenience endpoints:
+    - `POST /api/knowledge-rag/semantic`
+    - `POST /api/knowledge-rag/scroll`
+    - `POST /api/knowledge-rag/fetch`
+    - `POST /api/knowledge-rag/collection-info`
+  - Supports all `queryType` modes: `semantic`, `scroll`, `fetch`, `collection_info`
+  - Full Qdrant-style `filter` object pass-through enabled (`must`, `should`, `must_not`, additional nested keys)
+  - Validation rules:
+    - `query` required for `semantic`
+    - non-empty `ids` required for `fetch` (`string|number` only)
+  - Safe defaults for payload size: `withPayload=false`, `withVectors=false`, `limit=10` (1..100)
+
+- **OpenAPI enhancements**
+  - `services/api.service.js` — Added global tag **Knowledge RAG**.
+  - Full per-action OpenAPI docs for all 5 new endpoints, including request body schemas, examples, and explicit 202/200 response contracts.
+
+- **UI contract**
+  - `docs/ui-contracts/28-knowledge-rag.md` — New backend-owned UI contract for Knowledge RAG endpoints and async polling workflow.
+
+### Tests
+- **`tests/knowledge-rag.service.test.js`** — New test suite for:
+  - Endpoint/action exposure
+  - Canonical + convenience endpoint queryType mapping
+  - Validation failures (`semantic` without `query`, `fetch` without/invalid `ids`)
+  - Full filter pass-through behavior
+  - `cernionToken` forwarding
+
+- **`tests/api.service.test.js`** — Extended OpenAPI assertions:
+  - `Knowledge RAG` tag presence
+  - New paths under `/api/knowledge-rag/*` are exported and tagged correctly
+
 ## [0.38.8] — CI/CD Remediation: Node.js 22 Upgrade (Option A)
 
 ### Changed

@@ -10,6 +10,7 @@ const DatasourceDiscoveryService = require('../services/datasource-discovery.ser
 const DatasourceClassifierService = require('../services/datasource-classifier.service');
 const TokenManagerService = require('../services/token-manager.service');
 const NbpMonitorService = require('../services/nbp-monitor.service');
+const KnowledgeRagService = require('../services/knowledge-rag.service');
 const { version: packageVersion } = require('../package.json');
 const path = require('path');
 const os = require('os');
@@ -55,6 +56,7 @@ describe('API Gateway Service', () => {
         parametersFile: path.join(os.tmpdir(), `api-nbp-params-${Date.now()}.json`),
       },
     });
+    broker.createService(KnowledgeRagService);
     await broker.start();
   });
 
@@ -146,6 +148,20 @@ describe('API Gateway Service', () => {
 
       expect(schema.paths['/api/tokens']).toBeDefined();
       expect(schema.paths['/api/tokens/verify']).toBeDefined();
+    });
+
+    it('should include Knowledge RAG tag and routes', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.tags.some((tag) => tag.name === 'Knowledge RAG')).toBe(true);
+      expect(schema.paths['/api/knowledge-rag/query']).toBeDefined();
+      expect(schema.paths['/api/knowledge-rag/semantic']).toBeDefined();
+      expect(schema.paths['/api/knowledge-rag/scroll']).toBeDefined();
+      expect(schema.paths['/api/knowledge-rag/fetch']).toBeDefined();
+      expect(schema.paths['/api/knowledge-rag/collection-info']).toBeDefined();
+
+      expect(schema.paths['/api/knowledge-rag/query'].post.tags).toContain('Knowledge RAG');
+      expect(schema.paths['/api/knowledge-rag/semantic'].post.tags).toContain('Knowledge RAG');
     });
   });
 
