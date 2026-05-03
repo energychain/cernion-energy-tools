@@ -223,6 +223,12 @@ module.exports = {
             'Supports semantic search, scroll pagination, point fetch by IDs, and collection metadata.',
         },
         {
+          name: 'Finance Agent',
+          description:
+            'Deterministic finance/regulatory analysis for VNBs (v0.40). ' +
+            'Performs query planning, ontology-aware RAG retrieval, L1/L2 evidence arbitration, and guarded synthesis with audit trail.',
+        },
+        {
           name: 'Grid Connection Validation',
           description:
             'Deterministic 6-step Netzanschluss validation pipeline (v0.14). ' +
@@ -280,7 +286,7 @@ module.exports = {
             'Endpoints: vnb-overview (VNB identity + KPIs + latest agent results), ' +
             'market-snapshot (spot prices + CO₂ + renewable forecast), ' +
             'quality-summary (recent reports from all agent pipelines), ' +
-            'finding-codes (complete 92-code reference with metadata for UI tooltips).',
+            'finding-codes (complete 100-code reference with metadata for UI tooltips).',
         },
         {
           name: 'Companies',
@@ -619,6 +625,11 @@ module.exports = {
           'POST /redispatch/audit': 'redispatch-expost.audit',
           'GET /redispatch/audits': 'redispatch-expost.list',
           'GET /redispatch/audits/:id': 'redispatch-expost.get',
+          // Finance Agent (v0.40)
+          'POST /finance-agent/analyze': 'finance-agent.analyze',
+          'GET /finance-agent/analyses': 'finance-agent.list',
+          'GET /finance-agent/analyses/:id': 'finance-agent.get',
+          'GET /finance-agent/prompts': 'finance-agent.prompts',
           // Companies (v0.20.3) — Konzernverbund / Stadtwerk entity management
           'GET /companies': 'company.list',
           'POST /companies': 'company.create',

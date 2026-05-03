@@ -11,6 +11,7 @@ const DatasourceClassifierService = require('../services/datasource-classifier.s
 const TokenManagerService = require('../services/token-manager.service');
 const NbpMonitorService = require('../services/nbp-monitor.service');
 const KnowledgeRagService = require('../services/knowledge-rag.service');
+const FinanceAgentService = require('../services/finance-agent.service');
 const { version: packageVersion } = require('../package.json');
 const path = require('path');
 const os = require('os');
@@ -57,6 +58,13 @@ describe('API Gateway Service', () => {
       },
     });
     broker.createService(KnowledgeRagService);
+    broker.createService({
+      ...FinanceAgentService,
+      settings: {
+        ...FinanceAgentService.settings,
+        dbPath: path.join(os.tmpdir(), `api-finance-agent-${Date.now()}`),
+      },
+    });
     await broker.start();
   });
 
@@ -162,6 +170,18 @@ describe('API Gateway Service', () => {
 
       expect(schema.paths['/api/knowledge-rag/query'].post.tags).toContain('Knowledge RAG');
       expect(schema.paths['/api/knowledge-rag/semantic'].post.tags).toContain('Knowledge RAG');
+    });
+
+    it('should include Finance Agent tag and routes', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.tags.some((tag) => tag.name === 'Finance Agent')).toBe(true);
+      expect(schema.paths['/api/finance-agent/analyze']).toBeDefined();
+      expect(schema.paths['/api/finance-agent/analyses']).toBeDefined();
+      expect(schema.paths['/api/finance-agent/analyses/:id']).toBeDefined();
+      expect(schema.paths['/api/finance-agent/prompts']).toBeDefined();
+
+      expect(schema.paths['/api/finance-agent/analyze'].post.tags).toContain('Finance Agent');
     });
   });
 

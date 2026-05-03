@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.40.0] — Finance Agent Service
+
+### Added
+- **`services/finance-agent.service.js`** — Neuer deterministischer Finance Agent Microservice (v0.40) für regulatorische Finanzanalysen mit `knowledge-rag`-Integration.
+  - Endpunkte:
+    - `POST /api/finance-agent/analyze`
+    - `GET /api/finance-agent/analyses`
+    - `GET /api/finance-agent/analyses/:id`
+    - `GET /api/finance-agent/prompts`
+  - Standardmodus: `rule_plus_hyde` (L1_Rule priorisiert, L2_HyDE als Kontext)
+  - Workflow: Query-Planung → Retrieval → Evidence-Arbitration → Compliance-Checks → Guarded Synthesis → Audit-Trail
+  - Persistenz in PouchDB (`FINANCE_AGENT_DB_PATH`, Prefix `fa:`)
+
+- **Befundtaxonomie erweitert (`src/validation-findings.js`)**
+  - Neue Finding-Codes für Finance Agent:
+    - `FA_QUERY_PLANNED`
+    - `FA_EVIDENCE_RETRIEVED`
+    - `FA_RULE_EVIDENCE_USED`
+    - `FA_HYDE_CONTEXT_USED`
+    - `FA_RULE_HYDE_CONFLICT`
+    - `FA_REGULATORY_REFERENCES_MISSING`
+    - `FA_SYNTHESIS_GUARDED`
+    - `FA_NEEDS_CLARIFICATION`
+  - `FINDING_CODE_METADATA` inkl. EN/DE-Beschreibungen erweitert.
+
+- **OpenAPI/API Gateway**
+  - `services/api.service.js`:
+    - Neuer OpenAPI-Tag **Finance Agent**
+    - Neue Route-Aliases für `/api/finance-agent/*`
+
+- **Tests & UI Contract**
+  - Neuer Test-Suite: `tests/finance-agent.service.test.js`
+  - `tests/api.service.test.js` um Finance-Agent OpenAPI/Route-Assertions erweitert
+  - Neuer UI-Contract: `docs/ui-contracts/29-finance-agent.md`
+
 ## [0.39.0] — Knowledge RAG Service (cernion_rag_search)
 
 ### Added

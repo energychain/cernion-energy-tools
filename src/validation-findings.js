@@ -200,6 +200,28 @@ const RD_RISK_MEDIUM = 'RD_RISK_MEDIUM';
 const RD_RISK_HIGH = 'RD_RISK_HIGH';
 
 // ---------------------------------------------------------------------------
+// Finance Agent codes (v0.40) — deterministic RAG planning + guarded synthesis
+// ---------------------------------------------------------------------------
+
+// FA Step 1 — Query planning
+const FA_QUERY_PLANNED = 'FA_QUERY_PLANNED';
+
+// FA Step 2 — Retrieval
+const FA_EVIDENCE_RETRIEVED = 'FA_EVIDENCE_RETRIEVED';
+
+// FA Step 3 — Evidence arbitration
+const FA_RULE_EVIDENCE_USED = 'FA_RULE_EVIDENCE_USED';
+const FA_HYDE_CONTEXT_USED = 'FA_HYDE_CONTEXT_USED';
+
+// FA Step 4 — Compliance checks
+const FA_RULE_HYDE_CONFLICT = 'FA_RULE_HYDE_CONFLICT';
+const FA_REGULATORY_REFERENCES_MISSING = 'FA_REGULATORY_REFERENCES_MISSING';
+
+// FA Step 5 — Synthesis
+const FA_SYNTHESIS_GUARDED = 'FA_SYNTHESIS_GUARDED';
+const FA_NEEDS_CLARIFICATION = 'FA_NEEDS_CLARIFICATION';
+
+// ---------------------------------------------------------------------------
 // MaStR Quality score helpers (v0.17)
 // ---------------------------------------------------------------------------
 
@@ -347,7 +369,7 @@ function summarizeFindings(findings) {
 // codes and draft recommendations: docs/ui-contracts/14-finding-code-recommendations.md
 
 /**
- * Metadata map for all 92 finding codes.
+ * Metadata map for all 100 finding codes.
  * Keys are the canonical finding code strings (SCREAMING_SNAKE_CASE).
  * @type {Record<string, { severity: string, agent: string, step: number, description: string, descriptionDe: string, recommendation?: string, recommendationDe?: string }>}
  */
@@ -1035,6 +1057,64 @@ const FINDING_CODE_METADATA = {
     description: 'High financial risk from unsettled redispatch (estimated >€100k)',
     descriptionDe: 'Hohes finanzielles Risiko (>100.000 €)',
   },
+  // ── Finance Agent (v0.40) — Steps 1–6 ───────────────────────────────────
+  FA_QUERY_PLANNED: {
+    severity: 'info',
+    agent: 'finance-agent',
+    step: 1,
+    description: 'Finance query plan generated with ontology and legal retrieval intents',
+    descriptionDe:
+      'Finanz-Query-Plan mit Ontologie- und Rechtsreferenz-Intents wurde erzeugt',
+  },
+  FA_EVIDENCE_RETRIEVED: {
+    severity: 'info',
+    agent: 'finance-agent',
+    step: 2,
+    description: 'Evidence retrieved from Knowledge RAG and normalised for arbitration',
+    descriptionDe: 'Evidenz aus Knowledge RAG abgerufen und für die Arbitration normalisiert',
+  },
+  FA_RULE_EVIDENCE_USED: {
+    severity: 'info',
+    agent: 'finance-agent',
+    step: 3,
+    description: 'L1 rule evidence selected as primary source of truth',
+    descriptionDe: 'L1-Regel-Evidenz als primäre Wahrheitsquelle ausgewählt',
+  },
+  FA_HYDE_CONTEXT_USED: {
+    severity: 'info',
+    agent: 'finance-agent',
+    step: 3,
+    description: 'L2 HyDE context included as secondary explanatory evidence',
+    descriptionDe: 'L2-HyDE-Kontext als sekundäre Erklärungsevidenz eingebunden',
+  },
+  FA_RULE_HYDE_CONFLICT: {
+    severity: 'warning',
+    agent: 'finance-agent',
+    step: 4,
+    description: 'Conflict detected between L1 rule and L2 HyDE polarity',
+    descriptionDe: 'Konflikt zwischen L1-Regel- und L2-HyDE-Aussage erkannt',
+  },
+  FA_REGULATORY_REFERENCES_MISSING: {
+    severity: 'warning',
+    agent: 'finance-agent',
+    step: 4,
+    description: 'No explicit legal references found in selected evidence',
+    descriptionDe: 'Keine expliziten Rechtsreferenzen in ausgewählter Evidenz gefunden',
+  },
+  FA_SYNTHESIS_GUARDED: {
+    severity: 'info',
+    agent: 'finance-agent',
+    step: 5,
+    description: 'Guarded synthesis completed using evidence-bound claims only',
+    descriptionDe: 'Guarded Synthesis nur mit evidenzgebundenen Aussagen abgeschlossen',
+  },
+  FA_NEEDS_CLARIFICATION: {
+    severity: 'warning',
+    agent: 'finance-agent',
+    step: 5,
+    description: 'Insufficient evidence for a legally robust answer — clarification required',
+    descriptionDe: 'Evidenz für rechtssichere Antwort unzureichend — Präzisierung erforderlich',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -1167,6 +1247,19 @@ module.exports = {
   RD_RISK_LOW,
   RD_RISK_MEDIUM,
   RD_RISK_HIGH,
+  // FA Step 1 — Query planning
+  FA_QUERY_PLANNED,
+  // FA Step 2 — Retrieval
+  FA_EVIDENCE_RETRIEVED,
+  // FA Step 3 — Evidence arbitration
+  FA_RULE_EVIDENCE_USED,
+  FA_HYDE_CONTEXT_USED,
+  // FA Step 4 — Compliance checks
+  FA_RULE_HYDE_CONFLICT,
+  FA_REGULATORY_REFERENCES_MISSING,
+  // FA Step 5 — Synthesis
+  FA_SYNTHESIS_GUARDED,
+  FA_NEEDS_CLARIFICATION,
   // UI metadata (v0.19)
   FINDING_CODE_METADATA,
 };
