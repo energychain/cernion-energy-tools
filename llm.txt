@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.40.1
-- changelog_latest_release: 0.40.1
+- version: 0.40.2
+- changelog_latest_release: 0.40.2
 - source_files_hash:
-  - CHANGELOG.md: 76bf53c0c28356ba1d9dbc4627fa580ed7f1e81b35a1f77fed93ddf58496f2be
+  - CHANGELOG.md: 938cb393855a2f157708c09ba714f6e0b6fd8ffc35a7627e6a278b24624cbe91
   - README.md: e1ede8ad6c37eb332e9714b5aee0cf14db17638c356b700403da076a5991c14b
   - docs/BACKEND_CONTEXT.md: 53a3ff14e056ee973b081bfc8e61f336099296e30803aa351633f685e9e453e3
   - src/cookbook-recipes.js: aceb7040f4dfd31e1df55020814eee4fa13149671688fc18bb1d5517fcd14f39
-  - openapi-export.json: 27ea18fe1357bae2b080e3378f12674f2955c302043010c965e7e66e32a9ca97
+  - openapi-export.json: f4a1bc19278bb47da05a977180e61cc8afb9a83f37cf284e4313e338cd6a7bfa
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -565,8 +565,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 184
-- operation_count: 219
+- path_count: 186
+- operation_count: 221
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -582,7 +582,7 @@ process:
 - edm-messkonzept: 1 operations
 - Energy Sharing Allocation: 5 operations
 - Energy Sharing Validation: 3 operations
-- Finance Agent: 4 operations
+- Finance Agent: 6 operations
 - Flex (§14a Flexibilitätsmanagement): 8 operations
 - Forecast (Prognostik): 8 operations
 - Grid Connection Validation: 3 operations
@@ -716,6 +716,8 @@ process:
 - GET /api/finance-agent/analyses | tags: [Finance Agent] | operationId: finance-agent_list | summary: List finance analyses
 - GET /api/finance-agent/analyses/:id | tags: [Finance Agent] | operationId: finance-agent_get | summary: Get finance analysis by id
 - POST /api/finance-agent/analyze | tags: [Finance Agent] | operationId: finance-agent_analyze | summary: Analyze finance/regulatory questions with evidence-bound synthesis
+- POST /api/finance-agent/memory | tags: [Finance Agent] | operationId: finance-agent_remember | summary: Store finance session memory
+- GET /api/finance-agent/memory/:sessionId | tags: [Finance Agent] | operationId: finance-agent_memory | summary: Get finance session memory
 - GET /api/finance-agent/prompts | tags: [Finance Agent] | operationId: finance-agent_prompts | summary: Get internal finance prompt templates
 - GET /api/flex/customer/:deviceId/reduction | tags: [Flex (§14a Flexibilitätsmanagement)] | operationId: flex_getTariffReduction | summary: Calculate §14a tariff reduction for a customer
 - GET /api/flex/devices | tags: [Flex (§14a Flexibilitätsmanagement)] | operationId: flex_listDevices | summary: List registered §14a devices
@@ -828,7 +830,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.40.1"
+    "version": "0.40.2"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -7477,6 +7479,28 @@ process:
       "get": {
         "description": "Returns persisted finance analyses (newest first).",
         "operationId": "finance-agent_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "example": "ok",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -7499,6 +7523,17 @@ process:
       "get": {
         "description": "Returns a full persisted finance analysis document.",
         "operationId": "finance-agent_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "f8cb0a6b-7f65-4b66-8bae-e8e89aa08877",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -7524,8 +7559,43 @@ process:
         "requestBody": {
           "content": {
             "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "contextLimit": 5,
+                    "includeA2AContext": true,
+                    "includeDatapointsContext": true,
+                    "includeMemoryContext": true,
+                    "includeTrace": false,
+                    "minScore": 0.35,
+                    "mode": "rule_plus_hyde",
+                    "persistMemory": true,
+                    "query": "Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?",
+                    "sessionId": "finance-session-2026-05-04",
+                    "topK": 6
+                  }
+                }
+              },
               "schema": {
                 "properties": {
+                  "contextLimit": {
+                    "default": 5,
+                    "maximum": 20,
+                    "minimum": 1,
+                    "type": "integer"
+                  },
+                  "includeA2AContext": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "includeDatapointsContext": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "includeMemoryContext": {
+                    "default": true,
+                    "type": "boolean"
+                  },
                   "includeTrace": {
                     "default": false,
                     "type": "boolean"
@@ -7544,8 +7614,17 @@ process:
                     ],
                     "type": "string"
                   },
+                  "persistMemory": {
+                    "default": true,
+                    "type": "boolean"
+                  },
                   "query": {
                     "example": "Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?",
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "description": "Optional session identifier for A2A/memory-aware finance analysis.",
+                    "example": "finance-session-2026-05-04",
                     "type": "string"
                   },
                   "topK": {
@@ -7575,6 +7654,104 @@ process:
         ],
         "x-oeo-class": [
           "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
+        ]
+      }
+    },
+    "/api/finance-agent/memory": {
+      "post": {
+        "description": "Persists session memory in Object Store namespace finance_agent_memory for context-aware follow-up analyses.",
+        "operationId": "finance-agent_remember",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "memory": {
+                      "legalReferences": [
+                        "§21a EnWG"
+                      ],
+                      "notes": "Hauptfokus auf RP5 und TOTEX-Wirkung.",
+                      "summary": "CAPEX/OPEX baseline aus letzter Sitzung"
+                    },
+                    "sessionId": "finance-session-2026-05-04"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "memory": {
+                    "example": {
+                      "legalReferences": [
+                        "§21a EnWG"
+                      ],
+                      "summary": "CAPEX/OPEX baseline aus letzter Sitzung"
+                    },
+                    "type": "object"
+                  },
+                  "sessionId": {
+                    "example": "finance-session-2026-05-04",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "sessionId",
+                  "memory"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Store finance session memory",
+        "tags": [
+          "Finance Agent"
+        ]
+      }
+    },
+    "/api/finance-agent/memory/:sessionId": {
+      "get": {
+        "description": "Returns persisted session memory for the provided session id.",
+        "operationId": "finance-agent_memory",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "example": "finance-session-2026-05-04",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get finance session memory",
+        "tags": [
+          "Finance Agent"
         ]
       }
     },
@@ -15349,8 +15526,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.40.1"
+  "x-version": "0.40.2"
 }
 
 ## Integrity
-- llm_txt_sha256: 5a0678904cc7bea9ae5e3ca8ee3c51aa975fc8d1eaa6b33097f83d0735137162
+- llm_txt_sha256: df8bb94b0ca1a331ea1f76fd3d98983c2d54818c1345cc2d5b9f1e0f1ddc2572

@@ -636,11 +636,13 @@ module.exports = {
           'POST /redispatch/audit': 'redispatch-expost.audit',
           'GET /redispatch/audits': 'redispatch-expost.list',
           'GET /redispatch/audits/:id': 'redispatch-expost.get',
-          // Finance Agent (v0.40)
+          // Finance Agent (v0.40.2)
           'POST /finance-agent/analyze': 'finance-agent.analyze',
           'GET /finance-agent/analyses': 'finance-agent.list',
           'GET /finance-agent/analyses/:id': 'finance-agent.get',
           'GET /finance-agent/prompts': 'finance-agent.prompts',
+          'POST /finance-agent/memory': 'finance-agent.remember',
+          'GET /finance-agent/memory/:sessionId': 'finance-agent.memory',
           // Companies (v0.20.3) — Konzernverbund / Stadtwerk entity management
           'GET /companies': 'company.list',
           'POST /companies': 'company.create',

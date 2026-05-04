@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.40.2] — Finance Agent Session Memory + A2A Context
+
+### Added
+- **Finance Agent context-aware analysis** in `services/finance-agent.service.js`:
+  - `POST /api/finance-agent/analyze` now accepts optional session/context parameters:
+    - `sessionId`
+    - `includeMemoryContext` (default `true`)
+    - `includeA2AContext` (default `true`)
+    - `includeDatapointsContext` (default `true`)
+    - `contextLimit` (default `5`)
+    - `persistMemory` (default `true`)
+  - External context loading with graceful fallback when optional services are unavailable:
+    - Object Store session memory namespace: `finance_agent_memory`
+    - CYA A2A namespace: `cya_a2a_messages`
+    - Datapoint metadata via `datapoint.list`
+  - Context hints are injected into retrieval planning as additional semantic intents.
+
+- **New Finance Agent memory endpoints**:
+  - `POST /api/finance-agent/memory` (`finance-agent.remember`) — upsert session memory
+  - `GET /api/finance-agent/memory/:sessionId` (`finance-agent.memory`) — read session memory
+
+### Changed
+- Finance pipeline version bumped to `0.40.2`.
+- API gateway aliases updated in `services/api.service.js` for both new memory routes.
+
+### Tests
+- `tests/finance-agent.service.test.js` extended with:
+  - memory action exposure assertions
+  - session memory write/read tests
+  - context loading verification (memory + A2A + datapoints)
+- `tests/api.service.test.js` extended with:
+  - OpenAPI path assertions for `/api/finance-agent/memory*`
+  - explicit alias assertions for memory routes
+
 ## [0.40.1] — OpenAPI Category Grouping Fixes
 
 ### Fixed

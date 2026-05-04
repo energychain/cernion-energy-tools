@@ -8,8 +8,10 @@ process.env.FINANCE_AGENT_DB_PATH = path.join(os.tmpdir(), `cernion-fa-test-${Da
 
 describe('finance-agent service', () => {
   let broker;
+  let objectStoreDocs;
 
   beforeAll(async () => {
+    objectStoreDocs = new Map();
     broker = new ServiceBroker({ logger: false });
 
     broker.createService(require('../services/finance-agent.service'));
@@ -69,6 +71,80 @@ describe('finance-agent service', () => {
       },
     });
 
+    broker.createService({
+      name: 'object-store',
+      actions: {
+        get: {
+          async handler(ctx) {
+            const key = `${ctx.params.namespace}:${ctx.params.key}`;
+            if (!objectStoreDocs.has(key)) {
+              const error = new Error('not found');
+              error.status = 404;
+              error.type = 'OBJECT_NOT_FOUND';
+              throw error;
+            }
+            const payload = objectStoreDocs.get(key);
+            return { namespace: ctx.params.namespace, key: ctx.params.key, payload };
+          },
+        },
+        put: {
+          async handler(ctx) {
+            const key = `${ctx.params.namespace}:${ctx.params.key}`;
+            objectStoreDocs.set(key, ctx.params.payload);
+            return {
+              namespace: ctx.params.namespace,
+              key: ctx.params.key,
+              payload: ctx.params.payload,
+            };
+          },
+        },
+        query: {
+          async handler(ctx) {
+            const sessionId = ctx.params?.selector?.['payload.sessionId'];
+            const docs = [];
+            for (const [compound, payload] of objectStoreDocs.entries()) {
+              const [namespace] = compound.split(':');
+              if (namespace !== ctx.params.namespace) continue;
+              if (sessionId && payload?.sessionId !== sessionId) continue;
+              docs.push({ payload });
+            }
+            return { docs: docs.slice(0, ctx.params.limit || 50), totalDocs: docs.length };
+          },
+        },
+      },
+    });
+
+    broker.createService({
+      name: 'datapoint',
+      actions: {
+        list: {
+          async handler() {
+            return {
+              count: 2,
+              datapoints: [
+                {
+                  name: 'dp_finance_capex_twl',
+                  description: 'Finance Datapoint for CAPEX benchmarking',
+                  tags: ['finance', 'capex'],
+                },
+                {
+                  name: 'dp_grid_voltage_generic',
+                  description: 'Grid voltage datapoint',
+                  tags: ['grid'],
+                },
+              ],
+            };
+          },
+        },
+      },
+    });
+
+    objectStoreDocs.set('cya_a2a_messages:event-1', {
+      sessionId: 'finance-session-1',
+      eventName: 'cya.a2a.consensus.reached',
+      payload: { note: 'consensus reached for totex allocation' },
+    });
+
     await broker.start();
   });
 
@@ -82,6 +158,8 @@ describe('finance-agent service', () => {
     expect(actions.list.rest).toBe('GET /analyses');
     expect(actions.get.rest).toBe('GET /analyses/:id');
     expect(actions.prompts.rest).toBe('GET /prompts');
+    expect(actions.remember.rest).toBe('POST /memory');
+    expect(actions.memory.rest).toBe('GET /memory/:sessionId');
   });
 
   it('runs analysis in default rule_plus_hyde mode', async () => {
@@ -134,5 +212,50 @@ describe('finance-agent service', () => {
     expect(res.prompts).toHaveProperty('queryPlanner');
     expect(res.prompts).toHaveProperty('evidenceArbiter');
     expect(res.prompts).toHaveProperty('synthesis');
+  });
+
+  it('stores and reads session memory', async () => {
+    const write = await broker.call('finance-agent.remember', {
+      sessionId: 'finance-session-1',
+      memory: {
+        summary: 'Vorwissen aus vorheriger Wirtschaftlichkeitsbetrachtung.',
+        legalReferences: ['§21a EnWG'],
+      },
+    });
+
+    expect(write.success).toBe(true);
+    expect(write.sessionId).toBe('finance-session-1');
+    expect(write.memory.summary).toContain('Vorwissen');
+
+    const read = await broker.call('finance-agent.memory', {
+      sessionId: 'finance-session-1',
+    });
+    expect(read.success).toBe(true);
+    expect(read.memory.summary).toContain('Vorwissen');
+    expect(read.memory.legalReferences).toContain('§21a EnWG');
+  });
+
+  it('loads context from memory, A2A and datapoints during analyze', async () => {
+    await broker.call('finance-agent.remember', {
+      sessionId: 'finance-session-1',
+      memory: {
+        summary: 'CAPEX/OPEX Sensitivität bereits für RP5 bewertet.',
+        legalReferences: ['§21a EnWG'],
+      },
+    });
+
+    const res = await broker.call('finance-agent.analyze', {
+      sessionId: 'finance-session-1',
+      query: 'Wie wirkt sich zusätzliche CAPEX auf TOTEX im regulatorischen Kontext aus?',
+      includeDatapointsContext: true,
+      includeA2AContext: true,
+      includeMemoryContext: true,
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.metadata.context.sessionId).toBe('finance-session-1');
+    expect(res.metadata.context.memoryLoaded).toBe(true);
+    expect(res.metadata.context.a2aMessages).toBeGreaterThan(0);
+    expect(res.metadata.context.datapoints).toBeGreaterThan(0);
   });
 });

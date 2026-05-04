@@ -748,6 +748,7 @@ describe('dashboard-api.service', () => {
         'energy-sharing',
         'mastr-quality',
         'redispatch-expost',
+        'finance-agent',
       ];
 
       for (const [, meta] of Object.entries(result.codes)) {
@@ -789,6 +790,7 @@ describe('dashboard-api.service', () => {
       expect(result.codes).toHaveProperty('RD_SETTLEMENT_CRITICAL');
       expect(result.codes).toHaveProperty('APPROVED');
       expect(result.codes).toHaveProperty('VNB_RESOLVED');
+      expect(result.codes).toHaveProperty('FA_QUERY_PLANNED');
     });
 
     it('MQ_ZERO_CAPACITY has correct metadata', async () => {

@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.40.1",
+    "version": "0.40.2",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -6252,6 +6252,50 @@
                   "includeTrace": {
                     "type": "boolean",
                     "default": false
+                  },
+                  "sessionId": {
+                    "type": "string",
+                    "description": "Optional session identifier for A2A/memory-aware finance analysis.",
+                    "example": "finance-session-2026-05-04"
+                  },
+                  "includeMemoryContext": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "includeA2AContext": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "includeDatapointsContext": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "contextLimit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "default": 5
+                  },
+                  "persistMemory": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "query": "Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?",
+                    "mode": "rule_plus_hyde",
+                    "topK": 6,
+                    "minScore": 0.35,
+                    "includeTrace": false,
+                    "sessionId": "finance-session-2026-05-04",
+                    "includeMemoryContext": true,
+                    "includeA2AContext": true,
+                    "includeDatapointsContext": true,
+                    "contextLimit": 5,
+                    "persistMemory": true
                   }
                 }
               }
@@ -6282,7 +6326,29 @@
             }
           }
         },
-        "description": "Returns persisted finance analyses (newest first)."
+        "description": "Returns persisted finance analyses (newest first).",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "ok"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          }
+        ]
       }
     },
     "/api/finance-agent/analyses/:id": {
@@ -6304,7 +6370,18 @@
             }
           }
         },
-        "description": "Returns a full persisted finance analysis document."
+        "description": "Returns a full persisted finance analysis document.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "f8cb0a6b-7f65-4b66-8bae-e8e89aa08877"
+            }
+          }
+        ]
       }
     },
     "/api/finance-agent/prompts": {
@@ -6327,6 +6404,104 @@
           }
         },
         "description": "Returns internal system prompts used in query planning and synthesis."
+      }
+    },
+    "/api/finance-agent/memory": {
+      "post": {
+        "operationId": "finance-agent_remember",
+        "summary": "Store finance session memory",
+        "tags": [
+          "Finance Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Persists session memory in Object Store namespace finance_agent_memory for context-aware follow-up analyses.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sessionId",
+                  "memory"
+                ],
+                "properties": {
+                  "sessionId": {
+                    "type": "string",
+                    "example": "finance-session-2026-05-04"
+                  },
+                  "memory": {
+                    "type": "object",
+                    "example": {
+                      "summary": "CAPEX/OPEX baseline aus letzter Sitzung",
+                      "legalReferences": [
+                        "§21a EnWG"
+                      ]
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "sessionId": "finance-session-2026-05-04",
+                    "memory": {
+                      "summary": "CAPEX/OPEX baseline aus letzter Sitzung",
+                      "legalReferences": [
+                        "§21a EnWG"
+                      ],
+                      "notes": "Hauptfokus auf RP5 und TOTEX-Wirkung."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/finance-agent/memory/:sessionId": {
+      "get": {
+        "operationId": "finance-agent_memory",
+        "summary": "Get finance session memory",
+        "tags": [
+          "Finance Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns persisted session memory for the provided session id.",
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "finance-session-2026-05-04"
+            }
+          }
+        ]
       }
     },
     "/api/companies": {
@@ -14523,5 +14698,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.40.1"
+  "x-version": "0.40.2"
 }

@@ -183,6 +183,8 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/finance-agent/analyses']).toBeDefined();
       expect(schema.paths['/api/finance-agent/analyses/:id']).toBeDefined();
       expect(schema.paths['/api/finance-agent/prompts']).toBeDefined();
+      expect(schema.paths['/api/finance-agent/memory']).toBeDefined();
+      expect(schema.paths['/api/finance-agent/memory/:sessionId']).toBeDefined();
 
       expect(schema.paths['/api/finance-agent/analyze'].post.tags).toContain('Finance Agent');
     });
@@ -225,6 +227,8 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /finance-agent/analyses']).toBe('finance-agent.list');
       expect(aliases['GET /finance-agent/analyses/:id']).toBe('finance-agent.get');
       expect(aliases['GET /finance-agent/prompts']).toBe('finance-agent.prompts');
+      expect(aliases['POST /finance-agent/memory']).toBe('finance-agent.remember');
+      expect(aliases['GET /finance-agent/memory/:sessionId']).toBe('finance-agent.memory');
     });
 
     it('should have explicit aliases for OSM Geo routes', () => {

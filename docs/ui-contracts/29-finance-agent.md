@@ -1,6 +1,6 @@
 # UI Contract 29 — Finance Agent
 
-Version: 0.40.0
+Version: 0.40.2
 Status: Draft (backend-owned)
 
 ## Purpose
@@ -30,6 +30,12 @@ Request:
 - `topK`: integer 2..20 (default `6`)
 - `minScore`: number 0..1 (default `0.35`)
 - `includeTrace`: boolean (default `false`)
+- `sessionId`: string (optional)
+- `includeMemoryContext`: boolean (default `true`)
+- `includeA2AContext`: boolean (default `true`)
+- `includeDatapointsContext`: boolean (default `true`)
+- `contextLimit`: integer 1..20 (default `5`)
+- `persistMemory`: boolean (default `true`)
 
 Response:
 - `success`, `id`
@@ -39,6 +45,7 @@ Response:
 - `legalReferences[]`, `oeoTags[]`
 - `findings[]`, `findingsCount`
 - `steps[]`, optional `trace`
+- `metadata.context` with loaded context counts
 
 ### 2) GET `/analyses`
 List persisted analyses (newest first).
@@ -52,6 +59,16 @@ Get full persisted analysis document.
 
 ### 4) GET `/prompts`
 Expose internal prompt templates for governance/transparency.
+
+### 5) POST `/memory`
+Store (upsert) session memory in Object Store namespace `finance_agent_memory`.
+
+Request:
+- `sessionId` (required)
+- `memory` (required object)
+
+### 6) GET `/memory/:sessionId`
+Read stored session memory for follow-up analyses.
 
 ## Finding Codes (Finance Agent)
 
@@ -69,3 +86,4 @@ Expose internal prompt templates for governance/transparency.
 - `L1_Rule` evidence is always prioritized over `L2_HyDE`.
 - `L2_HyDE` is context only; conflicting polarity triggers a warning finding.
 - Missing legal references forces conservative downgrade to `needs_clarification`.
+- Missing optional context providers (`object-store`, `datapoint`) does not fail analysis; service degrades gracefully.

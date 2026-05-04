@@ -17,11 +17,17 @@ const {
   FA_SYNTHESIS_GUARDED,
   FA_NEEDS_CLARIFICATION,
 } = require('../src/validation-findings');
+const { A2A_NAMESPACE } = require('../src/cya-a2a-protocol');
 
 const OPENAPI_TAG = 'Finance Agent';
-const PIPELINE_VERSION = '0.40.0';
+const PIPELINE_VERSION = '0.40.2';
 const FINANCE_OEO_CLASS = ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'];
 const MODE_VALUES = ['rule_only', 'rule_plus_hyde'];
+const FINANCE_MEMORY_NAMESPACE = process.env.FINANCE_AGENT_MEMORY_NAMESPACE || 'finance_agent_memory';
+
+function isServiceNotFound(error) {
+  return error?.type === 'SERVICE_NOT_FOUND' || error?.name === 'ServiceNotFoundError';
+}
 
 const INTERNAL_PROMPTS = {
   queryPlanner: `You are the Finance Query Planner for German distribution grid regulation.
@@ -71,6 +77,12 @@ module.exports = {
         topK: { type: 'number', optional: true, default: 6, min: 2, max: 20, convert: true },
         minScore: { type: 'number', optional: true, default: 0.35, min: 0, max: 1, convert: true },
         includeTrace: { type: 'boolean', optional: true, default: false },
+        sessionId: { type: 'string', optional: true, trim: true, max: 120 },
+        includeMemoryContext: { type: 'boolean', optional: true, default: true },
+        includeA2AContext: { type: 'boolean', optional: true, default: true },
+        includeDatapointsContext: { type: 'boolean', optional: true, default: true },
+        contextLimit: { type: 'number', optional: true, default: 5, min: 1, max: 20, convert: true },
+        persistMemory: { type: 'boolean', optional: true, default: true },
       },
       openapi: {
         summary: 'Analyze finance/regulatory questions with evidence-bound synthesis',
@@ -101,6 +113,34 @@ module.exports = {
                   topK: { type: 'integer', minimum: 2, maximum: 20, default: 6 },
                   minScore: { type: 'number', minimum: 0, maximum: 1, default: 0.35 },
                   includeTrace: { type: 'boolean', default: false },
+                  sessionId: {
+                    type: 'string',
+                    description: 'Optional session identifier for A2A/memory-aware finance analysis.',
+                    example: 'finance-session-2026-05-04',
+                  },
+                  includeMemoryContext: { type: 'boolean', default: true },
+                  includeA2AContext: { type: 'boolean', default: true },
+                  includeDatapointsContext: { type: 'boolean', default: true },
+                  contextLimit: { type: 'integer', minimum: 1, maximum: 20, default: 5 },
+                  persistMemory: { type: 'boolean', default: true },
+                },
+              },
+              examples: {
+                default: {
+                  value: {
+                    query:
+                      'Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?',
+                    mode: 'rule_plus_hyde',
+                    topK: 6,
+                    minScore: 0.35,
+                    includeTrace: false,
+                    sessionId: 'finance-session-2026-05-04',
+                    includeMemoryContext: true,
+                    includeA2AContext: true,
+                    includeDatapointsContext: true,
+                    contextLimit: 5,
+                    persistMemory: true,
+                  },
                 },
               },
             },
@@ -121,6 +161,7 @@ module.exports = {
           id,
           type: 'finance-analysis',
           query: ctx.params.query,
+          sessionId: ctx.params.sessionId || null,
           mode: report.mode,
           status: report.status,
           confidence: report.confidence,
@@ -136,6 +177,10 @@ module.exports = {
               topK: ctx.params.topK,
               minScore: ctx.params.minScore,
               includeTrace: !!ctx.params.includeTrace,
+              includeMemoryContext: !!ctx.params.includeMemoryContext,
+              includeA2AContext: !!ctx.params.includeA2AContext,
+              includeDatapointsContext: !!ctx.params.includeDatapointsContext,
+              contextLimit: ctx.params.contextLimit,
             },
             pipelineVersion: PIPELINE_VERSION,
             generatedAt: new Date().toISOString(),
@@ -143,7 +188,104 @@ module.exports = {
           createdAt: new Date().toISOString(),
         });
 
+        if (ctx.params.sessionId && ctx.params.persistMemory !== false) {
+          await this.upsertSessionMemory(ctx, ctx.params.sessionId, {
+            lastAnalysisId: id,
+            lastQuery: ctx.params.query,
+            lastStatus: report.status,
+            lastConfidence: report.confidence,
+            legalReferences: report.legalReferences,
+            oeoTags: report.oeoTags,
+            summary: report.summary,
+          });
+        }
+
         return { success: true, id, ...report };
+      },
+    },
+
+    remember: {
+      rest: 'POST /memory',
+      params: {
+        sessionId: { type: 'string', trim: true, min: 3, max: 120 },
+        memory: { type: 'object' },
+      },
+      openapi: {
+        summary: 'Store finance session memory',
+        description:
+          'Persists session memory in Object Store namespace finance_agent_memory for context-aware follow-up analyses.',
+        tags: [OPENAPI_TAG],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['sessionId', 'memory'],
+                properties: {
+                  sessionId: { type: 'string', example: 'finance-session-2026-05-04' },
+                  memory: {
+                    type: 'object',
+                    example: {
+                      summary: 'CAPEX/OPEX baseline aus letzter Sitzung',
+                      legalReferences: ['§21a EnWG'],
+                    },
+                  },
+                },
+              },
+              examples: {
+                default: {
+                  value: {
+                    sessionId: 'finance-session-2026-05-04',
+                    memory: {
+                      summary: 'CAPEX/OPEX baseline aus letzter Sitzung',
+                      legalReferences: ['§21a EnWG'],
+                      notes: 'Hauptfokus auf RP5 und TOTEX-Wirkung.',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const saved = await this.upsertSessionMemory(ctx, ctx.params.sessionId, ctx.params.memory);
+        return {
+          success: true,
+          sessionId: ctx.params.sessionId,
+          namespace: FINANCE_MEMORY_NAMESPACE,
+          memory: saved,
+        };
+      },
+    },
+
+    memory: {
+      rest: 'GET /memory/:sessionId',
+      params: {
+        sessionId: { type: 'string', trim: true, min: 3, max: 120 },
+      },
+      openapi: {
+        summary: 'Get finance session memory',
+        description: 'Returns persisted session memory for the provided session id.',
+        tags: [OPENAPI_TAG],
+        parameters: [
+          {
+            name: 'sessionId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'finance-session-2026-05-04' },
+          },
+        ],
+      },
+      async handler(ctx) {
+        const memory = await this.getSessionMemory(ctx, ctx.params.sessionId);
+        return {
+          success: true,
+          sessionId: ctx.params.sessionId,
+          namespace: FINANCE_MEMORY_NAMESPACE,
+          memory,
+        };
       },
     },
 
@@ -157,6 +299,20 @@ module.exports = {
         summary: 'List finance analyses',
         description: 'Returns persisted finance analyses (newest first).',
         tags: [OPENAPI_TAG],
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'ok' },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+          },
+        ],
       },
       async handler(ctx) {
         const result = await this.db.allDocs({
@@ -195,6 +351,14 @@ module.exports = {
         summary: 'Get finance analysis by id',
         description: 'Returns a full persisted finance analysis document.',
         tags: [OPENAPI_TAG],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'f8cb0a6b-7f65-4b66-8bae-e8e89aa08877' },
+          },
+        ],
       },
       async handler(ctx) {
         try {
@@ -235,12 +399,21 @@ module.exports = {
       const topK = params.topK || 6;
       const minScore = params.minScore ?? 0.35;
       const query = String(params.query || '').trim();
+      const sessionId = String(params.sessionId || '').trim() || null;
 
       if (!query) {
         throw new MoleculerClientError('query is required', 400, 'VALIDATION_ERROR');
       }
 
-      const plan = this.buildQueryPlan(query, { mode, topK, minScore });
+      const externalContext = await this.loadExternalContext(ctx, {
+        sessionId,
+        includeMemoryContext: params.includeMemoryContext !== false,
+        includeA2AContext: params.includeA2AContext !== false,
+        includeDatapointsContext: params.includeDatapointsContext !== false,
+        contextLimit: params.contextLimit || 5,
+      });
+
+      const plan = this.buildQueryPlan(query, { mode, topK, minScore }, externalContext);
       findings.push(
         createFinding(
           1,
@@ -253,6 +426,18 @@ module.exports = {
         )
       );
       steps.push({ step: 1, name: 'query-planning', status: 'ok', intentCount: plan.intents.length });
+
+      if (sessionId) {
+        steps.push({
+          step: 1.5,
+          name: 'context-loading',
+          status: 'ok',
+          sessionId,
+          memoryLoaded: !!externalContext.memory,
+          a2aMessages: externalContext.a2aMessages.length,
+          datapoints: externalContext.datapoints.length,
+        });
+      }
 
       const retrieval = await this.retrieveEvidence(ctx, plan, query);
       findings.push(
@@ -397,6 +582,12 @@ module.exports = {
             totalRaw: retrieval.totalRaw,
             evidenceKept: arbitration.selectedEvidence.length,
           },
+          context: {
+            sessionId,
+            memoryLoaded: !!externalContext.memory,
+            a2aMessages: externalContext.a2aMessages.length,
+            datapoints: externalContext.datapoints.length,
+          },
         },
       };
 
@@ -411,7 +602,7 @@ module.exports = {
       return response;
     },
 
-    buildQueryPlan(query, options) {
+    buildQueryPlan(query, options, externalContext = {}) {
       const lowered = query.toLowerCase();
       const intents = [];
 
@@ -463,12 +654,157 @@ module.exports = {
         should: [{ key: 'referenceText_L0', match: { text: '§' } }],
       });
 
+      for (const contextHint of this.buildContextHints(externalContext)) {
+        pushIntent('session-context', contextHint);
+      }
+
       return {
         query,
         mode: options.mode,
         financeTags,
         intents,
       };
+    },
+
+    buildContextHints(externalContext) {
+      const hints = [];
+      const memory = externalContext?.memory || null;
+      const a2aMessages = Array.isArray(externalContext?.a2aMessages)
+        ? externalContext.a2aMessages
+        : [];
+      const datapoints = Array.isArray(externalContext?.datapoints) ? externalContext.datapoints : [];
+
+      if (memory && typeof memory.summary === 'string' && memory.summary.trim()) {
+        hints.push(`Vorwissen aus vorheriger Analyse: ${memory.summary.trim()}`);
+      }
+      if (Array.isArray(memory?.legalReferences) && memory.legalReferences.length > 0) {
+        hints.push(`Bisherige Rechtsanker: ${memory.legalReferences.slice(0, 5).join(', ')}`);
+      }
+      if (a2aMessages.length > 0) {
+        const recent = a2aMessages
+          .map((m) => m.eventName)
+          .filter(Boolean)
+          .slice(0, 4)
+          .join(', ');
+        hints.push(`A2A-Kontext letzte Events: ${recent}`);
+      }
+      if (datapoints.length > 0) {
+        const names = datapoints
+          .map((d) => d.name)
+          .filter(Boolean)
+          .slice(0, 4)
+          .join(', ');
+        hints.push(`Relevante Datapoints: ${names}`);
+      }
+
+      return hints.slice(0, 3);
+    },
+
+    async loadExternalContext(ctx, options) {
+      const {
+        sessionId,
+        includeMemoryContext = true,
+        includeA2AContext = true,
+        includeDatapointsContext = true,
+        contextLimit = 5,
+      } = options || {};
+
+      const memory = includeMemoryContext && sessionId ? await this.getSessionMemory(ctx, sessionId) : null;
+      const a2aMessages =
+        includeA2AContext && sessionId
+          ? await this.getA2AMessages(ctx, sessionId, contextLimit)
+          : [];
+      const datapoints = includeDatapointsContext
+        ? await this.getFinanceDatapoints(ctx, contextLimit)
+        : [];
+
+      return { memory, a2aMessages, datapoints };
+    },
+
+    async upsertSessionMemory(ctx, sessionId, memoryInput) {
+      const existing = await this.getSessionMemory(ctx, sessionId);
+      const now = new Date().toISOString();
+      const payload = {
+        ...(existing || {}),
+        ...(memoryInput || {}),
+        sessionId,
+        updatedAt: now,
+        createdAt: existing?.createdAt || now,
+      };
+
+      try {
+        await ctx.call('object-store.put', {
+          namespace: FINANCE_MEMORY_NAMESPACE,
+          key: sessionId,
+          payload,
+        });
+      } catch (error) {
+        if (isServiceNotFound(error)) {
+          this.logger.warn('[finance-agent] object-store unavailable, skipping memory write');
+          return payload;
+        }
+        throw error;
+      }
+
+      return payload;
+    },
+
+    async getSessionMemory(ctx, sessionId) {
+      try {
+        const response = await ctx.call('object-store.get', {
+          namespace: FINANCE_MEMORY_NAMESPACE,
+          key: sessionId,
+        });
+        return response?.payload || null;
+      } catch (error) {
+        if (
+          isServiceNotFound(error) ||
+          error?.status === 404 ||
+          error?.type === 'OBJECT_NOT_FOUND' ||
+          error?.code === 404
+        ) {
+          return null;
+        }
+        throw error;
+      }
+    },
+
+    async getA2AMessages(ctx, sessionId, limit = 5) {
+      try {
+        const response = await ctx.call('object-store.query', {
+          namespace: A2A_NAMESPACE,
+          selector: { 'payload.sessionId': sessionId },
+          limit: Math.min(Math.max(limit, 1), 20),
+        });
+
+        const docs = Array.isArray(response?.docs) ? response.docs : [];
+        return docs.map((d) => d.payload || {}).filter((d) => d && d.sessionId === sessionId);
+      } catch (error) {
+        if (isServiceNotFound(error)) {
+          return [];
+        }
+        throw error;
+      }
+    },
+
+    async getFinanceDatapoints(ctx, limit = 5) {
+      try {
+        const response = await ctx.call('datapoint.list', {
+          includeHealth: false,
+        });
+        const datapoints = Array.isArray(response?.datapoints) ? response.datapoints : [];
+        return datapoints
+          .filter((d) => {
+            const hay = `${d.name || ''} ${d.description || ''} ${(d.tags || []).join(' ')}`.toLowerCase();
+            return /(finance|regulator|totex|capex|opex|ar\s*egv|stromnev|enwg)/.test(hay);
+          })
+          .slice(0, Math.min(Math.max(limit, 1), 20));
+      } catch (error) {
+        if (isServiceNotFound(error)) {
+          return [];
+        }
+        throw error;
+      }
     },
 
     async retrieveEvidence(ctx, plan, originalQuery) {
