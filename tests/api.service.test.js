@@ -203,19 +203,25 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/cya/profile']).toBeDefined();
       expect(schema.paths['/api/cookbook']).toBeDefined();
       expect(schema.paths['/api/dashboard/vnb-overview']).toBeDefined();
+      expect(schema.paths['/api/dashboard/observability-mini']).toBeDefined();
       expect(schema.paths['/api/observability/logs']).toBeDefined();
+      expect(schema.paths['/api/observability/agent-prompt']).toBeDefined();
       expect(schema.paths['/api/mastr-quality/audit']).toBeDefined();
 
       expect(schema.paths['/api/cya/profile'].post).toBeDefined();
       expect(schema.paths['/api/cookbook'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/vnb-overview'].get).toBeDefined();
+      expect(schema.paths['/api/dashboard/observability-mini'].get).toBeDefined();
       expect(schema.paths['/api/observability/logs'].get).toBeDefined();
+      expect(schema.paths['/api/observability/agent-prompt'].get).toBeDefined();
       expect(schema.paths['/api/mastr-quality/audit'].post).toBeDefined();
 
       expect(schema.paths['/api/cya/profile'].post.tags).toContain('CYA Agent');
       expect(schema.paths['/api/cookbook'].get.tags).toContain('Cookbook');
       expect(schema.paths['/api/dashboard/vnb-overview'].get.tags).toContain('Dashboard API');
+      expect(schema.paths['/api/dashboard/observability-mini'].get.tags).toContain('Dashboard API');
       expect(schema.paths['/api/observability/logs'].get.tags).toContain('Observability');
+      expect(schema.paths['/api/observability/agent-prompt'].get.tags).toContain('Observability');
       expect(schema.paths['/api/mastr-quality/audit'].post.tags).toContain('MaStR Data Quality');
     });
 
@@ -240,6 +246,17 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /finance-agent/prompts']).toBe('finance-agent.prompts');
       expect(aliases['POST /finance-agent/memory']).toBe('finance-agent.remember');
       expect(aliases['GET /finance-agent/memory/:sessionId']).toBe('finance-agent.memory');
+    });
+
+    it('should have explicit aliases for Dashboard API and Observability routes', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+
+      expect(aliases['GET /dashboard/observability-mini']).toBe('dashboard-api.observabilityMini');
+      expect(aliases['GET /observability/logs']).toBe('observability.logs');
+      expect(aliases['GET /observability/metrics']).toBe('observability.metrics');
+      expect(aliases['GET /observability/summary']).toBe('observability.summary');
+      expect(aliases['GET /observability/agent-prompt']).toBe('observability.agentPrompt');
     });
 
     it('should have explicit aliases for OSM Geo routes', () => {

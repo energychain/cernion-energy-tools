@@ -133,6 +133,46 @@ const MOCK_SPOT = {
   data: [{ value: 44.0 }, { value: 46.5 }],
 };
 
+const MOCK_OBSERVABILITY_SUMMARY = {
+  generatedAt: '2026-03-31T13:00:00Z',
+  window: { sinceMinutes: 60, slowActionThresholdMs: 1000 },
+  logs: {
+    total: 4,
+    byLevel: { info: 2, error: 2 },
+    recentErrors: [
+      {
+        timestamp: '2026-03-31T12:58:00Z',
+        level: 'error',
+        service: 'finance-agent',
+        action: 'finance-agent.analyze',
+        message: 'timeout [REDACTED]',
+      },
+    ],
+  },
+  metrics: {
+    total: 22,
+    overview: {
+      totalCalls: 22,
+      successCount: 20,
+      errorCount: 2,
+      avgDurationMs: 210,
+      p95DurationMs: 1400,
+      slowCallCount: 3,
+      byOrigin: { internal: 16, gateway: 6 },
+    },
+    slowestActions: [
+      {
+        action: 'finance-agent.analyze',
+        service: 'finance-agent',
+        calls: 5,
+        errorCount: 1,
+        avgDurationMs: 780,
+        maxDurationMs: 1800,
+      },
+    ],
+  },
+};
+
 // ── Broker setup ─────────────────────────────────────────────────────────
 
 describe('dashboard-api.service', () => {
@@ -258,6 +298,14 @@ describe('dashboard-api.service', () => {
       name: 'german-grid',
       actions: {
         spotprices: makeHandler('germangrid', MOCK_SPOT),
+      },
+    });
+
+    // Mock observability
+    broker.createService({
+      name: 'observability',
+      actions: {
+        summary: makeHandler('observabilitySummary', MOCK_OBSERVABILITY_SUMMARY),
       },
     });
 
@@ -812,6 +860,48 @@ describe('dashboard-api.service', () => {
     });
   });
 
+  // ── observabilityMini ──────────────────────────────────────────────────────
+
+  describe('observabilityMini', () => {
+    it('returns compact cards, recentErrors, slowestActions and timestamp', async () => {
+      const result = await broker.call('dashboard-api.observabilityMini', {});
+
+      expect(result).toHaveProperty('cards');
+      expect(result).toHaveProperty('recentErrors');
+      expect(result).toHaveProperty('slowestActions');
+      expect(result).toHaveProperty('timestamp');
+      expect(result).toHaveProperty('_errors');
+      expect(result._errors).toHaveLength(0);
+    });
+
+    it('computes card signals from observability summary', async () => {
+      const result = await broker.call('dashboard-api.observabilityMini', {});
+
+      expect(result.cards.health.status).toBe('degraded');
+      expect(result.cards.incidents.errorCount).toBe(2);
+      expect(result.cards.performance.p95DurationMs).toBe(1400);
+      expect(result.cards.performance.slowCallCount).toBe(3);
+      expect(result.recentErrors).toHaveLength(1);
+      expect(result.slowestActions).toHaveLength(1);
+    });
+
+    it('degrades gracefully when observability.summary fails', async () => {
+      handlers.observabilitySummary = () => {
+        throw new Error('observability unavailable');
+      };
+
+      const result = await broker.call('dashboard-api.observabilityMini', {
+        sinceMinutes: 30,
+        slowActionThresholdMs: 500,
+      });
+
+      expect(result._errors).toContain('observability.summary');
+      expect(result.cards.health.status).toBe('unknown');
+      expect(result.recentErrors).toEqual([]);
+      expect(result.slowestActions).toEqual([]);
+    });
+  });
+
   // ── safeCall method ────────────────────────────────────────────────────────
 
   describe('safeCall (method)', () => {
@@ -913,6 +1003,7 @@ describe('dashboard-api.service', () => {
       'entsoe.dayAheadPrices',
       'entsoe.windSolarForecast',
       'energy-sharing-allocation.list',
+      'observability.summary',
     ];
 
     let registeredActionNames;

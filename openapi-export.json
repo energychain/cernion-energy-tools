@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.40.6",
+    "version": "0.40.7",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -76,7 +76,11 @@
     },
     {
       "name": "Dashboard API",
-      "description": "UI-optimised aggregate endpoints (v0.19). Each endpoint consolidates 4–7 internal service calls into a single response, reducing the roundtrips required for an Enterprise UI dashboard page to one. Read-only — no side-effects, no own PouchDB. Endpoints: vnb-overview (VNB identity + KPIs + latest agent results), market-snapshot (spot prices + CO₂ + renewable forecast), quality-summary (recent reports from all agent pipelines), finding-codes (complete 100-code reference with metadata for UI tooltips)."
+      "description": "UI-optimised aggregate endpoints (v0.19). Each endpoint consolidates 4–7 internal service calls into a single response, reducing the roundtrips required for an Enterprise UI dashboard page to one. Read-only — no side-effects, no own PouchDB. Endpoints: vnb-overview (VNB identity + KPIs + latest agent results), market-snapshot (spot prices + CO₂ + renewable forecast), quality-summary (recent reports from all agent pipelines), observability-mini (compact health/incidents/performance cards), finding-codes (complete 100-code reference with metadata for UI tooltips)."
+    },
+    {
+      "name": "Observability",
+      "description": "Read-only production feedback endpoints (v0.40.7) for captured service log output, action performance metrics, compact operational summaries, and an agent-ready debugging prompt. Data is retained locally in PouchDB with redaction-safe storage."
     },
     {
       "name": "Companies",
@@ -7285,6 +7289,78 @@
         ]
       }
     },
+    "/api/dashboard/observability-mini": {
+      "get": {
+        "operationId": "dashboard-api_observabilityMini",
+        "summary": "Observability mini dashboard — compact production feedback cards",
+        "tags": [
+          "Dashboard API"
+        ],
+        "responses": {
+          "200": {
+            "description": "Compact observability widget payload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "cards": {
+                      "type": "object"
+                    },
+                    "recentErrors": {
+                      "type": "array"
+                    },
+                    "slowestActions": {
+                      "type": "array"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "_errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a compact operational payload from observability.summary with health, incidents, and performance cards plus recent errors and slowest actions. Optimized for dashboard widgets and agentic monitoring loops. Cache TTL: 60 seconds.",
+        "parameters": [
+          {
+            "name": "sinceMinutes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 60,
+              "minimum": 1,
+              "maximum": 1440
+            },
+            "description": "Rolling observation window in minutes."
+          },
+          {
+            "name": "slowActionThresholdMs",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "minimum": 1,
+              "maximum": 600000
+            },
+            "description": "Threshold used to classify actions as slow."
+          }
+        ],
+        "x-oeo-class": [
+          "OEO_00000143"
+        ]
+      }
+    },
     "/api/dashboard/finding-codes": {
       "get": {
         "operationId": "dashboard-api_findingCodes",
@@ -7350,6 +7426,433 @@
         "description": "Returns the complete finding-code reference for all agent pipelines (Grid Connection v0.14, Energy Sharing v0.15, MaStR Quality v0.17, Redispatch Ex-Post v0.18). Each code entry contains: severity, agent, step, description (EN), descriptionDe (DE). Intended for UI tooltips, filter chips, and colour coding.\n\nCache TTL: 24 hours (static data — changes only on service restart).",
         "x-oeo-class": [
           "OEO_00000143"
+        ]
+      }
+    },
+    "/api/observability/logs": {
+      "get": {
+        "operationId": "observability_logs",
+        "summary": "Retrieve captured broker and service log output",
+        "tags": [
+          "Observability"
+        ],
+        "responses": {
+          "200": {
+            "description": "Captured log messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer",
+                      "example": 12
+                    },
+                    "generatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "logs": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "timestamp": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "level": {
+                            "type": "string",
+                            "example": "error"
+                          },
+                          "service": {
+                            "type": "string",
+                            "example": "finance-agent"
+                          },
+                          "action": {
+                            "type": "string",
+                            "nullable": true,
+                            "example": "finance-agent.analyze"
+                          },
+                          "source": {
+                            "type": "string",
+                            "example": "service"
+                          },
+                          "nodeID": {
+                            "type": "string",
+                            "nullable": true
+                          },
+                          "requestOrigin": {
+                            "type": "string",
+                            "nullable": true,
+                            "example": "gateway"
+                          },
+                          "errorType": {
+                            "type": "string",
+                            "nullable": true,
+                            "example": "VALIDATION_ERROR"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns recently captured logger output from the Moleculer broker and loaded services. Messages are persisted locally in PouchDB with token and PII redaction for production-safe debugging.",
+        "parameters": [
+          {
+            "name": "level",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "fatal",
+                "error",
+                "warn",
+                "info",
+                "debug",
+                "trace"
+              ],
+              "example": "error"
+            }
+          },
+          {
+            "name": "service",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "finance-agent"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "finance-agent.analyze"
+            }
+          },
+          {
+            "name": "contains",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "timeout"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          {
+            "name": "sinceMinutes",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 60,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-05-04T08:00:00.000Z"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-05-04T12:00:00.000Z"
+            }
+          }
+        ]
+      }
+    },
+    "/api/observability/metrics": {
+      "get": {
+        "operationId": "observability_metrics",
+        "summary": "Retrieve aggregated action performance metrics",
+        "tags": [
+          "Observability"
+        ],
+        "responses": {
+          "200": {
+            "description": "Aggregated action metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "generatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "summary": {
+                      "type": "object"
+                    },
+                    "actions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "recent": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns per-action performance statistics captured at broker level for local and gateway-triggered Moleculer actions. Metrics include durations, success/error counts, and slow-action detection.",
+        "parameters": [
+          {
+            "name": "service",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "demo-ops"
+            }
+          },
+          {
+            "name": "action",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "demo-ops.success"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "success",
+                "error"
+              ],
+              "example": "success"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 200
+            }
+          },
+          {
+            "name": "sinceMinutes",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1440,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-05-03T12:00:00.000Z"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "example": "2026-05-04T12:00:00.000Z"
+            }
+          },
+          {
+            "name": "slowActionThresholdMs",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "includeRaw",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ]
+      }
+    },
+    "/api/observability/summary": {
+      "get": {
+        "operationId": "observability_summary",
+        "summary": "Retrieve an operational overview for recent logs and performance",
+        "tags": [
+          "Observability"
+        ],
+        "responses": {
+          "200": {
+            "description": "Operational overview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "generatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "window": {
+                      "type": "object"
+                    },
+                    "retention": {
+                      "type": "object"
+                    },
+                    "logs": {
+                      "type": "object"
+                    },
+                    "metrics": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a compact production-feedback overview containing recent log volume, latest errors, action throughput, and slowest actions over a configurable time window.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          {
+            "name": "sinceMinutes",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 60,
+              "minimum": 1
+            }
+          },
+          {
+            "name": "slowActionThresholdMs",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "minimum": 1
+            }
+          }
+        ]
+      }
+    },
+    "/api/observability/agent-prompt": {
+      "get": {
+        "operationId": "observability_agentPrompt",
+        "summary": "Generate an agent-ready debugging prompt from recent production feedback",
+        "tags": [
+          "Observability"
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent prompt template with structured production context",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "generatedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "window": {
+                      "type": "object"
+                    },
+                    "prompt": {
+                      "type": "string"
+                    },
+                    "context": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a compact prompt for agentic troubleshooting from observability summary signals: error volume, latency hotspots, recent redacted errors, and slowest actions in the selected time window.",
+        "parameters": [
+          {
+            "name": "sinceMinutes",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 60,
+              "minimum": 1,
+              "example": 120
+            }
+          },
+          {
+            "name": "slowActionThresholdMs",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1000,
+              "minimum": 1,
+              "example": 1500
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 5,
+              "minimum": 1,
+              "maximum": 20,
+              "example": 5
+            }
+          }
         ]
       }
     },
@@ -14846,5 +15349,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.40.6"
+  "x-version": "0.40.7"
 }

@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.40.7] — Observability Mini Dashboard + Agent Prompt
+
+### Added
+- **Dashboard mini observability endpoint** in `services/dashboard-api.service.js`:
+  - Neuer read-only Endpunkt `GET /api/dashboard/observability-mini`
+  - Kompakte Karten für Fehleranzahl, Fehlerquote, P95-Latenz und Slow-Action-Anteil
+  - Top-`N` `recentErrors` und `slowestActions` für schnelle Produktions-Triage
+  - Graceful Degradation über `_errors` + 60s Cache (stampede-safe)
+
+- **Agent prompt endpoint** in `services/observability.service.js`:
+  - Neuer read-only Endpunkt `GET /api/observability/agent-prompt`
+  - Baut aus aktuellen Produktionssignalen einen kopierbaren Debugging-Prompt für agentische Analyse
+  - Liefert strukturierte Kontextdaten (`logs`, `metrics`) inkl. redaktierter Fehlerereignisse
+
+- **Cookbook recipes** in `src/cookbook-recipes.js`:
+  - `dashboard-observability-mini`
+  - `agentic-production-feedback-prompt`
+
+- **UI contract documentation**:
+  - Neuer Vertrag `docs/ui-contracts/30-observability-mini.md`
+  - Index-Update in `docs/ui-contracts/00-architecture.md`
+
+### Tests
+- `tests/dashboard-api.test.js` erweitert um `dashboard-api.observabilityMini`
+- `tests/observability.service.test.js` erweitert um `observability.agentPrompt`
+- Bestehende API- und Cookbook-Tests für die neuen Flows grün
+
 ## [0.40.6] — Observability Feedback Endpoints
 
 ### Added

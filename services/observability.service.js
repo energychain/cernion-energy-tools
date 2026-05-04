@@ -315,6 +315,123 @@ module.exports = {
         };
       },
     },
+
+    agentPrompt: {
+      rest: 'GET /agent-prompt',
+      params: {
+        sinceMinutes: {
+          type: 'number',
+          integer: true,
+          optional: true,
+          min: 1,
+          max: 30 * 24 * 60,
+          default: 60,
+          convert: true,
+        },
+        slowActionThresholdMs: {
+          type: 'number',
+          integer: true,
+          optional: true,
+          min: 1,
+          max: 600000,
+          default: 1000,
+          convert: true,
+        },
+        limit: {
+          type: 'number',
+          integer: true,
+          optional: true,
+          min: 1,
+          max: 20,
+          default: 5,
+          convert: true,
+        },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Generate an agent-ready debugging prompt from recent production feedback',
+        description:
+          'Builds a compact prompt for agentic troubleshooting from observability summary signals: ' +
+          'error volume, latency hotspots, recent redacted errors, and slowest actions in the selected time window.',
+        parameters: [
+          {
+            name: 'sinceMinutes',
+            in: 'query',
+            schema: { type: 'integer', default: 60, minimum: 1, example: 120 },
+          },
+          {
+            name: 'slowActionThresholdMs',
+            in: 'query',
+            schema: { type: 'integer', default: 1000, minimum: 1, example: 1500 },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'integer', default: 5, minimum: 1, maximum: 20, example: 5 },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Agent prompt template with structured production context',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    generatedAt: { type: 'string', format: 'date-time' },
+                    window: { type: 'object' },
+                    prompt: { type: 'string' },
+                    context: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const sinceMinutes = ctx.params.sinceMinutes ?? this.settings.defaultSinceMinutes;
+        const slowActionThresholdMs =
+          ctx.params.slowActionThresholdMs ?? this.settings.defaultSlowActionThresholdMs;
+        const limit = Math.min(ctx.params.limit || 5, 20);
+
+        const retentionConfig = observabilityStore.getConfig();
+        const [logs, metrics] = await Promise.all([
+          observabilityStore.listLogs({ limit: Math.max(limit * 4, 50), sinceMinutes }),
+          observabilityStore.listMetrics({ limit: 500, sinceMinutes }),
+        ]);
+
+        const summary = {
+          generatedAt: new Date().toISOString(),
+          window: { sinceMinutes, slowActionThresholdMs },
+          retention: {
+            logRetentionDays: retentionConfig.logRetentionDays,
+            metricRetentionDays: retentionConfig.metricRetentionDays,
+            maxLogMessageLength: retentionConfig.maxLogMessageLength,
+          },
+          logs: {
+            total: logs.length,
+            byLevel: this.countBy(logs, 'level'),
+            recentErrors: logs.filter((entry) => entry.level === 'error').slice(0, limit),
+          },
+          metrics: {
+            total: metrics.length,
+            overview: this.buildMetricOverview(metrics, slowActionThresholdMs),
+            slowestActions: this.buildActionBreakdown(metrics, slowActionThresholdMs).slice(0, limit),
+          },
+        };
+
+        return {
+          generatedAt: new Date().toISOString(),
+          window: { sinceMinutes, slowActionThresholdMs, limit },
+          prompt: this.buildAgentPrompt(summary, { limit }),
+          context: {
+            logs: summary.logs,
+            metrics: summary.metrics,
+          },
+        };
+      },
+    },
   },
 
   methods: {
@@ -429,6 +546,44 @@ module.exports = {
           }
           return right.calls - left.calls;
         });
+    },
+
+    buildAgentPrompt(summary, { limit = 5 } = {}) {
+      const overview = summary?.metrics?.overview || {};
+      const errors = (summary?.logs?.recentErrors || []).slice(0, limit);
+      const slowest = (summary?.metrics?.slowestActions || []).slice(0, limit);
+
+      const errorLines = errors.length
+        ? errors
+            .map(
+              (entry) =>
+                `- [${entry.level}] ${entry.service}${entry.action ? ` (${entry.action})` : ''}: ${entry.message}`
+            )
+            .join('\n')
+        : '- none';
+
+      const slowLines = slowest.length
+        ? slowest
+            .map(
+              (entry) =>
+                `- ${entry.action}: max=${entry.maxDurationMs}ms avg=${entry.avgDurationMs}ms errors=${entry.errorCount}/${entry.calls}`
+            )
+            .join('\n')
+        : '- none';
+
+      return [
+        'You are an operations debugging agent. Analyze the production feedback below and propose the top 3 concrete fixes with verification steps.',
+        '',
+        `Summary: totalCalls=${overview.totalCalls ?? 0}, errors=${overview.errorCount ?? 0}, p95=${overview.p95DurationMs ?? 'n/a'}ms, slowCalls=${overview.slowCallCount ?? 0}.`,
+        '',
+        'Recent errors:',
+        errorLines,
+        '',
+        'Slowest actions:',
+        slowLines,
+        '',
+        'Output format: (1) likely root cause, (2) exact code touchpoints, (3) safe rollout + test plan.',
+      ].join('\n');
     },
   },
 };

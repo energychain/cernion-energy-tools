@@ -472,6 +472,61 @@ const COOKBOOK_RECIPES = [
     expectedResult: 'Single aggregated quality score and per-agent breakdown for dashboard.',
     prerequisites: ['MaStR grid operator ID (SNB…/GNB…)'],
   },
+  {
+    id: 'dashboard-observability-mini',
+    title: 'Pull mini observability dashboard cards',
+    domain: 'monitoring',
+    tags: ['dashboard', 'observability', 'ops', 'production-feedback'],
+    problem:
+      'A dashboard widget needs a compact production-feedback payload with operational health, incidents, and performance signals.',
+    process: [
+      {
+        step: 1,
+        service: 'dashboard-api',
+        action: 'dashboard-api.observabilityMini',
+        restPath: 'GET /api/dashboard/observability-mini',
+        params: { sinceMinutes: 60, slowActionThresholdMs: 1000 },
+        description:
+          'Fetch 60-second-cached compact observability cards plus recent errors and slowest actions.',
+        expectedOutput: '{ cards, recentErrors, slowestActions, timestamp, _errors }',
+      },
+    ],
+    expectedResult:
+      'UI-ready operational mini dashboard payload for proactive monitoring and quick triage.',
+    prerequisites: ['Read-only API token (optional)'],
+  },
+  {
+    id: 'agentic-production-feedback-prompt',
+    title: 'Generate agent debugging prompt from production feedback',
+    domain: 'monitoring',
+    tags: ['agent', 'prompt', 'observability', 'debugging', 'feedback-loop'],
+    problem:
+      'An engineering agent should receive a consistent, redacted troubleshooting prompt derived from recent production logs and performance metrics.',
+    process: [
+      {
+        step: 1,
+        service: 'observability',
+        action: 'observability.agentPrompt',
+        restPath: 'GET /api/observability/agent-prompt',
+        params: { sinceMinutes: 120, slowActionThresholdMs: 1500, limit: 5 },
+        description:
+          'Build an operations-oriented prompt containing error hotspots, latency outliers, and suggested output structure.',
+        expectedOutput: '{ prompt, context, generatedAt, window }',
+      },
+      {
+        step: 2,
+        service: 'observability',
+        action: 'observability.logs',
+        restPath: 'GET /api/observability/logs',
+        params: { level: 'error', sinceMinutes: 120, limit: 20 },
+        description: 'Optionally enrich the agent context with additional recent error logs.',
+        expectedOutput: '{ count, logs[] }',
+      },
+    ],
+    expectedResult:
+      'Reusable prompt template for agentic issue analysis with privacy-safe production feedback context.',
+    prerequisites: ['Read-only API token (optional)', 'Agent runtime that accepts text prompt + JSON context'],
+  },
 
   // ─── INHOUSE DATA PIPELINE (4 recipes) ───────────────────────────────────
   {

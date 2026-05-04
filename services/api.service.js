@@ -3,11 +3,6 @@
  *
  * This service provides HTTP REST API access to all microservices
  * with OpenAPI documentation support.
-        {
-          name: 'Observability',
-          description:
-            'Read-only production feedback endpoints for captured service log output and broker-level action performance metrics (v0.40.6). Uses local PouchDB retention with redaction-safe storage for agentic debugging.',
-        },
  */
 
 const ApiGateway = require('moleculer-web');
@@ -291,7 +286,15 @@ module.exports = {
             'Endpoints: vnb-overview (VNB identity + KPIs + latest agent results), ' +
             'market-snapshot (spot prices + CO₂ + renewable forecast), ' +
             'quality-summary (recent reports from all agent pipelines), ' +
+            'observability-mini (compact health/incidents/performance cards), ' +
             'finding-codes (complete 100-code reference with metadata for UI tooltips).',
+        },
+        {
+          name: 'Observability',
+          description:
+            'Read-only production feedback endpoints (v0.40.7) for captured service log output, ' +
+            'action performance metrics, compact operational summaries, and an agent-ready debugging prompt. ' +
+            'Data is retained locally in PouchDB with redaction-safe storage.',
         },
         {
           name: 'Companies',
@@ -660,7 +663,13 @@ module.exports = {
           'GET /dashboard/vnb-overview': 'dashboard-api.vnbOverview',
           'GET /dashboard/market-snapshot': 'dashboard-api.marketSnapshot',
           'GET /dashboard/quality-summary': 'dashboard-api.qualitySummary',
+          'GET /dashboard/observability-mini': 'dashboard-api.observabilityMini',
           'GET /dashboard/finding-codes': 'dashboard-api.findingCodes',
+          // Observability (v0.40.6+) — production feedback endpoints
+          'GET /observability/logs': 'observability.logs',
+          'GET /observability/metrics': 'observability.metrics',
+          'GET /observability/summary': 'observability.summary',
+          'GET /observability/agent-prompt': 'observability.agentPrompt',
           // Zielnetzplanung (ZNP) — Stateful workspace API (v0.20.4 / v0.23)
           // NOTE: specific sub-paths MUST precede the bare /:projectId route to
           // prevent route shadowing. Order: most-specific first.

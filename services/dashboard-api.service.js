@@ -38,6 +38,7 @@ module.exports = {
       vnbOverview: 5 * 60 * 1000, // 5 min
       marketSnapshot: 15 * 60 * 1000, // 15 min
       qualitySummary: 5 * 60 * 1000, // 5 min
+      observabilityMini: 60 * 1000, // 1 min
       findingCodes: 24 * 60 * 60 * 1000, // 24 h (static)
     },
   },
@@ -609,6 +610,108 @@ module.exports = {
       },
     },
 
+    // ── observabilityMini ───────────────────────────────────────────────────
+    /**
+     * GET /api/dashboard/observability-mini
+     *
+     * Compact operational card payload for dashboards and agentic tooling.
+     * Reads from observability.summary and derives three cards:
+     * health, incidents, and performance.
+     *
+     * Cache TTL: 1 minute (key: sinceMinutes + slowActionThresholdMs).
+     */
+    observabilityMini: {
+      rest: 'GET /observability-mini',
+      params: {
+        sinceMinutes: {
+          type: 'number',
+          integer: true,
+          optional: true,
+          default: 60,
+          min: 1,
+          max: 24 * 60,
+          convert: true,
+        },
+        slowActionThresholdMs: {
+          type: 'number',
+          integer: true,
+          optional: true,
+          default: 1000,
+          min: 1,
+          max: 600000,
+          convert: true,
+        },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Observability mini dashboard — compact production feedback cards',
+        description:
+          'Returns a compact operational payload from observability.summary with health, incidents, ' +
+          'and performance cards plus recent errors and slowest actions. Optimized for dashboard widgets and agentic monitoring loops. ' +
+          'Cache TTL: 60 seconds.',
+        parameters: [
+          {
+            name: 'sinceMinutes',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 60, minimum: 1, maximum: 1440 },
+            description: 'Rolling observation window in minutes.',
+          },
+          {
+            name: 'slowActionThresholdMs',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', default: 1000, minimum: 1, maximum: 600000 },
+            description: 'Threshold used to classify actions as slow.',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Compact observability widget payload',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    cards: { type: 'object' },
+                    recentErrors: { type: 'array' },
+                    slowestActions: { type: 'array' },
+                    timestamp: { type: 'string', format: 'date-time' },
+                    _errors: { type: 'array', items: { type: 'string' } },
+                  },
+                },
+              },
+            },
+          },
+        },
+        'x-oeo-class': ['OEO_00000143'],
+      },
+      async handler(ctx) {
+        const { sinceMinutes, slowActionThresholdMs } = ctx.params;
+        const cacheKey = `observability-mini:${sinceMinutes}:${slowActionThresholdMs}`;
+
+        return this.cacheGetOrFetch(cacheKey, this.settings.cacheTtlMs.observabilityMini, async () => {
+          const errors = [];
+          const summary = await this.safeCall(
+            ctx,
+            'observability.summary',
+            { sinceMinutes, slowActionThresholdMs, limit: 10 },
+            null,
+            errors,
+            'observability.summary'
+          );
+
+          return {
+            cards: this.buildObservabilityMiniCards(summary),
+            recentErrors: summary?.logs?.recentErrors || [],
+            slowestActions: summary?.metrics?.slowestActions || [],
+            timestamp: new Date().toISOString(),
+            _errors: errors,
+          };
+        });
+      },
+    },
+
     // ── findingCodes ─────────────────────────────────────────────────────────
     /**
      * GET /api/dashboard/finding-codes
@@ -1021,6 +1124,39 @@ module.exports = {
           executedAt: r.createdAt,
           [metricKey]: r[metricKey] ?? null,
         })),
+      };
+    },
+
+    /**
+     * Build compact KPI cards from observability.summary output.
+     * @param {object|null} summary
+     * @returns {object}
+     */
+    buildObservabilityMiniCards(summary) {
+      if (!summary) {
+        return {
+          health: { status: 'unknown', signal: null },
+          incidents: { errorCount: null, signal: null },
+          performance: { p95DurationMs: null, slowCallCount: null, signal: null },
+        };
+      }
+
+      const errorCount = summary.metrics?.overview?.errorCount ?? 0;
+      const p95DurationMs = summary.metrics?.overview?.p95DurationMs ?? null;
+      const slowCallCount = summary.metrics?.overview?.slowCallCount ?? 0;
+      const status = errorCount > 0 ? 'degraded' : 'healthy';
+
+      return {
+        health: { status, signal: status === 'healthy' ? 'green' : 'yellow' },
+        incidents: {
+          errorCount,
+          signal: errorCount === 0 ? 'green' : errorCount < 5 ? 'yellow' : 'red',
+        },
+        performance: {
+          p95DurationMs,
+          slowCallCount,
+          signal: slowCallCount === 0 ? 'green' : slowCallCount < 10 ? 'yellow' : 'red',
+        },
       };
     },
   },

@@ -95,8 +95,10 @@ describe('observability.service', () => {
         limit: 10,
         sinceMinutes: 10,
       });
-      if (result.count < 2) {
-        throw new Error('Waiting for captured logs');
+      const hasInfo = result.logs.some((entry) => entry.level === 'info');
+      const hasError = result.logs.some((entry) => entry.level === 'error');
+      if (!hasInfo || !hasError) {
+        throw new Error('Waiting for captured info+error logs');
       }
       return result;
     });
@@ -147,5 +149,20 @@ describe('observability.service', () => {
     expect(response.metrics.overview.totalCalls).toBeGreaterThanOrEqual(2);
     expect(response.metrics.slowestActions.length).toBeGreaterThan(0);
     expect(response.retention.logRetentionDays).toBeGreaterThan(0);
+  });
+
+  it('builds an agent-ready debugging prompt from current observability data', async () => {
+    const response = await broker.call('observability.agentPrompt', {
+      sinceMinutes: 10,
+      slowActionThresholdMs: 1,
+      limit: 3,
+    });
+
+    expect(typeof response.prompt).toBe('string');
+    expect(response.prompt).toContain('operations debugging agent');
+    expect(response.prompt).toContain('Recent errors:');
+    expect(response.prompt).toContain('Slowest actions:');
+    expect(response.context.logs.total).toBeGreaterThanOrEqual(2);
+    expect(response.context.metrics.overview.totalCalls).toBeGreaterThanOrEqual(2);
   });
 });
