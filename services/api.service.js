@@ -3,6 +3,11 @@
  *
  * This service provides HTTP REST API access to all microservices
  * with OpenAPI documentation support.
+        {
+          name: 'Observability',
+          description:
+            'Read-only production feedback endpoints for captured service log output and broker-level action performance metrics (v0.40.6). Uses local PouchDB retention with redaction-safe storage for agentic debugging.',
+        },
  */
 
 const ApiGateway = require('moleculer-web');

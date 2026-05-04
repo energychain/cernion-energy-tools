@@ -3,6 +3,13 @@
  */
 require('dotenv').config();
 
+const observabilityStore = require('./src/observability-store');
+
+const LOGGER_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'];
+const OBSERVABILITY_LOGGER_WRAPPED = Symbol.for('cernion.observability.loggerWrapped');
+const OBSERVABILITY_ACTION_WRAPPED = Symbol.for('cernion.observability.actionWrapped');
+const OBSERVABILITY_HOOKS_INSTALLED = Symbol.for('cernion.observability.hooksInstalled');
+
 function envBool(name, defaultValue = false) {
   const raw = process.env[name];
   if (raw === undefined || raw === null || raw === '') return defaultValue;
@@ -14,6 +21,106 @@ function envNum(name, defaultValue) {
   if (raw === undefined || raw === null || raw === '') return defaultValue;
   const n = Number(raw);
   return Number.isFinite(n) ? n : defaultValue;
+}
+
+function installObservabilityHooks(broker) {
+  if (!broker || broker[OBSERVABILITY_HOOKS_INSTALLED]) return;
+  broker[OBSERVABILITY_HOOKS_INSTALLED] = true;
+
+  wrapLoggerMethods(broker.logger, () => ({
+    service: 'broker',
+    source: 'broker',
+    nodeID: broker.nodeID || null,
+  }));
+
+  const originalCreateService = broker.createService.bind(broker);
+  broker.createService = function patchedCreateService(schema, ...args) {
+    const instrumentedSchema = instrumentSchema(schema, broker);
+    const service = originalCreateService(instrumentedSchema, ...args);
+    wrapServiceLogger(service, broker);
+    return service;
+  };
+
+  for (const service of broker.services || []) {
+    wrapServiceLogger(service, broker);
+  }
+}
+
+function instrumentSchema(schema, broker) {
+  if (!schema || typeof schema !== 'object' || !schema.actions) return schema;
+
+  for (const [actionName, actionDef] of Object.entries(schema.actions)) {
+    if (typeof actionDef === 'function') {
+      schema.actions[actionName] = wrapActionHandler(schema.name, actionName, actionDef, broker);
+      continue;
+    }
+
+    if (actionDef && typeof actionDef.handler === 'function') {
+      actionDef.handler = wrapActionHandler(schema.name, actionName, actionDef.handler, broker);
+    }
+  }
+
+  return schema;
+}
+
+function wrapActionHandler(serviceName, actionName, handler, broker) {
+  if (typeof handler !== 'function' || handler[OBSERVABILITY_ACTION_WRAPPED]) return handler;
+
+  const wrapped = async function observabilityWrappedAction(ctx) {
+    const startedAt = Date.now();
+    let status = 'success';
+    let errorType = null;
+
+    try {
+      return await handler.call(this, ctx);
+    } catch (err) {
+      status = 'error';
+      errorType = err?.type || err?.code || err?.name || 'UNKNOWN_ERROR';
+      throw err;
+    } finally {
+      observabilityStore.captureMetric({
+        service: serviceName || this?.name || 'unknown',
+        action: `${serviceName || this?.name || 'unknown'}.${actionName}`,
+        durationMs: Date.now() - startedAt,
+        status,
+        errorType,
+        requestOrigin: ctx?.meta?.$gateway ? 'gateway' : 'internal',
+        nodeID: broker.nodeID || null,
+      });
+    }
+  };
+
+  wrapped[OBSERVABILITY_ACTION_WRAPPED] = true;
+  return wrapped;
+}
+
+function wrapServiceLogger(service, broker) {
+  if (!service?.logger) return;
+  wrapLoggerMethods(service.logger, () => ({
+    service: service.fullName || service.name || 'unknown',
+    source: 'service',
+    nodeID: broker.nodeID || null,
+  }));
+}
+
+function wrapLoggerMethods(logger, contextFactory) {
+  if (!logger || logger[OBSERVABILITY_LOGGER_WRAPPED]) return;
+
+  for (const level of LOGGER_LEVELS) {
+    if (typeof logger[level] !== 'function') continue;
+    const original = logger[level].bind(logger);
+
+    logger[level] = (...args) => {
+      original(...args);
+      observabilityStore.captureLog({
+        ...contextFactory(),
+        level,
+        message: observabilityStore.formatLogArgs(args),
+      });
+    };
+  }
+
+  logger[OBSERVABILITY_LOGGER_WRAPPED] = true;
 }
 
 module.exports = {
@@ -112,13 +219,21 @@ module.exports = {
 
   skipProcessEventRegistration: false,
 
-  created(_broker) {},
+  created(broker) {
+    observabilityStore.configure({
+      dbPath: process.env.OBSERVABILITY_DB_PATH || './data/observability',
+    });
+    installObservabilityHooks(broker);
+  },
 
   async started(broker) {
+    await observabilityStore.init();
     broker.logger.info('Moleculer broker started successfully');
   },
 
   async stopped(broker) {
     broker.logger.info('Moleculer broker stopped');
+    await observabilityStore.flush();
+    await observabilityStore.close();
   },
 };

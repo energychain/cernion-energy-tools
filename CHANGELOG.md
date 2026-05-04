@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.40.6] — Observability Feedback Endpoints
+
+### Added
+- **Operational observability service** in `services/observability.service.js`:
+  - Neue read-only REST-Endpunkte:
+    - `GET /api/observability/logs` — erfasste Broker-/Service-Logs mit Filterung nach `level`, `service`, `action`, Textsuche und Zeitfenster
+    - `GET /api/observability/metrics` — aggregierte Aktions-Performance (Erfolgs-/Fehlerzahlen, Dauer, langsame Actions, optional Raw-Metrics)
+    - `GET /api/observability/summary` — kompakte Produktionsübersicht aus Logs + Performance-Metriken
+  - Vollständige OpenAPI-Dokumentation unter dem neuen Tag `Observability`.
+
+- **PouchDB-basierte Observability-Persistenz** in `src/observability-store.js`:
+  - Lokale, KRITIS-konforme Speicherung von Log- und Metrik-Dokumenten in `./data/observability` (konfigurierbar via `OBSERVABILITY_DB_PATH`)
+  - Retention-Steuerung über `OBSERVABILITY_LOG_RETENTION_DAYS` und `OBSERVABILITY_METRIC_RETENTION_DAYS`
+  - Automatische Redaction für Bearer-Tokens, `ck_`-Tokens und typische Secret-Query-Parameter
+
+### Changed
+- **Broker-weite Capture-Instrumentierung** in `moleculer.config.js`:
+  - Logger-Ausgaben von Broker und Services werden zentral abgegriffen und in die Observability-Persistenz geschrieben.
+  - Moleculer-Action-Handler werden beim Laden der Services gewrappt, um Dauer, Status (`success`/`error`), Fehler-Typ und Aufruf-Ursprung (`gateway`/`internal`) als Performance-Metriken mitzuschreiben.
+- **API/OpenAPI-Surface** in `services/api.service.js` und `tests/api.service.test.js` erweitert um die neue Kategorie `Observability`.
+
+### Tests
+- Neue Test-Suite `tests/observability.service.test.js` für:
+  - Redaction und Abruf erfasster Logger-Ausgaben
+  - Aggregation von Action-Metriken nach Erfolg/Fehler
+  - Kompakte Summary-Antwort für Produktionsfeedback
+- `tests/api.service.test.js` erweitert um OpenAPI-/Route-Prüfung für `/api/observability/logs`.
+
 ## [0.40.5] — Finance Agent LLM Intelligence Refactor
 
 ### Changed

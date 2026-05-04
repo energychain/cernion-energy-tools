@@ -12,6 +12,7 @@ const TokenManagerService = require('../services/token-manager.service');
 const NbpMonitorService = require('../services/nbp-monitor.service');
 const KnowledgeRagService = require('../services/knowledge-rag.service');
 const FinanceAgentService = require('../services/finance-agent.service');
+const ObservabilityService = require('../services/observability.service');
 const { version: packageVersion } = require('../package.json');
 const path = require('path');
 const os = require('os');
@@ -63,6 +64,13 @@ describe('API Gateway Service', () => {
       settings: {
         ...FinanceAgentService.settings,
         dbPath: path.join(os.tmpdir(), `api-finance-agent-${Date.now()}`),
+      },
+    });
+    broker.createService({
+      ...ObservabilityService,
+      settings: {
+        ...ObservabilityService.settings,
+        dbPath: path.join(os.tmpdir(), `api-observability-${Date.now()}`),
       },
     });
     await broker.start();
@@ -195,16 +203,19 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/cya/profile']).toBeDefined();
       expect(schema.paths['/api/cookbook']).toBeDefined();
       expect(schema.paths['/api/dashboard/vnb-overview']).toBeDefined();
+      expect(schema.paths['/api/observability/logs']).toBeDefined();
       expect(schema.paths['/api/mastr-quality/audit']).toBeDefined();
 
       expect(schema.paths['/api/cya/profile'].post).toBeDefined();
       expect(schema.paths['/api/cookbook'].get).toBeDefined();
       expect(schema.paths['/api/dashboard/vnb-overview'].get).toBeDefined();
+      expect(schema.paths['/api/observability/logs'].get).toBeDefined();
       expect(schema.paths['/api/mastr-quality/audit'].post).toBeDefined();
 
       expect(schema.paths['/api/cya/profile'].post.tags).toContain('CYA Agent');
       expect(schema.paths['/api/cookbook'].get.tags).toContain('Cookbook');
       expect(schema.paths['/api/dashboard/vnb-overview'].get.tags).toContain('Dashboard API');
+      expect(schema.paths['/api/observability/logs'].get.tags).toContain('Observability');
       expect(schema.paths['/api/mastr-quality/audit'].post.tags).toContain('MaStR Data Quality');
     });
 
