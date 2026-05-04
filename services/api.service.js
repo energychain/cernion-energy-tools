@@ -637,7 +637,7 @@ module.exports = {
           'POST /redispatch/audit': 'redispatch-expost.audit',
           'GET /redispatch/audits': 'redispatch-expost.list',
           'GET /redispatch/audits/:id': 'redispatch-expost.get',
-          // Finance Agent (v0.40.4)
+          // Finance Agent (v0.40.5)
           'POST /finance-agent/analyze': 'finance-agent.analyze',
           'GET /finance-agent/analyses': 'finance-agent.list',
           'GET /finance-agent/analyses/:id': 'finance-agent.get',

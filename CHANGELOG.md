@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.40.5] — Finance Agent LLM Intelligence Refactor
+
+### Changed
+- **Finance Agent LLM integration** in `services/finance-agent.service.js`:
+  - `buildQueryPlan`, `findConflicts` und `synthesize` nutzen jetzt den zentralen LLM-Client aus `src/llm-client.js` via `generateStructured(...)`.
+  - Neue strukturierte Schemas für Query-Planung, Konflikt-Arbitration und Synthese mit strikter Typisierung über `SchemaType`.
+  - Graceful-Degradation-Fallbacks eingeführt: `_buildQueryPlanFallback`, `_findConflictsFallback` und `_synthesizeFallback` werden bei `LLM_NOT_CONFIGURED`, Timeout oder leicht fehlerhaften Antworten automatisch verwendet.
+  - Status-Koerzierung in der Synthese strikt auf `ok`, `needs_clarification` und `hypothetical_scenario` begrenzt, mit sicherem Fallback auf `needs_clarification`.
+  - Finance-Pipeline-Version auf `0.40.5` erhöht.
+
+### Tests
+- `tests/finance-agent.service.test.js` erweitert um:
+  - deterministisches Mocking des zentralen LLM-Clients für Planner, Arbiter und Synthese
+  - Verifikation des Fallback-Pfads bei `LLM_NOT_CONFIGURED`
+
 ## [0.40.4] — Finance Agent A²MDM Upgrade (CYA + OEO + Datapoints + Multi-Hop)
 
 ### Added

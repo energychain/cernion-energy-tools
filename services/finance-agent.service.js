@@ -18,9 +18,10 @@ const {
   FA_NEEDS_CLARIFICATION,
 } = require('../src/validation-findings');
 const { A2A_NAMESPACE } = require('../src/cya-a2a-protocol');
+const { generateStructured, SchemaType } = require('../src/llm-client');
 
 const OPENAPI_TAG = 'Finance Agent';
-const PIPELINE_VERSION = '0.40.4';
+const PIPELINE_VERSION = '0.40.5';
 const FINANCE_OEO_CLASS = ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'];
 const MODE_VALUES = ['rule_only', 'rule_plus_hyde'];
 const FINANCE_MEMORY_NAMESPACE = process.env.FINANCE_AGENT_MEMORY_NAMESPACE || 'finance_agent_memory';
@@ -48,6 +49,71 @@ Generate concise conclusions for VNB decision-makers.
 Allowed claims: only those traceable to retrieved evidence snippets.
 If evidence is insufficient and allowHypotheticals=true, return HYPOTHETICAL_SCENARIO and list ontological assumptions explicitly.
 Always separate L1 facts from hypothetical assumptions in output.`,
+};
+
+const PLANNER_SCHEMA = {
+  type: SchemaType.OBJECT,
+  properties: {
+    financeTags: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+    additionalIntents: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          name: { type: SchemaType.STRING },
+          query: { type: SchemaType.STRING },
+          oeoAnchors: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+          legalAnchors: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+        },
+      },
+    },
+  },
+  required: ['financeTags', 'additionalIntents'],
+};
+
+const ARBITER_SCHEMA = {
+  type: SchemaType.OBJECT,
+  properties: {
+    conflicts: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          description: { type: SchemaType.STRING },
+          rulePointId: { type: SchemaType.STRING },
+          hydePointId: { type: SchemaType.STRING },
+          resolution: { type: SchemaType.STRING },
+        },
+        required: ['description', 'rulePointId', 'hydePointId'],
+      },
+    },
+  },
+  required: ['conflicts'],
+};
+
+const SYNTHESIS_SCHEMA = {
+  type: SchemaType.OBJECT,
+  properties: {
+    status: { type: SchemaType.STRING },
+    summary: { type: SchemaType.STRING },
+    answer: { type: SchemaType.STRING },
+    claims: {
+      type: SchemaType.ARRAY,
+      items: {
+        type: SchemaType.OBJECT,
+        properties: {
+          id: { type: SchemaType.STRING },
+          statement: { type: SchemaType.STRING },
+          evidencePointId: { type: SchemaType.STRING },
+          level: { type: SchemaType.STRING },
+        },
+      },
+    },
+    assumptions: {
+      type: SchemaType.ARRAY,
+      items: { type: SchemaType.STRING },
+    },
+  },
 };
 
 module.exports = {
@@ -482,7 +548,7 @@ module.exports = {
       const requestedDatapoints = await this.loadRequestedDatapoints(ctx, datapointContext);
       const datapointFacts = this.buildDatapointEvidence(requestedDatapoints.records);
 
-      const plan = this.buildQueryPlan(
+      const plan = await this.buildQueryPlan(
         query,
         { mode, topK, minScore },
         externalContext,
@@ -553,7 +619,7 @@ module.exports = {
         l1Evidence: retrieval.l1Evidence,
       });
 
-      const arbitration = this.arbitrateEvidence(retrieval.evidence, mode);
+      const arbitration = await this.arbitrateEvidence(retrieval.evidence, mode);
       if (arbitration.ruleEvidence.length > 0) {
         findings.push(
           createFinding(
@@ -609,7 +675,7 @@ module.exports = {
         );
       }
 
-      const synthesis = this.synthesize(query, arbitration, legalReferences, mode, {
+      const synthesis = await this.synthesize(query, arbitration, legalReferences, mode, {
         allowHypotheticals,
         datapointFacts,
         oeoTags: this.collectOeoTags(arbitration.selectedEvidence),
@@ -741,7 +807,110 @@ module.exports = {
       return response;
     },
 
-    buildQueryPlan(query, options, externalContext = {}, cyaProfile = null) {
+    async buildQueryPlan(query, options, externalContext = {}, cyaProfile = null) {
+      const targetLayers = this.extractTargetLayers(cyaProfile);
+      const layerFilter = this.buildLayerFilter(targetLayers);
+      const profileHints = this.buildProfileHints(cyaProfile);
+
+      const prompt = [
+        INTERNAL_PROMPTS.queryPlanner,
+        '',
+        `Query: ${query}`,
+        `Mode: ${options.mode}`,
+        `CYA Profile: ${JSON.stringify({ targetLayers, profileHints })}`,
+        `External Context Summary: ${JSON.stringify({
+          hasMemory: !!externalContext.memory,
+          a2aCount: (externalContext.a2aMessages || []).length,
+          datapointCount: (externalContext.datapoints || []).length,
+        })}`,
+        '',
+        'Return JSON with: financeTags (OEO tag strings like ceo:CapitalExpenditure) and additionalIntents (array of {name, query, oeoAnchors, legalAnchors}).',
+        'Only include intents semantically required by the query. Do not invent OEO tags or legal references.',
+      ].join('\n');
+
+      try {
+        const response = await generateStructured(PLANNER_SCHEMA, prompt);
+        const financeTags = Array.isArray(response?.financeTags)
+          ? response.financeTags.map((t) => String(t || '').trim()).filter(Boolean)
+          : [];
+        const llmIntents = Array.isArray(response?.additionalIntents)
+          ? response.additionalIntents
+          : [];
+
+        const intents = [];
+        const pushIntent = (name, semanticQuery, filter = {}) => {
+          const mergedFilter = this.mergeFilters(layerFilter, filter);
+          intents.push({
+            name,
+            queryType: 'semantic',
+            query: semanticQuery,
+            limit: options.topK,
+            scoreThreshold: options.minScore,
+            withPayload: true,
+            withVectors: false,
+            filter: mergedFilter,
+          });
+        };
+
+        pushIntent('base-question', query);
+
+        for (const intent of llmIntents) {
+          const name = String(intent?.name || '').trim() || 'llm-intent';
+          const intentQuery = String(intent?.query || '').trim();
+          if (!intentQuery) continue;
+          const oeoAnchors = Array.isArray(intent?.oeoAnchors)
+            ? intent.oeoAnchors.map((t) => String(t || '').trim()).filter(Boolean)
+            : [];
+          const legalAnchors = Array.isArray(intent?.legalAnchors)
+            ? intent.legalAnchors.map((t) => String(t || '').trim()).filter(Boolean)
+            : [];
+          const extraFilter = {};
+          if (oeoAnchors.length > 0) {
+            extraFilter.should = [{ key: 'oeoTags', match: { any: oeoAnchors } }];
+          }
+          if (legalAnchors.length > 0) {
+            const legalShould = [{ key: 'referenceText_L0', match: { text: legalAnchors[0] } }];
+            extraFilter.should = [...(extraFilter.should || []), ...legalShould];
+          }
+          pushIntent(name, intentQuery, extraFilter);
+        }
+
+        if (financeTags.length > 0) {
+          pushIntent(
+            'oeo-graph-anchor',
+            `OEO Graph Query für ${financeTags.join(', ')} mit Fokus auf regulatorische Kausalbeziehungen`,
+            {
+              should: [
+                {
+                  key: 'oeoTags',
+                  match: { any: Array.from(new Set([...financeTags, 'ceo:RegulatoryPeriod'])) },
+                },
+              ],
+            }
+          );
+        }
+
+        pushIntent('legal-grounding', '§21a EnWG ARegV TOTEX CAPEX OPEX Verteilnetzbetreiber', {
+          should: [{ key: 'referenceText_L0', match: { text: '§' } }],
+        });
+
+        for (const profileHint of profileHints) {
+          pushIntent('cya-profile-layer', profileHint);
+        }
+        for (const contextHint of this.buildContextHints(externalContext)) {
+          pushIntent('session-context', contextHint);
+        }
+
+        return { query, mode: options.mode, financeTags, targetLayers, intents };
+      } catch (err) {
+        this.logger.warn(
+          `[finance-agent] buildQueryPlan LLM call failed, using fallback: ${err?.message || err}`
+        );
+        return this._buildQueryPlanFallback(query, options, externalContext, cyaProfile);
+      }
+    },
+
+    _buildQueryPlanFallback(query, options, externalContext = {}, cyaProfile = null) {
       const lowered = query.toLowerCase();
       const intents = [];
       const targetLayers = this.extractTargetLayers(cyaProfile);
@@ -1363,7 +1532,7 @@ module.exports = {
       return 'unknown';
     },
 
-    arbitrateEvidence(evidence, mode) {
+    async arbitrateEvidence(evidence, mode) {
       const ruleEvidence = evidence.filter((e) => e.level === 'L1_Rule');
       const hydeEvidence = evidence.filter((e) => e.level === 'L2_HyDE');
       const unknownEvidence = evidence.filter((e) => e.level === 'unknown');
@@ -1376,7 +1545,7 @@ module.exports = {
         selected.push(...unknownEvidence.slice(0, 4 - selected.length));
       }
 
-      const conflicts = this.findConflicts(ruleEvidence, hydeEvidence);
+      const conflicts = await this.findConflicts(ruleEvidence, hydeEvidence);
       return {
         ruleEvidence,
         hydeEvidence,
@@ -1385,7 +1554,38 @@ module.exports = {
       };
     },
 
-    findConflicts(ruleEvidence, hydeEvidence) {
+    async findConflicts(ruleEvidence, hydeEvidence) {
+      if (!ruleEvidence.length || !hydeEvidence.length) return [];
+
+      const ruleSnippets = ruleEvidence
+        .slice(0, 5)
+        .map((e) => ({ pointId: e.pointId, text: String(e.text || '').slice(0, 300) }));
+      const hydeSnippets = hydeEvidence
+        .slice(0, 5)
+        .map((e) => ({ pointId: e.pointId, text: String(e.text || '').slice(0, 300) }));
+
+      const prompt = [
+        INTERNAL_PROMPTS.evidenceArbiter,
+        '',
+        `L1_Rule evidence (${ruleSnippets.length} items):\n${JSON.stringify(ruleSnippets, null, 2)}`,
+        `L2_HyDE evidence (${hydeSnippets.length} items):\n${JSON.stringify(hydeSnippets, null, 2)}`,
+        '',
+        'Return JSON with a "conflicts" array. Each conflict: { description, rulePointId, hydePointId, resolution }.',
+        'Return { "conflicts": [] } if no semantic conflicts exist between L1_Rule and L2_HyDE entries.',
+      ].join('\n');
+
+      try {
+        const response = await generateStructured(ARBITER_SCHEMA, prompt);
+        return Array.isArray(response?.conflicts) ? response.conflicts : [];
+      } catch (err) {
+        this.logger.warn(
+          `[finance-agent] findConflicts LLM call failed, using fallback: ${err?.message || err}`
+        );
+        return this._findConflictsFallback(ruleEvidence, hydeEvidence);
+      }
+    },
+
+    _findConflictsFallback(ruleEvidence, hydeEvidence) {
       if (!ruleEvidence.length || !hydeEvidence.length) return [];
 
       const conflicts = [];
@@ -1443,7 +1643,66 @@ module.exports = {
       return Array.from(tags).slice(0, 20);
     },
 
-    synthesize(query, arbitration, legalReferences, mode, options = {}) {
+    async synthesize(query, arbitration, legalReferences, mode, options = {}) {
+      const allowHypotheticals = options.allowHypotheticals === true;
+      const datapointFacts = Array.isArray(options.datapointFacts) ? options.datapointFacts : [];
+      const oeoTags = Array.isArray(options.oeoTags) ? options.oeoTags : [];
+
+      const evidenceSnippets = arbitration.selectedEvidence.slice(0, 5).map((e) => ({
+        pointId: e.pointId,
+        level: e.level,
+        text: String(e.text || '').slice(0, 300),
+      }));
+      const datapointSnippets = datapointFacts.slice(0, 3).map((e) => ({
+        pointId: e.pointId,
+        level: e.level,
+        text: String(e.text || '').slice(0, 200),
+      }));
+
+      const prompt = [
+        INTERNAL_PROMPTS.synthesis,
+        '',
+        `Query: ${query}`,
+        `Mode: ${mode}`,
+        `L1_Rule evidence count: ${arbitration.ruleEvidence.length}`,
+        `L2_HyDE evidence count: ${arbitration.hydeEvidence.length}`,
+        `Selected evidence count: ${arbitration.selectedEvidence.length}`,
+        `Selected evidence (${evidenceSnippets.length}):\n${JSON.stringify(evidenceSnippets, null, 2)}`,
+        `Datapoint facts (${datapointSnippets.length}):\n${JSON.stringify(datapointSnippets, null, 2)}`,
+        `Legal references: ${legalReferences.slice(0, 6).join(', ') || 'none'}`,
+        `OEO tags: ${oeoTags.slice(0, 6).join(', ') || 'none'}`,
+        `allowHypotheticals: ${allowHypotheticals}`,
+        '',
+        'status MUST be exactly one of: ok, needs_clarification, hypothetical_scenario.',
+        'Use ok only if L1_Rule evidence count >= 2, Selected evidence count >= 3, and legal references are present.',
+        'Use hypothetical_scenario only if allowHypotheticals=true and L1 evidence is insufficient.',
+        'Use needs_clarification if evidence is insufficient and allowHypotheticals=false.',
+        'claims must reference actual evidence pointId values from the provided evidence list.',
+        'Antwort NUR als JSON gemäß Schema.',
+      ].join('\n');
+
+      try {
+        const response = await generateStructured(SYNTHESIS_SCHEMA, prompt);
+        const validStatuses = ['ok', 'needs_clarification', 'hypothetical_scenario'];
+        const finalStatus = validStatuses.includes(response?.status)
+          ? response.status
+          : 'needs_clarification';
+        return {
+          status: finalStatus,
+          summary: String(response?.summary || '').trim(),
+          answer: String(response?.answer || '').trim(),
+          claims: Array.isArray(response?.claims) ? response.claims : [],
+          assumptions: Array.isArray(response?.assumptions) ? response.assumptions : [],
+        };
+      } catch (err) {
+        this.logger.warn(
+          `[finance-agent] synthesize LLM call failed, using fallback: ${err?.message || err}`
+        );
+        return this._synthesizeFallback(query, arbitration, legalReferences, mode, options);
+      }
+    },
+
+    _synthesizeFallback(query, arbitration, legalReferences, mode, options = {}) {
       const ruleCount = arbitration.ruleEvidence.length;
       const selected = arbitration.selectedEvidence;
       const allowHypotheticals = options.allowHypotheticals === true;

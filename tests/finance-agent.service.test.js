@@ -6,6 +6,112 @@ const { ServiceBroker } = require('moleculer');
 
 process.env.FINANCE_AGENT_DB_PATH = path.join(os.tmpdir(), `cernion-fa-test-${Date.now()}`);
 
+// ---------------------------------------------------------------------------
+// LLM client mock — deterministic responses for all three LLM-powered methods
+// ---------------------------------------------------------------------------
+jest.mock('../src/llm-client', () => {
+  const SchemaType = {
+    STRING: 'STRING',
+    NUMBER: 'NUMBER',
+    INTEGER: 'INTEGER',
+    BOOLEAN: 'BOOLEAN',
+    ARRAY: 'ARRAY',
+    OBJECT: 'OBJECT',
+  };
+
+  const generateStructured = jest.fn().mockImplementation((_schema, prompt) => {
+    const p = String(prompt || '');
+
+    // --- Query Planner ---
+    if (p.includes('Finance Query Planner')) {
+      const isCapex = /CAPEX|capex|Investition/i.test(p);
+      const isOpex = /OPEX|opex|Betriebskosten/i.test(p);
+      const additionalIntents = [];
+      const financeTags = [];
+      if (isCapex) {
+        financeTags.push('ceo:CapitalExpenditure');
+        additionalIntents.push({
+          name: 'capex-rules',
+          query: 'Regulatorische CAPEX-Regeln im Verteilnetz und Bezug zu TOTEX',
+          oeoAnchors: ['ceo:CapitalExpenditure'],
+          legalAnchors: [],
+        });
+      }
+      if (isOpex) {
+        financeTags.push('ceo:OperatingExpenditure');
+        additionalIntents.push({
+          name: 'opex-rules',
+          query: 'Regulatorische OPEX-Regeln im Verteilnetz und Bezug zu TOTEX',
+          oeoAnchors: ['ceo:OperatingExpenditure'],
+          legalAnchors: [],
+        });
+      }
+      return Promise.resolve({ financeTags, additionalIntents });
+    }
+
+    // --- Evidence Arbiter ---
+    if (p.includes('Evidence Arbiter')) {
+      return Promise.resolve({ conflicts: [] });
+    }
+
+    // --- Synthesis ---
+    if (p.includes('Regulatory Finance Synthesizer')) {
+      const l1CountMatch = p.match(/L1_Rule evidence count: (\d+)/);
+      const l1Count = l1CountMatch ? parseInt(l1CountMatch[1], 10) : 0;
+      const selectedCountMatch = p.match(/Selected evidence count: (\d+)/);
+      const selectedCount = selectedCountMatch ? parseInt(selectedCountMatch[1], 10) : 0;
+      const hasLegal = !/Legal references: none/.test(p);
+      const allowHypo = p.includes('allowHypotheticals: true');
+
+      if (l1Count < 2 || selectedCount < 3 || !hasLegal) {
+        if (allowHypo) {
+          return Promise.resolve({
+            status: 'hypothetical_scenario',
+            summary:
+              'Hypothetisches Szenario: Keine hinreichende L1-Regelbasis; Ergebnis basiert auf L2-/Historik-Evidenz.',
+            answer:
+              'Hypothetische Einordnung ohne hinreichende L1-Regelbasis. Nicht als verbindliche Rechtsauskunft zu interpretieren.',
+            claims: [],
+            assumptions: [
+              'Unter der Annahme regulatorischer Kostenbeziehungen (CAPEX/OPEX/TOTEX) auf L2/Historik-Basis.',
+            ],
+          });
+        }
+        return Promise.resolve({
+          status: 'needs_clarification',
+          summary:
+            'Evidenzlage f\u00fcr eine regulatorisch belastbare Antwort ist unzureichend. Bitte pr\u00e4zisieren.',
+          answer:
+            'F\u00fcr eine belastbare Einordnung fehlen hinreichende L1-Regeln oder explizite Rechtsreferenzen.',
+          claims: [],
+          assumptions: [],
+        });
+      }
+
+      return Promise.resolve({
+        status: 'ok',
+        summary:
+          'Belastbare Einordnung auf Basis von L1-Regeln + L2-Kontext: CAPEX/OPEX/TOTEX-Abh\u00e4ngigkeiten sind dargestellt.',
+        answer:
+          'LLM-Antwort: CAPEX und OPEX sind regulatorisch als TOTEX zusammengefasst. Rechtsanker: \u00a721a EnWG.',
+        claims: [
+          {
+            id: 'C-1',
+            statement: 'CAPEX flie\u00dft in TOTEX ein.',
+            evidencePointId: 'fa-doc-1',
+            level: 'L1_Rule',
+          },
+        ],
+        assumptions: [],
+      });
+    }
+
+    return Promise.resolve({});
+  });
+
+  return { SchemaType, generateText: jest.fn().mockResolvedValue('mock text'), generateStructured };
+});
+
 describe('finance-agent service', () => {
   let broker;
   let objectStoreDocs;
@@ -392,5 +498,23 @@ describe('finance-agent service', () => {
     expect(res.status).toBe('hypothetical_scenario');
     expect(Array.isArray(res.assumptions)).toBe(true);
     expect(res.assumptions.length).toBeGreaterThan(0);
+  });
+
+  it('falls back to static synthesis when LLM throws LLM_NOT_CONFIGURED', async () => {
+    const { generateStructured } = require('../src/llm-client');
+    // Force the synthesis call (3rd LLM call in the pipeline) to throw
+    generateStructured
+      .mockRejectedValueOnce(Object.assign(new Error('LLM_NOT_CONFIGURED'), { code: 503 }))
+      .mockRejectedValueOnce(Object.assign(new Error('LLM_NOT_CONFIGURED'), { code: 503 }))
+      .mockRejectedValueOnce(Object.assign(new Error('LLM_NOT_CONFIGURED'), { code: 503 }));
+
+    const res = await broker.call('finance-agent.analyze', {
+      query:
+        'Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?',
+    });
+
+    expect(res.success).toBe(true);
+    // Fallback static logic produces a valid status
+    expect(['ok', 'needs_clarification', 'hypothetical_scenario']).toContain(res.status);
   });
 });
