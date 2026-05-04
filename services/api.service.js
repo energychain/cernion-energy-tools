@@ -600,6 +600,17 @@ module.exports = {
           'GET /oep/tables/:schema/:table/meta': 'oep.getTableMeta',
           'GET /oep/tables/:schema/:table/rows': 'oep.query',
           'GET /oep/search': 'oep.search',
+          // OSM Geo (v0.10)
+          'POST /osm-geo/validate': 'osm-geo.validate',
+          'POST /osm-geo/infrastructure-nearby': 'osm-geo.infrastructureNearby',
+          'POST /osm-geo/substation-finder': 'osm-geo.substationFinder',
+          'POST /osm-geo/grid-topology': 'osm-geo.gridTopology',
+          // Knowledge RAG (v0.39)
+          'POST /knowledge-rag/query': 'knowledge-rag.query',
+          'POST /knowledge-rag/semantic': 'knowledge-rag.semantic',
+          'POST /knowledge-rag/scroll': 'knowledge-rag.scroll',
+          'POST /knowledge-rag/fetch': 'knowledge-rag.fetch',
+          'POST /knowledge-rag/collection-info': 'knowledge-rag.collectionInfo',
           // Grid Connection Validation (v0.14)
           'POST /grid-connection/validate': 'grid-connection.validate',
           'GET /grid-connection/validations': 'grid-connection.list',
@@ -1100,8 +1111,266 @@ module.exports = {
         // Build OpenAPI schema from broker's service registry
         const paths = {};
 
+        const categoryTagByService = {
+          datapoint: 'Datapoints',
+          'osm-geo': 'OSM Geo (OpenStreetMap)',
+          oep: 'OEP (Open Energy Platform)',
+          'knowledge-rag': 'Knowledge RAG',
+          'finance-agent': 'Finance Agent',
+          'mastr-quality': 'MaStR Data Quality',
+          'dashboard-api': 'Dashboard API',
+          cookbook: 'Cookbook',
+          cya: 'CYA Agent',
+        };
+
+        const normalizeApiPath = (routePath) => {
+          const asString = String(routePath || '').trim();
+          if (!asString) return '/api';
+
+          const prefixed = asString.startsWith('/api')
+            ? asString
+            : asString.startsWith('/')
+              ? `/api${asString}`
+              : `/api/${asString}`;
+
+          const compact = prefixed.replace(/\/+/g, '/');
+          if (compact.length > 1 && compact.endsWith('/')) {
+            return compact.slice(0, -1);
+          }
+          return compact;
+        };
+
+        const ensureTokenQueryParameter = (operation) => {
+          if (!Array.isArray(operation.parameters)) {
+            operation.parameters = [];
+          }
+
+          const hasTokenQueryParam = operation.parameters.some(
+            (parameter) =>
+              parameter?.$ref === '#/components/parameters/TokenQuery' ||
+              (parameter?.name === 'token' && parameter?.in === 'query')
+          );
+
+          if (!hasTokenQueryParam) {
+            operation.parameters.push({
+              $ref: '#/components/parameters/TokenQuery',
+            });
+          }
+        };
+
+        const ensureRequestBodyToken = (operation, method) => {
+          if (method === 'get') return;
+
+          const tokenProperty = {
+            token: {
+              type: 'string',
+              description:
+                'Optional Cernion MCP token for this request. Overrides CERNION_TOKEN when provided.',
+            },
+          };
+
+          const currentRequestBody = operation.requestBody;
+
+          if (!currentRequestBody) {
+            operation.requestBody = {
+              required: false,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: tokenProperty,
+                  },
+                },
+              },
+            };
+            return;
+          }
+
+          const jsonContent = currentRequestBody.content?.['application/json'];
+          const existingSchema = jsonContent?.schema;
+
+          if (!existingSchema) return;
+
+          if (existingSchema.$ref) {
+            jsonContent.schema = {
+              allOf: [
+                { $ref: existingSchema.$ref },
+                {
+                  type: 'object',
+                  properties: tokenProperty,
+                },
+              ],
+            };
+            return;
+          }
+
+          if (!existingSchema.type) {
+            existingSchema.type = 'object';
+          }
+          if (!existingSchema.properties) {
+            existingSchema.properties = {};
+          }
+          if (!existingSchema.properties.token) {
+            existingSchema.properties.token = tokenProperty.token;
+          }
+        };
+
+        const addParamsFallback = (operation, action, method) => {
+          if (!action?.params || action?.openapi?.requestBody || action?.openapi?.parameters) {
+            return;
+          }
+
+          const schema = {
+            type: 'object',
+            properties: {},
+            required: [],
+          };
+
+          for (const paramName in action.params) {
+            const param = action.params[paramName];
+            let paramType = 'string';
+
+            if (typeof param === 'string') {
+              paramType = param;
+            } else if (param.type) {
+              paramType = param.type;
+            }
+
+            schema.properties[paramName] = {
+              type:
+                paramType === 'number'
+                  ? 'number'
+                  : paramType === 'boolean'
+                    ? 'boolean'
+                    : 'string',
+            };
+
+            if (
+              param.optional === false ||
+              (typeof param === 'string' && !param.includes('optional'))
+            ) {
+              schema.required.push(paramName);
+            }
+          }
+
+          if (method === 'get') {
+            for (const paramName in schema.properties) {
+              operation.parameters.push({
+                name: paramName,
+                in: 'query',
+                required: schema.required.includes(paramName),
+                schema: schema.properties[paramName],
+              });
+            }
+          } else {
+            operation.requestBody = {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: schema,
+                },
+              },
+            };
+          }
+        };
+
+        const upsertOperation = (fullPath, method, actionName, action, serviceName) => {
+          if (!paths[fullPath]) {
+            paths[fullPath] = {};
+          }
+
+          if (!paths[fullPath][method]) {
+            paths[fullPath][method] = {
+              summary: action?.description || actionName,
+              tags: action?.openapi?.tags || [serviceName || actionName.split('.')[0]],
+              operationId:
+                action?.openapi?.operationId ||
+                actionName.replace(/\./g, '_').replace(/-/g, '_'),
+              parameters: [
+                {
+                  $ref: '#/components/parameters/TokenQuery',
+                },
+              ],
+              responses: {
+                200: {
+                  description: 'Successful response',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                      },
+                    },
+                  },
+                },
+              },
+            };
+          }
+
+          const operation = paths[fullPath][method];
+
+          if (action?.openapi) {
+            if (action.openapi.summary) operation.summary = action.openapi.summary;
+            if (action.openapi.description) operation.description = action.openapi.description;
+            if (action.openapi.tags) operation.tags = action.openapi.tags;
+            if (action.openapi.operationId) operation.operationId = action.openapi.operationId;
+
+            if (action.openapi.requestBody) {
+              operation.requestBody = action.openapi.requestBody;
+            }
+            if (action.openapi.responses) {
+              operation.responses = action.openapi.responses;
+            }
+            if (action.openapi.parameters) {
+              operation.parameters = action.openapi.parameters;
+            }
+          }
+
+          // Canonicalize tag names so Swagger groups operations under the
+          // configured OpenAPI category tags (not raw internal service names).
+          if (!Array.isArray(operation.tags) || operation.tags.length === 0) {
+            operation.tags = [categoryTagByService[serviceName] || serviceName];
+          } else {
+            operation.tags = operation.tags.map(
+              (tag) => categoryTagByService[String(tag)] || String(tag)
+            );
+          }
+
+          ensureTokenQueryParameter(operation);
+          addParamsFallback(operation, action, method);
+          ensureRequestBodyToken(operation, method);
+        };
+
         // Get all registered services
         const services = ctx.broker.registry.getServiceList({ withActions: true });
+        const actionRegistry = new Map();
+
+        const registerActionVariants = (serviceName, actionName, actionDef) => {
+          if (!serviceName || !actionName || !actionDef) return;
+
+          actionRegistry.set(actionName, actionDef);
+
+          const localActionName = String(actionName).split('.').pop();
+          actionRegistry.set(`${serviceName}.${localActionName}`, actionDef);
+        };
+
+        // Prefer local service schema actions because they preserve full OpenAPI
+        // metadata (tags, descriptions, request/response contracts).
+        for (const localService of this.broker.services || []) {
+          if (!localService?.name || String(localService.name).startsWith('$')) continue;
+
+          const schemaActions = localService.schema?.actions || {};
+          for (const [actionName, actionDef] of Object.entries(schemaActions)) {
+            registerActionVariants(localService.name, actionName, actionDef);
+          }
+        }
+
+        for (const service of services) {
+          if (service.name?.startsWith('$')) continue;
+          for (const actionName in service.actions || {}) {
+            const action = service.actions[actionName];
+            registerActionVariants(service.name, actionName, action);
+          }
+        }
 
         // Iterate through services and their actions
         for (const service of services) {
@@ -1109,24 +1378,28 @@ module.exports = {
 
           if (service.actions) {
             for (const actionName in service.actions) {
-              const action = service.actions[actionName];
+              const registryAction = service.actions[actionName];
+              const actionRef = `${service.name}.${String(actionName).split('.').pop()}`;
+              const action =
+                actionRegistry.get(actionRef) || actionRegistry.get(actionName) || registryAction;
 
               // Check if action has REST configuration
-              if (action.rest) {
+              if (registryAction.rest || action.rest) {
                 let method = 'POST';
                 let path = `/${service.name}/${actionName.split('.').pop()}`;
+                const restConfig = registryAction.rest || action.rest;
 
-                if (typeof action.rest === 'string') {
-                  const parts = action.rest.split(' ');
+                if (typeof restConfig === 'string') {
+                  const parts = restConfig.split(' ');
                   if (parts.length === 2) {
                     method = parts[0];
                     path = parts[1];
                   } else {
-                    path = action.rest;
+                    path = restConfig;
                   }
-                } else if (typeof action.rest === 'object') {
-                  method = action.rest.method || method;
-                  path = action.rest.path || path;
+                } else if (typeof restConfig === 'object') {
+                  method = restConfig.method || method;
+                  path = restConfig.path || path;
                 }
 
                 method = method.toLowerCase();
@@ -1145,194 +1418,31 @@ module.exports = {
                   path = `/${service.name}${path}`;
                 }
 
-                const fullPath = `/api${path}`;
-
-                if (!paths[fullPath]) {
-                  paths[fullPath] = {};
-                }
-
-                paths[fullPath][method] = {
-                  summary: action.description || `${service.name}.${actionName}`,
-                  tags: [service.name],
-                  operationId: `${service.name}_${actionName.replace(/\./g, '_')}`,
-                  parameters: [
-                    {
-                      $ref: '#/components/parameters/TokenQuery',
-                    },
-                  ],
-                  responses: {
-                    200: {
-                      description: 'Successful response',
-                      content: {
-                        'application/json': {
-                          schema: {
-                            type: 'object',
-                          },
-                        },
-                      },
-                    },
-                  },
-                };
-
-                // Merge with openapi configuration if it exists
-                if (action.openapi) {
-                  // Merge summary, description, tags
-                  if (action.openapi.summary)
-                    paths[fullPath][method].summary = action.openapi.summary;
-                  if (action.openapi.description)
-                    paths[fullPath][method].description = action.openapi.description;
-                  if (action.openapi.tags) paths[fullPath][method].tags = action.openapi.tags;
-                  if (action.openapi.operationId)
-                    paths[fullPath][method].operationId = action.openapi.operationId;
-
-                  // Merge requestBody if provided
-                  if (action.openapi.requestBody) {
-                    paths[fullPath][method].requestBody = action.openapi.requestBody;
-                  }
-
-                  // Merge responses if provided
-                  if (action.openapi.responses) {
-                    paths[fullPath][method].responses = action.openapi.responses;
-                  }
-
-                  // Merge parameters if provided
-                  if (action.openapi.parameters) {
-                    paths[fullPath][method].parameters = action.openapi.parameters;
-                  }
-                }
-
-                // Ensure token query parameter is always documented for every endpoint
-                if (!Array.isArray(paths[fullPath][method].parameters)) {
-                  paths[fullPath][method].parameters = [];
-                }
-
-                const hasTokenQueryParam = paths[fullPath][method].parameters.some(
-                  (parameter) =>
-                    parameter?.$ref === '#/components/parameters/TokenQuery' ||
-                    (parameter?.name === 'token' && parameter?.in === 'query')
-                );
-
-                if (!hasTokenQueryParam) {
-                  paths[fullPath][method].parameters.push({
-                    $ref: '#/components/parameters/TokenQuery',
-                  });
-                }
-
-                // Add parameters if defined and not already provided by openapi config
-                if (action.params && !action.openapi?.requestBody && !action.openapi?.parameters) {
-                  const schema = {
-                    type: 'object',
-                    properties: {},
-                    required: [],
-                  };
-
-                  for (const paramName in action.params) {
-                    const param = action.params[paramName];
-                    let paramType = 'string';
-
-                    if (typeof param === 'string') {
-                      paramType = param;
-                    } else if (param.type) {
-                      paramType = param.type;
-                    }
-
-                    schema.properties[paramName] = {
-                      type:
-                        paramType === 'number'
-                          ? 'number'
-                          : paramType === 'boolean'
-                            ? 'boolean'
-                            : 'string',
-                    };
-
-                    if (
-                      param.optional === false ||
-                      (typeof param === 'string' && !param.includes('optional'))
-                    ) {
-                      schema.required.push(paramName);
-                    }
-                  }
-
-                  if (method === 'get') {
-                    // For GET requests, add as query parameters
-                    for (const paramName in schema.properties) {
-                      paths[fullPath][method].parameters.push({
-                        name: paramName,
-                        in: 'query',
-                        required: schema.required.includes(paramName),
-                        schema: schema.properties[paramName],
-                      });
-                    }
-                  } else {
-                    // For POST/PUT/PATCH, add as request body
-                    paths[fullPath][method].requestBody = {
-                      required: true,
-                      content: {
-                        'application/json': {
-                          schema: schema,
-                        },
-                      },
-                    };
-                  }
-                }
-
-                // Ensure token in request body is documented for non-GET operations
-                if (method !== 'get') {
-                  const tokenProperty = {
-                    token: {
-                      type: 'string',
-                      description:
-                        'Optional Cernion MCP token for this request. Overrides CERNION_TOKEN when provided.',
-                    },
-                  };
-
-                  const operation = paths[fullPath][method];
-                  const currentRequestBody = operation.requestBody;
-
-                  if (!currentRequestBody) {
-                    operation.requestBody = {
-                      required: false,
-                      content: {
-                        'application/json': {
-                          schema: {
-                            type: 'object',
-                            properties: tokenProperty,
-                          },
-                        },
-                      },
-                    };
-                  } else {
-                    const jsonContent = currentRequestBody.content?.['application/json'];
-                    const existingSchema = jsonContent?.schema;
-
-                    if (existingSchema) {
-                      if (existingSchema.$ref) {
-                        jsonContent.schema = {
-                          allOf: [
-                            { $ref: existingSchema.$ref },
-                            {
-                              type: 'object',
-                              properties: tokenProperty,
-                            },
-                          ],
-                        };
-                      } else {
-                        if (!existingSchema.type) {
-                          existingSchema.type = 'object';
-                        }
-                        if (!existingSchema.properties) {
-                          existingSchema.properties = {};
-                        }
-                        if (!existingSchema.properties.token) {
-                          existingSchema.properties.token = tokenProperty.token;
-                        }
-                      }
-                    }
-                  }
-                }
+                const fullPath = normalizeApiPath(path);
+                upsertOperation(fullPath, method, actionRef, action, service.name);
               }
             }
           }
+        }
+
+        // Ensure every explicitly exposed API alias is also documented, even when
+        // a target service action does not declare `rest` metadata in the registry.
+        const apiRoute = (this.settings.routes || []).find((route) => route?.path === '/api');
+        const aliases = apiRoute?.aliases || {};
+
+        for (const [aliasKey, aliasTarget] of Object.entries(aliases)) {
+          if (typeof aliasTarget !== 'string') continue;
+
+          const [methodRaw, ...routeParts] = String(aliasKey).split(' ');
+          if (!methodRaw || routeParts.length === 0) continue;
+
+          const method = String(methodRaw).toLowerCase();
+          const routePath = routeParts.join(' ').trim();
+          const fullPath = normalizeApiPath(routePath);
+
+          const action = actionRegistry.get(aliasTarget);
+          const serviceName = String(aliasTarget).split('.')[0] || 'api';
+          upsertOperation(fullPath, method, aliasTarget, action, serviceName);
         }
 
         // Build the OpenAPI schema

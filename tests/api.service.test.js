@@ -156,6 +156,9 @@ describe('API Gateway Service', () => {
 
       expect(schema.paths['/api/tokens']).toBeDefined();
       expect(schema.paths['/api/tokens/verify']).toBeDefined();
+
+      expect(schema.paths['/api/datapoints']).toBeDefined();
+      expect(schema.paths['/api/datapoints'].get.tags).toContain('Datapoints');
     });
 
     it('should include Knowledge RAG tag and routes', async () => {
@@ -182,6 +185,58 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/finance-agent/prompts']).toBeDefined();
 
       expect(schema.paths['/api/finance-agent/analyze'].post.tags).toContain('Finance Agent');
+    });
+
+    it('should include CYA, Cookbook, Dashboard API, and MaStR Quality routes', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.paths['/api/cya/profile']).toBeDefined();
+      expect(schema.paths['/api/cookbook']).toBeDefined();
+      expect(schema.paths['/api/dashboard/vnb-overview']).toBeDefined();
+      expect(schema.paths['/api/mastr-quality/audit']).toBeDefined();
+
+      expect(schema.paths['/api/cya/profile'].post).toBeDefined();
+      expect(schema.paths['/api/cookbook'].get).toBeDefined();
+      expect(schema.paths['/api/dashboard/vnb-overview'].get).toBeDefined();
+      expect(schema.paths['/api/mastr-quality/audit'].post).toBeDefined();
+
+      expect(schema.paths['/api/cya/profile'].post.tags).toContain('CYA Agent');
+      expect(schema.paths['/api/cookbook'].get.tags).toContain('Cookbook');
+      expect(schema.paths['/api/dashboard/vnb-overview'].get.tags).toContain('Dashboard API');
+      expect(schema.paths['/api/mastr-quality/audit'].post.tags).toContain('MaStR Data Quality');
+    });
+
+    it('should have explicit aliases for Knowledge RAG routes', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+
+      expect(aliases['POST /knowledge-rag/query']).toBe('knowledge-rag.query');
+      expect(aliases['POST /knowledge-rag/semantic']).toBe('knowledge-rag.semantic');
+      expect(aliases['POST /knowledge-rag/scroll']).toBe('knowledge-rag.scroll');
+      expect(aliases['POST /knowledge-rag/fetch']).toBe('knowledge-rag.fetch');
+      expect(aliases['POST /knowledge-rag/collection-info']).toBe('knowledge-rag.collectionInfo');
+    });
+
+    it('should have explicit aliases for Finance Agent routes', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+
+      expect(aliases['POST /finance-agent/analyze']).toBe('finance-agent.analyze');
+      expect(aliases['GET /finance-agent/analyses']).toBe('finance-agent.list');
+      expect(aliases['GET /finance-agent/analyses/:id']).toBe('finance-agent.get');
+      expect(aliases['GET /finance-agent/prompts']).toBe('finance-agent.prompts');
+    });
+
+    it('should have explicit aliases for OSM Geo routes', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+
+      expect(aliases['POST /osm-geo/validate']).toBe('osm-geo.validate');
+      expect(aliases['POST /osm-geo/infrastructure-nearby']).toBe(
+        'osm-geo.infrastructureNearby'
+      );
+      expect(aliases['POST /osm-geo/substation-finder']).toBe('osm-geo.substationFinder');
+      expect(aliases['POST /osm-geo/grid-topology']).toBe('osm-geo.gridTopology');
     });
   });
 

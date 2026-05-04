@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.39.0",
+    "version": "0.40.1",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -51,6 +51,10 @@
       "description": "HyDE-aware RAG access to the Cernion knowledge base via cernion_rag_search. Supports semantic search, scroll pagination, point fetch by IDs, and collection metadata."
     },
     {
+      "name": "Finance Agent",
+      "description": "Deterministic finance/regulatory analysis for VNBs (v0.40). Performs query planning, ontology-aware RAG retrieval, L1/L2 evidence arbitration, and guarded synthesis with audit trail."
+    },
+    {
       "name": "Grid Connection Validation",
       "description": "Deterministic 6-step Netzanschluss validation pipeline (v0.14). Produces structured findings and a Go/No-Go decision sealed with a PouchDB snapshot for audit integrity. No LLM involvement — identical inputs always produce identical finding codes."
     },
@@ -72,7 +76,7 @@
     },
     {
       "name": "Dashboard API",
-      "description": "UI-optimised aggregate endpoints (v0.19). Each endpoint consolidates 4–7 internal service calls into a single response, reducing the roundtrips required for an Enterprise UI dashboard page to one. Read-only — no side-effects, no own PouchDB. Endpoints: vnb-overview (VNB identity + KPIs + latest agent results), market-snapshot (spot prices + CO₂ + renewable forecast), quality-summary (recent reports from all agent pipelines), finding-codes (complete 92-code reference with metadata for UI tooltips)."
+      "description": "UI-optimised aggregate endpoints (v0.19). Each endpoint consolidates 4–7 internal service calls into a single response, reducing the roundtrips required for an Enterprise UI dashboard page to one. Read-only — no side-effects, no own PouchDB. Endpoints: vnb-overview (VNB identity + KPIs + latest agent results), market-snapshot (spot prices + CO₂ + renewable forecast), quality-summary (recent reports from all agent pipelines), finding-codes (complete 100-code reference with metadata for UI tooltips)."
     },
     {
       "name": "Companies",
@@ -2985,6 +2989,1848 @@
         ]
       }
     },
+    "/api/osm-geo/validate": {
+      "post": {
+        "operationId": "osm-geo_validate",
+        "summary": "Geo-plausibility check for MaStR VNB assignment (L1 authoritative + L2 OSM)",
+        "tags": [
+          "OSM Geo (OpenStreetMap)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Validation result returned successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "mastrNummer": "SEE900012345678",
+                    "installation": {
+                      "location": {
+                        "lat": 49.481,
+                        "lon": 8.432
+                      },
+                      "installationType": "solar",
+                      "bruttoleistungKW": 9.9,
+                      "registeredGridOperator": "TWL Netze GmbH",
+                      "registeredGridOperatorId": "SNB935578300972"
+                    },
+                    "validation": {
+                      "verdict": "CONSISTENT",
+                      "confidenceScore": 72,
+                      "flags": [],
+                      "layer1_vnbdigital": {
+                        "queried": true,
+                        "status": "QUERIED_SUCCESS",
+                        "vnbFound": "TWL Netze GmbH",
+                        "match": true,
+                        "authoritative": true
+                      },
+                      "layer2_osm": {
+                        "queried": true,
+                        "osmObjectsFound": 3,
+                        "nearestSubstation": {
+                          "osmId": "node/123456789",
+                          "distanceMeters": 184,
+                          "type": "distribution",
+                          "operatorTag": "TWL"
+                        },
+                        "dominantOperator": "TWL",
+                        "dominantOperatorShare": 1,
+                        "radiusMeters": 500
+                      }
+                    },
+                    "dataQuality": {
+                      "layer1Coverage": "FULL",
+                      "layer2Coverage": "MEDIUM",
+                      "osmDisclaimer": "© OpenStreetMap contributors (ODbL 1.0)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Two-layer geographic plausibility check for the grid-operator assignment of a MaStR installation.\n\n**Layer 1 (authoritative):** Coordinate → VNBDigital → expected grid operator for this location.\n**Layer 2 (physical):** Coordinate → Overpass API → nearby substations / dominant operator tag.\n\nDetects both **DEFINITIVE_MISASSIGNMENT** (L1 mismatch, authoritative) and **LIKELY_MISASSIGNMENT** (L2 OSM hint only).\n\n**Input:** either `mastrNummer` (coordinates resolved automatically) **or** explicit `latitude` + `longitude`.\n\n**Verdict values:**\n- `CONSISTENT` — assignment plausible (L1 + L2 agree or no contradiction)\n- `DEFINITIVE_MISASSIGNMENT` — VNBDigital points to a different operator (authoritative correction required)\n- `LIKELY_MISASSIGNMENT` — OSM infrastructure tags suggest a different operator\n- `UNCERTAIN` — contradictory signals, no clear verdict\n- `INSUFFICIENT_DATA` — too few OSM objects for a reliable verdict\n\n**OSM coverage note:** Typically 40–60 % of MS/NS infrastructure is mapped in OSM for Germany. The `dataQuality.coverageLabel` field carries a per-response quality estimate.\n\n**Data:** © OpenStreetMap contributors, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mastrNummer": {
+                    "type": "string",
+                    "description": "MaStR number (SEE…, SWE…, SBE…). Coordinates and VNB resolved automatically from the local DB.",
+                    "example": "SEE900012345678"
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "description": "Latitude — required when mastrNummer is not provided.",
+                    "example": 49.481
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "description": "Longitude — required when mastrNummer is not provided.",
+                    "example": 8.432
+                  },
+                  "registeredGridOperatorName": {
+                    "type": "string",
+                    "description": "Registered VNB name for the L1 comparison.",
+                    "example": "TWL Netze GmbH"
+                  },
+                  "gridOperatorId": {
+                    "type": "string",
+                    "description": "MaStR ID of the VNB (SNB…).",
+                    "example": "SNB935578300972"
+                  },
+                  "radiusMeters": {
+                    "type": "number",
+                    "description": "OSM search radius in metres (max 5 000).",
+                    "default": 500,
+                    "example": 500
+                  },
+                  "skipOsmLayer": {
+                    "type": "boolean",
+                    "description": "Only run L1 (no Overpass call). Faster for batch runs.",
+                    "default": false,
+                    "example": false
+                  },
+                  "includeInfrastructureDetails": {
+                    "type": "boolean",
+                    "description": "Include the full list of found OSM objects in the response.",
+                    "default": false,
+                    "example": false
+                  },
+                  "confidenceThreshold": {
+                    "type": "number",
+                    "description": "Minimum score for CONSISTENT verdict.",
+                    "default": 40,
+                    "example": 40
+                  }
+                }
+              },
+              "examples": {
+                "byMastrNummer": {
+                  "summary": "Minimal call — MaStR number only",
+                  "value": {
+                    "mastrNummer": "SEE900012345678"
+                  }
+                },
+                "l1Only": {
+                  "summary": "L1-only check (no Overpass, fast for batch)",
+                  "value": {
+                    "mastrNummer": "SEE900012345678",
+                    "skipOsmLayer": true
+                  }
+                },
+                "byCoordinates": {
+                  "summary": "Explicit coordinates with infrastructure details",
+                  "value": {
+                    "latitude": 49.481,
+                    "longitude": 8.432,
+                    "registeredGridOperatorName": "TWL Netze GmbH",
+                    "radiusMeters": 800,
+                    "includeInfrastructureDetails": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/osm-geo/infrastructure-nearby": {
+      "post": {
+        "operationId": "osm-geo_infrastructureNearby",
+        "summary": "Energy infrastructure near a location (sorted by distance)",
+        "tags": [
+          "OSM Geo (OpenStreetMap)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Nearby infrastructure retrieved successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "queryCenter": {
+                      "lat": 49.481,
+                      "lon": 8.432
+                    },
+                    "radiusMeters": 1000,
+                    "bboxConstrained": false,
+                    "totalFound": 7,
+                    "summary": {
+                      "nearestSubstationMeters": 184,
+                      "nearestNSConnectionMeters": 184,
+                      "nearestMSConnectionMeters": 430,
+                      "dominantOperator": "TWL",
+                      "substationsFound": 4,
+                      "osmCoverageQuality": "MEDIUM"
+                    },
+                    "infrastructure": [
+                      {
+                        "osmId": "node/123456789",
+                        "type": "substation",
+                        "subtype": "distribution",
+                        "distanceMeters": 184,
+                        "location": {
+                          "lat": 49.4826,
+                          "lon": 8.4298
+                        },
+                        "voltageLevel": "NS",
+                        "voltageIn": "20000",
+                        "voltageOut": "400",
+                        "operator": "TWL",
+                        "name": "UW Innenstadt",
+                        "connectionSuitability": "SUITABLE_NS"
+                      }
+                    ],
+                    "dataQuality": {
+                      "coverageLabel": "MEDIUM",
+                      "disclaimer": "© OpenStreetMap contributors (ODbL 1.0)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns all energy infrastructure (substations, transformers, lines, cables) within a defined radius, sorted by distance from the query centre.\n\nEach object carries voltage level, operator tag, and a **`connectionSuitability`** assessment:\n- `SUITABLE_NS` — low-voltage connection suitable (≤ 400 V)\n- `SUITABLE_MS` — medium-voltage connection suitable (1–20 kV)\n- `SUITABLE_HS` — high-voltage connection (> 20 kV)\n- `LINE_ONLY` — line/cable only, no node\n- `UNKNOWN` — voltage level not determinable\n\n**Input:** one of `location` (lat,lon string), `latitude`+`longitude`, or `mastrNummer`.\n\nUse `constrainToBbox` (directly from a `vnbdigital_lookup` bbox field) to restrict results to the relevant grid territory.\n\n**Data:** © OpenStreetMap contributors, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "location": {
+                    "type": "string",
+                    "description": "Coordinates as \"lat,lon\" string (e.g. \"49.481,8.432\").",
+                    "example": "49.481,8.432"
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "description": "Latitude of the query centre.",
+                    "example": 49.481
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "description": "Longitude of the query centre.",
+                    "example": 8.432
+                  },
+                  "mastrNummer": {
+                    "type": "string",
+                    "description": "MaStR number — coordinates resolved from local DB.",
+                    "example": "SEE900012345678"
+                  },
+                  "radiusMeters": {
+                    "type": "number",
+                    "description": "Search radius in metres (max 10 000).",
+                    "default": 1000,
+                    "example": 1000
+                  },
+                  "infraTypes": {
+                    "type": "array",
+                    "description": "Filter by infrastructure type. Allowed: substation, transformer, line, cable.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "substation",
+                      "transformer"
+                    ]
+                  },
+                  "voltageLevel": {
+                    "type": "string",
+                    "description": "Filter by voltage level: NS, MS, HS, EHS.",
+                    "example": "NS"
+                  },
+                  "maxResults": {
+                    "type": "number",
+                    "description": "Maximum number of results.",
+                    "default": 20,
+                    "example": 20
+                  },
+                  "constrainToBbox": {
+                    "type": "object",
+                    "description": "VNBDigital bounding box — objects outside are filtered out. Compatible with the bbox field from vnbdigital_lookup.",
+                    "example": {
+                      "north": 49.548,
+                      "south": 49.427,
+                      "east": 8.477,
+                      "west": 8.298
+                    },
+                    "properties": {
+                      "north": {
+                        "type": "number"
+                      },
+                      "south": {
+                        "type": "number"
+                      },
+                      "east": {
+                        "type": "number"
+                      },
+                      "west": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "include_geometry": {
+                    "type": "boolean",
+                    "description": "Include GeoJSON geometry for lines/cables.",
+                    "default": false,
+                    "example": false
+                  }
+                }
+              },
+              "examples": {
+                "nearestNS": {
+                  "summary": "Nearest NS infrastructure for a PV plant",
+                  "value": {
+                    "latitude": 49.481,
+                    "longitude": 8.432,
+                    "radiusMeters": 500,
+                    "infraTypes": [
+                      "substation",
+                      "transformer"
+                    ],
+                    "voltageLevel": "NS"
+                  }
+                },
+                "withBbox": {
+                  "summary": "Infrastructure constrained to VNB territory",
+                  "value": {
+                    "location": "49.481,8.432",
+                    "radiusMeters": 2000,
+                    "constrainToBbox": {
+                      "north": 49.548,
+                      "south": 49.427,
+                      "east": 8.477,
+                      "west": 8.298
+                    }
+                  }
+                },
+                "cablesByMastrNummer": {
+                  "summary": "Lines/cables within 3 km via MaStR number",
+                  "value": {
+                    "mastrNummer": "SEE900012345678",
+                    "radiusMeters": 3000,
+                    "infraTypes": [
+                      "line",
+                      "cable"
+                    ],
+                    "include_geometry": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/osm-geo/substation-finder": {
+      "post": {
+        "operationId": "osm-geo_substationFinder",
+        "summary": "Substation inventory for a grid territory or area",
+        "tags": [
+          "OSM Geo (OpenStreetMap)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Substation inventory retrieved successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "query": {
+                      "scopeSource": "boundingBox",
+                      "gridOperator": "TWL Netze GmbH",
+                      "bbox": [
+                        8.298,
+                        49.427,
+                        8.477,
+                        49.548
+                      ],
+                      "voltageLevel": "ALL",
+                      "substationType": "ALL"
+                    },
+                    "summary": {
+                      "totalSubstations": 312,
+                      "returnedSubstations": 200,
+                      "byVoltageLevel": {
+                        "NS_MS": 289,
+                        "MS_HS": 21,
+                        "HS_EHS": 2,
+                        "UNKNOWN": 0
+                      },
+                      "byOperator": [
+                        {
+                          "operator": "TWL",
+                          "count": 287,
+                          "share": 0.92
+                        },
+                        {
+                          "operator": "Stadtwerke Ludwigshafen",
+                          "count": 14,
+                          "share": 0.04
+                        }
+                      ],
+                      "dominantOperator": "TWL",
+                      "dominantOperatorShare": 0.92,
+                      "areaKm2": 85.4,
+                      "densityAssessment": {
+                        "substationsPerKm2": 3.65,
+                        "label": "URBAN"
+                      }
+                    },
+                    "substations": [
+                      {
+                        "osmId": "way/987654321",
+                        "type": "substation",
+                        "subtype": "distribution",
+                        "location": {
+                          "lat": 49.487,
+                          "lon": 8.451
+                        },
+                        "voltageLevel": "NS",
+                        "operator": "TWL",
+                        "name": "TUS Oggersheim"
+                      }
+                    ],
+                    "dataQuality": {
+                      "coverageLabel": "MEDIUM",
+                      "disclaimer": "© OpenStreetMap contributors (ODbL 1.0)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Inventories substations and transformers within a defined area using OpenStreetMap data.\n\nReturns both a detail list and **aggregated statistics**:\n- Total count by voltage level (NS/MS/HS/EHS)\n- Operator split with dominant operator share\n- Area density assessment: `SPARSE` < 0.5/km², `RURAL` 0.5–2, `SUBURBAN` 2–5, `URBAN` > 5 substations/km²\n\n**Scope input:** at least one of `location` (place name), `boundingBox` (from vnbdigital_lookup), or `gridOperator` name.\n\n**Data:** © OpenStreetMap contributors, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "location": {
+                    "type": "string",
+                    "description": "Area name (Gemeinde, Stadt, Landkreis) for OSM area query.",
+                    "example": "Ludwigshafen am Rhein"
+                  },
+                  "boundingBox": {
+                    "type": "object",
+                    "description": "Geographic bounding box — directly compatible with the bbox field from vnbdigital_lookup.",
+                    "example": {
+                      "north": 49.548,
+                      "south": 49.427,
+                      "east": 8.477,
+                      "west": 8.298
+                    },
+                    "properties": {
+                      "north": {
+                        "type": "number"
+                      },
+                      "south": {
+                        "type": "number"
+                      },
+                      "east": {
+                        "type": "number"
+                      },
+                      "west": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "gridOperator": {
+                    "type": "string",
+                    "description": "VNB name — used as OSM area name fallback.",
+                    "example": "TWL Netze GmbH"
+                  },
+                  "gridOperatorId": {
+                    "type": "string",
+                    "description": "MaStR VNB ID (SNB…).",
+                    "example": "SNB935578300972"
+                  },
+                  "voltageLevel": {
+                    "type": "string",
+                    "description": "Filter by voltage level: NS, MS, HS, EHS.",
+                    "example": "MS"
+                  },
+                  "substationType": {
+                    "type": "string",
+                    "description": "Filter by substation type: distribution, transmission, ALL.",
+                    "default": "ALL",
+                    "example": "ALL"
+                  },
+                  "maxResults": {
+                    "type": "number",
+                    "description": "Maximum number of objects in the detail list.",
+                    "default": 200,
+                    "example": 200
+                  },
+                  "include_geometry": {
+                    "type": "boolean",
+                    "description": "Include polygon geometry for way/relation substations.",
+                    "default": false,
+                    "example": false
+                  }
+                }
+              },
+              "examples": {
+                "byBbox": {
+                  "summary": "All substations in a VNB territory (via bbox)",
+                  "value": {
+                    "boundingBox": {
+                      "north": 49.548,
+                      "south": 49.427,
+                      "east": 8.477,
+                      "west": 8.298
+                    },
+                    "gridOperator": "TWL Netze GmbH"
+                  }
+                },
+                "hsMunich": {
+                  "summary": "HS substations in Munich only",
+                  "value": {
+                    "location": "München",
+                    "voltageLevel": "HS",
+                    "substationType": "transmission"
+                  }
+                },
+                "countyWithGeometry": {
+                  "summary": "Full county inventory with polygon geometry",
+                  "value": {
+                    "location": "Rhein-Pfalz-Kreis",
+                    "include_geometry": true,
+                    "maxResults": 500
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/osm-geo/grid-topology": {
+      "post": {
+        "operationId": "osm-geo_gridTopology",
+        "summary": "Grid topology analysis (nodes, edges, graph metrics, optional path analysis)",
+        "tags": [
+          "OSM Geo (OpenStreetMap)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Topology analysis returned successfully",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "area": "Ludwigshafen am Rhein",
+                    "scopeSource": "location_name",
+                    "voltageFilter": null,
+                    "topologyMetrics": {
+                      "nodes": 847,
+                      "edges": 1203,
+                      "avgNodeDegree": 2.84,
+                      "topologyType": "RING",
+                      "topologyIndicator": 0.84,
+                      "voltageBreakdown": {
+                        "NS": {
+                          "nodes": 721,
+                          "edges": 987
+                        },
+                        "MS": {
+                          "nodes": 124,
+                          "edges": 214
+                        },
+                        "HS": {
+                          "nodes": 2,
+                          "edges": 2
+                        },
+                        "UNKNOWN": {
+                          "nodes": 0,
+                          "edges": 0
+                        }
+                      }
+                    },
+                    "pathAnalysis": {
+                      "requested": false
+                    },
+                    "dataQuality": {
+                      "source": "© OpenStreetMap contributors (ODbL 1.0)",
+                      "osmEdgeCoverageEstimate": 0.47,
+                      "coverageLabel": "MEDIUM",
+                      "warning": "Leitungsnetz ca. 47% in OSM erfasst. Topologiemetriken sind Untergrenzen.",
+                      "disclaimer": "© OpenStreetMap contributors (ODbL 1.0)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Analyses the visible grid topology within an area by extracting nodes (substations, transformers) and edges (lines, cables) from OpenStreetMap.\n\n**Graph metrics returned:**\n- Node and edge counts, average node degree\n- Topology type: `RADIAL` (indicator < 0.5), `MIXED` (0.5–0.7), `RING` (> 0.7 — higher redundancy)\n- Voltage-level breakdown\n\n**Optional path analysis** (`includePathAnalysis: true`): shortest path between `fromOsmId` → `toOsmId` with hop count, total length, and confidence rating.\n\n**Optional raw graph data** (`includeGraphData: true`): full node/edge list for downstream processing.\n\n**Scope input:** at least one of `location` (place name), `boundingBox`, or `gridOperator` name.\n\n**Coverage note:** Line coverage in OSM is ~40–60 % for German distribution networks. Topology metrics are therefore lower bounds.\n\n**Data:** © OpenStreetMap contributors, [ODbL 1.0](https://opendatacommons.org/licenses/odbl/)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "location": {
+                    "type": "string",
+                    "description": "Area name (Gemeinde, Stadt, Landkreis).",
+                    "example": "Ludwigshafen am Rhein"
+                  },
+                  "boundingBox": {
+                    "type": "object",
+                    "description": "Explicit geographic bounding box — directly compatible with vnbdigital_lookup bbox.",
+                    "example": {
+                      "north": 49.548,
+                      "south": 49.427,
+                      "east": 8.477,
+                      "west": 8.298
+                    },
+                    "properties": {
+                      "north": {
+                        "type": "number"
+                      },
+                      "south": {
+                        "type": "number"
+                      },
+                      "east": {
+                        "type": "number"
+                      },
+                      "west": {
+                        "type": "number"
+                      }
+                    }
+                  },
+                  "gridOperator": {
+                    "type": "string",
+                    "description": "VNB name — used as OSM area name.",
+                    "example": "TWL Netze GmbH"
+                  },
+                  "voltageLevel": {
+                    "type": "string",
+                    "description": "Restrict analysis to one voltage level: NS, MS, HS, EHS.",
+                    "example": "MS"
+                  },
+                  "fromOsmId": {
+                    "type": "string",
+                    "description": "Start-node OSM ID for path analysis (e.g. \"node/1234567\").",
+                    "example": "node/123456789"
+                  },
+                  "toOsmId": {
+                    "type": "string",
+                    "description": "Target-node OSM ID for path analysis.",
+                    "example": "node/987654321"
+                  },
+                  "includePathAnalysis": {
+                    "type": "boolean",
+                    "description": "Compute shortest path between fromOsmId → toOsmId.",
+                    "default": false,
+                    "example": false
+                  },
+                  "includeGraphData": {
+                    "type": "boolean",
+                    "description": "Include raw node/edge list for downstream processing.",
+                    "default": false,
+                    "example": false
+                  }
+                }
+              },
+              "examples": {
+                "ludwigshafenMS": {
+                  "summary": "MS topology for Ludwigshafen",
+                  "value": {
+                    "location": "Ludwigshafen am Rhein",
+                    "voltageLevel": "MS"
+                  }
+                },
+                "pathAnalysis": {
+                  "summary": "Path analysis between two OSM nodes",
+                  "value": {
+                    "location": "Ludwigshafen am Rhein",
+                    "voltageLevel": "MS",
+                    "fromOsmId": "node/123456789",
+                    "toOsmId": "node/987654321",
+                    "includePathAnalysis": true
+                  }
+                },
+                "byBboxWithGraphData": {
+                  "summary": "Topology with raw graph data via bounding box",
+                  "value": {
+                    "boundingBox": {
+                      "north": 49.548,
+                      "south": 49.427,
+                      "east": 8.477,
+                      "west": 8.298
+                    },
+                    "voltageLevel": "MS",
+                    "includeGraphData": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge-rag/query": {
+      "post": {
+        "operationId": "knowledge-rag_query",
+        "summary": "Knowledge RAG query (semantic, scroll, fetch, collection_info)",
+        "tags": [
+          "Knowledge RAG"
+        ],
+        "responses": {
+          "200": {
+            "description": "RAG query result (internal/direct calls only; external callers receive 202)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "queryType": {
+                          "type": "string",
+                          "example": "semantic"
+                        },
+                        "collection": {
+                          "type": "string",
+                          "example": "cernion_knowledge_v1"
+                        },
+                        "returned": {
+                          "type": "number",
+                          "example": 2
+                        },
+                        "results": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "pointId": {
+                                "type": "string",
+                                "example": "doc-123"
+                              },
+                              "score": {
+                                "type": "number",
+                                "example": 0.91
+                              },
+                              "referenceText_L0": {
+                                "type": "string",
+                                "example": "Die Festlegung regelt ..."
+                              },
+                              "vectorText": {
+                                "type": "string",
+                                "example": "Welche Regeln gelten für ..."
+                              },
+                              "metadata": {
+                                "type": "object",
+                                "properties": {
+                                  "title": {
+                                    "type": "string",
+                                    "example": "BK6-24-xxx"
+                                  },
+                                  "docType": {
+                                    "type": "string",
+                                    "example": "Festlegung"
+                                  },
+                                  "authority": {
+                                    "type": "string",
+                                    "example": "BNetzA"
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "example": "gültig"
+                                  }
+                                }
+                              },
+                              "oeoTags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Job accepted and queued for async processing",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative URI to job status endpoint (/api/jobs/:jobId/status)"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Suggested polling interval in seconds"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "example": "6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ],
+                      "example": "queued"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Job started. Poll /api/jobs/:jobId/status for progress."
+                    },
+                    "statusUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status"
+                    },
+                    "resultUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Async RAG wrapper for `cernion_rag_search` with full Qdrant-style filter support. Uses job pattern for REST calls (HTTP 202 + /api/jobs polling).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [],
+                "properties": {
+                  "queryType": {
+                    "type": "string",
+                    "enum": [
+                      "semantic",
+                      "scroll",
+                      "fetch",
+                      "collection_info"
+                    ],
+                    "default": "semantic",
+                    "example": "semantic"
+                  },
+                  "query": {
+                    "type": "string",
+                    "example": "Welche Festlegungen der BNetzA gibt es zum Netzanschluss?"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 10,
+                    "example": 5
+                  },
+                  "scoreThreshold": {
+                    "type": "number",
+                    "example": 0.4
+                  },
+                  "ids": {
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "example": [
+                      "doc-123"
+                    ]
+                  },
+                  "offset": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "object"
+                      }
+                    ],
+                    "example": "next_offset_token"
+                  },
+                  "filter": {
+                    "type": "object",
+                    "example": {
+                      "must": [
+                        {
+                          "key": "metadata.docType",
+                          "match": {
+                            "value": "Festlegung"
+                          }
+                        },
+                        {
+                          "key": "metadata.authority",
+                          "match": {
+                            "value": "BNetzA"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "withPayload": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  },
+                  "withVectors": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  }
+                }
+              },
+              "examples": {
+                "semantic": {
+                  "summary": "Semantic query with explicit metadata filters",
+                  "value": {
+                    "queryType": "semantic",
+                    "query": "Welche Festlegungen der BNetzA gibt es zum Netzanschluss?",
+                    "limit": 5,
+                    "filter": {
+                      "must": [
+                        {
+                          "key": "metadata.docType",
+                          "match": {
+                            "value": "Festlegung"
+                          }
+                        },
+                        {
+                          "key": "metadata.authority",
+                          "match": {
+                            "value": "BNetzA"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                },
+                "scroll": {
+                  "summary": "Scroll first page",
+                  "value": {
+                    "queryType": "scroll",
+                    "limit": 10,
+                    "withPayload": false
+                  }
+                },
+                "fetch": {
+                  "summary": "Fetch by point IDs",
+                  "value": {
+                    "queryType": "fetch",
+                    "ids": [
+                      "doc-123",
+                      42
+                    ]
+                  }
+                },
+                "collectionInfo": {
+                  "summary": "Collection metadata",
+                  "value": {
+                    "queryType": "collection_info"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
+        ]
+      }
+    },
+    "/api/knowledge-rag/semantic": {
+      "post": {
+        "operationId": "knowledge-rag_semantic",
+        "summary": "Convenience semantic RAG endpoint",
+        "tags": [
+          "Knowledge RAG"
+        ],
+        "responses": {
+          "200": {
+            "description": "RAG query result (internal/direct calls only; external callers receive 202)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "queryType": {
+                          "type": "string",
+                          "example": "semantic"
+                        },
+                        "collection": {
+                          "type": "string",
+                          "example": "cernion_knowledge_v1"
+                        },
+                        "returned": {
+                          "type": "number",
+                          "example": 2
+                        },
+                        "results": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "pointId": {
+                                "type": "string",
+                                "example": "doc-123"
+                              },
+                              "score": {
+                                "type": "number",
+                                "example": 0.91
+                              },
+                              "referenceText_L0": {
+                                "type": "string",
+                                "example": "Die Festlegung regelt ..."
+                              },
+                              "vectorText": {
+                                "type": "string",
+                                "example": "Welche Regeln gelten für ..."
+                              },
+                              "metadata": {
+                                "type": "object",
+                                "properties": {
+                                  "title": {
+                                    "type": "string",
+                                    "example": "BK6-24-xxx"
+                                  },
+                                  "docType": {
+                                    "type": "string",
+                                    "example": "Festlegung"
+                                  },
+                                  "authority": {
+                                    "type": "string",
+                                    "example": "BNetzA"
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "example": "gültig"
+                                  }
+                                }
+                              },
+                              "oeoTags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Job accepted and queued for async processing",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative URI to job status endpoint (/api/jobs/:jobId/status)"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Suggested polling interval in seconds"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "example": "6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ],
+                      "example": "queued"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Job started. Poll /api/jobs/:jobId/status for progress."
+                    },
+                    "statusUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status"
+                    },
+                    "resultUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Shortcut endpoint that forces queryType=semantic. Supports full Qdrant-style filtering.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "example": "Welche Festlegungen der BNetzA gibt es zum Netzanschluss?"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 10,
+                    "example": 5
+                  },
+                  "scoreThreshold": {
+                    "type": "number",
+                    "example": 0.4
+                  },
+                  "filter": {
+                    "type": "object",
+                    "example": {
+                      "must": [
+                        {
+                          "key": "metadata.docType",
+                          "match": {
+                            "value": "Festlegung"
+                          }
+                        },
+                        {
+                          "key": "metadata.authority",
+                          "match": {
+                            "value": "BNetzA"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "withPayload": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  },
+                  "withVectors": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "query": "Welche Festlegungen der BNetzA gibt es zum Netzanschluss?",
+                    "limit": 5,
+                    "filter": {
+                      "must": [
+                        {
+                          "key": "metadata.docType",
+                          "match": {
+                            "value": "Festlegung"
+                          }
+                        },
+                        {
+                          "key": "metadata.authority",
+                          "match": {
+                            "value": "BNetzA"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
+        ]
+      }
+    },
+    "/api/knowledge-rag/scroll": {
+      "post": {
+        "operationId": "knowledge-rag_scroll",
+        "summary": "Convenience scroll endpoint for paginated retrieval",
+        "tags": [
+          "Knowledge RAG"
+        ],
+        "responses": {
+          "200": {
+            "description": "RAG query result (internal/direct calls only; external callers receive 202)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "queryType": {
+                          "type": "string",
+                          "example": "semantic"
+                        },
+                        "collection": {
+                          "type": "string",
+                          "example": "cernion_knowledge_v1"
+                        },
+                        "returned": {
+                          "type": "number",
+                          "example": 2
+                        },
+                        "results": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "pointId": {
+                                "type": "string",
+                                "example": "doc-123"
+                              },
+                              "score": {
+                                "type": "number",
+                                "example": 0.91
+                              },
+                              "referenceText_L0": {
+                                "type": "string",
+                                "example": "Die Festlegung regelt ..."
+                              },
+                              "vectorText": {
+                                "type": "string",
+                                "example": "Welche Regeln gelten für ..."
+                              },
+                              "metadata": {
+                                "type": "object",
+                                "properties": {
+                                  "title": {
+                                    "type": "string",
+                                    "example": "BK6-24-xxx"
+                                  },
+                                  "docType": {
+                                    "type": "string",
+                                    "example": "Festlegung"
+                                  },
+                                  "authority": {
+                                    "type": "string",
+                                    "example": "BNetzA"
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "example": "gültig"
+                                  }
+                                }
+                              },
+                              "oeoTags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Job accepted and queued for async processing",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative URI to job status endpoint (/api/jobs/:jobId/status)"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Suggested polling interval in seconds"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "example": "6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ],
+                      "example": "queued"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Job started. Poll /api/jobs/:jobId/status for progress."
+                    },
+                    "statusUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status"
+                    },
+                    "resultUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Shortcut endpoint that forces queryType=scroll.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "number",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 10,
+                    "example": 10
+                  },
+                  "offset": {
+                    "oneOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "object"
+                      }
+                    ],
+                    "example": "next_offset_token"
+                  },
+                  "filter": {
+                    "type": "object",
+                    "example": {
+                      "must": [
+                        {
+                          "key": "metadata.authority",
+                          "match": {
+                            "value": "BNetzA"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "withPayload": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  },
+                  "withVectors": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "limit": 10,
+                    "offset": "next_offset_token",
+                    "filter": {
+                      "must": [
+                        {
+                          "key": "metadata.authority",
+                          "match": {
+                            "value": "BNetzA"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
+        ]
+      }
+    },
+    "/api/knowledge-rag/fetch": {
+      "post": {
+        "operationId": "knowledge-rag_fetch",
+        "summary": "Convenience fetch endpoint for point IDs",
+        "tags": [
+          "Knowledge RAG"
+        ],
+        "responses": {
+          "200": {
+            "description": "RAG query result (internal/direct calls only; external callers receive 202)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "queryType": {
+                          "type": "string",
+                          "example": "semantic"
+                        },
+                        "collection": {
+                          "type": "string",
+                          "example": "cernion_knowledge_v1"
+                        },
+                        "returned": {
+                          "type": "number",
+                          "example": 2
+                        },
+                        "results": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "pointId": {
+                                "type": "string",
+                                "example": "doc-123"
+                              },
+                              "score": {
+                                "type": "number",
+                                "example": 0.91
+                              },
+                              "referenceText_L0": {
+                                "type": "string",
+                                "example": "Die Festlegung regelt ..."
+                              },
+                              "vectorText": {
+                                "type": "string",
+                                "example": "Welche Regeln gelten für ..."
+                              },
+                              "metadata": {
+                                "type": "object",
+                                "properties": {
+                                  "title": {
+                                    "type": "string",
+                                    "example": "BK6-24-xxx"
+                                  },
+                                  "docType": {
+                                    "type": "string",
+                                    "example": "Festlegung"
+                                  },
+                                  "authority": {
+                                    "type": "string",
+                                    "example": "BNetzA"
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "example": "gültig"
+                                  }
+                                }
+                              },
+                              "oeoTags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Job accepted and queued for async processing",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative URI to job status endpoint (/api/jobs/:jobId/status)"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Suggested polling interval in seconds"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "example": "6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ],
+                      "example": "queued"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Job started. Poll /api/jobs/:jobId/status for progress."
+                    },
+                    "statusUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status"
+                    },
+                    "resultUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Shortcut endpoint that forces queryType=fetch.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ids"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "number"
+                        }
+                      ]
+                    },
+                    "example": [
+                      "doc-123",
+                      42
+                    ]
+                  },
+                  "withPayload": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  },
+                  "withVectors": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "ids": [
+                      "doc-123",
+                      42
+                    ],
+                    "withPayload": false,
+                    "withVectors": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
+        ]
+      }
+    },
+    "/api/knowledge-rag/collection-info": {
+      "post": {
+        "operationId": "knowledge-rag_collectionInfo",
+        "summary": "Convenience endpoint for collection metadata",
+        "tags": [
+          "Knowledge RAG"
+        ],
+        "responses": {
+          "200": {
+            "description": "RAG query result (internal/direct calls only; external callers receive 202)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "queryType": {
+                          "type": "string",
+                          "example": "semantic"
+                        },
+                        "collection": {
+                          "type": "string",
+                          "example": "cernion_knowledge_v1"
+                        },
+                        "returned": {
+                          "type": "number",
+                          "example": 2
+                        },
+                        "results": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "pointId": {
+                                "type": "string",
+                                "example": "doc-123"
+                              },
+                              "score": {
+                                "type": "number",
+                                "example": 0.91
+                              },
+                              "referenceText_L0": {
+                                "type": "string",
+                                "example": "Die Festlegung regelt ..."
+                              },
+                              "vectorText": {
+                                "type": "string",
+                                "example": "Welche Regeln gelten für ..."
+                              },
+                              "metadata": {
+                                "type": "object",
+                                "properties": {
+                                  "title": {
+                                    "type": "string",
+                                    "example": "BK6-24-xxx"
+                                  },
+                                  "docType": {
+                                    "type": "string",
+                                    "example": "Festlegung"
+                                  },
+                                  "authority": {
+                                    "type": "string",
+                                    "example": "BNetzA"
+                                  },
+                                  "status": {
+                                    "type": "string",
+                                    "example": "gültig"
+                                  }
+                                }
+                              },
+                              "oeoTags": {
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Job accepted and queued for async processing",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative URI to job status endpoint (/api/jobs/:jobId/status)"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Suggested polling interval in seconds"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "example": "6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ],
+                      "example": "queued"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Job started. Poll /api/jobs/:jobId/status for progress."
+                    },
+                    "statusUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status"
+                    },
+                    "resultUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Shortcut endpoint that forces queryType=collection_info.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "withPayload": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  },
+                  "withVectors": {
+                    "type": "boolean",
+                    "default": false,
+                    "example": false
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "withPayload": false,
+                    "withVectors": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
+        ]
+      }
+    },
     "/api/grid-connection/validate": {
       "post": {
         "operationId": "grid-connection_validate",
@@ -4354,6 +6200,133 @@
             "description": "Audit report UUID"
           }
         ]
+      }
+    },
+    "/api/finance-agent/analyze": {
+      "post": {
+        "operationId": "finance-agent_analyze",
+        "summary": "Analyze finance/regulatory questions with evidence-bound synthesis",
+        "tags": [
+          "Finance Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Finance analysis with evidence list and guarded synthesis"
+          }
+        },
+        "description": "Deterministic finance workflow for VNBs: query planning → knowledge-rag retrieval → L1/L2 evidence arbitration → guarded synthesis. Default mode is rule_plus_hyde. No claim is emitted without source evidence.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "query"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "example": "Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "rule_only",
+                      "rule_plus_hyde"
+                    ],
+                    "default": "rule_plus_hyde"
+                  },
+                  "topK": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 20,
+                    "default": 6
+                  },
+                  "minScore": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "default": 0.35
+                  },
+                  "includeTrace": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
+        ]
+      }
+    },
+    "/api/finance-agent/analyses": {
+      "get": {
+        "operationId": "finance-agent_list",
+        "summary": "List finance analyses",
+        "tags": [
+          "Finance Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns persisted finance analyses (newest first)."
+      }
+    },
+    "/api/finance-agent/analyses/:id": {
+      "get": {
+        "operationId": "finance-agent_get",
+        "summary": "Get finance analysis by id",
+        "tags": [
+          "Finance Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns a full persisted finance analysis document."
+      }
+    },
+    "/api/finance-agent/prompts": {
+      "get": {
+        "operationId": "finance-agent_prompts",
+        "summary": "Get internal finance prompt templates",
+        "tags": [
+          "Finance Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns internal system prompts used in query planning and synthesis."
       }
     },
     "/api/companies": {
@@ -12550,5 +14523,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.39.0"
+  "x-version": "0.40.1"
 }

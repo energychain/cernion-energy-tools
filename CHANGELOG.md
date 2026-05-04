@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.40.1] — OpenAPI Category Grouping Fixes
+
+### Fixed
+- **OpenAPI/Swagger category endpoint visibility** in `services/api.service.js`:
+  - Runtime `api.openapi` generation now normalizes operation tags to canonical category tags, so endpoints are grouped under configured tags instead of raw service names.
+  - Fixed affected categories:
+    - `Knowledge RAG` (was tagged as `knowledge-rag`)
+    - `Finance Agent` (was tagged as `finance-agent`)
+    - `CYA Agent` (was tagged as `cya`)
+    - `Cookbook` (was tagged as `cookbook`)
+    - `Dashboard API` (was tagged as `dashboard-api`)
+    - `MaStR Data Quality` (was tagged as `mastr-quality`)
+    - `Datapoints` (was tagged as `datapoint`)
+
+- **OSM Geo category coverage**:
+  - Added explicit `/api/osm-geo/*` aliases in `services/api.service.js` to ensure OSM Geo endpoints are consistently exported and grouped.
+
+### Changed
+- **OpenAPI generation robustness**:
+  - `api.openapi` now prefers local service schema action metadata (including `openapi.tags`) and falls back to registry metadata when needed.
+
+### Tests
+- `tests/api.service.test.js` extended with regressions for:
+  - Presence of CYA/Cookbook/Dashboard/MaStR Quality paths in generated OpenAPI.
+  - OSM Geo explicit alias mapping.
+  - `Datapoints` canonical tag mapping.
+
 ## [0.40.0] — Finance Agent Service
 
 ### Added
