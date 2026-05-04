@@ -20,7 +20,7 @@ const {
 const { A2A_NAMESPACE } = require('../src/cya-a2a-protocol');
 
 const OPENAPI_TAG = 'Finance Agent';
-const PIPELINE_VERSION = '0.40.3';
+const PIPELINE_VERSION = '0.40.4';
 const FINANCE_OEO_CLASS = ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'];
 const MODE_VALUES = ['rule_only', 'rule_plus_hyde'];
 const FINANCE_MEMORY_NAMESPACE = process.env.FINANCE_AGENT_MEMORY_NAMESPACE || 'finance_agent_memory';
@@ -32,8 +32,13 @@ function isServiceNotFound(error) {
 const INTERNAL_PROMPTS = {
   queryPlanner: `You are the Finance Query Planner for German distribution grid regulation.
 Goal: convert a free-text finance question into retrieval intents for knowledge-rag.
-Priorities: OEO tags (CAPEX/OPEX/TOTEX), legal references (§ EnWG/ARegV/StromNEV), regulatory period context.
-Output constraints: deterministic JSON, no invented tags, no invented legal references.`,
+Priorities: OEO concepts and graph anchors (ceo:CapitalExpenditure, ceo:OperatingExpenditure, ceo:TotalExpenditure, ceo:RegulatoryPeriod), legal references (§ EnWG/ARegV/StromNEV), and CYA target layers.
+Rule: retrieval must be planned as OEO-aware graph queries + semantic lookup, never semantic-only.
+Output constraints: deterministic JSON, no invented tags, no invented legal references, explicit layer filters for knowledge-rag.`,
+  queryRefiner: `You are the Finance Query Refiner.
+If round-1 retrieval has no valid L1_Rule evidence, refine the query with broader but OEO-consistent concepts.
+Keep legal anchors and target layers from CYA profile.
+Max 2 refinement rounds. Preserve explicit distinction between facts and hypotheses.`,
   evidenceArbiter: `You are the Evidence Arbiter.
 Use L1_Rule payloads as binding evidence. Use L2_HyDE only as explanatory context.
 If L1_Rule and L2_HyDE conflict, keep L1_Rule and flag conflict.
@@ -41,7 +46,8 @@ Never produce a claim without an evidence reference.`,
   synthesis: `You are the Regulatory Finance Synthesizer.
 Generate concise conclusions for VNB decision-makers.
 Allowed claims: only those traceable to retrieved evidence snippets.
-If evidence is insufficient, return NEEDS_CLARIFICATION with explicit missing points.`,
+If evidence is insufficient and allowHypotheticals=true, return HYPOTHETICAL_SCENARIO and list ontological assumptions explicitly.
+Always separate L1 facts from hypothetical assumptions in output.`,
 };
 
 module.exports = {
@@ -74,15 +80,19 @@ module.exports = {
       params: {
         query: { type: 'string', min: 8, trim: true },
         mode: { type: 'enum', values: MODE_VALUES, optional: true, default: 'rule_plus_hyde' },
+        profileId: { type: 'string', optional: true, trim: true, max: 120 },
         topK: { type: 'number', optional: true, default: 6, min: 2, max: 20, convert: true },
         minScore: { type: 'number', optional: true, default: 0.35, min: 0, max: 1, convert: true },
         includeTrace: { type: 'boolean', optional: true, default: false },
         sessionId: { type: 'string', optional: true, trim: true, max: 120 },
+        datapointContext: { type: 'array', items: 'string', optional: true, default: [] },
         includeMemoryContext: { type: 'boolean', optional: true, default: true },
         includeA2AContext: { type: 'boolean', optional: true, default: true },
         includeDatapointsContext: { type: 'boolean', optional: true, default: true },
         contextLimit: { type: 'number', optional: true, default: 5, min: 1, max: 20, convert: true },
         persistMemory: { type: 'boolean', optional: true, default: true },
+        persistDatapoints: { type: 'boolean', optional: true, default: false },
+        allowHypotheticals: { type: 'boolean', optional: true, default: false },
         collection: { type: 'string', optional: true, default: 'cernion_knowledge_v1' },
       },
       openapi: {
@@ -111,6 +121,11 @@ module.exports = {
                     enum: MODE_VALUES,
                     default: 'rule_plus_hyde',
                   },
+                  profileId: {
+                    type: 'string',
+                    description: 'Optional CYA profile id to inject target layer awareness into retrieval planning.',
+                    example: 'stadtwerk_regulierung',
+                  },
                   topK: { type: 'integer', minimum: 2, maximum: 20, default: 6 },
                   minScore: { type: 'number', minimum: 0, maximum: 1, default: 0.35 },
                   includeTrace: { type: 'boolean', default: false },
@@ -119,11 +134,28 @@ module.exports = {
                     description: 'Optional session identifier for A2A/memory-aware finance analysis.',
                     example: 'finance-session-2026-05-04',
                   },
+                  datapointContext: {
+                    type: 'array',
+                    description: 'Optional list of datapoint names to preload as L1 working memory facts.',
+                    items: { type: 'string' },
+                    default: [],
+                    example: ['finance-capex-baseline-2025', 'finance-interest-rate-history'],
+                  },
                   includeMemoryContext: { type: 'boolean', default: true },
                   includeA2AContext: { type: 'boolean', default: true },
                   includeDatapointsContext: { type: 'boolean', default: true },
                   contextLimit: { type: 'integer', minimum: 1, maximum: 20, default: 5 },
                   persistMemory: { type: 'boolean', default: true },
+                  persistDatapoints: {
+                    type: 'boolean',
+                    default: false,
+                    description: 'Persist derived finance scenario output as datapoint when calculations are performed.',
+                  },
+                  allowHypotheticals: {
+                    type: 'boolean',
+                    default: false,
+                    description: 'Allow hypothetical scenario synthesis if no L1 evidence is found after multi-hop retrieval.',
+                  },
                   collection: {
                     type: 'string',
                     default: 'cernion_knowledge_v1',
@@ -137,15 +169,19 @@ module.exports = {
                     query:
                       'Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?',
                     mode: 'rule_plus_hyde',
+                    profileId: 'stadtwerk_regulierung',
                     topK: 6,
                     minScore: 0.35,
                     includeTrace: false,
                     sessionId: 'finance-session-2026-05-04',
+                    datapointContext: ['finance-capex-baseline-2025'],
                     includeMemoryContext: true,
                     includeA2AContext: true,
                     includeDatapointsContext: true,
                     contextLimit: 5,
                     persistMemory: true,
+                    persistDatapoints: false,
+                    allowHypotheticals: false,
                     collection: 'cernion_knowledge_v1',
                   },
                 },
@@ -183,11 +219,17 @@ module.exports = {
             inputParams: {
               topK: ctx.params.topK,
               minScore: ctx.params.minScore,
+              profileId: ctx.params.profileId || null,
+              datapointContext: Array.isArray(ctx.params.datapointContext)
+                ? ctx.params.datapointContext.slice(0, 20)
+                : [],
               includeTrace: !!ctx.params.includeTrace,
               includeMemoryContext: !!ctx.params.includeMemoryContext,
               includeA2AContext: !!ctx.params.includeA2AContext,
               includeDatapointsContext: !!ctx.params.includeDatapointsContext,
               contextLimit: ctx.params.contextLimit,
+              persistDatapoints: !!ctx.params.persistDatapoints,
+              allowHypotheticals: !!ctx.params.allowHypotheticals,
             },
             pipelineVersion: PIPELINE_VERSION,
             generatedAt: new Date().toISOString(),
@@ -407,6 +449,11 @@ module.exports = {
       const minScore = params.minScore ?? 0.35;
       const query = String(params.query || '').trim();
       const sessionId = String(params.sessionId || '').trim() || null;
+      const profileId = String(params.profileId || '').trim() || null;
+      const datapointContext = Array.isArray(params.datapointContext)
+        ? params.datapointContext.filter((v) => typeof v === 'string' && v.trim()).slice(0, 20)
+        : [];
+      const allowHypotheticals = params.allowHypotheticals === true;
       const collection = params.collection || 'cernion_knowledge_v1';
 
       if (!query) {
@@ -421,7 +468,26 @@ module.exports = {
         contextLimit: params.contextLimit || 5,
       });
 
-      const plan = this.buildQueryPlan(query, { mode, topK, minScore }, externalContext);
+      const cyaProfile = profileId ? await this.loadCyaProfile(ctx, profileId) : null;
+      if (profileId) {
+        steps.push({
+          step: 1.25,
+          name: 'cya-profile',
+          status: cyaProfile ? 'ok' : 'not_found',
+          profileId,
+          targetLayers: this.extractTargetLayers(cyaProfile),
+        });
+      }
+
+      const requestedDatapoints = await this.loadRequestedDatapoints(ctx, datapointContext);
+      const datapointFacts = this.buildDatapointEvidence(requestedDatapoints.records);
+
+      const plan = this.buildQueryPlan(
+        query,
+        { mode, topK, minScore },
+        externalContext,
+        cyaProfile
+      );
       findings.push(
         createFinding(
           1,
@@ -447,7 +513,20 @@ module.exports = {
         });
       }
 
-      const retrieval = await this.retrieveEvidence(ctx, plan, query, collection);
+      if (requestedDatapoints.missing.length > 0) {
+        steps.push({
+          step: 1.75,
+          name: 'datapoint-context',
+          status: 'partial',
+          loaded: requestedDatapoints.records.length,
+          missing: requestedDatapoints.missing,
+        });
+      }
+
+      const retrieval = await this.retrieveEvidence(ctx, plan, query, collection, {
+        datapointFacts,
+        allowHypotheticals,
+      });
       findings.push(
         createFinding(
           2,
@@ -455,8 +534,13 @@ module.exports = {
           FA_EVIDENCE_RETRIEVED,
           'info',
           'Evidence retrieved',
-          `Retrieved ${retrieval.totalRaw} raw hits and retained ${retrieval.evidence.length} unique evidence items.`,
-          { rawHits: retrieval.totalRaw, kept: retrieval.evidence.length }
+          `Retrieved ${retrieval.totalRaw} raw hits and retained ${retrieval.evidence.length} unique evidence items over ${retrieval.rounds} round(s).`,
+          {
+            rawHits: retrieval.totalRaw,
+            kept: retrieval.evidence.length,
+            rounds: retrieval.rounds,
+            l1Evidence: retrieval.l1Evidence,
+          }
         )
       );
       steps.push({
@@ -465,6 +549,8 @@ module.exports = {
         status: 'ok',
         rawHits: retrieval.totalRaw,
         evidenceKept: retrieval.evidence.length,
+        rounds: retrieval.rounds,
+        l1Evidence: retrieval.l1Evidence,
       });
 
       const arbitration = this.arbitrateEvidence(retrieval.evidence, mode);
@@ -523,7 +609,11 @@ module.exports = {
         );
       }
 
-      const synthesis = this.synthesize(query, arbitration, legalReferences, mode);
+      const synthesis = this.synthesize(query, arbitration, legalReferences, mode, {
+        allowHypotheticals,
+        datapointFacts,
+        oeoTags: this.collectOeoTags(arbitration.selectedEvidence),
+      });
       if (synthesis.status === 'needs_clarification') {
         findings.push(
           createFinding(
@@ -534,6 +624,21 @@ module.exports = {
             'Clarification required',
             synthesis.summary,
             { minRequiredRuleEvidence: 2, ruleEvidence: arbitration.ruleEvidence.length }
+          )
+        );
+      } else if (synthesis.status === 'hypothetical_scenario') {
+        findings.push(
+          createFinding(
+            5,
+            'synthesis',
+            FA_HYDE_CONTEXT_USED,
+            'warning',
+            'Hypothetical scenario generated',
+            'No sufficient L1 evidence available. Response generated as hypothetical scenario with explicit assumptions.',
+            {
+              assumptions: synthesis.assumptions.length,
+              hydeEvidence: arbitration.hydeEvidence.length,
+            }
           )
         );
       } else {
@@ -570,6 +675,25 @@ module.exports = {
       const status = synthesis.status;
       const oeoTags = this.collectOeoTags(arbitration.selectedEvidence);
 
+      let persistedDatapoint = null;
+      if (params.persistDatapoints === true) {
+        persistedDatapoint = await this.persistDerivedDatapoint(ctx, {
+          query,
+          profileId,
+          sessionId,
+          status,
+          confidence,
+          summary: synthesis.summary,
+          answer: synthesis.answer,
+          legalReferences,
+          oeoTags,
+          claims: synthesis.claims,
+          assumptions: synthesis.assumptions,
+          sourceDatapoints: datapointContext,
+          mode,
+        });
+      }
+
       const response = {
         mode,
         status,
@@ -577,6 +701,7 @@ module.exports = {
         summary: synthesis.summary,
         answer: synthesis.answer,
         claims: synthesis.claims,
+        assumptions: synthesis.assumptions,
         legalReferences,
         oeoTags,
         evidence: arbitration.selectedEvidence,
@@ -589,13 +714,19 @@ module.exports = {
             intents: plan.intents,
             totalRaw: retrieval.totalRaw,
             evidenceKept: arbitration.selectedEvidence.length,
+            rounds: retrieval.rounds,
+            usedRefinement: retrieval.usedRefinement,
           },
           context: {
             sessionId,
+            profileId,
+            profileLoaded: !!cyaProfile,
             memoryLoaded: !!externalContext.memory,
             a2aMessages: externalContext.a2aMessages.length,
             datapoints: externalContext.datapoints.length,
+            datapointContextLoaded: datapointFacts.length,
           },
+          persistedDatapoint,
         },
       };
 
@@ -610,11 +741,15 @@ module.exports = {
       return response;
     },
 
-    buildQueryPlan(query, options, externalContext = {}) {
+    buildQueryPlan(query, options, externalContext = {}, cyaProfile = null) {
       const lowered = query.toLowerCase();
       const intents = [];
+      const targetLayers = this.extractTargetLayers(cyaProfile);
+      const layerFilter = this.buildLayerFilter(targetLayers);
+      const profileHints = this.buildProfileHints(cyaProfile);
 
       const pushIntent = (name, semanticQuery, filter = {}) => {
+        const mergedFilter = this.mergeFilters(layerFilter, filter);
         intents.push({
           name,
           queryType: 'semantic',
@@ -623,7 +758,7 @@ module.exports = {
           scoreThreshold: options.minScore,
           withPayload: true,
           withVectors: false,
-          filter,
+          filter: mergedFilter,
         });
       };
 
@@ -662,6 +797,27 @@ module.exports = {
         should: [{ key: 'referenceText_L0', match: { text: '§' } }],
       });
 
+      if (financeTags.length > 0) {
+        pushIntent(
+          'oeo-graph-anchor',
+          `OEO Graph Query für ${financeTags.join(', ')} mit Fokus auf regulatorische Kausalbeziehungen`,
+          {
+            should: [
+              {
+                key: 'oeoTags',
+                match: {
+                  any: Array.from(new Set([...financeTags, 'ceo:RegulatoryPeriod'])),
+                },
+              },
+            ],
+          }
+        );
+      }
+
+      for (const profileHint of profileHints) {
+        pushIntent('cya-profile-layer', profileHint);
+      }
+
       for (const contextHint of this.buildContextHints(externalContext)) {
         pushIntent('session-context', contextHint);
       }
@@ -670,8 +826,93 @@ module.exports = {
         query,
         mode: options.mode,
         financeTags,
+        targetLayers,
         intents,
       };
+    },
+
+    mergeFilters(baseFilter = {}, extraFilter = {}) {
+      const merged = {};
+      const keys = ['must', 'should', 'must_not'];
+
+      for (const key of keys) {
+        const fromBase = Array.isArray(baseFilter?.[key]) ? baseFilter[key] : [];
+        const fromExtra = Array.isArray(extraFilter?.[key]) ? extraFilter[key] : [];
+        if (fromBase.length || fromExtra.length) {
+          merged[key] = [...fromBase, ...fromExtra];
+        }
+      }
+
+      return merged;
+    },
+
+    buildLayerFilter(targetLayers = []) {
+      if (!Array.isArray(targetLayers) || targetLayers.length === 0) {
+        return {};
+      }
+
+      const normalized = targetLayers.map((l) => String(l || '').toLowerCase());
+      const levelValues = [];
+      if (normalized.some((l) => /(l1|rule|fakt|fact)/.test(l))) {
+        levelValues.push('L1_Rule');
+      }
+      if (normalized.some((l) => /(l2|hyde|hypoth|scenario|szenario)/.test(l))) {
+        levelValues.push('L2_HyDE');
+      }
+
+      if (levelValues.length === 0) {
+        return {};
+      }
+
+      return {
+        should: [
+          { key: 'metadata.cognitiveLevel', match: { any: levelValues } },
+          { key: 'metadata.extractionLevel', match: { any: levelValues } },
+        ],
+      };
+    },
+
+    buildProfileHints(cyaProfile) {
+      const profile = cyaProfile?.profile || cyaProfile || null;
+      if (!profile) return [];
+
+      const hints = [];
+      const goals = Array.isArray(profile.strategic_goals) ? profile.strategic_goals : [];
+      if (goals.length > 0) {
+        hints.push(`CYA-Zielsetzung: ${goals.slice(0, 3).join('; ')}`);
+      }
+
+      const targetLayers = this.extractTargetLayers(cyaProfile);
+      if (targetLayers.length > 0) {
+        hints.push(`CYA targetLayers: ${targetLayers.join(', ')} (verpflichtender Retrieval-Fokus)`);
+      }
+
+      const actor = profile.actor || {};
+      if (actor.role) {
+        hints.push(`Stakeholder-Rolle: ${actor.role}`);
+      }
+
+      return hints.slice(0, 3);
+    },
+
+    extractTargetLayers(cyaProfile) {
+      const profile = cyaProfile?.profile || cyaProfile || null;
+      if (!profile || typeof profile !== 'object') return [];
+
+      const candidateArrays = [
+        profile.targetLayers,
+        profile.target_layers,
+        profile.layers,
+        profile.layerTargets,
+      ];
+
+      for (const arr of candidateArrays) {
+        if (Array.isArray(arr)) {
+          return arr.map((v) => String(v || '').trim()).filter(Boolean).slice(0, 10);
+        }
+      }
+
+      return [];
     },
 
     buildContextHints(externalContext) {
@@ -727,6 +968,118 @@ module.exports = {
         : [];
 
       return { memory, a2aMessages, datapoints };
+    },
+
+    async loadCyaProfile(ctx, profileId) {
+      if (!profileId) return null;
+
+      try {
+        const response = await ctx.call(
+          'cya.getProfile',
+          {
+            id: profileId,
+            profile_id: profileId,
+          },
+          { meta: ctx.meta }
+        );
+        return response?.profile ? response : null;
+      } catch (error) {
+        if (
+          isServiceNotFound(error) ||
+          error?.status === 404 ||
+          error?.code === 404 ||
+          error?.type === 'NOT_FOUND'
+        ) {
+          this.logger.warn(`[finance-agent] CYA profile '${profileId}' not found or unavailable`);
+          return null;
+        }
+        throw error;
+      }
+    },
+
+    async loadRequestedDatapoints(ctx, datapointContext = []) {
+      const names = Array.isArray(datapointContext)
+        ? datapointContext.map((v) => String(v || '').trim()).filter(Boolean)
+        : [];
+
+      const records = [];
+      const missing = [];
+
+      for (const name of names) {
+        try {
+          const doc = await ctx.call('datapoint.get', { name }, { meta: ctx.meta });
+          records.push(doc);
+        } catch (error) {
+          if (error?.status === 404 || error?.code === 404 || error?.type === 'NOT_FOUND') {
+            missing.push(name);
+            continue;
+          }
+          if (isServiceNotFound(error)) {
+            this.logger.warn('[finance-agent] datapoint service unavailable for datapointContext');
+            return { records: [], missing: names };
+          }
+          throw error;
+        }
+      }
+
+      return { records, missing };
+    },
+
+    buildDatapointEvidence(datapointDocs = []) {
+      const now = new Date().toISOString();
+      const evidence = [];
+
+      for (const doc of datapointDocs) {
+        const pointId = doc?._id || doc?.name || null;
+        const oeoTags = this.extractDatapointOeoTags(doc);
+        const value = doc?.data?.value ?? doc?.value ?? doc?.lastRun?.summary ?? null;
+        const text =
+          `Datapoint ${doc?.name || 'unknown'} als L1-Fakt aus Working Memory. ` +
+          `Wert: ${this.safeStringify(value)}.`;
+
+        evidence.push({
+          pointId,
+          intent: 'datapoint-context',
+          score: 1,
+          adjustedScore: 1.08,
+          level: 'L1_Rule',
+          text,
+          metadata: {
+            source: 'datapoint',
+            provenance: doc?.data?.provenance || 'finance-agent',
+            updatedAt: doc?.updatedAt || doc?.lastRun?.timestamp || doc?.createdAt || now,
+            datapointName: doc?.name || null,
+          },
+          oeoTags,
+        });
+      }
+
+      return evidence;
+    },
+
+    extractDatapointOeoTags(doc) {
+      const tags = new Set();
+      for (const src of [doc?.data?.oeoTags, doc?.oeoTags, doc?.tags]) {
+        if (!Array.isArray(src)) continue;
+        for (const tag of src) {
+          const value = String(tag || '').trim();
+          if (!value) continue;
+          if (/^ceo:|^oeo:|OEO_/i.test(value)) {
+            tags.add(value);
+          }
+        }
+      }
+      return Array.from(tags).slice(0, 20);
+    },
+
+    safeStringify(value) {
+      try {
+        const raw = typeof value === 'string' ? value : JSON.stringify(value);
+        if (!raw) return 'n/a';
+        return raw.length > 240 ? `${raw.slice(0, 237)}...` : raw;
+      } catch (_error) {
+        return 'n/a';
+      }
     },
 
     async upsertSessionMemory(ctx, sessionId, memoryInput) {
@@ -815,40 +1168,139 @@ module.exports = {
       }
     },
 
-    async retrieveEvidence(ctx, plan, originalQuery, collectionName = 'cernion_knowledge_v1') {
-      const evidence = [];
+    async retrieveEvidence(
+      ctx,
+      plan,
+      originalQuery,
+      collectionName = 'cernion_knowledge_v1',
+      options = {}
+    ) {
+      const evidence = Array.isArray(options.datapointFacts) ? [...options.datapointFacts] : [];
       let totalRaw = 0;
+      let rounds = 1;
+      let usedRefinement = false;
+      let currentPlan = { ...plan, intents: [...(plan.intents || [])] };
 
-      for (const intent of plan.intents) {
-        const response = await ctx.call(
-          'knowledge-rag.query',
-          {
-            ...intent,
-            query: intent.query || originalQuery,
-            collection: collectionName,
-          },
-          { meta: ctx.meta }
-        );
+      while (rounds <= 3) {
+        for (const intent of currentPlan.intents || []) {
+          const response = await ctx.call(
+            'knowledge-rag.query',
+            {
+              ...intent,
+              query: intent.query || originalQuery,
+              collection: collectionName,
+            },
+            { meta: ctx.meta }
+          );
 
-        const rows = response?.data?.results || response?.results || [];
-        totalRaw += rows.length;
+          const rows = response?.data?.results || response?.results || [];
+          totalRaw += rows.length;
 
-        for (const row of rows) {
-          evidence.push(this.normalizeEvidenceRow(row, intent.name));
+          for (const row of rows) {
+            evidence.push(this.normalizeEvidenceRow(row, intent.name));
+          }
         }
+
+        const deduped = this.dedupeEvidence(evidence);
+        const l1Evidence = deduped.filter((row) => row.level === 'L1_Rule').length;
+        const canRefine = l1Evidence === 0 && rounds < 3;
+        if (!canRefine) {
+          return {
+            totalRaw,
+            evidence: deduped.slice(0, 20),
+            rounds,
+            usedRefinement,
+            l1Evidence,
+          };
+        }
+
+        const refined = this.refineQueryPlan(originalQuery, currentPlan, deduped, rounds);
+        if (!refined || !Array.isArray(refined.intents) || refined.intents.length === 0) {
+          return {
+            totalRaw,
+            evidence: deduped.slice(0, 20),
+            rounds,
+            usedRefinement,
+            l1Evidence,
+          };
+        }
+
+        currentPlan = refined;
+        rounds += 1;
+        usedRefinement = true;
       }
 
+      const deduped = this.dedupeEvidence(evidence);
+      return {
+        totalRaw,
+        evidence: deduped.slice(0, 20),
+        rounds,
+        usedRefinement,
+        l1Evidence: deduped.filter((row) => row.level === 'L1_Rule').length,
+      };
+    },
+
+    dedupeEvidence(evidence = []) {
       const deduped = [];
       const seen = new Set();
       for (const row of evidence) {
-        const key = row.pointId || `${row.intent}:${row.text.slice(0, 120)}`;
+        const key = row.pointId || `${row.intent}:${String(row.text || '').slice(0, 120)}`;
         if (seen.has(key)) continue;
         seen.add(key);
         deduped.push(row);
       }
-
       deduped.sort((a, b) => b.adjustedScore - a.adjustedScore);
-      return { totalRaw, evidence: deduped.slice(0, 20) };
+      return deduped;
+    },
+
+    refineQueryPlan(originalQuery, plan, evidence = [], round = 1) {
+      const existingTags = new Set((plan.financeTags || []).map((t) => String(t)));
+      for (const row of evidence.slice(0, 10)) {
+        for (const tag of row.oeoTags || []) {
+          if (/^ceo:|^oeo:/i.test(String(tag))) {
+            existingTags.add(String(tag));
+          }
+        }
+      }
+
+      const baseTags = Array.from(existingTags);
+      if (baseTags.length === 0) {
+        baseTags.push(
+          'ceo:CapitalExpenditure',
+          'ceo:OperatingExpenditure',
+          'ceo:TotalExpenditure',
+          'ceo:RegulatoryPeriod'
+        );
+      }
+
+      const refinedQuery =
+        round === 1
+          ? `${originalQuery} OEO Graph Fokus ${baseTags.join(', ')} regulatorische Kostenbeziehung`
+          : `${originalQuery} abstrakter OEO-Fokus regulatorische Periode, Kostenallokation, Rechtsbezug`;
+
+      const refinedIntent = {
+        name: `refined-round-${round + 1}`,
+        queryType: 'semantic',
+        query: refinedQuery,
+        limit: plan.intents?.[0]?.limit || 6,
+        scoreThreshold: plan.intents?.[0]?.scoreThreshold ?? 0.35,
+        withPayload: true,
+        withVectors: false,
+        filter: this.mergeFilters(this.buildLayerFilter(plan.targetLayers || []), {
+          should: [
+            {
+              key: 'oeoTags',
+              match: { any: Array.from(new Set([...baseTags, 'ceo:RegulatoryPeriod'])) },
+            },
+            { key: 'referenceText_L0', match: { text: '§' } },
+          ],
+        }),
+      };
+
+      return {
+        ...plan,
+        intents: [refinedIntent],
+      };
     },
 
     normalizeEvidenceRow(row, intentName) {
@@ -866,8 +1318,33 @@ module.exports = {
         level,
         text,
         metadata,
-        oeoTags: Array.isArray(row?.oeoTags) ? row.oeoTags : [],
+        oeoTags: this.extractOeoTagsFromRow(row),
       };
+    },
+
+    extractOeoTagsFromRow(row) {
+      const metadata = row?.metadata || {};
+      const tags = new Set();
+      const sources = [
+        row?.oeoTags,
+        metadata.oeoTags,
+        metadata.tags,
+        metadata.ontologyTags,
+        metadata.oeoConcepts,
+      ];
+
+      for (const src of sources) {
+        if (!Array.isArray(src)) continue;
+        for (const raw of src) {
+          const tag = String(raw || '').trim();
+          if (!tag) continue;
+          if (/^ceo:|^oeo:|OEO_/i.test(tag)) {
+            tags.add(tag);
+          }
+        }
+      }
+
+      return Array.from(tags).slice(0, 20);
     },
 
     detectCognitiveLevel(row, text) {
@@ -966,11 +1443,54 @@ module.exports = {
       return Array.from(tags).slice(0, 20);
     },
 
-    synthesize(query, arbitration, legalReferences, mode) {
+    synthesize(query, arbitration, legalReferences, mode, options = {}) {
       const ruleCount = arbitration.ruleEvidence.length;
       const selected = arbitration.selectedEvidence;
+      const allowHypotheticals = options.allowHypotheticals === true;
+      const datapointFacts = Array.isArray(options.datapointFacts) ? options.datapointFacts : [];
+      const oeoTags = Array.isArray(options.oeoTags) ? options.oeoTags : [];
 
       if (ruleCount < 2 || selected.length < 3 || legalReferences.length === 0) {
+        if (allowHypotheticals && (arbitration.hydeEvidence.length > 0 || datapointFacts.length > 0)) {
+          const assumptions = [];
+          for (const tag of oeoTags.slice(0, 4)) {
+            assumptions.push(
+              `Unter der Annahme des OEO-Konzepts ${tag} auf Basis historischer Evidenz/Datapoints.`
+            );
+          }
+          if (assumptions.length === 0) {
+            assumptions.push(
+              'Unter der Annahme regulatorischer Kostenbeziehungen (CAPEX/OPEX/TOTEX) auf L2/Historik-Basis.'
+            );
+          }
+
+          const hypotheticalEvidence = [
+            ...arbitration.hydeEvidence.slice(0, 2),
+            ...datapointFacts.slice(0, 2),
+          ];
+
+          const claims = hypotheticalEvidence.map((e, idx) => ({
+            id: `H-${idx + 1}`,
+            statement: this.toClaim(e.text),
+            evidencePointId: e.pointId,
+            level: e.level,
+          }));
+
+          const summary =
+            'Hypothetisches Szenario: Keine hinreichende L1-Regelbasis gefunden; Ergebnis basiert auf L2-/Historik-Evidenz mit expliziten Annahmen.';
+          const answer =
+            `${summary} ${assumptions.slice(0, 2).join(' ')} ` +
+            'Diese Einordnung ist nicht als verbindliche Rechtsauskunft zu interpretieren.';
+
+          return {
+            status: 'hypothetical_scenario',
+            summary,
+            answer,
+            claims,
+            assumptions,
+          };
+        }
+
         return {
           status: 'needs_clarification',
           summary:
@@ -978,6 +1498,7 @@ module.exports = {
           answer:
             'Für eine belastbare Einordnung fehlen hinreichende L1-Regeln oder explizite Rechtsreferenzen in den Treffern.',
           claims: [],
+          assumptions: [],
         };
       }
 
@@ -997,7 +1518,63 @@ module.exports = {
         `${summary} Rechtsanker: ${legalReferences.slice(0, 4).join('; ')}. ` +
         'Bei Zielkonflikten zwischen Regel- und Hypothesenebene wurde strikt die Regel-Ebene priorisiert.';
 
-      return { status: 'ok', summary, answer, claims };
+      return { status: 'ok', summary, answer, claims, assumptions: [] };
+    },
+
+    async persistDerivedDatapoint(ctx, input) {
+      const shouldPersist =
+        /delta|differenz|vergleich|what-if|szenario|capex|opex|totex/i.test(input.query || '') ||
+        input.status === 'hypothetical_scenario';
+
+      if (!shouldPersist) {
+        return { persisted: false, reason: 'no_calculation_signal' };
+      }
+
+      const now = new Date();
+      const datePart = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const name = `fa-derived-${datePart}-${crypto.randomUUID().slice(0, 8)}`;
+      const value = {
+        status: input.status,
+        confidence: input.confidence,
+        summary: input.summary,
+        answer: input.answer,
+        claims: input.claims,
+        assumptions: input.assumptions,
+        legalReferences: input.legalReferences,
+        generatedAt: now.toISOString(),
+      };
+
+      const payload = {
+        name,
+        description: 'Derived finance-agent scenario datapoint (A²MDM working memory output).',
+        value,
+        tags: ['finance', 'a2mdm', 'derived', input.status],
+        oeoTags: input.oeoTags,
+        provenance: 'finance-agent',
+        metadata: {
+          mode: input.mode,
+          profileId: input.profileId,
+          sessionId: input.sessionId,
+          sourceDatapoints: input.sourceDatapoints,
+        },
+      };
+
+      try {
+        const created = await ctx.call('datapoint.create', payload, { meta: ctx.meta });
+        return {
+          persisted: true,
+          name: created?.name || name,
+        };
+      } catch (error) {
+        if (isServiceNotFound(error) || error?.type === 'SERVICE_NOT_AVAILABLE') {
+          this.logger.warn('[finance-agent] datapoint.create unavailable, skipping derived datapoint persistence');
+          return { persisted: false, reason: 'service_unavailable' };
+        }
+        this.logger.warn(
+          `[finance-agent] derived datapoint persistence failed: ${error?.message || 'unknown error'}`
+        );
+        return { persisted: false, reason: 'persistence_failed' };
+      }
     },
 
     toClaim(text) {

@@ -9,9 +9,15 @@ process.env.FINANCE_AGENT_DB_PATH = path.join(os.tmpdir(), `cernion-fa-test-${Da
 describe('finance-agent service', () => {
   let broker;
   let objectStoreDocs;
+  let ragCalls;
+  let createdDatapoints;
+  let forceNoRuleEvidence;
 
   beforeAll(async () => {
     objectStoreDocs = new Map();
+    ragCalls = [];
+    createdDatapoints = [];
+    forceNoRuleEvidence = false;
     broker = new ServiceBroker({ logger: false });
 
     broker.createService(require('../services/finance-agent.service'));
@@ -22,6 +28,31 @@ describe('finance-agent service', () => {
         query: {
           async handler(ctx) {
             const q = String(ctx.params.query || '');
+            ragCalls.push({
+              query: q,
+              filter: ctx.params.filter,
+              collection: ctx.params.collection,
+            });
+
+            if (forceNoRuleEvidence) {
+              return {
+                success: true,
+                data: {
+                  results: [
+                    {
+                      pointId: 'fa-doc-h1',
+                      score: 0.62,
+                      referenceText_L0:
+                        'L2_HyDE: Angenommen, CAPEX-Gewichtung steigt in der Regulierungsperiode.',
+                      metadata: {
+                        extractionLevel: 'L2_HyDE',
+                      },
+                      oeoTags: ['ceo:CapitalExpenditure'],
+                    },
+                  ],
+                },
+              };
+            }
 
             if (q.includes('Regulatorische CAPEX-Regeln') || q.includes('§21a EnWG')) {
               return {
@@ -66,6 +97,32 @@ describe('finance-agent service', () => {
             }
 
             return { success: true, data: { results: [] } };
+          },
+        },
+      },
+    });
+
+    broker.createService({
+      name: 'cya',
+      actions: {
+        getProfile: {
+          async handler(ctx) {
+            const profileId = ctx.params.profile_id || ctx.params.id;
+            if (profileId !== 'stadtwerk_regulierung') {
+              const error = new Error('not found');
+              error.status = 404;
+              error.type = 'NOT_FOUND';
+              throw error;
+            }
+            return {
+              success: true,
+              profile_id: profileId,
+              profile: {
+                actor: { role: 'grid_operator' },
+                strategic_goals: ['Rechtssicherheit', 'Investitionssicherheit'],
+                targetLayers: ['L1_Rule'],
+              },
+            };
           },
         },
       },
@@ -134,6 +191,31 @@ describe('finance-agent service', () => {
                 },
               ],
             };
+          },
+        },
+        get: {
+          async handler(ctx) {
+            if (ctx.params.name === 'finance-capex-baseline-2025') {
+              return {
+                name: 'finance-capex-baseline-2025',
+                tags: ['finance', 'ceo:CapitalExpenditure'],
+                data: {
+                  value: { capex: 1200000, year: 2025 },
+                  oeoTags: ['ceo:CapitalExpenditure', 'ceo:RegulatoryPeriod'],
+                  provenance: 'finance-agent',
+                },
+              };
+            }
+            const error = new Error('not found');
+            error.status = 404;
+            error.type = 'NOT_FOUND';
+            throw error;
+          },
+        },
+        create: {
+          async handler(ctx) {
+            createdDatapoints.push(ctx.params);
+            return { success: true, name: ctx.params.name, _rev: '1-test' };
           },
         },
       },
@@ -257,5 +339,58 @@ describe('finance-agent service', () => {
     expect(res.metadata.context.memoryLoaded).toBe(true);
     expect(res.metadata.context.a2aMessages).toBeGreaterThan(0);
     expect(res.metadata.context.datapoints).toBeGreaterThan(0);
+  });
+
+  it('applies CYA target layers and datapoint working memory in analyze', async () => {
+    ragCalls.length = 0;
+
+    const res = await broker.call('finance-agent.analyze', {
+      profileId: 'stadtwerk_regulierung',
+      datapointContext: ['finance-capex-baseline-2025'],
+      query: 'Wie verändert CAPEX den TOTEX-Rahmen in RP5?',
+      includeTrace: true,
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.metadata.context.profileLoaded).toBe(true);
+    expect(res.metadata.context.datapointContextLoaded).toBeGreaterThan(0);
+    expect(Array.isArray(res.trace.plan.targetLayers)).toBe(true);
+    expect(res.trace.plan.targetLayers).toContain('L1_Rule');
+    const hasLayerFilter = ragCalls.some((c) =>
+      JSON.stringify(c.filter || {}).includes('metadata.extractionLevel')
+    );
+    expect(hasLayerFilter).toBe(true);
+  });
+
+  it('persists derived scenario datapoint when persistDatapoints is enabled', async () => {
+    createdDatapoints.length = 0;
+
+    const res = await broker.call('finance-agent.analyze', {
+      query: 'Bitte berechne das CAPEX/OPEX Delta für RP5 mit Rechtsbezug.',
+      persistDatapoints: true,
+      datapointContext: ['finance-capex-baseline-2025'],
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.metadata.persistedDatapoint.persisted).toBe(true);
+    expect(createdDatapoints.length).toBe(1);
+    expect(createdDatapoints[0].provenance).toBe('finance-agent');
+  });
+
+  it('returns hypothetical_scenario when L1 evidence is missing and hypotheticals are allowed', async () => {
+    forceNoRuleEvidence = true;
+
+    const res = await broker.call('finance-agent.analyze', {
+      query: 'What-if Analyse zur RP5 unter hypothetischen CAPEX Annahmen',
+      allowHypotheticals: true,
+      mode: 'rule_plus_hyde',
+    });
+
+    forceNoRuleEvidence = false;
+
+    expect(res.success).toBe(true);
+    expect(res.status).toBe('hypothetical_scenario');
+    expect(Array.isArray(res.assumptions)).toBe(true);
+    expect(res.assumptions.length).toBeGreaterThan(0);
   });
 });

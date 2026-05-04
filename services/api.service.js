@@ -571,6 +571,7 @@ module.exports = {
           'PUT /nbp-monitor/parameters': 'nbp-monitor.setParameters',
           'DELETE /nbp-monitor/parameters': 'nbp-monitor.resetParameters',
           // Datapoints (v0.11–v0.13) — static routes MUST precede /:name to avoid route shadowing
+          'POST /datapoints': 'datapoint.create',
           'POST /datapoints/promote': 'datapoint.promote',
           'GET /datapoints': 'datapoint.list',
           'GET /datapoints/health/overview': 'datapoint.health',
@@ -636,7 +637,7 @@ module.exports = {
           'POST /redispatch/audit': 'redispatch-expost.audit',
           'GET /redispatch/audits': 'redispatch-expost.list',
           'GET /redispatch/audits/:id': 'redispatch-expost.get',
-          // Finance Agent (v0.40.2)
+          // Finance Agent (v0.40.4)
           'POST /finance-agent/analyze': 'finance-agent.analyze',
           'GET /finance-agent/analyses': 'finance-agent.list',
           'GET /finance-agent/analyses/:id': 'finance-agent.get',

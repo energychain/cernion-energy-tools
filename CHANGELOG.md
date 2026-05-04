@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.40.4] — Finance Agent A²MDM Upgrade (CYA + OEO + Datapoints + Multi-Hop)
+
+### Added
+- **Finance Agent A²MDM-Orchestrierung** in `services/finance-agent.service.js`:
+  - `POST /api/finance-agent/analyze` erweitert um:
+    - `profileId` (CYA-Layer-Awareness)
+    - `datapointContext[]` (Working-Memory Fakten vor RAG)
+    - `persistDatapoints` (Persistenz abgeleiteter Ergebnisse)
+    - `allowHypotheticals` (What-If-Fallback ohne L1-Basis)
+  - CYA-Integration über `ctx.call('cya.getProfile', { id, profile_id })` mit robuster 404/Service-Fallback-Logik.
+  - Datapoint-Working-Memory über `ctx.call('datapoint.get')` und L1-Fakt-Einspeisung vor `knowledge-rag.query`.
+  - Iteratives Multi-Hop-Retrieval (`max 2` Verfeinerungsrunden) mit OEO-/Layer-basierten Refinements.
+  - Neuer Ergebnisstatus: `hypothetical_scenario` inkl. expliziter ontologischer Annahmen.
+
+- **Ontologie-First Verhalten (OEO/CEO)**:
+  - Query-Planer erweitert um Layer-Filter und OEO-Graph-Anker.
+  - Query-Refiner Prompt ergänzt (deterministisch, max. 2 Runden, CYA-konforme Fakten/Hypothesen-Trennung).
+  - OEO-Tag-Extraktion aus RAG-Metadaten (`metadata.oeoTags`, `metadata.ontologyTags`, `metadata.oeoConcepts`) in die Synthese.
+
+- **Datapoint Direktanlage** in `services/datapoint.service.js`:
+  - Neue Action `datapoint.create` (`POST /api/datapoints`) für metadata-only, agentisch abgeleitete Werte.
+  - Enthält `value`, `oeoTags`, `provenance`, `metadata`, `provenanceHash` (SHA-256) und KRITIS-konforme Persistenz.
+
+### Changed
+- Finance-Pipeline-Version auf `0.40.4` erhöht.
+- API-Gateway Alias ergänzt: `POST /api/datapoints` → `datapoint.create`.
+- Finance-Agent-Routenkommentar in `services/api.service.js` auf `v0.40.4` aktualisiert.
+
+### Tests
+- `tests/finance-agent.service.test.js` erweitert um:
+  - CYA targetLayers + Layer-Filter Verifikation
+  - Datapoint-Working-Memory Verifikation
+  - Persistenz abgeleiteter Datapoints (`persistDatapoints`)
+  - `hypothetical_scenario`-Pfad bei fehlender L1-Evidenz
+
 ## [0.40.3] — Finance Agent RAG Collection Parameter Fix
 
 ### Fixed

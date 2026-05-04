@@ -23,6 +23,7 @@ const crypto = require('crypto');
 const { MoleculerClientError } = require('moleculer').Errors;
 
 const EXAMPLE_DATAPOINT_NAME = 'pv-portfolio-twl-netze';
+const DATAPOINT_NAME_PATTERN = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
 
 module.exports = {
   name: 'datapoint',
@@ -58,13 +59,161 @@ module.exports = {
 
   actions: {
     // ------------------------------------------------------------------
+    // create — create a direct metadata datapoint (no session promotion)
+    // ------------------------------------------------------------------
+    create: {
+      rest: 'POST /',
+      params: {
+        name: { type: 'string', pattern: DATAPOINT_NAME_PATTERN },
+        value: { type: 'any' },
+        description: { type: 'string', optional: true, default: '' },
+        owner: { type: 'string', optional: true, default: 'finance-agent' },
+        tags: { type: 'array', items: 'string', optional: true, default: [] },
+        oeoTags: { type: 'array', items: 'string', optional: true, default: [] },
+        provenance: { type: 'string', optional: true, default: 'finance-agent' },
+        metadata: { type: 'object', optional: true, default: {} },
+      },
+      openapi: {
+        summary: 'Create a metadata-only datapoint directly',
+        tags: ['Datapoints'],
+        description:
+          'Creates a managed datapoint without session promotion. Intended for derived calculations ' +
+          'and agentic working-memory snapshots. Raw source data is not persisted.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name', 'value'],
+                properties: {
+                  name: { type: 'string', example: 'fa-derived-20260504-a1b2c3d4' },
+                  value: {
+                    type: 'object',
+                    description: 'Arbitrary derived value payload to persist as metadata datapoint.',
+                    example: {
+                      status: 'ok',
+                      confidence: 78,
+                      summary: 'CAPEX/OPEX Delta für RP5',
+                    },
+                  },
+                  description: { type: 'string', default: '' },
+                  owner: { type: 'string', default: 'finance-agent' },
+                  tags: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    default: ['finance', 'derived'],
+                  },
+                  oeoTags: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    default: ['ceo:CapitalExpenditure'],
+                  },
+                  provenance: { type: 'string', default: 'finance-agent' },
+                  metadata: { type: 'object', default: {} },
+                },
+              },
+              examples: {
+                default: {
+                  value: {
+                    name: 'fa-derived-20260504-a1b2c3d4',
+                    value: {
+                      status: 'hypothetical_scenario',
+                      confidence: 63,
+                      summary: 'What-if Ergebnis für RP5',
+                    },
+                    tags: ['finance', 'a2mdm', 'derived'],
+                    oeoTags: ['ceo:CapitalExpenditure', 'ceo:RegulatoryPeriod'],
+                    provenance: 'finance-agent',
+                    metadata: { mode: 'rule_plus_hyde' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { name, value, description, owner, tags, oeoTags, provenance, metadata } = ctx.params;
+
+        try {
+          await this.db.get(`dp:${name}`);
+          throw new MoleculerClientError(
+            `Datapoint '${name}' already exists`,
+            409,
+            'DUPLICATE_NAME'
+          );
+        } catch (e) {
+          if (e.code === 'DUPLICATE_NAME') throw e;
+          if (e.status !== 404) throw e;
+        }
+
+        const now = new Date().toISOString();
+        const doc = {
+          _id: `dp:${name}`,
+          name,
+          description,
+          owner,
+          tags: Array.from(new Set(['derived', ...(tags || [])])),
+          createdAt: now,
+          sourceType: 'agent-derived',
+          sessionId: null,
+          plan: {
+            steps: [],
+            requiredInputs: [],
+          },
+          fixedParams: {},
+          refresh: { strategy: 'manual' },
+          lastRun: {
+            timestamp: now,
+            durationMs: 0,
+            status: 'success',
+            errorMessage: null,
+            summary: {
+              rowCount: 1,
+              valueType: Array.isArray(value) ? 'array' : typeof value,
+            },
+            schemaHash: null,
+          },
+          health: {
+            totalRuns: 1,
+            consecutiveSuccesses: 1,
+            consecutiveFailures: 0,
+            lastFailure: null,
+            avgDurationMs: 0,
+            schemaStable: true,
+          },
+          agent_interventions: [],
+          provenanceHash: this.computeProvenanceHash([
+            {
+              value,
+              oeoTags,
+              provenance,
+              metadata,
+            },
+          ]),
+          data: {
+            value,
+            oeoTags,
+            provenance,
+            metadata,
+            updatedAt: now,
+          },
+        };
+
+        const result = await this.db.put(doc);
+        return { success: true, name, _rev: result.rev };
+      },
+    },
+
+    // ------------------------------------------------------------------
     // promote — elevate an agent session to a named, managed datapoint
     // ------------------------------------------------------------------
     promote: {
       rest: 'POST /promote',
       params: {
         sessionId: { type: 'string' },
-        name: { type: 'string', pattern: /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/ },
+        name: { type: 'string', pattern: DATAPOINT_NAME_PATTERN },
         description: { type: 'string', optional: true, default: '' },
         owner: { type: 'string', optional: true, default: '' },
         tags: { type: 'array', items: 'string', optional: true, default: [] },

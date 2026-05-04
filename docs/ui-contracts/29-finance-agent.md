@@ -1,6 +1,6 @@
 # UI Contract 29 — Finance Agent
 
-Version: 0.40.2
+Version: 0.40.4
 Status: Draft (backend-owned)
 
 ## Purpose
@@ -27,25 +27,31 @@ Run one finance analysis and persist result.
 Request:
 - `query` (required, min 8 chars)
 - `mode`: `rule_only | rule_plus_hyde` (default `rule_plus_hyde`)
+- `profileId`: string (optional, CYA Profil)
 - `topK`: integer 2..20 (default `6`)
 - `minScore`: number 0..1 (default `0.35`)
 - `includeTrace`: boolean (default `false`)
 - `sessionId`: string (optional)
+- `datapointContext`: string[] (optional, explizite L1-Faktquellen)
 - `includeMemoryContext`: boolean (default `true`)
 - `includeA2AContext`: boolean (default `true`)
 - `includeDatapointsContext`: boolean (default `true`)
 - `contextLimit`: integer 1..20 (default `5`)
 - `persistMemory`: boolean (default `true`)
+- `persistDatapoints`: boolean (default `false`)
+- `allowHypotheticals`: boolean (default `false`)
 
 Response:
 - `success`, `id`
-- `status`: `ok | needs_clarification`
+- `status`: `ok | needs_clarification | hypothetical_scenario`
 - `summary`, `answer`, `claims[]`
+- `assumptions[]` (bei `hypothetical_scenario`)
 - `evidence[]` (pointId, score, level, text, metadata, oeoTags)
 - `legalReferences[]`, `oeoTags[]`
 - `findings[]`, `findingsCount`
 - `steps[]`, optional `trace`
-- `metadata.context` with loaded context counts
+- `metadata.context` with loaded context counts (inkl. `profileLoaded`, `datapointContextLoaded`)
+- `metadata.persistedDatapoint` (Ergebnis der optionalen Datapoint-Persistenz)
 
 ### 2) GET `/analyses`
 List persisted analyses (newest first).
@@ -85,5 +91,6 @@ Read stored session memory for follow-up analyses.
 
 - `L1_Rule` evidence is always prioritized over `L2_HyDE`.
 - `L2_HyDE` is context only; conflicting polarity triggers a warning finding.
+- Bei fehlender L1-Basis und `allowHypotheticals=true` liefert der Agent ein explizit markiertes Szenario (`hypothetical_scenario`).
 - Missing legal references forces conservative downgrade to `needs_clarification`.
-- Missing optional context providers (`object-store`, `datapoint`) does not fail analysis; service degrades gracefully.
+- Missing optional context providers (`object-store`, `datapoint`, `cya`) does not fail analysis; service degrades gracefully.

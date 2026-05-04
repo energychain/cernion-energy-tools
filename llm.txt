@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.40.3
-- changelog_latest_release: 0.40.3
+- version: 0.40.4
+- changelog_latest_release: 0.40.4
 - source_files_hash:
-  - CHANGELOG.md: 938cb393855a2f157708c09ba714f6e0b6fd8ffc35a7627e6a278b24624cbe91
+  - CHANGELOG.md: 38846636462b7fc6e069823d347eba322adb02396c248d4cc695bb328de632aa
   - README.md: e1ede8ad6c37eb332e9714b5aee0cf14db17638c356b700403da076a5991c14b
   - docs/BACKEND_CONTEXT.md: 53a3ff14e056ee973b081bfc8e61f336099296e30803aa351633f685e9e453e3
   - src/cookbook-recipes.js: aceb7040f4dfd31e1df55020814eee4fa13149671688fc18bb1d5517fcd14f39
-  - openapi-export.json: f4a1bc19278bb47da05a977180e61cc8afb9a83f37cf284e4313e338cd6a7bfa
+  - openapi-export.json: f447b856dfd87c5b1591f21d169ae065e884f4c2cd46bddcf7333cf0f2e16fa5
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -566,7 +566,7 @@ process:
 
 ## OpenAPI Summary
 - path_count: 186
-- operation_count: 221
+- operation_count: 222
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -575,7 +575,7 @@ process:
 - Cookbook: 6 operations
 - CYA Agent: 18 operations
 - Dashboard API: 4 operations
-- Datapoints: 16 operations
+- Datapoints: 17 operations
 - DataSources: 27 operations
 - EDM (Energiedatenmanagement): 19 operations
 - EDM Messkonzept: 5 operations
@@ -645,6 +645,7 @@ process:
 - GET /api/dashboard/quality-summary | tags: [Dashboard API] | operationId: dashboard-api_qualitySummary | summary: Quality summary — recent reports from all agent pipelines
 - GET /api/dashboard/vnb-overview | tags: [Dashboard API] | operationId: dashboard-api_vnbOverview | summary: VNB overview — aggregated dashboard data for one grid operator
 - GET /api/datapoints | tags: [Datapoints] | operationId: datapoint_list | summary: List all registered Datapoints
+- POST /api/datapoints | tags: [Datapoints] | operationId: datapoint_create | summary: Create a metadata-only datapoint directly
 - DELETE /api/datapoints/:name | tags: [Datapoints] | operationId: datapoint_remove | summary: Delete a Datapoint
 - GET /api/datapoints/:name | tags: [Datapoints] | operationId: datapoint_get | summary: Get Datapoint details by name
 - PUT /api/datapoints/:name | tags: [Datapoints] | operationId: datapoint_update | summary: Update Datapoint definition
@@ -830,7 +831,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.40.2"
+    "version": "0.40.4"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -3955,6 +3956,115 @@ process:
           }
         },
         "summary": "List all registered Datapoints",
+        "tags": [
+          "Datapoints"
+        ]
+      },
+      "post": {
+        "description": "Creates a managed datapoint without session promotion. Intended for derived calculations and agentic working-memory snapshots. Raw source data is not persisted.",
+        "operationId": "datapoint_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "metadata": {
+                      "mode": "rule_plus_hyde"
+                    },
+                    "name": "fa-derived-20260504-a1b2c3d4",
+                    "oeoTags": [
+                      "ceo:CapitalExpenditure",
+                      "ceo:RegulatoryPeriod"
+                    ],
+                    "provenance": "finance-agent",
+                    "tags": [
+                      "finance",
+                      "a2mdm",
+                      "derived"
+                    ],
+                    "value": {
+                      "confidence": 63,
+                      "status": "hypothetical_scenario",
+                      "summary": "What-if Ergebnis für RP5"
+                    }
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "description": {
+                    "default": "",
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "default": {},
+                    "type": "object"
+                  },
+                  "name": {
+                    "example": "fa-derived-20260504-a1b2c3d4",
+                    "type": "string"
+                  },
+                  "oeoTags": {
+                    "default": [
+                      "ceo:CapitalExpenditure"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "owner": {
+                    "default": "finance-agent",
+                    "type": "string"
+                  },
+                  "provenance": {
+                    "default": "finance-agent",
+                    "type": "string"
+                  },
+                  "tags": {
+                    "default": [
+                      "finance",
+                      "derived"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "value": {
+                    "description": "Arbitrary derived value payload to persist as metadata datapoint.",
+                    "example": {
+                      "confidence": 78,
+                      "status": "ok",
+                      "summary": "CAPEX/OPEX Delta für RP5"
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "name",
+                  "value"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Create a metadata-only datapoint directly",
         "tags": [
           "Datapoints"
         ]
@@ -7562,14 +7672,21 @@ process:
               "examples": {
                 "default": {
                   "value": {
+                    "allowHypotheticals": false,
+                    "collection": "cernion_knowledge_v1",
                     "contextLimit": 5,
+                    "datapointContext": [
+                      "finance-capex-baseline-2025"
+                    ],
                     "includeA2AContext": true,
                     "includeDatapointsContext": true,
                     "includeMemoryContext": true,
                     "includeTrace": false,
                     "minScore": 0.35,
                     "mode": "rule_plus_hyde",
+                    "persistDatapoints": false,
                     "persistMemory": true,
+                    "profileId": "stadtwerk_regulierung",
                     "query": "Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?",
                     "sessionId": "finance-session-2026-05-04",
                     "topK": 6
@@ -7578,11 +7695,33 @@ process:
               },
               "schema": {
                 "properties": {
+                  "allowHypotheticals": {
+                    "default": false,
+                    "description": "Allow hypothetical scenario synthesis if no L1 evidence is found after multi-hop retrieval.",
+                    "type": "boolean"
+                  },
+                  "collection": {
+                    "default": "cernion_knowledge_v1",
+                    "description": "Optional knowledge collection name for RAG retrieval.",
+                    "type": "string"
+                  },
                   "contextLimit": {
                     "default": 5,
                     "maximum": 20,
                     "minimum": 1,
                     "type": "integer"
+                  },
+                  "datapointContext": {
+                    "default": [],
+                    "description": "Optional list of datapoint names to preload as L1 working memory facts.",
+                    "example": [
+                      "finance-capex-baseline-2025",
+                      "finance-interest-rate-history"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
                   },
                   "includeA2AContext": {
                     "default": true,
@@ -7614,9 +7753,19 @@ process:
                     ],
                     "type": "string"
                   },
+                  "persistDatapoints": {
+                    "default": false,
+                    "description": "Persist derived finance scenario output as datapoint when calculations are performed.",
+                    "type": "boolean"
+                  },
                   "persistMemory": {
                     "default": true,
                     "type": "boolean"
+                  },
+                  "profileId": {
+                    "description": "Optional CYA profile id to inject target layer awareness into retrieval planning.",
+                    "example": "stadtwerk_regulierung",
+                    "type": "string"
                   },
                   "query": {
                     "example": "Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?",
@@ -15526,8 +15675,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.40.2"
+  "x-version": "0.40.4"
 }
 
 ## Integrity
-- llm_txt_sha256: df8bb94b0ca1a331ea1f76fd3d98983c2d54818c1345cc2d5b9f1e0f1ddc2572
+- llm_txt_sha256: 68fa36436e2508df6e4c6ae169c9d324ac3401a2caa62e9096f1c2374948edc7

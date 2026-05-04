@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.40.2",
+    "version": "0.40.4",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -1474,6 +1474,166 @@
         "description": "Removes the persisted parameters file and reverts to built-in defaults. Clears all NBP Monitor cache entries."
       }
     },
+    "/api/datapoints": {
+      "post": {
+        "operationId": "datapoint_create",
+        "summary": "Create a metadata-only datapoint directly",
+        "tags": [
+          "Datapoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Creates a managed datapoint without session promotion. Intended for derived calculations and agentic working-memory snapshots. Raw source data is not persisted.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "value"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "fa-derived-20260504-a1b2c3d4"
+                  },
+                  "value": {
+                    "type": "object",
+                    "description": "Arbitrary derived value payload to persist as metadata datapoint.",
+                    "example": {
+                      "status": "ok",
+                      "confidence": 78,
+                      "summary": "CAPEX/OPEX Delta für RP5"
+                    }
+                  },
+                  "description": {
+                    "type": "string",
+                    "default": ""
+                  },
+                  "owner": {
+                    "type": "string",
+                    "default": "finance-agent"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": [
+                      "finance",
+                      "derived"
+                    ]
+                  },
+                  "oeoTags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": [
+                      "ceo:CapitalExpenditure"
+                    ]
+                  },
+                  "provenance": {
+                    "type": "string",
+                    "default": "finance-agent"
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "default": {}
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "name": "fa-derived-20260504-a1b2c3d4",
+                    "value": {
+                      "status": "hypothetical_scenario",
+                      "confidence": 63,
+                      "summary": "What-if Ergebnis für RP5"
+                    },
+                    "tags": [
+                      "finance",
+                      "a2mdm",
+                      "derived"
+                    ],
+                    "oeoTags": [
+                      "ceo:CapitalExpenditure",
+                      "ceo:RegulatoryPeriod"
+                    ],
+                    "provenance": "finance-agent",
+                    "metadata": {
+                      "mode": "rule_plus_hyde"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "datapoint_list",
+        "summary": "List all registered Datapoints",
+        "tags": [
+          "Datapoints"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "sourceType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "agent-session"
+            }
+          },
+          {
+            "name": "includeHealth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true
+            }
+          },
+          {
+            "name": "tags",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "solar,twl-netze"
+            },
+            "description": "Comma-separated tag filter. Returns only datapoints that have ALL specified tags (case-insensitive AND match)."
+          }
+        ]
+      }
+    },
     "/api/datapoints/promote": {
       "post": {
         "operationId": "datapoint_promote",
@@ -1568,57 +1728,6 @@
             }
           }
         }
-      }
-    },
-    "/api/datapoints": {
-      "get": {
-        "operationId": "datapoint_list",
-        "summary": "List all registered Datapoints",
-        "tags": [
-          "Datapoints"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        },
-        "parameters": [
-          {
-            "name": "sourceType",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "agent-session"
-            }
-          },
-          {
-            "name": "includeHealth",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": true
-            }
-          },
-          {
-            "name": "tags",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "example": "solar,twl-netze"
-            },
-            "description": "Comma-separated tag filter. Returns only datapoints that have ALL specified tags (case-insensitive AND match)."
-          }
-        ]
       }
     },
     "/api/datapoints/health/overview": {
@@ -6237,6 +6346,11 @@
                     ],
                     "default": "rule_plus_hyde"
                   },
+                  "profileId": {
+                    "type": "string",
+                    "description": "Optional CYA profile id to inject target layer awareness into retrieval planning.",
+                    "example": "stadtwerk_regulierung"
+                  },
                   "topK": {
                     "type": "integer",
                     "minimum": 2,
@@ -6257,6 +6371,18 @@
                     "type": "string",
                     "description": "Optional session identifier for A2A/memory-aware finance analysis.",
                     "example": "finance-session-2026-05-04"
+                  },
+                  "datapointContext": {
+                    "type": "array",
+                    "description": "Optional list of datapoint names to preload as L1 working memory facts.",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": [],
+                    "example": [
+                      "finance-capex-baseline-2025",
+                      "finance-interest-rate-history"
+                    ]
                   },
                   "includeMemoryContext": {
                     "type": "boolean",
@@ -6279,6 +6405,21 @@
                   "persistMemory": {
                     "type": "boolean",
                     "default": true
+                  },
+                  "persistDatapoints": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Persist derived finance scenario output as datapoint when calculations are performed."
+                  },
+                  "allowHypotheticals": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Allow hypothetical scenario synthesis if no L1 evidence is found after multi-hop retrieval."
+                  },
+                  "collection": {
+                    "type": "string",
+                    "default": "cernion_knowledge_v1",
+                    "description": "Optional knowledge collection name for RAG retrieval."
                   }
                 }
               },
@@ -6287,15 +6428,22 @@
                   "value": {
                     "query": "Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?",
                     "mode": "rule_plus_hyde",
+                    "profileId": "stadtwerk_regulierung",
                     "topK": 6,
                     "minScore": 0.35,
                     "includeTrace": false,
                     "sessionId": "finance-session-2026-05-04",
+                    "datapointContext": [
+                      "finance-capex-baseline-2025"
+                    ],
                     "includeMemoryContext": true,
                     "includeA2AContext": true,
                     "includeDatapointsContext": true,
                     "contextLimit": 5,
-                    "persistMemory": true
+                    "persistMemory": true,
+                    "persistDatapoints": false,
+                    "allowHypotheticals": false,
+                    "collection": "cernion_knowledge_v1"
                   }
                 }
               }
@@ -14698,5 +14846,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.40.2"
+  "x-version": "0.40.4"
 }
