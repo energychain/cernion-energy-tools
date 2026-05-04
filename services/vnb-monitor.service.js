@@ -9,10 +9,16 @@
  * sources become unavailable.
  */
 
+'use strict';
+
+const { getTenantId, tenantNamespace } = require('../src/tenant-context');
+
 const VNB_MONITOR_DEFAULTS = require('../src/vnb-monitor-defaults');
 
 const CACHE_TTL_SECONDS = parseInt(process.env.VNB_MONITOR_CACHE_TTL_SECONDS || '3600', 10);
 const SCHEMA_VERSION = '1.0';
+const THRESHOLD_NAMESPACE = 'vnb_monitor';
+const THRESHOLD_KEY = 'thresholds';
 
 function mergeThresholds(defaults, overrides) {
   const merged = { ...defaults };
@@ -1164,21 +1170,6 @@ module.exports = {
 
   created() {
     this.cache = new Map();
-    this.alertThresholds = { ...VNB_MONITOR_DEFAULTS.thresholds };
-    this._thresholdsSource = 'defaults';
-  },
-
-  async started() {
-    try {
-      const stored = await this.broker.call('object-store.get', {
-        namespace: 'vnb_monitor',
-        key: 'thresholds',
-      });
-      this.alertThresholds = mergeThresholds(VNB_MONITOR_DEFAULTS.thresholds, stored.payload);
-      this._thresholdsSource = 'store';
-    } catch (_) {
-      // no stored thresholds — keep defaults from created()
-    }
   },
 
   actions: {
@@ -1258,9 +1249,11 @@ module.exports = {
       },
       async handler(ctx) {
         const { bdewCode, refresh, alerts: includeAlerts, lang } = ctx.params;
+        const tenantId = getTenantId(ctx);
+        const { thresholds } = await this.loadThresholds(ctx);
 
         // Check cache
-        const cacheKey = `vnb-monitor:${bdewCode}`;
+        const cacheKey = this.getCacheKey(bdewCode, tenantId);
         if (!refresh && this.cache.has(cacheKey)) {
           const cached = this.cache.get(cacheKey);
           if (new Date() < new Date(cached.expiresAt)) {
@@ -1319,7 +1312,7 @@ module.exports = {
           alerts: includeAlerts
             ? generateAlerts(
                 { ewk: ewkData, mastr: mastrData, market: marketData },
-                this.alertThresholds,
+                thresholds,
                 lang
               )
             : [],
@@ -1564,7 +1557,7 @@ module.exports = {
       },
       handler(ctx) {
         const { bdewCode } = ctx.params;
-        const cacheKey = `vnb-monitor:${bdewCode}`;
+        const cacheKey = this.getCacheKey(bdewCode, getTenantId(ctx));
         const existed = this.cache.has(cacheKey);
         this.cache.delete(cacheKey);
 
@@ -1604,11 +1597,8 @@ module.exports = {
           },
         },
       },
-      handler() {
-        return {
-          source: this._thresholdsSource,
-          thresholds: this.alertThresholds,
-        };
+      async handler(ctx) {
+        return this.loadThresholds(ctx);
       },
     },
 
@@ -1627,19 +1617,18 @@ module.exports = {
       },
       async handler(ctx) {
         const nextThresholds = this.validateThresholds(ctx.params.thresholds);
+        const tenantId = getTenantId(ctx);
         await ctx.call('object-store.put', {
-          namespace: 'vnb_monitor',
-          key: 'thresholds',
+          namespace: this.getThresholdNamespace(ctx),
+          key: THRESHOLD_KEY,
           payload: nextThresholds,
         });
-        this.alertThresholds = mergeThresholds(VNB_MONITOR_DEFAULTS.thresholds, nextThresholds);
-        this._thresholdsSource = 'store';
-        this.cache.clear();
+        this.clearTenantCache(tenantId);
 
         return {
           success: true,
           message: 'Alert thresholds updated and cache invalidated.',
-          thresholds: this.alertThresholds,
+          thresholds: mergeThresholds(VNB_MONITOR_DEFAULTS.thresholds, nextThresholds),
         };
       },
     },
@@ -1655,25 +1644,62 @@ module.exports = {
         tags: ['VNBMonitor', 'IntegrationHub'],
       },
       async handler(ctx) {
+        const tenantId = getTenantId(ctx);
         try {
-          await ctx.call('object-store.delete', { namespace: 'vnb_monitor', key: 'thresholds' });
+          await ctx.call('object-store.delete', {
+            namespace: this.getThresholdNamespace(ctx),
+            key: THRESHOLD_KEY,
+          });
         } catch (_) {
           /* ignore — key may not exist */
         }
-        this.alertThresholds = { ...VNB_MONITOR_DEFAULTS.thresholds };
-        this._thresholdsSource = 'defaults';
-        this.cache.clear();
+        this.clearTenantCache(tenantId);
 
         return {
           success: true,
           message: 'Alert thresholds reset to defaults and cache invalidated.',
-          thresholds: this.alertThresholds,
+          thresholds: { ...VNB_MONITOR_DEFAULTS.thresholds },
         };
       },
     },
   },
 
   methods: {
+    getThresholdNamespace(ctx) {
+      return tenantNamespace(THRESHOLD_NAMESPACE, getTenantId(ctx));
+    },
+
+    getCacheKey(bdewCode, tenantId) {
+      return `vnb-monitor:${tenantId}:${bdewCode}`;
+    },
+
+    clearTenantCache(tenantId) {
+      const prefix = `vnb-monitor:${tenantId}:`;
+      for (const key of this.cache.keys()) {
+        if (key.startsWith(prefix)) {
+          this.cache.delete(key);
+        }
+      }
+    },
+
+    async loadThresholds(ctx) {
+      try {
+        const stored = await ctx.call('object-store.get', {
+          namespace: this.getThresholdNamespace(ctx),
+          key: THRESHOLD_KEY,
+        });
+        return {
+          source: 'store',
+          thresholds: mergeThresholds(VNB_MONITOR_DEFAULTS.thresholds, stored.payload),
+        };
+      } catch (_) {
+        return {
+          source: 'defaults',
+          thresholds: { ...VNB_MONITOR_DEFAULTS.thresholds },
+        };
+      }
+    },
+
     validateThresholds(candidateThresholds) {
       if (!candidateThresholds || typeof candidateThresholds !== 'object') {
         throw new Error('thresholds must be an object.');

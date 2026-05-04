@@ -193,4 +193,47 @@ describe('bilanzkreis.service', () => {
     const result = await broker.call('bilanzkreis.delete', { id: 'bk_es_test' });
     expect(result.success).toBe(true);
   });
+
+  test('tenant isolation: gleicher BK-Key bleibt pro Tenant getrennt', async () => {
+    const tenantA = { meta: { tenantId: 'stadtwerk-a' } };
+    const tenantB = { meta: { tenantId: 'stadtwerk-b' } };
+
+    await broker.call(
+      'bilanzkreis.create',
+      {
+        id: 'bk_shared',
+        name: 'Tenant A BK',
+        type: 'virtual_energy_sharing',
+        participants: [
+          { meloId: MELO_PV, role: 'producer', share: 1.0 },
+          { meloId: MELO_CONSUMER, role: 'consumer', share: 1.0 },
+        ],
+      },
+      tenantA
+    );
+
+    await broker.call(
+      'bilanzkreis.create',
+      {
+        id: 'bk_shared',
+        name: 'Tenant B BK',
+        type: 'virtual_energy_sharing',
+        participants: [
+          { meloId: MELO_PV, role: 'producer', share: 1.0 },
+          { meloId: MELO_CONSUMER, role: 'consumer', share: 1.0 },
+        ],
+      },
+      tenantB
+    );
+
+    const fromA = await broker.call('bilanzkreis.get', { id: 'bk_shared' }, tenantA);
+    const fromB = await broker.call('bilanzkreis.get', { id: 'bk_shared' }, tenantB);
+    const listA = await broker.call('bilanzkreis.list', {}, tenantA);
+    const listB = await broker.call('bilanzkreis.list', {}, tenantB);
+
+    expect(fromA.payload.name).toBe('Tenant A BK');
+    expect(fromB.payload.name).toBe('Tenant B BK');
+    expect(listA.data.some((item) => item.key === 'bk_shared')).toBe(true);
+    expect(listB.data.some((item) => item.key === 'bk_shared')).toBe(true);
+  });
 });

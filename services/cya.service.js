@@ -422,10 +422,11 @@ module.exports = {
       },
       async handler(ctx) {
         const { id, ...explicitUpdate } = ctx.params;
+        const ns = this.resolveProfileNamespace(ctx);
 
         const existing = await ctx
           .call(OS_GET, {
-            namespace: PROFILE_NAMESPACE,
+            namespace: ns,
             key: id,
           })
           .catch(() => null);
@@ -438,7 +439,7 @@ module.exports = {
         const updated = mergeExplicitIntoProfile(existing.payload, explicitUpdate);
 
         await ctx.call(OS_PUT, {
-          namespace: PROFILE_NAMESPACE,
+          namespace: ns,
           key: id,
           payload: updated,
         });
@@ -898,7 +899,10 @@ module.exports = {
         const { id } = ctx.params;
         let all = [];
         try {
-          all = (await ctx.call('object-store.list', { namespace: a2a.A2A_NAMESPACE })) || [];
+          all =
+            (await ctx.call('object-store.list', {
+              namespace: this.resolveA2ANamespace(ctx),
+            })) || [];
         } catch (err) {
           this.logger.warn('[A2A] object-store.list failed:', err.message);
         }
@@ -1041,7 +1045,10 @@ module.exports = {
         // TODO: Pagination für >1000 Sessions (analog mastr-monitor)
         let all = [];
         try {
-          all = (await ctx.call('object-store.list', { namespace: a2a.A2A_NAMESPACE })) || [];
+          all =
+            (await ctx.call('object-store.list', {
+              namespace: this.resolveA2ANamespace(ctx),
+            })) || [];
         } catch (err) {
           this.logger.warn('[A2A Stats] object-store.list failed:', err.message);
         }
@@ -1139,7 +1146,7 @@ module.exports = {
         const { id } = ctx.params;
         const result = await ctx
           .call(OS_GET, {
-            namespace: 'cya_context_states',
+            namespace: this.resolveContextStateNamespace(ctx),
             key: `ctx_${id}`,
           })
           .catch(() => null);
@@ -1511,7 +1518,7 @@ module.exports = {
         // v0.37.0 — Persist context state non-blocking
         const _preloadSessionId = ctx.params.session_id || null;
         if (_cmPreload && _preloadSessionId) {
-          this._persistContextState(_preloadSessionId, _cmPreload).catch((err) =>
+          this._persistContextState(ctx, _preloadSessionId, _cmPreload).catch((err) =>
             this.logger.warn('[ContextManager] persist failed:', err.message)
           );
         }
@@ -1849,7 +1856,7 @@ module.exports = {
           );
           // v0.37.0 — Persist context state non-blocking
           if (_cmMain && sessionId) {
-            this._persistContextState(sessionId, _cmMain).catch((err) =>
+            this._persistContextState(ctx, sessionId, _cmMain).catch((err) =>
               this.logger.warn('[ContextManager] persist failed:', err.message)
             );
           }
@@ -1963,7 +1970,7 @@ module.exports = {
               history: [],
               narrative: synthesis.narrative,
             };
-            this._observeAndUpdateProfile(profile_id, _completedSession).catch((err) =>
+            this._observeAndUpdateProfile(ctx, profile_id, _completedSession).catch((err) =>
               this.logger.warn('profile-observer failed (non-blocking):', err.message)
             );
           }
@@ -2100,6 +2107,7 @@ module.exports = {
         // ontologyGraph is not directly available here; restore is best-effort from saved state.
         // The restored contextManager is available for downstream re-use if needed.
         const _restoredCtxManager = await this._restoreContextState(
+          ctx,
           ctx.params.session_id,
           session._ontologyGraph || null
         ).catch(() => null);
@@ -2332,10 +2340,27 @@ module.exports = {
       }
     },
 
-    async loadProfile(ctx, profileId, namespace = PROFILE_NAMESPACE) {
+    resolveProfileNamespace(ctx) {
+      return tenantNamespace(PROFILE_NAMESPACE, getTenantId(ctx));
+    },
+
+    resolveSessionNamespace(ctx) {
+      return tenantNamespace(SESSION_NAMESPACE, getTenantId(ctx));
+    },
+
+    resolveContextStateNamespace(ctx) {
+      return tenantNamespace('cya_context_states', getTenantId(ctx));
+    },
+
+    resolveA2ANamespace(ctx) {
+      return tenantNamespace(a2a.A2A_NAMESPACE, getTenantId(ctx));
+    },
+
+    async loadProfile(ctx, profileId, namespace) {
+      const ns = namespace != null ? namespace : this.resolveProfileNamespace(ctx);
       try {
         const result = await ctx.call(OS_GET, {
-          namespace,
+          namespace: ns,
           key: profileId,
         });
         const profile = result?.payload || null;
@@ -2358,7 +2383,7 @@ module.exports = {
     async loadSession(ctx, sessionId) {
       try {
         const result = await ctx.call(OS_GET, {
-          namespace: SESSION_NAMESPACE,
+          namespace: this.resolveSessionNamespace(ctx),
           key: sessionId,
         });
         const session = result?.payload || null;
@@ -2386,15 +2411,16 @@ module.exports = {
      * @param {string} profileId
      * @param {Object} session - Completed session payload
      */
-    async _observeAndUpdateProfile(profileId, session) {
+    async _observeAndUpdateProfile(ctx, profileId, session) {
       const {
         extractImplicitSignals,
         mergeImplicitIntoProfile,
       } = require('../src/cya-profile-observer');
 
+      const profileNamespace = this.resolveProfileNamespace(ctx);
       const existing = await this.broker
         .call(OS_GET, {
-          namespace: PROFILE_NAMESPACE,
+          namespace: profileNamespace,
           key: profileId,
         })
         .catch(() => null);
@@ -2404,7 +2430,7 @@ module.exports = {
       const updated = mergeImplicitIntoProfile(existing.payload, signals);
 
       await this.broker.call(OS_PUT, {
-        namespace: PROFILE_NAMESPACE,
+        namespace: profileNamespace,
         key: profileId,
         payload: updated,
       });
@@ -2412,7 +2438,7 @@ module.exports = {
       // Persona memory write (v0.34.0 — first activation)
       const role = existing.payload?.actor?.role;
       if (role) {
-        await this._writePersonaMemory(role, session, signals).catch(() => null);
+        await this._writePersonaMemory(ctx, role, session, signals).catch(() => null);
       }
     },
 
@@ -2422,9 +2448,9 @@ module.exports = {
      * @param {Object} session
      * @param {Object} signals - extracted implicit signals
      */
-    async _writePersonaMemory(actorRole, session, signals) {
+    async _writePersonaMemory(ctx, actorRole, session, signals) {
       const { ACTOR_ROLE_PERSONA_NAMESPACE } = require('../src/cya-agent-personas');
-      const namespace = ACTOR_ROLE_PERSONA_NAMESPACE[actorRole];
+      const namespace = tenantNamespace(ACTOR_ROLE_PERSONA_NAMESPACE[actorRole], getTenantId(ctx));
       if (!namespace) return;
 
       const memoryDoc = {
@@ -2446,7 +2472,7 @@ module.exports = {
 
     async saveSession(ctx, sessionId, payload) {
       await ctx.call(OS_PUT, {
-        namespace: SESSION_NAMESPACE,
+        namespace: this.resolveSessionNamespace(ctx),
         key: sessionId,
         payload,
       });
@@ -2712,7 +2738,7 @@ module.exports = {
           history: [],
           narrative,
         };
-        this._observeAndUpdateProfile(profile_id, _completedSession).catch((err) =>
+        this._observeAndUpdateProfile(ctx, profile_id, _completedSession).catch((err) =>
           this.logger.warn('profile-observer failed (non-blocking):', err.message)
         );
       }
@@ -2760,7 +2786,7 @@ module.exports = {
           });
           // A2A: Persona hat Verdict abgegeben
           if (args.sessionId) {
-            await this._emitA2AMessage(a2a.personaEvaluated(args.sessionId, personaId, state));
+            await this._emitA2AMessage(ctx, a2a.personaEvaluated(args.sessionId, personaId, state));
           }
           return [personaId, state];
         })
@@ -2792,6 +2818,7 @@ module.exports = {
         });
         if (sessionId) {
           await this._emitA2AMessage(
+            ctx,
             a2a.consensusReached(sessionId, { narrative: consensus.narrative, round: 0 })
           );
         }
@@ -2806,6 +2833,7 @@ module.exports = {
       // Conflict detected — emit once before loop
       if (sessionId) {
         await this._emitA2AMessage(
+          ctx,
           a2a.conflictDetected(sessionId, {
             blockers: initialConflict.blockers,
             approvers: initialConflict.approvers,
@@ -2841,13 +2869,14 @@ module.exports = {
 
         if (sessionId) {
           // eslint-disable-next-line no-await-in-loop
-          await this._emitA2AMessage(a2a.negotiationRound(sessionId, roundEntry));
+          await this._emitA2AMessage(ctx, a2a.negotiationRound(sessionId, roundEntry));
         }
 
         if (consensus.consensusReached) {
           if (sessionId) {
             // eslint-disable-next-line no-await-in-loop
             await this._emitA2AMessage(
+              ctx,
               a2a.consensusReached(sessionId, { narrative: consensus.narrative, round })
             );
           }
@@ -2866,6 +2895,7 @@ module.exports = {
             ? dialogueRounds[dialogueRounds.length - 1].unresolvedConflicts
             : [];
         await this._emitA2AMessage(
+          ctx,
           a2a.consensusFailed(sessionId, {
             unresolvedConflicts: lastUnresolved,
             roundsAttempted: MAX_DIALOGUE_ROUNDS,
@@ -2979,12 +3009,12 @@ module.exports = {
      * @param {string} sessionId
      * @param {import('../src/cya-context-manager').CyaContextManager} contextManager
      */
-    async _persistContextState(sessionId, contextManager) {
+    async _persistContextState(ctx, sessionId, contextManager) {
       if (!sessionId || !contextManager) return;
       const state = contextManager.serialize();
       this.broker
         .call(OS_PUT, {
-          namespace: 'cya_context_states',
+          namespace: this.resolveContextStateNamespace(ctx),
           key: `ctx_${sessionId}`,
           payload: {
             ...state,
@@ -3004,12 +3034,12 @@ module.exports = {
      * @param {import('graphology').Graph} ontologyGraph
      * @returns {Promise<import('../src/cya-context-manager').CyaContextManager|null>}
      */
-    async _restoreContextState(sessionId, ontologyGraph) {
+    async _restoreContextState(ctx, sessionId, ontologyGraph) {
       if (!sessionId || !ontologyGraph) return null;
       try {
         const { CyaContextManager } = require('../src/cya-context-manager');
         const result = await this.broker.call(OS_GET, {
-          namespace: 'cya_context_states',
+          namespace: this.resolveContextStateNamespace(ctx),
           key: `ctx_${sessionId}`,
         });
         if (!result?.payload) return null;
@@ -3030,12 +3060,12 @@ module.exports = {
      *
      * @param {object} msg - A2AMessage envelope from cya-a2a-protocol
      */
-    async _emitA2AMessage(msg) {
+    async _emitA2AMessage(ctx, msg) {
       a2a.validateMessage(msg);
       this.broker.emit(msg.eventName, msg);
       this.broker
         .call(OS_PUT, {
-          namespace: a2a.A2A_NAMESPACE,
+          namespace: this.resolveA2ANamespace(ctx),
           key: msg.messageId,
           payload: msg,
         })

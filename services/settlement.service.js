@@ -1,6 +1,7 @@
 'use strict';
 
 const { MoleculerClientError } = require('moleculer').Errors;
+const { getTenantId, tenantNamespace } = require('../src/tenant-context');
 const { getEegTariff, getPostEegRate, isPostEeg } = require('../src/eeg-tariff-tables');
 const {
   calculateRedispatchCompensation,
@@ -681,7 +682,7 @@ module.exports = {
       },
       async handler(ctx) {
         const queryResult = await ctx.call('object-store.query', {
-          namespace: NAMESPACE,
+          namespace: this.resolveNamespace(ctx),
           selector: {},
           limit: 1000,
           skip: 0,
@@ -718,6 +719,10 @@ module.exports = {
   },
 
   methods: {
+    resolveNamespace(ctx) {
+      return tenantNamespace(NAMESPACE, getTenantId(ctx));
+    },
+
     async getActualFeedin(ctx, meloId, from, to) {
       const result = await ctx.call('edm.getTimeseries', {
         meloId,
@@ -906,7 +911,7 @@ module.exports = {
 
     async saveSettlement(ctx, key, payload) {
       await ctx.call('object-store.put', {
-        namespace: NAMESPACE,
+        namespace: this.resolveNamespace(ctx),
         key,
         payload,
       });
@@ -914,7 +919,7 @@ module.exports = {
 
     async loadSettlement(ctx, key) {
       const result = await ctx.call('object-store.get', {
-        namespace: NAMESPACE,
+        namespace: this.resolveNamespace(ctx),
         key,
       });
       return result?.payload || null;

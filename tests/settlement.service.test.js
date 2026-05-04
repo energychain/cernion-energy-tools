@@ -234,4 +234,45 @@ describe('settlement.service', () => {
     expect(csv).toContain('mastrNummer');
     expect(csv).toContain('compensation_eur');
   });
+
+  test('tenant isolation: settlements bleiben pro Tenant getrennt', async () => {
+    const tenantA = { meta: { tenantId: 'stadtwerk-a' } };
+    const tenantB = { meta: { tenantId: 'stadtwerk-b' } };
+
+    const resultA = await broker.call(
+      'settlement.calculateRedispatch',
+      {
+        installations: [
+          {
+            mastrNummer: MASTR_SOLARPARK,
+            meloId: MELO_SOLARPARK,
+            capacityKw: 2103.7,
+            commissioningDate: '2009-12-16',
+            type: 'solar',
+            curtailmentEvents: [
+              {
+                start: '2026-04-01T10:00:00Z',
+                end: '2026-04-01T12:00:00Z',
+                reason: 'grid_congestion',
+              },
+            ],
+          },
+        ],
+        period: { from: '2026-04-01', to: '2026-04-30' },
+      },
+      tenantA
+    );
+
+    const listA = await broker.call('settlement.listSettlements', { type: 'redispatch' }, tenantA);
+    const listB = await broker.call('settlement.listSettlements', { type: 'redispatch' }, tenantB);
+    const reportA = await broker.call(
+      'settlement.getRedispatchReport',
+      { settlementId: resultA.settlementId },
+      tenantA
+    );
+
+    expect(listA.count).toBeGreaterThanOrEqual(1);
+    expect(listB.count).toBe(0);
+    expect(reportA.success).toBe(true);
+  });
 });

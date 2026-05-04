@@ -7,7 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.40.7] — Observability Mini Dashboard + Agent Prompt
+## [0.41.0] — Multi-Tenant Platform (Closes #51)
+
+### Added
+- **Multi-Tenant Isolation** across all storage-backed services (Issue #51 — PoC → Produktion):
+  - `src/tenant-context.js` bereits vorhandene Grundlage (`getTenantId`, `tenantNamespace`, `DEFAULT_TENANT`) — jetzt vollständig genutzt.
+  - Tenant-Context wird vom API Gateway über `ctx.meta.tenantId` aus dem verifizierten Token propagiert.
+
+- **VNB-Monitor** (`services/vnb-monitor.service.js` v0.41):
+  - Threshold-Konfiguration (get/set/reset) und Snapshot-Cache pro Tenant isoliert.
+  - Neue Helfer: `getThresholdNamespace`, `getCacheKey(bdewCode, tenantId)`, `clearTenantCache`, `loadThresholds`.
+
+- **NBP-Monitor** (`services/nbp-monitor.service.js` v0.41):
+  - Parameterkonfiguration (get/set/reset) und Snapshot-Cache pro Tenant isoliert.
+  - Neue Helfer: `getParametersNamespace`, `getCacheKey(bdewCode, tenantId)`, `clearTenantCache`, `loadParameters`.
+
+- **Bilanzkreis** (`services/bilanzkreis.service.js` v0.41):
+  - Object-Store-Namespace für alle CRUD- und List-Operationen per Tenant getrennt.
+  - Neue Methode `resolveNamespace(ctx, namespace)`.
+
+- **Settlement** (`services/settlement.service.js` v0.41):
+  - Redispatch-/EEG-Settlements werden pro Tenant gespeichert und abgefragt.
+  - Neue Methode `resolveNamespace(ctx)`.
+
+- **CYA Agent** (`services/cya.service.js` v0.41) — vollständige Session-Isolierung:
+  - Vier neue Namespace-Resolver: `resolveProfileNamespace`, `resolveSessionNamespace`, `resolveContextStateNamespace`, `resolveA2ANamespace`.
+  - Profiles, Sessions, ContextState (Zwiebelmodus) und A2A-Logs werden je Tenant isoliert geschrieben und gelesen.
+  - `_persistContextState(ctx, …)` / `_restoreContextState(ctx, …)` akzeptieren jetzt `ctx` als ersten Parameter.
+  - `_emitA2AMessage(ctx, msg)` persistiert in den tenant-spezifischen A2A-Namespace.
+  - `_observeAndUpdateProfile(ctx, …)` und `_writePersonaMemory(ctx, …)` schreiben Profil-Observer- und Persona-Memory-Daten tenant-bewusst.
+  - Backward-Kompatibilität: Default-Tenant (`tenantId = 'default'`) verhält sich identisch wie zuvor.
+
+### Tests
+- `tests/vnb-monitor.service.test.js` — Cache-Isolation, Threshold-Isolation je Tenant.
+- `tests/nbp-monitor.service.test.js` — Cache-Isolation, Parameter-Namespace-Isolation je Tenant.
+- `tests/bilanzkreis.service.test.js` — Gleiche Bilanzkreis-ID in zwei Tenants unabhängig.
+- `tests/settlement.service.test.js` — Settlement in Tenant A unsichtbar für Tenant B.
+- `tests/cya.service.test.js` — 3 neue Isolationstests: Profile-Isolation, Session-Isolation (generate → refine cross-tenant 404), `profile.update`-Isolation.
+- Alle bestehenden Suites (177 Tests) weiterhin grün.
+
+ — Observability Mini Dashboard + Agent Prompt
 
 ### Added
 - **Dashboard mini observability endpoint** in `services/dashboard-api.service.js`:

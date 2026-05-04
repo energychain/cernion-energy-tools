@@ -157,6 +157,32 @@ describe('nbp-monitor.service', () => {
       expect(callCount).toBe(2);
     });
 
+    it('should isolate cached snapshots by tenant', async () => {
+      let callCount = 0;
+      assetsHandler = () => {
+        callCount++;
+        return [];
+      };
+
+      await broker.call(
+        'nbp-monitor.snapshot',
+        { bdewCode: 'TEN1', refresh: true },
+        { meta: { tenantId: 'stadtwerk-a' } }
+      );
+      await broker.call(
+        'nbp-monitor.snapshot',
+        { bdewCode: 'TEN1', refresh: false },
+        { meta: { tenantId: 'stadtwerk-a' } }
+      );
+      await broker.call(
+        'nbp-monitor.snapshot',
+        { bdewCode: 'TEN1', refresh: false },
+        { meta: { tenantId: 'stadtwerk-b' } }
+      );
+
+      expect(callCount).toBe(2);
+    });
+
     it('should return empty-safe snapshot when assets.all returns no rows', async () => {
       assetsHandler = () => [];
       const result = await broker.call('nbp-monitor.snapshot', {
@@ -443,6 +469,19 @@ describe('nbp-monitor.service', () => {
       expect(stored.payload).toMatchObject({ PV: expect.any(Object) });
     });
 
+    it('should persist parameters in tenant-specific namespace', async () => {
+      await broker.call(
+        'nbp-monitor.setParameters',
+        { parameters: validParams },
+        { meta: { tenantId: 'stadtwerk-a' } }
+      );
+      const stored = await broker.call('object-store.get', {
+        namespace: 'tenant:stadtwerk-a:nbp_monitor',
+        key: 'parameters',
+      });
+      expect(stored.payload.PV.volllaststunden).toBe(1000);
+    });
+
     it('should return success true', async () => {
       const r = await broker.call('nbp-monitor.setParameters', { parameters: validParams });
       expect(r.success).toBe(true);
@@ -462,6 +501,30 @@ describe('nbp-monitor.service', () => {
       // Next snapshot call should hit assets again
       await broker.call('nbp-monitor.snapshot', { bdewCode: 'CACHE1', refresh: false });
       expect(callCount).toBe(2);
+    });
+
+    it('should keep parameter reads isolated per tenant', async () => {
+      await broker.call(
+        'nbp-monitor.setParameters',
+        { parameters: validParams },
+        { meta: { tenantId: 'stadtwerk-a' } }
+      );
+
+      const tenantA = await broker.call(
+        'nbp-monitor.getParameters',
+        {},
+        { meta: { tenantId: 'stadtwerk-a' } }
+      );
+      const tenantB = await broker.call(
+        'nbp-monitor.getParameters',
+        {},
+        { meta: { tenantId: 'stadtwerk-b' } }
+      );
+
+      expect(tenantA.source).toBe('store');
+      expect(tenantA.parameters.PV.volllaststunden).toBe(1000);
+      expect(tenantB.source).toBe('defaults');
+      expect(tenantB.parameters.PV.volllaststunden).toBe(950);
     });
 
     it('should reject missing technology entry', async () => {

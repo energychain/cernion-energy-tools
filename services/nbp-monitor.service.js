@@ -16,7 +16,11 @@
 
 'use strict';
 
+const { getTenantId, tenantNamespace } = require('../src/tenant-context');
+
 const NBP_SCHEMA_VERSION = '1.0';
+const PARAMETERS_NAMESPACE = 'nbp_monitor';
+const PARAMETERS_KEY = 'parameters';
 
 const DEFAULT_PARAMETERS = {
   PV: { volllaststunden: 950, einspeiseverguetung_ctKWh: 8.2 },
@@ -419,23 +423,15 @@ module.exports = {
       },
       async handler(ctx) {
         const { bdewCode, refresh } = ctx.params;
-        const cacheKey = `nbp-monitor:${bdewCode}`;
+        const tenantId = getTenantId(ctx);
+        const cacheKey = this.getCacheKey(bdewCode, tenantId);
 
         if (!refresh && this.cache.has(cacheKey)) {
           const cached = this.cache.get(cacheKey);
           if (Date.now() < cached.expiresAt) return cached.data;
         }
 
-        let parameters;
-        try {
-          const stored = await ctx.call('object-store.get', {
-            namespace: 'nbp_monitor',
-            key: 'parameters',
-          });
-          parameters = stored.payload;
-        } catch (_) {
-          parameters = { ...DEFAULT_PARAMETERS };
-        }
+        const { parameters } = await this.loadParameters(ctx);
         const { vnbSeitigThresholdWeeks, altlastThresholdWeeks } = this.settings;
 
         let resolvedGridOperatorId = null;
@@ -546,22 +542,7 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        let parameters = { ...DEFAULT_PARAMETERS };
-        let source = 'defaults';
-        try {
-          const stored = await ctx.call('object-store.get', {
-            namespace: 'nbp_monitor',
-            key: 'parameters',
-          });
-          parameters = stored.payload;
-          source = 'store';
-        } catch (_) {
-          // no stored parameters — use defaults
-        }
-        return {
-          source,
-          parameters,
-        };
+        return this.loadParameters(ctx);
       },
     },
 
@@ -607,14 +588,13 @@ module.exports = {
       },
       async handler(ctx) {
         const validated = this.validateParameters(ctx.params.parameters);
+        const tenantId = getTenantId(ctx);
         await ctx.call('object-store.put', {
-          namespace: 'nbp_monitor',
-          key: 'parameters',
+          namespace: this.getParametersNamespace(ctx),
+          key: PARAMETERS_KEY,
           payload: validated,
         });
-        for (const key of this.cache.keys()) {
-          if (key.startsWith('nbp-monitor:')) this.cache.delete(key);
-        }
+        this.clearTenantCache(tenantId);
         return {
           success: true,
           message: 'Parameters saved and NBP Monitor cache invalidated.',
@@ -643,14 +623,16 @@ module.exports = {
         },
       },
       async handler(ctx) {
+        const tenantId = getTenantId(ctx);
         try {
-          await ctx.call('object-store.delete', { namespace: 'nbp_monitor', key: 'parameters' });
+          await ctx.call('object-store.delete', {
+            namespace: this.getParametersNamespace(ctx),
+            key: PARAMETERS_KEY,
+          });
         } catch (_) {
           /* ignore — key may not exist */
         }
-        for (const key of this.cache.keys()) {
-          if (key.startsWith('nbp-monitor:')) this.cache.delete(key);
-        }
+        this.clearTenantCache(tenantId);
         return {
           success: true,
           message: 'NBP Monitor parameters reset to defaults and cache invalidated.',
@@ -661,6 +643,41 @@ module.exports = {
   },
 
   methods: {
+    getParametersNamespace(ctx) {
+      return tenantNamespace(PARAMETERS_NAMESPACE, getTenantId(ctx));
+    },
+
+    getCacheKey(bdewCode, tenantId) {
+      return `nbp-monitor:${tenantId}:${bdewCode}`;
+    },
+
+    clearTenantCache(tenantId) {
+      const prefix = `nbp-monitor:${tenantId}:`;
+      for (const key of this.cache.keys()) {
+        if (key.startsWith(prefix)) {
+          this.cache.delete(key);
+        }
+      }
+    },
+
+    async loadParameters(ctx) {
+      try {
+        const stored = await ctx.call('object-store.get', {
+          namespace: this.getParametersNamespace(ctx),
+          key: PARAMETERS_KEY,
+        });
+        return {
+          source: 'store',
+          parameters: stored.payload,
+        };
+      } catch (_) {
+        return {
+          source: 'defaults',
+          parameters: { ...DEFAULT_PARAMETERS },
+        };
+      }
+    },
+
     /**
      * Validates a parameters object against the required schema.
      * Returns a clean, normalised copy or throws on validation failure.

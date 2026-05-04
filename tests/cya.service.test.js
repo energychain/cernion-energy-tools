@@ -1035,3 +1035,134 @@ describe('cya.service', () => {
     });
   });
 });
+
+// ── Multi-tenant isolation tests ──────────────────────────────────────────────
+describe('multi-tenant CYA isolation', () => {
+  let isolationBroker;
+
+  beforeAll(async () => {
+    isolationBroker = new ServiceBroker({ logger: false });
+
+    isolationBroker.createService({
+      name: 'query',
+      actions: {
+        ask: {
+          handler() {
+            return { answer: 'ok', data: { kpi: 1 }, sources: [], metadata: { executionTime: 0.1 } };
+          },
+        },
+      },
+    });
+
+    isolationBroker.createService({
+      name: 'energy-market',
+      actions: {
+        installations: {
+          handler() {
+            return { success: true, data: { installations: [] } };
+          },
+        },
+      },
+    });
+
+    isolationBroker.createService({
+      ...ObjectStoreService,
+      settings: {
+        ...ObjectStoreService.settings,
+        dbPath: `./data/object-store-cya-isolation-${Date.now()}`,
+      },
+    });
+
+    isolationBroker.createService(CyaService);
+    await isolationBroker.start();
+  }, 30000);
+
+  afterAll(async () => {
+    await isolationBroker.stop();
+  });
+
+  it('profiles for two tenants are fully isolated', async () => {
+    const profileId = 'shared_profile_id';
+
+    await isolationBroker.call(
+      'cya.createProfile',
+      { profile_id: profileId, actor: { role: 'grid_operator', organization: 'Tenant A GmbH' }, strategic_goals: ['Ziel A'] },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+
+    await isolationBroker.call(
+      'cya.createProfile',
+      { profile_id: profileId, actor: { role: 'supplier', organization: 'Tenant B GmbH' }, strategic_goals: ['Ziel B'] },
+      { meta: { tenantId: 'tenant-b' } }
+    );
+
+    const profileA = await isolationBroker.call('cya.getProfile', { profile_id: profileId }, { meta: { tenantId: 'tenant-a' } });
+    const profileB = await isolationBroker.call('cya.getProfile', { profile_id: profileId }, { meta: { tenantId: 'tenant-b' } });
+
+    expect(profileA.profile.actor.role).toBe('grid_operator');
+    expect(profileA.profile.actor.organization).toBe('Tenant A GmbH');
+
+    expect(profileB.profile.actor.role).toBe('supplier');
+    expect(profileB.profile.actor.organization).toBe('Tenant B GmbH');
+  });
+
+  it('sessions for two tenants do not cross over (generate then refine)', async () => {
+    const profileId = 'iso_profile';
+    const profilePayload = {
+      profile_id: profileId,
+      actor: { role: 'grid_operator', organization: 'Isolation VNB' },
+      strategic_goals: ['Stresstest'],
+    };
+    await isolationBroker.call('cya.createProfile', profilePayload, { meta: { tenantId: 'iso-a' } });
+    await isolationBroker.call('cya.createProfile', profilePayload, { meta: { tenantId: 'iso-b' } });
+
+    const genA = await isolationBroker.call(
+      'cya.generate',
+      { profile_id: profileId, target_audience: 'Aufsichtsrat', context: { location: 'Heidelberg', trigger: 'Test', focus_areas: ['capacity'] } },
+      { meta: { tenantId: 'iso-a' } }
+    );
+    expect(genA.success).toBe(true);
+
+    // Tenant B must not find Tenant A's session
+    await expect(
+      isolationBroker.call('cya.refine', { session_id: genA.session_id, user_feedback: 'Fokus' }, { meta: { tenantId: 'iso-b' } })
+    ).rejects.toMatchObject({ code: 404 });
+
+    // Tenant A can refine its own session
+    const refinedA = await isolationBroker.call(
+      'cya.refine',
+      { session_id: genA.session_id, user_feedback: 'Bitte konkreter.' },
+      { meta: { tenantId: 'iso-a' } }
+    );
+    expect(refinedA.success).toBe(true);
+    // Status may be completed or needs_clarification depending on grounding; the key assertion
+    // is that refine succeeded (no 404) and Tenant B cannot access the session.
+    expect(['completed', 'needs_clarification']).toContain(refinedA.status);
+  });
+
+  it('profile.update for two tenants with same id is isolated', async () => {
+    const profileId = 'shared_upd_profile';
+    await isolationBroker.call(
+      'cya.createProfile',
+      { profile_id: profileId, actor: { role: 'grid_operator' }, strategic_goals: ['A'] },
+      { meta: { tenantId: 'upd-a' } }
+    );
+    await isolationBroker.call(
+      'cya.createProfile',
+      { profile_id: profileId, actor: { role: 'supplier' }, strategic_goals: ['B'], tone: 'neutral' },
+      { meta: { tenantId: 'upd-b' } }
+    );
+
+    await isolationBroker.call(
+      'cya.profile.update',
+      { id: profileId, tone: 'sachlich' },
+      { meta: { tenantId: 'upd-a' } }
+    );
+
+    const profileA = await isolationBroker.call('cya.getProfile', { profile_id: profileId }, { meta: { tenantId: 'upd-a' } });
+    const profileB = await isolationBroker.call('cya.getProfile', { profile_id: profileId }, { meta: { tenantId: 'upd-b' } });
+
+    expect(profileA.profile.tone).toBe('sachlich');
+    expect(profileB.profile.tone).toBe('neutral');
+  });
+});

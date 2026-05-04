@@ -1,6 +1,7 @@
 'use strict';
 
 const { MoleculerClientError } = require('moleculer').Errors;
+const { getTenantId, tenantNamespace } = require('../src/tenant-context');
 const {
   calculateBalance,
   calculateVirtualBkBalance,
@@ -307,7 +308,7 @@ module.exports = {
       },
       async handler(ctx) {
         await ctx.call('object-store.delete', {
-          namespace: NS_BILANZKREISE,
+          namespace: this.resolveNamespace(ctx, NS_BILANZKREISE),
           key: ctx.params.id,
         });
         return { success: true, id: ctx.params.id };
@@ -578,9 +579,13 @@ module.exports = {
   },
 
   methods: {
+    resolveNamespace(ctx, namespace) {
+      return tenantNamespace(namespace, getTenantId(ctx));
+    },
+
     async putStoredObject(ctx, namespace, key, payload) {
       await ctx.call('object-store.put', {
-        namespace,
+        namespace: this.resolveNamespace(ctx, namespace),
         key,
         payload,
       });
@@ -589,7 +594,7 @@ module.exports = {
     async getStoredObject(ctx, namespace, key, throwIfMissing = true) {
       try {
         const result = await ctx.call('object-store.get', {
-          namespace,
+          namespace: this.resolveNamespace(ctx, namespace),
           key,
         });
         return result?.payload || result?.value || result?.data || null;
@@ -604,7 +609,9 @@ module.exports = {
 
     async listNamespace(ctx, namespace) {
       try {
-        const result = await ctx.call('object-store.list', { namespace });
+        const result = await ctx.call('object-store.list', {
+          namespace: this.resolveNamespace(ctx, namespace),
+        });
         if (Array.isArray(result?.data)) return result.data;
         if (Array.isArray(result)) return result;
       } catch (_error) {
@@ -612,7 +619,7 @@ module.exports = {
       }
 
       const result = await ctx.call('object-store.query', {
-        namespace,
+        namespace: this.resolveNamespace(ctx, namespace),
         selector: {},
         limit: 1000,
         skip: 0,

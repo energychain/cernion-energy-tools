@@ -8,6 +8,7 @@ const { ServiceBroker } = require('moleculer');
 const os = require('os');
 const path = require('path');
 const ObjectStoreService = require('../services/object-store.service');
+const VNB_MONITOR_DEFAULTS = require('../src/vnb-monitor-defaults');
 
 describe('vnb-monitor.service', () => {
   let broker;
@@ -429,6 +430,20 @@ describe('vnb-monitor.service', () => {
       expect(elapsed).toBeLessThan(100);
       expect(result.schemaVersion).toBe('1.0');
     });
+
+    it('should isolate cached snapshots by tenant', async () => {
+      const tenantA = { meta: { tenantId: 'stadtwerk-a' } };
+      const tenantB = { meta: { tenantId: 'stadtwerk-b' } };
+      const svc = broker.getLocalService('vnb-monitor');
+
+      await broker.call('vnb-monitor.snapshot', { bdewCode: '10002954', refresh: true }, tenantA);
+      await broker.call('vnb-monitor.snapshot', { bdewCode: '10002954', refresh: false }, tenantA);
+      await broker.call('vnb-monitor.snapshot', { bdewCode: '10002954', refresh: false }, tenantB);
+
+      expect(svc.cache.has('vnb-monitor:stadtwerk-a:10002954')).toBe(true);
+      expect(svc.cache.has('vnb-monitor:stadtwerk-b:10002954')).toBe(true);
+      expect(svc.cache.size).toBeGreaterThanOrEqual(2);
+    });
   });
 
   describe('snapshotMulti action', () => {
@@ -520,6 +535,72 @@ describe('vnb-monitor.service', () => {
       });
 
       expect(result.cleared).toBe(true);
+    });
+
+    it('should clear cache only for the active tenant', async () => {
+      const tenantA = { meta: { tenantId: 'stadtwerk-a' } };
+      const tenantB = { meta: { tenantId: 'stadtwerk-b' } };
+      const svc = broker.getLocalService('vnb-monitor');
+
+      await broker.call('vnb-monitor.snapshot', { bdewCode: '10002954', refresh: true }, tenantA);
+      await broker.call('vnb-monitor.snapshot', { bdewCode: '10002954', refresh: true }, tenantB);
+
+      await broker.call('vnb-monitor.clearCache', { bdewCode: '10002954' }, tenantA);
+
+      expect(svc.cache.has('vnb-monitor:stadtwerk-a:10002954')).toBe(false);
+      expect(svc.cache.has('vnb-monitor:stadtwerk-b:10002954')).toBe(true);
+    });
+  });
+
+  describe('threshold tenant isolation', () => {
+    const defaults = JSON.parse(JSON.stringify(VNB_MONITOR_DEFAULTS.thresholds));
+
+    it('should persist custom thresholds in tenant-specific namespace', async () => {
+      const key = 'ewk.anschlussdauer.eeNS_weeks';
+      const customThresholds = {
+        ...defaults,
+        [key]: {
+          ...defaults[key],
+          warning: 99,
+          critical: 120,
+        },
+      };
+
+      await broker.call(
+        'vnb-monitor.setThresholds',
+        { thresholds: customThresholds },
+        { meta: { tenantId: 'stadtwerk-a' } }
+      );
+
+      const stored = await broker.call('object-store.get', {
+        namespace: 'tenant:stadtwerk-a:vnb_monitor',
+        key: 'thresholds',
+      });
+      expect(stored.payload[key].warning).toBe(99);
+    });
+
+    it('should keep threshold reads isolated per tenant', async () => {
+      const tenantA = { meta: { tenantId: 'stadtwerk-a' } };
+      const tenantB = { meta: { tenantId: 'stadtwerk-b' } };
+      const key = 'ewk.anschlussdauer.eeNS_weeks';
+      const customThresholds = {
+        ...defaults,
+        [key]: {
+          ...defaults[key],
+          warning: 77,
+          critical: 101,
+        },
+      };
+
+      await broker.call('vnb-monitor.setThresholds', { thresholds: customThresholds }, tenantA);
+
+      const fromA = await broker.call('vnb-monitor.getThresholds', {}, tenantA);
+      const fromB = await broker.call('vnb-monitor.getThresholds', {}, tenantB);
+
+      expect(fromA.source).toBe('store');
+      expect(fromA.thresholds[key].warning).toBe(77);
+      expect(fromB.source).toBe('defaults');
+      expect(fromB.thresholds[key].warning).toBe(defaults[key].warning);
     });
   });
 
