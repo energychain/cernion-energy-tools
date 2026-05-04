@@ -20,7 +20,7 @@ const {
 const { A2A_NAMESPACE } = require('../src/cya-a2a-protocol');
 
 const OPENAPI_TAG = 'Finance Agent';
-const PIPELINE_VERSION = '0.40.2';
+const PIPELINE_VERSION = '0.40.3';
 const FINANCE_OEO_CLASS = ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'];
 const MODE_VALUES = ['rule_only', 'rule_plus_hyde'];
 const FINANCE_MEMORY_NAMESPACE = process.env.FINANCE_AGENT_MEMORY_NAMESPACE || 'finance_agent_memory';
@@ -83,6 +83,7 @@ module.exports = {
         includeDatapointsContext: { type: 'boolean', optional: true, default: true },
         contextLimit: { type: 'number', optional: true, default: 5, min: 1, max: 20, convert: true },
         persistMemory: { type: 'boolean', optional: true, default: true },
+        collection: { type: 'string', optional: true, default: 'cernion_knowledge_v1' },
       },
       openapi: {
         summary: 'Analyze finance/regulatory questions with evidence-bound synthesis',
@@ -123,6 +124,11 @@ module.exports = {
                   includeDatapointsContext: { type: 'boolean', default: true },
                   contextLimit: { type: 'integer', minimum: 1, maximum: 20, default: 5 },
                   persistMemory: { type: 'boolean', default: true },
+                  collection: {
+                    type: 'string',
+                    default: 'cernion_knowledge_v1',
+                    description: 'Optional knowledge collection name for RAG retrieval.',
+                  },
                 },
               },
               examples: {
@@ -140,6 +146,7 @@ module.exports = {
                     includeDatapointsContext: true,
                     contextLimit: 5,
                     persistMemory: true,
+                    collection: 'cernion_knowledge_v1',
                   },
                 },
               },
@@ -400,6 +407,7 @@ module.exports = {
       const minScore = params.minScore ?? 0.35;
       const query = String(params.query || '').trim();
       const sessionId = String(params.sessionId || '').trim() || null;
+      const collection = params.collection || 'cernion_knowledge_v1';
 
       if (!query) {
         throw new MoleculerClientError('query is required', 400, 'VALIDATION_ERROR');
@@ -439,7 +447,7 @@ module.exports = {
         });
       }
 
-      const retrieval = await this.retrieveEvidence(ctx, plan, query);
+      const retrieval = await this.retrieveEvidence(ctx, plan, query, collection);
       findings.push(
         createFinding(
           2,
@@ -807,7 +815,7 @@ module.exports = {
       }
     },
 
-    async retrieveEvidence(ctx, plan, originalQuery) {
+    async retrieveEvidence(ctx, plan, originalQuery, collectionName = 'cernion_knowledge_v1') {
       const evidence = [];
       let totalRaw = 0;
 
@@ -817,6 +825,7 @@ module.exports = {
           {
             ...intent,
             query: intent.query || originalQuery,
+            collection: collectionName,
           },
           { meta: ctx.meta }
         );
