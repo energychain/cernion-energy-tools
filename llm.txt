@@ -2,8 +2,8 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.40.2
-- changelog_latest_release: 0.40.2
+- version: 0.40.3
+- changelog_latest_release: 0.40.3
 - source_files_hash:
   - CHANGELOG.md: 938cb393855a2f157708c09ba714f6e0b6fd8ffc35a7627e6a278b24624cbe91
   - README.md: e1ede8ad6c37eb332e9714b5aee0cf14db17638c356b700403da076a5991c14b

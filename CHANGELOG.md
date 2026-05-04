@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.40.3] — Finance Agent RAG Collection Parameter Fix
+
+### Fixed
+- **Finance Agent RAG query bug** in `services/finance-agent.service.js`:
+  - Fixed missing `collection` parameter propagation to `knowledge-rag.query` calls
+  - `POST /api/finance-agent/analyze` now accepts optional `collection` parameter (default: `cernion_knowledge_v1`)
+  - Added `collection: { type: 'string', optional: true, default: 'cernion_knowledge_v1' }` to action params
+  - Updated `retrieveEvidence(ctx, plan, originalQuery, collectionName)` method signature
+  - `collection: collectionName` now properly passed to `ctx.call('knowledge-rag.query', ...)`
+  - This fix enables targeted RAG retrieval against specific knowledge collections, resolving "no hits found" issues
+
+### Tests
+- Verified Finance Agent OpenAPI schema includes `collection` parameter
+- Verified `knowledge-rag.query` receives collection name in payload
+
 ## [0.40.2] — Finance Agent Session Memory + A2A Context
 
 ### Added
