@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 const { MoleculerClientError } = require('moleculer').Errors;
+const { getTenantId } = require('../src/tenant-context');
 const {
   createFinding,
   summarizeFindings,
@@ -159,7 +160,7 @@ module.exports = {
         persistMemory: { type: 'boolean', optional: true, default: true },
         persistDatapoints: { type: 'boolean', optional: true, default: false },
         allowHypotheticals: { type: 'boolean', optional: true, default: false },
-        collection: { type: 'string', optional: true, default: 'cernion_knowledge_v1' },
+        collection: { type: 'string', optional: true, default: 'tenant:{tenantId}:knowledge' },
       },
       openapi: {
         summary: 'Analyze finance/regulatory questions with evidence-bound synthesis',
@@ -224,8 +225,9 @@ module.exports = {
                   },
                   collection: {
                     type: 'string',
-                    default: 'cernion_knowledge_v1',
-                    description: 'Optional knowledge collection name for RAG retrieval.',
+                    default: 'tenant:{tenantId}:knowledge',
+                    description:
+                      'Optional knowledge collection name for RAG retrieval. Defaults to tenant-local knowledge collection.',
                   },
                 },
               },
@@ -248,7 +250,7 @@ module.exports = {
                     persistMemory: true,
                     persistDatapoints: false,
                     allowHypotheticals: false,
-                    collection: 'cernion_knowledge_v1',
+                    collection: 'tenant:stadtwerk-a:knowledge',
                   },
                 },
               },
@@ -520,7 +522,8 @@ module.exports = {
         ? params.datapointContext.filter((v) => typeof v === 'string' && v.trim()).slice(0, 20)
         : [];
       const allowHypotheticals = params.allowHypotheticals === true;
-      const collection = params.collection || 'cernion_knowledge_v1';
+      const collection =
+        params.collection || `tenant:${getTenantId(ctx)}:knowledge`;
 
       if (!query) {
         throw new MoleculerClientError('query is required', 400, 'VALIDATION_ERROR');

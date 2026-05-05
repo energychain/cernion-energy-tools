@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.42.0",
+    "version": "0.43.1",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -48,7 +48,7 @@
     },
     {
       "name": "Knowledge RAG",
-      "description": "HyDE-aware RAG access to the Cernion knowledge base via cernion_rag_search. Supports semantic search, scroll pagination, point fetch by IDs, and collection metadata."
+      "description": "HyDE-aware RAG access with tenant-local ingestion and vector indexing. Supports semantic search, scroll/fetch/collection info, collection lifecycle, datasource/audit ingestion, and reindex/cutover."
     },
     {
       "name": "Finance Agent",
@@ -3797,7 +3797,7 @@
     "/api/knowledge-rag/query": {
       "post": {
         "operationId": "knowledge-rag_query",
-        "summary": "Knowledge RAG query (semantic, scroll, fetch, collection_info)",
+        "summary": "Knowledge RAG query (external MCP + local tenant index)",
         "tags": [
           "Knowledge RAG"
         ],
@@ -3940,7 +3940,6 @@
             }
           }
         },
-        "description": "Async RAG wrapper for `cernion_rag_search` with full Qdrant-style filter support. Uses job pattern for REST calls (HTTP 202 + /api/jobs polling).",
         "requestBody": {
           "required": true,
           "content": {
@@ -4038,51 +4037,11 @@
               },
               "examples": {
                 "semantic": {
-                  "summary": "Semantic query with explicit metadata filters",
                   "value": {
                     "queryType": "semantic",
-                    "query": "Welche Festlegungen der BNetzA gibt es zum Netzanschluss?",
-                    "limit": 5,
-                    "filter": {
-                      "must": [
-                        {
-                          "key": "metadata.docType",
-                          "match": {
-                            "value": "Festlegung"
-                          }
-                        },
-                        {
-                          "key": "metadata.authority",
-                          "match": {
-                            "value": "BNetzA"
-                          }
-                        }
-                      ]
-                    }
-                  }
-                },
-                "scroll": {
-                  "summary": "Scroll first page",
-                  "value": {
-                    "queryType": "scroll",
-                    "limit": 10,
-                    "withPayload": false
-                  }
-                },
-                "fetch": {
-                  "summary": "Fetch by point IDs",
-                  "value": {
-                    "queryType": "fetch",
-                    "ids": [
-                      "doc-123",
-                      42
-                    ]
-                  }
-                },
-                "collectionInfo": {
-                  "summary": "Collection metadata",
-                  "value": {
-                    "queryType": "collection_info"
+                    "query": "Welche BNetzA Festlegungen sind relevant?",
+                    "collection": "tenant:stadtwerk-a:knowledge",
+                    "limit": 5
                   }
                 }
               }
@@ -4097,7 +4056,7 @@
     "/api/knowledge-rag/semantic": {
       "post": {
         "operationId": "knowledge-rag_semantic",
-        "summary": "Convenience semantic RAG endpoint",
+        "summary": "Convenience semantic endpoint",
         "tags": [
           "Knowledge RAG"
         ],
@@ -4240,7 +4199,6 @@
             }
           }
         },
-        "description": "Shortcut endpoint that forces queryType=semantic. Supports full Qdrant-style filtering.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4253,36 +4211,25 @@
                 "properties": {
                   "query": {
                     "type": "string",
-                    "example": "Welche Festlegungen der BNetzA gibt es zum Netzanschluss?"
+                    "example": "Welche CAPEX-Regeln gelten?"
+                  },
+                  "collection": {
+                    "type": "string",
+                    "example": "tenant:stadtwerk-a:knowledge"
                   },
                   "limit": {
                     "type": "number",
-                    "minimum": 1,
-                    "maximum": 100,
                     "default": 10,
                     "example": 5
                   },
                   "scoreThreshold": {
                     "type": "number",
-                    "example": 0.4
+                    "example": 0.3
                   },
                   "filter": {
                     "type": "object",
                     "example": {
-                      "must": [
-                        {
-                          "key": "metadata.docType",
-                          "match": {
-                            "value": "Festlegung"
-                          }
-                        },
-                        {
-                          "key": "metadata.authority",
-                          "match": {
-                            "value": "BNetzA"
-                          }
-                        }
-                      ]
+                      "must": []
                     }
                   },
                   "withPayload": {
@@ -4300,24 +4247,9 @@
               "examples": {
                 "default": {
                   "value": {
-                    "query": "Welche Festlegungen der BNetzA gibt es zum Netzanschluss?",
-                    "limit": 5,
-                    "filter": {
-                      "must": [
-                        {
-                          "key": "metadata.docType",
-                          "match": {
-                            "value": "Festlegung"
-                          }
-                        },
-                        {
-                          "key": "metadata.authority",
-                          "match": {
-                            "value": "BNetzA"
-                          }
-                        }
-                      ]
-                    }
+                    "query": "Welche CAPEX-Regeln gelten?",
+                    "collection": "tenant:stadtwerk-a:knowledge",
+                    "limit": 5
                   }
                 }
               }
@@ -4332,7 +4264,7 @@
     "/api/knowledge-rag/scroll": {
       "post": {
         "operationId": "knowledge-rag_scroll",
-        "summary": "Convenience scroll endpoint for paginated retrieval",
+        "summary": "Convenience scroll endpoint",
         "tags": [
           "Knowledge RAG"
         ],
@@ -4475,7 +4407,6 @@
             }
           }
         },
-        "description": "Shortcut endpoint that forces queryType=scroll.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4483,38 +4414,30 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "collection": {
+                    "type": "string",
+                    "example": "tenant:stadtwerk-a:knowledge"
+                  },
                   "limit": {
                     "type": "number",
-                    "minimum": 1,
-                    "maximum": 100,
                     "default": 10,
                     "example": 10
                   },
                   "offset": {
                     "oneOf": [
                       {
-                        "type": "string"
-                      },
-                      {
                         "type": "number"
                       },
                       {
-                        "type": "object"
+                        "type": "string"
                       }
                     ],
-                    "example": "next_offset_token"
+                    "example": 0
                   },
                   "filter": {
                     "type": "object",
                     "example": {
-                      "must": [
-                        {
-                          "key": "metadata.authority",
-                          "match": {
-                            "value": "BNetzA"
-                          }
-                        }
-                      ]
+                      "must": []
                     }
                   },
                   "withPayload": {
@@ -4532,18 +4455,9 @@
               "examples": {
                 "default": {
                   "value": {
+                    "collection": "tenant:stadtwerk-a:knowledge",
                     "limit": 10,
-                    "offset": "next_offset_token",
-                    "filter": {
-                      "must": [
-                        {
-                          "key": "metadata.authority",
-                          "match": {
-                            "value": "BNetzA"
-                          }
-                        }
-                      ]
-                    }
+                    "offset": 0
                   }
                 }
               }
@@ -4558,7 +4472,7 @@
     "/api/knowledge-rag/fetch": {
       "post": {
         "operationId": "knowledge-rag_fetch",
-        "summary": "Convenience fetch endpoint for point IDs",
+        "summary": "Convenience fetch endpoint",
         "tags": [
           "Knowledge RAG"
         ],
@@ -4701,7 +4615,6 @@
             }
           }
         },
-        "description": "Shortcut endpoint that forces queryType=fetch.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4714,7 +4627,6 @@
                 "properties": {
                   "ids": {
                     "type": "array",
-                    "minItems": 1,
                     "items": {
                       "oneOf": [
                         {
@@ -4726,9 +4638,12 @@
                       ]
                     },
                     "example": [
-                      "doc-123",
-                      42
+                      "doc-1:1:abc123def0"
                     ]
+                  },
+                  "collection": {
+                    "type": "string",
+                    "example": "tenant:stadtwerk-a:knowledge"
                   },
                   "withPayload": {
                     "type": "boolean",
@@ -4745,12 +4660,10 @@
               "examples": {
                 "default": {
                   "value": {
+                    "collection": "tenant:stadtwerk-a:knowledge",
                     "ids": [
-                      "doc-123",
-                      42
-                    ],
-                    "withPayload": false,
-                    "withVectors": false
+                      "doc-1:1:abc123def0"
+                    ]
                   }
                 }
               }
@@ -4765,7 +4678,7 @@
     "/api/knowledge-rag/collection-info": {
       "post": {
         "operationId": "knowledge-rag_collectionInfo",
-        "summary": "Convenience endpoint for collection metadata",
+        "summary": "Convenience collection info endpoint",
         "tags": [
           "Knowledge RAG"
         ],
@@ -4908,7 +4821,6 @@
             }
           }
         },
-        "description": "Shortcut endpoint that forces queryType=collection_info.",
         "requestBody": {
           "required": true,
           "content": {
@@ -4916,6 +4828,10 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "collection": {
+                    "type": "string",
+                    "example": "tenant:stadtwerk-a:knowledge"
+                  },
                   "withPayload": {
                     "type": "boolean",
                     "default": false,
@@ -4931,8 +4847,7 @@
               "examples": {
                 "default": {
                   "value": {
-                    "withPayload": false,
-                    "withVectors": false
+                    "collection": "tenant:stadtwerk-a:knowledge"
                   }
                 }
               }
@@ -4942,6 +4857,599 @@
         "x-oeo-class": [
           "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
         ]
+      }
+    },
+    "/api/knowledge-rag/collections": {
+      "post": {
+        "operationId": "knowledge-rag_createCollection",
+        "summary": "Create tenant-isolated RAG collection",
+        "tags": [
+          "Knowledge RAG"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "tenant:stadtwerk-a:knowledge"
+                  },
+                  "chunking": {
+                    "type": "object",
+                    "example": {
+                      "mode": "markdown-section"
+                    }
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "example": {
+                      "domain": "regulatory"
+                    }
+                  },
+                  "embeddingModelVersion": {
+                    "type": "string",
+                    "default": "default",
+                    "example": "default"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "name": "tenant:stadtwerk-a:knowledge",
+                    "chunking": {
+                      "mode": "markdown-section"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge-rag/ingest": {
+      "post": {
+        "operationId": "knowledge-rag_ingest",
+        "summary": "Ingest documents into local RAG index",
+        "tags": [
+          "Knowledge RAG"
+        ],
+        "responses": {
+          "202": {
+            "description": "Job accepted and queued for async processing",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative URI to job status endpoint (/api/jobs/:jobId/status)"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Suggested polling interval in seconds"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "example": "6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ],
+                      "example": "queued"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Job started. Poll /api/jobs/:jobId/status for progress."
+                    },
+                    "statusUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status"
+                    },
+                    "resultUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "documents"
+                ],
+                "properties": {
+                  "collection": {
+                    "type": "string",
+                    "example": "tenant:stadtwerk-a:knowledge"
+                  },
+                  "documents": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "example": [
+                      {
+                        "text": "§21a EnWG ..."
+                      }
+                    ]
+                  },
+                  "chunking": {
+                    "type": "object",
+                    "example": {
+                      "mode": "paragraph"
+                    }
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "example": {
+                      "source": "internal-policy"
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "collection": "tenant:stadtwerk-a:knowledge",
+                    "documents": [
+                      {
+                        "id": "doc-1",
+                        "text": "§21a EnWG ..."
+                      }
+                    ],
+                    "chunking": {
+                      "mode": "paragraph"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge-rag/ingest/from-datasource": {
+      "post": {
+        "operationId": "knowledge-rag_ingestFromDatasource",
+        "summary": "Ingest from datasource cache/registry",
+        "tags": [
+          "Knowledge RAG"
+        ],
+        "responses": {
+          "202": {
+            "description": "Job accepted and queued for async processing",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative URI to job status endpoint (/api/jobs/:jobId/status)"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Suggested polling interval in seconds"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "example": "6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ],
+                      "example": "queued"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Job started. Poll /api/jobs/:jobId/status for progress."
+                    },
+                    "statusUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status"
+                    },
+                    "resultUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sourceId"
+                ],
+                "properties": {
+                  "collection": {
+                    "type": "string",
+                    "example": "tenant:stadtwerk-a:knowledge"
+                  },
+                  "sourceId": {
+                    "type": "string",
+                    "example": "source-1"
+                  },
+                  "limit": {
+                    "type": "number",
+                    "default": 200,
+                    "example": 200
+                  },
+                  "offset": {
+                    "type": "number",
+                    "default": 0,
+                    "example": 0
+                  },
+                  "rowsPerDocument": {
+                    "type": "number",
+                    "default": 40,
+                    "example": 40
+                  },
+                  "chunking": {
+                    "type": "object",
+                    "example": {
+                      "mode": "fixed-window"
+                    }
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "example": {
+                      "sourceClass": "datasource"
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "collection": "tenant:stadtwerk-a:knowledge",
+                    "sourceId": "source-1",
+                    "limit": 200
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge-rag/ingest/from-audit": {
+      "post": {
+        "operationId": "knowledge-rag_ingestFromAudit",
+        "summary": "Ingest self-knowledge from audit/report stores",
+        "tags": [
+          "Knowledge RAG"
+        ],
+        "responses": {
+          "202": {
+            "description": "Job accepted and queued for async processing",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative URI to job status endpoint (/api/jobs/:jobId/status)"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Suggested polling interval in seconds"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "example": "6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ],
+                      "example": "queued"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Job started. Poll /api/jobs/:jobId/status for progress."
+                    },
+                    "statusUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status"
+                    },
+                    "resultUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "collection": {
+                    "type": "string",
+                    "example": "tenant:stadtwerk-a:audit_history"
+                  },
+                  "auditTypes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "cya",
+                      "redispatch"
+                    ]
+                  },
+                  "limit": {
+                    "type": "number",
+                    "default": 10,
+                    "example": 10
+                  },
+                  "metadata": {
+                    "type": "object",
+                    "example": {
+                      "sourceClass": "audit"
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "auditTypes": [
+                      "cya",
+                      "mastr-quality"
+                    ],
+                    "limit": 10
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge-rag/collections/:name": {
+      "delete": {
+        "operationId": "knowledge-rag_removeCollection",
+        "summary": "Delete collection + chunks",
+        "tags": [
+          "Knowledge RAG"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge-rag/reindex/:collection": {
+      "post": {
+        "operationId": "knowledge-rag_reindex",
+        "summary": "Re-embed collection with new embedding model version",
+        "tags": [
+          "Knowledge RAG"
+        ],
+        "responses": {
+          "202": {
+            "description": "Job accepted and queued for async processing",
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Relative URI to job status endpoint (/api/jobs/:jobId/status)"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Suggested polling interval in seconds"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "jobId": {
+                      "type": "string",
+                      "example": "6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ],
+                      "example": "queued"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Job started. Poll /api/jobs/:jobId/status for progress."
+                    },
+                    "statusUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/status"
+                    },
+                    "resultUrl": {
+                      "type": "string",
+                      "example": "/api/jobs/6fd38b12-a3f4-41d5-8f49-e7f9c1b2d3e4/result"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "collection",
+                  "embeddingModelVersion"
+                ],
+                "properties": {
+                  "collection": {
+                    "type": "string",
+                    "example": "tenant:stadtwerk-a:knowledge"
+                  },
+                  "embeddingModelVersion": {
+                    "type": "string",
+                    "default": "default",
+                    "example": "embed-v2"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "collection": "tenant:stadtwerk-a:knowledge",
+                    "embeddingModelVersion": "embed-v2"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge-rag/cutover/:collection": {
+      "post": {
+        "operationId": "knowledge-rag_cutover",
+        "summary": "Cut over active model version in collection",
+        "tags": [
+          "Knowledge RAG"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "collection",
+                  "modelVersion"
+                ],
+                "properties": {
+                  "collection": {
+                    "type": "string",
+                    "example": "tenant:stadtwerk-a:knowledge"
+                  },
+                  "modelVersion": {
+                    "type": "string",
+                    "default": "default",
+                    "example": "embed-v2"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "collection": "tenant:stadtwerk-a:knowledge",
+                    "modelVersion": "embed-v2"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/grid-connection/validate": {
@@ -6422,8 +6930,8 @@
                   },
                   "collection": {
                     "type": "string",
-                    "default": "cernion_knowledge_v1",
-                    "description": "Optional knowledge collection name for RAG retrieval."
+                    "default": "tenant:{tenantId}:knowledge",
+                    "description": "Optional knowledge collection name for RAG retrieval. Defaults to tenant-local knowledge collection."
                   }
                 }
               },
@@ -6447,7 +6955,7 @@
                     "persistMemory": true,
                     "persistDatapoints": false,
                     "allowHypotheticals": false,
-                    "collection": "cernion_knowledge_v1"
+                    "collection": "tenant:stadtwerk-a:knowledge"
                   }
                 }
               }
@@ -15475,5 +15983,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.42.0"
+  "x-version": "0.43.1"
 }

@@ -55,6 +55,13 @@ describe('Knowledge RAG Service', () => {
     expect(actions.scroll.rest).toBe('POST /scroll');
     expect(actions.fetch.rest).toBe('POST /fetch');
     expect(actions.collectionInfo.rest).toBe('POST /collection-info');
+    expect(actions.createCollection.rest).toBe('POST /collections');
+    expect(actions.ingest.rest).toBe('POST /ingest');
+    expect(actions.ingestFromDatasource.rest).toBe('POST /ingest/from-datasource');
+    expect(actions.ingestFromAudit.rest).toBe('POST /ingest/from-audit');
+    expect(actions.removeCollection.rest).toBe('DELETE /collections/:name');
+    expect(actions.reindex.rest).toBe('POST /reindex/:collection');
+    expect(actions.cutover.rest).toBe('POST /cutover/:collection');
   });
 
   it('should run semantic query via canonical endpoint', async () => {

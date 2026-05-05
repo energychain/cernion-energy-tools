@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.43.1] — Knowledge-RAG Ingestion Pipeline (Closes #53)
+
+### Added
+- **Knowledge-RAG own ingestion pipeline** in [services/knowledge-rag.service.js](services/knowledge-rag.service.js):
+  - `POST /api/knowledge-rag/collections` — tenant-isolierte Collection-Erstellung (`tenant:{id}:knowledge` default)
+  - `POST /api/knowledge-rag/ingest` — Dokument-Ingest als Async-Job
+  - `POST /api/knowledge-rag/ingest/from-datasource` — Ingest aus `datasource-registry` + `datasource-cache`
+  - `POST /api/knowledge-rag/ingest/from-audit` — Self-Knowledge-Ingest (CYA, MaStR-Quality, Redispatch, Energy Sharing)
+  - `DELETE /api/knowledge-rag/collections/:name` — Collection + Chunk-Löschung
+  - `POST /api/knowledge-rag/reindex/:collection` — Re-Embedding auf neues Modell
+  - `POST /api/knowledge-rag/cutover/:collection` — aktives Modell-Version-Cutover
+- **Chunking utility** in [src/knowledge-rag-chunker.js](src/knowledge-rag-chunker.js):
+  - Strategien `paragraph`, `markdown-section`, `fixed-window`, `semantic`.
+
+### Changed
+- **Knowledge-RAG Query path erweitert**:
+  - Query-Endpunkte nutzen bei vorhandener lokaler Collection tenant-lokale Vektor-Retrieval-Logik,
+    andernfalls weiterhin MCP-Fallback über `cernion_rag_search`.
+- **Provenance für lokale Chunks**:
+  - pro Chunk: `sourceId`, `sourceVersion`, `sha256`, `oeoTags`, `tenantId`, `ingestedAt`, `modelVersion`.
+- **PII-Scrubbing ist verpflichtend im Ingest-Pfad**:
+  - strukturiert via `scrubForLLM(...)` und freitextlich via `scrubPromptText(...)` vor Persistenz/Embeddings.
+- **Finance-Agent tenant-default collection** in [services/finance-agent.service.js](services/finance-agent.service.js):
+  - Default Retrieval-Collection jetzt `tenant:{tenantId}:knowledge`.
+- **API Gateway erweitert** in [services/api.service.js](services/api.service.js):
+  - neue Knowledge-RAG-Aliases
+  - Full-Access-Schutz für write/reindex/cutover-Endpunkte.
+
+### Tests
+- Neue Test-Suites:
+  - [tests/knowledge-rag-ingest.test.js](tests/knowledge-rag-ingest.test.js)
+  - [tests/knowledge-rag-chunker.test.js](tests/knowledge-rag-chunker.test.js)
+- Erweiterte Suite:
+  - [tests/knowledge-rag.service.test.js](tests/knowledge-rag.service.test.js)
+
+### Notes
+- Reindex verwendet kontrolliertes Grace-Fenster: vorherige aktive Modellversion bleibt bis zu 7 Tage als `grace` markiert.
+
 ## [0.43.0] — LLM Provider Abstraction (Closes #52)
 
 ### Added

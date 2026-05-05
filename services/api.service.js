@@ -144,6 +144,27 @@ function requiresFullAccess(method, requestPath) {
   if (pathOnly.startsWith('/api/cya/profile') && m === 'POST') {
     return true;
   }
+  if (pathOnly === '/api/knowledge-rag/collections' && m === 'POST') {
+    return true;
+  }
+  if (pathOnly.startsWith('/api/knowledge-rag/collections/') && m === 'DELETE') {
+    return true;
+  }
+  if (pathOnly === '/api/knowledge-rag/ingest' && m === 'POST') {
+    return true;
+  }
+  if (pathOnly === '/api/knowledge-rag/ingest/from-datasource' && m === 'POST') {
+    return true;
+  }
+  if (pathOnly === '/api/knowledge-rag/ingest/from-audit' && m === 'POST') {
+    return true;
+  }
+  if (/^\/api\/knowledge-rag\/reindex\/[^/]+$/.test(pathOnly) && m === 'POST') {
+    return true;
+  }
+  if (/^\/api\/knowledge-rag\/cutover\/[^/]+$/.test(pathOnly) && m === 'POST') {
+    return true;
+  }
   if (pathOnly.startsWith('/api/mastr-monitor/watches') && (m === 'POST' || m === 'DELETE')) {
     if (pathOnly.includes('/subscribe/')) return false;
     if (pathOnly.endsWith('/subscribe')) return false;
@@ -219,8 +240,8 @@ module.exports = {
         {
           name: 'Knowledge RAG',
           description:
-            'HyDE-aware RAG access to the Cernion knowledge base via cernion_rag_search. ' +
-            'Supports semantic search, scroll pagination, point fetch by IDs, and collection metadata.',
+            'HyDE-aware RAG access with tenant-local ingestion and vector indexing. ' +
+            'Supports semantic search, scroll/fetch/collection info, collection lifecycle, datasource/audit ingestion, and reindex/cutover.',
         },
         {
           name: 'Finance Agent',
@@ -620,6 +641,13 @@ module.exports = {
           'POST /knowledge-rag/scroll': 'knowledge-rag.scroll',
           'POST /knowledge-rag/fetch': 'knowledge-rag.fetch',
           'POST /knowledge-rag/collection-info': 'knowledge-rag.collectionInfo',
+          'POST /knowledge-rag/collections': 'knowledge-rag.createCollection',
+          'POST /knowledge-rag/ingest': 'knowledge-rag.ingest',
+          'POST /knowledge-rag/ingest/from-datasource': 'knowledge-rag.ingestFromDatasource',
+          'POST /knowledge-rag/ingest/from-audit': 'knowledge-rag.ingestFromAudit',
+          'DELETE /knowledge-rag/collections/:name': 'knowledge-rag.removeCollection',
+          'POST /knowledge-rag/reindex/:collection': 'knowledge-rag.reindex',
+          'POST /knowledge-rag/cutover/:collection': 'knowledge-rag.cutover',
           // Grid Connection Validation (v0.14)
           'POST /grid-connection/validate': 'grid-connection.validate',
           'GET /grid-connection/validations': 'grid-connection.list',
