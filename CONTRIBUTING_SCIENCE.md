@@ -1,7 +1,8 @@
 # Contributing to Cernion — For Researchers & Ontology Developers
 
 > **TL;DR:** We have real-world energy grid data, cleaned and topology-resolved.
-> We need OEO experts to map it. One file. Pull Request welcome.
+> We now export it as OEO-aligned JSON-LD and welcome ontology-focused extensions,
+> stricter mappings and research integrations.
 
 ---
 
@@ -30,12 +31,21 @@ Edges encode real topological relationships:
 
 ---
 
-## What we need
+## What is available now
 
-**One Pull Request. One file.**
+Since `v0.42.0`, Cernion ships a productive OEO export path:
 
-`src/oeo-exporter-stub.js` contains a `transformToOEO()` function that currently
-throws `NOT_IMPLEMENTED`. We need you to implement it.
+- `GET /api/cya/graph/export/oeo` — productive JSON-LD export
+- `GET /api/cya/graph/export/oeo-stub` — deprecated compatibility alias until `2026-11-05`
+- `src/oeo-context.js` — central JSON-LD `@context`
+- `src/oeo-exporter-stub.js` — production transformer and mapping logic
+
+The exporter now:
+
+- maps Graphology node/edge types to OEO-aligned JSON-LD
+- pins the ontology release to `OEO 2.11.0`
+- exposes both `warnings[]` and `validationSummary`
+- supports SHACL-based regression validation in the test suite
 
 ### The task
 
@@ -43,15 +53,23 @@ Map our Graphology node/edge types to
 **[Open Energy Ontology (OEO)](https://github.com/OpenEnergyPlatform/ontology)**
 classes and object properties, and return valid JSON-LD.
 
-Suggested mappings (verify against current OEO):
+Current mapping surface:
 
 ```
-INSTALLATION  → oeo:PowerPlant (+ subclasses: oeo:PhotovoltaicPlant, oeo:WindTurbine ...)
+INSTALLATION  → oeo:PowerPlant (+ subclasses by EnergieTraeger)
 NAP           → oeo:GridConnectionPoint
 SUBSTATION    → oeo:Substation
-VNB           → oeo:ElectricityGridOperator
-REGION        → oeo:Region
+VNB           → oeo:GridOperator
+REGION        → oeo:GeographicRegion
+
+VERBUNDEN_MIT  → oeo:connectedTo
+LIEGT_IN       → oeo:locatedIn
+BETRIEBEN_VON  → oeo:operatedBy
+ZUSTAENDIG_FUER→ oeo:responsibleFor
 ```
+
+Unknown node/edge types do not fail the export. They are downgraded to warnings
+and surfaced in both `warnings[]` and `validationSummary`.
 
 ### How to test your implementation
 
@@ -61,17 +79,18 @@ git clone https://github.com/energychain/cernion-energy-tools
 cd cernion-energy-tools
 npm install
 
-# 2. Run the OEO stub endpoint
+# 2. Run the productive OEO endpoint
 npm start &
-curl http://localhost:3000/api/cya/graph/export/oeo-stub | jq .
+curl 'http://localhost:3000/api/cya/graph/export/oeo?operator=Pfalzwerke%20Netz%20AG' | jq .
 
-# 3. Implement transformToOEO() in src/oeo-exporter-stub.js
-#    Set NOT_IMPLEMENTED = false and implement the mapping
+# 3. Run the focused exporter + endpoint + SHACL regression tests
+NODE_OPTIONS=--experimental-vm-modules npx jest \
+  tests/oeo-exporter-stub.test.js \
+  tests/cya.oeo-export.test.js \
+  tests/oeo-exporter-shacl.test.js \
+  --runInBand
 
-# 4. Run the test suite
-npx jest tests/oeo-exporter-stub.test.js --runInBand
-
-# 5. Open a Pull Request
+# 4. Open a Pull Request with mapping/shape improvements
 ```
 
 ---
@@ -86,7 +105,7 @@ If you are working with:
 - **[oeplatform](https://github.com/OpenEnergyPlatform/oeplatform)** — Open Energy Platform tools
 - **[OEO](https://github.com/OpenEnergyPlatform/ontology)** — Open Energy Ontology development
 
-...then a working `transformToOEO()` implementation would allow your models to
+...then the productive `transformToOEO()` implementation allows your models to
 consume real grid topology and installed capacity data directly from an
 operational platform — bridging the gap between simulation and reality.
 
@@ -95,12 +114,15 @@ operational platform — bridging the gap between simulation and reality.
 ## Contribution guidelines
 
 - **Scope:** Only `src/oeo-exporter-stub.js` needs to change for the core mapping.
-  You may add a test file `tests/oeo-exporter-stub.test.js`.
+  Context/version changes belong in `src/oeo-context.js`; regression tests live in
+  `tests/oeo-exporter-stub.test.js`, `tests/cya.oeo-export.test.js` and
+  `tests/oeo-exporter-shacl.test.js`.
 - **No breaking changes:** Do not modify `src/cya-ontology-graph.js` graph structure.
-- **OEO version:** Please state which OEO release your mapping targets in the PR description.
-- **JSON-LD framing:** If you add a JSON-LD `@frame`, place it in `src/oeo-frame.jsonld`.
-- **Tests:** At least one test that calls `transformToOEO()` with the Höheinöd fixture
-  and validates the `@type` of a node.
+- **OEO version:** `v0.42.0` pins the exporter to `OEO 2.11.0`.
+- **Version policy:** If you change the pin, update `src/oeo-context.js`, tests and release notes together.
+- **JSON-LD framing:** Keep the central `@context` in `src/oeo-context.js`.
+- **Tests:** Preserve SHACL validation for the Höheinöd fixture and keep `warnings[]`
+  plus `validationSummary` behavior stable.
 
 ---
 

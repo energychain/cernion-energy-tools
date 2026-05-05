@@ -1,6 +1,6 @@
 {
   "name": "cernion-energy-tools",
-  "version": "0.41.0",
+  "version": "0.42.0",
   "description": "MicroService Agent System for Energy Markets",
   "main": "index.js",
   "scripts": {
@@ -12,14 +12,14 @@
     "lint:fix": "eslint . --fix",
     "lint:hygiene": "ESLINT_USE_FLAT_CONFIG=false eslint services/ src/ --config .eslintrc.hygiene.json --format unix --no-eslintrc 2>/dev/null > feedback/eslint-findings.txt && wc -l feedback/eslint-findings.txt",
     "format": "prettier --write \"**/*.js\"",
-    "test": "jest --coverage",
-    "test:unit": "jest --coverage --testPathIgnorePatterns=\"tests/.*\\.integration\\.test\\.js|custom-tests\"",
-    "test:unit:ci": "jest --coverage --runInBand --forceExit --testPathIgnorePatterns=\"tests/.*\\.integration\\.test\\.js|custom-tests\"",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "test:unit": "NODE_OPTIONS=--experimental-vm-modules jest --coverage --testPathIgnorePatterns=\"tests/.*\\.integration\\.test\\.js|custom-tests\"",
+    "test:unit:ci": "NODE_OPTIONS=--experimental-vm-modules jest --coverage --runInBand --forceExit --testPathIgnorePatterns=\"tests/.*\\.integration\\.test\\.js|custom-tests\"",
     "test:e2e": "jest --no-coverage tests/assets.integration.test.js",
     "test:e2e:enterprise": "jest tests/e2e-enterprise-hoeheinoed.test.js --runInBand --forceExit",
     "test:custom": "jest --coverage=false --testPathPatterns=custom-tests",
-    "test:watch": "jest --watch",
-    "test:integration": "jest --coverage=false --testMatch=\"**/tests/**/*.integration.test.js\"",
+    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
+    "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --coverage=false --testMatch=\"**/tests/**/*.integration.test.js\"",
     "test:live": "jest --no-coverage tests/assets.integration.test.js",
     "audit:openapi": "node scripts/audit-openapi.js",
     "audit:security": "node scripts/audit-security.js",
@@ -77,6 +77,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@zazuko/env-node": "^3.0.0",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-node": "^11.1.0",
@@ -84,6 +85,8 @@
     "eslint-plugin-security": "^4.0.0",
     "eslint-plugin-sonarjs": "^4.0.3",
     "jest": "^30.3.0",
-    "prettier": "^3.8.1"
+    "n3": "^1.26.0",
+    "prettier": "^3.8.1",
+    "rdf-validate-shacl": "^0.6.5"
   }
 }

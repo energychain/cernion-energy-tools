@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.42.0] — Productive OEO Export (Closes #50)
+
+### Added
+- **Productive OEO JSON-LD export** in `src/oeo-exporter-stub.js`:
+  - `transformToOEO()` now emits productive JSON-LD instead of throwing `OEO_NOT_IMPLEMENTED`.
+  - `NODE_TYPE_TO_OEO_CLASS` and `EDGE_TYPE_TO_OEO_PROPERTY` now map the CYA graph surface for `INSTALLATION`, `NAP`, `SUBSTATION`, `VNB`, `REGION` and `VERBUNDEN_MIT`, `LIEGT_IN`, `BETRIEBEN_VON`, `ZUSTAENDIG_FUER`.
+  - Installations are exported as `oeo:PowerPlant` with energy-carrier-specific subclasses where detectable.
+
+- **Central OEO JSON-LD context** in `src/oeo-context.js`:
+  - Pinned ontology version `2.11.0`
+  - Fixed release IRI `https://github.com/OpenEnergyPlatform/ontology/releases/tag/v2.11.0`
+  - Shared namespace/context source for exporter and tests.
+
+- **New CYA export endpoint** in `services/cya.service.js` and `services/api.service.js`:
+  - `GET /api/cya/graph/export/oeo` is now the canonical endpoint.
+  - `GET /api/cya/graph/export/oeo-stub` remains as a deprecated alias until `2026-11-05`.
+  - The response now includes `oeo`, `warnings`, `validationSummary`, `oeoVersion` and `oeoVersionIri`.
+
+### Changed
+- **OEO version pinning** is now enforced:
+  - Query parameter `oeoVersion` is accepted, but only the release-pinned version is valid.
+  - Unsupported versions return `UNSUPPORTED_OEO_VERSION` instead of silently drifting ontology semantics.
+
+- **Unknown graph types** no longer block exports:
+  - Unknown node and edge types are downgraded to `warnings[]`.
+  - `validationSummary` now aggregates mapped/unknown counts for regression visibility.
+
+- **Science documentation** in `CONTRIBUTING_SCIENCE.md` now documents the productive endpoint, version pinning and SHACL-based regression flow.
+
+### Tests
+- New and expanded OEO coverage:
+  - `tests/oeo-exporter-stub.test.js` expanded to productive mapping, versioning, warning and empty-graph coverage.
+  - `tests/cya.oeo-export.test.js` covers canonical endpoint behavior, deprecated alias behavior and version rejection.
+  - `tests/oeo-exporter-shacl.test.js` adds Höheinöd round-trip SHACL validation for the exported JSON-LD.
+- OEO-focused test matrix now covers 24 assertions, including SHACL pass, class/property mapping, warning handling, framing and version pinning.
+
 ## [0.41.0] — Multi-Tenant Platform (Closes #51)
 
 ### Added

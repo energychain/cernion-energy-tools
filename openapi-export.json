@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.41.0",
+    "version": "0.42.0",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -10342,16 +10342,16 @@
         ]
       }
     },
-    "/api/cya/graph/export/oeo-stub": {
+    "/api/cya/graph/export/oeo": {
       "get": {
-        "operationId": "cya_export_oeo-stub",
-        "summary": "OEO Export Stub (Science Hook)",
+        "operationId": "cya_export_oeo",
+        "summary": "OEO graph export as JSON-LD",
         "tags": [
           "CYA Agent"
         ],
         "responses": {
           "200": {
-            "description": "OEO JSON-LD skeleton export",
+            "description": "OEO JSON-LD export",
             "content": {
               "application/json": {
                 "schema": {
@@ -10360,22 +10360,83 @@
                     "ok": {
                       "type": "boolean"
                     },
-                    "oeoStub": {
+                    "oeo": {
                       "type": "object",
-                      "nullable": true,
-                      "description": "OEO JSON-LD stub (null until oeo-exporter-stub.js is implemented)"
+                      "description": "Validated OEO JSON-LD document"
                     },
                     "graphology": {
                       "type": "object",
                       "description": "Raw Graphology graph data"
+                    },
+                    "warnings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "severity": {
+                            "type": "string",
+                            "example": "warning"
+                          },
+                          "message": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "validationSummary": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string",
+                          "example": "ok"
+                        },
+                        "totalNodes": {
+                          "type": "number"
+                        },
+                        "totalEdges": {
+                          "type": "number"
+                        },
+                        "mappedNodes": {
+                          "type": "number"
+                        },
+                        "mappedEdges": {
+                          "type": "number"
+                        },
+                        "unknownNodeTypes": {
+                          "type": "number"
+                        },
+                        "unknownEdgeTypes": {
+                          "type": "number"
+                        },
+                        "warningCount": {
+                          "type": "number"
+                        },
+                        "hasWarnings": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "oeoVersion": {
+                      "type": "string",
+                      "example": "2.11.0"
+                    },
+                    "oeoVersionIri": {
+                      "type": "string",
+                      "example": "https://github.com/OpenEnergyPlatform/ontology/releases/tag/v2.11.0"
                     }
                   }
                 }
               }
             }
+          },
+          "400": {
+            "description": "Unsupported OEO version requested"
           }
         },
-        "description": "Exports the live Graphology ontology graph as a JSON-LD skeleton for OEO class mapping. Current status: oeoStub is null (NOT_IMPLEMENTED). See CONTRIBUTING_SCIENCE.md.",
+        "description": "Exports the live Graphology ontology graph as OEO-aligned JSON-LD with fixed ontology pinning, warnings[] and validationSummary.",
         "parameters": [
           {
             "name": "operator",
@@ -10406,10 +10467,75 @@
               "example": "https://cernion.example/graph/"
             },
             "description": "Base IRI for JSON-LD output"
+          },
+          {
+            "name": "oeoVersion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2.11.0",
+              "default": "2.11.0"
+            },
+            "description": "Pinned OEO version for this release. Only '2.11.0' is supported."
           }
         ],
         "x-oeo-class": [
           "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
+        ]
+      }
+    },
+    "/api/cya/graph/export/oeo-stub": {
+      "get": {
+        "operationId": "cya_export_oeo-stub",
+        "summary": "Deprecated alias for OEO graph export",
+        "tags": [
+          "CYA Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Deprecated alias response with replacement metadata"
+          }
+        },
+        "description": "Deprecated alias for /api/cya/graph/export/oeo. Will be removed after 2026-11-05.",
+        "parameters": [
+          {
+            "name": "operator",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "Stadtwerke Beispiel"
+            }
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "Ludwigshafen"
+            }
+          },
+          {
+            "name": "baseIri",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "https://cernion.example/graph/"
+            }
+          },
+          {
+            "name": "oeoVersion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "2.11.0",
+              "default": "2.11.0"
+            }
+          }
         ]
       }
     },
@@ -15349,5 +15475,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.41.0"
+  "x-version": "0.42.0"
 }

@@ -37,19 +37,11 @@
 
 'use strict';
 
-/**
- * Skeleton JSON-LD @context for OEO mapping.
- * Contributors: replace stub URIs with real OEO IRIs.
- * OEO namespace: http://openenergy-platform.org/ontology/oeo/
- */
-const OEO_CONTEXT_STUB = {
-  '@vocab': 'http://openenergy-platform.org/ontology/oeo/',
-  xsd: 'http://www.w3.org/2001/XMLSchema#',
-  rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
-  // TODO (contributor): add full OEO prefix mappings
-  oeo: 'http://openenergy-platform.org/ontology/oeo/',
-  mastr: 'https://www.marktstammdatenregister.de/MaStR/Einheit/Detail/IndexOeffentlich/',
-};
+const { version: packageVersion } = require('../package.json');
+const { OEO_VERSION, OEO_VERSION_IRI, getOeoContext } = require('./oeo-context');
+
+const OEO_EXPORTER_RELEASE = '0.42.0';
+const DEFAULT_BASE_IRI = 'https://cernion.example/graph/';
 
 /**
  * Node-type → OEO class mapping stub.
@@ -58,93 +50,234 @@ const OEO_CONTEXT_STUB = {
  * @see https://github.com/OpenEnergyPlatform/ontology/tree/dev/src/imports
  */
 const NODE_TYPE_TO_OEO_CLASS = {
-  INSTALLATION: 'oeo:PowerPlant', // TODO: differentiate by technologie
-  NAP: 'oeo:GridConnectionPoint', // TODO: verify OEO term
-  SUBSTATION: 'oeo:Substation', // TODO: verify OEO term
-  VNB: 'oeo:ElectricityGridOperator', // TODO: verify OEO term
-  REGION: 'oeo:Region', // TODO: verify OEO term
+  INSTALLATION: 'oeo:PowerPlant',
+  NAP: 'oeo:GridConnectionPoint',
+  SUBSTATION: 'oeo:Substation',
+  VNB: 'oeo:GridOperator',
+  REGION: 'oeo:GeographicRegion',
+  UNKNOWN: 'oeo:EnergyAsset',
 };
 
 /**
  * Edge-type → OEO object property mapping stub.
  */
 const EDGE_TYPE_TO_OEO_PROPERTY = {
-  VERBUNDEN_MIT: 'oeo:connectedTo', // TODO: verify OEO property
-  LIEGT_IN: 'oeo:locatedIn', // TODO: verify OEO property
-  BETRIEBEN_VON: 'oeo:operatedBy', // TODO: verify OEO property
-  ZUSTAENDIG_FUER: 'oeo:responsibleFor', // TODO: verify OEO property
+  VERBUNDEN_MIT: 'oeo:connectedTo',
+  LIEGT_IN: 'oeo:locatedIn',
+  BETRIEBEN_VON: 'oeo:operatedBy',
+  ZUSTAENDIG_FUER: 'oeo:responsibleFor',
+  UNKNOWN: 'oeo:relatedTo',
 };
+
+const TECHNOLOGY_TO_OEO_SUBCLASS = [
+  { match: /solar|pv|photovolta/i, type: 'oeo:PhotovoltaicPlant' },
+  { match: /wind/i, type: 'oeo:WindPowerPlant' },
+  { match: /bio|biogas|biomass/i, type: 'oeo:BiomassPowerPlant' },
+  { match: /wasser|hydro/i, type: 'oeo:HydroPowerPlant' },
+  { match: /speicher|storage|battery|batterie/i, type: 'oeo:EnergyStorageObject' },
+  { match: /gas|coal|lignite|oil|combustion|verbrennung/i, type: 'oeo:CombustionPowerPlant' },
+];
+
+function createExporterError(code, message, details = {}) {
+  const err = new Error(message);
+  err.code = code;
+  Object.assign(err, details);
+  return err;
+}
+
+function ensureSupportedVersion(requestedVersion) {
+  if (requestedVersion && requestedVersion !== OEO_VERSION) {
+    throw createExporterError(
+      'UNSUPPORTED_OEO_VERSION',
+      `Unsupported OEO version '${requestedVersion}'. This release pins OEO ${OEO_VERSION}.`,
+      { supportedVersion: OEO_VERSION, supportedVersionIri: OEO_VERSION_IRI }
+    );
+  }
+  return OEO_VERSION;
+}
+
+function normalizeNodeType(attributes = {}) {
+  return attributes.nodeType || attributes.type || 'UNKNOWN';
+}
+
+function normalizeEdgeType(attributes = {}) {
+  return attributes.edgeType || attributes.type || 'UNKNOWN';
+}
+
+function detectInstallationSubclass(attributes = {}) {
+  const technology = [attributes.technologie, attributes.Technologie, attributes.EnergieTraeger]
+    .filter(Boolean)
+    .join(' ');
+
+  const match = TECHNOLOGY_TO_OEO_SUBCLASS.find((entry) => entry.match.test(technology));
+  return match ? match.type : null;
+}
+
+function makeNodeWarning(nodeKey, nodeType) {
+  return {
+    code: 'OEO_UNKNOWN_NODE_TYPE',
+    severity: 'warning',
+    message: `Unknown node type '${nodeType}' mapped to fallback class '${NODE_TYPE_TO_OEO_CLASS.UNKNOWN}'.`,
+    nodeKey,
+    nodeType,
+  };
+}
+
+function makeEdgeWarning(edgeKey, edgeType) {
+  return {
+    code: 'OEO_UNKNOWN_EDGE_TYPE',
+    severity: 'warning',
+    message: `Unknown edge type '${edgeType}' mapped to fallback property '${EDGE_TYPE_TO_OEO_PROPERTY.UNKNOWN}'.`,
+    edgeKey,
+    edgeType,
+  };
+}
+
+function addReference(subject, property, targetId) {
+  if (!subject[property]) {
+    subject[property] = { '@id': targetId };
+    return;
+  }
+
+  if (!Array.isArray(subject[property])) {
+    subject[property] = [subject[property]];
+  }
+
+  subject[property].push({ '@id': targetId });
+}
+
+function buildNodeDocument(node, baseIri, warnings) {
+  const attributes = node.attributes || {};
+  const nodeType = normalizeNodeType(attributes);
+  const mappedClass = NODE_TYPE_TO_OEO_CLASS[nodeType] || NODE_TYPE_TO_OEO_CLASS.UNKNOWN;
+  const oeoTypes = [mappedClass];
+
+  if (!NODE_TYPE_TO_OEO_CLASS[nodeType]) {
+    warnings.push(makeNodeWarning(node.key, nodeType));
+  }
+
+  if (nodeType === 'INSTALLATION') {
+    const subclass = detectInstallationSubclass(attributes);
+    if (subclass && !oeoTypes.includes(subclass)) {
+      oeoTypes.push(subclass);
+    }
+  }
+
+  const document = {
+    '@id': `${baseIri}${node.key}`,
+    '@type': oeoTypes,
+    'rdfs:label': attributes.name || attributes.gemeinde || attributes.bezeichnung || node.key,
+  };
+
+  if (attributes.mastrNummer) document['mastr:mastrNummer'] = attributes.mastrNummer;
+  if (attributes.technologie) document['mastr:technologie'] = attributes.technologie;
+  if (attributes.leistungKw != null) document['mastr:leistungKw'] = attributes.leistungKw;
+  if (attributes.ibJahr != null) document['mastr:inbetriebnahmeJahr'] = attributes.ibJahr;
+  if (attributes.status != null) document['mastr:betriebsstatus'] = attributes.status;
+  if (attributes.plz != null) document['mastr:postleitzahl'] = attributes.plz;
+  if (attributes.bdewCode) document['mastr:bdewCode'] = attributes.bdewCode;
+  if (attributes.spannungsebene) document['mastr:spannungsebene'] = attributes.spannungsebene;
+  if (attributes.koordinaten?.lat != null) document['geo:lat'] = attributes.koordinaten.lat;
+  if (attributes.koordinaten?.lon != null) document['geo:long'] = attributes.koordinaten.lon;
+
+  return document;
+}
+
+function summarizeValidation({ graphologyExport, warnings, mappedNodes, mappedEdges }) {
+  const nodeWarnings = warnings.filter((warning) => warning.code === 'OEO_UNKNOWN_NODE_TYPE').length;
+  const edgeWarnings = warnings.filter((warning) => warning.code === 'OEO_UNKNOWN_EDGE_TYPE').length;
+
+  return {
+    status: warnings.length > 0 ? 'warning' : 'ok',
+    totalNodes: graphologyExport.nodes.length,
+    totalEdges: graphologyExport.edges.length,
+    mappedNodes,
+    mappedEdges,
+    unknownNodeTypes: nodeWarnings,
+    unknownEdgeTypes: edgeWarnings,
+    warningCount: warnings.length,
+    hasWarnings: warnings.length > 0,
+  };
+}
+
+function validateGraphologyExport(graphologyExport) {
+  if (!graphologyExport || !Array.isArray(graphologyExport.nodes) || !Array.isArray(graphologyExport.edges)) {
+    throw createExporterError(
+      'OEO_INVALID_GRAPH_EXPORT',
+      'transformToOEO expects a Graphology export with nodes[] and edges[].'
+    );
+  }
+}
+
+function buildOeoExport(graphologyExport, options = {}) {
+  validateGraphologyExport(graphologyExport);
+
+  const baseIri = options.baseIri || DEFAULT_BASE_IRI;
+  const oeoVersion = ensureSupportedVersion(options.oeoVersion);
+  const warnings = [];
+  const nodeDocs = new Map();
+  let mappedNodes = 0;
+  let mappedEdges = 0;
+
+  for (const node of graphologyExport.nodes) {
+    const document = buildNodeDocument(node, baseIri, warnings);
+    nodeDocs.set(node.key, document);
+    mappedNodes += 1;
+  }
+
+  for (const edge of graphologyExport.edges) {
+    const edgeType = normalizeEdgeType(edge.attributes || {});
+    const property = EDGE_TYPE_TO_OEO_PROPERTY[edgeType] || EDGE_TYPE_TO_OEO_PROPERTY.UNKNOWN;
+    const source = nodeDocs.get(edge.source);
+    const target = nodeDocs.get(edge.target);
+
+    if (!source || !target) {
+      throw createExporterError(
+        'OEO_INVALID_EDGE_REFERENCE',
+        `Edge '${edge.key || `${edge.source}_${edge.target}`}' references a missing source or target node.`
+      );
+    }
+
+    if (!EDGE_TYPE_TO_OEO_PROPERTY[edgeType]) {
+      warnings.push(makeEdgeWarning(edge.key || `${edge.source}_${edge.target}`, edgeType));
+    }
+
+    addReference(source, property, target['@id']);
+    mappedEdges += 1;
+  }
+
+  const oeo = {
+    '@context': getOeoContext(),
+    '@graph': Array.from(nodeDocs.values()),
+  };
+
+  return {
+    oeo,
+    warnings,
+    validationSummary: summarizeValidation({ graphologyExport, warnings, mappedNodes, mappedEdges }),
+    oeoVersion,
+    oeoVersionIri: OEO_VERSION_IRI,
+    generator: `cernion-energy-tools/${packageVersion}`,
+    exporterRelease: OEO_EXPORTER_RELEASE,
+    baseIri,
+  };
+}
 
 /**
  * Transforms a serialized Graphology graph into a JSON-LD skeleton.
  *
- * CURRENT STATUS: Returns a structurally correct but semantically incomplete
- * JSON-LD document. OEO class mappings are stubs (see NODE_TYPE_TO_OEO_CLASS).
- *
- * CONTRIBUTOR TASK:
- *   1. Verify / replace OEO IRIs in NODE_TYPE_TO_OEO_CLASS and EDGE_TYPE_TO_OEO_PROPERTY
- *   2. Add OEO-required properties per class (e.g. oeo:nominalPower for PowerPlant)
- *   3. Map MaStR technologie codes to specific OEO subclasses
- *   4. Add SHACL shapes or JSON-LD framing if needed
+ * CURRENT STATUS: Returns a productive JSON-LD graph with pinned OEO versioning,
+ * class/property mappings and validation performed during transformation.
  *
  * @param {object} graphologyExport - Output of graph.export() from Graphology
  * @param {object} [options]
  * @param {string} [options.baseIri] - Base IRI for generated node identifiers
- * @returns {object} JSON-LD skeleton document
- *
- * @throws {Error} NOT_IMPLEMENTED if called without a contributor implementation
- *   Remove the throw and implement the mapping to activate this exporter.
+ * @param {string} [options.oeoVersion] - Requested OEO version. Must match the
+ *   release-pinned OEO version.
+ * @returns {object} JSON-LD document
  */
 function transformToOEO(graphologyExport, options = {}) {
-  // ╔══════════════════════════════════════════════════════════════════╗
-  // ║  CONTRIBUTOR ENTRY POINT                                         ║
-  // ║  Implement the mapping below and remove the NotImplementedError. ║
-  // ║  See CONTRIBUTING_SCIENCE.md for instructions.                   ║
-  // ╚══════════════════════════════════════════════════════════════════╝
-
-  const NOT_IMPLEMENTED = true; // set to false after implementing
-  if (NOT_IMPLEMENTED) {
-    const err = new Error(
-      'OEO mapping not yet implemented. ' +
-        'See src/oeo-exporter-stub.js and CONTRIBUTING_SCIENCE.md. ' +
-        'Pull Requests welcome: https://github.com/OpenEnergyPlatform/ontology'
-    );
-    err.code = 'OEO_NOT_IMPLEMENTED';
-    throw err;
-  }
-
-  // --- STUB SKELETON (active after NOT_IMPLEMENTED = false) ---
-  const baseIri = options.baseIri || 'https://cernion.example/graph/';
-
-  const nodes = (graphologyExport.nodes || []).map((node) => ({
-    '@id': `${baseIri}${node.key}`,
-    '@type': NODE_TYPE_TO_OEO_CLASS[node.attributes?.type] || 'oeo:EnergyAsset',
-    'rdfs:label': node.attributes?.name || node.key,
-    // TODO (contributor): map remaining node.attributes to OEO properties
-    _stub: true,
-  }));
-
-  const edges = (graphologyExport.edges || []).map((edge) => ({
-    '@id': `${baseIri}edge/${edge.key || edge.source + '_' + edge.target}`,
-    '@type': EDGE_TYPE_TO_OEO_PROPERTY[edge.attributes?.type] || 'oeo:relatedTo',
-    'oeo:source': { '@id': `${baseIri}${edge.source}` },
-    'oeo:target': { '@id': `${baseIri}${edge.target}` },
-    // TODO (contributor): add OEO edge properties
-    _stub: true,
-  }));
-
-  return {
-    '@context': OEO_CONTEXT_STUB,
-    '@graph': [...nodes, ...edges],
-    _meta: {
-      generator: 'cernion-energy-tools/oeo-exporter-stub',
-      version: '0.34.1',
-      status: 'STUB — not OEO-compliant',
-      nodeCount: nodes.length,
-      edgeCount: edges.length,
-      oeoOntologyRef: 'https://github.com/OpenEnergyPlatform/ontology',
-    },
-  };
+  return buildOeoExport(graphologyExport, options).oeo;
 }
 
 /**
@@ -158,13 +291,7 @@ function transformToOEO(graphologyExport, options = {}) {
 function exportGraphForOeo(graph, options = {}) {
   const serialized = graph.export();
 
-  let oeoStub = null;
-  let oeoError = null;
-  try {
-    oeoStub = transformToOEO(serialized, options);
-  } catch (err) {
-    oeoError = { code: err.code, message: err.message };
-  }
+  const exportPayload = buildOeoExport(serialized, options);
 
   return {
     graphology: {
@@ -173,21 +300,24 @@ function exportGraphForOeo(graph, options = {}) {
       nodeCount: serialized.nodes.length,
       edgeCount: serialized.edges.length,
     },
-    oeoStub,
-    oeoError,
-    _contributor: {
-      message: 'Implement transformToOEO() in this file to activate OEO export.',
-      guide: 'CONTRIBUTING_SCIENCE.md',
+    oeo: exportPayload.oeo,
+    warnings: exportPayload.warnings,
+    validationSummary: exportPayload.validationSummary,
+    oeoVersion: exportPayload.oeoVersion,
+    oeoVersionIri: exportPayload.oeoVersionIri,
+    _meta: {
+      baseIri: exportPayload.baseIri,
+      generator: exportPayload.generator,
+      exporterRelease: exportPayload.exporterRelease,
       targetOntology: 'https://github.com/OpenEnergyPlatform/ontology',
-      integratesWith: [
-        'https://github.com/assume-framework/assume',
-        'https://github.com/OpenEnergyPlatform/oeplatform',
-      ],
+      shaclReady: true,
     },
   };
 }
 
 module.exports = {
+  OEO_EXPORTER_RELEASE,
+  buildOeoExport,
   transformToOEO,
   exportGraphForOeo,
   NODE_TYPE_TO_OEO_CLASS,

@@ -23,6 +23,8 @@ const { MAX_DIALOGUE_ROUNDS, detectConflicts } = require('../src/cya-conflict-de
 const a2a = require('../src/cya-a2a-protocol');
 const { graphCache } = require('../src/cya-graph-cache');
 const { getTenantId, tenantNamespace } = require('../src/tenant-context');
+const { exportGraphForOeo } = require('../src/oeo-exporter-stub');
+const { OEO_VERSION, OEO_VERSION_IRI } = require('../src/oeo-context');
 
 const PROFILE_ID_PATTERN = /^[a-z0-9_]+$/;
 const ACTOR_ROLES = [
@@ -56,6 +58,60 @@ const DEFAULT_TONE = 'diplomatisch, rechtssicher';
 const OS_PUT = 'object-store.put';
 const OS_GET = 'object-store.get';
 const EXAMPLE_TRIGGER = 'Presseanfrage zur Netzstabilität';
+const OEO_STUB_ALIAS_SUNSET = '2026-11-05';
+
+function sanitizeOperatorId(value = 'demo') {
+  return String(value)
+    .trim()
+    .replace(/[^a-z0-9]+/gi, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase() || 'DEMO';
+}
+
+function buildDemoOeoSeed(params = {}) {
+  const operatorName = params.operator || 'Pfalzwerke Netz AG';
+  const locationName = params.location || 'Höheinöd';
+
+  return [
+    {
+      EinheitMastrNummer: 'SEE999952467552',
+      EinheitName: `PV ${locationName} Demo`,
+      Bruttoleistung: 2103.7,
+      Technologie: 'Solarenergie',
+      InbetriebnahmeDatum: '2009-01-01',
+      EinheitBetriebsstatus: 'InBetrieb',
+      Postleitzahl: '66989',
+      Gemeinde: locationName,
+      Laengengrad: 7.6333,
+      Breitengrad: 49.2167,
+      NetzbetreiberMastrNummer: `SNB_${sanitizeOperatorId(operatorName)}`,
+      Netzbetreiber: operatorName,
+      NetzanschlusspunktMastrNummer: 'NAP_HOEHEINOED_001',
+    },
+  ];
+}
+
+function buildOeoExportResponse(ctx, deprecatedAlias = false) {
+  const graph = buildOntologyGraph(buildDemoOeoSeed(ctx.params), null);
+  const payload = exportGraphForOeo(graph, {
+    baseIri: ctx.params.baseIri || 'https://cernion.example/graph/',
+    oeoVersion: ctx.params.oeoVersion || OEO_VERSION,
+  });
+
+  return {
+    ok: true,
+    ...payload,
+    ...(deprecatedAlias
+      ? {
+          deprecated: {
+            alias: '/api/cya/graph/export/oeo-stub',
+            replacement: '/api/cya/graph/export/oeo',
+            sunsetDate: OEO_STUB_ALIAS_SUNSET,
+          },
+        }
+      : null),
+  };
+}
 
 module.exports = {
   name: 'cya',
@@ -1161,33 +1217,30 @@ module.exports = {
       },
     },
 
-    'export.oeo-stub': {
-      rest: 'GET /graph/export/oeo-stub',
+    'export.oeo': {
+      rest: 'GET /graph/export/oeo',
       // ─────────────────────────────────────────────────────────────────────
-      // OEO Export Stub — Science-Ready Hook (introduced v0.34.1)
+      // OEO Export — Science-Ready JSON-LD Export (v0.42.0)
       //
       // This endpoint exports the live Graphology ontology graph as a
-      // JSON-LD skeleton, ready for OEO class mapping by external contributors.
+      // JSON-LD document with pinned OEO versioning and SHACL-ready relations.
       //
-      // CURRENT STATUS: oeoStub is null (NOT_IMPLEMENTED).
-      //   graphology.nodes + graphology.edges are fully populated.
+      // CURRENT STATUS: productive JSON-LD export.
+      //   graphology.nodes + graphology.edges remain available for traceability.
       //
       // TARGET FORMAT: Open Energy Ontology (OEO) JSON-LD
       //   https://github.com/OpenEnergyPlatform/ontology
-      //
-      // CONTRIBUTOR: implement src/oeo-exporter-stub.js → transformToOEO()
-      //   See CONTRIBUTING_SCIENCE.md for instructions.
       // ─────────────────────────────────────────────────────────────────────
       params: {
         operator: { type: 'string', optional: true },
         location: { type: 'string', optional: true },
         baseIri: { type: 'string', optional: true },
+        oeoVersion: { type: 'string', optional: true },
       },
       openapi: {
-        summary: 'OEO Export Stub (Science Hook)',
+        summary: 'OEO graph export as JSON-LD',
         description:
-          'Exports the live Graphology ontology graph as a JSON-LD skeleton for OEO class mapping. ' +
-          'Current status: oeoStub is null (NOT_IMPLEMENTED). See CONTRIBUTING_SCIENCE.md.',
+          'Exports the live Graphology ontology graph as OEO-aligned JSON-LD with fixed ontology pinning, warnings[] and validationSummary.',
         tags: ['CYA Agent'],
         'x-oeo-class': ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'],
         parameters: [
@@ -1212,60 +1265,136 @@ module.exports = {
             schema: { type: 'string', example: 'https://cernion.example/graph/' },
             description: 'Base IRI for JSON-LD output',
           },
+          {
+            name: 'oeoVersion',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: OEO_VERSION, default: OEO_VERSION },
+            description: `Pinned OEO version for this release. Only '${OEO_VERSION}' is supported.`,
+          },
         ],
         responses: {
           200: {
-            description: 'OEO JSON-LD skeleton export',
+            description: 'OEO JSON-LD export',
             content: {
               'application/json': {
                 schema: {
                   type: 'object',
                   properties: {
                     ok: { type: 'boolean' },
-                    oeoStub: {
+                    oeo: {
                       type: 'object',
-                      nullable: true,
-                      description:
-                        'OEO JSON-LD stub (null until oeo-exporter-stub.js is implemented)',
+                      description: 'Validated OEO JSON-LD document',
                     },
                     graphology: { type: 'object', description: 'Raw Graphology graph data' },
+                    warnings: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          code: { type: 'string' },
+                          severity: { type: 'string', example: 'warning' },
+                          message: { type: 'string' },
+                        },
+                      },
+                    },
+                    validationSummary: {
+                      type: 'object',
+                      properties: {
+                        status: { type: 'string', example: 'ok' },
+                        totalNodes: { type: 'number' },
+                        totalEdges: { type: 'number' },
+                        mappedNodes: { type: 'number' },
+                        mappedEdges: { type: 'number' },
+                        unknownNodeTypes: { type: 'number' },
+                        unknownEdgeTypes: { type: 'number' },
+                        warningCount: { type: 'number' },
+                        hasWarnings: { type: 'boolean' },
+                      },
+                    },
+                    oeoVersion: { type: 'string', example: OEO_VERSION },
+                    oeoVersionIri: { type: 'string', example: OEO_VERSION_IRI },
                   },
                 },
               },
             },
           },
+          400: { description: 'Unsupported OEO version requested' },
         },
       },
       async handler(ctx) {
-        const { buildOntologyGraph } = require('../src/cya-ontology-graph');
-        const { exportGraphForOeo } = require('../src/oeo-exporter-stub');
+        try {
+          return buildOeoExportResponse(ctx, false);
+        } catch (err) {
+          if (err.code === 'UNSUPPORTED_OEO_VERSION') {
+            throw new MoleculerError(err.message, 400, err.code, {
+              supportedVersion: OEO_VERSION,
+              supportedVersionIri: OEO_VERSION_IRI,
+            });
+          }
+          throw err;
+        }
+      },
+    },
 
-        // Minimaler Graph mit Stub-Knoten wenn keine Operator-Daten übergeben
-        // Forscher können den Endpoint ohne Auth testen
-        const stubInstallations = ctx.params.operator
-          ? []
-          : [
-              {
-                EinheitMastrNummer: 'SEE999952467552',
-                name: 'Solarpark Höheinöd (Demo)',
-                leistungKw: 2103.7,
-                spannungsebene: 'MS',
-                technologie: 'SOLAR',
-                ibJahr: 2009,
-                status: 35,
-                koordinaten: { lat: 49.2167, lon: 7.6333 },
-              },
-            ];
-
-        const graph = buildOntologyGraph(stubInstallations, null);
-        const payload = exportGraphForOeo(graph, {
-          baseIri: ctx.params.baseIri || 'https://cernion.example/graph/',
-        });
-
-        return {
-          ok: true,
-          ...payload,
-        };
+    'export.oeo-stub': {
+      rest: 'GET /graph/export/oeo-stub',
+      params: {
+        operator: { type: 'string', optional: true },
+        location: { type: 'string', optional: true },
+        baseIri: { type: 'string', optional: true },
+        oeoVersion: { type: 'string', optional: true },
+      },
+      openapi: {
+        deprecated: true,
+        summary: 'Deprecated alias for OEO graph export',
+        description:
+          'Deprecated alias for /api/cya/graph/export/oeo. Will be removed after 2026-11-05.',
+        tags: ['CYA Agent'],
+        parameters: [
+          {
+            name: 'operator',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'Stadtwerke Beispiel' },
+          },
+          {
+            name: 'location',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'Ludwigshafen' },
+          },
+          {
+            name: 'baseIri',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'https://cernion.example/graph/' },
+          },
+          {
+            name: 'oeoVersion',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: OEO_VERSION, default: OEO_VERSION },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Deprecated alias response with replacement metadata',
+          },
+        },
+      },
+      async handler(ctx) {
+        try {
+          return buildOeoExportResponse(ctx, true);
+        } catch (err) {
+          if (err.code === 'UNSUPPORTED_OEO_VERSION') {
+            throw new MoleculerError(err.message, 400, err.code, {
+              supportedVersion: OEO_VERSION,
+              supportedVersionIri: OEO_VERSION_IRI,
+            });
+          }
+          throw err;
+        }
       },
     },
 

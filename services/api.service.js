@@ -720,6 +720,7 @@ module.exports = {
           'POST /cya/compare-perspectives': 'cya.compareProfiles',
           'GET /cya/sessions/:session_id/export/pdf': 'cya.exportPdf',
           'GET /cya/sessions/:session_id/export/json': 'cya.exportJson',
+          'GET /cya/graph/export/oeo': 'cya.export.oeo',
           'GET /cya/graph/export/oeo-stub': 'cya.export.oeo-stub',
           'GET /cya/graph/cache': 'cya.graph.cacheStatus',
           'DELETE /cya/graph/cache/:operatorId': 'cya.graph.invalidate',

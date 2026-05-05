@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.41.0
-- changelog_latest_release: 0.41.0
+- version: 0.42.0
+- changelog_latest_release: 0.42.0
 - source_files_hash:
-  - CHANGELOG.md: 78ae4c0b168b95b8774e18645a91c6a2c901fb515691a1c0994d682b0c08ea6c
+  - CHANGELOG.md: b5c588bc7ba71131fcc4dfb2c83671e3552b9bea8e19632cbd0506645d219f76
   - README.md: e1ede8ad6c37eb332e9714b5aee0cf14db17638c356b700403da076a5991c14b
   - docs/BACKEND_CONTEXT.md: 53a3ff14e056ee973b081bfc8e61f336099296e30803aa351633f685e9e453e3
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: 752905c642afad098d802d05e34879c38a6e904f72c01501a920f7145931a6f5
+  - openapi-export.json: 747f8b0bf540fd033ede8966119bf26b2e054e0f9f53a1946acce3e2bf05ac90
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -588,15 +588,15 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 191
-- operation_count: 227
+- path_count: 192
+- operation_count: 228
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
 - Assets: 1 operations
 - Companies: 6 operations
 - Cookbook: 6 operations
-- CYA Agent: 18 operations
+- CYA Agent: 19 operations
 - Dashboard API: 5 operations
 - Datapoints: 17 operations
 - DataSources: 27 operations
@@ -651,7 +651,8 @@ process:
 - POST /api/cya/generate | tags: [CYA Agent] | operationId: cya_generate | summary: Generate profile-aware narrative
 - GET /api/cya/graph/cache | tags: [CYA Agent] | operationId: cya_graph_cacheStatus | summary: Ontologie-Graph Cache Status
 - DELETE /api/cya/graph/cache/:operatorId | tags: [CYA Agent] | operationId: cya_graph_invalidate | summary: Ontologie-Graph Cache invalidieren
-- GET /api/cya/graph/export/oeo-stub | tags: [CYA Agent] | operationId: cya_export_oeo-stub | summary: OEO Export Stub (Science Hook)
+- GET /api/cya/graph/export/oeo | tags: [CYA Agent] | operationId: cya_export_oeo | summary: OEO graph export as JSON-LD
+- GET /api/cya/graph/export/oeo-stub | tags: [CYA Agent] | operationId: cya_export_oeo-stub | summary: Deprecated alias for OEO graph export
 - POST /api/cya/profile | tags: [CYA Agent] | operationId: cya_createProfile | summary: Create or update a stakeholder profile
 - GET /api/cya/profile/:profile_id | tags: [CYA Agent] | operationId: cya_getProfile | summary: Load a stakeholder profile
 - POST /api/cya/profile/from-template | tags: [CYA Agent] | operationId: cya_createFromTemplate | summary: Create CYA profile from template
@@ -860,7 +861,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.41.0"
+    "version": "0.42.0"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -2385,10 +2386,10 @@ process:
         ]
       }
     },
-    "/api/cya/graph/export/oeo-stub": {
+    "/api/cya/graph/export/oeo": {
       "get": {
-        "description": "Exports the live Graphology ontology graph as a JSON-LD skeleton for OEO class mapping. Current status: oeoStub is null (NOT_IMPLEMENTED). See CONTRIBUTING_SCIENCE.md.",
-        "operationId": "cya_export_oeo-stub",
+        "description": "Exports the live Graphology ontology graph as OEO-aligned JSON-LD with fixed ontology pinning, warnings[] and validationSummary.",
+        "operationId": "cya_export_oeo",
         "parameters": [
           {
             "description": "Optional operator name for graph seed",
@@ -2419,6 +2420,17 @@ process:
               "example": "https://cernion.example/graph/",
               "type": "string"
             }
+          },
+          {
+            "description": "Pinned OEO version for this release. Only '2.11.0' is supported.",
+            "in": "query",
+            "name": "oeoVersion",
+            "required": false,
+            "schema": {
+              "default": "2.11.0",
+              "example": "2.11.0",
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2431,28 +2443,143 @@ process:
                       "description": "Raw Graphology graph data",
                       "type": "object"
                     },
-                    "oeoStub": {
-                      "description": "OEO JSON-LD stub (null until oeo-exporter-stub.js is implemented)",
-                      "nullable": true,
+                    "oeo": {
+                      "description": "Validated OEO JSON-LD document",
                       "type": "object"
+                    },
+                    "oeoVersion": {
+                      "example": "2.11.0",
+                      "type": "string"
+                    },
+                    "oeoVersionIri": {
+                      "example": "https://github.com/OpenEnergyPlatform/ontology/releases/tag/v2.11.0",
+                      "type": "string"
                     },
                     "ok": {
                       "type": "boolean"
+                    },
+                    "validationSummary": {
+                      "properties": {
+                        "hasWarnings": {
+                          "type": "boolean"
+                        },
+                        "mappedEdges": {
+                          "type": "number"
+                        },
+                        "mappedNodes": {
+                          "type": "number"
+                        },
+                        "status": {
+                          "example": "ok",
+                          "type": "string"
+                        },
+                        "totalEdges": {
+                          "type": "number"
+                        },
+                        "totalNodes": {
+                          "type": "number"
+                        },
+                        "unknownEdgeTypes": {
+                          "type": "number"
+                        },
+                        "unknownNodeTypes": {
+                          "type": "number"
+                        },
+                        "warningCount": {
+                          "type": "number"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "warnings": {
+                      "items": {
+                        "properties": {
+                          "code": {
+                            "type": "string"
+                          },
+                          "message": {
+                            "type": "string"
+                          },
+                          "severity": {
+                            "example": "warning",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
                     }
                   },
                   "type": "object"
                 }
               }
             },
-            "description": "OEO JSON-LD skeleton export"
+            "description": "OEO JSON-LD export"
+          },
+          "400": {
+            "description": "Unsupported OEO version requested"
           }
         },
-        "summary": "OEO Export Stub (Science Hook)",
+        "summary": "OEO graph export as JSON-LD",
         "tags": [
           "CYA Agent"
         ],
         "x-oeo-class": [
           "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
+        ]
+      }
+    },
+    "/api/cya/graph/export/oeo-stub": {
+      "get": {
+        "description": "Deprecated alias for /api/cya/graph/export/oeo. Will be removed after 2026-11-05.",
+        "operationId": "cya_export_oeo-stub",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "operator",
+            "required": false,
+            "schema": {
+              "example": "Stadtwerke Beispiel",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "location",
+            "required": false,
+            "schema": {
+              "example": "Ludwigshafen",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "baseIri",
+            "required": false,
+            "schema": {
+              "example": "https://cernion.example/graph/",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "oeoVersion",
+            "required": false,
+            "schema": {
+              "default": "2.11.0",
+              "example": "2.11.0",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deprecated alias response with replacement metadata"
+          }
+        },
+        "summary": "Deprecated alias for OEO graph export",
+        "tags": [
+          "CYA Agent"
         ]
       }
     },
@@ -16207,8 +16334,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.41.0"
+  "x-version": "0.42.0"
 }
 
 ## Integrity
-- llm_txt_sha256: 69ee3d12d46137a6aaffb5d8b3485d4b65c3cc283d52aa825e4b49bf1cbfc494
+- llm_txt_sha256: ba1bb1e2a6e8b5c9222bd03d0726bf6d215d1120777b6dfde785b5342b748513
