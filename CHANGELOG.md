@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.43.0] — LLM Provider Abstraction (Closes #52)
+
+### Added
+- **Provider-based LLM abstraction** in `src/llm-client.js`:
+  - New provider interface with `generateStructured(schema, prompt, options)`, `generateText(prompt, options)`, `embeddings(texts, options)` and `capabilities()`.
+  - Configurable provider selection via `LLM_PROVIDER` (`gemini`, `openai-compat`, `ollama`).
+  - Provider capabilities now exposed as `{ structured, embeddings, vision, contextWindow }`.
+- **Provider adapters**:
+  - `src/adapters/gemini.js`
+  - `src/adapters/openai-compat.js`
+  - `src/adapters/ollama.js`
+- **System LLM health probe** in `services/system.service.js`:
+  - New endpoint `GET /api/system/llm/health`
+  - Probe executes `generateText('ping')` and `embeddings(['ping'])` with 5s timeout.
+  - Degraded mode reporting (`status=degraded`, `signal=yellow`) when text is healthy but embeddings are unavailable/failing.
+
+### Changed
+- **Permissive structured auto-fallback** in `src/llm-client.js`:
+  - Structured generation first attempts provider-native structured output.
+  - On provider/schema/parsing failures, automatic fallback to JSON-only text generation with tolerant JSON extraction (raw, fenced, first object block).
+- **Centralized prompt scrubbing preserved**:
+  - `prompt-scrubber` is still enforced before every provider adapter call.
+- **Direct Gemini runtime callsites migrated to `llm-client`**:
+  - `services/agent.service.js`
+  - `services/utility-report.service.js`
+  - `src/cookbook-embeddings.js`
+- **Provider config surface expanded** in `.env.example` and runtime parsing:
+  - `LLM_PROVIDER`, `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY`
+  - `LLM_TIMEOUT_MS`, `LLM_MAX_RETRIES`
+  - `LLM_STRUCTURED_MODE=schema|json|tool`
+  - `LLM_EMBEDDING_MODEL`
+  - Gemini env vars remain backward-compatible.
+
+### Tests
+- New `tests/llm-client.test.js` for provider selection, structured fallback, capability handling and retry behavior.
+- `tests/system.service.test.js` extended for `system.llmHealth` with `ok`, `degraded` and `unhealthy` semantics.
+
+### Documentation
+- `README.md` updated with provider config and `/api/system/llm/health` endpoint.
+- `docs/BACKEND_CONTEXT.md` updated for KRITIS/on-prem LLM provider abstraction context.
+
 ## [0.42.0] — Productive OEO Export (Closes #50)
 
 ### Added

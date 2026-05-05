@@ -11,13 +11,13 @@
  *  3. GET  /agent/session/:id – Retrieve a persisted session (shareable URL)
  */
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const { isPeriodColumn } = require('../src/period-normaliser');
 const { resolveVnbIdentity } = require('../src/vnb-identity');
-const { scrubForLLM, scrubPromptText } = require('../src/prompt-scrubber');
+const { scrubForLLM } = require('../src/prompt-scrubber');
+const { generateText } = require('../src/llm-client');
 
 // ---------------------------------------------------------------------------
 // In-process session store (file-backed for persistence across restarts)
@@ -438,22 +438,8 @@ function repairPlanParams(plan, schemaIndex) {
 // ---------------------------------------------------------------------------
 // Gemini helper
 // ---------------------------------------------------------------------------
-function getGeminiModel() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY environment variable is not set');
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({
-    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
-  });
-}
-
 async function callGemini(prompt) {
-  const model = getGeminiModel();
-  // Issue #31: Scrub PII from prompt text before sending to external LLM
-  const scrubbedPrompt = scrubPromptText(prompt);
-  const result = await model.generateContent(scrubbedPrompt);
-  const response = result.response;
-  return response.text();
+  return await generateText(prompt);
 }
 
 async function getInhouseDescriptorText(ctx) {

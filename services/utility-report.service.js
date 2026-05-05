@@ -25,9 +25,8 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-
 const CernionMCPClient = require('../src/mcp-client');
+const { generateText } = require('../src/llm-client');
 const {
   classifyPartner,
   normalizeMarketPartner,
@@ -219,15 +218,7 @@ async function discoverAvailableTools(token) {
 // ─── Gemini narrative ──────────────────────────────────────────────────────────
 
 async function generateNarrative(utilityName, kpiSummary) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return buildStaticNarrative(utilityName, kpiSummary);
-  }
-
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
-
     // CR-30: Strip internal camelCase field names (warnings, flags, status enums)
     //         from the LLM context so they cannot be echoed into customer-facing text.
     const INTERNAL_KEY_RE = /(Warning|Error|Fallback|Flag|Raw|isError|DataStatus|_count$)/;
@@ -269,8 +260,7 @@ Verboten (NIE ausgeben):
 - Sätze ohne konkreten Handlungsauftrag oder numerische Grundlage
 Keine Überschriften, keine Nummerierung, nur die 5 Erkenntnisse.`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response?.text?.() ?? '';
+    const text = await generateText(prompt, { model: process.env.UTILITY_REPORT_LLM_MODEL });
     return text.trim().length > 50 ? text.trim() : buildStaticNarrative(utilityName, kpiSummary);
   } catch {
     return buildStaticNarrative(utilityName, kpiSummary);
@@ -426,10 +416,10 @@ function buildStaticNarrative(utilityName, kpiSummary) {
     .slice(0, 5)
     .map((s) => `${s.icon} ${s.text}`)
     .join('\n');
-  if (!process.env.GEMINI_API_KEY) {
+  if (!process.env.GEMINI_API_KEY && !process.env.LLM_API_KEY) {
     return (
       result +
-      '\n📋 Hinweis: Für eine KI-gestützte Analyse aktivieren Sie GEMINI_API_KEY in der .env-Konfiguration.'
+      '\n📋 Hinweis: Für eine KI-gestützte Analyse konfigurieren Sie den LLM-Provider in der .env (LLM_PROVIDER, LLM_MODEL, LLM_API_KEY).'
     );
   }
   return result;

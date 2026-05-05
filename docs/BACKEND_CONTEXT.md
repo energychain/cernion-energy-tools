@@ -14,6 +14,11 @@ internal calls). A single API Gateway (`services/api.service.js`) exposes all se
 REST endpoints on port 3000. As of v0.30.1, the platform exposes **~173 REST endpoints**
 including EDM/SLP, Forecast Engine (`/api/forecast/*`), Settlement (`/api/settlement/*`) and Bilanzkreis (`/api/bilanzkreis/*`) surfaces.
 
+Since v0.43, the LLM layer is provider-abstracted via `src/llm-client.js` with adapters
+for `gemini` (default), `openai-compat` (OpenAI/Azure/vLLM/llamacpp style APIs), and
+`ollama` (on-prem). This enables KRITIS-/air-gap-aligned deployments without code changes
+in Finance/CYA/ZNP callers.
+
 ```
 HTTP clients
     │

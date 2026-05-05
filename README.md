@@ -27,7 +27,7 @@ Voraussetzung: **Node.js 22+**
 git clone https://github.com/energychain/cernion-energy-tools.git
 cd cernion-energy-tools
 npm install
-cp .env.example .env          # CERNION_TOKEN und GEMINI_API_KEY eintragen
+cp .env.example .env          # CERNION_TOKEN + LLM_PROVIDER/LLM_MODEL konfigurieren
 npm start
 # API:        http://localhost:3000/api
 # Swagger:    http://localhost:3000/api/docs
@@ -99,10 +99,15 @@ Auth-Leitfaden: [BEARER_TOKEN_AUTHENTICATION.md](BEARER_TOKEN_AUTHENTICATION.md)
 | Variable | Beschreibung | Pflicht |
 |---|---|---|
 | `CERNION_TOKEN` | API-Token für MCP-Verbindung | Ja |
-| `GEMINI_API_KEY` | Google Gemini für AI-Agent und CYA | Ja |
+| `LLM_PROVIDER` | LLM-Provider (`gemini`, `openai-compat`, `ollama`) | Ja |
+| `LLM_MODEL` | Modellname für den gewählten Provider | Ja |
+| `LLM_API_KEY` | Generischer API-Key (falls Provider ihn benötigt) | Nein |
+| `GEMINI_API_KEY` | Gemini-Key (Backwards Compatibility, wenn `LLM_PROVIDER=gemini`) | Nein |
 | `MCP_SERVER_URL` | Cernion MCP Server URL | Ja |
 | `PORT` | API Gateway Port (Standard: 3000) | Nein |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | E-Mail-Benachrichtigungen (MaStR Monitor) | Nein |
+
+LLM-Health-Probe: `GET /api/system/llm/health` (Text + Embeddings Check, `ok|degraded|unhealthy`).
 
 Alle Variablen: [.env.example](.env.example)
 

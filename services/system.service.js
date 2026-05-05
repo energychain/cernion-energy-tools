@@ -5,6 +5,7 @@
  */
 
 const CernionMCPClient = require('../src/mcp-client');
+const llmClient = require('../src/llm-client');
 
 module.exports = {
   name: 'system',
@@ -43,6 +44,63 @@ module.exports = {
           ctx.params,
           ctx.meta.cernionToken
         );
+      },
+    },
+
+    /**
+     * Local LLM provider health check.
+     */
+    llmHealth: {
+      rest: 'GET /llm/health',
+      openapi: {
+        summary: 'LLM provider health check',
+        tags: ['System Tools'],
+        description:
+          'Checks configured LLM provider capabilities and probe calls (generateText + embeddings) with degraded state reporting.',
+      },
+      async handler() {
+        const startedAt = Date.now();
+        const caps = llmClient.capabilities();
+        const checks = {
+          text: { ok: false, message: null },
+          embeddings: { ok: false, message: null },
+        };
+
+        try {
+          await llmClient.generateText('ping', { timeoutMs: 5000, maxRetries: 1 });
+          checks.text.ok = true;
+        } catch (error) {
+          checks.text.message = error?.message || 'text generation failed';
+        }
+
+        if (caps.embeddings) {
+          try {
+            await llmClient.embeddings(['ping'], { timeoutMs: 5000, maxRetries: 1 });
+            checks.embeddings.ok = true;
+          } catch (error) {
+            checks.embeddings.message = error?.message || 'embeddings probe failed';
+          }
+        } else {
+          checks.embeddings.message = 'provider does not support embeddings';
+        }
+
+        const healthy = checks.text.ok && checks.embeddings.ok;
+        const degraded = checks.text.ok && !checks.embeddings.ok;
+
+        return {
+          status: healthy ? 'ok' : degraded ? 'degraded' : 'unhealthy',
+          signal: healthy ? 'green' : degraded ? 'yellow' : 'red',
+          provider: caps.provider,
+          capabilities: {
+            structured: caps.structured,
+            embeddings: caps.embeddings,
+            vision: caps.vision,
+            contextWindow: caps.contextWindow,
+          },
+          checks,
+          latencyMs: Date.now() - startedAt,
+          timestamp: new Date().toISOString(),
+        };
       },
     },
 
