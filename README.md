@@ -15,7 +15,7 @@ die Netzanschlüsse prüfen, Redispatch-Pflichten verwalten, §42c-Energieteilun
 umsetzen oder MaStR-Portfolios auditieren wollen. Die Plattform verbindet öffentliche
 Energiedatenquellen (MaStR, ENTSO-E, BNetzA EWK) mit internen Betriebsdaten und
 liefert reproduzierbare, auditierbare Ergebnisse — kein Blackbox-LLM für regulatorische
-Entscheidungen. Aktueller Stand: **v0.38.7**, 56 Services, 1 782+ Tests.
+Entscheidungen. Aktueller Stand: **v0.44.1**, 56 Services, 1 782+ Tests.
 
 ---
 
@@ -105,9 +105,16 @@ Auth-Leitfaden: [BEARER_TOKEN_AUTHENTICATION.md](BEARER_TOKEN_AUTHENTICATION.md)
 | `GEMINI_API_KEY` | Gemini-Key (Backwards Compatibility, wenn `LLM_PROVIDER=gemini`) | Nein |
 | `MCP_SERVER_URL` | Cernion MCP Server URL | Ja |
 | `PORT` | API Gateway Port (Standard: 3000) | Nein |
+| `METRICS_PUBLIC` | Macht `GET /metrics` öffentlich, sonst full-access `ck_`-Token nötig | Nein |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | OTLP HTTP Ziel für Traces | Nein |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASS` | E-Mail-Benachrichtigungen (MaStR Monitor) | Nein |
 
 LLM-Health-Probe: `GET /api/system/llm/health` (Text + Embeddings Check, `ok|degraded|unhealthy`).
+
+Observability:
+- `GET /metrics` liefert Prometheus-kompatible Metriken.
+- HTTP-, Action-, LLM-, MCP- und Utility-Report-Spans können via `TRACING_ENABLED=true` + `OTEL_EXPORTER_OTLP_ENDPOINT` exportiert werden.
+- Grafana-Beispiele liegen unter [docs/observability/grafana/README.md](docs/observability/grafana/README.md).
 
 Alle Variablen: [.env.example](.env.example)
 

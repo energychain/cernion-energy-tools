@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const { MoleculerClientError } = require('moleculer').Errors;
 const { startJob } = require('../src/job-store');
 const { computeDelta, buildSnapshotEntry } = require('../src/mastr-monitor-diff');
+const metrics = require('../src/metrics');
 const { isDue } = require('../src/mastr-monitor-scheduler');
 const {
   isSmtpConfigured,
@@ -975,6 +976,7 @@ module.exports = {
         delta &&
         (delta.summary.added > 0 || delta.summary.changed > 0 || delta.summary.removed > 0)
       ) {
+        metrics.recordMastrDelta(delta.summary);
         this.broker.emit('mastr-monitor.delta.detected', { watchId, delta });
         this.notifyDelta(watchId, updatedWatch, delta).catch((err) =>
           this.logger.warn('[mastr-monitor] notifyDelta error:', err.message)

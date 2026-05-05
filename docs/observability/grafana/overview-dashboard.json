@@ -1,0 +1,87 @@
+{
+  "title": "Cernion Observability Overview",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Action throughput",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (service, status) (rate(cernion_action_calls_total[5m]))",
+          "legendFormat": "{{service}} {{status}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Action latency p95",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, service, action) (rate(cernion_action_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{service}} {{action}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "LLM + MCP request volume",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum by (provider, status) (rate(cernion_llm_request_total[5m]))",
+          "legendFormat": "LLM {{provider}} {{status}}"
+        },
+        {
+          "expr": "sum by (tool, status) (rate(cernion_mcp_request_total[5m]))",
+          "legendFormat": "MCP {{tool}} {{status}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Queued jobs",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum by (service) (cernion_async_job_queue_depth)",
+          "legendFormat": "{{service}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Structured logs by level",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum by (service, level) (rate(cernion_logs_total[5m]))",
+          "legendFormat": "{{service}} {{level}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Domain counters",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum by (severity) (rate(cernion_mastr_delta_count[15m]))",
+          "legendFormat": "MaStR {{severity}}"
+        },
+        {
+          "expr": "sum by (collection, hit_bucket) (rate(cernion_rag_query_hit_count[15m]))",
+          "legendFormat": "RAG {{collection}} {{hit_bucket}}"
+        },
+        {
+          "expr": "sum by (outcome) (rate(cernion_a2a_negotiation_rounds_count[15m]))",
+          "legendFormat": "A2A {{outcome}}"
+        }
+      ]
+    }
+  ]
+}

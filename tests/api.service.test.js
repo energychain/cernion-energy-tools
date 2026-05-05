@@ -14,6 +14,7 @@ const KnowledgeRagService = require('../services/knowledge-rag.service');
 const FinanceAgentService = require('../services/finance-agent.service');
 const ObservabilityService = require('../services/observability.service');
 const { version: packageVersion } = require('../package.json');
+const metrics = require('../src/metrics');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -294,6 +295,10 @@ describe('API Gateway Service', () => {
   });
 
   describe('Routes', () => {
+    afterEach(() => {
+      delete process.env.METRICS_PUBLIC;
+    });
+
     it('should have body parsers configured', () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       expect(apiRoute.bodyParsers).toBeDefined();
@@ -441,6 +446,98 @@ describe('API Gateway Service', () => {
       expect(payload.message).not.toContain('abc123');
       expect(payload.message).not.toContain('verySecretToken');
       expect(payload.message).not.toContain('querySecret');
+    });
+
+    it('should expose GET /metrics publicly when METRICS_PUBLIC=true', async () => {
+      process.env.METRICS_PUBLIC = 'true';
+      const rootRoute = ApiService.settings.routes.find((r) => r.path === '/');
+      const handler = rootRoute.aliases['GET /metrics'];
+      const req = { headers: {}, query: {}, url: '/metrics', method: 'GET' };
+      const res = {
+        _status: null,
+        _headers: {},
+        _body: '',
+        setHeader: jest.fn(function (key, value) {
+          this._headers[key] = value;
+        }),
+        writeHead: jest.fn(function (status, headers) {
+          this._status = status;
+          Object.assign(this._headers, headers || {});
+        }),
+        end: jest.fn(function (body) {
+          this._body = body;
+        }),
+      };
+
+      metrics.resetForTests();
+      await handler.call({ broker }, req, res);
+
+      expect(res._status).toBeNull();
+      expect(res._headers['Content-Type']).toContain('text/plain');
+      expect(res._body).toContain('cernion_action_calls_total');
+    });
+
+    it('should require a full-access token for GET /metrics when not public', async () => {
+      process.env.METRICS_PUBLIC = 'false';
+      const rootRoute = ApiService.settings.routes.find((r) => r.path === '/');
+      const handler = rootRoute.aliases['GET /metrics'];
+      const req = { headers: {}, query: {}, url: '/metrics', method: 'GET' };
+      const res = {
+        _status: null,
+        _headers: {},
+        _body: '',
+        setHeader: jest.fn(function (key, value) {
+          this._headers[key] = value;
+        }),
+        writeHead: jest.fn(function (status, headers) {
+          this._status = status;
+          Object.assign(this._headers, headers || {});
+        }),
+        end: jest.fn(function (body) {
+          this._body = body;
+        }),
+      };
+
+      await handler.call({ broker }, req, res);
+
+      expect(res._status).toBe(401);
+      expect(JSON.parse(res._body).message).toContain('Full-access API token required');
+    });
+
+    it('should reject read-only tokens for GET /metrics', async () => {
+      process.env.METRICS_PUBLIC = 'false';
+      const rootRoute = ApiService.settings.routes.find((r) => r.path === '/');
+      const handler = rootRoute.aliases['GET /metrics'];
+      const created = await broker.call('token-manager.create', {
+        name: 'MetricsReadOnly',
+        scope: 'read-only',
+      });
+      const req = {
+        headers: { authorization: `Bearer ${created.data.token}` },
+        query: {},
+        url: '/metrics',
+        method: 'GET',
+      };
+      const res = {
+        _status: null,
+        _headers: {},
+        _body: '',
+        setHeader: jest.fn(function (key, value) {
+          this._headers[key] = value;
+        }),
+        writeHead: jest.fn(function (status, headers) {
+          this._status = status;
+          Object.assign(this._headers, headers || {});
+        }),
+        end: jest.fn(function (body) {
+          this._body = body;
+        }),
+      };
+
+      await handler.call({ broker }, req, res);
+
+      expect(res._status).toBe(403);
+      expect(JSON.parse(res._body).message).toContain('Full-access API token required');
     });
   });
 

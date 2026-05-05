@@ -25,6 +25,7 @@ const { graphCache } = require('../src/cya-graph-cache');
 const { getTenantId, tenantNamespace } = require('../src/tenant-context');
 const { exportGraphForOeo } = require('../src/oeo-exporter-stub');
 const { OEO_VERSION, OEO_VERSION_IRI } = require('../src/oeo-context');
+const metrics = require('../src/metrics');
 
 const PROFILE_ID_PATTERN = /^[a-z0-9_]+$/;
 const ACTOR_ROLES = [
@@ -2951,6 +2952,7 @@ module.exports = {
             a2a.consensusReached(sessionId, { narrative: consensus.narrative, round: 0 })
           );
         }
+        metrics.recordA2ANegotiation('resolved', 0);
         return {
           finalStates: stakeholderStates,
           dialogueRounds,
@@ -3009,6 +3011,7 @@ module.exports = {
               a2a.consensusReached(sessionId, { narrative: consensus.narrative, round })
             );
           }
+          metrics.recordA2ANegotiation('resolved', dialogueRounds.length);
           return {
             finalStates: currentStates,
             dialogueRounds,
@@ -3032,6 +3035,7 @@ module.exports = {
         );
       }
 
+      metrics.recordA2ANegotiation('unresolved', dialogueRounds.length);
       return { finalStates: currentStates, dialogueRounds, conflictResolved: false };
     },
 

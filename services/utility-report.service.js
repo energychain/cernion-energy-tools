@@ -27,6 +27,9 @@ const path = require('path');
 
 const CernionMCPClient = require('../src/mcp-client');
 const { generateText } = require('../src/llm-client');
+const metrics = require('../src/metrics');
+const tracing = require('../src/tracing');
+const { getObservabilityContext } = require('../src/observability-context');
 const {
   classifyPartner,
   normalizeMarketPartner,
@@ -139,19 +142,40 @@ function indexReport(utilityName, date, reportId) {
  */
 async function callMcpDirect(toolName, params, token, timeoutMs = LONG_CALL_TIMEOUT_MS) {
   const TIMEOUT_MS = timeoutMs;
-  try {
-    const callPromise = CernionMCPClient.callWithNewSession(toolName, params, token || null);
-    const timeoutPromise = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error(`Timeout after ${TIMEOUT_MS / 1000}s`)), TIMEOUT_MS)
-    );
-    const result = await Promise.race([callPromise, timeoutPromise]);
-    if (!result || result.success === false) {
-      return { available: false, error: result?.error?.message || 'Tool returned error' };
+  const startedAt = Date.now();
+  const parentCarrier = getObservabilityContext().traceCarrier || null;
+
+  return tracing.withSpan(
+    `utility-report.mcp ${toolName}`,
+    {
+      kind: tracing.SpanKind.CLIENT,
+      parentCarrier,
+      attributes: {
+        'cernion.component': 'utility-report',
+        'cernion.tool': toolName,
+      },
+    },
+    async (span) => {
+      try {
+        const callPromise = CernionMCPClient.callWithNewSession(toolName, params, token || null);
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`Timeout after ${TIMEOUT_MS / 1000}s`)), TIMEOUT_MS)
+        );
+        const result = await Promise.race([callPromise, timeoutPromise]);
+        if (!result || result.success === false) {
+          const errorMessage = result?.error?.message || 'Tool returned error';
+          tracing.setError(span, new Error(errorMessage));
+          return { available: false, error: errorMessage };
+        }
+
+        tracing.setOk(span);
+        return { available: true, data: result.data ?? result };
+      } catch (err) {
+        tracing.setError(span, err);
+        return { available: false, error: err.message };
+      }
     }
-    return { available: true, data: result.data ?? result };
-  } catch (err) {
-    return { available: false, error: err.message };
-  }
+  );
 }
 
 /**
@@ -159,15 +183,40 @@ async function callMcpDirect(toolName, params, token, timeoutMs = LONG_CALL_TIME
  * Never throws – returns { available: false } on any failure.
  */
 async function callBroker(ctx, action, params, timeoutMs = LONG_CALL_TIMEOUT_MS) {
-  try {
-    const result = await ctx.broker.call(action, params, {
-      meta: ctx.meta,
-      timeout: timeoutMs,
-    });
-    return { available: true, data: result };
-  } catch (err) {
-    return { available: false, error: err.message };
-  }
+  const startedAt = Date.now();
+  const parentCarrier = ctx?.meta?.__otel || getObservabilityContext().traceCarrier || null;
+
+  return tracing.withSpan(
+    `utility-report.broker ${action}`,
+    {
+      kind: tracing.SpanKind.CLIENT,
+      parentCarrier,
+      attributes: {
+        'cernion.component': 'utility-report',
+        'cernion.action': action,
+      },
+    },
+    async (span) => {
+      const meta = { ...(ctx?.meta || {}) };
+      tracing.attachSpanToMeta(meta, span);
+
+      try {
+        const result = await ctx.broker.call(action, params, {
+          meta,
+          timeout: timeoutMs,
+        });
+        tracing.setOk(span);
+        return { available: true, data: result };
+      } catch (err) {
+        tracing.setError(span, err);
+        return { available: false, error: err.message };
+      } finally {
+        tracing.addEvent(span, 'utility-report.broker.complete', {
+          duration_ms: Date.now() - startedAt,
+        });
+      }
+    }
+  );
 }
 
 // ─── Discover preflight ────────────────────────────────────────────────────────
@@ -1507,17 +1556,54 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
      * @param {number}      delayMs    - Base delay in ms; multiplied by attempt index (default 1000).
      */
     async fetchWithRetry(ctx, actionName, params, maxRetries = 2, delayMs = 1000) {
-      const callOptions = ctx ? { meta: ctx.meta, timeout: 30000 } : { timeout: 30000 };
-      for (let i = 0; i <= maxRetries; i++) {
-        try {
-          const result = await this.broker.call(actionName, params, callOptions);
-          if (result?.available !== false) return result;
-        } catch (err) {
-          if (i === maxRetries) return { available: false, error: err.message };
+      const parentCarrier = ctx?.meta?.__otel || getObservabilityContext().traceCarrier || null;
+
+      return tracing.withSpan(
+        `utility-report.retry ${actionName}`,
+        {
+          parentCarrier,
+          attributes: {
+            'cernion.component': 'utility-report',
+            'cernion.action': actionName,
+            'cernion.max_retries': maxRetries,
+          },
+        },
+        async (span) => {
+          for (let i = 0; i <= maxRetries; i++) {
+            const meta = ctx ? { ...(ctx.meta || {}) } : undefined;
+            if (meta) tracing.attachSpanToMeta(meta, span);
+            const callOptions = meta ? { meta, timeout: 30000 } : { timeout: 30000 };
+
+            tracing.addEvent(span, 'utility-report.retry.attempt', { attempt: i + 1 });
+
+            try {
+              const result = await this.broker.call(actionName, params, callOptions);
+              if (result?.available !== false) {
+                if (i > 0) metrics.recordUtilityReportRetry(actionName, 'recovered');
+                tracing.setOk(span);
+                return result;
+              }
+            } catch (err) {
+              tracing.addEvent(span, 'utility-report.retry.error', {
+                attempt: i + 1,
+                error: err.message,
+              });
+              if (i === maxRetries) {
+                tracing.setError(span, err);
+                metrics.recordUtilityReportRetry(actionName, 'failed');
+                return { available: false, error: err.message };
+              }
+            }
+
+            if (i < maxRetries) {
+              metrics.recordUtilityReportRetry(actionName, 'scheduled');
+              await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
+            }
+          }
+
+          return { available: false };
         }
-        if (i < maxRetries) await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
-      }
-      return { available: false };
+      );
     },
 
     // ─── Pipeline ───────────────────────────────────────────────────────────────
@@ -2190,6 +2276,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
       // PHASE 3: Data collection – 8 sections, fully sequential
       // ──────────────────────────────────────────────────────────────────────────
       if (p.phase <= 3) {
+        const phase3StartedAt = Date.now();
         this.logger.info(`[UtilityReport] ${p.reportId} – Phase 3: Data collection`);
 
         const gridOpParams = resolvedMastrId
@@ -2934,6 +3021,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         saveProgress(p);
 
         p.phase = 4;
+        metrics.recordUtilityReportPhase('phase_3', 'success', Date.now() - phase3StartedAt);
         saveProgress(p);
       }
 
@@ -2941,6 +3029,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
       // PHASE 4: Context enrichment + HTML rendering
       // ──────────────────────────────────────────────────────────────────────────
       if (p.phase <= 4) {
+        const phase4StartedAt = Date.now();
         this.logger.info(`[UtilityReport] ${p.reportId} – Phase 4: Context & Rendering`);
 
         // Web search context (3 queries)
@@ -3057,6 +3146,7 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         p.completedAt = new Date().toISOString();
         p.managementSummary = managementSummary;
         p.webSearchResults = webSearchResults;
+        metrics.recordUtilityReportPhase('phase_4', 'success', Date.now() - phase4StartedAt);
         saveProgress(p);
 
         this.logger.info(`[UtilityReport] ${p.reportId} – Completed!`);

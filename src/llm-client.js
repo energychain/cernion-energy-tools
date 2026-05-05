@@ -19,7 +19,10 @@
 
 const { SchemaType } = require('@google/generative-ai');
 const { MoleculerError } = require('moleculer').Errors;
+const metrics = require('./metrics');
 const { scrubPromptText } = require('./prompt-scrubber');
+const tracing = require('./tracing');
+const { getObservabilityContext } = require('./observability-context');
 const geminiAdapter = require('./adapters/gemini');
 const openAiCompatAdapter = require('./adapters/openai-compat');
 const ollamaAdapter = require('./adapters/ollama');
@@ -134,6 +137,49 @@ function buildStructuredFallbackPrompt(schema, prompt) {
   ].join('\n\n');
 }
 
+async function observeLlmCall(adapter, operation, options, task) {
+  const startedAt = Date.now();
+  const provider = adapter?.id || getProviderId();
+  const model = options?.model || process.env.LLM_MODEL || 'default';
+
+  return tracing.withSpan(
+    `llm.${operation}`,
+    {
+      kind: tracing.SpanKind.CLIENT,
+      parentCarrier: getObservabilityContext().traceCarrier || null,
+      attributes: {
+        'cernion.provider': provider,
+        'cernion.model': model,
+        'cernion.operation': operation,
+      },
+    },
+    async (span) => {
+      try {
+        const result = await task();
+        tracing.setOk(span);
+        metrics.recordLlmRequest({
+          provider,
+          model,
+          operation,
+          status: 'success',
+          durationMs: Date.now() - startedAt,
+        });
+        return result;
+      } catch (error) {
+        tracing.setError(span, error);
+        metrics.recordLlmRequest({
+          provider,
+          model,
+          operation,
+          status: 'error',
+          durationMs: Date.now() - startedAt,
+        });
+        throw error;
+      }
+    }
+  );
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -148,7 +194,9 @@ function buildStructuredFallbackPrompt(schema, prompt) {
 async function generateText(prompt, options = {}) {
   const adapter = getAdapter();
   const scrubbedPrompt = scrubPromptText(prompt);
-  return await withRetries(() => adapter.generateText(scrubbedPrompt, options), options);
+  return await observeLlmCall(adapter, 'generate_text', options, () =>
+    withRetries(() => adapter.generateText(scrubbedPrompt, options), options)
+  );
 }
 
 /**
@@ -168,16 +216,17 @@ async function generateStructured(responseSchema, prompt, options = {}) {
   const scrubbedPrompt = scrubPromptText(prompt);
 
   try {
-    const raw = await withRetries(
-      () => adapter.generateStructured(responseSchema, scrubbedPrompt, { ...options, structuredMode: mode }),
-      options
+    const raw = await observeLlmCall(adapter, 'generate_structured', options, () =>
+      withRetries(
+        () => adapter.generateStructured(responseSchema, scrubbedPrompt, { ...options, structuredMode: mode }),
+        options
+      )
     );
     return parseJsonResponse(raw);
   } catch (error) {
     const fallbackPrompt = buildStructuredFallbackPrompt(responseSchema, scrubbedPrompt);
-    const fallbackRaw = await withRetries(
-      () => adapter.generateText(fallbackPrompt, options),
-      options
+    const fallbackRaw = await observeLlmCall(adapter, 'generate_structured_fallback', options, () =>
+      withRetries(() => adapter.generateText(fallbackPrompt, options), options)
     );
     return parseJsonResponse(fallbackRaw);
   }
@@ -203,7 +252,9 @@ async function embeddings(texts, options = {}) {
   }
 
   const scrubbed = (Array.isArray(texts) ? texts : []).map((text) => scrubPromptText(String(text || '')));
-  return await withRetries(() => adapter.embeddings(scrubbed, options), options);
+  return await observeLlmCall(adapter, 'embeddings', options, () =>
+    withRetries(() => adapter.embeddings(scrubbed, options), options)
+  );
 }
 
 /**

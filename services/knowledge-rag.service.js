@@ -3,6 +3,7 @@
 const { Errors } = require('moleculer');
 const { callWithAutoPoll } = require('../src/async-job-poller');
 const { appendLog, startJob } = require('../src/job-store');
+const metrics = require('../src/metrics');
 
 const OPENAPI_TAG = 'Knowledge RAG';
 const MCP_TOOL = 'cernion_rag_search';
@@ -107,6 +108,16 @@ const SUCCESS_200_RESPONSE = {
     },
   },
 };
+
+function inferHitCount(result) {
+  return (
+    result?.data?.returned ||
+    result?.returned ||
+    result?.data?.results?.length ||
+    result?.results?.length ||
+    0
+  );
+}
 
 function buildQuerySchema(requiredFields = []) {
   return {
@@ -1549,6 +1560,7 @@ module.exports = (() => {
 
             const localResult = await this.tryHandleLocalQuery(ctx, toolParams);
             if (localResult) {
+              metrics.recordRagQuery(collection, inferHitCount(localResult));
               if (jobId) appendLog(jobId, 'completed', 100, 'Local RAG query finished');
               return localResult;
             }
@@ -1569,6 +1581,7 @@ module.exports = (() => {
               ctx.meta.cernionToken
             );
 
+            metrics.recordRagQuery(collection, inferHitCount(result));
             if (jobId) appendLog(jobId, 'completed', 100, `${MCP_TOOL} finished`);
             return result;
           }

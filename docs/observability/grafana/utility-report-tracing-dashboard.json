@@ -1,0 +1,53 @@
+{
+  "title": "Cernion Utility Report Deep Dive",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Utility report phase durations",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, phase, status) (rate(cernion_utility_report_phase_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{phase}} {{status}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Utility report retries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum by (action, outcome) (rate(cernion_utility_report_retry_attempts_total[5m]))",
+          "legendFormat": "{{action}} {{outcome}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "MCP latency p95",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, tool, status) (rate(cernion_mcp_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{tool}} {{status}}"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "LLM latency p95",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, provider, model, operation, status) (rate(cernion_llm_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{provider}} {{operation}} {{status}}"
+        }
+      ]
+    }
+  ]
+}

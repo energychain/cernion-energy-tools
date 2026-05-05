@@ -11,6 +11,8 @@ const { Errors } = require('moleculer');
 const path = require('path');
 const fs = require('fs');
 const { version: packageVersion } = require('../package.json');
+const metrics = require('../src/metrics');
+const tracing = require('../src/tracing');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 const CONTENT_TYPE_HEADER = 'Content-Type';
@@ -81,6 +83,20 @@ function isReadMethod(method) {
 function normalizeRequestPath(req) {
   const raw = String(req?.originalUrl || req?.url || req?.path || '');
   return raw.split('?')[0] || '';
+}
+
+function envTrue(name) {
+  const raw = process.env[name];
+  if (raw == null || raw === '') return false;
+  return ['1', 'true', 'yes', 'on'].includes(String(raw).toLowerCase());
+}
+
+function extractRawToken(req) {
+  const authHeader = req?.headers?.authorization || req?.headers?.Authorization;
+  const bearerToken =
+    authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : null;
+  const queryToken = typeof req?.query?.token === 'string' ? req.query.token.trim() : null;
+  return queryToken || bearerToken || null;
 }
 
 function requiresFullAccess(method, requestPath) {
@@ -487,6 +503,62 @@ module.exports = {
             } catch (err) {
               res.writeHead(404);
               res.end('llm.txt not found: ' + err.message);
+            }
+          },
+
+          async 'GET /metrics'(req, res) {
+            try {
+              if (!envTrue('METRICS_PUBLIC')) {
+                const token = extractRawToken(req);
+                if (!token || !token.startsWith('ck_')) {
+                  res.writeHead(401, { [CONTENT_TYPE_HEADER]: CONTENT_TYPE_JSON });
+                  res.end(
+                    JSON.stringify({
+                      success: false,
+                      message: 'Full-access API token required for /metrics.',
+                    })
+                  );
+                  return;
+                }
+
+                const verification = await this.broker.call('token-manager.verify', {
+                  token,
+                  method: 'GET',
+                  path: '/metrics',
+                  trackUsage: false,
+                });
+
+                if (!verification?.valid) {
+                  res.writeHead(401, { [CONTENT_TYPE_HEADER]: CONTENT_TYPE_JSON });
+                  res.end(
+                    JSON.stringify({ success: false, message: 'Invalid or revoked API token.' })
+                  );
+                  return;
+                }
+
+                if (verification.scope !== 'full-access') {
+                  res.writeHead(403, { [CONTENT_TYPE_HEADER]: CONTENT_TYPE_JSON });
+                  res.end(
+                    JSON.stringify({
+                      success: false,
+                      message: 'Full-access API token required for /metrics.',
+                    })
+                  );
+                  return;
+                }
+              }
+
+              const payload = await metrics.renderMetrics();
+              res.setHeader(CONTENT_TYPE_HEADER, metrics.contentType());
+              res.end(payload);
+            } catch (err) {
+              res.writeHead(500, { [CONTENT_TYPE_HEADER]: CONTENT_TYPE_JSON });
+              res.end(
+                JSON.stringify({
+                  success: false,
+                  message: sanitizeErrorMessage(err.message),
+                })
+              );
             }
           },
         },
@@ -1149,9 +1221,35 @@ module.exports = {
           } else {
             this.logger.debug('No request token provided, will use CERNION_TOKEN from environment');
           }
+
+          const httpSpan = tracing.startSpan(`http ${String(req?.method || 'GET').toUpperCase()} ${requestPath}`, {
+            attributes: {
+              'http.method': String(req?.method || 'GET').toUpperCase(),
+              'http.route': requestPath,
+            },
+            parentCarrier: ctx.meta.__otel,
+            kind: tracing.SpanKind.SERVER,
+          });
+          ctx.meta.$httpSpan = httpSpan;
+          tracing.ensureCorrelationId(ctx.meta);
+          tracing.attachSpanToMeta(ctx.meta, httpSpan);
+        },
+
+        onAfterCall(ctx, _route, _req, _res, data) {
+          if (ctx?.meta?.$httpSpan) {
+            tracing.setOk(ctx.meta.$httpSpan);
+            ctx.meta.$httpSpan.end();
+            delete ctx.meta.$httpSpan;
+          }
+          return data;
         },
 
         onError(req, res, err) {
+          if (req?.$ctx?.meta?.$httpSpan) {
+            tracing.setError(req.$ctx.meta.$httpSpan, err);
+            req.$ctx.meta.$httpSpan.end();
+            delete req.$ctx.meta.$httpSpan;
+          }
           res.setHeader(CONTENT_TYPE_HEADER, 'application/json');
           res.writeHead(err.code || 500);
           res.end(

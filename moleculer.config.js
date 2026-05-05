@@ -4,6 +4,13 @@
 require('dotenv').config();
 
 const observabilityStore = require('./src/observability-store');
+const metrics = require('./src/metrics');
+const tracing = require('./src/tracing');
+const { emitStructuredLog } = require('./src/logger');
+const {
+  runWithObservabilityContext,
+  getObservabilityContext,
+} = require('./src/observability-context');
 
 const LOGGER_LEVELS = ['fatal', 'error', 'warn', 'info', 'debug', 'trace'];
 const OBSERVABILITY_LOGGER_WRAPPED = Symbol.for('cernion.observability.loggerWrapped');
@@ -26,6 +33,9 @@ function envNum(name, defaultValue) {
 function installObservabilityHooks(broker) {
   if (!broker || broker[OBSERVABILITY_HOOKS_INSTALLED]) return;
   broker[OBSERVABILITY_HOOKS_INSTALLED] = true;
+  metrics.initMetrics();
+  metrics.registerBroker(broker);
+  tracing.initTracing();
 
   wrapLoggerMethods(broker.logger, () => ({
     service: 'broker',
@@ -38,12 +48,15 @@ function installObservabilityHooks(broker) {
     const instrumentedSchema = instrumentSchema(schema, broker);
     const service = originalCreateService(instrumentedSchema, ...args);
     wrapServiceLogger(service, broker);
+    metrics.registerBroker(broker);
     return service;
   };
 
   for (const service of broker.services || []) {
     wrapServiceLogger(service, broker);
   }
+
+  metrics.registerBroker(broker);
 }
 
 function instrumentSchema(schema, broker) {
@@ -68,25 +81,68 @@ function wrapActionHandler(serviceName, actionName, handler, broker) {
 
   const wrapped = async function observabilityWrappedAction(ctx) {
     const startedAt = Date.now();
+    const meta = ctx?.meta || {};
+    tracing.ensureCorrelationId(meta);
+    const action = `${serviceName || this?.name || 'unknown'}.${actionName}`;
+    const span = tracing.startSpan(`moleculer.action ${action}`, {
+      parentCarrier: meta.__otel,
+      attributes: {
+        'cernion.service': serviceName || this?.name || 'unknown',
+        'cernion.action': action,
+        'cernion.request_origin': meta.$gateway ? 'gateway' : 'internal',
+      },
+    });
+    tracing.attachSpanToMeta(meta, span);
+
     let status = 'success';
     let errorType = null;
 
     try {
-      return await handler.call(this, ctx);
+      return await runWithObservabilityContext(
+        {
+          ...(getObservabilityContext() || {}),
+          service: serviceName || this?.name || 'unknown',
+          action,
+          tenantId: meta.tenantId || null,
+          traceId: meta.traceId || null,
+          traceCarrier: meta.__otel || null,
+          sessionId: meta.sessionId || ctx?.params?.sessionId || ctx?.params?.session_id || null,
+          correlationId: meta.correlationId || null,
+          requestOrigin: meta.$gateway ? 'gateway' : 'internal',
+          source: 'service',
+          nodeID: broker.nodeID || null,
+        },
+        () => handler.call(this, ctx)
+      );
     } catch (err) {
       status = 'error';
       errorType = err?.type || err?.code || err?.name || 'UNKNOWN_ERROR';
+      tracing.setError(span, err);
       throw err;
     } finally {
+      const durationMs = Date.now() - startedAt;
       observabilityStore.captureMetric({
         service: serviceName || this?.name || 'unknown',
-        action: `${serviceName || this?.name || 'unknown'}.${actionName}`,
-        durationMs: Date.now() - startedAt,
+        action,
+        durationMs,
         status,
         errorType,
         requestOrigin: ctx?.meta?.$gateway ? 'gateway' : 'internal',
         nodeID: broker.nodeID || null,
       });
+      metrics.recordActionMetric({
+        service: serviceName || this?.name || 'unknown',
+        action,
+        durationMs,
+        status,
+        requestOrigin: ctx?.meta?.$gateway ? 'gateway' : 'internal',
+      });
+      if (status === 'success') {
+        tracing.setOk(span);
+      }
+      if (span) {
+        span.end();
+      }
     }
   };
 
@@ -112,11 +168,15 @@ function wrapLoggerMethods(logger, contextFactory) {
 
     logger[level] = (...args) => {
       original(...args);
-      observabilityStore.captureLog({
+      const entry = {
         ...contextFactory(),
         level,
         message: observabilityStore.formatLogArgs(args),
-      });
+        ...getObservabilityContext(),
+      };
+      observabilityStore.captureLog(entry);
+      metrics.recordLogEvent(entry);
+      emitStructuredLog(level, entry.message, entry);
     };
   }
 
@@ -223,6 +283,8 @@ module.exports = {
     observabilityStore.configure({
       dbPath: process.env.OBSERVABILITY_DB_PATH || './data/observability',
     });
+    metrics.initMetrics();
+    tracing.initTracing();
     installObservabilityHooks(broker);
   },
 

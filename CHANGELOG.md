@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.44.1] — Observability Stack Foundation (Closes #55)
+
+### Added
+- **Prometheus-style metrics export** on root route [services/api.service.js](services/api.service.js):
+  - `GET /metrics` with `METRICS_PUBLIC=true` for public scrape or full-access `ck_` token otherwise
+  - custom metric families for actions, logs, utility-report phases, async jobs, LLM, MCP, RAG, MaStR deltas and A2A negotiations
+- **Structured logging** in [src/logger.js](src/logger.js) with context fields `service`, `action`, `tenantId`, `traceId`, `sessionId`, `correlationId`
+- **OpenTelemetry helpers** in [src/tracing.js](src/tracing.js) and async context propagation in [src/observability-context.js](src/observability-context.js)
+- **Grafana starter dashboards** in [docs/observability/grafana/README.md](docs/observability/grafana/README.md)
+
+### Changed
+- **Global Moleculer instrumentation** in [moleculer.config.js](moleculer.config.js):
+  - action spans and structured log emission
+  - trace-carrier propagation into nested service calls
+- **Shared outbound clients instrumented**:
+  - [src/llm-client.js](src/llm-client.js) records provider/model/status latency metrics
+  - [src/mcp-client.js](src/mcp-client.js) records tool latency and quota-retry trace events
+- **Acceptance-critical trace coverage** in [services/utility-report.service.js](services/utility-report.service.js):
+  - Phase 3/4 duration metrics
+  - outbound broker + MCP child spans
+  - retry trace events for `fetchWithRetry`
+- **Domain metrics added**:
+  - [services/knowledge-rag.service.js](services/knowledge-rag.service.js) → `cernion_rag_query_hit_count`
+  - [services/mastr-monitor.service.js](services/mastr-monitor.service.js) → `cernion_mastr_delta_count`
+  - [services/cya.service.js](services/cya.service.js) → `cernion_a2a_negotiation_rounds`
+
+### Notes
+- Prometheus labels intentionally exclude tenant identifiers to stay KRITIS-safe.
+
 ## [0.44.0] — Outbound Webhooks + HITL Ownership (Closes #54)
 
 ### Added

@@ -17,6 +17,9 @@ const { Client } = require('@modelcontextprotocol/sdk/client/index.js');
 const {
   StreamableHTTPClientTransport,
 } = require('@modelcontextprotocol/sdk/client/streamableHttp.js');
+const metrics = require('./metrics');
+const tracing = require('./tracing');
+const { getObservabilityContext } = require('./observability-context');
 
 class CernionMCPClient {
   // ─── Static retry configuration ─────────────────────────────────────────────
@@ -446,55 +449,95 @@ class CernionMCPClient {
    * @returns {Promise<object>} Tool response
    */
   static async callWithNewSession(toolName, params = {}, customToken = null) {
+    const startedAt = Date.now();
     const token = customToken || process.env.CERNION_TOKEN;
-    if (!token) {
-      return {
-        success: false,
-        error: {
-          code: 'MISSING_TOKEN',
-          message: 'CERNION_TOKEN environment variable not set and no custom token provided',
+
+    return tracing.withSpan(
+      `mcp.${toolName}`,
+      {
+        kind: tracing.SpanKind.CLIENT,
+        parentCarrier: getObservabilityContext().traceCarrier || null,
+        attributes: {
+          'cernion.tool': toolName,
+          'cernion.component': 'mcp-client',
         },
-      };
-    }
-
-    // ── Quota-retry loop ─────────────────────────────────────────────────────
-    // Concurrent calls are allowed; the server-side quota issue that originally
-    // motivated serialisation has been resolved (CR-26, 2026-03-06).
-    let lastError;
-    for (let attempt = 0; attempt <= CernionMCPClient.MAX_QUOTA_RETRIES; attempt++) {
-      if (attempt > 0) {
-        const backoffMs = CernionMCPClient.QUOTA_RETRY_BASE_MS * Math.pow(2, attempt - 1);
-        await new Promise((r) => setTimeout(r, backoffMs));
-      }
-      try {
-        const result = await CernionMCPClient._executeCall(toolName, params, token);
-        // The tool call succeeded at HTTP level but the response body may still
-        // carry a quota error (rare, but handle it).
-        if (CernionMCPClient._isQuotaError(result?.error?.message)) {
-          lastError = new Error(result.error.message);
-          continue; // retry
-        }
-        return result;
-      } catch (err) {
-        lastError = err;
-        if (!CernionMCPClient._isQuotaError(err.message)) {
-          throw new Error(CernionMCPClient._sanitizeErrorMessage(err.message)); // non-quota error – propagate immediately, don't retry
-        }
-        // quota error: loop to next attempt
-      }
-    }
-
-    // All retries exhausted – return structured error instead of throwing
-    return {
-      success: false,
-      error: {
-        code: 'QUOTA_EXHAUSTED',
-        message: CernionMCPClient._sanitizeErrorMessage(
-          lastError?.message || 'Quota exhausted after all retry attempts'
-        ),
-        toolName,
       },
-    };
+      async (span) => {
+        if (!token) {
+          const error = {
+            success: false,
+            error: {
+              code: 'MISSING_TOKEN',
+              message: 'CERNION_TOKEN environment variable not set and no custom token provided',
+            },
+          };
+          tracing.setError(span, new Error(error.error.message));
+          metrics.recordMcpRequest({
+            tool: toolName,
+            status: 'error',
+            durationMs: Date.now() - startedAt,
+          });
+          return error;
+        }
+
+        let lastError;
+        for (let attempt = 0; attempt <= CernionMCPClient.MAX_QUOTA_RETRIES; attempt++) {
+          if (attempt > 0) {
+            const backoffMs = CernionMCPClient.QUOTA_RETRY_BASE_MS * Math.pow(2, attempt - 1);
+            tracing.addEvent(span, 'mcp.quota_retry', {
+              attempt: attempt + 1,
+              backoff_ms: backoffMs,
+            });
+            await new Promise((r) => setTimeout(r, backoffMs));
+          }
+          try {
+            const result = await CernionMCPClient._executeCall(toolName, params, token);
+            if (CernionMCPClient._isQuotaError(result?.error?.message)) {
+              lastError = new Error(result.error.message);
+              continue;
+            }
+            tracing.setOk(span);
+            metrics.recordMcpRequest({
+              tool: toolName,
+              status: result?.success === false ? 'error' : 'success',
+              durationMs: Date.now() - startedAt,
+            });
+            return result;
+          } catch (err) {
+            lastError = err;
+            if (!CernionMCPClient._isQuotaError(err.message)) {
+              tracing.setError(span, err);
+              metrics.recordMcpRequest({
+                tool: toolName,
+                status: 'error',
+                durationMs: Date.now() - startedAt,
+              });
+              throw new Error(CernionMCPClient._sanitizeErrorMessage(err.message));
+            }
+          }
+        }
+
+        tracing.setError(
+          span,
+          new Error(lastError?.message || 'Quota exhausted after all retry attempts')
+        );
+        metrics.recordMcpRequest({
+          tool: toolName,
+          status: 'quota_exhausted',
+          durationMs: Date.now() - startedAt,
+        });
+        return {
+          success: false,
+          error: {
+            code: 'QUOTA_EXHAUSTED',
+            message: CernionMCPClient._sanitizeErrorMessage(
+              lastError?.message || 'Quota exhausted after all retry attempts'
+            ),
+            toolName,
+          },
+        };
+      }
+    );
   }
 }
 
