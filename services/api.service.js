@@ -144,6 +144,12 @@ function requiresFullAccess(method, requestPath) {
   if (pathOnly.startsWith('/api/cya/profile') && m === 'POST') {
     return true;
   }
+  if (pathOnly.startsWith('/api/webhooks') && m !== 'GET') {
+    return true;
+  }
+  if (pathOnly.startsWith('/api/hitl/items') && m !== 'GET') {
+    return true;
+  }
   if (pathOnly === '/api/knowledge-rag/collections' && m === 'POST') {
     return true;
   }
@@ -392,6 +398,16 @@ module.exports = {
           description:
             'MaStR installation change monitoring with field-level delta detection and email notifications (v0.27). ' +
             'Watches track changes to MaStR installations based on saved queries with configurable schedules.',
+        },
+        {
+          name: 'HITL',
+          description:
+            'Human-in-the-loop approval workflow with tenant-scoped review items, intervention trail, and lifecycle events.',
+        },
+        {
+          name: 'Webhooks',
+          description:
+            'Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking.',
         },
       ],
       components: {
@@ -680,6 +696,20 @@ module.exports = {
           'GET /finance-agent/prompts': 'finance-agent.prompts',
           'POST /finance-agent/memory': 'finance-agent.remember',
           'GET /finance-agent/memory/:sessionId': 'finance-agent.memory',
+          // HITL (v0.44)
+          'POST /hitl/items': 'hitl.create',
+          'GET /hitl/items': 'hitl.list',
+          'GET /hitl/items/:id': 'hitl.get',
+          'POST /hitl/items/:id/approve': 'hitl.approve',
+          'POST /hitl/items/:id/reject': 'hitl.reject',
+          'POST /hitl/items/:id/escalate': 'hitl.escalate',
+          // Webhooks (v0.44)
+          'POST /webhooks': 'webhooks.create',
+          'GET /webhooks': 'webhooks.list',
+          'DELETE /webhooks/:id': 'webhooks.remove',
+          'POST /webhooks/:id/test': 'webhooks.test',
+          'GET /webhooks/:id/deliveries': 'webhooks.listDeliveries',
+          'POST /webhooks/:id/deliveries/:deliveryId/replay': 'webhooks.replay',
           // Companies (v0.20.3) — Konzernverbund / Stadtwerk entity management
           'GET /companies': 'company.list',
           'POST /companies': 'company.create',
@@ -1164,6 +1194,8 @@ module.exports = {
           'knowledge-rag': 'Knowledge RAG',
           'finance-agent': 'Finance Agent',
           'mastr-quality': 'MaStR Data Quality',
+          hitl: 'HITL',
+          webhooks: 'Webhooks',
           'dashboard-api': 'Dashboard API',
           cookbook: 'Cookbook',
           cya: 'CYA Agent',

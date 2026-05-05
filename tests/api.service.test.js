@@ -225,6 +225,16 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/mastr-quality/audit'].post.tags).toContain('MaStR Data Quality');
     });
 
+    it('should include HITL and Webhooks tags and routes', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.tags.some((tag) => tag.name === 'HITL')).toBe(true);
+      expect(schema.tags.some((tag) => tag.name === 'Webhooks')).toBe(true);
+      expect(schema.paths['/api/hitl/items']).toBeDefined();
+      expect(schema.paths['/api/webhooks']).toBeDefined();
+      expect(schema.paths['/api/webhooks/:id/deliveries/:deliveryId/replay']).toBeDefined();
+    });
+
     it('should have explicit aliases for Knowledge RAG routes', () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       const aliases = apiRoute?.aliases || {};
@@ -257,6 +267,17 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /observability/metrics']).toBe('observability.metrics');
       expect(aliases['GET /observability/summary']).toBe('observability.summary');
       expect(aliases['GET /observability/agent-prompt']).toBe('observability.agentPrompt');
+    });
+
+    it('should have explicit aliases for HITL and Webhooks routes', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+
+      expect(aliases['POST /hitl/items']).toBe('hitl.create');
+      expect(aliases['POST /hitl/items/:id/approve']).toBe('hitl.approve');
+      expect(aliases['POST /webhooks']).toBe('webhooks.create');
+      expect(aliases['GET /webhooks']).toBe('webhooks.list');
+      expect(aliases['POST /webhooks/:id/deliveries/:deliveryId/replay']).toBe('webhooks.replay');
     });
 
     it('should have explicit aliases for OSM Geo routes', () => {

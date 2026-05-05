@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.43.1
-- changelog_latest_release: 0.43.1
+- version: 0.44.0
+- changelog_latest_release: 0.44.0
 - source_files_hash:
-  - CHANGELOG.md: a0c8ab62980425d1cbb213db9f8654b44779bb40396e5548af1a68c7120eec95
+  - CHANGELOG.md: 44ccd12bf5a5254a93f808a92dff5e843302e84318155235bab15ea1207c1387
   - README.md: 1d6b6e2e65facc4ff9064041f2fce8a6f6b8df51d6dddc74c2bfcdda0e0c6165
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: b6362e9a242ff6ecc22f3d0784eeb0c946c5ae5a5fcfe32a0f24676ac344027e
+  - openapi-export.json: 99d0da803f571cf6460caa1648e16612e13664b607e317c8d4c5476265b8d9a0
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -588,8 +588,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 199
-- operation_count: 235
+- path_count: 209
+- operation_count: 247
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -609,6 +609,7 @@ process:
 - Flex (§14a Flexibilitätsmanagement): 8 operations
 - Forecast (Prognostik): 8 operations
 - Grid Connection Validation: 3 operations
+- HITL: 6 operations
 - IntegrationHub: 8 operations
 - Jobs: 2 operations
 - Knowledge RAG: 12 operations
@@ -624,6 +625,7 @@ process:
 - Settlement (Abrechnung): 14 operations
 - SLP (Standardlastprofile): 5 operations
 - VNBMonitor: 4 operations
+- Webhooks: 6 operations
 - Zielnetzplanung (ZNP): 11 operations
 
 ## OpenAPI Operations (Complete Index)
@@ -765,6 +767,12 @@ process:
 - POST /api/grid-connection/validate | tags: [Grid Connection Validation] | operationId: grid-connection_validate | summary: Run Netzanschluss validation pipeline (6-step, deterministic)
 - GET /api/grid-connection/validations | tags: [Grid Connection Validation] | operationId: grid-connection_list | summary: List past grid connection validation reports
 - GET /api/grid-connection/validations/:id | tags: [Grid Connection Validation] | operationId: grid-connection_get | summary: Get a specific validation report by ID
+- GET /api/hitl/items | tags: [HITL] | operationId: hitl_list | summary: List HITL items
+- POST /api/hitl/items | tags: [HITL] | operationId: hitl_create | summary: Create HITL item
+- GET /api/hitl/items/:id | tags: [HITL] | operationId: hitl_get | summary: Get HITL item
+- POST /api/hitl/items/:id/approve | tags: [HITL] | operationId: hitl_approve | summary: Approve HITL item
+- POST /api/hitl/items/:id/escalate | tags: [HITL] | operationId: hitl_escalate | summary: Escalate HITL item
+- POST /api/hitl/items/:id/reject | tags: [HITL] | operationId: hitl_reject | summary: Reject HITL item
 - POST /api/in-memory-join/benchmark-compare | tags: [DataSources, Analytics] | operationId: in-memory-join_benchmarkCompare | summary: Compare inhouse aggregate with external benchmark values
 - POST /api/in-memory-join/compare-forecast-actual | tags: [DataSources, Analytics] | operationId: in-memory-join_compareForecastActual | summary: Compare inhouse actual generation with forecasted generation
 - POST /api/in-memory-join/join | tags: [DataSources, Analytics] | operationId: in-memory-join_join | summary: Generic in-memory join across datasource and action outputs
@@ -849,6 +857,12 @@ process:
 - DELETE /api/vnb-monitor/thresholds | tags: [VNBMonitor, IntegrationHub] | operationId: vnb-monitor_resetThresholds | summary: Reset VNB monitor alert thresholds to defaults
 - GET /api/vnb-monitor/thresholds | tags: [VNBMonitor, IntegrationHub] | operationId: vnb-monitor_getThresholds | summary: Get active VNB monitor alert thresholds
 - PUT /api/vnb-monitor/thresholds | tags: [VNBMonitor, IntegrationHub] | operationId: vnb-monitor_setThresholds | summary: Set VNB monitor alert thresholds (full replace)
+- GET /api/webhooks | tags: [Webhooks] | operationId: webhooks_list | summary: List webhook subscriptions
+- POST /api/webhooks | tags: [Webhooks] | operationId: webhooks_create | summary: Create webhook subscription
+- DELETE /api/webhooks/:id | tags: [Webhooks] | operationId: webhooks_remove | summary: Delete webhook subscription
+- GET /api/webhooks/:id/deliveries | tags: [Webhooks] | operationId: webhooks_listDeliveries | summary: List webhook deliveries
+- POST /api/webhooks/:id/deliveries/:deliveryId/replay | tags: [Webhooks] | operationId: webhooks_replay | summary: Replay webhook delivery
+- POST /api/webhooks/:id/test | tags: [Webhooks] | operationId: webhooks_test | summary: Send test webhook delivery
 - GET /api/znp/projects | tags: [Zielnetzplanung (ZNP)] | operationId: znp_listProjects | summary: List all active ZNP projects (in-memory)
 - POST /api/znp/projects | tags: [Zielnetzplanung (ZNP)] | operationId: znp_createProject | summary: Create a new ZNP project workspace
 - DELETE /api/znp/projects/:projectId | tags: [Zielnetzplanung (ZNP)] | operationId: znp_deleteProject | summary: Delete a ZNP project permanently
@@ -868,7 +882,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.43.1"
+    "version": "0.44.0"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -9370,6 +9384,335 @@ process:
         ]
       }
     },
+    "/api/hitl/items": {
+      "get": {
+        "operationId": "hitl_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "example": "pending",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "schema": {
+              "example": "finance-hypothetical-review",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List HITL items",
+        "tags": [
+          "HITL"
+        ]
+      },
+      "post": {
+        "operationId": "hitl_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "kind": "cya-consensus-failed",
+                    "originAction": "refine",
+                    "originService": "cya",
+                    "payload": {
+                      "sessionId": "S-123"
+                    },
+                    "requiredScope": "full-access",
+                    "severity": "warning"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "dueAt": {
+                    "example": "2026-05-12T12:00:00.000Z",
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "kind": {
+                    "example": "cya-consensus-failed",
+                    "type": "string"
+                  },
+                  "originAction": {
+                    "example": "refine",
+                    "type": "string"
+                  },
+                  "originService": {
+                    "example": "cya",
+                    "type": "string"
+                  },
+                  "payload": {
+                    "example": {
+                      "sessionId": "S-123"
+                    },
+                    "type": "object"
+                  },
+                  "requiredScope": {
+                    "example": "full-access",
+                    "type": "string"
+                  },
+                  "severity": {
+                    "example": "warning",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Create HITL item",
+        "tags": [
+          "HITL"
+        ]
+      }
+    },
+    "/api/hitl/items/:id": {
+      "get": {
+        "operationId": "hitl_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "00000000-0000-4000-8000-000000000001",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get HITL item",
+        "tags": [
+          "HITL"
+        ]
+      }
+    },
+    "/api/hitl/items/:id/approve": {
+      "post": {
+        "operationId": "hitl_approve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "00000000-0000-4000-8000-000000000001",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "comment": "Looks good"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "comment": {
+                    "example": "Looks good",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Approve HITL item",
+        "tags": [
+          "HITL"
+        ]
+      }
+    },
+    "/api/hitl/items/:id/escalate": {
+      "post": {
+        "operationId": "hitl_escalate",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "00000000-0000-4000-8000-000000000001",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "comment": "Escalate to legal review"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "comment": {
+                    "example": "Escalate to legal review",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Escalate HITL item",
+        "tags": [
+          "HITL"
+        ]
+      }
+    },
+    "/api/hitl/items/:id/reject": {
+      "post": {
+        "operationId": "hitl_reject",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "00000000-0000-4000-8000-000000000001",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "comment": "Missing supporting evidence",
+                    "feedbackToAgent": "Please provide legal reference to §21a EnWG."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "comment": {
+                    "example": "Missing supporting evidence",
+                    "type": "string"
+                  },
+                  "feedbackToAgent": {
+                    "example": "Please provide legal reference to §21a EnWG.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Reject HITL item",
+        "tags": [
+          "HITL"
+        ]
+      }
+    },
     "/api/in-memory-join/benchmark-compare": {
       "post": {
         "operationId": "in-memory-join_benchmarkCompare",
@@ -15774,6 +16117,301 @@ process:
         ]
       }
     },
+    "/api/webhooks": {
+      "get": {
+        "operationId": "webhooks_list",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "event",
+            "schema": {
+              "example": "cya.a2a.consensus.failed",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List webhook subscriptions",
+        "tags": [
+          "Webhooks"
+        ]
+      },
+      "post": {
+        "operationId": "webhooks_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "events": [
+                      "cya.a2a.consensus.failed",
+                      "hitl.item.created"
+                    ],
+                    "headers": {
+                      "X-Customer": "tenant-a"
+                    },
+                    "isActive": true,
+                    "secret": "my-shared-secret",
+                    "url": "https://example.com/hooks/cernion"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "events": {
+                    "example": [
+                      "cya.a2a.consensus.failed"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "headers": {
+                    "example": {
+                      "X-Customer": "tenant-a"
+                    },
+                    "type": "object"
+                  },
+                  "isActive": {
+                    "default": true,
+                    "type": "boolean"
+                  },
+                  "secret": {
+                    "example": "my-shared-secret",
+                    "type": "string"
+                  },
+                  "url": {
+                    "example": "https://example.com/hooks/cernion",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "url",
+                  "events"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Create webhook subscription",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/api/webhooks/:id": {
+      "delete": {
+        "operationId": "webhooks_remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "00000000-0000-4000-8000-000000000010",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Delete webhook subscription",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/api/webhooks/:id/deliveries": {
+      "get": {
+        "operationId": "webhooks_listDeliveries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "00000000-0000-4000-8000-000000000010",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "example": "failed",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List webhook deliveries",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/api/webhooks/:id/deliveries/:deliveryId/replay": {
+      "post": {
+        "operationId": "webhooks_replay",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "00000000-0000-4000-8000-000000000010",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "deliveryId",
+            "required": true,
+            "schema": {
+              "example": "00000000-0000-4000-8000-000000000011",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {}
+                }
+              },
+              "schema": {
+                "properties": {},
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Replay webhook delivery",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
+    "/api/webhooks/:id/test": {
+      "post": {
+        "operationId": "webhooks_test",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "00000000-0000-4000-8000-000000000010",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {}
+                }
+              },
+              "schema": {
+                "properties": {},
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Send test webhook delivery",
+        "tags": [
+          "Webhooks"
+        ]
+      }
+    },
     "/api/znp/projects": {
       "get": {
         "description": "Returns all projects currently held in the in-memory activeGraphs Map. As of v0.23, graphs are hydrated from PouchDB on service start, so this list is populated even after a server restart.",
@@ -16846,11 +17484,19 @@ process:
     {
       "description": "MaStR installation change monitoring with field-level delta detection and email notifications (v0.27). Watches track changes to MaStR installations based on saved queries with configurable schedules.",
       "name": "MaStR Monitor"
+    },
+    {
+      "description": "Human-in-the-loop approval workflow with tenant-scoped review items, intervention trail, and lifecycle events.",
+      "name": "HITL"
+    },
+    {
+      "description": "Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking.",
+      "name": "Webhooks"
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.43.1"
+  "x-version": "0.44.0"
 }
 
 ## Integrity
-- llm_txt_sha256: f7c0a9af56955d25d21ee52df33ceb8ef060baf7e9249643d1674e26d74bafca
+- llm_txt_sha256: ca43b86ca1619e3417e6ba6559a14ed35555138e1de405ce6d118efd3b3fa115

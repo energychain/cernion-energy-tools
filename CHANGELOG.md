@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.44.0] — Outbound Webhooks + HITL Ownership (Closes #54)
+
+### Added
+- **Neuer Service `webhooks`** in [services/webhooks.service.js](services/webhooks.service.js):
+  - `POST /api/webhooks` (Subscription erstellen)
+  - `GET /api/webhooks` (Subscriptions listen)
+  - `DELETE /api/webhooks/:id`
+  - `POST /api/webhooks/:id/test`
+  - `GET /api/webhooks/:id/deliveries`
+  - `POST /api/webhooks/:id/deliveries/:deliveryId/replay`
+- **Persistente Outbox + Retry/DLQ**:
+  - At-least-once Delivery mit Backoff `1m/5m/30m/2h/12h`, max. 5 Versuche.
+  - Dead-Letter-Status (`dead`) und optionales Auto-Disable nach 50 Dead Deliveries.
+- **Signatur + Secret-Schutz**:
+  - `X-Cernion-Signature` via HMAC-SHA256.
+  - Neuer Crypto-Helper [src/webhook-crypto.js](src/webhook-crypto.js).
+  - Webhook-Secrets werden at-rest verschlüsselt gespeichert (`WEBHOOK_SECRET_ENCRYPTION_KEY`, Option A: ein aktiver Key).
+- **Neuer Service `hitl`** in [services/hitl.service.js](services/hitl.service.js):
+  - `POST /api/hitl/items`, `GET /api/hitl/items`, `GET /api/hitl/items/:id`
+  - `POST /api/hitl/items/:id/approve|reject|escalate`
+  - Events: `hitl.item.created`, `hitl.item.resolved`, `hitl.item.expired`
+- **Integrationsdokumentation** in [docs/INTEGRATION_WEBHOOKS.md](docs/INTEGRATION_WEBHOOKS.md) mit Verifikationsbeispielen (Node/Python/Power Automate).
+
+### Changed
+- **Emitter ergänzt**:
+  - `mastr-quality.audit.completed` in [services/mastr-quality.service.js](services/mastr-quality.service.js)
+  - `redispatch-expost.audit.completed` in [services/redispatch-expost.service.js](services/redispatch-expost.service.js)
+  - `finance-agent.analysis.completed` in [services/finance-agent.service.js](services/finance-agent.service.js)
+- **Dedizierte HITL-Ownership für CYA-Konsensfehler**:
+  - CYA delegiert `cya.a2a.consensus.failed` an `hitl.create` in [services/cya.service.js](services/cya.service.js).
+- **API Gateway erweitert** in [services/api.service.js](services/api.service.js):
+  - neue Alias-Routen für `hitl` und `webhooks`
+  - neue OpenAPI-Tags `HITL` und `Webhooks`
+  - Full-Access-Schutz für mutierende HITL-/Webhook-Endpunkte
+
+### Tests
+- Neue Tests:
+  - [tests/webhook-crypto.test.js](tests/webhook-crypto.test.js)
+  - [tests/hitl.service.test.js](tests/hitl.service.test.js)
+  - [tests/webhooks.service.test.js](tests/webhooks.service.test.js)
+- API-Gateway-Tests erweitert in [tests/api.service.test.js](tests/api.service.test.js) um Alias-/Tag-Abdeckung für HITL/Webhooks.
+
 ## [0.43.1] — Knowledge-RAG Ingestion Pipeline (Closes #53)
 
 ### Added

@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.43.1",
+    "version": "0.44.0",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -125,6 +125,14 @@
     {
       "name": "MaStR Monitor",
       "description": "MaStR installation change monitoring with field-level delta detection and email notifications (v0.27). Watches track changes to MaStR installations based on saved queries with configurable schedules."
+    },
+    {
+      "name": "HITL",
+      "description": "Human-in-the-loop approval workflow with tenant-scoped review items, intervention trail, and lifecycle events."
+    },
+    {
+      "name": "Webhooks",
+      "description": "Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking."
     }
   ],
   "paths": {
@@ -7162,6 +7170,630 @@
             }
           }
         ]
+      }
+    },
+    "/api/hitl/items": {
+      "post": {
+        "operationId": "hitl_create",
+        "summary": "Create HITL item",
+        "tags": [
+          "HITL"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "kind"
+                ],
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "example": "cya-consensus-failed"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "example": {
+                      "sessionId": "S-123"
+                    }
+                  },
+                  "originService": {
+                    "type": "string",
+                    "example": "cya"
+                  },
+                  "originAction": {
+                    "type": "string",
+                    "example": "refine"
+                  },
+                  "severity": {
+                    "type": "string",
+                    "example": "warning"
+                  },
+                  "requiredScope": {
+                    "type": "string",
+                    "example": "full-access"
+                  },
+                  "dueAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2026-05-12T12:00:00.000Z"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "kind": "cya-consensus-failed",
+                    "payload": {
+                      "sessionId": "S-123"
+                    },
+                    "originService": "cya",
+                    "originAction": "refine",
+                    "severity": "warning",
+                    "requiredScope": "full-access"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "hitl_list",
+        "summary": "List HITL items",
+        "tags": [
+          "HITL"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "pending"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "finance-hypothetical-review"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 200
+            }
+          }
+        ]
+      }
+    },
+    "/api/hitl/items/:id": {
+      "get": {
+        "operationId": "hitl_get",
+        "summary": "Get HITL item",
+        "tags": [
+          "HITL"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-4000-8000-000000000001"
+            }
+          }
+        ]
+      }
+    },
+    "/api/hitl/items/:id/approve": {
+      "post": {
+        "operationId": "hitl_approve",
+        "summary": "Approve HITL item",
+        "tags": [
+          "HITL"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-4000-8000-000000000001"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "comment": {
+                    "type": "string",
+                    "example": "Looks good"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "comment": "Looks good"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hitl/items/:id/reject": {
+      "post": {
+        "operationId": "hitl_reject",
+        "summary": "Reject HITL item",
+        "tags": [
+          "HITL"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-4000-8000-000000000001"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "comment": {
+                    "type": "string",
+                    "example": "Missing supporting evidence"
+                  },
+                  "feedbackToAgent": {
+                    "type": "string",
+                    "example": "Please provide legal reference to §21a EnWG."
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "comment": "Missing supporting evidence",
+                    "feedbackToAgent": "Please provide legal reference to §21a EnWG."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hitl/items/:id/escalate": {
+      "post": {
+        "operationId": "hitl_escalate",
+        "summary": "Escalate HITL item",
+        "tags": [
+          "HITL"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-4000-8000-000000000001"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "comment": {
+                    "type": "string",
+                    "example": "Escalate to legal review"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "comment": "Escalate to legal review"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhooks": {
+      "post": {
+        "operationId": "webhooks_create",
+        "summary": "Create webhook subscription",
+        "tags": [
+          "Webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "url",
+                  "events"
+                ],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://example.com/hooks/cernion"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "cya.a2a.consensus.failed"
+                    ]
+                  },
+                  "secret": {
+                    "type": "string",
+                    "example": "my-shared-secret"
+                  },
+                  "headers": {
+                    "type": "object",
+                    "example": {
+                      "X-Customer": "tenant-a"
+                    }
+                  },
+                  "isActive": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "url": "https://example.com/hooks/cernion",
+                    "events": [
+                      "cya.a2a.consensus.failed",
+                      "hitl.item.created"
+                    ],
+                    "secret": "my-shared-secret",
+                    "headers": {
+                      "X-Customer": "tenant-a"
+                    },
+                    "isActive": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "webhooks_list",
+        "summary": "List webhook subscriptions",
+        "tags": [
+          "Webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "event",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "cya.a2a.consensus.failed"
+            }
+          }
+        ]
+      }
+    },
+    "/api/webhooks/:id": {
+      "delete": {
+        "operationId": "webhooks_remove",
+        "summary": "Delete webhook subscription",
+        "tags": [
+          "Webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-4000-8000-000000000010"
+            }
+          }
+        ]
+      }
+    },
+    "/api/webhooks/:id/test": {
+      "post": {
+        "operationId": "webhooks_test",
+        "summary": "Send test webhook delivery",
+        "tags": [
+          "Webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-4000-8000-000000000010"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "examples": {
+                "default": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhooks/:id/deliveries": {
+      "get": {
+        "operationId": "webhooks_listDeliveries",
+        "summary": "List webhook deliveries",
+        "tags": [
+          "Webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-4000-8000-000000000010"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "failed"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 200
+            }
+          }
+        ]
+      }
+    },
+    "/api/webhooks/:id/deliveries/:deliveryId/replay": {
+      "post": {
+        "operationId": "webhooks_replay",
+        "summary": "Replay webhook delivery",
+        "tags": [
+          "Webhooks"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-4000-8000-000000000010"
+            }
+          },
+          {
+            "name": "deliveryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000-0000-4000-8000-000000000011"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "examples": {
+                "default": {
+                  "value": {}
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/companies": {
@@ -15983,5 +16615,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.43.1"
+  "x-version": "0.44.0"
 }

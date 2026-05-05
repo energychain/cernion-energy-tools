@@ -3200,6 +3200,33 @@ module.exports = {
         })
         .catch((err) => this.logger.warn('[A2A] persist failed (non-blocking):', err.message));
     },
+
+    async _createHitlConsensusItem(ctx, eventPayload) {
+      const payload = eventPayload || {};
+      const sessionId = payload.sessionId || payload.session_id || null;
+      const blockers = payload?.payload?.blockers || [];
+      const triggerFacts = payload?.payload?.triggerFacts || [];
+
+      await this.broker.call(
+        'hitl.create',
+        {
+          kind: 'cya-consensus-failed',
+          payload: {
+            sessionId,
+            eventName: payload.eventName || 'cya.a2a.consensus.failed',
+            blockers,
+            triggerFacts,
+            reason: payload?.payload?.reason || null,
+            raw: payload,
+          },
+          originService: 'cya',
+          originAction: 'refine',
+          severity: 'warning',
+          requiredScope: 'full-access',
+        },
+        { meta: ctx?.meta }
+      );
+    },
   },
 
   events: {
@@ -3212,7 +3239,11 @@ module.exports = {
           ctx.params.sessionId,
           '— HITL escalation triggered'
         );
-        // Erweiterungspunkt: Alert, Webhook, Dashboard-Event
+        try {
+          await this._createHitlConsensusItem(ctx, ctx.params);
+        } catch (err) {
+          this.logger.warn('[A2A] HITL escalation creation failed:', err.message);
+        }
       },
     },
     'cya.a2a.conflict.detected': {

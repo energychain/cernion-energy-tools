@@ -317,6 +317,41 @@ module.exports = {
           });
         }
 
+        if (report.status === 'hypothetical_scenario') {
+          try {
+            await this.broker.call(
+              'hitl.create',
+              {
+                kind: 'finance-hypothetical-review',
+                payload: {
+                  analysisId: id,
+                  query: ctx.params.query,
+                  summary: report.summary,
+                  assumptions: Array.isArray(report.assumptions) ? report.assumptions : [],
+                },
+                originService: 'finance-agent',
+                originAction: 'analyze',
+                severity: 'warning',
+                requiredScope: 'full-access',
+              },
+              { meta: ctx.meta }
+            );
+          } catch (err) {
+            this.logger.warn(`[finance-agent] failed to create HITL item: ${err.message}`);
+          }
+        }
+
+        this.broker.emit('finance-agent.analysis.completed', {
+          eventId: crypto.randomUUID(),
+          analysisId: id,
+          sessionId: ctx.params.sessionId || null,
+          query: ctx.params.query,
+          status: report.status,
+          confidence: report.confidence,
+          findingsCount: report.findingsCount || null,
+          timestamp: new Date().toISOString(),
+        });
+
         return { success: true, id, ...report };
       },
     },

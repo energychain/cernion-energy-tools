@@ -296,6 +296,15 @@ module.exports = {
 
         await this.db.put(doc);
 
+        this.broker.emit('mastr-quality.audit.completed', {
+          eventId: crypto.randomUUID(),
+          auditId: id,
+          gridOperator: report.gridOperator || null,
+          qualityScore: report.qualityScore,
+          findingsCount: report.summary?.findingsCount || null,
+          timestamp: doc.createdAt,
+        });
+
         return { success: true, id, ...report };
       },
     },

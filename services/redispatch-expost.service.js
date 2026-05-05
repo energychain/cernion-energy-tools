@@ -287,6 +287,16 @@ module.exports = {
 
         await this.db.put(doc);
 
+        this.broker.emit('redispatch-expost.audit.completed', {
+          eventId: crypto.randomUUID(),
+          auditId: id,
+          gridOperator: report.gridOperator || null,
+          period: report.period || null,
+          settlementReadiness: report.settlementReadiness || null,
+          riskAssessment: report.riskAssessment || null,
+          timestamp: doc.createdAt,
+        });
+
         return { success: true, id, ...report };
       },
     },
