@@ -195,7 +195,21 @@ describe('finance-agent service', () => {
               query: q,
               filter: ctx.params.filter,
               collection: ctx.params.collection,
+              gatewayWasTrue: !!ctx.meta.$gateway,
             });
+
+            // Simulate startJob behaviour: when $gateway=true, knowledge-rag returns
+            // an async job descriptor instead of real results (v0.46.4 regression guard).
+            if (ctx.meta.$gateway) {
+              return {
+                success: true,
+                jobId: 'mock-async-job-123',
+                status: 'queued',
+                message: 'Job started.',
+                statusUrl: '/api/jobs/mock-async-job-123/status',
+                resultUrl: '/api/jobs/mock-async-job-123/result',
+              };
+            }
 
             if (forceNoRagHits) {
               return { success: true, data: { results: [] } };
@@ -603,10 +617,12 @@ describe('finance-agent service', () => {
   });
 
   it('does not propagate $gateway to knowledge-rag.query (no 202 job descriptor as result)', async () => {
-    // Simulate what happens if $gateway leaks: knowledge-rag returns a 202 descriptor
-    // instead of actual results. Finance Agent must NOT interpret this as 0 hits.
-    // With the fix applied, $gateway is stripped — so the mock receives a normal call
-    // and returns real results (standard mock path). We verify rawHits > 0.
+    // When finance-agent.analyze is called via REST ($gateway:true), it must explicitly
+    // set $gateway:false on every knowledge-rag.query call so startJob runs synchronously.
+    // Omitting $gateway from the opts.meta spread is insufficient — Moleculer merges
+    // opts.meta on top of parentCtx.meta, so the parent's $gateway:true would survive.
+    // The mock now simulates startJob: returns an async descriptor when $gateway=true.
+    // With the fix, $gateway is explicitly false → mock returns real results → rawHits>0.
     const result = await broker.call(
       'finance-agent.analyze',
       {
@@ -616,14 +632,15 @@ describe('finance-agent service', () => {
       },
       { meta: { $gateway: true, cernionToken: 'test-token' } }
     );
-    // $gateway should have been stripped internally; knowledge-rag returns real hits
+    // $gateway explicitly false in inner call → mock returns real data → evidence present
     expect(result.success).toBe(true);
     expect(Array.isArray(result.evidence)).toBe(true);
     expect(result.evidence.length).toBeGreaterThan(0);
     expect(result.status).not.toBe('hypothetical_scenario');
+    // No RAG call must have received $gateway:true (would have returned async descriptor)
+    expect(ragCalls.every((c) => c.gatewayWasTrue === false)).toBe(true);
     // All RAG calls must target the correct collection
-    const gwCalls = ragCalls.filter((c) => c.collection === 'cernion_knowledge_v1');
-    expect(gwCalls.length).toBeGreaterThan(0);
+    expect(ragCalls.every((c) => c.collection === 'cernion_knowledge_v1')).toBe(true);
   });
 
   it('keeps memory as context only and degrades to hypothetical_scenario with confidence 0 when RAG has no hits', async () => {

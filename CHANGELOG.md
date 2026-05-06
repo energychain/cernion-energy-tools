@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.46.4] — Finance Agent $gateway fix (correct Moleculer meta merge)
+
+### Fixed
+- **Root cause of `rawHits=0` identified and fixed** in `retrieveEvidence()` ([services/finance-agent.service.js](services/finance-agent.service.js)): the v0.46.3 attempt destructured `$gateway` out of a spread (`{ $gateway: _gw, ...ragMeta }`) and passed `ragMeta` to `ctx.call`. This is insufficient because Moleculer merges `opts.meta` **on top of** `parentCtx.meta` via `Object.assign({}, parentCtx.meta, opts.meta)`. Since `ragMeta` contains no `$gateway` key, the parent's `$gateway: true` is never overridden in the merged child meta — the child `ctx.meta.$gateway` stays `true`, `startJob` fires async, returns a `{ status: 'queued', jobId }` descriptor, sets `ctx.meta.$statusCode = 202` on the child, Moleculer propagates that back to the parent, and `finance-agent.analyze` returns HTTP 202 after 62 s with `rawHits = 0`.
+- **Fix**: replaced the destructure pattern with `{ meta: { ...ctx.meta, $gateway: false } }` — identical to the pattern used in `agent.service.js` internal calls. The explicit `false` value overrides the parent's `true` in the merged meta, `startJob` runs synchronously, and knowledge-rag returns real results.
+- **Test mock strengthened**: the shared `knowledge-rag.query` mock in the test suite now simulates `startJob` behaviour — it returns an async job descriptor when `ctx.meta.$gateway === true`. The regression test `'does not propagate $gateway …'` now verifies `ragCalls.every(c => c.gatewayWasTrue === false)`, so any future regression will be caught immediately.
+
 ## [0.46.3] — Finance Agent central collection default + gateway fix
 
 ### Fixed

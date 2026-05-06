@@ -1444,9 +1444,13 @@ module.exports = {
       while (rounds < MAX_ANALYZE_ITERATIONS) {
         rounds += 1;
         for (const intent of currentPlan.intents || []) {
-          // Strip $gateway so knowledge-rag.query returns synchronous results,
-          // not a 202 async-job descriptor (v0.46.4 fix).
-          const { $gateway: _gw, ...ragMeta } = ctx.meta || {};
+          // Explicitly set $gateway: false so knowledge-rag.query runs synchronously.
+          // Omitting $gateway is not sufficient: Moleculer merges opts.meta on top of
+          // parentCtx.meta via Object.assign, so a missing key does NOT override the
+          // parent's $gateway:true — the child's merged meta retains $gateway:true,
+          // startJob fires async, sets ctx.meta.$statusCode=202 on the child, and
+          // Moleculer propagates that back to the parent (v0.46.4 root-cause fix).
+          // Pattern matches agent.service.js (lines with $gateway: false for internal calls).
           const response = await ctx.call(
             'knowledge-rag.query',
             {
@@ -1454,7 +1458,7 @@ module.exports = {
               query: intent.query || originalQuery,
               collection: collectionName,
             },
-            { meta: ragMeta }
+            { meta: { ...ctx.meta, $gateway: false } }
           );
 
           const rows = response?.data?.results || response?.results || [];
