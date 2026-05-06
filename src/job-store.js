@@ -10,28 +10,23 @@
  *   JOB_STORE_TTL_SECONDS  Job TTL in seconds (default: 86400 = 24 h)
  */
 
-const crypto = require('crypto');
-const fs = require('fs');
-const path = require('path');
+const { createDriver } = require('./job-store/factory');
 
-const JOBS_DIR = process.env.JOB_STORE_DIR || path.join(__dirname, '..', 'data', 'jobs');
+const DRIVER = createDriver();
+const LEASE_SECONDS = Number(process.env.JOB_STORE_LEASE_SECONDS || 30);
+const HEARTBEAT_SECONDS = Number(process.env.JOB_STORE_HEARTBEAT_SECONDS || 10);
 
 const TTL_MS = parseInt(process.env.JOB_STORE_TTL_SECONDS || '86400', 10) * 1000;
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
-function ensureDir() {
-  if (!fs.existsSync(JOBS_DIR)) {
-    fs.mkdirSync(JOBS_DIR, { recursive: true });
-  }
-}
-
-function progressPath(jobId) {
-  return path.join(JOBS_DIR, `${jobId}.progress.json`);
-}
-
-function resultPath(jobId) {
-  return path.join(JOBS_DIR, `${jobId}.result.json`);
+function buildLeasePatch() {
+  const now = Date.now();
+  return {
+    leaseOwner: `${process.pid}`,
+    lastHeartbeatAt: new Date(now).toISOString(),
+    leaseExpiresAt: new Date(now + LEASE_SECONDS * 1000).toISOString(),
+  };
 }
 
 // ─── Public CRUD API ──────────────────────────────────────────────────────────
@@ -42,23 +37,7 @@ function resultPath(jobId) {
  * @returns {string} jobId
  */
 function createJob({ service, action }) {
-  ensureDir();
-  const jobId = crypto.randomUUID();
-  const job = {
-    jobId,
-    service: service || 'unknown',
-    action: action || 'unknown',
-    status: 'queued',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    completedAt: null,
-    error: null,
-    phase: null,
-    percent: null,
-    logs: [],
-  };
-  fs.writeFileSync(progressPath(jobId), JSON.stringify(job));
-  return jobId;
+  return DRIVER.createJob({ service, action });
 }
 
 /**
@@ -68,11 +47,7 @@ function createJob({ service, action }) {
  * @returns {Object|null}
  */
 function updateJob(jobId, updates) {
-  const job = getJob(jobId);
-  if (!job) return null;
-  const updated = { ...job, ...updates, updatedAt: new Date().toISOString() };
-  fs.writeFileSync(progressPath(jobId), JSON.stringify(updated));
-  return updated;
+  return DRIVER.updateJob(jobId, updates);
 }
 
 /**
@@ -87,12 +62,7 @@ function updateJob(jobId, updates) {
  * @returns {Object|null}
  */
 function appendLog(jobId, phase, percent, message) {
-  if (!jobId) return null; // no-op for internal (non-gateway) worker calls
-  const job = getJob(jobId);
-  if (!job) return null;
-  const logs = Array.isArray(job.logs) ? job.logs : [];
-  logs.push({ timestamp: new Date().toISOString(), phase, percent, message });
-  return updateJob(jobId, { logs, phase, percent });
+  return DRIVER.appendLog(jobId, phase, percent, message);
 }
 
 /**
@@ -102,12 +72,7 @@ function appendLog(jobId, phase, percent, message) {
  * @returns {Object} updated job record
  */
 function saveResult(jobId, result) {
-  ensureDir();
-  fs.writeFileSync(resultPath(jobId), JSON.stringify(result));
-  return updateJob(jobId, {
-    status: 'completed',
-    completedAt: new Date().toISOString(),
-  });
+  return DRIVER.saveResult(jobId, result);
 }
 
 /**
@@ -116,11 +81,7 @@ function saveResult(jobId, result) {
  * @returns {Object|null}
  */
 function getJob(jobId) {
-  try {
-    return JSON.parse(fs.readFileSync(progressPath(jobId), 'utf-8'));
-  } catch {
-    return null;
-  }
+  return DRIVER.getJob(jobId);
 }
 
 /**
@@ -129,11 +90,7 @@ function getJob(jobId) {
  * @returns {*|null}
  */
 function getResult(jobId) {
-  try {
-    return JSON.parse(fs.readFileSync(resultPath(jobId), 'utf-8'));
-  } catch {
-    return null;
-  }
+  return DRIVER.getResult(jobId);
 }
 
 /**
@@ -142,29 +99,7 @@ function getResult(jobId) {
  * @param {number} [ttlMs] - optional TTL override (used in tests)
  */
 function gcExpired(ttlMs = TTL_MS) {
-  try {
-    ensureDir();
-    const now = Date.now();
-    const files = fs.readdirSync(JOBS_DIR).filter((f) => f.endsWith('.progress.json'));
-    for (const f of files) {
-      const id = f.replace('.progress.json', '');
-      const job = getJob(id);
-      if (job && now - new Date(job.createdAt).getTime() >= ttlMs) {
-        try {
-          fs.unlinkSync(progressPath(id));
-        } catch {
-          /* ignore */
-        }
-        try {
-          fs.unlinkSync(resultPath(id));
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-  } catch {
-    // GC failures must never crash the application
-  }
+  DRIVER.gcExpired(ttlMs);
 }
 
 // ─── High-level helper ────────────────────────────────────────────────────────
@@ -193,12 +128,32 @@ async function startJob(ctx, jobMeta, worker) {
 
   // ── REST call — create job, fire worker, return 202 immediately ───────────
   const jobId = createJob(jobMeta);
+  updateJob(jobId, { status: 'running', ...buildLeasePatch() });
+
+  let heartbeat = null;
+  if (HEARTBEAT_SECONDS > 0) {
+    heartbeat = setInterval(() => {
+      updateJob(jobId, { ...buildLeasePatch() });
+    }, HEARTBEAT_SECONDS * 1000);
+    heartbeat.unref?.();
+  }
 
   // Fire-and-forget: do NOT await — return the 202 response immediately.
   // Worker receives jobId so it can call appendLog for progress tracking.
   worker(jobId)
     .then((result) => saveResult(jobId, result))
-    .catch((err) => updateJob(jobId, { status: 'error', error: String(err.message || err) }));
+    .catch((err) =>
+      updateJob(jobId, {
+        status: 'error',
+        error: String(err.message || err),
+        leaseOwner: null,
+        leaseExpiresAt: null,
+        lastHeartbeatAt: null,
+      })
+    )
+    .finally(() => {
+      if (heartbeat) clearInterval(heartbeat);
+    });
 
   ctx.meta.$statusCode = 202;
   ctx.meta.$responseHeaders = Object.assign(ctx.meta.$responseHeaders || {}, {
@@ -216,6 +171,10 @@ async function startJob(ctx, jobMeta, worker) {
   };
 }
 
+function getDriverInfo() {
+  return DRIVER.getInfo();
+}
+
 module.exports = {
   createJob,
   updateJob,
@@ -225,5 +184,6 @@ module.exports = {
   getResult,
   gcExpired,
   startJob,
+  getDriverInfo,
   TTL_MS,
 };

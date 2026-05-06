@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.45.1] — Job-Store Driver Interface Foundation (Closes #60)
+
+### Added
+- **Job-store driver interface** in [src/job-store/driver.js](src/job-store/driver.js) with pluggable driver factory in [src/job-store/factory.js](src/job-store/factory.js).
+- **Driver targets wired via `JOB_STORE_DRIVER`**:
+  - `file` driver in [src/job-store/file-driver.js](src/job-store/file-driver.js) (default).
+  - `pouchdb` compatibility driver in [src/job-store/pouchdb-driver.js](src/job-store/pouchdb-driver.js).
+  - `redis-compat` compatibility driver in [src/job-store/redis-compat-driver.js](src/job-store/redis-compat-driver.js).
+- **Job migration utility** [scripts/migrate-jobs.js](scripts/migrate-jobs.js) and npm script `migrate:jobs` for file→pouchdb document migration.
+
+### Changed
+- **Job-store facade refactored** in [src/job-store.js](src/job-store.js) to select drivers via environment without caller code changes.
+- **Lease heartbeat metadata introduced** in async job execution path (`leaseOwner`, `leaseExpiresAt`, `lastHeartbeatAt`) with configurable defaults (`JOB_STORE_LEASE_SECONDS`, `JOB_STORE_HEARTBEAT_SECONDS`).
+- **`mastr-quality.audit` aligned to generic async job pattern** in [services/mastr-quality.service.js](services/mastr-quality.service.js):
+  - REST/gateway calls return `202` job descriptor and use `/api/jobs/:jobId/*` polling.
+  - Internal service calls remain synchronous for backward compatibility.
+  - OpenAPI action response docs extended to include `202 Accepted` async contract.
+
+### Notes
+- v0.45.1 establishes the interface and runtime switch required for distributed rollout while keeping compatibility in-place for existing synchronous call paths.
+- Changelog comment for issue closure: implementation start delivered and tracked for GitHub issue `#60` (`Job-Store-Driver-Interface`).
+
 ## [0.45.0] — §42c Energieteilen Production-Cutover Plan (Closes #59)
 
 ### Added

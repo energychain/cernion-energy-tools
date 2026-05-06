@@ -1,6 +1,6 @@
 {
   "name": "cernion-energy-tools",
-  "version": "0.44.5",
+  "version": "0.45.1",
   "description": "MicroService Agent System for Energy Markets",
   "main": "index.js",
   "scripts": {
@@ -30,6 +30,7 @@
     "export:openapi": "node scripts/export-openapi.js",
     "sync:oeo": "node scripts/sync-oeo.js",
     "sync:oemetadata": "node scripts/sync-oemetadata.js",
+    "migrate:jobs": "node scripts/migrate-jobs.js",
     "verify:agent-shapes": "node scripts/verify-agent-shapes.js",
     "verify:agent-shapes:curl": "bash scripts/verify-agent-shapes-curl.sh",
     "build": "echo 'No build step required'"

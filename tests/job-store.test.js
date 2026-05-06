@@ -79,6 +79,31 @@ describe('createJob', () => {
     expect(job.service).toBe('unknown');
     expect(job.action).toBe('unknown');
   });
+
+  it('exposes selected driver metadata (default file)', () => {
+    const info = jobStore.getDriverInfo();
+    expect(info.name).toBe('file');
+  });
+});
+
+describe('driver selection', () => {
+  afterEach(() => {
+    delete process.env.JOB_STORE_DRIVER;
+  });
+
+  it('supports pouchdb driver selection via env', () => {
+    process.env.JOB_STORE_DRIVER = 'pouchdb';
+    loadFreshModule();
+    const info = jobStore.getDriverInfo();
+    expect(info.name).toBe('pouchdb');
+  });
+
+  it('supports redis-compat driver selection via env', () => {
+    process.env.JOB_STORE_DRIVER = 'redis-compat';
+    loadFreshModule();
+    const info = jobStore.getDriverInfo();
+    expect(info.name).toBe('redis-compat');
+  });
 });
 
 // ─── updateJob ────────────────────────────────────────────────────────────────

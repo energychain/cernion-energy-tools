@@ -2,6 +2,7 @@
 
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 const { ServiceBroker } = require('moleculer');
 
 // ---------------------------------------------------------------------------
@@ -16,8 +17,12 @@ const vf = require('../src/validation-findings');
 
 // Unique PouchDB path so parallel Jest workers don't clash
 const TEST_DB_PATH = path.join(os.tmpdir(), `cernion-mq-test-${Date.now()}`);
+const TEST_JOB_STORE_DIR = path.join(os.tmpdir(), `cernion-mq-jobs-${Date.now()}`);
 process.env.MASTR_QUALITY_DB_PATH = TEST_DB_PATH;
 process.env.DATAPOINT_SCHEDULER_ENABLED = 'false';
+process.env.JOB_STORE_DIR = TEST_JOB_STORE_DIR;
+
+const jobStore = require('../src/job-store');
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -279,6 +284,7 @@ describe('mastr-quality service', () => {
     PouchDB.plugin(PouchDBFind);
     const db = new PouchDB(TEST_DB_PATH);
     await db.destroy().catch(() => {});
+    fs.rmSync(TEST_JOB_STORE_DIR, { recursive: true, force: true });
   });
 
   beforeEach(() => {
@@ -297,6 +303,43 @@ describe('mastr-quality service', () => {
   test('audit action is defined with REST POST /audit', () => {
     expect(mqService.schema.actions.audit.rest).toBe('POST /audit');
     expect(mqService.schema.actions.audit.timeout).toBe(180_000);
+  });
+
+  test('audit returns async job descriptor for gateway callers', async () => {
+    CernionMCPClient.callWithNewSession
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          canonical: {
+            mastrId: MOCK_OPERATOR.mastrId,
+            name: MOCK_OPERATOR.name,
+            bdew: MOCK_OPERATOR.bdew,
+            bnr: MOCK_OPERATOR.bnr,
+          },
+          candidates: [
+            {
+              mastrId: MOCK_OPERATOR.mastrId,
+              name: MOCK_OPERATOR.name,
+              bdew: MOCK_OPERATOR.bdew,
+              bnr: MOCK_OPERATOR.bnr,
+            },
+          ],
+        },
+      })
+      .mockResolvedValue({ success: true, data: { items: MOCK_INSTALLATIONS } });
+
+    const meta = { $gateway: true };
+    const response = await broker.call(
+      'mastr-quality.audit',
+      { gridOperatorId: MOCK_OPERATOR.mastrId },
+      { meta }
+    );
+
+    expect(response.status).toBe('queued');
+    expect(response.jobId).toBeDefined();
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    const finalJob = jobStore.getJob(response.jobId);
+    expect(['completed', 'error']).toContain(finalJob?.status);
   });
 
   test('list action is defined with REST GET /audits', () => {

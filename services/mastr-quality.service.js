@@ -5,6 +5,7 @@ const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 const { MoleculerClientError } = require('moleculer').Errors;
 const CernionMCPClient = require('../src/mcp-client');
+const jobStore = require('../src/job-store');
 const {
   applyCursorPagination,
   applyOffsetDeprecationHeader,
@@ -197,9 +198,24 @@ module.exports = {
           },
         },
         responses: {
+          202: {
+            description:
+              'REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result.',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  jobId: 'f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6',
+                  status: 'queued',
+                  statusUrl: '/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status',
+                  resultUrl: '/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result',
+                },
+              },
+            },
+          },
           200: {
             description:
-              'AuditReport with qualityScore, dimensions, and findings from all executed pipeline steps',
+              'Internal (non-gateway) call: direct AuditReport with qualityScore, dimensions, and findings from all executed pipeline steps',
             content: {
               'application/json': {
                 example: {
@@ -243,75 +259,11 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const normalizedInput = this.normalizeResolverInput(ctx.params);
-        const { gridOperatorId, gridOperatorBdew, gridOperatorName, gridOperatorBnr } =
-          normalizedInput;
-        if (!gridOperatorId && !gridOperatorBdew && !gridOperatorName && !gridOperatorBnr) {
-          throw new Error(
-            'At least one of gridOperatorId, gridOperatorBdew, gridOperatorName, bdewCode, gridOperatorBnr, or bnr is required'
-          );
-        }
-
-        // Validate skipSteps — only 3–7 allowed
-        const rawSkip = ctx.params.skipSteps || [];
-        const invalidSteps = rawSkip.filter((s) => ![3, 4, 5, 6, 7].includes(s));
-        if (invalidSteps.length > 0) {
-          throw new Error(
-            `Invalid skipSteps values: [${invalidSteps.join(', ')}]. Only steps 3–7 can be skipped.`
-          );
-        }
-
-        const report = await this.runPipeline(ctx, {
-          ...ctx.params,
-          ...normalizedInput,
-        });
-
-        // Persist to PouchDB (KRITIS: raw installation data NOT stored, only report metadata)
-        const id = crypto.randomUUID();
-        const doc = {
-          _id: `mq:${id}`,
-          id,
-          type: 'mastr-quality-audit',
-          gridOperator: report.gridOperator,
-          qualityScore: report.qualityScore,
-          qualityDimensions: report.qualityDimensions,
-          summary: report.summary,
-          findings: Array.isArray(report.findings) ? report.findings : [],
-          findingsCount: report.summary?.findingsCount,
-          skippedSteps: rawSkip,
-          steps: report.steps,
-          metadata: {
-            ...report.metadata,
-            inputParams: {
-              gridOperatorId: ctx.params.gridOperatorId || null,
-              gridOperatorBdew: ctx.params.gridOperatorBdew || null,
-              gridOperatorName: ctx.params.gridOperatorName || null,
-              bdewCode: ctx.params.bdewCode || null,
-              gridOperatorBnr: ctx.params.gridOperatorBnr || null,
-              bnr: ctx.params.bnr || null,
-              datapointTags: ctx.params.datapointTags || [],
-              maxAgeMinutes: ctx.params.maxAgeMinutes,
-              skipSteps: rawSkip,
-              geoSampleSize: ctx.params.geoSampleSize || 10,
-            },
-            resolver: report.resolver || null,
-          },
-          pipelineVersion: PIPELINE_VERSION,
-          createdAt: new Date().toISOString(),
-        };
-
-        await this.db.put(doc);
-
-        this.broker.emit('mastr-quality.audit.completed', {
-          eventId: crypto.randomUUID(),
-          auditId: id,
-          gridOperator: report.gridOperator || null,
-          qualityScore: report.qualityScore,
-          findingsCount: report.summary?.findingsCount || null,
-          timestamp: doc.createdAt,
-        });
-
-        return { success: true, id, ...report };
+        return jobStore.startJob(
+          ctx,
+          { service: 'mastr-quality', action: 'audit' },
+          async (jobId) => this.executeAudit(ctx, jobId)
+        );
       },
     },
 
@@ -586,6 +538,79 @@ module.exports = {
   // Methods — pipeline steps and helpers
   // ---------------------------------------------------------------------------
   methods: {
+    async executeAudit(ctx, jobId = null) {
+      const normalizedInput = this.normalizeResolverInput(ctx.params);
+      const { gridOperatorId, gridOperatorBdew, gridOperatorName, gridOperatorBnr } =
+        normalizedInput;
+      if (!gridOperatorId && !gridOperatorBdew && !gridOperatorName && !gridOperatorBnr) {
+        throw new Error(
+          'At least one of gridOperatorId, gridOperatorBdew, gridOperatorName, bdewCode, gridOperatorBnr, or bnr is required'
+        );
+      }
+
+      const rawSkip = ctx.params.skipSteps || [];
+      const invalidSteps = rawSkip.filter((s) => ![3, 4, 5, 6, 7].includes(s));
+      if (invalidSteps.length > 0) {
+        throw new Error(
+          `Invalid skipSteps values: [${invalidSteps.join(', ')}]. Only steps 3–7 can be skipped.`
+        );
+      }
+
+      if (jobId) jobStore.appendLog(jobId, 'pipeline', 5, 'Starting MaStR quality audit pipeline');
+      const report = await this.runPipeline(ctx, {
+        ...ctx.params,
+        ...normalizedInput,
+      });
+
+      if (jobId) jobStore.appendLog(jobId, 'persistence', 90, 'Persisting audit report');
+      const id = crypto.randomUUID();
+      const doc = {
+        _id: `mq:${id}`,
+        id,
+        type: 'mastr-quality-audit',
+        gridOperator: report.gridOperator,
+        qualityScore: report.qualityScore,
+        qualityDimensions: report.qualityDimensions,
+        summary: report.summary,
+        findings: Array.isArray(report.findings) ? report.findings : [],
+        findingsCount: report.summary?.findingsCount,
+        skippedSteps: rawSkip,
+        steps: report.steps,
+        metadata: {
+          ...report.metadata,
+          inputParams: {
+            gridOperatorId: ctx.params.gridOperatorId || null,
+            gridOperatorBdew: ctx.params.gridOperatorBdew || null,
+            gridOperatorName: ctx.params.gridOperatorName || null,
+            bdewCode: ctx.params.bdewCode || null,
+            gridOperatorBnr: ctx.params.gridOperatorBnr || null,
+            bnr: ctx.params.bnr || null,
+            datapointTags: ctx.params.datapointTags || [],
+            maxAgeMinutes: ctx.params.maxAgeMinutes,
+            skipSteps: rawSkip,
+            geoSampleSize: ctx.params.geoSampleSize || 10,
+          },
+          resolver: report.resolver || null,
+        },
+        pipelineVersion: PIPELINE_VERSION,
+        createdAt: new Date().toISOString(),
+      };
+
+      await this.db.put(doc);
+
+      this.broker.emit('mastr-quality.audit.completed', {
+        eventId: crypto.randomUUID(),
+        auditId: id,
+        gridOperator: report.gridOperator || null,
+        qualityScore: report.qualityScore,
+        findingsCount: report.summary?.findingsCount || null,
+        timestamp: doc.createdAt,
+      });
+
+      if (jobId) jobStore.appendLog(jobId, 'completed', 100, 'MaStR quality audit completed');
+      return { success: true, id, ...report };
+    },
+
     // -------------------------------------------------------------------------
     // Step 1: VNB Identity resolution (MCP vnb_lookup_codes)
     // -------------------------------------------------------------------------
