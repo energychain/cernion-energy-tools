@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.46.0] — Capability Broker v1 (Additive, Internal)
+
+### Added
+- **New internal Capability Broker service** in [services/capability-broker.service.js](services/capability-broker.service.js) with actions:
+  - `capability-broker.recommend` (advisory recommendation only)
+  - `capability-broker.catalog` (curated capability metadata)
+- **Curated capability catalog v1** in [src/capability-catalog.js](src/capability-catalog.js) with three-layer modeling:
+  - domain capability
+  - preferred/fallback/avoid action mapping
+  - action-level metadata and routing notes
+- **Shared planning utilities** in [src/agent-planning-utils.js](src/agent-planning-utils.js) for reusable planner primitives:
+  - `buildServiceCatalogue(...)`
+  - `normalizePlan(...)`
+- **New broker test suite** in [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js).
+
+### Changed
+- **Agent planning now reuses shared utilities** in [services/agent.service.js](services/agent.service.js) by delegating catalogue/normalization to [src/agent-planning-utils.js](src/agent-planning-utils.js).
+- **Additive broker integration in `agent.analyze`** (best-effort, non-blocking):
+  - calls `ctx.call('capability-broker.recommend', ...)` to capture advisory hints for session context
+  - failures degrade gracefully to existing planner behavior
+- **Schema/version behavior for broker recommendations**:
+  - request schema version is tolerant (missing/unknown maps to v1 with warnings)
+  - response is strict and always returns `schemaVersion: "cernion.capabilityRecommendation.v1"`
+- **Mode fallback behavior introduced** in broker recommendations:
+  - `next_step` without history degrades to `initial`
+  - `repair` without execution context degrades to `initial`
+  - `compare` without candidates degrades to `initial`
+  - all degradations emit warnings
+- **Hard `doNotUse` enforcement** in broker output filtering (forbidden actions are excluded from recommended steps).
+
+### Notes
+- Capability Broker v1 is **internal action-only** (no API gateway route in v1).
+- Execution runtime is unchanged: `executePlan()` remains untouched and authoritative.
+- Introduction is additive and backward-compatible with existing `agent.analyze`, `agent.execute`, `query.*`, and domain service flows.
+
 ## [0.45.1] — Job-Store Driver Interface Foundation (Closes #60)
 
 ### Added

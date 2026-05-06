@@ -1,0 +1,174 @@
+/**
+ * Capability Broker v1 curated catalog.
+ *
+ * Domain capability -> preferred action path -> action metadata hints.
+ * Auto-discovery may add supplemental candidates, but this curated list remains
+ * the primary decision layer in v1.
+ */
+
+const BROKER_SCHEMA_VERSION = 'cernion.capabilityRecommendation.v1';
+
+const CURATED_CAPABILITIES = [
+  {
+    capability: 'residual_load_forecast_for_dso',
+    domain: 'grid-operations',
+    abstractionLevel: 'domain_workflow',
+    intent: 'residual_load_forecast_for_dso',
+    keywords: [
+      'residuallast',
+      'residual load',
+      'co2',
+      'co₂',
+      'lastverschieb',
+      'beschaffungsplanung',
+      'flexibilitätsfenster',
+      'stadtwerk',
+      'vnb',
+      'dso',
+    ],
+    preferredActions: [
+      'grid-operations.marketPartners',
+      'grid-operations.vnbLookup',
+      'residual-load.netResidualLoad',
+      'energy-market.co2Intensity',
+      'energy-market.prices',
+    ],
+    fallbackActions: ['grid-operations.marketPartners', 'residual-load.netResidualLoad'],
+    avoid: ['query.ask', 'query.askLearned'],
+    requiredInputs: [
+      {
+        name: 'query',
+        label: 'Netzbetreiber / Stadtwerk',
+        type: 'string',
+        required: true,
+      },
+      {
+        name: 'forecastDays',
+        label: 'Forecast-Tage',
+        type: 'number',
+        required: false,
+      },
+    ],
+    risksAndNotes: [
+      'Region für residual-load als Stadtname aus marketPartners-Kontakt ableiten.',
+      'Bei fehlender SNB-ID mit BDEW-Code + VNB-Name weiterarbeiten.',
+    ],
+    routingPattern: 'vnb_resolution_plus_residual_load_co2_prices',
+  },
+  {
+    capability: 'grid_operator_identity_resolution',
+    domain: 'grid-operations',
+    abstractionLevel: 'deterministic_lookup',
+    intent: 'resolve_grid_operator_identity',
+    keywords: ['netzbetreiber', 'vnb', 'dso', 'stadtwerke', 'bdew', 'snb'],
+    preferredActions: ['grid-operations.marketPartners', 'grid-operations.vnbLookup'],
+    fallbackActions: ['grid-operations.marketPartners'],
+    avoid: [],
+    requiredInputs: [
+      {
+        name: 'query',
+        label: 'Netzbetreiber / Stadtwerk',
+        type: 'string',
+        required: true,
+      },
+    ],
+    risksAndNotes: ['Bei mehrdeutigen Treffern Top-3 Kandidaten vergleichen.'],
+    routingPattern: 'vnb_identity_resolution',
+  },
+  {
+    capability: 'inhouse_timeseries_analysis',
+    domain: 'inhouse',
+    abstractionLevel: 'domain_workflow',
+    intent: 'inhouse_timeseries_analysis',
+    keywords: ['inhouse', 'csv', 'upload', 'datasource', 'messwerte', 'lastprofil'],
+    preferredActions: ['datasource-cache.query', 'in-memory-join.meteringSpotCost'],
+    fallbackActions: ['datasource-cache.query'],
+    avoid: ['query.ask', 'query.askLearned'],
+    requiredInputs: [
+      {
+        name: 'sourceId',
+        label: 'Inhouse-Datasource',
+        type: 'string',
+        required: true,
+      },
+    ],
+    risksAndNotes: [
+      'Inhouse-Daten niemals über generische SQL-/Query-Tools abfragen.',
+      'Aggregation/Join in-memory durchführen.',
+    ],
+    routingPattern: 'inhouse_datasource_cache_query',
+  },
+  {
+    capability: 'mastr_asset_inventory',
+    domain: 'assets',
+    abstractionLevel: 'aggregated_service',
+    intent: 'mastr_asset_inventory',
+    keywords: [
+      'mastr',
+      'anlage',
+      'anlagen',
+      'pv',
+      'wind',
+      'speicher',
+      'redispatch',
+      'fernsteuerbarkeit',
+    ],
+    preferredActions: [
+      'grid-operations.marketPartners',
+      'grid-operations.vnbLookup',
+      'assets.solar',
+    ],
+    fallbackActions: ['assets.all'],
+    avoid: ['oep.query'],
+    requiredInputs: [
+      {
+        name: 'query',
+        label: 'Betreiber / Region',
+        type: 'string',
+        required: true,
+      },
+    ],
+    risksAndNotes: [
+      'Betriebsstatus und Netzbetreiberprüfstatus getrennt behandeln.',
+      'OEP ist für reale Assetlisten sekundär gegenüber MaStR.',
+    ],
+    routingPattern: 'mastr_primary_asset_lookup',
+  },
+  {
+    capability: 'oep_research_dataset_discovery',
+    domain: 'oep',
+    abstractionLevel: 'raw_data',
+    intent: 'oep_research_dataset_discovery',
+    keywords: ['oep', 'open energy platform', 'szenario', 'tyndp', 'nep'],
+    preferredActions: ['oep.energyTables', 'oep.search', 'oep.query'],
+    fallbackActions: ['oep.listSchemas', 'oep.listTables', 'oep.getTableMeta'],
+    avoid: [],
+    requiredInputs: [
+      {
+        name: 'q',
+        label: 'Suchbegriff',
+        type: 'string',
+        required: false,
+      },
+    ],
+    risksAndNotes: ['OEP-Daten als Szenario-/Forschungsquelle behandeln, nicht als Primärquelle für Assets.'],
+    routingPattern: 'oep_discovery_chain',
+  },
+];
+
+const GLOBAL_DO_NOT_USE = [
+  {
+    action: 'query.ask',
+    reason: 'Nur nutzen, wenn kein deterministischer oder domänenspezifischer Pfad verfügbar ist.',
+  },
+  {
+    action: 'query.askLearned',
+    reason: 'Nur nutzen, wenn kein deterministischer oder domänenspezifischer Pfad verfügbar ist.',
+  },
+];
+
+module.exports = {
+  BROKER_SCHEMA_VERSION,
+  CURATED_CAPABILITIES,
+  GLOBAL_DO_NOT_USE,
+};
