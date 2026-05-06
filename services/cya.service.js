@@ -1732,12 +1732,19 @@ module.exports = {
           profiles.push(profile);
         }
 
+        const ontologySignals = await this.getPlanningOntologySignals(ctx, {
+          profile: profiles[0],
+          targetAudience: target_audience,
+          context,
+          mode: 'initial',
+        });
+
         const retrieval = await retrieveContextData(ctx, {
           profile: profiles[0],
           target_audience,
           context,
           actorRole: profiles[0]?.actor?.role || null,
-          ontologySignals: null,
+          ontologySignals,
         });
 
         // Phase 2: Ontology layer (v0.32.0+v0.36.0 cached) — non-blocking, falls back to Regex if null
@@ -2068,6 +2075,13 @@ module.exports = {
           const profile = await this.loadProfile(ctx, profile_id);
           const sessionId = ctx.params.session_id || `cya_${Date.now()}`;
 
+          const ontologySignals = await this.getPlanningOntologySignals(ctx, {
+            profile,
+            targetAudience: target_audience,
+            context,
+            mode: 'initial',
+          });
+
           // Phase 1: Data Retrieval
           appendLog(jobId, 'phase_1_retrieval', 0, 'Starting context data retrieval...');
           const retrieval = await retrieveContextData(ctx, {
@@ -2075,7 +2089,7 @@ module.exports = {
             target_audience,
             context,
             actorRole: profile?.actor?.role || null,
-            ontologySignals: null,
+            ontologySignals,
           });
           appendLog(jobId, 'phase_1_retrieval', 33, 'Context data retrieval complete');
 
@@ -2505,6 +2519,45 @@ module.exports = {
   },
 
   methods: {
+    async getPlanningOntologySignals(ctx, { profile, targetAudience, context, mode = 'initial' }) {
+      try {
+        const focusAreas = Array.isArray(context?.focus_areas) ? context.focus_areas.join(', ') : '';
+        const trigger = context?.trigger || '';
+        const location = context?.location || '';
+        const actorRole = profile?.actor?.role || 'unknown';
+        const task =
+          `CYA Kontext-Retrieval für Zielgruppe ${targetAudience || 'n/a'} mit Rolle ${actorRole}. ` +
+          `Trigger: ${trigger}. Fokus: ${focusAreas}. Ort: ${location}.`;
+
+        const recommendation = await this.broker.call(
+          'capability-broker.recommend',
+          {
+            task,
+            mode,
+            alreadyExecutedSteps: [],
+            doNotUse: ['query.ask', 'query.askLearned'],
+          },
+          { meta: ctx?.meta || {}, timeout: 5000 }
+        );
+
+        const candidates = Array.isArray(recommendation?.recommendedActions)
+          ? recommendation.recommendedActions
+          : [];
+
+        return {
+          intent: recommendation?.intent || null,
+          summary: recommendation?.summary || null,
+          confidence: Number.isFinite(recommendation?.confidence)
+            ? recommendation.confidence
+            : null,
+          topActions: candidates.slice(0, 3).map((item) => item?.action).filter(Boolean),
+        };
+      } catch (error) {
+        this.logger.debug(`[cya] planning ontology signals unavailable: ${error.message}`);
+        return null;
+      }
+    },
+
     /**
      * Build ontology graph + context manager from retrieval result (Phase 2 helper).
      * Returns { ontologyGraph, contextManager, graphSignals } or all-null on missing data.
@@ -2814,6 +2867,12 @@ module.exports = {
       // Phase 1 + 2 (shared baseline — skipped when preloaded retrieval supplied)
       log('phase_1_retrieval', 0, 'Multi-agent: shared context retrieval...');
       const profile = args.profile || (await this.loadProfile(ctx, profile_id));
+      const ontologySignals = await this.getPlanningOntologySignals(ctx, {
+        profile,
+        targetAudience: target_audience,
+        context,
+        mode: 'iterative',
+      });
       const retrieval =
         preloadedRetrieval ||
         (await retrieveContextData(ctx, {
@@ -2821,7 +2880,7 @@ module.exports = {
           target_audience,
           context,
           actorRole: profile?.actor?.role || null,
-          ontologySignals: null,
+          ontologySignals,
         }));
       log('phase_1_retrieval', 20, 'Shared retrieval complete');
 

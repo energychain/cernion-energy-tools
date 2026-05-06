@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.46.2] — Planning-Assist rollout (Utility Report, ZNP, CYA)
+
+### Changed
+- **Utility Report pipeline (`_runPipeline`) now includes non-blocking planning assist metadata** in [services/utility-report.service.js](services/utility-report.service.js):
+  - new helper `getPlanningAssist(...)` (fail-open)
+  - phase-0 capture persisted under `progress.meta.planAssist`
+  - strict advisory-only behavior (no execution delegation)
+- **ZNP planning-assist integration** in [services/znp.service.js](services/znp.service.js):
+  - `strategicPrompts` enriches LLM context with broker advisory summary (best-effort)
+  - `addAssumption` adds non-blocking `agent.analyze` assist hint for extraction context
+  - helper methods `getPlanningAssist(...)` and `getAgentAnalyzeAssist(...)` added with graceful fallback
+- **CYA retrieval routing now accepts broker-derived ontology signals** in [services/cya.service.js](services/cya.service.js):
+  - new helper `getPlanningOntologySignals(...)`
+  - signals injected into retrieval paths for classic generate, multi-agent orchestration, and profile-compare flow
+  - fallback remains deterministic/non-blocking when assist is unavailable
+
+### Tests
+- Focused suites passed after rollout:
+  - [tests/utility-report.service.test.js](tests/utility-report.service.test.js)
+  - [tests/znp.service.test.js](tests/znp.service.test.js)
+  - [tests/cya.service.test.js](tests/cya.service.test.js)
+
 ## [0.46.1] — Finance Agent iterative `agent.analyze` integration
 
 ### Changed

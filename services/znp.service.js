@@ -429,7 +429,6 @@ module.exports = {
         const { projectId, assets } = ctx.params;
         await this.ensureProjectHydrated(projectId);
         const { graph } = this.getProject(projectId);
-
         let nodesAdded = 0;
         let edgesAdded = 0;
         const skipped = [];
@@ -440,7 +439,7 @@ module.exports = {
           // semantically unacceptable (empty id, non-positive capacity, etc.).
           if (!asset.mastrNummer || asset.mastrNummer.trim() === '') {
             throw new MoleculerError(
-              'Invalid asset: mastrNummer must be a non-empty string.',
+              'Invalid asset: mastrNummer is required.',
               400,
               'INVALID_ASSET',
               { field: 'mastrNummer', value: asset.mastrNummer }
@@ -1214,6 +1213,15 @@ module.exports = {
           bbox: project.bbox,
         };
 
+        const planningAssist = await this.getPlanningAssist(ctx, {
+          task: `ZNP strategische Fragengenerierung für Projekt ${projectId} mit Fokus auf Netzplanung und fehlende Datenpfade.`,
+          mode: 'initial',
+        });
+        const planningHint =
+          planningAssist.available && planningAssist.summary
+            ? `\n\nPlanungsassistenz-Hinweis: ${planningAssist.summary}`
+            : '';
+
         const prompt =
           'Du bist ein Zielnetzplanungs-Experte f\u00fcr deutsche Verteilnetzbetreiber.\n' +
           'Analysiere folgendes Verteilnetz-Areal und formuliere 2-3 strategische Fragen, ' +
@@ -1222,7 +1230,8 @@ module.exports = {
           `Netz-Kontext:\n${JSON.stringify(graphSummary, null, 2)}\n\n` +
           'Beziehe dich auf \u00a714a EnWG (steuerbare Verbrauchseinrichtungen), m\u00f6gliche ' +
           'Rechenzentren/Gewerbegebiete, Neubaupotenzial, W\u00e4rmepumpenpflicht (GEG), ' +
-          'und EV-Ladeinfrastruktur. Stelle konkrete, handlungsrelevante Fragen.';
+          'und EV-Ladeinfrastruktur. Stelle konkrete, handlungsrelevante Fragen.' +
+          planningHint;
 
         const result = await generateStructured(STRATEGIC_PROMPTS_SCHEMA, prompt);
 
@@ -1230,6 +1239,7 @@ module.exports = {
           projectId,
           questions: Array.isArray(result.questions) ? result.questions : [],
           graphSummary,
+          planningAssist,
         };
       },
     },
@@ -1369,6 +1379,12 @@ module.exports = {
         const project = this.getProject(projectId);
         const { graph } = project;
 
+        const planningAssist = await this.getAgentAnalyzeAssist(ctx, {
+          text,
+          projectId,
+        });
+        const assistHint = planningAssist?.hint || '';
+
         // ── LLM extraction ────────────────────────────────────────────────────
         const prompt =
           'Extrahiere die geplante Energieanlage aus dieser deutschen Beschreibung als JSON.\n' +
@@ -1378,7 +1394,8 @@ module.exports = {
           '- capacityKW: Nennleistung in kW (als Zahl, ohne Einheit)\n' +
           '- status: Planungsstatus (z.B. "planned", "approved", "under_construction")\n' +
           '- hasFlexibleNav: true wenn ein flexibler Netzanschlussvertrag (\u00a714a EnWG) erw\u00e4hnt wird, sonst false\n\n' +
-          'Antworte NUR als striktes JSON.';
+          'Antworte NUR als striktes JSON.' +
+          assistHint;
 
         const extracted = await generateStructured(ASSUMPTION_SCHEMA, prompt);
 
@@ -1432,6 +1449,10 @@ module.exports = {
           extracted,
           hasFlexibleNav: extracted.hasFlexibleNav === true,
           graphStats: { nodes: graph.order, edges: graph.size },
+          planningAssist: {
+            available: !!planningAssist,
+            warning: planningAssist?.warning || null,
+          },
         };
       },
     },
@@ -1782,6 +1803,65 @@ module.exports = {
   // ─── Methods ────────────────────────────────────────────────────────────────
 
   methods: {
+    async getPlanningAssist(ctx, { task, mode = 'initial' }) {
+      try {
+        const result = await this.broker.call(
+          'capability-broker.recommend',
+          {
+            task,
+            mode,
+            alreadyExecutedSteps: [],
+            doNotUse: ['query.ask', 'query.askLearned'],
+          },
+          { meta: ctx?.meta || {}, timeout: 5000 }
+        );
+        return {
+          available: true,
+          summary: result?.summary || null,
+          intent: result?.intent || null,
+          confidence: Number.isFinite(result?.confidence) ? result.confidence : null,
+          warnings: Array.isArray(result?.warnings) ? result.warnings : [],
+        };
+      } catch (error) {
+        this.logger.debug(`[znp] planning assist unavailable: ${error.message}`);
+        return {
+          available: false,
+          warning: error.message,
+        };
+      }
+    },
+
+    async getAgentAnalyzeAssist(ctx, { text, projectId }) {
+      try {
+        const result = await this.broker.call(
+          'agent.analyze',
+          {
+            problem:
+              `Extrahiere aus folgender ZNP-Annahme strukturierte Parameter (assetType, capacityKW, status, hasFlexibleNav) und ` +
+              `bevorzuge deterministische Interpretation. Projekt: ${projectId}. Text: ${text}`,
+          },
+          { meta: ctx?.meta || {}, timeout: 8000 }
+        );
+
+        const topAction = Array.isArray(result?.steps) && result.steps.length > 0
+          ? result.steps[0].action
+          : null;
+
+        return {
+          warning: null,
+          hint: topAction
+            ? `\n\nAssist-Hinweis: geplanter Analysepfad startet mit ${topAction}.`
+            : '',
+        };
+      } catch (error) {
+        this.logger.debug(`[znp] agent.analyze assist unavailable: ${error.message}`);
+        return {
+          warning: error.message,
+          hint: '',
+        };
+      }
+    },
+
     /**
      * hydrateGraph — Load one project from PouchDB and import the graphology state.
      *

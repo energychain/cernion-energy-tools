@@ -1606,6 +1606,40 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
       );
     },
 
+    async getPlanningAssist(ctx, task, mode = 'initial', alreadyExecutedSteps = []) {
+      try {
+        const assist = await this.broker.call(
+          'capability-broker.recommend',
+          {
+            mode,
+            task,
+            alreadyExecutedSteps,
+            doNotUse: ['query.ask', 'query.askLearned'],
+          },
+          { meta: ctx?.meta || {}, timeout: 5000 }
+        );
+        return {
+          available: true,
+          schemaVersion: assist?.schemaVersion || null,
+          intent: assist?.intent || null,
+          confidence: Number.isFinite(assist?.confidence) ? assist.confidence : null,
+          effectiveMode: assist?.effectiveMode || mode,
+          warnings: Array.isArray(assist?.warnings) ? assist.warnings : [],
+          capabilities: Array.isArray(assist?.recommendedCapabilities)
+            ? assist.recommendedCapabilities.map((c) => c.capability).filter(Boolean)
+            : [],
+        };
+      } catch (error) {
+        this.logger.debug(
+          `[UtilityReport] capability-broker planning assist unavailable: ${error.message}`
+        );
+        return {
+          available: false,
+          error: error.message,
+        };
+      }
+    },
+
     // ─── Pipeline ───────────────────────────────────────────────────────────────
 
     /**
@@ -1627,6 +1661,16 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
         this.logger.info(`[UtilityReport] ${p.reportId} – Phase 0: Discover tools`);
         const availableTools = await discoverAvailableTools(cernionToken);
         p.meta.availableTools = Array.from(availableTools);
+        const planningAssist = await this.getPlanningAssist(
+          ctx,
+          `Erzeuge 360-Utility-Report für ${utilityName} in ${region || 'Deutschland'} mit Fokus auf VNB-Identifikation, Stammdaten und KPI-Datenpfad.`,
+          'initial',
+          []
+        );
+        p.meta.planAssist = {
+          ...planningAssist,
+          generatedAt: new Date().toISOString(),
+        };
         p.phase = 1;
         saveProgress(p);
       }
