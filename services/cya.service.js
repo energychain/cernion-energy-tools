@@ -335,6 +335,18 @@ module.exports = {
             required: false,
             schema: { type: 'number', default: 50, example: 50 },
           },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'eyJvZmZzZXQiOjUwfQ==' },
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', minimum: 0, example: 0 },
+          },
         ],
         responses: {
           200: {
@@ -946,6 +958,24 @@ module.exports = {
             required: true,
             schema: { type: 'string', example: 'cya_1713110400000' },
           },
+          {
+            in: 'query',
+            name: 'limit',
+            required: false,
+            schema: { type: 'integer', default: 50, minimum: 1, maximum: 200, example: 50 },
+          },
+          {
+            in: 'query',
+            name: 'cursor',
+            required: false,
+            schema: { type: 'string', example: 'eyJvZmZzZXQiOjUwfQ==' },
+          },
+          {
+            in: 'query',
+            name: 'offset',
+            required: false,
+            schema: { type: 'integer', minimum: 0, example: 0 },
+          },
         ],
         responses: {
           200: {
@@ -1112,6 +1142,18 @@ module.exports = {
             required: false,
             schema: { type: 'integer', default: 100, minimum: 1, maximum: 1000, example: 100 },
             description: 'Maximale Anzahl ausgewerteter Sessions (default: 100, max: 1000)',
+          },
+          {
+            in: 'query',
+            name: 'cursor',
+            required: false,
+            schema: { type: 'string', example: 'eyJvZmZzZXQiOjEwMH0=' },
+          },
+          {
+            in: 'query',
+            name: 'offset',
+            required: false,
+            schema: { type: 'integer', minimum: 0, example: 0 },
           },
         ],
         responses: {
@@ -2695,6 +2737,9 @@ module.exports = {
       if (input.multi_perspective) {
         response.multi_perspective = input.multi_perspective;
       }
+      if (input.hitlItem) {
+        response.hitl_item = input.hitlItem;
+      }
 
       return response;
     },
@@ -2729,6 +2774,10 @@ module.exports = {
 
       if (input.multi_perspective) {
         response.multi_perspective = input.multi_perspective;
+      }
+
+      if (input.hitlItem) {
+        response.hitl_item = input.hitlItem;
       }
 
       return response;
@@ -2849,6 +2898,23 @@ module.exports = {
               : baselineGrounding.dataGaps?.map((g) => g.focusArea) || [],
         };
         const hitlGrounding = { ...baselineGrounding, clarification, requiresClarification: true };
+        let hitlItem = null;
+        try {
+          const hitlResult = await this._createHitlConsensusItem(ctx, {
+            sessionId,
+            eventName: 'cya.a2a.consensus.failed',
+            payload: {
+              blockers,
+              triggerFacts: triggers,
+              reason: clarification.reason,
+              deferredHitlCreation: true,
+            },
+          });
+          hitlItem = hitlResult?.item || null;
+        } catch (err) {
+          this.logger.warn('[A2A] inline HITL escalation creation failed:', err.message);
+        }
+
         const hitlResponse = this.buildClarificationResponse({
           sessionId,
           profileId: profile_id,
@@ -2858,6 +2924,7 @@ module.exports = {
           context,
           createdAt,
           multi_perspective: multiPerspective,
+          hitlItem,
         });
         await this.saveSession(ctx, sessionId, {
           status: 'needs_clarification',
@@ -2874,6 +2941,7 @@ module.exports = {
           stakeholder_states: finalStates,
           dialogue_rounds: dialogueRounds,
           conflict_resolved: false,
+          hitl_item_id: hitlItem?.id || null,
           createdAt: hitlResponse.metadata.createdAt,
           updatedAt: hitlResponse.metadata.updatedAt,
           history: [],
@@ -3091,6 +3159,7 @@ module.exports = {
           a2a.consensusFailed(sessionId, {
             unresolvedConflicts: lastUnresolved,
             roundsAttempted: MAX_DIALOGUE_ROUNDS,
+            deferredHitlCreation: true,
           })
         );
       }
@@ -3271,7 +3340,7 @@ module.exports = {
       const blockers = payload?.payload?.blockers || [];
       const triggerFacts = payload?.payload?.triggerFacts || [];
 
-      await this.broker.call(
+      return this.broker.call(
         'hitl.create',
         {
           kind: 'cya-consensus-failed',
@@ -3303,6 +3372,9 @@ module.exports = {
           ctx.params.sessionId,
           '— HITL escalation triggered'
         );
+        if (ctx.params?.payload?.deferredHitlCreation === true) {
+          return;
+        }
         try {
           await this._createHitlConsensusItem(ctx, ctx.params);
         } catch (err) {

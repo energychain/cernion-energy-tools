@@ -14,6 +14,47 @@ const { callWithAutoPoll } = require('../src/async-job-poller');
 const { ServiceBroker } = require('moleculer');
 const AssetsService = require('../services/assets.service');
 
+function createObjectStoreMockService() {
+  return {
+    name: 'object-store',
+    actions: {
+      put: {
+        handler() {
+          return { ok: true };
+        },
+      },
+      get: {
+        handler() {
+          return null;
+        },
+      },
+      query: {
+        handler() {
+          return { docs: [], totalDocs: 0 };
+        },
+      },
+    },
+  };
+}
+
+function createHitlMockService() {
+  return {
+    name: 'hitl',
+    actions: {
+      create: {
+        handler() {
+          return { success: true, item: { id: 'hitl-test', status: 'pending' } };
+        },
+      },
+      get: {
+        handler() {
+          return { success: true, item: { id: 'hitl-test', status: 'pending' } };
+        },
+      },
+    },
+  };
+}
+
 describe('Assets Service — VNB guard (VNB_NOT_FOUND)', () => {
   let broker;
 
@@ -29,6 +70,8 @@ describe('Assets Service — VNB guard (VNB_NOT_FOUND)', () => {
     });
     broker._installationsMock = installationsMock;
 
+    broker.createService(createObjectStoreMockService());
+    broker.createService(createHitlMockService());
     broker.createService(AssetsService);
     await broker.start();
   });

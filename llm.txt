@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.44.4
-- changelog_latest_release: 0.44.4
+- version: 0.44.5
+- changelog_latest_release: 0.44.5
 - source_files_hash:
-  - CHANGELOG.md: f21a51c4bdad63fd7dc4644da44b230150dce1cc3fbd7c920e3b9dc4d580bba1
+  - CHANGELOG.md: df5de03227c47d781d84d8eb67dff5e1b799b11fc060a831c5ec27877fe5797e
   - README.md: 7fb345df7d005c798d77c1b90410dad6bb155bc0bd3661e02f01565ddfe63e08
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: f1c9a4769ea85144f2eca13950496d907274bd0cb28d07da31cac81083e88ef6
+  - openapi-export.json: 76b9668a5c6bc3e4053dfcf02dac6aa67e5a9fb79b64820a2f238c7b3b8c78f7
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -588,8 +588,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 213
-- operation_count: 251
+- path_count: 218
+- operation_count: 256
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -609,7 +609,7 @@ process:
 - Flex (§14a Flexibilitätsmanagement): 8 operations
 - Forecast (Prognostik): 8 operations
 - Grid Connection Validation: 3 operations
-- HITL: 6 operations
+- HITL: 11 operations
 - IntegrationHub: 8 operations
 - Jobs: 2 operations
 - Knowledge RAG: 12 operations
@@ -777,6 +777,11 @@ process:
 - POST /api/hitl/items/:id/approve | tags: [HITL] | operationId: hitl_approve | summary: Approve HITL item
 - POST /api/hitl/items/:id/escalate | tags: [HITL] | operationId: hitl_escalate | summary: Escalate HITL item
 - POST /api/hitl/items/:id/reject | tags: [HITL] | operationId: hitl_reject | summary: Reject HITL item
+- POST /api/hitl/items/bulk-approve | tags: [HITL] | operationId: hitl_bulkApprove | summary: Approve multiple HITL items
+- POST /api/hitl/items/bulk-escalate | tags: [HITL] | operationId: hitl_bulkEscalate | summary: Escalate multiple HITL items
+- POST /api/hitl/items/bulk-reject | tags: [HITL] | operationId: hitl_bulkReject | summary: Reject multiple HITL items
+- GET /api/hitl/sla-heatmap | tags: [HITL] | operationId: hitl_slaHeatmap | summary: Get HITL SLA heatmap buckets
+- GET /api/hitl/summary | tags: [HITL] | operationId: hitl_summary | summary: Summarize HITL queue and workload
 - POST /api/in-memory-join/benchmark-compare | tags: [DataSources, Analytics] | operationId: in-memory-join_benchmarkCompare | summary: Compare inhouse aggregate with external benchmark values
 - POST /api/in-memory-join/compare-forecast-actual | tags: [DataSources, Analytics] | operationId: in-memory-join_compareForecastActual | summary: Compare inhouse actual generation with forecasted generation
 - POST /api/in-memory-join/join | tags: [DataSources, Analytics] | operationId: in-memory-join_join | summary: Generic in-memory join across datasource and action outputs
@@ -886,7 +891,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.44.4"
+    "version": "0.44.5"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -2056,6 +2061,25 @@ process:
               "minimum": 1,
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjEwMH0=",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -3161,6 +3185,25 @@ process:
               "example": 50,
               "type": "number"
             }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjUwfQ==",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
+              "type": "number"
+            }
           }
         ],
         "responses": {
@@ -3473,6 +3516,37 @@ process:
             "schema": {
               "example": "cya_1713110400000",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "example": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjUwfQ==",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
+              "type": "integer"
             }
           }
         ],
@@ -4393,6 +4467,35 @@ process:
             "schema": {
               "example": "solar,twl-netze",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "example": 50,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjUwfQ==",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
+              "type": "number"
             }
           }
         ],
@@ -5527,6 +5630,35 @@ process:
               "example": "crm",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "example": 50,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjUwfQ==",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
+              "type": "number"
+            }
           }
         ],
         "responses": {
@@ -6130,6 +6262,15 @@ process:
             "schema": {
               "default": 100,
               "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjEwMH0=",
+              "type": "string"
             }
           },
           {
@@ -7668,6 +7809,25 @@ process:
               "maximum": 100,
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjIwfQ==",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -7979,6 +8139,25 @@ process:
               "maximum": 100,
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjIwfQ==",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -8060,6 +8239,25 @@ process:
               "default": 20,
               "maximum": 100,
               "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjIwfQ==",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
               "type": "integer"
             }
           }
@@ -9528,6 +9726,25 @@ process:
               "maximum": 100,
               "type": "integer"
             }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjIwfQ==",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
+              "type": "integer"
+            }
           }
         ],
         "responses": {
@@ -9606,6 +9823,38 @@ process:
             "schema": {
               "example": "finance-hypothetical-review",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "originService",
+            "schema": {
+              "example": "finance-agent",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "originAction",
+            "schema": {
+              "example": "analyze",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "severity",
+            "schema": {
+              "example": "warning",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "overdueOnly",
+            "schema": {
+              "default": false,
+              "type": "boolean"
             }
           },
           {
@@ -9912,6 +10161,261 @@ process:
           }
         },
         "summary": "Reject HITL item",
+        "tags": [
+          "HITL"
+        ]
+      }
+    },
+    "/api/hitl/items/bulk-approve": {
+      "post": {
+        "operationId": "hitl_bulkApprove",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "comment": "Bulk approval by shift lead",
+                    "ids": [
+                      "00000000-0000-4000-8000-000000000001"
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "comment": {
+                    "example": "Bulk approval by shift lead",
+                    "type": "string"
+                  },
+                  "ids": {
+                    "example": [
+                      "00000000-0000-4000-8000-000000000001"
+                    ],
+                    "items": {
+                      "example": "00000000-0000-4000-8000-000000000001",
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "ids"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Approve multiple HITL items",
+        "tags": [
+          "HITL"
+        ]
+      }
+    },
+    "/api/hitl/items/bulk-escalate": {
+      "post": {
+        "operationId": "hitl_bulkEscalate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "comment": "Escalate batch to legal queue",
+                    "ids": [
+                      "00000000-0000-4000-8000-000000000001"
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "comment": {
+                    "example": "Escalate batch to legal queue",
+                    "type": "string"
+                  },
+                  "ids": {
+                    "example": [
+                      "00000000-0000-4000-8000-000000000001"
+                    ],
+                    "items": {
+                      "example": "00000000-0000-4000-8000-000000000001",
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "ids"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Escalate multiple HITL items",
+        "tags": [
+          "HITL"
+        ]
+      }
+    },
+    "/api/hitl/items/bulk-reject": {
+      "post": {
+        "operationId": "hitl_bulkReject",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "comment": "Bulk rejection after policy review",
+                    "feedbackToAgent": "Evidence package missing legal references.",
+                    "ids": [
+                      "00000000-0000-4000-8000-000000000001"
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "comment": {
+                    "example": "Bulk rejection after policy review",
+                    "type": "string"
+                  },
+                  "feedbackToAgent": {
+                    "example": "Evidence package missing legal references.",
+                    "type": "string"
+                  },
+                  "ids": {
+                    "example": [
+                      "00000000-0000-4000-8000-000000000001"
+                    ],
+                    "items": {
+                      "example": "00000000-0000-4000-8000-000000000001",
+                      "type": "string"
+                    },
+                    "maxItems": 100,
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "ids"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Reject multiple HITL items",
+        "tags": [
+          "HITL"
+        ]
+      }
+    },
+    "/api/hitl/sla-heatmap": {
+      "get": {
+        "operationId": "hitl_slaHeatmap",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sinceDays",
+            "schema": {
+              "default": 14,
+              "maximum": 90,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get HITL SLA heatmap buckets",
+        "tags": [
+          "HITL"
+        ]
+      }
+    },
+    "/api/hitl/summary": {
+      "get": {
+        "operationId": "hitl_summary",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "sinceDays",
+            "schema": {
+              "default": 30,
+              "maximum": 365,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Summarize HITL queue and workload",
         "tags": [
           "HITL"
         ]
@@ -12223,6 +12727,25 @@ process:
               "example": 50,
               "type": "number"
             }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjUwfQ==",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
+              "type": "number"
+            }
           }
         ],
         "responses": {
@@ -12319,6 +12842,35 @@ process:
               "example": "twl-solar-monitor_ab12cd34",
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "example": 50,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjUwfQ==",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
+              "type": "number"
+            }
           }
         ],
         "responses": {
@@ -12350,6 +12902,35 @@ process:
             "schema": {
               "example": "twl-solar-monitor_ab12cd34",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "example": 50,
+              "type": "number"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjUwfQ==",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
+              "type": "number"
             }
           }
         ],
@@ -12784,6 +13365,25 @@ process:
             "schema": {
               "default": 20,
               "maximum": 100,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjIwfQ==",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
               "type": "integer"
             }
           }
@@ -15028,6 +15628,25 @@ process:
             "schema": {
               "default": 20,
               "maximum": 100,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJvZmZzZXQiOjIwfQ==",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "example": 0,
+              "minimum": 0,
               "type": "integer"
             }
           }
@@ -17699,8 +18318,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.44.4"
+  "x-version": "0.44.5"
 }
 
 ## Integrity
-- llm_txt_sha256: 4b3da1a340c3a2a097d0f3cd275f55985b494269ed07d842eef48799b9f534fa
+- llm_txt_sha256: 64f91713a7e731246d3f18f91d2d39ec5dda76f55e8fbaffffe8c8303fd4f339

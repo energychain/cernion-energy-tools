@@ -156,6 +156,24 @@ module.exports = {
         tags: ['DataSources'],
         parameters: [
           { name: 'tag', in: 'query', required: false, schema: { type: 'string', example: 'crm' } },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', default: 50, example: 50 },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'eyJvZmZzZXQiOjUwfQ==' },
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', minimum: 0, example: 0 },
+          },
         ],
       },
       async handler(ctx) {

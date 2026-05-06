@@ -103,4 +103,29 @@ describe('webhooks service', () => {
     expect(replayed.delivery.status).toBe('sent');
     expect(axios.post).toHaveBeenCalledTimes(2);
   });
+
+  test('delivers hitl.item.expired events', async () => {
+    axios.post.mockResolvedValue({ status: 200, data: {} });
+
+    const created = await broker.call(
+      'webhooks.create',
+      {
+        url: 'https://example.com/hitl-expired',
+        events: ['hitl.item.expired'],
+      },
+      { meta: { tenantId: 'tenant-expired-hook' } }
+    );
+
+    broker.emit('hitl.item.expired', { itemId: 'hitl-1', eventId: 'evt-expired' });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    expect(axios.post).toHaveBeenCalledTimes(1);
+    const deliveries = await broker.call(
+      'webhooks.listDeliveries',
+      { id: created.subscription.id },
+      { meta: { tenantId: 'tenant-expired-hook' } }
+    );
+    expect(deliveries.count).toBe(1);
+    expect(deliveries.deliveries[0].status).toBe('sent');
+  });
 });

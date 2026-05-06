@@ -118,15 +118,34 @@ describe('finance-agent service', () => {
   let ragCalls;
   let createdDatapoints;
   let forceNoRuleEvidence;
+  let hitlItems;
 
   beforeAll(async () => {
     objectStoreDocs = new Map();
     ragCalls = [];
     createdDatapoints = [];
     forceNoRuleEvidence = false;
+    hitlItems = [];
     broker = new ServiceBroker({ logger: false });
 
     broker.createService(require('../services/finance-agent.service'));
+    broker.createService({
+      name: 'hitl',
+      actions: {
+        create: {
+          async handler(ctx) {
+            const item = {
+              id: `hitl-${hitlItems.length + 1}`,
+              kind: ctx.params.kind,
+              status: 'pending',
+              payload: ctx.params.payload,
+            };
+            hitlItems.push(item);
+            return { success: true, item };
+          },
+        },
+      },
+    });
 
     broker.createService({
       name: 'knowledge-rag',
@@ -496,8 +515,21 @@ describe('finance-agent service', () => {
 
     expect(res.success).toBe(true);
     expect(res.status).toBe('hypothetical_scenario');
+    expect(res.hitlItem).toBeTruthy();
+    expect(res.hitlItem.kind).toBe('finance-hypothetical-review');
     expect(Array.isArray(res.assumptions)).toBe(true);
     expect(res.assumptions.length).toBeGreaterThan(0);
+  });
+
+  it('does not return HITL item for evidence-backed result', async () => {
+    const res = await broker.call('finance-agent.analyze', {
+      query:
+        'Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?',
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.status).toBe('ok');
+    expect(res.hitlItem).toBeNull();
   });
 
   it('falls back to static synthesis when LLM throws LLM_NOT_CONFIGURED', async () => {

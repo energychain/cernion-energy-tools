@@ -18,6 +18,7 @@ const EVENT_WHITELIST = [
   'mastr-monitor.delta.detected',
   'hitl.item.created',
   'hitl.item.resolved',
+  'hitl.item.expired',
   'redispatch-expost.audit.completed',
   'mastr-quality.audit.completed',
   'finance-agent.analysis.completed',
@@ -383,6 +384,11 @@ module.exports = {
     'hitl.item.resolved': {
       async handler(ctx) {
         await this.enqueueFromEvent('hitl.item.resolved', ctx.params);
+      },
+    },
+    'hitl.item.expired': {
+      async handler(ctx) {
+        await this.enqueueFromEvent('hitl.item.expired', ctx.params);
       },
     },
     'redispatch-expost.audit.completed': {

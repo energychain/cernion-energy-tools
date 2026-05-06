@@ -1,6 +1,6 @@
 # UI Contract 29 — Finance Agent
 
-Version: 0.40.4
+Version: 0.44.5
 Status: Draft (backend-owned)
 
 ## Purpose
@@ -46,6 +46,7 @@ Response:
 - `status`: `ok | needs_clarification | hypothetical_scenario`
 - `summary`, `answer`, `claims[]`
 - `assumptions[]` (bei `hypothetical_scenario`)
+- `hitlItem` (bei `hypothetical_scenario`, direkter Review-Link)
 - `evidence[]` (pointId, score, level, text, metadata, oeoTags)
 - `legalReferences[]`, `oeoTags[]`
 - `findings[]`, `findingsCount`
@@ -88,6 +89,8 @@ Read stored session memory for follow-up analyses.
 - `FA_NEEDS_CLARIFICATION`
 
 ## Notes
+
+- Für `hypothetical_scenario` erzeugt der Backend-Flow zusätzlich ein HITL-Review-Item und gibt es direkt als `hitlItem` zurück.
 
 - `L1_Rule` evidence is always prioritized over `L2_HyDE`.
 - `L2_HyDE` is context only; conflicting polarity triggers a warning finding.

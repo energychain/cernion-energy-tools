@@ -1,6 +1,6 @@
 # UI Contracts — Architecture Overview
 
-> **Version:** 0.26.3
+> **Version:** 0.44.5
 > **Purpose:** This directory defines the binding contract between the Cernion backend
 > and any frontend consumer (dashboard, admin portal, embedded widgets). Each file
 > describes one UI "page" or "panel" with its API endpoints, response field mapping,
@@ -37,8 +37,9 @@
 | 18 | [18-cookbook.md](18-cookbook.md) | Cookbook recipes and validation | `GET /api/cookbook` |
 | 19 | [14-company.md](14-company.md) | Company entity management | `GET /api/companies` |
 | 20 | [20-cya.md](20-cya.md) | CYA narrative generation panel | `POST /api/cya/generate` |
-| 31 | [31-asset-overrides.md](31-asset-overrides.md) | Asset override management | `POST /api/assets/:assetId/override` |
 | 30 | [30-observability-mini.md](30-observability-mini.md) | Observability mini panel + agent prompt | `GET /api/dashboard/observability-mini` |
+| 31 | [31-asset-overrides.md](31-asset-overrides.md) | Asset override management | `POST /api/assets/:assetId/override` |
+| 40 | [40-hitl.md](40-hitl.md) | HITL approval dashboard | `GET /api/hitl/items` |
 
 ---
 

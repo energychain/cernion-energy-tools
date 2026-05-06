@@ -18,6 +18,7 @@ Der Webhook-Service stellt tenant-skopierte Outbound-Events bereit, inklusive Si
 - `mastr-monitor.delta.detected`
 - `hitl.item.created`
 - `hitl.item.resolved`
+- `hitl.item.expired`
 - `redispatch-expost.audit.completed`
 - `mastr-quality.audit.completed`
 - `finance-agent.analysis.completed`

@@ -316,6 +316,18 @@ module.exports = {
             schema: { type: 'integer', default: 20, maximum: 100 },
             description: 'Maximum number of results',
           },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'eyJvZmZzZXQiOjIwfQ==' },
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 0, example: 0 },
+          },
         ],
         responses: {
           200: {

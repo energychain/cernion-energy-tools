@@ -855,6 +855,7 @@ module.exports = {
           approvedAt: isCritical ? null : now,
           approvalStatus: isCritical ? 'pendingApproval' : 'approved',
           hitlItemId: null,
+          hitlItem: null,
           appliedAt: isCritical ? null : now,
           agent_interventions: [
             {
@@ -888,6 +889,7 @@ module.exports = {
             },
           });
           overrideDoc.hitlItemId = hitlResult?.item?.id || null;
+          overrideDoc.hitlItem = hitlResult?.item || null;
         }
 
         overrideDoc.provenanceHash = this._hashPayload({
@@ -914,6 +916,7 @@ module.exports = {
           success: true,
           pendingApproval: isCritical,
           override: overrideDoc,
+          hitlItem: overrideDoc.hitlItem,
         };
       },
     },

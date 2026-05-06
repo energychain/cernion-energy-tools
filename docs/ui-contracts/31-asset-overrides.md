@@ -1,7 +1,7 @@
 # UI Contract: Asset Overrides
 
 > **Page ID:** `asset-overrides`
-> **Version:** 0.44.3
+> **Version:** 0.44.5
 > **Last updated:** 2026-05-06
 
 ---
@@ -63,6 +63,7 @@ Critical fields (`voltageLevel`, `direktvermarktungActive`) are persisted with:
 - `approvalStatus: "pendingApproval"`
 - `pendingApproval: true`
 - `hitlItemId` set
+- `hitlItem` returned directly for immediate dashboard navigation
 
 ---
 

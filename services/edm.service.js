@@ -387,6 +387,12 @@ module.exports = {
             schema: { type: 'string', example: 'mscons' },
           },
           { name: 'limit', in: 'query', required: false, schema: { type: 'number', default: 100 } },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'eyJvZmZzZXQiOjEwMH0=' },
+          },
           { name: 'offset', in: 'query', required: false, schema: { type: 'number', default: 0 } },
         ],
         responses: { 200: { description: 'List' } },

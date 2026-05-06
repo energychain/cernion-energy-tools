@@ -323,9 +323,10 @@ module.exports = {
           });
         }
 
+        let hitlItem = null;
         if (report.status === 'hypothetical_scenario') {
           try {
-            await this.broker.call(
+            const hitlResult = await this.broker.call(
               'hitl.create',
               {
                 kind: 'finance-hypothetical-review',
@@ -342,6 +343,7 @@ module.exports = {
               },
               { meta: ctx.meta }
             );
+            hitlItem = hitlResult?.item || null;
           } catch (err) {
             this.logger.warn(`[finance-agent] failed to create HITL item: ${err.message}`);
           }
@@ -358,7 +360,7 @@ module.exports = {
           timestamp: new Date().toISOString(),
         });
 
-        return { success: true, id, ...report };
+        return { success: true, id, ...report, hitlItem };
       },
     },
 
@@ -471,6 +473,18 @@ module.exports = {
             in: 'query',
             required: false,
             schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'eyJvZmZzZXQiOjIwfQ==' },
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            required: false,
+            schema: { type: 'integer', minimum: 0, example: 0 },
           },
         ],
       },

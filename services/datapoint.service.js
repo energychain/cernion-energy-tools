@@ -392,6 +392,24 @@ module.exports = {
             description:
               'Comma-separated tag filter. Returns only datapoints that have ALL specified tags (case-insensitive AND match).',
           },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', default: 50, example: 50 },
+          },
+          {
+            name: 'cursor',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'eyJvZmZzZXQiOjUwfQ==' },
+          },
+          {
+            name: 'offset',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', minimum: 0, example: 0 },
+          },
         ],
       },
       async handler(ctx) {

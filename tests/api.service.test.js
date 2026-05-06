@@ -232,6 +232,8 @@ describe('API Gateway Service', () => {
       expect(schema.tags.some((tag) => tag.name === 'HITL')).toBe(true);
       expect(schema.tags.some((tag) => tag.name === 'Webhooks')).toBe(true);
       expect(schema.paths['/api/hitl/items']).toBeDefined();
+      expect(schema.paths['/api/hitl/summary']).toBeDefined();
+      expect(schema.paths['/api/hitl/sla-heatmap']).toBeDefined();
       expect(schema.paths['/api/webhooks']).toBeDefined();
       expect(schema.paths['/api/webhooks/:id/deliveries/:deliveryId/replay']).toBeDefined();
     });
@@ -275,7 +277,12 @@ describe('API Gateway Service', () => {
       const aliases = apiRoute?.aliases || {};
 
       expect(aliases['POST /hitl/items']).toBe('hitl.create');
+      expect(aliases['GET /hitl/summary']).toBe('hitl.summary');
+      expect(aliases['GET /hitl/sla-heatmap']).toBe('hitl.slaHeatmap');
       expect(aliases['POST /hitl/items/:id/approve']).toBe('hitl.approve');
+      expect(aliases['POST /hitl/items/bulk-approve']).toBe('hitl.bulkApprove');
+      expect(aliases['POST /hitl/items/bulk-reject']).toBe('hitl.bulkReject');
+      expect(aliases['POST /hitl/items/bulk-escalate']).toBe('hitl.bulkEscalate');
       expect(aliases['POST /webhooks']).toBe('webhooks.create');
       expect(aliases['GET /webhooks']).toBe('webhooks.list');
       expect(aliases['POST /webhooks/:id/deliveries/:deliveryId/replay']).toBe('webhooks.replay');

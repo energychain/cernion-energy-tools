@@ -20,6 +20,47 @@ const { callWithAutoPoll } = require('../src/async-job-poller');
 const AssetsService = require('../services/assets.service');
 const EnergyMarketService = require('../services/energy-market.service');
 
+function createObjectStoreMockService() {
+  return {
+    name: 'object-store',
+    actions: {
+      put: {
+        handler() {
+          return { ok: true };
+        },
+      },
+      get: {
+        handler() {
+          return null;
+        },
+      },
+      query: {
+        handler() {
+          return { docs: [], totalDocs: 0 };
+        },
+      },
+    },
+  };
+}
+
+function createHitlMockService() {
+  return {
+    name: 'hitl',
+    actions: {
+      create: {
+        handler() {
+          return { success: true, item: { id: 'hitl-test', status: 'pending' } };
+        },
+      },
+      get: {
+        handler() {
+          return { success: true, item: { id: 'hitl-test', status: 'pending' } };
+        },
+      },
+    },
+  };
+}
+
 describe('Assets Service - XLSX Export', () => {
   let broker;
 
@@ -93,6 +134,8 @@ describe('Assets Service - XLSX Export', () => {
 
     broker = new ServiceBroker({ logger: false });
     broker.createService(EnergyMarketService);
+    broker.createService(createObjectStoreMockService());
+    broker.createService(createHitlMockService());
     broker.createService(AssetsService);
     await broker.start();
   });

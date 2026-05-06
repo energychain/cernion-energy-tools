@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.44.4",
+    "version": "0.44.5",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -184,6 +184,35 @@
             "schema": {
               "type": "string",
               "example": "crm"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 50,
+              "example": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjUwfQ=="
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "example": 0
             }
           }
         ]
@@ -1642,6 +1671,35 @@
               "example": "solar,twl-netze"
             },
             "description": "Comma-separated tag filter. Returns only datapoints that have ALL specified tags (case-insensitive AND match)."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 50,
+              "example": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjUwfQ=="
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "example": 0
+            }
           }
         ]
       }
@@ -5627,6 +5685,25 @@
               "maximum": 100
             },
             "description": "Maximum number of results"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjIwfQ=="
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "example": 0
+            }
           }
         ]
       }
@@ -5857,6 +5934,25 @@
               "maximum": 100
             },
             "description": "Maximum number of results"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjIwfQ=="
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "example": 0
+            }
           }
         ]
       }
@@ -6153,6 +6249,25 @@
               "maximum": 100
             },
             "description": "Maximum number of results"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjIwfQ=="
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "example": 0
+            }
           }
         ]
       }
@@ -6485,6 +6600,25 @@
               "maximum": 100
             },
             "description": "Maximum number of results"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjIwfQ=="
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "example": 0
+            }
           }
         ]
       }
@@ -6797,6 +6931,25 @@
               "maximum": 100
             },
             "description": "Maximum number of results"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjIwfQ=="
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "example": 0
+            }
           }
         ]
       }
@@ -7014,6 +7167,25 @@
               "minimum": 1,
               "maximum": 100,
               "default": 20
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjIwfQ=="
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "example": 0
             }
           }
         ]
@@ -7288,6 +7460,38 @@
             }
           },
           {
+            "name": "originService",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "finance-agent"
+            }
+          },
+          {
+            "name": "originAction",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "analyze"
+            }
+          },
+          {
+            "name": "severity",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "warning"
+            }
+          },
+          {
+            "name": "overdueOnly",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
             "name": "limit",
             "in": "query",
             "schema": {
@@ -7326,6 +7530,70 @@
             "schema": {
               "type": "string",
               "example": "00000000-0000-4000-8000-000000000001"
+            }
+          }
+        ]
+      }
+    },
+    "/api/hitl/summary": {
+      "get": {
+        "operationId": "hitl_summary",
+        "summary": "Summarize HITL queue and workload",
+        "tags": [
+          "HITL"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "sinceDays",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "maximum": 365
+            }
+          }
+        ]
+      }
+    },
+    "/api/hitl/sla-heatmap": {
+      "get": {
+        "operationId": "hitl_slaHeatmap",
+        "summary": "Get HITL SLA heatmap buckets",
+        "tags": [
+          "HITL"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "sinceDays",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 14,
+              "maximum": 90
             }
           }
         ]
@@ -7493,6 +7761,197 @@
                 "default": {
                   "value": {
                     "comment": "Escalate to legal review"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hitl/items/bulk-approve": {
+      "post": {
+        "operationId": "hitl_bulkApprove",
+        "summary": "Approve multiple HITL items",
+        "tags": [
+          "HITL"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ids"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "example": [
+                      "00000000-0000-4000-8000-000000000001"
+                    ],
+                    "items": {
+                      "type": "string",
+                      "example": "00000000-0000-4000-8000-000000000001"
+                    }
+                  },
+                  "comment": {
+                    "type": "string",
+                    "example": "Bulk approval by shift lead"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "ids": [
+                      "00000000-0000-4000-8000-000000000001"
+                    ],
+                    "comment": "Bulk approval by shift lead"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hitl/items/bulk-reject": {
+      "post": {
+        "operationId": "hitl_bulkReject",
+        "summary": "Reject multiple HITL items",
+        "tags": [
+          "HITL"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ids"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "example": [
+                      "00000000-0000-4000-8000-000000000001"
+                    ],
+                    "items": {
+                      "type": "string",
+                      "example": "00000000-0000-4000-8000-000000000001"
+                    }
+                  },
+                  "comment": {
+                    "type": "string",
+                    "example": "Bulk rejection after policy review"
+                  },
+                  "feedbackToAgent": {
+                    "type": "string",
+                    "example": "Evidence package missing legal references."
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "ids": [
+                      "00000000-0000-4000-8000-000000000001"
+                    ],
+                    "comment": "Bulk rejection after policy review",
+                    "feedbackToAgent": "Evidence package missing legal references."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/hitl/items/bulk-escalate": {
+      "post": {
+        "operationId": "hitl_bulkEscalate",
+        "summary": "Escalate multiple HITL items",
+        "tags": [
+          "HITL"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "ids"
+                ],
+                "properties": {
+                  "ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "example": [
+                      "00000000-0000-4000-8000-000000000001"
+                    ],
+                    "items": {
+                      "type": "string",
+                      "example": "00000000-0000-4000-8000-000000000001"
+                    }
+                  },
+                  "comment": {
+                    "type": "string",
+                    "example": "Escalate batch to legal queue"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "ids": [
+                      "00000000-0000-4000-8000-000000000001"
+                    ],
+                    "comment": "Escalate batch to legal queue"
                   }
                 }
               }
@@ -11124,6 +11583,25 @@
               "default": 50,
               "example": 50
             }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjUwfQ=="
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "example": 0
+            }
           }
         ]
       }
@@ -12408,6 +12886,37 @@
               "type": "string",
               "example": "cya_1713110400000"
             }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "minimum": 1,
+              "maximum": 200,
+              "example": 50
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjUwfQ=="
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "example": 0
+            }
           }
         ],
         "x-oeo-class": "OEO:AgentCommunication"
@@ -12568,6 +13077,25 @@
               "example": 100
             },
             "description": "Maximale Anzahl ausgewerteter Sessions (default: 100, max: 1000)"
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjEwMH0="
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "example": 0
+            }
           }
         ],
         "x-oeo-class": "OEO:AgentCommunication"
@@ -12747,6 +13275,25 @@
               "default": 50,
               "example": 50
             }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjUwfQ=="
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "example": 0
+            }
           }
         ]
       }
@@ -12778,6 +13325,35 @@
             "schema": {
               "type": "string",
               "example": "twl-solar-monitor_ab12cd34"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 50,
+              "example": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjUwfQ=="
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "example": 0
             }
           }
         ]
@@ -12875,6 +13451,35 @@
             "schema": {
               "type": "string",
               "example": "twl-solar-monitor_ab12cd34"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 50,
+              "example": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjUwfQ=="
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "example": 0
             }
           }
         ]
@@ -13283,6 +13888,15 @@
             "schema": {
               "type": "number",
               "default": 100
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "eyJvZmZzZXQiOjEwMH0="
             }
           },
           {
@@ -16815,5 +17429,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.44.4"
+  "x-version": "0.44.5"
 }

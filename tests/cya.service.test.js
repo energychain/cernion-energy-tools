@@ -24,6 +24,7 @@ jest.mock('../src/cya-synthesis', () => ({
 
 describe('cya.service', () => {
   let broker;
+  const hitlItems = [];
 
   beforeAll(async () => {
     broker = new ServiceBroker({ logger: false });
@@ -172,12 +173,40 @@ describe('cya.service', () => {
       },
     });
 
+    broker.createService({
+      name: 'hitl',
+      actions: {
+        create: {
+          handler(ctx) {
+            const item = {
+              id: `hitl-${hitlItems.length + 1}`,
+              kind: ctx.params.kind,
+              status: 'pending',
+              payload: ctx.params.payload,
+              agent_interventions: [
+                {
+                  action: 'created',
+                  actor: 'system',
+                },
+              ],
+            };
+            hitlItems.push(item);
+            return { success: true, item };
+          },
+        },
+      },
+    });
+
     broker.createService(CyaService);
     await broker.start();
   });
 
   afterAll(async () => {
     await broker.stop();
+  });
+
+  beforeEach(() => {
+    hitlItems.length = 0;
   });
 
   it('creates profile and loads it', async () => {
@@ -381,6 +410,50 @@ describe('cya.service', () => {
       expect(result.regulatory_graph).toBeTruthy();
       expect(result.grounding).toBeTruthy();
     });
+  });
+
+  it('returns created hitl item from helper for consensus escalation', async () => {
+    const service = broker.getLocalService('cya');
+
+    const result = await service._createHitlConsensusItem(
+      { meta: { tenantId: 'tenant-cya' } },
+      {
+        sessionId: 'cya-session-1',
+        eventName: 'cya.a2a.consensus.failed',
+        payload: {
+          blockers: ['netzbetreiber'],
+          triggerFacts: ['capacity'],
+          reason: 'multi_agent_conflict_unresolved',
+        },
+      }
+    );
+
+    expect(result.item.kind).toBe('cya-consensus-failed');
+    expect(result.item.payload.sessionId).toBe('cya-session-1');
+    expect(result.item.payload.blockers).toContain('netzbetreiber');
+  });
+
+  it('builds clarification response with direct hitl_item field', async () => {
+    const service = broker.getLocalService('cya');
+
+    const response = service.buildClarificationResponse({
+      sessionId: 'cya-session-2',
+      profileId: 'cya_test_profile',
+      targetAudience: 'Vorstand',
+      grounding: {
+        clarification: {
+          question: 'Bitte Daten nachreichen',
+          reason: 'multi_agent_conflict_unresolved',
+          suggestedInputs: ['capacity'],
+        },
+      },
+      regulatoryGraph: { signals: [] },
+      context: { focus_areas: ['capacity'] },
+      hitlItem: { id: 'hitl-direct-1', status: 'pending' },
+    });
+
+    expect(response.status).toBe('needs_clarification');
+    expect(response.hitl_item.id).toBe('hitl-direct-1');
   });
 
   it('generates completed response when grounding is sufficient', async () => {

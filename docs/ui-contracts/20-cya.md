@@ -1,8 +1,8 @@
 # UI Contract: CYA Agent API
 
 > **Page ID:** `cya`
-> **Version:** 0.33.0
-> **Last updated:** 2026-04-28
+> **Version:** 0.44.5
+> **Last updated:** 2026-05-06
 ---
 
 ## Endpoints & HTTP Patterns
@@ -170,6 +170,20 @@
 ---
 
 ## POST /api/cya/refine — HITL Clarification Response
+
+For unresolved multi-agent consensus failures, the clarification response can also include a directly created `hitl_item` so the UI can deep-link into the approval dashboard immediately.
+
+```json
+{
+  "status": "needs_clarification",
+  "session_id": "cya_1713110400000",
+  "hitl_item": {
+    "id": "hitl_abc123",
+    "kind": "cya-consensus-failed",
+    "status": "pending"
+  }
+}
+```
 
 ### Clarification Request (from generate when status='needs_clarification')
 

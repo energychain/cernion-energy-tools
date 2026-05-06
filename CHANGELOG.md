@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.44.5] — HITL Approval Workflow First-Class (Closes #61)
+
+### Added
+- **First-class HITL dashboard APIs** in [services/hitl.service.js](services/hitl.service.js):
+  - `GET /api/hitl/summary`
+  - `GET /api/hitl/sla-heatmap`
+  - `POST /api/hitl/items/bulk-approve`
+  - `POST /api/hitl/items/bulk-reject`
+  - `POST /api/hitl/items/bulk-escalate`
+- **UI contract** [docs/ui-contracts/40-hitl.md](docs/ui-contracts/40-hitl.md) for approval dashboard, bulk actions, filters, and SLA heatmap.
+
+### Changed
+- **Direct HITL item returns** in caller flows:
+  - [services/assets.service.js](services/assets.service.js) now returns `hitlItem` immediately for critical overrides.
+  - [services/finance-agent.service.js](services/finance-agent.service.js) now returns `hitlItem` for `hypothetical_scenario` analyses.
+  - [services/cya.service.js](services/cya.service.js) now attaches `hitl_item` to unresolved multi-agent clarification responses and avoids duplicate event-hook creation.
+- **HITL filtering and queue analytics** in [services/hitl.service.js](services/hitl.service.js): `originService`, `originAction`, `severity`, and `overdueOnly` filters.
+- **Webhook coverage** in [services/webhooks.service.js](services/webhooks.service.js): `hitl.item.expired` is now whitelisted and delivered.
+
+### Tests
+- Expanded coverage across:
+  - [tests/hitl.service.test.js](tests/hitl.service.test.js)
+  - [tests/assets.override.test.js](tests/assets.override.test.js)
+  - [tests/finance-agent.service.test.js](tests/finance-agent.service.test.js)
+  - [tests/cya.service.test.js](tests/cya.service.test.js)
+  - [tests/webhooks.service.test.js](tests/webhooks.service.test.js)
+  - [tests/api.service.test.js](tests/api.service.test.js)
+
+### Notes
+- Changelog comment for issue closure: implementation completed for GitHub issue `#61` (`HITL Approval Workflow First-Class`).
+
 ## [0.44.4] — MaStR↔OEP Delta Engine (Closes #58)
 
 ### Added

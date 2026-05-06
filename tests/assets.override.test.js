@@ -106,6 +106,8 @@ describe('Assets Service - override persistence', () => {
             const item = {
               id,
               status: 'pending',
+              kind: ctx.params.kind,
+              originService: ctx.params.originService,
               payload: ctx.params.payload || {},
             };
             hitlItems.set(id, item);
@@ -163,6 +165,29 @@ describe('Assets Service - override persistence', () => {
     expect(result.pendingApproval).toBe(true);
     expect(result.override.approvalStatus).toBe('pendingApproval');
     expect(result.override.hitlItemId).toBeTruthy();
+    expect(result.hitlItem.id).toBe(result.override.hitlItemId);
+    expect(result.hitlItem.kind).toBe('asset-override-approval');
+  });
+
+  it('keeps pending override pending when HITL item is rejected', async () => {
+    const created = await broker.call('assets.override', {
+      assetId: 'SEE900123456789',
+      field: 'voltageLevel',
+      value: 'HS',
+      reason: 'Rejected correction',
+    });
+
+    const rejected = hitlItems.get(created.override.hitlItemId);
+    rejected.status = 'rejected';
+    hitlItems.set(created.override.hitlItemId, rejected);
+
+    const applied = await broker.call('assets.applyOverride', {
+      assetId: 'SEE900123456789',
+      id: created.override.id,
+    });
+
+    expect(applied.pendingApproval).toBe(true);
+    expect(applied.override.approvalStatus).toBe('pendingApproval');
   });
 
   it('applies pending override after HITL approval', async () => {
