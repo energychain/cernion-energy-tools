@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.45.0] — §42c Energieteilen Production-Cutover Plan (Closes #59)
+
+### Added
+- **§42c Cutover-Plan Tracking Issue**: Formal tracking structure for Energieteilen production go-live (deadline 01.07.2026) in [docs/roadmap/issues/10-energy-sharing-42c-cutover.md](docs/roadmap/issues/10-energy-sharing-42c-cutover.md).
+- **Seven Sub-Tracks with Acceptance Gates**:
+  1. A96-Feldspezifikation finalisieren (BNetzA-Klärungspunkte, Spec-Freeze bis 2026-06-15)
+  2. Pilot-Tenant-Onboarding Höheinöd (bk_es_test, 3-Wochen-Schattenbetrieb)
+  3. Settlement-Readiness Härte-Test (Property-basierte Tests, Edge-Case-Kalibrierung)
+  4. Allokations-Engine Last-Test (SLA <30s für 365d × 96 Slots × 100 Consumer × 20 Generator)
+  5. Operative Runbooks + HITL-Integration (ES-Incident-Handling, Reklamation-Workflow)
+  6. Compliance-Sign-Off (EU-AI-Act Art. 12 Audit-Trail, DSFA)
+  7. Rollback-Plan (Feature-Flag `virtual_energy_sharing.enabled`, Snapshot/Restore-Test)
+
+- **Cutover-Freigabe Akzeptanzkriterien**:
+  - Alle Sub-Tracks erledigt
+  - Pilot-Tenant 14 Tage ohne `error`-Findings
+  - `A96_FAEHIG=true` über alle Bilanzkreise
+  - BNetzA-Klärungspunkte: 0 offen
+
+### Changed
+- **Planning foundations consolidated** across:
+  - [docs/ENERGY_SHARING_ABNAHME.md](docs/ENERGY_SHARING_ABNAHME.md): Regulatory acceptance checklist with explicit `[BNetzA-OFFEN]` field markers
+  - [src/settlement-readiness.js](src/settlement-readiness.js): KPI logic for `PARAGRAF_42C_KONFORM` and `A96_FAEHIG`
+  - [services/energy-sharing.service.js](services/energy-sharing.service.js): 6-step §42c validation pipeline (deterministic, auditable)
+  - [services/energy-sharing-allocation.service.js](services/energy-sharing-allocation.service.js): Allocation engine with CSV export (SLA-critical)
+  - [services/settlement.service.js](services/settlement.service.js): A96 readiness endpoint and settlement-export path
+  - [docs/ui-contracts/09-bilanzkreis-status.md](docs/ui-contracts/09-bilanzkreis-status.md): Bilanzkreis UI contract for §42c readiness visibility
+
+### Notes
+- Deadline: 01.07.2026 (harte Regulatory Frist für Energieteilen Live-Schaltung)
+- External dependency: BNetzA A96-Feldspezifikation erwartetet Q3 2026 (nach Cutover-Ziel, daher Fallback-Planung notwendig)
+- Existing services & tests provide foundation; cutover plan is **planning artifact only** (no code changes in v0.45.0)
+- See [docs/roadmap/issues/12-hitl-queue.md](docs/roadmap/issues/12-hitl-queue.md) for related HITL queue integration context
+- Changelog comment for issue closure: tracking plan finalized for GitHub issue `#59` (`§42c Energieteilen Production-Cutover`).
+
 ## [0.44.5] — HITL Approval Workflow First-Class (Closes #61)
 
 ### Added
