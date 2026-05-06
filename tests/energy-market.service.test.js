@@ -319,6 +319,47 @@ describe('Energy Market Service', () => {
       await expect(broker.call('energy-market.installations', {})).rejects.toThrow();
     });
 
+    it('should aggregate installationType all across supported types', async () => {
+      const installationFixtures = {
+        solar: [{ mastrNummer: 'SEE1', bruttoleistung: 10, einheitBetriebsstatus: '35' }],
+        wind: [{ mastrNummer: 'SEW1', bruttoleistung: 2000, einheitBetriebsstatus: '35' }],
+        storage: [{ mastrNummer: 'SEP1', bruttoleistung: 100, einheitBetriebsstatus: '35' }],
+        biomass: [{ mastrNummer: 'SEB1', bruttoleistung: 400, einheitBetriebsstatus: '35' }],
+        hydro: [{ mastrNummer: 'SEH1', bruttoleistung: 500, einheitBetriebsstatus: '35' }],
+        combustion: [{ mastrNummer: 'SEC1', bruttoleistung: 600, einheitBetriebsstatus: '35' }],
+      };
+
+      callWithNewSession.mockImplementation(async (_toolName, params) => ({
+        success: true,
+        data: {
+          installations: installationFixtures[params.type] || [],
+          stats: { count: (installationFixtures[params.type] || []).length },
+        },
+      }));
+
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'all',
+        limit: 20,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.installations).toHaveLength(6);
+      expect(result.data.requestedTypes).toEqual([
+        'solar',
+        'wind',
+        'storage',
+        'biomass',
+        'hydro',
+        'combustion',
+      ]);
+      const requestedTypes = callWithNewSession.mock.calls
+        .map(([, params]) => params.type)
+        .filter(Boolean);
+      expect(new Set(requestedTypes)).toEqual(
+        new Set(['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'])
+      );
+    });
+
     it('should search solar installations', async () => {
       const result = await broker.call('energy-market.installations', {
         installationType: 'solar',

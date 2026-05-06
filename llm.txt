@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.44.1
-- changelog_latest_release: 0.44.1
+- version: 0.44.4
+- changelog_latest_release: 0.44.4
 - source_files_hash:
-  - CHANGELOG.md: 511f8afd7d5a89ebd6c254db35730020883f7e1e70ba75fd730f9fdbd032eb6b
+  - CHANGELOG.md: f21a51c4bdad63fd7dc4644da44b230150dce1cc3fbd7c920e3b9dc4d580bba1
   - README.md: 7fb345df7d005c798d77c1b90410dad6bb155bc0bd3661e02f01565ddfe63e08
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: bf5dac8c1b75e7e4338b5ad523c10883c352062b03b3046604db62564aecd129
+  - openapi-export.json: f1c9a4769ea85144f2eca13950496d907274bd0cb28d07da31cac81083e88ef6
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -588,12 +588,12 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 209
-- operation_count: 247
+- path_count: 213
+- operation_count: 251
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
-- Assets: 1 operations
+- Assets: 5 operations
 - Companies: 6 operations
 - Cookbook: 6 operations
 - CYA Agent: 19 operations
@@ -629,7 +629,11 @@ process:
 - Zielnetzplanung (ZNP): 11 operations
 
 ## OpenAPI Operations (Complete Index)
-- POST /api/assets/:assetId/override | tags: [Assets] | operationId: assets_override | summary: Apply asset override (stub)
+- GET /api/assets/:assetId/effective | tags: [Assets] | operationId: assets_effective | summary: Get effective asset view (MaStR + applied overrides)
+- POST /api/assets/:assetId/override | tags: [Assets] | operationId: assets_override | summary: Create persistent asset override
+- GET /api/assets/:assetId/overrides | tags: [Assets] | operationId: assets_overrides | summary: List all overrides for an asset
+- DELETE /api/assets/:assetId/overrides/:id | tags: [Assets] | operationId: assets_removeOverride | summary: Soft-revert an override
+- POST /api/assets/:assetId/overrides/:id/apply | tags: [Assets] | operationId: assets_applyOverride | summary: Apply a persisted override after approval
 - GET /api/bilanzkreis | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_list | summary: List Bilanzkreise
 - POST /api/bilanzkreis | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_create | summary: Create a Bilanzkreis (real or virtual)
 - DELETE /api/bilanzkreis/:id | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_delete | summary: Delete a Bilanzkreis
@@ -882,13 +886,94 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.44.1"
+    "version": "0.44.4"
   },
   "openapi": "3.0.0",
   "paths": {
+    "/api/assets/:assetId/effective": {
+      "get": {
+        "operationId": "assets_effective",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assetId",
+            "required": true,
+            "schema": {
+              "example": "SEE900123456789",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "vnbName",
+            "schema": {
+              "example": "TWL Netze",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "bdewCode",
+            "schema": {
+              "example": "9907473000008",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "gridOperatorId",
+            "schema": {
+              "example": "SNB935578300972",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "location",
+            "schema": {
+              "example": "Ludwigshafen",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "assetType",
+            "schema": {
+              "default": "all",
+              "enum": [
+                "solar",
+                "wind",
+                "storage",
+                "biomass",
+                "hydro",
+                "combustion",
+                "all"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get effective asset view (MaStR + applied overrides)",
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
     "/api/assets/:assetId/override": {
       "post": {
-        "description": "Temporary stub endpoint for manual overrides from NOVA workflows. Accepts field/value/reason and returns success=true. No persistence yet.",
+        "description": "Creates a tenant-scoped asset override with provenance hash. Critical fields are persisted with `pendingApproval` and linked HITL item.",
         "operationId": "assets_override",
         "requestBody": {
           "content": {
@@ -896,7 +981,8 @@ process:
               "examples": {
                 "default": {
                   "value": {
-                    "assetId": "trafo-brueckweg",
+                    "approvedBy": "user",
+                    "assetId": "SEE900123456789",
                     "field": "capacityKW",
                     "reason": "Manual correction from operator",
                     "value": 1250
@@ -905,12 +991,24 @@ process:
               },
               "schema": {
                 "properties": {
+                  "approvedBy": {
+                    "enum": [
+                      "user",
+                      "agent"
+                    ],
+                    "example": "user",
+                    "type": "string"
+                  },
                   "assetId": {
-                    "example": "trafo-brueckweg",
+                    "example": "SEE900123456789",
                     "type": "string"
                   },
                   "field": {
                     "example": "capacityKW",
+                    "type": "string"
+                  },
+                  "mastrNummer": {
+                    "example": "SEE900123456789",
                     "type": "string"
                   },
                   "reason": {
@@ -945,7 +1043,113 @@ process:
             "description": "Successful response"
           }
         },
-        "summary": "Apply asset override (stub)",
+        "summary": "Create persistent asset override",
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
+    "/api/assets/:assetId/overrides": {
+      "get": {
+        "operationId": "assets_overrides",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assetId",
+            "required": true,
+            "schema": {
+              "example": "SEE900123456789",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List all overrides for an asset",
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
+    "/api/assets/:assetId/overrides/:id": {
+      "delete": {
+        "operationId": "assets_removeOverride",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Soft-revert an override",
+        "tags": [
+          "Assets"
+        ]
+      }
+    },
+    "/api/assets/:assetId/overrides/:id/apply": {
+      "post": {
+        "operationId": "assets_applyOverride",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "assetId": "SEE900123456789",
+                    "id": "ovr_SEE900123456789_1a2b3c4d"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "assetId": {
+                    "example": "SEE900123456789",
+                    "type": "string"
+                  },
+                  "id": {
+                    "example": "ovr_SEE900123456789_1a2b3c4d",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "assetId",
+                  "id"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Apply a persisted override after approval",
         "tags": [
           "Assets"
         ]
@@ -17495,8 +17699,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.44.1"
+  "x-version": "0.44.4"
 }
 
 ## Integrity
-- llm_txt_sha256: 1d5d73bd83f3b6873706112101a3231f826e98f04a7ef5fd244d549de308fc5b
+- llm_txt_sha256: 4b3da1a340c3a2a097d0f3cd275f55985b494269ed07d842eef48799b9f534fa

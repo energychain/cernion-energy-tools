@@ -37,6 +37,54 @@ const ROWS_FIXTURE = [
   { id: 2, scenario: 'TYNDP 2030', year: 2030 },
 ];
 
+const OEP_COMPARE_ROWS_FIXTURE = [
+  {
+    id: 101,
+    name: 'PV Höheinöd Nord',
+    capacity_mw: 1.0,
+    postal_code: '66989',
+    city: 'Höheinöd',
+    commissioning_year: 2022,
+    latitude: 49.3201,
+    longitude: 7.6051,
+  },
+  {
+    id: 102,
+    name: 'Wind Höheinöd West',
+    capacity_mw: 2.2,
+    postal_code: '66989',
+    city: 'Höheinöd',
+    commissioning_year: 2021,
+    latitude: 49.331,
+    longitude: 7.592,
+  },
+];
+
+const MASTR_COMPARE_INSTALLATIONS_FIXTURE = [
+  {
+    mastrNummer: 'SEE0001',
+    name: 'PV Höheinöd Nord',
+    bruttoleistung: 1000,
+    postleitzahl: '66989',
+    ort: 'Höheinöd',
+    inbetriebnahmejahr: 2022,
+    latitude: 49.3202,
+    longitude: 7.6052,
+    einheitBetriebsstatus: '35',
+  },
+  {
+    mastrNummer: 'SEE0002',
+    name: 'PV Höheinöd Süd',
+    bruttoleistung: 850,
+    postleitzahl: '66989',
+    ort: 'Höheinöd',
+    inbetriebnahmejahr: 2023,
+    latitude: 49.318,
+    longitude: 7.61,
+    einheitBetriebsstatus: '35',
+  },
+];
+
 // ---------------------------------------------------------------------------
 // Test setup
 // ---------------------------------------------------------------------------
@@ -78,9 +126,21 @@ describe('OEP Service — structure', () => {
 describe('OEP Service — action handlers', () => {
   let broker;
   let oepSvc;
+  let installationsMock;
 
   beforeAll(async () => {
     broker = new ServiceBroker({ logger: false, transporter: null });
+    installationsMock = jest.fn();
+    broker.createService({
+      name: 'energy-market',
+      actions: {
+        installations: {
+          handler(ctx) {
+            return installationsMock(ctx.params);
+          },
+        },
+      },
+    });
     oepSvc = broker.createService(OepService);
     await broker.start();
   });
@@ -93,6 +153,14 @@ describe('OEP Service — action handlers', () => {
     // Clear instance-level cache between tests to prevent cache leakage
     if (oepSvc) oepSvc._cache.clear();
     axios.get.mockReset();
+    installationsMock.mockReset();
+    installationsMock.mockResolvedValue({
+      success: true,
+      data: {
+        installations: MASTR_COMPARE_INSTALLATIONS_FIXTURE,
+        stats: { count: MASTR_COMPARE_INSTALLATIONS_FIXTURE.length },
+      },
+    });
   });
 
   // ------------------------------------------------------------------
@@ -271,7 +339,7 @@ describe('OEP Service — action handlers', () => {
   // ------------------------------------------------------------------
   describe('compareWithMastr', () => {
     it('returns oep.available and mastr.available in response', async () => {
-      axios.get.mockResolvedValueOnce({ data: [] });
+      axios.get.mockResolvedValueOnce({ data: OEP_COMPARE_ROWS_FIXTURE });
       const result = await broker.call('oep.compareWithMastr', {
         gridOperatorId: 'SNB924510006275',
       });
@@ -279,10 +347,11 @@ describe('OEP Service — action handlers', () => {
       expect(result).toHaveProperty('mastr');
       expect(typeof result.oep.available).toBe('boolean');
       expect(typeof result.mastr.available).toBe('boolean');
+      expect(result.mastr.available).toBe(true);
     });
 
     it('oep.available is true when oep.query fulfills', async () => {
-      axios.get.mockResolvedValueOnce({ data: [{ id: 1 }] });
+      axios.get.mockResolvedValueOnce({ data: OEP_COMPARE_ROWS_FIXTURE });
       const result = await broker.call('oep.compareWithMastr', {
         gridOperatorId: 'SNB924510006275',
       });
@@ -297,18 +366,29 @@ describe('OEP Service — action handlers', () => {
       });
       expect(result.oep.available).toBe(false);
       expect(result.oep.count).toBe(0);
-    });
-
-    it('delta is null (placeholder documented)', async () => {
-      axios.get.mockResolvedValueOnce({ data: [] });
-      const result = await broker.call('oep.compareWithMastr', {
-        gridOperatorId: 'SNB924510006275',
-      });
       expect(result.delta).toBeNull();
     });
 
+    it('returns a structured delta output for matched and unmatched rows', async () => {
+      axios.get.mockResolvedValueOnce({ data: OEP_COMPARE_ROWS_FIXTURE });
+      const result = await broker.call('oep.compareWithMastr', {
+        gridOperatorId: 'SNB924510006275',
+      });
+      expect(result.delta).toEqual(
+        expect.objectContaining({
+          matchedPairs: 1,
+          mastrOnly: 1,
+          oepOnly: 1,
+        })
+      );
+      expect(result.delta.fieldDeltas.capacityKw).toEqual(
+        expect.objectContaining({ mean: 0, max: 0 })
+      );
+      expect(Array.isArray(result._evidence)).toBe(true);
+    });
+
     it('oeoMappingNote is present and mentions oeo:PowerPlant', async () => {
-      axios.get.mockResolvedValueOnce({ data: [] });
+      axios.get.mockResolvedValueOnce({ data: OEP_COMPARE_ROWS_FIXTURE });
       const result = await broker.call('oep.compareWithMastr', {
         gridOperatorId: 'SNB924510006275',
       });
@@ -317,7 +397,7 @@ describe('OEP Service — action handlers', () => {
     });
 
     it('oep.source reflects schema.table default', async () => {
-      axios.get.mockResolvedValueOnce({ data: [] });
+      axios.get.mockResolvedValueOnce({ data: OEP_COMPARE_ROWS_FIXTURE });
       const result = await broker.call('oep.compareWithMastr', {
         gridOperatorId: 'SNB924510006275',
       });
@@ -325,11 +405,44 @@ describe('OEP Service — action handlers', () => {
     });
 
     it('mastr.source always references MaStR', async () => {
-      axios.get.mockResolvedValueOnce({ data: [] });
+      axios.get.mockResolvedValueOnce({ data: OEP_COMPARE_ROWS_FIXTURE });
       const result = await broker.call('oep.compareWithMastr', {
         gridOperatorId: 'SNB924510006275',
       });
       expect(result.mastr.source).toMatch(/MaStR/);
+    });
+
+    it('passes installationType all through to energy-market.installations', async () => {
+      axios.get.mockResolvedValueOnce({ data: OEP_COMPARE_ROWS_FIXTURE });
+      await broker.call('oep.compareWithMastr', {
+        gridOperatorId: 'SNB924510006275',
+        installationType: 'all',
+      });
+
+      expect(installationsMock).toHaveBeenCalledWith(
+        expect.objectContaining({ installationType: 'all', includeNapData: false })
+      );
+    });
+
+    it('returns async job descriptor for REST callers with large requests', async () => {
+      axios.get.mockResolvedValueOnce({ data: OEP_COMPARE_ROWS_FIXTURE });
+      const result = await broker.call(
+        'oep.compareWithMastr',
+        {
+          gridOperatorId: 'SNB924510006275',
+          installationType: 'all',
+          limit: 'all',
+        },
+        { meta: { $gateway: true } }
+      );
+
+      expect(result).toEqual(
+        expect.objectContaining({
+          success: true,
+          status: 'queued',
+          jobId: expect.any(String),
+        })
+      );
     });
   });
 });

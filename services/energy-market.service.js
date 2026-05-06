@@ -14,6 +14,21 @@ const {
   FORMAT_RESPONSE_CONTENT,
 } = require('../src/format-response');
 
+const SUPPORTED_INSTALLATION_TYPES = ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'];
+
+function computeInstallationStats(installations) {
+  const count = installations.length;
+  const totalCapacity = installations.reduce((sum, installation) => {
+    return sum + Number(installation.bruttoleistung || installation.capacityKW || 0);
+  }, 0);
+
+  return {
+    count,
+    totalCapacity,
+    avgCapacity: count > 0 ? totalCapacity / count : 0,
+  };
+}
+
 module.exports = {
   name: 'energy-market',
 
@@ -580,9 +595,9 @@ module.exports = {
       params: {
         installationType: {
           type: 'enum',
-          values: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'],
+          values: [...SUPPORTED_INSTALLATION_TYPES, 'all'],
           description:
-            'Required. Type of installation — solar (PV), wind, storage (batteries/BESS), biomass, hydro, combustion (CHP / gas turbines).',
+            'Required. Type of installation — solar (PV), wind, storage (batteries/BESS), biomass, hydro, combustion (CHP / gas turbines), or all (aggregated query across all supported types).',
         },
         location: { type: 'string', optional: true, min: 1 },
         postleitzahl: { type: 'string', optional: true, min: 5, max: 5 },
@@ -625,7 +640,7 @@ module.exports = {
 **'installationType' is required.**
 
 **Parameter Details:**
-- **installationType**: Installation type - "solar" (PV), "wind", "storage" (batteries), "biomass", "hydro", "combustion" (CHP, gas turbines)
+- **installationType**: Installation type - "solar" (PV), "wind", "storage" (batteries), "biomass", "hydro", "combustion" (CHP, gas turbines), or "all" (aggregated across all supported types)
 - **location**: City name, postal code, or region (deprecated; use bundesland/landkreis/gemeinde/postleitzahl in MCP tool)
 - **operationalStatus**: Operational status filter - Default: "35" (only active/in operation). Values: "31" (planned), "35" (in operation), "37" (temporarily decommissioned), "38" (permanently decommissioned), "all" (all statuses), or comma-separated list (e.g., "35,37")
 - **limit**: Max results (optional)
@@ -679,7 +694,7 @@ module.exports = {
                 properties: {
                   installationType: {
                     type: 'string',
-                    enum: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'],
+                    enum: [...SUPPORTED_INSTALLATION_TYPES, 'all'],
                     description: 'Type of energy installation',
                     example: 'solar',
                   },
@@ -803,6 +818,14 @@ module.exports = {
                     limit: 15,
                   },
                 },
+                allTypes: {
+                  summary: 'Aggregate all supported installation types',
+                  value: {
+                    installationType: 'all',
+                    gridOperatorBdewCode: '9900992720003',
+                    limit: 100,
+                  },
+                },
                 withNapData: {
                   summary: 'Solar with NAP/MeLo data (default on)',
                   value: {
@@ -891,6 +914,8 @@ module.exports = {
       async handler(ctx) {
         const MCP_PAGE_SIZE = 10000;
         const { format, ...params } = ctx.params;
+        const requestedTypes =
+          params.installationType === 'all' ? SUPPORTED_INSTALLATION_TYPES : [params.installationType];
         const operationalStatus = params.operationalStatus || '35';
         const nbpStatus = params.netzbetreiberPruefungStatus;
         const updatedAfter = params.updatedAfter ? new Date(params.updatedAfter) : null;
@@ -961,67 +986,73 @@ module.exports = {
           }
         }
 
-        const baseToolParams = {
-          type: params.installationType,
-          postleitzahl: params.postleitzahl || params.location,
-          minCapacity: params.minCapacityKW,
-          maxCapacity: params.maxCapacityKW,
-          commissioningYear: params.commissioningYear,
-          // Bug fix: cernion_installations_local expects 'gridOperatorId', NOT 'gridOperatorMastrId'.
-          // The wrong key caused SNB-ID filtering to be silently dropped → 0 results for SNB queries.
-          gridOperatorId: resolvedGridOperatorId || undefined,
-          gridOperatorBdewCode: resolvedBdewCode || undefined,
-          postleitzahlNot: params.postleitzahlNot,
-          includeNapData: params.includeNapData,
-          netzbetreiberPruefungStatus: nbpStatus,
-          // Pass status directly to cernion_installations_local for DB-level filtering.
-          // Omit when 'all' so the tool returns every status.
-          status: operationalStatus && operationalStatus !== 'all' ? operationalStatus : undefined,
-          format: 'detailed',
-        };
-
-        // Internal pagination loop — transparently assembles the full result set
-        // across multiple MCP calls (each capped at MCP_PAGE_SIZE=10,000 rows).
         let allInstallations = [];
         let firstResult = null;
-        let dataExhausted = false;
-        let currentOffset = startOffset;
+        let dataExhausted = true;
+        let resultTruncated = false;
 
-        while (true) {
-          const pageLimit = isUnlimited
-            ? MCP_PAGE_SIZE
-            : Math.min(requestedLimit - allInstallations.length, MCP_PAGE_SIZE);
+        for (const installationType of requestedTypes) {
+          const baseToolParams = {
+            type: installationType,
+            postleitzahl: params.postleitzahl || params.location,
+            minCapacity: params.minCapacityKW,
+            maxCapacity: params.maxCapacityKW,
+            commissioningYear: params.commissioningYear,
+            gridOperatorId: resolvedGridOperatorId || undefined,
+            gridOperatorBdewCode: resolvedBdewCode || undefined,
+            postleitzahlNot: params.postleitzahlNot,
+            includeNapData: params.includeNapData,
+            netzbetreiberPruefungStatus: nbpStatus,
+            status: operationalStatus && operationalStatus !== 'all' ? operationalStatus : undefined,
+            format: 'detailed',
+          };
 
-          if (pageLimit <= 0) break;
+          let currentOffset = startOffset;
 
-          const pageResult = await callWithAutoPoll(
-            'cernion_installations_local',
-            { ...baseToolParams, limit: pageLimit, offset: currentOffset },
-            {},
-            ctx.meta.cernionToken
-          );
+          while (true) {
+            const remainingLimit = isUnlimited ? MCP_PAGE_SIZE : requestedLimit - allInstallations.length;
+            const pageLimit = isUnlimited ? MCP_PAGE_SIZE : Math.min(remainingLimit, MCP_PAGE_SIZE);
 
-          if (!firstResult) firstResult = pageResult;
+            if (pageLimit <= 0) {
+              resultTruncated = true;
+              dataExhausted = false;
+              break;
+            }
 
-          // Normalize: cernion_installations_local returns { installations: [...] }
-          // at the top level without a `data` wrapper. Fold it into the expected
-          // shape so the pagination loop and all post-filters work uniformly.
-          if (pageResult && !pageResult.data && Array.isArray(pageResult.installations)) {
-            pageResult.data = {
-              installations: pageResult.installations,
-              stats: pageResult.stats || {},
-            };
+            const pageResult = await callWithAutoPoll(
+              'cernion_installations_local',
+              { ...baseToolParams, limit: pageLimit, offset: currentOffset },
+              {},
+              ctx.meta.cernionToken
+            );
+
+            if (!firstResult) firstResult = pageResult;
+
+            if (pageResult && !pageResult.data && Array.isArray(pageResult.installations)) {
+              pageResult.data = {
+                installations: pageResult.installations,
+                stats: pageResult.stats || {},
+              };
+            }
+
+            const pageRows = pageResult?.data?.installations || [];
+            allInstallations.push(...pageRows);
+            currentOffset += pageRows.length;
+
+            if (pageRows.length < pageLimit) {
+              break;
+            }
+
+            if (!isUnlimited && allInstallations.length >= requestedLimit) {
+              resultTruncated = true;
+              dataExhausted = false;
+              break;
+            }
           }
 
-          const pageRows = pageResult?.data?.installations || [];
-          allInstallations.push(...pageRows);
-          currentOffset += pageRows.length;
-
-          if (pageRows.length < pageLimit) {
-            dataExhausted = true; // MCP returned fewer than asked — no more data
+          if (!isUnlimited && allInstallations.length >= requestedLimit) {
             break;
           }
-          if (!isUnlimited && allInstallations.length >= requestedLimit) break;
         }
 
         // Merge all pages into a single result object
@@ -1038,17 +1069,6 @@ module.exports = {
           result.data.installations = result.data.installations.filter((inst) =>
             allowedStatuses.includes(String(inst.einheitBetriebsstatus))
           );
-          if (result.data.stats) {
-            result.data.stats.count = result.data.installations.length;
-            result.data.stats.totalCapacity = result.data.installations.reduce(
-              (sum, i) => sum + (i.bruttoleistung || 0),
-              0
-            );
-            result.data.stats.avgCapacity =
-              result.data.stats.count > 0
-                ? result.data.stats.totalCapacity / result.data.stats.count
-                : 0;
-          }
         }
 
         // Post-filter by netzbetreiberPruefungStatus (fallback if MCP did not apply it)
@@ -1061,17 +1081,6 @@ module.exports = {
             result.data.installations = result.data.installations.filter((inst) =>
               allowedNbp.includes(inst.netzbetreiberpruefungStatus)
             );
-            if (result.data.stats) {
-              result.data.stats.count = result.data.installations.length;
-              result.data.stats.totalCapacity = result.data.installations.reduce(
-                (sum, i) => sum + (i.bruttoleistung || 0),
-                0
-              );
-              result.data.stats.avgCapacity =
-                result.data.stats.count > 0
-                  ? result.data.stats.totalCapacity / result.data.stats.count
-                  : 0;
-            }
           }
         }
 
@@ -1082,20 +1091,14 @@ module.exports = {
             if (!dateStr) return false;
             return new Date(dateStr) > updatedAfter;
           });
-          if (result.data.stats) {
-            result.data.stats.count = result.data.installations.length;
-            result.data.stats.totalCapacity = result.data.installations.reduce(
-              (sum, i) => sum + (i.bruttoleistung || 0),
-              0
-            );
-            result.data.stats.avgCapacity =
-              result.data.stats.count > 0
-                ? result.data.stats.totalCapacity / result.data.stats.count
-                : 0;
-          }
         }
 
         const rows = result?.data?.installations || [];
+
+        if (result?.data) {
+          result.data.stats = computeInstallationStats(rows);
+          result.data.requestedTypes = requestedTypes;
+        }
 
         // Pagination metadata: hasMore=true only when we stopped at the requested limit
         // (not when data was exhausted or unlimited fetch completed)
@@ -1104,7 +1107,7 @@ module.exports = {
             offset: startOffset,
             limit: isUnlimited ? 'all' : requestedLimit,
             count: rows.length,
-            hasMore: !dataExhausted && !isUnlimited,
+            hasMore: !isUnlimited && (!dataExhausted || resultTruncated),
           };
         }
 

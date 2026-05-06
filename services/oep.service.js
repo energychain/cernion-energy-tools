@@ -22,7 +22,9 @@
 
 const axios = require('axios');
 const { MoleculerClientError } = require('moleculer').Errors;
-const { CERNION_RELEVANT_OEP_TABLES } = require('../src/oep-tables');
+const { appendLog, startJob } = require('../src/job-store');
+const { aggregateDeltas, joinByOeoClass } = require('../src/oep-delta-engine');
+const { CERNION_RELEVANT_OEP_TABLES, getOepTableConfig } = require('../src/oep-tables');
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -86,6 +88,139 @@ module.exports = {
         headers: { Accept: 'application/json' },
       });
       return response.data;
+    },
+
+    _normalizeComparisonLimit(rawLimit, fallback = 100) {
+      if (rawLimit === undefined || rawLimit === null) return fallback;
+      if (rawLimit === 'all') return Infinity;
+
+      const parsed = Number(rawLimit);
+      if (!Number.isFinite(parsed) || parsed < 1) {
+        throw new MoleculerClientError(
+          'limit must be a positive integer or "all"',
+          422,
+          'VALIDATION_ERROR'
+        );
+      }
+
+      return Math.floor(parsed);
+    },
+
+    _requiresAsyncComparison(rawLimit) {
+      return rawLimit === 'all' || Number(rawLimit) > 5000;
+    },
+
+    async _fetchOepRows(schema, table, rawLimit) {
+      const requestedLimit = this._normalizeComparisonLimit(rawLimit, this.settings.defaultRowLimit);
+      const pageSize = this.settings.maxRowLimit;
+      const rows = [];
+      let offset = 0;
+
+      while (true) {
+        const pageLimit =
+          requestedLimit === Infinity ? pageSize : Math.min(pageSize, requestedLimit - rows.length);
+        if (pageLimit <= 0) break;
+
+        let data;
+        try {
+          data = await this._oepGet(`/schema/${schema}/tables/${table}/rows/`, {
+            limit: pageLimit,
+            offset,
+          });
+        } catch (err) {
+          if (err.response?.status === 404) {
+            throw new MoleculerClientError(
+              `Table '${schema}.${table}' not found on OEP`,
+              404,
+              'NOT_FOUND'
+            );
+          }
+          throw err;
+        }
+
+        const pageRows = Array.isArray(data) ? data : [];
+        rows.push(...pageRows);
+
+        if (pageRows.length < pageLimit) break;
+        if (requestedLimit !== Infinity && rows.length >= requestedLimit) break;
+        offset += pageRows.length;
+      }
+
+      return { schema, table, rows, rowCount: rows.length, limit: rawLimit ?? this.settings.defaultRowLimit };
+    },
+
+    async _buildMastrOepComparison(ctx, params, jobId = null) {
+      const { gridOperatorId, oepSchema, oepTable, installationType, limit } = params;
+      const tableConfig = getOepTableConfig(oepSchema, oepTable);
+      const fieldMap = tableConfig?.semanticMapping?.fieldMappings || [];
+
+      appendLog(jobId, 'fetch_oep', 10, `Loading OEP rows from ${oepSchema}.${oepTable}...`);
+      appendLog(jobId, 'fetch_mastr', 25, 'Loading MaStR installations...');
+
+      const [oepData, mastrData] = await Promise.allSettled([
+        this._fetchOepRows(oepSchema, oepTable, limit),
+        ctx.call(
+          'energy-market.installations',
+          {
+            gridOperatorId,
+            installationType,
+            limit,
+            includeNapData: false,
+          },
+          { meta: { ...ctx.meta, $gateway: false } }
+        ),
+      ]);
+
+      const oepRows = oepData.status === 'fulfilled' ? oepData.value.rows : [];
+      const mastrInstallations =
+        mastrData.status === 'fulfilled' ? mastrData.value?.data?.installations || [] : [];
+
+      let delta = null;
+      let evidence = [];
+
+      if (oepData.status === 'fulfilled' && mastrData.status === 'fulfilled' && fieldMap.length > 0) {
+        appendLog(jobId, 'delta_engine', 70, 'Computing semantic MaStR↔OEP deltas...');
+        const joinResult = joinByOeoClass(mastrInstallations, oepRows, tableConfig.oeoClass, fieldMap);
+        delta = aggregateDeltas(joinResult, fieldMap);
+        evidence = [
+          {
+            type: 'oeoClass',
+            value: tableConfig.oeoClass,
+          },
+          {
+            type: 'fieldMappings',
+            value: fieldMap.map((mapping) => ({ field: mapping.field, oeoProperty: mapping.oeoProperty })),
+          },
+          {
+            type: 'matching',
+            value: {
+              matchedPairs: delta.matchedPairs,
+              mastrOnly: delta.mastrOnly,
+              oepOnly: delta.oepOnly,
+            },
+          },
+        ];
+      }
+
+      appendLog(jobId, 'complete', 100, 'Comparison finished.');
+
+      return {
+        oep: {
+          available: oepData.status === 'fulfilled',
+          count: oepRows.length,
+          source: `${oepSchema}.${oepTable}`,
+        },
+        mastr: {
+          available: mastrData.status === 'fulfilled',
+          count: mastrInstallations.length,
+          source: 'MaStR (cernion_installations_local)',
+        },
+        delta,
+        oeoMappingNote:
+          `Semantic delta via ${tableConfig?.oeoClass || 'oeo:PowerPlant'} using ` +
+          `${fieldMap.length} mapped OEO properties from src/oep-tables.js.`,
+        _evidence: evidence,
+      };
     },
   },
 
@@ -373,23 +508,22 @@ module.exports = {
         gridOperatorId: { type: 'string' },
         oepSchema: { type: 'string', optional: true, default: 'supply' },
         oepTable: { type: 'string', optional: true, default: 'ego_dp_res_powerplant' },
-        // TODO: use installationType: 'all' once energy-market.installations Enum erweitert
         installationType: {
           type: 'enum',
-          values: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'],
+          values: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion', 'all'],
           optional: true,
           default: 'solar',
         },
-        limit: { type: 'number', optional: true, default: 100, max: 1000, convert: true },
+        limit: { type: 'any', optional: true, default: 100 },
       },
       openapi: {
         summary: 'Compare OEP research data with MaStR installations for a grid operator',
         tags: ['OEP (Open Energy Platform)'],
         description:
           'Loads OEP table rows and MaStR installations in parallel (Promise.allSettled) and ' +
-          'returns a side-by-side capacity comparison. Graceful when OEP is offline — ' +
+          'returns a side-by-side semantic delta comparison. Graceful when OEP is offline — ' +
           'oep.available will be false but the MaStR data is still returned. ' +
-          'Semantic linking via oeo:PowerPlant is planned via src/oeo-exporter-stub.js.',
+          'Large requested portfolios (>5000 rows or `limit: "all"`) use the standard async job pattern for REST callers.',
         'x-oeo-class': 'oeo:PowerPlant',
         requestBody: {
           required: true,
@@ -417,14 +551,15 @@ module.exports = {
                   installationType: {
                     type: 'string',
                     default: 'solar',
-                    enum: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'],
-                    description:
-                      'Installation type for MaStR query. TODO: support "all" once energy-market enum is extended.',
+                    enum: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion', 'all'],
+                    description: 'Installation type for MaStR query. Use "all" for an aggregated portfolio comparison.',
                   },
                   limit: {
-                    type: 'integer',
+                    oneOf: [
+                      { type: 'integer', minimum: 1 },
+                      { type: 'string', enum: ['all'] },
+                    ],
                     default: 100,
-                    maximum: 1000,
                   },
                 },
               },
@@ -447,13 +582,21 @@ module.exports = {
                     limit: 200,
                   },
                 },
+                allPortfolio: {
+                  summary: 'Compare all installation types asynchronously for large portfolios',
+                  value: {
+                    gridOperatorId: 'SNB924510006275',
+                    installationType: 'all',
+                    limit: 'all',
+                  },
+                },
               },
             },
           },
         },
         responses: {
           200: {
-            description: 'OEP and MaStR counts with availability flags',
+            description: 'OEP and MaStR counts with semantic delta output',
             content: {
               'application/json': {
                 schema: {
@@ -475,8 +618,45 @@ module.exports = {
                         source: { type: 'string' },
                       },
                     },
-                    delta: { type: 'object', nullable: true },
+                    delta: {
+                      type: 'object',
+                      nullable: true,
+                      properties: {
+                        matchedPairs: { type: 'integer' },
+                        mastrOnly: { type: 'integer' },
+                        oepOnly: { type: 'integer' },
+                        totalUnmatched: { type: 'integer' },
+                        capacityDeltaMW: { type: 'number' },
+                        fieldDeltas: { type: 'object' },
+                        topMismatches: {
+                          type: 'array',
+                          items: { type: 'object' },
+                        },
+                      },
+                    },
                     oeoMappingNote: { type: 'string' },
+                    _evidence: {
+                      type: 'array',
+                      items: { type: 'object' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          202: {
+            description: 'Job accepted for large comparison request',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    jobId: { type: 'string' },
+                    status: { type: 'string' },
+                    message: { type: 'string' },
+                    statusUrl: { type: 'string' },
+                    resultUrl: { type: 'string' },
                   },
                 },
               },
@@ -485,38 +665,14 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { gridOperatorId, oepSchema, oepTable, installationType, limit } = ctx.params;
+        if (this._requiresAsyncComparison(ctx.params.limit)) {
+          return startJob(ctx, { service: 'oep', action: 'compareWithMastr' }, async (jobId) => {
+            appendLog(jobId, 'queued', 0, 'Queued MaStR↔OEP comparison job.');
+            return this._buildMastrOepComparison(ctx, ctx.params, jobId);
+          });
+        }
 
-        const [oepData, mastrData] = await Promise.allSettled([
-          ctx.call('oep.query', {
-            schema: oepSchema,
-            table: oepTable,
-            limit,
-          }),
-          ctx.call('energy-market.installations', {
-            gridOperatorId,
-            // TODO: use installationType: 'all' once energy-market.installations Enum erweitert
-            installationType: installationType || 'solar',
-            limit,
-          }),
-        ]);
-
-        return {
-          oep: {
-            available: oepData.status === 'fulfilled',
-            count: oepData.value?.rows?.length ?? 0,
-            source: `${oepSchema}.${oepTable}`,
-          },
-          mastr: {
-            available: mastrData.status === 'fulfilled',
-            count: mastrData.value?.data?.installations?.length ?? 0,
-            source: 'MaStR (cernion_installations_local)',
-          },
-          delta: null, // TODO: semantische Verknüpfung via OEO-Klassen
-          oeoMappingNote:
-            'Verknüpfung über oeo:PowerPlant — ' +
-            'Implementierung via src/oeo-exporter-stub.js erwartet',
-        };
+        return this._buildMastrOepComparison(ctx, ctx.params);
       },
     },
 

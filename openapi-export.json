@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.44.1",
+    "version": "0.44.4",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -9972,7 +9972,7 @@
     "/api/assets/:assetId/override": {
       "post": {
         "operationId": "assets_override",
-        "summary": "Apply asset override (stub)",
+        "summary": "Create persistent asset override",
         "tags": [
           "Assets"
         ],
@@ -9988,7 +9988,7 @@
             }
           }
         },
-        "description": "Temporary stub endpoint for manual overrides from NOVA workflows. Accepts field/value/reason and returns success=true. No persistence yet.",
+        "description": "Creates a tenant-scoped asset override with provenance hash. Critical fields are persisted with `pendingApproval` and linked HITL item.",
         "requestBody": {
           "required": true,
           "content": {
@@ -10004,7 +10004,11 @@
                 "properties": {
                   "assetId": {
                     "type": "string",
-                    "example": "trafo-brueckweg"
+                    "example": "SEE900123456789"
+                  },
+                  "mastrNummer": {
+                    "type": "string",
+                    "example": "SEE900123456789"
                   },
                   "field": {
                     "type": "string",
@@ -10016,17 +10020,213 @@
                   "reason": {
                     "type": "string",
                     "example": "Manual correction from operator"
+                  },
+                  "approvedBy": {
+                    "type": "string",
+                    "enum": [
+                      "user",
+                      "agent"
+                    ],
+                    "example": "user"
                   }
                 }
               },
               "examples": {
                 "default": {
                   "value": {
-                    "assetId": "trafo-brueckweg",
+                    "assetId": "SEE900123456789",
                     "field": "capacityKW",
                     "value": 1250,
-                    "reason": "Manual correction from operator"
+                    "reason": "Manual correction from operator",
+                    "approvedBy": "user"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assets/:assetId/overrides": {
+      "get": {
+        "operationId": "assets_overrides",
+        "summary": "List all overrides for an asset",
+        "tags": [
+          "Assets"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "SEE900123456789"
+            }
+          }
+        ]
+      }
+    },
+    "/api/assets/:assetId/effective": {
+      "get": {
+        "operationId": "assets_effective",
+        "summary": "Get effective asset view (MaStR + applied overrides)",
+        "tags": [
+          "Assets"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "SEE900123456789"
+            }
+          },
+          {
+            "name": "vnbName",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "TWL Netze"
+            }
+          },
+          {
+            "name": "bdewCode",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "9907473000008"
+            }
+          },
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "SNB935578300972"
+            }
+          },
+          {
+            "name": "location",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "Ludwigshafen"
+            }
+          },
+          {
+            "name": "assetType",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "solar",
+                "wind",
+                "storage",
+                "biomass",
+                "hydro",
+                "combustion",
+                "all"
+              ],
+              "default": "all"
+            }
+          }
+        ]
+      }
+    },
+    "/api/assets/:assetId/overrides/:id/apply": {
+      "post": {
+        "operationId": "assets_applyOverride",
+        "summary": "Apply a persisted override after approval",
+        "tags": [
+          "Assets"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "assetId",
+                  "id"
+                ],
+                "properties": {
+                  "assetId": {
+                    "type": "string",
+                    "example": "SEE900123456789"
+                  },
+                  "id": {
+                    "type": "string",
+                    "example": "ovr_SEE900123456789_1a2b3c4d"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "assetId": "SEE900123456789",
+                    "id": "ovr_SEE900123456789_1a2b3c4d"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assets/:assetId/overrides/:id": {
+      "delete": {
+        "operationId": "assets_removeOverride",
+        "summary": "Soft-revert an override",
+        "tags": [
+          "Assets"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
                 }
               }
             }
@@ -16615,5 +16815,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.44.1"
+  "x-version": "0.44.4"
 }

@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.44.4] — MaStR↔OEP Delta Engine (Closes #58)
+
+### Added
+- **Semantic delta engine** in [src/oep-delta-engine.js](src/oep-delta-engine.js):
+  - heuristic MaStR↔OEP joins via `joinByOeoClass`
+  - field-level mismatch calculation via `computeFieldDeltas`
+  - aggregate delta summary via `aggregateDeltas`
+- **Semantic field mapping source-of-truth** in [src/oep-tables.js](src/oep-tables.js):
+  - OEO-linked field mappings for `supply.ego_dp_res_powerplant`
+  - reusable helpers `getOepTableConfig` and `getOepFieldMappings`
+- **Focused test coverage**:
+  - [tests/oep-delta-engine.test.js](tests/oep-delta-engine.test.js)
+  - expanded [tests/oep.service.test.js](tests/oep.service.test.js)
+  - expanded [tests/energy-market.service.test.js](tests/energy-market.service.test.js)
+
+### Changed
+- **Structured delta output** in [services/oep.service.js](services/oep.service.js):
+  - `POST /api/oep/compare-mastr` now returns non-null `delta` summaries when both sources are available
+  - adds `matchedPairs`, `mastrOnly`, `oepOnly`, `capacityDeltaMW`, `fieldDeltas`, `topMismatches`, and `_evidence`
+  - keeps `oep.available: false` graceful when OEP is unavailable
+- **`installationType: "all"` support** in [services/oep.service.js](services/oep.service.js) and [services/energy-market.service.js](services/energy-market.service.js):
+  - enum + OpenAPI updates
+  - aggregated MaStR queries across all supported installation types
+- **Async large-portfolio compare** in [services/oep.service.js](services/oep.service.js):
+  - REST callers now receive HTTP `202` + job descriptor for large requested comparisons (`limit > 5000` or `limit: "all"`)
+
+### Notes
+- Changelog comment for issue closure: implementation completed for GitHub issue `#58` (`MaStR↔OEP Delta-Engine`).
+
 ## [0.44.3] — Asset Override Production Path (Closes #57)
 
 ### Added
