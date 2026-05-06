@@ -32,6 +32,10 @@ const PIPELINE_VERSION = '0.40.5';
 const FINANCE_OEO_CLASS = ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'];
 const MODE_VALUES = ['rule_only', 'rule_plus_hyde'];
 const FINANCE_MEMORY_NAMESPACE = process.env.FINANCE_AGENT_MEMORY_NAMESPACE || 'finance_agent_memory';
+const MAX_ANALYZE_ITERATIONS = 4;
+const MIN_QUALITY_TARGET = 0.72;
+const MIN_IMPROVEMENT_DELTA = 0.03;
+const MAX_STAGNATION_ROUNDS = 2;
 
 function isServiceNotFound(error) {
   return error?.type === 'SERVICE_NOT_FOUND' || error?.name === 'ServiceNotFoundError';
@@ -853,6 +857,8 @@ module.exports = {
             evidenceKept: arbitration.selectedEvidence.length,
             rounds: retrieval.rounds,
             usedRefinement: retrieval.usedRefinement,
+            stopReason: retrieval.stopReason,
+            qualitySignals: retrieval.qualitySignals,
           },
           context: {
             sessionId,
@@ -1417,11 +1423,22 @@ module.exports = {
     ) {
       const evidence = Array.isArray(options.datapointFacts) ? [...options.datapointFacts] : [];
       let totalRaw = 0;
-      let rounds = 1;
+      let rounds = 0;
       let usedRefinement = false;
-      let currentPlan = { ...plan, intents: [...(plan.intents || [])] };
+      let previousQuality = 0;
+      let stagnationRounds = 0;
+      let previousEvidenceCount = evidence.length;
+      let stopReason = 'max_iterations';
+      let qualitySignals = null;
 
-      while (rounds <= 3) {
+      let currentPlan = { ...plan, intents: [...(plan.intents || [])] };
+      const initialAgentPlan = await this.callAgentAnalyzePlan(ctx, originalQuery, {
+        phase: 'initial',
+      });
+      currentPlan = this.mergeAndSanitizeIntents(currentPlan, initialAgentPlan, options);
+
+      while (rounds < MAX_ANALYZE_ITERATIONS) {
+        rounds += 1;
         for (const intent of currentPlan.intents || []) {
           const response = await ctx.call(
             'knowledge-rag.query',
@@ -1442,42 +1459,215 @@ module.exports = {
         }
 
         const deduped = this.dedupeEvidence(evidence);
-        const l1Evidence = deduped.filter((row) => row.level === 'L1_Rule').length;
-        const canRefine = l1Evidence === 0 && rounds < 3;
-        if (!canRefine) {
+        qualitySignals = this.computeRetrievalQualitySignals(deduped, {
+          previousQuality,
+          previousEvidenceCount,
+        });
+
+        const stopDecision = this.shouldStopRetrievalIterations({
+          rounds,
+          qualitySignals,
+          stagnationRounds,
+        });
+        if (stopDecision.stop) {
+          stopReason = stopDecision.reason;
           return {
             totalRaw,
             evidence: deduped.slice(0, 20),
             rounds,
             usedRefinement,
-            l1Evidence,
+            l1Evidence: qualitySignals.l1Evidence,
+            stopReason,
+            qualitySignals,
           };
         }
 
-        const refined = this.refineQueryPlan(originalQuery, currentPlan, deduped, rounds);
+        const assisted = await this.callAgentAnalyzePlan(ctx, originalQuery, {
+          phase: 'next_step',
+          rounds,
+          qualitySignals,
+        });
+        let refined = this.mergeAndSanitizeIntents(currentPlan, assisted, options);
+        if (!Array.isArray(refined.intents) || refined.intents.length === 0) {
+          refined = this.refineQueryPlan(originalQuery, currentPlan, deduped, rounds);
+        }
         if (!refined || !Array.isArray(refined.intents) || refined.intents.length === 0) {
+          stopReason = 'no_refinement_candidates';
           return {
             totalRaw,
             evidence: deduped.slice(0, 20),
             rounds,
             usedRefinement,
-            l1Evidence,
+            l1Evidence: qualitySignals.l1Evidence,
+            stopReason,
+            qualitySignals,
           };
         }
 
         currentPlan = refined;
-        rounds += 1;
         usedRefinement = true;
+        if (qualitySignals.improvementDelta < MIN_IMPROVEMENT_DELTA) {
+          stagnationRounds += 1;
+        } else {
+          stagnationRounds = 0;
+        }
+        previousQuality = qualitySignals.quality;
+        previousEvidenceCount = deduped.length;
       }
 
       const deduped = this.dedupeEvidence(evidence);
+      qualitySignals = this.computeRetrievalQualitySignals(deduped, {
+        previousQuality,
+        previousEvidenceCount,
+      });
       return {
         totalRaw,
         evidence: deduped.slice(0, 20),
         rounds,
         usedRefinement,
         l1Evidence: deduped.filter((row) => row.level === 'L1_Rule').length,
+        stopReason,
+        qualitySignals,
       };
+    },
+
+    async callAgentAnalyzePlan(ctx, originalQuery, context = {}) {
+      const problem = this.buildAgentAnalyzeProblem(originalQuery, context);
+      try {
+        const response = await ctx.call(
+          'agent.analyze',
+          { problem },
+          { meta: { ...ctx.meta }, timeout: 10_000 }
+        );
+        return this.mapAgentPlanToFinanceIntents(response);
+      } catch (error) {
+        this.logger.debug(`[finance-agent] agent.analyze assist unavailable: ${error.message}`);
+        return null;
+      }
+    },
+
+    buildAgentAnalyzeProblem(originalQuery, context = {}) {
+      const phase = context.phase || 'initial';
+      const qualitySignals = context.qualitySignals || {};
+      return [
+        'Finance-Agent planning assist (no execution).',
+        `Query: ${originalQuery}`,
+        `Phase: ${phase}`,
+        `Rounds: ${context.rounds || 0}`,
+        `L1 evidence: ${qualitySignals.l1Evidence || 0}`,
+        `Legal references: ${qualitySignals.legalRefCount || 0}`,
+        `Evidence kept: ${qualitySignals.evidenceCount || 0}`,
+        'Return plan focused on evidence retrieval via knowledge-rag.query.',
+      ].join('\n');
+    },
+
+    mapAgentPlanToFinanceIntents(agentPlan) {
+      const steps = Array.isArray(agentPlan?.steps) ? agentPlan.steps : [];
+      const intents = [];
+      for (const step of steps) {
+        if (step?.action !== 'knowledge-rag.query') continue;
+        const params = step.params || {};
+        const query = typeof params.query === 'string' ? params.query.trim() : '';
+        if (!query) continue;
+        intents.push({
+          name: `agent-assist-${intents.length + 1}`,
+          queryType: 'semantic',
+          query,
+          limit: Number.isFinite(params.limit) ? Math.min(Math.max(params.limit, 2), 20) : 6,
+          scoreThreshold:
+            Number.isFinite(params.scoreThreshold) || Number.isFinite(params.minScore)
+              ? Math.min(Math.max(params.scoreThreshold ?? params.minScore, 0), 1)
+              : 0.35,
+          withPayload: true,
+          withVectors: false,
+          filter:
+            params.filter && typeof params.filter === 'object' && !Array.isArray(params.filter)
+              ? params.filter
+              : {},
+        });
+      }
+      return intents.length > 0 ? { intents } : null;
+    },
+
+    mergeAndSanitizeIntents(plan, assistedPlan, options = {}) {
+      const baseIntents = Array.isArray(plan?.intents) ? [...plan.intents] : [];
+      const assistedIntents = Array.isArray(assistedPlan?.intents) ? assistedPlan.intents : [];
+      if (assistedIntents.length === 0) {
+        return { ...plan, intents: baseIntents };
+      }
+
+      const seen = new Set(baseIntents.map((i) => String(i.query || '').trim().toLowerCase()));
+      for (const intent of assistedIntents) {
+        const query = String(intent?.query || '').trim();
+        if (!query) continue;
+        const key = query.toLowerCase();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        baseIntents.push({
+          ...intent,
+          limit: Number.isFinite(intent.limit) ? Math.min(Math.max(intent.limit, 2), 20) : 6,
+          scoreThreshold:
+            Number.isFinite(intent.scoreThreshold)
+              ? Math.min(Math.max(intent.scoreThreshold, 0), 1)
+              : options.minScore ?? 0.35,
+        });
+      }
+
+      return {
+        ...plan,
+        intents: baseIntents.slice(0, 6),
+      };
+    },
+
+    computeRetrievalQualitySignals(evidence = [], { previousQuality = 0, previousEvidenceCount = 0 } = {}) {
+      const l1Evidence = evidence.filter((row) => row.level === 'L1_Rule').length;
+      const legalRefCount = this.collectLegalReferences(evidence).length;
+      const avgScore =
+        evidence.length > 0
+          ? evidence.slice(0, 6).reduce((sum, row) => sum + Number(row.adjustedScore || 0), 0) /
+            Math.min(evidence.length, 6)
+          : 0;
+      const evidenceCount = evidence.length;
+      const conflictEstimate = Math.max(0, evidence.filter((row) => row.level === 'L2_HyDE').length - l1Evidence);
+      const l1Norm = Math.min(1, l1Evidence / 4);
+      const legalNorm = Math.min(1, legalRefCount / 2);
+      const scoreNorm = Math.min(1, avgScore);
+      const coverageNorm = Math.min(1, evidenceCount / 6);
+      const stabilityNorm = 1 - Math.min(1, conflictEstimate / 2);
+      const quality = Number(
+        (0.35 * l1Norm + 0.2 * legalNorm + 0.2 * scoreNorm + 0.15 * coverageNorm + 0.1 * stabilityNorm).toFixed(4)
+      );
+      const improvementDelta = Number((quality - previousQuality).toFixed(4));
+      const newEvidenceCount = Math.max(0, evidenceCount - previousEvidenceCount);
+
+      return {
+        quality,
+        improvementDelta,
+        newEvidenceCount,
+        l1Evidence,
+        legalRefCount,
+        avgScore: Number(avgScore.toFixed(4)),
+        evidenceCount,
+      };
+    },
+
+    shouldStopRetrievalIterations({ rounds, qualitySignals, stagnationRounds }) {
+      if (!qualitySignals) {
+        return { stop: true, reason: 'missing_quality_signals' };
+      }
+      if (qualitySignals.quality >= MIN_QUALITY_TARGET && qualitySignals.l1Evidence >= 2) {
+        return { stop: true, reason: 'quality_target_reached' };
+      }
+      if (qualitySignals.newEvidenceCount === 0 && rounds >= 2) {
+        return { stop: true, reason: 'no_new_evidence' };
+      }
+      if (stagnationRounds >= MAX_STAGNATION_ROUNDS) {
+        return { stop: true, reason: 'stagnation' };
+      }
+      if (rounds >= MAX_ANALYZE_ITERATIONS) {
+        return { stop: true, reason: 'max_iterations' };
+      }
+      return { stop: false, reason: 'continue' };
     },
 
     dedupeEvidence(evidence = []) {

@@ -119,6 +119,8 @@ describe('finance-agent service', () => {
   let createdDatapoints;
   let forceNoRuleEvidence;
   let hitlItems;
+  let agentAnalyzeCalls;
+  let agentExecuteCalls;
 
   beforeAll(async () => {
     objectStoreDocs = new Map();
@@ -126,9 +128,43 @@ describe('finance-agent service', () => {
     createdDatapoints = [];
     forceNoRuleEvidence = false;
     hitlItems = [];
+    agentAnalyzeCalls = 0;
+    agentExecuteCalls = 0;
     broker = new ServiceBroker({ logger: false });
 
     broker.createService(require('../services/finance-agent.service'));
+    broker.createService({
+      name: 'agent',
+      actions: {
+        analyze: {
+          async handler() {
+            agentAnalyzeCalls += 1;
+            return {
+              sessionId: `assist-${agentAnalyzeCalls}`,
+              summary: 'Finance assist plan',
+              steps: [
+                {
+                  step: 1,
+                  action: 'knowledge-rag.query',
+                  params: {
+                    query: '§21a EnWG CAPEX OPEX TOTEX regulatorische Kostenbasis',
+                    limit: 6,
+                    scoreThreshold: 0.35,
+                  },
+                },
+              ],
+              requiredInputs: [],
+            };
+          },
+        },
+        execute: {
+          async handler() {
+            agentExecuteCalls += 1;
+            return { success: false };
+          },
+        },
+      },
+    });
     broker.createService({
       name: 'hitl',
       actions: {
@@ -370,6 +406,7 @@ describe('finance-agent service', () => {
   });
 
   it('runs analysis in default rule_plus_hyde mode', async () => {
+    agentAnalyzeCalls = 0;
     const res = await broker.call('finance-agent.analyze', {
       query:
         'Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?',
@@ -382,6 +419,8 @@ describe('finance-agent service', () => {
     expect(res.evidence.length).toBeGreaterThan(1);
     expect(res.legalReferences).toContain('§21a EnWG');
     expect(res.findings.some((f) => f.finding === 'FA_RULE_EVIDENCE_USED')).toBe(true);
+    expect(agentAnalyzeCalls).toBeGreaterThan(0);
+    expect(agentExecuteCalls).toBe(0);
   });
 
   it('returns needs_clarification when evidence is insufficient', async () => {
@@ -504,6 +543,7 @@ describe('finance-agent service', () => {
 
   it('returns hypothetical_scenario when L1 evidence is missing and hypotheticals are allowed', async () => {
     forceNoRuleEvidence = true;
+    agentAnalyzeCalls = 0;
 
     const res = await broker.call('finance-agent.analyze', {
       query: 'What-if Analyse zur RP5 unter hypothetischen CAPEX Annahmen',
@@ -519,6 +559,21 @@ describe('finance-agent service', () => {
     expect(res.hitlItem.kind).toBe('finance-hypothetical-review');
     expect(Array.isArray(res.assumptions)).toBe(true);
     expect(res.assumptions.length).toBeGreaterThan(0);
+    expect(agentAnalyzeCalls).toBeGreaterThanOrEqual(2);
+    expect(agentExecuteCalls).toBe(0);
+  });
+
+  it('includes iterative retrieval metadata from dynamic stop logic', async () => {
+    const res = await broker.call('finance-agent.analyze', {
+      query: 'Bitte analysiere CAPEX/OPEX/TOTEX regulatorisch mit Rechtsankern.',
+      includeTrace: true,
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.metadata).toHaveProperty('retrieval.stopReason');
+    expect(res.metadata).toHaveProperty('retrieval.qualitySignals');
+    expect(typeof res.metadata.retrieval.rounds).toBe('number');
+    expect(res.metadata.retrieval.rounds).toBeGreaterThan(0);
   });
 
   it('does not return HITL item for evidence-backed result', async () => {

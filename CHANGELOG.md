@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.46.1] — Finance Agent iterative `agent.analyze` integration
+
+### Changed
+- **Finance Agent now uses `agent.analyze` as always-on planning assist** in [services/finance-agent.service.js](services/finance-agent.service.js):
+  - initial assist call before retrieval rounds
+  - iterative assist calls during refinement rounds
+  - strict planning-only usage (`agent.execute` is not used)
+- **Dynamic retrieval iteration control** in [services/finance-agent.service.js](services/finance-agent.service.js):
+  - quality signals based on L1 evidence, legal references, score, and evidence growth
+  - adaptive stop conditions (`quality_target_reached`, `no_new_evidence`, `stagnation`, `max_iterations`)
+  - retrieval metadata extended with `stopReason` and `qualitySignals`
+
+### Tests
+- Extended [tests/finance-agent.service.test.js](tests/finance-agent.service.test.js) with assertions for:
+  - active `agent.analyze` assistance
+  - iterative behavior under weak L1 evidence
+  - guarantee that `agent.execute` is never called
+  - retrieval metadata for dynamic stop logic
+
 ## [0.46.0] — Capability Broker v1 (Additive, Internal)
 
 ### Added
