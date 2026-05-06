@@ -9,6 +9,12 @@ const crypto = require('crypto');
 const fs = require('fs/promises');
 const path = require('path');
 const { getSemanticDomainById, listSemanticDomains } = require('../src/semantic-domains');
+const {
+  applyCursorPagination,
+  applyOffsetDeprecationHeader,
+  buildFilterHash,
+  resolveTenantId,
+} = require('../src/pagination');
 
 function nowIso() {
   return new Date().toISOString();
@@ -141,6 +147,9 @@ module.exports = {
       rest: 'GET /datasources',
       params: {
         tag: { type: 'string', optional: true },
+        limit: { type: 'number', optional: true, default: 50, convert: true, max: 200 },
+        cursor: { type: 'string', optional: true },
+        offset: { type: 'number', optional: true, convert: true, min: 0 },
       },
       openapi: {
         summary: 'List registered inhouse datasources',
@@ -161,10 +170,27 @@ module.exports = {
 
         items.sort((a, b) => a.name.localeCompare(b.name));
 
+        const normalized = items.map((item) => ({
+          ...item,
+          createdAt: item.createdAt || item.updatedAt || null,
+        }));
+        const tenantId = resolveTenantId(ctx);
+        const filterHash = buildFilterHash({ tag: ctx.params.tag || null });
+        const page = applyCursorPagination({
+          items: normalized,
+          limit: ctx.params.limit,
+          cursor: ctx.params.cursor,
+          offset: ctx.params.offset,
+          tenantId,
+          filterHash,
+        });
+        applyOffsetDeprecationHeader(ctx, ctx.params.offset != null);
+
         return {
           success: true,
-          count: items.length,
-          data: items,
+          count: page.data.length,
+          data: page.data,
+          pageInfo: page.pageInfo,
         };
       },
     },

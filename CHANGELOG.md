@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.44.2] — Global Cursor Pagination Framework (Closes #56)
+
+### Added
+- **Shared cursor pagination utility** in [src/pagination.js](src/pagination.js):
+  - Opaque cursor format with signed payload `{ pivot, direction, hash }`
+  - Tenant-aware HMAC verification with derived default secret fallback
+  - Standard `pageInfo` contract: `nextCursor`, `prevCursor`, `hasMore`, `totalCountApprox`
+  - Offset deprecation helper (`Deprecation: true`, `Sunset: 2026-11-05`)
+- **Reusable OpenAPI schemas** in [services/api.service.js](services/api.service.js):
+  - `PaginationCursor`
+  - `PageInfo`
+
+### Changed
+- **Cursor pagination rolled out** to the following API list endpoints:
+  - [services/cya.service.js](services/cya.service.js): `GET /profiles`, `GET /a2a-stats`, `GET /sessions/:id/a2a-log`
+  - [services/mastr-monitor.service.js](services/mastr-monitor.service.js): `GET /watches`, `GET /watches/:watchId/deltas`
+  - [services/mastr-quality.service.js](services/mastr-quality.service.js): `GET /audits`
+  - [services/redispatch-expost.service.js](services/redispatch-expost.service.js): `GET /audits`
+  - [services/grid-connection.service.js](services/grid-connection.service.js): `GET /validations`
+  - [services/energy-sharing.service.js](services/energy-sharing.service.js): `GET /validations`
+  - [services/energy-sharing-allocation.service.js](services/energy-sharing-allocation.service.js): `GET /allocations`
+  - [services/finance-agent.service.js](services/finance-agent.service.js): `GET /analyses`
+  - [services/datapoint.service.js](services/datapoint.service.js): `GET /`
+  - [services/datasource-registry.service.js](services/datasource-registry.service.js): `GET /datasources`
+  - [services/edm.service.js](services/edm.service.js): `GET /melos` (cursor-compatible keyset pagination)
+- **Backwards compatibility**:
+  - Existing `limit` support retained
+  - `offset` accepted as deprecated alias during transition and emits deprecation headers
+
+### Tests
+- Added [tests/pagination.test.js](tests/pagination.test.js) covering:
+  - cursor roundtrip signing/verification
+  - tamper detection
+  - cursor traversal behavior
+
 ## [0.44.1] — Observability Stack Foundation (Closes #55)
 
 ### Added

@@ -7,6 +7,12 @@ const { computeDelta, buildSnapshotEntry } = require('../src/mastr-monitor-diff'
 const metrics = require('../src/metrics');
 const { isDue } = require('../src/mastr-monitor-scheduler');
 const {
+  applyCursorPagination,
+  applyOffsetDeprecationHeader,
+  buildFilterHash,
+  resolveTenantId,
+} = require('../src/pagination');
+const {
   isSmtpConfigured,
   sendDeltaNotification,
   sendConfirmationEmail,
@@ -322,7 +328,9 @@ module.exports = {
       },
       params: {
         email: { type: 'email', optional: true },
-        limit: { type: 'number', optional: true, convert: true },
+        limit: { type: 'number', optional: true, default: 50, convert: true, max: 200 },
+        cursor: { type: 'string', optional: true },
+        offset: { type: 'number', optional: true, convert: true, min: 0 },
       },
       async handler(ctx) {
         let watches = await this.listPayloads(WATCHES_NAMESPACE);
@@ -335,12 +343,29 @@ module.exports = {
           watches = watches.filter((watch) => watchIds.has(watch.watchId));
         }
 
-        const limit = Number(ctx.params.limit || 0);
-        const sliced = limit > 0 ? watches.slice(0, limit) : watches;
+        watches.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+        const normalized = watches.map((watch) => ({
+          ...watch,
+          id: watch.watchId,
+          createdAt: watch.createdAt || watch.updatedAt || null,
+        }));
+
+        const tenantId = resolveTenantId(ctx);
+        const filterHash = buildFilterHash({ email: ctx.params.email || null });
+        const page = applyCursorPagination({
+          items: normalized,
+          limit: ctx.params.limit,
+          cursor: ctx.params.cursor,
+          offset: ctx.params.offset,
+          tenantId,
+          filterHash,
+        });
+        applyOffsetDeprecationHeader(ctx, ctx.params.offset != null);
 
         return {
-          watches: sliced,
-          total: sliced.length,
+          watches: page.data,
+          total: page.data.length,
+          pageInfo: page.pageInfo,
         };
       },
     },
@@ -470,6 +495,9 @@ module.exports = {
       },
       params: {
         watchId: { type: 'string', min: 1 },
+        limit: { type: 'number', optional: true, default: 50, convert: true, max: 200 },
+        cursor: { type: 'string', optional: true },
+        offset: { type: 'number', optional: true, convert: true, min: 0 },
       },
       async handler(ctx) {
         const docs = await this.listDocsByPrefix(DELTAS_NAMESPACE, `${ctx.params.watchId}:`);
@@ -483,9 +511,27 @@ module.exports = {
           if (hydrated) deltas.push(hydrated);
         }
 
+        const normalized = deltas.map((delta) => ({
+          ...delta,
+          id: delta.deltaId || delta.id || delta.timestamp,
+          createdAt: delta.timestamp || delta.createdAt || null,
+        }));
+        const tenantId = resolveTenantId(ctx);
+        const filterHash = buildFilterHash({ watchId: ctx.params.watchId });
+        const page = applyCursorPagination({
+          items: normalized,
+          limit: ctx.params.limit,
+          cursor: ctx.params.cursor,
+          offset: ctx.params.offset,
+          tenantId,
+          filterHash,
+        });
+        applyOffsetDeprecationHeader(ctx, ctx.params.offset != null);
+
         return {
           watchId: ctx.params.watchId,
-          deltas,
+          deltas: page.data,
+          pageInfo: page.pageInfo,
         };
       },
     },

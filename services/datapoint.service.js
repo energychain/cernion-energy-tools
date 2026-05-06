@@ -21,6 +21,12 @@ const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 const crypto = require('crypto');
 const { MoleculerClientError } = require('moleculer').Errors;
+const {
+  applyCursorPagination,
+  applyOffsetDeprecationHeader,
+  buildFilterHash,
+  resolveTenantId,
+} = require('../src/pagination');
 
 const EXAMPLE_DATAPOINT_NAME = 'pv-portfolio-twl-netze';
 const DATAPOINT_NAME_PATTERN = /^[a-z0-9][a-z0-9-]{1,62}[a-z0-9]$/;
@@ -358,6 +364,9 @@ module.exports = {
         sourceType: { type: 'string', optional: true },
         includeHealth: { type: 'boolean', optional: true, convert: true, default: true },
         tags: { type: 'string', optional: true },
+        limit: { type: 'number', optional: true, default: 50, convert: true, max: 200 },
+        cursor: { type: 'string', optional: true },
+        offset: { type: 'number', optional: true, convert: true, min: 0 },
       },
       openapi: {
         summary: 'List all registered Datapoints',
@@ -404,9 +413,26 @@ module.exports = {
           );
         }
 
+        docs.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
+        const tenantId = resolveTenantId(ctx);
+        const filterHash = buildFilterHash({
+          sourceType: ctx.params.sourceType || null,
+          tags: ctx.params.tags || null,
+        });
+        const page = applyCursorPagination({
+          items: docs,
+          limit: ctx.params.limit,
+          cursor: ctx.params.cursor,
+          offset: ctx.params.offset,
+          tenantId,
+          filterHash,
+        });
+        applyOffsetDeprecationHeader(ctx, ctx.params.offset != null);
+
         return {
-          count: docs.length,
-          datapoints: docs.map((d) => ({
+          count: page.data.length,
+          datapoints: page.data.map((d) => ({
             name: d.name,
             description: d.description,
             sourceType: d.sourceType,
@@ -415,6 +441,7 @@ module.exports = {
             lastRun: ctx.params.includeHealth ? d.lastRun : undefined,
             health: ctx.params.includeHealth ? d.health : undefined,
           })),
+          pageInfo: page.pageInfo,
         };
       },
     },

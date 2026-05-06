@@ -6,6 +6,12 @@ PouchDB.plugin(require('pouchdb-find'));
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
 const {
+  applyCursorPagination,
+  applyOffsetDeprecationHeader,
+  buildFilterHash,
+  resolveTenantId,
+} = require('../src/pagination');
+const {
   createFinding,
   summarizeFindings,
   AUDIT_TRAIL_CREATED,
@@ -445,7 +451,9 @@ module.exports = {
       rest: 'GET /analyses',
       params: {
         status: { type: 'string', optional: true },
-        limit: { type: 'number', optional: true, default: 20, max: 100, convert: true },
+        limit: { type: 'number', optional: true, default: 50, max: 200, convert: true },
+        cursor: { type: 'string', optional: true },
+        offset: { type: 'number', optional: true, convert: true, min: 0 },
       },
       openapi: {
         summary: 'List finance analyses',
@@ -479,11 +487,21 @@ module.exports = {
         }
 
         docs.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-        docs = docs.slice(0, Math.min(ctx.params.limit || 20, 100));
+        const tenantId = resolveTenantId(ctx);
+        const filterHash = buildFilterHash({ status: ctx.params.status || null });
+        const page = applyCursorPagination({
+          items: docs,
+          limit: ctx.params.limit,
+          cursor: ctx.params.cursor,
+          offset: ctx.params.offset,
+          tenantId,
+          filterHash,
+        });
+        applyOffsetDeprecationHeader(ctx, ctx.params.offset != null);
 
         return {
-          count: docs.length,
-          analyses: docs.map((d) => ({
+          count: page.data.length,
+          analyses: page.data.map((d) => ({
             id: d.id,
             query: d.query,
             mode: d.mode,
@@ -492,6 +510,7 @@ module.exports = {
             findingsCount: d.findingsCount,
             createdAt: d.createdAt,
           })),
+          pageInfo: page.pageInfo,
         };
       },
     },

@@ -5,6 +5,14 @@ const path = require('path');
 const { MoleculerClientError } = require('moleculer').Errors;
 const EdmSqlitePool = require('../src/edm-sqlite-pool');
 const { parseCsvTimeseries } = require('../src/edm-csv-importer');
+const {
+  applyOffsetDeprecationHeader,
+  buildFilterHash,
+  decodeCursor,
+  encodeCursor,
+  normalizeLimit,
+  resolveTenantId,
+} = require('../src/pagination');
 
 function parseJson(value, fallback) {
   if (!value) return fallback;
@@ -352,8 +360,9 @@ module.exports = {
         type: { type: 'string', optional: true },
         gridOperatorMastrId: { type: 'string', optional: true },
         sourceType: { type: 'string', optional: true },
-        limit: { type: 'number', optional: true, default: 100, convert: true },
-        offset: { type: 'number', optional: true, default: 0, convert: true },
+        limit: { type: 'number', optional: true, default: 50, convert: true, max: 200 },
+        cursor: { type: 'string', optional: true },
+        offset: { type: 'number', optional: true, convert: true, min: 0 },
       },
       openapi: {
         summary: 'List MeLos',
@@ -384,7 +393,14 @@ module.exports = {
       },
       handler(ctx) {
         const db = this.pool.getRegistry();
-        const { type, gridOperatorMastrId, sourceType, limit, offset } = ctx.params;
+        const { type, gridOperatorMastrId, sourceType } = ctx.params;
+        const limit = normalizeLimit(ctx.params.limit);
+        const tenantId = resolveTenantId(ctx);
+        const filterHash = buildFilterHash({
+          type: type || null,
+          gridOperatorMastrId: gridOperatorMastrId || null,
+          sourceType: sourceType || null,
+        });
 
         const where = [];
         const params = [];
@@ -402,10 +418,43 @@ module.exports = {
           params.push(sourceType);
         }
 
-        const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+        let cursorPivot = null;
+        if (ctx.params.cursor) {
+          const decoded = decodeCursor(ctx.params.cursor, {
+            tenantId,
+            expectedFilterHash: filterHash,
+          });
+          cursorPivot = decoded.pivot || null;
+        }
+
+        if (cursorPivot?.createdAt && cursorPivot?.id) {
+          where.push('(created_at < ? OR (created_at = ? AND melo_id < ?))');
+          params.push(cursorPivot.createdAt, cursorPivot.createdAt, cursorPivot.id);
+        }
+
+        const withCursorWhere = where.length ? `WHERE ${where.join(' AND ')}` : '';
+        const offset =
+          !ctx.params.cursor && Number.isFinite(Number(ctx.params.offset))
+            ? Math.max(0, Math.floor(Number(ctx.params.offset)))
+            : 0;
         const rows = db
-          .prepare(`SELECT * FROM melos ${whereSql} ORDER BY created_at DESC LIMIT ? OFFSET ?`)
+          .prepare(
+            `SELECT * FROM melos ${withCursorWhere} ORDER BY created_at DESC, melo_id DESC LIMIT ? OFFSET ?`
+          )
           .all(...params, limit, offset);
+
+        const hasMore = rows.length >= limit;
+        const lastRow = rows.length ? rows[rows.length - 1] : null;
+        const nextCursor =
+          hasMore && lastRow
+            ? encodeCursor({
+                pivot: { createdAt: lastRow.created_at, id: lastRow.melo_id },
+                direction: 'next',
+                filterHash,
+                tenantId,
+              })
+            : null;
+        applyOffsetDeprecationHeader(ctx, ctx.params.offset != null);
 
         return {
           success: true,
@@ -413,6 +462,12 @@ module.exports = {
           count: rows.length,
           limit,
           offset,
+          pageInfo: {
+            nextCursor,
+            prevCursor: null,
+            hasMore,
+            totalCountApprox: null,
+          },
         };
       },
     },

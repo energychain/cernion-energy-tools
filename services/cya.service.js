@@ -23,6 +23,12 @@ const { MAX_DIALOGUE_ROUNDS, detectConflicts } = require('../src/cya-conflict-de
 const a2a = require('../src/cya-a2a-protocol');
 const { graphCache } = require('../src/cya-graph-cache');
 const { getTenantId, tenantNamespace } = require('../src/tenant-context');
+const {
+  applyCursorPagination,
+  applyOffsetDeprecationHeader,
+  buildFilterHash,
+  resolveTenantId,
+} = require('../src/pagination');
 const { exportGraphForOeo } = require('../src/oeo-exporter-stub');
 const { OEO_VERSION, OEO_VERSION_IRI } = require('../src/oeo-context');
 const metrics = require('../src/metrics');
@@ -314,7 +320,9 @@ module.exports = {
     listProfiles: {
       rest: 'GET /profiles',
       params: {
-        limit: { type: 'number', optional: true, default: 50, convert: true },
+        limit: { type: 'number', optional: true, default: 50, convert: true, max: 200 },
+        cursor: { type: 'string', optional: true },
+        offset: { type: 'number', optional: true, convert: true, min: 0 },
       },
       openapi: {
         tags: ['CYA Agent'],
@@ -385,10 +393,27 @@ module.exports = {
         const result = await ctx.call('object-store.query', {
           namespace: ns,
           selector: {},
-          limit: ctx.params.limit,
+          limit: 1000,
+          skip: 0,
         });
         const items = Array.isArray(result?.docs) ? result.docs : [];
-        return { success: true, count: items.length, items };
+        const sorted = items.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+        const tenantCursorId = resolveTenantId(ctx, getTenantId(ctx));
+        const filterHash = buildFilterHash({ namespace: ns });
+        const page = applyCursorPagination({
+          items: sorted.map((item) => ({
+            ...item,
+            id: item.key,
+            createdAt: item.createdAt || item.updatedAt || null,
+          })),
+          limit: ctx.params.limit,
+          cursor: ctx.params.cursor,
+          offset: ctx.params.offset,
+          tenantId: tenantCursorId,
+          filterHash,
+        });
+        applyOffsetDeprecationHeader(ctx, ctx.params.offset != null);
+        return { success: true, count: page.data.length, items: page.data, pageInfo: page.pageInfo };
       },
     },
 
@@ -904,6 +929,9 @@ module.exports = {
       rest: 'GET /sessions/:id/a2a-log',
       params: {
         id: { type: 'string' },
+        limit: { type: 'number', optional: true, default: 50, convert: true, max: 200 },
+        cursor: { type: 'string', optional: true },
+        offset: { type: 'number', optional: true, convert: true, min: 0 },
       },
       openapi: {
         tags: ['CYA Agent'],
@@ -967,10 +995,27 @@ module.exports = {
           .filter((entry) => entry && entry.payload && entry.payload.sessionId === id)
           .sort((x, y) => new Date(x.payload.timestamp) - new Date(y.payload.timestamp))
           .map((entry) => entry.payload);
+
+        const tenantId = resolveTenantId(ctx, getTenantId(ctx));
+        const filterHash = buildFilterHash({ sessionId: id, namespace: this.resolveA2ANamespace(ctx) });
+        const page = applyCursorPagination({
+          items: messages.map((msg) => ({
+            ...msg,
+            id: msg.messageId,
+            createdAt: msg.timestamp,
+          })),
+          limit: ctx.params.limit,
+          cursor: ctx.params.cursor,
+          offset: ctx.params.offset,
+          tenantId,
+          filterHash,
+        });
+        applyOffsetDeprecationHeader(ctx, ctx.params.offset != null);
         return {
           sessionId: id,
-          messageCount: messages.length,
-          messages,
+          messageCount: page.data.length,
+          messages: page.data,
+          pageInfo: page.pageInfo,
         };
       },
     },
@@ -1050,7 +1095,9 @@ module.exports = {
     a2aStats: {
       rest: 'GET /a2a-stats',
       params: {
-        limit: { type: 'number', convert: true, optional: true, default: 100, min: 1, max: 1000 },
+        limit: { type: 'number', convert: true, optional: true, default: 50, min: 1, max: 200 },
+        cursor: { type: 'string', optional: true },
+        offset: { type: 'number', optional: true, convert: true, min: 0 },
       },
       openapi: {
         tags: ['CYA Agent'],
@@ -1097,9 +1144,6 @@ module.exports = {
       },
       async handler(ctx) {
         const { analyzeLog, aggregateLogs } = require('../src/cya-a2a-analyzer');
-        const limit = ctx.params.limit || 100;
-
-        // TODO: Pagination für >1000 Sessions (analog mastr-monitor)
         let all = [];
         try {
           all =
@@ -1124,20 +1168,36 @@ module.exports = {
           sessionMap[msg.sessionId].push(msg);
         }
 
-        // Sessions auf limit begrenzen (neueste zuerst, anhand erster Message)
         const sessions = Object.values(sessionMap)
           .sort((a, b) => {
             const ta = a[0] && a[0].timestamp ? new Date(a[0].timestamp).getTime() : 0;
             const tb = b[0] && b[0].timestamp ? new Date(b[0].timestamp).getTime() : 0;
             return tb - ta;
-          })
-          .slice(0, limit);
+          });
 
-        const sessionAnalyses = sessions.map((msgs) => analyzeLog(msgs));
+        const tenantId = resolveTenantId(ctx, getTenantId(ctx));
+        const filterHash = buildFilterHash({ namespace: this.resolveA2ANamespace(ctx) });
+        const normalized = sessions.map((msgs) => ({
+          id: msgs[0]?.sessionId || msgs[0]?.messageId || null,
+          createdAt: msgs[0]?.timestamp || null,
+          messages: msgs,
+        }));
+        const page = applyCursorPagination({
+          items: normalized,
+          limit: ctx.params.limit,
+          cursor: ctx.params.cursor,
+          offset: ctx.params.offset,
+          tenantId,
+          filterHash,
+        });
+        applyOffsetDeprecationHeader(ctx, ctx.params.offset != null);
+
+        const sessionAnalyses = page.data.map((item) => analyzeLog(item.messages));
 
         return {
-          sessionCount: sessions.length,
+          sessionCount: page.data.length,
           stats: aggregateLogs(sessionAnalyses),
+          pageInfo: page.pageInfo,
         };
       },
     },

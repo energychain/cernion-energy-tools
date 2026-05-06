@@ -24,6 +24,12 @@ const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 const CernionMCPClient = require('../src/mcp-client');
 const {
+  applyCursorPagination,
+  applyOffsetDeprecationHeader,
+  buildFilterHash,
+  resolveTenantId,
+} = require('../src/pagination');
+const {
   buildIntervalGrid,
   mergeGeneratorForecasts,
   applyRedispatchDeductions,
@@ -417,7 +423,9 @@ module.exports = {
       params: {
         communityId: { type: 'string', optional: true },
         includeDeleted: { type: 'boolean', optional: true, default: false, convert: true },
-        limit: { type: 'number', optional: true, default: 20, convert: true, max: 100 },
+        limit: { type: 'number', optional: true, default: 50, convert: true, max: 200 },
+        cursor: { type: 'string', optional: true },
+        offset: { type: 'number', optional: true, convert: true, min: 0 },
       },
       openapi: {
         summary: 'List past Energy Sharing allocation records',
@@ -487,12 +495,24 @@ module.exports = {
 
         docs.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
 
-        const limit = Math.min(ctx.params.limit || 20, 100);
-        docs = docs.slice(0, limit);
+        const tenantId = resolveTenantId(ctx);
+        const filterHash = buildFilterHash({
+          communityId: ctx.params.communityId || null,
+          includeDeleted: !!ctx.params.includeDeleted,
+        });
+        const page = applyCursorPagination({
+          items: docs,
+          limit: ctx.params.limit,
+          cursor: ctx.params.cursor,
+          offset: ctx.params.offset,
+          tenantId,
+          filterHash,
+        });
+        applyOffsetDeprecationHeader(ctx, ctx.params.offset != null);
 
         return {
-          count: docs.length,
-          allocations: docs.map((d) => ({
+          count: page.data.length,
+          allocations: page.data.map((d) => ({
             id: d.id,
             communityId: d.communityId,
             validationReportId: d.validationReportId || null,
@@ -507,6 +527,7 @@ module.exports = {
             createdAt: d.createdAt,
             _deleted: d.markedDeleted || false,
           })),
+          pageInfo: page.pageInfo,
         };
       },
     },

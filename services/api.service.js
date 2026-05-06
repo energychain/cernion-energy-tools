@@ -453,6 +453,29 @@ module.exports = {
               'Optional Cernion MCP token as URL query parameter. If provided, it overrides CERNION_TOKEN for this request. Prefer Authorization Bearer header in production to reduce token exposure in URLs/logs.',
           },
         },
+        schemas: {
+          PaginationCursor: {
+            type: 'string',
+            description: 'Opaque cursor token for keyset pagination.',
+            example: 'eyJwaXZvdCI6eyJjcmVhdGVkQXQiOiIyMDI2LTA1LTA1VDA5OjAwOjAwLjAwMFoiLCJpZCI6ImFiYy0xMjMifSwiZGlyZWN0aW9uIjoibmV4dCIsImhhc2giOiIuLi4ifQ',
+          },
+          PageInfo: {
+            type: 'object',
+            properties: {
+              nextCursor: {
+                oneOf: [{ $ref: '#/components/schemas/PaginationCursor' }, { type: 'null' }],
+              },
+              prevCursor: {
+                oneOf: [{ $ref: '#/components/schemas/PaginationCursor' }, { type: 'null' }],
+              },
+              hasMore: { type: 'boolean' },
+              totalCountApprox: {
+                oneOf: [{ type: 'integer' }, { type: 'null' }],
+              },
+            },
+            required: ['hasMore'],
+          },
+        },
       },
       security: [{}, { BearerAuth: [] }],
     },

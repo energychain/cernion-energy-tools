@@ -16,6 +16,12 @@ const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 const CernionMCPClient = require('../src/mcp-client');
 const {
+  applyCursorPagination,
+  applyOffsetDeprecationHeader,
+  buildFilterHash,
+  resolveTenantId,
+} = require('../src/pagination');
+const {
   createFinding,
   summarizeFindings,
   // ES Step 1 — VNB Identity
@@ -288,7 +294,9 @@ module.exports = {
       rest: 'GET /validations',
       params: {
         communityId: { type: 'string', optional: true },
-        limit: { type: 'number', optional: true, default: 20, convert: true, max: 100 },
+        limit: { type: 'number', optional: true, default: 50, convert: true, max: 200 },
+        cursor: { type: 'string', optional: true },
+        offset: { type: 'number', optional: true, convert: true, min: 0 },
       },
       openapi: {
         summary: 'List past Energy Sharing validation reports',
@@ -346,12 +354,21 @@ module.exports = {
 
         docs.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
 
-        const limit = Math.min(ctx.params.limit || 20, 100);
-        docs = docs.slice(0, limit);
+        const tenantId = resolveTenantId(ctx);
+        const filterHash = buildFilterHash({ communityId: ctx.params.communityId || null });
+        const page = applyCursorPagination({
+          items: docs,
+          limit: ctx.params.limit,
+          cursor: ctx.params.cursor,
+          offset: ctx.params.offset,
+          tenantId,
+          filterHash,
+        });
+        applyOffsetDeprecationHeader(ctx, ctx.params.offset != null);
 
         return {
-          count: docs.length,
-          validations: docs.map((d) => ({
+          count: page.data.length,
+          validations: page.data.map((d) => ({
             id: d.id,
             communityName: d.communityName,
             communityId: d.communityId,
@@ -361,6 +378,7 @@ module.exports = {
             findingsCount: d.summary?.findingsCount,
             durationMs: d.summary?.durationMs,
           })),
+          pageInfo: page.pageInfo,
         };
       },
     },
