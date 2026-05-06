@@ -1,5 +1,8 @@
+const crypto = require('crypto');
 const XLSX = require('xlsx');
 const { callWithAutoPoll } = require('../src/async-job-poller');
+const { MoleculerClientError } = require('moleculer').Errors;
+const { getTenantId, tenantNamespace } = require('../src/tenant-context');
 
 const OEO_CLASS_KEY = 'x-oeo-class';
 const PARAM_DESC_VNB_NAME = 'Name of grid operator';
@@ -27,6 +30,10 @@ const PARAM_DESC_OP_STATUS =
 const PARAM_DESC_OP_STATUS_SHORT =
   'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All';
 
+const OVERRIDE_NAMESPACE = 'asset_overrides';
+const OVERRIDEABLE_FIELDS = ['capacityKW', 'voltageLevel', 'commissionDate', 'direktvermarktungActive'];
+const CRITICAL_OVERRIDE_FIELDS = ['voltageLevel', 'direktvermarktungActive'];
+
 /**
  * Assets Service
  *
@@ -45,7 +52,7 @@ module.exports = {
   /**
    * Service dependencies
    */
-  dependencies: ['energy-market'],
+  dependencies: ['energy-market', 'object-store', 'hitl'],
 
   /**
    * Methods
@@ -127,6 +134,213 @@ module.exports = {
       return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     },
 
+    _getOverrideNamespace(ctx) {
+      const tenantId = getTenantId(ctx);
+      return {
+        tenantId,
+        namespace: tenantNamespace(OVERRIDE_NAMESPACE, tenantId),
+      };
+    },
+
+    _normalizeAssetId(value) {
+      const normalized = String(value || '').trim();
+      return normalized || null;
+    },
+
+    _resolveMastrIdentifier(item = {}) {
+      return (
+        this._normalizeAssetId(item.mastrNumber) ||
+        this._normalizeAssetId(item.mastrNummer) ||
+        this._normalizeAssetId(item.EinheitMastrNummer) ||
+        this._normalizeAssetId(item.einheitMastrNummer) ||
+        this._normalizeAssetId(item.id)
+      );
+    },
+
+    _resolveBusinessAssetId(item = {}) {
+      return this._normalizeAssetId(item.assetId) || this._resolveMastrIdentifier(item);
+    },
+
+    _isOverrideableField(field) {
+      return OVERRIDEABLE_FIELDS.includes(field);
+    },
+
+    _isCriticalOverrideField(field) {
+      return CRITICAL_OVERRIDE_FIELDS.includes(field);
+    },
+
+    _fieldCandidates(field) {
+      if (field === 'capacityKW') {
+        return ['capacityKW', 'acLeistung', 'bruttoleistung', 'NettoNennleistung'];
+      }
+      if (field === 'voltageLevel') {
+        return ['voltageLevel', 'spannungsebene'];
+      }
+      if (field === 'commissionDate') {
+        return ['commissionDate', 'commissioningDate', 'inbetriebnahmedatum', 'date'];
+      }
+      if (field === 'direktvermarktungActive') {
+        return ['direktvermarktungActive', 'fernsteuerbarkeitDv'];
+      }
+      return [field];
+    },
+
+    _getFieldValue(item, field) {
+      const candidates = this._fieldCandidates(field);
+      for (const key of candidates) {
+        if (Object.prototype.hasOwnProperty.call(item, key)) {
+          return item[key];
+        }
+      }
+      return null;
+    },
+
+    _setFieldValue(item, field, value) {
+      if (field === 'capacityKW') {
+        item.capacityKW = value;
+        item.acLeistung = value;
+        item.bruttoleistung = value;
+        return;
+      }
+      if (field === 'voltageLevel') {
+        item.voltageLevel = value;
+        item.spannungsebene = value;
+        return;
+      }
+      if (field === 'commissionDate') {
+        item.commissionDate = value;
+        item.commissioningDate = value;
+        item.inbetriebnahmedatum = value;
+        return;
+      }
+      if (field === 'direktvermarktungActive') {
+        item.direktvermarktungActive = value;
+        item.fernsteuerbarkeitDv = value === true ? '1' : value === false ? '0' : value;
+        return;
+      }
+      item[field] = value;
+    },
+
+    _hashPayload(payload) {
+      return crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+    },
+
+    async _queryOverrideDocs(ctx, selector = {}) {
+      const { namespace } = this._getOverrideNamespace(ctx);
+      const docs = [];
+      const pageSize = 500;
+      let skip = 0;
+
+      while (true) {
+        const page = await ctx.call('object-store.query', {
+          namespace,
+          selector,
+          limit: pageSize,
+          skip,
+        });
+        const chunk = Array.isArray(page?.docs) ? page.docs : [];
+        docs.push(...chunk);
+        if (chunk.length < pageSize) break;
+        skip += chunk.length;
+      }
+
+      return docs.map((doc) => doc.payload).filter(Boolean);
+    },
+
+    _getLatestOverride(overrides = []) {
+      const sorted = [...overrides].sort((a, b) =>
+        String(a.createdAt || '').localeCompare(String(b.createdAt || ''))
+      );
+      return sorted[sorted.length - 1] || null;
+    },
+
+    _buildOverrideTrail(overrides = []) {
+      return [...overrides]
+        .sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')))
+        .map((override) => ({
+          id: override.id,
+          field: override.field,
+          value: override.value,
+          approvalStatus: override.approvalStatus,
+          approvedBy: override.approvedBy || null,
+          approvedAt: override.approvedAt || null,
+          supersedes: override.supersedes || null,
+          supersedesReverted: override.supersedesReverted === true,
+          provenanceHash: override.provenanceHash,
+        }));
+    },
+
+    _selectActiveOverrides(overrides = [], onlyApproved = true) {
+      const byField = new Map();
+      const sorted = [...overrides].sort((a, b) =>
+        String(a.createdAt || '').localeCompare(String(b.createdAt || ''))
+      );
+
+      for (const override of sorted) {
+        if (override.supersedesReverted === true) continue;
+        if (onlyApproved && override.approvalStatus !== 'approved') continue;
+        byField.set(override.field, override);
+      }
+
+      return [...byField.values()];
+    },
+
+    _applyOverrideDocsToInstallation(item, overrides = [], onlyApproved = true) {
+      const cloned = { ...item };
+      const active = this._selectActiveOverrides(overrides, onlyApproved);
+      const appliedOverrideIds = [];
+
+      for (const override of active) {
+        this._setFieldValue(cloned, override.field, override.value);
+        appliedOverrideIds.push(override.id);
+      }
+
+      cloned.assetId = this._resolveBusinessAssetId(cloned);
+      cloned.__appliedOverrideIds = appliedOverrideIds;
+      return cloned;
+    },
+
+    async _applyOverridesToInstallations(ctx, installations = [], onlyApproved = true) {
+      if (!Array.isArray(installations) || installations.length === 0) return [];
+
+      const assetIds = new Set();
+      for (const item of installations) {
+        const businessId = this._resolveBusinessAssetId(item);
+        const mastr = this._resolveMastrIdentifier(item);
+        if (businessId) assetIds.add(businessId);
+        if (mastr) assetIds.add(mastr);
+      }
+
+      if (assetIds.size === 0) {
+        return installations.map((item) => ({
+          ...item,
+          assetId: this._resolveBusinessAssetId(item),
+          __appliedOverrideIds: [],
+        }));
+      }
+
+      const lookupIds = [...assetIds];
+      const overrideDocs = await this._queryOverrideDocs(ctx, {
+        $or: [
+          { 'payload.assetId': { $in: lookupIds } },
+          { 'payload.mastrNummer': { $in: lookupIds } },
+        ],
+      });
+
+      return installations.map((item) => {
+        const businessId = this._resolveBusinessAssetId(item);
+        const mastr = this._resolveMastrIdentifier(item);
+        const relevant = overrideDocs.filter(
+          (doc) =>
+            doc.assetId === businessId ||
+            doc.assetId === mastr ||
+            doc.mastrNummer === mastr ||
+            doc.mastrNummer === businessId
+        );
+        return this._applyOverrideDocsToInstallation(item, relevant, onlyApproved);
+      });
+    },
+
     /**
      * Map a raw MaStR installation item to the canonical German output format.
      *
@@ -135,6 +349,8 @@ module.exports = {
      * @returns {object}          - Mapped output record
      */
     _mapInstallationItem(item, assetType) {
+      const mastrNumber =
+        item.mastrNumber || item.mastrNummer || item.EinheitMastrNummer || item.id || 'N/A';
       const capacityKW =
         Number(
           item.capacityKW ||
@@ -194,8 +410,8 @@ module.exports = {
               : null;
 
       return {
-        'SEE Nummer':
-          item.mastrNumber || item.mastrNummer || item.EinheitMastrNummer || item.id || 'N/A',
+        'Asset-ID': item.assetId || mastrNumber,
+        'SEE Nummer': mastrNumber,
         'Einheit Systemstatus': item.einheitSystemstatus || item.systemStatus || null,
 
         Betreiber: item.operatorName || item.operator || item.name || item.betreiber || 'N/A',
@@ -246,6 +462,8 @@ module.exports = {
         Kopplung: item.coupling || item.kopplung || (item.connectedToGrid ? 'AC' : 'DC'),
         Einspeiseart: item.feedInType || item.einspeiseart || 'Überschusseinspeisung',
         Spannungsebene: item.spannungsebene || item.voltageLevel || null,
+        'Direktvermarktung Aktiv':
+          item.direktvermarktungActive !== undefined ? item.direktvermarktungActive : null,
         Fernsteuerbarkeit: item.fernsteuerbarkeit || item.remoteControllability || null,
         Einsatzverantwortlicher: item.einsatzverantwortlicher || item.deploymentResponsible || null,
 
@@ -489,8 +707,10 @@ module.exports = {
             throw new Error(items[0].text);
           }
 
+          const effectiveItems = await this._applyOverridesToInstallations(ctx, items, true);
+
           // Map items to German output format using shared _mapInstallationItem
-          const mappedItems = items.map((item) => this._mapInstallationItem(item, assetType));
+          const mappedItems = effectiveItems.map((item) => this._mapInstallationItem(item, assetType));
 
           allResults.push(...mappedItems);
         } catch (err) {
@@ -538,8 +758,6 @@ module.exports = {
   actions: {
     /**
      * override
-     *
-     * Stub endpoint for asset-field overrides from NOVA UI.
      */
     override: {
       rest: 'POST /:assetId/override',
@@ -548,12 +766,14 @@ module.exports = {
         field: { type: 'string', min: 1 },
         value: { type: 'any' },
         reason: { type: 'string', min: 1 },
+        approvedBy: { type: 'enum', values: ['user', 'agent'], optional: true, default: 'user' },
+        mastrNummer: { type: 'string', optional: true },
       },
       openapi: {
-        summary: 'Apply asset override (stub)',
+        summary: 'Create persistent asset override',
         description:
-          'Temporary stub endpoint for manual overrides from NOVA workflows. ' +
-          'Accepts field/value/reason and returns success=true. No persistence yet.',
+          'Creates a tenant-scoped asset override with provenance hash. ' +
+          'Critical fields are persisted with `pendingApproval` and linked HITL item.',
         tags: ['Assets'],
         requestBody: {
           required: true,
@@ -563,19 +783,22 @@ module.exports = {
                 type: 'object',
                 required: ['assetId', 'field', 'value', 'reason'],
                 properties: {
-                  assetId: { type: 'string', example: 'trafo-brueckweg' },
+                  assetId: { type: 'string', example: 'SEE900123456789' },
+                  mastrNummer: { type: 'string', example: 'SEE900123456789' },
                   field: { type: 'string', example: 'capacityKW' },
                   value: { example: 1250 },
                   reason: { type: 'string', example: 'Manual correction from operator' },
+                  approvedBy: { type: 'string', enum: ['user', 'agent'], example: 'user' },
                 },
               },
               examples: {
                 default: {
                   value: {
-                    assetId: 'trafo-brueckweg',
+                    assetId: 'SEE900123456789',
                     field: 'capacityKW',
                     value: 1250,
                     reason: 'Manual correction from operator',
+                    approvedBy: 'user',
                   },
                 },
               },
@@ -583,8 +806,404 @@ module.exports = {
           },
         },
       },
-      handler() {
-        return { success: true };
+      async handler(ctx) {
+        const assetId = this._normalizeAssetId(ctx.params.assetId);
+        const field = String(ctx.params.field || '').trim();
+        const reason = String(ctx.params.reason || '').trim();
+
+        if (!assetId) {
+          throw new MoleculerClientError('assetId is required', 400, 'ASSET_ID_REQUIRED');
+        }
+        if (!this._isOverrideableField(field)) {
+          throw new MoleculerClientError(
+            `Unsupported override field "${field}"`,
+            400,
+            'ASSET_OVERRIDE_FIELD_NOT_ALLOWED',
+            { allowedFields: OVERRIDEABLE_FIELDS }
+          );
+        }
+        if (!reason) {
+          throw new MoleculerClientError('reason is required', 400, 'ASSET_OVERRIDE_REASON_REQUIRED');
+        }
+
+        const isCritical = this._isCriticalOverrideField(field);
+        const now = new Date().toISOString();
+        const { tenantId, namespace } = this._getOverrideNamespace(ctx);
+        const mastrNummer = this._normalizeAssetId(ctx.params.mastrNummer) || assetId;
+
+        const existing = await this._queryOverrideDocs(ctx, {
+          $or: [{ 'payload.assetId': assetId }, { 'payload.mastrNummer': mastrNummer }],
+        });
+        const sameField = existing.filter((doc) => doc.field === field);
+        const previous = this._getLatestOverride(sameField);
+        const supersedes = previous ? previous.id : null;
+        const previousValue = previous ? previous.value : null;
+
+        const idSeed = `${assetId}:${field}:${JSON.stringify(ctx.params.value)}:${now}`;
+        const id = `ovr_${assetId.replace(/[^a-zA-Z0-9_-]/g, '_')}_${this._hashPayload(idSeed).slice(0, 8)}`;
+
+        const overrideDoc = {
+          _id: id,
+          id,
+          assetId,
+          mastrNummer,
+          field,
+          previousValue,
+          value: ctx.params.value,
+          reason,
+          approvedBy: isCritical ? null : ctx.params.approvedBy,
+          approvedAt: isCritical ? null : now,
+          approvalStatus: isCritical ? 'pendingApproval' : 'approved',
+          hitlItemId: null,
+          appliedAt: isCritical ? null : now,
+          agent_interventions: [
+            {
+              at: now,
+              actor: ctx.params.approvedBy,
+              action: 'override-created',
+              field,
+              reason,
+            },
+          ],
+          supersedes,
+          supersedesReverted: false,
+          tenantId,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        if (isCritical) {
+          const hitlResult = await ctx.call('hitl.create', {
+            kind: 'asset-override-approval',
+            originService: 'assets',
+            originAction: 'override',
+            severity: 'warning',
+            payload: {
+              overrideId: id,
+              assetId,
+              mastrNummer,
+              field,
+              value: ctx.params.value,
+              reason,
+            },
+          });
+          overrideDoc.hitlItemId = hitlResult?.item?.id || null;
+        }
+
+        overrideDoc.provenanceHash = this._hashPayload({
+          id: overrideDoc.id,
+          assetId: overrideDoc.assetId,
+          mastrNummer: overrideDoc.mastrNummer,
+          field: overrideDoc.field,
+          value: overrideDoc.value,
+          reason: overrideDoc.reason,
+          approvalStatus: overrideDoc.approvalStatus,
+          hitlItemId: overrideDoc.hitlItemId,
+          supersedes: overrideDoc.supersedes,
+          tenantId: overrideDoc.tenantId,
+          createdAt: overrideDoc.createdAt,
+        });
+
+        await ctx.call('object-store.put', {
+          namespace,
+          key: id,
+          payload: overrideDoc,
+        });
+
+        return {
+          success: true,
+          pendingApproval: isCritical,
+          override: overrideDoc,
+        };
+      },
+    },
+
+    overrides: {
+      rest: 'GET /:assetId/overrides',
+      params: {
+        assetId: { type: 'string', min: 1 },
+      },
+      openapi: {
+        summary: 'List all overrides for an asset',
+        tags: ['Assets'],
+        parameters: [
+          {
+            name: 'assetId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'SEE900123456789' },
+          },
+        ],
+      },
+      async handler(ctx) {
+        const assetId = this._normalizeAssetId(ctx.params.assetId);
+        const docs = await this._queryOverrideDocs(ctx, {
+          $or: [{ 'payload.assetId': assetId }, { 'payload.mastrNummer': assetId }],
+        });
+        const sorted = [...docs].sort((a, b) =>
+          String(a.createdAt || '').localeCompare(String(b.createdAt || ''))
+        );
+
+        return {
+          success: true,
+          assetId,
+          count: sorted.length,
+          overrides: sorted,
+        };
+      },
+    },
+
+    effective: {
+      rest: 'GET /:assetId/effective',
+      params: {
+        assetId: { type: 'string', min: 1 },
+        vnbName: { type: 'string', optional: true },
+        bdewCode: { type: 'string', optional: true, convert: true },
+        gridOperatorId: { type: 'string', optional: true, convert: true },
+        location: { type: 'string', optional: true },
+        assetType: {
+          type: 'enum',
+          values: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion', 'all'],
+          optional: true,
+          default: 'all',
+        },
+      },
+      openapi: {
+        summary: 'Get effective asset view (MaStR + applied overrides)',
+        tags: ['Assets'],
+        parameters: [
+          {
+            name: 'assetId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'SEE900123456789' },
+          },
+          {
+            name: 'vnbName',
+            in: 'query',
+            schema: { type: 'string', example: 'TWL Netze' },
+          },
+          {
+            name: 'bdewCode',
+            in: 'query',
+            schema: { type: 'string', example: '9907473000008' },
+          },
+          {
+            name: 'gridOperatorId',
+            in: 'query',
+            schema: { type: 'string', example: 'SNB935578300972' },
+          },
+          {
+            name: 'location',
+            in: 'query',
+            schema: { type: 'string', example: 'Ludwigshafen' },
+          },
+          {
+            name: 'assetType',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion', 'all'],
+              default: 'all',
+            },
+          },
+        ],
+      },
+      async handler(ctx) {
+        const assetId = this._normalizeAssetId(ctx.params.assetId);
+        const assetType = ctx.params.assetType || 'all';
+        const assetTypes =
+          assetType === 'all'
+            ? ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion']
+            : [assetType];
+
+        const records = await this._fetchAssets(ctx, assetTypes);
+        const asset = records.find((item) => item['Asset-ID'] === assetId || item['SEE Nummer'] === assetId);
+        if (!asset) {
+          throw new MoleculerClientError(
+            `Asset "${assetId}" not found in provided scope`,
+            404,
+            'ASSET_NOT_FOUND'
+          );
+        }
+
+        const docs = await this._queryOverrideDocs(ctx, {
+          $or: [{ 'payload.assetId': assetId }, { 'payload.mastrNummer': asset['SEE Nummer'] }],
+        });
+
+        return {
+          success: true,
+          assetId,
+          sourceTrail: {
+            source: 'mastr+overrides',
+            appliedOverrides: this._buildOverrideTrail(this._selectActiveOverrides(docs, true)),
+          },
+          asset,
+        };
+      },
+    },
+
+    applyOverride: {
+      rest: 'POST /:assetId/overrides/:id/apply',
+      params: {
+        assetId: { type: 'string', min: 1 },
+        id: { type: 'string', min: 1 },
+      },
+      openapi: {
+        summary: 'Apply a persisted override after approval',
+        tags: ['Assets'],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['assetId', 'id'],
+                properties: {
+                  assetId: { type: 'string', example: 'SEE900123456789' },
+                  id: { type: 'string', example: 'ovr_SEE900123456789_1a2b3c4d' },
+                },
+              },
+              examples: {
+                default: {
+                  value: {
+                    assetId: 'SEE900123456789',
+                    id: 'ovr_SEE900123456789_1a2b3c4d',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const assetId = this._normalizeAssetId(ctx.params.assetId);
+        const id = String(ctx.params.id || '').trim();
+        const { namespace } = this._getOverrideNamespace(ctx);
+        const stored = await ctx.call('object-store.get', { namespace, key: id });
+        const override = stored?.payload;
+
+        if (!override) {
+          throw new MoleculerClientError(`Override "${id}" not found`, 404, 'ASSET_OVERRIDE_NOT_FOUND');
+        }
+        if (override.assetId !== assetId && override.mastrNummer !== assetId) {
+          throw new MoleculerClientError('Override does not belong to assetId', 400, 'ASSET_OVERRIDE_ASSET_MISMATCH');
+        }
+
+        const now = new Date().toISOString();
+        if (override.approvalStatus === 'pendingApproval' && override.hitlItemId) {
+          const hitl = await ctx.call('hitl.get', { id: override.hitlItemId });
+          const hitlStatus = String(hitl?.item?.status || '').toLowerCase();
+          if (hitlStatus === 'approved') {
+            override.approvalStatus = 'approved';
+            override.approvedAt = now;
+            override.approvedBy = 'user';
+            override.appliedAt = now;
+          } else {
+            return {
+              success: true,
+              pendingApproval: true,
+              override,
+            };
+          }
+        }
+
+        if (override.approvalStatus === 'approved') {
+          override.appliedAt = override.appliedAt || now;
+          override.updatedAt = now;
+          override.agent_interventions = Array.isArray(override.agent_interventions)
+            ? override.agent_interventions
+            : [];
+          override.agent_interventions.push({
+            at: now,
+            actor: 'agent',
+            action: 'override-applied',
+          });
+
+          override.provenanceHash = this._hashPayload({
+            id: override.id,
+            assetId: override.assetId,
+            approvalStatus: override.approvalStatus,
+            appliedAt: override.appliedAt,
+            updatedAt: override.updatedAt,
+            tenantId: override.tenantId,
+          });
+
+          await ctx.call('object-store.put', { namespace, key: id, payload: override });
+        }
+
+        return {
+          success: true,
+          pendingApproval: override.approvalStatus !== 'approved',
+          override,
+        };
+      },
+    },
+
+    removeOverride: {
+      rest: 'DELETE /:assetId/overrides/:id',
+      params: {
+        assetId: { type: 'string', min: 1 },
+        id: { type: 'string', min: 1 },
+      },
+      openapi: {
+        summary: 'Soft-revert an override',
+        tags: ['Assets'],
+      },
+      async handler(ctx) {
+        const assetId = this._normalizeAssetId(ctx.params.assetId);
+        const id = String(ctx.params.id || '').trim();
+        const { namespace } = this._getOverrideNamespace(ctx);
+        const stored = await ctx.call('object-store.get', { namespace, key: id });
+        const override = stored?.payload;
+
+        if (!override) {
+          throw new MoleculerClientError(`Override "${id}" not found`, 404, 'ASSET_OVERRIDE_NOT_FOUND');
+        }
+        if (override.assetId !== assetId && override.mastrNummer !== assetId) {
+          throw new MoleculerClientError('Override does not belong to assetId', 400, 'ASSET_OVERRIDE_ASSET_MISMATCH');
+        }
+
+        const now = new Date().toISOString();
+        override.supersedesReverted = true;
+        override.revertedAt = now;
+        override.updatedAt = now;
+        override.agent_interventions = Array.isArray(override.agent_interventions)
+          ? override.agent_interventions
+          : [];
+        override.agent_interventions.push({
+          at: now,
+          actor: 'user',
+          action: 'override-soft-reverted',
+        });
+        override.provenanceHash = this._hashPayload({
+          id: override.id,
+          supersedesReverted: true,
+          revertedAt: override.revertedAt,
+          tenantId: override.tenantId,
+        });
+
+        await ctx.call('object-store.put', { namespace, key: id, payload: override });
+        return { success: true, id, supersedesReverted: true };
+      },
+    },
+
+    applyOverridesToInstallations: {
+      params: {
+        installations: { type: 'array', optional: true, default: [] },
+        onlyApproved: { type: 'boolean', optional: true, default: true },
+      },
+      async handler(ctx) {
+        const installations = Array.isArray(ctx.params.installations) ? ctx.params.installations : [];
+        const effectiveInstallations = await this._applyOverridesToInstallations(
+          ctx,
+          installations,
+          ctx.params.onlyApproved
+        );
+        return {
+          success: true,
+          installations: effectiveInstallations,
+        };
       },
     },
 

@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.44.3] — Asset Override Production Path (Closes #57)
+
+### Added
+- **Persistent asset overrides** in [services/assets.service.js](services/assets.service.js):
+  - `POST /api/assets/:assetId/override` now persists tenant-scoped override records in Object Store namespace `tenant:{id}:asset_overrides`.
+  - Provenance and audit fields: `provenanceHash`, `approvedBy`, `approvedAt`, `reason`, `agent_interventions`, `supersedes`, `tenantId`.
+  - Business `assetId` support with SEE-ID default/fallback via normalized mapping.
+- **New override read/apply/revert endpoints**:
+  - `GET /api/assets/:assetId/overrides`
+  - `GET /api/assets/:assetId/effective`
+  - `POST /api/assets/:assetId/overrides/:id/apply`
+  - `DELETE /api/assets/:assetId/overrides/:id`
+- **UI contract** [docs/ui-contracts/31-asset-overrides.md](docs/ui-contracts/31-asset-overrides.md).
+
+### Changed
+- **Critical field governance with pending approval**:
+  - Whitelist implemented for overrideable fields: `capacityKW`, `voltageLevel`, `commissionDate`, `direktvermarktungActive`.
+  - Critical fields (`voltageLevel`, `direktvermarktungActive`) are persisted with `approvalStatus=pendingApproval` and linked HITL item.
+- **Effective-read integration**:
+  - Asset list flows (`assets.solar/wind/storage/all`) apply approved overrides before output mapping.
+  - `mastr-quality.stepInventory` and `redispatch-expost.stepPortfolio` attempt to apply approved overrides via `assets.applyOverridesToInstallations` (graceful fallback when unavailable).
+- **API gateway aliases** in [services/api.service.js](services/api.service.js) updated for all new asset-override routes.
+
+### Tests
+- Expanded [tests/assets.override.test.js](tests/assets.override.test.js) from stub coverage to production behavior:
+  - persistence + provenance
+  - critical-field `pendingApproval`
+  - apply after HITL approval
+  - effective view with source trail
+  - soft-revert
+  - cross-tenant isolation
+
 ## [0.44.2] — Global Cursor Pagination Framework (Closes #56)
 
 ### Added

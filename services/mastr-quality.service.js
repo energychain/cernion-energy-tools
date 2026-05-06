@@ -907,7 +907,22 @@ module.exports = {
       );
 
       // Normalize flat response shape (see v0.10.3 pattern)
-      const installations = result?.installations || result?.data?.installations || [];
+      let installations = result?.installations || result?.data?.installations || [];
+
+      try {
+        const overrideResult = await ctx.call('assets.applyOverridesToInstallations', {
+          installations,
+          onlyApproved: true,
+        });
+        if (Array.isArray(overrideResult?.installations)) {
+          installations = overrideResult.installations;
+        }
+      } catch (err) {
+        this.logger.debug(
+          `assets.applyOverridesToInstallations unavailable in stepInventory: ${err.message}`
+        );
+      }
+
       const findings = [];
       let idx = 1;
 

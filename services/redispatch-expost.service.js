@@ -613,6 +613,20 @@ module.exports = {
         installations = result?.installations || result?.data?.installations || [];
       }
 
+      try {
+        const overrideResult = await ctx.call('assets.applyOverridesToInstallations', {
+          installations,
+          onlyApproved: true,
+        });
+        if (Array.isArray(overrideResult?.installations)) {
+          installations = overrideResult.installations;
+        }
+      } catch (err) {
+        this.logger.debug(
+          `assets.applyOverridesToInstallations unavailable in stepPortfolio: ${err.message}`
+        );
+      }
+
       if (installations.length === 0) {
         findings.push(
           createFinding(

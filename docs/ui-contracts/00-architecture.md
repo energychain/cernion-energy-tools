@@ -37,6 +37,7 @@
 | 18 | [18-cookbook.md](18-cookbook.md) | Cookbook recipes and validation | `GET /api/cookbook` |
 | 19 | [14-company.md](14-company.md) | Company entity management | `GET /api/companies` |
 | 20 | [20-cya.md](20-cya.md) | CYA narrative generation panel | `POST /api/cya/generate` |
+| 31 | [31-asset-overrides.md](31-asset-overrides.md) | Asset override management | `POST /api/assets/:assetId/override` |
 | 30 | [30-observability-mini.md](30-observability-mini.md) | Observability mini panel + agent prompt | `GET /api/dashboard/observability-mini` |
 
 ---

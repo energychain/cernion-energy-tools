@@ -845,8 +845,12 @@ module.exports = {
 
           'GET /nova/stream': 'nova.stream',
 
-          // Asset override (stub endpoint for NOVA workflows)
+          // Asset overrides (persistent + effective view)
           'POST /assets/:assetId/override': 'assets.override',
+          'GET /assets/:assetId/overrides': 'assets.overrides',
+          'GET /assets/:assetId/effective': 'assets.effective',
+          'POST /assets/:assetId/overrides/:id/apply': 'assets.applyOverride',
+          'DELETE /assets/:assetId/overrides/:id': 'assets.removeOverride',
 
           // Object Store — Generic namespaced document persistence (v0.20.5)
           // NOTE: /query sub-path must precede bare /:key to prevent route shadowing.
