@@ -16,15 +16,15 @@ Heute existiert nur `/api/nova/stream` als SSE-Endpunkt (TRL 5). Für moderne UI
    - `GET /api/jobs/:id/events` — generischer Job-Progress (löst Polling auf)
    - `GET /api/observability/events?level=warn|error` — Live-Log-Tail (full-access)
 2. **WebSocket-Alternative** pro Tenant:
-   - `WS /api/ws?tenantId=…&token=…&channels=…` — multiplext alle Streams
+   - `WS /api/ws?tenantId=…&channels=…` — multiplext alle Streams; Auth primär per Session-Cookie oder `Sec-WebSocket-Protocol`, nicht per Query-Token
    - Channel-Subscription-Management via Client-Nachrichten (`{ type: 'subscribe', channel: 'cya.session.<id>' }`)
 3. **Backpressure & Heartbeats:**
    - SSE-Heartbeat alle 15 s (`event: heartbeat\ndata: {}`)
    - Server-side Throttle (max 50 events/sec/connection)
    - Client-disconnect-Handling mit `last-event-id` für Resume
 4. **Auth:**
-   - SSE: Bearer-Token in `?token=…` (URL) oder Header (wenn EventSource das unterstützt)
-   - WS: HTTP-Upgrade mit Token-Header
+   - SSE: primär Session-Cookie; für Nicht-Browser-Clients alternativ Authorization-Header. `?token=…` nur als explizit unsicherer Fallback mit Warnhinweis, da Tokens über Logs/History leaken können
+   - WS: HTTP-Upgrade primär mit Session-Cookie oder `Sec-WebSocket-Protocol`; Query-Token nicht als Standard empfehlen
    - Tenant-Isolation per Subscription-Channel
 5. **Observability:**
    - Metriken: `cernion_sse_open_connections`, `cernion_sse_events_emitted`, `cernion_ws_messages`
