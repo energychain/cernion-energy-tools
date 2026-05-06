@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.46.3] — Finance Agent central collection default + gateway fix
+
+### Fixed
+- **Finance Agent `retrieveEvidence()` now strips `$gateway` from the meta forwarded to `knowledge-rag.query`** ([services/finance-agent.service.js](services/finance-agent.service.js)). When `/api/finance-agent/analyze` was called via the REST gateway, `ctx.meta.$gateway = true` was propagated to the inner `knowledge-rag.query` call. `startJob()` in `job-store.js` treats any call with `$gateway: true` as a REST call and returns a 202 async-job descriptor instead of actual results. `retrieveEvidence` then received `{ status: 'queued', jobId, … }`, found no `data.results`, and accumulated `rawHits = 0` → `evidence_count = 0` → `hypothetical_scenario`. The fix destructures `$gateway` out of `ctx.meta` before the inner call, so `knowledge-rag.query` always runs synchronously and returns real results.
+
+### Changed
+- **Finance Agent retrieval now defaults to the central Landside knowledge collection** `cernion_knowledge_v1` in [services/finance-agent.service.js](services/finance-agent.service.js) when `/api/finance-agent/analyze` is called without an explicit `collection`.
+- **Explicitly provided collections remain authoritative** and are passed unchanged to `knowledge-rag.query`.
+- **No fallback was added** from explicit empty/no-hit collections to `cernion_knowledge_v1`.
+- **No execution behavior changed**: Capability Broker / `agent.analyze` remains advisory only, retrieval remains finance-owned via `knowledge-rag.query`, and `executePlan()` is unchanged.
+
 ## [0.46.2] — Planning-Assist rollout (Utility Report, ZNP, CYA)
 
 ### Changed

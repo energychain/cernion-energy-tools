@@ -118,6 +118,7 @@ describe('finance-agent service', () => {
   let ragCalls;
   let createdDatapoints;
   let forceNoRuleEvidence;
+  let forceNoRagHits;
   let hitlItems;
   let agentAnalyzeCalls;
   let agentExecuteCalls;
@@ -127,6 +128,7 @@ describe('finance-agent service', () => {
     ragCalls = [];
     createdDatapoints = [];
     forceNoRuleEvidence = false;
+    forceNoRagHits = false;
     hitlItems = [];
     agentAnalyzeCalls = 0;
     agentExecuteCalls = 0;
@@ -194,6 +196,10 @@ describe('finance-agent service', () => {
               filter: ctx.params.filter,
               collection: ctx.params.collection,
             });
+
+            if (forceNoRagHits) {
+              return { success: true, data: { results: [] } };
+            }
 
             if (forceNoRuleEvidence) {
               return {
@@ -407,6 +413,7 @@ describe('finance-agent service', () => {
 
   it('runs analysis in default rule_plus_hyde mode', async () => {
     agentAnalyzeCalls = 0;
+    ragCalls.length = 0;
     const res = await broker.call('finance-agent.analyze', {
       query:
         'Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?',
@@ -421,6 +428,38 @@ describe('finance-agent service', () => {
     expect(res.findings.some((f) => f.finding === 'FA_RULE_EVIDENCE_USED')).toBe(true);
     expect(agentAnalyzeCalls).toBeGreaterThan(0);
     expect(agentExecuteCalls).toBe(0);
+    expect(ragCalls.length).toBeGreaterThan(0);
+    expect(ragCalls.every((call) => call.collection === 'cernion_knowledge_v1')).toBe(true);
+  });
+
+  it('uses explicit collection unchanged when provided', async () => {
+    ragCalls.length = 0;
+    const explicitCollection = 'tenant:stadtwerk-a:knowledge';
+
+    const res = await broker.call('finance-agent.analyze', {
+      query:
+        'Bitte analysiere CAPEX/OPEX/TOTEX für einen VNB im Kontext der 5. Regulierungsperiode mit Rechtsbezug.',
+      collection: explicitCollection,
+    });
+
+    expect(res.success).toBe(true);
+    expect(ragCalls.length).toBeGreaterThan(0);
+    expect(ragCalls.every((call) => call.collection === explicitCollection)).toBe(true);
+  });
+
+  it('keeps legal references and evidence when central collection returns hits', async () => {
+    ragCalls.length = 0;
+
+    const res = await broker.call('finance-agent.analyze', {
+      query:
+        'Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?',
+    });
+
+    expect(res.success).toBe(true);
+    expect(res.evidence.length).toBeGreaterThan(0);
+    expect(res.metadata.retrieval.evidenceKept).toBeGreaterThan(0);
+    expect(res.legalReferences.length).toBeGreaterThan(0);
+    expect(res.legalReferences).toContain('§21a EnWG');
   });
 
   it('returns needs_clarification when evidence is insufficient', async () => {
@@ -561,6 +600,59 @@ describe('finance-agent service', () => {
     expect(res.assumptions.length).toBeGreaterThan(0);
     expect(agentAnalyzeCalls).toBeGreaterThanOrEqual(2);
     expect(agentExecuteCalls).toBe(0);
+  });
+
+  it('does not propagate $gateway to knowledge-rag.query (no 202 job descriptor as result)', async () => {
+    // Simulate what happens if $gateway leaks: knowledge-rag returns a 202 descriptor
+    // instead of actual results. Finance Agent must NOT interpret this as 0 hits.
+    // With the fix applied, $gateway is stripped — so the mock receives a normal call
+    // and returns real results (standard mock path). We verify rawHits > 0.
+    const result = await broker.call(
+      'finance-agent.analyze',
+      {
+        query: 'Regulatorische CAPEX-Regeln',
+        collection: 'cernion_knowledge_v1',
+        mode: 'rule_plus_hyde',
+      },
+      { meta: { $gateway: true, cernionToken: 'test-token' } }
+    );
+    // $gateway should have been stripped internally; knowledge-rag returns real hits
+    expect(result.success).toBe(true);
+    expect(Array.isArray(result.evidence)).toBe(true);
+    expect(result.evidence.length).toBeGreaterThan(0);
+    expect(result.status).not.toBe('hypothetical_scenario');
+    // All RAG calls must target the correct collection
+    const gwCalls = ragCalls.filter((c) => c.collection === 'cernion_knowledge_v1');
+    expect(gwCalls.length).toBeGreaterThan(0);
+  });
+
+  it('keeps memory as context only and degrades to hypothetical_scenario with confidence 0 when RAG has no hits', async () => {
+    forceNoRagHits = true;
+
+    await broker.call('finance-agent.remember', {
+      sessionId: 'finance-session-empty-rag',
+      memory: {
+        summary: 'Vorherige Sitzung mit TWL-Kontext',
+        legalReferences: ['§21a EnWG'],
+      },
+    });
+
+    const res = await broker.call('finance-agent.analyze', {
+      sessionId: 'finance-session-empty-rag',
+      query: 'Bitte regulatorische Einordnung für CAPEX/OPEX in RP5 liefern.',
+      allowHypotheticals: true,
+      includeMemoryContext: true,
+    });
+
+    forceNoRagHits = false;
+
+    expect(res.success).toBe(true);
+    expect(res.status).toBe('hypothetical_scenario');
+    expect(res.confidence).toBe(0);
+    expect(res.evidence.length).toBe(0);
+    expect(res.legalReferences).toEqual([]);
+    expect(res.hitlItem).toBeTruthy();
+    expect(res.hitlItem.kind).toBe('finance-hypothetical-review');
   });
 
   it('includes iterative retrieval metadata from dynamic stop logic', async () => {

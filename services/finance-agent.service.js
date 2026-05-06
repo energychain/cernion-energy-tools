@@ -4,7 +4,6 @@ const crypto = require('crypto');
 const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 const { MoleculerClientError } = require('moleculer').Errors;
-const { getTenantId } = require('../src/tenant-context');
 const {
   applyCursorPagination,
   applyOffsetDeprecationHeader,
@@ -32,6 +31,8 @@ const PIPELINE_VERSION = '0.40.5';
 const FINANCE_OEO_CLASS = ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'];
 const MODE_VALUES = ['rule_only', 'rule_plus_hyde'];
 const FINANCE_MEMORY_NAMESPACE = process.env.FINANCE_AGENT_MEMORY_NAMESPACE || 'finance_agent_memory';
+const FINANCE_AGENT_DEFAULT_COLLECTION =
+  process.env.FINANCE_AGENT_DEFAULT_COLLECTION || 'cernion_knowledge_v1';
 const MAX_ANALYZE_ITERATIONS = 4;
 const MIN_QUALITY_TARGET = 0.72;
 const MIN_IMPROVEMENT_DELTA = 0.03;
@@ -170,7 +171,7 @@ module.exports = {
         persistMemory: { type: 'boolean', optional: true, default: true },
         persistDatapoints: { type: 'boolean', optional: true, default: false },
         allowHypotheticals: { type: 'boolean', optional: true, default: false },
-        collection: { type: 'string', optional: true, default: 'tenant:{tenantId}:knowledge' },
+        collection: { type: 'string', optional: true, default: FINANCE_AGENT_DEFAULT_COLLECTION },
       },
       openapi: {
         summary: 'Analyze finance/regulatory questions with evidence-bound synthesis',
@@ -235,9 +236,11 @@ module.exports = {
                   },
                   collection: {
                     type: 'string',
-                    default: 'tenant:{tenantId}:knowledge',
+                    default: FINANCE_AGENT_DEFAULT_COLLECTION,
                     description:
-                      'Optional knowledge collection name for RAG retrieval. Defaults to tenant-local knowledge collection.',
+                      'Optional knowledge collection name for RAG retrieval. ' +
+                      'Defaults to central Landside collection cernion_knowledge_v1. ' +
+                      'Tenant/custom collections are only used when explicitly provided.',
                   },
                 },
               },
@@ -260,7 +263,7 @@ module.exports = {
                     persistMemory: true,
                     persistDatapoints: false,
                     allowHypotheticals: false,
-                    collection: 'tenant:stadtwerk-a:knowledge',
+                    collection: 'cernion_knowledge_v1',
                   },
                 },
               },
@@ -594,8 +597,9 @@ module.exports = {
         ? params.datapointContext.filter((v) => typeof v === 'string' && v.trim()).slice(0, 20)
         : [];
       const allowHypotheticals = params.allowHypotheticals === true;
-      const collection =
-        params.collection || `tenant:${getTenantId(ctx)}:knowledge`;
+      const requestedCollection =
+        typeof params.collection === 'string' ? params.collection.trim() : '';
+      const collection = requestedCollection || FINANCE_AGENT_DEFAULT_COLLECTION;
 
       if (!query) {
         throw new MoleculerClientError('query is required', 400, 'VALIDATION_ERROR');
@@ -1440,6 +1444,9 @@ module.exports = {
       while (rounds < MAX_ANALYZE_ITERATIONS) {
         rounds += 1;
         for (const intent of currentPlan.intents || []) {
+          // Strip $gateway so knowledge-rag.query returns synchronous results,
+          // not a 202 async-job descriptor (v0.46.4 fix).
+          const { $gateway: _gw, ...ragMeta } = ctx.meta || {};
           const response = await ctx.call(
             'knowledge-rag.query',
             {
@@ -1447,7 +1454,7 @@ module.exports = {
               query: intent.query || originalQuery,
               collection: collectionName,
             },
-            { meta: ctx.meta }
+            { meta: ragMeta }
           );
 
           const rows = response?.data?.results || response?.results || [];
