@@ -1,6 +1,6 @@
 # Runbook — §42c Cutover & Rollback
 
-**Version:** v0.47.0 · **Frist Cutover:** 01.07.2026  
+**Version:** v0.47.0 · **Frist Cutover:** 01.07.2026
 **Verknüpft:** Issue 23 (DR-Runbook), Issue 13 Sub-Track G
 
 ---

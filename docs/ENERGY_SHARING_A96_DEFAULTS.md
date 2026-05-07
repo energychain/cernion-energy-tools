@@ -1,7 +1,7 @@
 # A96 Feldspezifikation — Defensive Defaults (v0.47)
 
-**Status:** Spec-Freeze 2026-06-15 — danach nur Bugfixes auf dieser Version.  
-**Q3-2026-Updates der BNetzA** fließen in v0.51 ein.  
+**Status:** Spec-Freeze 2026-06-15 — danach nur Bugfixes auf dieser Version.
+**Q3-2026-Updates der BNetzA** fließen in v0.51 ein.
 **Erstellt:** 2026-05-07 · **Gültig ab:** v0.47.0
 
 ---

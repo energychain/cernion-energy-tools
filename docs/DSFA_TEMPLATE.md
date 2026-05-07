@@ -1,8 +1,8 @@
 # DSFA-Vorlage — Datenschutz-Folgenabschätzung (DSFA)
 # §42c Energieteilen · Pilot-Tenant-Betrieb
 
-**Version:** v0.47.0 · **Erstellt:** 2026-05-07  
-**Basis:** DSGVO Art. 35, BDSG § 67  
+**Version:** v0.47.0 · **Erstellt:** 2026-05-07
+**Basis:** DSGVO Art. 35, BDSG § 67
 **Status:** VORLAGE — pro Pilot-Tenant auszufüllen und vom Datenschutzbeauftragten zu unterzeichnen.
 
 ---

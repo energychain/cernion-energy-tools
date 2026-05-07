@@ -1,6 +1,6 @@
 # Runbook — §42c Energy Sharing Incident Response
 
-**Version:** v0.47.0 · **Frist:** 01.07.2026 Cutover  
+**Version:** v0.47.0 · **Frist:** 01.07.2026 Cutover
 **Zuständig:** VNB Operations · **Eskalation:** Siehe Stufe A/B unten
 
 ---
