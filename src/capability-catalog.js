@@ -154,6 +154,60 @@ const CURATED_CAPABILITIES = [
     risksAndNotes: ['OEP-Daten als Szenario-/Forschungsquelle behandeln, nicht als Primärquelle für Assets.'],
     routingPattern: 'oep_discovery_chain',
   },
+  {
+    capability: 'vnb_kpi_benchmark_comparison',
+    domain: 'finance-agent',
+    abstractionLevel: 'aggregated_kpi_comparison',
+    intent: 'vnb_kpi_benchmark_comparison',
+    keywords: [
+      'benchmark',
+      'vergleich',
+      'potenzialvergleich',
+      'nachbar',
+      'wettbewerber',
+      'kpi',
+      'anschlussdauer',
+      'digitalisierungsindex',
+      'umsetzungsquote',
+      'ewk',
+    ],
+    preferredActions: [
+      'grid-operations.marketPartners',
+      'ewk-monitoring.benchmarkVnb',
+      'grid-operations.vnbLookup',
+      'assets.all',
+    ],
+    fallbackActions: ['grid-operations.marketPartners', 'ewk-monitoring.benchmarkVnb'],
+    avoid: ['query.ask', 'query.askLearned'],
+    requiredInputs: [
+      {
+        name: 'vnb1Name',
+        label: 'First VNB Name',
+        type: 'string',
+        required: true,
+      },
+      {
+        name: 'vnb2Name',
+        label: 'Second VNB Name',
+        type: 'string',
+        required: true,
+      },
+      {
+        name: 'comparisonDimensions',
+        label: 'Comparison Dimensions',
+        type: 'array',
+        items: 'string',
+        default: ['anschlussdauer', 'digitalisierungsindex', 'umsetzungsquote'],
+        required: false,
+      },
+    ],
+    risksAndNotes: [
+      'Both VNBs must be resolvable via marketPartners.',
+      'EWK data is annual BNetzA source; may not reflect current operational status.',
+      'Hard evidence only; no hypothetical synthesis unless explicitly requested.',
+    ],
+    routingPattern: 'vnb_kpi_benchmark_multi_step',
+  },
 ];
 
 const GLOBAL_DO_NOT_USE = [

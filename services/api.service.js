@@ -857,6 +857,15 @@ module.exports = {
           'POST /assets/:assetId/overrides/:id/apply': 'assets.applyOverride',
           'DELETE /assets/:assetId/overrides/:id': 'assets.removeOverride',
 
+          // Backup Orchestrator (v0.47) — Full-Restore Sub-Track G
+          'POST /admin/backup/snapshot': 'backup-orchestrator.snapshot',
+          'POST /admin/backup/restore': 'backup-orchestrator.restore',
+          'GET /admin/backup/snapshots': 'backup-orchestrator.list',
+          'GET /admin/backup/snapshots/:snapshotId': 'backup-orchestrator.get',
+          'DELETE /admin/backup/snapshots/:snapshotId': 'backup-orchestrator.delete',
+          // Bilanzkreis feature-flags (v0.47) — Sub-Track G
+          'GET /bilanzkreis/:id/feature-flags': 'bilanzkreis.getFeatureFlags',
+          'PATCH /bilanzkreis/:id/feature-flags': 'bilanzkreis.updateFeatureFlags',
           // Object Store — Generic namespaced document persistence (v0.20.5)
           // NOTE: /query sub-path must precede bare /:key to prevent route shadowing.
           'POST /objects/:namespace/query': 'object-store.query',

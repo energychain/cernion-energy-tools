@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.44.5
-- changelog_latest_release: 0.44.5
+- version: 0.47.0
+- changelog_latest_release: 0.47.0
 - source_files_hash:
-  - CHANGELOG.md: df5de03227c47d781d84d8eb67dff5e1b799b11fc060a831c5ec27877fe5797e
+  - CHANGELOG.md: 7a53379ca7efeab02012a7ed5d475e139e0607c782d5274f545ad691fdbd04d5
   - README.md: 7fb345df7d005c798d77c1b90410dad6bb155bc0bd3661e02f01565ddfe63e08
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: 76b9668a5c6bc3e4053dfcf02dac6aa67e5a9fb79b64820a2f238c7b3b8c78f7
+  - openapi-export.json: 3dd90f16b97b51bc36f34c54e5f9e11a0bef70b38e05537231fff0bb8082557e
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -588,12 +588,13 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 218
-- operation_count: 256
+- path_count: 223
+- operation_count: 263
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
 - Assets: 5 operations
+- Backup & Restore: 5 operations
 - Companies: 6 operations
 - Cookbook: 6 operations
 - CYA Agent: 19 operations
@@ -622,13 +623,18 @@ process:
 - OEP (Open Energy Platform): 5 operations
 - OSM Geo (OpenStreetMap): 4 operations
 - Redispatch Ex-Post: 3 operations
-- Settlement (Abrechnung): 14 operations
+- Settlement (Abrechnung): 16 operations
 - SLP (Standardlastprofile): 5 operations
 - VNBMonitor: 4 operations
 - Webhooks: 6 operations
 - Zielnetzplanung (ZNP): 11 operations
 
 ## OpenAPI Operations (Complete Index)
+- POST /api/admin/backup/restore | tags: [Backup & Restore] | operationId: backup-orchestrator_restore | summary: Restore all data stores from a backup snapshot
+- POST /api/admin/backup/snapshot | tags: [Backup & Restore] | operationId: backup-orchestrator_snapshot | summary: Create a full backup snapshot (all data stores)
+- GET /api/admin/backup/snapshots | tags: [Backup & Restore] | operationId: backup-orchestrator_list | summary: List available backup snapshots
+- DELETE /api/admin/backup/snapshots/:snapshotId | tags: [Backup & Restore] | operationId: backup-orchestrator_delete | summary: Delete a backup snapshot
+- GET /api/admin/backup/snapshots/:snapshotId | tags: [Backup & Restore] | operationId: backup-orchestrator_get | summary: Get backup snapshot manifest by ID
 - GET /api/assets/:assetId/effective | tags: [Assets] | operationId: assets_effective | summary: Get effective asset view (MaStR + applied overrides)
 - POST /api/assets/:assetId/override | tags: [Assets] | operationId: assets_override | summary: Create persistent asset override
 - GET /api/assets/:assetId/overrides | tags: [Assets] | operationId: assets_overrides | summary: List all overrides for an asset
@@ -639,6 +645,8 @@ process:
 - DELETE /api/bilanzkreis/:id | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_delete | summary: Delete a Bilanzkreis
 - GET /api/bilanzkreis/:id | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_get | summary: Get a Bilanzkreis
 - POST /api/bilanzkreis/:id/calculate | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_calculate | summary: Calculate balance for a Bilanzkreis over a time period
+- GET /api/bilanzkreis/:id/feature-flags | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_getFeatureFlags | summary: Get feature flags for a Bilanzkreis
+- PATCH /api/bilanzkreis/:id/feature-flags | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_updateFeatureFlags | summary: Update feature flags for a Bilanzkreis
 - GET /api/bilanzkreis/:id/readiness | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_checkReadiness | summary: Check settlement readiness for a Bilanzkreis
 - GET /api/companies | tags: [Companies] | operationId: company_list | summary: List / search company entities
 - POST /api/companies | tags: [Companies] | operationId: company_create | summary: Create a company entity (Stadtwerk/Konzernverbund)
@@ -891,10 +899,214 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.44.5"
+    "version": "0.47.0"
   },
   "openapi": "3.0.0",
   "paths": {
+    "/api/admin/backup/restore": {
+      "post": {
+        "description": "Restores energy-sharing, allocation, datapoints, jobs, and token data from a snapshot. DESTRUCTIVE — requires confirm=true. Missing docs are restored; existing docs are skipped (additive). Sub-Track G v0.47.0 — Rollback-Plan mit Full-Restore-Orchestrierung.",
+        "operationId": "backup-orchestrator_restore",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "summary": "Restore from snapshot with confirmation",
+                  "value": {
+                    "confirm": true,
+                    "snapshotId": "snap-abc123"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confirm": {
+                    "default": false,
+                    "description": "Must be true to execute restore (safety gate)",
+                    "type": "boolean"
+                  },
+                  "snapshotId": {
+                    "example": "snap-abc123",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "snapshotId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Restore completed with counts of restored/skipped docs"
+          },
+          "400": {
+            "description": "confirm=false or snapshot not found"
+          }
+        },
+        "summary": "Restore all data stores from a backup snapshot",
+        "tags": [
+          "Backup & Restore"
+        ],
+        "x-oeo-class": "OEO_00140083"
+      }
+    },
+    "/api/admin/backup/snapshot": {
+      "post": {
+        "description": "Creates a full-state snapshot of energy-sharing, allocation, datapoints, jobs, and token data. Returns a snapshotId with provenance hash for audit trail (EU AI Act Art. 12). Sub-Track G v0.47.0 — Rollback-Plan mit Full-Restore-Orchestrierung.",
+        "operationId": "backup-orchestrator_snapshot",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "summary": "Pre-cutover snapshot",
+                  "value": {
+                    "label": "pre-cutover-hoeheinoed-2026-06-30",
+                    "tenantId": "hoeheinoed"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "label": {
+                    "description": "Human-readable label for this snapshot",
+                    "example": "pre-cutover-hoeheinoed-2026-06-30",
+                    "type": "string"
+                  },
+                  "tenantId": {
+                    "description": "Optional: scope snapshot to a specific tenant (exports only tenant docs)",
+                    "example": "hoeheinoed",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "createdAt": "2026-06-30T12:00:00.000Z",
+                  "label": "pre-cutover-hoeheinoed",
+                  "provenanceHash": "sha256:...",
+                  "snapshotId": "snap-abc123",
+                  "success": true,
+                  "summary": {
+                    "allocationDocs": 12,
+                    "datapointDocs": 5,
+                    "energySharingDocs": 42,
+                    "jobFiles": 8,
+                    "tokensFile": true
+                  }
+                }
+              }
+            },
+            "description": "Snapshot created with provenance hash"
+          }
+        },
+        "summary": "Create a full backup snapshot (all data stores)",
+        "tags": [
+          "Backup & Restore"
+        ],
+        "x-oeo-class": "OEO_00140083"
+      }
+    },
+    "/api/admin/backup/snapshots": {
+      "get": {
+        "operationId": "backup-orchestrator_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "count": 1,
+                  "snapshots": [
+                    {
+                      "createdAt": "2026-06-30T12:00:00.000Z",
+                      "label": "pre-cutover",
+                      "provenanceHash": "sha256:...",
+                      "snapshotId": "snap-abc123"
+                    }
+                  ],
+                  "success": true
+                }
+              }
+            },
+            "description": "List of snapshot manifests"
+          }
+        },
+        "summary": "List available backup snapshots",
+        "tags": [
+          "Backup & Restore"
+        ],
+        "x-oeo-class": "OEO_00140083"
+      }
+    },
+    "/api/admin/backup/snapshots/:snapshotId": {
+      "delete": {
+        "operationId": "backup-orchestrator_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "example": "snap-abc123",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshot deleted"
+          },
+          "404": {
+            "description": "Snapshot not found"
+          }
+        },
+        "summary": "Delete a backup snapshot",
+        "tags": [
+          "Backup & Restore"
+        ],
+        "x-oeo-class": "OEO_00140083"
+      },
+      "get": {
+        "operationId": "backup-orchestrator_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "snapshotId",
+            "required": true,
+            "schema": {
+              "example": "snap-abc123",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshot manifest"
+          },
+          "404": {
+            "description": "Snapshot not found"
+          }
+        },
+        "summary": "Get backup snapshot manifest by ID",
+        "tags": [
+          "Backup & Restore"
+        ],
+        "x-oeo-class": "OEO_00140083"
+      }
+    },
     "/api/assets/:assetId/effective": {
       "get": {
         "operationId": "assets_effective",
@@ -1436,6 +1648,91 @@ process:
           }
         },
         "summary": "Calculate balance for a Bilanzkreis over a time period",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ]
+      }
+    },
+    "/api/bilanzkreis/:id/feature-flags": {
+      "get": {
+        "description": "Returns per-Bilanzkreis feature flags. The flag `virtual_energy_sharing.enabled` controls whether A96 export and §42c Energieteilen is active for this BK. Sub-Track G (v0.47.0) — Rollback-Plan: set to false to block A96 export on rollback.",
+        "operationId": "bilanzkreis_getFeatureFlags",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "bk_hoeheinoed_es_001",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "flags": {
+                    "virtual_energy_sharing.enabled": true
+                  },
+                  "id": "bk_hoeheinoed_es_001",
+                  "success": true
+                }
+              }
+            },
+            "description": "Feature flags for the Bilanzkreis"
+          }
+        },
+        "summary": "Get feature flags for a Bilanzkreis",
+        "tags": [
+          "Settlement (Abrechnung)"
+        ]
+      },
+      "patch": {
+        "description": "Updates per-Bilanzkreis feature flags. Set `virtual_energy_sharing.enabled: false` to block A96 export (rollback gate). Sub-Track G (v0.47.0) — Rollback-Plan.",
+        "operationId": "bilanzkreis_updateFeatureFlags",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "bk_hoeheinoed_es_001",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "flags": {
+                    "example": {
+                      "virtual_energy_sharing.enabled": false
+                    },
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "flags"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Feature flags updated"
+          },
+          "404": {
+            "description": "Bilanzkreis not found"
+          }
+        },
+        "summary": "Update feature flags for a Bilanzkreis",
         "tags": [
           "Settlement (Abrechnung)"
         ]
@@ -8324,7 +8621,7 @@ process:
                 "default": {
                   "value": {
                     "allowHypotheticals": false,
-                    "collection": "tenant:stadtwerk-a:knowledge",
+                    "collection": "cernion_knowledge_v1",
                     "contextLimit": 5,
                     "datapointContext": [
                       "finance-capex-baseline-2025"
@@ -8352,8 +8649,8 @@ process:
                     "type": "boolean"
                   },
                   "collection": {
-                    "default": "tenant:{tenantId}:knowledge",
-                    "description": "Optional knowledge collection name for RAG retrieval. Defaults to tenant-local knowledge collection.",
+                    "default": "cernion_knowledge_v1",
+                    "description": "Optional knowledge collection name for RAG retrieval. Defaults to central Landside collection cernion_knowledge_v1. Tenant/custom collections are only used when explicitly provided.",
                     "type": "string"
                   },
                   "contextLimit": {
@@ -13335,7 +13632,21 @@ process:
                 }
               }
             },
-            "description": "AuditReport with qualityScore, dimensions, and findings from all executed pipeline steps"
+            "description": "Internal (non-gateway) call: direct AuditReport with qualityScore, dimensions, and findings from all executed pipeline steps"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "jobId": "f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6",
+                  "resultUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result",
+                  "status": "queued",
+                  "statusUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status",
+                  "success": true
+                }
+              }
+            },
+            "description": "REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result."
           }
         },
         "summary": "Run MaStR portfolio quality audit (8-step, deterministic)",
@@ -18318,8 +18629,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.44.5"
+  "x-version": "0.47.0"
 }
 
 ## Integrity
-- llm_txt_sha256: 64f91713a7e731246d3f18f91d2d39ec5dda76f55e8fbaffffe8c8303fd4f339
+- llm_txt_sha256: c4494e0b430abd62738ecbc723c881ed0406aa01ddeacd269dc2716cefdef45e

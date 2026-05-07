@@ -100,6 +100,7 @@ module.exports = {
   async started() {
     await this.db.createIndex({ index: { fields: ['communityId'] } });
     await this.db.createIndex({ index: { fields: ['createdAt'] } });
+    await this.db.createIndex({ index: { fields: ['tenantId'] } });
     this.logger.info(`Energy-sharing allocation DB initialized at ${this.settings.dbPath}`);
   },
 
@@ -365,9 +366,13 @@ module.exports = {
 
         // ── Step 6: Persist metadata (KRITIS: grid NOT stored) ───────────────
         const id = crypto.randomUUID();
+        const tenantId = resolveTenantId(ctx) || 'default';
+        // Tenant-isolation: prefix _id with tenantId (v0.47)
+        const docId = tenantId !== 'default' ? `alloc:${tenantId}:${id}` : `alloc:${id}`;
         const doc = {
-          _id: `alloc:${id}`,
+          _id: docId,
           id,
+          tenantId,
           type: 'energy-sharing-allocation',
           communityId: params.communityId || '',
           validationReportId: params.validationReportId || null,

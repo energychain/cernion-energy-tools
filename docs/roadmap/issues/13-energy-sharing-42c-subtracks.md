@@ -4,7 +4,7 @@
 
 ## Problem
 
-v0.45.0 schließt Issue #59 — aber **nur den Plan**, nicht die Implementierung. `docs/roadmap/issues/10-energy-sharing-42c-cutover.md` listet sieben Sub-Tracks; keiner ist abgehakt. Externe Risiken zugespitzt:
+v0.45.0 schließt Issue #59 — aber **nur den Plan**, nicht die Implementierung. `docs/roadmap/resolved/10-energy-sharing-42c-cutover.md` listet sieben Sub-Tracks; keiner ist abgehakt. Externe Risiken zugespitzt:
 
 - **BNetzA A96-Feldspezifikation** wird laut v0.45.0-Notes **erst Q3 2026 final** erwartet — also **nach** der Cutover-Frist 01.07.2026. Fallback-Planung ist Pflicht.
 - `docs/ENERGY_SHARING_ABNAHME.md` enthält noch `[BNetzA-OFFEN]`-Markierungen.
@@ -29,7 +29,8 @@ Pro Sub-Track ein eigener Implementierungs-Branch + Sub-Issue. Master-Acceptance
 
 ### Sub-Track C — Settlement-Readiness Härte-Test
 
-- [ ] Property-basierte Tests gegen `src/settlement-readiness.js` (`fast-check` o. ä.) für Lücken, MSCONS-Inkomplettheit, Zeit-Drift.
+- [ ] Property-basierte Tests gegen `src/settlement-calculator.js` (Funktion `calculateSettlementReadiness`) mit `fast-check` für Lücken, MSCONS-Inkomplettheit, Zeit-Drift.
+  > **Option B (gewählt):** Kein separates `src/settlement-readiness.js` — Canonical-Modul ist `src/settlement-calculator.js` in `services/bilanzkreis.service.js` importiert.
 - [ ] Threshold `low_data_quality` empirisch kalibriert mit ≥3 echten MSCONS-Datenpunkten.
 - [ ] Bug-Bounty 1 Sprint mit ungeladenen Mutanten.
 

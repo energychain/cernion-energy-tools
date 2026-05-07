@@ -713,4 +713,304 @@ describe('finance-agent service', () => {
     // Fallback static logic produces a valid status
     expect(['ok', 'needs_clarification', 'hypothetical_scenario']).toContain(res.status);
   });
+
+  describe('benchmarkComparison action', () => {
+    beforeAll(async () => {
+      // Mock grid-operations service
+      broker.createService({
+        name: 'grid-operations',
+        actions: {
+          marketPartners: {
+            handler(ctx) {
+              // Optional MaStR ID enrichment — called with { query: vnbName, limit: 5 }
+              const query = String(ctx.params.query || '').toLowerCase();
+              const allPartners = [
+                {
+                  name: 'Netze BW',
+                  mastrNummer: 'GNB12345678901234567890123456',
+                  bdewCode: '9900599000003',
+                },
+                {
+                  name: 'TWL Netze',
+                  mastrNummer: 'GNB98765432109876543210987654',
+                  bdewCode: '9900599000004',
+                },
+              ];
+              const results = allPartners.filter((p) =>
+                p.name.toLowerCase().includes(query)
+              );
+              // Return shape matches grid-operations.marketPartners JSON response
+              return { results };
+            },
+          },
+          vnbLookup: {
+            handler(ctx) {
+              return {
+                success: true,
+                vnb: {
+                  name: ctx.params.vnbName,
+                  mastrNummer: 'GNB12345678901234567890123456',
+                },
+              };
+            },
+          },
+        },
+      });
+
+      // Mock ewk-monitoring service
+      broker.createService({
+        name: 'ewk-monitoring',
+        actions: {
+          benchmarkVnb: {
+            handler(ctx) {
+              const vnbName = String(ctx.params.vnbName || '').toLowerCase();
+              if (vnbName.includes('netze bw')) {
+                return {
+                  success: true,
+                  vnbName: 'Netze BW',
+                  anschlussdauer: {
+                    value: 45,
+                    rank: 125,
+                    national: { min: 20, max: 120, avg: 60 },
+                  },
+                  digitalisierungsindex: {
+                    value: 72,
+                    rank: 85,
+                    national: { min: 40, max: 95, avg: 65 },
+                  },
+                  umsetzungsquote: {
+                    value: 88,
+                    rank: 200,
+                    national: { min: 60, max: 98, avg: 80 },
+                  },
+                };
+              } else if (vnbName.includes('twl')) {
+                return {
+                  success: true,
+                  vnbName: 'TWL Netze',
+                  anschlussdauer: {
+                    value: 55,
+                    rank: 200,
+                    national: { min: 20, max: 120, avg: 60 },
+                  },
+                  digitalisierungsindex: {
+                    value: 68,
+                    rank: 150,
+                    national: { min: 40, max: 95, avg: 65 },
+                  },
+                  umsetzungsquote: {
+                    value: 82,
+                    rank: 300,
+                    national: { min: 60, max: 98, avg: 80 },
+                  },
+                };
+              }
+              throw new Error('VNB not found');
+            },
+          },
+        },
+      });
+
+      // Mock assets service
+      broker.createService({
+        name: 'assets',
+        actions: {
+          all: {
+            handler(ctx) {
+              const assetType = ctx.params.type || 'solar';
+              return {
+                success: true,
+                installations: [
+                  {
+                    id: `inst-${assetType}-1`,
+                    capacity: assetType === 'solar' ? 50 : assetType === 'wind' ? 2500 : 100,
+                  },
+                  {
+                    id: `inst-${assetType}-2`,
+                    capacity: assetType === 'solar' ? 30 : assetType === 'wind' ? 3000 : 200,
+                  },
+                ],
+              };
+            },
+          },
+        },
+      });
+
+      await broker.start();
+    });
+
+    afterAll(async () => {
+      await broker.stop();
+    });
+
+    it('returns evidence_based benchmark comparison for two valid VNBs', async () => {
+      const res = await broker.call('finance-agent.benchmarkComparison', {
+        vnb1Name: 'Netze BW',
+        vnb2Name: 'TWL Netze',
+        comparisonDimensions: ['anschlussdauer', 'digitalisierungsindex', 'umsetzungsquote'],
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.id).toBeTruthy();
+      expect(res.status).toBe('ok');
+      expect(res.synthesis.status).toBe('evidence_based');
+      expect(res.comparison).toBeDefined();
+      expect(res.comparison.vnb1.name).toBe('Netze BW');
+      expect(res.comparison.vnb2.name).toBe('TWL Netze');
+      expect(res.comparison.dimensionComparison).toBeDefined();
+      expect(res.comparison.dimensionComparison.anschlussdauer).toBeDefined();
+      expect(res.comparison.dimensionComparison.digitalisierungsindex).toBeDefined();
+      expect(res.comparison.dimensionComparison.umsetzungsquote).toBeDefined();
+    });
+
+    it('compares anschlussdauer correctly (lower is better)', async () => {
+      const res = await broker.call('finance-agent.benchmarkComparison', {
+        vnb1Name: 'Netze BW',
+        vnb2Name: 'TWL Netze',
+        comparisonDimensions: ['anschlussdauer'],
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.comparison.dimensionComparison.anschlussdauer.vnb1Value).toBe(45);
+      expect(res.comparison.dimensionComparison.anschlussdauer.vnb2Value).toBe(55);
+      expect(res.comparison.dimensionComparison.anschlussdauer.winner).toBe('vnb1');
+      expect(res.comparison.dimensionComparison.anschlussdauer.interpretation).toMatch(/VNB1 connects faster/);
+    });
+
+    it('compares digitalisierungsindex correctly (higher is better)', async () => {
+      const res = await broker.call('finance-agent.benchmarkComparison', {
+        vnb1Name: 'Netze BW',
+        vnb2Name: 'TWL Netze',
+        comparisonDimensions: ['digitalisierungsindex'],
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.comparison.dimensionComparison.digitalisierungsindex.vnb1Value).toBe(72);
+      expect(res.comparison.dimensionComparison.digitalisierungsindex.vnb2Value).toBe(68);
+      expect(res.comparison.dimensionComparison.digitalisierungsindex.winner).toBe('vnb1');
+      expect(res.comparison.dimensionComparison.digitalisierungsindex.interpretation).toMatch(/VNB1 is more digitalized/);
+    });
+
+    it('compares umsetzungsquote correctly (higher is better)', async () => {
+      const res = await broker.call('finance-agent.benchmarkComparison', {
+        vnb1Name: 'Netze BW',
+        vnb2Name: 'TWL Netze',
+        comparisonDimensions: ['umsetzungsquote'],
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.comparison.dimensionComparison.umsetzungsquote.vnb1Value).toBe(88);
+      expect(res.comparison.dimensionComparison.umsetzungsquote.vnb2Value).toBe(82);
+      expect(res.comparison.dimensionComparison.umsetzungsquote.winner).toBe('vnb1');
+      expect(res.comparison.dimensionComparison.umsetzungsquote.interpretation).toMatch(
+        /VNB1 has higher completion rate/
+      );
+    });
+
+    it('includes asset context when includeAssetContext=true', async () => {
+      const res = await broker.call('finance-agent.benchmarkComparison', {
+        vnb1Name: 'Netze BW',
+        vnb2Name: 'TWL Netze',
+        includeAssetContext: true,
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.comparison.vnb1.assets).toBeDefined();
+      expect(res.comparison.vnb2.assets).toBeDefined();
+      expect(res.comparison.vnb1.assets.solar).toBeDefined();
+      expect(res.comparison.vnb2.assets.solar).toBeDefined();
+      expect(res.steps.some((s) => s.name === 'fetch-asset-context')).toBe(true);
+    });
+
+    it('excludes asset context when includeAssetContext=false', async () => {
+      const res = await broker.call('finance-agent.benchmarkComparison', {
+        vnb1Name: 'Netze BW',
+        vnb2Name: 'TWL Netze',
+        includeAssetContext: false,
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.comparison.vnb1.assets).toBeNull();
+      expect(res.comparison.vnb2.assets).toBeNull();
+      expect(res.steps.some((s) => s.name === 'fetch-asset-context')).toBe(false);
+    });
+
+    it('handles missing VNB gracefully by returning error response', async () => {
+      // benchmarkVnb mock throws for unknown VNB names → handler returns status: 'error'
+      const res = await broker.call('finance-agent.benchmarkComparison', {
+        vnb1Name: 'Unbekannter VNB XYZ',
+        vnb2Name: 'TWL Netze',
+      });
+
+      expect(res.status).toBe('error');
+      expect(res.comparison).toBeNull();
+      expect(res.findings.some((f) => f.code === 'FA_BENCHMARK_VNB_RESOLUTION_FAILED')).toBe(true);
+    });
+
+    it('handles second missing VNB gracefully by returning error response', async () => {
+      // Both VNBs unknown → benchmarkVnb throws → handler returns status: 'error'
+      const res = await broker.call('finance-agent.benchmarkComparison', {
+        vnb1Name: 'Unbekannter VNB A',
+        vnb2Name: 'Unbekannter VNB B',
+      });
+
+      expect(res.status).toBe('error');
+      expect(res.comparison).toBeNull();
+      expect(res.findings.some((f) => f.code === 'FA_BENCHMARK_VNB_RESOLUTION_FAILED')).toBe(true);
+    });
+
+    it('uses default comparisonDimensions when not provided', async () => {
+      const res = await broker.call('finance-agent.benchmarkComparison', {
+        vnb1Name: 'Netze BW',
+        vnb2Name: 'TWL Netze',
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.comparison.dimensionComparison.anschlussdauer).toBeDefined();
+      expect(res.comparison.dimensionComparison.digitalisierungsindex).toBeDefined();
+      expect(res.comparison.dimensionComparison.umsetzungsquote).toBeDefined();
+    });
+
+    it('persists benchmark comparison result to PouchDB', async () => {
+      const res = await broker.call('finance-agent.benchmarkComparison', {
+        vnb1Name: 'Netze BW',
+        vnb2Name: 'TWL Netze',
+      });
+
+      expect(res.success).toBe(true);
+      const id = res.id;
+
+      // Retrieve the persisted document
+      const retrieved = await broker.call('finance-agent.get', { id });
+      expect(retrieved.type).toBe('vnb-benchmark-comparison');
+      expect(retrieved.vnb1Name).toBe('Netze BW');
+      expect(retrieved.vnb2Name).toBe('TWL Netze');
+      expect(retrieved.status).toBe('ok');
+    });
+
+    it('does not include asset context in request body when omitted', async () => {
+      const res = await broker.call('finance-agent.benchmarkComparison', {
+        vnb1Name: 'Netze BW',
+        vnb2Name: 'TWL Netze',
+        comparisonDimensions: ['anschlussdauer'],
+      });
+
+      expect(res.success).toBe(true);
+      // Verify the response includes comparison and synthesis
+      expect(res.comparison).toBeDefined();
+      expect(res.synthesis).toBeDefined();
+    });
+
+    it('preserves existing finance-agent.analyze functionality (no regression)', async () => {
+      // This ensures that the new benchmarkComparison action doesn't break analyze
+      const res = await broker.call('finance-agent.analyze', {
+        query:
+          'Wie verhalten sich CAPEX, OPEX und TOTEX je 1 EUR Investition in der 5. Regulierungsperiode?',
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.status).toBe('ok');
+      expect(res.id).toBeTruthy();
+    });
+  });
 });

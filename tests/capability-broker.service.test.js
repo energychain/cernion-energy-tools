@@ -86,4 +86,29 @@ describe('Capability Broker Service', () => {
       )
     ).toBe(true);
   });
+
+  it('routes VNB KPI benchmark comparison queries to correct capability', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle einen Potenzialvergleich zwischen Netze BW und TWL Netze anhand der EWK KPI-Kennzahlen (Anschlussdauer, Digitalisierungsindex, Umsetzungsquote)',
+    });
+
+    expect(result.schemaVersion).toBe('cernion.capabilityRecommendation.v1');
+    expect(result.recommendedCapabilities).toBeDefined();
+    expect(result.recommendedCapabilities[0].capability).toBe('vnb_kpi_benchmark_comparison');
+    expect(result.recommendedPlan).toBeDefined();
+    expect(Array.isArray(result.recommendedPlan)).toBe(true);
+
+    // The plan should include marketPartners and benchmarkVnb as preferred actions
+    const actionNames = result.recommendedPlan.map((step) => step.action);
+    expect(actionNames).toContain('grid-operations.marketPartners');
+    expect(actionNames).toContain('ewk-monitoring.benchmarkVnb');
+  });
+
+  it('includes correct keywords for VNB benchmark capability recommendation', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Vergleich Anschlussdauer und Digitalisierungsindex zwischen Nachbar-Stadtwerken',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('vnb_kpi_benchmark_comparison');
+  });
 });

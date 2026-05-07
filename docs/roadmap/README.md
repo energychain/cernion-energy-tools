@@ -1,120 +1,78 @@
-# Cernion Roadmap — Codebase-Analyse v0.40.5 → v0.45
+# Cernion Roadmap — Überblick
 
-> Stand: 2026-05-04 · Basis: `llm.txt` (v0.40.5), `CHANGELOG.md`, `docs/ARCHITECTURE.md`, `feedback/HYGIENE_SPRINT.md`, `feedback/CR-TENANT-001.md`, OpenAPI-Export
+> Stand: 2026-05-07
+> Diese Roadmap ist der zentrale Einstieg für laufende und abgeschlossene Umsetzungstracks.
 
-## 1. Aktueller Stand des Systems
+## 1) Struktur der Roadmap
 
-| Kennzahl | Wert |
-|---|---|
-| Version | 0.40.5 |
-| Services | 56–58 |
-| OpenAPI-Operationen | 222 (186 Pfade) |
-| Tests | 1.782+ (128+ Suites) |
-| Cookbook-Recipes | 37 |
-| Finding-Codes | 92 (`mq`, `rd`, `gc`, `es`, `fa`) |
-| Node.js | 22+ |
+- **Offene Arbeitspakete**: [issues/](issues/) (aktuell Issue 13–24)
+- **Abgeschlossene Arbeitspakete**: [resolved/](resolved/) (Issue 01–12)
 
-### 1.1 Reife (TRL)
+Jede Issue-Datei ist ein umsetzbarer Track mit Scope, Akzeptanzkriterien und Deliverables.
 
-| Komponente | Service | TRL |
+## 2) Status auf einen Blick
+
+| Bereich | Anzahl |
+|---|---:|
+| Offene Issues (`issues/`) | 12 |
+| Resolved Issues (`resolved/`) | 12 |
+| Gesamt | 24 |
+
+## 3) Aktive Roadmap (Issues 13–24)
+
+| ID | Thema | Link |
 |---|---|---|
-| Dashboard API, Datapoint Layer, Object Store | `dashboard-api`, `datapoint`, `object-store` | **8** |
-| Grid-Connection, Energy-Sharing §42c, MaStR-Quality, Redispatch Ex-Post, MaStR-Monitor, Inhouse Datasource | div. | **7** |
-| Agent (Gemini-Plan), OSM-Geo, EDM-Virtual, OEP, Forecast Engine | div. | **6** |
-| CYA Agent, NOVA SSE, Flex §14a | `cya`, `nova`, `flex` | **5** |
-| ZNP | `znp` | **4** |
-| Finance Agent (neu, v0.40) | `finance-agent` | **5** (eigene Einschätzung) |
-| Knowledge RAG (Wrapper, v0.39) | `knowledge-rag` | **4** (Lese-Wrapper) |
+| 13 | §42c Energieteilen: Sub-Track-Implementierung | [13-energy-sharing-42c-subtracks.md](issues/13-energy-sharing-42c-subtracks.md) |
+| 14 | Async-Job-Cutover für Long-Running-Endpunkte | [14-async-job-cutover-rollout.md](issues/14-async-job-cutover-rollout.md) |
+| 15 | Architektur-Dokumentation auf v0.46.2 aktualisieren | [15-architecture-doc-update.md](issues/15-architecture-doc-update.md) |
+| 16 | Capability Broker v2 (extern, versioniert, multi-tenant) | [16-capability-broker-v2.md](issues/16-capability-broker-v2.md) |
+| 17 | OIDC / SAML SSO-Adapter | [17-oidc-saml-sso.md](issues/17-oidc-saml-sso.md) |
+| 18 | Rate Limiting + Tenant Quotas | [18-rate-limit-quota.md](issues/18-rate-limit-quota.md) |
+| 19 | NOVA Decision Engine produktiv (TRL 5 → 7) | [19-nova-decision-engine.md](issues/19-nova-decision-engine.md) |
+| 20 | ZNP Production-Readiness | [20-znp-production.md](issues/20-znp-production.md) |
+| 21 | Flex §14a SMGW-Connector | [21-flex-smgw-connector.md](issues/21-flex-smgw-connector.md) |
+| 22 | OEMetadata/FAIR Export für Audit-Reports | [22-oemetadata-audit-reports.md](issues/22-oemetadata-audit-reports.md) |
+| 23 | Disaster Recovery Runbook + Multi-Tenant Backup | [23-dr-runbook-backup.md](issues/23-dr-runbook-backup.md) |
+| 24 | Live-Streaming-Endpunkte (SSE / WebSocket) | [24-streaming-live-endpoints.md](issues/24-streaming-live-endpoints.md) |
 
-### 1.2 Letzte Sprint-Schwerpunkte
+## 4) Bereits umgesetzt (Resolved 01–12)
 
-- **v0.40.x** Finance Agent + A²MDM (CYA + OEO + Datapoints + Multi-Hop) + zentraler `src/llm-client.js` mit `generateStructured`-Schemas
-- **v0.39.0** Knowledge RAG Service (`cernion_rag_search`-Wrapper)
-- **v0.38.x** Multi-Tenant-Fundament (PoC), A2A-Replay, OEP-Connector-Ausbau, Hygiene Sprint Prio 1+2
-- **v0.37.x** Zwiebelmodus Context Manager Persistenz, 360° Utility Report Stabilisierung
-- **v0.36.x** Central Ontology Graph Persistenz (Cache), Installations Filter-Bugfixes
-- **v0.35.x** A2A-Protokoll auf Moleculer-Event-Bus, Tool-Router (v0.33), Progressive Profiling (v0.34)
+Die Basisplattform-Themen sind abgeschlossen und dokumentiert in [resolved/](resolved/):
 
-### 1.3 Identifizierte Whitespots & Lücken
+- OEO Export produktiv
+- Multi-Tenant Rollout
+- LLM-Provider-Abstraktion
+- Knowledge-RAG Ingestion
+- Outbound Webhooks
+- Observability Stack
+- Cursor Pagination Framework
+- Asset Overrides produktiv
+- OEP↔MaStR Delta Engine
+- §42c Production-Cutover Plan
+- Job-Store Driver Interface
+- HITL Workflow First-Class
 
-| # | Bereich | Symptom | Priorität |
-|---|---|---|---|
-| 1 | OEO-Exporter | `transformToOEO` wirft `OEO_NOT_IMPLEMENTED`, Mappings sind Stubs | **Hoch** |
-| 2 | Multi-Tenant | Nur PoC im CYA-Service; `mastr-quality`, `datapoint`, `mastr-monitor`, `bilanzkreis` etc. nicht tenant-aware | **Hoch** |
-| 3 | LLM-Provider | `src/llm-client.js` hängt an Gemini-API; KRITIS-Air-Gap blockiert | **Hoch** |
-| 4 | Knowledge-RAG | Nur Lese-Wrapper, keine Ingestion-Pipeline → Finance-Agent liefert „no hits" | **Hoch** |
-| 5 | Webhooks | Event-Bus rein in-process, keine Außenanbindung (Power Automate, Zammad) | Mittel |
-| 6 | Observability | Keine Prometheus-Metriken, kein OTel-Tracing, printf-Logs | Mittel |
-| 7 | Pagination | TODO `cya.service.js:1041`, `mastr-monitor` `limitApplied` Workaround, Listing-Endpunkte ohne Cursor | Mittel |
-| 8 | Asset-Override | OpenAPI: *"No persistence yet"* — Stub-Endpoint | Mittel |
-| 9 | OEP-Delta | `delta: null` in `compareWithMastr` (TODO) | Mittel |
-| 10 | §42c Cutover | Frist 01.07.2026, kein formales Tracking | **Hoch** |
-| 11 | Job-Store | File-backed, single-process — kein HA-Setup möglich | Mittel |
-| 12 | HITL-Eskalation | Nur Hook in `cya.a2a.consensus.failed`-Listener | Mittel |
-| 13 | EU AI Act Art. 13 | Nutzer-Information unterhalb des Audit-Trails (Art. 12) unterbelichtet | Niedrig |
-| 14 | Hygiene Prio 3B/4 | Cognitive-Complexity >30 in 31 Stellen, Magic-Strings in 77 Stellen | Niedrig |
+Vollständige Nachweise: siehe einzelne Dateien in [resolved/](resolved/).
 
-## 2. Roadmap (v0.41 → v0.45)
+## 5) Empfohlene Lesereihenfolge
 
-### v0.41 — „Plattformfähig" (Mehr-Mandanten-Hygiene)
+1. Regulatorik & Cutover: Issue 13, 21, 22, 23
+2. Plattform & Betrieb: Issue 14, 17, 18, 24
+3. Agentische Kernsysteme: Issue 16, 19, 20
+4. Dokumentationshygiene: Issue 15
 
-Ziel: SaaS-fähig, Pagination überall, Asset-Override produktiv.
+## 6) Governance für neue Roadmap-Issues
 
-- [Issue 02 — Multi-Tenant Rollout](issues/02-multi-tenant-rollout.md)
-- [Issue 07 — Pagination-Framework](issues/07-pagination-framework.md)
-- [Issue 08 — Asset-Override Produktiv](issues/08-asset-override-produktiv.md)
-- Hygiene-Sprint Prio 3B + Prio 4 abschließen
+Neue Issue-Dateien sollten mindestens enthalten:
 
-### v0.42 — „Open & Erklärbar" (Open Science + EU AI Act)
+- **Zielbild / Problemstatement**
+- **Scope in/out**
+- **Akzeptanzkriterien**
+- **Technische Deliverables (Services, src, tests, docs/ui-contracts)**
+- **Rollout-/Migrationspfad und Risiken**
 
-Ziel: Open-Science-Anschluss, OEP-Delta produktiv, HITL als First-Class-Workflow.
+Wenn ein Issue abgeschlossen ist:
 
-- [Issue 01 — OEO-Exporter produktiv](issues/01-oeo-exporter-produktiv.md)
-- [Issue 09 — OEP-MaStR Delta-Engine](issues/09-oep-mastr-delta-engine.md)
-- [Issue 12 — HITL-Workflow](issues/12-hitl-workflow.md) *(verbunden mit altem Issue #33)*
-
-### v0.43 — „On-Prem & RAG-fähig"
-
-Ziel: KRITIS-Air-Gap-Deployments + tenant-eigene Wissensbasis.
-
-- [Issue 03 — LLM-Provider-Abstraktion](issues/03-llm-provider-abstraktion.md)
-- [Issue 04 — Knowledge-RAG Ingestion](issues/04-knowledge-rag-ingestion.md)
-
-### v0.44 — „Operativ produktionsreif"
-
-Ziel: Externe Integration, Observability, Skalierung.
-
-- [Issue 05 — Outbound Webhooks](issues/05-outbound-webhooks.md)
-- [Issue 06 — Observability Stack](issues/06-observability-stack.md)
-- [Issue 11 — Job-Store-Driver-Interface](issues/11-job-store-scaling.md)
-
-### v0.45 — „§42c Production Cutover"
-
-Ziel: Stichtag 01.07.2026 erreichen.
-
-- [Issue 10 — §42c Cutover-Track](issues/10-energy-sharing-42c-cutover.md)
-
-## 3. Issue-Index
-
-| Datei | Titel | Priorität | Bereich |
-|---|---|---|---|
-| [01](issues/01-oeo-exporter-produktiv.md) | OEO-Exporter produktiv | Hoch | Open Science |
-| [02](issues/02-multi-tenant-rollout.md) | Multi-Tenant über alle Services | Hoch | Plattform |
-| [03](issues/03-llm-provider-abstraktion.md) | LLM-Provider-Abstraktion | Hoch | Architektur |
-| [04](issues/04-knowledge-rag-ingestion.md) | Knowledge-RAG Ingestion | Hoch | RAG |
-| [05](issues/05-outbound-webhooks.md) | Outbound Webhook Service | Mittel | Integration |
-| [06](issues/06-observability-stack.md) | Prometheus + OTel + structured logs | Mittel | Ops |
-| [07](issues/07-pagination-framework.md) | Globales Pagination-Framework | Mittel | API |
-| [08](issues/08-asset-override-produktiv.md) | Asset-Override Persistenz + NOVA-Trail | Mittel | Plattform |
-| [09](issues/09-oep-mastr-delta-engine.md) | MaStR↔OEP Delta-Engine | Mittel | Daten |
-| [10](issues/10-energy-sharing-42c-cutover.md) | §42c Production Cutover (01.07.2026) | Hoch | Regulatorik |
-| [11](issues/11-job-store-scaling.md) | Job-Store Driver-Interface (HA) | Mittel | Skalierung |
-| [12](issues/12-hitl-workflow.md) | HITL-Approval-Workflow First-Class | Mittel | Compliance |
-
-## 4. Cross-Cutting Voraussetzungen
-
-- **Branch-Strategie:** Jeder Issue-Track auf eigenem Feature-Branch, Squash-Merge in `main`.
-- **TRL-Gate:** Neue Features starten TRL 3/4, Produktion erfordert TRL 7+ (`docs/ARCHITECTURE.md` §7).
-- **Tests vor Code:** Pro Issue mindestens eine `tests/<feature>.e2e.test.js` plus Unit-Tests entlang `src/<modul>.js`.
-- **`gitnexus_impact`** vor jeder Änderung — Branch-Schutz erinnert daran (`CLAUDE.md`).
-- **`npm run audit:openapi` + `npm run release:check`** als Release-Gate.
+1. Datei von [issues/](issues/) nach [resolved/](resolved/) verschieben.
+2. Relevante Umsetzung in [CHANGELOG.md](../../CHANGELOG.md) referenzieren.
+3. Falls API-Vertrag betroffen: entsprechenden UI-Contract unter [docs/ui-contracts/](../ui-contracts/) aktualisieren.

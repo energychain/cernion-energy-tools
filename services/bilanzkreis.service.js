@@ -576,6 +576,116 @@ module.exports = {
         };
       },
     },
+
+    /**
+     * GET /bilanzkreis/:id/feature-flags
+     * Check feature flags for a Bilanzkreis.
+     */
+    getFeatureFlags: {
+      rest: 'GET /:id/feature-flags',
+      params: { id: { type: 'string' } },
+      openapi: {
+        summary: 'Get feature flags for a Bilanzkreis',
+        description:
+          'Returns per-Bilanzkreis feature flags. The flag `virtual_energy_sharing.enabled` ' +
+          'controls whether A96 export and §42c Energieteilen is active for this BK. ' +
+          'Sub-Track G (v0.47.0) — Rollback-Plan: set to false to block A96 export on rollback.',
+        tags: [OPENAPI_TAG],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'bk_hoeheinoed_es_001' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Feature flags for the Bilanzkreis',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  id: 'bk_hoeheinoed_es_001',
+                  flags: { 'virtual_energy_sharing.enabled': true },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const bilanzkreis = await this.getStoredObject(ctx, NS_BILANZKREISE, ctx.params.id, true);
+        const flags = bilanzkreis?.featureFlags || {};
+        const enabled = flags['virtual_energy_sharing.enabled'];
+        return {
+          success: true,
+          id: ctx.params.id,
+          flags: {
+            'virtual_energy_sharing.enabled': enabled !== false, // default true for virtual_energy_sharing type
+          },
+        };
+      },
+    },
+
+    /**
+     * PATCH /bilanzkreis/:id/feature-flags
+     * Update feature flags for a Bilanzkreis.
+     */
+    updateFeatureFlags: {
+      rest: 'PATCH /:id/feature-flags',
+      params: {
+        id: { type: 'string' },
+        flags: { type: 'object' },
+      },
+      openapi: {
+        summary: 'Update feature flags for a Bilanzkreis',
+        description:
+          'Updates per-Bilanzkreis feature flags. ' +
+          'Set `virtual_energy_sharing.enabled: false` to block A96 export (rollback gate). ' +
+          'Sub-Track G (v0.47.0) — Rollback-Plan.',
+        tags: [OPENAPI_TAG],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'bk_hoeheinoed_es_001' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['flags'],
+                properties: {
+                  flags: {
+                    type: 'object',
+                    example: { 'virtual_energy_sharing.enabled': false },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Feature flags updated' },
+          404: { description: 'Bilanzkreis not found' },
+        },
+      },
+      async handler(ctx) {
+        const bilanzkreis = await this.getStoredObject(ctx, NS_BILANZKREISE, ctx.params.id, true);
+        const updatedFlags = {
+          ...(bilanzkreis.featureFlags || {}),
+          ...ctx.params.flags,
+        };
+        const updated = { ...bilanzkreis, featureFlags: updatedFlags, updatedAt: new Date().toISOString() };
+        await this.putStoredObject(ctx, NS_BILANZKREISE, ctx.params.id, updated);
+        return { success: true, id: ctx.params.id, flags: updatedFlags };
+      },
+    },
   },
 
   methods: {

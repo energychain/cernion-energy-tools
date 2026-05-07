@@ -644,7 +644,14 @@ module.exports = {
           installationType: assetType,
         };
 
-        if (location) callParams.postleitzahl = location;
+        if (location) {
+          const normalizedLocation = String(location).trim();
+          if (/^\d{5}$/.test(normalizedLocation)) {
+            callParams.postleitzahl = normalizedLocation;
+          } else {
+            callParams.location = normalizedLocation;
+          }
+        }
         if (commissioningYear) callParams.commissioningYear = commissioningYear;
         if (effectiveMinCapacity !== undefined) callParams.minCapacityKW = effectiveMinCapacity;
         if (maxCapacityKW !== undefined) callParams.maxCapacityKW = maxCapacityKW;

@@ -7,6 +7,110 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.47.0] — §42c Energieteilen Production-Cutover Sub-Tracks A–G
+
+### Added
+
+**Sub-Track A — A96-Feldspezifikation mit BNetzA-Fallback**
+- New module `src/a96-validator.js`: JSON-schema validation for A96 MSCONS messages, drift detection for 4 `[BNetzA-OFFEN]` fields (`ErzeugerMastrNummer`, `Bilanzierungsmonat`, `BdewCodeNetzbetreiber`, `QualitaetskennzeichenMscons`), defensive defaults via `applyA96Defaults()`, finding code `ES_A96_FIELD_DRIFT` (severity: warning)
+- New doc `docs/ENERGY_SHARING_A96_DEFAULTS.md`: All 4 open fields documented with defensive defaults, spec-freeze date 2026-06-15, Q3 2026 BNetzA final spec deferred to v0.51
+- New test suite `tests/a96-validator.test.js`: 13 unit tests covering validate, applyDefaults, buildDriftFinding
+
+**Sub-Track B — Pilot-Tenant Höheinöd produktiv**
+- `services/energy-sharing.service.js`: Tenant-prefixed doc IDs (`es:{tenantId}:{uuid}`), tenantId index, scoped list/get with fallback to legacy prefix
+- `services/energy-sharing-allocation.service.js`: Tenant-prefixed doc IDs (`alloc:{tenantId}:{uuid}`), tenantId index
+- New migration script `scripts/migrate-tenant-energy-sharing.js`: Fully automated tenant migration (`--tenant`, `--dry-run`), idempotent, EU AI Act Art. 12 audit manifest at `data/migrations/`
+
+**Sub-Track C — Settlement-Readiness Härte-Test**
+- Fixed stale references: canonical module is `src/settlement-calculator.js` → `calculateSettlementReadiness()` (not the non-existent `src/settlement-readiness.js`)
+- Updated `docs/roadmap/issues/13-energy-sharing-42c-subtracks.md` and CHANGELOG references accordingly
+
+**Sub-Track D — Allokations-Engine Last-Test**
+- New test suite `tests/energy-sharing-allocation-load.test.js`: 5 sub-tests — CSV byte-determinism, 30d×96 intervals×100 consumers×5 generators within 10s CI budget, heap delta < 512 MB, allocation correctness (lossless), `ALLOC_MAX_WORKERS` env conformance
+
+**Sub-Track E — Operative Runbooks + HITL-Wiring**
+- `services/energy-sharing.service.js`: HITL escalation wired on `error`-severity findings — calls `hitl.create` with `kind: 'energy-sharing-validation-error'`, `originService: 'energy-sharing'`, `originAction: 'validate'`, `severity: 'error'`
+- New runbook `docs/RUNBOOK_ES_INCIDENT.md`: 6 incident types (MSCONS gap, Stufe-A/B Reklamation, DV-Wechsel, BK-Korrektur, A96 rollback gate), escalation levels L1–L4
+
+**Sub-Track F — Compliance Sign-Off (DSGVO Art. 35)**
+- New template `docs/DSFA_TEMPLATE.md`: DSGVO Art. 35 compliant DSFA template, risk matrix (probability × impact), data categories, Art. 7/17/20 rights references, signature block
+
+**Sub-Track G — Rollback-Plan + Feature Flag + Backup/Restore**
+- New service `services/backup-orchestrator.service.js`: Full data restore orchestration for energy-sharing PouchDB, allocation-engine PouchDB, datapoints PouchDB, jobs dir, tokens file. 5 admin API actions: `snapshot`, `restore`, `list`, `get`, `delete`. SHA-256 `provenanceHash` manifest (EU AI Act Art. 12). Restore is additive (missing docs restored, existing skipped).
+- `services/bilanzkreis.service.js`: New `getFeatureFlags` (`GET /:id/feature-flags`) and `updateFeatureFlags` (`PATCH /:id/feature-flags`) actions for `virtual_energy_sharing.enabled` flag with rollback gate
+- `services/api.service.js`: 7 new admin backup routes + 2 feature-flag routes registered
+- New runbook `docs/RUNBOOK_CUTOVER_ROLLBACK.md`: Pre-cutover checklist, Phase 0/1/2 cutover steps, 7-step rollback procedure, DR restore test
+
+### Breaking Changes (⚠️)
+
+- **Tenant-prefixed doc IDs**: Energy-sharing docs previously stored as `es:{uuid}` are now `es:{tenantId}:{uuid}` for non-default tenants. Run `scripts/migrate-tenant-energy-sharing.js --tenant <id>` to migrate existing data. Default tenant continues to use legacy prefix without migration.
+- **Allocation doc IDs**: Same pattern: `alloc:{tenantId}:{uuid}` for non-default tenants.
+
+### Fixed
+
+- `src/settlement-calculator.js` was referenced as `src/settlement-readiness.js` in roadmap issue doc and CHANGELOG — corrected.
+
+## [0.46.5] — Finance Agent KPI benchmark orchestrator + MaStR asset fixes
+
+### Added
+- **New Finance Agent KPI benchmark orchestrator** in [services/finance-agent.service.js](services/finance-agent.service.js):
+  - new action `finance-agent.benchmarkComparison` (REST POST /benchmark-comparison)
+  - multi-service orchestration: resolves both VNBs via marketPartners, fetches EWK metrics (Anschlussdauer, Digitalisierungsindex, Umsetzungsquote)
+  - optional asset context (solar, wind, storage portfolios) via `assets.all`
+  - returns evidence-based comparison with hard KPI synthesis (no RAG hypotheticals)
+  - PouchDB persistence with `fa:benchmark:*` document type
+  - 4-step pipeline: VNB resolution → EWK fetch → optional asset context → synthesis
+  - parameters: `vnb1Name`, `vnb2Name` (required), `comparisonDimensions` (default: anschlussdauer, digitalisierungsindex, umsetzungsquote), `includeAssetContext` (default: false)
+
+- **New VNB KPI benchmark comparison capability** in [src/capability-catalog.js](src/capability-catalog.js):
+  - capability `vnb_kpi_benchmark_comparison` in finance-agent domain
+  - keywords: benchmark, vergleich, potenzialvergleich, nachbar, wettbewerber, kpi, anschlussdauer, digitalisierungsindex, umsetzungsquote, ewk
+  - preferred actions: marketPartners, benchmarkVnb, vnbLookup, assets.all
+  - registered in CURATED_CAPABILITIES array with full capability descriptor
+
+### Fixed
+- **MaStR asset filtering (`energy-market.service.js`) now sends correct parameter name to MCP tool** ([services/energy-market.service.js](services/energy-market.service.js)):
+  - Parameter name corrected: `gridOperatorId` → `gridOperatorMastrId` at line 1001
+  - Upstream MCP tool `cernion_installations_local` expects `gridOperatorMastrId` (not `gridOperatorId`)
+  - Previous regression: `/api/assets/solar?gridOperatorId=SNB...` returned installations from all grid operators
+
+- **Defensive post-filter added to MaStR asset queries** ([services/energy-market.service.js](services/energy-market.service.js)):
+  - lines 1087-1117: After MCP retrieval, extracts operator IDs from multiple fields (netzbetreiberMastrNummer, napData.netzbetreiberMastrNummer, anschlussnetzbetreiberMastrNummer)
+  - drops installations with non-matching operator IDs; keeps rows without IDs (older MaStR records)
+  - ensures consistent filtering even if upstream MCP tool ignores parameters
+
+- **Asset location parameter routing fixed** ([services/assets.service.js](services/assets.service.js)):
+  - lines 647-654: distinguishes 5-digit postal codes from city names
+  - 5-digit patterns → `postleitzahl` parameter; others → `location` parameter
+  - prevents validation errors when city names passed to PLZ-only fields
+
+- **BDEW code normalization added** ([services/energy-market.service.js](services/energy-market.service.js)):
+  - removes internal whitespace from BDEW codes before forwarding to MCP tool
+  - supports BDEW codes with spaces (e.g., "9900 599000003")
+
+### Tests
+- Added 12 new tests for `benchmarkComparison` action in [tests/finance-agent.service.test.js](tests/finance-agent.service.test.js):
+  - evidence-based comparison for two valid VNBs
+  - correct comparison of all three dimensions (anschlussdauer, digitalisierungsindex, umsetzungsquote)
+  - asset context inclusion/exclusion behavior
+  - default comparisonDimensions
+  - PouchDB persistence and retrieval
+  - no regression in existing `analyze` RAG flow
+
+- Added 2 new tests for Capability Broker routing in [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js):
+  - routes VNB KPI benchmark queries to correct capability
+  - includes correct keywords for recommendation
+
+- Added regression tests in [tests/energy-market.service.test.js](tests/energy-market.service.test.js):
+  - gridOperatorMastrId parameter forwarding
+  - defensive post-filter logic (matching rows + fallback)
+
+- Added regression tests in [tests/assets.service.test.js](tests/assets.service.test.js):
+  - location parameter routing (5-digit vs city names)
+
+### Changed
+- `finance-agent.get` action now supports both `/fa:*` and `/fa:benchmark:*` document types (updated document retrieval logic).
+
 ## [0.46.4] — Finance Agent $gateway fix (correct Moleculer meta merge)
 
 ### Fixed
@@ -145,7 +249,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Planning foundations consolidated** across:
   - [docs/ENERGY_SHARING_ABNAHME.md](docs/ENERGY_SHARING_ABNAHME.md): Regulatory acceptance checklist with explicit `[BNetzA-OFFEN]` field markers
-  - [src/settlement-readiness.js](src/settlement-readiness.js): KPI logic for `PARAGRAF_42C_KONFORM` and `A96_FAEHIG`
+  - [src/settlement-calculator.js](src/settlement-calculator.js): KPI logic for `PARAGRAF_42C_KONFORM` and `A96_FAEHIG` (function `calculateSettlementReadiness`)
   - [services/energy-sharing.service.js](services/energy-sharing.service.js): 6-step §42c validation pipeline (deterministic, auditable)
   - [services/energy-sharing-allocation.service.js](services/energy-sharing-allocation.service.js): Allocation engine with CSV export (SLA-critical)
   - [services/settlement.service.js](services/settlement.service.js): A96 readiness endpoint and settlement-export path

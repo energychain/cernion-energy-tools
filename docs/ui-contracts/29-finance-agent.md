@@ -1,6 +1,6 @@
 # UI Contract 29 — Finance Agent
 
-Version: 0.44.5
+Version: 0.46.5
 Status: Draft (backend-owned)
 
 ## Purpose
@@ -64,6 +64,11 @@ Query params:
 ### 3) GET `/analyses/:id`
 Get full persisted analysis document.
 
+Notes:
+- The backend resolves both persisted document prefixes:
+	- `fa:<id>` (regular finance analysis)
+	- `fa:benchmark:<id>` (KPI benchmark comparison)
+
 ### 4) GET `/prompts`
 Expose internal prompt templates for governance/transparency.
 
@@ -76,6 +81,23 @@ Request:
 
 ### 6) GET `/memory/:sessionId`
 Read stored session memory for follow-up analyses.
+
+### 7) POST `/benchmark-comparison`
+Run evidence-based KPI benchmark comparison for two VNBs and persist the result.
+
+Request:
+- `vnb1Name` (required, string)
+- `vnb2Name` (required, string)
+- `comparisonDimensions` (optional string[], default: `anschlussdauer`, `digitalisierungsindex`, `umsetzungsquote`)
+- `includeAssetContext` (optional boolean, default `false`)
+
+Response:
+- `success`, `id`
+- `status` (comparison result quality)
+- `summary`
+- `comparison` (dimension-by-dimension KPI values and winner/tie signal)
+- `evidence` (hard KPI inputs from benchmark and optional asset context)
+- `findings[]`, `steps[]`
 
 ## Finding Codes (Finance Agent)
 

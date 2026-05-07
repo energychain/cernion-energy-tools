@@ -1,6 +1,6 @@
 # UI Contracts — Architecture Overview
 
-> **Version:** 0.44.5
+> **Version:** 0.46.5
 > **Purpose:** This directory defines the binding contract between the Cernion backend
 > and any frontend consumer (dashboard, admin portal, embedded widgets). Each file
 > describes one UI "page" or "panel" with its API endpoints, response field mapping,
@@ -30,13 +30,22 @@
 | 11 | [11-nbp-monitor.md](11-nbp-monitor.md) | NBP Monitor panel | `GET /api/nbp-monitor/status` |
 | 12 | [12-auth.md](12-auth.md) | Token management | `GET /api/tokens` |
 | 13 | [13-shared-components.md](13-shared-components.md) | Shared UI components | Multiple |
-| 14 | [14-finding-code-recommendations.md](14-finding-code-recommendations.md) | Finding-Code recommendations panel | `GET /api/dashboard/finding-codes/recommendations` |
+| 14 | [14-company.md](14-company.md) | Company entity management | `GET /api/companies` |
+| 14b | [14-finding-code-recommendations.md](14-finding-code-recommendations.md) | Finding-code recommendations panel | `GET /api/dashboard/finding-codes/recommendations` |
 | 15 | [15-nova-decision-feed.md](15-nova-decision-feed.md) | NOVA Decision Feed panel | `GET /api/znp/projects/:projectId/nova/pending-decisions` |
 | 16 | [16-znp.md](16-znp.md) | ZNP workspace and layer lifecycle | `POST /api/znp/projects` |
 | 17 | [17-nova.md](17-nova.md) | NOVA operations and SSE stream | `GET /api/znp/projects/:projectId/nova/pending-decisions` |
 | 18 | [18-cookbook.md](18-cookbook.md) | Cookbook recipes and validation | `GET /api/cookbook` |
-| 19 | [14-company.md](14-company.md) | Company entity management | `GET /api/companies` |
 | 20 | [20-cya.md](20-cya.md) | CYA narrative generation panel | `POST /api/cya/generate` |
+| 21 | [21-mastr-monitor.md](21-mastr-monitor.md) | MaStR monitoring and delta tracking | `GET /api/mastr-monitor/watches` |
+| 22 | [22-settlement.md](22-settlement.md) | Settlement calculation and reporting | `POST /api/settlement/redispatch/calculate` |
+| 23 | [23-bilanzkreis.md](23-bilanzkreis.md) | Bilanzkreis management and readiness | `POST /api/bilanzkreis/` |
+| 24 | [24-forecast-engine.md](24-forecast-engine.md) | Forecasting and dispatch planning | `POST /api/forecast-engine/load` |
+| 25 | [25-flex.md](25-flex.md) | §14a flexibility management | `POST /api/flex/devices` |
+| 26 | [26-edm.md](26-edm.md) | EDM (metering + timeseries) | `GET /api/edm/melos` |
+| 27 | [27-slp.md](27-slp.md) | SLP profiles and generation | `GET /api/slp/profiles` |
+| 28 | [28-knowledge-rag.md](28-knowledge-rag.md) | Knowledge retrieval and ingestion/query flows | `POST /api/knowledge-rag/query` |
+| 29 | [29-finance-agent.md](29-finance-agent.md) | Finance analyses and KPI benchmark comparison | `POST /api/finance-agent/analyze` |
 | 30 | [30-observability-mini.md](30-observability-mini.md) | Observability mini panel + agent prompt | `GET /api/dashboard/observability-mini` |
 | 31 | [31-asset-overrides.md](31-asset-overrides.md) | Asset override management | `POST /api/assets/:assetId/override` |
 | 40 | [40-hitl.md](40-hitl.md) | HITL approval dashboard | `GET /api/hitl/items` |

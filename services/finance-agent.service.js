@@ -554,7 +554,18 @@ module.exports = {
       },
       async handler(ctx) {
         try {
-          const doc = await this.db.get(`fa:${ctx.params.id}`);
+          // Try both regular analysis and benchmark comparison documents
+          let doc;
+          try {
+            doc = await this.db.get(`fa:${ctx.params.id}`);
+          } catch (err1) {
+            // If not found, try benchmark prefix
+            try {
+              doc = await this.db.get(`fa:benchmark:${ctx.params.id}`);
+            } catch (err2) {
+              throw err1; // Throw the original error
+            }
+          }
           return { success: true, ...doc };
         } catch (err) {
           if (err.status === 404 || err.name === 'not_found') {
@@ -579,6 +590,117 @@ module.exports = {
           modeDefault: 'rule_plus_hyde',
           prompts: INTERNAL_PROMPTS,
         };
+      },
+    },
+
+    benchmarkComparison: {
+      rest: 'POST /benchmark-comparison',
+      timeout: 60_000,
+      params: {
+        vnb1Name: { type: 'string', min: 2, trim: true },
+        vnb2Name: { type: 'string', min: 2, trim: true },
+        comparisonDimensions: {
+          type: 'array',
+          items: 'string',
+          optional: true,
+          default: ['anschlussdauer', 'digitalisierungsindex', 'umsetzungsquote'],
+        },
+        includeAssetContext: { type: 'boolean', optional: true, default: false },
+      },
+      openapi: {
+        summary: 'Compare KPI metrics for two VNBs using Layer-0 data',
+        description:
+          'Multi-service orchestrator: resolves both VNBs via marketPartners, ' +
+          'fetches EWK benchmark metrics (Anschlussdauer, Digitalisierungsindex, Umsetzungsquote), ' +
+          'optionally loads asset portfolios (solar, wind, storage). ' +
+          'Returns evidence-based comparison with hard KPI synthesis (no RAG hypotheticals).',
+        tags: [OPENAPI_TAG],
+        'x-oeo-class': FINANCE_OEO_CLASS,
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['vnb1Name', 'vnb2Name'],
+                properties: {
+                  vnb1Name: {
+                    type: 'string',
+                    example: 'Netze BW',
+                    description: 'Name of first VNB (grid operator)',
+                  },
+                  vnb2Name: {
+                    type: 'string',
+                    example: 'TWL Netze',
+                    description: 'Name of second VNB (grid operator)',
+                  },
+                  comparisonDimensions: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    default: ['anschlussdauer', 'digitalisierungsindex', 'umsetzungsquote'],
+                    description: 'EWK dimensions to compare (anschlussdauer, digitalisierungsindex, umsetzungsquote)',
+                  },
+                  includeAssetContext: {
+                    type: 'boolean',
+                    default: false,
+                    description: 'If true, includes asset portfolio (solar, wind, storage) for both VNBs',
+                  },
+                },
+              },
+              examples: {
+                default: {
+                  value: {
+                    vnb1Name: 'Netze BW',
+                    vnb2Name: 'TWL Netze',
+                    comparisonDimensions: ['anschlussdauer', 'digitalisierungsindex', 'umsetzungsquote'],
+                    includeAssetContext: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'VNB benchmark comparison with hard KPI evidence',
+          },
+        },
+      },
+      async handler(ctx) {
+        const report = await this.runBenchmarkComparison(ctx, ctx.params);
+        const id = crypto.randomUUID();
+
+        await this.db.put({
+          _id: `fa:benchmark:${id}`,
+          id,
+          type: 'vnb-benchmark-comparison',
+          vnb1Name: ctx.params.vnb1Name,
+          vnb2Name: ctx.params.vnb2Name,
+          dimensions: ctx.params.comparisonDimensions,
+          status: report.status,
+          summary: report.summary,
+          steps: report.steps,
+          findings: report.findings,
+          metadata: {
+            inputParams: {
+              includeAssetContext: !!ctx.params.includeAssetContext,
+            },
+            pipelineVersion: PIPELINE_VERSION,
+            generatedAt: new Date().toISOString(),
+          },
+          createdAt: new Date().toISOString(),
+        });
+
+        this.broker.emit('finance-agent.benchmark-comparison.completed', {
+          eventId: crypto.randomUUID(),
+          comparisonId: id,
+          vnb1Name: ctx.params.vnb1Name,
+          vnb2Name: ctx.params.vnb2Name,
+          status: report.status,
+          timestamp: new Date().toISOString(),
+        });
+
+        return { success: true, id, ...report };
       },
     },
   },
@@ -2126,6 +2248,318 @@ module.exports = {
 
       const confidence = 100 * avgScore * 0.55 + 100 * ruleFactor * 0.3 + 100 * legalFactor * 0.15;
       return Math.max(0, Math.min(100, Math.round(confidence * thresholdFactor / 100 * 100)));
+    },
+
+    async runBenchmarkComparison(ctx, params) {
+      const steps = [];
+      const findings = [];
+      const vnb1Name = String(params.vnb1Name || '').trim();
+      const vnb2Name = String(params.vnb2Name || '').trim();
+      const comparisonDimensions = Array.isArray(params.comparisonDimensions)
+        ? params.comparisonDimensions
+        : ['anschlussdauer', 'digitalisierungsindex', 'umsetzungsquote'];
+      const includeAssetContext = params.includeAssetContext === true;
+
+      if (!vnb1Name || !vnb2Name) {
+        throw new MoleculerClientError(
+          'vnb1Name and vnb2Name are required',
+          400,
+          'VALIDATION_ERROR'
+        );
+      }
+
+      // Step 1: Resolve both VNBs
+      steps.push({
+        step: 1,
+        name: 'resolve-vnbs',
+        status: 'in-progress',
+      });
+
+      // Step 1: Resolve both VNBs + fetch EWK metrics in a single parallel call.
+      // benchmarkVnb accepts fuzzy vnbName → acts as both VNB validator and EWK data source.
+      // marketPartners is used only as an optional best-effort lookup for MaStR IDs.
+      let vnb1Benchmark;
+      let vnb2Benchmark;
+      try {
+        const [bench1, bench2] = await Promise.all([
+          ctx.call('ewk-monitoring.benchmarkVnb', { vnbName: vnb1Name }),
+          ctx.call('ewk-monitoring.benchmarkVnb', { vnbName: vnb2Name }),
+        ]);
+
+        vnb1Benchmark = bench1;
+        vnb2Benchmark = bench2;
+
+        steps[0].status = 'ok';
+        findings.push({
+          code: 'FA_BENCHMARK_VNB_RESOLVED',
+          level: 'info',
+          message: `Both VNBs resolved via EWK: ${vnb1Name}, ${vnb2Name}`,
+        });
+      } catch (err) {
+        steps[0].status = 'error';
+        findings.push({
+          code: 'FA_BENCHMARK_VNB_RESOLUTION_FAILED',
+          level: 'error',
+          message: err.message,
+        });
+        return {
+          status: 'error',
+          summary: `Failed to resolve VNBs: ${err.message}`,
+          steps,
+          findings,
+          comparison: null,
+          synthesis: null,
+        };
+      }
+
+      // Minimal VNB identity objects; enrich with MaStR IDs via best-effort marketPartners lookup.
+      let vnb1 = { name: vnb1Name, mastrNummer: null, bdewCode: null };
+      let vnb2 = { name: vnb2Name, mastrNummer: null, bdewCode: null };
+      try {
+        const [r1, r2] = await Promise.all([
+          ctx.call('grid-operations.marketPartners', { query: vnb1Name, limit: 5 }),
+          ctx.call('grid-operations.marketPartners', { query: vnb2Name, limit: 5 }),
+        ]);
+        const match1 = (r1?.results || []).find(
+          (m) => m.name && m.name.toLowerCase().includes(vnb1Name.toLowerCase())
+        );
+        const match2 = (r2?.results || []).find(
+          (m) => m.name && m.name.toLowerCase().includes(vnb2Name.toLowerCase())
+        );
+        if (match1) vnb1 = { ...vnb1, name: match1.name || vnb1Name, mastrNummer: match1.mastrNummer || null, bdewCode: match1.bdewCode || null };
+        if (match2) vnb2 = { ...vnb2, name: match2.name || vnb2Name, mastrNummer: match2.mastrNummer || null, bdewCode: match2.bdewCode || null };
+      } catch (_lookupErr) {
+        // Optional enrichment — non-fatal; mastrNummer/bdewCode remain null
+        this.logger.debug('[finance-agent] marketPartners MaStR ID enrichment skipped: ' + _lookupErr.message);
+      }
+
+      // Step 2: EWK metrics already fetched in Step 1 — record as completed
+      steps.push({
+        step: 2,
+        name: 'fetch-ewk-metrics',
+        status: 'ok',
+      });
+      findings.push({
+        code: 'FA_BENCHMARK_EWK_FETCHED',
+        level: 'info',
+        message: `EWK metrics fetched for both VNBs (dimensions: ${comparisonDimensions.join(', ')})`,
+      });
+
+      // Step 3: Optional asset context
+      let vnb1Assets = null;
+      let vnb2Assets = null;
+      if (includeAssetContext) {
+        steps.push({
+          step: 3,
+          name: 'fetch-asset-context',
+          status: 'in-progress',
+        });
+
+        try {
+          // Use assets.all to get all asset types for both VNBs
+          const assetTypes = ['solar', 'wind', 'storage'];
+          const assets1 = {};
+          const assets2 = {};
+
+          for (const type of assetTypes) {
+            try {
+              const data1 = await ctx.call('assets.all', {
+                gridOperatorId: vnb1.mastrNummer || vnb1.bdewCode,
+                type,
+                limit: 1000,
+              });
+              assets1[type] = {
+                count: data1.installations ? data1.installations.length : 0,
+                totalCapacityKW: data1.installations
+                  ? data1.installations.reduce((sum, inst) => sum + (inst.capacity || 0), 0)
+                  : 0,
+              };
+            } catch (e) {
+              this.logger.debug(`[finance-agent] assets.all for VNB1 ${type} failed: ${e.message}`);
+              assets1[type] = { count: 0, totalCapacityKW: 0, error: e.message };
+            }
+
+            try {
+              const data2 = await ctx.call('assets.all', {
+                gridOperatorId: vnb2.mastrNummer || vnb2.bdewCode,
+                type,
+                limit: 1000,
+              });
+              assets2[type] = {
+                count: data2.installations ? data2.installations.length : 0,
+                totalCapacityKW: data2.installations
+                  ? data2.installations.reduce((sum, inst) => sum + (inst.capacity || 0), 0)
+                  : 0,
+              };
+            } catch (e) {
+              this.logger.debug(`[finance-agent] assets.all for VNB2 ${type} failed: ${e.message}`);
+              assets2[type] = { count: 0, totalCapacityKW: 0, error: e.message };
+            }
+          }
+
+          vnb1Assets = assets1;
+          vnb2Assets = assets2;
+
+          steps[2].status = 'ok';
+          findings.push({
+            code: 'FA_BENCHMARK_ASSETS_FETCHED',
+            level: 'info',
+            message: 'Asset context loaded for both VNBs',
+          });
+        } catch (err) {
+          steps[2].status = 'partial';
+          findings.push({
+            code: 'FA_BENCHMARK_ASSETS_PARTIAL',
+            level: 'warning',
+            message: `Asset context partially loaded: ${err.message}`,
+          });
+        }
+      }
+
+      // Step 4: Build comparison structure
+      const comparison = {
+        vnb1: {
+          name: vnb1.name,
+          mastrNummer: vnb1.mastrNummer,
+          bdewCode: vnb1.bdewCode,
+          benchmark: this._extractBenchmarkMetrics(vnb1Benchmark, comparisonDimensions),
+          assets: vnb1Assets,
+        },
+        vnb2: {
+          name: vnb2.name,
+          mastrNummer: vnb2.mastrNummer,
+          bdewCode: vnb2.bdewCode,
+          benchmark: this._extractBenchmarkMetrics(vnb2Benchmark, comparisonDimensions),
+          assets: vnb2Assets,
+        },
+        dimensionComparison: this._buildDimensionComparison(
+          vnb1Benchmark,
+          vnb2Benchmark,
+          comparisonDimensions
+        ),
+      };
+
+      steps.push({
+        step: 4,
+        name: 'synthesize-comparison',
+        status: 'ok',
+      });
+
+      findings.push({
+        code: 'FA_BENCHMARK_COMPARISON_SYNTHESIZED',
+        level: 'info',
+        message: `Comparison synthesized for ${comparisonDimensions.length} dimensions`,
+      });
+
+      // Step 5: Build evidence-based synthesis
+      const synthesis = {
+        status: 'evidence_based',
+        summary: `KPI benchmark comparison: ${vnb1.name} vs ${vnb2.name}`,
+        dataSource: 'EWK 2024 (BNetzA annual benchmark)',
+        generatedAt: new Date().toISOString(),
+      };
+
+      return {
+        status: 'ok',
+        summary: `Successfully compared ${vnb1.name} and ${vnb2.name} using EWK Layer-0 KPIs`,
+        steps,
+        findings,
+        comparison,
+        synthesis,
+      };
+    },
+
+    _extractBenchmarkMetrics(benchmarkData, dimensions) {
+      const result = {};
+      const data = benchmarkData || {};
+
+      for (const dim of dimensions) {
+        if (dim === 'anschlussdauer' && data.anschlussdauer) {
+          result.anschlussdauer = {
+            value: data.anschlussdauer.value,
+            unit: 'days',
+            rank: data.anschlussdauer.rank,
+            national: data.anschlussdauer.national,
+          };
+        } else if (dim === 'digitalisierungsindex' && data.digitalisierungsindex) {
+          result.digitalisierungsindex = {
+            value: data.digitalisierungsindex.value,
+            unit: '%',
+            rank: data.digitalisierungsindex.rank,
+            national: data.digitalisierungsindex.national,
+          };
+        } else if (dim === 'umsetzungsquote' && data.umsetzungsquote) {
+          result.umsetzungsquote = {
+            value: data.umsetzungsquote.value,
+            unit: '%',
+            rank: data.umsetzungsquote.rank,
+            national: data.umsetzungsquote.national,
+          };
+        }
+      }
+
+      return result;
+    },
+
+    _buildDimensionComparison(bench1, bench2, dimensions) {
+      const comparison = {};
+
+      for (const dim of dimensions) {
+        if (dim === 'anschlussdauer') {
+          const v1 = bench1?.anschlussdauer?.value || null;
+          const v2 = bench2?.anschlussdauer?.value || null;
+          if (v1 !== null && v2 !== null) {
+            comparison.anschlussdauer = {
+              vnb1Value: v1,
+              vnb2Value: v2,
+              diff: v2 - v1,
+              winner: v1 < v2 ? 'vnb1' : v1 > v2 ? 'vnb2' : 'equal',
+              interpretation:
+                v1 < v2
+                  ? 'VNB1 connects faster (lower is better)'
+                  : v1 > v2
+                  ? 'VNB2 connects faster (lower is better)'
+                  : 'Connection speed is equal',
+            };
+          }
+        } else if (dim === 'digitalisierungsindex') {
+          const v1 = bench1?.digitalisierungsindex?.value || null;
+          const v2 = bench2?.digitalisierungsindex?.value || null;
+          if (v1 !== null && v2 !== null) {
+            comparison.digitalisierungsindex = {
+              vnb1Value: v1,
+              vnb2Value: v2,
+              diff: v2 - v1,
+              winner: v1 > v2 ? 'vnb1' : v1 < v2 ? 'vnb2' : 'equal',
+              interpretation:
+                v1 > v2
+                  ? 'VNB1 is more digitalized (higher is better)'
+                  : v1 < v2
+                  ? 'VNB2 is more digitalized (higher is better)'
+                  : 'Digitalization maturity is equal',
+            };
+          }
+        } else if (dim === 'umsetzungsquote') {
+          const v1 = bench1?.umsetzungsquote?.value || null;
+          const v2 = bench2?.umsetzungsquote?.value || null;
+          if (v1 !== null && v2 !== null) {
+            comparison.umsetzungsquote = {
+              vnb1Value: v1,
+              vnb2Value: v2,
+              diff: v2 - v1,
+              winner: v1 > v2 ? 'vnb1' : v1 < v2 ? 'vnb2' : 'equal',
+              interpretation:
+                v1 > v2
+                  ? 'VNB1 has higher completion rate (higher is better)'
+                  : v1 < v2
+                  ? 'VNB2 has higher completion rate (higher is better)'
+                  : 'Completion rate is equal',
+            };
+          }
+        }
+      }
+
+      return comparison;
     },
   },
 };

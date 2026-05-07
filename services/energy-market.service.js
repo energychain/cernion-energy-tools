@@ -998,7 +998,7 @@ module.exports = {
             minCapacity: params.minCapacityKW,
             maxCapacity: params.maxCapacityKW,
             commissioningYear: params.commissioningYear,
-            gridOperatorId: resolvedGridOperatorId || undefined,
+            gridOperatorMastrId: resolvedGridOperatorId || undefined,
             gridOperatorBdewCode: resolvedBdewCode || undefined,
             postleitzahlNot: params.postleitzahlNot,
             includeNapData: params.includeNapData,
@@ -1082,6 +1082,36 @@ module.exports = {
               allowedNbp.includes(inst.netzbetreiberpruefungStatus)
             );
           }
+        }
+
+        // Defensive post-filter by grid operator MaStR ID.
+        // Rationale: If upstream filtering is ignored or partially applied,
+        // this enforces consistency using installation/NAP operator fields.
+        if (resolvedGridOperatorId && result?.data?.installations) {
+          const targetId = String(resolvedGridOperatorId).trim();
+
+          const extractOperatorIds = (inst) => {
+            const values = [
+              inst?.netzbetreiberMastrNummer,
+              inst?.NetzbetreiberMastrNummer,
+              inst?.anschlussnetzbetreiberMastrNummer,
+              inst?.AnschlussnetzbetreiberMastrNummer,
+              inst?.napData?.netzbetreiberMastrNummer,
+            ];
+
+            return values
+              .map((v) => (v == null ? null : String(v).trim()))
+              .filter((v) => Boolean(v));
+          };
+
+          result.data.installations = result.data.installations.filter((inst) => {
+            const ids = extractOperatorIds(inst);
+            if (ids.length === 0) {
+              // Keep records without operator IDs as fallback for older MaStR records.
+              return true;
+            }
+            return ids.includes(targetId);
+          });
         }
 
         // Post-filter by updatedAfter — checks lastUpdatedAt (MongoDB field for MaStR DatumLetzteMeldung)

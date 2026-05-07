@@ -1211,7 +1211,7 @@ describe('Energy Market Service', () => {
     });
 
     // Bug 1 ─────────────────────────────────────────────────────────────────
-    it('Bug 1: gridOperatorMastrId is forwarded as gridOperatorId (not gridOperatorMastrId) to MCP', async () => {
+    it('Bug 1: gridOperatorMastrId is forwarded as gridOperatorMastrId to MCP', async () => {
       await broker.call('energy-market.installations', {
         installationType: 'solar',
         gridOperatorMastrId: 'SNB924510006275',
@@ -1220,20 +1220,20 @@ describe('Energy Market Service', () => {
       const [toolName, params] = callWithNewSession.mock.calls[0];
       expect(toolName).toBe('cernion_installations_local');
       // Must arrive under the key the MCP tool actually accepts
-      expect(params.gridOperatorId).toBe('SNB924510006275');
-      // The wrong key must NOT be present
-      expect(params.gridOperatorMastrId).toBeUndefined();
+      expect(params.gridOperatorMastrId).toBe('SNB924510006275');
+      // Deprecated alias must NOT be sent to MCP
+      expect(params.gridOperatorId).toBeUndefined();
     });
 
-    it('Bug 1: deprecated gridOperatorId alias is also forwarded as gridOperatorId', async () => {
+    it('Bug 1: deprecated gridOperatorId alias is normalized to gridOperatorMastrId', async () => {
       await broker.call('energy-market.installations', {
         installationType: 'solar',
         gridOperatorId: 'SNB900599182315',
         limit: 5,
       });
       const [, params] = callWithNewSession.mock.calls[0];
-      expect(params.gridOperatorId).toBe('SNB900599182315');
-      expect(params.gridOperatorMastrId).toBeUndefined();
+      expect(params.gridOperatorMastrId).toBe('SNB900599182315');
+      expect(params.gridOperatorId).toBeUndefined();
     });
 
     it('Bug 1: WSW SNB-ID (SNB900599182315) is forwarded — no longer produces NO DATA FOUND', async () => {
@@ -1243,7 +1243,53 @@ describe('Energy Market Service', () => {
         limit: 10,
       });
       const [, params] = callWithNewSession.mock.calls[0];
-      expect(params.gridOperatorId).toBe('SNB900599182315');
+      expect(params.gridOperatorMastrId).toBe('SNB900599182315');
+    });
+
+    it('Bug 1: known SNB keeps matching rows, drops mismatching rows, keeps rows without operator IDs as fallback', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          installations: [
+            {
+              mastrNummer: 'SEE_MATCH_DIRECT',
+              bruttoleistung: 100,
+              einheitBetriebsstatus: '35',
+              netzbetreiberMastrNummer: 'SNB935578300972',
+            },
+            {
+              mastrNummer: 'SEE_MATCH_NAP',
+              bruttoleistung: 90,
+              einheitBetriebsstatus: '35',
+              napData: { netzbetreiberMastrNummer: 'SNB935578300972' },
+            },
+            {
+              mastrNummer: 'SEE_FOREIGN',
+              bruttoleistung: 80,
+              einheitBetriebsstatus: '35',
+              netzbetreiberMastrNummer: 'SNB000000000000',
+            },
+            {
+              mastrNummer: 'SEE_FALLBACK_NO_ID',
+              bruttoleistung: 70,
+              einheitBetriebsstatus: '35',
+            },
+          ],
+          stats: { count: 4 },
+        },
+      });
+
+      const result = await broker.call('energy-market.installations', {
+        installationType: 'solar',
+        gridOperatorMastrId: 'SNB935578300972',
+        limit: 10,
+      });
+
+      const ids = result.data.installations.map((i) => i.mastrNummer);
+      expect(ids).toContain('SEE_MATCH_DIRECT');
+      expect(ids).toContain('SEE_MATCH_NAP');
+      expect(ids).toContain('SEE_FALLBACK_NO_ID');
+      expect(ids).not.toContain('SEE_FOREIGN');
     });
 
     // Bug 2 ─────────────────────────────────────────────────────────────────
@@ -1313,8 +1359,8 @@ describe('Energy Market Service', () => {
 
       // Second call (installations) must use the resolved MaStR ID, NOT the name
       const [, installationParams] = callWithNewSession.mock.calls[1];
-      expect(installationParams.gridOperatorId).toBe('SNB924510006275');
-      expect(installationParams.gridOperatorMastrId).toBeUndefined();
+      expect(installationParams.gridOperatorMastrId).toBe('SNB924510006275');
+      expect(installationParams.gridOperatorId).toBeUndefined();
     });
 
     it('Bug 3: gridOperatorName — annotated MaStR ID suffix is stripped', async () => {
@@ -1343,7 +1389,7 @@ describe('Energy Market Service', () => {
 
       const [, installationParams] = callWithNewSession.mock.calls[1];
       // Must be stripped to bare SNB ID
-      expect(installationParams.gridOperatorId).toBe('SNB924510006275');
+      expect(installationParams.gridOperatorMastrId).toBe('SNB924510006275');
     });
 
     it('Bug 3: gridOperatorName resolution failure is handled gracefully', async () => {

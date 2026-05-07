@@ -280,6 +280,12 @@ describe('Assets Service — NAP enrichment and netzbetreiberpruefungStatus', ()
     await broker.call('assets.solar', { bdewCode: '10002954' });
     expect(capturedCalls[0].params.gridOperatorBdewCode).toBe('10002954');
   });
+
+  it('should forward non-PLZ location as location (not postleitzahl)', async () => {
+    await broker.call('assets.solar', { location: 'Ludwigshafen' });
+    expect(capturedCalls[0].params.location).toBe('Ludwigshafen');
+    expect(capturedCalls[0].params.postleitzahl).toBeUndefined();
+  });
 });
 
 describe('Assets Service — byDirektvermarkter', () => {

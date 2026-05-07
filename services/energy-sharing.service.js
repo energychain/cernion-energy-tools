@@ -88,6 +88,7 @@ module.exports = {
   async started() {
     await this.db.createIndex({ index: { fields: ['communityId'] } });
     await this.db.createIndex({ index: { fields: ['createdAt'] } });
+    await this.db.createIndex({ index: { fields: ['tenantId'] } });
     this.logger.info(`Energy-sharing validation DB initialized at ${this.settings.dbPath}`);
   },
 
@@ -254,9 +255,43 @@ module.exports = {
 
         // Persist to PouchDB (KRITIS: raw installation data NOT stored, only report metadata)
         const id = crypto.randomUUID();
+        const tenantId = resolveTenantId(ctx) || 'default';
+        // Tenant-isolation: prefix _id with tenantId for doc-prefix isolation (v0.47)
+        const docId = tenantId !== 'default' ? `es:${tenantId}:${id}` : `es:${id}`;
+
+        // Sub-Track E: HITL escalation on error findings (v0.47)
+        const errorFindings = (report.findings || []).filter((f) => f.severity === 'error');
+        if (errorFindings.length > 0) {
+          try {
+            await ctx.call(
+              'hitl.create',
+              {
+                kind: 'energy-sharing-validation-error',
+                payload: {
+                  validationId: id,
+                  communityId: report.communityId || '',
+                  communityName: report.communityName || '',
+                  decision: report.decision,
+                  errorCount: errorFindings.length,
+                  errorCodes: errorFindings.map((f) => f.finding),
+                  tenantId,
+                },
+                originService: 'energy-sharing',
+                originAction: 'validate',
+                severity: 'error',
+                requiredScope: 'full-access',
+              },
+              { meta: { ...ctx.meta, $gateway: false } }
+            );
+          } catch (hitlErr) {
+            this.logger.warn(`[energy-sharing] HITL escalation failed: ${hitlErr.message}`);
+          }
+        }
+
         const doc = {
-          _id: `es:${id}`,
+          _id: docId,
           id,
+          tenantId,
           type: 'energy-sharing-validation',
           communityName: report.communityName,
           communityId: report.communityId,
@@ -352,13 +387,20 @@ module.exports = {
         },
       },
       async handler(ctx) {
+        const tenantId = resolveTenantId(ctx) || 'default';
+        // Tenant-isolation: scope allDocs to tenant prefix (v0.47)
+        const prefix = tenantId !== 'default' ? `es:${tenantId}:` : 'es:';
+        const endkey = tenantId !== 'default' ? `es:${tenantId}:\ufff0` : 'es:\ufff0';
         const result = await this.db.allDocs({
           include_docs: true,
-          startkey: 'es:',
-          endkey: 'es:\ufff0',
+          startkey: prefix,
+          endkey,
         });
 
-        let docs = result.rows.map((r) => r.doc);
+        // When listing 'default' tenant, exclude any tenant-prefixed docs
+        let docs = result.rows
+          .map((r) => r.doc)
+          .filter((d) => (tenantId === 'default' ? !/^es:[^:]+:[^:]+$/.test(d._id) : true));
 
         if (ctx.params.communityId) {
           docs = docs.filter((d) => d.communityId === ctx.params.communityId);
@@ -366,7 +408,6 @@ module.exports = {
 
         docs.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
 
-        const tenantId = resolveTenantId(ctx);
         const filterHash = buildFilterHash({ communityId: ctx.params.communityId || null });
         const page = applyCursorPagination({
           items: docs,
@@ -423,16 +464,27 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        try {
-          const doc = await this.db.get(`es:${ctx.params.id}`);
-          return { success: true, ...doc };
-        } catch (err) {
-          if (err.status === 404 || err.name === 'not_found') {
-            ctx.meta.$statusCode = 404;
-            return { success: false, message: `Validation ${ctx.params.id} not found` };
+        const tenantId = resolveTenantId(ctx) || 'default';
+        // Try tenant-prefixed key first (v0.47), fall back to legacy key
+        const tenantKey = tenantId !== 'default' ? `es:${tenantId}:${ctx.params.id}` : null;
+        const legacyKey = `es:${ctx.params.id}`;
+
+        let doc = null;
+        const keysToTry = tenantKey ? [tenantKey, legacyKey] : [legacyKey];
+        for (const key of keysToTry) {
+          try {
+            doc = await this.db.get(key);
+            break;
+          } catch (err) {
+            if (err.status !== 404 && err.name !== 'not_found') throw err;
           }
-          throw err;
         }
+
+        if (!doc) {
+          ctx.meta.$statusCode = 404;
+          return { success: false, message: `Validation ${ctx.params.id} not found` };
+        }
+        return { success: true, ...doc };
       },
     },
   },
