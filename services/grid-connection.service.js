@@ -4,6 +4,7 @@ const crypto = require('crypto');
 const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 const CernionMCPClient = require('../src/mcp-client');
+const { runAsync } = require('../src/async-job-runner');
 const {
   applyCursorPagination,
   applyOffsetDeprecationHeader,
@@ -155,6 +156,21 @@ module.exports = {
           },
         },
         responses: {
+          202: {
+            description:
+              'REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result.',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  jobId: 'f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6',
+                  status: 'queued',
+                  statusUrl: '/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status',
+                  resultUrl: '/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result',
+                },
+              },
+            },
+          },
           200: {
             description: 'ValidationReport with findings from all 6 pipeline steps',
             content: {
@@ -177,46 +193,53 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { gridOperatorId, gridOperatorBdew, gridOperatorName } = ctx.params;
-        if (!gridOperatorId && !gridOperatorBdew && !gridOperatorName) {
-          throw new Error(
-            'At least one of gridOperatorId, gridOperatorBdew, or gridOperatorName is required'
-          );
-        }
+        return runAsync(ctx, {
+          service: 'grid-connection',
+          action: 'validate',
+          params: ctx.params,
+          worker: async () => {
+            const { gridOperatorId, gridOperatorBdew, gridOperatorName } = ctx.params;
+            if (!gridOperatorId && !gridOperatorBdew && !gridOperatorName) {
+              throw new Error(
+                'At least one of gridOperatorId, gridOperatorBdew, or gridOperatorName is required'
+              );
+            }
 
-        const operator = await this.resolveOperator(ctx, ctx.params);
-        const report = await this.runPipeline(ctx, ctx.params, operator);
+            const operator = await this.resolveOperator(ctx, ctx.params);
+            const report = await this.runPipeline(ctx, ctx.params, operator);
 
-        // Persist to PouchDB (KRITIS: raw installation data NOT stored, only report metadata)
-        const id = crypto.randomUUID();
-        const doc = {
-          _id: `val:${id}`,
-          id,
-          type: 'grid-connection-validation',
-          gridOperator: report.gridOperator,
-          decision: report.decision,
-          summary: report.summary,
-          findings: report.findings,
-          snapshot: report.snapshot,
-          steps: report.steps,
-          metadata: {
-            ...report.metadata,
-            inputParams: {
-              gridOperatorId: ctx.params.gridOperatorId || null,
-              gridOperatorBdew: ctx.params.gridOperatorBdew || null,
-              gridOperatorName: ctx.params.gridOperatorName || null,
-              datapointTags: ctx.params.datapointTags || [],
-              maxAgeMinutes: ctx.params.maxAgeMinutes,
-              skipSteps: ctx.params.skipSteps || [],
-              includeCapacityCheck: ctx.params.includeCapacityCheck || false,
-            },
+            // Persist to PouchDB (KRITIS: raw installation data NOT stored, only report metadata)
+            const id = crypto.randomUUID();
+            const doc = {
+              _id: `val:${id}`,
+              id,
+              type: 'grid-connection-validation',
+              gridOperator: report.gridOperator,
+              decision: report.decision,
+              summary: report.summary,
+              findings: report.findings,
+              snapshot: report.snapshot,
+              steps: report.steps,
+              metadata: {
+                ...report.metadata,
+                inputParams: {
+                  gridOperatorId: ctx.params.gridOperatorId || null,
+                  gridOperatorBdew: ctx.params.gridOperatorBdew || null,
+                  gridOperatorName: ctx.params.gridOperatorName || null,
+                  datapointTags: ctx.params.datapointTags || [],
+                  maxAgeMinutes: ctx.params.maxAgeMinutes,
+                  skipSteps: ctx.params.skipSteps || [],
+                  includeCapacityCheck: ctx.params.includeCapacityCheck || false,
+                },
+              },
+              createdAt: new Date().toISOString(),
+            };
+
+            await this.db.put(doc);
+
+            return { success: true, id, ...report };
           },
-          createdAt: new Date().toISOString(),
-        };
-
-        await this.db.put(doc);
-
-        return { success: true, id, ...report };
+        });
       },
     },
 

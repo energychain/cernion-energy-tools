@@ -57,9 +57,15 @@ describe('Job Status Service', () => {
       expect(svc.actions.result).toBeDefined();
     });
 
+    it('should expose a "progress" action', () => {
+      const svc = broker.getLocalService('job-status');
+      expect(svc.actions.progress).toBeDefined();
+    });
+
     it('should have correct REST endpoints', () => {
       const schema = broker.getLocalService('job-status').schema;
       expect(schema.actions.status.rest).toBe('GET /:jobId/status');
+      expect(schema.actions.progress.rest).toBe('GET /:jobId/progress');
       expect(schema.actions.result.rest).toBe('GET /:jobId/result');
     });
 
@@ -204,6 +210,67 @@ describe('Job Status Service', () => {
 
     it('should require jobId parameter', async () => {
       await expect(broker.call('job-status.result', {})).rejects.toThrow();
+    });
+  });
+
+  describe('progress action', () => {
+    it('returns 404 for unknown job', async () => {
+      jobStore.getJob.mockReturnValue(null);
+      const meta = {};
+      const result = await broker.call('job-status.progress', { jobId: 'ghost' }, { meta });
+      expect(meta.$statusCode).toBe(404);
+      expect(result.success).toBe(false);
+    });
+
+    it('returns normalized JSON progress payload by default', async () => {
+      jobStore.getJob.mockReturnValue({
+        jobId: 'job-1',
+        status: 'running',
+        logs: [
+          {
+            id: '1',
+            timestamp: '2026-01-01T00:00:00.000Z',
+            phase: 'step_a',
+            percent: 25,
+            message: 'Step A',
+            step: 1,
+            totalSteps: 4,
+            payload: { a: true },
+          },
+        ],
+      });
+
+      const result = await broker.call('job-status.progress', { jobId: 'job-1' }, { meta: {} });
+      expect(result.success).toBe(true);
+      expect(result.progress).toEqual(
+        expect.objectContaining({ step: 1, totalSteps: 4, message: 'Step A' })
+      );
+      expect(result.events).toHaveLength(1);
+    });
+
+    it('returns SSE payload and replays events after Last-Event-ID', async () => {
+      jobStore.getJob.mockReturnValue({
+        jobId: 'job-2',
+        status: 'running',
+        logs: [
+          { id: '1', timestamp: '2026-01-01T00:00:00.000Z', phase: 'a', percent: 10, message: 'A' },
+          { id: '2', timestamp: '2026-01-01T00:00:01.000Z', phase: 'b', percent: 50, message: 'B' },
+          { id: '3', timestamp: '2026-01-01T00:00:02.000Z', phase: 'c', percent: 90, message: 'C' },
+        ],
+      });
+
+      const meta = {
+        requestHeaders: {
+          accept: 'text/event-stream',
+          'last-event-id': '2',
+        },
+      };
+
+      const result = await broker.call('job-status.progress', { jobId: 'job-2' }, { meta });
+      expect(meta.$responseType).toContain('text/event-stream');
+      expect(result).toContain('event: progress');
+      expect(result).toContain('id: 3');
+      expect(result).not.toContain('id: 1');
     });
   });
 });

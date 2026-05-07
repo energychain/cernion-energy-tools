@@ -12,6 +12,10 @@ class JobStoreDriver {
     throw new Error('Not implemented: createJob');
   }
 
+  findJobByIdempotencyKey() {
+    throw new Error('Not implemented: findJobByIdempotencyKey');
+  }
+
   updateJob() {
     throw new Error('Not implemented: updateJob');
   }

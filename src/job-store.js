@@ -29,6 +29,18 @@ function buildLeasePatch() {
   };
 }
 
+function buildQueuedDescriptor(jobId, message = 'Job started. Poll /api/jobs/:jobId/status for progress.') {
+  return {
+    success: true,
+    jobId,
+    status: 'queued',
+    message,
+    statusUrl: `/api/jobs/${jobId}/status`,
+    resultUrl: `/api/jobs/${jobId}/result`,
+    progressUrl: `/api/jobs/${jobId}/progress`,
+  };
+}
+
 // ─── Public CRUD API ──────────────────────────────────────────────────────────
 
 /**
@@ -36,8 +48,13 @@ function buildLeasePatch() {
  * @param {Object} jobMeta - { service, action }
  * @returns {string} jobId
  */
-function createJob({ service, action }) {
-  return DRIVER.createJob({ service, action });
+function createJob({ service, action, idempotencyKey = null }) {
+  return DRIVER.createJob({ service, action, idempotencyKey });
+}
+
+function findJobByIdempotencyKey(service, action, idempotencyKey) {
+  if (typeof DRIVER.findJobByIdempotencyKey !== 'function') return null;
+  return DRIVER.findJobByIdempotencyKey(service, action, idempotencyKey);
 }
 
 /**
@@ -61,8 +78,8 @@ function updateJob(jobId, updates) {
  * @param {string}  message  - Human-readable log message
  * @returns {Object|null}
  */
-function appendLog(jobId, phase, percent, message) {
-  return DRIVER.appendLog(jobId, phase, percent, message);
+function appendLog(jobId, phase, percent, message, details = {}) {
+  return DRIVER.appendLog(jobId, phase, percent, message, details);
 }
 
 /**
@@ -120,14 +137,36 @@ function gcExpired(ttlMs = TTL_MS) {
  * @param {Function} worker - () => Promise<result>  (the actual async work)
  * @returns {Promise<Object>} queued job descriptor OR direct worker result
  */
-async function startJob(ctx, jobMeta, worker) {
+async function startJob(ctx, jobMeta, worker, options = {}) {
   // ── Internal call (no gateway flag) — fall through to synchronous result ──
   if (!ctx.meta.$gateway) {
     return worker(null); // null jobId: appendLog calls are no-ops for internal callers
   }
 
+  const idempotencyKey =
+    typeof options.idempotencyKey === 'string' && options.idempotencyKey.trim()
+      ? options.idempotencyKey.trim()
+      : null;
+
+  if (idempotencyKey) {
+    const existing = findJobByIdempotencyKey(jobMeta?.service, jobMeta?.action, idempotencyKey);
+    if (existing && (existing.status === 'queued' || existing.status === 'running')) {
+      const descriptor = buildQueuedDescriptor(
+        existing.jobId,
+        'Existing idempotent job reused. Poll /api/jobs/:jobId/status for progress.'
+      );
+      descriptor.reused = true;
+      ctx.meta.$statusCode = 202;
+      ctx.meta.$responseHeaders = Object.assign(ctx.meta.$responseHeaders || {}, {
+        Location: `/api/jobs/${existing.jobId}/status`,
+        'Retry-After': '5',
+      });
+      return descriptor;
+    }
+  }
+
   // ── REST call — create job, fire worker, return 202 immediately ───────────
-  const jobId = createJob(jobMeta);
+  const jobId = createJob({ ...jobMeta, idempotencyKey });
   updateJob(jobId, { status: 'running', ...buildLeasePatch() });
 
   let heartbeat = null;
@@ -161,14 +200,7 @@ async function startJob(ctx, jobMeta, worker) {
     'Retry-After': '5',
   });
 
-  return {
-    success: true,
-    jobId,
-    status: 'queued',
-    message: 'Job started. Poll /api/jobs/:jobId/status for progress.',
-    statusUrl: `/api/jobs/${jobId}/status`,
-    resultUrl: `/api/jobs/${jobId}/result`,
-  };
+  return buildQueuedDescriptor(jobId);
 }
 
 function getDriverInfo() {
@@ -177,6 +209,7 @@ function getDriverInfo() {
 
 module.exports = {
   createJob,
+  findJobByIdempotencyKey,
   updateJob,
   appendLog,
   saveResult,

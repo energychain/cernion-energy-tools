@@ -14,7 +14,8 @@ const {
   synthesizePersonaEvaluation,
   synthesizeConsensusWith,
 } = require('../src/cya-synthesis');
-const { startJob, appendLog } = require('../src/job-store');
+const { appendLog } = require('../src/job-store');
+const { runAsync } = require('../src/async-job-runner');
 const { PERSONA_ENUM, validatePerspectives, getPersona } = require('../src/cya-agent-personas');
 const { getTemplate, listTemplates } = require('../src/cya-profile-templates');
 const { buildCyaNarrativePdf } = require('../src/cya-report-builder');
@@ -2057,7 +2058,11 @@ module.exports = {
             );
           }
           // Multi-agent path: Phase 1–2 shared, Phase 3–4 per-persona, conflict loop
-          return startJob(ctx, { service: 'cya', action: 'generate' }, async (jobId) => {
+          return runAsync(ctx, {
+            service: 'cya',
+            action: 'generate',
+            params: ctx.params,
+            worker: async (jobId) => {
             const sessionId = ctx.params.session_id || `cya_${Date.now()}`;
             return this.runMultiAgentOrchestration(ctx, {
               jobId,
@@ -2067,11 +2072,16 @@ module.exports = {
               context,
               perspectives,
             });
+            },
           });
         }
 
         // Classic v0.26.8 single-agent path
-        return startJob(ctx, { service: 'cya', action: 'generate' }, async (jobId) => {
+        return runAsync(ctx, {
+          service: 'cya',
+          action: 'generate',
+          params: ctx.params,
+          worker: async (jobId) => {
           const profile = await this.loadProfile(ctx, profile_id);
           const sessionId = ctx.params.session_id || `cya_${Date.now()}`;
 
@@ -2222,6 +2232,7 @@ module.exports = {
           }
 
           return response;
+          },
         });
       },
     },

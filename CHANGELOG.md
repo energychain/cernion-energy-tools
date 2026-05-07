@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.47.1] — Async-Job-Cutover Foundations (Client-Key Idempotency + Progress SSE)
+
+### Added
+- New shared async wrapper [src/async-job-runner.js](src/async-job-runner.js):
+  - `runAsync(ctx, ...)` for standardized async execution via job-store
+  - deterministic idempotency-key generation from request payload hash
+  - **client-key priority** for idempotency (`x-client-key` / `x-idempotency-key` / `idempotency-key`)
+- Job progress API extension in [services/job-status.service.js](services/job-status.service.js):
+  - new `GET /api/jobs/:jobId/progress` endpoint
+  - JSON polling response with normalized progress shape `progress: { step, totalSteps, message, payload }`
+  - SSE mode via `stream=true` or `Accept: text/event-stream`
+  - `Last-Event-ID` replay support (header + `lastEventId` query fallback)
+
+### Changed
+- Job-store idempotency support in [src/job-store.js](src/job-store.js) and [src/job-store/file-driver.js](src/job-store/file-driver.js):
+  - persisted `idempotencyKey` on job records
+  - lookup/reuse of existing non-error jobs for identical idempotency key
+  - `appendLog()` now supports optional normalized progress details (`step`, `totalSteps`, `payload`)
+  - async descriptor now includes `progressUrl`
+- API gateway now forwards incoming request headers into action context metadata (`ctx.meta.requestHeaders`) in [services/api.service.js](services/api.service.js) for client-key and SSE replay handling.
+- Async-cutover to shared runner for long-running actions:
+  - [services/oep.service.js](services/oep.service.js) → `oep.compareWithMastr`
+  - [services/redispatch-expost.service.js](services/redispatch-expost.service.js) → `redispatch-expost.audit`
+  - [services/grid-connection.service.js](services/grid-connection.service.js) → `grid-connection.validate`
+  - [services/energy-sharing.service.js](services/energy-sharing.service.js) → `energy-sharing.validate`
+  - [services/energy-sharing-allocation.service.js](services/energy-sharing-allocation.service.js) → `energy-sharing-allocation.allocate`
+  - [services/knowledge-rag.service.js](services/knowledge-rag.service.js) → ingest/reindex/query async entrypoints
+  - [services/cya.service.js](services/cya.service.js) → `cya.generate`
+  - [services/utility-report.service.js](services/utility-report.service.js) → gateway cutover to generic async jobs (internal path remains compatibility mode)
+
+### Documentation
+- Added/updated `202 Accepted` OpenAPI responses for migrated deterministic validation/allocation/audit endpoints.
+- Added explicit route alias `GET /jobs/:jobId/progress` in [services/api.service.js](services/api.service.js).
+
+### Tests
+- New unit suite [tests/async-job-runner.test.js](tests/async-job-runner.test.js)
+- Extended [tests/job-store.test.js](tests/job-store.test.js) for idempotent job reuse + normalized progress fields
+- Extended [tests/job-status.service.test.js](tests/job-status.service.test.js) for progress polling + SSE replay behavior
+
 ## [0.47.0] — §42c Energieteilen Production-Cutover Sub-Tracks A–G
 
 ### Added

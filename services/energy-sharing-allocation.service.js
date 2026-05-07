@@ -23,6 +23,7 @@ const crypto = require('crypto');
 const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 const CernionMCPClient = require('../src/mcp-client');
+const { runAsync } = require('../src/async-job-runner');
 const {
   applyCursorPagination,
   applyOffsetDeprecationHeader,
@@ -278,6 +279,21 @@ module.exports = {
           },
         },
         responses: {
+          202: {
+            description:
+              'REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result.',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  jobId: 'f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6',
+                  status: 'queued',
+                  statusUrl: '/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status',
+                  resultUrl: '/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result',
+                },
+              },
+            },
+          },
           200: {
             description:
               'Allocation metadata with per-consumer summaries. Time-series available via /download endpoint.',
@@ -326,96 +342,108 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const t0 = Date.now();
-        const token = ctx.meta?.cernionToken;
-        const params = ctx.params;
-        const callOpts = { meta: { ...ctx.meta, $gateway: false } };
+        return runAsync(ctx, {
+          service: 'energy-sharing-allocation',
+          action: 'allocate',
+          params: ctx.params,
+          worker: async () => {
+            const t0 = Date.now();
+            const token = ctx.meta?.cernionToken;
+            const params = ctx.params;
+            const callOpts = { meta: { ...ctx.meta, $gateway: false } };
 
-        // ── Step 1: Input validation ──────────────────────────────────────────
-        const { warnings, generators, consumers } = await this.stepValidateInput(
-          ctx,
-          params,
-          callOpts
-        );
+            // ── Step 1: Input validation ──────────────────────────────────────
+            const { warnings, generators, consumers } = await this.stepValidateInput(
+              ctx,
+              params,
+              callOpts
+            );
 
-        // ── Step 2: Fetch generation time-series ─────────────────────────────
-        const grid =
-          params.dataSource === 'inhouse'
-            ? await this.stepFetchGenerationInhouseCtx(
-                ctx,
-                buildIntervalGrid(params.dateFrom, params.dateTo),
-                params
-              )
-            : await this.stepFetchGeneration(params, generators, token);
+            // ── Step 2: Fetch generation time-series ─────────────────────────
+            const grid =
+              params.dataSource === 'inhouse'
+                ? await this.stepFetchGenerationInhouseCtx(
+                    ctx,
+                    buildIntervalGrid(params.dateFrom, params.dateTo),
+                    params
+                  )
+                : await this.stepFetchGeneration(params, generators, token);
 
-        // ── Step 3: Redispatch deduction ─────────────────────────────────────
-        const redispatchApplied = await this.stepRedispatchDeduction(grid, params, token, warnings);
+            // ── Step 3: Redispatch deduction ─────────────────────────────────
+            const redispatchApplied = await this.stepRedispatchDeduction(
+              grid,
+              params,
+              token,
+              warnings
+            );
 
-        // ── Step 4: Allocation arithmetic ────────────────────────────────────
-        allocateTimeseries(grid, consumers);
+            // ── Step 4: Allocation arithmetic ────────────────────────────────
+            allocateTimeseries(grid, consumers);
 
-        // ── Step 5: Summary assembly ─────────────────────────────────────────
-        const consumerSummaries = buildConsumerSummary(grid, consumers);
-        const totalSummary = buildTotalSummary(
-          grid,
-          params.dateFrom,
-          params.dateTo,
-          params.dataSource || 'forecast',
-          Date.now() - t0
-        );
+            // ── Step 5: Summary assembly ─────────────────────────────────────
+            const consumerSummaries = buildConsumerSummary(grid, consumers);
+            const totalSummary = buildTotalSummary(
+              grid,
+              params.dateFrom,
+              params.dateTo,
+              params.dataSource || 'forecast',
+              Date.now() - t0
+            );
 
-        // ── Step 6: Persist metadata (KRITIS: grid NOT stored) ───────────────
-        const id = crypto.randomUUID();
-        const tenantId = resolveTenantId(ctx) || 'default';
-        // Tenant-isolation: prefix _id with tenantId (v0.47)
-        const docId = tenantId !== 'default' ? `alloc:${tenantId}:${id}` : `alloc:${id}`;
-        const doc = {
-          _id: docId,
-          id,
-          tenantId,
-          type: 'energy-sharing-allocation',
-          communityId: params.communityId || '',
-          validationReportId: params.validationReportId || null,
-          dateFrom: params.dateFrom,
-          dateTo: params.dateTo,
-          dataSource: params.dataSource || 'forecast',
-          inhouseSourceId: params.inhouseSourceId || null,
-          gridOperatorId: params.gridOperatorId || null,
-          generators: generators.map((g) => ({
-            mastrNummer: g.mastrNummer,
-            sharePercent: g.sharePercent,
-          })),
-          consumers: consumerSummaries,
-          summary: totalSummary,
-          redispatchApplied,
-          warnings,
-          _deleted: false,
-          markedDeleted: false,
-          metadata: {
-            pipelineVersion: PIPELINE_VERSION,
-            executedAt: new Date().toISOString(),
-            regulatoryBasis: '§ 42c EnWG, § 12 StromNZV',
+            // ── Step 6: Persist metadata (KRITIS: grid NOT stored) ───────────
+            const id = crypto.randomUUID();
+            const tenantId = resolveTenantId(ctx) || 'default';
+            // Tenant-isolation: prefix _id with tenantId (v0.47)
+            const docId = tenantId !== 'default' ? `alloc:${tenantId}:${id}` : `alloc:${id}`;
+            const doc = {
+              _id: docId,
+              id,
+              tenantId,
+              type: 'energy-sharing-allocation',
+              communityId: params.communityId || '',
+              validationReportId: params.validationReportId || null,
+              dateFrom: params.dateFrom,
+              dateTo: params.dateTo,
+              dataSource: params.dataSource || 'forecast',
+              inhouseSourceId: params.inhouseSourceId || null,
+              gridOperatorId: params.gridOperatorId || null,
+              generators: generators.map((g) => ({
+                mastrNummer: g.mastrNummer,
+                sharePercent: g.sharePercent,
+              })),
+              consumers: consumerSummaries,
+              summary: totalSummary,
+              redispatchApplied,
+              warnings,
+              _deleted: false,
+              markedDeleted: false,
+              metadata: {
+                pipelineVersion: PIPELINE_VERSION,
+                executedAt: new Date().toISOString(),
+                regulatoryBasis: '§ 42c EnWG, § 12 StromNZV',
+              },
+              createdAt: new Date().toISOString(),
+            };
+
+            await this.db.put(doc);
+
+            return {
+              success: true,
+              id,
+              communityId: doc.communityId,
+              validationReportId: doc.validationReportId,
+              dateFrom: doc.dateFrom,
+              dateTo: doc.dateTo,
+              dataSource: doc.dataSource,
+              redispatchApplied,
+              warnings,
+              generators: doc.generators,
+              consumers: consumerSummaries,
+              summary: totalSummary,
+              metadata: doc.metadata,
+            };
           },
-          createdAt: new Date().toISOString(),
-        };
-
-        await this.db.put(doc);
-
-        return {
-          success: true,
-          id,
-          communityId: doc.communityId,
-          validationReportId: doc.validationReportId,
-          dateFrom: doc.dateFrom,
-          dateTo: doc.dateTo,
-          dataSource: doc.dataSource,
-          redispatchApplied,
-          warnings,
-          generators: doc.generators,
-          consumers: consumerSummaries,
-          summary: totalSummary,
-          metadata: doc.metadata,
-        };
+        });
       },
     },
 

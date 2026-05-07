@@ -27,7 +27,7 @@ class FileJobStoreDriver extends JobStoreDriver {
     return path.join(this.jobsDir, `${jobId}.result.json`);
   }
 
-  createJob({ service, action }) {
+  createJob({ service, action, idempotencyKey = null }) {
     this.ensureDir();
     const jobId = crypto.randomUUID();
     const now = new Date().toISOString();
@@ -35,6 +35,7 @@ class FileJobStoreDriver extends JobStoreDriver {
       jobId,
       service: service || 'unknown',
       action: action || 'unknown',
+      idempotencyKey,
       status: 'queued',
       createdAt: now,
       updatedAt: now,
@@ -51,6 +52,28 @@ class FileJobStoreDriver extends JobStoreDriver {
     return jobId;
   }
 
+  findJobByIdempotencyKey(service, action, idempotencyKey) {
+    if (!idempotencyKey) return null;
+    try {
+      this.ensureDir();
+      const files = fs.readdirSync(this.jobsDir).filter((f) => f.endsWith('.progress.json'));
+      const jobs = files
+        .map((f) => this.getJob(f.replace('.progress.json', '')))
+        .filter(Boolean)
+        .filter(
+          (j) =>
+            j.idempotencyKey === idempotencyKey &&
+            j.service === (service || 'unknown') &&
+            j.action === (action || 'unknown')
+        )
+        .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+
+      return jobs[0] || null;
+    } catch {
+      return null;
+    }
+  }
+
   updateJob(jobId, updates) {
     const job = this.getJob(jobId);
     if (!job) return null;
@@ -59,13 +82,41 @@ class FileJobStoreDriver extends JobStoreDriver {
     return updated;
   }
 
-  appendLog(jobId, phase, percent, message) {
+  appendLog(jobId, phase, percent, message, details = {}) {
     if (!jobId) return null;
     const job = this.getJob(jobId);
     if (!job) return null;
     const logs = Array.isArray(job.logs) ? job.logs : [];
-    logs.push({ timestamp: new Date().toISOString(), phase, percent, message });
-    return this.updateJob(jobId, { logs, phase, percent });
+    const ts = new Date().toISOString();
+    const step = Number.isFinite(details.step) ? details.step : null;
+    const totalSteps = Number.isFinite(details.totalSteps) ? details.totalSteps : null;
+    const payload =
+      details.payload && typeof details.payload === 'object' && !Array.isArray(details.payload)
+        ? details.payload
+        : null;
+
+    logs.push({
+      id: String(logs.length + 1),
+      timestamp: ts,
+      phase,
+      percent,
+      message,
+      step,
+      totalSteps,
+      payload,
+    });
+
+    const progress = {
+      step,
+      totalSteps,
+      message: message || null,
+      payload,
+      phase: phase || null,
+      percent: Number.isFinite(percent) ? percent : null,
+      at: ts,
+    };
+
+    return this.updateJob(jobId, { logs, phase, percent, progress });
   }
 
   saveResult(jobId, result) {

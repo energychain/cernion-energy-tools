@@ -252,6 +252,24 @@ describe('appendLog', () => {
     expect(new Date(timestamp).toISOString()).toBe(timestamp);
   });
 
+  it('stores normalized progress fields (step/totalSteps/payload)', () => {
+    const id = jobStore.createJob({ service: 's', action: 'a' });
+    jobStore.appendLog(id, 'phase_a', 25, 'Quarter done', {
+      step: 1,
+      totalSteps: 4,
+      payload: { section: 'A' },
+    });
+    const job = jobStore.getJob(id);
+    expect(job.progress).toEqual(
+      expect.objectContaining({
+        step: 1,
+        totalSteps: 4,
+        message: 'Quarter done',
+        payload: { section: 'A' },
+      })
+    );
+  });
+
   it('is a no-op and returns null when jobId is null', () => {
     const result = jobStore.appendLog(null, 'phase', 50, 'msg');
     expect(result).toBeNull();
@@ -369,6 +387,33 @@ describe('startJob', () => {
       await jobStore.startJob(ctx, { service: 's', action: 'a' }, async () => ({}));
       expect(ctx.meta.$responseHeaders['X-Custom']).toBe('yes');
       expect(ctx.meta.$responseHeaders.Location).toBeDefined();
+    });
+
+    it('reuses running job for same idempotency key', async () => {
+      const ctx = { meta: { $gateway: true } };
+      const worker = jest.fn(
+        () =>
+          new Promise((resolve) => {
+            setTimeout(() => resolve({ ok: true }), 20);
+          })
+      );
+
+      const first = await jobStore.startJob(
+        ctx,
+        { service: 'svc', action: 'act' },
+        worker,
+        { idempotencyKey: 'ck:test-1' }
+      );
+      const second = await jobStore.startJob(
+        ctx,
+        { service: 'svc', action: 'act' },
+        worker,
+        { idempotencyKey: 'ck:test-1' }
+      );
+
+      expect(second.reused).toBe(true);
+      expect(second.jobId).toBe(first.jobId);
+      expect(worker).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -22,7 +22,8 @@
 
 const axios = require('axios');
 const { MoleculerClientError } = require('moleculer').Errors;
-const { appendLog, startJob } = require('../src/job-store');
+const { appendLog } = require('../src/job-store');
+const { runAsync } = require('../src/async-job-runner');
 const { aggregateDeltas, joinByOeoClass } = require('../src/oep-delta-engine');
 const { CERNION_RELEVANT_OEP_TABLES, getOepTableConfig } = require('../src/oep-tables');
 
@@ -666,9 +667,14 @@ module.exports = {
       },
       async handler(ctx) {
         if (this._requiresAsyncComparison(ctx.params.limit)) {
-          return startJob(ctx, { service: 'oep', action: 'compareWithMastr' }, async (jobId) => {
+          return runAsync(ctx, {
+            service: 'oep',
+            action: 'compareWithMastr',
+            params: ctx.params,
+            worker: async (jobId) => {
             appendLog(jobId, 'queued', 0, 'Queued MaStR↔OEP comparison job.');
             return this._buildMastrOepComparison(ctx, ctx.params, jobId);
+            },
           });
         }
 

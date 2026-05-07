@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.47.0",
+    "version": "0.47.1",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -2856,6 +2856,65 @@
         ]
       }
     },
+    "/api/jobs/:jobId/progress": {
+      "get": {
+        "operationId": "job-status_progress",
+        "summary": "Get job progress (JSON polling or SSE)",
+        "tags": [
+          "Jobs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Progress payload (JSON) or SSE stream (text/event-stream)"
+          },
+          "404": {
+            "description": "Job not found (unknown ID or TTL expired)"
+          }
+        },
+        "description": "Returns normalized job progress. Use query `stream=true` for text/event-stream output. SSE supports `Last-Event-ID` replay (or `lastEventId` query fallback).",
+        "parameters": [
+          {
+            "name": "jobId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "a3f8b2c1-..."
+            }
+          },
+          {
+            "name": "stream",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Set true to receive text/event-stream output."
+          },
+          {
+            "name": "lastEventId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "3"
+            },
+            "description": "Optional replay cursor when headers cannot be set by the client."
+          },
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "3"
+            },
+            "description": "SSE replay cursor. Events with greater IDs are returned."
+          }
+        ]
+      }
+    },
     "/api/jobs/:jobId/result": {
       "get": {
         "operationId": "job-status_result",
@@ -5552,6 +5611,20 @@
                 }
               }
             }
+          },
+          "202": {
+            "description": "REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "jobId": "f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6",
+                  "status": "queued",
+                  "statusUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status",
+                  "resultUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result"
+                }
+              }
+            }
           }
         },
         "description": "Executes a deterministic 6-step grid connection validation pipeline: inventory → delta → capacity → EWK benchmark → Go/No-Go decision → audit trail. No LLM involvement — identical inputs always produce identical finding codes. Results are persisted to the validation database and retrievable via GET /validations/:id.",
@@ -5770,6 +5843,20 @@
                     },
                     "durationMs": 5200
                   }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "jobId": "f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6",
+                  "status": "queued",
+                  "statusUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status",
+                  "resultUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result"
                 }
               }
             }
@@ -6035,6 +6122,20 @@
                     "intervalCount": 672,
                     "durationMs": 6500
                   }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "jobId": "f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6",
+                  "status": "queued",
+                  "statusUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status",
+                  "resultUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result"
                 }
               }
             }
@@ -6784,6 +6885,20 @@
                     },
                     "durationMs": 12800
                   }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "jobId": "f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6",
+                  "status": "queued",
+                  "statusUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status",
+                  "resultUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result"
                 }
               }
             }
@@ -17732,5 +17847,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.47.0"
+  "x-version": "0.47.1"
 }

@@ -734,6 +734,7 @@ module.exports = {
           'POST /in-memory-join/benchmark-compare': 'in-memory-join.benchmarkCompare',
           'POST /in-memory-join/compare-forecast-actual': 'in-memory-join.compareForecastActual',
           'GET /jobs/:jobId/status': 'job-status.status',
+          'GET /jobs/:jobId/progress': 'job-status.progress',
           'GET /jobs/:jobId/result': 'job-status.result',
           // OEP (Open Energy Platform) read-only connector (v0.12)
           'GET /oep/schemas': 'oep.listSchemas',
@@ -1133,6 +1134,7 @@ module.exports = {
           // (which get async job responses) from internal Moleculer calls
           // (which get synchronous results for backward-compatibility).
           ctx.meta.$gateway = true;
+          ctx.meta.requestHeaders = req?.headers || {};
 
           // Token precedence:
           // 1) Request parameter "token" (query/body/path)

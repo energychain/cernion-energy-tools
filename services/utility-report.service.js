@@ -36,6 +36,7 @@ const {
   extractCandidates,
 } = require('../src/market-role-classifier');
 const { buildHtmlReport, summarizeForReport } = require('../src/report-builder');
+const { runAsync } = require('../src/async-job-runner');
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -997,8 +998,29 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           },
         },
         responses: {
+          202: {
+            description: 'REST/Gateway call accepted as async job',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    jobId: { type: 'string' },
+                    status: { type: 'string', enum: ['queued'] },
+                    message: { type: 'string' },
+                    statusUrl: { type: 'string' },
+                    resultUrl: { type: 'string' },
+                    progressUrl: { type: 'string' },
+                    reportId: { type: 'string' },
+                    downloadUrl: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
           200: {
-            description: 'Report generation started or resumed',
+            description: 'Cached report (gateway/internal) or direct result (internal call)',
             content: {
               'application/json': {
                 schema: {
@@ -1051,41 +1073,96 @@ A single Stadtwerk may have multiple BDEW codes for different roles (Lieferant, 
           }
         }
 
-        // ── Generate new report ID ────────────────────────────────────────────
-        const reportId = crypto.randomUUID();
-        const progress = {
-          reportId,
-          utilityName,
-          region,
-          bdew,
-          confirmAmbiguousVnb,
-          allowIdentityMismatch,
-          status: 'generating',
-          phase: 0,
-          startedAt: new Date().toISOString(),
-          completedAt: null,
-          error: null,
-          results: {},
-          meta: {},
-        };
-        saveProgress(progress);
+        if (!ctx.meta.$gateway) {
+          const reportId = crypto.randomUUID();
+          const progress = {
+            reportId,
+            utilityName,
+            region,
+            bdew,
+            confirmAmbiguousVnb,
+            allowIdentityMismatch,
+            status: 'generating',
+            phase: 0,
+            startedAt: new Date().toISOString(),
+            completedAt: null,
+            error: null,
+            results: {},
+            meta: {},
+          };
+          saveProgress(progress);
 
-        // ── Run pipeline asynchronously (do not await) ───────────────────────
-        this._runPipeline(ctx, progress, cernionToken, today).catch((err) => {
-          this.logger.error(`[UtilityReport] Pipeline error for ${reportId}: ${err.message}`);
-          const p = loadProgress(reportId) || progress;
-          p.status = 'error';
-          p.error = err.message;
-          saveProgress(p);
+          this._runPipeline(ctx, progress, cernionToken, today).catch((err) => {
+            this.logger.error(`[UtilityReport] Pipeline error for ${reportId}: ${err.message}`);
+            const p = loadProgress(reportId) || progress;
+            p.status = 'error';
+            p.error = err.message;
+            saveProgress(p);
+          });
+
+          return {
+            success: true,
+            reportId,
+            status: 'generating',
+            message: 'Report generation started. Poll /status/:reportId for progress.',
+            downloadUrl: `/api/utility-report/download/${reportId}`,
+          };
+        }
+
+        const response = await runAsync(ctx, {
+          service: 'utility-report',
+          action: 'generate',
+          params: ctx.params,
+          worker: async (jobId) => {
+            const reportId = jobId || crypto.randomUUID();
+            const progress = {
+              reportId,
+              utilityName,
+              region,
+              bdew,
+              confirmAmbiguousVnb,
+              allowIdentityMismatch,
+              status: 'generating',
+              phase: 0,
+              startedAt: new Date().toISOString(),
+              completedAt: null,
+              error: null,
+              results: {},
+              meta: {},
+            };
+            saveProgress(progress);
+
+            try {
+              await this._runPipeline(ctx, progress, cernionToken, today);
+            } catch (err) {
+              this.logger.error(`[UtilityReport] Pipeline error for ${reportId}: ${err.message}`);
+              const p = loadProgress(reportId) || progress;
+              p.status = 'error';
+              p.error = err.message;
+              saveProgress(p);
+              throw err;
+            }
+
+            const done = loadProgress(reportId) || progress;
+            return {
+              success: true,
+              reportId,
+              status: done.status || 'completed',
+              message: 'Report generation completed.',
+              downloadUrl: `/api/utility-report/download/${reportId}`,
+            };
+          },
         });
 
-        return {
-          success: true,
-          reportId,
-          status: 'generating',
-          message: 'Report generation started. Poll /status/:reportId for progress.',
-          downloadUrl: `/api/utility-report/download/${reportId}`,
-        };
+        if (response && response.status === 'queued' && response.jobId) {
+          return {
+            ...response,
+            reportId: response.jobId,
+            downloadUrl: `/api/utility-report/download/${response.jobId}`,
+          };
+        }
+
+        return response;
       },
     },
 

@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.47.0
-- changelog_latest_release: 0.47.0
+- version: 0.47.1
+- changelog_latest_release: 0.47.1
 - source_files_hash:
-  - CHANGELOG.md: 7a53379ca7efeab02012a7ed5d475e139e0607c782d5274f545ad691fdbd04d5
+  - CHANGELOG.md: f8f8bc93ca4365e14e9c7d9f070f495072ba8e9bc265b951021b72258af41ed8
   - README.md: 7fb345df7d005c798d77c1b90410dad6bb155bc0bd3661e02f01565ddfe63e08
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: 3dd90f16b97b51bc36f34c54e5f9e11a0bef70b38e05537231fff0bb8082557e
+  - openapi-export.json: c842b3c23d0c5b0be7adefef1cdfbb0c600158d22627c14239160a126b17c928
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -588,8 +588,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 223
-- operation_count: 263
+- path_count: 224
+- operation_count: 264
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -612,7 +612,7 @@ process:
 - Grid Connection Validation: 3 operations
 - HITL: 11 operations
 - IntegrationHub: 8 operations
-- Jobs: 2 operations
+- Jobs: 3 operations
 - Knowledge RAG: 12 operations
 - MaStR Data Quality: 4 operations
 - MaStR Monitor: 12 operations
@@ -794,6 +794,7 @@ process:
 - POST /api/in-memory-join/compare-forecast-actual | tags: [DataSources, Analytics] | operationId: in-memory-join_compareForecastActual | summary: Compare inhouse actual generation with forecasted generation
 - POST /api/in-memory-join/join | tags: [DataSources, Analytics] | operationId: in-memory-join_join | summary: Generic in-memory join across datasource and action outputs
 - POST /api/in-memory-join/metering-spot-cost | tags: [DataSources, Analytics] | operationId: in-memory-join_meteringSpotCost | summary: Join metering datasource with market spot prices and calculate costs
+- GET /api/jobs/:jobId/progress | tags: [Jobs] | operationId: job-status_progress | summary: Get job progress (JSON polling or SSE)
 - GET /api/jobs/:jobId/result | tags: [Jobs] | operationId: job-status_result | summary: Retrieve async job result
 - GET /api/jobs/:jobId/status | tags: [Jobs] | operationId: job-status_status | summary: Poll async job status
 - POST /api/knowledge-rag/collection-info | tags: [Knowledge RAG] | operationId: knowledge-rag_collectionInfo | summary: Convenience collection info endpoint
@@ -899,7 +900,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.47.0"
+    "version": "0.47.1"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -8066,6 +8067,20 @@ process:
               }
             },
             "description": "Allocation metadata with per-consumer summaries. Time-series available via /download endpoint."
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "jobId": "f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6",
+                  "resultUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result",
+                  "status": "queued",
+                  "statusUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status",
+                  "success": true
+                }
+              }
+            },
+            "description": "REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result."
           }
         },
         "summary": "Calculate 15-min Energy Sharing allocation time-series (§ 42c EnWG)",
@@ -8405,6 +8420,20 @@ process:
               }
             },
             "description": "EnergyShareValidationReport with findings from all 6 pipeline steps"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "jobId": "f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6",
+                  "resultUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result",
+                  "status": "queued",
+                  "statusUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status",
+                  "success": true
+                }
+              }
+            },
+            "description": "REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result."
           }
         },
         "summary": "Validate an Energy Sharing community application (§ 42c EnWG)",
@@ -9992,6 +10021,20 @@ process:
               }
             },
             "description": "ValidationReport with findings from all 6 pipeline steps"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "jobId": "f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6",
+                  "resultUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result",
+                  "status": "queued",
+                  "statusUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status",
+                  "success": true
+                }
+              }
+            },
+            "description": "REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result."
           }
         },
         "summary": "Run Netzanschluss validation pipeline (6-step, deterministic)",
@@ -11058,6 +11101,65 @@ process:
         "tags": [
           "DataSources",
           "Analytics"
+        ]
+      }
+    },
+    "/api/jobs/:jobId/progress": {
+      "get": {
+        "description": "Returns normalized job progress. Use query `stream=true` for text/event-stream output. SSE supports `Last-Event-ID` replay (or `lastEventId` query fallback).",
+        "operationId": "job-status_progress",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "jobId",
+            "required": true,
+            "schema": {
+              "example": "a3f8b2c1-...",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Set true to receive text/event-stream output.",
+            "in": "query",
+            "name": "stream",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Optional replay cursor when headers cannot be set by the client.",
+            "in": "query",
+            "name": "lastEventId",
+            "required": false,
+            "schema": {
+              "example": "3",
+              "type": "string"
+            }
+          },
+          {
+            "description": "SSE replay cursor. Events with greater IDs are returned.",
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "example": "3",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Progress payload (JSON) or SSE stream (text/event-stream)"
+          },
+          "404": {
+            "description": "Job not found (unknown ID or TTL expired)"
+          }
+        },
+        "summary": "Get job progress (JSON polling or SSE)",
+        "tags": [
+          "Jobs"
         ]
       }
     },
@@ -15910,6 +16012,20 @@ process:
               }
             },
             "description": "RedispatchAuditReport with settlementReadiness, riskAssessment, and findings"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "example": {
+                  "jobId": "f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6",
+                  "resultUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result",
+                  "status": "queued",
+                  "statusUrl": "/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status",
+                  "success": true
+                }
+              }
+            },
+            "description": "REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result."
           }
         },
         "summary": "Run Redispatch Ex-Post settlement audit (7-step, deterministic)",
@@ -18629,8 +18745,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.47.0"
+  "x-version": "0.47.1"
 }
 
 ## Integrity
-- llm_txt_sha256: c4494e0b430abd62738ecbc723c881ed0406aa01ddeacd269dc2716cefdef45e
+- llm_txt_sha256: c1003b2204502e74e953b13486fd451530f65e2b3cb0ec41331a4a19fbe9ed9d

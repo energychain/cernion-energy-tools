@@ -12,6 +12,53 @@
 
 const jobStore = require('../src/job-store');
 
+function toProgressEvents(job) {
+  const logs = Array.isArray(job?.logs) ? job.logs : [];
+  return logs.map((entry, index) => {
+    const id = String(entry?.id || index + 1);
+    const step = Number.isFinite(entry?.step) ? entry.step : null;
+    const totalSteps = Number.isFinite(entry?.totalSteps) ? entry.totalSteps : null;
+    const payload =
+      entry?.payload && typeof entry.payload === 'object' && !Array.isArray(entry.payload)
+        ? entry.payload
+        : null;
+    return {
+      id,
+      at: entry?.timestamp || null,
+      phase: entry?.phase || null,
+      percent: Number.isFinite(entry?.percent) ? entry.percent : null,
+      step,
+      totalSteps,
+      message: entry?.message || null,
+      payload,
+    };
+  });
+}
+
+function toProgressSnapshot(job) {
+  const events = toProgressEvents(job);
+  const latestEvent = events.length > 0 ? events[events.length - 1] : null;
+  const progress = {
+    step: Number.isFinite(job?.progress?.step)
+      ? job.progress.step
+      : Number.isFinite(latestEvent?.step)
+        ? latestEvent.step
+        : null,
+    totalSteps: Number.isFinite(job?.progress?.totalSteps)
+      ? job.progress.totalSteps
+      : Number.isFinite(latestEvent?.totalSteps)
+        ? latestEvent.totalSteps
+        : null,
+    message: job?.progress?.message || latestEvent?.message || null,
+    payload: job?.progress?.payload || latestEvent?.payload || null,
+  };
+
+  return {
+    progress,
+    events,
+  };
+}
+
 module.exports = {
   name: 'job-status',
 
@@ -144,6 +191,123 @@ Most jobs complete within 8–12 minutes.`,
           location: `/api/jobs/${jobId}/status`,
           resultUrl: job.status === 'completed' ? `/api/jobs/${jobId}/result` : null,
         };
+      },
+    },
+
+    /**
+     * Unified progress endpoint.
+     * - Default: JSON polling payload
+     * - stream=true OR Accept:text/event-stream: SSE payload
+     */
+    progress: {
+      rest: 'GET /:jobId/progress',
+      params: {
+        jobId: { type: 'string', min: 1 },
+        stream: { type: 'boolean', optional: true, default: false, convert: true },
+        lastEventId: { type: 'string', optional: true },
+      },
+      openapi: {
+        summary: 'Get job progress (JSON polling or SSE)',
+        tags: ['Jobs'],
+        description:
+          'Returns normalized job progress. Use query `stream=true` for text/event-stream output. ' +
+          'SSE supports `Last-Event-ID` replay (or `lastEventId` query fallback).',
+        parameters: [
+          {
+            name: 'jobId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a3f8b2c1-...' },
+          },
+          {
+            name: 'stream',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean', default: false },
+            description: 'Set true to receive text/event-stream output.',
+          },
+          {
+            name: 'lastEventId',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: '3' },
+            description: 'Optional replay cursor when headers cannot be set by the client.',
+          },
+          {
+            name: 'Last-Event-ID',
+            in: 'header',
+            required: false,
+            schema: { type: 'string', example: '3' },
+            description: 'SSE replay cursor. Events with greater IDs are returned.',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Progress payload (JSON) or SSE stream (text/event-stream)',
+          },
+          404: {
+            description: 'Job not found (unknown ID or TTL expired)',
+          },
+        },
+      },
+      handler(ctx) {
+        const { jobId } = ctx.params;
+        const job = jobStore.getJob(jobId);
+
+        if (!job) {
+          ctx.meta.$statusCode = 404;
+          return { success: false, message: `Job not found: ${jobId}` };
+        }
+
+        const snapshot = toProgressSnapshot(job);
+        const headers = ctx.meta?.requestHeaders || {};
+        const acceptHeader = String(headers.accept || headers.Accept || '').toLowerCase();
+        const headerLastEventId = String(headers['last-event-id'] || headers['Last-Event-ID'] || '').trim();
+        const lastEventId = (ctx.params.lastEventId || headerLastEventId || '').trim();
+        const streamRequested = ctx.params.stream || acceptHeader.includes('text/event-stream');
+
+        if (!streamRequested) {
+          return {
+            success: true,
+            jobId,
+            status: job.status,
+            progress: snapshot.progress,
+            latestEventId: snapshot.events.length ? snapshot.events[snapshot.events.length - 1].id : null,
+            eventCount: snapshot.events.length,
+            events: snapshot.events,
+          };
+        }
+
+        const cursor = Number.parseInt(lastEventId, 10);
+        const replayFrom = Number.isFinite(cursor) ? cursor : 0;
+        const replayEvents = snapshot.events.filter((evt) => Number.parseInt(evt.id, 10) > replayFrom);
+
+        const lines = ['retry: 5000'];
+        for (const evt of replayEvents) {
+          lines.push(`id: ${evt.id}`);
+          lines.push('event: progress');
+          lines.push(`data: ${JSON.stringify(evt)}`);
+          lines.push('');
+        }
+
+        const stateId = snapshot.events.length
+          ? snapshot.events[snapshot.events.length - 1].id
+          : String(replayFrom || 0);
+        lines.push(`id: ${stateId}`);
+        lines.push('event: state');
+        lines.push(
+          `data: ${JSON.stringify({ jobId, status: job.status, progress: snapshot.progress, done: ['completed', 'error'].includes(job.status) })}`
+        );
+        lines.push('');
+
+        ctx.meta.$responseType = 'text/event-stream; charset=utf-8';
+        ctx.meta.$responseHeaders = Object.assign(ctx.meta.$responseHeaders || {}, {
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+          'X-Accel-Buffering': 'no',
+        });
+
+        return `${lines.join('\n')}\n`;
       },
     },
 

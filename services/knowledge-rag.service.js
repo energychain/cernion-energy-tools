@@ -2,7 +2,8 @@
 
 const { Errors } = require('moleculer');
 const { callWithAutoPoll } = require('../src/async-job-poller');
-const { appendLog, startJob } = require('../src/job-store');
+const { appendLog } = require('../src/job-store');
+const { runAsync } = require('../src/async-job-runner');
 const metrics = require('../src/metrics');
 
 const OPENAPI_TAG = 'Knowledge RAG';
@@ -513,10 +514,11 @@ module.exports = {
         queryType,
       };
 
-      return startJob(
-        ctx,
-        { service: 'knowledge-rag', action: actionName },
-        async (jobId) => {
+      return runAsync(ctx, {
+        service: 'knowledge-rag',
+        action: actionName,
+        params: rawParams,
+        worker: async (jobId) => {
           if (jobId) {
             appendLog(jobId, 'queued', 0, `Starting ${MCP_TOOL} (${queryType})`);
           }
@@ -542,8 +544,8 @@ module.exports = {
           }
 
           return result;
-        }
-      );
+        },
+      });
     },
   },
 };
@@ -1552,10 +1554,11 @@ module.exports = (() => {
           collection,
         };
 
-        return startJob(
-          ctx,
-          { service: 'knowledge-rag', action: actionName },
-          async (jobId) => {
+        return runAsync(ctx, {
+          service: 'knowledge-rag',
+          action: actionName,
+          params: rawParams,
+          worker: async (jobId) => {
             if (jobId) appendLog(jobId, 'queued', 0, `Starting RAG query (${queryType})`);
 
             const localResult = await this.tryHandleLocalQuery(ctx, toolParams);
@@ -1584,8 +1587,8 @@ module.exports = (() => {
             metrics.recordRagQuery(collection, inferHitCount(result));
             if (jobId) appendLog(jobId, 'completed', 100, `${MCP_TOOL} finished`);
             return result;
-          }
-        );
+          },
+        });
       },
 
       ensureEmbeddingCapability() {
@@ -1829,10 +1832,11 @@ module.exports = (() => {
       },
 
       startIngestJob(ctx, params, sourceType) {
-        return startJob(
-          ctx,
-          { service: 'knowledge-rag', action: `ingest:${sourceType}` },
-          async (jobId) => {
+        return runAsync(ctx, {
+          service: 'knowledge-rag',
+          action: `ingest:${sourceType}`,
+          params,
+          worker: async (jobId) => {
             this.ensureEmbeddingCapability();
 
             const collectionName =
@@ -1890,8 +1894,8 @@ module.exports = (() => {
                 pointIds: pointIds.slice(0, 100),
               },
             };
-          }
-        );
+          },
+        });
       },
 
       async reembedChunk(ctx, chunk, targetModelVersion) {
@@ -1911,10 +1915,11 @@ module.exports = (() => {
       },
 
       startReindexJob(ctx, params) {
-        return startJob(
-          ctx,
-          { service: 'knowledge-rag', action: 'reindex' },
-          async (jobId) => {
+        return runAsync(ctx, {
+          service: 'knowledge-rag',
+          action: 'reindex',
+          params,
+          worker: async (jobId) => {
             this.ensureEmbeddingCapability();
             const collectionName = String(params.collection || '').trim();
             const targetModelVersion = String(params.embeddingModelVersion || '').trim();
@@ -1977,8 +1982,8 @@ module.exports = (() => {
                 graceExpiresAt,
               },
             };
-          }
-        );
+          },
+        });
       },
 
       async cutoverCollectionVersion(ctx, collectionName, modelVersion) {

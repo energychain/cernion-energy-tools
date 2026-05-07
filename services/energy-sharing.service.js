@@ -15,6 +15,7 @@ const crypto = require('crypto');
 const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 const CernionMCPClient = require('../src/mcp-client');
+const { runAsync } = require('../src/async-job-runner');
 const {
   applyCursorPagination,
   applyOffsetDeprecationHeader,
@@ -219,6 +220,21 @@ module.exports = {
           },
         },
         responses: {
+          202: {
+            description:
+              'REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result.',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  jobId: 'f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6',
+                  status: 'queued',
+                  statusUrl: '/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status',
+                  resultUrl: '/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result',
+                },
+              },
+            },
+          },
           200: {
             description: 'EnergyShareValidationReport with findings from all 6 pipeline steps',
             content: {
@@ -246,79 +262,86 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { gridOperatorId, gridOperatorBdew } = ctx.params;
-        if (!gridOperatorId && !gridOperatorBdew) {
-          throw new Error('At least one of gridOperatorId or gridOperatorBdew is required');
-        }
+        return runAsync(ctx, {
+          service: 'energy-sharing',
+          action: 'validate',
+          params: ctx.params,
+          worker: async () => {
+            const { gridOperatorId, gridOperatorBdew } = ctx.params;
+            if (!gridOperatorId && !gridOperatorBdew) {
+              throw new Error('At least one of gridOperatorId or gridOperatorBdew is required');
+            }
 
-        const report = await this.runPipeline(ctx, ctx.params);
+            const report = await this.runPipeline(ctx, ctx.params);
 
-        // Persist to PouchDB (KRITIS: raw installation data NOT stored, only report metadata)
-        const id = crypto.randomUUID();
-        const tenantId = resolveTenantId(ctx) || 'default';
-        // Tenant-isolation: prefix _id with tenantId for doc-prefix isolation (v0.47)
-        const docId = tenantId !== 'default' ? `es:${tenantId}:${id}` : `es:${id}`;
+            // Persist to PouchDB (KRITIS: raw installation data NOT stored, only report metadata)
+            const id = crypto.randomUUID();
+            const tenantId = resolveTenantId(ctx) || 'default';
+            // Tenant-isolation: prefix _id with tenantId for doc-prefix isolation (v0.47)
+            const docId = tenantId !== 'default' ? `es:${tenantId}:${id}` : `es:${id}`;
 
-        // Sub-Track E: HITL escalation on error findings (v0.47)
-        const errorFindings = (report.findings || []).filter((f) => f.severity === 'error');
-        if (errorFindings.length > 0) {
-          try {
-            await ctx.call(
-              'hitl.create',
-              {
-                kind: 'energy-sharing-validation-error',
-                payload: {
-                  validationId: id,
-                  communityId: report.communityId || '',
-                  communityName: report.communityName || '',
-                  decision: report.decision,
-                  errorCount: errorFindings.length,
-                  errorCodes: errorFindings.map((f) => f.finding),
-                  tenantId,
+            // Sub-Track E: HITL escalation on error findings (v0.47)
+            const errorFindings = (report.findings || []).filter((f) => f.severity === 'error');
+            if (errorFindings.length > 0) {
+              try {
+                await ctx.call(
+                  'hitl.create',
+                  {
+                    kind: 'energy-sharing-validation-error',
+                    payload: {
+                      validationId: id,
+                      communityId: report.communityId || '',
+                      communityName: report.communityName || '',
+                      decision: report.decision,
+                      errorCount: errorFindings.length,
+                      errorCodes: errorFindings.map((f) => f.finding),
+                      tenantId,
+                    },
+                    originService: 'energy-sharing',
+                    originAction: 'validate',
+                    severity: 'error',
+                    requiredScope: 'full-access',
+                  },
+                  { meta: { ...ctx.meta, $gateway: false } }
+                );
+              } catch (hitlErr) {
+                this.logger.warn(`[energy-sharing] HITL escalation failed: ${hitlErr.message}`);
+              }
+            }
+
+            const doc = {
+              _id: docId,
+              id,
+              tenantId,
+              type: 'energy-sharing-validation',
+              communityName: report.communityName,
+              communityId: report.communityId,
+              gridOperator: report.gridOperator,
+              decision: report.decision,
+              summary: report.summary,
+              generators: report.generators,
+              consumers: report.consumers,
+              findings: report.findings,
+              steps: report.steps,
+              snapshot: report.snapshot,
+              metadata: {
+                ...report.metadata,
+                inputParams: {
+                  gridOperatorId: ctx.params.gridOperatorId || null,
+                  gridOperatorBdew: ctx.params.gridOperatorBdew || null,
+                  communityName: ctx.params.communityName || '',
+                  communityId: ctx.params.communityId || '',
+                  datapointTags: ctx.params.datapointTags || [],
+                  maxAgeMinutes: ctx.params.maxAgeMinutes,
                 },
-                originService: 'energy-sharing',
-                originAction: 'validate',
-                severity: 'error',
-                requiredScope: 'full-access',
               },
-              { meta: { ...ctx.meta, $gateway: false } }
-            );
-          } catch (hitlErr) {
-            this.logger.warn(`[energy-sharing] HITL escalation failed: ${hitlErr.message}`);
-          }
-        }
+              createdAt: new Date().toISOString(),
+            };
 
-        const doc = {
-          _id: docId,
-          id,
-          tenantId,
-          type: 'energy-sharing-validation',
-          communityName: report.communityName,
-          communityId: report.communityId,
-          gridOperator: report.gridOperator,
-          decision: report.decision,
-          summary: report.summary,
-          generators: report.generators,
-          consumers: report.consumers,
-          findings: report.findings,
-          steps: report.steps,
-          snapshot: report.snapshot,
-          metadata: {
-            ...report.metadata,
-            inputParams: {
-              gridOperatorId: ctx.params.gridOperatorId || null,
-              gridOperatorBdew: ctx.params.gridOperatorBdew || null,
-              communityName: ctx.params.communityName || '',
-              communityId: ctx.params.communityId || '',
-              datapointTags: ctx.params.datapointTags || [],
-              maxAgeMinutes: ctx.params.maxAgeMinutes,
-            },
+            await this.db.put(doc);
+            return { success: true, id, ...report };
           },
-          createdAt: new Date().toISOString(),
-        };
-
-        await this.db.put(doc);
-        return { success: true, id, ...report };
+        });
       },
     },
 

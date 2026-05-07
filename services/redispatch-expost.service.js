@@ -18,6 +18,7 @@ const crypto = require('crypto');
 const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 const CernionMCPClient = require('../src/mcp-client');
+const { runAsync } = require('../src/async-job-runner');
 const {
   applyCursorPagination,
   applyOffsetDeprecationHeader,
@@ -210,6 +211,21 @@ module.exports = {
           },
         },
         responses: {
+          202: {
+            description:
+              'REST/Gateway call accepted as async job. Poll /api/jobs/:jobId/status and /api/jobs/:jobId/result.',
+            content: {
+              'application/json': {
+                example: {
+                  success: true,
+                  jobId: 'f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6',
+                  status: 'queued',
+                  statusUrl: '/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/status',
+                  resultUrl: '/api/jobs/f8d2d8d4-4f22-4a0a-bec7-a9f05ad6b9e6/result',
+                },
+              },
+            },
+          },
           200: {
             description:
               'RedispatchAuditReport with settlementReadiness, riskAssessment, and findings',
@@ -241,69 +257,76 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { gridOperatorId, gridOperatorBdew, gridOperatorName } = ctx.params;
-        if (!gridOperatorId && !gridOperatorBdew && !gridOperatorName) {
-          throw new Error(
-            'At least one of gridOperatorId, gridOperatorBdew, or gridOperatorName is required'
-          );
-        }
+        return runAsync(ctx, {
+          service: 'redispatch-expost',
+          action: 'audit',
+          params: ctx.params,
+          worker: async () => {
+            const { gridOperatorId, gridOperatorBdew, gridOperatorName } = ctx.params;
+            if (!gridOperatorId && !gridOperatorBdew && !gridOperatorName) {
+              throw new Error(
+                'At least one of gridOperatorId, gridOperatorBdew, or gridOperatorName is required'
+              );
+            }
 
-        // Validate skipSteps — only 3–6 allowed
-        const rawSkip = ctx.params.skipSteps || [];
-        const invalidSteps = rawSkip.filter((s) => ![3, 4, 5, 6].includes(s));
-        if (invalidSteps.length > 0) {
-          throw new Error(
-            `Invalid skipSteps values: [${invalidSteps.join(', ')}]. Only steps 3–6 can be skipped.`
-          );
-        }
+            // Validate skipSteps — only 3–6 allowed
+            const rawSkip = ctx.params.skipSteps || [];
+            const invalidSteps = rawSkip.filter((s) => ![3, 4, 5, 6].includes(s));
+            if (invalidSteps.length > 0) {
+              throw new Error(
+                `Invalid skipSteps values: [${invalidSteps.join(', ')}]. Only steps 3–6 can be skipped.`
+              );
+            }
 
-        const report = await this.runPipeline(ctx, ctx.params);
+            const report = await this.runPipeline(ctx, ctx.params);
 
-        // Persist to PouchDB (KRITIS: raw installation data NOT stored, only report metadata)
-        const id = crypto.randomUUID();
-        const doc = {
-          _id: `rd:${id}`,
-          id,
-          type: 'redispatch-expost-audit',
-          gridOperator: report.gridOperator,
-          period: report.period,
-          settlementReadiness: report.settlementReadiness,
-          riskAssessment: report.riskAssessment,
-          summary: report.summary,
-          findingsCount: report.summary?.findingsCount,
-          skippedSteps: rawSkip,
-          steps: report.steps,
-          metadata: {
-            ...report.metadata,
-            inputParams: {
-              gridOperatorId: ctx.params.gridOperatorId || null,
-              gridOperatorBdew: ctx.params.gridOperatorBdew || null,
-              gridOperatorName: ctx.params.gridOperatorName || null,
-              dateFrom: ctx.params.dateFrom || null,
-              dateTo: ctx.params.dateTo || null,
-              datapointTags: ctx.params.datapointTags || [],
-              maxAgeMinutes: ctx.params.maxAgeMinutes,
-              skipSteps: rawSkip,
-              avgCompensationEurPerMWh: ctx.params.avgCompensationEurPerMWh || 50,
-            },
+            // Persist to PouchDB (KRITIS: raw installation data NOT stored, only report metadata)
+            const id = crypto.randomUUID();
+            const doc = {
+              _id: `rd:${id}`,
+              id,
+              type: 'redispatch-expost-audit',
+              gridOperator: report.gridOperator,
+              period: report.period,
+              settlementReadiness: report.settlementReadiness,
+              riskAssessment: report.riskAssessment,
+              summary: report.summary,
+              findingsCount: report.summary?.findingsCount,
+              skippedSteps: rawSkip,
+              steps: report.steps,
+              metadata: {
+                ...report.metadata,
+                inputParams: {
+                  gridOperatorId: ctx.params.gridOperatorId || null,
+                  gridOperatorBdew: ctx.params.gridOperatorBdew || null,
+                  gridOperatorName: ctx.params.gridOperatorName || null,
+                  dateFrom: ctx.params.dateFrom || null,
+                  dateTo: ctx.params.dateTo || null,
+                  datapointTags: ctx.params.datapointTags || [],
+                  maxAgeMinutes: ctx.params.maxAgeMinutes,
+                  skipSteps: rawSkip,
+                  avgCompensationEurPerMWh: ctx.params.avgCompensationEurPerMWh || 50,
+                },
+              },
+              pipelineVersion: PIPELINE_VERSION,
+              createdAt: new Date().toISOString(),
+            };
+
+            await this.db.put(doc);
+
+            this.broker.emit('redispatch-expost.audit.completed', {
+              eventId: crypto.randomUUID(),
+              auditId: id,
+              gridOperator: report.gridOperator || null,
+              period: report.period || null,
+              settlementReadiness: report.settlementReadiness || null,
+              riskAssessment: report.riskAssessment || null,
+              timestamp: doc.createdAt,
+            });
+
+            return { success: true, id, ...report };
           },
-          pipelineVersion: PIPELINE_VERSION,
-          createdAt: new Date().toISOString(),
-        };
-
-        await this.db.put(doc);
-
-        this.broker.emit('redispatch-expost.audit.completed', {
-          eventId: crypto.randomUUID(),
-          auditId: id,
-          gridOperator: report.gridOperator || null,
-          period: report.period || null,
-          settlementReadiness: report.settlementReadiness || null,
-          riskAssessment: report.riskAssessment || null,
-          timestamp: doc.createdAt,
         });
-
-        return { success: true, id, ...report };
       },
     },
 
