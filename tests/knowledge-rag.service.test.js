@@ -202,4 +202,126 @@ describe('Knowledge RAG Service', () => {
       'test-token-abc'
     );
   });
+
+  it('should deduplicate external semantic duplicates by document and text', async () => {
+    callWithAutoPoll.mockResolvedValueOnce({
+      success: true,
+      data: {
+        queryType: 'semantic',
+        collection: 'cernion_knowledge_v1',
+        returned: 3,
+        total: 3,
+        results: [
+          {
+            pointId: 'p-1',
+            score: 0.7,
+            referenceText_L0: 'Duplikat Abschnitt',
+            metadata: { documentId: 'doc-a', title: 'A' },
+          },
+          {
+            pointId: 'p-2',
+            score: 0.95,
+            referenceText_L0: 'Duplikat Abschnitt',
+            metadata: { documentId: 'doc-a', title: 'A' },
+          },
+          {
+            pointId: 'p-3',
+            score: 0.6,
+            referenceText_L0: 'Anderer Abschnitt',
+            metadata: { documentId: 'doc-b', title: 'B' },
+          },
+        ],
+      },
+    });
+
+    const response = await broker.call('knowledge-rag.query', {
+      queryType: 'semantic',
+      query: 'Duplikat',
+      limit: 10,
+    });
+
+    expect(response.success).toBe(true);
+    expect(response.data.results).toHaveLength(2);
+    expect(response.data.results.map((row) => row.pointId)).toEqual(['p-2', 'p-3']);
+    expect(response.data.returned).toBe(2);
+    expect(response.data.total).toBe(2);
+  });
+
+  it('should keep duplicates when dedupe is disabled', async () => {
+    callWithAutoPoll.mockResolvedValueOnce({
+      success: true,
+      data: {
+        queryType: 'semantic',
+        collection: 'cernion_knowledge_v1',
+        returned: 2,
+        total: 2,
+        results: [
+          {
+            pointId: 'p-11',
+            score: 0.7,
+            referenceText_L0: 'Duplikat Abschnitt',
+            metadata: { documentId: 'doc-a', title: 'A' },
+          },
+          {
+            pointId: 'p-12',
+            score: 0.95,
+            referenceText_L0: 'Duplikat Abschnitt',
+            metadata: { documentId: 'doc-a', title: 'A' },
+          },
+        ],
+      },
+    });
+
+    const response = await broker.call('knowledge-rag.query', {
+      queryType: 'semantic',
+      query: 'Duplikat',
+      dedupe: false,
+      limit: 10,
+    });
+
+    expect(response.success).toBe(true);
+    expect(response.data.results).toHaveLength(2);
+    expect(response.data.total).toBe(2);
+    expect(response.data.reranking).toMatchObject({
+      dedupe: false,
+      rerank: true,
+      removedDuplicates: 0,
+    });
+  });
+
+  it('should include reranking metadata for semantic responses', async () => {
+    callWithAutoPoll.mockResolvedValueOnce({
+      success: true,
+      data: {
+        queryType: 'semantic',
+        collection: 'cernion_knowledge_v1',
+        returned: 1,
+        total: 1,
+        results: [
+          {
+            pointId: 'p-meta-1',
+            score: 0.88,
+            referenceText_L0: 'Ein Treffer',
+            metadata: { documentId: 'doc-meta', title: 'Meta' },
+          },
+        ],
+      },
+    });
+
+    const response = await broker.call('knowledge-rag.semantic', {
+      query: 'Ein Treffer',
+      limit: 5,
+    });
+
+    expect(response.success).toBe(true);
+    expect(response.data.reranking).toMatchObject({
+      applied: true,
+      dedupe: true,
+      rerank: true,
+      inputCount: 1,
+      outputCount: 1,
+      removedDuplicates: 0,
+      diversityPerDocument: 2,
+    });
+  });
 });

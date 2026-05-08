@@ -215,6 +215,46 @@ describe('Knowledge RAG ingest extension', () => {
     expect(result.data.results.length).toBeGreaterThan(0);
   });
 
+  test('local semantic dedupe runs before pagination and keeps returned/total consistent', async () => {
+    await broker.call(
+      'knowledge-rag.ingest',
+      {
+        collection: 'tenant:acme:knowledge',
+        documents: [
+          {
+            id: 'dup-1',
+            text: 'Duplicate chunk text for dedupe test',
+            metadata: { documentId: 'doc-dedupe', title: 'Dedupe Doc' },
+          },
+          {
+            id: 'dup-2',
+            text: 'Duplicate chunk text for dedupe test',
+            metadata: { documentId: 'doc-dedupe', title: 'Dedupe Doc' },
+          },
+        ],
+      },
+      { meta: { tenantId: 'acme' } }
+    );
+
+    const pageOne = await broker.call(
+      'knowledge-rag.query',
+      {
+        queryType: 'semantic',
+        query: 'Duplicate chunk text',
+        collection: 'tenant:acme:knowledge',
+        limit: 1,
+        offset: 0,
+      },
+      { meta: { tenantId: 'acme' } }
+    );
+
+    expect(pageOne.success).toBe(true);
+    expect(pageOne.data.returned).toBe(1);
+    expect(pageOne.data.total).toBeGreaterThanOrEqual(1);
+    expect(pageOne.data.total).toBe(pageOne.data.reranking.outputCount);
+    expect(pageOne.data.reranking.removedDuplicates).toBeGreaterThanOrEqual(1);
+  });
+
   test('external query path is used when local collection is missing', async () => {
     await broker.call('knowledge-rag.query', {
       queryType: 'semantic',

@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.48.1
-- changelog_latest_release: 0.48.1
+- version: 0.48.2
+- changelog_latest_release: 0.48.2
 - source_files_hash:
-  - CHANGELOG.md: 483603f49b786c5490eef7a280877a85f9ab80da3f63de66280c22a97f3be320
+  - CHANGELOG.md: 3cf893667161fd2cb078aa6eb72b36fc4cc62de6e1fb6068049734d832ef68dd
   - README.md: 0bc16f1f06fb7da1ce6335438c43493b819302cc69a2a259de4517484a921ed8
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: ca3373ebeb8546208c3e2127147ef4c5749556632f290db3fdcc6257e9ff084e
+  - openapi-export.json: ed29d8dd4e1043812a4ca7152140bde88d098962556c7eb49b8e1f3c20c4a071
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -907,7 +907,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.48.1"
+    "version": "0.48.2"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -12560,14 +12560,29 @@ process:
                 "semantic": {
                   "value": {
                     "collection": "tenant:stadtwerk-a:knowledge",
+                    "dedupe": true,
+                    "diversityPerDocument": 2,
                     "limit": 5,
                     "query": "Welche BNetzA Festlegungen sind relevant?",
-                    "queryType": "semantic"
+                    "queryType": "semantic",
+                    "rerank": true
                   }
                 }
               },
               "schema": {
                 "properties": {
+                  "dedupe": {
+                    "default": true,
+                    "example": true,
+                    "type": "boolean"
+                  },
+                  "diversityPerDocument": {
+                    "default": 2,
+                    "example": 2,
+                    "maximum": 5,
+                    "minimum": 1,
+                    "type": "number"
+                  },
                   "filter": {
                     "example": {
                       "must": [
@@ -12638,6 +12653,18 @@ process:
                     ],
                     "example": "semantic",
                     "type": "string"
+                  },
+                  "rerank": {
+                    "default": true,
+                    "example": true,
+                    "type": "boolean"
+                  },
+                  "rerankWindow": {
+                    "description": "Default: min(limit * 4, 50)",
+                    "example": 20,
+                    "maximum": 100,
+                    "minimum": 1,
+                    "type": "number"
                   },
                   "scoreThreshold": {
                     "example": 0.4,
@@ -13124,8 +13151,11 @@ process:
                 "default": {
                   "value": {
                     "collection": "tenant:stadtwerk-a:knowledge",
+                    "dedupe": true,
+                    "diversityPerDocument": 2,
                     "limit": 5,
-                    "query": "Welche CAPEX-Regeln gelten?"
+                    "query": "Welche CAPEX-Regeln gelten?",
+                    "rerank": true
                   }
                 }
               },
@@ -13134,6 +13164,18 @@ process:
                   "collection": {
                     "example": "tenant:stadtwerk-a:knowledge",
                     "type": "string"
+                  },
+                  "dedupe": {
+                    "default": true,
+                    "example": true,
+                    "type": "boolean"
+                  },
+                  "diversityPerDocument": {
+                    "default": 2,
+                    "example": 2,
+                    "maximum": 5,
+                    "minimum": 1,
+                    "type": "number"
                   },
                   "filter": {
                     "example": {
@@ -13149,6 +13191,17 @@ process:
                   "query": {
                     "example": "Welche CAPEX-Regeln gelten?",
                     "type": "string"
+                  },
+                  "rerank": {
+                    "default": true,
+                    "example": true,
+                    "type": "boolean"
+                  },
+                  "rerankWindow": {
+                    "example": 20,
+                    "maximum": 100,
+                    "minimum": 1,
+                    "type": "number"
                   },
                   "scoreThreshold": {
                     "example": 0.3,
@@ -19039,8 +19092,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.48.1"
+  "x-version": "0.48.2"
 }
 
 ## Integrity
-- llm_txt_sha256: c0a054c20fe92d4597a7ea60bb2e725e85274af653e9ff35cf4d86f81b00b634
+- llm_txt_sha256: 86cc02f0a22eb88a1f10ee0b74a93628ffaf4611e371f9f8be32e70848d97798

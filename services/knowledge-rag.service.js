@@ -146,6 +146,30 @@ function buildQuerySchema(requiredFields = []) {
         type: 'number',
         example: 0.4,
       },
+      dedupe: {
+        type: 'boolean',
+        default: true,
+        example: true,
+      },
+      rerank: {
+        type: 'boolean',
+        default: true,
+        example: true,
+      },
+      diversityPerDocument: {
+        type: 'number',
+        minimum: 1,
+        maximum: 5,
+        default: 2,
+        example: 2,
+      },
+      rerankWindow: {
+        type: 'number',
+        minimum: 1,
+        maximum: 100,
+        description: 'Default: min(limit * 4, 50)',
+        example: 20,
+      },
       ids: {
         type: 'array',
         items: {
@@ -607,6 +631,17 @@ module.exports = (() => {
           collection: { type: 'string', optional: true, trim: true },
           limit: { type: 'number', optional: true, convert: true, min: 1, max: 100, default: 10 },
           scoreThreshold: { type: 'number', optional: true, convert: true },
+          dedupe: { type: 'boolean', optional: true, default: true },
+          rerank: { type: 'boolean', optional: true, default: true },
+          diversityPerDocument: {
+            type: 'number',
+            optional: true,
+            convert: true,
+            min: 1,
+            max: 5,
+            default: 2,
+          },
+          rerankWindow: { type: 'number', optional: true, convert: true, min: 1, max: 100 },
           ids: { type: 'array', optional: true },
           offset: { type: 'any', optional: true },
           filter: { type: 'object', optional: true },
@@ -629,6 +664,9 @@ module.exports = (() => {
                       query: 'Welche BNetzA Festlegungen sind relevant?',
                       collection: 'tenant:stadtwerk-a:knowledge',
                       limit: 5,
+                      dedupe: true,
+                      rerank: true,
+                      diversityPerDocument: 2,
                     },
                   },
                 },
@@ -652,6 +690,17 @@ module.exports = (() => {
           collection: { type: 'string', optional: true, trim: true },
           limit: { type: 'number', optional: true, convert: true, min: 1, max: 100, default: 10 },
           scoreThreshold: { type: 'number', optional: true, convert: true },
+          dedupe: { type: 'boolean', optional: true, default: true },
+          rerank: { type: 'boolean', optional: true, default: true },
+          diversityPerDocument: {
+            type: 'number',
+            optional: true,
+            convert: true,
+            min: 1,
+            max: 5,
+            default: 2,
+          },
+          rerankWindow: { type: 'number', optional: true, convert: true, min: 1, max: 100 },
           filter: { type: 'object', optional: true },
           withPayload: { type: 'boolean', optional: true, default: false },
           withVectors: { type: 'boolean', optional: true, default: false },
@@ -672,6 +721,10 @@ module.exports = (() => {
                     collection: { type: 'string', example: 'tenant:stadtwerk-a:knowledge' },
                     limit: { type: 'number', default: 10, example: 5 },
                     scoreThreshold: { type: 'number', example: 0.3 },
+                    dedupe: { type: 'boolean', default: true, example: true },
+                    rerank: { type: 'boolean', default: true, example: true },
+                    diversityPerDocument: { type: 'number', minimum: 1, maximum: 5, default: 2, example: 2 },
+                    rerankWindow: { type: 'number', minimum: 1, maximum: 100, example: 20 },
                     filter: { type: 'object', example: { must: [] } },
                     withPayload: { type: 'boolean', default: false, example: false },
                     withVectors: { type: 'boolean', default: false, example: false },
@@ -683,6 +736,9 @@ module.exports = (() => {
                       query: 'Welche CAPEX-Regeln gelten?',
                       collection: 'tenant:stadtwerk-a:knowledge',
                       limit: 5,
+                      dedupe: true,
+                      rerank: true,
+                      diversityPerDocument: 2,
                     },
                   },
                 },
@@ -1396,6 +1452,155 @@ module.exports = (() => {
         return true;
       },
 
+      normalizeTextForDedupe(text) {
+        return String(text || '')
+          .normalize('NFKC')
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}]+/gu, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+      },
+
+      getResultPayload(row) {
+        if (row && typeof row === 'object' && row.payload && typeof row.payload === 'object') {
+          return row.payload;
+        }
+        return row || {};
+      },
+
+      getDocumentKey(row) {
+        const payload = this.getResultPayload(row);
+        const documentId =
+          payload.documentId ||
+          payload?.metadata?.documentId ||
+          payload?.metadata?.sourceDocumentId ||
+          payload?.metadata?.docId;
+        if (documentId !== undefined && documentId !== null && String(documentId).trim()) {
+          return `doc:${String(documentId).trim()}`;
+        }
+
+        const title = payload?.metadata?.title || payload?.title;
+        if (title !== undefined && title !== null && String(title).trim()) {
+          return `title:${String(title).trim().toLowerCase()}`;
+        }
+
+        const pointId = payload?.pointId;
+        if (pointId !== undefined && pointId !== null && String(pointId).trim()) {
+          return `point:${String(pointId).trim()}`;
+        }
+
+        return null;
+      },
+
+      getDedupeKey(row) {
+        const payload = this.getResultPayload(row);
+        const normalizedReference = this.normalizeTextForDedupe(payload?.referenceText_L0);
+        const documentId = payload.documentId || payload?.metadata?.documentId;
+
+        if (documentId !== undefined && documentId !== null && String(documentId).trim()) {
+          return `doc:${String(documentId).trim()}|ref:${normalizedReference}`;
+        }
+
+        const title = payload?.metadata?.title || payload?.title;
+        if (title !== undefined && title !== null && String(title).trim()) {
+          return `title:${String(title).trim().toLowerCase()}|ref:${normalizedReference}`;
+        }
+
+        const pointId = payload?.pointId;
+        if (pointId !== undefined && pointId !== null && String(pointId).trim()) {
+          return `point:${String(pointId).trim()}`;
+        }
+
+        return null;
+      },
+
+      applySemanticPostProcessing(result, params = {}) {
+        if (!result?.success || result?.data?.queryType !== 'semantic') return result;
+
+        const rows = Array.isArray(result?.data?.results) ? result.data.results : [];
+        const inputCount = rows.length;
+        const dedupeEnabled = params.dedupe !== false;
+        const rerankEnabled = params.rerank !== false;
+        const limitForDefaults = clamp(params.limit || 10, 1, 100);
+        const diversityPerDocument = clamp(params.diversityPerDocument || 2, 1, 5);
+        const rerankWindow = clamp(
+          Number.isFinite(params.rerankWindow) ? params.rerankWindow : Math.min(limitForDefaults * 4, 50),
+          1,
+          100
+        );
+
+        const toScore = (row) => {
+          const score = Number(this.getResultPayload(row)?.score);
+          return Number.isFinite(score) ? score : 0;
+        };
+
+        let working = rows.slice();
+
+        if (dedupeEnabled && working.length > 0) {
+          const bestByKey = new Map();
+          const uniqueFallback = new Set();
+
+          for (let index = 0; index < working.length; index += 1) {
+            const row = working[index];
+            const dedupeKey = this.getDedupeKey(row) || `__idx_${index}`;
+            if (dedupeKey.startsWith('__idx_')) {
+              if (!uniqueFallback.has(dedupeKey)) {
+                uniqueFallback.add(dedupeKey);
+                bestByKey.set(dedupeKey, row);
+              }
+              continue;
+            }
+
+            const existing = bestByKey.get(dedupeKey);
+            if (!existing || toScore(row) > toScore(existing)) {
+              bestByKey.set(dedupeKey, row);
+            }
+          }
+
+          working = Array.from(bestByKey.values());
+        }
+
+        working.sort((a, b) => toScore(b) - toScore(a));
+
+        if (rerankEnabled && working.length > 1) {
+          const candidates = working.slice(0, rerankWindow);
+          const remainder = working.slice(rerankWindow);
+          const selected = [];
+          const overflow = [];
+          const perDocumentCounts = new Map();
+
+          for (let index = 0; index < candidates.length; index += 1) {
+            const row = candidates[index];
+            const documentKey = this.getDocumentKey(row) || `__row_${index}`;
+            const count = perDocumentCounts.get(documentKey) || 0;
+            if (count < diversityPerDocument) {
+              selected.push(row);
+              perDocumentCounts.set(documentKey, count + 1);
+            } else {
+              overflow.push(row);
+            }
+          }
+
+          working = selected.concat(overflow, remainder);
+        }
+
+        const outputCount = working.length;
+        result.data.results = working;
+        result.data.total = outputCount;
+        result.data.returned = outputCount;
+        result.data.reranking = {
+          applied: dedupeEnabled || rerankEnabled,
+          dedupe: dedupeEnabled,
+          rerank: rerankEnabled,
+          inputCount,
+          outputCount,
+          removedDuplicates: Math.max(0, inputCount - outputCount),
+          diversityPerDocument,
+        };
+
+        return result;
+      },
+
       async localSemanticSearch(ctx, collection, record, params) {
         const queryVector = (await embeddings([String(params.query || '')]))[0] || [];
         const chunks = await this.listCollectionChunks(ctx, collection, record.activeModelVersion);
@@ -1413,9 +1618,23 @@ module.exports = (() => {
 
         const threshold = Number.isFinite(params.scoreThreshold) ? params.scoreThreshold : -1;
         const filtered = rows.filter((row) => row.score >= threshold).sort((a, b) => b.score - a.score);
+        const postProcessed = this.applySemanticPostProcessing(
+          {
+            success: true,
+            data: {
+              queryType: 'semantic',
+              collection,
+              returned: filtered.length,
+              total: filtered.length,
+              results: filtered,
+            },
+          },
+          params
+        );
+        const postRows = Array.isArray(postProcessed?.data?.results) ? postProcessed.data.results : [];
         const offset = parseOffset(params.offset);
         const limit = clamp(params.limit || 10, 1, 100);
-        const sliced = filtered.slice(offset, offset + limit).map((row) => {
+        const sliced = postRows.slice(offset, offset + limit).map((row) => {
           const out = { ...row };
           if (!params.withVectors) delete out.vector;
           return out;
@@ -1427,9 +1646,10 @@ module.exports = (() => {
             queryType: 'semantic',
             collection,
             returned: sliced.length,
-            total: filtered.length,
+            total: postRows.length,
             offset,
-            nextOffset: offset + sliced.length < filtered.length ? String(offset + sliced.length) : null,
+            nextOffset: offset + sliced.length < postRows.length ? String(offset + sliced.length) : null,
+            reranking: postProcessed?.data?.reranking,
             results: sliced,
           },
         };
@@ -1553,6 +1773,13 @@ module.exports = (() => {
           queryType,
           collection,
         };
+        const mcpParams = {
+          ...toolParams,
+        };
+        delete mcpParams.dedupe;
+        delete mcpParams.rerank;
+        delete mcpParams.diversityPerDocument;
+        delete mcpParams.rerankWindow;
 
         return runAsync(ctx, {
           service: 'knowledge-rag',
@@ -1570,7 +1797,7 @@ module.exports = (() => {
 
             const result = await callWithAutoPoll(
               MCP_TOOL,
-              toolParams,
+              mcpParams,
               {
                 maxWaitTime: 8 * 60 * 1000,
                 pollInterval: 2000,
@@ -1583,6 +1810,8 @@ module.exports = (() => {
               },
               ctx.meta.cernionToken
             );
+
+            this.applySemanticPostProcessing(result, toolParams);
 
             metrics.recordRagQuery(collection, inferHitCount(result));
             if (jobId) appendLog(jobId, 'completed', 100, `${MCP_TOOL} finished`);

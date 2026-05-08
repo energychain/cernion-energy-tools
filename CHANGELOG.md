@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.48.2] — Knowledge-RAG Semantic Dedupe & Reranking Hardening
+
+### Changed
+- [services/knowledge-rag.service.js](services/knowledge-rag.service.js): Added robust, backward-compatible semantic result post-processing in the v0.43.1 extension path:
+  - new optional query params for `query` + `semantic`: `dedupe` (default `true`), `rerank` (default `true`), `diversityPerDocument` (1..5, default `2`), `rerankWindow` (1..100, default `min(limit*4, 50)`)
+  - semantic post-processing methods introduced:
+    - `normalizeTextForDedupe()`
+    - `getResultPayload()`
+    - `getDedupeKey()`
+    - `getDocumentKey()`
+    - `applySemanticPostProcessing()`
+  - deduplication now keeps highest-score hit per semantic duplicate group using key priority:
+    - `documentId + normalized referenceText_L0`
+    - fallback `metadata.title + normalized referenceText_L0`
+    - fallback `pointId`
+  - score-preserving reranking/diversity applied on candidate window (`rerankWindow`) with per-document cap (`diversityPerDocument`) and deterministic refill behavior
+  - local semantic path applies post-processing before pagination to avoid duplicate blocking of first page
+  - external semantic MCP path applies same post-processing after MCP response and before metric recording
+  - semantic responses now include `data.reranking` diagnostics (`applied`, `dedupe`, `rerank`, `inputCount`, `outputCount`, `removedDuplicates`, `diversityPerDocument`)
+- OpenAPI request schemas/examples for semantic query endpoints were extended to expose the new post-processing controls.
+
+### Tests
+- [tests/knowledge-rag.service.test.js](tests/knowledge-rag.service.test.js):
+  - verifies external semantic duplicate removal by `documentId/referenceText_L0`
+  - verifies `dedupe: false` preserves duplicates
+  - verifies `data.reranking` metadata population
+- [tests/knowledge-rag-ingest.test.js](tests/knowledge-rag-ingest.test.js):
+  - verifies local semantic dedupe is executed before pagination and keeps `returned/total` consistent
+
 ## [0.48.1] — OIDC/SAML SSO Foundation (Issue 17)
 
 ### Added
