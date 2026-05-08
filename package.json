@@ -61,7 +61,7 @@
     "@opentelemetry/sdk-trace-node": "^2.1.0",
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@turf/boolean-point-in-polygon": "^7.3.4",
+    "@turf/boolean-point-in-polygon": "^7.3.5",
     "@turf/helpers": "^7.3.4",
     "ajv": "^8.18.0",
     "axios": "^1.15.0",
