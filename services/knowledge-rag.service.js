@@ -167,8 +167,8 @@ function buildQuerySchema(requiredFields = []) {
         type: 'number',
         minimum: 1,
         maximum: 100,
-        description: 'Default: min(limit * 4, 50)',
-        example: 20,
+        description: 'Default: max(30, min(limit * 4, 50))',
+        example: 30,
       },
       ids: {
         type: 'array',
@@ -724,7 +724,7 @@ module.exports = (() => {
                     dedupe: { type: 'boolean', default: true, example: true },
                     rerank: { type: 'boolean', default: true, example: true },
                     diversityPerDocument: { type: 'number', minimum: 1, maximum: 5, default: 2, example: 2 },
-                    rerankWindow: { type: 'number', minimum: 1, maximum: 100, example: 20 },
+                    rerankWindow: { type: 'number', minimum: 1, maximum: 100, example: 30 },
                     filter: { type: 'object', example: { must: [] } },
                     withPayload: { type: 'boolean', default: false, example: false },
                     withVectors: { type: 'boolean', default: false, example: false },
@@ -1524,7 +1524,9 @@ module.exports = (() => {
         const limitForDefaults = clamp(params.limit || 10, 1, 100);
         const diversityPerDocument = clamp(params.diversityPerDocument || 2, 1, 5);
         const rerankWindow = clamp(
-          Number.isFinite(params.rerankWindow) ? params.rerankWindow : Math.min(limitForDefaults * 4, 50),
+          Number.isFinite(params.rerankWindow)
+            ? params.rerankWindow
+            : Math.max(30, Math.min(limitForDefaults * 4, 50)),
           1,
           100
         );

@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.48.3] — Subset-Test Coverage Gate Fix + Retrieval Window Floor
+
+### Changed
+- [jest.config.js](jest.config.js): Coverage threshold gating is now applied only for full-suite runs.
+  - Explicit subset runs (e.g. `npm test -- --runInBand tests/...`) no longer fail due to global coverage thresholds.
+  - Full release and CI runs keep strict global thresholds unchanged.
+- [services/knowledge-rag.service.js](services/knowledge-rag.service.js): Increased semantic rerank candidate default window floor to at least 30.
+  - New effective default for `rerankWindow`: `max(30, min(limit * 4, 50))`
+  - OpenAPI description/examples updated accordingly.
+
 ## [0.48.2] — Knowledge-RAG Semantic Dedupe & Reranking Hardening
 
 ### Changed

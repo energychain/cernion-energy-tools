@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.48.2
-- changelog_latest_release: 0.48.2
+- version: 0.48.3
+- changelog_latest_release: 0.48.3
 - source_files_hash:
-  - CHANGELOG.md: 3cf893667161fd2cb078aa6eb72b36fc4cc62de6e1fb6068049734d832ef68dd
+  - CHANGELOG.md: 78cbb34f311bc8af54066903fef8ead3abfeb6d698344ada70e938b987b67878
   - README.md: 0bc16f1f06fb7da1ce6335438c43493b819302cc69a2a259de4517484a921ed8
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: ed29d8dd4e1043812a4ca7152140bde88d098962556c7eb49b8e1f3c20c4a071
+  - openapi-export.json: c4a19d445bdd32b62818b62db7d2b54c72d246c55b477d785a2b5c4b97ed2009
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -907,7 +907,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.48.2"
+    "version": "0.48.3"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -12660,8 +12660,8 @@ process:
                     "type": "boolean"
                   },
                   "rerankWindow": {
-                    "description": "Default: min(limit * 4, 50)",
-                    "example": 20,
+                    "description": "Default: max(30, min(limit * 4, 50))",
+                    "example": 30,
                     "maximum": 100,
                     "minimum": 1,
                     "type": "number"
@@ -13198,7 +13198,7 @@ process:
                     "type": "boolean"
                   },
                   "rerankWindow": {
-                    "example": 20,
+                    "example": 30,
                     "maximum": 100,
                     "minimum": 1,
                     "type": "number"
@@ -19092,8 +19092,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.48.2"
+  "x-version": "0.48.3"
 }
 
 ## Integrity
-- llm_txt_sha256: 86cc02f0a22eb88a1f10ee0b74a93628ffaf4611e371f9f8be32e70848d97798
+- llm_txt_sha256: 1a2f5c99648fb6c09a4cc69413bc2b1b8c21e77e898503107cc5a886319daf76
