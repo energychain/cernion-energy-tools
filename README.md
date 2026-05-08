@@ -9,13 +9,15 @@
 
 ## Überblick
 
-Cernion Energy Tools ist eine **Node.js/Moleculer-Plattform** mit 56 Microservices,
-~306 REST-Endpunkten und 1 782+ Tests. Sie richtet sich an VNBs und Stadtwerke,
+Cernion Energy Tools ist eine **Node.js/Moleculer-Plattform** mit 63 Core-Services
+in `services/`, einer optionalen lokalen Erweiterung in `custom-services/`,
+224 OpenAPI-Pfaden / 264 REST-Operationen und 1 782+ Tests. Sie richtet sich an VNBs und Stadtwerke,
 die Netzanschlüsse prüfen, Redispatch-Pflichten verwalten, §42c-Energieteilung
 umsetzen oder MaStR-Portfolios auditieren wollen. Die Plattform verbindet öffentliche
 Energiedatenquellen (MaStR, ENTSO-E, BNetzA EWK) mit internen Betriebsdaten und
 liefert reproduzierbare, auditierbare Ergebnisse — kein Blackbox-LLM für regulatorische
-Entscheidungen. Aktueller Stand: **v0.44.1**, 56 Services, 1 782+ Tests.
+Entscheidungen. Aktueller Stand: **v0.47.2**, 63 Core-Services + 1 lokaler Custom-Service,
+224 OpenAPI-Pfade / 264 REST-Operationen.
 
 ---
 
@@ -42,12 +44,12 @@ Vollständige Einrichtung: [QUICKSTART.md](QUICKSTART.md)
 
 | Schicht | Komponenten | Zweck |
 |---|---|---|
-| Plattform | Moleculer, PouchDB (9 Stores), Object Store | Service-Bus, Persistenz, Tenant-Isolation |
+| Plattform | Moleculer, PouchDB/Object Store, Job-Store, Tenant Context | Service-Bus, Persistenz, Isolation, Async Runtime |
 | Externe Daten | MaStR (lokal), ENTSO-E, BNetzA EWK, OEP | Anlagendaten, Netzkapazität, Marktpreise |
-| Interne Daten | Datasource Layer (CSV/REST/GeoJSON/XLSX) | Eigene VNB-Datensätze, zeitreihenbasiert |
-| KI / Agenten | AI Agent (Gemini), CYA Engine, 4 deterministische Agenten | Analyse, Narrative, Compliance-Prüfung |
-| Regulatorik | §42c, §14a EnWG, Redispatch 2.0, EWK | Rechtsvorschriften als ausführbarer Code |
-| API | REST (~306 Endpunkte), MCP, OpenAPI, SSE | Integration in UI, Power Automate, BI-Tools |
+| Interne Daten | Datasource Layer (CSV/REST/GeoJSON/XLSX), Datapoints | Eigene VNB-Datensätze, Scheduling, Provenance |
+| KI / Agenten | Agent, CYA, Finance Agent, 4 deterministische Audit-/Validation-Agents | Analyse, Narrative, Compliance-Prüfung |
+| Governance | HITL, Webhooks, Observability, Pagination, Asset Overrides | Operative Freigaben, Eventing, Telemetrie, API-Härtung |
+| API | REST (224 Pfade / 264 Operationen), MCP, OpenAPI, SSE | Integration in UI, Power Automate, BI-Tools |
 
 Vollständige Architektur: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
@@ -140,8 +142,9 @@ Neue Services anlegen: `npm run create` (interaktiv aus `templates/`)
 |---|---|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Vollständige Architektur-Dokumentation |
 | [docs/BACKEND_CONTEXT.md](docs/BACKEND_CONTEXT.md) | Architektur-Kontext für Frontend-Entwickler |
-| [docs/ui-contracts/](docs/ui-contracts/) | 28 API-Contracts (UI-Team) |
+| [docs/ui-contracts/](docs/ui-contracts/) | 33 API-Contracts (UI-Team) |
 | [docs/CYA_ARCHITECTURE.md](docs/CYA_ARCHITECTURE.md) | CYA-Agent-Pipeline (4-Phasen-Kontrakt) |
+| [docs/RELEASE_SUMMARY_v0.46.md](docs/RELEASE_SUMMARY_v0.46.md) | Komponenten-Diff v0.40 → v0.46.2 |
 | [docs/ENERGY_SHARING_ABNAHME.md](docs/ENERGY_SHARING_ABNAHME.md) | §42c Produktionsabnahme |
 | [CHANGELOG.md](CHANGELOG.md) | Release-Verlauf |
 | [MCP_TOOLS.md](MCP_TOOLS.md) | MCP-Tool-Referenz |

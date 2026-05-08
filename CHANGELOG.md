@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.47.2] — Architecture Documentation Re-baseline
+
+### Changed
+- Re-based [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) to the current workspace state and release baseline:
+  - version reference updated to `v0.47.2`
+  - architecture layers extended through Multi-Tenant, OEO export, LLM provider abstraction, Knowledge-RAG ingest, Webhooks, HITL, Observability, Pagination, Asset Overrides, OEP delta, Job-Store drivers and Capability Broker
+  - top-level counts indexed against the repository export (`63` core services in `services/`, `224` OpenAPI paths, `264` REST operations)
+  - TRL section replaced by a hybrid capability + service-coverage table covering all current core services
+  - known limitations refreshed with hygiene sprint status, internal-only broker scope and open §42c cutover risks
+- Updated [README.md](README.md) for consistent current-state numbers and `v0.47.2` references.
+
+### Added
+- New release bridge document [docs/RELEASE_SUMMARY_v0.46.md](docs/RELEASE_SUMMARY_v0.46.md) summarizing the component delta from `v0.40.x` to `v0.46.2`.
+
 ## [0.47.1] — Async-Job-Cutover Foundations (Client-Key Idempotency + Progress SSE)
 
 ### Added
