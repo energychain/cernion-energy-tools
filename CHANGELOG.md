@@ -7,6 +7,82 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.48.1] — OIDC/SAML SSO Foundation (Issue 17)
+
+### Added
+- Initial authentication foundation for SSO rollout:
+  - new RBAC helper [src/auth/rbac.js](src/auth/rbac.js)
+  - OIDC helper stub [src/auth/oidc.js](src/auth/oidc.js)
+  - SAML helper stub [src/auth/saml.js](src/auth/saml.js)
+  - new session service [services/auth.service.js](services/auth.service.js) with `csess_*` session lifecycle:
+    - `GET /api/auth/oidc/login`
+    - `GET /api/auth/oidc/callback`
+    - `POST /api/auth/saml/acs`
+    - `POST /api/auth/verify`
+    - `POST /api/auth/refresh`
+    - `POST /api/auth/logout`
+- New documentation [docs/AUTH_OIDC_SAML.md](docs/AUTH_OIDC_SAML.md) with configuration examples for Azure AD, Keycloak and ADFS.
+
+### Changed
+- API gateway [services/api.service.js](services/api.service.js):
+  - supports `csess_*` verification via `auth.verify` in addition to legacy `ck_*` token verification
+  - role checks introduced for write endpoints and HITL approval endpoints (`hitl-approver` required)
+  - legacy `ck_*` full-access tokens map to transition roles (`full-access`, `hitl-approver`)
+  - legacy `ck_*` responses now include deprecation headers (`Deprecation`, `Sunset`)
+  - added new OpenAPI tag `Authentication` and auth route aliases
+- HITL service [services/hitl.service.js](services/hitl.service.js): intervention actor metadata enriched with `userId`, `groups`, and `idpClaims` when available via auth context.
+- Webhooks service [services/webhooks.service.js](services/webhooks.service.js):
+  - added whitelisted events `auth.session.created`, `auth.session.expired`
+  - added corresponding event handlers.
+
+## [0.48.0] — EOG-Calculator MVP (Validate/Commit, Kalibrieranker, HITL-Audit)
+
+### Added
+- New microservice [services/eog-calculator.service.js](services/eog-calculator.service.js) with tenant-scoped, typed EOG datapoint model and dedicated REST API:
+  - `POST /api/eog-calculator/input-status`
+  - `POST /api/eog-calculator/datapoints/validate`
+  - `POST /api/eog-calculator/datapoints/commit`
+  - `POST /api/eog-calculator/calculate`
+  - `POST /api/eog-calculator/scenario`
+  - `POST /api/eog-calculator/request-input`
+  - `GET /api/eog-calculator/:tenantId/:vnbId`
+- Strict state model implemented for EOG processing:
+  - `dataStatus`: `complete | partial | blocked`
+  - `calculationMode`: `actual | scenario | provisional`
+  - `confidence`: `confirmed | user_supplied | derived | missing | assumed`
+- Typed datapoint keys for MVP scope (including calibration anchors), e.g. `eog.efficiency_value`, `eog.base_cost_level`, `eog.controllable_costs`, `eog.approved_revenue_cap`, `eog.adjusted_revenue_cap`.
+- **Detail-Reproduction Field Classification:** `inputStatus` now reports `optionalButRelevant` category (importance: 'detail_reproduction') containing:
+  - `eog.quality_element` — Regulatory quality adjustments (positive: bonus +EUR, negative: malus −EUR); directly impacts computed EOG in formula
+  - `eog.regulatory_account_balance` — Periodic corrections from prior regulatory periods
+  - `eog.capex_adjustment_addition` — Positive capex adjustments
+  - `eog.capex_adjustment_deduction` — Negative capex adjustments
+  - `eog.volatile_costs` — Market-dependent variable costs
+  - These fields are optional for partial EOG calculations but critical for detail reproduction and calibration comparison
+- Scenario overrides are transient (`scenario` action) and are not persisted as confirmed actual datapoints.
+- HITL integration for missing values with blocker explanations and explicit decision options:
+  - `manual_confirm`
+  - `document_upload`
+  - `scenario_assumption`
+  - `abort`
+- Audit-capable decision events (tenant/VNB-scoped) persisted for commit/hitl decisions.
+
+### Changed
+- API gateway full-access policy extended in [services/api.service.js](services/api.service.js) so `POST /api/eog-calculator/*` requires full-access token scope.
+- `inputStatus` response structure enhanced: Now includes `optionalButRelevant` array alongside `required` and `missing` to signal detail-reproduction fields
+
+### Added (Tests)
+- New test suite [tests/eog-calculator.service.test.js](tests/eog-calculator.service.test.js) covering:
+  - validate vs commit separation (no persistence on validate)
+  - successful commit flow with datapoint persistence
+  - blocker explanation behavior for missing required inputs
+  - calibration-anchor comparison (`match`/deviation model)
+  - transient scenario separation from persisted actuals
+  - HITL item creation with user choice set
+  - **Quality Element Impact Test (NEW):** Demonstrates that positive (+50 EUR) and negative (−30 EUR) quality_element values correctly modify the computed EOG:
+    - Positive Q-element (bonus): 1000 − 10 + 300 + 100 + 50 = 1440 EUR
+    - Negative Q-element (malus): 1000 − 10 + 300 + 100 − 30 = 1360 EUR
+    - No Q-element (default zero): 1000 − 10 + 300 + 100 + 0 = 1390 EUR
+
 ## [0.47.2] — Architecture Documentation Re-baseline
 
 ### Changed

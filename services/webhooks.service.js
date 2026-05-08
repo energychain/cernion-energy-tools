@@ -22,6 +22,8 @@ const EVENT_WHITELIST = [
   'redispatch-expost.audit.completed',
   'mastr-quality.audit.completed',
   'finance-agent.analysis.completed',
+  'auth.session.created',
+  'auth.session.expired',
 ];
 
 function nowIso() {
@@ -404,6 +406,16 @@ module.exports = {
     'finance-agent.analysis.completed': {
       async handler(ctx) {
         await this.enqueueFromEvent('finance-agent.analysis.completed', ctx.params);
+      },
+    },
+    'auth.session.created': {
+      async handler(ctx) {
+        await this.enqueueFromEvent('auth.session.created', ctx.params);
+      },
+    },
+    'auth.session.expired': {
+      async handler(ctx) {
+        await this.enqueueFromEvent('auth.session.expired', ctx.params);
       },
     },
   },

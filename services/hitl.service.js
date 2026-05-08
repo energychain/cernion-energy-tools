@@ -468,7 +468,7 @@ module.exports = {
         const intervention = {
           at: updatedAt,
           action: 'escalated',
-          actor: ctx.meta?.apiToken?.id || 'system',
+          ...this.buildInterventionActor(ctx),
           comment: ctx.params.comment || 'Escalated to second review level',
         };
         const updated = {
@@ -698,6 +698,26 @@ module.exports = {
       return publicDoc;
     },
 
+    buildInterventionActor(ctx) {
+      const authUser = ctx?.meta?.authUser || null;
+      const actorId = authUser?.userId || ctx?.meta?.apiToken?.id || 'system';
+      const actor = {
+        actor: actorId,
+      };
+
+      if (authUser?.userId) {
+        actor.userId = authUser.userId;
+      }
+      if (Array.isArray(authUser?.groups)) {
+        actor.groups = authUser.groups;
+      }
+      if (authUser?.idpClaims && typeof authUser.idpClaims === 'object') {
+        actor.idpClaims = authUser.idpClaims;
+      }
+
+      return actor;
+    },
+
     async resolveItem(item, status, ctx, options = {}) {
       if (normalizeStatus(item.status) !== 'pending') {
         throw new MoleculerClientError(
@@ -712,7 +732,7 @@ module.exports = {
       const intervention = {
         at: resolvedAt,
         action: status,
-        actor: ctx.meta?.apiToken?.id || 'system',
+        ...this.buildInterventionActor(ctx),
         comment: comment || null,
       };
       if (options.feedbackToAgent) {
@@ -907,7 +927,7 @@ module.exports = {
               {
                 at: updatedAt,
                 action: 'escalated',
-                actor: ctx.meta?.apiToken?.id || 'system',
+                ...this.buildInterventionActor(ctx),
                 comment: comment || 'Escalated to second review level',
               },
             ],

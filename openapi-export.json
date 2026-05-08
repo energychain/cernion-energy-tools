@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.47.2",
+    "version": "0.48.1",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -29,6 +29,10 @@
     {
       "name": "IntegrationHub",
       "description": "Token management and integration helpers"
+    },
+    {
+      "name": "Authentication",
+      "description": "OIDC/SAML session bootstrap and verification"
     },
     {
       "name": "Jobs",
@@ -1287,6 +1291,289 @@
           }
         },
         "description": "Returns all unique tenantIds that appear in stored tokens. Requires full-access scope. Empty list when no tenant-scoped tokens exist."
+      }
+    },
+    "/api/auth/oidc/login": {
+      "get": {
+        "operationId": "auth_oidcLogin",
+        "summary": "Start OIDC login (foundation)",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "state-123"
+            }
+          },
+          {
+            "name": "nonce",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "nonce-123"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "openid profile email groups"
+            }
+          }
+        ]
+      }
+    },
+    "/api/auth/oidc/callback": {
+      "get": {
+        "operationId": "auth_oidcCallback",
+        "summary": "OIDC callback (foundation)",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "oidc-code-abc"
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "state-123"
+            }
+          },
+          {
+            "name": "claims",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "description": "Foundation mode claim payload as JSON string.",
+              "example": "{\"sub\":\"user-1\",\"groups\":[\"cernion-approver\"]}"
+            }
+          }
+        ]
+      }
+    },
+    "/api/auth/saml/acs": {
+      "post": {
+        "operationId": "auth_samlAcs",
+        "summary": "SAML ACS callback (foundation)",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payload": {
+                    "type": "object",
+                    "example": {
+                      "nameID": "user@example.com"
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "payload": {
+                      "nameID": "user@example.com",
+                      "groups": [
+                        "cernion-approver"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/verify": {
+      "post": {
+        "operationId": "auth_verify",
+        "summary": "Verify csess_ session",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "example": "csess_..."
+                  },
+                  "trackUsage": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "token": "csess_demo_token",
+                    "trackUsage": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "operationId": "auth_refresh",
+        "summary": "Refresh csess_ session",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "example": "csess_..."
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "token": "csess_demo_token"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "operationId": "auth_logout",
+        "summary": "Logout csess_ session",
+        "tags": [
+          "Authentication"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "example": "csess_..."
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "token": "csess_demo_token"
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/vnb-monitor/thresholds": {
@@ -17847,5 +18134,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.47.2"
+  "x-version": "0.48.1"
 }

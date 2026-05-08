@@ -13,6 +13,7 @@ const fs = require('fs');
 const { version: packageVersion } = require('../package.json');
 const metrics = require('../src/metrics');
 const tracing = require('../src/tracing');
+const { hasRole, mapRolesFromLegacyToken } = require('../src/auth/rbac');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 const CONTENT_TYPE_HEADER = 'Content-Type';
@@ -29,6 +30,7 @@ const ALLOWED_UPLOAD_EXTENSIONS = new Set([
   '.gz',
   '.pdf', // Layer 2: VNB StromNZV §23c structure reports
 ]);
+const CK_TOKEN_SUNSET_HTTP_DATE = 'Wed, 31 Dec 2026 23:59:59 GMT';
 
 function ensureUploadDir() {
   if (!fs.existsSync(UPLOAD_DIR)) {
@@ -166,6 +168,9 @@ function requiresFullAccess(method, requestPath) {
   if (pathOnly.startsWith('/api/hitl/items') && m !== 'GET') {
     return true;
   }
+  if (pathOnly.startsWith('/api/eog-calculator') && m === 'POST') {
+    return true;
+  }
   if (pathOnly === '/api/knowledge-rag/collections' && m === 'POST') {
     return true;
   }
@@ -209,6 +214,50 @@ function isBusinessTokenPath(method, requestPath) {
   return false;
 }
 
+function requiresHitlApproverRole(method, requestPath) {
+  const m = String(method || '').toUpperCase();
+  const pathOnly = String(requestPath || '').split('?')[0];
+  if (m !== 'POST') return false;
+
+  return (
+    /^\/api\/hitl\/items\/[^/]+\/approve$/.test(pathOnly) ||
+    pathOnly === '/api/hitl/items/bulk-approve'
+  );
+}
+
+function addLegacyTokenDeprecationHeaders(ctx) {
+  ctx.meta.$responseHeaders = {
+    ...(ctx.meta.$responseHeaders || {}),
+    Deprecation: 'true',
+    Sunset: CK_TOKEN_SUNSET_HTTP_DATE,
+  };
+}
+
+function enforceRbacForPath(roles, method, requestPath) {
+  const m = String(method || '').toUpperCase();
+
+  if (requiresHitlApproverRole(m, requestPath) && !hasRole(roles, 'hitl-approver')) {
+    throw new Errors.MoleculerClientError(
+      'Role required: hitl-approver for HITL approval endpoints.',
+      403,
+      'ROLE_REQUIRED'
+    );
+  }
+
+  const pathOnly = String(requestPath || '').split('?')[0];
+  const isSessionSelfServiceEndpoint =
+    pathOnly === '/api/auth/verify' ||
+    pathOnly === '/api/auth/refresh' ||
+    pathOnly === '/api/auth/logout' ||
+    pathOnly === '/api/auth/saml/acs';
+
+  if (m !== 'GET' && m !== 'HEAD' && m !== 'OPTIONS' && !isSessionSelfServiceEndpoint) {
+    if (!hasRole(roles, 'full-access')) {
+      throw new Errors.MoleculerClientError('Role required: full-access.', 403, 'ROLE_REQUIRED');
+    }
+  }
+}
+
 module.exports = {
   name: 'api',
   mixins: [ApiGateway, OpenapiMixin],
@@ -238,6 +287,7 @@ module.exports = {
           description: 'Netzbetreiberprüfungs-Monitor (MaStR status 2955 queue KPIs)',
         },
         { name: 'IntegrationHub', description: 'Token management and integration helpers' },
+        { name: 'Authentication', description: 'OIDC/SAML session bootstrap and verification' },
         { name: 'Jobs', description: 'Async job status and result polling (v0.9.8+)' },
         {
           name: 'Datapoints',
@@ -569,6 +619,9 @@ module.exports = {
                   );
                   return;
                 }
+
+                res.setHeader('Deprecation', 'true');
+                res.setHeader('Sunset', CK_TOKEN_SUNSET_HTTP_DATE);
               }
 
               const payload = await metrics.renderMetrics();
@@ -703,6 +756,12 @@ module.exports = {
           'DELETE /tokens/:id': 'token-manager.revoke',
           'POST /tokens/verify': 'token-manager.verify',
           'GET /tokens/tenants': 'token-manager.tenant.list',
+          'GET /auth/oidc/login': 'auth.oidcLogin',
+          'GET /auth/oidc/callback': 'auth.oidcCallback',
+          'POST /auth/saml/acs': 'auth.samlAcs',
+          'POST /auth/verify': 'auth.verify',
+          'POST /auth/refresh': 'auth.refresh',
+          'POST /auth/logout': 'auth.logout',
           'GET /vnb-monitor/thresholds': 'vnb-monitor.getThresholds',
           'PUT /vnb-monitor/thresholds': 'vnb-monitor.setThresholds',
           'DELETE /vnb-monitor/thresholds': 'vnb-monitor.resetThresholds',
@@ -1140,10 +1199,15 @@ module.exports = {
           // 1) Request parameter "token" (query/body/path)
           // 2) Authorization: Bearer <token>
           // 3) CERNION_TOKEN from environment (fallback in MCP client)
+          const method = String(req?.method || '').toUpperCase();
           const requestPath = normalizeRequestPath(req);
-          const isTokenVerifyEndpoint =
-            requestPath === '/api/tokens/verify' &&
-            String(req?.method || '').toUpperCase() === 'POST';
+          const isTokenVerifyEndpoint = requestPath === '/api/tokens/verify' && method === 'POST';
+          const isAuthTokenEndpoint =
+            method === 'POST' &&
+            (requestPath === '/api/auth/verify' ||
+              requestPath === '/api/auth/refresh' ||
+              requestPath === '/api/auth/logout');
+          const preserveAuthToken = isTokenVerifyEndpoint || isAuthTokenEndpoint;
           const preserveBusinessToken = isBusinessTokenPath(req?.method, requestPath);
 
           const authHeader = req.headers['authorization'] || req.headers['Authorization'];
@@ -1151,10 +1215,10 @@ module.exports = {
             authHeader && authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : null;
 
           const paramTokenCandidates = [
-            isTokenVerifyEndpoint ? undefined : req?.$params?.token,
-            isTokenVerifyEndpoint ? undefined : req?.query?.token,
-            isTokenVerifyEndpoint ? undefined : req?.body?.token,
-            isTokenVerifyEndpoint || preserveBusinessToken ? undefined : req?.params?.token,
+            preserveAuthToken ? undefined : req?.$params?.token,
+            preserveAuthToken ? undefined : req?.query?.token,
+            preserveAuthToken ? undefined : req?.body?.token,
+            preserveAuthToken || preserveBusinessToken ? undefined : req?.params?.token,
           ];
 
           const paramToken = paramTokenCandidates.find(
@@ -1166,7 +1230,7 @@ module.exports = {
           // Remove token from incoming params so actions don't need to declare it explicitly.
           // For POST /tokens/verify the token IS the action parameter — do not strip it.
           if (
-            !isTokenVerifyEndpoint &&
+            !preserveAuthToken &&
             !preserveBusinessToken &&
             req?.$params &&
             Object.prototype.hasOwnProperty.call(req.$params, 'token')
@@ -1174,7 +1238,7 @@ module.exports = {
             delete req.$params.token;
           }
           if (
-            !isTokenVerifyEndpoint &&
+            !preserveAuthToken &&
             !preserveBusinessToken &&
             req?.query &&
             Object.prototype.hasOwnProperty.call(req.query, 'token')
@@ -1182,7 +1246,7 @@ module.exports = {
             delete req.query.token;
           }
           if (
-            !isTokenVerifyEndpoint &&
+            !preserveAuthToken &&
             !preserveBusinessToken &&
             req?.body &&
             Object.prototype.hasOwnProperty.call(req.body, 'token')
@@ -1190,7 +1254,7 @@ module.exports = {
             delete req.body.token;
           }
           if (
-            !isTokenVerifyEndpoint &&
+            !preserveAuthToken &&
             !preserveBusinessToken &&
             req?.params &&
             Object.prototype.hasOwnProperty.call(req.params, 'token')
@@ -1200,6 +1264,7 @@ module.exports = {
 
           if (tokenToUse) {
             const isApiToken = tokenToUse.startsWith('ck_');
+            const isSessionToken = tokenToUse.startsWith('csess_');
 
             if (isApiToken) {
               const verification = await this.broker.call('token-manager.verify', {
@@ -1243,16 +1308,59 @@ module.exports = {
                 );
               }
 
+              const roles = mapRolesFromLegacyToken(verification.scope, verification.scopes);
+              enforceRbacForPath(roles, req?.method, requestPath);
+              addLegacyTokenDeprecationHeaders(ctx);
+
               ctx.meta.apiToken = {
                 id: verification.tokenId,
                 name: verification.name,
                 scope: verification.scope,
                 scopes: verification.scopes || [],
               };
+              ctx.meta.authUser = {
+                authType: 'legacy-token',
+                userId: verification.tokenId || null,
+                groups: [],
+                idpClaims: null,
+                roles,
+              };
               if (verification.tenantId) {
                 ctx.meta.tenantId = verification.tenantId;
               }
               this.logger.debug('Using scoped API token from request');
+            } else if (isSessionToken) {
+              const verification = await this.broker.call('auth.verify', {
+                token: tokenToUse,
+                trackUsage: true,
+              });
+
+              if (!verification?.valid) {
+                throw new Errors.MoleculerClientError(
+                  'Invalid or expired session token.',
+                  401,
+                  'INVALID_SESSION_TOKEN'
+                );
+              }
+
+              const roles = Array.isArray(verification.roles) ? verification.roles : [];
+              enforceRbacForPath(roles, req?.method, requestPath);
+
+              ctx.meta.authSession = {
+                id: verification.sessionId,
+                expiresAt: verification.expiresAt || null,
+              };
+              ctx.meta.authUser = {
+                authType: 'session',
+                userId: verification.userId || null,
+                groups: Array.isArray(verification.groups) ? verification.groups : [],
+                idpClaims: verification.idpClaims || null,
+                roles,
+              };
+              if (verification.tenantId) {
+                ctx.meta.tenantId = verification.tenantId;
+              }
+              this.logger.debug('Using session token from request');
             } else {
               ctx.meta.cernionToken = tokenToUse;
               if (paramToken) {
@@ -1336,6 +1444,7 @@ module.exports = {
           'finance-agent': 'Finance Agent',
           'mastr-quality': 'MaStR Data Quality',
           hitl: 'HITL',
+          auth: 'Authentication',
           webhooks: 'Webhooks',
           'dashboard-api': 'Dashboard API',
           cookbook: 'Cookbook',

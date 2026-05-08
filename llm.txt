@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.47.2
-- changelog_latest_release: 0.47.2
+- version: 0.48.1
+- changelog_latest_release: 0.48.1
 - source_files_hash:
-  - CHANGELOG.md: 918e95d00a0ae6f2b9960fe962237a247fc767bfd5c2da8498300636ae7b0e8d
+  - CHANGELOG.md: 483603f49b786c5490eef7a280877a85f9ab80da3f63de66280c22a97f3be320
   - README.md: 0bc16f1f06fb7da1ce6335438c43493b819302cc69a2a259de4517484a921ed8
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: 28d79b8e1d16f593e40cfdf9260992352b3c2ea94169208415d7ad575f074091
+  - openapi-export.json: ca3373ebeb8546208c3e2127147ef4c5749556632f290db3fdcc6257e9ff084e
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -588,12 +588,13 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 224
-- operation_count: 264
+- path_count: 230
+- operation_count: 270
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
 - Assets: 5 operations
+- Authentication: 6 operations
 - Backup & Restore: 5 operations
 - Companies: 6 operations
 - Cookbook: 6 operations
@@ -640,6 +641,12 @@ process:
 - GET /api/assets/:assetId/overrides | tags: [Assets] | operationId: assets_overrides | summary: List all overrides for an asset
 - DELETE /api/assets/:assetId/overrides/:id | tags: [Assets] | operationId: assets_removeOverride | summary: Soft-revert an override
 - POST /api/assets/:assetId/overrides/:id/apply | tags: [Assets] | operationId: assets_applyOverride | summary: Apply a persisted override after approval
+- POST /api/auth/logout | tags: [Authentication] | operationId: auth_logout | summary: Logout csess_ session
+- GET /api/auth/oidc/callback | tags: [Authentication] | operationId: auth_oidcCallback | summary: OIDC callback (foundation)
+- GET /api/auth/oidc/login | tags: [Authentication] | operationId: auth_oidcLogin | summary: Start OIDC login (foundation)
+- POST /api/auth/refresh | tags: [Authentication] | operationId: auth_refresh | summary: Refresh csess_ session
+- POST /api/auth/saml/acs | tags: [Authentication] | operationId: auth_samlAcs | summary: SAML ACS callback (foundation)
+- POST /api/auth/verify | tags: [Authentication] | operationId: auth_verify | summary: Verify csess_ session
 - GET /api/bilanzkreis | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_list | summary: List Bilanzkreise
 - POST /api/bilanzkreis | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_create | summary: Create a Bilanzkreis (real or virtual)
 - DELETE /api/bilanzkreis/:id | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_delete | summary: Delete a Bilanzkreis
@@ -900,7 +907,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.47.2"
+    "version": "0.48.1"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -1370,6 +1377,289 @@ process:
         "summary": "Apply a persisted override after approval",
         "tags": [
           "Assets"
+        ]
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "operationId": "auth_logout",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "token": "csess_demo_token"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "token": {
+                    "example": "csess_...",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Logout csess_ session",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/oidc/callback": {
+      "get": {
+        "operationId": "auth_oidcCallback",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "schema": {
+              "example": "oidc-code-abc",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "example": "state-123",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "claims",
+            "schema": {
+              "description": "Foundation mode claim payload as JSON string.",
+              "example": "{\"sub\":\"user-1\",\"groups\":[\"cernion-approver\"]}",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "OIDC callback (foundation)",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/oidc/login": {
+      "get": {
+        "operationId": "auth_oidcLogin",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "state",
+            "schema": {
+              "example": "state-123",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "nonce",
+            "schema": {
+              "example": "nonce-123",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "scope",
+            "schema": {
+              "example": "openid profile email groups",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Start OIDC login (foundation)",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/refresh": {
+      "post": {
+        "operationId": "auth_refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "token": "csess_demo_token"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "token": {
+                    "example": "csess_...",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Refresh csess_ session",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/saml/acs": {
+      "post": {
+        "operationId": "auth_samlAcs",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "payload": {
+                      "groups": [
+                        "cernion-approver"
+                      ],
+                      "nameID": "user@example.com"
+                    }
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "payload": {
+                    "example": {
+                      "nameID": "user@example.com"
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "SAML ACS callback (foundation)",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/auth/verify": {
+      "post": {
+        "operationId": "auth_verify",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "token": "csess_demo_token",
+                    "trackUsage": true
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "token": {
+                    "example": "csess_...",
+                    "type": "string"
+                  },
+                  "trackUsage": {
+                    "default": false,
+                    "type": "boolean"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Verify csess_ session",
+        "tags": [
+          "Authentication"
         ]
       }
     },
@@ -18640,6 +18930,10 @@ process:
       "name": "IntegrationHub"
     },
     {
+      "description": "OIDC/SAML session bootstrap and verification",
+      "name": "Authentication"
+    },
+    {
       "description": "Async job status and result polling (v0.9.8+)",
       "name": "Jobs"
     },
@@ -18745,8 +19039,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.47.2"
+  "x-version": "0.48.1"
 }
 
 ## Integrity
-- llm_txt_sha256: 658b7acc52d7c514c59b1d95d2027630a30e1735c8719a414838ce2ba626d5e4
+- llm_txt_sha256: c0a054c20fe92d4597a7ea60bb2e725e85274af653e9ff35cf4d86f81b00b634
