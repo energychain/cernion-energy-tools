@@ -897,8 +897,9 @@ describe('Enterprise E2E — Höheinöd (PLZ 66989)', () => {
       expect(Array.isArray(qualitySummaryResult.agents)).toBe(true);
     });
 
-    test('E8: qualitySummary.agents has 5 entries (one per agent type)', () => {
-      expect(qualitySummaryResult.agents.length).toBe(5);
+    test('E8: qualitySummary.agents has 6 entries (including vdmi)', () => {
+      expect(qualitySummaryResult.agents.length).toBe(6);
+      expect(qualitySummaryResult.agents.some((agent) => agent.type === 'vdmi')).toBe(true);
     });
 
     test('E9: findingCodes returns all codes from FINDING_CODE_METADATA', () => {

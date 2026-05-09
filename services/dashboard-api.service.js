@@ -29,6 +29,8 @@ const ACTION_MQ_LIST = 'mastr-quality.list';
 const ACTION_RD_LIST = 'redispatch-expost.list';
 const ACTION_ES_LIST = 'energy-sharing.list';
 const ACTION_GC_LIST = 'grid-connection.list';
+const ACTION_VDMI_LIST = 'vdmi.list';
+const ACTION_VDMI_FINDINGS = 'vdmi.findings';
 
 module.exports = {
   name: 'dashboard-api',
@@ -515,6 +517,32 @@ module.exports = {
                         },
                       },
                     },
+                    businessKpis: {
+                      type: 'object',
+                      nullable: true,
+                      description:
+                        'VDMI business KPIs for governance and process-standardisation impact',
+                      properties: {
+                        vdmi_shadow_path_resolution_rate: {
+                          type: 'number',
+                          nullable: true,
+                          description:
+                            'Resolved share (%) of VD_SHADOW_* and VD_SILO_* findings in the observed data',
+                        },
+                        vdmi_n1_escalation_reduction_rate: {
+                          type: 'number',
+                          nullable: true,
+                          description:
+                            'Reduction (%) of escalation-like VD_GOV_* findings comparing current vs previous 30-day window',
+                        },
+                        vdmi_fnav_time_to_decision_gain_days: {
+                          type: 'number',
+                          nullable: true,
+                          description:
+                            'Median decision-time gain in days for fNAV process matrices (previous window minus current window)',
+                        },
+                      },
+                    },
                     timestamp: { type: 'string', format: 'date-time' },
                     _errors: { type: 'array', items: { type: 'string' } },
                   },
@@ -532,7 +560,8 @@ module.exports = {
           const errors = [];
           const baseFilter = gridOperatorId ? { gridOperatorId } : {};
 
-          const [mqRes, gcRes, esRes, rdRes, allocRes] = await Promise.allSettled([
+          const [mqRes, gcRes, esRes, rdRes, allocRes, vdmiMatrixRes, vdmiFindingsRes] =
+            await Promise.allSettled([
             this.safeCall(
               ctx,
               ACTION_MQ_LIST,
@@ -566,7 +595,19 @@ module.exports = {
               errors,
               'energy-sharing-allocation.list'
             ),
-          ]);
+            this.safeCall(ctx, ACTION_VDMI_LIST, { limit: 5 }, null, errors, ACTION_VDMI_LIST),
+            this.safeCall(
+              ctx,
+              ACTION_VDMI_FINDINGS,
+              { limit: 500 },
+              null,
+              errors,
+              ACTION_VDMI_FINDINGS
+            ),
+            ]);
+
+          const vdmiMatrices = vdmiMatrixRes.value?.items || [];
+          const vdmiFindings = vdmiFindingsRes.value?.findings || [];
 
           const agents = [
             this.buildAgentEntry(
@@ -599,10 +640,12 @@ module.exports = {
               allocRes.value?.allocations,
               'totalNetGenerationKWh'
             ),
+            this.buildVdmiAgentEntry(vdmiMatrices, vdmiFindings),
           ];
 
           return {
             agents,
+            businessKpis: this.buildVdmiBusinessKpis(vdmiFindings, vdmiMatrices),
             timestamp: new Date().toISOString(),
             _errors: errors,
           };
@@ -800,6 +843,13 @@ module.exports = {
                 steps: 7,
                 pouchdbPrefix: 'rd:',
                 endpoint: 'POST /api/redispatch/audit',
+              },
+              vdmi: {
+                label: 'VDMI Governance Matrix',
+                version: '0.50.0',
+                steps: 6,
+                pouchdbPrefix: 'vdmi:',
+                endpoint: 'GET /api/vdmi/findings',
               },
             },
             totalCodes: Object.keys(FINDING_CODE_METADATA).length,
@@ -1125,6 +1175,145 @@ module.exports = {
           [metricKey]: r[metricKey] ?? null,
         })),
       };
+    },
+
+    /**
+     * Builds a VDMI agent entry for qualitySummary.
+     * @param {object[]|null} matrices
+     * @param {object[]|null} findings
+     * @returns {object}
+     */
+    buildVdmiAgentEntry(matrices, findings) {
+      const matrixList = Array.isArray(matrices) ? matrices : [];
+      const findingList = Array.isArray(findings) ? findings : [];
+      const latest = matrixList[0] || null;
+      const openCriticalFindings = findingList.filter(
+        (f) => f.status === 'open' && (f.severity === 'H' || f.severity === 'K')
+      ).length;
+
+      return {
+        type: 'vdmi',
+        label: 'VDMI Governance Matrix',
+        lastRun: latest?.updatedAt || latest?.createdAt || null,
+        keyMetric: {
+          name: 'openCriticalFindings',
+          value: openCriticalFindings,
+        },
+        findingsCount: {
+          info: findingList.filter((f) => f.severity === 'L').length,
+          warning: findingList.filter((f) => f.severity === 'M').length,
+          error: findingList.filter((f) => f.severity === 'H' || f.severity === 'K').length,
+        },
+        recentReports: matrixList.map((m) => ({
+          id: m.id,
+          executedAt: m.updatedAt || m.createdAt || null,
+          nominationStatus: m.nominationStatus || null,
+          detectionConfidence: m.detectionConfidence ?? null,
+        })),
+      };
+    },
+
+    /**
+     * Builds VDMI business KPIs for management-level dashboard widgets.
+     * @param {object[]|null} findings
+     * @param {object[]|null} matrices
+     * @returns {object}
+     */
+    buildVdmiBusinessKpis(findings, matrices) {
+      const findingList = Array.isArray(findings) ? findings : [];
+      const matrixList = Array.isArray(matrices) ? matrices : [];
+
+      const shadowRelevant = findingList.filter(
+        (f) => typeof f.code === 'string' && /^(VD_SHADOW_|VD_SILO_)/.test(f.code)
+      );
+      const shadowResolved = shadowRelevant.filter((f) => f.status === 'resolved').length;
+      const shadowRate =
+        shadowRelevant.length > 0 ? Number(((shadowResolved / shadowRelevant.length) * 100).toFixed(2)) : null;
+
+      const now = Date.now();
+      const DAY_MS = 24 * 60 * 60 * 1000;
+      const currentStart = now - 30 * DAY_MS;
+      const previousStart = now - 60 * DAY_MS;
+
+      const escalationFindings = findingList.filter(
+        (f) => typeof f.code === 'string' && /^VD_GOV_/.test(f.code)
+      );
+      const currentEscalations = escalationFindings.filter((f) => {
+        const ts = Date.parse(f.updatedAt || f.createdAt || '');
+        return Number.isFinite(ts) && ts >= currentStart && ts < now;
+      }).length;
+      const previousEscalations = escalationFindings.filter((f) => {
+        const ts = Date.parse(f.updatedAt || f.createdAt || '');
+        return Number.isFinite(ts) && ts >= previousStart && ts < currentStart;
+      }).length;
+      const escalationReductionRate =
+        previousEscalations > 0
+          ? Number((((previousEscalations - currentEscalations) / previousEscalations) * 100).toFixed(2))
+          : null;
+
+      const fnavConfirmed = matrixList.filter(
+        (m) =>
+          m.processType === 'fnav-contract-negotiation' &&
+          m.nominationStatus === 'confirmed' &&
+          m.createdAt &&
+          m.updatedAt
+      );
+
+      const currentDurations = fnavConfirmed
+        .filter((m) => {
+          const ts = Date.parse(m.updatedAt || '');
+          return Number.isFinite(ts) && ts >= currentStart && ts < now;
+        })
+        .map((m) => {
+          const createdAt = Date.parse(m.createdAt || '');
+          const updatedAt = Date.parse(m.updatedAt || '');
+          return Number.isFinite(createdAt) && Number.isFinite(updatedAt)
+            ? (updatedAt - createdAt) / DAY_MS
+            : null;
+        })
+        .filter((v) => v != null);
+
+      const previousDurations = fnavConfirmed
+        .filter((m) => {
+          const ts = Date.parse(m.updatedAt || '');
+          return Number.isFinite(ts) && ts >= previousStart && ts < currentStart;
+        })
+        .map((m) => {
+          const createdAt = Date.parse(m.createdAt || '');
+          const updatedAt = Date.parse(m.updatedAt || '');
+          return Number.isFinite(createdAt) && Number.isFinite(updatedAt)
+            ? (updatedAt - createdAt) / DAY_MS
+            : null;
+        })
+        .filter((v) => v != null);
+
+      const currentMedian = this.computeMedian(currentDurations);
+      const previousMedian = this.computeMedian(previousDurations);
+      const fnavGainDays =
+        previousMedian != null && currentMedian != null
+          ? Number((previousMedian - currentMedian).toFixed(2))
+          : null;
+
+      return {
+        vdmi_shadow_path_resolution_rate: shadowRate,
+        vdmi_n1_escalation_reduction_rate: escalationReductionRate,
+        vdmi_fnav_time_to_decision_gain_days: fnavGainDays,
+      };
+    },
+
+    /**
+     * Computes median value for numeric arrays.
+     * @param {number[]} values
+     * @returns {number|null}
+     */
+    computeMedian(values) {
+      if (!Array.isArray(values) || values.length === 0) return null;
+      const sorted = [...values].sort((a, b) => a - b);
+      const middle = Math.floor(sorted.length / 2);
+      if (sorted.length % 2 === 0) {
+        return (sorted[middle - 1] + sorted[middle]) / 2;
+      }
+      return sorted[middle];
     },
 
     /**

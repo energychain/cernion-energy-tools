@@ -128,4 +128,20 @@ describe('webhooks service', () => {
     expect(deliveries.count).toBe(1);
     expect(deliveries.deliveries[0].status).toBe('sent');
   });
+
+  test('accepts quota and rate-limit events in webhook subscriptions', async () => {
+    const created = await broker.call(
+      'webhooks.create',
+      {
+        url: 'https://example.com/quota-hook',
+        events: ['rate_limit.exceeded', 'quota.threshold.reached', 'quota.exhausted'],
+      },
+      { meta: { tenantId: 'tenant-quota-hook' } }
+    );
+
+    expect(created.success).toBe(true);
+    expect(created.subscription.events).toEqual(
+      expect.arrayContaining(['rate_limit.exceeded', 'quota.threshold.reached', 'quota.exhausted'])
+    );
+  });
 });

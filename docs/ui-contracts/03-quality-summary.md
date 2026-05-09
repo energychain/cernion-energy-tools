@@ -1,8 +1,8 @@
 # UI Contract: Agent Quality Summary Panel
 
 > **Page ID:** `quality-summary`
-> **Version:** 0.20.5
-> **Last updated:** 2026-04-06
+> **Version:** 0.50.1
+> **Last updated:** 2026-05-09
 
 ---
 
@@ -17,7 +17,7 @@ GET /api/dashboard/quality-summary?gridOperatorId=SNB935578300972
 - `gridOperatorId` — MaStR SNB/GNB ID to filter results per operator
 
 **Cache TTL:** 5 minutes (backend, keyed by `gridOperatorId`)
-**Expected latency:** < 3 seconds (5 parallel upstream calls)
+**Expected latency:** < 3 seconds (7 parallel upstream calls)
 **Auth:** Bearer token (read-only scope sufficient)
 
 ---
@@ -72,8 +72,28 @@ GET /api/dashboard/quality-summary?gridOperatorId=SNB935578300972
       "keyMetric": null,
       "findingsCount": null,
       "recentReports": []
+    },
+    {
+      "type":    "vdmi",
+      "label":   "VDMI Governance Matrix",
+      "lastRun": "2026-03-31T11:55:00Z",
+      "keyMetric": { "name": "openCriticalFindings", "value": 2 },
+      "findingsCount": { "info": 0, "warning": 2, "error": 3 },
+      "recentReports": [
+        {
+          "id":                  "vdmi-001",
+          "executedAt":          "2026-03-31T11:55:00Z",
+          "nominationStatus":    "confirmed",
+          "detectionConfidence": 0.92
+        }
+      ]
     }
   ],
+  "businessKpis": {
+    "vdmi_shadow_path_resolution_rate": 50,
+    "vdmi_n1_escalation_reduction_rate": 50,
+    "vdmi_fnav_time_to_decision_gain_days": 4
+  },
   "timestamp": "2026-03-31T12:00:00Z",
   "_errors": []
 }
@@ -123,6 +143,19 @@ a calculation engine without a findings pipeline.
 | `energy-sharing` | `decision` | Decision badge |
 | `redispatch-expost` | `settlementReadiness` | `keyMetric.value.readinessPercent`% bar; < 80 → red, < 99 → yellow |
 | `energy-sharing-allocation` | `totalNetGenerationKWh` | kWh formatted |
+| `vdmi` | `openCriticalFindings` | Integer badge; `0` green, `1-2` yellow, `>=3` red |
+
+### Business KPI Cards (management view)
+
+Render `businessKpis` as a 3-card row if object is present.
+
+| KPI field | Label | Format | Interpretation |
+|-----------|-------|--------|----------------|
+| `vdmi_shadow_path_resolution_rate` | Shadow path resolution | `%` with 2 decimals | Higher is better |
+| `vdmi_n1_escalation_reduction_rate` | N-1 escalation reduction | `%` with 2 decimals | Higher is better |
+| `vdmi_fnav_time_to_decision_gain_days` | fNAV decision gain | days | Higher means faster decisions vs previous window |
+
+If a KPI value is `null`, show `–` and tooltip: "Insufficient data window".
 
 ### Recent Reports List (collapsed by default)
 
@@ -162,6 +195,7 @@ const trend = recentReports.length >= 2
 | `energy-sharing` | `decision` (categorical) | N/A — no numeric trend |
 | `redispatch-expost` | `readinessPercent` (0–100) | ↑ higher = better |
 | `energy-sharing-allocation` | `totalNetGenerationKWh` | ↑ higher = more generation |
+| `vdmi` | `openCriticalFindings` | ↓ lower = better |
 
 **Note:** The backend intentionally does NOT compute trends — it returns raw data points
 and leaves presentation logic to the frontend.
@@ -175,4 +209,5 @@ and leaves presentation logic to the frontend.
 | Agent in `_errors` | Card shows "⚠ Data unavailable" with retry link |
 | `lastRun` null | "Never run" in grey italic |
 | `keyMetric` null | "–" placeholder |
+| `businessKpis` missing | Hide KPI strip and keep agent cards only |
 | All `recentReports` empty | "No reports yet. Click ▶ to run the first audit." |

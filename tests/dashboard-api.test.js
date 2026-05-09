@@ -173,6 +173,102 @@ const MOCK_OBSERVABILITY_SUMMARY = {
   },
 };
 
+function isoDaysAgo(days) {
+  return new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+}
+
+const MOCK_VDMI_MATRICES = {
+  count: 3,
+  items: [
+    {
+      id: 'vdmi-001',
+      processType: 'fnav-contract-negotiation',
+      nominationStatus: 'confirmed',
+      detectionConfidence: 0.92,
+      createdAt: isoDaysAgo(8),
+      updatedAt: isoDaysAgo(6),
+    },
+    {
+      id: 'vdmi-002',
+      processType: 'fnav-contract-negotiation',
+      nominationStatus: 'confirmed',
+      detectionConfidence: 0.88,
+      createdAt: isoDaysAgo(40),
+      updatedAt: isoDaysAgo(34),
+    },
+    {
+      id: 'vdmi-003',
+      processType: 'adhoc',
+      nominationStatus: 'pending',
+      detectionConfidence: 0.73,
+      createdAt: isoDaysAgo(3),
+      updatedAt: isoDaysAgo(2),
+    },
+  ],
+};
+
+const MOCK_VDMI_FINDINGS = {
+  count: 7,
+  findings: [
+    {
+      id: 'vf-001',
+      code: 'VD_SHADOW_SHAREPOINT_BYPASS_H',
+      severity: 'H',
+      status: 'resolved',
+      createdAt: isoDaysAgo(5),
+      updatedAt: isoDaysAgo(4),
+    },
+    {
+      id: 'vf-002',
+      code: 'VD_SHADOW_EXCEL_EXEC_H',
+      severity: 'H',
+      status: 'open',
+      createdAt: isoDaysAgo(4),
+      updatedAt: isoDaysAgo(4),
+    },
+    {
+      id: 'vf-003',
+      code: 'VD_SILO_HANDOVER_MANUAL_M',
+      severity: 'M',
+      status: 'resolved',
+      createdAt: isoDaysAgo(10),
+      updatedAt: isoDaysAgo(9),
+    },
+    {
+      id: 'vf-004',
+      code: 'VD_SILO_KERNSYSTEM_BLOCK_M',
+      severity: 'M',
+      status: 'open',
+      createdAt: isoDaysAgo(11),
+      updatedAt: isoDaysAgo(10),
+    },
+    {
+      id: 'vf-005',
+      code: 'VD_GOV_RECURRENCE_K',
+      severity: 'K',
+      status: 'open',
+      createdAt: isoDaysAgo(3),
+      updatedAt: isoDaysAgo(2),
+    },
+    {
+      id: 'vf-006',
+      code: 'VD_GOV_AUDIT_GAP_K',
+      severity: 'K',
+      status: 'resolved',
+      createdAt: isoDaysAgo(38),
+      updatedAt: isoDaysAgo(37),
+    },
+    {
+      id: 'vf-007',
+      code: 'VD_GOV_RECURRENCE_K',
+      severity: 'K',
+      status: 'resolved',
+      createdAt: isoDaysAgo(42),
+      updatedAt: isoDaysAgo(41),
+    },
+  ],
+};
+
 // ── Broker setup ─────────────────────────────────────────────────────────
 
 describe('dashboard-api.service', () => {
@@ -272,6 +368,15 @@ describe('dashboard-api.service', () => {
       name: 'energy-sharing-allocation',
       actions: {
         list: makeHandler('allocList', { count: 0, allocations: [] }),
+      },
+    });
+
+    // Mock vdmi
+    broker.createService({
+      name: 'vdmi',
+      actions: {
+        list: makeHandler('vdmiList', MOCK_VDMI_MATRICES),
+        findings: makeHandler('vdmiFindings', MOCK_VDMI_FINDINGS),
       },
     });
 
@@ -689,12 +794,13 @@ describe('dashboard-api.service', () => {
   // ── qualitySummary ─────────────────────────────────────────────────────────
 
   describe('qualitySummary', () => {
-    it('returns agents array with 5 entries', async () => {
+    it('returns agents array with 6 entries', async () => {
       const result = await broker.call('dashboard-api.qualitySummary', {});
 
       expect(result).toHaveProperty('agents');
-      expect(result.agents).toHaveLength(5);
+      expect(result.agents).toHaveLength(6);
       expect(result).toHaveProperty('timestamp');
+      expect(result).toHaveProperty('businessKpis');
     });
 
     it('agent entries have required shape', async () => {
@@ -706,6 +812,7 @@ describe('dashboard-api.service', () => {
       expect(types).toContain('energy-sharing');
       expect(types).toContain('redispatch-expost');
       expect(types).toContain('energy-sharing-allocation');
+      expect(types).toContain('vdmi');
 
       for (const agent of result.agents) {
         expect(agent).toHaveProperty('type');
@@ -716,6 +823,13 @@ describe('dashboard-api.service', () => {
         expect(agent).toHaveProperty('recentReports');
         expect(Array.isArray(agent.recentReports)).toBe(true);
       }
+    });
+
+    it('populates VDMI business KPIs from findings and matrix history windows', async () => {
+      const result = await broker.call('dashboard-api.qualitySummary', {});
+      expect(result.businessKpis.vdmi_shadow_path_resolution_rate).toBe(50);
+      expect(result.businessKpis.vdmi_n1_escalation_reduction_rate).toBe(50);
+      expect(result.businessKpis.vdmi_fnav_time_to_decision_gain_days).toBe(4);
     });
 
     it('returns null lastRun and keyMetric for agents with no reports', async () => {
@@ -797,6 +911,7 @@ describe('dashboard-api.service', () => {
         'mastr-quality',
         'redispatch-expost',
         'finance-agent',
+        'vdmi',
       ];
 
       for (const [, meta] of Object.entries(result.codes)) {
@@ -810,7 +925,7 @@ describe('dashboard-api.service', () => {
       }
     });
 
-    it('agents catalogue has 4 known agent types', async () => {
+    it('agents catalogue has 5 known agent types', async () => {
       const result = await broker.call('dashboard-api.findingCodes', {});
       const agentKeys = Object.keys(result.agents);
 
@@ -818,6 +933,7 @@ describe('dashboard-api.service', () => {
       expect(agentKeys).toContain('energy-sharing');
       expect(agentKeys).toContain('mastr-quality');
       expect(agentKeys).toContain('redispatch-expost');
+      expect(agentKeys).toContain('vdmi');
     });
 
     it('returns cached result on second call (no upstream calls to check)', async () => {
@@ -839,6 +955,7 @@ describe('dashboard-api.service', () => {
       expect(result.codes).toHaveProperty('APPROVED');
       expect(result.codes).toHaveProperty('VNB_RESOLVED');
       expect(result.codes).toHaveProperty('FA_QUERY_PLANNED');
+      expect(result.codes).toHaveProperty('VD_GOV_RECURRENCE_K');
     });
 
     it('MQ_ZERO_CAPACITY has correct metadata', async () => {
@@ -1003,6 +1120,8 @@ describe('dashboard-api.service', () => {
       'entsoe.dayAheadPrices',
       'entsoe.windSolarForecast',
       'energy-sharing-allocation.list',
+      'vdmi.list',
+      'vdmi.findings',
       'observability.summary',
     ];
 

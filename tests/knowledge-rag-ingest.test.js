@@ -11,6 +11,7 @@ jest.mock('../src/llm-client', () => ({
 
 const { callWithAutoPoll } = require('../src/async-job-poller');
 const KnowledgeRagService = require('../services/knowledge-rag.service');
+const rateQuotaStore = require('../src/rate-quota-store');
 
 describe('Knowledge RAG ingest extension', () => {
   let broker;
@@ -172,6 +173,18 @@ describe('Knowledge RAG ingest extension', () => {
     await broker.stop();
   });
 
+  beforeEach(() => {
+    const state = rateQuotaStore.getTenantState('acme');
+    state.config.quotas.max_rag_chunks_per_month = 100000;
+    if (state.usage) {
+      delete state.usage.max_rag_chunks_per_month;
+    }
+    if (Array.isArray(state.events)) {
+      state.events = state.events.filter((event) => event.resource !== 'max_rag_chunks_per_month');
+    }
+    rateQuotaStore.saveTenantState('acme', state);
+  });
+
   test('creates default tenant collection', async () => {
     const result = await broker.call('knowledge-rag.createCollection', {}, { meta: { tenantId: 'acme' } });
     expect(result.success).toBe(true);
@@ -196,6 +209,24 @@ describe('Knowledge RAG ingest extension', () => {
 
     expect(result.success).toBe(true);
     expect(result.data.chunksIngested).toBeGreaterThan(0);
+  });
+
+  test('rejects ingest when rag chunk quota is exhausted', async () => {
+    const rateQuotaStore = require('../src/rate-quota-store');
+    const state = rateQuotaStore.getTenantState('acme');
+    state.config.quotas.max_rag_chunks_per_month = 0;
+    rateQuotaStore.saveTenantState('acme', state);
+
+    await expect(
+      broker.call(
+        'knowledge-rag.ingest',
+        {
+          collection: 'tenant:acme:knowledge',
+          documents: [{ id: 'doc-over', text: 'Quota block me please' }],
+        },
+        { meta: { tenantId: 'acme' } }
+      )
+    ).rejects.toMatchObject({ code: 429, type: 'RAG_QUOTA_EXCEEDED' });
   });
 
   test('local semantic query returns ingested hits', async () => {

@@ -13,6 +13,8 @@ const NbpMonitorService = require('../services/nbp-monitor.service');
 const KnowledgeRagService = require('../services/knowledge-rag.service');
 const FinanceAgentService = require('../services/finance-agent.service');
 const ObservabilityService = require('../services/observability.service');
+const TenantQuotaService = require('../services/tenant-quota.service');
+const rateQuotaStore = require('../src/rate-quota-store');
 const { version: packageVersion } = require('../package.json');
 const metrics = require('../src/metrics');
 const path = require('path');
@@ -22,9 +24,12 @@ const fs = require('fs');
 describe('API Gateway Service', () => {
   let broker;
   let tokenStorageFile;
+  let rateQuotaDir;
 
   beforeAll(async () => {
     tokenStorageFile = path.join(os.tmpdir(), `api-service-token-test-${Date.now()}.json`);
+    rateQuotaDir = path.join(os.tmpdir(), `api-rate-quotas-${Date.now()}`);
+    process.env.RATE_QUOTA_DIR = rateQuotaDir;
 
     broker = new ServiceBroker({
       logger: false,
@@ -74,14 +79,18 @@ describe('API Gateway Service', () => {
         dbPath: path.join(os.tmpdir(), `api-observability-${Date.now()}`),
       },
     });
+    broker.createService(TenantQuotaService);
     await broker.start();
   });
 
   afterAll(async () => {
     await broker.stop();
+    rateQuotaStore.resetForTests();
     if (fs.existsSync(tokenStorageFile)) {
       fs.unlinkSync(tokenStorageFile);
     }
+    fs.rmSync(rateQuotaDir, { recursive: true, force: true });
+    delete process.env.RATE_QUOTA_DIR;
   });
 
   describe('Service Configuration', () => {
@@ -238,6 +247,16 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/webhooks/:id/deliveries/:deliveryId/replay']).toBeDefined();
     });
 
+    it('should include Tenant Quotas tag and routes', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.tags.some((tag) => tag.name === 'Tenant Quotas')).toBe(true);
+      expect(schema.paths['/api/tenants/:id/quotas']).toBeDefined();
+      expect(schema.paths['/api/tenants/:id/rate-limit-events']).toBeDefined();
+      expect(schema.paths['/api/tenants/:id/quotas'].get.tags).toContain('Tenant Quotas');
+      expect(schema.paths['/api/tenants/:id/quotas'].put.tags).toContain('Tenant Quotas');
+    });
+
     it('should have explicit aliases for Knowledge RAG routes', () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       const aliases = apiRoute?.aliases || {};
@@ -286,6 +305,15 @@ describe('API Gateway Service', () => {
       expect(aliases['POST /webhooks']).toBe('webhooks.create');
       expect(aliases['GET /webhooks']).toBe('webhooks.list');
       expect(aliases['POST /webhooks/:id/deliveries/:deliveryId/replay']).toBe('webhooks.replay');
+    });
+
+    it('should have explicit aliases for tenant quota routes', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+
+      expect(aliases['GET /tenants/:id/quotas']).toBe('tenant-quota.getQuotas');
+      expect(aliases['PUT /tenants/:id/quotas']).toBe('tenant-quota.setQuotas');
+      expect(aliases['GET /tenants/:id/rate-limit-events']).toBe('tenant-quota.listEvents');
     });
 
     it('should have explicit aliases for OSM Geo routes', () => {
@@ -423,6 +451,79 @@ describe('API Gateway Service', () => {
       ).rejects.toMatchObject({ code: 403 });
     });
 
+    it('should reject read-only ck_ token on tenant quota admin endpoints', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const created = await broker.call('token-manager.create', {
+        name: 'QuotaReadOnly',
+        scope: 'read-only',
+        tenantId: 'tenant-a',
+      });
+
+      const ctx = { meta: {} };
+      const req = {
+        headers: { authorization: `Bearer ${created.data.token}` },
+        query: {},
+        body: {},
+        params: {},
+        $params: {},
+        method: 'GET',
+        url: '/api/tenants/tenant-a/quotas',
+      };
+
+      await expect(
+        apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, ctx, apiRoute, req, {})
+      ).rejects.toMatchObject({ code: 403, type: 'TOKEN_SCOPE_VIOLATION' });
+
+      const putCtx = { meta: {} };
+      const putReq = {
+        headers: { authorization: `Bearer ${created.data.token}` },
+        query: {},
+        body: { quotas: { llm_tokens_per_day: 1000 } },
+        params: {},
+        $params: {},
+        method: 'PUT',
+        url: '/api/tenants/tenant-a/quotas',
+      };
+
+      await expect(
+        apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, putCtx, apiRoute, putReq, {})
+      ).rejects.toMatchObject({ code: 403, type: 'TOKEN_SCOPE_VIOLATION' });
+    });
+
+    it('should set rate-limit headers and reject the next request after limit exhaustion', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const created = await broker.call('token-manager.create', {
+        name: 'QuotaAdmin',
+        scope: 'full-access',
+        tenantId: 'tenant-rate',
+      });
+
+      const state = rateQuotaStore.getTenantState('tenant-rate');
+      state.config.rateLimits.read = 1;
+      rateQuotaStore.saveTenantState('tenant-rate', state);
+
+      const firstCtx = { meta: {} };
+      const req = {
+        headers: { authorization: `Bearer ${created.data.token}` },
+        query: {},
+        body: {},
+        params: {},
+        $params: {},
+        method: 'GET',
+        url: '/api/tenants/tenant-rate/quotas',
+      };
+
+      await apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, firstCtx, apiRoute, req, {});
+      expect(firstCtx.meta.$responseHeaders['X-RateLimit-Limit']).toBe('1');
+      expect(firstCtx.meta.$responseHeaders['X-RateLimit-Remaining']).toBe('0');
+      expect(firstCtx.meta.$responseHeaders['X-RateLimit-Reset']).toBeDefined();
+
+      const secondCtx = { meta: {} };
+      await expect(
+        apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, secondCtx, apiRoute, req, {})
+      ).rejects.toMatchObject({ code: 429, type: 'RATE_LIMIT_EXCEEDED' });
+    });
+
     it('should sanitize secrets in onError response payload', () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       const res = {
@@ -555,6 +656,56 @@ describe('API Gateway Service', () => {
 
     it('should have authorize method', () => {
       expect(ApiService.methods.authorize).toBeDefined();
+    });
+  });
+
+  describe('Tenant quota service', () => {
+    it('should return quota snapshot for matching tenant context', async () => {
+      await broker.call('tenant-quota.getQuotas', { id: 'tenant-a' }, { meta: { tenantId: 'tenant-a' } });
+      await broker.call('tenant-quota.listEvents', { id: 'tenant-a' }, { meta: { tenantId: 'tenant-a' } });
+    });
+
+    it('should reject cross-tenant quota reads for tenant-scoped meta', async () => {
+      await expect(
+        broker.call('tenant-quota.getQuotas', { id: 'tenant-b' }, { meta: { tenantId: 'tenant-a' } })
+      ).rejects.toMatchObject({ code: 403, type: 'TENANT_SCOPE_VIOLATION' });
+    });
+
+    it('should update tenant quota config via setQuotas', async () => {
+      const updated = await broker.call(
+        'tenant-quota.setQuotas',
+        {
+          id: 'tenant-a',
+          quotas: { llm_tokens_per_day: 1234, max_async_jobs_per_day: 9 },
+          rateLimits: { read: 42 },
+        },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+
+      expect(updated.success).toBe(true);
+      expect(updated.data.config.quotas.llm_tokens_per_day).toBe(1234);
+      expect(updated.data.config.quotas.max_async_jobs_per_day).toBe(9);
+      expect(updated.data.config.rateLimits.read).toBe(42);
+    });
+
+    it('should reject cross-tenant quota updates for tenant-scoped meta', async () => {
+      await expect(
+        broker.call(
+          'tenant-quota.setQuotas',
+          { id: 'tenant-b', quotas: { llm_tokens_per_day: 999 } },
+          { meta: { tenantId: 'tenant-a' } }
+        )
+      ).rejects.toMatchObject({ code: 403, type: 'TENANT_SCOPE_VIOLATION' });
+    });
+
+    it('should reject invalid quota payload keys on setQuotas', async () => {
+      await expect(
+        broker.call(
+          'tenant-quota.setQuotas',
+          { id: 'tenant-a', quotas: { not_a_real_quota: 1 } },
+          { meta: { tenantId: 'tenant-a' } }
+        )
+      ).rejects.toMatchObject({ code: 422, type: 'VALIDATION_ERROR' });
     });
   });
 

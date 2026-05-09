@@ -12,7 +12,9 @@ const path = require('path');
 const fs = require('fs');
 const { version: packageVersion } = require('../package.json');
 const metrics = require('../src/metrics');
+const rateQuotaStore = require('../src/rate-quota-store');
 const tracing = require('../src/tracing');
+const { mergeObservabilityContext } = require('../src/observability-context');
 const { hasRole, mapRolesFromLegacyToken } = require('../src/auth/rbac');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
@@ -148,6 +150,8 @@ function requiresFullAccess(method, requestPath) {
   if (pathOnly === '/api/tokens' && m === 'GET') return true;
   if (pathOnly === '/api/tokens' && m === 'POST') return true;
   if (pathOnly === '/api/tokens/tenants' && m === 'GET') return true;
+  if (/^\/api\/tenants\/[^/]+\/quotas$/.test(pathOnly) && (m === 'GET' || m === 'PUT')) return true;
+  if (/^\/api\/tenants\/[^/]+\/rate-limit-events$/.test(pathOnly) && m === 'GET') return true;
   if (pathOnly.startsWith('/api/tokens/') && pathOnly !== '/api/tokens/verify' && m === 'DELETE') {
     return true;
   }
@@ -212,6 +216,48 @@ function isBusinessTokenPath(method, requestPath) {
     return true;
 
   return false;
+}
+
+function classifyEndpointClass(method, requestPath) {
+  const m = String(method || '').toUpperCase();
+  const pathOnly = String(requestPath || '').split('?')[0];
+
+  if (
+    pathOnly.startsWith('/api/utility-report') ||
+    pathOnly === '/api/mastr-quality/audit' ||
+    pathOnly === '/api/finance-agent/analyze' ||
+    pathOnly.startsWith('/api/knowledge-rag/query') ||
+    pathOnly.startsWith('/api/knowledge-rag/semantic') ||
+    pathOnly.startsWith('/api/knowledge-rag/ingest') ||
+    /^\/api\/knowledge-rag\/(reindex|cutover)\//.test(pathOnly) ||
+    pathOnly === '/api/grid-connection/validate' ||
+    pathOnly === '/api/energy-sharing/validate' ||
+    pathOnly === '/api/redispatch-expost/audit'
+  ) {
+    return 'compute';
+  }
+
+  if (isReadMethod(m)) return 'read';
+  return 'write';
+}
+
+async function emitRateQuotaEvents(broker, tenantId, events, extra = {}) {
+  if (!broker || typeof broker.emit !== 'function' || !Array.isArray(events) || events.length === 0) {
+    return;
+  }
+
+  for (const event of events) {
+    await broker.emit(event.type, {
+      eventId: event.id,
+      tenantId,
+      resource: event.resource,
+      window: event.window,
+      limit: event.limit,
+      used: event.used,
+      threshold: event.threshold,
+      ...extra,
+    });
+  }
 }
 
 function requiresHitlApproverRole(method, requestPath) {
@@ -288,6 +334,7 @@ module.exports = {
         },
         { name: 'IntegrationHub', description: 'Token management and integration helpers' },
         { name: 'Authentication', description: 'OIDC/SAML session bootstrap and verification' },
+        { name: 'Tenant Quotas', description: 'Tenant quota snapshots, events, and admin overrides' },
         { name: 'Jobs', description: 'Async job status and result polling (v0.9.8+)' },
         {
           name: 'Datapoints',
@@ -756,6 +803,9 @@ module.exports = {
           'DELETE /tokens/:id': 'token-manager.revoke',
           'POST /tokens/verify': 'token-manager.verify',
           'GET /tokens/tenants': 'token-manager.tenant.list',
+          'GET /tenants/:id/quotas': 'tenant-quota.getQuotas',
+          'PUT /tenants/:id/quotas': 'tenant-quota.setQuotas',
+          'GET /tenants/:id/rate-limit-events': 'tenant-quota.listEvents',
           'GET /auth/oidc/login': 'auth.oidcLogin',
           'GET /auth/oidc/callback': 'auth.oidcCallback',
           'POST /auth/saml/acs': 'auth.samlAcs',
@@ -904,6 +954,12 @@ module.exports = {
           // NOVA Decision Feed (project-scoped Phase B endpoints)
           'GET /znp/projects/:projectId/nova/pending-decisions': 'nova.pendingDecisions',
           'POST /znp/projects/:projectId/nova/apply/:id': 'nova.apply',
+          'GET /znp/projects/:projectId/nova/decisions': 'nova.listDecisions',
+          'GET /znp/projects/:projectId/nova/decisions/stats': 'nova.decisionStats',
+          'GET /znp/projects/:projectId/nova/decisions/:id': 'nova.getDecision',
+          'POST /znp/projects/:projectId/nova/decisions/:id/approve': 'nova.approveDecision',
+          'POST /znp/projects/:projectId/nova/decisions/:id/reject': 'nova.rejectDecision',
+          'POST /znp/projects/:projectId/nova/decisions/:id/replay-trigger': 'nova.replayTrigger',
 
           'GET /znp/projects/:projectId': 'znp.getProjectMeta',
           'DELETE /znp/projects/:projectId': 'znp.deleteProject',
@@ -1373,6 +1429,29 @@ module.exports = {
             this.logger.debug('No request token provided, will use CERNION_TOKEN from environment');
           }
 
+          const tenantIdForQuota = ctx.meta.tenantId || 'default';
+          const endpointClass = classifyEndpointClass(method, requestPath);
+          const rateLimit = rateQuotaStore.acquireRateLimitToken({
+            tenantId: tenantIdForQuota,
+            endpointClass,
+          });
+          ctx.meta.$responseHeaders = {
+            ...(ctx.meta.$responseHeaders || {}),
+            ...rateLimit.responseHeaders,
+          };
+          await emitRateQuotaEvents(this.broker, tenantIdForQuota, rateLimit.newEvents || [], {
+            endpointClass,
+            requestPath,
+          });
+          if (!rateLimit.allowed) {
+            throw new Errors.MoleculerClientError('Rate limit exceeded for tenant.', 429, 'RATE_LIMIT_EXCEEDED', {
+              tenantId: tenantIdForQuota,
+              endpointClass,
+              retryAfter: rateLimit.retryAfter,
+              responseHeaders: rateLimit.responseHeaders,
+            });
+          }
+
           const httpSpan = tracing.startSpan(`http ${String(req?.method || 'GET').toUpperCase()} ${requestPath}`, {
             attributes: {
               'http.method': String(req?.method || 'GET').toUpperCase(),
@@ -1383,6 +1462,13 @@ module.exports = {
           });
           ctx.meta.$httpSpan = httpSpan;
           tracing.ensureCorrelationId(ctx.meta);
+          mergeObservabilityContext({
+            requestOrigin: 'gateway',
+            requestPath,
+            tenantId: ctx.meta.tenantId || null,
+            authType: ctx.meta.authUser?.authType || null,
+            broker: this.broker,
+          });
           tracing.attachSpanToMeta(ctx.meta, httpSpan);
         },
 
@@ -1400,6 +1486,14 @@ module.exports = {
             tracing.setError(req.$ctx.meta.$httpSpan, err);
             req.$ctx.meta.$httpSpan.end();
             delete req.$ctx.meta.$httpSpan;
+          }
+          const metaHeaders = req?.$ctx?.meta?.$responseHeaders || {};
+          const errorHeaders = err?.data?.responseHeaders || {};
+          const mergedHeaders = { ...metaHeaders, ...errorHeaders };
+          for (const [headerName, headerValue] of Object.entries(mergedHeaders)) {
+            if (headerValue != null) {
+              res.setHeader(headerName, String(headerValue));
+            }
           }
           res.setHeader(CONTENT_TYPE_HEADER, 'application/json');
           res.writeHead(err.code || 500);

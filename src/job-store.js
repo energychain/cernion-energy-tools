@@ -11,12 +11,39 @@
  */
 
 const { createDriver } = require('./job-store/factory');
+const rateQuotaStore = require('./rate-quota-store');
+const { Errors } = require('moleculer');
 
 const DRIVER = createDriver();
 const LEASE_SECONDS = Number(process.env.JOB_STORE_LEASE_SECONDS || 30);
 const HEARTBEAT_SECONDS = Number(process.env.JOB_STORE_HEARTBEAT_SECONDS || 10);
+const MAX_CONCURRENT_PER_TENANT = Math.max(1, Number(process.env.JOB_STORE_MAX_CONCURRENT_PER_TENANT || 2));
 
 const TTL_MS = parseInt(process.env.JOB_STORE_TTL_SECONDS || '86400', 10) * 1000;
+
+const pendingJobsByTenant = new Map();
+const runningJobsByTenant = new Map();
+let roundRobinOffset = 0;
+let dispatchScheduled = false;
+
+async function emitRateQuotaEvents(ctx, events, extra = {}) {
+  if (!ctx?.broker || typeof ctx.broker.emit !== 'function' || !Array.isArray(events) || events.length === 0) {
+    return;
+  }
+
+  for (const event of events) {
+    await ctx.broker.emit(event.type, {
+      eventId: event.id,
+      tenantId: ctx?.meta?.tenantId || 'default',
+      resource: event.resource,
+      window: event.window,
+      limit: event.limit,
+      used: event.used,
+      threshold: event.threshold,
+      ...extra,
+    });
+  }
+}
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 
@@ -39,6 +66,111 @@ function buildQueuedDescriptor(jobId, message = 'Job started. Poll /api/jobs/:jo
     resultUrl: `/api/jobs/${jobId}/result`,
     progressUrl: `/api/jobs/${jobId}/progress`,
   };
+}
+
+function getRunningCount(tenantId) {
+  return Number(runningJobsByTenant.get(tenantId) || 0);
+}
+
+function incRunningCount(tenantId) {
+  runningJobsByTenant.set(tenantId, getRunningCount(tenantId) + 1);
+}
+
+function decRunningCount(tenantId) {
+  const next = Math.max(0, getRunningCount(tenantId) - 1);
+  if (next === 0) {
+    runningJobsByTenant.delete(tenantId);
+    return;
+  }
+  runningJobsByTenant.set(tenantId, next);
+}
+
+function enqueuePendingJob(entry) {
+  const tenantId = String(entry.tenantId || 'default');
+  const queue = pendingJobsByTenant.get(tenantId) || [];
+  queue.push(entry);
+  pendingJobsByTenant.set(tenantId, queue);
+}
+
+function pickNextTenantForDispatch() {
+  const tenants = Array.from(pendingJobsByTenant.entries())
+    .filter(([tenantId, queue]) => Array.isArray(queue) && queue.length > 0 && getRunningCount(tenantId) < MAX_CONCURRENT_PER_TENANT)
+    .map(([tenantId]) => tenantId);
+
+  if (tenants.length === 0) return null;
+
+  if (roundRobinOffset >= tenants.length) roundRobinOffset = 0;
+  const tenantId = tenants[roundRobinOffset];
+  roundRobinOffset = (roundRobinOffset + 1) % tenants.length;
+  return tenantId;
+}
+
+function runQueuedJob(entry) {
+  const tenantId = String(entry.tenantId || 'default');
+  const jobId = entry.jobId;
+
+  incRunningCount(tenantId);
+  updateJob(jobId, { status: 'running', ...buildLeasePatch() });
+
+  let heartbeat = null;
+  if (HEARTBEAT_SECONDS > 0) {
+    heartbeat = setInterval(() => {
+      updateJob(jobId, { ...buildLeasePatch() });
+    }, HEARTBEAT_SECONDS * 1000);
+    heartbeat.unref?.();
+  }
+
+  Promise.resolve()
+    .then(() => entry.worker(jobId))
+    .then((result) => saveResult(jobId, result))
+    .catch((err) =>
+      updateJob(jobId, {
+        status: 'error',
+        error: String(err.message || err),
+        leaseOwner: null,
+        leaseExpiresAt: null,
+        lastHeartbeatAt: null,
+      })
+    )
+    .finally(() => {
+      if (heartbeat) clearInterval(heartbeat);
+      decRunningCount(tenantId);
+      scheduleDispatch();
+    });
+}
+
+function dispatchPendingJobs() {
+  while (true) {
+    const tenantId = pickNextTenantForDispatch();
+    if (!tenantId) break;
+
+    const queue = pendingJobsByTenant.get(tenantId) || [];
+    const next = queue.shift();
+    if (queue.length > 0) {
+      pendingJobsByTenant.set(tenantId, queue);
+    } else {
+      pendingJobsByTenant.delete(tenantId);
+    }
+
+    if (!next) continue;
+    runQueuedJob(next);
+  }
+}
+
+function scheduleDispatch() {
+  if (dispatchScheduled) return;
+  dispatchScheduled = true;
+  setImmediate(() => {
+    dispatchScheduled = false;
+    dispatchPendingJobs();
+  });
+}
+
+function resetDispatchStateForTests() {
+  pendingJobsByTenant.clear();
+  runningJobsByTenant.clear();
+  roundRobinOffset = 0;
+  dispatchScheduled = false;
 }
 
 // ─── Public CRUD API ──────────────────────────────────────────────────────────
@@ -165,34 +297,43 @@ async function startJob(ctx, jobMeta, worker, options = {}) {
     }
   }
 
-  // ── REST call — create job, fire worker, return 202 immediately ───────────
-  const jobId = createJob({ ...jobMeta, idempotencyKey });
-  updateJob(jobId, { status: 'running', ...buildLeasePatch() });
-
-  let heartbeat = null;
-  if (HEARTBEAT_SECONDS > 0) {
-    heartbeat = setInterval(() => {
-      updateJob(jobId, { ...buildLeasePatch() });
-    }, HEARTBEAT_SECONDS * 1000);
-    heartbeat.unref?.();
+  const tenantId = ctx?.meta?.tenantId || 'default';
+  const quotaCheck = rateQuotaStore.checkAsyncJobQuota({ tenantId, required: 1 });
+  await emitRateQuotaEvents(ctx, quotaCheck.newEvents || [], {
+    service: jobMeta?.service || 'unknown',
+    action: jobMeta?.action || 'unknown',
+  });
+  if (!quotaCheck.allowed) {
+    throw new Errors.MoleculerError('Async job quota exceeded for tenant.', 429, 'ASYNC_JOB_QUOTA_EXCEEDED', {
+      tenantId,
+      resource: quotaCheck.resource,
+      limit: quotaCheck.limit,
+      used: quotaCheck.used,
+      remaining: quotaCheck.remaining,
+      retryAfter: quotaCheck.retryAfter,
+      responseHeaders: quotaCheck.responseHeaders,
+    });
   }
 
-  // Fire-and-forget: do NOT await — return the 202 response immediately.
-  // Worker receives jobId so it can call appendLog for progress tracking.
-  worker(jobId)
-    .then((result) => saveResult(jobId, result))
-    .catch((err) =>
-      updateJob(jobId, {
-        status: 'error',
-        error: String(err.message || err),
-        leaseOwner: null,
-        leaseExpiresAt: null,
-        lastHeartbeatAt: null,
-      })
-    )
-    .finally(() => {
-      if (heartbeat) clearInterval(heartbeat);
-    });
+  const quotaSnapshot = rateQuotaStore.recordAsyncJobUsage({
+    tenantId,
+    service: jobMeta?.service,
+    action: jobMeta?.action,
+    count: 1,
+  });
+  await emitRateQuotaEvents(ctx, quotaSnapshot.newEvents || [], {
+    service: jobMeta?.service || 'unknown',
+    action: jobMeta?.action || 'unknown',
+  });
+
+  // ── REST call — create job, enqueue worker, return 202 immediately ────────
+  const jobId = createJob({ ...jobMeta, idempotencyKey });
+  enqueuePendingJob({
+    tenantId,
+    jobId,
+    worker,
+  });
+  scheduleDispatch();
 
   ctx.meta.$statusCode = 202;
   ctx.meta.$responseHeaders = Object.assign(ctx.meta.$responseHeaders || {}, {
@@ -217,6 +358,7 @@ module.exports = {
   getResult,
   gcExpired,
   startJob,
+  resetDispatchStateForTests,
   getDriverInfo,
   TTL_MS,
 };

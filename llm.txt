@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.48.3
-- changelog_latest_release: 0.48.3
+- version: 0.50.1
+- changelog_latest_release: 0.50.1
 - source_files_hash:
-  - CHANGELOG.md: 78cbb34f311bc8af54066903fef8ead3abfeb6d698344ada70e938b987b67878
+  - CHANGELOG.md: 564d49172fe509a3a18bfc419345d6c7ed1e04bfa5f09a887b9212e57a0f5bf7
   - README.md: 0bc16f1f06fb7da1ce6335438c43493b819302cc69a2a259de4517484a921ed8
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: c4a19d445bdd32b62818b62db7d2b54c72d246c55b477d785a2b5c4b97ed2009
+  - openapi-export.json: 7f06c648cb9efd839977efb136d4c304cb841fdd43fdfceacc30c23e488adbc4
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -18,6 +18,8 @@ It provides a complete implementation picture: architecture, domain knowledge, c
 ## Release Provenance
 ### Unreleased (from CHANGELOG)
 ## [Unreleased]
+
+_No changes yet._
 
 ## Domain-Specific Business Knowledge (Energy + Utility)
 
@@ -588,8 +590,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 230
-- operation_count: 270
+- path_count: 238
+- operation_count: 279
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -618,7 +620,7 @@ process:
 - MaStR Data Quality: 4 operations
 - MaStR Monitor: 12 operations
 - NBPMonitor: 4 operations
-- NOVA: 3 operations
+- NOVA: 9 operations
 - Object Store: 4 operations
 - Observability: 4 operations
 - OEP (Open Energy Platform): 5 operations
@@ -626,6 +628,7 @@ process:
 - Redispatch Ex-Post: 3 operations
 - Settlement (Abrechnung): 16 operations
 - SLP (Standardlastprofile): 5 operations
+- Tenant Quotas: 3 operations
 - VNBMonitor: 4 operations
 - Webhooks: 6 operations
 - Zielnetzplanung (ZNP): 11 operations
@@ -873,6 +876,9 @@ process:
 - POST /api/slp/profiles | tags: [SLP (Standardlastprofile)] | operationId: slp_createCustomProfile | summary: Create custom SLP profile
 - DELETE /api/slp/profiles/:profileId | tags: [SLP (Standardlastprofile)] | operationId: slp_deleteCustomProfile | summary: Delete custom SLP profile
 - GET /api/slp/profiles/:profileId | tags: [SLP (Standardlastprofile)] | operationId: slp_getProfile | summary: Get one SLP profile
+- GET /api/tenants/:id/quotas | tags: [Tenant Quotas] | operationId: tenant-quota_getQuotas | summary: Get current quota and usage snapshot for one tenant
+- PUT /api/tenants/:id/quotas | tags: [Tenant Quotas] | operationId: tenant-quota_setQuotas | summary: Update tenant quota and rate-limit configuration
+- GET /api/tenants/:id/rate-limit-events | tags: [Tenant Quotas] | operationId: tenant-quota_listEvents | summary: List recent rate-limit and quota events for one tenant
 - GET /api/tokens | tags: [IntegrationHub] | operationId: token-manager_list | summary: List API tokens
 - POST /api/tokens | tags: [IntegrationHub] | operationId: token-manager_create | summary: Create API token
 - DELETE /api/tokens/:id | tags: [IntegrationHub] | operationId: token-manager_revoke | summary: Revoke API token
@@ -899,6 +905,12 @@ process:
 - POST /api/znp/projects/:projectId/layer1 | tags: [Zielnetzplanung (ZNP)] | operationId: znp_addLayer1 | summary: Load Layer 1 — OSM spatial buildings and clustering (async job)
 - POST /api/znp/projects/:projectId/layer2 | tags: [Zielnetzplanung (ZNP)] | operationId: znp_addLayer2 | summary: Load Layer 2 — AI-extracted transformer peak load from PDF (async job)
 - POST /api/znp/projects/:projectId/nova/apply/:id | tags: [NOVA] | operationId: nova_apply | summary: Apply NOVA decision
+- GET /api/znp/projects/:projectId/nova/decisions | tags: [NOVA] | operationId: nova_listDecisions | summary: List NOVA decisions
+- GET /api/znp/projects/:projectId/nova/decisions/:id | tags: [NOVA] | operationId: nova_getDecision | summary: Get NOVA decision by id
+- POST /api/znp/projects/:projectId/nova/decisions/:id/approve | tags: [NOVA] | operationId: nova_approveDecision | summary: Approve NOVA decision
+- POST /api/znp/projects/:projectId/nova/decisions/:id/reject | tags: [NOVA] | operationId: nova_rejectDecision | summary: Reject NOVA decision
+- POST /api/znp/projects/:projectId/nova/decisions/:id/replay-trigger | tags: [NOVA] | operationId: nova_replayTrigger | summary: Replay NOVA decision trigger source (async)
+- GET /api/znp/projects/:projectId/nova/decisions/stats | tags: [NOVA] | operationId: nova_decisionStats | summary: NOVA decision status counts
 - GET /api/znp/projects/:projectId/nova/pending-decisions | tags: [NOVA] | operationId: nova_pendingDecisions | summary: List pending NOVA decisions (dynamic)
 - GET /api/znp/projects/:projectId/strategic-prompts | tags: [Zielnetzplanung (ZNP)] | operationId: znp_strategicPrompts | summary: Generate strategic planning questions for a ZNP project (AI)
 
@@ -907,7 +919,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.48.3"
+    "version": "0.50.1"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -4899,6 +4911,28 @@ process:
                         "type": "object"
                       },
                       "type": "array"
+                    },
+                    "businessKpis": {
+                      "description": "VDMI business KPIs for governance and process-standardisation impact",
+                      "nullable": true,
+                      "properties": {
+                        "vdmi_fnav_time_to_decision_gain_days": {
+                          "description": "Median decision-time gain in days for fNAV process matrices (previous window minus current window)",
+                          "nullable": true,
+                          "type": "number"
+                        },
+                        "vdmi_n1_escalation_reduction_rate": {
+                          "description": "Reduction (%) of escalation-like VD_GOV_* findings comparing current vs previous 30-day window",
+                          "nullable": true,
+                          "type": "number"
+                        },
+                        "vdmi_shadow_path_resolution_rate": {
+                          "description": "Resolved share (%) of VD_SHADOW_* and VD_SILO_* findings in the observed data",
+                          "nullable": true,
+                          "type": "number"
+                        }
+                      },
+                      "type": "object"
                     },
                     "timestamp": {
                       "format": "date-time",
@@ -14501,8 +14535,19 @@ process:
     },
     "/api/nova/stream": {
       "get": {
-        "description": "Server-Sent Events endpoint. Streams updates from existing broker event `znp.project.updated` to connected clients.",
+        "description": "Server-Sent Events endpoint with tenant isolation and optional project-scoped filtering.",
         "operationId": "nova_stream",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "projectId",
+            "required": false,
+            "schema": {
+              "example": "a1b2c3d4-0000-0000-0000-000000000001",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -17373,6 +17418,175 @@ process:
         ]
       }
     },
+    "/api/tenants/:id/quotas": {
+      "get": {
+        "description": "Phase-1 read-only quota endpoint (v0.48.4). Returns configured rate-limit defaults, active quota windows, driver info, and recent quota events for the selected tenant.",
+        "operationId": "tenant-quota_getQuotas",
+        "parameters": [
+          {
+            "description": "Tenant identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "stadtwerk-a",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Quota snapshot for the tenant."
+          },
+          "403": {
+            "description": "Tenant scope violation or missing full-access authorization."
+          }
+        },
+        "summary": "Get current quota and usage snapshot for one tenant",
+        "tags": [
+          "Tenant Quotas"
+        ]
+      },
+      "put": {
+        "description": "Write/admin endpoint for tenant-specific quota and endpoint-class rate-limit overrides. Requires full-access token at gateway level and tenant-scope check in service.",
+        "operationId": "tenant-quota_setQuotas",
+        "parameters": [
+          {
+            "description": "Tenant identifier.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "stadtwerk-a",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "quotas": {
+                    "properties": {
+                      "llm_tokens_per_day": {
+                        "example": 250000,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "llm_tokens_per_month": {
+                        "example": 5000000,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "max_async_jobs_per_day": {
+                        "example": 250,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "max_rag_chunks_per_month": {
+                        "example": 100000,
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "rateLimits": {
+                    "properties": {
+                      "compute": {
+                        "example": 30,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "read": {
+                        "example": 600,
+                        "minimum": 0,
+                        "type": "integer"
+                      },
+                      "write": {
+                        "example": 60,
+                        "minimum": 0,
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Updated tenant quota snapshot."
+          },
+          "403": {
+            "description": "Tenant scope violation or missing full-access authorization."
+          },
+          "422": {
+            "description": "Invalid payload (unknown keys or non-numeric values)."
+          }
+        },
+        "summary": "Update tenant quota and rate-limit configuration",
+        "tags": [
+          "Tenant Quotas"
+        ]
+      }
+    },
+    "/api/tenants/:id/rate-limit-events": {
+      "get": {
+        "description": "Returns the most recent tenant-scoped quota/rate events recorded by the new rate-quota foundation layer. Phase 1 exposes read-only visibility for operational review.",
+        "operationId": "tenant-quota_listEvents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "stadtwerk-a",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "enum": [
+                "quota.threshold.reached",
+                "quota.exhausted",
+                "rate_limit.exceeded"
+              ],
+              "example": "quota.threshold.reached",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent tenant events."
+          }
+        },
+        "summary": "List recent rate-limit and quota events for one tenant",
+        "tags": [
+          "Tenant Quotas"
+        ]
+      }
+    },
     "/api/tokens": {
       "get": {
         "operationId": "token-manager_list",
@@ -18873,6 +19087,318 @@ process:
         ]
       }
     },
+    "/api/znp/projects/:projectId/nova/decisions": {
+      "get": {
+        "operationId": "nova_listDecisions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "example": "a1b2c3d4-0000-0000-0000-000000000001",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "example": "pending_approval",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
+              "example": "threshold_update",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "example": "eyJwaXZvdCI6Ii4uLiJ9",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List NOVA decisions",
+        "tags": [
+          "NOVA"
+        ]
+      }
+    },
+    "/api/znp/projects/:projectId/nova/decisions/:id": {
+      "get": {
+        "operationId": "nova_getDecision",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "example": "a1b2c3d4-0000-0000-0000-000000000001",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "dec_a1b2c3d4_SUB_1_QU",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get NOVA decision by id",
+        "tags": [
+          "NOVA"
+        ]
+      }
+    },
+    "/api/znp/projects/:projectId/nova/decisions/:id/approve": {
+      "post": {
+        "operationId": "nova_approveDecision",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "comment": "Approved via HITL",
+                    "id": "dec_a1b2c3d4_SUB_1_QU",
+                    "projectId": "a1b2c3d4-0000-0000-0000-000000000001"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "comment": {
+                    "example": "Approved via HITL",
+                    "type": "string"
+                  },
+                  "id": {
+                    "example": "dec_a1b2c3d4_SUB_1_QU",
+                    "type": "string"
+                  },
+                  "projectId": {
+                    "example": "a1b2c3d4-0000-0000-0000-000000000001",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "projectId",
+                  "id"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Approve NOVA decision",
+        "tags": [
+          "NOVA"
+        ]
+      }
+    },
+    "/api/znp/projects/:projectId/nova/decisions/:id/reject": {
+      "post": {
+        "operationId": "nova_rejectDecision",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "id": "dec_a1b2c3d4_SUB_1_QU",
+                    "projectId": "a1b2c3d4-0000-0000-0000-000000000001",
+                    "reason": "Insufficient evidence"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "id": {
+                    "example": "dec_a1b2c3d4_SUB_1_QU",
+                    "type": "string"
+                  },
+                  "projectId": {
+                    "example": "a1b2c3d4-0000-0000-0000-000000000001",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "example": "Insufficient evidence",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "projectId",
+                  "id"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Reject NOVA decision",
+        "tags": [
+          "NOVA"
+        ]
+      }
+    },
+    "/api/znp/projects/:projectId/nova/decisions/:id/replay-trigger": {
+      "post": {
+        "operationId": "nova_replayTrigger",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "id": "dec_a1b2c3d4_SUB_1_QU",
+                    "projectId": "a1b2c3d4-0000-0000-0000-000000000001"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "id": {
+                    "example": "dec_a1b2c3d4_SUB_1_QU",
+                    "type": "string"
+                  },
+                  "projectId": {
+                    "example": "a1b2c3d4-0000-0000-0000-000000000001",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "projectId",
+                  "id"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "202": {
+            "description": "Replay accepted as async job"
+          }
+        },
+        "summary": "Replay NOVA decision trigger source (async)",
+        "tags": [
+          "NOVA"
+        ]
+      }
+    },
+    "/api/znp/projects/:projectId/nova/decisions/stats": {
+      "get": {
+        "operationId": "nova_decisionStats",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "example": "a1b2c3d4-0000-0000-0000-000000000001",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "NOVA decision status counts",
+        "tags": [
+          "NOVA"
+        ]
+      }
+    },
     "/api/znp/projects/:projectId/nova/pending-decisions": {
       "get": {
         "description": "Analyses the project graph and returns dynamic NOVA decisions using O/V heuristics (Q(U) optimization and rONT reinforcement).",
@@ -18987,6 +19513,10 @@ process:
       "name": "Authentication"
     },
     {
+      "description": "Tenant quota snapshots, events, and admin overrides",
+      "name": "Tenant Quotas"
+    },
+    {
       "description": "Async job status and result polling (v0.9.8+)",
       "name": "Jobs"
     },
@@ -19092,8 +19622,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.48.3"
+  "x-version": "0.50.1"
 }
 
 ## Integrity
-- llm_txt_sha256: 1a2f5c99648fb6c09a4cc69413bc2b1b8c21e77e898503107cc5a886319daf76
+- llm_txt_sha256: b5512e8e7df6835b4d6aad3b761ba5ae54cdeeacb1c2cac3a657a8217c081f2e

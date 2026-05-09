@@ -1,5 +1,6 @@
 'use strict';
 
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const client = require('prom-client');
@@ -152,6 +153,20 @@ function createState() {
     registers: [register],
   });
 
+  state.rateLimitHits = new client.Counter({
+    name: 'cernion_rate_limit_hits',
+    help: 'Rate-limit hits grouped by tenant hash and endpoint class',
+    labelNames: ['tenant_hash', 'endpoint_class'],
+    registers: [register],
+  });
+
+  state.quotaUsage = new client.Gauge({
+    name: 'cernion_quota_usage',
+    help: 'Current quota usage grouped by tenant hash, resource, and window',
+    labelNames: ['tenant_hash', 'resource', 'window'],
+    registers: [register],
+  });
+
   return state;
 }
 
@@ -182,6 +197,12 @@ function sanitizeCollectionLabel(collection) {
   if (!value) return 'default';
   if (value.startsWith('tenant:')) return 'tenant_scoped';
   return safeLabel(value);
+}
+
+function tenantHashLabel(tenantId) {
+  const normalized = String(tenantId || 'default').trim() || 'default';
+  if (normalized === 'default') return 'default';
+  return crypto.createHash('sha256').update(normalized).digest('hex').slice(0, 12);
 }
 
 function registerBroker(broker) {
@@ -286,6 +307,18 @@ function recordUtilityReportRetry(action, outcome) {
   state.utilityReportRetryAttemptsTotal.labels(safeLabel(action), safeLabel(outcome)).inc();
 }
 
+function recordRateLimitHit({ tenantId, endpointClass }) {
+  initMetrics();
+  state.rateLimitHits.labels(tenantHashLabel(tenantId), safeLabel(endpointClass || 'unknown')).inc();
+}
+
+function recordQuotaUsage({ tenantId, resource, window, used }) {
+  initMetrics();
+  state.quotaUsage
+    .labels(tenantHashLabel(tenantId), safeLabel(resource || 'unknown'), safeLabel(window || 'current'))
+    .set(Math.max(0, Number(used || 0)));
+}
+
 async function renderMetrics() {
   initMetrics();
   return state.register.metrics();
@@ -312,6 +345,8 @@ module.exports = {
   recordMcpRequest,
   recordUtilityReportPhase,
   recordUtilityReportRetry,
+  recordRateLimitHit,
+  recordQuotaUsage,
   renderMetrics,
   contentType,
   resetForTests,

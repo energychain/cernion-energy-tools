@@ -30,6 +30,11 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  try {
+    jobStore?.resetDispatchStateForTests?.();
+  } catch {
+    // Ignore teardown errors
+  }
   // Clean up temp directory
   try {
     fs.rmSync(tempDir, { recursive: true, force: true });
@@ -37,6 +42,7 @@ afterEach(() => {
     // Ignore cleanup errors
   }
   delete process.env.JOB_STORE_DIR;
+  delete process.env.JOB_STORE_MAX_CONCURRENT_PER_TENANT;
 });
 
 // ─── createJob ────────────────────────────────────────────────────────────────
@@ -413,7 +419,98 @@ describe('startJob', () => {
 
       expect(second.reused).toBe(true);
       expect(second.jobId).toBe(first.jobId);
+      await new Promise((r) => setTimeout(r, 30));
       expect(worker).toHaveBeenCalledTimes(1);
+    });
+
+    it('rejects when tenant async-job quota is exhausted', async () => {
+      const rateQuotaStore = require('../src/rate-quota-store');
+      const ctx = {
+        meta: { $gateway: true, tenantId: 'tenant-job-limit' },
+        broker: { emit: jest.fn(async () => {}) },
+      };
+      const state = rateQuotaStore.getTenantState('tenant-job-limit');
+      state.config.quotas.max_async_jobs_per_day = 0;
+      rateQuotaStore.saveTenantState('tenant-job-limit', state);
+
+      await expect(jobStore.startJob(ctx, { service: 's', action: 'a' }, async () => ({}))).rejects.toMatchObject({
+        code: 429,
+        type: 'ASYNC_JOB_QUOTA_EXCEEDED',
+      });
+    });
+
+    it('enforces per-tenant concurrency cap and starts queued job after slot release', async () => {
+      process.env.JOB_STORE_MAX_CONCURRENT_PER_TENANT = '1';
+      loadFreshModule();
+
+      const ctx = { meta: { $gateway: true, tenantId: 'tenant-cap' } };
+      const completions = [];
+      const worker = jest.fn(
+        () =>
+          new Promise((resolve) => {
+            completions.push(resolve);
+          })
+      );
+
+      const first = await jobStore.startJob(ctx, { service: 'svc', action: 'act' }, worker);
+      const second = await jobStore.startJob(ctx, { service: 'svc', action: 'act' }, worker);
+
+      await new Promise((r) => setTimeout(r, 25));
+      expect(jobStore.getJob(first.jobId).status).toBe('running');
+      expect(jobStore.getJob(second.jobId).status).toBe('queued');
+      expect(worker).toHaveBeenCalledTimes(1);
+
+      completions[0]({ slot: 1 });
+      await new Promise((r) => setTimeout(r, 30));
+
+      expect(jobStore.getJob(second.jobId).status).toBe('running');
+      expect(worker).toHaveBeenCalledTimes(2);
+
+      completions[1]({ slot: 2 });
+      await new Promise((r) => setTimeout(r, 30));
+      expect(jobStore.getResult(second.jobId)).toEqual({ slot: 2 });
+    });
+
+    it('keeps tenant isolation under queue pressure so one tenant cannot block another', async () => {
+      process.env.JOB_STORE_MAX_CONCURRENT_PER_TENANT = '1';
+      loadFreshModule();
+
+      let resolveA1;
+      let resolveB1;
+
+      const workerA1 = jest.fn(
+        () =>
+          new Promise((resolve) => {
+            resolveA1 = resolve;
+          })
+      );
+      const workerAQueued = jest.fn(async () => ({ ok: 'a-queued' }));
+      const workerB1 = jest.fn(
+        () =>
+          new Promise((resolve) => {
+            resolveB1 = resolve;
+          })
+      );
+
+      const ctxA = { meta: { $gateway: true, tenantId: 'tenant-a' } };
+      const ctxB = { meta: { $gateway: true, tenantId: 'tenant-b' } };
+
+      const a1 = await jobStore.startJob(ctxA, { service: 'svc', action: 'act' }, workerA1);
+      const a2 = await jobStore.startJob(ctxA, { service: 'svc', action: 'act' }, workerAQueued);
+      const b1 = await jobStore.startJob(ctxB, { service: 'svc', action: 'act' }, workerB1);
+
+      await new Promise((r) => setTimeout(r, 30));
+
+      expect(jobStore.getJob(a1.jobId).status).toBe('running');
+      expect(jobStore.getJob(a2.jobId).status).toBe('queued');
+      expect(jobStore.getJob(b1.jobId).status).toBe('running');
+
+      resolveA1({ ok: 'a1' });
+      resolveB1({ ok: 'b1' });
+      await new Promise((r) => setTimeout(r, 40));
+
+      expect(jobStore.getResult(b1.jobId)).toEqual({ ok: 'b1' });
+      expect(jobStore.getResult(a2.jobId)).toEqual({ ok: 'a-queued' });
     });
   });
 });

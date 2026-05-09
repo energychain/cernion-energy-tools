@@ -23,6 +23,7 @@ const metrics = require('./metrics');
 const { scrubPromptText } = require('./prompt-scrubber');
 const tracing = require('./tracing');
 const { getObservabilityContext } = require('./observability-context');
+const rateQuotaStore = require('./rate-quota-store');
 const geminiAdapter = require('./adapters/gemini');
 const openAiCompatAdapter = require('./adapters/openai-compat');
 const ollamaAdapter = require('./adapters/ollama');
@@ -137,7 +138,86 @@ function buildStructuredFallbackPrompt(schema, prompt) {
   ].join('\n\n');
 }
 
-async function observeLlmCall(adapter, operation, options, task) {
+function resolveQuotaTenantId(options = {}) {
+  if (options?.tenantId) return String(options.tenantId).trim();
+  if (options?.ctx?.meta?.tenantId) return String(options.ctx.meta.tenantId).trim();
+  return getObservabilityContext().tenantId || null;
+}
+
+function resolveQuotaBroker(options = {}) {
+  if (options?.broker && typeof options.broker.emit === 'function') return options.broker;
+  const broker = getObservabilityContext().broker;
+  return broker && typeof broker.emit === 'function' ? broker : null;
+}
+
+async function emitQuotaEvents(events, options = {}, extra = {}) {
+  const broker = resolveQuotaBroker(options);
+  const tenantId = resolveQuotaTenantId(options);
+  if (!broker || !Array.isArray(events) || events.length === 0) return 0;
+
+  for (const event of events) {
+    await broker.emit(event.type, {
+      eventId: event.id,
+      tenantId,
+      resource: event.resource,
+      window: event.window,
+      limit: event.limit,
+      used: event.used,
+      threshold: event.threshold,
+      ...extra,
+    });
+  }
+
+  return events.length;
+}
+
+async function enforceLlmQuota(options = {}, usageInput) {
+  const tenantId = resolveQuotaTenantId(options);
+  if (!tenantId) return;
+
+  const quota = rateQuotaStore.checkLlmQuota({
+    tenantId,
+    requiredTokens: rateQuotaStore.estimateTextTokens(usageInput),
+  });
+  await emitQuotaEvents(quota.newEvents || [], options, { source: 'llm-precheck' });
+  if (!quota.allowed) {
+    throw new MoleculerError('LLM quota exceeded for tenant.', 429, 'LLM_QUOTA_EXCEEDED', {
+      tenantId,
+      resource: quota.resource,
+      limit: quota.limit,
+      used: quota.used,
+      remaining: quota.remaining,
+      resetAt: quota.resetAt,
+      retryAfter: quota.retryAfter,
+      responseHeaders: quota.responseHeaders,
+      _rateQuotaEventsEmitted: true,
+    });
+  }
+}
+
+async function recordLlmUsageSafely({ options, provider, model, operation, prompt, completion, usage }) {
+  const tenantId = resolveQuotaTenantId(options);
+  if (!tenantId) return;
+
+  try {
+    const snapshot = rateQuotaStore.recordLlmUsage({
+      tenantId,
+      provider,
+      model,
+      operation,
+      prompt,
+      completion,
+      usage,
+    });
+    await emitQuotaEvents(snapshot.newEvents || [], options, { source: 'llm-postcall', operation });
+  } catch (error) {
+    if (process.env.NODE_ENV !== 'test') {
+      console.warn(`[rate-quota] failed to record LLM usage: ${error.message}`);
+    }
+  }
+}
+
+async function observeLlmCall(adapter, operation, options, usageInput, task) {
   const startedAt = Date.now();
   const provider = adapter?.id || getProviderId();
   const model = options?.model || process.env.LLM_MODEL || 'default';
@@ -155,6 +235,7 @@ async function observeLlmCall(adapter, operation, options, task) {
     },
     async (span) => {
       try {
+        await enforceLlmQuota(options, usageInput);
         const result = await task();
         tracing.setOk(span);
         metrics.recordLlmRequest({
@@ -163,6 +244,15 @@ async function observeLlmCall(adapter, operation, options, task) {
           operation,
           status: 'success',
           durationMs: Date.now() - startedAt,
+        });
+        await recordLlmUsageSafely({
+          options,
+          provider,
+          model,
+          operation,
+          prompt: usageInput,
+          completion: result,
+          usage: options?.usage,
         });
         return result;
       } catch (error) {
@@ -194,7 +284,7 @@ async function observeLlmCall(adapter, operation, options, task) {
 async function generateText(prompt, options = {}) {
   const adapter = getAdapter();
   const scrubbedPrompt = scrubPromptText(prompt);
-  return await observeLlmCall(adapter, 'generate_text', options, () =>
+  return await observeLlmCall(adapter, 'generate_text', options, scrubbedPrompt, () =>
     withRetries(() => adapter.generateText(scrubbedPrompt, options), options)
   );
 }
@@ -216,7 +306,7 @@ async function generateStructured(responseSchema, prompt, options = {}) {
   const scrubbedPrompt = scrubPromptText(prompt);
 
   try {
-    const raw = await observeLlmCall(adapter, 'generate_structured', options, () =>
+    const raw = await observeLlmCall(adapter, 'generate_structured', options, scrubbedPrompt, () =>
       withRetries(
         () => adapter.generateStructured(responseSchema, scrubbedPrompt, { ...options, structuredMode: mode }),
         options
@@ -225,7 +315,12 @@ async function generateStructured(responseSchema, prompt, options = {}) {
     return parseJsonResponse(raw);
   } catch (error) {
     const fallbackPrompt = buildStructuredFallbackPrompt(responseSchema, scrubbedPrompt);
-    const fallbackRaw = await observeLlmCall(adapter, 'generate_structured_fallback', options, () =>
+    const fallbackRaw = await observeLlmCall(
+      adapter,
+      'generate_structured_fallback',
+      options,
+      fallbackPrompt,
+      () =>
       withRetries(() => adapter.generateText(fallbackPrompt, options), options)
     );
     return parseJsonResponse(fallbackRaw);
@@ -252,7 +347,7 @@ async function embeddings(texts, options = {}) {
   }
 
   const scrubbed = (Array.isArray(texts) ? texts : []).map((text) => scrubPromptText(String(text || '')));
-  return await observeLlmCall(adapter, 'embeddings', options, () =>
+  return await observeLlmCall(adapter, 'embeddings', options, scrubbed, () =>
     withRetries(() => adapter.embeddings(scrubbed, options), options)
   );
 }

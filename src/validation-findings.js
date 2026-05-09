@@ -222,6 +222,19 @@ const FA_SYNTHESIS_GUARDED = 'FA_SYNTHESIS_GUARDED';
 const FA_NEEDS_CLARIFICATION = 'FA_NEEDS_CLARIFICATION';
 
 // ---------------------------------------------------------------------------
+// VDMI Governance codes (v0.50) — matrix governance, shadow paths, silo drift
+// ---------------------------------------------------------------------------
+const VD_ROLE_VD_DECOUPLING_M = 'VD_ROLE_VD_DECOUPLING_M';
+const VD_ROLE_V_OWNER_ABSENT_H = 'VD_ROLE_V_OWNER_ABSENT_H';
+const VD_SHADOW_EXCEL_EXEC_H = 'VD_SHADOW_EXCEL_EXEC_H';
+const VD_SHADOW_SHAREPOINT_BYPASS_H = 'VD_SHADOW_SHAREPOINT_BYPASS_H';
+const VD_SILO_HANDOVER_MANUAL_M = 'VD_SILO_HANDOVER_MANUAL_M';
+const VD_SILO_KERNSYSTEM_BLOCK_M = 'VD_SILO_KERNSYSTEM_BLOCK_M';
+const VD_UNBUNDLE_PSEUDO_ARG_H = 'VD_UNBUNDLE_PSEUDO_ARG_H';
+const VD_GOV_AUDIT_GAP_K = 'VD_GOV_AUDIT_GAP_K';
+const VD_GOV_RECURRENCE_K = 'VD_GOV_RECURRENCE_K';
+
+// ---------------------------------------------------------------------------
 // MaStR Quality score helpers (v0.17)
 // ---------------------------------------------------------------------------
 
@@ -1115,6 +1128,78 @@ const FINDING_CODE_METADATA = {
     description: 'Insufficient evidence for a legally robust answer — clarification required',
     descriptionDe: 'Evidenz für rechtssichere Antwort unzureichend — Präzisierung erforderlich',
   },
+  // ── VDMI Governance (v0.50) — Steps 2–6 ────────────────────────────────
+  VD_ROLE_VD_DECOUPLING_M: {
+    severity: 'warning',
+    agent: 'vdmi',
+    step: 2,
+    description: 'Formal V owner and de-facto D executor are persistently decoupled',
+    descriptionDe: 'Formale V-Rolle und de-facto D-Ausführung sind dauerhaft entkoppelt',
+  },
+  VD_ROLE_V_OWNER_ABSENT_H: {
+    severity: 'error',
+    agent: 'vdmi',
+    step: 2,
+    description: 'Task execution completed without evidenced V-owner decision',
+    descriptionDe:
+      'Task-Ausführung ohne nachweisbare Entscheidung der vorgesehenen V-Rolle abgeschlossen',
+  },
+  VD_SHADOW_EXCEL_EXEC_H: {
+    severity: 'error',
+    agent: 'vdmi',
+    step: 3,
+    description: 'Critical process step is primarily executed through Excel shadow path',
+    descriptionDe:
+      'Kritischer Prozessschritt wird primär über einen Excel-Schattenpfad ausgeführt',
+  },
+  VD_SHADOW_SHAREPOINT_BYPASS_H: {
+    severity: 'error',
+    agent: 'vdmi',
+    step: 3,
+    description: 'SharePoint or mail event bypasses the intended audited system path',
+    descriptionDe:
+      'SharePoint- oder Mail-Event umgeht den vorgesehenen auditierbaren Systempfad',
+  },
+  VD_SILO_HANDOVER_MANUAL_M: {
+    severity: 'warning',
+    agent: 'vdmi',
+    step: 4,
+    description: 'Cross-domain handover is manual instead of using defined integration interfaces',
+    descriptionDe:
+      'Bereichsübergreifende Übergabe erfolgt manuell statt über definierte Integrationsschnittstellen',
+  },
+  VD_SILO_KERNSYSTEM_BLOCK_M: {
+    severity: 'warning',
+    agent: 'vdmi',
+    step: 4,
+    description: 'Core system access is blocked, resulting in recurring workaround execution',
+    descriptionDe:
+      'Kernsystemzugriff ist blockiert, wodurch wiederkehrende Workaround-Ausführung entsteht',
+  },
+  VD_UNBUNDLE_PSEUDO_ARG_H: {
+    severity: 'error',
+    agent: 'vdmi',
+    step: 5,
+    description: 'Unbundling argument is used to bypass auditable standard process boundaries',
+    descriptionDe:
+      'Unbundling-Argumentation wird genutzt, um auditierbare Standardprozessgrenzen zu umgehen',
+  },
+  VD_GOV_AUDIT_GAP_K: {
+    severity: 'error',
+    agent: 'vdmi',
+    step: 6,
+    description: 'Critical governance deviation detected with incomplete audit evidence chain',
+    descriptionDe:
+      'Kritische Governance-Abweichung mit unvollständiger Audit-Evidenzkette erkannt',
+  },
+  VD_GOV_RECURRENCE_K: {
+    severity: 'error',
+    agent: 'vdmi',
+    step: 6,
+    description: 'High-risk governance deviation recurs despite prior mitigation',
+    descriptionDe:
+      'Hochrisiko-Governance-Abweichung tritt trotz vorheriger Maßnahme erneut auf',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -1260,6 +1345,16 @@ module.exports = {
   // FA Step 5 — Synthesis
   FA_SYNTHESIS_GUARDED,
   FA_NEEDS_CLARIFICATION,
+  // VDMI governance codes
+  VD_ROLE_VD_DECOUPLING_M,
+  VD_ROLE_V_OWNER_ABSENT_H,
+  VD_SHADOW_EXCEL_EXEC_H,
+  VD_SHADOW_SHAREPOINT_BYPASS_H,
+  VD_SILO_HANDOVER_MANUAL_M,
+  VD_SILO_KERNSYSTEM_BLOCK_M,
+  VD_UNBUNDLE_PSEUDO_ARG_H,
+  VD_GOV_AUDIT_GAP_K,
+  VD_GOV_RECURRENCE_K,
   // UI metadata (v0.19)
   FINDING_CODE_METADATA,
 };

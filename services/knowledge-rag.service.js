@@ -4,6 +4,7 @@ const { Errors } = require('moleculer');
 const { callWithAutoPoll } = require('../src/async-job-poller');
 const { appendLog } = require('../src/job-store');
 const { runAsync } = require('../src/async-job-runner');
+const rateQuotaStore = require('../src/rate-quota-store');
 const metrics = require('../src/metrics');
 
 const OPENAPI_TAG = 'Knowledge RAG';
@@ -118,6 +119,25 @@ function inferHitCount(result) {
     result?.results?.length ||
     0
   );
+}
+
+async function emitRateQuotaEvents(ctx, events, extra = {}) {
+  if (!ctx?.broker || typeof ctx.broker.emit !== 'function' || !Array.isArray(events) || events.length === 0) {
+    return;
+  }
+
+  for (const event of events) {
+    await ctx.broker.emit(event.type, {
+      eventId: event.id,
+      tenantId: ctx?.meta?.tenantId || 'default',
+      resource: event.resource,
+      window: event.window,
+      limit: event.limit,
+      used: event.used,
+      threshold: event.threshold,
+      ...extra,
+    });
+  }
 }
 
 function buildQuerySchema(requiredFields = []) {
@@ -2020,6 +2040,23 @@ module.exports = (() => {
         const chunks = chunkText(text, collectionRecord.chunking);
         if (!Array.isArray(chunks) || chunks.length === 0) return { chunks: 0, pointIds: [] };
 
+        const quotaCheck = rateQuotaStore.checkRagChunkQuota({ tenantId, chunkCount: chunks.length });
+        await emitRateQuotaEvents(ctx, quotaCheck.newEvents || [], {
+          collection: collectionRecord.name,
+          sourceType: options.sourceType || 'documents',
+        });
+        if (!quotaCheck.allowed) {
+          throw new Errors.MoleculerError('RAG chunk quota exceeded for tenant.', 429, 'RAG_QUOTA_EXCEEDED', {
+            tenantId,
+            resource: quotaCheck.resource,
+            limit: quotaCheck.limit,
+            used: quotaCheck.used,
+            remaining: quotaCheck.remaining,
+            retryAfter: quotaCheck.retryAfter,
+            responseHeaders: quotaCheck.responseHeaders,
+          });
+        }
+
         const vectors = await embeddings(chunks.map((chunk) => scrubPromptText(chunk)));
         const pointIds = [];
 
@@ -2058,6 +2095,16 @@ module.exports = (() => {
           await this.objectPut(ctx, this.getChunkNamespace(ctx), this.chunkKey(payload), payload);
           pointIds.push(pointId);
         }
+
+        const quotaSnapshot = rateQuotaStore.recordRagChunkUsage({
+          tenantId,
+          collection: collectionRecord.name,
+          chunkCount: pointIds.length,
+        });
+        await emitRateQuotaEvents(ctx, quotaSnapshot.newEvents || [], {
+          collection: collectionRecord.name,
+          sourceType: options.sourceType || 'documents',
+        });
 
         return { chunks: pointIds.length, pointIds };
       },

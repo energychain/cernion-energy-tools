@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No changes yet._
+
+## [0.50.1] — Dashboard VDMI KPI Integration
+
+### Added
+- Dashboard quality aggregation now includes VDMI governance in [services/dashboard-api.service.js](services/dashboard-api.service.js):
+  - new `qualitySummary` agent entry `vdmi` (latest matrices + critical-open finding metric)
+  - new `businessKpis` block with management KPIs:
+    - `vdmi_shadow_path_resolution_rate`
+    - `vdmi_n1_escalation_reduction_rate`
+    - `vdmi_fnav_time_to_decision_gain_days`
+
+### Changed
+- Expanded finding catalog in [src/validation-findings.js](src/validation-findings.js) with initial VDMI governance code metadata (`VD_*`) for dashboard/tooling consistency.
+- Updated dashboard test coverage in [tests/dashboard-api.test.js](tests/dashboard-api.test.js) for VDMI quality summary integration and KPI calculations.
+- Updated quality-summary UI contract for VDMI agent rendering and `businessKpis` display in [docs/ui-contracts/03-quality-summary.md](docs/ui-contracts/03-quality-summary.md).
+
+## [0.50.0] — VDMI Service Baseline (Issue 19)
+
+### Added
+- New VDMI microservice [services/vdmi.service.js](services/vdmi.service.js) with PouchDB-backed matrix lifecycle and audit persistence (`vdmi:`, `vdmi-template:`, `vdmi-audit:`, `vdmi-finding:`).
+- New VDMI REST endpoints (API-first foundation) including:
+  - Matrix lifecycle: `GET /api/vdmi`, `GET /api/vdmi/:id`, `POST /api/vdmi`, `POST /api/vdmi/detect`
+  - Nomination flow: `GET /api/vdmi/nominations`, `POST /api/vdmi/:id/nominate`, `POST /api/vdmi/:id/confirm-nomination`, `GET /api/vdmi/templates`
+  - Human governance APIs: `PATCH /api/vdmi/:id`, `POST /api/vdmi/:id/revert`, `POST /api/vdmi/:id/evidence`
+  - Spectator APIs: `GET /api/vdmi/tasks/:taskId/negotiation-trace`, `GET /api/vdmi/tasks/:taskId/dossier`
+  - Findings workflow: `GET /api/vdmi/findings`, `POST /api/vdmi/findings/:findingId/mitigate`, `POST /api/vdmi/findings/:findingId/resolve`
+  - Role/context APIs: `GET /api/vdmi/my-responsibilities`, `GET /api/vdmi/my-informed`, `GET /api/vdmi/agent/:agentId/role`, `GET /api/vdmi/context`
+- Event-driven inference hooks for Moleculer signals and shadow-process bridge events (`mail.attachment.extracted`, `sharepoint.excel.updated`) with automatic governance-finding creation.
+- New test suite [tests/vdmi.service.test.js](tests/vdmi.service.test.js) covering matrix lifecycle, detect/trace/dossier, nomination confirmation, findings mitigate/resolve, and tenant isolation.
+
+### Notes
+- This release establishes the v0.50.x baseline (Roadmap steps 1–4 core service path).
+- KPI aggregation in dashboard and global `VD_*` finding metadata integration are scheduled for follow-up v0.50.x increments.
+
 ## [0.49.0] — NOVA Decision Engine Baseline (project-scoped, tenant-bound)
 
 ### Added

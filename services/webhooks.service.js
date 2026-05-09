@@ -22,8 +22,16 @@ const EVENT_WHITELIST = [
   'redispatch-expost.audit.completed',
   'mastr-quality.audit.completed',
   'finance-agent.analysis.completed',
+  'decision.proposed',
+  'decision.approved',
+  'decision.rejected',
+  'decision.applied',
+  'decision.expired',
   'auth.session.created',
   'auth.session.expired',
+  'rate_limit.exceeded',
+  'quota.threshold.reached',
+  'quota.exhausted',
 ];
 
 function nowIso() {
@@ -408,6 +416,31 @@ module.exports = {
         await this.enqueueFromEvent('finance-agent.analysis.completed', ctx.params);
       },
     },
+    'decision.proposed': {
+      async handler(ctx) {
+        await this.enqueueFromEvent('decision.proposed', ctx.params);
+      },
+    },
+    'decision.approved': {
+      async handler(ctx) {
+        await this.enqueueFromEvent('decision.approved', ctx.params);
+      },
+    },
+    'decision.rejected': {
+      async handler(ctx) {
+        await this.enqueueFromEvent('decision.rejected', ctx.params);
+      },
+    },
+    'decision.applied': {
+      async handler(ctx) {
+        await this.enqueueFromEvent('decision.applied', ctx.params);
+      },
+    },
+    'decision.expired': {
+      async handler(ctx) {
+        await this.enqueueFromEvent('decision.expired', ctx.params);
+      },
+    },
     'auth.session.created': {
       async handler(ctx) {
         await this.enqueueFromEvent('auth.session.created', ctx.params);
@@ -416,6 +449,21 @@ module.exports = {
     'auth.session.expired': {
       async handler(ctx) {
         await this.enqueueFromEvent('auth.session.expired', ctx.params);
+      },
+    },
+    'rate_limit.exceeded': {
+      async handler(ctx) {
+        await this.enqueueFromEvent('rate_limit.exceeded', ctx.params);
+      },
+    },
+    'quota.threshold.reached': {
+      async handler(ctx) {
+        await this.enqueueFromEvent('quota.threshold.reached', ctx.params);
+      },
+    },
+    'quota.exhausted': {
+      async handler(ctx) {
+        await this.enqueueFromEvent('quota.exhausted', ctx.params);
       },
     },
   },
