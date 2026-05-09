@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.50.1",
+    "version": "0.50.2",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -3176,6 +3176,645 @@
                     "installationMastrNummer": "SEE900000123456",
                     "aggregateBy": "hourly"
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/eog-calculator/input-status": {
+      "post": {
+        "operationId": "eog-calculator_inputStatus",
+        "summary": "Check EOG input coverage for a tenant/VNB scope",
+        "tags": [
+          "EOG Calculator"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Reports required fields, optional-but-relevant fields, and calibration anchors. optionalButRelevant includes quality_element, regulatory_account_balance, capex_adjustment_*, and volatile_costs which are needed for accurate detail reproduction.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tenantId",
+                  "vnbId"
+                ],
+                "properties": {
+                  "tenantId": {
+                    "type": "string",
+                    "example": "tenant-a"
+                  },
+                  "vnbId": {
+                    "type": "string",
+                    "example": "SNB100"
+                  },
+                  "periodYear": {
+                    "type": "integer",
+                    "example": 2026
+                  },
+                  "sector": {
+                    "type": "string",
+                    "enum": [
+                      "strom",
+                      "gas"
+                    ],
+                    "example": "strom"
+                  },
+                  "regulatoryPeriod": {
+                    "type": "string",
+                    "example": "RP3"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "tenantId": "tenant-a",
+                    "vnbId": "SNB100",
+                    "periodYear": 2026,
+                    "sector": "strom"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/eog-calculator/validate-datapoints": {
+      "post": {
+        "operationId": "eog-calculator_validateDatapoints",
+        "summary": "Validate submitted EOG datapoints without persisting them",
+        "tags": [
+          "EOG Calculator"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tenantId",
+                  "vnbId",
+                  "datapoints"
+                ],
+                "properties": {
+                  "tenantId": {
+                    "type": "string",
+                    "example": "tenant-a"
+                  },
+                  "vnbId": {
+                    "type": "string",
+                    "example": "SNB100"
+                  },
+                  "datapoints": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "example": [
+                      {
+                        "key": "eog.base_cost_level",
+                        "value": 1000,
+                        "periodYear": 2026,
+                        "sector": "strom",
+                        "source": "tenant_uploaded",
+                        "confidence": "confirmed"
+                      }
+                    ]
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "tenantId": "tenant-a",
+                    "vnbId": "SNB100",
+                    "datapoints": [
+                      {
+                        "key": "eog.base_cost_level",
+                        "value": 1000,
+                        "periodYear": 2026,
+                        "sector": "strom",
+                        "source": "tenant_uploaded",
+                        "confidence": "confirmed"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/eog-calculator/commit-datapoints": {
+      "post": {
+        "operationId": "eog-calculator_commitDatapoints",
+        "summary": "Commit EOG datapoints only after successful validation or explicit HITL confirmation",
+        "tags": [
+          "EOG Calculator"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "validationId"
+                ],
+                "properties": {
+                  "validationId": {
+                    "type": "string",
+                    "example": "validation-uuid"
+                  },
+                  "hitlConfirmation": {
+                    "type": "object",
+                    "example": {
+                      "approved": true,
+                      "decision": "manual_confirm"
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "validationId": "validation-uuid",
+                    "hitlConfirmation": {
+                      "approved": true,
+                      "decision": "manual_confirm"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/eog-calculator/calculate": {
+      "post": {
+        "operationId": "eog-calculator_calculate",
+        "summary": "Calculate EOG for actual data scope",
+        "tags": [
+          "EOG Calculator"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tenantId",
+                  "vnbId"
+                ],
+                "properties": {
+                  "tenantId": {
+                    "type": "string",
+                    "example": "tenant-a"
+                  },
+                  "vnbId": {
+                    "type": "string",
+                    "example": "SNB100"
+                  },
+                  "periodYear": {
+                    "type": "integer",
+                    "example": 2026
+                  },
+                  "sector": {
+                    "type": "string",
+                    "enum": [
+                      "strom",
+                      "gas"
+                    ],
+                    "example": "strom"
+                  },
+                  "regulatoryPeriod": {
+                    "type": "string",
+                    "example": "RP3"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "tenantId": "tenant-a",
+                    "vnbId": "SNB100",
+                    "periodYear": 2026,
+                    "sector": "strom"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/eog-calculator/scenario": {
+      "post": {
+        "operationId": "eog-calculator_scenario",
+        "summary": "Run transient EOG scenario with overrides (no persistence)",
+        "tags": [
+          "EOG Calculator"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tenantId",
+                  "vnbId",
+                  "overrides"
+                ],
+                "properties": {
+                  "tenantId": {
+                    "type": "string",
+                    "example": "tenant-a"
+                  },
+                  "vnbId": {
+                    "type": "string",
+                    "example": "SNB100"
+                  },
+                  "periodYear": {
+                    "type": "integer",
+                    "example": 2026
+                  },
+                  "sector": {
+                    "type": "string",
+                    "enum": [
+                      "strom",
+                      "gas"
+                    ],
+                    "example": "strom"
+                  },
+                  "regulatoryPeriod": {
+                    "type": "string",
+                    "example": "RP3"
+                  },
+                  "overrides": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    },
+                    "example": [
+                      {
+                        "key": "eog.quality_element",
+                        "value": 50
+                      }
+                    ]
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "tenantId": "tenant-a",
+                    "vnbId": "SNB100",
+                    "overrides": [
+                      {
+                        "key": "eog.quality_element",
+                        "value": 50
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/eog-calculator/request-input": {
+      "post": {
+        "operationId": "eog-calculator_requestInput",
+        "summary": "Create HITL items for missing EOG inputs with blocker explanation",
+        "tags": [
+          "EOG Calculator"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "tenantId",
+                  "vnbId"
+                ],
+                "properties": {
+                  "tenantId": {
+                    "type": "string",
+                    "example": "tenant-a"
+                  },
+                  "vnbId": {
+                    "type": "string",
+                    "example": "SNB100"
+                  },
+                  "periodYear": {
+                    "type": "integer",
+                    "example": 2026
+                  },
+                  "sector": {
+                    "type": "string",
+                    "enum": [
+                      "strom",
+                      "gas"
+                    ],
+                    "example": "strom"
+                  },
+                  "regulatoryPeriod": {
+                    "type": "string",
+                    "example": "RP3"
+                  },
+                  "missingKeys": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "eog.efficiency_value"
+                    ]
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "tenantId": "tenant-a",
+                    "vnbId": "SNB100",
+                    "missingKeys": [
+                      "eog.efficiency_value"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/matrices/:matrixId": {
+      "patch": {
+        "operationId": "vdmi-human-override_override",
+        "summary": "vdmi-human-override.override",
+        "tags": [
+          "vdmi-human-override"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/matrices/:matrixId/revert": {
+      "post": {
+        "operationId": "vdmi-human-override_revert",
+        "summary": "vdmi-human-override.revert",
+        "tags": [
+          "vdmi-human-override"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/tasks/:taskId/negotiation-trace": {
+      "get": {
+        "operationId": "vdmi-spectator_negotiationTrace",
+        "summary": "vdmi-spectator.negotiationTrace",
+        "tags": [
+          "vdmi-spectator"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/tasks/:taskId/dossier": {
+      "get": {
+        "operationId": "vdmi-spectator_dossier",
+        "summary": "vdmi-spectator.dossier",
+        "tags": [
+          "vdmi-spectator"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/findings": {
+      "get": {
+        "operationId": "vdmi-findings_list",
+        "summary": "vdmi-findings.list",
+        "tags": [
+          "vdmi-findings"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/findings/:findingId/mitigate": {
+      "post": {
+        "operationId": "vdmi-findings_mitigate",
+        "summary": "vdmi-findings.mitigate",
+        "tags": [
+          "vdmi-findings"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/findings/:findingId/resolve": {
+      "post": {
+        "operationId": "vdmi-findings_resolve",
+        "summary": "vdmi-findings.resolve",
+        "tags": [
+          "vdmi-findings"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/tasks/:taskId/evidence": {
+      "post": {
+        "operationId": "vdmi-evidence_inject",
+        "summary": "vdmi-evidence.inject",
+        "tags": [
+          "vdmi-evidence"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/evidence/:evidenceId/sign": {
+      "post": {
+        "operationId": "vdmi-evidence_sign",
+        "summary": "vdmi-evidence.sign",
+        "tags": [
+          "vdmi-evidence"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
                 }
               }
             }
@@ -18705,5 +19344,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.50.1"
+  "x-version": "0.50.2"
 }

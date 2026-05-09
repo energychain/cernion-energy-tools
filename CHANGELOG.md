@@ -9,6 +9,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.50.2] — VDMI Governance APIs (Human Override, Spectator Mode, Findings, Evidence)
+
+### Added
+- New VDMI Governance APIs in [docs/VDMI_GOVERNANCE_APIS.md](docs/VDMI_GOVERNANCE_APIS.md) extending automated agent inference with human-in-the-loop workflows:
+  
+  **1. Human Override & Audit Trail** ([services/vdmi-human-override.service.js](services/vdmi-human-override.service.js)):
+  - `PATCH /api/vdmi/tenants/:tenantId/matrices/:matrixId` — Override LLM-inferred matrix roles with mandatory rationale (min 20 chars)
+  - `POST /api/vdmi/tenants/:tenantId/matrices/:matrixId/revert` — Version rollback with complete audit trail
+  - Immutable audit logging for all overrides with integrity hash verification
+  - Automatic stakeholder notification on matrix corrections
+
+  **2. Spectator Mode for A2A Dialog Transparency** ([services/vdmi-spectator.service.js](services/vdmi-spectator.service.js)):
+  - `GET /api/vdmi/tenants/:tenantId/tasks/:taskId/negotiation-trace` — View complete agent negotiation with reasoning and evidence
+  - `GET /api/vdmi/tenants/:tenantId/tasks/:taskId/dossier` — Formatted governance decision document with executive summary and risk assessment
+  - Support for phase filtering (proposal, consensus, conflict_resolution) and agent filtering
+  - Human touchpoint warnings for low-confidence assignments
+
+  **3. Governance Findings Workflow** ([services/vdmi-findings.service.js](services/vdmi-findings.service.js)):
+  - `GET /api/vdmi/tenants/:tenantId/findings` — List all tenant findings with status/severity filters
+  - `POST /api/vdmi/tenants/:tenantId/findings/:findingId/mitigate` — Submit mitigation plans with proposed actions
+  - `POST /api/vdmi/tenants/:tenantId/findings/:findingId/resolve` — HITL-based finding resolution with dual approval chain
+  - Finding lifecycle: `proposed` → `triaged` → `pending_approval` → `approved` → `applied` (mirrors nova-decision-machine v0.49.0)
+
+  **4. Offline-Realität & Evidence Injection** ([services/vdmi-evidence.service.js](services/vdmi-evidence.service.js)):
+  - `POST /api/vdmi/tenants/:tenantId/tasks/:taskId/evidence` — Inject manual evidence for dual-evidence requirement fulfillment
+  - `POST /api/vdmi/tenants/:tenantId/evidence/:evidenceId/sign` — Digital signature workflow for evidence approval
+  - Support for evidence categories: `hr_confirmation`, `manager_attestation`, `legal_exception`, `legacy_system_mapping`
+  - Signature requests with portal integration and expiration handling (72-hour default)
+
+- New helper modules for Governance APIs:
+  - [src/vdmi-audit-trail.js](src/vdmi-audit-trail.js) — Immutable audit logging with SHA-256 integrity hashing
+  - [src/vdmi-signature.js](src/vdmi-signature.js) — Digital signature management for evidence and critical approvals
+
+- 10 new REST endpoints registered in [services/api.service.js](services/api.service.js#L847-L856) with full OpenAPI annotations
+
+- Integration with existing patterns:
+  - Tenant quota limits for governance operations (100 overrides/month, 50 findings resolved/month, 20 evidence injections/month)
+  - Role-based access control: `hitl-approver`, `data-steward`, `matrix-admin`, `spectator` (read-only)
+  - Dual approval chains for critical findings and manual evidence (requires 2+ signatories)
+  - Tenant isolation for all new endpoints via `:tenantId` path parameter
+
+### Changed
+- Updated package.json to version 0.50.2
+- Expanded EOG Calculator endpoints (already present from v0.50.1 fix)
+
+### Technical Details
+- All new services use PouchDB for audit trail, findings, and evidence storage (data/vdmi-* directories)
+- Audit entries are cryptographically immutable with integrity hash verification
+- Finding status follows NOVA Decision Lifecycle (v0.49.0 compatibility)
+- Evidence injection supports optional digital signatures with multi-signer approval chains
+- Human touchpoint warnings auto-generated for low-confidence assignments (<0.75 precedence score)
+
 ## [0.50.1] — Dashboard VDMI KPI Integration
 
 ### Added

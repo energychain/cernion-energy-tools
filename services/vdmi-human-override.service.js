@@ -1,0 +1,360 @@
+/**
+ * VDMI Human Override Service
+ * Enables correcting LLM-inferred VDMI matrices with mandatory audit trail
+ * v0.50.2 — Matrix Override & Version Revert Workflows
+ */
+
+const Service = require('moleculer').Service;
+const PouchDB = require('pouchdb');
+const VDMIAuditTrail = require('../src/vdmi-audit-trail');
+
+module.exports = class VDMIHumanOverrideService extends Service {
+  constructor(broker) {
+    super(broker);
+
+    this.name = 'vdmi-human-override';
+    this.settings = {
+      fields: {
+        id: { type: 'string', primaryKey: true },
+        tenantId: { type: 'string', required: true },
+        matrixId: { type: 'string', required: true },
+        version: { type: 'number', required: true },
+        status: { type: 'enum', values: ['pending_review', 'approved', 'rejected'] },
+      },
+    };
+
+    this.db = null;
+    this.auditTrail = null;
+  }
+
+  created() {
+    this.db = new PouchDB('data/vdmi-human-override', {
+      auto_compaction: true,
+    });
+    this.auditTrail = new VDMIAuditTrail(
+      new PouchDB('data/vdmi-audit-trail', { auto_compaction: true })
+    );
+  }
+
+  async started() {
+    // Create indexes for efficient querying
+    await this.db.createIndex({
+      index: { fields: ['tenantId', 'matrixId'] },
+    });
+    await this.db.createIndex({
+      index: { fields: ['tenantId', 'status'] },
+    });
+  }
+
+  actions = {
+    /**
+     * PATCH — Override matrix roles with rationale
+     */
+    'override': {
+      rest: 'PATCH /tenants/:tenantId/matrices/:matrixId',
+      openapi: {
+        tags: ['VDMI Governance'],
+        description: 'Override LLM-inferred matrix roles with mandatory audit trail',
+        parameters: [
+          { name: 'tenantId', in: 'path', required: true, description: 'Tenant ID' },
+          {
+            name: 'matrixId',
+            in: 'path',
+            required: true,
+            description: 'Matrix ID to override',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  overrides: {
+                    type: 'object',
+                    description: 'Role assignments to override',
+                    properties: {
+                      roles: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            roleId: { type: 'string' },
+                            assignments: { type: 'object' },
+                            precedenceScore: { type: 'number' },
+                          },
+                        },
+                      },
+                    },
+                  },
+                  rationale: {
+                    type: 'string',
+                    minLength: 20,
+                    description: 'Mandatory justification (min 20 chars)',
+                  },
+                  changeCategory: {
+                    type: 'string',
+                    enum: ['organizational_change', 'data_correction', 'compliance', 'other'],
+                  },
+                  urgency: { type: 'string', enum: ['low', 'medium', 'high'] },
+                },
+                required: ['overrides', 'rationale', 'changeCategory'],
+              },
+            },
+          },
+        },
+        responses: {
+          '200': {
+            description: 'Matrix override successful',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    tenantId: { type: 'string' },
+                    status: { type: 'string' },
+                    version: { type: 'number' },
+                    auditEntry: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+          '403': { description: 'Insufficient permissions' },
+          '422': { description: 'Validation error' },
+        },
+      },
+      async handler(ctx) {
+        const { tenantId, matrixId } = ctx.params;
+        const { overrides, rationale, changeCategory, urgency } = ctx.request.body;
+
+        // Authorization check
+        const userRole = ctx.meta.userRole || 'user';
+        const allowedRoles = ['hitl-approver', 'data-steward', 'matrix-admin'];
+        if (!allowedRoles.includes(userRole)) {
+          throw new Error('FORBIDDEN: Insufficient permissions for matrix override');
+        }
+
+        // Validation
+        if (rationale.length < 20) {
+          throw new Error('Rationale must be at least 20 characters');
+        }
+        if (!overrides.roles || overrides.roles.length === 0) {
+          throw new Error('At least one role override must be provided');
+        }
+
+        // Fetch matrix from VDMI service
+        const matrix = await ctx.call('vdmi.get', { id: matrixId });
+        if (!matrix) {
+          throw new Error('Matrix not found');
+        }
+
+        // Create override document
+        const overrideDoc = {
+          _id: `vdmi-override:${tenantId}:${matrixId}:${Date.now()}`,
+          tenantId,
+          matrixId,
+          originalVersion: matrix.version,
+          newVersion: matrix.version + 1,
+          overrides,
+          status: 'pending_review',
+          createdBy: ctx.meta.userId,
+          createdAt: new Date().toISOString(),
+        };
+
+        await this.db.put(overrideDoc);
+
+        // Create audit entry
+        const auditEntry = await this.auditTrail.createEntry(tenantId, {
+          action: 'MATRIX_OVERRIDE',
+          actor: ctx.meta.userId,
+          actorRole: userRole,
+          rationale,
+          changeCategory,
+          delta: {
+            roles: overrides.roles.map(r => ({
+              roleId: r.roleId,
+              before: matrix.roles?.find(mr => mr.roleId === r.roleId),
+              after: r.assignments,
+            })),
+          },
+          relatedEntities: {
+            type: 'matrix',
+            id: matrixId,
+          },
+          ipAddress: ctx.meta.remoteAddress,
+          userAgent: ctx.meta.userAgent,
+        });
+
+        // Update matrix status
+        matrix.status = 'pending_review';
+        matrix.version += 1;
+        matrix.lastOverride = overrideDoc._id;
+        await ctx.call('vdmi.update', matrix);
+
+        // Send notification
+        await ctx.emit('vdmi.matrix.overridden', {
+          matrixId,
+          tenantId,
+          overriddenBy: ctx.meta.userId,
+          urgency,
+        });
+
+        return {
+          id: overrideDoc._id,
+          tenantId,
+          matrixId,
+          status: 'pending_review',
+          version: matrix.version,
+          changes: {
+            modified_roles: overrides.roles.length,
+            audit_trail_entries: 1,
+          },
+          auditEntry,
+        };
+      },
+    },
+
+    /**
+     * POST — Revert matrix to previous version
+     */
+    'revert': {
+      rest: 'POST /tenants/:tenantId/matrices/:matrixId/revert',
+      openapi: {
+        tags: ['VDMI Governance'],
+        description: 'Rollback matrix to previous version with audit trail',
+        parameters: [
+          { name: 'tenantId', in: 'path', required: true },
+          { name: 'matrixId', in: 'path', required: true },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  targetVersion: {
+                    type: 'number',
+                    description: 'Target version to revert to',
+                  },
+                  reason: {
+                    type: 'string',
+                    minLength: 10,
+                    description: 'Reason for revert',
+                  },
+                  notifyStakeholders: {
+                    type: 'boolean',
+                    description: 'Send notifications',
+                  },
+                },
+                required: ['targetVersion', 'reason'],
+              },
+            },
+          },
+        },
+        responses: {
+          '200': { description: 'Matrix reverted successfully' },
+          '409': { description: 'Concurrent modification conflict' },
+        },
+      },
+      async handler(ctx) {
+        const { tenantId, matrixId } = ctx.params;
+        const { targetVersion, reason, notifyStakeholders } = ctx.request.body;
+
+        // Authorization
+        const userRole = ctx.meta.userRole || 'user';
+        const allowedRoles = ['hitl-approver', 'matrix-admin'];
+        if (!allowedRoles.includes(userRole)) {
+          throw new Error('FORBIDDEN: Only matrix admins can revert versions');
+        }
+
+        // Fetch matrix
+        const matrix = await ctx.call('vdmi.get', { id: matrixId });
+        if (!matrix) {
+          throw new Error('Matrix not found');
+        }
+
+        if (targetVersion >= matrix.version) {
+          throw new Error('Target version must be older than current version');
+        }
+
+        if (matrix.version - targetVersion > 10) {
+          throw new Error('Cannot revert more than 10 versions; request archive');
+        }
+
+        // Get historical version
+        const historicalMatrix = await ctx.call('vdmi.getVersion', {
+          id: matrixId,
+          version: targetVersion,
+        });
+
+        if (!historicalMatrix) {
+          throw new Error('Historical version not found');
+        }
+
+        // Create revert document
+        const revertDoc = {
+          _id: `vdmi-revert:${tenantId}:${matrixId}:${Date.now()}`,
+          tenantId,
+          matrixId,
+          fromVersion: matrix.version,
+          toVersion: targetVersion,
+          reason,
+          revertedBy: ctx.meta.userId,
+          revertedAt: new Date().toISOString(),
+        };
+
+        await this.db.put(revertDoc);
+
+        // Create audit entry
+        const auditEntry = await this.auditTrail.createEntry(tenantId, {
+          action: 'MATRIX_REVERT',
+          actor: ctx.meta.userId,
+          actorRole: userRole,
+          rationale: reason,
+          delta: {
+            fromVersion: matrix.version,
+            toVersion: targetVersion,
+          },
+          relatedEntities: {
+            type: 'matrix',
+            id: matrixId,
+          },
+        });
+
+        // Restore historical version as new version
+        matrix.roles = historicalMatrix.roles;
+        matrix.version += 1;
+        matrix.revertedFrom = matrix.version - 1;
+        matrix.revertedAt = new Date().toISOString();
+        await ctx.call('vdmi.update', matrix);
+
+        // Notify
+        if (notifyStakeholders) {
+          await ctx.emit('vdmi.matrix.reverted', {
+            matrixId,
+            tenantId,
+            fromVersion: revertDoc.fromVersion,
+            toVersion: revertDoc.toVersion,
+            revertedBy: ctx.meta.userId,
+          });
+        }
+
+        return {
+          id: revertDoc._id,
+          matrixId,
+          previousVersion: revertDoc.fromVersion,
+          targetVersion: revertDoc.toVersion,
+          currentVersion: matrix.version,
+          revertedAt: revertDoc.revertedAt,
+          revertedBy: ctx.meta.userId,
+          auditEntry,
+          notificationsQueued: notifyStakeholders ? ['stakeholders'] : [],
+        };
+      },
+    },
+  };
+};

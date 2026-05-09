@@ -842,6 +842,27 @@ module.exports = {
           'POST /in-memory-join/metering-spot-cost': 'in-memory-join.meteringSpotCost',
           'POST /in-memory-join/benchmark-compare': 'in-memory-join.benchmarkCompare',
           'POST /in-memory-join/compare-forecast-actual': 'in-memory-join.compareForecastActual',
+          // EOG Calculator (Revenue Cap Calculation)
+          'POST /eog-calculator/input-status': 'eog-calculator.inputStatus',
+          'POST /eog-calculator/validate-datapoints': 'eog-calculator.validateDatapoints',
+          'POST /eog-calculator/commit-datapoints': 'eog-calculator.commitDatapoints',
+          'POST /eog-calculator/calculate': 'eog-calculator.calculate',
+          'POST /eog-calculator/scenario': 'eog-calculator.scenario',
+          'POST /eog-calculator/request-input': 'eog-calculator.requestInput',
+          // VDMI Governance APIs (v0.50.2) — Human Override, Spectator Mode, Findings, Evidence
+          // Human Override
+          'PATCH /vdmi/tenants/:tenantId/matrices/:matrixId': 'vdmi-human-override.override',
+          'POST /vdmi/tenants/:tenantId/matrices/:matrixId/revert': 'vdmi-human-override.revert',
+          // Spectator Mode (Negotiation Transparency)
+          'GET /vdmi/tenants/:tenantId/tasks/:taskId/negotiation-trace': 'vdmi-spectator.negotiationTrace',
+          'GET /vdmi/tenants/:tenantId/tasks/:taskId/dossier': 'vdmi-spectator.dossier',
+          // Governance Findings (Shadow IT Resolution)
+          'GET /vdmi/tenants/:tenantId/findings': 'vdmi-findings.list',
+          'POST /vdmi/tenants/:tenantId/findings/:findingId/mitigate': 'vdmi-findings.mitigate',
+          'POST /vdmi/tenants/:tenantId/findings/:findingId/resolve': 'vdmi-findings.resolve',
+          // Evidence Injection (Offline-Realität)
+          'POST /vdmi/tenants/:tenantId/tasks/:taskId/evidence': 'vdmi-evidence.inject',
+          'POST /vdmi/tenants/:tenantId/evidence/:evidenceId/sign': 'vdmi-evidence.sign',
           'GET /jobs/:jobId/status': 'job-status.status',
           'GET /jobs/:jobId/progress': 'job-status.progress',
           'GET /jobs/:jobId/result': 'job-status.result',
