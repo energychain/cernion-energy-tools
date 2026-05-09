@@ -18,7 +18,13 @@ describe('NOVA Service', () => {
         dbPath: `./data/znp-test-nova-${Date.now()}`,
       },
     });
-    broker.createService(NovaService);
+    broker.createService({
+      ...NovaService,
+      settings: {
+        ...(NovaService.settings || {}),
+        dbPath: `./data/nova-test-${Date.now()}`,
+      },
+    });
     await broker.start();
 
     const project = await broker.call('znp.createProject', {
@@ -189,5 +195,62 @@ describe('NOVA Service', () => {
       code: 404,
       type: 'NOVA_DECISION_NOT_FOUND',
     });
+  });
+
+  it('lists persisted decisions via project-scoped endpoint', async () => {
+    await broker.call('nova.pendingDecisions', { projectId });
+
+    const result = await broker.call('nova.listDecisions', { projectId, limit: 10 });
+
+    expect(result.success).toBe(true);
+    expect(Array.isArray(result.items)).toBe(true);
+    expect(result.items.length).toBeGreaterThan(0);
+    expect(result.pageInfo).toBeDefined();
+    expect(result.items[0].lifecycle).toBeDefined();
+  });
+
+  it('approves decision and applies it through lifecycle endpoints', async () => {
+    const pending = await broker.call('nova.pendingDecisions', { projectId });
+    const target = pending.find((entry) => entry.type === 'QU') || pending[0];
+
+    const approved = await broker.call('nova.approveDecision', { projectId, id: target.id });
+
+    expect(approved.success).toBe(true);
+
+    const detail = await broker.call('nova.getDecision', { projectId, id: target.id });
+    expect(detail.decision.lifecycle.current).toBe('applied');
+  });
+
+  it('enforces tenant binding for project-scoped decisions', async () => {
+    const p = await broker.call('znp.createProject', {
+      bbox: { south: 49.47, west: 8.43, north: 49.52, east: 8.52 },
+    });
+    await broker.call(
+      'nova.pendingDecisions',
+      { projectId: p.projectId },
+      { meta: { tenantId: 'tenant-x' } }
+    );
+
+    await expect(
+      broker.call('nova.pendingDecisions', { projectId: p.projectId }, { meta: { tenantId: 'tenant-y' } })
+    ).rejects.toMatchObject({
+      code: 403,
+      type: 'NOVA_PROJECT_TENANT_MISMATCH',
+    });
+  });
+
+  it('starts replay-trigger as async job descriptor', async () => {
+    const pending = await broker.call('nova.pendingDecisions', { projectId });
+    const target = pending[0];
+
+    const replay = await broker.call(
+      'nova.replayTrigger',
+      { projectId, id: target.id },
+      { meta: { $gateway: true } }
+    );
+
+    expect(replay.success).toBe(true);
+    expect(replay.status).toBe('queued');
+    expect(replay.jobId).toBeTruthy();
   });
 });

@@ -238,7 +238,7 @@ Die Tabelle kombiniert zwei Perspektiven:
 | Capability | Job Store | `src/job-store/*`, `src/async-job-runner.js` | Querschnitt | 5 (file) | **6** | Driver-Interface, 3 Backends, Idempotenz, Progress SSE |
 | Capability | Capability Broker | `capability-broker`, `src/capability-catalog.js` | intern | n/a | **5** (intern) | v1 produktiv als Advisory-Layer, aber internal-only |
 | Capability | §42c Energy Sharing | `energy-sharing`, `energy-sharing-allocation` | Kernworkflow | 7 | **7** | Cutover-Plan vorhanden, produktive Sub-Tracks laufen noch |
-| Capability | NOVA SSE | `nova` | 1 Service | 5 | 5 | unverändert; Entscheidungslogik bleibt eigener Ausbaupfad |
+| Capability | NOVA Decision Engine | `nova`, `src/nova-decision-machine.js` | 1 Service + state machine | 5 | **7** | Projekt-skopierte, tenant-gebundene Decisions mit Lifecycle, HITL-Bridge, SSE-Events und async Replay-Basis |
 | Capability | ZNP | `znp` | 1 Service | 4 | 4 | unverändert; Produktionspfad separat offen |
 | Capability | Flex §14a | `flex` | 1 Service | 5 | 5 | unverändert; Regulatorik-Konkretisierung noch laufend |
 | Coverage | Plattform Runtime & Governance | `api`, `system`, `token-manager`, `job-status`, `object-store`, `company`, `dashboard-api`, `observability`, `webhooks`, `hitl`, `backup-orchestrator` | 11 Services | — | 6–8 | Produktiver Kernbetrieb, Auth, UI-Aggregation, Ops- und Governance-Flows |

@@ -7,6 +7,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.49.0] — NOVA Decision Engine Baseline (project-scoped, tenant-bound)
+
+### Added
+- New decision lifecycle module [src/nova-decision-machine.js](src/nova-decision-machine.js) with transitions:
+  - `proposed -> triaged -> pending_approval -> approved -> applied`
+  - terminal states: `rejected`, `expired`
+- New NOVA decision guide [docs/NOVA_DECISION_GUIDE.md](docs/NOVA_DECISION_GUIDE.md).
+- New project-scoped NOVA endpoints:
+  - `GET /api/znp/projects/:projectId/nova/decisions`
+  - `GET /api/znp/projects/:projectId/nova/decisions/:id`
+  - `POST /api/znp/projects/:projectId/nova/decisions/:id/approve`
+  - `POST /api/znp/projects/:projectId/nova/decisions/:id/reject`
+  - `GET /api/znp/projects/:projectId/nova/decisions/stats`
+  - `POST /api/znp/projects/:projectId/nova/decisions/:id/replay-trigger`
+
+### Changed
+- [services/nova.service.js](services/nova.service.js):
+  - NOVA decisions are now persisted (`PouchDB`) with project scope and tenant-bound access.
+  - Added lifecycle transitions with audit trail (`agent_interventions`) and expiration handling.
+  - Added HITL bridge for selected decision kinds (`mastr_correction`, `threshold_update`, `asset_override`).
+  - `GET /api/nova/stream` is tenant-aware with optional `projectId` filter and lifecycle event frames.
+  - Replay trigger is implemented as **always async** (job descriptor response).
+- [services/webhooks.service.js](services/webhooks.service.js): added NOVA lifecycle webhook events:
+  - `decision.proposed`, `decision.approved`, `decision.rejected`, `decision.applied`, `decision.expired`.
+- [services/api.service.js](services/api.service.js): aliased new NOVA decision endpoints.
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md): NOVA capability updated to TRL 7 baseline for v0.49.
+
+### Tests
+- [tests/nova.service.test.js](tests/nova.service.test.js): added coverage for decision listing, approval/apply lifecycle, tenant binding enforcement, and async replay-trigger descriptor.
+
+## [0.48.4] — Rate Limiting + Tenant Quota Enforcement
+
+### Added
+- New rate/quota foundation modules:
+  - [src/rate-quota-store.js](src/rate-quota-store.js)
+  - [src/rate-quota/driver.js](src/rate-quota/driver.js)
+  - [src/rate-quota/file-driver.js](src/rate-quota/file-driver.js)
+  - [src/rate-quota/redis-compat-driver.js](src/rate-quota/redis-compat-driver.js)
+  - [src/rate-quota/factory.js](src/rate-quota/factory.js)
+- New read-only tenant quota service [services/tenant-quota.service.js](services/tenant-quota.service.js):
+  - `GET /api/tenants/:id/quotas`
+  - `PUT /api/tenants/:id/quotas`
+  - `GET /api/tenants/:id/rate-limit-events`
+- New documentation [docs/RATE_LIMIT_AND_QUOTAS.md](docs/RATE_LIMIT_AND_QUOTAS.md) for configuration, defaults, and phased rollout.
+- New webhook event support for:
+  - `rate_limit.exceeded`
+  - `quota.threshold.reached`
+  - `quota.exhausted`
+
+### Changed
+- [src/llm-client.js](src/llm-client.js): LLM calls now preflight tenant quotas and record tenant-scoped usage via an interim token estimator when a tenant context is available.
+- [src/metrics.js](src/metrics.js): Added tenant-hash-safe metrics `cernion_rate_limit_hits` and `cernion_quota_usage`.
+- [services/api.service.js](services/api.service.js):
+  - added explicit aliases and OpenAPI tag for tenant quota visibility endpoints
+  - hardened both new GET routes behind the existing full-access policy
+  - added full-access enforcement and alias wiring for `PUT /api/tenants/:id/quotas`
+  - propagates gateway tenant context into observability async-local state for downstream quota accounting
+  - enforces endpoint-class token buckets with `X-RateLimit-*` and `Retry-After` response headers
+  - returns structured `429 RATE_LIMIT_EXCEEDED` errors when tenants exceed the configured bucket.
+- [services/tenant-quota.service.js](services/tenant-quota.service.js): added `setQuotas` admin action with strict key/value validation (`422 VALIDATION_ERROR`) and tenant-scope protection.
+- [src/job-store.js](src/job-store.js): REST-originated async jobs now enforce daily per-tenant job quotas before queueing work.
+- [src/job-store.js](src/job-store.js): added tenant-fair async dispatch with per-tenant concurrency caps (`JOB_STORE_MAX_CONCURRENT_PER_TENANT`, default `2`) so one tenant cannot monopolize worker execution.
+- [services/knowledge-rag.service.js](services/knowledge-rag.service.js): ingest now enforces monthly per-tenant RAG chunk quotas before embedding and persistence.
+
+### Tests
+- Added focused coverage for:
+  - gateway rate-limit headers and `429` behavior
+  - preflight `LLM_QUOTA_EXCEEDED`
+  - async-job quota rejection
+  - tenant concurrency-cap enforcement and tenant isolation under queue pressure
+  - RAG chunk quota rejection
+  - webhook subscription acceptance for new rate/quota events
+  - tenant quota mutation endpoint coverage (OpenAPI + aliases + scope + validation)
+
 ## [0.48.3] — Subset-Test Coverage Gate Fix + Retrieval Window Floor
 
 ### Changed
