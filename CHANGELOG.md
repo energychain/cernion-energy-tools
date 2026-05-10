@@ -9,11 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.50.3] — API Discoverability Onboarding Fix (Issue #88)
+
+### Changed
+- API-Onboarding in [README.md](README.md) neu strukturiert, damit die Plattformbreite in der Schnellnavigation sichtbar ist (Issue #88):
+  - prominenter Einstieg über `/api/docs` (Swagger UI) und `/api/openapi.json`
+  - domänenbasierter Überblick mit repräsentativen Endpunkten für VDMI, CYA, ZNP/NOVA, EDM, Forecast/Settlement/Flex, Assets/Grid-Validation, Datapoints, MaStR Monitor, OEP/OSM/Knowledge und Finance Agent
+  - Klarstellung, dass die Tabelle nur ein Onboarding-Auszug ist und die vollständige API in Swagger dokumentiert ist
+
 ## [0.50.2] — VDMI Governance APIs (Human Override, Spectator Mode, Findings, Evidence)
 
 ### Added
 - New VDMI Governance APIs in [docs/VDMI_GOVERNANCE_APIS.md](docs/VDMI_GOVERNANCE_APIS.md) extending automated agent inference with human-in-the-loop workflows:
-  
+
   **1. Human Override & Audit Trail** ([services/vdmi-human-override.service.js](services/vdmi-human-override.service.js)):
   - `PATCH /api/vdmi/tenants/:tenantId/matrices/:matrixId` — Override LLM-inferred matrix roles with mandatory rationale (min 20 chars)
   - `POST /api/vdmi/tenants/:tenantId/matrices/:matrixId/revert` — Version rollback with complete audit trail

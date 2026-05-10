@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.50.1
-- changelog_latest_release: 0.50.1
+- version: 0.50.3
+- changelog_latest_release: 0.50.3
 - source_files_hash:
-  - CHANGELOG.md: 564d49172fe509a3a18bfc419345d6c7ed1e04bfa5f09a887b9212e57a0f5bf7
-  - README.md: 0bc16f1f06fb7da1ce6335438c43493b819302cc69a2a259de4517484a921ed8
+  - CHANGELOG.md: 3123c3c42d6d60e1d91babe1bb0a4148cad821b26afa877c40d5524adffa0be9
+  - README.md: 512769b1068d2c992f836578380459e5a487541da21449ad15c9ab60abc06d8f
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: 7f06c648cb9efd839977efb136d4c304cb841fdd43fdfceacc30c23e488adbc4
+  - openapi-export.json: 819197f3987979666a1b56fd38c8e94c7527e3c2164702f938e1703ea5457fea
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -590,8 +590,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 238
-- operation_count: 279
+- path_count: 253
+- operation_count: 294
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -609,6 +609,7 @@ process:
 - edm-messkonzept: 1 operations
 - Energy Sharing Allocation: 5 operations
 - Energy Sharing Validation: 3 operations
+- EOG Calculator: 6 operations
 - Finance Agent: 6 operations
 - Flex (§14a Flexibilitätsmanagement): 8 operations
 - Forecast (Prognostik): 8 operations
@@ -629,6 +630,10 @@ process:
 - Settlement (Abrechnung): 16 operations
 - SLP (Standardlastprofile): 5 operations
 - Tenant Quotas: 3 operations
+- vdmi-evidence: 2 operations
+- vdmi-findings: 3 operations
+- vdmi-human-override: 2 operations
+- vdmi-spectator: 2 operations
 - VNBMonitor: 4 operations
 - Webhooks: 6 operations
 - Zielnetzplanung (ZNP): 11 operations
@@ -764,6 +769,12 @@ process:
 - POST /api/energy-sharing/validate | tags: [Energy Sharing Validation] | operationId: energy-sharing_validate | summary: Validate an Energy Sharing community application (§ 42c EnWG)
 - GET /api/energy-sharing/validations | tags: [Energy Sharing Validation] | operationId: energy-sharing_list | summary: List past Energy Sharing validation reports
 - GET /api/energy-sharing/validations/:id | tags: [Energy Sharing Validation] | operationId: energy-sharing_get | summary: Get a specific Energy Sharing validation report by ID
+- POST /api/eog-calculator/calculate | tags: [EOG Calculator] | operationId: eog-calculator_calculate | summary: Calculate EOG for actual data scope
+- POST /api/eog-calculator/commit-datapoints | tags: [EOG Calculator] | operationId: eog-calculator_commitDatapoints | summary: Commit EOG datapoints only after successful validation or explicit HITL confirmation
+- POST /api/eog-calculator/input-status | tags: [EOG Calculator] | operationId: eog-calculator_inputStatus | summary: Check EOG input coverage for a tenant/VNB scope
+- POST /api/eog-calculator/request-input | tags: [EOG Calculator] | operationId: eog-calculator_requestInput | summary: Create HITL items for missing EOG inputs with blocker explanation
+- POST /api/eog-calculator/scenario | tags: [EOG Calculator] | operationId: eog-calculator_scenario | summary: Run transient EOG scenario with overrides (no persistence)
+- POST /api/eog-calculator/validate-datapoints | tags: [EOG Calculator] | operationId: eog-calculator_validateDatapoints | summary: Validate submitted EOG datapoints without persisting them
 - GET /api/finance-agent/analyses | tags: [Finance Agent] | operationId: finance-agent_list | summary: List finance analyses
 - GET /api/finance-agent/analyses/:id | tags: [Finance Agent] | operationId: finance-agent_get | summary: Get finance analysis by id
 - POST /api/finance-agent/analyze | tags: [Finance Agent] | operationId: finance-agent_analyze | summary: Analyze finance/regulatory questions with evidence-bound synthesis
@@ -884,6 +895,15 @@ process:
 - DELETE /api/tokens/:id | tags: [IntegrationHub] | operationId: token-manager_revoke | summary: Revoke API token
 - GET /api/tokens/tenants | tags: [IntegrationHub] | operationId: token-manager_tenant_list | summary: List known tenant IDs
 - POST /api/tokens/verify | tags: [IntegrationHub] | operationId: token-manager_verify | summary: Verify API token
+- POST /api/vdmi/tenants/:tenantId/evidence/:evidenceId/sign | tags: [vdmi-evidence] | operationId: vdmi-evidence_sign | summary: vdmi-evidence.sign
+- GET /api/vdmi/tenants/:tenantId/findings | tags: [vdmi-findings] | operationId: vdmi-findings_list | summary: vdmi-findings.list
+- POST /api/vdmi/tenants/:tenantId/findings/:findingId/mitigate | tags: [vdmi-findings] | operationId: vdmi-findings_mitigate | summary: vdmi-findings.mitigate
+- POST /api/vdmi/tenants/:tenantId/findings/:findingId/resolve | tags: [vdmi-findings] | operationId: vdmi-findings_resolve | summary: vdmi-findings.resolve
+- PATCH /api/vdmi/tenants/:tenantId/matrices/:matrixId | tags: [vdmi-human-override] | operationId: vdmi-human-override_override | summary: vdmi-human-override.override
+- POST /api/vdmi/tenants/:tenantId/matrices/:matrixId/revert | tags: [vdmi-human-override] | operationId: vdmi-human-override_revert | summary: vdmi-human-override.revert
+- GET /api/vdmi/tenants/:tenantId/tasks/:taskId/dossier | tags: [vdmi-spectator] | operationId: vdmi-spectator_dossier | summary: vdmi-spectator.dossier
+- POST /api/vdmi/tenants/:tenantId/tasks/:taskId/evidence | tags: [vdmi-evidence] | operationId: vdmi-evidence_inject | summary: vdmi-evidence.inject
+- GET /api/vdmi/tenants/:tenantId/tasks/:taskId/negotiation-trace | tags: [vdmi-spectator] | operationId: vdmi-spectator_negotiationTrace | summary: vdmi-spectator.negotiationTrace
 - GET /api/vnb-monitor/:bdewCode/nbp-monitor | tags: [VNBMonitor, NBPMonitor] | operationId: nbp-monitor_snapshot | summary: Get Netzbetreiberprüfungs-Monitor snapshot for a VNB
 - DELETE /api/vnb-monitor/thresholds | tags: [VNBMonitor, IntegrationHub] | operationId: vnb-monitor_resetThresholds | summary: Reset VNB monitor alert thresholds to defaults
 - GET /api/vnb-monitor/thresholds | tags: [VNBMonitor, IntegrationHub] | operationId: vnb-monitor_getThresholds | summary: Get active VNB monitor alert thresholds
@@ -919,7 +939,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.50.1"
+    "version": "0.50.3"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -8864,6 +8884,456 @@ process:
         "summary": "Get a specific Energy Sharing validation report by ID",
         "tags": [
           "Energy Sharing Validation"
+        ]
+      }
+    },
+    "/api/eog-calculator/calculate": {
+      "post": {
+        "operationId": "eog-calculator_calculate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "periodYear": 2026,
+                    "sector": "strom",
+                    "tenantId": "tenant-a",
+                    "vnbId": "SNB100"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "periodYear": {
+                    "example": 2026,
+                    "type": "integer"
+                  },
+                  "regulatoryPeriod": {
+                    "example": "RP3",
+                    "type": "string"
+                  },
+                  "sector": {
+                    "enum": [
+                      "strom",
+                      "gas"
+                    ],
+                    "example": "strom",
+                    "type": "string"
+                  },
+                  "tenantId": {
+                    "example": "tenant-a",
+                    "type": "string"
+                  },
+                  "vnbId": {
+                    "example": "SNB100",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "tenantId",
+                  "vnbId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Calculate EOG for actual data scope",
+        "tags": [
+          "EOG Calculator"
+        ]
+      }
+    },
+    "/api/eog-calculator/commit-datapoints": {
+      "post": {
+        "operationId": "eog-calculator_commitDatapoints",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "hitlConfirmation": {
+                      "approved": true,
+                      "decision": "manual_confirm"
+                    },
+                    "validationId": "validation-uuid"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "hitlConfirmation": {
+                    "example": {
+                      "approved": true,
+                      "decision": "manual_confirm"
+                    },
+                    "type": "object"
+                  },
+                  "validationId": {
+                    "example": "validation-uuid",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "validationId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Commit EOG datapoints only after successful validation or explicit HITL confirmation",
+        "tags": [
+          "EOG Calculator"
+        ]
+      }
+    },
+    "/api/eog-calculator/input-status": {
+      "post": {
+        "description": "Reports required fields, optional-but-relevant fields, and calibration anchors. optionalButRelevant includes quality_element, regulatory_account_balance, capex_adjustment_*, and volatile_costs which are needed for accurate detail reproduction.",
+        "operationId": "eog-calculator_inputStatus",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "periodYear": 2026,
+                    "sector": "strom",
+                    "tenantId": "tenant-a",
+                    "vnbId": "SNB100"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "periodYear": {
+                    "example": 2026,
+                    "type": "integer"
+                  },
+                  "regulatoryPeriod": {
+                    "example": "RP3",
+                    "type": "string"
+                  },
+                  "sector": {
+                    "enum": [
+                      "strom",
+                      "gas"
+                    ],
+                    "example": "strom",
+                    "type": "string"
+                  },
+                  "tenantId": {
+                    "example": "tenant-a",
+                    "type": "string"
+                  },
+                  "vnbId": {
+                    "example": "SNB100",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "tenantId",
+                  "vnbId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Check EOG input coverage for a tenant/VNB scope",
+        "tags": [
+          "EOG Calculator"
+        ]
+      }
+    },
+    "/api/eog-calculator/request-input": {
+      "post": {
+        "operationId": "eog-calculator_requestInput",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "missingKeys": [
+                      "eog.efficiency_value"
+                    ],
+                    "tenantId": "tenant-a",
+                    "vnbId": "SNB100"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "missingKeys": {
+                    "example": [
+                      "eog.efficiency_value"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "periodYear": {
+                    "example": 2026,
+                    "type": "integer"
+                  },
+                  "regulatoryPeriod": {
+                    "example": "RP3",
+                    "type": "string"
+                  },
+                  "sector": {
+                    "enum": [
+                      "strom",
+                      "gas"
+                    ],
+                    "example": "strom",
+                    "type": "string"
+                  },
+                  "tenantId": {
+                    "example": "tenant-a",
+                    "type": "string"
+                  },
+                  "vnbId": {
+                    "example": "SNB100",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "tenantId",
+                  "vnbId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Create HITL items for missing EOG inputs with blocker explanation",
+        "tags": [
+          "EOG Calculator"
+        ]
+      }
+    },
+    "/api/eog-calculator/scenario": {
+      "post": {
+        "operationId": "eog-calculator_scenario",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "overrides": [
+                      {
+                        "key": "eog.quality_element",
+                        "value": 50
+                      }
+                    ],
+                    "tenantId": "tenant-a",
+                    "vnbId": "SNB100"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "overrides": {
+                    "example": [
+                      {
+                        "key": "eog.quality_element",
+                        "value": 50
+                      }
+                    ],
+                    "items": {
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "periodYear": {
+                    "example": 2026,
+                    "type": "integer"
+                  },
+                  "regulatoryPeriod": {
+                    "example": "RP3",
+                    "type": "string"
+                  },
+                  "sector": {
+                    "enum": [
+                      "strom",
+                      "gas"
+                    ],
+                    "example": "strom",
+                    "type": "string"
+                  },
+                  "tenantId": {
+                    "example": "tenant-a",
+                    "type": "string"
+                  },
+                  "vnbId": {
+                    "example": "SNB100",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "tenantId",
+                  "vnbId",
+                  "overrides"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Run transient EOG scenario with overrides (no persistence)",
+        "tags": [
+          "EOG Calculator"
+        ]
+      }
+    },
+    "/api/eog-calculator/validate-datapoints": {
+      "post": {
+        "operationId": "eog-calculator_validateDatapoints",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "datapoints": [
+                      {
+                        "confidence": "confirmed",
+                        "key": "eog.base_cost_level",
+                        "periodYear": 2026,
+                        "sector": "strom",
+                        "source": "tenant_uploaded",
+                        "value": 1000
+                      }
+                    ],
+                    "tenantId": "tenant-a",
+                    "vnbId": "SNB100"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "datapoints": {
+                    "example": [
+                      {
+                        "confidence": "confirmed",
+                        "key": "eog.base_cost_level",
+                        "periodYear": 2026,
+                        "sector": "strom",
+                        "source": "tenant_uploaded",
+                        "value": 1000
+                      }
+                    ],
+                    "items": {
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "tenantId": {
+                    "example": "tenant-a",
+                    "type": "string"
+                  },
+                  "vnbId": {
+                    "example": "SNB100",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "tenantId",
+                  "vnbId",
+                  "datapoints"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Validate submitted EOG datapoints without persisting them",
+        "tags": [
+          "EOG Calculator"
         ]
       }
     },
@@ -17797,6 +18267,195 @@ process:
         ]
       }
     },
+    "/api/vdmi/tenants/:tenantId/evidence/:evidenceId/sign": {
+      "post": {
+        "operationId": "vdmi-evidence_sign",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "vdmi-evidence.sign",
+        "tags": [
+          "vdmi-evidence"
+        ]
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/findings": {
+      "get": {
+        "operationId": "vdmi-findings_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "vdmi-findings.list",
+        "tags": [
+          "vdmi-findings"
+        ]
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/findings/:findingId/mitigate": {
+      "post": {
+        "operationId": "vdmi-findings_mitigate",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "vdmi-findings.mitigate",
+        "tags": [
+          "vdmi-findings"
+        ]
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/findings/:findingId/resolve": {
+      "post": {
+        "operationId": "vdmi-findings_resolve",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "vdmi-findings.resolve",
+        "tags": [
+          "vdmi-findings"
+        ]
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/matrices/:matrixId": {
+      "patch": {
+        "operationId": "vdmi-human-override_override",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "vdmi-human-override.override",
+        "tags": [
+          "vdmi-human-override"
+        ]
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/matrices/:matrixId/revert": {
+      "post": {
+        "operationId": "vdmi-human-override_revert",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "vdmi-human-override.revert",
+        "tags": [
+          "vdmi-human-override"
+        ]
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/tasks/:taskId/dossier": {
+      "get": {
+        "operationId": "vdmi-spectator_dossier",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "vdmi-spectator.dossier",
+        "tags": [
+          "vdmi-spectator"
+        ]
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/tasks/:taskId/evidence": {
+      "post": {
+        "operationId": "vdmi-evidence_inject",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "vdmi-evidence.inject",
+        "tags": [
+          "vdmi-evidence"
+        ]
+      }
+    },
+    "/api/vdmi/tenants/:tenantId/tasks/:taskId/negotiation-trace": {
+      "get": {
+        "operationId": "vdmi-spectator_negotiationTrace",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "vdmi-spectator.negotiationTrace",
+        "tags": [
+          "vdmi-spectator"
+        ]
+      }
+    },
     "/api/vnb-monitor/:bdewCode/nbp-monitor": {
       "get": {
         "description": "Aggregates MaStR installations in status 2955 (NetzbetreiberPrüfung) into three KPIs: Volume (kWp by age class), Risk (€ billing uncertainty), Process (VNB vs. external).",
@@ -19622,8 +20281,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.50.1"
+  "x-version": "0.50.3"
 }
 
 ## Integrity
-- llm_txt_sha256: b5512e8e7df6835b4d6aad3b761ba5ae54cdeeacb1c2cac3a657a8217c081f2e
+- llm_txt_sha256: 2a42b62f56046136cb2638fd9ced9164d2774a4687ffac36d1a934687fc0e2e0

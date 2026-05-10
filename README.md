@@ -11,13 +11,13 @@
 
 Cernion Energy Tools ist eine **Node.js/Moleculer-Plattform** mit 63 Core-Services
 in `services/`, einer optionalen lokalen Erweiterung in `custom-services/`,
-224 OpenAPI-Pfaden / 264 REST-Operationen und 1 782+ Tests. Sie richtet sich an VNBs und Stadtwerke,
+250+ OpenAPI-Pfaden / 260+ REST-Operationen und 1 782+ Tests. Sie richtet sich an VNBs und Stadtwerke,
 die Netzanschlüsse prüfen, Redispatch-Pflichten verwalten, §42c-Energieteilung
 umsetzen oder MaStR-Portfolios auditieren wollen. Die Plattform verbindet öffentliche
 Energiedatenquellen (MaStR, ENTSO-E, BNetzA EWK) mit internen Betriebsdaten und
 liefert reproduzierbare, auditierbare Ergebnisse — kein Blackbox-LLM für regulatorische
-Entscheidungen. Aktueller Stand: **v0.47.2**, 63 Core-Services + 1 lokaler Custom-Service,
-224 OpenAPI-Pfade / 264 REST-Operationen.
+Entscheidungen. Aktueller Stand: **v0.50.3**, 63 Core-Services + 1 lokaler Custom-Service,
+250+ OpenAPI-Pfade / 260+ REST-Operationen.
 
 ---
 
@@ -49,7 +49,7 @@ Vollständige Einrichtung: [QUICKSTART.md](QUICKSTART.md)
 | Interne Daten | Datasource Layer (CSV/REST/GeoJSON/XLSX), Datapoints | Eigene VNB-Datensätze, Scheduling, Provenance |
 | KI / Agenten | Agent, CYA, Finance Agent, 4 deterministische Audit-/Validation-Agents | Analyse, Narrative, Compliance-Prüfung |
 | Governance | HITL, Webhooks, Observability, Pagination, Asset Overrides | Operative Freigaben, Eventing, Telemetrie, API-Härtung |
-| API | REST (224 Pfade / 264 Operationen), MCP, OpenAPI, SSE | Integration in UI, Power Automate, BI-Tools |
+| API | REST (250+ Pfade / 260+ Operationen), MCP, OpenAPI, SSE | Integration in UI, Power Automate, BI-Tools |
 
 Vollständige Architektur: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
@@ -74,14 +74,35 @@ Vollständige Architektur: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
 ## API-Zugang
 
+**Start hier:**
+- Swagger UI: `GET /api/docs`
+- OpenAPI JSON: `GET /api/openapi.json`
+
+### API-Schnellnavigation (repräsentative Endpunkte je Domäne)
+
+| Domäne | Beispiele (Auszug) |
+|---|---|
+| VDMI Governance | `PATCH /api/vdmi/tenants/:tenantId/matrices/:matrixId`, `GET /api/vdmi/tenants/:tenantId/findings`, `POST /api/vdmi/tenants/:tenantId/tasks/:taskId/evidence` |
+| CYA Agent | `POST /api/cya/profile`, `POST /api/cya/compare-perspectives`, `GET /api/cya/sessions/:session_id/export/pdf` |
+| ZNP + NOVA Decisions | `GET /api/znp/projects`, `POST /api/znp/projects/:projectId/layer0`, `GET /api/znp/projects/:projectId/nova/decisions` |
+| EDM & Messkonzepte | `POST /api/edm/validate`, `POST /api/edm/messkonzepte`, `POST /api/edm/validate/:validationId/fill-gaps` |
+| Forecast / Settlement / Flex | `POST /api/forecast/load`, `POST /api/settlement/redispatch/calculate`, `POST /api/flex/events/plan` |
+| Assets / Grid Validation | `POST /api/assets/:assetId/override`, `GET /api/assets/:assetId/effective`, `POST /api/grid-connection/validate` |
+| Datapoints & Snapshots | `POST /api/datapoints/promote`, `POST /api/datapoints/snapshot`, `POST /api/datapoints/snapshot/:id/validate` |
+| MaStR Monitor & Qualität | `POST /api/mastr-monitor/watches`, `GET /api/mastr-monitor/confirm/:token`, `POST /api/mastr-quality/audit` |
+| OEP / OSM Geo / Knowledge | `GET /api/oep/schemas`, `POST /api/osm-geo/substation-finder`, `POST /api/knowledge-rag/query` |
+| Finance Agent | `POST /api/finance-agent/analyze`, `GET /api/finance-agent/analyses`, `GET /api/finance-agent/prompts` |
+
+> Hinweis: Die Tabelle ist ein **Onboarding-Auszug**. Die vollständige API mit allen Pfaden, Parametern und Schemas steht in Swagger unter `/api/docs`.
+
 ```bash
 # Token erstellen
 POST /api/tokens/create
 { "name": "mein-token", "scope": "read-only" }
 
-# Installationen abrufen
-POST /api/energy-market/installations
-{ "gridOperatorId": "SNB900...", "installationType": "solar" }
+# Netzanschlussprüfung starten
+POST /api/grid-connection/validate
+{ "gridOperator": "SNB900...", "location": "Musterstadt", "installationType": "solar", "capacityKW": 250 }
 
 # MaStR-Portfolioqualität prüfen
 POST /api/mastr-quality/audit
