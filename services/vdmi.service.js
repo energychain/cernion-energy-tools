@@ -115,6 +115,8 @@ function emptyTask(taskId, taskName) {
     durchfuehrend: [],
     mitwirkend: [],
     information: [],
+    dependsOn: [],
+    blocks: [],
     hitlRequired: false,
     hitlItemId: null,
     executionTrace: [],
