@@ -282,15 +282,7 @@ module.exports = {
 
             // Try to find VDMI matrix for this gridOperator
             const resolvedGridOperatorId = gridOperatorId || report.gridOperator?.mastrId || null;
-            let vdmiMatrix = null;
-            if (resolvedGridOperatorId) {
-              const vdmiRes = await ctx.call('vdmi.list', {
-                processType: 'redispatch',
-                limit: 1,
-                tenantId: resolvedGridOperatorId,
-              });
-              vdmiMatrix = vdmiRes.items?.[0] || null;
-            }
+            const vdmiMatrix = await this.findRedispatchVdmiMatrix(ctx, resolvedGridOperatorId);
 
             // Persist to PouchDB (KRITIS: raw installation data NOT stored, only report metadata)
             const id = crypto.randomUUID();
@@ -299,15 +291,7 @@ module.exports = {
               id,
               type: 'redispatch-expost-audit',
               vdmiMatrixId: vdmiMatrix?.id || null,
-              vdmiTasks: vdmiMatrix?.tasks?.map(t => ({
-                taskId: t.taskId,
-                taskName: t.taskName,
-                phase: t.phase,
-                verantwortlich: t.verantwortlich,
-                durchfuehrend: t.durchfuehrend,
-                mitwirkend: t.mitwirkend,
-                informiert: t.informiert,
-              })) || null,
+              vdmiTasks: this.toVdmiTaskSummaries(vdmiMatrix?.tasks),
               gridOperator: report.gridOperator,
               period: report.period,
               settlementReadiness: report.settlementReadiness,
@@ -443,12 +427,22 @@ module.exports = {
         });
         applyOffsetDeprecationHeader(ctx, ctx.params.offset != null);
 
-        return {
-          count: page.data.length,
-          audits: page.data.map((d) => ({
+        const audits = await Promise.all(page.data.map(async (d) => {
+          let vdmiMatrixId = d.vdmiMatrixId || null;
+          let vdmiTasks = d.vdmiTasks || null;
+
+          // Backfill legacy audit rows at read time so existing Redispatch
+          // audits can expose VDMI context after the feature is deployed.
+          if ((!vdmiMatrixId || !Array.isArray(vdmiTasks)) && d.gridOperator?.mastrId) {
+            const matrix = await this.findRedispatchVdmiMatrix(ctx, d.gridOperator.mastrId);
+            vdmiMatrixId = matrix?.id || vdmiMatrixId;
+            vdmiTasks = this.toVdmiTaskSummaries(matrix?.tasks) || vdmiTasks;
+          }
+
+          return {
             id: d.id,
-            vdmiMatrixId: d.vdmiMatrixId || null,
-            vdmiTasks: d.vdmiTasks || null,
+            vdmiMatrixId,
+            vdmiTasks,
             gridOperator: d.gridOperator,
             period: d.period,
             settlementReadiness: d.settlementReadiness,
@@ -457,7 +451,12 @@ module.exports = {
             createdAt: d.createdAt,
             findingsCount: d.findingsCount,
             durationMs: d.summary?.durationMs,
-          })),
+          };
+        }));
+
+        return {
+          count: page.data.length,
+          audits,
           pageInfo: page.pageInfo,
         };
       },
@@ -1485,6 +1484,47 @@ module.exports = {
           avgCompensationEurPerMWh,
         },
       };
+    },
+
+    async findRedispatchVdmiMatrix(ctx, gridOperatorId) {
+      if (!gridOperatorId) return null;
+      const tenantCandidates = Array.from(
+        new Set([gridOperatorId, ctx?.meta?.tenantId].filter(Boolean))
+      );
+
+      for (const tenantId of tenantCandidates) {
+        const vdmiRes = await ctx.call(
+          'vdmi.list',
+          { processType: 'redispatch', limit: 1 },
+          { meta: { ...(ctx?.meta || {}), tenantId } }
+        );
+        if (Array.isArray(vdmiRes?.items) && vdmiRes.items.length > 0) {
+          return vdmiRes.items[0];
+        }
+      }
+
+      return null;
+    },
+
+    toVdmiTaskSummaries(tasks) {
+      if (!Array.isArray(tasks) || tasks.length === 0) return null;
+      return tasks.map((task) => {
+        const information = Array.isArray(task.information)
+          ? task.information
+          : Array.isArray(task.informiert)
+            ? task.informiert
+            : [];
+        return {
+          taskId: task.taskId,
+          taskName: task.taskName,
+          phase: task.phase,
+          verantwortlich: Array.isArray(task.verantwortlich) ? task.verantwortlich : [],
+          durchfuehrend: Array.isArray(task.durchfuehrend) ? task.durchfuehrend : [],
+          mitwirkend: Array.isArray(task.mitwirkend) ? task.mitwirkend : [],
+          information,
+          informiert: information,
+        };
+      });
     },
   },
 };
