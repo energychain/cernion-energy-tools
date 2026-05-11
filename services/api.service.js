@@ -1272,6 +1272,10 @@ module.exports = {
           ctx.meta.$gateway = true;
           ctx.meta.requestHeaders = req?.headers || {};
 
+          // Map external agent-role headers for VDMI guardrail checks
+          ctx.meta.agentRole = req?.headers?.['x-agent-role'] || req?.headers?.['X-Agent-Role'] || null;
+          ctx.meta.agentId = req?.headers?.['x-agent-id'] || req?.headers?.['X-Agent-Id'] || null;
+
           // Token precedence:
           // 1) Request parameter "token" (query/body/path)
           // 2) Authorization: Bearer <token>
