@@ -1668,9 +1668,16 @@ module.exports = {
       return doc;
     },
 
-    async writeAuditEvent(tenantId, matrixId, action, payload = {}) {
+    async writeAuditEvent(tenantId, matrixId, action, payload = {}, actor = null) {
       const ts = nowIso();
       const id = crypto.randomUUID();
+
+      // Derive actor from explicit param or backward-compat payload fields
+      const resolvedActor = actor || {
+        actorType: payload.actorType || 'user',
+        actorId: payload.actorId || payload.approver || 'system',
+      };
+
       const doc = {
         _id: `${AUDIT_PREFIX}${id}`,
         id,
@@ -1678,6 +1685,7 @@ module.exports = {
         tenantId,
         matrixId,
         action,
+        actor: resolvedActor,
         payload,
         createdAt: ts,
       };
