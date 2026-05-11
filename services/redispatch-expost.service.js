@@ -280,12 +280,34 @@ module.exports = {
 
             const report = await this.runPipeline(ctx, ctx.params);
 
+            // Try to find VDMI matrix for this gridOperator
+            const resolvedGridOperatorId = gridOperatorId || report.gridOperator?.mastrId || null;
+            let vdmiMatrix = null;
+            if (resolvedGridOperatorId) {
+              const vdmiRes = await ctx.call('vdmi.list', {
+                processType: 'redispatch',
+                limit: 1,
+                tenantId: resolvedGridOperatorId,
+              });
+              vdmiMatrix = vdmiRes.items?.[0] || null;
+            }
+
             // Persist to PouchDB (KRITIS: raw installation data NOT stored, only report metadata)
             const id = crypto.randomUUID();
             const doc = {
               _id: `rd:${id}`,
               id,
               type: 'redispatch-expost-audit',
+              vdmiMatrixId: vdmiMatrix?.id || null,
+              vdmiTasks: vdmiMatrix?.tasks?.map(t => ({
+                taskId: t.taskId,
+                taskName: t.taskName,
+                phase: t.phase,
+                verantwortlich: t.verantwortlich,
+                durchfuehrend: t.durchfuehrend,
+                mitwirkend: t.mitwirkend,
+                informiert: t.informiert,
+              })) || null,
               gridOperator: report.gridOperator,
               period: report.period,
               settlementReadiness: report.settlementReadiness,
@@ -425,6 +447,8 @@ module.exports = {
           count: page.data.length,
           audits: page.data.map((d) => ({
             id: d.id,
+            vdmiMatrixId: d.vdmiMatrixId || null,
+            vdmiTasks: d.vdmiTasks || null,
             gridOperator: d.gridOperator,
             period: d.period,
             settlementReadiness: d.settlementReadiness,
