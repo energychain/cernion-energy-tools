@@ -488,6 +488,19 @@ describe('ZNP Service', () => {
       expect(found.name).toBe('ListTest');
       expect(result.total).toBeGreaterThanOrEqual(1);
     });
+
+    it('scopes projects to the calling tenant', async () => {
+      const a = await broker.call('znp.createProject', { bbox: makeBbox() }, { meta: { tenantId: 'tenant-a' } });
+      const b = await broker.call('znp.createProject', { bbox: makeBbox() }, { meta: { tenantId: 'tenant-b' } });
+
+      const listA = await broker.call('znp.listProjects', {}, { meta: { tenantId: 'tenant-a' } });
+      expect(listA.projects.some((p) => p.projectId === a.projectId)).toBe(true);
+      expect(listA.projects.some((p) => p.projectId === b.projectId)).toBe(false);
+
+      const listB = await broker.call('znp.listProjects', {}, { meta: { tenantId: 'tenant-b' } });
+      expect(listB.projects.some((p) => p.projectId === b.projectId)).toBe(true);
+      expect(listB.projects.some((p) => p.projectId === a.projectId)).toBe(false);
+    });
   });
 
   describe('getProjectMeta', () => {
@@ -505,9 +518,37 @@ describe('ZNP Service', () => {
       expect(result.graphStats.edges).toBe(4);
     });
 
+    it('returns tenantId in metadata for tenant-scoped projects', async () => {
+      const result = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+
+      const meta = await broker.call(
+        'znp.getProjectMeta',
+        { projectId: result.projectId },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+
+      expect(meta.tenantId).toBe('tenant-a');
+    });
+
     it('throws 404 for an unknown projectId', async () => {
       await expect(
         broker.call('znp.getProjectMeta', { projectId: '00000000-0000-0000-0000-000000000000' })
+      ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
+    });
+
+    it('rejects cross-tenant access', async () => {
+      const { projectId } = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+
+      await expect(
+        broker.call('znp.getProjectMeta', { projectId }, { meta: { tenantId: 'tenant-b' } })
       ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
     });
   });
@@ -1411,6 +1452,18 @@ describe('ZNP Service', () => {
     it('returns 404 for unknown projectId', async () => {
       await expect(
         broker.call('znp.getProjectAssets', { projectId: 'does-not-exist' })
+      ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
+    });
+
+    it('rejects cross-tenant access', async () => {
+      const created = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+
+      await expect(
+        broker.call('znp.getProjectAssets', { projectId: created.projectId }, { meta: { tenantId: 'tenant-b' } })
       ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
     });
 

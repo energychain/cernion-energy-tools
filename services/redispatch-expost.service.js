@@ -284,12 +284,26 @@ module.exports = {
             const resolvedGridOperatorId = gridOperatorId || report.gridOperator?.mastrId || null;
             let vdmiMatrix = null;
             if (resolvedGridOperatorId) {
-              const vdmiRes = await ctx.call('vdmi.list', {
-                processType: 'redispatch',
-                limit: 1,
-                tenantId: resolvedGridOperatorId,
-              });
-              vdmiMatrix = vdmiRes.items?.[0] || null;
+              try {
+                const vdmiRes = await ctx.call(
+                  'vdmi.list',
+                  {
+                    processType: 'redispatch',
+                    limit: 1,
+                  },
+                  {
+                    meta: { tenantId: resolvedGridOperatorId },
+                  }
+                );
+                vdmiMatrix = vdmiRes.items?.[0] || null;
+              } catch (error) {
+                if (error && error.type !== 'SERVICE_NOT_FOUND' && error.name !== 'ServiceNotFoundError') {
+                  throw error;
+                }
+                this.logger.debug(
+                  `[redispatch-expost] Skipping VDMI lookup for ${resolvedGridOperatorId}: ${error.message}`
+                );
+              }
             }
 
             // Persist to PouchDB (KRITIS: raw installation data NOT stored, only report metadata)
@@ -306,7 +320,7 @@ module.exports = {
                 verantwortlich: t.verantwortlich,
                 durchfuehrend: t.durchfuehrend,
                 mitwirkend: t.mitwirkend,
-                informiert: t.informiert,
+                informiert: t.information,
               })) || null,
               gridOperator: report.gridOperator,
               period: report.period,

@@ -54,6 +54,7 @@ const { fetchBuildingsForBbox, mapAssetsToBuildings } = require('../src/znp-osm-
 const { detectClusters, computeGFactorAdjustment } = require('../src/znp-clustering-heuristics');
 const { generateStructured, SchemaType } = require('../src/llm-client');
 const { normaliseBoolFlag } = require('../src/redispatch-utils');
+const { getTenantId } = require('../src/tenant-context');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -210,6 +211,7 @@ module.exports = {
                     name: { type: 'string' },
                     bbox: { type: 'object' },
                     createdAt: { type: 'string', format: 'date-time' },
+                    tenantId: { type: 'string', nullable: true },
                     graphStats: { type: 'object' },
                   },
                 },
@@ -220,6 +222,7 @@ module.exports = {
       },
       async handler(ctx) {
         const { bbox, name } = ctx.params;
+        const tenantId = getTenantId(ctx);
         const projectId = crypto.randomUUID();
         const createdAt = new Date().toISOString();
         const projectName = name || `ZNP Project ${projectId.slice(0, 8)}`;
@@ -241,6 +244,7 @@ module.exports = {
           bbox,
           name: projectName,
           createdAt,
+          tenantId,
           layers: [],
           layer1GFactorAdjustment: 1.0, // updated by addLayer1 when clustering is computed
           layer2CalibrationFactor: 0,
@@ -253,6 +257,7 @@ module.exports = {
         const metaDoc = {
           _id: `${DOC_PREFIX_META}${projectId}`,
           projectId,
+          tenantId,
           name: projectName,
           bbox,
           createdAt,
@@ -270,13 +275,14 @@ module.exports = {
         // Persist initial graph state (SUB_1 only) to znp:graph: document
         await this.persistGraph(projectId, graph);
 
-        this.logger.info(`[znp] Created project ${projectId} ("${projectName}")`);
+        this.logger.info(`[znp] Created project ${projectId} ("${projectName}") for tenant ${tenantId}`);
 
         return {
           projectId,
           name: projectName,
           bbox,
           createdAt,
+          tenantId,
           graphStats: { nodes: graph.order, edges: graph.size },
         };
       },
@@ -1569,9 +1575,12 @@ module.exports = {
           offset = 0,
           sortByCapacity = 'desc',
         } = ctx.params;
+        const tenantId = getTenantId(ctx);
 
         await this.ensureProjectHydrated(projectId);
-        const { graph } = this.getProject(projectId); // throws 404 if not found
+        const project = this.getProject(projectId); // throws 404 if not found
+        this.requireProjectTenant(project, tenantId, projectId);
+        const { graph } = project;
 
         // Collect all mastr_asset nodes (Layer 0 only — excludes assumptions, buildings, etc.)
         const allAssets = [];
@@ -1642,14 +1651,17 @@ module.exports = {
       },
       async handler(ctx) {
         const { projectId } = ctx.params;
+        const tenantId = getTenantId(ctx);
         await this.ensureProjectHydrated(projectId);
         const project = this.getProject(projectId); // throws 404 if not found
+        this.requireProjectTenant(project, tenantId, projectId);
 
         return {
           projectId,
           name: project.name,
           bbox: project.bbox,
           createdAt: project.createdAt,
+          tenantId: project.tenantId,
           layers: project.layers,
           graphStats: {
             nodes: project.graph.order,
@@ -1675,14 +1687,17 @@ module.exports = {
           'As of v0.23, graphs are hydrated from PouchDB on service start, so this list ' +
           'is populated even after a server restart.',
       },
-      handler() {
+      handler(ctx) {
+        const tenantId = getTenantId(ctx);
         const projects = [];
         for (const [projectId, project] of this.activeGraphs.entries()) {
+          if (project.tenantId && project.tenantId !== tenantId) continue;
           projects.push({
             projectId,
             name: project.name,
             bbox: project.bbox,
             createdAt: project.createdAt,
+            tenantId: project.tenantId,
             layers: project.layers,
             graphStats: {
               nodes: project.graph.order,
@@ -1727,6 +1742,7 @@ module.exports = {
       },
       async handler(ctx) {
         const { projectId } = ctx.params;
+        const tenantId = getTenantId(ctx);
 
         // Check that project exists (in-memory)
         if (!this.activeGraphs.has(projectId)) {
@@ -1737,6 +1753,9 @@ module.exports = {
             { projectId }
           );
         }
+
+        const project = this.activeGraphs.get(projectId);
+        this.requireProjectTenant(project, tenantId, projectId);
 
         const metaDocId = `${DOC_PREFIX_META}${projectId}`;
         const graphDocId = `${DOC_PREFIX_GRAPH}${projectId}`;
@@ -1886,6 +1905,7 @@ module.exports = {
         bbox: meta.bbox,
         name: meta.name,
         createdAt: meta.createdAt,
+        tenantId: meta.tenantId || null,
         layers: meta.layers || [],
         layer1GFactorAdjustment: meta.layer1GFactorAdjustment || 1.0,
         layer2CalibrationFactor: meta.layer2CalibrationFactor || 0,
@@ -1935,6 +1955,19 @@ module.exports = {
         );
       }
       return project;
+    },
+
+    requireProjectTenant(project, tenantId, projectId) {
+      if (!project.tenantId || project.tenantId === tenantId) {
+        return;
+      }
+
+      throw new MoleculerError(
+        `ZNP project "${projectId}" not found.`,
+        404,
+        'ZNP_PROJECT_NOT_FOUND',
+        { projectId }
+      );
     },
 
     /**

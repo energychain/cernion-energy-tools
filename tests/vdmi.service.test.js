@@ -240,4 +240,52 @@ describe('vdmi.service', () => {
     expect(tenantA.items.some((x) => x.name === 'Tenant B Matrix')).toBe(false);
     expect(tenantB.items.some((x) => x.name === 'Tenant B Matrix')).toBe(true);
   });
+
+  test('stores dependsOn and blocks on tasks', async () => {
+    const created = await broker.call(
+      'vdmi.create',
+      {
+        name: 'Dependency Matrix',
+        processId: 'job-dep-1',
+        tasks: [
+          {
+            taskId: 'task-1',
+            taskName: 'Pruefung',
+            phase: 'execution',
+            verantwortlich: [],
+            durchfuehrend: [],
+            mitwirkend: [],
+            information: [],
+            dependsOn: [],
+            blocks: ['task-2'],
+          },
+          {
+            taskId: 'task-2',
+            taskName: 'Freigabe',
+            phase: 'planning',
+            verantwortlich: [],
+            durchfuehrend: [],
+            mitwirkend: [],
+            information: [],
+            dependsOn: ['task-1'],
+            blocks: [],
+          },
+        ],
+      },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+
+    expect(created.matrix.tasks[0].dependsOn).toEqual([]);
+    expect(created.matrix.tasks[0].blocks).toEqual(['task-2']);
+    expect(created.matrix.tasks[1].dependsOn).toEqual(['task-1']);
+    expect(created.matrix.tasks[1].blocks).toEqual([]);
+
+    const fetched = await broker.call(
+      'vdmi.get',
+      { id: created.matrix.id },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+    expect(fetched.matrix.tasks[0].dependsOn).toEqual([]);
+    expect(fetched.matrix.tasks[0].blocks).toEqual(['task-2']);
+  });
 });

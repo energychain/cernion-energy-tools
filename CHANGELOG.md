@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.50.8] — Open PR Closure Release
+
+### Added
+- [docs/adr/README.md](docs/adr/README.md) and the ADR set in [docs/adr](docs/adr): release includes the Troisdorf gap decision records for gaps 1, 2, 3, and 6.
+
+### Changed
+- [services/redispatch-expost.service.js](services/redispatch-expost.service.js): finalized TF-08 VDMI linkage for Redispatch audits by resolving VDMI via tenant context in `ctx.meta`, mapping role arrays from the internal task schema, and failing open when `vdmi.list` is unavailable in isolated environments.
+- [services/znp.service.js](services/znp.service.js): release includes tenant-scoped project persistence and access control across create, list, read, delete, and hydration flows.
+- [tests/vdmi.service.test.js](tests/vdmi.service.test.js): release includes focused regression coverage for VDMI task dependencies.
+- [tests/znp.service.test.js](tests/znp.service.test.js): release includes focused regression coverage for tenant-scoped ZNP access.
+- [package.json](package.json): bumped version to `0.50.8`.
+- [package-lock.json](package-lock.json): aligned lockfile version with the release.
+- [README.md](README.md): updated the current release marker to `v0.50.8`.
+
+## [0.50.7] — Safe PR Merge Sweep and Tenant-Scoped Governance
+
+### Added
+- [services/vdmi.service.js](services/vdmi.service.js): `emptyTask(...)` now includes `dependsOn` and `blocks` arrays so VDMI task dependencies are preserved in create/get flows.
+- [services/znp.service.js](services/znp.service.js): ZNP projects now carry a `tenantId` in memory and in PouchDB metadata.
+- Added ADR documentation for Troisdorf architecture gaps 1, 2, 3, and 6 under [docs/adr/README.md](docs/adr/README.md).
+
+### Changed
+- [services/redispatch-expost.service.js](services/redispatch-expost.service.js): TF-08 now resolves the VDMI tenant context through `ctx.meta` and maps `informiert` from the internal `information` task field, so persisted Redispatch audits contain the expected `vdmiMatrixId` and role arrays.
+- [services/znp.service.js](services/znp.service.js): `createProject`, `getProjectMeta`, `getProjectAssets`, `listProjects`, `deleteProject`, and hydration now enforce tenant-scoped access.
+- [tests/vdmi.service.test.js](tests/vdmi.service.test.js): added coverage for task dependency persistence.
+- [tests/znp.service.test.js](tests/znp.service.test.js): added coverage for tenant-scoped project listing, metadata, and asset reads.
+- [package.json](package.json): bumped version to `0.50.7`.
+- [package-lock.json](package-lock.json): aligned lockfile version with the release.
+- [README.md](README.md): updated the current release marker to `v0.50.7`.
+
 ## [0.50.4] — VDMI E2E Stabilization (DB Path Runtime Resolution)
 
 ### Fixed
