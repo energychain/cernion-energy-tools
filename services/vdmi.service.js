@@ -350,6 +350,18 @@ module.exports = {
           tasksById: {},
         };
 
+        // Validate: each task may have at most one D actor
+        for (const task of matrix.tasks) {
+          if (Array.isArray(task.durchfuehrend) && task.durchfuehrend.length > 1) {
+            throw new MoleculerClientError(
+              'Task may have at most one D actor. Use human-override or re-assignment.',
+              409,
+              'CONFLICT_ROLE',
+              { taskId: task.taskId, existingD: task.durchfuehrend }
+            );
+          }
+        }
+
         await this.db.put(matrix);
         await this.writeAuditEvent(tenantId, matrix.id, 'created', {
           reason: 'manual_create',
@@ -451,7 +463,17 @@ module.exports = {
           for (const candidate of candidates) {
             const actorRef = { actorType: candidate.actorType, actorId: candidate.actorId };
             if (candidate.role === 'V') task.verantwortlich.push(actorRef);
-            if (candidate.role === 'D') task.durchfuehrend.push(actorRef);
+            if (candidate.role === 'D') {
+              if (task.durchfuehrend.length > 0) {
+                throw new MoleculerClientError(
+                  'Task already has a Durchfuehrend actor. Use human-override or re-assignment.',
+                  409,
+                  'CONFLICT_ROLE',
+                  { taskId: task.taskId, existingD: task.durchfuehrend[0], conflictingCandidate: actorRef }
+                );
+              }
+              task.durchfuehrend.push(actorRef);
+            }
             if (candidate.role === 'M') task.mitwirkend.push(actorRef);
             if (candidate.role === 'I') task.information.push(actorRef);
 
@@ -1487,7 +1509,17 @@ module.exports = {
       for (const candidate of candidates) {
         const actor = { actorType: candidate.actorType, actorId: candidate.actorId };
         if (candidate.role === 'V') task.verantwortlich.push(actor);
-        if (candidate.role === 'D') task.durchfuehrend.push(actor);
+        if (candidate.role === 'D') {
+          if (task.durchfuehrend.length > 0) {
+            throw new MoleculerClientError(
+              'Task already has a Durchfuehrend actor. Use human-override or re-assignment.',
+              409,
+              'CONFLICT_ROLE',
+              { taskId: task.taskId, existingD: task.durchfuehrend[0], conflictingCandidate: actor }
+            );
+          }
+          task.durchfuehrend.push(actor);
+        }
         if (candidate.role === 'M') task.mitwirkend.push(actor);
         if (candidate.role === 'I') task.information.push(actor);
       }
