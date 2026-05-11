@@ -9,6 +9,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.50.4] — VDMI E2E Stabilization (DB Path Runtime Resolution)
+
+### Fixed
+- [services/vdmi.service.js](services/vdmi.service.js): `created()` resolves `VDMI_DB_PATH` at runtime before opening PouchDB.
+  - Prevents accidental fallback to `./data/vdmi` in test processes where the service module is loaded before environment variables are set.
+  - Eliminates intermittent `OpenError: IO error: lock ./data/vdmi/LOCK: Resource temporarily unavailable` in VDMI service test runs.
+
+### Changed
+- [package.json](package.json): bumped version to `0.50.4`.
+- [README.md](README.md): updated current release marker to `v0.50.4`.
+
 ## [0.50.3] — API Discoverability Onboarding Fix (Issue #88)
 
 ### Changed

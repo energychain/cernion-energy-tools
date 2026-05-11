@@ -142,7 +142,9 @@ module.exports = {
   },
 
   created() {
-    this.db = new PouchDB(this.settings.dbPath, { auto_compaction: true });
+    const runtimeDbPath = process.env.VDMI_DB_PATH || this.settings.dbPath || './data/vdmi';
+    this.settings.dbPath = runtimeDbPath;
+    this.db = new PouchDB(runtimeDbPath, { auto_compaction: true });
   },
 
   async started() {

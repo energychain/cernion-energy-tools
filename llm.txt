@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.50.3
-- changelog_latest_release: 0.50.3
+- version: 0.50.4
+- changelog_latest_release: 0.50.4
 - source_files_hash:
-  - CHANGELOG.md: 3123c3c42d6d60e1d91babe1bb0a4148cad821b26afa877c40d5524adffa0be9
-  - README.md: 512769b1068d2c992f836578380459e5a487541da21449ad15c9ab60abc06d8f
+  - CHANGELOG.md: db60c9d24bd8b10563932bce255cc46dd384ee0a6b48a30f91b1e1a22d9c5f9e
+  - README.md: dd74874b9621ace1fd26accbc72769194613538e537739f0e422b73ef6adc79b
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: 819197f3987979666a1b56fd38c8e94c7527e3c2164702f938e1703ea5457fea
+  - openapi-export.json: c6ca9d783fad1288ac6265466d25f622cded8a9f8d043dde32aa79faf6d012fc
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -939,7 +939,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.50.3"
+    "version": "0.50.4"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -20281,8 +20281,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.50.3"
+  "x-version": "0.50.4"
 }
 
 ## Integrity
-- llm_txt_sha256: 2a42b62f56046136cb2638fd9ced9164d2774a4687ffac36d1a934687fc0e2e0
+- llm_txt_sha256: 13ecea3ccca4ae074c6c1b8972d12b63266288d568e72086f1c82dc2e3ff766a
