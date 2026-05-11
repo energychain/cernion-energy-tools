@@ -284,11 +284,11 @@ module.exports = {
             const resolvedGridOperatorId = gridOperatorId || report.gridOperator?.mastrId || null;
             let vdmiMatrix = null;
             if (resolvedGridOperatorId) {
-              const vdmiRes = await ctx.call('vdmi.list', {
-                processType: 'redispatch',
-                limit: 1,
-                tenantId: resolvedGridOperatorId,
-              });
+              const vdmiRes = await ctx.call(
+                'vdmi.list',
+                { processType: 'redispatch', limit: 1 },
+                { meta: { tenantId: resolvedGridOperatorId } }
+              );
               vdmiMatrix = vdmiRes.items?.[0] || null;
             }
 
@@ -306,7 +306,7 @@ module.exports = {
                 verantwortlich: t.verantwortlich,
                 durchfuehrend: t.durchfuehrend,
                 mitwirkend: t.mitwirkend,
-                informiert: t.informiert,
+                informiert: t.information,
               })) || null,
               gridOperator: report.gridOperator,
               period: report.period,
