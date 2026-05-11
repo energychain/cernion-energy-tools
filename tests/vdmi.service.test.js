@@ -240,4 +240,84 @@ describe('vdmi.service', () => {
     expect(tenantA.items.some((x) => x.name === 'Tenant B Matrix')).toBe(false);
     expect(tenantB.items.some((x) => x.name === 'Tenant B Matrix')).toBe(true);
   });
+
+  test('tasks support dependsOn and blocks (Gap-5)', async () => {
+    const created = await broker.call(
+      'vdmi.create',
+      {
+        name: 'Dependency Matrix',
+        processId: 'job-dep-1',
+        tasks: [
+          {
+            taskId: 'task-1',
+            taskName: 'Elektrische Pruefung',
+            phase: 'execution',
+            verantwortlich: [],
+            durchfuehrend: [{ actorType: 'service', actorId: 'grid-connection' }],
+            mitwirkend: [],
+            information: [],
+            dependsOn: [],
+            blocks: ['task-2'],
+          },
+          {
+            taskId: 'task-2',
+            taskName: 'Transformator-Ausbau',
+            phase: 'planning',
+            verantwortlich: [],
+            durchfuehrend: [{ actorType: 'user', actorId: 'netzplaner' }],
+            mitwirkend: [],
+            information: [],
+            dependsOn: ['task-1'],
+            blocks: [],
+          },
+        ],
+      },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+
+    expect(created.success).toBe(true);
+    expect(created.matrix.tasks).toHaveLength(2);
+
+    const t1 = created.matrix.tasks.find((t) => t.taskId === 'task-1');
+    const t2 = created.matrix.tasks.find((t) => t.taskId === 'task-2');
+
+    expect(t1.dependsOn).toEqual([]);
+    expect(t1.blocks).toEqual(['task-2']);
+    expect(t2.dependsOn).toEqual(['task-1']);
+    expect(t2.blocks).toEqual([]);
+
+    // Verify round-trip via GET
+    const fetched = await broker.call(
+      'vdmi.get',
+      { id: created.matrix.id },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+    const ft1 = fetched.matrix.tasks.find((t) => t.taskId === 'task-1');
+    const ft2 = fetched.matrix.tasks.find((t) => t.taskId === 'task-2');
+    expect(ft1.blocks).toEqual(['task-2']);
+    expect(ft2.dependsOn).toEqual(['task-1']);
+  });
+
+  test('detected tasks include dependsOn and blocks arrays', async () => {
+    const detected = await broker.call(
+      'vdmi.detect',
+      {
+        processId: 'job-dep-2',
+        processType: 'adhoc',
+        name: 'Auto-detected dependencies',
+        events: [
+          {
+            eventName: 'agent.plan.step.executed',
+            payload: { serviceId: 'grid-connection' },
+          },
+        ],
+      },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+
+    expect(detected.success).toBe(true);
+    expect(detected.matrix.tasks).toHaveLength(1);
+    expect(Array.isArray(detected.matrix.tasks[0].dependsOn)).toBe(true);
+    expect(Array.isArray(detected.matrix.tasks[0].blocks)).toBe(true);
+  });
 });
