@@ -313,6 +313,17 @@ module.exports = {
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
+
+        // Guardrail: only V-role may create VDMI matrices (if agentRole asserted externally)
+        if (ctx.meta?.agentRole && ctx.meta.agentRole !== 'V') {
+          throw new MoleculerClientError(
+            `Only V-role may create VDMI matrices. Current role: ${ctx.meta.agentRole}`,
+            403,
+            'FORBIDDEN_ROLE',
+            { agentRole: ctx.meta.agentRole, agentId: ctx.meta.agentId }
+          );
+        }
+
         const id = crypto.randomUUID();
         const ts = nowIso();
 
