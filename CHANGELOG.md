@@ -9,6 +9,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.50.9] — EDM Stabilization and Tenant Resolution
+
+### Added
+- [docs/test-plans/edm-mfh-s14a-e2e.sh](docs/test-plans/edm-mfh-s14a-e2e.sh): added end-to-end demo test plan for Mehrfamilienhaus + PV + Speicher + §14a + Grünstromindex.
+
+### Changed
+- [services/edm-messkonzept.service.js](services/edm-messkonzept.service.js): improved pool handling via lazy `_ensurePool()` usage to prevent create-path crashes when the EDM pool is not yet available at startup.
+- [services/api.service.js](services/api.service.js): API gateway now resolves `tenantId` fallback from `x-tenant-id` header or `tenantId` query parameter (with validation) when token-derived tenant context is missing.
+- [package.json](package.json): bumped version to `0.50.9`.
+- [package-lock.json](package-lock.json): aligned lockfile version with the release.
+- [README.md](README.md): updated current release marker to `v0.50.9`.
+
+### Notes
+- PR [#99](https://github.com/energychain/cernion-energy-tools/pull/99) merged (includes the functional changes from PR [#98](https://github.com/energychain/cernion-energy-tools/pull/98)).
+- PR [#96](https://github.com/energychain/cernion-energy-tools/pull/96) was evaluated but not merged because its added tests fail against current implementation (Gap-4 What-If still pending).
+
 ## [0.50.8] — Open PR Closure Release
 
 ### Added
