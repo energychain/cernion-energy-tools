@@ -82,6 +82,23 @@ module.exports = {
         maxAgeMinutes: { type: 'number', optional: true, default: 120, convert: true },
         skipSteps: { type: 'array', items: 'number', optional: true, default: [] },
         includeCapacityCheck: { type: 'boolean', optional: true, default: false, convert: true },
+        scenarioAdditions: {
+          type: 'array',
+          optional: true,
+          default: [],
+          items: {
+            type: 'object',
+            props: {
+              id: { type: 'string', optional: true },
+              type: { type: 'string', optional: true },
+              capacityKW: { type: 'number', optional: true, convert: true },
+              capacityMW: { type: 'number', optional: true, convert: true },
+              energietraeger: { type: 'string', optional: true },
+              voltageLevel: { type: 'string', optional: true },
+            },
+          },
+        },
+        scenarioCapacityMW: { type: 'number', optional: true, convert: true },
       },
       openapi: {
         summary: 'Run Netzanschluss validation pipeline (6-step, deterministic)',
@@ -135,6 +152,28 @@ module.exports = {
                     default: false,
                     description: 'Call cernion_connection_capacity_check for headroom data',
                   },
+                  scenarioAdditions: {
+                    type: 'array',
+                    description:
+                      'Optional What-If installations added virtually for this validation run only.',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string', example: 'whatif-1' },
+                        type: { type: 'string', example: 'solar' },
+                        capacityKW: { type: 'number', example: 1500 },
+                        capacityMW: { type: 'number', example: 1.5 },
+                        energietraeger: { type: 'string', example: 'solar' },
+                        voltageLevel: { type: 'string', example: 'MS' },
+                      },
+                    },
+                  },
+                  scenarioCapacityMW: {
+                    type: 'number',
+                    description:
+                      'Optional extra capacity (MW) injected as a synthetic What-If installation.',
+                    example: 2.5,
+                  },
                 },
               },
               examples: {
@@ -150,6 +189,15 @@ module.exports = {
                 },
                 'By name': {
                   value: { gridOperatorName: 'TWL Netze', skipSteps: [4] },
+                },
+                'What-If scenario': {
+                  value: {
+                    gridOperatorId: 'SNB935578300972',
+                    scenarioAdditions: [
+                      { id: 'whatif-pv-1', type: 'solar', capacityMW: 1.5, voltageLevel: 'MS' },
+                    ],
+                    scenarioCapacityMW: 0.8,
+                  },
                 },
               },
             },
@@ -230,6 +278,8 @@ module.exports = {
                   maxAgeMinutes: ctx.params.maxAgeMinutes,
                   skipSteps: ctx.params.skipSteps || [],
                   includeCapacityCheck: ctx.params.includeCapacityCheck || false,
+                  scenarioAdditionsCount: (ctx.params.scenarioAdditions || []).length,
+                  scenarioCapacityMW: ctx.params.scenarioCapacityMW || 0,
                 },
               },
               createdAt: new Date().toISOString(),
@@ -1025,7 +1075,13 @@ module.exports = {
      */
     async runPipeline(ctx, params, operator) {
       const startTime = Date.now();
-      const { maxAgeMinutes = 120, skipSteps = [], datapointTags = [] } = params;
+      const {
+        maxAgeMinutes = 120,
+        skipSteps = [],
+        datapointTags = [],
+        scenarioAdditions = [],
+        scenarioCapacityMW = 0,
+      } = params;
       const allFindings = [];
       const stepSummaries = [];
       const callOpts = { meta: { ...ctx.meta, $gateway: false } };
@@ -1094,7 +1150,16 @@ module.exports = {
       let installations = [];
       await runStep(1, 'inventory', async () => {
         installations = await this.stepInventory(ctx, operator, params);
-        return this.buildInventoryFindings(installations);
+        const scenarioResult = this.applyWhatIfScenario(installations, {
+          scenarioAdditions,
+          scenarioCapacityMW,
+        });
+        installations = scenarioResult.installations;
+        const findings = this.buildInventoryFindings(installations);
+        if (scenarioResult.finding) {
+          findings.push(scenarioResult.finding);
+        }
+        return findings;
       });
 
       // Step 2: Delta
@@ -1158,7 +1223,69 @@ module.exports = {
           pipelineVersion: PIPELINE_VERSION,
           executedAt: new Date().toISOString(),
           maxAgeMinutes,
+          scenario: {
+            additionsCount: scenarioAdditions.length,
+            extraCapacityMW: parseFloat((scenarioCapacityMW || 0).toFixed(3)),
+            applied: scenarioAdditions.length > 0 || scenarioCapacityMW > 0,
+          },
         },
+      };
+    },
+
+    applyWhatIfScenario(installations, scenario = {}) {
+      const base = Array.isArray(installations) ? [...installations] : [];
+      const additions = Array.isArray(scenario.scenarioAdditions) ? scenario.scenarioAdditions : [];
+      const capacityMW = Number(scenario.scenarioCapacityMW || 0);
+
+      const virtualInstallations = additions.map((item, index) => {
+        const mw = Number(item.capacityMW || 0);
+        const kw = Number(item.capacityKW || 0);
+        const netKW = mw > 0 ? mw * 1000 : kw > 0 ? kw : 0;
+        return {
+          EinheitMastrNummer: item.id || `WHATIF-${Date.now()}-${index + 1}`,
+          Energietraeger: item.energietraeger || item.type || 'other',
+          NettoNennleistung: netKW,
+          nap: {
+            Spannungsebene: item.voltageLevel || 'MS',
+          },
+          _scenario: true,
+        };
+      });
+
+      if (capacityMW > 0) {
+        virtualInstallations.push({
+          EinheitMastrNummer: `WHATIF-CAPACITY-${Date.now()}`,
+          Energietraeger: 'other',
+          NettoNennleistung: capacityMW * 1000,
+          nap: { Spannungsebene: 'MS' },
+          _scenario: true,
+        });
+      }
+
+      if (virtualInstallations.length === 0) {
+        return { installations: base, finding: null };
+      }
+
+      const totalScenarioMW =
+        virtualInstallations.reduce((sum, inst) => sum + Number(inst.NettoNennleistung || 0), 0) /
+        1000;
+
+      return {
+        installations: [...base, ...virtualInstallations],
+        finding: createFinding(
+          1,
+          'inventory',
+          'GC_WHAT_IF_SCENARIO_APPLIED',
+          'info',
+          'What-If scenario applied',
+          `${virtualInstallations.length} virtual installation(s) added to this validation run.`,
+          {
+            scenarioInstallations: virtualInstallations.length,
+            scenarioCapacityMW: parseFloat(totalScenarioMW.toFixed(3)),
+          },
+          'Review decision and capacity findings against baseline run without scenario.',
+          999
+        ),
       };
     },
   },
