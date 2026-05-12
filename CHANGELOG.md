@@ -7,7 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+### Added
+- [tests/grid-connection-whatif.test.js](tests/grid-connection-whatif.test.js): added Gap-4 What-If regression coverage for `grid-connection.validate` (`scenarioAdditions`, `scenarioCapacityMW`, OpenAPI schema presence).
+
+### Changed
+- [services/grid-connection.service.js](services/grid-connection.service.js): implemented What-If scenario support in `validate` by accepting `scenarioAdditions` and `scenarioCapacityMW`, applying virtual installations during Step 1 inventory evaluation, and exposing scenario metadata in persisted reports.
 
 ## [0.50.9] — EDM Stabilization and Tenant Resolution
 
