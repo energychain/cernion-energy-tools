@@ -523,6 +523,7 @@ module.exports = {
           description:
             'Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking.',
         },
+          { name: 'Interface Placeholder', description: 'Explicit gap markers for unresolved interfaces, evidence, and ownership' },
       ],
       components: {
         securitySchemes: {
@@ -923,6 +924,14 @@ module.exports = {
           'GET /finance-agent/prompts': 'finance-agent.prompts',
           'POST /finance-agent/memory': 'finance-agent.remember',
           'GET /finance-agent/memory/:sessionId': 'finance-agent.memory',
+          // Interface Placeholder (v0.51.0)
+          'POST /interface-placeholder/mark-gap': 'interface-placeholder.markGap',
+          'POST /interface-placeholder/request-evidence': 'interface-placeholder.requestEvidence',
+          'GET /interface-placeholder/gaps': 'interface-placeholder.listGaps',
+          'GET /interface-placeholder/gaps/:placeholderId/status':
+            'interface-placeholder.returnMinimalStatus',
+          'POST /interface-placeholder/gaps/:placeholderId/resolve':
+            'interface-placeholder.resolveGap',
           // HITL (v0.44)
           'POST /hitl/items': 'hitl.create',
           'GET /hitl/items': 'hitl.list',

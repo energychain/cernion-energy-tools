@@ -1,6 +1,6 @@
 'use strict';
 
-const { buildRegulatoryGraph } = require('../src/cya-regulatory-graph');
+const { buildRegulatoryGraph, buildPlaceholderNode } = require('../src/cya-regulatory-graph');
 
 describe('cya-regulatory-graph', () => {
   it('triggers expected rules from retrieval text', () => {
@@ -36,5 +36,21 @@ describe('cya-regulatory-graph', () => {
 
     expect(graph.signals).toEqual([]);
     expect(graph.triggeredRules).toBe(0);
+  });
+
+  it('builds a placeholder graph node with low-confidence semantics', () => {
+    const node = buildPlaceholderNode({
+      placeholderId: 'ph_123',
+      tenantId: 'stromdao',
+      role: 'grid_connection_validator',
+      reason: 'NEEDS_EVIDENCE',
+      blockingLevel: 'soft',
+      signalCodes: ['NEEDS_EVIDENCE'],
+      status: 'placeholder_gap',
+    });
+
+    expect(node.nodeId).toBe('PLACEHOLDER:ph_123');
+    expect(node.nodeType).toBe('interface_placeholder');
+    expect(node.confidence).toBe('low');
   });
 });

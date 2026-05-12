@@ -1,6 +1,7 @@
 const {
   BROKER_SCHEMA_VERSION,
   CURATED_CAPABILITIES,
+  INTERFACE_PLACEHOLDER_CAPABILITY,
   GLOBAL_DO_NOT_USE,
 } = require('../src/capability-catalog');
 const { buildServiceCatalogue } = require('../src/agent-planning-utils');
@@ -68,7 +69,7 @@ function findBestCapability(taskText) {
 
   if (!best || best.score === 0) {
     return {
-      capability: CURATED_CAPABILITIES[0],
+      capability: INTERFACE_PLACEHOLDER_CAPABILITY,
       score: 0,
       usedFallback: true,
     };
@@ -82,6 +83,29 @@ function findBestCapability(taskText) {
 }
 
 function buildActionTemplate(action) {
+  if (action === 'interface-placeholder.markGap') {
+    return {
+      role: null,
+      reason: 'NEEDS_INTERFACE',
+      blockingLevel: 'soft',
+      replacementCriteria: {
+        kind: 'process',
+        capabilityHint: null,
+        deadline: null,
+      },
+    };
+  }
+  if (action === 'interface-placeholder.requestEvidence') {
+    return {
+      placeholderId: '__previous_step.placeholder.placeholderId',
+    };
+  }
+  if (action === 'interface-placeholder.listGaps') {
+    return {
+      includeResolved: false,
+      limit: 25,
+    };
+  }
   if (action === 'grid-operations.marketPartners') {
     return {
       query: null,
@@ -310,9 +334,17 @@ module.exports = {
         const confidenceBase = selected.score > 0 ? 0.8 : 0.55;
         const confidence = Math.min(0.98, confidenceBase + Math.min(selected.score, 4) * 0.04);
 
+        if (selected.usedFallback) {
+          warnings.push(
+            'No curated deterministic capability matched; returning explicit interface-placeholder fallback recommendation.'
+          );
+        }
+
         return {
           schemaVersion: BROKER_SCHEMA_VERSION,
-          summary: `Recommended ${capability.capability} via curated deterministic path with doNotUse enforcement.`,
+          summary: selected.usedFallback
+            ? 'No deterministic capability matched. Recommend explicit gap marking via interface-placeholder.'
+            : `Recommended ${capability.capability} via curated deterministic path with doNotUse enforcement.`,
           intent: capability.intent,
           confidence: Number(confidence.toFixed(2)),
           mode: ctx.params.mode,

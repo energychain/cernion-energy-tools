@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.51.0] — Interface Placeholder Agent (Phase 1)
+
+### Added
+- [src/interface-placeholder-schema.js](src/interface-placeholder-schema.js): added deterministic enums and normalizers for placeholder reasons, blocking levels, signal codes, and mandatory hard-blocker resolver roles.
+- [services/interface-placeholder.service.js](services/interface-placeholder.service.js): added tenant-scoped Interface Placeholder Agent backed by `object-store` with explicit gap creation, evidence requests, low-confidence status retrieval, gap listing, resolution, and execution-block checks.
+- [tests/interface-placeholder.service.test.js](tests/interface-placeholder.service.test.js): added service coverage for tenant isolation, hard-blocker HITL escalation, evidence responses, and mandatory role-based resolution.
+- [tests/interface-placeholder-e2e.test.js](tests/interface-placeholder-e2e.test.js): added API/OpenAPI regression coverage for the new `/api/interface-placeholder/*` routes.
+
+### Changed
+- [src/cya-regulatory-graph.js](src/cya-regulatory-graph.js): added `buildPlaceholderNode()` so placeholder gaps are represented explicitly in the CYA graph layer with `confidence: low` semantics.
+- [src/capability-catalog.js](src/capability-catalog.js): added the curated fallback capability `interface_placeholder` for explicit gap marking instead of silent deterministic mismatch fallbacks.
+- [services/capability-broker.service.js](services/capability-broker.service.js): routes `score === 0` recommendations to `interface-placeholder.markGap` and emits explicit fallback warnings.
+- [services/api.service.js](services/api.service.js): registered explicit `/api/interface-placeholder/*` aliases and added the global OpenAPI tag `Interface Placeholder`.
+- [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js): added regression coverage for the broker fallback path.
+- [tests/cya-regulatory-graph.test.js](tests/cya-regulatory-graph.test.js): added regression coverage for placeholder node generation.
+- [package.json](package.json): bumped version to `0.51.0`.
+- [package-lock.json](package-lock.json): aligned lockfile version with the release.
+- [README.md](README.md): updated the current release marker to `v0.51.0` and service count to include the new core service.
+
 ## [0.50.10] — Grid What-If + ZNP Routing Fix
 
 ### Added

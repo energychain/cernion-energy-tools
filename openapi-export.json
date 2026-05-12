@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.50.4",
+    "version": "0.51.0",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -141,6 +141,10 @@
     {
       "name": "Webhooks",
       "description": "Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking."
+    },
+    {
+      "name": "Interface Placeholder",
+      "description": "Explicit gap markers for unresolved interfaces, evidence, and ownership"
     }
   ],
   "paths": {
@@ -6829,6 +6833,44 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Call cernion_connection_capacity_check for headroom data"
+                  },
+                  "scenarioAdditions": {
+                    "type": "array",
+                    "description": "Optional What-If installations added virtually for this validation run only.",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "whatif-1"
+                        },
+                        "type": {
+                          "type": "string",
+                          "example": "solar"
+                        },
+                        "capacityKW": {
+                          "type": "number",
+                          "example": 1500
+                        },
+                        "capacityMW": {
+                          "type": "number",
+                          "example": 1.5
+                        },
+                        "energietraeger": {
+                          "type": "string",
+                          "example": "solar"
+                        },
+                        "voltageLevel": {
+                          "type": "string",
+                          "example": "MS"
+                        }
+                      }
+                    }
+                  },
+                  "scenarioCapacityMW": {
+                    "type": "number",
+                    "description": "Optional extra capacity (MW) injected as a synthetic What-If installation.",
+                    "example": 2.5
                   }
                 }
               },
@@ -6853,6 +6895,20 @@
                     "skipSteps": [
                       4
                     ]
+                  }
+                },
+                "What-If scenario": {
+                  "value": {
+                    "gridOperatorId": "SNB935578300972",
+                    "scenarioAdditions": [
+                      {
+                        "id": "whatif-pv-1",
+                        "type": "solar",
+                        "capacityMW": 1.5,
+                        "voltageLevel": "MS"
+                      }
+                    ],
+                    "scenarioCapacityMW": 0.8
                   }
                 }
               }
@@ -8623,6 +8679,111 @@
             }
           }
         ]
+      }
+    },
+    "/api/interface-placeholder/mark-gap": {
+      "post": {
+        "operationId": "interface-placeholder_markGap",
+        "summary": "Create an explicit interface placeholder gap",
+        "tags": [
+          "Interface Placeholder"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/interface-placeholder/request-evidence": {
+      "post": {
+        "operationId": "interface-placeholder_requestEvidence",
+        "summary": "Return evidence signals required to replace a placeholder",
+        "tags": [
+          "Interface Placeholder"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/interface-placeholder/gaps": {
+      "get": {
+        "operationId": "interface-placeholder_listGaps",
+        "summary": "List tenant-scoped interface placeholder gaps",
+        "tags": [
+          "Interface Placeholder"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/interface-placeholder/gaps/:placeholderId/status": {
+      "get": {
+        "operationId": "interface-placeholder_returnMinimalStatus",
+        "summary": "Return low-confidence minimal status for a placeholder",
+        "tags": [
+          "Interface Placeholder"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/interface-placeholder/gaps/:placeholderId/resolve": {
+      "post": {
+        "operationId": "interface-placeholder_resolveGap",
+        "summary": "Resolve an interface placeholder gap",
+        "tags": [
+          "Interface Placeholder"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/hitl/items": {
@@ -10806,6 +10967,10 @@
                     "createdAt": {
                       "type": "string",
                       "format": "date-time"
+                    },
+                    "tenantId": {
+                      "type": "string",
+                      "nullable": true
                     },
                     "graphStats": {
                       "type": "object"
@@ -19344,5 +19509,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.50.4"
+  "x-version": "0.51.0"
 }

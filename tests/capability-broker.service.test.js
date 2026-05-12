@@ -111,4 +111,17 @@ describe('Capability Broker Service', () => {
 
     expect(result.recommendedCapabilities[0].capability).toBe('vnb_kpi_benchmark_comparison');
   });
+
+  it('falls back to interface-placeholder when no deterministic capability matches', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Irgendetwas völlig Unbekanntes ohne erkennbare Prozesszuordnung',
+      agentRole: 'portfolio_decision',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('interface_placeholder');
+    expect(result.recommendedPlan[0].action).toBe('interface-placeholder.markGap');
+    expect(
+      result.warnings.some((warning) => warning.includes('interface-placeholder fallback'))
+    ).toBe(true);
+  });
 });

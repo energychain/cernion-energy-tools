@@ -156,6 +156,9 @@ module.exports = {
                     type: 'array',
                     description:
                       'Optional What-If installations added virtually for this validation run only.',
+                    example: [
+                      { id: 'whatif-pv-1', type: 'solar', capacityMW: 1.5, voltageLevel: 'MS' },
+                    ],
                     items: {
                       type: 'object',
                       properties: {

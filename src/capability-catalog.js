@@ -8,6 +8,41 @@
 
 const BROKER_SCHEMA_VERSION = 'cernion.capabilityRecommendation.v1';
 
+const INTERFACE_PLACEHOLDER_CAPABILITY = {
+  capability: 'interface_placeholder',
+  domain: 'governance',
+  abstractionLevel: 'explicit_gap_marker',
+  intent: 'mark_unknown_execution_gap',
+  keywords: [],
+  preferredActions: [
+    'interface-placeholder.markGap',
+    'interface-placeholder.requestEvidence',
+    'interface-placeholder.listGaps',
+  ],
+  fallbackActions: ['interface-placeholder.markGap'],
+  avoid: ['query.ask', 'query.askLearned'],
+  requiredInputs: [
+    {
+      name: 'role',
+      label: 'Betroffene Rolle / Capability Owner',
+      type: 'string',
+      required: true,
+    },
+    {
+      name: 'reason',
+      label: 'Gap Reason',
+      type: 'string',
+      required: true,
+    },
+  ],
+  risksAndNotes: [
+    'Placeholder sind explizite Lückenmarker und keine fachliche Wahrheit.',
+    'confidence bleibt immer low bis zur Auflösung mit Evidenz oder Entscheidung.',
+  ],
+  routingPattern: 'explicit_gap_marker',
+  isFallback: true,
+};
+
 const CURATED_CAPABILITIES = [
   {
     capability: 'residual_load_forecast_for_dso',
@@ -224,5 +259,6 @@ const GLOBAL_DO_NOT_USE = [
 module.exports = {
   BROKER_SCHEMA_VERSION,
   CURATED_CAPABILITIES,
+  INTERFACE_PLACEHOLDER_CAPABILITY,
   GLOBAL_DO_NOT_USE,
 };

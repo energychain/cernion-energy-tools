@@ -112,6 +112,21 @@ function buildRegulatoryGraph(input) {
   };
 }
 
+function buildPlaceholderNode(placeholder) {
+  return {
+    nodeId: `PLACEHOLDER:${placeholder.placeholderId}`,
+    nodeType: 'interface_placeholder',
+    label: `${placeholder.role} → ${placeholder.reason}`,
+    placeholderId: placeholder.placeholderId,
+    tenantId: placeholder.tenantId,
+    status: placeholder.status,
+    blockingLevel: placeholder.blockingLevel,
+    signalCodes: Array.isArray(placeholder.signalCodes) ? placeholder.signalCodes : [],
+    confidence: 'low',
+    agentType: 'interface_placeholder_agent',
+  };
+}
+
 // ── OEO class mapping (keyed by ruleId) ───────────────────────────────────
 const OEO_MAPPINGS = Object.fromEntries(
   REGULATORY_RULES.map((r) => [
@@ -167,4 +182,5 @@ module.exports = {
   OEO_MAPPINGS,
   buildRegulatoryGraph,
   buildRegulatoryGraphFromOntology,
+  buildPlaceholderNode,
 };

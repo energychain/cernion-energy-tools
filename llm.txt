@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.50.4
-- changelog_latest_release: 0.50.4
+- version: 0.51.0
+- changelog_latest_release: 0.51.0
 - source_files_hash:
-  - CHANGELOG.md: db60c9d24bd8b10563932bce255cc46dd384ee0a6b48a30f91b1e1a22d9c5f9e
-  - README.md: dd74874b9621ace1fd26accbc72769194613538e537739f0e422b73ef6adc79b
+  - CHANGELOG.md: 81fe8741442a5d6c26ef3928e896721ae985bd67328476aabfa9a58d141c776f
+  - README.md: ada3db9ae965b4b04d38d3d87a8f125dae8a5142791641fa4ca8dcd65729077b
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: c6ca9d783fad1288ac6265466d25f622cded8a9f8d043dde32aa79faf6d012fc
+  - openapi-export.json: 9d77241312cf182575e4362fd606bf61ba94d4c85b16b5b56ee4fed3fa961da7
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -590,8 +590,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 253
-- operation_count: 294
+- path_count: 258
+- operation_count: 299
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -616,6 +616,7 @@ process:
 - Grid Connection Validation: 3 operations
 - HITL: 11 operations
 - IntegrationHub: 8 operations
+- Interface Placeholder: 5 operations
 - Jobs: 3 operations
 - Knowledge RAG: 12 operations
 - MaStR Data Quality: 4 operations
@@ -815,6 +816,11 @@ process:
 - POST /api/in-memory-join/compare-forecast-actual | tags: [DataSources, Analytics] | operationId: in-memory-join_compareForecastActual | summary: Compare inhouse actual generation with forecasted generation
 - POST /api/in-memory-join/join | tags: [DataSources, Analytics] | operationId: in-memory-join_join | summary: Generic in-memory join across datasource and action outputs
 - POST /api/in-memory-join/metering-spot-cost | tags: [DataSources, Analytics] | operationId: in-memory-join_meteringSpotCost | summary: Join metering datasource with market spot prices and calculate costs
+- GET /api/interface-placeholder/gaps | tags: [Interface Placeholder] | operationId: interface-placeholder_listGaps | summary: List tenant-scoped interface placeholder gaps
+- POST /api/interface-placeholder/gaps/:placeholderId/resolve | tags: [Interface Placeholder] | operationId: interface-placeholder_resolveGap | summary: Resolve an interface placeholder gap
+- GET /api/interface-placeholder/gaps/:placeholderId/status | tags: [Interface Placeholder] | operationId: interface-placeholder_returnMinimalStatus | summary: Return low-confidence minimal status for a placeholder
+- POST /api/interface-placeholder/mark-gap | tags: [Interface Placeholder] | operationId: interface-placeholder_markGap | summary: Create an explicit interface placeholder gap
+- POST /api/interface-placeholder/request-evidence | tags: [Interface Placeholder] | operationId: interface-placeholder_requestEvidence | summary: Return evidence signals required to replace a placeholder
 - GET /api/jobs/:jobId/progress | tags: [Jobs] | operationId: job-status_progress | summary: Get job progress (JSON polling or SSE)
 - GET /api/jobs/:jobId/result | tags: [Jobs] | operationId: job-status_result | summary: Retrieve async job result
 - GET /api/jobs/:jobId/status | tags: [Jobs] | operationId: job-status_status | summary: Poll async job status
@@ -939,7 +945,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.50.4"
+    "version": "0.51.0"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -10734,6 +10740,20 @@ process:
                       4
                     ]
                   }
+                },
+                "What-If scenario": {
+                  "value": {
+                    "gridOperatorId": "SNB935578300972",
+                    "scenarioAdditions": [
+                      {
+                        "capacityMW": 1.5,
+                        "id": "whatif-pv-1",
+                        "type": "solar",
+                        "voltageLevel": "MS"
+                      }
+                    ],
+                    "scenarioCapacityMW": 0.8
+                  }
                 }
               },
               "schema": {
@@ -10772,6 +10792,44 @@ process:
                     "default": 120,
                     "description": "Datapoint freshness threshold in minutes",
                     "type": "integer"
+                  },
+                  "scenarioAdditions": {
+                    "description": "Optional What-If installations added virtually for this validation run only.",
+                    "items": {
+                      "properties": {
+                        "capacityKW": {
+                          "example": 1500,
+                          "type": "number"
+                        },
+                        "capacityMW": {
+                          "example": 1.5,
+                          "type": "number"
+                        },
+                        "energietraeger": {
+                          "example": "solar",
+                          "type": "string"
+                        },
+                        "id": {
+                          "example": "whatif-1",
+                          "type": "string"
+                        },
+                        "type": {
+                          "example": "solar",
+                          "type": "string"
+                        },
+                        "voltageLevel": {
+                          "example": "MS",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "scenarioCapacityMW": {
+                    "description": "Optional extra capacity (MW) injected as a synthetic What-If installation.",
+                    "example": 2.5,
+                    "type": "number"
                   },
                   "skipSteps": {
                     "description": "Pipeline step numbers to skip (e.g. [4] skips EWK benchmark)",
@@ -11895,6 +11953,111 @@ process:
         "tags": [
           "DataSources",
           "Analytics"
+        ]
+      }
+    },
+    "/api/interface-placeholder/gaps": {
+      "get": {
+        "operationId": "interface-placeholder_listGaps",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List tenant-scoped interface placeholder gaps",
+        "tags": [
+          "Interface Placeholder"
+        ]
+      }
+    },
+    "/api/interface-placeholder/gaps/:placeholderId/resolve": {
+      "post": {
+        "operationId": "interface-placeholder_resolveGap",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Resolve an interface placeholder gap",
+        "tags": [
+          "Interface Placeholder"
+        ]
+      }
+    },
+    "/api/interface-placeholder/gaps/:placeholderId/status": {
+      "get": {
+        "operationId": "interface-placeholder_returnMinimalStatus",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Return low-confidence minimal status for a placeholder",
+        "tags": [
+          "Interface Placeholder"
+        ]
+      }
+    },
+    "/api/interface-placeholder/mark-gap": {
+      "post": {
+        "operationId": "interface-placeholder_markGap",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Create an explicit interface placeholder gap",
+        "tags": [
+          "Interface Placeholder"
+        ]
+      }
+    },
+    "/api/interface-placeholder/request-evidence": {
+      "post": {
+        "operationId": "interface-placeholder_requestEvidence",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Return evidence signals required to replace a placeholder",
+        "tags": [
+          "Interface Placeholder"
         ]
       }
     },
@@ -18988,6 +19151,10 @@ process:
                     "projectId": {
                       "example": "a1b2c3d4-...",
                       "type": "string"
+                    },
+                    "tenantId": {
+                      "nullable": true,
+                      "type": "string"
                     }
                   },
                   "type": "object"
@@ -20278,11 +20445,15 @@ process:
     {
       "description": "Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking.",
       "name": "Webhooks"
+    },
+    {
+      "description": "Explicit gap markers for unresolved interfaces, evidence, and ownership",
+      "name": "Interface Placeholder"
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.50.4"
+  "x-version": "0.51.0"
 }
 
 ## Integrity
-- llm_txt_sha256: 13ecea3ccca4ae074c6c1b8972d12b63266288d568e72086f1c82dc2e3ff766a
+- llm_txt_sha256: 06b4ddc162c3865b6de75fedf574c8293a1c25b822f19a72e7b854025b1000a6
