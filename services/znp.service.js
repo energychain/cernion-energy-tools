@@ -1690,7 +1690,8 @@ module.exports = {
         const tenantId = getTenantId(ctx);
         const projects = [];
         for (const [projectId, project] of this.activeGraphs.entries()) {
-          if (project.tenantId && project.tenantId !== tenantId) continue;
+          const effectiveTenant = project.tenantId || 'default';
+          if (effectiveTenant !== tenantId) continue;
           projects.push({
             projectId,
             name: project.name,
@@ -1957,7 +1958,8 @@ module.exports = {
     },
 
     requireProjectTenant(project, tenantId, projectId) {
-      if (!project.tenantId || project.tenantId === tenantId) {
+      const effectiveTenant = project.tenantId || 'default';
+      if (effectiveTenant === tenantId) {
         return;
       }
 
