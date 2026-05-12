@@ -16,6 +16,7 @@ const rateQuotaStore = require('../src/rate-quota-store');
 const tracing = require('../src/tracing');
 const { mergeObservabilityContext } = require('../src/observability-context');
 const { hasRole, mapRolesFromLegacyToken } = require('../src/auth/rbac');
+const { validateTenantId } = require('../src/tenant-context');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 const CONTENT_TYPE_HEADER = 'Content-Type';
@@ -1452,6 +1453,27 @@ module.exports = {
             }
           } else {
             this.logger.debug('No request token provided, will use CERNION_TOKEN from environment');
+          }
+
+          // ── Fallback tenant resolution for token-less or unscoped requests ──
+          if (!ctx.meta.tenantId) {
+            const headerTenantId =
+              req?.headers?.['x-tenant-id'] || req?.headers?.['X-Tenant-Id'] || null;
+            const queryTenantId =
+              typeof req?.query?.tenantId === 'string' ? req.query.tenantId.trim() : null;
+            const fallbackTenantId = headerTenantId || queryTenantId || null;
+
+            if (fallbackTenantId) {
+              try {
+                validateTenantId(fallbackTenantId);
+                ctx.meta.tenantId = fallbackTenantId;
+                this.logger.debug(`Resolved tenantId from header/query: ${fallbackTenantId}`);
+              } catch (validationErr) {
+                this.logger.warn(
+                  `Invalid tenantId in header/query ignored: ${fallbackTenantId} — ${validationErr.message}`
+                );
+              }
+            }
           }
 
           const tenantIdForQuota = ctx.meta.tenantId || 'default';
