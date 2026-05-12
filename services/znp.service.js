@@ -1306,7 +1306,6 @@ module.exports = {
      * POST /api/znp/projects/:projectId/assumptions
      */
     addAssumption: {
-      rest: 'POST /projects/:projectId/assumptions',
       params: {
         projectId: { type: 'string' },
         text: { type: 'string', min: 10, max: 2000 },
