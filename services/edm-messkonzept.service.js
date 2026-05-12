@@ -26,13 +26,36 @@ module.exports = {
   timeout: 60000,
   dependencies: ['edm'],
 
+  methods: {
+    /**
+     * Lazy-initialisiert den Pool wenn nötig.
+     * Notwendig wenn der edm Service auf einem remote Node läuft
+     * oder der Pool in started() noch nicht verfügbar war.
+     */
+    _ensurePool() {
+      if (this.pool) {
+        return this.pool;
+      }
+      const edmService = this.broker.getLocalService('edm');
+      if (edmService && edmService.pool) {
+        this.pool = edmService.pool;
+        return this.pool;
+      }
+      throw new MoleculerClientError(
+        'EDM service pool not available. Ensure the edm service is running locally.',
+        503,
+        'EDM_POOL_UNAVAILABLE'
+      );
+    },
+  },
+
   started() {
     // Pool vom EDM-Service erben (synchron)
-    const edmService = this.broker.getLocalService('edm');
-    if (edmService && edmService.pool) {
-      this.pool = edmService.pool;
-    } else {
-      this.logger.warn('EDM service pool not available');
+    try {
+      this._ensurePool();
+      this.logger.info('EDM Messkonzept service started, pool acquired from edm');
+    } catch (err) {
+      this.logger.warn('EDM pool not available at startup, will retry lazily:', err.message);
     }
   },
 
@@ -112,7 +135,7 @@ module.exports = {
         responses: { 200: { description: 'Created' }, 409: { description: 'Exists' } },
       },
       async handler(ctx) {
-        const db = this.pool.getRegistry();
+        const db = this._ensurePool().getRegistry();
         const { id, name, type, formula, inputs, outputMeloId, outputObis, schedule, validSince } =
           ctx.params;
 
@@ -122,20 +145,22 @@ module.exports = {
           throw new MoleculerClientError('Messkonzept already exists', 409, 'MESSKONZEPT_EXISTS');
         }
 
-        // Output-MeLo erstellen falls nicht vorhanden
-        try {
-          await ctx.call('edm.getMelo', { meloId: outputMeloId });
-        } catch (err) {
-          if (err.code === 404) {
-            await ctx.call('edm.createMelo', {
-              meloId: outputMeloId,
-              type: 'virtual',
-              name: `Messkonzept: ${name}`,
-              sourceType: 'calc',
-              obisRegisters: [{ obis: outputObis }],
-            });
-          } else {
-            throw err;
+        // Output-MeLo erstellen falls outputMeloId angegeben und nicht vorhanden
+        if (outputMeloId) {
+          try {
+            await ctx.call('edm.getMelo', { meloId: outputMeloId });
+          } catch (err) {
+            if (err.code === 'MELO_NOT_FOUND' || err.code === 404) {
+              await ctx.call('edm.createMelo', {
+                meloId: outputMeloId,
+                type: 'virtual',
+                name: `Messkonzept: ${name}`,
+                sourceType: 'calc',
+                obisRegisters: [{ obis: outputObis, direction: 'consumption' }],
+              });
+            } else {
+              throw err;
+            }
           }
         }
 
@@ -146,16 +171,16 @@ module.exports = {
           id,
           name,
           type,
-          formula,
-          JSON.stringify(inputs),
-          outputMeloId,
+          formula || null,
+          JSON.stringify(inputs || []),
+          outputMeloId || null,
           outputObis,
-          schedule,
+          schedule || null,
           validSince || null
         );
 
         ctx.meta.$statusCode = 201;
-        return { success: true, id, outputMeloId };
+        return { success: true, id, outputMeloId: outputMeloId || null };
       },
     },
 
@@ -168,7 +193,7 @@ module.exports = {
         responses: { 200: { description: 'List' } },
       },
       handler() {
-        const db = this.pool.getRegistry();
+        const db = this._ensurePool().getRegistry();
         const rows = db.prepare('SELECT * FROM messkonzepte ORDER BY created_at DESC').all();
         return { success: true, data: rows.map(mapKonzept) };
       },
@@ -192,7 +217,7 @@ module.exports = {
         responses: { 200: { description: 'Found' }, 404: { description: 'Not found' } },
       },
       handler(ctx) {
-        const db = this.pool.getRegistry();
+        const db = this._ensurePool().getRegistry();
         const row = db.prepare('SELECT * FROM messkonzepte WHERE id = ?').get(ctx.params.id);
         if (!row) {
           throw new MoleculerClientError('Messkonzept not found', 404, 'MESSKONZEPT_NOT_FOUND');
@@ -211,7 +236,7 @@ module.exports = {
         responses: { 200: { description: 'Deleted' }, 404: { description: 'Not found' } },
       },
       handler(ctx) {
-        const db = this.pool.getRegistry();
+        const db = this._ensurePool().getRegistry();
         const existing = db.prepare('SELECT id FROM messkonzepte WHERE id = ?').get(ctx.params.id);
         if (!existing) {
           throw new MoleculerClientError('Messkonzept not found', 404, 'MESSKONZEPT_NOT_FOUND');
@@ -264,7 +289,7 @@ module.exports = {
       },
       async handler(ctx) {
         const { id, from, to, writeOutput } = ctx.params;
-        const db = this.pool.getRegistry();
+        const db = this._ensurePool().getRegistry();
         const row = db.prepare('SELECT * FROM messkonzepte WHERE id = ?').get(id);
         if (!row) {
           throw new MoleculerClientError('Messkonzept not found', 404, 'MESSKONZEPT_NOT_FOUND');
@@ -306,7 +331,7 @@ module.exports = {
         const results = evaluateMesskonzept(konzept, inputData);
 
         // Output schreiben via edm.importTimeseries
-        if (writeOutput && results.length > 0) {
+        if (writeOutput && results.length > 0 && konzept.outputMeloId) {
           await ctx.call('edm.importTimeseries', {
             meloId: konzept.outputMeloId,
             obis: konzept.outputObis,
@@ -331,7 +356,7 @@ module.exports = {
           to,
           inputCount: konzept.inputs.length,
           outputCount: results.length,
-          written: writeOutput,
+          written: writeOutput && !!konzept.outputMeloId,
           outputMeloId: konzept.outputMeloId,
           summary: {
             total: numeric.reduce((sum, value) => sum + value, 0),
@@ -386,7 +411,7 @@ module.exports = {
       },
       async handler(ctx) {
         const { from, to, schedule } = ctx.params;
-        const db = this.pool.getRegistry();
+        const db = this._ensurePool().getRegistry();
 
         let rows;
         if (schedule) {
