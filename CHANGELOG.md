@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No changes yet._
+
+## [0.50.10] — Grid What-If + ZNP Routing Fix
+
 ### Added
 - [tests/grid-connection-whatif.test.js](tests/grid-connection-whatif.test.js): added Gap-4 What-If regression coverage for `grid-connection.validate` (`scenarioAdditions`, `scenarioCapacityMW`, OpenAPI schema presence).
 
 ### Changed
 - [services/grid-connection.service.js](services/grid-connection.service.js): implemented What-If scenario support in `validate` by accepting `scenarioAdditions` and `scenarioCapacityMW`, applying virtual installations during Step 1 inventory evaluation, and exposing scenario metadata in persisted reports.
+- [services/znp.service.js](services/znp.service.js): removed conflicting `rest:` route from `addAssumption` (PR [#100](https://github.com/energychain/cernion-energy-tools/pull/100)) to avoid routing collisions.
+- [package.json](package.json): bumped version to `0.50.10`.
+- [package-lock.json](package-lock.json): aligned lockfile version with the release.
+- [README.md](README.md): updated current release marker to `v0.50.10`.
 
 ## [0.50.9] — EDM Stabilization and Tenant Resolution
 
