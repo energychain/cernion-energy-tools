@@ -1967,6 +1967,279 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         return applyFormat(ctx, result, format, 'market-partners', 'MarketPartners');
       },
     },
+
+    // -----------------------------------------------------------------------
+    // Phase 5 — Netzfahrplan / fNAV generation (v0.51.5)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Generate a Netzfahrplan assessment and evaluate fNAV as an alternative
+     * to conventional grid expansion (Kupferausbau).
+     *
+     * Deterministic — no LLM, identical inputs → identical output.
+     * Governance Option B: final status is always `requires_governance_decision`
+     * until legalStatus=approved AND contractStatus=signed.
+     */
+    netzfahrplanGenerate: {
+      rest: 'POST /netzfahrplan/generate',
+      timeout: 60_000,
+      params: {
+        gridOperatorId: { type: 'string', optional: true },
+        gridOperatorName: { type: 'string', optional: true },
+        voltageLevel: { type: 'enum', values: ['NS', 'MS', 'HS'], optional: true, default: 'MS' },
+        requestedCapacityKW: { type: 'number', min: 0, convert: true },
+        firmCapacityKW: { type: 'number', min: 0, optional: true, convert: true },
+        flexibleCapacityKW: { type: 'number', min: 0, optional: true, default: 0, convert: true },
+        curtailmentWindow: { type: 'number', min: 0, max: 24, optional: true, default: 0, convert: true },
+        operatingConstraint: { type: 'string', optional: true },
+        contractStatus: { type: 'string', optional: true },
+        legalStatus: { type: 'string', optional: true },
+        ownerContact: { type: 'string', optional: true },
+        n1ThresholdOverride: {
+          type: 'object',
+          optional: true,
+          default: {},
+          props: {
+            tenant: { type: 'number', optional: true, convert: true },
+            project: { type: 'number', optional: true, convert: true },
+            scenario: { type: 'number', optional: true, convert: true },
+          },
+        },
+      },
+      openapi: {
+        summary: 'Generate Netzfahrplan / fNAV feasibility assessment',
+        tags: ['Netzfahrplan / fNAV'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000143',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00020107',
+        ],
+        description: `Deterministic fNAV feasibility assessment — evaluates whether a flexible Netzanschlussvertrag (§14a EnWG) is a viable alternative to conventional grid expansion.
+
+**Capacity model (Option B):**
+- firmCapacityKW: guaranteed, contractually fixed power
+- flexibleCapacityKW: legally curtailable portion under §14a
+- resultingEffectiveCapacityKW: firm + flexible × (1 − curtailmentFactor)
+
+**N-1 threshold (Option C — hybrid default + override):**
+- Domain defaults: HS=81 MVA, MS=20 MVA, NS=0.63 MVA (env-configurable)
+- tenant/project/scenario overrides are applied in priority order
+- Result always reports thresholdMVA, thresholdSource, and overrideApplied
+
+**Governance (Option B):**
+- Technical feasibility is reported deterministically
+- Final governanceStatus is \`requires_governance_decision\` until legalStatus=approved AND contractStatus=signed`,
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['requestedCapacityKW'],
+                properties: {
+                  gridOperatorId: { type: 'string', description: 'MaStR grid operator ID', example: 'SNB935578300972' },
+                  gridOperatorName: { type: 'string', description: 'Grid operator name', example: 'TWL Netze' },
+                  voltageLevel: { type: 'string', enum: ['NS', 'MS', 'HS'], default: 'MS', description: 'Voltage level of the connection point' },
+                  requestedCapacityKW: { type: 'number', description: 'Requested connection capacity in kW', example: 5000 },
+                  firmCapacityKW: { type: 'number', description: 'Guaranteed firm capacity in kW (defaults to requestedCapacityKW if omitted)', example: 3000 },
+                  flexibleCapacityKW: { type: 'number', default: 0, description: 'Curtailable flex capacity in kW under §14a', example: 2000 },
+                  curtailmentWindow: { type: 'number', default: 0, description: 'Max hours per day the VNB may curtail (0–24)', example: 4 },
+                  operatingConstraint: { type: 'string', description: 'Free-text operating constraint', example: '§14a max 2h/event, 30-min notice' },
+                  contractStatus: { type: 'string', description: 'Contract status', example: 'negotiating' },
+                  legalStatus: { type: 'string', description: 'Legal/regulatory status', example: 'pending' },
+                  ownerContact: { type: 'string', description: 'Responsible owner or contact (required for governance approval)', example: 'netzplanung@twl.de' },
+                  n1ThresholdOverride: {
+                    type: 'object',
+                    example: { project: 78 },
+                    description: 'Override N-1 thresholds (MVA) at tenant/project/scenario level',
+                    properties: {
+                      tenant: { type: 'number', example: 85 },
+                      project: { type: 'number', example: 78 },
+                      scenario: { type: 'number', example: 70 },
+                    },
+                  },
+                },
+              },
+              examples: {
+                'fNAV hybrid MS': {
+                  value: {
+                    gridOperatorName: 'TWL Netze',
+                    voltageLevel: 'MS',
+                    requestedCapacityKW: 5000,
+                    firmCapacityKW: 3000,
+                    flexibleCapacityKW: 2000,
+                    curtailmentWindow: 4,
+                    operatingConstraint: '§14a max 2h/event',
+                    contractStatus: 'negotiating',
+                    legalStatus: 'pending',
+                    ownerContact: 'netzplanung@twl.de',
+                  },
+                },
+                'static cap HS with override': {
+                  value: {
+                    gridOperatorId: 'SNB935578300972',
+                    voltageLevel: 'HS',
+                    requestedCapacityKW: 75000,
+                    firmCapacityKW: 75000,
+                    contractStatus: 'signed',
+                    legalStatus: 'approved',
+                    n1ThresholdOverride: { project: 78 },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'fNAV feasibility assessment result',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capacityModel: { type: 'object', description: 'Normalised capacity model' },
+                    n1Check: { type: 'object', description: 'N-1 compliance result' },
+                    feasibility: { type: 'string', enum: ['feasible', 'conditional', 'copper_needed'], description: 'Technical feasibility verdict' },
+                    governanceStatus: { type: 'string', description: 'Governance decision status' },
+                    governanceBlockers: { type: 'array', items: { type: 'string' } },
+                    findings: { type: 'array', items: { type: 'object' } },
+                    metadata: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const {
+          normaliseFnavProfile,
+          checkN1Compliance,
+          resolveGovernanceStatus,
+          checkEvidenceCompleteness,
+          FNAV_PROFILE_TYPE,
+        } = require('../src/netzfahrplan-schema');
+        const {
+          createFinding,
+          FN_PROFILE_COMPLETE,
+          FN_PROFILE_PARTIAL,
+          FN_PROFILE_INSUFFICIENT,
+          FN_N1_PASS,
+          FN_N1_FAIL,
+          FN_N1_MARGINAL,
+          FN_FLEX_NAV_FEASIBLE,
+          FN_CAPACITY_CONDITIONAL,
+          FN_CAPACITY_COPPER_NEEDED,
+          FN_GOVERNANCE_APPROVED,
+          FN_GOVERNANCE_REQUIRED,
+        } = require('../src/validation-findings');
+
+        const p = ctx.params;
+        const voltageLevel = p.voltageLevel || 'MS';
+
+        // Step 1 — Profile normalisation & evidence check
+        const rawProfile = {
+          requestedCapacity: p.requestedCapacityKW,
+          firmCapacity: p.firmCapacityKW,
+          flexibleCapacity: p.flexibleCapacityKW || 0,
+          curtailmentWindow: p.curtailmentWindow || 0,
+          operatingConstraint: p.operatingConstraint,
+          contractStatus: p.contractStatus,
+          legalStatus: p.legalStatus,
+        };
+        const { evidenceLevel, missingFields } = checkEvidenceCompleteness(rawProfile);
+        rawProfile.evidenceLevel = evidenceLevel;
+
+        const capacityModel = normaliseFnavProfile(rawProfile);
+        const findings = [];
+        let fidx = 1;
+
+        const profileFinding = evidenceLevel === 'complete'
+          ? FN_PROFILE_COMPLETE
+          : evidenceLevel === 'partial'
+            ? FN_PROFILE_PARTIAL
+            : FN_PROFILE_INSUFFICIENT;
+        const profileSeverity = evidenceLevel === 'complete' ? 'info' : evidenceLevel === 'partial' ? 'warning' : 'error';
+        findings.push(createFinding(1, 'profile', profileFinding, profileSeverity,
+          `Evidence level: ${evidenceLevel}`,
+          missingFields.length ? `Missing fields: ${missingFields.join(', ')}` : 'All required fields present.',
+          { evidenceLevel, missingFields }, null, fidx++));
+
+        // Step 2 — N-1 compliance
+        const loadMW = capacityModel.resultingEffectiveCapacityKW / 1000;
+        const n1Overrides = p.n1ThresholdOverride || {};
+        const n1Check = checkN1Compliance(loadMW, voltageLevel, n1Overrides);
+        const MARGINAL_THRESHOLD = 0.85;
+        let n1FindingCode;
+        let n1Severity;
+        if (!n1Check.passes) {
+          n1FindingCode = FN_N1_FAIL; n1Severity = 'error';
+        } else if (n1Check.utilizationPercent >= MARGINAL_THRESHOLD * 100) {
+          n1FindingCode = FN_N1_MARGINAL; n1Severity = 'warning';
+        } else {
+          n1FindingCode = FN_N1_PASS; n1Severity = 'info';
+        }
+        findings.push(createFinding(2, 'n1', n1FindingCode, n1Severity,
+          `N-1: ${n1Check.utilizationPercent}% utilisation (threshold: ${n1Check.thresholdMVA} MVA, source: ${n1Check.thresholdSource})`,
+          n1Check.passes ? `Margin: ${n1Check.marginMW} MW` : `Overload: ${Math.abs(n1Check.marginMW).toFixed(2)} MW above threshold.`,
+          n1Check, 'Adjust firmCapacity or flexibleCapacity to achieve N-1 compliance.', fidx++));
+
+        // Step 3 — fNAV feasibility verdict
+        let feasibility;
+        let feasFinding;
+        let feasSeverity;
+        if (!n1Check.passes && capacityModel.profileType === 'static_cap') {
+          feasibility = 'copper_needed';
+          feasFinding = FN_CAPACITY_COPPER_NEEDED;
+          feasSeverity = 'error';
+        } else if (!n1Check.passes && capacityModel.profileType !== 'static_cap') {
+          feasibility = 'conditional';
+          feasFinding = FN_CAPACITY_CONDITIONAL;
+          feasSeverity = 'warning';
+        } else if (capacityModel.profileType !== FNAV_PROFILE_TYPE.STATIC_CAP) {
+          feasibility = 'feasible';
+          feasFinding = FN_FLEX_NAV_FEASIBLE;
+          feasSeverity = 'info';
+        } else {
+          feasibility = 'feasible';
+          feasFinding = FN_CAPACITY_CONDITIONAL;
+          feasSeverity = 'info';
+        }
+        findings.push(createFinding(3, 'feasibility', feasFinding, feasSeverity,
+          `Technical feasibility: ${feasibility}`,
+          `Profile type: ${capacityModel.profileType}. Effective capacity: ${capacityModel.resultingEffectiveCapacityKW} kW.`,
+          { feasibility, profileType: capacityModel.profileType }, null, fidx++));
+
+        // Step 4 — Governance gate (Option B)
+        const ownerMissing = !p.ownerContact;
+        const { governanceStatus, blockers } = resolveGovernanceStatus(capacityModel, ownerMissing);
+        const govFinding = governanceStatus === 'approved' ? FN_GOVERNANCE_APPROVED : FN_GOVERNANCE_REQUIRED;
+        const govSeverity = governanceStatus === 'approved' ? 'info' : 'warning';
+        findings.push(createFinding(4, 'governance', govFinding, govSeverity,
+          `Governance status: ${governanceStatus}`,
+          blockers.length ? `Blockers: ${blockers.join('; ')}` : 'All governance prerequisites met.',
+          { governanceStatus, blockers, ownerMissing },
+          blockers.length ? 'Obtain legal approval and signed contract before finalising fNAV.' : null,
+          fidx++));
+
+        return {
+          capacityModel,
+          n1Check,
+          feasibility,
+          governanceStatus,
+          governanceBlockers: blockers,
+          findings,
+          metadata: {
+            generatedAt: new Date().toISOString(),
+            voltageLevel,
+            gridOperator: {
+              id: p.gridOperatorId || null,
+              name: p.gridOperatorName || null,
+            },
+          },
+        };
+      },
+    },
   },
 
   methods: {

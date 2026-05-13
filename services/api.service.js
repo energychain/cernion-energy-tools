@@ -575,6 +575,14 @@ module.exports = {
             'Deterministic disturbance-to-investment signal correlation (v0.51.3) using Redispatch, MaStR monitor deltas, and quality findings with confidence-threshold auto-proposals.',
         },
         {
+          name: 'Netzfahrplan / fNAV',
+          description:
+            'Deterministic fNAV feasibility assessment (v0.51.5): capacity model (firm + flexible + curtailment), ' +
+            'N-1 check with hybrid threshold (domain default + tenant/project/scenario override), ' +
+            'technical feasibility verdict, governance gate (Option B: requires_governance_decision until legal + contract prerequisites met), ' +
+            'and TOTEX-based economics with eog-calculator integration.',
+        },
+        {
           name: 'Webhooks',
           description:
             'Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking.',
@@ -1001,6 +1009,10 @@ module.exports = {
           'POST /blindflug-radar/recommendations': 'blindflug-radar.recommendFromDisturbances',
           'GET /blindflug-radar/scans': 'blindflug-radar.listScans',
           'GET /blindflug-radar/scans/:id': 'blindflug-radar.getScan',
+          // Netzfahrplan / fNAV (v0.51.5)
+          'POST /netzfahrplan/generate': 'grid-operations.netzfahrplanGenerate',
+          'POST /grid-connection/fnav/validate': 'grid-connection.fnavValidate',
+          'POST /finance-agent/fnav/economics': 'finance-agent.fnavEconomics',
           // Finance Agent (v0.40.5)
           'POST /finance-agent/analyze': 'finance-agent.analyze',
           'GET /finance-agent/analyses': 'finance-agent.list',

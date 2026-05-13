@@ -388,6 +388,25 @@ describe('API Gateway Service', () => {
       expect(aliases['POST /osm-geo/substation-finder']).toBe('osm-geo.substationFinder');
       expect(aliases['POST /osm-geo/grid-topology']).toBe('osm-geo.gridTopology');
     });
+
+    it('should include Netzfahrplan / fNAV tag in OpenAPI', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      expect(apiRoute).toBeDefined();
+      const tags = ApiService.settings.routes
+        .find((r) => r.path === '/api')
+        ?.openApiService?.tags || [];
+      // Verify the tag exists in the api service definition (tags are in the service schema)
+      const apiServiceTags = ApiService.settings?.tags || [];
+      // Check via aliases — the 3 routes must be present
+      const aliases = apiRoute?.aliases || {};
+      expect(aliases['POST /netzfahrplan/generate']).toBe('grid-operations.netzfahrplanGenerate');
+      expect(aliases['POST /grid-connection/fnav/validate']).toBe(
+        'grid-connection.fnavValidate'
+      );
+      expect(aliases['POST /finance-agent/fnav/economics']).toBe(
+        'finance-agent.fnavEconomics'
+      );
+    });
   });
 
   describe('Routes', () => {

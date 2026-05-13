@@ -9,7 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
-## [0.51.4] — PR #102 Qualitäts- und Routing-Fixes
+## [0.51.5] — Phase 5: Netzfahrplan / fNAV als Alternative zu Kupferausbau
+
+### Added
+- **`src/netzfahrplan-schema.js`** — Deterministic fNAV capacity model (Phase 5, Option B):
+  - `normaliseFnavProfile()` — computes `profileType` (static_cap | dynamic_flex | hybrid) and `resultingEffectiveCapacityKW = firmKW + flexKW × (1 − curtailmentFactor)`.
+  - `resolveN1Threshold()` — hybrid N-1 gate (Option C): domain defaults HS=81 MVA / MS=20 MVA / NS=0.63 MVA (env-overridable), priority: scenario → project → tenant → domain default. Result always exposes `thresholdMVA`, `thresholdSource`, `overrideApplied`.
+  - `checkN1Compliance()` — returns `{ passes, utilizationPercent, marginMW, thresholdMVA, thresholdSource, overrideApplied }`.
+  - `resolveGovernanceStatus()` — Option B mandatory governance blocker: final status is `requires_governance_decision` until `contractStatus=signed` AND `legalStatus=approved` AND `ownerContact` present.
+  - `checkEvidenceCompleteness()` — returns `evidenceLevel` (complete | partial | insufficient) with `missingFields`.
+- **`src/validation-findings.js`** — 13 new `FN_*` finding codes (total: 105): `FN_PROFILE_COMPLETE`, `FN_PROFILE_PARTIAL`, `FN_PROFILE_INSUFFICIENT`, `FN_N1_PASS`, `FN_N1_FAIL`, `FN_N1_MARGINAL`, `FN_FLEX_NAV_FEASIBLE`, `FN_CAPACITY_CONDITIONAL`, `FN_CAPACITY_COPPER_NEEDED`, `FN_GOVERNANCE_APPROVED`, `FN_GOVERNANCE_REQUIRED`, `FN_ECONOMICS_AVAILABLE`, `FN_ECONOMICS_PARTIAL`. All with `agent: 'netzfahrplan'` metadata in EN+DE.
+- **`services/grid-operations.service.js`** — new action `netzfahrplanGenerate` (`POST /api/netzfahrplan/generate`): stateless 4-step pipeline (profile → N-1 → feasibility → governance), returns `{ capacityModel, n1Check, feasibility, governanceStatus, governanceBlockers, findings, metadata }`.
+- **`services/grid-connection.service.js`** — new action `fnavValidate` (`POST /api/grid-connection/fnav/validate`): delegates to `netzfahrplanGenerate`, adds `source: 'grid-connection.fnavValidate'`. Integrates fNAV validation into the grid connection pipeline.
+- **`services/finance-agent.service.js`** — new action `fnavEconomics` (`POST /api/finance-agent/fnav/economics`): tries `eog-calculator.capexEstimate` first (source=`eog_calculator`), falls back to parametric estimate (300 €/kW MS / 200 NS / 500 HS, source=`parametric_fallback`). Supports `avoidedCapexOverrideEur` (source=`override`). Computes `paybackYears`, `sensitivityFlags`. Governance gate applied (Option B).
+- **`services/api.service.js`** — `Netzfahrplan / fNAV` OpenAPI tag + 3 explicit route aliases.
+- **`tests/netzfahrplan-schema.test.js`** — 22 unit tests covering all schema functions.
+- **`tests/netzfahrplan-integration.test.js`** — 9 integration tests: happy path, governance blocker, N-1 fail, override, fnavValidate delegation, fnavEconomics with and without eog-calculator, avoidedCapexOverride.
+
+### Changed
+- **`tests/dashboard-api.test.js`** — added `'netzfahrplan'` to `VALID_AGENTS` list.
+- **`tests/api.service.test.js`** — added `Netzfahrplan / fNAV` route alias regression test.
+- **`package.json`** — bumped version to `0.51.5`.
+
+
 
 ### Fixed
 - [services/blindflug-radar.service.js](services/blindflug-radar.service.js): removed unused `MoleculerClientError` import to resolve code-quality findings.

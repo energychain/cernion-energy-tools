@@ -913,6 +913,7 @@ describe('dashboard-api.service', () => {
         'finance-agent',
         'vdmi',
         'blindflug-radar',
+        'netzfahrplan',
       ];
 
       for (const [, meta] of Object.entries(result.codes)) {

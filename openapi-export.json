@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.51.3",
+    "version": "0.51.5",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -147,6 +147,10 @@
       "description": "Deterministic disturbance-to-investment signal correlation (v0.51.3) using Redispatch, MaStR monitor deltas, and quality findings with confidence-threshold auto-proposals."
     },
     {
+      "name": "Netzfahrplan / fNAV",
+      "description": "Deterministic fNAV feasibility assessment (v0.51.5): capacity model (firm + flexible + curtailment), N-1 check with hybrid threshold (domain default + tenant/project/scenario override), technical feasibility verdict, governance gate (Option B: requires_governance_decision until legal + contract prerequisites met), and TOTEX-based economics with eog-calculator integration."
+    },
+    {
       "name": "Webhooks",
       "description": "Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking."
     },
@@ -156,6 +160,82 @@
     }
   ],
   "paths": {
+    "/api/blindflug-radar/scan": {
+      "post": {
+        "operationId": "blindflug-radar_scanBlindflug",
+        "summary": "Scan disturbance patterns and generate Blindflug-Radar signals",
+        "tags": [
+          "Blindflug Radar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Collects Redispatch Ex-Post audits, MaStR monitor deltas, and quality findings, then builds deterministic disturbance signals (`DISTURBANCE_PATTERN`, `REPEATING_FAULT`) for investment-oriented planning.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "gridOperatorId": {
+                    "type": "string",
+                    "example": "SNB123456789000"
+                  },
+                  "projectId": {
+                    "type": "string",
+                    "example": "a1b2c3d4-0000-0000-0000-000000000001"
+                  },
+                  "watchIds": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                      "type": "string",
+                      "example": "twl-monitor-main"
+                    }
+                  },
+                  "timeWindowDays": {
+                    "type": "number",
+                    "default": 90
+                  },
+                  "minEvents": {
+                    "type": "number",
+                    "default": 3
+                  },
+                  "confidenceThreshold": {
+                    "type": "number",
+                    "default": 0.7
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "gridOperatorId": "SNB123456789000",
+                    "projectId": "a1b2c3d4-0000-0000-0000-000000000001",
+                    "watchIds": [
+                      "twl-monitor-main"
+                    ],
+                    "timeWindowDays": 90,
+                    "minEvents": 3,
+                    "confidenceThreshold": 0.72
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/openapi.json": {
       "get": {
         "operationId": "api_openapi",
@@ -8521,82 +8601,6 @@
         ]
       }
     },
-    "/api/blindflug-radar/scan": {
-      "post": {
-        "operationId": "blindflug-radar_scanBlindflug",
-        "summary": "Scan disturbance patterns and generate Blindflug-Radar signals",
-        "tags": [
-          "Blindflug Radar"
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object"
-                }
-              }
-            }
-          }
-        },
-        "description": "Collects Redispatch Ex-Post audits, MaStR monitor deltas, and quality findings, then builds deterministic disturbance signals (`DISTURBANCE_PATTERN`, `REPEATING_FAULT`) for investment-oriented planning.",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "gridOperatorId": {
-                    "type": "string",
-                    "example": "SNB123456789000"
-                  },
-                  "projectId": {
-                    "type": "string",
-                    "example": "a1b2c3d4-0000-0000-0000-000000000001"
-                  },
-                  "watchIds": {
-                    "type": "array",
-                    "default": [],
-                    "items": {
-                      "type": "string",
-                      "example": "twl-monitor-main"
-                    }
-                  },
-                  "timeWindowDays": {
-                    "type": "number",
-                    "default": 90
-                  },
-                  "minEvents": {
-                    "type": "number",
-                    "default": 3
-                  },
-                  "confidenceThreshold": {
-                    "type": "number",
-                    "default": 0.7
-                  }
-                }
-              },
-              "examples": {
-                "default": {
-                  "value": {
-                    "gridOperatorId": "SNB123456789000",
-                    "projectId": "a1b2c3d4-0000-0000-0000-000000000001",
-                    "watchIds": [
-                      "twl-monitor-main"
-                    ],
-                    "timeWindowDays": 90,
-                    "minEvents": 3,
-                    "confidenceThreshold": 0.72
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/blindflug-radar/recommendations": {
       "post": {
         "operationId": "blindflug-radar_recommendFromDisturbances",
@@ -8715,6 +8719,553 @@
               "example": "c73c2f77-5535-4ca4-a5cc-9038a6a75d9f"
             }
           }
+        ]
+      }
+    },
+    "/api/netzfahrplan/generate": {
+      "post": {
+        "operationId": "grid-operations_netzfahrplanGenerate",
+        "summary": "Generate Netzfahrplan / fNAV feasibility assessment",
+        "tags": [
+          "Netzfahrplan / fNAV"
+        ],
+        "responses": {
+          "200": {
+            "description": "fNAV feasibility assessment result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capacityModel": {
+                      "type": "object",
+                      "description": "Normalised capacity model"
+                    },
+                    "n1Check": {
+                      "type": "object",
+                      "description": "N-1 compliance result"
+                    },
+                    "feasibility": {
+                      "type": "string",
+                      "enum": [
+                        "feasible",
+                        "conditional",
+                        "copper_needed"
+                      ],
+                      "description": "Technical feasibility verdict"
+                    },
+                    "governanceStatus": {
+                      "type": "string",
+                      "description": "Governance decision status"
+                    },
+                    "governanceBlockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "findings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "metadata": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Deterministic fNAV feasibility assessment — evaluates whether a flexible Netzanschlussvertrag (§14a EnWG) is a viable alternative to conventional grid expansion.\n\n**Capacity model (Option B):**\n- firmCapacityKW: guaranteed, contractually fixed power\n- flexibleCapacityKW: legally curtailable portion under §14a\n- resultingEffectiveCapacityKW: firm + flexible × (1 − curtailmentFactor)\n\n**N-1 threshold (Option C — hybrid default + override):**\n- Domain defaults: HS=81 MVA, MS=20 MVA, NS=0.63 MVA (env-configurable)\n- tenant/project/scenario overrides are applied in priority order\n- Result always reports thresholdMVA, thresholdSource, and overrideApplied\n\n**Governance (Option B):**\n- Technical feasibility is reported deterministically\n- Final governanceStatus is `requires_governance_decision` until legalStatus=approved AND contractStatus=signed",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "requestedCapacityKW"
+                ],
+                "properties": {
+                  "gridOperatorId": {
+                    "type": "string",
+                    "description": "MaStR grid operator ID",
+                    "example": "SNB935578300972"
+                  },
+                  "gridOperatorName": {
+                    "type": "string",
+                    "description": "Grid operator name",
+                    "example": "TWL Netze"
+                  },
+                  "voltageLevel": {
+                    "type": "string",
+                    "enum": [
+                      "NS",
+                      "MS",
+                      "HS"
+                    ],
+                    "default": "MS",
+                    "description": "Voltage level of the connection point"
+                  },
+                  "requestedCapacityKW": {
+                    "type": "number",
+                    "description": "Requested connection capacity in kW",
+                    "example": 5000
+                  },
+                  "firmCapacityKW": {
+                    "type": "number",
+                    "description": "Guaranteed firm capacity in kW (defaults to requestedCapacityKW if omitted)",
+                    "example": 3000
+                  },
+                  "flexibleCapacityKW": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Curtailable flex capacity in kW under §14a",
+                    "example": 2000
+                  },
+                  "curtailmentWindow": {
+                    "type": "number",
+                    "default": 0,
+                    "description": "Max hours per day the VNB may curtail (0–24)",
+                    "example": 4
+                  },
+                  "operatingConstraint": {
+                    "type": "string",
+                    "description": "Free-text operating constraint",
+                    "example": "§14a max 2h/event, 30-min notice"
+                  },
+                  "contractStatus": {
+                    "type": "string",
+                    "description": "Contract status",
+                    "example": "negotiating"
+                  },
+                  "legalStatus": {
+                    "type": "string",
+                    "description": "Legal/regulatory status",
+                    "example": "pending"
+                  },
+                  "ownerContact": {
+                    "type": "string",
+                    "description": "Responsible owner or contact (required for governance approval)",
+                    "example": "netzplanung@twl.de"
+                  },
+                  "n1ThresholdOverride": {
+                    "type": "object",
+                    "example": {
+                      "project": 78
+                    },
+                    "description": "Override N-1 thresholds (MVA) at tenant/project/scenario level",
+                    "properties": {
+                      "tenant": {
+                        "type": "number",
+                        "example": 85
+                      },
+                      "project": {
+                        "type": "number",
+                        "example": 78
+                      },
+                      "scenario": {
+                        "type": "number",
+                        "example": 70
+                      }
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "fNAV hybrid MS": {
+                  "value": {
+                    "gridOperatorName": "TWL Netze",
+                    "voltageLevel": "MS",
+                    "requestedCapacityKW": 5000,
+                    "firmCapacityKW": 3000,
+                    "flexibleCapacityKW": 2000,
+                    "curtailmentWindow": 4,
+                    "operatingConstraint": "§14a max 2h/event",
+                    "contractStatus": "negotiating",
+                    "legalStatus": "pending",
+                    "ownerContact": "netzplanung@twl.de"
+                  }
+                },
+                "static cap HS with override": {
+                  "value": {
+                    "gridOperatorId": "SNB935578300972",
+                    "voltageLevel": "HS",
+                    "requestedCapacityKW": 75000,
+                    "firmCapacityKW": 75000,
+                    "contractStatus": "signed",
+                    "legalStatus": "approved",
+                    "n1ThresholdOverride": {
+                      "project": 78
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143",
+          "https://openenergyplatform.org/ontology/oeo/OEO_00020107"
+        ]
+      }
+    },
+    "/api/grid-connection/fnav/validate": {
+      "post": {
+        "operationId": "grid-connection_fnavValidate",
+        "summary": "Validate fNAV profile against grid connection capacity (Phase 5)",
+        "tags": [
+          "Netzfahrplan / fNAV"
+        ],
+        "responses": {
+          "200": {
+            "description": "fNAV validation result with capacity model, N-1 check, and governance status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "capacityModel": {
+                      "type": "object",
+                      "description": "Normalised fNAV capacity model"
+                    },
+                    "n1Check": {
+                      "type": "object",
+                      "description": "N-1 compliance result"
+                    },
+                    "feasibility": {
+                      "type": "string",
+                      "enum": [
+                        "feasible",
+                        "conditional",
+                        "copper_needed"
+                      ]
+                    },
+                    "governanceStatus": {
+                      "type": "string"
+                    },
+                    "governanceBlockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "findings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "metadata": {
+                      "type": "object"
+                    },
+                    "source": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Applies the fNAV capacity model (§14a EnWG) for a proposed grid connection. Runs N-1 compliance check with hybrid threshold (Option C: domain default + tenant/project/scenario override). Reports technical feasibility and enforces governance gate (Option B: final status is requires_governance_decision until legalStatus=approved AND contractStatus=signed). Delegates to grid-operations.netzfahrplanGenerate for the deterministic core.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fnavProfile"
+                ],
+                "properties": {
+                  "gridOperatorName": {
+                    "type": "string",
+                    "example": "TWL Netze"
+                  },
+                  "voltageLevel": {
+                    "type": "string",
+                    "enum": [
+                      "NS",
+                      "MS",
+                      "HS"
+                    ],
+                    "default": "MS",
+                    "description": "Voltage level of the connection point"
+                  },
+                  "fnavProfile": {
+                    "type": "object",
+                    "example": {
+                      "requestedCapacity": 5000,
+                      "firmCapacity": 3000,
+                      "flexibleCapacity": 2000,
+                      "curtailmentWindow": 4,
+                      "contractStatus": "negotiating",
+                      "legalStatus": "pending"
+                    },
+                    "required": [
+                      "requestedCapacity"
+                    ],
+                    "properties": {
+                      "requestedCapacity": {
+                        "type": "number",
+                        "example": 5000,
+                        "description": "Requested capacity in kW"
+                      },
+                      "firmCapacity": {
+                        "type": "number",
+                        "example": 3000,
+                        "description": "Guaranteed firm capacity in kW"
+                      },
+                      "flexibleCapacity": {
+                        "type": "number",
+                        "example": 2000,
+                        "description": "Curtailable §14a flex capacity in kW"
+                      },
+                      "curtailmentWindow": {
+                        "type": "number",
+                        "example": 4,
+                        "description": "Max curtailment hours per day (0–24)"
+                      },
+                      "operatingConstraint": {
+                        "type": "string",
+                        "example": "§14a max 2h/event"
+                      },
+                      "contractStatus": {
+                        "type": "string",
+                        "example": "negotiating"
+                      },
+                      "legalStatus": {
+                        "type": "string",
+                        "example": "pending"
+                      }
+                    }
+                  },
+                  "n1ThresholdOverride": {
+                    "type": "object",
+                    "example": {
+                      "project": 78
+                    },
+                    "description": "Override N-1 threshold (MVA) at tenant/project/scenario level",
+                    "properties": {
+                      "tenant": {
+                        "type": "number",
+                        "example": 85
+                      },
+                      "project": {
+                        "type": "number",
+                        "example": 78
+                      },
+                      "scenario": {
+                        "type": "number",
+                        "example": 70
+                      }
+                    }
+                  },
+                  "ownerContact": {
+                    "type": "string",
+                    "example": "netzplanung@twl.de",
+                    "description": "Responsible owner — required for governance approval"
+                  }
+                }
+              },
+              "examples": {
+                "fNAV hybrid MS": {
+                  "value": {
+                    "gridOperatorName": "TWL Netze",
+                    "voltageLevel": "MS",
+                    "fnavProfile": {
+                      "requestedCapacity": 5000,
+                      "firmCapacity": 3000,
+                      "flexibleCapacity": 2000,
+                      "curtailmentWindow": 4,
+                      "contractStatus": "signed",
+                      "legalStatus": "approved"
+                    },
+                    "ownerContact": "netzplanung@twl.de"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143",
+          "https://openenergyplatform.org/ontology/oeo/OEO_00020107"
+        ]
+      }
+    },
+    "/api/finance-agent/fnav/economics": {
+      "post": {
+        "operationId": "finance-agent_fnavEconomics",
+        "summary": "Calculate fNAV economics: avoided CAPEX, annual fee, payback (Phase 5)",
+        "tags": [
+          "Netzfahrplan / fNAV"
+        ],
+        "responses": {
+          "200": {
+            "description": "fNAV economics result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "avoidedCopperCapexEur": {
+                      "type": "number"
+                    },
+                    "annualFeeEur": {
+                      "type": "number"
+                    },
+                    "paybackYears": {
+                      "type": "number"
+                    },
+                    "capexSource": {
+                      "type": "string",
+                      "enum": [
+                        "eog_calculator",
+                        "parametric_fallback",
+                        "override"
+                      ]
+                    },
+                    "sensitivityFlags": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "governanceStatus": {
+                      "type": "string"
+                    },
+                    "governanceBlockers": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "findings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "metadata": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Deterministic fNAV economics assessment. Computes:\n- avoidedCopperCapexEur: cost of conventional grid expansion avoided by fNAV\n- annualFeeEur: recurring cost of the fNAV contract\n- paybackYears: avoidedCapex / annualFee\n- sensitivityFlags: qualitative flags for high uncertainty inputs\n\nOption B: calls eog-calculator.capexEstimate for TOTEX-based CAPEX reference; if unavailable, uses parametric fallback (FN_ECONOMICS_PARTIAL).\n\nGovernance Option B: governanceStatus is always requires_governance_decision until legalStatus=approved AND contractStatus=signed.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fnavProfile"
+                ],
+                "properties": {
+                  "fnavProfile": {
+                    "type": "object",
+                    "example": {
+                      "requestedCapacity": 5000,
+                      "firmCapacity": 3000,
+                      "flexibleCapacity": 2000,
+                      "curtailmentWindow": 4,
+                      "contractStatus": "negotiating",
+                      "legalStatus": "pending"
+                    },
+                    "required": [
+                      "requestedCapacity"
+                    ],
+                    "properties": {
+                      "requestedCapacity": {
+                        "type": "number",
+                        "example": 5000,
+                        "description": "Requested capacity kW"
+                      },
+                      "firmCapacity": {
+                        "type": "number",
+                        "example": 3000
+                      },
+                      "flexibleCapacity": {
+                        "type": "number",
+                        "example": 2000
+                      },
+                      "curtailmentWindow": {
+                        "type": "number",
+                        "example": 4
+                      },
+                      "contractStatus": {
+                        "type": "string",
+                        "example": "negotiating"
+                      },
+                      "legalStatus": {
+                        "type": "string",
+                        "example": "pending"
+                      }
+                    }
+                  },
+                  "voltageLevel": {
+                    "type": "string",
+                    "enum": [
+                      "NS",
+                      "MS",
+                      "HS"
+                    ],
+                    "default": "MS"
+                  },
+                  "gridOperator": {
+                    "type": "string",
+                    "example": "TWL Netze",
+                    "description": "Used for eog-calculator lookup"
+                  },
+                  "annualFeeEur": {
+                    "type": "number",
+                    "example": 12000,
+                    "description": "Annual fNAV contract fee (EUR/yr)"
+                  },
+                  "ownerContact": {
+                    "type": "string",
+                    "example": "netzplanung@twl.de"
+                  },
+                  "avoidedCapexOverrideEur": {
+                    "type": "number",
+                    "example": 1500000,
+                    "description": "Override avoided CAPEX (EUR)"
+                  }
+                }
+              },
+              "examples": {
+                "fNAV economics — TWL Netze MS": {
+                  "value": {
+                    "fnavProfile": {
+                      "requestedCapacity": 5000,
+                      "firmCapacity": 3000,
+                      "flexibleCapacity": 2000,
+                      "curtailmentWindow": 4,
+                      "contractStatus": "signed",
+                      "legalStatus": "approved"
+                    },
+                    "voltageLevel": "MS",
+                    "gridOperator": "TWL Netze",
+                    "annualFeeEur": 15000,
+                    "ownerContact": "netzplanung@twl.de"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143",
+          "https://openenergyplatform.org/ontology/oeo/OEO_00140090"
         ]
       }
     },
@@ -20293,5 +20844,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.51.3"
+  "x-version": "0.51.5"
 }

@@ -703,6 +703,233 @@ module.exports = {
         return { success: true, id, ...report };
       },
     },
+
+    // -----------------------------------------------------------------------
+    // Phase 5 — fNAV Economics (v0.51.5)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Deterministic fNAV economics: avoided CAPEX, annual fee, payback years.
+     * Option B: calls eog-calculator for TOTEX if available; falls back to
+     * a parametric estimate if the service is unreachable.
+     * Governance Option B: result always includes governanceStatus — final decision
+     * requires_governance_decision until legal + contract prerequisites are met.
+     */
+    fnavEconomics: {
+      rest: 'POST /fnav/economics',
+      timeout: 60_000,
+      params: {
+        fnavProfile: {
+          type: 'object',
+          props: {
+            requestedCapacity: { type: 'number', min: 0, convert: true },
+            firmCapacity: { type: 'number', min: 0, optional: true, convert: true },
+            flexibleCapacity: { type: 'number', min: 0, optional: true, default: 0, convert: true },
+            curtailmentWindow: { type: 'number', min: 0, max: 24, optional: true, default: 0, convert: true },
+            contractStatus: { type: 'string', optional: true },
+            legalStatus: { type: 'string', optional: true },
+          },
+        },
+        voltageLevel: { type: 'enum', values: ['NS', 'MS', 'HS'], optional: true, default: 'MS' },
+        gridOperator: { type: 'string', optional: true },
+        annualFeeEur: { type: 'number', min: 0, optional: true, convert: true },
+        ownerContact: { type: 'string', optional: true },
+        // Optional raw CAPEX override (e.g. from own cost model)
+        avoidedCapexOverrideEur: { type: 'number', min: 0, optional: true, convert: true },
+      },
+      openapi: {
+        summary: 'Calculate fNAV economics: avoided CAPEX, annual fee, payback (Phase 5)',
+        description:
+          'Deterministic fNAV economics assessment. Computes:\n' +
+          '- avoidedCopperCapexEur: cost of conventional grid expansion avoided by fNAV\n' +
+          '- annualFeeEur: recurring cost of the fNAV contract\n' +
+          '- paybackYears: avoidedCapex / annualFee\n' +
+          '- sensitivityFlags: qualitative flags for high uncertainty inputs\n\n' +
+          'Option B: calls eog-calculator.capexEstimate for TOTEX-based CAPEX reference; ' +
+          'if unavailable, uses parametric fallback (FN_ECONOMICS_PARTIAL).\n\n' +
+          'Governance Option B: governanceStatus is always requires_governance_decision ' +
+          'until legalStatus=approved AND contractStatus=signed.',
+        tags: ['Netzfahrplan / fNAV'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000143',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00140090',
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['fnavProfile'],
+                properties: {
+                  fnavProfile: {
+                    type: 'object',
+                    example: { requestedCapacity: 5000, firmCapacity: 3000, flexibleCapacity: 2000, curtailmentWindow: 4, contractStatus: 'negotiating', legalStatus: 'pending' },
+                    required: ['requestedCapacity'],
+                    properties: {
+                      requestedCapacity: { type: 'number', example: 5000, description: 'Requested capacity kW' },
+                      firmCapacity: { type: 'number', example: 3000 },
+                      flexibleCapacity: { type: 'number', example: 2000 },
+                      curtailmentWindow: { type: 'number', example: 4 },
+                      contractStatus: { type: 'string', example: 'negotiating' },
+                      legalStatus: { type: 'string', example: 'pending' },
+                    },
+                  },
+                  voltageLevel: { type: 'string', enum: ['NS', 'MS', 'HS'], default: 'MS' },
+                  gridOperator: { type: 'string', example: 'TWL Netze', description: 'Used for eog-calculator lookup' },
+                  annualFeeEur: { type: 'number', example: 12000, description: 'Annual fNAV contract fee (EUR/yr)' },
+                  ownerContact: { type: 'string', example: 'netzplanung@twl.de' },
+                  avoidedCapexOverrideEur: { type: 'number', example: 1500000, description: 'Override avoided CAPEX (EUR)' },
+                },
+              },
+              examples: {
+                'fNAV economics — TWL Netze MS': {
+                  value: {
+                    fnavProfile: { requestedCapacity: 5000, firmCapacity: 3000, flexibleCapacity: 2000, curtailmentWindow: 4, contractStatus: 'signed', legalStatus: 'approved' },
+                    voltageLevel: 'MS',
+                    gridOperator: 'TWL Netze',
+                    annualFeeEur: 15000,
+                    ownerContact: 'netzplanung@twl.de',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'fNAV economics result',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    avoidedCopperCapexEur: { type: 'number' },
+                    annualFeeEur: { type: 'number' },
+                    paybackYears: { type: 'number' },
+                    capexSource: { type: 'string', enum: ['eog_calculator', 'parametric_fallback', 'override'] },
+                    sensitivityFlags: { type: 'array', items: { type: 'string' } },
+                    governanceStatus: { type: 'string' },
+                    governanceBlockers: { type: 'array', items: { type: 'string' } },
+                    findings: { type: 'array', items: { type: 'object' } },
+                    metadata: { type: 'object' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const {
+          normaliseFnavProfile,
+          resolveGovernanceStatus,
+          checkEvidenceCompleteness,
+        } = require('../src/netzfahrplan-schema');
+        const {
+          createFinding,
+          FN_ECONOMICS_AVAILABLE,
+          FN_ECONOMICS_PARTIAL,
+          FN_GOVERNANCE_APPROVED,
+          FN_GOVERNANCE_REQUIRED,
+        } = require('../src/validation-findings');
+
+        const p = ctx.params;
+        const callOpts = { meta: { ...ctx.meta, $gateway: false } };
+        const findings = [];
+        let fidx = 1;
+
+        // Normalise the fNAV profile
+        const { evidenceLevel } = checkEvidenceCompleteness(p.fnavProfile);
+        const capacityModel = normaliseFnavProfile({ ...p.fnavProfile, evidenceLevel });
+        const requestedMW = capacityModel.requestedCapacityKW / 1000;
+        const voltageLevel = p.voltageLevel || 'MS';
+
+        // --- Avoided CAPEX calculation ---
+        let avoidedCopperCapexEur = null;
+        let capexSource = 'parametric_fallback';
+        const sensitivityFlags = [];
+
+        if (p.avoidedCapexOverrideEur != null) {
+          avoidedCopperCapexEur = p.avoidedCapexOverrideEur;
+          capexSource = 'override';
+        } else {
+          // Option B: try eog-calculator first
+          try {
+            const eogResult = await ctx.call(
+              'eog-calculator.capexEstimate',
+              { gridOperator: p.gridOperator, voltageLevel, capacityMW: requestedMW },
+              callOpts
+            );
+            const capex = eogResult?.capexEur ?? eogResult?.data?.capexEur;
+            if (capex != null && capex > 0) {
+              avoidedCopperCapexEur = capex;
+              capexSource = 'eog_calculator';
+            }
+          } catch (_) {
+            // eog-calculator not reachable — fall through to parametric
+          }
+
+          // Parametric fallback: ~300 EUR/kW for MS, ~200 EUR/kW for NS, ~500 EUR/kW for HS
+          if (avoidedCopperCapexEur == null) {
+            const EUR_PER_KW = { NS: 200, MS: 300, HS: 500 };
+            const rate = EUR_PER_KW[voltageLevel] || EUR_PER_KW.MS;
+            avoidedCopperCapexEur = requestedMW * 1000 * rate;
+            capexSource = 'parametric_fallback';
+            sensitivityFlags.push('parametric_capex_estimate — validate with actual grid expansion cost');
+          }
+        }
+
+        // Annual fee default: 1% of avoided CAPEX if not provided
+        const annualFeeEur = p.annualFeeEur ?? avoidedCopperCapexEur * 0.01;
+        const paybackYears = annualFeeEur > 0
+          ? parseFloat((avoidedCopperCapexEur / annualFeeEur).toFixed(1))
+          : null;
+
+        if (paybackYears == null) sensitivityFlags.push('annualFeeEur is 0 — payback undefined');
+        if (capacityModel.curtailmentFactor > 0.25) sensitivityFlags.push('high curtailment factor (>25%) — effective capacity significantly reduced');
+        if (evidenceLevel === 'partial') sensitivityFlags.push('partial evidence — economics are indicative only');
+        if (evidenceLevel === 'insufficient') sensitivityFlags.push('insufficient evidence — economics are not reliable');
+
+        const econFinding = capexSource === 'eog_calculator'
+          ? FN_ECONOMICS_AVAILABLE
+          : FN_ECONOMICS_PARTIAL;
+        const econSeverity = capexSource === 'eog_calculator' ? 'info' : 'warning';
+        findings.push(createFinding(5, 'economics', econFinding, econSeverity,
+          `Avoided CAPEX: ${Math.round(avoidedCopperCapexEur).toLocaleString('de-DE')} EUR | Payback: ${paybackYears != null ? paybackYears + ' yr' : 'n/a'}`,
+          `Source: ${capexSource}. Annual fee: ${Math.round(annualFeeEur).toLocaleString('de-DE')} EUR/yr.`,
+          { avoidedCopperCapexEur, annualFeeEur, paybackYears, capexSource, sensitivityFlags },
+          sensitivityFlags.length ? 'Review sensitivity flags before presenting to decision-makers.' : null,
+          fidx++));
+
+        // Governance gate (Option B)
+        const ownerMissing = !p.ownerContact;
+        const { governanceStatus, blockers } = resolveGovernanceStatus(capacityModel, ownerMissing);
+        const govFinding = governanceStatus === 'approved' ? FN_GOVERNANCE_APPROVED : FN_GOVERNANCE_REQUIRED;
+        findings.push(createFinding(5, 'governance', govFinding, governanceStatus === 'approved' ? 'info' : 'warning',
+          `Governance status: ${governanceStatus}`,
+          blockers.length ? `Blockers: ${blockers.join('; ')}` : 'All prerequisites met.',
+          { governanceStatus, blockers }, null, fidx++));
+
+        return {
+          avoidedCopperCapexEur: parseFloat(avoidedCopperCapexEur.toFixed(2)),
+          annualFeeEur: parseFloat(annualFeeEur.toFixed(2)),
+          paybackYears,
+          capexSource,
+          sensitivityFlags,
+          governanceStatus,
+          governanceBlockers: blockers,
+          findings,
+          metadata: {
+            generatedAt: new Date().toISOString(),
+            voltageLevel,
+            requestedCapacityKW: capacityModel.requestedCapacityKW,
+            resultingEffectiveCapacityKW: capacityModel.resultingEffectiveCapacityKW,
+            gridOperator: p.gridOperator || null,
+          },
+        };
+      },
+    },
   },
 
   methods: {

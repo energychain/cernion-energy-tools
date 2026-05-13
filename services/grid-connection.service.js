@@ -441,6 +441,182 @@ module.exports = {
         }
       },
     },
+
+    // -----------------------------------------------------------------------
+    // Phase 5 — fNAV Validation (v0.51.5)
+    // -----------------------------------------------------------------------
+
+    /**
+     * Validate an fNAV profile against grid connection capacity.
+     * Delegates to grid-operations.netzfahrplanGenerate (deterministic core).
+     */
+    fnavValidate: {
+      rest: 'POST /fnav/validate',
+      timeout: 60_000,
+      params: {
+        gridOperatorId: { type: 'string', optional: true },
+        gridOperatorBdew: { type: 'string', optional: true },
+        gridOperatorName: { type: 'string', optional: true },
+        fnavProfile: {
+          type: 'object',
+          props: {
+            requestedCapacity: { type: 'number', min: 0, convert: true },
+            firmCapacity: { type: 'number', min: 0, optional: true, convert: true },
+            flexibleCapacity: { type: 'number', min: 0, optional: true, default: 0, convert: true },
+            curtailmentWindow: { type: 'number', min: 0, max: 24, optional: true, default: 0, convert: true },
+            operatingConstraint: { type: 'string', optional: true },
+            contractStatus: { type: 'string', optional: true },
+            legalStatus: { type: 'string', optional: true },
+            evidenceLevel: { type: 'string', optional: true },
+          },
+        },
+        voltageLevel: { type: 'enum', values: ['NS', 'MS', 'HS'], optional: true, default: 'MS' },
+        n1ThresholdOverride: {
+          type: 'object', optional: true,
+          props: {
+            tenant: { type: 'number', optional: true, convert: true },
+            project: { type: 'number', optional: true, convert: true },
+            scenario: { type: 'number', optional: true, convert: true },
+          },
+        },
+        ownerContact: { type: 'string', optional: true },
+      },
+      openapi: {
+        summary: 'Validate fNAV profile against grid connection capacity (Phase 5)',
+        description:
+          'Applies the fNAV capacity model (§14a EnWG) for a proposed grid connection. ' +
+          'Runs N-1 compliance check with hybrid threshold (Option C: domain default + ' +
+          'tenant/project/scenario override). Reports technical feasibility and enforces ' +
+          'governance gate (Option B: final status is requires_governance_decision until ' +
+          'legalStatus=approved AND contractStatus=signed). ' +
+          'Delegates to grid-operations.netzfahrplanGenerate for the deterministic core.',
+        tags: ['Netzfahrplan / fNAV'],
+        'x-oeo-class': [
+          'https://openenergyplatform.org/ontology/oeo/OEO_00000143',
+          'https://openenergyplatform.org/ontology/oeo/OEO_00020107',
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['fnavProfile'],
+                properties: {
+                  gridOperatorName: { type: 'string', example: 'TWL Netze' },
+                  voltageLevel: {
+                    type: 'string',
+                    enum: ['NS', 'MS', 'HS'],
+                    default: 'MS',
+                    description: 'Voltage level of the connection point',
+                  },
+                  fnavProfile: {
+                    type: 'object',
+                    example: { requestedCapacity: 5000, firmCapacity: 3000, flexibleCapacity: 2000, curtailmentWindow: 4, contractStatus: 'negotiating', legalStatus: 'pending' },
+                    required: ['requestedCapacity'],
+                    properties: {
+                      requestedCapacity: { type: 'number', example: 5000, description: 'Requested capacity in kW' },
+                      firmCapacity: { type: 'number', example: 3000, description: 'Guaranteed firm capacity in kW' },
+                      flexibleCapacity: { type: 'number', example: 2000, description: 'Curtailable §14a flex capacity in kW' },
+                      curtailmentWindow: { type: 'number', example: 4, description: 'Max curtailment hours per day (0–24)' },
+                      operatingConstraint: { type: 'string', example: '§14a max 2h/event' },
+                      contractStatus: { type: 'string', example: 'negotiating' },
+                      legalStatus: { type: 'string', example: 'pending' },
+                    },
+                  },
+                  n1ThresholdOverride: {
+                    type: 'object',
+                    example: { project: 78 },
+                    description: 'Override N-1 threshold (MVA) at tenant/project/scenario level',
+                    properties: {
+                      tenant: { type: 'number', example: 85 },
+                      project: { type: 'number', example: 78 },
+                      scenario: { type: 'number', example: 70 },
+                    },
+                  },
+                  ownerContact: {
+                    type: 'string',
+                    example: 'netzplanung@twl.de',
+                    description: 'Responsible owner — required for governance approval',
+                  },
+                },
+              },
+              examples: {
+                'fNAV hybrid MS': {
+                  value: {
+                    gridOperatorName: 'TWL Netze',
+                    voltageLevel: 'MS',
+                    fnavProfile: {
+                      requestedCapacity: 5000,
+                      firmCapacity: 3000,
+                      flexibleCapacity: 2000,
+                      curtailmentWindow: 4,
+                      contractStatus: 'signed',
+                      legalStatus: 'approved',
+                    },
+                    ownerContact: 'netzplanung@twl.de',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'fNAV validation result with capacity model, N-1 check, and governance status',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    capacityModel: { type: 'object', description: 'Normalised fNAV capacity model' },
+                    n1Check: { type: 'object', description: 'N-1 compliance result' },
+                    feasibility: { type: 'string', enum: ['feasible', 'conditional', 'copper_needed'] },
+                    governanceStatus: { type: 'string' },
+                    governanceBlockers: { type: 'array', items: { type: 'string' } },
+                    findings: { type: 'array', items: { type: 'object' } },
+                    metadata: { type: 'object' },
+                    source: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const {
+          fnavProfile,
+          voltageLevel,
+          n1ThresholdOverride,
+          ownerContact,
+          gridOperatorId,
+          gridOperatorBdew,
+          gridOperatorName,
+        } = ctx.params;
+
+        const result = await ctx.call(
+          'grid-operations.netzfahrplanGenerate',
+          {
+            gridOperatorId,
+            gridOperatorName: gridOperatorName || gridOperatorBdew,
+            voltageLevel: voltageLevel || 'MS',
+            requestedCapacityKW: fnavProfile.requestedCapacity,
+            firmCapacityKW: fnavProfile.firmCapacity,
+            flexibleCapacityKW: fnavProfile.flexibleCapacity || 0,
+            curtailmentWindow: fnavProfile.curtailmentWindow || 0,
+            operatingConstraint: fnavProfile.operatingConstraint,
+            contractStatus: fnavProfile.contractStatus,
+            legalStatus: fnavProfile.legalStatus,
+            ownerContact,
+            n1ThresholdOverride,
+          },
+          { meta: { ...ctx.meta, $gateway: false } }
+        );
+
+        return { ...result, source: 'grid-connection.fnavValidate' };
+      },
+    },
   },
 
   // ---------------------------------------------------------------------------

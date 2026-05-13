@@ -236,6 +236,33 @@ const VD_GOV_RECURRENCE_K = 'VD_GOV_RECURRENCE_K';
 const BLINDFLUG_ANOMALY_DETECTED = 'BLINDFLUG_ANOMALY_DETECTED';
 
 // ---------------------------------------------------------------------------
+// Netzfahrplan / fNAV finding codes (v0.51.5) — Phase 5
+// ---------------------------------------------------------------------------
+
+// FN Step 1 — Profile validation
+const FN_PROFILE_COMPLETE = 'FN_PROFILE_COMPLETE';
+const FN_PROFILE_PARTIAL = 'FN_PROFILE_PARTIAL';
+const FN_PROFILE_INSUFFICIENT = 'FN_PROFILE_INSUFFICIENT';
+
+// FN Step 2 — N-1 compliance
+const FN_N1_PASS = 'FN_N1_PASS';
+const FN_N1_FAIL = 'FN_N1_FAIL';
+const FN_N1_MARGINAL = 'FN_N1_MARGINAL';
+
+// FN Step 3 — fNAV feasibility
+const FN_FLEX_NAV_FEASIBLE = 'FN_FLEX_NAV_FEASIBLE';
+const FN_CAPACITY_CONDITIONAL = 'FN_CAPACITY_CONDITIONAL';
+const FN_CAPACITY_COPPER_NEEDED = 'FN_CAPACITY_COPPER_NEEDED';
+
+// FN Step 4 — Governance gate
+const FN_GOVERNANCE_APPROVED = 'FN_GOVERNANCE_APPROVED';
+const FN_GOVERNANCE_REQUIRED = 'FN_GOVERNANCE_REQUIRED';
+
+// FN Step 5 — Economics
+const FN_ECONOMICS_AVAILABLE = 'FN_ECONOMICS_AVAILABLE';
+const FN_ECONOMICS_PARTIAL = 'FN_ECONOMICS_PARTIAL';
+
+// ---------------------------------------------------------------------------
 // MaStR Quality score helpers (v0.17)
 // ---------------------------------------------------------------------------
 
@@ -1209,6 +1236,102 @@ const FINDING_CODE_METADATA = {
     descriptionDe:
       'Hochrisiko-Governance-Abweichung tritt trotz vorheriger Maßnahme erneut auf',
   },
+
+  // ---------------------------------------------------------------------------
+  // Netzfahrplan / fNAV finding codes (v0.51.5)
+  // ---------------------------------------------------------------------------
+
+  FN_PROFILE_COMPLETE: {
+    severity: 'info',
+    agent: 'netzfahrplan',
+    step: 1,
+    description: 'fNAV profile has all required capacity and contract fields',
+    descriptionDe: 'fNAV-Profil enthält alle erforderlichen Kapazitäts- und Vertragsfelder',
+  },
+  FN_PROFILE_PARTIAL: {
+    severity: 'warning',
+    agent: 'netzfahrplan',
+    step: 1,
+    description: 'fNAV profile is incomplete — some fields are missing or unknown',
+    descriptionDe: 'fNAV-Profil unvollständig — einige Felder fehlen oder sind unbekannt',
+  },
+  FN_PROFILE_INSUFFICIENT: {
+    severity: 'error',
+    agent: 'netzfahrplan',
+    step: 1,
+    description: 'fNAV profile has too many missing fields for a reliable assessment',
+    descriptionDe: 'fNAV-Profil weist zu viele fehlende Felder für eine belastbare Bewertung auf',
+  },
+  FN_N1_PASS: {
+    severity: 'info',
+    agent: 'netzfahrplan',
+    step: 2,
+    description: 'Resulting effective capacity is within the N-1 threshold',
+    descriptionDe: 'Resultierende Wirkkapazität liegt unter dem N-1-Grenzwert',
+  },
+  FN_N1_FAIL: {
+    severity: 'error',
+    agent: 'netzfahrplan',
+    step: 2,
+    description: 'Resulting effective capacity exceeds the N-1 threshold — grid expansion may be required',
+    descriptionDe: 'Wirkkapazität überschreitet N-1-Grenzwert — Netzausbau ggf. erforderlich',
+  },
+  FN_N1_MARGINAL: {
+    severity: 'warning',
+    agent: 'netzfahrplan',
+    step: 2,
+    description: 'N-1 utilisation is above 85 % — marginal headroom, fNAV recommended',
+    descriptionDe: 'N-1-Auslastung über 85 % — knappes Headroom, fNAV empfohlen',
+  },
+  FN_FLEX_NAV_FEASIBLE: {
+    severity: 'info',
+    agent: 'netzfahrplan',
+    step: 3,
+    description: 'Flexible NAV (§14a EnWG) is technically feasible as an alternative to grid expansion',
+    descriptionDe: 'Flexibler NAV (§14a EnWG) ist technisch als Alternative zu Kupferausbau machbar',
+  },
+  FN_CAPACITY_CONDITIONAL: {
+    severity: 'warning',
+    agent: 'netzfahrplan',
+    step: 3,
+    description: 'Connection capacity conditional on fNAV curtailment constraints being honoured',
+    descriptionDe: 'Anschlusskapazität bedingt durch fNAV-Abregelungsbeschränkungen',
+  },
+  FN_CAPACITY_COPPER_NEEDED: {
+    severity: 'error',
+    agent: 'netzfahrplan',
+    step: 3,
+    description: 'Flexible NAV is insufficient — conventional grid expansion (copper) is required',
+    descriptionDe: 'Flexibler NAV reicht nicht aus — konventioneller Netzausbau (Kupfer) erforderlich',
+  },
+  FN_GOVERNANCE_APPROVED: {
+    severity: 'info',
+    agent: 'netzfahrplan',
+    step: 4,
+    description: 'All governance prerequisites are met — fNAV can proceed',
+    descriptionDe: 'Alle Governance-Voraussetzungen erfüllt — fNAV kann umgesetzt werden',
+  },
+  FN_GOVERNANCE_REQUIRED: {
+    severity: 'warning',
+    agent: 'netzfahrplan',
+    step: 4,
+    description: 'Governance decision required before fNAV can be finalised (legal/contract/owner gap)',
+    descriptionDe: 'Governance-Entscheidung erforderlich vor fNAV-Abschluss (Rechts-/Vertrags-/Owner-Lücke)',
+  },
+  FN_ECONOMICS_AVAILABLE: {
+    severity: 'info',
+    agent: 'netzfahrplan',
+    step: 5,
+    description: 'fNAV economics calculated: avoided CAPEX, annual fee, and payback period available',
+    descriptionDe: 'fNAV-Wirtschaftlichkeit berechnet: vermiedener CAPEX, Jahresbeitrag und Amortisation verfügbar',
+  },
+  FN_ECONOMICS_PARTIAL: {
+    severity: 'warning',
+    agent: 'netzfahrplan',
+    step: 5,
+    description: 'fNAV economics partially calculated — eog-calculator data unavailable, estimates used',
+    descriptionDe: 'fNAV-Wirtschaftlichkeit nur teilweise berechnet — eog-calculator-Daten nicht verfügbar',
+  },
 };
 
 // ---------------------------------------------------------------------------
@@ -1365,6 +1488,20 @@ module.exports = {
   VD_GOV_AUDIT_GAP_K,
   VD_GOV_RECURRENCE_K,
   BLINDFLUG_ANOMALY_DETECTED,
+  // Netzfahrplan / fNAV codes (v0.51.5)
+  FN_PROFILE_COMPLETE,
+  FN_PROFILE_PARTIAL,
+  FN_PROFILE_INSUFFICIENT,
+  FN_N1_PASS,
+  FN_N1_FAIL,
+  FN_N1_MARGINAL,
+  FN_FLEX_NAV_FEASIBLE,
+  FN_CAPACITY_CONDITIONAL,
+  FN_CAPACITY_COPPER_NEEDED,
+  FN_GOVERNANCE_APPROVED,
+  FN_GOVERNANCE_REQUIRED,
+  FN_ECONOMICS_AVAILABLE,
+  FN_ECONOMICS_PARTIAL,
   // UI metadata (v0.19)
   FINDING_CODE_METADATA,
 };
