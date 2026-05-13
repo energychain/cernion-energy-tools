@@ -45,6 +45,44 @@ const INTERFACE_PLACEHOLDER_CAPABILITY = {
 
 const CURATED_CAPABILITIES = [
   {
+    capability: 'blindflug_radar_anomaly_detection',
+    domain: 'znp_blindflug_radar',
+    abstractionLevel: 'domain_workflow',
+    intent: 'detect_disturbance_anomalies_and_correlate',
+    keywords: [
+      'blindflug',
+      'radar',
+      'disturbance',
+      'störung',
+      'störungen',
+      'investitionssignal',
+      'bottleneck',
+      'redispatch',
+    ],
+    preferredActions: ['v1.blindflug-radar.scan', 'znp.correlateDisturbance'],
+    fallbackActions: ['interface-placeholder.markGap'],
+    avoid: ['query.ask'],
+    requiredInputs: [
+      {
+        name: 'vnbId',
+        label: 'VNB Identifier',
+        type: 'string',
+        required: true,
+      },
+      {
+        name: 'projectId',
+        label: 'ZNP Project ID',
+        type: 'string',
+        required: true,
+      },
+    ],
+    risksAndNotes: [
+      'Anomalies must be routed through interface-placeholder if evidence is missing.',
+      'High severity anomalies require HITL creation via ZNP correlation.',
+    ],
+    routingPattern: 'blindflug_znp_correlation',
+  },
+  {
     capability: 'znp_portfolio_assessment',
     domain: 'zielnetzplanung',
     abstractionLevel: 'layered_portfolio_logic',

@@ -233,6 +233,7 @@ const VD_SILO_KERNSYSTEM_BLOCK_M = 'VD_SILO_KERNSYSTEM_BLOCK_M';
 const VD_UNBUNDLE_PSEUDO_ARG_H = 'VD_UNBUNDLE_PSEUDO_ARG_H';
 const VD_GOV_AUDIT_GAP_K = 'VD_GOV_AUDIT_GAP_K';
 const VD_GOV_RECURRENCE_K = 'VD_GOV_RECURRENCE_K';
+const BLINDFLUG_ANOMALY_DETECTED = 'BLINDFLUG_ANOMALY_DETECTED';
 
 // ---------------------------------------------------------------------------
 // MaStR Quality score helpers (v0.17)
@@ -1192,6 +1193,14 @@ const FINDING_CODE_METADATA = {
     descriptionDe:
       'Kritische Governance-Abweichung mit unvollständiger Audit-Evidenzkette erkannt',
   },
+
+  BLINDFLUG_ANOMALY_DETECTED: {
+    severity: 'warning',
+    agent: 'blindflug-radar',
+    step: 1,
+    description: 'Blindflug Radar identified an anomaly based on disturbance patterns',
+    descriptionDe: 'Blindflug-Radar hat eine Anomalie auf Basis von Störungsmustern erkannt',
+  },
   VD_GOV_RECURRENCE_K: {
     severity: 'error',
     agent: 'vdmi',
@@ -1355,6 +1364,7 @@ module.exports = {
   VD_UNBUNDLE_PSEUDO_ARG_H,
   VD_GOV_AUDIT_GAP_K,
   VD_GOV_RECURRENCE_K,
+  BLINDFLUG_ANOMALY_DETECTED,
   // UI metadata (v0.19)
   FINDING_CODE_METADATA,
 };

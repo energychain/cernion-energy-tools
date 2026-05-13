@@ -1396,6 +1396,122 @@ module.exports = {
      * Inserts a lightweight StrategicAssumption node (layer 2.5), applies
      * deterministic peak-shaving edge overrides, and persists the updated graph.
      */
+
+    correlateDisturbance: {
+      rest: 'POST /projects/:projectId/correlate-disturbance',
+      params: {
+        projectId: { type: 'string' },
+        disturbanceId: { type: 'string' },
+        pattern: { type: 'string', optional: true },
+        severity: { type: 'string', optional: true }
+      },
+      openapi: {
+        summary: 'Correlate a disturbance signal with ZNP',
+        description: 'Maps a Phase 4 blindflug-radar disturbance signal into a NOVA option shape for investment decisioning.',
+        tags: ['ZNP'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['projectId', 'disturbanceId'],
+                properties: {
+                  projectId: { type: 'string', example: 'znp_prj_123' },
+                  disturbanceId: { type: 'string', example: 'SIG-123' },
+                  pattern: { type: 'string', example: 'CAPACITY_BOTTLENECK' },
+                  severity: { type: 'string', example: 'high' },
+                },
+              },
+              examples: {
+                default: {
+                  value: {
+                    projectId: 'znp_prj_123',
+                    disturbanceId: 'SIG-123',
+                    pattern: 'CAPACITY_BOTTLENECK',
+                    severity: 'high',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Successfully correlated disturbance to NOVA option',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    projectId: { type: 'string' },
+                    disturbanceId: { type: 'string' },
+                    novaOption: { type: 'object' },
+                    governanceAction: { type: 'string' }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      async handler(ctx) {
+        const { projectId, disturbanceId, pattern, severity } = ctx.params;
+        const project = this.activeGraphs.get(projectId);
+        if (!project) {
+          throw new MoleculerClientError('Project graph not loaded', 404, 'NOT_FOUND', { projectId });
+        }
+
+        const novaOption = {
+          id: `NOVA-OPT-${Date.now()}`,
+          projectId,
+          sourceSignal: disturbanceId,
+          reason: `Disturbance correlation: ${pattern || 'UNKNOWN'}`,
+          type: 'znp_capex_alternative',
+          status: 'proposed',
+          severity: severity || 'medium',
+          createdAt: new Date().toISOString()
+        };
+
+        let governanceAction = 'none';
+
+        if (severity === 'high' || severity === 'critical') {
+          // High-impact => HITL
+          await ctx.call('hitl.create', {
+            kind: 'blindflug-radar-high-impact',
+            originService: this.name,
+            originAction: 'correlateDisturbance',
+            severity: 'warning',
+            payload: { novaOption }
+          }).catch(err => this.logger.warn('Failed to create HITL item', err));
+          governanceAction = 'hitl.create';
+        } else if (severity === 'medium') {
+          // Unresolved evidence => interface-placeholder
+          await ctx.call('interface-placeholder.markGap', {
+            role: 'portfolio_planner',
+            reason: 'NEEDS_EVIDENCE',
+            blockingLevel: 'soft',
+            placeholderGapKey: `disturbance_${disturbanceId}`,
+            replacementCriteria: {
+              kind: 'process',
+              capabilityHint: 'znp.correlateDisturbance',
+              deadline: null,
+            }
+          }).catch(err => this.logger.warn('Failed to mark interface gap', err));
+          governanceAction = 'interface-placeholder.markGap';
+        }
+
+        return {
+          success: true,
+          projectId,
+          disturbanceId,
+          novaOption,
+          governanceAction
+        };
+      }
+    },
+
     createAssumption: {
       params: {
         projectId: { type: 'string' },

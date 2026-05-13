@@ -851,6 +851,13 @@ module.exports = {
                 pouchdbPrefix: 'vdmi:',
                 endpoint: 'GET /api/vdmi/findings',
               },
+              'blindflug-radar': {
+                label: 'Blindflug Radar',
+                version: '1.0.0',
+                steps: 1,
+                pouchdbPrefix: null,
+                endpoint: 'POST /api/blindflug-radar/scan',
+              },
             },
             totalCodes: Object.keys(FINDING_CODE_METADATA).length,
           });

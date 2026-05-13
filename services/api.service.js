@@ -34,6 +34,11 @@ const ALLOWED_UPLOAD_EXTENSIONS = new Set([
   '.pdf', // Layer 2: VNB StromNZV §23c structure reports
 ]);
 const CK_TOKEN_SUNSET_HTTP_DATE = 'Wed, 31 Dec 2026 23:59:59 GMT';
+const DEFAULT_API_CORS_ORIGINS = [
+  'https://energychain.github.io',
+  'https://cernion.de',
+  'https://*.cernion.de',
+];
 
 function ensureUploadDir() {
   if (!fs.existsSync(UPLOAD_DIR)) {
@@ -95,6 +100,46 @@ function envTrue(name) {
   if (raw == null || raw === '') return false;
   return ['1', 'true', 'yes', 'on'].includes(String(raw).toLowerCase());
 }
+
+function escapeRegExp(text) {
+  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function parseCorsOrigins(rawOrigins) {
+  if (typeof rawOrigins !== 'string') {
+    return DEFAULT_API_CORS_ORIGINS;
+  }
+
+  const origins = rawOrigins
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  return origins.length > 0 ? origins : DEFAULT_API_CORS_ORIGINS;
+}
+
+function buildCorsOriginMatcher(allowedOrigins) {
+  const exactOrigins = new Set();
+  const wildcardPatterns = [];
+
+  for (const origin of allowedOrigins) {
+    if (origin.includes('*')) {
+      wildcardPatterns.push(new RegExp(`^${escapeRegExp(origin).replace(/\\\*/g, '.*')}$`));
+      continue;
+    }
+    exactOrigins.add(origin);
+  }
+
+  return (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (exactOrigins.has(origin)) return callback(null, true);
+    if (wildcardPatterns.some((pattern) => pattern.test(origin))) return callback(null, true);
+    return callback(null, false);
+  };
+}
+
+const API_CORS_ORIGINS = parseCorsOrigins(process.env.API_CORS_ORIGINS);
+const API_CORS_ORIGIN_MATCHER = buildCorsOriginMatcher(API_CORS_ORIGINS);
 
 function extractRawToken(req) {
   const authHeader = req?.headers?.authorization || req?.headers?.Authorization;
@@ -708,6 +753,21 @@ module.exports = {
 
         whitelist: ['**'],
 
+        cors: {
+          origin: API_CORS_ORIGIN_MATCHER,
+          methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+          allowedHeaders: [
+            'Content-Type',
+            'Authorization',
+            'x-tenant-id',
+            'x-request-id',
+            'X-API-Key',
+          ],
+          exposedHeaders: ['x-request-id', 'x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset'],
+          credentials: false,
+          maxAge: 3600,
+        },
+
         use: [],
 
         mergeParams: true,
@@ -719,6 +779,7 @@ module.exports = {
         autoAliases: true,
 
         aliases: {
+          'POST /blindflug-radar/scan': 'v1.blindflug-radar.scan',
           'GET /openapi.json': 'api.openapi',
           'GET /docs'(req, res) {
             // Serve Swagger UI HTML
