@@ -130,11 +130,11 @@ function buildCorsOriginMatcher(allowedOrigins) {
     exactOrigins.add(origin);
   }
 
-  return (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (exactOrigins.has(origin)) return callback(null, true);
-    if (wildcardPatterns.some((pattern) => pattern.test(origin))) return callback(null, true);
-    return callback(null, false);
+  return (origin) => {
+    if (!origin) return true;
+    if (exactOrigins.has(origin)) return true;
+    if (wildcardPatterns.some((pattern) => pattern.test(origin))) return true;
+    return false;
   };
 }
 
