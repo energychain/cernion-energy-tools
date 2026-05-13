@@ -10,6 +10,9 @@ const {
   resolveN1Threshold,
   resolveGovernanceStatus,
   checkEvidenceCompleteness,
+  buildGovernanceArtifactConfig,
+  buildDecisionChain,
+  buildProof,
   FNAV_PROFILE_TYPE,
   CONTRACT_STATUS,
   LEGAL_STATUS,
@@ -18,6 +21,7 @@ const {
   N1_SOURCE,
   DOMAIN_DEFAULT_N1_MVA,
 } = require('../src/netzfahrplan-schema');
+const { NETZFAHRPLAN_DEFAULTS } = require('../src/domain-config');
 
 describe('netzfahrplan-schema — normaliseFnavProfile', () => {
   it('returns static_cap profile when no flexible capacity is provided', () => {
@@ -87,6 +91,12 @@ describe('netzfahrplan-schema — resolveN1Threshold', () => {
     expect(result.thresholdMVA).toBe(DOMAIN_DEFAULT_N1_MVA.MS);
     expect(result.thresholdSource).toBe(N1_SOURCE.DOMAIN_DEFAULT);
     expect(result.overrideApplied).toBe(false);
+  });
+
+  it('uses domain-config defaults as the baseline N-1 source', () => {
+    expect(DOMAIN_DEFAULT_N1_MVA.HS).toBe(NETZFAHRPLAN_DEFAULTS.n1ThresholdMVA.HS);
+    expect(DOMAIN_DEFAULT_N1_MVA.MS).toBe(NETZFAHRPLAN_DEFAULTS.n1ThresholdMVA.MS);
+    expect(DOMAIN_DEFAULT_N1_MVA.NS).toBe(NETZFAHRPLAN_DEFAULTS.n1ThresholdMVA.NS);
   });
 
   it('applies scenario override with highest priority', () => {
@@ -217,5 +227,49 @@ describe('netzfahrplan-schema — checkEvidenceCompleteness', () => {
     const { evidenceLevel, missingFields } = checkEvidenceCompleteness({});
     expect(evidenceLevel).toBe(EVIDENCE_LEVEL.INSUFFICIENT);
     expect(missingFields.length).toBeGreaterThan(2);
+  });
+});
+
+describe('netzfahrplan-schema — governance artifact + proof helpers', () => {
+  it('maps legal blockers to hard decision placeholders', () => {
+    const config = buildGovernanceArtifactConfig(['legalStatus is "pending" (required: approved)']);
+    expect(config.reason).toBe('NEEDS_DECISION');
+    expect(config.blockingLevel).toBe('hard');
+  });
+
+  it('builds additive decisionChain and proof payloads', () => {
+    const capacityModel = normaliseFnavProfile({
+      requestedCapacity: 5000,
+      firmCapacity: 3000,
+      flexibleCapacity: 2000,
+      curtailmentWindow: 4,
+      contractStatus: 'signed',
+      legalStatus: 'approved',
+      evidenceLevel: 'complete',
+    });
+    const n1Check = checkN1Compliance(4.6, 'MS');
+    const decisionChain = buildDecisionChain({
+      requestedCapacityKW: 5000,
+      voltageLevel: 'MS',
+      capacityModel,
+      n1Check,
+      feasibility: 'feasible',
+      governanceStatus: 'approved',
+      governanceBlockers: [],
+      source: 'grid-operations.netzfahrplanGenerate',
+    });
+    const proof = buildProof({
+      capacityModel,
+      n1Check,
+      feasibility: 'feasible',
+      governanceStatus: 'approved',
+      governanceBlockers: [],
+      findings: [{ finding: 'FN_N1_PASS' }],
+    });
+
+    expect(decisionChain).toHaveLength(6);
+    expect(decisionChain[1].key).toBe('technical_constraint');
+    expect(proof.summary.thresholdSource).toBe(n1Check.thresholdSource);
+    expect(proof.findingCodes).toContain('FN_N1_PASS');
   });
 });

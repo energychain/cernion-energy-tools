@@ -2102,6 +2102,9 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                     feasibility: { type: 'string', enum: ['feasible', 'conditional', 'copper_needed'], description: 'Technical feasibility verdict' },
                     governanceStatus: { type: 'string', description: 'Governance decision status' },
                     governanceBlockers: { type: 'array', items: { type: 'string' } },
+                    governanceArtifact: { type: 'object', nullable: true, description: 'Optional interface-placeholder / HITL artifact created for governance blockers' },
+                    decisionChain: { type: 'array', items: { type: 'object' }, description: 'Additive six-step A²MDM trace for the Phase-5 decision' },
+                    proof: { type: 'object', description: 'Compact proof/provenance payload for audit-friendly handoff' },
                     findings: { type: 'array', items: { type: 'object' } },
                     metadata: { type: 'object' },
                   },
@@ -2118,6 +2121,9 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
           resolveGovernanceStatus,
           checkEvidenceCompleteness,
           FNAV_PROFILE_TYPE,
+          buildGovernanceArtifactConfig,
+          buildDecisionChain,
+          buildProof,
         } = require('../src/netzfahrplan-schema');
         const {
           createFinding,
@@ -2222,16 +2228,92 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
           blockers.length ? 'Obtain legal approval and signed contract before finalising fNAV.' : null,
           fidx++));
 
+        let governanceArtifact = null;
+        if (ctx.meta.$gateway === true && governanceStatus !== 'approved') {
+          const artifactConfig = buildGovernanceArtifactConfig(blockers);
+          const operatorKey = (p.gridOperatorId || p.gridOperatorName || 'unknown').toString().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+          const placeholderGapKey = `phase5_fnav_governance_${operatorKey}_${voltageLevel.toLowerCase()}_${Math.round(capacityModel.requestedCapacityKW)}`;
+
+          try {
+            const existing = await ctx.call('interface-placeholder.listGaps', {
+              includeResolved: false,
+              limit: 250,
+            });
+
+            const matched = (existing.placeholders || []).find(
+              (item) => item.placeholderGapKey === placeholderGapKey
+            );
+
+            if (matched) {
+              governanceArtifact = matched;
+            } else {
+              const created = await ctx.call('interface-placeholder.markGap', {
+                role: 'grid_connection_validator',
+                reason: artifactConfig.reason,
+                blockingLevel: artifactConfig.blockingLevel,
+                signalCodes: artifactConfig.signalCodes,
+                placeholderGapKey,
+                replacementCriteria: {
+                  kind: 'process',
+                  capabilityHint: 'grid-operations.netzfahrplanGenerate',
+                  deadline: null,
+                },
+              });
+              governanceArtifact = created?.placeholder || null;
+              if (created?.hitlItem && governanceArtifact) {
+                governanceArtifact.hitlItem = {
+                  id: created.hitlItem.id,
+                  status: created.hitlItem.status,
+                };
+              }
+            }
+          } catch (err) {
+            governanceArtifact = {
+              placeholderGapKey,
+              reason: artifactConfig.reason,
+              blockingLevel: artifactConfig.blockingLevel,
+              status: 'placeholder_gap',
+              error: err.message,
+            };
+          }
+        }
+
+        const decisionChain = buildDecisionChain({
+          requestedCapacityKW: p.requestedCapacityKW,
+          voltageLevel,
+          capacityModel,
+          n1Check,
+          feasibility,
+          governanceStatus,
+          governanceBlockers: blockers,
+          placeholder: governanceArtifact,
+          source: 'grid-operations.netzfahrplanGenerate',
+        });
+
+        const proof = buildProof({
+          capacityModel,
+          n1Check,
+          feasibility,
+          governanceStatus,
+          governanceBlockers: blockers,
+          placeholder: governanceArtifact,
+          findings,
+        });
+
         return {
           capacityModel,
           n1Check,
           feasibility,
           governanceStatus,
           governanceBlockers: blockers,
+          governanceArtifact,
+          decisionChain,
+          proof,
           findings,
           metadata: {
             generatedAt: new Date().toISOString(),
             voltageLevel,
+            n1DefaultSource: 'domain_config',
             gridOperator: {
               id: p.gridOperatorId || null,
               name: p.gridOperatorName || null,

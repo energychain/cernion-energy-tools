@@ -1,5 +1,7 @@
 'use strict';
 
+const { NETZFAHRPLAN_DEFAULTS } = require('./domain-config');
+
 /**
  * Netzfahrplan / fNAV Schema — Phase 5 (v0.51.5)
  *
@@ -91,10 +93,147 @@ const N1_SOURCE = Object.freeze({
  * Env override: N1_THRESHOLD_HS_MVA, N1_THRESHOLD_MS_MVA, N1_THRESHOLD_NS_MVA
  */
 const DOMAIN_DEFAULT_N1_MVA = Object.freeze({
-  HS: parseFloat(process.env.N1_THRESHOLD_HS_MVA || '81'),
-  MS: parseFloat(process.env.N1_THRESHOLD_MS_MVA || '20'),
-  NS: parseFloat(process.env.N1_THRESHOLD_NS_MVA || '0.63'),
+  HS: parseFloat(process.env.N1_THRESHOLD_HS_MVA || `${NETZFAHRPLAN_DEFAULTS.n1ThresholdMVA.HS}`),
+  MS: parseFloat(process.env.N1_THRESHOLD_MS_MVA || `${NETZFAHRPLAN_DEFAULTS.n1ThresholdMVA.MS}`),
+  NS: parseFloat(process.env.N1_THRESHOLD_NS_MVA || `${NETZFAHRPLAN_DEFAULTS.n1ThresholdMVA.NS}`),
 });
+
+function buildGovernanceArtifactConfig(blockers = []) {
+  const joined = blockers.join(' | ').toLowerCase();
+
+  if (joined.includes('legalstatus') || joined.includes('contractstatus')) {
+    return {
+      reason: 'NEEDS_DECISION',
+      blockingLevel: 'hard',
+      signalCodes: ['NEEDS_DECISION'],
+    };
+  }
+
+  if (joined.includes('evidencelevel')) {
+    return {
+      reason: 'NEEDS_EVIDENCE',
+      blockingLevel: 'soft',
+      signalCodes: ['NEEDS_EVIDENCE'],
+    };
+  }
+
+  if (joined.includes('owner')) {
+    return {
+      reason: 'NEEDS_INTERFACE',
+      blockingLevel: 'soft',
+      signalCodes: ['NEEDS_INTERFACE'],
+    };
+  }
+
+  return {
+    reason: 'NEEDS_DECISION',
+    blockingLevel: 'hard',
+    signalCodes: ['NEEDS_DECISION'],
+  };
+}
+
+function buildDecisionChain(input = {}) {
+  const {
+    requestedCapacityKW,
+    voltageLevel,
+    capacityModel,
+    n1Check,
+    feasibility,
+    economics,
+    governanceStatus,
+    governanceBlockers,
+    placeholder,
+    source,
+  } = input;
+
+  return [
+    {
+      step: 1,
+      key: 'ausgangslage',
+      status: 'documented',
+      data: {
+        requestedCapacityKW: requestedCapacityKW ?? capacityModel?.requestedCapacityKW ?? null,
+        voltageLevel: voltageLevel || null,
+        source: source || null,
+      },
+    },
+    {
+      step: 2,
+      key: 'technical_constraint',
+      status: n1Check?.passes === false ? 'constrained' : 'within_limits',
+      data: n1Check || null,
+    },
+    {
+      step: 3,
+      key: 'fnav_option',
+      status: capacityModel?.profileType || 'unknown',
+      data: capacityModel || null,
+    },
+    {
+      step: 4,
+      key: 'netzfahrplan',
+      status: feasibility || 'pending',
+      data: {
+        feasibility: feasibility || null,
+        curtailmentWindow: capacityModel?.curtailmentWindow ?? null,
+        operatingConstraint: capacityModel?.operatingConstraint ?? null,
+      },
+    },
+    {
+      step: 5,
+      key: 'commercial_effect',
+      status: economics ? 'evaluated' : 'not_evaluated',
+      data: economics || null,
+    },
+    {
+      step: 6,
+      key: 'governance',
+      status: governanceStatus || 'pending',
+      data: {
+        governanceStatus: governanceStatus || null,
+        governanceBlockers: governanceBlockers || [],
+        placeholderId: placeholder?.placeholderId || null,
+        hitlId: placeholder?.hitlItem?.id || placeholder?.hitlItemId || null,
+      },
+    },
+  ];
+}
+
+function buildProof(input = {}) {
+  const {
+    capacityModel,
+    n1Check,
+    feasibility,
+    economics,
+    governanceStatus,
+    governanceBlockers,
+    placeholder,
+    findings,
+  } = input;
+
+  return {
+    summary: {
+      profileType: capacityModel?.profileType || null,
+      resultingEffectiveCapacityKW: capacityModel?.resultingEffectiveCapacityKW ?? null,
+      thresholdMVA: n1Check?.thresholdMVA ?? null,
+      thresholdSource: n1Check?.thresholdSource ?? null,
+      overrideApplied: n1Check?.overrideApplied ?? false,
+      feasibility: feasibility || null,
+      avoidedCopperCapexEur: economics?.avoidedCopperCapexEur ?? null,
+      paybackYears: economics?.paybackYears ?? null,
+      governanceStatus: governanceStatus || null,
+    },
+    blockerCount: (governanceBlockers || []).length,
+    placeholderRef: placeholder
+      ? {
+          placeholderId: placeholder.placeholderId || null,
+          blockingLevel: placeholder.blockingLevel || null,
+          hitlId: placeholder.hitlItem?.id || placeholder.hitlItemId || null,
+        }
+      : null,
+    findingCodes: Array.isArray(findings) ? findings.map((item) => item.finding).filter(Boolean) : [],
+  };
+}
 
 /**
  * Resolve the effective N-1 threshold for a voltage level.
@@ -330,4 +469,7 @@ module.exports = {
   resolveGovernanceStatus,
   // Evidence
   checkEvidenceCompleteness,
+  buildGovernanceArtifactConfig,
+  buildDecisionChain,
+  buildProof,
 };

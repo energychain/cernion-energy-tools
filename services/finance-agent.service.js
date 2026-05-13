@@ -811,6 +811,9 @@ module.exports = {
                     sensitivityFlags: { type: 'array', items: { type: 'string' } },
                     governanceStatus: { type: 'string' },
                     governanceBlockers: { type: 'array', items: { type: 'string' } },
+                    governanceArtifact: { type: 'object', nullable: true },
+                    decisionChain: { type: 'array', items: { type: 'object' } },
+                    proof: { type: 'object' },
                     findings: { type: 'array', items: { type: 'object' } },
                     metadata: { type: 'object' },
                   },
@@ -825,6 +828,9 @@ module.exports = {
           normaliseFnavProfile,
           resolveGovernanceStatus,
           checkEvidenceCompleteness,
+          buildGovernanceArtifactConfig,
+          buildDecisionChain,
+          buildProof,
         } = require('../src/netzfahrplan-schema');
         const {
           createFinding,
@@ -835,6 +841,7 @@ module.exports = {
         } = require('../src/validation-findings');
 
         const p = ctx.params;
+        const originatedFromGateway = ctx.meta.$gateway === true;
         const callOpts = { meta: { ...ctx.meta, $gateway: false } };
         const findings = [];
         let fidx = 1;
@@ -911,14 +918,91 @@ module.exports = {
           blockers.length ? `Blockers: ${blockers.join('; ')}` : 'All prerequisites met.',
           { governanceStatus, blockers }, null, fidx++));
 
-        return {
+        let governanceArtifact = null;
+  if (originatedFromGateway && governanceStatus !== 'approved') {
+          const artifactConfig = buildGovernanceArtifactConfig(blockers);
+          const operatorKey = (p.gridOperator || 'unknown').toString().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+          const placeholderGapKey = `phase5_fnav_governance_${operatorKey}_${voltageLevel.toLowerCase()}_${Math.round(capacityModel.requestedCapacityKW)}`;
+
+          try {
+            const existing = await ctx.call('interface-placeholder.listGaps', {
+              includeResolved: false,
+              limit: 250,
+            }, callOpts);
+            const matched = (existing.placeholders || []).find(
+              (item) => item.placeholderGapKey === placeholderGapKey
+            );
+
+            if (matched) {
+              governanceArtifact = matched;
+            } else {
+              const created = await ctx.call('interface-placeholder.markGap', {
+                role: 'finance_analyst',
+                reason: artifactConfig.reason,
+                blockingLevel: artifactConfig.blockingLevel,
+                signalCodes: artifactConfig.signalCodes,
+                placeholderGapKey,
+                replacementCriteria: {
+                  kind: 'process',
+                  capabilityHint: 'finance-agent.fnavEconomics',
+                  deadline: null,
+                },
+              }, callOpts);
+              governanceArtifact = created?.placeholder || null;
+              if (created?.hitlItem && governanceArtifact) {
+                governanceArtifact.hitlItem = {
+                  id: created.hitlItem.id,
+                  status: created.hitlItem.status,
+                };
+              }
+            }
+          } catch (err) {
+            governanceArtifact = {
+              placeholderGapKey,
+              reason: artifactConfig.reason,
+              blockingLevel: artifactConfig.blockingLevel,
+              status: 'placeholder_gap',
+              error: err.message,
+            };
+          }
+        }
+
+        const economics = {
           avoidedCopperCapexEur: parseFloat(avoidedCopperCapexEur.toFixed(2)),
           annualFeeEur: parseFloat(annualFeeEur.toFixed(2)),
           paybackYears,
           capexSource,
           sensitivityFlags,
+        };
+
+        const decisionChain = buildDecisionChain({
+          requestedCapacityKW: capacityModel.requestedCapacityKW,
+          voltageLevel,
+          capacityModel,
+          feasibility: null,
+          economics,
           governanceStatus,
           governanceBlockers: blockers,
+          placeholder: governanceArtifact,
+          source: 'finance-agent.fnavEconomics',
+        });
+
+        const proof = buildProof({
+          capacityModel,
+          economics,
+          governanceStatus,
+          governanceBlockers: blockers,
+          placeholder: governanceArtifact,
+          findings,
+        });
+
+        return {
+          ...economics,
+          governanceStatus,
+          governanceBlockers: blockers,
+          governanceArtifact,
+          decisionChain,
+          proof,
           findings,
           metadata: {
             generatedAt: new Date().toISOString(),

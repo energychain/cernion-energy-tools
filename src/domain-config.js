@@ -231,9 +231,27 @@ const SECTION_42C_HEURISTICS = {
   regulatoryFramework: '§42c EnWG, §21 Abs. 2 EEG',
 };
 
+/**
+ * PHASE 5 — NETZFAHRPLAN / fNAV DEFAULTS
+ *
+ * Central default values for deterministic Phase-5 assessments.
+ * Explicit request overrides still take precedence.
+ */
+const NETZFAHRPLAN_DEFAULTS = {
+  n1ThresholdMVA: {
+    HS: 81,
+    MS: 20,
+    NS: 0.63,
+    source: 'domain_config',
+    description:
+      'Default N-1 planning thresholds for Netzfahrplan / fNAV assessments. Request-level tenant/project/scenario overrides remain higher priority.',
+  },
+};
+
 module.exports = {
   HOTSPOT_THRESHOLDS,
   CAPEX_ASSUMPTIONS,
   SECTION_14A_POLICY,
+  NETZFAHRPLAN_DEFAULTS,
   SECTION_42C_HEURISTICS,
 };

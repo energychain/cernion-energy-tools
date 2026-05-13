@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.51.7] — Phase 5 Follow-up: Discovery, Governance Artifacts, Proofs
+
+### Added
+- [src/capability-catalog.js](src/capability-catalog.js): added curated capability `netzfahrplan_fnav_assessment` for direct deterministic discovery of the Phase-5 workflow via `grid-connection.fnavValidate`, `grid-operations.netzfahrplanGenerate`, and `finance-agent.fnavEconomics`.
+- [src/domain-config.js](src/domain-config.js): added `NETZFAHRPLAN_DEFAULTS` with central N-1 defaults for `HS`, `MS`, and `NS` as the domain-config baseline for Phase-5 assessments.
+- [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js): added regression coverage for direct Netzfahrplan / fNAV prompt routing.
+
+### Changed
+- [src/netzfahrplan-schema.js](src/netzfahrplan-schema.js): switched the Phase-5 default N-1 baseline to `domain-config` while preserving explicit tenant/project/scenario override precedence; added additive helpers `buildGovernanceArtifactConfig()`, `buildDecisionChain()`, and `buildProof()`.
+- [services/grid-operations.service.js](services/grid-operations.service.js): `netzfahrplanGenerate` now returns additive `governanceArtifact`, `decisionChain`, and `proof` payloads; gateway-triggered governance blockers reuse `interface-placeholder` / HITL patterns instead of returning blockers only.
+- [services/grid-connection.service.js](services/grid-connection.service.js): `fnavValidate` now preserves gateway origin across internal calls and returns additive `governanceArtifact`, `decisionChain`, and `proof` payloads.
+- [services/finance-agent.service.js](services/finance-agent.service.js): `fnavEconomics` now emits additive `governanceArtifact`, `decisionChain`, and `proof` payloads and reuses placeholder governance artifacts for unresolved legal/contract blockers.
+- [tests/netzfahrplan-schema.test.js](tests/netzfahrplan-schema.test.js): extended schema coverage for domain-config-backed defaults and proof helpers.
+- [tests/netzfahrplan-integration.test.js](tests/netzfahrplan-integration.test.js): added focused integration coverage for governance artifact creation and additive proof payloads across all three Phase-5 endpoints.
+- [README.md](README.md): updated current release marker to `v0.51.7`.
+- [package.json](package.json): bumped version to `0.51.7`.
+- [package-lock.json](package-lock.json): aligned lockfile version to `0.51.7`.
+
+### Notes
+- `v0.51.7` intentionally keeps the richer roadmap-level fNAV contract model and fully automatic tenant/project/scenario override lookup out of scope.
+- The new Phase-5 response fields are additive and preserve existing feasibility/governance verdicts for backward compatibility.
+
 ## [0.51.6] — Phase 5 Cleanup: Roadmap-Abgleich & Deferred Scope
 
 ### Added

@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.51.6",
+    "version": "0.51.7",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -8764,6 +8764,22 @@
                         "type": "string"
                       }
                     },
+                    "governanceArtifact": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "Optional interface-placeholder / HITL artifact created for governance blockers"
+                    },
+                    "decisionChain": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      },
+                      "description": "Additive six-step A²MDM trace for the Phase-5 decision"
+                    },
+                    "proof": {
+                      "type": "object",
+                      "description": "Compact proof/provenance payload for audit-friendly handoff"
+                    },
                     "findings": {
                       "type": "array",
                       "items": {
@@ -8952,6 +8968,19 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "governanceArtifact": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "decisionChain": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "proof": {
+                      "type": "object"
                     },
                     "findings": {
                       "type": "array",
@@ -9144,6 +9173,19 @@
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "governanceArtifact": {
+                      "type": "object",
+                      "nullable": true
+                    },
+                    "decisionChain": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "proof": {
+                      "type": "object"
                     },
                     "findings": {
                       "type": "array",
@@ -20844,5 +20886,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.51.6"
+  "x-version": "0.51.7"
 }

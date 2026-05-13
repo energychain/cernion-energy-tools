@@ -139,4 +139,13 @@ describe('Capability Broker Service', () => {
       })
     );
   });
+
+  it('routes direct netzfahrplan prompts to the dedicated Phase-5 capability', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte fNAV als Alternative zu Kupferausbau prüfen inkl. Netzfahrplan, N-1 und Payback',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('netzfahrplan_fnav_assessment');
+    expect(result.recommendedPlan[0].action).toBe('grid-connection.fnavValidate');
+  });
 });

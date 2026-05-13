@@ -21,12 +21,42 @@ const EOG_CAPEX_EUR = 1_500_000;
 
 describe('netzfahrplan integration — netzfahrplanGenerate', () => {
   let broker;
+  const placeholders = [];
 
   beforeAll(async () => {
     broker = new ServiceBroker({ logger: false });
 
     // Grid Operations needs no external deps for netzfahrplanGenerate (pure computation)
     broker.createService({ ...GridOpsService });
+    broker.createService({
+      name: 'interface-placeholder',
+      actions: {
+        listGaps: {
+          handler() {
+            return { placeholders: [...placeholders] };
+          },
+        },
+        markGap: {
+          handler(ctx) {
+            const placeholder = {
+              placeholderId: `ph_${placeholders.length + 1}`,
+              placeholderGapKey: ctx.params.placeholderGapKey,
+              reason: ctx.params.reason,
+              blockingLevel: ctx.params.blockingLevel,
+              status: 'placeholder_gap',
+            };
+            placeholders.push(placeholder);
+            return {
+              success: true,
+              placeholder,
+              hitlItem: ctx.params.blockingLevel === 'hard'
+                ? { id: `hitl_${placeholders.length}`, status: 'open' }
+                : null,
+            };
+          },
+        },
+      },
+    });
 
     await broker.start();
   });
@@ -115,16 +145,62 @@ describe('netzfahrplan integration — netzfahrplanGenerate', () => {
 
     expect(result.findings.some((f) => f.finding === 'FN_PROFILE_INSUFFICIENT')).toBe(true);
   });
+
+  it('adds governanceArtifact, decisionChain and proof for gateway calls with blockers', async () => {
+    const result = await broker.call(
+      'grid-operations.netzfahrplanGenerate',
+      {
+        gridOperatorName: 'TWL Netze',
+        voltageLevel: 'MS',
+        requestedCapacityKW: 5000,
+        firmCapacityKW: 3000,
+        flexibleCapacityKW: 2000,
+        curtailmentWindow: 4,
+        contractStatus: 'signed',
+        legalStatus: 'pending',
+      },
+      { meta: { $gateway: true, tenantId: 'stromdao' } }
+    );
+
+    expect(result.governanceArtifact).toBeTruthy();
+    expect(result.governanceArtifact.reason).toBe('NEEDS_DECISION');
+    expect(result.decisionChain).toHaveLength(6);
+    expect(result.proof.summary.thresholdSource).toBe(result.n1Check.thresholdSource);
+  });
 });
 
 describe('netzfahrplan integration — grid-connection.fnavValidate', () => {
   let broker;
+  const placeholders = [];
 
   beforeAll(async () => {
     broker = new ServiceBroker({ logger: false });
 
     broker.createService({ ...GridOpsService, settings: { ...GridOpsService.settings, dbPath: tmpDb('grid-ops-gc') } });
     broker.createService({ ...GridConnectionService, settings: { ...GridConnectionService.settings, dbPath: tmpDb('grid-conn') } });
+    broker.createService({
+      name: 'interface-placeholder',
+      actions: {
+        listGaps: {
+          handler() {
+            return { placeholders: [...placeholders] };
+          },
+        },
+        markGap: {
+          handler(ctx) {
+            const placeholder = {
+              placeholderId: `ph_gc_${placeholders.length + 1}`,
+              placeholderGapKey: ctx.params.placeholderGapKey,
+              reason: ctx.params.reason,
+              blockingLevel: ctx.params.blockingLevel,
+              status: 'placeholder_gap',
+            };
+            placeholders.push(placeholder);
+            return { success: true, placeholder, hitlItem: null };
+          },
+        },
+      },
+    });
 
     await broker.start();
   });
@@ -151,10 +227,34 @@ describe('netzfahrplan integration — grid-connection.fnavValidate', () => {
     expect(result.governanceStatus).toBeDefined();
     expect(Array.isArray(result.findings)).toBe(true);
   });
+
+  it('adds additive proof payloads for gateway validation calls', async () => {
+    const result = await broker.call(
+      'grid-connection.fnavValidate',
+      {
+        gridOperatorName: 'TWL Netze',
+        voltageLevel: 'MS',
+        fnavProfile: {
+          requestedCapacity: 4000,
+          firmCapacity: 2500,
+          flexibleCapacity: 1500,
+          curtailmentWindow: 4,
+          contractStatus: 'signed',
+          legalStatus: 'pending',
+        },
+      },
+      { meta: { $gateway: true, tenantId: 'stromdao' } }
+    );
+
+    expect(result.decisionChain).toHaveLength(6);
+    expect(result.proof.summary.governanceStatus).toBe('requires_governance_decision');
+    expect(result.governanceArtifact).toBeTruthy();
+  });
 });
 
 describe('netzfahrplan integration — finance-agent.fnavEconomics', () => {
   let broker;
+  const placeholders = [];
 
   beforeAll(async () => {
     broker = new ServiceBroker({ logger: false });
@@ -179,6 +279,35 @@ describe('netzfahrplan integration — finance-agent.fnavEconomics', () => {
       actions: {
         retrieve: { handler() { return { results: [] }; } },
         hybridSearch: { handler() { return { results: [] }; } },
+      },
+    });
+    broker.createService({
+      name: 'interface-placeholder',
+      actions: {
+        listGaps: {
+          handler() {
+            return { placeholders: [...placeholders] };
+          },
+        },
+        markGap: {
+          handler(ctx) {
+            const placeholder = {
+              placeholderId: `ph_fin_${placeholders.length + 1}`,
+              placeholderGapKey: ctx.params.placeholderGapKey,
+              reason: ctx.params.reason,
+              blockingLevel: ctx.params.blockingLevel,
+              status: 'placeholder_gap',
+            };
+            placeholders.push(placeholder);
+            return {
+              success: true,
+              placeholder,
+              hitlItem: ctx.params.blockingLevel === 'hard'
+                ? { id: `hitl_fin_${placeholders.length}`, status: 'open' }
+                : null,
+            };
+          },
+        },
       },
     });
 
@@ -257,5 +386,25 @@ describe('netzfahrplan integration — finance-agent.fnavEconomics', () => {
     expect(result.capexSource).toBe('override');
     expect(result.avoidedCopperCapexEur).toBe(2_000_000);
     expect(result.paybackYears).toBe(100);
+  });
+
+  it('adds governanceArtifact, decisionChain and proof on gateway economics calls', async () => {
+    const result = await broker.call(
+      'finance-agent.fnavEconomics',
+      {
+        fnavProfile: {
+          requestedCapacity: 5000,
+          contractStatus: 'negotiating',
+          legalStatus: 'pending',
+        },
+        voltageLevel: 'MS',
+        annualFeeEur: 12000,
+      },
+      { meta: { $gateway: true, tenantId: 'stromdao' } }
+    );
+
+    expect(result.governanceArtifact).toBeTruthy();
+    expect(result.decisionChain).toHaveLength(6);
+    expect(result.proof.summary.avoidedCopperCapexEur).toBe(result.avoidedCopperCapexEur);
   });
 });

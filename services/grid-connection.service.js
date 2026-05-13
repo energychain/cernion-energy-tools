@@ -574,6 +574,9 @@ module.exports = {
                     feasibility: { type: 'string', enum: ['feasible', 'conditional', 'copper_needed'] },
                     governanceStatus: { type: 'string' },
                     governanceBlockers: { type: 'array', items: { type: 'string' } },
+                    governanceArtifact: { type: 'object', nullable: true },
+                    decisionChain: { type: 'array', items: { type: 'object' } },
+                    proof: { type: 'object' },
                     findings: { type: 'array', items: { type: 'object' } },
                     metadata: { type: 'object' },
                     source: { type: 'string' },
@@ -586,6 +589,11 @@ module.exports = {
       },
       async handler(ctx) {
         const {
+          buildGovernanceArtifactConfig,
+          buildDecisionChain,
+          buildProof,
+        } = require('../src/netzfahrplan-schema');
+        const {
           fnavProfile,
           voltageLevel,
           n1ThresholdOverride,
@@ -594,6 +602,7 @@ module.exports = {
           gridOperatorBdew,
           gridOperatorName,
         } = ctx.params;
+        const originatedFromGateway = ctx.meta.$gateway === true;
 
         const result = await ctx.call(
           'grid-operations.netzfahrplanGenerate',
@@ -614,7 +623,84 @@ module.exports = {
           { meta: { ...ctx.meta, $gateway: false } }
         );
 
-        return { ...result, source: 'grid-connection.fnavValidate' };
+        let governanceArtifact = result.governanceArtifact || null;
+        if (originatedFromGateway && result.governanceStatus !== 'approved') {
+          const artifactConfig = buildGovernanceArtifactConfig(result.governanceBlockers || []);
+          const operatorKey = (gridOperatorId || gridOperatorName || gridOperatorBdew || 'unknown').toString().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+          const placeholderGapKey = `phase5_fnav_governance_${operatorKey}_${(voltageLevel || 'MS').toLowerCase()}_${Math.round(result.capacityModel?.requestedCapacityKW || fnavProfile.requestedCapacity || 0)}`;
+
+          try {
+            const existing = await ctx.call('interface-placeholder.listGaps', {
+              includeResolved: false,
+              limit: 250,
+            });
+            const matched = (existing.placeholders || []).find(
+              (item) => item.placeholderGapKey === placeholderGapKey
+            );
+
+            if (matched) {
+              governanceArtifact = matched;
+            } else {
+              const created = await ctx.call('interface-placeholder.markGap', {
+                role: 'grid_connection_validator',
+                reason: artifactConfig.reason,
+                blockingLevel: artifactConfig.blockingLevel,
+                signalCodes: artifactConfig.signalCodes,
+                placeholderGapKey,
+                replacementCriteria: {
+                  kind: 'process',
+                  capabilityHint: 'grid-connection.fnavValidate',
+                  deadline: null,
+                },
+              });
+              governanceArtifact = created?.placeholder || null;
+              if (created?.hitlItem && governanceArtifact) {
+                governanceArtifact.hitlItem = {
+                  id: created.hitlItem.id,
+                  status: created.hitlItem.status,
+                };
+              }
+            }
+          } catch (err) {
+            governanceArtifact = {
+              placeholderGapKey,
+              reason: artifactConfig.reason,
+              blockingLevel: artifactConfig.blockingLevel,
+              status: 'placeholder_gap',
+              error: err.message,
+            };
+          }
+        }
+
+        const decisionChain = buildDecisionChain({
+          requestedCapacityKW: fnavProfile.requestedCapacity,
+          voltageLevel: voltageLevel || 'MS',
+          capacityModel: result.capacityModel,
+          n1Check: result.n1Check,
+          feasibility: result.feasibility,
+          governanceStatus: result.governanceStatus,
+          governanceBlockers: result.governanceBlockers,
+          placeholder: governanceArtifact,
+          source: 'grid-connection.fnavValidate',
+        });
+
+        const proof = buildProof({
+          capacityModel: result.capacityModel,
+          n1Check: result.n1Check,
+          feasibility: result.feasibility,
+          governanceStatus: result.governanceStatus,
+          governanceBlockers: result.governanceBlockers,
+          placeholder: governanceArtifact,
+          findings: result.findings,
+        });
+
+        return {
+          ...result,
+          governanceArtifact,
+          decisionChain,
+          proof,
+          source: 'grid-connection.fnavValidate',
+        };
       },
     },
   },
