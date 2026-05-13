@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.51.3] — Störungen als Investitionssignale (Phase 4)
+
+### Added
+- [src/disturbance-schema.js](src/disturbance-schema.js): added deterministic disturbance signal model with `DISTURBANCE_PATTERN` and `REPEATING_FAULT`, recurring-event grouping, confidence scoring, and confidence-threshold proposal helper.
+- [services/blindflug-radar.service.js](services/blindflug-radar.service.js): added dedicated Blindflug-Radar orchestration service with actions `scanBlindflug`, `recommendFromDisturbances`, `listScans`, and `getScan`.
+- [tests/disturbance-schema.test.js](tests/disturbance-schema.test.js): added unit coverage for recurring-pattern detection and confidence-threshold auto-proposal behavior.
+- [tests/blindflug-radar.service.test.js](tests/blindflug-radar.service.test.js): added service-level coverage for Redispatch+MaStR+findings correlation, evidence-placeholder fallback, recommendation retrieval, and tenant isolation.
+
+### Changed
+- [services/api.service.js](services/api.service.js): added OpenAPI tag `Blindflug Radar` and explicit aliases:
+  - `POST /api/blindflug-radar/scan` → `blindflug-radar.scanBlindflug`
+  - `POST /api/blindflug-radar/recommendations` → `blindflug-radar.recommendFromDisturbances`
+  - `GET /api/blindflug-radar/scans` → `blindflug-radar.listScans`
+  - `GET /api/blindflug-radar/scans/:id` → `blindflug-radar.getScan`
+- [tests/api.service.test.js](tests/api.service.test.js): added OpenAPI + alias regression checks for all Blindflug-Radar endpoints.
+- [package.json](package.json): bumped version to `0.51.3`.
+- [package-lock.json](package-lock.json): aligned lockfile version with the release.
+- [README.md](README.md): updated current release marker to `v0.51.3`.
+
 ## [0.51.2] — Investitionsplanung & Budgetumsteuerung (Phase 3)
 
 ### Added

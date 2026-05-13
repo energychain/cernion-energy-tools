@@ -525,6 +525,11 @@ module.exports = {
             'Redispatch Ex-Post Ist comparison, mandate alignment checks, and >1M EUR HITL triggers.',
         },
         {
+          name: 'Blindflug Radar',
+          description:
+            'Deterministic disturbance-to-investment signal correlation (v0.51.3) using Redispatch, MaStR monitor deltas, and quality findings with confidence-threshold auto-proposals.',
+        },
+        {
           name: 'Webhooks',
           description:
             'Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking.',
@@ -930,6 +935,11 @@ module.exports = {
           'POST /investment-planning/plans': 'investment-planning.createPlan',
           'GET /investment-planning/plans': 'investment-planning.listPlans',
           'GET /investment-planning/plans/:id': 'investment-planning.getPlan',
+          // Blindflug Radar (v0.51.3)
+          'POST /blindflug-radar/scan': 'blindflug-radar.scanBlindflug',
+          'POST /blindflug-radar/recommendations': 'blindflug-radar.recommendFromDisturbances',
+          'GET /blindflug-radar/scans': 'blindflug-radar.listScans',
+          'GET /blindflug-radar/scans/:id': 'blindflug-radar.getScan',
           // Finance Agent (v0.40.5)
           'POST /finance-agent/analyze': 'finance-agent.analyze',
           'GET /finance-agent/analyses': 'finance-agent.list',

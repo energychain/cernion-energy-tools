@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.51.2",
+    "version": "0.51.3",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -141,6 +141,10 @@
     {
       "name": "Investment Planning",
       "description": "Deterministic investment planning and budget steering (v0.51.2) with hybrid Soll baselines, Redispatch Ex-Post Ist comparison, mandate alignment checks, and >1M EUR HITL triggers."
+    },
+    {
+      "name": "Blindflug Radar",
+      "description": "Deterministic disturbance-to-investment signal correlation (v0.51.3) using Redispatch, MaStR monitor deltas, and quality findings with confidence-threshold auto-proposals."
     },
     {
       "name": "Webhooks",
@@ -8512,6 +8516,203 @@
             "schema": {
               "type": "string",
               "example": "ip-123"
+            }
+          }
+        ]
+      }
+    },
+    "/api/blindflug-radar/scan": {
+      "post": {
+        "operationId": "blindflug-radar_scanBlindflug",
+        "summary": "Scan disturbance patterns and generate Blindflug-Radar signals",
+        "tags": [
+          "Blindflug Radar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Collects Redispatch Ex-Post audits, MaStR monitor deltas, and quality findings, then builds deterministic disturbance signals (`DISTURBANCE_PATTERN`, `REPEATING_FAULT`) for investment-oriented planning.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "gridOperatorId": {
+                    "type": "string",
+                    "example": "SNB123456789000"
+                  },
+                  "projectId": {
+                    "type": "string",
+                    "example": "a1b2c3d4-0000-0000-0000-000000000001"
+                  },
+                  "watchIds": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                      "type": "string",
+                      "example": "twl-monitor-main"
+                    }
+                  },
+                  "timeWindowDays": {
+                    "type": "number",
+                    "default": 90
+                  },
+                  "minEvents": {
+                    "type": "number",
+                    "default": 3
+                  },
+                  "confidenceThreshold": {
+                    "type": "number",
+                    "default": 0.7
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "gridOperatorId": "SNB123456789000",
+                    "projectId": "a1b2c3d4-0000-0000-0000-000000000001",
+                    "watchIds": [
+                      "twl-monitor-main"
+                    ],
+                    "timeWindowDays": 90,
+                    "minEvents": 3,
+                    "confidenceThreshold": 0.72
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blindflug-radar/recommendations": {
+      "post": {
+        "operationId": "blindflug-radar_recommendFromDisturbances",
+        "summary": "Get confidence-threshold auto-proposals from disturbance signals",
+        "tags": [
+          "Blindflug Radar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "scanId": {
+                    "type": "string",
+                    "example": "bfr-2026-04-18-001"
+                  },
+                  "confidenceThreshold": {
+                    "type": "number",
+                    "default": 0.7
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "scanId": "c73c2f77-5535-4ca4-a5cc-9038a6a75d9f",
+                    "confidenceThreshold": 0.75
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/blindflug-radar/scans": {
+      "get": {
+        "operationId": "blindflug-radar_listScans",
+        "summary": "List Blindflug-Radar scans",
+        "tags": [
+          "Blindflug Radar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "SNB123456789000"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 200
+            }
+          }
+        ]
+      }
+    },
+    "/api/blindflug-radar/scans/:id": {
+      "get": {
+        "operationId": "blindflug-radar_getScan",
+        "summary": "Get one Blindflug-Radar scan",
+        "tags": [
+          "Blindflug Radar"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "c73c2f77-5535-4ca4-a5cc-9038a6a75d9f"
             }
           }
         ]
@@ -20092,5 +20293,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.51.2"
+  "x-version": "0.51.3"
 }

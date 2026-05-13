@@ -254,6 +254,20 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/investment-planning/plans/:id'].get).toBeDefined();
     });
 
+    it('should include Blindflug Radar routes in OpenAPI', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.tags.some((tag) => tag.name === 'Blindflug Radar')).toBe(true);
+      expect(schema.paths['/api/blindflug-radar/scan']).toBeDefined();
+      expect(schema.paths['/api/blindflug-radar/scan'].post).toBeDefined();
+      expect(schema.paths['/api/blindflug-radar/recommendations']).toBeDefined();
+      expect(schema.paths['/api/blindflug-radar/recommendations'].post).toBeDefined();
+      expect(schema.paths['/api/blindflug-radar/scans']).toBeDefined();
+      expect(schema.paths['/api/blindflug-radar/scans'].get).toBeDefined();
+      expect(schema.paths['/api/blindflug-radar/scans/:id']).toBeDefined();
+      expect(schema.paths['/api/blindflug-radar/scans/:id'].get).toBeDefined();
+    });
+
     it('should include HITL and Webhooks tags and routes', async () => {
       const schema = await broker.call('api.openapi');
 
@@ -349,6 +363,18 @@ describe('API Gateway Service', () => {
       expect(aliases['POST /investment-planning/plans']).toBe('investment-planning.createPlan');
       expect(aliases['GET /investment-planning/plans']).toBe('investment-planning.listPlans');
       expect(aliases['GET /investment-planning/plans/:id']).toBe('investment-planning.getPlan');
+    });
+
+    it('should have explicit aliases for Blindflug Radar routes', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+
+      expect(aliases['POST /blindflug-radar/scan']).toBe('blindflug-radar.scanBlindflug');
+      expect(aliases['POST /blindflug-radar/recommendations']).toBe(
+        'blindflug-radar.recommendFromDisturbances'
+      );
+      expect(aliases['GET /blindflug-radar/scans']).toBe('blindflug-radar.listScans');
+      expect(aliases['GET /blindflug-radar/scans/:id']).toBe('blindflug-radar.getScan');
     });
 
     it('should have explicit aliases for OSM Geo routes', () => {

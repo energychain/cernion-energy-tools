@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.51.2
-- changelog_latest_release: 0.51.2
+- version: 0.51.3
+- changelog_latest_release: 0.51.3
 - source_files_hash:
-  - CHANGELOG.md: b980f7b760fc0ae4d8eb6907b228fe6e1c9fab1e32fd7c245e35adb9f394aa19
-  - README.md: 92b0d0a93674597c7a31755979500d054ca25f0400070adc9cfd43b31b3366b3
+  - CHANGELOG.md: 3f545460a38034d4f659c665e49a170f9548dde6baa5c90796c085b72bd2c6b1
+  - README.md: 0c66345b35c98eff8499d2bb3e5ef7c0ec9dfee40c4f4ec72699605b0a880601
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: 275c51de4bca4160bbfb18faf4603949a0d05b1f4e9e70eed9507c7c35be2897
+  - openapi-export.json: 2d8ee56c4711a8d9a670430292410e492822cd9a831294462b7198a9e615322c
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -590,14 +590,15 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 261
-- operation_count: 303
+- path_count: 265
+- operation_count: 307
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
 - Assets: 5 operations
 - Authentication: 6 operations
 - Backup & Restore: 5 operations
+- Blindflug Radar: 4 operations
 - Companies: 6 operations
 - Cookbook: 6 operations
 - CYA Agent: 19 operations
@@ -665,6 +666,10 @@ process:
 - GET /api/bilanzkreis/:id/feature-flags | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_getFeatureFlags | summary: Get feature flags for a Bilanzkreis
 - PATCH /api/bilanzkreis/:id/feature-flags | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_updateFeatureFlags | summary: Update feature flags for a Bilanzkreis
 - GET /api/bilanzkreis/:id/readiness | tags: [Settlement (Abrechnung)] | operationId: bilanzkreis_checkReadiness | summary: Check settlement readiness for a Bilanzkreis
+- POST /api/blindflug-radar/recommendations | tags: [Blindflug Radar] | operationId: blindflug-radar_recommendFromDisturbances | summary: Get confidence-threshold auto-proposals from disturbance signals
+- POST /api/blindflug-radar/scan | tags: [Blindflug Radar] | operationId: blindflug-radar_scanBlindflug | summary: Scan disturbance patterns and generate Blindflug-Radar signals
+- GET /api/blindflug-radar/scans | tags: [Blindflug Radar] | operationId: blindflug-radar_listScans | summary: List Blindflug-Radar scans
+- GET /api/blindflug-radar/scans/:id | tags: [Blindflug Radar] | operationId: blindflug-radar_getScan | summary: Get one Blindflug-Radar scan
 - GET /api/companies | tags: [Companies] | operationId: company_list | summary: List / search company entities
 - POST /api/companies | tags: [Companies] | operationId: company_create | summary: Create a company entity (Stadtwerk/Konzernverbund)
 - DELETE /api/companies/:id | tags: [Companies] | operationId: company_delete | summary: Archive (soft-delete) a company entity
@@ -950,7 +955,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.51.2"
+    "version": "0.51.3"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -2120,6 +2125,203 @@ process:
         "summary": "Check settlement readiness for a Bilanzkreis",
         "tags": [
           "Settlement (Abrechnung)"
+        ]
+      }
+    },
+    "/api/blindflug-radar/recommendations": {
+      "post": {
+        "operationId": "blindflug-radar_recommendFromDisturbances",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "confidenceThreshold": 0.75,
+                    "scanId": "c73c2f77-5535-4ca4-a5cc-9038a6a75d9f"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confidenceThreshold": {
+                    "default": 0.7,
+                    "type": "number"
+                  },
+                  "scanId": {
+                    "example": "bfr-2026-04-18-001",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get confidence-threshold auto-proposals from disturbance signals",
+        "tags": [
+          "Blindflug Radar"
+        ]
+      }
+    },
+    "/api/blindflug-radar/scan": {
+      "post": {
+        "description": "Collects Redispatch Ex-Post audits, MaStR monitor deltas, and quality findings, then builds deterministic disturbance signals (`DISTURBANCE_PATTERN`, `REPEATING_FAULT`) for investment-oriented planning.",
+        "operationId": "blindflug-radar_scanBlindflug",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "confidenceThreshold": 0.72,
+                    "gridOperatorId": "SNB123456789000",
+                    "minEvents": 3,
+                    "projectId": "a1b2c3d4-0000-0000-0000-000000000001",
+                    "timeWindowDays": 90,
+                    "watchIds": [
+                      "twl-monitor-main"
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "confidenceThreshold": {
+                    "default": 0.7,
+                    "type": "number"
+                  },
+                  "gridOperatorId": {
+                    "example": "SNB123456789000",
+                    "type": "string"
+                  },
+                  "minEvents": {
+                    "default": 3,
+                    "type": "number"
+                  },
+                  "projectId": {
+                    "example": "a1b2c3d4-0000-0000-0000-000000000001",
+                    "type": "string"
+                  },
+                  "timeWindowDays": {
+                    "default": 90,
+                    "type": "number"
+                  },
+                  "watchIds": {
+                    "default": [],
+                    "items": {
+                      "example": "twl-monitor-main",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Scan disturbance patterns and generate Blindflug-Radar signals",
+        "tags": [
+          "Blindflug Radar"
+        ]
+      }
+    },
+    "/api/blindflug-radar/scans": {
+      "get": {
+        "operationId": "blindflug-radar_listScans",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "gridOperatorId",
+            "schema": {
+              "example": "SNB123456789000",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List Blindflug-Radar scans",
+        "tags": [
+          "Blindflug Radar"
+        ]
+      }
+    },
+    "/api/blindflug-radar/scans/:id": {
+      "get": {
+        "operationId": "blindflug-radar_getScan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "c73c2f77-5535-4ca4-a5cc-9038a6a75d9f",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get one Blindflug-Radar scan",
+        "tags": [
+          "Blindflug Radar"
         ]
       }
     },
@@ -21031,6 +21233,10 @@ process:
       "name": "Investment Planning"
     },
     {
+      "description": "Deterministic disturbance-to-investment signal correlation (v0.51.3) using Redispatch, MaStR monitor deltas, and quality findings with confidence-threshold auto-proposals.",
+      "name": "Blindflug Radar"
+    },
+    {
       "description": "Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking.",
       "name": "Webhooks"
     },
@@ -21040,8 +21246,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.51.2"
+  "x-version": "0.51.3"
 }
 
 ## Integrity
-- llm_txt_sha256: 94b9ff2d1c3fd24666a1084c7c1e3b92e7b22484c1d644927d3fd0855a635b90
+- llm_txt_sha256: 3ea8c089f73b8e3fd2315ec3b70a5e26f3698caa6a4ba59098bba7271d548d29
