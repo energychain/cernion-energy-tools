@@ -6837,6 +6837,14 @@
                   "scenarioAdditions": {
                     "type": "array",
                     "description": "Optional What-If installations added virtually for this validation run only.",
+                    "example": [
+                      {
+                        "id": "whatif-pv-1",
+                        "type": "solar",
+                        "capacityMW": 1.5,
+                        "voltageLevel": "MS"
+                      }
+                    ],
                     "items": {
                       "type": "object",
                       "properties": {
@@ -8699,6 +8707,99 @@
               }
             }
           }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "role",
+                  "reason"
+                ],
+                "properties": {
+                  "role": {
+                    "type": "string",
+                    "example": "grid_connection_validator"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "example": "NEEDS_INTERFACE"
+                  },
+                  "blockingLevel": {
+                    "type": "string",
+                    "example": "soft"
+                  },
+                  "replacementCriteria": {
+                    "type": "object",
+                    "example": {
+                      "kind": "process",
+                      "capabilityHint": "znp.assessPortfolio",
+                      "deadline": "2026-06-01T00:00:00.000Z"
+                    },
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "example": "process"
+                      },
+                      "capabilityHint": {
+                        "type": "string",
+                        "example": "znp.assessPortfolio"
+                      },
+                      "deadline": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-06-01T00:00:00.000Z"
+                      }
+                    }
+                  },
+                  "signalCodes": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "NEEDS_INTERFACE",
+                      "REQUEST_INTERFACE_CONTRACT"
+                    ]
+                  },
+                  "placeholderGapKey": {
+                    "type": "string",
+                    "example": "kaufmaennische_freigabe_fnav"
+                  },
+                  "requiredResolverRoles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "ROLE_KAUFMAENNISCHE_LEITUNG",
+                      "ROLE_NETZPLANUNG"
+                    ]
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "role": "grid_connection_validator",
+                    "reason": "NEEDS_INTERFACE",
+                    "blockingLevel": "soft",
+                    "replacementCriteria": {
+                      "kind": "process",
+                      "capabilityHint": "znp.assessPortfolio",
+                      "deadline": "2026-06-01T00:00:00.000Z"
+                    },
+                    "signalCodes": [
+                      "NEEDS_INTERFACE",
+                      "REQUEST_INTERFACE_CONTRACT"
+                    ]
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -8716,6 +8817,32 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "placeholderId"
+                ],
+                "properties": {
+                  "placeholderId": {
+                    "type": "string",
+                    "example": "ph_1234567890abcdef"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "placeholderId": "ph_1234567890abcdef"
+                  }
                 }
               }
             }
@@ -8741,7 +8868,55 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "reason",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "NEEDS_EVIDENCE"
+            }
+          },
+          {
+            "name": "blockingLevel",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "hard"
+            }
+          },
+          {
+            "name": "role",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "grid_connection_validator"
+            }
+          },
+          {
+            "name": "includeResolved",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 100,
+              "maximum": 250
+            }
+          }
+        ]
       }
     },
     "/api/interface-placeholder/gaps/:placeholderId/status": {
@@ -8762,7 +8937,18 @@
               }
             }
           }
-        }
+        },
+        "parameters": [
+          {
+            "name": "placeholderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "ph_1234567890abcdef"
+            }
+          }
+        ]
       }
     },
     "/api/interface-placeholder/gaps/:placeholderId/resolve": {
@@ -8779,6 +8965,81 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "placeholderId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "ph_1234567890abcdef"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "resolution"
+                ],
+                "properties": {
+                  "resolution": {
+                    "example": {
+                      "summary": "Manual approval documented",
+                      "approvedBy": "user-123"
+                    },
+                    "oneOf": [
+                      {
+                        "type": "string",
+                        "example": "Manual approval documented"
+                      },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "summary": {
+                            "type": "string",
+                            "example": "Manual approval documented"
+                          },
+                          "approvedBy": {
+                            "type": "string",
+                            "example": "user-123"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "approvedRoles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "ROLE_KAUFMAENNISCHE_LEITUNG",
+                      "ROLE_NETZPLANUNG"
+                    ]
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "value": {
+                    "resolution": {
+                      "summary": "Manual approval documented",
+                      "approvedBy": "user-123"
+                    },
+                    "approvedRoles": [
+                      "ROLE_KAUFMAENNISCHE_LEITUNG",
+                      "ROLE_NETZPLANUNG"
+                    ]
+                  }
                 }
               }
             }

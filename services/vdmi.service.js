@@ -480,11 +480,18 @@ module.exports = {
             if (candidate.role === 'V') task.verantwortlich.push(actorRef);
             if (candidate.role === 'D') {
               if (task.durchfuehrend.length > 0) {
+                const existingD = task.durchfuehrend[0];
+                const sameActor =
+                  existingD?.actorType === actorRef.actorType &&
+                  existingD?.actorId === actorRef.actorId;
+                if (sameActor) {
+                  continue;
+                }
                 throw new MoleculerClientError(
                   'Task already has a Durchfuehrend actor. Use human-override or re-assignment.',
                   409,
                   'CONFLICT_ROLE',
-                  { taskId: task.taskId, existingD: task.durchfuehrend[0], conflictingCandidate: actorRef }
+                  { taskId: task.taskId, existingD, conflictingCandidate: actorRef }
                 );
               }
               task.durchfuehrend.push(actorRef);
@@ -1526,11 +1533,18 @@ module.exports = {
         if (candidate.role === 'V') task.verantwortlich.push(actor);
         if (candidate.role === 'D') {
           if (task.durchfuehrend.length > 0) {
+            const existingD = task.durchfuehrend[0];
+            const sameActor =
+              existingD?.actorType === actor.actorType &&
+              existingD?.actorId === actor.actorId;
+            if (sameActor) {
+              continue;
+            }
             throw new MoleculerClientError(
               'Task already has a Durchfuehrend actor. Use human-override or re-assignment.',
               409,
               'CONFLICT_ROLE',
-              { taskId: task.taskId, existingD: task.durchfuehrend[0], conflictingCandidate: actor }
+              { taskId: task.taskId, existingD, conflictingCandidate: actor }
             );
           }
           task.durchfuehrend.push(actor);

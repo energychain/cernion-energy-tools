@@ -9,7 +9,7 @@
   - README.md: ada3db9ae965b4b04d38d3d87a8f125dae8a5142791641fa4ca8dcd65729077b
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: 9d77241312cf182575e4362fd606bf61ba94d4c85b16b5b56ee4fed3fa961da7
+  - openapi-export.json: e444e23b0f53a4731891590e180225e94db0eb2a60e919dd2d0831d5c6f26b67
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -10795,6 +10795,14 @@ process:
                   },
                   "scenarioAdditions": {
                     "description": "Optional What-If installations added virtually for this validation run only.",
+                    "example": [
+                      {
+                        "capacityMW": 1.5,
+                        "id": "whatif-pv-1",
+                        "type": "solar",
+                        "voltageLevel": "MS"
+                      }
+                    ],
                     "items": {
                       "properties": {
                         "capacityKW": {
@@ -11959,6 +11967,54 @@ process:
     "/api/interface-placeholder/gaps": {
       "get": {
         "operationId": "interface-placeholder_listGaps",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "reason",
+            "required": false,
+            "schema": {
+              "example": "NEEDS_EVIDENCE",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "blockingLevel",
+            "required": false,
+            "schema": {
+              "example": "hard",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "example": "grid_connection_validator",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "includeResolved",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 250,
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -11980,6 +12036,81 @@ process:
     "/api/interface-placeholder/gaps/:placeholderId/resolve": {
       "post": {
         "operationId": "interface-placeholder_resolveGap",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "placeholderId",
+            "required": true,
+            "schema": {
+              "example": "ph_1234567890abcdef",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "approvedRoles": [
+                      "ROLE_KAUFMAENNISCHE_LEITUNG",
+                      "ROLE_NETZPLANUNG"
+                    ],
+                    "resolution": {
+                      "approvedBy": "user-123",
+                      "summary": "Manual approval documented"
+                    }
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "approvedRoles": {
+                    "example": [
+                      "ROLE_KAUFMAENNISCHE_LEITUNG",
+                      "ROLE_NETZPLANUNG"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "resolution": {
+                    "example": {
+                      "approvedBy": "user-123",
+                      "summary": "Manual approval documented"
+                    },
+                    "oneOf": [
+                      {
+                        "example": "Manual approval documented",
+                        "type": "string"
+                      },
+                      {
+                        "properties": {
+                          "approvedBy": {
+                            "example": "user-123",
+                            "type": "string"
+                          },
+                          "summary": {
+                            "example": "Manual approval documented",
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "resolution"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -12001,6 +12132,17 @@ process:
     "/api/interface-placeholder/gaps/:placeholderId/status": {
       "get": {
         "operationId": "interface-placeholder_returnMinimalStatus",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "placeholderId",
+            "required": true,
+            "schema": {
+              "example": "ph_1234567890abcdef",
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -12022,6 +12164,99 @@ process:
     "/api/interface-placeholder/mark-gap": {
       "post": {
         "operationId": "interface-placeholder_markGap",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "blockingLevel": "soft",
+                    "reason": "NEEDS_INTERFACE",
+                    "replacementCriteria": {
+                      "capabilityHint": "znp.assessPortfolio",
+                      "deadline": "2026-06-01T00:00:00.000Z",
+                      "kind": "process"
+                    },
+                    "role": "grid_connection_validator",
+                    "signalCodes": [
+                      "NEEDS_INTERFACE",
+                      "REQUEST_INTERFACE_CONTRACT"
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "blockingLevel": {
+                    "example": "soft",
+                    "type": "string"
+                  },
+                  "placeholderGapKey": {
+                    "example": "kaufmaennische_freigabe_fnav",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "example": "NEEDS_INTERFACE",
+                    "type": "string"
+                  },
+                  "replacementCriteria": {
+                    "example": {
+                      "capabilityHint": "znp.assessPortfolio",
+                      "deadline": "2026-06-01T00:00:00.000Z",
+                      "kind": "process"
+                    },
+                    "properties": {
+                      "capabilityHint": {
+                        "example": "znp.assessPortfolio",
+                        "type": "string"
+                      },
+                      "deadline": {
+                        "example": "2026-06-01T00:00:00.000Z",
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      "kind": {
+                        "example": "process",
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "requiredResolverRoles": {
+                    "example": [
+                      "ROLE_KAUFMAENNISCHE_LEITUNG",
+                      "ROLE_NETZPLANUNG"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "role": {
+                    "example": "grid_connection_validator",
+                    "type": "string"
+                  },
+                  "signalCodes": {
+                    "example": [
+                      "NEEDS_INTERFACE",
+                      "REQUEST_INTERFACE_CONTRACT"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "role",
+                  "reason"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -12043,6 +12278,32 @@ process:
     "/api/interface-placeholder/request-evidence": {
       "post": {
         "operationId": "interface-placeholder_requestEvidence",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "placeholderId": "ph_1234567890abcdef"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "placeholderId": {
+                    "example": "ph_1234567890abcdef",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "placeholderId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -20456,4 +20717,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 06b4ddc162c3865b6de75fedf574c8293a1c25b822f19a72e7b854025b1000a6
+- llm_txt_sha256: 637e4461c4c7c3a24cc939f46701a4f4c11469866797018946aef7d5dd6b1c71
