@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.51.4] — PR #102 Qualitäts- und Routing-Fixes
+
+### Fixed
+- [services/blindflug-radar.service.js](services/blindflug-radar.service.js): removed unused `MoleculerClientError` import to resolve code-quality findings.
+- [services/znp.service.js](services/znp.service.js): corrected `correlateDisturbance` REST route to `POST /api/znp/projects/:projectId/correlate-disturbance` and aligned medium-severity placeholder payload with `interface-placeholder.markGap` schema.
+- [services/api.service.js](services/api.service.js): moved blindflug scan alias to `/api` route and mapped it to the versioned action `v1.blindflug-radar.scan`.
+- [services/api.service.js](services/api.service.js): replaced literal wildcard CORS origin handling with validated matcher logic (supports wildcard patterns like `https://*.cernion.de` and filters empty env entries).
+- [src/capability-catalog.js](src/capability-catalog.js): updated curated preferred action to `v1.blindflug-radar.scan`.
+- [src/validation-findings.js](src/validation-findings.js): removed trailing whitespace near `BLINDFLUG_ANOMALY_DETECTED` metadata.
+- [tests/znp-correlate.service.test.js](tests/znp-correlate.service.test.js): made test hermetic with temporary DB paths, added `object-store` dependency, and asserted real HITL/interface-placeholder side effects.
+
+### Changed
+- [package.json](package.json): bumped version to `0.51.4`.
+- [package-lock.json](package-lock.json): aligned lockfile version to `0.51.4`.
+
 ## [0.51.2] — Investitionsplanung & Budgetumsteuerung (Phase 3)
 
 ### Added

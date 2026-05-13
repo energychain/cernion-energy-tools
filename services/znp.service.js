@@ -1398,7 +1398,7 @@ module.exports = {
      */
 
     correlateDisturbance: {
-      rest: 'POST /:projectId/correlate-disturbance',
+      rest: 'POST /projects/:projectId/correlate-disturbance',
       params: {
         projectId: { type: 'string' },
         disturbanceId: { type: 'string' },
@@ -1409,6 +1409,33 @@ module.exports = {
         summary: 'Correlate a disturbance signal with ZNP',
         description: 'Maps a Phase 4 blindflug-radar disturbance signal into a NOVA option shape for investment decisioning.',
         tags: ['ZNP'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['projectId', 'disturbanceId'],
+                properties: {
+                  projectId: { type: 'string', example: 'znp_prj_123' },
+                  disturbanceId: { type: 'string', example: 'SIG-123' },
+                  pattern: { type: 'string', example: 'CAPACITY_BOTTLENECK' },
+                  severity: { type: 'string', example: 'high' },
+                },
+              },
+              examples: {
+                default: {
+                  value: {
+                    projectId: 'znp_prj_123',
+                    disturbanceId: 'SIG-123',
+                    pattern: 'CAPACITY_BOTTLENECK',
+                    severity: 'high',
+                  },
+                },
+              },
+            },
+          },
+        },
         responses: {
           200: {
             description: 'Successfully correlated disturbance to NOVA option',
@@ -1462,14 +1489,15 @@ module.exports = {
         } else if (severity === 'medium') {
           // Unresolved evidence => interface-placeholder
           await ctx.call('interface-placeholder.markGap', {
-            tenantId: 'default',
-            projectId,
-            contextType: 'DISTURBANCE_SIGNAL',
-            contextId: disturbanceId,
+            role: 'portfolio_planner',
             reason: 'NEEDS_EVIDENCE',
             blockingLevel: 'soft',
-            description: `Missing definitive capacity evidence for disturbance ${pattern}`,
-            agentName: 'blindflug-radar'
+            placeholderGapKey: `disturbance_${disturbanceId}`,
+            replacementCriteria: {
+              kind: 'process',
+              capabilityHint: 'znp.correlateDisturbance',
+              deadline: null,
+            }
           }).catch(err => this.logger.warn('Failed to mark interface gap', err));
           governanceAction = 'interface-placeholder.markGap';
         }

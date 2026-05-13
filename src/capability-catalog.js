@@ -59,7 +59,7 @@ const CURATED_CAPABILITIES = [
       'bottleneck',
       'redispatch',
     ],
-    preferredActions: ['blindflug-radar.scan', 'znp.correlateDisturbance'],
+    preferredActions: ['v1.blindflug-radar.scan', 'znp.correlateDisturbance'],
     fallbackActions: ['interface-placeholder.markGap'],
     avoid: ['query.ask'],
     requiredInputs: [
@@ -74,11 +74,11 @@ const CURATED_CAPABILITIES = [
         label: 'ZNP Project ID',
         type: 'string',
         required: true,
-      }
+      },
     ],
     risksAndNotes: [
       'Anomalies must be routed through interface-placeholder if evidence is missing.',
-      'High severity anomalies require HITL creation via ZNP correlation.'
+      'High severity anomalies require HITL creation via ZNP correlation.',
     ],
     routingPattern: 'blindflug_znp_correlation',
   },

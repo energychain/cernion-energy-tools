@@ -912,6 +912,7 @@ describe('dashboard-api.service', () => {
         'redispatch-expost',
         'finance-agent',
         'vdmi',
+        'blindflug-radar',
       ];
 
       for (const [, meta] of Object.entries(result.codes)) {
@@ -925,7 +926,7 @@ describe('dashboard-api.service', () => {
       }
     });
 
-    it('agents catalogue has 5 known agent types', async () => {
+    it('agents catalogue has known agent types including blindflug-radar', async () => {
       const result = await broker.call('dashboard-api.findingCodes', {});
       const agentKeys = Object.keys(result.agents);
 
@@ -934,6 +935,7 @@ describe('dashboard-api.service', () => {
       expect(agentKeys).toContain('mastr-quality');
       expect(agentKeys).toContain('redispatch-expost');
       expect(agentKeys).toContain('vdmi');
+      expect(agentKeys).toContain('blindflug-radar');
     });
 
     it('returns cached result on second call (no upstream calls to check)', async () => {

@@ -1,9 +1,8 @@
 'use strict';
 
-const { MoleculerClientError } = require('moleculer').Errors;
 const {
   normalizeDisturbancePattern,
-  normalizeDisturbanceSeverity
+  normalizeDisturbanceSeverity,
 } = require('../src/disturbance-schema');
 const { createFinding } = require('../src/validation-findings');
 
@@ -19,7 +18,32 @@ module.exports = {
     scan: {
       rest: 'POST /scan',
       params: {
-        vnbId: { type: 'string' }
+        vnbId: { type: 'string' },
+      },
+      openapi: {
+        summary: 'Scan disturbance signals for blind-flight anomalies',
+        tags: ['Blindflug Radar'],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['vnbId'],
+                properties: {
+                  vnbId: { type: 'string', example: 'VNB-123' },
+                },
+              },
+              examples: {
+                default: {
+                  value: {
+                    vnbId: 'VNB-123',
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       async handler(ctx) {
         const { vnbId } = ctx.params;
@@ -29,7 +53,7 @@ module.exports = {
         // Mock disturbance for Phase 4 MVP
         // Reusing patterns from redispatch-expost and mastr-monitor
         const sigId = `SIG-${Date.now()}-001`;
-        
+
         disturbances.push({
           id: sigId,
           vnbId,
@@ -37,7 +61,7 @@ module.exports = {
           severity: normalizeDisturbanceSeverity('high'),
           timestamp: new Date().toISOString(),
           description: 'Detected recurring capacity constraint in Redispatch logs',
-          source: 'redispatch-expost'
+          source: 'redispatch-expost',
         });
 
         findings.push(
@@ -56,9 +80,9 @@ module.exports = {
           vnbId,
           scannedAt: new Date().toISOString(),
           disturbances,
-          findings
+          findings,
         };
-      }
-    }
-  }
+      },
+    },
+  },
 };

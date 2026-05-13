@@ -1193,7 +1193,7 @@ const FINDING_CODE_METADATA = {
     descriptionDe:
       'Kritische Governance-Abweichung mit unvollständiger Audit-Evidenzkette erkannt',
   },
-  
+
   BLINDFLUG_ANOMALY_DETECTED: {
     severity: 'warning',
     agent: 'blindflug-radar',
