@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.51.1] — Portfolio-Logik (Phase 2)
+
+### Added
+- [src/znp-portfolio-logic.js](src/znp-portfolio-logic.js): added deterministic hybrid portfolio scoring for Layer 0 (MaStR), Layer 2 (Inhouse PDF), and Layer 2.5 (strategic assumptions) with explicit provenance flags and `portfolio.weg` metadata.
+- [tests/znp-portfolio-logic.test.js](tests/znp-portfolio-logic.test.js): added coverage for provenance flags, four-dimensional scoring, and missing-fNAV penalty behavior.
+- [services/znp.service.js](services/znp.service.js): added `znp.assessPortfolio` endpoint (`GET /api/znp/projects/:projectId/portfolio`) exposing `portfolio.weg`, provenance flags, dimension scores (`economic`, `regulatory`, `technical`, `temporal`), overall score, and governance state.
+
+### Changed
+- [services/znp.service.js](services/znp.service.js): integrated manual-only hard-blocker governance flow for missing `kaufmaennische_freigabe_fnav` by creating/returning explicit Interface Placeholder blockers.
+- [src/capability-catalog.js](src/capability-catalog.js): added curated capability `znp_portfolio_assessment` for deterministic portfolio routing.
+- [services/capability-broker.service.js](services/capability-broker.service.js): added action template support for `znp.assessPortfolio` recommendations.
+- [services/api.service.js](services/api.service.js): registered explicit alias `GET /api/znp/projects/:projectId/portfolio` → `znp.assessPortfolio`.
+- [tests/znp.service.test.js](tests/znp.service.test.js): added Phase-2 regressions for `assessPortfolio` result transparency and hard-blocker behavior.
+- [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js): added broker routing regression for portfolio prompts.
+- [tests/api.service.test.js](tests/api.service.test.js): added OpenAPI + alias regression for the new ZNP portfolio endpoint.
+- [package.json](package.json): bumped version to `0.51.1`.
+- [package-lock.json](package-lock.json): aligned lockfile version with the release.
+- [README.md](README.md): updated current release marker to `v0.51.1`.
+
 ## [0.51.0] — Interface Placeholder Agent (Phase 1)
 
 ### Added

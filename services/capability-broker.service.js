@@ -106,6 +106,12 @@ function buildActionTemplate(action) {
       limit: 25,
     };
   }
+  if (action === 'znp.assessPortfolio') {
+    return {
+      projectId: null,
+      kaufmaennischeFreigabeFnav: false,
+    };
+  }
   if (action === 'grid-operations.marketPartners') {
     return {
       query: null,

@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.51.0
-- changelog_latest_release: 0.51.0
+- version: 0.51.1
+- changelog_latest_release: 0.51.1
 - source_files_hash:
-  - CHANGELOG.md: 81fe8741442a5d6c26ef3928e896721ae985bd67328476aabfa9a58d141c776f
-  - README.md: ada3db9ae965b4b04d38d3d87a8f125dae8a5142791641fa4ca8dcd65729077b
+  - CHANGELOG.md: adb08849ec32ccbb355c05bb454cc7ba1f10b15598a76a33b7eb96ec74b56e02
+  - README.md: 8e2a62e9027778c6961e2e050cc1ed2f5437894c181a159a3492e53a0f22806b
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: e444e23b0f53a4731891590e180225e94db0eb2a60e919dd2d0831d5c6f26b67
+  - openapi-export.json: 33c89386672fcc5a38991b55cf08022f657d92a08c5da878dc4d0b0f8245786d
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -590,8 +590,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 258
-- operation_count: 299
+- path_count: 259
+- operation_count: 300
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -637,7 +637,7 @@ process:
 - vdmi-spectator: 2 operations
 - VNBMonitor: 4 operations
 - Webhooks: 6 operations
-- Zielnetzplanung (ZNP): 11 operations
+- Zielnetzplanung (ZNP): 12 operations
 
 ## OpenAPI Operations (Complete Index)
 - POST /api/admin/backup/restore | tags: [Backup & Restore] | operationId: backup-orchestrator_restore | summary: Restore all data stores from a backup snapshot
@@ -938,6 +938,7 @@ process:
 - POST /api/znp/projects/:projectId/nova/decisions/:id/replay-trigger | tags: [NOVA] | operationId: nova_replayTrigger | summary: Replay NOVA decision trigger source (async)
 - GET /api/znp/projects/:projectId/nova/decisions/stats | tags: [NOVA] | operationId: nova_decisionStats | summary: NOVA decision status counts
 - GET /api/znp/projects/:projectId/nova/pending-decisions | tags: [NOVA] | operationId: nova_pendingDecisions | summary: List pending NOVA decisions (dynamic)
+- GET /api/znp/projects/:projectId/portfolio | tags: [Zielnetzplanung (ZNP)] | operationId: znp_assessPortfolio | summary: Assess ZNP portfolio with hybrid provenance and transparent dimensions
 - GET /api/znp/projects/:projectId/strategic-prompts | tags: [Zielnetzplanung (ZNP)] | operationId: znp_strategicPrompts | summary: Generate strategic planning questions for a ZNP project (AI)
 
 ## OpenAPI Canonical JSON (Complete)
@@ -945,7 +946,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.51.0"
+    "version": "0.51.1"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -20519,6 +20520,140 @@ process:
         ]
       }
     },
+    "/api/znp/projects/:projectId/portfolio": {
+      "get": {
+        "description": "Computes a deterministic portfolio assessment across ZNP Layer 0 (MaStR), Layer 2 (inhouse transformer PDF calibration), and Layer 2.5 (strategic assumptions). The result includes explicit `portfolio.weg` metadata and provenance flags to make confidence and source reliability transparent. If kaufmännische fNAV approval is missing, the response is a manual-only hard blocker.",
+        "operationId": "znp_assessPortfolio",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "example": "a1b2c3d4-0000-0000-0000-000000000001",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Explicit governance confirmation for fNAV (kaufmännische Freigabe). If false, assessment stays blocked until manual UI resolution.",
+            "in": "query",
+            "name": "kaufmaennischeFreigabeFnav",
+            "required": false,
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "decisionStatus": {
+                      "enum": [
+                        "blocked",
+                        "ready"
+                      ],
+                      "type": "string"
+                    },
+                    "dimensionScores": {
+                      "properties": {
+                        "economic": {
+                          "type": "number"
+                        },
+                        "regulatory": {
+                          "type": "number"
+                        },
+                        "technical": {
+                          "type": "number"
+                        },
+                        "temporal": {
+                          "type": "number"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "governance": {
+                      "properties": {
+                        "hardBlockers": {
+                          "items": {
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "resolutionMode": {
+                          "example": "manual_only",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "overallScore": {
+                      "type": "number"
+                    },
+                    "portfolio": {
+                      "properties": {
+                        "provenance": {
+                          "example": [
+                            "mastr_layer_0",
+                            "inhouse_layer_2",
+                            "strategic_assumption"
+                          ],
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "provenanceFlags": {
+                          "items": {
+                            "properties": {
+                              "provenance": {
+                                "type": "string"
+                              },
+                              "reliability": {
+                                "type": "number"
+                              },
+                              "source": {
+                                "type": "string"
+                              }
+                            },
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "reliabilityScore": {
+                          "type": "number"
+                        },
+                        "weg": {
+                          "example": "hybrid_layered_v1",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "nullable": true,
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Portfolio assessment result"
+          }
+        },
+        "summary": "Assess ZNP portfolio with hybrid provenance and transparent dimensions",
+        "tags": [
+          "Zielnetzplanung (ZNP)"
+        ]
+      }
+    },
     "/api/znp/projects/:projectId/strategic-prompts": {
       "get": {
         "description": "Analyses the current graph topology (asset types, capacity, layers) and uses Google Gemini to generate 2-3 strategic questions a grid planner should answer about developments not visible in MaStR/OSM (e.g. data centres, §14a NAV, heat-pump obligations). Returns the questions array + the graph summary used as LLM context. Requires GEMINI_API_KEY — returns HTTP 503 if not configured.",
@@ -20713,8 +20848,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.51.0"
+  "x-version": "0.51.1"
 }
 
 ## Integrity
-- llm_txt_sha256: 637e4461c4c7c3a24cc939f46701a4f4c11469866797018946aef7d5dd6b1c71
+- llm_txt_sha256: de4ca6b7f813835039cd8e32f9b81323b6320ce2cf71d518b377f98baf5eb8a5

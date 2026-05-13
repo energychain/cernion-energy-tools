@@ -235,6 +235,14 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/mastr-quality/audit'].post.tags).toContain('MaStR Data Quality');
     });
 
+    it('should include ZNP portfolio assessment route in OpenAPI', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.paths['/api/znp/projects/:projectId/portfolio']).toBeDefined();
+      expect(schema.paths['/api/znp/projects/:projectId/portfolio'].get).toBeDefined();
+      expect(schema.paths['/api/znp/projects/:projectId/portfolio'].get.tags).toContain('znp');
+    });
+
     it('should include HITL and Webhooks tags and routes', async () => {
       const schema = await broker.call('api.openapi');
 
@@ -314,6 +322,13 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /tenants/:id/quotas']).toBe('tenant-quota.getQuotas');
       expect(aliases['PUT /tenants/:id/quotas']).toBe('tenant-quota.setQuotas');
       expect(aliases['GET /tenants/:id/rate-limit-events']).toBe('tenant-quota.listEvents');
+    });
+
+    it('should have explicit alias for ZNP portfolio assessment route', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+
+      expect(aliases['GET /znp/projects/:projectId/portfolio']).toBe('znp.assessPortfolio');
     });
 
     it('should have explicit aliases for OSM Geo routes', () => {

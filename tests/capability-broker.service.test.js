@@ -124,4 +124,19 @@ describe('Capability Broker Service', () => {
       result.warnings.some((warning) => warning.includes('interface-placeholder fallback'))
     ).toBe(true);
   });
+
+  it('routes portfolio logic prompts to znp.assessPortfolio', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte ZNP Portfolio-Logik für Projekt abc prüfen inkl. Layer 0/2/2.5 und fNAV',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('znp_portfolio_assessment');
+    expect(result.recommendedPlan[0].action).toBe('znp.assessPortfolio');
+    expect(result.recommendedPlan[0].params).toEqual(
+      expect.objectContaining({
+        projectId: null,
+        kaufmaennischeFreigabeFnav: false,
+      })
+    );
+  });
 });

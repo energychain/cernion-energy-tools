@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.51.0",
+    "version": "0.51.1",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -11839,6 +11839,140 @@
         ]
       }
     },
+    "/api/znp/projects/:projectId/portfolio": {
+      "get": {
+        "operationId": "znp_assessPortfolio",
+        "summary": "Assess ZNP portfolio with hybrid provenance and transparent dimensions",
+        "tags": [
+          "Zielnetzplanung (ZNP)"
+        ],
+        "responses": {
+          "200": {
+            "description": "Portfolio assessment result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "projectId": {
+                      "type": "string"
+                    },
+                    "tenantId": {
+                      "type": "string",
+                      "nullable": true
+                    },
+                    "decisionStatus": {
+                      "type": "string",
+                      "enum": [
+                        "blocked",
+                        "ready"
+                      ]
+                    },
+                    "portfolio": {
+                      "type": "object",
+                      "properties": {
+                        "weg": {
+                          "type": "string",
+                          "example": "hybrid_layered_v1"
+                        },
+                        "provenance": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": [
+                            "mastr_layer_0",
+                            "inhouse_layer_2",
+                            "strategic_assumption"
+                          ]
+                        },
+                        "provenanceFlags": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "provenance": {
+                                "type": "string"
+                              },
+                              "source": {
+                                "type": "string"
+                              },
+                              "reliability": {
+                                "type": "number"
+                              }
+                            }
+                          }
+                        },
+                        "reliabilityScore": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "dimensionScores": {
+                      "type": "object",
+                      "properties": {
+                        "economic": {
+                          "type": "number"
+                        },
+                        "regulatory": {
+                          "type": "number"
+                        },
+                        "technical": {
+                          "type": "number"
+                        },
+                        "temporal": {
+                          "type": "number"
+                        }
+                      }
+                    },
+                    "overallScore": {
+                      "type": "number"
+                    },
+                    "governance": {
+                      "type": "object",
+                      "properties": {
+                        "resolutionMode": {
+                          "type": "string",
+                          "example": "manual_only"
+                        },
+                        "hardBlockers": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Computes a deterministic portfolio assessment across ZNP Layer 0 (MaStR), Layer 2 (inhouse transformer PDF calibration), and Layer 2.5 (strategic assumptions). The result includes explicit `portfolio.weg` metadata and provenance flags to make confidence and source reliability transparent. If kaufmännische fNAV approval is missing, the response is a manual-only hard blocker.",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "a1b2c3d4-0000-0000-0000-000000000001"
+            }
+          },
+          {
+            "name": "kaufmaennischeFreigabeFnav",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Explicit governance confirmation for fNAV (kaufmännische Freigabe). If false, assessment stays blocked until manual UI resolution."
+          }
+        ]
+      }
+    },
     "/api/znp/projects/:projectId/assets": {
       "get": {
         "operationId": "znp_getProjectAssets",
@@ -19770,5 +19904,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.51.0"
+  "x-version": "0.51.1"
 }

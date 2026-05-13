@@ -100,8 +100,10 @@ async function waitFor(predicate, { timeoutMs = 1000, intervalMs = 10 } = {}) {
 
 describe('ZNP Service', () => {
   let broker;
+  let placeholderStore;
 
   beforeAll(async () => {
+    placeholderStore = [];
     broker = new ServiceBroker({
       logger: false,
       // Use a unique in-memory PouchDB path per test run to avoid conflicts
@@ -114,7 +116,54 @@ describe('ZNP Service', () => {
         dbPath: `./data/znp-test-${Date.now()}`,
       },
     });
+    broker.createService({
+      name: 'interface-placeholder',
+      actions: {
+        markGap: {
+          handler(ctx) {
+            const payload = {
+              placeholderId: `ph-test-${placeholderStore.length + 1}`,
+              status: 'placeholder_gap',
+              blockingLevel: ctx.params.blockingLevel || 'soft',
+              reason: ctx.params.reason,
+              placeholderGapKey: ctx.params.placeholderGapKey || null,
+              role: ctx.params.role,
+            };
+            placeholderStore.push(payload);
+            return { success: true, placeholder: payload };
+          },
+        },
+        listGaps: {
+          handler(ctx) {
+            let items = [...placeholderStore];
+            if (!ctx.params.includeResolved) {
+              items = items.filter((item) => item.status === 'placeholder_gap');
+            }
+            if (ctx.params.blockingLevel) {
+              items = items.filter((item) => item.blockingLevel === ctx.params.blockingLevel);
+            }
+            return { placeholders: items };
+          },
+        },
+        canExecuteAction: {
+          handler() {
+            const blockers = placeholderStore.filter(
+              (item) => item.status === 'placeholder_gap' && item.blockingLevel === 'hard'
+            );
+            return {
+              allowed: blockers.length === 0,
+              decisionStatus: blockers.length > 0 ? 'blocked' : 'clear',
+              blockingPlaceholders: blockers,
+            };
+          },
+        },
+      },
+    });
     await broker.start();
+  });
+
+  beforeEach(() => {
+    placeholderStore.length = 0;
   });
 
   afterAll(async () => {
@@ -1547,6 +1596,69 @@ describe('ZNP Service', () => {
       const result = await broker.call('znp.getProjectAssets', { projectId });
       expect(result.totalCount).toBe(2); // only the 2 mastr_asset nodes
       expect(result.assets.every((a) => a.mastrNummer !== undefined)).toBe(true);
+    });
+  });
+
+  describe('assessPortfolio (Phase 2)', () => {
+    let projectId;
+
+    beforeEach(async () => {
+      const result = await broker.call('znp.createProject', { bbox: makeBbox() });
+      projectId = result.projectId;
+    });
+
+    it('returns portfolio.weg, provenance flags, and four dimension scores', async () => {
+      await broker.call('znp.addLayer0', { projectId, assets: makeAssets(3, 100) });
+      const svc = broker.services.find((service) => service.name === 'znp');
+      const { graph } = svc.activeGraphs.get(projectId);
+      graph.addNode('assumption:test-phase2', {
+        type: 'assumption',
+        capacity: 250,
+        layer: 2.5,
+      });
+      graph.addEdge('assumption:test-phase2', 'SUB_1', {
+        relationship: 'CONTRIBUTES_LOAD',
+        layer: 2.5,
+      });
+      graph.addNode('measurement:peak_load:SUB_1', {
+        type: 'measurement',
+        metricType: 'peak_load',
+        value: 190,
+        layer: 2,
+      });
+
+      const result = await broker.call('znp.assessPortfolio', {
+        projectId,
+        kaufmaennischeFreigabeFnav: true,
+      });
+
+      expect(result.decisionStatus).toBe('ready');
+      expect(result.portfolio.weg).toBe('hybrid_layered_v1');
+      expect(result.portfolio.provenance).toEqual(
+        expect.arrayContaining(['mastr_layer_0', 'inhouse_layer_2', 'strategic_assumption'])
+      );
+      expect(result.dimensionScores).toEqual(
+        expect.objectContaining({
+          economic: expect.any(Number),
+          regulatory: expect.any(Number),
+          technical: expect.any(Number),
+          temporal: expect.any(Number),
+        })
+      );
+    });
+
+    it('creates a hard blocker when kaufmaennischeFreigabeFnav is missing', async () => {
+      await broker.call('znp.addLayer0', { projectId, assets: makeAssets(2, 80) });
+
+      const result = await broker.call('znp.assessPortfolio', {
+        projectId,
+        kaufmaennischeFreigabeFnav: false,
+      });
+
+      expect(result.decisionStatus).toBe('blocked');
+      expect(result.governance.resolutionMode).toBe('manual_only');
+      expect(result.governance.hardBlockers.some((item) => item.placeholderGapKey === 'kaufmaennische_freigabe_fnav')).toBe(true);
+      expect(result.dimensionScores.regulatory).toBeLessThan(60);
     });
   });
 });

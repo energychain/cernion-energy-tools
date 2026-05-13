@@ -980,6 +980,7 @@ module.exports = {
           'POST /znp/projects/:projectId/layer1': 'znp.addLayer1',
           'POST /znp/projects/:projectId/layer2': 'znp.addLayer2',
           'GET /znp/projects/:projectId/g-factor': 'znp.calculateGFactor',
+          'GET /znp/projects/:projectId/portfolio': 'znp.assessPortfolio',
           'GET /znp/projects/:projectId/assets': 'znp.getProjectAssets',
 
           // NOVA Decision Feed (project-scoped Phase B endpoints)

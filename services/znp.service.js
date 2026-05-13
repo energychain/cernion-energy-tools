@@ -55,6 +55,7 @@ const { detectClusters, computeGFactorAdjustment } = require('../src/znp-cluster
 const { generateStructured, SchemaType } = require('../src/llm-client');
 const { normaliseBoolFlag } = require('../src/redispatch-utils');
 const { getTenantId } = require('../src/tenant-context');
+const { computePortfolioAssessment } = require('../src/znp-portfolio-logic');
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -1135,6 +1136,145 @@ module.exports = {
       },
     },
 
+    assessPortfolio: {
+      rest: 'GET /projects/:projectId/portfolio',
+      params: {
+        projectId: { type: 'string' },
+        kaufmaennischeFreigabeFnav: {
+          type: 'boolean',
+          optional: true,
+          default: false,
+          convert: true,
+        },
+      },
+      openapi: {
+        summary: 'Assess ZNP portfolio with hybrid provenance and transparent dimensions',
+        tags: ['Zielnetzplanung (ZNP)'],
+        description:
+          'Computes a deterministic portfolio assessment across ZNP Layer 0 (MaStR), Layer 2 ' +
+          '(inhouse transformer PDF calibration), and Layer 2.5 (strategic assumptions). ' +
+          'The result includes explicit `portfolio.weg` metadata and provenance flags ' +
+          'to make confidence and source reliability transparent. ' +
+          'If kaufmännische fNAV approval is missing, the response is a manual-only hard blocker.',
+        parameters: [
+          {
+            name: 'projectId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'a1b2c3d4-0000-0000-0000-000000000001' },
+          },
+          {
+            name: 'kaufmaennischeFreigabeFnav',
+            in: 'query',
+            required: false,
+            schema: { type: 'boolean', default: false },
+            description:
+              'Explicit governance confirmation for fNAV (kaufmännische Freigabe). ' +
+              'If false, assessment stays blocked until manual UI resolution.',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Portfolio assessment result',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    projectId: { type: 'string' },
+                    tenantId: { type: 'string', nullable: true },
+                    decisionStatus: {
+                      type: 'string',
+                      enum: ['blocked', 'ready'],
+                    },
+                    portfolio: {
+                      type: 'object',
+                      properties: {
+                        weg: { type: 'string', example: 'hybrid_layered_v1' },
+                        provenance: {
+                          type: 'array',
+                          items: { type: 'string' },
+                          example: ['mastr_layer_0', 'inhouse_layer_2', 'strategic_assumption'],
+                        },
+                        provenanceFlags: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              provenance: { type: 'string' },
+                              source: { type: 'string' },
+                              reliability: { type: 'number' },
+                            },
+                          },
+                        },
+                        reliabilityScore: { type: 'number' },
+                      },
+                    },
+                    dimensionScores: {
+                      type: 'object',
+                      properties: {
+                        economic: { type: 'number' },
+                        regulatory: { type: 'number' },
+                        technical: { type: 'number' },
+                        temporal: { type: 'number' },
+                      },
+                    },
+                    overallScore: { type: 'number' },
+                    governance: {
+                      type: 'object',
+                      properties: {
+                        resolutionMode: { type: 'string', example: 'manual_only' },
+                        hardBlockers: { type: 'array', items: { type: 'object' } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { projectId } = ctx.params;
+        const tenantId = getTenantId(ctx);
+
+        await this.ensureProjectHydrated(projectId);
+        const project = this.getProject(projectId);
+        this.requireProjectTenant(project, tenantId, projectId);
+
+        const metrics = this.collectPortfolioMetrics(project);
+        metrics.missingFnavApproval = ctx.params.kaufmaennischeFreigabeFnav !== true;
+
+        const governance = await this.evaluatePortfolioGovernance(ctx, {
+          projectId,
+          tenantId,
+          missingFnavApproval: metrics.missingFnavApproval,
+        });
+
+        const assessment = computePortfolioAssessment(metrics);
+
+        return {
+          projectId,
+          tenantId: project.tenantId,
+          decisionStatus: governance.decisionStatus,
+          portfolio: {
+            ...assessment.portfolio,
+            provenance: assessment.portfolio.provenanceFlags.map((flag) => flag.provenance),
+          },
+          dimensionScores: assessment.dimensionScores,
+          overallScore: assessment.overallScore,
+          governance,
+          metrics: {
+            mastrAssetCount: metrics.mastrAssetCount,
+            mastrCapacityKW: Math.round(metrics.mastrCapacityKW * 100) / 100,
+            assumptionCount: metrics.assumptionCount,
+            assumptionCapacityKW: Math.round(metrics.assumptionCapacityKW * 100) / 100,
+            measuredPeakLoadKW: Math.round(metrics.measuredPeakLoadKW * 100) / 100,
+          },
+        };
+      },
+    },
+
     /**
      * strategicPrompts — LLM-generated strategic planning questions for a project.
      *
@@ -1967,6 +2107,128 @@ module.exports = {
         'ZNP_PROJECT_NOT_FOUND',
         { projectId }
       );
+    },
+
+    collectPortfolioMetrics(project) {
+      const metrics = {
+        mastrAssetCount: 0,
+        mastrCapacityKW: 0,
+        controllableAssetCount: 0,
+        hasLayer2Measurement: false,
+        measuredPeakLoadKW: 0,
+        assumptionCount: 0,
+        assumptionCapacityKW: 0,
+        dataAgeHours: 24 * 30,
+        missingFnavApproval: false,
+      };
+
+      const timestamps = [project.createdAt, project.graph.getNodeAttribute(SUBSTATION_KEY, 'layer2UpdatedAt')]
+        .map((value) => Date.parse(value))
+        .filter((value) => Number.isFinite(value) && value > 0);
+
+      project.graph.forEachNode((_nodeKey, attrs) => {
+        if (attrs.type === 'mastr_asset') {
+          metrics.mastrAssetCount += 1;
+          metrics.mastrCapacityKW += Number(attrs.capacity) || 0;
+          if (attrs.fernsteuerbarkeitDv || attrs.fernsteuerbarkeitSonstige || attrs.hasFlexibleNav) {
+            metrics.controllableAssetCount += 1;
+          }
+          return;
+        }
+
+        if (attrs.type === 'measurement' && attrs.metricType === 'peak_load') {
+          metrics.hasLayer2Measurement = true;
+          metrics.measuredPeakLoadKW = Number(attrs.value) || 0;
+          return;
+        }
+
+        if (attrs.type === 'assumption' || attrs.type === 'StrategicAssumption') {
+          metrics.assumptionCount += 1;
+          metrics.assumptionCapacityKW += Number(attrs.capacity) || Number(attrs.capacityKW) || 0;
+        }
+      });
+
+      if (timestamps.length > 0) {
+        const latestTimestamp = Math.max(...timestamps);
+        metrics.dataAgeHours = Math.max(0, (Date.now() - latestTimestamp) / (1000 * 60 * 60));
+      }
+
+      return metrics;
+    },
+
+    async evaluatePortfolioGovernance(ctx, { projectId, tenantId, missingFnavApproval }) {
+      const governance = {
+        resolutionMode: 'manual_only',
+        autoResolutionEligible: false,
+        missingFnavApproval,
+        hardBlockers: [],
+        warnings: [],
+      };
+
+      let placeholderState = null;
+      try {
+        placeholderState = await ctx.call('interface-placeholder.canExecuteAction', {
+          action: 'znp.assessPortfolio',
+        });
+      } catch (err) {
+        governance.warnings.push(`interface-placeholder.canExecuteAction unavailable: ${err.message}`);
+      }
+
+      if (missingFnavApproval) {
+        try {
+          const existing = await ctx.call('interface-placeholder.listGaps', {
+            includeResolved: false,
+            blockingLevel: 'hard',
+            limit: 250,
+          });
+
+          const fnavBlocker = (existing.placeholders || []).find(
+            (item) => item.placeholderGapKey === 'kaufmaennische_freigabe_fnav'
+          );
+
+          if (!fnavBlocker) {
+            const created = await ctx.call('interface-placeholder.markGap', {
+              role: 'portfolio_planner',
+              reason: 'NEEDS_DECISION',
+              blockingLevel: 'hard',
+              placeholderGapKey: 'kaufmaennische_freigabe_fnav',
+              replacementCriteria: {
+                kind: 'process',
+                capabilityHint: 'znp.assessPortfolio',
+                deadline: null,
+              },
+            });
+
+            if (created?.placeholder) {
+              governance.hardBlockers.push(created.placeholder);
+            }
+          } else {
+            governance.hardBlockers.push(fnavBlocker);
+          }
+        } catch (err) {
+          governance.warnings.push(`interface-placeholder.markGap unavailable: ${err.message}`);
+          governance.hardBlockers.push({
+            placeholderGapKey: 'kaufmaennische_freigabe_fnav',
+            reason: 'NEEDS_DECISION',
+            blockingLevel: 'hard',
+            tenantId,
+            projectId,
+            status: 'placeholder_gap',
+          });
+        }
+      }
+
+      if (placeholderState && Array.isArray(placeholderState.blockingPlaceholders)) {
+        const dedup = new Map();
+        for (const blocker of [...governance.hardBlockers, ...placeholderState.blockingPlaceholders]) {
+          const key = blocker.placeholderId || blocker.placeholderGapKey || JSON.stringify(blocker);
+          if (!dedup.has(key)) dedup.set(key, blocker);
+        }
+        governance.hardBlockers = Array.from(dedup.values());
+      }
+
+      governance.decisionStatus = governance.hardBlockers.length > 0 ? 'blocked' : 'ready';
+      return governance;
     },
 
     /**

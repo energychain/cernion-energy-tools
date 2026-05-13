@@ -16,7 +16,7 @@ die Netzanschlüsse prüfen, Redispatch-Pflichten verwalten, §42c-Energieteilun
 umsetzen oder MaStR-Portfolios auditieren wollen. Die Plattform verbindet öffentliche
 Energiedatenquellen (MaStR, ENTSO-E, BNetzA EWK) mit internen Betriebsdaten und
 liefert reproduzierbare, auditierbare Ergebnisse — kein Blackbox-LLM für regulatorische
-Entscheidungen. Aktueller Stand: **v0.51.0**, 64 Core-Services + 1 lokaler Custom-Service,
+Entscheidungen. Aktueller Stand: **v0.51.1**, 64 Core-Services + 1 lokaler Custom-Service,
 250+ OpenAPI-Pfade / 260+ REST-Operationen.
 
 ---

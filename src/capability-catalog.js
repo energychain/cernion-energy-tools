@@ -45,6 +45,48 @@ const INTERFACE_PLACEHOLDER_CAPABILITY = {
 
 const CURATED_CAPABILITIES = [
   {
+    capability: 'znp_portfolio_assessment',
+    domain: 'zielnetzplanung',
+    abstractionLevel: 'layered_portfolio_logic',
+    intent: 'assess_znp_portfolio',
+    keywords: [
+      'portfolio',
+      'zielnetzplanung',
+      'znp',
+      'fnav',
+      'kaufmännische',
+      'kaufmaennische',
+      'layer 0',
+      'layer 2',
+      'strategic assumption',
+      'strategische annahme',
+    ],
+    preferredActions: ['znp.assessPortfolio'],
+    fallbackActions: ['interface-placeholder.markGap'],
+    avoid: ['query.ask', 'query.askLearned'],
+    requiredInputs: [
+      {
+        name: 'projectId',
+        label: 'ZNP Project ID',
+        type: 'string',
+        required: true,
+      },
+      {
+        name: 'kaufmaennischeFreigabeFnav',
+        label: 'Kaufmännische fNAV-Freigabe',
+        type: 'boolean',
+        required: false,
+        default: false,
+      },
+    ],
+    risksAndNotes: [
+      'Resultate müssen provenanceFlags transparent ausweisen (Layer 0/2/2.5).',
+      'Fehlende kaufmännische fNAV-Freigabe bleibt manueller Hard-Blocker.',
+      'Strategische Annahmen sind bewusst niedriger reliabel als gemessene Layer-2-Daten.',
+    ],
+    routingPattern: 'znp_hybrid_portfolio_assessment',
+  },
+  {
     capability: 'residual_load_forecast_for_dso',
     domain: 'grid-operations',
     abstractionLevel: 'domain_workflow',
