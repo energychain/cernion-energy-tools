@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.51.2] — Investitionsplanung & Budgetumsteuerung (Phase 3)
+
+### Added
+- [src/investment-plan-utils.js](src/investment-plan-utils.js): added deterministic helpers for hybrid Soll baseline composition (`redispatch_target` + `finance_budget` provenance), Soll-Ist delta computation, strict investment trigger detection (`> 1_000_000 EUR`), and mandate alignment checks.
+- [services/investment-planning.service.js](services/investment-planning.service.js): added tenant-scoped investment planning orchestration with plan creation/list/get, Redispatch Ex-Post integration, VDMI mandate validation, HITL trigger creation for high-value measures, and Interface Placeholder hard-gap fallback for missing dual-role ownership.
+- [tests/investment-plan-utils.test.js](tests/investment-plan-utils.test.js): added utility-level coverage for provenance flags, Soll-Ist computation, strict trigger semantics, and role-gap detection.
+- [tests/investment-planning.service.test.js](tests/investment-planning.service.test.js): added service-level coverage for tenant isolation, governance fallback behavior, and `>1M EUR` escalation.
+
+### Changed
+- [services/api.service.js](services/api.service.js): added OpenAPI `Investment Planning` tag and explicit aliases:
+  - `POST /api/investment-planning/plans` → `investment-planning.createPlan`
+  - `GET /api/investment-planning/plans` → `investment-planning.listPlans`
+  - `GET /api/investment-planning/plans/:id` → `investment-planning.getPlan`
+- [tests/api.service.test.js](tests/api.service.test.js): added OpenAPI + alias regression checks for all new investment-planning endpoints.
+- [package.json](package.json): bumped version to `0.51.2`.
+- [package-lock.json](package-lock.json): aligned lockfile version with the release.
+- [README.md](README.md): updated current release marker to `v0.51.2`.
+
 ## [0.51.1] — Portfolio-Logik (Phase 2)
 
 ### Added

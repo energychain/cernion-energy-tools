@@ -519,11 +519,20 @@ module.exports = {
             'Human-in-the-loop approval workflow with tenant-scoped review items, intervention trail, and lifecycle events.',
         },
         {
+          name: 'Investment Planning',
+          description:
+            'Deterministic investment planning and budget steering (v0.51.2) with hybrid Soll baselines, ' +
+            'Redispatch Ex-Post Ist comparison, mandate alignment checks, and >1M EUR HITL triggers.',
+        },
+        {
           name: 'Webhooks',
           description:
             'Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking.',
         },
-          { name: 'Interface Placeholder', description: 'Explicit gap markers for unresolved interfaces, evidence, and ownership' },
+        {
+          name: 'Interface Placeholder',
+          description: 'Explicit gap markers for unresolved interfaces, evidence, and ownership',
+        },
       ],
       components: {
         securitySchemes: {
@@ -917,6 +926,10 @@ module.exports = {
           'POST /redispatch/audit': 'redispatch-expost.audit',
           'GET /redispatch/audits': 'redispatch-expost.list',
           'GET /redispatch/audits/:id': 'redispatch-expost.get',
+          // Investment Planning (v0.51.2)
+          'POST /investment-planning/plans': 'investment-planning.createPlan',
+          'GET /investment-planning/plans': 'investment-planning.listPlans',
+          'GET /investment-planning/plans/:id': 'investment-planning.getPlan',
           // Finance Agent (v0.40.5)
           'POST /finance-agent/analyze': 'finance-agent.analyze',
           'GET /finance-agent/analyses': 'finance-agent.list',

@@ -243,6 +243,17 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/znp/projects/:projectId/portfolio'].get.tags).toContain('znp');
     });
 
+    it('should include Investment Planning routes in OpenAPI', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.tags.some((tag) => tag.name === 'Investment Planning')).toBe(true);
+      expect(schema.paths['/api/investment-planning/plans']).toBeDefined();
+      expect(schema.paths['/api/investment-planning/plans'].post).toBeDefined();
+      expect(schema.paths['/api/investment-planning/plans'].get).toBeDefined();
+      expect(schema.paths['/api/investment-planning/plans/:id']).toBeDefined();
+      expect(schema.paths['/api/investment-planning/plans/:id'].get).toBeDefined();
+    });
+
     it('should include HITL and Webhooks tags and routes', async () => {
       const schema = await broker.call('api.openapi');
 
@@ -329,6 +340,15 @@ describe('API Gateway Service', () => {
       const aliases = apiRoute?.aliases || {};
 
       expect(aliases['GET /znp/projects/:projectId/portfolio']).toBe('znp.assessPortfolio');
+    });
+
+    it('should have explicit aliases for Investment Planning routes', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+
+      expect(aliases['POST /investment-planning/plans']).toBe('investment-planning.createPlan');
+      expect(aliases['GET /investment-planning/plans']).toBe('investment-planning.listPlans');
+      expect(aliases['GET /investment-planning/plans/:id']).toBe('investment-planning.getPlan');
     });
 
     it('should have explicit aliases for OSM Geo routes', () => {

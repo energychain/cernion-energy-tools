@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.51.1",
+    "version": "0.51.2",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -137,6 +137,10 @@
     {
       "name": "HITL",
       "description": "Human-in-the-loop approval workflow with tenant-scoped review items, intervention trail, and lifecycle events."
+    },
+    {
+      "name": "Investment Planning",
+      "description": "Deterministic investment planning and budget steering (v0.51.2) with hybrid Soll baselines, Redispatch Ex-Post Ist comparison, mandate alignment checks, and >1M EUR HITL triggers."
     },
     {
       "name": "Webhooks",
@@ -8325,6 +8329,190 @@
               "example": "a1b2c3d4-1234-5678-90ab-cdef12345678"
             },
             "description": "Audit report UUID"
+          }
+        ]
+      }
+    },
+    "/api/investment-planning/plans": {
+      "post": {
+        "operationId": "investment-planning_createPlan",
+        "summary": "Create investment plan with Soll-Ist delta and mandate alignment",
+        "tags": [
+          "Investment Planning"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Builds a deterministic investment planning report using hybrid Soll baselines (redispatch_target + finance_budget), compares against Redispatch Ex-Post Ist, evaluates mandate alignment, and creates HITL items for any measure with capex or avoided costs > 1,000,000 EUR.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "redispatchAuditId": {
+                    "type": "string",
+                    "example": "rd-12345"
+                  },
+                  "gridOperatorId": {
+                    "type": "string",
+                    "example": "SNB123456789000"
+                  },
+                  "redispatchTargetEur": {
+                    "type": "number",
+                    "example": 1250000
+                  },
+                  "financeBudgetEur": {
+                    "type": "number",
+                    "example": 900000
+                  },
+                  "triggerThresholdEur": {
+                    "type": "number",
+                    "default": 1000000
+                  },
+                  "measures": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "measureId": {
+                          "type": "string",
+                          "example": "m-001"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "Trafo-Upgrade Süd"
+                        },
+                        "projectId": {
+                          "type": "string",
+                          "example": "proj-77"
+                        },
+                        "capexEur": {
+                          "type": "number",
+                          "example": 1200000
+                        },
+                        "avoidedCostsEur": {
+                          "type": "number",
+                          "example": 150000
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "examples": {
+                "triggerRequired": {
+                  "value": {
+                    "gridOperatorId": "SNB123456789000",
+                    "redispatchTargetEur": 1250000,
+                    "financeBudgetEur": 900000,
+                    "measures": [
+                      {
+                        "measureId": "m-001",
+                        "name": "Trafo-Upgrade Süd",
+                        "projectId": "proj-77",
+                        "capexEur": 1200000,
+                        "avoidedCostsEur": 150000
+                      }
+                    ]
+                  }
+                },
+                "belowThreshold": {
+                  "value": {
+                    "gridOperatorId": "SNB123456789000",
+                    "measures": [
+                      {
+                        "measureId": "m-002",
+                        "name": "Leitungsmonitoring Ost",
+                        "capexEur": 800000,
+                        "avoidedCostsEur": 120000
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "investment-planning_listPlans",
+        "summary": "List investment planning reports",
+        "tags": [
+          "Investment Planning"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "gridOperatorId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "example": "SNB123456789000"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "maximum": 200
+            }
+          }
+        ]
+      }
+    },
+    "/api/investment-planning/plans/:id": {
+      "get": {
+        "operationId": "investment-planning_getPlan",
+        "summary": "Get one investment planning report",
+        "tags": [
+          "Investment Planning"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "ip-123"
+            }
           }
         ]
       }
@@ -19904,5 +20092,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.51.1"
+  "x-version": "0.51.2"
 }

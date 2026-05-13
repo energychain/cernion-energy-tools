@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.51.1
-- changelog_latest_release: 0.51.1
+- version: 0.51.2
+- changelog_latest_release: 0.51.2
 - source_files_hash:
-  - CHANGELOG.md: adb08849ec32ccbb355c05bb454cc7ba1f10b15598a76a33b7eb96ec74b56e02
-  - README.md: 8e2a62e9027778c6961e2e050cc1ed2f5437894c181a159a3492e53a0f22806b
+  - CHANGELOG.md: b980f7b760fc0ae4d8eb6907b228fe6e1c9fab1e32fd7c245e35adb9f394aa19
+  - README.md: 92b0d0a93674597c7a31755979500d054ca25f0400070adc9cfd43b31b3366b3
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: 33c89386672fcc5a38991b55cf08022f657d92a08c5da878dc4d0b0f8245786d
+  - openapi-export.json: 275c51de4bca4160bbfb18faf4603949a0d05b1f4e9e70eed9507c7c35be2897
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -590,8 +590,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 259
-- operation_count: 300
+- path_count: 261
+- operation_count: 303
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -617,6 +617,7 @@ process:
 - HITL: 11 operations
 - IntegrationHub: 8 operations
 - Interface Placeholder: 5 operations
+- Investment Planning: 3 operations
 - Jobs: 3 operations
 - Knowledge RAG: 12 operations
 - MaStR Data Quality: 4 operations
@@ -821,6 +822,9 @@ process:
 - GET /api/interface-placeholder/gaps/:placeholderId/status | tags: [Interface Placeholder] | operationId: interface-placeholder_returnMinimalStatus | summary: Return low-confidence minimal status for a placeholder
 - POST /api/interface-placeholder/mark-gap | tags: [Interface Placeholder] | operationId: interface-placeholder_markGap | summary: Create an explicit interface placeholder gap
 - POST /api/interface-placeholder/request-evidence | tags: [Interface Placeholder] | operationId: interface-placeholder_requestEvidence | summary: Return evidence signals required to replace a placeholder
+- GET /api/investment-planning/plans | tags: [Investment Planning] | operationId: investment-planning_listPlans | summary: List investment planning reports
+- POST /api/investment-planning/plans | tags: [Investment Planning] | operationId: investment-planning_createPlan | summary: Create investment plan with Soll-Ist delta and mandate alignment
+- GET /api/investment-planning/plans/:id | tags: [Investment Planning] | operationId: investment-planning_getPlan | summary: Get one investment planning report
 - GET /api/jobs/:jobId/progress | tags: [Jobs] | operationId: job-status_progress | summary: Get job progress (JSON polling or SSE)
 - GET /api/jobs/:jobId/result | tags: [Jobs] | operationId: job-status_result | summary: Retrieve async job result
 - GET /api/jobs/:jobId/status | tags: [Jobs] | operationId: job-status_status | summary: Poll async job status
@@ -946,7 +950,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.51.1"
+    "version": "0.51.2"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -12323,6 +12327,190 @@ process:
         ]
       }
     },
+    "/api/investment-planning/plans": {
+      "get": {
+        "operationId": "investment-planning_listPlans",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "gridOperatorId",
+            "schema": {
+              "example": "SNB123456789000",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List investment planning reports",
+        "tags": [
+          "Investment Planning"
+        ]
+      },
+      "post": {
+        "description": "Builds a deterministic investment planning report using hybrid Soll baselines (redispatch_target + finance_budget), compares against Redispatch Ex-Post Ist, evaluates mandate alignment, and creates HITL items for any measure with capex or avoided costs > 1,000,000 EUR.",
+        "operationId": "investment-planning_createPlan",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "belowThreshold": {
+                  "value": {
+                    "gridOperatorId": "SNB123456789000",
+                    "measures": [
+                      {
+                        "avoidedCostsEur": 120000,
+                        "capexEur": 800000,
+                        "measureId": "m-002",
+                        "name": "Leitungsmonitoring Ost"
+                      }
+                    ]
+                  }
+                },
+                "triggerRequired": {
+                  "value": {
+                    "financeBudgetEur": 900000,
+                    "gridOperatorId": "SNB123456789000",
+                    "measures": [
+                      {
+                        "avoidedCostsEur": 150000,
+                        "capexEur": 1200000,
+                        "measureId": "m-001",
+                        "name": "Trafo-Upgrade Süd",
+                        "projectId": "proj-77"
+                      }
+                    ],
+                    "redispatchTargetEur": 1250000
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "financeBudgetEur": {
+                    "example": 900000,
+                    "type": "number"
+                  },
+                  "gridOperatorId": {
+                    "example": "SNB123456789000",
+                    "type": "string"
+                  },
+                  "measures": {
+                    "default": [],
+                    "items": {
+                      "properties": {
+                        "avoidedCostsEur": {
+                          "example": 150000,
+                          "type": "number"
+                        },
+                        "capexEur": {
+                          "example": 1200000,
+                          "type": "number"
+                        },
+                        "measureId": {
+                          "example": "m-001",
+                          "type": "string"
+                        },
+                        "name": {
+                          "example": "Trafo-Upgrade Süd",
+                          "type": "string"
+                        },
+                        "projectId": {
+                          "example": "proj-77",
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "redispatchAuditId": {
+                    "example": "rd-12345",
+                    "type": "string"
+                  },
+                  "redispatchTargetEur": {
+                    "example": 1250000,
+                    "type": "number"
+                  },
+                  "triggerThresholdEur": {
+                    "default": 1000000,
+                    "type": "number"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Create investment plan with Soll-Ist delta and mandate alignment",
+        "tags": [
+          "Investment Planning"
+        ]
+      }
+    },
+    "/api/investment-planning/plans/:id": {
+      "get": {
+        "operationId": "investment-planning_getPlan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "ip-123",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get one investment planning report",
+        "tags": [
+          "Investment Planning"
+        ]
+      }
+    },
     "/api/jobs/:jobId/progress": {
       "get": {
         "description": "Returns normalized job progress. Use query `stream=true` for text/event-stream output. SSE supports `Last-Event-ID` replay (or `lastEventId` query fallback).",
@@ -20839,6 +21027,10 @@ process:
       "name": "HITL"
     },
     {
+      "description": "Deterministic investment planning and budget steering (v0.51.2) with hybrid Soll baselines, Redispatch Ex-Post Ist comparison, mandate alignment checks, and >1M EUR HITL triggers.",
+      "name": "Investment Planning"
+    },
+    {
       "description": "Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking.",
       "name": "Webhooks"
     },
@@ -20848,8 +21040,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.51.1"
+  "x-version": "0.51.2"
 }
 
 ## Integrity
-- llm_txt_sha256: de4ca6b7f813835039cd8e32f9b81323b6320ce2cf71d518b377f98baf5eb8a5
+- llm_txt_sha256: 94b9ff2d1c3fd24666a1084c7c1e3b92e7b22484c1d644927d3fd0855a635b90
