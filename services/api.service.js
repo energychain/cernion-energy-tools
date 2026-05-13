@@ -606,6 +606,7 @@ module.exports = {
         autoAliases: true,
 
         aliases: {
+        'POST /blindflug-radar/scan': 'blindflug-radar.scan',
           'GET /'(req, res) {
             res.writeHead(302, { Location: '/api/docs' });
             res.end();
