@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.51.6] — Phase 5 Cleanup: Roadmap-Abgleich & Deferred Scope
+
+### Added
+- [tmp/ROADMAP_v0.50.md](tmp/ROADMAP_v0.50.md): added a v0.51.6 validation note for Phase 5 that distinguishes between shipped Phase-5 scope and roadmap items explicitly deferred to later releases.
+
+### Changed
+- [CHANGELOG.md](CHANGELOG.md): documented the cleanup release and clarified that v0.51.6 is a documentation/plan alignment release, not a functional redesign of the existing Phase-5 endpoints.
+- [README.md](README.md): updated the current release marker to `v0.51.6`.
+- [package.json](package.json): bumped version to `0.51.6`.
+- [package-lock.json](package-lock.json): aligned lockfile version to `0.51.6`.
+
+### Notes
+- `grid-operations.netzfahrplanGenerate`, `grid-connection.fnavValidate`, and `finance-agent.fnavEconomics` remain the shipped deterministic Phase-5 implementation from `v0.51.5`.
+- The roadmap delta note records these items as deferred to later releases:
+  - domain-config-backed N-1 defaults and automatic tenant/project/scenario override resolution,
+  - direct `interface-placeholder` / HITL artifact creation from Phase-5 endpoints,
+  - formal decision-chain / proof payloads across technical, economic, and governance steps,
+  - richer roadmap-level fNAV contract/profile fields beyond the current deterministic core model,
+  - explicit capability-catalog entries for direct Netzfahrplan / fNAV discovery.
+
 ## [0.51.5] — Phase 5: Netzfahrplan / fNAV als Alternative zu Kupferausbau
 
 ### Added
