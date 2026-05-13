@@ -704,6 +704,23 @@ module.exports = {
 
         whitelist: ['**'],
 
+        cors: {
+          origin: process.env.API_CORS_ORIGINS
+            ? process.env.API_CORS_ORIGINS.split(',').map(function(s) { return s.trim(); })
+            : ['https://energychain.github.io', 'https://cernion.de', 'https://*.cernion.de'],
+          methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+          allowedHeaders: [
+            'Content-Type',
+            'Authorization',
+            'x-tenant-id',
+            'x-request-id',
+            'X-API-Key',
+          ],
+          exposedHeaders: ['x-request-id', 'x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset'],
+          credentials: false,
+          maxAge: 3600,
+        },
+
         use: [],
 
         mergeParams: true,
