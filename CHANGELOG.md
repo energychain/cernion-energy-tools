@@ -9,6 +9,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.52.0] — Personal Agent Zwiebelmodus (L0–L4)
+
+### Added
+- [services/personal-agent.service.js](services/personal-agent.service.js): new dedicated `personal-agent` service with REST actions:
+  - `POST /api/personal-agent/chat` → `personal-agent.chat`
+  - `GET /api/personal-agent/session/:sessionId` → `personal-agent.getSession`
+  - `POST /api/personal-agent/session/:sessionId/reset` → `personal-agent.resetSession`
+- [src/personal-agent-context.js](src/personal-agent-context.js): stateless Zwiebel Context Manager for deterministic L0–L4 stack building, layer budgeting, L3 sliding-window compression, strict L4 single-tool guard, and post-synthesis L4 purge.
+- [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js): unit coverage for L4 single-tool invariant, L3 compression, L4 purge, and persistence guard.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): service-level coverage for chat/session/reset flow with tenant-scoped persistence and L4 no-persist guarantee.
+- [docs/ui-contracts/41-personal-agent.md](docs/ui-contracts/41-personal-agent.md): backend-owned UI contract for Personal Agent endpoints.
+
+### Changed
+- [services/api.service.js](services/api.service.js): added OpenAPI tag `Personal Agent`, explicit route aliases for `/api/personal-agent/*`, and endpoint-class classification for `POST /api/personal-agent/chat` as `compute` for tenant quota/rate-limit handling.
+- [tests/api.service.test.js](tests/api.service.test.js): added OpenAPI and alias regressions for Personal Agent endpoints.
+- [package.json](package.json): bumped version to `0.52.0`.
+- [package-lock.json](package-lock.json): aligned lockfile version to `0.52.0`.
+- [README.md](README.md): updated current release marker to `v0.52.0` and service count.
+
+### Notes
+- v0.52.0 is scope-pure for Zwiebelmodus context management only: no promise/watchdog scaffolding is included.
+- Hard acceptance criterion enforced: Layer 4 raw tool payload is transient and never persisted to Object Store/DB.
+
+## [0.51.8] — EDM SQLite Availability Hardening
+
+### Added
+- [services/edm.service.js](services/edm.service.js): added `health` action (`GET /api/edm/health`) with explicit EDM SQLite readiness output and `503 EDM_SQLITE_UNAVAILABLE` response for backend outages.
+- [tests/edm.service.test.js](tests/edm.service.test.js): added regressions for `edm.health` readiness payload and startup hard-fail behavior when SQLite is unavailable.
+- [tests/edm-sqlite-pool.test.js](tests/edm-sqlite-pool.test.js): added regression for normalized native binding failures (`ERR_DLOPEN_FAILED` → `EDM_SQLITE_UNAVAILABLE`, HTTP 503 semantics).
+- [tests/api.service.test.js](tests/api.service.test.js): added regression to ensure symbolic native error codes do not become invalid HTTP status codes.
+
+### Changed
+- [src/edm-sqlite-pool.js](src/edm-sqlite-pool.js): switched to lazy `better-sqlite3` loading, centralized SQLite error normalization, and added pool-level readiness metadata.
+- [services/edm.service.js](services/edm.service.js): startup now performs immediate SQLite readiness check (`assertAvailable`) to hard-fail service boot when native bindings are broken.
+- [services/api.service.js](services/api.service.js): gateway `onError` now normalizes HTTP status resolution (`status`/`statusCode`/numeric `code`) and safely falls back to `500` to prevent `ERR_HTTP_INVALID_STATUS_CODE`.
+- [package.json](package.json): bumped version to `0.51.8`.
+- [package-lock.json](package-lock.json): aligned lockfile version to `0.51.8`.
+- [README.md](README.md): updated current release marker to `v0.51.8`.
+
+### Notes
+- This release implements startup hard-fail for EDM SQLite (Option B), keeps client-facing outage semantics at HTTP `503` (Option 1), and adds a dedicated EDM health indicator endpoint for operational monitoring.
+
 ## [0.51.7] — Phase 5 Follow-up: Discovery, Governance Artifacts, Proofs
 
 ### Added

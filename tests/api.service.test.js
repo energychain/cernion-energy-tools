@@ -12,6 +12,7 @@ const TokenManagerService = require('../services/token-manager.service');
 const NbpMonitorService = require('../services/nbp-monitor.service');
 const KnowledgeRagService = require('../services/knowledge-rag.service');
 const FinanceAgentService = require('../services/finance-agent.service');
+const PersonalAgentService = require('../services/personal-agent.service');
 const ObservabilityService = require('../services/observability.service');
 const TenantQuotaService = require('../services/tenant-quota.service');
 const rateQuotaStore = require('../src/rate-quota-store');
@@ -72,6 +73,7 @@ describe('API Gateway Service', () => {
         dbPath: path.join(os.tmpdir(), `api-finance-agent-${Date.now()}`),
       },
     });
+    broker.createService(PersonalAgentService);
     broker.createService({
       ...ObservabilityService,
       settings: {
@@ -207,6 +209,20 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/finance-agent/analyze'].post.tags).toContain('Finance Agent');
     });
 
+    it('should include Personal Agent tag and routes', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.tags.some((tag) => tag.name === 'Personal Agent')).toBe(true);
+      expect(schema.paths['/api/personal-agent/chat']).toBeDefined();
+      expect(schema.paths['/api/personal-agent/session/:sessionId']).toBeDefined();
+      expect(schema.paths['/api/personal-agent/session/:sessionId/reset']).toBeDefined();
+
+      expect(schema.paths['/api/personal-agent/chat'].post.tags).toContain('Personal Agent');
+      expect(schema.paths['/api/personal-agent/session/:sessionId'].get.tags).toContain(
+        'Personal Agent'
+      );
+    });
+
     it('should include CYA, Cookbook, Dashboard API, and MaStR Quality routes', async () => {
       const schema = await broker.call('api.openapi');
 
@@ -311,6 +327,17 @@ describe('API Gateway Service', () => {
       expect(aliases['GET /finance-agent/prompts']).toBe('finance-agent.prompts');
       expect(aliases['POST /finance-agent/memory']).toBe('finance-agent.remember');
       expect(aliases['GET /finance-agent/memory/:sessionId']).toBe('finance-agent.memory');
+    });
+
+    it('should have explicit aliases for Personal Agent routes', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+
+      expect(aliases['POST /personal-agent/chat']).toBe('personal-agent.chat');
+      expect(aliases['GET /personal-agent/session/:sessionId']).toBe('personal-agent.getSession');
+      expect(aliases['POST /personal-agent/session/:sessionId/reset']).toBe(
+        'personal-agent.resetSession'
+      );
     });
 
     it('should have explicit aliases for Dashboard API and Observability routes', () => {
@@ -634,6 +661,36 @@ describe('API Gateway Service', () => {
       expect(payload.message).not.toContain('abc123');
       expect(payload.message).not.toContain('verySecretToken');
       expect(payload.message).not.toContain('querySecret');
+    });
+
+    it('should use numeric status for onError when error code is symbolic', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const res = {
+        _status: null,
+        _headers: {},
+        _body: '',
+        setHeader: jest.fn(function (key, value) {
+          this._headers[key] = value;
+        }),
+        writeHead: jest.fn(function (status) {
+          this._status = status;
+        }),
+        end: jest.fn(function (body) {
+          this._body = body;
+        }),
+      };
+
+      apiRoute.onError({}, res, {
+        code: 'ERR_DLOPEN_FAILED',
+        status: 503,
+        message: 'Module did not self-register',
+        type: 'EDM_SQLITE_UNAVAILABLE',
+      });
+
+      expect(res._status).toBe(503);
+      const payload = JSON.parse(res._body);
+      expect(payload.code).toBe('ERR_DLOPEN_FAILED');
+      expect(payload.type).toBe('EDM_SQLITE_UNAVAILABLE');
     });
 
     it('should expose GET /metrics publicly when METRICS_PUBLIC=true', async () => {

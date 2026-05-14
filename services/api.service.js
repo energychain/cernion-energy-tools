@@ -85,6 +85,32 @@ function sanitizeErrorMessage(message) {
   return sanitized;
 }
 
+function toValidHttpStatus(value) {
+  if (Number.isInteger(value) && value >= 100 && value <= 599) {
+    return value;
+  }
+
+  if (typeof value === 'string' && /^\d{3}$/.test(value.trim())) {
+    const parsed = parseInt(value.trim(), 10);
+    if (parsed >= 100 && parsed <= 599) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function resolveHttpStatus(err) {
+  const candidates = [err?.status, err?.statusCode, err?.code];
+  for (const candidate of candidates) {
+    const status = toValidHttpStatus(candidate);
+    if (status !== null) {
+      return status;
+    }
+  }
+  return 500;
+}
+
 function isReadMethod(method) {
   const m = String(method || '').toUpperCase();
   return m === 'GET' || m === 'HEAD' || m === 'OPTIONS';
@@ -269,6 +295,7 @@ function classifyEndpointClass(method, requestPath) {
   const pathOnly = String(requestPath || '').split('?')[0];
 
   if (
+    pathOnly === '/api/personal-agent/chat' ||
     pathOnly.startsWith('/api/utility-report') ||
     pathOnly === '/api/mastr-quality/audit' ||
     pathOnly === '/api/finance-agent/analyze' ||
@@ -413,6 +440,13 @@ module.exports = {
           description:
             'Deterministic finance/regulatory analysis for VNBs (v0.40). ' +
             'Performs query planning, ontology-aware RAG retrieval, L1/L2 evidence arbitration, and guarded synthesis with audit trail.',
+        },
+        {
+          name: 'Personal Agent',
+          description:
+            'Interactive personal chat orchestration (v0.52). ' +
+            'Builds deterministic L0-L4 context stacks with strict token budgeting. ' +
+            'Layer 4 is transient and never persisted.',
         },
         {
           name: 'Grid Connection Validation',
@@ -1020,6 +1054,10 @@ module.exports = {
           'GET /finance-agent/prompts': 'finance-agent.prompts',
           'POST /finance-agent/memory': 'finance-agent.remember',
           'GET /finance-agent/memory/:sessionId': 'finance-agent.memory',
+          // Personal Agent (v0.52.0)
+          'POST /personal-agent/chat': 'personal-agent.chat',
+          'GET /personal-agent/session/:sessionId': 'personal-agent.getSession',
+          'POST /personal-agent/session/:sessionId/reset': 'personal-agent.resetSession',
           // Interface Placeholder (v0.51.0)
           'POST /interface-placeholder/mark-gap': 'interface-placeholder.markGap',
           'POST /interface-placeholder/request-evidence': 'interface-placeholder.requestEvidence',
@@ -1649,7 +1687,7 @@ module.exports = {
             }
           }
           res.setHeader(CONTENT_TYPE_HEADER, 'application/json');
-          res.writeHead(err.code || 500);
+          res.writeHead(resolveHttpStatus(err));
           res.end(
             JSON.stringify({
               success: false,
@@ -1689,6 +1727,7 @@ module.exports = {
           oep: 'OEP (Open Energy Platform)',
           'knowledge-rag': 'Knowledge RAG',
           'finance-agent': 'Finance Agent',
+          'personal-agent': 'Personal Agent',
           'mastr-quality': 'MaStR Data Quality',
           hitl: 'HITL',
           auth: 'Authentication',

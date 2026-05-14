@@ -9,14 +9,14 @@
 
 ## Überblick
 
-Cernion Energy Tools ist eine **Node.js/Moleculer-Plattform** mit 64 Core-Services
+Cernion Energy Tools ist eine **Node.js/Moleculer-Plattform** mit 65 Core-Services
 in `services/`, einer optionalen lokalen Erweiterung in `custom-services/`,
 250+ OpenAPI-Pfaden / 260+ REST-Operationen und 1 782+ Tests. Sie richtet sich an VNBs und Stadtwerke,
 die Netzanschlüsse prüfen, Redispatch-Pflichten verwalten, §42c-Energieteilung
 umsetzen oder MaStR-Portfolios auditieren wollen. Die Plattform verbindet öffentliche
 Energiedatenquellen (MaStR, ENTSO-E, BNetzA EWK) mit internen Betriebsdaten und
 liefert reproduzierbare, auditierbare Ergebnisse — kein Blackbox-LLM für regulatorische
-Entscheidungen. Aktueller Stand: **v0.51.7**, 64 Core-Services + 1 lokaler Custom-Service,
+Entscheidungen. Aktueller Stand: **v0.52.0**, 65 Core-Services + 1 lokaler Custom-Service,
 250+ OpenAPI-Pfade / 260+ REST-Operationen.
 
 ---
