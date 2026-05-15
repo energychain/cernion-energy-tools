@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.52.5
-- changelog_latest_release: 0.52.5
+- version: 0.52.6
+- changelog_latest_release: 0.52.6
 - source_files_hash:
-  - CHANGELOG.md: 8448bc16bb6b0b843c2fdc395c3635461ff8c48e907f2dd63db8f16c0c2df0ca
-  - README.md: 53cc4102f310b2e171c21164c1dddbbc4e2161858740fd3dbec213e9c99c147a
+  - CHANGELOG.md: 1b86248f8a9e79f06530639e0c27574fab5b423df34d5e9b70981a92c036e57b
+  - README.md: 2d2f04120e3a95a70b9c93084ee4c34028786298879a684873546f8f3d3b8673
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: 8a9fb26511f76a20cc7c280589766429ce012b00eaeafdc728d9959d7cf20a10
+  - openapi-export.json: 096ffdb7dcea157c1bedeb23ffa8ece5c9350e41cf2410b50343a6df6b1330ad
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -969,7 +969,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.52.5"
+    "version": "0.52.6"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -16812,7 +16812,7 @@ process:
         ]
       },
       "put": {
-        "description": "Upserts a document identified by namespace + key. On update the payload is fully replaced and updatedAt is refreshed; createdAt is preserved. PouchDB revision (_rev) handling is fully transparent — callers never see or send _rev.",
+        "description": "Upserts a document identified by namespace + key. On update the payload is fully replaced and updatedAt is refreshed; createdAt is preserved. Optional CAS: callers may pass _rev. On revision mismatch, the action returns HTTP 409 OBJECT_OCC_CONFLICT.",
         "operationId": "object-store_put",
         "parameters": [
           {
@@ -16849,6 +16849,12 @@ process:
               },
               "schema": {
                 "properties": {
+                  "_rev": {
+                    "description": "Optional PouchDB revision for CAS updates. Use null for create-if-not-exists CAS semantics.",
+                    "example": "2-4f8a63d0f9c94d97a0b5b6f8cdef1234",
+                    "nullable": true,
+                    "type": "string"
+                  },
                   "payload": {
                     "description": "Arbitrary JSON payload to store.",
                     "example": {
@@ -22745,8 +22751,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.52.5"
+  "x-version": "0.52.6"
 }
 
 ## Integrity
-- llm_txt_sha256: 25c5f9f27d5dc8ca4e14a89001a66a551d38e1fad1584470cbf5f126bd40d894
+- llm_txt_sha256: 1cf9fd3296a8d543ba2fe8e89f1098ff2e4d5bd3d7c8d025e2ae2bfc479fe701

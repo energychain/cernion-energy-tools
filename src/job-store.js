@@ -12,19 +12,37 @@
 
 const { createDriver } = require('./job-store/factory');
 const rateQuotaStore = require('./rate-quota-store');
+const metrics = require('./metrics');
 const { Errors } = require('moleculer');
 
 const DRIVER = createDriver();
 const LEASE_SECONDS = Number(process.env.JOB_STORE_LEASE_SECONDS || 30);
 const HEARTBEAT_SECONDS = Number(process.env.JOB_STORE_HEARTBEAT_SECONDS || 10);
 const MAX_CONCURRENT_PER_TENANT = Math.max(1, Number(process.env.JOB_STORE_MAX_CONCURRENT_PER_TENANT || 2));
+const MAX_MISSED_LEASES = Math.max(1, Number(process.env.JOB_STORE_MAX_MISSED_LEASES || 3));
 
 const TTL_MS = parseInt(process.env.JOB_STORE_TTL_SECONDS || '86400', 10) * 1000;
 
+const JOB_STATUS = {
+  QUEUED: 'queued',
+  RUNNING: 'running',
+  COMPLETED: 'completed',
+  ERROR: 'error',
+  RECOVERY_PENDING: 'recovery_pending',
+};
+
+const ALARM_STATUS = {
+  OPEN: 'open',
+  ACKNOWLEDGED: 'acknowledged',
+  RESOLVED: 'resolved',
+};
+
 const pendingJobsByTenant = new Map();
 const runningJobsByTenant = new Map();
+const wakeUpQueueByIdempotencyKey = new Map();
 let roundRobinOffset = 0;
 let dispatchScheduled = false;
+let wakeDispatchScheduled = false;
 
 async function emitRateQuotaEvents(ctx, events, extra = {}) {
   if (!ctx?.broker || typeof ctx.broker.emit !== 'function' || !Array.isArray(events) || events.length === 0) {
@@ -54,6 +72,26 @@ function buildLeasePatch() {
     lastHeartbeatAt: new Date(now).toISOString(),
     leaseExpiresAt: new Date(now + LEASE_SECONDS * 1000).toISOString(),
   };
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function listJobs() {
+  if (typeof DRIVER.listJobs !== 'function') return [];
+  return DRIVER.listJobs();
+}
+
+function isLeaseExpired(job, now = Date.now()) {
+  if (!job?.leaseExpiresAt) return false;
+  const expiresAt = Date.parse(job.leaseExpiresAt);
+  if (Number.isNaN(expiresAt)) return false;
+  return expiresAt <= now;
+}
+
+function ensureArray(value) {
+  return Array.isArray(value) ? value : [];
 }
 
 function buildQueuedDescriptor(jobId, message = 'Job started. Poll /api/jobs/:jobId/status for progress.') {
@@ -92,6 +130,119 @@ function enqueuePendingJob(entry) {
   pendingJobsByTenant.set(tenantId, queue);
 }
 
+function toAlarmRecord(input = {}) {
+  const ts = nowIso();
+  return {
+    alarmId: String(input.alarmId || `alarm_${Math.random().toString(36).slice(2, 12)}`),
+    code: String(input.code || 'ASYNC_GENERIC_ALARM'),
+    severity: String(input.severity || 'warning'),
+    status: String(input.status || ALARM_STATUS.OPEN),
+    message: String(input.message || 'Async job watchdog event.'),
+    dedupeKey: input.dedupeKey ? String(input.dedupeKey) : null,
+    metadata: input.metadata && typeof input.metadata === 'object' ? input.metadata : {},
+    actor: input.actor ? String(input.actor) : 'system',
+    createdAt: input.createdAt || ts,
+    updatedAt: ts,
+    acknowledgedAt: input.acknowledgedAt || null,
+    resolvedAt: input.resolvedAt || null,
+    note: input.note ? String(input.note) : null,
+  };
+}
+
+function createAlarmEvent(jobId, alarmInput = {}) {
+  const job = getJob(jobId);
+  if (!job) return null;
+
+  const alarms = ensureArray(job.alarms);
+  const dedupeKey = alarmInput.dedupeKey ? String(alarmInput.dedupeKey) : null;
+
+  if (dedupeKey) {
+    const existing = alarms.find(
+      (alarm) =>
+        alarm?.dedupeKey === dedupeKey &&
+        [ALARM_STATUS.OPEN, ALARM_STATUS.ACKNOWLEDGED].includes(String(alarm?.status || ''))
+    );
+    if (existing) return existing;
+  }
+
+  const alarm = toAlarmRecord(alarmInput);
+  alarms.push(alarm);
+  updateJob(jobId, { alarms });
+  metrics.recordAsyncAlarm({ status: alarm.status, code: alarm.code, severity: alarm.severity });
+  return alarm;
+}
+
+function updateAlarmStatus(alarmId, status, options = {}) {
+  if (!alarmId || !status) return null;
+  if (![ALARM_STATUS.OPEN, ALARM_STATUS.ACKNOWLEDGED, ALARM_STATUS.RESOLVED].includes(String(status))) {
+    return null;
+  }
+
+  const jobs = listJobs();
+  for (const job of jobs) {
+    const alarms = ensureArray(job?.alarms);
+    const index = alarms.findIndex((entry) => entry?.alarmId === alarmId);
+    if (index < 0) continue;
+
+    const current = alarms[index];
+    if (String(current.status) === String(status)) {
+      return { jobId: job.jobId, alarm: current };
+    }
+
+    const next = {
+      ...current,
+      status,
+      actor: options.actor ? String(options.actor) : current.actor || 'system',
+      updatedAt: nowIso(),
+      note: options.note ? String(options.note) : current.note || null,
+    };
+    if (status === ALARM_STATUS.ACKNOWLEDGED && !next.acknowledgedAt) {
+      next.acknowledgedAt = nowIso();
+    }
+    if (status === ALARM_STATUS.RESOLVED && !next.resolvedAt) {
+      next.resolvedAt = nowIso();
+    }
+
+    alarms[index] = next;
+    updateJob(job.jobId, { alarms });
+    metrics.recordAsyncAlarm({ status: next.status, code: next.code, severity: next.severity });
+    return { jobId: job.jobId, alarm: next };
+  }
+
+  return null;
+}
+
+function listAlarmEvents(filters = {}) {
+  const jobs = listJobs();
+  const statusFilter = filters?.status ? String(filters.status) : null;
+  const jobIdFilter = filters?.jobId ? String(filters.jobId) : null;
+
+  const events = [];
+  for (const job of jobs) {
+    if (jobIdFilter && String(job?.jobId) !== jobIdFilter) continue;
+    for (const alarm of ensureArray(job?.alarms)) {
+      if (statusFilter && String(alarm?.status) !== statusFilter) continue;
+      events.push({
+        jobId: job.jobId,
+        service: job.service,
+        action: job.action,
+        idempotencyKey: job.idempotencyKey || null,
+        alarm,
+      });
+    }
+  }
+
+  return events.sort((a, b) => String(b.alarm?.updatedAt || '').localeCompare(String(a.alarm?.updatedAt || '')));
+}
+
+function enqueueWakeUp(entry) {
+  const idempotencyKey = String(entry?.idempotencyKey || '').trim();
+  if (!idempotencyKey) return false;
+  if (wakeUpQueueByIdempotencyKey.has(idempotencyKey)) return false;
+  wakeUpQueueByIdempotencyKey.set(idempotencyKey, entry);
+  return true;
+}
+
 function pickNextTenantForDispatch() {
   const tenants = Array.from(pendingJobsByTenant.entries())
     .filter(([tenantId, queue]) => Array.isArray(queue) && queue.length > 0 && getRunningCount(tenantId) < MAX_CONCURRENT_PER_TENANT)
@@ -110,7 +261,23 @@ function runQueuedJob(entry) {
   const jobId = entry.jobId;
 
   incRunningCount(tenantId);
-  updateJob(jobId, { status: 'running', ...buildLeasePatch() });
+  updateJob(jobId, {
+    status: JOB_STATUS.RUNNING,
+    missedLeases: 0,
+    leaseState: 'active',
+    wakeState: {
+      status: 'idle',
+      idempotencyKey: entry.idempotencyKey || null,
+      reason: null,
+      actor: null,
+      attempts: 0,
+      lastRequestedAt: null,
+      lastAttemptAt: null,
+      lastError: null,
+      wakeJobId: null,
+    },
+    ...buildLeasePatch(),
+  });
 
   let heartbeat = null;
   if (HEARTBEAT_SECONDS > 0) {
@@ -125,7 +292,7 @@ function runQueuedJob(entry) {
     .then((result) => saveResult(jobId, result))
     .catch((err) =>
       updateJob(jobId, {
-        status: 'error',
+        status: JOB_STATUS.ERROR,
         error: String(err.message || err),
         leaseOwner: null,
         leaseExpiresAt: null,
@@ -166,22 +333,351 @@ function scheduleDispatch() {
   });
 }
 
+async function runWakeUpJob(entry) {
+  const idempotencyKey = String(entry?.idempotencyKey || '').trim();
+  if (!idempotencyKey) return;
+
+  const job = getJob(entry.jobId);
+  if (!job) {
+    metrics.recordAsyncWakeup('missing_job');
+    return;
+  }
+
+  const wakeContext = job.wakeContext || {};
+  const service = String(wakeContext.service || '').trim();
+  const action = String(wakeContext.action || '').trim();
+  if (!entry?.broker || !service || !action) {
+    createAlarmEvent(job.jobId, {
+      code: 'WAKEUP_CONTEXT_MISSING',
+      severity: 'critical',
+      message: 'Wake-up skipped because broker or wakeContext is missing.',
+      actor: entry?.actor || 'watchdog',
+      dedupeKey: `wake-context-missing:${job.jobId}`,
+    });
+    metrics.recordAsyncWakeup('failed');
+    return;
+  }
+
+  const now = nowIso();
+  const attempts = Number(job?.wakeState?.attempts || 0) + 1;
+  updateJob(job.jobId, {
+    wakeState: {
+      status: 'running',
+      idempotencyKey,
+      reason: entry.reason || 'watchdog',
+      attempts,
+      actor: entry.actor || 'watchdog',
+      lastRequestedAt: job?.wakeState?.lastRequestedAt || now,
+      lastAttemptAt: now,
+      lastError: null,
+      wakeJobId: null,
+    },
+  });
+
+  try {
+    const result = await entry.broker.call(`${service}.${action}`, wakeContext.params || {}, {
+      meta: {
+        $gateway: true,
+        tenantId: job.tenantId || 'default',
+        requestHeaders: {
+          'x-idempotency-key': idempotencyKey,
+        },
+        wakeUp: true,
+        wakeUpReason: entry.reason || 'watchdog',
+      },
+    });
+
+    updateJob(job.jobId, {
+      wakeState: {
+        status: 'completed',
+        idempotencyKey,
+        reason: entry.reason || 'watchdog',
+        attempts,
+        actor: entry.actor || 'watchdog',
+        lastRequestedAt: job?.wakeState?.lastRequestedAt || now,
+        lastAttemptAt: now,
+        completedAt: nowIso(),
+        lastError: null,
+        wakeJobId: result?.jobId || null,
+        reused: Boolean(result?.reused),
+      },
+      recovery: {
+        status: 'woken',
+        at: nowIso(),
+        reason: entry.reason || 'watchdog',
+      },
+    });
+
+    for (const candidate of ensureArray(job.alarms)) {
+      if (
+        [ALARM_STATUS.OPEN, ALARM_STATUS.ACKNOWLEDGED].includes(String(candidate?.status || '')) &&
+        ['LEASE_MISSES_EXCEEDED', 'STARTUP_REHYDRATION_REQUIRED', 'WAKEUP_FAILED'].includes(
+          String(candidate?.code || '')
+        )
+      ) {
+        updateAlarmStatus(candidate.alarmId, ALARM_STATUS.RESOLVED, {
+          actor: entry.actor || 'watchdog',
+          note: 'Resolved automatically after successful wake-up.',
+        });
+      }
+    }
+
+    metrics.recordAsyncWakeup(result?.reused ? 'reused' : 'success');
+  } catch (err) {
+    const message = String(err?.message || err || 'Unknown wake-up error');
+    updateJob(job.jobId, {
+      wakeState: {
+        status: 'error',
+        idempotencyKey,
+        reason: entry.reason || 'watchdog',
+        attempts,
+        actor: entry.actor || 'watchdog',
+        lastRequestedAt: job?.wakeState?.lastRequestedAt || now,
+        lastAttemptAt: now,
+        lastError: message,
+        wakeJobId: null,
+      },
+    });
+
+    createAlarmEvent(job.jobId, {
+      code: 'WAKEUP_FAILED',
+      severity: 'critical',
+      message: `Wake-up execution failed: ${message}`,
+      actor: entry.actor || 'watchdog',
+      dedupeKey: `wakeup-failed:${job.jobId}`,
+      metadata: {
+        reason: entry.reason || 'watchdog',
+        idempotencyKey,
+      },
+    });
+    metrics.recordAsyncWakeup('failed');
+  }
+}
+
+function dispatchWakeUps() {
+  if (wakeUpQueueByIdempotencyKey.size === 0) return;
+
+  const entries = Array.from(wakeUpQueueByIdempotencyKey.values());
+  wakeUpQueueByIdempotencyKey.clear();
+  for (const entry of entries) {
+    Promise.resolve()
+      .then(() => runWakeUpJob(entry))
+      .catch(() => {
+        metrics.recordAsyncWakeup('failed');
+      });
+  }
+}
+
+function scheduleWakeDispatch() {
+  if (wakeDispatchScheduled) return;
+  wakeDispatchScheduled = true;
+  setImmediate(() => {
+    wakeDispatchScheduled = false;
+    dispatchWakeUps();
+  });
+}
+
+function requestWakeUp(jobId, options = {}) {
+  const job = getJob(jobId);
+  if (!job) {
+    return { accepted: false, reason: 'job_not_found' };
+  }
+
+  const idempotencyKey =
+    typeof options.idempotencyKey === 'string' && options.idempotencyKey.trim()
+      ? options.idempotencyKey.trim()
+      : String(job.idempotencyKey || '').trim();
+
+  if (!idempotencyKey) {
+    createAlarmEvent(jobId, {
+      code: 'WAKEUP_IDEMPOTENCY_KEY_REQUIRED',
+      severity: 'warning',
+      message: 'Wake-up cannot be started without an idempotencyKey.',
+      actor: options.actor || 'watchdog',
+      dedupeKey: `wakeup-idempotency-missing:${jobId}`,
+    });
+    return { accepted: false, reason: 'missing_idempotency_key' };
+  }
+
+  const wakeState = job.wakeState || {};
+  if (
+    wakeState.idempotencyKey === idempotencyKey &&
+    ['queued', 'running', 'completed'].includes(String(wakeState.status || ''))
+  ) {
+    return {
+      accepted: true,
+      reused: true,
+      idempotencyKey,
+      status: wakeState.status,
+      wakeJobId: wakeState.wakeJobId || null,
+    };
+  }
+
+  const queued = enqueueWakeUp({
+    jobId,
+    idempotencyKey,
+    reason: options.reason || 'watchdog',
+    actor: options.actor || 'watchdog',
+    broker: options.broker || null,
+  });
+  if (!queued) {
+    return { accepted: true, reused: true, idempotencyKey, status: 'queued' };
+  }
+
+  updateJob(jobId, {
+    wakeState: {
+      status: 'queued',
+      idempotencyKey,
+      reason: options.reason || 'watchdog',
+      actor: options.actor || 'watchdog',
+      attempts: Number(wakeState.attempts || 0),
+      lastRequestedAt: nowIso(),
+      lastAttemptAt: wakeState.lastAttemptAt || null,
+      lastError: null,
+      wakeJobId: wakeState.wakeJobId || null,
+    },
+  });
+  scheduleWakeDispatch();
+  metrics.recordAsyncWakeup('queued');
+  return { accepted: true, reused: false, idempotencyKey, status: 'queued' };
+}
+
+function markJobRecoveryPending(jobId, reason, actor = 'watchdog') {
+  const job = getJob(jobId);
+  if (!job) return null;
+  if (String(job.status) === JOB_STATUS.RECOVERY_PENDING) return job;
+
+  return updateJob(jobId, {
+    status: JOB_STATUS.RECOVERY_PENDING,
+    leaseOwner: null,
+    leaseExpiresAt: null,
+    lastHeartbeatAt: null,
+    recovery: {
+      status: 'pending',
+      reason: String(reason || 'unknown'),
+      at: nowIso(),
+      actor: String(actor || 'watchdog'),
+    },
+  });
+}
+
+function watchdogSweep(options = {}) {
+  const broker = options.broker || null;
+  const actor = options.actor || 'watchdog';
+  const now = Date.now();
+  const jobs = listJobs();
+  const summary = {
+    scanned: jobs.length,
+    leaseExpired: 0,
+    escalated: 0,
+    wakeQueued: 0,
+  };
+
+  for (const job of jobs) {
+    if (String(job?.status) !== JOB_STATUS.RUNNING) continue;
+    if (!isLeaseExpired(job, now)) continue;
+
+    summary.leaseExpired += 1;
+    metrics.recordAsyncLeaseMiss('expired');
+    const missedLeases = Number(job?.missedLeases || 0) + 1;
+    updateJob(job.jobId, {
+      missedLeases,
+      lastLeaseCheckAt: nowIso(),
+      leaseState: 'expired',
+    });
+
+    if (missedLeases < MAX_MISSED_LEASES) {
+      continue;
+    }
+
+    summary.escalated += 1;
+    markJobRecoveryPending(job.jobId, 'lease_expired', actor);
+    createAlarmEvent(job.jobId, {
+      code: 'LEASE_MISSES_EXCEEDED',
+      severity: 'critical',
+      message: `Lease expired ${missedLeases} times (max ${MAX_MISSED_LEASES}).`,
+      actor,
+      dedupeKey: `lease-misses:${job.jobId}`,
+      metadata: {
+        missedLeases,
+        maxMissedLeases: MAX_MISSED_LEASES,
+      },
+    });
+
+    const wakeResult = requestWakeUp(job.jobId, {
+      broker,
+      reason: 'lease_expired',
+      actor,
+    });
+    if (wakeResult.accepted) {
+      summary.wakeQueued += 1;
+    }
+  }
+
+  return summary;
+}
+
+function rehydrateOnStartup(options = {}) {
+  const broker = options.broker || null;
+  const actor = options.actor || 'startup';
+  const jobs = listJobs();
+  const summary = {
+    scanned: jobs.length,
+    movedToRecoveryPending: 0,
+    wakeQueued: 0,
+  };
+
+  for (const job of jobs) {
+    const status = String(job?.status || '');
+    if (![JOB_STATUS.QUEUED, JOB_STATUS.RUNNING, JOB_STATUS.RECOVERY_PENDING].includes(status)) {
+      continue;
+    }
+
+    if (status !== JOB_STATUS.RECOVERY_PENDING) {
+      markJobRecoveryPending(job.jobId, 'startup_rehydration', actor);
+      summary.movedToRecoveryPending += 1;
+    }
+
+    createAlarmEvent(job.jobId, {
+      code: 'STARTUP_REHYDRATION_REQUIRED',
+      severity: 'warning',
+      message: 'Job moved to recovery_pending during startup rehydration.',
+      actor,
+      dedupeKey: `startup-rehydrate:${job.jobId}`,
+      metadata: { originalStatus: status },
+    });
+
+    const wakeResult = requestWakeUp(job.jobId, {
+      broker,
+      reason: 'startup_rehydration',
+      actor,
+    });
+    if (wakeResult.accepted) {
+      summary.wakeQueued += 1;
+    }
+  }
+
+  return summary;
+}
+
 function resetDispatchStateForTests() {
   pendingJobsByTenant.clear();
   runningJobsByTenant.clear();
+  wakeUpQueueByIdempotencyKey.clear();
   roundRobinOffset = 0;
   dispatchScheduled = false;
+  wakeDispatchScheduled = false;
 }
 
 // ─── Public CRUD API ──────────────────────────────────────────────────────────
 
 /**
  * Create a new job record with status "queued". Returns the generated UUID jobId.
- * @param {Object} jobMeta - { service, action }
+ * @param {Object} jobMeta - { service, action, tenantId, wakeContext }
  * @returns {string} jobId
  */
-function createJob({ service, action, idempotencyKey = null }) {
-  return DRIVER.createJob({ service, action, idempotencyKey });
+function createJob({ service, action, idempotencyKey = null, tenantId = 'default', wakeContext = null }) {
+  return DRIVER.createJob({ service, action, idempotencyKey, tenantId, wakeContext });
 }
 
 function findJobByIdempotencyKey(service, action, idempotencyKey) {
@@ -193,10 +689,21 @@ function findJobByIdempotencyKey(service, action, idempotencyKey) {
  * Merge updates into an existing job record. Returns updated job or null if not found.
  * @param {string} jobId
  * @param {Object} updates - fields to merge (e.g. { status: 'running', error: '...' })
+ * @param {Object} [options] - optional update controls, e.g. { expectedRev: 4 }
  * @returns {Object|null}
  */
-function updateJob(jobId, updates) {
-  return DRIVER.updateJob(jobId, updates);
+function updateJob(jobId, updates, options = {}) {
+  return DRIVER.updateJob(jobId, updates, options);
+}
+
+/**
+ * Delete a job (progress + result) from storage.
+ * @param {string} jobId
+ * @returns {boolean}
+ */
+function deleteJob(jobId) {
+  if (typeof DRIVER.deleteJob !== 'function') return false;
+  return DRIVER.deleteJob(jobId);
 }
 
 /**
@@ -298,6 +805,14 @@ async function startJob(ctx, jobMeta, worker, options = {}) {
   }
 
   const tenantId = ctx?.meta?.tenantId || 'default';
+  const wakeContext =
+    options.wakeContext && typeof options.wakeContext === 'object'
+      ? {
+          service: options.wakeContext.service || jobMeta?.service,
+          action: options.wakeContext.action || jobMeta?.action,
+          params: options.wakeContext.params || null,
+        }
+      : null;
   const quotaCheck = rateQuotaStore.checkAsyncJobQuota({ tenantId, required: 1 });
   await emitRateQuotaEvents(ctx, quotaCheck.newEvents || [], {
     service: jobMeta?.service || 'unknown',
@@ -327,10 +842,16 @@ async function startJob(ctx, jobMeta, worker, options = {}) {
   });
 
   // ── REST call — create job, enqueue worker, return 202 immediately ────────
-  const jobId = createJob({ ...jobMeta, idempotencyKey });
+  const jobId = createJob({
+    ...jobMeta,
+    tenantId,
+    idempotencyKey,
+    wakeContext,
+  });
   enqueuePendingJob({
     tenantId,
     jobId,
+    idempotencyKey,
     worker,
   });
   scheduleDispatch();
@@ -351,14 +872,25 @@ function getDriverInfo() {
 module.exports = {
   createJob,
   findJobByIdempotencyKey,
+  listJobs,
   updateJob,
+  deleteJob,
   appendLog,
   saveResult,
   getJob,
   getResult,
+  createAlarmEvent,
+  updateAlarmStatus,
+  listAlarmEvents,
+  requestWakeUp,
+  watchdogSweep,
+  rehydrateOnStartup,
   gcExpired,
   startJob,
   resetDispatchStateForTests,
   getDriverInfo,
+  JOB_STATUS,
+  ALARM_STATUS,
+  MAX_MISSED_LEASES,
   TTL_MS,
 };

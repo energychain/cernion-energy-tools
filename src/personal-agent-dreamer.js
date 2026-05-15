@@ -30,6 +30,7 @@ const COSINE_DEDUP_THRESHOLD = 0.95;
 const DREAM_JOB_SERVICE = 'personal-agent';
 const DREAM_JOB_ACTION = 'dream-pipeline';
 const DREAM_SCHEDULER_SLICE_MS = Number(process.env.DREAM_SCHEDULER_SLICE_MS || 1000);
+const DREAM_JOB_CAS_RETRIES = Number(process.env.DREAM_JOB_CAS_RETRIES || 8);
 
 function buildDreamIdempotencyKey(tenantId, sessionId) {
   return `personal-agent:dream:${tenantId}:${sessionId}`;
@@ -61,7 +62,7 @@ async function scheduleDream(options = {}) {
     tenantId,
     userId,
     profileNamespace,
-    session,
+    authMeta,
     runFn,
   } = options;
 
@@ -92,11 +93,16 @@ async function scheduleDream(options = {}) {
     async (jobId) => {
       while (true) {
         const job = jobStore.getJob(jobId);
+        if (!job) {
+          return { status: 'deleted' };
+        }
         const schedule = job?.dreamSchedule || null;
         if (!schedule) {
-          return { status: 'no_schedule' };
+          await _sleep(DREAM_SCHEDULER_SLICE_MS, { unref: true });
+          continue;
         }
         if (schedule.status === 'canceled') {
+          jobStore.deleteJob(jobId);
           return { status: 'canceled' };
         }
 
@@ -111,50 +117,60 @@ async function scheduleDream(options = {}) {
           continue;
         }
 
-        const generation = Number(schedule.generation || 0);
         const latestJob = jobStore.getJob(jobId);
         const latestSchedule = latestJob?.dreamSchedule || null;
         if (!latestSchedule) {
-          return { status: 'no_schedule' };
+          await _sleep(DREAM_SCHEDULER_SLICE_MS, { unref: true });
+          continue;
         }
         if (latestSchedule.status === 'canceled') {
+          jobStore.deleteJob(jobId);
           return { status: 'canceled' };
-        }
-        if (Number(latestSchedule.generation || 0) !== generation) {
-          continue;
         }
 
         const startedAt = new Date().toISOString();
-        jobStore.updateJob(jobId, {
-          dreamSchedule: {
-            ...latestSchedule,
+        const runningSchedule = await updateDreamScheduleCas(jobId, (currentSchedule) => {
+          if (!currentSchedule || currentSchedule.status === 'canceled') {
+            return null;
+          }
+          return {
+            ...currentSchedule,
             status: 'running',
             startedAt,
-          },
+          };
         });
+        if (!runningSchedule || runningSchedule.status === 'canceled') {
+          jobStore.deleteJob(jobId);
+          return { status: 'canceled' };
+        }
 
         try {
-          await runFn(latestSchedule.payload || {});
-          jobStore.updateJob(jobId, {
-            dreamSchedule: {
-              ...latestSchedule,
+          await runFn(runningSchedule.payload || {});
+          await updateDreamScheduleCas(jobId, (currentSchedule) => {
+            if (!currentSchedule || currentSchedule.status === 'canceled') {
+              return null;
+            }
+            return {
+              ...currentSchedule,
               status: 'completed',
               startedAt,
               completedAt: new Date().toISOString(),
-              lastCompletedGeneration: generation,
-            },
+            };
           });
-          return { status: 'completed', generation };
+          jobStore.deleteJob(jobId);
+          return { status: 'completed' };
         } catch (err) {
-          jobStore.updateJob(jobId, {
-            dreamSchedule: {
-              ...latestSchedule,
+          await updateDreamScheduleCas(jobId, (currentSchedule) => {
+            if (!currentSchedule) {
+              return null;
+            }
+            return {
+              ...currentSchedule,
               status: 'failed',
               startedAt,
               failedAt: new Date().toISOString(),
               lastError: String(err?.message || err),
-              lastCompletedGeneration: generation,
-            },
+            };
           });
           throw err;
         }
@@ -180,10 +196,12 @@ async function scheduleDream(options = {}) {
     return null;
   }
 
-  const currentJob = jobStore.getJob(jobId);
-  const generation = Number(currentJob?.dreamSchedule?.generation || 0) + 1;
-  jobStore.updateJob(jobId, {
-    dreamSchedule: {
+  const updatedSchedule = await updateDreamScheduleCas(jobId, (currentSchedule) => {
+    const baseSchedule =
+      currentSchedule && typeof currentSchedule === 'object' ? currentSchedule : {};
+    const generation = Number(baseSchedule.generation || 0) + 1;
+    return {
+      ...baseSchedule,
       status: 'scheduled',
       dueAt,
       generation,
@@ -193,12 +211,16 @@ async function scheduleDream(options = {}) {
         sessionId,
         userId,
         profileNamespace,
-        session,
+        authMeta: authMeta && typeof authMeta === 'object' ? authMeta : {},
       },
-    },
+    };
   });
 
-  return { jobId, generation, dueAt };
+  return {
+    jobId,
+    generation: Number(updatedSchedule?.generation || 0),
+    dueAt,
+  };
 }
 
 /**
@@ -220,15 +242,12 @@ async function cancelDream(tenantId, sessionId) {
     return false;
   }
 
-  const current = jobStore.getJob(existing.jobId);
-  jobStore.updateJob(existing.jobId, {
-    dreamSchedule: {
-      ...(current?.dreamSchedule || {}),
-      status: 'canceled',
-      canceledAt: new Date().toISOString(),
-    },
-  });
-
+  await updateDreamScheduleCas(existing.jobId, (currentSchedule = {}) => ({
+    ...currentSchedule,
+    status: 'canceled',
+    canceledAt: new Date().toISOString(),
+  }));
+  jobStore.deleteJob(existing.jobId);
   return true;
 }
 
@@ -252,6 +271,36 @@ function isDreamPending(tenantId, sessionId) {
   const current = jobStore.getJob(existing.jobId);
   const scheduleStatus = current?.dreamSchedule?.status;
   return scheduleStatus === 'scheduled' || scheduleStatus === 'running';
+}
+
+async function updateDreamScheduleCas(jobId, scheduleBuilder) {
+  let attempt = 0;
+  while (attempt < DREAM_JOB_CAS_RETRIES) {
+    attempt += 1;
+    const current = jobStore.getJob(jobId);
+    if (!current) return null;
+
+    const nextSchedule = scheduleBuilder(current.dreamSchedule || null, current);
+    if (nextSchedule === null) {
+      return current.dreamSchedule || null;
+    }
+
+    try {
+      const updated = jobStore.updateJob(
+        jobId,
+        { dreamSchedule: nextSchedule },
+        { expectedRev: current._rev }
+      );
+      return updated?.dreamSchedule || null;
+    } catch (err) {
+      if (!_isConflict(err)) {
+        throw err;
+      }
+      await _sleep(Math.min(20 * attempt, 120), { unref: true });
+    }
+  }
+
+  throw new Error(`Dream schedule CAS retry exhausted for job ${jobId}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -377,7 +426,7 @@ async function enrichL2Profile(ctx, tenantId, userId, profileNamespace, preferen
     }
 
     const currentPayload = currentDoc?.payload || { userId, preferences: {} };
-    const snapshotUpdatedAt = currentDoc?.updatedAt || null;
+    const snapshotRev = currentDoc?._rev ?? null;
 
     // 2. Merge preferences using confidence-based resolution
     const mergedPrefs = { ...(currentPayload.preferences || {}) };
@@ -406,29 +455,26 @@ async function enrichL2Profile(ctx, tenantId, userId, profileNamespace, preferen
       updatedAt: new Date().toISOString(),
     };
 
-    // 3. Write — optimistic guard re-check on every attempt before commit
+    // 3. Write with native revision CAS (_rev) on every attempt
     try {
-      // Re-read to detect concurrent write before every commit attempt.
-      let recheck;
-      try {
-        recheck = await ctx.call('object-store.get', { namespace: profileNamespace, key: userId }, { meta: ctx.meta });
-      } catch (recheckErr) {
-        if (!_isNotFound(recheckErr)) throw recheckErr;
-        recheck = null;
-      }
-      const recheckUpdatedAt = recheck?.updatedAt || null;
-      if (recheckUpdatedAt !== snapshotUpdatedAt) {
+      await ctx.call(
+        'object-store.put',
+        {
+          namespace: profileNamespace,
+          key: userId,
+          payload: newPayload,
+          _rev: snapshotRev,
+        },
+        { meta: ctx.meta }
+      );
+      return { merged: mergedPrefs, conflicts, retries };
+    } catch (writeErr) {
+      if (_isConflict(writeErr)) {
         retries += 1;
-        if (attempt >= OCC_MAX_RETRIES - 1) {
-          throw new Error('Optimistic concurrency guard failed: profile changed before commit');
-        }
+        if (attempt >= OCC_MAX_RETRIES - 1) throw writeErr;
         await _sleep(50 * (attempt + 1));
         continue;
       }
-
-      await ctx.call('object-store.put', { namespace: profileNamespace, key: userId, payload: newPayload }, { meta: ctx.meta });
-      return { merged: mergedPrefs, conflicts, retries };
-    } catch (writeErr) {
       retries += 1;
       if (attempt >= OCC_MAX_RETRIES - 1) throw writeErr;
       // Brief backoff before retry
@@ -736,6 +782,16 @@ function _isActionUnavailable(err) {
     err?.code === 'SERVICE_NOT_FOUND' ||
     err?.type === 'SERVICE_NOT_FOUND' ||
     err?.message?.includes('SERVICE_NOT_FOUND')
+  );
+}
+
+function _isConflict(err) {
+  return (
+    err?.code === 409 ||
+    err?.status === 409 ||
+    err?.type === 'OBJECT_OCC_CONFLICT' ||
+    err?.type === 'JOB_OCC_CONFLICT' ||
+    err?.message?.toLowerCase?.().includes('conflict')
   );
 }
 

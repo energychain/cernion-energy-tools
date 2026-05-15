@@ -63,6 +63,10 @@ function toPublic(doc) {
   };
 }
 
+function isConflictError(err) {
+  return err?.status === 409 || err?.code === 409 || err?.type === 'OBJECT_OCC_CONFLICT';
+}
+
 module.exports = {
   name: 'object-store',
 
@@ -149,7 +153,10 @@ module.exports = {
         const id = docId(namespace, key);
         try {
           const doc = await this.db.get(id);
-          return toPublic(doc);
+          return {
+            ...toPublic(doc),
+            _rev: doc._rev,
+          };
         } catch (err) {
           if (err.status === 404) {
             throw new MoleculerClientError(
@@ -175,6 +182,7 @@ module.exports = {
         namespace: { type: 'string', pattern: NS_PATTERN },
         key: { type: 'string', pattern: KEY_PATTERN },
         payload: { type: 'object' },
+        _rev: { type: 'string', optional: true, nullable: true },
       },
       openapi: {
         summary: 'Create or update a document in the Object Store (upsert)',
@@ -182,7 +190,7 @@ module.exports = {
         description:
           'Upserts a document identified by namespace + key. ' +
           'On update the payload is fully replaced and updatedAt is refreshed; createdAt is preserved. ' +
-          'PouchDB revision (_rev) handling is fully transparent — callers never see or send _rev.',
+          'Optional CAS: callers may pass _rev. On revision mismatch, the action returns HTTP 409 OBJECT_OCC_CONFLICT.',
         parameters: [
           {
             name: 'namespace',
@@ -208,6 +216,13 @@ module.exports = {
                     type: 'object',
                     description: 'Arbitrary JSON payload to store.',
                     example: { name: 'My Project', status: 'active' },
+                  },
+                  _rev: {
+                    type: 'string',
+                    nullable: true,
+                    description:
+                      'Optional PouchDB revision for CAS updates. Use null for create-if-not-exists CAS semantics.',
+                    example: '2-4f8a63d0f9c94d97a0b5b6f8cdef1234',
                   },
                 },
               },
@@ -241,6 +256,8 @@ module.exports = {
       },
       async handler(ctx) {
         const { namespace, key, payload } = ctx.params;
+        const hasRevToken = Object.prototype.hasOwnProperty.call(ctx.params, '_rev');
+        const requestedRev = hasRevToken ? ctx.params._rev : undefined;
         const id = docId(namespace, key);
         const now = new Date().toISOString();
 
@@ -248,10 +265,41 @@ module.exports = {
         let createdAt = now;
         try {
           const existing = await this.db.get(id);
+          if (hasRevToken && requestedRev !== existing._rev) {
+            throw new MoleculerClientError(
+              `Revision conflict for ${namespace}/${key}`,
+              409,
+              'OBJECT_OCC_CONFLICT',
+              {
+                namespace,
+                key,
+                expectedRev: requestedRev,
+                currentRev: existing._rev,
+              }
+            );
+          }
           rev = existing._rev;
           createdAt = existing.createdAt || now;
-        } catch (_) {
-          // New document — no _rev needed.
+        } catch (err) {
+          if (err?.status === 404) {
+            if (hasRevToken && requestedRev !== null && requestedRev !== undefined && requestedRev !== '') {
+              throw new MoleculerClientError(
+                `Revision conflict for ${namespace}/${key}: document does not exist`,
+                409,
+                'OBJECT_OCC_CONFLICT',
+                {
+                  namespace,
+                  key,
+                  expectedRev: requestedRev,
+                  currentRev: null,
+                }
+              );
+            }
+          } else if (isConflictError(err) || err?.type === 'OBJECT_OCC_CONFLICT') {
+            throw err;
+          } else {
+            throw err;
+          }
         }
 
         const doc = {
@@ -263,7 +311,24 @@ module.exports = {
           updatedAt: now,
         };
 
-        await this.db.put(doc);
+        try {
+          await this.db.put(doc);
+        } catch (err) {
+          if (err?.status === 409) {
+            throw new MoleculerClientError(
+              `Revision conflict for ${namespace}/${key}`,
+              409,
+              'OBJECT_OCC_CONFLICT',
+              {
+                namespace,
+                key,
+                expectedRev: hasRevToken ? requestedRev : rev || null,
+                currentRev: null,
+              }
+            );
+          }
+          throw err;
+        }
         this.logger.info(`[object-store] put ${namespace}/${key}`);
         return toPublic(doc);
       },

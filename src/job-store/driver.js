@@ -20,6 +20,10 @@ class JobStoreDriver {
     throw new Error('Not implemented: updateJob');
   }
 
+  deleteJob() {
+    throw new Error('Not implemented: deleteJob');
+  }
+
   appendLog() {
     throw new Error('Not implemented: appendLog');
   }
@@ -34,6 +38,10 @@ class JobStoreDriver {
 
   getResult() {
     throw new Error('Not implemented: getResult');
+  }
+
+  listJobs() {
+    throw new Error('Not implemented: listJobs');
   }
 
   gcExpired() {

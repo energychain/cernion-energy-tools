@@ -79,6 +79,54 @@ describe('Object Store Service', () => {
       expect(v2.createdAt).toBe(v1.createdAt); // preserved
       expect(v2.updatedAt >= v1.updatedAt).toBe(true); // advanced
     });
+
+    it('supports CAS updates with optional _rev', async () => {
+      await broker.call('object-store.put', {
+        namespace: 'test_ns',
+        key: 'cas1',
+        payload: { version: 1 },
+      });
+      const current = await broker.call('object-store.get', {
+        namespace: 'test_ns',
+        key: 'cas1',
+      });
+
+      const updated = await broker.call('object-store.put', {
+        namespace: 'test_ns',
+        key: 'cas1',
+        payload: { version: 2 },
+        _rev: current._rev,
+      });
+
+      expect(updated.payload.version).toBe(2);
+    });
+
+    it('returns 409 OBJECT_OCC_CONFLICT for stale _rev', async () => {
+      await broker.call('object-store.put', {
+        namespace: 'test_ns',
+        key: 'cas2',
+        payload: { version: 1 },
+      });
+      const current = await broker.call('object-store.get', {
+        namespace: 'test_ns',
+        key: 'cas2',
+      });
+      await broker.call('object-store.put', {
+        namespace: 'test_ns',
+        key: 'cas2',
+        payload: { version: 2 },
+        _rev: current._rev,
+      });
+
+      await expect(
+        broker.call('object-store.put', {
+          namespace: 'test_ns',
+          key: 'cas2',
+          payload: { version: 3 },
+          _rev: current._rev,
+        })
+      ).rejects.toMatchObject({ code: 409, type: 'OBJECT_OCC_CONFLICT' });
+    });
   });
 
   // ─── get ─────────────────────────────────────────────────────────────────────
@@ -101,6 +149,21 @@ describe('Object Store Service', () => {
       await expect(
         broker.call('object-store.get', { namespace: 'test_ns', key: 'does_not_exist' })
       ).rejects.toMatchObject({ code: 404, type: 'OBJECT_NOT_FOUND' });
+    });
+
+    it('returns _rev for CAS-capable clients', async () => {
+      await broker.call('object-store.put', {
+        namespace: 'test_ns',
+        key: 'get-rev',
+        payload: { ok: true },
+      });
+
+      const result = await broker.call('object-store.get', {
+        namespace: 'test_ns',
+        key: 'get-rev',
+      });
+      expect(typeof result._rev).toBe('string');
+      expect(result._rev.length).toBeGreaterThan(0);
     });
   });
 

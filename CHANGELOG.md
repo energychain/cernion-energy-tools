@@ -9,6 +9,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.52.6] — Hermes Review Fixes (Part 2)
+
+### Fixed
+- [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): removed stale session snapshot persistence from Dream scheduling payloads. Durable Dream jobs now persist minimal identifiers (`tenantId`, `sessionId`, `userId`, profile/auth metadata) and no longer embed full session state.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `runDream()` now always reloads the latest session from Object Store before pipeline execution; includes zero-downtime dual-schema fallback for legacy v0.52.5 payloads that still carry embedded `session`.
+- [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): completed OCC hardening in `enrichL2Profile()` by switching to native `_rev`-based CAS writes through `object-store.put`, removing the manual double-read `updatedAt` guard.
+- [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): eliminated generation read-modify-write race by introducing CAS-protected Dream schedule updates on job records via `job-store.updateJob(..., { expectedRev })` retry loop.
+- [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js), [src/job-store.js](src/job-store.js), [src/job-store/file-driver.js](src/job-store/file-driver.js): implemented immediate Dream job cleanup for terminal success/cancel states via new `deleteJob` primitive. Failed Dream jobs are retained for debugging/alarm analysis.
+- [services/personal-agent.service.js](services/personal-agent.service.js): hardened Dream execution context by reconstructing auth-relevant metadata (roles/scopes/authUser/tenant) and deep-merging `options.meta` to preserve tracing and nested context.
+- [services/object-store.service.js](services/object-store.service.js): added optional `_rev` parameter on `put` for native CAS semantics. Revision mismatches now return HTTP `409` with `OBJECT_OCC_CONFLICT`.
+
+### Changed
+- [src/job-store/driver.js](src/job-store/driver.js): extended job-store driver contract with `deleteJob()`.
+- [src/job-store/file-driver.js](src/job-store/file-driver.js): added `_rev` counter to job records and CAS conflict checks in `updateJob()`.
+- [services/object-store.service.js](services/object-store.service.js): `get` responses now include `_rev` for CAS-capable internal clients.
+- [tests/personal-agent-dreamer.test.js](tests/personal-agent-dreamer.test.js): updated durable scheduler mocks/tests for CAS revisions and minimal Dream payload verification.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regressions for fresh-session reload on Dream wake-up, legacy payload compatibility, and deep meta merge behavior.
+- [tests/object-store.service.test.js](tests/object-store.service.test.js): added CAS success/conflict coverage for optional `_rev` semantics.
+- [tests/job-store.test.js](tests/job-store.test.js): added CAS `expectedRev` and `deleteJob` primitive coverage.
+- [package.json](package.json): bumped version to `0.52.6`.
+- [package-lock.json](package-lock.json): aligned lockfile version to `0.52.6`.
+- [README.md](README.md): updated current release marker to `v0.52.6`.
+
+### Notes
+- Matrix hard-gate remains unchanged: 58/58 required TDD IDs must pass (100%).
+
 ## [0.52.5] — Hermes Review Fixes (Personal Agent)
 
 ### Fixed

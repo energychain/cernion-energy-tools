@@ -19,11 +19,22 @@ jest.mock('../src/job-store', () => {
   const byIdempotency = new Map();
   let seq = 0;
 
-  function mergeJob(jobId, patch) {
+  function mergeJob(jobId, patch, options = {}) {
     const current = jobs.get(jobId) || { jobId };
+
+    if (Object.prototype.hasOwnProperty.call(options, 'expectedRev')) {
+      if (options.expectedRev !== current._rev) {
+        const error = new Error('job revision conflict');
+        error.code = 409;
+        error.type = 'JOB_OCC_CONFLICT';
+        throw error;
+      }
+    }
+
     const next = {
       ...current,
       ...patch,
+      _rev: Number.isFinite(Number(current._rev)) ? Number(current._rev) + 1 : 1,
     };
     jobs.set(jobId, next);
     return next;
@@ -48,6 +59,7 @@ jest.mock('../src/job-store', () => {
         status: 'queued',
         idempotencyKey,
         dreamSchedule: null,
+        _rev: 1,
       });
       return { jobId, status: 'queued', reused: false };
     }),
@@ -65,7 +77,17 @@ jest.mock('../src/job-store', () => {
       };
     }),
     getJob: jest.fn((jobId) => jobs.get(jobId) || null),
-    updateJob: jest.fn((jobId, patch) => mergeJob(jobId, patch)),
+    updateJob: jest.fn((jobId, patch, options = {}) => mergeJob(jobId, patch, options)),
+    deleteJob: jest.fn((jobId) => {
+      const had = jobs.has(jobId);
+      if (!had) return false;
+      const job = jobs.get(jobId);
+      if (job?.idempotencyKey) {
+        byIdempotency.delete(job.idempotencyKey);
+      }
+      jobs.delete(jobId);
+      return true;
+    }),
     __reset: jest.fn(() => {
       jobs.clear();
       byIdempotency.clear();
@@ -112,8 +134,26 @@ function makeCtx(store = {}) {
       }
       if (action === 'object-store.put') {
         const key = `${params.namespace}::${params.key}`;
-        _store[key] = { payload: params.payload, key: params.key, updatedAt: new Date().toISOString() };
-        return { ok: true };
+        const existing = _store[key] || null;
+        const hasRevToken = Object.prototype.hasOwnProperty.call(params, '_rev');
+        const expectedRev = hasRevToken ? params._rev : undefined;
+        const currentRev = existing?._rev ?? null;
+
+        if (hasRevToken && expectedRev !== currentRev) {
+          const err = new Error('revision conflict');
+          err.code = 409;
+          err.type = 'OBJECT_OCC_CONFLICT';
+          throw err;
+        }
+
+        const nextRev = existing ? String(Number(existing._rev || '0') + 1) : '1';
+        _store[key] = {
+          payload: params.payload,
+          key: params.key,
+          updatedAt: new Date().toISOString(),
+          _rev: nextRev,
+        };
+        return { ok: true, _rev: nextRev };
       }
       if (action === 'object-store.query') {
         const prefix = params.namespace;
@@ -609,7 +649,7 @@ describe('Dream durable scheduling', () => {
       sessionId: 'sess-x',
       userId: 'user1',
       profileNamespace: 'personal_agent_user_profiles:tenant1',
-      session: { l3: { history: [] } },
+      authMeta: { authUser: { userId: 'user1' }, roles: ['test-role'] },
       runFn: jest.fn(),
     });
     expect(isDreamPending('tenant1', 'sess-x')).toBe(true);
@@ -623,7 +663,7 @@ describe('Dream durable scheduling', () => {
       sessionId: 'sess-y',
       userId: 'user1',
       profileNamespace: 'personal_agent_user_profiles:tenant1',
-      session: { l3: { history: [] } },
+      authMeta: { authUser: { userId: 'user1' } },
       runFn: jest.fn(),
     });
     await cancelDream('tenant1', 'sess-y');
@@ -637,7 +677,7 @@ describe('Dream durable scheduling', () => {
       sessionId: 'sess-z',
       userId: 'user1',
       profileNamespace: 'personal_agent_user_profiles:tenant1',
-      session: { l3: { history: [{ role: 'user', text: 'first' }] } },
+      authMeta: { authUser: { userId: 'user1' }, scopes: ['dream:run'] },
       runFn: jest.fn(),
     });
     const second = await scheduleDream({
@@ -646,7 +686,7 @@ describe('Dream durable scheduling', () => {
       sessionId: 'sess-z',
       userId: 'user1',
       profileNamespace: 'personal_agent_user_profiles:tenant1',
-      session: { l3: { history: [{ role: 'user', text: 'second' }] } },
+      authMeta: { authUser: { userId: 'user1' }, scopes: ['dream:run'] },
       runFn: jest.fn(),
     });
 
@@ -661,5 +701,27 @@ describe('Dream durable scheduling', () => {
     const keyC = buildDreamIdempotencyKey('tenant2', 'session1');
     expect(keyA).toBe(keyB);
     expect(keyA).not.toBe(keyC);
+  });
+
+  test('scheduleDream payload is minimal and excludes full session snapshot', async () => {
+    await scheduleDream({
+      broker,
+      tenantId: 'tenant1',
+      sessionId: 'sess-minimal',
+      userId: 'user1',
+      profileNamespace: 'personal_agent_user_profiles:tenant1',
+      authMeta: { authUser: { userId: 'user1' } },
+      runFn: jest.fn(),
+    });
+
+    const existing = jobStore.findJobByIdempotencyKey(
+      'personal-agent',
+      'dream-pipeline',
+      buildDreamIdempotencyKey('tenant1', 'sess-minimal')
+    );
+    const job = jobStore.getJob(existing.jobId);
+    expect(job.dreamSchedule.payload.session).toBeUndefined();
+    expect(job.dreamSchedule.payload.sessionId).toBe('sess-minimal');
+    expect(job.dreamSchedule.payload.tenantId).toBe('tenant1');
   });
 });

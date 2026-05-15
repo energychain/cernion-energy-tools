@@ -368,4 +368,106 @@ describe('personal-agent.service', () => {
     expect(result.limit).toBe(10);
     expect(result.offset).toBe(0);
   });
+
+  it('runDream reloads latest session from object-store instead of stale payload snapshot', async () => {
+    const first = await broker.call(
+      'personal-agent.chat',
+      { message: 'Initial message' },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    await broker.call('object-store.put', {
+      namespace: 'tenant:tenant-a:personal_agent_sessions',
+      key: first.sessionId,
+      payload: {
+        id: first.sessionId,
+        tenantId: 'tenant-a',
+        userId: 'user-1',
+        l1: { tenantFacts: [] },
+        l2: { userProfile: { userId: 'user-1', preferences: {} } },
+        l3: {
+          history: [
+            { role: 'user', text: 'Netzbetreiber: TWL Netze', ts: new Date().toISOString() },
+          ],
+          summary: null,
+          compressed: false,
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    });
+
+    const svc = broker.getLocalService('personal-agent');
+    await svc.schema.methods.runDream.call(svc, broker, {
+      sessionId: first.sessionId,
+      tenantId: 'tenant-a',
+      userId: 'user-1',
+      profileNamespace: 'tenant:tenant-a:personal_agent_user_profiles',
+      authMeta: {
+        authUser: { userId: 'user-1' },
+        roles: ['operator'],
+        scopes: ['dream:run'],
+      },
+      session: {
+        l3: {
+          history: [{ role: 'user', text: 'STALE SESSION SNAPSHOT' }],
+        },
+      },
+    });
+
+    const audit = await broker.call('object-store.query', {
+      namespace: 'personal_agent_dream_audit:tenant-a',
+      selector: {},
+      limit: 50,
+    });
+    const entry = (audit.docs || []).find((d) => d.payload?.sessionId === first.sessionId);
+    expect(entry).toBeDefined();
+    expect(entry.payload.extractedFacts).toBeGreaterThanOrEqual(1);
+  });
+
+  it('runDream supports legacy payload schema when session was embedded', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const legacySessionId = 'legacy-session-v525';
+
+    await svc.schema.methods.runDream.call(svc, broker, {
+      sessionId: legacySessionId,
+      tenantId: 'tenant-a',
+      userId: 'user-1',
+      profileNamespace: 'tenant:tenant-a:personal_agent_user_profiles',
+      authMeta: { authUser: { userId: 'user-1' } },
+      session: {
+        l3: {
+          history: [{ role: 'user', text: 'Netzbetreiber: LegacyNetz' }],
+        },
+      },
+    });
+
+    const audit = await broker.call('object-store.query', {
+      namespace: 'personal_agent_dream_audit:tenant-a',
+      selector: {},
+      limit: 100,
+    });
+    const entry = (audit.docs || []).find((d) => d.payload?.sessionId === legacySessionId);
+    expect(entry).toBeDefined();
+  });
+
+  it('deepMergeMeta preserves nested tracing data while applying dream overrides', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const merged = svc.schema.methods.deepMergeMeta.call(
+      svc,
+      {
+        trace: { id: 'trace-1', spanId: 'span-1' },
+        authUser: { tenantRole: 'viewer' },
+      },
+      {
+        trace: { spanId: 'span-2' },
+        authUser: { userId: 'user-1' },
+      }
+    );
+
+    expect(merged.trace.id).toBe('trace-1');
+    expect(merged.trace.spanId).toBe('span-2');
+    expect(merged.authUser.tenantRole).toBe('viewer');
+    expect(merged.authUser.userId).toBe('user-1');
+  });
 });

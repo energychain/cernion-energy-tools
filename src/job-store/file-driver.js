@@ -27,7 +27,7 @@ class FileJobStoreDriver extends JobStoreDriver {
     return path.join(this.jobsDir, `${jobId}.result.json`);
   }
 
-  createJob({ service, action, idempotencyKey = null }) {
+  createJob({ service, action, idempotencyKey = null, tenantId = 'default', wakeContext = null }) {
     this.ensureDir();
     const jobId = crypto.randomUUID();
     const now = new Date().toISOString();
@@ -35,6 +35,7 @@ class FileJobStoreDriver extends JobStoreDriver {
       jobId,
       service: service || 'unknown',
       action: action || 'unknown',
+      tenantId: String(tenantId || 'default'),
       idempotencyKey,
       status: 'queued',
       createdAt: now,
@@ -43,10 +44,33 @@ class FileJobStoreDriver extends JobStoreDriver {
       error: null,
       phase: null,
       percent: null,
+      missedLeases: 0,
+      leaseState: null,
       leaseOwner: null,
       leaseExpiresAt: null,
       lastHeartbeatAt: null,
+      wakeContext:
+        wakeContext && typeof wakeContext === 'object'
+          ? {
+              service: wakeContext.service || service || 'unknown',
+              action: wakeContext.action || action || 'unknown',
+              params: wakeContext.params || null,
+            }
+          : null,
+      wakeState: {
+        status: 'idle',
+        idempotencyKey,
+        reason: null,
+        actor: null,
+        attempts: 0,
+        lastRequestedAt: null,
+        lastAttemptAt: null,
+        lastError: null,
+        wakeJobId: null,
+      },
+      alarms: [],
       logs: [],
+      _rev: 1,
     };
     fs.writeFileSync(this.progressPath(jobId), JSON.stringify(job));
     return jobId;
@@ -74,12 +98,49 @@ class FileJobStoreDriver extends JobStoreDriver {
     }
   }
 
-  updateJob(jobId, updates) {
+  updateJob(jobId, updates, options = {}) {
     const job = this.getJob(jobId);
     if (!job) return null;
+
+    if (Object.prototype.hasOwnProperty.call(options, 'expectedRev')) {
+      const expectedRev = options.expectedRev;
+      const currentRev = job._rev;
+      if (expectedRev !== currentRev) {
+        const error = new Error(
+          `Job revision conflict for ${jobId}: expected ${expectedRev}, current ${currentRev}`
+        );
+        error.code = 409;
+        error.type = 'JOB_OCC_CONFLICT';
+        error.data = {
+          jobId,
+          expectedRev,
+          currentRev,
+        };
+        throw error;
+      }
+    }
+
     const updated = { ...job, ...updates, updatedAt: new Date().toISOString() };
+    updated._rev = Number.isFinite(Number(job._rev)) ? Number(job._rev) + 1 : 1;
     fs.writeFileSync(this.progressPath(jobId), JSON.stringify(updated));
     return updated;
+  }
+
+  deleteJob(jobId) {
+    const existing = this.getJob(jobId);
+    if (!existing) return false;
+
+    try {
+      fs.unlinkSync(this.progressPath(jobId));
+    } catch {
+      // ignore
+    }
+    try {
+      fs.unlinkSync(this.resultPath(jobId));
+    } catch {
+      // ignore
+    }
+    return true;
   }
 
   appendLog(jobId, phase, percent, message, details = {}) {
@@ -120,6 +181,8 @@ class FileJobStoreDriver extends JobStoreDriver {
   }
 
   saveResult(jobId, result) {
+    const current = this.getJob(jobId);
+    if (!current) return null;
     this.ensureDir();
     fs.writeFileSync(this.resultPath(jobId), JSON.stringify(result));
     return this.updateJob(jobId, {
@@ -144,6 +207,19 @@ class FileJobStoreDriver extends JobStoreDriver {
       return JSON.parse(fs.readFileSync(this.resultPath(jobId), 'utf-8'));
     } catch {
       return null;
+    }
+  }
+
+  listJobs() {
+    try {
+      this.ensureDir();
+      const files = fs.readdirSync(this.jobsDir).filter((f) => f.endsWith('.progress.json'));
+      return files
+        .map((f) => this.getJob(f.replace('.progress.json', '')))
+        .filter(Boolean)
+        .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+    } catch {
+      return [];
     }
   }
 

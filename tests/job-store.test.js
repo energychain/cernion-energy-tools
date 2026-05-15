@@ -43,6 +43,7 @@ afterEach(() => {
   }
   delete process.env.JOB_STORE_DIR;
   delete process.env.JOB_STORE_MAX_CONCURRENT_PER_TENANT;
+  delete process.env.JOB_STORE_MAX_MISSED_LEASES;
 });
 
 // ─── createJob ────────────────────────────────────────────────────────────────
@@ -134,6 +135,39 @@ describe('updateJob', () => {
 
   it('should return null for an unknown job ID', () => {
     expect(jobStore.updateJob('nonexistent-id', { status: 'running' })).toBeNull();
+  });
+
+  it('supports CAS update with expectedRev', () => {
+    const id = jobStore.createJob({ service: 's', action: 'a' });
+    const current = jobStore.getJob(id);
+    const updated = jobStore.updateJob(id, { status: 'running' }, { expectedRev: current._rev });
+    expect(updated.status).toBe('running');
+    expect(updated._rev).toBeGreaterThan(current._rev);
+  });
+
+  it('throws JOB_OCC_CONFLICT on stale expectedRev', () => {
+    const id = jobStore.createJob({ service: 's', action: 'a' });
+    const current = jobStore.getJob(id);
+    jobStore.updateJob(id, { status: 'running' }, { expectedRev: current._rev });
+    expect(() =>
+      jobStore.updateJob(id, { status: 'error' }, { expectedRev: current._rev })
+    ).toThrow(/conflict/i);
+  });
+});
+
+describe('deleteJob', () => {
+  it('deletes progress and result files', () => {
+    const id = jobStore.createJob({ service: 's', action: 'a' });
+    jobStore.saveResult(id, { ok: true });
+
+    const deleted = jobStore.deleteJob(id);
+    expect(deleted).toBe(true);
+    expect(jobStore.getJob(id)).toBeNull();
+    expect(jobStore.getResult(id)).toBeNull();
+  });
+
+  it('returns false for unknown job id', () => {
+    expect(jobStore.deleteJob('unknown-job')).toBe(false);
   });
 });
 
@@ -512,5 +546,113 @@ describe('startJob', () => {
       expect(jobStore.getResult(b1.jobId)).toEqual({ ok: 'b1' });
       expect(jobStore.getResult(a2.jobId)).toEqual({ ok: 'a-queued' });
     });
+  });
+});
+
+describe('durable watchdog and alarms (v0.52.2)', () => {
+  it('creates and transitions persistent alarm lifecycle open -> acknowledged -> resolved', () => {
+    const id = jobStore.createJob({ service: 'svc', action: 'act', idempotencyKey: 'ck:alarm:1' });
+    const alarm = jobStore.createAlarmEvent(id, {
+      code: 'LEASE_MISSES_EXCEEDED',
+      severity: 'critical',
+      message: 'Lease misses exceeded threshold.',
+      dedupeKey: `lease-misses:${id}`,
+    });
+
+    expect(alarm.status).toBe('open');
+
+    const ack = jobStore.updateAlarmStatus(alarm.alarmId, 'acknowledged', {
+      actor: 'hitl-user',
+      note: 'Investigating.',
+    });
+    expect(ack.alarm.status).toBe('acknowledged');
+    expect(ack.alarm.acknowledgedAt).toBeTruthy();
+
+    const resolved = jobStore.updateAlarmStatus(alarm.alarmId, 'resolved', {
+      actor: 'problem-solver',
+      note: 'Recovery successful.',
+    });
+    expect(resolved.alarm.status).toBe('resolved');
+    expect(resolved.alarm.resolvedAt).toBeTruthy();
+  });
+
+  it('is idempotent when requestWakeUp is called repeatedly with same idempotencyKey', () => {
+    const id = jobStore.createJob({
+      service: 'svc',
+      action: 'act',
+      idempotencyKey: 'ck:wakeup:1',
+      wakeContext: { service: 'svc', action: 'act', params: { x: 1 } },
+    });
+    jobStore.updateJob(id, { status: 'recovery_pending' });
+
+    const first = jobStore.requestWakeUp(id, {
+      idempotencyKey: 'ck:wakeup:1',
+      reason: 'manual',
+      actor: 'test',
+    });
+    const second = jobStore.requestWakeUp(id, {
+      idempotencyKey: 'ck:wakeup:1',
+      reason: 'manual',
+      actor: 'test',
+    });
+
+    expect(first.accepted).toBe(true);
+    expect(second.accepted).toBe(true);
+    expect(second.reused).toBe(true);
+  });
+
+  it('escalates expired leases to recovery_pending + alarm when maxMissedLeases is reached', () => {
+    process.env.JOB_STORE_MAX_MISSED_LEASES = '1';
+    loadFreshModule();
+
+    const id = jobStore.createJob({
+      service: 'svc',
+      action: 'act',
+      idempotencyKey: 'ck:lease:1',
+      wakeContext: { service: 'svc', action: 'act', params: { x: 1 } },
+    });
+    jobStore.updateJob(id, {
+      status: 'running',
+      leaseExpiresAt: new Date(Date.now() - 1000).toISOString(),
+      missedLeases: 0,
+    });
+
+    const summary = jobStore.watchdogSweep({ actor: 'test-watchdog' });
+    const job = jobStore.getJob(id);
+
+    expect(summary.leaseExpired).toBe(1);
+    expect(summary.escalated).toBe(1);
+    expect(job.status).toBe('recovery_pending');
+    expect(Array.isArray(job.alarms)).toBe(true);
+    expect(job.alarms.some((a) => a.code === 'LEASE_MISSES_EXCEEDED' && a.status === 'open')).toBe(true);
+  });
+
+  it('rehydrates queued/running jobs on startup and raises startup alarms', () => {
+    const queuedId = jobStore.createJob({
+      service: 'svc',
+      action: 'act',
+      idempotencyKey: 'ck:startup:queued',
+      wakeContext: { service: 'svc', action: 'act', params: { id: 1 } },
+    });
+    const runningId = jobStore.createJob({
+      service: 'svc',
+      action: 'act',
+      idempotencyKey: 'ck:startup:running',
+      wakeContext: { service: 'svc', action: 'act', params: { id: 2 } },
+    });
+    jobStore.updateJob(runningId, {
+      status: 'running',
+      leaseExpiresAt: new Date(Date.now() - 1000).toISOString(),
+    });
+
+    const summary = jobStore.rehydrateOnStartup({ actor: 'test-startup' });
+    const queued = jobStore.getJob(queuedId);
+    const running = jobStore.getJob(runningId);
+
+    expect(summary.movedToRecoveryPending).toBeGreaterThanOrEqual(2);
+    expect(queued.status).toBe('recovery_pending');
+    expect(running.status).toBe('recovery_pending');
+    expect(queued.alarms.some((a) => a.code === 'STARTUP_REHYDRATION_REQUIRED')).toBe(true);
+    expect(running.alarms.some((a) => a.code === 'STARTUP_REHYDRATION_REQUIRED')).toBe(true);
   });
 });

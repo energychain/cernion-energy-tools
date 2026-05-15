@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.52.5",
+    "version": "0.52.6",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -15259,7 +15259,7 @@
             }
           }
         },
-        "description": "Upserts a document identified by namespace + key. On update the payload is fully replaced and updatedAt is refreshed; createdAt is preserved. PouchDB revision (_rev) handling is fully transparent — callers never see or send _rev.",
+        "description": "Upserts a document identified by namespace + key. On update the payload is fully replaced and updatedAt is refreshed; createdAt is preserved. Optional CAS: callers may pass _rev. On revision mismatch, the action returns HTTP 409 OBJECT_OCC_CONFLICT.",
         "parameters": [
           {
             "name": "namespace",
@@ -15296,6 +15296,12 @@
                       "name": "My Project",
                       "status": "active"
                     }
+                  },
+                  "_rev": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Optional PouchDB revision for CAS updates. Use null for create-if-not-exists CAS semantics.",
+                    "example": "2-4f8a63d0f9c94d97a0b5b6f8cdef1234"
                   }
                 }
               },
@@ -21778,5 +21784,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.52.5"
+  "x-version": "0.52.6"
 }

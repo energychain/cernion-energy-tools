@@ -504,16 +504,9 @@ module.exports = {
           tenantId,
           userId,
           profileNamespace: profileNs,
-          session: persisted,
+          authMeta: this.buildDreamAuthMeta(ctx.meta, tenantId, userId),
           runFn: async (payload) => {
-            await this.runDream(
-              this.broker,
-              payload.sessionId,
-              payload.tenantId,
-              payload.userId,
-              payload.profileNamespace,
-              payload.session
-            );
+            await this.runDream(this.broker, payload);
           },
         });
 
@@ -799,28 +792,100 @@ module.exports = {
      * Run the Dream pipeline for a session.
      * Called by the inactivity timer; errors are silently swallowed.
      */
-    async runDream(broker, sessionId, tenantId, userId, profileNamespace, session) {
-      const dreamMeta = {
-        tenantId,
-        authUser: { userId },
-        source: 'personal-agent.dream',
-      };
+    async runDream(broker, payload = {}) {
+      const tenantId = String(payload.tenantId || 'default');
+      const sessionId = String(payload.sessionId || '');
+      const userId = String(payload.userId || payload.authMeta?.authUser?.userId || 'anonymous');
+      const profileNamespace =
+        payload.profileNamespace || tenantNamespace(PROFILE_NAMESPACE, tenantId);
+
+      if (!sessionId) {
+        this.logger?.warn('Dream pipeline skipped: missing sessionId in payload');
+        return;
+      }
+
+      const dreamMeta = this.deepMergeMeta(
+        this.buildDreamAuthMeta(payload.authMeta || {}, tenantId, userId),
+        {
+          source: 'personal-agent.dream',
+          wakeUp: true,
+        }
+      );
+
       const dreamCtx = {
         meta: dreamMeta,
         call: (action, params, options = {}) => {
-          const mergedMeta = {
-            ...(options.meta || {}),
-            ...dreamMeta,
-          };
+          const mergedMeta = this.deepMergeMeta(options.meta || {}, dreamMeta);
           return broker.call(action, params, { ...options, meta: mergedMeta });
         },
       };
+
+      let session;
+      try {
+        session = await this.loadSession(dreamCtx, tenantId, sessionId, userId, {
+          createIfMissing: false,
+        });
+      } catch (err) {
+        if (isNotFound(err) && payload.session && typeof payload.session === 'object') {
+          // v0.52.5 payload compatibility fallback (zero-downtime rollout)
+          session = payload.session;
+        } else if (isNotFound(err)) {
+          this.logger?.info(`Dream pipeline skipped: session ${sessionId} no longer exists.`);
+          return;
+        } else {
+          throw err;
+        }
+      }
 
       try {
         await runDreamPipeline(dreamCtx, sessionId, tenantId, userId, profileNamespace, session);
       } catch (err) {
         this.logger?.warn(`Dream pipeline failed for session ${sessionId}: ${err.message}`);
       }
+    },
+
+    buildDreamAuthMeta(meta = {}, tenantId, userId) {
+      const safeMeta = meta && typeof meta === 'object' ? meta : {};
+      const authUser = safeMeta.authUser && typeof safeMeta.authUser === 'object' ? safeMeta.authUser : {};
+
+      const nextAuthUser = {
+        ...authUser,
+        userId,
+      };
+
+      return {
+        tenantId,
+        authUser: nextAuthUser,
+        roles: Array.isArray(safeMeta.roles) ? safeMeta.roles : undefined,
+        scopes: Array.isArray(safeMeta.scopes) ? safeMeta.scopes : undefined,
+        permissions: Array.isArray(safeMeta.permissions) ? safeMeta.permissions : undefined,
+        auth: safeMeta.auth && typeof safeMeta.auth === 'object' ? safeMeta.auth : undefined,
+        requestHeaders:
+          safeMeta.requestHeaders && typeof safeMeta.requestHeaders === 'object'
+            ? safeMeta.requestHeaders
+            : undefined,
+      };
+    },
+
+    deepMergeMeta(base = {}, patch = {}) {
+      const isObject = (value) => value && typeof value === 'object' && !Array.isArray(value);
+      if (!isObject(base)) {
+        return isObject(patch) ? { ...patch } : patch;
+      }
+      if (!isObject(patch)) {
+        return { ...base };
+      }
+
+      const merged = { ...base };
+      for (const [key, patchValue] of Object.entries(patch)) {
+        const baseValue = merged[key];
+        if (isObject(baseValue) && isObject(patchValue)) {
+          merged[key] = this.deepMergeMeta(baseValue, patchValue);
+          continue;
+        }
+        merged[key] = patchValue;
+      }
+      return merged;
     },
 
     synthesizeTurn({ message, toolContext, executionMode, plan, execution }) {
