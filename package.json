@@ -65,7 +65,7 @@
     "@modelcontextprotocol/sdk": "^1.29.0",
     "@turf/boolean-point-in-polygon": "^7.3.5",
     "@turf/helpers": "^7.3.4",
-    "ajv": "^8.18.0",
+    "ajv": "^8.20.0",
     "axios": "^1.16.0",
     "better-sqlite3": "^12.9.0",
     "dotenv": "^17.4.2",
