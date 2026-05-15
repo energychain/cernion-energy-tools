@@ -59,6 +59,32 @@ function tenantKey(baseKey, tenantId) {
 }
 
 /**
+ * Liste erlaubter Tenants aus der Umgebung.
+ * CERNION_ALLOWED_TENANTS = comma-separated, e.g. "default,public,agentic-hackathon"
+ * Wenn nicht gesetzt (oder leer), sind alle formatgültigen Tenants erlaubt
+ * (Rückwärtskompatibilität).
+ */
+const ALLOWED_TENANTS = (() => {
+  const raw = process.env.CERNION_ALLOWED_TENANTS || '';
+  if (!raw.trim()) return null; // no restriction
+  const list = raw.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
+  return new Set(list);
+})();
+
+/**
+ * Prüft, ob ein Tenant in der Installations-Allowlist steht.
+ * Gibt true zurück, wenn kein CERNION_ALLOWED_TENANTS gesetzt ist.
+ *
+ * @param {string|null|undefined} tenantId
+ * @returns {boolean}
+ */
+function isTenantAllowed(tenantId) {
+  if (!ALLOWED_TENANTS) return true; // unrestricted
+  if (!tenantId) return true; // default handled elsewhere
+  return ALLOWED_TENANTS.has(tenantId.toLowerCase());
+}
+
+/**
  * Validiert eine tenantId.
  * Erlaubt: a–z, 0–9, Bindestrich; max. 64 Zeichen.
  * Gibt true zurück wenn tenantId leer/null (optional).
@@ -84,5 +110,6 @@ module.exports = {
   tenantNamespace,
   tenantKey,
   validateTenantId,
+  isTenantAllowed,
   DEFAULT_TENANT,
 };
