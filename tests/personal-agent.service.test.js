@@ -310,4 +310,36 @@ describe('personal-agent.service', () => {
     expect(reloaded.l3.history).toEqual([]);
     expect(reloaded.l2.userProfile.preferences.renderMode).toBe('table');
   });
+
+  it('getDreamStatus returns dreamPending: false before any chat', async () => {
+    const result = await broker.call(
+      'personal-agent.getDreamStatus',
+      { sessionId: 'nonexistent-session' },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+    expect(result.success).toBe(true);
+    expect(result.dreamPending).toBe(false);
+  });
+
+  it('getDreamAudit returns empty list for tenant with no dream runs', async () => {
+    const result = await broker.call(
+      'personal-agent.getDreamAudit',
+      {},
+      { meta: { tenantId: 'tenant-new', authUser: { userId: 'user-1' } } }
+    );
+    expect(result.success).toBe(true);
+    expect(Array.isArray(result.entries)).toBe(true);
+    expect(result.total).toBe(0);
+  });
+
+  it('getDreamAudit respects limit and offset params', async () => {
+    const result = await broker.call(
+      'personal-agent.getDreamAudit',
+      { limit: 10, offset: 0 },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+    expect(result.success).toBe(true);
+    expect(result.limit).toBe(10);
+    expect(result.offset).toBe(0);
+  });
 });

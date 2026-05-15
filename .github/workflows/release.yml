@@ -29,6 +29,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: TDD matrix tests (v0.52.4)
+        run: npm run test:tdd-matrix
+
+      - name: TDD matrix hard coverage gate (must be 100% passed)
+        run: npm run check:tdd-matrix-coverage
+
       - name: Release quality gate
         run: npm run release:check
 

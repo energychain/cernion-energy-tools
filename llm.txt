@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.51.3
-- changelog_latest_release: 0.51.3
+- version: 0.52.4
+- changelog_latest_release: 0.52.4
 - source_files_hash:
-  - CHANGELOG.md: 3f545460a38034d4f659c665e49a170f9548dde6baa5c90796c085b72bd2c6b1
-  - README.md: 0c66345b35c98eff8499d2bb3e5ef7c0ec9dfee40c4f4ec72699605b0a880601
+  - CHANGELOG.md: 8f5c639b7d7d41d8ca2a76f70b3a789313be72cfb4d1c5c3fec852742f2c2503
+  - README.md: 668dae34c72be6c225ae73f7fb9823b96dd719ecdd8ae6754df3925e2a2d9c84
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: 2d8ee56c4711a8d9a670430292410e492822cd9a831294462b7198a9e615322c
+  - openapi-export.json: e796fbf414ab4286ee0b5c3574255d529f9cd5c3c66cf2d7d3c2e96d853ed8e1
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -590,8 +590,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 265
-- operation_count: 307
+- path_count: 277
+- operation_count: 319
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -619,16 +619,18 @@ process:
 - IntegrationHub: 8 operations
 - Interface Placeholder: 5 operations
 - Investment Planning: 3 operations
-- Jobs: 3 operations
+- Jobs: 7 operations
 - Knowledge RAG: 12 operations
 - MaStR Data Quality: 4 operations
 - MaStR Monitor: 12 operations
 - NBPMonitor: 4 operations
+- Netzfahrplan / fNAV: 3 operations
 - NOVA: 9 operations
 - Object Store: 4 operations
 - Observability: 4 operations
 - OEP (Open Energy Platform): 5 operations
 - OSM Geo (OpenStreetMap): 4 operations
+- Personal Agent: 5 operations
 - Redispatch Ex-Post: 3 operations
 - Settlement (Abrechnung): 16 operations
 - SLP (Standardlastprofile): 5 operations
@@ -785,6 +787,7 @@ process:
 - GET /api/finance-agent/analyses | tags: [Finance Agent] | operationId: finance-agent_list | summary: List finance analyses
 - GET /api/finance-agent/analyses/:id | tags: [Finance Agent] | operationId: finance-agent_get | summary: Get finance analysis by id
 - POST /api/finance-agent/analyze | tags: [Finance Agent] | operationId: finance-agent_analyze | summary: Analyze finance/regulatory questions with evidence-bound synthesis
+- POST /api/finance-agent/fnav/economics | tags: [Netzfahrplan / fNAV] | operationId: finance-agent_fnavEconomics | summary: Calculate fNAV economics: avoided CAPEX, annual fee, payback (Phase 5)
 - POST /api/finance-agent/memory | tags: [Finance Agent] | operationId: finance-agent_remember | summary: Store finance session memory
 - GET /api/finance-agent/memory/:sessionId | tags: [Finance Agent] | operationId: finance-agent_memory | summary: Get finance session memory
 - GET /api/finance-agent/prompts | tags: [Finance Agent] | operationId: finance-agent_prompts | summary: Get internal finance prompt templates
@@ -804,6 +807,7 @@ process:
 - POST /api/forecast/schedule/day-ahead | tags: [Forecast (Prognostik)] | operationId: forecast-engine_createSchedule | summary: Create Day-Ahead schedule with optional storage optimization
 - GET /api/forecast/schedules | tags: [Forecast (Prognostik)] | operationId: forecast-engine_listSchedules | summary: List stored schedules
 - POST /api/forecast/storage-dispatch | tags: [Forecast (Prognostik)] | operationId: forecast-engine_storageDispatch | summary: Optimize battery storage dispatch
+- POST /api/grid-connection/fnav/validate | tags: [Netzfahrplan / fNAV] | operationId: grid-connection_fnavValidate | summary: Validate fNAV profile against grid connection capacity (Phase 5)
 - POST /api/grid-connection/validate | tags: [Grid Connection Validation] | operationId: grid-connection_validate | summary: Run Netzanschluss validation pipeline (6-step, deterministic)
 - GET /api/grid-connection/validations | tags: [Grid Connection Validation] | operationId: grid-connection_list | summary: List past grid connection validation reports
 - GET /api/grid-connection/validations/:id | tags: [Grid Connection Validation] | operationId: grid-connection_get | summary: Get a specific validation report by ID
@@ -833,6 +837,10 @@ process:
 - GET /api/jobs/:jobId/progress | tags: [Jobs] | operationId: job-status_progress | summary: Get job progress (JSON polling or SSE)
 - GET /api/jobs/:jobId/result | tags: [Jobs] | operationId: job-status_result | summary: Retrieve async job result
 - GET /api/jobs/:jobId/status | tags: [Jobs] | operationId: job-status_status | summary: Poll async job status
+- POST /api/jobs/:jobId/wake-up | tags: [Jobs] | operationId: job-status_wakeUp | summary: Trigger idempotent wake-up for a recovery_pending async job
+- GET /api/jobs/alarms | tags: [Jobs] | operationId: job-status_listAlarms | summary: List persistent async watchdog alarms
+- POST /api/jobs/alarms/:alarmId/ack | tags: [Jobs] | operationId: job-status_acknowledgeAlarm | summary: Acknowledge persistent async watchdog alarm
+- POST /api/jobs/alarms/:alarmId/resolve | tags: [Jobs] | operationId: job-status_resolveAlarm | summary: Resolve persistent async watchdog alarm
 - POST /api/knowledge-rag/collection-info | tags: [Knowledge RAG] | operationId: knowledge-rag_collectionInfo | summary: Convenience collection info endpoint
 - POST /api/knowledge-rag/collections | tags: [Knowledge RAG] | operationId: knowledge-rag_createCollection | summary: Create tenant-isolated RAG collection
 - DELETE /api/knowledge-rag/collections/:name | tags: [Knowledge RAG] | operationId: knowledge-rag_removeCollection | summary: Delete collection + chunks
@@ -867,6 +875,7 @@ process:
 - DELETE /api/nbp-monitor/parameters | tags: [NBPMonitor] | operationId: nbp-monitor_resetParameters | summary: Reset NBP Monitor KPI 2 parameters to defaults
 - GET /api/nbp-monitor/parameters | tags: [NBPMonitor] | operationId: nbp-monitor_getParameters | summary: Get current NBP Monitor KPI 2 risk parameters
 - PUT /api/nbp-monitor/parameters | tags: [NBPMonitor] | operationId: nbp-monitor_setParameters | summary: Save custom KPI 2 parameters for NBP Monitor (full replace)
+- POST /api/netzfahrplan/generate | tags: [Netzfahrplan / fNAV] | operationId: grid-operations_netzfahrplanGenerate | summary: Generate Netzfahrplan / fNAV feasibility assessment
 - GET /api/nova/stream | tags: [NOVA] | operationId: nova_stream | summary: NOVA realtime stream (SSE)
 - DELETE /api/objects/:namespace/:key | tags: [Object Store] | operationId: object-store_delete | summary: Delete a document from the Object Store
 - GET /api/objects/:namespace/:key | tags: [Object Store] | operationId: object-store_get | summary: Get a document from the Object Store
@@ -886,6 +895,11 @@ process:
 - POST /api/osm-geo/infrastructure-nearby | tags: [OSM Geo (OpenStreetMap)] | operationId: osm-geo_infrastructureNearby | summary: Energy infrastructure near a location (sorted by distance)
 - POST /api/osm-geo/substation-finder | tags: [OSM Geo (OpenStreetMap)] | operationId: osm-geo_substationFinder | summary: Substation inventory for a grid territory or area
 - POST /api/osm-geo/validate | tags: [OSM Geo (OpenStreetMap)] | operationId: osm-geo_validate | summary: Geo-plausibility check for MaStR VNB assignment (L1 authoritative + L2 OSM)
+- POST /api/personal-agent/chat | tags: [Personal Agent] | operationId: personal-agent_chat | summary: Run one Personal-Agent chat turn with deterministic L0-L4 context stacking
+- GET /api/personal-agent/dream-audit | tags: [Personal Agent] | operationId: personal-agent_getDreamAudit | summary: List Dream-pipeline audit trail entries for the current tenant
+- GET /api/personal-agent/session/:sessionId | tags: [Personal Agent] | operationId: personal-agent_getSession | summary: Load persisted Personal-Agent session (L3 history)
+- GET /api/personal-agent/session/:sessionId/dream-status | tags: [Personal Agent] | operationId: personal-agent_getDreamStatus | summary: Get Dream-pipeline status for a session
+- POST /api/personal-agent/session/:sessionId/reset | tags: [Personal Agent] | operationId: personal-agent_resetSession | summary: Reset chat context stack for a session (keeps hard user profile L2)
 - POST /api/redispatch/audit | tags: [Redispatch Ex-Post] | operationId: redispatch-expost_audit | summary: Run Redispatch Ex-Post settlement audit (7-step, deterministic)
 - GET /api/redispatch/audits | tags: [Redispatch Ex-Post] | operationId: redispatch-expost_list | summary: List past Redispatch Ex-Post audit reports
 - GET /api/redispatch/audits/:id | tags: [Redispatch Ex-Post] | operationId: redispatch-expost_get | summary: Get a specific Redispatch Ex-Post audit report by ID
@@ -955,7 +969,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.51.3"
+    "version": "0.52.4"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -9790,6 +9804,190 @@ process:
         ]
       }
     },
+    "/api/finance-agent/fnav/economics": {
+      "post": {
+        "description": "Deterministic fNAV economics assessment. Computes:\n- avoidedCopperCapexEur: cost of conventional grid expansion avoided by fNAV\n- annualFeeEur: recurring cost of the fNAV contract\n- paybackYears: avoidedCapex / annualFee\n- sensitivityFlags: qualitative flags for high uncertainty inputs\n\nOption B: calls eog-calculator.capexEstimate for TOTEX-based CAPEX reference; if unavailable, uses parametric fallback (FN_ECONOMICS_PARTIAL).\n\nGovernance Option B: governanceStatus is always requires_governance_decision until legalStatus=approved AND contractStatus=signed.",
+        "operationId": "finance-agent_fnavEconomics",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "fNAV economics — TWL Netze MS": {
+                  "value": {
+                    "annualFeeEur": 15000,
+                    "fnavProfile": {
+                      "contractStatus": "signed",
+                      "curtailmentWindow": 4,
+                      "firmCapacity": 3000,
+                      "flexibleCapacity": 2000,
+                      "legalStatus": "approved",
+                      "requestedCapacity": 5000
+                    },
+                    "gridOperator": "TWL Netze",
+                    "ownerContact": "netzplanung@twl.de",
+                    "voltageLevel": "MS"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "annualFeeEur": {
+                    "description": "Annual fNAV contract fee (EUR/yr)",
+                    "example": 12000,
+                    "type": "number"
+                  },
+                  "avoidedCapexOverrideEur": {
+                    "description": "Override avoided CAPEX (EUR)",
+                    "example": 1500000,
+                    "type": "number"
+                  },
+                  "fnavProfile": {
+                    "example": {
+                      "contractStatus": "negotiating",
+                      "curtailmentWindow": 4,
+                      "firmCapacity": 3000,
+                      "flexibleCapacity": 2000,
+                      "legalStatus": "pending",
+                      "requestedCapacity": 5000
+                    },
+                    "properties": {
+                      "contractStatus": {
+                        "example": "negotiating",
+                        "type": "string"
+                      },
+                      "curtailmentWindow": {
+                        "example": 4,
+                        "type": "number"
+                      },
+                      "firmCapacity": {
+                        "example": 3000,
+                        "type": "number"
+                      },
+                      "flexibleCapacity": {
+                        "example": 2000,
+                        "type": "number"
+                      },
+                      "legalStatus": {
+                        "example": "pending",
+                        "type": "string"
+                      },
+                      "requestedCapacity": {
+                        "description": "Requested capacity kW",
+                        "example": 5000,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "requestedCapacity"
+                    ],
+                    "type": "object"
+                  },
+                  "gridOperator": {
+                    "description": "Used for eog-calculator lookup",
+                    "example": "TWL Netze",
+                    "type": "string"
+                  },
+                  "ownerContact": {
+                    "example": "netzplanung@twl.de",
+                    "type": "string"
+                  },
+                  "voltageLevel": {
+                    "default": "MS",
+                    "enum": [
+                      "NS",
+                      "MS",
+                      "HS"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "fnavProfile"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "annualFeeEur": {
+                      "type": "number"
+                    },
+                    "avoidedCopperCapexEur": {
+                      "type": "number"
+                    },
+                    "capexSource": {
+                      "enum": [
+                        "eog_calculator",
+                        "parametric_fallback",
+                        "override"
+                      ],
+                      "type": "string"
+                    },
+                    "decisionChain": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "findings": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "governanceArtifact": {
+                      "nullable": true,
+                      "type": "object"
+                    },
+                    "governanceBlockers": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "governanceStatus": {
+                      "type": "string"
+                    },
+                    "metadata": {
+                      "type": "object"
+                    },
+                    "paybackYears": {
+                      "type": "number"
+                    },
+                    "proof": {
+                      "type": "object"
+                    },
+                    "sensitivityFlags": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "fNAV economics result"
+          }
+        },
+        "summary": "Calculate fNAV economics: avoided CAPEX, annual fee, payback (Phase 5)",
+        "tags": [
+          "Netzfahrplan / fNAV"
+        ],
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143",
+          "https://openenergyplatform.org/ontology/oeo/OEO_00140090"
+        ]
+      }
+    },
     "/api/finance-agent/memory": {
       "post": {
         "description": "Persists session memory in Object Store namespace finance_agent_memory for context-aware follow-up analyses.",
@@ -10915,6 +11113,204 @@ process:
         "summary": "Optimize battery storage dispatch",
         "tags": [
           "Forecast (Prognostik)"
+        ]
+      }
+    },
+    "/api/grid-connection/fnav/validate": {
+      "post": {
+        "description": "Applies the fNAV capacity model (§14a EnWG) for a proposed grid connection. Runs N-1 compliance check with hybrid threshold (Option C: domain default + tenant/project/scenario override). Reports technical feasibility and enforces governance gate (Option B: final status is requires_governance_decision until legalStatus=approved AND contractStatus=signed). Delegates to grid-operations.netzfahrplanGenerate for the deterministic core.",
+        "operationId": "grid-connection_fnavValidate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "fNAV hybrid MS": {
+                  "value": {
+                    "fnavProfile": {
+                      "contractStatus": "signed",
+                      "curtailmentWindow": 4,
+                      "firmCapacity": 3000,
+                      "flexibleCapacity": 2000,
+                      "legalStatus": "approved",
+                      "requestedCapacity": 5000
+                    },
+                    "gridOperatorName": "TWL Netze",
+                    "ownerContact": "netzplanung@twl.de",
+                    "voltageLevel": "MS"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "fnavProfile": {
+                    "example": {
+                      "contractStatus": "negotiating",
+                      "curtailmentWindow": 4,
+                      "firmCapacity": 3000,
+                      "flexibleCapacity": 2000,
+                      "legalStatus": "pending",
+                      "requestedCapacity": 5000
+                    },
+                    "properties": {
+                      "contractStatus": {
+                        "example": "negotiating",
+                        "type": "string"
+                      },
+                      "curtailmentWindow": {
+                        "description": "Max curtailment hours per day (0–24)",
+                        "example": 4,
+                        "type": "number"
+                      },
+                      "firmCapacity": {
+                        "description": "Guaranteed firm capacity in kW",
+                        "example": 3000,
+                        "type": "number"
+                      },
+                      "flexibleCapacity": {
+                        "description": "Curtailable §14a flex capacity in kW",
+                        "example": 2000,
+                        "type": "number"
+                      },
+                      "legalStatus": {
+                        "example": "pending",
+                        "type": "string"
+                      },
+                      "operatingConstraint": {
+                        "example": "§14a max 2h/event",
+                        "type": "string"
+                      },
+                      "requestedCapacity": {
+                        "description": "Requested capacity in kW",
+                        "example": 5000,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "requestedCapacity"
+                    ],
+                    "type": "object"
+                  },
+                  "gridOperatorName": {
+                    "example": "TWL Netze",
+                    "type": "string"
+                  },
+                  "n1ThresholdOverride": {
+                    "description": "Override N-1 threshold (MVA) at tenant/project/scenario level",
+                    "example": {
+                      "project": 78
+                    },
+                    "properties": {
+                      "project": {
+                        "example": 78,
+                        "type": "number"
+                      },
+                      "scenario": {
+                        "example": 70,
+                        "type": "number"
+                      },
+                      "tenant": {
+                        "example": 85,
+                        "type": "number"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "ownerContact": {
+                    "description": "Responsible owner — required for governance approval",
+                    "example": "netzplanung@twl.de",
+                    "type": "string"
+                  },
+                  "voltageLevel": {
+                    "default": "MS",
+                    "description": "Voltage level of the connection point",
+                    "enum": [
+                      "NS",
+                      "MS",
+                      "HS"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "fnavProfile"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "capacityModel": {
+                      "description": "Normalised fNAV capacity model",
+                      "type": "object"
+                    },
+                    "decisionChain": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "feasibility": {
+                      "enum": [
+                        "feasible",
+                        "conditional",
+                        "copper_needed"
+                      ],
+                      "type": "string"
+                    },
+                    "findings": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "governanceArtifact": {
+                      "nullable": true,
+                      "type": "object"
+                    },
+                    "governanceBlockers": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "governanceStatus": {
+                      "type": "string"
+                    },
+                    "metadata": {
+                      "type": "object"
+                    },
+                    "n1Check": {
+                      "description": "N-1 compliance result",
+                      "type": "object"
+                    },
+                    "proof": {
+                      "type": "object"
+                    },
+                    "source": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "fNAV validation result with capacity model, N-1 check, and governance status"
+          }
+        },
+        "summary": "Validate fNAV profile against grid connection capacity (Phase 5)",
+        "tags": [
+          "Netzfahrplan / fNAV"
+        ],
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143",
+          "https://openenergyplatform.org/ontology/oeo/OEO_00020107"
         ]
       }
     },
@@ -12941,6 +13337,7 @@ process:
                       "enum": [
                         "queued",
                         "running",
+                        "recovery_pending",
                         "completed",
                         "error"
                       ],
@@ -12978,6 +13375,241 @@ process:
           }
         },
         "summary": "Poll async job status",
+        "tags": [
+          "Jobs"
+        ]
+      }
+    },
+    "/api/jobs/:jobId/wake-up": {
+      "post": {
+        "operationId": "job-status_wakeUp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "idempotencyKey": "ck:wakeup:tenant-1:monitor:123",
+                    "jobId": "a3f8b2c1-0000-0000-0000-000000000001",
+                    "reason": "manual"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "idempotencyKey": {
+                    "example": "ck:wakeup:tenant-1:monitor:123",
+                    "maxLength": 256,
+                    "type": "string"
+                  },
+                  "jobId": {
+                    "example": "a3f8b2c1-0000-0000-0000-000000000001",
+                    "type": "string"
+                  },
+                  "reason": {
+                    "example": "manual",
+                    "maxLength": 120,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "jobId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Trigger idempotent wake-up for a recovery_pending async job",
+        "tags": [
+          "Jobs"
+        ]
+      }
+    },
+    "/api/jobs/alarms": {
+      "get": {
+        "operationId": "job-status_listAlarms",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "default": "open",
+              "enum": [
+                "open",
+                "acknowledged",
+                "resolved"
+              ],
+              "example": "open",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "jobId",
+            "required": false,
+            "schema": {
+              "example": "a3f8b2c1-0000-0000-0000-000000000001",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 1000,
+              "minimum": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List persistent async watchdog alarms",
+        "tags": [
+          "Jobs"
+        ]
+      }
+    },
+    "/api/jobs/alarms/:alarmId/ack": {
+      "post": {
+        "operationId": "job-status_acknowledgeAlarm",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "actor": "hitl-user",
+                    "alarmId": "alarm_abc123",
+                    "note": "Investigating this alert."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "actor": {
+                    "example": "hitl-user",
+                    "maxLength": 120,
+                    "type": "string"
+                  },
+                  "alarmId": {
+                    "example": "alarm_abc123",
+                    "type": "string"
+                  },
+                  "note": {
+                    "example": "Investigating this alert.",
+                    "maxLength": 1000,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "alarmId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Acknowledge persistent async watchdog alarm",
+        "tags": [
+          "Jobs"
+        ]
+      }
+    },
+    "/api/jobs/alarms/:alarmId/resolve": {
+      "post": {
+        "operationId": "job-status_resolveAlarm",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "actor": "problem-solver-agent",
+                    "alarmId": "alarm_abc123",
+                    "note": "Recovery completed successfully."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "actor": {
+                    "example": "problem-solver-agent",
+                    "maxLength": 120,
+                    "type": "string"
+                  },
+                  "alarmId": {
+                    "example": "alarm_abc123",
+                    "type": "string"
+                  },
+                  "note": {
+                    "example": "Recovery completed successfully.",
+                    "maxLength": 1000,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "alarmId"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": false
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Resolve persistent async watchdog alarm",
         "tags": [
           "Jobs"
         ]
@@ -15818,6 +16450,213 @@ process:
         ]
       }
     },
+    "/api/netzfahrplan/generate": {
+      "post": {
+        "description": "Deterministic fNAV feasibility assessment — evaluates whether a flexible Netzanschlussvertrag (§14a EnWG) is a viable alternative to conventional grid expansion.\n\n**Capacity model (Option B):**\n- firmCapacityKW: guaranteed, contractually fixed power\n- flexibleCapacityKW: legally curtailable portion under §14a\n- resultingEffectiveCapacityKW: firm + flexible × (1 − curtailmentFactor)\n\n**N-1 threshold (Option C — hybrid default + override):**\n- Domain defaults: HS=81 MVA, MS=20 MVA, NS=0.63 MVA (env-configurable)\n- tenant/project/scenario overrides are applied in priority order\n- Result always reports thresholdMVA, thresholdSource, and overrideApplied\n\n**Governance (Option B):**\n- Technical feasibility is reported deterministically\n- Final governanceStatus is `requires_governance_decision` until legalStatus=approved AND contractStatus=signed",
+        "operationId": "grid-operations_netzfahrplanGenerate",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "fNAV hybrid MS": {
+                  "value": {
+                    "contractStatus": "negotiating",
+                    "curtailmentWindow": 4,
+                    "firmCapacityKW": 3000,
+                    "flexibleCapacityKW": 2000,
+                    "gridOperatorName": "TWL Netze",
+                    "legalStatus": "pending",
+                    "operatingConstraint": "§14a max 2h/event",
+                    "ownerContact": "netzplanung@twl.de",
+                    "requestedCapacityKW": 5000,
+                    "voltageLevel": "MS"
+                  }
+                },
+                "static cap HS with override": {
+                  "value": {
+                    "contractStatus": "signed",
+                    "firmCapacityKW": 75000,
+                    "gridOperatorId": "SNB935578300972",
+                    "legalStatus": "approved",
+                    "n1ThresholdOverride": {
+                      "project": 78
+                    },
+                    "requestedCapacityKW": 75000,
+                    "voltageLevel": "HS"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "contractStatus": {
+                    "description": "Contract status",
+                    "example": "negotiating",
+                    "type": "string"
+                  },
+                  "curtailmentWindow": {
+                    "default": 0,
+                    "description": "Max hours per day the VNB may curtail (0–24)",
+                    "example": 4,
+                    "type": "number"
+                  },
+                  "firmCapacityKW": {
+                    "description": "Guaranteed firm capacity in kW (defaults to requestedCapacityKW if omitted)",
+                    "example": 3000,
+                    "type": "number"
+                  },
+                  "flexibleCapacityKW": {
+                    "default": 0,
+                    "description": "Curtailable flex capacity in kW under §14a",
+                    "example": 2000,
+                    "type": "number"
+                  },
+                  "gridOperatorId": {
+                    "description": "MaStR grid operator ID",
+                    "example": "SNB935578300972",
+                    "type": "string"
+                  },
+                  "gridOperatorName": {
+                    "description": "Grid operator name",
+                    "example": "TWL Netze",
+                    "type": "string"
+                  },
+                  "legalStatus": {
+                    "description": "Legal/regulatory status",
+                    "example": "pending",
+                    "type": "string"
+                  },
+                  "n1ThresholdOverride": {
+                    "description": "Override N-1 thresholds (MVA) at tenant/project/scenario level",
+                    "example": {
+                      "project": 78
+                    },
+                    "properties": {
+                      "project": {
+                        "example": 78,
+                        "type": "number"
+                      },
+                      "scenario": {
+                        "example": 70,
+                        "type": "number"
+                      },
+                      "tenant": {
+                        "example": 85,
+                        "type": "number"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "operatingConstraint": {
+                    "description": "Free-text operating constraint",
+                    "example": "§14a max 2h/event, 30-min notice",
+                    "type": "string"
+                  },
+                  "ownerContact": {
+                    "description": "Responsible owner or contact (required for governance approval)",
+                    "example": "netzplanung@twl.de",
+                    "type": "string"
+                  },
+                  "requestedCapacityKW": {
+                    "description": "Requested connection capacity in kW",
+                    "example": 5000,
+                    "type": "number"
+                  },
+                  "voltageLevel": {
+                    "default": "MS",
+                    "description": "Voltage level of the connection point",
+                    "enum": [
+                      "NS",
+                      "MS",
+                      "HS"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "requestedCapacityKW"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "capacityModel": {
+                      "description": "Normalised capacity model",
+                      "type": "object"
+                    },
+                    "decisionChain": {
+                      "description": "Additive six-step A²MDM trace for the Phase-5 decision",
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "feasibility": {
+                      "description": "Technical feasibility verdict",
+                      "enum": [
+                        "feasible",
+                        "conditional",
+                        "copper_needed"
+                      ],
+                      "type": "string"
+                    },
+                    "findings": {
+                      "items": {
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "governanceArtifact": {
+                      "description": "Optional interface-placeholder / HITL artifact created for governance blockers",
+                      "nullable": true,
+                      "type": "object"
+                    },
+                    "governanceBlockers": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "governanceStatus": {
+                      "description": "Governance decision status",
+                      "type": "string"
+                    },
+                    "metadata": {
+                      "type": "object"
+                    },
+                    "n1Check": {
+                      "description": "N-1 compliance result",
+                      "type": "object"
+                    },
+                    "proof": {
+                      "description": "Compact proof/provenance payload for audit-friendly handoff",
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "fNAV feasibility assessment result"
+          }
+        },
+        "summary": "Generate Netzfahrplan / fNAV feasibility assessment",
+        "tags": [
+          "Netzfahrplan / fNAV"
+        ],
+        "x-oeo-class": [
+          "https://openenergyplatform.org/ontology/oeo/OEO_00000143",
+          "https://openenergyplatform.org/ontology/oeo/OEO_00020107"
+        ]
+      }
+    },
     "/api/nova/stream": {
       "get": {
         "description": "Server-Sent Events endpoint with tenant isolation and optional project-scoped filtering.",
@@ -17548,6 +18387,658 @@ process:
         "summary": "Geo-plausibility check for MaStR VNB assignment (L1 authoritative + L2 OSM)",
         "tags": [
           "OSM Geo (OpenStreetMap)"
+        ]
+      }
+    },
+    "/api/personal-agent/chat": {
+      "post": {
+        "description": "Builds a deterministic context stack (L0-L4), binds the capability-broker routing layer, supports auto-execution or HITL plan return, and guarantees Layer 4 purge after synthesis. Layer-4 raw tool JSON is never persisted.",
+        "operationId": "personal-agent_chat",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "auto": {
+                  "summary": "AUTO execution with deterministic plan run",
+                  "value": {
+                    "executionMode": "auto",
+                    "knownContext": {
+                      "location": "Troisdorf"
+                    },
+                    "message": "Prüfe die Netzanschlusskapazität für Troisdorf."
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "executionMode": {
+                    "default": "auto",
+                    "enum": [
+                      "auto",
+                      "hitl"
+                    ],
+                    "type": "string"
+                  },
+                  "knownContext": {
+                    "additionalProperties": true,
+                    "default": {},
+                    "type": "object"
+                  },
+                  "message": {
+                    "example": "Plane eine neue PV-Anlage in Troisdorf.",
+                    "maxLength": 8000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "example": "pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8",
+                    "type": "string"
+                  },
+                  "toolContext": {
+                    "additionalProperties": true,
+                    "default": {},
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "examples": {
+                  "autoFullSuccess": {
+                    "summary": "AUTO Mode: Full execution completed",
+                    "value": {
+                      "contextUsage": {
+                        "estimatedCompletionTokens": 3320,
+                        "estimatedPromptTokens": 2100,
+                        "maxTokens": 128000,
+                        "percentUsed": 4.2,
+                        "totalTokens": 5420
+                      },
+                      "execution": {
+                        "completedSteps": [
+                          1,
+                          2
+                        ],
+                        "status": "completed",
+                        "steps": [
+                          {
+                            "action": "finance-agent.analyze",
+                            "result": {
+                              "irr": 0.092,
+                              "npv": 125000,
+                              "paybackYears": 8.2,
+                              "projectId": "proj_invest_001"
+                            },
+                            "stepId": 1,
+                            "timestamp": "2026-05-15T14:23:45Z"
+                          },
+                          {
+                            "action": "znp.assessPortfolio",
+                            "result": {
+                              "gridStress": 0.68,
+                              "recommendation": "proceed",
+                              "requiresExpansion": false
+                            },
+                            "stepId": 2,
+                            "timestamp": "2026-05-15T14:23:52Z"
+                          }
+                        ],
+                        "stopPoint": null
+                      },
+                      "executionMode": "auto",
+                      "historyCount": 7,
+                      "l3Compressed": false,
+                      "layer4Purged": true,
+                      "plan": {
+                        "status": "complete",
+                        "steps": [
+                          {
+                            "action": "finance-agent.analyze",
+                            "dependencies": [],
+                            "label": "NPV Analysis",
+                            "params": {
+                              "gridOperator": "TWL Netze",
+                              "investmentType": "transformer"
+                            },
+                            "stepId": 1
+                          },
+                          {
+                            "action": "znp.assessPortfolio",
+                            "dependencies": [
+                              1
+                            ],
+                            "label": "Grid Impact Assessment",
+                            "params": {
+                              "projectId": "__step_1.projectId"
+                            },
+                            "stepId": 2
+                          }
+                        ]
+                      },
+                      "reply": "Die Investitionsanalyse ist abgeschlossen. Die Kosten betragen ca. 45.000 EUR mit einer Amortisationszeit von 8,2 Jahren bei 7% Rendite.",
+                      "routing": {
+                        "primaryIntent": "investment-grid-check",
+                        "requestedDomains": [
+                          "investment",
+                          "grid"
+                        ],
+                        "routeKey": "investment-grid",
+                        "routeLabel": "Investment-Grid Integration",
+                        "secondaryIntents": [],
+                        "source": "matrix",
+                        "unsupportedDomains": [],
+                        "warnings": []
+                      },
+                      "sessionId": "pa_x9y8z7w6-v5u4-t3s2-r1q0-p9o8n7m6l5k4",
+                      "success": true
+                    }
+                  },
+                  "autoPartialMissingInputs": {
+                    "summary": "AUTO Mode: Partial execution stopped at missing inputs",
+                    "value": {
+                      "contextUsage": {
+                        "estimatedCompletionTokens": 1600,
+                        "estimatedPromptTokens": 1500,
+                        "maxTokens": 128000,
+                        "percentUsed": 2.4,
+                        "totalTokens": 3100
+                      },
+                      "execution": {
+                        "completedSteps": [
+                          1
+                        ],
+                        "status": "partial",
+                        "steps": [
+                          {
+                            "action": "energy-sharing.validate",
+                            "result": {
+                              "findings": [],
+                              "status": "eligible"
+                            },
+                            "stepId": 1,
+                            "timestamp": "2026-05-15T14:20:10Z"
+                          }
+                        ],
+                        "stopPoint": {
+                          "blockedAction": "znp.getProjectMeta",
+                          "blockedStep": 2,
+                          "message": "Step 2 blocked: requires projectId. Available aliases: project, projectName, projectCode.",
+                          "missingParams": [
+                            "projectId"
+                          ],
+                          "placeholderId": "placeholder_user_input_v1",
+                          "reasonCode": "MISSING_INPUTS",
+                          "status": "user-input-required"
+                        }
+                      },
+                      "executionMode": "auto",
+                      "historyCount": 6,
+                      "l3Compressed": false,
+                      "layer4Purged": true,
+                      "plan": {
+                        "status": "partial",
+                        "steps": [
+                          {
+                            "action": "energy-sharing.validate",
+                            "dependencies": [],
+                            "label": "Energiefreigabe Validierung",
+                            "params": {
+                              "generators": [
+                                {
+                                  "capacity": 50,
+                                  "location": "München-Nord"
+                                }
+                              ],
+                              "gridOperatorId": "GNB0000003456"
+                            },
+                            "stepId": 1
+                          },
+                          {
+                            "action": "znp.getProjectMeta",
+                            "blocked": true,
+                            "dependencies": [
+                              1
+                            ],
+                            "label": "ZNP Projekt Details",
+                            "params": {
+                              "projectId": "__user_input.projectId"
+                            },
+                            "stepId": 2
+                          }
+                        ]
+                      },
+                      "reply": "Ich habe die Energiefreigabe-Validierung gestartet, benötige aber noch die Projekt-ID. Können Sie bitte angeben, welches Projekt Sie prüfen möchten?",
+                      "routing": {
+                        "primaryIntent": "energy-sharing-check",
+                        "requestedDomains": [
+                          "energy-sharing",
+                          "znp"
+                        ],
+                        "routeKey": "energy-sharing-znp",
+                        "routeLabel": "Energy Sharing Validation + ZNP",
+                        "secondaryIntents": [],
+                        "source": "matrix",
+                        "unsupportedDomains": [],
+                        "warnings": []
+                      },
+                      "sessionId": "pa_m5l4k3j2-i1h0-g9f8-e7d6-c5b4a3z2y1x0",
+                      "success": true
+                    }
+                  },
+                  "autoPartialUnsupported": {
+                    "summary": "AUTO Mode: Partial execution, unsupported chain degraded gracefully",
+                    "value": {
+                      "contextUsage": {
+                        "estimatedCompletionTokens": 2050,
+                        "estimatedPromptTokens": 1800,
+                        "maxTokens": 128000,
+                        "percentUsed": 3,
+                        "totalTokens": 3850
+                      },
+                      "execution": {
+                        "completedSteps": [
+                          1
+                        ],
+                        "status": "partial",
+                        "steps": [
+                          {
+                            "action": "redispatch-expost.audit",
+                            "result": {
+                              "findings": [],
+                              "portfolioSize": 247,
+                              "status": "ready",
+                              "totalCapacity": 3560
+                            },
+                            "stepId": 1,
+                            "timestamp": "2026-05-15T14:18:30Z"
+                          }
+                        ],
+                        "stopPoint": {
+                          "blockedAction": "storage.optimizer",
+                          "blockedStep": 2,
+                          "message": "Domain \"storage\" is not routable in deterministic chains. Interface placeholder activated for manual continuation.",
+                          "placeholderId": "placeholder_storage_gap_v1",
+                          "placeholderMetadata": {
+                            "description": "Manuelle Speicheroptimierung auf Basis des Redispatch-Audits erforderlich.",
+                            "suggestedNextSteps": [
+                              "Laden Sie die Audit-Ergebnisse herunter",
+                              "Nutzen Sie unser Storage-Analyse-Tool",
+                              "Kontaktieren Sie unseren Speicher-Spezialisten"
+                            ],
+                            "title": "Speicheroptimierung"
+                          },
+                          "reasonCode": "UNSUPPORTED_CHAIN",
+                          "status": "interface-placeholder"
+                        }
+                      },
+                      "executionMode": "auto",
+                      "historyCount": 6,
+                      "l3Compressed": false,
+                      "layer4Purged": true,
+                      "plan": {
+                        "status": "partial",
+                        "steps": [
+                          {
+                            "action": "redispatch-expost.audit",
+                            "dependencies": [],
+                            "label": "Redispatch Settlement Audit",
+                            "params": {
+                              "gridOperatorId": "SNB0000001234",
+                              "minCapacityKW": 100
+                            },
+                            "stepId": 1
+                          },
+                          {
+                            "action": "storage.optimizer",
+                            "blocked": true,
+                            "dependencies": [
+                              1
+                            ],
+                            "label": "Storage Optimization (UNSUPPORTED)",
+                            "params": {},
+                            "stepId": 2
+                          }
+                        ]
+                      },
+                      "reply": "Die Redispatch-Analyse ist abgeschlossen. Die Erweiterung auf die Speicherplanung ist in dieser Version nicht freigeschaltet – ich stelle Ihnen dafür ein Manual-Interface zur Verfügung.",
+                      "routing": {
+                        "primaryIntent": "redispatch-analysis",
+                        "requestedDomains": [
+                          "redispatch",
+                          "storage"
+                        ],
+                        "routeKey": null,
+                        "routeLabel": null,
+                        "secondaryIntents": [
+                          "storage-planning"
+                        ],
+                        "source": "broker",
+                        "unsupportedDomains": [
+                          "storage"
+                        ],
+                        "warnings": [
+                          "Requested domain \"storage\" is not in the routing matrix for redispatch. Stopping after redispatch completion."
+                        ]
+                      },
+                      "sessionId": "pa_n0o1p2q3-r4s5-t6u7-v8w9-x0y1z2a3b4c5",
+                      "success": true
+                    }
+                  },
+                  "hitlPlanOnly": {
+                    "summary": "HITL Mode: Plan returned for manual review",
+                    "value": {
+                      "contextUsage": {
+                        "estimatedCompletionTokens": 1650,
+                        "estimatedPromptTokens": 1200,
+                        "maxTokens": 128000,
+                        "percentUsed": 2.2,
+                        "totalTokens": 2850
+                      },
+                      "execution": {
+                        "status": "skipped",
+                        "steps": [],
+                        "stopPoint": null
+                      },
+                      "executionMode": "hitl",
+                      "historyCount": 5,
+                      "l3Compressed": false,
+                      "layer4Purged": true,
+                      "plan": {
+                        "status": "complete",
+                        "steps": [
+                          {
+                            "action": "finance-agent.analyze",
+                            "dependencies": [],
+                            "label": "Investitionsanalyse",
+                            "params": {
+                              "gridOperator": "Stadtwerke München",
+                              "investmentType": "cable",
+                              "location": "Schwabing",
+                              "plannedCapacityMW": 15
+                            },
+                            "stepId": 1
+                          },
+                          {
+                            "action": "znp.assessPortfolio",
+                            "dependencies": [
+                              1
+                            ],
+                            "label": "Portfolio-Assessment",
+                            "params": {
+                              "assumptions": {
+                                "discountRate": 0.055,
+                                "growthRate": 0.08
+                              },
+                              "projectId": "__step_1.financialProjectId"
+                            },
+                            "stepId": 2
+                          }
+                        ]
+                      },
+                      "reply": "Ich habe einen 2-stufigen Plan entworfen. Sie können ihn überprüfen und dann manuell ausführen.",
+                      "routing": {
+                        "primaryIntent": "investment-analysis",
+                        "requestedDomains": [],
+                        "routeKey": null,
+                        "routeLabel": null,
+                        "secondaryIntents": [
+                          "grid-planning",
+                          "financial-modeling"
+                        ],
+                        "source": "broker",
+                        "unsupportedDomains": [],
+                        "warnings": []
+                      },
+                      "sessionId": "pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8",
+                      "success": true
+                    }
+                  }
+                }
+              }
+            },
+            "description": "Chat turn completed successfully"
+          },
+          "400": {
+            "description": "Bad request - invalid parameters or validation error"
+          },
+          "404": {
+            "description": "Service or action not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "summary": "Run one Personal-Agent chat turn with deterministic L0-L4 context stacking",
+        "tags": [
+          "Personal Agent"
+        ]
+      }
+    },
+    "/api/personal-agent/dream-audit": {
+      "get": {
+        "description": "Returns the append-only Dream audit log for the authenticated tenant. Each entry records a Dream pipeline run with fact counts, conflict/retry stats, L1/L2 enrichment results, and a SHA-256 integrity hash. Entries are scoped to the tenant and sorted newest-first.",
+        "operationId": "personal-agent_getDreamAudit",
+        "parameters": [
+          {
+            "description": "Maximum number of audit entries to return (1–200)",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 50,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Pagination offset",
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "entries": {
+                      "items": {
+                        "properties": {
+                          "finishedAt": {
+                            "type": "string"
+                          },
+                          "integrityHash": {
+                            "type": "string"
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "l1FactsAdded": {
+                            "type": "integer"
+                          },
+                          "l2Conflicts": {
+                            "type": "integer"
+                          },
+                          "sessionId": {
+                            "type": "string"
+                          },
+                          "startedAt": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dream audit trail entries"
+          }
+        },
+        "summary": "List Dream-pipeline audit trail entries for the current tenant",
+        "tags": [
+          "Personal Agent"
+        ]
+      }
+    },
+    "/api/personal-agent/session/:sessionId": {
+      "get": {
+        "description": "Returns persisted session state for UI reload. Includes Layer 3 history/summary and profile metadata. Layer 4 is never returned because it is transient.",
+        "operationId": "personal-agent_getSession",
+        "parameters": [
+          {
+            "description": "Personal-Agent session ID",
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "example": "pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Load persisted Personal-Agent session (L3 history)",
+        "tags": [
+          "Personal Agent"
+        ]
+      }
+    },
+    "/api/personal-agent/session/:sessionId/dream-status": {
+      "get": {
+        "description": "Returns whether the post-session Dream pipeline is currently pending (timer running) or idle for the given sessionId. The Dream runs after the inactivity timeout configured via DREAM_INACTIVITY_MS (default 5 min) and enriches L2 user profile and L1 tenant memory.",
+        "operationId": "personal-agent_getDreamStatus",
+        "parameters": [
+          {
+            "description": "Session ID to inspect dream timer state for",
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "example": "pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "dreamPending": {
+                      "description": "true if inactivity timer is active",
+                      "type": "boolean"
+                    },
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dream status for the session"
+          }
+        },
+        "summary": "Get Dream-pipeline status for a session",
+        "tags": [
+          "Personal Agent"
+        ]
+      }
+    },
+    "/api/personal-agent/session/:sessionId/reset": {
+      "post": {
+        "description": "Flushes conversational Layer 3 for the given session while keeping the persisted Layer 2 profile.",
+        "operationId": "personal-agent_resetSession",
+        "parameters": [
+          {
+            "description": "Session ID to reset",
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "example": "pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "summary": "Reset request payload (optional metadata)",
+                  "value": {
+                    "reason": "manual-reset"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "reason": {
+                    "default": "manual-reset",
+                    "example": "manual-reset",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Reset chat context stack for a session (keeps hard user profile L2)",
+        "tags": [
+          "Personal Agent"
         ]
       }
     },
@@ -21153,6 +22644,10 @@ process:
       "name": "Finance Agent"
     },
     {
+      "description": "Interactive personal chat orchestration (v0.52). Builds deterministic L0-L4 context stacks with strict token budgeting. Layer 4 is transient and never persisted.",
+      "name": "Personal Agent"
+    },
+    {
       "description": "Deterministic 6-step Netzanschluss validation pipeline (v0.14). Produces structured findings and a Go/No-Go decision sealed with a PouchDB snapshot for audit integrity. No LLM involvement — identical inputs always produce identical finding codes.",
       "name": "Grid Connection Validation"
     },
@@ -21237,6 +22732,10 @@ process:
       "name": "Blindflug Radar"
     },
     {
+      "description": "Deterministic fNAV feasibility assessment (v0.51.5): capacity model (firm + flexible + curtailment), N-1 check with hybrid threshold (domain default + tenant/project/scenario override), technical feasibility verdict, governance gate (Option B: requires_governance_decision until legal + contract prerequisites met), and TOTEX-based economics with eog-calculator integration.",
+      "name": "Netzfahrplan / fNAV"
+    },
+    {
       "description": "Outbound webhook subscriptions with signed delivery, retry backoff, replay, and dead-letter tracking.",
       "name": "Webhooks"
     },
@@ -21246,8 +22745,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.51.3"
+  "x-version": "0.52.4"
 }
 
 ## Integrity
-- llm_txt_sha256: 3ea8c089f73b8e3fd2315ec3b70a5e26f3698caa6a4ba59098bba7271d548d29
+- llm_txt_sha256: 649d4b9e3d24cd6874fb51fc44fc09a8be1193ae4cea86c39385e7f0a0b83736

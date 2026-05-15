@@ -1,6 +1,6 @@
 {
   "name": "cernion-energy-tools",
-  "version": "0.52.1",
+  "version": "0.52.4",
   "description": "MicroService Agent System for Energy Markets",
   "main": "index.js",
   "scripts": {
@@ -21,12 +21,14 @@
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --coverage=false --testMatch=\"**/tests/**/*.integration.test.js\"",
     "test:live": "jest --no-coverage tests/assets.integration.test.js",
+    "test:tdd-matrix": "NODE_OPTIONS=--experimental-vm-modules jest --coverage=false --runInBand tests/personal-agent-tdd-matrix-parser.test.js tests/personal-agent-tdd-matrix-normalizer.test.js tests/personal-agent-tdd-matrix.generated.test.js",
+    "check:tdd-matrix-coverage": "node scripts/check-tdd-matrix-coverage.js",
     "audit:openapi": "node scripts/audit-openapi.js",
     "audit:security": "node scripts/audit-security.js",
     "audit:security:advisory": "npm audit --audit-level=high",
     "generate:llm": "node scripts/generate-llm-txt.js",
     "check:llm": "node scripts/generate-llm-txt.js --check",
-    "release:check": "npm run test:unit:ci && npm run audit:openapi && npm run check:llm && npm run audit:security",
+    "release:check": "npm run test:unit:ci && npm run test:tdd-matrix && npm run check:tdd-matrix-coverage && npm run audit:openapi && npm run check:llm && npm run audit:security",
     "export:openapi": "node scripts/export-openapi.js",
     "sync:oeo": "node scripts/sync-oeo.js",
     "sync:oemetadata": "node scripts/sync-oemetadata.js",

@@ -985,6 +985,10 @@ module.exports = {
           'GET /jobs/:jobId/status': 'job-status.status',
           'GET /jobs/:jobId/progress': 'job-status.progress',
           'GET /jobs/:jobId/result': 'job-status.result',
+          'POST /jobs/:jobId/wake-up': 'job-status.wakeUp',
+          'GET /jobs/alarms': 'job-status.listAlarms',
+          'POST /jobs/alarms/:alarmId/ack': 'job-status.acknowledgeAlarm',
+          'POST /jobs/alarms/:alarmId/resolve': 'job-status.resolveAlarm',
           // OEP (Open Energy Platform) read-only connector (v0.12)
           'GET /oep/schemas': 'oep.listSchemas',
           'GET /oep/schemas/:schema/tables': 'oep.listTables',
@@ -1058,6 +1062,8 @@ module.exports = {
           'POST /personal-agent/chat': 'personal-agent.chat',
           'GET /personal-agent/session/:sessionId': 'personal-agent.getSession',
           'POST /personal-agent/session/:sessionId/reset': 'personal-agent.resetSession',
+          'GET /personal-agent/session/:sessionId/dream-status': 'personal-agent.getDreamStatus',
+          'GET /personal-agent/dream-audit': 'personal-agent.getDreamAudit',
           // Interface Placeholder (v0.51.0)
           'POST /interface-placeholder/mark-gap': 'interface-placeholder.markGap',
           'POST /interface-placeholder/request-evidence': 'interface-placeholder.requestEvidence',

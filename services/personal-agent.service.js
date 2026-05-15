@@ -17,6 +17,13 @@ const {
   pruneUndefinedDeep,
   getMissingInputs,
 } = require('../src/personal-agent-routing');
+const {
+  scheduleDream,
+  cancelDream,
+  isDreamPending,
+  runDreamPipeline,
+  DREAM_AUDIT_NAMESPACE,
+} = require('../src/personal-agent-dreamer');
 
 const OPENAPI_TAG = 'Personal Agent';
 const SESSION_NAMESPACE = process.env.PERSONAL_AGENT_SESSION_NAMESPACE || 'personal_agent_sessions';
@@ -69,6 +76,34 @@ module.exports = {
         description:
           'Builds a deterministic context stack (L0-L4), binds the capability-broker routing layer, supports auto-execution or HITL plan return, and guarantees Layer 4 purge after synthesis. ' +
           'Layer-4 raw tool JSON is never persisted.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['message'],
+                properties: {
+                  message: { type: 'string', minLength: 1, maxLength: 8000, example: 'Plane eine neue PV-Anlage in Troisdorf.' },
+                  sessionId: { type: 'string', example: 'pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8' },
+                  executionMode: { type: 'string', enum: [EXECUTION_MODES.AUTO, EXECUTION_MODES.HITL], default: EXECUTION_MODES.AUTO },
+                  toolContext: { type: 'object', additionalProperties: true, default: {} },
+                  knownContext: { type: 'object', additionalProperties: true, default: {} },
+                },
+              },
+              examples: {
+                auto: {
+                  summary: 'AUTO execution with deterministic plan run',
+                  value: {
+                    message: 'Prüfe die Netzanschlusskapazität für Troisdorf.',
+                    executionMode: EXECUTION_MODES.AUTO,
+                    knownContext: { location: 'Troisdorf' },
+                  },
+                },
+              },
+            },
+          },
+        },
         responses: {
           200: {
             description: 'Chat turn completed successfully',
@@ -458,6 +493,13 @@ module.exports = {
         assertNoL4RawInPersistedState(persisted);
         await this.persistSession(ctx, tenantId, sessionId, persisted);
 
+        // Schedule (or re-schedule) the post-session Dream pipeline
+        cancelDream(sessionId);
+        const profileNs = tenantNamespace(PROFILE_NAMESPACE, tenantId);
+        scheduleDream(sessionId, tenantId, userId, async (sid, tid, uid) => {
+          await this.runDream(ctx, sid, tid, uid, profileNs, persisted);
+        });
+
         return {
           success: true,
           sessionId,
@@ -497,6 +539,15 @@ module.exports = {
         description:
           'Returns persisted session state for UI reload. Includes Layer 3 history/summary and profile metadata. ' +
           'Layer 4 is never returned because it is transient.',
+        parameters: [
+          {
+            in: 'path',
+            name: 'sessionId',
+            required: true,
+            schema: { type: 'string', example: 'pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8' },
+            description: 'Personal-Agent session ID',
+          },
+        ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -525,6 +576,34 @@ module.exports = {
         summary: 'Reset chat context stack for a session (keeps hard user profile L2)',
         description:
           'Flushes conversational Layer 3 for the given session while keeping the persisted Layer 2 profile.',
+        parameters: [
+          {
+            in: 'path',
+            name: 'sessionId',
+            required: true,
+            schema: { type: 'string', example: 'pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8' },
+            description: 'Session ID to reset',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  reason: { type: 'string', default: 'manual-reset', example: 'manual-reset' },
+                },
+              },
+              examples: {
+                default: {
+                  summary: 'Reset request payload (optional metadata)',
+                  value: { reason: 'manual-reset' },
+                },
+              },
+            },
+          },
+        },
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
@@ -550,9 +629,166 @@ module.exports = {
         };
       },
     },
+
+    getDreamStatus: {
+      rest: 'GET /session/:sessionId/dream-status',
+      params: {
+        sessionId: { type: 'string', min: 1, trim: true, max: 120 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Get Dream-pipeline status for a session',
+        description:
+          'Returns whether the post-session Dream pipeline is currently pending (timer running) ' +
+          'or idle for the given sessionId. The Dream runs after the inactivity timeout configured ' +
+          'via DREAM_INACTIVITY_MS (default 5 min) and enriches L2 user profile and L1 tenant memory.',
+        parameters: [
+          {
+            in: 'path',
+            name: 'sessionId',
+            required: true,
+            schema: { type: 'string', example: 'pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8' },
+            description: 'Session ID to inspect dream timer state for',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Dream status for the session',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    sessionId: { type: 'string' },
+                    dreamPending: { type: 'boolean', description: 'true if inactivity timer is active' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const sessionId = String(ctx.params.sessionId);
+        return {
+          success: true,
+          sessionId,
+          dreamPending: isDreamPending(sessionId),
+        };
+      },
+    },
+
+    getDreamAudit: {
+      rest: 'GET /dream-audit',
+      params: {
+        limit: { type: 'number', integer: true, min: 1, max: 200, optional: true, default: 50, convert: true },
+        offset: { type: 'number', integer: true, min: 0, optional: true, default: 0, convert: true },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'List Dream-pipeline audit trail entries for the current tenant',
+        description:
+          'Returns the append-only Dream audit log for the authenticated tenant. ' +
+          'Each entry records a Dream pipeline run with fact counts, conflict/retry stats, ' +
+          'L1/L2 enrichment results, and a SHA-256 integrity hash. ' +
+          'Entries are scoped to the tenant and sorted newest-first.',
+        parameters: [
+          {
+            in: 'query',
+            name: 'limit',
+            schema: { type: 'integer', default: 50 },
+            description: 'Maximum number of audit entries to return (1–200)',
+          },
+          {
+            in: 'query',
+            name: 'offset',
+            schema: { type: 'integer', default: 0 },
+            description: 'Pagination offset',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Dream audit trail entries',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    total: { type: 'integer' },
+                    entries: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          key: { type: 'string' },
+                          sessionId: { type: 'string' },
+                          startedAt: { type: 'string' },
+                          finishedAt: { type: 'string' },
+                          l1FactsAdded: { type: 'integer' },
+                          l2Conflicts: { type: 'integer' },
+                          integrityHash: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const tenantId = getTenantId(ctx);
+        const namespace = `${DREAM_AUDIT_NAMESPACE}:${tenantId}`;
+        const limit = ctx.params.limit || 50;
+        const offset = ctx.params.offset || 0;
+
+        let docs = [];
+        try {
+          const result = await ctx.call(
+            'object-store.query',
+            { namespace, limit: limit + offset },
+            { meta: ctx.meta }
+          );
+          docs = Array.isArray(result?.docs) ? result.docs : [];
+        } catch (err) {
+          if (err?.code === 'NOT_FOUND' || err?.type === 'NOT_FOUND' || err?.message?.includes('not found')) {
+            docs = [];
+          } else {
+            throw err;
+          }
+        }
+
+        // Sort newest-first by key (keys start with 'dream:<ISO timestamp>')
+        docs.sort((a, b) => (b.key || '').localeCompare(a.key || ''));
+        const page = docs.slice(offset, offset + limit);
+
+        return {
+          success: true,
+          total: docs.length,
+          limit,
+          offset,
+          entries: page.map((d) => ({ key: d.key, ...(d.payload || {}) })),
+        };
+      },
+    },
   },
 
   methods: {
+    /**
+     * Run the Dream pipeline for a session.
+     * Called by the inactivity timer; errors are silently swallowed.
+     */
+    async runDream(ctx, sessionId, tenantId, userId, profileNamespace, session) {
+      try {
+        await runDreamPipeline(ctx, sessionId, tenantId, userId, profileNamespace, session);
+      } catch (err) {
+        this.logger?.warn(`Dream pipeline failed for session ${sessionId}: ${err.message}`);
+      }
+    },
+
     synthesizeTurn({ message, toolContext, executionMode, plan, execution }) {
       if (toolContext && toolContext.responseRaw) {
         const keyCount = Object.keys(toolContext.responseRaw || {}).length;

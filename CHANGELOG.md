@@ -9,6 +9,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.52.4] — TDD-Matrix & Qualitätsautomation
+
+### Added
+- [src/personal-agent-tdd-matrix-parser.js](src/personal-agent-tdd-matrix-parser.js): new parser for the architecture markdown test matrix, including robust table-row parsing, service-call extraction from code spans, and independent required-ID extraction.
+- [src/personal-agent-tdd-matrix-normalizer.js](src/personal-agent-tdd-matrix-normalizer.js): fixed normalization map for all 58 TDD IDs (`T-*`) that maps markdown nomenclature to executable backend route aliases and documents intentional path normalizations.
+- [tests/personal-agent-tdd-matrix-parser.test.js](tests/personal-agent-tdd-matrix-parser.test.js): parser regression tests, including full-file assertions for the 58-case matrix.
+- [tests/personal-agent-tdd-matrix.generated.test.js](tests/personal-agent-tdd-matrix.generated.test.js): executable per-ID Jest suite validating normalized intent/action routing against real API aliases from [services/api.service.js](services/api.service.js).
+- [scripts/check-tdd-matrix-coverage.js](scripts/check-tdd-matrix-coverage.js): strict hard gate that fails CI unless 100% of required matrix IDs are **passed** (not merely executed).
+
+### Changed
+- [package.json](package.json):
+  - added `test:tdd-matrix` to execute matrix parser + generated matrix suite,
+  - added `check:tdd-matrix-coverage` to enforce the hard 100%-passed rule,
+  - updated `release:check` to include both TDD matrix commands.
+- [.github/workflows/maintenance-ci.yml](.github/workflows/maintenance-ci.yml): added explicit v0.52.4 steps for matrix tests and hard coverage gate.
+- [.github/workflows/release.yml](.github/workflows/release.yml): added explicit v0.52.4 steps for matrix tests and hard coverage gate before publish.
+
+### Notes
+- Hard acceptance criterion implemented: CI now fails with exit code `1` whenever matrix coverage is below `100%` **passed**.
+- Skipped or failed matrix tests are counted as missing coverage and will fail both maintenance and release pipelines.
+
+## [0.52.2] — Durable Execution, Wake-Up & Watchdog
+
+### Added
+- [src/job-store.js](src/job-store.js): introduced durable execution watchdog primitives on top of the existing job store only (no separate promise registry), including:
+  - lease-expiry detection and sweep API (`watchdogSweep()`),
+  - startup rehydration (`rehydrateOnStartup()`),
+  - idempotent wake-up queue (`requestWakeUp()` keyed by explicit `idempotencyKey`),
+  - persistent alarm lifecycle records with status machine (`open` → `acknowledged` → `resolved`).
+- [services/job-status.service.js](services/job-status.service.js): new Jobs endpoints for durable operations transparency and control:
+  - `GET /api/jobs/alarms` → list persistent alarm events,
+  - `POST /api/jobs/alarms/:alarmId/ack` → acknowledge alarm,
+  - `POST /api/jobs/alarms/:alarmId/resolve` → resolve alarm,
+  - `POST /api/jobs/:jobId/wake-up` → trigger idempotent wake-up.
+- [src/metrics.js](src/metrics.js): added watchdog-related metrics:
+  - `cernion_async_lease_misses_total`,
+  - `cernion_async_wakeups_total`,
+  - `cernion_async_alarm_events_total`.
+
+### Changed
+- [src/job-store/file-driver.js](src/job-store/file-driver.js): job records now persist durable execution metadata (`tenantId`, `missedLeases`, `wakeContext`, `wakeState`, `alarms`) and support job enumeration via `listJobs()`.
+- [src/job-store/driver.js](src/job-store/driver.js): extended driver interface with `listJobs()` for watchdog scans and recovery operations.
+- [src/async-job-runner.js](src/async-job-runner.js): `runAsync()` now persists wake context (`service`, `action`, `params`) so startup reanimation can issue deterministic wake-ups.
+- [services/job-status.service.js](services/job-status.service.js): startup now runs job-store rehydration and starts periodic watchdog sweeps.
+- [services/api.service.js](services/api.service.js): added alias routes for new jobs alarm/wake-up APIs.
+- [tests/job-store.test.js](tests/job-store.test.js): added regressions for lease escalation, startup rehydration, idempotent wake-up, and full alarm lifecycle transitions.
+- [tests/job-status.service.test.js](tests/job-status.service.test.js): added coverage for alarm listing, acknowledge/resolve transitions, and manual wake-up endpoint behavior.
+- [tests/metrics.test.js](tests/metrics.test.js): added validation for new async watchdog/alarm metrics.
+- [tests/async-job-runner.test.js](tests/async-job-runner.test.js): updated assertions for persisted wake context.
+- [package.json](package.json): bumped version to `0.52.2`.
+- [package-lock.json](package-lock.json): aligned lockfile version to `0.52.2`.
+- [README.md](README.md): updated current release marker to `v0.52.2`.
+
+### Notes
+- Hard acceptance criterion implemented: lease-expiry detection with escalation to persistent alarm after `maxMissedLeases`, startup rehydration, and idempotent wake-up flow keyed by explicit `idempotencyKey`.
+- Alarm lifecycle is now explicitly stateful (`open`, `acknowledged`, `resolved`) to support future UI/HITL workflows and a dedicated Problem-Solver agent.
+
 ## [0.52.1] — Capability Broker & Intent Routing
 
 ### Added
@@ -4135,8 +4192,34 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 ## [0.13.2] - 2026-03-30
 *
 ### Added
-
+## [0.52.3] — Asynchrones Träumen & Profil-Anreicherung
 - **Dedicated `agent_interventions` endpoint — closes Issue #32**
+### Added
+- **[src/personal-agent-dreamer.js](src/personal-agent-dreamer.js)** — New Dream pipeline module:
+  - `scheduleDream(sessionId, tenantId, userId, runFn)`: inactivity-timer (default 5 min via `DREAM_INACTIVITY_MS`) per session; idempotent re-schedule on every chat turn; `timer.unref()` for clean shutdown.
+  - `cancelDream(sessionId)`: cancels pending timer; called on each new chat turn so the timer resets on activity.
+  - `isDreamPending(sessionId)`: inspects in-memory timer map; exposed via REST.
+  - `extractFacts(session)`: heuristic extraction of L1 tenant facts (Netzbetreiber, capacity figures) and L2 preference signals (language, domain interest, output detail) from L3 session history — deterministic, no LLM dependency.
+  - `enrichL2Profile(ctx, …, preferences)` — **AK1**: optimistic concurrency via `updatedAt` version guard; confidence-based conflict resolution (higher confidence wins; equal → newer `updatedAt` wins; `null` = lowest); up to `OCC_MAX_RETRIES` (3) retries with exponential backoff.
+  - `computeCosineSimilarity(vecA, vecB)`: pure-JS dot-product cosine, no external dependency.
+  - `enrichL1TenantMemory(ctx, tenantId, facts)` — **AK2**: embeds each candidate fact via `llm-client.embeddings()`; skips facts with cosine > 0.95 against any existing entry; exact-match dedup as cheap pre-check; graceful degradation (always writes) if embeddings unavailable.
+  - `appendAuditEntry(ctx, tenantId, entry)` — **AK3**: append-only entries in `personal_agent_dream_audit:<tenantId>` namespace; monotonic key `dream:<ISO>:<random>`; SHA-256 `integrityHash` over payload (EU AI Act Art. 12 compliant).
+  - `runDreamPipeline(ctx, sessionId, tenantId, userId, profileNamespace, session)`: orchestrates all 4 steps; captures per-step results; always writes final audit entry.
+- **[services/personal-agent.service.js](services/personal-agent.service.js)** — Dream integration:
+  - `chat` handler: calls `cancelDream` + `scheduleDream` after every persisted session turn.
+  - New action `getDreamStatus` (`GET /session/:sessionId/dream-status`): returns `dreamPending` flag.
+  - New action `getDreamAudit` (`GET /dream-audit`): lists tenant-scoped Dream audit trail, sorted newest-first, paginated.
+  - New method `runDream(ctx, …)`: wraps `runDreamPipeline`; swallows errors to keep Dream non-fatal.
+- **[services/api.service.js](services/api.service.js)** — Two new REST aliases:
+  - `GET /api/personal-agent/session/:sessionId/dream-status`
+  - `GET /api/personal-agent/dream-audit`
+- **[tests/personal-agent-dreamer.test.js](tests/personal-agent-dreamer.test.js)** — 38 unit tests covering AK1/AK2/AK3 and timer management.
+- **[tests/personal-agent.service.test.js](tests/personal-agent.service.test.js)** — 3 integration tests for `getDreamStatus` and `getDreamAudit`.
+
+### Changed
+- Object namespaces: `personal_agent_dream_audit:<tenantId>` (new), `personal_agent_tenant_memory:<tenantId>` (new).
+- `DREAM_INACTIVITY_MS` env var controls inactivity threshold (default 300 000 ms = 5 min).
+
   New action `datapoint.interventions` (`GET /api/datapoints/:name/interventions`)
   exposes the explainability log of a datapoint directly without requiring clients
   to parse the full OEMetadata v2.0 document.

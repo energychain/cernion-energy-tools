@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.51.7",
+    "version": "0.52.4",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -61,6 +61,10 @@
     {
       "name": "Finance Agent",
       "description": "Deterministic finance/regulatory analysis for VNBs (v0.40). Performs query planning, ontology-aware RAG retrieval, L1/L2 evidence arbitration, and guarded synthesis with audit trail."
+    },
+    {
+      "name": "Personal Agent",
+      "description": "Interactive personal chat orchestration (v0.52). Builds deterministic L0-L4 context stacks with strict token budgeting. Layer 4 is transient and never persisted."
     },
     {
       "name": "Grid Connection Validation",
@@ -3945,6 +3949,7 @@
                       "enum": [
                         "queued",
                         "running",
+                        "recovery_pending",
                         "completed",
                         "error"
                       ]
@@ -4182,6 +4187,241 @@
             "description": "Job UUID returned by the 202 response"
           }
         ]
+      }
+    },
+    "/api/jobs/:jobId/wake-up": {
+      "post": {
+        "operationId": "job-status_wakeUp",
+        "summary": "Trigger idempotent wake-up for a recovery_pending async job",
+        "tags": [
+          "Jobs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "jobId": "a3f8b2c1-0000-0000-0000-000000000001",
+                    "idempotencyKey": "ck:wakeup:tenant-1:monitor:123",
+                    "reason": "manual"
+                  }
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "jobId"
+                ],
+                "properties": {
+                  "jobId": {
+                    "type": "string",
+                    "example": "a3f8b2c1-0000-0000-0000-000000000001"
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "maxLength": 256,
+                    "example": "ck:wakeup:tenant-1:monitor:123"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "maxLength": 120,
+                    "example": "manual"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/alarms": {
+      "get": {
+        "operationId": "job-status_listAlarms",
+        "summary": "List persistent async watchdog alarms",
+        "tags": [
+          "Jobs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "open",
+                "acknowledged",
+                "resolved"
+              ],
+              "default": "open",
+              "example": "open"
+            }
+          },
+          {
+            "name": "jobId",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "a3f8b2c1-0000-0000-0000-000000000001"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "default": 100,
+              "minimum": 1,
+              "maximum": 1000
+            }
+          }
+        ]
+      }
+    },
+    "/api/jobs/alarms/:alarmId/ack": {
+      "post": {
+        "operationId": "job-status_acknowledgeAlarm",
+        "summary": "Acknowledge persistent async watchdog alarm",
+        "tags": [
+          "Jobs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "alarmId": "alarm_abc123",
+                    "actor": "hitl-user",
+                    "note": "Investigating this alert."
+                  }
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "alarmId"
+                ],
+                "properties": {
+                  "alarmId": {
+                    "type": "string",
+                    "example": "alarm_abc123"
+                  },
+                  "actor": {
+                    "type": "string",
+                    "maxLength": 120,
+                    "example": "hitl-user"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Investigating this alert."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/jobs/alarms/:alarmId/resolve": {
+      "post": {
+        "operationId": "job-status_resolveAlarm",
+        "summary": "Resolve persistent async watchdog alarm",
+        "tags": [
+          "Jobs"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "value": {
+                    "alarmId": "alarm_abc123",
+                    "actor": "problem-solver-agent",
+                    "note": "Recovery completed successfully."
+                  }
+                }
+              },
+              "schema": {
+                "type": "object",
+                "required": [
+                  "alarmId"
+                ],
+                "properties": {
+                  "alarmId": {
+                    "type": "string",
+                    "example": "alarm_abc123"
+                  },
+                  "actor": {
+                    "type": "string",
+                    "maxLength": 120,
+                    "example": "problem-solver-agent"
+                  },
+                  "note": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "example": "Recovery completed successfully."
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/oep/schemas": {
@@ -9667,6 +9907,658 @@
               "type": "string",
               "example": "finance-session-2026-05-04"
             }
+          }
+        ]
+      }
+    },
+    "/api/personal-agent/chat": {
+      "post": {
+        "operationId": "personal-agent_chat",
+        "summary": "Run one Personal-Agent chat turn with deterministic L0-L4 context stacking",
+        "tags": [
+          "Personal Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Chat turn completed successfully",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "hitlPlanOnly": {
+                    "summary": "HITL Mode: Plan returned for manual review",
+                    "value": {
+                      "success": true,
+                      "sessionId": "pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8",
+                      "executionMode": "hitl",
+                      "reply": "Ich habe einen 2-stufigen Plan entworfen. Sie können ihn überprüfen und dann manuell ausführen.",
+                      "layer4Purged": true,
+                      "l3Compressed": false,
+                      "contextUsage": {
+                        "totalTokens": 2850,
+                        "estimatedPromptTokens": 1200,
+                        "estimatedCompletionTokens": 1650,
+                        "maxTokens": 128000,
+                        "percentUsed": 2.2
+                      },
+                      "historyCount": 5,
+                      "routing": {
+                        "source": "broker",
+                        "routeKey": null,
+                        "routeLabel": null,
+                        "primaryIntent": "investment-analysis",
+                        "secondaryIntents": [
+                          "grid-planning",
+                          "financial-modeling"
+                        ],
+                        "requestedDomains": [],
+                        "unsupportedDomains": [],
+                        "warnings": []
+                      },
+                      "plan": {
+                        "status": "complete",
+                        "steps": [
+                          {
+                            "stepId": 1,
+                            "action": "finance-agent.analyze",
+                            "label": "Investitionsanalyse",
+                            "params": {
+                              "gridOperator": "Stadtwerke München",
+                              "investmentType": "cable",
+                              "location": "Schwabing",
+                              "plannedCapacityMW": 15
+                            },
+                            "dependencies": []
+                          },
+                          {
+                            "stepId": 2,
+                            "action": "znp.assessPortfolio",
+                            "label": "Portfolio-Assessment",
+                            "params": {
+                              "projectId": "__step_1.financialProjectId",
+                              "assumptions": {
+                                "growthRate": 0.08,
+                                "discountRate": 0.055
+                              }
+                            },
+                            "dependencies": [
+                              1
+                            ]
+                          }
+                        ]
+                      },
+                      "execution": {
+                        "status": "skipped",
+                        "steps": [],
+                        "stopPoint": null
+                      }
+                    }
+                  },
+                  "autoFullSuccess": {
+                    "summary": "AUTO Mode: Full execution completed",
+                    "value": {
+                      "success": true,
+                      "sessionId": "pa_x9y8z7w6-v5u4-t3s2-r1q0-p9o8n7m6l5k4",
+                      "executionMode": "auto",
+                      "reply": "Die Investitionsanalyse ist abgeschlossen. Die Kosten betragen ca. 45.000 EUR mit einer Amortisationszeit von 8,2 Jahren bei 7% Rendite.",
+                      "layer4Purged": true,
+                      "l3Compressed": false,
+                      "contextUsage": {
+                        "totalTokens": 5420,
+                        "estimatedPromptTokens": 2100,
+                        "estimatedCompletionTokens": 3320,
+                        "maxTokens": 128000,
+                        "percentUsed": 4.2
+                      },
+                      "historyCount": 7,
+                      "routing": {
+                        "source": "matrix",
+                        "routeKey": "investment-grid",
+                        "routeLabel": "Investment-Grid Integration",
+                        "primaryIntent": "investment-grid-check",
+                        "secondaryIntents": [],
+                        "requestedDomains": [
+                          "investment",
+                          "grid"
+                        ],
+                        "unsupportedDomains": [],
+                        "warnings": []
+                      },
+                      "plan": {
+                        "status": "complete",
+                        "steps": [
+                          {
+                            "stepId": 1,
+                            "action": "finance-agent.analyze",
+                            "label": "NPV Analysis",
+                            "params": {
+                              "gridOperator": "TWL Netze",
+                              "investmentType": "transformer"
+                            },
+                            "dependencies": []
+                          },
+                          {
+                            "stepId": 2,
+                            "action": "znp.assessPortfolio",
+                            "label": "Grid Impact Assessment",
+                            "params": {
+                              "projectId": "__step_1.projectId"
+                            },
+                            "dependencies": [
+                              1
+                            ]
+                          }
+                        ]
+                      },
+                      "execution": {
+                        "status": "completed",
+                        "completedSteps": [
+                          1,
+                          2
+                        ],
+                        "steps": [
+                          {
+                            "stepId": 1,
+                            "action": "finance-agent.analyze",
+                            "result": {
+                              "npv": 125000,
+                              "irr": 0.092,
+                              "paybackYears": 8.2,
+                              "projectId": "proj_invest_001"
+                            },
+                            "timestamp": "2026-05-15T14:23:45Z"
+                          },
+                          {
+                            "stepId": 2,
+                            "action": "znp.assessPortfolio",
+                            "result": {
+                              "gridStress": 0.68,
+                              "requiresExpansion": false,
+                              "recommendation": "proceed"
+                            },
+                            "timestamp": "2026-05-15T14:23:52Z"
+                          }
+                        ],
+                        "stopPoint": null
+                      }
+                    }
+                  },
+                  "autoPartialMissingInputs": {
+                    "summary": "AUTO Mode: Partial execution stopped at missing inputs",
+                    "value": {
+                      "success": true,
+                      "sessionId": "pa_m5l4k3j2-i1h0-g9f8-e7d6-c5b4a3z2y1x0",
+                      "executionMode": "auto",
+                      "reply": "Ich habe die Energiefreigabe-Validierung gestartet, benötige aber noch die Projekt-ID. Können Sie bitte angeben, welches Projekt Sie prüfen möchten?",
+                      "layer4Purged": true,
+                      "l3Compressed": false,
+                      "contextUsage": {
+                        "totalTokens": 3100,
+                        "estimatedPromptTokens": 1500,
+                        "estimatedCompletionTokens": 1600,
+                        "maxTokens": 128000,
+                        "percentUsed": 2.4
+                      },
+                      "historyCount": 6,
+                      "routing": {
+                        "source": "matrix",
+                        "routeKey": "energy-sharing-znp",
+                        "routeLabel": "Energy Sharing Validation + ZNP",
+                        "primaryIntent": "energy-sharing-check",
+                        "secondaryIntents": [],
+                        "requestedDomains": [
+                          "energy-sharing",
+                          "znp"
+                        ],
+                        "unsupportedDomains": [],
+                        "warnings": []
+                      },
+                      "plan": {
+                        "status": "partial",
+                        "steps": [
+                          {
+                            "stepId": 1,
+                            "action": "energy-sharing.validate",
+                            "label": "Energiefreigabe Validierung",
+                            "params": {
+                              "gridOperatorId": "GNB0000003456",
+                              "generators": [
+                                {
+                                  "capacity": 50,
+                                  "location": "München-Nord"
+                                }
+                              ]
+                            },
+                            "dependencies": []
+                          },
+                          {
+                            "stepId": 2,
+                            "action": "znp.getProjectMeta",
+                            "label": "ZNP Projekt Details",
+                            "params": {
+                              "projectId": "__user_input.projectId"
+                            },
+                            "dependencies": [
+                              1
+                            ],
+                            "blocked": true
+                          }
+                        ]
+                      },
+                      "execution": {
+                        "status": "partial",
+                        "completedSteps": [
+                          1
+                        ],
+                        "steps": [
+                          {
+                            "stepId": 1,
+                            "action": "energy-sharing.validate",
+                            "result": {
+                              "status": "eligible",
+                              "findings": []
+                            },
+                            "timestamp": "2026-05-15T14:20:10Z"
+                          }
+                        ],
+                        "stopPoint": {
+                          "reasonCode": "MISSING_INPUTS",
+                          "blockedStep": 2,
+                          "blockedAction": "znp.getProjectMeta",
+                          "missingParams": [
+                            "projectId"
+                          ],
+                          "message": "Step 2 blocked: requires projectId. Available aliases: project, projectName, projectCode.",
+                          "status": "user-input-required",
+                          "placeholderId": "placeholder_user_input_v1"
+                        }
+                      }
+                    }
+                  },
+                  "autoPartialUnsupported": {
+                    "summary": "AUTO Mode: Partial execution, unsupported chain degraded gracefully",
+                    "value": {
+                      "success": true,
+                      "sessionId": "pa_n0o1p2q3-r4s5-t6u7-v8w9-x0y1z2a3b4c5",
+                      "executionMode": "auto",
+                      "reply": "Die Redispatch-Analyse ist abgeschlossen. Die Erweiterung auf die Speicherplanung ist in dieser Version nicht freigeschaltet – ich stelle Ihnen dafür ein Manual-Interface zur Verfügung.",
+                      "layer4Purged": true,
+                      "l3Compressed": false,
+                      "contextUsage": {
+                        "totalTokens": 3850,
+                        "estimatedPromptTokens": 1800,
+                        "estimatedCompletionTokens": 2050,
+                        "maxTokens": 128000,
+                        "percentUsed": 3
+                      },
+                      "historyCount": 6,
+                      "routing": {
+                        "source": "broker",
+                        "routeKey": null,
+                        "routeLabel": null,
+                        "primaryIntent": "redispatch-analysis",
+                        "secondaryIntents": [
+                          "storage-planning"
+                        ],
+                        "requestedDomains": [
+                          "redispatch",
+                          "storage"
+                        ],
+                        "unsupportedDomains": [
+                          "storage"
+                        ],
+                        "warnings": [
+                          "Requested domain \"storage\" is not in the routing matrix for redispatch. Stopping after redispatch completion."
+                        ]
+                      },
+                      "plan": {
+                        "status": "partial",
+                        "steps": [
+                          {
+                            "stepId": 1,
+                            "action": "redispatch-expost.audit",
+                            "label": "Redispatch Settlement Audit",
+                            "params": {
+                              "gridOperatorId": "SNB0000001234",
+                              "minCapacityKW": 100
+                            },
+                            "dependencies": []
+                          },
+                          {
+                            "stepId": 2,
+                            "action": "storage.optimizer",
+                            "label": "Storage Optimization (UNSUPPORTED)",
+                            "params": {},
+                            "dependencies": [
+                              1
+                            ],
+                            "blocked": true
+                          }
+                        ]
+                      },
+                      "execution": {
+                        "status": "partial",
+                        "completedSteps": [
+                          1
+                        ],
+                        "steps": [
+                          {
+                            "stepId": 1,
+                            "action": "redispatch-expost.audit",
+                            "result": {
+                              "status": "ready",
+                              "portfolioSize": 247,
+                              "totalCapacity": 3560,
+                              "findings": []
+                            },
+                            "timestamp": "2026-05-15T14:18:30Z"
+                          }
+                        ],
+                        "stopPoint": {
+                          "reasonCode": "UNSUPPORTED_CHAIN",
+                          "blockedStep": 2,
+                          "blockedAction": "storage.optimizer",
+                          "message": "Domain \"storage\" is not routable in deterministic chains. Interface placeholder activated for manual continuation.",
+                          "status": "interface-placeholder",
+                          "placeholderId": "placeholder_storage_gap_v1",
+                          "placeholderMetadata": {
+                            "title": "Speicheroptimierung",
+                            "description": "Manuelle Speicheroptimierung auf Basis des Redispatch-Audits erforderlich.",
+                            "suggestedNextSteps": [
+                              "Laden Sie die Audit-Ergebnisse herunter",
+                              "Nutzen Sie unser Storage-Analyse-Tool",
+                              "Kontaktieren Sie unseren Speicher-Spezialisten"
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid parameters or validation error"
+          },
+          "404": {
+            "description": "Service or action not found"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "description": "Builds a deterministic context stack (L0-L4), binds the capability-broker routing layer, supports auto-execution or HITL plan return, and guarantees Layer 4 purge after synthesis. Layer-4 raw tool JSON is never persisted.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 8000,
+                    "example": "Plane eine neue PV-Anlage in Troisdorf."
+                  },
+                  "sessionId": {
+                    "type": "string",
+                    "example": "pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8"
+                  },
+                  "executionMode": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "hitl"
+                    ],
+                    "default": "auto"
+                  },
+                  "toolContext": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "default": {}
+                  },
+                  "knownContext": {
+                    "type": "object",
+                    "additionalProperties": true,
+                    "default": {}
+                  }
+                }
+              },
+              "examples": {
+                "auto": {
+                  "summary": "AUTO execution with deterministic plan run",
+                  "value": {
+                    "message": "Prüfe die Netzanschlusskapazität für Troisdorf.",
+                    "executionMode": "auto",
+                    "knownContext": {
+                      "location": "Troisdorf"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/personal-agent/session/:sessionId": {
+      "get": {
+        "operationId": "personal-agent_getSession",
+        "summary": "Load persisted Personal-Agent session (L3 history)",
+        "tags": [
+          "Personal Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns persisted session state for UI reload. Includes Layer 3 history/summary and profile metadata. Layer 4 is never returned because it is transient.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8"
+            },
+            "description": "Personal-Agent session ID"
+          }
+        ]
+      }
+    },
+    "/api/personal-agent/session/:sessionId/reset": {
+      "post": {
+        "operationId": "personal-agent_resetSession",
+        "summary": "Reset chat context stack for a session (keeps hard user profile L2)",
+        "tags": [
+          "Personal Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Flushes conversational Layer 3 for the given session while keeping the persisted Layer 2 profile.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8"
+            },
+            "description": "Session ID to reset"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "default": "manual-reset",
+                    "example": "manual-reset"
+                  }
+                }
+              },
+              "examples": {
+                "default": {
+                  "summary": "Reset request payload (optional metadata)",
+                  "value": {
+                    "reason": "manual-reset"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/personal-agent/session/:sessionId/dream-status": {
+      "get": {
+        "operationId": "personal-agent_getDreamStatus",
+        "summary": "Get Dream-pipeline status for a session",
+        "tags": [
+          "Personal Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Dream status for the session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "sessionId": {
+                      "type": "string"
+                    },
+                    "dreamPending": {
+                      "type": "boolean",
+                      "description": "true if inactivity timer is active"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns whether the post-session Dream pipeline is currently pending (timer running) or idle for the given sessionId. The Dream runs after the inactivity timeout configured via DREAM_INACTIVITY_MS (default 5 min) and enriches L2 user profile and L1 tenant memory.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "sessionId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8"
+            },
+            "description": "Session ID to inspect dream timer state for"
+          }
+        ]
+      }
+    },
+    "/api/personal-agent/dream-audit": {
+      "get": {
+        "operationId": "personal-agent_getDreamAudit",
+        "summary": "List Dream-pipeline audit trail entries for the current tenant",
+        "tags": [
+          "Personal Agent"
+        ],
+        "responses": {
+          "200": {
+            "description": "Dream audit trail entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "entries": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string"
+                          },
+                          "sessionId": {
+                            "type": "string"
+                          },
+                          "startedAt": {
+                            "type": "string"
+                          },
+                          "finishedAt": {
+                            "type": "string"
+                          },
+                          "l1FactsAdded": {
+                            "type": "integer"
+                          },
+                          "l2Conflicts": {
+                            "type": "integer"
+                          },
+                          "integrityHash": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Returns the append-only Dream audit log for the authenticated tenant. Each entry records a Dream pipeline run with fact counts, conflict/retry stats, L1/L2 enrichment results, and a SHA-256 integrity hash. Entries are scoped to the tenant and sorted newest-first.",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 50
+            },
+            "description": "Maximum number of audit entries to return (1–200)"
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Pagination offset"
           }
         ]
       }
@@ -20886,5 +21778,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.51.7"
+  "x-version": "0.52.4"
 }
