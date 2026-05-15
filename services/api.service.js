@@ -8,6 +8,7 @@
 const ApiGateway = require('moleculer-web');
 const OpenapiMixin = require('moleculer-auto-openapi');
 const { Errors } = require('moleculer');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const { version: packageVersion } = require('../package.json');
@@ -34,6 +35,19 @@ const ALLOWED_UPLOAD_EXTENSIONS = new Set([
   '.pdf', // Layer 2: VNB StromNZV §23c structure reports
 ]);
 const CK_TOKEN_SUNSET_HTTP_DATE = 'Wed, 31 Dec 2026 23:59:59 GMT';
+const PERSONAL_AGENT_MAX_FILES = 5;
+const PERSONAL_AGENT_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+const PERSONAL_AGENT_MAX_TOTAL_SIZE_BYTES = 50 * 1024 * 1024;
+const PERSONAL_AGENT_MAX_FIELDS = 10;
+const PERSONAL_AGENT_ALLOWED_EXTENSIONS = new Set([
+  '.csv',
+  '.xlsx',
+  '.xls',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.pdf',
+]);
 const DEFAULT_API_CORS_ORIGINS = [
   'https://energychain.github.io',
   'https://cernion.de',
@@ -61,6 +75,46 @@ function buildUploadResponseEntry(fileName) {
     sizeBytes: stat.size,
     modifiedAt: stat.mtime.toISOString(),
   };
+}
+
+function sanitizePathSegment(value, fallback) {
+  const cleaned = String(value || fallback || '')
+    .trim()
+    .replace(/[^a-zA-Z0-9_-]/g, '_');
+  return cleaned || String(fallback || 'default');
+}
+
+function parseOptionalJsonObject(value, fallback = {}) {
+  if (value == null || value === '') {
+    return fallback;
+  }
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    return value;
+  }
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? parsed
+      : fallback;
+  } catch (_error) {
+    return fallback;
+  }
+}
+
+function toFileArray(rawFiles) {
+  if (!rawFiles) return [];
+  return Array.isArray(rawFiles) ? rawFiles.filter(Boolean) : [rawFiles].filter(Boolean);
+}
+
+function buildPersonalAgentUploadPath(tenantId, sessionId, attachmentId, ext) {
+  const safeTenant = sanitizePathSegment(tenantId, 'default');
+  const safeSession = sanitizePathSegment(sessionId, 'pa_session');
+  const safeAttachment = sanitizePathSegment(attachmentId, 'fa_upload');
+  return path.join(UPLOAD_DIR, safeTenant, safeSession, `${safeAttachment}${ext}`);
 }
 
 function sanitizeErrorMessage(message) {
@@ -1411,6 +1465,14 @@ module.exports = {
           },
         },
 
+        busboyConfig: {
+          limits: {
+            files: PERSONAL_AGENT_MAX_FILES,
+            fileSize: PERSONAL_AGENT_MAX_FILE_SIZE_BYTES,
+            fields: PERSONAL_AGENT_MAX_FIELDS,
+          },
+        },
+
         mappingPolicy: 'all',
 
         logging: true,
@@ -1624,6 +1686,96 @@ module.exports = {
                 );
               }
             }
+          }
+
+          const isPersonalAgentChatMultipart =
+            method === 'POST' &&
+            requestPath === '/api/personal-agent/chat' &&
+            Boolean(req?.$multipart);
+
+          if (isPersonalAgentChatMultipart) {
+            const fields = req?.$params || {};
+            const rawFiles = fields.fileAttachments || fields.files || [];
+            const files = toFileArray(rawFiles);
+
+            if (files.length > PERSONAL_AGENT_MAX_FILES) {
+              throw new Errors.MoleculerClientError(
+                `Too many files. Maximum is ${PERSONAL_AGENT_MAX_FILES}.`,
+                413,
+                'FILE_TOO_LARGE'
+              );
+            }
+
+            const tenantId = ctx.meta.tenantId || 'default';
+            const sessionId = String(fields.sessionId || `pa_${crypto.randomUUID()}`);
+            let totalSizeBytes = 0;
+
+            const processedFiles = files.map((file, index) => {
+              const sourcePath = String(file?.path || file?.tempFilePath || '').trim();
+              const originalName = String(
+                file?.originalname || file?.name || file?.filename || `upload_${index + 1}`
+              );
+              const ext = path.extname(originalName).toLowerCase();
+
+              if (!PERSONAL_AGENT_ALLOWED_EXTENSIONS.has(ext)) {
+                throw new Errors.MoleculerClientError(
+                  'Das Dateiformat wird nicht unterstützt. Erlaubt: CSV, Excel, PNG, JPG, PDF.',
+                  400,
+                  'INVALID_FILE_TYPE'
+                );
+              }
+
+              const statSize = sourcePath && fs.existsSync(sourcePath)
+                ? fs.statSync(sourcePath).size
+                : 0;
+              const sizeBytes = Math.max(Number(file?.size || 0), Number(statSize || 0));
+              if (sizeBytes > PERSONAL_AGENT_MAX_FILE_SIZE_BYTES) {
+                throw new Errors.MoleculerClientError(
+                  `File exceeds maximum size of ${PERSONAL_AGENT_MAX_FILE_SIZE_BYTES} bytes.`,
+                  413,
+                  'FILE_TOO_LARGE'
+                );
+              }
+
+              totalSizeBytes += sizeBytes;
+              const attachmentId = `fa_${crypto.randomUUID().slice(0, 8)}`;
+              const targetPath = buildPersonalAgentUploadPath(
+                tenantId,
+                sessionId,
+                attachmentId,
+                ext
+              );
+
+              fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+              if (sourcePath && fs.existsSync(sourcePath) && sourcePath !== targetPath) {
+                fs.renameSync(sourcePath, targetPath);
+              }
+
+              return {
+                attachmentId,
+                fileName: sanitizeUploadFilename(originalName) || `upload_${index + 1}${ext}`,
+                mimeType: String(file?.mimetype || file?.type || 'application/octet-stream'),
+                sizeBytes,
+                tempPath: targetPath,
+              };
+            });
+
+            if (totalSizeBytes > PERSONAL_AGENT_MAX_TOTAL_SIZE_BYTES) {
+              throw new Errors.MoleculerClientError(
+                `Total upload size exceeds maximum of ${PERSONAL_AGENT_MAX_TOTAL_SIZE_BYTES} bytes.`,
+                413,
+                'FILE_TOO_LARGE'
+              );
+            }
+
+            ctx.params = {
+              message: String(fields.message || ''),
+              sessionId,
+              executionMode: String(fields.executionMode || 'auto'),
+              knownContext: parseOptionalJsonObject(fields.knownContext, {}),
+              toolContext: parseOptionalJsonObject(fields.toolContext, {}),
+              fileAttachments: processedFiles,
+            };
           }
 
           const tenantIdForQuota = ctx.meta.tenantId || 'default';

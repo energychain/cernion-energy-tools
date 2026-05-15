@@ -140,6 +140,9 @@ function enforceLayerBudgets(stack, options = {}) {
     ...stack,
     l3: {
       history: compressedL3.history,
+      fileAttachments: Array.isArray(stack?.l3?.fileAttachments)
+        ? stack.l3.fileAttachments
+        : [],
       summary: compressedL3.summary,
       compressed: compressedL3.compressed,
     },
@@ -176,6 +179,9 @@ function enforceLayerBudgets(stack, options = {}) {
 
 function buildContextStack(input = {}) {
   const layer4 = buildLayer4(input.toolContext || null);
+  const fileAttachments = Array.isArray(input.fileAttachments)
+    ? input.fileAttachments
+    : [];
   const initial = {
     l0: {
       systemPrompt: String(input.systemPrompt || ''),
@@ -188,6 +194,7 @@ function buildContextStack(input = {}) {
     },
     l3: {
       history: Array.isArray(input.sessionHistory) ? input.sessionHistory : [],
+      fileAttachments,
       summary: null,
       compressed: false,
     },
@@ -257,6 +264,9 @@ function buildPersistableSessionState(input = {}) {
     },
     l3: {
       history: Array.isArray(input?.l3?.history) ? input.l3.history : [],
+      fileAttachments: Array.isArray(input?.l3?.fileAttachments)
+        ? input.l3.fileAttachments
+        : [],
       summary: input?.l3?.summary || null,
       compressed: Boolean(input?.l3?.compressed),
     },

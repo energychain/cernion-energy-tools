@@ -334,6 +334,88 @@ describe('personal-agent.service', () => {
     expect(session.l3.onboardingQuestions[0].answer).toBe('Hybridprofil 5 MW, flexibel 2 MW');
   });
 
+  it('stores CSV attachment extract in L3 and reports fileProcessing ok', async () => {
+    const uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pa-upload-csv-'));
+    const csvPath = path.join(uploadDir, 'zaehler.csv');
+    fs.writeFileSync(csvPath, 'ZaehlerID,Zaehlerstand\nM-001,12456\n');
+
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Analysiere diese CSV',
+        fileAttachments: [
+          {
+            attachmentId: 'fa_csv_1',
+            fileName: 'zaehler.csv',
+            mimeType: 'text/csv',
+            sizeBytes: 32,
+            tempPath: csvPath,
+          },
+        ],
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.fileProcessing).toEqual([
+      {
+        attachmentId: 'fa_csv_1',
+        fileName: 'zaehler.csv',
+        status: 'ok',
+      },
+    ]);
+
+    const session = await broker.call(
+      'personal-agent.getSession',
+      { sessionId: result.sessionId },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(session.l3.fileAttachments).toHaveLength(1);
+    expect(session.l3.fileAttachments[0].extract.type).toBe('csv');
+    expect(session.l3.fileAttachments[0].extract.rowCount).toBe(1);
+
+    fs.rmSync(uploadDir, { recursive: true, force: true });
+  });
+
+  it('treats parser failures as partial success via fileProcessing error entries', async () => {
+    const uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pa-upload-xlsx-'));
+    const xlsxPath = path.join(uploadDir, 'kaputt.xlsx');
+    fs.writeFileSync(xlsxPath, 'definitely-not-a-real-xlsx');
+
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Prüfe diese Datei',
+        fileAttachments: [
+          {
+            attachmentId: 'fa_xlsx_1',
+            fileName: 'kaputt.xlsx',
+            mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            sizeBytes: 64,
+            tempPath: xlsxPath,
+          },
+        ],
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.fileProcessing).toHaveLength(1);
+    expect(result.fileProcessing[0].status).toBe('error');
+    expect(result.fileProcessing[0].error.code).toBe('PARSE_ERROR');
+
+    const session = await broker.call(
+      'personal-agent.getSession',
+      { sessionId: result.sessionId },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+    expect(session.l3.fileAttachments[0].error.code).toBe('PARSE_ERROR');
+    expect(session.l3.fileAttachments[0].extract).toBeNull();
+
+    fs.rmSync(uploadDir, { recursive: true, force: true });
+  });
+
   it('HITL mode returns onboarding hints but no awaiting status', async () => {
     const result = await broker.call(
       'personal-agent.chat',

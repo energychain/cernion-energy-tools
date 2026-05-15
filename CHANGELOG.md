@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.9] — Inhouse Data / Multimodal (File Attachments)
+
+### Added
+- [src/personal-agent-file-handler.js](src/personal-agent-file-handler.js): new deterministic attachment handler for CSV/Excel/Image/PDF with type recognition, structured extractors, and L3 injection helpers.
+- [tests/personal-agent-file-handler.test.js](tests/personal-agent-file-handler.test.js): dedicated coverage for file type detection, CSV/Excel extract generation, max-size guardrails, and PDF placeholder behavior.
+
+### Changed
+- [services/api.service.js](services/api.service.js): `POST /api/personal-agent/chat` now normalizes multipart uploads (`req.$multipart`) into `ctx.params.fileAttachments`, applies tenant/session-isolated upload paths under `uploads/{tenant}/{session}/`, and enforces gateway limits (max 5 files, 10 MB/file, 50 MB total, max 10 fields).
+- [services/api.service.js](services/api.service.js): gateway now rejects unsupported attachment types at request edge with `400 INVALID_FILE_TYPE` and oversized uploads with `413 FILE_TOO_LARGE`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `personal-agent.chat` now accepts optional `fileAttachments`, extracts attachment context before plan execution, persists `l3.fileAttachments`, and returns per-file processing results via `fileProcessing[]`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): parser failures are now handled as partial success (chat turn continues; failing attachment is persisted with `error` block and surfaced in `fileProcessing`).
+- [src/personal-agent-context.js](src/personal-agent-context.js): Layer-3 context and persistable session state now include `fileAttachments` while keeping Layer-4 no-persist guarantees.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regressions for CSV attachment extraction and corrupt Excel parse-error partial-success flow.
+- [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js): added regressions for `l3.fileAttachments` propagation and persistence.
+- [tests/api.service.test.js](tests/api.service.test.js): added route-level regressions for multipart upload limits, attachment normalization, and 50 MB total-size rejection.
+
+### Notes
+- C1 implemented: parser failures are `fileProcessing` errors (partial success), while gateway-level invalid type/size remains hard rejection.
+- C2 implemented: 5 files max, 10 MB/file, 50 MB total.
+- C3 implemented (MVP): PDFs are stored as metadata placeholder (`pdf_placeholder`) without active text extraction.
+
 ## [0.52.8] — Personal Agent Conversational Onboarding
 
 ### Added

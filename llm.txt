@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.52.7
-- changelog_latest_release: 0.52.7
+- version: 0.52.9
+- changelog_latest_release: 0.52.9
 - source_files_hash:
-  - CHANGELOG.md: 308dbd6c27f5ec7b0be37cf8980d57521944c0fcecb97e0fcd6c7674bf4e6552
-  - README.md: fa62e7208e58fc75334417ba69cdaacec790dbf9dd221e880df9a1d510dafa03
+  - CHANGELOG.md: 8dfeaf91af42f1d36ac534cd1d819c753a8d307351c1cdb8e6b7a34106296cc8
+  - README.md: c49ef9bd657c7f28ff2767a278e56cbddfc44cdd1ad59008b51859d1113e1aed
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: 0ecf54f15f1a9095c846f3f700c83593702862120b851935e2d47d1b24371174
+  - openapi-export.json: f8995198503853c7875d280cf62ffd130e61ddb5fd6394848d7677a3109c3a69
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -18,8 +18,6 @@ It provides a complete implementation picture: architecture, domain knowledge, c
 ## Release Provenance
 ### Unreleased (from CHANGELOG)
 ## [Unreleased]
-
-_No changes yet._
 
 ## Domain-Specific Business Knowledge (Energy + Utility)
 
@@ -969,7 +967,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.52.7"
+    "version": "0.52.9"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -18435,6 +18433,29 @@ process:
                     ],
                     "type": "string"
                   },
+                  "fileAttachments": {
+                    "items": {
+                      "properties": {
+                        "attachmentId": {
+                          "type": "string"
+                        },
+                        "fileName": {
+                          "type": "string"
+                        },
+                        "mimeType": {
+                          "type": "string"
+                        },
+                        "sizeBytes": {
+                          "type": "number"
+                        },
+                        "tempPath": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
                   "knownContext": {
                     "additionalProperties": true,
                     "default": {},
@@ -18454,6 +18475,44 @@ process:
                     "additionalProperties": true,
                     "default": {},
                     "type": "object"
+                  }
+                },
+                "required": [
+                  "message"
+                ],
+                "type": "object"
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "properties": {
+                  "executionMode": {
+                    "enum": [
+                      "auto",
+                      "hitl"
+                    ],
+                    "type": "string"
+                  },
+                  "fileAttachments": {
+                    "items": {
+                      "format": "binary",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "knownContext": {
+                    "description": "JSON-stringified object",
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "toolContext": {
+                    "description": "JSON-stringified object",
+                    "type": "string"
                   }
                 },
                 "required": [
@@ -18747,6 +18806,76 @@ process:
                         ]
                       },
                       "sessionId": "pa_n0o1p2q3-r4s5-t6u7-v8w9-x0y1z2a3b4c5",
+                      "success": true
+                    }
+                  },
+                  "awaitingOnboarding": {
+                    "summary": "AUTO Mode: Awaiting onboarding answer",
+                    "value": {
+                      "contextUsage": {
+                        "estimatedCompletionTokens": 900,
+                        "estimatedPromptTokens": 1200,
+                        "maxTokens": 128000,
+                        "percentUsed": 1.6,
+                        "totalTokens": 2100
+                      },
+                      "execution": {
+                        "completedSteps": 0,
+                        "status": "awaiting-onboarding",
+                        "steps": [],
+                        "stopPoint": {
+                          "blockedAction": "grid-connection.validate",
+                          "blockedStep": 1,
+                          "message": "Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?",
+                          "missingParams": [
+                            "gridOperatorName"
+                          ],
+                          "onboardingQuestion": {
+                            "answer": null,
+                            "answeredAt": null,
+                            "paramKey": "gridOperatorName",
+                            "questionId": "oq_abc123",
+                            "questionText": "Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?",
+                            "status": "pending",
+                            "ts": "2026-05-15T14:20:00Z"
+                          },
+                          "reasonCode": "MISSING_INPUTS",
+                          "status": "awaiting-onboarding"
+                        }
+                      },
+                      "executionMode": "auto",
+                      "historyCount": 3,
+                      "l3Compressed": false,
+                      "layer4Purged": true,
+                      "plan": {
+                        "status": "partial",
+                        "steps": [
+                          {
+                            "action": "grid-connection.validate",
+                            "blocked": true,
+                            "dependencies": [],
+                            "label": "Netzanschluss Validierung",
+                            "params": {
+                              "gridOperatorName": null
+                            },
+                            "stepId": 1
+                          }
+                        ]
+                      },
+                      "reply": "Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?",
+                      "routing": {
+                        "primaryIntent": "grid-connection.validate",
+                        "requestedDomains": [
+                          "grid-connection"
+                        ],
+                        "routeKey": null,
+                        "routeLabel": "grid_operator_identity_resolution",
+                        "secondaryIntents": [],
+                        "source": "capability-broker",
+                        "unsupportedDomains": [],
+                        "warnings": []
+                      },
+                      "sessionId": "pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8",
                       "success": true
                     }
                   },
@@ -22761,8 +22890,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.52.7"
+  "x-version": "0.52.9"
 }
 
 ## Integrity
-- llm_txt_sha256: 8b140086020a3ceec0c72d35aa43af5985f69b989cef29d18faf0672dc549698
+- llm_txt_sha256: 7d3ddc39c9de908da2f965029120c97c613e962fb0e869251b3926f867fcec6e

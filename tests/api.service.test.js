@@ -448,6 +448,14 @@ describe('API Gateway Service', () => {
       expect(apiRoute.bodyParsers.urlencoded).toBeDefined();
     });
 
+    it('should configure multipart upload limits for personal-agent chat', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      expect(apiRoute.busboyConfig).toBeDefined();
+      expect(apiRoute.busboyConfig.limits.files).toBe(5);
+      expect(apiRoute.busboyConfig.limits.fileSize).toBe(10 * 1024 * 1024);
+      expect(apiRoute.busboyConfig.limits.fields).toBe(10);
+    });
+
     it('should have onBeforeCall hook', () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       expect(apiRoute.onBeforeCall).toBeDefined();
@@ -484,6 +492,95 @@ describe('API Gateway Service', () => {
       expect(ctx.meta.cernionToken).toBe('query-token');
       expect(req.query.token).toBeUndefined();
       expect(req.$params.token).toBeUndefined();
+    });
+
+    it('should normalize multipart personal-agent chat params into ctx.params.fileAttachments', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'api-multipart-'));
+      const uploadPath = path.join(tmpDir, 'test.csv');
+      fs.writeFileSync(uploadPath, 'A,B\n1,2\n');
+
+      const ctx = { meta: {} };
+      const req = {
+        headers: { 'x-tenant-id': 'tenant-upload' },
+        query: {},
+        body: {},
+        params: {},
+        method: 'POST',
+        url: '/api/personal-agent/chat',
+        $multipart: true,
+        $params: {
+          message: 'Analysiere diese CSV',
+          executionMode: 'auto',
+          fileAttachments: [
+            {
+              path: uploadPath,
+              originalname: 'test.csv',
+              mimetype: 'text/csv',
+              size: 8,
+            },
+          ],
+        },
+      };
+
+      await apiRoute.onBeforeCall.call(
+        { logger: { debug: jest.fn(), warn: jest.fn() }, broker },
+        ctx,
+        apiRoute,
+        req,
+        {}
+      );
+
+      expect(ctx.params.message).toBe('Analysiere diese CSV');
+      expect(ctx.params.fileAttachments).toHaveLength(1);
+      expect(ctx.params.fileAttachments[0].attachmentId).toMatch(/^fa_/);
+      expect(ctx.params.fileAttachments[0].tempPath).toContain(path.join('uploads', 'tenant-upload'));
+      expect(fs.existsSync(ctx.params.fileAttachments[0].tempPath)).toBe(true);
+
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+      fs.rmSync(path.dirname(path.dirname(ctx.params.fileAttachments[0].tempPath)), {
+        recursive: true,
+        force: true,
+      });
+    });
+
+    it('should reject multipart chat when total upload size exceeds 50MB', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'api-multipart-big-'));
+      const p1 = path.join(tmpDir, 'a.csv');
+      const p2 = path.join(tmpDir, 'b.csv');
+      fs.writeFileSync(p1, 'A,B\n1,2\n');
+      fs.writeFileSync(p2, 'A,B\n3,4\n');
+
+      const ctx = { meta: {} };
+      const req = {
+        headers: { 'x-tenant-id': 'tenant-upload' },
+        query: {},
+        body: {},
+        params: {},
+        method: 'POST',
+        url: '/api/personal-agent/chat',
+        $multipart: true,
+        $params: {
+          message: 'Analysiere diese Dateien',
+          fileAttachments: [
+            { path: p1, originalname: 'a.csv', mimetype: 'text/csv', size: 30 * 1024 * 1024 },
+            { path: p2, originalname: 'b.csv', mimetype: 'text/csv', size: 30 * 1024 * 1024 },
+          ],
+        },
+      };
+
+      await expect(
+        apiRoute.onBeforeCall.call(
+          { logger: { debug: jest.fn(), warn: jest.fn() }, broker },
+          ctx,
+          apiRoute,
+          req,
+          {}
+        )
+      ).rejects.toMatchObject({ code: 413, type: 'FILE_TOO_LARGE' });
+
+      fs.rmSync(tmpDir, { recursive: true, force: true });
     });
 
     it('should extract token from body when provided', async () => {

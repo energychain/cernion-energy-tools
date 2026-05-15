@@ -55,6 +55,39 @@ describe('personal-agent-context', () => {
     expect(finalized.stack.l4).toBeNull();
   });
 
+  it('keeps fileAttachments in L3 and persisted payload', () => {
+    const attachment = {
+      attachmentId: 'fa_01',
+      fileName: 'zaehler.csv',
+      mimeType: 'text/csv',
+      category: 'tabular',
+      sizeBytes: 120,
+      extract: { type: 'csv', rowCount: 2, headers: ['A'] },
+    };
+
+    const stack = buildContextStack({
+      systemPrompt: 'system',
+      tenantFacts: [],
+      userProfile: {},
+      sessionHistory: [{ role: 'user', text: 'Hallo', ts: new Date().toISOString() }],
+      fileAttachments: [attachment],
+    });
+
+    expect(stack.stack.l3.fileAttachments).toHaveLength(1);
+
+    const persisted = buildPersistableSessionState({
+      id: 'session-1',
+      tenantId: 'default',
+      userId: 'u-1',
+      l3: stack.stack.l3,
+      l2: { userProfile: {} },
+      l1: { tenantFacts: [] },
+    });
+
+    expect(persisted.l3.fileAttachments).toHaveLength(1);
+    expect(persisted.l3.fileAttachments[0].attachmentId).toBe('fa_01');
+  });
+
   it('rejects persistable state when forbidden L4 keys leak in', () => {
     expect(() =>
       buildPersistableSessionState({

@@ -32,6 +32,14 @@ const {
   markStaleQuestions,
   resolveParamKeyFromMissing,
 } = require('../src/personal-agent-onboarding');
+const {
+  recognizeFileType,
+  parseCsvExtract,
+  parseExcelExtract,
+  ocrExtractImage,
+  extractDocumentText,
+  injectFileIntoL3,
+} = require('../src/personal-agent-file-handler');
 
 const OPENAPI_TAG = 'Personal Agent';
 const SESSION_NAMESPACE = process.env.PERSONAL_AGENT_SESSION_NAMESPACE || 'personal_agent_sessions';
@@ -70,6 +78,20 @@ module.exports = {
         message: { type: 'string', min: 1, trim: true, max: 8000 },
         sessionId: { type: 'string', optional: true, trim: true, max: 120 },
         toolContext: { type: 'object', optional: true },
+        fileAttachments: {
+          type: 'array',
+          optional: true,
+          items: {
+            type: 'object',
+            props: {
+              attachmentId: { type: 'string', optional: true },
+              fileName: { type: 'string', optional: true },
+              mimeType: { type: 'string', optional: true },
+              sizeBytes: { type: 'number', optional: true, convert: true },
+              tempPath: { type: 'string', optional: true },
+            },
+          },
+        },
         executionMode: {
           type: 'enum',
           optional: true,
@@ -97,6 +119,19 @@ module.exports = {
                   executionMode: { type: 'string', enum: [EXECUTION_MODES.AUTO, EXECUTION_MODES.HITL], default: EXECUTION_MODES.AUTO },
                   toolContext: { type: 'object', additionalProperties: true, default: {} },
                   knownContext: { type: 'object', additionalProperties: true, default: {} },
+                  fileAttachments: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        attachmentId: { type: 'string' },
+                        fileName: { type: 'string' },
+                        mimeType: { type: 'string' },
+                        sizeBytes: { type: 'number' },
+                        tempPath: { type: 'string' },
+                      },
+                    },
+                  },
                 },
               },
               examples: {
@@ -106,6 +141,23 @@ module.exports = {
                     message: 'Prüfe die Netzanschlusskapazität für Troisdorf.',
                     executionMode: EXECUTION_MODES.AUTO,
                     knownContext: { location: 'Troisdorf' },
+                  },
+                },
+              },
+            },
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                required: ['message'],
+                properties: {
+                  message: { type: 'string' },
+                  sessionId: { type: 'string' },
+                  executionMode: { type: 'string', enum: [EXECUTION_MODES.AUTO, EXECUTION_MODES.HITL] },
+                  knownContext: { type: 'string', description: 'JSON-stringified object' },
+                  toolContext: { type: 'string', description: 'JSON-stringified object' },
+                  fileAttachments: {
+                    type: 'array',
+                    items: { type: 'string', format: 'binary' },
                   },
                 },
               },
@@ -506,6 +558,10 @@ module.exports = {
         const session = await this.loadSession(ctx, tenantId, sessionId, userId, {
           createIfMissing: true,
         });
+        const fileProcessing = this.processFileAttachments(
+          session,
+          Array.isArray(ctx.params.fileAttachments) ? ctx.params.fileAttachments : []
+        );
         const userMessage = {
           role: 'user',
           text: ctx.params.message,
@@ -531,6 +587,7 @@ module.exports = {
           tenantFacts: session.l1?.tenantFacts || [],
           userProfile: session.l2?.userProfile || {},
           sessionHistory: [...(session.l3?.history || []), userMessage],
+          fileAttachments: session.l3?.fileAttachments || [],
           toolContext: ctx.params.toolContext || null,
           maxContextTokens: this.settings.maxContextTokens,
         });
@@ -541,6 +598,7 @@ module.exports = {
           executionMode,
           plan: responsePlan,
           execution,
+          fileProcessing,
         });
 
         const finalized = synthesizeAndPurgeLayer4(stackResult.stack, synthesisText);
@@ -584,6 +642,7 @@ module.exports = {
           l3Compressed: Boolean(finalized.stack?.l3?.compressed),
           contextUsage: stackResult.usage,
           historyCount: finalized.stack?.l3?.history?.length || 0,
+          fileProcessing,
           routing: {
             source: responsePlan.source,
             routeKey: responsePlan.routeKey,
@@ -691,7 +750,7 @@ module.exports = {
           userId,
           l1: { tenantFacts: current.l1?.tenantFacts || [] },
           l2: current.l2,
-          l3: { history: [], summary: null, compressed: false },
+          l3: { history: [], fileAttachments: [], summary: null, compressed: false },
           createdAt: current.createdAt,
         });
         resetState.l3.onboardingQuestions = [];
@@ -972,30 +1031,135 @@ module.exports = {
       return merged;
     },
 
-    synthesizeTurn({ message, toolContext, executionMode, plan, execution }) {
+    buildFileProcessingIntro(fileProcessing = []) {
+      if (!Array.isArray(fileProcessing) || fileProcessing.length === 0) {
+        return '';
+      }
+
+      const okCount = fileProcessing.filter((item) => item.status === 'ok').length;
+      const errorItems = fileProcessing.filter((item) => item.status === 'error');
+      const total = fileProcessing.length;
+
+      if (errorItems.length === 0) {
+        return `Ich habe ${okCount} Datei(en) verarbeitet. `;
+      }
+
+      const names = errorItems.map((item) => item.fileName).filter(Boolean).join(', ');
+      return `Ich habe ${okCount} von ${total} Datei(en) verarbeitet. Bei ${names} gab es einen Parse-Fehler. `;
+    },
+
+    resolveExtractForAttachment(file, typeInfo) {
+      if (!typeInfo) {
+        return null;
+      }
+
+      if (typeInfo.category === 'tabular' && typeInfo.ext === '.csv') {
+        return parseCsvExtract(file.tempPath);
+      }
+
+      if (typeInfo.category === 'tabular' && (typeInfo.ext === '.xlsx' || typeInfo.ext === '.xls')) {
+        return parseExcelExtract(file.tempPath);
+      }
+
+      if (typeInfo.category === 'image') {
+        return ocrExtractImage(file.tempPath);
+      }
+
+      if (typeInfo.category === 'document') {
+        return extractDocumentText(file.tempPath);
+      }
+
+      return {
+        type: 'unsupported',
+        summary: `Dateityp ${typeInfo.mimeType} wird in dieser Version nicht unterstützt.`,
+      };
+    },
+
+    processFileAttachments(session, files = []) {
+      if (!Array.isArray(files) || files.length === 0) {
+        return [];
+      }
+
+      const results = [];
+
+      for (const file of files) {
+        const attachmentId = String(file?.attachmentId || `fa_${crypto.randomUUID().slice(0, 8)}`);
+        const fileName = String(file?.fileName || 'attachment');
+        const mimeType = String(file?.mimeType || 'application/octet-stream');
+        const sizeBytes = Number(file?.sizeBytes || 0);
+
+        try {
+          const typeInfo = recognizeFileType(file?.tempPath);
+          const extract = this.resolveExtractForAttachment(file, typeInfo);
+
+          injectFileIntoL3(session, {
+            attachmentId,
+            fileName,
+            mimeType,
+            category: typeInfo.category,
+            sizeBytes,
+            extract,
+          });
+
+          results.push({
+            attachmentId,
+            fileName,
+            status: 'ok',
+          });
+        } catch (error) {
+          const mappedError = {
+            code: error?.code || 'PARSE_ERROR',
+            message: error?.message || 'Datei konnte nicht verarbeitet werden.',
+          };
+
+          injectFileIntoL3(session, {
+            attachmentId,
+            fileName,
+            mimeType,
+            category: 'unknown',
+            sizeBytes,
+            extract: null,
+            error: mappedError,
+          });
+
+          results.push({
+            attachmentId,
+            fileName,
+            status: 'error',
+            error: mappedError,
+          });
+        }
+      }
+
+      return results;
+    },
+
+    synthesizeTurn({ message, toolContext, executionMode, plan, execution, fileProcessing = [] }) {
+      const fileIntro = this.buildFileProcessingIntro(fileProcessing);
+
       if (toolContext && toolContext.responseRaw) {
         const keyCount = Object.keys(toolContext.responseRaw || {}).length;
-        return `Tool-Ergebnis verarbeitet (${keyCount} Felder). Zusammenfassung erstellt und Layer 4 verworfen.`;
+        return `${fileIntro}Tool-Ergebnis verarbeitet (${keyCount} Felder). Zusammenfassung erstellt und Layer 4 verworfen.`;
       }
       if (executionMode === EXECUTION_MODES.HITL) {
-        return `Plan bereit: ${plan.steps.length} deterministische Schritte für „${String(message)
+        return `${fileIntro}Plan bereit: ${plan.steps.length} deterministische Schritte für „${String(message)
           .trim()
           .slice(0, 160)}“. Ausführung wartet auf Freigabe.`;
       }
       if (execution?.status === 'awaiting-onboarding') {
         const questionText = execution?.stopPoint?.onboardingQuestion?.questionText;
         if (questionText) {
-          return questionText;
+          return `${fileIntro}${questionText}`;
         }
-        return `Ich benötige noch Angaben, um fortzufahren. ${execution?.stopPoint?.message || ''}`.trim();
+        return `${fileIntro}Ich benötige noch Angaben, um fortzufahren. ${execution?.stopPoint?.message || ''}`.trim();
       }
       if (execution?.status === 'completed') {
-        return `Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt.`;
+        return `${fileIntro}Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt.`;
       }
       if (execution?.status === 'partial') {
-        return `Teilweise ausgeführt: ${execution.completedSteps || 0} Schritt(e) erfolgreich, dann kontrolliert gestoppt (${execution.stopPoint?.reasonCode || 'UNSPECIFIED'}).`;
+        return `${fileIntro}Teilweise ausgeführt: ${execution.completedSteps || 0} Schritt(e) erfolgreich, dann kontrolliert gestoppt (${execution.stopPoint?.reasonCode || 'UNSPECIFIED'}).`;
       }
-      return `Verstanden. Nächster Schritt für: ${String(message).trim().slice(0, 240)}`;
+      return `${fileIntro}Verstanden. Nächster Schritt für: ${String(message).trim().slice(0, 240)}`;
     },
 
     async getBrokerRecommendation(ctx, message) {
@@ -1450,6 +1614,9 @@ module.exports = {
           l2: payload.l2 || { userProfile },
           l3: {
             history: Array.isArray(payload?.l3?.history) ? payload.l3.history : [],
+            fileAttachments: Array.isArray(payload?.l3?.fileAttachments)
+              ? payload.l3.fileAttachments
+              : [],
             summary: payload?.l3?.summary || null,
             compressed: Boolean(payload?.l3?.compressed),
             onboardingQuestions: Array.isArray(payload?.l3?.onboardingQuestions)
@@ -1481,6 +1648,7 @@ module.exports = {
           l2: { userProfile },
           l3: {
             history: [],
+            fileAttachments: [],
             summary: null,
             compressed: false,
             onboardingQuestions: [],

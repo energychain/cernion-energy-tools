@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.52.7",
+    "version": "0.52.9",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -9993,6 +9993,76 @@
                       }
                     }
                   },
+                  "awaitingOnboarding": {
+                    "summary": "AUTO Mode: Awaiting onboarding answer",
+                    "value": {
+                      "success": true,
+                      "sessionId": "pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8",
+                      "executionMode": "auto",
+                      "reply": "Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?",
+                      "layer4Purged": true,
+                      "l3Compressed": false,
+                      "contextUsage": {
+                        "totalTokens": 2100,
+                        "estimatedPromptTokens": 1200,
+                        "estimatedCompletionTokens": 900,
+                        "maxTokens": 128000,
+                        "percentUsed": 1.6
+                      },
+                      "historyCount": 3,
+                      "routing": {
+                        "source": "capability-broker",
+                        "routeKey": null,
+                        "routeLabel": "grid_operator_identity_resolution",
+                        "primaryIntent": "grid-connection.validate",
+                        "secondaryIntents": [],
+                        "requestedDomains": [
+                          "grid-connection"
+                        ],
+                        "unsupportedDomains": [],
+                        "warnings": []
+                      },
+                      "plan": {
+                        "status": "partial",
+                        "steps": [
+                          {
+                            "stepId": 1,
+                            "action": "grid-connection.validate",
+                            "label": "Netzanschluss Validierung",
+                            "params": {
+                              "gridOperatorName": null
+                            },
+                            "dependencies": [],
+                            "blocked": true
+                          }
+                        ]
+                      },
+                      "execution": {
+                        "status": "awaiting-onboarding",
+                        "completedSteps": 0,
+                        "steps": [],
+                        "stopPoint": {
+                          "reasonCode": "MISSING_INPUTS",
+                          "blockedStep": 1,
+                          "blockedAction": "grid-connection.validate",
+                          "missingParams": [
+                            "gridOperatorName"
+                          ],
+                          "message": "Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?",
+                          "status": "awaiting-onboarding",
+                          "onboardingQuestion": {
+                            "questionId": "oq_abc123",
+                            "paramKey": "gridOperatorName",
+                            "questionText": "Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?",
+                            "ts": "2026-05-15T14:20:00Z",
+                            "answeredAt": null,
+                            "answer": null,
+                            "status": "pending"
+                          }
+                        }
+                      }
+                    }
+                  },
                   "autoFullSuccess": {
                     "summary": "AUTO Mode: Full execution completed",
                     "value": {
@@ -10325,6 +10395,29 @@
                     "type": "object",
                     "additionalProperties": true,
                     "default": {}
+                  },
+                  "fileAttachments": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "attachmentId": {
+                          "type": "string"
+                        },
+                        "fileName": {
+                          "type": "string"
+                        },
+                        "mimeType": {
+                          "type": "string"
+                        },
+                        "sizeBytes": {
+                          "type": "number"
+                        },
+                        "tempPath": {
+                          "type": "string"
+                        }
+                      }
+                    }
                   }
                 }
               },
@@ -10336,6 +10429,44 @@
                     "executionMode": "auto",
                     "knownContext": {
                       "location": "Troisdorf"
+                    }
+                  }
+                }
+              }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "message"
+                ],
+                "properties": {
+                  "message": {
+                    "type": "string"
+                  },
+                  "sessionId": {
+                    "type": "string"
+                  },
+                  "executionMode": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "hitl"
+                    ]
+                  },
+                  "knownContext": {
+                    "type": "string",
+                    "description": "JSON-stringified object"
+                  },
+                  "toolContext": {
+                    "type": "string",
+                    "description": "JSON-stringified object"
+                  },
+                  "fileAttachments": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
                     }
                   }
                 }
@@ -21794,5 +21925,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.52.7"
+  "x-version": "0.52.9"
 }
