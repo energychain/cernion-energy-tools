@@ -14,6 +14,66 @@ jest.mock('../src/llm-client', () => ({
   capabilities: jest.fn(() => ({ embeddings: true })),
 }));
 
+jest.mock('../src/job-store', () => {
+  const jobs = new Map();
+  const byIdempotency = new Map();
+  let seq = 0;
+
+  function mergeJob(jobId, patch) {
+    const current = jobs.get(jobId) || { jobId };
+    const next = {
+      ...current,
+      ...patch,
+    };
+    jobs.set(jobId, next);
+    return next;
+  }
+
+  return {
+    startJob: jest.fn(async (_ctx, _meta, _worker, options = {}) => {
+      const idempotencyKey = String(options.idempotencyKey || '');
+      const existingJobId = byIdempotency.get(idempotencyKey);
+      if (existingJobId) {
+        const existing = jobs.get(existingJobId);
+        if (existing && (existing.status === 'queued' || existing.status === 'running')) {
+          return { jobId: existingJobId, status: 'queued', reused: true };
+        }
+      }
+
+      seq += 1;
+      const jobId = `job-${seq}`;
+      byIdempotency.set(idempotencyKey, jobId);
+      jobs.set(jobId, {
+        jobId,
+        status: 'queued',
+        idempotencyKey,
+        dreamSchedule: null,
+      });
+      return { jobId, status: 'queued', reused: false };
+    }),
+    findJobByIdempotencyKey: jest.fn((service, action, idempotencyKey) => {
+      const jobId = byIdempotency.get(String(idempotencyKey || ''));
+      if (!jobId) return null;
+      const job = jobs.get(jobId);
+      if (!job) return null;
+      return {
+        jobId,
+        service,
+        action,
+        idempotencyKey,
+        status: job.status,
+      };
+    }),
+    getJob: jest.fn((jobId) => jobs.get(jobId) || null),
+    updateJob: jest.fn((jobId, patch) => mergeJob(jobId, patch)),
+    __reset: jest.fn(() => {
+      jobs.clear();
+      byIdempotency.clear();
+      seq = 0;
+    }),
+  };
+});
+
 const {
   extractFacts,
   enrichL2Profile,
@@ -24,12 +84,13 @@ const {
   scheduleDream,
   cancelDream,
   isDreamPending,
+  buildDreamIdempotencyKey,
   COSINE_DEDUP_THRESHOLD,
   OCC_MAX_RETRIES,
-  _dreamTimers,
 } = require('../src/personal-agent-dreamer');
 
 const { embeddings: mockEmbeddings, capabilities: mockCapabilities } = require('../src/llm-client');
+const jobStore = require('../src/job-store');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -409,6 +470,22 @@ describe('AK2 — enrichL1TenantMemory', () => {
     expect(result.added).toBe(0);
     expect(result.skipped).toBe(0);
   });
+
+  test('adds newly persisted vector for intra-batch dedup in same dream run', async () => {
+    const ctx = makeCtx();
+    mockCapabilities.mockReturnValue({ embeddings: true });
+    mockEmbeddings
+      .mockResolvedValueOnce([[1, 0, 0]])
+      .mockResolvedValueOnce([[0.999, 0.001, 0]]);
+
+    const result = await enrichL1TenantMemory(ctx, 'tenant1', [
+      'Fact A',
+      'Fact B semantically duplicate of A',
+    ]);
+
+    expect(result.added).toBe(1);
+    expect(result.skipped).toBe(1);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -509,39 +586,80 @@ describe('runDreamPipeline', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Timer management (scheduleDream / cancelDream / isDreamPending)
+// Durable scheduling (scheduleDream / cancelDream / isDreamPending)
 // ---------------------------------------------------------------------------
 
-describe('Dream timer management', () => {
+describe('Dream durable scheduling', () => {
+  const broker = {
+    call: jest.fn(async () => ({ ok: true })),
+  };
+
   beforeEach(() => {
-    // Clear all timers between tests
-    for (const [sid] of _dreamTimers) cancelDream(sid);
+    jobStore.__reset();
   });
 
   test('isDreamPending returns false when no timer set', () => {
-    expect(isDreamPending('no-session')).toBe(false);
+    expect(isDreamPending('tenant1', 'no-session')).toBe(false);
   });
 
-  test('isDreamPending returns true after scheduleDream', () => {
-    scheduleDream('sess-x', 'tenant1', 'user1', jest.fn());
-    expect(isDreamPending('sess-x')).toBe(true);
-    cancelDream('sess-x');
+  test('isDreamPending returns true after scheduleDream', async () => {
+    await scheduleDream({
+      broker,
+      tenantId: 'tenant1',
+      sessionId: 'sess-x',
+      userId: 'user1',
+      profileNamespace: 'personal_agent_user_profiles:tenant1',
+      session: { l3: { history: [] } },
+      runFn: jest.fn(),
+    });
+    expect(isDreamPending('tenant1', 'sess-x')).toBe(true);
+    await cancelDream('tenant1', 'sess-x');
   });
 
-  test('cancelDream removes pending timer', () => {
-    scheduleDream('sess-y', 'tenant1', 'user1', jest.fn());
-    cancelDream('sess-y');
-    expect(isDreamPending('sess-y')).toBe(false);
+  test('cancelDream removes pending schedule', async () => {
+    await scheduleDream({
+      broker,
+      tenantId: 'tenant1',
+      sessionId: 'sess-y',
+      userId: 'user1',
+      profileNamespace: 'personal_agent_user_profiles:tenant1',
+      session: { l3: { history: [] } },
+      runFn: jest.fn(),
+    });
+    await cancelDream('tenant1', 'sess-y');
+    expect(isDreamPending('tenant1', 'sess-y')).toBe(false);
   });
 
-  test('scheduleDream replaces existing timer (idempotent re-schedule)', () => {
-    const fn1 = jest.fn();
-    const fn2 = jest.fn();
-    scheduleDream('sess-z', 'tenant1', 'user1', fn1);
-    scheduleDream('sess-z', 'tenant1', 'user1', fn2);
-    expect(isDreamPending('sess-z')).toBe(true);
-    // Only one timer should be active
-    expect(_dreamTimers.size).toBeGreaterThanOrEqual(1);
-    cancelDream('sess-z');
+  test('scheduleDream updates generation on idempotent re-schedule', async () => {
+    const first = await scheduleDream({
+      broker,
+      tenantId: 'tenant1',
+      sessionId: 'sess-z',
+      userId: 'user1',
+      profileNamespace: 'personal_agent_user_profiles:tenant1',
+      session: { l3: { history: [{ role: 'user', text: 'first' }] } },
+      runFn: jest.fn(),
+    });
+    const second = await scheduleDream({
+      broker,
+      tenantId: 'tenant1',
+      sessionId: 'sess-z',
+      userId: 'user1',
+      profileNamespace: 'personal_agent_user_profiles:tenant1',
+      session: { l3: { history: [{ role: 'user', text: 'second' }] } },
+      runFn: jest.fn(),
+    });
+
+    expect(second.jobId).toBe(first.jobId);
+    expect(second.generation).toBeGreaterThan(first.generation);
+    expect(isDreamPending('tenant1', 'sess-z')).toBe(true);
+  });
+
+  test('buildDreamIdempotencyKey is tenant-scoped and deterministic', () => {
+    const keyA = buildDreamIdempotencyKey('tenant1', 'session1');
+    const keyB = buildDreamIdempotencyKey('tenant1', 'session1');
+    const keyC = buildDreamIdempotencyKey('tenant2', 'session1');
+    expect(keyA).toBe(keyB);
+    expect(keyA).not.toBe(keyC);
   });
 });

@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.52.5] — Hermes Review Fixes (Personal Agent)
+
+### Fixed
+- [services/personal-agent.service.js](services/personal-agent.service.js): removed stale request-context capture in Dream scheduling. The `chat` flow now schedules background Dream execution via broker-backed durable job scheduling and no longer closes over request-scoped `ctx`.
+- [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): replaced process-local Dream timer registry with durable v0.52.2 job-store scheduling (`startJob`, idempotent session key, persisted dream schedule generations), including tenant-scoped pending/cancel semantics.
+- [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): strengthened AK1 optimistic concurrency guard in `enrichL2Profile()` to re-check on every write attempt before commit, preventing first-attempt TOCTOU silent overwrites.
+- [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): fixed AK2 intra-batch dedup in `enrichL1TenantMemory()` by persisting newly computed embedding vectors into the in-memory comparison set after successful writes.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `loadSession()` now supports `createIfMissing` and only auto-creates sessions for `chat`; `getSession` and `resetSession` now return `OBJECT_NOT_FOUND` (404) for missing sessions.
+
+### Changed
+- [tests/personal-agent-dreamer.test.js](tests/personal-agent-dreamer.test.js): migrated scheduler tests to durable job-store semantics, added regression coverage for generation-based re-scheduling and new intra-batch vector dedup behavior.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added explicit 404 regressions for `getSession` and `resetSession` on unknown session IDs.
+- [package.json](package.json): bumped version to `0.52.5`.
+- [package-lock.json](package-lock.json): aligned lockfile version to `0.52.5`.
+- [README.md](README.md): updated current release marker to `v0.52.5`.
+
+### Notes
+- v0.52.4 TDD matrix automation remains green: 58/58 required IDs passed (100% hard gate).
+
 ## [0.52.4] — TDD-Matrix & Qualitätsautomation
 
 ### Added

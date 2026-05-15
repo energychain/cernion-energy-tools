@@ -431,7 +431,9 @@ module.exports = {
         const userId = String(ctx.meta?.authUser?.userId || 'anonymous');
         const sessionId = String(ctx.params.sessionId || `pa_${crypto.randomUUID()}`);
         const executionMode = normalizeExecutionMode(ctx.params.executionMode);
-        const session = await this.loadSession(ctx, tenantId, sessionId, userId);
+        const session = await this.loadSession(ctx, tenantId, sessionId, userId, {
+          createIfMissing: true,
+        });
         const userMessage = {
           role: 'user',
           text: ctx.params.message,
@@ -494,10 +496,25 @@ module.exports = {
         await this.persistSession(ctx, tenantId, sessionId, persisted);
 
         // Schedule (or re-schedule) the post-session Dream pipeline
-        cancelDream(sessionId);
+        await cancelDream(tenantId, sessionId);
         const profileNs = tenantNamespace(PROFILE_NAMESPACE, tenantId);
-        scheduleDream(sessionId, tenantId, userId, async (sid, tid, uid) => {
-          await this.runDream(ctx, sid, tid, uid, profileNs, persisted);
+        await scheduleDream({
+          broker: this.broker,
+          sessionId,
+          tenantId,
+          userId,
+          profileNamespace: profileNs,
+          session: persisted,
+          runFn: async (payload) => {
+            await this.runDream(
+              this.broker,
+              payload.sessionId,
+              payload.tenantId,
+              payload.userId,
+              payload.profileNamespace,
+              payload.session
+            );
+          },
         });
 
         return {
@@ -671,10 +688,11 @@ module.exports = {
       },
       async handler(ctx) {
         const sessionId = String(ctx.params.sessionId);
+        const tenantId = getTenantId(ctx);
         return {
           success: true,
           sessionId,
-          dreamPending: isDreamPending(sessionId),
+          dreamPending: isDreamPending(tenantId, sessionId),
         };
       },
     },
@@ -781,9 +799,25 @@ module.exports = {
      * Run the Dream pipeline for a session.
      * Called by the inactivity timer; errors are silently swallowed.
      */
-    async runDream(ctx, sessionId, tenantId, userId, profileNamespace, session) {
+    async runDream(broker, sessionId, tenantId, userId, profileNamespace, session) {
+      const dreamMeta = {
+        tenantId,
+        authUser: { userId },
+        source: 'personal-agent.dream',
+      };
+      const dreamCtx = {
+        meta: dreamMeta,
+        call: (action, params, options = {}) => {
+          const mergedMeta = {
+            ...(options.meta || {}),
+            ...dreamMeta,
+          };
+          return broker.call(action, params, { ...options, meta: mergedMeta });
+        },
+      };
+
       try {
-        await runDreamPipeline(ctx, sessionId, tenantId, userId, profileNamespace, session);
+        await runDreamPipeline(dreamCtx, sessionId, tenantId, userId, profileNamespace, session);
       } catch (err) {
         this.logger?.warn(`Dream pipeline failed for session ${sessionId}: ${err.message}`);
       }
@@ -985,9 +1019,10 @@ module.exports = {
       }
     },
 
-    async loadSession(ctx, tenantId, sessionId, userId) {
+    async loadSession(ctx, tenantId, sessionId, userId, options = {}) {
       const namespace = tenantNamespace(SESSION_NAMESPACE, tenantId);
       const userProfile = await this.loadUserProfile(ctx, tenantId, userId);
+      const createIfMissing = Boolean(options.createIfMissing);
 
       try {
         const doc = await ctx.call(
@@ -1010,6 +1045,15 @@ module.exports = {
       } catch (error) {
         if (!isNotFound(error)) {
           throw error;
+        }
+
+        if (!createIfMissing) {
+          throw new MoleculerClientError(
+            `Personal-Agent session not found: ${sessionId}`,
+            404,
+            'OBJECT_NOT_FOUND',
+            { sessionId }
+          );
         }
 
         return {

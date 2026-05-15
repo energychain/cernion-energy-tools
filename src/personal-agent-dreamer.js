@@ -16,6 +16,7 @@
 
 const crypto = require('crypto');
 const { embeddings: llmEmbeddings, capabilities: llmCapabilities } = require('./llm-client');
+const jobStore = require('./job-store');
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -26,59 +27,231 @@ const DREAM_AUDIT_NAMESPACE = 'personal_agent_dream_audit';
 const TENANT_MEMORY_NAMESPACE = 'personal_agent_tenant_memory';
 const OCC_MAX_RETRIES = 3;
 const COSINE_DEDUP_THRESHOLD = 0.95;
+const DREAM_JOB_SERVICE = 'personal-agent';
+const DREAM_JOB_ACTION = 'dream-pipeline';
+const DREAM_SCHEDULER_SLICE_MS = Number(process.env.DREAM_SCHEDULER_SLICE_MS || 1000);
 
-// In-memory per-session timer registry (keyed by sessionId)
-const _dreamTimers = new Map();
+function buildDreamIdempotencyKey(tenantId, sessionId) {
+  return `personal-agent:dream:${tenantId}:${sessionId}`;
+}
 
 // ---------------------------------------------------------------------------
-// Inactivity timer management
+// Durable dream scheduling via v0.52.2 job-store
 // ---------------------------------------------------------------------------
 
 /**
  * Schedule (or re-schedule) a Dream run for the given session.
- * Idempotent: cancels any existing timer for the sessionId before creating a new one.
+ * Durable execution mode: creates/reuses one idempotent async job per tenant+session.
+ * Re-scheduling updates the persisted dueAt generation in the job record.
  *
- * @param {string} sessionId
- * @param {string} tenantId
- * @param {string} userId
- * @param {Function} runFn - async () => void  (bound caller with ctx)
+ * @param {object} options
+ * @param {object} options.broker - Moleculer broker instance
+ * @param {string} options.sessionId
+ * @param {string} options.tenantId
+ * @param {string} options.userId
+ * @param {string} options.profileNamespace
+ * @param {object} options.session
+ * @param {Function} options.runFn - async (payload) => void
+ * @returns {Promise<{jobId:string,generation:number,dueAt:string}|null>}
  */
-function scheduleDream(sessionId, tenantId, userId, runFn) {
-  cancelDream(sessionId);
-  const timer = setTimeout(async () => {
-    _dreamTimers.delete(sessionId);
-    try {
-      await runFn(sessionId, tenantId, userId);
-    } catch (err) {
-      // Dream errors are non-fatal — they must never surface to the user
-      /* istanbul ignore next */
-      void err;
-    }
-  }, DREAM_INACTIVITY_MS);
-  // Allow Node.js to exit even if timer is pending
-  if (timer.unref) timer.unref();
-  _dreamTimers.set(sessionId, timer);
-}
+async function scheduleDream(options = {}) {
+  const {
+    broker,
+    sessionId,
+    tenantId,
+    userId,
+    profileNamespace,
+    session,
+    runFn,
+  } = options;
 
-/**
- * Cancel a pending Dream timer for a session (e.g. user sent a new message).
- * @param {string} sessionId
- */
-function cancelDream(sessionId) {
-  const existing = _dreamTimers.get(sessionId);
-  if (existing) {
-    clearTimeout(existing);
-    _dreamTimers.delete(sessionId);
+  if (!broker || typeof broker.call !== 'function') {
+    throw new Error('scheduleDream requires a broker instance');
   }
+  if (!sessionId || !tenantId || !userId || typeof runFn !== 'function') {
+    throw new Error('scheduleDream requires sessionId, tenantId, userId and runFn');
+  }
+
+  const idempotencyKey = buildDreamIdempotencyKey(tenantId, sessionId);
+  const dueAt = new Date(Date.now() + DREAM_INACTIVITY_MS).toISOString();
+
+  const pseudoCtx = {
+    broker,
+    meta: {
+      $gateway: true,
+      tenantId,
+      requestHeaders: {
+        'x-idempotency-key': idempotencyKey,
+      },
+    },
+  };
+
+  const descriptor = await jobStore.startJob(
+    pseudoCtx,
+    { service: DREAM_JOB_SERVICE, action: DREAM_JOB_ACTION },
+    async (jobId) => {
+      while (true) {
+        const job = jobStore.getJob(jobId);
+        const schedule = job?.dreamSchedule || null;
+        if (!schedule) {
+          return { status: 'no_schedule' };
+        }
+        if (schedule.status === 'canceled') {
+          return { status: 'canceled' };
+        }
+
+        const dueAtMs = Date.parse(schedule.dueAt || '');
+        if (Number.isNaN(dueAtMs)) {
+          return { status: 'invalid_due_at' };
+        }
+
+        const waitMs = dueAtMs - Date.now();
+        if (waitMs > 0) {
+          await _sleep(Math.min(waitMs, DREAM_SCHEDULER_SLICE_MS), { unref: true });
+          continue;
+        }
+
+        const generation = Number(schedule.generation || 0);
+        const latestJob = jobStore.getJob(jobId);
+        const latestSchedule = latestJob?.dreamSchedule || null;
+        if (!latestSchedule) {
+          return { status: 'no_schedule' };
+        }
+        if (latestSchedule.status === 'canceled') {
+          return { status: 'canceled' };
+        }
+        if (Number(latestSchedule.generation || 0) !== generation) {
+          continue;
+        }
+
+        const startedAt = new Date().toISOString();
+        jobStore.updateJob(jobId, {
+          dreamSchedule: {
+            ...latestSchedule,
+            status: 'running',
+            startedAt,
+          },
+        });
+
+        try {
+          await runFn(latestSchedule.payload || {});
+          jobStore.updateJob(jobId, {
+            dreamSchedule: {
+              ...latestSchedule,
+              status: 'completed',
+              startedAt,
+              completedAt: new Date().toISOString(),
+              lastCompletedGeneration: generation,
+            },
+          });
+          return { status: 'completed', generation };
+        } catch (err) {
+          jobStore.updateJob(jobId, {
+            dreamSchedule: {
+              ...latestSchedule,
+              status: 'failed',
+              startedAt,
+              failedAt: new Date().toISOString(),
+              lastError: String(err?.message || err),
+              lastCompletedGeneration: generation,
+            },
+          });
+          throw err;
+        }
+      }
+    },
+    {
+      idempotencyKey,
+      wakeContext: {
+        service: DREAM_JOB_SERVICE,
+        action: DREAM_JOB_ACTION,
+        params: { tenantId, sessionId },
+      },
+    }
+  );
+
+  const existing = jobStore.findJobByIdempotencyKey(
+    DREAM_JOB_SERVICE,
+    DREAM_JOB_ACTION,
+    idempotencyKey
+  );
+  const jobId = descriptor?.jobId || existing?.jobId;
+  if (!jobId) {
+    return null;
+  }
+
+  const currentJob = jobStore.getJob(jobId);
+  const generation = Number(currentJob?.dreamSchedule?.generation || 0) + 1;
+  jobStore.updateJob(jobId, {
+    dreamSchedule: {
+      status: 'scheduled',
+      dueAt,
+      generation,
+      updatedAt: new Date().toISOString(),
+      payload: {
+        tenantId,
+        sessionId,
+        userId,
+        profileNamespace,
+        session,
+      },
+    },
+  });
+
+  return { jobId, generation, dueAt };
 }
 
 /**
- * Returns true if a dream is currently scheduled for the session.
+ * Cancel a pending Dream schedule for tenant+session.
+ * Uses durable job metadata instead of process-local timers.
+ *
+ * @param {string} tenantId
+ * @param {string} sessionId
+ * @returns {Promise<boolean>}
+ */
+async function cancelDream(tenantId, sessionId) {
+  const idempotencyKey = buildDreamIdempotencyKey(tenantId, sessionId);
+  const existing = jobStore.findJobByIdempotencyKey(
+    DREAM_JOB_SERVICE,
+    DREAM_JOB_ACTION,
+    idempotencyKey
+  );
+  if (!existing?.jobId) {
+    return false;
+  }
+
+  const current = jobStore.getJob(existing.jobId);
+  jobStore.updateJob(existing.jobId, {
+    dreamSchedule: {
+      ...(current?.dreamSchedule || {}),
+      status: 'canceled',
+      canceledAt: new Date().toISOString(),
+    },
+  });
+
+  return true;
+}
+
+/**
+ * Returns true if a dream is currently scheduled or running for tenant+session.
+ * @param {string} tenantId
  * @param {string} sessionId
  * @returns {boolean}
  */
-function isDreamPending(sessionId) {
-  return _dreamTimers.has(sessionId);
+function isDreamPending(tenantId, sessionId) {
+  const idempotencyKey = buildDreamIdempotencyKey(tenantId, sessionId);
+  const existing = jobStore.findJobByIdempotencyKey(
+    DREAM_JOB_SERVICE,
+    DREAM_JOB_ACTION,
+    idempotencyKey
+  );
+  if (!existing?.jobId) {
+    return false;
+  }
+
+  const current = jobStore.getJob(existing.jobId);
+  const scheduleStatus = current?.dreamSchedule?.status;
+  return scheduleStatus === 'scheduled' || scheduleStatus === 'running';
 }
 
 // ---------------------------------------------------------------------------
@@ -233,23 +406,24 @@ async function enrichL2Profile(ctx, tenantId, userId, profileNamespace, preferen
       updatedAt: new Date().toISOString(),
     };
 
-    // 3. Write — object-store handles internal _rev; we guard at app level via updatedAt
+    // 3. Write — optimistic guard re-check on every attempt before commit
     try {
-      // Re-read to detect concurrent write before we commit
-      if (attempt > 0) {
-        let recheck;
-        try {
-          recheck = await ctx.call('object-store.get', { namespace: profileNamespace, key: userId }, { meta: ctx.meta });
-        } catch (recheckErr) {
-          if (!_isNotFound(recheckErr)) throw recheckErr;
-          recheck = null;
+      // Re-read to detect concurrent write before every commit attempt.
+      let recheck;
+      try {
+        recheck = await ctx.call('object-store.get', { namespace: profileNamespace, key: userId }, { meta: ctx.meta });
+      } catch (recheckErr) {
+        if (!_isNotFound(recheckErr)) throw recheckErr;
+        recheck = null;
+      }
+      const recheckUpdatedAt = recheck?.updatedAt || null;
+      if (recheckUpdatedAt !== snapshotUpdatedAt) {
+        retries += 1;
+        if (attempt >= OCC_MAX_RETRIES - 1) {
+          throw new Error('Optimistic concurrency guard failed: profile changed before commit');
         }
-        const recheckUpdatedAt = recheck?.updatedAt || null;
-        if (recheckUpdatedAt && recheckUpdatedAt !== snapshotUpdatedAt) {
-          // Concurrent write detected — retry
-          retries += 1;
-          continue;
-        }
+        await _sleep(50 * (attempt + 1));
+        continue;
       }
 
       await ctx.call('object-store.put', { namespace: profileNamespace, key: userId, payload: newPayload }, { meta: ctx.meta });
@@ -359,6 +533,7 @@ async function enrichL1TenantMemory(ctx, tenantId, tenantFacts) {
 
   for (const fact of tenantFacts) {
     if (!fact || typeof fact !== 'string') continue;
+    let newVec = null;
 
     // Exact dedup first (cheap check)
     if (existingTexts.includes(fact)) {
@@ -367,8 +542,7 @@ async function enrichL1TenantMemory(ctx, tenantId, tenantFacts) {
     }
 
     // Cosine dedup — AK2
-    if (embeddingsAvailable && existingVectors.length > 0) {
-      let newVec;
+    if (embeddingsAvailable) {
       try {
         const result = await llmEmbeddings([fact]);
         newVec = Array.isArray(result) ? result[0] : result;
@@ -376,7 +550,7 @@ async function enrichL1TenantMemory(ctx, tenantId, tenantFacts) {
         newVec = null;
       }
 
-      if (newVec) {
+      if (newVec && existingVectors.length > 0) {
         let isDuplicate = false;
         for (const existingVec of existingVectors) {
           const sim = computeCosineSimilarity(
@@ -404,6 +578,9 @@ async function enrichL1TenantMemory(ctx, tenantId, tenantFacts) {
         payload: { text: fact, addedAt: now, source: 'dream-pipeline' },
       }, { meta: ctx.meta });
       existingTexts.push(fact);
+      if (newVec) {
+        existingVectors.push(newVec);
+      }
       added += 1;
     } catch (_writeErr) {
       // Non-fatal: continue with next fact
@@ -562,8 +739,13 @@ function _isActionUnavailable(err) {
   );
 }
 
-function _sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+function _sleep(ms, options = {}) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, ms);
+    if (options.unref && typeof timer.unref === 'function') {
+      timer.unref();
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -585,6 +767,5 @@ module.exports = {
   enrichL1TenantMemory,
   appendAuditEntry,
   runDreamPipeline,
-  // exported for test injection
-  _dreamTimers,
+  buildDreamIdempotencyKey,
 };

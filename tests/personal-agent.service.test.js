@@ -167,6 +167,19 @@ describe('personal-agent.service', () => {
     expect(session.l3.history.some((entry) => entry.role === 'assistant')).toBe(true);
   });
 
+  it('getSession returns OBJECT_NOT_FOUND for unknown sessionId', async () => {
+    await expect(
+      broker.call(
+        'personal-agent.getSession',
+        { sessionId: 'missing-session-id' },
+        { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+      )
+    ).rejects.toMatchObject({
+      code: 404,
+      type: 'OBJECT_NOT_FOUND',
+    });
+  });
+
   it('returns a stable deterministic plan in HITL mode without executing tools', async () => {
     const result = await broker.call(
       'personal-agent.chat',
@@ -309,6 +322,19 @@ describe('personal-agent.service', () => {
 
     expect(reloaded.l3.history).toEqual([]);
     expect(reloaded.l2.userProfile.preferences.renderMode).toBe('table');
+  });
+
+  it('resetSession returns OBJECT_NOT_FOUND for unknown sessionId', async () => {
+    await expect(
+      broker.call(
+        'personal-agent.resetSession',
+        { sessionId: 'missing-session-id' },
+        { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+      )
+    ).rejects.toMatchObject({
+      code: 404,
+      type: 'OBJECT_NOT_FOUND',
+    });
   });
 
   it('getDreamStatus returns dreamPending: false before any chat', async () => {
