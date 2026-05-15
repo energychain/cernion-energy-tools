@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.8] — Personal Agent Conversational Onboarding
+
 ### Added
 - [src/personal-agent-onboarding.js](src/personal-agent-onboarding.js): new onboarding helper module for deterministic missing-input recovery with question lifecycle support (`pending`/`answered`/`stale`), heuristic answer capture, stale marking, and `oneOf:*` missing-token parameter resolution.
 - [tests/personal-agent-onboarding.test.js](tests/personal-agent-onboarding.test.js): dedicated module test suite for onboarding question generation, heuristic capture guardrails, fact extraction mapping, stale transitions, and missing-token resolution.
