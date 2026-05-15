@@ -17,6 +17,10 @@
 const crypto = require('crypto');
 const { embeddings: llmEmbeddings, capabilities: llmCapabilities } = require('./llm-client');
 const jobStore = require('./job-store');
+const {
+  ONBOARDING_QUESTION_STATUS,
+  listAnsweredOnboardingFacts,
+} = require('./personal-agent-onboarding');
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -414,7 +418,7 @@ function extractFacts(session) {
  * @param {Array<{key:string,value:string,confidence:number,updatedAt:string}>} preferences
  * @returns {Promise<{merged: object, conflicts: number, retries: number}>}
  */
-async function enrichL2Profile(ctx, tenantId, userId, profileNamespace, preferences) {
+async function enrichL2Profile(ctx, tenantId, userId, profileNamespace, preferences, options = {}) {
   if (!preferences || preferences.length === 0) {
     return { merged: {}, conflicts: 0, retries: 0 };
   }
@@ -435,25 +439,41 @@ async function enrichL2Profile(ctx, tenantId, userId, profileNamespace, preferen
       }
     }
 
-    const currentPayload = currentDoc?.payload || { userId, preferences: {} };
+    const currentPayload = currentDoc?.payload || { userId, preferences: {}, onboardingFacts: {} };
     const snapshotRev = currentDoc?._rev ?? null;
+    const targetKey = options.onboardingMode ? 'onboardingFacts' : 'preferences';
 
     // 2. Merge preferences using confidence-based resolution
-    const mergedPrefs = { ...(currentPayload.preferences || {}) };
+    const mergedPrefs = { ...(currentPayload[targetKey] || {}) };
 
     for (const pref of preferences) {
       const existing = mergedPrefs[pref.key];
       if (!existing) {
-        mergedPrefs[pref.key] = { value: pref.value, confidence: pref.confidence, updatedAt: pref.updatedAt };
+        mergedPrefs[pref.key] = {
+          value: pref.value,
+          confidence: pref.confidence,
+          updatedAt: pref.updatedAt,
+          source: pref.source,
+        };
       } else {
         // AK1: higher confidence wins; tie-break = newer updatedAt
         const existingConf = existing.confidence ?? 0;
         const newConf = pref.confidence ?? 0;
         if (newConf > existingConf) {
           conflicts += 1;
-          mergedPrefs[pref.key] = { value: pref.value, confidence: pref.confidence, updatedAt: pref.updatedAt };
+          mergedPrefs[pref.key] = {
+            value: pref.value,
+            confidence: pref.confidence,
+            updatedAt: pref.updatedAt,
+            source: pref.source,
+          };
         } else if (newConf === existingConf && pref.updatedAt > (existing.updatedAt || '')) {
-          mergedPrefs[pref.key] = { value: pref.value, confidence: pref.confidence, updatedAt: pref.updatedAt };
+          mergedPrefs[pref.key] = {
+            value: pref.value,
+            confidence: pref.confidence,
+            updatedAt: pref.updatedAt,
+            source: pref.source,
+          };
         }
         // else: existing wins, no-op
       }
@@ -461,7 +481,7 @@ async function enrichL2Profile(ctx, tenantId, userId, profileNamespace, preferen
 
     const newPayload = {
       ...currentPayload,
-      preferences: mergedPrefs,
+      [targetKey]: mergedPrefs,
       updatedAt: new Date().toISOString(),
     };
 
@@ -493,6 +513,44 @@ async function enrichL2Profile(ctx, tenantId, userId, profileNamespace, preferen
   }
 
   return { merged: {}, conflicts, retries };
+}
+
+/**
+ * Extract answered onboarding questions from L3 session state.
+ * @param {object} session
+ * @returns {Array<{paramKey:string,value:string,answeredAt:string,questionId:string,source:string}>}
+ */
+function extractOnboardingFactsFromSession(session) {
+  const answeredFacts = listAnsweredOnboardingFacts(session?.l3 || {});
+  return answeredFacts
+    .filter(
+      (fact) =>
+        fact?.paramKey &&
+        typeof fact?.value === 'string' &&
+        fact.value.trim().length > 0
+    )
+    .map((fact) => ({
+      paramKey: fact.paramKey,
+      value: fact.value.trim(),
+      answeredAt: fact.answeredAt,
+      source: fact.source || 'onboarding-chat',
+    }));
+}
+
+/**
+ * Convert onboarding facts to preference-like records for enrichL2Profile.
+ * @param {Array<{paramKey:string,value:string,answeredAt:string,source:string}>} facts
+ * @returns {Array<{key:string,value:string,confidence:number,updatedAt:string,source:string}>}
+ */
+function convertFactsToPreferences(facts = []) {
+  const now = new Date().toISOString();
+  return facts.map((fact) => ({
+    key: fact.paramKey,
+    value: fact.value,
+    confidence: 1,
+    updatedAt: fact.answeredAt || now,
+    source: fact.source || 'onboarding-chat',
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -707,6 +765,9 @@ async function appendAuditEntry(ctx, tenantId, entry) {
 async function runDreamPipeline(ctx, sessionId, tenantId, userId, profileNamespace, session) {
   const startedAt = new Date().toISOString();
   const stepResults = {};
+  const onboardingQuestions = Array.isArray(session?.l3?.onboardingQuestions)
+    ? session.l3.onboardingQuestions
+    : [];
 
   // Step 1: Extract facts
   let facts = { tenantFacts: [], preferences: [] };
@@ -724,6 +785,54 @@ async function runDreamPipeline(ctx, sessionId, tenantId, userId, profileNamespa
     stepResults.enrichL2Profile = { ok: true, ...l2Result };
   } catch (err) {
     stepResults.enrichL2Profile = { ok: false, error: err.message };
+  }
+
+  // Step 2b: Extract onboarding facts and persist as L2 onboardingFacts
+  let onboardingFacts = [];
+  let onboardingL2Result = null;
+  let onboardingExtraction = {
+    ok: false,
+    factsFound: 0,
+    unansweredSkipped: onboardingQuestions.filter(
+      (q) => q?.status === ONBOARDING_QUESTION_STATUS.PENDING
+    ).length,
+    onboardingL2Conflicts: 0,
+  };
+
+  try {
+    onboardingFacts = extractOnboardingFactsFromSession(session);
+    const onboardingPreferences = convertFactsToPreferences(onboardingFacts);
+    if (onboardingPreferences.length > 0) {
+      onboardingL2Result = await enrichL2Profile(
+        ctx,
+        tenantId,
+        userId,
+        profileNamespace,
+        onboardingPreferences,
+        { onboardingMode: true }
+      );
+    } else {
+      onboardingL2Result = { merged: {}, conflicts: 0, retries: 0 };
+    }
+
+    onboardingExtraction = {
+      ok: true,
+      factsFound: onboardingFacts.length,
+      unansweredSkipped: onboardingQuestions.filter(
+        (q) => q?.status === ONBOARDING_QUESTION_STATUS.PENDING
+      ).length,
+      onboardingL2Conflicts: onboardingL2Result.conflicts || 0,
+    };
+    stepResults.extractOnboardingFacts = { ok: true, factsFound: onboardingFacts.length };
+    stepResults.enrichL2Onboarding = { ok: true, ...onboardingL2Result };
+  } catch (err) {
+    onboardingExtraction = {
+      ...onboardingExtraction,
+      ok: false,
+      error: err.message,
+    };
+    stepResults.extractOnboardingFacts = { ok: false, error: err.message };
+    stepResults.enrichL2Onboarding = { ok: false, error: err.message };
   }
 
   // Step 3: Enrich L1 tenant memory (AK2)
@@ -750,6 +859,7 @@ async function runDreamPipeline(ctx, sessionId, tenantId, userId, profileNamespa
     l1FactsAdded: l1Result.added,
     l1FactsSkipped: l1Result.skipped,
     cosineDeduplicationActive: l1Result.deduped,
+    onboardingExtraction,
     steps: stepResults,
   };
 
@@ -829,6 +939,8 @@ module.exports = {
   isDreamPending,
   extractFacts,
   enrichL2Profile,
+  extractOnboardingFactsFromSession,
+  convertFactsToPreferences,
   computeCosineSimilarity,
   enrichL1TenantMemory,
   appendAuditEntry,

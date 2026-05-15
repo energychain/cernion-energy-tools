@@ -24,6 +24,14 @@ const {
   runDreamPipeline,
   DREAM_AUDIT_NAMESPACE,
 } = require('../src/personal-agent-dreamer');
+const {
+  buildOnboardingQuestion,
+  captureOnboardingAnswer,
+  findPendingOnboardingQuestion,
+  listAnsweredOnboardingFacts,
+  markStaleQuestions,
+  resolveParamKeyFromMissing,
+} = require('../src/personal-agent-onboarding');
 
 const OPENAPI_TAG = 'Personal Agent';
 const SESSION_NAMESPACE = process.env.PERSONAL_AGENT_SESSION_NAMESPACE || 'personal_agent_sessions';
@@ -169,6 +177,70 @@ module.exports = {
                         status: 'skipped',
                         steps: [],
                         stopPoint: null,
+                      },
+                    },
+                  },
+                  awaitingOnboarding: {
+                    summary: 'AUTO Mode: Awaiting onboarding answer',
+                    value: {
+                      success: true,
+                      sessionId: 'pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8',
+                      executionMode: 'auto',
+                      reply: 'Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?',
+                      layer4Purged: true,
+                      l3Compressed: false,
+                      contextUsage: {
+                        totalTokens: 2100,
+                        estimatedPromptTokens: 1200,
+                        estimatedCompletionTokens: 900,
+                        maxTokens: 128000,
+                        percentUsed: 1.6,
+                      },
+                      historyCount: 3,
+                      routing: {
+                        source: 'capability-broker',
+                        routeKey: null,
+                        routeLabel: 'grid_operator_identity_resolution',
+                        primaryIntent: 'grid-connection.validate',
+                        secondaryIntents: [],
+                        requestedDomains: ['grid-connection'],
+                        unsupportedDomains: [],
+                        warnings: [],
+                      },
+                      plan: {
+                        status: 'partial',
+                        steps: [
+                          {
+                            stepId: 1,
+                            action: 'grid-connection.validate',
+                            label: 'Netzanschluss Validierung',
+                            params: { gridOperatorName: null },
+                            dependencies: [],
+                            blocked: true,
+                          },
+                        ],
+                      },
+                      execution: {
+                        status: 'awaiting-onboarding',
+                        completedSteps: 0,
+                        steps: [],
+                        stopPoint: {
+                          reasonCode: 'MISSING_INPUTS',
+                          blockedStep: 1,
+                          blockedAction: 'grid-connection.validate',
+                          missingParams: ['gridOperatorName'],
+                          message: 'Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?',
+                          status: 'awaiting-onboarding',
+                          onboardingQuestion: {
+                            questionId: 'oq_abc123',
+                            paramKey: 'gridOperatorName',
+                            questionText: 'Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?',
+                            ts: '2026-05-15T14:20:00Z',
+                            answeredAt: null,
+                            answer: null,
+                            status: 'pending',
+                          },
+                        },
                       },
                     },
                   },
@@ -444,25 +516,15 @@ module.exports = {
           message: ctx.params.message,
           brokerRecommendation,
         });
-        const execution =
-          executionMode === EXECUTION_MODES.AUTO
-            ? await this.executeDeterministicPlan(ctx, {
-                message: ctx.params.message,
-                plan,
-                knownContext: ctx.params.knownContext || {},
-              })
-            : {
-                status: 'skipped',
-                steps: [],
-                stopPoint: plan.status === 'partial'
-                  ? this.buildStopPoint({
-                      reasonCode: 'UNSUPPORTED_CHAIN',
-                      message: plan.warnings[0] || 'Chain requires manual continuation.',
-                      blockedStep: (plan.steps?.length || 0) + 1,
-                      status: 'plan-only',
-                    })
-                  : null,
-              };
+        const knownContext = { ...(ctx.params.knownContext || {}) };
+        const execution = await this.handleExecutionWithOnboarding(ctx, {
+          message: ctx.params.message,
+          plan,
+          knownContext,
+          session,
+          executionMode,
+        });
+        const responsePlan = execution?.plan || plan;
 
         const stackResult = buildContextStack({
           systemPrompt: this.settings.systemPrompt,
@@ -477,7 +539,7 @@ module.exports = {
           message: ctx.params.message,
           toolContext: ctx.params.toolContext,
           executionMode,
-          plan,
+          plan: responsePlan,
           execution,
         });
 
@@ -491,6 +553,9 @@ module.exports = {
           l3: finalized.stack.l3,
           createdAt: session.createdAt,
         });
+        persisted.l3.onboardingQuestions = Array.isArray(session.l3?.onboardingQuestions)
+          ? session.l3.onboardingQuestions
+          : [];
 
         assertNoL4RawInPersistedState(persisted);
         await this.persistSession(ctx, tenantId, sessionId, persisted);
@@ -520,18 +585,19 @@ module.exports = {
           contextUsage: stackResult.usage,
           historyCount: finalized.stack?.l3?.history?.length || 0,
           routing: {
-            source: plan.source,
-            routeKey: plan.routeKey,
-            routeLabel: plan.routeLabel,
-            primaryIntent: plan.primaryIntent,
-            secondaryIntents: plan.secondaryIntents,
-            requestedDomains: plan.requestedDomains,
-            unsupportedDomains: plan.unsupportedDomains,
-            warnings: plan.warnings,
+            source: responsePlan.source,
+            routeKey: responsePlan.routeKey,
+            routeLabel: responsePlan.routeLabel,
+            primaryIntent: responsePlan.primaryIntent,
+            secondaryIntents: responsePlan.secondaryIntents,
+            requestedDomains: responsePlan.requestedDomains,
+            unsupportedDomains: responsePlan.unsupportedDomains,
+            warnings: responsePlan.warnings,
           },
           plan: {
-            status: plan.status,
-            steps: plan.steps,
+            status: responsePlan.status,
+            steps: responsePlan.steps,
+            onboardingHints: responsePlan.onboardingHints,
           },
           execution,
         };
@@ -628,6 +694,7 @@ module.exports = {
           l3: { history: [], summary: null, compressed: false },
           createdAt: current.createdAt,
         });
+        resetState.l3.onboardingQuestions = [];
 
         await this.persistSession(ctx, tenantId, current.id, resetState);
 
@@ -915,6 +982,13 @@ module.exports = {
           .trim()
           .slice(0, 160)}“. Ausführung wartet auf Freigabe.`;
       }
+      if (execution?.status === 'awaiting-onboarding') {
+        const questionText = execution?.stopPoint?.onboardingQuestion?.questionText;
+        if (questionText) {
+          return questionText;
+        }
+        return `Ich benötige noch Angaben, um fortzufahren. ${execution?.stopPoint?.message || ''}`.trim();
+      }
       if (execution?.status === 'completed') {
         return `Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt.`;
       }
@@ -949,8 +1023,242 @@ module.exports = {
         reasonCode,
         message,
         blockedStep,
+        blockedAction: placeholder?.blockedAction || null,
+        missingParams: Array.isArray(placeholder?.missingParams)
+          ? placeholder.missingParams
+          : null,
+        onboardingQuestion: placeholder?.onboardingQuestion || null,
+        onboardingHints: placeholder?.onboardingHints || null,
         placeholderId: placeholder?.placeholder?.placeholderId || null,
         hitlItemId: placeholder?.hitlItem?.id || null,
+      };
+    },
+
+    hydrateKnownContextFromSession(knownContext = {}, session = {}) {
+      const target = knownContext;
+      const profileFacts = session?.l2?.userProfile?.onboardingFacts || {};
+
+      for (const [key, value] of Object.entries(profileFacts)) {
+        if (Object.prototype.hasOwnProperty.call(target, key)) {
+          continue;
+        }
+        const resolvedValue = value?.value;
+        if (resolvedValue !== undefined && resolvedValue !== null) {
+          target[key] = resolvedValue;
+        }
+      }
+
+      const answeredFacts = listAnsweredOnboardingFacts(session?.l3 || {});
+      for (const fact of answeredFacts) {
+        if (!fact?.paramKey || Object.prototype.hasOwnProperty.call(target, fact.paramKey)) {
+          continue;
+        }
+        target[fact.paramKey] = fact.value;
+      }
+
+      return target;
+    },
+
+    findFirstMissingStep(plan = {}, knownContext = {}) {
+      const executionState = { stepResults: {} };
+      for (const plannedStep of plan.steps || []) {
+        const params = pruneUndefinedDeep(
+          fillTemplateWithContext(
+            plannedStep.paramsTemplate,
+            plannedStep.action,
+            knownContext,
+            plan.promptHints,
+            executionState
+          )
+        );
+        const missingParams = getMissingInputs(plannedStep.action, params);
+        if (missingParams.length > 0) {
+          return {
+            step: plannedStep,
+            params,
+            missingParams,
+          };
+        }
+      }
+      return null;
+    },
+
+    buildOnboardingStopPoint({ plan, missingParams, blockedStep, blockedAction }) {
+      const paramKey = resolveParamKeyFromMissing(missingParams);
+      const onboardingQuestion = buildOnboardingQuestion({
+        paramKey,
+        action: blockedAction || plan?.steps?.[0]?.action,
+      });
+      onboardingQuestion.planSnapshot = {
+        source: plan?.source || 'onboarding-resume',
+        routeKey: plan?.routeKey || null,
+        routeLabel: plan?.routeLabel || null,
+        primaryIntent: plan?.primaryIntent || blockedAction || null,
+        secondaryIntents: plan?.secondaryIntents || [],
+        requestedDomains: plan?.requestedDomains || [],
+        unsupportedDomains: plan?.unsupportedDomains || [],
+        warnings: plan?.warnings || [],
+        promptHints: plan?.promptHints || {},
+        status: plan?.status || 'ready',
+        steps: Array.isArray(plan?.steps) ? plan.steps : [],
+      };
+
+      return {
+        reasonCode: 'MISSING_INPUTS',
+        status: 'awaiting-onboarding',
+        blockedStep,
+        blockedAction,
+        missingParams,
+        message: onboardingQuestion.questionText,
+        onboardingQuestion,
+      };
+    },
+
+    enrichPlanWithOnboardingHints(plan = {}, knownContext = {}) {
+      const firstMissing = this.findFirstMissingStep(plan, knownContext);
+      if (!firstMissing) {
+        return { ...plan, onboardingHints: [] };
+      }
+
+      const paramKey = resolveParamKeyFromMissing(firstMissing.missingParams);
+      return {
+        ...plan,
+        onboardingHints: [
+          {
+            blockedStep: firstMissing.step.step,
+            blockedAction: firstMissing.step.action,
+            missingParams: firstMissing.missingParams,
+            suggestedParamKey: paramKey,
+          },
+        ],
+      };
+    },
+
+    async handleExecutionWithOnboarding(ctx, {
+      message,
+      plan,
+      knownContext,
+      session,
+      executionMode,
+    }) {
+      if (executionMode === EXECUTION_MODES.HITL) {
+        const hydratedContext = this.hydrateKnownContextFromSession(
+          knownContext,
+          session
+        );
+        const enrichedPlan = this.enrichPlanWithOnboardingHints(plan, hydratedContext);
+        return {
+          status: 'skipped',
+          steps: [],
+          stopPoint: plan.status === 'partial'
+            ? this.buildStopPoint({
+                reasonCode: 'UNSUPPORTED_CHAIN',
+                message: plan.warnings[0] || 'Chain requires manual continuation.',
+                blockedStep: (plan.steps?.length || 0) + 1,
+                status: 'plan-only',
+              })
+            : null,
+          plan: enrichedPlan,
+        };
+      }
+
+      session.l3 = {
+        history: [],
+        summary: null,
+        compressed: false,
+        ...(session.l3 || {}),
+      };
+      session.l3.onboardingQuestions = markStaleQuestions(session.l3, 24);
+
+      const pendingQuestion = findPendingOnboardingQuestion(session.l3);
+      let effectivePlan = plan;
+      if (pendingQuestion) {
+        const answer = captureOnboardingAnswer({ question: pendingQuestion, message });
+        if (!answer) {
+          return {
+            status: 'awaiting-onboarding',
+            completedSteps: 0,
+            steps: [],
+            stopPoint: {
+              reasonCode: 'MISSING_INPUTS',
+              status: 'awaiting-onboarding',
+              blockedStep: 1,
+              blockedAction: pendingQuestion.action,
+              missingParams: [pendingQuestion.paramKey],
+              message: pendingQuestion.questionText,
+              onboardingQuestion: pendingQuestion,
+            },
+          };
+        }
+
+        session.l3.onboardingQuestions = (session.l3.onboardingQuestions || []).map((q) =>
+          q.questionId === answer.questionId ? answer : q
+        );
+
+        const stepActions = Array.isArray(plan?.steps)
+          ? plan.steps.map((step) => step.action)
+          : [];
+        if (
+          !stepActions.includes(pendingQuestion.action) &&
+          Array.isArray(pendingQuestion?.planSnapshot?.steps) &&
+          pendingQuestion.planSnapshot.steps.length > 0
+        ) {
+          effectivePlan = pendingQuestion.planSnapshot;
+        }
+      }
+
+      const hydratedContext = this.hydrateKnownContextFromSession(knownContext, session);
+      const firstMissing = this.findFirstMissingStep(effectivePlan, hydratedContext);
+      if (firstMissing) {
+        const stopPoint = this.buildOnboardingStopPoint({
+          plan: effectivePlan,
+          missingParams: firstMissing.missingParams,
+          blockedStep: firstMissing.step.step,
+          blockedAction: firstMissing.step.action,
+        });
+        session.l3.onboardingQuestions = [
+          ...(session.l3.onboardingQuestions || []),
+          stopPoint.onboardingQuestion,
+        ];
+        return {
+          status: 'awaiting-onboarding',
+          completedSteps: 0,
+          steps: [],
+          stopPoint,
+        };
+      }
+
+      const execution = await this.executeDeterministicPlan(ctx, {
+        message,
+        plan: effectivePlan,
+        knownContext: hydratedContext,
+        skipGapForMissingInputs: true,
+      });
+
+      if (execution?.stopPoint?.reasonCode === 'MISSING_INPUTS') {
+        const stopPoint = this.buildOnboardingStopPoint({
+          plan: effectivePlan,
+          missingParams: execution.stopPoint?.missingParams || [],
+          blockedStep: execution.stopPoint?.blockedStep || 1,
+          blockedAction: execution.stopPoint?.blockedAction || effectivePlan?.steps?.[0]?.action,
+        });
+        session.l3.onboardingQuestions = [
+          ...(session.l3.onboardingQuestions || []),
+          stopPoint.onboardingQuestion,
+        ];
+
+        return {
+          ...execution,
+          plan: effectivePlan,
+          status: 'awaiting-onboarding',
+          completedSteps: execution.completedSteps || 0,
+          stopPoint,
+        };
+      }
+
+      return {
+        ...execution,
+        plan: effectivePlan,
       };
     },
 
@@ -982,7 +1290,12 @@ module.exports = {
       }
     },
 
-    async executeDeterministicPlan(ctx, { message, plan, knownContext }) {
+    async executeDeterministicPlan(ctx, {
+      message,
+      plan,
+      knownContext,
+      skipGapForMissingInputs = false,
+    }) {
       const executionState = {
         stepResults: {},
       };
@@ -1003,18 +1316,33 @@ module.exports = {
         const missingInputs = getMissingInputs(plannedStep.action, params);
 
         if (missingInputs.length > 0) {
-          const placeholder = await this.markRoutingGap(ctx, {
-            reasonCode: 'MISSING_INPUTS',
-            message: `Step ${plannedStep.step} cannot run because required inputs are missing: ${missingInputs.join(', ')}`,
-            blockedStep: plannedStep.step,
-          });
-          stopPoint = this.buildStopPoint({
-            reasonCode: 'MISSING_INPUTS',
-            message: `Missing inputs for ${plannedStep.action}: ${missingInputs.join(', ')}`,
-            blockedStep: plannedStep.step,
-            status: placeholder ? 'interface-placeholder' : 'missing-inputs',
-            placeholder,
-          });
+          if (skipGapForMissingInputs) {
+            stopPoint = {
+              reasonCode: 'MISSING_INPUTS',
+              message: `Missing inputs for ${plannedStep.action}: ${missingInputs.join(', ')}`,
+              blockedStep: plannedStep.step,
+              blockedAction: plannedStep.action,
+              missingParams: missingInputs,
+              status: 'missing-inputs',
+            };
+          } else {
+            const placeholder = await this.markRoutingGap(ctx, {
+              reasonCode: 'MISSING_INPUTS',
+              message: `Step ${plannedStep.step} cannot run because required inputs are missing: ${missingInputs.join(', ')}`,
+              blockedStep: plannedStep.step,
+            });
+            stopPoint = this.buildStopPoint({
+              reasonCode: 'MISSING_INPUTS',
+              message: `Missing inputs for ${plannedStep.action}: ${missingInputs.join(', ')}`,
+              blockedStep: plannedStep.step,
+              status: placeholder ? 'interface-placeholder' : 'missing-inputs',
+              placeholder: {
+                ...placeholder,
+                blockedAction: plannedStep.action,
+                missingParams: missingInputs,
+              },
+            });
+          }
           steps.push({
             step: plannedStep.step,
             action: plannedStep.action,
@@ -1120,7 +1448,14 @@ module.exports = {
           userId,
           l1: payload.l1 || { tenantFacts: [] },
           l2: payload.l2 || { userProfile },
-          l3: payload.l3 || { history: [], summary: null, compressed: false },
+          l3: {
+            history: Array.isArray(payload?.l3?.history) ? payload.l3.history : [],
+            summary: payload?.l3?.summary || null,
+            compressed: Boolean(payload?.l3?.compressed),
+            onboardingQuestions: Array.isArray(payload?.l3?.onboardingQuestions)
+              ? payload.l3.onboardingQuestions
+              : [],
+          },
           createdAt: payload.createdAt || new Date().toISOString(),
           updatedAt: payload.updatedAt || null,
         };
@@ -1144,7 +1479,12 @@ module.exports = {
           userId,
           l1: { tenantFacts: [] },
           l2: { userProfile },
-          l3: { history: [], summary: null, compressed: false },
+          l3: {
+            history: [],
+            summary: null,
+            compressed: false,
+            onboardingQuestions: [],
+          },
           createdAt: new Date().toISOString(),
           updatedAt: null,
         };

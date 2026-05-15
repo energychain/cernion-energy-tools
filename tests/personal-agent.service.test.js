@@ -259,7 +259,7 @@ describe('personal-agent.service', () => {
     expect(placeholderCalls).toHaveLength(1);
   });
 
-  it('marks the exact stop point when required inputs for a later step are missing', async () => {
+  it('switches to awaiting-onboarding when required inputs are missing', async () => {
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -272,20 +272,88 @@ describe('personal-agent.service', () => {
       { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
     );
 
-    expect(result.execution.status).toBe('partial');
-    expect(result.execution.steps[0]).toMatchObject({
-      action: 'energy-sharing.validate',
-      status: 'completed',
-    });
-    expect(result.execution.steps[1]).toMatchObject({
-      action: 'znp.getProjectMeta',
-      status: 'blocked',
-    });
+    expect(result.execution.status).toBe('awaiting-onboarding');
+    expect(result.execution.steps).toEqual([]);
     expect(result.execution.stopPoint).toMatchObject({
       reasonCode: 'MISSING_INPUTS',
       blockedStep: 2,
-      status: 'interface-placeholder',
+      blockedAction: 'znp.getProjectMeta',
+      status: 'awaiting-onboarding',
     });
+    expect(result.reply).toContain('Projekt-ID');
+    expect(placeholderCalls).toHaveLength(0);
+
+    const session = await broker.call(
+      'personal-agent.getSession',
+      { sessionId: result.sessionId },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+    expect(session.l3.onboardingQuestions).toHaveLength(1);
+    expect(session.l3.onboardingQuestions[0].answeredAt).toBeNull();
+  });
+
+  it('captures onboarding answer and resumes deterministic execution', async () => {
+    const first = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        executionMode: 'auto',
+        knownContext: {
+          gridOperatorName: 'TWL Netze',
+          voltageLevel: 'MS',
+          ownerContact: 'netzplanung@twl.de',
+        },
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(first.execution.status).toBe('awaiting-onboarding');
+    expect(first.execution.stopPoint.onboardingQuestion.paramKey).toBe('fnavProfile');
+
+    const second = await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId: first.sessionId,
+        message: 'Hybridprofil 5 MW, flexibel 2 MW',
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(second.execution.status).toBe('completed');
+    expect(second.execution.steps.map((step) => step.action)).toEqual([
+      'grid-connection.fnavValidate',
+      'finance-agent.fnavEconomics',
+    ]);
+
+    const session = await broker.call(
+      'personal-agent.getSession',
+      { sessionId: first.sessionId },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+    expect(session.l3.onboardingQuestions[0].answeredAt).toBeTruthy();
+    expect(session.l3.onboardingQuestions[0].answer).toBe('Hybridprofil 5 MW, flexibel 2 MW');
+  });
+
+  it('HITL mode returns onboarding hints but no awaiting status', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        executionMode: 'hitl',
+        knownContext: {
+          gridOperatorName: 'TWL Netze',
+          voltageLevel: 'MS',
+          ownerContact: 'netzplanung@twl.de',
+        },
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.execution.status).toBe('skipped');
+    expect(result.execution.stopPoint).toBeNull();
+    expect(Array.isArray(result.plan.onboardingHints)).toBe(true);
+    expect(result.plan.onboardingHints[0].suggestedParamKey).toBe('fnavProfile');
+    expect(result.execution.status).not.toBe('awaiting-onboarding');
   });
 
   it('resets only L3 and keeps L2 profile', async () => {
@@ -496,4 +564,5 @@ describe('personal-agent.service', () => {
     expect(authMeta.requestHeaders.authorization).toBeUndefined();
     expect(authMeta.requestHeaders.cookie).toBeUndefined();
   });
+
 });

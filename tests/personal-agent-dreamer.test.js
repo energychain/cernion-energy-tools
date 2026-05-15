@@ -103,6 +103,8 @@ const {
   enrichL1TenantMemory,
   appendAuditEntry,
   runDreamPipeline,
+  extractOnboardingFactsFromSession,
+  convertFactsToPreferences,
   scheduleDream,
   cancelDream,
   isDreamPending,
@@ -622,6 +624,106 @@ describe('runDreamPipeline', () => {
     const ctx = makeCtx();
     const result = await runDreamPipeline(ctx, 'sess3', 'tenant1', 'user1', 'personal_agent_user_profiles:tenant1', {});
     expect(result.success).toBe(true);
+  });
+
+  test('extractOnboardingFactsFromSession only returns answered onboarding questions', () => {
+    const session = {
+      l3: {
+        onboardingQuestions: [
+          {
+            questionId: 'q1',
+            paramKey: 'gridOperatorName',
+            status: 'answered',
+            answer: 'Stadtwerke A',
+            answeredAt: '2026-05-15T10:00:00Z',
+          },
+          {
+            questionId: 'q2',
+            paramKey: 'voltageLevel',
+            status: 'pending',
+            answer: null,
+          },
+        ],
+      },
+    };
+
+    const facts = extractOnboardingFactsFromSession(session);
+    expect(facts).toHaveLength(1);
+    expect(facts[0]).toMatchObject({
+      paramKey: 'gridOperatorName',
+      value: 'Stadtwerke A',
+      source: 'onboarding-chat',
+    });
+  });
+
+  test('convertFactsToPreferences maps onboarding facts with confidence=1.0', () => {
+    const preferences = convertFactsToPreferences([
+      {
+        paramKey: 'gridOperatorName',
+        value: 'Stadtwerke A',
+        answeredAt: '2026-05-15T10:00:00Z',
+        source: 'onboarding-chat',
+      },
+    ]);
+
+    expect(preferences).toHaveLength(1);
+    expect(preferences[0]).toMatchObject({
+      key: 'gridOperatorName',
+      value: 'Stadtwerke A',
+      confidence: 1,
+      source: 'onboarding-chat',
+    });
+  });
+
+  test('runDreamPipeline writes onboardingFacts under dedicated L2 key and logs onboardingExtraction', async () => {
+    const ctx = makeCtx();
+    const session = {
+      l3: {
+        history: [{ role: 'user', text: 'Bitte auf deutsch.' }],
+        onboardingQuestions: [
+          {
+            questionId: 'q1',
+            paramKey: 'gridOperatorName',
+            status: 'answered',
+            answer: 'VNB A',
+            answeredAt: '2026-05-15T10:00:00Z',
+          },
+          {
+            questionId: 'q2',
+            paramKey: 'voltageLevel',
+            status: 'pending',
+            answer: null,
+          },
+        ],
+      },
+    };
+
+    const result = await runDreamPipeline(
+      ctx,
+      'sess-onb',
+      'tenant1',
+      'user1',
+      'personal_agent_user_profiles:tenant1',
+      session
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.steps.extractOnboardingFacts.ok).toBe(true);
+    expect(result.steps.enrichL2Onboarding.ok).toBe(true);
+
+    const profileDoc = ctx._store['personal_agent_user_profiles:tenant1::user1'];
+    expect(profileDoc.payload.onboardingFacts.gridOperatorName.value).toBe('VNB A');
+    expect(profileDoc.payload.preferences).toBeDefined();
+
+    const auditDocs = Object.entries(ctx._store)
+      .filter(([key]) => key.startsWith('personal_agent_dream_audit:tenant1::'))
+      .map(([, value]) => value);
+    expect(auditDocs.length).toBeGreaterThan(0);
+    const latestAudit = auditDocs[auditDocs.length - 1].payload;
+    expect(latestAudit.onboardingExtraction).toBeDefined();
+    expect(latestAudit.onboardingExtraction.ok).toBe(true);
+    expect(latestAudit.onboardingExtraction.factsFound).toBe(1);
+    expect(latestAudit.onboardingExtraction.unansweredSkipped).toBeGreaterThanOrEqual(1);
   });
 });
 
