@@ -94,7 +94,7 @@
     "eslint-plugin-security": "^4.0.0",
     "eslint-plugin-sonarjs": "^4.0.3",
     "jest": "^30.3.0",
-    "n3": "^1.26.0",
+    "n3": "^2.0.3",
     "prettier": "^3.8.3",
     "rdf-validate-shacl": "^0.6.5"
   }
