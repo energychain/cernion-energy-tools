@@ -5,20 +5,111 @@ const os = require('os');
 const path = require('path');
 const { ServiceBroker } = require('moleculer');
 const ObjectStoreService = require('../services/object-store.service');
+const CapabilityBrokerService = require('../services/capability-broker.service');
 const PersonalAgentService = require('../services/personal-agent.service');
 
 describe('personal-agent.service', () => {
   let broker;
   let objectStorePath;
+  let placeholderCalls;
+  let executedActions;
 
   beforeEach(async () => {
     objectStorePath = path.join(os.tmpdir(), `personal-agent-store-${Date.now()}-${Math.random()}`);
+    placeholderCalls = [];
+    executedActions = [];
     broker = new ServiceBroker({ logger: false });
     broker.createService({
       ...ObjectStoreService,
       settings: {
         ...ObjectStoreService.settings,
         dbPath: objectStorePath,
+      },
+    });
+    broker.createService(CapabilityBrokerService);
+    broker.createService({
+      name: 'interface-placeholder',
+      actions: {
+        markGap: {
+          handler(ctx) {
+            const item = {
+              success: true,
+              placeholder: {
+                placeholderId: `ph-${placeholderCalls.length + 1}`,
+                status: 'placeholder_gap',
+              },
+            };
+            placeholderCalls.push({ ...ctx.params, ...item });
+            return item;
+          },
+        },
+      },
+    });
+    broker.createService({
+      name: 'grid-connection',
+      actions: {
+        validate: {
+          handler(ctx) {
+            executedActions.push('grid-connection.validate');
+            return { success: true, validatedBy: 'grid-connection', input: ctx.params };
+          },
+        },
+        fnavValidate: {
+          handler(ctx) {
+            executedActions.push('grid-connection.fnavValidate');
+            return {
+              success: true,
+              gridOperatorName: ctx.params.gridOperatorName || 'TWL Netze',
+              voltageLevel: ctx.params.voltageLevel || 'MS',
+              ownerContact: ctx.params.ownerContact || 'netzplanung@twl.de',
+              fnavProfile: ctx.params.fnavProfile,
+            };
+          },
+        },
+      },
+    });
+    broker.createService({
+      name: 'finance-agent',
+      actions: {
+        fnavEconomics: {
+          handler(ctx) {
+            executedActions.push('finance-agent.fnavEconomics');
+            return { success: true, paybackYears: 4.2, input: ctx.params };
+          },
+        },
+      },
+    });
+    broker.createService({
+      name: 'investment-planning',
+      actions: {
+        createPlan: {
+          handler(ctx) {
+            executedActions.push('investment-planning.createPlan');
+            return { success: true, planId: 'ip-1', input: ctx.params };
+          },
+        },
+      },
+    });
+    broker.createService({
+      name: 'energy-sharing',
+      actions: {
+        validate: {
+          handler(ctx) {
+            executedActions.push('energy-sharing.validate');
+            return { success: true, validationId: 'es-1', input: ctx.params };
+          },
+        },
+      },
+    });
+    broker.createService({
+      name: 'znp',
+      actions: {
+        getProjectMeta: {
+          handler(ctx) {
+            executedActions.push('znp.getProjectMeta');
+            return { success: true, projectId: ctx.params.projectId };
+          },
+        },
       },
     });
     broker.createService(PersonalAgentService);
@@ -74,6 +165,114 @@ describe('personal-agent.service', () => {
     expect(session.layer4).toBeNull();
     expect(Array.isArray(session.l3.history)).toBe(true);
     expect(session.l3.history.some((entry) => entry.role === 'assistant')).toBe(true);
+  });
+
+  it('returns a stable deterministic plan in HITL mode without executing tools', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        executionMode: 'hitl',
+        knownContext: {
+          gridOperatorName: 'TWL Netze',
+          fnavProfile: { requestedCapacity: 5000, flexibleCapacity: 2000 },
+        },
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.executionMode).toBe('hitl');
+    expect(result.execution.status).toBe('skipped');
+    expect(result.plan.steps.map((step) => step.action)).toEqual([
+      'grid-connection.fnavValidate',
+      'finance-agent.fnavEconomics',
+    ]);
+    expect(executedActions).toEqual([]);
+  });
+
+  it('auto-executes deterministic matrix chains in fixed order', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        executionMode: 'auto',
+        knownContext: {
+          gridOperatorName: 'TWL Netze',
+          voltageLevel: 'MS',
+          ownerContact: 'netzplanung@twl.de',
+          fnavProfile: { requestedCapacity: 5000, flexibleCapacity: 2000 },
+          annualFeeEur: 12000,
+        },
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.execution.status).toBe('completed');
+    expect(result.execution.steps.map((step) => step.action)).toEqual([
+      'grid-connection.fnavValidate',
+      'finance-agent.fnavEconomics',
+    ]);
+    expect(executedActions).toEqual([
+      'grid-connection.fnavValidate',
+      'finance-agent.fnavEconomics',
+    ]);
+  });
+
+  it('gracefully degrades unsupported extra domains after the last valid step', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte fNAV, Finance und Redispatch für TWL Netze bewerten',
+        executionMode: 'auto',
+        knownContext: {
+          gridOperatorName: 'TWL Netze',
+          voltageLevel: 'MS',
+          ownerContact: 'netzplanung@twl.de',
+          fnavProfile: { requestedCapacity: 5000, flexibleCapacity: 2000 },
+          annualFeeEur: 12000,
+        },
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.execution.status).toBe('partial');
+    expect(result.execution.completedSteps).toBe(2);
+    expect(result.execution.stopPoint).toMatchObject({
+      reasonCode: 'UNSUPPORTED_CHAIN',
+      status: 'interface-placeholder',
+      blockedStep: 3,
+    });
+    expect(placeholderCalls).toHaveLength(1);
+  });
+
+  it('marks the exact stop point when required inputs for a later step are missing', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte Mieterstrom mit ZNP für Rheinallee prüfen',
+        executionMode: 'auto',
+        knownContext: {
+          communityName: 'Solargemeinschaft Rheinallee',
+        },
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.execution.status).toBe('partial');
+    expect(result.execution.steps[0]).toMatchObject({
+      action: 'energy-sharing.validate',
+      status: 'completed',
+    });
+    expect(result.execution.steps[1]).toMatchObject({
+      action: 'znp.getProjectMeta',
+      status: 'blocked',
+    });
+    expect(result.execution.stopPoint).toMatchObject({
+      reasonCode: 'MISSING_INPUTS',
+      blockedStep: 2,
+      status: 'interface-placeholder',
+    });
   });
 
   it('resets only L3 and keeps L2 profile', async () => {

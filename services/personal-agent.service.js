@@ -9,6 +9,14 @@ const {
   synthesizeAndPurgeLayer4,
   assertNoL4RawInPersistedState,
 } = require('../src/personal-agent-context');
+const {
+  EXECUTION_MODES,
+  normalizeExecutionMode,
+  buildExecutionPlan,
+  fillTemplateWithContext,
+  pruneUndefinedDeep,
+  getMissingInputs,
+} = require('../src/personal-agent-routing');
 
 const OPENAPI_TAG = 'Personal Agent';
 const SESSION_NAMESPACE = process.env.PERSONAL_AGENT_SESSION_NAMESPACE || 'personal_agent_sessions';
@@ -20,6 +28,16 @@ const DEFAULT_SYSTEM_PROMPT =
 
 function isNotFound(error) {
   return error?.code === 404 || error?.type === 'OBJECT_NOT_FOUND';
+}
+
+function isActionUnavailable(error) {
+  return (
+    error?.code === 404 ||
+    error?.type === 'SERVICE_NOT_FOUND' ||
+    error?.type === 'SERVICE_NOT_AVAILABLE' ||
+    error?.type === 'SERVICE_SCHEMA_ERROR' ||
+    error?.name === 'ServiceNotFoundError'
+  );
 }
 
 module.exports = {
@@ -37,24 +55,56 @@ module.exports = {
         message: { type: 'string', min: 1, trim: true, max: 8000 },
         sessionId: { type: 'string', optional: true, trim: true, max: 120 },
         toolContext: { type: 'object', optional: true },
+        executionMode: {
+          type: 'enum',
+          optional: true,
+          values: [EXECUTION_MODES.AUTO, EXECUTION_MODES.HITL],
+          default: EXECUTION_MODES.AUTO,
+        },
+        knownContext: { type: 'object', optional: true, default: {} },
       },
       openapi: {
         tags: [OPENAPI_TAG],
         summary: 'Run one Personal-Agent chat turn with deterministic L0-L4 context stacking',
         description:
-          'Builds a deterministic context stack (L0-L4), enforces token budgets, and guarantees Layer 4 purge after synthesis. ' +
+          'Builds a deterministic context stack (L0-L4), binds the capability-broker routing layer, supports auto-execution or HITL plan return, and guarantees Layer 4 purge after synthesis. ' +
           'Layer-4 raw tool JSON is never persisted.',
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
         const userId = String(ctx.meta?.authUser?.userId || 'anonymous');
         const sessionId = String(ctx.params.sessionId || `pa_${crypto.randomUUID()}`);
+        const executionMode = normalizeExecutionMode(ctx.params.executionMode);
         const session = await this.loadSession(ctx, tenantId, sessionId, userId);
         const userMessage = {
           role: 'user',
           text: ctx.params.message,
           ts: new Date().toISOString(),
         };
+        const brokerRecommendation = await this.getBrokerRecommendation(ctx, ctx.params.message);
+        const plan = buildExecutionPlan({
+          message: ctx.params.message,
+          brokerRecommendation,
+        });
+        const execution =
+          executionMode === EXECUTION_MODES.AUTO
+            ? await this.executeDeterministicPlan(ctx, {
+                message: ctx.params.message,
+                plan,
+                knownContext: ctx.params.knownContext || {},
+              })
+            : {
+                status: 'skipped',
+                steps: [],
+                stopPoint: plan.status === 'partial'
+                  ? this.buildStopPoint({
+                      reasonCode: 'UNSUPPORTED_CHAIN',
+                      message: plan.warnings[0] || 'Chain requires manual continuation.',
+                      blockedStep: (plan.steps?.length || 0) + 1,
+                      status: 'plan-only',
+                    })
+                  : null,
+              };
 
         const stackResult = buildContextStack({
           systemPrompt: this.settings.systemPrompt,
@@ -68,6 +118,9 @@ module.exports = {
         const synthesisText = this.synthesizeTurn({
           message: ctx.params.message,
           toolContext: ctx.params.toolContext,
+          executionMode,
+          plan,
+          execution,
         });
 
         const finalized = synthesizeAndPurgeLayer4(stackResult.stack, synthesisText);
@@ -87,11 +140,27 @@ module.exports = {
         return {
           success: true,
           sessionId,
+          executionMode,
           reply: synthesisText,
           layer4Purged: finalized.layer4Purged,
           l3Compressed: Boolean(finalized.stack?.l3?.compressed),
           contextUsage: stackResult.usage,
           historyCount: finalized.stack?.l3?.history?.length || 0,
+          routing: {
+            source: plan.source,
+            routeKey: plan.routeKey,
+            routeLabel: plan.routeLabel,
+            primaryIntent: plan.primaryIntent,
+            secondaryIntents: plan.secondaryIntents,
+            requestedDomains: plan.requestedDomains,
+            unsupportedDomains: plan.unsupportedDomains,
+            warnings: plan.warnings,
+          },
+          plan: {
+            status: plan.status,
+            steps: plan.steps,
+          },
+          execution,
         };
       },
     },
@@ -163,12 +232,183 @@ module.exports = {
   },
 
   methods: {
-    synthesizeTurn({ message, toolContext }) {
+    synthesizeTurn({ message, toolContext, executionMode, plan, execution }) {
       if (toolContext && toolContext.responseRaw) {
         const keyCount = Object.keys(toolContext.responseRaw || {}).length;
         return `Tool-Ergebnis verarbeitet (${keyCount} Felder). Zusammenfassung erstellt und Layer 4 verworfen.`;
       }
+      if (executionMode === EXECUTION_MODES.HITL) {
+        return `Plan bereit: ${plan.steps.length} deterministische Schritte für „${String(message)
+          .trim()
+          .slice(0, 160)}“. Ausführung wartet auf Freigabe.`;
+      }
+      if (execution?.status === 'completed') {
+        return `Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt.`;
+      }
+      if (execution?.status === 'partial') {
+        return `Teilweise ausgeführt: ${execution.completedSteps || 0} Schritt(e) erfolgreich, dann kontrolliert gestoppt (${execution.stopPoint?.reasonCode || 'UNSPECIFIED'}).`;
+      }
       return `Verstanden. Nächster Schritt für: ${String(message).trim().slice(0, 240)}`;
+    },
+
+    async getBrokerRecommendation(ctx, message) {
+      try {
+        return await ctx.call(
+          'capability-broker.recommend',
+          {
+            schemaVersion: 'cernion.capabilityRecommendation.v1',
+            task: message,
+            mode: 'initial',
+          },
+          { meta: ctx.meta }
+        );
+      } catch (error) {
+        if (isActionUnavailable(error)) {
+          return null;
+        }
+        throw error;
+      }
+    },
+
+    buildStopPoint({ reasonCode, message, blockedStep, status, placeholder }) {
+      return {
+        status,
+        reasonCode,
+        message,
+        blockedStep,
+        placeholderId: placeholder?.placeholder?.placeholderId || null,
+        hitlItemId: placeholder?.hitlItem?.id || null,
+      };
+    },
+
+    async markRoutingGap(ctx, { reasonCode, message, blockedStep }) {
+      try {
+        const placeholder = await ctx.call(
+          'interface-placeholder.markGap',
+          {
+            role: 'personal_agent_orchestrator',
+            reason: reasonCode === 'MISSING_INPUTS' ? 'NEEDS_EVIDENCE' : 'NEEDS_INTERFACE',
+            blockingLevel: 'soft',
+            replacementCriteria: {
+              kind: 'process',
+              capabilityHint: 'personal-agent.chat',
+              deadline: null,
+            },
+            signalCodes: [reasonCode],
+            placeholderGapKey: `personal-agent-step-${blockedStep}`,
+          },
+          { meta: ctx.meta }
+        );
+        return placeholder;
+      } catch (error) {
+        if (isActionUnavailable(error) || isNotFound(error)) {
+          return null;
+        }
+        this.logger.warn(`personal-agent gap marker unavailable: ${error.message}`);
+        return null;
+      }
+    },
+
+    async executeDeterministicPlan(ctx, { message, plan, knownContext }) {
+      const executionState = {
+        stepResults: {},
+      };
+      const steps = [];
+      let completedSteps = 0;
+      let stopPoint = null;
+
+      for (const plannedStep of plan.steps) {
+        const params = pruneUndefinedDeep(
+          fillTemplateWithContext(
+            plannedStep.paramsTemplate,
+            plannedStep.action,
+            knownContext,
+            plan.promptHints,
+            executionState
+          )
+        );
+        const missingInputs = getMissingInputs(plannedStep.action, params);
+
+        if (missingInputs.length > 0) {
+          const placeholder = await this.markRoutingGap(ctx, {
+            reasonCode: 'MISSING_INPUTS',
+            message: `Step ${plannedStep.step} cannot run because required inputs are missing: ${missingInputs.join(', ')}`,
+            blockedStep: plannedStep.step,
+          });
+          stopPoint = this.buildStopPoint({
+            reasonCode: 'MISSING_INPUTS',
+            message: `Missing inputs for ${plannedStep.action}: ${missingInputs.join(', ')}`,
+            blockedStep: plannedStep.step,
+            status: placeholder ? 'interface-placeholder' : 'missing-inputs',
+            placeholder,
+          });
+          steps.push({
+            step: plannedStep.step,
+            action: plannedStep.action,
+            status: 'blocked',
+            params,
+            missingInputs,
+          });
+          break;
+        }
+
+        try {
+          const result = await ctx.call(plannedStep.action, params, { meta: ctx.meta });
+          executionState.stepResults[plannedStep.step] = { data: result, params };
+          completedSteps += 1;
+          steps.push({
+            step: plannedStep.step,
+            action: plannedStep.action,
+            status: 'completed',
+            params,
+            result,
+          });
+        } catch (error) {
+          const placeholder = await this.markRoutingGap(ctx, {
+            reasonCode: isActionUnavailable(error) ? 'UNSUPPORTED_CHAIN' : 'ACTION_FAILED',
+            message: error.message,
+            blockedStep: plannedStep.step,
+          });
+          stopPoint = this.buildStopPoint({
+            reasonCode: isActionUnavailable(error) ? 'UNSUPPORTED_CHAIN' : 'ACTION_FAILED',
+            message: error.message,
+            blockedStep: plannedStep.step,
+            status: placeholder ? 'interface-placeholder' : 'action-error',
+            placeholder,
+          });
+          steps.push({
+            step: plannedStep.step,
+            action: plannedStep.action,
+            status: 'failed',
+            params,
+            error: error.message,
+          });
+          break;
+        }
+      }
+
+      if (!stopPoint && plan.status === 'partial') {
+        const placeholder = await this.markRoutingGap(ctx, {
+          reasonCode: 'UNSUPPORTED_CHAIN',
+          message: plan.warnings[0] || 'Unsupported chained domains require manual continuation.',
+          blockedStep: completedSteps + 1,
+        });
+        stopPoint = this.buildStopPoint({
+          reasonCode: 'UNSUPPORTED_CHAIN',
+          message: plan.warnings[0] || 'Unsupported chained domains require manual continuation.',
+          blockedStep: completedSteps + 1,
+          status: placeholder ? 'interface-placeholder' : 'unsupported-chain',
+          placeholder,
+        });
+      }
+
+      return {
+        status: stopPoint ? 'partial' : 'completed',
+        completedSteps,
+        steps,
+        stopPoint,
+        message,
+      };
     },
 
     async loadUserProfile(ctx, tenantId, userId) {

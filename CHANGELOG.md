@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.52.1] — Capability Broker & Intent Routing
+
+### Added
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): new deterministic routing helper with execution-mode normalization, routing-matrix enforcement, domain-signal detection, step-template resolution, and missing-input validation.
+
+### Changed
+- [services/personal-agent.service.js](services/personal-agent.service.js): `personal-agent.chat` now binds capability-broker recommendations to deterministic execution plans, supports `executionMode: auto|hitl`, returns stable plan metadata for the UI, and degrades unsupported chains via explicit stop markers / `interface-placeholder` integration.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): extended regressions for HITL plan return, deterministic auto execution order, unsupported extra-domain degradation, and exact stop-point reporting for missing dependent inputs.
+- [package.json](package.json): bumped version to `0.52.1`.
+- [package-lock.json](package-lock.json): aligned lockfile version to `0.52.1`.
+- [README.md](README.md): updated current release marker to `v0.52.1`.
+- [docs/ui-contracts/41-personal-agent.md](docs/ui-contracts/41-personal-agent.md): documented execution modes, routing payload, and partial-execution response semantics.
+
+### Notes
+- Hard acceptance criterion enforced: the routing fallback matrix remains the only allowed multi-domain chaining path; unsupported extra domains stop after the last valid deterministic step.
+- HITL mode returns the exact plan without executing tools, while auto mode executes the same ordered plan and reports the precise stop point on graceful degradation.
+
 ## [0.52.0] — Personal Agent Zwiebelmodus (L0–L4)
 
 ### Added

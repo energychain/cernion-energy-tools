@@ -1,20 +1,28 @@
-# UI Contract 41 — Personal Agent (v0.52.0)
+# UI Contract 41 — Personal Agent (v0.52.1)
 
 ## Scope
-Interaktive Chat-Schnittstelle mit Zwiebelmodus (L0–L4), Session-Wiederherstellung und Session-Reset.
+Interaktive Chat-Schnittstelle mit Zwiebelmodus (L0–L4), Capability-Routing, HITL-Planmodus, Session-Wiederherstellung und Session-Reset.
 
 ## Endpoints
 
 ### 1) POST /api/personal-agent/chat
 - Action: `personal-agent.chat`
-- Zweck: Führt einen Chat-Turn aus, baut den Kontext-Stack auf und liefert Antworttext.
+- Zweck: Führt einen Chat-Turn aus, baut den Kontext-Stack auf, berechnet einen deterministischen Ausführungsplan und liefert entweder den Plan (`hitl`) oder die ausgeführte Kette (`auto`).
 - Wichtig: Layer 4 ist transient; Roh-JSON wird nach Synthese verworfen und nicht persistiert.
 
 Request:
 ```json
 {
   "message": "Prüfe bitte die Netzsituation in Troisdorf.",
-  "sessionId": "optional-existing-session-id"
+  "sessionId": "optional-existing-session-id",
+  "executionMode": "auto",
+  "knownContext": {
+    "gridOperatorName": "TWL Netze",
+    "fnavProfile": {
+      "requestedCapacity": 5000,
+      "flexibleCapacity": 2000
+    }
+  }
 }
 ```
 
@@ -23,9 +31,55 @@ Response:
 {
   "success": true,
   "sessionId": "pa_...",
+  "executionMode": "auto",
   "reply": "...",
   "layer4Purged": true,
   "l3Compressed": false,
+  "routing": {
+    "source": "routing-matrix",
+    "routeKey": "fnav-finance",
+    "routeLabel": "fNAV + Finance",
+    "primaryIntent": "grid-connection.fnav",
+    "secondaryIntents": ["finance-agent.analyze"],
+    "requestedDomains": ["fnav", "finance"],
+    "unsupportedDomains": [],
+    "warnings": []
+  },
+  "plan": {
+    "status": "ready",
+    "steps": [
+      {
+        "step": 1,
+        "action": "grid-connection.fnavValidate",
+        "purpose": "fNAV-Profil technisch validieren",
+        "source": "routing-matrix"
+      },
+      {
+        "step": 2,
+        "action": "finance-agent.fnavEconomics",
+        "purpose": "Wirtschaftliche Einordnung aus fNAV-Profil ableiten",
+        "source": "routing-matrix",
+        "dependsOnStep": 1
+      }
+    ]
+  },
+  "execution": {
+    "status": "completed",
+    "completedSteps": 2,
+    "steps": [
+      {
+        "step": 1,
+        "action": "grid-connection.fnavValidate",
+        "status": "completed"
+      },
+      {
+        "step": 2,
+        "action": "finance-agent.fnavEconomics",
+        "status": "completed"
+      }
+    ],
+    "stopPoint": null
+  },
   "contextUsage": {
     "l0": 12,
     "l1": 4,
@@ -36,6 +90,39 @@ Response:
     "maxContextTokens": 128000
   },
   "historyCount": 2
+}
+```
+
+HITL-Response (gekürzt):
+```json
+{
+  "success": true,
+  "executionMode": "hitl",
+  "plan": {
+    "status": "ready",
+    "steps": [{ "step": 1, "action": "grid-connection.fnavValidate" }]
+  },
+  "execution": {
+    "status": "skipped",
+    "steps": [],
+    "stopPoint": null
+  }
+}
+```
+
+Partial-Execution-Response (gekürzt):
+```json
+{
+  "execution": {
+    "status": "partial",
+    "completedSteps": 1,
+    "stopPoint": {
+      "status": "interface-placeholder",
+      "reasonCode": "MISSING_INPUTS",
+      "blockedStep": 2,
+      "placeholderId": "ph-..."
+    }
+  }
 }
 ```
 
@@ -81,3 +168,5 @@ Response:
 - L4 enthält maximal ein aktives Tool.
 - L4-Rohdaten werden nie in Object-Store/DB persistiert.
 - Session-Persistenz enthält nur L1/L2/L3 und Metadaten.
+- `executionMode: "hitl"` liefert denselben stabilen Plan wie `auto`, führt aber keine Tool-Calls aus.
+- Multi-Domain-Ketten sind nur entlang der Routing-Matrix erlaubt; zusätzliche Domains führen zu kontrollierter Partial Execution mit explizitem Stop-Marker.
