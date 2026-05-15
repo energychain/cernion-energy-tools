@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+### Added
+- [src/personal-agent-onboarding.js](src/personal-agent-onboarding.js): new onboarding helper module for deterministic missing-input recovery with question lifecycle support (`pending`/`answered`/`stale`), heuristic answer capture, stale marking, and `oneOf:*` missing-token parameter resolution.
+- [tests/personal-agent-onboarding.test.js](tests/personal-agent-onboarding.test.js): dedicated module test suite for onboarding question generation, heuristic capture guardrails, fact extraction mapping, stale transitions, and missing-token resolution.
+
+### Changed
+- [services/personal-agent.service.js](services/personal-agent.service.js): `personal-agent.chat` now supports conversational onboarding in AUTO mode when deterministic plan inputs are missing; returns `execution.status = "awaiting-onboarding"` with structured stop-point metadata (`blockedAction`, `missingParams`, `onboardingQuestion`) and resumes execution after answer capture.
+- [services/personal-agent.service.js](services/personal-agent.service.js): session model extended with tenant-scoped `l3.onboardingQuestions` persistence and stale-question handling; HITL mode remains non-executing and now exposes `plan.onboardingHints` for manual continuation.
+- [services/personal-agent.service.js](services/personal-agent.service.js): deterministic execution path now supports `skipGapForMissingInputs` for onboarding-driven stops, preventing premature interface-placeholder side effects during conversational clarification.
+- [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): Dream pipeline now extracts answered onboarding facts from L3, persists them tenant-scoped under L2 `onboardingFacts`, and records extraction telemetry via mandatory audit block `onboardingExtraction`.
+- [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): `enrichL2Profile(...)` extended with onboarding mode to keep `preferences` and onboarding facts isolated while preserving OCC conflict behavior.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): updated and expanded for `awaiting-onboarding` stop behavior, answer/resume flow, and HITL onboarding-hint coverage.
+- [tests/personal-agent-dreamer.test.js](tests/personal-agent-dreamer.test.js): expanded for onboarding fact extraction, conversion, L2 `onboardingFacts` persistence, and audit payload assertions.
+
+### Notes
+- User-approved MVP strategy preserved: heuristic answer validation only (no immediate VNB lookup in chat path), tenant-scoped onboarding fact storage in L2, and focused test extension strategy.
 
 ## [0.52.7] — Hermes Review Follow-Up Fixes (Part 3)
 
