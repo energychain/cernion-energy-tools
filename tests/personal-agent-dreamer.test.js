@@ -710,7 +710,13 @@ describe('Dream durable scheduling', () => {
       sessionId: 'sess-minimal',
       userId: 'user1',
       profileNamespace: 'personal_agent_user_profiles:tenant1',
-      authMeta: { authUser: { userId: 'user1' } },
+      authMeta: {
+        authUser: { userId: 'user1' },
+        requestHeaders: {
+          authorization: 'Bearer SECRET',
+          'x-request-id': 'req-1',
+        },
+      },
       runFn: jest.fn(),
     });
 
@@ -723,5 +729,6 @@ describe('Dream durable scheduling', () => {
     expect(job.dreamSchedule.payload.session).toBeUndefined();
     expect(job.dreamSchedule.payload.sessionId).toBe('sess-minimal');
     expect(job.dreamSchedule.payload.tenantId).toBe('tenant1');
+    expect(job.dreamSchedule.payload.authMeta.requestHeaders).toBeUndefined();
   });
 });

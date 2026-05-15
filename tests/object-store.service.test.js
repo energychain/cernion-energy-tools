@@ -52,9 +52,9 @@ describe('Object Store Service', () => {
       expect(result.payload).toEqual({ title: 'Hello', count: 42 });
       expect(typeof result.createdAt).toBe('string');
       expect(typeof result.updatedAt).toBe('string');
+      expect(typeof result._rev).toBe('string');
       // PouchDB internals must be absent
       expect(result._id).toBeUndefined();
-      expect(result._rev).toBeUndefined();
       expect(result._ns).toBeUndefined();
     });
 
@@ -126,6 +126,76 @@ describe('Object Store Service', () => {
           _rev: current._rev,
         })
       ).rejects.toMatchObject({ code: 409, type: 'OBJECT_OCC_CONFLICT' });
+    });
+
+    it('treats explicit _rev: undefined as no-CAS token on updates', async () => {
+      await broker.call('object-store.put', {
+        namespace: 'test_ns',
+        key: 'cas-undefined',
+        payload: { version: 1 },
+      });
+
+      const updated = await broker.call('object-store.put', {
+        namespace: 'test_ns',
+        key: 'cas-undefined',
+        payload: { version: 2 },
+        _rev: undefined,
+      });
+
+      expect(updated.payload.version).toBe(2);
+      expect(typeof updated._rev).toBe('string');
+    });
+
+    it('treats explicit _rev: empty string as no-CAS token on updates', async () => {
+      await broker.call('object-store.put', {
+        namespace: 'test_ns',
+        key: 'cas-empty',
+        payload: { version: 1 },
+      });
+
+      const updated = await broker.call('object-store.put', {
+        namespace: 'test_ns',
+        key: 'cas-empty',
+        payload: { version: 2 },
+        _rev: '',
+      });
+
+      expect(updated.payload.version).toBe(2);
+      expect(typeof updated._rev).toBe('string');
+    });
+
+    it('includes currentRev in OBJECT_OCC_CONFLICT when write step collides', async () => {
+      const created = await broker.call('object-store.put', {
+        namespace: 'test_ns',
+        key: 'cas-collision',
+        payload: { version: 1 },
+      });
+
+      const svc = broker.getLocalService('object-store');
+      const originalPut = svc.db.put.bind(svc.db);
+      try {
+        svc.db.put = async () => {
+          const err = new Error('update conflict');
+          err.status = 409;
+          throw err;
+        };
+
+        await expect(
+          broker.call('object-store.put', {
+            namespace: 'test_ns',
+            key: 'cas-collision',
+            payload: { version: 2 },
+          })
+        ).rejects.toMatchObject({
+          code: 409,
+          type: 'OBJECT_OCC_CONFLICT',
+          data: expect.objectContaining({
+            currentRev: created._rev,
+          }),
+        });
+      } finally {
+        svc.db.put = originalPut;
+      }
     });
   });
 

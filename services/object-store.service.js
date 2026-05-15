@@ -139,6 +139,11 @@ module.exports = {
                     namespace: { type: 'string', example: 'znp_projects' },
                     key: { type: 'string', example: 'a1b2c3d4' },
                     payload: { type: 'object', example: { name: 'My Project' } },
+                    _rev: {
+                      type: 'string',
+                      example: '2-4f8a63d0f9c94d97a0b5b6f8cdef1234',
+                      description: 'Current PouchDB document revision for CAS updates.',
+                    },
                     createdAt: { type: 'string', example: '2026-04-06T12:00:00.000Z' },
                     updatedAt: { type: 'string', example: '2026-04-06T12:00:00.000Z' },
                   },
@@ -245,6 +250,11 @@ module.exports = {
                     namespace: { type: 'string', example: 'znp_projects' },
                     key: { type: 'string', example: 'a1b2c3d4' },
                     payload: { type: 'object', example: { name: 'My Project' } },
+                    _rev: {
+                      type: 'string',
+                      example: '2-4f8a63d0f9c94d97a0b5b6f8cdef1234',
+                      description: 'Current PouchDB document revision after upsert.',
+                    },
                     createdAt: { type: 'string', example: '2026-04-06T12:00:00.000Z' },
                     updatedAt: { type: 'string', example: '2026-04-06T12:00:00.000Z' },
                   },
@@ -258,6 +268,10 @@ module.exports = {
         const { namespace, key, payload } = ctx.params;
         const hasRevToken = Object.prototype.hasOwnProperty.call(ctx.params, '_rev');
         const requestedRev = hasRevToken ? ctx.params._rev : undefined;
+        const normalizedRequestedRev =
+          typeof requestedRev === 'string' ? requestedRev.trim() : requestedRev;
+        const hasCasRequestedRev =
+          hasRevToken && normalizedRequestedRev !== null && normalizedRequestedRev !== undefined && normalizedRequestedRev !== '';
         const id = docId(namespace, key);
         const now = new Date().toISOString();
 
@@ -265,7 +279,7 @@ module.exports = {
         let createdAt = now;
         try {
           const existing = await this.db.get(id);
-          if (hasRevToken && requestedRev !== existing._rev) {
+          if (hasCasRequestedRev && normalizedRequestedRev !== existing._rev) {
             throw new MoleculerClientError(
               `Revision conflict for ${namespace}/${key}`,
               409,
@@ -273,7 +287,7 @@ module.exports = {
               {
                 namespace,
                 key,
-                expectedRev: requestedRev,
+                expectedRev: normalizedRequestedRev,
                 currentRev: existing._rev,
               }
             );
@@ -282,7 +296,7 @@ module.exports = {
           createdAt = existing.createdAt || now;
         } catch (err) {
           if (err?.status === 404) {
-            if (hasRevToken && requestedRev !== null && requestedRev !== undefined && requestedRev !== '') {
+            if (hasCasRequestedRev) {
               throw new MoleculerClientError(
                 `Revision conflict for ${namespace}/${key}: document does not exist`,
                 409,
@@ -290,7 +304,7 @@ module.exports = {
                 {
                   namespace,
                   key,
-                  expectedRev: requestedRev,
+                  expectedRev: normalizedRequestedRev,
                   currentRev: null,
                 }
               );
@@ -312,7 +326,15 @@ module.exports = {
         };
 
         try {
-          await this.db.put(doc);
+          const putResult = await this.db.put(doc);
+          const storedRev = putResult?.rev || doc._rev || rev || null;
+          doc._rev = storedRev;
+
+          this.logger.info(`[object-store] put ${namespace}/${key}`);
+          return {
+            ...toPublic(doc),
+            _rev: storedRev,
+          };
         } catch (err) {
           if (err?.status === 409) {
             throw new MoleculerClientError(
@@ -322,15 +344,13 @@ module.exports = {
               {
                 namespace,
                 key,
-                expectedRev: hasRevToken ? requestedRev : rev || null,
-                currentRev: null,
+                expectedRev: hasCasRequestedRev ? normalizedRequestedRev : rev || null,
+                currentRev: rev || null,
               }
             );
           }
           throw err;
         }
-        this.logger.info(`[object-store] put ${namespace}/${key}`);
-        return toPublic(doc);
       },
     },
 

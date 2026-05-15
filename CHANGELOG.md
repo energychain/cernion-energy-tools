@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No changes yet._
 
+## [0.52.7] — Hermes Review Follow-Up Fixes (Part 3)
+
+### Fixed
+- [services/personal-agent.service.js](services/personal-agent.service.js): hardened `buildDreamAuthMeta()` to prevent sensitive request header persistence in durable Dream jobs. Only explicit tracing-safe headers are allowlisted (`x-request-id`, `x-correlation-id`, `traceparent`, `tracestate`).
+- [src/personal-agent-dreamer.js](src/personal-agent-dreamer.js): added defensive payload sanitization in `scheduleDream()` so `authMeta.requestHeaders` is never persisted even if provided by a caller.
+- [services/object-store.service.js](services/object-store.service.js): fixed CAS contract inconsistency by returning `_rev` from successful `put` responses (aligned with `get`).
+- [services/object-store.service.js](services/object-store.service.js): normalized optional CAS token semantics in `put` so `_rev: undefined`, `_rev: null`, and `_rev: ''` are consistently treated as “no CAS token” for both create and update paths.
+- [services/object-store.service.js](services/object-store.service.js): improved OCC conflict fidelity in `db.put` collision handling by returning `currentRev` from the latest known revision instead of `null`.
+
+### Changed
+- [services/object-store.service.js](services/object-store.service.js): updated OpenAPI response schemas for `get` and `put` to document `_rev` in response payloads.
+- [tests/object-store.service.test.js](tests/object-store.service.test.js): added regressions for `_rev` response shape, CAS normalization edge-cases (`undefined`, empty-string), and `currentRev` fidelity on write-collision conflicts.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression to verify sensitive headers are stripped from Dream auth metadata.
+- [tests/personal-agent-dreamer.test.js](tests/personal-agent-dreamer.test.js): extended durable scheduling payload tests to ensure `requestHeaders` are not persisted.
+- [package.json](package.json): bumped version to `0.52.7`.
+- [package-lock.json](package-lock.json): aligned lockfile version to `0.52.7`.
+- [README.md](README.md): updated current release marker to `v0.52.7`.
+
+### Notes
+- Matrix hard-gate remains unchanged: 58/58 required TDD IDs must pass (100%).
+
 ## [0.52.6] — Hermes Review Fixes (Part 2)
 
 ### Fixed

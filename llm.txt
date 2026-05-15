@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.52.6
-- changelog_latest_release: 0.52.6
+- version: 0.52.7
+- changelog_latest_release: 0.52.7
 - source_files_hash:
-  - CHANGELOG.md: 1b86248f8a9e79f06530639e0c27574fab5b423df34d5e9b70981a92c036e57b
-  - README.md: 2d2f04120e3a95a70b9c93084ee4c34028786298879a684873546f8f3d3b8673
+  - CHANGELOG.md: 308dbd6c27f5ec7b0be37cf8980d57521944c0fcecb97e0fcd6c7674bf4e6552
+  - README.md: fa62e7208e58fc75334417ba69cdaacec790dbf9dd221e880df9a1d510dafa03
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: 096ffdb7dcea157c1bedeb23ffa8ece5c9350e41cf2410b50343a6df6b1330ad
+  - openapi-export.json: 0ecf54f15f1a9095c846f3f700c83593702862120b851935e2d47d1b24371174
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -969,7 +969,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.52.6"
+    "version": "0.52.7"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -16776,6 +16776,11 @@ process:
               "application/json": {
                 "schema": {
                   "properties": {
+                    "_rev": {
+                      "description": "Current PouchDB document revision for CAS updates.",
+                      "example": "2-4f8a63d0f9c94d97a0b5b6f8cdef1234",
+                      "type": "string"
+                    },
                     "createdAt": {
                       "example": "2026-04-06T12:00:00.000Z",
                       "type": "string"
@@ -16878,6 +16883,11 @@ process:
               "application/json": {
                 "schema": {
                   "properties": {
+                    "_rev": {
+                      "description": "Current PouchDB document revision after upsert.",
+                      "example": "2-4f8a63d0f9c94d97a0b5b6f8cdef1234",
+                      "type": "string"
+                    },
                     "createdAt": {
                       "example": "2026-04-06T12:00:00.000Z",
                       "type": "string"
@@ -22751,8 +22761,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.52.6"
+  "x-version": "0.52.7"
 }
 
 ## Integrity
-- llm_txt_sha256: 1cf9fd3296a8d543ba2fe8e89f1098ff2e4d5bd3d7c8d025e2ae2bfc479fe701
+- llm_txt_sha256: 8b140086020a3ceec0c72d35aa43af5985f69b989cef29d18faf0672dc549698

@@ -847,6 +847,7 @@ module.exports = {
     buildDreamAuthMeta(meta = {}, tenantId, userId) {
       const safeMeta = meta && typeof meta === 'object' ? meta : {};
       const authUser = safeMeta.authUser && typeof safeMeta.authUser === 'object' ? safeMeta.authUser : {};
+      const requestHeaders = this.sanitizeDreamRequestHeaders(safeMeta.requestHeaders);
 
       const nextAuthUser = {
         ...authUser,
@@ -860,11 +861,27 @@ module.exports = {
         scopes: Array.isArray(safeMeta.scopes) ? safeMeta.scopes : undefined,
         permissions: Array.isArray(safeMeta.permissions) ? safeMeta.permissions : undefined,
         auth: safeMeta.auth && typeof safeMeta.auth === 'object' ? safeMeta.auth : undefined,
-        requestHeaders:
-          safeMeta.requestHeaders && typeof safeMeta.requestHeaders === 'object'
-            ? safeMeta.requestHeaders
-            : undefined,
+        requestHeaders,
       };
+    },
+
+    sanitizeDreamRequestHeaders(headers) {
+      if (!headers || typeof headers !== 'object' || Array.isArray(headers)) {
+        return undefined;
+      }
+
+      const allowed = ['x-request-id', 'x-correlation-id', 'traceparent', 'tracestate'];
+      const sanitized = {};
+
+      for (const [key, value] of Object.entries(headers)) {
+        const normalizedKey = String(key || '').trim().toLowerCase();
+        if (!allowed.includes(normalizedKey)) {
+          continue;
+        }
+        sanitized[normalizedKey] = value;
+      }
+
+      return Object.keys(sanitized).length > 0 ? sanitized : undefined;
     },
 
     deepMergeMeta(base = {}, patch = {}) {

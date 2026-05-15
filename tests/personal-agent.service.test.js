@@ -470,4 +470,30 @@ describe('personal-agent.service', () => {
     expect(merged.authUser.tenantRole).toBe('viewer');
     expect(merged.authUser.userId).toBe('user-1');
   });
+
+  it('buildDreamAuthMeta strips sensitive request headers before durable scheduling', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const authMeta = svc.schema.methods.buildDreamAuthMeta.call(
+      svc,
+      {
+        authUser: { sub: 'user-1' },
+        roles: ['operator'],
+        requestHeaders: {
+          authorization: 'Bearer SECRET',
+          cookie: 'session=secret',
+          'x-request-id': 'req-123',
+          'X-Correlation-ID': 'corr-456',
+        },
+      },
+      'tenant-a',
+      'user-1'
+    );
+
+    expect(authMeta.requestHeaders).toEqual({
+      'x-request-id': 'req-123',
+      'x-correlation-id': 'corr-456',
+    });
+    expect(authMeta.requestHeaders.authorization).toBeUndefined();
+    expect(authMeta.requestHeaders.cookie).toBeUndefined();
+  });
 });

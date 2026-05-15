@@ -36,6 +36,16 @@ function buildDreamIdempotencyKey(tenantId, sessionId) {
   return `personal-agent:dream:${tenantId}:${sessionId}`;
 }
 
+function sanitizeDreamAuthMetaForPersistence(meta = {}) {
+  if (!meta || typeof meta !== 'object' || Array.isArray(meta)) {
+    return {};
+  }
+
+  const nextMeta = { ...meta };
+  delete nextMeta.requestHeaders;
+  return nextMeta;
+}
+
 // ---------------------------------------------------------------------------
 // Durable dream scheduling via v0.52.2 job-store
 // ---------------------------------------------------------------------------
@@ -211,7 +221,7 @@ async function scheduleDream(options = {}) {
         sessionId,
         userId,
         profileNamespace,
-        authMeta: authMeta && typeof authMeta === 'object' ? authMeta : {},
+        authMeta: sanitizeDreamAuthMetaForPersistence(authMeta),
       },
     };
   });
