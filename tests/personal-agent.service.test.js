@@ -256,6 +256,7 @@ describe('personal-agent.service', () => {
       status: 'interface-placeholder',
       blockedStep: 3,
     });
+    expect(result.reply).not.toMatch(/ACTION_FAILED|UNSUPPORTED_CHAIN|VALIDATION_ERROR|__step_/i);
     expect(placeholderCalls).toHaveLength(1);
   });
 
@@ -281,6 +282,7 @@ describe('personal-agent.service', () => {
       status: 'awaiting-onboarding',
     });
     expect(result.reply).toContain('Projekt-ID');
+    expect(result.reply).not.toMatch(/ACTION_FAILED|MISSING_INPUTS|VALIDATION_ERROR|__step_/i);
     expect(placeholderCalls).toHaveLength(0);
 
     const session = await broker.call(

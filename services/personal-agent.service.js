@@ -1165,13 +1165,24 @@ module.exports = {
         if (questionText) {
           return `${fileIntro}${questionText}`;
         }
-        return `${fileIntro}Ich benötige noch Angaben, um fortzufahren. ${execution?.stopPoint?.message || ''}`.trim();
+        return `${fileIntro}Ich benötige noch Angaben, um fortzufahren. Bitte ergänze die fehlenden Informationen.`;
       }
       if (execution?.status === 'completed') {
         return `${fileIntro}Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt. Kontext: ${promptExcerpt}`;
       }
       if (execution?.status === 'partial') {
-        return `${fileIntro}Teilweise ausgeführt: ${execution.completedSteps || 0} Schritt(e) erfolgreich, dann kontrolliert gestoppt (${execution.stopPoint?.reasonCode || 'UNSPECIFIED'}). Kontext: ${promptExcerpt}`;
+        const reasonCode = execution?.stopPoint?.reasonCode;
+        const onboardingQuestion = execution?.stopPoint?.onboardingQuestion?.questionText;
+
+        if (reasonCode === 'MISSING_INPUTS') {
+          return `${fileIntro}Ich habe den Auftrag teilweise ausgeführt und warte auf fehlende Angaben. ${onboardingQuestion || 'Bitte ergänze die fehlenden Informationen, damit ich fortfahren kann.'}`.trim();
+        }
+
+        if (reasonCode === 'UNSUPPORTED_CHAIN') {
+          return `${fileIntro}Ich habe den unterstützten Teil bereits ausgeführt. Für den nächsten Teil fehlt mir aktuell die passende Fähigkeit.`;
+        }
+
+        return `${fileIntro}Ich habe den Auftrag teilweise ausgeführt und danach sicher angehalten. Kontext: ${promptExcerpt}`;
       }
       return `${fileIntro}Verstanden. Nächster Schritt für: ${String(message).trim().slice(0, 240)}`;
     },
