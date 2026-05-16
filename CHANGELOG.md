@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- No pending entries.
+### Changed
+- [services/personal-agent.service.js](services/personal-agent.service.js): hardened `synthesizeTurn()` for non-completed executions so user replies no longer expose raw technical status phrases and internal failure details.
+- [services/personal-agent.service.js](services/personal-agent.service.js): improved partial-execution fallback synthesis to produce user-friendly guidance (what was checked, what is missing, and next clarification step) with explicit uncertainty handling.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): strengthened preflight input checks for broker-recommended actions so missing required inputs are detected before action execution.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): improved placeholder resolution to avoid unresolved `__step_*` references being forwarded into downstream service calls.
+
+### Tests
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added/updated regression coverage ensuring partial replies do not leak internal status/error tokens.
+- [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js): extended blackbox chat assertions to enforce user-friendly non-completed replies without internal technical leakage.
 
 ## [0.52.10] — Routing/Matrix Stabilization, Release-Gate Hardening, and Ops Updates
 
