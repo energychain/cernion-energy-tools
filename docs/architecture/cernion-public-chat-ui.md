@@ -5,16 +5,33 @@
 **Version:** v1.0.0
 **Scope:** UI + Middleware-Architektur, Spec-First
 **Anbindung:** Personal Agent Microservice (v0.52+)
+**Repository:** `energychain/cernion-chat-ui` — **Ausgelagertes, eigenständiges Repository** (siehe Abschnitt 1.1)
 
 ---
 
 ## 1. Zusammenfassung (Executive Summary)
 
-Wir bauen ein öffentlich zugängliches, hochmodernes Chat-Interface für cernion.de. Die Nutzung ist primär **kostenlos**. Nach der **ersten** generierten Antwort wird der Chat eingefroren – der Nutzer wird zum Login / zur Registrierung aufgefordert. Das Framing gegenüber dem Nutzer: *„Zum Schutz und Speichern Ihrer Chat-Session“*. Ziel ist Lead-Generierung für den Cernion-B2C-Bereich.
+Wir bauen ein öffentlich zugängliches, hochmodernes Chat-Interface für cernion.de. Die Nutzung ist primär **kostenlos**. Nach der **ersten** generierten Antwort wird der Chat eingefroren – der Nutzer wird zum Login / zur Registrierung aufgefordert. Das Framing gegenüber dem Nutzer: *„Zum Schutz und Speichern Ihrer Chat-Session"*. Ziel ist Lead-Generierung für den Cernion-B2C-Bereich.
 
 Die Architektur besteht aus zwei Hauptkomponenten:
 1. **Frontend (Chat-UI)** – Ein reactives SPA, extrem minimalistisch, mit maximaler visueller Reduktion.
 2. **Middleware (Proxy)** – Ein schlanker Node.js-Proxy-Service, der CORS-Probleme vermeidet und die interne Cernion-API (`http://10.0.0.5:3900/`) kapselt.
+
+### 1.1 Repository-Auslagerung (Separierung)
+
+> **Entscheidung:** Die Cernion Public Chat-UI lebt **strikt in einem eigenen Repository** (`cernion-chat-ui`) und wird **nicht** als Unterordner im `cernion-energy-tools`-Monorepo geführt.
+>
+> **Begründung:**
+> - **Sicherheit:** Die UI ist öffentlich erreichbar und hat ein deutlich größeres Angriffsprofil (Browser-fähig, öffentliches Internet) als das Backend. Eine Trennung verhindert, dass ein Frontend-Compromise das Backend-Repo oder dessen Deployment-Pipeline betrifft.
+> - **Deployment-Autonomie:** Frontend kann unabhängig auf Vercel/Netlify deployed werden, ohne den Backend-Release-Zyklus zu blockieren oder zu beeinflussen.
+> - **CORS & Netzwerk:** Die Middleware läuft als separate Deploy-Einheit und kommuniziert über ein definiertes internes Interface mit dem API-Gateway.
+> - **Zugangskontrolle:** Andere Contributors/Rechtegruppen für UI vs. Backend möglich.
+> - **Build-Isolierung:** Keine Node.js-Version-Konflikte, keine gemeinsamen Dependencies, kein Yarn-Workspace-Overhead im Backend.
+>
+> **Schnittstelle zwischen den Repos:**
+> - `cernion-energy-tools` stellt die API unter `http://10.0.0.5:3900/api/personal-agent/chat` bereit.
+> - `cernion-chat-ui` kapselt diese über seine Middleware und bietet dem Browser eine eigene API-Oberfläche.
+> - Änderungen an der API müssen abwärtskompatibel bleiben oder werden über Versions-Pfade (`/v1/`) explizit gemanagt.
 
 ---
 
@@ -498,6 +515,29 @@ async function captureLead(sessionId, prompt, responseSummary) {
 }
 ```
 
+### 6.8 API-Gateway – Tenant-Allowlist (CERNION_ALLOWED_TENANTS)
+
+> **Neu ab v0.52.10:** Das API-Gateway prüft ab sofort, ob ein per `x-tenant-id` übergebener Tenant in der Installations-Allowlist steht.
+>
+> **Motivation:** Die Public-Chat-UI nutzt `tenant-id: public`. In einer Multi-Tenant-Umgebung soll verhindert werden, dass beliebige (nicht existierende) Tenant-Namen verwendet werden oder dass der `public`-Tenant versehentlich auf Produktion aktiv ist.
+>
+> **Konfiguration in `.env`:**
+> ```bash
+> CERNION_ALLOWED_TENANTS=default,public,agentic-hackathon
+> ```
+> - Komma-separierte Liste, case-insensitive.
+> - Wenn **nicht gesetzt** oder **leer**, bleibt alles rückwärtskompatibel – alle formatgültigen Tenants werden akzeptiert.
+> - Nur token-lose Requests (d.h. Fallback über `x-tenant-id`-Header oder `?tenantId=...`) werden geprüft. Authentifizierte Requests mit Token-verifizierter Tenant-ID sind davon nicht betroffen.
+>
+> **Verhalten bei Nicht-Allowlist:**
+> - HTTP **403 Forbidden**
+> - Error-Code: `TENANT_NOT_ALLOWED`
+> - Message: `Tenant 'xxx' is not allowed in this installation. Allowed tenants are controlled by CERNION_ALLOWED_TENANTS.`
+>
+> **Implementierung:**
+> - `src/tenant-context.js` – `isTenantAllowed(tenantId)`
+> - `services/api.service.js` – geprüft nach `validateTenantId()` im Fallback-Resolution-Pfad
+
 Storage: Einfache JSON-Files oder SQLite (im MVP), später Migration zu `crm.service.js` oder `customer-service.service.js`.
 
 ---
@@ -872,6 +912,11 @@ JWT_EXPIRES_IN=7d
 COOKIE_DOMAIN=.cernion.de
 COOKIE_SECURE=true
 COOKIE_SAME_SITE=strict
+
+# Tenant-Allowlist (API-Gateway)
+# Komma-separierte Liste erlaubter Tenants. Case-insensitive.
+# Wenn leer/nicht gesetzt: alle formatgültigen Tenants erlaubt (rückwärtskompatibel).
+CERNION_ALLOWED_TENANTS=default,public,agentic-hackathon
 
 # Rate Limiting
 RATE_LIMIT_ANONYMOUS=10  # per 60 min

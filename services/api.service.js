@@ -17,7 +17,7 @@ const rateQuotaStore = require('../src/rate-quota-store');
 const tracing = require('../src/tracing');
 const { mergeObservabilityContext } = require('../src/observability-context');
 const { hasRole, mapRolesFromLegacyToken } = require('../src/auth/rbac');
-const { validateTenantId } = require('../src/tenant-context');
+const { validateTenantId, isTenantAllowed } = require('../src/tenant-context');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads');
 const CONTENT_TYPE_HEADER = 'Content-Type';
@@ -1678,9 +1678,20 @@ module.exports = {
             if (fallbackTenantId) {
               try {
                 validateTenantId(fallbackTenantId);
+                if (!isTenantAllowed(fallbackTenantId)) {
+                  throw new Errors.MoleculerClientError(
+                    `Tenant '${fallbackTenantId}' is not allowed in this installation. ` +
+                      `Allowed tenants are controlled by CERNION_ALLOWED_TENANTS.`,
+                    403,
+                    'TENANT_NOT_ALLOWED'
+                  );
+                }
                 ctx.meta.tenantId = fallbackTenantId;
                 this.logger.debug(`Resolved tenantId from header/query: ${fallbackTenantId}`);
               } catch (validationErr) {
+                if (validationErr.code === 'TENANT_NOT_ALLOWED') {
+                  throw validationErr;
+                }
                 this.logger.warn(
                   `Invalid tenantId in header/query ignored: ${fallbackTenantId} — ${validationErr.message}`
                 );
