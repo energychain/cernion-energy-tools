@@ -1161,30 +1161,245 @@ module.exports = {
           .slice(0, 160)}“. Ausführung wartet auf Freigabe.`;
       }
       if (execution?.status === 'awaiting-onboarding') {
-        const questionText = execution?.stopPoint?.onboardingQuestion?.questionText;
-        if (questionText) {
-          return `${fileIntro}${questionText}`;
-        }
-        return `${fileIntro}Ich benötige noch Angaben, um fortzufahren. Bitte ergänze die fehlenden Informationen.`;
+        return this.buildRecoveryReply({ message, plan, execution, fileIntro });
       }
       if (execution?.status === 'completed') {
         return `${fileIntro}Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt. Kontext: ${promptExcerpt}`;
       }
       if (execution?.status === 'partial') {
-        const reasonCode = execution?.stopPoint?.reasonCode;
-        const onboardingQuestion = execution?.stopPoint?.onboardingQuestion?.questionText;
-
-        if (reasonCode === 'MISSING_INPUTS') {
-          return `${fileIntro}Ich habe den Auftrag teilweise ausgeführt und warte auf fehlende Angaben. ${onboardingQuestion || 'Bitte ergänze die fehlenden Informationen, damit ich fortfahren kann.'}`.trim();
-        }
-
-        if (reasonCode === 'UNSUPPORTED_CHAIN') {
-          return `${fileIntro}Ich habe den unterstützten Teil bereits ausgeführt. Für den nächsten Teil fehlt mir aktuell die passende Fähigkeit.`;
-        }
-
-        return `${fileIntro}Ich habe den Auftrag teilweise ausgeführt und danach sicher angehalten. Kontext: ${promptExcerpt}`;
+        return this.buildRecoveryReply({ message, plan, execution, fileIntro });
       }
       return `${fileIntro}Verstanden. Nächster Schritt für: ${String(message).trim().slice(0, 240)}`;
+    },
+
+    buildRecoveryReply({ message, plan = {}, execution = {}, fileIntro = '' }) {
+      const taskTone = this.isFinanceRiskTask(message, plan, execution) ? 'finance-risk' : 'general';
+      const completedStepSummaries = this.summarizeCompletedSteps(plan, execution);
+      const stopPoint = execution?.stopPoint || {};
+      const progressPrefix = taskTone === 'finance-risk' ? 'Für die Risikoprüfung' : 'Für die fachliche Bewertung';
+
+      const progressText = completedStepSummaries.length > 0
+        ? `${progressPrefix} habe ich bereits ${completedStepSummaries.length === 1 ? 'einen Prüfschritt' : `${completedStepSummaries.length} Prüfschritte`} abgeschlossen: ${completedStepSummaries.join('; ')}.`
+        : `${progressPrefix} konnte ich noch keinen Prüfschritt abschließen.`;
+
+      const stopText = this.buildRecoveryStopText({ plan, execution, stopPoint, taskTone });
+      const nextText = this.buildRecoveryNextText({ plan, execution, stopPoint, taskTone });
+
+      return `${fileIntro}${progressText} ${stopText} ${nextText}`.replace(/\s+/g, ' ').trim();
+    },
+
+    buildRecoveryStopText({ plan = {}, execution = {}, stopPoint = {}, taskTone }) {
+      const blockedStepLabel = this.describeBlockedStep(plan, stopPoint);
+
+      if (stopPoint.reasonCode === 'MISSING_INPUTS' || execution?.status === 'awaiting-onboarding') {
+        const missingText = this.describeMissingRecoveryInputs(stopPoint);
+        return taskTone === 'finance-risk'
+          ? `Es fehlt noch die offene Evidenz: ${missingText}.`
+          : `Mir fehlt noch ${missingText}.`;
+      }
+
+      if (stopPoint.status === 'interface-placeholder' || stopPoint.reasonCode === 'UNSUPPORTED_CHAIN') {
+        return taskTone === 'finance-risk'
+          ? `Der Stopp liegt an einer Schnittstellenlücke beim Prüfpunkt "${blockedStepLabel}".`
+          : `Der Stopp liegt an einer Schnittstellenlücke beim Schritt "${blockedStepLabel}".`;
+      }
+
+      if (stopPoint.reasonCode === 'ACTION_FAILED') {
+        return taskTone === 'finance-risk'
+          ? `Der Prüfpunkt "${blockedStepLabel}" konnte fachlich nicht belastbar abgeschlossen werden.`
+          : `Der Schritt "${blockedStepLabel}" konnte fachlich nicht belastbar abgeschlossen werden.`;
+      }
+
+      if (stopPoint.reasonCode) {
+        return taskTone === 'finance-risk'
+          ? `Der Prüfpunkt "${blockedStepLabel}" ist an einer offenen fachlichen Bedingung hängengeblieben.`
+          : `Der Schritt "${blockedStepLabel}" ist an einer offenen fachlichen Bedingung hängengeblieben.`;
+      }
+
+      return taskTone === 'finance-risk'
+        ? 'Für die Risikoprüfung fehlt noch ein belastbarer Anschlussprüfpunkt.'
+        : 'Für die fachliche Bewertung fehlt noch ein belastbarer Anschlussprüfpunkt.';
+    },
+
+    buildRecoveryNextText({ plan = {}, execution = {}, stopPoint = {}, taskTone }) {
+      if (stopPoint.reasonCode === 'MISSING_INPUTS' || execution?.status === 'awaiting-onboarding') {
+        const questionText = stopPoint?.onboardingQuestion?.questionText;
+        if (questionText) {
+          return `Bitte beantworte konkret: ${questionText}`;
+        }
+
+        const missingText = this.describeMissingRecoveryInputs(stopPoint);
+        return taskTone === 'finance-risk'
+          ? `Bitte nenne ${missingText}, damit ich die Due-Diligence-Bedingung prüfen kann.`
+          : `Bitte nenne ${missingText}, damit ich fortfahren kann.`;
+      }
+
+      if (stopPoint.status === 'interface-placeholder' || stopPoint.reasonCode === 'UNSUPPORTED_CHAIN') {
+        const suggestion = this.getRecoveryNextSuggestion(stopPoint, plan);
+        return taskTone === 'finance-risk'
+          ? `Nächster Schritt: ${suggestion} oder die fehlende Evidenz nachreichen.`
+          : `Nächster Schritt: ${suggestion} oder die fehlende Evidenz nachreichen.`;
+      }
+
+      if (stopPoint.reasonCode === 'ACTION_FAILED') {
+        return taskTone === 'finance-risk'
+          ? 'Nächster Schritt: die offene Evidenz nachreichen oder den Prüfpunkt mit einer verfügbaren Capability neu anstoßen.'
+          : 'Nächster Schritt: die offene Evidenz nachreichen oder den Prüfschritt mit einer verfügbaren Capability neu anstoßen.';
+      }
+
+      return taskTone === 'finance-risk'
+        ? 'Bitte liefere die fehlende Evidenz für die belastbare Risikobewertung.'
+        : 'Bitte liefere die fehlenden Angaben für den nächsten Prüfschritt.';
+    },
+
+    getRecoveryNextSuggestion(stopPoint = {}, plan = {}) {
+      if (stopPoint?.onboardingQuestion?.questionText) {
+        return stopPoint.onboardingQuestion.questionText;
+      }
+
+      const metadataSuggestions = Array.isArray(stopPoint?.placeholderMetadata?.suggestedNextSteps)
+        ? stopPoint.placeholderMetadata.suggestedNextSteps.filter((item) => typeof item === 'string' && item.trim())
+        : [];
+      if (metadataSuggestions.length > 0) {
+        return metadataSuggestions[0];
+      }
+
+      const blockedStepLabel = this.describeBlockedStep(plan, stopPoint);
+      return `den Prüfpunkt "${blockedStepLabel}" an eine verfügbare Schnittstelle übergeben`;
+    },
+
+    summarizeCompletedSteps(plan = {}, execution = {}) {
+      const completedSteps = Array.isArray(execution?.steps)
+        ? execution.steps.filter((step) => step && step.status === 'completed')
+        : [];
+
+      return completedSteps.slice(0, 2).map((step) => {
+        const plannedStep = Array.isArray(plan?.steps)
+          ? plan.steps.find((item) => item.step === step.step || item.action === step.action)
+          : null;
+        const label = plannedStep?.purpose || plannedStep?.label || this.humanizeActionName(step.action);
+        const outcome = this.summarizeStepOutcome(step.result);
+        return outcome ? `${label} (${outcome})` : label;
+      });
+    },
+
+    summarizeStepOutcome(result) {
+      if (!result || typeof result !== 'object') {
+        return '';
+      }
+
+      const hints = [];
+      if (typeof result.recommendation === 'string' && result.recommendation.trim()) {
+        hints.push(result.recommendation.trim());
+      }
+      if (typeof result.decision === 'string' && result.decision.trim()) {
+        hints.push(result.decision.trim());
+      }
+      if (typeof result.riskLevel === 'string' && result.riskLevel.trim()) {
+        hints.push(`Risiko ${result.riskLevel.trim()}`);
+      }
+      if (Number.isFinite(result.paybackYears)) {
+        hints.push(`Amortisation ${Number(result.paybackYears).toFixed(1)} Jahre`);
+      }
+      if (Array.isArray(result.findings)) {
+        hints.push(`${result.findings.length} Befund${result.findings.length === 1 ? '' : 'e'}`);
+      }
+      if (typeof result.status === 'string') {
+        const status = result.status.trim().toLowerCase();
+        if (['eligible', 'ready', 'approved', 'ok', 'warning'].includes(status)) {
+          hints.push(`Status ${result.status.trim()}`);
+        }
+      }
+
+      return hints.slice(0, 2).join(', ');
+    },
+
+    describeBlockedStep(plan = {}, stopPoint = {}) {
+      const blockedStepNumber = Number(stopPoint?.blockedStep || 0);
+      const plannedStep = Array.isArray(plan?.steps)
+        ? plan.steps.find((step) => step.step === blockedStepNumber || step.action === stopPoint?.blockedAction)
+        : null;
+
+      if (plannedStep) {
+        return plannedStep.purpose || plannedStep.label || this.humanizeActionName(plannedStep.action);
+      }
+
+      return stopPoint?.blockedAction || (blockedStepNumber > 0 ? `Schritt ${blockedStepNumber}` : 'der nächste Schritt');
+    },
+
+    describeMissingRecoveryInputs(stopPoint = {}) {
+      const questionText = stopPoint?.onboardingQuestion?.questionText;
+      if (questionText) {
+        return questionText;
+      }
+
+      const missingParams = Array.isArray(stopPoint?.missingParams) ? stopPoint.missingParams : [];
+      if (missingParams.length > 0) {
+        const labels = missingParams.map((param) => this.humanizeMissingParam(param));
+        if (labels.length === 1) {
+          return labels[0];
+        }
+        return `${labels.slice(0, -1).join(', ')} und ${labels[labels.length - 1]}`;
+      }
+
+      return 'die fehlenden Angaben';
+    },
+
+    humanizeMissingParam(param) {
+      const mapping = {
+        projectId: 'die Projekt-ID',
+        gridOperatorName: 'den Netzbetreiber',
+        gridOperatorId: 'die Netzbetreiber-ID',
+        gridOperatorBdew: 'den BDEW-Code',
+        fnavProfile: 'das fNAV-Profil',
+        voltageLevel: 'die Spannungsebene',
+        ownerContact: 'den Ansprechpartner',
+        communityName: 'den Gemeinschaftsnamen',
+        communityId: 'die Gemeinschafts-ID',
+        generators: 'die Erzeugungsdaten',
+        consumers: 'die Verbrauchsdaten',
+        dateFrom: 'den Startzeitpunkt',
+        dateTo: 'den Endzeitpunkt',
+        annualFeeEur: 'den Jahresbetrag',
+      };
+
+      if (mapping[param]) {
+        return mapping[param];
+      }
+
+      const fallback = String(param || 'Angabe')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/[_-]+/g, ' ')
+        .trim();
+
+      return fallback ? `den Wert für ${fallback}` : 'die fehlende Angabe';
+    },
+
+    humanizeActionName(action) {
+      const text = String(action || 'der nächste Schritt')
+        .replace(/\./g, ' ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/[_-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      return text ? text.charAt(0).toUpperCase() + text.slice(1) : 'der nächste Schritt';
+    },
+
+    isFinanceRiskTask(message, plan = {}, execution = {}) {
+      const haystack = [
+        message,
+        plan?.primaryIntent,
+        plan?.routeLabel,
+        plan?.routeKey,
+        ...(Array.isArray(plan?.steps) ? plan.steps.map((step) => `${step.action || ''} ${step.purpose || ''}`) : []),
+        ...(Array.isArray(execution?.steps) ? execution.steps.map((step) => `${step.action || ''} ${step.purpose || ''}`) : []),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      return /(kredit|credit|loan|bank|finanz|finance|risk|risiko|due diligence|due-diligence|bewertung|invest|investment|lender|komitee)/i.test(haystack);
     },
 
     async getBrokerRecommendation(ctx, message, knownContext = {}) {
@@ -1220,6 +1435,7 @@ module.exports = {
         onboardingQuestion: placeholder?.onboardingQuestion || null,
         onboardingHints: placeholder?.onboardingHints || null,
         placeholderId: placeholder?.placeholder?.placeholderId || null,
+        placeholderMetadata: placeholder?.placeholderMetadata || null,
         hitlItemId: placeholder?.hitlItem?.id || null,
       };
     },

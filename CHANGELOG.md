@@ -8,14 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- [services/personal-agent.service.js](services/personal-agent.service.js): hardened `synthesizeTurn()` for non-completed executions so user replies no longer expose raw technical status phrases and internal failure details.
-- [services/personal-agent.service.js](services/personal-agent.service.js): improved partial-execution fallback synthesis to produce user-friendly guidance (what was checked, what is missing, and next clarification step) with explicit uncertainty handling.
-- [src/personal-agent-routing.js](src/personal-agent-routing.js): strengthened preflight input checks for broker-recommended actions so missing required inputs are detected before action execution.
-- [src/personal-agent-routing.js](src/personal-agent-routing.js): improved placeholder resolution to avoid unresolved `__step_*` references being forwarded into downstream service calls.
+- [services/personal-agent.service.js](services/personal-agent.service.js): replaced generic partial-execution stop text with deterministic recovery synthesis that summarizes completed steps, names the stop point, highlights missing inputs or capability gaps, and adapts wording for finance/risk-style requests.
+- [services/personal-agent.service.js](services/personal-agent.service.js): kept non-completed replies free of raw technical codes while translating action failures into user-facing evidence and next-step language.
 
 ### Tests
-- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added/updated regression coverage ensuring partial replies do not leak internal status/error tokens.
-- [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js): extended blackbox chat assertions to enforce user-friendly non-completed replies without internal technical leakage.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression coverage for zero-step partial recovery, one-step recovery, and finance/risk phrasing, plus negative assertions against internal tokens and generic safe-stop wording.
 
 ## [0.52.10] — Routing/Matrix Stabilization, Release-Gate Hardening, and Ops Updates
 

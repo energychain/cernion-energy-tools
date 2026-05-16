@@ -283,6 +283,7 @@ describe('personal-agent.service', () => {
     });
     expect(result.reply).toContain('Projekt-ID');
     expect(result.reply).not.toMatch(/ACTION_FAILED|MISSING_INPUTS|VALIDATION_ERROR|__step_/i);
+    expect(result.reply).not.toMatch(/sicher angehalten/i);
     expect(placeholderCalls).toHaveLength(0);
 
     const session = await broker.call(
@@ -334,6 +335,118 @@ describe('personal-agent.service', () => {
     );
     expect(session.l3.onboardingQuestions[0].answeredAt).toBeTruthy();
     expect(session.l3.onboardingQuestions[0].answer).toBe('Hybridprofil 5 MW, flexibel 2 MW');
+  });
+
+  it('synthesizes a concrete recovery reply for partial execution with zero completed steps', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const reply = svc.schema.methods.synthesizeTurn.call(svc, {
+      message: 'Bitte prüfe Mieterstrom mit ZNP für Rheinallee',
+      plan: {
+        status: 'partial',
+        steps: [
+          {
+            step: 1,
+            action: 'znp.getProjectMeta',
+            purpose: 'ZNP-Projektmetadaten prüfen',
+          },
+        ],
+      },
+      execution: {
+        status: 'partial',
+        completedSteps: 0,
+        steps: [],
+        stopPoint: {
+          reasonCode: 'MISSING_INPUTS',
+          status: 'awaiting-onboarding',
+          blockedStep: 1,
+          blockedAction: 'znp.getProjectMeta',
+          missingParams: ['projectId'],
+        },
+      },
+    });
+
+    expect(reply).toContain('die Projekt-ID');
+    expect(reply).toContain('fortfahren');
+    expect(reply).not.toMatch(/ACTION_FAILED|VALIDATION_ERROR|__step_|sicher angehalten/i);
+  });
+
+  it('synthesizes a concrete recovery reply after one completed step', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const reply = svc.schema.methods.synthesizeTurn.call(svc, {
+      message: 'Bitte Mieterstrom mit ZNP für Rheinallee prüfen',
+      plan: {
+        status: 'partial',
+        steps: [
+          {
+            step: 1,
+            action: 'energy-sharing.validate',
+            purpose: 'Energy-Sharing-Validierung prüfen',
+          },
+          {
+            step: 2,
+            action: 'znp.getProjectMeta',
+            purpose: 'ZNP-Projektmetadaten laden',
+          },
+        ],
+      },
+      execution: {
+        status: 'partial',
+        completedSteps: 1,
+        steps: [
+          {
+            step: 1,
+            action: 'energy-sharing.validate',
+            status: 'completed',
+            result: { status: 'eligible', findings: [] },
+          },
+        ],
+        stopPoint: {
+          reasonCode: 'MISSING_INPUTS',
+          status: 'awaiting-onboarding',
+          blockedStep: 2,
+          blockedAction: 'znp.getProjectMeta',
+          missingParams: ['projectId'],
+        },
+      },
+    });
+
+    expect(reply).toContain('Energy-Sharing-Validierung prüfen');
+    expect(reply).toContain('die Projekt-ID');
+    expect(reply).not.toMatch(/ACTION_FAILED|VALIDATION_ERROR|__step_|sicher angehalten/i);
+  });
+
+  it('frames finance-risk recovery with missing-evidence language', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const reply = svc.schema.methods.synthesizeTurn.call(svc, {
+      message: 'Mein Kreditkomitee will ein Risk Assessment für ein 12-MW-Speicherprojekt. Was fehlt für eine belastbare Bewertung?',
+      plan: {
+        status: 'partial',
+        primaryIntent: 'finance-agent.analyze',
+        routeLabel: 'Finanzierung + Risiko',
+        steps: [
+          {
+            step: 1,
+            action: 'finance-agent.fnavEconomics',
+            purpose: 'Wirtschaftliche Einordnung prüfen',
+          },
+        ],
+      },
+      execution: {
+        status: 'partial',
+        completedSteps: 0,
+        steps: [],
+        stopPoint: {
+          reasonCode: 'MISSING_INPUTS',
+          status: 'awaiting-onboarding',
+          blockedStep: 1,
+          blockedAction: 'finance-agent.fnavEconomics',
+          missingParams: ['annualFeeEur'],
+        },
+      },
+    });
+
+    expect(reply).toMatch(/Risiko|Prüfpunkt|fehlende Evidenz|Due-Diligence-Bedingung/i);
+    expect(reply).not.toMatch(/ACTION_FAILED|VALIDATION_ERROR|__step_|sicher angehalten/i);
   });
 
   it('stores CSV attachment extract in L3 and reports fileProcessing ok', async () => {
