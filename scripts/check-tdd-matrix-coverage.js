@@ -24,7 +24,7 @@ function readUtf8(filePath) {
 
 function extractRequiredIds(markdown) {
   const set = new Set();
-  const regex = /\|\s*(T-[A-Z]+-\d{2})\s*\|/g;
+  const regex = /\|\s*((?:T|MT)-[A-Z]+-\d{2})\s*\|/g;
   let match;
   while ((match = regex.exec(markdown)) !== null) {
     set.add(match[1]);
@@ -70,7 +70,7 @@ function main() {
 
   const coverage = Number(((passedSet.size / requiredIds.length) * 100).toFixed(2));
 
-  console.log('=== v0.52.4 TDD Matrix Coverage ===');
+  console.log('=== v0.52.5 TDD Matrix Coverage ===');
   console.log(`required: ${requiredIds.length}`);
   console.log(`passed:   ${passedSet.size}`);
   console.log(`coverage: ${coverage}%`);
@@ -91,7 +91,7 @@ function main() {
     return;
   }
 
-  console.log('✅ Hard gate passed: 100% of required matrix IDs are PASSED.');
+  console.log('✅ Hard gate passed: 100% of required T-* and MT-* matrix IDs are PASSED.');
 }
 
 main();

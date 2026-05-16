@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * v0.52.4 — Fixed normalization map from markdown TDD terminology
+ * v0.52.5 — Fixed normalization map from markdown TDD terminology
  * to concrete backend route aliases used by api.service.js.
  *
  * Why this exists:
@@ -10,7 +10,7 @@
  * - This map prevents false negatives due to wording/path drift.
  */
 
-const MATRIX_NORMALIZATION_VERSION = '0.52.4';
+const MATRIX_NORMALIZATION_VERSION = '0.52.5';
 
 /**
  * Fixed per-testcase normalization contract.
@@ -20,6 +20,10 @@ const MATRIX_NORMALIZATION_VERSION = '0.52.4';
  *   [id]: {
  *     intentClass: string,
  *     aliases: string[],             // canonical executable aliases (METHOD /path)
+ *     executionMode?: string,        // optional personal-agent execution mode for MT cases
+ *     knownContext?: object,         // optional knownContext payload for MT cases
+ *     expectedReplyKeywords?: string[],
+ *     forbiddenReplyKeywords?: string[],
  *     notes?: string                 // optional traceability note
  *   }
  * }
@@ -333,7 +337,149 @@ const FIXED_TDD_NORMALIZATION_MAP = Object.freeze({
     aliases: ['GET /observability/summary', 'GET /dashboard/observability-mini'],
     notes: 'Spec /system/status normalized to observability summary endpoints.',
   },
+
+  // -------------------------------------------------------------------------
+  // Multi-Turn Personal-Agent Scenarios
+  // -------------------------------------------------------------------------
+  'MT-JOU-01': {
+    intentClass: 'cya.generate',
+    aliases: ['POST /personal-agent/chat'],
+    executionMode: 'hitl',
+    expectedReplyKeywords: ['versorgungssicherheit', 'stand'],
+  },
+  'MT-JOU-02': {
+    intentClass: 'cya.generate',
+    aliases: ['POST /personal-agent/chat'],
+    executionMode: 'hitl',
+    expectedReplyKeywords: ['belastbare', 'unsicherheiten'],
+  },
+  'MT-JOU-03': {
+    intentClass: 'cya.generate',
+    aliases: ['POST /personal-agent/chat'],
+    executionMode: 'hitl',
+    expectedReplyKeywords: ['kernaussagen', 'drei'],
+  },
+  'MT-JOU-04': {
+    intentClass: 'cya.generate',
+    aliases: ['POST /personal-agent/chat'],
+    executionMode: 'hitl',
+    expectedReplyKeywords: ['journalistisches', 'fazit'],
+    forbiddenReplyKeywords: ['garantiert', 'ohne zweifel'],
+  },
+  'MT-INV-01': {
+    intentClass: 'finance.benchmark',
+    aliases: ['POST /personal-agent/chat'],
+    executionMode: 'hitl',
+    expectedReplyKeywords: ['vergleiche', 'anschlussgeschwindigkeit'],
+  },
+  'MT-INV-02': {
+    intentClass: 'finance.benchmark',
+    aliases: ['POST /personal-agent/chat'],
+    executionMode: 'hitl',
+    expectedReplyKeywords: ['digitalisierung', 'umsetzungsquote'],
+  },
+  'MT-INV-03': {
+    intentClass: 'finance.benchmark',
+    aliases: ['POST /personal-agent/chat'],
+    executionMode: 'hitl',
+    expectedReplyKeywords: ['anschlussgeschwindigkeit', 'zusammen'],
+  },
+  'MT-INV-04': {
+    intentClass: 'finance.benchmark',
+    aliases: ['POST /personal-agent/chat'],
+    executionMode: 'hitl',
+    expectedReplyKeywords: ['rangliste', 'begruendung'],
+  },
+  'MT-VOR-01': {
+    intentClass: 'grid-connection.fnav',
+    aliases: ['POST /personal-agent/chat'],
+    executionMode: 'hitl',
+    knownContext: {
+      gridOperatorName: 'TWL Netze',
+      voltageLevel: 'MS',
+      ownerContact: 'netzplanung@twl.de',
+      annualFeeEur: 12000,
+      fnavProfile: { requestedCapacity: 10000, flexibleCapacity: 3500 },
+    },
+    expectedReplyKeywords: ['frankfurt', 'rechenzentrum'],
+  },
+  'MT-VOR-02': {
+    intentClass: 'grid-connection.fnav',
+    aliases: ['POST /personal-agent/chat'],
+    executionMode: 'hitl',
+    knownContext: {
+      gridOperatorName: 'TWL Netze',
+      voltageLevel: 'MS',
+      ownerContact: 'netzplanung@twl.de',
+      annualFeeEur: 12000,
+      fnavProfile: { requestedCapacity: 10000, flexibleCapacity: 3500 },
+    },
+    expectedReplyKeywords: ['n-1', 'reserve'],
+  },
+  'MT-VOR-03': {
+    intentClass: 'grid-connection.fnav',
+    aliases: ['POST /personal-agent/chat'],
+    executionMode: 'hitl',
+    knownContext: {
+      gridOperatorName: 'TWL Netze',
+      voltageLevel: 'MS',
+      ownerContact: 'netzplanung@twl.de',
+      annualFeeEur: 12000,
+      fnavProfile: { requestedCapacity: 10000, flexibleCapacity: 3500 },
+    },
+    expectedReplyKeywords: ['fnav', '5 jahre'],
+  },
+  'MT-VOR-04': {
+    intentClass: 'grid-connection.fnav',
+    aliases: ['POST /personal-agent/chat'],
+    executionMode: 'hitl',
+    knownContext: {
+      gridOperatorName: 'TWL Netze',
+      voltageLevel: 'MS',
+      ownerContact: 'netzplanung@twl.de',
+      annualFeeEur: 12000,
+      fnavProfile: { requestedCapacity: 10000, flexibleCapacity: 3500 },
+    },
+    expectedReplyKeywords: ['muenchen', 'aktualisiere'],
+    forbiddenReplyKeywords: ['frankfurt'],
+  },
 });
+
+function normalizeDefinition(id, testCase) {
+  const def = FIXED_TDD_NORMALIZATION_MAP[id];
+  if (!def) {
+    return {
+      id,
+      intentClass: String(testCase?.intentClass || '').trim(),
+      aliases: [],
+      rawServiceCalls: Array.isArray(testCase?.serviceCallsSpec) ? testCase.serviceCallsSpec : [],
+      normalizedServiceCalls: Array.isArray(testCase?.serviceCallsSpec)
+        ? testCase.serviceCallsSpec.map(normalizeRouteSpec)
+        : [],
+      executionMode: null,
+      knownContext: {},
+      expectedReplyKeywords: [],
+      forbiddenReplyKeywords: [],
+      notes: 'UNMAPPED_TESTCASE_ID',
+    };
+  }
+
+  const aliases = Array.isArray(def.aliases) ? def.aliases.map(normalizeRouteSpec) : [];
+  const rawServiceCalls = Array.isArray(testCase?.serviceCallsSpec) ? testCase.serviceCallsSpec : [];
+
+  return {
+    id,
+    intentClass: def.intentClass,
+    aliases,
+    rawServiceCalls,
+    normalizedServiceCalls: rawServiceCalls.map(normalizeRouteSpec),
+    executionMode: def.executionMode || null,
+    knownContext: def.knownContext || {},
+    expectedReplyKeywords: Array.isArray(def.expectedReplyKeywords) ? def.expectedReplyKeywords : [],
+    forbiddenReplyKeywords: Array.isArray(def.forbiddenReplyKeywords) ? def.forbiddenReplyKeywords : [],
+    notes: def.notes || '',
+  };
+}
 
 /**
  * Normalize a route-spec into alias form used by API gateway aliases.
@@ -367,30 +513,18 @@ function normalizeRouteSpec(routeSpec) {
  */
 function normalizeMatrixTestCase(testCase) {
   const id = String(testCase?.id || '').trim();
-  const def = FIXED_TDD_NORMALIZATION_MAP[id];
-  if (!def) {
-    return {
-      id,
-      intentClass: String(testCase?.intentClass || '').trim(),
-      aliases: [],
-      rawServiceCalls: Array.isArray(testCase?.serviceCallsSpec) ? testCase.serviceCallsSpec : [],
-      normalizedServiceCalls: Array.isArray(testCase?.serviceCallsSpec)
-        ? testCase.serviceCallsSpec.map(normalizeRouteSpec)
-        : [],
-      notes: 'UNMAPPED_TESTCASE_ID',
-    };
+  const normalized = normalizeDefinition(id, testCase);
+
+  if (!Array.isArray(testCase?.turns) || testCase.turns.length === 0) {
+    return normalized;
   }
 
-  const aliases = Array.isArray(def.aliases) ? def.aliases.map(normalizeRouteSpec) : [];
-  const rawServiceCalls = Array.isArray(testCase?.serviceCallsSpec) ? testCase.serviceCallsSpec : [];
-
   return {
-    id,
-    intentClass: def.intentClass,
-    aliases,
-    rawServiceCalls,
-    normalizedServiceCalls: rawServiceCalls.map(normalizeRouteSpec),
-    notes: def.notes || '',
+    ...normalized,
+    turns: testCase.turns.map((turn) => ({
+      ...turn,
+      ...normalizeDefinition(turn.id, turn),
+    })),
   };
 }
 

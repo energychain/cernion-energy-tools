@@ -18,7 +18,7 @@ const {
 
 describe('personal-agent-tdd-matrix-normalizer', () => {
   it('has version marker for release tracking', () => {
-    expect(MATRIX_NORMALIZATION_VERSION).toBe('0.52.4');
+    expect(MATRIX_NORMALIZATION_VERSION).toBe('0.52.5');
   });
 
   it('normalizes /api route specs to alias format', () => {
@@ -26,11 +26,11 @@ describe('personal-agent-tdd-matrix-normalizer', () => {
     expect(normalizeRouteSpec('GET /foo/bar')).toBe('GET /foo/bar');
   });
 
-  it('contains fixed mappings for all required matrix IDs (58)', () => {
+  it('contains fixed mappings for all required matrix IDs (70)', () => {
     const markdown = fs.readFileSync(DEFAULT_MATRIX_FILE, 'utf8');
     const required = extractRequiredTddIds(markdown);
     const mapIds = getNormalizedTestIds();
-    expect(required).toHaveLength(58);
+    expect(required).toHaveLength(70);
     expect(mapIds).toEqual(required);
   });
 
@@ -41,6 +41,18 @@ describe('personal-agent-tdd-matrix-normalizer', () => {
       expect(normalized.notes).not.toBe('UNMAPPED_TESTCASE_ID');
       expect(normalized.aliases.length).toBeGreaterThan(0);
     }
+  });
+
+  it('preserves normalized turn metadata for multi-turn scenarios', () => {
+    const cases = parseTddMatrixFile(DEFAULT_MATRIX_FILE).filter((testCase) => testCase.id === 'MT-JOU-01');
+    const normalized = normalizeMatrixTestCase(cases[0]);
+
+    expect(normalized.executionMode).toBe('hitl');
+    expect(normalized.expectedReplyKeywords).toEqual(['versorgungssicherheit', 'stand']);
+    expect(Array.isArray(normalized.turns)).toBe(true);
+    expect(normalized.turns).toHaveLength(4);
+    expect(normalized.turns[3].id).toBe('MT-JOU-04');
+    expect(normalized.turns[3].aliases).toEqual(['POST /personal-agent/chat']);
   });
 
   it('uses executable aliases present in api.service route map', () => {
@@ -56,7 +68,7 @@ describe('personal-agent-tdd-matrix-normalizer', () => {
       for (const alias of def.aliases || []) {
         expect(aliases.has(normalizeRouteSpec(alias))).toBe(true);
       }
-      expect(id).toMatch(/^T-[A-Z]+-\d{2}$/);
+      expect(id).toMatch(/^(T|MT)-[A-Z]+-\d{2}$/);
       expect(def.intentClass).toBeTruthy();
     }
   });

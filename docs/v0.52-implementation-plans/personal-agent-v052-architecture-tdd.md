@@ -1,7 +1,7 @@
 # Cernion Personal Agent v0.52 — Architektur & TDD-Spezifikation
 
-**Status:** Entwurf (Implementierungs-Vertrag)  
-**Version:** 0.1.0  
+**Status:** Entwurf (Implementierungs-Vertrag)
+**Version:** 0.1.0
 **Scope:** Kein produktiver Code — Spezifikation & Test-Matrix als Vertrag fuer Entwickler/Copilot.
 
 ---
@@ -351,6 +351,37 @@ Fuer faelle, in denen der Nutzer-Prompt **mehrere Domains** beruehrt, definiert 
 | "Redispatch + Settlement" | `redispatch.audit.run` | `settlement.redispatch.calculate` | Audit zuerst, Settlement basiert auf Audit-Ergebnis |
 | "fNAV + Finance" | `grid-connection.fnav` | `finance-agent.analyze` | fNAV zuerst, dann wirtschaftliche Einordnung |
 | "Forecast + Flex" | `forecast.generation` | `flex.event.plan` | Prognose zuerst, Flex-Event basiert auf Erzeugungsluecke |
+
+### 3.4 Multi-Turn Domain Scenarios
+
+Die Single-Turn-Matrix oben bleibt die fachliche Vollabdeckung fuer einzelne Intent-Aufloesungen. Fuer Personal-Agent-Dialoge mit Session-Kontext definieren wir zusaetzlich **Multi-Turn-Szenarien**, die ueber mehrere aufeinanderfolgende `personal-agent.chat`-Aufrufe laufen und dieselbe `sessionId` wiederverwenden muessen.
+
+#### Scenario: Journalist / CYA-artige Einordnung
+
+| ID | Turn | Nutzer-Prompt | Intent-Klasse | Service-Calls (sequentiell) | Erwartetes Ergebnis | Session-State |
+|----|------|---------------|---------------|-----------------------------|---------------------|---------------|
+| MT-JOU-01 | 1 | "Ich recherchiere zur Versorgungssicherheit. Was ist der aktuelle Stand?" | `cya.generate` | 1. `POST /api/personal-agent/chat` | Vorsichtige Einordnung zum Status, kein interner Fehlercode | `sessionId` erzeugt, L3-Historie startet |
+| MT-JOU-02 | 2 | "Bitte nur belastbare Aussagen und kennzeichne Unsicherheiten klar." | `cya.generate` | 1. `POST /api/personal-agent/chat` | Unsicherheiten und Annahmen werden transparent gemacht | Gleiche `sessionId`, L3 erweitert |
+| MT-JOU-03 | 3 | "Fasse die Kernaussagen in drei Punkten zusammen." | `cya.generate` | 1. `POST /api/personal-agent/chat` | Verdichtete journalistische Zusammenfassung in drei Punkten | Gleiche `sessionId`, L3 verdichtet Vorwissen |
+| MT-JOU-04 | 4 | "Gib ein journalistisches Fazit ohne Spekulationen." | `cya.generate` | 1. `POST /api/personal-agent/chat` | Schlussfazit ohne ueberschiessende Sicherheitssprache | Gleiche `sessionId`, L3 enthaelt gesamte CYA-Kette |
+
+#### Scenario: Investor / Benchmark-Vergleich
+
+| ID | Turn | Nutzer-Prompt | Intent-Klasse | Service-Calls (sequentiell) | Erwartetes Ergebnis | Session-State |
+|----|------|---------------|---------------|-----------------------------|---------------------|---------------|
+| MT-INV-01 | 1 | "Vergleiche bitte zwei Netzbetreiber hinsichtlich Anschlussgeschwindigkeit." | `finance.benchmark` | 1. `POST /api/personal-agent/chat` | Vergleichsmodus fuer zwei VNBs wird aufgebaut | `sessionId` erzeugt, L3-Historie startet |
+| MT-INV-02 | 2 | "Ergaenze Digitalisierung und Umsetzungsquote im Vergleich." | `finance.benchmark` | 1. `POST /api/personal-agent/chat` | Vergleich wird um weitere KPI-Dimensionen erweitert | Gleiche `sessionId`, L3 erweitert |
+| MT-INV-03 | 3 | "Gewichte Anschlussgeschwindigkeit hoechst und fasse das Ergebnis zusammen." | `finance.benchmark` | 1. `POST /api/personal-agent/chat` | Vorherige Vergleichsdimensionen werden synthetisiert | Gleiche `sessionId`, L3 konsolidiert Gewichtung |
+| MT-INV-04 | 4 | "Erstelle eine Rangliste mit kurzer Begruendung." | `finance.benchmark` | 1. `POST /api/personal-agent/chat` | Rangfolge mit knapper Begruendung aus den vorherigen Turns | Gleiche `sessionId`, L3 enthaelt Benchmark-Synthese |
+
+#### Scenario: Vorstand / Rechenzentrum / N-1 / fNAV
+
+| ID | Turn | Nutzer-Prompt | Intent-Klasse | Service-Calls (sequentiell) | Erwartetes Ergebnis | Session-State |
+|----|------|---------------|---------------|-----------------------------|---------------------|---------------|
+| MT-VOR-01 | 1 | "Bitte fNAV und Finance fuer unser Rechenzentrum in Frankfurt bewerten." | `grid-connection.fnav` | 1. `POST /api/personal-agent/chat` | Vorstandstauglicher Start fuer Rechenzentrum / fNAV / Finance | `sessionId` erzeugt, L3-Historie startet |
+| MT-VOR-02 | 2 | "Was bedeutet das fuer unsere N-1 Reserve?" | `grid-connection.fnav` | 1. `POST /api/personal-agent/chat` | N-1-Bezug wird auf dem bestehenden Rechenzentrums-Kontext erklaert | Gleiche `sessionId`, L3 erweitert |
+| MT-VOR-03 | 3 | "Projiziere den fNAV fuer die naechsten 5 Jahre." | `grid-connection.fnav` | 1. `POST /api/personal-agent/chat` | fNAV-Projektion wird aus dem laufenden Kontext angefragt | Gleiche `sessionId`, L3 erweitert Fachkontext |
+| MT-VOR-04 | 4 | "Wir verlagern das Projekt nach Muenchen. Aktualisiere die Pruefung." | `grid-connection.fnav` | 1. `POST /api/personal-agent/chat` | Antwort bezieht sich auf Muenchen und ersetzt Frankfurt als Arbeitsort | Gleiche `sessionId`, L3 aktualisiert Standortkontext |
 
 ---
 

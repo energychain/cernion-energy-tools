@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- [services/assets.service.js](services/assets.service.js): OpenAPI contracts for location-based asset queries were clarified for `assets.list`, `assets.solar`, `assets.wind`, `assets.storage`, and `assets.all` (improved summaries/descriptions, explicit `operationId`s, clearer `location` semantics for city/PLZ/region prompts).
+- [services/assets.service.js](services/assets.service.js): Added explicit response documentation (`200/400/500`) for `solar`/`wind`/`storage`/`all` with array-based count semantics (`array.length`) for "Wie viele ..." style queries.
+- [src/cookbook-recipes.js](src/cookbook-recipes.js): Corrected recipe REST method for `assets.solar` from `POST /api/assets/solar` to `GET /api/assets/solar`.
+- [docs/v0.52-implementation-plans/personal-agent-v052-architecture-tdd.md](docs/v0.52-implementation-plans/personal-agent-v052-architecture-tdd.md): Extended the Personal Agent TDD source-of-truth with section `3.4 Multi-Turn Domain Scenarios` covering the Journalist, Investor, and Vorstand session flows (`MT-JOU-*`, `MT-INV-*`, `MT-VOR-*`).
+- [src/personal-agent-tdd-matrix-parser.js](src/personal-agent-tdd-matrix-parser.js), [src/personal-agent-tdd-matrix-normalizer.js](src/personal-agent-tdd-matrix-normalizer.js): Expanded the v0.52 TDD matrix automation from single-turn `T-*` coverage to mixed `T-*` + `MT-*` coverage, including grouped turn parsing, scenario metadata, and multi-turn Personal-Agent normalization.
+- [scripts/check-tdd-matrix-coverage.js](scripts/check-tdd-matrix-coverage.js), [package.json](package.json): Updated the hard coverage gate and `test:tdd-matrix` workflow so Multi-Turn matrix cases are required and executed together with the existing single-turn suite.
+
+### Tests
+- [tests/assets.service.test.js](tests/assets.service.test.js): Added OpenAPI contract regressions for location-readability and count semantics (`array.length`) on `assets.solar`, `assets.wind`, `assets.storage`, and `assets.all`.
+- [tests/api.service.test.js](tests/api.service.test.js), [tests/assets.service.test.js](tests/assets.service.test.js): Focused suite run passed (`106/106`).
+- [tests/personal-agent-tdd-matrix-parser.test.js](tests/personal-agent-tdd-matrix-parser.test.js), [tests/personal-agent-tdd-matrix-normalizer.test.js](tests/personal-agent-tdd-matrix-normalizer.test.js), [tests/personal-agent-tdd-matrix.generated.test.js](tests/personal-agent-tdd-matrix.generated.test.js): Updated matrix automation regressions for 70 required IDs while preserving the existing 58 single-turn executable cases.
+- [tests/personal-agent-tdd-matrix-multiturn.generated.test.js](tests/personal-agent-tdd-matrix-multiturn.generated.test.js): Added generated session-based Jest coverage that runs all 12 multi-turn matrix turns through `personal-agent.chat` with persistent `sessionId` and L3 history growth checks.
+- [docs/test-plans/personal-agent-multi-turn-domain-e2e.md](docs/test-plans/personal-agent-multi-turn-domain-e2e.md), [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js): Added opt-in blackbox domain E2E planning and HTTP-only Personal Agent multi-turn scenarios via `POST /api/personal-agent/chat`.
+
+### Notes
+- OpenAPI export was regenerated successfully (`openapi-export.json` updated).
+- `npm run audit:openapi` currently reports one pre-existing unrelated finding in `personal-agent.chat` (`fileAttachments` without example/default).
+- Personal Agent matrix validation now passes with full Multi-Turn coverage: `npm run test:tdd-matrix` and `npm run check:tdd-matrix-coverage` completed successfully with `70/70` required IDs passed.
+
 ## [0.52.9] — Inhouse Data / Multimodal (File Attachments)
 
 ### Added

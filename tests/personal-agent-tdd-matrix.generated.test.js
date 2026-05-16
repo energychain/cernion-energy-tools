@@ -26,20 +26,31 @@ function collectApiAliases() {
   );
 }
 
-describe('v0.52.4 TDD matrix executable coverage', () => {
-  const cases = parseTddMatrixFile(DEFAULT_MATRIX_FILE);
+describe('v0.52.5 TDD matrix executable coverage', () => {
+  const cases = parseTddMatrixFile(DEFAULT_MATRIX_FILE).filter((testCase) => testCase.id.startsWith('T-'));
   const aliases = collectApiAliases();
   const requiredIds = cases.map((c) => c.id).sort();
   const passedIds = [];
 
   afterAll(() => {
+    let existing = {};
+    if (fs.existsSync(ARTIFACT_PATH)) {
+      existing = JSON.parse(fs.readFileSync(ARTIFACT_PATH, 'utf8'));
+    }
+
+    const mergedRequiredIds = Array.from(
+      new Set([...(existing.requiredIds || []), ...requiredIds])
+    ).sort();
+    const mergedPassedIds = Array.from(
+      new Set([...(existing.passedIds || []), ...passedIds])
+    ).sort();
     const payload = {
       generatedAt: new Date().toISOString(),
       normalizationVersion: MATRIX_NORMALIZATION_VERSION,
-      requiredIds,
-      passedIds: passedIds.slice().sort(),
-      passedCount: passedIds.length,
-      requiredCount: requiredIds.length,
+      requiredIds: mergedRequiredIds,
+      passedIds: mergedPassedIds,
+      passedCount: mergedPassedIds.length,
+      requiredCount: mergedRequiredIds.length,
     };
     fs.mkdirSync(path.dirname(ARTIFACT_PATH), { recursive: true });
     fs.writeFileSync(ARTIFACT_PATH, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
@@ -47,14 +58,14 @@ describe('v0.52.4 TDD matrix executable coverage', () => {
 
   it('contains full fixed normalization coverage for all required TDD IDs', () => {
     const markdown = fs.readFileSync(DEFAULT_MATRIX_FILE, 'utf8');
-    const regexRequiredIds = extractRequiredTddIds(markdown);
-    const normalizedIds = getNormalizedTestIds();
+    const regexRequiredIds = extractRequiredTddIds(markdown).filter((id) => id.startsWith('T-'));
+    const normalizedIds = getNormalizedTestIds().filter((id) => id.startsWith('T-'));
 
     expect(regexRequiredIds).toEqual(requiredIds);
     expect(normalizedIds).toEqual(requiredIds);
   });
 
-  it('parses exactly 58 executable matrix testcases', () => {
+  it('parses exactly 58 executable single-turn matrix testcases', () => {
     expect(cases).toHaveLength(58);
   });
 
