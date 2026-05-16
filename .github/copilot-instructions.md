@@ -1,321 +1,197 @@
 # GitHub Copilot Instructions for Cernion Energy Tools
 
-## Project Overview
-This is a MicroService Agent System for Energy Markets built with Moleculer. It wraps the Cernion MCP server and exposes MCP tools as REST endpoints via an API Gateway.
+## Current Mission
 
-### Key Implementation Facts
-- Services live in `services/` and are loaded by Moleculer at runtime.
-- MCP calls are centralized in `src/mcp-client.js` and used by services.
-- Long-running tools use `src/async-job-poller.js` (`callWithAutoPoll`).
-- REST endpoints are declared with `rest` in each action and documented via OpenAPI.
-- API Gateway is `services/api.service.js` with OpenAPI at `/api/openapi.json` and Swagger UI at `/api/docs`.
-- Embedded PouchDB (`pouchdb` + `pouchdb-find`) stores datapoint metadata and snapshots.
-  KRITIS-compliant: no native bindings, no network port, no external process.
+Cernion Energy Tools is no longer just a Moleculer wrapper around MCP tools. Treat it as a KRITIS-oriented, domain-specific agent backend for energy-market operations.
 
-## Architecture Layers (v0.10–v0.20)
+The current architecture line is **v0.52.x**. The center of gravity is the **Personal Agent**:
 
-| Layer | Version | Description |
-|---|---|---|
-| Execution Layer | v0.9.x | MCP services, REST gateway, inhouse datasources, AI agent |
-| Geo Layer | v0.10 | OSM-based grid infrastructure analysis (`osm-geo.*` actions) |
-| Datapoint Layer | v0.11–v0.13 | Named managed data sources with PouchDB, scheduling, OEO/OEMetadata, snapshots |
-| Agent Layer | v0.14–v0.15 | Grid Connection Validation (v0.14) + Energy Sharing Validation (v0.15): deterministic pipelines, PouchDB audit trail, EU AI Act Art. 12 compliance |
-| Agent Layer | v0.17 | MaStR Data Quality Audit (v0.17): 8-step portfolio quality audit, weighted dimension scoring, `skipSteps`, 25 `MQ_*` finding codes (total: 73) |
-| Agent Layer | v0.18 | Redispatch Ex-Post Agent (v0.18): 7-step settlement readiness audit, Weg A/B portfolio, `src/redispatch-risk.js`, 19 `RD_*` finding codes (total: 92) |
-| Dashboard Layer | v0.19 | Dashboard API (v0.19): 4 UI-aggregate endpoints, `Promise.allSettled`, `safeCall`, `FINDING_CODE_METADATA`, in-memory cache, `scripts/export-openapi.js`, 14 UI contracts |
-| UI Sync Layer | v0.20 | Version sync with `cernion-ui` Enterprise UI; no backend code changes; REST API consumed by frontend via `docs/ui-contracts/` |
+- conversational orchestration through `POST /api/personal-agent/chat`
+- capability routing through `capability-broker` and `capability-catalog`
+- Zwiebelmodus context management in `src/personal-agent-context.js`
+- durable async execution and watchdogs through `src/job-store.js` and `src/async-job-runner.js`
+- async dreaming/profile enrichment through `src/personal-agent-dreamer.js`
+- conversational onboarding through `src/personal-agent-onboarding.js`
+- attachment/inhouse-data handling through `src/personal-agent-file-handler.js`
 
-## Coding Guidelines
+Older deterministic services still matter, but they are building blocks behind agent workflows. Do not optimize for isolated endpoint demos when the real product behavior is multi-turn, auditable, and domain-aware.
 
-### General Principles
-- Follow clean code principles and SOLID design patterns
-- Write self-documenting code with clear variable and function names
-- Prioritize readability and maintainability over cleverness
-- Use async/await for asynchronous operations instead of callbacks
-- Handle errors explicitly and provide meaningful error messages
+## Non-Negotiable Architecture Rules
 
-### Code Style
-- Use 2 spaces for indentation
-- Use ES6+ modern JavaScript features (CommonJS modules, no TypeScript)
-- Use descriptive variable names (camelCase for variables, PascalCase for classes)
-- Keep functions small and focused (single responsibility)
-- Add JSDoc comments for public APIs and complex functions
-- Include unit tests for all business logic
+### 1. Preserve the Personal Agent Boundary
 
-### Architecture Guidelines
-- Follow microservice architecture patterns
-- Each service should be independently deployable
-- Use RESTful API design principles
-- Implement proper error handling and logging
-- Use environment variables for configuration
-- Follow 12-factor app methodology
+- User-facing conversational behavior must flow through `services/personal-agent.service.js` and `/api/personal-agent/chat`.
+- Do not bypass the Personal Agent by calling downstream REST endpoints directly from tests or UI-facing flows unless the task explicitly targets that lower-level endpoint.
+- Do not add service mocks for Personal Agent acceptance tests. Blackbox tests must exercise real HTTP behavior against the running dev server.
+- Preserve session/context continuity across turns. A passing single-turn test is not proof that the Personal Agent works.
 
-### Security Best Practices
-- Never commit sensitive data (API keys, passwords, tokens)
-- Use environment variables for secrets
-- Validate and sanitize all inputs
-- Implement proper authentication and authorization
-- Follow OWASP security guidelines
-- `src/prompt-scrubber.js` masks PII before sending data to external LLMs
+### 2. Capability Broker Is the Routing Source of Truth
 
-### Testing Guidelines
-- Write unit tests for all business logic
-- Use Jest as the testing framework
-- Meet coverage thresholds: branches 60%, functions 75%, lines 75%,
-  statements 75%
-- Current suite: ~1 660+ tests, ~57 suites — all must pass after changes
-- Run release gate before every release: `npm run release:check`
-- Acceptance fixtures in `tests/acceptance/` — do not modify
-- Custom tests live in `custom-tests/` and are excluded from release coverage
+- Intent/capability mapping belongs in `src/capability-catalog.js` and `services/capability-broker.service.js`.
+- Do not create ad hoc intent routing in `personal-agent.service.js`.
+- Multi-intent chains must follow the broker/fallback policy. Unsupported chains should degrade gracefully and mark the stop point, typically via an interface-placeholder style response.
+- Support both HITL plan-return mode and autopilot execution mode where the existing architecture exposes that choice.
 
-### Documentation
-- Update README.md with any significant changes
-- Document API endpoints with examples
-- Include inline comments for complex logic
-- Keep documentation up-to-date with code changes
-- Every REST action MUST have full OpenAPI annotations (`npm run audit:openapi` enforced)
+### 3. Zwiebelmodus Context Discipline
 
-## Project-Specific Context
+`src/personal-agent-context.js` protects the system from context overflow and hallucinated continuity.
 
-### Energy Market Domain
-- Understand energy market operations and terminology
-- Consider time-series data handling for energy consumption/production
-- Implement proper data validation for market transactions
-- Handle currency and unit conversions carefully
+- L0/L1/L2/L3/L4 boundaries must stay explicit.
+- L3 conversation history may be compressed; L4 tool context must be purged after use.
+- Never persist raw transient tool context as durable user memory.
+- If a user changes a decisive parameter such as location, asset, tenant, project, or scenario, update/replace the active context instead of blindly appending.
+- Tests for multi-turn flows must check that old context does not leak into the new turn after a replacement.
 
-### Microservice Communication
-- Use RESTful APIs for synchronous communication
-- Consider message queues for asynchronous operations
-- Implement proper service discovery mechanisms
-- Use correlation IDs for distributed tracing
+### 4. Durable Execution Over In-Memory Timers
 
-### PouchDB Conventions
-- Datapoint docs use prefix `dp:` (e.g. `dp:solar-assets-twl`)
-- Snapshot docs use prefix `snap:` (e.g. `snap:<uuid>`)
-- Indexes: `['name']`, `['createdAt']`
-- Raw data is NEVER persisted — only metadata and provenance hashes (KRITIS constraint)
+- Long-running/background work must use the existing durable job architecture: `src/job-store.js`, `src/async-job-runner.js`, and related drivers.
+- Do not introduce process-local timer maps, Promise registries, or stale payload snapshots for durable behavior.
+- Job payloads should carry identifiers and reload current state at execution time.
+- Use native optimistic concurrency / CAS where supported. Do not fake concurrency control with timestamps alone.
+- Use explicit `idempotencyKey` for wake-ups and retries when available.
+- Alarm events should follow the persistent lifecycle model: open -> acknowledged -> resolved.
 
-### Provenance & Compliance
-- Every datapoint refresh computes a SHA-256 `provenanceHash` over step results
-  (EU AI Act Art. 12 compliance, v0.11.5)
-- Snapshots seal a group of datapoints with a `snapshotHash` (SHA-256 over sorted
-  provenance hashes) for consistency proof (v0.13.0)
-- `agent_interventions` array records every automated agent correction for explainability
-- OEMetadata v2.0 endpoint (`GET /api/datapoints/:name/oemetadata`) with optional
-  `?validate=true` JSON Schema validation (v0.12.0)
+### 5. KRITIS Data Handling
 
-## File Organization
-- `/services` — Core microservices (loaded by Moleculer at runtime)
-- `/src` — Shared modules (MCP client, formatters, scrubber, PouchDB builders)
-- `/tests` — Core test suite (Jest)
-- `/custom-services` — Local/custom services (git-ignored)
-- `/custom-tests` — Local/custom tests (git-ignored)
-- `/templates` — Service skeleton template
-- `/scripts` — Build, audit, and sync scripts
-- `/docs` — Documentation and use-case files
-- `/uploads` — User-uploaded inhouse datasets (git-ignored)
+- Embedded PouchDB and file-backed stores are intentional: no native bindings, no extra database port, no surprise external process.
+- Raw inhouse data should not be persisted unless an existing module explicitly allows it. Prefer metadata, provenance, hashes, and bounded extracted facts.
+- All inhouse datasource access goes through `datasource-cache.query`.
+- Never use `query.ask`, SQL shortcuts, or direct DB lookups for inhouse sources.
+- `src/prompt-scrubber.js` exists for PII masking before external LLM calls. Do not bypass it for user/inhouse content.
 
-## Common Patterns to Follow
-- Use dependency injection for better testability
-- Implement proper logging with structured logs
-- Use configuration management for different environments
-- Follow semantic versioning for releases
+## Repository Map
 
-### Async Job Pattern (v0.9.8+)
-- Long-running REST actions return HTTP 202 with a `jobId`
-- File-backed persistence in `src/job-store.js` (`data/jobs/` directory, git-ignored)
-- `ctx.meta.$gateway` flag distinguishes REST callers from internal callers
-- Agent executor strips `$gateway` to prevent async descriptor leakage in plan steps
+- `services/` - Moleculer services and REST actions.
+- `services/api.service.js` - API Gateway, OpenAPI at `/api/openapi.json`, Swagger UI at `/api/docs`.
+- `services/personal-agent.service.js` - Personal Agent API surface.
+- `services/capability-broker.service.js` - capability planning/routing.
+- `src/capability-catalog.js` - canonical capability catalog.
+- `src/personal-agent-context.js` - Zwiebelmodus context core.
+- `src/personal-agent-routing.js` - Personal Agent routing helpers.
+- `src/personal-agent-dreamer.js` - async profile/memory enrichment.
+- `src/personal-agent-onboarding.js` - missing-context handling.
+- `src/personal-agent-file-handler.js` - attachment and inhouse-file handling.
+- `src/job-store.js`, `src/job-store/` - durable job persistence and drivers.
+- `src/async-job-runner.js`, `src/async-job-poller.js` - async execution/polling.
+- `src/mcp-client.js` - centralized MCP client.
+- `docs/ui-contracts/` - backend-owned UI contracts.
+- `docs/v0.52-implementation-plans/` - current Personal Agent architecture and TDD matrix.
+- `tests/` - core Jest suite.
+- `custom-services/`, `custom-tests/`, `uploads/` - local/git-ignored areas.
 
-### Inhouse Data Layer (v0.9+)
-- All inhouse datasource access MUST go through `datasource-cache.query`
-- NEVER use `query.ask`, SQL actions, or database lookups for inhouse sources
-- Inhouse sources are identified by sourceId in `inhouseSources` or
-  `semanticHints.domain` in discovery descriptor
-- Event payloads must remain lean — `datasource.inference.complete` carries
-  only `{ sourceId, filename, description }`, never sampleRows
-- `datasource-classifier` is stateless and fetches sample rows itself
-- Semantic domains are defined in `src/semantic-domains.js`
-- Classifier uses heuristic scoring only — no external AI calls in classifier
-- `src/period-normaliser.js` handles mixed period formats (e.g. `Jan 2026`, `2026-Q1`)
-  for time-series joins
-- `src/vnb-identity.js` resolves VNB identity automatically from env and datasource metadata
-- `services/datasource-watcher.service.js` detects upload file changes and triggers
-  datasource cache refresh
-- LLM classifier fallback is opt-in via `CLASSIFIER_LLM_FALLBACK_ENABLED` and runs only
-  for low-confidence unknown classifications
-- Description-guided `"other"` domain (v0.9.13) allows free-text dataset descriptions
-  as semantic guide for AI queries
+## Coding Style
 
-### Datapoint Layer (v0.11–v0.13)
-- `services/datapoint.service.js` — core CRUD, health, refresh, scheduling, snapshots
-- PouchDB stores only metadata — raw data always flows through RAM
-- Scheduling: 60-second interval tick in `started()`, controlled by
-  `DATAPOINT_SCHEDULER_ENABLED` env var
-- Concurrency guard: `maxConcurrentRefreshes` setting (env: `DATAPOINT_MAX_CONCURRENT_REFRESHES`,
-  default 3) prevents MCP session overflows during scheduled refreshes
-- Tags: datapoints carry a `tags` array; `list` action supports `?tags=solar,twl-netze`
-  (AND semantics, case-insensitive)
-- Snapshots: `createSnapshot` accepts `datapointNames` or `tags`, performs freshness check,
-  sequential refresh, then seals with `snapshotHash`
+- CommonJS modules, modern JavaScript, no TypeScript.
+- 2 spaces indentation.
+- Prefer `const`; use `let` only when reassignment is required; never use `var`.
+- Keep functions focused, but do not split domain logic into meaningless fragments.
+- Prefer explicit domain names over generic helpers.
+- Handle errors explicitly. Do not use empty `catch` blocks.
+- Do not hardcode tenant IDs, URLs, secrets, tokens, or local absolute paths.
+- Public REST actions need complete OpenAPI annotations. `npm run audit:openapi` is enforced.
 
-### OEO / OEMetadata (v0.11.4–v0.12)
-- `src/oeo-mappings.js` — ~150 curated OEO class mappings with German labels
-- `x-oeo-class` OpenAPI extension on all 45+ REST actions
-- `src/oemetadata-builder.js` — maps datapoints to OEMetadata v2.0 JSON
-- `src/source-license-map.js` — 14-prefix license mapping (DL-DE, CC-BY, ODbL)
-- `scripts/sync-oeo.js` and `scripts/sync-oemetadata.js` for upstream validation
+## Testing Rules
 
-### OSM Geo Layer (v0.10)
-- `services/osm-geo.service.js` — 4 actions: validate, infrastructureNearby,
-  substationFinder, gridTopology
-- Uses Overpass API (public or private instance via `OVERPASS_ENDPOINT` env var)
-- Agent RULE 12 routes geo intents to these actions
+Use Jest. Choose the smallest meaningful gate, but make it real.
 
-## Current Project Status (v0.20.0)
+Core gates:
 
-- Release `v0.20.0` is the current release.
-- **38 Moleculer services** (including dashboard-api aggregator, v0.19)
-- **4 deterministic agents** (grid-connection v0.14, energy-sharing v0.15,
-  mastr-quality v0.17, redispatch-expost v0.18)
-- **1 allocation engine** (energy-sharing-allocation v0.16)
-- **4 dashboard aggregate endpoints** (dashboard-api v0.19)
-- **92 finding codes** with EN+DE metadata (FINDING_CODE_METADATA)
-- **~1,782+ tests**, ~60 test suites
-- **Enterprise UI** consuming this API: `cernion-ui` repository (v0.20.0+)
-- UI contracts: `docs/ui-contracts/` (14 files, backend-owned)
-- **Dashboard Layer (v0.19.1 hotfix):** `dashboard-api.service.js` — read-only UI aggregator:
-  - 4 endpoints: `vnbOverview`, `marketSnapshot`, `qualitySummary`, `findingCodes`
-  - `Promise.allSettled` parallelism, `safeCall` graceful degradation, in-memory cache.
-  - `FINDING_CODE_METADATA` added to `src/validation-findings.js` (all 92 codes, EN+DE).
-  - 4 routes registered in `api.service.js` under new `Dashboard API` OpenAPI tag.
-  - 39 unit tests in `tests/dashboard-api.test.js`.
-  - `scripts/export-openapi.js` + `npm run export:openapi` script.
-  - 14 UI contract docs in `docs/ui-contracts/` (00–13).
-  - `docs/BACKEND_CONTEXT.md` — full backend reference for frontend consumers.
-- **UI Layer (v0.15.1):** All v0.13–v0.15 backend features surfaced in `src/app.html`:
-  - Datapoints panel: tag filter input, interventions row-expand (📋 per row), Snapshots sub-section (create/list/validate/delete).
-  - Integration Hub: Grid Connection Validation sub-card (v0.14 — Netzanschluss pipeline).
-  - Integration Hub: Energy Sharing Validation sub-card (v0.15 — § 42c EnWG, dynamic generator/consumer rows, share-sum validation, decision badges).
-  - New CSS tokens: `.decision-badge`, `.val-kpi-row`, `.val-step-timeline`, `.val-findings`, `.dynamic-rows-wrap`, `.dp-snapshots-section`, etc.
-- **Agent Layer (v0.14–0.18):** Four deterministic validation/audit agents:
-  - `grid-connection.service.js` (v0.14) — 6-step Netzanschluss pipeline.
-  - `energy-sharing.service.js` (v0.15) — 6-step Energy Sharing pipeline (§ 42c EnWG),
-    regulatory deadline 01.06.2026. PouchDB at `data/energy-sharing/`, doc prefix `es:`.
-    28 new finding codes in `src/validation-findings.js` (total: 48).
-  - `mastr-quality.service.js` (v0.17) — 8-step MaStR portfolio quality audit.
-    PouchDB at `data/mastr-quality/`, doc prefix `mq:`. 25 new `MQ_*` finding codes
-    (total: 73). Weighted quality score across 5 dimensions (0–100). 180s timeout.
-  - `redispatch-expost.service.js` (v0.18) — 7-step Redispatch 2.0 Ex-Post settlement audit.
-    PouchDB at `data/redispatch-expost/`, doc prefix `rd:`. 19 new `RD_*` finding codes
-    (total: 92). `src/redispatch-risk.js` pure module (assessSettlementReadiness, assessRisk).
-    Weg A (MCP) / Weg B (datapoint fallback) portfolio. 180s timeout.
-- Integration Hub panel (`#integration-hub-panel`) in `src/app.html` with token
-  management, Power Automate / Power BI connector generator, VNB Monitor
-  threshold editor, and NBP Monitor sub-panel.
-- `token-manager` microservice with `ck_` prefix tokens, SHA-256 storage,
-  `read-only` / `full-access` scopes.
-- Datapoint Layer with full lifecycle: promote → CRUD → schedule → refresh →
-  snapshot → validate. Five snapshot REST endpoints in `api.service.js`.
-- OEMetadata v2.0 + OEO integration across all domain services.
-- Known limitations tracked for future releases:
-  - ~37 non-blocking ESLint `no-unused-vars` warnings — tracked for cleanup
-  - Jest open handles on test exit — mitigated with `--forceExit`, root cause
-    likely `fs.watch` teardown in datasource-watcher
-- Release gate: `npm run release:check` (tests + OpenAPI + security)
-- Known risk: `xlsx` high advisory — documented exception in SECURITY.md
+- `npm run test:unit:ci`
+- `npm run test:tdd-matrix`
+- `npm run check:tdd-matrix-coverage`
+- `npm run audit:openapi`
+- `npm run check:llm`
+- `npm run audit:security`
+- full release gate: `npm run release:check`
 
-### Agent Layer (v0.14–v0.18)
+Personal Agent-specific expectations:
 
-- All agent services follow the **deterministic pipeline pattern**:
-  separate PouchDB, `skipServices` exclusion, MCP calls via `CernionMCPClient.callWithNewSession`,
-  no LLM involvement, EU AI Act Art. 12 audit trail.
-- `energy-sharing` adds: generator/consumer input schema, per-generator DV validation,
-  MaLo format check, § 42c EnWG eligibility assessment.
-- `mastr-quality` adds: 8-step portfolio audit, weighted dimension scoring
-  (`QUALITY_DIMENSION_WEIGHTS` + `computeDimensionScore` + `computeQualityScore`),
-  `skipSteps` parameter (only steps 3–7 may be skipped), geo spot-check via `osm-geo.validate`,
-  25 `MQ_*` finding codes. PouchDB at `data/mastr-quality/`, doc prefix `mq:`.
-- `redispatch-expost` adds: 7-step Redispatch 2.0 settlement audit, Weg A/Weg B portfolio
-  (`tryDatapointFallback` standalone method with freshness gate), pure risk module at
-  `src/redispatch-risk.js`, `skipSteps` parameter (only steps 3–6 may be skipped),
-  19 `RD_*` finding codes. PouchDB at `data/redispatch-expost/`, doc prefix `rd:`.
+- Unit tests are necessary but not sufficient.
+- TDD matrix coverage must prove that every documented `T-*` case is executed and passing, not merely parsed.
+- Multi-turn domain E2E tests should be opt-in for CI stability, but executable against a real dev server.
+- Blackbox E2E tests for the Personal Agent must call only `POST /api/personal-agent/chat`.
+- Do not mock downstream services or HTTP for blackbox Personal Agent E2E. If the dev server is missing, skip clearly; if it is running, execute the real flow.
+- Keep acceptance fixtures in `tests/acceptance/` stable unless the task explicitly changes the accepted contract.
 
-## Release Process (0.x)
+### #TDDHermes Standard
 
-1. Update version in `package.json` and OpenAPI version in `services/api.service.js`.
-2. Update `CHANGELOG.md` with release notes.
-3. Run release gate: `npm run release:check` (tests + OpenAPI + critical security).
-4. Ensure no secrets are present (`.env` must not be committed).
-5. Commit changes: `git add -A && git commit -m "chore: prepare X.Y.Z release"`.
-6. Tag release: `git tag vX.Y.Z`.
-7. Push: `git push && git push --tags`.
+When working on the Personal Agent TDD/Hermes thread:
 
-Notes:
-- Advisory scan (`npm run audit:security:advisory`) may fail on known, documented upstream vulnerabilities; review before release.
-- Do not store tokens or API keys in the repository; use `.env.example` only.
-- CI workflows reference `npm run build` — this is a no-op passthrough (`echo`) since
-  the project has no build step. It exists solely for CI compatibility.
+- Search for scenario IDs such as `PA-MT-001`, `PA-MT-002`, `PA-MT-003`.
+- Expected artifacts include `personal-agent-multi-turn-domain-e2e.md` and `multi-turn-domain.e2e.test.js` or their clearly named equivalents.
+- The goal is not a green skipped suite. The goal is an opt-in suite that can run real multi-turn blackbox flows against a live dev server.
+- Validate context mutation behavior: append when the user refines the same scenario; replace when the user changes the decisive scenario parameter.
+- A proper fix should be reviewable by Hermes as concrete code/docs in git, not only described in chat.
 
-## MCP Data Backend — Known Limitations
+## Domain Rules
 
-### Direktvermarktung (Direct Marketing) Data Availability
+Cernion operates in energy-market and utility-grid workflows. Preserve domain precision.
 
-**What IS available**
-- `cernion_installations_local` supports filtering by `fernsteuerbarkeitDv: true`
-  (field `FernsteuerbarkeitDv` in EinheitenWind.xml / EinheitenSolar.xml, stored as
-  string `"1"` / `"0"`).
-- Combined with `minCapacity: 100` (kW), this is the best public proxy for
-  Redispatch 2.0-eligible installations currently in Direktvermarktung.
-- Available for: **Wind, Biomass** — field is NOT present in Solar/Storage collections.
-- Does NOT reveal which specific Direktvermarkter company manages the unit.
-- Does NOT confirm that a DV contract is currently active (data may be stale).
+- Use the established German energy-market terms where the codebase uses them: MaStR, VNB, NAP, fNAV, Redispatch 2.0, §14a EnWG, §42c EnWG, ZNP, EOG, RegKonto.
+- Do not invent reserve margins, capacity values, regulatory deadlines, or MaStR facts.
+- If deterministic evidence is missing, surface uncertainty and request/record missing context.
+- Distinguish verified machine data from user-provided assertions.
+- Prefer provenance, auditability, and explainability over fluent unsupported answers.
 
-**What is NOT available — and why**
-- Filtering by a specific Direktvermarkter company (e.g. "all assets of Next Kraftwerke")
-  is **not possible** through any public data source.
-- `DirektvermarkterMastrNummer` exists in the MaStR data model but is **deliberately
-  excluded from all public bulk exports** (BNetzA policy — commercially sensitive data).
-- As a result, the local MongoDB field `direktvermarkterMastrNummer` is not populated
-  and the `direktvermarkterName` / `direktvermarkterMastrId` filter parameters of
-  `cernion_installations_local` will return empty results.
-- The same applies to `cernion_installations` (Powabase) — no DV portfolio method exists
-  in the MaStR SOAP API either.
+## Existing Deterministic Layers
 
-**Implication for the Direktvermarkter pipeline**
-- `grid-operations.direktvermarkterLookup` → `assets.byDirektvermarkter` is the
-  designed pipeline, but **`byDirektvermarkter` will return 0 results** in practice
-  because the underlying MongoDB filter fields are unpopulated.
-- When a user asks for a specific DV company's portfolio, communicate this limitation
-  and offer `fernsteuerbarkeitDv: true` + `minCapacity: 100` as the best available proxy
-  (for Wind/Biomass only).
+These layers still exist and should not be broken:
 
-**Alternative approaches (informational only)**
-- Authenticated MaStR portal access by the DV company itself.
-- Netztransparenz.de — aggregated MWh volumes per marketing product only.
-- Bilateral data exchange with the Direktvermarkter.
-- BKV-MPID from `MarktakteureUndRollen.xml` for balance group queries.
+- Datapoint layer: `services/datapoint.service.js`, metadata-only PouchDB, `dp:` and `snap:` documents.
+- OSM geo layer: `services/osm-geo.service.js`, Overpass via `OVERPASS_ENDPOINT`.
+- Grid connection validation: `grid-connection.service.js`.
+- Energy sharing validation: `energy-sharing.service.js`.
+- MaStR quality audit: `mastr-quality.service.js`.
+- Redispatch ex-post audit: `redispatch-expost.service.js`.
+- Dashboard aggregator: `dashboard-api.service.js`.
+- Token manager: `token-manager`, `ck_` tokens, SHA-256 storage, read-only/full-access scopes.
 
-## Feedback vom Frontend
+When changing one of these, keep the deterministic pipeline pattern:
 
-Das Frontend-Repository (`cernion-ui`) hat ein `feedback/`-Verzeichnis mit
-strukturierten Rückmeldungen (Bug Reports, Change Requests, Information Requests,
-Documentation Requests). Wenn du Feedback-Dateien als Kontext erhältst:
+- separate PouchDB where already established
+- explicit step results and findings
+- no hidden LLM dependency in deterministic agents
+- EU AI Act Art. 12 style audit trail
+- finding code metadata kept in sync
 
-1. Lies die Datei vollständig
-2. Prüfe die betroffene(n) Service-Datei(en) und UI-Contracts
-3. Implementiere den Fix oder beantworte die Frage
-4. Aktualisiere den betroffenen UI-Contract in `docs/ui-contracts/`
-5. Setze den Status in der Feedback-Datei auf `resolved` + Version
+## OpenAPI, UI Contracts, and Frontend Feedback
 
-Typen: BR- (Bug), CR- (Change Request), IR- (Information Request), DR- (Doku)
+- REST actions need OpenAPI annotations.
+- If a response shape changes, update the relevant `docs/ui-contracts/` file.
+- The frontend repository may provide structured feedback files:
+  - `BR-` bug report
+  - `CR-` change request
+  - `IR-` information request
+  - `DR-` documentation request
+- For feedback work: read the full file, inspect affected service and UI contract, implement or answer, update the UI contract, then mark the feedback resolved with the target version.
 
-Resolutions werden in `feedback/RES-[TYPE]-NNNN.md` abgelegt (Template: `feedback/TEMPLATE.md`).
+## Release Process
 
-## What NOT to Do
-- Don't use `var` - use `const` or `let`
-- Don't ignore errors or use empty catch blocks
-- Don't hardcode configuration values
-- Don't write functions longer than 50 lines
-- Don't commit commented-out code
-- Don't use abbreviations in variable names unless widely understood
+1. Update `package.json` version when preparing an actual release.
+2. Update OpenAPI version in `services/api.service.js`.
+3. Update `CHANGELOG.md`.
+4. Run `npm run release:check`.
+5. Ensure no secrets are present.
+6. Commit, tag, and push only when explicitly performing a release.
+
+Do not bump versions or tag releases for ordinary feature/test changes unless asked.
+
+## Known MCP Data Backend Limitation: Direktvermarktung
+
+Public MaStR data does not expose active Direktvermarkter portfolios.
+
+- `fernsteuerbarkeitDv: true` plus `minCapacity: 100` is only a proxy for Redispatch-relevant DV-like assets where the field exists.
+- Filtering by a named Direktvermarkter such as Next Kraftwerke is not possible from public bulk exports.
+- `DirektvermarkterMastrNummer` exists in the MaStR model but is excluded from public exports.
+- If a user asks for a named DV portfolio, explain the limitation and offer the proxy approach instead of returning invented results.
+
+## What Not To Do
+
+- Do not treat v0.20 as current architecture.
+- Do not add isolated demo endpoints for behavior that belongs in the Personal Agent.
+- Do not add mocks to make blackbox Personal Agent E2E tests look green.
+- Do not store raw inhouse data when metadata/provenance is sufficient.
+- Do not introduce external infrastructure dependencies for KRITIS-critical paths without an explicit architecture decision.
+- Do not persist L4 tool context or stale job payload state.
+- Do not silently swallow errors or expose internal stack traces to users.
+- Do not commit commented-out code, secrets, generated local data, or `.env`.

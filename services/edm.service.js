@@ -223,7 +223,10 @@ module.exports = {
   },
 
   started() {
-    this.pool = new EdmSqlitePool(this.settings.dbPath);
+    const PoolClass = this.settings.poolClass || EdmSqlitePool;
+    const poolOptions = this.settings.poolOptions || {};
+    this.pool = new PoolClass(this.settings.dbPath, poolOptions);
+    this.pool.assertAvailable();
     this.logger.info(
       `EDM started, db: ${this.settings.dbPath}, retention: ${this.settings.retentionDays}d`
     );
@@ -1200,6 +1203,39 @@ module.exports = {
           success: true,
           meloId,
           deleted: totalDeletedRows,
+        };
+      },
+    },
+
+    health: {
+      rest: 'GET /health',
+      openapi: {
+        summary: 'EDM service health',
+        tags: ['EDM (Energiedatenmanagement)'],
+        description: 'Returns EDM SQLite backend readiness and open partition metrics.',
+        responses: {
+          200: { description: 'EDM backend healthy' },
+          503: { description: 'EDM backend unavailable' },
+        },
+      },
+      handler() {
+        const data = this.pool.getHealthInfo();
+        if (!data.ready) {
+          throw new MoleculerClientError(
+            'EDM SQLite backend unavailable',
+            503,
+            'EDM_SQLITE_UNAVAILABLE',
+            {
+              sqlite: data.sqlite,
+              basePath: data.basePath,
+              registryPath: data.registryPath,
+            }
+          );
+        }
+
+        return {
+          success: true,
+          data,
         };
       },
     },

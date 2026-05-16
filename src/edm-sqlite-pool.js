@@ -2,7 +2,9 @@
 
 const fs = require('fs');
 const path = require('path');
-const Database = require('better-sqlite3');
+const { MoleculerError } = require('moleculer').Errors;
+
+const SQLITE_UNAVAILABLE_TYPE = 'EDM_SQLITE_UNAVAILABLE';
 
 const REGISTRY_SCHEMA = `
 CREATE TABLE IF NOT EXISTS melos (
@@ -63,10 +65,96 @@ CREATE INDEX IF NOT EXISTS idx_ts_melo_date ON timeseries(melo_id, ts);
 `;
 
 class EdmSqlitePool {
-  constructor(basePath) {
+  constructor(basePath, options = {}) {
     this.basePath = basePath || process.env.EDM_DB_PATH || 'data/edm';
     this.connections = new Map();
     this.registryDb = null;
+    this.databaseFactory =
+      typeof options.databaseFactory === 'function' ? options.databaseFactory : null;
+    this.sqliteStatus = {
+      ready: false,
+      phase: 'init',
+      reason: 'not_initialized',
+      nativeCode: null,
+    };
+  }
+
+  getDatabaseFactory() {
+    if (this.databaseFactory) {
+      return this.databaseFactory;
+    }
+
+    try {
+      // Lazy load to convert native binding failures into controlled service errors.
+      const Database = require('better-sqlite3');
+      this.databaseFactory = Database;
+      this.sqliteStatus = {
+        ready: true,
+        phase: 'load-module',
+        reason: 'loaded',
+        nativeCode: null,
+      };
+      return this.databaseFactory;
+    } catch (err) {
+      throw this.wrapSqliteError('Failed to load better-sqlite3 native module', err, {
+        phase: 'load-module',
+      });
+    }
+  }
+
+  wrapSqliteError(message, err, details = {}) {
+    const nativeCode = err?.code ? String(err.code) : null;
+    this.sqliteStatus = {
+      ready: false,
+      phase: details.phase || 'runtime',
+      reason: message,
+      nativeCode,
+    };
+
+    return new MoleculerError(message, 503, SQLITE_UNAVAILABLE_TYPE, {
+      ...details,
+      nativeCode,
+      nativeMessage: err?.message ? String(err.message) : null,
+    });
+  }
+
+  openDatabase(filePath, schemaSql) {
+    let db;
+    try {
+      const Database = this.getDatabaseFactory();
+      db = new Database(filePath);
+      db.pragma('journal_mode = WAL');
+      db.pragma('synchronous = NORMAL');
+      db.exec(schemaSql);
+    } catch (err) {
+      throw this.wrapSqliteError(`EDM SQLite backend unavailable (${filePath})`, err, {
+        phase: 'open-database',
+        filePath,
+      });
+    }
+
+    this.sqliteStatus = {
+      ready: true,
+      phase: 'open-database',
+      reason: 'ready',
+      nativeCode: null,
+    };
+    return db;
+  }
+
+  assertAvailable() {
+    this.getRegistry();
+    return this.getHealthInfo();
+  }
+
+  getHealthInfo() {
+    return {
+      ready: Boolean(this.registryDb),
+      basePath: this.basePath,
+      registryPath: path.join(this.basePath, 'registry.sqlite'),
+      openTimeseriesPartitions: this.connections.size,
+      sqlite: { ...this.sqliteStatus },
+    };
   }
 
   getRegistry() {
@@ -76,10 +164,7 @@ class EdmSqlitePool {
 
     fs.mkdirSync(this.basePath, { recursive: true });
     const registryPath = path.join(this.basePath, 'registry.sqlite');
-    const db = new Database(registryPath);
-    db.pragma('journal_mode = WAL');
-    db.pragma('synchronous = NORMAL');
-    db.exec(REGISTRY_SCHEMA);
+    const db = this.openDatabase(registryPath, REGISTRY_SCHEMA);
 
     this.registryDb = db;
     return db;
@@ -95,10 +180,7 @@ class EdmSqlitePool {
     fs.mkdirSync(tsDir, { recursive: true });
 
     const tsPath = path.join(tsDir, `${quarter}.sqlite`);
-    const db = new Database(tsPath);
-    db.pragma('journal_mode = WAL');
-    db.pragma('synchronous = NORMAL');
-    db.exec(TIMESERIES_SCHEMA);
+    const db = this.openDatabase(tsPath, TIMESERIES_SCHEMA);
 
     this.connections.set(cacheKey, db);
     return db;

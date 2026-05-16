@@ -47,7 +47,7 @@ describe('personal-agent-tdd-matrix-normalizer', () => {
     const cases = parseTddMatrixFile(DEFAULT_MATRIX_FILE).filter((testCase) => testCase.id === 'MT-JOU-01');
     const normalized = normalizeMatrixTestCase(cases[0]);
 
-    expect(normalized.executionMode).toBe('hitl');
+    expect(normalized.executionMode).toBe('auto');
     expect(normalized.expectedReplyKeywords).toEqual(['versorgungssicherheit', 'stand']);
     expect(Array.isArray(normalized.turns)).toBe(true);
     expect(normalized.turns).toHaveLength(4);

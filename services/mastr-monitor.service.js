@@ -983,11 +983,31 @@ module.exports = {
 
     async startBaselineSnapshotJob(watchId) {
       const pseudoCtx = {
-        meta: { $gateway: true },
+        meta: {
+          $gateway: true,
+          tenantId: 'default',
+          requestHeaders: {
+            'x-idempotency-key': `mastr-monitor:baseline:${watchId}`,
+          },
+        },
+        params: {
+          watchId,
+        },
+        broker: this.broker,
       };
 
-      return startJob(pseudoCtx, { service: 'mastr-monitor', action: 'baseline' }, async () =>
-        this.executeWatch(watchId, {})
+      return startJob(
+        pseudoCtx,
+        { service: 'mastr-monitor', action: 'baseline' },
+        async () => this.executeWatch(watchId, {}),
+        {
+          idempotencyKey: `mastr-monitor:baseline:${watchId}`,
+          wakeContext: {
+            service: 'mastr-monitor',
+            action: 'runWatch',
+            params: { watchId },
+          },
+        }
       );
     },
 

@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.52.9
-- changelog_latest_release: 0.52.9
+- version: 0.52.10
+- changelog_latest_release: 0.52.10
 - source_files_hash:
-  - CHANGELOG.md: 8dfeaf91af42f1d36ac534cd1d819c753a8d307351c1cdb8e6b7a34106296cc8
+  - CHANGELOG.md: 045b13749dddb738330aed6abfbdfafc321f44619c8c74e976aa5c479e716904
   - README.md: c49ef9bd657c7f28ff2767a278e56cbddfc44cdd1ad59008b51859d1113e1aed
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
-  - src/cookbook-recipes.js: 7aceee245ec8e833545a07f7568a2a4dd1634092a440e009db7655eaa5ad08f4
-  - openapi-export.json: f8995198503853c7875d280cf62ffd130e61ddb5fd6394848d7677a3109c3a69
+  - src/cookbook-recipes.js: b6ecf29ff42faced2bbc868765ef1469326088eaf61020a2ec38ebd4ce4eab09
+  - openapi-export.json: b0954fd239ed6f0ce1a3a468cd4e3f47d2b3d734cadaed83b58c3af8e21069c9
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -18,6 +18,8 @@ It provides a complete implementation picture: architecture, domain knowledge, c
 ## Release Provenance
 ### Unreleased (from CHANGELOG)
 ## [Unreleased]
+
+- No pending entries.
 
 ## Domain-Specific Business Knowledge (Energy + Utility)
 
@@ -499,7 +501,7 @@ prerequisites: Operator/company name
 process:
   - step 1: grid-operations.grid-operations.marketPartners | rest: POST /api/grid-operations/market-partners | params: {   "limit": 3,   "query": null }
   - step 2: grid-operations.grid-operations.vnbLookup | rest: POST /api/grid-operations/vnb-lookup | params: {   "bdew": "__step_1.data.results[0].bdewCode",   "city": "__step_1.data.results[0].contacts[0].city" }
-  - step 3: assets.assets.solar | rest: POST /api/assets/solar | params: {   "bdewCode": "__step_1.data.results[0].bdewCode",   "gridOperatorId": "__step_2.data.mastrId",   "vnbName": "__step_1.data.results[0].companyName" }
+  - step 3: assets.assets.solar | rest: GET /api/assets/solar | params: {   "bdewCode": "__step_1.data.results[0].bdewCode",   "gridOperatorId": "__step_2.data.mastrId",   "vnbName": "__step_1.data.results[0].companyName" }
 
 ### Recipe: vnb-full-snapshot
 title: Full VNB health snapshot with alerts
@@ -967,7 +969,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.52.9"
+    "version": "0.52.10"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -18434,6 +18436,15 @@ process:
                     "type": "string"
                   },
                   "fileAttachments": {
+                    "example": [
+                      {
+                        "attachmentId": "att_7f3c2e9b",
+                        "fileName": "netzanschluss-anfrage.pdf",
+                        "mimeType": "application/pdf",
+                        "sizeBytes": 248731,
+                        "tempPath": "/tmp/uploads/tenant-default/session-pa_a1b2c3/att_7f3c2e9b.pdf"
+                      }
+                    ],
                     "items": {
                       "properties": {
                         "attachmentId": {
@@ -22890,8 +22901,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.52.9"
+  "x-version": "0.52.10"
 }
 
 ## Integrity
-- llm_txt_sha256: 7d3ddc39c9de908da2f965029120c97c613e962fb0e869251b3926f867fcec6e
+- llm_txt_sha256: 35517132fc61eef45cfe3253693b8158a6d63eea9fa0488f73661a2a4dda4038

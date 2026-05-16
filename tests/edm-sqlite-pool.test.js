@@ -78,4 +78,29 @@ describe('edm-sqlite-pool', () => {
     const b = pool.getRegistry();
     expect(a).toBe(b);
   });
+
+  it('normalisiert native SQLite-Fehler auf EDM_SQLITE_UNAVAILABLE (503)', () => {
+    class FailingDatabase {
+      constructor() {
+        const err = new Error('Module did not self-register');
+        err.code = 'ERR_DLOPEN_FAILED';
+        throw err;
+      }
+    }
+
+    const failingPool = new EdmSqlitePool(basePath, {
+      databaseFactory: FailingDatabase,
+    });
+
+    try {
+      failingPool.getRegistry();
+      throw new Error('Expected getRegistry to throw');
+    } catch (err) {
+      expect(err.code).toBe(503);
+      expect(err.type).toBe('EDM_SQLITE_UNAVAILABLE');
+      expect(err.data.nativeCode).toBe('ERR_DLOPEN_FAILED');
+    }
+
+    failingPool.closeAll();
+  });
 });

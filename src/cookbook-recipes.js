@@ -86,7 +86,7 @@ const COOKBOOK_RECIPES = [
         step: 3,
         service: 'assets',
         action: 'assets.solar',
-        restPath: 'POST /api/assets/solar',
+        restPath: 'GET /api/assets/solar',
         params: {
           gridOperatorId: '__step_2.data.mastrId',
           bdewCode: '__step_1.data.results[0].bdewCode',

@@ -108,6 +108,27 @@ function createState() {
     },
   });
 
+  state.asyncLeaseMissesTotal = new client.Counter({
+    name: 'cernion_async_lease_misses_total',
+    help: 'Detected async job lease misses grouped by reason',
+    labelNames: ['reason'],
+    registers: [register],
+  });
+
+  state.asyncWakeupsTotal = new client.Counter({
+    name: 'cernion_async_wakeups_total',
+    help: 'Async wake-up attempts grouped by status',
+    labelNames: ['status'],
+    registers: [register],
+  });
+
+  state.asyncAlarmsTotal = new client.Counter({
+    name: 'cernion_async_alarm_events_total',
+    help: 'Persistent async alarm lifecycle events grouped by status/code/severity',
+    labelNames: ['status', 'code', 'severity'],
+    registers: [register],
+  });
+
   state.llmRequestTotal = new client.Counter({
     name: 'cernion_llm_request_total',
     help: 'LLM requests by provider/model/operation/status',
@@ -319,6 +340,27 @@ function recordQuotaUsage({ tenantId, resource, window, used }) {
     .set(Math.max(0, Number(used || 0)));
 }
 
+function recordAsyncLeaseMiss(reason) {
+  initMetrics();
+  state.asyncLeaseMissesTotal.labels(safeLabel(reason || 'expired')).inc();
+}
+
+function recordAsyncWakeup(status) {
+  initMetrics();
+  state.asyncWakeupsTotal.labels(safeLabel(status || 'queued')).inc();
+}
+
+function recordAsyncAlarm({ status, code, severity }) {
+  initMetrics();
+  state.asyncAlarmsTotal
+    .labels(
+      safeLabel(status || 'open'),
+      safeLabel(code || 'unknown_alarm'),
+      safeLabel(severity || 'warning')
+    )
+    .inc();
+}
+
 async function renderMetrics() {
   initMetrics();
   return state.register.metrics();
@@ -347,6 +389,9 @@ module.exports = {
   recordUtilityReportRetry,
   recordRateLimitHit,
   recordQuotaUsage,
+  recordAsyncLeaseMiss,
+  recordAsyncWakeup,
+  recordAsyncAlarm,
   renderMetrics,
   contentType,
   resetForTests,

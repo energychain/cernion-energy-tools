@@ -80,6 +80,50 @@ describe('Assets Service', () => {
     const service = broker.getLocalService('assets');
     expect(service.actions.list).toBeDefined();
   });
+
+  it('should document location-based solar query in OpenAPI', () => {
+    const service = broker.getLocalService('assets');
+    const openapi = service.schema.actions.solar.openapi;
+
+    expect(openapi.operationId).toBe('assets_solar');
+    expect(openapi.summary.toLowerCase()).toContain('location');
+    expect(openapi.description.toLowerCase()).toContain('location');
+    expect(openapi.description.toLowerCase()).toContain('array.length');
+
+    const locationParam = openapi.parameters.find((p) => p.name === 'location' && p.in === 'query');
+    expect(locationParam).toBeDefined();
+    expect(String(locationParam.description).toLowerCase()).toContain('city');
+
+    expect(openapi.responses).toBeDefined();
+    expect(openapi.responses['200']).toBeDefined();
+    expect(openapi.responses['200'].content['application/json'].schema.type).toBe('array');
+  });
+
+  it('should document location-based wind and storage queries in OpenAPI', () => {
+    const service = broker.getLocalService('assets');
+    const windOpenapi = service.schema.actions.wind.openapi;
+    const storageOpenapi = service.schema.actions.storage.openapi;
+
+    expect(windOpenapi.operationId).toBe('assets_wind');
+    expect(storageOpenapi.operationId).toBe('assets_storage');
+    expect(windOpenapi.description.toLowerCase()).toContain('location');
+    expect(storageOpenapi.description.toLowerCase()).toContain('location');
+    expect(windOpenapi.description.toLowerCase()).toContain('array.length');
+    expect(storageOpenapi.description.toLowerCase()).toContain('array.length');
+  });
+
+  it('should document all-types location query and count semantics in OpenAPI', () => {
+    const service = broker.getLocalService('assets');
+    const openapi = service.schema.actions.all.openapi;
+
+    expect(openapi.operationId).toBe('assets_all');
+    expect(openapi.summary.toLowerCase()).toContain('location');
+    expect(openapi.description.toLowerCase()).toContain('location');
+    expect(openapi.description.toLowerCase()).toContain('array.length');
+
+    const typesParam = openapi.parameters.find((p) => p.name === 'types' && p.in === 'query');
+    expect(typesParam).toBeDefined();
+  });
 });
 
 describe('Assets Service — NAP enrichment and netzbetreiberpruefungStatus', () => {

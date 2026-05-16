@@ -280,6 +280,25 @@ const ACTION_PARAM_ALIASES = Object.freeze({
     ownerContact: ['ownerContact'],
     fnavProfile: ['fnavProfile'],
   },
+  'grid-operations.marketPartners': {
+    query: ['query', 'vnb1Name', 'gridOperatorName', 'operatorName', 'location'],
+    limit: ['limit'],
+  },
+  'grid-operations.netzfahrplanGenerate': {
+    gridOperatorName: ['gridOperatorName', 'query', 'operatorName'],
+    voltageLevel: ['voltageLevel'],
+    requestedCapacityKW: ['requestedCapacityKW', 'requestedCapacity', 'gridCapacityKw'],
+    firmCapacityKW: ['firmCapacityKW', 'firmCapacity'],
+    flexibleCapacityKW: ['flexibleCapacityKW', 'flexibleCapacity'],
+    curtailmentWindow: ['curtailmentWindow'],
+    contractStatus: ['contractStatus'],
+    legalStatus: ['legalStatus'],
+    ownerContact: ['ownerContact'],
+  },
+  'ewk-monitoring.benchmarkVnb': {
+    vnbName: ['vnbName', 'vnb1Name', 'query', 'gridOperatorName'],
+    bnr: ['bnr', 'bdew', 'bdewCode'],
+  },
   'finance-agent.fnavEconomics': {
     gridOperator: ['gridOperator', 'gridOperatorName', 'query', 'operatorName'],
     voltageLevel: ['voltageLevel'],
@@ -317,9 +336,96 @@ function getCapabilityScore(message, capability) {
 }
 
 function findBestCapability(message) {
+  const haystack = String(message || '').toLowerCase();
+
+  const findCapabilityByName = (capabilityName) =>
+    CURATED_CAPABILITIES.find((capability) => capability.capability === capabilityName) || null;
+
+  const cyaSignals = [
+    'versorgungssicherheit',
+    'belastbare aussagen',
+    'journalist',
+    'fazit',
+    'unsicher',
+    'kernaussagen',
+  ];
+  const benchmarkSignals = [
+    'benchmark',
+    'vergleich',
+    'rangliste',
+    'digitalisierungsindex',
+    'umsetzungsquote',
+    'kpi',
+  ];
+  const fnavSignals = [
+    'netzfahrplan',
+    'n-1',
+    'requestedcapacitykw',
+    'voltage level',
+    'rechenzentrum',
+    'kupferausbau',
+    'firm capacity',
+    'flexible capacity',
+  ];
+
+  if (cyaSignals.some((signal) => haystack.includes(signal))) {
+    const cyaCapability = findCapabilityByName('cya_assessment_briefing');
+    if (cyaCapability) {
+      return {
+        capability: cyaCapability,
+        score: 100,
+        usedFallback: false,
+      };
+    }
+  }
+
+  if (benchmarkSignals.some((signal) => haystack.includes(signal))) {
+    const benchmarkCapability = findCapabilityByName('vnb_kpi_benchmark_comparison');
+    if (benchmarkCapability) {
+      return {
+        capability: benchmarkCapability,
+        score: 100,
+        usedFallback: false,
+      };
+    }
+  }
+
+  if (fnavSignals.some((signal) => haystack.includes(signal))) {
+    const fnavCapability = findCapabilityByName('netzfahrplan_fnav_assessment');
+    if (fnavCapability) {
+      return {
+        capability: fnavCapability,
+        score: 100,
+        usedFallback: false,
+      };
+    }
+  }
+
   let best = null;
   for (const capability of CURATED_CAPABILITIES) {
-    const score = getCapabilityScore(message, capability);
+    let score = getCapabilityScore(message, capability);
+
+    if (capability.capability === 'mastr_asset_inventory') {
+      const hasExplicitMastrSignal = [
+        'mastr',
+        'redispatch',
+        'fernsteuerbarkeit',
+        'anlage',
+        'anlagen',
+        'pv',
+        'wind',
+        'speicher',
+      ].some((signal) => haystack.includes(signal));
+
+      const hasCompetingScenarioSignal = [...cyaSignals, ...benchmarkSignals, ...fnavSignals].some(
+        (signal) => haystack.includes(signal)
+      );
+
+      if (!hasExplicitMastrSignal || hasCompetingScenarioSignal) {
+        score = 0;
+      }
+    }
+
     if (!best || score > best.score) {
       best = { capability, score };
     }
@@ -383,6 +489,10 @@ function extractPromptHints(message) {
   const cityMatch = text.match(/\b(?:in|bei|für|fuer)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})/);
   const postalMatch = text.match(/\b\d{5}\b/);
   const capacityMatch = text.match(/\b(\d+(?:[.,]\d+)?)\s*kW\b/i);
+  const requestedCapacityMatch =
+    text.match(/\brequested\s*capacity\s*kw\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i)
+    || text.match(/\brequestedcapacitykw\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i)
+    || text.match(/\brequested\s*capacity\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
 
   return {
     projectId: projectMatch ? projectMatch[1] : undefined,
@@ -395,12 +505,31 @@ function extractPromptHints(message) {
     postleitzahl: postalMatch ? postalMatch[0] : undefined,
     postalCode: postalMatch ? postalMatch[0] : undefined,
     gridCapacityKw: capacityMatch ? Number(capacityMatch[1].replace(',', '.')) : undefined,
+    requestedCapacityKW: requestedCapacityMatch
+      ? Number(requestedCapacityMatch[1].replace(',', '.'))
+      : undefined,
   };
+}
+
+function parseBenchmarkNames(text = '') {
+  const againstMatch = String(text || '').match(/\b(?:benchmark(?:e|t)?|vergleich(?:e|t)?)\s+(.+?)\s+gegen\s+(.+?)(?:[\.!?]|$)/i);
+  if (!againstMatch) {
+    return { vnb1Name: undefined, vnb2Name: undefined };
+  }
+  const vnb1Name = String(againstMatch[1] || '').trim() || undefined;
+  const secondPart = String(againstMatch[2] || '').trim();
+  const vnb2Name = secondPart.split(/\s+(?:und|,|vs\.?|versus)\s+/i)[0]?.trim() || undefined;
+  return { vnb1Name, vnb2Name };
 }
 
 function getValueAtPath(source, dottedPath) {
   if (!source || !dottedPath) return undefined;
-  return dottedPath.split('.').reduce((acc, key) => {
+  const tokens = String(dottedPath)
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .filter(Boolean);
+
+  return tokens.reduce((acc, key) => {
     if (acc === null || acc === undefined) return undefined;
     if (Array.isArray(acc) && /^\d+$/.test(key)) {
       return acc[Number(key)];
@@ -418,7 +547,29 @@ function resolvePlaceholderReference(value, executionState) {
   const stepNumber = Number(match[1]);
   const path = match[2];
   const result = executionState?.stepResults?.[stepNumber];
-  return getValueAtPath(result, path);
+  const candidatePaths = [path];
+
+  if (path.startsWith('data.')) {
+    candidatePaths.push(path.slice(5));
+  } else {
+    candidatePaths.push(`data.${path}`);
+  }
+
+  candidatePaths.push(`result.${path}`);
+  if (path.startsWith('data.')) {
+    candidatePaths.push(`result.${path.slice(5)}`);
+  } else {
+    candidatePaths.push(`result.data.${path}`);
+  }
+
+  for (const candidatePath of candidatePaths) {
+    const resolved = getValueAtPath(result, candidatePath);
+    if (resolved !== undefined) {
+      return resolved;
+    }
+  }
+
+  return undefined;
 }
 
 function deepResolveTemplate(value, executionState) {
@@ -461,7 +612,7 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
     return resolved;
   }
 
-  return Object.fromEntries(
+  const hydrated = Object.fromEntries(
     Object.entries(resolved).map(([key, value]) => {
       if (value === null || value === undefined) {
         const replacement = findContextValue(action, key, knownContext, promptHints);
@@ -470,6 +621,82 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
       return [key, value];
     })
   );
+
+  const parsedBenchmarkNames = parseBenchmarkNames(String(knownContext?.lastUserMessage || promptHints?.query || ''));
+
+  if (action === 'grid-operations.marketPartners') {
+    if (hydrated.query == null || hydrated.query === '') {
+      hydrated.query =
+        knownContext?.vnb1Name ||
+        parsedBenchmarkNames.vnb1Name ||
+        knownContext?.gridOperatorName ||
+        promptHints?.query ||
+        '*';
+    }
+    if (hydrated.limit == null) {
+      hydrated.limit = 3;
+    }
+  }
+
+  if (action === 'grid-connection.fnavValidate') {
+    if (hydrated.gridOperatorName == null && knownContext?.gridOperatorName) {
+      hydrated.gridOperatorName = knownContext.gridOperatorName;
+    }
+    if (hydrated.voltageLevel == null && knownContext?.voltageLevel) {
+      hydrated.voltageLevel = knownContext.voltageLevel;
+    }
+    if (hydrated.ownerContact == null && knownContext?.ownerContact) {
+      hydrated.ownerContact = knownContext.ownerContact;
+    }
+    if (typeof hydrated.fnavProfile === 'string') {
+      hydrated.fnavProfile = undefined;
+    }
+    if (hydrated.fnavProfile == null) {
+      const requestedCapacity =
+        knownContext?.requestedCapacityKW
+        ?? knownContext?.requestedCapacity
+        ?? promptHints?.requestedCapacityKW;
+      if (requestedCapacity != null) {
+        hydrated.fnavProfile = {
+          requestedCapacity,
+          firmCapacity: knownContext?.firmCapacityKW ?? knownContext?.firmCapacity,
+          flexibleCapacity: knownContext?.flexibleCapacityKW ?? knownContext?.flexibleCapacity,
+          curtailmentWindow: knownContext?.curtailmentWindow,
+          contractStatus: knownContext?.contractStatus,
+          legalStatus: knownContext?.legalStatus,
+        };
+      }
+    }
+  }
+
+  if (action === 'grid-operations.netzfahrplanGenerate') {
+    if (hydrated.requestedCapacityKW == null) {
+      hydrated.requestedCapacityKW =
+        knownContext?.requestedCapacityKW
+        ?? knownContext?.requestedCapacity
+        ?? promptHints?.requestedCapacityKW;
+    }
+    if (hydrated.ownerContact == null && knownContext?.ownerContact) {
+      hydrated.ownerContact = knownContext.ownerContact;
+    }
+  }
+
+  if (action === 'ewk-monitoring.benchmarkVnb') {
+    if (hydrated.vnbName == null || hydrated.vnbName === '') {
+      hydrated.vnbName =
+        knownContext?.vnbName
+        || knownContext?.vnb1Name
+        || parsedBenchmarkNames.vnb1Name
+        || knownContext?.gridOperatorName
+        || promptHints?.query
+        || undefined;
+    }
+    if (hydrated.bnr == null && knownContext?.bnr) {
+      hydrated.bnr = knownContext.bnr;
+    }
+  }
+
+  return hydrated;
 }
 
 function pruneUndefinedDeep(value) {
@@ -561,7 +788,9 @@ function buildExecutionPlan({ message, brokerRecommendation }) {
     routeKey: null,
     routeLabel: selected.capability.capability,
     primaryIntent: selected.capability.intent,
-    secondaryIntents: [],
+    secondaryIntents: Array.isArray(selected.capability.secondaryIntents)
+      ? selected.capability.secondaryIntents
+      : [],
     requestedDomains,
     unsupportedDomains,
     steps,

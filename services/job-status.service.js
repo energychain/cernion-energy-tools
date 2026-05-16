@@ -65,6 +65,30 @@ module.exports = {
   async started() {
     // Garbage-collect expired jobs from previous runs on startup
     jobStore.gcExpired();
+    this._rehydrationSummary = jobStore.rehydrateOnStartup({
+      broker: this.broker,
+      actor: 'job-status.startup',
+    });
+
+    const intervalSeconds = Math.max(5, Number(process.env.JOB_STORE_WATCHDOG_INTERVAL_SECONDS || 15));
+    this._watchdogInterval = setInterval(() => {
+      try {
+        this._watchdogSummary = jobStore.watchdogSweep({
+          broker: this.broker,
+          actor: 'job-status.watchdog',
+        });
+      } catch (err) {
+        this.logger.warn('[job-status] watchdog sweep failed:', err.message);
+      }
+    }, intervalSeconds * 1000);
+    this._watchdogInterval.unref?.();
+  },
+
+  stopped() {
+    if (this._watchdogInterval) {
+      clearInterval(this._watchdogInterval);
+      this._watchdogInterval = null;
+    }
   },
 
   actions: {
@@ -111,7 +135,7 @@ Most jobs complete within 8–12 minutes.`,
                     action: { type: 'string', description: 'Originating action name' },
                     status: {
                       type: 'string',
-                      enum: ['queued', 'running', 'completed', 'error'],
+                      enum: ['queued', 'running', 'recovery_pending', 'completed', 'error'],
                     },
                     createdAt: { type: 'string', format: 'date-time' },
                     updatedAt: { type: 'string', format: 'date-time' },
@@ -410,6 +434,205 @@ Returns **404** if the job ID is unknown or the result has expired (24 h TTL).`,
         }
 
         return result;
+      },
+    },
+
+    listAlarms: {
+      rest: 'GET /alarms',
+      params: {
+        status: {
+          type: 'enum',
+          optional: true,
+          values: ['open', 'acknowledged', 'resolved'],
+          default: 'open',
+          example: 'open',
+        },
+        jobId: { type: 'string', optional: true, min: 1, example: 'a3f8b2c1-0000-0000-0000-000000000001' },
+        limit: { type: 'number', optional: true, default: 100, min: 1, max: 1000, convert: true },
+      },
+      openapi: {
+        summary: 'List persistent async watchdog alarms',
+        tags: ['Jobs'],
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', enum: ['open', 'acknowledged', 'resolved'], default: 'open', example: 'open' },
+          },
+          {
+            name: 'jobId',
+            in: 'query',
+            required: false,
+            schema: { type: 'string', example: 'a3f8b2c1-0000-0000-0000-000000000001' },
+          },
+          {
+            name: 'limit',
+            in: 'query',
+            required: false,
+            schema: { type: 'number', default: 100, minimum: 1, maximum: 1000 },
+          },
+        ],
+      },
+      handler(ctx) {
+        const items = jobStore.listAlarmEvents({
+          status: ctx.params.status,
+          jobId: ctx.params.jobId,
+        });
+        return {
+          success: true,
+          count: items.length,
+          alarms: items.slice(0, ctx.params.limit),
+        };
+      },
+    },
+
+    acknowledgeAlarm: {
+      rest: 'POST /alarms/:alarmId/ack',
+      params: {
+        alarmId: { type: 'string', min: 1, example: 'alarm_abc123' },
+        actor: { type: 'string', optional: true, max: 120, example: 'hitl-user' },
+        note: { type: 'string', optional: true, max: 1000, example: 'Investigating this alert.' },
+      },
+      openapi: {
+        summary: 'Acknowledge persistent async watchdog alarm',
+        tags: ['Jobs'],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              examples: {
+                default: {
+                  value: {
+                    alarmId: 'alarm_abc123',
+                    actor: 'hitl-user',
+                    note: 'Investigating this alert.',
+                  },
+                },
+              },
+              schema: {
+                type: 'object',
+                required: ['alarmId'],
+                properties: {
+                  alarmId: { type: 'string', example: 'alarm_abc123' },
+                  actor: { type: 'string', maxLength: 120, example: 'hitl-user' },
+                  note: { type: 'string', maxLength: 1000, example: 'Investigating this alert.' },
+                },
+              },
+            },
+          },
+        },
+      },
+      handler(ctx) {
+        const updated = jobStore.updateAlarmStatus(ctx.params.alarmId, jobStore.ALARM_STATUS.ACKNOWLEDGED, {
+          actor: ctx.params.actor || 'user',
+          note: ctx.params.note || null,
+        });
+        if (!updated) {
+          ctx.meta.$statusCode = 404;
+          return { success: false, message: `Alarm not found: ${ctx.params.alarmId}` };
+        }
+        return { success: true, ...updated };
+      },
+    },
+
+    resolveAlarm: {
+      rest: 'POST /alarms/:alarmId/resolve',
+      params: {
+        alarmId: { type: 'string', min: 1, example: 'alarm_abc123' },
+        actor: { type: 'string', optional: true, max: 120, example: 'problem-solver-agent' },
+        note: { type: 'string', optional: true, max: 1000, example: 'Recovery completed successfully.' },
+      },
+      openapi: {
+        summary: 'Resolve persistent async watchdog alarm',
+        tags: ['Jobs'],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              examples: {
+                default: {
+                  value: {
+                    alarmId: 'alarm_abc123',
+                    actor: 'problem-solver-agent',
+                    note: 'Recovery completed successfully.',
+                  },
+                },
+              },
+              schema: {
+                type: 'object',
+                required: ['alarmId'],
+                properties: {
+                  alarmId: { type: 'string', example: 'alarm_abc123' },
+                  actor: { type: 'string', maxLength: 120, example: 'problem-solver-agent' },
+                  note: { type: 'string', maxLength: 1000, example: 'Recovery completed successfully.' },
+                },
+              },
+            },
+          },
+        },
+      },
+      handler(ctx) {
+        const updated = jobStore.updateAlarmStatus(ctx.params.alarmId, jobStore.ALARM_STATUS.RESOLVED, {
+          actor: ctx.params.actor || 'user',
+          note: ctx.params.note || null,
+        });
+        if (!updated) {
+          ctx.meta.$statusCode = 404;
+          return { success: false, message: `Alarm not found: ${ctx.params.alarmId}` };
+        }
+        return { success: true, ...updated };
+      },
+    },
+
+    wakeUp: {
+      rest: 'POST /:jobId/wake-up',
+      params: {
+        jobId: { type: 'string', min: 1, example: 'a3f8b2c1-0000-0000-0000-000000000001' },
+        idempotencyKey: { type: 'string', optional: true, trim: true, max: 256, example: 'ck:wakeup:tenant-1:monitor:123' },
+        reason: { type: 'string', optional: true, max: 120, example: 'manual' },
+      },
+      openapi: {
+        summary: 'Trigger idempotent wake-up for a recovery_pending async job',
+        tags: ['Jobs'],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              examples: {
+                default: {
+                  value: {
+                    jobId: 'a3f8b2c1-0000-0000-0000-000000000001',
+                    idempotencyKey: 'ck:wakeup:tenant-1:monitor:123',
+                    reason: 'manual',
+                  },
+                },
+              },
+              schema: {
+                type: 'object',
+                required: ['jobId'],
+                properties: {
+                  jobId: { type: 'string', example: 'a3f8b2c1-0000-0000-0000-000000000001' },
+                  idempotencyKey: { type: 'string', maxLength: 256, example: 'ck:wakeup:tenant-1:monitor:123' },
+                  reason: { type: 'string', maxLength: 120, example: 'manual' },
+                },
+              },
+            },
+          },
+        },
+      },
+      handler(ctx) {
+        const wake = jobStore.requestWakeUp(ctx.params.jobId, {
+          broker: this.broker,
+          actor: 'job-status.wakeup',
+          reason: ctx.params.reason || 'manual',
+          idempotencyKey: ctx.params.idempotencyKey || null,
+        });
+        if (!wake.accepted) {
+          ctx.meta.$statusCode = 400;
+          return { success: false, ...wake };
+        }
+        return { success: true, ...wake };
       },
     },
   },

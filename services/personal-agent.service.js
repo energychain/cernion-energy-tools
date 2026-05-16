@@ -121,6 +121,15 @@ module.exports = {
                   knownContext: { type: 'object', additionalProperties: true, default: {} },
                   fileAttachments: {
                     type: 'array',
+                    example: [
+                      {
+                        attachmentId: 'att_7f3c2e9b',
+                        fileName: 'netzanschluss-anfrage.pdf',
+                        mimeType: 'application/pdf',
+                        sizeBytes: 248731,
+                        tempPath: '/tmp/uploads/tenant-default/session-pa_a1b2c3/att_7f3c2e9b.pdf',
+                      },
+                    ],
                     items: {
                       type: 'object',
                       properties: {
@@ -567,7 +576,11 @@ module.exports = {
           text: ctx.params.message,
           ts: new Date().toISOString(),
         };
-        const brokerRecommendation = await this.getBrokerRecommendation(ctx, ctx.params.message);
+        const brokerRecommendation = await this.getBrokerRecommendation(
+          ctx,
+          ctx.params.message,
+          ctx.params.knownContext || {}
+        );
         const plan = buildExecutionPlan({
           message: ctx.params.message,
           brokerRecommendation,
@@ -1136,6 +1149,7 @@ module.exports = {
 
     synthesizeTurn({ message, toolContext, executionMode, plan, execution, fileProcessing = [] }) {
       const fileIntro = this.buildFileProcessingIntro(fileProcessing);
+      const promptExcerpt = String(message || '').trim().slice(0, 220);
 
       if (toolContext && toolContext.responseRaw) {
         const keyCount = Object.keys(toolContext.responseRaw || {}).length;
@@ -1154,15 +1168,15 @@ module.exports = {
         return `${fileIntro}Ich benötige noch Angaben, um fortzufahren. ${execution?.stopPoint?.message || ''}`.trim();
       }
       if (execution?.status === 'completed') {
-        return `${fileIntro}Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt.`;
+        return `${fileIntro}Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt. Kontext: ${promptExcerpt}`;
       }
       if (execution?.status === 'partial') {
-        return `${fileIntro}Teilweise ausgeführt: ${execution.completedSteps || 0} Schritt(e) erfolgreich, dann kontrolliert gestoppt (${execution.stopPoint?.reasonCode || 'UNSPECIFIED'}).`;
+        return `${fileIntro}Teilweise ausgeführt: ${execution.completedSteps || 0} Schritt(e) erfolgreich, dann kontrolliert gestoppt (${execution.stopPoint?.reasonCode || 'UNSPECIFIED'}). Kontext: ${promptExcerpt}`;
       }
       return `${fileIntro}Verstanden. Nächster Schritt für: ${String(message).trim().slice(0, 240)}`;
     },
 
-    async getBrokerRecommendation(ctx, message) {
+    async getBrokerRecommendation(ctx, message, knownContext = {}) {
       try {
         return await ctx.call(
           'capability-broker.recommend',
@@ -1170,6 +1184,7 @@ module.exports = {
             schemaVersion: 'cernion.capabilityRecommendation.v1',
             task: message,
             mode: 'initial',
+            knownContext,
           },
           { meta: ctx.meta }
         );
@@ -1202,6 +1217,31 @@ module.exports = {
       const target = knownContext;
       const profileFacts = session?.l2?.userProfile?.onboardingFacts || {};
 
+      const parseFnavProfileAnswer = (rawValue) => {
+        if (!rawValue) return null;
+        if (typeof rawValue === 'object') return rawValue;
+        const text = String(rawValue).trim();
+        if (!text) return null;
+
+        const mwMatch = text.match(/(\d+(?:[.,]\d+)?)\s*mw\b/i);
+        const kwMatch = text.match(/(\d+(?:[.,]\d+)?)\s*kw\b/i);
+
+        let requestedCapacity = null;
+        if (mwMatch) {
+          requestedCapacity = Number(mwMatch[1].replace(',', '.')) * 1000;
+        } else if (kwMatch) {
+          requestedCapacity = Number(kwMatch[1].replace(',', '.'));
+        }
+
+        if (!Number.isFinite(requestedCapacity) || requestedCapacity <= 0) {
+          return null;
+        }
+
+        return {
+          requestedCapacity,
+        };
+      };
+
       for (const [key, value] of Object.entries(profileFacts)) {
         if (Object.prototype.hasOwnProperty.call(target, key)) {
           continue;
@@ -1215,6 +1255,10 @@ module.exports = {
       const answeredFacts = listAnsweredOnboardingFacts(session?.l3 || {});
       for (const fact of answeredFacts) {
         if (!fact?.paramKey || Object.prototype.hasOwnProperty.call(target, fact.paramKey)) {
+          continue;
+        }
+        if (fact.paramKey === 'fnavProfile') {
+          target[fact.paramKey] = parseFnavProfileAnswer(fact.value) || fact.value;
           continue;
         }
         target[fact.paramKey] = fact.value;

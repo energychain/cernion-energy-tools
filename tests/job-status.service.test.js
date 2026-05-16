@@ -15,6 +15,16 @@ jest.mock('../src/job-store', () => ({
   getJob: jest.fn(),
   getResult: jest.fn(),
   gcExpired: jest.fn(),
+  rehydrateOnStartup: jest.fn(() => ({ scanned: 0, movedToRecoveryPending: 0, wakeQueued: 0 })),
+  watchdogSweep: jest.fn(() => ({ scanned: 0, leaseExpired: 0, escalated: 0, wakeQueued: 0 })),
+  listAlarmEvents: jest.fn(() => []),
+  updateAlarmStatus: jest.fn(),
+  requestWakeUp: jest.fn(() => ({ accepted: true, reused: false, status: 'queued' })),
+  ALARM_STATUS: {
+    OPEN: 'open',
+    ACKNOWLEDGED: 'acknowledged',
+    RESOLVED: 'resolved',
+  },
 }));
 
 const jobStore = require('../src/job-store');
@@ -77,6 +87,15 @@ describe('Job Status Service', () => {
       const svc = broker.getLocalService('job-status');
       await svc.schema.started.call(svc);
       expect(jobStore.gcExpired).toHaveBeenCalledTimes(1);
+      expect(jobStore.rehydrateOnStartup).toHaveBeenCalledTimes(1);
+    });
+
+    it('should expose new alarm and wake-up actions', () => {
+      const svc = broker.getLocalService('job-status');
+      expect(svc.actions.listAlarms).toBeDefined();
+      expect(svc.actions.acknowledgeAlarm).toBeDefined();
+      expect(svc.actions.resolveAlarm).toBeDefined();
+      expect(svc.actions.wakeUp).toBeDefined();
     });
   });
 
@@ -271,6 +290,93 @@ describe('Job Status Service', () => {
       expect(result).toContain('event: progress');
       expect(result).toContain('id: 3');
       expect(result).not.toContain('id: 1');
+    });
+  });
+
+  describe('alarm lifecycle actions', () => {
+    it('lists persistent alarm events', async () => {
+      jobStore.listAlarmEvents.mockReturnValue([
+        {
+          jobId: 'job-1',
+          service: 'svc',
+          action: 'act',
+          alarm: { alarmId: 'alarm-1', status: 'open', code: 'LEASE_MISSES_EXCEEDED' },
+        },
+      ]);
+
+      const result = await broker.call('job-status.listAlarms', { status: 'open' });
+      expect(result.success).toBe(true);
+      expect(result.count).toBe(1);
+      expect(result.alarms[0].alarm.alarmId).toBe('alarm-1');
+    });
+
+    it('acknowledges an alarm', async () => {
+      jobStore.updateAlarmStatus.mockReturnValue({
+        jobId: 'job-1',
+        alarm: { alarmId: 'alarm-1', status: 'acknowledged' },
+      });
+      const meta = {};
+      const result = await broker.call(
+        'job-status.acknowledgeAlarm',
+        { alarmId: 'alarm-1', actor: 'hitl-user' },
+        { meta }
+      );
+      expect(meta.$statusCode).toBeUndefined();
+      expect(result.success).toBe(true);
+      expect(result.alarm.status).toBe('acknowledged');
+    });
+
+    it('resolves an alarm', async () => {
+      jobStore.updateAlarmStatus.mockReturnValue({
+        jobId: 'job-1',
+        alarm: { alarmId: 'alarm-1', status: 'resolved' },
+      });
+      const result = await broker.call('job-status.resolveAlarm', {
+        alarmId: 'alarm-1',
+        actor: 'problem-solver',
+      });
+      expect(result.success).toBe(true);
+      expect(result.alarm.status).toBe('resolved');
+    });
+
+    it('returns 404 when alarm cannot be found during transition', async () => {
+      jobStore.updateAlarmStatus.mockReturnValue(null);
+      const meta = {};
+      const result = await broker.call('job-status.resolveAlarm', { alarmId: 'missing' }, { meta });
+      expect(meta.$statusCode).toBe(404);
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('wake-up action', () => {
+    it('triggers idempotent wake-up by job id', async () => {
+      jobStore.requestWakeUp.mockReturnValue({
+        accepted: true,
+        reused: false,
+        status: 'queued',
+        idempotencyKey: 'ck:wakeup:123',
+      });
+
+      const result = await broker.call('job-status.wakeUp', {
+        jobId: 'job-1',
+        idempotencyKey: 'ck:wakeup:123',
+        reason: 'manual',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.status).toBe('queued');
+      expect(jobStore.requestWakeUp).toHaveBeenCalledWith(
+        'job-1',
+        expect.objectContaining({ idempotencyKey: 'ck:wakeup:123' })
+      );
+    });
+
+    it('returns 400 when wake-up request is rejected', async () => {
+      jobStore.requestWakeUp.mockReturnValue({ accepted: false, reason: 'missing_idempotency_key' });
+      const meta = {};
+      const result = await broker.call('job-status.wakeUp', { jobId: 'job-2' }, { meta });
+      expect(meta.$statusCode).toBe(400);
+      expect(result.success).toBe(false);
     });
   });
 });

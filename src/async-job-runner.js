@@ -82,6 +82,11 @@ async function runAsync(ctx, options) {
     worker,
     {
       idempotencyKey: resolvedIdempotencyKey,
+      wakeContext: {
+        service,
+        action,
+        params: params || {},
+      },
     }
   );
 }

@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- No pending entries.
+
+## [0.52.10] — Routing/Matrix Stabilization, Release-Gate Hardening, and Ops Updates
+
+### Changed
+- [services/personal-agent.service.js](services/personal-agent.service.js): improved multi-turn synthesis output continuity by including prompt-context excerpts in deterministic completion/partial responses and kept broker recommendation flow context-aware (`knownContext`).
+- [services/capability-broker.service.js](services/capability-broker.service.js): expanded template hydration and action-template handling for benchmark/fNAV chains (including context interpolation and fallback resolution behavior used by broker plans).
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): hardened placeholder interpolation (`__step_N...` paths incl. bracket-index forms and wrapper fallbacks), improved action alias mappings, and propagated capability-level secondary-intent compatibility tokens into routing payloads.
+- [src/capability-catalog.js](src/capability-catalog.js): refined curated capability metadata for CYA/fNAV routing compatibility (secondary-intent tokens) and updated phase-aligned Personal-Agent capability behavior.
+- [src/personal-agent-tdd-matrix-normalizer.js](src/personal-agent-tdd-matrix-normalizer.js): adjusted matrix normalization behavior in line with executable multi-turn coverage requirements.
+- [services/assets.service.js](services/assets.service.js): refined OpenAPI and response-contract behavior for asset listing/count scenarios.
+- [src/cookbook-recipes.js](src/cookbook-recipes.js): corrected cookbook endpoint method mapping for asset recipes.
+- [services/edm.service.js](services/edm.service.js), [src/edm-sqlite-pool.js](src/edm-sqlite-pool.js): EDM SQLite availability hardening and health/readiness behavior improvements.
+- [services/job-status.service.js](services/job-status.service.js), [src/async-job-runner.js](src/async-job-runner.js), [src/metrics.js](src/metrics.js): durable async job/watchdog behavior and observability metrics refinements.
+- [services/mastr-monitor.service.js](services/mastr-monitor.service.js): service-level monitoring adjustments aligned with current v0.52.x operational behavior.
+- [src/tenant-context.js](src/tenant-context.js): tenant allowlist evaluation now resolves `CERNION_ALLOWED_TENANTS` dynamically at call time (deterministic behavior for env-driven runtime/test updates).
+- [AGENTS.md](AGENTS.md), [.github/copilot-instructions.md](.github/copilot-instructions.md), [CLAUDE.md](CLAUDE.md): repository agent/instruction docs synchronized with current Personal-Agent architecture and release workflow expectations.
+- [package.json](package.json), [package-lock.json](package-lock.json): release version bump to `0.52.10` and lockfile alignment.
+- [openapi-export.json](openapi-export.json): OpenAPI export regenerated for the `0.52.10` release snapshot.
+- [llm.txt](llm.txt): regenerated LLM reference artifact to satisfy release integrity checks.
+
+### Tests
+- [tests/personal-agent-tdd-matrix-multiturn.generated.test.js](tests/personal-agent-tdd-matrix-multiturn.generated.test.js), [tests/personal-agent-tdd-matrix-normalizer.test.js](tests/personal-agent-tdd-matrix-normalizer.test.js): updated multi-turn matrix and normalizer regressions for executable blackbox coverage.
+- [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js): strengthened multi-turn Personal-Agent domain validation expectations against routing and session continuity.
+- [tests/assets.service.test.js](tests/assets.service.test.js): extended OpenAPI/contract regressions for assets endpoints.
+- [tests/edm.service.test.js](tests/edm.service.test.js), [tests/edm-sqlite-pool.test.js](tests/edm-sqlite-pool.test.js): expanded EDM readiness and SQLite binding/error normalization coverage.
+- [tests/job-status.service.test.js](tests/job-status.service.test.js), [tests/async-job-runner.test.js](tests/async-job-runner.test.js), [tests/metrics.test.js](tests/metrics.test.js): added/updated watchdog lifecycle, runner persistence, and metrics regressions.
+
+### Release Gates
+- `npm run test:unit:ci`
+- `npm run test:tdd-matrix`
+- `npm run check:tdd-matrix-coverage`
+- `npm run audit:openapi`
+- `npm run check:llm`
+- `npm run audit:security`
+- `npm run release:check`
+
+### Notes
+- This release consolidates the currently modified repository surface (services, src, tests, and governance docs) into a single auditable version cut.
+- OpenAPI version remains sourced from [package.json](package.json) via [services/api.service.js](services/api.service.js) (`info.version = packageVersion`).
+
 ### Changed
 - [services/assets.service.js](services/assets.service.js): OpenAPI contracts for location-based asset queries were clarified for `assets.list`, `assets.solar`, `assets.wind`, `assets.storage`, and `assets.all` (improved summaries/descriptions, explicit `operationId`s, clearer `location` semantics for city/PLZ/region prompts).
 - [services/assets.service.js](services/assets.service.js): Added explicit response documentation (`200/400/500`) for `solar`/`wind`/`storage`/`all` with array-based count semantics (`array.length`) for "Wie viele ..." style queries.
@@ -14,6 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [docs/v0.52-implementation-plans/personal-agent-v052-architecture-tdd.md](docs/v0.52-implementation-plans/personal-agent-v052-architecture-tdd.md): Extended the Personal Agent TDD source-of-truth with section `3.4 Multi-Turn Domain Scenarios` covering the Journalist, Investor, and Vorstand session flows (`MT-JOU-*`, `MT-INV-*`, `MT-VOR-*`).
 - [src/personal-agent-tdd-matrix-parser.js](src/personal-agent-tdd-matrix-parser.js), [src/personal-agent-tdd-matrix-normalizer.js](src/personal-agent-tdd-matrix-normalizer.js): Expanded the v0.52 TDD matrix automation from single-turn `T-*` coverage to mixed `T-*` + `MT-*` coverage, including grouped turn parsing, scenario metadata, and multi-turn Personal-Agent normalization.
 - [scripts/check-tdd-matrix-coverage.js](scripts/check-tdd-matrix-coverage.js), [package.json](package.json): Updated the hard coverage gate and `test:tdd-matrix` workflow so Multi-Turn matrix cases are required and executed together with the existing single-turn suite.
+- [src/personal-agent-tdd-matrix-normalizer.js](src/personal-agent-tdd-matrix-normalizer.js): Multi-turn matrix cases now default to `executionMode: "auto"` (instead of HITL) to validate orchestration behavior beyond plan-only responses.
 
 ### Tests
 - [tests/assets.service.test.js](tests/assets.service.test.js): Added OpenAPI contract regressions for location-readability and count semantics (`array.length`) on `assets.solar`, `assets.wind`, `assets.storage`, and `assets.all`.
@@ -21,6 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [tests/personal-agent-tdd-matrix-parser.test.js](tests/personal-agent-tdd-matrix-parser.test.js), [tests/personal-agent-tdd-matrix-normalizer.test.js](tests/personal-agent-tdd-matrix-normalizer.test.js), [tests/personal-agent-tdd-matrix.generated.test.js](tests/personal-agent-tdd-matrix.generated.test.js): Updated matrix automation regressions for 70 required IDs while preserving the existing 58 single-turn executable cases.
 - [tests/personal-agent-tdd-matrix-multiturn.generated.test.js](tests/personal-agent-tdd-matrix-multiturn.generated.test.js): Added generated session-based Jest coverage that runs all 12 multi-turn matrix turns through `personal-agent.chat` with persistent `sessionId` and L3 history growth checks.
 - [docs/test-plans/personal-agent-multi-turn-domain-e2e.md](docs/test-plans/personal-agent-multi-turn-domain-e2e.md), [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js): Added opt-in blackbox domain E2E planning and HTTP-only Personal Agent multi-turn scenarios via `POST /api/personal-agent/chat`.
+- [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js): Hardened assertions to require `HTTP 200`, mandatory routing metadata checks (non-conditional), and non-HITL execution (`executionMode: "auto"`, `execution.status !== "skipped"`).
+- [tests/personal-agent-tdd-matrix-multiturn.generated.test.js](tests/personal-agent-tdd-matrix-multiturn.generated.test.js): Reworked to call `POST /api/personal-agent/chat` over HTTP blackbox (via API gateway) instead of direct `broker.call('personal-agent.chat', ...)` invocations.
 
 ### Notes
 - OpenAPI export was regenerated successfully (`openapi-export.json` updated).

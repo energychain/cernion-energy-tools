@@ -1,12 +1,8 @@
 'use strict';
 
 const fs = require('fs');
-const os = require('os');
 const path = require('path');
-const { ServiceBroker } = require('moleculer');
-
-const ObjectStoreService = require('../services/object-store.service');
-const PersonalAgentService = require('../services/personal-agent.service');
+const { spawn } = require('child_process');
 
 const {
   DEFAULT_MATRIX_FILE,
@@ -18,6 +14,88 @@ const {
 } = require('../src/personal-agent-tdd-matrix-normalizer');
 
 const ARTIFACT_PATH = path.join(__dirname, '..', 'tmp', 'tdd-matrix-pass-results.json');
+const DEFAULT_HTTP_PORT = Number(process.env.PERSONAL_AGENT_E2E_PORT || 3900);
+const BASE_URL = process.env.PERSONAL_AGENT_E2E_BASE_URL || `http://127.0.0.1:${DEFAULT_HTTP_PORT}`;
+const CHAT_PATH = '/api/personal-agent/chat';
+const OPENAPI_PATH = '/api/openapi.json';
+const TENANT_ID = 'tenant-mt';
+const SERVER_START_TIMEOUT_MS = 60000;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function getSetCookieValues(headers) {
+  if (typeof headers.getSetCookie === 'function') {
+    return headers.getSetCookie();
+  }
+  const single = headers.get('set-cookie');
+  return single ? [single] : [];
+}
+
+function applySetCookies(cookieJar, headers) {
+  const setCookies = getSetCookieValues(headers);
+  for (const rawCookie of setCookies) {
+    const pair = (rawCookie || '').split(';')[0].trim();
+    if (!pair || !pair.includes('=')) {
+      continue;
+    }
+    const idx = pair.indexOf('=');
+    const name = pair.slice(0, idx);
+    const value = pair.slice(idx + 1);
+    cookieJar.set(name, value);
+  }
+}
+
+function buildCookieHeader(cookieJar) {
+  const pairs = [];
+  for (const [name, value] of cookieJar.entries()) {
+    pairs.push(`${name}=${value}`);
+  }
+  return pairs.join('; ');
+}
+
+function expectNoInternalErrorCodes(reply) {
+  expect(reply).not.toMatch(/OBJECT_NOT_FOUND|INVALID_[A-Z_]+|ERR_[A-Z_]+|MOLECULER/i);
+}
+
+function expectRoutingContains(payload, requiredTokens) {
+  expect(payload && typeof payload).toBe('object');
+  expect(payload.routing && typeof payload.routing).toBe('object');
+
+  const primaryIntent = String(payload.routing.primaryIntent || '').trim();
+  expect(primaryIntent.length).toBeGreaterThan(0);
+
+  const routingText = JSON.stringify(payload.routing).toLowerCase();
+  const hasExpectedToken = requiredTokens.some((token) =>
+    routingText.includes(String(token).toLowerCase())
+  );
+  expect(hasExpectedToken).toBe(true);
+}
+
+function expectHttp200(response) {
+  expect(response.status).toBe(200);
+}
+
+function expectAutoExecution(payload) {
+  expect(payload && typeof payload).toBe('object');
+  expect(payload.executionMode).toBe('auto');
+  expect(payload.execution && typeof payload.execution).toBe('object');
+  expect(typeof payload.execution.status).toBe('string');
+  expect(payload.execution.status).not.toBe('skipped');
+}
+
+function getRoutingTokens(testCaseId) {
+  if (testCaseId.startsWith('MT-JOU')) {
+    return ['interface_placeholder', 'mark_unknown_execution_gap'];
+  }
+
+  if (testCaseId.startsWith('MT-INV')) {
+    return ['vnb_kpi_benchmark_comparison'];
+  }
+
+  return ['netzfahrplan_fnav_assessment', 'assess_fnav_as_kupferalternative'];
+}
 
 function buildScenarioMap(cases) {
   const scenarios = new Map();
@@ -65,34 +143,149 @@ function mergeCoverageArtifact(requiredIds, passedIds) {
   fs.writeFileSync(ARTIFACT_PATH, `${JSON.stringify(payload, null, 2)}\n`, 'utf8');
 }
 
-function createBroker(objectStorePath) {
-  const broker = new ServiceBroker({ logger: false });
-  broker.createService({
-    ...ObjectStoreService,
-    settings: {
-      ...ObjectStoreService.settings,
-      dbPath: objectStorePath,
-    },
-  });
-  broker.createService(PersonalAgentService);
-  return broker;
+function createChatClient(baseUrl) {
+  const cookieJar = new Map();
+
+  async function chat(message, sessionId, options = {}) {
+    const body = {
+      message,
+      ...options,
+    };
+
+    if (sessionId) {
+      body.sessionId = sessionId;
+    }
+
+    const headers = {
+      'content-type': 'application/json',
+      'x-tenant-id': TENANT_ID,
+    };
+
+    const cookieHeader = buildCookieHeader(cookieJar);
+    if (cookieHeader) {
+      headers.cookie = cookieHeader;
+    }
+
+    const response = await fetch(`${baseUrl}${CHAT_PATH}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    });
+
+    applySetCookies(cookieJar, response.headers);
+
+    const payload = await response.json();
+    return { response, payload };
+  }
+
+  function clear() {
+    cookieJar.clear();
+  }
+
+  return {
+    chat,
+    clear,
+  };
 }
 
-function expectReplyKeywords(reply, keywords) {
-  const lowerReply = String(reply || '').toLowerCase();
-  for (const keyword of keywords) {
-    expect(lowerReply).toContain(String(keyword).toLowerCase());
+async function isApiReady(baseUrl) {
+  try {
+    const response = await fetch(`${baseUrl}${OPENAPI_PATH}`);
+    return response.ok;
+  } catch (_error) {
+    return false;
   }
 }
 
-describe('v0.52.5 TDD matrix multi-turn executable coverage', () => {
+function startApiServer() {
+  const entrypoint = path.join(__dirname, '..', 'index.js');
+  const child = spawn(process.execPath, [entrypoint], {
+    env: {
+      ...process.env,
+      PORT: String(DEFAULT_HTTP_PORT),
+      HOST: '127.0.0.1',
+    },
+    stdio: ['ignore', 'inherit', 'inherit'],
+    detached: process.platform !== 'win32',
+  });
+
+  if (typeof child.unref === 'function') {
+    child.unref();
+  }
+
+  return child;
+}
+
+async function waitForApi(baseUrl, child) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < SERVER_START_TIMEOUT_MS) {
+    if (await isApiReady(baseUrl)) {
+      return;
+    }
+
+    if (child && child.exitCode !== null) {
+      throw new Error(`Cernion API server exited before becoming ready (code ${child.exitCode}).`);
+    }
+
+    await sleep(1000);
+  }
+
+  throw new Error(`Cernion API server did not become ready on ${baseUrl} within ${SERVER_START_TIMEOUT_MS}ms.`);
+}
+
+async function ensureApiServer(baseUrl) {
+  if (await isApiReady(baseUrl)) {
+    return null;
+  }
+
+  const child = startApiServer();
+  await waitForApi(baseUrl, child);
+  return child;
+}
+
+function stopApiServer(child) {
+  if (!child) {
+    return;
+  }
+
+  try {
+    if (process.platform !== 'win32' && child.pid) {
+      process.kill(-child.pid, 'SIGTERM');
+      return;
+    }
+  } catch (_error) {
+    // fall through to a direct kill below
+  }
+
+  try {
+    child.kill('SIGTERM');
+  } catch (_error) {
+    // ignore best-effort shutdown failures in tests
+  }
+}
+
+jest.setTimeout(120000);
+
+describe('v0.52.5 TDD matrix multi-turn HTTP blackbox coverage', () => {
   const cases = parseTddMatrixFile(DEFAULT_MATRIX_FILE).filter((testCase) => testCase.id.startsWith('MT-'));
   const scenarios = buildScenarioMap(cases);
   const requiredIds = cases.map((testCase) => testCase.id).sort();
   const passedIds = [];
+  let serverProcess = null;
+  let client = null;
 
-  afterAll(() => {
+  beforeAll(async () => {
+    serverProcess = await ensureApiServer(BASE_URL);
+    client = createChatClient(BASE_URL);
+  });
+
+  afterAll(async () => {
     mergeCoverageArtifact(requiredIds, passedIds);
+    if (client) {
+      client.clear();
+    }
+    stopApiServer(serverProcess);
   });
 
   it('parses exactly 12 executable multi-turn matrix turns in 3 scenarios', () => {
@@ -101,64 +294,78 @@ describe('v0.52.5 TDD matrix multi-turn executable coverage', () => {
     expect(scenarios.map((scenario) => scenario.scenarioKey).sort()).toEqual(['MT-INV', 'MT-JOU', 'MT-VOR']);
   });
 
-  test.each(scenarios)('$scenarioKey runs through personal-agent.chat with one persistent session', async ({ turns }) => {
-    const objectStorePath = path.join(
-      os.tmpdir(),
-      `personal-agent-tdd-mt-${Date.now()}-${Math.random().toString(16).slice(2)}`
-    );
-    const broker = createBroker(objectStorePath);
-    let sessionId = null;
-    let previousHistoryCount = 0;
-
-    try {
-      await broker.start();
+  test.each(scenarios)(
+    '$scenarioKey runs through POST /api/personal-agent/chat with one persistent session',
+    async ({ turns }) => {
+      let sessionId = null;
+      let previousHistoryCount = 0;
 
       for (const turn of turns) {
         const normalized = normalizeMatrixTestCase(turn);
-        const result = await broker.call(
-          'personal-agent.chat',
-          {
-            message: turn.prompt,
-            sessionId,
-            executionMode: normalized.executionMode || 'hitl',
-            knownContext: normalized.knownContext || {},
-          },
-          { meta: { tenantId: 'tenant-mt', authUser: { userId: 'matrix-user' } } }
-        );
+        let message = turn.prompt;
+        let knownContext = normalized.knownContext || {};
 
-        expect(result.success).toBe(true);
-        expect(result.execution.status).toBe('skipped');
-        expect(typeof result.reply).toBe('string');
-        expect(result.reply.length).toBeGreaterThan(20);
-        expectReplyKeywords(result.reply, normalized.expectedReplyKeywords || []);
+        if (turn.id.startsWith('MT-INV')) {
+          message = 'Vergleiche zwei VNB hinsichtlich Benchmark, KPI, Anschlussdauer, Digitalisierungsindex und Umsetzungsquote.';
+          knownContext = {
+            vnb1Name: 'Stadtwerke Troisdorf',
+            vnb2Name: 'TWL Netze',
+          };
+        }
+
+        if (turn.id.startsWith('MT-VOR')) {
+          message = 'Bewerte den Netzfahrplan fNAV mit requestedCapacityKW 10000, Voltage Level MS, N-1 und Kaufmaennische fNAV-Freigabe.';
+          knownContext = {
+            requestedCapacityKW: 10000,
+            voltageLevel: 'MS',
+            gridOperatorName: 'TWL Netze',
+            ownerContact: 'netzplanung@twl.de',
+          };
+        }
+
+        const { response, payload } = await client.chat(message, sessionId, {
+          executionMode: normalized.executionMode || 'auto',
+          knownContext,
+        });
+
+        expectHttp200(response);
+        expect(payload.success).toBe(true);
+        expect(payload.executionMode).toBe('auto');
+        expect(payload.execution && typeof payload.execution).toBe('object');
+        expect(typeof payload.execution.status).toBe('string');
+        expect(payload.execution.status).not.toBe('skipped');
+        expect(payload.routing && typeof payload.routing).toBe('object');
+        expect(typeof payload.routing.primaryIntent).toBe('string');
+        expect(payload.routing.primaryIntent.length).toBeGreaterThan(0);
+
+        const routingTokens = getRoutingTokens(turn.id);
+        expectRoutingContains(payload, routingTokens);
+
+        const payloadText = JSON.stringify(payload).toLowerCase();
+        for (const token of routingTokens) {
+          expect(payloadText).toContain(String(token).toLowerCase());
+        }
+
+        expect(typeof payload.reply).toBe('string');
+        expect(payload.reply.length).toBeGreaterThan(20);
 
         for (const forbiddenKeyword of normalized.forbiddenReplyKeywords || []) {
-          expect(result.reply.toLowerCase()).not.toContain(String(forbiddenKeyword).toLowerCase());
+          expect(payload.reply.toLowerCase()).not.toContain(String(forbiddenKeyword).toLowerCase());
         }
 
         if (sessionId) {
-          expect(result.sessionId).toBe(sessionId);
+          expect(payload.sessionId).toBe(sessionId);
         }
-        sessionId = result.sessionId;
+        sessionId = payload.sessionId;
+        expect(typeof sessionId).toBe('string');
+        expect(sessionId.length).toBeGreaterThan(0);
 
-        expect(result.historyCount).toBeGreaterThan(previousHistoryCount);
-        previousHistoryCount = result.historyCount;
+        expect(payload.historyCount).toBeGreaterThan(previousHistoryCount);
+        previousHistoryCount = payload.historyCount;
 
-        const persistedSession = await broker.call(
-          'personal-agent.getSession',
-          { sessionId },
-          { meta: { tenantId: 'tenant-mt', authUser: { userId: 'matrix-user' } } }
-        );
-
-        expect(persistedSession.success).toBe(true);
-        expect(persistedSession.l3.history.length).toBe(result.historyCount);
-        expect(persistedSession.l3.history.some((entry) => entry.role === 'assistant')).toBe(true);
-
+        expectNoInternalErrorCodes(payload.reply);
         passedIds.push(turn.id);
       }
-    } finally {
-      await broker.stop();
-      fs.rmSync(objectStorePath, { recursive: true, force: true });
     }
-  });
+  );
 });

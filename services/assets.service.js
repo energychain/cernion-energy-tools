@@ -14,7 +14,8 @@ const PARAM_DESC_PRUEFUNG_STATUS =
   'Filter by grid operator verification status code(s), comma-separated. Values: 2954=Gepr\u00fcft \u2705, 2955=In Pr\u00fcfung \u23f3, 3075=Nicht vorgesehen.';
 const EXAMPLE_DATE = '2026-03-24';
 const PARAM_DESC_GR_ID = 'MaStR grid operator ID';
-const PARAM_DESC_LOCATION = 'City/region/postal code';
+const PARAM_DESC_LOCATION =
+  'City/region/postal code for location-based search (e.g. "Mainz", "69115", "Baden-Württemberg")';
 const PARAM_DESC_YEAR = 'Commissioning year';
 const PARAM_DESC_MIN_CAP = 'Min. capacity in kW';
 const PARAM_DESC_MAX_CAP = 'Max. capacity in kW';
@@ -29,6 +30,42 @@ const PARAM_DESC_OP_STATUS =
   'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All statuses';
 const PARAM_DESC_OP_STATUS_SHORT =
   'Operational status: 31=Planned, 35=In operation (default), 37=Temporarily decommissioned, 38=Permanently decommissioned, all=All';
+const ASSET_QUERY_COUNT_SEMANTICS =
+  'Count semantics: this endpoint returns an array. For questions like "How many ...", use the number of returned items (`array.length`).';
+const ASSET_QUERY_ARRAY_RESPONSE = {
+  200: {
+    description:
+      'Array of matching installations. ' +
+      'Count/aggregation can be derived via response length (`array.length`).',
+    content: {
+      'application/json': {
+        schema: {
+          type: 'array',
+          items: {
+            type: 'object',
+            additionalProperties: true,
+            properties: {
+              'Asset-ID': { type: 'string' },
+              'SEE Nummer': { type: 'string' },
+              Anlagentyp: { type: 'string' },
+              'Leistung kW': { type: 'number' },
+              Ort: { type: 'string', nullable: true },
+              Postleitzahl: { type: 'string', nullable: true },
+              Bundesland: { type: 'string', nullable: true },
+            },
+          },
+        },
+      },
+    },
+  },
+  400: {
+    description:
+      'Invalid parameters (at least one of vnbName, bdewCode, gridOperatorId or location is required).',
+  },
+  500: {
+    description: 'Internal server error during MaStR query.',
+  },
+};
 
 const OVERRIDE_NAMESPACE = 'asset_overrides';
 const OVERRIDEABLE_FIELDS = ['capacityKW', 'voltageLevel', 'commissionDate', 'direktvermarktungActive'];
@@ -1329,6 +1366,7 @@ module.exports = {
         },
       },
       openapi: {
+        operationId: 'assets_list',
         summary: 'List assets of a distribution network operator (DNO/DSO)',
         description:
           'Retrieves complete installation data from the German Marktstammdatenregister (MaStR). Supports filtering by grid operator (BDEW code or name), asset type, capacity, commissioning year, and operational status. **Default behavior: Only active installations (status 35 - In operation) are returned.** No pagination required - can retrieve millions of installations.',
@@ -1834,9 +1872,14 @@ module.exports = {
         updatedAfter: { type: 'string', optional: true, convert: true },
       },
       openapi: {
-        summary: 'List all solar PV installations of a grid operator',
+        operationId: 'assets_solar',
+        summary: 'List solar PV installations by grid operator or location',
         description:
-          'Retrieves all photovoltaic installations of a grid operator. **Default: Only active installations (status 35).** Example: /api/assets/solar?bdewCode=4041407000008&redispatch=true for Netze BW redispatch installations.',
+          'Retrieves photovoltaic installations from MaStR by grid operator context (`vnbName`, `bdewCode`, `gridOperatorId`) ' +
+          'or directly by `location` (city/region/postal code). ' +
+          '**Default: Only active installations (status 35).** ' +
+          ASSET_QUERY_COUNT_SEMANTICS +
+          ' Example: /api/assets/solar?location=Mainz',
         tags: ['Assets'],
         // @OpenEnergyPlatform/ontology — OEO_00000034 solar power unit
         [OEO_CLASS_KEY]: ['https://openenergyplatform.org/ontology/oeo/OEO_00000034'],
@@ -1863,7 +1906,9 @@ module.exports = {
             name: 'location',
             in: 'query',
             schema: { type: 'string', example: 'Heidelberg' },
-            description: PARAM_DESC_LOCATION,
+            description:
+              PARAM_DESC_LOCATION +
+              '. Supports city-style queries like "Wie viele PV Anlagen gibt es in <Ort>?".',
           },
           {
             name: 'commissioningYear',
@@ -1933,6 +1978,7 @@ module.exports = {
             description: PARAM_DESC_FORMAT,
           },
         ],
+        responses: ASSET_QUERY_ARRAY_RESPONSE,
       },
       async handler(ctx) {
         return this._fetchAssets(ctx, ['solar']);
@@ -1964,8 +2010,14 @@ module.exports = {
         updatedAfter: { type: 'string', optional: true, convert: true },
       },
       openapi: {
-        summary: 'List all wind power installations of a grid operator',
-        description: PARAM_DESC_DEFAULT_STATUS,
+        operationId: 'assets_wind',
+        summary: 'List wind installations by grid operator or location',
+        description:
+          'Retrieves wind installations from MaStR by grid operator context (`vnbName`, `bdewCode`, `gridOperatorId`) ' +
+          'or directly by `location` (city/region/postal code). ' +
+          PARAM_DESC_DEFAULT_STATUS +
+          ' ' +
+          ASSET_QUERY_COUNT_SEMANTICS,
         tags: ['Assets'],
         // @OpenEnergyPlatform/ontology — OEO_00000044 wind energy converting unit
         [OEO_CLASS_KEY]: ['https://openenergyplatform.org/ontology/oeo/OEO_00000044'],
@@ -1992,7 +2044,9 @@ module.exports = {
             name: 'location',
             in: 'query',
             schema: { type: 'string', example: 'Heidelberg' },
-            description: PARAM_DESC_LOCATION,
+            description:
+              PARAM_DESC_LOCATION +
+              '. Supports city-style queries like "Wie viele Windanlagen gibt es in <Ort>?".',
           },
           {
             name: 'commissioningYear',
@@ -2061,6 +2115,7 @@ module.exports = {
             description: PARAM_DESC_FORMAT,
           },
         ],
+        responses: ASSET_QUERY_ARRAY_RESPONSE,
       },
       async handler(ctx) {
         return this._fetchAssets(ctx, ['wind']);
@@ -2092,8 +2147,14 @@ module.exports = {
         updatedAfter: { type: 'string', optional: true, convert: true },
       },
       openapi: {
-        summary: 'List all battery storage installations of a grid operator',
-        description: PARAM_DESC_DEFAULT_STATUS,
+        operationId: 'assets_storage',
+        summary: 'List battery storage installations by grid operator or location',
+        description:
+          'Retrieves battery storage installations from MaStR by grid operator context (`vnbName`, `bdewCode`, `gridOperatorId`) ' +
+          'or directly by `location` (city/region/postal code). ' +
+          PARAM_DESC_DEFAULT_STATUS +
+          ' ' +
+          ASSET_QUERY_COUNT_SEMANTICS,
         tags: ['Assets'],
         // @OpenEnergyPlatform/ontology — OEO_00000159 energy storage object
         [OEO_CLASS_KEY]: ['https://openenergyplatform.org/ontology/oeo/OEO_00000159'],
@@ -2120,7 +2181,9 @@ module.exports = {
             name: 'location',
             in: 'query',
             schema: { type: 'string', example: 'Heidelberg' },
-            description: PARAM_DESC_LOCATION,
+            description:
+              PARAM_DESC_LOCATION +
+              '. Supports city-style queries like "Welche Speicheranlagen gibt es in <Ort>?".',
           },
           {
             name: 'commissioningYear',
@@ -2189,6 +2252,7 @@ module.exports = {
             description: PARAM_DESC_FORMAT,
           },
         ],
+        responses: ASSET_QUERY_ARRAY_RESPONSE,
       },
       async handler(ctx) {
         return this._fetchAssets(ctx, ['storage']);
@@ -2616,9 +2680,15 @@ module.exports = {
         updatedAfter: { type: 'string', optional: true, convert: true },
       },
       openapi: {
-        summary: 'List all installations of a grid operator (all or selected types)',
+        operationId: 'assets_all',
+        summary: 'List all installations by grid operator or location (all or selected types)',
         description:
-          'Retrieves installations of all or selected types from a grid operator. **Default: Only active installations (status 35).** Ideal for asset management and portfolio overview. Example: /api/assets/all?bdewCode=4041407000008&types=solar,wind,storage&redispatch=true',
+          'Retrieves installations of all or selected types from MaStR by grid operator context (`vnbName`, `bdewCode`, `gridOperatorId`) ' +
+          'or directly by `location` (city/region/postal code). ' +
+          '**Default: Only active installations (status 35).** ' +
+          'Ideal for portfolio overview and location-based queries across asset types. ' +
+          ASSET_QUERY_COUNT_SEMANTICS +
+          ' Example: /api/assets/all?location=Heidelberg&types=solar,wind,storage',
         tags: ['Assets'],
         // @OpenEnergyPlatform/ontology — OEO_00000031 power plant
         [OEO_CLASS_KEY]: [OEO_URL_POWER_PLANT],
@@ -2645,7 +2715,9 @@ module.exports = {
             name: 'location',
             in: 'query',
             schema: { type: 'string', example: 'Baden-Württemberg' },
-            description: PARAM_DESC_LOCATION,
+            description:
+              PARAM_DESC_LOCATION +
+              '. Useful for cross-type location queries like "Wie viele Anlagen gibt es in <Ort>?".',
           },
           {
             name: 'commissioningYear',
@@ -2723,6 +2795,7 @@ module.exports = {
             description: PARAM_DESC_UPDATED_AFTER,
           },
         ],
+        responses: ASSET_QUERY_ARRAY_RESPONSE,
       },
       async handler(ctx) {
         const allTypes = ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion'];

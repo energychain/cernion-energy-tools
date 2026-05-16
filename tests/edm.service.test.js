@@ -128,6 +128,13 @@ describe('edm.service', () => {
     expect(res.data.length).toBeGreaterThanOrEqual(3);
   });
 
+  it('health: liefert EDM SQLite Readiness', async () => {
+    const res = await broker.call('edm.health');
+    expect(res.success).toBe(true);
+    expect(res.data.ready).toBe(true);
+    expect(res.data.sqlite.ready).toBe(true);
+  });
+
   it("listMelos: Filter nach type='virtual'", async () => {
     const res = await broker.call('edm.listMelos', { type: 'virtual' });
     expect(res.data.length).toBe(1);
@@ -378,5 +385,36 @@ describe('edm.service', () => {
       expect(result.values.length).toBe(6);
       expect(result.summary.total_kwh).toBeGreaterThan(0);
     });
+  });
+
+  it('started: hard-failt wenn SQLite Backend nicht verfügbar ist', async () => {
+    const failingBroker = new ServiceBroker({ logger: false, transporter: null });
+    const failingDbPath = createTempDir();
+
+    class FailingPool {
+      assertAvailable() {
+        const err = new Error('EDM SQLite backend unavailable');
+        err.code = 'ERR_DLOPEN_FAILED';
+        throw err;
+      }
+
+      closeAll() {
+        // no-op
+      }
+    }
+
+    failingBroker.createService({
+      ...EdmService,
+      name: 'edm-failing',
+      settings: {
+        ...EdmService.settings,
+        dbPath: failingDbPath,
+        poolClass: FailingPool,
+      },
+    });
+
+    await expect(failingBroker.start()).rejects.toThrow('EDM SQLite backend unavailable');
+    await failingBroker.stop().catch(() => undefined);
+    fs.rmSync(failingDbPath, { recursive: true, force: true });
   });
 });

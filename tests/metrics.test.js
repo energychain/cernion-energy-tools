@@ -25,6 +25,9 @@ describe('metrics export', () => {
       window: '2026-05-08',
       used: 321,
     });
+    metrics.recordAsyncLeaseMiss('expired');
+    metrics.recordAsyncWakeup('queued');
+    metrics.recordAsyncAlarm({ status: 'open', code: 'LEASE_MISSES_EXCEEDED', severity: 'critical' });
 
     const output = await metrics.renderMetrics();
 
@@ -34,6 +37,9 @@ describe('metrics export', () => {
     expect(output).toContain('cernion_utility_report_phase_duration_seconds');
     expect(output).toContain('cernion_rate_limit_hits');
     expect(output).toContain('cernion_quota_usage');
+    expect(output).toContain('cernion_async_lease_misses_total');
+    expect(output).toContain('cernion_async_wakeups_total');
+    expect(output).toContain('cernion_async_alarm_events_total');
     expect(output).not.toContain('tenantId');
     expect(output).not.toContain('tenant:abc:knowledge');
     expect(output).not.toContain('tenant-alpha');

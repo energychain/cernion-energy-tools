@@ -344,56 +344,56 @@ const FIXED_TDD_NORMALIZATION_MAP = Object.freeze({
   'MT-JOU-01': {
     intentClass: 'cya.generate',
     aliases: ['POST /personal-agent/chat'],
-    executionMode: 'hitl',
+    executionMode: 'auto',
     expectedReplyKeywords: ['versorgungssicherheit', 'stand'],
   },
   'MT-JOU-02': {
     intentClass: 'cya.generate',
     aliases: ['POST /personal-agent/chat'],
-    executionMode: 'hitl',
+    executionMode: 'auto',
     expectedReplyKeywords: ['belastbare', 'unsicherheiten'],
   },
   'MT-JOU-03': {
     intentClass: 'cya.generate',
     aliases: ['POST /personal-agent/chat'],
-    executionMode: 'hitl',
+    executionMode: 'auto',
     expectedReplyKeywords: ['kernaussagen', 'drei'],
   },
   'MT-JOU-04': {
     intentClass: 'cya.generate',
     aliases: ['POST /personal-agent/chat'],
-    executionMode: 'hitl',
+    executionMode: 'auto',
     expectedReplyKeywords: ['journalistisches', 'fazit'],
     forbiddenReplyKeywords: ['garantiert', 'ohne zweifel'],
   },
   'MT-INV-01': {
     intentClass: 'finance.benchmark',
     aliases: ['POST /personal-agent/chat'],
-    executionMode: 'hitl',
+    executionMode: 'auto',
     expectedReplyKeywords: ['vergleiche', 'anschlussgeschwindigkeit'],
   },
   'MT-INV-02': {
     intentClass: 'finance.benchmark',
     aliases: ['POST /personal-agent/chat'],
-    executionMode: 'hitl',
+    executionMode: 'auto',
     expectedReplyKeywords: ['digitalisierung', 'umsetzungsquote'],
   },
   'MT-INV-03': {
     intentClass: 'finance.benchmark',
     aliases: ['POST /personal-agent/chat'],
-    executionMode: 'hitl',
+    executionMode: 'auto',
     expectedReplyKeywords: ['anschlussgeschwindigkeit', 'zusammen'],
   },
   'MT-INV-04': {
     intentClass: 'finance.benchmark',
     aliases: ['POST /personal-agent/chat'],
-    executionMode: 'hitl',
+    executionMode: 'auto',
     expectedReplyKeywords: ['rangliste', 'begruendung'],
   },
   'MT-VOR-01': {
     intentClass: 'grid-connection.fnav',
     aliases: ['POST /personal-agent/chat'],
-    executionMode: 'hitl',
+    executionMode: 'auto',
     knownContext: {
       gridOperatorName: 'TWL Netze',
       voltageLevel: 'MS',
@@ -406,7 +406,7 @@ const FIXED_TDD_NORMALIZATION_MAP = Object.freeze({
   'MT-VOR-02': {
     intentClass: 'grid-connection.fnav',
     aliases: ['POST /personal-agent/chat'],
-    executionMode: 'hitl',
+    executionMode: 'auto',
     knownContext: {
       gridOperatorName: 'TWL Netze',
       voltageLevel: 'MS',
@@ -419,7 +419,7 @@ const FIXED_TDD_NORMALIZATION_MAP = Object.freeze({
   'MT-VOR-03': {
     intentClass: 'grid-connection.fnav',
     aliases: ['POST /personal-agent/chat'],
-    executionMode: 'hitl',
+    executionMode: 'auto',
     knownContext: {
       gridOperatorName: 'TWL Netze',
       voltageLevel: 'MS',
@@ -432,7 +432,7 @@ const FIXED_TDD_NORMALIZATION_MAP = Object.freeze({
   'MT-VOR-04': {
     intentClass: 'grid-connection.fnav',
     aliases: ['POST /personal-agent/chat'],
-    executionMode: 'hitl',
+    executionMode: 'auto',
     knownContext: {
       gridOperatorName: 'TWL Netze',
       voltageLevel: 'MS',

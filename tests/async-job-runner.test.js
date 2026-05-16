@@ -72,6 +72,11 @@ describe('async-job-runner', () => {
       worker,
       expect.objectContaining({
         idempotencyKey: expect.stringContaining('ck:client-123:grid-connection:validate:'),
+        wakeContext: expect.objectContaining({
+          service: 'grid-connection',
+          action: 'validate',
+          params: { foo: 'bar' },
+        }),
       })
     );
   });

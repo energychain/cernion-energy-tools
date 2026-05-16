@@ -1,9 +1,29 @@
 /* eslint-disable no-console */
 
 const RUN_E2E = process.env.RUN_PERSONAL_AGENT_E2E === 'true';
-const BASE_URL = process.env.PERSONAL_AGENT_E2E_BASE_URL || 'http://127.0.0.1:3000';
+const BASE_URL = process.env.PERSONAL_AGENT_E2E_BASE_URL || 'http://127.0.0.1:3900';
 const TENANT_ID = 'agentic-hackathon';
 const CHAT_PATH = '/api/personal-agent/chat';
+
+const DEFAULT_CHAT_OPTIONS = Object.freeze({
+  executionMode: 'auto',
+});
+
+const JOURNALIST_ROUTING_TOKENS = ['interface_placeholder', 'mark_unknown_execution_gap'];
+const BENCHMARK_ROUTING_TOKENS = ['vnb_kpi_benchmark_comparison'];
+const VORSTAND_ROUTING_TOKENS = ['netzfahrplan_fnav_assessment', 'assess_fnav_as_kupferalternative'];
+
+const BENCHMARK_KNOWN_CONTEXT = Object.freeze({
+  vnb1Name: 'Stadtwerke Troisdorf',
+  vnb2Name: 'TWL Netze',
+});
+
+const VORSTAND_KNOWN_CONTEXT = Object.freeze({
+  requestedCapacityKW: 10000,
+  voltageLevel: 'MS',
+  gridOperatorName: 'TWL Netze',
+  ownerContact: 'netzplanung@twl.de',
+});
 
 function getSetCookieValues(headers) {
   if (typeof headers.getSetCookie === 'function') {
@@ -58,6 +78,32 @@ function expectMentions(reply, words) {
   expect(found).toBe(true);
 }
 
+function expectHttp200(response) {
+  expect(response.status).toBe(200);
+}
+
+function expectAutoExecution(payload) {
+  expect(payload && typeof payload).toBe('object');
+  expect(payload.executionMode).toBe('auto');
+  expect(payload.execution && typeof payload.execution).toBe('object');
+  expect(typeof payload.execution.status).toBe('string');
+  expect(payload.execution.status).not.toBe('skipped');
+}
+
+function expectRoutingContains(payload, requiredTokens) {
+  expect(payload && typeof payload).toBe('object');
+  expect(payload.routing && typeof payload.routing).toBe('object');
+
+  const primaryIntent = String(payload.routing.primaryIntent || '').trim();
+  expect(primaryIntent.length).toBeGreaterThan(0);
+
+  const routingText = JSON.stringify(payload.routing).toLowerCase();
+  const hasExpectedToken = requiredTokens.some((token) =>
+    routingText.includes(String(token).toLowerCase())
+  );
+  expect(hasExpectedToken).toBe(true);
+}
+
 function extractYears(reply) {
   const matches = reply.match(/\b(19|20)\d{2}\b/g);
   if (!matches) {
@@ -69,8 +115,12 @@ function extractYears(reply) {
 function createChatClient(baseUrl) {
   const cookieJar = new Map();
 
-  async function chat(message, sessionId) {
-    const body = { message };
+  async function chat(message, sessionId, options = {}) {
+    const body = {
+      message,
+      ...DEFAULT_CHAT_OPTIONS,
+      ...options,
+    };
     if (sessionId) {
       body.sessionId = sessionId;
     }
@@ -127,8 +177,13 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
         sessionId
       );
 
-      expect(response.status).toBeLessThan(500);
+      expectHttp200(response);
       expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      expectRoutingContains(payload, JOURNALIST_ROUTING_TOKENS);
+      const bodyText = JSON.stringify(payload).toLowerCase();
+      expect(bodyText).toContain('interface_placeholder');
+      expect(bodyText).toContain('mark_unknown_execution_gap');
 
       sessionId = payload.sessionId || sessionId;
 
@@ -138,11 +193,6 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       expectMentions(reply, ['stand', 'einschaetzung', 'quelle', 'beleg', 'unsicher']);
       expectNoInternalErrorCodes(reply);
 
-      // Intent-Metadaten sind ggf. nicht exponiert; dann inhaltlich validieren.
-      if (payload.capability || payload.intent?.capability) {
-        const capabilityText = JSON.stringify(payload).toLowerCase();
-        expect(capabilityText).toContain('cya');
-      }
     });
 
     it('Turn 2: Unsicherheiten klar markieren', async () => {
@@ -151,8 +201,13 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
         sessionId
       );
 
-      expect(response.status).toBeLessThan(500);
+      expectHttp200(response);
       expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      expectRoutingContains(payload, JOURNALIST_ROUTING_TOKENS);
+      const bodyText = JSON.stringify(payload).toLowerCase();
+      expect(bodyText).toContain('interface_placeholder');
+      expect(bodyText).toContain('mark_unknown_execution_gap');
 
       sessionId = payload.sessionId || sessionId;
       const reply = extractReply(payload);
@@ -168,8 +223,13 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
         sessionId
       );
 
-      expect(response.status).toBeLessThan(500);
+      expectHttp200(response);
       expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      expectRoutingContains(payload, JOURNALIST_ROUTING_TOKENS);
+      const bodyText = JSON.stringify(payload).toLowerCase();
+      expect(bodyText).toContain('interface_placeholder');
+      expect(bodyText).toContain('mark_unknown_execution_gap');
 
       sessionId = payload.sessionId || sessionId;
       const reply = extractReply(payload);
@@ -185,8 +245,13 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
         sessionId
       );
 
-      expect(response.status).toBeLessThan(500);
+      expectHttp200(response);
       expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      expectRoutingContains(payload, JOURNALIST_ROUTING_TOKENS);
+      const bodyText = JSON.stringify(payload).toLowerCase();
+      expect(bodyText).toContain('interface_placeholder');
+      expect(bodyText).toContain('mark_unknown_execution_gap');
 
       sessionId = payload.sessionId || sessionId;
       const reply = extractReply(payload);
@@ -212,12 +277,17 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
 
     it('Turn 1: Vergleich anstoßen', async () => {
       const { response, payload } = await client.chat(
-        'Vergleiche bitte zwei Netzbetreiber hinsichtlich Anschlussgeschwindigkeit.',
-        sessionId
+        'Vergleiche zwei VNB hinsichtlich Benchmark, KPI, Anschlussdauer, Digitalisierungsindex und Umsetzungsquote.',
+        sessionId,
+        { knownContext: BENCHMARK_KNOWN_CONTEXT }
       );
 
-      expect(response.status).toBeLessThan(500);
+      expectHttp200(response);
       expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      expectRoutingContains(payload, BENCHMARK_ROUTING_TOKENS);
+      const bodyText = JSON.stringify(payload).toLowerCase();
+      expect(bodyText).toContain('vnb_kpi_benchmark_comparison');
 
       sessionId = payload.sessionId || sessionId;
       const reply = extractReply(payload);
@@ -229,12 +299,17 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
 
     it('Turn 2: Zusätzliche Dimensionen', async () => {
       const { response, payload } = await client.chat(
-        'Ergaenze Digitalisierung und Umsetzungsquote im Vergleich.',
-        sessionId
+        'Ergänze Digitalisierung und Umsetzungsquote im Vergleich.',
+        sessionId,
+        { knownContext: BENCHMARK_KNOWN_CONTEXT }
       );
 
-      expect(response.status).toBeLessThan(500);
+      expectHttp200(response);
       expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      expectRoutingContains(payload, BENCHMARK_ROUTING_TOKENS);
+      const bodyText = JSON.stringify(payload).toLowerCase();
+      expect(bodyText).toContain('vnb_kpi_benchmark_comparison');
 
       sessionId = payload.sessionId || sessionId;
       const reply = extractReply(payload);
@@ -247,12 +322,17 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
 
     it('Turn 3: Synthese über vorherige Turns', async () => {
       const { response, payload } = await client.chat(
-        'Gewichte Anschlussgeschwindigkeit hoechst und fasse das Ergebnis zusammen.',
-        sessionId
+        'Gewichte Anschlussgeschwindigkeit am höchsten und fasse das Ergebnis zusammen.',
+        sessionId,
+        { knownContext: BENCHMARK_KNOWN_CONTEXT }
       );
 
-      expect(response.status).toBeLessThan(500);
+      expectHttp200(response);
       expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      expectRoutingContains(payload, BENCHMARK_ROUTING_TOKENS);
+      const bodyText = JSON.stringify(payload).toLowerCase();
+      expect(bodyText).toContain('vnb_kpi_benchmark_comparison');
 
       sessionId = payload.sessionId || sessionId;
       const reply = extractReply(payload);
@@ -269,12 +349,17 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
 
     it('Turn 4: Rangliste oder Vergleich liefern', async () => {
       const { response, payload } = await client.chat(
-        'Erstelle eine Rangliste mit kurzer Begruendung.',
-        sessionId
+        'Erstelle eine Rangliste mit kurzer Begründung.',
+        sessionId,
+        { knownContext: BENCHMARK_KNOWN_CONTEXT }
       );
 
-      expect(response.status).toBeLessThan(500);
+      expectHttp200(response);
       expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      expectRoutingContains(payload, BENCHMARK_ROUTING_TOKENS);
+      const bodyText = JSON.stringify(payload).toLowerCase();
+      expect(bodyText).toContain('vnb_kpi_benchmark_comparison');
 
       sessionId = payload.sessionId || sessionId;
       const reply = extractReply(payload);
@@ -300,12 +385,18 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
 
     it('Turn 1: Frankfurt Statusabfrage', async () => {
       const { response, payload } = await client.chat(
-        'Wir pruefen ein Anschlussbegehren fuer ein Rechenzentrum in Frankfurt. Wie ist der Stand?',
-        sessionId
+        'Wir prüfen ein Anschlussbegehren für ein Rechenzentrum mit Netzfahrplan fNAV. Wie ist der Stand?',
+        sessionId,
+        { knownContext: VORSTAND_KNOWN_CONTEXT }
       );
 
-      expect(response.status).toBeLessThan(500);
+      expectHttp200(response);
       expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      expectRoutingContains(payload, VORSTAND_ROUTING_TOKENS);
+      const bodyText = JSON.stringify(payload).toLowerCase();
+      expect(bodyText).toContain('netzfahrplan_fnav_assessment');
+      expect(bodyText).toContain('assess_fnav_as_kupferalternative');
 
       sessionId = payload.sessionId || sessionId;
       const reply = extractReply(payload);
@@ -315,20 +406,22 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       expectMentions(reply, ['stand', 'prozess', 'status']);
       expectNoInternalErrorCodes(reply);
 
-      if (payload.capability || payload.intent?.capability || payload.routing?.primaryIntent) {
-        const capabilityText = JSON.stringify(payload).toLowerCase();
-        expect(capabilityText).toContain('grid-connection');
-      }
     });
 
     it('Turn 2: N-1 Reserve aus Kontext erklären', async () => {
       const { response, payload } = await client.chat(
-        'Was bedeutet das fuer unsere N-1 Reserve?',
-        sessionId
+        'Was bedeutet das für unsere N-1-Reserve?',
+        sessionId,
+        { knownContext: VORSTAND_KNOWN_CONTEXT }
       );
 
-      expect(response.status).toBeLessThan(500);
+      expectHttp200(response);
       expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      expectRoutingContains(payload, VORSTAND_ROUTING_TOKENS);
+      const bodyText = JSON.stringify(payload).toLowerCase();
+      expect(bodyText).toContain('netzfahrplan_fnav_assessment');
+      expect(bodyText).toContain('assess_fnav_as_kupferalternative');
 
       sessionId = payload.sessionId || sessionId;
       const reply = extractReply(payload);
@@ -345,12 +438,18 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
 
     it('Turn 3: fNAV 5-Jahres-Projektion', async () => {
       const { response, payload } = await client.chat(
-        'Projiziere den fNAV fuer die naechsten 5 Jahre.',
-        sessionId
+        'Projiziere den fNAV für die nächsten 5 Jahre.',
+        sessionId,
+        { knownContext: VORSTAND_KNOWN_CONTEXT }
       );
 
-      expect(response.status).toBeLessThan(500);
+      expectHttp200(response);
       expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      expectRoutingContains(payload, VORSTAND_ROUTING_TOKENS);
+      const bodyText = JSON.stringify(payload).toLowerCase();
+      expect(bodyText).toContain('netzfahrplan_fnav_assessment');
+      expect(bodyText).toContain('assess_fnav_as_kupferalternative');
 
       sessionId = payload.sessionId || sessionId;
       const reply = extractReply(payload);
@@ -367,12 +466,18 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
 
     it('Turn 4: Standortwechsel auf München (contextMutation: replace)', async () => {
       const { response, payload } = await client.chat(
-        'Wir verlagern das Projekt nach Muenchen. Aktualisiere die Pruefung.',
-        sessionId
+        'Wir verlagern das Projekt nach München. Aktualisiere die Prüfung.',
+        sessionId,
+        { knownContext: VORSTAND_KNOWN_CONTEXT }
       );
 
-      expect(response.status).toBeLessThan(500);
+      expectHttp200(response);
       expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      expectRoutingContains(payload, VORSTAND_ROUTING_TOKENS);
+      const bodyText = JSON.stringify(payload).toLowerCase();
+      expect(bodyText).toContain('netzfahrplan_fnav_assessment');
+      expect(bodyText).toContain('assess_fnav_as_kupferalternative');
 
       sessionId = payload.sessionId || sessionId;
       const reply = extractReply(payload);

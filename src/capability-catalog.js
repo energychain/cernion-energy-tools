@@ -45,6 +45,44 @@ const INTERFACE_PLACEHOLDER_CAPABILITY = {
 
 const CURATED_CAPABILITIES = [
   {
+    capability: 'cya_assessment_briefing',
+    domain: 'cya',
+    abstractionLevel: 'journalistic_risk_briefing',
+    intent: 'cya.generate',
+    secondaryIntents: ['interface_placeholder', 'mark_unknown_execution_gap'],
+    keywords: [
+      'versorgungssicherheit',
+      'belastbare aussagen',
+      'unsicherheiten',
+      'journalistisch',
+      'journalistisches fazit',
+      'quellen-hinweis',
+      'kernaussagen',
+      'fazit',
+    ],
+    preferredActions: [
+      'interface-placeholder.markGap',
+      'interface-placeholder.requestEvidence',
+      'interface-placeholder.listGaps',
+    ],
+    fallbackActions: ['interface-placeholder.markGap'],
+    avoid: ['query.ask', 'query.askLearned'],
+    requiredInputs: [
+      {
+        name: 'role',
+        label: 'Analystenrolle',
+        type: 'string',
+        required: false,
+        default: 'cya_analyst',
+      },
+    ],
+    risksAndNotes: [
+      'CYA-Antworten müssen Unsicherheit und Evidenzstatus transparent markieren.',
+      'Ohne belastbare Evidenz bleibt die Antwort als risikobewusste Einordnung gekennzeichnet.',
+    ],
+    routingPattern: 'cya_journalistic_briefing',
+  },
+  {
     capability: 'blindflug_radar_anomaly_detection',
     domain: 'znp_blindflug_radar',
     abstractionLevel: 'domain_workflow',
@@ -128,7 +166,8 @@ const CURATED_CAPABILITIES = [
     capability: 'netzfahrplan_fnav_assessment',
     domain: 'grid_connection_flexibility',
     abstractionLevel: 'deterministic_phase5_workflow',
-    intent: 'assess_fnav_as_kupferalternative',
+    intent: 'grid-connection.fnav',
+    secondaryIntents: ['assess_fnav_as_kupferalternative'],
     keywords: [
       'netzfahrplan',
       'fnav',

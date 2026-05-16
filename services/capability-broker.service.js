@@ -55,13 +55,99 @@ function normalizeMode(mode, alreadyExecutedSteps, compareCandidates, warnings) 
 
 function findBestCapability(taskText) {
   const haystack = taskText.toLowerCase();
+
+  const findCapabilityByName = (capabilityName) =>
+    CURATED_CAPABILITIES.find((capability) => capability.capability === capabilityName) || null;
+
+  const cyaSignals = [
+    'versorgungssicherheit',
+    'belastbare aussagen',
+    'journalist',
+    'fazit',
+    'unsicher',
+    'kernaussagen',
+  ];
+  const benchmarkSignals = [
+    'benchmark',
+    'vergleich',
+    'rangliste',
+    'digitalisierungsindex',
+    'umsetzungsquote',
+    'kpi',
+  ];
+  const fnavSignals = [
+    'netzfahrplan',
+    'n-1',
+    'requestedcapacitykw',
+    'voltage level',
+    'rechenzentrum',
+    'kupferausbau',
+    'firm capacity',
+    'flexible capacity',
+  ];
+
+  if (cyaSignals.some((signal) => haystack.includes(signal))) {
+    const cyaCapability = findCapabilityByName('cya_assessment_briefing');
+    if (cyaCapability) {
+      return {
+        capability: cyaCapability,
+        score: 100,
+        usedFallback: false,
+      };
+    }
+  }
+
+  if (benchmarkSignals.some((signal) => haystack.includes(signal))) {
+    const benchmarkCapability = findCapabilityByName('vnb_kpi_benchmark_comparison');
+    if (benchmarkCapability) {
+      return {
+        capability: benchmarkCapability,
+        score: 100,
+        usedFallback: false,
+      };
+    }
+  }
+
+  if (fnavSignals.some((signal) => haystack.includes(signal))) {
+    const fnavCapability = findCapabilityByName('netzfahrplan_fnav_assessment');
+    if (fnavCapability) {
+      return {
+        capability: fnavCapability,
+        score: 100,
+        usedFallback: false,
+      };
+    }
+  }
+
   let best = null;
 
   for (const capability of CURATED_CAPABILITIES) {
-    const score = capability.keywords.reduce(
+    let score = capability.keywords.reduce(
       (acc, keyword) => (haystack.includes(keyword.toLowerCase()) ? acc + 1 : acc),
       0
     );
+
+    if (capability.capability === 'mastr_asset_inventory') {
+      const hasExplicitMastrSignal = [
+        'mastr',
+        'redispatch',
+        'fernsteuerbarkeit',
+        'anlage',
+        'anlagen',
+        'pv',
+        'wind',
+        'speicher',
+      ].some((signal) => haystack.includes(signal));
+
+      const hasCompetingScenarioSignal = [...cyaSignals, ...benchmarkSignals, ...fnavSignals].some(
+        (signal) => haystack.includes(signal)
+      );
+
+      if (!hasExplicitMastrSignal || hasCompetingScenarioSignal) {
+        score = 0;
+      }
+    }
+
     if (!best || score > best.score) {
       best = { capability, score };
     }
@@ -146,6 +232,44 @@ function buildActionTemplate(action) {
       endDate: null,
     };
   }
+  if (action === 'grid-connection.fnavValidate') {
+    return {
+      gridOperatorId: null,
+      gridOperatorBdew: null,
+      gridOperatorName: null,
+      voltageLevel: null,
+      ownerContact: null,
+      fnavProfile: null,
+    };
+  }
+  if (action === 'grid-operations.netzfahrplanGenerate') {
+    return {
+      gridOperatorName: null,
+      voltageLevel: null,
+      requestedCapacityKW: null,
+      firmCapacityKW: null,
+      flexibleCapacityKW: null,
+      curtailmentWindow: null,
+      contractStatus: null,
+      legalStatus: null,
+      ownerContact: null,
+    };
+  }
+  if (action === 'finance-agent.fnavEconomics') {
+    return {
+      gridOperator: null,
+      voltageLevel: null,
+      ownerContact: null,
+      annualFeeEur: null,
+      fnavProfile: null,
+    };
+  }
+  if (action === 'ewk-monitoring.benchmarkVnb') {
+    return {
+      vnbName: null,
+      bnr: null,
+    };
+  }
   if (action === 'datasource-cache.query') {
     return {
       sourceId: null,
@@ -159,6 +283,157 @@ function buildActionTemplate(action) {
     };
   }
   return {};
+}
+
+function parseBenchmarkNames(taskText = '') {
+  const text = String(taskText || '');
+  const againstMatch = text.match(/\b(?:benchmark(?:e|t)?|vergleich(?:e|t)?)\s+(.+?)\s+gegen\s+(.+?)(?:[\.!?]|$)/i);
+  if (againstMatch) {
+    const first = String(againstMatch[1] || '').trim();
+    const secondPart = String(againstMatch[2] || '').trim();
+    const second = secondPart.split(/\s+(?:und|,|vs\.?|versus)\s+/i)[0]?.trim() || secondPart;
+    return {
+      vnb1Name: first || null,
+      vnb2Name: second || null,
+    };
+  }
+  return {
+    vnb1Name: null,
+    vnb2Name: null,
+  };
+}
+
+function parseRequestedCapacityKW(taskText = '') {
+  const text = String(taskText || '');
+  const explicitMatch = text.match(/\brequested\s*capacity\s*kw\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i)
+    || text.match(/\brequestedcapacitykw\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i)
+    || text.match(/\brequested\s*capacity\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i);
+  if (explicitMatch) {
+    return Number(String(explicitMatch[1]).replace(',', '.'));
+  }
+  return null;
+}
+
+function buildFnavProfile(knownContext = {}, taskText = '') {
+  if (knownContext?.fnavProfile && typeof knownContext.fnavProfile === 'object') {
+    return knownContext.fnavProfile;
+  }
+
+  const requestedCapacity =
+    knownContext?.requestedCapacityKW
+    ?? knownContext?.requestedCapacity
+    ?? parseRequestedCapacityKW(taskText);
+
+  if (requestedCapacity == null) {
+    return null;
+  }
+
+  return {
+    requestedCapacity,
+    firmCapacity: knownContext?.firmCapacity ?? knownContext?.firmCapacityKW,
+    flexibleCapacity: knownContext?.flexibleCapacity ?? knownContext?.flexibleCapacityKW,
+    curtailmentWindow: knownContext?.curtailmentWindow,
+    contractStatus: knownContext?.contractStatus,
+    legalStatus: knownContext?.legalStatus,
+  };
+}
+
+function interpolateTemplateWithKnownContext(action, paramsTemplate = {}, knownContext = {}, taskText = '') {
+  const hydrated = { ...(paramsTemplate || {}) };
+  const parsedBenchmarkNames = parseBenchmarkNames(taskText);
+  const parsedRequestedCapacityKW = parseRequestedCapacityKW(taskText);
+  const queryCandidate =
+    knownContext.query ||
+    knownContext.vnb1Name ||
+    parsedBenchmarkNames.vnb1Name ||
+    knownContext.vnb1Name ||
+    knownContext.gridOperatorName ||
+    knownContext.operatorName ||
+    String(taskText || '').trim() ||
+    '*';
+
+  if (action === 'grid-operations.marketPartners') {
+    if (hydrated.query === null || hydrated.query === undefined || hydrated.query === '') {
+      hydrated.query = queryCandidate;
+    }
+  }
+
+  if (action === 'ewk-monitoring.benchmarkVnb') {
+    if (hydrated.vnbName == null) {
+      hydrated.vnbName = knownContext.vnbName || knownContext.vnb1Name || parsedBenchmarkNames.vnb1Name || null;
+    }
+    if (hydrated.bnr == null && knownContext.bnr) {
+      hydrated.bnr = knownContext.bnr;
+    }
+  }
+
+  if (action === 'grid-connection.fnavValidate') {
+    if (hydrated.gridOperatorName == null && knownContext.gridOperatorName) {
+      hydrated.gridOperatorName = knownContext.gridOperatorName;
+    }
+    if (hydrated.voltageLevel == null && knownContext.voltageLevel) {
+      hydrated.voltageLevel = knownContext.voltageLevel;
+    }
+    if (hydrated.ownerContact == null && knownContext.ownerContact) {
+      hydrated.ownerContact = knownContext.ownerContact;
+    }
+    if (hydrated.fnavProfile == null) {
+      hydrated.fnavProfile = buildFnavProfile(knownContext, taskText);
+    }
+  }
+
+  if (action === 'grid-operations.netzfahrplanGenerate') {
+    if (hydrated.gridOperatorName == null && knownContext.gridOperatorName) {
+      hydrated.gridOperatorName = knownContext.gridOperatorName;
+    }
+    if (hydrated.voltageLevel == null && knownContext.voltageLevel) {
+      hydrated.voltageLevel = knownContext.voltageLevel;
+    }
+    if (hydrated.requestedCapacityKW == null) {
+      hydrated.requestedCapacityKW =
+        knownContext.requestedCapacityKW
+        ?? knownContext.requestedCapacity
+        ?? parsedRequestedCapacityKW;
+    }
+    if (hydrated.firmCapacityKW == null) {
+      hydrated.firmCapacityKW = knownContext.firmCapacityKW ?? knownContext.firmCapacity ?? null;
+    }
+    if (hydrated.flexibleCapacityKW == null) {
+      hydrated.flexibleCapacityKW = knownContext.flexibleCapacityKW ?? knownContext.flexibleCapacity ?? null;
+    }
+    if (hydrated.curtailmentWindow == null && knownContext.curtailmentWindow != null) {
+      hydrated.curtailmentWindow = knownContext.curtailmentWindow;
+    }
+    if (hydrated.contractStatus == null && knownContext.contractStatus) {
+      hydrated.contractStatus = knownContext.contractStatus;
+    }
+    if (hydrated.legalStatus == null && knownContext.legalStatus) {
+      hydrated.legalStatus = knownContext.legalStatus;
+    }
+    if (hydrated.ownerContact == null && knownContext.ownerContact) {
+      hydrated.ownerContact = knownContext.ownerContact;
+    }
+  }
+
+  if (action === 'finance-agent.fnavEconomics') {
+    if (hydrated.gridOperator == null) {
+      hydrated.gridOperator = knownContext.gridOperator || knownContext.gridOperatorName || null;
+    }
+    if (hydrated.voltageLevel == null && knownContext.voltageLevel) {
+      hydrated.voltageLevel = knownContext.voltageLevel;
+    }
+    if (hydrated.ownerContact == null && knownContext.ownerContact) {
+      hydrated.ownerContact = knownContext.ownerContact;
+    }
+    if (hydrated.annualFeeEur == null && knownContext.annualFeeEur != null) {
+      hydrated.annualFeeEur = knownContext.annualFeeEur;
+    }
+    if (hydrated.fnavProfile == null) {
+      hydrated.fnavProfile = buildFnavProfile(knownContext, taskText);
+    }
+  }
+
+  return hydrated;
 }
 
 function buildRequiredInputSet(capability, requiredActions) {
@@ -298,11 +573,21 @@ module.exports = {
           blockedActions
         ).filter((action) => !preferredActionPath.includes(action));
 
+        const knownContext =
+          ctx.params.knownContext && typeof ctx.params.knownContext === 'object'
+            ? ctx.params.knownContext
+            : {};
+
         const recommendedPlan = preferredActionPath.map((action, index) => ({
           step: index + 1,
           action,
           purpose: `Execute capability path for ${capability.capability}`,
-          params: buildActionTemplate(action),
+          params: interpolateTemplateWithKnownContext(
+            action,
+            buildActionTemplate(action),
+            knownContext,
+            taskText
+          ),
           expectedOutput: 'Action-specific response payload',
           source: 'curated',
         }));
