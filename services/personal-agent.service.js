@@ -1188,6 +1188,59 @@ module.exports = {
       return `${fileIntro}${progressText} ${stopText} ${nextText}`.replace(/\s+/g, ' ').trim();
     },
 
+    humanizeCapabilityLabel(label, fallback = 'fachlicher Prüfschritt') {
+      const raw = String(label || '').trim();
+      if (!raw) {
+        return fallback;
+      }
+
+      const normalized = raw.toLowerCase();
+      const mappings = [
+        ['grid_operator_identity_resolution', 'Netzbetreiber-Zuordnung'],
+        ['mastr_asset_inventory', 'Anlagenregister-/MaStR-Prüfung'],
+        ['vnb_kpi_benchmark_comparison', 'Netzbetreiber-Benchmark-Prüfung'],
+        ['interface_placeholder', 'fehlende Schnittstelle oder Evidenzquelle'],
+        ['grid-operator-identity-resolution', 'Netzbetreiber-Zuordnung'],
+        ['mastr-asset-inventory', 'Anlagenregister-/MaStR-Prüfung'],
+        ['vnb-kpi-benchmark-comparison', 'Netzbetreiber-Benchmark-Prüfung'],
+      ];
+
+      for (const [needle, replacement] of mappings) {
+        if (normalized.includes(needle)) {
+          return replacement;
+        }
+      }
+
+      if (/execute curated capability path/i.test(raw)) {
+        return fallback;
+      }
+
+      const isTechnicalToken =
+        /execute curated capability path/i.test(raw) ||
+        /\binterface_placeholder\b/i.test(raw) ||
+        /\b(grid_operator_identity_resolution|mastr_asset_inventory|vnb_kpi_benchmark_comparison)\b/i.test(raw) ||
+        /\b[a-z][a-z0-9]*(?:_[a-z0-9]+){1,}\b/i.test(raw);
+
+      const stripped = raw
+        .replace(/^execute curated capability path for\s+/i, '')
+        .replace(/^execute curated capability path:\s*/i, '')
+        .replace(/\binterface_placeholder\b/gi, 'fehlende Schnittstelle oder Evidenzquelle')
+        .replace(/\b(grid_operator_identity_resolution|mastr_asset_inventory|vnb_kpi_benchmark_comparison)\b/gi, '')
+        .replace(/[_-]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      if (!stripped) {
+        return fallback;
+      }
+
+      if (isTechnicalToken) {
+        return fallback;
+      }
+
+      return stripped;
+    },
+
     buildRecoveryStopText({ plan = {}, execution = {}, stopPoint = {}, taskTone }) {
       const blockedStepLabel = this.describeBlockedStep(plan, stopPoint);
 
@@ -1200,8 +1253,8 @@ module.exports = {
 
       if (stopPoint.status === 'interface-placeholder' || stopPoint.reasonCode === 'UNSUPPORTED_CHAIN') {
         return taskTone === 'finance-risk'
-          ? `Der Stopp liegt an einer Schnittstellenlücke beim Prüfpunkt "${blockedStepLabel}".`
-          : `Der Stopp liegt an einer Schnittstellenlücke beim Schritt "${blockedStepLabel}".`;
+          ? `Der Stopp liegt an einer fehlenden Schnittstelle oder Evidenzquelle beim Prüfpunkt "${blockedStepLabel}".`
+          : `Der Stopp liegt an einer fehlenden Schnittstelle oder Evidenzquelle beim Schritt "${blockedStepLabel}".`;
       }
 
       if (stopPoint.reasonCode === 'ACTION_FAILED') {
@@ -1261,11 +1314,11 @@ module.exports = {
         ? stopPoint.placeholderMetadata.suggestedNextSteps.filter((item) => typeof item === 'string' && item.trim())
         : [];
       if (metadataSuggestions.length > 0) {
-        return metadataSuggestions[0];
+        return this.humanizeCapabilityLabel(metadataSuggestions[0], 'die fehlende Evidenz nachreichen');
       }
 
       const blockedStepLabel = this.describeBlockedStep(plan, stopPoint);
-      return `den Prüfpunkt "${blockedStepLabel}" an eine verfügbare Schnittstelle übergeben`;
+      return `den Prüfpunkt "${blockedStepLabel}" an eine verfügbare Schnittstelle oder Evidenzquelle übergeben`;
     },
 
     summarizeCompletedSteps(plan = {}, execution = {}) {
@@ -1277,7 +1330,10 @@ module.exports = {
         const plannedStep = Array.isArray(plan?.steps)
           ? plan.steps.find((item) => item.step === step.step || item.action === step.action)
           : null;
-        const label = plannedStep?.purpose || plannedStep?.label || this.humanizeActionName(step.action);
+        const label = this.humanizeCapabilityLabel(
+          plannedStep?.purpose || plannedStep?.label || step.label || step.action,
+          this.humanizeActionName(step.action)
+        );
         const outcome = this.summarizeStepOutcome(step.result);
         return outcome ? `${label} (${outcome})` : label;
       });
@@ -1321,10 +1377,17 @@ module.exports = {
         : null;
 
       if (plannedStep) {
-        return plannedStep.purpose || plannedStep.label || this.humanizeActionName(plannedStep.action);
+        return this.humanizeCapabilityLabel(
+          plannedStep.purpose || plannedStep.label || plannedStep.action,
+          this.humanizeActionName(plannedStep.action)
+        );
       }
 
-      return stopPoint?.blockedAction || (blockedStepNumber > 0 ? `Schritt ${blockedStepNumber}` : 'der nächste Schritt');
+      const rawBlocked = stopPoint?.placeholderMetadata?.title || stopPoint?.blockedAction;
+      return this.humanizeCapabilityLabel(
+        rawBlocked,
+        blockedStepNumber > 0 ? `Schritt ${blockedStepNumber}` : 'der nächste fachliche Prüfschritt'
+      );
     },
 
     describeMissingRecoveryInputs(stopPoint = {}) {

@@ -410,7 +410,7 @@ describe('personal-agent.service', () => {
       },
     });
 
-    expect(reply).toContain('Energy-Sharing-Validierung prüfen');
+    expect(reply).toMatch(/Energy Sharing|Validierung prüfen/i);
     expect(reply).toContain('die Projekt-ID');
     expect(reply).not.toMatch(/ACTION_FAILED|VALIDATION_ERROR|__step_|sicher angehalten/i);
   });
@@ -447,6 +447,86 @@ describe('personal-agent.service', () => {
 
     expect(reply).toMatch(/Risiko|Prüfpunkt|fehlende Evidenz|Due-Diligence-Bedingung/i);
     expect(reply).not.toMatch(/ACTION_FAILED|VALIDATION_ERROR|__step_|sicher angehalten/i);
+  });
+
+  it('humanizes internal capability labels in partial recovery replies', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const reply = svc.schema.methods.synthesizeTurn.call(svc, {
+      message: 'Bitte den Status prüfen',
+      plan: {
+        status: 'partial',
+        steps: [
+          {
+            step: 1,
+            action: 'mastr.audit',
+            purpose: 'Execute curated capability path for mastr_asset_inventory',
+          },
+        ],
+      },
+      execution: {
+        status: 'partial',
+        completedSteps: 1,
+        steps: [
+          {
+            step: 1,
+            action: 'mastr.audit',
+            status: 'completed',
+            result: { status: 'ok' },
+          },
+        ],
+        stopPoint: {
+          reasonCode: 'UNSUPPORTED_CHAIN',
+          status: 'interface-placeholder',
+          blockedStep: 2,
+          blockedAction: 'interface_placeholder',
+          placeholderMetadata: {
+            title: 'Execute curated capability path for interface_placeholder',
+            suggestedNextSteps: ['Execute curated capability path for vnb_kpi_benchmark_comparison'],
+          },
+        },
+      },
+    });
+
+    expect(reply).toMatch(/MaStR|Anlagenregister|Schnittstelle|Evidenzquelle/i);
+    expect(reply).not.toMatch(
+      /Execute curated capability path|grid_operator_identity_resolution|mastr_asset_inventory|vnb_kpi_benchmark_comparison|interface_placeholder/i
+    );
+  });
+
+  it('humanizes interface-placeholder gaps in recovery replies', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const reply = svc.schema.methods.synthesizeTurn.call(svc, {
+      message: 'Bitte weiter prüfen',
+      plan: {
+        status: 'partial',
+        steps: [
+          {
+            step: 1,
+            action: 'grid-operations.marketPartners',
+            purpose: 'Execute curated capability path for grid_operator_identity_resolution',
+          },
+        ],
+      },
+      execution: {
+        status: 'partial',
+        completedSteps: 0,
+        steps: [],
+        stopPoint: {
+          reasonCode: 'UNSUPPORTED_CHAIN',
+          status: 'interface-placeholder',
+          blockedStep: 1,
+          blockedAction: 'interface_placeholder',
+          placeholderMetadata: {
+            title: 'Execute curated capability path for interface_placeholder',
+          },
+        },
+      },
+    });
+
+    expect(reply).toMatch(/fehlende Schnittstelle|Evidenzquelle/i);
+    expect(reply).not.toMatch(
+      /Execute curated capability path|grid_operator_identity_resolution|mastr_asset_inventory|vnb_kpi_benchmark_comparison|interface_placeholder/i
+    );
   });
 
   it('stores CSV attachment extract in L3 and reports fileProcessing ok', async () => {

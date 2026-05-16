@@ -10,9 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - [services/personal-agent.service.js](services/personal-agent.service.js): replaced generic partial-execution stop text with deterministic recovery synthesis that summarizes completed steps, names the stop point, highlights missing inputs or capability gaps, and adapts wording for finance/risk-style requests.
 - [services/personal-agent.service.js](services/personal-agent.service.js): kept non-completed replies free of raw technical codes while translating action failures into user-facing evidence and next-step language.
+- [services/personal-agent.service.js](services/personal-agent.service.js): added humanization for internal capability/action labels so visible replies use fachliche Begriffe like Netzbetreiber-Zuordnung, Anlagenregister-/MaStR-Prüfung, or fehlende Schnittstelle/Evidenzquelle instead of curated-path tokens.
 
 ### Tests
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression coverage for zero-step partial recovery, one-step recovery, and finance/risk phrasing, plus negative assertions against internal tokens and generic safe-stop wording.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regressions that verify internal capability labels such as `Execute curated capability path for mastr_asset_inventory` and `interface_placeholder` are not surfaced in `.reply`.
 
 ## [0.52.10] — Routing/Matrix Stabilization, Release-Gate Hardening, and Ops Updates
 
