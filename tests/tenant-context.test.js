@@ -9,6 +9,7 @@ const {
   tenantNamespace,
   tenantKey,
   validateTenantId,
+  isTenantAllowed,
   DEFAULT_TENANT,
 } = require('../src/tenant-context');
 
@@ -308,5 +309,61 @@ describe('CYA PoC — tenantNamespace in profile actions', () => {
     const putCall = mockCtx.call.mock.calls.find((c) => c[0] === 'object-store.put');
     expect(putCall).toBeDefined();
     expect(putCall[1].namespace).toBe('cya_profiles');
+  });
+});
+
+// ─── isTenantAllowed ─────────────────────────────────────────────────────────
+
+describe('isTenantAllowed', () => {
+  const ORIGINAL_ENV = process.env.CERNION_ALLOWED_TENANTS;
+
+  afterEach(() => {
+    if (ORIGINAL_ENV === undefined) {
+      delete process.env.CERNION_ALLOWED_TENANTS;
+    } else {
+      process.env.CERNION_ALLOWED_TENANTS = ORIGINAL_ENV;
+    }
+  });
+
+  test('ohne CERNION_ALLOWED_TENANTS → alle erlaubt', () => {
+    delete process.env.CERNION_ALLOWED_TENANTS;
+    expect(isTenantAllowed('public')).toBe(true);
+    expect(isTenantAllowed('default')).toBe(true);
+    expect(isTenantAllowed('irgendwas')).toBe(true);
+  });
+
+  test('leere CERNION_ALLOWED_TENANTS → alle erlaubt', () => {
+    process.env.CERNION_ALLOWED_TENANTS = '';
+    expect(isTenantAllowed('public')).toBe(true);
+  });
+
+  test('nur Whitespace → alle erlaubt', () => {
+    process.env.CERNION_ALLOWED_TENANTS = '   ';
+    expect(isTenantAllowed('public')).toBe(true);
+  });
+
+  test('Tenant in Liste → erlaubt', () => {
+    process.env.CERNION_ALLOWED_TENANTS = 'default,public,agentic-hackathon';
+    expect(isTenantAllowed('public')).toBe(true);
+    expect(isTenantAllowed('default')).toBe(true);
+    expect(isTenantAllowed('agentic-hackathon')).toBe(true);
+  });
+
+  test('Tenant NICHT in Liste → nicht erlaubt', () => {
+    process.env.CERNION_ALLOWED_TENANTS = 'default,public';
+    expect(isTenantAllowed('evil-tenant')).toBe(false);
+    expect(isTenantAllowed('agentic-hackathon')).toBe(false);
+  });
+
+  test('Case-Insensitivity', () => {
+    process.env.CERNION_ALLOWED_TENANTS = 'Default,Public';
+    expect(isTenantAllowed('public')).toBe(true);
+    expect(isTenantAllowed('DEFAULT')).toBe(true);
+  });
+
+  test('null/undefined → erlaubt (Default-Tenant wird separat gehandhabt)', () => {
+    process.env.CERNION_ALLOWED_TENANTS = 'default';
+    expect(isTenantAllowed(null)).toBe(true);
+    expect(isTenantAllowed(undefined)).toBe(true);
   });
 });
