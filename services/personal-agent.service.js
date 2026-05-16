@@ -121,6 +121,7 @@ module.exports = {
                   knownContext: { type: 'object', additionalProperties: true, default: {} },
                   fileAttachments: {
                     type: 'array',
+                    example: [{ fileName: 'rechnung.pdf', mimeType: 'application/pdf', sizeBytes: 10240 }],
                     items: {
                       type: 'object',
                       properties: {
