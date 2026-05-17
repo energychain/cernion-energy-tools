@@ -1161,18 +1161,30 @@ module.exports = {
           .slice(0, 160)}“. Ausführung wartet auf Freigabe.`;
       }
       if (execution?.status === 'awaiting-onboarding') {
-        return this.buildRecoveryReply({ message, plan, execution, fileIntro });
+        return this.buildRecoveryReply({
+          message,
+          plan,
+          execution,
+          fileIntro,
+          assumptions: execution?.assumptions || [],
+        });
       }
       if (execution?.status === 'completed') {
         return `${fileIntro}Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt. Kontext: ${promptExcerpt}`;
       }
       if (execution?.status === 'partial') {
-        return this.buildRecoveryReply({ message, plan, execution, fileIntro });
+        return this.buildRecoveryReply({
+          message,
+          plan,
+          execution,
+          fileIntro,
+          assumptions: execution?.assumptions || [],
+        });
       }
       return `${fileIntro}Verstanden. Nächster Schritt für: ${String(message).trim().slice(0, 240)}`;
     },
 
-    buildRecoveryReply({ message, plan = {}, execution = {}, fileIntro = '' }) {
+    buildRecoveryReply({ message, plan = {}, execution = {}, fileIntro = '', assumptions = [] }) {
       const taskTone = this.isFinanceRiskTask(message, plan, execution) ? 'finance-risk' : 'general';
       const completedStepSummaries = this.summarizeCompletedSteps(plan, execution);
       const stopPoint = execution?.stopPoint || {};
@@ -1182,10 +1194,34 @@ module.exports = {
         ? `${progressPrefix} habe ich bereits ${completedStepSummaries.length === 1 ? 'einen Prüfschritt' : `${completedStepSummaries.length} Prüfschritte`} abgeschlossen: ${completedStepSummaries.join('; ')}.`
         : `${progressPrefix} konnte ich noch keinen Prüfschritt abschließen.`;
 
-      const stopText = this.buildRecoveryStopText({ plan, execution, stopPoint, taskTone });
-      const nextText = this.buildRecoveryNextText({ plan, execution, stopPoint, taskTone });
+      const locationAssumption = assumptions.find(
+        (a) => a.type === 'location_operator_unverified'
+      );
+      const riskWarning = locationAssumption
+        ? this.buildLocationAssumptionWarning(locationAssumption)
+        : '';
 
-      return this.normalizeRecoveryText([fileIntro, progressText, stopText, nextText].filter(Boolean).join(' '));
+      const stopText = this.buildRecoveryStopText({ plan, execution, stopPoint, taskTone });
+      const nextText = this.buildRecoveryNextText({
+        plan,
+        execution,
+        stopPoint,
+        taskTone,
+        assumptions,
+      });
+
+      return this.normalizeRecoveryText(
+        [fileIntro, progressText, riskWarning, stopText, nextText]
+          .filter(Boolean)
+          .join(' ')
+      );
+    },
+
+    buildLocationAssumptionWarning(assumption = {}) {
+      if (!assumption || !assumption.assertedGridOperatorName) {
+        return '';
+      }
+      return `Wichtig: Die Zuständigkeit des Netzbetreibers ${assumption.assertedGridOperatorName} am Standort ${assumption.location} ist noch nicht durch Evidenz belegt (nur Projektannahme mit Risikoflag).`;
     },
 
     normalizeRecoveryText(text = '') {
@@ -1308,7 +1344,11 @@ module.exports = {
         : 'Für die fachliche Bewertung fehlt noch ein belastbarer Anschlussprüfpunkt.';
     },
 
-    buildRecoveryNextText({ plan = {}, execution = {}, stopPoint = {}, taskTone }) {
+    buildRecoveryNextText({ plan = {}, execution = {}, stopPoint = {}, taskTone, assumptions = [] }) {
+      const locationAssumption = assumptions.find(
+        (a) => a.type === 'location_operator_unverified'
+      );
+
       if (stopPoint.reasonCode === 'MISSING_INPUTS' || execution?.status === 'awaiting-onboarding') {
         const questionText = stopPoint?.onboardingQuestion?.questionText;
         if (questionText) {
@@ -1324,6 +1364,16 @@ module.exports = {
       }
 
       if (stopPoint.status === 'interface-placeholder' || stopPoint.reasonCode === 'UNSUPPORTED_CHAIN') {
+        // For T4/T5 style requests (Market/Regulatory, Risk Assessment)
+        // return methodological answer instead of bare placeholder
+        const blockedAction = stopPoint?.blockedAction || '';
+        if (blockedAction.includes('price') || blockedAction.includes('market') || blockedAction.includes('regulatory')) {
+          return this.buildMarketMethodologicalNextText(taskTone, locationAssumption);
+        }
+        if (blockedAction.includes('risk') || blockedAction.includes('assessment')) {
+          return this.buildRiskAssessmentNextText(taskTone, locationAssumption);
+        }
+
         const suggestion = this.getRecoveryNextSuggestion(stopPoint, plan);
         return taskTone === 'finance-risk'
           ? `Nächster Schritt: ${suggestion} oder die fehlende Evidenz nachreichen.`
@@ -1339,6 +1389,24 @@ module.exports = {
       return taskTone === 'finance-risk'
         ? 'Bitte liefere die fehlende Evidenz für die belastbare Risikobewertung.'
         : 'Bitte liefere die fehlenden Angaben für den nächsten Prüfschritt.';
+    },
+
+    buildMarketMethodologicalNextText(taskTone = 'general', assumption = null) {
+      const assumptionNote = assumption
+        ? ` Die Auswertung unter unbestätigter Netzbetreiber-Zuständigkeit bleibt vorläufig.`
+        : '';
+      return taskTone === 'finance-risk'
+        ? `Methodik für Preisdaten: Day-Ahead-Spreads, Negativpreisstunden und Volatilität separat auswerten. Erforderliche Datenquellen: ENTSO-E, Netztransparenz oder Market Snapshot.${assumptionNote}`
+        : `Verfügbare Datenquellen: ENTSO-E, Netztransparenz, Market Snapshot. Ohne angebundene Live-Quelle nur Methodologie möglich.${assumptionNote}`;
+    },
+
+    buildRiskAssessmentNextText(taskTone = 'finance-risk', assumption = null) {
+      const assumptionCondition = assumption
+        ? `\n• Condition Precedent: Vor Auszahlung muss Netzbetreiber-/Netzanschlusspunkt-Zuständigkeit durch BKZ, BDEW-Code oder Netzanschlusszusage verifiziert sein.`
+        : '';
+      return taskTone === 'finance-risk'
+        ? `Ich stelle ein vorläufiges Risk Assessment zusammen basierend auf bisheriger Evidenz. Struktur: Projektverständnis, Risikoampel, offene Due-Diligence-Punkte, Kreditausschuss-Empfehlung.${assumptionCondition}`
+        : `Risk Assessment mit bisheriger Evidenz (vorläufig).${assumptionCondition}`;
     },
 
     getRecoveryNextSuggestion(stopPoint = {}, plan = {}) {
@@ -1856,6 +1924,7 @@ module.exports = {
       plan,
       knownContext,
       skipGapForMissingInputs = false,
+      existingAssumptions = [],
     }) {
       const executionState = {
         stepResults: {},
@@ -1863,6 +1932,7 @@ module.exports = {
       const steps = [];
       let completedSteps = 0;
       let stopPoint = null;
+      let assumptions = [...(existingAssumptions || [])];
 
       for (const plannedStep of plan.steps) {
         const params = pruneUndefinedDeep(
@@ -1959,6 +2029,27 @@ module.exports = {
               steps,
             });
             if (consistency?.status === 'unverified' || consistency?.status === 'mismatch') {
+              // Store unverified location/operator assumption for downstream synthesis
+              const existingAssumption = assumptions.find(
+                (a) => a.type === 'location_operator_unverified'
+              );
+              if (!existingAssumption) {
+                assumptions.push({
+                  type: 'location_operator_unverified',
+                  location: consistency.hints?.projectLocation || '',
+                  assertedGridOperatorName: consistency.hints?.assertedOperator || '',
+                  matchedGridOperatorName: consistency.hints?.matchedOperatorName || '',
+                  status: consistency.status,
+                  requiredEvidence: [
+                    'Netzanschlusszusage/BKZ',
+                    'BDEW-Code',
+                    'Marktlokation',
+                    'Netzanschlusspunkt',
+                  ],
+                  createdAtStep: plannedStep.step,
+                  createdAtTurn: new Date().toISOString(),
+                });
+              }
               stopPoint = {
                 reasonCode: 'MISSING_INPUTS',
                 message: 'Standort/Netzbetreiber-Zuständigkeit ist noch nicht belastbar verifiziert.',
@@ -2018,6 +2109,7 @@ module.exports = {
         steps,
         stopPoint,
         message,
+        assumptions,
       };
     },
 

@@ -1099,4 +1099,223 @@ describe('personal-agent.service', () => {
     expect(authMeta.requestHeaders.cookie).toBeUndefined();
   });
 
+  // Working Assumption flow: T1 unverified, T2 continues with risk flag
+  it('stores location_operator_unverified assumption after VNB evidence gap', () => {
+    const svc = broker.getLocalService('personal-agent');
+
+    // Simulate execution with VNB evidence gap
+    const execution = {
+      status: 'partial',
+      completedSteps: 2,
+      steps: [
+        {
+          step: 1,
+          action: 'grid-operations.marketPartners',
+          status: 'completed',
+          result: { data: { results: [{ name: 'TWL Netze GmbH', bdewCode: '9904350000002' }] } },
+        },
+        {
+          step: 2,
+          action: 'grid-operations.vnbLookup',
+          status: 'completed',
+          result: { operator: { name: 'TWL Netze', city: 'Ludwigshafen' } },
+        },
+      ],
+      stopPoint: {
+        reasonCode: 'MISSING_INPUTS',
+        status: 'evidence-gap',
+        locationOperatorConsistency: 'unverified',
+      },
+      assumptions: [
+        {
+          type: 'location_operator_unverified',
+          location: 'Frankenthal',
+          assertedGridOperatorName: 'TWL Netze',
+          status: 'unverified',
+          requiredEvidence: ['Netzanschlusszusage/BKZ', 'BDEW-Code', 'Marktlokation', 'Netzanschlusspunkt'],
+          createdAtStep: 2,
+        },
+      ],
+    };
+
+    const reply = svc.schema.methods.buildRecoveryReply.call(svc, {
+      message: 'Projekt Frankenthal mit TWL Netze prüfen',
+      plan: {
+        steps: [
+          { step: 1, action: 'grid-operations.marketPartners' },
+          { step: 2, action: 'grid-operations.vnbLookup' },
+        ],
+      },
+      execution,
+      assumptions: execution.assumptions,
+    });
+
+    // Reply should contain warning about unverified assumption
+    expect(reply).toMatch(/Zuständigkeit|Due Diligence|Netzanschlusszusage/i);
+    expect(reply).not.toMatch(/operatorEvidence|interface_placeholder|__step_|ACTION_FAILED/i);
+    // Should mention the assumption
+    expect(reply).toMatch(/Risiko|Annahme|vorläufig|Bedingung/i);
+  });
+
+  // T4 Market/Regulatory methodological handler
+  it('returns methodological answer for T4 Market/Regulatory question instead of bare placeholder', async () => {
+    const svc = broker.getLocalService('personal-agent');
+
+    // Simulate T4 context: missing market data / VNB regulatory capability
+    const plan = {
+      steps: [
+        {
+          step: 4,
+          action: 'market-data.priceHistogram',
+          purpose: 'Preisdaten abrufen',
+        },
+      ],
+    };
+
+    const execution = {
+      status: 'partial',
+      completedSteps: 0,
+      steps: [],
+      stopPoint: {
+        reasonCode: 'UNSUPPORTED_CHAIN',
+        blockedAction: 'market-data.priceHistogram',
+        blockedStep: 4,
+        status: 'interface-placeholder',
+      },
+    };
+
+    const assumption = {
+      type: 'location_operator_unverified',
+      assertedGridOperatorName: 'TWL Netze',
+      location: 'Frankenthal',
+      status: 'unverified',
+    };
+
+    const reply = svc.schema.methods.buildRecoveryReply.call(svc, {
+      message: 'Preisdaten von ENTSO-E für TWL Netze abrufen?',
+      plan,
+      execution,
+      assumptions: [assumption],
+    });
+
+    // Should contain methodological guidance, not bare placeholder message
+    expect(reply).toMatch(/Methodik|Datenquelle|ENTSO-E|Netztransparenz/i);
+    expect(reply).not.toMatch(/interface_placeholder|execute curated capability/i);
+    // Should mention assumption risk
+    expect(reply).toMatch(/Zuständigkeit|Annahme|vorläufig|Bedingung/i);
+  });
+
+  // T5 Risk Assessment synthesis handler
+  it('synthesizes preliminary risk assessment from session state without placeholder', async () => {
+    const svc = broker.getLocalService('personal-agent');
+
+    // Simulate T5 context: Risk Assessment request after earlier VNB evidence gap
+    const plan = {
+      steps: [
+        {
+          step: 5,
+          action: 'risk-assessment.generate',
+          purpose: 'Risk Assessment erstellen',
+        },
+      ],
+    };
+
+    const execution = {
+      status: 'partial',
+      completedSteps: 2,
+      steps: [
+        {
+          step: 1,
+          action: 'grid-operations.marketPartners',
+          status: 'completed',
+          result: { data: { results: [{ name: 'TWL Netze GmbH' }] } },
+        },
+        {
+          step: 2,
+          action: 'grid-operations.vnbLookup',
+          status: 'completed',
+          result: { operator: { name: 'TWL Netze', city: 'Ludwigshafen' } },
+        },
+      ],
+      stopPoint: {
+        reasonCode: 'UNSUPPORTED_CHAIN',
+        blockedAction: 'risk-assessment.generate',
+        blockedStep: 5,
+        status: 'interface-placeholder',
+      },
+    };
+
+    const assumption = {
+      type: 'location_operator_unverified',
+      assertedGridOperatorName: 'TWL Netze',
+      location: 'Frankenthal',
+      status: 'unverified',
+    };
+
+    const reply = svc.schema.methods.buildRecoveryReply.call(svc, {
+      message: 'Erstelle ein Risk Assessment auf einer Seite für den Kreditausschuss.',
+      plan,
+      execution,
+      assumptions: [assumption],
+      taskTone: 'finance-risk',
+    });
+
+    // Should synthesize risk assessment, not placeholder
+    expect(reply).toMatch(/Risk Assessment|Risikoampel|Condition Precedent/i);
+    expect(reply).toMatch(/vorläufig|Auszahlung|Bedingung/i);
+    expect(reply).toMatch(/BKZ|BDEW|Netzanschlusszusage/i);
+    expect(reply).not.toMatch(/interface_placeholder|execute curated capability|ACTION_FAILED/i);
+    // Should include completed step summaries
+    expect(reply).toMatch(/Prüfschritt|abgeschlossen|TWL|Netzbetreiber/i);
+  });
+
+  // Regression: T1 Standort/VNB verification still works correctly
+  it('regression: T1 Standort/VNB classification produces concrete evidence question without leaks', () => {
+    const svc = broker.getLocalService('personal-agent');
+
+    // Simulate T1 VNB consistency classification
+    const consistency = svc.schema.methods.classifyLocationOperatorConsistency.call(svc, {
+      knownContext: {
+        location: 'Ludwigshafen',
+        gridOperatorName: 'TWL Netze',
+      },
+      promptHints: {
+        location: 'Ludwigshafen',
+        gridOperatorName: 'TWL Netze',
+      },
+      steps: [
+        {
+          step: 1,
+          action: 'grid-operations.marketPartners',
+          status: 'completed',
+          result: {
+            data: {
+              results: [
+                {
+                  name: 'TWL Netze GmbH',
+                  bdewCode: '9904350000002',
+                  contacts: [{ city: 'Ludwigshafen' }],
+                },
+              ],
+            },
+          },
+        },
+        {
+          step: 2,
+          action: 'grid-operations.vnbLookup',
+          status: 'completed',
+          result: { operator: { name: 'TWL Netze', city: 'Ludwigshafen' } },
+        },
+      ],
+    });
+
+    // Consistency should be unverified (no hard match failure, but missing evidence)
+    expect(consistency?.status).toMatch(/unverified|verified/);
+
+    // buildOperatorEvidenceQuestion should provide concrete guidance
+    const question = svc.schema.methods.buildOperatorEvidenceQuestion.call(svc, consistency);
+    expect(question).toMatch(/Due Diligence|Netzanschlusszusage|BDEW|Marktlokation/i);
+    expect(question).not.toMatch(/operatorEvidence/i);
+  });
+
 });

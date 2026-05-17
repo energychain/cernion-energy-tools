@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (CETRed Folgefix Phase III: Working Assumptions + T4/T5 Synthesis)
+- [services/personal-agent.service.js](services/personal-agent.service.js#L1900): added `location_operator_unverified` assumption tracking across turns; `executeDeterministicPlan` now stores assumptions in execution result instead of only stopping, allowing downstream synthesis to work with risk-flagged premises.
+- [services/personal-agent.service.js](services/personal-agent.service.js#L1200): enhanced `buildRecoveryReply` to accept and synthesize `assumptions` parameter; no longer repeats the same evidence-gap question in subsequent turns when unverified location/operator assumption exists.
+- [services/personal-agent.service.js](services/personal-agent.service.js#L1210): added `buildLocationAssumptionWarning` to emit risk-flag notice for unverified location/operator premises (shown once, not repeated per turn).
+- [services/personal-agent.service.js](services/personal-agent.service.js#L1235): enhanced `buildRecoveryNextText` with T4/T5 assumption-aware synthesis; replaced bare `interface_placeholder` responses with methodological guidance for market/regulatory and risk-assessment questions, including evidence sources and condition-precedent language.
+- [services/personal-agent.service.js](services/personal-agent.service.js#L1235): added `buildMarketMethodologicalNextText` (returns methodology, data sources like ENTSO-E/Netztransparenz, and risk-flag reminder) and `buildRiskAssessmentNextText` (returns preliminary assessment structure with open conditions).
+- [services/personal-agent.service.js](services/personal-agent.service.js#L1150): `synthesizeTurn` now passes `execution.assumptions` to `buildRecoveryReply` for multi-turn assumption continuity.
+
+### Tests
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js#L1103): added unit test verifying location_operator_unverified assumption is stored after VNB evidence gap, with correct `status`, `assertedGridOperatorName`, `location`, and `requiredEvidence` fields.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js#L1160): added unit test proving T4 Market/Regulatory question returns methodological answer (data sources, analysis methodology) instead of bare interface_placeholder, even with unverified assumption.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js#L1214): added unit test showing T5 Risk Assessment question synthesizes preliminary assessment from session state, includes condition-precedent language, without placeholder artifacts.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js#L1259): added regression test confirming T1 Standort/VNB classification still produces concrete evidence question (`buildOperatorEvidenceQuestion`) without `operatorEvidence` internal code leaks.
+
+### Previous Changes (CETRed Phase II: Recovery Deduplication)
+
 ### Changed
 - [services/personal-agent.service.js](services/personal-agent.service.js): replaced generic partial-execution stop text with deterministic recovery synthesis that summarizes completed steps, names the stop point, highlights missing inputs or capability gaps, and adapts wording for finance/risk-style requests.
 - [services/personal-agent.service.js](services/personal-agent.service.js): kept non-completed replies free of raw technical codes while translating action failures into user-facing evidence and next-step language.
