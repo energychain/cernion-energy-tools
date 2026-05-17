@@ -1036,6 +1036,8 @@ module.exports = {
           // Evidence Injection (Offline-Realität)
           'POST /vdmi/tenants/:tenantId/tasks/:taskId/evidence': 'vdmi-evidence.inject',
           'POST /vdmi/tenants/:tenantId/evidence/:evidenceId/sign': 'vdmi-evidence.sign',
+          // Presentation (#CETview v0.53.x)
+          'POST /presentation/render': 'presentation.render',
           'GET /jobs/:jobId/status': 'job-status.status',
           'GET /jobs/:jobId/progress': 'job-status.progress',
           'GET /jobs/:jobId/result': 'job-status.result',

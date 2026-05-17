@@ -7,7 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.13] — #CETview Step 1: Presentation Service Skeleton (2026-05-17)
+
 ### Added
+- [services/presentation.service.js](services/presentation.service.js): new deterministic Presentation Service (`presentation.render`, `POST /api/presentation/render`) — translates domain results into structured, management-grade human views without LLM calls; no facts or roles are invented.
+- [services/presentation.service.js](services/presentation.service.js): deterministic format selector (`selectFormat`) with schema-level heuristics — `vdmi_matrix_table` when `matrix.tasks[]`/`tasks[]` contain VDMI role fields; `kpi_fact` when `value`/`count` + supporting fields present; `evidence_gap_table` / `risk_table` from respective arrays; `debug_summary` as safe fallback; explicit `preferredFormat` always wins.
+- [services/presentation.service.js](services/presentation.service.js): fully implemented `kpi_fact` renderer — title, KPI entry with unit, Markdown table (Antwort / Gebiet / Quelle / Stand / Hinweis), scannable output; missing fields produce `warnings`, no invented data.
+- [services/presentation.service.js](services/presentation.service.js): fully implemented `debug_summary` renderer — scalar fields tabulated, object/array keys listed without JSON blobs, `debug_summary_fallback` warning always set.
+- [services/presentation.service.js](services/presentation.service.js): stub renderers for `vdmi_matrix_table`, `comparison_table`, `decision_brief`, `risk_table`, `evidence_gap_table` — type selection is functional; each returns `{type}_renderer_not_implemented_yet` warning so Prompt 2–6 can build on top.
+- [services/api.service.js](services/api.service.js): REST alias `POST /presentation/render → presentation.render` added to main API route.
 - [src/personal-agent-knowledge-rag.js](src/personal-agent-knowledge-rag.js): new Airside-only adapter method `queryKnowledgeOrientation(ctx, { message, activeDomains, limit })` as deterministic wrapper around `knowledge-rag.query` with hard timeout guard (`2000ms`) and graceful degradation (`null`) on timeout/service-unavailable paths.
 
 ### Changed
@@ -41,6 +49,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added Step-3 orchestration regressions for (a) automatic V-actor derivation to `DSO_GATEKEEPER` on `vdmi.agentRole` and (b) formal interface-placeholder stop when task context cannot be resolved.
 - [tests/vdmi.service.test.js](tests/vdmi.service.test.js): added Step-3 dossier regression for `network-operator-decision` requiring formal §17 evidence gaps and preserving forbidden assumptions against premature Anschluss-/Kapazitätszusagen.
 - [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js): added opt-in blackbox scenario `PA-MT-005` (gated by `RUN_PERSONAL_AGENT_E2E_VDMI_STEP3=true`) validating `POST /api/personal-agent/chat` Step-3 decision routing and end-to-end completion path.
+- [tests/presentation.service.test.js](tests/presentation.service.test.js): `T-PRES-01` — KPI-Fact fixture for PV-Anlagen Wiesloch; asserts `type=kpi_fact`, table rows (Antwort/Gebiet/Quelle/Stand/Hinweis), no VDMI warnings, correct KPI value.
+- [tests/presentation.service.test.js](tests/presentation.service.test.js): `T-PRES-02` — VDMI matrix fixture; asserts `type=vdmi_matrix_table` auto-selected and `vdmi_matrix_table_renderer_not_implemented_yet` warning returned without inventing role data.
+- [tests/presentation.service.test.js](tests/presentation.service.test.js): `T-PRES-03`/`T-PRES-03b` — empty/unrecognised `domainResult` falls back to `debug_summary` with `debug_summary_fallback` warning; scalar fields tabulated, no raw JSON dumped.
+- [tests/presentation.service.test.js](tests/presentation.service.test.js): `T-PRES-04` — explicit `preferredFormat=kpi_fact` overrides auto-selection even when `domainResult` would match `vdmi_matrix_table`.
 
 ## [0.52.12] — Conversational Onboarding Hardening (2026-05-17)
 
