@@ -468,6 +468,97 @@ describe('personal-agent.service', () => {
     expect(session.l3.onboardingQuestions[0].answer).toBe('Hybridprofil 5 MW, flexibel 2 MW');
   });
 
+  it('preserves working assumptions across turns and does not repeat the T1 evidence question for follow-up prompts', async () => {
+    const meta = { meta: { tenantId: 'tenant-cetred-followup', authUser: { userId: 'user-1' } } };
+    const first = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW',
+        executionMode: 'auto',
+      },
+      meta
+    );
+
+    expect(first.execution.status).toBe('awaiting-onboarding');
+    expect(first.execution.assumptions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'location_operator_unverified',
+          location: 'Frankenthal',
+          assertedGridOperatorName: 'TWL Netze',
+        }),
+      ])
+    );
+
+    const second = await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId: first.sessionId,
+        message: 'Arbeite mit der vorläufigen Annahme weiter und nenne die nächsten fachlichen Schritte.',
+        executionMode: 'auto',
+      },
+      meta
+    );
+
+    expect(second.reply).toMatch(/Working Assumption|vorläufig|weiterarbeiten|Methodik|Evidenzpunkte/i);
+    expect(second.reply).not.toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
+    expect(second.reply).not.toMatch(/operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED/i);
+
+    const session = await broker.call(
+      'personal-agent.getSession',
+      { sessionId: first.sessionId },
+      meta
+    );
+    expect(session.l3.assumptions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'location_operator_unverified',
+          location: 'Frankenthal',
+        }),
+      ])
+    );
+  });
+
+  it('returns methodological T4 guidance and T5 risk structure across a real session flow', async () => {
+    const meta = { meta: { tenantId: 'tenant-cetred-methodology', authUser: { userId: 'user-1' } } };
+    const first = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW',
+        executionMode: 'auto',
+      },
+      meta
+    );
+
+    const marketTurn = await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId: first.sessionId,
+        message: 'Welche Markt- und Regulatorik-Methodik würdest du jetzt anwenden?',
+        executionMode: 'auto',
+      },
+      meta
+    );
+
+    expect(marketTurn.reply).toMatch(/Methodik|Datenquelle|ENTSO-E|Netztransparenz/i);
+    expect(marketTurn.reply).not.toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
+    expect(marketTurn.reply).not.toMatch(/operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED/i);
+
+    const riskTurn = await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId: first.sessionId,
+        message: 'Erstelle daraus ein vorläufiges Risk Assessment für den Kreditausschuss.',
+        executionMode: 'auto',
+      },
+      meta
+    );
+
+    expect(riskTurn.reply).toMatch(/Risk Assessment|Condition Precedent|Due Diligence|Risikoampel/i);
+    expect(riskTurn.reply).not.toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
+    expect(riskTurn.reply).not.toMatch(/operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED/i);
+  });
+
   it('synthesizes a concrete recovery reply for partial execution with zero completed steps', () => {
     const svc = broker.getLocalService('personal-agent');
     const reply = svc.schema.methods.synthesizeTurn.call(svc, {

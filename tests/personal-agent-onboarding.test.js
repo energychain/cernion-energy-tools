@@ -45,6 +45,29 @@ describe('personal-agent-onboarding', () => {
     expect(captureOnboardingAnswer({ question, message: 'ok' })).toBeNull();
   });
 
+  test('captureOnboardingAnswer rejects analytical follow-up prompts for operatorEvidence', () => {
+    const question = buildOnboardingQuestion({ paramKey: 'operatorEvidence' });
+
+    expect(
+      captureOnboardingAnswer({
+        question,
+        message: 'Welche Markt- und Regulatorik-Methodik würdest du jetzt anwenden?',
+      })
+    ).toBeNull();
+  });
+
+  test('captureOnboardingAnswer accepts evidence-like operatorEvidence answers', () => {
+    const question = buildOnboardingQuestion({ paramKey: 'operatorEvidence' });
+    const answered = captureOnboardingAnswer({
+      question,
+      message: 'BDEW-Code 9904350000002 und BKZ liegen vor.',
+    });
+
+    expect(answered).toBeDefined();
+    expect(answered.answer).toMatch(/9904350000002|BKZ/i);
+    expect(answered.status).toBe(ONBOARDING_QUESTION_STATUS.ANSWERED);
+  });
+
   test('findPendingOnboardingQuestion returns first pending entry', () => {
     const sessionL3 = {
       onboardingQuestions: [

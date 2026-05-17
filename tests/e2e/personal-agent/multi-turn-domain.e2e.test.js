@@ -72,6 +72,10 @@ function expectNoInternalErrorCodes(reply) {
   expect(reply).not.toMatch(/OBJECT_NOT_FOUND|INVALID_[A-Z_]+|ERR_[A-Z_]+|MOLECULER/i);
 }
 
+function expectNoReplyLeaks(reply) {
+  expect(reply).not.toMatch(/operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED|Parameters validation error/i);
+}
+
 function expectMentions(reply, words) {
   const lowerReply = reply.toLowerCase();
   const found = words.some((word) => lowerReply.includes(word.toLowerCase()));
@@ -487,6 +491,91 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       expect(reply.toLowerCase()).not.toContain('frankfurt');
       expectMentions(reply, ['n-1', 'fnav']);
       expectNoInternalErrorCodes(reply);
+    });
+  });
+
+  describe('PA-MT-004 CETRed Working Assumptions / T2-T5', () => {
+    jest.setTimeout(30000);
+
+    const client = createChatClient(BASE_URL);
+    let sessionId = null;
+
+    afterAll(() => {
+      sessionId = null;
+      client.clear();
+    });
+
+    it('Turn 1: erzeugt Due-Diligence-Evidenzfrage mit Working Assumption', async () => {
+      const { response, payload } = await client.chat(
+        'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW',
+        sessionId
+      );
+
+      expectHttp200(response);
+      expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      sessionId = payload.sessionId || sessionId;
+
+      const reply = extractReply(payload);
+      expect(reply).toMatch(/Due Diligence|Netzanschlusszusage|BDEW|Marktlokation/i);
+      expect(reply).toMatch(/Annahme|vorläufig|Risikoflag|Evidenz/i);
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
+    });
+
+    it('Turn 2: wiederholt die T1-Frage nicht bei Working-Assumption-Follow-up', async () => {
+      const { response, payload } = await client.chat(
+        'Arbeite mit der vorläufigen Annahme weiter und nenne die nächsten fachlichen Schritte.',
+        sessionId
+      );
+
+      expectHttp200(response);
+      expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      sessionId = payload.sessionId || sessionId;
+
+      const reply = extractReply(payload);
+      expect(reply.length).toBeGreaterThan(20);
+      expect(reply).toMatch(/Working Assumption|vorläufig|weiterarbeiten|Methodik|Evidenzpunkte/i);
+      expect(reply).not.toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
+    });
+
+    it('Turn 3: liefert T4-Methodologie statt Placeholder-Antwort', async () => {
+      const { response, payload } = await client.chat(
+        'Welche Markt- und Regulatorik-Methodik würdest du jetzt anwenden?',
+        sessionId
+      );
+
+      expectHttp200(response);
+      expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      sessionId = payload.sessionId || sessionId;
+
+      const reply = extractReply(payload);
+      expect(reply).toMatch(/Methodik|Datenquelle|ENTSO-E|Netztransparenz/i);
+      expect(reply).not.toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
+    });
+
+    it('Turn 4: liefert T5-Risk-Assessment-Struktur mit Condition Precedent', async () => {
+      const { response, payload } = await client.chat(
+        'Erstelle daraus ein vorläufiges Risk Assessment für den Kreditausschuss.',
+        sessionId
+      );
+
+      expectHttp200(response);
+      expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      sessionId = payload.sessionId || sessionId;
+
+      const reply = extractReply(payload);
+      expect(reply).toMatch(/Risk Assessment|Condition Precedent|Due Diligence|Risikoampel/i);
+      expect(reply).not.toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
     });
   });
 });

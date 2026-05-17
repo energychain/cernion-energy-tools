@@ -92,6 +92,16 @@ function captureOnboardingAnswer({ question, message }) {
   const text = message.trim();
   if (text.length <= 2) return null;
   if (text.startsWith('/')) return null;
+
+  if (question?.paramKey === 'operatorEvidence') {
+    const followUpPattern = /\?|^(bitte|welche|welcher|welches|wie|was|warum|wieso|arbeite|fahre|erstelle|gib|nenne|zeige|fasse|projiziere|vergleiche|aktualisiere|erkläre|erklaere)\b/i;
+    const evidencePattern = /(bkz|bdew|marktlokation|netzanschlusspunkt|netzanschlusszusage|malo|ma-lo|\b\d{13}\b|\bde\d{10,}\b)/i;
+
+    if (followUpPattern.test(text) || !evidencePattern.test(text)) {
+      return null;
+    }
+  }
+
   return {
     ...question,
     answeredAt: new Date().toISOString(),

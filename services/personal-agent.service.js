@@ -627,6 +627,10 @@ module.exports = {
         persisted.l3.onboardingQuestions = Array.isArray(session.l3?.onboardingQuestions)
           ? session.l3.onboardingQuestions
           : [];
+        persisted.l3.assumptions = this.mergeAssumptions(
+          session.l3?.assumptions || [],
+          execution?.assumptions || []
+        );
 
         assertNoL4RawInPersistedState(persisted);
         await this.persistSession(ctx, tenantId, sessionId, persisted);
@@ -767,6 +771,7 @@ module.exports = {
           createdAt: current.createdAt,
         });
         resetState.l3.onboardingQuestions = [];
+        resetState.l3.assumptions = [];
 
         await this.persistSession(ctx, tenantId, current.id, resetState);
 
@@ -1203,6 +1208,7 @@ module.exports = {
 
       const stopText = this.buildRecoveryStopText({ plan, execution, stopPoint, taskTone });
       const nextText = this.buildRecoveryNextText({
+        message,
         plan,
         execution,
         stopPoint,
@@ -1344,10 +1350,84 @@ module.exports = {
         : 'Für die fachliche Bewertung fehlt noch ein belastbarer Anschlussprüfpunkt.';
     },
 
-    buildRecoveryNextText({ plan = {}, execution = {}, stopPoint = {}, taskTone, assumptions = [] }) {
+    detectAssumptionDrivenFollowUp(message = '') {
+      const normalized = String(message || '').toLowerCase();
+
+      if (!normalized) {
+        return null;
+      }
+
+      if (/(risk assessment|risikoampel|kreditausschuss|condition precedent|due diligence|due-diligence|risikobewertung|risikoanalyse)/i.test(normalized)) {
+        return 'risk';
+      }
+
+      if (/(markt|regulator|preisdaten|preis|entso-e|netztransparenz|methodik|methodologie|datenquelle|day-ahead|negativpreis|volatilität|volatilitaet)/i.test(normalized)) {
+        return 'market';
+      }
+
+      if (/(vorläufigen annahme|vorlaeufigen annahme|arbeite .* weiter|weiterarbeiten|nächste fachliche schritte|naechste fachliche schritte|nächste schritte|naechste schritte|wie weiter|fortfahren|weiter vorgehen)/i.test(normalized)) {
+        return 'continuation';
+      }
+
+      return null;
+    },
+
+    buildAssumptionContinuationNextText(taskTone = 'general', assumption = null) {
+      const assumptionNote = assumption
+        ? ' Die Bewertung bleibt bis zur Evidenzprüfung ausdrücklich vorläufig.'
+        : '';
+
+      return taskTone === 'finance-risk'
+        ? `Ich kann auf Basis der Working Assumption fachlich weiterarbeiten: zunächst offene Evidenzpunkte priorisieren, dann Markt-/Regulatorik-Annahmen dokumentieren und anschließend die Condition-Precedent-Themen für die Due Diligence strukturieren.${assumptionNote}`
+        : `Ich kann auf Basis der Working Assumption fachlich weiterarbeiten: als Nächstes die Methodik, offene Evidenzpunkte und benötigten Anschlussunterlagen strukturiert auflisten.${assumptionNote}`;
+    },
+
+    mergeAssumptions(existing = [], incoming = []) {
+      const merged = [];
+      const seen = new Set();
+
+      for (const item of [...(existing || []), ...(incoming || [])]) {
+        if (!item || typeof item !== 'object' || !item.type) {
+          continue;
+        }
+
+        const key = [
+          item.type,
+          item.location || '',
+          item.assertedGridOperatorName || '',
+          item.status || '',
+        ].join('::').toLowerCase();
+
+        if (seen.has(key)) {
+          continue;
+        }
+
+        seen.add(key);
+        merged.push(item);
+      }
+
+      return merged;
+    },
+
+    buildRecoveryNextText({ message, plan = {}, execution = {}, stopPoint = {}, taskTone, assumptions = [] }) {
       const locationAssumption = assumptions.find(
         (a) => a.type === 'location_operator_unverified'
       );
+      const followUpType = locationAssumption
+        ? this.detectAssumptionDrivenFollowUp(message)
+        : null;
+
+      if (followUpType === 'market') {
+        return this.buildMarketMethodologicalNextText(taskTone, locationAssumption);
+      }
+
+      if (followUpType === 'risk') {
+        return this.buildRiskAssessmentNextText(taskTone, locationAssumption);
+      }
+
+      if (followUpType === 'continuation') {
+        return this.buildAssumptionContinuationNextText(taskTone, locationAssumption);
+      }
 
       if (stopPoint.reasonCode === 'MISSING_INPUTS' || execution?.status === 'awaiting-onboarding') {
         const questionText = stopPoint?.onboardingQuestion?.questionText;
@@ -1797,39 +1877,51 @@ module.exports = {
       session.l3.onboardingQuestions = markStaleQuestions(session.l3, 24);
 
       const pendingQuestion = findPendingOnboardingQuestion(session.l3);
+      const existingAssumptions = Array.isArray(session?.l3?.assumptions)
+        ? session.l3.assumptions
+        : [];
       let effectivePlan = plan;
       if (pendingQuestion) {
         const answer = captureOnboardingAnswer({ question: pendingQuestion, message });
         if (!answer) {
-          return {
-            status: 'awaiting-onboarding',
-            completedSteps: 0,
-            steps: [],
-            stopPoint: {
-              reasonCode: 'MISSING_INPUTS',
+          const planUsesPendingAction = Array.isArray(plan?.steps)
+            ? plan.steps.some((step) => step?.action === pendingQuestion.action)
+            : false;
+
+          if (planUsesPendingAction) {
+            return {
               status: 'awaiting-onboarding',
-              blockedStep: 1,
-              blockedAction: pendingQuestion.action,
-              missingParams: [pendingQuestion.paramKey],
-              message: pendingQuestion.questionText,
-              onboardingQuestion: pendingQuestion,
-            },
-          };
+              completedSteps: 0,
+              steps: [],
+              assumptions: existingAssumptions,
+              stopPoint: {
+                reasonCode: 'MISSING_INPUTS',
+                status: 'awaiting-onboarding',
+                blockedStep: 1,
+                blockedAction: pendingQuestion.action,
+                missingParams: [pendingQuestion.paramKey],
+                message: pendingQuestion.questionText,
+                onboardingQuestion: pendingQuestion,
+              },
+            };
+          }
         }
 
-        session.l3.onboardingQuestions = (session.l3.onboardingQuestions || []).map((q) =>
-          q.questionId === answer.questionId ? answer : q
-        );
+        if (answer) {
+          session.l3.onboardingQuestions = (session.l3.onboardingQuestions || []).map((q) =>
+            q.questionId === answer.questionId ? answer : q
+          );
 
-        const stepActions = Array.isArray(plan?.steps)
-          ? plan.steps.map((step) => step.action)
-          : [];
-        if (
-          !stepActions.includes(pendingQuestion.action) &&
-          Array.isArray(pendingQuestion?.planSnapshot?.steps) &&
-          pendingQuestion.planSnapshot.steps.length > 0
-        ) {
-          effectivePlan = pendingQuestion.planSnapshot;
+          const stepActions = Array.isArray(plan?.steps)
+            ? plan.steps.map((step) => step.action)
+            : [];
+          if (
+            !stepActions.includes(pendingQuestion.action) &&
+            Array.isArray(pendingQuestion?.planSnapshot?.steps) &&
+            pendingQuestion.planSnapshot.steps.length > 0
+          ) {
+            effectivePlan = pendingQuestion.planSnapshot;
+          }
         }
       }
 
@@ -1859,6 +1951,7 @@ module.exports = {
         plan: effectivePlan,
         knownContext: hydratedContext,
         skipGapForMissingInputs: true,
+        existingAssumptions,
       });
 
       if (execution?.stopPoint?.reasonCode === 'MISSING_INPUTS') {
@@ -2266,6 +2359,9 @@ module.exports = {
             onboardingQuestions: Array.isArray(payload?.l3?.onboardingQuestions)
               ? payload.l3.onboardingQuestions
               : [],
+            assumptions: Array.isArray(payload?.l3?.assumptions)
+              ? payload.l3.assumptions
+              : [],
           },
           createdAt: payload.createdAt || new Date().toISOString(),
           updatedAt: payload.updatedAt || null,
@@ -2296,6 +2392,7 @@ module.exports = {
             summary: null,
             compressed: false,
             onboardingQuestions: [],
+            assumptions: [],
           },
           createdAt: new Date().toISOString(),
           updatedAt: null,

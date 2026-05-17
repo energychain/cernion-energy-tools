@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- [services/personal-agent.service.js](services/personal-agent.service.js): fixed live multi-turn CETRed continuation on top of [0.52.11](CHANGELOG.md#L8) by persisting bounded working assumptions in L3, carrying them across turns, and switching recovery synthesis to assumption-aware continuation/methodology/risk text instead of repeating the original Due-Diligence evidence question for every follow-up prompt.
+- [src/personal-agent-onboarding.js](src/personal-agent-onboarding.js): hardened `operatorEvidence` answer capture so analytical follow-up prompts are no longer misclassified as onboarding answers; only evidence-like answers (e.g. BDEW/BKZ/Marktlokation/Netzanschlusspunkt) advance that question.
+
+### Tests
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added session-based regression coverage for CETRed T1→T2/T4/T5 follow-ups, assumption persistence, and user-reply leak suppression.
+- [tests/personal-agent-onboarding.test.js](tests/personal-agent-onboarding.test.js): added heuristics coverage for rejecting analytical follow-ups as `operatorEvidence` answers while accepting evidence-like payloads.
+- [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js): added opt-in HTTP-only blackbox scenario `PA-MT-004` for the CETRed Working-Assumption flow on `POST /api/personal-agent/chat`.
+
 ## [0.52.11] — CETRed Personal-Agent Folgefixes: Working Assumptions, Recovery Synthesis, T4/T5 Handler (2026-05-17)
 
 ### Changed
