@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- [services/presentation.service.js](services/presentation.service.js): promoted renderer routing to centralized deterministic selector `selectRenderer({ preferredFormat, intent, domainResult })` with strict priority (`vdmi_matrix_table` → `evidence_gap_table` → `decision_brief` → `risk_table` → `comparison_table` → `kpi_fact` → `debug_summary`). Unknown `preferredFormat` now falls back safely with warning `unknown_preferred_format`.
+- [services/presentation.service.js](services/presentation.service.js): tightened guardrails for `kpi_fact` rendering — no invented source/as-of metadata, explicit warnings (`missing_source`, `missing_as_of`, `insufficient_structured_data`) for incomplete payloads, and conservative source handling via `source`/`sources` passthrough only.
+- [services/presentation.service.js](services/presentation.service.js): expanded structured Step-2 stubs for `comparison_table`, `decision_brief`, `risk_table`, `evidence_gap_table`, and `vdmi_matrix_table`; stubs now return scanable markdown plus conservative `tables[]`/`sections[]` when deterministic fields are present, while still marking `*_renderer_not_implemented_yet`.
+
+### Tests
+- [tests/presentation.service.test.js](tests/presentation.service.test.js): added Step-2 coverage for unknown preferred format fallback (`unknown_preferred_format`), structured stub routing for evidence/risk/decision/comparison types, KPI guardrail warnings (`missing_source`, `missing_as_of`), and preserved VDMI stub selection behavior.
+
 ## [0.52.13] — #CETview Step 1: Presentation Service Skeleton (2026-05-17)
 
 ### Added

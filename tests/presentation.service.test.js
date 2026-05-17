@@ -173,6 +173,150 @@ describe('presentation.service', () => {
     expect(result.presentation.warnings.join(' ')).not.toMatch(/vdmi_matrix_table/);
   });
 
+  test('falls back to debug_summary with unknown_preferred_format on unknown preferredFormat', async () => {
+    const result = await broker.call('presentation.render', {
+      preferredFormat: 'totally_unknown_renderer',
+      domainResult: {
+        count: 7,
+        unit: 'Anlagen',
+        source: 'MaStR',
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('debug_summary');
+    expect(result.presentation.warnings).toContain('unknown_preferred_format');
+  });
+
+  test('selects evidence_gap_table and renders structured evidence gap rows', async () => {
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        evidenceGaps: [
+          { name: 'Formaler Antrag', reason: 'Nicht eingereicht' },
+          { label: 'Trassenplan', detail: 'Anlage fehlt' },
+        ],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('evidence_gap_table');
+    expect(result.presentation.warnings).toContain('evidence_gap_table_renderer_not_implemented_yet');
+    expect(result.presentation.tables).toHaveLength(1);
+    expect(result.presentation.tables[0].headers).toEqual(['Evidenzlücke', 'Grund']);
+    expect(result.markdown).toMatch(/Evidenzlücke/);
+    expect(result.markdown).toMatch(/Formaler Antrag/);
+  });
+
+  test('selects risk_table and renders structured risk rows', async () => {
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        assetRisks: [
+          { name: 'Trafo-Überlast', impact: 'Versorgungsausfall', mitigation: 'Lastmanagement' },
+          { label: 'N-1-Verletzung', wirkung: 'Reduzierte Resilienz' },
+        ],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('risk_table');
+    expect(result.presentation.warnings).toContain('risk_table_renderer_not_implemented_yet');
+    expect(result.presentation.tables).toHaveLength(1);
+    expect(result.presentation.tables[0].headers).toEqual(['Risiko', 'Wirkung', 'Gegenmaßnahme']);
+    expect(result.markdown).toMatch(/Trafo-Überlast/);
+  });
+
+  test('selects decision_brief for decision_blocked status and forbidden assumptions', async () => {
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        expectedStatus: 'decision_blocked_pending_formal_request',
+        forbiddenAssumptions: ['Kapazitätszusage ohne formalen Antrag'],
+        nextActions: ['Formalen Antrag einreichen'],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('decision_brief');
+    expect(result.presentation.warnings).toContain('decision_brief_renderer_not_implemented_yet');
+    expect(result.markdown).toMatch(/decision_brief_renderer_not_implemented_yet/);
+    expect(result.markdown).toMatch(/decision_blocked_pending_formal_request/);
+  });
+
+  test('selects comparison_table for peers/items/variants collections', async () => {
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        peers: [
+          { name: 'A', score: 11 },
+          { name: 'B', score: 9 },
+        ],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('comparison_table');
+    expect(result.presentation.warnings).toContain('comparison_table_renderer_not_implemented_yet');
+    expect(result.presentation.tables).toHaveLength(1);
+    expect(result.markdown).toMatch(/Vergleichstabelle/);
+    expect(result.markdown).toMatch(/\| Eintrag \| Wert \|/);
+  });
+
+  test('kpi_fact without source sets missing_source and does not invent source', async () => {
+    const result = await broker.call('presentation.render', {
+      preferredFormat: 'kpi_fact',
+      domainResult: {
+        label: 'PV-Anlagen in Wiesloch',
+        count: 312,
+        unit: 'Anlagen',
+        asOf: '2026-05-17',
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('kpi_fact');
+    expect(result.presentation.warnings).toContain('missing_source');
+    expect(result.presentation.sources).toEqual([]);
+    expect(result.markdown).not.toMatch(/Quelle:/);
+    expect(result.markdown).not.toMatch(/\| Quelle \|/);
+  });
+
+  test('kpi_fact without asOf sets missing_as_of and does not invent stand', async () => {
+    const result = await broker.call('presentation.render', {
+      preferredFormat: 'kpi_fact',
+      domainResult: {
+        label: 'PV-Anlagen in Wiesloch',
+        count: 312,
+        unit: 'Anlagen',
+        source: 'Marktstammdatenregister (MaStR)',
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('kpi_fact');
+    expect(result.presentation.warnings).toContain('missing_as_of');
+    expect(result.markdown).not.toMatch(/\| Stand \|/);
+  });
+
+  test('still selects vdmi_matrix_table and returns not-implemented warning for VDMI fixture', async () => {
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        matrix: {
+          tasks: [
+            {
+              taskName: 'Formelle Netzbetreiberentscheidung',
+              verantwortlich: ['DSO_GATEKEEPER'],
+              durchfuehrend: ['TECHNICAL_PLANNER'],
+              mitwirkend: ['APPLICANT'],
+              information: ['REGULATOR'],
+            },
+          ],
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('vdmi_matrix_table');
+    expect(result.presentation.warnings).toContain('vdmi_matrix_table_renderer_not_implemented_yet');
+  });
+
   // --------------------------------------------------------------------------
   // Additional guard: domainResult is required
   // --------------------------------------------------------------------------

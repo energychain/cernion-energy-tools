@@ -37,58 +37,123 @@ const VALID_FORMATS = new Set([
 // Format selection
 // ---------------------------------------------------------------------------
 
-/**
- * Deterministic heuristic to select the best renderer type.
- * Never inspects free-text content; only checks schema-level field presence.
- *
- * @param {string|undefined} preferredFormat
- * @param {object} domainResult
- * @returns {string}
- */
-function selectFormat(preferredFormat, domainResult) {
-  if (preferredFormat && preferredFormat !== 'auto' && VALID_FORMATS.has(preferredFormat)) {
-    return preferredFormat;
-  }
+function isNonEmptyArray(value) {
+  return Array.isArray(value) && value.length > 0;
+}
 
-  const dr = domainResult || {};
+function hasAny(obj, keys) {
+  return keys.some((key) => obj[key] !== undefined && obj[key] !== null && obj[key] !== '');
+}
 
-  // VDMI matrix: tasks array with at least one VDMI role field
-  const tasks = (dr.matrix && Array.isArray(dr.matrix.tasks) ? dr.matrix.tasks : null)
-    || (Array.isArray(dr.tasks) ? dr.tasks : null);
-  if (tasks && tasks.length > 0) {
-    const first = tasks[0] || {};
-    if (
-      Array.isArray(first.verantwortlich) ||
-      Array.isArray(first.durchfuehrend) ||
-      Array.isArray(first.mitwirkend) ||
-      Array.isArray(first.information)
-    ) {
-      return 'vdmi_matrix_table';
+function firstDefined(obj, keys) {
+  for (const key of keys) {
+    if (obj[key] !== undefined && obj[key] !== null && obj[key] !== '') {
+      return obj[key];
     }
   }
+  return undefined;
+}
 
-  // KPI / fact: has a value or count plus at least one supporting field
-  if (
-    (dr.value !== undefined || dr.count !== undefined) &&
-    (dr.unit !== undefined || dr.source !== undefined || dr.label !== undefined)
-  ) {
-    return 'kpi_fact';
+function hasVdmiRoleFields(task) {
+  if (!task || typeof task !== 'object') return false;
+  return (
+    Array.isArray(task.verantwortlich)
+    || Array.isArray(task.durchfuehrend)
+    || Array.isArray(task.mitwirkend)
+    || Array.isArray(task.information)
+  );
+}
+
+function hasDecisionSignals(domainResult) {
+  const dr = domainResult || {};
+  if (isNonEmptyArray(dr.forbiddenAssumptions)) return true;
+  if (dr.expectedStatus !== undefined && dr.expectedStatus !== null && String(dr.expectedStatus).trim() !== '') {
+    return true;
+  }
+  if (dr.status !== undefined && dr.status !== null) {
+    const normalized = String(dr.status).toLowerCase();
+    if (normalized.includes('blocked') || normalized.includes('decision')) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hasComparisonSignals(domainResult) {
+  const dr = domainResult || {};
+  return (
+    (Array.isArray(dr.items) && dr.items.length > 1)
+    || (Array.isArray(dr.rows) && dr.rows.length > 1)
+    || (Array.isArray(dr.peers) && dr.peers.length > 1)
+    || (Array.isArray(dr.variants) && dr.variants.length > 1)
+  );
+}
+
+function hasKpiSignals(domainResult) {
+  const dr = domainResult || {};
+  const hasMetricCore = hasAny(dr, ['count', 'value', 'metric', 'answer']);
+  const hasSupport = hasAny(dr, ['unit', 'source', 'sources', 'asOf', 'stand', 'timestamp']);
+  return hasMetricCore && hasSupport;
+}
+
+/**
+ * Deterministic renderer selection.
+ *
+ * @param {object} input
+ * @param {string} [input.preferredFormat]
+ * @param {string} [input.intent]
+ * @param {object} input.domainResult
+ * @returns {{ type: string, warnings: string[] }}
+ */
+function selectRenderer({ preferredFormat, intent, domainResult }) {
+  const warnings = [];
+  const dr = domainResult || {};
+
+  if (preferredFormat && preferredFormat !== 'auto') {
+    if (VALID_FORMATS.has(preferredFormat)) {
+      return { type: preferredFormat, warnings };
+    }
+    warnings.push('unknown_preferred_format');
+    return { type: 'debug_summary', warnings };
   }
 
-  // Evidence gaps
-  if (Array.isArray(dr.evidenceGaps) && dr.evidenceGaps.length > 0) {
-    return 'evidence_gap_table';
+  // 1) VDMI matrix
+  const matrixTasks = dr.matrix && Array.isArray(dr.matrix.tasks) ? dr.matrix.tasks : null;
+  if (isNonEmptyArray(matrixTasks)) {
+    return { type: 'vdmi_matrix_table', warnings };
   }
 
-  // Asset risks
-  if (
-    (Array.isArray(dr.assetRisks) && dr.assetRisks.length > 0) ||
-    (Array.isArray(dr.risks) && dr.risks.length > 0)
-  ) {
-    return 'risk_table';
+  const tasks = Array.isArray(dr.tasks) ? dr.tasks : null;
+  if (isNonEmptyArray(tasks) && tasks.some(hasVdmiRoleFields)) {
+    return { type: 'vdmi_matrix_table', warnings };
   }
 
-  return 'debug_summary';
+  // 2) evidence gaps
+  if (isNonEmptyArray(dr.evidenceGaps)) {
+    return { type: 'evidence_gap_table', warnings };
+  }
+
+  // 3) decision brief
+  if (hasDecisionSignals(dr)) {
+    return { type: 'decision_brief', warnings };
+  }
+
+  // 4) risk table
+  if (isNonEmptyArray(dr.assetRisks) || isNonEmptyArray(dr.risks)) {
+    return { type: 'risk_table', warnings };
+  }
+
+  // 5) comparison
+  if (hasComparisonSignals(dr)) {
+    return { type: 'comparison_table', warnings };
+  }
+
+  // 6) kpi_fact
+  if (hasKpiSignals(dr)) {
+    return { type: 'kpi_fact', warnings };
+  }
+
+  return { type: 'debug_summary', warnings };
 }
 
 // ---------------------------------------------------------------------------
@@ -124,7 +189,7 @@ function renderKpiFact(domainResult, context, locale) {
   const dr = domainResult || {};
   const warnings = [];
 
-  const metricValue = dr.value !== undefined ? dr.value : dr.count;
+  const metricValue = firstDefined(dr, ['value', 'count', 'metric', 'answer']);
   const displayValue = metricValue !== undefined
     ? `${metricValue}${dr.unit ? ' ' + dr.unit : ''}`
     : null;
@@ -143,8 +208,15 @@ function renderKpiFact(domainResult, context, locale) {
   if (dr.asOf) tableRows.push(['Stand', dr.asOf]);
   if (dr.note) tableRows.push(['Hinweis', dr.note]);
 
+  if (!dr.source && !isNonEmptyArray(dr.sources)) {
+    warnings.push('missing_source');
+  }
+  if (!dr.asOf && !dr.stand && !dr.timestamp) {
+    warnings.push('missing_as_of');
+  }
+
   if (tableRows.length === 0) {
-    warnings.push('kpi_fact_no_displayable_fields: no presentable fields found in domainResult');
+    warnings.push('insufficient_structured_data');
   }
 
   const kpis = displayValue !== null
@@ -179,7 +251,7 @@ function renderKpiFact(domainResult, context, locale) {
       tables: tableRows.length > 0 ? [{ id: 'kpi_main', rows: tableRows, headers: ['Feld', 'Wert'] }] : [],
       sections: [],
       warnings,
-      sources: dr.source ? [dr.source] : [],
+      sources: dr.source ? [dr.source] : (isNonEmptyArray(dr.sources) ? dr.sources : []),
       nextActions: [],
     },
     markdown,
@@ -252,9 +324,285 @@ function renderDebugSummary(domainResult, context) {
 }
 
 /**
- * Stub renderer for types not yet implemented in Step 1.
+ * Stub renderer for types not yet implemented in Step 2.
  */
-function renderStub(type) {
+function renderVdmiMatrixStub(domainResult) {
+  const dr = domainResult || {};
+  const matrix = dr.matrix && typeof dr.matrix === 'object' ? dr.matrix : null;
+  const tasks = matrix && Array.isArray(matrix.tasks)
+    ? matrix.tasks
+    : (Array.isArray(dr.tasks) ? dr.tasks : []);
+
+  const sections = [];
+  if (tasks.length > 0) {
+    sections.push({
+      id: 'vdmi_stub_info',
+      title: 'VDMI-Stub',
+      content: `- Aufgaben erkannt: ${tasks.length}`,
+    });
+  } else {
+    sections.push({
+      id: 'vdmi_stub_info',
+      title: 'VDMI-Stub',
+      content: '- Keine strukturierten Aufgaben vorhanden.',
+    });
+  }
+
+  return {
+    success: true,
+    presentation: {
+      type: 'vdmi_matrix_table',
+      title: 'VDMI-Matrix (Stub)',
+      summary: 'VDMI-Matrix-Renderer ist noch nicht vollständig implementiert.',
+      kpis: [],
+      tables: [],
+      sections,
+      warnings: ['vdmi_matrix_table_renderer_not_implemented_yet'],
+      sources: [],
+      nextActions: [],
+    },
+    markdown: [
+      '## VDMI-Matrix (Stub)',
+      '',
+      '> **Hinweis:** `vdmi_matrix_table_renderer_not_implemented_yet`',
+      '',
+      tasks.length > 0 ? `- Aufgaben erkannt: ${tasks.length}` : '- Keine strukturierten Aufgaben vorhanden.',
+    ].join('\n'),
+  };
+}
+
+function renderEvidenceGapTableStub(domainResult) {
+  const dr = domainResult || {};
+  const gaps = isNonEmptyArray(dr.evidenceGaps) ? dr.evidenceGaps : [];
+  const warnings = ['evidence_gap_table_renderer_not_implemented_yet'];
+
+  const rows = gaps.map((gap) => {
+    if (gap && typeof gap === 'object') {
+      return [
+        firstDefined(gap, ['name', 'label', 'code', 'id']) || '—',
+        firstDefined(gap, ['reason', 'detail', 'message']) || '—',
+      ];
+    }
+    return [String(gap), '—'];
+  });
+
+  if (rows.length === 0) {
+    warnings.push('insufficient_structured_data');
+  }
+
+  const tables = rows.length > 0
+    ? [{ id: 'evidence_gaps', headers: ['Evidenzlücke', 'Grund'], rows }]
+    : [];
+
+  const markdown = [
+    '## Evidenzlücken (Stub)',
+    '',
+    '> **Hinweis:** `evidence_gap_table_renderer_not_implemented_yet`',
+    '',
+    rows.length > 0 ? markdownTable(['Evidenzlücke', 'Grund'], rows) : '- Keine strukturierten Evidenzlücken vorhanden.',
+  ].join('\n');
+
+  return {
+    success: true,
+    presentation: {
+      type: 'evidence_gap_table',
+      title: 'Evidenzlücken (Stub)',
+      summary: rows.length > 0 ? `${rows.length} Evidenzlücken erkannt.` : 'Keine auswertbaren Evidenzlücken.',
+      kpis: [],
+      tables,
+      sections: [],
+      warnings,
+      sources: [],
+      nextActions: [],
+    },
+    markdown,
+  };
+}
+
+function renderRiskTableStub(domainResult) {
+  const dr = domainResult || {};
+  const risks = isNonEmptyArray(dr.assetRisks) ? dr.assetRisks : (isNonEmptyArray(dr.risks) ? dr.risks : []);
+  const warnings = ['risk_table_renderer_not_implemented_yet'];
+
+  const rows = risks.map((risk) => {
+    if (risk && typeof risk === 'object') {
+      return [
+        firstDefined(risk, ['name', 'risk', 'label', 'id']) || '—',
+        firstDefined(risk, ['impact', 'wirkung']) || '—',
+        firstDefined(risk, ['mitigation', 'countermeasure', 'gegenmassnahme', 'gegenmaßnahme']) || '—',
+      ];
+    }
+    return [String(risk), '—', '—'];
+  });
+
+  if (rows.length === 0) {
+    warnings.push('insufficient_structured_data');
+  }
+
+  const tables = rows.length > 0
+    ? [{ id: 'risk_list', headers: ['Risiko', 'Wirkung', 'Gegenmaßnahme'], rows }]
+    : [];
+
+  const markdown = [
+    '## Risikoübersicht (Stub)',
+    '',
+    '> **Hinweis:** `risk_table_renderer_not_implemented_yet`',
+    '',
+    rows.length > 0 ? markdownTable(['Risiko', 'Wirkung', 'Gegenmaßnahme'], rows) : '- Keine strukturierten Risiken vorhanden.',
+  ].join('\n');
+
+  return {
+    success: true,
+    presentation: {
+      type: 'risk_table',
+      title: 'Risikoübersicht (Stub)',
+      summary: rows.length > 0 ? `${rows.length} Risiken erkannt.` : 'Keine auswertbaren Risiken.',
+      kpis: [],
+      tables,
+      sections: [],
+      warnings,
+      sources: [],
+      nextActions: [],
+    },
+    markdown,
+  };
+}
+
+function renderDecisionBriefStub(domainResult) {
+  const dr = domainResult || {};
+  const warnings = ['decision_brief_renderer_not_implemented_yet'];
+  const sections = [];
+
+  const expectedStatus = firstDefined(dr, ['expectedStatus', 'status']);
+  const forbiddenAssumptions = isNonEmptyArray(dr.forbiddenAssumptions) ? dr.forbiddenAssumptions : [];
+  const nextActions = isNonEmptyArray(dr.nextActions) ? dr.nextActions : [];
+
+  if (expectedStatus !== undefined) {
+    sections.push({
+      id: 'decision_status',
+      title: 'Status',
+      content: `- Erwarteter Status: ${String(expectedStatus)}`,
+    });
+  }
+  if (forbiddenAssumptions.length > 0) {
+    sections.push({
+      id: 'forbidden_assumptions',
+      title: 'Verbotene Annahmen',
+      content: forbiddenAssumptions.map((item) => `- ${String(item)}`).join('\n'),
+    });
+  }
+  if (nextActions.length > 0) {
+    sections.push({
+      id: 'next_actions',
+      title: 'Nächste Schritte',
+      content: nextActions.map((item) => `- ${String(item)}`).join('\n'),
+    });
+  }
+
+  if (sections.length === 0) {
+    warnings.push('insufficient_structured_data');
+  }
+
+  const markdownParts = [
+    '## Entscheidungsbrief (Stub)',
+    '',
+    '> **Hinweis:** `decision_brief_renderer_not_implemented_yet`',
+  ];
+  for (const section of sections) {
+    markdownParts.push('', `### ${section.title}`, '', section.content);
+  }
+  if (sections.length === 0) {
+    markdownParts.push('', '- Keine strukturierten Entscheidungsfelder vorhanden.');
+  }
+
+  return {
+    success: true,
+    presentation: {
+      type: 'decision_brief',
+      title: 'Entscheidungsbrief (Stub)',
+      summary: sections.length > 0 ? 'Entscheidungsfelder wurden strukturiert erkannt.' : 'Keine auswertbaren Entscheidungsfelder.',
+      kpis: [],
+      tables: [],
+      sections,
+      warnings,
+      sources: [],
+      nextActions,
+    },
+    markdown: markdownParts.join('\n'),
+  };
+}
+
+function renderComparisonTableStub(domainResult) {
+  const dr = domainResult || {};
+  const warnings = ['comparison_table_renderer_not_implemented_yet'];
+
+  const collection = (isNonEmptyArray(dr.items) && dr.items)
+    || (isNonEmptyArray(dr.rows) && dr.rows)
+    || (isNonEmptyArray(dr.peers) && dr.peers)
+    || (isNonEmptyArray(dr.variants) && dr.variants)
+    || [];
+
+  const rows = [];
+  for (const item of collection) {
+    if (item && typeof item === 'object') {
+      rows.push([
+        firstDefined(item, ['name', 'label', 'id']) || '—',
+        firstDefined(item, ['value', 'score', 'status']) || '—',
+      ]);
+    } else {
+      rows.push([String(item), '—']);
+    }
+  }
+
+  if (rows.length === 0) {
+    warnings.push('insufficient_structured_data');
+  }
+
+  const tables = rows.length > 0
+    ? [{ id: 'comparison_items', headers: ['Eintrag', 'Wert'], rows }]
+    : [];
+
+  const markdown = [
+    '## Vergleichstabelle (Stub)',
+    '',
+    '> **Hinweis:** `comparison_table_renderer_not_implemented_yet`',
+    '',
+    rows.length > 0 ? markdownTable(['Eintrag', 'Wert'], rows) : '- Keine strukturierten Vergleichsdaten vorhanden.',
+  ].join('\n');
+
+  return {
+    success: true,
+    presentation: {
+      type: 'comparison_table',
+      title: 'Vergleichstabelle (Stub)',
+      summary: rows.length > 0 ? `${rows.length} Vergleichseinträge erkannt.` : 'Keine auswertbaren Vergleichsdaten.',
+      kpis: [],
+      tables,
+      sections: [],
+      warnings,
+      sources: [],
+      nextActions: [],
+    },
+    markdown,
+  };
+}
+
+function renderStub(type, domainResult) {
+  switch (type) {
+    case 'vdmi_matrix_table':
+      return renderVdmiMatrixStub(domainResult);
+    case 'evidence_gap_table':
+      return renderEvidenceGapTableStub(domainResult);
+    case 'risk_table':
+      return renderRiskTableStub(domainResult);
+    case 'decision_brief':
+      return renderDecisionBriefStub(domainResult);
+    case 'comparison_table':
+      return renderComparisonTableStub(domainResult);
+    default:
+      break;
+  }
+
   const warningCode = `${type}_renderer_not_implemented_yet`;
   return {
     success: true,
@@ -284,8 +632,22 @@ function dispatch(format, domainResult, context, locale) {
     case 'debug_summary':
       return renderDebugSummary(domainResult, context);
     default:
-      return renderStub(format);
+      return renderStub(format, domainResult);
   }
+}
+
+function mergeSelectionWarnings(result, selectionWarnings) {
+  const existing = Array.isArray(result?.presentation?.warnings)
+    ? result.presentation.warnings
+    : [];
+  const mergedWarnings = [...new Set([...existing, ...(selectionWarnings || [])])];
+  return {
+    ...result,
+    presentation: {
+      ...result.presentation,
+      warnings: mergedWarnings,
+    },
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -435,6 +797,7 @@ module.exports = {
 
       handler(ctx) {
         const {
+          intent,
           preferredFormat = 'auto',
           domainResult,
           context = {},
@@ -447,8 +810,9 @@ module.exports = {
           );
         }
 
-        const format = selectFormat(preferredFormat, domainResult);
-        return dispatch(format, domainResult, context, locale);
+        const selection = selectRenderer({ preferredFormat, intent, domainResult });
+        const rendered = dispatch(selection.type, domainResult, context, locale);
+        return mergeSelectionWarnings(rendered, selection.warnings);
       },
     },
   },
