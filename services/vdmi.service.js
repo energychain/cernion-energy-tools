@@ -1345,6 +1345,7 @@ module.exports = {
         }
 
         const task = (matrix.tasks || []).find((t) => t.taskId === ctx.params.taskId);
+        const taskMeta = matrix.tasksById?.[ctx.params.taskId] || null;
         const facts = [];
         const dissens = [];
 
@@ -1369,6 +1370,124 @@ module.exports = {
           }
         }
 
+        const toArray = (value) => {
+          if (Array.isArray(value)) return value;
+          if (value === undefined || value === null) return [];
+          return [value];
+        };
+
+        const normalizeRequirement = (item, index) => {
+          if (typeof item === 'string') {
+            return {
+              id: `req-${index + 1}`,
+              label: item,
+              required: true,
+              expectedType: null,
+              expectedReference: null,
+            };
+          }
+          if (!item || typeof item !== 'object') {
+            return {
+              id: `req-${index + 1}`,
+              label: `Requirement ${index + 1}`,
+              required: true,
+              expectedType: null,
+              expectedReference: null,
+            };
+          }
+          return {
+            id: String(item.id || `req-${index + 1}`),
+            label: String(item.label || item.name || item.description || item.id || `Requirement ${index + 1}`),
+            required: item.required !== false,
+            expectedType: item.type || null,
+            expectedReference: item.reference || null,
+            acceptedTypes: Array.isArray(item.acceptedTypes) ? item.acceptedTypes : null,
+          };
+        };
+
+        const evidenceEntries = (matrix.evidence || []).filter((entry) => {
+          const contentTaskId = entry?.content?.taskId;
+          const contentTaskIds = Array.isArray(entry?.content?.taskIds) ? entry.content.taskIds : [];
+          const reference = String(entry?.reference || '');
+          return (
+            contentTaskId === ctx.params.taskId
+            || contentTaskIds.includes(ctx.params.taskId)
+            || reference.includes(ctx.params.taskId)
+          );
+        });
+
+        const evidenceRequirements = toArray(task?.evidenceRequirements).map(normalizeRequirement);
+        const evidenceGaps = [];
+
+        for (const requirement of evidenceRequirements) {
+          const matched = evidenceEntries.some((entry) => {
+            const entryText = `${entry.type || ''} ${entry.reference || ''} ${entry.reason || ''}`.toLowerCase();
+            if (
+              Array.isArray(requirement.acceptedTypes)
+              && requirement.acceptedTypes.length > 0
+              && requirement.acceptedTypes.includes(entry.type)
+            ) {
+              return true;
+            }
+            if (requirement.expectedType && entry.type === requirement.expectedType) {
+              return true;
+            }
+            if (requirement.expectedReference && entry.reference === requirement.expectedReference) {
+              return true;
+            }
+            return entryText.includes(String(requirement.label || '').toLowerCase());
+          });
+
+          if (requirement.required && !matched) {
+            evidenceGaps.push({
+              requirementId: requirement.id,
+              label: requirement.label,
+              reason: 'required_evidence_missing',
+            });
+          }
+        }
+
+        const forbiddenAssumptions = toArray(task?.forbiddenAssumptions).concat(
+          task?.forbiddenAssumption ? [task.forbiddenAssumption] : []
+        );
+        const assetRisks = toArray(task?.assetRisks).concat(toArray(task?.riskFactors));
+
+        if (assetRisks.length === 0 && task?.riskLevel) {
+          assetRisks.push({ id: 'risk-level', level: task.riskLevel });
+        }
+
+        const allowedOptions = toArray(task?.allowedOptions);
+        const defaultOptions = [
+          {
+            id: 'option-capex',
+            title: 'CAPEX-first path',
+            impact: { risk: 'medium', cost: 'high', time: 'long' },
+          },
+          {
+            id: 'option-flex',
+            title: 'Flex/TOTEX path',
+            impact: { risk: 'medium', cost: 'medium', time: 'short' },
+          },
+        ];
+
+        const resolvedAllowedOptions = allowedOptions.length > 0 ? allowedOptions : defaultOptions;
+        const nextActions = toArray(task?.nextActions);
+        const resolvedNextActions = nextActions.length > 0
+          ? nextActions
+          : evidenceGaps.map((gap) => ({
+            id: `collect-${gap.requirementId}`,
+            type: 'collect_evidence',
+            requirementId: gap.requirementId,
+            label: gap.label,
+          }));
+
+        facts.push({
+          eventName: 'task.context',
+          role: null,
+          actorId: null,
+          reason: `task=${task?.taskName || ctx.params.taskId}, phase=${task?.phase || 'n/a'}, processType=${matrix.processType || 'n/a'}`,
+        });
+
         return {
           success: true,
           matrixId: matrix.id,
@@ -1376,22 +1495,41 @@ module.exports = {
           dossier: {
             facts,
             dissens,
-            options: [
-              {
-                id: 'option-capex',
-                title: 'CAPEX-first path',
-                impact: { risk: 'medium', cost: 'high', time: 'long' },
-              },
-              {
-                id: 'option-flex',
-                title: 'Flex/TOTEX path',
-                impact: { risk: 'medium', cost: 'medium', time: 'short' },
-              },
-            ],
+            task: {
+              taskId: task?.taskId || ctx.params.taskId,
+              taskName: task?.taskName || null,
+              phase: task?.phase || null,
+              processType: matrix.processType || null,
+              assetClass: task?.assetClass || null,
+              assetId: task?.assetId || null,
+              hitlRequired: Boolean(task?.hitlRequired),
+              hitlItemId: task?.hitlItemId || null,
+              converged: taskMeta?.converged ?? null,
+              roleBoundaryViolation: taskMeta?.roleBoundaryViolation || false,
+              dependsOn: toArray(task?.dependsOn),
+              blocks: toArray(task?.blocks),
+            },
+            evidence: {
+              requirements: evidenceRequirements,
+              provided: evidenceEntries.map((entry) => ({
+                id: entry.id,
+                type: entry.type,
+                reference: entry.reference,
+                createdAt: entry.createdAt,
+              })),
+            },
+            evidenceGaps,
+            assetRisks,
+            forbiddenAssumptions,
+            allowedOptions: resolvedAllowedOptions,
+            options: resolvedAllowedOptions,
+            nextActions: resolvedNextActions,
             recommendation:
-              facts.length >= dissens.length
-                ? 'Proceed with VDMI-aligned decision and escalate to V for final approval.'
-                : 'Collect additional evidence before final V decision.',
+              evidenceGaps.length > 0
+                ? 'Collect additional evidence before final V decision.'
+                : facts.length >= dissens.length
+                  ? 'Proceed with VDMI-aligned decision and escalate to V for final approval.'
+                  : 'Collect additional evidence before final V decision.',
           },
         };
       },

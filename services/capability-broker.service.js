@@ -96,10 +96,51 @@ function findBestCapability(taskText) {
     'zulässige aussagen',
     'rollengrenze',
   ];
+  const vdmiAssetValidationSignals = [
+    'asset validation',
+    'asset-validierung',
+    'asset validierung',
+    'asset-prüfung',
+    'asset pruefung',
+    'assetklasse',
+    'anlage',
+    'anlagen',
+    'evidence',
+    'evidenz',
+    'nachweis',
+    'beleg',
+    'forbidden assumption',
+    'forbidden assumptions',
+    'verbotene annahme',
+    'verbotene annahmen',
+    'risk factor',
+    'risk factors',
+    'risikofaktor',
+    'risikofaktoren',
+    'grid-connection-asset-validation',
+  ];
 
   const hasVdmiBoundaryCombo =
     /(rollen|rolle|schnittstellen)/i.test(haystack)
     && /(netzanschluss|enwg|arealnetz|gatekeeper)/i.test(haystack);
+
+  const hasVdmiAssetValidationCombo =
+    /(asset|anlage|anlagen|assetklasse|transformator|trafo)/i.test(haystack)
+    && /(evidence|evidenz|nachweis|beleg|risk|risiko|forbidden|verbotene annahme)/i.test(haystack);
+
+  if (
+    vdmiAssetValidationSignals.some((signal) => haystack.includes(signal))
+    || hasVdmiAssetValidationCombo
+  ) {
+    const vdmiAssetValidationCapability = findCapabilityByName('vdmi_asset_validation_governance');
+    if (vdmiAssetValidationCapability) {
+      return {
+        capability: vdmiAssetValidationCapability,
+        score: 120,
+        usedFallback: false,
+      };
+    }
+  }
 
   if (vdmiGovernanceSignals.some((signal) => haystack.includes(signal)) || hasVdmiBoundaryCombo) {
     const vdmiGovernanceCapability = findCapabilityByName('vdmi_role_boundary_governance');
@@ -302,6 +343,11 @@ function buildActionTemplate(action) {
       jobId: null,
     };
   }
+  if (action === 'vdmi.dossier' || action === 'vdmi.negotiationTrace') {
+    return {
+      taskId: null,
+    };
+  }
   if (action === 'ewk-monitoring.benchmarkVnb') {
     return {
       vnbName: null,
@@ -468,6 +514,27 @@ function interpolateTemplateWithKnownContext(action, paramsTemplate = {}, knownC
     }
     if (hydrated.fnavProfile == null) {
       hydrated.fnavProfile = buildFnavProfile(knownContext, taskText);
+    }
+  }
+
+  if (action === 'vdmi.agentRole') {
+    if (hydrated.agentId == null && knownContext.agentId) {
+      hydrated.agentId = knownContext.agentId;
+    }
+    if (hydrated.taskId == null && knownContext.taskId) {
+      hydrated.taskId = knownContext.taskId;
+    }
+    if (
+      knownContext.processType
+      && (hydrated.processType == null || hydrated.processType === 'grid-connection-governance')
+    ) {
+      hydrated.processType = knownContext.processType;
+    }
+  }
+
+  if (action === 'vdmi.dossier' || action === 'vdmi.negotiationTrace') {
+    if (hydrated.taskId == null && knownContext.taskId) {
+      hydrated.taskId = knownContext.taskId;
     }
   }
 

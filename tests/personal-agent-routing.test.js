@@ -210,4 +210,43 @@ describe('personal-agent-routing', () => {
     expect(plan.primaryIntent).not.toBe('resolve_grid_operator_identity');
     expect(plan.steps[0].action).toBe('vdmi.agentRole');
   });
+
+  it('selects VDMI asset-validation governance in fallback routing for asset/evidence prompts', () => {
+    const plan = buildExecutionPlan({
+      message: 'Asset-Validierung für Anlage TR-17 mit Evidenzlücken, Risikofaktoren und verbotenen Annahmen erstellen',
+      brokerRecommendation: null,
+    });
+
+    expect(plan.source).toBe('capability-broker');
+    expect(plan.routeLabel).toBe('vdmi_asset_validation_governance');
+    expect(plan.primaryIntent).toBe('vdmi_asset_validation_governance');
+    expect(plan.steps[0].action).toBe('vdmi.dossier');
+  });
+
+  it('keeps broker-selected VDMI asset-validation governance intent in execution plan', () => {
+    const plan = buildExecutionPlan({
+      message: 'Bitte Task asset-1 validieren',
+      brokerRecommendation: {
+        recommendedCapabilities: [
+          {
+            capability: 'vdmi_asset_validation_governance',
+          },
+        ],
+        recommendedPlan: [
+          {
+            action: 'vdmi.dossier',
+            params: {
+              taskId: 'asset-1',
+            },
+          },
+        ],
+      },
+    });
+
+    expect(plan.source).toBe('capability-broker');
+    expect(plan.routeLabel).toBe('vdmi_asset_validation_governance');
+    expect(plan.primaryIntent).toBe('vdmi_asset_validation_governance');
+    expect(plan.steps[0].action).toBe('vdmi.dossier');
+    expect(plan.steps[0].paramsTemplate.taskId).toBe('asset-1');
+  });
 });

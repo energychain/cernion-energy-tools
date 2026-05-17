@@ -404,4 +404,106 @@ describe('vdmi.service', () => {
       type: 'CONFLICT_ROLE',
     });
   });
+
+  test('dossier returns structured asset-validation fields with evidence gaps and allowed options', async () => {
+    const created = await broker.call(
+      'vdmi.create',
+      {
+        name: 'Asset Validation Matrix',
+        processId: 'job-asset-validation-1',
+        processType: 'grid-connection-asset-validation',
+        tasks: [
+          {
+            taskId: 'asset-validate-1',
+            taskName: 'Validate Transformer Asset',
+            phase: 'validation',
+            assetClass: 'MV-transformer',
+            assetId: 'TR-17',
+            verantwortlich: [{ actorType: 'org', actorId: 'DSO_GATEKEEPER' }],
+            durchfuehrend: [{ actorType: 'org', actorId: 'EXISTING_AREAL_GRID_OPERATOR' }],
+            mitwirkend: [{ actorType: 'org', actorId: 'GROUP_ENERGY_PROJECT_OWNER' }],
+            information: [{ actorType: 'org', actorId: 'AREAL_OWNER' }],
+            evidenceRequirements: [
+              { id: 'nap-proof', label: 'NAP certificate', type: 'nap_certificate', required: true },
+              { id: 'load-profile', label: 'Load profile', type: 'load_profile', required: true },
+            ],
+            riskFactors: [{ id: 'overload-risk', severity: 'high' }],
+            forbiddenAssumption: 'No firm capacity promise before formal request context',
+            allowedOptions: [{ id: 'option-rework', title: 'Collect missing profile evidence first' }],
+            nextActions: [{ id: 'action-request-profile', type: 'collect_evidence' }],
+            executionTrace: [
+              {
+                timestamp: '2026-01-01T10:00:00.000Z',
+                eventName: 'agent.plan.step.executed',
+                payload: { taskId: 'asset-validate-1' },
+                candidates: [
+                  {
+                    role: 'D',
+                    actorType: 'org',
+                    actorId: 'EXISTING_AREAL_GRID_OPERATOR',
+                    confidence: 0.92,
+                    reason: 'Execution completion event',
+                  },
+                  {
+                    role: 'M',
+                    actorType: 'org',
+                    actorId: 'GROUP_ENERGY_PROJECT_OWNER',
+                    confidence: 0.6,
+                    reason: 'Advisory input without full evidence set',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      { meta: { tenantId: 'tenant-a', userId: 'u-1' } }
+    );
+
+    await broker.call(
+      'vdmi.evidence',
+      {
+        id: created.matrix.id,
+        reason: 'NAP certificate available',
+        type: 'nap_certificate',
+        reference: 'asset-validate-1-nap',
+        content: { taskId: 'asset-validate-1' },
+      },
+      { meta: { tenantId: 'tenant-a', userId: 'u-1' } }
+    );
+
+    const dossier = await broker.call(
+      'vdmi.dossier',
+      { taskId: 'asset-validate-1' },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+
+    expect(dossier.success).toBe(true);
+    expect(dossier.dossier.task.processType).toBe('grid-connection-asset-validation');
+    expect(dossier.dossier.task.assetClass).toBe('MV-transformer');
+    expect(dossier.dossier.task.assetId).toBe('TR-17');
+    expect(Array.isArray(dossier.dossier.evidence.requirements)).toBe(true);
+    expect(dossier.dossier.evidence.requirements).toHaveLength(2);
+    expect(Array.isArray(dossier.dossier.evidence.provided)).toBe(true);
+    expect(dossier.dossier.evidence.provided).toHaveLength(1);
+    expect(dossier.dossier.evidenceGaps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ requirementId: 'load-profile', reason: 'required_evidence_missing' }),
+      ])
+    );
+    expect(dossier.dossier.forbiddenAssumptions).toEqual(
+      expect.arrayContaining(['No firm capacity promise before formal request context'])
+    );
+    expect(dossier.dossier.assetRisks).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: 'overload-risk' })])
+    );
+    expect(dossier.dossier.allowedOptions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: 'option-rework' })])
+    );
+    expect(dossier.dossier.options).toEqual(dossier.dossier.allowedOptions);
+    expect(dossier.dossier.nextActions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: 'action-request-profile' })])
+    );
+    expect(dossier.dossier.recommendation).toContain('Collect additional evidence');
+  });
 });

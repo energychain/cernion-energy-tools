@@ -158,4 +158,27 @@ describe('Capability Broker Service', () => {
     expect(result.recommendedPlan[0].action).toBe('vdmi.agentRole');
     expect(result.recommendedCapabilities[0].capability).not.toBe('grid_operator_identity_resolution');
   });
+
+  it('routes asset-evidence governance prompts to VDMI asset-validation capability before generic role-boundary', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Bitte Asset-Validierung für Anlage TR-17 durchführen, Evidence/Nachweise prüfen, Risikofaktoren und verbotene Annahmen offenlegen.',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedPlan[0].action).toBe('vdmi.dossier');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_role_boundary_governance');
+  });
+
+  it('propagates knownContext.processType into vdmi.agentRole plan params', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Rollen und Schnittstellen klären für DSO Gatekeeper ohne formales Netzanschlussbegehren',
+      knownContext: {
+        processType: 'grid-connection-asset-validation',
+      },
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('vdmi_role_boundary_governance');
+    expect(result.recommendedPlan[0].action).toBe('vdmi.agentRole');
+    expect(result.recommendedPlan[0].params.processType).toBe('grid-connection-asset-validation');
+  });
 });
