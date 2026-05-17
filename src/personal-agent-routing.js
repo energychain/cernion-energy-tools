@@ -760,7 +760,7 @@ function buildExecutionPlan({ message, brokerRecommendation }) {
         source: step.source,
         dependsOnStep: step.dependsOnStep || null,
       })),
-      status: unsupportedDomains.length > 0 ? 'partial' : 'ready',
+      status: 'ready',
       warnings: unsupportedDomains.length > 0
         ? [`Unsupported extra domains requested: ${unsupportedDomains.join(', ')}`]
         : [],
@@ -794,8 +794,8 @@ function buildExecutionPlan({ message, brokerRecommendation }) {
     requestedDomains,
     unsupportedDomains,
     steps,
-    status: unsupportedDomains.length > 0 ? 'partial' : 'ready',
-    warnings: unsupportedDomains.length > 0
+    status: selected.usedFallback ? 'partial' : 'ready',
+    warnings: selected.usedFallback || unsupportedDomains.length > 0
       ? [`No routing-matrix entry for chained domains: ${requestedDomains.join(' -> ')}`]
       : [],
     promptHints,

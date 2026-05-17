@@ -249,15 +249,32 @@ describe('personal-agent.service', () => {
       { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
     );
 
-    expect(result.execution.status).toBe('partial');
+    expect(result.execution.status).toBe('completed');
     expect(result.execution.completedSteps).toBe(2);
-    expect(result.execution.stopPoint).toMatchObject({
-      reasonCode: 'UNSUPPORTED_CHAIN',
-      status: 'interface-placeholder',
-      blockedStep: 3,
-    });
+    expect(result.execution.stopPoint).toBeNull();
     expect(result.reply).not.toMatch(/ACTION_FAILED|UNSUPPORTED_CHAIN|VALIDATION_ERROR|__step_/i);
-    expect(placeholderCalls).toHaveLength(1);
+    expect(result.reply).toMatch(/completed|abgeschlossen|prüfschritt/i);
+    expect(placeholderCalls).toHaveLength(0);
+  });
+
+  it('remains partial for a genuine capability gap and explains the missing interface', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte prüfe eine unbekannte Spezialintegration ohne klare Datenquelle',
+        executionMode: 'auto',
+        knownContext: {
+          gridOperatorName: 'Unbekannter Betreiber',
+        },
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.execution.status).toBe('partial');
+    expect(result.execution.stopPoint).toBeTruthy();
+    expect(result.execution.stopPoint.status).toBe('interface-placeholder');
+    expect(result.reply).toMatch(/Schnittstelle|Evidenzquelle|Prüfpunkt/i);
+    expect(result.reply).not.toMatch(/ACTION_FAILED|VALIDATION_ERROR|__step_/i);
   });
 
   it('switches to awaiting-onboarding when required inputs are missing', async () => {
