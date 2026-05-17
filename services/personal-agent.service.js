@@ -1592,11 +1592,20 @@ module.exports = {
       return null;
     },
 
-    buildOnboardingStopPoint({ plan, missingParams, blockedStep, blockedAction }) {
+    buildOnboardingStopPoint({
+      plan,
+      missingParams,
+      blockedStep,
+      blockedAction,
+      questionTextOverride,
+      locationOperatorConsistency,
+      evidenceHints,
+    }) {
       const paramKey = resolveParamKeyFromMissing(missingParams);
       const onboardingQuestion = buildOnboardingQuestion({
         paramKey,
         action: blockedAction || plan?.steps?.[0]?.action,
+        fallbackText: questionTextOverride,
       });
       onboardingQuestion.planSnapshot = {
         source: plan?.source || 'onboarding-resume',
@@ -1618,6 +1627,8 @@ module.exports = {
         blockedStep,
         blockedAction,
         missingParams,
+        locationOperatorConsistency: locationOperatorConsistency || null,
+        evidenceHints: evidenceHints || null,
         message: onboardingQuestion.questionText,
         onboardingQuestion,
       };
@@ -1750,6 +1761,9 @@ module.exports = {
           missingParams: execution.stopPoint?.missingParams || [],
           blockedStep: execution.stopPoint?.blockedStep || 1,
           blockedAction: execution.stopPoint?.blockedAction || effectivePlan?.steps?.[0]?.action,
+          questionTextOverride: execution.stopPoint?.questionTextOverride,
+          locationOperatorConsistency: execution.stopPoint?.locationOperatorConsistency,
+          evidenceHints: execution.stopPoint?.evidenceHints,
         });
         session.l3.onboardingQuestions = [
           ...(session.l3.onboardingQuestions || []),
@@ -1864,7 +1878,14 @@ module.exports = {
 
         try {
           const result = await ctx.call(plannedStep.action, params, { meta: ctx.meta });
-          executionState.stepResults[plannedStep.step] = { data: result, params };
+          const normalizedData = result && typeof result === 'object' && result.data !== undefined
+            ? result.data
+            : result;
+          executionState.stepResults[plannedStep.step] = {
+            data: normalizedData,
+            raw: result,
+            params,
+          };
           completedSteps += 1;
           steps.push({
             step: plannedStep.step,
@@ -1888,6 +1909,28 @@ module.exports = {
                 blockedAction: nextStep?.action || null,
                 missingParams: ['operatorEvidence'],
                 status: 'evidence-gap',
+              };
+              break;
+            }
+          }
+
+          if (plannedStep.action === 'grid-operations.vnbLookup') {
+            const consistency = this.classifyLocationOperatorConsistency({
+              knownContext,
+              promptHints: plan.promptHints,
+              steps,
+            });
+            if (consistency?.status === 'unverified' || consistency?.status === 'mismatch') {
+              stopPoint = {
+                reasonCode: 'MISSING_INPUTS',
+                message: 'Standort/Netzbetreiber-Zuständigkeit ist noch nicht belastbar verifiziert.',
+                blockedStep: plannedStep.step,
+                blockedAction: plannedStep.action,
+                missingParams: ['operatorEvidence'],
+                status: 'evidence-gap',
+                locationOperatorConsistency: consistency.status,
+                evidenceHints: consistency.hints,
+                questionTextOverride: this.buildOperatorEvidenceQuestion(consistency),
               };
               break;
             }
@@ -1938,6 +1981,113 @@ module.exports = {
         stopPoint,
         message,
       };
+    },
+
+    normalizeComparableText(value) {
+      return String(value || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9äöüß]+/gi, ' ')
+        .trim();
+    },
+
+    extractLookupResults(step = {}) {
+      const result = step?.result;
+      if (!result || typeof result !== 'object') {
+        return [];
+      }
+      if (Array.isArray(result?.data?.results)) {
+        return result.data.results;
+      }
+      if (Array.isArray(result?.results)) {
+        return result.results;
+      }
+      if (Array.isArray(result?.data?.data?.results)) {
+        return result.data.data.results;
+      }
+      return [];
+    },
+
+    classifyLocationOperatorConsistency({ knownContext = {}, promptHints = {}, steps = [] } = {}) {
+      const assertedOperator =
+        knownContext?.assertedGridOperatorName
+        || promptHints?.assertedGridOperatorName
+        || promptHints?.gridOperatorName
+        || knownContext?.gridOperatorName
+        || '';
+      const projectLocation =
+        knownContext?.location
+        || promptHints?.location
+        || promptHints?.city
+        || '';
+
+      if (!assertedOperator || !projectLocation) {
+        return null;
+      }
+
+      const marketPartnerStep = steps.find((step) => step?.action === 'grid-operations.marketPartners' && step?.status === 'completed');
+      const vnbLookupStep = steps.find((step) => step?.action === 'grid-operations.vnbLookup' && step?.status === 'completed');
+      const partnerResults = this.extractLookupResults(marketPartnerStep);
+      const topHit = partnerResults[0] || null;
+
+      const matchedOperatorName = String(topHit?.name || vnbLookupStep?.result?.operator?.name || '').trim();
+      const lookupCity = String(
+        topHit?.contacts?.[0]?.city
+        || vnbLookupStep?.result?.operator?.city
+        || ''
+      ).trim();
+
+      const normalizedAsserted = this.normalizeComparableText(assertedOperator);
+      const normalizedMatched = this.normalizeComparableText(matchedOperatorName);
+      const operatorMatches =
+        !normalizedMatched
+        || normalizedMatched.includes(normalizedAsserted)
+        || normalizedAsserted.includes(normalizedMatched);
+
+      if (!operatorMatches) {
+        return {
+          status: 'mismatch',
+          hints: {
+            assertedOperator,
+            matchedOperatorName,
+            projectLocation,
+            lookupCity,
+          },
+        };
+      }
+
+      const hardMismatch = Boolean(
+        vnbLookupStep?.result?.operator?.isResponsible === false
+        || vnbLookupStep?.result?.operator?.zustaendig === false
+        || vnbLookupStep?.result?.responsibilityMatch === false
+      );
+
+      if (hardMismatch) {
+        return {
+          status: 'mismatch',
+          hints: {
+            assertedOperator,
+            matchedOperatorName,
+            projectLocation,
+            lookupCity,
+          },
+        };
+      }
+
+      return {
+        status: 'unverified',
+        hints: {
+          assertedOperator,
+          matchedOperatorName,
+          projectLocation,
+          lookupCity,
+        },
+      };
+    },
+
+    buildOperatorEvidenceQuestion(consistency = {}) {
+      const hint = consistency?.hints || {};
+      const locationText = hint.projectLocation ? ` für den Standort ${hint.projectLocation}` : '';
+      return `Ich kann die Zuständigkeit${locationText} noch nicht belastbar bestätigen. Für die Due Diligence brauche ich bitte Netzanschlusszusage/BKZ, Marktlokation, Netzanschlusspunkt oder den zuständigen BDEW-Code.`;
     },
 
     async loadUserProfile(ctx, tenantId, userId) {

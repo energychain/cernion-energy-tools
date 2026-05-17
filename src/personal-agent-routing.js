@@ -598,26 +598,38 @@ function resolvePlaceholderReference(value, executionState) {
   if (!match) return value;
   const stepNumber = Number(match[1]);
   const path = match[2];
-  const result = executionState?.stepResults?.[stepNumber];
-  const candidatePaths = [path];
+  const stepResult = executionState?.stepResults?.[stepNumber];
+  const sourceCandidates = [
+    stepResult,
+    stepResult?.data,
+    stepResult?.raw,
+    stepResult?.result,
+    stepResult?.data?.data,
+    stepResult?.data?.result,
+    stepResult?.raw?.data,
+    stepResult?.raw?.result,
+  ].filter((candidate) => candidate && typeof candidate === 'object');
+  const sources = [...new Set(sourceCandidates)];
 
+  const candidatePaths = [path];
   if (path.startsWith('data.')) {
     candidatePaths.push(path.slice(5));
   } else {
     candidatePaths.push(`data.${path}`);
   }
-
-  candidatePaths.push(`result.${path}`);
-  if (path.startsWith('data.')) {
-    candidatePaths.push(`result.${path.slice(5)}`);
+  if (path.startsWith('result.')) {
+    candidatePaths.push(path.slice(7));
   } else {
-    candidatePaths.push(`result.data.${path}`);
+    candidatePaths.push(`result.${path}`);
   }
+  const uniquePaths = [...new Set(candidatePaths.filter(Boolean))];
 
-  for (const candidatePath of candidatePaths) {
-    const resolved = getValueAtPath(result, candidatePath);
-    if (resolved !== undefined) {
-      return resolved;
+  for (const source of sources) {
+    for (const candidatePath of uniquePaths) {
+      const resolved = getValueAtPath(source, candidatePath);
+      if (resolved !== undefined) {
+        return resolved;
+      }
     }
   }
 
@@ -664,9 +676,14 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
     return resolved;
   }
 
+  const unresolvedStepPlaceholders = new Set();
   const hydrated = Object.fromEntries(
     Object.entries(resolved).map(([key, value]) => {
+      const originalTemplateValue = template?.[key];
       if (value === null || value === undefined) {
+        if (typeof originalTemplateValue === 'string' && originalTemplateValue.startsWith('__step_')) {
+          unresolvedStepPlaceholders.add(key);
+        }
         const replacement = findContextValue(action, key, knownContext, promptHints);
         return [key, replacement];
       }
@@ -762,6 +779,12 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
     }
     if (hydrated.bnr == null && knownContext?.bnr) {
       hydrated.bnr = knownContext.bnr;
+    }
+  }
+
+  if (action === 'grid-operations.vnbLookup') {
+    if (hydrated.bdew != null && unresolvedStepPlaceholders.has('city')) {
+      hydrated.city = undefined;
     }
   }
 

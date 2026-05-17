@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): hardened entity extraction to avoid false-positive `projectId` and non-numeric pseudo-`bdewCode` captures from free-text phrasing, while keeping operator/location hints separate for deterministic routing.
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): improved `grid-operations.marketPartners` parameter hydration so identity lookups prefer structured operator/location evidence over long raw prompt text.
 - [src/personal-agent-onboarding.js](src/personal-agent-onboarding.js), [services/personal-agent.service.js](services/personal-agent.service.js): added explicit humanization for `operatorEvidence` so onboarding/recovery replies ask for Netzbetreiber/BDEW evidence without exposing internal key names.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): fixed `__step_N...` placeholder resolution for wrapped step-result shapes (`data.results`, `data.data.results`, `result.*`, `raw.*`) and prevented unresolved dependent city placeholders from being overwritten by prompt-location fallbacks when `bdew` is already resolved.
+- [services/personal-agent.service.js](services/personal-agent.service.js): normalized stored step results (`data` + `raw`) for robust dependent-path access and added generic Standort/VNB consistency classification (`unverified`/`mismatch`) with controlled evidence-stop instead of technical action-failure cascades.
+- [services/personal-agent.service.js](services/personal-agent.service.js): added Due-Diligence-oriented evidence prompts (Netzanschlusszusage/BKZ, Marktlokation, Netzanschlusspunkt, BDEW-Code) for unresolved location/operator plausibility.
 
 ### Tests
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression coverage for zero-step partial recovery, one-step recovery, and finance/risk phrasing, plus negative assertions against internal tokens and generic safe-stop wording.
@@ -27,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): added routing-level regressions for separated location/operator extraction (`Frankenthal` vs `TWL Netze`), MW-to-kW capacity normalization, and unresolved step-placeholder missing-input detection.
 - [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): added regressions for false-positive hardening (`projectId`/`bdewCode`) and for structured query precedence in `grid-operations.marketPartners` lookup hydration.
 - [tests/personal-agent-onboarding.test.js](tests/personal-agent-onboarding.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regressions to ensure `operatorEvidence` is never surfaced in user-facing question/recovery text.
+- [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): added regressions for wrapped step-result placeholder resolution (`__step_1.data.results[0]...`) and for preserving resolved lookup dependencies over prompt-location fallback.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression coverage for Standort/VNB consistency handling as a controlled Due-Diligence evidence checkpoint, including assertions that `vnbLookup` receives resolved `bdew/city` from step-1 lookup context.
 
 ## [0.52.10] — Routing/Matrix Stabilization, Release-Gate Hardening, and Ops Updates
 

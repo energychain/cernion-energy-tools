@@ -13,11 +13,13 @@ describe('personal-agent.service', () => {
   let objectStorePath;
   let placeholderCalls;
   let executedActions;
+  let executedCallDetails;
 
   beforeEach(async () => {
     objectStorePath = path.join(os.tmpdir(), `personal-agent-store-${Date.now()}-${Math.random()}`);
     placeholderCalls = [];
     executedActions = [];
+    executedCallDetails = [];
     broker = new ServiceBroker({ logger: false });
     broker.createService({
       ...ObjectStoreService,
@@ -51,12 +53,14 @@ describe('personal-agent.service', () => {
         validate: {
           handler(ctx) {
             executedActions.push('grid-connection.validate');
+            executedCallDetails.push({ action: 'grid-connection.validate', params: ctx.params });
             return { success: true, validatedBy: 'grid-connection', input: ctx.params };
           },
         },
         fnavValidate: {
           handler(ctx) {
             executedActions.push('grid-connection.fnavValidate');
+            executedCallDetails.push({ action: 'grid-connection.fnavValidate', params: ctx.params });
             return {
               success: true,
               gridOperatorName: ctx.params.gridOperatorName || 'TWL Netze',
@@ -74,6 +78,7 @@ describe('personal-agent.service', () => {
         fnavEconomics: {
           handler(ctx) {
             executedActions.push('finance-agent.fnavEconomics');
+            executedCallDetails.push({ action: 'finance-agent.fnavEconomics', params: ctx.params });
             return { success: true, paybackYears: 4.2, input: ctx.params };
           },
         },
@@ -85,9 +90,23 @@ describe('personal-agent.service', () => {
         marketPartners: {
           handler(ctx) {
             executedActions.push('grid-operations.marketPartners');
+            executedCallDetails.push({ action: 'grid-operations.marketPartners', params: ctx.params });
             const query = String(ctx.params.query || '').toLowerCase();
             if (!query || query.includes('unbekannt') || query.includes('nonexistent')) {
               return { data: { results: [] } };
+            }
+            if (query.includes('twl')) {
+              return {
+                data: {
+                  results: [
+                    {
+                      bdewCode: '9904350000002',
+                      contacts: [{ city: 'Ludwigshafen' }],
+                      name: 'TWL Netze GmbH',
+                    },
+                  ],
+                },
+              };
             }
             return {
               data: {
@@ -105,6 +124,7 @@ describe('personal-agent.service', () => {
         vnbLookup: {
           handler(ctx) {
             executedActions.push('grid-operations.vnbLookup');
+            executedCallDetails.push({ action: 'grid-operations.vnbLookup', params: ctx.params });
             if (!ctx.params.bdew && !ctx.params.city && !ctx.params.query && !ctx.params.vnbName) {
               throw new Error('Parameters validation error!');
             }
@@ -299,7 +319,7 @@ describe('personal-agent.service', () => {
     expect(result.reply).not.toMatch(/Parameters validation error|ACTION_FAILED|__step_/i);
   });
 
-  it('does not go partial when enough natural context enables identity lookup execution', async () => {
+  it('classifies Standort/VNB consistency as due-diligence evidence checkpoint', async () => {
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -309,10 +329,21 @@ describe('personal-agent.service', () => {
       { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
     );
 
-    expect(result.execution.status).toBe('completed');
-    expect(result.execution.completedSteps).toBeGreaterThanOrEqual(1);
+    expect(result.execution.status).toBe('awaiting-onboarding');
+    expect(result.execution.completedSteps).toBeGreaterThanOrEqual(2);
     expect(executedActions).toContain('grid-operations.marketPartners');
+    expect(executedActions).toContain('grid-operations.vnbLookup');
+    expect(result.execution.stopPoint.reasonCode).toBe('MISSING_INPUTS');
+    expect(result.execution.stopPoint.locationOperatorConsistency).toMatch(/unverified|mismatch/);
+    expect(result.reply).toMatch(/Due Diligence|Evidenz|Netzanschlusszusage|Marktlokation|Netzanschlusspunkt|BDEW/i);
     expect(result.reply).not.toMatch(/Parameters validation error|ACTION_FAILED|__step_/i);
+    expect(result.reply).not.toMatch(/operatorEvidence/i);
+
+    const vnbLookupCall = executedCallDetails.find((entry) => entry.action === 'grid-operations.vnbLookup');
+    expect(vnbLookupCall).toBeTruthy();
+    expect(vnbLookupCall.params.bdew).toBe('9904350000002');
+    expect(vnbLookupCall.params.city).toBe('Ludwigshafen');
+    expect(vnbLookupCall.params.city).not.toBe('Frankenthal');
   });
 
   it('gracefully degrades unsupported extra domains after the last valid step', async () => {

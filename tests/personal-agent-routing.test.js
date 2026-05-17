@@ -78,4 +78,93 @@ describe('personal-agent-routing', () => {
       'oneOf:bdew|city|vnbName|query',
     ]);
   });
+
+  it('resolves bdew placeholder from wrapped step result data.data.results path', () => {
+    const params = pruneUndefinedDeep(
+      fillTemplateWithContext(
+        {
+          bdew: '__step_1.data.results[0].bdewCode',
+        },
+        'grid-operations.vnbLookup',
+        {},
+        {},
+        {
+          stepResults: {
+            1: {
+              data: {
+                success: true,
+                data: {
+                  results: [
+                    {
+                      bdewCode: '9904350000002',
+                      contacts: [{ city: 'Ludwigshafen' }],
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        }
+      )
+    );
+
+    expect(params.bdew).toBe('9904350000002');
+  });
+
+  it('resolves city from step result contact context and not from prompt location fallback', () => {
+    const params = pruneUndefinedDeep(
+      fillTemplateWithContext(
+        {
+          city: '__step_1.data.results[0].contacts[0].city',
+        },
+        'grid-operations.vnbLookup',
+        { location: 'Frankenthal' },
+        { location: 'Frankenthal' },
+        {
+          stepResults: {
+            1: {
+              data: {
+                results: [
+                  {
+                    bdewCode: '9904350000002',
+                    contacts: [{ city: 'Ludwigshafen' }],
+                  },
+                ],
+              },
+            },
+          },
+        }
+      )
+    );
+
+    expect(params.city).toBe('Ludwigshafen');
+  });
+
+  it('keeps resolved bdew dependency and avoids replacing unresolved city with prompt location', () => {
+    const params = pruneUndefinedDeep(
+      fillTemplateWithContext(
+        {
+          bdew: '__step_1.data.results[0].bdewCode',
+          city: '__step_1.data.results[0].contacts[0].city',
+          limit: 5,
+        },
+        'grid-operations.vnbLookup',
+        { location: 'Frankenthal' },
+        { location: 'Frankenthal' },
+        {
+          stepResults: {
+            1: {
+              data: {
+                results: [{ bdewCode: '9904350000002', contacts: [] }],
+              },
+            },
+          },
+        }
+      )
+    );
+
+    expect(params.bdew).toBe('9904350000002');
+    expect(params.city).toBeUndefined();
+    expect(params.limit).toBe(5);
+  });
 });
