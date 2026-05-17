@@ -148,4 +148,14 @@ describe('Capability Broker Service', () => {
     expect(result.recommendedCapabilities[0].capability).toBe('netzfahrplan_fnav_assessment');
     expect(result.recommendedPlan[0].action).toBe('grid-connection.fnavValidate');
   });
+
+  it('routes role-boundary governance prompts to VDMI governance capability (not pure VNB identity)', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Schritt 1: Rollen und Schnittstellen klären – Projektträger ist nicht Netzbetreiber, ohne formales Netzanschlussbegehren darf keine Netzanschlusszusage entstehen (§17 EnWG, Arealnetzbetreiber).',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('vdmi_role_boundary_governance');
+    expect(result.recommendedPlan[0].action).toBe('vdmi.agentRole');
+    expect(result.recommendedCapabilities[0].capability).not.toBe('grid_operator_identity_resolution');
+  });
 });

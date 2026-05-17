@@ -374,6 +374,32 @@ function findBestCapability(message) {
     'firm capacity',
     'flexible capacity',
   ];
+  const vdmiGovernanceSignals = [
+    'arealnetzbetreiber',
+    '§17 enwg',
+    '17 enwg',
+    'ohne formales netzanschlussbegehren',
+    'netzanschlussbegehren',
+    'projektträger nicht netzbetreiber',
+    'darf keine netzanschlusszusage treffen',
+    'zulässige aussagen',
+    'rollengrenze',
+  ];
+
+  const hasVdmiBoundaryCombo =
+    /(rollen|rolle|schnittstellen)/i.test(haystack)
+    && /(netzanschluss|enwg|arealnetz|gatekeeper)/i.test(haystack);
+
+  if (vdmiGovernanceSignals.some((signal) => haystack.includes(signal)) || hasVdmiBoundaryCombo) {
+    const vdmiGovernanceCapability = findCapabilityByName('vdmi_role_boundary_governance');
+    if (vdmiGovernanceCapability) {
+      return {
+        capability: vdmiGovernanceCapability,
+        score: 100,
+        usedFallback: false,
+      };
+    }
+  }
 
   if (cyaSignals.some((signal) => haystack.includes(signal))) {
     const cyaCapability = findCapabilityByName('cya_assessment_briefing');

@@ -288,4 +288,120 @@ describe('vdmi.service', () => {
     expect(fetched.matrix.tasks[0].dependsOn).toEqual([]);
     expect(fetched.matrix.tasks[0].blocks).toEqual(['task-2']);
   });
+
+  test('agentRole resolves multi-role actors across tasks and supports taskId scoping', async () => {
+    await broker.call(
+      'vdmi.create',
+      {
+        name: 'VDMI Role Boundary Governance',
+        processId: 'job-governance-1',
+        processType: 'grid-connection-governance',
+        tasks: [
+          {
+            taskId: 'demand-intake',
+            taskName: 'Demand Intake',
+            phase: 'planning',
+            verantwortlich: [{ actorType: 'org', actorId: 'AREAL_OWNER' }],
+            durchfuehrend: [{ actorType: 'org', actorId: 'EXISTING_AREAL_GRID_OPERATOR' }],
+            mitwirkend: [{ actorType: 'org', actorId: 'GROUP_ENERGY_PROJECT_OWNER' }],
+            information: [{ actorType: 'org', actorId: 'DSO_GATEKEEPER' }],
+            dependsOn: [],
+            blocks: [],
+          },
+          {
+            taskId: 'network-operator-decision',
+            taskName: 'Network Operator Decision',
+            phase: 'decision',
+            verantwortlich: [{ actorType: 'org', actorId: 'DSO_GATEKEEPER' }],
+            durchfuehrend: [{ actorType: 'org', actorId: 'EXISTING_AREAL_GRID_OPERATOR' }],
+            mitwirkend: [{ actorType: 'org', actorId: 'GROUP_ENERGY_PROJECT_OWNER' }],
+            information: [{ actorType: 'org', actorId: 'AREAL_OWNER' }],
+            dependsOn: ['demand-intake'],
+            blocks: [],
+          },
+        ],
+      },
+      { meta: { tenantId: 'tenant-a', userId: 'u-1' } }
+    );
+
+    const aggregate = await broker.call(
+      'vdmi.agentRole',
+      {
+        agentId: 'DSO_GATEKEEPER',
+        processType: 'grid-connection-governance',
+      },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+
+    expect(aggregate.success).toBe(true);
+    expect(aggregate.role).toBe('V');
+    expect(aggregate.highestRole).toBe('V');
+    expect(Array.isArray(aggregate.rolesByTask)).toBe(true);
+    expect(aggregate.rolesByTask).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ taskId: 'demand-intake', role: 'I' }),
+        expect.objectContaining({ taskId: 'network-operator-decision', role: 'V' }),
+      ])
+    );
+    expect(aggregate.warnings).toContain('actor_has_multiple_roles_across_tasks');
+
+    const decisionScoped = await broker.call(
+      'vdmi.agentRole',
+      {
+        agentId: 'DSO_GATEKEEPER',
+        processType: 'grid-connection-governance',
+        taskId: 'network-operator-decision',
+      },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+    expect(decisionScoped.role).toBe('V');
+    expect(decisionScoped.highestRole).toBe('V');
+    expect(decisionScoped.taskId).toBe('network-operator-decision');
+
+    const intakeScoped = await broker.call(
+      'vdmi.agentRole',
+      {
+        agentId: 'DSO_GATEKEEPER',
+        processType: 'grid-connection-governance',
+        taskId: 'demand-intake',
+      },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+    expect(intakeScoped.role).toBe('I');
+    expect(intakeScoped.highestRole).toBe('I');
+    expect(intakeScoped.taskId).toBe('demand-intake');
+  });
+
+  test('keeps guardrail: create rejects tasks with more than one D actor (CONFLICT_ROLE)', async () => {
+    await expect(
+      broker.call(
+        'vdmi.create',
+        {
+          name: 'Invalid D Role Matrix',
+          processId: 'job-conflict-d-1',
+          processType: 'grid-connection-governance',
+          tasks: [
+            {
+              taskId: 'demand-intake',
+              taskName: 'Demand Intake',
+              phase: 'planning',
+              verantwortlich: [],
+              durchfuehrend: [
+                { actorType: 'org', actorId: 'EXISTING_AREAL_GRID_OPERATOR' },
+                { actorType: 'org', actorId: 'GROUP_ENERGY_PROJECT_OWNER' },
+              ],
+              mitwirkend: [],
+              information: [],
+              dependsOn: [],
+              blocks: [],
+            },
+          ],
+        },
+        { meta: { tenantId: 'tenant-a', userId: 'u-1' } }
+      )
+    ).rejects.toMatchObject({
+      code: 409,
+      type: 'CONFLICT_ROLE',
+    });
+  });
 });

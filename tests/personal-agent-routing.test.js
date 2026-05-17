@@ -183,4 +183,31 @@ describe('personal-agent-routing', () => {
     expect(plan.steps[0].contextNote).toContain('EnWG-Rahmen');
     expect(plan.steps[1].contextNote).toContain('EnWG-Rahmen');
   });
+
+  it('keeps broker-selected VDMI role-boundary governance intent in execution plan', () => {
+    const plan = buildExecutionPlan({
+      message: 'Rollen und Schnittstellen klären: ohne Netzanschlussbegehren keine Zusage',
+      brokerRecommendation: {
+        recommendedCapabilities: [
+          {
+            capability: 'vdmi_role_boundary_governance',
+          },
+        ],
+        recommendedPlan: [
+          {
+            action: 'vdmi.agentRole',
+            params: {
+              processType: 'grid-connection-governance',
+            },
+          },
+        ],
+      },
+    });
+
+    expect(plan.source).toBe('capability-broker');
+    expect(plan.routeLabel).toBe('vdmi_role_boundary_governance');
+    expect(plan.primaryIntent).toBe('vdmi_role_boundary_governance');
+    expect(plan.primaryIntent).not.toBe('resolve_grid_operator_identity');
+    expect(plan.steps[0].action).toBe('vdmi.agentRole');
+  });
 });

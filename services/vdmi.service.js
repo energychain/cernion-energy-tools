@@ -19,6 +19,14 @@ const SHADOW_EVENT_PATTERNS = [
   'mail.folder.moved',
 ];
 
+const ROLE_PRIORITY = Object.freeze({ I: 1, M: 2, D: 3, V: 4 });
+const ROLE_CONSTRAINTS = Object.freeze({
+  V: ['escalate_hitl', 'single_owner'],
+  D: ['execute_with_evidence', 'respect_role_boundary'],
+  M: ['advisory_only', 'no_final_decision'],
+  I: ['inform_only'],
+});
+
 function nowIso() {
   return new Date().toISOString();
 }
@@ -133,6 +141,25 @@ function uniqueActors(list) {
     out.push(actor);
   }
   return out;
+}
+
+function constraintsForRole(role) {
+  return ROLE_CONSTRAINTS[role] || ['no_assigned_role_found'];
+}
+
+function pickHighestRole(entries = []) {
+  if (!Array.isArray(entries) || entries.length === 0) {
+    return null;
+  }
+  let winner = entries[0];
+  for (const entry of entries.slice(1)) {
+    const current = ROLE_PRIORITY[entry.role] || 0;
+    const best = ROLE_PRIORITY[winner.role] || 0;
+    if (current > best) {
+      winner = entry;
+    }
+  }
+  return winner;
 }
 
 module.exports = {
@@ -878,6 +905,7 @@ module.exports = {
       params: {
         agentId: { type: 'string', min: 2 },
         processType: { type: 'string', optional: true },
+        taskId: { type: 'string', optional: true },
       },
       openapi: {
         summary: 'Return guardrail role for an agent',
@@ -890,64 +918,96 @@ module.exports = {
             schema: { type: 'string', example: 'technical' },
           },
           { name: 'processType', in: 'query', schema: { type: 'string', example: 'adhoc' } },
+          { name: 'taskId', in: 'query', schema: { type: 'string', example: 'network-operator-decision' } },
         ],
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
         const docs = await this.getTenantDocsByPrefix(DOC_PREFIX, tenantId);
         const processType = ctx.params.processType || null;
+        const taskId = ctx.params.taskId || null;
+        const agentId = ctx.params.agentId;
 
         const candidates = docs
           .filter((doc) => !processType || doc.processType === processType)
           .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+        const rolesByTaskRaw = [];
 
         for (const matrix of candidates) {
           for (const task of matrix.tasks || []) {
-            if ((task.verantwortlich || []).some((a) => a.actorId === ctx.params.agentId)) {
-              return {
-                success: true,
-                role: 'V',
-                constraints: ['escalate_hitl', 'single_owner'],
-                matrixId: matrix.id,
-                taskId: task.taskId,
-              };
+            if (taskId && task.taskId !== taskId) {
+              continue;
             }
-            if ((task.durchfuehrend || []).some((a) => a.actorId === ctx.params.agentId)) {
-              return {
-                success: true,
-                role: 'D',
-                constraints: ['execute_with_evidence', 'respect_role_boundary'],
-                matrixId: matrix.id,
-                taskId: task.taskId,
-              };
+
+            const taskRoles = [];
+            if ((task.verantwortlich || []).some((a) => a.actorId === agentId)) {
+              taskRoles.push('V');
             }
-            if ((task.mitwirkend || []).some((a) => a.actorId === ctx.params.agentId)) {
-              return {
-                success: true,
-                role: 'M',
-                constraints: ['advisory_only', 'no_final_decision'],
-                matrixId: matrix.id,
-                taskId: task.taskId,
-              };
+            if ((task.durchfuehrend || []).some((a) => a.actorId === agentId)) {
+              taskRoles.push('D');
             }
-            if ((task.information || []).some((a) => a.actorId === ctx.params.agentId)) {
-              return {
-                success: true,
-                role: 'I',
-                constraints: ['inform_only'],
-                matrixId: matrix.id,
-                taskId: task.taskId,
-              };
+            if ((task.mitwirkend || []).some((a) => a.actorId === agentId)) {
+              taskRoles.push('M');
             }
+            if ((task.information || []).some((a) => a.actorId === agentId)) {
+              taskRoles.push('I');
+            }
+
+            if (taskRoles.length === 0) {
+              continue;
+            }
+
+            const highestTaskRole = taskRoles.reduce((best, role) => {
+              if (!best) return role;
+              return (ROLE_PRIORITY[role] || 0) > (ROLE_PRIORITY[best] || 0) ? role : best;
+            }, null);
+
+            rolesByTaskRaw.push({
+              matrixId: matrix.id,
+              taskId: task.taskId,
+              role: highestTaskRole,
+              constraints: constraintsForRole(highestTaskRole),
+            });
           }
+        }
+
+        if (rolesByTaskRaw.length === 0) {
+          return {
+            success: true,
+            role: 'I',
+            highestRole: 'I',
+            rolesByTask: [],
+            constraints: ['no_assigned_role_found'],
+            warnings: [],
+            matrixId: null,
+            taskId: taskId || null,
+          };
+        }
+
+        const dedupMap = new Map();
+        for (const entry of rolesByTaskRaw) {
+          const key = `${entry.matrixId}:${entry.taskId}`;
+          const existing = dedupMap.get(key);
+          if (!existing || (ROLE_PRIORITY[entry.role] || 0) > (ROLE_PRIORITY[existing.role] || 0)) {
+            dedupMap.set(key, entry);
+          }
+        }
+        const rolesByTask = Array.from(dedupMap.values());
+        const highest = pickHighestRole(rolesByTask);
+        const warnings = [];
+        if (!taskId && rolesByTask.length > 1) {
+          warnings.push('actor_has_multiple_roles_across_tasks');
         }
 
         return {
           success: true,
-          role: 'I',
-          constraints: ['no_assigned_role_found'],
-          matrixId: null,
-          taskId: null,
+          role: highest.role,
+          highestRole: highest.role,
+          rolesByTask,
+          constraints: constraintsForRole(highest.role),
+          warnings,
+          matrixId: highest.matrixId,
+          taskId: highest.taskId,
         };
       },
     },
