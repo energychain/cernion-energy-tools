@@ -1409,6 +1409,48 @@ module.exports = {
       return merged;
     },
 
+    resolveMethodologyFallbackType({ message, plan = {}, execution = {} }) {
+      const routingSignals = [
+        message,
+        plan?.primaryIntent,
+        plan?.routeKey,
+        plan?.routeLabel,
+        ...(Array.isArray(plan?.secondaryIntents) ? plan.secondaryIntents : []),
+        ...(Array.isArray(plan?.requestedDomains) ? plan.requestedDomains : []),
+        ...(Array.isArray(plan?.unsupportedDomains) ? plan.unsupportedDomains : []),
+        ...(Array.isArray(plan?.steps)
+          ? plan.steps.map((step) => `${step?.purpose || ''} ${step?.label || ''}`)
+          : []),
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      if (/(market|markt|regulator|preis|pricing|preisdaten|entso-e|netztransparenz|day-ahead|negativpreis|volatil)/i.test(routingSignals)) {
+        return 'market';
+      }
+
+      if (/(risk assessment|risk|risiko|due diligence|due-diligence|kreditausschuss|kredit|loan|lender|investment committee|komitee|condition precedent)/i.test(routingSignals)) {
+        return 'risk';
+      }
+
+      if (this.isFinanceRiskTask(message, plan, execution)) {
+        return 'finance-risk-generic';
+      }
+
+      return null;
+    },
+
+    buildGenericMethodologicalNextText(taskTone = 'finance-risk', assumption = null) {
+      const assumptionNote = assumption
+        ? ' Die Einordnung bleibt bis zur Evidenzprüfung ausdrücklich vorläufig.'
+        : '';
+
+      return taskTone === 'finance-risk'
+        ? `Ohne angebundene Fachschnittstelle liefere ich zunächst eine belastbare Methodik: Annahmen offenlegen, Evidenzlücken priorisieren, Sensitivitäten dokumentieren und Entscheidungsvorbehalte sauber trennen.${assumptionNote}`
+        : `Ohne angebundene Fachschnittstelle kann ich zunächst Methodik, Evidenzlücken und nächste Prüfschritte strukturiert benennen.${assumptionNote}`;
+    },
+
     buildRecoveryNextText({ message, plan = {}, execution = {}, stopPoint = {}, taskTone, assumptions = [] }) {
       const locationAssumption = assumptions.find(
         (a) => a.type === 'location_operator_unverified'
@@ -1444,14 +1486,22 @@ module.exports = {
       }
 
       if (stopPoint.status === 'interface-placeholder' || stopPoint.reasonCode === 'UNSUPPORTED_CHAIN') {
-        // For T4/T5 style requests (Market/Regulatory, Risk Assessment)
-        // return methodological answer instead of bare placeholder
-        const blockedAction = stopPoint?.blockedAction || '';
-        if (blockedAction.includes('price') || blockedAction.includes('market') || blockedAction.includes('regulatory')) {
+        const fallbackType = this.resolveMethodologyFallbackType({
+          message,
+          plan,
+          execution,
+        });
+
+        if (fallbackType === 'market') {
           return this.buildMarketMethodologicalNextText(taskTone, locationAssumption);
         }
-        if (blockedAction.includes('risk') || blockedAction.includes('assessment')) {
+
+        if (fallbackType === 'risk') {
           return this.buildRiskAssessmentNextText(taskTone, locationAssumption);
+        }
+
+        if (fallbackType === 'finance-risk-generic') {
+          return this.buildGenericMethodologicalNextText(taskTone, locationAssumption);
         }
 
         const suggestion = this.getRecoveryNextSuggestion(stopPoint, plan);
@@ -2287,6 +2337,37 @@ module.exports = {
       if (hardMismatch) {
         return {
           status: 'mismatch',
+          hints: {
+            assertedOperator,
+            matchedOperatorName,
+            projectLocation,
+            lookupCity,
+          },
+        };
+      }
+
+      const hardVerified = Boolean(
+        vnbLookupStep?.result?.operator?.isResponsible === true
+        || vnbLookupStep?.result?.operator?.zustaendig === true
+        || vnbLookupStep?.result?.responsibilityMatch === true
+        || vnbLookupStep?.result?.operator?.evidenceVerified === true
+        || vnbLookupStep?.result?.operator?.verified === true
+      );
+
+      const normalizedProjectLocation = this.normalizeComparableText(projectLocation);
+      const normalizedLookupCity = this.normalizeComparableText(lookupCity);
+      const locationMatches = Boolean(
+        normalizedProjectLocation
+        && normalizedLookupCity
+        && (
+          normalizedLookupCity.includes(normalizedProjectLocation)
+          || normalizedProjectLocation.includes(normalizedLookupCity)
+        )
+      );
+
+      if (hardVerified && locationMatches) {
+        return {
+          status: 'verified',
           hints: {
             assertedOperator,
             matchedOperatorName,

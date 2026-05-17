@@ -128,12 +128,17 @@ describe('personal-agent.service', () => {
             if (!ctx.params.bdew && !ctx.params.city && !ctx.params.query && !ctx.params.vnbName) {
               throw new Error('Parameters validation error!');
             }
+            const isVerifiedPath = String(ctx.params.city || '').toLowerCase() === 'trier';
+            const operatorName = ctx.params.vnbName || (isVerifiedPath ? 'Stadtwerk Trier' : 'TWL Netze');
             return {
               success: true,
               operator: {
                 bdew: ctx.params.bdew || '1234567890123',
                 city: ctx.params.city || 'Trier',
+                name: operatorName,
+                isResponsible: isVerifiedPath ? true : undefined,
               },
+              responsibilityMatch: isVerifiedPath ? true : undefined,
             };
           },
         },
@@ -468,7 +473,7 @@ describe('personal-agent.service', () => {
     expect(session.l3.onboardingQuestions[0].answer).toBe('Hybridprofil 5 MW, flexibel 2 MW');
   });
 
-  it('preserves working assumptions across turns and does not repeat the T1 evidence question for follow-up prompts', async () => {
+  it('preserves working assumptions across turns and does not repeat the T1 onboarding question on a persisted follow-up', async () => {
     const meta = { meta: { tenantId: 'tenant-cetred-followup', authUser: { userId: 'user-1' } } };
     const first = await broker.call(
       'personal-agent.chat',
@@ -489,6 +494,7 @@ describe('personal-agent.service', () => {
         }),
       ])
     );
+    const firstQuestion = first.execution.stopPoint.onboardingQuestion.questionText;
 
     const second = await broker.call(
       'personal-agent.chat',
@@ -500,8 +506,8 @@ describe('personal-agent.service', () => {
       meta
     );
 
-    expect(second.reply).toMatch(/Working Assumption|vorläufig|weiterarbeiten|Methodik|Evidenzpunkte/i);
-    expect(second.reply).not.toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
+    expect(second.reply).toMatch(/Risikoflag|vorläufig|noch nicht durch Evidenz belegt|Working Assumption/i);
+    expect(second.reply).not.toContain(firstQuestion);
     expect(second.reply).not.toMatch(/operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED/i);
 
     const session = await broker.call(
@@ -1252,12 +1258,14 @@ describe('personal-agent.service', () => {
   it('returns methodological answer for T4 Market/Regulatory question instead of bare placeholder', async () => {
     const svc = broker.getLocalService('personal-agent');
 
-    // Simulate T4 context: missing market data / VNB regulatory capability
+    // Simulate T4 context: unsupported chain classified via primaryIntent, not blockedAction text
     const plan = {
+      primaryIntent: 'market-regulatory-assessment',
+      routeLabel: 'Market / Regulatory Assessment',
       steps: [
         {
           step: 4,
-          action: 'market-data.priceHistogram',
+          action: 'unsupported.providerBridge',
           purpose: 'Preisdaten abrufen',
         },
       ],
@@ -1269,7 +1277,7 @@ describe('personal-agent.service', () => {
       steps: [],
       stopPoint: {
         reasonCode: 'UNSUPPORTED_CHAIN',
-        blockedAction: 'market-data.priceHistogram',
+        blockedAction: 'unsupported.providerBridge',
         blockedStep: 4,
         status: 'interface-placeholder',
       },
@@ -1300,12 +1308,14 @@ describe('personal-agent.service', () => {
   it('synthesizes preliminary risk assessment from session state without placeholder', async () => {
     const svc = broker.getLocalService('personal-agent');
 
-    // Simulate T5 context: Risk Assessment request after earlier VNB evidence gap
+    // Simulate T5 context: classification via finance/risk intent, not blockedAction text
     const plan = {
+      primaryIntent: 'finance-agent.analyze',
+      routeLabel: 'Risk Assessment',
       steps: [
         {
           step: 5,
-          action: 'risk-assessment.generate',
+          action: 'unsupported.creditCommitteeBridge',
           purpose: 'Risk Assessment erstellen',
         },
       ],
@@ -1330,7 +1340,7 @@ describe('personal-agent.service', () => {
       ],
       stopPoint: {
         reasonCode: 'UNSUPPORTED_CHAIN',
-        blockedAction: 'risk-assessment.generate',
+        blockedAction: 'unsupported.creditCommitteeBridge',
         blockedStep: 5,
         status: 'interface-placeholder',
       },
@@ -1407,6 +1417,102 @@ describe('personal-agent.service', () => {
     const question = svc.schema.methods.buildOperatorEvidenceQuestion.call(svc, consistency);
     expect(question).toMatch(/Due Diligence|Netzanschlusszusage|BDEW|Marktlokation/i);
     expect(question).not.toMatch(/operatorEvidence/i);
+  });
+
+  it('returns a generic methodological fallback for unsupported finance/risk chains without blockedAction hints', () => {
+    const svc = broker.getLocalService('personal-agent');
+
+    const reply = svc.schema.methods.buildRecoveryReply.call(svc, {
+      message: 'Wie soll ich das für die Finanzierung methodisch weiter strukturieren?',
+      plan: {
+        primaryIntent: 'finance-agent.analyze',
+        routeLabel: 'Finanzierungsprüfung',
+        steps: [
+          {
+            step: 3,
+            action: 'unsupported.externalBridge',
+            purpose: 'Externe Finanzdaten integrieren',
+          },
+        ],
+      },
+      execution: {
+        status: 'partial',
+        completedSteps: 0,
+        steps: [],
+        stopPoint: {
+          reasonCode: 'UNSUPPORTED_CHAIN',
+          blockedAction: 'unsupported.externalBridge',
+          blockedStep: 3,
+          status: 'interface-placeholder',
+        },
+      },
+    });
+
+    expect(reply).toMatch(/Methodik|Annahmen|Evidenzlücken|Sensitivitäten|Entscheidungsvorbehalte/i);
+    expect(reply).not.toMatch(/interface_placeholder|ACTION_FAILED|__step_/i);
+  });
+
+  it('completes the verified Standort/VNB path without storing assumptions', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const execution = await svc.schema.methods.executeDeterministicPlan.call(svc, {
+      call: broker.call.bind(broker),
+      meta: { tenantId: 'tenant-verified', authUser: { userId: 'user-1' } },
+    }, {
+      message: 'Projekt in Trier, Netzbetreiber Stadtwerk Trier',
+      knownContext: {
+        location: 'Trier',
+        gridOperatorName: 'Stadtwerk Trier',
+        assertedGridOperatorName: 'Stadtwerk Trier',
+      },
+      plan: {
+        status: 'ready',
+        promptHints: {
+          location: 'Trier',
+          city: 'Trier',
+          gridOperatorName: 'Stadtwerk Trier',
+          assertedGridOperatorName: 'Stadtwerk Trier',
+        },
+        steps: [
+          {
+            step: 1,
+            action: 'grid-operations.marketPartners',
+            paramsTemplate: {
+              query: 'Stadtwerk Trier',
+              limit: 3,
+            },
+          },
+          {
+            step: 2,
+            action: 'grid-operations.vnbLookup',
+            paramsTemplate: {
+              bdew: '__step_1.data.results[0].bdewCode',
+              city: '__step_1.data.results[0].contacts[0].city',
+            },
+          },
+        ],
+      },
+    });
+
+    expect(execution.status).toBe('completed');
+    expect(execution.stopPoint).toBeNull();
+    expect(execution.assumptions).toEqual([]);
+
+    const consistency = svc.schema.methods.classifyLocationOperatorConsistency.call(svc, {
+      knownContext: {
+        location: 'Trier',
+        gridOperatorName: 'Stadtwerk Trier',
+        assertedGridOperatorName: 'Stadtwerk Trier',
+      },
+      promptHints: {
+        location: 'Trier',
+        city: 'Trier',
+        gridOperatorName: 'Stadtwerk Trier',
+        assertedGridOperatorName: 'Stadtwerk Trier',
+      },
+      steps: execution.steps,
+    });
+
+    expect(consistency?.status).toBe('verified');
   });
 
 });

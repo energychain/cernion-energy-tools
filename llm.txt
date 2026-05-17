@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.52.11
-- changelog_latest_release: 0.52.11
+- version: 0.52.12
+- changelog_latest_release: 0.52.12
 - source_files_hash:
-  - CHANGELOG.md: 7ae15c4f87cc2a78935695eff353789507e8a5f8839fab3ced907fb528f7fb9b
+  - CHANGELOG.md: 979db6e36de6be6d458475363c37037a3173d41daa11822078c744d653458984
   - README.md: c49ef9bd657c7f28ff2767a278e56cbddfc44cdd1ad59008b51859d1113e1aed
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: b6ecf29ff42faced2bbc868765ef1469326088eaf61020a2ec38ebd4ce4eab09
-  - openapi-export.json: 3fb7a8328e864aeae21d169e26091f4ddad6a8cb7cea0c95568d1e6464107a5d
+  - openapi-export.json: bf3c94b10fcabb1030a547944765578a2bd8348466972395a4635cda1e388320
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -18,15 +18,6 @@ It provides a complete implementation picture: architecture, domain knowledge, c
 ## Release Provenance
 ### Unreleased (from CHANGELOG)
 ## [Unreleased]
-
-### Changed
-- [services/personal-agent.service.js](services/personal-agent.service.js): fixed live multi-turn CETRed continuation on top of [0.52.11](CHANGELOG.md#L8) by persisting bounded working assumptions in L3, carrying them across turns, and switching recovery synthesis to assumption-aware continuation/methodology/risk text instead of repeating the original Due-Diligence evidence question for every follow-up prompt.
-- [src/personal-agent-onboarding.js](src/personal-agent-onboarding.js): hardened `operatorEvidence` answer capture so analytical follow-up prompts are no longer misclassified as onboarding answers; only evidence-like answers (e.g. BDEW/BKZ/Marktlokation/Netzanschlusspunkt) advance that question.
-
-### Tests
-- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added session-based regression coverage for CETRed T1→T2/T4/T5 follow-ups, assumption persistence, and user-reply leak suppression.
-- [tests/personal-agent-onboarding.test.js](tests/personal-agent-onboarding.test.js): added heuristics coverage for rejecting analytical follow-ups as `operatorEvidence` answers while accepting evidence-like payloads.
-- [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js): added opt-in HTTP-only blackbox scenario `PA-MT-004` for the CETRed Working-Assumption flow on `POST /api/personal-agent/chat`.
 
 ## Domain-Specific Business Knowledge (Energy + Utility)
 
@@ -976,7 +967,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.52.11"
+    "version": "0.52.12"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -22908,8 +22899,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.52.11"
+  "x-version": "0.52.12"
 }
 
 ## Integrity
-- llm_txt_sha256: def537b6d09ad97772075026d5dcfd1dc66e826bdb27389fb64ad9ad8d0c6873
+- llm_txt_sha256: 735f0102a1d4fd87a93b3c608d70f0c8e096fb01e2b2fd5d14d03b72e991713c
