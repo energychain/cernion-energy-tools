@@ -223,6 +223,20 @@ describe('personal-agent-routing', () => {
     expect(plan.steps[0].action).toBe('vdmi.dossier');
   });
 
+  it('selects VDMI grid-connection decision governance in fallback routing for formal decision prompts', () => {
+    const plan = buildExecutionPlan({
+      message: 'Kann der Netzbetreiber ohne formales §17 EnWG Netzanschlussbegehren eine belastbare Anschlusszusage oder Kapazitaetszusage geben?',
+      brokerRecommendation: null,
+    });
+
+    expect(plan.source).toBe('capability-broker');
+    expect(plan.routeLabel).toBe('vdmi_grid_connection_decision_governance');
+    expect(plan.primaryIntent).toBe('vdmi_grid_connection_decision_governance');
+    expect(plan.steps.map((step) => step.action)).toEqual(
+      expect.arrayContaining(['vdmi.dossier', 'vdmi.negotiationTrace', 'vdmi.agentRole'])
+    );
+  });
+
   it('keeps broker-selected VDMI asset-validation governance intent in execution plan', () => {
     const plan = buildExecutionPlan({
       message: 'Bitte Task asset-1 validieren',
@@ -248,5 +262,44 @@ describe('personal-agent-routing', () => {
     expect(plan.primaryIntent).toBe('vdmi_asset_validation_governance');
     expect(plan.steps[0].action).toBe('vdmi.dossier');
     expect(plan.steps[0].paramsTemplate.taskId).toBe('asset-1');
+  });
+
+  it('keeps broker-selected VDMI decision governance intent in execution plan', () => {
+    const plan = buildExecutionPlan({
+      message: 'Entscheidung zur Anschlusszusage prüfen',
+      brokerRecommendation: {
+        recommendedCapabilities: [
+          {
+            capability: 'vdmi_grid_connection_decision_governance',
+          },
+        ],
+        recommendedPlan: [
+          {
+            action: 'vdmi.dossier',
+            params: {
+              taskId: 'network-operator-decision',
+            },
+          },
+          {
+            action: 'vdmi.negotiationTrace',
+            params: {
+              taskId: 'network-operator-decision',
+            },
+          },
+          {
+            action: 'vdmi.agentRole',
+            params: {
+              taskId: 'network-operator-decision',
+              processType: 'grid-connection-governance',
+            },
+          },
+        ],
+      },
+    });
+
+    expect(plan.routeLabel).toBe('vdmi_grid_connection_decision_governance');
+    expect(plan.primaryIntent).toBe('vdmi_grid_connection_decision_governance');
+    expect(plan.steps[2].action).toBe('vdmi.agentRole');
+    expect(plan.steps[2].paramsTemplate.taskId).toBe('network-operator-decision');
   });
 });

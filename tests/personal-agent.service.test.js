@@ -177,6 +177,140 @@ describe('personal-agent.service', () => {
         },
       },
     });
+    broker.createService({
+      name: 'vdmi',
+      actions: {
+        dossier: {
+          handler(ctx) {
+            executedActions.push('vdmi.dossier');
+            executedCallDetails.push({ action: 'vdmi.dossier', params: ctx.params });
+            if (!ctx.params.taskId) {
+              throw new Error('taskId is required');
+            }
+            return {
+              success: true,
+              matrixId: 'matrix-step3',
+              taskId: ctx.params.taskId,
+              dossier: {
+                task: {
+                  taskId: ctx.params.taskId,
+                  taskName: 'Network Operator Decision',
+                  phase: 'decision',
+                  processType: 'grid-connection-governance',
+                  processId: 'job-governance-step3',
+                  matrixId: 'matrix-step3',
+                  verantwortlich: [{ actorType: 'org', actorId: 'DSO_GATEKEEPER' }],
+                  durchfuehrend: [{ actorType: 'org', actorId: 'EXISTING_AREAL_GRID_OPERATOR' }],
+                  mitwirkend: [{ actorType: 'org', actorId: 'GROUP_ENERGY_PROJECT_OWNER' }],
+                  information: [{ actorType: 'org', actorId: 'AREAL_OWNER' }],
+                },
+                evidenceGaps: [
+                  { requirementId: 'formal-request', label: 'Vollständiger §17-Antrag' },
+                  { requirementId: 'tech-data', label: 'Technische Anschlussdaten' },
+                  { requirementId: 'asset-proof', label: 'Asset-Zustandsnachweise' },
+                  { requirementId: 'compatibility', label: 'Netzverträglichkeitsprüfung' },
+                  { requirementId: 'capacity-check', label: 'Kapazitäts-/Netzfahrplanprüfung' },
+                ],
+                forbiddenAssumptions: [
+                  'Keine belastbare Anschlusszusage ohne formalen Antrag',
+                  'Keine Kapazitätsreservierung ohne formalen Antrag',
+                  'Kein verbindlicher Übergabepunkt ohne formale Prüfung',
+                  'Projekt-/Versorgungskonzept ersetzt keine Netzbetreiberentscheidung',
+                ],
+              },
+            };
+          },
+        },
+        negotiationTrace: {
+          handler(ctx) {
+            executedActions.push('vdmi.negotiationTrace');
+            executedCallDetails.push({ action: 'vdmi.negotiationTrace', params: ctx.params });
+            if (!ctx.params.taskId) {
+              throw new Error('taskId is required');
+            }
+            return {
+              success: true,
+              taskId: ctx.params.taskId,
+              loopProtection: {
+                converged: true,
+                roleBoundaryViolation: false,
+              },
+              trace: [
+                {
+                  round: 1,
+                  eventName: 'agent.plan.step.executed',
+                  roleCandidates: [{ role: 'D', actorId: 'EXISTING_AREAL_GRID_OPERATOR' }],
+                },
+              ],
+            };
+          },
+        },
+        agentRole: {
+          handler(ctx) {
+            executedActions.push('vdmi.agentRole');
+            executedCallDetails.push({ action: 'vdmi.agentRole', params: ctx.params });
+            if (!ctx.params.agentId) {
+              throw new Error('agentId is required');
+            }
+            return {
+              success: true,
+              role: ctx.params.agentId === 'DSO_GATEKEEPER' ? 'V' : 'I',
+              highestRole: ctx.params.agentId === 'DSO_GATEKEEPER' ? 'V' : 'I',
+              rolesByTask: [
+                {
+                  taskId: ctx.params.taskId || 'network-operator-decision',
+                  role: ctx.params.agentId === 'DSO_GATEKEEPER' ? 'V' : 'I',
+                },
+              ],
+              taskId: ctx.params.taskId || 'network-operator-decision',
+            };
+          },
+        },
+        get: {
+          handler() {
+            return {
+              success: true,
+              matrix: {
+                id: 'matrix-step3',
+                processId: 'job-governance-step3',
+                processType: 'grid-connection-governance',
+                tasks: [
+                  {
+                    taskId: 'demand-intake',
+                    taskName: 'Demand Intake',
+                    verantwortlich: [{ actorType: 'org', actorId: 'AREAL_OWNER' }],
+                  },
+                  {
+                    taskId: 'network-operator-decision',
+                    taskName: 'Network Operator Decision',
+                    verantwortlich: [{ actorType: 'org', actorId: 'DSO_GATEKEEPER' }],
+                  },
+                ],
+              },
+            };
+          },
+        },
+        context: {
+          handler() {
+            return {
+              success: true,
+              matrix: {
+                id: 'matrix-step3',
+                processId: 'job-governance-step3',
+                processType: 'grid-connection-governance',
+                tasks: [
+                  {
+                    taskId: 'network-operator-decision',
+                    taskName: 'Network Operator Decision',
+                    verantwortlich: [{ actorType: 'org', actorId: 'DSO_GATEKEEPER' }],
+                  },
+                ],
+              },
+            };
+          },
+        },
+      },
+    });
     broker.createService(PersonalAgentService);
     await broker.start();
   });
@@ -1558,6 +1692,58 @@ describe('personal-agent.service', () => {
     });
 
     expect(consistency?.status).toBe('verified');
+  });
+
+  it('routes formal §17-EnWG decision question to VDMI decision governance and derives V actor for vdmi.agentRole', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Kann der Netzbetreiber ohne formales §17-EnWG-Netzanschlussbegehren eine belastbare Anschluss- oder Kapazitätszusage geben?',
+        executionMode: 'auto',
+        knownContext: {
+          processType: 'grid-connection-governance',
+          taskId: 'network-operator-decision',
+        },
+      },
+      { meta: { tenantId: 'tenant-vdmi-step3-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.routing.routeLabel).toBe('vdmi_grid_connection_decision_governance');
+    expect(result.routing.primaryIntent).toBe('vdmi_grid_connection_decision_governance');
+    expect(result.routing.routeLabel).not.toBe('vdmi_asset_validation_governance');
+
+    expect(result.execution.status).toBe('completed');
+    expect(result.execution.steps.map((step) => step.action)).toEqual([
+      'vdmi.dossier',
+      'vdmi.negotiationTrace',
+      'vdmi.agentRole',
+    ]);
+
+    const roleCall = executedCallDetails.find((entry) => entry.action === 'vdmi.agentRole');
+    expect(roleCall).toBeTruthy();
+    expect(roleCall.params.taskId).toBe('network-operator-decision');
+    expect(roleCall.params.agentId).toBe('DSO_GATEKEEPER');
+  });
+
+  it('stops with interface placeholder when VDMI decision task cannot be resolved uniquely', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Darf der Netzbetreiber ohne formales Netzanschlussbegehren zusagen?',
+        executionMode: 'auto',
+        knownContext: {
+          processType: 'grid-connection-governance',
+        },
+      },
+      { meta: { tenantId: 'tenant-vdmi-step3-b', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.routing.routeLabel).toBe('vdmi_grid_connection_decision_governance');
+    expect(result.execution.status).toBe('partial');
+    expect(result.execution.stopPoint).toBeTruthy();
+    expect(result.execution.stopPoint.reasonCode).toMatch(/MISSING_VDMI_TASK_CONTEXT|AMBIGUOUS_VDMI_V_ACTOR|MISSING_VDMI_V_ACTOR/);
+    expect(result.execution.stopPoint.status).toBe('interface-placeholder');
   });
 
 });

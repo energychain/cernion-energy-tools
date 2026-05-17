@@ -1702,6 +1702,10 @@ module.exports = {
 
     humanizeMissingParam(param) {
       const mapping = {
+        taskId: 'die VDMI-Task-ID',
+        agentId: 'den verantwortlichen Akteur',
+        matrixId: 'die VDMI-Matrix-ID',
+        processId: 'die Prozess-ID',
         projectId: 'die Projekt-ID',
         gridOperatorName: 'den Netzbetreiber',
         gridOperatorId: 'die Netzbetreiber-ID',
@@ -2133,6 +2137,209 @@ module.exports = {
       }
     },
 
+    findBestVdmiDecisionTask(matrix = {}) {
+      const tasks = Array.isArray(matrix?.tasks) ? matrix.tasks : [];
+      if (tasks.length === 0) {
+        return {
+          task: null,
+          reason: 'no_tasks_available',
+        };
+      }
+
+      const decisionRegex = /(decision|entscheidung|netzbetreiberentscheidung|anschluss|kapazit[aä]t|uebergabepunkt|übergabepunkt|governance|formal|antrag|gatekeeper)/i;
+      const decisionCandidates = tasks.filter((task) =>
+        decisionRegex.test(`${task?.taskId || ''} ${task?.taskName || ''} ${task?.phase || ''}`)
+      );
+
+      if (decisionCandidates.length === 1) {
+        return {
+          task: decisionCandidates[0],
+          reason: 'decision_task_match',
+        };
+      }
+
+      if (decisionCandidates.length > 1) {
+        return {
+          task: null,
+          reason: 'ambiguous_decision_tasks',
+          candidates: decisionCandidates.map((task) => task?.taskId).filter(Boolean),
+        };
+      }
+
+      if (tasks.length === 1) {
+        return {
+          task: tasks[0],
+          reason: 'single_task_fallback',
+        };
+      }
+
+      return {
+        task: null,
+        reason: 'task_context_required',
+        candidates: tasks.map((task) => task?.taskId).filter(Boolean),
+      };
+    },
+
+    extractVdmiTaskFromExecutionState(executionState = {}) {
+      const stepResults = executionState?.stepResults || {};
+      const steps = Object.values(stepResults).map((entry) => entry?.raw || entry?.data || entry || {});
+
+      for (const payload of steps.reverse()) {
+        const dossierTask = payload?.dossier?.task;
+        if (dossierTask && (dossierTask.taskId || dossierTask.taskName)) {
+          return dossierTask;
+        }
+      }
+
+      return null;
+    },
+
+    async loadVdmiMatrixForKnownContext(ctx, knownContext = {}) {
+      const matrixId = knownContext?.matrixId || null;
+      const processId = knownContext?.processId || knownContext?.jobId || null;
+
+      if (matrixId) {
+        try {
+          const response = await ctx.call('vdmi.get', { id: matrixId }, { meta: ctx.meta });
+          return response?.matrix || null;
+        } catch (error) {
+          if (isActionUnavailable(error) || isNotFound(error)) {
+            return null;
+          }
+          throw error;
+        }
+      }
+
+      if (processId) {
+        try {
+          const response = await ctx.call('vdmi.context', { jobId: processId }, { meta: ctx.meta });
+          return response?.matrix || null;
+        } catch (error) {
+          if (isActionUnavailable(error) || isNotFound(error)) {
+            return null;
+          }
+          throw error;
+        }
+      }
+
+      return null;
+    },
+
+    async hydrateVdmiStepParams(ctx, {
+      plannedStep,
+      params,
+      knownContext,
+      executionState,
+    }) {
+      const action = String(plannedStep?.action || '');
+      if (!action.startsWith('vdmi.')) {
+        return { params, stopPoint: null };
+      }
+
+      const hydrated = { ...(params || {}) };
+
+      if (
+        (action === 'vdmi.dossier' || action === 'vdmi.negotiationTrace' || action === 'vdmi.agentRole')
+        && !hydrated.taskId
+      ) {
+        if (knownContext?.taskId) {
+          hydrated.taskId = knownContext.taskId;
+        } else {
+          const inferredTask = this.extractVdmiTaskFromExecutionState(executionState);
+          if (inferredTask?.taskId) {
+            hydrated.taskId = inferredTask.taskId;
+            knownContext.taskId = inferredTask.taskId;
+          } else {
+            const matrix = await this.loadVdmiMatrixForKnownContext(ctx, knownContext);
+            if (matrix) {
+              const picked = this.findBestVdmiDecisionTask(matrix);
+              if (picked?.task?.taskId) {
+                hydrated.taskId = picked.task.taskId;
+                knownContext.taskId = picked.task.taskId;
+              } else {
+                const reasonSuffix = picked?.reason ? ` (${picked.reason})` : '';
+                return {
+                  params: hydrated,
+                  stopPoint: {
+                    reasonCode: 'MISSING_VDMI_TASK_CONTEXT',
+                    message: `VDMI Task-Kontext ist nicht eindeutig auflösbar${reasonSuffix}.`,
+                    blockedStep: plannedStep.step,
+                    blockedAction: action,
+                    missingParams: ['taskId'],
+                    status: 'interface-placeholder',
+                  },
+                };
+              }
+            } else {
+              return {
+                params: hydrated,
+                stopPoint: {
+                  reasonCode: 'MISSING_VDMI_TASK_CONTEXT',
+                  message: 'VDMI Task-Kontext fehlt. Bitte taskId, matrixId oder processId angeben.',
+                  blockedStep: plannedStep.step,
+                  blockedAction: action,
+                  missingParams: ['taskId'],
+                  status: 'interface-placeholder',
+                },
+              };
+            }
+          }
+        }
+      }
+
+      if (action === 'vdmi.agentRole') {
+        if (!hydrated.processType && knownContext?.processType) {
+          hydrated.processType = knownContext.processType;
+        }
+
+        if (!hydrated.agentId) {
+          const taskFromExecution = this.extractVdmiTaskFromExecutionState(executionState);
+          const taskActors = Array.isArray(taskFromExecution?.verantwortlich)
+            ? taskFromExecution.verantwortlich
+            : [];
+
+          let selectedActors = taskActors;
+
+          if (selectedActors.length === 0 && hydrated.taskId) {
+            const matrix = await this.loadVdmiMatrixForKnownContext(ctx, knownContext);
+            const matchedTask = (matrix?.tasks || []).find((task) => task?.taskId === hydrated.taskId);
+            selectedActors = Array.isArray(matchedTask?.verantwortlich) ? matchedTask.verantwortlich : [];
+          }
+
+          if (selectedActors.length === 1 && selectedActors[0]?.actorId) {
+            hydrated.agentId = selectedActors[0].actorId;
+            knownContext.agentId = selectedActors[0].actorId;
+          } else if (selectedActors.length > 1) {
+            return {
+              params: hydrated,
+              stopPoint: {
+                reasonCode: 'AMBIGUOUS_VDMI_V_ACTOR',
+                message: 'Mehrere verantwortliche V-Akteure gefunden. Bitte Agenten-ID eindeutig angeben.',
+                blockedStep: plannedStep.step,
+                blockedAction: action,
+                missingParams: ['agentId'],
+                status: 'interface-placeholder',
+              },
+            };
+          } else {
+            return {
+              params: hydrated,
+              stopPoint: {
+                reasonCode: 'MISSING_VDMI_V_ACTOR',
+                message: 'Kein verantwortlicher V-Akteur für die Entscheidungstask gefunden.',
+                blockedStep: plannedStep.step,
+                blockedAction: action,
+                missingParams: ['agentId'],
+                status: 'interface-placeholder',
+              },
+            };
+          }
+        }
+      }
+
+      return { params: hydrated, stopPoint: null };
+    },
+
     async executeDeterministicPlan(ctx, {
       message,
       plan,
@@ -2149,7 +2356,7 @@ module.exports = {
       let assumptions = [...(existingAssumptions || [])];
 
       for (const plannedStep of plan.steps) {
-        const params = pruneUndefinedDeep(
+        let params = pruneUndefinedDeep(
           fillTemplateWithContext(
             plannedStep.paramsTemplate,
             plannedStep.action,
@@ -2158,6 +2365,42 @@ module.exports = {
             executionState
           )
         );
+
+        const vdmiHydration = await this.hydrateVdmiStepParams(ctx, {
+          plannedStep,
+          params,
+          knownContext,
+          executionState,
+        });
+        params = pruneUndefinedDeep(vdmiHydration.params || params);
+
+        if (vdmiHydration.stopPoint) {
+          const placeholder = await this.markRoutingGap(ctx, {
+            reasonCode: vdmiHydration.stopPoint.reasonCode,
+            message: vdmiHydration.stopPoint.message,
+            blockedStep: plannedStep.step,
+          });
+          stopPoint = this.buildStopPoint({
+            reasonCode: vdmiHydration.stopPoint.reasonCode,
+            message: vdmiHydration.stopPoint.message,
+            blockedStep: plannedStep.step,
+            status: placeholder ? 'interface-placeholder' : vdmiHydration.stopPoint.status,
+            placeholder: {
+              ...placeholder,
+              blockedAction: plannedStep.action,
+              missingParams: vdmiHydration.stopPoint.missingParams,
+            },
+          });
+          steps.push({
+            step: plannedStep.step,
+            action: plannedStep.action,
+            status: 'blocked',
+            params,
+            missingInputs: vdmiHydration.stopPoint.missingParams || [],
+          });
+          break;
+        }
+
         const missingInputs = getMissingInputs(plannedStep.action, params);
 
         if (missingInputs.length > 0) {

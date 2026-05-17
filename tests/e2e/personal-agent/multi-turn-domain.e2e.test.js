@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 
 const RUN_E2E = process.env.RUN_PERSONAL_AGENT_E2E === 'true';
+const RUN_VDMI_STEP3_E2E = process.env.RUN_PERSONAL_AGENT_E2E_VDMI_STEP3 === 'true';
 const BASE_URL = process.env.PERSONAL_AGENT_E2E_BASE_URL || 'http://127.0.0.1:3900';
 const TENANT_ID = 'agentic-hackathon';
 const CHAT_PATH = '/api/personal-agent/chat';
@@ -162,6 +163,7 @@ function createChatClient(baseUrl) {
 }
 
 const describeE2E = RUN_E2E ? describe : describe.skip;
+const describeVdmiStep3E2E = RUN_E2E && RUN_VDMI_STEP3_E2E ? describe : describe.skip;
 
 describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
   describe('PA-MT-001 Journalist CYA-Fallback', () => {
@@ -574,6 +576,63 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       const reply = extractReply(payload);
       expect(reply).toMatch(/Risk Assessment|Condition Precedent|Due Diligence|Risikoampel/i);
       expect(reply).not.toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
+    });
+  });
+
+  describeVdmiStep3E2E('PA-MT-005 VDMI Step-3 Grid-Connection Decision Governance', () => {
+    jest.setTimeout(30000);
+
+    const client = createChatClient(BASE_URL);
+    let sessionId = null;
+
+    afterAll(() => {
+      sessionId = null;
+      client.clear();
+    });
+
+    it('routes to decision governance and completes dossier/trace/agentRole with auto-derived V actor', async () => {
+      const { response, payload } = await client.chat(
+        'Kann der Netzbetreiber ohne formales §17-EnWG-Netzanschlussbegehren eine belastbare Anschluss- oder Kapazitätszusage geben?',
+        sessionId,
+        {
+          knownContext: {
+            processType: 'grid-connection-governance',
+            taskId: 'network-operator-decision',
+          },
+        }
+      );
+
+      expectHttp200(response);
+      expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      sessionId = payload.sessionId || sessionId;
+
+      expectRoutingContains(payload, ['vdmi_grid_connection_decision_governance']);
+      const routingText = JSON.stringify(payload.routing || {}).toLowerCase();
+      expect(routingText).not.toContain('vdmi_asset_validation_governance');
+
+      const executionSteps = Array.isArray(payload.execution?.steps) ? payload.execution.steps : [];
+      const dossierStep = executionSteps.find((step) => step.action === 'vdmi.dossier');
+      const traceStep = executionSteps.find((step) => step.action === 'vdmi.negotiationTrace');
+      const roleStep = executionSteps.find((step) => step.action === 'vdmi.agentRole');
+
+      expect(dossierStep?.status).toBe('completed');
+      expect(traceStep?.status).toBe('completed');
+      expect(roleStep?.status).toBe('completed');
+
+      const rolePayload = roleStep?.result || {};
+      expect(rolePayload?.highestRole || rolePayload?.role).toBe('V');
+
+      const dossierPayload = dossierStep?.result?.dossier || {};
+      expect(Array.isArray(dossierPayload.evidenceGaps)).toBe(true);
+      expect(dossierPayload.evidenceGaps.length).toBeGreaterThan(0);
+      expect(Array.isArray(dossierPayload.forbiddenAssumptions)).toBe(true);
+      expect(dossierPayload.forbiddenAssumptions.length).toBeGreaterThan(0);
+
+      const reply = extractReply(payload);
+      expect(reply).not.toMatch(/belastbare\s+anschluss-?\/?kapazit[aä]tszusage|anschlusszusage|kapazit[aä]tszusage/i);
       expectNoInternalErrorCodes(reply);
       expectNoReplyLeaks(reply);
     });

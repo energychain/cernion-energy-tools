@@ -506,4 +506,89 @@ describe('vdmi.service', () => {
     );
     expect(dossier.dossier.recommendation).toContain('Collect additional evidence');
   });
+
+  test('step-3 governance decision dossier keeps formal §17 stop with required evidence and forbidden assumptions', async () => {
+    const created = await broker.call(
+      'vdmi.create',
+      {
+        name: 'Step-3 Governance Matrix',
+        processId: 'job-step3-governance',
+        processType: 'grid-connection-governance',
+        tasks: [
+          {
+            taskId: 'network-operator-decision',
+            taskName: 'Network Operator Decision',
+            phase: 'decision',
+            verantwortlich: [{ actorType: 'org', actorId: 'DSO_GATEKEEPER' }],
+            durchfuehrend: [{ actorType: 'org', actorId: 'EXISTING_AREAL_GRID_OPERATOR' }],
+            mitwirkend: [{ actorType: 'org', actorId: 'GROUP_ENERGY_PROJECT_OWNER' }],
+            information: [{ actorType: 'org', actorId: 'AREAL_OWNER' }],
+            evidenceRequirements: [
+              'vollständiger §17-Antrag',
+              'technische Anschlussdaten',
+              'Asset-Zustandsnachweise',
+              'Netzverträglichkeitsprüfung',
+              'Kapazitäts-/Netzfahrplanprüfung',
+            ],
+            forbiddenAssumptions: [
+              'keine belastbare Anschlusszusage',
+              'keine Kapazitätsreservierung',
+              'keine verbindliche Übergabepunkt-Festlegung',
+              'Projekt-/Versorgungskonzept ersetzt keine Netzbetreiberentscheidung',
+            ],
+            executionTrace: [
+              {
+                timestamp: '2026-05-17T08:00:00.000Z',
+                eventName: 'agent.plan.step.executed',
+                payload: { serviceId: 'grid-connection', taskId: 'network-operator-decision' },
+                candidates: [
+                  {
+                    role: 'D',
+                    actorType: 'service',
+                    actorId: 'grid-connection',
+                    confidence: 0.95,
+                    reason: 'Execution completion event',
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      { meta: { tenantId: 'tenant-a', userId: 'u-1' } }
+    );
+
+    expect(created.success).toBe(true);
+
+    const dossier = await broker.call(
+      'vdmi.dossier',
+      { taskId: 'network-operator-decision' },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+
+    expect(dossier.success).toBe(true);
+    expect(dossier.taskId).toBe('network-operator-decision');
+    expect(dossier.dossier.task.processType).toBe('grid-connection-governance');
+    expect(dossier.dossier.task.verantwortlich).toEqual(
+      expect.arrayContaining([expect.objectContaining({ actorId: 'DSO_GATEKEEPER' })])
+    );
+    expect(dossier.dossier.evidenceGaps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'vollständiger §17-Antrag' }),
+        expect.objectContaining({ label: 'technische Anschlussdaten' }),
+        expect.objectContaining({ label: 'Asset-Zustandsnachweise' }),
+        expect.objectContaining({ label: 'Netzverträglichkeitsprüfung' }),
+        expect.objectContaining({ label: 'Kapazitäts-/Netzfahrplanprüfung' }),
+      ])
+    );
+    expect(dossier.dossier.forbiddenAssumptions).toEqual(
+      expect.arrayContaining([
+        'keine belastbare Anschlusszusage',
+        'keine Kapazitätsreservierung',
+        'keine verbindliche Übergabepunkt-Festlegung',
+        'Projekt-/Versorgungskonzept ersetzt keine Netzbetreiberentscheidung',
+      ])
+    );
+    expect(dossier.dossier.recommendation).toContain('Collect additional evidence');
+  });
 });

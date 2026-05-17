@@ -151,12 +151,28 @@ describe('Capability Broker Service', () => {
 
   it('routes role-boundary governance prompts to VDMI governance capability (not pure VNB identity)', async () => {
     const result = await broker.call('capability-broker.recommend', {
-      task: 'Schritt 1: Rollen und Schnittstellen klären – Projektträger ist nicht Netzbetreiber, ohne formales Netzanschlussbegehren darf keine Netzanschlusszusage entstehen (§17 EnWG, Arealnetzbetreiber).',
+      task: 'Schritt 1: Rollen und Schnittstellen klären – Projektträger ist nicht Netzbetreiber und die Gatekeeper-Rolle liegt beim DSO (§17 EnWG, Arealnetzbetreiber).',
     });
 
     expect(result.recommendedCapabilities[0].capability).toBe('vdmi_role_boundary_governance');
     expect(result.recommendedPlan[0].action).toBe('vdmi.agentRole');
     expect(result.recommendedCapabilities[0].capability).not.toBe('grid_operator_identity_resolution');
+  });
+
+  it('routes formal grid-connection decision prompts to VDMI decision governance intent', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Kann der Netzbetreiber ohne formales §17 EnWG Netzanschlussbegehren eine belastbare Anschlusszusage oder Kapazitaetszusage geben?',
+      knownContext: {
+        processType: 'grid-connection-governance',
+        taskId: 'network-operator-decision',
+      },
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedPlan.map((step) => step.action)).toEqual(
+      expect.arrayContaining(['vdmi.dossier', 'vdmi.negotiationTrace', 'vdmi.agentRole'])
+    );
+    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
   });
 
   it('routes asset-evidence governance prompts to VDMI asset-validation capability before generic role-boundary', async () => {
@@ -171,7 +187,7 @@ describe('Capability Broker Service', () => {
 
   it('propagates knownContext.processType into vdmi.agentRole plan params', async () => {
     const result = await broker.call('capability-broker.recommend', {
-      task: 'Rollen und Schnittstellen klären für DSO Gatekeeper ohne formales Netzanschlussbegehren',
+      task: 'Rollen und Schnittstellen im Governance-Prozess für DSO Gatekeeper klären',
       knownContext: {
         processType: 'grid-connection-asset-validation',
       },

@@ -96,6 +96,22 @@ function findBestCapability(taskText) {
     'zulässige aussagen',
     'rollengrenze',
   ];
+  const vdmiDecisionCoreSignals = [
+    'anschlusszusage',
+    'kapazitätszusage',
+    'kapazitaetszusage',
+    'übergabepunkt',
+    'uebergabepunkt',
+    'netzbetreiberentscheidung',
+    'belastbare zusage',
+    'darf der netzbetreiber zusagen',
+    'decision_blocked_pending_formal_request',
+  ];
+  const vdmiDecisionContextSignals = [
+    'formales netzanschlussbegehren',
+    '§17 enwg',
+    '17 enwg',
+  ];
   const vdmiAssetValidationSignals = [
     'asset validation',
     'asset-validierung',
@@ -123,6 +139,28 @@ function findBestCapability(taskText) {
   const hasVdmiBoundaryCombo =
     /(rollen|rolle|schnittstellen)/i.test(haystack)
     && /(netzanschluss|enwg|arealnetz|gatekeeper)/i.test(haystack);
+
+  const hasVdmiDecisionCombo =
+    /(zusage|entscheidung|uebergabepunkt|übergabepunkt|kapazit[aä]t)/i.test(haystack)
+    && /(netzbetreiber|formales netzanschlussbegehren|§17|17 enwg|enwg)/i.test(haystack);
+
+  const hasVdmiDecisionSignal =
+    vdmiDecisionCoreSignals.some((signal) => haystack.includes(signal))
+    || (
+      vdmiDecisionContextSignals.some((signal) => haystack.includes(signal))
+      && /(zusage|entscheidung|uebergabepunkt|übergabepunkt|kapazit[aä]t|anschluss)/i.test(haystack)
+    );
+
+  if (hasVdmiDecisionSignal || hasVdmiDecisionCombo) {
+    const vdmiDecisionCapability = findCapabilityByName('vdmi_grid_connection_decision_governance');
+    if (vdmiDecisionCapability) {
+      return {
+        capability: vdmiDecisionCapability,
+        score: 130,
+        usedFallback: false,
+      };
+    }
+  }
 
   const hasVdmiAssetValidationCombo =
     /(asset|anlage|anlagen|assetklasse|transformator|trafo)/i.test(haystack)
