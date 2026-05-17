@@ -21,6 +21,26 @@ const ONBOARDING_PARAM_QUESTIONS = Object.freeze({
     label: 'BDEW-Code',
     question: 'Kennen Sie den BDEW-Code Ihres Netzbetreibers?',
   },
+  bdew: {
+    label: 'BDEW-Code',
+    question: 'Kennen Sie den BDEW-Code Ihres Netzbetreibers?',
+  },
+  city: {
+    label: 'Ort',
+    question: 'Welcher Ort ist für die Netzbetreiber-Zuordnung relevant?',
+  },
+  vnbName: {
+    label: 'Netzbetreibername',
+    question: 'Wie lautet der Name des Netzbetreibers?',
+  },
+  query: {
+    label: 'Suchhinweis',
+    question: 'Nennen Sie bitte den Netzbetreiber oder einen belastbaren Suchhinweis (z.B. BDEW-Code oder Ort).',
+  },
+  operatorEvidence: {
+    label: 'Netzbetreiber-Evidenz',
+    question: 'Nennen Sie bitte den Netzbetreiber oder den BDEW-Code, damit ich die Zuordnung belastbar verifizieren kann.',
+  },
   projectId: {
     label: 'Projekt-ID',
     question: 'Welche Projekt-ID soll ich verwenden?',
@@ -147,6 +167,11 @@ function pickPreferredParamKey(keys = []) {
     'gridOperatorName',
     'gridOperatorId',
     'gridOperatorBdew',
+    'bdew',
+    'operatorEvidence',
+    'vnbName',
+    'city',
+    'query',
     'projectId',
     'fnavProfile',
     'voltageLevel',

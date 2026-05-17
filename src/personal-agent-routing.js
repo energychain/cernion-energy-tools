@@ -491,7 +491,18 @@ function buildCuratedBrokerSteps(capability, brokerRecommendation) {
 
 function extractPromptHints(message) {
   const text = String(message || '');
-  const projectMatch = text.match(/\b(?:projekt|project)\s+([a-z0-9_-]+)/i);
+  const projectIdExplicitMatch = text.match(
+    /\b(?:projekt(?:\s*-?\s*id)?|project(?:\s*-?\s*id)?)\s*[:=]\s*([a-z0-9][a-z0-9_-]{2,})\b/i
+  );
+  const projectInlineMatch = text.match(/\b(?:projekt|project)\s+([a-z0-9][a-z0-9_-]{2,})\b/i);
+  const projectCandidate = projectIdExplicitMatch?.[1]
+    || projectInlineMatch?.[1]
+    || undefined;
+  const projectId = projectCandidate
+    && !/^(?:in|bei|f(?:ü|u)r)$/i.test(projectCandidate)
+    && (/[0-9]/.test(projectCandidate) || /[_-]/.test(projectCandidate) || Boolean(projectIdExplicitMatch))
+      ? projectCandidate
+      : undefined;
   const isoDates = text.match(/\b\d{4}-\d{2}-\d{2}\b/g) || [];
   const locationPhraseMatch = text.match(/\b(?:in|bei|für|fuer|standort|ort)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})/);
   const operatorAssertionMatch = text.match(/\b(?:netzbetreiber|vnb|betreiber)\b\s*(?:soll|sei|ist|=|:)?\s*([A-ZÄÖÜ][^,.;\n]+)/i);
@@ -518,7 +529,14 @@ function extractPromptHints(message) {
     text.match(/\brequested\s*capacity\s*kw\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i)
     || text.match(/\brequestedcapacitykw\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i)
     || text.match(/\brequested\s*capacity\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
-  const bdewMatch = text.match(/\b(?:bdew\s*(?:code)?\s*[:=]?\s*)?([0-9]{13}|[A-Z]{2}[A-Z0-9]{11})\b/i);
+  const bdewNumericMatch = text.match(/\b([0-9]{13})\b/);
+  const bdewPrefixedMatch = text.match(
+    /\b(?:bdew(?:\s*-?\s*code)?|code)\s*[:=]\s*([A-Z0-9]{6,20})\b/i
+  );
+  const bdewCandidate = bdewPrefixedMatch?.[1] || bdewNumericMatch?.[1];
+  const bdewCode = bdewCandidate && /\d/.test(bdewCandidate)
+    ? String(bdewCandidate).toUpperCase()
+    : undefined;
 
   const requestedCapacityKW = requestedCapacityMatch
     ? Number(requestedCapacityMatch[1].replace(',', '.'))
@@ -527,14 +545,14 @@ function extractPromptHints(message) {
       : (capacityKwMatch ? Number(capacityKwMatch[1].replace(',', '.')) : undefined));
 
   return {
-    projectId: projectMatch ? projectMatch[1] : undefined,
+    projectId,
     location: locationCandidate,
     city: locationCandidate,
     query: operatorCandidate || locationCandidate,
     gridOperatorName: operatorCandidate,
     assertedGridOperatorName: operatorCandidate,
-    gridOperatorBdew: bdewMatch ? String(bdewMatch[1]).toUpperCase() : undefined,
-    bdewCode: bdewMatch ? String(bdewMatch[1]).toUpperCase() : undefined,
+    gridOperatorBdew: bdewCode,
+    bdewCode,
     dateFrom: isoDates[0],
     dateTo: isoDates[1],
     startDate: isoDates[0],
@@ -658,12 +676,29 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
 
   const parsedBenchmarkNames = parseBenchmarkNames(String(knownContext?.lastUserMessage || promptHints?.query || ''));
 
+  const isLikelyFullPromptQuery = (value) => {
+    if (typeof value !== 'string') return false;
+    const text = value.trim();
+    if (!text) return false;
+    const wordCount = text.split(/\s+/).filter(Boolean).length;
+    if (text.length > 80 || wordCount > 8) return true;
+    if (/[,?!]/.test(text) && wordCount > 5) return true;
+    return /\b(?:bitte|projekt|netzbetreiber|standort|risiko|bewertung)\b/i.test(text) && wordCount > 4;
+  };
+
   if (action === 'grid-operations.marketPartners') {
-    if (hydrated.query == null || hydrated.query === '') {
+    if (hydrated.query == null || hydrated.query === '' || isLikelyFullPromptQuery(hydrated.query)) {
       hydrated.query =
+        knownContext?.assertedGridOperatorName ||
+        promptHints?.assertedGridOperatorName ||
+        knownContext?.query ||
         knownContext?.vnb1Name ||
         parsedBenchmarkNames.vnb1Name ||
         knownContext?.gridOperatorName ||
+        promptHints?.gridOperatorName ||
+        knownContext?.location ||
+        promptHints?.location ||
+        promptHints?.city ||
         promptHints?.query ||
         '*';
     }

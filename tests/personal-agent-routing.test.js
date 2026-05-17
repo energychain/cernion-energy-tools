@@ -21,6 +21,44 @@ describe('personal-agent-routing', () => {
     expect(plan.promptHints.query).toBe('TWL Netze');
   });
 
+  it('does not treat natural language location phrases as project IDs', () => {
+    const plan = buildExecutionPlan({
+      message: 'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein',
+      brokerRecommendation: null,
+    });
+
+    expect(plan.promptHints.projectId).toBeUndefined();
+    expect(plan.promptHints.location).toBe('Frankenthal');
+  });
+
+  it('ignores non-numeric pseudo BDEW values from generic code labels', () => {
+    const plan = buildExecutionPlan({
+      message: 'Code: NETZBETREIBER, Standort Frankenthal',
+      brokerRecommendation: null,
+    });
+
+    expect(plan.promptHints.bdewCode).toBeUndefined();
+    expect(plan.promptHints.gridOperatorBdew).toBeUndefined();
+  });
+
+  it('prefers extracted operator hints over full prompt text for market partner lookup', () => {
+    const message = 'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW';
+    const plan = buildExecutionPlan({
+      message,
+      brokerRecommendation: null,
+    });
+
+    const params = fillTemplateWithContext(
+      { query: message },
+      'grid-operations.marketPartners',
+      {},
+      plan.promptHints,
+      { stepResults: {} }
+    );
+
+    expect(params.query).toBe('TWL Netze');
+  });
+
   it('treats unresolved __step dependencies as missing inputs for dependent lookup steps', () => {
     const params = pruneUndefinedDeep(
       fillTemplateWithContext(

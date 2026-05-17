@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [services/personal-agent.service.js](services/personal-agent.service.js): hardened dependent-step execution so empty upstream lookup evidence (e.g. no market-partner hits) stops as controlled evidence/missing-input gap instead of cascading into validation-error action failures.
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): improved Standort/VNB hint extraction by separating location from asserted grid-operator claims, adding BDEW hint parsing, and normalizing MW capacity phrases to `requestedCapacityKW`.
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): added explicit `grid-operations.vnbLookup` input requirements/aliases so unresolved `__step_N...` template paths are treated as missing dependencies before action execution.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): hardened entity extraction to avoid false-positive `projectId` and non-numeric pseudo-`bdewCode` captures from free-text phrasing, while keeping operator/location hints separate for deterministic routing.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): improved `grid-operations.marketPartners` parameter hydration so identity lookups prefer structured operator/location evidence over long raw prompt text.
+- [src/personal-agent-onboarding.js](src/personal-agent-onboarding.js), [services/personal-agent.service.js](services/personal-agent.service.js): added explicit humanization for `operatorEvidence` so onboarding/recovery replies ask for Netzbetreiber/BDEW evidence without exposing internal key names.
 
 ### Tests
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression coverage for zero-step partial recovery, one-step recovery, and finance/risk phrasing, plus negative assertions against internal tokens and generic safe-stop wording.
@@ -22,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression coverage proving that an executable route with extra unsupported domains can still complete, while a genuine capability gap remains partial and explains the missing interface.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added dependency-resolution regression coverage ensuring a dependent lookup step is blocked when upstream result lists are empty, and that sufficient natural context can still complete the identity flow.
 - [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): added routing-level regressions for separated location/operator extraction (`Frankenthal` vs `TWL Netze`), MW-to-kW capacity normalization, and unresolved step-placeholder missing-input detection.
+- [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): added regressions for false-positive hardening (`projectId`/`bdewCode`) and for structured query precedence in `grid-operations.marketPartners` lookup hydration.
+- [tests/personal-agent-onboarding.test.js](tests/personal-agent-onboarding.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regressions to ensure `operatorEvidence` is never surfaced in user-facing question/recovery text.
 
 ## [0.52.10] — Routing/Matrix Stabilization, Release-Gate Hardening, and Ops Updates
 

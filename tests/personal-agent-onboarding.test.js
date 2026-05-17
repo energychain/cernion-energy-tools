@@ -101,4 +101,14 @@ describe('personal-agent-onboarding', () => {
     ]);
     expect(key).toBe('gridOperatorName');
   });
+
+  test('buildOnboardingQuestion humanizes operatorEvidence prompts', () => {
+    const q = buildOnboardingQuestion({
+      paramKey: 'operatorEvidence',
+      action: 'grid-operations.vnbLookup',
+    });
+
+    expect(q.questionText).toMatch(/Netzbetreiber|BDEW/i);
+    expect(q.questionText).not.toMatch(/operatorEvidence/i);
+  });
 });
