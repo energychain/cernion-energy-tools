@@ -14,6 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Tests
 - [tests/presentation.service.test.js](tests/presentation.service.test.js): added Step-2 coverage for unknown preferred format fallback (`unknown_preferred_format`), structured stub routing for evidence/risk/decision/comparison types, KPI guardrail warnings (`missing_source`, `missing_as_of`), and preserved VDMI stub selection behavior.
+- [tests/presentation.service.test.js](tests/presentation.service.test.js): added Step-3 coverage for full deterministic VDMI rendering: exact five-column role matrix, actor-object formatting (`displayName`/`actorId` fallback), em-dash rendering for empty role arrays, structured add-on sections (status, evidence, forbidden assumptions, next actions), `missing_vdmi_tasks` behavior for empty `matrix.tasks`, and suppression of `vdmi_matrix_table_renderer_not_implemented_yet` for valid task payloads.
+- [tests/presentation.service.test.js](tests/presentation.service.test.js): added regressions for decision-brief `nextActions` object rendering to prevent `[object Object]` leakage and enforce deterministic label/title/description/id fallback behavior.
+
+### Changed
+- [services/presentation.service.js](services/presentation.service.js): implemented full deterministic `vdmi_matrix_table` renderer (replacing Step-2 stub behavior for valid tasks) with exact role-table schema (`Beschreibung des Schrittes`, `Verantwortlich`, `Durchführend`, `Mitwirkend`, `Informiert`) and strict structured-field mapping only.
+- [services/presentation.service.js](services/presentation.service.js): added deterministic actor formatting helpers for VDMI roles (`displayName` → `name` → `actorId` → `id` → `—`), comma-joining for multi-actors, and explicit `missing_step_description` / `missing_vdmi_tasks` warnings without inferring roles from free text.
+- [services/presentation.service.js](services/presentation.service.js): added VDMI supplementary sections/tables for status/blocker, evidence requirements & gaps, forbidden assumptions, and next actions when structured fields are present; markdown remains scanable and deterministic.
+- [services/presentation.service.js](services/presentation.service.js): fixed `decision_brief` `nextActions` rendering for object payloads to avoid `[object Object]` and use deterministic fallback selection (`label`/`title`/`description`/`id`, compact safe JSON fallback, otherwise `Unbenannte Aktion`).
 
 ## [0.52.13] — #CETview Step 1: Presentation Service Skeleton (2026-05-17)
 

@@ -76,9 +76,9 @@ describe('presentation.service', () => {
   });
 
   // --------------------------------------------------------------------------
-  // T-PRES-02: VDMI-like fixture — type selection and stub warning
+  // T-PRES-02: VDMI renderer — full roles table
   // --------------------------------------------------------------------------
-  test('T-PRES-02: VDMI matrix fixture selects vdmi_matrix_table and returns stub warning', async () => {
+  test('T-PRES-02: VDMI matrix fixture renders full roles table with exact 5 columns', async () => {
     const result = await broker.call('presentation.render', {
       intent: 'vdmi_role_boundary_governance',
       domainResult: {
@@ -101,13 +101,18 @@ describe('presentation.service', () => {
 
     expect(result.success).toBe(true);
     expect(result.presentation.type).toBe('vdmi_matrix_table');
-
-    // Must contain the not-implemented-yet warning
-    expect(result.presentation.warnings).toContain('vdmi_matrix_table_renderer_not_implemented_yet');
-    expect(result.markdown).toMatch(/vdmi_matrix_table_renderer_not_implemented_yet/);
-
-    // Must NOT contain any invented role data
-    expect(result.markdown).not.toMatch(/DSO_GATEKEEPER/);
+    expect(result.presentation.tables.length).toBeGreaterThan(0);
+    expect(result.presentation.tables[0].id).toBe('vdmi_roles');
+    expect(result.presentation.tables[0].headers).toEqual([
+      'Beschreibung des Schrittes',
+      'Verantwortlich',
+      'Durchführend',
+      'Mitwirkend',
+      'Informiert',
+    ]);
+    expect(result.markdown).toMatch(/Beschreibung des Schrittes/);
+    expect(result.markdown).toMatch(/DSO_GATEKEEPER/);
+    expect(result.presentation.warnings).not.toContain('vdmi_matrix_table_renderer_not_implemented_yet');
   });
 
   // --------------------------------------------------------------------------
@@ -241,6 +246,38 @@ describe('presentation.service', () => {
     expect(result.markdown).toMatch(/decision_blocked_pending_formal_request/);
   });
 
+  test('decision_brief renders object-based nextActions without [object Object] and prefers label', async () => {
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        expectedStatus: 'decision_blocked_pending_formal_request',
+        nextActions: [
+          { id: 'act-1', type: 'formal_request', label: 'Formellen Antrag einreichen' },
+        ],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('decision_brief');
+    expect(result.markdown).toMatch(/Formellen Antrag einreichen/);
+    expect(result.markdown).not.toMatch(/\[object Object\]/);
+  });
+
+  test('decision_brief nextActions without label uses deterministic fallback', async () => {
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        expectedStatus: 'decision_blocked_pending_formal_request',
+        nextActions: [
+          { id: 'act-2', type: 'review' },
+        ],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('decision_brief');
+    expect(result.markdown).toMatch(/act-2/);
+    expect(result.markdown).not.toMatch(/\[object Object\]/);
+  });
+
   test('selects comparison_table for peers/items/variants collections', async () => {
     const result = await broker.call('presentation.render', {
       domainResult: {
@@ -295,7 +332,106 @@ describe('presentation.service', () => {
     expect(result.markdown).not.toMatch(/\| Stand \|/);
   });
 
-  test('still selects vdmi_matrix_table and returns not-implemented warning for VDMI fixture', async () => {
+  test('VDMI actor objects are formatted with displayName preference and actorId fallback; multi-actors comma separated', async () => {
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        matrix: {
+          tasks: [
+            {
+              taskName: 'Akteursformat-Test',
+              verantwortlich: [
+                { displayName: 'Areal Owner' },
+                { actorId: 'DSO_GATEKEEPER' },
+              ],
+              durchfuehrend: [],
+              mitwirkend: [{ id: 'M-1' }],
+              information: [{ name: 'Regulator' }],
+            },
+          ],
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('vdmi_matrix_table');
+    expect(result.markdown).toMatch(/Areal Owner, DSO_GATEKEEPER/);
+    expect(result.markdown).toMatch(/M-1/);
+    expect(result.markdown).toMatch(/Regulator/);
+  });
+
+  test('VDMI empty roles render as em dash', async () => {
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        matrix: {
+          tasks: [
+            {
+              taskName: 'Leere Rollen',
+              verantwortlich: [],
+              durchfuehrend: [],
+              mitwirkend: [],
+              information: [],
+            },
+          ],
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('vdmi_matrix_table');
+    const firstRoleRow = result.presentation.tables[0].rows[0];
+    expect(firstRoleRow[1]).toBe('—');
+    expect(firstRoleRow[2]).toBe('—');
+    expect(firstRoleRow[3]).toBe('—');
+    expect(firstRoleRow[4]).toBe('—');
+  });
+
+  test('VDMI with evidenceRequirements, forbiddenAssumptions and nextActions renders additional sections', async () => {
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        matrix: {
+          name: 'VDMI Zusatzinfos',
+          tasks: [
+            {
+              taskName: 'Task 1',
+              verantwortlich: ['V1'],
+              durchfuehrend: ['D1'],
+              mitwirkend: ['M1'],
+              information: ['I1'],
+              expectedStatus: 'blocked',
+              evidenceRequirements: [{ name: 'Formaler Antrag', reason: 'Erforderlich' }],
+              forbiddenAssumptions: ['Keine Kapazitätszusage ohne Antrag'],
+              nextActions: [{ label: 'Antrag einreichen', type: 'formal_request' }],
+            },
+          ],
+          status: 'blocked',
+        },
+        evidenceGaps: [{ name: 'Trassenplan', reason: 'Fehlt' }],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('vdmi_matrix_table');
+    expect(result.markdown).toMatch(/Status \/ Blocker/);
+    expect(result.markdown).toMatch(/Evidenzlücken \/ Evidence Requirements/);
+    expect(result.markdown).toMatch(/Verbotene Annahmen/);
+    expect(result.markdown).toMatch(/Nächste Schritte/);
+  });
+
+  test('VDMI fixture without tasks yields missing_vdmi_tasks and no invented role rows', async () => {
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        matrix: { name: 'Ohne Aufgaben', tasks: [] },
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('vdmi_matrix_table');
+    expect(result.presentation.warnings).toContain('missing_vdmi_tasks');
+    expect(result.presentation.tables).toEqual([]);
+    expect(result.markdown).not.toMatch(/Beschreibung des Schrittes/);
+  });
+
+  test('VDMI valid tasks do not contain not-implemented warning anymore', async () => {
     const result = await broker.call('presentation.render', {
       domainResult: {
         matrix: {
@@ -314,7 +450,7 @@ describe('presentation.service', () => {
 
     expect(result.success).toBe(true);
     expect(result.presentation.type).toBe('vdmi_matrix_table');
-    expect(result.presentation.warnings).toContain('vdmi_matrix_table_renderer_not_implemented_yet');
+    expect(result.presentation.warnings).not.toContain('vdmi_matrix_table_renderer_not_implemented_yet');
   });
 
   // --------------------------------------------------------------------------

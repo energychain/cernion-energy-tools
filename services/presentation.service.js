@@ -119,7 +119,7 @@ function selectRenderer({ preferredFormat, intent, domainResult }) {
 
   // 1) VDMI matrix
   const matrixTasks = dr.matrix && Array.isArray(dr.matrix.tasks) ? dr.matrix.tasks : null;
-  if (isNonEmptyArray(matrixTasks)) {
+  if (Array.isArray(matrixTasks)) {
     return { type: 'vdmi_matrix_table', warnings };
   }
 
@@ -323,51 +323,279 @@ function renderDebugSummary(domainResult, context) {
   };
 }
 
+function formatActorValue(actor) {
+  if (actor === null || actor === undefined) return '—';
+  if (typeof actor === 'string') {
+    const trimmed = actor.trim();
+    return trimmed || '—';
+  }
+  if (typeof actor === 'object') {
+    return firstDefined(actor, ['displayName', 'name', 'actorId', 'id']) || '—';
+  }
+  return String(actor);
+}
+
+function formatActorList(value) {
+  if (!Array.isArray(value) || value.length === 0) return '—';
+  const mapped = value.map((actor) => formatActorValue(actor)).filter((entry) => entry && entry !== '');
+  return mapped.length > 0 ? mapped.join(', ') : '—';
+}
+
+function getStepDescription(task, warnings) {
+  const description = firstDefined(task || {}, ['taskName', 'description', 'taskId']);
+  if (description) return String(description);
+  warnings.push('missing_step_description');
+  return 'Unbenannter Schritt';
+}
+
+function toSafeActionLabel(action) {
+  if (typeof action === 'string') {
+    const trimmed = action.trim();
+    return trimmed || 'Unbenannte Aktion';
+  }
+  if (action && typeof action === 'object') {
+    const preferred = firstDefined(action, ['label', 'title', 'description', 'id']);
+    if (preferred) return String(preferred);
+    const keys = Object.keys(action);
+    if (keys.length > 0 && keys.length <= 4) {
+      const compact = {};
+      for (const key of keys) {
+        const value = action[key];
+        if (value === null || ['string', 'number', 'boolean'].includes(typeof value)) {
+          compact[key] = value;
+        }
+      }
+      const compactKeys = Object.keys(compact);
+      if (compactKeys.length > 0) {
+        const serialized = JSON.stringify(compact);
+        if (serialized.length <= 120) {
+          return serialized;
+        }
+      }
+    }
+  }
+  return 'Unbenannte Aktion';
+}
+
 /**
- * Stub renderer for types not yet implemented in Step 2.
+ * Deterministic VDMI matrix renderer.
  */
-function renderVdmiMatrixStub(domainResult) {
+function renderVdmiMatrix(domainResult) {
   const dr = domainResult || {};
   const matrix = dr.matrix && typeof dr.matrix === 'object' ? dr.matrix : null;
   const tasks = matrix && Array.isArray(matrix.tasks)
     ? matrix.tasks
     : (Array.isArray(dr.tasks) ? dr.tasks : []);
+  const warnings = [];
+  const title = firstDefined(matrix || {}, ['name'])
+    || firstDefined(dr, ['name'])
+    || 'VDMI-Prozessübersicht';
+
+  if (tasks.length === 0) {
+    warnings.push('missing_vdmi_tasks');
+    return {
+      success: true,
+      presentation: {
+        type: 'vdmi_matrix_table',
+        title,
+        summary: 'Keine VDMI-Schritte vorhanden.',
+        kpis: [],
+        tables: [],
+        sections: [],
+        warnings,
+        sources: [],
+        nextActions: [],
+      },
+      markdown: [
+        `## ${title}`,
+        '',
+        'Keine VDMI-Schritte vorhanden.',
+      ].join('\n'),
+    };
+  }
+
+  const roleHeaders = [
+    'Beschreibung des Schrittes',
+    'Verantwortlich',
+    'Durchführend',
+    'Mitwirkend',
+    'Informiert',
+  ];
+
+  const roleRows = tasks.map((task) => {
+    const step = getStepDescription(task, warnings);
+    return [
+      step,
+      formatActorList(task?.verantwortlich),
+      formatActorList(task?.durchfuehrend),
+      formatActorList(task?.mitwirkend),
+      formatActorList(task?.information),
+    ];
+  });
 
   const sections = [];
-  if (tasks.length > 0) {
+  const tables = [{
+    id: 'vdmi_roles',
+    headers: roleHeaders,
+    rows: roleRows,
+  }];
+
+  const statusRows = [];
+  const topExpectedStatus = firstDefined(dr, ['expectedStatus']);
+  const topStatus = firstDefined(dr, ['status']);
+  const matrixStatus = firstDefined(matrix || {}, ['status']);
+  if (topExpectedStatus !== undefined) statusRows.push(['Domain', 'expectedStatus', String(topExpectedStatus)]);
+  if (topStatus !== undefined) statusRows.push(['Domain', 'status', String(topStatus)]);
+  if (matrixStatus !== undefined) statusRows.push(['Matrix', 'status', String(matrixStatus)]);
+  for (const task of tasks) {
+    if (task && task.expectedStatus !== undefined) {
+      statusRows.push([getStepDescription(task, warnings), 'expectedStatus', String(task.expectedStatus)]);
+    }
+  }
+  if (statusRows.length > 0) {
+    const statusHeaders = ['Schritt/Quelle', 'Feld', 'Wert'];
+    const statusTable = { id: 'vdmi_status', headers: statusHeaders, rows: statusRows };
+    tables.push(statusTable);
     sections.push({
-      id: 'vdmi_stub_info',
-      title: 'VDMI-Stub',
-      content: `- Aufgaben erkannt: ${tasks.length}`,
+      id: 'status_blocker',
+      title: 'Status / Blocker',
+      content: markdownTable(statusHeaders, statusRows),
     });
-  } else {
+  }
+
+  const evidenceRows = [];
+  if (isNonEmptyArray(dr.evidenceGaps)) {
+    for (const gap of dr.evidenceGaps) {
+      if (gap && typeof gap === 'object') {
+        evidenceRows.push([
+          'Domain',
+          firstDefined(gap, ['name', 'label', 'code', 'id']) || '—',
+          firstDefined(gap, ['reason', 'detail', 'message']) || '—',
+        ]);
+      } else {
+        evidenceRows.push(['Domain', String(gap), '—']);
+      }
+    }
+  }
+  for (const task of tasks) {
+    const step = getStepDescription(task, warnings);
+    const taskRequirements = isNonEmptyArray(task?.evidenceRequirements) ? task.evidenceRequirements : [];
+    for (const req of taskRequirements) {
+      if (req && typeof req === 'object') {
+        evidenceRows.push([
+          step,
+          firstDefined(req, ['name', 'label', 'code', 'id']) || '—',
+          firstDefined(req, ['reason', 'detail', 'message']) || '—',
+        ]);
+      } else {
+        evidenceRows.push([step, String(req), '—']);
+      }
+    }
+    const taskGaps = isNonEmptyArray(task?.evidenceGaps) ? task.evidenceGaps : [];
+    for (const gap of taskGaps) {
+      if (gap && typeof gap === 'object') {
+        evidenceRows.push([
+          step,
+          firstDefined(gap, ['name', 'label', 'code', 'id']) || '—',
+          firstDefined(gap, ['reason', 'detail', 'message']) || '—',
+        ]);
+      } else {
+        evidenceRows.push([step, String(gap), '—']);
+      }
+    }
+  }
+  if (evidenceRows.length > 0) {
+    const evidenceHeaders = ['Schritt', 'Evidenz / Lücke', 'Grund'];
+    tables.push({ id: 'vdmi_evidence', headers: evidenceHeaders, rows: evidenceRows });
     sections.push({
-      id: 'vdmi_stub_info',
-      title: 'VDMI-Stub',
-      content: '- Keine strukturierten Aufgaben vorhanden.',
+      id: 'evidence_gaps',
+      title: 'Evidenzlücken / Evidence Requirements',
+      content: markdownTable(evidenceHeaders, evidenceRows),
     });
+  }
+
+  const assumptionRows = [];
+  if (isNonEmptyArray(dr.forbiddenAssumptions)) {
+    for (const assumption of dr.forbiddenAssumptions) {
+      assumptionRows.push(['Domain', String(assumption)]);
+    }
+  }
+  for (const task of tasks) {
+    const assumptions = isNonEmptyArray(task?.forbiddenAssumptions) ? task.forbiddenAssumptions : [];
+    const step = getStepDescription(task, warnings);
+    for (const assumption of assumptions) {
+      assumptionRows.push([step, String(assumption)]);
+    }
+  }
+  if (assumptionRows.length > 0) {
+    const assumptionHeaders = ['Schritt', 'Verbotene Annahme'];
+    tables.push({ id: 'vdmi_forbidden_assumptions', headers: assumptionHeaders, rows: assumptionRows });
+    sections.push({
+      id: 'forbidden_assumptions',
+      title: 'Verbotene Annahmen',
+      content: markdownTable(assumptionHeaders, assumptionRows),
+    });
+  }
+
+  const nextActionRows = [];
+  if (isNonEmptyArray(dr.nextActions)) {
+    for (const action of dr.nextActions) {
+      if (action && typeof action === 'object') {
+        nextActionRows.push(['Domain', toSafeActionLabel(action), firstDefined(action, ['type']) || '—']);
+      } else {
+        nextActionRows.push(['Domain', toSafeActionLabel(action), '—']);
+      }
+    }
+  }
+  for (const task of tasks) {
+    const taskActions = isNonEmptyArray(task?.nextActions) ? task.nextActions : [];
+    const step = getStepDescription(task, warnings);
+    for (const action of taskActions) {
+      if (action && typeof action === 'object') {
+        nextActionRows.push([step, toSafeActionLabel(action), firstDefined(action, ['type']) || '—']);
+      } else {
+        nextActionRows.push([step, toSafeActionLabel(action), '—']);
+      }
+    }
+  }
+  if (nextActionRows.length > 0) {
+    const nextActionHeaders = ['Schritt', 'Nächster Schritt', 'Typ'];
+    tables.push({ id: 'vdmi_next_actions', headers: nextActionHeaders, rows: nextActionRows });
+    sections.push({
+      id: 'next_actions',
+      title: 'Nächste Schritte',
+      content: markdownTable(nextActionHeaders, nextActionRows),
+    });
+  }
+
+  const summary = `VDMI-Prozess mit ${tasks.length} Schritten und Rollenübersicht.`;
+  const uniqueWarnings = [...new Set(warnings)];
+
+  const markdownParts = [
+    `## ${title}`,
+    '',
+    summary,
+    '',
+    markdownTable(roleHeaders, roleRows),
+  ];
+  for (const section of sections) {
+    markdownParts.push('', `### ${section.title}`, '', section.content);
   }
 
   return {
     success: true,
     presentation: {
       type: 'vdmi_matrix_table',
-      title: 'VDMI-Matrix (Stub)',
-      summary: 'VDMI-Matrix-Renderer ist noch nicht vollständig implementiert.',
+      title,
+      summary,
       kpis: [],
-      tables: [],
+      tables,
       sections,
-      warnings: ['vdmi_matrix_table_renderer_not_implemented_yet'],
+      warnings: uniqueWarnings,
       sources: [],
-      nextActions: [],
+      nextActions: nextActionRows.map((row) => ({ step: row[0], label: row[1], type: row[2] })),
     },
-    markdown: [
-      '## VDMI-Matrix (Stub)',
-      '',
-      '> **Hinweis:** `vdmi_matrix_table_renderer_not_implemented_yet`',
-      '',
-      tasks.length > 0 ? `- Aufgaben erkannt: ${tasks.length}` : '- Keine strukturierten Aufgaben vorhanden.',
-    ].join('\n'),
+    markdown: markdownParts.join('\n'),
   };
 }
 
@@ -492,10 +720,18 @@ function renderDecisionBriefStub(domainResult) {
     });
   }
   if (nextActions.length > 0) {
+    const rows = nextActions.map((item) => {
+      if (item && typeof item === 'object') {
+        return [toSafeActionLabel(item), firstDefined(item, ['type']) || '—'];
+      }
+      return [toSafeActionLabel(item), '—'];
+    });
+
+    const actionTable = markdownTable(['Nächster Schritt', 'Typ'], rows);
     sections.push({
       id: 'next_actions',
       title: 'Nächste Schritte',
-      content: nextActions.map((item) => `- ${String(item)}`).join('\n'),
+      content: actionTable,
     });
   }
 
@@ -590,7 +826,7 @@ function renderComparisonTableStub(domainResult) {
 function renderStub(type, domainResult) {
   switch (type) {
     case 'vdmi_matrix_table':
-      return renderVdmiMatrixStub(domainResult);
+      return renderVdmiMatrix(domainResult);
     case 'evidence_gap_table':
       return renderEvidenceGapTableStub(domainResult);
     case 'risk_table':
