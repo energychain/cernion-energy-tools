@@ -645,7 +645,7 @@ module.exports = {
             const domainResult = this.extractDomainResultFromExecution(execution);
             if (domainResult && Object.keys(domainResult).length > 0) {
               const intent = responsePlan?.primaryIntent || responsePlan?.routeKey || 'execution_result';
-              
+
               presentationResult = await ctx.call(
                 'presentation.render',
                 {
@@ -2854,7 +2854,7 @@ module.exports = {
       // Determine intent
       const intent = plan?.primaryIntent || plan?.routeKey || 'execution_result';
 
-      // Build presentation parameters  
+      // Build presentation parameters
       const presentationParams = {
         intent,
         audience: 'management',
