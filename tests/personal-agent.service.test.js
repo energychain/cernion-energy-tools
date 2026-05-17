@@ -80,6 +80,46 @@ describe('personal-agent.service', () => {
       },
     });
     broker.createService({
+      name: 'grid-operations',
+      actions: {
+        marketPartners: {
+          handler(ctx) {
+            executedActions.push('grid-operations.marketPartners');
+            const query = String(ctx.params.query || '').toLowerCase();
+            if (!query || query.includes('unbekannt') || query.includes('nonexistent')) {
+              return { data: { results: [] } };
+            }
+            return {
+              data: {
+                results: [
+                  {
+                    bdewCode: '1234567890123',
+                    contacts: [{ city: 'Trier' }],
+                    name: String(ctx.params.query || 'Stadtwerk'),
+                  },
+                ],
+              },
+            };
+          },
+        },
+        vnbLookup: {
+          handler(ctx) {
+            executedActions.push('grid-operations.vnbLookup');
+            if (!ctx.params.bdew && !ctx.params.city && !ctx.params.query && !ctx.params.vnbName) {
+              throw new Error('Parameters validation error!');
+            }
+            return {
+              success: true,
+              operator: {
+                bdew: ctx.params.bdew || '1234567890123',
+                city: ctx.params.city || 'Trier',
+              },
+            };
+          },
+        },
+      },
+    });
+    broker.createService({
       name: 'investment-planning',
       actions: {
         createPlan: {
@@ -230,6 +270,48 @@ describe('personal-agent.service', () => {
       'grid-connection.fnavValidate',
       'finance-agent.fnavEconomics',
     ]);
+  });
+
+  it('blocks dependent step execution when lookup result list is empty', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte Netzbetreiber prüfen: unbekannt',
+        executionMode: 'auto',
+        knownContext: {
+          query: 'unbekannt',
+          location: 'Frankenthal',
+          gridOperatorName: 'TWL Netze',
+        },
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.execution.status).toBe('awaiting-onboarding');
+    expect(result.execution.completedSteps).toBe(1);
+    expect(result.execution.stopPoint).toMatchObject({
+      reasonCode: 'MISSING_INPUTS',
+    });
+    expect(executedActions).toContain('grid-operations.marketPartners');
+    expect(executedActions).not.toContain('grid-operations.vnbLookup');
+    expect(result.reply).toMatch(/Evidenz|Prüfpunkt|fehlende Angaben|Netzbetreiber/i);
+    expect(result.reply).not.toMatch(/Parameters validation error|ACTION_FAILED|__step_/i);
+  });
+
+  it('does not go partial when enough natural context enables identity lookup execution', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW',
+        executionMode: 'auto',
+      },
+      { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.execution.status).toBe('completed');
+    expect(result.execution.completedSteps).toBeGreaterThanOrEqual(1);
+    expect(executedActions).toContain('grid-operations.marketPartners');
+    expect(result.reply).not.toMatch(/Parameters validation error|ACTION_FAILED|__step_/i);
   });
 
   it('gracefully degrades unsupported extra domains after the last valid step', async () => {

@@ -1360,6 +1360,12 @@ module.exports = {
       if (Array.isArray(result.findings)) {
         hints.push(`${result.findings.length} Befund${result.findings.length === 1 ? '' : 'e'}`);
       }
+      const resultList = Array.isArray(result?.data?.results)
+        ? result.data.results
+        : (Array.isArray(result?.results) ? result.results : null);
+      if (Array.isArray(resultList)) {
+        hints.push(resultList.length === 0 ? 'kein Treffer' : `${resultList.length} Treffer`);
+      }
       if (typeof result.status === 'string') {
         const status = result.status.trim().toLowerCase();
         if (['eligible', 'ready', 'approved', 'ok', 'warning'].includes(status)) {
@@ -1862,6 +1868,25 @@ module.exports = {
             params,
             result,
           });
+
+          if (plannedStep.action === 'grid-operations.marketPartners') {
+            const resolvedList = Array.isArray(result?.data?.results)
+              ? result.data.results
+              : (Array.isArray(result?.results) ? result.results : []);
+
+            if (resolvedList.length === 0) {
+              const nextStep = plan.steps.find((candidate) => candidate.step === plannedStep.step + 1);
+              stopPoint = {
+                reasonCode: 'MISSING_INPUTS',
+                message: 'Kein eindeutiger Netzbetreiber-Treffer aus den vorhandenen Angaben.',
+                blockedStep: nextStep?.step || plannedStep.step + 1,
+                blockedAction: nextStep?.action || null,
+                missingParams: ['operatorEvidence'],
+                status: 'evidence-gap',
+              };
+              break;
+            }
+          }
         } catch (error) {
           const placeholder = await this.markRoutingGap(ctx, {
             reasonCode: isActionUnavailable(error) ? 'UNSUPPORTED_CHAIN' : 'ACTION_FAILED',

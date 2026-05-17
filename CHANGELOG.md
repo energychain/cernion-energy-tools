@@ -12,11 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [services/personal-agent.service.js](services/personal-agent.service.js): kept non-completed replies free of raw technical codes while translating action failures into user-facing evidence and next-step language.
 - [services/personal-agent.service.js](services/personal-agent.service.js): added humanization for internal capability/action labels so visible replies use fachliche Begriffe like Netzbetreiber-Zuordnung, Anlagenregister-/MaStR-Prüfung, or fehlende Schnittstelle/Evidenzquelle instead of curated-path tokens.
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): relaxed the execution contract so executable routes can complete even when the request mentions additional unsupported domains, while true fallback capabilities still remain explicit partial gaps.
+- [services/personal-agent.service.js](services/personal-agent.service.js): hardened dependent-step execution so empty upstream lookup evidence (e.g. no market-partner hits) stops as controlled evidence/missing-input gap instead of cascading into validation-error action failures.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): improved Standort/VNB hint extraction by separating location from asserted grid-operator claims, adding BDEW hint parsing, and normalizing MW capacity phrases to `requestedCapacityKW`.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): added explicit `grid-operations.vnbLookup` input requirements/aliases so unresolved `__step_N...` template paths are treated as missing dependencies before action execution.
 
 ### Tests
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression coverage for zero-step partial recovery, one-step recovery, and finance/risk phrasing, plus negative assertions against internal tokens and generic safe-stop wording.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regressions that verify internal capability labels such as `Execute curated capability path for mastr_asset_inventory` and `interface_placeholder` are not surfaced in `.reply`.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression coverage proving that an executable route with extra unsupported domains can still complete, while a genuine capability gap remains partial and explains the missing interface.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added dependency-resolution regression coverage ensuring a dependent lookup step is blocked when upstream result lists are empty, and that sufficient natural context can still complete the identity flow.
+- [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): added routing-level regressions for separated location/operator extraction (`Frankenthal` vs `TWL Netze`), MW-to-kW capacity normalization, and unresolved step-placeholder missing-input detection.
 
 ## [0.52.10] — Routing/Matrix Stabilization, Release-Gate Hardening, and Ops Updates
 

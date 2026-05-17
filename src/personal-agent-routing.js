@@ -232,6 +232,7 @@ const ACTION_REQUIREMENTS = Object.freeze({
   'settlement.calculateRedispatch': { allOf: ['installations', 'period'] },
   'grid-connection.fnavValidate': { allOf: ['fnavProfile'] },
   'finance-agent.fnavEconomics': { allOf: ['fnavProfile'] },
+  'grid-operations.vnbLookup': { anyOf: ['bdew', 'city', 'vnbName', 'query'] },
   'forecast.generationForecast': {
     anyOf: ['gridOperatorMastrId', 'installationMastrNummer', 'messlokationId', 'postleitzahl'],
   },
@@ -283,6 +284,12 @@ const ACTION_PARAM_ALIASES = Object.freeze({
   'grid-operations.marketPartners': {
     query: ['query', 'vnb1Name', 'gridOperatorName', 'operatorName', 'location'],
     limit: ['limit'],
+  },
+  'grid-operations.vnbLookup': {
+    bdew: ['bdew', 'gridOperatorBdew', 'bdewCode', 'bnr'],
+    city: ['city', 'location', 'gemeinde', 'postalCode', 'postleitzahl'],
+    vnbName: ['vnbName', 'gridOperatorName', 'operatorName', 'query'],
+    query: ['query', 'gridOperatorName', 'operatorName', 'location'],
   },
   'grid-operations.netzfahrplanGenerate': {
     gridOperatorName: ['gridOperatorName', 'query', 'operatorName'],
@@ -486,28 +493,55 @@ function extractPromptHints(message) {
   const text = String(message || '');
   const projectMatch = text.match(/\b(?:projekt|project)\s+([a-z0-9_-]+)/i);
   const isoDates = text.match(/\b\d{4}-\d{2}-\d{2}\b/g) || [];
-  const cityMatch = text.match(/\b(?:in|bei|für|fuer)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})/);
+  const locationPhraseMatch = text.match(/\b(?:in|bei|für|fuer|standort|ort)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})/);
+  const operatorAssertionMatch = text.match(/\b(?:netzbetreiber|vnb|betreiber)\b\s*(?:soll|sei|ist|=|:)?\s*([A-ZÄÖÜ][^,.;\n]+)/i);
+  const leadingSegment = text.split(',')[0]?.trim();
+  const leadingLooksLikeLocation =
+    leadingSegment
+    && !/\b(?:netzbetreiber|vnb|betreiber|bdew|snb)\b/i.test(leadingSegment)
+    && /[A-Za-zÄÖÜäöüß]/.test(leadingSegment)
+    && leadingSegment.split(/\s+/).length <= 4;
+
+  const locationCandidate = locationPhraseMatch?.[1]?.trim()
+    || (leadingLooksLikeLocation ? leadingSegment : undefined);
+
+  const operatorCandidate = operatorAssertionMatch?.[1]
+    ? operatorAssertionMatch[1]
+      .replace(/\b(?:sein|ist|sind)\b.*$/i, '')
+      .trim()
+    : undefined;
+
   const postalMatch = text.match(/\b\d{5}\b/);
-  const capacityMatch = text.match(/\b(\d+(?:[.,]\d+)?)\s*kW\b/i);
+  const capacityKwMatch = text.match(/\b(\d+(?:[.,]\d+)?)\s*kW\b/i);
+  const capacityMwMatch = text.match(/\b(\d+(?:[.,]\d+)?)\s*MW\b/i);
   const requestedCapacityMatch =
     text.match(/\brequested\s*capacity\s*kw\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i)
     || text.match(/\brequestedcapacitykw\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i)
     || text.match(/\brequested\s*capacity\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+  const bdewMatch = text.match(/\b(?:bdew\s*(?:code)?\s*[:=]?\s*)?([0-9]{13}|[A-Z]{2}[A-Z0-9]{11})\b/i);
+
+  const requestedCapacityKW = requestedCapacityMatch
+    ? Number(requestedCapacityMatch[1].replace(',', '.'))
+    : (capacityMwMatch
+      ? Number(capacityMwMatch[1].replace(',', '.')) * 1000
+      : (capacityKwMatch ? Number(capacityKwMatch[1].replace(',', '.')) : undefined));
 
   return {
     projectId: projectMatch ? projectMatch[1] : undefined,
-    location: cityMatch ? cityMatch[1] : undefined,
-    query: cityMatch ? cityMatch[1] : undefined,
-    gridOperatorName: cityMatch ? cityMatch[1] : undefined,
+    location: locationCandidate,
+    city: locationCandidate,
+    query: operatorCandidate || locationCandidate,
+    gridOperatorName: operatorCandidate,
+    assertedGridOperatorName: operatorCandidate,
+    gridOperatorBdew: bdewMatch ? String(bdewMatch[1]).toUpperCase() : undefined,
+    bdewCode: bdewMatch ? String(bdewMatch[1]).toUpperCase() : undefined,
     dateFrom: isoDates[0],
     dateTo: isoDates[1],
     startDate: isoDates[0],
     postleitzahl: postalMatch ? postalMatch[0] : undefined,
     postalCode: postalMatch ? postalMatch[0] : undefined,
-    gridCapacityKw: capacityMatch ? Number(capacityMatch[1].replace(',', '.')) : undefined,
-    requestedCapacityKW: requestedCapacityMatch
-      ? Number(requestedCapacityMatch[1].replace(',', '.'))
-      : undefined,
+    gridCapacityKw: requestedCapacityKW,
+    requestedCapacityKW,
   };
 }
 
