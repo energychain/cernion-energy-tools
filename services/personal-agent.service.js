@@ -1185,7 +1185,39 @@ module.exports = {
       const stopText = this.buildRecoveryStopText({ plan, execution, stopPoint, taskTone });
       const nextText = this.buildRecoveryNextText({ plan, execution, stopPoint, taskTone });
 
-      return `${fileIntro}${progressText} ${stopText} ${nextText}`.replace(/\s+/g, ' ').trim();
+      return this.normalizeRecoveryText([fileIntro, progressText, stopText, nextText].filter(Boolean).join(' '));
+    },
+
+    normalizeRecoveryText(text = '') {
+      return String(text || '')
+        .replace(/\s+/g, ' ')
+        .replace(/\.{2,}/g, '.')
+        .replace(/\s+([,.;:!?])/g, '$1')
+        .replace(/([,.;:!?]){2,}/g, '$1')
+        .trim();
+    },
+
+    isCompleteSentence(text = '') {
+      return /[.!?]$/.test(String(text || '').trim());
+    },
+
+    dedupeCompletedStepSummaries(summaries = []) {
+      const seen = new Set();
+      const result = [];
+
+      for (const summary of summaries) {
+        const value = this.normalizeRecoveryText(summary);
+        if (!value) continue;
+        const key = value
+          .toLowerCase()
+          .replace(/\s*\(\s*\d+\s*treffer\s*\)\s*$/i, '')
+          .trim();
+        if (seen.has(key)) continue;
+        seen.add(key);
+        result.push(value);
+      }
+
+      return result;
     },
 
     humanizeCapabilityLabel(label, fallback = 'fachlicher Prüfschritt') {
@@ -1246,9 +1278,11 @@ module.exports = {
 
       if (stopPoint.reasonCode === 'MISSING_INPUTS' || execution?.status === 'awaiting-onboarding') {
         const missingText = this.describeMissingRecoveryInputs(stopPoint);
+        const hasFullQuestion = this.isCompleteSentence(missingText);
+        const missingSummary = hasFullQuestion ? 'die offene Evidenz' : missingText;
         return taskTone === 'finance-risk'
-          ? `Es fehlt noch die offene Evidenz: ${missingText}.`
-          : `Mir fehlt noch ${missingText}.`;
+          ? `Es fehlt noch ${missingSummary}.`
+          : `Mir fehlt noch ${missingSummary}.`;
       }
 
       if (stopPoint.status === 'interface-placeholder' || stopPoint.reasonCode === 'UNSUPPORTED_CHAIN') {
@@ -1278,7 +1312,9 @@ module.exports = {
       if (stopPoint.reasonCode === 'MISSING_INPUTS' || execution?.status === 'awaiting-onboarding') {
         const questionText = stopPoint?.onboardingQuestion?.questionText;
         if (questionText) {
-          return `Bitte beantworte konkret: ${questionText}`;
+          return this.isCompleteSentence(questionText)
+            ? questionText
+            : `Bitte beantworte konkret: ${this.normalizeRecoveryText(questionText)}`;
         }
 
         const missingText = this.describeMissingRecoveryInputs(stopPoint);
@@ -1326,7 +1362,7 @@ module.exports = {
         ? execution.steps.filter((step) => step && step.status === 'completed')
         : [];
 
-      return completedSteps.slice(0, 2).map((step) => {
+      const summaries = completedSteps.slice(0, 3).map((step) => {
         const plannedStep = Array.isArray(plan?.steps)
           ? plan.steps.find((item) => item.step === step.step || item.action === step.action)
           : null;
@@ -1337,6 +1373,8 @@ module.exports = {
         const outcome = this.summarizeStepOutcome(step.result);
         return outcome ? `${label} (${outcome})` : label;
       });
+
+      return this.dedupeCompletedStepSummaries(summaries);
     },
 
     summarizeStepOutcome(result) {

@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): fixed `__step_N...` placeholder resolution for wrapped step-result shapes (`data.results`, `data.data.results`, `result.*`, `raw.*`) and prevented unresolved dependent city placeholders from being overwritten by prompt-location fallbacks when `bdew` is already resolved.
 - [services/personal-agent.service.js](services/personal-agent.service.js): normalized stored step results (`data` + `raw`) for robust dependent-path access and added generic Standort/VNB consistency classification (`unverified`/`mismatch`) with controlled evidence-stop instead of technical action-failure cascades.
 - [services/personal-agent.service.js](services/personal-agent.service.js): added Due-Diligence-oriented evidence prompts (Netzanschlusszusage/BKZ, Marktlokation, Netzanschlusspunkt, BDEW-Code) for unresolved location/operator plausibility.
+- [services/personal-agent.service.js](services/personal-agent.service.js): deduplicated recovery synthesis so complete onboarding questions are emitted once, duplicate completed-step labels are removed, and visible replies are normalized to avoid repeated punctuation.
 
 ### Tests
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression coverage for zero-step partial recovery, one-step recovery, and finance/risk phrasing, plus negative assertions against internal tokens and generic safe-stop wording.
@@ -32,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [tests/personal-agent-onboarding.test.js](tests/personal-agent-onboarding.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regressions to ensure `operatorEvidence` is never surfaced in user-facing question/recovery text.
 - [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): added regressions for wrapped step-result placeholder resolution (`__step_1.data.results[0]...`) and for preserving resolved lookup dependencies over prompt-location fallback.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression coverage for Standort/VNB consistency handling as a controlled Due-Diligence evidence checkpoint, including assertions that `vnbLookup` receives resolved `bdew/city` from step-1 lookup context.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regressions for single-pass onboarding question output, duplicate-completed-step deduplication, and punctuation cleanup in recovery replies.
 
 ## [0.52.10] — Routing/Matrix Stabilization, Release-Gate Hardening, and Ops Updates
 

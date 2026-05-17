@@ -580,6 +580,132 @@ describe('personal-agent.service', () => {
     expect(reply).not.toMatch(/ACTION_FAILED|VALIDATION_ERROR|__step_|sicher angehalten/i);
   });
 
+  it('renders a complete onboarding question only once without redundant prefixing', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const reply = svc.schema.methods.synthesizeTurn.call(svc, {
+      message: 'Bitte Netzbetreiber und Standort prüfen',
+      plan: {
+        status: 'partial',
+        steps: [
+          {
+            step: 1,
+            action: 'grid-operations.marketPartners',
+            purpose: 'Netzbetreiber-Zuordnung',
+          },
+        ],
+      },
+      execution: {
+        status: 'awaiting-onboarding',
+        completedSteps: 2,
+        steps: [
+          {
+            step: 1,
+            action: 'grid-operations.marketPartners',
+            status: 'completed',
+            result: {
+              data: {
+                results: [
+                  {
+                    bdewCode: '9904350000002',
+                    contacts: [{ city: 'Ludwigshafen' }],
+                    name: 'TWL Netze GmbH',
+                  },
+                ],
+              },
+            },
+            label: 'Netzbetreiber-Zuordnung',
+          },
+          {
+            step: 2,
+            action: 'grid-operations.vnbLookup',
+            status: 'completed',
+            result: {
+              success: true,
+              operator: {
+                bdew: '9904350000002',
+                city: 'Ludwigshafen',
+              },
+            },
+            label: 'Netzbetreiber-Zuordnung',
+          },
+        ],
+        stopPoint: {
+          reasonCode: 'MISSING_INPUTS',
+          status: 'awaiting-onboarding',
+          blockedStep: 2,
+          blockedAction: 'grid-operations.vnbLookup',
+          missingParams: ['operatorEvidence'],
+          onboardingQuestion: {
+            questionText:
+              'Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen. Für die Due Diligence brauche ich bitte Netzanschlusszusage/BKZ, Marktlokation, den konkreten Netzanschlusspunkt oder den zuständigen BDEW-Code.',
+          },
+        },
+      },
+    });
+
+    expect(reply).toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
+    expect(reply).toContain('Für die Due Diligence brauche ich bitte Netzanschlusszusage/BKZ, Marktlokation, den konkreten Netzanschlusspunkt oder den zuständigen BDEW-Code.');
+    expect(reply).not.toMatch(/Bitte beantworte konkret:/i);
+    expect(reply).not.toMatch(/operatorEvidence/i);
+    expect(reply).not.toMatch(/\.\./);
+  });
+
+  it('deduplicates repeated humanized completed-step summaries while preserving outcome hints', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const reply = svc.schema.methods.synthesizeTurn.call(svc, {
+      message: 'Bitte Netzbetreiber prüfen',
+      plan: {
+        status: 'partial',
+        steps: [
+          {
+            step: 1,
+            action: 'grid-operations.marketPartners',
+            purpose: 'Netzbetreiber-Zuordnung',
+          },
+          {
+            step: 2,
+            action: 'grid-operations.vnbLookup',
+            purpose: 'Netzbetreiber-Zuordnung',
+          },
+        ],
+      },
+      execution: {
+        status: 'partial',
+        completedSteps: 2,
+        steps: [
+          {
+            step: 1,
+            action: 'grid-operations.marketPartners',
+            status: 'completed',
+            result: { data: { results: [{ name: 'TWL Netze GmbH' }] } },
+            label: 'Netzbetreiber-Zuordnung',
+          },
+          {
+            step: 2,
+            action: 'grid-operations.vnbLookup',
+            status: 'completed',
+            result: { success: true },
+            label: 'Netzbetreiber-Zuordnung',
+          },
+        ],
+        stopPoint: {
+          reasonCode: 'MISSING_INPUTS',
+          status: 'awaiting-onboarding',
+          blockedStep: 2,
+          blockedAction: 'grid-operations.vnbLookup',
+          missingParams: ['operatorEvidence'],
+          onboardingQuestion: {
+            questionText: 'Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen. Für die Due Diligence brauche ich bitte Netzanschlusszusage/BKZ, Marktlokation, den konkreten Netzanschlusspunkt oder den zuständigen BDEW-Code.',
+          },
+        },
+      },
+    });
+
+    expect(reply).toMatch(/Netzbetreiber(?:-| )Zuordnung \(1 Treffer\)/i);
+    expect(reply).not.toMatch(/Netzbetreiber(?:-| )Zuordnung \(1 Treffer\);\s*Netzbetreiber(?:-| )Zuordnung/i);
+    expect(reply).not.toMatch(/\.\./);
+  });
+
   it('humanizes internal capability labels in partial recovery replies', () => {
     const svc = broker.getLocalService('personal-agent');
     const reply = svc.schema.methods.synthesizeTurn.call(svc, {
