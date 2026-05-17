@@ -13,9 +13,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - [src/personal-agent-knowledge-rag.js](src/personal-agent-knowledge-rag.js): strict knowledgeContext filtering implemented so only derived orientation fields (`domainHint`, `regulatoryFrame`, `synthesisStyle`) are returned; raw RAG fields such as `vectorText`, `referenceText`, and `score` are never propagated.
 - [src/personal-agent-knowledge-rag.js](src/personal-agent-knowledge-rag.js): added hard mapping tables for domain/regulatory derivation based on metadata/tag signals, without assumptions about collection internals.
+- [services/personal-agent.service.js](services/personal-agent.service.js): integrated Knowledge-RAG orientation call before broker recommendation; broker `knownContext` is now enriched with transient `_knowledgeHints` (`domainHint`, `regulatoryFrame`, `synthesisStyle`), plan building accepts `knowledgeContext`, synthesis tone adapts to `synthesisStyle`, and transient `knowledgeContext` is explicitly cleared before response return.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): `buildExecutionPlan({ ..., knowledgeContext })` now supports optional knowledge orientation input and annotates regulatory-relevant steps with a deterministic `contextNote` when `regulatoryFrame` is present.
+- [src/personal-agent-context.js](src/personal-agent-context.js): persistence leak defense extended by treating `knowledgeContext` as forbidden transient key in persisted state validation.
 
 ### Tests
 - [tests/personal-agent-knowledge-rag.test.js](tests/personal-agent-knowledge-rag.test.js): added `T-PA-KR-001`, `T-PA-KR-002`, and `T-PA-KR-005/006` coverage for broker-call wiring, raw-hit filtering, and graceful degradation on zero-hits/service timeout/outage.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added `T-PA-KR-007` (broker knownContext hint propagation) and `T-PA-KR-004` (synthesis style tone adaptation) coverage.
+- [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): added coverage for regulatory `contextNote` propagation from `knowledgeContext` into relevant plan steps.
+- [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js): added `T-PA-KR-003`-aligned regression to reject persisted `knowledgeContext` leaks.
 
 ## [0.52.12] — Conversational Onboarding Hardening (2026-05-17)
 

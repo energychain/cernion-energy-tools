@@ -829,7 +829,22 @@ function getMissingInputs(action, params = {}) {
   return missing;
 }
 
-function buildExecutionPlan({ message, brokerRecommendation }) {
+function shouldAttachRegulatoryContextNote(action = '') {
+  const value = String(action || '').toLowerCase();
+  return /^(grid-operations\.|grid-connection\.|finance-agent\.|redispatch|settlement\.)/.test(value);
+}
+
+function toContextNote(knowledgeContext = {}, action = '') {
+  if (!knowledgeContext || !knowledgeContext.regulatoryFrame) {
+    return undefined;
+  }
+  if (!shouldAttachRegulatoryContextNote(action)) {
+    return undefined;
+  }
+  return `Regulatorischer Rahmen: ${knowledgeContext.regulatoryFrame}`;
+}
+
+function buildExecutionPlan({ message, brokerRecommendation, knowledgeContext = null }) {
   const promptHints = extractPromptHints(message);
   const requestedDomains = detectRequestedDomains(message);
   const route = findMatchingMatrixRoute(requestedDomains);
@@ -851,6 +866,7 @@ function buildExecutionPlan({ message, brokerRecommendation }) {
         paramsTemplate: step.paramsTemplate,
         source: step.source,
         dependsOnStep: step.dependsOnStep || null,
+        contextNote: toContextNote(knowledgeContext, step.action),
       })),
       status: 'ready',
       warnings: unsupportedDomains.length > 0
@@ -872,7 +888,11 @@ function buildExecutionPlan({ message, brokerRecommendation }) {
       }
     : findBestCapability(message);
 
-  const steps = buildCuratedBrokerSteps(selected.capability, brokerRecommendation);
+  const steps = buildCuratedBrokerSteps(selected.capability, brokerRecommendation)
+    .map((step) => ({
+      ...step,
+      contextNote: toContextNote(knowledgeContext, step.action),
+    }));
   const unsupportedDomains = requestedDomains.length > 1 ? requestedDomains.slice(1) : [];
 
   return {

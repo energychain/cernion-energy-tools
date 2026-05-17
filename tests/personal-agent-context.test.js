@@ -99,4 +99,24 @@ describe('personal-agent-context', () => {
       })
     ).toThrow('L4_PERSISTENCE_VIOLATION');
   });
+
+  it('rejects persistable state when knowledgeContext leaks in', () => {
+    expect(() =>
+      buildPersistableSessionState({
+        id: 's-2',
+        tenantId: 'default',
+        userId: 'u-1',
+        l3: { history: [], summary: null, compressed: false },
+        l2: {
+          userProfile: {
+            onboardingFacts: {
+              knowledgeContext: {
+                domainHint: 'market-regulatory',
+              },
+            },
+          },
+        },
+      })
+    ).toThrow('L4_PERSISTENCE_VIOLATION');
+  });
 });

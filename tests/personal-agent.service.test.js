@@ -643,6 +643,29 @@ describe('personal-agent.service', () => {
     expect(reply).not.toMatch(/ACTION_FAILED|VALIDATION_ERROR|__step_|sicher angehalten/i);
   });
 
+  it('T-PA-KR-004: applies synthesisStyle tone hints in synthesis output', () => {
+    const svc = broker.getLocalService('personal-agent');
+
+    const cautionary = svc.schema.methods.synthesizeTurn.call(svc, {
+      message: 'Bitte Risiko einordnen',
+      executionMode: 'auto',
+      plan: { steps: [] },
+      execution: { status: 'completed', steps: [] },
+      knowledgeContext: { synthesisStyle: 'cautionary' },
+    });
+
+    const methodological = svc.schema.methods.synthesizeTurn.call(svc, {
+      message: 'Bitte methodisch erklären',
+      executionMode: 'auto',
+      plan: { steps: [] },
+      execution: { status: 'completed', steps: [] },
+      knowledgeContext: { synthesisStyle: 'methodological' },
+    });
+
+    expect(cautionary).toMatch(/^Risikohinweis:/);
+    expect(methodological).toMatch(/^Methodik-Hinweis:/);
+  });
+
   it('frames finance-risk recovery with missing-evidence language', () => {
     const svc = broker.getLocalService('personal-agent');
     const reply = svc.schema.methods.synthesizeTurn.call(svc, {
@@ -1450,6 +1473,28 @@ describe('personal-agent.service', () => {
 
     expect(reply).toMatch(/Methodik|Annahmen|Evidenzlücken|Sensitivitäten|Entscheidungsvorbehalte/i);
     expect(reply).not.toMatch(/interface_placeholder|ACTION_FAILED|__step_/i);
+  });
+
+  it('T-PA-KR-007: forwards knowledge hints into capability broker knownContext', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const enriched = svc.schema.methods.attachKnowledgeHintsToKnownContext.call(
+      svc,
+      {
+        gridOperatorName: 'TWL Netze',
+      },
+      {
+        domainHint: 'market-regulatory',
+        regulatoryFrame: 'EnWG-Rahmen',
+        synthesisStyle: 'methodological',
+      }
+    );
+
+    expect(enriched.gridOperatorName).toBe('TWL Netze');
+    expect(enriched._knowledgeHints).toEqual({
+      domainHint: 'market-regulatory',
+      regulatoryFrame: 'EnWG-Rahmen',
+      synthesisStyle: 'methodological',
+    });
   });
 
   it('completes the verified Standort/VNB path without storing assumptions', async () => {

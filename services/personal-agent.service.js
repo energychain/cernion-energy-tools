@@ -12,11 +12,15 @@ const {
 const {
   EXECUTION_MODES,
   normalizeExecutionMode,
+  detectRequestedDomains,
   buildExecutionPlan,
   fillTemplateWithContext,
   pruneUndefinedDeep,
   getMissingInputs,
 } = require('../src/personal-agent-routing');
+const {
+  queryKnowledgeOrientation: queryKnowledgeOrientationAdapter,
+} = require('../src/personal-agent-knowledge-rag');
 const {
   scheduleDream,
   cancelDream,
@@ -576,16 +580,26 @@ module.exports = {
           text: ctx.params.message,
           ts: new Date().toISOString(),
         };
+        const knownContext = { ...(ctx.params.knownContext || {}) };
+        let knowledgeContext = await this.queryKnowledgeOrientation(ctx, {
+          message: ctx.params.message,
+          activeDomains: detectRequestedDomains(ctx.params.message),
+        });
+        const brokerKnownContext = this.attachKnowledgeHintsToKnownContext(
+          knownContext,
+          knowledgeContext
+        );
+
         const brokerRecommendation = await this.getBrokerRecommendation(
           ctx,
           ctx.params.message,
-          ctx.params.knownContext || {}
+          brokerKnownContext
         );
         const plan = buildExecutionPlan({
           message: ctx.params.message,
           brokerRecommendation,
+          knowledgeContext,
         });
-        const knownContext = { ...(ctx.params.knownContext || {}) };
         const execution = await this.handleExecutionWithOnboarding(ctx, {
           message: ctx.params.message,
           plan,
@@ -612,6 +626,7 @@ module.exports = {
           plan: responsePlan,
           execution,
           fileProcessing,
+          knowledgeContext,
         });
 
         const finalized = synthesizeAndPurgeLayer4(stackResult.stack, synthesisText);
@@ -649,6 +664,8 @@ module.exports = {
             await this.runDream(this.broker, payload);
           },
         });
+
+        knowledgeContext = null;
 
         return {
           success: true,
@@ -1152,18 +1169,29 @@ module.exports = {
       return results;
     },
 
-    synthesizeTurn({ message, toolContext, executionMode, plan, execution, fileProcessing = [] }) {
+    synthesizeTurn({
+      message,
+      toolContext,
+      executionMode,
+      plan,
+      execution,
+      fileProcessing = [],
+      knowledgeContext = null,
+    }) {
       const fileIntro = this.buildFileProcessingIntro(fileProcessing);
       const promptExcerpt = String(message || '').trim().slice(0, 220);
+      const synthesisStyle = knowledgeContext?.synthesisStyle || null;
+      const styleLead = this.buildSynthesisStyleLead(synthesisStyle);
+      const prefixed = (text) => (styleLead ? `${styleLead} ${text}` : text);
 
       if (toolContext && toolContext.responseRaw) {
         const keyCount = Object.keys(toolContext.responseRaw || {}).length;
-        return `${fileIntro}Tool-Ergebnis verarbeitet (${keyCount} Felder). Zusammenfassung erstellt und Layer 4 verworfen.`;
+        return prefixed(`${fileIntro}Tool-Ergebnis verarbeitet (${keyCount} Felder). Zusammenfassung erstellt und Layer 4 verworfen.`);
       }
       if (executionMode === EXECUTION_MODES.HITL) {
-        return `${fileIntro}Plan bereit: ${plan.steps.length} deterministische Schritte für „${String(message)
+        return prefixed(`${fileIntro}Plan bereit: ${plan.steps.length} deterministische Schritte für „${String(message)
           .trim()
-          .slice(0, 160)}“. Ausführung wartet auf Freigabe.`;
+          .slice(0, 160)}“. Ausführung wartet auf Freigabe.`);
       }
       if (execution?.status === 'awaiting-onboarding') {
         return this.buildRecoveryReply({
@@ -1172,10 +1200,11 @@ module.exports = {
           execution,
           fileIntro,
           assumptions: execution?.assumptions || [],
+          synthesisStyle,
         });
       }
       if (execution?.status === 'completed') {
-        return `${fileIntro}Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt. Kontext: ${promptExcerpt}`;
+        return prefixed(`${fileIntro}Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt. Kontext: ${promptExcerpt}`);
       }
       if (execution?.status === 'partial') {
         return this.buildRecoveryReply({
@@ -1184,16 +1213,37 @@ module.exports = {
           execution,
           fileIntro,
           assumptions: execution?.assumptions || [],
+          synthesisStyle,
         });
       }
-      return `${fileIntro}Verstanden. Nächster Schritt für: ${String(message).trim().slice(0, 240)}`;
+      return prefixed(`${fileIntro}Verstanden. Nächster Schritt für: ${String(message).trim().slice(0, 240)}`);
     },
 
-    buildRecoveryReply({ message, plan = {}, execution = {}, fileIntro = '', assumptions = [] }) {
-      const taskTone = this.isFinanceRiskTask(message, plan, execution) ? 'finance-risk' : 'general';
+    buildSynthesisStyleLead(synthesisStyle) {
+      if (synthesisStyle === 'cautionary') {
+        return 'Risikohinweis:';
+      }
+      if (synthesisStyle === 'methodological') {
+        return 'Methodik-Hinweis:';
+      }
+      return '';
+    },
+
+    buildRecoveryReply({
+      message,
+      plan = {},
+      execution = {},
+      fileIntro = '',
+      assumptions = [],
+      synthesisStyle = null,
+    }) {
+      const taskTone = synthesisStyle === 'cautionary' || this.isFinanceRiskTask(message, plan, execution)
+        ? 'finance-risk'
+        : 'general';
       const completedStepSummaries = this.summarizeCompletedSteps(plan, execution);
       const stopPoint = execution?.stopPoint || {};
       const progressPrefix = taskTone === 'finance-risk' ? 'Für die Risikoprüfung' : 'Für die fachliche Bewertung';
+      const styleLead = this.buildSynthesisStyleLead(synthesisStyle);
 
       const progressText = completedStepSummaries.length > 0
         ? `${progressPrefix} habe ich bereits ${completedStepSummaries.length === 1 ? 'einen Prüfschritt' : `${completedStepSummaries.length} Prüfschritte`} abgeschlossen: ${completedStepSummaries.join('; ')}.`
@@ -1217,7 +1267,7 @@ module.exports = {
       });
 
       return this.normalizeRecoveryText(
-        [fileIntro, progressText, riskWarning, stopText, nextText]
+        [styleLead, fileIntro, progressText, riskWarning, stopText, nextText]
           .filter(Boolean)
           .join(' ')
       );
@@ -1730,6 +1780,27 @@ module.exports = {
         }
         throw error;
       }
+    },
+
+    attachKnowledgeHintsToKnownContext(knownContext = {}, knowledgeContext = null) {
+      const enriched = { ...(knownContext || {}) };
+      if (!knowledgeContext) {
+        return enriched;
+      }
+
+      enriched._knowledgeHints = {
+        domainHint: knowledgeContext.domainHint || null,
+        regulatoryFrame: knowledgeContext.regulatoryFrame || null,
+        synthesisStyle: knowledgeContext.synthesisStyle || null,
+      };
+      return enriched;
+    },
+
+    async queryKnowledgeOrientation(ctx, { message, activeDomains = [] } = {}) {
+      return queryKnowledgeOrientationAdapter(ctx, {
+        message,
+        activeDomains,
+      });
     },
 
     buildStopPoint({ reasonCode, message, blockedStep, status, placeholder }) {

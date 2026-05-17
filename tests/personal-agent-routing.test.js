@@ -167,4 +167,20 @@ describe('personal-agent-routing', () => {
     expect(params.city).toBeUndefined();
     expect(params.limit).toBe(5);
   });
+
+  it('adds regulatory contextNote on relevant steps when knowledgeContext provides a regulatory frame', () => {
+    const plan = buildExecutionPlan({
+      message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+      brokerRecommendation: null,
+      knowledgeContext: {
+        regulatoryFrame: 'EnWG-Rahmen',
+      },
+    });
+
+    expect(plan.routeKey).toBe('fnav-finance');
+    expect(plan.steps[0].action).toBe('grid-connection.fnavValidate');
+    expect(plan.steps[1].action).toBe('finance-agent.fnavEconomics');
+    expect(plan.steps[0].contextNote).toContain('EnWG-Rahmen');
+    expect(plan.steps[1].contextNote).toContain('EnWG-Rahmen');
+  });
 });

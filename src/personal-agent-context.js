@@ -14,6 +14,7 @@ const DEFAULT_RESERVATIONS = {
 const FORBIDDEN_L4_KEYS = new Set([
   'layer4',
   'toolContext',
+  'knowledgeContext',
   'rawJson',
   'rawResponse',
   'responseRaw',
