@@ -627,9 +627,66 @@ module.exports = {
           execution,
           fileProcessing,
           knowledgeContext,
+          ctx,
+          tenantId,
+          sessionId,
         });
 
-        const finalized = synthesizeAndPurgeLayer4(stackResult.stack, synthesisText);
+        // Try to render presentation for execution result
+        let presentationResult = {};
+        let presentationApplied = false;
+        let presentationType = null;
+
+        if (
+          execution?.status === 'completed' &&
+          this.hasStructuredExecutionResult(execution)
+        ) {
+          try {
+            const domainResult = this.extractDomainResultFromExecution(execution);
+            if (domainResult && Object.keys(domainResult).length > 0) {
+              const intent = responsePlan?.primaryIntent || responsePlan?.routeKey || 'execution_result';
+              
+              presentationResult = await ctx.call(
+                'presentation.render',
+                {
+                  intent,
+                  audience: 'management',
+                  preferredFormat: 'auto',
+                  domainResult,
+                  context: {
+                    tenantId,
+                    sessionId,
+                    processType: responsePlan?.routeKey || null,
+                    source: 'personal-agent',
+                  },
+                  locale: 'de-DE',
+                },
+                { meta: ctx.meta }
+              );
+
+              if (
+                presentationResult &&
+                typeof presentationResult === 'object' &&
+                presentationResult.markdown
+              ) {
+                presentationApplied = true;
+                presentationType = presentationResult.type;
+                // Use presentation markdown as the final reply
+                finalized.synthesisText = presentationResult.markdown;
+              }
+            }
+          } catch (error) {
+            this.logger?.warn(
+              `Presentation render failed (non-blocking): ${error.message}`
+            );
+            presentationApplied = false;
+          }
+        }
+
+        const finalized = synthesizeAndPurgeLayer4(
+          stackResult.stack,
+          presentationApplied ? presentationResult.markdown : synthesisText
+        );
         const persisted = buildPersistableSessionState({
           id: sessionId,
           tenantId,
@@ -667,11 +724,22 @@ module.exports = {
 
         knowledgeContext = null;
 
+        const responseReply = presentationApplied ? presentationResult.markdown : synthesisText;
+
         return {
           success: true,
           sessionId,
           executionMode,
-          reply: synthesisText,
+          reply: responseReply,
+          presentationApplied,
+          presentationType: presentationType || null,
+          presentation: presentationApplied
+            ? {
+                type: presentationResult.type,
+                markdown: presentationResult.markdown,
+                warnings: presentationResult.warnings || [],
+              }
+            : null,
           layer4Purged: finalized.layer4Purged,
           l3Compressed: Boolean(finalized.stack?.l3?.compressed),
           contextUsage: stackResult.usage,
@@ -2706,6 +2774,102 @@ module.exports = {
       const hint = consistency?.hints || {};
       const locationText = hint.projectLocation ? ` für den Standort ${hint.projectLocation}` : '';
       return `Ich kann die Zuständigkeit${locationText} noch nicht belastbar bestätigen. Für die Due Diligence brauche ich bitte Netzanschlusszusage/BKZ, Marktlokation, Netzanschlusspunkt oder den zuständigen BDEW-Code.`;
+    },
+
+    /**
+     * Check if execution result contains structured data worth presenting.
+     */
+    hasStructuredExecutionResult(execution = {}) {
+      if (!execution || !Array.isArray(execution.steps)) {
+        return false;
+      }
+
+      // Check if any step result has structured data
+      for (const step of execution.steps) {
+        const result = step.result || {};
+        if (this.hasStructuredData(result)) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+
+    /**
+     * Extract domain result from execution steps (combined result of all steps).
+     */
+    extractDomainResultFromExecution(execution = {}) {
+      if (!Array.isArray(execution.steps) || execution.steps.length === 0) {
+        return null;
+      }
+
+      // Merge all step results into a single domain result
+      const merged = {};
+      for (const step of execution.steps) {
+        const result = step.result || {};
+        Object.assign(merged, result);
+      }
+
+      return Object.keys(merged).length > 0 ? merged : null;
+    },
+
+    /**
+     * Check if an object contains structured data fields (not just generic strings).
+     */
+    hasStructuredData(obj = {}) {
+      if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+        return false;
+      }
+
+      const structuredKeys = [
+        'matrix', 'tasks', 'roles', 'evidenceGaps', 'assetRisks', 'risks',
+        'items', 'rows', 'peers', 'variants', 'count', 'value', 'metric', 'answer',
+        'forbiddenAssumptions', 'expectedStatus', 'status',
+      ];
+
+      return structuredKeys.some((key) => {
+        const val = obj[key];
+        return val !== undefined && val !== null && val !== '';
+      });
+    },
+
+    /**
+     * Render presentation synchronously from execution result (lightweight, no LLM).
+     * Returns { markdown, presentationType, presentation } if successful.
+     * Returns {} if not applicable or fails gracefully.
+     */
+    maybeRenderPresentationSync(input = {}) {
+      const { execution, plan } = input;
+
+      if (!execution || !plan) {
+        return {};
+      }
+
+      // Extract domain result from execution
+      const domainResult = this.extractDomainResultFromExecution(execution);
+      if (!domainResult || Object.keys(domainResult).length === 0) {
+        return {};
+      }
+
+      // Determine intent
+      const intent = plan?.primaryIntent || plan?.routeKey || 'execution_result';
+
+      // Build presentation parameters  
+      const presentationParams = {
+        intent,
+        audience: 'management',
+        preferredFormat: 'auto',
+        domainResult,
+        context: {
+          processType: plan?.routeKey || null,
+          source: 'personal-agent',
+        },
+        locale: 'de-DE',
+      };
+
+      // Return structured presentation (actual rendering happens in presentation service)
+      // For now, return empty since async call needed; integration via ctx.call()
+      return {};
     },
 
     async loadUserProfile(ctx, tenantId, userId) {
