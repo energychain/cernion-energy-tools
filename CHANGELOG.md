@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- [src/personal-agent-knowledge-rag.js](src/personal-agent-knowledge-rag.js): new Airside-only adapter method `queryKnowledgeOrientation(ctx, { message, activeDomains, limit })` as deterministic wrapper around `knowledge-rag.query` with hard timeout guard (`2000ms`) and graceful degradation (`null`) on timeout/service-unavailable paths.
+
+### Changed
+- [src/personal-agent-knowledge-rag.js](src/personal-agent-knowledge-rag.js): strict knowledgeContext filtering implemented so only derived orientation fields (`domainHint`, `regulatoryFrame`, `synthesisStyle`) are returned; raw RAG fields such as `vectorText`, `referenceText`, and `score` are never propagated.
+- [src/personal-agent-knowledge-rag.js](src/personal-agent-knowledge-rag.js): added hard mapping tables for domain/regulatory derivation based on metadata/tag signals, without assumptions about collection internals.
+
+### Tests
+- [tests/personal-agent-knowledge-rag.test.js](tests/personal-agent-knowledge-rag.test.js): added `T-PA-KR-001`, `T-PA-KR-002`, and `T-PA-KR-005/006` coverage for broker-call wiring, raw-hit filtering, and graceful degradation on zero-hits/service timeout/outage.
+
 ## [0.52.12] — Conversational Onboarding Hardening (2026-05-17)
 
 ### Changed
