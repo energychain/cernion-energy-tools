@@ -6,6 +6,7 @@ const path = require('path');
 const { ServiceBroker } = require('moleculer');
 const ObjectStoreService = require('../services/object-store.service');
 const CapabilityBrokerService = require('../services/capability-broker.service');
+const PresentationService = require('../services/presentation.service');
 const PersonalAgentService = require('../services/personal-agent.service');
 
 describe('personal-agent.service', () => {
@@ -311,6 +312,7 @@ describe('personal-agent.service', () => {
         },
       },
     });
+    broker.createService(PresentationService);
     broker.createService(PersonalAgentService);
     await broker.start();
   });
@@ -1720,10 +1722,102 @@ describe('personal-agent.service', () => {
       'vdmi.agentRole',
     ]);
 
+    expect(result.presentationApplied).toBe(true);
+    expect(result.presentationType).toBe('vdmi_matrix_table');
+    expect(result.reply).toContain('| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |');
+    expect(result.reply).toContain('Network Operator Decision');
+    expect(result.reply).toContain('DSO_GATEKEEPER');
+    expect(result.reply).not.toContain('Plan abgeschlossen:');
+
     const roleCall = executedCallDetails.find((entry) => entry.action === 'vdmi.agentRole');
     expect(roleCall).toBeTruthy();
     expect(roleCall.params.taskId).toBe('network-operator-decision');
     expect(roleCall.params.agentId).toBe('DSO_GATEKEEPER');
+  });
+
+  it('falls back to synthesis text when presentation.render fails, without crashing on finalized reference', async () => {
+    const originalCall = broker.call.bind(broker);
+    broker.call = async (actionName, params, opts) => {
+      if (actionName === 'presentation.render') {
+        throw new Error('simulated_presentation_failure');
+      }
+      return originalCall(actionName, params, opts);
+    };
+
+    try {
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Kann der Netzbetreiber ohne formales §17-EnWG-Netzanschlussbegehren eine belastbare Anschluss- oder Kapazitätszusage geben?',
+          executionMode: 'auto',
+          knownContext: {
+            processType: 'grid-connection-governance',
+            taskId: 'network-operator-decision',
+          },
+        },
+        { meta: { tenantId: 'tenant-vdmi-step4-fallback', authUser: { userId: 'user-1' } } }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.execution.status).toBe('completed');
+      expect(result.presentationApplied).toBe(false);
+      expect(result.reply).toContain('Plan abgeschlossen:');
+    } finally {
+      broker.call = originalCall;
+    }
+  });
+
+  it('maps nested VDMI dossier results to presentation-ready matrix domainResult', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const domainResult = svc.schema.methods.extractDomainResultFromExecution.call(svc, {
+      status: 'completed',
+      steps: [
+        {
+          action: 'vdmi.dossier',
+          result: {
+            matrixId: 'matrix-step3',
+            dossier: {
+              task: {
+                taskId: 'network-operator-decision',
+                taskName: 'Network Operator Decision',
+                phase: 'decision',
+                verantwortlich: [{ actorType: 'org', actorId: 'DSO_GATEKEEPER' }],
+                durchfuehrend: [{ actorType: 'org', actorId: 'EXISTING_AREAL_GRID_OPERATOR' }],
+                mitwirkend: [{ actorType: 'org', actorId: 'GROUP_ENERGY_PROJECT_OWNER' }],
+                information: [{ actorType: 'org', actorId: 'AREAL_OWNER' }],
+              },
+              expectedStatus: 'blocked',
+              evidence: {
+                requirements: [{ requirementId: 'formal-request', label: 'Vollständiger §17-Antrag' }],
+              },
+              evidenceGaps: [{ requirementId: 'formal-request', label: 'Vollständiger §17-Antrag' }],
+              forbiddenAssumptions: ['Keine belastbare Anschlusszusage ohne formalen Antrag'],
+              nextActions: [{ id: 'na-1', label: 'Formalen Antrag einreichen' }],
+            },
+          },
+        },
+      ],
+    });
+
+    expect(domainResult).toBeTruthy();
+    expect(domainResult.matrix).toBeTruthy();
+    expect(domainResult.matrix.id).toBe('matrix-step3');
+    expect(Array.isArray(domainResult.matrix.tasks)).toBe(true);
+    expect(domainResult.matrix.tasks).toHaveLength(1);
+
+    const task = domainResult.matrix.tasks[0];
+    expect(task.taskId).toBe('network-operator-decision');
+    expect(task.taskName).toBe('Network Operator Decision');
+    expect(task.verantwortlich[0].actorId).toBe('DSO_GATEKEEPER');
+    expect(Array.isArray(task.evidenceRequirements)).toBe(true);
+    expect(Array.isArray(task.evidenceGaps)).toBe(true);
+    expect(Array.isArray(task.forbiddenAssumptions)).toBe(true);
+    expect(Array.isArray(task.nextActions)).toBe(true);
+
+    expect(Array.isArray(domainResult.evidenceGaps)).toBe(true);
+    expect(Array.isArray(domainResult.forbiddenAssumptions)).toBe(true);
+    expect(Array.isArray(domainResult.nextActions)).toBe(true);
+    expect(domainResult.expectedStatus).toBe('blocked');
   });
 
   it('stops with interface placeholder when VDMI decision task cannot be resolved uniquely', async () => {

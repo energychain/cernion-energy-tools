@@ -670,9 +670,10 @@ module.exports = {
                 presentationResult.markdown
               ) {
                 presentationApplied = true;
-                presentationType = presentationResult.type;
-                // Use presentation markdown as the final reply
-                finalized.synthesisText = presentationResult.markdown;
+                presentationType =
+                  presentationResult?.presentation?.type
+                  || presentationResult?.type
+                  || null;
               }
             }
           } catch (error) {
@@ -2790,6 +2791,20 @@ module.exports = {
         if (this.hasStructuredData(result)) {
           return true;
         }
+
+        const dossier = result?.dossier;
+        if (
+          dossier
+          && typeof dossier === 'object'
+          && (
+            (dossier.task && typeof dossier.task === 'object')
+            || Array.isArray(dossier.evidenceGaps)
+            || Array.isArray(dossier.forbiddenAssumptions)
+            || Array.isArray(dossier.nextActions)
+          )
+        ) {
+          return true;
+        }
       }
 
       return false;
@@ -2803,11 +2818,131 @@ module.exports = {
         return null;
       }
 
-      // Merge all step results into a single domain result
       const merged = {};
+      const vdmiTasksById = new Map();
+      const vdmiEvidenceGaps = [];
+      const vdmiForbiddenAssumptions = [];
+      const vdmiNextActions = [];
+      let vdmiExpectedStatus;
+      let vdmiMatrixId;
+      let vdmiMatrixName;
+      let vdmiMatrixStatus;
+
+      const addUnique = (target, values) => {
+        if (!Array.isArray(values)) return;
+        for (const value of values) {
+          const key = JSON.stringify(value);
+          if (!target.some((item) => JSON.stringify(item) === key)) {
+            target.push(value);
+          }
+        }
+      };
+
       for (const step of execution.steps) {
         const result = step.result || {};
         Object.assign(merged, result);
+
+        const dossier = result?.dossier;
+        if (!dossier || typeof dossier !== 'object') {
+          continue;
+        }
+
+        const task = dossier.task && typeof dossier.task === 'object' ? dossier.task : null;
+        if (!task) {
+          continue;
+        }
+
+        const taskId = task.taskId || result.taskId || `vdmi_task_${vdmiTasksById.size + 1}`;
+        const existingTask = vdmiTasksById.get(taskId) || {};
+
+        const mappedTask = {
+          ...existingTask,
+          taskId,
+        };
+
+        const maybeAssign = (key, value) => {
+          if (value !== undefined && value !== null && value !== '') {
+            mappedTask[key] = value;
+          }
+        };
+
+        maybeAssign('taskName', task.taskName || task.description);
+        maybeAssign('phase', task.phase);
+        maybeAssign('verantwortlich', Array.isArray(task.verantwortlich) ? task.verantwortlich : undefined);
+        maybeAssign('durchfuehrend', Array.isArray(task.durchfuehrend) ? task.durchfuehrend : undefined);
+        maybeAssign('mitwirkend', Array.isArray(task.mitwirkend) ? task.mitwirkend : undefined);
+        maybeAssign('information', Array.isArray(task.information) ? task.information : undefined);
+        maybeAssign('expectedStatus', dossier.expectedStatus || task.expectedStatus);
+
+        const evidenceRequirements = Array.isArray(dossier?.evidence?.requirements)
+          ? dossier.evidence.requirements
+          : (Array.isArray(task.evidenceRequirements) ? task.evidenceRequirements : undefined);
+        maybeAssign('evidenceRequirements', evidenceRequirements);
+
+        const evidenceGaps = Array.isArray(dossier.evidenceGaps)
+          ? dossier.evidenceGaps
+          : (Array.isArray(task.evidenceGaps) ? task.evidenceGaps : undefined);
+        maybeAssign('evidenceGaps', evidenceGaps);
+
+        const forbiddenAssumptions = Array.isArray(dossier.forbiddenAssumptions)
+          ? dossier.forbiddenAssumptions
+          : (Array.isArray(task.forbiddenAssumptions) ? task.forbiddenAssumptions : undefined);
+        maybeAssign('forbiddenAssumptions', forbiddenAssumptions);
+
+        const nextActions = Array.isArray(dossier.nextActions)
+          ? dossier.nextActions
+          : (Array.isArray(task.nextActions) ? task.nextActions : undefined);
+        maybeAssign('nextActions', nextActions);
+
+        vdmiTasksById.set(taskId, mappedTask);
+
+        addUnique(vdmiEvidenceGaps, evidenceGaps);
+        addUnique(vdmiForbiddenAssumptions, forbiddenAssumptions);
+        addUnique(vdmiNextActions, nextActions);
+
+        if (vdmiExpectedStatus === undefined && mappedTask.expectedStatus !== undefined) {
+          vdmiExpectedStatus = mappedTask.expectedStatus;
+        }
+        if (!vdmiMatrixId) {
+          vdmiMatrixId = result.matrixId || task.matrixId;
+        }
+        if (!vdmiMatrixName) {
+          vdmiMatrixName = result.matrixName || dossier.matrixName || task.matrixName;
+        }
+        if (!vdmiMatrixStatus) {
+          vdmiMatrixStatus = result.matrixStatus || dossier.matrixStatus || task.matrixStatus;
+        }
+      }
+
+      const vdmiTasks = Array.from(vdmiTasksById.values());
+      if (vdmiTasks.length > 0) {
+        const matrix = {
+          tasks: vdmiTasks,
+        };
+
+        if (vdmiMatrixId) matrix.id = vdmiMatrixId;
+        if (vdmiMatrixName) matrix.name = vdmiMatrixName;
+        if (vdmiMatrixStatus) matrix.status = vdmiMatrixStatus;
+
+        const vdmiDomainResult = {
+          ...merged,
+          matrix,
+        };
+
+        if (vdmiEvidenceGaps.length > 0) {
+          vdmiDomainResult.evidenceGaps = vdmiEvidenceGaps;
+        }
+        if (vdmiForbiddenAssumptions.length > 0) {
+          vdmiDomainResult.forbiddenAssumptions = vdmiForbiddenAssumptions;
+        }
+        if (vdmiNextActions.length > 0) {
+          vdmiDomainResult.nextActions = vdmiNextActions;
+        }
+        if (vdmiExpectedStatus !== undefined) {
+          vdmiDomainResult.expectedStatus = vdmiExpectedStatus;
+        }
+
+        return vdmiDomainResult;
       }
 
       return Object.keys(merged).length > 0 ? merged : null;
@@ -2821,6 +2956,20 @@ module.exports = {
         return false;
       }
 
+      const dossier = obj?.dossier;
+      if (
+        dossier
+        && typeof dossier === 'object'
+        && (
+          (dossier.task && typeof dossier.task === 'object')
+          || Array.isArray(dossier.evidenceGaps)
+          || Array.isArray(dossier.forbiddenAssumptions)
+          || Array.isArray(dossier.nextActions)
+        )
+      ) {
+        return true;
+      }
+
       const structuredKeys = [
         'matrix', 'tasks', 'roles', 'evidenceGaps', 'assetRisks', 'risks',
         'items', 'rows', 'peers', 'variants', 'count', 'value', 'metric', 'answer',
@@ -2831,45 +2980,6 @@ module.exports = {
         const val = obj[key];
         return val !== undefined && val !== null && val !== '';
       });
-    },
-
-    /**
-     * Render presentation synchronously from execution result (lightweight, no LLM).
-     * Returns { markdown, presentationType, presentation } if successful.
-     * Returns {} if not applicable or fails gracefully.
-     */
-    maybeRenderPresentationSync(input = {}) {
-      const { execution, plan } = input;
-
-      if (!execution || !plan) {
-        return {};
-      }
-
-      // Extract domain result from execution
-      const domainResult = this.extractDomainResultFromExecution(execution);
-      if (!domainResult || Object.keys(domainResult).length === 0) {
-        return {};
-      }
-
-      // Determine intent
-      const intent = plan?.primaryIntent || plan?.routeKey || 'execution_result';
-
-      // Build presentation parameters
-      const presentationParams = {
-        intent,
-        audience: 'management',
-        preferredFormat: 'auto',
-        domainResult,
-        context: {
-          processType: plan?.routeKey || null,
-          source: 'personal-agent',
-        },
-        locale: 'de-DE',
-      };
-
-      // Return structured presentation (actual rendering happens in presentation service)
-      // For now, return empty since async call needed; integration via ctx.call()
-      return {};
     },
 
     async loadUserProfile(ctx, tenantId, userId) {
