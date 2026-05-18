@@ -1145,6 +1145,15 @@ module.exports = {
   },
 
   methods: {
+    async _executeChatCoreLogic(ctx) {
+      const chatActionSchema = this?.schema?.actions?.chat;
+      const chatCore = chatActionSchema?._executeChatCoreLogic;
+      if (typeof chatCore !== 'function') {
+        throw new Error('personal-agent.chat core handler is not available');
+      }
+      return await chatCore.call(this, ctx);
+    },
+
     /**
      * Run the Dream pipeline for a session.
      * Called by the inactivity timer; errors are silently swallowed.

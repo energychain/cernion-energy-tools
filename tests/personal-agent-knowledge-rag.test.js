@@ -44,7 +44,10 @@ describe('personal-agent-knowledge-rag adapter', () => {
       }),
       expect.objectContaining({
         timeout: 2000,
-        meta: ctx.meta,
+        meta: expect.objectContaining({
+          tenantId: 'tenant-a',
+          $gateway: false,
+        }),
       })
     );
 

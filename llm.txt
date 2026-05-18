@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.52.12
-- changelog_latest_release: 0.52.12
+- version: 0.52.15
+- changelog_latest_release: 0.52.15
 - source_files_hash:
-  - CHANGELOG.md: 979db6e36de6be6d458475363c37037a3173d41daa11822078c744d653458984
-  - README.md: c49ef9bd657c7f28ff2767a278e56cbddfc44cdd1ad59008b51859d1113e1aed
+  - CHANGELOG.md: 22615a601926f36e8b5e3436976ab953fe82362ccfe691e61cb0530f3544f579
+  - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: b6ecf29ff42faced2bbc868765ef1469326088eaf61020a2ec38ebd4ce4eab09
-  - openapi-export.json: bf3c94b10fcabb1030a547944765578a2bd8348466972395a4635cda1e388320
+  - openapi-export.json: 740735c74a715d5bb55443c51dda9543753398ca65bddc3e49f8cc0beea9f614
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -588,8 +588,8 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 277
-- operation_count: 319
+- path_count: 278
+- operation_count: 320
 - operations_by_tag:
 - Analytics: 4 operations
 - api: 1 operations
@@ -629,6 +629,7 @@ process:
 - OEP (Open Energy Platform): 5 operations
 - OSM Geo (OpenStreetMap): 4 operations
 - Personal Agent: 5 operations
+- Presentation: 1 operations
 - Redispatch Ex-Post: 3 operations
 - Settlement (Abrechnung): 16 operations
 - SLP (Standardlastprofile): 5 operations
@@ -898,6 +899,7 @@ process:
 - GET /api/personal-agent/session/:sessionId | tags: [Personal Agent] | operationId: personal-agent_getSession | summary: Load persisted Personal-Agent session (L3 history)
 - GET /api/personal-agent/session/:sessionId/dream-status | tags: [Personal Agent] | operationId: personal-agent_getDreamStatus | summary: Get Dream-pipeline status for a session
 - POST /api/personal-agent/session/:sessionId/reset | tags: [Personal Agent] | operationId: personal-agent_resetSession | summary: Reset chat context stack for a session (keeps hard user profile L2)
+- POST /api/presentation/render | tags: [Presentation] | operationId: presentation_render | summary: Render domain result as structured human view
 - POST /api/redispatch/audit | tags: [Redispatch Ex-Post] | operationId: redispatch-expost_audit | summary: Run Redispatch Ex-Post settlement audit (7-step, deterministic)
 - GET /api/redispatch/audits | tags: [Redispatch Ex-Post] | operationId: redispatch-expost_list | summary: List past Redispatch Ex-Post audit reports
 - GET /api/redispatch/audits/:id | tags: [Redispatch Ex-Post] | operationId: redispatch-expost_get | summary: Get a specific Redispatch Ex-Post audit report by ID
@@ -967,7 +969,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.52.12"
+    "version": "0.52.15"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -18960,7 +18962,68 @@ process:
                 }
               }
             },
-            "description": "Chat turn completed successfully"
+            "description": "Chat turn completed (internal Moleculer calls only; REST gateway calls receive 202 Accepted)"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "progressUrl": {
+                      "type": "string"
+                    },
+                    "resultUrl": {
+                      "type": "string"
+                    },
+                    "reused": {
+                      "type": "boolean"
+                    },
+                    "status": {
+                      "enum": [
+                        "queued"
+                      ],
+                      "type": "string"
+                    },
+                    "statusUrl": {
+                      "type": "string"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "jobId",
+                    "status",
+                    "statusUrl",
+                    "resultUrl",
+                    "progressUrl"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Accepted - Chat turn submitted as async job. Poll /api/jobs/:jobId/status for progress. (REST gateway only; internal Moleculer calls receive 200.)",
+            "headers": {
+              "Location": {
+                "description": "URL to poll job status",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Recommended polling interval in seconds",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad request - invalid parameters or validation error"
@@ -19193,6 +19256,197 @@ process:
         "summary": "Reset chat context stack for a session (keeps hard user profile L2)",
         "tags": [
           "Personal Agent"
+        ]
+      }
+    },
+    "/api/presentation/render": {
+      "post": {
+        "description": "Deterministic system-to-human presentation layer. Translates domain results into management-grade artefacts (KPI cards, VDMI matrices, decision briefs, …). No LLM calls; all facts come from domainResult.",
+        "operationId": "presentation_render",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "kpi_fact_pv_wiesloch": {
+                  "summary": "KPI-Abfrage PV-Anlagen Wiesloch",
+                  "value": {
+                    "domainResult": {
+                      "area": "Wiesloch",
+                      "asOf": "2026-05-17",
+                      "count": 312,
+                      "label": "PV-Anlagen in Wiesloch",
+                      "source": "Marktstammdatenregister (MaStR)",
+                      "unit": "Anlagen"
+                    },
+                    "intent": "asset_count_query"
+                  }
+                },
+                "vdmi_matrix_stub": {
+                  "summary": "VDMI-Matrix-Anfrage (Stub)",
+                  "value": {
+                    "domainResult": {
+                      "matrix": {
+                        "id": "matrix-001",
+                        "name": "Netzanschluss §17 EnWG",
+                        "tasks": [
+                          {
+                            "durchfuehrend": [
+                              "TECHNICAL_PLANNER"
+                            ],
+                            "information": [
+                              "REGULATOR"
+                            ],
+                            "mitwirkend": [
+                              "APPLICANT"
+                            ],
+                            "taskId": "network-operator-decision",
+                            "taskName": "Formelle Netzbetreiberentscheidung",
+                            "verantwortlich": [
+                              "DSO_GATEKEEPER"
+                            ]
+                          }
+                        ]
+                      }
+                    },
+                    "intent": "vdmi_role_boundary_governance"
+                  }
+                }
+              },
+              "schema": {
+                "properties": {
+                  "audience": {
+                    "default": "management",
+                    "example": "management",
+                    "type": "string"
+                  },
+                  "context": {
+                    "example": {
+                      "locale": "de-DE",
+                      "tenantId": "demo"
+                    },
+                    "type": "object"
+                  },
+                  "domainResult": {
+                    "description": "Raw domain output to be rendered",
+                    "example": {
+                      "area": "Wiesloch",
+                      "asOf": "2026-05-17",
+                      "count": 312,
+                      "label": "PV-Anlagen in Wiesloch",
+                      "source": "Marktstammdatenregister (MaStR)",
+                      "unit": "Anlagen"
+                    },
+                    "type": "object"
+                  },
+                  "intent": {
+                    "example": "asset_count_query",
+                    "type": "string"
+                  },
+                  "locale": {
+                    "default": "de-DE",
+                    "example": "de-DE",
+                    "type": "string"
+                  },
+                  "preferredFormat": {
+                    "default": "auto",
+                    "enum": [
+                      "auto",
+                      "kpi_fact",
+                      "comparison_table",
+                      "vdmi_matrix_table",
+                      "decision_brief",
+                      "risk_table",
+                      "evidence_gap_table",
+                      "debug_summary"
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "domainResult"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "markdown": {
+                      "type": "string"
+                    },
+                    "presentation": {
+                      "properties": {
+                        "kpis": {
+                          "items": {
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "nextActions": {
+                          "items": {
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "sections": {
+                          "items": {
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "sources": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "summary": {
+                          "type": "string"
+                        },
+                        "tables": {
+                          "items": {
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string"
+                        },
+                        "warnings": {
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Structured presentation result"
+          },
+          "400": {
+            "description": "Invalid input — domainResult missing"
+          }
+        },
+        "summary": "Render domain result as structured human view",
+        "tags": [
+          "Presentation"
         ]
       }
     },
@@ -22899,8 +23153,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.52.12"
+  "x-version": "0.52.15"
 }
 
 ## Integrity
-- llm_txt_sha256: 735f0102a1d4fd87a93b3c608d70f0c8e096fb01e2b2fd5d14d03b72e991713c
+- llm_txt_sha256: f9d7fe4daefb6fab27c110440013164412a3c903b700e765b8817cb2cc2f2b1b

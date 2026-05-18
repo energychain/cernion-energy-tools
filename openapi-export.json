@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.52.14",
+    "version": "0.52.15",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -10111,7 +10111,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Chat turn completed successfully",
+            "description": "Chat turn completed (internal Moleculer calls only; REST gateway calls receive 202 Accepted)",
             "content": {
               "application/json": {
                 "examples": {
@@ -10534,6 +10534,67 @@
                       }
                     }
                   }
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted - Chat turn submitted as async job. Poll /api/jobs/:jobId/status for progress. (REST gateway only; internal Moleculer calls receive 200.)",
+            "headers": {
+              "Location": {
+                "description": "URL to poll job status",
+                "schema": {
+                  "type": "string"
+                }
+              },
+              "Retry-After": {
+                "description": "Recommended polling interval in seconds",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "jobId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "queued"
+                      ]
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "statusUrl": {
+                      "type": "string"
+                    },
+                    "resultUrl": {
+                      "type": "string"
+                    },
+                    "progressUrl": {
+                      "type": "string"
+                    },
+                    "reused": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "jobId",
+                    "status",
+                    "statusUrl",
+                    "resultUrl",
+                    "progressUrl"
+                  ]
                 }
               }
             }
@@ -22125,5 +22186,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.52.14"
+  "x-version": "0.52.15"
 }

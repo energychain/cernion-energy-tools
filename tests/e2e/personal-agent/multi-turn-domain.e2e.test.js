@@ -5,6 +5,9 @@ const RUN_VDMI_STEP3_E2E = process.env.RUN_PERSONAL_AGENT_E2E_VDMI_STEP3 === 'tr
 const BASE_URL = process.env.PERSONAL_AGENT_E2E_BASE_URL || 'http://127.0.0.1:3900';
 const TENANT_ID = 'agentic-hackathon';
 const CHAT_PATH = '/api/personal-agent/chat';
+const JOB_RESULT_TIMEOUT_MS = Number(process.env.PERSONAL_AGENT_E2E_JOB_TIMEOUT_MS || 300000);
+const JOB_POLL_INTERVAL_MS = Number(process.env.PERSONAL_AGENT_E2E_JOB_POLL_MS || 1000);
+const E2E_TURN_TIMEOUT_MS = Number(process.env.PERSONAL_AGENT_E2E_TEST_TIMEOUT_MS || 120000);
 
 const DEFAULT_CHAT_OPTIONS = Object.freeze({
   executionMode: 'auto',
@@ -54,6 +57,46 @@ function buildCookieHeader(cookieJar) {
     pairs.push(`${name}=${value}`);
   }
   return pairs.join('; ');
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseRetryAfterMs(headers, fallbackMs) {
+  const retryAfter = Number(headers?.get?.('retry-after'));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) {
+    return Math.max(250, Math.round(retryAfter * 1000));
+  }
+  return fallbackMs;
+}
+
+function resolveJobResultUrl(baseUrl, payload) {
+  if (typeof payload?.resultUrl === 'string' && payload.resultUrl.trim()) {
+    const resultUrl = payload.resultUrl.trim();
+    if (/^https?:\/\//i.test(resultUrl)) {
+      return resultUrl;
+    }
+    return `${baseUrl}${resultUrl}`;
+  }
+  if (typeof payload?.jobId === 'string' && payload.jobId.trim()) {
+    return `${baseUrl}/api/jobs/${payload.jobId.trim()}/result`;
+  }
+  return null;
+}
+
+function resolveJobStatusUrl(baseUrl, payload) {
+  if (typeof payload?.statusUrl === 'string' && payload.statusUrl.trim()) {
+    const statusUrl = payload.statusUrl.trim();
+    if (/^https?:\/\//i.test(statusUrl)) {
+      return statusUrl;
+    }
+    return `${baseUrl}${statusUrl}`;
+  }
+  if (typeof payload?.jobId === 'string' && payload.jobId.trim()) {
+    return `${baseUrl}/api/jobs/${payload.jobId.trim()}/status`;
+  }
+  return null;
 }
 
 function extractReply(payload) {
@@ -120,6 +163,69 @@ function extractYears(reply) {
 function createChatClient(baseUrl) {
   const cookieJar = new Map();
 
+  async function pollAcceptedJob(acceptedPayload, requestHeaders, acceptedHeaders) {
+    const resultUrl = resolveJobResultUrl(baseUrl, acceptedPayload);
+    const statusUrl = resolveJobStatusUrl(baseUrl, acceptedPayload);
+    if (!resultUrl) {
+      throw new Error('Accepted async chat response is missing jobId/resultUrl.');
+    }
+
+    const startedAt = Date.now();
+    let pollDelayMs = parseRetryAfterMs(acceptedHeaders, JOB_POLL_INTERVAL_MS);
+    let lastStatus = 'queued';
+
+    while (Date.now() - startedAt < JOB_RESULT_TIMEOUT_MS) {
+      await sleep(pollDelayMs);
+
+      const response = await fetch(resultUrl, {
+        method: 'GET',
+        headers: requestHeaders,
+      });
+      applySetCookies(cookieJar, response.headers);
+
+      let payload = null;
+      try {
+        payload = await response.json();
+      } catch (_error) {
+        payload = null;
+      }
+
+      if (response.status === 200) {
+        return { response, payload, acceptedPayload };
+      }
+
+      if (response.status !== 202) {
+        throw new Error(`Unexpected async job polling status ${response.status}.`);
+      }
+
+      lastStatus = payload?.status || lastStatus;
+      if (lastStatus === 'error') {
+        let errorDetail = null;
+        if (statusUrl) {
+          try {
+            const statusResponse = await fetch(statusUrl, {
+              method: 'GET',
+              headers: requestHeaders,
+            });
+            applySetCookies(cookieJar, statusResponse.headers);
+            const statusPayload = await statusResponse.json();
+            errorDetail = statusPayload?.error || statusPayload?.message || null;
+          } catch (_error) {
+            errorDetail = null;
+          }
+        }
+        const jobId = acceptedPayload?.jobId || 'unknown';
+        throw new Error(
+          `Async chat job ${jobId} failed with status=error${errorDetail ? `: ${errorDetail}` : '.'}`
+        );
+      }
+      pollDelayMs = parseRetryAfterMs(response.headers, JOB_POLL_INTERVAL_MS);
+    }
+
+    const jobId = acceptedPayload?.jobId || 'unknown';
+    throw new Error(`Timed out waiting for async chat job ${jobId}. Last status: ${lastStatus}.`);
+  }
+
   async function chat(message, sessionId, options = {}) {
     const body = {
       message,
@@ -148,6 +254,11 @@ function createChatClient(baseUrl) {
 
     applySetCookies(cookieJar, response.headers);
 
+    if (response.status === 202) {
+      const acceptedPayload = await response.json();
+      return pollAcceptedJob(acceptedPayload, headers, response.headers);
+    }
+
     const payload = await response.json();
     return { response, payload };
   }
@@ -167,7 +278,7 @@ const describeVdmiStep3E2E = RUN_E2E && RUN_VDMI_STEP3_E2E ? describe : describe
 
 describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
   describe('PA-MT-001 Journalist CYA-Fallback', () => {
-    jest.setTimeout(30000);
+    jest.setTimeout(E2E_TURN_TIMEOUT_MS);
 
     const client = createChatClient(BASE_URL);
     let sessionId = null;
@@ -269,7 +380,7 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
   });
 
   describe('PA-MT-002 Benchmark Rangliste/Vergleich', () => {
-    jest.setTimeout(30000);
+    jest.setTimeout(E2E_TURN_TIMEOUT_MS);
 
     const client = createChatClient(BASE_URL);
     let sessionId = null;
@@ -377,7 +488,7 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
   });
 
   describe('PA-MT-003 Vorstand: Anschlussbegehren Rechenzentrum N-1 fNAV', () => {
-    jest.setTimeout(30000);
+    jest.setTimeout(E2E_TURN_TIMEOUT_MS);
 
     const client = createChatClient(BASE_URL);
     let sessionId = null;
@@ -497,7 +608,7 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
   });
 
   describe('PA-MT-004 Conversational Onboarding Flow', () => {
-    jest.setTimeout(30000);
+    jest.setTimeout(E2E_TURN_TIMEOUT_MS);
 
     const client = createChatClient(BASE_URL);
     let sessionId = null;
@@ -558,7 +669,7 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
   });
 
   describe('PA-MT-006 CETRed Working Assumptions / T2-T5', () => {
-    jest.setTimeout(30000);
+    jest.setTimeout(E2E_TURN_TIMEOUT_MS);
 
     const client = createChatClient(BASE_URL);
     let sessionId = null;
@@ -643,7 +754,7 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
   });
 
   describeE2E('PA-MT-008: Bank Analyst Due Diligence Flow', () => {
-    jest.setTimeout(30000);
+    jest.setTimeout(E2E_TURN_TIMEOUT_MS);
 
     const client = createChatClient(BASE_URL);
     let sessionId = null;
@@ -739,7 +850,7 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
   });
 
   describeVdmiStep3E2E('PA-MT-005 VDMI Step-3 Grid-Connection Decision Governance', () => {
-    jest.setTimeout(30000);
+    jest.setTimeout(E2E_TURN_TIMEOUT_MS);
 
     const client = createChatClient(BASE_URL);
     let sessionId = null;
@@ -796,7 +907,7 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
   });
 
   describeVdmiStep3E2E('PA-MT-005 VDMI Step-3 Grid-Connection Decision Governance', () => {
-    jest.setTimeout(30000);
+    jest.setTimeout(E2E_TURN_TIMEOUT_MS);
 
     const client = createChatClient(BASE_URL);
     let sessionId = null;
@@ -853,7 +964,7 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
   });
 
   describeE2E('PA-MT-007 Multimodal Inhouse Data Upload', () => {
-    jest.setTimeout(30000);
+    jest.setTimeout(E2E_TURN_TIMEOUT_MS);
 
     const os = require('os');
     const fs = require('fs');

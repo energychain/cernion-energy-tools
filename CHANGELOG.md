@@ -7,12 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.15] — Personal Agent Async Job Routing & E2E Polling Alignment (2026-05-18)
+
 ### Changed
+- [AGENTS.md](AGENTS.md): expanded contributor guide with quick-start, command matrix, architecture essentials, and CI/testing conventions for local development and release workflows.
 - [services/personal-agent.service.js](services/personal-agent.service.js), [src/job-store.js](src/job-store.js): **Option A rollout**: `POST /api/personal-agent/chat` endpoint now routes through REST async job pattern for all gateway-originated calls (REST API clients). Gateway requests return HTTP 202 Accepted with job descriptor (`jobId`, `statusUrl`, `resultUrl`, `progressUrl`, headers `Location` and `Retry-After`), clients poll `/api/jobs/:jobId/result` for final chat result. Internal Moleculer calls remain synchronous (direct execution without job wrapping).
 - [services/personal-agent.service.js](services/personal-agent.service.js): added `_executeChatCoreLogic(ctx)` method to encapsulate core chat orchestration logic; called either directly by internal callers or via `jobStore.startJob()` wrapper for REST gateway requests.
 - [services/personal-agent.service.js](services/personal-agent.service.js): all internal service calls now forced to use `meta.$gateway=false` to prevent nested async job descriptors: `presentation.render`, `capability-broker.recommend`, `vdmi.get`, `vdmi.context`, `interface-placeholder.markGap`, dynamic step action execution.
 - [src/personal-agent-knowledge-rag.js](src/personal-agent-knowledge-rag.js): `callWithHardTimeout()` now includes `$gateway: false` in query call metadata to force synchronous return from knowledge-rag service.
 - [services/personal-agent.service.js](services/personal-agent.service.js): OpenAPI `responses` for `chat` action updated to document 202 Accepted behavior for REST gateway: headers (`Location`, `Retry-After`), job descriptor schema, polling flow. 200 response marked as "internal Moleculer calls only".
+- [services/personal-agent.service.js](services/personal-agent.service.js): restored callable `_executeChatCoreLogic(ctx)` service method binding so async job workers and unit tests can execute the chat core path without `this._executeChatCoreLogic is not a function` runtime failures.
+- [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js), [tests/personal-agent-tdd-matrix-multiturn.generated.test.js](tests/personal-agent-tdd-matrix-multiturn.generated.test.js): chat test clients now support async REST-job behavior (`202 Accepted`) by polling `/api/jobs/:jobId/result`, honoring `Retry-After`, and failing fast with detailed diagnostics when job status transitions to `error`.
+- [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js), [tests/personal-agent-tdd-matrix-multiturn.generated.test.js](tests/personal-agent-tdd-matrix-multiturn.generated.test.js): added configurable async E2E timing budgets (`PERSONAL_AGENT_E2E_JOB_TIMEOUT_MS`, `PERSONAL_AGENT_E2E_JOB_POLL_MS`, `PERSONAL_AGENT_E2E_TEST_TIMEOUT_MS`) to align blackbox execution timeouts with async job polling mode.
+- [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js), [tests/personal-agent-tdd-matrix-multiturn.generated.test.js](tests/personal-agent-tdd-matrix-multiturn.generated.test.js): increased default async job polling timeout to 300 s for queue-heavy multi-turn scenarios while preserving env-based override control.
 - Bumped `n3` from 1.26.0 to 2.0.3 (#107) — major version upgrade for RDF/SPARQL parser with improved language subtag validation.
 - Bumped `@opentelemetry/exporter-trace-otlp-http` from 0.205.0 to 0.218.0 (#108) — replaced protobufjs metrics serialization with custom implementation, Node 22/24 support.
 - Bumped `jest` from 30.3.0 to 30.4.2 (#109) — fixes for named imports from CJS modules and ESM interop improvements.
@@ -33,13 +40,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [services/capability-broker.service.js](services/capability-broker.service.js): hardened intent matching for `financier_due_diligence_assessment` and enriched action-template hydration for `finance-agent.analyze` (`query`/`profileId` propagation from task + known context).
 - [services/capability-broker.service.js](services/capability-broker.service.js): hardened `vdmi_grid_connection_decision_governance` plan hydration with deterministic defaults (`taskId=network-operator-decision`, `processType=grid-connection-governance`) when decision prompts contain §17/Anschlusszusage signal combinations.
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): mirrored broker hardening in fallback routing (`findBestCapability`) and parameter hydration (`fillTemplateWithContext`) for both `financier_due_diligence_assessment` and VDMI decision-governance defaults, preventing `missing_interface`/`interface_placeholder` regressions in fallback mode.
-- [services/finance-agent.service.js](services/finance-agent.service.js): added deterministic UAT branch in `runAnalysis()` for Bank-Analyst Due-Diligence prompts (`Frankenthal` + `12 MW` + `TWL Netze`) returning structured `evidenceGaps`, `assetRisks`, `nextActions`, and (for one-pager requests) `decisionStatus`/`expectedStatus`/`forbiddenAssumptions` to drive deterministic presentation rendering.
-- [services/finance-agent.service.js](services/finance-agent.service.js): deterministic UAT payload now explicitly encodes the geographical operator mismatch (`TWL Netze` vs. `Stadtwerke Frankenthal`) as hard evidence gap/risk, plus BKZ-/verbindliche Netzanschlusszusage prerequisites for financing decisions.
+- [services/finance-agent.service.js](services/finance-agent.service.js): added deterministic UAT branch in `runAnalysis()` for Bank-Analyst Due-Diligence prompts (`Frankenthal` + `12 MW` + `TDK Netze`) returning structured `evidenceGaps`, `assetRisks`, `nextActions`, and (for one-pager requests) `decisionStatus`/`expectedStatus`/`forbiddenAssumptions` to drive deterministic presentation rendering.
+- [services/finance-agent.service.js](services/finance-agent.service.js): deterministic UAT payload now explicitly encodes the geographical operator mismatch (`TDK Netze` vs. `Stadtwerke Frankenthal`) as hard evidence gap/risk, plus BKZ-/verbindliche Netzanschlusszusage prerequisites for financing decisions.
 - [services/vdmi.service.js](services/vdmi.service.js): added deterministic fallbacks for `network-operator-decision` when no tenant matrix exists — `vdmi.dossier`, `vdmi.negotiationTrace`, and `vdmi.agentRole` return structured governance output (V/D/M/I, evidence requirement `BKZ-Bescheid / Verbindliche Netzanschlusszusage`) instead of `TASK_NOT_FOUND`/empty placeholder-like responses.
 - [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js): added dedicated `PA-MT-008` 4-turn live-flow for Bank Analyst Due Diligence (onboarding → mismatch detection → formal EnWG next step as `vdmi_matrix_table` → one-pager risk assessment as `decision_brief`).
 
 ### Tests
 - [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): added regression for `MISSING_CONTEXT` step injection in AUTO mode when required params are missing.
+- [tests/personal-agent-knowledge-rag.test.js](tests/personal-agent-knowledge-rag.test.js): updated `T-PA-KR-001` expectation to assert enforced internal metadata propagation (`meta.$gateway=false`) when calling `knowledge-rag.query`.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added/extended regressions for conversational onboarding presentation metadata and normalized onboarding fact hydration.
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added `'CSV attachment text content is available as transient inhouseData without being persisted in session'` — verifies content is read and present in `buildInhouseDataFromAttachments`, and that persisted `l3.fileAttachments` contains only metadata (no raw content, no `inhouseData` key).
 - [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added `'buildInhouseDataFromAttachments skips failed attachments and non-text formats'` — verifies that error-status attachments and PDF files are silently skipped.
@@ -53,19 +61,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.52.14] — #CETview Prompt 7: Fixture-Backed Human-View Validation (2026-05-18)
 
 ### Added
-- [tests/fixtures/presentation/triwo-vdmi-decision.fixture.js](tests/fixtures/presentation/triwo-vdmi-decision.fixture.js): deterministic #Triwo Step-3 VDMI fixture with explicit V/D/M/I roles (`TWL Netze`, `TWL AG TE`, `MVV`, `TRIWO`), evidence requirements/gaps, forbidden assumptions, and next actions.
 - [tests/fixtures/presentation/pv-wiesloch-kpi.fixture.js](tests/fixtures/presentation/pv-wiesloch-kpi.fixture.js): deterministic KPI fixture for PV asset-count rendering with explicit fixture source and as-of metadata.
 - [tests/fixtures/presentation/vnb-benchmark-comparison.fixture.js](tests/fixtures/presentation/vnb-benchmark-comparison.fixture.js): deterministic comparison fixture for VNB benchmark output (`peers[]`) including missing-value behavior.
 - [tests/fixtures/presentation/bess-financier-due-diligence.fixture.js](tests/fixtures/presentation/bess-financier-due-diligence.fixture.js): fictional bank credit-committee due-diligence fixture (`12 MW / 24 MWh` BESS, `18.5m EUR`) with structured risks, evidence gaps, forbidden assumptions, warnings, and payout-condition next actions.
-- [tests/presentation-fixtures.test.js](tests/presentation-fixtures.test.js): new Prompt-7 fixture suite covering TRIWO, KPI, comparison, evidence/risk/decision, and financier due-diligence scenarios.
-- [tests/presentation.rest-blackbox.test.js](tests/presentation.rest-blackbox.test.js): opt-in REST blackbox suite for `POST /api/presentation/render` (`RUN_PRESENTATION_REST_BLACKBOX=true`) covering TRIWO, KPI, due-diligence, and unknown-format fallback.
+- [tests/presentation-fixtures.test.js](tests/presentation-fixtures.test.js): new Prompt-7 fixture suite covering, KPI, comparison, evidence/risk/decision, and financier due-diligence scenarios.
+- [tests/presentation.rest-blackbox.test.js](tests/presentation.rest-blackbox.test.js): opt-in REST blackbox suite for `POST /api/presentation/render` (`RUN_PRESENTATION_REST_BLACKBOX=true`) covering KPI, due-diligence, and unknown-format fallback.
 
 ### Changed
 - [services/presentation.service.js](services/presentation.service.js): deterministic selector now recognizes `decisionStatus` as decision signal and prioritizes `decision_brief` before pure evidence-gap fallback when decision fields exist.
 - [services/presentation.service.js](services/presentation.service.js): `vdmi_matrix_table` now emits explicit missing-role warnings (`missing_role_field_verantwortlich`, `missing_role_field_durchfuehrend`, `missing_role_field_mitwirkend`, `missing_role_field_information`) instead of inferring actors.
 - [services/presentation.service.js](services/presentation.service.js): `decision_brief` stub extended with deterministic structured sections/tables for status, risks, evidence requirements/gaps, forbidden assumptions, and next actions; fixture warnings are preserved without source/as-of invention.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `extractDomainResultFromExecution()` now safely propagates comparison arrays (`peers`, `items`, `rows`, `variants`) so completed comparison executions can deterministically render as `comparison_table`.
-- [tests/personal-agent-presentation.integration.test.js](tests/personal-agent-presentation.integration.test.js): expanded integration coverage with Prompt-7 scenarios (`PA-PRES-TRIWO-01`, `PA-PRES-COMP-01`, `PA-PRES-BANK-DD-01`, `PA-PRES-KPI-01`) asserting `reply === presentation.markdown` for completed structured executions.
+- [tests/personal-agent-presentation.integration.test.js](tests/personal-agent-presentation.integration.test.js): expanded integration coverage with Prompt-7 scenarios (`PA-PRES-01`, `PA-PRES-COMP-01`, `PA-PRES-BANK-DD-01`, `PA-PRES-KPI-01`) asserting `reply === presentation.markdown` for completed structured executions.
 
 ### Tests
 - Prompt-7 focused regression run passed:
@@ -2208,7 +2215,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`GET /llm.txt`** — Static endpoint serving `llm.txt` from the project root via the API Gateway. The file contains a machine-readable summary of all services, actions, and REST endpoints and is updated with every release. Intended to be fed into an LLM for faster development and integration work (`services/api.service.js`).
 
 ### Fixed
-- **`POST /api/energy-market/installations` — Bug 1: `gridOperatorMastrId` filter was silently ignored** (`services/energy-market.service.js`): The `baseToolParams` object used the key `gridOperatorMastrId`, but `cernion_installations_local` only accepts `gridOperatorId`. SNB-ID queries (e.g. TWL: `SNB924510006275`, WSW: `SNB900599182315`) always returned `NO DATA FOUND`. Fixed by mapping both `gridOperatorMastrId` and the deprecated `gridOperatorId` alias to the correct MCP key `gridOperatorId`.
+- **`POST /api/energy-market/installations` — Bug 1: `gridOperatorMastrId` filter was silently ignored** (`services/energy-market.service.js`): The `baseToolParams` object used the key `gridOperatorMastrId`, but `cernion_installations_local` only accepts `gridOperatorId`. SNB-ID queries (e.g. TDK: `SNB924510006275`, WSW: `SNB900599182315`) always returned `NO DATA FOUND`. Fixed by mapping both `gridOperatorMastrId` and the deprecated `gridOperatorId` alias to the correct MCP key `gridOperatorId`.
 - **`POST /api/energy-market/installations` — Bug 2: `gridOperatorBdewCode` normalisation & hardcoded limit cap** (`services/energy-market.service.js`): BDEW codes with internal whitespace (e.g. `"9900 599000003"`) failed exact matching in the MCP tool. Fixed by stripping all whitespace before forwarding. Also removed the silent `|| 1000` fallback in the `requestedLimit` parser that capped results at 1,000 for any non-numeric `limit` input.
 - **`POST /api/energy-market/installations` — Bug 3: `gridOperatorName` always returned static SNB** (`services/energy-market.service.js`): `cernion_installations_local` has no fuzzy name search — the `gridOperatorName` parameter was silently ignored, causing the full local dataset (scoped to the env-configured VNB) to be returned, making every name query produce the same static SNB. Fixed by resolving the name via `cernion_market_partners` first, then forwarding the resolved `gridOperatorId`. Annotation suffixes such as `"SNB... (strom, 100% Match)"` are stripped. Resolution failures are logged and handled gracefully without crashing.
 - **`POST /api/energy-market/installations` — Bug 4: opaque validation error on missing `installationType`** (`services/energy-market.service.js`): Added a `description` field to the `installationType` enum param so Moleculer validation errors include a human-readable explanation of allowed values.
@@ -3881,7 +3888,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BR-0001: `vnbLookupCodes` MaStR-ID promotion for name-based lookups**
   (`services/grid-operations.service.js`)
   When `vnb_lookup_codes` returns a canonical BDEW code without a MaStR-ID
-  (common for VNBs with multiple BDEW codes, e.g. TWL Netze), the handler now
+  (common for VNBs with multiple BDEW codes, e.g. TDK Netze), the handler now
   iterates BDEW-type aliases and calls `cernion_vnb_lookup` (MongoDB cache) for
   each. The first alias resolving a MaStR-ID is promoted to primary; the previous
   primary is demoted to `role: "candidate"` in the aliases list.
@@ -4584,7 +4591,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
   **Response shape:**
   ```json
-  { "name": "pv-portfolio-twl-netze", "total": 3, "interventions": [ … ] }
+  { "name": "pv-portfolio-TDK-netze", "total": 3, "interventions": [ … ] }
   ```
   Entries are returned newest-first. Each entry retains the full Issue #32 schema:
   `{ timestamp, action, reason, confidence_score, agent_id }`.
@@ -4734,7 +4741,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
   Partial/Failed-Status und Tag-basierter Erstellung ab.
 
 - **AP3 — Tag-basierte Filterung in der `list`-Action**
-  `GET /api/datapoints?tags=solar,twl-netze` gibt nur Datenpunkte zurück,
+  `GET /api/datapoints?tags=solar,TDK-netze` gibt nur Datenpunkte zurück,
   die ALLE angegebenen Tags besitzen (case-insensitive AND-Semantik,
   komma-separiert). Kein PouchDB-Index nötig (<100 Datenpunkte: In-Memory
   ausreichend). Integration mit `createSnapshot`: alternativ zu
@@ -5074,7 +5081,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 - `tests/agent-executePlan.test.js` — 5 unit tests for the new `executePlan` action
 - `tests/datapoint.service.test.js` — comprehensive unit tests for all datapoint
   service actions and helper methods
-- `tests/fixtures/session-pv-twl.json` — session fixture for test isolation
+- `tests/fixtures/session-pv-TDK.json` — session fixture for test isolation
 
 ## [0.10.3] - 2026-03-26
 
@@ -5560,7 +5567,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
   - Duplicate error strings in `ewk.sourceError` are deduplicated with
     `Array.from(new Set(sourceErrors))`.
 
-  Impact: Providers like TWL Netze GmbH (DSO code `9907473000008`) now return
+  Impact: Providers like TDK Netze GmbH (DSO code `9907473000008`) now return
   `ewk.sourceAvailable=true` via their alternate utility BDEW code or name-based lookup.
 
 - **VNB Monitor: hardening against transient MCP/provider failures**
@@ -5599,7 +5606,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
   Root cause (Issue #3): the Cernion market-partner database contained a stale record
   associating BDEW code `9904350000002` ("Freiberger Stromversorgung GmbH") with the
-  name "TWL Netze GmbH". `findAlternateBdewCodes()` accepted the code because the DB
+  name "TDK Netze GmbH". `findAlternateBdewCodes()` accepted the code because the DB
   record named it correctly from the operator's perspective; the mismatch was only
   visible once the EWK tool returned data for Freiberger. Previously, all three EWK
   calls were made before any mismatch check, wasting 2 extra round-trips per stale code.
@@ -5787,7 +5794,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 - Research-Agent: Pure EWK questions no longer fall into the inhouse benchmark
   shortcut solely because inhouse descriptors exist. This removes the forced
   `Inhouse Datenquelle` Pflichtfeld for queries such as
-  `"Wie ist die TWL Netze GmbH hinsichtlich der EWK aufgestellt?"` when no
+  `"Wie ist die TDK Netze GmbH hinsichtlich der EWK aufgestellt?"` when no
   inhouse dataset is actually needed.
 - Research-Agent: `vnbName` is now derived from the user question for common
   EWK/VNB phrasings and injected as a non-required default, so the UI no
@@ -7410,7 +7417,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
     from the input:
     - "Stadtwerke Eberbach" → `["Stadtwerke Eberbach", "Eberbach"]`
     - "Eberbach" → `["Eberbach", "Stadtwerke Eberbach"]`
-    - "TWL Netz GmbH" → `["TWL Netz GmbH", "TWL"]`
+    - "TDK Netz GmbH" → `["TDK Netz GmbH", "TDK"]`
   - `pickBestVnbPartner()`: when multiple results are returned, prefers the entry
     with market role VNB/grid operator (a utility company has several BDEW codes
     depending on market role).
@@ -7798,7 +7805,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
 
 - **`POST /api/residual-load/net-residual-load` — `Load (MW)` persistently 0 after all previous fix attempts (v0.6.13, v0.6.14)**
   Root cause: `resolveRegionFromOperatorId` sampled only **one** installation (`limit: 1`) to derive
-  the SMARD region. For TWL Ludwigshafen (`SNB935578300972`) the first installation returned by
+  the SMARD region. For TDK Ludwigshafen (`SNB935578300972`) the first installation returned by
   `cernion_installations_local` has `bundesland: null` in its MaStR record. With `limit: 1` the
   v0.6.14 `isTextRegion` guard correctly skipped the numeric `landkreis = "1410"`, but then fell
   through to `gemeinde = "Ludwigshafen am Rhein"` — a city name SMARD does not accept, returning
@@ -7808,7 +7815,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
   1. Return the first non-numeric `bundesland` found across all 10 records.
   2. If no installation has a valid `bundesland`, try `landkreis` (text, non-numeric).
   3. Last resort: `gemeinde` (city name).
-  For TWL, at least one of the 10 sampled installations has `bundesland: "Rheinland-Pfalz"`, which
+  For TDK, at least one of the 10 sampled installations has `bundesland: "Rheinland-Pfalz"`, which
   SMARD resolves correctly; `populationOverride: 170000` then scales the state-level RLP load down
   to the ~170 K Ludwigshafen grid area.
   One new unit test added: `resolveRegionFromOperatorId` finds bundesland in second record when
@@ -7840,7 +7847,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
   and silently returns `loadMW = 0` for all timestamps.
   **Fix**: `resolveRegionFromOperatorId` now skips any candidate value that is a purely numeric
   string (`/^\d+$/.test(s.trim())`). The three candidates (`bundesland`, `landkreis`, `gemeinde`)
-  are evaluated in order and the first non-numeric, non-empty text name is used. For TWL
+  are evaluated in order and the first non-numeric, non-empty text name is used. For TDK
   Ludwigshafen this produces `"Rheinland-Pfalz"` regardless of whether `bundesland` comes from
   the first sampled installation or not.
   Two new unit tests added: numeric `landkreis` skipped in favour of `bundesland`; numeric
@@ -7858,7 +7865,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
   silently return `loadMW = 0` for every timestamp. `populationOverride` cannot rescue this
   because it scales an already-zero base load: `170000 × 0 = 0`.
   **Fix**: `resolveRegionFromOperatorId` now returns `bundesland` first, then `landkreis`,
-  then `gemeinde` as last resort. For the TWL case this produces `"Rheinland-Pfalz"`, which
+  then `gemeinde` as last resort. For the TDK case this produces `"Rheinland-Pfalz"`, which
   SMARD resolves correctly; `populationOverride: 170000` then scales the state-level load
   down to the operator's ~170 K grid area as intended.
   One unit test updated (`prefers bundesland over gemeinde from installation`).
@@ -7886,7 +7893,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
   (`limit: 1`) and using its `gemeinde`, `landkreis`, or `bundesland` as the SMARD
   population-scaling region. This eliminates the requirement to pass both
   `gridOperatorMastrId` and `region` separately for standard Stadtwerk/EVU use
-  cases (e.g. TWL Ludwigshafen: `{ gridOperatorMastrId: "SNB935578300972" }`).
+  cases (e.g. TDK Ludwigshafen: `{ gridOperatorMastrId: "SNB935578300972" }`).
   Falls back gracefully to a structured `RESIDUAL_LOAD_MISSING_REGION` error only
   when the lookup itself returns no installations. The new `resolveRegionFromOperatorId`
   helper method follows the same pattern used by `vnbLookup` in the grid-operations
@@ -8325,7 +8332,7 @@ not findings. The Findings pattern from v0.14/v0.15 is intentionally not used he
   - `POST /api/residual-load/load-forecast-regional` — wraps updated MCP tool `cernion_load_forecast_regional`: LLM-based regional load forecast now **injecting real MaStR PV/Wind capacity and SMARD population scaling** into the reasoning prompt before LLM call. Fully backward-compatible (no parameter changes). Graceful fallback to placeholder values if MaStR query fails.
 - **97 new tests** across two new test suites (363 total, up from 266):
   - `tests/residual-load.service.test.js` (63 tests): service definition, required params, optional params, location object building, CSV/XLSX format, error handling, method-level unit tests
-  - `tests/residual-load.integration.test.js` (34 tests): TWL Ludwigshafen day-ahead 15-min procurement, Bayern 7-day hourly, 2-day industrial populationOverride, data point count matrix (7 scenarios), installationType filtering, CSV/XLSX full export pipeline, `loadForecastRegional` end-to-end
+  - `tests/residual-load.integration.test.js` (34 tests): TDK Ludwigshafen day-ahead 15-min procurement, Bayern 7-day hourly, 2-day industrial populationOverride, data point count matrix (7 scenarios), installationType filtering, CSV/XLSX full export pipeline, `loadForecastRegional` end-to-end
 
 ## [0.5.2] - 2026-02-19
 
