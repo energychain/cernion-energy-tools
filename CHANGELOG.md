@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- [services/personal-agent.service.js](services/personal-agent.service.js), [src/job-store.js](src/job-store.js): **Option A rollout**: `POST /api/personal-agent/chat` endpoint now routes through REST async job pattern for all gateway-originated calls (REST API clients). Gateway requests return HTTP 202 Accepted with job descriptor (`jobId`, `statusUrl`, `resultUrl`, `progressUrl`, headers `Location` and `Retry-After`), clients poll `/api/jobs/:jobId/result` for final chat result. Internal Moleculer calls remain synchronous (direct execution without job wrapping).
+- [services/personal-agent.service.js](services/personal-agent.service.js): added `_executeChatCoreLogic(ctx)` method to encapsulate core chat orchestration logic; called either directly by internal callers or via `jobStore.startJob()` wrapper for REST gateway requests.
+- [services/personal-agent.service.js](services/personal-agent.service.js): all internal service calls now forced to use `meta.$gateway=false` to prevent nested async job descriptors: `presentation.render`, `capability-broker.recommend`, `vdmi.get`, `vdmi.context`, `interface-placeholder.markGap`, dynamic step action execution.
+- [src/personal-agent-knowledge-rag.js](src/personal-agent-knowledge-rag.js): `callWithHardTimeout()` now includes `$gateway: false` in query call metadata to force synchronous return from knowledge-rag service.
+- [services/personal-agent.service.js](services/personal-agent.service.js): OpenAPI `responses` for `chat` action updated to document 202 Accepted behavior for REST gateway: headers (`Location`, `Retry-After`), job descriptor schema, polling flow. 200 response marked as "internal Moleculer calls only".
 - Bumped `n3` from 1.26.0 to 2.0.3 (#107) — major version upgrade for RDF/SPARQL parser with improved language subtag validation.
 - Bumped `@opentelemetry/exporter-trace-otlp-http` from 0.205.0 to 0.218.0 (#108) — replaced protobufjs metrics serialization with custom implementation, Node 22/24 support.
 - Bumped `jest` from 30.3.0 to 30.4.2 (#109) — fixes for named imports from CJS modules and ESM interop improvements.
