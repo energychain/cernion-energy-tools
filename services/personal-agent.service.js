@@ -645,20 +645,32 @@ module.exports = {
             const domainResult = this.extractDomainResultFromExecution(execution);
             if (domainResult && Object.keys(domainResult).length > 0) {
               const intent = responsePlan?.primaryIntent || responsePlan?.routeKey || 'execution_result';
+              const presentationContext = {
+                tenantId,
+                sessionId,
+                processType: responsePlan?.routeKey || null,
+                matrixId: domainResult?.matrix?.id || domainResult?.matrixId || null,
+                taskId:
+                  domainResult?.taskId
+                  || (Array.isArray(domainResult?.matrix?.tasks) && domainResult.matrix.tasks[0]
+                    ? domainResult.matrix.tasks[0].taskId || null
+                    : null),
+                source: 'personal-agent',
+              };
+
+              const preferredFormat =
+                intent && /vdmi|governance/i.test(String(intent))
+                  ? 'vdmi_matrix_table'
+                  : 'auto';
 
               presentationResult = await ctx.call(
                 'presentation.render',
                 {
                   intent,
                   audience: 'management',
-                  preferredFormat: 'auto',
+                  preferredFormat,
                   domainResult,
-                  context: {
-                    tenantId,
-                    sessionId,
-                    processType: responsePlan?.routeKey || null,
-                    source: 'personal-agent',
-                  },
+                  context: presentationContext,
                   locale: 'de-DE',
                 },
                 { meta: ctx.meta }
@@ -736,9 +748,30 @@ module.exports = {
           presentationType: presentationType || null,
           presentation: presentationApplied
             ? {
-                type: presentationResult.type,
+                ...(presentationResult.presentation || {}),
+                type: presentationType || presentationResult?.type || null,
+                title: presentationResult?.presentation?.title || null,
+                summary: presentationResult?.presentation?.summary || null,
                 markdown: presentationResult.markdown,
-                warnings: presentationResult.warnings || [],
+                warnings:
+                  presentationResult?.presentation?.warnings
+                  || presentationResult?.warnings
+                  || [],
+                sections: Array.isArray(presentationResult?.presentation?.sections)
+                  ? presentationResult.presentation.sections
+                  : [],
+                tables: Array.isArray(presentationResult?.presentation?.tables)
+                  ? presentationResult.presentation.tables
+                  : [],
+                kpis: Array.isArray(presentationResult?.presentation?.kpis)
+                  ? presentationResult.presentation.kpis
+                  : [],
+                sources: Array.isArray(presentationResult?.presentation?.sources)
+                  ? presentationResult.presentation.sources
+                  : [],
+                nextActions: Array.isArray(presentationResult?.presentation?.nextActions)
+                  ? presentationResult.presentation.nextActions
+                  : [],
               }
             : null,
           layer4Purged: finalized.layer4Purged,
@@ -2821,12 +2854,42 @@ module.exports = {
       const merged = {};
       const vdmiTasksById = new Map();
       const vdmiEvidenceGaps = [];
+      const vdmiEvidenceRequirements = [];
       const vdmiForbiddenAssumptions = [];
       const vdmiNextActions = [];
+      const vdmiRisks = [];
       let vdmiExpectedStatus;
+      let vdmiDecisionStatus;
       let vdmiMatrixId;
       let vdmiMatrixName;
       let vdmiMatrixStatus;
+
+      const allowedScalarKeys = [
+        'count',
+        'value',
+        'metric',
+        'unit',
+        'answer',
+        'source',
+        'asOf',
+        'expectedStatus',
+        'decisionStatus',
+        'highestRole',
+      ];
+
+      const allowedArrayKeys = [
+        'sources',
+        'warnings',
+        'roles',
+        'rolesByTask',
+        'evidenceGaps',
+        'evidenceRequirements',
+        'forbiddenAssumptions',
+        'nextActions',
+        'assetRisks',
+        'risks',
+        'tasks',
+      ];
 
       const addUnique = (target, values) => {
         if (!Array.isArray(values)) return;
@@ -2838,9 +2901,47 @@ module.exports = {
         }
       };
 
+      const mergeSafeResult = (result = {}) => {
+        for (const key of allowedScalarKeys) {
+          if (result[key] !== undefined && result[key] !== null && result[key] !== '') {
+            merged[key] = result[key];
+          }
+        }
+
+        for (const key of allowedArrayKeys) {
+          if (Array.isArray(result[key])) {
+            if (!Array.isArray(merged[key])) {
+              merged[key] = [];
+            }
+            addUnique(merged[key], result[key]);
+          }
+        }
+
+        if (result.matrix && typeof result.matrix === 'object') {
+          if (!merged.matrix || typeof merged.matrix !== 'object') {
+            merged.matrix = {};
+          }
+          if (result.matrix.id && !merged.matrix.id) {
+            merged.matrix.id = result.matrix.id;
+          }
+          if (result.matrix.name && !merged.matrix.name) {
+            merged.matrix.name = result.matrix.name;
+          }
+          if (result.matrix.status && !merged.matrix.status) {
+            merged.matrix.status = result.matrix.status;
+          }
+          if (Array.isArray(result.matrix.tasks)) {
+            if (!Array.isArray(merged.matrix.tasks)) {
+              merged.matrix.tasks = [];
+            }
+            addUnique(merged.matrix.tasks, result.matrix.tasks);
+          }
+        }
+      };
+
       for (const step of execution.steps) {
         const result = step.result || {};
-        Object.assign(merged, result);
+        mergeSafeResult(result);
 
         const dossier = result?.dossier;
         if (!dossier || typeof dossier !== 'object') {
@@ -2873,6 +2974,10 @@ module.exports = {
         maybeAssign('mitwirkend', Array.isArray(task.mitwirkend) ? task.mitwirkend : undefined);
         maybeAssign('information', Array.isArray(task.information) ? task.information : undefined);
         maybeAssign('expectedStatus', dossier.expectedStatus || task.expectedStatus);
+        maybeAssign('decisionStatus', dossier.decisionStatus || task.decisionStatus);
+        maybeAssign('roles', Array.isArray(task.roles) ? task.roles : undefined);
+        maybeAssign('rolesByTask', Array.isArray(task.rolesByTask) ? task.rolesByTask : undefined);
+        maybeAssign('highestRole', task.highestRole);
 
         const evidenceRequirements = Array.isArray(dossier?.evidence?.requirements)
           ? dossier.evidence.requirements
@@ -2894,14 +2999,26 @@ module.exports = {
           : (Array.isArray(task.nextActions) ? task.nextActions : undefined);
         maybeAssign('nextActions', nextActions);
 
+        const taskRisks = Array.isArray(dossier.assetRisks)
+          ? dossier.assetRisks
+          : (Array.isArray(task.assetRisks) ? task.assetRisks : undefined);
+        maybeAssign('assetRisks', taskRisks);
+        maybeAssign('risks', Array.isArray(dossier.risks) ? dossier.risks : task.risks);
+
         vdmiTasksById.set(taskId, mappedTask);
 
         addUnique(vdmiEvidenceGaps, evidenceGaps);
+        addUnique(vdmiEvidenceRequirements, evidenceRequirements);
         addUnique(vdmiForbiddenAssumptions, forbiddenAssumptions);
         addUnique(vdmiNextActions, nextActions);
+        addUnique(vdmiRisks, taskRisks || []);
+        addUnique(vdmiRisks, Array.isArray(dossier.risks) ? dossier.risks : []);
 
         if (vdmiExpectedStatus === undefined && mappedTask.expectedStatus !== undefined) {
           vdmiExpectedStatus = mappedTask.expectedStatus;
+        }
+        if (vdmiDecisionStatus === undefined && mappedTask.decisionStatus !== undefined) {
+          vdmiDecisionStatus = mappedTask.decisionStatus;
         }
         if (!vdmiMatrixId) {
           vdmiMatrixId = result.matrixId || task.matrixId;
@@ -2932,14 +3049,23 @@ module.exports = {
         if (vdmiEvidenceGaps.length > 0) {
           vdmiDomainResult.evidenceGaps = vdmiEvidenceGaps;
         }
+        if (vdmiEvidenceRequirements.length > 0) {
+          vdmiDomainResult.evidenceRequirements = vdmiEvidenceRequirements;
+        }
         if (vdmiForbiddenAssumptions.length > 0) {
           vdmiDomainResult.forbiddenAssumptions = vdmiForbiddenAssumptions;
         }
         if (vdmiNextActions.length > 0) {
           vdmiDomainResult.nextActions = vdmiNextActions;
         }
+        if (vdmiRisks.length > 0) {
+          vdmiDomainResult.risks = vdmiRisks;
+        }
         if (vdmiExpectedStatus !== undefined) {
           vdmiDomainResult.expectedStatus = vdmiExpectedStatus;
+        }
+        if (vdmiDecisionStatus !== undefined) {
+          vdmiDomainResult.decisionStatus = vdmiDecisionStatus;
         }
 
         return vdmiDomainResult;
@@ -2971,9 +3097,11 @@ module.exports = {
       }
 
       const structuredKeys = [
-        'matrix', 'tasks', 'roles', 'evidenceGaps', 'assetRisks', 'risks',
+        'matrix', 'tasks', 'roles', 'rolesByTask', 'highestRole',
+        'evidenceGaps', 'evidenceRequirements', 'assetRisks', 'risks',
         'items', 'rows', 'peers', 'variants', 'count', 'value', 'metric', 'answer',
-        'forbiddenAssumptions', 'expectedStatus', 'status',
+        'source', 'sources', 'asOf',
+        'forbiddenAssumptions', 'expectedStatus', 'decisionStatus', 'nextActions', 'status',
       ];
 
       return structuredKeys.some((key) => {

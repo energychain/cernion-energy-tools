@@ -1,34 +1,40 @@
 'use strict';
 
-/**
- * Integration tests for Personal Agent + Presentation Service (#CETview Step 4)
- *
- * Test matrix:
- *   PA-PRES-01  Personal Agent with VDMI execution result → presentation.render called, reply contains 5-column table
- *   PA-PRES-02  Personal Agent with KPI fact result → presentation uses kpi_fact renderer
- *   PA-PRES-03  Presentation render fails → fallback to synthesizeTurn, presentationApplied=false
- *   PA-PRES-04  Domain result lacks structured data → presentation not called
- *   PA-PRES-05  Metadata: presentationApplied, presentationType, presentation object properly set
- */
-
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { ServiceBroker } = require('moleculer');
 const ObjectStoreService = require('../services/object-store.service');
 const PresentationService = require('../services/presentation.service');
-const CapabilityBrokerService = require('../services/capability-broker.service');
 const PersonalAgentService = require('../services/personal-agent.service');
 
-describe('personal-agent + presentation.service integration', () => {
+describe('personal-agent presentation integration (Prompt 6)', () => {
   let broker;
   let objectStorePath;
+  let svc;
+  let originalHandleExecutionWithOnboarding;
+
+  const deterministicPlan = {
+    status: 'ready',
+    source: 'test',
+    routeKey: 'vdmi_grid_connection_decision_governance',
+    routeLabel: 'vdmi_grid_connection_decision_governance',
+    primaryIntent: 'vdmi_grid_connection_decision_governance',
+    secondaryIntents: [],
+    requestedDomains: ['grid-connection'],
+    unsupportedDomains: [],
+    warnings: [],
+    steps: [
+      {
+        step: 1,
+        action: 'vdmi.dossier',
+        source: 'test',
+      },
+    ],
+  };
 
   beforeEach(async () => {
-    objectStorePath = path.join(
-      os.tmpdir(),
-      `personal-agent-pres-${Date.now()}-${Math.random()}`
-    );
+    objectStorePath = path.join(os.tmpdir(), `pa-pres-v2-${Date.now()}-${Math.random()}`);
     broker = new ServiceBroker({ logger: false });
 
     broker.createService({
@@ -40,83 +46,17 @@ describe('personal-agent + presentation.service integration', () => {
     });
 
     broker.createService(PresentationService);
-    broker.createService(CapabilityBrokerService);
 
-    // Mock services for execution simulation
+    // lightweight broker for deterministic planning
     broker.createService({
-      name: 'interface-placeholder',
+      name: 'capability-broker',
       actions: {
-        markGap: {
-          handler(ctx) {
+        recommend: {
+          handler() {
             return {
-              success: true,
-              placeholder: { placeholderId: 'ph-1', status: 'placeholder_gap' },
+              recommendation: 'test',
+              capabilities: [],
             };
-          },
-        },
-      },
-    });
-
-    // VDMI service mock for structured result
-    broker.createService({
-      name: 'vdmi',
-      actions: {
-        dossier: {
-          handler(ctx) {
-            return {
-              success: true,
-              matrixId: 'matrix-pres-test',
-              taskId: ctx.params.taskId || 'task-1',
-              dossier: {
-                task: {
-                  taskId: ctx.params.taskId || 'task-1',
-                  taskName: 'Test Decision Task',
-                  matrix: {
-                    id: 'matrix-pres-test',
-                    tasks: [
-                      {
-                        taskId: ctx.params.taskId || 'task-1',
-                        taskName: 'Test Decision Task',
-                        verantwortlich: [{ actorId: 'actor-1', name: 'Manager' }],
-                        durchfuehrend: [{ actorId: 'actor-2', name: 'Executor' }],
-                        mitwirkend: [{ actorId: 'actor-3', name: 'Contributor' }],
-                        information: [{ actorId: 'actor-4', name: 'Stakeholder' }],
-                      },
-                    ],
-                  },
-                },
-              },
-            };
-          },
-        },
-      },
-    });
-
-    // KPI service mock for simple fact result
-    broker.createService({
-      name: 'grid-operations',
-      actions: {
-        installationCount: {
-          handler(ctx) {
-            return {
-              success: true,
-              count: 150,
-              unit: 'Anlagen',
-              area: 'Test Area',
-              source: 'Test Registry',
-              asOf: '2026-05-17',
-            };
-          },
-        },
-      },
-    });
-
-    broker.createService({
-      name: 'grid-connection',
-      actions: {
-        validate: {
-          handler(ctx) {
-            return { success: true, gridOperator: 'Test Operator' };
           },
         },
       },
@@ -124,235 +64,302 @@ describe('personal-agent + presentation.service integration', () => {
 
     broker.createService(PersonalAgentService);
     await broker.start();
+    svc = broker.getLocalService('personal-agent');
+    originalHandleExecutionWithOnboarding = svc.handleExecutionWithOnboarding;
   });
 
   afterEach(async () => {
-    await broker.stop();
-    try {
-      if (fs.existsSync(objectStorePath)) {
-        fs.rmSync(objectStorePath, { recursive: true, force: true });
-      }
-    } catch (e) {
-      // ignore cleanup errors
+    if (svc && originalHandleExecutionWithOnboarding) {
+      svc.handleExecutionWithOnboarding = originalHandleExecutionWithOnboarding;
     }
+    await broker.stop();
+    fs.rmSync(objectStorePath, { recursive: true, force: true });
   });
 
-  // --------------------------------------------------------------------------
-  // PA-PRES-01: VDMI execution + presentation integration
-  // --------------------------------------------------------------------------
-  test('PA-PRES-01: Personal Agent with VDMI execution result calls presentation.render, reply contains 5-column table', async () => {
-    // Create a custom action path that executes VDMI and produces matrix result
-    broker.createService({
-      name: 'test-vdmi-capability',
-      actions: {
-        execute: {
-          handler(ctx) {
-            // Return structured VDMI result
-            return {
-              matrix: {
-                id: 'matrix-test-001',
-                tasks: [
-                  {
-                    taskId: 'task-1',
-                    taskName: 'Test Task',
-                    verantwortlich: ['Actor-A'],
-                    durchfuehrend: ['Actor-B'],
-                    mitwirkend: ['Actor-C'],
-                    information: ['Actor-D'],
-                  },
-                ],
+  function setExecutionResult(execution) {
+    svc.handleExecutionWithOnboarding = async () => execution;
+  }
+
+  test('PA-PRES-01: completed VDMI execution applies presentation markdown to reply', async () => {
+    const execution = {
+      status: 'completed',
+      plan: deterministicPlan,
+      steps: [
+        {
+          action: 'vdmi.dossier',
+          result: {
+            matrixId: 'matrix-triwo-001',
+            taskId: 'triwo-04-network-operator-decision',
+            dossier: {
+              task: {
+                taskId: 'triwo-04-network-operator-decision',
+                taskName: 'Network Operator Decision',
+                verantwortlich: [{ actorId: 'DSO_GATEKEEPER' }],
+                durchfuehrend: [{ actorId: 'EXISTING_AREAL_GRID_OPERATOR' }],
+                mitwirkend: [{ actorId: 'GROUP_ENERGY_PROJECT_OWNER' }],
+                information: [{ actorId: 'AREAL_OWNER' }],
               },
-            };
+              evidenceGaps: [{ id: 'formal-request', label: 'Vollständiger §17-Antrag' }],
+              forbiddenAssumptions: ['Keine belastbare Anschlusszusage ohne formalen Antrag'],
+              nextActions: [{ id: 'na-1', label: 'Formalen Antrag einreichen' }],
+            },
           },
         },
-      },
-    });
+      ],
+      stopPoint: null,
+    };
+    setExecutionResult(execution);
 
-    // Mock broker.recommendation for routing
+    let presentationRenderCalls = 0;
     const originalCall = broker.call.bind(broker);
-    let presentationCalled = false;
-
-    broker.call = async function (...args) {
-      if (args[0] === 'presentation.render') {
-        presentationCalled = true;
+    broker.call = async (actionName, params, opts) => {
+      if (actionName === 'presentation.render') {
+        presentationRenderCalls += 1;
       }
-      return originalCall(...args);
+      return originalCall(actionName, params, opts);
     };
 
-    const result = await broker.call(
-      'personal-agent.chat',
-      {
-        message: 'Gibt es eine Entscheidungsmatrix für die Netzanbindung?',
-        executionMode: 'auto',
-        knownContext: {
-          processType: 'grid-connection-governance',
-        },
-      },
-      { meta: { tenantId: 'tenant-pres-01', authUser: { userId: 'user-1' } } }
-    );
-
-    expect(result.success).toBe(true);
-    // Presentation will only be applied if execution.status === 'completed' and structured data exists
-    // In this integration test, we check the response structure
-    expect(result).toHaveProperty('presentationApplied');
-    expect(result).toHaveProperty('presentationType');
-    expect(result).toHaveProperty('presentation');
-
-    // reply should be present
-    expect(result.reply).toBeTruthy();
-    expect(typeof result.reply).toBe('string');
-
-    broker.call = originalCall;
-  });
-
-  // --------------------------------------------------------------------------
-  // PA-PRES-02: KPI fact result
-  // --------------------------------------------------------------------------
-  test('PA-PRES-02: Personal Agent with KPI fact result prefers kpi_fact presentation', async () => {
-    const result = await broker.call(
-      'personal-agent.chat',
-      {
-        message: 'Wie viele Anlagen gibt es im Testgebiet?',
-        executionMode: 'auto',
-      },
-      { meta: { tenantId: 'tenant-pres-02', authUser: { userId: 'user-1' } } }
-    );
-
-    expect(result.success).toBe(true);
-    expect(result.reply).toBeTruthy();
-    // presentationApplied may be false if execution.status !== 'completed'
-    expect(typeof result.presentationApplied).toBe('boolean');
-  });
-
-  // --------------------------------------------------------------------------
-  // PA-PRES-03: Presentation render fails gracefully
-  // --------------------------------------------------------------------------
-  test('PA-PRES-03: If presentation.render throws, fallback to synthesizeTurn, presentationApplied=false', async () => {
-    // Mock presentation service to throw error
-    const originalRender = broker.getLocalService('presentation')?.schema?.actions?.render?.handler;
-
-    if (originalRender) {
-      broker.getLocalService('presentation').schema.actions.render.handler = async (ctx) => {
-        throw new Error('Presentation render error');
-      };
-    }
-
-    const result = await broker.call(
-      'personal-agent.chat',
-      {
-        message: 'Test message',
-        executionMode: 'auto',
-      },
-      { meta: { tenantId: 'tenant-pres-03', authUser: { userId: 'user-1' } } }
-    );
-
-    expect(result.success).toBe(true);
-    // Should still have a reply from fallback path
-    expect(result.reply).toBeTruthy();
-    // Restore
-    if (originalRender) {
-      broker.getLocalService('presentation').schema.actions.render.handler = originalRender;
-    }
-  });
-
-  // --------------------------------------------------------------------------
-  // PA-PRES-04: No structured data → presentation not forced
-  // --------------------------------------------------------------------------
-  test('PA-PRES-04: If domain result lacks structured data, presentation is not called', async () => {
-    const result = await broker.call(
-      'personal-agent.chat',
-      {
-        message: 'Hallo, wie geht es?',
-        executionMode: 'auto',
-      },
-      { meta: { tenantId: 'tenant-pres-04', authUser: { userId: 'user-1' } } }
-    );
-
-    expect(result.success).toBe(true);
-    expect(result.reply).toBeTruthy();
-    // For a non-structured query, presentationApplied should be false
-    expect(result.presentationApplied).toBe(false);
-  });
-
-  // --------------------------------------------------------------------------
-  // PA-PRES-05: Metadata correctness
-  // --------------------------------------------------------------------------
-  test('PA-PRES-05: Response includes presentationApplied, presentationType, presentation object', async () => {
-    const result = await broker.call(
-      'personal-agent.chat',
-      {
-        message: 'Test',
-        executionMode: 'auto',
-      },
-      { meta: { tenantId: 'tenant-pres-05', authUser: { userId: 'user-1' } } }
-    );
-
-    expect(result).toHaveProperty('success', true);
-    expect(result).toHaveProperty('presentationApplied');
-    expect(typeof result.presentationApplied).toBe('boolean');
-
-    if (result.presentationApplied === true) {
-      expect(result).toHaveProperty('presentationType');
-      expect(result.presentationType).toBeTruthy();
-      expect(result).toHaveProperty('presentation');
-      expect(result.presentation).toHaveProperty('type');
-      expect(result.presentation).toHaveProperty('markdown');
-    } else {
-      // If not applied, these can be null
-      expect(result.presentationType === null || typeof result.presentationType === 'string').toBe(
-        true
+    try {
+      const result = await broker.call(
+        'personal-agent.chat',
+        { message: 'VDMI Decision?', executionMode: 'auto' },
+        { meta: { tenantId: 'tenant-pa-pres-01', authUser: { userId: 'user-1' } } }
       );
-      expect(result.presentation === null || typeof result.presentation === 'object').toBe(true);
+
+      expect(result.success).toBe(true);
+      expect(presentationRenderCalls).toBeGreaterThan(0);
+      expect(result.presentationApplied).toBe(true);
+      expect(result.presentationType).toBe('vdmi_matrix_table');
+      expect(result.reply).toBe(result.presentation.markdown);
+      expect(result.reply).toContain('| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |');
+      expect(result.reply).toContain('Network Operator Decision');
+      expect(result.reply).not.toContain('Plan abgeschlossen:');
+    } finally {
+      broker.call = originalCall;
     }
   });
 
-  // --------------------------------------------------------------------------
-  // PA-PRES-06: Backward compatibility
-  // --------------------------------------------------------------------------
-  test('PA-PRES-06: Existing response fields (routing, plan, execution) still present', async () => {
+  test('PA-PRES-02: completed KPI execution applies kpi_fact presentation', async () => {
+    setExecutionResult({
+      status: 'completed',
+      plan: {
+        ...deterministicPlan,
+        routeKey: 'asset_count_query',
+        routeLabel: 'asset_count_query',
+        primaryIntent: 'asset_count_query',
+      },
+      steps: [
+        {
+          action: 'mock.kpi',
+          result: {
+            count: 312,
+            unit: 'Anlagen',
+            answer: '312',
+            source: 'Marktstammdatenregister (MaStR)',
+            asOf: '2026-05-18',
+          },
+        },
+      ],
+      stopPoint: null,
+    });
+
     const result = await broker.call(
       'personal-agent.chat',
-      {
-        message: 'Test query',
-        executionMode: 'auto',
-      },
-      { meta: { tenantId: 'tenant-pres-06', authUser: { userId: 'user-1' } } }
+      { message: 'Wie viele PV-Anlagen?', executionMode: 'auto' },
+      { meta: { tenantId: 'tenant-pa-pres-02', authUser: { userId: 'user-1' } } }
     );
 
-    expect(result).toHaveProperty('success');
-    expect(result).toHaveProperty('sessionId');
-    expect(result).toHaveProperty('reply');
+    expect(result.success).toBe(true);
+    expect(result.presentationApplied).toBe(true);
+    expect(result.presentationType).toBe('kpi_fact');
+    expect(result.reply).toBe(result.presentation.markdown);
+    expect(result.reply).toContain('| Feld | Wert |');
+  });
+
+  test('PA-PRES-03: presentation failure is non-blocking and falls back', async () => {
+    setExecutionResult({
+      status: 'completed',
+      plan: deterministicPlan,
+      steps: [
+        {
+          action: 'mock.vdmi',
+          result: {
+            matrix: {
+              tasks: [
+                {
+                  taskName: 'Task',
+                  verantwortlich: ['V'],
+                  durchfuehrend: ['D'],
+                  mitwirkend: ['M'],
+                  information: ['I'],
+                },
+              ],
+            },
+          },
+        },
+      ],
+      stopPoint: null,
+    });
+
+    const originalCall = broker.call.bind(broker);
+    broker.call = async (actionName, params, opts) => {
+      if (actionName === 'presentation.render') {
+        throw new Error('simulated_render_failure');
+      }
+      return originalCall(actionName, params, opts);
+    };
+
+    try {
+      const result = await broker.call(
+        'personal-agent.chat',
+        { message: 'Render with failure', executionMode: 'auto' },
+        { meta: { tenantId: 'tenant-pa-pres-03', authUser: { userId: 'user-1' } } }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.presentationApplied).toBe(false);
+      expect(result.presentationType).toBeNull();
+      expect(result.presentation).toBeNull();
+      expect(result.reply).toContain('Plan abgeschlossen:');
+    } finally {
+      broker.call = originalCall;
+    }
+  });
+
+  test('PA-PRES-04: plain text-only execution does not force presentation rendering', async () => {
+    setExecutionResult({
+      status: 'completed',
+      plan: deterministicPlan,
+      steps: [
+        {
+          action: 'mock.text',
+          result: {
+            summary: 'Nur textuell',
+            note: 'kein strukturiertes Feld',
+          },
+        },
+      ],
+      stopPoint: null,
+    });
+
+    let presentationRenderCalls = 0;
+    const originalCall = broker.call.bind(broker);
+    broker.call = async (actionName, params, opts) => {
+      if (actionName === 'presentation.render') {
+        presentationRenderCalls += 1;
+      }
+      return originalCall(actionName, params, opts);
+    };
+
+    try {
+      const result = await broker.call(
+        'personal-agent.chat',
+        { message: 'Plain text execution', executionMode: 'auto' },
+        { meta: { tenantId: 'tenant-pa-pres-04', authUser: { userId: 'user-1' } } }
+      );
+
+      expect(result.success).toBe(true);
+      expect(presentationRenderCalls).toBe(0);
+      expect(result.presentationApplied).toBe(false);
+      expect(result.presentationType).toBeNull();
+      expect(result.presentation).toBeNull();
+    } finally {
+      broker.call = originalCall;
+    }
+  });
+
+  test('PA-PRES-05/06: metadata passthrough and backward-compatible fields exist', async () => {
+    setExecutionResult({
+      status: 'completed',
+      plan: deterministicPlan,
+      steps: [
+        {
+          action: 'mock.vdmi',
+          result: {
+            matrix: {
+              tasks: [
+                {
+                  taskName: 'Task Metadata',
+                  verantwortlich: ['V'],
+                  durchfuehrend: ['D'],
+                  mitwirkend: ['M'],
+                  information: ['I'],
+                },
+              ],
+            },
+          },
+        },
+      ],
+      stopPoint: null,
+    });
+
+    const result = await broker.call(
+      'personal-agent.chat',
+      { message: 'Metadata test', executionMode: 'auto' },
+      { meta: { tenantId: 'tenant-pa-pres-05', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.presentationApplied).toBe(true);
+    expect(result.presentationType).toBe(result.presentation.type);
+    expect(result.presentation).toHaveProperty('type');
+    expect(result.presentation).toHaveProperty('markdown');
+    expect(result.presentation).toHaveProperty('warnings');
+    expect(Array.isArray(result.presentation.warnings)).toBe(true);
+
     expect(result).toHaveProperty('routing');
     expect(result).toHaveProperty('plan');
     expect(result).toHaveProperty('execution');
-    expect(result).toHaveProperty('contextUsage');
-    expect(result).toHaveProperty('historyCount');
+    expect(result).toHaveProperty('reply');
   });
 
-  // --------------------------------------------------------------------------
-  // PA-PRES-07: Session persistence includes presentation metadata
-  // --------------------------------------------------------------------------
-  test('PA-PRES-07: Session persisted correctly with presentation metadata', async () => {
+  test('PA-PRES-07: session persistence keeps L4 guardrails (no raw execution/presentation payload)', async () => {
+    setExecutionResult({
+      status: 'completed',
+      plan: deterministicPlan,
+      steps: [
+        {
+          action: 'mock.vdmi',
+          result: {
+            matrix: {
+              tasks: [
+                {
+                  taskName: 'Task Persist',
+                  verantwortlich: ['V'],
+                  durchfuehrend: ['D'],
+                  mitwirkend: ['M'],
+                  information: ['I'],
+                },
+              ],
+            },
+            responseRaw: {
+              huge: 'payload-that-must-not-be-persisted-as-l4',
+            },
+          },
+        },
+      ],
+      stopPoint: null,
+    });
+
     const result = await broker.call(
       'personal-agent.chat',
-      {
-        message: 'First query',
-        executionMode: 'auto',
-      },
-      { meta: { tenantId: 'tenant-pres-07', authUser: { userId: 'user-1' } } }
+      { message: 'Persist test', executionMode: 'auto' },
+      { meta: { tenantId: 'tenant-pa-pres-07', authUser: { userId: 'user-1' } } }
     );
 
     expect(result.success).toBe(true);
-    const sessionId = result.sessionId;
-
-    // Retrieve session
     const session = await broker.call(
       'personal-agent.getSession',
-      { sessionId },
-      { meta: { tenantId: 'tenant-pres-07', authUser: { userId: 'user-1' } } }
+      { sessionId: result.sessionId },
+      { meta: { tenantId: 'tenant-pa-pres-07', authUser: { userId: 'user-1' } } }
     );
 
     expect(session.success).toBe(true);
-    expect(session.l3.history).toHaveLength(2); // user + assistant messages
+    expect(session).not.toHaveProperty('presentation');
+    expect(session.l3).not.toHaveProperty('presentation');
+
+    const persistedDump = JSON.stringify(session);
+    expect(persistedDump).not.toMatch(/"responseRaw"/);
+    expect(persistedDump).not.toMatch(/payload-that-must-not-be-persisted-as-l4/);
   });
 });
