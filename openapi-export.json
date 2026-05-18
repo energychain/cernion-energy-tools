@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.52.12",
+    "version": "0.52.14",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -3911,6 +3911,197 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/presentation/render": {
+      "post": {
+        "operationId": "presentation_render",
+        "summary": "Render domain result as structured human view",
+        "tags": [
+          "Presentation"
+        ],
+        "responses": {
+          "200": {
+            "description": "Structured presentation result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "presentation": {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string"
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "summary": {
+                          "type": "string"
+                        },
+                        "kpis": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "tables": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "sections": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        },
+                        "warnings": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "sources": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "nextActions": {
+                          "type": "array",
+                          "items": {
+                            "type": "object"
+                          }
+                        }
+                      }
+                    },
+                    "markdown": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input — domainResult missing"
+          }
+        },
+        "description": "Deterministic system-to-human presentation layer. Translates domain results into management-grade artefacts (KPI cards, VDMI matrices, decision briefs, …). No LLM calls; all facts come from domainResult.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "domainResult"
+                ],
+                "properties": {
+                  "intent": {
+                    "type": "string",
+                    "example": "asset_count_query"
+                  },
+                  "audience": {
+                    "type": "string",
+                    "default": "management",
+                    "example": "management"
+                  },
+                  "preferredFormat": {
+                    "type": "string",
+                    "enum": [
+                      "auto",
+                      "kpi_fact",
+                      "comparison_table",
+                      "vdmi_matrix_table",
+                      "decision_brief",
+                      "risk_table",
+                      "evidence_gap_table",
+                      "debug_summary"
+                    ],
+                    "default": "auto"
+                  },
+                  "domainResult": {
+                    "type": "object",
+                    "description": "Raw domain output to be rendered",
+                    "example": {
+                      "label": "PV-Anlagen in Wiesloch",
+                      "count": 312,
+                      "unit": "Anlagen",
+                      "area": "Wiesloch",
+                      "source": "Marktstammdatenregister (MaStR)",
+                      "asOf": "2026-05-17"
+                    }
+                  },
+                  "context": {
+                    "type": "object",
+                    "example": {
+                      "tenantId": "demo",
+                      "locale": "de-DE"
+                    }
+                  },
+                  "locale": {
+                    "type": "string",
+                    "default": "de-DE",
+                    "example": "de-DE"
+                  }
+                }
+              },
+              "examples": {
+                "kpi_fact_pv_wiesloch": {
+                  "summary": "KPI-Abfrage PV-Anlagen Wiesloch",
+                  "value": {
+                    "intent": "asset_count_query",
+                    "domainResult": {
+                      "label": "PV-Anlagen in Wiesloch",
+                      "count": 312,
+                      "unit": "Anlagen",
+                      "area": "Wiesloch",
+                      "source": "Marktstammdatenregister (MaStR)",
+                      "asOf": "2026-05-17"
+                    }
+                  }
+                },
+                "vdmi_matrix_stub": {
+                  "summary": "VDMI-Matrix-Anfrage (Stub)",
+                  "value": {
+                    "intent": "vdmi_role_boundary_governance",
+                    "domainResult": {
+                      "matrix": {
+                        "id": "matrix-001",
+                        "name": "Netzanschluss §17 EnWG",
+                        "tasks": [
+                          {
+                            "taskId": "network-operator-decision",
+                            "taskName": "Formelle Netzbetreiberentscheidung",
+                            "verantwortlich": [
+                              "DSO_GATEKEEPER"
+                            ],
+                            "durchfuehrend": [
+                              "TECHNICAL_PLANNER"
+                            ],
+                            "mitwirkend": [
+                              "APPLICANT"
+                            ],
+                            "information": [
+                              "REGULATOR"
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  }
                 }
               }
             }
@@ -21934,5 +22125,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.52.12"
+  "x-version": "0.52.14"
 }

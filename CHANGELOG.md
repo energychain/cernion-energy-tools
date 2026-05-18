@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- No pending entries.
+
+## [0.52.14] — #CETview Prompt 7: Fixture-Backed Human-View Validation (2026-05-18)
+
+### Added
+- [tests/fixtures/presentation/triwo-vdmi-decision.fixture.js](tests/fixtures/presentation/triwo-vdmi-decision.fixture.js): deterministic #Triwo Step-3 VDMI fixture with explicit V/D/M/I roles (`TWL Netze`, `TWL AG TE`, `MVV`, `TRIWO`), evidence requirements/gaps, forbidden assumptions, and next actions.
+- [tests/fixtures/presentation/pv-wiesloch-kpi.fixture.js](tests/fixtures/presentation/pv-wiesloch-kpi.fixture.js): deterministic KPI fixture for PV asset-count rendering with explicit fixture source and as-of metadata.
+- [tests/fixtures/presentation/vnb-benchmark-comparison.fixture.js](tests/fixtures/presentation/vnb-benchmark-comparison.fixture.js): deterministic comparison fixture for VNB benchmark output (`peers[]`) including missing-value behavior.
+- [tests/fixtures/presentation/bess-financier-due-diligence.fixture.js](tests/fixtures/presentation/bess-financier-due-diligence.fixture.js): fictional bank credit-committee due-diligence fixture (`12 MW / 24 MWh` BESS, `18.5m EUR`) with structured risks, evidence gaps, forbidden assumptions, warnings, and payout-condition next actions.
+- [tests/presentation-fixtures.test.js](tests/presentation-fixtures.test.js): new Prompt-7 fixture suite covering TRIWO, KPI, comparison, evidence/risk/decision, and financier due-diligence scenarios.
+- [tests/presentation.rest-blackbox.test.js](tests/presentation.rest-blackbox.test.js): opt-in REST blackbox suite for `POST /api/presentation/render` (`RUN_PRESENTATION_REST_BLACKBOX=true`) covering TRIWO, KPI, due-diligence, and unknown-format fallback.
+
+### Changed
+- [services/presentation.service.js](services/presentation.service.js): deterministic selector now recognizes `decisionStatus` as decision signal and prioritizes `decision_brief` before pure evidence-gap fallback when decision fields exist.
+- [services/presentation.service.js](services/presentation.service.js): `vdmi_matrix_table` now emits explicit missing-role warnings (`missing_role_field_verantwortlich`, `missing_role_field_durchfuehrend`, `missing_role_field_mitwirkend`, `missing_role_field_information`) instead of inferring actors.
+- [services/presentation.service.js](services/presentation.service.js): `decision_brief` stub extended with deterministic structured sections/tables for status, risks, evidence requirements/gaps, forbidden assumptions, and next actions; fixture warnings are preserved without source/as-of invention.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `extractDomainResultFromExecution()` now safely propagates comparison arrays (`peers`, `items`, `rows`, `variants`) so completed comparison executions can deterministically render as `comparison_table`.
+- [tests/personal-agent-presentation.integration.test.js](tests/personal-agent-presentation.integration.test.js): expanded integration coverage with Prompt-7 scenarios (`PA-PRES-TRIWO-01`, `PA-PRES-COMP-01`, `PA-PRES-BANK-DD-01`, `PA-PRES-KPI-01`) asserting `reply === presentation.markdown` for completed structured executions.
+
+### Tests
+- Prompt-7 focused regression run passed:
+  - `tests/presentation.service.test.js`
+  - `tests/presentation-fixtures.test.js`
+  - `tests/personal-agent-presentation.integration.test.js`
+  - `tests/personal-agent-routing.test.js`
+  - `tests/vdmi.service.test.js`
+  - result: `5` suites, `75` tests passed.
+- REST blackbox suite is intentionally opt-in and remains skipped without explicit environment activation:
+  - `tests/presentation.rest-blackbox.test.js`.
+
 ### Changed
 - [services/personal-agent.service.js](services/personal-agent.service.js): integrated Presentation Service into Personal Agent final-response path (`synthesis_turn()` updated with presentation rendering context). Execution `status=completed` now triggers deterministic `presentation.render` call if execution result contains structured data (no LLM, no invented facts). Reply uses `presentation.markdown` as primary visible output when presentation renders successfully.
 - [services/personal-agent.service.js](services/personal-agent.service.js): added `hasStructuredExecutionResult()`, `extractDomainResultFromExecution()`, `hasStructuredData()` helper methods to detect when execution results warrant presentation rendering (matrix/tasks/roles/evidenceGaps/assetRisks/risks/count/value/metric/answer/forbiddenAssumptions present).
