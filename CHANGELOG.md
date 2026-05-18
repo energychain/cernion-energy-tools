@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Bumped `n3` from 1.26.0 to 2.0.3 (#107) — major version upgrade for RDF/SPARQL parser with improved language subtag validation.
+- Bumped `@opentelemetry/exporter-trace-otlp-http` from 0.205.0 to 0.218.0 (#108) — replaced protobufjs metrics serialization with custom implementation, Node 22/24 support.
+- Bumped `jest` from 30.3.0 to 30.4.2 (#109) — fixes for named imports from CJS modules and ESM interop improvements.
+- Bumped `ajv` from 8.18.0 to 8.20.0 (#110) — Node 22/24 support, dropped Node 16/21.
+- Bumped `swagger-ui-dist` from 5.32.5 to 5.32.6 (#111) — addressed undici vulnerability.
+- Bumped `better-sqlite3` from 12.9.0 to 12.10.0 (#112) — updated SQLite to version 3.53.1.
+- Bumped `axios` from 1.16.0 to 1.16.1 (#113) — defence-in-depth fix for prototype pollution in `formDataToJSON`, Webpack 4 compatibility restored.
 - [src/personal-agent-routing.js](src/personal-agent-routing.js): added deterministic AUTO preflight fallback `applyMissingContextFallback(...)` with control action `MISSING_CONTEXT` so plans with unresolved required inputs transition into explicit missing-context handling before domain execution.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `chat` now applies routing preflight missing-context fallback before execution and treats onboarding stop states as first-class presentation output.
 - [services/personal-agent.service.js](services/personal-agent.service.js): awaiting-onboarding responses now expose deterministic presentation metadata (`presentationApplied=true`, `presentationType="conversational_onboarding"`) including `presentation.structuredData` (`blockedAction`, `blockedStep`, `missingParams`, `onboardingQuestion`) for UI hint rendering.
