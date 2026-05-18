@@ -642,6 +642,102 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
     });
   });
 
+  describeE2E('PA-MT-008: Bank Analyst Due Diligence Flow', () => {
+    jest.setTimeout(30000);
+
+    const client = createChatClient(BASE_URL);
+    let sessionId = null;
+
+    afterAll(() => {
+      sessionId = null;
+      client.clear();
+    });
+
+    it('Turn 1: vague start returns conversational onboarding', async () => {
+      const { response, payload } = await client.chat(
+        'Ich bin Banken-Analyst und prüfe einen Speicherpark. Was brauchst du für eine belastbare Due Diligence?',
+        sessionId
+      );
+
+      expectHttp200(response);
+      expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      sessionId = payload.sessionId || sessionId;
+
+      expect(payload.execution?.status).toBe('awaiting-onboarding');
+      expect(payload.presentationApplied).toBe(true);
+      expect(payload.presentationType).toBe('conversational_onboarding');
+
+      const reply = extractReply(payload);
+      expect(reply).toMatch(/Due Diligence|Evidenz|Netzanschlusszusage|BDEW|Marktlokation|fehlende Angaben/i);
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
+    });
+
+    it('Turn 2: location/capacity/operator completes and exposes Frankenthal/TWL mismatch', async () => {
+      const { response, payload } = await client.chat(
+        'Standort Frankenthal, 12 MW Speicherpark, benannter Betreiber TWL Netze. Bitte Due-Diligence-Risiken bewerten.',
+        sessionId
+      );
+
+      expectHttp200(response);
+      expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      sessionId = payload.sessionId || sessionId;
+
+      expect(payload.execution?.status).toBe('completed');
+
+      const reply = extractReply(payload);
+      expect(reply).toMatch(/Frankenthal/i);
+      expect(reply).toMatch(/TWL/i);
+      expect(reply).toMatch(/Stadtwerke Frankenthal|Betreiber-Mismatch|Zuständigkeit/i);
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
+    });
+
+    it('Turn 3: formal EnWG next-step request completes with vdmi_matrix_table', async () => {
+      const { response, payload } = await client.chat(
+        'Was ist der nächste formale EnWG-Schritt für die Netzanschluss-Finanzierung?',
+        sessionId
+      );
+
+      expectHttp200(response);
+      expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      sessionId = payload.sessionId || sessionId;
+
+      expect(payload.execution?.status).toBe('completed');
+      expect(payload.presentationApplied).toBe(true);
+      expect(payload.presentationType).toBe('vdmi_matrix_table');
+
+      const reply = extractReply(payload);
+      expect(reply).toMatch(/BKZ-Bescheid|Netzanschlusszusage|Verantwortlich|Durchführend|Mitwirkend|Informiert/i);
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
+    });
+
+    it('Turn 4: one-pager risk assessment completes with decision_brief and finance next actions', async () => {
+      const { response, payload } = await client.chat(
+        'Erstelle einen One-Pager Risk Assessment für den Kreditausschuss zu Frankenthal (12 MW, TWL Netze).',
+        sessionId
+      );
+
+      expectHttp200(response);
+      expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      sessionId = payload.sessionId || sessionId;
+
+      expect(payload.execution?.status).toBe('completed');
+      expect(payload.presentationApplied).toBe(true);
+      expect(payload.presentationType).toBe('decision_brief');
+
+      const reply = extractReply(payload);
+      expect(reply).toMatch(/Entscheidungsstatus|Condition Precedent|Nächste Schritte|Kreditausschuss|BKZ/i);
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
+    });
+  });
+
   describeVdmiStep3E2E('PA-MT-005 VDMI Step-3 Grid-Connection Decision Governance', () => {
     jest.setTimeout(30000);
 
