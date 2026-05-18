@@ -177,7 +177,7 @@ async function callWithHardTimeout(ctx, params, timeoutMs) {
         params,
         {
           timeout: timeoutMs,
-          meta: ctx?.meta,
+          meta: { ...ctx?.meta, $gateway: false },
         }
       ),
       new Promise((_, reject) => {

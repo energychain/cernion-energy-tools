@@ -2,6 +2,7 @@
 
 const crypto = require('crypto');
 const { MoleculerClientError } = require('moleculer').Errors;
+const jobStore = require('../src/job-store');
 const { getTenantId, tenantNamespace } = require('../src/tenant-context');
 const {
   buildContextStack,
@@ -182,7 +183,7 @@ module.exports = {
         },
         responses: {
           200: {
-            description: 'Chat turn completed successfully',
+            description: 'Chat turn completed (internal Moleculer calls only; REST gateway calls receive 202 Accepted)',
             content: {
               'application/json': {
                 examples: {
@@ -555,6 +556,31 @@ module.exports = {
               },
             },
           },
+          202: {
+            description: 'Accepted - Chat turn submitted as async job. Poll /api/jobs/:jobId/status for progress. (REST gateway only; internal Moleculer calls receive 200.)',
+            headers: {
+              Location: { description: 'URL to poll job status', schema: { type: 'string' } },
+              'Retry-After': { description: 'Recommended polling interval in seconds', schema: { type: 'string' } },
+            },
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                    jobId: { type: 'string' },
+                    status: { type: 'string', enum: ['queued'] },
+                    message: { type: 'string' },
+                    statusUrl: { type: 'string' },
+                    resultUrl: { type: 'string' },
+                    progressUrl: { type: 'string' },
+                    reused: { type: 'boolean' },
+                  },
+                  required: ['success', 'jobId', 'status', 'statusUrl', 'resultUrl', 'progressUrl'],
+                },
+              },
+            },
+          },
           400: {
             description: 'Bad request - invalid parameters or validation error',
           },
@@ -567,6 +593,19 @@ module.exports = {
         },
       },
       async handler(ctx) {
+        // Gateway-aware async job routing wrapper
+        return await jobStore.startJob(
+          ctx,
+          { service: 'personal-agent', action: 'chat' },
+          () => this._executeChatCoreLogic(ctx),
+          {
+            idempotencyKey: ctx.params.sessionId || undefined,
+          }
+        );
+      },
+
+      // Core chat logic extracted as a method callable from async job wrapper
+      async _executeChatCoreLogic(ctx) {
         const tenantId = getTenantId(ctx);
         const userId = String(ctx.meta?.authUser?.userId || 'anonymous');
         const sessionId = String(ctx.params.sessionId || `pa_${crypto.randomUUID()}`);
@@ -728,7 +767,7 @@ module.exports = {
                   context: presentationContext,
                   locale: 'de-DE',
                 },
-                { meta: ctx.meta }
+                { meta: { ...ctx.meta, $gateway: false } }
               );
 
               if (
@@ -1973,7 +2012,7 @@ module.exports = {
             mode: 'initial',
             knownContext,
           },
-          { meta: ctx.meta }
+          { meta: { ...ctx.meta, $gateway: false } }
         );
       } catch (error) {
         if (isActionUnavailable(error)) {
@@ -2363,7 +2402,7 @@ module.exports = {
             signalCodes: [reasonCode],
             placeholderGapKey: `personal-agent-step-${blockedStep}`,
           },
-          { meta: ctx.meta }
+          { meta: { ...ctx.meta, $gateway: false } }
         );
         return placeholder;
       } catch (error) {
@@ -2438,7 +2477,7 @@ module.exports = {
 
       if (matrixId) {
         try {
-          const response = await ctx.call('vdmi.get', { id: matrixId }, { meta: ctx.meta });
+          const response = await ctx.call('vdmi.get', { id: matrixId }, { meta: { ...ctx.meta, $gateway: false } });
           return response?.matrix || null;
         } catch (error) {
           if (isActionUnavailable(error) || isNotFound(error)) {
@@ -2450,7 +2489,7 @@ module.exports = {
 
       if (processId) {
         try {
-          const response = await ctx.call('vdmi.context', { jobId: processId }, { meta: ctx.meta });
+          const response = await ctx.call('vdmi.context', { jobId: processId }, { meta: { ...ctx.meta, $gateway: false } });
           return response?.matrix || null;
         } catch (error) {
           if (isActionUnavailable(error) || isNotFound(error)) {
@@ -2684,7 +2723,7 @@ module.exports = {
         }
 
         try {
-          const result = await ctx.call(plannedStep.action, params, { meta: ctx.meta });
+          const result = await ctx.call(plannedStep.action, params, { meta: { ...ctx.meta, $gateway: false } });
           const normalizedData = result && typeof result === 'object' && result.data !== undefined
             ? result.data
             : result;
