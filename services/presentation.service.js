@@ -67,6 +67,9 @@ function hasVdmiRoleFields(task) {
 function hasDecisionSignals(domainResult) {
   const dr = domainResult || {};
   if (isNonEmptyArray(dr.forbiddenAssumptions)) return true;
+  if (dr.decisionStatus !== undefined && dr.decisionStatus !== null && String(dr.decisionStatus).trim() !== '') {
+    return true;
+  }
   if (dr.expectedStatus !== undefined && dr.expectedStatus !== null && String(dr.expectedStatus).trim() !== '') {
     return true;
   }
@@ -128,14 +131,14 @@ function selectRenderer({ preferredFormat, intent, domainResult }) {
     return { type: 'vdmi_matrix_table', warnings };
   }
 
-  // 2) evidence gaps
-  if (isNonEmptyArray(dr.evidenceGaps)) {
-    return { type: 'evidence_gap_table', warnings };
-  }
-
-  // 3) decision brief
+  // 2) decision brief
   if (hasDecisionSignals(dr)) {
     return { type: 'decision_brief', warnings };
+  }
+
+  // 3) evidence gaps
+  if (isNonEmptyArray(dr.evidenceGaps)) {
+    return { type: 'evidence_gap_table', warnings };
   }
 
   // 4) risk table
@@ -459,6 +462,10 @@ function renderVdmiMatrix(domainResult) {
 
   const roleRows = tasks.map((task) => {
     const step = getStepDescription(task, warnings);
+    if (!Array.isArray(task?.verantwortlich)) warnings.push('missing_role_field_verantwortlich');
+    if (!Array.isArray(task?.durchfuehrend)) warnings.push('missing_role_field_durchfuehrend');
+    if (!Array.isArray(task?.mitwirkend)) warnings.push('missing_role_field_mitwirkend');
+    if (!Array.isArray(task?.information)) warnings.push('missing_role_field_information');
     return [
       step,
       formatActorList(task?.verantwortlich),
@@ -824,19 +831,111 @@ function renderRiskTableStub(domainResult) {
 function renderDecisionBriefStub(domainResult) {
   const dr = domainResult || {};
   const warnings = ['decision_brief_renderer_not_implemented_yet'];
-  const sections = [];
+  if (isNonEmptyArray(dr.warnings)) {
+    for (const warning of dr.warnings) {
+      if (typeof warning === 'string' && warning.trim()) {
+        warnings.push(warning.trim());
+      }
+    }
+  }
 
+  const sources = dr.source
+    ? [dr.source]
+    : (isNonEmptyArray(dr.sources) ? dr.sources : []);
+
+  const sections = [];
+  const tables = [];
+
+  const decisionStatus = firstDefined(dr, ['decisionStatus']);
   const expectedStatus = firstDefined(dr, ['expectedStatus', 'status']);
   const forbiddenAssumptions = isNonEmptyArray(dr.forbiddenAssumptions) ? dr.forbiddenAssumptions : [];
   const nextActions = isNonEmptyArray(dr.nextActions) ? dr.nextActions : [];
+  const riskItems = isNonEmptyArray(dr.assetRisks) ? dr.assetRisks : (isNonEmptyArray(dr.risks) ? dr.risks : []);
+  const evidenceRequirements = isNonEmptyArray(dr.evidenceRequirements) ? dr.evidenceRequirements : [];
+  const evidenceGaps = isNonEmptyArray(dr.evidenceGaps) ? dr.evidenceGaps : [];
 
-  if (expectedStatus !== undefined) {
+  if (decisionStatus !== undefined || expectedStatus !== undefined) {
+    const lines = [];
+    if (decisionStatus !== undefined) {
+      lines.push(`- Entscheidungsstatus: ${String(decisionStatus)}`);
+    }
+    if (expectedStatus !== undefined) {
+      lines.push(`- Erwarteter Status: ${String(expectedStatus)}`);
+    }
+    if (dr.asOf) {
+      lines.push(`- Stand: ${String(dr.asOf)}`);
+    }
     sections.push({
       id: 'decision_status',
       title: 'Status',
-      content: `- Erwarteter Status: ${String(expectedStatus)}`,
+      content: lines.join('\n'),
     });
   }
+
+  if (riskItems.length > 0) {
+    const riskRows = riskItems.map((item) => {
+      if (item && typeof item === 'object') {
+        return [
+          firstDefined(item, ['risk', 'name', 'label', 'id']) || '—',
+          firstDefined(item, ['severity', 'level', 'priority']) || '—',
+          firstDefined(item, ['impact', 'wirkung']) || '—',
+          firstDefined(item, ['mitigation', 'countermeasure', 'gegenmassnahme', 'gegenmaßnahme']) || '—',
+        ];
+      }
+      return [String(item), '—', '—', '—'];
+    });
+
+    tables.push({
+      id: 'decision_risks',
+      headers: ['Risiko', 'Schweregrad', 'Wirkung', 'Gegenmaßnahme'],
+      rows: riskRows,
+    });
+
+    sections.push({
+      id: 'risk_table',
+      title: 'Risiken',
+      content: markdownTable(['Risiko', 'Schweregrad', 'Wirkung', 'Gegenmaßnahme'], riskRows),
+    });
+  }
+
+  const evidenceRows = [];
+  for (const req of evidenceRequirements) {
+    if (req && typeof req === 'object') {
+      evidenceRows.push([
+        'Anforderung',
+        firstDefined(req, ['label', 'name', 'description', 'id']) || '—',
+        firstDefined(req, ['detail', 'reason', 'message']) || '—',
+      ]);
+    } else {
+      evidenceRows.push(['Anforderung', String(req), '—']);
+    }
+  }
+  for (const gap of evidenceGaps) {
+    if (gap && typeof gap === 'object') {
+      evidenceRows.push([
+        'Lücke',
+        firstDefined(gap, ['label', 'name', 'description', 'id']) || '—',
+        firstDefined(gap, ['reason', 'detail', 'message']) || '—',
+      ]);
+    } else {
+      evidenceRows.push(['Lücke', String(gap), '—']);
+    }
+  }
+
+  if (evidenceRows.length > 0) {
+    tables.push({
+      id: 'decision_evidence',
+      headers: ['Typ', 'Evidenz / Lücke', 'Detail'],
+      rows: evidenceRows,
+    });
+
+    sections.push({
+      id: 'evidence_gap_table',
+      title: 'Evidenz und offene Lücken',
+      content: markdownTable(['Typ', 'Evidenz / Lücke', 'Detail'], evidenceRows),
+    });
+  }
+
   if (forbiddenAssumptions.length > 0) {
     sections.push({
       id: 'forbidden_assumptions',
@@ -853,6 +952,11 @@ function renderDecisionBriefStub(domainResult) {
     });
 
     const actionTable = markdownTable(['Nächster Schritt', 'Typ'], rows);
+    tables.push({
+      id: 'decision_next_actions',
+      headers: ['Nächster Schritt', 'Typ'],
+      rows,
+    });
     sections.push({
       id: 'next_actions',
       title: 'Nächste Schritte',
@@ -863,6 +967,14 @@ function renderDecisionBriefStub(domainResult) {
   if (sections.length === 0) {
     warnings.push('insufficient_structured_data');
   }
+
+  const uniqueWarnings = [...new Set(warnings)];
+
+  const summary = decisionStatus !== undefined
+    ? `Entscheidungsstatus: ${String(decisionStatus)}.`
+    : (expectedStatus !== undefined
+      ? `Erwarteter Status: ${String(expectedStatus)}.`
+      : (sections.length > 0 ? 'Entscheidungsfelder wurden strukturiert erkannt.' : 'Keine auswertbaren Entscheidungsfelder.'));
 
   const markdownParts = [
     '## Entscheidungsbrief (Stub)',
@@ -881,12 +993,12 @@ function renderDecisionBriefStub(domainResult) {
     presentation: {
       type: 'decision_brief',
       title: 'Entscheidungsbrief (Stub)',
-      summary: sections.length > 0 ? 'Entscheidungsfelder wurden strukturiert erkannt.' : 'Keine auswertbaren Entscheidungsfelder.',
+      summary,
       kpis: [],
-      tables: [],
+      tables,
       sections,
-      warnings,
-      sources: [],
+      warnings: uniqueWarnings,
+      sources,
       nextActions,
     },
     markdown: markdownParts.join('\n'),

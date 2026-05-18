@@ -7,6 +7,10 @@ const { ServiceBroker } = require('moleculer');
 const ObjectStoreService = require('../services/object-store.service');
 const PresentationService = require('../services/presentation.service');
 const PersonalAgentService = require('../services/personal-agent.service');
+const triwoFixture = require('./fixtures/presentation/triwo-vdmi-decision.fixture');
+const pvKpiFixture = require('./fixtures/presentation/pv-wiesloch-kpi.fixture');
+const comparisonFixture = require('./fixtures/presentation/vnb-benchmark-comparison.fixture');
+const bessDdFixture = require('./fixtures/presentation/bess-financier-due-diligence.fixture');
 
 describe('personal-agent presentation integration (Prompt 6)', () => {
   let broker;
@@ -361,5 +365,125 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
     const persistedDump = JSON.stringify(session);
     expect(persistedDump).not.toMatch(/"responseRaw"/);
     expect(persistedDump).not.toMatch(/payload-that-must-not-be-persisted-as-l4/);
+  });
+
+  test('PA-PRES-TRIWO-01: completed Triwo execution returns vdmi_matrix_table markdown as final reply', async () => {
+    setExecutionResult({
+      status: 'completed',
+      plan: deterministicPlan,
+      steps: [
+        {
+          action: 'vdmi.dossier',
+          result: triwoFixture.domainResult,
+        },
+      ],
+      stopPoint: null,
+    });
+
+    const result = await broker.call(
+      'personal-agent.chat',
+      { message: 'Zeige #Triwo Step 3 als Human View', executionMode: 'auto' },
+      { meta: { tenantId: 'tenant-pa-pres-triwo-01', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.presentationApplied).toBe(true);
+    expect(result.presentationType).toBe('vdmi_matrix_table');
+    expect(result.reply).toBe(result.presentation.markdown);
+    expect(result.reply).toContain('| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |');
+    expect(result.reply).toContain('TWL Netze');
+  });
+
+  test('PA-PRES-COMP-01: completed comparison execution returns comparison presentation metadata', async () => {
+    setExecutionResult({
+      status: 'completed',
+      plan: {
+        ...deterministicPlan,
+        routeKey: 'vnb_benchmark_comparison',
+        routeLabel: 'vnb_benchmark_comparison',
+        primaryIntent: 'vnb_benchmark_comparison',
+      },
+      steps: [
+        {
+          action: 'mock.comparison',
+          result: comparisonFixture.domainResult,
+        },
+      ],
+      stopPoint: null,
+    });
+
+    const result = await broker.call(
+      'personal-agent.chat',
+      { message: 'Vergleiche VNB Benchmarks', executionMode: 'auto' },
+      { meta: { tenantId: 'tenant-pa-pres-comp-01', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.presentationApplied).toBe(true);
+    expect(result.presentationType).toBe('comparison_table');
+    expect(result.reply).toBe(result.presentation.markdown);
+    expect(result.reply).toContain('| Eintrag | Wert |');
+  });
+
+  test('PA-PRES-BANK-DD-01: completed due-diligence execution uses presentation markdown as final reply', async () => {
+    setExecutionResult({
+      status: 'completed',
+      plan: {
+        ...deterministicPlan,
+        routeKey: bessDdFixture.intent,
+        routeLabel: bessDdFixture.intent,
+        primaryIntent: bessDdFixture.intent,
+      },
+      steps: [
+        {
+          action: 'mock.bank-dd',
+          result: bessDdFixture.domainResult,
+        },
+      ],
+      stopPoint: null,
+    });
+
+    const result = await broker.call(
+      'personal-agent.chat',
+      { message: 'Erstelle Due-Diligence View für Kreditkomitee', executionMode: 'auto' },
+      { meta: { tenantId: 'tenant-pa-pres-bank-dd-01', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.presentationApplied).toBe(true);
+    expect(result.presentationType).toBe('decision_brief');
+    expect(result.reply).toBe(result.presentation.markdown);
+    expect(result.reply).toContain('Grid connection confirmation as payout condition');
+    expect(result.reply).toContain('Evidenz und offene Lücken');
+  });
+
+  test('PA-PRES-KPI-01: completed KPI fixture execution uses presentation markdown as final reply', async () => {
+    setExecutionResult({
+      status: 'completed',
+      plan: {
+        ...deterministicPlan,
+        routeKey: pvKpiFixture.intent,
+        routeLabel: pvKpiFixture.intent,
+        primaryIntent: pvKpiFixture.intent,
+      },
+      steps: [
+        {
+          action: 'mock.kpi.fixture',
+          result: pvKpiFixture.domainResult,
+        },
+      ],
+      stopPoint: null,
+    });
+
+    const result = await broker.call(
+      'personal-agent.chat',
+      { message: 'Zeige PV KPI', executionMode: 'auto' },
+      { meta: { tenantId: 'tenant-pa-pres-kpi-01', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.presentationApplied).toBe(true);
+    expect(result.presentationType).toBe('kpi_fact');
+    expect(result.reply).toBe(result.presentation.markdown);
   });
 });
