@@ -698,4 +698,150 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       expectNoReplyLeaks(reply);
     });
   });
+
+  describeVdmiStep3E2E('PA-MT-005 VDMI Step-3 Grid-Connection Decision Governance', () => {
+    jest.setTimeout(30000);
+
+    const client = createChatClient(BASE_URL);
+    let sessionId = null;
+
+    afterAll(() => {
+      sessionId = null;
+      client.clear();
+    });
+
+    it('routes to decision governance and completes dossier/trace/agentRole with auto-derived V actor', async () => {
+      const { response, payload } = await client.chat(
+        'Kann der Netzbetreiber ohne formales §17-EnWG-Netzanschlussbegehren eine belastbare Anschluss- oder Kapazitätszusage geben?',
+        sessionId,
+        {
+          knownContext: {
+            processType: 'grid-connection-governance',
+            taskId: 'network-operator-decision',
+          },
+        }
+      );
+
+      expectHttp200(response);
+      expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      sessionId = payload.sessionId || sessionId;
+
+      expectRoutingContains(payload, ['vdmi_grid_connection_decision_governance']);
+      const routingText = JSON.stringify(payload.routing || {}).toLowerCase();
+      expect(routingText).not.toContain('vdmi_asset_validation_governance');
+
+      const executionSteps = Array.isArray(payload.execution?.steps) ? payload.execution.steps : [];
+      const dossierStep = executionSteps.find((step) => step.action === 'vdmi.dossier');
+      const traceStep = executionSteps.find((step) => step.action === 'vdmi.negotiationTrace');
+      const roleStep = executionSteps.find((step) => step.action === 'vdmi.agentRole');
+
+      expect(dossierStep?.status).toBe('completed');
+      expect(traceStep?.status).toBe('completed');
+      expect(roleStep?.status).toBe('completed');
+
+      const rolePayload = roleStep?.result || {};
+      expect(rolePayload?.highestRole || rolePayload?.role).toBe('V');
+
+      const dossierPayload = dossierStep?.result?.dossier || {};
+      expect(Array.isArray(dossierPayload.evidenceGaps)).toBe(true);
+      expect(dossierPayload.evidenceGaps.length).toBeGreaterThan(0);
+      expect(Array.isArray(dossierPayload.forbiddenAssumptions)).toBe(true);
+      expect(dossierPayload.forbiddenAssumptions.length).toBeGreaterThan(0);
+
+      const reply = extractReply(payload);
+      expect(reply).not.toMatch(/belastbare\s+anschluss-?\/?kapazit[aä]tszusage|anschlusszusage|kapazit[aä]tszusage/i);
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
+    });
+  });
+
+  describeE2E('PA-MT-007 Multimodal Inhouse Data Upload', () => {
+    jest.setTimeout(30000);
+
+    const os = require('os');
+    const fs = require('fs');
+    const path = require('path');
+
+    const client = createChatClient(BASE_URL);
+    let sessionId = null;
+    let uploadDir = null;
+
+    beforeAll(() => {
+      uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pa-e2e-inhouse-'));
+    });
+
+    afterAll(() => {
+      sessionId = null;
+      client.clear();
+      if (uploadDir) {
+        try { fs.rmSync(uploadDir, { recursive: true, force: true }); } catch { /* ok */ }
+      }
+    });
+
+    it('Turn 1: chat with CSV attachment reports fileProcessing ok and persists L3 extract metadata', async () => {
+      const csvPath = path.join(uploadDir, 'assets.csv');
+      fs.writeFileSync(
+        csvPath,
+        'AssetID,Kapazitaet_kW,Ort\nA-001,5000,Ludwigshafen\nA-002,3000,Frankenthal\n'
+      );
+
+      const body = {
+        message: 'Hier ist eine Liste unserer PV-Anlagen. Bitte bestätige den Empfang.',
+        executionMode: 'auto',
+        fileAttachments: [
+          {
+            attachmentId: 'fa_assets_001',
+            fileName: 'assets.csv',
+            mimeType: 'text/csv',
+            sizeBytes: fs.statSync(csvPath).size,
+            tempPath: csvPath,
+          },
+        ],
+      };
+
+      const response = await fetch(`${BASE_URL}${CHAT_PATH}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-tenant-id': TENANT_ID },
+        body: JSON.stringify(body),
+      });
+
+      expectHttp200(response);
+      const payload = await response.json();
+      expect(payload.success).toBe(true);
+      sessionId = payload.sessionId;
+
+      // fileProcessing reports ok
+      expect(Array.isArray(payload.fileProcessing)).toBe(true);
+      expect(payload.fileProcessing).toHaveLength(1);
+      expect(payload.fileProcessing[0].status).toBe('ok');
+      expect(payload.fileProcessing[0].attachmentId).toBe('fa_assets_001');
+
+      const reply = extractReply(payload);
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
+    });
+
+    it('Turn 2: follow-up references session without raw file content in persisted L3', async () => {
+      expect(sessionId).toBeTruthy();
+
+      const { response, payload } = await client.chat(
+        'Wie viele Assets haben wir insgesamt laut der hochgeladenen Liste?',
+        sessionId
+      );
+
+      expectHttp200(response);
+      expect(payload.success).toBe(true);
+      expect(payload.sessionId).toBe(sessionId);
+
+      const reply = extractReply(payload);
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
+
+      // Raw content must not appear in the response payload at all
+      const payloadJson = JSON.stringify(payload);
+      expect(payloadJson).not.toContain('A-001,5000,Ludwigshafen');
+      expect(payloadJson).not.toContain('"inhouseData"');
+    });
+  });
 });

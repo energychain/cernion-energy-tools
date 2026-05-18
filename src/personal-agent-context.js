@@ -15,6 +15,7 @@ const FORBIDDEN_L4_KEYS = new Set([
   'layer4',
   'toolContext',
   'knowledgeContext',
+  'inhouseData',
   'rawJson',
   'rawResponse',
   'responseRaw',

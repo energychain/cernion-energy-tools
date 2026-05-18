@@ -19,6 +19,8 @@ const FILE_TYPE_MAP = Object.freeze({
 
 const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const MAX_SAMPLE_ROWS = 5;
+const MAX_INGEST_BYTES = 50 * 1024; // 50 KB safe context window budget
+const MAX_INGEST_LINES = 2000;
 
 function buildError(code, message, extras = {}) {
   const error = new Error(message);
@@ -168,6 +170,51 @@ function extractDocumentText(filePath) {
   };
 }
 
+/**
+ * Read plain-text content from a file and return it with truncation metadata.
+ * Only supports text-based formats: .csv, .json, .txt
+ * Returns null for unsupported extensions.
+ */
+function readTextContent(filePath, options = {}) {
+  const maxBytes = options.maxBytes || MAX_INGEST_BYTES;
+  const maxLines = options.maxLines || MAX_INGEST_LINES;
+
+  const supportedExts = new Set(['.csv', '.json', '.txt']);
+  const ext = path.extname(filePath).toLowerCase();
+  if (!supportedExts.has(ext)) {
+    return null;
+  }
+
+  if (!fs.existsSync(filePath)) {
+    throw buildError('FILE_NOT_FOUND', 'Attachment file not found for text ingestion.');
+  }
+
+  const stat = fs.statSync(filePath);
+  const readBytes = Math.min(stat.size, maxBytes);
+  const byteTruncated = stat.size > maxBytes;
+
+  const fd = fs.openSync(filePath, 'r');
+  const buffer = Buffer.alloc(readBytes);
+  fs.readSync(fd, buffer, 0, readBytes, 0);
+  fs.closeSync(fd);
+
+  let content = buffer.toString('utf8');
+
+  // Enforce line limit on top of byte limit
+  const lines = content.split(/\r?\n/);
+  let lineTruncated = false;
+  if (lines.length > maxLines) {
+    content = lines.slice(0, maxLines).join('\n');
+    lineTruncated = true;
+  }
+
+  return {
+    content,
+    truncated: byteTruncated || lineTruncated,
+    originalSizeBytes: stat.size,
+  };
+}
+
 function injectFileIntoL3(session, fileMeta) {
   if (!session || typeof session !== 'object') {
     throw buildError('INVALID_SESSION', 'Session payload for file injection is invalid.');
@@ -193,11 +240,14 @@ function injectFileIntoL3(session, fileMeta) {
 
 module.exports = {
   MAX_FILE_SIZE_BYTES,
+  MAX_INGEST_BYTES,
+  MAX_INGEST_LINES,
   ALLOWED_EXTENSIONS: Object.keys(FILE_TYPE_MAP),
   recognizeFileType,
   parseCsvExtract,
   parseExcelExtract,
   ocrExtractImage,
   extractDocumentText,
+  readTextContent,
   injectFileIntoL3,
 };

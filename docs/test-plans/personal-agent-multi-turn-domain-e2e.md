@@ -200,3 +200,43 @@ turns:
     zwiebelCheck:
       l4Purge: true
 ```
+## Szenario 7
+```yaml
+scenarioId: "PA-MT-007"
+title: "Multimodal Inhouse Data Upload"
+persona: "PS-MT-GRID-PLANNER"
+tenant: "agentic-hackathon"
+priority: 2
+activation: "RUN_PERSONAL_AGENT_E2E=true"
+turns:
+  - turn: 1
+    userMessage: "Hier ist eine Liste unserer PV-Anlagen. Bitte bestätige den Empfang."
+    requestContext:
+      fileAttachments:
+        - attachmentId: "fa_assets_001"
+          fileName: "assets.csv"
+          mimeType: "text/csv"
+          content: "AssetID,Kapazitaet_kW,Ort\nA-001,5000,Ludwigshafen\nA-002,3000,Frankenthal\n"
+    expected:
+      operationId: "personal-agent.chat"
+      responseConstraints:
+        - "fileProcessing[0].status = ok"
+        - "fileProcessing[0].attachmentId = fa_assets_001"
+        - "keine internen Fehlercodes"
+        - "keine rohen fileAttachment-Inhalte in der API-Antwort"
+      contextMutation: "add"
+      zwiebelCheck:
+        l3Contains: "fileAttachments[0].extract.type = csv"
+        l3NotContains: "inhouseData"
+        l3NotContains2: "A-001,5000,Ludwigshafen"
+  - turn: 2
+    userMessage: "Wie viele Assets haben wir insgesamt laut der hochgeladenen Liste?"
+    expected:
+      operationId: "personal-agent.chat"
+      responseConstraints:
+        - "session ID stimmt mit Turn 1 überein"
+        - "keine rohen Dateiinhalte (A-001,...) in der Antwort"
+        - "keine internen Fehlercodes"
+        - "kein inhouseData-Feld in der API-Antwort-Payload"
+      contextMutation: "add"
+```

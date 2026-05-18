@@ -44,6 +44,7 @@ const {
   parseExcelExtract,
   ocrExtractImage,
   extractDocumentText,
+  readTextContent,
   injectFileIntoL3,
 } = require('../src/personal-agent-file-handler');
 
@@ -577,6 +578,10 @@ module.exports = {
           session,
           Array.isArray(ctx.params.fileAttachments) ? ctx.params.fileAttachments : []
         );
+        const inhouseData = this.buildInhouseDataFromAttachments(
+          Array.isArray(ctx.params.fileAttachments) ? ctx.params.fileAttachments : [],
+          fileProcessing
+        );
         const userMessage = {
           role: 'user',
           text: ctx.params.message,
@@ -606,6 +611,9 @@ module.exports = {
           { ...knownContext },
           session
         );
+        if (inhouseData.length > 0) {
+          preflightKnownContext.inhouseData = inhouseData;
+        }
         const routedPlan = applyMissingContextFallback(plan, {
           knownContext: preflightKnownContext,
           executionMode,
@@ -1257,6 +1265,46 @@ module.exports = {
         type: 'unsupported',
         summary: `Dateityp ${typeInfo.mimeType} wird in dieser Version nicht unterstützt.`,
       };
+    },
+
+    /**
+     * Read the raw text content from successfully processed text-based attachments
+     * and return as a transient inhouseData array for the current turn only.
+     * This data is injected into preflightKnownContext but is NEVER persisted
+     * into the session (guarded by FORBIDDEN_L4_KEYS in personal-agent-context.js).
+     */
+    buildInhouseDataFromAttachments(rawFiles = [], fileProcessing = []) {
+      if (!Array.isArray(rawFiles) || rawFiles.length === 0) return [];
+
+      const successIds = new Set(
+        (Array.isArray(fileProcessing) ? fileProcessing : [])
+          .filter((r) => r.status === 'ok')
+          .map((r) => r.attachmentId)
+      );
+
+      const result = [];
+      for (const file of rawFiles) {
+        const attachmentId = String(file?.attachmentId || '');
+        if (!successIds.has(attachmentId)) continue;
+        if (!file?.tempPath) continue;
+
+        try {
+          const textContent = readTextContent(file.tempPath);
+          if (!textContent) continue; // non-text format, silently skip
+
+          result.push({
+            attachmentId,
+            fileName: String(file.fileName || 'attachment'),
+            mimeType: String(file.mimeType || 'text/plain'),
+            content: textContent.content,
+            truncated: textContent.truncated,
+            originalSizeBytes: textContent.originalSizeBytes,
+          });
+        } catch {
+          // File errors during text read are non-fatal for this turn
+        }
+      }
+      return result;
     },
 
     processFileAttachments(session, files = []) {

@@ -1120,6 +1120,90 @@ describe('personal-agent.service', () => {
     fs.rmSync(uploadDir, { recursive: true, force: true });
   });
 
+  it('CSV attachment text content is available as transient inhouseData without being persisted in session', async () => {
+    const uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pa-inhouse-csv-'));
+    const csvPath = path.join(uploadDir, 'assets.csv');
+    const csvContent = 'AssetID,Kapazitaet_kW,Ort\nA-001,5000,Ludwigshafen\nA-002,3000,Frankenthal\n';
+    fs.writeFileSync(csvPath, csvContent);
+
+    const svc = broker.getLocalService('personal-agent');
+
+    // Verify buildInhouseDataFromAttachments reads text and returns content
+    const fakeFiles = [
+      { attachmentId: 'fa_asset_csv', fileName: 'assets.csv', mimeType: 'text/csv', sizeBytes: csvContent.length, tempPath: csvPath },
+    ];
+    const fakeProcessing = [{ attachmentId: 'fa_asset_csv', fileName: 'assets.csv', status: 'ok' }];
+    const inhouseData = svc.schema.methods.buildInhouseDataFromAttachments.call(svc, fakeFiles, fakeProcessing);
+
+    expect(inhouseData).toHaveLength(1);
+    expect(inhouseData[0].attachmentId).toBe('fa_asset_csv');
+    expect(inhouseData[0].content).toContain('AssetID');
+    expect(inhouseData[0].content).toContain('A-001');
+    expect(inhouseData[0].truncated).toBe(false);
+    expect(inhouseData[0].originalSizeBytes).toBeGreaterThan(0);
+
+    // Verify persisted session after chat turn does NOT contain raw content
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Analysiere diese Asset-Liste',
+        fileAttachments: fakeFiles,
+      },
+      { meta: { tenantId: 'tenant-inhouse', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.fileProcessing[0].status).toBe('ok');
+
+    const session = await broker.call(
+      'personal-agent.getSession',
+      { sessionId: result.sessionId },
+      { meta: { tenantId: 'tenant-inhouse', authUser: { userId: 'user-1' } } }
+    );
+
+    // L3 fileAttachments should have metadata (extract) only, NOT raw content
+    expect(session.l3.fileAttachments).toHaveLength(1);
+    expect(session.l3.fileAttachments[0].extract.type).toBe('csv');
+    expect(session.l3.fileAttachments[0].extract.rowCount).toBe(2);
+    expect(session.l3.fileAttachments[0]).not.toHaveProperty('content');
+    // The raw inhouseData must not bleed into persisted session state
+    const sessionJson = JSON.stringify(session);
+    expect(sessionJson).not.toContain('"inhouseData"');
+    expect(sessionJson).not.toContain('A-001,5000,Ludwigshafen');
+
+    fs.rmSync(uploadDir, { recursive: true, force: true });
+  });
+
+  it('buildInhouseDataFromAttachments skips failed attachments and non-text formats', async () => {
+    const uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pa-inhouse-skip-'));
+    const csvPath = path.join(uploadDir, 'ok.csv');
+    fs.writeFileSync(csvPath, 'X,Y\n1,2\n');
+    const pdfPath = path.join(uploadDir, 'doc.pdf');
+    fs.writeFileSync(pdfPath, '%PDF-1.4 fake');
+
+    const svc = broker.getLocalService('personal-agent');
+
+    const fakeFiles = [
+      { attachmentId: 'fa_ok', fileName: 'ok.csv', mimeType: 'text/csv', sizeBytes: 8, tempPath: csvPath },
+      { attachmentId: 'fa_err', fileName: 'bad.csv', mimeType: 'text/csv', sizeBytes: 4, tempPath: csvPath },
+      { attachmentId: 'fa_pdf', fileName: 'doc.pdf', mimeType: 'application/pdf', sizeBytes: 14, tempPath: pdfPath },
+    ];
+    const fakeProcessing = [
+      { attachmentId: 'fa_ok', status: 'ok' },
+      { attachmentId: 'fa_err', status: 'error' }, // failed processing — should be skipped
+    ];
+
+    const inhouseData = svc.schema.methods.buildInhouseDataFromAttachments.call(svc, fakeFiles, fakeProcessing);
+
+    // Only fa_ok is successful AND text-based (.csv)
+    expect(inhouseData).toHaveLength(1);
+    expect(inhouseData[0].attachmentId).toBe('fa_ok');
+    // fa_pdf is not in processing results at all, so it is also skipped
+    expect(inhouseData.find((d) => d.attachmentId === 'fa_pdf')).toBeUndefined();
+
+    fs.rmSync(uploadDir, { recursive: true, force: true });
+  });
+
   it('treats parser failures as partial success via fileProcessing error entries', async () => {
     const uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pa-upload-xlsx-'));
     const xlsxPath = path.join(uploadDir, 'kaputt.xlsx');
