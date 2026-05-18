@@ -85,6 +85,16 @@ function findBestCapability(taskText) {
     'firm capacity',
     'flexible capacity',
   ];
+  const financierDueDiligenceSignals = [
+    'due diligence',
+    'risk assessment',
+    'kreditausschuss',
+    'credit committee',
+    'bankability',
+    'condition precedent',
+    'financier',
+    'finanzierer',
+  ];
   const vdmiGovernanceSignals = [
     'arealnetzbetreiber',
     '§17 enwg',
@@ -157,6 +167,21 @@ function findBestCapability(taskText) {
       return {
         capability: vdmiDecisionCapability,
         score: 130,
+        usedFallback: false,
+      };
+    }
+  }
+
+  const hasFinancierDueDiligenceCombo =
+    /(due\s*diligence|risk\s*assessment|kreditausschuss|credit\s*committee|bankability)/i.test(haystack)
+    && /(finanz|financier|kredit|committee|condition\s*precedent|risiko)/i.test(haystack);
+
+  if (financierDueDiligenceSignals.some((signal) => haystack.includes(signal)) || hasFinancierDueDiligenceCombo) {
+    const financierDueDiligenceCapability = findCapabilityByName('financier_due_diligence_assessment');
+    if (financierDueDiligenceCapability) {
+      return {
+        capability: financierDueDiligenceCapability,
+        score: 125,
         usedFallback: false,
       };
     }
@@ -369,6 +394,14 @@ function buildActionTemplate(action) {
       fnavProfile: null,
     };
   }
+  if (action === 'finance-agent.analyze') {
+    return {
+      query: null,
+      mode: 'rule_plus_hyde',
+      allowHypotheticals: false,
+      includeTrace: false,
+    };
+  }
   if (action === 'vdmi.agentRole') {
     return {
       agentId: null,
@@ -458,6 +491,15 @@ function buildFnavProfile(knownContext = {}, taskText = '') {
     contractStatus: knownContext?.contractStatus,
     legalStatus: knownContext?.legalStatus,
   };
+}
+
+function isVdmiDecisionPrompt(taskText = '') {
+  const haystack = String(taskText || '').toLowerCase();
+  const hasDecisionCore =
+    /(anschlusszusage|kapazitaetszusage|kapazitätszusage|uebergabepunkt|übergabepunkt|netzbetreiberentscheidung|belastbare\s+zusage)/i
+      .test(haystack);
+  const hasLegalFrame = /(formales\s+netzanschlussbegehren|§17\s*enwg|17\s*enwg|enwg)/i.test(haystack);
+  return hasDecisionCore && hasLegalFrame;
 }
 
 function interpolateTemplateWithKnownContext(action, paramsTemplate = {}, knownContext = {}, taskText = '') {
@@ -555,6 +597,19 @@ function interpolateTemplateWithKnownContext(action, paramsTemplate = {}, knownC
     }
   }
 
+  if (action === 'finance-agent.analyze') {
+    if (hydrated.query == null || hydrated.query === '') {
+      hydrated.query =
+        knownContext.query
+        || knownContext.dueDiligenceQuestion
+        || String(taskText || '').trim()
+        || null;
+    }
+    if (hydrated.profileId == null && knownContext.profileId) {
+      hydrated.profileId = knownContext.profileId;
+    }
+  }
+
   if (action === 'vdmi.agentRole') {
     if (hydrated.agentId == null && knownContext.agentId) {
       hydrated.agentId = knownContext.agentId;
@@ -568,11 +623,20 @@ function interpolateTemplateWithKnownContext(action, paramsTemplate = {}, knownC
     ) {
       hydrated.processType = knownContext.processType;
     }
+    if (hydrated.taskId == null && isVdmiDecisionPrompt(taskText)) {
+      hydrated.taskId = 'network-operator-decision';
+    }
+    if (hydrated.processType == null && isVdmiDecisionPrompt(taskText)) {
+      hydrated.processType = 'grid-connection-governance';
+    }
   }
 
   if (action === 'vdmi.dossier' || action === 'vdmi.negotiationTrace') {
     if (hydrated.taskId == null && knownContext.taskId) {
       hydrated.taskId = knownContext.taskId;
+    }
+    if (hydrated.taskId == null && isVdmiDecisionPrompt(taskText)) {
+      hydrated.taskId = 'network-operator-decision';
     }
   }
 

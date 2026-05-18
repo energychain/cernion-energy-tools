@@ -238,6 +238,54 @@ describe('personal-agent-routing', () => {
     );
   });
 
+  it('selects financier due-diligence capability in fallback routing instead of interface placeholder', () => {
+    const plan = buildExecutionPlan({
+      message: 'Erstelle ein vorläufiges Risk Assessment für den Kreditausschuss (Due Diligence).',
+      brokerRecommendation: null,
+    });
+
+    expect(plan.source).toBe('capability-broker');
+    expect(plan.routeLabel).toBe('financier_due_diligence_assessment');
+    expect(plan.primaryIntent).toBe('financier_due_diligence_assessment');
+    expect(plan.steps[0].action).toBe('finance-agent.analyze');
+  });
+
+  it('hydrates finance-agent.analyze query and vdmi decision task defaults in template filling', () => {
+    const financeParams = pruneUndefinedDeep(
+      fillTemplateWithContext(
+        {},
+        'finance-agent.analyze',
+        {
+          lastUserMessage: 'Erstelle ein Risk Assessment für den Kreditausschuss.',
+        },
+        {
+          query: 'Erstelle ein Risk Assessment für den Kreditausschuss.',
+        },
+        { stepResults: {} }
+      )
+    );
+
+    expect(financeParams.query).toMatch(/Risk Assessment|Kreditausschuss/i);
+
+    const vdmiParams = pruneUndefinedDeep(
+      fillTemplateWithContext(
+        {},
+        'vdmi.dossier',
+        {
+          lastUserMessage:
+            'Kann der Netzbetreiber ohne formales §17 EnWG Netzanschlussbegehren eine belastbare Anschlusszusage geben?',
+        },
+        {
+          query:
+            'Kann der Netzbetreiber ohne formales §17 EnWG Netzanschlussbegehren eine belastbare Anschlusszusage geben?',
+        },
+        { stepResults: {} }
+      )
+    );
+
+    expect(vdmiParams.taskId).toBe('network-operator-decision');
+  });
+
   it('keeps broker-selected VDMI asset-validation governance intent in execution plan', () => {
     const plan = buildExecutionPlan({
       message: 'Bitte Task asset-1 validieren',

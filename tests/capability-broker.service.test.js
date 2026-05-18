@@ -149,6 +149,18 @@ describe('Capability Broker Service', () => {
     expect(result.recommendedPlan[0].action).toBe('grid-connection.fnavValidate');
   });
 
+  it('routes financier due-diligence prompts to finance-agent.analyze instead of interface placeholder', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Erstelle ein vorläufiges Risk Assessment für den Kreditausschuss (Due Diligence, Condition Precedent).',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('financier_due_diligence_assessment');
+    expect(result.intent).toBe('financier_due_diligence_assessment');
+    expect(result.recommendedPlan[0].action).toBe('finance-agent.analyze');
+    expect(result.recommendedPlan[0].params.query).toMatch(/Risk Assessment|Kreditausschuss|Due Diligence/i);
+    expect(result.recommendedCapabilities[0].capability).not.toBe('interface_placeholder');
+  });
+
   it('routes role-boundary governance prompts to VDMI governance capability (not pure VNB identity)', async () => {
     const result = await broker.call('capability-broker.recommend', {
       task: 'Schritt 1: Rollen und Schnittstellen klären – Projektträger ist nicht Netzbetreiber und die Gatekeeper-Rolle liegt beim DSO (§17 EnWG, Arealnetzbetreiber).',
@@ -173,6 +185,23 @@ describe('Capability Broker Service', () => {
       expect.arrayContaining(['vdmi.dossier', 'vdmi.negotiationTrace', 'vdmi.agentRole'])
     );
     expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+  });
+
+  it('hydrates vdmi decision defaults (taskId/processType) from prompt when knownContext is missing', async () => {
+    const result = await broker.call('capability-broker.recommend', {
+      task: 'Kann der Netzbetreiber ohne formales §17 EnWG Netzanschlussbegehren eine belastbare Anschlusszusage geben?',
+    });
+
+    expect(result.recommendedCapabilities[0].capability).toBe('vdmi_grid_connection_decision_governance');
+
+    const dossierStep = result.recommendedPlan.find((step) => step.action === 'vdmi.dossier');
+    const traceStep = result.recommendedPlan.find((step) => step.action === 'vdmi.negotiationTrace');
+    const roleStep = result.recommendedPlan.find((step) => step.action === 'vdmi.agentRole');
+
+    expect(dossierStep.params.taskId).toBe('network-operator-decision');
+    expect(traceStep.params.taskId).toBe('network-operator-decision');
+    expect(roleStep.params.taskId).toBe('network-operator-decision');
+    expect(roleStep.params.processType).toBe('grid-connection-governance');
   });
 
   it('routes asset-evidence governance prompts to VDMI asset-validation capability before generic role-boundary', async () => {

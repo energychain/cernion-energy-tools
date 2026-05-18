@@ -236,6 +236,7 @@ const ACTION_REQUIREMENTS = Object.freeze({
   'settlement.calculateRedispatch': { allOf: ['installations', 'period'] },
   'grid-connection.fnavValidate': { allOf: ['fnavProfile'] },
   'finance-agent.fnavEconomics': { allOf: ['fnavProfile'] },
+  'finance-agent.analyze': { allOf: ['query'] },
   'grid-operations.vnbLookup': { anyOf: ['bdew', 'city', 'vnbName', 'query'] },
   'forecast.generationForecast': {
     anyOf: ['gridOperatorMastrId', 'installationMastrNummer', 'messlokationId', 'postleitzahl'],
@@ -318,6 +319,11 @@ const ACTION_PARAM_ALIASES = Object.freeze({
     avoidedCapexOverrideEur: ['avoidedCapexOverrideEur'],
     fnavProfile: ['fnavProfile'],
   },
+  'finance-agent.analyze': {
+    query: ['query', 'dueDiligenceQuestion', 'lastUserMessage'],
+    profileId: ['profileId'],
+    mode: ['mode'],
+  },
   'forecast.generationForecast': {
     installationType: ['installationType'],
     forecastDays: ['forecastDays'],
@@ -377,6 +383,16 @@ function findBestCapability(message) {
     'kupferausbau',
     'firm capacity',
     'flexible capacity',
+  ];
+  const financierDueDiligenceSignals = [
+    'due diligence',
+    'risk assessment',
+    'kreditausschuss',
+    'credit committee',
+    'bankability',
+    'condition precedent',
+    'financier',
+    'finanzierer',
   ];
   const vdmiGovernanceSignals = [
     'arealnetzbetreiber',
@@ -450,6 +466,21 @@ function findBestCapability(message) {
       return {
         capability: vdmiDecisionCapability,
         score: 130,
+        usedFallback: false,
+      };
+    }
+  }
+
+  const hasFinancierDueDiligenceCombo =
+    /(due\s*diligence|risk\s*assessment|kreditausschuss|credit\s*committee|bankability)/i.test(haystack)
+    && /(finanz|financier|kredit|committee|condition\s*precedent|risiko)/i.test(haystack);
+
+  if (financierDueDiligenceSignals.some((signal) => haystack.includes(signal)) || hasFinancierDueDiligenceCombo) {
+    const financierDueDiligenceCapability = findCapabilityByName('financier_due_diligence_assessment');
+    if (financierDueDiligenceCapability) {
+      return {
+        capability: financierDueDiligenceCapability,
+        score: 125,
         usedFallback: false,
       };
     }
@@ -901,6 +932,13 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
     if (hydrated.taskId == null && knownContext?.taskId) {
       hydrated.taskId = knownContext.taskId;
     }
+    const lastPromptText = String(knownContext?.lastUserMessage || promptHints?.query || '');
+    const isVdmiDecisionPrompt =
+      /(anschlusszusage|kapazitaetszusage|kapazitätszusage|uebergabepunkt|übergabepunkt|netzbetreiberentscheidung|belastbare\s+zusage)/i.test(lastPromptText)
+      && /(formales\s+netzanschlussbegehren|§17\s*enwg|17\s*enwg|enwg)/i.test(lastPromptText);
+    if (hydrated.taskId == null && isVdmiDecisionPrompt) {
+      hydrated.taskId = 'network-operator-decision';
+    }
   }
 
   if (action === 'vdmi.agentRole') {
@@ -912,6 +950,27 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
     }
     if (hydrated.processType == null && knownContext?.processType) {
       hydrated.processType = knownContext.processType;
+    }
+    const lastPromptText = String(knownContext?.lastUserMessage || promptHints?.query || '');
+    const isVdmiDecisionPrompt =
+      /(anschlusszusage|kapazitaetszusage|kapazitätszusage|uebergabepunkt|übergabepunkt|netzbetreiberentscheidung|belastbare\s+zusage)/i.test(lastPromptText)
+      && /(formales\s+netzanschlussbegehren|§17\s*enwg|17\s*enwg|enwg)/i.test(lastPromptText);
+    if (hydrated.taskId == null && isVdmiDecisionPrompt) {
+      hydrated.taskId = 'network-operator-decision';
+    }
+    if (hydrated.processType == null && isVdmiDecisionPrompt) {
+      hydrated.processType = 'grid-connection-governance';
+    }
+  }
+
+  if (action === 'finance-agent.analyze') {
+    if (hydrated.query == null || hydrated.query === '') {
+      hydrated.query =
+        knownContext?.query
+        || knownContext?.dueDiligenceQuestion
+        || knownContext?.lastUserMessage
+        || promptHints?.query
+        || undefined;
     }
   }
 
