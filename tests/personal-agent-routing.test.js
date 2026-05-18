@@ -2,6 +2,7 @@
 
 const {
   buildExecutionPlan,
+  applyMissingContextFallback,
   fillTemplateWithContext,
   pruneUndefinedDeep,
   getMissingInputs,
@@ -301,5 +302,29 @@ describe('personal-agent-routing', () => {
     expect(plan.primaryIntent).toBe('vdmi_grid_connection_decision_governance');
     expect(plan.steps[2].action).toBe('vdmi.agentRole');
     expect(plan.steps[2].paramsTemplate.taskId).toBe('network-operator-decision');
+  });
+
+  it('injects a MISSING_CONTEXT routing control step in AUTO mode when required inputs are missing', () => {
+    const plan = buildExecutionPlan({
+      message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+      brokerRecommendation: null,
+    });
+
+    const routed = applyMissingContextFallback(plan, {
+      executionMode: 'auto',
+      knownContext: {
+        gridOperatorName: 'TWL Netze',
+        voltageLevel: 'MS',
+      },
+    });
+
+    const missingStep = routed.steps.find((step) => step.action === 'MISSING_CONTEXT');
+    expect(missingStep).toBeTruthy();
+    expect(missingStep.blockedAction).toBe('grid-connection.fnavValidate');
+    expect(missingStep.missingParams).toEqual(['fnavProfile']);
+    expect(routed.missingContext).toMatchObject({
+      blockedAction: 'grid-connection.fnavValidate',
+      missingParams: ['fnavProfile'],
+    });
   });
 });

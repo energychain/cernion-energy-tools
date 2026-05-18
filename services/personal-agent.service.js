@@ -11,9 +11,11 @@ const {
 } = require('../src/personal-agent-context');
 const {
   EXECUTION_MODES,
+  ROUTING_CONTROL_ACTIONS,
   normalizeExecutionMode,
   detectRequestedDomains,
   buildExecutionPlan,
+  applyMissingContextFallback,
   fillTemplateWithContext,
   pruneUndefinedDeep,
   getMissingInputs,
@@ -600,14 +602,22 @@ module.exports = {
           brokerRecommendation,
           knowledgeContext,
         });
+        const preflightKnownContext = this.hydrateKnownContextFromSession(
+          { ...knownContext },
+          session
+        );
+        const routedPlan = applyMissingContextFallback(plan, {
+          knownContext: preflightKnownContext,
+          executionMode,
+        });
         const execution = await this.handleExecutionWithOnboarding(ctx, {
           message: ctx.params.message,
-          plan,
-          knownContext,
+          plan: routedPlan,
+          knownContext: preflightKnownContext,
           session,
           executionMode,
         });
-        const responsePlan = execution?.plan || plan;
+        const responsePlan = execution?.plan || routedPlan;
 
         const stackResult = buildContextStack({
           systemPrompt: this.settings.systemPrompt,
@@ -637,7 +647,44 @@ module.exports = {
         let presentationApplied = false;
         let presentationType = null;
 
-        if (
+        if (execution?.status === 'awaiting-onboarding') {
+          const onboardingQuestion = execution?.stopPoint?.onboardingQuestion;
+          const questionText = onboardingQuestion?.questionText || execution?.stopPoint?.message;
+          const missingParams = Array.isArray(execution?.stopPoint?.missingParams)
+            ? execution.stopPoint.missingParams
+            : [];
+
+          if (questionText) {
+            presentationApplied = true;
+            presentationType = 'conversational_onboarding';
+            presentationResult = {
+              type: 'conversational_onboarding',
+              markdown: questionText,
+              warnings: missingParams.map((param) => `missing_context:${param}`),
+              presentation: {
+                type: 'conversational_onboarding',
+                title: 'Fehlende Eingaben',
+                summary: 'Bitte ergänzen Sie die fehlenden Angaben, damit die Ausführung fortgesetzt werden kann.',
+                markdown: questionText,
+                warnings: missingParams.map((param) => `missing_context:${param}`),
+                sections: [
+                  {
+                    key: 'onboarding',
+                    title: 'Benötigte Angaben',
+                    body: questionText,
+                  },
+                ],
+                structuredData: {
+                  reasonCode: execution?.stopPoint?.reasonCode || 'MISSING_INPUTS',
+                  blockedAction: execution?.stopPoint?.blockedAction || null,
+                  blockedStep: execution?.stopPoint?.blockedStep || null,
+                  missingParams,
+                  onboardingQuestion: onboardingQuestion || null,
+                },
+              },
+            };
+          }
+        } else if (
           execution?.status === 'completed' &&
           this.hasStructuredExecutionResult(execution)
         ) {
@@ -1931,6 +1978,44 @@ module.exports = {
       const target = knownContext;
       const profileFacts = session?.l2?.userProfile?.onboardingFacts || {};
 
+      const normalizeOnboardingValue = (paramKey, rawValue) => {
+        if (rawValue === undefined || rawValue === null) {
+          return rawValue;
+        }
+
+        const text = String(rawValue).trim();
+        if (!text) {
+          return text;
+        }
+
+        if (paramKey === 'gridOperatorName' || paramKey === 'vnbName' || paramKey === 'query') {
+          const fromPhrase = text.match(
+            /(?:^|\b)(?:bei|f(?:ü|u)r|netzbetreiber(?:\s+ist)?|vnb(?:\s+ist)?)\s+(.+)$/i
+          );
+          const candidate = (fromPhrase?.[1] || text)
+            .replace(/^(?:den|dem|die|das)\s+/i, '')
+            .trim();
+          return candidate || text;
+        }
+
+        if (paramKey === 'location' || paramKey === 'city') {
+          const fromPhrase = text.match(/(?:^|\b)(?:in|bei|standort)\s+(.+)$/i);
+          return (fromPhrase?.[1] || text).trim();
+        }
+
+        if (paramKey === 'postalCode' || paramKey === 'postleitzahl') {
+          const plzMatch = text.match(/\b\d{5}\b/);
+          return plzMatch ? plzMatch[0] : text;
+        }
+
+        if (paramKey === 'gridOperatorBdew' || paramKey === 'bdew') {
+          const bdewMatch = text.match(/\b[0-9]{13}\b/) || text.match(/\b[A-Z0-9]{6,20}\b/i);
+          return bdewMatch ? String(bdewMatch[0]).toUpperCase() : text;
+        }
+
+        return text;
+      };
+
       const parseFnavProfileAnswer = (rawValue) => {
         if (!rawValue) return null;
         if (typeof rawValue === 'object') return rawValue;
@@ -1960,7 +2045,7 @@ module.exports = {
         if (Object.prototype.hasOwnProperty.call(target, key)) {
           continue;
         }
-        const resolvedValue = value?.value;
+        const resolvedValue = normalizeOnboardingValue(key, value?.value);
         if (resolvedValue !== undefined && resolvedValue !== null) {
           target[key] = resolvedValue;
         }
@@ -1975,7 +2060,7 @@ module.exports = {
           target[fact.paramKey] = parseFnavProfileAnswer(fact.value) || fact.value;
           continue;
         }
-        target[fact.paramKey] = fact.value;
+        target[fact.paramKey] = normalizeOnboardingValue(fact.paramKey, fact.value);
       }
 
       return target;
@@ -1984,6 +2069,9 @@ module.exports = {
     findFirstMissingStep(plan = {}, knownContext = {}) {
       const executionState = { stepResults: {} };
       for (const plannedStep of plan.steps || []) {
+        if (plannedStep?.action === ROUTING_CONTROL_ACTIONS.MISSING_CONTEXT) {
+          continue;
+        }
         const params = pruneUndefinedDeep(
           fillTemplateWithContext(
             plannedStep.paramsTemplate,
@@ -2458,6 +2546,10 @@ module.exports = {
       let assumptions = [...(existingAssumptions || [])];
 
       for (const plannedStep of plan.steps) {
+        if (plannedStep?.action === ROUTING_CONTROL_ACTIONS.MISSING_CONTEXT) {
+          continue;
+        }
+
         let params = pruneUndefinedDeep(
           fillTemplateWithContext(
             plannedStep.paramsTemplate,

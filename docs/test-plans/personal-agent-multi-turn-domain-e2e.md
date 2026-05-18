@@ -162,3 +162,41 @@ turns:
       l3Compression: true
       l4Purge: true
 ```
+
+## Szenario 4
+```yaml
+scenarioId: "PA-MT-004"
+title: "Conversational Onboarding Flow"
+persona: "PS-MT-ONB"
+tenant: "agentic-hackathon"
+priority: 1
+turns:
+  - turn: 1
+    userMessage: "Bitte Mieterstrom mit ZNP für Rheinallee prüfen"
+    requestContext:
+      knownContext:
+        communityName: "Solargemeinschaft Rheinallee"
+    expected:
+      capability: "energy-sharing-znp"
+      operationId: "personal-agent.chat"
+      responseConstraints:
+        - "execution.status = awaiting-onboarding"
+        - "presentationApplied = true"
+        - "presentationType = conversational_onboarding"
+        - "Antwort fragt deterministisch nach fehlender Projekt-ID"
+      contextMutation: "add"
+  - turn: 2
+    userMessage: "Projekt-ID znp-rheinallee-01"
+    requestContext:
+      knownContext:
+        communityName: "Solargemeinschaft Rheinallee"
+    expected:
+      capability: "energy-sharing-znp"
+      operationId: "personal-agent.chat"
+      responseConstraints:
+        - "onboarding answer is consumed"
+        - "no internal error tokens in reply"
+      contextMutation: "add"
+    zwiebelCheck:
+      l4Purge: true
+```

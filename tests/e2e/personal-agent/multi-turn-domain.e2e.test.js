@@ -496,7 +496,68 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
     });
   });
 
-  describe('PA-MT-004 CETRed Working Assumptions / T2-T5', () => {
+  describe('PA-MT-004 Conversational Onboarding Flow', () => {
+    jest.setTimeout(30000);
+
+    const client = createChatClient(BASE_URL);
+    let sessionId = null;
+
+    afterAll(() => {
+      sessionId = null;
+      client.clear();
+    });
+
+    it('Turn 1: asks deterministic onboarding question instead of failing execution', async () => {
+      const { response, payload } = await client.chat(
+        'Bitte Mieterstrom mit ZNP für Rheinallee prüfen',
+        sessionId,
+        {
+          knownContext: {
+            communityName: 'Solargemeinschaft Rheinallee',
+          },
+        }
+      );
+
+      expectHttp200(response);
+      expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      sessionId = payload.sessionId || sessionId;
+
+      expect(payload.execution?.status).toBe('awaiting-onboarding');
+      expect(payload.presentationApplied).toBe(true);
+      expect(payload.presentationType).toBe('conversational_onboarding');
+
+      const reply = extractReply(payload);
+      expect(reply).toMatch(/Projekt-ID|fehlende Angaben|fortsetzen/i);
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
+    });
+
+    it('Turn 2: captures onboarding answer and continues without technical error leakage', async () => {
+      const { response, payload } = await client.chat(
+        'Projekt-ID znp-rheinallee-01',
+        sessionId,
+        {
+          knownContext: {
+            communityName: 'Solargemeinschaft Rheinallee',
+          },
+        }
+      );
+
+      expectHttp200(response);
+      expect(payload && typeof payload).toBe('object');
+      expectAutoExecution(payload);
+      sessionId = payload.sessionId || sessionId;
+
+      expect(payload.execution?.status).not.toBe('skipped');
+      const reply = extractReply(payload);
+      expect(reply.length).toBeGreaterThan(10);
+      expectNoInternalErrorCodes(reply);
+      expectNoReplyLeaks(reply);
+    });
+  });
+
+  describe('PA-MT-006 CETRed Working Assumptions / T2-T5', () => {
     jest.setTimeout(30000);
 
     const client = createChatClient(BASE_URL);

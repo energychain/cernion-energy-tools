@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- No pending entries.
+### Changed
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): added deterministic AUTO preflight fallback `applyMissingContextFallback(...)` with control action `MISSING_CONTEXT` so plans with unresolved required inputs transition into explicit missing-context handling before domain execution.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `chat` now applies routing preflight missing-context fallback before execution and treats onboarding stop states as first-class presentation output.
+- [services/personal-agent.service.js](services/personal-agent.service.js): awaiting-onboarding responses now expose deterministic presentation metadata (`presentationApplied=true`, `presentationType="conversational_onboarding"`) including `presentation.structuredData` (`blockedAction`, `blockedStep`, `missingParams`, `onboardingQuestion`) for UI hint rendering.
+- [services/personal-agent.service.js](services/personal-agent.service.js): onboarding answer hydration now normalizes common free-text user answers (e.g. Netzbetreiber-/Standort-/PLZ-/BDEW-formulations) into reusable `knownContext` values while preserving L0–L4 separation.
+- [tests/e2e/personal-agent/multi-turn-domain.e2e.test.js](tests/e2e/personal-agent/multi-turn-domain.e2e.test.js), [docs/test-plans/personal-agent-multi-turn-domain-e2e.md](docs/test-plans/personal-agent-multi-turn-domain-e2e.md): added blackbox scenario `PA-MT-004` for conversational onboarding flow (`POST /api/personal-agent/chat`) and moved CETRed working-assumption block to `PA-MT-006` to keep scenario IDs unique.
+
+### Tests
+- [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): added regression for `MISSING_CONTEXT` step injection in AUTO mode when required params are missing.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added/extended regressions for conversational onboarding presentation metadata and normalized onboarding fact hydration.
+- Focused run passed: `npm test -- --runInBand tests/personal-agent-routing.test.js tests/personal-agent.service.test.js` (`2` suites, `60` tests).
 
 ## [0.52.14] — #CETview Prompt 7: Fixture-Backed Human-View Validation (2026-05-18)
 

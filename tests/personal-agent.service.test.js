@@ -553,6 +553,16 @@ describe('personal-agent.service', () => {
       blockedAction: 'znp.getProjectMeta',
       status: 'awaiting-onboarding',
     });
+    expect(result.presentationApplied).toBe(true);
+    expect(result.presentationType).toBe('conversational_onboarding');
+    expect(result.presentation).toMatchObject({
+      type: 'conversational_onboarding',
+      markdown: expect.stringContaining('Projekt-ID'),
+      structuredData: expect.objectContaining({
+        blockedAction: 'znp.getProjectMeta',
+        missingParams: ['projectId'],
+      }),
+    });
     expect(result.reply).toContain('Projekt-ID');
     expect(result.reply).not.toMatch(/ACTION_FAILED|MISSING_INPUTS|VALIDATION_ERROR|__step_/i);
     expect(result.reply).not.toMatch(/sicher angehalten/i);
@@ -607,6 +617,30 @@ describe('personal-agent.service', () => {
     );
     expect(session.l3.onboardingQuestions[0].answeredAt).toBeTruthy();
     expect(session.l3.onboardingQuestions[0].answer).toBe('Hybridprofil 5 MW, flexibel 2 MW');
+  });
+
+  it('hydrates normalized onboarding facts into knownContext for follow-up turns', () => {
+    const svc = broker.getLocalService('personal-agent');
+
+    const hydrated = svc.schema.methods.hydrateKnownContextFromSession.call(
+      svc,
+      {},
+      {
+        l3: {
+          onboardingQuestions: [
+            {
+              questionId: 'oq_grid_operator',
+              paramKey: 'gridOperatorName',
+              answer: 'Ich bin bei den Pfalzwerken',
+              status: 'answered',
+              answeredAt: new Date().toISOString(),
+            },
+          ],
+        },
+      }
+    );
+
+    expect(hydrated.gridOperatorName).toBe('Pfalzwerken');
   });
 
   it('preserves working assumptions across turns and does not repeat the T1 onboarding question on a persisted follow-up', async () => {

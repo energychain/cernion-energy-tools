@@ -11,6 +11,10 @@ const EXECUTION_MODES = Object.freeze({
   HITL: 'hitl',
 });
 
+const ROUTING_CONTROL_ACTIONS = Object.freeze({
+  MISSING_CONTEXT: 'MISSING_CONTEXT',
+});
+
 const DOMAIN_SIGNAL_DEFINITIONS = Object.freeze([
   {
     key: 'investment-planning',
@@ -1038,12 +1042,75 @@ function buildExecutionPlan({ message, brokerRecommendation, knowledgeContext = 
   };
 }
 
+function applyMissingContextFallback(plan = {}, { knownContext = {}, executionMode } = {}) {
+  if (executionMode !== EXECUTION_MODES.AUTO) {
+    return plan;
+  }
+
+  if (!plan || !Array.isArray(plan.steps) || plan.steps.length === 0) {
+    return plan;
+  }
+
+  const hasMissingContextStep = plan.steps.some(
+    (step) => step?.action === ROUTING_CONTROL_ACTIONS.MISSING_CONTEXT
+  );
+  if (hasMissingContextStep) {
+    return plan;
+  }
+
+  const executionState = { stepResults: {} };
+
+  for (const plannedStep of plan.steps) {
+    const params = pruneUndefinedDeep(
+      fillTemplateWithContext(
+        plannedStep.paramsTemplate,
+        plannedStep.action,
+        knownContext,
+        plan.promptHints,
+        executionState
+      )
+    );
+
+    const missingParams = getMissingInputs(plannedStep.action, params);
+    if (missingParams.length === 0) {
+      continue;
+    }
+
+    return {
+      ...plan,
+      status: plan.status === 'partial' ? 'partial' : 'missing-context',
+      missingContext: {
+        blockedStep: plannedStep.step,
+        blockedAction: plannedStep.action,
+        missingParams,
+      },
+      steps: [
+        ...plan.steps,
+        {
+          step: (plan.steps.length || 0) + 1,
+          action: ROUTING_CONTROL_ACTIONS.MISSING_CONTEXT,
+          purpose: `Collect missing context for ${plannedStep.action}`,
+          source: 'routing-missing-context',
+          blockedStep: plannedStep.step,
+          blockedAction: plannedStep.action,
+          missingParams,
+          status: 'pending-input',
+        },
+      ],
+    };
+  }
+
+  return plan;
+}
+
 module.exports = {
   EXECUTION_MODES,
+  ROUTING_CONTROL_ACTIONS,
   ROUTING_MATRIX,
   normalizeExecutionMode,
   detectRequestedDomains,
   buildExecutionPlan,
+  applyMissingContextFallback,
   fillTemplateWithContext,
   pruneUndefinedDeep,
   getMissingInputs,
