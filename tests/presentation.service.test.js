@@ -411,10 +411,120 @@ describe('presentation.service', () => {
 
     expect(result.success).toBe(true);
     expect(result.presentation.type).toBe('vdmi_matrix_table');
-    expect(result.markdown).toMatch(/Status \/ Blocker/);
-    expect(result.markdown).toMatch(/Evidenzlücken \/ Evidence Requirements/);
+    expect(result.markdown).toMatch(/VDMI-Prozess mit 1 Schritten\. Status: blocked\./);
+    expect(result.markdown).toMatch(/### Evidenzlücken/);
     expect(result.markdown).toMatch(/Verbotene Annahmen/);
     expect(result.markdown).toMatch(/Nächste Schritte/);
+  });
+
+  test('VDMI deduplicates identical evidence gaps from task and process level', async () => {
+    const duplicateGap = { id: 'formal-request', label: 'Vollständiger §17-Antrag', reason: 'Fehlt' };
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        matrix: {
+          tasks: [
+            {
+              taskName: 'Formelle Netzbetreiberentscheidung',
+              verantwortlich: ['DSO_GATEKEEPER'],
+              durchfuehrend: ['TECHNICAL_PLANNER'],
+              mitwirkend: ['APPLICANT'],
+              information: ['REGULATOR'],
+              evidenceGaps: [duplicateGap],
+            },
+          ],
+        },
+        evidenceGaps: [duplicateGap],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.presentation.type).toBe('vdmi_matrix_table');
+    const matches = result.markdown.match(/Vollständiger §17-Antrag/g) || [];
+    expect(matches).toHaveLength(1);
+  });
+
+  test('VDMI deduplicates identical forbidden assumptions across process and task', async () => {
+    const assumption = 'Keine belastbare Anschlusszusage ohne formalen Antrag';
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        matrix: {
+          tasks: [
+            {
+              taskName: 'Formelle Netzbetreiberentscheidung',
+              verantwortlich: ['DSO_GATEKEEPER'],
+              durchfuehrend: ['TECHNICAL_PLANNER'],
+              mitwirkend: ['APPLICANT'],
+              information: ['REGULATOR'],
+              forbiddenAssumptions: [assumption],
+            },
+          ],
+        },
+        forbiddenAssumptions: [assumption],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    const matches = result.markdown.match(/Keine belastbare Anschlusszusage ohne formalen Antrag/g) || [];
+    expect(matches).toHaveLength(1);
+  });
+
+  test('VDMI deduplicates next actions across string/object while keeping readable label', async () => {
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        matrix: {
+          tasks: [
+            {
+              taskName: 'Formelle Netzbetreiberentscheidung',
+              verantwortlich: ['DSO_GATEKEEPER'],
+              durchfuehrend: ['TECHNICAL_PLANNER'],
+              mitwirkend: ['APPLICANT'],
+              information: ['REGULATOR'],
+              nextActions: [{ id: 'a1', label: 'Formalen Antrag einreichen' }],
+            },
+          ],
+        },
+        nextActions: ['Formalen Antrag einreichen'],
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.markdown).not.toMatch(/\[object Object\]/);
+    const matches = result.markdown.match(/Formalen Antrag einreichen/g) || [];
+    expect(matches).toHaveLength(1);
+  });
+
+  test('VDMI keeps distinct task evidence entries in mixed scope setup', async () => {
+    const result = await broker.call('presentation.render', {
+      domainResult: {
+        matrix: {
+          tasks: [
+            {
+              taskName: 'Task A',
+              verantwortlich: ['V-A'],
+              durchfuehrend: ['D-A'],
+              mitwirkend: ['M-A'],
+              information: ['I-A'],
+              evidenceGaps: [{ id: 'gap-A', label: 'Technische Anschlussdaten', reason: 'Fehlt' }],
+            },
+            {
+              taskName: 'Task B',
+              verantwortlich: ['V-B'],
+              durchfuehrend: ['D-B'],
+              mitwirkend: ['M-B'],
+              information: ['I-B'],
+              evidenceGaps: [{ id: 'gap-B', label: 'Kapazitätsprüfung', reason: 'Ausstehend' }],
+            },
+          ],
+        },
+      },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.markdown).toMatch(/Technische Anschlussdaten/);
+    expect(result.markdown).toMatch(/Kapazitätsprüfung/);
+    const evidenceTable = result.presentation.tables.find((t) => t.id === 'vdmi_evidence');
+    expect(evidenceTable).toBeTruthy();
+    expect(evidenceTable.rows.length).toBeGreaterThanOrEqual(2);
   });
 
   test('VDMI fixture without tasks yields missing_vdmi_tasks and no invented role rows', async () => {

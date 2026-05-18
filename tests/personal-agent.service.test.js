@@ -1724,9 +1724,16 @@ describe('personal-agent.service', () => {
 
     expect(result.presentationApplied).toBe(true);
     expect(result.presentationType).toBe('vdmi_matrix_table');
+    expect(result.presentation).toBeTruthy();
+    expect(result.presentation.markdown).toBe(result.reply);
     expect(result.reply).toContain('| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |');
     expect(result.reply).toContain('Network Operator Decision');
     expect(result.reply).toContain('DSO_GATEKEEPER');
+    const duplicateEvidence = result.reply.match(/Vollständiger §17-Antrag/g) || [];
+    expect(duplicateEvidence).toHaveLength(1);
+    const duplicateAssumption = result.reply.match(/Keine belastbare Anschlusszusage ohne formalen Antrag/g) || [];
+    expect(duplicateAssumption).toHaveLength(1);
+    expect(result.reply).not.toMatch(/\[object Object\]/);
     expect(result.reply).not.toContain('Plan abgeschlossen:');
 
     const roleCall = executedCallDetails.find((entry) => entry.action === 'vdmi.agentRole');

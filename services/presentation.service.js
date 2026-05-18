@@ -377,6 +377,43 @@ function toSafeActionLabel(action) {
   return 'Unbenannte Aktion';
 }
 
+function normalizeCompareText(value) {
+  return String(value === null || value === undefined ? '' : value)
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function stableStringify(value) {
+  if (value === null || value === undefined) return '';
+  if (typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(',')}]`;
+  }
+  const keys = Object.keys(value).sort();
+  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+}
+
+function signatureFromObject(obj, preferredKeys = []) {
+  const first = firstDefined(obj || {}, preferredKeys);
+  if (first !== undefined && first !== null && String(first).trim() !== '') {
+    return normalizeCompareText(first);
+  }
+  return normalizeCompareText(stableStringify(obj));
+}
+
+function dedupeBySignature(entries, keyFn) {
+  const seen = new Set();
+  const out = [];
+  for (const entry of entries) {
+    const key = keyFn(entry);
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(entry);
+  }
+  return out;
+}
+
 /**
  * Deterministic VDMI matrix renderer.
  */
@@ -387,9 +424,7 @@ function renderVdmiMatrix(domainResult) {
     ? matrix.tasks
     : (Array.isArray(dr.tasks) ? dr.tasks : []);
   const warnings = [];
-  const title = firstDefined(matrix || {}, ['name'])
-    || firstDefined(dr, ['name'])
-    || 'VDMI-Prozessübersicht';
+  const title = 'VDMI-Prozessübersicht';
 
   if (tasks.length === 0) {
     warnings.push('missing_vdmi_tasks');
@@ -440,95 +475,104 @@ function renderVdmiMatrix(domainResult) {
     rows: roleRows,
   }];
 
-  const statusRows = [];
   const topExpectedStatus = firstDefined(dr, ['expectedStatus']);
   const topStatus = firstDefined(dr, ['status']);
   const matrixStatus = firstDefined(matrix || {}, ['status']);
-  if (topExpectedStatus !== undefined) statusRows.push(['Domain', 'expectedStatus', String(topExpectedStatus)]);
-  if (topStatus !== undefined) statusRows.push(['Domain', 'status', String(topStatus)]);
-  if (matrixStatus !== undefined) statusRows.push(['Matrix', 'status', String(matrixStatus)]);
-  for (const task of tasks) {
-    if (task && task.expectedStatus !== undefined) {
-      statusRows.push([getStepDescription(task, warnings), 'expectedStatus', String(task.expectedStatus)]);
+  const summaryStatus = firstDefined(
+    {
+      matrixStatus,
+      topExpectedStatus,
+      topStatus,
+    },
+    ['matrixStatus', 'topExpectedStatus', 'topStatus']
+  );
+
+  const evidenceEntries = [];
+  const pushEvidence = (scope, item) => {
+    if (item === null || item === undefined) return;
+    if (item && typeof item === 'object') {
+      const label = firstDefined(item, ['label', 'name', 'description', 'text', 'code', 'id']) || '—';
+      const reason = firstDefined(item, ['reason', 'detail', 'message', 'description', 'text']) || '—';
+      const entitySig = signatureFromObject(item, ['label', 'name', 'description', 'text', 'code', 'id']);
+      const reasonSig = normalizeCompareText(reason);
+      evidenceEntries.push({
+        scope,
+        label: String(label),
+        reason: String(reason),
+        signature: `${entitySig}::${reasonSig}`,
+      });
+      return;
     }
-  }
-  if (statusRows.length > 0) {
-    const statusHeaders = ['Schritt/Quelle', 'Feld', 'Wert'];
-    const statusTable = { id: 'vdmi_status', headers: statusHeaders, rows: statusRows };
-    tables.push(statusTable);
-    sections.push({
-      id: 'status_blocker',
-      title: 'Status / Blocker',
-      content: markdownTable(statusHeaders, statusRows),
+    const text = String(item);
+    evidenceEntries.push({
+      scope,
+      label: text,
+      reason: '—',
+      signature: `${normalizeCompareText(text)}::`,
     });
+  };
+
+  for (const task of tasks) {
+    const scope = getStepDescription(task, warnings);
+    const taskRequirements = isNonEmptyArray(task?.evidenceRequirements) ? task.evidenceRequirements : [];
+    const taskGaps = isNonEmptyArray(task?.evidenceGaps) ? task.evidenceGaps : [];
+    for (const req of taskRequirements) pushEvidence(scope, req);
+    for (const gap of taskGaps) pushEvidence(scope, gap);
+  }
+  if (isNonEmptyArray(dr.evidenceRequirements)) {
+    for (const req of dr.evidenceRequirements) pushEvidence('Prozess', req);
+  }
+  if (isNonEmptyArray(dr.evidenceGaps)) {
+    for (const gap of dr.evidenceGaps) pushEvidence('Prozess', gap);
   }
 
-  const evidenceRows = [];
-  if (isNonEmptyArray(dr.evidenceGaps)) {
-    for (const gap of dr.evidenceGaps) {
-      if (gap && typeof gap === 'object') {
-        evidenceRows.push([
-          'Domain',
-          firstDefined(gap, ['name', 'label', 'code', 'id']) || '—',
-          firstDefined(gap, ['reason', 'detail', 'message']) || '—',
-        ]);
-      } else {
-        evidenceRows.push(['Domain', String(gap), '—']);
-      }
-    }
-  }
-  for (const task of tasks) {
-    const step = getStepDescription(task, warnings);
-    const taskRequirements = isNonEmptyArray(task?.evidenceRequirements) ? task.evidenceRequirements : [];
-    for (const req of taskRequirements) {
-      if (req && typeof req === 'object') {
-        evidenceRows.push([
-          step,
-          firstDefined(req, ['name', 'label', 'code', 'id']) || '—',
-          firstDefined(req, ['reason', 'detail', 'message']) || '—',
-        ]);
-      } else {
-        evidenceRows.push([step, String(req), '—']);
-      }
-    }
-    const taskGaps = isNonEmptyArray(task?.evidenceGaps) ? task.evidenceGaps : [];
-    for (const gap of taskGaps) {
-      if (gap && typeof gap === 'object') {
-        evidenceRows.push([
-          step,
-          firstDefined(gap, ['name', 'label', 'code', 'id']) || '—',
-          firstDefined(gap, ['reason', 'detail', 'message']) || '—',
-        ]);
-      } else {
-        evidenceRows.push([step, String(gap), '—']);
-      }
-    }
-  }
-  if (evidenceRows.length > 0) {
-    const evidenceHeaders = ['Schritt', 'Evidenz / Lücke', 'Grund'];
+  const dedupedEvidence = dedupeBySignature(evidenceEntries, (entry) => entry.signature);
+  if (dedupedEvidence.length > 0) {
+    const hasMixedScopes = new Set(dedupedEvidence.map((entry) => entry.scope)).size > 1;
+    const evidenceHeaders = hasMixedScopes
+      ? ['Bezug', 'Evidenz / Lücke', 'Grund']
+      : ['Evidenz / Lücke', 'Grund'];
+    const evidenceRows = dedupedEvidence.map((entry) => (
+      hasMixedScopes
+        ? [entry.scope, entry.label, entry.reason]
+        : [entry.label, entry.reason]
+    ));
     tables.push({ id: 'vdmi_evidence', headers: evidenceHeaders, rows: evidenceRows });
     sections.push({
       id: 'evidence_gaps',
-      title: 'Evidenzlücken / Evidence Requirements',
+      title: 'Evidenzlücken',
       content: markdownTable(evidenceHeaders, evidenceRows),
     });
   }
 
-  const assumptionRows = [];
-  if (isNonEmptyArray(dr.forbiddenAssumptions)) {
-    for (const assumption of dr.forbiddenAssumptions) {
-      assumptionRows.push(['Domain', String(assumption)]);
-    }
-  }
+  const assumptionEntries = [];
+  const pushAssumption = (scope, assumption) => {
+    if (assumption === null || assumption === undefined) return;
+    const text = String(assumption).trim();
+    if (!text) return;
+    assumptionEntries.push({
+      scope,
+      text,
+      signature: normalizeCompareText(text),
+    });
+  };
   for (const task of tasks) {
+    const scope = getStepDescription(task, warnings);
     const assumptions = isNonEmptyArray(task?.forbiddenAssumptions) ? task.forbiddenAssumptions : [];
-    const step = getStepDescription(task, warnings);
-    for (const assumption of assumptions) {
-      assumptionRows.push([step, String(assumption)]);
-    }
+    for (const assumption of assumptions) pushAssumption(scope, assumption);
   }
-  if (assumptionRows.length > 0) {
-    const assumptionHeaders = ['Schritt', 'Verbotene Annahme'];
+  if (isNonEmptyArray(dr.forbiddenAssumptions)) {
+    for (const assumption of dr.forbiddenAssumptions) pushAssumption('Prozess', assumption);
+  }
+  const dedupedAssumptions = dedupeBySignature(assumptionEntries, (entry) => entry.signature);
+  if (dedupedAssumptions.length > 0) {
+    const hasMixedScopes = new Set(dedupedAssumptions.map((entry) => entry.scope)).size > 1;
+    const assumptionHeaders = hasMixedScopes ? ['Bezug', 'Verbotene Annahme'] : ['Verbotene Annahme'];
+    const assumptionRows = dedupedAssumptions.map((entry) => (
+      hasMixedScopes
+        ? [entry.scope, entry.text]
+        : [entry.text]
+    ));
     tables.push({ id: 'vdmi_forbidden_assumptions', headers: assumptionHeaders, rows: assumptionRows });
     sections.push({
       id: 'forbidden_assumptions',
@@ -537,29 +581,44 @@ function renderVdmiMatrix(domainResult) {
     });
   }
 
-  const nextActionRows = [];
-  if (isNonEmptyArray(dr.nextActions)) {
-    for (const action of dr.nextActions) {
-      if (action && typeof action === 'object') {
-        nextActionRows.push(['Domain', toSafeActionLabel(action), firstDefined(action, ['type']) || '—']);
-      } else {
-        nextActionRows.push(['Domain', toSafeActionLabel(action), '—']);
-      }
-    }
-  }
+  const nextActionEntries = [];
+  const pushNextAction = (scope, action) => {
+    if (action === null || action === undefined) return;
+    const label = toSafeActionLabel(action);
+    const type = action && typeof action === 'object' ? (firstDefined(action, ['type']) || '—') : '—';
+    const actionSig = action && typeof action === 'object'
+      ? signatureFromObject(action, ['label', 'title', 'description', 'action', 'text', 'code', 'id'])
+      : normalizeCompareText(label);
+    nextActionEntries.push({
+      scope,
+      label,
+      type: String(type),
+      signature: `${actionSig}::${normalizeCompareText(label)}`,
+    });
+  };
   for (const task of tasks) {
+    const scope = getStepDescription(task, warnings);
     const taskActions = isNonEmptyArray(task?.nextActions) ? task.nextActions : [];
-    const step = getStepDescription(task, warnings);
-    for (const action of taskActions) {
-      if (action && typeof action === 'object') {
-        nextActionRows.push([step, toSafeActionLabel(action), firstDefined(action, ['type']) || '—']);
-      } else {
-        nextActionRows.push([step, toSafeActionLabel(action), '—']);
-      }
-    }
+    for (const action of taskActions) pushNextAction(scope, action);
   }
-  if (nextActionRows.length > 0) {
-    const nextActionHeaders = ['Schritt', 'Nächster Schritt', 'Typ'];
+  if (isNonEmptyArray(dr.nextActions)) {
+    for (const action of dr.nextActions) pushNextAction('Prozess', action);
+  }
+  const dedupedNextActions = dedupeBySignature(nextActionEntries, (entry) => entry.signature);
+  if (dedupedNextActions.length > 0) {
+    const hasMixedScopes = new Set(dedupedNextActions.map((entry) => entry.scope)).size > 1;
+    const hasType = dedupedNextActions.some((entry) => entry.type && entry.type !== '—');
+    const nextActionHeaders = hasMixedScopes
+      ? (hasType ? ['Bezug', 'Nächster Schritt', 'Typ'] : ['Bezug', 'Nächster Schritt'])
+      : (hasType ? ['Nächster Schritt', 'Typ'] : ['Nächster Schritt']);
+
+    const nextActionRows = dedupedNextActions.map((entry) => {
+      if (hasMixedScopes && hasType) return [entry.scope, entry.label, entry.type];
+      if (hasMixedScopes) return [entry.scope, entry.label];
+      if (hasType) return [entry.label, entry.type];
+      return [entry.label];
+    });
+
     tables.push({ id: 'vdmi_next_actions', headers: nextActionHeaders, rows: nextActionRows });
     sections.push({
       id: 'next_actions',
@@ -568,7 +627,69 @@ function renderVdmiMatrix(domainResult) {
     });
   }
 
-  const summary = `VDMI-Prozess mit ${tasks.length} Schritten und Rollenübersicht.`;
+  const riskEntries = [];
+  const pushRisk = (scope, risk) => {
+    if (risk === null || risk === undefined) return;
+    if (risk && typeof risk === 'object') {
+      const label = firstDefined(risk, ['id', 'code', 'label', 'name', 'risk', 'description', 'text']) || '—';
+      const impact = firstDefined(risk, ['impact', 'wirkung', 'detail', 'reason', 'message']) || '—';
+      const mitigation = firstDefined(risk, ['mitigation', 'countermeasure', 'gegenmassnahme', 'gegenmaßnahme']) || '—';
+      const sig = signatureFromObject(risk, ['id', 'code', 'label', 'name', 'risk', 'description', 'text']);
+      riskEntries.push({
+        scope,
+        label: String(label),
+        impact: String(impact),
+        mitigation: String(mitigation),
+        signature: `${sig}::${normalizeCompareText(impact)}::${normalizeCompareText(mitigation)}`,
+      });
+      return;
+    }
+    const text = String(risk);
+    riskEntries.push({
+      scope,
+      label: text,
+      impact: '—',
+      mitigation: '—',
+      signature: normalizeCompareText(text),
+    });
+  };
+  for (const task of tasks) {
+    const scope = getStepDescription(task, warnings);
+    if (isNonEmptyArray(task?.assetRisks)) {
+      for (const risk of task.assetRisks) pushRisk(scope, risk);
+    }
+    if (isNonEmptyArray(task?.risks)) {
+      for (const risk of task.risks) pushRisk(scope, risk);
+    }
+  }
+  if (isNonEmptyArray(dr.assetRisks)) {
+    for (const risk of dr.assetRisks) pushRisk('Prozess', risk);
+  }
+  if (isNonEmptyArray(dr.risks)) {
+    for (const risk of dr.risks) pushRisk('Prozess', risk);
+  }
+  const dedupedRisks = dedupeBySignature(riskEntries, (entry) => entry.signature);
+  if (dedupedRisks.length > 0) {
+    const hasMixedScopes = new Set(dedupedRisks.map((entry) => entry.scope)).size > 1;
+    const riskHeaders = hasMixedScopes
+      ? ['Bezug', 'Risiko', 'Wirkung', 'Gegenmaßnahme']
+      : ['Risiko', 'Wirkung', 'Gegenmaßnahme'];
+    const riskRows = dedupedRisks.map((entry) => (
+      hasMixedScopes
+        ? [entry.scope, entry.label, entry.impact, entry.mitigation]
+        : [entry.label, entry.impact, entry.mitigation]
+    ));
+    tables.push({ id: 'vdmi_risks', headers: riskHeaders, rows: riskRows });
+    sections.push({
+      id: 'risks',
+      title: 'Risiken',
+      content: markdownTable(riskHeaders, riskRows),
+    });
+  }
+
+  const summary = summaryStatus !== undefined
+    ? `VDMI-Prozess mit ${tasks.length} Schritten. Status: ${String(summaryStatus)}.`
+    : `VDMI-Prozess mit ${tasks.length} Schritten.`;
   const uniqueWarnings = [...new Set(warnings)];
 
   const markdownParts = [
@@ -593,7 +714,11 @@ function renderVdmiMatrix(domainResult) {
       sections,
       warnings: uniqueWarnings,
       sources: [],
-      nextActions: nextActionRows.map((row) => ({ step: row[0], label: row[1], type: row[2] })),
+      nextActions: dedupedNextActions.map((entry) => ({
+        step: entry.scope,
+        label: entry.label,
+        type: entry.type,
+      })),
     },
     markdown: markdownParts.join('\n'),
   };
