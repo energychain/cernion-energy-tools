@@ -53,6 +53,10 @@ function normalizeMode(mode, alreadyExecutedSteps, compareCandidates, warnings) 
   return mode;
 }
 
+function findCapabilityByName(capabilityName) {
+  return CURATED_CAPABILITIES.find((capability) => capability.capability === capabilityName) || null;
+}
+
 function findBestCapability(taskText, options = {}) {
   const haystack = taskText.toLowerCase();
   const resolvedParams = options?.resolvedParams || {};
@@ -62,9 +66,6 @@ function findBestCapability(taskText, options = {}) {
   const resolvedCapNames = new Set(
     resolvedCapabilities.map((rc) => (typeof rc === 'string' ? rc : rc?.capability)).filter(Boolean)
   );
-
-  const findCapabilityByName = (capabilityName) =>
-    CURATED_CAPABILITIES.find((capability) => capability.capability === capabilityName) || null;
 
   const cyaSignals = [
     'versorgungssicherheit',
