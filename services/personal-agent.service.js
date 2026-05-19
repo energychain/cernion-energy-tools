@@ -38,7 +38,9 @@ const {
   listAnsweredOnboardingFacts,
   markStaleQuestions,
   resolveParamKeyFromMissing,
+  ONBOARDING_PARAM_ALTERNATIVES,
 } = require('../src/personal-agent-onboarding');
+const { generateText: llmGenerateText } = require('../src/llm-client');
 const {
   recognizeFileType,
   parseCsvExtract,
@@ -702,31 +704,41 @@ module.exports = {
             : [];
 
           if (questionText) {
+            const empathetic = await this.buildEmpathethicOnboardingReply({
+              message: ctx.params.message,
+              execution,
+              plan: responsePlan,
+            });
+            const replyMarkdown = empathetic.markdown || questionText;
+            const onboardingNextActions = empathetic.nextActions || [];
+
             presentationApplied = true;
             presentationType = 'conversational_onboarding';
             presentationResult = {
               type: 'conversational_onboarding',
-              markdown: questionText,
+              markdown: replyMarkdown,
               warnings: missingParams.map((param) => `missing_context:${param}`),
               presentation: {
                 type: 'conversational_onboarding',
                 title: 'Fehlende Eingaben',
                 summary: 'Bitte ergänzen Sie die fehlenden Angaben, damit die Ausführung fortgesetzt werden kann.',
-                markdown: questionText,
+                markdown: replyMarkdown,
                 warnings: missingParams.map((param) => `missing_context:${param}`),
                 sections: [
                   {
                     key: 'onboarding',
                     title: 'Benötigte Angaben',
-                    body: questionText,
+                    body: replyMarkdown,
                   },
                 ],
+                nextActions: onboardingNextActions,
                 structuredData: {
                   reasonCode: execution?.stopPoint?.reasonCode || 'MISSING_INPUTS',
                   blockedAction: execution?.stopPoint?.blockedAction || null,
                   blockedStep: execution?.stopPoint?.blockedStep || null,
                   missingParams,
                   onboardingQuestion: onboardingQuestion || null,
+                  nextActions: onboardingNextActions,
                 },
               },
             };
@@ -1152,6 +1164,96 @@ module.exports = {
         throw new Error('personal-agent.chat core handler is not available');
       }
       return await chatCore.call(this, ctx);
+    },
+
+    /**
+     * Build an empathetic, context-aware onboarding reply using the LLM.
+     *
+     * When a required parameter is missing and execution enters `awaiting-onboarding`,
+     * this method generates a short (2-3 sentence) German reply that:
+     *   1. Explains WHY the missing parameter is needed in the context of the user's request.
+     *   2. Poses the actual question (from `onboardingQuestion.questionText`).
+     *   3. Optionally suggests an alternative path if the user cannot answer immediately.
+     *
+     * Falls back gracefully to the raw `questionText` if the LLM call fails or is not
+     * configured, so existing deterministic tests are not affected.
+     *
+     * @param {object} opts
+     * @param {string} opts.message       Original user message for this turn.
+     * @param {object} opts.execution     Execution result with stopPoint.
+     * @param {object} opts.plan          Resolved execution plan.
+     * @returns {Promise<{markdown: string, nextActions: Array}>}
+     */
+    async buildEmpathethicOnboardingReply({ message, execution, plan }) {
+      const onboardingQuestion = execution?.stopPoint?.onboardingQuestion;
+      const questionText =
+        onboardingQuestion?.questionText || execution?.stopPoint?.message || '';
+      const paramKey = onboardingQuestion?.paramKey || null;
+
+      const staticAlternatives =
+        (paramKey && Array.isArray(ONBOARDING_PARAM_ALTERNATIVES[paramKey])
+          ? ONBOARDING_PARAM_ALTERNATIVES[paramKey]
+          : []);
+
+      const fallback = { markdown: questionText, nextActions: [] };
+      if (!questionText) return fallback;
+
+      const userSnippet = String(message || '').trim().slice(0, 400);
+      const planSteps = Array.isArray(plan?.steps)
+        ? plan.steps
+            .map((s) => s.label || s.action)
+            .filter(Boolean)
+            .join(', ')
+        : '';
+      const altHint =
+        staticAlternatives.length > 0
+          ? `Falls die Angabe noch nicht verfügbar ist, biete als Alternative an: "${staticAlternatives[0]}"`
+          : 'Falls die Angabe nicht sofort verfügbar ist, biete kurz eine sinnvolle Alternative an.';
+
+      const prompt = [
+        'Du bist ein professioneller, empathischer Energie-Assistent (Cernion Personal Agent).',
+        `Der Nutzer stellte folgende Anfrage: "${userSnippet}"`,
+        planSteps ? `Geplante Prüfschritte: ${planSteps}` : '',
+        '',
+        `Um fortzufahren, muss der Assistent die folgende Angabe erfragen: "${questionText}"`,
+        '',
+        'Schreibe eine kurze, kontextbezogene Antwort (2-3 Sätze) auf Deutsch:',
+        '- Satz 1: Erkläre empathisch und direkt, WARUM genau diese Angabe für die konkrete Nutzeranfrage benötigt wird.',
+        '- Satz 2: Stelle die eigentliche Frage (wortgetreu oder leicht adaptiert an den Kontext).',
+        `- Satz 3 (wenn sinnvoll): ${altHint}`,
+        '',
+        'Antworte NUR mit dem fertigen Text. Keine Überschriften, keine Markdown-Liste, keine Erklärungen.',
+      ]
+        .filter(Boolean)
+        .join('\n');
+
+      try {
+        const llmText = (
+          await llmGenerateText(prompt, {
+            operation: 'onboarding-empathetic-reply',
+            maxTokens: 220,
+            timeoutMs: 8000,
+          })
+        )?.trim();
+
+        if (!llmText || llmText.length < 15) return fallback;
+
+        const nextActions = staticAlternatives.map((alt) => ({
+          label: alt,
+          type: 'alternative_path',
+        }));
+        return { markdown: llmText, nextActions };
+      } catch (err) {
+        this.logger?.warn(
+          `buildEmpathethicOnboardingReply LLM failed (non-blocking): ${err?.message}`
+        );
+        // Deterministic fallback: return raw question with static alternatives
+        const nextActions = staticAlternatives.map((alt) => ({
+          label: alt,
+          type: 'alternative_path',
+        }));
+        return { markdown: questionText, nextActions };
+      }
     },
 
     /**

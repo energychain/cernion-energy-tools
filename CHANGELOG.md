@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- [src/personal-agent-onboarding.js](src/personal-agent-onboarding.js): added `ONBOARDING_PARAM_ALTERNATIVES` — a static, per-parameter catalog of alternative action suggestions (e.g., "check N-1 capacity without fNAV profile") now exported alongside `ONBOARDING_PARAM_QUESTIONS`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): added `buildEmpathethicOnboardingReply({ message, execution, plan })` method. When execution reaches `awaiting-onboarding`, the Personal Agent now calls the LLM to generate a short (2-3 sentence) contextual reply that explains **why** the missing parameter is needed in the context of the user's specific request, poses the actual question, and optionally offers an alternative path. Falls back gracefully to the original static `questionText` when the LLM is unavailable (e.g., in CI unit tests).
+- [services/personal-agent.service.js](services/personal-agent.service.js): `presentation.nextActions` and `presentation.structuredData.nextActions` are now populated with structured `{ label, type: 'alternative_path' }` entries from `ONBOARDING_PARAM_ALTERNATIVES` for `conversational_onboarding` responses.
+
 ## [0.52.15] — Personal Agent Async Job Routing & E2E Polling Alignment (2026-05-18)
 
 ### Changed

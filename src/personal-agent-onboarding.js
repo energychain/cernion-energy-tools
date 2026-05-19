@@ -71,6 +71,52 @@ const ONBOARDING_PARAM_QUESTIONS = Object.freeze({
   },
 });
 
+const ONBOARDING_PARAM_ALTERNATIVES = Object.freeze({
+  fnavProfile: [
+    'Zunächst die technische N-1-Kapazität nach §17 EnWG ohne fNAV-Profil prüfen',
+    'Netzanschluss-Eignung auf Basis der Anschlussleistung (kW/MW) vorab einschätzen',
+  ],
+  gridOperatorName: [
+    'PLZ oder Ort angeben – der Netzbetreiber wird dann automatisch zugeordnet',
+    'BDEW-Code direkt eingeben, falls bekannt',
+  ],
+  gridOperatorId: [
+    'Netzbetreibernamen oder PLZ nennen (automatische BDEW-Auflösung)',
+  ],
+  gridOperatorBdew: [
+    'Netzbetreibernamen oder Standort nennen – BDEW-Code wird automatisch ermittelt',
+  ],
+  bdew: [
+    'Netzbetreibernamen oder PLZ für automatische Zuordnung nennen',
+  ],
+  voltageLevel: [
+    'Anschlussleistung in kW oder MW angeben – Spannungsebene wird daraus abgeleitet',
+  ],
+  postalCode: [
+    'Ort oder Landkreis nennen, falls die genaue PLZ noch nicht bekannt ist',
+  ],
+  postleitzahl: [
+    'Ort oder Landkreis nennen, falls die genaue PLZ noch nicht bekannt ist',
+  ],
+  location: [
+    'PLZ oder Bundesland angeben für regionalspezifische Auswertung',
+  ],
+  projectId: [
+    'Projektnamen nennen – ich suche das Projekt dann im System',
+    'Neues Projekt anlegen lassen',
+  ],
+  operatorEvidence: [
+    'BDEW-Code, BKZ oder Marktlokationsnummer direkt eingeben',
+    'Netzanschlusspunkt-Adresse nennen für automatische Zuordnung',
+  ],
+  city: [
+    'PLZ angeben falls die Stadt noch nicht bekannt ist',
+  ],
+  role: [
+    'Typische Rollen: VNB (Netzbetreiber), Anlagenbetreiber, Direktvermarkter, Dienstleister',
+  ],
+});
+
 function buildOnboardingQuestion({ paramKey, action, fallbackText }) {
   const meta = ONBOARDING_PARAM_QUESTIONS[paramKey];
   const questionText = fallbackText || meta?.question || `Bitte geben Sie ${paramKey} an.`;
@@ -213,6 +259,7 @@ function resolveParamKeyFromMissing(missingParams = []) {
 module.exports = {
   ONBOARDING_QUESTION_STATUS,
   ONBOARDING_PARAM_QUESTIONS,
+  ONBOARDING_PARAM_ALTERNATIVES,
   buildOnboardingQuestion,
   captureOnboardingAnswer,
   findPendingOnboardingQuestion,
