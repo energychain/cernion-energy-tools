@@ -664,7 +664,9 @@ module.exports = {
           const parentDomains = Array.isArray(resumable.parentFrame.routing?.requestedDomains)
             ? resumable.parentFrame.routing.requestedDomains
             : [];
-          const domainMismatch = freshDomains.some((domain) => !parentDomains.includes(domain));
+          const domainMismatch =
+            freshDomains.length > 0 &&
+            freshDomains.some((domain) => !parentDomains.includes(domain));
 
           if (!domainMismatch) {
             const resumed = resumeParentPlanFrame(session.planStack, session.resolvedParams);
@@ -718,7 +720,7 @@ module.exports = {
           session,
           executionMode,
         });
-        let responsePlan = execution?.plan || routedPlan;
+        let responsePlan = execution?.plan || routedPlan || plan;
         routing = {
           ...(routing || {}),
           primaryIntent: responsePlan?.primaryIntent || routing?.primaryIntent || null,
@@ -729,7 +731,10 @@ module.exports = {
               : [],
         };
 
-        if (execution?.status === 'awaiting-onboarding' && routing?.primaryIntent) {
+        if (
+          (execution?.status === 'awaiting-onboarding' || execution?.status === 'partial') &&
+          routing?.primaryIntent
+        ) {
           const currentStack = Array.isArray(session.planStack) ? session.planStack : [];
           if (hasRecentIntentLoop(currentStack, routing.primaryIntent)) {
             try {

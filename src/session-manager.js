@@ -246,13 +246,20 @@ function pushPlanFrame(planStack = [], frameInput = {}, options = {}) {
 function markTopFrameCompleted(planStack = [], intent = null) {
   const stack = sanitizePlanStack(planStack);
   if (stack.length === 0) return stack;
-  const topIndex = stack.length - 1;
-  const top = stack[topIndex];
-  if (intent && String(top.intent || '') !== String(intent || '')) {
-    return stack;
+
+  // Find the top-most SUSPENDED frame matching intent (or any suspended if no intent)
+  let targetIndex = -1;
+  for (let i = stack.length - 1; i >= 0; i -= 1) {
+    if (stack[i].status !== 'suspended') continue;
+    if (!intent || String(stack[i].intent || '') === String(intent || '')) {
+      targetIndex = i;
+      break;
+    }
   }
-  stack[topIndex] = {
-    ...top,
+  if (targetIndex < 0) return stack;
+
+  stack[targetIndex] = {
+    ...stack[targetIndex],
     status: 'completed',
   };
   return stack;
