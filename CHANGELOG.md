@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.16] — Personal Agent Plan Resume & Startup Abort Hardening (2026-05-19)
+
+### Changed
+- [services/personal-agent.service.js](services/personal-agent.service.js), [src/session-manager.js](src/session-manager.js): resume flow for parent plans hardened with plan-stack aware carry-over so resumed turns preserve scenario continuity after child-plan completion.
+- [services/personal-agent.service.js](services/personal-agent.service.js), [src/session-manager.js](src/session-manager.js): plan-stack acknowledgement flow improved (`acknowledged` -> `suspended`/`resumed` transitions) to avoid duplicate loopbacks and to keep deterministic continuation state.
+- [services/personal-agent.service.js](services/personal-agent.service.js), [services/capability-broker.service.js](services/capability-broker.service.js), [src/capability-catalog.js](src/capability-catalog.js), [src/personal-agent-routing.js](src/personal-agent-routing.js): consultative synthesis routing refined so catalog-backed alternatives are preferred and fallback behavior stays explicit when no deterministic alternative is available.
+- [src/job-store.js](src/job-store.js), [tests/job-store.test.js](tests/job-store.test.js), [tests/job-status.service.test.js](tests/job-status.service.test.js): startup rehydration behavior tightened to handle queued/running jobs via explicit startup-abort/recovery lifecycle signaling instead of stale in-memory continuation assumptions.
+
+### Tests
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js), [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js), [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): focused regressions for resumed parent-plan UX, plan-stack continuity, consultative alternative synthesis, and deterministic fallback handling.
+- [tests/job-store.test.js](tests/job-store.test.js), [tests/job-status.service.test.js](tests/job-status.service.test.js): regressions for startup recovery/abort signaling and durable job-state transitions during service startup.
+
 ### Changed
 - [src/personal-agent-onboarding.js](src/personal-agent-onboarding.js): added `ONBOARDING_PARAM_ALTERNATIVES` — a static, per-parameter catalog of alternative action suggestions (e.g., "check N-1 capacity without fNAV profile") now exported alongside `ONBOARDING_PARAM_QUESTIONS`.
 - [services/personal-agent.service.js](services/personal-agent.service.js): added `buildEmpathethicOnboardingReply({ message, execution, plan })` method. When execution reaches `awaiting-onboarding`, the Personal Agent now calls the LLM to generate a short (2-3 sentence) contextual reply that explains **why** the missing parameter is needed in the context of the user's specific request, poses the actual question, and optionally offers an alternative path. Falls back gracefully to the original static `questionText` when the LLM is unavailable (e.g., in CI unit tests).
