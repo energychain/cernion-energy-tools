@@ -53,8 +53,15 @@ function normalizeMode(mode, alreadyExecutedSteps, compareCandidates, warnings) 
   return mode;
 }
 
-function findBestCapability(taskText) {
+function findBestCapability(taskText, options = {}) {
   const haystack = taskText.toLowerCase();
+  const resolvedParams = options?.resolvedParams || {};
+  const resolvedCapabilities = Array.isArray(options?.resolvedCapabilities)
+    ? options.resolvedCapabilities
+    : [];
+  const resolvedCapNames = new Set(
+    resolvedCapabilities.map((rc) => (typeof rc === 'string' ? rc : rc?.capability)).filter(Boolean)
+  );
 
   const findCapabilityByName = (capabilityName) =>
     CURATED_CAPABILITIES.find((capability) => capability.capability === capabilityName) || null;
@@ -256,6 +263,26 @@ function findBestCapability(taskText) {
       (acc, keyword) => (haystack.includes(keyword.toLowerCase()) ? acc + 1 : acc),
       0
     );
+
+    // Deprioritize already-resolved capabilities (-30 penalty)
+    if (resolvedCapNames.has(capability.capability)) {
+      score -= 30;
+    }
+
+    // Boost capabilities whose requiredInputs are satisfied by resolvedParams (+20 per match)
+    const requiredInputs = Array.isArray(capability.requiredInputs) ? capability.requiredInputs : [];
+    const resolvedKeys = Object.keys(resolvedParams);
+    const satisfiedInputs = requiredInputs.filter((ri) => resolvedKeys.includes(ri));
+    score += satisfiedInputs.length * 20;
+
+    // Extra boost for capabilities that CONSUME resolved intermediate results
+    // e.g. grid-connection.validate consumes bdewCode / gridOperatorName
+    if (
+      capability.capability.startsWith('grid_connection') &&
+      (resolvedParams.bdew || resolvedParams.gridOperatorName || resolvedParams.gridOperatorId)
+    ) {
+      score += 40;
+    }
 
     if (capability.capability === 'mastr_asset_inventory') {
       const hasExplicitMastrSignal = [
@@ -727,6 +754,8 @@ module.exports = {
         currentQuestion: { type: 'string', optional: true },
         compareCandidates: { type: 'array', optional: true, default: [] },
         doNotUse: { type: 'array', optional: true, default: [] },
+        resolvedParams: { type: 'object', optional: true, default: {} },
+        resolvedCapabilities: { type: 'array', optional: true, default: [] },
       },
       async handler(ctx) {
         const warnings = [];
@@ -747,7 +776,17 @@ module.exports = {
         );
 
         const taskText = `${ctx.params.task || ''} ${ctx.params.currentQuestion || ''}`.trim();
-        const selected = findBestCapability(taskText);
+        const resolvedParams =
+          ctx.params.resolvedParams && typeof ctx.params.resolvedParams === 'object'
+            ? ctx.params.resolvedParams
+            : {};
+        const resolvedCapabilities = Array.isArray(ctx.params.resolvedCapabilities)
+          ? ctx.params.resolvedCapabilities
+          : [];
+        const selected = findBestCapability(taskText, {
+          resolvedParams,
+          resolvedCapabilities,
+        });
         const capability = selected.capability;
 
         const blockedActions = new Set([
@@ -755,6 +794,25 @@ module.exports = {
           ...capability.avoid,
           ...ctx.params.doNotUse,
         ]);
+
+        // Deprioritize (block) capabilities that have already been resolved in this session
+        const resolvedCapabilityActions = new Set();
+        for (const rc of resolvedCapabilities) {
+          if (typeof rc === 'string') {
+            const cap = findCapabilityByName(rc);
+            if (cap) {
+              cap.preferredActions.forEach((a) => resolvedCapabilityActions.add(a));
+              cap.fallbackActions.forEach((a) => resolvedCapabilityActions.add(a));
+            }
+          } else if (rc?.capability) {
+            const cap = findCapabilityByName(rc.capability);
+            if (cap) {
+              cap.preferredActions.forEach((a) => resolvedCapabilityActions.add(a));
+              cap.fallbackActions.forEach((a) => resolvedCapabilityActions.add(a));
+            }
+          }
+        }
+        resolvedCapabilityActions.forEach((a) => blockedActions.add(a));
 
         const alreadyExecuted = new Set(
           alreadyExecutedSteps

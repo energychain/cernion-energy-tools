@@ -282,6 +282,9 @@ function buildPersistableSessionState(input = {}) {
       compressed: Boolean(input?.l3?.compressed),
       planStack: Array.isArray(input?.l3?.planStack) ? input.l3.planStack : [],
       resolvedParams,
+      resolvedCapabilities: Array.isArray(input?.l3?.resolvedCapabilities)
+        ? input.l3.resolvedCapabilities
+        : [],
       lastCompletedPlan,
     },
     createdAt: input.createdAt || new Date().toISOString(),

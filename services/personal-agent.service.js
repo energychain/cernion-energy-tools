@@ -629,8 +629,12 @@ module.exports = {
           session?.l3?.resolvedParams && typeof session.l3.resolvedParams === 'object'
             ? session.l3.resolvedParams
             : {};
+        session.resolvedCapabilities = Array.isArray(session?.l3?.resolvedCapabilities)
+          ? session.l3.resolvedCapabilities
+          : [];
         if (!session.planStack) session.planStack = [];
         if (!session.resolvedParams) session.resolvedParams = {};
+        if (!session.resolvedCapabilities) session.resolvedCapabilities = [];
 
         const fileProcessing = this.processFileAttachments(
           session,
@@ -689,7 +693,9 @@ module.exports = {
           const brokerRecommendation = await this.getBrokerRecommendation(
             ctx,
             ctx.params.message,
-            brokerKnownContext
+            brokerKnownContext,
+            session.resolvedParams,
+            session.resolvedCapabilities
           );
           plan = buildExecutionPlan({
             message: ctx.params.message,
@@ -772,6 +778,14 @@ module.exports = {
             ...session.resolvedParams,
             ...stepResults,
           };
+          // Track resolved capabilities to prevent broker from re-selecting them
+          if (!session.resolvedCapabilities) session.resolvedCapabilities = [];
+          if (routing?.primaryIntent) {
+            session.resolvedCapabilities.push({
+              capability: routing.primaryIntent,
+              resolvedAt: new Date().toISOString(),
+            });
+          }
           if (routing?.primaryIntent) {
             session.l3.lastCompletedPlan = {
               intent: routing.primaryIntent,
@@ -785,6 +799,9 @@ module.exports = {
           session.resolvedParams && typeof session.resolvedParams === 'object'
             ? session.resolvedParams
             : {};
+        session.l3.resolvedCapabilities = Array.isArray(session.resolvedCapabilities)
+          ? session.resolvedCapabilities
+          : [];
 
         const stackResult = buildContextStack({
           systemPrompt: this.settings.systemPrompt,
@@ -2274,7 +2291,7 @@ module.exports = {
       return /(kredit|credit|loan|bank|finanz|finance|risk|risiko|due diligence|due-diligence|bewertung|invest|investment|lender|komitee)/i.test(haystack);
     },
 
-    async getBrokerRecommendation(ctx, message, knownContext = {}) {
+    async getBrokerRecommendation(ctx, message, knownContext = {}, resolvedParams = {}, resolvedCapabilities = []) {
       try {
         return await ctx.call(
           'capability-broker.recommend',
@@ -2283,6 +2300,8 @@ module.exports = {
             task: message,
             mode: 'initial',
             knownContext,
+            resolvedParams,
+            resolvedCapabilities,
           },
           { meta: { ...ctx.meta, $gateway: false } }
         );
