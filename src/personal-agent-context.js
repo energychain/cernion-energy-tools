@@ -254,6 +254,15 @@ function assertNoL4RawInPersistedState(state) {
 }
 
 function buildPersistableSessionState(input = {}) {
+  const resolvedParams =
+    input?.l3?.resolvedParams && typeof input.l3.resolvedParams === 'object'
+      ? input.l3.resolvedParams
+      : {};
+  const lastCompletedPlan =
+    input?.l3?.lastCompletedPlan && typeof input.l3.lastCompletedPlan === 'object'
+      ? input.l3.lastCompletedPlan
+      : null;
+
   const payload = {
     id: String(input.id || ''),
     tenantId: String(input.tenantId || 'default'),
@@ -271,6 +280,9 @@ function buildPersistableSessionState(input = {}) {
         : [],
       summary: input?.l3?.summary || null,
       compressed: Boolean(input?.l3?.compressed),
+      planStack: Array.isArray(input?.l3?.planStack) ? input.l3.planStack : [],
+      resolvedParams,
+      lastCompletedPlan,
     },
     createdAt: input.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),

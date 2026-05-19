@@ -50,6 +50,15 @@ const {
   readTextContent,
   injectFileIntoL3,
 } = require('../src/personal-agent-file-handler');
+const {
+  pushPlanFrame,
+  markTopFrameCompleted,
+  findResumableParentFrame,
+  resumeParentPlanFrame,
+  mergeResolvedParamsIntoPlan,
+  hasRecentIntentLoop,
+  assertNoRecentIntentLoop,
+} = require('../src/session-manager');
 
 const OPENAPI_TAG = 'Personal Agent';
 const SESSION_NAMESPACE = process.env.PERSONAL_AGENT_SESSION_NAMESPACE || 'personal_agent_sessions';
@@ -615,6 +624,14 @@ module.exports = {
         const session = await this.loadSession(ctx, tenantId, sessionId, userId, {
           createIfMissing: true,
         });
+        session.planStack = Array.isArray(session?.l3?.planStack) ? session.l3.planStack : [];
+        session.resolvedParams =
+          session?.l3?.resolvedParams && typeof session.l3.resolvedParams === 'object'
+            ? session.l3.resolvedParams
+            : {};
+        if (!session.planStack) session.planStack = [];
+        if (!session.resolvedParams) session.resolvedParams = {};
+
         const fileProcessing = this.processFileAttachments(
           session,
           Array.isArray(ctx.params.fileAttachments) ? ctx.params.fileAttachments : []
@@ -638,16 +655,51 @@ module.exports = {
           knowledgeContext
         );
 
-        const brokerRecommendation = await this.getBrokerRecommendation(
-          ctx,
-          ctx.params.message,
-          brokerKnownContext
-        );
-        const plan = buildExecutionPlan({
-          message: ctx.params.message,
-          brokerRecommendation,
-          knowledgeContext,
-        });
+        let routing = null;
+        let plan = null;
+
+        const resumable = findResumableParentFrame(session.planStack);
+        if (resumable?.parentFrame) {
+          const freshDomains = detectRequestedDomains(ctx.params.message);
+          const parentDomains = Array.isArray(resumable.parentFrame.routing?.requestedDomains)
+            ? resumable.parentFrame.routing.requestedDomains
+            : [];
+          const domainMismatch = freshDomains.some((domain) => !parentDomains.includes(domain));
+
+          if (!domainMismatch) {
+            const resumed = resumeParentPlanFrame(session.planStack, session.resolvedParams);
+            if (resumed?.parentFrame) {
+              session.planStack = resumed.planStack;
+              routing = {
+                ...(resumed.parentFrame.routing || {}),
+                primaryIntent:
+                  resumed.parentFrame.intent || resumed.parentFrame.routing?.primaryIntent || null,
+              };
+              plan = mergeResolvedParamsIntoPlan(
+                resumed.parentFrame.plan,
+                session.resolvedParams
+              );
+            }
+          }
+        }
+
+        if (!plan) {
+          const brokerRecommendation = await this.getBrokerRecommendation(
+            ctx,
+            ctx.params.message,
+            brokerKnownContext
+          );
+          plan = buildExecutionPlan({
+            message: ctx.params.message,
+            brokerRecommendation,
+            knowledgeContext,
+          });
+          routing = {
+            primaryIntent: plan.primaryIntent,
+            requestedDomains: Array.isArray(plan.requestedDomains) ? plan.requestedDomains : [],
+          };
+        }
+
         const preflightKnownContext = this.hydrateKnownContextFromSession(
           { ...knownContext },
           session
@@ -666,7 +718,68 @@ module.exports = {
           session,
           executionMode,
         });
-        const responsePlan = execution?.plan || routedPlan;
+        let responsePlan = execution?.plan || routedPlan;
+        routing = {
+          ...(routing || {}),
+          primaryIntent: responsePlan?.primaryIntent || routing?.primaryIntent || null,
+          requestedDomains: Array.isArray(responsePlan?.requestedDomains)
+            ? responsePlan.requestedDomains
+            : Array.isArray(routing?.requestedDomains)
+              ? routing.requestedDomains
+              : [],
+        };
+
+        if (execution?.status === 'awaiting-onboarding' && routing?.primaryIntent) {
+          const currentStack = Array.isArray(session.planStack) ? session.planStack : [];
+          if (hasRecentIntentLoop(currentStack, routing.primaryIntent)) {
+            try {
+              assertNoRecentIntentLoop(currentStack, routing.primaryIntent);
+            } catch (loopError) {
+              this.logger?.warn(
+                `Plan-stack loop guard triggered for intent ${routing.primaryIntent}: ${loopError.message}`
+              );
+            }
+          }
+          session.planStack = pushPlanFrame(
+            currentStack,
+            {
+              intent: routing.primaryIntent,
+              routing,
+              plan: responsePlan,
+              awaitingParams: execution.stopPoint?.missingParams || [],
+              resolvedParamsSnapshot: { ...session.resolvedParams },
+            },
+            { maxDepth: 5 }
+          );
+        }
+
+        if (execution?.status === 'completed') {
+          session.planStack = markTopFrameCompleted(
+            session.planStack,
+            routing?.primaryIntent || null
+          );
+          const stepResults = (Array.isArray(execution.steps) ? execution.steps : [])
+            .filter((step) => step?.status === 'completed')
+            .map((step) => step?.result?.data)
+            .filter((data) => data && typeof data === 'object' && !Array.isArray(data))
+            .reduce((acc, data) => ({ ...acc, ...data }), {});
+          session.resolvedParams = {
+            ...session.resolvedParams,
+            ...stepResults,
+          };
+          if (routing?.primaryIntent) {
+            session.l3.lastCompletedPlan = {
+              intent: routing.primaryIntent,
+              at: new Date().toISOString(),
+            };
+          }
+        }
+
+        session.l3.planStack = Array.isArray(session.planStack) ? session.planStack : [];
+        session.l3.resolvedParams =
+          session.resolvedParams && typeof session.resolvedParams === 'object'
+            ? session.resolvedParams
+            : {};
 
         const stackResult = buildContextStack({
           systemPrompt: this.settings.systemPrompt,
@@ -699,29 +812,23 @@ module.exports = {
         if (execution?.status === 'awaiting-onboarding') {
           const onboardingQuestion = execution?.stopPoint?.onboardingQuestion;
           const questionText = onboardingQuestion?.questionText || execution?.stopPoint?.message;
-          
+
           // ── Parent-Plan Resume Status Transparency ──
           // Wenn wir von einem resolved Zwischen-Intent zurückkehren,
           // zeigen wir dem Nutzer das Ziel + bestätigte Daten, nicht nur die nächste Frage
           let statusPrefix = '';
-          const parentFrame = null; // TODO: from session.planStack when implemented
-          if (session.l3?.lastCompletedPlan?.intent) {
-            const prevIntent = session.l3.lastCompletedPlan.intent;
-            const acknowledged = session.l3?.resolvedParams || {};
-            const ackKeys = Object.keys(acknowledged);
-            if (ackKeys.length > 0 && prevIntent) {
-              const summaryParts = [];
-              // "Wir arbeiten weiter an Ihrer Anfrage"
-              summaryParts.push('Wir arbeiten weiter an Ihrer Anfrage');
-              // Bestätigte Daten auflisten
-              const ackData = ackKeys
-                .filter(k => acknowledged[k]?.value || acknowledged[k])
-                .slice(0, 3)
-                .map(k => `${k}: ${acknowledged[k]?.value || acknowledged[k]}`)
-                .join(', ');
-              if (ackData) summaryParts.push(`Die bisher bestätigten Daten (${ackData}) bleiben erhalten.`);
-              statusPrefix = summaryParts.join('. ') + ' \n\n';
+          const resumableFrame = findResumableParentFrame(session.planStack);
+          const resolvedParamKeys = Object.keys(session.resolvedParams || {});
+          if (resumableFrame?.parentFrame && resolvedParamKeys.length > 0) {
+            const summaryParts = ['Wir arbeiten weiter an Ihrer Anfrage'];
+            const ackKeys = resolvedParamKeys.slice(0, 3);
+            const ackData = ackKeys
+              .map((key) => `${key}: ${session.resolvedParams[key]}`)
+              .join(', ');
+            if (ackData) {
+              summaryParts.push(`Die bisher bestätigten Daten (${ackData}) bleiben erhalten.`);
             }
+            statusPrefix = `${summaryParts.join('. ')}\n\n`;
           }
 
           const missingParams = Array.isArray(execution?.stopPoint?.missingParams)
@@ -847,6 +954,15 @@ module.exports = {
           session.l3?.assumptions || [],
           execution?.assumptions || []
         );
+        persisted.l3.planStack = Array.isArray(session.planStack) ? session.planStack : [];
+        persisted.l3.resolvedParams =
+          session.resolvedParams && typeof session.resolvedParams === 'object'
+            ? session.resolvedParams
+            : {};
+        persisted.l3.lastCompletedPlan =
+          session.l3?.lastCompletedPlan && typeof session.l3.lastCompletedPlan === 'object'
+            ? session.l3.lastCompletedPlan
+            : null;
 
         assertNoL4RawInPersistedState(persisted);
         await this.persistSession(ctx, tenantId, sessionId, persisted);
@@ -961,6 +1077,11 @@ module.exports = {
           sessionId: session.id,
           createdAt: session.createdAt,
           updatedAt: session.updatedAt,
+          planStack: Array.isArray(session?.l3?.planStack) ? session.l3.planStack : [],
+          resolvedParams:
+            session?.l3?.resolvedParams && typeof session.l3.resolvedParams === 'object'
+              ? session.l3.resolvedParams
+              : {},
           l2: session.l2,
           l3: session.l3,
           layer4: null,
@@ -1017,7 +1138,17 @@ module.exports = {
           userId,
           l1: { tenantFacts: current.l1?.tenantFacts || [] },
           l2: current.l2,
-          l3: { history: [], fileAttachments: [], summary: null, compressed: false },
+          l3: {
+            history: [],
+            fileAttachments: [],
+            summary: null,
+            compressed: false,
+            planStack: Array.isArray(current?.l3?.planStack) ? current.l3.planStack : [],
+            resolvedParams:
+              current?.l3?.resolvedParams && typeof current.l3.resolvedParams === 'object'
+                ? current.l3.resolvedParams
+                : {},
+          },
           createdAt: current.createdAt,
         });
         resetState.l3.onboardingQuestions = [];
@@ -2200,6 +2331,10 @@ module.exports = {
     hydrateKnownContextFromSession(knownContext = {}, session = {}) {
       const target = knownContext;
       const profileFacts = session?.l2?.userProfile?.onboardingFacts || {};
+      const persistedResolved =
+        session?.l3?.resolvedParams && typeof session.l3.resolvedParams === 'object'
+          ? session.l3.resolvedParams
+          : {};
 
       const normalizeOnboardingValue = (paramKey, rawValue) => {
         if (rawValue === undefined || rawValue === null) {
@@ -2272,6 +2407,16 @@ module.exports = {
         if (resolvedValue !== undefined && resolvedValue !== null) {
           target[key] = resolvedValue;
         }
+      }
+
+      for (const [key, value] of Object.entries(persistedResolved)) {
+        if (Object.prototype.hasOwnProperty.call(target, key)) {
+          continue;
+        }
+        if (value === undefined || value === null) {
+          continue;
+        }
+        target[key] = value;
       }
 
       const answeredFacts = listAnsweredOnboardingFacts(session?.l3 || {});
@@ -3478,6 +3623,17 @@ module.exports = {
             assumptions: Array.isArray(payload?.l3?.assumptions)
               ? payload.l3.assumptions
               : [],
+            planStack: Array.isArray(payload?.l3?.planStack)
+              ? payload.l3.planStack
+              : [],
+            resolvedParams:
+              payload?.l3?.resolvedParams && typeof payload.l3.resolvedParams === 'object'
+                ? payload.l3.resolvedParams
+                : {},
+            lastCompletedPlan:
+              payload?.l3?.lastCompletedPlan && typeof payload.l3.lastCompletedPlan === 'object'
+                ? payload.l3.lastCompletedPlan
+                : null,
           },
           createdAt: payload.createdAt || new Date().toISOString(),
           updatedAt: payload.updatedAt || null,
@@ -3509,6 +3665,9 @@ module.exports = {
             compressed: false,
             onboardingQuestions: [],
             assumptions: [],
+            planStack: [],
+            resolvedParams: {},
+            lastCompletedPlan: null,
           },
           createdAt: new Date().toISOString(),
           updatedAt: null,

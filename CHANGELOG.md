@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.52.17] — Session-Manager Plan-Stack Integration & Parent-Plan Resume (2026-05-19)
+
+### Changed
+- [services/personal-agent.service.js](services/personal-agent.service.js), [src/session-manager.js](src/session-manager.js): integrated plan-stack management into personal-agent.service `_executeChatCoreLogic()` so session state carries multi-turn plan continuity and resolved-parameter carry-over.
+- [services/personal-agent.service.js](services/personal-agent.service.js): session now maintains `l3.planStack` (stack of plan frames), `l3.resolvedParams` (accumulated confirmed data), and `l3.lastCompletedPlan` (parent-plan marker) across turns for deterministic session-aware execution.
+- [services/personal-agent.service.js](services/personal-agent.service.js): plan-stack push occurs on `awaiting-onboarding` stops with frame metadata (intent, routing, plan, awaitingParams, resolvedParamsSnapshot) and max-depth=5 guard.
+- [services/personal-agent.service.js](services/personal-agent.service.js): completed plans trigger `markTopFrameCompleted()` and resolve `resolvedParams` from execution step results to preserve confirmed data across resume turns.
+- [services/personal-agent.service.js](services/personal-agent.service.js): parent-plan resume now checked before broker call via `findResumableParentFrame()` → domain-mismatch validation → `resumeParentPlanFrame()` → `mergeResolvedParamsIntoPlan()` to skip broker on topic-continuity and inject confirmed data.
+- [services/personal-agent.service.js](services/personal-agent.service.js): status-prefix (awaiting-onboarding reply transparency) now reflects resumed parent-plan state via `findResumableParentFrame()` + `resolvedParams` instead of just `lastCompletedPlan`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `getSession` endpoint now exposes top-level `planStack` and `resolvedParams` for operational debugging and test verification.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `resetSession` now preserves `planStack` and `resolvedParams` (unlike L3 history) so state recovery persists multi-turn continuity guardrails.
+- [src/personal-agent-context.js](src/personal-agent-context.js): `buildPersistableSessionState()` extended to carry `planStack`, `resolvedParams`, and `lastCompletedPlan` in L3 for durable session recovery.
+- [services/personal-agent.service.js](services/personal-agent.service.js), [src/personal-agent-context.js](src/personal-agent-context.js): plan-stack loop detection (duplicate intent within 3 recent frames) implemented as non-disruptive logger warning to prevent accidental loops while keeping chat operational.
+
+### Tests
+- [tests/session-manager.test.js](tests/session-manager.test.js): all 4 helpers verified (mergeResolvedParamsIntoPlan, resumeParentPlanFrame, pushPlanFrame max-depth, loop detection).
+
+### Conflict Handling
+- Session reset (`resetSession` POST) now keeps plan-stack and resolved-params intact per spec so hard-reset loops are prevented by continuity guards.
+- Old sessions (before v0.52.17) with missing `l3.planStack`/`l3.resolvedParams` gracefully default to empty state; no migration required.
+- Empathetic onboarding flow (from v0.52.16) coexists with plan-stack: onboarding questions are tracked independently.
+
 ## [0.52.16] — Personal Agent Plan Resume & Startup Abort Hardening (2026-05-19)
 
 ### Changed
