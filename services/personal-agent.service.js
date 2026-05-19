@@ -699,6 +699,31 @@ module.exports = {
         if (execution?.status === 'awaiting-onboarding') {
           const onboardingQuestion = execution?.stopPoint?.onboardingQuestion;
           const questionText = onboardingQuestion?.questionText || execution?.stopPoint?.message;
+          
+          // ── Parent-Plan Resume Status Transparency ──
+          // Wenn wir von einem resolved Zwischen-Intent zurückkehren,
+          // zeigen wir dem Nutzer das Ziel + bestätigte Daten, nicht nur die nächste Frage
+          let statusPrefix = '';
+          const parentFrame = null; // TODO: from session.planStack when implemented
+          if (session.l3?.lastCompletedPlan?.intent) {
+            const prevIntent = session.l3.lastCompletedPlan.intent;
+            const acknowledged = session.l3?.resolvedParams || {};
+            const ackKeys = Object.keys(acknowledged);
+            if (ackKeys.length > 0 && prevIntent) {
+              const summaryParts = [];
+              // "Wir arbeiten weiter an Ihrer Anfrage"
+              summaryParts.push('Wir arbeiten weiter an Ihrer Anfrage');
+              // Bestätigte Daten auflisten
+              const ackData = ackKeys
+                .filter(k => acknowledged[k]?.value || acknowledged[k])
+                .slice(0, 3)
+                .map(k => `${k}: ${acknowledged[k]?.value || acknowledged[k]}`)
+                .join(', ');
+              if (ackData) summaryParts.push(`Die bisher bestätigten Daten (${ackData}) bleiben erhalten.`);
+              statusPrefix = summaryParts.join('. ') + ' \n\n';
+            }
+          }
+
           const missingParams = Array.isArray(execution?.stopPoint?.missingParams)
             ? execution.stopPoint.missingParams
             : [];
@@ -716,7 +741,7 @@ module.exports = {
             presentationType = 'conversational_onboarding';
             presentationResult = {
               type: 'conversational_onboarding',
-              markdown: replyMarkdown,
+              markdown: statusPrefix + replyMarkdown,
               warnings: missingParams.map((param) => `missing_context:${param}`),
               presentation: {
                 type: 'conversational_onboarding',
