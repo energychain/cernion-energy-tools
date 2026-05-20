@@ -1,4 +1,4 @@
-# UI Contract 41 — Personal Agent (v0.52.1)
+# UI Contract 41 — Personal Agent (v0.53.1)
 
 ## Scope
 Interaktive Chat-Schnittstelle mit Zwiebelmodus (L0–L4), Capability-Routing, HITL-Planmodus, Session-Wiederherstellung und Session-Reset.
@@ -7,7 +7,7 @@ Interaktive Chat-Schnittstelle mit Zwiebelmodus (L0–L4), Capability-Routing, H
 
 ### 1) POST /api/personal-agent/chat
 - Action: `personal-agent.chat`
-- Zweck: Führt einen Chat-Turn aus, baut den Kontext-Stack auf, berechnet einen deterministischen Ausführungsplan und liefert entweder den Plan (`hitl`) oder die ausgeführte Kette (`auto`).
+- Zweck: Führt einen Chat-Turn aus. Unterstützt zwei Modi: `execution` (deterministischer Plan/Steps) und `consultation` (beratende Synthese ohne Step-Ausführung).
 - Wichtig: Layer 4 ist transient; Roh-JSON wird nach Synthese verworfen und nicht persistiert.
 
 Request:
@@ -16,6 +16,7 @@ Request:
   "message": "Prüfe bitte die Netzsituation in Troisdorf.",
   "sessionId": "optional-existing-session-id",
   "executionMode": "auto",
+  "chatMode": "execution",
   "knownContext": {
     "gridOperatorName": "TWL Netze",
     "fnavProfile": {
@@ -30,8 +31,10 @@ Response:
 ```json
 {
   "success": true,
+  "status": "completed",
   "sessionId": "pa_...",
   "executionMode": "auto",
+  "chatMode": "execution",
   "reply": "...",
   "layer4Purged": true,
   "l3Compressed": false,
@@ -93,6 +96,37 @@ Response:
 }
 ```
 
+Consultation-Response (gekürzt):
+```json
+{
+  "success": true,
+  "status": "consulting",
+  "sessionId": "pa_...",
+  "executionMode": "auto",
+  "chatMode": "consultation",
+  "reply": "Vorläufige Einordnung ...",
+  "consultation": {
+    "hypotheses": [
+      { "statement": "...", "confidence": "medium", "evidence": "..." }
+    ],
+    "openQuestions": [
+      { "question": "...", "whyRelevant": "..." }
+    ],
+    "nextActions": [
+      { "action": "Prüfmodus starten", "description": "..." }
+    ],
+    "factsUsed": [
+      { "source": "user_prompt", "value": "..." }
+    ]
+  },
+  "execution": {
+    "status": "consulting",
+    "plan": null,
+    "steps": []
+  }
+}
+```
+
 HITL-Response (gekürzt):
 ```json
 {
@@ -135,6 +169,7 @@ Response:
 {
   "success": true,
   "sessionId": "pa_...",
+  "chatMode": "consultation",
   "createdAt": "2026-05-14T09:00:00.000Z",
   "updatedAt": "2026-05-14T09:02:00.000Z",
   "l2": { "userProfile": {} },
@@ -144,7 +179,8 @@ Response:
       { "role": "assistant", "text": "...", "ts": "..." }
     ],
     "summary": null,
-    "compressed": false
+    "compressed": false,
+    "chatMode": "consultation"
   },
   "layer4": null
 }

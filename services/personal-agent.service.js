@@ -12,8 +12,12 @@ const {
 } = require('../src/personal-agent-context');
 const {
   EXECUTION_MODES,
+  CHAT_MODES,
   ROUTING_CONTROL_ACTIONS,
   normalizeExecutionMode,
+  normalizeChatMode,
+  detectExplicitChatModeSwitch,
+  detectChatMode,
   detectRequestedDomains,
   buildExecutionPlan,
   applyMissingContextFallback,
@@ -68,6 +72,68 @@ const DEFAULT_SYSTEM_PROMPT =
   process.env.PERSONAL_AGENT_SYSTEM_PROMPT ||
   'Du bist der Cernion Personal Agent. Arbeite deterministisch, knapp und fachlich korrekt.';
 
+const CONSULTATION_OUTPUT_SCHEMA = {
+  type: 'object',
+  required: ['reply', 'hypotheses', 'openQuestions', 'nextActions', 'factsUsed'],
+  additionalProperties: false,
+  properties: {
+    reply: { type: 'string', minLength: 1 },
+    hypotheses: {
+      type: 'array',
+      maxItems: 5,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['statement', 'confidence', 'evidence'],
+        properties: {
+          statement: { type: 'string' },
+          confidence: { type: 'string', enum: ['high', 'medium', 'low'] },
+          evidence: { type: 'string' },
+        },
+      },
+    },
+    openQuestions: {
+      type: 'array',
+      maxItems: 5,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['question', 'whyRelevant'],
+        properties: {
+          question: { type: 'string' },
+          whyRelevant: { type: 'string' },
+        },
+      },
+    },
+    nextActions: {
+      type: 'array',
+      maxItems: 5,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['action', 'description'],
+        properties: {
+          action: { type: 'string' },
+          description: { type: 'string' },
+        },
+      },
+    },
+    factsUsed: {
+      type: 'array',
+      maxItems: 8,
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['source', 'value'],
+        properties: {
+          source: { type: 'string' },
+          value: { type: 'string' },
+        },
+      },
+    },
+  },
+};
+
 function isNotFound(error) {
   return error?.code === 404 || error?.type === 'OBJECT_NOT_FOUND';
 }
@@ -117,6 +183,11 @@ module.exports = {
           values: [EXECUTION_MODES.AUTO, EXECUTION_MODES.HITL],
           default: EXECUTION_MODES.AUTO,
         },
+        chatMode: {
+          type: 'enum',
+          optional: true,
+          values: [CHAT_MODES.EXECUTION, CHAT_MODES.CONSULTATION],
+        },
         knownContext: { type: 'object', optional: true, default: {} },
       },
       openapi: {
@@ -133,9 +204,24 @@ module.exports = {
                 type: 'object',
                 required: ['message'],
                 properties: {
-                  message: { type: 'string', minLength: 1, maxLength: 8000, example: 'Plane eine neue PV-Anlage in Troisdorf.' },
+                  message: {
+                    type: 'string',
+                    minLength: 1,
+                    maxLength: 8000,
+                    example: 'Plane eine neue PV-Anlage in Troisdorf.',
+                  },
                   sessionId: { type: 'string', example: 'pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8' },
-                  executionMode: { type: 'string', enum: [EXECUTION_MODES.AUTO, EXECUTION_MODES.HITL], default: EXECUTION_MODES.AUTO },
+                  executionMode: {
+                    type: 'string',
+                    enum: [EXECUTION_MODES.AUTO, EXECUTION_MODES.HITL],
+                    default: EXECUTION_MODES.AUTO,
+                  },
+                  chatMode: {
+                    type: 'string',
+                    enum: [CHAT_MODES.EXECUTION, CHAT_MODES.CONSULTATION],
+                    description:
+                      'Optional explicit chat mode. If set, it overrides auto detection for this turn.',
+                  },
                   toolContext: { type: 'object', additionalProperties: true, default: {} },
                   knownContext: { type: 'object', additionalProperties: true, default: {} },
                   fileAttachments: {
@@ -180,7 +266,14 @@ module.exports = {
                 properties: {
                   message: { type: 'string' },
                   sessionId: { type: 'string' },
-                  executionMode: { type: 'string', enum: [EXECUTION_MODES.AUTO, EXECUTION_MODES.HITL] },
+                  executionMode: {
+                    type: 'string',
+                    enum: [EXECUTION_MODES.AUTO, EXECUTION_MODES.HITL],
+                  },
+                  chatMode: {
+                    type: 'string',
+                    enum: [CHAT_MODES.EXECUTION, CHAT_MODES.CONSULTATION],
+                  },
                   knownContext: { type: 'string', description: 'JSON-stringified object' },
                   toolContext: { type: 'string', description: 'JSON-stringified object' },
                   fileAttachments: {
@@ -194,7 +287,8 @@ module.exports = {
         },
         responses: {
           200: {
-            description: 'Chat turn completed (internal Moleculer calls only; REST gateway calls receive 202 Accepted)',
+            description:
+              'Chat turn completed (internal Moleculer calls only; REST gateway calls receive 202 Accepted)',
             content: {
               'application/json': {
                 examples: {
@@ -205,7 +299,8 @@ module.exports = {
                       success: true,
                       sessionId: 'pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8',
                       executionMode: 'hitl',
-                      reply: 'Ich habe einen 2-stufigen Plan entworfen. Sie können ihn überprüfen und dann manuell ausführen.',
+                      reply:
+                        'Ich habe einen 2-stufigen Plan entworfen. Sie können ihn überprüfen und dann manuell ausführen.',
                       layer4Purged: true,
                       l3Compressed: false,
                       contextUsage: {
@@ -266,7 +361,8 @@ module.exports = {
                       success: true,
                       sessionId: 'pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8',
                       executionMode: 'auto',
-                      reply: 'Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?',
+                      reply:
+                        'Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?',
                       layer4Purged: true,
                       l3Compressed: false,
                       contextUsage: {
@@ -309,12 +405,14 @@ module.exports = {
                           blockedStep: 1,
                           blockedAction: 'grid-connection.validate',
                           missingParams: ['gridOperatorName'],
-                          message: 'Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?',
+                          message:
+                            'Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?',
                           status: 'awaiting-onboarding',
                           onboardingQuestion: {
                             questionId: 'oq_abc123',
                             paramKey: 'gridOperatorName',
-                            questionText: 'Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?',
+                            questionText:
+                              'Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?',
                             ts: '2026-05-15T14:20:00Z',
                             answeredAt: null,
                             answer: null,
@@ -331,7 +429,8 @@ module.exports = {
                       success: true,
                       sessionId: 'pa_x9y8z7w6-v5u4-t3s2-r1q0-p9o8n7m6l5k4',
                       executionMode: 'auto',
-                      reply: 'Die Investitionsanalyse ist abgeschlossen. Die Kosten betragen ca. 45.000 EUR mit einer Amortisationszeit von 8,2 Jahren bei 7% Rendite.',
+                      reply:
+                        'Die Investitionsanalyse ist abgeschlossen. Die Kosten betragen ca. 45.000 EUR mit einer Amortisationszeit von 8,2 Jahren bei 7% Rendite.',
                       layer4Purged: true,
                       l3Compressed: false,
                       contextUsage: {
@@ -408,7 +507,8 @@ module.exports = {
                       success: true,
                       sessionId: 'pa_m5l4k3j2-i1h0-g9f8-e7d6-c5b4a3z2y1x0',
                       executionMode: 'auto',
-                      reply: 'Ich habe die Energiefreigabe-Validierung gestartet, benötige aber noch die Projekt-ID. Können Sie bitte angeben, welches Projekt Sie prüfen möchten?',
+                      reply:
+                        'Ich habe die Energiefreigabe-Validierung gestartet, benötige aber noch die Projekt-ID. Können Sie bitte angeben, welches Projekt Sie prüfen möchten?',
                       layer4Purged: true,
                       l3Compressed: false,
                       contextUsage: {
@@ -470,7 +570,8 @@ module.exports = {
                           blockedStep: 2,
                           blockedAction: 'znp.getProjectMeta',
                           missingParams: ['projectId'],
-                          message: 'Step 2 blocked: requires projectId. Available aliases: project, projectName, projectCode.',
+                          message:
+                            'Step 2 blocked: requires projectId. Available aliases: project, projectName, projectCode.',
                           status: 'user-input-required',
                           placeholderId: 'placeholder_user_input_v1',
                         },
@@ -484,7 +585,8 @@ module.exports = {
                       success: true,
                       sessionId: 'pa_n0o1p2q3-r4s5-t6u7-v8w9-x0y1z2a3b4c5',
                       executionMode: 'auto',
-                      reply: 'Die Redispatch-Analyse ist abgeschlossen. Die Erweiterung auf die Speicherplanung ist in dieser Version nicht freigeschaltet – ich stelle Ihnen dafür ein Manual-Interface zur Verfügung.',
+                      reply:
+                        'Die Redispatch-Analyse ist abgeschlossen. Die Erweiterung auf die Speicherplanung ist in dieser Version nicht freigeschaltet – ich stelle Ihnen dafür ein Manual-Interface zur Verfügung.',
                       layer4Purged: true,
                       l3Compressed: false,
                       contextUsage: {
@@ -547,12 +649,14 @@ module.exports = {
                           reasonCode: 'UNSUPPORTED_CHAIN',
                           blockedStep: 2,
                           blockedAction: 'storage.optimizer',
-                          message: 'Domain "storage" is not routable in deterministic chains. Interface placeholder activated for manual continuation.',
+                          message:
+                            'Domain "storage" is not routable in deterministic chains. Interface placeholder activated for manual continuation.',
                           status: 'interface-placeholder',
                           placeholderId: 'placeholder_storage_gap_v1',
                           placeholderMetadata: {
                             title: 'Speicheroptimierung',
-                            description: 'Manuelle Speicheroptimierung auf Basis des Redispatch-Audits erforderlich.',
+                            description:
+                              'Manuelle Speicheroptimierung auf Basis des Redispatch-Audits erforderlich.',
                             suggestedNextSteps: [
                               'Laden Sie die Audit-Ergebnisse herunter',
                               'Nutzen Sie unser Storage-Analyse-Tool',
@@ -568,10 +672,14 @@ module.exports = {
             },
           },
           202: {
-            description: 'Accepted - Chat turn submitted as async job. Poll /api/jobs/:jobId/status for progress. (REST gateway only; internal Moleculer calls receive 200.)',
+            description:
+              'Accepted - Chat turn submitted as async job. Poll /api/jobs/:jobId/status for progress. (REST gateway only; internal Moleculer calls receive 200.)',
             headers: {
               Location: { description: 'URL to poll job status', schema: { type: 'string' } },
-              'Retry-After': { description: 'Recommended polling interval in seconds', schema: { type: 'string' } },
+              'Retry-After': {
+                description: 'Recommended polling interval in seconds',
+                schema: { type: 'string' },
+              },
             },
             content: {
               'application/json': {
@@ -635,6 +743,8 @@ module.exports = {
         if (!session.planStack) session.planStack = [];
         if (!session.resolvedParams) session.resolvedParams = {};
         if (!session.resolvedCapabilities) session.resolvedCapabilities = [];
+        if (!session.chatMode) session.chatMode = CHAT_MODES.CONSULTATION;
+        if (!session.l3.chatMode) session.l3.chatMode = session.chatMode;
 
         const fileProcessing = this.processFileAttachments(
           session,
@@ -661,6 +771,141 @@ module.exports = {
 
         let routing = null;
         let plan = null;
+        let status = null;
+
+        const brokerRecommendation = await this.getBrokerRecommendation(
+          ctx,
+          ctx.params.message,
+          brokerKnownContext,
+          session.resolvedParams,
+          session.resolvedCapabilities
+        );
+        const requestedChatMode = normalizeChatMode(ctx.params.chatMode);
+        const effectiveChatMode =
+          requestedChatMode || detectChatMode(ctx.params.message, brokerRecommendation, session);
+        session.chatMode = effectiveChatMode;
+        session.l3.chatMode = effectiveChatMode;
+
+        if (effectiveChatMode === CHAT_MODES.CONSULTATION) {
+          const consultationResult = await this.handleConsultationTurn(ctx, {
+            message: ctx.params.message,
+            brokerRecommendation,
+            knowledgeContext,
+            session,
+            resolvedParams: session.resolvedParams,
+            knownContext: brokerKnownContext,
+          });
+
+          const consultationExecution = {
+            status: 'consulting',
+            plan: null,
+            steps: [],
+          };
+          const consultationRouting = {
+            source: 'consultation',
+            routeKey: null,
+            routeLabel: 'consultation',
+            primaryIntent: brokerRecommendation?.intent || 'consultation',
+            secondaryIntents: [],
+            requestedDomains: detectRequestedDomains(ctx.params.message),
+            unsupportedDomains: [],
+            warnings: [],
+            chatMode: CHAT_MODES.CONSULTATION,
+          };
+
+          const stackResult = buildContextStack({
+            systemPrompt: this.settings.systemPrompt,
+            tenantFacts: session.l1?.tenantFacts || [],
+            userProfile: session.l2?.userProfile || {},
+            sessionHistory: [...(session.l3?.history || []), userMessage],
+            fileAttachments: session.l3?.fileAttachments || [],
+            toolContext: ctx.params.toolContext || null,
+            maxContextTokens: this.settings.maxContextTokens,
+          });
+
+          const finalized = synthesizeAndPurgeLayer4(stackResult.stack, consultationResult.reply);
+          const persisted = buildPersistableSessionState({
+            id: sessionId,
+            tenantId,
+            userId,
+            l1: finalized.stack.l1,
+            l2: finalized.stack.l2,
+            l3: {
+              ...finalized.stack.l3,
+              chatMode: effectiveChatMode,
+              consultationContext: {
+                hypotheses: consultationResult.hypotheses,
+                openQuestions: consultationResult.openQuestions,
+                nextActions: consultationResult.nextActions,
+                factsUsed: consultationResult.factsUsed,
+                ts: new Date().toISOString(),
+              },
+            },
+            createdAt: session.createdAt,
+          });
+
+          persisted.l3.onboardingQuestions = Array.isArray(session.l3?.onboardingQuestions)
+            ? session.l3.onboardingQuestions
+            : [];
+          persisted.l3.assumptions = Array.isArray(session.l3?.assumptions)
+            ? session.l3.assumptions
+            : [];
+          persisted.l3.planStack = Array.isArray(session.planStack) ? session.planStack : [];
+          persisted.l3.resolvedParams =
+            session.resolvedParams && typeof session.resolvedParams === 'object'
+              ? session.resolvedParams
+              : {};
+          persisted.l3.lastCompletedPlan =
+            session.l3?.lastCompletedPlan && typeof session.l3.lastCompletedPlan === 'object'
+              ? session.l3.lastCompletedPlan
+              : null;
+
+          assertNoL4RawInPersistedState(persisted);
+          await this.persistSession(ctx, tenantId, sessionId, persisted);
+
+          await cancelDream(tenantId, sessionId);
+          const profileNs = tenantNamespace(PROFILE_NAMESPACE, tenantId);
+          await scheduleDream({
+            broker: this.broker,
+            sessionId,
+            tenantId,
+            userId,
+            profileNamespace: profileNs,
+            authMeta: this.buildDreamAuthMeta(ctx.meta, tenantId, userId),
+            runFn: async (payload) => {
+              await this.runDream(this.broker, payload);
+            },
+          });
+
+          status = 'consulting';
+
+          return {
+            success: true,
+            status,
+            sessionId,
+            executionMode,
+            chatMode: effectiveChatMode,
+            reply: consultationResult.reply,
+            consultation: {
+              hypotheses: consultationResult.hypotheses,
+              openQuestions: consultationResult.openQuestions,
+              nextActions: consultationResult.nextActions,
+              factsUsed: consultationResult.factsUsed,
+            },
+            layer4Purged: finalized.layer4Purged,
+            l3Compressed: Boolean(finalized.stack?.l3?.compressed),
+            contextUsage: stackResult.usage,
+            historyCount: finalized.stack?.l3?.history?.length || 0,
+            fileProcessing,
+            routing: consultationRouting,
+            plan: {
+              status: 'consulting',
+              steps: [],
+              onboardingHints: [],
+            },
+            execution: consultationExecution,
+          };
+        }
 
         const resumable = findResumableParentFrame(session.planStack);
         if (resumable?.parentFrame) {
@@ -681,22 +926,12 @@ module.exports = {
                 primaryIntent:
                   resumed.parentFrame.intent || resumed.parentFrame.routing?.primaryIntent || null,
               };
-              plan = mergeResolvedParamsIntoPlan(
-                resumed.parentFrame.plan,
-                session.resolvedParams
-              );
+              plan = mergeResolvedParamsIntoPlan(resumed.parentFrame.plan, session.resolvedParams);
             }
           }
         }
 
         if (!plan) {
-          const brokerRecommendation = await this.getBrokerRecommendation(
-            ctx,
-            ctx.params.message,
-            brokerKnownContext,
-            session.resolvedParams,
-            session.resolvedCapabilities
-          );
           plan = buildExecutionPlan({
             message: ctx.params.message,
             brokerRecommendation,
@@ -727,6 +962,7 @@ module.exports = {
           executionMode,
         });
         let responsePlan = execution?.plan || routedPlan || plan;
+        status = execution?.status || 'completed';
         routing = {
           ...(routing || {}),
           primaryIntent: responsePlan?.primaryIntent || routing?.primaryIntent || null,
@@ -875,7 +1111,8 @@ module.exports = {
               presentation: {
                 type: 'conversational_onboarding',
                 title: 'Fehlende Eingaben',
-                summary: 'Bitte ergänzen Sie die fehlenden Angaben, damit die Ausführung fortgesetzt werden kann.',
+                summary:
+                  'Bitte ergänzen Sie die fehlenden Angaben, damit die Ausführung fortgesetzt werden kann.',
                 markdown: replyMarkdown,
                 warnings: missingParams.map((param) => `missing_context:${param}`),
                 sections: [
@@ -904,24 +1141,23 @@ module.exports = {
           try {
             const domainResult = this.extractDomainResultFromExecution(execution);
             if (domainResult && Object.keys(domainResult).length > 0) {
-              const intent = responsePlan?.primaryIntent || responsePlan?.routeKey || 'execution_result';
+              const intent =
+                responsePlan?.primaryIntent || responsePlan?.routeKey || 'execution_result';
               const presentationContext = {
                 tenantId,
                 sessionId,
                 processType: responsePlan?.routeKey || null,
                 matrixId: domainResult?.matrix?.id || domainResult?.matrixId || null,
                 taskId:
-                  domainResult?.taskId
-                  || (Array.isArray(domainResult?.matrix?.tasks) && domainResult.matrix.tasks[0]
+                  domainResult?.taskId ||
+                  (Array.isArray(domainResult?.matrix?.tasks) && domainResult.matrix.tasks[0]
                     ? domainResult.matrix.tasks[0].taskId || null
                     : null),
                 source: 'personal-agent',
               };
 
               const preferredFormat =
-                intent && /vdmi|governance/i.test(String(intent))
-                  ? 'vdmi_matrix_table'
-                  : 'auto';
+                intent && /vdmi|governance/i.test(String(intent)) ? 'vdmi_matrix_table' : 'auto';
 
               presentationResult = await ctx.call(
                 'presentation.render',
@@ -943,15 +1179,11 @@ module.exports = {
               ) {
                 presentationApplied = true;
                 presentationType =
-                  presentationResult?.presentation?.type
-                  || presentationResult?.type
-                  || null;
+                  presentationResult?.presentation?.type || presentationResult?.type || null;
               }
             }
           } catch (error) {
-            this.logger?.warn(
-              `Presentation render failed (non-blocking): ${error.message}`
-            );
+            this.logger?.warn(`Presentation render failed (non-blocking): ${error.message}`);
             presentationApplied = false;
           }
         }
@@ -972,6 +1204,8 @@ module.exports = {
         persisted.l3.onboardingQuestions = Array.isArray(session.l3?.onboardingQuestions)
           ? session.l3.onboardingQuestions
           : [];
+        persisted.l3.chatMode = effectiveChatMode;
+        persisted.l3.consultationContext = null;
         persisted.l3.assumptions = this.mergeAssumptions(
           session.l3?.assumptions || [],
           execution?.assumptions || []
@@ -1010,8 +1244,10 @@ module.exports = {
 
         return {
           success: true,
+          status,
           sessionId,
           executionMode,
+          chatMode: effectiveChatMode,
           reply: responseReply,
           presentationApplied,
           presentationType: presentationType || null,
@@ -1023,9 +1259,7 @@ module.exports = {
                 summary: presentationResult?.presentation?.summary || null,
                 markdown: presentationResult.markdown,
                 warnings:
-                  presentationResult?.presentation?.warnings
-                  || presentationResult?.warnings
-                  || [],
+                  presentationResult?.presentation?.warnings || presentationResult?.warnings || [],
                 sections: Array.isArray(presentationResult?.presentation?.sections)
                   ? presentationResult.presentation.sections
                   : [],
@@ -1097,6 +1331,7 @@ module.exports = {
         return {
           success: true,
           sessionId: session.id,
+          chatMode: session.chatMode || session?.l3?.chatMode || CHAT_MODES.CONSULTATION,
           createdAt: session.createdAt,
           updatedAt: session.updatedAt,
           planStack: Array.isArray(session?.l3?.planStack) ? session.l3.planStack : [],
@@ -1165,6 +1400,8 @@ module.exports = {
             fileAttachments: [],
             summary: null,
             compressed: false,
+            chatMode: 'auto',
+            consultationContext: null,
             planStack: Array.isArray(current?.l3?.planStack) ? current.l3.planStack : [],
             resolvedParams:
               current?.l3?.resolvedParams && typeof current.l3.resolvedParams === 'object'
@@ -1218,7 +1455,10 @@ module.exports = {
                   properties: {
                     success: { type: 'boolean' },
                     sessionId: { type: 'string' },
-                    dreamPending: { type: 'boolean', description: 'true if inactivity timer is active' },
+                    dreamPending: {
+                      type: 'boolean',
+                      description: 'true if inactivity timer is active',
+                    },
                   },
                 },
               },
@@ -1240,8 +1480,23 @@ module.exports = {
     getDreamAudit: {
       rest: 'GET /dream-audit',
       params: {
-        limit: { type: 'number', integer: true, min: 1, max: 200, optional: true, default: 50, convert: true },
-        offset: { type: 'number', integer: true, min: 0, optional: true, default: 0, convert: true },
+        limit: {
+          type: 'number',
+          integer: true,
+          min: 1,
+          max: 200,
+          optional: true,
+          default: 50,
+          convert: true,
+        },
+        offset: {
+          type: 'number',
+          integer: true,
+          min: 0,
+          optional: true,
+          default: 0,
+          convert: true,
+        },
       },
       openapi: {
         tags: [OPENAPI_TAG],
@@ -1312,7 +1567,11 @@ module.exports = {
           );
           docs = Array.isArray(result?.docs) ? result.docs : [];
         } catch (err) {
-          if (err?.code === 'NOT_FOUND' || err?.type === 'NOT_FOUND' || err?.message?.includes('not found')) {
+          if (
+            err?.code === 'NOT_FOUND' ||
+            err?.type === 'NOT_FOUND' ||
+            err?.message?.includes('not found')
+          ) {
             docs = [];
           } else {
             throw err;
@@ -1344,6 +1603,126 @@ module.exports = {
       return await chatCore.call(this, ctx);
     },
 
+    buildConsultationPrompt({ message, brokerRecommendation, resolvedParams, knowledgeContext }) {
+      const facts = [];
+      const knownFacts = resolvedParams && typeof resolvedParams === 'object' ? resolvedParams : {};
+      for (const [key, value] of Object.entries(knownFacts)) {
+        if (value === undefined || value === null || value === '') continue;
+        if (typeof value === 'object') {
+          facts.push(`- ${key}: ${JSON.stringify(value).slice(0, 300)}`);
+        } else {
+          facts.push(`- ${key}: ${String(value).slice(0, 300)}`);
+        }
+      }
+
+      if (knowledgeContext?.domainHint) {
+        facts.push(`- domainHint: ${knowledgeContext.domainHint}`);
+      }
+      if (knowledgeContext?.regulatoryFrame) {
+        facts.push(`- regulatoryFrame: ${knowledgeContext.regulatoryFrame}`);
+      }
+      if (brokerRecommendation?.intent) {
+        facts.push(`- brokerIntent: ${brokerRecommendation.intent}`);
+      }
+
+      return [
+        'Du bist ein Experte für deutsche Energiewirtschaft.',
+        'Der Nutzer sucht Beratung und Einordnung. KEINE deterministische Blockade-Antwort.',
+        'Regeln:',
+        '- Erkläre kurz und verständlich.',
+        '- Formuliere belastbar mit Unsicherheiten, wenn Evidenz fehlt.',
+        '- Keine Sätze wie "Schnittstelle fehlt" oder "Methodik-Hinweis".',
+        '- Schlage konkrete nächste Schritte vor.',
+        '',
+        'Verfügbare Fakten:',
+        facts.length > 0 ? facts.join('\n') : '- keine belastbaren Zusatzfakten vorhanden',
+        '',
+        `Nutzerfrage: ${String(message || '').trim()}`,
+        '',
+        'Antworte im geforderten JSON-Schema.',
+      ].join('\n');
+    },
+
+    async handleConsultationTurn(ctx, input = {}) {
+      const message = String(input.message || '').trim();
+      const brokerRecommendation = input.brokerRecommendation || {};
+      const resolvedParams =
+        input.resolvedParams && typeof input.resolvedParams === 'object' ? input.resolvedParams : {};
+      const knowledgeContext = input.knowledgeContext || null;
+
+      const fallback = {
+        reply:
+          'Ich ordne die Lage vorläufig ein: Eine Abregelung hängt typischerweise von lokaler Netzlast, Einspeisespitzen und Steuerbarkeit ab. Ich kann als nächsten Schritt eine strukturierte Prüfung mit Ihren Bestandsdaten starten oder wir klären zuerst die fehlenden Evidenzpunkte.',
+        hypotheses: [
+          {
+            statement: 'Die Abregelungswahrscheinlichkeit ist ohne lokale Last-/Engpassdaten nicht belastbar quantifizierbar.',
+            confidence: 'medium',
+            evidence: 'Es fehlen standortspezifische Netzengpass- und Betriebsdaten.',
+          },
+        ],
+        openQuestions: [
+          {
+            question: 'Geht es um gelegentliche Spitzenkappung oder dauerhafte Leistungsbegrenzung?',
+            whyRelevant: 'Die Maßnahmen und wirtschaftlichen Auswirkungen unterscheiden sich deutlich.',
+          },
+        ],
+        nextActions: [
+          {
+            action: 'Prüfmodus starten',
+            description: 'Wenn gewünscht, starte ich sofort die konkrete Prüfung im execution-Modus.',
+          },
+        ],
+        factsUsed: [
+          {
+            source: 'user_prompt',
+            value: message.slice(0, 280),
+          },
+        ],
+      };
+
+      if (!message) {
+        return fallback;
+      }
+
+      try {
+        const systemPrompt = this.buildConsultationPrompt({
+          message,
+          brokerRecommendation,
+          resolvedParams,
+          knowledgeContext,
+        });
+
+        const raw = await ctx.call(
+          'llm.generate',
+          {
+            system: systemPrompt,
+            user: message,
+            schema: CONSULTATION_OUTPUT_SCHEMA,
+          },
+          { meta: { ...ctx.meta, $gateway: false } }
+        );
+
+        const data = raw?.data || raw;
+        if (!data || typeof data !== 'object' || !String(data.reply || '').trim()) {
+          return fallback;
+        }
+
+        const sanitizeArray = (arr) => (Array.isArray(arr) ? arr : []);
+        return {
+          reply: String(data.reply || fallback.reply).trim(),
+          hypotheses: sanitizeArray(data.hypotheses),
+          openQuestions: sanitizeArray(data.openQuestions),
+          nextActions: sanitizeArray(data.nextActions),
+          factsUsed: sanitizeArray(data.factsUsed),
+        };
+      } catch (error) {
+        if (!isActionUnavailable(error)) {
+          this.logger?.warn(`Consultation LLM generation failed (fallback active): ${error.message}`);
+        }
+        return fallback;
+      }
+    },
+
     /**
      * Build an empathetic, context-aware onboarding reply using the LLM.
      *
@@ -1364,19 +1743,20 @@ module.exports = {
      */
     async buildEmpathethicOnboardingReply({ message, execution, plan }) {
       const onboardingQuestion = execution?.stopPoint?.onboardingQuestion;
-      const questionText =
-        onboardingQuestion?.questionText || execution?.stopPoint?.message || '';
+      const questionText = onboardingQuestion?.questionText || execution?.stopPoint?.message || '';
       const paramKey = onboardingQuestion?.paramKey || null;
 
       const staticAlternatives =
-        (paramKey && Array.isArray(ONBOARDING_PARAM_ALTERNATIVES[paramKey])
+        paramKey && Array.isArray(ONBOARDING_PARAM_ALTERNATIVES[paramKey])
           ? ONBOARDING_PARAM_ALTERNATIVES[paramKey]
-          : []);
+          : [];
 
       const fallback = { markdown: questionText, nextActions: [] };
       if (!questionText) return fallback;
 
-      const userSnippet = String(message || '').trim().slice(0, 400);
+      const userSnippet = String(message || '')
+        .trim()
+        .slice(0, 400);
       const planSteps = Array.isArray(plan?.steps)
         ? plan.steps
             .map((s) => s.label || s.action)
@@ -1492,7 +1872,8 @@ module.exports = {
 
     buildDreamAuthMeta(meta = {}, tenantId, userId) {
       const safeMeta = meta && typeof meta === 'object' ? meta : {};
-      const authUser = safeMeta.authUser && typeof safeMeta.authUser === 'object' ? safeMeta.authUser : {};
+      const authUser =
+        safeMeta.authUser && typeof safeMeta.authUser === 'object' ? safeMeta.authUser : {};
       const requestHeaders = this.sanitizeDreamRequestHeaders(safeMeta.requestHeaders);
 
       const nextAuthUser = {
@@ -1520,7 +1901,9 @@ module.exports = {
       const sanitized = {};
 
       for (const [key, value] of Object.entries(headers)) {
-        const normalizedKey = String(key || '').trim().toLowerCase();
+        const normalizedKey = String(key || '')
+          .trim()
+          .toLowerCase();
         if (!allowed.includes(normalizedKey)) {
           continue;
         }
@@ -1564,7 +1947,10 @@ module.exports = {
         return `Ich habe ${okCount} Datei(en) verarbeitet. `;
       }
 
-      const names = errorItems.map((item) => item.fileName).filter(Boolean).join(', ');
+      const names = errorItems
+        .map((item) => item.fileName)
+        .filter(Boolean)
+        .join(', ');
       return `Ich habe ${okCount} von ${total} Datei(en) verarbeitet. Bei ${names} gab es einen Parse-Fehler. `;
     },
 
@@ -1577,7 +1963,10 @@ module.exports = {
         return parseCsvExtract(file.tempPath);
       }
 
-      if (typeInfo.category === 'tabular' && (typeInfo.ext === '.xlsx' || typeInfo.ext === '.xls')) {
+      if (
+        typeInfo.category === 'tabular' &&
+        (typeInfo.ext === '.xlsx' || typeInfo.ext === '.xls')
+      ) {
         return parseExcelExtract(file.tempPath);
       }
 
@@ -1704,19 +2093,27 @@ module.exports = {
       knowledgeContext = null,
     }) {
       const fileIntro = this.buildFileProcessingIntro(fileProcessing);
-      const promptExcerpt = String(message || '').trim().slice(0, 220);
+      const promptExcerpt = String(message || '')
+        .trim()
+        .slice(0, 220);
       const synthesisStyle = knowledgeContext?.synthesisStyle || null;
       const styleLead = this.buildSynthesisStyleLead(synthesisStyle);
       const prefixed = (text) => (styleLead ? `${styleLead} ${text}` : text);
 
       if (toolContext && toolContext.responseRaw) {
         const keyCount = Object.keys(toolContext.responseRaw || {}).length;
-        return prefixed(`${fileIntro}Tool-Ergebnis verarbeitet (${keyCount} Felder). Zusammenfassung erstellt und Layer 4 verworfen.`);
+        return prefixed(
+          `${fileIntro}Tool-Ergebnis verarbeitet (${keyCount} Felder). Zusammenfassung erstellt und Layer 4 verworfen.`
+        );
       }
       if (executionMode === EXECUTION_MODES.HITL) {
-        return prefixed(`${fileIntro}Plan bereit: ${plan.steps.length} deterministische Schritte für „${String(message)
-          .trim()
-          .slice(0, 160)}“. Ausführung wartet auf Freigabe.`);
+        return prefixed(
+          `${fileIntro}Plan bereit: ${plan.steps.length} deterministische Schritte für „${String(
+            message
+          )
+            .trim()
+            .slice(0, 160)}“. Ausführung wartet auf Freigabe.`
+        );
       }
       if (execution?.status === 'awaiting-onboarding') {
         return this.buildRecoveryReply({
@@ -1729,7 +2126,9 @@ module.exports = {
         });
       }
       if (execution?.status === 'completed') {
-        return prefixed(`${fileIntro}Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt. Kontext: ${promptExcerpt}`);
+        return prefixed(
+          `${fileIntro}Plan abgeschlossen: ${execution.steps.length} Schritte deterministisch ausgeführt. Kontext: ${promptExcerpt}`
+        );
       }
       if (execution?.status === 'partial') {
         return this.buildRecoveryReply({
@@ -1741,7 +2140,9 @@ module.exports = {
           synthesisStyle,
         });
       }
-      return prefixed(`${fileIntro}Verstanden. Nächster Schritt für: ${String(message).trim().slice(0, 240)}`);
+      return prefixed(
+        `${fileIntro}Verstanden. Nächster Schritt für: ${String(message).trim().slice(0, 240)}`
+      );
     },
 
     buildSynthesisStyleLead(synthesisStyle) {
@@ -1762,21 +2163,22 @@ module.exports = {
       assumptions = [],
       synthesisStyle = null,
     }) {
-      const taskTone = synthesisStyle === 'cautionary' || this.isFinanceRiskTask(message, plan, execution)
-        ? 'finance-risk'
-        : 'general';
+      const taskTone =
+        synthesisStyle === 'cautionary' || this.isFinanceRiskTask(message, plan, execution)
+          ? 'finance-risk'
+          : 'general';
       const completedStepSummaries = this.summarizeCompletedSteps(plan, execution);
       const stopPoint = execution?.stopPoint || {};
-      const progressPrefix = taskTone === 'finance-risk' ? 'Für die Risikoprüfung' : 'Für die fachliche Bewertung';
+      const progressPrefix =
+        taskTone === 'finance-risk' ? 'Für die Risikoprüfung' : 'Für die fachliche Bewertung';
       const styleLead = this.buildSynthesisStyleLead(synthesisStyle);
 
-      const progressText = completedStepSummaries.length > 0
-        ? `${progressPrefix} habe ich bereits ${completedStepSummaries.length === 1 ? 'einen Prüfschritt' : `${completedStepSummaries.length} Prüfschritte`} abgeschlossen: ${completedStepSummaries.join('; ')}.`
-        : `${progressPrefix} konnte ich noch keinen Prüfschritt abschließen.`;
+      const progressText =
+        completedStepSummaries.length > 0
+          ? `${progressPrefix} habe ich bereits ${completedStepSummaries.length === 1 ? 'einen Prüfschritt' : `${completedStepSummaries.length} Prüfschritte`} abgeschlossen: ${completedStepSummaries.join('; ')}.`
+          : `${progressPrefix} konnte ich noch keinen Prüfschritt abschließen.`;
 
-      const locationAssumption = assumptions.find(
-        (a) => a.type === 'location_operator_unverified'
-      );
+      const locationAssumption = assumptions.find((a) => a.type === 'location_operator_unverified');
       const riskWarning = locationAssumption
         ? this.buildLocationAssumptionWarning(locationAssumption)
         : '';
@@ -1867,14 +2269,19 @@ module.exports = {
       const isTechnicalToken =
         /execute curated capability path/i.test(raw) ||
         /\binterface_placeholder\b/i.test(raw) ||
-        /\b(grid_operator_identity_resolution|mastr_asset_inventory|vnb_kpi_benchmark_comparison)\b/i.test(raw) ||
+        /\b(grid_operator_identity_resolution|mastr_asset_inventory|vnb_kpi_benchmark_comparison)\b/i.test(
+          raw
+        ) ||
         /\b[a-z][a-z0-9]*(?:_[a-z0-9]+){1,}\b/i.test(raw);
 
       const stripped = raw
         .replace(/^execute curated capability path for\s+/i, '')
         .replace(/^execute curated capability path:\s*/i, '')
         .replace(/\binterface_placeholder\b/gi, 'fehlende Schnittstelle oder Evidenzquelle')
-        .replace(/\b(grid_operator_identity_resolution|mastr_asset_inventory|vnb_kpi_benchmark_comparison)\b/gi, '')
+        .replace(
+          /\b(grid_operator_identity_resolution|mastr_asset_inventory|vnb_kpi_benchmark_comparison)\b/gi,
+          ''
+        )
         .replace(/[_-]+/g, ' ')
         .replace(/\s+/g, ' ')
         .trim();
@@ -1893,7 +2300,10 @@ module.exports = {
     buildRecoveryStopText({ plan = {}, execution = {}, stopPoint = {}, taskTone }) {
       const blockedStepLabel = this.describeBlockedStep(plan, stopPoint);
 
-      if (stopPoint.reasonCode === 'MISSING_INPUTS' || execution?.status === 'awaiting-onboarding') {
+      if (
+        stopPoint.reasonCode === 'MISSING_INPUTS' ||
+        execution?.status === 'awaiting-onboarding'
+      ) {
         const missingText = this.describeMissingRecoveryInputs(stopPoint);
         const hasFullQuestion = this.isCompleteSentence(missingText);
         const missingSummary = hasFullQuestion ? 'die offene Evidenz' : missingText;
@@ -1902,7 +2312,10 @@ module.exports = {
           : `Mir fehlt noch ${missingSummary}.`;
       }
 
-      if (stopPoint.status === 'interface-placeholder' || stopPoint.reasonCode === 'UNSUPPORTED_CHAIN') {
+      if (
+        stopPoint.status === 'interface-placeholder' ||
+        stopPoint.reasonCode === 'UNSUPPORTED_CHAIN'
+      ) {
         return taskTone === 'finance-risk'
           ? `Der Stopp liegt an einer fehlenden Schnittstelle oder Evidenzquelle beim Prüfpunkt "${blockedStepLabel}".`
           : `Der Stopp liegt an einer fehlenden Schnittstelle oder Evidenzquelle beim Schritt "${blockedStepLabel}".`;
@@ -1932,15 +2345,27 @@ module.exports = {
         return null;
       }
 
-      if (/(risk assessment|risikoampel|kreditausschuss|condition precedent|due diligence|due-diligence|risikobewertung|risikoanalyse)/i.test(normalized)) {
+      if (
+        /(risk assessment|risikoampel|kreditausschuss|condition precedent|due diligence|due-diligence|risikobewertung|risikoanalyse)/i.test(
+          normalized
+        )
+      ) {
         return 'risk';
       }
 
-      if (/(markt|regulator|preisdaten|preis|entso-e|netztransparenz|methodik|methodologie|datenquelle|day-ahead|negativpreis|volatilität|volatilitaet)/i.test(normalized)) {
+      if (
+        /(markt|regulator|preisdaten|preis|entso-e|netztransparenz|methodik|methodologie|datenquelle|day-ahead|negativpreis|volatilität|volatilitaet)/i.test(
+          normalized
+        )
+      ) {
         return 'market';
       }
 
-      if (/(vorläufigen annahme|vorlaeufigen annahme|arbeite .* weiter|weiterarbeiten|nächste fachliche schritte|naechste fachliche schritte|nächste schritte|naechste schritte|wie weiter|fortfahren|weiter vorgehen)/i.test(normalized)) {
+      if (
+        /(vorläufigen annahme|vorlaeufigen annahme|arbeite .* weiter|weiterarbeiten|nächste fachliche schritte|naechste fachliche schritte|nächste schritte|naechste schritte|wie weiter|fortfahren|weiter vorgehen)/i.test(
+          normalized
+        )
+      ) {
         return 'continuation';
       }
 
@@ -1971,7 +2396,9 @@ module.exports = {
           item.location || '',
           item.assertedGridOperatorName || '',
           item.status || '',
-        ].join('::').toLowerCase();
+        ]
+          .join('::')
+          .toLowerCase();
 
         if (seen.has(key)) {
           continue;
@@ -2001,11 +2428,19 @@ module.exports = {
         .join(' ')
         .toLowerCase();
 
-      if (/(market|markt|regulator|preis|pricing|preisdaten|entso-e|netztransparenz|day-ahead|negativpreis|volatil)/i.test(routingSignals)) {
+      if (
+        /(market|markt|regulator|preis|pricing|preisdaten|entso-e|netztransparenz|day-ahead|negativpreis|volatil)/i.test(
+          routingSignals
+        )
+      ) {
         return 'market';
       }
 
-      if (/(risk assessment|risk|risiko|due diligence|due-diligence|kreditausschuss|kredit|loan|lender|investment committee|komitee|condition precedent)/i.test(routingSignals)) {
+      if (
+        /(risk assessment|risk|risiko|due diligence|due-diligence|kreditausschuss|kredit|loan|lender|investment committee|komitee|condition precedent)/i.test(
+          routingSignals
+        )
+      ) {
         return 'risk';
       }
 
@@ -2026,13 +2461,16 @@ module.exports = {
         : `Ohne angebundene Fachschnittstelle kann ich zunächst Methodik, Evidenzlücken und nächste Prüfschritte strukturiert benennen.${assumptionNote}`;
     },
 
-    buildRecoveryNextText({ message, plan = {}, execution = {}, stopPoint = {}, taskTone, assumptions = [] }) {
-      const locationAssumption = assumptions.find(
-        (a) => a.type === 'location_operator_unverified'
-      );
-      const followUpType = locationAssumption
-        ? this.detectAssumptionDrivenFollowUp(message)
-        : null;
+    buildRecoveryNextText({
+      message,
+      plan = {},
+      execution = {},
+      stopPoint = {},
+      taskTone,
+      assumptions = [],
+    }) {
+      const locationAssumption = assumptions.find((a) => a.type === 'location_operator_unverified');
+      const followUpType = locationAssumption ? this.detectAssumptionDrivenFollowUp(message) : null;
 
       if (followUpType === 'market') {
         return this.buildMarketMethodologicalNextText(taskTone, locationAssumption);
@@ -2046,7 +2484,10 @@ module.exports = {
         return this.buildAssumptionContinuationNextText(taskTone, locationAssumption);
       }
 
-      if (stopPoint.reasonCode === 'MISSING_INPUTS' || execution?.status === 'awaiting-onboarding') {
+      if (
+        stopPoint.reasonCode === 'MISSING_INPUTS' ||
+        execution?.status === 'awaiting-onboarding'
+      ) {
         const questionText = stopPoint?.onboardingQuestion?.questionText;
         if (questionText) {
           return this.isCompleteSentence(questionText)
@@ -2060,7 +2501,10 @@ module.exports = {
           : `Bitte nenne ${missingText}, damit ich fortfahren kann.`;
       }
 
-      if (stopPoint.status === 'interface-placeholder' || stopPoint.reasonCode === 'UNSUPPORTED_CHAIN') {
+      if (
+        stopPoint.status === 'interface-placeholder' ||
+        stopPoint.reasonCode === 'UNSUPPORTED_CHAIN'
+      ) {
         const fallbackType = this.resolveMethodologyFallbackType({
           message,
           plan,
@@ -2120,10 +2564,15 @@ module.exports = {
       }
 
       const metadataSuggestions = Array.isArray(stopPoint?.placeholderMetadata?.suggestedNextSteps)
-        ? stopPoint.placeholderMetadata.suggestedNextSteps.filter((item) => typeof item === 'string' && item.trim())
+        ? stopPoint.placeholderMetadata.suggestedNextSteps.filter(
+            (item) => typeof item === 'string' && item.trim()
+          )
         : [];
       if (metadataSuggestions.length > 0) {
-        return this.humanizeCapabilityLabel(metadataSuggestions[0], 'die fehlende Evidenz nachreichen');
+        return this.humanizeCapabilityLabel(
+          metadataSuggestions[0],
+          'die fehlende Evidenz nachreichen'
+        );
       }
 
       const blockedStepLabel = this.describeBlockedStep(plan, stopPoint);
@@ -2173,7 +2622,9 @@ module.exports = {
       }
       const resultList = Array.isArray(result?.data?.results)
         ? result.data.results
-        : (Array.isArray(result?.results) ? result.results : null);
+        : Array.isArray(result?.results)
+          ? result.results
+          : null;
       if (Array.isArray(resultList)) {
         hints.push(resultList.length === 0 ? 'kein Treffer' : `${resultList.length} Treffer`);
       }
@@ -2190,7 +2641,9 @@ module.exports = {
     describeBlockedStep(plan = {}, stopPoint = {}) {
       const blockedStepNumber = Number(stopPoint?.blockedStep || 0);
       const plannedStep = Array.isArray(plan?.steps)
-        ? plan.steps.find((step) => step.step === blockedStepNumber || step.action === stopPoint?.blockedAction)
+        ? plan.steps.find(
+            (step) => step.step === blockedStepNumber || step.action === stopPoint?.blockedAction
+          )
         : null;
 
       if (plannedStep) {
@@ -2281,17 +2734,29 @@ module.exports = {
         plan?.primaryIntent,
         plan?.routeLabel,
         plan?.routeKey,
-        ...(Array.isArray(plan?.steps) ? plan.steps.map((step) => `${step.action || ''} ${step.purpose || ''}`) : []),
-        ...(Array.isArray(execution?.steps) ? execution.steps.map((step) => `${step.action || ''} ${step.purpose || ''}`) : []),
+        ...(Array.isArray(plan?.steps)
+          ? plan.steps.map((step) => `${step.action || ''} ${step.purpose || ''}`)
+          : []),
+        ...(Array.isArray(execution?.steps)
+          ? execution.steps.map((step) => `${step.action || ''} ${step.purpose || ''}`)
+          : []),
       ]
         .filter(Boolean)
         .join(' ')
         .toLowerCase();
 
-      return /(kredit|credit|loan|bank|finanz|finance|risk|risiko|due diligence|due-diligence|bewertung|invest|investment|lender|komitee)/i.test(haystack);
+      return /(kredit|credit|loan|bank|finanz|finance|risk|risiko|due diligence|due-diligence|bewertung|invest|investment|lender|komitee)/i.test(
+        haystack
+      );
     },
 
-    async getBrokerRecommendation(ctx, message, knownContext = {}, resolvedParams = {}, resolvedCapabilities = []) {
+    async getBrokerRecommendation(
+      ctx,
+      message,
+      knownContext = {},
+      resolvedParams = {},
+      resolvedCapabilities = []
+    ) {
       try {
         return await ctx.call(
           'capability-broker.recommend',
@@ -2341,9 +2806,7 @@ module.exports = {
         message,
         blockedStep,
         blockedAction: placeholder?.blockedAction || null,
-        missingParams: Array.isArray(placeholder?.missingParams)
-          ? placeholder.missingParams
-          : null,
+        missingParams: Array.isArray(placeholder?.missingParams) ? placeholder.missingParams : null,
         onboardingQuestion: placeholder?.onboardingQuestion || null,
         onboardingHints: placeholder?.onboardingHints || null,
         placeholderId: placeholder?.placeholder?.placeholderId || null,
@@ -2547,30 +3010,25 @@ module.exports = {
       };
     },
 
-    async handleExecutionWithOnboarding(ctx, {
-      message,
-      plan,
-      knownContext,
-      session,
-      executionMode,
-    }) {
+    async handleExecutionWithOnboarding(
+      ctx,
+      { message, plan, knownContext, session, executionMode }
+    ) {
       if (executionMode === EXECUTION_MODES.HITL) {
-        const hydratedContext = this.hydrateKnownContextFromSession(
-          knownContext,
-          session
-        );
+        const hydratedContext = this.hydrateKnownContextFromSession(knownContext, session);
         const enrichedPlan = this.enrichPlanWithOnboardingHints(plan, hydratedContext);
         return {
           status: 'skipped',
           steps: [],
-          stopPoint: plan.status === 'partial'
-            ? this.buildStopPoint({
-                reasonCode: 'UNSUPPORTED_CHAIN',
-                message: plan.warnings[0] || 'Chain requires manual continuation.',
-                blockedStep: (plan.steps?.length || 0) + 1,
-                status: 'plan-only',
-              })
-            : null,
+          stopPoint:
+            plan.status === 'partial'
+              ? this.buildStopPoint({
+                  reasonCode: 'UNSUPPORTED_CHAIN',
+                  message: plan.warnings[0] || 'Chain requires manual continuation.',
+                  blockedStep: (plan.steps?.length || 0) + 1,
+                  status: 'plan-only',
+                })
+              : null,
           plan: enrichedPlan,
         };
       }
@@ -2589,7 +3047,10 @@ module.exports = {
         : [];
       let effectivePlan = plan;
       if (pendingQuestion) {
-        const answer = captureOnboardingAnswer({ question: pendingQuestion, message });
+        const explicitSwitch = detectExplicitChatModeSwitch(message);
+        const answer = explicitSwitch
+          ? null
+          : captureOnboardingAnswer({ question: pendingQuestion, message });
         if (!answer) {
           const planUsesPendingAction = Array.isArray(plan?.steps)
             ? plan.steps.some((step) => step?.action === pendingQuestion.action)
@@ -2728,7 +3189,8 @@ module.exports = {
         };
       }
 
-      const decisionRegex = /(decision|entscheidung|netzbetreiberentscheidung|anschluss|kapazit[aä]t|uebergabepunkt|übergabepunkt|governance|formal|antrag|gatekeeper)/i;
+      const decisionRegex =
+        /(decision|entscheidung|netzbetreiberentscheidung|anschluss|kapazit[aä]t|uebergabepunkt|übergabepunkt|governance|formal|antrag|gatekeeper)/i;
       const decisionCandidates = tasks.filter((task) =>
         decisionRegex.test(`${task?.taskId || ''} ${task?.taskName || ''} ${task?.phase || ''}`)
       );
@@ -2764,7 +3226,9 @@ module.exports = {
 
     extractVdmiTaskFromExecutionState(executionState = {}) {
       const stepResults = executionState?.stepResults || {};
-      const steps = Object.values(stepResults).map((entry) => entry?.raw || entry?.data || entry || {});
+      const steps = Object.values(stepResults).map(
+        (entry) => entry?.raw || entry?.data || entry || {}
+      );
 
       for (const payload of steps.reverse()) {
         const dossierTask = payload?.dossier?.task;
@@ -2782,7 +3246,11 @@ module.exports = {
 
       if (matrixId) {
         try {
-          const response = await ctx.call('vdmi.get', { id: matrixId }, { meta: { ...ctx.meta, $gateway: false } });
+          const response = await ctx.call(
+            'vdmi.get',
+            { id: matrixId },
+            { meta: { ...ctx.meta, $gateway: false } }
+          );
           return response?.matrix || null;
         } catch (error) {
           if (isActionUnavailable(error) || isNotFound(error)) {
@@ -2794,7 +3262,11 @@ module.exports = {
 
       if (processId) {
         try {
-          const response = await ctx.call('vdmi.context', { jobId: processId }, { meta: { ...ctx.meta, $gateway: false } });
+          const response = await ctx.call(
+            'vdmi.context',
+            { jobId: processId },
+            { meta: { ...ctx.meta, $gateway: false } }
+          );
           return response?.matrix || null;
         } catch (error) {
           if (isActionUnavailable(error) || isNotFound(error)) {
@@ -2807,12 +3279,7 @@ module.exports = {
       return null;
     },
 
-    async hydrateVdmiStepParams(ctx, {
-      plannedStep,
-      params,
-      knownContext,
-      executionState,
-    }) {
+    async hydrateVdmiStepParams(ctx, { plannedStep, params, knownContext, executionState }) {
       const action = String(plannedStep?.action || '');
       if (!action.startsWith('vdmi.')) {
         return { params, stopPoint: null };
@@ -2821,8 +3288,10 @@ module.exports = {
       const hydrated = { ...(params || {}) };
 
       if (
-        (action === 'vdmi.dossier' || action === 'vdmi.negotiationTrace' || action === 'vdmi.agentRole')
-        && !hydrated.taskId
+        (action === 'vdmi.dossier' ||
+          action === 'vdmi.negotiationTrace' ||
+          action === 'vdmi.agentRole') &&
+        !hydrated.taskId
       ) {
         if (knownContext?.taskId) {
           hydrated.taskId = knownContext.taskId;
@@ -2857,7 +3326,8 @@ module.exports = {
                 params: hydrated,
                 stopPoint: {
                   reasonCode: 'MISSING_VDMI_TASK_CONTEXT',
-                  message: 'VDMI Task-Kontext fehlt. Bitte taskId, matrixId oder processId angeben.',
+                  message:
+                    'VDMI Task-Kontext fehlt. Bitte taskId, matrixId oder processId angeben.',
                   blockedStep: plannedStep.step,
                   blockedAction: action,
                   missingParams: ['taskId'],
@@ -2884,8 +3354,12 @@ module.exports = {
 
           if (selectedActors.length === 0 && hydrated.taskId) {
             const matrix = await this.loadVdmiMatrixForKnownContext(ctx, knownContext);
-            const matchedTask = (matrix?.tasks || []).find((task) => task?.taskId === hydrated.taskId);
-            selectedActors = Array.isArray(matchedTask?.verantwortlich) ? matchedTask.verantwortlich : [];
+            const matchedTask = (matrix?.tasks || []).find(
+              (task) => task?.taskId === hydrated.taskId
+            );
+            selectedActors = Array.isArray(matchedTask?.verantwortlich)
+              ? matchedTask.verantwortlich
+              : [];
           }
 
           if (selectedActors.length === 1 && selectedActors[0]?.actorId) {
@@ -2896,7 +3370,8 @@ module.exports = {
               params: hydrated,
               stopPoint: {
                 reasonCode: 'AMBIGUOUS_VDMI_V_ACTOR',
-                message: 'Mehrere verantwortliche V-Akteure gefunden. Bitte Agenten-ID eindeutig angeben.',
+                message:
+                  'Mehrere verantwortliche V-Akteure gefunden. Bitte Agenten-ID eindeutig angeben.',
                 blockedStep: plannedStep.step,
                 blockedAction: action,
                 missingParams: ['agentId'],
@@ -2922,13 +3397,10 @@ module.exports = {
       return { params: hydrated, stopPoint: null };
     },
 
-    async executeDeterministicPlan(ctx, {
-      message,
-      plan,
-      knownContext,
-      skipGapForMissingInputs = false,
-      existingAssumptions = [],
-    }) {
+    async executeDeterministicPlan(
+      ctx,
+      { message, plan, knownContext, skipGapForMissingInputs = false, existingAssumptions = [] }
+    ) {
       const executionState = {
         stepResults: {},
       };
@@ -3028,10 +3500,13 @@ module.exports = {
         }
 
         try {
-          const result = await ctx.call(plannedStep.action, params, { meta: { ...ctx.meta, $gateway: false } });
-          const normalizedData = result && typeof result === 'object' && result.data !== undefined
-            ? result.data
-            : result;
+          const result = await ctx.call(plannedStep.action, params, {
+            meta: { ...ctx.meta, $gateway: false },
+          });
+          const normalizedData =
+            result && typeof result === 'object' && result.data !== undefined
+              ? result.data
+              : result;
           executionState.stepResults[plannedStep.step] = {
             data: normalizedData,
             raw: result,
@@ -3049,10 +3524,14 @@ module.exports = {
           if (plannedStep.action === 'grid-operations.marketPartners') {
             const resolvedList = Array.isArray(result?.data?.results)
               ? result.data.results
-              : (Array.isArray(result?.results) ? result.results : []);
+              : Array.isArray(result?.results)
+                ? result.results
+                : [];
 
             if (resolvedList.length === 0) {
-              const nextStep = plan.steps.find((candidate) => candidate.step === plannedStep.step + 1);
+              const nextStep = plan.steps.find(
+                (candidate) => candidate.step === plannedStep.step + 1
+              );
               stopPoint = {
                 reasonCode: 'MISSING_INPUTS',
                 message: 'Kein eindeutiger Netzbetreiber-Treffer aus den vorhandenen Angaben.',
@@ -3095,7 +3574,8 @@ module.exports = {
               }
               stopPoint = {
                 reasonCode: 'MISSING_INPUTS',
-                message: 'Standort/Netzbetreiber-Zuständigkeit ist noch nicht belastbar verifiziert.',
+                message:
+                  'Standort/Netzbetreiber-Zuständigkeit ist noch nicht belastbar verifiziert.',
                 blockedStep: plannedStep.step,
                 blockedAction: plannedStep.action,
                 missingParams: ['operatorEvidence'],
@@ -3182,39 +3662,40 @@ module.exports = {
 
     classifyLocationOperatorConsistency({ knownContext = {}, promptHints = {}, steps = [] } = {}) {
       const assertedOperator =
-        knownContext?.assertedGridOperatorName
-        || promptHints?.assertedGridOperatorName
-        || promptHints?.gridOperatorName
-        || knownContext?.gridOperatorName
-        || '';
+        knownContext?.assertedGridOperatorName ||
+        promptHints?.assertedGridOperatorName ||
+        promptHints?.gridOperatorName ||
+        knownContext?.gridOperatorName ||
+        '';
       const projectLocation =
-        knownContext?.location
-        || promptHints?.location
-        || promptHints?.city
-        || '';
+        knownContext?.location || promptHints?.location || promptHints?.city || '';
 
       if (!assertedOperator || !projectLocation) {
         return null;
       }
 
-      const marketPartnerStep = steps.find((step) => step?.action === 'grid-operations.marketPartners' && step?.status === 'completed');
-      const vnbLookupStep = steps.find((step) => step?.action === 'grid-operations.vnbLookup' && step?.status === 'completed');
+      const marketPartnerStep = steps.find(
+        (step) => step?.action === 'grid-operations.marketPartners' && step?.status === 'completed'
+      );
+      const vnbLookupStep = steps.find(
+        (step) => step?.action === 'grid-operations.vnbLookup' && step?.status === 'completed'
+      );
       const partnerResults = this.extractLookupResults(marketPartnerStep);
       const topHit = partnerResults[0] || null;
 
-      const matchedOperatorName = String(topHit?.name || vnbLookupStep?.result?.operator?.name || '').trim();
+      const matchedOperatorName = String(
+        topHit?.name || vnbLookupStep?.result?.operator?.name || ''
+      ).trim();
       const lookupCity = String(
-        topHit?.contacts?.[0]?.city
-        || vnbLookupStep?.result?.operator?.city
-        || ''
+        topHit?.contacts?.[0]?.city || vnbLookupStep?.result?.operator?.city || ''
       ).trim();
 
       const normalizedAsserted = this.normalizeComparableText(assertedOperator);
       const normalizedMatched = this.normalizeComparableText(matchedOperatorName);
       const operatorMatches =
-        !normalizedMatched
-        || normalizedMatched.includes(normalizedAsserted)
-        || normalizedAsserted.includes(normalizedMatched);
+        !normalizedMatched ||
+        normalizedMatched.includes(normalizedAsserted) ||
+        normalizedAsserted.includes(normalizedMatched);
 
       if (!operatorMatches) {
         return {
@@ -3229,9 +3710,9 @@ module.exports = {
       }
 
       const hardMismatch = Boolean(
-        vnbLookupStep?.result?.operator?.isResponsible === false
-        || vnbLookupStep?.result?.operator?.zustaendig === false
-        || vnbLookupStep?.result?.responsibilityMatch === false
+        vnbLookupStep?.result?.operator?.isResponsible === false ||
+        vnbLookupStep?.result?.operator?.zustaendig === false ||
+        vnbLookupStep?.result?.responsibilityMatch === false
       );
 
       if (hardMismatch) {
@@ -3247,22 +3728,20 @@ module.exports = {
       }
 
       const hardVerified = Boolean(
-        vnbLookupStep?.result?.operator?.isResponsible === true
-        || vnbLookupStep?.result?.operator?.zustaendig === true
-        || vnbLookupStep?.result?.responsibilityMatch === true
-        || vnbLookupStep?.result?.operator?.evidenceVerified === true
-        || vnbLookupStep?.result?.operator?.verified === true
+        vnbLookupStep?.result?.operator?.isResponsible === true ||
+        vnbLookupStep?.result?.operator?.zustaendig === true ||
+        vnbLookupStep?.result?.responsibilityMatch === true ||
+        vnbLookupStep?.result?.operator?.evidenceVerified === true ||
+        vnbLookupStep?.result?.operator?.verified === true
       );
 
       const normalizedProjectLocation = this.normalizeComparableText(projectLocation);
       const normalizedLookupCity = this.normalizeComparableText(lookupCity);
       const locationMatches = Boolean(
-        normalizedProjectLocation
-        && normalizedLookupCity
-        && (
-          normalizedLookupCity.includes(normalizedProjectLocation)
-          || normalizedProjectLocation.includes(normalizedLookupCity)
-        )
+        normalizedProjectLocation &&
+        normalizedLookupCity &&
+        (normalizedLookupCity.includes(normalizedProjectLocation) ||
+          normalizedProjectLocation.includes(normalizedLookupCity))
       );
 
       if (hardVerified && locationMatches) {
@@ -3311,14 +3790,12 @@ module.exports = {
 
         const dossier = result?.dossier;
         if (
-          dossier
-          && typeof dossier === 'object'
-          && (
-            (dossier.task && typeof dossier.task === 'object')
-            || Array.isArray(dossier.evidenceGaps)
-            || Array.isArray(dossier.forbiddenAssumptions)
-            || Array.isArray(dossier.nextActions)
-          )
+          dossier &&
+          typeof dossier === 'object' &&
+          ((dossier.task && typeof dossier.task === 'object') ||
+            Array.isArray(dossier.evidenceGaps) ||
+            Array.isArray(dossier.forbiddenAssumptions) ||
+            Array.isArray(dossier.nextActions))
         ) {
           return true;
         }
@@ -3457,8 +3934,14 @@ module.exports = {
 
         maybeAssign('taskName', task.taskName || task.description);
         maybeAssign('phase', task.phase);
-        maybeAssign('verantwortlich', Array.isArray(task.verantwortlich) ? task.verantwortlich : undefined);
-        maybeAssign('durchfuehrend', Array.isArray(task.durchfuehrend) ? task.durchfuehrend : undefined);
+        maybeAssign(
+          'verantwortlich',
+          Array.isArray(task.verantwortlich) ? task.verantwortlich : undefined
+        );
+        maybeAssign(
+          'durchfuehrend',
+          Array.isArray(task.durchfuehrend) ? task.durchfuehrend : undefined
+        );
         maybeAssign('mitwirkend', Array.isArray(task.mitwirkend) ? task.mitwirkend : undefined);
         maybeAssign('information', Array.isArray(task.information) ? task.information : undefined);
         maybeAssign('expectedStatus', dossier.expectedStatus || task.expectedStatus);
@@ -3469,27 +3952,37 @@ module.exports = {
 
         const evidenceRequirements = Array.isArray(dossier?.evidence?.requirements)
           ? dossier.evidence.requirements
-          : (Array.isArray(task.evidenceRequirements) ? task.evidenceRequirements : undefined);
+          : Array.isArray(task.evidenceRequirements)
+            ? task.evidenceRequirements
+            : undefined;
         maybeAssign('evidenceRequirements', evidenceRequirements);
 
         const evidenceGaps = Array.isArray(dossier.evidenceGaps)
           ? dossier.evidenceGaps
-          : (Array.isArray(task.evidenceGaps) ? task.evidenceGaps : undefined);
+          : Array.isArray(task.evidenceGaps)
+            ? task.evidenceGaps
+            : undefined;
         maybeAssign('evidenceGaps', evidenceGaps);
 
         const forbiddenAssumptions = Array.isArray(dossier.forbiddenAssumptions)
           ? dossier.forbiddenAssumptions
-          : (Array.isArray(task.forbiddenAssumptions) ? task.forbiddenAssumptions : undefined);
+          : Array.isArray(task.forbiddenAssumptions)
+            ? task.forbiddenAssumptions
+            : undefined;
         maybeAssign('forbiddenAssumptions', forbiddenAssumptions);
 
         const nextActions = Array.isArray(dossier.nextActions)
           ? dossier.nextActions
-          : (Array.isArray(task.nextActions) ? task.nextActions : undefined);
+          : Array.isArray(task.nextActions)
+            ? task.nextActions
+            : undefined;
         maybeAssign('nextActions', nextActions);
 
         const taskRisks = Array.isArray(dossier.assetRisks)
           ? dossier.assetRisks
-          : (Array.isArray(task.assetRisks) ? task.assetRisks : undefined);
+          : Array.isArray(task.assetRisks)
+            ? task.assetRisks
+            : undefined;
         maybeAssign('assetRisks', taskRisks);
         maybeAssign('risks', Array.isArray(dossier.risks) ? dossier.risks : task.risks);
 
@@ -3572,24 +4065,42 @@ module.exports = {
 
       const dossier = obj?.dossier;
       if (
-        dossier
-        && typeof dossier === 'object'
-        && (
-          (dossier.task && typeof dossier.task === 'object')
-          || Array.isArray(dossier.evidenceGaps)
-          || Array.isArray(dossier.forbiddenAssumptions)
-          || Array.isArray(dossier.nextActions)
-        )
+        dossier &&
+        typeof dossier === 'object' &&
+        ((dossier.task && typeof dossier.task === 'object') ||
+          Array.isArray(dossier.evidenceGaps) ||
+          Array.isArray(dossier.forbiddenAssumptions) ||
+          Array.isArray(dossier.nextActions))
       ) {
         return true;
       }
 
       const structuredKeys = [
-        'matrix', 'tasks', 'roles', 'rolesByTask', 'highestRole',
-        'evidenceGaps', 'evidenceRequirements', 'assetRisks', 'risks',
-        'items', 'rows', 'peers', 'variants', 'count', 'value', 'metric', 'answer',
-        'source', 'sources', 'asOf',
-        'forbiddenAssumptions', 'expectedStatus', 'decisionStatus', 'nextActions', 'status',
+        'matrix',
+        'tasks',
+        'roles',
+        'rolesByTask',
+        'highestRole',
+        'evidenceGaps',
+        'evidenceRequirements',
+        'assetRisks',
+        'risks',
+        'items',
+        'rows',
+        'peers',
+        'variants',
+        'count',
+        'value',
+        'metric',
+        'answer',
+        'source',
+        'sources',
+        'asOf',
+        'forbiddenAssumptions',
+        'expectedStatus',
+        'decisionStatus',
+        'nextActions',
+        'status',
       ];
 
       return structuredKeys.some((key) => {
@@ -3632,6 +4143,7 @@ module.exports = {
           id: sessionId,
           tenantId,
           userId,
+          chatMode: normalizeChatMode(payload?.l3?.chatMode) || CHAT_MODES.CONSULTATION,
           l1: payload.l1 || { tenantFacts: [] },
           l2: payload.l2 || { userProfile },
           l3: {
@@ -3641,15 +4153,16 @@ module.exports = {
               : [],
             summary: payload?.l3?.summary || null,
             compressed: Boolean(payload?.l3?.compressed),
+            chatMode: normalizeChatMode(payload?.l3?.chatMode) || CHAT_MODES.CONSULTATION,
+            consultationContext:
+              payload?.l3?.consultationContext && typeof payload.l3.consultationContext === 'object'
+                ? payload.l3.consultationContext
+                : null,
             onboardingQuestions: Array.isArray(payload?.l3?.onboardingQuestions)
               ? payload.l3.onboardingQuestions
               : [],
-            assumptions: Array.isArray(payload?.l3?.assumptions)
-              ? payload.l3.assumptions
-              : [],
-            planStack: Array.isArray(payload?.l3?.planStack)
-              ? payload.l3.planStack
-              : [],
+            assumptions: Array.isArray(payload?.l3?.assumptions) ? payload.l3.assumptions : [],
+            planStack: Array.isArray(payload?.l3?.planStack) ? payload.l3.planStack : [],
             resolvedParams:
               payload?.l3?.resolvedParams && typeof payload.l3.resolvedParams === 'object'
                 ? payload.l3.resolvedParams
@@ -3680,6 +4193,7 @@ module.exports = {
           id: sessionId,
           tenantId,
           userId,
+          chatMode: CHAT_MODES.CONSULTATION,
           l1: { tenantFacts: [] },
           l2: { userProfile },
           l3: {
@@ -3687,6 +4201,8 @@ module.exports = {
             fileAttachments: [],
             summary: null,
             compressed: false,
+            chatMode: CHAT_MODES.CONSULTATION,
+            consultationContext: null,
             onboardingQuestions: [],
             assumptions: [],
             planStack: [],

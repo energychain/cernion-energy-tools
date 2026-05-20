@@ -409,9 +409,7 @@ describe('API Gateway Service', () => {
       const aliases = apiRoute?.aliases || {};
 
       expect(aliases['POST /osm-geo/validate']).toBe('osm-geo.validate');
-      expect(aliases['POST /osm-geo/infrastructure-nearby']).toBe(
-        'osm-geo.infrastructureNearby'
-      );
+      expect(aliases['POST /osm-geo/infrastructure-nearby']).toBe('osm-geo.infrastructureNearby');
       expect(aliases['POST /osm-geo/substation-finder']).toBe('osm-geo.substationFinder');
       expect(aliases['POST /osm-geo/grid-topology']).toBe('osm-geo.gridTopology');
     });
@@ -419,20 +417,15 @@ describe('API Gateway Service', () => {
     it('should include Netzfahrplan / fNAV tag in OpenAPI', async () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       expect(apiRoute).toBeDefined();
-      const tags = ApiService.settings.routes
-        .find((r) => r.path === '/api')
-        ?.openApiService?.tags || [];
+      const tags =
+        ApiService.settings.routes.find((r) => r.path === '/api')?.openApiService?.tags || [];
       // Verify the tag exists in the api service definition (tags are in the service schema)
       const apiServiceTags = ApiService.settings?.tags || [];
       // Check via aliases — the 3 routes must be present
       const aliases = apiRoute?.aliases || {};
       expect(aliases['POST /netzfahrplan/generate']).toBe('grid-operations.netzfahrplanGenerate');
-      expect(aliases['POST /grid-connection/fnav/validate']).toBe(
-        'grid-connection.fnavValidate'
-      );
-      expect(aliases['POST /finance-agent/fnav/economics']).toBe(
-        'finance-agent.fnavEconomics'
-      );
+      expect(aliases['POST /grid-connection/fnav/validate']).toBe('grid-connection.fnavValidate');
+      expect(aliases['POST /finance-agent/fnav/economics']).toBe('finance-agent.fnavEconomics');
     });
   });
 
@@ -512,6 +505,7 @@ describe('API Gateway Service', () => {
         $params: {
           message: 'Analysiere diese CSV',
           executionMode: 'auto',
+          chatMode: 'consultation',
           fileAttachments: [
             {
               path: uploadPath,
@@ -532,9 +526,12 @@ describe('API Gateway Service', () => {
       );
 
       expect(ctx.params.message).toBe('Analysiere diese CSV');
+      expect(ctx.params.chatMode).toBe('consultation');
       expect(ctx.params.fileAttachments).toHaveLength(1);
       expect(ctx.params.fileAttachments[0].attachmentId).toMatch(/^fa_/);
-      expect(ctx.params.fileAttachments[0].tempPath).toContain(path.join('uploads', 'tenant-upload'));
+      expect(ctx.params.fileAttachments[0].tempPath).toContain(
+        path.join('uploads', 'tenant-upload')
+      );
       expect(fs.existsSync(ctx.params.fileAttachments[0].tempPath)).toBe(true);
 
       fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -690,7 +687,13 @@ describe('API Gateway Service', () => {
       };
 
       await expect(
-        apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, putCtx, apiRoute, putReq, {})
+        apiRoute.onBeforeCall.call(
+          { logger: { debug: jest.fn() }, broker },
+          putCtx,
+          apiRoute,
+          putReq,
+          {}
+        )
       ).rejects.toMatchObject({ code: 403, type: 'TOKEN_SCOPE_VIOLATION' });
     });
 
@@ -717,14 +720,26 @@ describe('API Gateway Service', () => {
         url: '/api/tenants/tenant-rate/quotas',
       };
 
-      await apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, firstCtx, apiRoute, req, {});
+      await apiRoute.onBeforeCall.call(
+        { logger: { debug: jest.fn() }, broker },
+        firstCtx,
+        apiRoute,
+        req,
+        {}
+      );
       expect(firstCtx.meta.$responseHeaders['X-RateLimit-Limit']).toBe('1');
       expect(firstCtx.meta.$responseHeaders['X-RateLimit-Remaining']).toBe('0');
       expect(firstCtx.meta.$responseHeaders['X-RateLimit-Reset']).toBeDefined();
 
       const secondCtx = { meta: {} };
       await expect(
-        apiRoute.onBeforeCall.call({ logger: { debug: jest.fn() }, broker }, secondCtx, apiRoute, req, {})
+        apiRoute.onBeforeCall.call(
+          { logger: { debug: jest.fn() }, broker },
+          secondCtx,
+          apiRoute,
+          req,
+          {}
+        )
       ).rejects.toMatchObject({ code: 429, type: 'RATE_LIMIT_EXCEEDED' });
     });
 
@@ -895,13 +910,25 @@ describe('API Gateway Service', () => {
 
   describe('Tenant quota service', () => {
     it('should return quota snapshot for matching tenant context', async () => {
-      await broker.call('tenant-quota.getQuotas', { id: 'tenant-a' }, { meta: { tenantId: 'tenant-a' } });
-      await broker.call('tenant-quota.listEvents', { id: 'tenant-a' }, { meta: { tenantId: 'tenant-a' } });
+      await broker.call(
+        'tenant-quota.getQuotas',
+        { id: 'tenant-a' },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+      await broker.call(
+        'tenant-quota.listEvents',
+        { id: 'tenant-a' },
+        { meta: { tenantId: 'tenant-a' } }
+      );
     });
 
     it('should reject cross-tenant quota reads for tenant-scoped meta', async () => {
       await expect(
-        broker.call('tenant-quota.getQuotas', { id: 'tenant-b' }, { meta: { tenantId: 'tenant-a' } })
+        broker.call(
+          'tenant-quota.getQuotas',
+          { id: 'tenant-b' },
+          { meta: { tenantId: 'tenant-a' } }
+        )
       ).rejects.toMatchObject({ code: 403, type: 'TENANT_SCOPE_VIOLATION' });
     });
 

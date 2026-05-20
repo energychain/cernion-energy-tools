@@ -142,9 +142,7 @@ function enforceLayerBudgets(stack, options = {}) {
     ...stack,
     l3: {
       history: compressedL3.history,
-      fileAttachments: Array.isArray(stack?.l3?.fileAttachments)
-        ? stack.l3.fileAttachments
-        : [],
+      fileAttachments: Array.isArray(stack?.l3?.fileAttachments) ? stack.l3.fileAttachments : [],
       summary: compressedL3.summary,
       compressed: compressedL3.compressed,
     },
@@ -181,9 +179,7 @@ function enforceLayerBudgets(stack, options = {}) {
 
 function buildContextStack(input = {}) {
   const layer4 = buildLayer4(input.toolContext || null);
-  const fileAttachments = Array.isArray(input.fileAttachments)
-    ? input.fileAttachments
-    : [];
+  const fileAttachments = Array.isArray(input.fileAttachments) ? input.fileAttachments : [];
   const initial = {
     l0: {
       systemPrompt: String(input.systemPrompt || ''),
@@ -275,11 +271,14 @@ function buildPersistableSessionState(input = {}) {
     },
     l3: {
       history: Array.isArray(input?.l3?.history) ? input.l3.history : [],
-      fileAttachments: Array.isArray(input?.l3?.fileAttachments)
-        ? input.l3.fileAttachments
-        : [],
+      fileAttachments: Array.isArray(input?.l3?.fileAttachments) ? input.l3.fileAttachments : [],
       summary: input?.l3?.summary || null,
       compressed: Boolean(input?.l3?.compressed),
+      chatMode: String(input?.l3?.chatMode || input?.chatMode || 'consultation'),
+      consultationContext:
+        input?.l3?.consultationContext && typeof input.l3.consultationContext === 'object'
+          ? input.l3.consultationContext
+          : null,
       planStack: Array.isArray(input?.l3?.planStack) ? input.l3.planStack : [],
       resolvedParams,
       resolvedCapabilities: Array.isArray(input?.l3?.resolvedCapabilities)

@@ -7,6 +7,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.53.1] — Personal Agent Consultation Mode & chatMode API Control (2026-05-20)
+
+### Added
+- [services/personal-agent.service.js](services/personal-agent.service.js): dual chat-mode orchestration with explicit `chatMode` support (`execution` | `consultation`) and API-parameter priority over auto-detection.
+- [services/personal-agent.service.js](services/personal-agent.service.js): new consultation path `handleConsultationTurn()` with structured advisory output (`reply`, `hypotheses`, `openQuestions`, `nextActions`, `factsUsed`) and deterministic fallback when LLM service is unavailable.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): `CHAT_MODES`, `normalizeChatMode()`, `detectExplicitChatModeSwitch()`, and `detectChatMode()` utilities for mode selection.
+
+### Changed
+- [services/personal-agent.service.js](services/personal-agent.service.js): legacy sessions without persisted `chatMode` now default to `consultation` immediately.
+- [services/personal-agent.service.js](services/personal-agent.service.js): consultation responses now expose top-level `status: "consulting"` plus a minimal backward-compatible `execution` object (`{ status: "consulting", plan: null, steps: [] }`).
+- [services/personal-agent.service.js](services/personal-agent.service.js): persisted session state includes `l3.chatMode` and bounded `l3.consultationContext`; execution turns clear consultation context.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `resetSession` now resets mode marker to `chatMode: "auto"` and clears consultation context while preserving L2.
+- [services/api.service.js](services/api.service.js): multipart `POST /api/personal-agent/chat` normalization now forwards `chatMode` to `ctx.params`.
+
+### Tests
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regressions for consultation default on legacy sessions, `chatMode` API-priority (`execution` override), and explicit `consultation` override.
+- [tests/api.service.test.js](tests/api.service.test.js): multipart normalization test extended to verify `chatMode` passthrough.
+
+## [0.53.0] — VDMI System Templates (Anonymized Governance Patterns, Versioned Upsert) (2026-05-19)
+
+### Added
+- [src/vdmi-system-templates.js](src/vdmi-system-templates.js): new module exporting 5+ anonymized, reusable VDMI governance templates (PV Grid Connection, Energy Sharing Asset Approval, Portfolio Gating Decision, Substation Load Assessment, Redispatch Participation Confirmation) with stable IDs, versioning, and isSystem flag for systemwide seeding.
+- [services/vdmi.service.js](services/vdmi.service.js): `seedSystemTemplates()` method with Option B versioned upsert (insert-if-missing, update on templateVersion bump) and idempotent execution in `started()` hook. System templates persist in PouchDB with `isSystem: true`, `originTenant: '*'`, enabling tenant-overarching template library.
+- [services/vdmi.service.js](services/vdmi.service.js): `templates` action now includes system-wide anonymized templates alongside tenant-created ones via read-path query filter on `isSystem` flag.
+- [tests/services/vdmi.service.test.js](tests/services/vdmi.service.test.js): 3 new test suites covering seed idempotence, multi-tenant visibility, versioned upsert behavior, and template list aggregation.
+- [docs/ui-contracts/vdmi-ui-contract.md](docs/ui-contracts/vdmi-ui-contract.md): documented 5 system templates with anonymized governance scenarios, payload schema, and Finanzamt-compliant data minimization.
+
+### Technical Details
+- System templates seeded via stable `vdmi-template:SYSTEM_*` document IDs to prevent duplication across restarts.
+- Versioned upsert logic: if template exists with lower `templateVersion`, metadata and `templateData` are refreshed; if same version, operation is no-op.
+- `originTenant: '*'` marker ensures templates are queryable from all tenants without copying.
+- Non-system templates (tenant-created from nomination) continue to inherit `originTenant: tenantId`.
+- All 5 system templates are anonymized: no real customer data, asset names are generic ("PV_Asset_North", "Substation_A", etc.), actors identified by role+category.
+
+### Governance Patterns Included
+1. **Grid Connection Approval** (PV plant, NAV §8): V=DSO, D=Asset Owner, M=Planning Authority, I=Neighbors Register (role-based, no real stakeholders).
+2. **Energy Sharing Collective** (neighborhood asset swap): V=ESG Operator, D=Metering Provider, M=Balancing Authority, I=End-use Consumers.
+3. **Portfolio Gating Decision** (redispatch enrollment): V=Portfolio Manager, D=DMS System, M=TSO Advisory, I=Grid Operator.
+4. **Substation Load Assessment** (capacity bottleneck): V=Network Engineer, D=Expansion Planning, M=Regional Authority, I=Distribution Customers.
+5. **Redispatch Participation Confirmation** (Redispatch 2.0 enrollment): V=Redispatch Operator, D=Installation Owner, M=Market Analyst, I=BNetzA.
+
 ## [0.52.17] — Session-Manager Plan-Stack Integration & Parent-Plan Resume (2026-05-19)
 
 ### Changed

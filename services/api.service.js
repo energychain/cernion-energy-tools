@@ -97,9 +97,7 @@ function parseOptionalJsonObject(value, fallback = {}) {
 
   try {
     const parsed = JSON.parse(value);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-      ? parsed
-      : fallback;
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : fallback;
   } catch (_error) {
     return fallback;
   }
@@ -369,7 +367,12 @@ function classifyEndpointClass(method, requestPath) {
 }
 
 async function emitRateQuotaEvents(broker, tenantId, events, extra = {}) {
-  if (!broker || typeof broker.emit !== 'function' || !Array.isArray(events) || events.length === 0) {
+  if (
+    !broker ||
+    typeof broker.emit !== 'function' ||
+    !Array.isArray(events) ||
+    events.length === 0
+  ) {
     return;
   }
 
@@ -461,7 +464,10 @@ module.exports = {
         },
         { name: 'IntegrationHub', description: 'Token management and integration helpers' },
         { name: 'Authentication', description: 'OIDC/SAML session bootstrap and verification' },
-        { name: 'Tenant Quotas', description: 'Tenant quota snapshots, events, and admin overrides' },
+        {
+          name: 'Tenant Quotas',
+          description: 'Tenant quota snapshots, events, and admin overrides',
+        },
         { name: 'Jobs', description: 'Async job status and result polling (v0.9.8+)' },
         {
           name: 'Datapoints',
@@ -711,7 +717,8 @@ module.exports = {
           PaginationCursor: {
             type: 'string',
             description: 'Opaque cursor token for keyset pagination.',
-            example: 'eyJwaXZvdCI6eyJjcmVhdGVkQXQiOiIyMDI2LTA1LTA1VDA5OjAwOjAwLjAwMFoiLCJpZCI6ImFiYy0xMjMifSwiZGlyZWN0aW9uIjoibmV4dCIsImhhc2giOiIuLi4ifQ',
+            example:
+              'eyJwaXZvdCI6eyJjcmVhdGVkQXQiOiIyMDI2LTA1LTA1VDA5OjAwOjAwLjAwMFoiLCJpZCI6ImFiYy0xMjMifSwiZGlyZWN0aW9uIjoibmV4dCIsImhhc2giOiIuLi4ifQ',
           },
           PageInfo: {
             type: 'object',
@@ -859,7 +866,12 @@ module.exports = {
             'x-request-id',
             'X-API-Key',
           ],
-          exposedHeaders: ['x-request-id', 'x-ratelimit-limit', 'x-ratelimit-remaining', 'x-ratelimit-reset'],
+          exposedHeaders: [
+            'x-request-id',
+            'x-ratelimit-limit',
+            'x-ratelimit-remaining',
+            'x-ratelimit-reset',
+          ],
           credentials: false,
           maxAge: 3600,
         },
@@ -1027,7 +1039,8 @@ module.exports = {
           'PATCH /vdmi/tenants/:tenantId/matrices/:matrixId': 'vdmi-human-override.override',
           'POST /vdmi/tenants/:tenantId/matrices/:matrixId/revert': 'vdmi-human-override.revert',
           // Spectator Mode (Negotiation Transparency)
-          'GET /vdmi/tenants/:tenantId/tasks/:taskId/negotiation-trace': 'vdmi-spectator.negotiationTrace',
+          'GET /vdmi/tenants/:tenantId/tasks/:taskId/negotiation-trace':
+            'vdmi-spectator.negotiationTrace',
           'GET /vdmi/tenants/:tenantId/tasks/:taskId/dossier': 'vdmi-spectator.dossier',
           // Governance Findings (Shadow IT Resolution)
           'GET /vdmi/tenants/:tenantId/findings': 'vdmi-findings.list',
@@ -1488,7 +1501,8 @@ module.exports = {
           ctx.meta.requestHeaders = req?.headers || {};
 
           // Map external agent-role headers for VDMI guardrail checks
-          ctx.meta.agentRole = req?.headers?.['x-agent-role'] || req?.headers?.['X-Agent-Role'] || null;
+          ctx.meta.agentRole =
+            req?.headers?.['x-agent-role'] || req?.headers?.['X-Agent-Role'] || null;
           ctx.meta.agentId = req?.headers?.['x-agent-id'] || req?.headers?.['X-Agent-Id'] || null;
 
           // Token precedence:
@@ -1738,9 +1752,8 @@ module.exports = {
                 );
               }
 
-              const statSize = sourcePath && fs.existsSync(sourcePath)
-                ? fs.statSync(sourcePath).size
-                : 0;
+              const statSize =
+                sourcePath && fs.existsSync(sourcePath) ? fs.statSync(sourcePath).size : 0;
               const sizeBytes = Math.max(Number(file?.size || 0), Number(statSize || 0));
               if (sizeBytes > PERSONAL_AGENT_MAX_FILE_SIZE_BYTES) {
                 throw new Errors.MoleculerClientError(
@@ -1785,6 +1798,7 @@ module.exports = {
               message: String(fields.message || ''),
               sessionId,
               executionMode: String(fields.executionMode || 'auto'),
+              chatMode: String(fields.chatMode || '').trim() || undefined,
               knownContext: parseOptionalJsonObject(fields.knownContext, {}),
               toolContext: parseOptionalJsonObject(fields.toolContext, {}),
               fileAttachments: processedFiles,
@@ -1806,22 +1820,30 @@ module.exports = {
             requestPath,
           });
           if (!rateLimit.allowed) {
-            throw new Errors.MoleculerClientError('Rate limit exceeded for tenant.', 429, 'RATE_LIMIT_EXCEEDED', {
-              tenantId: tenantIdForQuota,
-              endpointClass,
-              retryAfter: rateLimit.retryAfter,
-              responseHeaders: rateLimit.responseHeaders,
-            });
+            throw new Errors.MoleculerClientError(
+              'Rate limit exceeded for tenant.',
+              429,
+              'RATE_LIMIT_EXCEEDED',
+              {
+                tenantId: tenantIdForQuota,
+                endpointClass,
+                retryAfter: rateLimit.retryAfter,
+                responseHeaders: rateLimit.responseHeaders,
+              }
+            );
           }
 
-          const httpSpan = tracing.startSpan(`http ${String(req?.method || 'GET').toUpperCase()} ${requestPath}`, {
-            attributes: {
-              'http.method': String(req?.method || 'GET').toUpperCase(),
-              'http.route': requestPath,
-            },
-            parentCarrier: ctx.meta.__otel,
-            kind: tracing.SpanKind.SERVER,
-          });
+          const httpSpan = tracing.startSpan(
+            `http ${String(req?.method || 'GET').toUpperCase()} ${requestPath}`,
+            {
+              attributes: {
+                'http.method': String(req?.method || 'GET').toUpperCase(),
+                'http.route': requestPath,
+              },
+              parentCarrier: ctx.meta.__otel,
+              kind: tracing.SpanKind.SERVER,
+            }
+          );
           ctx.meta.$httpSpan = httpSpan;
           tracing.ensureCorrelationId(ctx.meta);
           mergeObservabilityContext({
@@ -2023,11 +2045,7 @@ module.exports = {
 
             schema.properties[paramName] = {
               type:
-                paramType === 'number'
-                  ? 'number'
-                  : paramType === 'boolean'
-                    ? 'boolean'
-                    : 'string',
+                paramType === 'number' ? 'number' : paramType === 'boolean' ? 'boolean' : 'string',
             };
 
             if (
@@ -2069,8 +2087,7 @@ module.exports = {
               summary: action?.description || actionName,
               tags: action?.openapi?.tags || [serviceName || actionName.split('.')[0]],
               operationId:
-                action?.openapi?.operationId ||
-                actionName.replace(/\./g, '_').replace(/-/g, '_'),
+                action?.openapi?.operationId || actionName.replace(/\./g, '_').replace(/-/g, '_'),
               parameters: [
                 {
                   $ref: '#/components/parameters/TokenQuery',

@@ -61,7 +61,10 @@ describe('personal-agent.service', () => {
         fnavValidate: {
           handler(ctx) {
             executedActions.push('grid-connection.fnavValidate');
-            executedCallDetails.push({ action: 'grid-connection.fnavValidate', params: ctx.params });
+            executedCallDetails.push({
+              action: 'grid-connection.fnavValidate',
+              params: ctx.params,
+            });
             return {
               success: true,
               gridOperatorName: ctx.params.gridOperatorName || 'TWL Netze',
@@ -91,7 +94,10 @@ describe('personal-agent.service', () => {
         marketPartners: {
           handler(ctx) {
             executedActions.push('grid-operations.marketPartners');
-            executedCallDetails.push({ action: 'grid-operations.marketPartners', params: ctx.params });
+            executedCallDetails.push({
+              action: 'grid-operations.marketPartners',
+              params: ctx.params,
+            });
             const query = String(ctx.params.query || '').toLowerCase();
             if (!query || query.includes('unbekannt') || query.includes('nonexistent')) {
               return { data: { results: [] } };
@@ -130,7 +136,8 @@ describe('personal-agent.service', () => {
               throw new Error('Parameters validation error!');
             }
             const isVerifiedPath = String(ctx.params.city || '').toLowerCase() === 'trier';
-            const operatorName = ctx.params.vnbName || (isVerifiedPath ? 'Stadtwerk Trier' : 'TWL Netze');
+            const operatorName =
+              ctx.params.vnbName || (isVerifiedPath ? 'Stadtwerk Trier' : 'TWL Netze');
             return {
               success: true,
               operator: {
@@ -386,6 +393,7 @@ describe('personal-agent.service', () => {
       'personal-agent.chat',
       {
         message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        chatMode: 'execution',
         executionMode: 'hitl',
         knownContext: {
           gridOperatorName: 'TWL Netze',
@@ -410,6 +418,7 @@ describe('personal-agent.service', () => {
       'personal-agent.chat',
       {
         message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        chatMode: 'execution',
         executionMode: 'auto',
         knownContext: {
           gridOperatorName: 'TWL Netze',
@@ -438,6 +447,7 @@ describe('personal-agent.service', () => {
       'personal-agent.chat',
       {
         message: 'Bitte Netzbetreiber prüfen: unbekannt',
+        chatMode: 'execution',
         executionMode: 'auto',
         knownContext: {
           query: 'unbekannt',
@@ -465,6 +475,7 @@ describe('personal-agent.service', () => {
       'personal-agent.chat',
       {
         message: 'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW',
+        chatMode: 'execution',
         executionMode: 'auto',
       },
       { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
@@ -476,11 +487,15 @@ describe('personal-agent.service', () => {
     expect(executedActions).toContain('grid-operations.vnbLookup');
     expect(result.execution.stopPoint.reasonCode).toBe('MISSING_INPUTS');
     expect(result.execution.stopPoint.locationOperatorConsistency).toMatch(/unverified|mismatch/);
-    expect(result.reply).toMatch(/Due Diligence|Evidenz|Netzanschlusszusage|Marktlokation|Netzanschlusspunkt|BDEW/i);
+    expect(result.reply).toMatch(
+      /Due Diligence|Evidenz|Netzanschlusszusage|Marktlokation|Netzanschlusspunkt|BDEW/i
+    );
     expect(result.reply).not.toMatch(/Parameters validation error|ACTION_FAILED|__step_/i);
     expect(result.reply).not.toMatch(/operatorEvidence/i);
 
-    const vnbLookupCall = executedCallDetails.find((entry) => entry.action === 'grid-operations.vnbLookup');
+    const vnbLookupCall = executedCallDetails.find(
+      (entry) => entry.action === 'grid-operations.vnbLookup'
+    );
     expect(vnbLookupCall).toBeTruthy();
     expect(vnbLookupCall.params.bdew).toBe('9904350000002');
     expect(vnbLookupCall.params.city).toBe('Ludwigshafen');
@@ -492,6 +507,7 @@ describe('personal-agent.service', () => {
       'personal-agent.chat',
       {
         message: 'Bitte fNAV, Finance und Redispatch für TWL Netze bewerten',
+        chatMode: 'execution',
         executionMode: 'auto',
         knownContext: {
           gridOperatorName: 'TWL Netze',
@@ -517,6 +533,7 @@ describe('personal-agent.service', () => {
       'personal-agent.chat',
       {
         message: 'Bitte prüfe eine unbekannte Spezialintegration ohne klare Datenquelle',
+        chatMode: 'execution',
         executionMode: 'auto',
         knownContext: {
           gridOperatorName: 'Unbekannter Betreiber',
@@ -537,6 +554,7 @@ describe('personal-agent.service', () => {
       'personal-agent.chat',
       {
         message: 'Bitte Mieterstrom mit ZNP für Rheinallee prüfen',
+        chatMode: 'execution',
         executionMode: 'auto',
         knownContext: {
           communityName: 'Solargemeinschaft Rheinallee',
@@ -582,6 +600,7 @@ describe('personal-agent.service', () => {
       'personal-agent.chat',
       {
         message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        chatMode: 'execution',
         executionMode: 'auto',
         knownContext: {
           gridOperatorName: 'TWL Netze',
@@ -600,6 +619,7 @@ describe('personal-agent.service', () => {
       {
         sessionId: first.sessionId,
         message: 'Hybridprofil 5 MW, flexibel 2 MW',
+        chatMode: 'execution',
       },
       { meta: { tenantId: 'tenant-a', authUser: { userId: 'user-1' } } }
     );
@@ -649,6 +669,7 @@ describe('personal-agent.service', () => {
       'personal-agent.chat',
       {
         message: 'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW',
+        chatMode: 'execution',
         executionMode: 'auto',
       },
       meta
@@ -670,15 +691,21 @@ describe('personal-agent.service', () => {
       'personal-agent.chat',
       {
         sessionId: first.sessionId,
-        message: 'Arbeite mit der vorläufigen Annahme weiter und nenne die nächsten fachlichen Schritte.',
+        message:
+          'Arbeite mit der vorläufigen Annahme weiter und nenne die nächsten fachlichen Schritte.',
+        chatMode: 'execution',
         executionMode: 'auto',
       },
       meta
     );
 
-    expect(second.reply).toMatch(/Risikoflag|vorläufig|noch nicht durch Evidenz belegt|Working Assumption/i);
+    expect(second.reply).toMatch(
+      /Risikoflag|vorläufig|noch nicht durch Evidenz belegt|Working Assumption/i
+    );
     expect(second.reply).not.toContain(firstQuestion);
-    expect(second.reply).not.toMatch(/operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED/i);
+    expect(second.reply).not.toMatch(
+      /operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED/i
+    );
 
     const session = await broker.call(
       'personal-agent.getSession',
@@ -696,11 +723,14 @@ describe('personal-agent.service', () => {
   });
 
   it('returns methodological T4 guidance and T5 risk structure across a real session flow', async () => {
-    const meta = { meta: { tenantId: 'tenant-cetred-methodology', authUser: { userId: 'user-1' } } };
+    const meta = {
+      meta: { tenantId: 'tenant-cetred-methodology', authUser: { userId: 'user-1' } },
+    };
     const first = await broker.call(
       'personal-agent.chat',
       {
         message: 'Projekt in Frankenthal, Netzbetreiber soll TWL Netze sein, 12 MW',
+        chatMode: 'execution',
         executionMode: 'auto',
       },
       meta
@@ -711,28 +741,40 @@ describe('personal-agent.service', () => {
       {
         sessionId: first.sessionId,
         message: 'Welche Markt- und Regulatorik-Methodik würdest du jetzt anwenden?',
+        chatMode: 'execution',
         executionMode: 'auto',
       },
       meta
     );
 
     expect(marketTurn.reply).toMatch(/Methodik|Datenquelle|ENTSO-E|Netztransparenz/i);
-    expect(marketTurn.reply).not.toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
-    expect(marketTurn.reply).not.toMatch(/operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED/i);
+    expect(marketTurn.reply).not.toContain(
+      'Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.'
+    );
+    expect(marketTurn.reply).not.toMatch(
+      /operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED/i
+    );
 
     const riskTurn = await broker.call(
       'personal-agent.chat',
       {
         sessionId: first.sessionId,
         message: 'Erstelle daraus ein vorläufiges Risk Assessment für den Kreditausschuss.',
+        chatMode: 'execution',
         executionMode: 'auto',
       },
       meta
     );
 
-    expect(riskTurn.reply).toMatch(/Risk Assessment|Condition Precedent|Due Diligence|Risikoampel/i);
-    expect(riskTurn.reply).not.toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
-    expect(riskTurn.reply).not.toMatch(/operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED/i);
+    expect(riskTurn.reply).toMatch(
+      /Risk Assessment|Condition Precedent|Due Diligence|Risikoampel/i
+    );
+    expect(riskTurn.reply).not.toContain(
+      'Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.'
+    );
+    expect(riskTurn.reply).not.toMatch(
+      /operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED/i
+    );
   });
 
   it('synthesizes a concrete recovery reply for partial execution with zero completed steps', () => {
@@ -839,7 +881,8 @@ describe('personal-agent.service', () => {
   it('frames finance-risk recovery with missing-evidence language', () => {
     const svc = broker.getLocalService('personal-agent');
     const reply = svc.schema.methods.synthesizeTurn.call(svc, {
-      message: 'Mein Kreditkomitee will ein Risk Assessment für ein 12-MW-Speicherprojekt. Was fehlt für eine belastbare Bewertung?',
+      message:
+        'Mein Kreditkomitee will ein Risk Assessment für ein 12-MW-Speicherprojekt. Was fehlt für eine belastbare Bewertung?',
       plan: {
         status: 'partial',
         primaryIntent: 'finance-agent.analyze',
@@ -933,8 +976,12 @@ describe('personal-agent.service', () => {
       },
     });
 
-    expect(reply).toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
-    expect(reply).toContain('Für die Due Diligence brauche ich bitte Netzanschlusszusage/BKZ, Marktlokation, den konkreten Netzanschlusspunkt oder den zuständigen BDEW-Code.');
+    expect(reply).toContain(
+      'Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.'
+    );
+    expect(reply).toContain(
+      'Für die Due Diligence brauche ich bitte Netzanschlusszusage/BKZ, Marktlokation, den konkreten Netzanschlusspunkt oder den zuständigen BDEW-Code.'
+    );
     expect(reply).not.toMatch(/Bitte beantworte konkret:/i);
     expect(reply).not.toMatch(/operatorEvidence/i);
     expect(reply).not.toMatch(/\.\./);
@@ -985,14 +1032,17 @@ describe('personal-agent.service', () => {
           blockedAction: 'grid-operations.vnbLookup',
           missingParams: ['operatorEvidence'],
           onboardingQuestion: {
-            questionText: 'Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen. Für die Due Diligence brauche ich bitte Netzanschlusszusage/BKZ, Marktlokation, den konkreten Netzanschlusspunkt oder den zuständigen BDEW-Code.',
+            questionText:
+              'Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen. Für die Due Diligence brauche ich bitte Netzanschlusszusage/BKZ, Marktlokation, den konkreten Netzanschlusspunkt oder den zuständigen BDEW-Code.',
           },
         },
       },
     });
 
     expect(reply).toMatch(/Netzbetreiber(?:-| )Zuordnung \(1 Treffer\)/i);
-    expect(reply).not.toMatch(/Netzbetreiber(?:-| )Zuordnung \(1 Treffer\);\s*Netzbetreiber(?:-| )Zuordnung/i);
+    expect(reply).not.toMatch(
+      /Netzbetreiber(?:-| )Zuordnung \(1 Treffer\);\s*Netzbetreiber(?:-| )Zuordnung/i
+    );
     expect(reply).not.toMatch(/\.\./);
   });
 
@@ -1028,7 +1078,9 @@ describe('personal-agent.service', () => {
           blockedAction: 'interface_placeholder',
           placeholderMetadata: {
             title: 'Execute curated capability path for interface_placeholder',
-            suggestedNextSteps: ['Execute curated capability path for vnb_kpi_benchmark_comparison'],
+            suggestedNextSteps: [
+              'Execute curated capability path for vnb_kpi_benchmark_comparison',
+            ],
           },
         },
       },
@@ -1123,17 +1175,28 @@ describe('personal-agent.service', () => {
   it('CSV attachment text content is available as transient inhouseData without being persisted in session', async () => {
     const uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pa-inhouse-csv-'));
     const csvPath = path.join(uploadDir, 'assets.csv');
-    const csvContent = 'AssetID,Kapazitaet_kW,Ort\nA-001,5000,Ludwigshafen\nA-002,3000,Frankenthal\n';
+    const csvContent =
+      'AssetID,Kapazitaet_kW,Ort\nA-001,5000,Ludwigshafen\nA-002,3000,Frankenthal\n';
     fs.writeFileSync(csvPath, csvContent);
 
     const svc = broker.getLocalService('personal-agent');
 
     // Verify buildInhouseDataFromAttachments reads text and returns content
     const fakeFiles = [
-      { attachmentId: 'fa_asset_csv', fileName: 'assets.csv', mimeType: 'text/csv', sizeBytes: csvContent.length, tempPath: csvPath },
+      {
+        attachmentId: 'fa_asset_csv',
+        fileName: 'assets.csv',
+        mimeType: 'text/csv',
+        sizeBytes: csvContent.length,
+        tempPath: csvPath,
+      },
     ];
     const fakeProcessing = [{ attachmentId: 'fa_asset_csv', fileName: 'assets.csv', status: 'ok' }];
-    const inhouseData = svc.schema.methods.buildInhouseDataFromAttachments.call(svc, fakeFiles, fakeProcessing);
+    const inhouseData = svc.schema.methods.buildInhouseDataFromAttachments.call(
+      svc,
+      fakeFiles,
+      fakeProcessing
+    );
 
     expect(inhouseData).toHaveLength(1);
     expect(inhouseData[0].attachmentId).toBe('fa_asset_csv');
@@ -1184,16 +1247,38 @@ describe('personal-agent.service', () => {
     const svc = broker.getLocalService('personal-agent');
 
     const fakeFiles = [
-      { attachmentId: 'fa_ok', fileName: 'ok.csv', mimeType: 'text/csv', sizeBytes: 8, tempPath: csvPath },
-      { attachmentId: 'fa_err', fileName: 'bad.csv', mimeType: 'text/csv', sizeBytes: 4, tempPath: csvPath },
-      { attachmentId: 'fa_pdf', fileName: 'doc.pdf', mimeType: 'application/pdf', sizeBytes: 14, tempPath: pdfPath },
+      {
+        attachmentId: 'fa_ok',
+        fileName: 'ok.csv',
+        mimeType: 'text/csv',
+        sizeBytes: 8,
+        tempPath: csvPath,
+      },
+      {
+        attachmentId: 'fa_err',
+        fileName: 'bad.csv',
+        mimeType: 'text/csv',
+        sizeBytes: 4,
+        tempPath: csvPath,
+      },
+      {
+        attachmentId: 'fa_pdf',
+        fileName: 'doc.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: 14,
+        tempPath: pdfPath,
+      },
     ];
     const fakeProcessing = [
       { attachmentId: 'fa_ok', status: 'ok' },
       { attachmentId: 'fa_err', status: 'error' }, // failed processing — should be skipped
     ];
 
-    const inhouseData = svc.schema.methods.buildInhouseDataFromAttachments.call(svc, fakeFiles, fakeProcessing);
+    const inhouseData = svc.schema.methods.buildInhouseDataFromAttachments.call(
+      svc,
+      fakeFiles,
+      fakeProcessing
+    );
 
     // Only fa_ok is successful AND text-based (.csv)
     expect(inhouseData).toHaveLength(1);
@@ -1247,6 +1332,7 @@ describe('personal-agent.service', () => {
       'personal-agent.chat',
       {
         message: 'Bitte fNAV und Finance für TWL Netze bewerten',
+        chatMode: 'execution',
         executionMode: 'hitl',
         knownContext: {
           gridOperatorName: 'TWL Netze',
@@ -1506,7 +1592,12 @@ describe('personal-agent.service', () => {
           location: 'Frankenthal',
           assertedGridOperatorName: 'TWL Netze',
           status: 'unverified',
-          requiredEvidence: ['Netzanschlusszusage/BKZ', 'BDEW-Code', 'Marktlokation', 'Netzanschlusspunkt'],
+          requiredEvidence: [
+            'Netzanschlusszusage/BKZ',
+            'BDEW-Code',
+            'Marktlokation',
+            'Netzanschlusspunkt',
+          ],
           createdAtStep: 2,
         },
       ],
@@ -1725,7 +1816,9 @@ describe('personal-agent.service', () => {
       },
     });
 
-    expect(reply).toMatch(/Methodik|Annahmen|Evidenzlücken|Sensitivitäten|Entscheidungsvorbehalte/i);
+    expect(reply).toMatch(
+      /Methodik|Annahmen|Evidenzlücken|Sensitivitäten|Entscheidungsvorbehalte/i
+    );
     expect(reply).not.toMatch(/interface_placeholder|ACTION_FAILED|__step_/i);
   });
 
@@ -1753,44 +1846,48 @@ describe('personal-agent.service', () => {
 
   it('completes the verified Standort/VNB path without storing assumptions', async () => {
     const svc = broker.getLocalService('personal-agent');
-    const execution = await svc.schema.methods.executeDeterministicPlan.call(svc, {
-      call: broker.call.bind(broker),
-      meta: { tenantId: 'tenant-verified', authUser: { userId: 'user-1' } },
-    }, {
-      message: 'Projekt in Trier, Netzbetreiber Stadtwerk Trier',
-      knownContext: {
-        location: 'Trier',
-        gridOperatorName: 'Stadtwerk Trier',
-        assertedGridOperatorName: 'Stadtwerk Trier',
+    const execution = await svc.schema.methods.executeDeterministicPlan.call(
+      svc,
+      {
+        call: broker.call.bind(broker),
+        meta: { tenantId: 'tenant-verified', authUser: { userId: 'user-1' } },
       },
-      plan: {
-        status: 'ready',
-        promptHints: {
+      {
+        message: 'Projekt in Trier, Netzbetreiber Stadtwerk Trier',
+        knownContext: {
           location: 'Trier',
-          city: 'Trier',
           gridOperatorName: 'Stadtwerk Trier',
           assertedGridOperatorName: 'Stadtwerk Trier',
         },
-        steps: [
-          {
-            step: 1,
-            action: 'grid-operations.marketPartners',
-            paramsTemplate: {
-              query: 'Stadtwerk Trier',
-              limit: 3,
-            },
+        plan: {
+          status: 'ready',
+          promptHints: {
+            location: 'Trier',
+            city: 'Trier',
+            gridOperatorName: 'Stadtwerk Trier',
+            assertedGridOperatorName: 'Stadtwerk Trier',
           },
-          {
-            step: 2,
-            action: 'grid-operations.vnbLookup',
-            paramsTemplate: {
-              bdew: '__step_1.data.results[0].bdewCode',
-              city: '__step_1.data.results[0].contacts[0].city',
+          steps: [
+            {
+              step: 1,
+              action: 'grid-operations.marketPartners',
+              paramsTemplate: {
+                query: 'Stadtwerk Trier',
+                limit: 3,
+              },
             },
-          },
-        ],
-      },
-    });
+            {
+              step: 2,
+              action: 'grid-operations.vnbLookup',
+              paramsTemplate: {
+                bdew: '__step_1.data.results[0].bdewCode',
+                city: '__step_1.data.results[0].contacts[0].city',
+              },
+            },
+          ],
+        },
+      }
+    );
 
     expect(execution.status).toBe('completed');
     expect(execution.stopPoint).toBeNull();
@@ -1818,7 +1915,8 @@ describe('personal-agent.service', () => {
     const result = await broker.call(
       'personal-agent.chat',
       {
-        message: 'Kann der Netzbetreiber ohne formales §17-EnWG-Netzanschlussbegehren eine belastbare Anschluss- oder Kapazitätszusage geben?',
+        message:
+          'Kann der Netzbetreiber ohne formales §17-EnWG-Netzanschlussbegehren eine belastbare Anschluss- oder Kapazitätszusage geben?',
         executionMode: 'auto',
         knownContext: {
           processType: 'grid-connection-governance',
@@ -1844,12 +1942,15 @@ describe('personal-agent.service', () => {
     expect(result.presentationType).toBe('vdmi_matrix_table');
     expect(result.presentation).toBeTruthy();
     expect(result.presentation.markdown).toBe(result.reply);
-    expect(result.reply).toContain('| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |');
+    expect(result.reply).toContain(
+      '| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |'
+    );
     expect(result.reply).toContain('Network Operator Decision');
     expect(result.reply).toContain('DSO_GATEKEEPER');
     const duplicateEvidence = result.reply.match(/Vollständiger §17-Antrag/g) || [];
     expect(duplicateEvidence).toHaveLength(1);
-    const duplicateAssumption = result.reply.match(/Keine belastbare Anschlusszusage ohne formalen Antrag/g) || [];
+    const duplicateAssumption =
+      result.reply.match(/Keine belastbare Anschlusszusage ohne formalen Antrag/g) || [];
     expect(duplicateAssumption).toHaveLength(1);
     expect(result.reply).not.toMatch(/\[object Object\]/);
     expect(result.reply).not.toContain('Plan abgeschlossen:');
@@ -1873,7 +1974,8 @@ describe('personal-agent.service', () => {
       const result = await broker.call(
         'personal-agent.chat',
         {
-          message: 'Kann der Netzbetreiber ohne formales §17-EnWG-Netzanschlussbegehren eine belastbare Anschluss- oder Kapazitätszusage geben?',
+          message:
+            'Kann der Netzbetreiber ohne formales §17-EnWG-Netzanschlussbegehren eine belastbare Anschluss- oder Kapazitätszusage geben?',
           executionMode: 'auto',
           knownContext: {
             processType: 'grid-connection-governance',
@@ -1913,9 +2015,13 @@ describe('personal-agent.service', () => {
               },
               expectedStatus: 'blocked',
               evidence: {
-                requirements: [{ requirementId: 'formal-request', label: 'Vollständiger §17-Antrag' }],
+                requirements: [
+                  { requirementId: 'formal-request', label: 'Vollständiger §17-Antrag' },
+                ],
               },
-              evidenceGaps: [{ requirementId: 'formal-request', label: 'Vollständiger §17-Antrag' }],
+              evidenceGaps: [
+                { requirementId: 'formal-request', label: 'Vollständiger §17-Antrag' },
+              ],
               forbiddenAssumptions: ['Keine belastbare Anschlusszusage ohne formalen Antrag'],
               nextActions: [{ id: 'na-1', label: 'Formalen Antrag einreichen' }],
             },
@@ -1961,8 +2067,67 @@ describe('personal-agent.service', () => {
     expect(result.routing.routeLabel).toBe('vdmi_grid_connection_decision_governance');
     expect(result.execution.status).toBe('partial');
     expect(result.execution.stopPoint).toBeTruthy();
-    expect(result.execution.stopPoint.reasonCode).toMatch(/MISSING_VDMI_TASK_CONTEXT|AMBIGUOUS_VDMI_V_ACTOR|MISSING_VDMI_V_ACTOR/);
+    expect(result.execution.stopPoint.reasonCode).toMatch(
+      /MISSING_VDMI_TASK_CONTEXT|AMBIGUOUS_VDMI_V_ACTOR|MISSING_VDMI_V_ACTOR/
+    );
     expect(result.execution.stopPoint.status).toBe('interface-placeholder');
   });
 
+  it('defaults to consultation mode for legacy sessions without chatMode', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: '500 kWp PV, 250 kWh Speicher, Burgbernheim. Wie hoch ist die Redispatch-Wahrscheinlichkeit?',
+        executionMode: 'auto',
+      },
+      { meta: { tenantId: 'tenant-consult-default', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.status).toBe('consulting');
+    expect(result.chatMode).toBe('consultation');
+    expect(result.execution).toEqual({ status: 'consulting', plan: null, steps: [] });
+    expect(result.consultation).toBeTruthy();
+    expect(Array.isArray(result.consultation.hypotheses)).toBe(true);
+    expect(Array.isArray(result.consultation.openQuestions)).toBe(true);
+    expect(Array.isArray(result.consultation.nextActions)).toBe(true);
+    expect(Array.isArray(result.consultation.factsUsed)).toBe(true);
+  });
+
+  it('prioritizes explicit API chatMode=execution over auto-detection', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Wie hoch ist die Redispatch-Wahrscheinlichkeit für mein Projekt?',
+        executionMode: 'auto',
+        chatMode: 'execution',
+        knownContext: {
+          query: 'TWL Netze',
+        },
+      },
+      { meta: { tenantId: 'tenant-chatmode-exec', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.chatMode).toBe('execution');
+    expect(result.status).not.toBe('consulting');
+    expect(result.execution.status).not.toBe('consulting');
+  });
+
+  it('prioritizes explicit API chatMode=consultation over execution-like prompts', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Prüfe meinen MaStR-Eintrag jetzt.',
+        executionMode: 'auto',
+        chatMode: 'consultation',
+      },
+      { meta: { tenantId: 'tenant-chatmode-consult', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.status).toBe('consulting');
+    expect(result.chatMode).toBe('consultation');
+    expect(result.execution).toEqual({ status: 'consulting', plan: null, steps: [] });
+  });
 });

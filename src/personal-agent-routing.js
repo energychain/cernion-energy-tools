@@ -11,6 +11,11 @@ const EXECUTION_MODES = Object.freeze({
   HITL: 'hitl',
 });
 
+const CHAT_MODES = Object.freeze({
+  EXECUTION: 'execution',
+  CONSULTATION: 'consultation',
+});
+
 const ROUTING_CONTROL_ACTIONS = Object.freeze({
   MISSING_CONTEXT: 'MISSING_CONTEXT',
 });
@@ -344,6 +349,95 @@ function normalizeExecutionMode(mode) {
   return mode === EXECUTION_MODES.HITL ? EXECUTION_MODES.HITL : EXECUTION_MODES.AUTO;
 }
 
+function normalizeChatMode(mode) {
+  const normalized = String(mode || '')
+    .trim()
+    .toLowerCase();
+  if (normalized === CHAT_MODES.EXECUTION) return CHAT_MODES.EXECUTION;
+  if (normalized === CHAT_MODES.CONSULTATION) return CHAT_MODES.CONSULTATION;
+  return null;
+}
+
+function detectExplicitChatModeSwitch(message = '') {
+  const haystack = String(message || '').toLowerCase();
+  if (!haystack) return null;
+
+  const executionSwitchSignals = [
+    /wechsle\s+in\s+den\s+pr[üu]f-modus/i,
+    /f[üu]hre\s+die\s+pr[üu]fung\s+durch/i,
+    /jetzt\s+pr[üu]fen/i,
+  ];
+  if (executionSwitchSignals.some((rx) => rx.test(haystack))) {
+    return CHAT_MODES.EXECUTION;
+  }
+
+  const consultationSwitchSignals = [
+    /wechsle\s+in\s+den\s+beratungsmodus/i,
+    /nur\s+beraten/i,
+    /ohne\s+pr[üu]fung/i,
+  ];
+  if (consultationSwitchSignals.some((rx) => rx.test(haystack))) {
+    return CHAT_MODES.CONSULTATION;
+  }
+
+  return null;
+}
+
+function detectChatMode(message, brokerRecommendation = {}, session = {}) {
+  const explicit = detectExplicitChatModeSwitch(message);
+  if (explicit) return explicit;
+
+  const persisted = normalizeChatMode(session?.chatMode || session?.l3?.chatMode || null);
+  const haystack = String(message || '').toLowerCase();
+
+  const consultationSignals = [
+    /wie hoch/i,
+    /wahrscheinlichkeit/i,
+    /was kann ich tun/i,
+    /wie vermeide/i,
+    /warum/i,
+    /bedeutet das/i,
+    /was passiert wenn/i,
+    /erkl[äa]r/i,
+    /abgeregelt/i,
+    /redispatch/i,
+    /problem/i,
+    /frage/i,
+    /unsicher/i,
+    /soll ich/i,
+    /empfiehl/i,
+    /was w[üu]rdest du/i,
+  ];
+
+  const executionSignals = [
+    /pr[üu]fe/i,
+    /validiere/i,
+    /suche/i,
+    /finde/i,
+    /ermittle/i,
+    /mastr/i,
+    /bdew/i,
+    /netzbetreiber/i,
+    /anschlusszusage/i,
+    /dokument/i,
+    /nachweis/i,
+    /beleg/i,
+  ];
+
+  const hasConsultation = consultationSignals.some((rx) => rx.test(haystack));
+  const hasExecution = executionSignals.some((rx) => rx.test(haystack));
+
+  if (hasExecution && !hasConsultation) return CHAT_MODES.EXECUTION;
+  if (hasConsultation) return CHAT_MODES.CONSULTATION;
+
+  if (Number(brokerRecommendation?.confidence || 0) < 0.6) {
+    return CHAT_MODES.CONSULTATION;
+  }
+
+  if (persisted) return persisted;
+  return CHAT_MODES.CONSULTATION;
+}
+
 function getCapabilityScore(message, capability) {
   const haystack = String(message || '').toLowerCase();
   return (capability.keywords || []).reduce(
@@ -416,11 +510,7 @@ function findBestCapability(message) {
     'darf der netzbetreiber zusagen',
     'decision_blocked_pending_formal_request',
   ];
-  const vdmiDecisionContextSignals = [
-    'formales netzanschlussbegehren',
-    '§17 enwg',
-    '17 enwg',
-  ];
+  const vdmiDecisionContextSignals = ['formales netzanschlussbegehren', '§17 enwg', '17 enwg'];
   const vdmiAssetValidationSignals = [
     'asset validation',
     'asset-validierung',
@@ -446,19 +536,17 @@ function findBestCapability(message) {
   ];
 
   const hasVdmiBoundaryCombo =
-    /(rollen|rolle|schnittstellen)/i.test(haystack)
-    && /(netzanschluss|enwg|arealnetz|gatekeeper)/i.test(haystack);
+    /(rollen|rolle|schnittstellen)/i.test(haystack) &&
+    /(netzanschluss|enwg|arealnetz|gatekeeper)/i.test(haystack);
 
   const hasVdmiDecisionCombo =
-    /(zusage|entscheidung|uebergabepunkt|übergabepunkt|kapazit[aä]t)/i.test(haystack)
-    && /(netzbetreiber|formales netzanschlussbegehren|§17|17 enwg|enwg)/i.test(haystack);
+    /(zusage|entscheidung|uebergabepunkt|übergabepunkt|kapazit[aä]t)/i.test(haystack) &&
+    /(netzbetreiber|formales netzanschlussbegehren|§17|17 enwg|enwg)/i.test(haystack);
 
   const hasVdmiDecisionSignal =
-    vdmiDecisionCoreSignals.some((signal) => haystack.includes(signal))
-    || (
-      vdmiDecisionContextSignals.some((signal) => haystack.includes(signal))
-      && /(zusage|entscheidung|uebergabepunkt|übergabepunkt|kapazit[aä]t|anschluss)/i.test(haystack)
-    );
+    vdmiDecisionCoreSignals.some((signal) => haystack.includes(signal)) ||
+    (vdmiDecisionContextSignals.some((signal) => haystack.includes(signal)) &&
+      /(zusage|entscheidung|uebergabepunkt|übergabepunkt|kapazit[aä]t|anschluss)/i.test(haystack));
 
   if (hasVdmiDecisionSignal || hasVdmiDecisionCombo) {
     const vdmiDecisionCapability = findCapabilityByName('vdmi_grid_connection_decision_governance');
@@ -472,11 +560,17 @@ function findBestCapability(message) {
   }
 
   const hasFinancierDueDiligenceCombo =
-    /(due\s*diligence|risk\s*assessment|kreditausschuss|credit\s*committee|bankability)/i.test(haystack)
-    && /(finanz|financier|kredit|committee|condition\s*precedent|risiko)/i.test(haystack);
+    /(due\s*diligence|risk\s*assessment|kreditausschuss|credit\s*committee|bankability)/i.test(
+      haystack
+    ) && /(finanz|financier|kredit|committee|condition\s*precedent|risiko)/i.test(haystack);
 
-  if (financierDueDiligenceSignals.some((signal) => haystack.includes(signal)) || hasFinancierDueDiligenceCombo) {
-    const financierDueDiligenceCapability = findCapabilityByName('financier_due_diligence_assessment');
+  if (
+    financierDueDiligenceSignals.some((signal) => haystack.includes(signal)) ||
+    hasFinancierDueDiligenceCombo
+  ) {
+    const financierDueDiligenceCapability = findCapabilityByName(
+      'financier_due_diligence_assessment'
+    );
     if (financierDueDiligenceCapability) {
       return {
         capability: financierDueDiligenceCapability,
@@ -487,12 +581,12 @@ function findBestCapability(message) {
   }
 
   const hasVdmiAssetValidationCombo =
-    /(asset|anlage|anlagen|assetklasse|transformator|trafo)/i.test(haystack)
-    && /(evidence|evidenz|nachweis|beleg|risk|risiko|forbidden|verbotene annahme)/i.test(haystack);
+    /(asset|anlage|anlagen|assetklasse|transformator|trafo)/i.test(haystack) &&
+    /(evidence|evidenz|nachweis|beleg|risk|risiko|forbidden|verbotene annahme)/i.test(haystack);
 
   if (
-    vdmiAssetValidationSignals.some((signal) => haystack.includes(signal))
-    || hasVdmiAssetValidationCombo
+    vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||
+    hasVdmiAssetValidationCombo
   ) {
     const vdmiAssetValidationCapability = findCapabilityByName('vdmi_asset_validation_governance');
     if (vdmiAssetValidationCapability) {
@@ -610,21 +704,25 @@ function detectRequestedDomains(message) {
 }
 
 function findMatchingMatrixRoute(domainKeys = []) {
-  return ROUTING_MATRIX.find((route) => route.domains.every((domain) => domainKeys.includes(domain)));
+  return ROUTING_MATRIX.find((route) =>
+    route.domains.every((domain) => domainKeys.includes(domain))
+  );
 }
 
 function buildCuratedBrokerSteps(capability, brokerRecommendation) {
   const blockedActions = new Set(GLOBAL_DO_NOT_USE.map((entry) => entry.action));
   const brokerActions = brokerRecommendation?.recommendedCapabilities?.[0]?.actions;
-  const actions = Array.isArray(brokerActions) && brokerActions.length > 0
-    ? brokerActions.filter((action) => !blockedActions.has(action))
-    : (capability.preferredActions || []).filter((action) => !blockedActions.has(action));
+  const actions =
+    Array.isArray(brokerActions) && brokerActions.length > 0
+      ? brokerActions.filter((action) => !blockedActions.has(action))
+      : (capability.preferredActions || []).filter((action) => !blockedActions.has(action));
 
   return actions.map((action, index) => ({
     step: index + 1,
     action,
     purpose: `Execute curated capability path for ${capability.capability}`,
-    paramsTemplate: brokerRecommendation?.recommendedPlan?.find((item) => item.action === action)?.params || {},
+    paramsTemplate:
+      brokerRecommendation?.recommendedPlan?.find((item) => item.action === action)?.params || {},
     source: 'capability-broker',
   }));
 }
@@ -635,54 +733,58 @@ function extractPromptHints(message) {
     /\b(?:projekt(?:\s*-?\s*id)?|project(?:\s*-?\s*id)?)\s*[:=]\s*([a-z0-9][a-z0-9_-]{2,})\b/i
   );
   const projectInlineMatch = text.match(/\b(?:projekt|project)\s+([a-z0-9][a-z0-9_-]{2,})\b/i);
-  const projectCandidate = projectIdExplicitMatch?.[1]
-    || projectInlineMatch?.[1]
-    || undefined;
-  const projectId = projectCandidate
-    && !/^(?:in|bei|f(?:ü|u)r)$/i.test(projectCandidate)
-    && (/[0-9]/.test(projectCandidate) || /[_-]/.test(projectCandidate) || Boolean(projectIdExplicitMatch))
+  const projectCandidate = projectIdExplicitMatch?.[1] || projectInlineMatch?.[1] || undefined;
+  const projectId =
+    projectCandidate &&
+    !/^(?:in|bei|f(?:ü|u)r)$/i.test(projectCandidate) &&
+    (/[0-9]/.test(projectCandidate) ||
+      /[_-]/.test(projectCandidate) ||
+      Boolean(projectIdExplicitMatch))
       ? projectCandidate
       : undefined;
   const isoDates = text.match(/\b\d{4}-\d{2}-\d{2}\b/g) || [];
-  const locationPhraseMatch = text.match(/\b(?:in|bei|für|fuer|standort|ort)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})/);
-  const operatorAssertionMatch = text.match(/\b(?:netzbetreiber|vnb|betreiber)\b\s*(?:soll|sei|ist|=|:)?\s*([A-ZÄÖÜ][^,.;\n]+)/i);
+  const locationPhraseMatch = text.match(
+    /\b(?:in|bei|für|fuer|standort|ort)\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+(?:\s+[A-ZÄÖÜ][A-Za-zÄÖÜäöüß-]+){0,2})/
+  );
+  const operatorAssertionMatch = text.match(
+    /\b(?:netzbetreiber|vnb|betreiber)\b\s*(?:soll|sei|ist|=|:)?\s*([A-ZÄÖÜ][^,.;\n]+)/i
+  );
   const leadingSegment = text.split(',')[0]?.trim();
   const leadingLooksLikeLocation =
-    leadingSegment
-    && !/\b(?:netzbetreiber|vnb|betreiber|bdew|snb)\b/i.test(leadingSegment)
-    && /[A-Za-zÄÖÜäöüß]/.test(leadingSegment)
-    && leadingSegment.split(/\s+/).length <= 4;
+    leadingSegment &&
+    !/\b(?:netzbetreiber|vnb|betreiber|bdew|snb)\b/i.test(leadingSegment) &&
+    /[A-Za-zÄÖÜäöüß]/.test(leadingSegment) &&
+    leadingSegment.split(/\s+/).length <= 4;
 
-  const locationCandidate = locationPhraseMatch?.[1]?.trim()
-    || (leadingLooksLikeLocation ? leadingSegment : undefined);
+  const locationCandidate =
+    locationPhraseMatch?.[1]?.trim() || (leadingLooksLikeLocation ? leadingSegment : undefined);
 
   const operatorCandidate = operatorAssertionMatch?.[1]
-    ? operatorAssertionMatch[1]
-      .replace(/\b(?:sein|ist|sind)\b.*$/i, '')
-      .trim()
+    ? operatorAssertionMatch[1].replace(/\b(?:sein|ist|sind)\b.*$/i, '').trim()
     : undefined;
 
   const postalMatch = text.match(/\b\d{5}\b/);
   const capacityKwMatch = text.match(/\b(\d+(?:[.,]\d+)?)\s*kW\b/i);
   const capacityMwMatch = text.match(/\b(\d+(?:[.,]\d+)?)\s*MW\b/i);
   const requestedCapacityMatch =
-    text.match(/\brequested\s*capacity\s*kw\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i)
-    || text.match(/\brequestedcapacitykw\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i)
-    || text.match(/\brequested\s*capacity\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
+    text.match(/\brequested\s*capacity\s*kw\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) ||
+    text.match(/\brequestedcapacitykw\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) ||
+    text.match(/\brequested\s*capacity\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i);
   const bdewNumericMatch = text.match(/\b([0-9]{13})\b/);
   const bdewPrefixedMatch = text.match(
     /\b(?:bdew(?:\s*-?\s*code)?|code)\s*[:=]\s*([A-Z0-9]{6,20})\b/i
   );
   const bdewCandidate = bdewPrefixedMatch?.[1] || bdewNumericMatch?.[1];
-  const bdewCode = bdewCandidate && /\d/.test(bdewCandidate)
-    ? String(bdewCandidate).toUpperCase()
-    : undefined;
+  const bdewCode =
+    bdewCandidate && /\d/.test(bdewCandidate) ? String(bdewCandidate).toUpperCase() : undefined;
 
   const requestedCapacityKW = requestedCapacityMatch
     ? Number(requestedCapacityMatch[1].replace(',', '.'))
-    : (capacityMwMatch
+    : capacityMwMatch
       ? Number(capacityMwMatch[1].replace(',', '.')) * 1000
-      : (capacityKwMatch ? Number(capacityKwMatch[1].replace(',', '.')) : undefined));
+      : capacityKwMatch
+        ? Number(capacityKwMatch[1].replace(',', '.'))
+        : undefined;
 
   return {
     projectId,
@@ -704,7 +806,9 @@ function extractPromptHints(message) {
 }
 
 function parseBenchmarkNames(text = '') {
-  const againstMatch = String(text || '').match(/\b(?:benchmark(?:e|t)?|vergleich(?:e|t)?)\s+(.+?)\s+gegen\s+(.+?)(?:[\.!?]|$)/i);
+  const againstMatch = String(text || '').match(
+    /\b(?:benchmark(?:e|t)?|vergleich(?:e|t)?)\s+(.+?)\s+gegen\s+(.+?)(?:[\.!?]|$)/i
+  );
   if (!againstMatch) {
     return { vnb1Name: undefined, vnb2Name: undefined };
   }
@@ -789,7 +893,8 @@ function deepResolveTemplate(value, executionState) {
 }
 
 function findContextValue(action, key, knownContext, promptHints) {
-  const actionOverrides = knownContext?.stepParams?.[action] || knownContext?.byAction?.[action] || {};
+  const actionOverrides =
+    knownContext?.stepParams?.[action] || knownContext?.byAction?.[action] || {};
   if (Object.prototype.hasOwnProperty.call(actionOverrides, key)) {
     return actionOverrides[key];
   }
@@ -821,7 +926,10 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
     Object.entries(resolved).map(([key, value]) => {
       const originalTemplateValue = template?.[key];
       if (value === null || value === undefined) {
-        if (typeof originalTemplateValue === 'string' && originalTemplateValue.startsWith('__step_')) {
+        if (
+          typeof originalTemplateValue === 'string' &&
+          originalTemplateValue.startsWith('__step_')
+        ) {
           unresolvedStepPlaceholders.add(key);
         }
         const replacement = findContextValue(action, key, knownContext, promptHints);
@@ -831,7 +939,9 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
     })
   );
 
-  const parsedBenchmarkNames = parseBenchmarkNames(String(knownContext?.lastUserMessage || promptHints?.query || ''));
+  const parsedBenchmarkNames = parseBenchmarkNames(
+    String(knownContext?.lastUserMessage || promptHints?.query || '')
+  );
 
   const isLikelyFullPromptQuery = (value) => {
     if (typeof value !== 'string') return false;
@@ -840,11 +950,17 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
     const wordCount = text.split(/\s+/).filter(Boolean).length;
     if (text.length > 80 || wordCount > 8) return true;
     if (/[,?!]/.test(text) && wordCount > 5) return true;
-    return /\b(?:bitte|projekt|netzbetreiber|standort|risiko|bewertung)\b/i.test(text) && wordCount > 4;
+    return (
+      /\b(?:bitte|projekt|netzbetreiber|standort|risiko|bewertung)\b/i.test(text) && wordCount > 4
+    );
   };
 
   if (action === 'grid-operations.marketPartners') {
-    if (hydrated.query == null || hydrated.query === '' || isLikelyFullPromptQuery(hydrated.query)) {
+    if (
+      hydrated.query == null ||
+      hydrated.query === '' ||
+      isLikelyFullPromptQuery(hydrated.query)
+    ) {
       hydrated.query =
         knownContext?.assertedGridOperatorName ||
         promptHints?.assertedGridOperatorName ||
@@ -879,9 +995,9 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
     }
     if (hydrated.fnavProfile == null) {
       const requestedCapacity =
-        knownContext?.requestedCapacityKW
-        ?? knownContext?.requestedCapacity
-        ?? promptHints?.requestedCapacityKW;
+        knownContext?.requestedCapacityKW ??
+        knownContext?.requestedCapacity ??
+        promptHints?.requestedCapacityKW;
       if (requestedCapacity != null) {
         hydrated.fnavProfile = {
           requestedCapacity,
@@ -898,9 +1014,9 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
   if (action === 'grid-operations.netzfahrplanGenerate') {
     if (hydrated.requestedCapacityKW == null) {
       hydrated.requestedCapacityKW =
-        knownContext?.requestedCapacityKW
-        ?? knownContext?.requestedCapacity
-        ?? promptHints?.requestedCapacityKW;
+        knownContext?.requestedCapacityKW ??
+        knownContext?.requestedCapacity ??
+        promptHints?.requestedCapacityKW;
     }
     if (hydrated.ownerContact == null && knownContext?.ownerContact) {
       hydrated.ownerContact = knownContext.ownerContact;
@@ -910,12 +1026,12 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
   if (action === 'ewk-monitoring.benchmarkVnb') {
     if (hydrated.vnbName == null || hydrated.vnbName === '') {
       hydrated.vnbName =
-        knownContext?.vnbName
-        || knownContext?.vnb1Name
-        || parsedBenchmarkNames.vnb1Name
-        || knownContext?.gridOperatorName
-        || promptHints?.query
-        || undefined;
+        knownContext?.vnbName ||
+        knownContext?.vnb1Name ||
+        parsedBenchmarkNames.vnb1Name ||
+        knownContext?.gridOperatorName ||
+        promptHints?.query ||
+        undefined;
     }
     if (hydrated.bnr == null && knownContext?.bnr) {
       hydrated.bnr = knownContext.bnr;
@@ -934,8 +1050,9 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
     }
     const lastPromptText = String(knownContext?.lastUserMessage || promptHints?.query || '');
     const isVdmiDecisionPrompt =
-      /(anschlusszusage|kapazitaetszusage|kapazitätszusage|uebergabepunkt|übergabepunkt|netzbetreiberentscheidung|belastbare\s+zusage)/i.test(lastPromptText)
-      && /(formales\s+netzanschlussbegehren|§17\s*enwg|17\s*enwg|enwg)/i.test(lastPromptText);
+      /(anschlusszusage|kapazitaetszusage|kapazitätszusage|uebergabepunkt|übergabepunkt|netzbetreiberentscheidung|belastbare\s+zusage)/i.test(
+        lastPromptText
+      ) && /(formales\s+netzanschlussbegehren|§17\s*enwg|17\s*enwg|enwg)/i.test(lastPromptText);
     if (hydrated.taskId == null && isVdmiDecisionPrompt) {
       hydrated.taskId = 'network-operator-decision';
     }
@@ -953,8 +1070,9 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
     }
     const lastPromptText = String(knownContext?.lastUserMessage || promptHints?.query || '');
     const isVdmiDecisionPrompt =
-      /(anschlusszusage|kapazitaetszusage|kapazitätszusage|uebergabepunkt|übergabepunkt|netzbetreiberentscheidung|belastbare\s+zusage)/i.test(lastPromptText)
-      && /(formales\s+netzanschlussbegehren|§17\s*enwg|17\s*enwg|enwg)/i.test(lastPromptText);
+      /(anschlusszusage|kapazitaetszusage|kapazitätszusage|uebergabepunkt|übergabepunkt|netzbetreiberentscheidung|belastbare\s+zusage)/i.test(
+        lastPromptText
+      ) && /(formales\s+netzanschlussbegehren|§17\s*enwg|17\s*enwg|enwg)/i.test(lastPromptText);
     if (hydrated.taskId == null && isVdmiDecisionPrompt) {
       hydrated.taskId = 'network-operator-decision';
     }
@@ -966,11 +1084,11 @@ function fillTemplateWithContext(template, action, knownContext, promptHints, ex
   if (action === 'finance-agent.analyze') {
     if (hydrated.query == null || hydrated.query === '') {
       hydrated.query =
-        knownContext?.query
-        || knownContext?.dueDiligenceQuestion
-        || knownContext?.lastUserMessage
-        || promptHints?.query
-        || undefined;
+        knownContext?.query ||
+        knownContext?.dueDiligenceQuestion ||
+        knownContext?.lastUserMessage ||
+        promptHints?.query ||
+        undefined;
     }
   }
 
@@ -1017,7 +1135,9 @@ function getMissingInputs(action, params = {}) {
 
 function shouldAttachRegulatoryContextNote(action = '') {
   const value = String(action || '').toLowerCase();
-  return /^(grid-operations\.|grid-connection\.|finance-agent\.|redispatch|settlement\.)/.test(value);
+  return /^(grid-operations\.|grid-connection\.|finance-agent\.|redispatch|settlement\.)/.test(
+    value
+  );
 }
 
 function toContextNote(knowledgeContext = {}, action = '') {
@@ -1055,9 +1175,10 @@ function buildExecutionPlan({ message, brokerRecommendation, knowledgeContext = 
         contextNote: toContextNote(knowledgeContext, step.action),
       })),
       status: 'ready',
-      warnings: unsupportedDomains.length > 0
-        ? [`Unsupported extra domains requested: ${unsupportedDomains.join(', ')}`]
-        : [],
+      warnings:
+        unsupportedDomains.length > 0
+          ? [`Unsupported extra domains requested: ${unsupportedDomains.join(', ')}`]
+          : [],
       promptHints,
     };
   }
@@ -1074,11 +1195,10 @@ function buildExecutionPlan({ message, brokerRecommendation, knowledgeContext = 
       }
     : findBestCapability(message);
 
-  const steps = buildCuratedBrokerSteps(selected.capability, brokerRecommendation)
-    .map((step) => ({
-      ...step,
-      contextNote: toContextNote(knowledgeContext, step.action),
-    }));
+  const steps = buildCuratedBrokerSteps(selected.capability, brokerRecommendation).map((step) => ({
+    ...step,
+    contextNote: toContextNote(knowledgeContext, step.action),
+  }));
   const unsupportedDomains = requestedDomains.length > 1 ? requestedDomains.slice(1) : [];
 
   return {
@@ -1093,9 +1213,10 @@ function buildExecutionPlan({ message, brokerRecommendation, knowledgeContext = 
     unsupportedDomains,
     steps,
     status: selected.usedFallback ? 'partial' : 'ready',
-    warnings: selected.usedFallback || unsupportedDomains.length > 0
-      ? [`No routing-matrix entry for chained domains: ${requestedDomains.join(' -> ')}`]
-      : [],
+    warnings:
+      selected.usedFallback || unsupportedDomains.length > 0
+        ? [`No routing-matrix entry for chained domains: ${requestedDomains.join(' -> ')}`]
+        : [],
     promptHints,
     capability: selected.capability,
   };
@@ -1164,9 +1285,13 @@ function applyMissingContextFallback(plan = {}, { knownContext = {}, executionMo
 
 module.exports = {
   EXECUTION_MODES,
+  CHAT_MODES,
   ROUTING_CONTROL_ACTIONS,
   ROUTING_MATRIX,
   normalizeExecutionMode,
+  normalizeChatMode,
+  detectExplicitChatModeSwitch,
+  detectChatMode,
   detectRequestedDomains,
   buildExecutionPlan,
   applyMissingContextFallback,
