@@ -313,8 +313,6 @@ const CURATED_CAPABILITIES = [
       'asset-prüfung',
       'asset pruefung',
       'assetklasse',
-      'anlage',
-      'anlagen',
       'evidence',
       'evidenz',
       'nachweis',
