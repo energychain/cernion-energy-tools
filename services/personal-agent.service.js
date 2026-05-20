@@ -44,7 +44,10 @@ const {
   resolveParamKeyFromMissing,
   ONBOARDING_PARAM_ALTERNATIVES,
 } = require('../src/personal-agent-onboarding');
-const { generateText: llmGenerateText } = require('../src/llm-client');
+const {
+  generateText: llmGenerateText,
+  generateStructured: llmGenerateStructured,
+} = require('../src/llm-client');
 const {
   recognizeFileType,
   parseCsvExtract,
@@ -1735,6 +1738,35 @@ module.exports = {
       ].join('\n');
     },
 
+    async callLlmGenerate(ctx, payload = {}) {
+      const hasLocalLlmService =
+        !!ctx?.broker &&
+        typeof ctx.broker.hasLocalService === 'function' &&
+        ctx.broker.hasLocalService('llm');
+      const canCallBrokerAction =
+        typeof ctx?.call === 'function' &&
+        (!ctx?.broker || process.env.NODE_ENV === 'test' || hasLocalLlmService);
+
+      if (canCallBrokerAction) {
+        return await ctx.call('llm.generate', payload, { meta: { ...ctx.meta, $gateway: false } });
+      }
+
+      const systemText = String(payload.system || '').trim();
+      const userText = String(payload.user || '').trim();
+      const prompt = [systemText, userText].filter(Boolean).join('\n\n');
+      const options = {
+        temperature: payload.temperature,
+        maxTokens: payload.maxTokens,
+      };
+
+      if (payload.schema && typeof payload.schema === 'object') {
+        return await llmGenerateStructured(payload.schema, prompt, options);
+      }
+
+      const text = await llmGenerateText(prompt, options);
+      return { text };
+    },
+
     /**
      * Klassifiziert die Nutzer-Intention via LLM.
      * Versteht Kontext, Satzstruktur, Imperativ vs. Statement.
@@ -1772,7 +1804,7 @@ module.exports = {
       ].join('\n');
 
       try {
-        const llmResponse = await ctx.call('llm.generate', {
+        const llmResponse = await this.callLlmGenerate(ctx, {
           system: systemPrompt,
           user: userPrompt,
           temperature: 0.1,
@@ -1847,15 +1879,11 @@ module.exports = {
           knowledgeContext,
         });
 
-        const raw = await ctx.call(
-          'llm.generate',
-          {
-            system: systemPrompt,
-            user: message,
-            schema: CONSULTATION_OUTPUT_SCHEMA,
-          },
-          { meta: { ...ctx.meta, $gateway: false } }
-        );
+        const raw = await this.callLlmGenerate(ctx, {
+          system: systemPrompt,
+          user: message,
+          schema: CONSULTATION_OUTPUT_SCHEMA,
+        });
 
         const data = raw?.data || raw;
         if (!data || typeof data !== 'object' || !String(data.reply || '').trim()) {
