@@ -780,16 +780,60 @@ module.exports = {
           session.resolvedParams,
           session.resolvedCapabilities
         );
+        // ═══ ChatMode-Auflösung (4-Ebenen-Fallback) ═══
+
+        // Ebene 1: Expliziter API-Parameter
         const rawRequestedChatMode =
           ctx.params.chatMode || ctx.meta?.chatMode || ctx.meta?.$params?.chatMode;
-        const requestedChatMode = normalizeChatMode(rawRequestedChatMode);
-        const detectedChatMode = detectChatMode(ctx.params.message, brokerRecommendation, session);
+        let effectiveChatMode = normalizeChatMode(rawRequestedChatMode);
+        let chatModeSource = 'api';
+
+        // Cache-Prüfung: identische Nachricht bereits klassifiziert?
+        const msgHash = String(ctx.params.message || '').length.toString(16) +
+          '-' + Buffer.from(String(ctx.params.message || '')).slice(0, 8).toString('hex');
+        if (!effectiveChatMode && session.l3?.lastClassification?.messageHash === msgHash) {
+          effectiveChatMode = session.l3.lastClassification.chatMode;
+          chatModeSource = 'cached';
+          this.logger?.info(`[chatMode] Cache-Hit: ${effectiveChatMode}`);
+        }
+
+        // Ebene 2: LLM-Klassifikator
+        if (!effectiveChatMode) {
+          const llmClassification = await this.classifyChatModeLLM(ctx, ctx.params.message, session);
+          if (llmClassification.chatMode && llmClassification.confidence >= 0.7) {
+            effectiveChatMode = llmClassification.chatMode;
+            chatModeSource = 'llm';
+            this.logger?.info(
+              `[chatMode] LLM-Klassifikation: ${effectiveChatMode} (conf=${llmClassification.confidence.toFixed(2)}): ${llmClassification.reasoning}`
+            );
+          }
+        }
+
+        // Ebene 3: Heuristik-Fallback
+        if (!effectiveChatMode) {
+          effectiveChatMode = detectChatMode(ctx.params.message, brokerRecommendation, session);
+          chatModeSource = 'heuristic';
+          this.logger?.info(`[chatMode] Heuristik-Fallback: ${effectiveChatMode}`);
+        }
+
+        // Ebene 4: Hard-Default
+        if (!effectiveChatMode) {
+          effectiveChatMode = CHAT_MODES.CONSULTATION;
+          chatModeSource = 'default';
+        }
+
         this.logger?.info(
-          `[chatMode] Request: ${rawRequestedChatMode || 'null'}, Normalized: ${requestedChatMode || 'null'}, Detected: ${detectedChatMode}`
+          `[chatMode] Request: ${rawRequestedChatMode || 'null'}, Effective: ${effectiveChatMode}, Source: ${chatModeSource}`
         );
-        const effectiveChatMode = requestedChatMode || detectedChatMode;
+
         session.chatMode = effectiveChatMode;
         session.l3.chatMode = effectiveChatMode;
+        session.l3.chatModeSource = chatModeSource;
+        session.l3.lastClassification = {
+          messageHash: msgHash,
+          chatMode: effectiveChatMode,
+          timestamp: new Date().toISOString(),
+        };
 
         if (effectiveChatMode === CHAT_MODES.CONSULTATION) {
           const consultationResult = await this.handleConsultationTurn(ctx, {
@@ -1689,6 +1733,69 @@ module.exports = {
         '',
         'Antworte im geforderten JSON-Schema.',
       ].join('\n');
+    },
+
+    /**
+     * Klassifiziert die Nutzer-Intention via LLM.
+     * Versteht Kontext, Satzstruktur, Imperativ vs. Statement.
+     * @param {Context} ctx — Moleculer Context
+     * @param {string} message — Nutzer-Nachricht
+     * @param {object} session — Aktuelle Session
+     * @returns {Promise<{chatMode: string, confidence: number, reasoning: string}>}
+     */
+    async classifyChatModeLLM(ctx, message, session) {
+      const systemPrompt = [
+        'Du bist ein Klassifikator für Chat-Modi in einem deutschen Energie-Beratungssystem.',
+        '',
+        'Deine Aufgabe: Analysiere die Nutzernachricht und entscheide, ob der Nutzer',
+        '1. eine BERATUNG sucht (consultation) — Einordnung, Erklärung, Problembeschreibung',
+        '2. eine PRÜFUNG/AUSFÜHRUNG fordert (execution) — konkrete Aktion, Datenabruf',
+        '',
+        'REGELN:',
+        '- „Ich habe...", „Der Code ist...", „Ich werde abgeregelt" → consultation (Beschreibung)',
+        '- „Prüfe...", „Finde...", „Gib mir...", „Starte..." → execution (Aufforderung)',
+        '- „Wie hoch ist...", „Was soll ich tun...", „Warum..." → consultation (Frage/Rat)',
+        '- „Stadtwerke X, BDEW unbekannt" → consultation (Information bereitstellen)',
+        '- „Validiere den MaStR-Eintrag" → execution (konkrete Prüfung)',
+        '',
+        'Antworte NUR mit einem JSON-Objekt: { "chatMode": "consultation"|"execution", "confidence": 0.0-1.0, "reasoning": "..." }',
+        'Kein Markdown, keine Erklärung außerhalb des JSON.',
+      ].join('\n');
+
+      const hasPlanStack = Array.isArray(session?.l3?.planStack) && session.l3.planStack.length > 0;
+      const userPrompt = [
+        `Nachricht: "${String(message || '').trim()}"`,
+        '',
+        `Session-Kontext: ${hasPlanStack ? 'Es gibt einen offenen Plan-Stack.' : 'Kein offener Plan.'}`,
+        '',
+        'Klassifiziere:',
+      ].join('\n');
+
+      try {
+        const llmResponse = await ctx.call('llm.generate', {
+          system: systemPrompt,
+          user: userPrompt,
+          temperature: 0.1,
+          maxTokens: 256,
+        });
+
+        const raw = llmResponse?.text || llmResponse?.content || llmResponse;
+        const jsonMatch = String(raw || '').match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          this.logger?.warn('[classifyChatModeLLM] Kein JSON in LLM-Antwort gefunden:', raw);
+          return { chatMode: null, confidence: 0, reasoning: 'JSON parse error' };
+        }
+
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          chatMode: ['consultation', 'execution'].includes(parsed.chatMode) ? parsed.chatMode : null,
+          confidence: Math.max(0, Math.min(1, parsed.confidence || 0)),
+          reasoning: parsed.reasoning || 'Keine Begründung',
+        };
+      } catch (error) {
+        this.logger?.warn('[classifyChatModeLLM] LLM-Fehler:', error.message);
+        return { chatMode: null, confidence: 0, reasoning: `LLM error: ${error.message}` };
+      }
     },
 
     async handleConsultationTurn(ctx, input = {}) {

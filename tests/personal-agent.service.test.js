@@ -2156,6 +2156,80 @@ describe('personal-agent.service', () => {
     expect(result.status).not.toBe('consulting');
   });
 
+  describe('classifyChatModeLLM', () => {
+    it('returns valid chatMode and confidence from mocked LLM response', async () => {
+      const svc = broker.getLocalService('personal-agent');
+      const mockCtx = {
+        call: jest.fn().mockResolvedValue(
+          JSON.stringify({ chatMode: 'execution', confidence: 0.92, reasoning: 'Imperativ erkannt' })
+        ),
+      };
+      const result = await svc.classifyChatModeLLM(mockCtx, 'Prüfe den MaStR-Eintrag', {});
+      expect(result.chatMode).toBe('execution');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.7);
+      expect(typeof result.reasoning).toBe('string');
+    });
+
+    it('classifies consultation statement correctly via mock', async () => {
+      const svc = broker.getLocalService('personal-agent');
+      const mockCtx = {
+        call: jest.fn().mockResolvedValue(
+          JSON.stringify({ chatMode: 'consultation', confidence: 0.88, reasoning: 'Statement, keine Aufforderung' })
+        ),
+      };
+      const result = await svc.classifyChatModeLLM(mockCtx, 'Der BDEW-Code ist unbekannt', {});
+      expect(result.chatMode).toBe('consultation');
+      expect(result.confidence).toBeGreaterThanOrEqual(0.7);
+    });
+
+    it('returns null chatMode when LLM returns invalid value', async () => {
+      const svc = broker.getLocalService('personal-agent');
+      const mockCtx = {
+        call: jest.fn().mockResolvedValue(
+          JSON.stringify({ chatMode: 'unknown', confidence: 0.5, reasoning: 'test' })
+        ),
+      };
+      const result = await svc.classifyChatModeLLM(mockCtx, 'irgendwas', {});
+      expect(result.chatMode).toBeNull();
+    });
+
+    it('returns null chatMode and zero confidence on LLM error', async () => {
+      const svc = broker.getLocalService('personal-agent');
+      const mockCtx = {
+        call: jest.fn().mockRejectedValue(new Error('LLM timeout')),
+      };
+      const result = await svc.classifyChatModeLLM(mockCtx, 'Test', {});
+      expect(result.chatMode).toBeNull();
+      expect(result.confidence).toBe(0);
+    });
+
+    it('returns null chatMode when LLM response has no JSON', async () => {
+      const svc = broker.getLocalService('personal-agent');
+      const mockCtx = {
+        call: jest.fn().mockResolvedValue('Tut mir leid, ich kann nicht antworten.'),
+      };
+      const result = await svc.classifyChatModeLLM(mockCtx, 'Test', {});
+      expect(result.chatMode).toBeNull();
+      expect(result.confidence).toBe(0);
+    });
+
+    it('includes plan-stack context in userPrompt when session has open planStack', async () => {
+      const svc = broker.getLocalService('personal-agent');
+      let capturedParams = null;
+      const mockCtx = {
+        call: jest.fn().mockImplementation((action, params) => {
+          capturedParams = params;
+          return Promise.resolve(
+            JSON.stringify({ chatMode: 'consultation', confidence: 0.85, reasoning: 'ok' })
+          );
+        }),
+      };
+      const session = { l3: { planStack: [{ step: 1 }] } };
+      await svc.classifyChatModeLLM(mockCtx, 'Weiter bitte', session);
+      expect(capturedParams.user).toContain('offenen Plan-Stack');
+    });
+  });
+
   it('normalizes chatMode alias consulting from meta fallback to consultation', async () => {
     const result = await broker.call(
       'personal-agent.chat',
