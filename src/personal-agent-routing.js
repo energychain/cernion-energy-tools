@@ -355,6 +355,7 @@ function normalizeChatMode(mode) {
     .toLowerCase();
   if (normalized === CHAT_MODES.EXECUTION) return CHAT_MODES.EXECUTION;
   if (normalized === CHAT_MODES.CONSULTATION) return CHAT_MODES.CONSULTATION;
+  if (normalized === 'consulting') return CHAT_MODES.CONSULTATION;
   return null;
 }
 

@@ -2130,4 +2130,51 @@ describe('personal-agent.service', () => {
     expect(result.chatMode).toBe('consultation');
     expect(result.execution).toEqual({ status: 'consulting', plan: null, steps: [] });
   });
+
+  it('resolves chatMode from meta.$params fallback when ctx.params.chatMode is missing', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Wie hoch ist die Redispatch-Wahrscheinlichkeit für mein Projekt?',
+        executionMode: 'auto',
+        knownContext: {
+          query: 'TWL Netze',
+        },
+      },
+      {
+        meta: {
+          tenantId: 'tenant-chatmode-meta-fallback',
+          authUser: { userId: 'user-1' },
+          $params: { chatMode: 'execution' },
+        },
+      }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.chatMode).toBe('execution');
+    expect(result.routing.chatMode).toBe('execution');
+    expect(result.status).not.toBe('consulting');
+  });
+
+  it('normalizes chatMode alias consulting from meta fallback to consultation', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Prüfe meinen MaStR-Eintrag jetzt.',
+        executionMode: 'auto',
+      },
+      {
+        meta: {
+          tenantId: 'tenant-chatmode-alias-consulting',
+          authUser: { userId: 'user-1' },
+          $params: { chatMode: 'consulting' },
+        },
+      }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.status).toBe('consulting');
+    expect(result.chatMode).toBe('consultation');
+    expect(result.execution).toEqual({ status: 'consulting', plan: null, steps: [] });
+  });
 });

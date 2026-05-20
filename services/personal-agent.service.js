@@ -780,9 +780,14 @@ module.exports = {
           session.resolvedParams,
           session.resolvedCapabilities
         );
-        const requestedChatMode = normalizeChatMode(ctx.params.chatMode);
-        const effectiveChatMode =
-          requestedChatMode || detectChatMode(ctx.params.message, brokerRecommendation, session);
+        const rawRequestedChatMode =
+          ctx.params.chatMode || ctx.meta?.chatMode || ctx.meta?.$params?.chatMode;
+        const requestedChatMode = normalizeChatMode(rawRequestedChatMode);
+        const detectedChatMode = detectChatMode(ctx.params.message, brokerRecommendation, session);
+        this.logger?.info(
+          `[chatMode] Request: ${rawRequestedChatMode || 'null'}, Normalized: ${requestedChatMode || 'null'}, Detected: ${detectedChatMode}`
+        );
+        const effectiveChatMode = requestedChatMode || detectedChatMode;
         session.chatMode = effectiveChatMode;
         session.l3.chatMode = effectiveChatMode;
 
@@ -1291,6 +1296,7 @@ module.exports = {
             requestedDomains: responsePlan.requestedDomains,
             unsupportedDomains: responsePlan.unsupportedDomains,
             warnings: responsePlan.warnings,
+            chatMode: effectiveChatMode,
           },
           plan: {
             status: responsePlan.status,
@@ -1420,6 +1426,48 @@ module.exports = {
           sessionId: current.id,
           reset: true,
           keptLayer2: true,
+        };
+      },
+    },
+
+    'dream-pipeline': {
+      params: {
+        tenantId: { type: 'string', optional: true, trim: true, min: 1, max: 120 },
+        sessionId: { type: 'string', trim: true, min: 1, max: 120 },
+        userId: { type: 'string', optional: true, trim: true, min: 1, max: 120 },
+      },
+      async handler(ctx) {
+        const tenantId = String(ctx.params.tenantId || getTenantId(ctx) || 'default');
+        const sessionId = String(ctx.params.sessionId || '').trim();
+        const userId = String(ctx.params.userId || ctx.meta?.authUser?.userId || 'anonymous');
+
+        try {
+          await this.broker.waitForServices(['object-store'], 10_000);
+        } catch (_err) {
+          return {
+            success: false,
+            sessionId,
+            tenantId,
+            status: 'deferred',
+            reason: 'DEPENDENCY_NOT_READY',
+          };
+        }
+
+        const profileNamespace = tenantNamespace(PROFILE_NAMESPACE, tenantId);
+
+        await this.runDream(this.broker, {
+          tenantId,
+          sessionId,
+          userId,
+          profileNamespace,
+          authMeta: this.buildDreamAuthMeta(ctx.meta, tenantId, userId),
+        });
+
+        return {
+          success: true,
+          sessionId,
+          tenantId,
+          status: 'processed',
         };
       },
     },
