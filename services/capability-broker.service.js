@@ -137,8 +137,6 @@ function findBestCapability(taskText, options = {}) {
     'asset-prüfung',
     'asset pruefung',
     'assetklasse',
-    'anlage',
-    'anlagen',
     'evidence',
     'evidenz',
     'nachweis',
