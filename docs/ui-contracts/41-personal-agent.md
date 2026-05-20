@@ -1,7 +1,7 @@
-# UI Contract 41 — Personal Agent (v0.53.1)
+# UI Contract 41 — Personal Agent (v0.53.2)
 
 ## Scope
-Interaktive Chat-Schnittstelle mit Zwiebelmodus (L0–L4), Capability-Routing, HITL-Planmodus, Session-Wiederherstellung und Session-Reset.
+Interaktive Chat-Schnittstelle mit Zwiebelmodus (L0–L4), Capability-Routing, HITL-Planmodus, Session-Wiederherstellung und Session-Reset. LLM-basierte ChatMode-Klassifikation (Walldorf/Burgbernheim UAT Fix).
 
 ## Endpoints
 

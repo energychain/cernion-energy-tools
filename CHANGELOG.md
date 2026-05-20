@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.53.2] — LLM-basierte ChatMode-Klassifikation (Walldorf/Burgbernheim UAT Fix) (2026-05-20)
+
+### Added
+- [services/personal-agent.service.js](services/personal-agent.service.js): new `classifyChatModeLLM()` method for intent classification via LLM. Classifies user messages with confidence scoring to distinguish imperatives (execution) from statements/questions (consultation). Deutsches System-Prompt mit Regeln für imperativ vs. Statement.
+- [services/personal-agent.service.js](services/personal-agent.service.js): 4-Ebenen-Fallback für chatMode-Auflösung: (1) API-Parameter (2) Message-Cache (3) LLM-Klassifikation ≥0.7 confidence (4) Heuristic → Default.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `session.l3.chatModeSource` speichert Klassifikations-Quelle (`api`|`cached`|`llm`|`heuristic`|`default`) für Debugging.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): 6 neue Unit-Tests für `classifyChatModeLLM()` mit gemocktem LLM-Response, Fehlerbehandlung, JSON-Extraktion, Plan-Stack-Kontext.
+- [tests/personal-agent-llm-classify.e2e.test.js](tests/personal-agent-llm-classify.e2e.test.js): Opt-in E2E-Tests für Walldorf/Burgbernheim Szenarien (Turn-by-Turn Validierung) und API-Override-Test. Skipped wenn Dev-Server nicht erreichbar.
+
+### Changed
+- [services/personal-agent.service.js](services/personal-agent.service.js): chatMode-Auflösung erweitert mit LLM-Klassifikator statt reiner Heuristik. Löst UAT-Regression: "BDEW-Code ist unbekannt" (Statement) wird jetzt korrekt als `consultation` klassifiziert statt fälschlich als `execution`.
+
+### Technical Details
+- LLM-Klassifikation: temp=0.1 (deterministisch), maxTokens=256, Confidence-Threshold ≥0.7.
+- Message-Cache: Hash basierend auf Message-Länge + Prefix, wiederholte identische Nachrichten triggern keinen neuen LLM-Call.
+- Fallback-Sicher: LLM-Timeout/Fehler → Heuristic → Default (nie Crash).
+- Backward-compatible: API-Parameter hat höchste Priorität (keine Verhaltensänderung für explizite calls).
+
+### Tests
+- personal-agent.service.test.js: 58 Tests ✓ (6 neu für classifyChatModeLLM)
+- personal-agent-llm-classify.e2e.test.js: Opt-in Szenarien (3 Test-Gruppen: Walldorf, Burgbernheim, API-Override)
+
 ## [0.53.1] — Personal Agent Consultation Mode & chatMode API Control (2026-05-20)
 
 ### Added
