@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.52.17
-- changelog_latest_release: 0.52.17
+- version: 0.53.7
+- changelog_latest_release: 0.53.6
 - source_files_hash:
-  - CHANGELOG.md: b289b8c9a63730e1ede0f07b2229b87cf4200c087d69840d6220210b505c35b9
+  - CHANGELOG.md: e1dddcedc15b33f530eec0354ec8840d834524af69b317237a842fbe4b8d2bb7
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
-  - src/cookbook-recipes.js: b6ecf29ff42faced2bbc868765ef1469326088eaf61020a2ec38ebd4ce4eab09
-  - openapi-export.json: 3a9abde264331c65f1ec8214a47ba17bbda38557e2650f16706902a0aea8d812
+  - src/cookbook-recipes.js: 5d30cd990f6ed8eac314d7f9730847c80c698b2d427132225f91fad2e1ba509d
+  - openapi-export.json: e163323551eabced99f1cb5e4e6db9b2606bc9664a0382220bbf354e44d3472c
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -17,7 +17,7 @@ It provides a complete implementation picture: architecture, domain knowledge, c
 
 ## Release Provenance
 ### Unreleased (from CHANGELOG)
-## [Unreleased]
+n/a
 
 ## Domain-Specific Business Knowledge (Energy + Utility)
 
@@ -969,7 +969,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.52.17"
+    "version": "0.53.7"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -18427,6 +18427,16 @@ process:
               },
               "schema": {
                 "properties": {
+                  "chatMode": {
+                    "default": "consultation",
+                    "description": "Optional explicit chat mode. If set, it overrides auto detection for this turn.",
+                    "enum": [
+                      "execution",
+                      "consultation"
+                    ],
+                    "example": "consultation",
+                    "type": "string"
+                  },
                   "executionMode": {
                     "default": "auto",
                     "enum": [
@@ -18497,6 +18507,15 @@ process:
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "chatMode": {
+                    "default": "consultation",
+                    "enum": [
+                      "execution",
+                      "consultation"
+                    ],
+                    "example": "consultation",
+                    "type": "string"
+                  },
                   "executionMode": {
                     "enum": [
                       "auto",
@@ -23153,8 +23172,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.52.17"
+  "x-version": "0.53.7"
 }
 
 ## Integrity
-- llm_txt_sha256: f8cb3c3f88c15538c0346690f88720781ef51db6316494fc41cbb9f264cc7a12
+- llm_txt_sha256: f0fa26b099a5e610dcddc8972e46f9b7d9a4bff38cc57d166ed54a55a2b85a79

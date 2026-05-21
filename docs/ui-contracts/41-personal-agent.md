@@ -1,4 +1,4 @@
-# UI Contract 41 — Personal Agent (v0.53.2)
+# UI Contract 41 — Personal Agent (v0.53.6)
 
 ## Scope
 Interaktive Chat-Schnittstelle mit Zwiebelmodus (L0–L4), Capability-Routing, HITL-Planmodus, Session-Wiederherstellung und Session-Reset. LLM-basierte ChatMode-Klassifikation (Walldorf/Burgbernheim UAT Fix).
@@ -18,7 +18,7 @@ Request:
   "executionMode": "auto",
   "chatMode": "execution",
   "knownContext": {
-    "gridOperatorName": "TWL Netze",
+    "gridOperatorName": "Stadtwerke Troisdorf",
     "fnavProfile": {
       "requestedCapacity": 5000,
       "flexibleCapacity": 2000
@@ -93,6 +93,50 @@ Response:
     "maxContextTokens": 128000
   },
   "historyCount": 2
+}
+```
+
+Neu ab v0.53.6 (strukturiert, nicht im Freitext `reply`):
+```json
+{
+  "quality": {
+    "groundedness": {
+      "score": 0.82,
+      "basis": "evidence_plan",
+      "confidence": 0.82
+    },
+    "uncertainty": {
+      "score": 0.18,
+      "reasons": [],
+      "requiresHITL": false
+    }
+  },
+  "agentTrace": {
+    "traceId": "trace_...",
+    "planning": {
+      "source": "capability-broker",
+      "primaryIntent": "financier_due_diligence_assessment",
+      "routeKey": null,
+      "routeLabel": "financier_due_diligence_assessment",
+      "planStatus": "ready",
+      "plannedSteps": 1,
+      "warnings": []
+    },
+    "execution": {
+      "status": "partial",
+      "completedSteps": 0,
+      "stopReason": "MANDATORY_HITL_APPROVAL",
+      "hitlItemId": "hitl-...",
+      "criticalStepBlocked": true
+    },
+    "evidence": {
+      "source": "registry",
+      "registryKey": "financier_due_diligence_assessment",
+      "confidence": 0.4,
+      "gapIds": ["netzanschlusszusage"]
+    },
+    "toolAttempts": []
+  }
 }
 ```
 
@@ -206,3 +250,6 @@ Response:
 - Session-Persistenz enthält nur L1/L2/L3 und Metadaten.
 - `executionMode: "hitl"` liefert denselben stabilen Plan wie `auto`, führt aber keine Tool-Calls aus.
 - Multi-Domain-Ketten sind nur entlang der Routing-Matrix erlaubt; zusätzliche Domains führen zu kontrollierter Partial Execution mit explizitem Stop-Marker.
+- Kritische Flows (z.B. finanzielle/regulatorische Entscheidungspfade) erzwingen Step-Level-HITL auch im `executionMode: "auto"` (`reasonCode: "MANDATORY_HITL_APPROVAL"`).
+- Nach externer Freigabe kann derselbe Schritt im nächsten Turn fortgesetzt werden; dazu wird das freigegebene Artefakt über `knownContext.hitlItemId` referenziert.
+- Agentische Begründung/Trace wird ausschließlich strukturiert über `agentTrace` im Response geliefert, nicht als Debug-Text im Feld `reply`.

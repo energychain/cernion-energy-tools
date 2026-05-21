@@ -5,7 +5,83 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.53.6] — Mandatory Step-Level HITL + Quality/Trace Response (2026-05-21)
+## [0.53.7] — HITL Cross-Turn Resume + L3 Checkpoint Persistence (2026-05-21)
+
+### Added
+- [services/personal-agent.service.js](services/personal-agent.service.js): `resolveCriticalStepApproval()` now accepts a `knownContext` argument; if `knownContext.hitlItemId` references an already-approved HITL item, the mandatory checkpoint gate is bypassed immediately — enabling deterministic cross-turn resume without an additional round-trip.
+- [src/personal-agent-context.js](src/personal-agent-context.js): `buildPersistableSessionState()` now serialises `criticalStepCheckpoints` from L3 into the persisted payload (sanitised object, no raw L4 tool context), so approval history survives across session turns.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `loadSession()` and the new-session initialisation path both hydrate `criticalStepCheckpoints: {}` into L3, completing the round-trip for HITL state.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): in-memory `hitl` mock service (create / get / approve) and `finance-agent.analyze` mock added to test broker, required for deterministic HITL flow testing without an external HITL backend.
+
+### Changed
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): three VDMI decision-governance tests updated to pre-create and pre-approve a HITL item before calling `personal-agent.chat`, then pass `hitlItemId` via `knownContext` — tests now exercise the full AUTO-mode execution path instead of stopping at `MANDATORY_HITL_APPROVAL`.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): HITL resume test updated to forward `stopPoint.hitlItemId` into `knownContext` on the second turn; assertions relaxed to verify the blocked `finance-agent.analyze` step actually executes rather than asserting a fixed `completed` status.
+- [docs/ui-contracts/41-personal-agent.md](docs/ui-contracts/41-personal-agent.md): contract updated to v0.53.7; `hitlItemId` example format corrected to `hitl-N`; added explicit guarantee that an approved item passed via `knownContext.hitlItemId` resumes the blocked step in the next turn.
+
+
+### Added
+- [src/capability-catalog.js](src/capability-catalog.js): capability-level `hitlPolicy` metadata for critical flows (`vdmi_grid_connection_decision_governance`, `financier_due_diligence_assessment`) with `mode: "mandatory_step_approval"` and `criticalityClass`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): deterministic response metadata builders `buildQualitySummary()` and `buildAgentTrace()` for structured Groundedness/Uncertainty and execution trace output.
+- [services/personal-agent.service.js](services/personal-agent.service.js): persistent critical-step checkpoint helpers (`buildCriticalStepCheckpointKey()`, `resolveCriticalStepApproval()`) for HITL create/get approval lifecycle and resume on next turn.
+- [scripts/check-quality-gate.js](scripts/check-quality-gate.js): deterministic release checker enforcing Groundedness/Uncertainty gate thresholds and HITL requirement behavior for weak evidence fixtures.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): regressions for mandatory critical HITL stop (`MANDATORY_HITL_APPROVAL`), approved resume on next turn, and structured `quality`/`agentTrace` response fields.
+- [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): regression ensuring critical capability steps are flagged with `hitlRequired: true`.
+
+### Changed
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): broker-plan steps now carry `hitlRequired` and `criticalityClass`; critical capabilities expose step-level HITL checkpoints in plan output.
+- [services/capability-broker.service.js](services/capability-broker.service.js): broker recommendation payload now exposes `recommendedCapabilities[].hitlPolicy`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): AUTO execution now enforces mandatory HITL before critical steps; execution stops with `reasonCode: "MANDATORY_HITL_APPROVAL"`, returns `stopPoint.hitlItemId`, and resumes the blocked step after external HITL approval.
+- [services/personal-agent.service.js](services/personal-agent.service.js): chat responses now include top-level `quality` and `agentTrace` objects; textual `reply` remains user-facing and free of trace/debug payloads.
+- [docs/ui-contracts/41-personal-agent.md](docs/ui-contracts/41-personal-agent.md): contract updated to v0.53.6 with `quality`/`agentTrace` examples and mandatory critical HITL guarantee.
+- [package.json](package.json): `release:check` now includes deterministic `check:quality-gate` execution.
+
+## [0.53.5] — Forecast-Evidence Planning Phases 1–5 (2026-05-21)
+
+### Added
+- [src/evidence-registry.js](src/evidence-registry.js): new static Evidence Registry mapping capability and routing-matrix route keys to ordered, typed evidence-source requirements (`id`, `label`, `resolvedBy`, `contextKeys`, `optional`). Pilot entries: `residual_load_forecast_for_dso` (4 sources), `investment-grid-check`, `financier_due_diligence_assessment`.
+- [src/evidence-planner.js](src/evidence-planner.js): new pure-function Evidence Planner (`planEvidence`, `resolvePlanKey`, `isSourceSatisfied`, `computeConfidence`) that annotates routing plans with an `evidencePlan` sidecar. Phase 1: read-only annotation (never blocks execution). Phase 2: gap-gate helpers `shouldBlockSynthesisOnGaps` and `buildEvidenceGapPresentation`.
+- [src/tool-coverage-planner.js](src/tool-coverage-planner.js): Phase 3 generic tool-coverage planner (`planGenericToolCoverage`, `extractMissingParamsFromStep`, `inferActionOutputContextKeys`) as fallback for unregistered capabilities. Analyzes `plan.steps` paramsTemplates to infer required params and identify gaps.
+- [src/evidence-registry.js](src/evidence-registry.js): Phase 5 semantic evidence bundle `redispatch_probability_forecast` for near-term Redispatch probability prompts with explicit separation of temporal forecast evidence (`forecast_horizon`, `gruenstromindex_forecast`) vs. historical baseline (`historical_redispatch_baseline`).
+- [tests/evidence-planner.test.js](tests/evidence-planner.test.js): extended to 49 tests including T-EV-007 semantic near-term Redispatch scenarios (`"nächste Tage"` without explicit `"Prognose"` keyword).
+
+### Changed
+- [src/evidence-planner.js](src/evidence-planner.js): `planEvidence()` now falls back to `planGenericToolCoverage` for unregistered routes (Phase 3); returns `source: "generic"` vs `source: "registry"` to distinguish plan origins. Unknown routes no longer return `null` for plans that have steps.
+- [src/evidence-registry.js](src/evidence-registry.js): Phase 4 — added explicit registry entries for all ROUTING_MATRIX routes: `energy-sharing-znp`, `redispatch-settlement`, `fnav-finance`, `forecast-flex`. These routes now produce precise registry-based evidence plans instead of falling through to generic coverage.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): Phase 5 signal detection added (`detectEvidenceSignalKey`, near-term temporal hint extraction in `extractPromptHints`) so prompts such as "Redispatch in den nächsten Tagen" map to semantic evidence key `redispatch_probability_forecast` even without explicit forecast keywords.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): evidence planning now evaluates merged context (`promptHints` + `knownContext`) to satisfy temporal forecast evidence from natural-language timeframe hints.
+- [src/evidence-planner.js](src/evidence-planner.js): `resolvePlanKey()` now supports `plan.evidenceKey`; synthesis gate critical-source list extended with forecast-critical IDs (`forecast_horizon`, `gruenstromindex_forecast`, `temporal_probability_window`).
+- [services/personal-agent.service.js](services/personal-agent.service.js): response payload now includes `evidenceGaps` and `evidenceConfidence` for transparent uncertainty communication in addition to `evidencePlan`.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added T-EV-003 — `evidencePlan` field present in all Personal Agent response paths.
+
+### Architecture Note
+Evidence planning is a five-phase migration:
+1. **Phase 1** — Read-only sidecar annotation. Pilot capability registered. No execution changes.
+2. **Phase 2** — Gap-gate in synthesis turn. Critical gaps render `evidence_gap_table` instead of LLM synthesis.
+3. **Phase 3** — Generic tool-coverage fallback for any unregistered capability. `planEvidence` never returns `null` for plans with steps.
+4. **Phase 4** — All ROUTING_MATRIX routes registered as registry shortcuts. Generic fallback no longer needed for known routes; deterministic labels, resolvers, and optional classification apply.
+5. **Phase 5** — Semantic evidence signal detection for near-term probability prompts. Forecast-relevant evidence is planned from natural-language temporal cues (e.g. "morgen", "nächste Tage", "kommende Woche") and enforced by the evidence-gap gate.
+
+## [0.53.4] — Dynamic Consultation Tool Params + Retry Hardening (2026-05-20)
+
+### Added
+- [src/consultation-tool-resolver.js](src/consultation-tool-resolver.js): new dynamic consultation tool resolver with Moleculer-first schema discovery (`A`), documenting OpenAPI fallback, LLM-based parameter generation, required-field validation, and bounded tool retry execution (`maxAttempts=3`).
+- [tests/consultation-tool-resolver.test.js](tests/consultation-tool-resolver.test.js): new unit coverage for service/action parsing, Moleculer schema conversion, OpenAPI fallback behavior, parameter payload generation, and retry/fail-fast flows.
+
+### Changed
+- [services/personal-agent.service.js](services/personal-agent.service.js): agentic consultation `ACT` step now executes tools via dynamic parameter build + retry (`executeToolWithRetry`) instead of direct single-shot `ctx.call(...)`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `grid-operations.vnbLookup` is de-prioritized in the THINK/ACT transition when no required BDEW fact is available; fallback path prefers `grid-operations.marketPartners` to collect resolvable evidence first.
+- [services/personal-agent.service.js](services/personal-agent.service.js): consultation responses and persisted L3 `consultationContext` now include bounded `attemptsSummary` metadata only (no raw transient tool payload persistence).
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): extended agentic consultation regressions for dynamic parameter generation calls, attempt summaries, and vnbLookup de-prioritization behavior.
+
+## [0.53.3] — Agentic Consultation Loop with Grid-Operations Tool Execution (2026-05-20)
+
+### Added
+- [services/personal-agent.service.js](services/personal-agent.service.js): bounded agentic consultation loop for `handleConsultationTurn()` with real `grid-operations.marketPartners` and `grid-operations.vnbLookup` tool calls before final synthesis.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): regression coverage for the agentic consultation flow, including planner/tool execution and synthesized output trace.
+
+### Changed
+- [services/personal-agent.service.js](services/personal-agent.service.js): consultation synthesis now prefers tool-observed evidence first and falls back to the legacy single-shot advisory path when the agentic loop is unavailable.
 
 ## [0.53.2] — LLM-basierte ChatMode-Klassifikation (Walldorf/Burgbernheim UAT Fix) (2026-05-20)
 

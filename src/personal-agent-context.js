@@ -259,6 +259,30 @@ function buildPersistableSessionState(input = {}) {
       ? input.l3.lastCompletedPlan
       : null;
 
+  const rawCriticalStepCheckpoints =
+    input?.l3?.criticalStepCheckpoints && typeof input.l3.criticalStepCheckpoints === 'object'
+      ? input.l3.criticalStepCheckpoints
+      : {};
+
+  const criticalStepCheckpoints = Object.entries(rawCriticalStepCheckpoints).reduce(
+    (acc, [key, value]) => {
+      if (!value || typeof value !== 'object') {
+        return acc;
+      }
+      acc[key] = {
+        hitlItemId: value.hitlItemId || null,
+        status: value.status || null,
+        action: value.action || null,
+        step: typeof value.step === 'number' ? value.step : null,
+        createdAt: value.createdAt || null,
+        updatedAt: value.updatedAt || null,
+        approvedAt: value.approvedAt || null,
+      };
+      return acc;
+    },
+    {}
+  );
+
   const payload = {
     id: String(input.id || ''),
     tenantId: String(input.tenantId || 'default'),
@@ -285,6 +309,7 @@ function buildPersistableSessionState(input = {}) {
         ? input.l3.resolvedCapabilities
         : [],
       lastCompletedPlan,
+      criticalStepCheckpoints,
     },
     createdAt: input.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),

@@ -15,12 +15,14 @@ describe('personal-agent.service', () => {
   let placeholderCalls;
   let executedActions;
   let executedCallDetails;
+  let hitlItems;
 
   beforeEach(async () => {
     objectStorePath = path.join(os.tmpdir(), `personal-agent-store-${Date.now()}-${Math.random()}`);
     placeholderCalls = [];
     executedActions = [];
     executedCallDetails = [];
+    hitlItems = new Map();
     broker = new ServiceBroker({ logger: false });
     broker.createService({
       ...ObjectStoreService,
@@ -44,6 +46,54 @@ describe('personal-agent.service', () => {
             };
             placeholderCalls.push({ ...ctx.params, ...item });
             return item;
+          },
+        },
+      },
+    });
+    broker.createService({
+      name: 'hitl',
+      actions: {
+        create: {
+          handler(ctx) {
+            const id = `hitl-${hitlItems.size + 1}`;
+            const item = {
+              id,
+              kind: ctx.params.kind || 'generic',
+              payload: ctx.params.payload || {},
+              status: 'pending',
+              createdAt: new Date().toISOString(),
+              tenantId: ctx.meta?.tenantId || null,
+            };
+            hitlItems.set(id, item);
+            return { success: true, item };
+          },
+        },
+        get: {
+          handler(ctx) {
+            const item = hitlItems.get(ctx.params.id);
+            if (!item) {
+              const error = new Error('not found');
+              error.code = 404;
+              throw error;
+            }
+            return { success: true, item };
+          },
+        },
+        approve: {
+          handler(ctx) {
+            const item = hitlItems.get(ctx.params.id);
+            if (!item) {
+              const error = new Error('not found');
+              error.code = 404;
+              throw error;
+            }
+            const approved = {
+              ...item,
+              status: 'approved',
+              approvedAt: new Date().toISOString(),
+            };
+            hitlItems.set(ctx.params.id, approved);
+            return { success: true, item: approved };
           },
         },
       },
@@ -84,6 +134,18 @@ describe('personal-agent.service', () => {
             executedActions.push('finance-agent.fnavEconomics');
             executedCallDetails.push({ action: 'finance-agent.fnavEconomics', params: ctx.params });
             return { success: true, paybackYears: 4.2, input: ctx.params };
+          },
+        },
+        analyze: {
+          handler(ctx) {
+            executedActions.push('finance-agent.analyze');
+            executedCallDetails.push({ action: 'finance-agent.analyze', params: ctx.params });
+            return {
+              success: true,
+              verdict: 'proceed-with-conditions',
+              riskLevel: 'medium',
+              input: ctx.params,
+            };
           },
         },
       },
@@ -1912,6 +1974,17 @@ describe('personal-agent.service', () => {
   });
 
   it('routes formal §17-EnWG decision question to VDMI decision governance and derives V actor for vdmi.agentRole', async () => {
+    const meta = { tenantId: 'tenant-vdmi-step3-a', authUser: { userId: 'user-1' } };
+    const checkpoint = await broker.call(
+      'hitl.create',
+      {
+        kind: 'personal-agent-critical-step-approval',
+        payload: { purpose: 'test-preapproval-vdmi-step3' },
+      },
+      { meta }
+    );
+    await broker.call('hitl.approve', { id: checkpoint.item.id }, { meta });
+
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -1921,9 +1994,10 @@ describe('personal-agent.service', () => {
         knownContext: {
           processType: 'grid-connection-governance',
           taskId: 'network-operator-decision',
+          hitlItemId: checkpoint.item.id,
         },
       },
-      { meta: { tenantId: 'tenant-vdmi-step3-a', authUser: { userId: 'user-1' } } }
+      { meta }
     );
 
     expect(result.success).toBe(true);
@@ -1971,6 +2045,17 @@ describe('personal-agent.service', () => {
     };
 
     try {
+      const meta = { tenantId: 'tenant-vdmi-step4-fallback', authUser: { userId: 'user-1' } };
+      const checkpoint = await broker.call(
+        'hitl.create',
+        {
+          kind: 'personal-agent-critical-step-approval',
+          payload: { purpose: 'test-preapproval-vdmi-step4' },
+        },
+        { meta }
+      );
+      await broker.call('hitl.approve', { id: checkpoint.item.id }, { meta });
+
       const result = await broker.call(
         'personal-agent.chat',
         {
@@ -1980,9 +2065,10 @@ describe('personal-agent.service', () => {
           knownContext: {
             processType: 'grid-connection-governance',
             taskId: 'network-operator-decision',
+            hitlItemId: checkpoint.item.id,
           },
         },
-        { meta: { tenantId: 'tenant-vdmi-step4-fallback', authUser: { userId: 'user-1' } } }
+        { meta }
       );
 
       expect(result.success).toBe(true);
@@ -2052,6 +2138,17 @@ describe('personal-agent.service', () => {
   });
 
   it('stops with interface placeholder when VDMI decision task cannot be resolved uniquely', async () => {
+    const meta = { tenantId: 'tenant-vdmi-step3-b', authUser: { userId: 'user-1' } };
+    const checkpoint = await broker.call(
+      'hitl.create',
+      {
+        kind: 'personal-agent-critical-step-approval',
+        payload: { purpose: 'test-preapproval-vdmi-ambiguous' },
+      },
+      { meta }
+    );
+    await broker.call('hitl.approve', { id: checkpoint.item.id }, { meta });
+
     const result = await broker.call(
       'personal-agent.chat',
       {
@@ -2059,9 +2156,10 @@ describe('personal-agent.service', () => {
         executionMode: 'auto',
         knownContext: {
           processType: 'grid-connection-governance',
+          hitlItemId: checkpoint.item.id,
         },
       },
-      { meta: { tenantId: 'tenant-vdmi-step3-b', authUser: { userId: 'user-1' } } }
+      { meta }
     );
 
     expect(result.routing.routeLabel).toBe('vdmi_grid_connection_decision_governance');
@@ -2092,6 +2190,193 @@ describe('personal-agent.service', () => {
     expect(Array.isArray(result.consultation.openQuestions)).toBe(true);
     expect(Array.isArray(result.consultation.nextActions)).toBe(true);
     expect(Array.isArray(result.consultation.factsUsed)).toBe(true);
+  });
+
+  it('runs agentic consultation through real grid-operations tools before synthesis', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const plannerResponses = [
+      {
+        text: JSON.stringify({
+          mode: 'tool',
+          thought: 'Ein Netzbetreibername liegt vor, daher starte ich mit der Marktpartner-Auflösung.',
+          toolCall: {
+            action: 'grid-operations.marketPartners',
+            params: { query: 'TWL Netze', limit: 5 },
+          },
+        }),
+      },
+      {
+        text: JSON.stringify({
+          mode: 'tool',
+          thought: 'Der Marktpartner ist gefunden, jetzt prüfe ich die Zuständigkeit.',
+          toolCall: {
+            action: 'grid-operations.vnbLookup',
+            params: {
+              bdew: '9904350000002',
+              city: 'Burgbernheim',
+              query: 'TWL Netze',
+              vnbName: 'TWL Netze GmbH',
+            },
+          },
+        }),
+      },
+      {
+        text: JSON.stringify({
+          mode: 'final',
+          thought: 'Genug Evidenz für die Synthese.',
+          reply: '',
+        }),
+      },
+    ];
+    const parameterResponses = [
+      { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) },
+      { text: JSON.stringify({ bdew: '9904350000002', city: 'Burgbernheim', limit: 5 }) },
+    ];
+    const llmResponses = [
+      {
+        data: {
+          reply: 'Die Zuständigkeit ist nun über die Toolkette eingeordnet.',
+          hypotheses: [
+            {
+              statement: 'TWL Netze ist der relevante Netzbetreiber für den angefragten Kontext.',
+              confidence: 'high',
+              evidence: 'Tool-basierte Marktpartner- und VNB-Auflösung.',
+            },
+          ],
+          openQuestions: [
+            {
+              question: 'Liegt bereits ein offizieller BDEW- oder Netzanschlussbezug vor?',
+              whyRelevant: 'Damit lässt sich die Zuständigkeitsprüfung weiter präzisieren.',
+            },
+          ],
+          nextActions: [
+            {
+              action: 'Unterlagen prüfen',
+              description: 'Ich kann als Nächstes die Anschluss- oder BDEW-Daten gegenprüfen.',
+            },
+          ],
+          factsUsed: [
+            {
+              source: 'tool:marketPartners',
+              value: 'TWL Netze GmbH',
+            },
+            {
+              source: 'tool:vnbLookup',
+              value: 'BDEW 9904350000002',
+            },
+          ],
+        },
+      },
+    ];
+
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
+      if (payload?.schema) {
+        return llmResponses.shift();
+      }
+      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+        return parameterResponses.shift();
+      }
+      return plannerResponses.shift() || { text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }) };
+    });
+
+    const mockCtx = {
+      broker,
+      meta: { tenantId: 'tenant-react', authUser: { userId: 'user-1' } },
+      call: jest.fn((action, params) => broker.call(action, params, { meta: mockCtx.meta })),
+    };
+
+    try {
+      const result = await svc.handleConsultationTurn(mockCtx, {
+        message: 'TWL Netze in Burgbernheim: Wie belastbar ist die Zuständigkeitslage?',
+        brokerRecommendation: { intent: 'consultation' },
+        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+      });
+
+      expect(result.reply).toContain('Toolkette eingeordnet');
+      expect(Array.isArray(result.toolTrace)).toBe(true);
+      expect(Array.isArray(result.attemptsSummary)).toBe(true);
+      expect(result.toolTrace).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ phase: 'act' }),
+        ])
+      );
+    } finally {
+      callLlmSpy.mockRestore();
+    }
+  });
+
+  it('de-prioritizes vnbLookup when bdew fact is missing and falls back to marketPartners', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const plannerResponses = [
+      {
+        text: JSON.stringify({
+          mode: 'tool',
+          thought: 'Ich starte mit vnbLookup.',
+          toolCall: {
+            action: 'grid-operations.vnbLookup',
+            params: { city: 'Walldorf' },
+          },
+        }),
+      },
+      {
+        text: JSON.stringify({
+          mode: 'final',
+          thought: 'Genug Evidenz für die Beratung.',
+          reply: '',
+        }),
+      },
+    ];
+    const parameterResponses = [{ text: JSON.stringify({ query: 'Stadtwerke Walldorf', limit: 5 }) }];
+    const synthesisResponse = {
+      data: {
+        reply: 'Ich habe passende Marktpartnerdaten ermittelt.',
+        hypotheses: [],
+        openQuestions: [],
+        nextActions: [],
+        factsUsed: [],
+      },
+    };
+
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
+      if (payload?.schema) {
+        return synthesisResponse;
+      }
+      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+        return parameterResponses.shift();
+      }
+      return plannerResponses.shift() || { text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }) };
+    });
+
+    const mockCtx = {
+      broker,
+      meta: { tenantId: 'tenant-react-missing-bdew', authUser: { userId: 'user-1' } },
+      call: jest.fn((action, params) => broker.call(action, params, { meta: mockCtx.meta })),
+    };
+
+    try {
+      const result = await svc.handleConsultationTurn(mockCtx, {
+        message: 'Stadtwerke Walldorf, BDEW unbekannt',
+        brokerRecommendation: { intent: 'consultation' },
+        resolvedParams: { gridOperatorName: 'Stadtwerke Walldorf', city: 'Walldorf' },
+        knowledgeContext: { gridOperatorName: 'Stadtwerke Walldorf', city: 'Walldorf' },
+        knownContext: { gridOperatorName: 'Stadtwerke Walldorf', city: 'Walldorf' },
+      });
+
+      expect(result.toolTrace).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            phase: 'think',
+            status: 'deprioritized',
+            fromAction: 'grid-operations.vnbLookup',
+            toAction: 'grid-operations.marketPartners',
+          }),
+        ])
+      );
+    } finally {
+      callLlmSpy.mockRestore();
+    }
   });
 
   it('prioritizes explicit API chatMode=execution over auto-detection', async () => {
@@ -2250,5 +2535,116 @@ describe('personal-agent.service', () => {
     expect(result.status).toBe('consulting');
     expect(result.chatMode).toBe('consultation');
     expect(result.execution).toEqual({ status: 'consulting', plan: null, steps: [] });
+  });
+
+  // ── T-EV-003 ───────────────────────────────────────────────────────────────
+  it('T-EV-003: response includes evidencePlan field (null for unregistered routes)', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      { message: 'Analysiere das Netz', sessionId: `ev003-${Date.now()}` },
+      { meta: { tenantId: 'test-tenant', authUser: { userId: 'user-ev003' } } }
+    );
+
+    expect(result).toHaveProperty('evidencePlan');
+    // For unknown/unregistered routes evidencePlan is null — not an error.
+    // For registered routes (forecast pilot) it is an object.
+    const ep = result.evidencePlan;
+    if (ep !== null && ep !== undefined) {
+      expect(typeof ep).toBe('object');
+      expect(ep).toHaveProperty('phaseNote', 'evidence-plan-phase1-annotation-only');
+      expect(Array.isArray(ep.gaps)).toBe(true);
+      expect(Array.isArray(ep.checkedSources)).toBe(true);
+    }
+  });
+
+  it('enforces mandatory step-level HITL for critical due-diligence flow in AUTO mode', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte Due Diligence für den Kreditausschuss durchführen.',
+        chatMode: 'execution',
+        executionMode: 'auto',
+        sessionId: `hitl-critical-${Date.now()}`,
+      },
+      { meta: { tenantId: 'tenant-critical-hitl', authUser: { userId: 'user-hitl' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.execution.status).toBe('partial');
+    expect(result.execution.stopPoint.reasonCode).toBe('MANDATORY_HITL_APPROVAL');
+    expect(result.execution.stopPoint.blockedAction).toBe('finance-agent.analyze');
+    expect(result.execution.steps[0].status).toBe('hitl-required');
+    expect(result.execution.stopPoint.hitlItemId).toMatch(/^hitl-/);
+  });
+
+  it('resumes critical flow after HITL approval on next turn', async () => {
+    const sessionId = `hitl-resume-${Date.now()}`;
+    const meta = { tenantId: 'tenant-critical-resume', authUser: { userId: 'user-hitl-resume' } };
+
+    const first = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte Due Diligence für den Kreditausschuss durchführen.',
+        chatMode: 'execution',
+        executionMode: 'auto',
+        sessionId,
+      },
+      { meta }
+    );
+
+    expect(first.execution.stopPoint.reasonCode).toBe('MANDATORY_HITL_APPROVAL');
+    const hitlItemId = first.execution.stopPoint.hitlItemId;
+    expect(hitlItemId).toBeTruthy();
+
+    const approval = await broker.call('hitl.approve', { id: hitlItemId }, { meta });
+    expect(approval.item.status).toBe('approved');
+
+    const resumed = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte Due Diligence für den Kreditausschuss durchführen.',
+        chatMode: 'execution',
+        executionMode: 'auto',
+        sessionId,
+        knownContext: {
+          hitlItemId,
+        },
+      },
+      { meta }
+    );
+
+    expect(resumed.success).toBe(true);
+    expect(resumed.execution.status).not.toBe('skipped');
+    expect(resumed.execution.stopPoint?.reasonCode).not.toBe('MANDATORY_HITL_APPROVAL');
+    expect(
+      resumed.execution.steps.some(
+        (step) => step.action === 'finance-agent.analyze' && step.status === 'completed'
+      )
+    ).toBe(true);
+  });
+
+  it('returns quality and agentTrace as structured response fields without polluting textual reply', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Prüfe bitte die Netzsituation in Trier.',
+        chatMode: 'execution',
+        executionMode: 'auto',
+        knownContext: {
+          gridOperatorName: 'Stadtwerk Trier',
+        },
+        sessionId: `trace-quality-${Date.now()}`,
+      },
+      { meta: { tenantId: 'tenant-trace-quality', authUser: { userId: 'user-trace' } } }
+    );
+
+    expect(result).toHaveProperty('quality');
+    expect(result.quality).toHaveProperty('groundedness');
+    expect(result.quality).toHaveProperty('uncertainty');
+    expect(result).toHaveProperty('agentTrace');
+    expect(result.agentTrace).toHaveProperty('planning');
+    expect(result.agentTrace).toHaveProperty('execution');
+    expect(typeof result.reply).toBe('string');
+    expect(result.reply.toLowerCase()).not.toContain('agenttrace');
   });
 });
