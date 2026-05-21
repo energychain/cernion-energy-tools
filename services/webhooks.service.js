@@ -175,11 +175,17 @@ module.exports = {
         subs = subs.filter((sub) => sub.tenantId === tenantId);
 
         if (ctx.params.event) {
-          subs = subs.filter((sub) => Array.isArray(sub.events) && sub.events.includes(ctx.params.event));
+          subs = subs.filter(
+            (sub) => Array.isArray(sub.events) && sub.events.includes(ctx.params.event)
+          );
         }
 
         subs.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
-        return { success: true, count: subs.length, subscriptions: subs.map((s) => this.toPublicSubscription(s)) };
+        return {
+          success: true,
+          count: subs.length,
+          subscriptions: subs.map((s) => this.toPublicSubscription(s)),
+        };
       },
     },
 
@@ -291,14 +297,20 @@ module.exports = {
         await this.getSubscription(ctx.params.id, tenantId);
 
         let deliveries = await this.getAllDeliveries();
-        deliveries = deliveries.filter((item) => item.subscriptionId === ctx.params.id && item.tenantId === tenantId);
+        deliveries = deliveries.filter(
+          (item) => item.subscriptionId === ctx.params.id && item.tenantId === tenantId
+        );
 
         if (ctx.params.status) {
           const status = String(ctx.params.status).toLowerCase();
-          deliveries = deliveries.filter((item) => String(item.status || '').toLowerCase() === status);
+          deliveries = deliveries.filter(
+            (item) => String(item.status || '').toLowerCase() === status
+          );
         }
 
-        deliveries.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+        deliveries.sort((a, b) =>
+          String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
+        );
         const limit = Math.min(ctx.params.limit || 50, 200);
 
         return {
@@ -470,9 +482,15 @@ module.exports = {
 
   methods: {
     validateEvents(events) {
-      const unique = [...new Set((events || []).map((event) => String(event || '').trim()).filter(Boolean))];
+      const unique = [
+        ...new Set((events || []).map((event) => String(event || '').trim()).filter(Boolean)),
+      ];
       if (unique.length === 0) {
-        throw new MoleculerClientError('events must contain at least one event name', 422, 'INVALID_EVENTS');
+        throw new MoleculerClientError(
+          'events must contain at least one event name',
+          422,
+          'INVALID_EVENTS'
+        );
       }
       const invalid = unique.filter((event) => !EVENT_WHITELIST.includes(event));
       if (invalid.length > 0) {
@@ -537,7 +555,11 @@ module.exports = {
         sub = await this.db.get(`${SUB_PREFIX}${id}`);
       } catch (err) {
         if (err?.status === 404 || err?.name === 'not_found') {
-          throw new MoleculerClientError('Webhook subscription not found', 404, 'WEBHOOK_NOT_FOUND');
+          throw new MoleculerClientError(
+            'Webhook subscription not found',
+            404,
+            'WEBHOOK_NOT_FOUND'
+          );
         }
         throw err;
       }
@@ -553,20 +575,31 @@ module.exports = {
         delivery = await this.db.get(`${DEL_PREFIX}${deliveryId}`);
       } catch (err) {
         if (err?.status === 404 || err?.name === 'not_found') {
-          throw new MoleculerClientError('Webhook delivery not found', 404, 'WEBHOOK_DELIVERY_NOT_FOUND');
+          throw new MoleculerClientError(
+            'Webhook delivery not found',
+            404,
+            'WEBHOOK_DELIVERY_NOT_FOUND'
+          );
         }
         throw err;
       }
 
       if (delivery.subscriptionId !== subscriptionId || delivery.tenantId !== tenantId) {
-        throw new MoleculerClientError('Webhook delivery not found', 404, 'WEBHOOK_DELIVERY_NOT_FOUND');
+        throw new MoleculerClientError(
+          'Webhook delivery not found',
+          404,
+          'WEBHOOK_DELIVERY_NOT_FOUND'
+        );
       }
 
       return delivery;
     },
 
     getBackoffMs(failedAttemptCount) {
-      const idx = Math.max(0, Math.min(failedAttemptCount - 1, this.settings.retryScheduleMs.length - 1));
+      const idx = Math.max(
+        0,
+        Math.min(failedAttemptCount - 1, this.settings.retryScheduleMs.length - 1)
+      );
       return this.settings.retryScheduleMs[idx];
     },
 
@@ -575,7 +608,8 @@ module.exports = {
 
       const subscriptions = await this.getAllSubscriptions();
       const active = subscriptions.filter(
-        (sub) => sub.isActive !== false && Array.isArray(sub.events) && sub.events.includes(eventName)
+        (sub) =>
+          sub.isActive !== false && Array.isArray(sub.events) && sub.events.includes(eventName)
       );
 
       if (active.length === 0) return;
@@ -708,7 +742,13 @@ module.exports = {
           return sent;
         }
 
-        return this.markDeliveryFailure(current, sub, attempt, `HTTP ${response.status}`, lastAttemptAt);
+        return this.markDeliveryFailure(
+          current,
+          sub,
+          attempt,
+          `HTTP ${response.status}`,
+          lastAttemptAt
+        );
       } catch (err) {
         const reason = err?.message ? String(err.message) : 'Delivery failed';
         return this.markDeliveryFailure(current, sub, attempt, reason, lastAttemptAt);

@@ -26,7 +26,9 @@ describe('presentation fixtures (#CETview Prompt 7)', () => {
 
     expect(result.success).toBe(true);
     expect(result.presentation.type).toBe('vdmi_matrix_table');
-    expect(result.markdown).toContain('| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |');
+    expect(result.markdown).toContain(
+      '| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |'
+    );
     expect(result.markdown).toContain('TWL Netze');
   });
 
@@ -85,7 +87,9 @@ describe('presentation fixtures (#CETview Prompt 7)', () => {
 
     expect(result.success).toBe(true);
     expect(result.presentation.type).toBe('kpi_fact');
-    expect(result.markdown).not.toContain('| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |');
+    expect(result.markdown).not.toContain(
+      '| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |'
+    );
   });
 
   test('PRES-KPI-03: missing source/asOf creates warnings without inventing metadata', async () => {
@@ -128,12 +132,8 @@ describe('presentation fixtures (#CETview Prompt 7)', () => {
     const result = await broker.call('presentation.render', {
       intent: 'risk_analysis',
       domainResult: {
-        evidenceGaps: [
-          { label: 'BKZ-Bestätigung', reason: 'fehlt' },
-        ],
-        evidenceRequirements: [
-          { label: 'Verbindliche Netzanschlussbestätigung' },
-        ],
+        evidenceGaps: [{ label: 'BKZ-Bestätigung', reason: 'fehlt' }],
+        evidenceRequirements: [{ label: 'Verbindliche Netzanschlussbestätigung' }],
         sources: ['fixture:evidence-test'],
       },
     });
@@ -220,7 +220,9 @@ describe('presentation fixtures (#CETview Prompt 7)', () => {
     const result = await broker.call('presentation.render', bessDdFixture);
 
     expect(result.success).toBe(true);
-    const evidenceTable = result.presentation.tables.find((table) => table.id === 'decision_evidence');
+    const evidenceTable = result.presentation.tables.find(
+      (table) => table.id === 'decision_evidence'
+    );
     expect(evidenceTable).toBeDefined();
     expect(evidenceTable.headers).toEqual(['Typ', 'Evidenz / Lücke', 'Detail']);
     expect(result.markdown).toContain('Binding grid connection confirmation / BKZ');

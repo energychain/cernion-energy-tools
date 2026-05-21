@@ -67,7 +67,10 @@ function tenantKey(baseKey, tenantId) {
 function resolveAllowedTenants() {
   const raw = process.env.CERNION_ALLOWED_TENANTS || '';
   if (!raw.trim()) return null; // no restriction
-  const list = raw.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean);
+  const list = raw
+    .split(',')
+    .map((t) => t.trim().toLowerCase())
+    .filter(Boolean);
   return new Set(list);
 }
 

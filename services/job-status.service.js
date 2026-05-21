@@ -70,7 +70,10 @@ module.exports = {
       actor: 'job-status.startup',
     });
 
-    const intervalSeconds = Math.max(5, Number(process.env.JOB_STORE_WATCHDOG_INTERVAL_SECONDS || 15));
+    const intervalSeconds = Math.max(
+      5,
+      Number(process.env.JOB_STORE_WATCHDOG_INTERVAL_SECONDS || 15)
+    );
     this._watchdogInterval = setInterval(() => {
       try {
         this._watchdogSummary = jobStore.watchdogSweep({
@@ -286,7 +289,9 @@ Most jobs complete within 8–12 minutes.`,
         const snapshot = toProgressSnapshot(job);
         const headers = ctx.meta?.requestHeaders || {};
         const acceptHeader = String(headers.accept || headers.Accept || '').toLowerCase();
-        const headerLastEventId = String(headers['last-event-id'] || headers['Last-Event-ID'] || '').trim();
+        const headerLastEventId = String(
+          headers['last-event-id'] || headers['Last-Event-ID'] || ''
+        ).trim();
         const lastEventId = (ctx.params.lastEventId || headerLastEventId || '').trim();
         const streamRequested = ctx.params.stream || acceptHeader.includes('text/event-stream');
 
@@ -296,7 +301,9 @@ Most jobs complete within 8–12 minutes.`,
             jobId,
             status: job.status,
             progress: snapshot.progress,
-            latestEventId: snapshot.events.length ? snapshot.events[snapshot.events.length - 1].id : null,
+            latestEventId: snapshot.events.length
+              ? snapshot.events[snapshot.events.length - 1].id
+              : null,
             eventCount: snapshot.events.length,
             events: snapshot.events,
           };
@@ -304,7 +311,9 @@ Most jobs complete within 8–12 minutes.`,
 
         const cursor = Number.parseInt(lastEventId, 10);
         const replayFrom = Number.isFinite(cursor) ? cursor : 0;
-        const replayEvents = snapshot.events.filter((evt) => Number.parseInt(evt.id, 10) > replayFrom);
+        const replayEvents = snapshot.events.filter(
+          (evt) => Number.parseInt(evt.id, 10) > replayFrom
+        );
 
         const lines = ['retry: 5000'];
         for (const evt of replayEvents) {
@@ -447,7 +456,12 @@ Returns **404** if the job ID is unknown or the result has expired (24 h TTL).`,
           default: 'open',
           example: 'open',
         },
-        jobId: { type: 'string', optional: true, min: 1, example: 'a3f8b2c1-0000-0000-0000-000000000001' },
+        jobId: {
+          type: 'string',
+          optional: true,
+          min: 1,
+          example: 'a3f8b2c1-0000-0000-0000-000000000001',
+        },
         limit: { type: 'number', optional: true, default: 100, min: 1, max: 1000, convert: true },
       },
       openapi: {
@@ -458,7 +472,12 @@ Returns **404** if the job ID is unknown or the result has expired (24 h TTL).`,
             name: 'status',
             in: 'query',
             required: false,
-            schema: { type: 'string', enum: ['open', 'acknowledged', 'resolved'], default: 'open', example: 'open' },
+            schema: {
+              type: 'string',
+              enum: ['open', 'acknowledged', 'resolved'],
+              default: 'open',
+              example: 'open',
+            },
           },
           {
             name: 'jobId',
@@ -524,10 +543,14 @@ Returns **404** if the job ID is unknown or the result has expired (24 h TTL).`,
         },
       },
       handler(ctx) {
-        const updated = jobStore.updateAlarmStatus(ctx.params.alarmId, jobStore.ALARM_STATUS.ACKNOWLEDGED, {
-          actor: ctx.params.actor || 'user',
-          note: ctx.params.note || null,
-        });
+        const updated = jobStore.updateAlarmStatus(
+          ctx.params.alarmId,
+          jobStore.ALARM_STATUS.ACKNOWLEDGED,
+          {
+            actor: ctx.params.actor || 'user',
+            note: ctx.params.note || null,
+          }
+        );
         if (!updated) {
           ctx.meta.$statusCode = 404;
           return { success: false, message: `Alarm not found: ${ctx.params.alarmId}` };
@@ -541,7 +564,12 @@ Returns **404** if the job ID is unknown or the result has expired (24 h TTL).`,
       params: {
         alarmId: { type: 'string', min: 1, example: 'alarm_abc123' },
         actor: { type: 'string', optional: true, max: 120, example: 'problem-solver-agent' },
-        note: { type: 'string', optional: true, max: 1000, example: 'Recovery completed successfully.' },
+        note: {
+          type: 'string',
+          optional: true,
+          max: 1000,
+          example: 'Recovery completed successfully.',
+        },
       },
       openapi: {
         summary: 'Resolve persistent async watchdog alarm',
@@ -565,7 +593,11 @@ Returns **404** if the job ID is unknown or the result has expired (24 h TTL).`,
                 properties: {
                   alarmId: { type: 'string', example: 'alarm_abc123' },
                   actor: { type: 'string', maxLength: 120, example: 'problem-solver-agent' },
-                  note: { type: 'string', maxLength: 1000, example: 'Recovery completed successfully.' },
+                  note: {
+                    type: 'string',
+                    maxLength: 1000,
+                    example: 'Recovery completed successfully.',
+                  },
                 },
               },
             },
@@ -573,10 +605,14 @@ Returns **404** if the job ID is unknown or the result has expired (24 h TTL).`,
         },
       },
       handler(ctx) {
-        const updated = jobStore.updateAlarmStatus(ctx.params.alarmId, jobStore.ALARM_STATUS.RESOLVED, {
-          actor: ctx.params.actor || 'user',
-          note: ctx.params.note || null,
-        });
+        const updated = jobStore.updateAlarmStatus(
+          ctx.params.alarmId,
+          jobStore.ALARM_STATUS.RESOLVED,
+          {
+            actor: ctx.params.actor || 'user',
+            note: ctx.params.note || null,
+          }
+        );
         if (!updated) {
           ctx.meta.$statusCode = 404;
           return { success: false, message: `Alarm not found: ${ctx.params.alarmId}` };
@@ -589,7 +625,13 @@ Returns **404** if the job ID is unknown or the result has expired (24 h TTL).`,
       rest: 'POST /:jobId/wake-up',
       params: {
         jobId: { type: 'string', min: 1, example: 'a3f8b2c1-0000-0000-0000-000000000001' },
-        idempotencyKey: { type: 'string', optional: true, trim: true, max: 256, example: 'ck:wakeup:tenant-1:monitor:123' },
+        idempotencyKey: {
+          type: 'string',
+          optional: true,
+          trim: true,
+          max: 256,
+          example: 'ck:wakeup:tenant-1:monitor:123',
+        },
         reason: { type: 'string', optional: true, max: 120, example: 'manual' },
       },
       openapi: {
@@ -613,7 +655,11 @@ Returns **404** if the job ID is unknown or the result has expired (24 h TTL).`,
                 required: ['jobId'],
                 properties: {
                   jobId: { type: 'string', example: 'a3f8b2c1-0000-0000-0000-000000000001' },
-                  idempotencyKey: { type: 'string', maxLength: 256, example: 'ck:wakeup:tenant-1:monitor:123' },
+                  idempotencyKey: {
+                    type: 'string',
+                    maxLength: 256,
+                    example: 'ck:wakeup:tenant-1:monitor:123',
+                  },
                   reason: { type: 'string', maxLength: 120, example: 'manual' },
                 },
               },

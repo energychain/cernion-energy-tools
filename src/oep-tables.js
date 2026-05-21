@@ -126,7 +126,9 @@ const CERNION_RELEVANT_OEP_TABLES = Object.freeze([
 ]);
 
 function getOepTableConfig(schema, table) {
-  return CERNION_RELEVANT_OEP_TABLES.find((entry) => entry.schema === schema && entry.table === table);
+  return CERNION_RELEVANT_OEP_TABLES.find(
+    (entry) => entry.schema === schema && entry.table === table
+  );
 }
 
 function getOepFieldMappings(schema, table) {

@@ -49,9 +49,10 @@ describe('netzfahrplan integration — netzfahrplanGenerate', () => {
             return {
               success: true,
               placeholder,
-              hitlItem: ctx.params.blockingLevel === 'hard'
-                ? { id: `hitl_${placeholders.length}`, status: 'open' }
-                : null,
+              hitlItem:
+                ctx.params.blockingLevel === 'hard'
+                  ? { id: `hitl_${placeholders.length}`, status: 'open' }
+                  : null,
             };
           },
         },
@@ -176,8 +177,14 @@ describe('netzfahrplan integration — grid-connection.fnavValidate', () => {
   beforeAll(async () => {
     broker = new ServiceBroker({ logger: false });
 
-    broker.createService({ ...GridOpsService, settings: { ...GridOpsService.settings, dbPath: tmpDb('grid-ops-gc') } });
-    broker.createService({ ...GridConnectionService, settings: { ...GridConnectionService.settings, dbPath: tmpDb('grid-conn') } });
+    broker.createService({
+      ...GridOpsService,
+      settings: { ...GridOpsService.settings, dbPath: tmpDb('grid-ops-gc') },
+    });
+    broker.createService({
+      ...GridConnectionService,
+      settings: { ...GridConnectionService.settings, dbPath: tmpDb('grid-conn') },
+    });
     broker.createService({
       name: 'interface-placeholder',
       actions: {
@@ -259,7 +266,10 @@ describe('netzfahrplan integration — finance-agent.fnavEconomics', () => {
   beforeAll(async () => {
     broker = new ServiceBroker({ logger: false });
 
-    broker.createService({ ...FinanceAgentService, settings: { ...FinanceAgentService.settings, dbPath: tmpDb('finance-agent') } });
+    broker.createService({
+      ...FinanceAgentService,
+      settings: { ...FinanceAgentService.settings, dbPath: tmpDb('finance-agent') },
+    });
 
     // Stub eog-calculator to return a known CAPEX
     broker.createService({
@@ -277,8 +287,16 @@ describe('netzfahrplan integration — finance-agent.fnavEconomics', () => {
     broker.createService({
       name: 'knowledge-rag',
       actions: {
-        retrieve: { handler() { return { results: [] }; } },
-        hybridSearch: { handler() { return { results: [] }; } },
+        retrieve: {
+          handler() {
+            return { results: [] };
+          },
+        },
+        hybridSearch: {
+          handler() {
+            return { results: [] };
+          },
+        },
       },
     });
     broker.createService({
@@ -302,9 +320,10 @@ describe('netzfahrplan integration — finance-agent.fnavEconomics', () => {
             return {
               success: true,
               placeholder,
-              hitlItem: ctx.params.blockingLevel === 'hard'
-                ? { id: `hitl_fin_${placeholders.length}`, status: 'open' }
-                : null,
+              hitlItem:
+                ctx.params.blockingLevel === 'hard'
+                  ? { id: `hitl_fin_${placeholders.length}`, status: 'open' }
+                  : null,
             };
           },
         },
@@ -343,12 +362,23 @@ describe('netzfahrplan integration — finance-agent.fnavEconomics', () => {
   it('falls back to parametric estimate when eog-calculator unavailable', async () => {
     // Use a broker where eog-calculator is not available
     const broker2 = new ServiceBroker({ logger: false });
-    broker2.createService({ ...FinanceAgentService, settings: { ...FinanceAgentService.settings, dbPath: tmpDb('finance-agent-b2') } });
+    broker2.createService({
+      ...FinanceAgentService,
+      settings: { ...FinanceAgentService.settings, dbPath: tmpDb('finance-agent-b2') },
+    });
     broker2.createService({
       name: 'knowledge-rag',
       actions: {
-        retrieve: { handler() { return { results: [] }; } },
-        hybridSearch: { handler() { return { results: [] }; } },
+        retrieve: {
+          handler() {
+            return { results: [] };
+          },
+        },
+        hybridSearch: {
+          handler() {
+            return { results: [] };
+          },
+        },
       },
     });
     await broker2.start();

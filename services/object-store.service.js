@@ -271,7 +271,10 @@ module.exports = {
         const normalizedRequestedRev =
           typeof requestedRev === 'string' ? requestedRev.trim() : requestedRev;
         const hasCasRequestedRev =
-          hasRevToken && normalizedRequestedRev !== null && normalizedRequestedRev !== undefined && normalizedRequestedRev !== '';
+          hasRevToken &&
+          normalizedRequestedRev !== null &&
+          normalizedRequestedRev !== undefined &&
+          normalizedRequestedRev !== '';
         const id = docId(namespace, key);
         const now = new Date().toISOString();
 

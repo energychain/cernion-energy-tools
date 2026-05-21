@@ -57,20 +57,28 @@ function firstDefined(obj, keys) {
 function hasVdmiRoleFields(task) {
   if (!task || typeof task !== 'object') return false;
   return (
-    Array.isArray(task.verantwortlich)
-    || Array.isArray(task.durchfuehrend)
-    || Array.isArray(task.mitwirkend)
-    || Array.isArray(task.information)
+    Array.isArray(task.verantwortlich) ||
+    Array.isArray(task.durchfuehrend) ||
+    Array.isArray(task.mitwirkend) ||
+    Array.isArray(task.information)
   );
 }
 
 function hasDecisionSignals(domainResult) {
   const dr = domainResult || {};
   if (isNonEmptyArray(dr.forbiddenAssumptions)) return true;
-  if (dr.decisionStatus !== undefined && dr.decisionStatus !== null && String(dr.decisionStatus).trim() !== '') {
+  if (
+    dr.decisionStatus !== undefined &&
+    dr.decisionStatus !== null &&
+    String(dr.decisionStatus).trim() !== ''
+  ) {
     return true;
   }
-  if (dr.expectedStatus !== undefined && dr.expectedStatus !== null && String(dr.expectedStatus).trim() !== '') {
+  if (
+    dr.expectedStatus !== undefined &&
+    dr.expectedStatus !== null &&
+    String(dr.expectedStatus).trim() !== ''
+  ) {
     return true;
   }
   if (dr.status !== undefined && dr.status !== null) {
@@ -85,10 +93,10 @@ function hasDecisionSignals(domainResult) {
 function hasComparisonSignals(domainResult) {
   const dr = domainResult || {};
   return (
-    (Array.isArray(dr.items) && dr.items.length > 1)
-    || (Array.isArray(dr.rows) && dr.rows.length > 1)
-    || (Array.isArray(dr.peers) && dr.peers.length > 1)
-    || (Array.isArray(dr.variants) && dr.variants.length > 1)
+    (Array.isArray(dr.items) && dr.items.length > 1) ||
+    (Array.isArray(dr.rows) && dr.rows.length > 1) ||
+    (Array.isArray(dr.peers) && dr.peers.length > 1) ||
+    (Array.isArray(dr.variants) && dr.variants.length > 1)
   );
 }
 
@@ -193,12 +201,13 @@ function renderKpiFact(domainResult, context, locale) {
   const warnings = [];
 
   const metricValue = firstDefined(dr, ['value', 'count', 'metric', 'answer']);
-  const displayValue = metricValue !== undefined
-    ? `${metricValue}${dr.unit ? ' ' + dr.unit : ''}`
-    : null;
+  const displayValue =
+    metricValue !== undefined ? `${metricValue}${dr.unit ? ' ' + dr.unit : ''}` : null;
 
   if (displayValue === null) {
-    warnings.push('kpi_fact_missing_value: domainResult.value and domainResult.count are both absent');
+    warnings.push(
+      'kpi_fact_missing_value: domainResult.value and domainResult.count are both absent'
+    );
   }
 
   const label = dr.label || context?.label || 'Ergebnis';
@@ -222,13 +231,12 @@ function renderKpiFact(domainResult, context, locale) {
     warnings.push('insufficient_structured_data');
   }
 
-  const kpis = displayValue !== null
-    ? [{ label, value: metricValue, unit: dr.unit || null, displayValue }]
-    : [];
+  const kpis =
+    displayValue !== null
+      ? [{ label, value: metricValue, unit: dr.unit || null, displayValue }]
+      : [];
 
-  const tableMarkdown = tableRows.length > 0
-    ? markdownTable(['Feld', 'Wert'], tableRows)
-    : '';
+  const tableMarkdown = tableRows.length > 0 ? markdownTable(['Feld', 'Wert'], tableRows) : '';
 
   const summaryParts = [];
   if (displayValue !== null) summaryParts.push(`**${label}:** ${displayValue}`);
@@ -251,10 +259,13 @@ function renderKpiFact(domainResult, context, locale) {
       title,
       summary,
       kpis,
-      tables: tableRows.length > 0 ? [{ id: 'kpi_main', rows: tableRows, headers: ['Feld', 'Wert'] }] : [],
+      tables:
+        tableRows.length > 0
+          ? [{ id: 'kpi_main', rows: tableRows, headers: ['Feld', 'Wert'] }]
+          : [],
       sections: [],
       warnings,
-      sources: dr.source ? [dr.source] : (isNonEmptyArray(dr.sources) ? dr.sources : []),
+      sources: dr.source ? [dr.source] : isNonEmptyArray(dr.sources) ? dr.sources : [],
       nextActions: [],
     },
     markdown,
@@ -272,16 +283,17 @@ function renderDebugSummary(domainResult, context) {
 
   // Surface top-level non-object keys only (avoid large blobs)
   const scalarFields = Object.entries(dr).filter(
-    ([, v]) => v === null || typeof v !== 'object' || (typeof v === 'string')
+    ([, v]) => v === null || typeof v !== 'object' || typeof v === 'string'
   );
   const objectKeys = Object.keys(dr).filter((k) => {
     const v = dr[k];
     return v !== null && typeof v === 'object';
   });
 
-  const summary = scalarFields.length > 0
-    ? `Domain-Ergebnis (Felder: ${scalarFields.map(([k]) => k).join(', ')})`
-    : 'Domain-Ergebnis ohne skalare Felder.';
+  const summary =
+    scalarFields.length > 0
+      ? `Domain-Ergebnis (Felder: ${scalarFields.map(([k]) => k).join(', ')})`
+      : 'Domain-Ergebnis ohne skalare Felder.';
 
   const sections = [];
   if (scalarFields.length > 0) {
@@ -305,7 +317,10 @@ function renderDebugSummary(domainResult, context) {
     markdownParts.push('', `### ${sec.title}`, '', sec.content);
   }
   if (objectKeys.length > 0) {
-    markdownParts.push('', '> Hinweis: Objekt-/Array-Felder sind nicht ausgeschrieben, um die Ausgabe lesbar zu halten.');
+    markdownParts.push(
+      '',
+      '> Hinweis: Objekt-/Array-Felder sind nicht ausgeschrieben, um die Ausgabe lesbar zu halten.'
+    );
   }
   const markdown = markdownParts.join('\n');
 
@@ -340,7 +355,9 @@ function formatActorValue(actor) {
 
 function formatActorList(value) {
   if (!Array.isArray(value) || value.length === 0) return '—';
-  const mapped = value.map((actor) => formatActorValue(actor)).filter((entry) => entry && entry !== '');
+  const mapped = value
+    .map((actor) => formatActorValue(actor))
+    .filter((entry) => entry && entry !== '');
   return mapped.length > 0 ? mapped.join(', ') : '—';
 }
 
@@ -423,9 +440,8 @@ function dedupeBySignature(entries, keyFn) {
 function renderVdmiMatrix(domainResult) {
   const dr = domainResult || {};
   const matrix = dr.matrix && typeof dr.matrix === 'object' ? dr.matrix : null;
-  const tasks = matrix && Array.isArray(matrix.tasks)
-    ? matrix.tasks
-    : (Array.isArray(dr.tasks) ? dr.tasks : []);
+  const tasks =
+    matrix && Array.isArray(matrix.tasks) ? matrix.tasks : Array.isArray(dr.tasks) ? dr.tasks : [];
   const warnings = [];
   const title = 'VDMI-Prozessübersicht';
 
@@ -444,11 +460,7 @@ function renderVdmiMatrix(domainResult) {
         sources: [],
         nextActions: [],
       },
-      markdown: [
-        `## ${title}`,
-        '',
-        'Keine VDMI-Schritte vorhanden.',
-      ].join('\n'),
+      markdown: [`## ${title}`, '', 'Keine VDMI-Schritte vorhanden.'].join('\n'),
     };
   }
 
@@ -476,11 +488,13 @@ function renderVdmiMatrix(domainResult) {
   });
 
   const sections = [];
-  const tables = [{
-    id: 'vdmi_roles',
-    headers: roleHeaders,
-    rows: roleRows,
-  }];
+  const tables = [
+    {
+      id: 'vdmi_roles',
+      headers: roleHeaders,
+      rows: roleRows,
+    },
+  ];
 
   const topExpectedStatus = firstDefined(dr, ['expectedStatus']);
   const topStatus = firstDefined(dr, ['status']);
@@ -498,9 +512,18 @@ function renderVdmiMatrix(domainResult) {
   const pushEvidence = (scope, item) => {
     if (item === null || item === undefined) return;
     if (item && typeof item === 'object') {
-      const label = firstDefined(item, ['label', 'name', 'description', 'text', 'code', 'id']) || '—';
-      const reason = firstDefined(item, ['reason', 'detail', 'message', 'description', 'text']) || '—';
-      const entitySig = signatureFromObject(item, ['label', 'name', 'description', 'text', 'code', 'id']);
+      const label =
+        firstDefined(item, ['label', 'name', 'description', 'text', 'code', 'id']) || '—';
+      const reason =
+        firstDefined(item, ['reason', 'detail', 'message', 'description', 'text']) || '—';
+      const entitySig = signatureFromObject(item, [
+        'label',
+        'name',
+        'description',
+        'text',
+        'code',
+        'id',
+      ]);
       const reasonSig = normalizeCompareText(reason);
       evidenceEntries.push({
         scope,
@@ -521,7 +544,9 @@ function renderVdmiMatrix(domainResult) {
 
   for (const task of tasks) {
     const scope = getStepDescription(task, warnings);
-    const taskRequirements = isNonEmptyArray(task?.evidenceRequirements) ? task.evidenceRequirements : [];
+    const taskRequirements = isNonEmptyArray(task?.evidenceRequirements)
+      ? task.evidenceRequirements
+      : [];
     const taskGaps = isNonEmptyArray(task?.evidenceGaps) ? task.evidenceGaps : [];
     for (const req of taskRequirements) pushEvidence(scope, req);
     for (const gap of taskGaps) pushEvidence(scope, gap);
@@ -539,11 +564,9 @@ function renderVdmiMatrix(domainResult) {
     const evidenceHeaders = hasMixedScopes
       ? ['Bezug', 'Evidenz / Lücke', 'Grund']
       : ['Evidenz / Lücke', 'Grund'];
-    const evidenceRows = dedupedEvidence.map((entry) => (
-      hasMixedScopes
-        ? [entry.scope, entry.label, entry.reason]
-        : [entry.label, entry.reason]
-    ));
+    const evidenceRows = dedupedEvidence.map((entry) =>
+      hasMixedScopes ? [entry.scope, entry.label, entry.reason] : [entry.label, entry.reason]
+    );
     tables.push({ id: 'vdmi_evidence', headers: evidenceHeaders, rows: evidenceRows });
     sections.push({
       id: 'evidence_gaps',
@@ -565,7 +588,9 @@ function renderVdmiMatrix(domainResult) {
   };
   for (const task of tasks) {
     const scope = getStepDescription(task, warnings);
-    const assumptions = isNonEmptyArray(task?.forbiddenAssumptions) ? task.forbiddenAssumptions : [];
+    const assumptions = isNonEmptyArray(task?.forbiddenAssumptions)
+      ? task.forbiddenAssumptions
+      : [];
     for (const assumption of assumptions) pushAssumption(scope, assumption);
   }
   if (isNonEmptyArray(dr.forbiddenAssumptions)) {
@@ -574,13 +599,17 @@ function renderVdmiMatrix(domainResult) {
   const dedupedAssumptions = dedupeBySignature(assumptionEntries, (entry) => entry.signature);
   if (dedupedAssumptions.length > 0) {
     const hasMixedScopes = new Set(dedupedAssumptions.map((entry) => entry.scope)).size > 1;
-    const assumptionHeaders = hasMixedScopes ? ['Bezug', 'Verbotene Annahme'] : ['Verbotene Annahme'];
-    const assumptionRows = dedupedAssumptions.map((entry) => (
-      hasMixedScopes
-        ? [entry.scope, entry.text]
-        : [entry.text]
-    ));
-    tables.push({ id: 'vdmi_forbidden_assumptions', headers: assumptionHeaders, rows: assumptionRows });
+    const assumptionHeaders = hasMixedScopes
+      ? ['Bezug', 'Verbotene Annahme']
+      : ['Verbotene Annahme'];
+    const assumptionRows = dedupedAssumptions.map((entry) =>
+      hasMixedScopes ? [entry.scope, entry.text] : [entry.text]
+    );
+    tables.push({
+      id: 'vdmi_forbidden_assumptions',
+      headers: assumptionHeaders,
+      rows: assumptionRows,
+    });
     sections.push({
       id: 'forbidden_assumptions',
       title: 'Verbotene Annahmen',
@@ -592,10 +621,19 @@ function renderVdmiMatrix(domainResult) {
   const pushNextAction = (scope, action) => {
     if (action === null || action === undefined) return;
     const label = toSafeActionLabel(action);
-    const type = action && typeof action === 'object' ? (firstDefined(action, ['type']) || '—') : '—';
-    const actionSig = action && typeof action === 'object'
-      ? signatureFromObject(action, ['label', 'title', 'description', 'action', 'text', 'code', 'id'])
-      : normalizeCompareText(label);
+    const type = action && typeof action === 'object' ? firstDefined(action, ['type']) || '—' : '—';
+    const actionSig =
+      action && typeof action === 'object'
+        ? signatureFromObject(action, [
+            'label',
+            'title',
+            'description',
+            'action',
+            'text',
+            'code',
+            'id',
+          ])
+        : normalizeCompareText(label);
     nextActionEntries.push({
       scope,
       label,
@@ -616,8 +654,12 @@ function renderVdmiMatrix(domainResult) {
     const hasMixedScopes = new Set(dedupedNextActions.map((entry) => entry.scope)).size > 1;
     const hasType = dedupedNextActions.some((entry) => entry.type && entry.type !== '—');
     const nextActionHeaders = hasMixedScopes
-      ? (hasType ? ['Bezug', 'Nächster Schritt', 'Typ'] : ['Bezug', 'Nächster Schritt'])
-      : (hasType ? ['Nächster Schritt', 'Typ'] : ['Nächster Schritt']);
+      ? hasType
+        ? ['Bezug', 'Nächster Schritt', 'Typ']
+        : ['Bezug', 'Nächster Schritt']
+      : hasType
+        ? ['Nächster Schritt', 'Typ']
+        : ['Nächster Schritt'];
 
     const nextActionRows = dedupedNextActions.map((entry) => {
       if (hasMixedScopes && hasType) return [entry.scope, entry.label, entry.type];
@@ -638,10 +680,22 @@ function renderVdmiMatrix(domainResult) {
   const pushRisk = (scope, risk) => {
     if (risk === null || risk === undefined) return;
     if (risk && typeof risk === 'object') {
-      const label = firstDefined(risk, ['id', 'code', 'label', 'name', 'risk', 'description', 'text']) || '—';
-      const impact = firstDefined(risk, ['impact', 'wirkung', 'detail', 'reason', 'message']) || '—';
-      const mitigation = firstDefined(risk, ['mitigation', 'countermeasure', 'gegenmassnahme', 'gegenmaßnahme']) || '—';
-      const sig = signatureFromObject(risk, ['id', 'code', 'label', 'name', 'risk', 'description', 'text']);
+      const label =
+        firstDefined(risk, ['id', 'code', 'label', 'name', 'risk', 'description', 'text']) || '—';
+      const impact =
+        firstDefined(risk, ['impact', 'wirkung', 'detail', 'reason', 'message']) || '—';
+      const mitigation =
+        firstDefined(risk, ['mitigation', 'countermeasure', 'gegenmassnahme', 'gegenmaßnahme']) ||
+        '—';
+      const sig = signatureFromObject(risk, [
+        'id',
+        'code',
+        'label',
+        'name',
+        'risk',
+        'description',
+        'text',
+      ]);
       riskEntries.push({
         scope,
         label: String(label),
@@ -681,11 +735,11 @@ function renderVdmiMatrix(domainResult) {
     const riskHeaders = hasMixedScopes
       ? ['Bezug', 'Risiko', 'Wirkung', 'Gegenmaßnahme']
       : ['Risiko', 'Wirkung', 'Gegenmaßnahme'];
-    const riskRows = dedupedRisks.map((entry) => (
+    const riskRows = dedupedRisks.map((entry) =>
       hasMixedScopes
         ? [entry.scope, entry.label, entry.impact, entry.mitigation]
         : [entry.label, entry.impact, entry.mitigation]
-    ));
+    );
     tables.push({ id: 'vdmi_risks', headers: riskHeaders, rows: riskRows });
     sections.push({
       id: 'risks',
@@ -694,18 +748,13 @@ function renderVdmiMatrix(domainResult) {
     });
   }
 
-  const summary = summaryStatus !== undefined
-    ? `VDMI-Prozess mit ${tasks.length} Schritten. Status: ${String(summaryStatus)}.`
-    : `VDMI-Prozess mit ${tasks.length} Schritten.`;
+  const summary =
+    summaryStatus !== undefined
+      ? `VDMI-Prozess mit ${tasks.length} Schritten. Status: ${String(summaryStatus)}.`
+      : `VDMI-Prozess mit ${tasks.length} Schritten.`;
   const uniqueWarnings = [...new Set(warnings)];
 
-  const markdownParts = [
-    `## ${title}`,
-    '',
-    summary,
-    '',
-    markdownTable(roleHeaders, roleRows),
-  ];
+  const markdownParts = [`## ${title}`, '', summary, '', markdownTable(roleHeaders, roleRows)];
   for (const section of sections) {
     markdownParts.push('', `### ${section.title}`, '', section.content);
   }
@@ -750,16 +799,17 @@ function renderEvidenceGapTableStub(domainResult) {
     warnings.push('insufficient_structured_data');
   }
 
-  const tables = rows.length > 0
-    ? [{ id: 'evidence_gaps', headers: ['Evidenzlücke', 'Grund'], rows }]
-    : [];
+  const tables =
+    rows.length > 0 ? [{ id: 'evidence_gaps', headers: ['Evidenzlücke', 'Grund'], rows }] : [];
 
   const markdown = [
     '## Evidenzlücken (Stub)',
     '',
     '> **Hinweis:** `evidence_gap_table_renderer_not_implemented_yet`',
     '',
-    rows.length > 0 ? markdownTable(['Evidenzlücke', 'Grund'], rows) : '- Keine strukturierten Evidenzlücken vorhanden.',
+    rows.length > 0
+      ? markdownTable(['Evidenzlücke', 'Grund'], rows)
+      : '- Keine strukturierten Evidenzlücken vorhanden.',
   ].join('\n');
 
   return {
@@ -767,7 +817,10 @@ function renderEvidenceGapTableStub(domainResult) {
     presentation: {
       type: 'evidence_gap_table',
       title: 'Evidenzlücken (Stub)',
-      summary: rows.length > 0 ? `${rows.length} Evidenzlücken erkannt.` : 'Keine auswertbaren Evidenzlücken.',
+      summary:
+        rows.length > 0
+          ? `${rows.length} Evidenzlücken erkannt.`
+          : 'Keine auswertbaren Evidenzlücken.',
       kpis: [],
       tables,
       sections: [],
@@ -781,7 +834,11 @@ function renderEvidenceGapTableStub(domainResult) {
 
 function renderRiskTableStub(domainResult) {
   const dr = domainResult || {};
-  const risks = isNonEmptyArray(dr.assetRisks) ? dr.assetRisks : (isNonEmptyArray(dr.risks) ? dr.risks : []);
+  const risks = isNonEmptyArray(dr.assetRisks)
+    ? dr.assetRisks
+    : isNonEmptyArray(dr.risks)
+      ? dr.risks
+      : [];
   const warnings = ['risk_table_renderer_not_implemented_yet'];
 
   const rows = risks.map((risk) => {
@@ -789,7 +846,8 @@ function renderRiskTableStub(domainResult) {
       return [
         firstDefined(risk, ['name', 'risk', 'label', 'id']) || '—',
         firstDefined(risk, ['impact', 'wirkung']) || '—',
-        firstDefined(risk, ['mitigation', 'countermeasure', 'gegenmassnahme', 'gegenmaßnahme']) || '—',
+        firstDefined(risk, ['mitigation', 'countermeasure', 'gegenmassnahme', 'gegenmaßnahme']) ||
+          '—',
       ];
     }
     return [String(risk), '—', '—'];
@@ -799,16 +857,19 @@ function renderRiskTableStub(domainResult) {
     warnings.push('insufficient_structured_data');
   }
 
-  const tables = rows.length > 0
-    ? [{ id: 'risk_list', headers: ['Risiko', 'Wirkung', 'Gegenmaßnahme'], rows }]
-    : [];
+  const tables =
+    rows.length > 0
+      ? [{ id: 'risk_list', headers: ['Risiko', 'Wirkung', 'Gegenmaßnahme'], rows }]
+      : [];
 
   const markdown = [
     '## Risikoübersicht (Stub)',
     '',
     '> **Hinweis:** `risk_table_renderer_not_implemented_yet`',
     '',
-    rows.length > 0 ? markdownTable(['Risiko', 'Wirkung', 'Gegenmaßnahme'], rows) : '- Keine strukturierten Risiken vorhanden.',
+    rows.length > 0
+      ? markdownTable(['Risiko', 'Wirkung', 'Gegenmaßnahme'], rows)
+      : '- Keine strukturierten Risiken vorhanden.',
   ].join('\n');
 
   return {
@@ -839,19 +900,25 @@ function renderDecisionBriefStub(domainResult) {
     }
   }
 
-  const sources = dr.source
-    ? [dr.source]
-    : (isNonEmptyArray(dr.sources) ? dr.sources : []);
+  const sources = dr.source ? [dr.source] : isNonEmptyArray(dr.sources) ? dr.sources : [];
 
   const sections = [];
   const tables = [];
 
   const decisionStatus = firstDefined(dr, ['decisionStatus']);
   const expectedStatus = firstDefined(dr, ['expectedStatus', 'status']);
-  const forbiddenAssumptions = isNonEmptyArray(dr.forbiddenAssumptions) ? dr.forbiddenAssumptions : [];
+  const forbiddenAssumptions = isNonEmptyArray(dr.forbiddenAssumptions)
+    ? dr.forbiddenAssumptions
+    : [];
   const nextActions = isNonEmptyArray(dr.nextActions) ? dr.nextActions : [];
-  const riskItems = isNonEmptyArray(dr.assetRisks) ? dr.assetRisks : (isNonEmptyArray(dr.risks) ? dr.risks : []);
-  const evidenceRequirements = isNonEmptyArray(dr.evidenceRequirements) ? dr.evidenceRequirements : [];
+  const riskItems = isNonEmptyArray(dr.assetRisks)
+    ? dr.assetRisks
+    : isNonEmptyArray(dr.risks)
+      ? dr.risks
+      : [];
+  const evidenceRequirements = isNonEmptyArray(dr.evidenceRequirements)
+    ? dr.evidenceRequirements
+    : [];
   const evidenceGaps = isNonEmptyArray(dr.evidenceGaps) ? dr.evidenceGaps : [];
 
   if (decisionStatus !== undefined || expectedStatus !== undefined) {
@@ -879,7 +946,8 @@ function renderDecisionBriefStub(domainResult) {
           firstDefined(item, ['risk', 'name', 'label', 'id']) || '—',
           firstDefined(item, ['severity', 'level', 'priority']) || '—',
           firstDefined(item, ['impact', 'wirkung']) || '—',
-          firstDefined(item, ['mitigation', 'countermeasure', 'gegenmassnahme', 'gegenmaßnahme']) || '—',
+          firstDefined(item, ['mitigation', 'countermeasure', 'gegenmassnahme', 'gegenmaßnahme']) ||
+            '—',
         ];
       }
       return [String(item), '—', '—', '—'];
@@ -970,11 +1038,14 @@ function renderDecisionBriefStub(domainResult) {
 
   const uniqueWarnings = [...new Set(warnings)];
 
-  const summary = decisionStatus !== undefined
-    ? `Entscheidungsstatus: ${String(decisionStatus)}.`
-    : (expectedStatus !== undefined
-      ? `Erwarteter Status: ${String(expectedStatus)}.`
-      : (sections.length > 0 ? 'Entscheidungsfelder wurden strukturiert erkannt.' : 'Keine auswertbaren Entscheidungsfelder.'));
+  const summary =
+    decisionStatus !== undefined
+      ? `Entscheidungsstatus: ${String(decisionStatus)}.`
+      : expectedStatus !== undefined
+        ? `Erwarteter Status: ${String(expectedStatus)}.`
+        : sections.length > 0
+          ? 'Entscheidungsfelder wurden strukturiert erkannt.'
+          : 'Keine auswertbaren Entscheidungsfelder.';
 
   const markdownParts = [
     '## Entscheidungsbrief (Stub)',
@@ -1009,11 +1080,12 @@ function renderComparisonTableStub(domainResult) {
   const dr = domainResult || {};
   const warnings = ['comparison_table_renderer_not_implemented_yet'];
 
-  const collection = (isNonEmptyArray(dr.items) && dr.items)
-    || (isNonEmptyArray(dr.rows) && dr.rows)
-    || (isNonEmptyArray(dr.peers) && dr.peers)
-    || (isNonEmptyArray(dr.variants) && dr.variants)
-    || [];
+  const collection =
+    (isNonEmptyArray(dr.items) && dr.items) ||
+    (isNonEmptyArray(dr.rows) && dr.rows) ||
+    (isNonEmptyArray(dr.peers) && dr.peers) ||
+    (isNonEmptyArray(dr.variants) && dr.variants) ||
+    [];
 
   const rows = [];
   for (const item of collection) {
@@ -1031,16 +1103,17 @@ function renderComparisonTableStub(domainResult) {
     warnings.push('insufficient_structured_data');
   }
 
-  const tables = rows.length > 0
-    ? [{ id: 'comparison_items', headers: ['Eintrag', 'Wert'], rows }]
-    : [];
+  const tables =
+    rows.length > 0 ? [{ id: 'comparison_items', headers: ['Eintrag', 'Wert'], rows }] : [];
 
   const markdown = [
     '## Vergleichstabelle (Stub)',
     '',
     '> **Hinweis:** `comparison_table_renderer_not_implemented_yet`',
     '',
-    rows.length > 0 ? markdownTable(['Eintrag', 'Wert'], rows) : '- Keine strukturierten Vergleichsdaten vorhanden.',
+    rows.length > 0
+      ? markdownTable(['Eintrag', 'Wert'], rows)
+      : '- Keine strukturierten Vergleichsdaten vorhanden.',
   ].join('\n');
 
   return {
@@ -1048,7 +1121,10 @@ function renderComparisonTableStub(domainResult) {
     presentation: {
       type: 'comparison_table',
       title: 'Vergleichstabelle (Stub)',
-      summary: rows.length > 0 ? `${rows.length} Vergleichseinträge erkannt.` : 'Keine auswertbaren Vergleichsdaten.',
+      summary:
+        rows.length > 0
+          ? `${rows.length} Vergleichseinträge erkannt.`
+          : 'Keine auswertbaren Vergleichsdaten.',
       kpis: [],
       tables,
       sections: [],

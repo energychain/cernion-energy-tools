@@ -44,7 +44,9 @@ describe('personal-agent-tdd-matrix-normalizer', () => {
   });
 
   it('preserves normalized turn metadata for multi-turn scenarios', () => {
-    const cases = parseTddMatrixFile(DEFAULT_MATRIX_FILE).filter((testCase) => testCase.id === 'MT-JOU-01');
+    const cases = parseTddMatrixFile(DEFAULT_MATRIX_FILE).filter(
+      (testCase) => testCase.id === 'MT-JOU-01'
+    );
     const normalized = normalizeMatrixTestCase(cases[0]);
 
     expect(normalized.executionMode).toBe('auto');

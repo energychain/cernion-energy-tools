@@ -18,7 +18,10 @@ function nowIso() {
 }
 
 function sha256(value) {
-  return crypto.createHash('sha256').update(String(value || ''), 'utf8').digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(String(value || ''), 'utf8')
+    .digest('hex');
 }
 
 function extractBearerToken(headers) {
@@ -266,9 +269,17 @@ module.exports = {
           throw new Errors.MoleculerClientError('Session token required.', 401, 'SESSION_REQUIRED');
         }
 
-        const verification = await this.verifyInternal(token, true, this.settings.sessionTtlSeconds);
+        const verification = await this.verifyInternal(
+          token,
+          true,
+          this.settings.sessionTtlSeconds
+        );
         if (!verification.valid) {
-          throw new Errors.MoleculerClientError('Invalid session token.', 401, 'INVALID_SESSION_TOKEN');
+          throw new Errors.MoleculerClientError(
+            'Invalid session token.',
+            401,
+            'INVALID_SESSION_TOKEN'
+          );
         }
 
         return { success: true, ...verification, token };

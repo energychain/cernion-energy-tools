@@ -17,7 +17,10 @@ module.exports = class VDMIFindingsService extends Service {
       fields: {
         id: { type: 'string', primaryKey: true },
         tenantId: { type: 'string', required: true },
-        status: { type: 'enum', values: ['proposed', 'triaged', 'pending_approval', 'approved', 'applied', 'rejected'] },
+        status: {
+          type: 'enum',
+          values: ['proposed', 'triaged', 'pending_approval', 'approved', 'applied', 'rejected'],
+        },
       },
     };
 
@@ -47,7 +50,7 @@ module.exports = class VDMIFindingsService extends Service {
     /**
      * GET — List findings with filters
      */
-    'list': {
+    list: {
       rest: 'GET /tenants/:tenantId/findings',
       openapi: {
         tags: ['VDMI Governance'],
@@ -71,7 +74,7 @@ module.exports = class VDMIFindingsService extends Service {
           },
         ],
         responses: {
-          '200': {
+          200: {
             description: 'List of findings',
             content: {
               'application/json': {
@@ -98,7 +101,7 @@ module.exports = class VDMIFindingsService extends Service {
           };
 
           if (status) {
-            const statuses = status.split(',').map(s => s.trim());
+            const statuses = status.split(',').map((s) => s.trim());
             selector.status = { $in: statuses };
           }
 
@@ -123,7 +126,7 @@ module.exports = class VDMIFindingsService extends Service {
           return {
             tenantId,
             totalFindings: result.total_rows,
-            findings: result.docs.map(doc => this._formatFinding(doc)),
+            findings: result.docs.map((doc) => this._formatFinding(doc)),
             summary,
           };
         } catch (error) {
@@ -136,7 +139,7 @@ module.exports = class VDMIFindingsService extends Service {
     /**
      * POST — Mitigate finding with proposed actions
      */
-    'mitigate': {
+    mitigate: {
       rest: 'POST /tenants/:tenantId/findings/:findingId/mitigate',
       openapi: {
         tags: ['VDMI Governance'],
@@ -166,8 +169,8 @@ module.exports = class VDMIFindingsService extends Service {
           },
         },
         responses: {
-          '201': { description: 'Mitigation accepted' },
-          '422': { description: 'Validation error' },
+          201: { description: 'Mitigation accepted' },
+          422: { description: 'Validation error' },
         },
       },
       async handler(ctx) {
@@ -237,7 +240,7 @@ module.exports = class VDMIFindingsService extends Service {
     /**
      * POST — Resolve finding
      */
-    'resolve': {
+    resolve: {
       rest: 'POST /tenants/:tenantId/findings/:findingId/resolve',
       openapi: {
         tags: ['VDMI Governance'],
@@ -267,14 +270,13 @@ module.exports = class VDMIFindingsService extends Service {
           },
         },
         responses: {
-          '200': { description: 'Finding resolved' },
-          '403': { description: 'Insufficient permissions' },
+          200: { description: 'Finding resolved' },
+          403: { description: 'Insufficient permissions' },
         },
       },
       async handler(ctx) {
         const { tenantId, findingId } = ctx.params;
-        const { resolutionType, justification, evidenceProof, applyChanges } =
-          ctx.request.body;
+        const { resolutionType, justification, evidenceProof, applyChanges } = ctx.request.body;
 
         // Authorization
         const userRole = ctx.meta.userRole || 'user';
@@ -348,7 +350,7 @@ module.exports = class VDMIFindingsService extends Service {
       bySeverity: {},
     };
 
-    docs.forEach(doc => {
+    docs.forEach((doc) => {
       summary.byStatus[doc.status] = (summary.byStatus[doc.status] || 0) + 1;
       summary.bySeverity[doc.severity] = (summary.bySeverity[doc.severity] || 0) + 1;
     });

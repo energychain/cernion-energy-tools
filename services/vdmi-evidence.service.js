@@ -19,7 +19,10 @@ module.exports = class VDMIEvidenceService extends Service {
         id: { type: 'string', primaryKey: true },
         tenantId: { type: 'string', required: true },
         taskId: { type: 'string', required: true },
-        status: { type: 'enum', values: ['pending_signature', 'fully_signed', 'approved', 'injected'] },
+        status: {
+          type: 'enum',
+          values: ['pending_signature', 'fully_signed', 'approved', 'injected'],
+        },
       },
     };
 
@@ -53,7 +56,7 @@ module.exports = class VDMIEvidenceService extends Service {
     /**
      * POST — Inject manual evidence
      */
-    'inject': {
+    inject: {
       rest: 'POST /tenants/:tenantId/tasks/:taskId/evidence',
       openapi: {
         tags: ['VDMI Governance'],
@@ -75,7 +78,12 @@ module.exports = class VDMIEvidenceService extends Service {
                   },
                   category: {
                     type: 'string',
-                    enum: ['hr_confirmation', 'manager_attestation', 'legal_exception', 'legacy_system_mapping'],
+                    enum: [
+                      'hr_confirmation',
+                      'manager_attestation',
+                      'legal_exception',
+                      'legacy_system_mapping',
+                    ],
                   },
                   data: { type: 'object' },
                   affectedMatrix: { type: 'object' },
@@ -89,15 +97,22 @@ module.exports = class VDMIEvidenceService extends Service {
           },
         },
         responses: {
-          '201': { description: 'Evidence injected successfully' },
-          '409': { description: 'Task already approved' },
-          '422': { description: 'Invalid evidence category' },
+          201: { description: 'Evidence injected successfully' },
+          409: { description: 'Task already approved' },
+          422: { description: 'Invalid evidence category' },
         },
       },
       async handler(ctx) {
         const { tenantId, taskId } = ctx.params;
-        const { evidenceType, category, data, affectedMatrix, sourceQuality, signatureRequired, rationale } =
-          ctx.request.body;
+        const {
+          evidenceType,
+          category,
+          data,
+          affectedMatrix,
+          sourceQuality,
+          signatureRequired,
+          rationale,
+        } = ctx.request.body;
 
         try {
           // Validate evidence category
@@ -151,7 +166,10 @@ module.exports = class VDMIEvidenceService extends Service {
             signatureRequest = await this.signature.createSignatureRequest(tenantId, {
               operationType: 'evidence_injection',
               operationId: evidenceDoc._id,
-              requiredSigners: ['compliance-officer@company.com', data.confirmingPerson || 'unknown@company.com'],
+              requiredSigners: [
+                'compliance-officer@company.com',
+                data.confirmingPerson || 'unknown@company.com',
+              ],
               createdBy: ctx.meta.userId,
             });
           }
@@ -217,7 +235,7 @@ module.exports = class VDMIEvidenceService extends Service {
     /**
      * POST — Sign evidence (used by signature portal)
      */
-    'sign': {
+    sign: {
       rest: 'POST /tenants/:tenantId/evidence/:evidenceId/sign',
       async handler(ctx) {
         const { tenantId, evidenceId } = ctx.params;
@@ -266,7 +284,7 @@ module.exports = class VDMIEvidenceService extends Service {
     const newSource = newEvidence.category;
 
     // Check if we now have dual evidence
-    const hasFirstSource = existingSources.some(s => s !== newSource);
+    const hasFirstSource = existingSources.some((s) => s !== newSource);
     const hasSecondSource = newSource;
 
     return {

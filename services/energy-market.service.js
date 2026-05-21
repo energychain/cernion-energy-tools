@@ -915,7 +915,9 @@ module.exports = {
         const MCP_PAGE_SIZE = 10000;
         const { format, ...params } = ctx.params;
         const requestedTypes =
-          params.installationType === 'all' ? SUPPORTED_INSTALLATION_TYPES : [params.installationType];
+          params.installationType === 'all'
+            ? SUPPORTED_INSTALLATION_TYPES
+            : [params.installationType];
         const operationalStatus = params.operationalStatus || '35';
         const nbpStatus = params.netzbetreiberPruefungStatus;
         const updatedAfter = params.updatedAfter ? new Date(params.updatedAfter) : null;
@@ -1003,14 +1005,17 @@ module.exports = {
             postleitzahlNot: params.postleitzahlNot,
             includeNapData: params.includeNapData,
             netzbetreiberPruefungStatus: nbpStatus,
-            status: operationalStatus && operationalStatus !== 'all' ? operationalStatus : undefined,
+            status:
+              operationalStatus && operationalStatus !== 'all' ? operationalStatus : undefined,
             format: 'detailed',
           };
 
           let currentOffset = startOffset;
 
           while (true) {
-            const remainingLimit = isUnlimited ? MCP_PAGE_SIZE : requestedLimit - allInstallations.length;
+            const remainingLimit = isUnlimited
+              ? MCP_PAGE_SIZE
+              : requestedLimit - allInstallations.length;
             const pageLimit = isUnlimited ? MCP_PAGE_SIZE : Math.min(remainingLimit, MCP_PAGE_SIZE);
 
             if (pageLimit <= 0) {

@@ -249,7 +249,11 @@ describe('hitl service', () => {
     });
 
     await broker.getLocalService('hitl').expireDueItems();
-    const loaded = await broker.call('hitl.get', { id: created.item.id }, tenantMeta('tenant-expire'));
+    const loaded = await broker.call(
+      'hitl.get',
+      { id: created.item.id },
+      tenantMeta('tenant-expire')
+    );
 
     expect(loaded.item.status).toBe('expired');
     expect(emitted.some((event) => event.eventName === 'hitl.item.expired')).toBe(true);

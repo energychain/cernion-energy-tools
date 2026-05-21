@@ -136,7 +136,10 @@ function buildSignalsFromEvents(input = {}) {
   });
 }
 
-function buildInvestmentProposals({ signals = [], confidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD }) {
+function buildInvestmentProposals({
+  signals = [],
+  confidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD,
+}) {
   return (Array.isArray(signals) ? signals : []).map((signal, index) => {
     const autoProposal = Number(signal.confidence || 0) >= Number(confidenceThreshold || 0);
     const baseCapex = signal.signalType === SIGNAL_REPEATING_FAULT ? 900000 : 550000;

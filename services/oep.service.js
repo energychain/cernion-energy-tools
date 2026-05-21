@@ -112,7 +112,10 @@ module.exports = {
     },
 
     async _fetchOepRows(schema, table, rawLimit) {
-      const requestedLimit = this._normalizeComparisonLimit(rawLimit, this.settings.defaultRowLimit);
+      const requestedLimit = this._normalizeComparisonLimit(
+        rawLimit,
+        this.settings.defaultRowLimit
+      );
       const pageSize = this.settings.maxRowLimit;
       const rows = [];
       let offset = 0;
@@ -147,7 +150,13 @@ module.exports = {
         offset += pageRows.length;
       }
 
-      return { schema, table, rows, rowCount: rows.length, limit: rawLimit ?? this.settings.defaultRowLimit };
+      return {
+        schema,
+        table,
+        rows,
+        rowCount: rows.length,
+        limit: rawLimit ?? this.settings.defaultRowLimit,
+      };
     },
 
     async _buildMastrOepComparison(ctx, params, jobId = null) {
@@ -179,9 +188,18 @@ module.exports = {
       let delta = null;
       let evidence = [];
 
-      if (oepData.status === 'fulfilled' && mastrData.status === 'fulfilled' && fieldMap.length > 0) {
+      if (
+        oepData.status === 'fulfilled' &&
+        mastrData.status === 'fulfilled' &&
+        fieldMap.length > 0
+      ) {
         appendLog(jobId, 'delta_engine', 70, 'Computing semantic MaStR↔OEP deltas...');
-        const joinResult = joinByOeoClass(mastrInstallations, oepRows, tableConfig.oeoClass, fieldMap);
+        const joinResult = joinByOeoClass(
+          mastrInstallations,
+          oepRows,
+          tableConfig.oeoClass,
+          fieldMap
+        );
         delta = aggregateDeltas(joinResult, fieldMap);
         evidence = [
           {
@@ -190,7 +208,10 @@ module.exports = {
           },
           {
             type: 'fieldMappings',
-            value: fieldMap.map((mapping) => ({ field: mapping.field, oeoProperty: mapping.oeoProperty })),
+            value: fieldMap.map((mapping) => ({
+              field: mapping.field,
+              oeoProperty: mapping.oeoProperty,
+            })),
           },
           {
             type: 'matching',
@@ -553,7 +574,8 @@ module.exports = {
                     type: 'string',
                     default: 'solar',
                     enum: ['solar', 'wind', 'storage', 'biomass', 'hydro', 'combustion', 'all'],
-                    description: 'Installation type for MaStR query. Use "all" for an aggregated portfolio comparison.',
+                    description:
+                      'Installation type for MaStR query. Use "all" for an aggregated portfolio comparison.',
                   },
                   limit: {
                     oneOf: [
@@ -672,8 +694,8 @@ module.exports = {
             action: 'compareWithMastr',
             params: ctx.params,
             worker: async (jobId) => {
-            appendLog(jobId, 'queued', 0, 'Queued MaStR↔OEP comparison job.');
-            return this._buildMastrOepComparison(ctx, ctx.params, jobId);
+              appendLog(jobId, 'queued', 0, 'Queued MaStR↔OEP comparison job.');
+              return this._buildMastrOepComparison(ctx, ctx.params, jobId);
             },
           });
         }

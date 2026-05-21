@@ -50,7 +50,7 @@ module.exports = class VDMIHumanOverrideService extends Service {
     /**
      * PATCH — Override matrix roles with rationale
      */
-    'override': {
+    override: {
       rest: 'PATCH /tenants/:tenantId/matrices/:matrixId',
       openapi: {
         tags: ['VDMI Governance'],
@@ -105,7 +105,7 @@ module.exports = class VDMIHumanOverrideService extends Service {
           },
         },
         responses: {
-          '200': {
+          200: {
             description: 'Matrix override successful',
             content: {
               'application/json': {
@@ -122,8 +122,8 @@ module.exports = class VDMIHumanOverrideService extends Service {
               },
             },
           },
-          '403': { description: 'Insufficient permissions' },
-          '422': { description: 'Validation error' },
+          403: { description: 'Insufficient permissions' },
+          422: { description: 'Validation error' },
         },
       },
       async handler(ctx) {
@@ -174,9 +174,9 @@ module.exports = class VDMIHumanOverrideService extends Service {
           rationale,
           changeCategory,
           delta: {
-            roles: overrides.roles.map(r => ({
+            roles: overrides.roles.map((r) => ({
               roleId: r.roleId,
-              before: matrix.roles?.find(mr => mr.roleId === r.roleId),
+              before: matrix.roles?.find((mr) => mr.roleId === r.roleId),
               after: r.assignments,
             })),
           },
@@ -220,7 +220,7 @@ module.exports = class VDMIHumanOverrideService extends Service {
     /**
      * POST — Revert matrix to previous version
      */
-    'revert': {
+    revert: {
       rest: 'POST /tenants/:tenantId/matrices/:matrixId/revert',
       openapi: {
         tags: ['VDMI Governance'],
@@ -256,8 +256,8 @@ module.exports = class VDMIHumanOverrideService extends Service {
           },
         },
         responses: {
-          '200': { description: 'Matrix reverted successfully' },
-          '409': { description: 'Concurrent modification conflict' },
+          200: { description: 'Matrix reverted successfully' },
+          409: { description: 'Concurrent modification conflict' },
         },
       },
       async handler(ctx) {

@@ -562,48 +562,48 @@ module.exports = {
 
           const [mqRes, gcRes, esRes, rdRes, allocRes, vdmiMatrixRes, vdmiFindingsRes] =
             await Promise.allSettled([
-            this.safeCall(
-              ctx,
-              ACTION_MQ_LIST,
-              { ...baseFilter, limit: 5 },
-              null,
-              errors,
-              ACTION_MQ_LIST
-            ),
-            this.safeCall(
-              ctx,
-              ACTION_GC_LIST,
-              { ...baseFilter, limit: 5 },
-              null,
-              errors,
-              ACTION_GC_LIST
-            ),
-            this.safeCall(ctx, ACTION_ES_LIST, { limit: 5 }, null, errors, ACTION_ES_LIST),
-            this.safeCall(
-              ctx,
-              ACTION_RD_LIST,
-              { ...baseFilter, limit: 5 },
-              null,
-              errors,
-              ACTION_RD_LIST
-            ),
-            this.safeCall(
-              ctx,
-              'energy-sharing-allocation.list',
-              { limit: 5 },
-              null,
-              errors,
-              'energy-sharing-allocation.list'
-            ),
-            this.safeCall(ctx, ACTION_VDMI_LIST, { limit: 5 }, null, errors, ACTION_VDMI_LIST),
-            this.safeCall(
-              ctx,
-              ACTION_VDMI_FINDINGS,
-              { limit: 500 },
-              null,
-              errors,
-              ACTION_VDMI_FINDINGS
-            ),
+              this.safeCall(
+                ctx,
+                ACTION_MQ_LIST,
+                { ...baseFilter, limit: 5 },
+                null,
+                errors,
+                ACTION_MQ_LIST
+              ),
+              this.safeCall(
+                ctx,
+                ACTION_GC_LIST,
+                { ...baseFilter, limit: 5 },
+                null,
+                errors,
+                ACTION_GC_LIST
+              ),
+              this.safeCall(ctx, ACTION_ES_LIST, { limit: 5 }, null, errors, ACTION_ES_LIST),
+              this.safeCall(
+                ctx,
+                ACTION_RD_LIST,
+                { ...baseFilter, limit: 5 },
+                null,
+                errors,
+                ACTION_RD_LIST
+              ),
+              this.safeCall(
+                ctx,
+                'energy-sharing-allocation.list',
+                { limit: 5 },
+                null,
+                errors,
+                'energy-sharing-allocation.list'
+              ),
+              this.safeCall(ctx, ACTION_VDMI_LIST, { limit: 5 }, null, errors, ACTION_VDMI_LIST),
+              this.safeCall(
+                ctx,
+                ACTION_VDMI_FINDINGS,
+                { limit: 500 },
+                null,
+                errors,
+                ACTION_VDMI_FINDINGS
+              ),
             ]);
 
           const vdmiMatrices = vdmiMatrixRes.value?.items || [];
@@ -733,25 +733,29 @@ module.exports = {
         const { sinceMinutes, slowActionThresholdMs } = ctx.params;
         const cacheKey = `observability-mini:${sinceMinutes}:${slowActionThresholdMs}`;
 
-        return this.cacheGetOrFetch(cacheKey, this.settings.cacheTtlMs.observabilityMini, async () => {
-          const errors = [];
-          const summary = await this.safeCall(
-            ctx,
-            'observability.summary',
-            { sinceMinutes, slowActionThresholdMs, limit: 10 },
-            null,
-            errors,
-            'observability.summary'
-          );
+        return this.cacheGetOrFetch(
+          cacheKey,
+          this.settings.cacheTtlMs.observabilityMini,
+          async () => {
+            const errors = [];
+            const summary = await this.safeCall(
+              ctx,
+              'observability.summary',
+              { sinceMinutes, slowActionThresholdMs, limit: 10 },
+              null,
+              errors,
+              'observability.summary'
+            );
 
-          return {
-            cards: this.buildObservabilityMiniCards(summary),
-            recentErrors: summary?.logs?.recentErrors || [],
-            slowestActions: summary?.metrics?.slowestActions || [],
-            timestamp: new Date().toISOString(),
-            _errors: errors,
-          };
-        });
+            return {
+              cards: this.buildObservabilityMiniCards(summary),
+              recentErrors: summary?.logs?.recentErrors || [],
+              slowestActions: summary?.metrics?.slowestActions || [],
+              timestamp: new Date().toISOString(),
+              _errors: errors,
+            };
+          }
+        );
       },
     },
 
@@ -1235,7 +1239,9 @@ module.exports = {
       );
       const shadowResolved = shadowRelevant.filter((f) => f.status === 'resolved').length;
       const shadowRate =
-        shadowRelevant.length > 0 ? Number(((shadowResolved / shadowRelevant.length) * 100).toFixed(2)) : null;
+        shadowRelevant.length > 0
+          ? Number(((shadowResolved / shadowRelevant.length) * 100).toFixed(2))
+          : null;
 
       const now = Date.now();
       const DAY_MS = 24 * 60 * 60 * 1000;
@@ -1255,7 +1261,9 @@ module.exports = {
       }).length;
       const escalationReductionRate =
         previousEscalations > 0
-          ? Number((((previousEscalations - currentEscalations) / previousEscalations) * 100).toFixed(2))
+          ? Number(
+              (((previousEscalations - currentEscalations) / previousEscalations) * 100).toFixed(2)
+            )
           : null;
 
       const fnavConfirmed = matrixList.filter(

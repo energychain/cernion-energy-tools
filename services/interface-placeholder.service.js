@@ -80,7 +80,11 @@ module.exports = {
                     properties: {
                       kind: { type: 'string', example: 'process' },
                       capabilityHint: { type: 'string', example: 'znp.assessPortfolio' },
-                      deadline: { type: 'string', format: 'date-time', example: '2026-06-01T00:00:00.000Z' },
+                      deadline: {
+                        type: 'string',
+                        format: 'date-time',
+                        example: '2026-06-01T00:00:00.000Z',
+                      },
                     },
                   },
                   signalCodes: {
@@ -344,7 +348,9 @@ module.exports = {
 
         const placeholders = (result.docs || [])
           .map((document) => document.payload || {})
-          .sort((left, right) => String(right.createdAt || '').localeCompare(String(left.createdAt || '')));
+          .sort((left, right) =>
+            String(right.createdAt || '').localeCompare(String(left.createdAt || ''))
+          );
 
         return {
           tenantId: getTenantId(ctx),
@@ -470,7 +476,9 @@ module.exports = {
           limit: MAX_LIMIT,
         });
         const placeholders = (result.docs || []).map((document) => document.payload || {});
-        const hardBlockers = placeholders.filter((placeholder) => placeholder.blockingLevel === 'hard');
+        const hardBlockers = placeholders.filter(
+          (placeholder) => placeholder.blockingLevel === 'hard'
+        );
         if (hardBlockers.length > 0) {
           return {
             action: ctx.params.action,

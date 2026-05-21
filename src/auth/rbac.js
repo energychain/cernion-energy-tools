@@ -1,7 +1,9 @@
 'use strict';
 
 function normalizeRole(role) {
-  return String(role || '').trim().toLowerCase();
+  return String(role || '')
+    .trim()
+    .toLowerCase();
 }
 
 function uniqueRoles(roles) {
@@ -14,7 +16,9 @@ function hasRole(roles, role) {
 }
 
 function mapRolesFromLegacyToken(scope, scopes = []) {
-  const normalizedScope = String(scope || '').trim().toLowerCase();
+  const normalizedScope = String(scope || '')
+    .trim()
+    .toLowerCase();
   if (normalizedScope === 'full-access') {
     // Transition mapping for Issue 17.
     return uniqueRoles(['full-access', 'hitl-approver', ...(scopes || [])]);

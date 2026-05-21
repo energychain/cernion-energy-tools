@@ -5,7 +5,9 @@ const PouchDbJobStoreDriver = require('./pouchdb-driver');
 const RedisCompatJobStoreDriver = require('./redis-compat-driver');
 
 function normalizeDriverName(raw) {
-  return String(raw || 'file').trim().toLowerCase();
+  return String(raw || 'file')
+    .trim()
+    .toLowerCase();
 }
 
 function createDriver(logger = console) {

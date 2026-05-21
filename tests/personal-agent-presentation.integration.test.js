@@ -135,7 +135,9 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
       expect(result.presentationApplied).toBe(true);
       expect(result.presentationType).toBe('vdmi_matrix_table');
       expect(result.reply).toBe(result.presentation.markdown);
-      expect(result.reply).toContain('| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |');
+      expect(result.reply).toContain(
+        '| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |'
+      );
       expect(result.reply).toContain('Network Operator Decision');
       expect(result.reply).not.toContain('Plan abgeschlossen:');
     } finally {
@@ -390,7 +392,9 @@ describe('personal-agent presentation integration (Prompt 6)', () => {
     expect(result.presentationApplied).toBe(true);
     expect(result.presentationType).toBe('vdmi_matrix_table');
     expect(result.reply).toBe(result.presentation.markdown);
-    expect(result.reply).toContain('| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |');
+    expect(result.reply).toContain(
+      '| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |'
+    );
     expect(result.reply).toContain('TWL Netze');
   });
 

@@ -2,7 +2,9 @@
 
 const crypto = require('crypto');
 
-const DEFAULT_SESSION_TTL_MS = Number(process.env.PERSONAL_AGENT_SESSION_TTL_MS || 30 * 24 * 60 * 60 * 1000);
+const DEFAULT_SESSION_TTL_MS = Number(
+  process.env.PERSONAL_AGENT_SESSION_TTL_MS || 30 * 24 * 60 * 60 * 1000
+);
 
 const SAFE_RESOLVED_PARAM_KEYS = new Set([
   'gridOperatorId',
@@ -179,13 +181,15 @@ function sanitizePlanFrame(frame = {}) {
   const safe = isPlainObject(frame) ? frame : {};
   const rawStatus = String(safe.status || 'suspended').trim();
   return {
-    frameId: typeof safe.frameId === 'string' && safe.frameId.trim()
-      ? safe.frameId.trim()
-      : `pf_${crypto.randomUUID()}`,
+    frameId:
+      typeof safe.frameId === 'string' && safe.frameId.trim()
+        ? safe.frameId.trim()
+        : `pf_${crypto.randomUUID()}`,
     turnIndex: Number.isFinite(Number(safe.turnIndex)) ? Number(safe.turnIndex) : 1,
-    parentFrameId: typeof safe.parentFrameId === 'string' && safe.parentFrameId.trim()
-      ? safe.parentFrameId.trim()
-      : null,
+    parentFrameId:
+      typeof safe.parentFrameId === 'string' && safe.parentFrameId.trim()
+        ? safe.parentFrameId.trim()
+        : null,
     intent: typeof safe.intent === 'string' && safe.intent.trim() ? safe.intent.trim() : null,
     routing: isPlainObject(safe.routing) ? safe.routing : {},
     plan: isPlainObject(safe.plan)
@@ -204,9 +208,7 @@ function sanitizePlanFrame(frame = {}) {
 
 function sanitizePlanStack(input = []) {
   if (!Array.isArray(input)) return [];
-  return input
-    .map((frame) => sanitizePlanFrame(frame))
-    .slice(-MAX_PLAN_STACK_DEPTH);
+  return input.map((frame) => sanitizePlanFrame(frame)).slice(-MAX_PLAN_STACK_DEPTH);
 }
 
 function isIntermediateStackIntent(intent = '') {
@@ -214,10 +216,17 @@ function isIntermediateStackIntent(intent = '') {
 }
 
 function hasRecentIntentLoop(planStack = [], intent = '') {
-  const target = String(intent || '').trim().toLowerCase();
+  const target = String(intent || '')
+    .trim()
+    .toLowerCase();
   if (!target) return false;
   const recent = sanitizePlanStack(planStack).slice(-3);
-  return recent.some((frame) => String(frame.intent || '').trim().toLowerCase() === target);
+  return recent.some(
+    (frame) =>
+      String(frame.intent || '')
+        .trim()
+        .toLowerCase() === target
+  );
 }
 
 function assertNoRecentIntentLoop(planStack = [], intent = '') {
@@ -268,14 +277,14 @@ function markTopFrameCompleted(planStack = [], intent = null) {
 function setPlanFrameStatus(planStack = [], frameId = '', status = 'suspended') {
   const stack = sanitizePlanStack(planStack);
   if (!frameId) return stack;
-  return stack.map((frame) => (
+  return stack.map((frame) =>
     frame.frameId === frameId
       ? {
           ...frame,
           status: PLAN_FRAME_STATUSES.has(status) ? status : frame.status,
         }
       : frame
-  ));
+  );
 }
 
 function findResumableParentFrame(planStack = []) {
@@ -326,9 +335,9 @@ function resolvePlanValue(value, resolvedParams = {}) {
     return resolvedParams[key] !== undefined ? resolvedParams[key] : value;
   }
 
-  return value.replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, (match, key) => (
+  return value.replace(/\{\{\s*([A-Za-z0-9_]+)\s*\}\}/g, (match, key) =>
     resolvedParams[key] !== undefined ? String(resolvedParams[key]) : match
-  ));
+  );
 }
 
 function mergeResolvedParamsIntoPlan(plan = {}, resolvedParams = {}) {
@@ -347,41 +356,43 @@ function mergeResolvedParamsIntoPlan(plan = {}, resolvedParams = {}) {
   }
   const mergedPlan = {
     ...(isPlainObject(plan) ? plan : {}),
-    steps: Array.isArray(plan?.steps) ? plan.steps.map((step) => {
-      const paramsTemplateBase = isPlainObject(step?.paramsTemplate) ? step.paramsTemplate : {};
-      const paramsTemplate = resolvePlanValue(paramsTemplateBase, cleanResolved);
+    steps: Array.isArray(plan?.steps)
+      ? plan.steps.map((step) => {
+          const paramsTemplateBase = isPlainObject(step?.paramsTemplate) ? step.paramsTemplate : {};
+          const paramsTemplate = resolvePlanValue(paramsTemplateBase, cleanResolved);
 
-      if (paramsTemplate.bdew == null) {
-        paramsTemplate.bdew = cleanResolved.gridOperatorBdew || cleanResolved.bdew || null;
-      }
-      if (paramsTemplate.gridOperatorName == null) {
-        paramsTemplate.gridOperatorName = cleanResolved.gridOperatorName || null;
-      }
-      if (paramsTemplate.query == null && cleanResolved.query != null) {
-        paramsTemplate.query = cleanResolved.query;
-      }
+          if (paramsTemplate.bdew == null) {
+            paramsTemplate.bdew = cleanResolved.gridOperatorBdew || cleanResolved.bdew || null;
+          }
+          if (paramsTemplate.gridOperatorName == null) {
+            paramsTemplate.gridOperatorName = cleanResolved.gridOperatorName || null;
+          }
+          if (paramsTemplate.query == null && cleanResolved.query != null) {
+            paramsTemplate.query = cleanResolved.query;
+          }
 
-      const directParams = {
-        ...(isPlainObject(step?.params) ? step.params : {}),
-      };
-      for (const key of Object.keys(directParams)) {
-        if (directParams[key] == null && cleanResolved[key] !== undefined) {
-          directParams[key] = cleanResolved[key];
-        }
-      }
-      if (directParams.bdew == null && (cleanResolved.gridOperatorBdew || cleanResolved.bdew)) {
-        directParams.bdew = cleanResolved.gridOperatorBdew || cleanResolved.bdew;
-      }
-      if (directParams.gridOperatorName == null && cleanResolved.gridOperatorName) {
-        directParams.gridOperatorName = cleanResolved.gridOperatorName;
-      }
+          const directParams = {
+            ...(isPlainObject(step?.params) ? step.params : {}),
+          };
+          for (const key of Object.keys(directParams)) {
+            if (directParams[key] == null && cleanResolved[key] !== undefined) {
+              directParams[key] = cleanResolved[key];
+            }
+          }
+          if (directParams.bdew == null && (cleanResolved.gridOperatorBdew || cleanResolved.bdew)) {
+            directParams.bdew = cleanResolved.gridOperatorBdew || cleanResolved.bdew;
+          }
+          if (directParams.gridOperatorName == null && cleanResolved.gridOperatorName) {
+            directParams.gridOperatorName = cleanResolved.gridOperatorName;
+          }
 
-      return {
-        ...(isPlainObject(step) ? step : {}),
-        paramsTemplate,
-        params: directParams,
-      };
-    }) : [],
+          return {
+            ...(isPlainObject(step) ? step : {}),
+            paramsTemplate,
+            params: directParams,
+          };
+        })
+      : [],
   };
 
   return mergedPlan;
@@ -400,14 +411,14 @@ function resumeParentPlanFrame(planStack = [], resolvedParams = {}) {
     };
   }
 
-  const nextStack = stack.map((frame, index) => (
+  const nextStack = stack.map((frame, index) =>
     index === resumable.parentIndex
       ? {
           ...frame,
           status: 'resumed',
         }
       : frame
-  ));
+  );
 
   const resumedPlan = mergeResolvedParamsIntoPlan(resumable.parentFrame.plan, resolvedParams);
 
@@ -477,7 +488,10 @@ function extractResolvedParamsFromExecution(execution = {}) {
       }
     }
     if (step?.result && typeof step.result === 'object') {
-      collect(step.result.data && typeof step.result.data === 'object' ? step.result.data : step.result, 0);
+      collect(
+        step.result.data && typeof step.result.data === 'object' ? step.result.data : step.result,
+        0
+      );
     }
   }
 

@@ -51,8 +51,8 @@ describe('A96 Validator (v0.47.0)', () => {
       expect(result.driftFields.length).toBeGreaterThan(0);
       // All open fields should appear in drift or warning
       for (const field of OPEN_FIELDS) {
-        const mentioned = result.warnings.some((w) => w.includes(field)) ||
-          result.driftFields.includes(field);
+        const mentioned =
+          result.warnings.some((w) => w.includes(field)) || result.driftFields.includes(field);
         expect(mentioned).toBe(true);
       }
     });
@@ -67,7 +67,8 @@ describe('A96 Validator (v0.47.0)', () => {
     test('[BNetzA-OFFEN] present with defensive default produces drift warning', () => {
       const msg = { ...VALID_MESSAGE, QualitaetskennzeichenMscons: 'E01' };
       const result = validateA96Message(msg);
-      const hasDriftWarn = result.driftFields.includes('QualitaetskennzeichenMscons') ||
+      const hasDriftWarn =
+        result.driftFields.includes('QualitaetskennzeichenMscons') ||
         result.warnings.some((w) => w.includes('QualitaetskennzeichenMscons'));
       expect(hasDriftWarn).toBe(true);
     });

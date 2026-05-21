@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { buildOnboardingQuestionText } = require('./personal-agent-response-strategy');
 
 const ONBOARDING_QUESTION_STATUS = Object.freeze({
   PENDING: 'pending',
@@ -15,7 +16,8 @@ const ONBOARDING_PARAM_QUESTIONS = Object.freeze({
   },
   gridOperatorName: {
     label: 'Netzbetreiber',
-    question: 'Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?',
+    question:
+      'Für welchen Netzbetreiber (z.B. Stadtwerke Troisdorf) soll ich die Prüfung durchführen?',
   },
   gridOperatorBdew: {
     label: 'BDEW-Code',
@@ -35,11 +37,13 @@ const ONBOARDING_PARAM_QUESTIONS = Object.freeze({
   },
   query: {
     label: 'Suchhinweis',
-    question: 'Nennen Sie bitte den Netzbetreiber oder einen belastbaren Suchhinweis (z.B. BDEW-Code oder Ort).',
+    question:
+      'Nennen Sie bitte den Netzbetreiber oder einen belastbaren Suchhinweis (z.B. BDEW-Code oder Ort).',
   },
   operatorEvidence: {
     label: 'Netzbetreiber-Evidenz',
-    question: 'Nennen Sie bitte den Netzbetreiber oder den BDEW-Code, damit ich die Zuordnung belastbar verifizieren kann.',
+    question:
+      'Nennen Sie bitte den Netzbetreiber oder den BDEW-Code, damit ich die Zuordnung belastbar verifizieren kann.',
   },
   projectId: {
     label: 'Projekt-ID',
@@ -80,27 +84,15 @@ const ONBOARDING_PARAM_ALTERNATIVES = Object.freeze({
     'PLZ oder Ort angeben – der Netzbetreiber wird dann automatisch zugeordnet',
     'BDEW-Code direkt eingeben, falls bekannt',
   ],
-  gridOperatorId: [
-    'Netzbetreibernamen oder PLZ nennen (automatische BDEW-Auflösung)',
-  ],
+  gridOperatorId: ['Netzbetreibernamen oder PLZ nennen (automatische BDEW-Auflösung)'],
   gridOperatorBdew: [
     'Netzbetreibernamen oder Standort nennen – BDEW-Code wird automatisch ermittelt',
   ],
-  bdew: [
-    'Netzbetreibernamen oder PLZ für automatische Zuordnung nennen',
-  ],
-  voltageLevel: [
-    'Anschlussleistung in kW oder MW angeben – Spannungsebene wird daraus abgeleitet',
-  ],
-  postalCode: [
-    'Ort oder Landkreis nennen, falls die genaue PLZ noch nicht bekannt ist',
-  ],
-  postleitzahl: [
-    'Ort oder Landkreis nennen, falls die genaue PLZ noch nicht bekannt ist',
-  ],
-  location: [
-    'PLZ oder Bundesland angeben für regionalspezifische Auswertung',
-  ],
+  bdew: ['Netzbetreibernamen oder PLZ für automatische Zuordnung nennen'],
+  voltageLevel: ['Anschlussleistung in kW oder MW angeben – Spannungsebene wird daraus abgeleitet'],
+  postalCode: ['Ort oder Landkreis nennen, falls die genaue PLZ noch nicht bekannt ist'],
+  postleitzahl: ['Ort oder Landkreis nennen, falls die genaue PLZ noch nicht bekannt ist'],
+  location: ['PLZ oder Bundesland angeben für regionalspezifische Auswertung'],
   projectId: [
     'Projektnamen nennen – ich suche das Projekt dann im System',
     'Neues Projekt anlegen lassen',
@@ -109,17 +101,18 @@ const ONBOARDING_PARAM_ALTERNATIVES = Object.freeze({
     'BDEW-Code, BKZ oder Marktlokationsnummer direkt eingeben',
     'Netzanschlusspunkt-Adresse nennen für automatische Zuordnung',
   ],
-  city: [
-    'PLZ angeben falls die Stadt noch nicht bekannt ist',
-  ],
-  role: [
-    'Typische Rollen: VNB (Netzbetreiber), Anlagenbetreiber, Direktvermarkter, Dienstleister',
-  ],
+  city: ['PLZ angeben falls die Stadt noch nicht bekannt ist'],
+  role: ['Typische Rollen: VNB (Netzbetreiber), Anlagenbetreiber, Direktvermarkter, Dienstleister'],
 });
 
-function buildOnboardingQuestion({ paramKey, action, fallbackText }) {
+function buildOnboardingQuestion({ paramKey, action, fallbackText, strategy, label }) {
   const meta = ONBOARDING_PARAM_QUESTIONS[paramKey];
-  const questionText = fallbackText || meta?.question || `Bitte geben Sie ${paramKey} an.`;
+  const questionText = buildOnboardingQuestionText({
+    paramKey,
+    label: label || meta?.label,
+    strategy,
+    fallbackText: fallbackText || meta?.question,
+  });
   return {
     questionId: `oq_${crypto.randomUUID().slice(0, 8)}`,
     paramKey,
@@ -140,8 +133,10 @@ function captureOnboardingAnswer({ question, message }) {
   if (text.startsWith('/')) return null;
 
   if (question?.paramKey === 'operatorEvidence') {
-    const followUpPattern = /\?|^(bitte|welche|welcher|welches|wie|was|warum|wieso|arbeite|fahre|erstelle|gib|nenne|zeige|fasse|projiziere|vergleiche|aktualisiere|erkläre|erklaere)\b/i;
-    const evidencePattern = /(bkz|bdew|marktlokation|netzanschlusspunkt|netzanschlusszusage|malo|ma-lo|\b\d{13}\b|\bde\d{10,}\b)/i;
+    const followUpPattern =
+      /\?|^(bitte|welche|welcher|welches|wie|was|warum|wieso|arbeite|fahre|erstelle|gib|nenne|zeige|fasse|projiziere|vergleiche|aktualisiere|erkläre|erklaere)\b/i;
+    const evidencePattern =
+      /(bkz|bdew|marktlokation|netzanschlusspunkt|netzanschlusszusage|malo|ma-lo|\b\d{13}\b|\bde\d{10,}\b)/i;
 
     if (followUpPattern.test(text) || !evidencePattern.test(text)) {
       return null;
@@ -160,9 +155,7 @@ function findPendingOnboardingQuestion(sessionL3 = {}) {
   const questions = Array.isArray(sessionL3?.onboardingQuestions)
     ? sessionL3.onboardingQuestions
     : [];
-  return (
-    questions.find((q) => q?.status === ONBOARDING_QUESTION_STATUS.PENDING) || null
-  );
+  return questions.find((q) => q?.status === ONBOARDING_QUESTION_STATUS.PENDING) || null;
 }
 
 function listAnsweredOnboardingFacts(sessionL3 = {}) {

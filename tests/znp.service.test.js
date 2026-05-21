@@ -539,8 +539,16 @@ describe('ZNP Service', () => {
     });
 
     it('scopes projects to the calling tenant', async () => {
-      const a = await broker.call('znp.createProject', { bbox: makeBbox() }, { meta: { tenantId: 'tenant-a' } });
-      const b = await broker.call('znp.createProject', { bbox: makeBbox() }, { meta: { tenantId: 'tenant-b' } });
+      const a = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        { meta: { tenantId: 'tenant-a' } }
+      );
+      const b = await broker.call(
+        'znp.createProject',
+        { bbox: makeBbox() },
+        { meta: { tenantId: 'tenant-b' } }
+      );
 
       const listA = await broker.call('znp.listProjects', {}, { meta: { tenantId: 'tenant-a' } });
       expect(listA.projects.some((p) => p.projectId === a.projectId)).toBe(true);
@@ -1512,7 +1520,11 @@ describe('ZNP Service', () => {
       );
 
       await expect(
-        broker.call('znp.getProjectAssets', { projectId: created.projectId }, { meta: { tenantId: 'tenant-b' } })
+        broker.call(
+          'znp.getProjectAssets',
+          { projectId: created.projectId },
+          { meta: { tenantId: 'tenant-b' } }
+        )
       ).rejects.toMatchObject({ code: 404, type: 'ZNP_PROJECT_NOT_FOUND' });
     });
 
@@ -1657,7 +1669,11 @@ describe('ZNP Service', () => {
 
       expect(result.decisionStatus).toBe('blocked');
       expect(result.governance.resolutionMode).toBe('manual_only');
-      expect(result.governance.hardBlockers.some((item) => item.placeholderGapKey === 'kaufmaennische_freigabe_fnav')).toBe(true);
+      expect(
+        result.governance.hardBlockers.some(
+          (item) => item.placeholderGapKey === 'kaufmaennische_freigabe_fnav'
+        )
+      ).toBe(true);
       expect(result.dimensionScores.regulatory).toBeLessThan(60);
     });
   });

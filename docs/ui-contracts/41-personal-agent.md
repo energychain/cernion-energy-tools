@@ -1,7 +1,7 @@
-# UI Contract 41 — Personal Agent (v0.53.6)
+# UI Contract 41 — Personal Agent (v0.53.9)
 
 ## Scope
-Interaktive Chat-Schnittstelle mit Zwiebelmodus (L0–L4), Capability-Routing, HITL-Planmodus, Session-Wiederherstellung und Session-Reset. LLM-basierte ChatMode-Klassifikation (Walldorf/Burgbernheim UAT Fix).
+Interaktive Chat-Schnittstelle mit Zwiebelmodus (L0–L4), Capability-Routing, HITL-Planmodus, Session-Wiederherstellung und Session-Reset. Seit dem aktuellen Unreleased-Schnitt zusätzlich mit deterministischem Execution-State-Graph, expliziter Routing-Edge-Entscheidung und strukturierter Execution-Observability.
 
 ## Endpoints
 
@@ -35,6 +35,7 @@ Response:
   "sessionId": "pa_...",
   "executionMode": "auto",
   "chatMode": "execution",
+  "chatModeSource": "api",
   "reply": "...",
   "layer4Purged": true,
   "l3Compressed": false,
@@ -81,7 +82,47 @@ Response:
         "status": "completed"
       }
     ],
-    "stopPoint": null
+    "stopPoint": null,
+    "meta": {
+      "totalMs": 1835,
+      "llmCallCount": 2,
+      "toolCallCount": 2,
+      "llmCalls": [
+        { "phase": "chat_mode_classifier", "latencyMs": 128 },
+        { "phase": "consultation_synthesis", "latencyMs": 422 }
+      ],
+      "toolCalls": [
+        { "phase": "execution", "tool": "grid-connection.fnavValidate", "success": true, "retries": 0 },
+        { "phase": "execution", "tool": "finance-agent.fnavEconomics", "success": true, "retries": 0 }
+      ],
+      "brokerDecisions": [
+        {
+          "intent": "grid-connection.fnav",
+          "capability": "netzfahrplan_fnav_assessment",
+          "confidence": 0.92,
+          "scoringBreakdown": { "rawScore": 3, "finalConfidence": 0.92 }
+        }
+      ],
+      "stateTransitions": [
+        { "family": "chat_mode", "from": "consultation", "to": "execution", "reason": "api" }
+      ]
+    }
+  },
+  "responseStrategy": {
+    "audience": "leadership",
+    "audienceConfidence": 0.78,
+    "epistemicState": "inferable",
+    "abstractionLevel": "executive",
+    "nextMove": "state_assumption",
+    "assumptions": [
+      {
+        "type": "working_assumption",
+        "statement": "Vorläufige Annahme: ..."
+      }
+    ],
+    "lead": "Vorläufige Annahme:",
+    "shouldHideInternalSchema": true,
+    "confidence": 0.88
   },
   "contextUsage": {
     "l0": 12,
@@ -96,7 +137,7 @@ Response:
 }
 ```
 
-Neu ab v0.53.6 (strukturiert, nicht im Freitext `reply`):
+Neu ab v0.53.9 (strukturiert, nicht im Freitext `reply`):
 ```json
 {
   "quality": {
@@ -127,7 +168,28 @@ Neu ab v0.53.6 (strukturiert, nicht im Freitext `reply`):
       "completedSteps": 0,
       "stopReason": "MANDATORY_HITL_APPROVAL",
       "hitlItemId": "hitl-...",
-      "criticalStepBlocked": true
+      "criticalStepBlocked": true,
+      "meta": {
+        "llmCallCount": 1,
+        "toolCallCount": 0,
+        "totalMs": 740
+      }
+    },
+    "routingDecision": {
+      "target": "execution_node",
+      "label": "Execution path",
+      "confidence": 0.92,
+      "determinism": "deterministic",
+      "gapReason": null
+    },
+    "responseStrategy": {
+      "audience": "leadership",
+      "audienceConfidence": 0.78,
+      "epistemicState": "inferable",
+      "abstractionLevel": "executive",
+      "nextMove": "state_assumption",
+      "shouldHideInternalSchema": true,
+      "assumptionCount": 1
     },
     "evidence": {
       "source": "registry",
@@ -135,7 +197,58 @@ Neu ab v0.53.6 (strukturiert, nicht im Freitext `reply`):
       "confidence": 0.4,
       "gapIds": ["netzanschlusszusage"]
     },
+    "stateMachine": {
+      "turnId": "turn_pa_...",
+      "currentState": "hitl_blocked",
+      "status": "completed",
+      "transitions": [
+        { "state": "init", "at": "2026-05-21T10:00:00.000Z", "details": {} },
+        { "state": "session_loaded", "at": "2026-05-21T10:00:00.100Z", "details": {} },
+        { "state": "knowledge_oriented", "at": "2026-05-21T10:00:00.200Z", "details": {} },
+        { "state": "broker_recommended", "at": "2026-05-21T10:00:00.300Z", "details": {} },
+        { "state": "chat_mode_resolved", "at": "2026-05-21T10:00:00.400Z", "details": { "chatMode": "execution" } },
+        { "state": "execution_planned", "at": "2026-05-21T10:00:00.500Z", "details": { "primaryIntent": "financier_due_diligence_assessment" } },
+        { "state": "execution_running", "at": "2026-05-21T10:00:01.000Z", "details": { "status": "partial" } },
+        { "state": "synthesizing", "at": "2026-05-21T10:00:01.100Z", "details": {} },
+        { "state": "hitl_blocked", "at": "2026-05-21T10:00:01.200Z", "details": { "stopReason": "MANDATORY_HITL_APPROVAL" } }
+      ]
+    },
+    "executionStateGraph": {
+      "graphId": "exec_state_pa_...",
+      "fingerprint": "f81d4fae7dec11d0",
+      "currentState": "ready_for_routing",
+      "chatMode": "execution",
+      "executionMode": "auto",
+      "transitions": [
+        { "state": "initialized", "at": "2026-05-21T10:00:00.000Z", "details": { "chatMode": "execution" } },
+        { "state": "api_params_validated", "at": "2026-05-21T10:00:00.050Z", "details": { "source": "api", "confidence": 1 } },
+        { "state": "execution_mode_resolved", "at": "2026-05-21T10:00:00.060Z", "details": { "executionMode": "auto" } },
+        { "state": "ready_for_routing", "at": "2026-05-21T10:00:00.070Z", "details": { "chatMode": "execution" } }
+      ]
+    },
     "toolAttempts": []
+  },
+  "executionStateGraph": {
+    "graphId": "exec_state_pa_...",
+    "currentState": "ready_for_routing",
+    "chatMode": "execution",
+    "executionMode": "auto"
+  },
+  "turnGraph": {
+    "turnId": "graph_pa_...",
+    "status": "completed",
+    "chatMode": "execution",
+    "executionMode": "auto",
+    "nodeCount": 7,
+    "edgeCount": 6,
+    "byType": {
+      "message": 1,
+      "context": 1,
+      "knowledge": 1,
+      "broker": 1,
+      "tool": 2,
+      "answer": 1
+    }
   }
 }
 ```
@@ -170,6 +283,8 @@ Consultation-Response (gekürzt):
   }
 }
 ```
+
+Wichtig (Kompatibilität): Das top-level `execution`-Objekt im Consultation-Pfad bleibt unverändert (`status`, `plan`, `steps`). Vertiefte Laufzeit-Metadaten stehen in `agentTrace.execution.meta`. Die optionale `responseStrategy`-Struktur ist rein additiv und bleibt getrennt vom Freitext `reply`.
 
 HITL-Response (gekürzt):
 ```json
@@ -214,8 +329,15 @@ Response:
   "success": true,
   "sessionId": "pa_...",
   "chatMode": "consultation",
+  "chatModeSource": "cached",
   "createdAt": "2026-05-14T09:00:00.000Z",
   "updatedAt": "2026-05-14T09:02:00.000Z",
+  "executionStateGraph": {
+    "graphId": "exec_state_pa_...",
+    "currentState": "ready_for_routing",
+    "chatMode": "consultation",
+    "executionMode": "auto"
+  },
   "l2": { "userProfile": {} },
   "l3": {
     "history": [
@@ -224,11 +346,28 @@ Response:
     ],
     "summary": null,
     "compressed": false,
-    "chatMode": "consultation"
+    "chatMode": "consultation",
+    "chatModeSource": "cached",
+    "lastClassification": {
+      "fingerprint": "6dcd4ce23d88e2ee",
+      "chatMode": "consultation",
+      "source": "cached",
+      "confidence": 0.95,
+      "timestamp": "2026-05-21T11:22:33.000Z"
+    },
+    "executionStateGraph": {
+      "currentState": "ready_for_routing",
+      "chatMode": "consultation"
+    }
   },
   "layer4": null
 }
 ```
+
+### Routing-Gap Short-Circuit (Feature Flag)
+- Der explizite Routing-Gap-Kurzschluss (`mark_unknown_execution_gap`) ist aktuell **opt-in** und standardmäßig deaktiviert.
+- Aktivierung nur über: `PERSONAL_AGENT_ENABLE_ROUTING_GAP_SHORT_CIRCUIT=true`
+- Ohne Aktivierung bleibt das bestehende deterministische Fallback-Verhalten kompatibel.
 
 ### 3) POST /api/personal-agent/session/:sessionId/reset
 - Action: `personal-agent.resetSession`

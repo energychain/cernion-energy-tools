@@ -190,7 +190,11 @@ describe('llm-client provider abstraction', () => {
     process.env.QUOTA_LLM_TOKENS_PER_DAY = '1';
     loadFreshModules();
 
-    await expect(llmClient.generateText('this prompt is definitely longer than one token', { tenantId: 'tenant-a' })).rejects.toMatchObject({
+    await expect(
+      llmClient.generateText('this prompt is definitely longer than one token', {
+        tenantId: 'tenant-a',
+      })
+    ).rejects.toMatchObject({
       code: 429,
       type: 'LLM_QUOTA_EXCEEDED',
     });

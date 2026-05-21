@@ -18,6 +18,14 @@ const QUOTA_DEFAULTS = {
   max_rag_chunks_per_month: Number(process.env.QUOTA_MAX_RAG_CHUNKS_PER_MONTH || 100000),
 };
 
+const RESET_LLM_TOKENS_PER_DAY_ON_RESTART =
+  String(process.env.RESET_LLM_TOKENS_PER_DAY_ON_RESTART || 'true').toLowerCase() !== 'false';
+const RESET_LLM_TOKENS_PER_DAY_VALUE = Number.isFinite(
+  Number(process.env.RESET_LLM_TOKENS_PER_DAY_VALUE)
+)
+  ? Math.max(0, Math.floor(Number(process.env.RESET_LLM_TOKENS_PER_DAY_VALUE)))
+  : 0;
+
 const RESOURCE_PERIODS = {
   llm_tokens_per_day: 'day',
   llm_tokens_per_month: 'month',
@@ -28,6 +36,7 @@ const RESOURCE_PERIODS = {
 const RATE_LIMIT_WINDOW_MS = 60_000;
 
 let driver = null;
+const restartResetAppliedTenants = new Set();
 
 function getDriver() {
   if (!driver) driver = createDriver();
@@ -83,9 +92,12 @@ function clone(value) {
 function getTenantState(tenantId) {
   const normalizedTenantId = normalizeTenantId(tenantId);
   const existing = getDriver().getTenantState(normalizedTenantId);
-  if (!existing) return buildDefaultState(normalizedTenantId);
+  if (!existing) {
+    restartResetAppliedTenants.add(normalizedTenantId);
+    return buildDefaultState(normalizedTenantId);
+  }
 
-  return {
+  const merged = {
     ...buildDefaultState(normalizedTenantId),
     ...existing,
     tenantId: normalizedTenantId,
@@ -105,6 +117,44 @@ function getTenantState(tenantId) {
     rateBuckets: existing.rateBuckets || {},
     events: Array.isArray(existing.events) ? existing.events : [],
   };
+
+  const resetApplied = applyRestartLlmDayReset(merged);
+  if (resetApplied) {
+    saveTenantState(normalizedTenantId, merged);
+  }
+
+  return merged;
+}
+
+function applyRestartLlmDayReset(state) {
+  if (!RESET_LLM_TOKENS_PER_DAY_ON_RESTART) return false;
+  if (!state || typeof state !== 'object' || !state.tenantId) return false;
+  if (restartResetAppliedTenants.has(state.tenantId)) return false;
+
+  restartResetAppliedTenants.add(state.tenantId);
+
+  const limit = toFinitePositive(state.config?.quotas?.llm_tokens_per_day, 0);
+  const used = limit > 0 ? Math.min(RESET_LLM_TOKENS_PER_DAY_VALUE, limit) : 0;
+  const dayWindow = getDayWindow();
+
+  state.usage = state.usage && typeof state.usage === 'object' ? state.usage : {};
+  state.usage.llm_tokens_per_day = {
+    resource: 'llm_tokens_per_day',
+    period: 'day',
+    window: dayWindow,
+    limit,
+    used,
+    estimatedUsed: 0,
+    actualUsed: 0,
+    remaining: limit > 0 ? Math.max(0, limit - used) : null,
+    updatedAt: nowIso(),
+    lastMeta: {
+      source: 'restart-reset',
+      configuredValue: RESET_LLM_TOKENS_PER_DAY_VALUE,
+    },
+  };
+
+  return true;
 }
 
 function saveTenantState(tenantId, state) {
@@ -202,10 +252,7 @@ function buildQuotaCheckResult(entry, required = 0, date = new Date()) {
   const used = toFinitePositive(entry.used, 0);
   const remaining = limit > 0 ? Math.max(0, limit - used) : 0;
   const resetAt = boundaryAfter(entry.period, date).toISOString();
-  const retryAfter = Math.max(
-    1,
-    Math.ceil((Date.parse(resetAt) - date.getTime()) / 1000)
-  );
+  const retryAfter = Math.max(1, Math.ceil((Date.parse(resetAt) - date.getTime()) / 1000));
 
   return {
     allowed: required <= 0 || (limit > 0 && used + required <= limit),
@@ -225,20 +272,21 @@ function updateUsageEntry(state, resource, delta, meta = {}) {
   const window = resolveWindowKey(period);
   const limit = toFinitePositive(state.config?.quotas?.[resource], 0);
   const current = state.usage?.[resource];
-  const base = current && current.window === window
-    ? current
-    : {
-        resource,
-        period,
-        window,
-        used: 0,
-        estimatedUsed: 0,
-        actualUsed: 0,
-        limit,
-        remaining: limit,
-        updatedAt: nowIso(),
-        lastMeta: null,
-      };
+  const base =
+    current && current.window === window
+      ? current
+      : {
+          resource,
+          period,
+          window,
+          used: 0,
+          estimatedUsed: 0,
+          actualUsed: 0,
+          limit,
+          remaining: limit,
+          updatedAt: nowIso(),
+          lastMeta: null,
+        };
 
   const usageDelta = toFinitePositive(delta.used, 0);
   const estimatedDelta = toFinitePositive(delta.estimatedUsed, 0);
@@ -327,7 +375,10 @@ function acquireRateLimitToken({ tenantId, endpointClass, now = new Date(), cost
   const state = getTenantState(tenantId);
   const beforeEventIds = captureEventIds(state);
   const normalizedClass = String(endpointClass || 'read').trim() || 'read';
-  const limit = toFinitePositive(state.config?.rateLimits?.[normalizedClass], RATE_LIMIT_DEFAULTS.read);
+  const limit = toFinitePositive(
+    state.config?.rateLimits?.[normalizedClass],
+    RATE_LIMIT_DEFAULTS.read
+  );
 
   if (!state.rateBuckets || typeof state.rateBuckets !== 'object') {
     state.rateBuckets = {};
@@ -339,19 +390,22 @@ function acquireRateLimitToken({ tenantId, endpointClass, now = new Date(), cost
   };
   const previousLimit = toFinitePositive(previous.limit, limit);
   const previousTokens = Math.min(limit, Number(previous.tokens ?? limit), previousLimit || limit);
-  const elapsedMs = Math.max(0, now.getTime() - Date.parse(previous.lastRefillAt || now.toISOString()));
+  const elapsedMs = Math.max(
+    0,
+    now.getTime() - Date.parse(previous.lastRefillAt || now.toISOString())
+  );
   const refillPerMs = limit > 0 ? limit / RATE_LIMIT_WINDOW_MS : 0;
   const refilledTokens = limit > 0 ? Math.min(limit, previousTokens + elapsedMs * refillPerMs) : 0;
   const allowed = cost <= 0 || (limit > 0 && refilledTokens >= cost);
   const tokensAfter = allowed ? Math.max(0, refilledTokens - cost) : refilledTokens;
   const ratePerSecond = limit > 0 ? limit / 60 : 0;
   const waitSeconds =
-    !allowed && ratePerSecond > 0 ? Math.max(1, Math.ceil((cost - refilledTokens) / ratePerSecond)) : 0;
+    !allowed && ratePerSecond > 0
+      ? Math.max(1, Math.ceil((cost - refilledTokens) / ratePerSecond))
+      : 0;
   const resetSeconds =
     limit > 0 && refillPerMs > 0
-      ? Math.ceil(
-          (now.getTime() + Math.max(0, ((limit - tokensAfter) / refillPerMs))) / 1000
-        )
+      ? Math.ceil((now.getTime() + Math.max(0, (limit - tokensAfter) / refillPerMs)) / 1000)
       : Math.ceil(now.getTime() / 1000);
 
   state.rateBuckets[normalizedClass] = {
@@ -442,7 +496,9 @@ function recordLlmUsage({ tenantId, provider, model, operation, prompt, completi
   const promptEstimated = estimateTextTokens(prompt);
   const completionEstimated = estimateTextTokens(completion);
   const promptTokens = Number.isFinite(promptActual) ? promptActual : promptEstimated;
-  const completionTokens = Number.isFinite(completionActual) ? completionActual : completionEstimated;
+  const completionTokens = Number.isFinite(completionActual)
+    ? completionActual
+    : completionEstimated;
   const totalTokens = promptTokens + completionTokens;
   const estimatedTokens =
     (Number.isFinite(promptActual) ? 0 : promptEstimated) +
@@ -527,7 +583,12 @@ function recordAsyncJobUsage({ tenantId, service, action, count = 1 }) {
     state,
     'max_async_jobs_per_day',
     { used: count, estimatedUsed: 0, actualUsed: count },
-    { service: service || 'unknown', action: action || 'unknown', hasActual: true, isEstimated: false }
+    {
+      service: service || 'unknown',
+      action: action || 'unknown',
+      hasActual: true,
+      isEstimated: false,
+    }
   );
   saveTenantState(state.tenantId, state);
   return {
@@ -579,6 +640,7 @@ function getDriverInfo() {
 
 function resetForTests() {
   driver = null;
+  restartResetAppliedTenants.clear();
 }
 
 module.exports = {

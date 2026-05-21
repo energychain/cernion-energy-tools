@@ -45,7 +45,10 @@ function resolveTenantId(ctx, fallbackTenantId = null) {
 
 function tenantSalt(tenantId) {
   const key = resolveBaseSecret();
-  return crypto.createHmac('sha256', key).update(String(tenantId || 'default')).digest('hex');
+  return crypto
+    .createHmac('sha256', key)
+    .update(String(tenantId || 'default'))
+    .digest('hex');
 }
 
 function createSignature(payload, tenantId) {
@@ -56,7 +59,10 @@ function createSignature(payload, tenantId) {
 }
 
 function buildFilterHash(filter = {}) {
-  return crypto.createHash('sha256').update(stableStringify(filter || {})).digest('hex');
+  return crypto
+    .createHash('sha256')
+    .update(stableStringify(filter || {}))
+    .digest('hex');
 }
 
 function encodeCursor({ pivot, direction = 'next', filterHash = null, tenantId = 'default' }) {
@@ -103,7 +109,10 @@ function pivotFromItem(item) {
 }
 
 function samePivot(a, b) {
-  return String(a?.createdAt || '') === String(b?.createdAt || '') && String(a?.id || '') === String(b?.id || '');
+  return (
+    String(a?.createdAt || '') === String(b?.createdAt || '') &&
+    String(a?.id || '') === String(b?.id || '')
+  );
 }
 
 function applyCursorPagination({

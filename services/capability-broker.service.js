@@ -10,15 +10,11 @@ const MODES = new Set(['initial', 'next_step', 'repair', 'compare']);
 
 function normalizeRequestSchemaVersion(schemaVersion, warnings) {
   if (!schemaVersion) {
-    warnings.push(
-      `Missing request schemaVersion mapped to ${BROKER_SCHEMA_VERSION}`
-    );
+    warnings.push(`Missing request schemaVersion mapped to ${BROKER_SCHEMA_VERSION}`);
     return BROKER_SCHEMA_VERSION;
   }
   if (schemaVersion !== BROKER_SCHEMA_VERSION) {
-    warnings.push(
-      `Unsupported request schemaVersion mapped to ${BROKER_SCHEMA_VERSION}`
-    );
+    warnings.push(`Unsupported request schemaVersion mapped to ${BROKER_SCHEMA_VERSION}`);
     return BROKER_SCHEMA_VERSION;
   }
   return schemaVersion;
@@ -54,7 +50,9 @@ function normalizeMode(mode, alreadyExecutedSteps, compareCandidates, warnings) 
 }
 
 function findCapabilityByName(capabilityName) {
-  return CURATED_CAPABILITIES.find((capability) => capability.capability === capabilityName) || null;
+  return (
+    CURATED_CAPABILITIES.find((capability) => capability.capability === capabilityName) || null
+  );
 }
 
 function findBestCapability(taskText, options = {}) {
@@ -125,11 +123,7 @@ function findBestCapability(taskText, options = {}) {
     'darf der netzbetreiber zusagen',
     'decision_blocked_pending_formal_request',
   ];
-  const vdmiDecisionContextSignals = [
-    'formales netzanschlussbegehren',
-    '§17 enwg',
-    '17 enwg',
-  ];
+  const vdmiDecisionContextSignals = ['formales netzanschlussbegehren', '§17 enwg', '17 enwg'];
   const vdmiAssetValidationSignals = [
     'asset validation',
     'asset-validierung',
@@ -153,19 +147,17 @@ function findBestCapability(taskText, options = {}) {
   ];
 
   const hasVdmiBoundaryCombo =
-    /(rollen|rolle|schnittstellen)/i.test(haystack)
-    && /(netzanschluss|enwg|arealnetz|gatekeeper)/i.test(haystack);
+    /(rollen|rolle|schnittstellen)/i.test(haystack) &&
+    /(netzanschluss|enwg|arealnetz|gatekeeper)/i.test(haystack);
 
   const hasVdmiDecisionCombo =
-    /(zusage|entscheidung|uebergabepunkt|übergabepunkt|kapazit[aä]t)/i.test(haystack)
-    && /(netzbetreiber|formales netzanschlussbegehren|§17|17 enwg|enwg)/i.test(haystack);
+    /(zusage|entscheidung|uebergabepunkt|übergabepunkt|kapazit[aä]t)/i.test(haystack) &&
+    /(netzbetreiber|formales netzanschlussbegehren|§17|17 enwg|enwg)/i.test(haystack);
 
   const hasVdmiDecisionSignal =
-    vdmiDecisionCoreSignals.some((signal) => haystack.includes(signal))
-    || (
-      vdmiDecisionContextSignals.some((signal) => haystack.includes(signal))
-      && /(zusage|entscheidung|uebergabepunkt|übergabepunkt|kapazit[aä]t|anschluss)/i.test(haystack)
-    );
+    vdmiDecisionCoreSignals.some((signal) => haystack.includes(signal)) ||
+    (vdmiDecisionContextSignals.some((signal) => haystack.includes(signal)) &&
+      /(zusage|entscheidung|uebergabepunkt|übergabepunkt|kapazit[aä]t|anschluss)/i.test(haystack));
 
   if (hasVdmiDecisionSignal || hasVdmiDecisionCombo) {
     const vdmiDecisionCapability = findCapabilityByName('vdmi_grid_connection_decision_governance');
@@ -179,11 +171,17 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasFinancierDueDiligenceCombo =
-    /(due\s*diligence|risk\s*assessment|kreditausschuss|credit\s*committee|bankability)/i.test(haystack)
-    && /(finanz|financier|kredit|committee|condition\s*precedent|risiko)/i.test(haystack);
+    /(due\s*diligence|risk\s*assessment|kreditausschuss|credit\s*committee|bankability)/i.test(
+      haystack
+    ) && /(finanz|financier|kredit|committee|condition\s*precedent|risiko)/i.test(haystack);
 
-  if (financierDueDiligenceSignals.some((signal) => haystack.includes(signal)) || hasFinancierDueDiligenceCombo) {
-    const financierDueDiligenceCapability = findCapabilityByName('financier_due_diligence_assessment');
+  if (
+    financierDueDiligenceSignals.some((signal) => haystack.includes(signal)) ||
+    hasFinancierDueDiligenceCombo
+  ) {
+    const financierDueDiligenceCapability = findCapabilityByName(
+      'financier_due_diligence_assessment'
+    );
     if (financierDueDiligenceCapability) {
       return {
         capability: financierDueDiligenceCapability,
@@ -194,12 +192,12 @@ function findBestCapability(taskText, options = {}) {
   }
 
   const hasVdmiAssetValidationCombo =
-    /(asset|anlage|anlagen|assetklasse|transformator|trafo)/i.test(haystack)
-    && /(evidence|evidenz|nachweis|beleg|risk|risiko|forbidden|verbotene annahme)/i.test(haystack);
+    /(asset|anlage|anlagen|assetklasse|transformator|trafo)/i.test(haystack) &&
+    /(evidence|evidenz|nachweis|beleg|risk|risiko|forbidden|verbotene annahme)/i.test(haystack);
 
   if (
-    vdmiAssetValidationSignals.some((signal) => haystack.includes(signal))
-    || hasVdmiAssetValidationCombo
+    vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||
+    hasVdmiAssetValidationCombo
   ) {
     const vdmiAssetValidationCapability = findCapabilityByName('vdmi_asset_validation_governance');
     if (vdmiAssetValidationCapability) {
@@ -269,7 +267,9 @@ function findBestCapability(taskText, options = {}) {
     }
 
     // Boost capabilities whose requiredInputs are satisfied by resolvedParams (+20 per match)
-    const requiredInputs = Array.isArray(capability.requiredInputs) ? capability.requiredInputs : [];
+    const requiredInputs = Array.isArray(capability.requiredInputs)
+      ? capability.requiredInputs
+      : [];
     const resolvedKeys = Object.keys(resolvedParams);
     const satisfiedInputs = requiredInputs.filter((ri) => resolvedKeys.includes(ri));
     score += satisfiedInputs.length * 20;
@@ -468,7 +468,9 @@ function buildActionTemplate(action) {
 
 function parseBenchmarkNames(taskText = '') {
   const text = String(taskText || '');
-  const againstMatch = text.match(/\b(?:benchmark(?:e|t)?|vergleich(?:e|t)?)\s+(.+?)\s+gegen\s+(.+?)(?:[\.!?]|$)/i);
+  const againstMatch = text.match(
+    /\b(?:benchmark(?:e|t)?|vergleich(?:e|t)?)\s+(.+?)\s+gegen\s+(.+?)(?:[\.!?]|$)/i
+  );
   if (againstMatch) {
     const first = String(againstMatch[1] || '').trim();
     const secondPart = String(againstMatch[2] || '').trim();
@@ -486,9 +488,10 @@ function parseBenchmarkNames(taskText = '') {
 
 function parseRequestedCapacityKW(taskText = '') {
   const text = String(taskText || '');
-  const explicitMatch = text.match(/\brequested\s*capacity\s*kw\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i)
-    || text.match(/\brequestedcapacitykw\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i)
-    || text.match(/\brequested\s*capacity\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i);
+  const explicitMatch =
+    text.match(/\brequested\s*capacity\s*kw\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i) ||
+    text.match(/\brequestedcapacitykw\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i) ||
+    text.match(/\brequested\s*capacity\s*[:=]?\s*(\d+(?:[\.,]\d+)?)/i);
   if (explicitMatch) {
     return Number(String(explicitMatch[1]).replace(',', '.'));
   }
@@ -501,9 +504,9 @@ function buildFnavProfile(knownContext = {}, taskText = '') {
   }
 
   const requestedCapacity =
-    knownContext?.requestedCapacityKW
-    ?? knownContext?.requestedCapacity
-    ?? parseRequestedCapacityKW(taskText);
+    knownContext?.requestedCapacityKW ??
+    knownContext?.requestedCapacity ??
+    parseRequestedCapacityKW(taskText);
 
   if (requestedCapacity == null) {
     return null;
@@ -522,13 +525,21 @@ function buildFnavProfile(knownContext = {}, taskText = '') {
 function isVdmiDecisionPrompt(taskText = '') {
   const haystack = String(taskText || '').toLowerCase();
   const hasDecisionCore =
-    /(anschlusszusage|kapazitaetszusage|kapazitätszusage|uebergabepunkt|übergabepunkt|netzbetreiberentscheidung|belastbare\s+zusage)/i
-      .test(haystack);
-  const hasLegalFrame = /(formales\s+netzanschlussbegehren|§17\s*enwg|17\s*enwg|enwg)/i.test(haystack);
+    /(anschlusszusage|kapazitaetszusage|kapazitätszusage|uebergabepunkt|übergabepunkt|netzbetreiberentscheidung|belastbare\s+zusage)/i.test(
+      haystack
+    );
+  const hasLegalFrame = /(formales\s+netzanschlussbegehren|§17\s*enwg|17\s*enwg|enwg)/i.test(
+    haystack
+  );
   return hasDecisionCore && hasLegalFrame;
 }
 
-function interpolateTemplateWithKnownContext(action, paramsTemplate = {}, knownContext = {}, taskText = '') {
+function interpolateTemplateWithKnownContext(
+  action,
+  paramsTemplate = {},
+  knownContext = {},
+  taskText = ''
+) {
   const hydrated = { ...(paramsTemplate || {}) };
   const parsedBenchmarkNames = parseBenchmarkNames(taskText);
   const parsedRequestedCapacityKW = parseRequestedCapacityKW(taskText);
@@ -550,7 +561,8 @@ function interpolateTemplateWithKnownContext(action, paramsTemplate = {}, knownC
 
   if (action === 'ewk-monitoring.benchmarkVnb') {
     if (hydrated.vnbName == null) {
-      hydrated.vnbName = knownContext.vnbName || knownContext.vnb1Name || parsedBenchmarkNames.vnb1Name || null;
+      hydrated.vnbName =
+        knownContext.vnbName || knownContext.vnb1Name || parsedBenchmarkNames.vnb1Name || null;
     }
     if (hydrated.bnr == null && knownContext.bnr) {
       hydrated.bnr = knownContext.bnr;
@@ -581,15 +593,16 @@ function interpolateTemplateWithKnownContext(action, paramsTemplate = {}, knownC
     }
     if (hydrated.requestedCapacityKW == null) {
       hydrated.requestedCapacityKW =
-        knownContext.requestedCapacityKW
-        ?? knownContext.requestedCapacity
-        ?? parsedRequestedCapacityKW;
+        knownContext.requestedCapacityKW ??
+        knownContext.requestedCapacity ??
+        parsedRequestedCapacityKW;
     }
     if (hydrated.firmCapacityKW == null) {
       hydrated.firmCapacityKW = knownContext.firmCapacityKW ?? knownContext.firmCapacity ?? null;
     }
     if (hydrated.flexibleCapacityKW == null) {
-      hydrated.flexibleCapacityKW = knownContext.flexibleCapacityKW ?? knownContext.flexibleCapacity ?? null;
+      hydrated.flexibleCapacityKW =
+        knownContext.flexibleCapacityKW ?? knownContext.flexibleCapacity ?? null;
     }
     if (hydrated.curtailmentWindow == null && knownContext.curtailmentWindow != null) {
       hydrated.curtailmentWindow = knownContext.curtailmentWindow;
@@ -626,10 +639,10 @@ function interpolateTemplateWithKnownContext(action, paramsTemplate = {}, knownC
   if (action === 'finance-agent.analyze') {
     if (hydrated.query == null || hydrated.query === '') {
       hydrated.query =
-        knownContext.query
-        || knownContext.dueDiligenceQuestion
-        || String(taskText || '').trim()
-        || null;
+        knownContext.query ||
+        knownContext.dueDiligenceQuestion ||
+        String(taskText || '').trim() ||
+        null;
     }
     if (hydrated.profileId == null && knownContext.profileId) {
       hydrated.profileId = knownContext.profileId;
@@ -644,8 +657,8 @@ function interpolateTemplateWithKnownContext(action, paramsTemplate = {}, knownC
       hydrated.taskId = knownContext.taskId;
     }
     if (
-      knownContext.processType
-      && (hydrated.processType == null || hydrated.processType === 'grid-connection-governance')
+      knownContext.processType &&
+      (hydrated.processType == null || hydrated.processType === 'grid-connection-governance')
     ) {
       hydrated.processType = knownContext.processType;
     }
@@ -718,7 +731,8 @@ function discoverSupplementalActions(services, taskText, blockedActions) {
   const picks = [];
   for (const item of catalogue) {
     if (blockedActions.has(item.actionName)) continue;
-    const text = `${item.actionName} ${item.description || ''} ${item.descriptionDetail || ''}`.toLowerCase();
+    const text =
+      `${item.actionName} ${item.description || ''} ${item.descriptionDetail || ''}`.toLowerCase();
     const hit = words.some((w) => text.includes(w));
     if (hit) {
       picks.push(item.actionName);
@@ -823,7 +837,9 @@ module.exports = {
           (action) => !blockedActions.has(action)
         );
         if (effectiveMode === 'next_step' || effectiveMode === 'repair') {
-          preferredActionPath = preferredActionPath.filter((action) => !alreadyExecuted.has(action));
+          preferredActionPath = preferredActionPath.filter(
+            (action) => !alreadyExecuted.has(action)
+          );
         }
         if (preferredActionPath.length === 0) {
           preferredActionPath = [...capability.fallbackActions].filter(
@@ -888,6 +904,22 @@ module.exports = {
 
         const confidenceBase = selected.score > 0 ? 0.8 : 0.55;
         const confidence = Math.min(0.98, confidenceBase + Math.min(selected.score, 4) * 0.04);
+        const scoringBreakdown = {
+          rawScore: selected.score,
+          confidenceBase,
+          usedFallback: selected.usedFallback,
+          resolvedCapabilityPenaltyApplied: Array.isArray(resolvedCapabilities)
+            ? resolvedCapabilities.some((item) =>
+                (typeof item === 'string' ? item : item?.capability) === capability.capability
+              )
+            : false,
+          satisfiedInputCount: Array.isArray(capability.requiredInputs)
+            ? capability.requiredInputs.filter((key) => Object.keys(resolvedParams).includes(key)).length
+            : 0,
+          preferredActionCount: preferredActionPath.length,
+          discoveredActionCount: discovered.length,
+          finalConfidence: Number(confidence.toFixed(2)),
+        };
 
         if (selected.usedFallback) {
           warnings.push(
@@ -901,7 +933,9 @@ module.exports = {
             ? 'No deterministic capability matched. Recommend explicit gap marking via interface-placeholder.'
             : `Recommended ${capability.capability} via curated deterministic path with doNotUse enforcement.`,
           intent: capability.intent,
+          capability: capability.capability,
           confidence: Number(confidence.toFixed(2)),
+          scoringBreakdown,
           mode: ctx.params.mode,
           effectiveMode,
           recommendedCapabilities: [
@@ -910,6 +944,7 @@ module.exports = {
               abstractionLevel: capability.abstractionLevel,
               reason: `Matched curated domain capability in ${capability.domain}.`,
               actions: preferredActionPath,
+              hitlPolicy: capability.hitlPolicy || null,
             },
           ],
           recommendedPlan,

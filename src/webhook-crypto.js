@@ -26,11 +26,9 @@ function encryptSecret(plainText) {
   const encrypted = Buffer.concat([cipher.update(source, 'utf8'), cipher.final()]);
   const authTag = cipher.getAuthTag();
 
-  return [
-    iv.toString('base64'),
-    encrypted.toString('base64'),
-    authTag.toString('base64'),
-  ].join('.');
+  return [iv.toString('base64'), encrypted.toString('base64'), authTag.toString('base64')].join(
+    '.'
+  );
 }
 
 function decryptSecret(cipherText) {

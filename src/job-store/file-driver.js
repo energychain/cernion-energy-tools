@@ -27,10 +27,25 @@ class FileJobStoreDriver extends JobStoreDriver {
     return path.join(this.jobsDir, `${jobId}.result.json`);
   }
 
-  createJob({ service, action, idempotencyKey = null, tenantId = 'default', wakeContext = null }) {
+  createJob({
+    service,
+    action,
+    idempotencyKey = null,
+    tenantId = 'default',
+    wakeContext = null,
+    expectedDuration = null,
+    deadlineAt = null,
+  }) {
     this.ensureDir();
     const jobId = crypto.randomUUID();
     const now = new Date().toISOString();
+    const deadline =
+      deadlineAt && typeof deadlineAt === 'string'
+        ? deadlineAt
+        : expectedDuration && Number.isFinite(expectedDuration)
+          ? new Date(Date.now() + expectedDuration).toISOString()
+          : null;
+
     const job = {
       jobId,
       service: service || 'unknown',
@@ -49,6 +64,8 @@ class FileJobStoreDriver extends JobStoreDriver {
       leaseOwner: null,
       leaseExpiresAt: null,
       lastHeartbeatAt: null,
+      expectedDuration: Number.isFinite(expectedDuration) ? expectedDuration : null,
+      deadlineAt: deadline,
       wakeContext:
         wakeContext && typeof wakeContext === 'object'
           ? {
@@ -187,6 +204,7 @@ class FileJobStoreDriver extends JobStoreDriver {
     fs.writeFileSync(this.resultPath(jobId), JSON.stringify(result));
     return this.updateJob(jobId, {
       status: 'completed',
+      phase: 'done',
       completedAt: new Date().toISOString(),
       leaseOwner: null,
       leaseExpiresAt: null,

@@ -438,18 +438,12 @@ describe('startJob', () => {
           })
       );
 
-      const first = await jobStore.startJob(
-        ctx,
-        { service: 'svc', action: 'act' },
-        worker,
-        { idempotencyKey: 'ck:test-1' }
-      );
-      const second = await jobStore.startJob(
-        ctx,
-        { service: 'svc', action: 'act' },
-        worker,
-        { idempotencyKey: 'ck:test-1' }
-      );
+      const first = await jobStore.startJob(ctx, { service: 'svc', action: 'act' }, worker, {
+        idempotencyKey: 'ck:test-1',
+      });
+      const second = await jobStore.startJob(ctx, { service: 'svc', action: 'act' }, worker, {
+        idempotencyKey: 'ck:test-1',
+      });
 
       expect(second.reused).toBe(true);
       expect(second.jobId).toBe(first.jobId);
@@ -467,7 +461,9 @@ describe('startJob', () => {
       state.config.quotas.max_async_jobs_per_day = 0;
       rateQuotaStore.saveTenantState('tenant-job-limit', state);
 
-      await expect(jobStore.startJob(ctx, { service: 's', action: 'a' }, async () => ({}))).rejects.toMatchObject({
+      await expect(
+        jobStore.startJob(ctx, { service: 's', action: 'a' }, async () => ({}))
+      ).rejects.toMatchObject({
         code: 429,
         type: 'ASYNC_JOB_QUOTA_EXCEEDED',
       });
@@ -624,7 +620,9 @@ describe('durable watchdog and alarms (v0.52.2)', () => {
     expect(summary.escalated).toBe(1);
     expect(job.status).toBe('recovery_pending');
     expect(Array.isArray(job.alarms)).toBe(true);
-    expect(job.alarms.some((a) => a.code === 'LEASE_MISSES_EXCEEDED' && a.status === 'open')).toBe(true);
+    expect(job.alarms.some((a) => a.code === 'LEASE_MISSES_EXCEEDED' && a.status === 'open')).toBe(
+      true
+    );
   });
 
   it('rehydrates queued/running jobs on startup and raises startup alarms', () => {

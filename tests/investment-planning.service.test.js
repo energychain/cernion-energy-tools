@@ -224,14 +224,26 @@ describe('investment-planning service', () => {
       { meta: { tenantId: 'tenant-a' } }
     );
 
-    const listA = await broker.call('investment-planning.listPlans', {}, { meta: { tenantId: 'tenant-a' } });
+    const listA = await broker.call(
+      'investment-planning.listPlans',
+      {},
+      { meta: { tenantId: 'tenant-a' } }
+    );
     expect(listA.count).toBe(1);
 
-    const listB = await broker.call('investment-planning.listPlans', {}, { meta: { tenantId: 'tenant-b' } });
+    const listB = await broker.call(
+      'investment-planning.listPlans',
+      {},
+      { meta: { tenantId: 'tenant-b' } }
+    );
     expect(listB.count).toBe(0);
 
     await expect(
-      broker.call('investment-planning.getPlan', { id: created.id }, { meta: { tenantId: 'tenant-b' } })
+      broker.call(
+        'investment-planning.getPlan',
+        { id: created.id },
+        { meta: { tenantId: 'tenant-b' } }
+      )
     ).rejects.toMatchObject({ code: 404, type: 'INVESTMENT_PLAN_NOT_FOUND' });
   });
 });

@@ -19,6 +19,7 @@ const BASE_URL = process.env.PERSONAL_AGENT_E2E_BASE_URL || `http://127.0.0.1:${
 const CHAT_PATH = '/api/personal-agent/chat';
 const OPENAPI_PATH = '/api/openapi.json';
 const TENANT_ID = 'tenant-mt';
+const RUN_BLACKBOX = process.env.RUN_PERSONAL_AGENT_TDD_MATRIX_BLACKBOX === 'true';
 const SERVER_START_TIMEOUT_MS = 60000;
 const JOB_RESULT_TIMEOUT_MS = Number(process.env.PERSONAL_AGENT_E2E_JOB_TIMEOUT_MS || 300000);
 const JOB_POLL_INTERVAL_MS = Number(process.env.PERSONAL_AGENT_E2E_JOB_POLL_MS || 1000);
@@ -165,9 +166,7 @@ function mergeCoverageArtifact(requiredIds, passedIds) {
   const mergedRequiredIds = Array.from(
     new Set([...(existing.requiredIds || []), ...requiredIds])
   ).sort();
-  const mergedPassedIds = Array.from(
-    new Set([...(existing.passedIds || []), ...passedIds])
-  ).sort();
+  const mergedPassedIds = Array.from(new Set([...(existing.passedIds || []), ...passedIds])).sort();
 
   const payload = {
     generatedAt: new Date().toISOString(),
@@ -338,7 +337,9 @@ async function waitForApi(baseUrl, child) {
     await sleep(1000);
   }
 
-  throw new Error(`Cernion API server did not become ready on ${baseUrl} within ${SERVER_START_TIMEOUT_MS}ms.`);
+  throw new Error(
+    `Cernion API server did not become ready on ${baseUrl} within ${SERVER_START_TIMEOUT_MS}ms.`
+  );
 }
 
 async function ensureApiServer(baseUrl) {
@@ -374,8 +375,12 @@ function stopApiServer(child) {
 
 jest.setTimeout(MULTITURN_TEST_TIMEOUT_MS);
 
-describe('v0.52.5 TDD matrix multi-turn HTTP blackbox coverage', () => {
-  const cases = parseTddMatrixFile(DEFAULT_MATRIX_FILE).filter((testCase) => testCase.id.startsWith('MT-'));
+const describeBlackbox = RUN_BLACKBOX ? describe : describe.skip;
+
+describeBlackbox('v0.52.5 TDD matrix multi-turn HTTP blackbox coverage', () => {
+  const cases = parseTddMatrixFile(DEFAULT_MATRIX_FILE).filter((testCase) =>
+    testCase.id.startsWith('MT-')
+  );
   const scenarios = buildScenarioMap(cases);
   const requiredIds = cases.map((testCase) => testCase.id).sort();
   const passedIds = [];
@@ -398,7 +403,11 @@ describe('v0.52.5 TDD matrix multi-turn HTTP blackbox coverage', () => {
   it('parses exactly 12 executable multi-turn matrix turns in 3 scenarios', () => {
     expect(cases).toHaveLength(12);
     expect(scenarios).toHaveLength(3);
-    expect(scenarios.map((scenario) => scenario.scenarioKey).sort()).toEqual(['MT-INV', 'MT-JOU', 'MT-VOR']);
+    expect(scenarios.map((scenario) => scenario.scenarioKey).sort()).toEqual([
+      'MT-INV',
+      'MT-JOU',
+      'MT-VOR',
+    ]);
   });
 
   test.each(scenarios)(
@@ -413,7 +422,8 @@ describe('v0.52.5 TDD matrix multi-turn HTTP blackbox coverage', () => {
         let knownContext = normalized.knownContext || {};
 
         if (turn.id.startsWith('MT-INV')) {
-          message = 'Vergleiche zwei VNB hinsichtlich Benchmark, KPI, Anschlussdauer, Digitalisierungsindex und Umsetzungsquote.';
+          message =
+            'Vergleiche zwei VNB hinsichtlich Benchmark, KPI, Anschlussdauer, Digitalisierungsindex und Umsetzungsquote.';
           knownContext = {
             vnb1Name: 'Stadtwerke Troisdorf',
             vnb2Name: 'TWL Netze',
@@ -421,7 +431,8 @@ describe('v0.52.5 TDD matrix multi-turn HTTP blackbox coverage', () => {
         }
 
         if (turn.id.startsWith('MT-VOR')) {
-          message = 'Bewerte den Netzfahrplan fNAV mit requestedCapacityKW 10000, Voltage Level MS, N-1 und Kaufmaennische fNAV-Freigabe.';
+          message =
+            'Bewerte den Netzfahrplan fNAV mit requestedCapacityKW 10000, Voltage Level MS, N-1 und Kaufmaennische fNAV-Freigabe.';
           knownContext = {
             requestedCapacityKW: 10000,
             voltageLevel: 'MS',

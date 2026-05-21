@@ -1,7 +1,4 @@
-const {
-  PORTFOLIO_WEG,
-  computePortfolioAssessment,
-} = require('../src/znp-portfolio-logic');
+const { PORTFOLIO_WEG, computePortfolioAssessment } = require('../src/znp-portfolio-logic');
 
 describe('znp-portfolio-logic', () => {
   it('returns portfolio.weg and all four dimension scores', () => {

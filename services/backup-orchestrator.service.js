@@ -74,7 +74,9 @@ async function importPouch(dbPath, srcFile) {
       let existing = null;
       try {
         existing = await db.get(doc._id);
-      } catch (_) { /* not found */ }
+      } catch (_) {
+        /* not found */
+      }
       if (!existing) {
         await db.put({ ...doc });
         restored++;
@@ -159,7 +161,8 @@ module.exports = {
                   },
                   tenantId: {
                     type: 'string',
-                    description: 'Optional: scope snapshot to a specific tenant (exports only tenant docs)',
+                    description:
+                      'Optional: scope snapshot to a specific tenant (exports only tenant docs)',
                     example: 'hoeheinoed',
                   },
                 },
@@ -208,7 +211,10 @@ module.exports = {
 
         // Export PouchDBs
         const esDocs = await exportPouch(ES_DB_PATH, path.join(snapDir, 'energy-sharing.json'));
-        const allocDocs = await exportPouch(ALLOC_DB_PATH, path.join(snapDir, 'allocation-engine.json'));
+        const allocDocs = await exportPouch(
+          ALLOC_DB_PATH,
+          path.join(snapDir, 'allocation-engine.json')
+        );
         const dpDocs = await exportPouch(DATAPOINTS_DB_PATH, path.join(snapDir, 'datapoints.json'));
 
         // Export jobs
@@ -333,8 +339,14 @@ module.exports = {
         const restoredAt = nowIso();
 
         const esResult = await importPouch(ES_DB_PATH, path.join(snapDir, 'energy-sharing.json'));
-        const allocResult = await importPouch(ALLOC_DB_PATH, path.join(snapDir, 'allocation-engine.json'));
-        const dpResult = await importPouch(DATAPOINTS_DB_PATH, path.join(snapDir, 'datapoints.json'));
+        const allocResult = await importPouch(
+          ALLOC_DB_PATH,
+          path.join(snapDir, 'allocation-engine.json')
+        );
+        const dpResult = await importPouch(
+          DATAPOINTS_DB_PATH,
+          path.join(snapDir, 'datapoints.json')
+        );
         const jobsResult = restoreJobs(path.join(snapDir, 'jobs'));
 
         // Restore tokens (additive — don't clobber current active tokens)
@@ -376,8 +388,16 @@ module.exports = {
           'utf8'
         );
 
-        this.logger.info(`[backup-orchestrator] Restore from ${snapshotId} complete: ${JSON.stringify(summary)}`);
-        return { success: true, snapshotId, restoredAt, summary, provenanceHash: auditEntry.provenanceHash };
+        this.logger.info(
+          `[backup-orchestrator] Restore from ${snapshotId} complete: ${JSON.stringify(summary)}`
+        );
+        return {
+          success: true,
+          snapshotId,
+          restoredAt,
+          summary,
+          provenanceHash: auditEntry.provenanceHash,
+        };
       },
     },
 
@@ -397,7 +417,14 @@ module.exports = {
               'application/json': {
                 example: {
                   success: true,
-                  snapshots: [{ snapshotId: 'snap-abc123', label: 'pre-cutover', createdAt: '2026-06-30T12:00:00.000Z', provenanceHash: 'sha256:...' }],
+                  snapshots: [
+                    {
+                      snapshotId: 'snap-abc123',
+                      label: 'pre-cutover',
+                      createdAt: '2026-06-30T12:00:00.000Z',
+                      provenanceHash: 'sha256:...',
+                    },
+                  ],
                   count: 1,
                 },
               },
@@ -424,7 +451,9 @@ module.exports = {
               provenanceHash: m.provenanceHash,
               summary: m.summary,
             });
-          } catch (_) { /* skip corrupt manifests */ }
+          } catch (_) {
+            /* skip corrupt manifests */
+          }
         }
         snapshots.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
         return { success: true, snapshots, count: snapshots.length };
@@ -442,7 +471,12 @@ module.exports = {
         tags: ['Backup & Restore'],
         'x-oeo-class': 'OEO_00140083',
         parameters: [
-          { name: 'snapshotId', in: 'path', required: true, schema: { type: 'string', example: 'snap-abc123' } },
+          {
+            name: 'snapshotId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'snap-abc123' },
+          },
         ],
         responses: {
           200: { description: 'Snapshot manifest' },
@@ -472,7 +506,12 @@ module.exports = {
         tags: ['Backup & Restore'],
         'x-oeo-class': 'OEO_00140083',
         parameters: [
-          { name: 'snapshotId', in: 'path', required: true, schema: { type: 'string', example: 'snap-abc123' } },
+          {
+            name: 'snapshotId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'snap-abc123' },
+          },
         ],
         responses: {
           200: { description: 'Snapshot deleted' },

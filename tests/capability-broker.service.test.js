@@ -37,7 +37,9 @@ describe('Capability Broker Service', () => {
     expect(result.schemaVersion).toBe('cernion.capabilityRecommendation.v1');
     expect(
       result.warnings.some((w) =>
-        w.includes('Unsupported request schemaVersion mapped to cernion.capabilityRecommendation.v1')
+        w.includes(
+          'Unsupported request schemaVersion mapped to cernion.capabilityRecommendation.v1'
+        )
       )
     ).toBe(true);
   });
@@ -53,7 +55,9 @@ describe('Capability Broker Service', () => {
     expect(result.effectiveMode).toBe('initial');
     expect(
       result.warnings.some((w) =>
-        w.includes('Requested mode next_step but alreadyExecutedSteps was empty; degraded to initial recommendation.')
+        w.includes(
+          'Requested mode next_step but alreadyExecutedSteps was empty; degraded to initial recommendation.'
+        )
       )
     ).toBe(true);
   });
@@ -82,7 +86,9 @@ describe('Capability Broker Service', () => {
     expect(result.effectiveMode).toBe('initial');
     expect(
       result.warnings.some((w) =>
-        w.includes('Requested mode compare but no candidates were provided; degraded to initial recommendation.')
+        w.includes(
+          'Requested mode compare but no candidates were provided; degraded to initial recommendation.'
+        )
       )
     ).toBe(true);
   });
@@ -157,7 +163,9 @@ describe('Capability Broker Service', () => {
     expect(result.recommendedCapabilities[0].capability).toBe('financier_due_diligence_assessment');
     expect(result.intent).toBe('financier_due_diligence_assessment');
     expect(result.recommendedPlan[0].action).toBe('finance-agent.analyze');
-    expect(result.recommendedPlan[0].params.query).toMatch(/Risk Assessment|Kreditausschuss|Due Diligence/i);
+    expect(result.recommendedPlan[0].params.query).toMatch(
+      /Risk Assessment|Kreditausschuss|Due Diligence/i
+    );
     expect(result.recommendedCapabilities[0].capability).not.toBe('interface_placeholder');
   });
 
@@ -168,7 +176,9 @@ describe('Capability Broker Service', () => {
 
     expect(result.recommendedCapabilities[0].capability).toBe('vdmi_role_boundary_governance');
     expect(result.recommendedPlan[0].action).toBe('vdmi.agentRole');
-    expect(result.recommendedCapabilities[0].capability).not.toBe('grid_operator_identity_resolution');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'grid_operator_identity_resolution'
+    );
   });
 
   it('routes formal grid-connection decision prompts to VDMI decision governance intent', async () => {
@@ -180,11 +190,15 @@ describe('Capability Broker Service', () => {
       },
     });
 
-    expect(result.recommendedCapabilities[0].capability).toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'vdmi_grid_connection_decision_governance'
+    );
     expect(result.recommendedPlan.map((step) => step.action)).toEqual(
       expect.arrayContaining(['vdmi.dossier', 'vdmi.negotiationTrace', 'vdmi.agentRole'])
     );
-    expect(result.recommendedCapabilities[0].capability).not.toBe('vdmi_asset_validation_governance');
+    expect(result.recommendedCapabilities[0].capability).not.toBe(
+      'vdmi_asset_validation_governance'
+    );
   });
 
   it('hydrates vdmi decision defaults (taskId/processType) from prompt when knownContext is missing', async () => {
@@ -192,10 +206,14 @@ describe('Capability Broker Service', () => {
       task: 'Kann der Netzbetreiber ohne formales §17 EnWG Netzanschlussbegehren eine belastbare Anschlusszusage geben?',
     });
 
-    expect(result.recommendedCapabilities[0].capability).toBe('vdmi_grid_connection_decision_governance');
+    expect(result.recommendedCapabilities[0].capability).toBe(
+      'vdmi_grid_connection_decision_governance'
+    );
 
     const dossierStep = result.recommendedPlan.find((step) => step.action === 'vdmi.dossier');
-    const traceStep = result.recommendedPlan.find((step) => step.action === 'vdmi.negotiationTrace');
+    const traceStep = result.recommendedPlan.find(
+      (step) => step.action === 'vdmi.negotiationTrace'
+    );
     const roleStep = result.recommendedPlan.find((step) => step.action === 'vdmi.agentRole');
 
     expect(dossierStep.params.taskId).toBe('network-operator-decision');

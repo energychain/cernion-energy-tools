@@ -125,16 +125,18 @@ describe('eog-calculator service', () => {
         source: 'tenant_uploaded',
         confidence: 'confirmed',
       },
-      ...(withQualityElement !== 0 ? [
-        {
-          key: 'eog.quality_element',
-          value: withQualityElement,
-          periodYear: 2026,
-          sector: 'strom',
-          source: 'tenant_uploaded',
-          confidence: 'confirmed',
-        },
-      ] : []),
+      ...(withQualityElement !== 0
+        ? [
+            {
+              key: 'eog.quality_element',
+              value: withQualityElement,
+              periodYear: 2026,
+              sector: 'strom',
+              source: 'tenant_uploaded',
+              confidence: 'confirmed',
+            },
+          ]
+        : []),
       {
         key: 'eog.temporarily_non_controllable_costs',
         value: 100,

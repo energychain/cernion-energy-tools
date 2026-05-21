@@ -1,6 +1,8 @@
 'use strict';
 
-const QUERY_TIMEOUT_MS = 2000;
+const QUERY_TIMEOUT_MS = Number.isFinite(Number(process.env.PERSONAL_AGENT_KNOWLEDGE_RAG_TIMEOUT_MS))
+  ? Math.max(1000, Math.floor(Number(process.env.PERSONAL_AGENT_KNOWLEDGE_RAG_TIMEOUT_MS)))
+  : 25000;
 const DEFAULT_LIMIT = 5;
 const MIN_LIMIT = 1;
 const MAX_LIMIT = 20;
@@ -8,11 +10,26 @@ const MAX_LIMIT = 20;
 const DOMAIN_HINT_RULES = Object.freeze([
   {
     domainHint: 'grid-operations',
-    signals: ['netzbetreiber', 'vnb', 'bdew', 'netzanschluss', 'netzanschlusspunkt', 'grid operator'],
+    signals: [
+      'netzbetreiber',
+      'vnb',
+      'bdew',
+      'netzanschluss',
+      'netzanschlusspunkt',
+      'grid operator',
+    ],
   },
   {
     domainHint: 'market-regulatory',
-    signals: ['regulator', 'regulatory', 'bnetza', 'festlegung', 'entso-e', 'netztransparenz', 'enwg'],
+    signals: [
+      'regulator',
+      'regulatory',
+      'bnetza',
+      'festlegung',
+      'entso-e',
+      'netztransparenz',
+      'enwg',
+    ],
   },
   {
     domainHint: 'finance-risk',
@@ -80,9 +97,7 @@ function collectSignalsFromHit(hit = {}) {
     ...(Array.isArray(metadata.ontologyTags) ? metadata.ontologyTags : []),
   ];
 
-  return rawSignals
-    .map(normalizeSignalValue)
-    .filter(Boolean);
+  return rawSignals.map(normalizeSignalValue).filter(Boolean);
 }
 
 function resolveDomainHint({ signals = [], activeDomains = [] }) {
@@ -96,9 +111,9 @@ function resolveDomainHint({ signals = [], activeDomains = [] }) {
     );
     if (!hasRuleSignal) continue;
 
-    const hasActiveMatch = active.length === 0 || active.some((domain) =>
-      domain.includes(rule.domainHint) || rule.domainHint.includes(domain)
-    );
+    const hasActiveMatch =
+      active.length === 0 ||
+      active.some((domain) => domain.includes(rule.domainHint) || rule.domainHint.includes(domain));
 
     if (hasActiveMatch) {
       return rule.domainHint;
@@ -114,9 +129,7 @@ function resolveDomainHint({ signals = [], activeDomains = [] }) {
 
 function resolveRegulatoryFrame(signals = []) {
   for (const rule of REGULATORY_FRAME_RULES) {
-    const matches = rule.signals.some((signal) =>
-      signals.some((item) => item.includes(signal))
-    );
+    const matches = rule.signals.some((signal) => signals.some((item) => item.includes(signal)));
     if (matches) {
       return rule.frame;
     }
@@ -144,20 +157,20 @@ function resolveSynthesisStyle({ domainHint, regulatoryFrame, signals = [] }) {
 
 function isServiceUnavailableError(error) {
   return (
-    error?.code === 404
-    || error?.type === 'SERVICE_NOT_FOUND'
-    || error?.type === 'SERVICE_NOT_AVAILABLE'
-    || /service\s+not\s+found/i.test(String(error?.message || ''))
-    || /action\s+not\s+found/i.test(String(error?.message || ''))
+    error?.code === 404 ||
+    error?.type === 'SERVICE_NOT_FOUND' ||
+    error?.type === 'SERVICE_NOT_AVAILABLE' ||
+    /service\s+not\s+found/i.test(String(error?.message || '')) ||
+    /action\s+not\s+found/i.test(String(error?.message || ''))
   );
 }
 
 function isTimeoutError(error) {
   return (
-    error?.code === 'REQUEST_TIMEOUT'
-    || error?.type === 'REQUEST_TIMEOUT'
-    || error?.name === 'TimeoutError'
-    || /timeout/i.test(String(error?.message || ''))
+    error?.code === 'REQUEST_TIMEOUT' ||
+    error?.type === 'REQUEST_TIMEOUT' ||
+    error?.name === 'TimeoutError' ||
+    /timeout/i.test(String(error?.message || ''))
   );
 }
 
@@ -172,14 +185,10 @@ async function callWithHardTimeout(ctx, params, timeoutMs) {
   let timer = null;
   try {
     return await Promise.race([
-      ctx.call(
-        'knowledge-rag.query',
-        params,
-        {
-          timeout: timeoutMs,
-          meta: { ...ctx?.meta, $gateway: false },
-        }
-      ),
+      ctx.call('knowledge-rag.query', params, {
+        timeout: timeoutMs,
+        meta: { ...ctx?.meta, $gateway: false },
+      }),
       new Promise((_, reject) => {
         timer = setTimeout(() => reject(buildTimeoutError(timeoutMs)), timeoutMs);
       }),
@@ -189,7 +198,10 @@ async function callWithHardTimeout(ctx, params, timeoutMs) {
   }
 }
 
-async function queryKnowledgeOrientation(ctx, { message, activeDomains = [], limit = DEFAULT_LIMIT } = {}) {
+async function queryKnowledgeOrientation(
+  ctx,
+  { message, activeDomains = [], limit = DEFAULT_LIMIT } = {}
+) {
   const query = String(message || '').trim();
   if (!query) {
     return null;
@@ -215,9 +227,7 @@ async function queryKnowledgeOrientation(ctx, { message, activeDomains = [], lim
       return null;
     }
 
-    const signals = hits
-      .slice(0, 5)
-      .flatMap((hit) => collectSignalsFromHit(hit));
+    const signals = hits.slice(0, 5).flatMap((hit) => collectSignalsFromHit(hit));
 
     const domainHint = resolveDomainHint({ signals, activeDomains });
     const regulatoryFrame = resolveRegulatoryFrame(signals);

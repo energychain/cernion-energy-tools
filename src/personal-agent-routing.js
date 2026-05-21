@@ -5,6 +5,7 @@ const {
   INTERFACE_PLACEHOLDER_CAPABILITY,
   GLOBAL_DO_NOT_USE,
 } = require('./capability-catalog');
+const { planEvidence } = require('./evidence-planner');
 
 const EXECUTION_MODES = Object.freeze({
   AUTO: 'auto',
@@ -704,10 +705,77 @@ function detectRequestedDomains(message) {
   return matches.sort((a, b) => a.index - b.index).map((entry) => entry.key);
 }
 
+function extractForecastTemporalHints(text = '') {
+  const haystack = String(text || '').toLowerCase();
+
+  const explicitDaysMatch = haystack.match(
+    /(?:n[äa]chste(?:n)?|kommende(?:n)?)\s*(\d{1,2})\s*(tagen|tage|tag|wochen|woche)/i
+  );
+  if (explicitDaysMatch) {
+    const amount = Number(explicitDaysMatch[1]);
+    const unit = explicitDaysMatch[2];
+    if (Number.isFinite(amount) && amount > 0) {
+      return {
+        forecastDays: /woche/.test(unit) ? amount * 7 : amount,
+        timeframeHint: 'near_term_forecast',
+      };
+    }
+  }
+
+  if (/\bmorgen\b/i.test(haystack)) {
+    return { forecastDays: 1, timeframeHint: 'near_term_forecast' };
+  }
+
+  if (/\b(?:n[äa]chste(?:n)?|kommende(?:n)?)\s+woche(?:n)?\b/i.test(haystack)) {
+    return { forecastDays: 7, timeframeHint: 'near_term_forecast' };
+  }
+
+  if (
+    /\b(?:in\s+den\s+)?(?:n[äa]chste(?:n)?|kommende(?:n)?)\s+tage(?:n)?\b/i.test(haystack)
+  ) {
+    return { forecastDays: 3, timeframeHint: 'near_term_forecast' };
+  }
+
+  return { forecastDays: undefined, timeframeHint: undefined };
+}
+
+function detectEvidenceSignalKey(message = '', knownContext = {}, promptHints = {}) {
+  const text = String(message || '').toLowerCase();
+  const hasRedispatchSignal = /\bredispatch\b/i.test(text);
+  const hasProbabilitySignal =
+    /\bwahrscheinlichkeit\b|\blikelihood\b|\brisiko\b|\bwie\s+hoch\b/i.test(text);
+  const hasNearTermSignal =
+    /\bmorgen\b|\b(?:in\s+den\s+)?(?:n[äa]chste(?:n)?|kommende(?:n)?)\s+(?:tage(?:n)?|woche(?:n)?)\b/i.test(
+      text
+    ) ||
+    Number.isFinite(Number(promptHints?.forecastDays || knownContext?.forecastDays));
+  const hasStorageOrGenerationSignal =
+    /\bpv\b|\bspeicher\b|\banlage\b|\berzeugung\b|\bsolar\b|\bwind\b/i.test(text);
+
+  if (hasRedispatchSignal && hasNearTermSignal && (hasProbabilitySignal || hasStorageOrGenerationSignal)) {
+    return 'redispatch_probability_forecast';
+  }
+
+  return null;
+}
+
 function findMatchingMatrixRoute(domainKeys = []) {
   return ROUTING_MATRIX.find((route) =>
     route.domains.every((domain) => domainKeys.includes(domain))
   );
+}
+
+function isHitlRequiredForAction(capability, action) {
+  const policy = capability?.hitlPolicy;
+  if (!policy || policy.criticalFlow !== true) {
+    return false;
+  }
+
+  if (Array.isArray(policy.stepActions) && policy.stepActions.length > 0) {
+    return policy.stepActions.includes(action);
+  }
+
+  return policy.mode === 'mandatory_step_approval';
 }
 
 function buildCuratedBrokerSteps(capability, brokerRecommendation) {
@@ -725,11 +793,14 @@ function buildCuratedBrokerSteps(capability, brokerRecommendation) {
     paramsTemplate:
       brokerRecommendation?.recommendedPlan?.find((item) => item.action === action)?.params || {},
     source: 'capability-broker',
+    hitlRequired: isHitlRequiredForAction(capability, action),
+    criticalityClass: capability?.hitlPolicy?.criticalityClass || null,
   }));
 }
 
 function extractPromptHints(message) {
   const text = String(message || '');
+  const temporalHints = extractForecastTemporalHints(text);
   const projectIdExplicitMatch = text.match(
     /\b(?:projekt(?:\s*-?\s*id)?|project(?:\s*-?\s*id)?)\s*[:=]\s*([a-z0-9][a-z0-9_-]{2,})\b/i
   );
@@ -803,6 +874,8 @@ function extractPromptHints(message) {
     postalCode: postalMatch ? postalMatch[0] : undefined,
     gridCapacityKw: requestedCapacityKW,
     requestedCapacityKW,
+    forecastDays: temporalHints.forecastDays,
+    timeframeHint: temporalHints.timeframeHint,
   };
 }
 
@@ -1151,14 +1224,15 @@ function toContextNote(knowledgeContext = {}, action = '') {
   return `Regulatorischer Rahmen: ${knowledgeContext.regulatoryFrame}`;
 }
 
-function buildExecutionPlan({ message, brokerRecommendation, knowledgeContext = null }) {
+function buildExecutionPlan({ message, brokerRecommendation, knowledgeContext = null, knownContext = {} }) {
   const promptHints = extractPromptHints(message);
+  const evidenceSignalKey = detectEvidenceSignalKey(message, knownContext, promptHints);
   const requestedDomains = detectRequestedDomains(message);
   const route = findMatchingMatrixRoute(requestedDomains);
 
   if (route) {
     const unsupportedDomains = requestedDomains.filter((domain) => !route.domains.includes(domain));
-    return {
+    const routingMatrixPlan = {
       source: 'routing-matrix',
       routeKey: route.key,
       routeLabel: route.label,
@@ -1174,6 +1248,8 @@ function buildExecutionPlan({ message, brokerRecommendation, knowledgeContext = 
         source: step.source,
         dependsOnStep: step.dependsOnStep || null,
         contextNote: toContextNote(knowledgeContext, step.action),
+        hitlRequired: false,
+        criticalityClass: null,
       })),
       status: 'ready',
       warnings:
@@ -1182,6 +1258,11 @@ function buildExecutionPlan({ message, brokerRecommendation, knowledgeContext = 
           : [],
       promptHints,
     };
+    routingMatrixPlan.evidencePlan = planEvidence(routingMatrixPlan, {
+      ...(promptHints || {}),
+      ...(knownContext || {}),
+    });
+    return routingMatrixPlan;
   }
 
   const selected = brokerRecommendation?.recommendedCapabilities?.[0]?.capability
@@ -1202,7 +1283,7 @@ function buildExecutionPlan({ message, brokerRecommendation, knowledgeContext = 
   }));
   const unsupportedDomains = requestedDomains.length > 1 ? requestedDomains.slice(1) : [];
 
-  return {
+  const brokerPlan = {
     source: 'capability-broker',
     routeKey: null,
     routeLabel: selected.capability.capability,
@@ -1220,7 +1301,13 @@ function buildExecutionPlan({ message, brokerRecommendation, knowledgeContext = 
         : [],
     promptHints,
     capability: selected.capability,
+    evidenceKey: evidenceSignalKey,
   };
+  brokerPlan.evidencePlan = planEvidence(brokerPlan, {
+    ...(promptHints || {}),
+    ...(knownContext || {}),
+  });
+  return brokerPlan;
 }
 
 function applyMissingContextFallback(plan = {}, { knownContext = {}, executionMode } = {}) {
@@ -1299,4 +1386,6 @@ module.exports = {
   fillTemplateWithContext,
   pruneUndefinedDeep,
   getMissingInputs,
+  detectEvidenceSignalKey,
+  planEvidence,
 };

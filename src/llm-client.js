@@ -195,7 +195,15 @@ async function enforceLlmQuota(options = {}, usageInput) {
   }
 }
 
-async function recordLlmUsageSafely({ options, provider, model, operation, prompt, completion, usage }) {
+async function recordLlmUsageSafely({
+  options,
+  provider,
+  model,
+  operation,
+  prompt,
+  completion,
+  usage,
+}) {
   const tenantId = resolveQuotaTenantId(options);
   if (!tenantId) return;
 
@@ -221,6 +229,7 @@ async function observeLlmCall(adapter, operation, options, usageInput, task) {
   const startedAt = Date.now();
   const provider = adapter?.id || getProviderId();
   const model = options?.model || process.env.LLM_MODEL || 'default';
+  const jobId = options?.jobId || null;
 
   return tracing.withSpan(
     `llm.${operation}`,
@@ -235,15 +244,41 @@ async function observeLlmCall(adapter, operation, options, usageInput, task) {
     },
     async (span) => {
       try {
+        // Log LLM call start if jobId provided
+        if (jobId) {
+          const jobStore = require('./job-store');
+          const timeUntil = jobStore.getTimeUntilDeadline(jobId);
+          jobStore.appendLog(jobId, `llm_${operation}_start`, 0, `Calling LLM (${provider}/${model})...`, {
+            provider,
+            model,
+            operation,
+            deadlineExceeded: jobStore.isDeadlineExceeded(jobId),
+            timeUntilDeadlineMs: timeUntil,
+          });
+        }
+
         await enforceLlmQuota(options, usageInput);
         const result = await task();
+        const elapsedMs = Date.now() - startedAt;
+
+        // Log LLM call success if jobId provided
+        if (jobId) {
+          const jobStore = require('./job-store');
+          jobStore.appendLog(jobId, `llm_${operation}_complete`, 0, `LLM responded in ${elapsedMs}ms`, {
+            provider,
+            model,
+            operation,
+            elapsedMs,
+          });
+        }
+
         tracing.setOk(span);
         metrics.recordLlmRequest({
           provider,
           model,
           operation,
           status: 'success',
-          durationMs: Date.now() - startedAt,
+          durationMs: elapsedMs,
         });
         await recordLlmUsageSafely({
           options,
@@ -256,13 +291,27 @@ async function observeLlmCall(adapter, operation, options, usageInput, task) {
         });
         return result;
       } catch (error) {
+        const elapsedMs = Date.now() - startedAt;
+
+        // Log LLM call error if jobId provided
+        if (jobId) {
+          const jobStore = require('./job-store');
+          jobStore.appendLog(jobId, `llm_${operation}_error`, 0, `LLM error after ${elapsedMs}ms: ${error.message}`, {
+            provider,
+            model,
+            operation,
+            elapsedMs,
+            error: error.message,
+          });
+        }
+
         tracing.setError(span, error);
         metrics.recordLlmRequest({
           provider,
           model,
           operation,
           status: 'error',
-          durationMs: Date.now() - startedAt,
+          durationMs: elapsedMs,
         });
         throw error;
       }
@@ -308,7 +357,11 @@ async function generateStructured(responseSchema, prompt, options = {}) {
   try {
     const raw = await observeLlmCall(adapter, 'generate_structured', options, scrubbedPrompt, () =>
       withRetries(
-        () => adapter.generateStructured(responseSchema, scrubbedPrompt, { ...options, structuredMode: mode }),
+        () =>
+          adapter.generateStructured(responseSchema, scrubbedPrompt, {
+            ...options,
+            structuredMode: mode,
+          }),
         options
       )
     );
@@ -320,8 +373,7 @@ async function generateStructured(responseSchema, prompt, options = {}) {
       'generate_structured_fallback',
       options,
       fallbackPrompt,
-      () =>
-      withRetries(() => adapter.generateText(fallbackPrompt, options), options)
+      () => withRetries(() => adapter.generateText(fallbackPrompt, options), options)
     );
     return parseJsonResponse(fallbackRaw);
   }
@@ -346,7 +398,9 @@ async function embeddings(texts, options = {}) {
     );
   }
 
-  const scrubbed = (Array.isArray(texts) ? texts : []).map((text) => scrubPromptText(String(text || '')));
+  const scrubbed = (Array.isArray(texts) ? texts : []).map((text) =>
+    scrubPromptText(String(text || ''))
+  );
   return await observeLlmCall(adapter, 'embeddings', options, scrubbed, () =>
     withRetries(() => adapter.embeddings(scrubbed, options), options)
   );

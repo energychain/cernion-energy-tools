@@ -389,7 +389,9 @@ module.exports = {
           limit: 200,
         });
       } catch (error) {
-        this.logger.warn(`[blindflug-radar] mastr-monitor.listWatches unavailable: ${error.message}`);
+        this.logger.warn(
+          `[blindflug-radar] mastr-monitor.listWatches unavailable: ${error.message}`
+        );
         return [];
       }
 
@@ -624,12 +626,20 @@ module.exports = {
       try {
         const doc = await this.db.get(`${DOC_PREFIX}${id}`);
         if (doc.tenantId !== tenantId) {
-          throw new MoleculerClientError('Blindflug scan not found', 404, 'BLINDFLUG_SCAN_NOT_FOUND');
+          throw new MoleculerClientError(
+            'Blindflug scan not found',
+            404,
+            'BLINDFLUG_SCAN_NOT_FOUND'
+          );
         }
         return doc;
       } catch (err) {
         if (err?.status === 404 || err?.type === 'BLINDFLUG_SCAN_NOT_FOUND') {
-          throw new MoleculerClientError('Blindflug scan not found', 404, 'BLINDFLUG_SCAN_NOT_FOUND');
+          throw new MoleculerClientError(
+            'Blindflug scan not found',
+            404,
+            'BLINDFLUG_SCAN_NOT_FOUND'
+          );
         }
         throw err;
       }

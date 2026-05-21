@@ -38,7 +38,7 @@ module.exports = class VDMISpectatorService extends Service {
     /**
      * GET — Negotiation Trace with full agent arguments
      */
-    'negotiationTrace': {
+    negotiationTrace: {
       rest: 'GET /tenants/:tenantId/tasks/:taskId/negotiation-trace',
       openapi: {
         tags: ['VDMI Governance'],
@@ -49,7 +49,10 @@ module.exports = class VDMISpectatorService extends Service {
           {
             name: 'phase',
             in: 'query',
-            schema: { type: 'string', enum: ['all', 'proposal', 'consensus', 'conflict_resolution'] },
+            schema: {
+              type: 'string',
+              enum: ['all', 'proposal', 'consensus', 'conflict_resolution'],
+            },
             description: 'Filter by negotiation phase',
           },
           {
@@ -60,7 +63,7 @@ module.exports = class VDMISpectatorService extends Service {
           },
         ],
         responses: {
-          '200': {
+          200: {
             description: 'Complete negotiation trace',
             content: {
               'application/json': {
@@ -79,7 +82,7 @@ module.exports = class VDMISpectatorService extends Service {
               },
             },
           },
-          '403': { description: 'Access denied' },
+          403: { description: 'Access denied' },
         },
       },
       async handler(ctx) {
@@ -106,13 +109,13 @@ module.exports = class VDMISpectatorService extends Service {
           // Filter by phase
           let filteredTrace = trace;
           if (phase && phase !== 'all') {
-            filteredTrace = trace.filter(entry => entry.phase === phase);
+            filteredTrace = trace.filter((entry) => entry.phase === phase);
           }
 
           // Filter by agent
           if (agentFilter) {
-            const agents = agentFilter.split(',').map(a => a.trim());
-            filteredTrace = filteredTrace.filter(entry => agents.includes(entry.agent));
+            const agents = agentFilter.split(',').map((a) => a.trim());
+            filteredTrace = filteredTrace.filter((entry) => agents.includes(entry.agent));
           }
 
           // Get consensus matrix
@@ -138,7 +141,7 @@ module.exports = class VDMISpectatorService extends Service {
     /**
      * GET — Governance Dossier (decision document)
      */
-    'dossier': {
+    dossier: {
       rest: 'GET /tenants/:tenantId/tasks/:taskId/dossier',
       openapi: {
         tags: ['VDMI Governance'],
@@ -160,7 +163,7 @@ module.exports = class VDMISpectatorService extends Service {
           },
         ],
         responses: {
-          '200': {
+          200: {
             description: 'Governance dossier document',
             content: {
               'application/json': {

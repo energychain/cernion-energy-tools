@@ -68,8 +68,16 @@ module.exports = {
             schema: { type: 'string', example: 'finance-agent.analyze' },
           },
           { name: 'contains', in: 'query', schema: { type: 'string', example: 'timeout' } },
-          { name: 'limit', in: 'query', schema: { type: 'integer', default: 50, minimum: 1, maximum: 200 } },
-          { name: 'sinceMinutes', in: 'query', schema: { type: 'integer', default: 60, minimum: 1 } },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'integer', default: 50, minimum: 1, maximum: 200 },
+          },
+          {
+            name: 'sinceMinutes',
+            in: 'query',
+            schema: { type: 'integer', default: 60, minimum: 1 },
+          },
           {
             name: 'since',
             in: 'query',
@@ -99,11 +107,19 @@ module.exports = {
                           timestamp: { type: 'string', format: 'date-time' },
                           level: { type: 'string', example: 'error' },
                           service: { type: 'string', example: 'finance-agent' },
-                          action: { type: 'string', nullable: true, example: 'finance-agent.analyze' },
+                          action: {
+                            type: 'string',
+                            nullable: true,
+                            example: 'finance-agent.analyze',
+                          },
                           source: { type: 'string', example: 'service' },
                           nodeID: { type: 'string', nullable: true },
                           requestOrigin: { type: 'string', nullable: true, example: 'gateway' },
-                          errorType: { type: 'string', nullable: true, example: 'VALIDATION_ERROR' },
+                          errorType: {
+                            type: 'string',
+                            nullable: true,
+                            example: 'VALIDATION_ERROR',
+                          },
                           message: { type: 'string' },
                         },
                       },
@@ -176,8 +192,16 @@ module.exports = {
             in: 'query',
             schema: { type: 'string', enum: STATUS_VALUES, example: 'success' },
           },
-          { name: 'limit', in: 'query', schema: { type: 'integer', default: 50, minimum: 1, maximum: 200 } },
-          { name: 'sinceMinutes', in: 'query', schema: { type: 'integer', default: 1440, minimum: 1 } },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'integer', default: 50, minimum: 1, maximum: 200 },
+          },
+          {
+            name: 'sinceMinutes',
+            in: 'query',
+            schema: { type: 'integer', default: 1440, minimum: 1 },
+          },
           {
             name: 'since',
             in: 'query',
@@ -188,7 +212,11 @@ module.exports = {
             in: 'query',
             schema: { type: 'string', format: 'date-time', example: '2026-05-04T12:00:00.000Z' },
           },
-          { name: 'slowActionThresholdMs', in: 'query', schema: { type: 'integer', default: 1000, minimum: 1 } },
+          {
+            name: 'slowActionThresholdMs',
+            in: 'query',
+            schema: { type: 'integer', default: 1000, minimum: 1 },
+          },
           { name: 'includeRaw', in: 'query', schema: { type: 'boolean', default: false } },
         ],
         responses: {
@@ -259,9 +287,21 @@ module.exports = {
           'Returns a compact production-feedback overview containing recent log volume, latest errors, ' +
           'action throughput, and slowest actions over a configurable time window.',
         parameters: [
-          { name: 'limit', in: 'query', schema: { type: 'integer', default: 50, minimum: 1, maximum: 50 } },
-          { name: 'sinceMinutes', in: 'query', schema: { type: 'integer', default: 60, minimum: 1 } },
-          { name: 'slowActionThresholdMs', in: 'query', schema: { type: 'integer', default: 1000, minimum: 1 } },
+          {
+            name: 'limit',
+            in: 'query',
+            schema: { type: 'integer', default: 50, minimum: 1, maximum: 50 },
+          },
+          {
+            name: 'sinceMinutes',
+            in: 'query',
+            schema: { type: 'integer', default: 60, minimum: 1 },
+          },
+          {
+            name: 'slowActionThresholdMs',
+            in: 'query',
+            schema: { type: 'integer', default: 1000, minimum: 1 },
+          },
         ],
         responses: {
           200: {
@@ -417,7 +457,10 @@ module.exports = {
           metrics: {
             total: metrics.length,
             overview: this.buildMetricOverview(metrics, slowActionThresholdMs),
-            slowestActions: this.buildActionBreakdown(metrics, slowActionThresholdMs).slice(0, limit),
+            slowestActions: this.buildActionBreakdown(metrics, slowActionThresholdMs).slice(
+              0,
+              limit
+            ),
           },
         };
 
@@ -475,9 +518,7 @@ module.exports = {
         };
       }
 
-      const durations = metrics
-        .map((entry) => Number(entry.durationMs) || 0)
-        .sort((a, b) => a - b);
+      const durations = metrics.map((entry) => Number(entry.durationMs) || 0).sort((a, b) => a - b);
       const totalDuration = durations.reduce((sum, value) => sum + value, 0);
       const successCount = metrics.filter((entry) => entry.status === 'success').length;
       const errorCount = metrics.filter((entry) => entry.status === 'error').length;
@@ -514,9 +555,10 @@ module.exports = {
         current.calls += 1;
         current.totalDurationMs += Number(metric.durationMs) || 0;
         current.maxDurationMs = Math.max(current.maxDurationMs, Number(metric.durationMs) || 0);
-        current.lastSeenAt = !current.lastSeenAt || metric.timestamp > current.lastSeenAt
-          ? metric.timestamp
-          : current.lastSeenAt;
+        current.lastSeenAt =
+          !current.lastSeenAt || metric.timestamp > current.lastSeenAt
+            ? metric.timestamp
+            : current.lastSeenAt;
         if (metric.status === 'error') {
           current.errorCount += 1;
           current.lastErrorType = metric.errorType || current.lastErrorType;

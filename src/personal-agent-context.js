@@ -283,6 +283,21 @@ function buildPersistableSessionState(input = {}) {
     {}
   );
 
+  const lastClassification =
+    input?.l3?.lastClassification && typeof input.l3.lastClassification === 'object'
+      ? {
+          messageHash: input.l3.lastClassification.messageHash || null,
+          fingerprint: input.l3.lastClassification.fingerprint || null,
+          chatMode: input.l3.lastClassification.chatMode || null,
+          source: input.l3.lastClassification.source || null,
+          confidence:
+            typeof input.l3.lastClassification.confidence === 'number'
+              ? input.l3.lastClassification.confidence
+              : null,
+          timestamp: input.l3.lastClassification.timestamp || null,
+        }
+      : null;
+
   const payload = {
     id: String(input.id || ''),
     tenantId: String(input.tenantId || 'default'),
@@ -299,6 +314,8 @@ function buildPersistableSessionState(input = {}) {
       summary: input?.l3?.summary || null,
       compressed: Boolean(input?.l3?.compressed),
       chatMode: String(input?.l3?.chatMode || input?.chatMode || 'consultation'),
+      chatModeSource: input?.l3?.chatModeSource || null,
+      lastClassification,
       consultationContext:
         input?.l3?.consultationContext && typeof input.l3.consultationContext === 'object'
           ? input.l3.consultationContext
@@ -309,6 +326,18 @@ function buildPersistableSessionState(input = {}) {
         ? input.l3.resolvedCapabilities
         : [],
       lastCompletedPlan,
+      stateMachine:
+        input?.l3?.stateMachine && typeof input.l3.stateMachine === 'object'
+          ? input.l3.stateMachine
+          : null,
+      executionStateGraph:
+        input?.l3?.executionStateGraph && typeof input.l3.executionStateGraph === 'object'
+          ? input.l3.executionStateGraph
+          : null,
+      turnGraph:
+        input?.l3?.turnGraph && typeof input.l3.turnGraph === 'object'
+          ? input.l3.turnGraph
+          : null,
       criticalStepCheckpoints,
     },
     createdAt: input.createdAt || new Date().toISOString(),

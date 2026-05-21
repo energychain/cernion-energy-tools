@@ -8,8 +8,9 @@
  *              tests/personal-agent-llm-classify.e2e.test.js --testTimeout=30000
  */
 
-import http from 'http';
+const http = require('http');
 
+const RUN_E2E = process.env.RUN_PERSONAL_AGENT_E2E_LIVE === 'true';
 const BASE_URL = process.env.PA_E2E_BASE_URL || 'http://localhost:3900';
 const TIMEOUT_MS = 20000;
 
@@ -85,7 +86,9 @@ function skipIfNoServer() {
   }
 }
 
-describe('LLM ChatMode Klassifikation — E2E Szenarien', () => {
+const describeE2E = RUN_E2E ? describe : describe.skip;
+
+describeE2E('LLM ChatMode Klassifikation — E2E Szenarien', () => {
   describe('Walldorf Szenario', () => {
     const sessionId = `e2e-walldorf-${Date.now()}`;
 

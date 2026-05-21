@@ -202,7 +202,11 @@ module.exports = {
       let changed = 0;
 
       if (payload.rateLimits && typeof payload.rateLimits === 'object') {
-        patch.rateLimits = this.validateNumericMap(payload.rateLimits, RATE_LIMIT_KEYS, 'rateLimits');
+        patch.rateLimits = this.validateNumericMap(
+          payload.rateLimits,
+          RATE_LIMIT_KEYS,
+          'rateLimits'
+        );
         changed += Object.keys(patch.rateLimits).length;
       }
 

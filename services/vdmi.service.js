@@ -5,6 +5,7 @@ const PouchDB = require('pouchdb');
 PouchDB.plugin(require('pouchdb-find'));
 const { MoleculerClientError } = require('moleculer').Errors;
 const { getTenantId } = require('../src/tenant-context');
+const { SYSTEM_TEMPLATES } = require('../src/vdmi-system-templates');
 
 const OPENAPI_TAG = 'VDMI';
 const DOC_PREFIX = 'vdmi:';
@@ -184,7 +185,11 @@ module.exports = {
     await this.db.createIndex({ index: { fields: ['status'] } });
     await this.db.createIndex({ index: { fields: ['createdAt'] } });
     await this.db.createIndex({ index: { fields: ['type'] } });
+    await this.db.createIndex({ index: { fields: ['isSystem'] } });
     this.logger.info(`VDMI DB initialized at ${this.settings.dbPath}`);
+
+    // Seed system templates (Option B: versioned upsert, idempotent)
+    await this.seedSystemTemplates();
   },
 
   async stopped() {
@@ -918,7 +923,11 @@ module.exports = {
             schema: { type: 'string', example: 'technical' },
           },
           { name: 'processType', in: 'query', schema: { type: 'string', example: 'adhoc' } },
-          { name: 'taskId', in: 'query', schema: { type: 'string', example: 'network-operator-decision' } },
+          {
+            name: 'taskId',
+            in: 'query',
+            schema: { type: 'string', example: 'network-operator-decision' },
+          },
         ],
       },
       async handler(ctx) {
@@ -973,8 +982,8 @@ module.exports = {
 
         if (rolesByTaskRaw.length === 0) {
           if (
-            processType === 'grid-connection-governance'
-            && taskId === 'network-operator-decision'
+            processType === 'grid-connection-governance' &&
+            taskId === 'network-operator-decision'
           ) {
             return {
               success: true,
@@ -1420,10 +1429,30 @@ module.exports = {
                   processType: 'grid-connection-governance',
                   processId: 'deterministic-uat-process',
                   matrixId: 'deterministic-uat-vdmi',
-                  verantwortlich: [{ actorType: 'org', actorId: 'DSO_GATEKEEPER', displayName: 'Zuständiger VNB' }],
-                  durchfuehrend: [{ actorType: 'org', actorId: 'AREAL_OWNER', displayName: 'Projektträger / Areal Owner' }],
-                  mitwirkend: [{ actorType: 'org', actorId: 'FINANCIER_ANALYST', displayName: 'Banken-Analyst' }],
-                  information: [{ actorType: 'org', actorId: 'TWL_NETZE', displayName: 'TWL Netze (angegeben)' }],
+                  verantwortlich: [
+                    { actorType: 'org', actorId: 'DSO_GATEKEEPER', displayName: 'Zuständiger VNB' },
+                  ],
+                  durchfuehrend: [
+                    {
+                      actorType: 'org',
+                      actorId: 'AREAL_OWNER',
+                      displayName: 'Projektträger / Areal Owner',
+                    },
+                  ],
+                  mitwirkend: [
+                    {
+                      actorType: 'org',
+                      actorId: 'FINANCIER_ANALYST',
+                      displayName: 'Banken-Analyst',
+                    },
+                  ],
+                  information: [
+                    {
+                      actorType: 'org',
+                      actorId: 'TWL_NETZE',
+                      displayName: 'TWL Netze (angegeben)',
+                    },
+                  ],
                 },
                 evidence: {
                   requirements: [
@@ -1537,7 +1566,9 @@ module.exports = {
           }
           return {
             id: String(item.id || `req-${index + 1}`),
-            label: String(item.label || item.name || item.description || item.id || `Requirement ${index + 1}`),
+            label: String(
+              item.label || item.name || item.description || item.id || `Requirement ${index + 1}`
+            ),
             required: item.required !== false,
             expectedType: item.type || null,
             expectedReference: item.reference || null,
@@ -1547,12 +1578,14 @@ module.exports = {
 
         const evidenceEntries = (matrix.evidence || []).filter((entry) => {
           const contentTaskId = entry?.content?.taskId;
-          const contentTaskIds = Array.isArray(entry?.content?.taskIds) ? entry.content.taskIds : [];
+          const contentTaskIds = Array.isArray(entry?.content?.taskIds)
+            ? entry.content.taskIds
+            : [];
           const reference = String(entry?.reference || '');
           return (
-            contentTaskId === ctx.params.taskId
-            || contentTaskIds.includes(ctx.params.taskId)
-            || reference.includes(ctx.params.taskId)
+            contentTaskId === ctx.params.taskId ||
+            contentTaskIds.includes(ctx.params.taskId) ||
+            reference.includes(ctx.params.taskId)
           );
         });
 
@@ -1561,18 +1594,22 @@ module.exports = {
 
         for (const requirement of evidenceRequirements) {
           const matched = evidenceEntries.some((entry) => {
-            const entryText = `${entry.type || ''} ${entry.reference || ''} ${entry.reason || ''}`.toLowerCase();
+            const entryText =
+              `${entry.type || ''} ${entry.reference || ''} ${entry.reason || ''}`.toLowerCase();
             if (
-              Array.isArray(requirement.acceptedTypes)
-              && requirement.acceptedTypes.length > 0
-              && requirement.acceptedTypes.includes(entry.type)
+              Array.isArray(requirement.acceptedTypes) &&
+              requirement.acceptedTypes.length > 0 &&
+              requirement.acceptedTypes.includes(entry.type)
             ) {
               return true;
             }
             if (requirement.expectedType && entry.type === requirement.expectedType) {
               return true;
             }
-            if (requirement.expectedReference && entry.reference === requirement.expectedReference) {
+            if (
+              requirement.expectedReference &&
+              entry.reference === requirement.expectedReference
+            ) {
               return true;
             }
             return entryText.includes(String(requirement.label || '').toLowerCase());
@@ -1612,14 +1649,15 @@ module.exports = {
 
         const resolvedAllowedOptions = allowedOptions.length > 0 ? allowedOptions : defaultOptions;
         const nextActions = toArray(task?.nextActions);
-        const resolvedNextActions = nextActions.length > 0
-          ? nextActions
-          : evidenceGaps.map((gap) => ({
-            id: `collect-${gap.requirementId}`,
-            type: 'collect_evidence',
-            requirementId: gap.requirementId,
-            label: gap.label,
-          }));
+        const resolvedNextActions =
+          nextActions.length > 0
+            ? nextActions
+            : evidenceGaps.map((gap) => ({
+                id: `collect-${gap.requirementId}`,
+                type: 'collect_evidence',
+                requirementId: gap.requirementId,
+                label: gap.label,
+              }));
 
         facts.push({
           eventName: 'task.context',
@@ -1879,8 +1917,7 @@ module.exports = {
           if (task.durchfuehrend.length > 0) {
             const existingD = task.durchfuehrend[0];
             const sameActor =
-              existingD?.actorType === actor.actorType &&
-              existingD?.actorId === actor.actorId;
+              existingD?.actorType === actor.actorType && existingD?.actorId === actor.actorId;
             if (sameActor) {
               continue;
             }
@@ -2034,6 +2071,110 @@ module.exports = {
           .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')))[0] ||
         null
       );
+    },
+
+    async seedSystemTemplates() {
+      /**
+       * Option B: Versioned Upsert for System Templates
+       * - Insert if missing (stable ID)
+       * - Update if templateVersion is higher
+       * - No-op if same or lower version
+       * System templates have originTenant: '*' for tenant-overarching visibility
+       */
+      const ts = nowIso();
+      let seededCount = 0;
+      let updatedCount = 0;
+
+      for (const sourceTemplate of SYSTEM_TEMPLATES) {
+        const docId = `${TEMPLATE_PREFIX}SYSTEM_${sourceTemplate.id}`;
+        const docPayload = {
+          _id: docId,
+          id: `SYSTEM_${sourceTemplate.id}`,
+          type: 'vdmi-template',
+          tenantId: null, // System-wide, no specific tenant
+          originTenant: '*', // Queryable from all tenants
+          templateVersion: sourceTemplate.templateVersion || 1,
+          isSystem: true,
+          name: sourceTemplate.name,
+          description: sourceTemplate.description,
+          scope: sourceTemplate.scope,
+          assetCategory: sourceTemplate.assetCategory || null,
+          regulatoryBasis: sourceTemplate.regulatoryBasis || [],
+          processType: sourceTemplate.processType || null,
+          tasks: sourceTemplate.tasks || [],
+          certificationScope: 'ISO55001',
+          isoClause: '8.1',
+          taskTemplates: sourceTemplate.tasks || [],
+          changelog: [
+            {
+              version: sourceTemplate.templateVersion || 1,
+              date: ts,
+              author: 'system-seed',
+              changes: `System template seeded in v0.53.0 (option B: versioned upsert)`,
+            },
+          ],
+          createdAt: ts,
+          updatedAt: ts,
+          promotedFromMatrixId: null,
+          usageCount: 0,
+          systemSeedVersion: sourceTemplate.templateVersion || 1,
+        };
+
+        try {
+          // Try to fetch existing doc
+          let existing = null;
+          try {
+            existing = await this.db.get(docId);
+          } catch (err) {
+            if (err.status !== 404) throw err;
+          }
+
+          if (!existing) {
+            // Insert new system template
+            await this.db.put(docPayload);
+            seededCount += 1;
+            this.logger.info(
+              `[VDMI] Seeded system template: ${sourceTemplate.id} (v${sourceTemplate.templateVersion || 1})`
+            );
+          } else {
+            // Versioned upsert: update if sourceTemplate.templateVersion > existing.systemSeedVersion
+            const existingVersion = existing.systemSeedVersion || existing.templateVersion || 0;
+            const sourceVersion = sourceTemplate.templateVersion || 1;
+            if (sourceVersion > existingVersion) {
+              // Merge payload: keep _rev, update metadata and tasks
+              docPayload._rev = existing._rev;
+              docPayload.changelog = Array.isArray(existing.changelog) ? existing.changelog : [];
+              docPayload.changelog.push({
+                version: sourceVersion,
+                date: ts,
+                author: 'system-seed-update',
+                changes: `System template updated in v0.53.0 (version bump ${existingVersion} → ${sourceVersion})`,
+              });
+              await this.db.put(docPayload);
+              updatedCount += 1;
+              this.logger.info(
+                `[VDMI] Updated system template: ${sourceTemplate.id} (v${existingVersion} → v${sourceVersion})`
+              );
+            } else {
+              // No-op: same or lower version already installed
+              this.logger.debug(
+                `[VDMI] System template already seeded at desired version: ${sourceTemplate.id} (v${existingVersion})`
+              );
+            }
+          }
+        } catch (err) {
+          this.logger.error(
+            `[VDMI] Failed to seed system template ${sourceTemplate.id}: ${err.message}`
+          );
+          // Continue seeding other templates, don't fail startup
+        }
+      }
+
+      if (seededCount > 0 || updatedCount > 0) {
+        this.logger.info(
+          `[VDMI] System template seeding completed: +${seededCount} new, +${updatedCount} updated`
+        );
+      }
     },
 
     async createTemplateFromMatrix(matrix, tenantId, reason) {

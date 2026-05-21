@@ -214,7 +214,8 @@ describe('personal-agent-routing', () => {
 
   it('selects VDMI asset-validation governance in fallback routing for asset/evidence prompts', () => {
     const plan = buildExecutionPlan({
-      message: 'Asset-Validierung für Anlage TR-17 mit Evidenzlücken, Risikofaktoren und verbotenen Annahmen erstellen',
+      message:
+        'Asset-Validierung für Anlage TR-17 mit Evidenzlücken, Risikofaktoren und verbotenen Annahmen erstellen',
       brokerRecommendation: null,
     });
 
@@ -226,7 +227,8 @@ describe('personal-agent-routing', () => {
 
   it('selects VDMI grid-connection decision governance in fallback routing for formal decision prompts', () => {
     const plan = buildExecutionPlan({
-      message: 'Kann der Netzbetreiber ohne formales §17 EnWG Netzanschlussbegehren eine belastbare Anschlusszusage oder Kapazitaetszusage geben?',
+      message:
+        'Kann der Netzbetreiber ohne formales §17 EnWG Netzanschlussbegehren eine belastbare Anschlusszusage oder Kapazitaetszusage geben?',
       brokerRecommendation: null,
     });
 
@@ -248,6 +250,18 @@ describe('personal-agent-routing', () => {
     expect(plan.routeLabel).toBe('financier_due_diligence_assessment');
     expect(plan.primaryIntent).toBe('financier_due_diligence_assessment');
     expect(plan.steps[0].action).toBe('finance-agent.analyze');
+  });
+
+  it('marks critical capability steps as mandatory HITL checkpoints', () => {
+    const plan = buildExecutionPlan({
+      message: 'Due Diligence für den Kreditausschuss vorbereiten',
+      brokerRecommendation: null,
+    });
+
+    expect(plan.routeLabel).toBe('financier_due_diligence_assessment');
+    expect(plan.steps[0].action).toBe('finance-agent.analyze');
+    expect(plan.steps[0].hitlRequired).toBe(true);
+    expect(plan.steps[0].criticalityClass).toBe('financial_commitment');
   });
 
   it('hydrates finance-agent.analyze query and vdmi decision task defaults in template filling', () => {

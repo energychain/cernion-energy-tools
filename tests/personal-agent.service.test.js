@@ -2416,6 +2416,23 @@ describe('personal-agent.service', () => {
     expect(result.execution).toEqual({ status: 'consulting', plan: null, steps: [] });
   });
 
+  it('does not expose mark_unknown_execution_gap as consultation primaryIntent for greeting prompts', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Hi zusammen',
+        executionMode: 'auto',
+        chatMode: 'consultation',
+      },
+      { meta: { tenantId: 'tenant-chatmode-greeting', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.status).toBe('consulting');
+    expect(result.routing.chatMode).toBe('consultation');
+    expect(result.routing.primaryIntent).not.toBe('mark_unknown_execution_gap');
+  });
+
   it('resolves chatMode from meta.$params fallback when ctx.params.chatMode is missing', async () => {
     const result = await broker.call(
       'personal-agent.chat',
@@ -2513,6 +2530,51 @@ describe('personal-agent.service', () => {
       await svc.classifyChatModeLLM(mockCtx, 'Weiter bitte', session);
       expect(capturedParams.user).toContain('offenen Plan-Stack');
     });
+  });
+
+  it('builds a strategy-aware onboarding stop point without leaking raw schema tokens', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const responseStrategy = svc.buildResponseStrategy({
+      message: 'Bitte mach das für den Vorstand technisch sauber.',
+      knownContext: {
+        targetAudience: 'Vorstand',
+      },
+      missingParams: ['customSchemaField'],
+    });
+
+    const stopPoint = svc.buildOnboardingStopPoint({
+      plan: {
+        steps: [{ action: 'grid-operations.marketPartners' }],
+      },
+      missingParams: ['customSchemaField'],
+      blockedStep: 1,
+      blockedAction: 'grid-operations.marketPartners',
+      responseStrategy,
+    });
+
+    expect(stopPoint.responseStrategy.audience).toBe(responseStrategy.audience);
+    expect(stopPoint.onboardingQuestion.questionText).not.toContain('customSchemaField');
+    expect(stopPoint.onboardingQuestion.questionText).toContain('Entscheidungsebene');
+  });
+
+  it('builds consultation prompts that instruct the model to label assumptions', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const prompt = svc.buildConsultationPrompt({
+      message: 'Bitte klär das für die Geschäftsführung.',
+      knowledgeContext: {
+        synthesisStyle: 'methodological',
+      },
+      responseStrategy: {
+        audience: 'leadership',
+        epistemicState: 'inferable',
+        abstractionLevel: 'executive',
+        nextMove: 'state_assumption',
+      },
+    });
+
+    expect(prompt).toContain('Antwortstrategie');
+    expect(prompt).toContain('Working Assumptions');
+    expect(prompt).toContain('keine internen Schema-Feldnamen');
   });
 
   it('normalizes chatMode alias consulting from meta fallback to consultation', async () => {
@@ -2644,6 +2706,14 @@ describe('personal-agent.service', () => {
     expect(result).toHaveProperty('agentTrace');
     expect(result.agentTrace).toHaveProperty('planning');
     expect(result.agentTrace).toHaveProperty('execution');
+    expect(result.agentTrace).toHaveProperty('stateMachine');
+    expect(result.agentTrace.stateMachine).toHaveProperty('currentState');
+    expect(result.agentTrace).toHaveProperty('turnGraph');
+    expect(result.agentTrace.turnGraph).toHaveProperty('nodeCount');
+    expect(result).toHaveProperty('stateMachine');
+    expect(result.stateMachine).toHaveProperty('transitions');
+    expect(result).toHaveProperty('turnGraph');
+    expect(result.turnGraph).toHaveProperty('nodeCount');
     expect(typeof result.reply).toBe('string');
     expect(result.reply.toLowerCase()).not.toContain('agenttrace');
   });

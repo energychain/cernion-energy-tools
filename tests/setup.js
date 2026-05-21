@@ -4,6 +4,10 @@
  * Setup environment and mocks for testing
  */
 
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
 // Load environment variables for tests
 require('dotenv').config();
 
@@ -21,3 +25,17 @@ global.console = {
   warn: jest.fn(),
   error: jest.fn(),
 };
+
+let rateQuotaTempDir = null;
+if (!process.env.RATE_QUOTA_DIR) {
+  rateQuotaTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jest-rate-quota-'));
+  process.env.RATE_QUOTA_DIR = rateQuotaTempDir;
+  process.on('exit', () => {
+    if (!rateQuotaTempDir) return;
+    try {
+      fs.rmSync(rateQuotaTempDir, { recursive: true, force: true });
+    } catch {
+      // Ignore cleanup errors
+    }
+  });
+}

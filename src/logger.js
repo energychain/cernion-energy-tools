@@ -49,7 +49,8 @@ function buildPayload(entry = {}) {
     nodeID: sanitizeValue(entry.nodeID || current.nodeID || null),
     requestOrigin: sanitizeValue(entry.requestOrigin || current.requestOrigin || null),
     errorType: sanitizeValue(entry.errorType || null),
-    ...((entry.extra && typeof entry.extra === 'object') || (current.extra && typeof current.extra === 'object')
+    ...((entry.extra && typeof entry.extra === 'object') ||
+    (current.extra && typeof current.extra === 'object')
       ? { ...(current.extra || {}), ...(entry.extra || {}) }
       : {}),
   };

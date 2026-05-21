@@ -58,10 +58,16 @@ function buildJoinCandidates(features) {
   const keys = [];
 
   if (latitude !== null && longitude !== null && capacityKw !== null) {
-    keys.push({ key: `geo-cap:${latitude.toFixed(3)}:${longitude.toFixed(3)}:${Math.round(capacityKw)}`, score: 100 });
+    keys.push({
+      key: `geo-cap:${latitude.toFixed(3)}:${longitude.toFixed(3)}:${Math.round(capacityKw)}`,
+      score: 100,
+    });
   }
   if (postalCode && capacityKw !== null && commissioningYear !== null) {
-    keys.push({ key: `plz-cap-year:${postalCode}:${Math.round(capacityKw)}:${Math.round(commissioningYear)}`, score: 90 });
+    keys.push({
+      key: `plz-cap-year:${postalCode}:${Math.round(capacityKw)}:${Math.round(commissioningYear)}`,
+      score: 90,
+    });
   }
   if (postalCode && capacityKw !== null) {
     keys.push({ key: `plz-cap:${postalCode}:${Math.round(capacityKw)}`, score: 80 });
@@ -124,7 +130,11 @@ function joinByOeoClass(mastrInstallations, oepRows, oeoClass, fieldMap = []) {
     }
 
     if (!bestMatch) {
-      mastrOnly.push({ record: mastrRecord, features, ref: getReference(mastrRecord, features, 'mastr') });
+      mastrOnly.push({
+        record: mastrRecord,
+        features,
+        ref: getReference(mastrRecord, features, 'mastr'),
+      });
       return;
     }
 

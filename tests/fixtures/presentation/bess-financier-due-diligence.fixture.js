@@ -76,10 +76,18 @@ module.exports = {
       'Do not treat user-provided project data as independently verified',
     ],
     nextActions: [
-      { id: 'dd-1', type: 'payout_condition', label: 'Grid connection confirmation as payout condition' },
+      {
+        id: 'dd-1',
+        type: 'payout_condition',
+        label: 'Grid connection confirmation as payout condition',
+      },
       { id: 'dd-2', type: 'financial_model', label: 'Require DSCR downside revenue case' },
       { id: 'dd-3', type: 'technical_dd', label: 'Require independent technical advisor review' },
-      { id: 'dd-4', type: 'insurance_kyc', label: 'Require insurance and shareholder/KYC evidence' },
+      {
+        id: 'dd-4',
+        type: 'insurance_kyc',
+        label: 'Require insurance and shareholder/KYC evidence',
+      },
     ],
     warnings: [
       'fixture_unverified_user_assertions',

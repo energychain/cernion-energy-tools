@@ -68,7 +68,12 @@ const ASSET_QUERY_ARRAY_RESPONSE = {
 };
 
 const OVERRIDE_NAMESPACE = 'asset_overrides';
-const OVERRIDEABLE_FIELDS = ['capacityKW', 'voltageLevel', 'commissionDate', 'direktvermarktungActive'];
+const OVERRIDEABLE_FIELDS = [
+  'capacityKW',
+  'voltageLevel',
+  'commissionDate',
+  'direktvermarktungActive',
+];
 const CRITICAL_OVERRIDE_FIELDS = ['voltageLevel', 'direktvermarktungActive'];
 
 /**
@@ -754,7 +759,9 @@ module.exports = {
           const effectiveItems = await this._applyOverridesToInstallations(ctx, items, true);
 
           // Map items to German output format using shared _mapInstallationItem
-          const mappedItems = effectiveItems.map((item) => this._mapInstallationItem(item, assetType));
+          const mappedItems = effectiveItems.map((item) =>
+            this._mapInstallationItem(item, assetType)
+          );
 
           allResults.push(...mappedItems);
         } catch (err) {
@@ -867,7 +874,11 @@ module.exports = {
           );
         }
         if (!reason) {
-          throw new MoleculerClientError('reason is required', 400, 'ASSET_OVERRIDE_REASON_REQUIRED');
+          throw new MoleculerClientError(
+            'reason is required',
+            400,
+            'ASSET_OVERRIDE_REASON_REQUIRED'
+          );
         }
 
         const isCritical = this._isCriticalOverrideField(field);
@@ -1065,7 +1076,9 @@ module.exports = {
             : [assetType];
 
         const records = await this._fetchAssets(ctx, assetTypes);
-        const asset = records.find((item) => item['Asset-ID'] === assetId || item['SEE Nummer'] === assetId);
+        const asset = records.find(
+          (item) => item['Asset-ID'] === assetId || item['SEE Nummer'] === assetId
+        );
         if (!asset) {
           throw new MoleculerClientError(
             `Asset "${assetId}" not found in provided scope`,
@@ -1131,10 +1144,18 @@ module.exports = {
         const override = stored?.payload;
 
         if (!override) {
-          throw new MoleculerClientError(`Override "${id}" not found`, 404, 'ASSET_OVERRIDE_NOT_FOUND');
+          throw new MoleculerClientError(
+            `Override "${id}" not found`,
+            404,
+            'ASSET_OVERRIDE_NOT_FOUND'
+          );
         }
         if (override.assetId !== assetId && override.mastrNummer !== assetId) {
-          throw new MoleculerClientError('Override does not belong to assetId', 400, 'ASSET_OVERRIDE_ASSET_MISMATCH');
+          throw new MoleculerClientError(
+            'Override does not belong to assetId',
+            400,
+            'ASSET_OVERRIDE_ASSET_MISMATCH'
+          );
         }
 
         const now = new Date().toISOString();
@@ -1205,10 +1226,18 @@ module.exports = {
         const override = stored?.payload;
 
         if (!override) {
-          throw new MoleculerClientError(`Override "${id}" not found`, 404, 'ASSET_OVERRIDE_NOT_FOUND');
+          throw new MoleculerClientError(
+            `Override "${id}" not found`,
+            404,
+            'ASSET_OVERRIDE_NOT_FOUND'
+          );
         }
         if (override.assetId !== assetId && override.mastrNummer !== assetId) {
-          throw new MoleculerClientError('Override does not belong to assetId', 400, 'ASSET_OVERRIDE_ASSET_MISMATCH');
+          throw new MoleculerClientError(
+            'Override does not belong to assetId',
+            400,
+            'ASSET_OVERRIDE_ASSET_MISMATCH'
+          );
         }
 
         const now = new Date().toISOString();
@@ -1241,7 +1270,9 @@ module.exports = {
         onlyApproved: { type: 'boolean', optional: true, default: true },
       },
       async handler(ctx) {
-        const installations = Array.isArray(ctx.params.installations) ? ctx.params.installations : [];
+        const installations = Array.isArray(ctx.params.installations)
+          ? ctx.params.installations
+          : [];
         const effectiveInstallations = await this._applyOverridesToInstallations(
           ctx,
           installations,

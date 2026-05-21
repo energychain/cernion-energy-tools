@@ -65,7 +65,9 @@ async function migrate() {
   }
 
   await targetDb.close();
-  console.log(`[migrate-jobs] done: migrated=${migrated}, skipped=${skipped}, target=${targetPath}`);
+  console.log(
+    `[migrate-jobs] done: migrated=${migrated}, skipped=${skipped}, target=${targetPath}`
+  );
 }
 
 migrate().catch((err) => {

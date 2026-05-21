@@ -264,7 +264,11 @@ function recordActionMetric(entry = {}) {
 function recordLogEvent(entry = {}) {
   initMetrics();
   state.logsTotal
-    .labels(safeLabel(entry.service), safeLabel(entry.level || 'info'), safeLabel(entry.source || 'service'))
+    .labels(
+      safeLabel(entry.service),
+      safeLabel(entry.level || 'info'),
+      safeLabel(entry.source || 'service')
+    )
     .inc();
 }
 
@@ -306,14 +310,18 @@ function recordLlmRequest({ provider, model, operation, status, durationMs }) {
     safeLabel(status || 'success'),
   ];
   state.llmRequestTotal.labels(...labels).inc();
-  state.llmRequestDurationSeconds.labels(...labels).observe(Math.max(0, Number(durationMs || 0) / 1000));
+  state.llmRequestDurationSeconds
+    .labels(...labels)
+    .observe(Math.max(0, Number(durationMs || 0) / 1000));
 }
 
 function recordMcpRequest({ tool, status, durationMs }) {
   initMetrics();
   const labels = [safeLabel(tool || 'unknown'), safeLabel(status || 'success')];
   state.mcpRequestTotal.labels(...labels).inc();
-  state.mcpRequestDurationSeconds.labels(...labels).observe(Math.max(0, Number(durationMs || 0) / 1000));
+  state.mcpRequestDurationSeconds
+    .labels(...labels)
+    .observe(Math.max(0, Number(durationMs || 0) / 1000));
 }
 
 function recordUtilityReportPhase(phase, status, durationMs) {
@@ -330,13 +338,19 @@ function recordUtilityReportRetry(action, outcome) {
 
 function recordRateLimitHit({ tenantId, endpointClass }) {
   initMetrics();
-  state.rateLimitHits.labels(tenantHashLabel(tenantId), safeLabel(endpointClass || 'unknown')).inc();
+  state.rateLimitHits
+    .labels(tenantHashLabel(tenantId), safeLabel(endpointClass || 'unknown'))
+    .inc();
 }
 
 function recordQuotaUsage({ tenantId, resource, window, used }) {
   initMetrics();
   state.quotaUsage
-    .labels(tenantHashLabel(tenantId), safeLabel(resource || 'unknown'), safeLabel(window || 'current'))
+    .labels(
+      tenantHashLabel(tenantId),
+      safeLabel(resource || 'unknown'),
+      safeLabel(window || 'current')
+    )
     .set(Math.max(0, Number(used || 0)));
 }
 

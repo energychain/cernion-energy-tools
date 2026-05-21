@@ -132,7 +132,9 @@ function extractServiceCallSpecs(serviceCallsCell) {
  * @returns {Array<{id:string,prompt:string,intentClass:string,serviceCallsSpec:string[],expectedResult:string,rawServiceCalls:string,mode:string,turns?:Array}>}
  */
 function parseTddMatrixFromMarkdown(markdown) {
-  const lines = String(markdown || '').replace(/\r\n/g, '\n').split('\n');
+  const lines = String(markdown || '')
+    .replace(/\r\n/g, '\n')
+    .split('\n');
   const cases = [];
 
   for (const line of lines) {

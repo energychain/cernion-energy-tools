@@ -17,7 +17,10 @@ describe('Knowledge RAG ingest extension', () => {
   let broker;
 
   beforeAll(async () => {
-    callWithAutoPoll.mockResolvedValue({ success: true, data: { queryType: 'semantic', results: [] } });
+    callWithAutoPoll.mockResolvedValue({
+      success: true,
+      data: { queryType: 'semantic', results: [] },
+    });
 
     broker = new ServiceBroker({ logger: false });
 
@@ -61,7 +64,9 @@ describe('Knowledge RAG ingest extension', () => {
         },
         query: {
           async handler(ctx) {
-            const docs = Array.from(store.values()).filter((doc) => doc.namespace === ctx.params.namespace);
+            const docs = Array.from(store.values()).filter(
+              (doc) => doc.namespace === ctx.params.namespace
+            );
             const selector = ctx.params.selector || {};
             const filtered = docs.filter((doc) => {
               return Object.entries(selector).every(([path, expected]) => {
@@ -73,7 +78,12 @@ describe('Knowledge RAG ingest extension', () => {
                 return String(value) === String(expected);
               });
             });
-            return { docs: filtered.slice(ctx.params.skip || 0, (ctx.params.skip || 0) + (ctx.params.limit || 50)) };
+            return {
+              docs: filtered.slice(
+                ctx.params.skip || 0,
+                (ctx.params.skip || 0) + (ctx.params.limit || 50)
+              ),
+            };
           },
         },
       },
@@ -125,7 +135,9 @@ describe('Knowledge RAG ingest extension', () => {
           async handler() {
             return {
               success: true,
-              items: [{ key: 'profile-1', payload: { note: 'test' }, updatedAt: '2026-05-01T00:00:00Z' }],
+              items: [
+                { key: 'profile-1', payload: { note: 'test' }, updatedAt: '2026-05-01T00:00:00Z' },
+              ],
             };
           },
         },
@@ -137,7 +149,9 @@ describe('Knowledge RAG ingest extension', () => {
       actions: {
         list: {
           async handler() {
-            return { audits: [{ id: 'mq-1', createdAt: '2026-05-01T00:00:00Z', qualityScore: 88 }] };
+            return {
+              audits: [{ id: 'mq-1', createdAt: '2026-05-01T00:00:00Z', qualityScore: 88 }],
+            };
           },
         },
       },
@@ -148,7 +162,9 @@ describe('Knowledge RAG ingest extension', () => {
       actions: {
         list: {
           async handler() {
-            return { audits: [{ id: 'rd-1', createdAt: '2026-05-01T00:00:00Z', riskLevel: 'low' }] };
+            return {
+              audits: [{ id: 'rd-1', createdAt: '2026-05-01T00:00:00Z', riskLevel: 'low' }],
+            };
           },
         },
       },
@@ -159,7 +175,11 @@ describe('Knowledge RAG ingest extension', () => {
       actions: {
         list: {
           async handler() {
-            return { validations: [{ id: 'es-1', createdAt: '2026-05-01T00:00:00Z', decision: 'APPROVED' }] };
+            return {
+              validations: [
+                { id: 'es-1', createdAt: '2026-05-01T00:00:00Z', decision: 'APPROVED' },
+              ],
+            };
           },
         },
       },
@@ -186,7 +206,11 @@ describe('Knowledge RAG ingest extension', () => {
   });
 
   test('creates default tenant collection', async () => {
-    const result = await broker.call('knowledge-rag.createCollection', {}, { meta: { tenantId: 'acme' } });
+    const result = await broker.call(
+      'knowledge-rag.createCollection',
+      {},
+      { meta: { tenantId: 'acme' } }
+    );
     expect(result.success).toBe(true);
     expect(result.collection.name).toBe('tenant:acme:knowledge');
   });

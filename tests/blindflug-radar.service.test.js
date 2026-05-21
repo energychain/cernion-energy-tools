@@ -266,10 +266,18 @@ describe('blindflug-radar service', () => {
       { meta: { tenantId: 'tenant-a' } }
     );
 
-    const listA = await broker.call('blindflug-radar.listScans', {}, { meta: { tenantId: 'tenant-a' } });
+    const listA = await broker.call(
+      'blindflug-radar.listScans',
+      {},
+      { meta: { tenantId: 'tenant-a' } }
+    );
     expect(listA.count).toBe(1);
 
-    const listB = await broker.call('blindflug-radar.listScans', {}, { meta: { tenantId: 'tenant-b' } });
+    const listB = await broker.call(
+      'blindflug-radar.listScans',
+      {},
+      { meta: { tenantId: 'tenant-b' } }
+    );
     expect(listB.count).toBe(0);
 
     await expect(

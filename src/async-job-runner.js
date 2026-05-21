@@ -7,9 +7,7 @@ function stableStringify(value) {
   if (value === null || typeof value !== 'object') return JSON.stringify(value);
   if (Array.isArray(value)) return `[${value.map((entry) => stableStringify(entry)).join(',')}]`;
   const keys = Object.keys(value).sort();
-  const body = keys
-    .map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`)
-    .join(',');
+  const body = keys.map((key) => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',');
   return `{${body}}`;
 }
 
@@ -20,7 +18,8 @@ function readHeader(headers, name) {
 }
 
 function resolveClientKey(ctx, explicitClientKey) {
-  if (typeof explicitClientKey === 'string' && explicitClientKey.trim()) return explicitClientKey.trim();
+  if (typeof explicitClientKey === 'string' && explicitClientKey.trim())
+    return explicitClientKey.trim();
   if (typeof ctx?.params?.clientKey === 'string' && ctx.params.clientKey.trim()) {
     return ctx.params.clientKey.trim();
   }
@@ -54,14 +53,7 @@ function buildIdempotencyKey({ service, action, params, explicitIdempotencyKey, 
 }
 
 async function runAsync(ctx, options) {
-  const {
-    service,
-    action,
-    params,
-    clientKey,
-    idempotencyKey,
-    worker,
-  } = options || {};
+  const { service, action, params, clientKey, idempotencyKey, worker } = options || {};
 
   if (typeof worker !== 'function') {
     throw new Error('runAsync requires a worker function');
@@ -76,19 +68,14 @@ async function runAsync(ctx, options) {
     clientKey: resolvedClientKey,
   });
 
-  return jobStore.startJob(
-    ctx,
-    { service, action },
-    worker,
-    {
-      idempotencyKey: resolvedIdempotencyKey,
-      wakeContext: {
-        service,
-        action,
-        params: params || {},
-      },
-    }
-  );
+  return jobStore.startJob(ctx, { service, action }, worker, {
+    idempotencyKey: resolvedIdempotencyKey,
+    wakeContext: {
+      service,
+      action,
+      params: params || {},
+    },
+  });
 }
 
 module.exports = {

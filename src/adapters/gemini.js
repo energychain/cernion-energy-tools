@@ -23,7 +23,9 @@ function getModelName() {
 }
 
 function getEmbeddingModelName() {
-  return process.env.LLM_EMBEDDING_MODEL || process.env.GEMINI_EMBEDDING_MODEL || DEFAULT_EMBEDDING_MODEL;
+  return (
+    process.env.LLM_EMBEDDING_MODEL || process.env.GEMINI_EMBEDDING_MODEL || DEFAULT_EMBEDDING_MODEL
+  );
 }
 
 function getClient() {

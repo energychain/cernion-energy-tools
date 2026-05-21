@@ -11,6 +11,30 @@ const {
   assertNoL4RawInPersistedState,
 } = require('../src/personal-agent-context');
 const {
+  PERSONAL_AGENT_STATES,
+  createStateMachine,
+  transitionStateMachine,
+  deriveTerminalState,
+  summarizeStateMachine,
+} = require('../src/personal-agent-state-machine');
+const {
+  createExecutionStateGraph,
+  advanceExecutionStateGraph,
+  summarizeExecutionStateGraph,
+  createMessageFingerprint,
+} = require('../src/personal-agent-execution-state-graph');
+const {
+  createTurnGraph,
+  addNode,
+  addEdge,
+  finalizeTurnGraph,
+  summarizeTurnGraph,
+} = require('../src/personal-agent-turn-graph');
+const { decideRoutingTarget } = require('../src/personal-agent-routing-graph');
+const { buildExecutionGapResponse } = require('../src/mark-execution-gap');
+const { createExecutionTrace } = require('../src/execution-trace');
+const { createToolCallTracker } = require('../src/tool-call-tracker');
+const {
   EXECUTION_MODES,
   CHAT_MODES,
   ROUTING_CONTROL_ACTIONS,
@@ -48,6 +72,10 @@ const {
   resolveParamKeyFromMissing,
   ONBOARDING_PARAM_ALTERNATIVES,
 } = require('../src/personal-agent-onboarding');
+const {
+  buildResponseStrategy: buildPersonalAgentResponseStrategy,
+  buildStrategyLead: buildPersonalAgentStrategyLead,
+} = require('../src/personal-agent-response-strategy');
 const {
   generateText: llmGenerateText,
   generateStructured: llmGenerateStructured,
@@ -144,6 +172,15 @@ const CONSULTATION_OUTPUT_SCHEMA = {
 
 const CONSULTATION_REACT_MAX_ITERATIONS = Number(
   process.env.PERSONAL_AGENT_CONSULTATION_REACT_MAX_ITERATIONS || 3
+);
+const CONSULTATION_REACT_MAX_MS = Number(
+  process.env.PERSONAL_AGENT_CONSULTATION_REACT_MAX_MS || 18_000
+);
+const CONSULTATION_TOOL_MAX_ATTEMPTS = Number(
+  process.env.PERSONAL_AGENT_CONSULTATION_TOOL_MAX_ATTEMPTS || 2
+);
+const CONSULTATION_TOOL_TIMEOUT_MS = Number(
+  process.env.PERSONAL_AGENT_CONSULTATION_TOOL_TIMEOUT_MS || 8_000
 );
 
 function isNotFound(error) {
@@ -732,7 +769,7 @@ module.exports = {
         return await jobStore.startJob(
           ctx,
           { service: 'personal-agent', action: 'chat' },
-          () => this._executeChatCoreLogic(ctx),
+          (jobId) => this._executeChatCoreLogic(ctx, jobId),
           {
             idempotencyKey: ctx.params.sessionId || undefined,
           }
@@ -740,14 +777,74 @@ module.exports = {
       },
 
       // Core chat logic extracted as a method callable from async job wrapper
-      async _executeChatCoreLogic(ctx) {
+      async _executeChatCoreLogic(ctx, jobId = null) {
         const tenantId = getTenantId(ctx);
         const userId = String(ctx.meta?.authUser?.userId || 'anonymous');
         const sessionId = String(ctx.params.sessionId || `pa_${crypto.randomUUID()}`);
         const executionMode = normalizeExecutionMode(ctx.params.executionMode);
+        const executionTrace = createExecutionTrace({ sessionId });
+        const toolCallTracker = createToolCallTracker({ sessionId });
+        let stateMachine = createStateMachine({
+          sessionId,
+          chatMode: normalizeChatMode(ctx.params.chatMode || ctx.meta?.chatMode || null),
+          executionMode,
+          message: ctx.params.message,
+        });
+        let executionStateGraph = createExecutionStateGraph({
+          sessionId,
+          chatMode: normalizeChatMode(ctx.params.chatMode || ctx.meta?.chatMode || null),
+          executionMode,
+          message: ctx.params.message,
+        });
+        let turnGraph = createTurnGraph({
+          sessionId,
+          chatMode: normalizeChatMode(ctx.params.chatMode || ctx.meta?.chatMode || null),
+          executionMode,
+          message: ctx.params.message,
+        });
+
+        // jobId parameter passed from startJob wrapper
+        const jobStore = jobId ? require('../src/job-store') : null;
+
+        // Log chat mode classification start
+        if (jobStore) {
+          jobStore.appendLog(jobId, 'chat_init', 5, 'Personal Agent initialized', {
+            tenantId,
+            userId,
+            sessionId,
+            executionMode,
+          });
+        }
+
         const session = await this.loadSession(ctx, tenantId, sessionId, userId, {
           createIfMissing: true,
         });
+        turnGraph = addNode(turnGraph, {
+          id: 'ctx:session',
+          type: 'context',
+          label: 'Session context',
+          data: {
+            hasPersistedSession: Boolean(session.updatedAt),
+            historyCount: Array.isArray(session?.l3?.history) ? session.l3.history.length : 0,
+          },
+        });
+        turnGraph = addEdge(turnGraph, {
+          from: 'msg:user',
+          to: 'ctx:session',
+          type: 'contextualized_by',
+        });
+        stateMachine = transitionStateMachine(stateMachine, PERSONAL_AGENT_STATES.SESSION_LOADED, {
+          hasPersistedSession: Boolean(session.updatedAt),
+          previousStateMachine: session?.l3?.stateMachine?.currentState || null,
+        });
+        executionStateGraph = advanceExecutionStateGraph(
+          executionStateGraph,
+          'execution_mode_resolved',
+          {
+            executionMode,
+            previousChatMode: session?.l3?.chatMode || null,
+          }
+        );
         session.planStack = Array.isArray(session?.l3?.planStack) ? session.l3.planStack : [];
         session.resolvedParams =
           session?.l3?.resolvedParams && typeof session.l3.resolvedParams === 'object'
@@ -761,6 +858,16 @@ module.exports = {
         if (!session.resolvedCapabilities) session.resolvedCapabilities = [];
         if (!session.chatMode) session.chatMode = CHAT_MODES.CONSULTATION;
         if (!session.l3.chatMode) session.l3.chatMode = session.chatMode;
+        if (!session.l3.chatModeSource) session.l3.chatModeSource = null;
+        if (!session.l3.lastClassification) session.l3.lastClassification = null;
+
+        // A) Strategic milestone: session loaded
+        if (jobStore) {
+          jobStore.appendLog(jobId, 'session_loaded', 10, 'Session loaded successfully', {
+            isNewSession: !session.createdAt || session.createdAt === session.updatedAt,
+            historyLength: Array.isArray(session.l3?.history) ? session.l3.history.length : 0,
+          });
+        }
 
         const fileProcessing = this.processFileAttachments(
           session,
@@ -780,6 +887,29 @@ module.exports = {
           message: ctx.params.message,
           activeDomains: detectRequestedDomains(ctx.params.message),
         });
+        turnGraph = addNode(turnGraph, {
+          id: 'knowledge:orientation',
+          type: 'knowledge',
+          label: 'Knowledge orientation',
+          data: {
+            domainHint: knowledgeContext?.domainHint || null,
+            styleHint: knowledgeContext?.styleHint || null,
+            activeDomains: detectRequestedDomains(ctx.params.message),
+          },
+        });
+        turnGraph = addEdge(turnGraph, {
+          from: 'msg:user',
+          to: 'knowledge:orientation',
+          type: 'oriented_by',
+        });
+        stateMachine = transitionStateMachine(
+          stateMachine,
+          PERSONAL_AGENT_STATES.KNOWLEDGE_ORIENTED,
+          {
+            activeDomains: detectRequestedDomains(ctx.params.message),
+            knowledgeDomain: knowledgeContext?.domainHint || null,
+          }
+        );
         const brokerKnownContext = this.attachKnowledgeHintsToKnownContext(
           knownContext,
           knowledgeContext
@@ -796,6 +926,47 @@ module.exports = {
           session.resolvedParams,
           session.resolvedCapabilities
         );
+        turnGraph = addNode(turnGraph, {
+          id: 'broker:recommendation',
+          type: 'broker',
+          label: 'Capability recommendation',
+          data: {
+            intent: brokerRecommendation?.intent || null,
+            capability: brokerRecommendation?.capability || null,
+          },
+        });
+        turnGraph = addEdge(turnGraph, {
+          from: 'knowledge:orientation',
+          to: 'broker:recommendation',
+          type: 'routes_to',
+        });
+        stateMachine = transitionStateMachine(
+          stateMachine,
+          PERSONAL_AGENT_STATES.BROKER_RECOMMENDED,
+          {
+            intent: brokerRecommendation?.intent || null,
+            capability: brokerRecommendation?.capability || null,
+          }
+        );
+        executionTrace.recordBrokerDecision({
+          intent: brokerRecommendation?.intent || null,
+          capability: brokerRecommendation?.capability || null,
+          confidence:
+            typeof brokerRecommendation?.confidence === 'number'
+              ? brokerRecommendation.confidence
+              : null,
+          scoringBreakdown: brokerRecommendation?.scoringBreakdown || null,
+          source: brokerRecommendation?.summary || 'capability-broker',
+        });
+
+        // A) Strategic milestone: broker ready
+        if (jobStore) {
+          jobStore.appendLog(jobId, 'broker_ready', 30, 'Broker recommendation ready', {
+            intent: brokerRecommendation?.intent || null,
+            capability: brokerRecommendation?.capability || null,
+          });
+        }
+
         // ═══ ChatMode-Auflösung (4-Ebenen-Fallback) ═══
 
         // Ebene 1: Expliziter API-Parameter
@@ -803,22 +974,67 @@ module.exports = {
           ctx.params.chatMode || ctx.meta?.chatMode || ctx.meta?.$params?.chatMode;
         let effectiveChatMode = normalizeChatMode(rawRequestedChatMode);
         let chatModeSource = 'api';
+        let chatModeConfidence = rawRequestedChatMode ? 1 : null;
 
         // Cache-Prüfung: identische Nachricht bereits klassifiziert?
-        const msgHash = String(ctx.params.message || '').length.toString(16) +
-          '-' + Buffer.from(String(ctx.params.message || '')).slice(0, 8).toString('hex');
-        if (!effectiveChatMode && session.l3?.lastClassification?.messageHash === msgHash) {
+        const msgHash = createMessageFingerprint(ctx.params.message || '');
+        if (
+          !effectiveChatMode &&
+          session.l3?.lastClassification?.fingerprint === msgHash &&
+          normalizeChatMode(session.l3?.lastClassification?.chatMode)
+        ) {
           effectiveChatMode = session.l3.lastClassification.chatMode;
           chatModeSource = 'cached';
+          chatModeConfidence =
+            typeof session.l3?.lastClassification?.confidence === 'number'
+              ? session.l3.lastClassification.confidence
+              : 0.95;
+          executionStateGraph = advanceExecutionStateGraph(
+            executionStateGraph,
+            'chat_mode_cached',
+            {
+              chatMode: effectiveChatMode,
+              source: chatModeSource,
+              confidence: chatModeConfidence,
+            }
+          );
           this.logger?.info(`[chatMode] Cache-Hit: ${effectiveChatMode}`);
+        }
+
+        if (effectiveChatMode && rawRequestedChatMode) {
+          executionStateGraph = advanceExecutionStateGraph(
+            executionStateGraph,
+            'api_params_validated',
+            {
+              chatMode: effectiveChatMode,
+              source: chatModeSource,
+              confidence: 1,
+            }
+          );
         }
 
         // Ebene 2: LLM-Klassifikator
         if (!effectiveChatMode) {
-          const llmClassification = await this.classifyChatModeLLM(ctx, ctx.params.message, session);
+          const llmClassification = await this.classifyChatModeLLM(
+            ctx,
+            ctx.params.message,
+            session,
+            { executionTrace }
+          );
           if (llmClassification.chatMode && llmClassification.confidence >= 0.7) {
             effectiveChatMode = llmClassification.chatMode;
             chatModeSource = 'llm';
+            chatModeConfidence = llmClassification.confidence;
+            executionStateGraph = advanceExecutionStateGraph(
+              executionStateGraph,
+              'chat_mode_classified',
+              {
+                chatMode: effectiveChatMode,
+                source: chatModeSource,
+                confidence: llmClassification.confidence,
+                reasoning: llmClassification.reasoning,
+              }
+            );
             this.logger?.info(
               `[chatMode] LLM-Klassifikation: ${effectiveChatMode} (conf=${llmClassification.confidence.toFixed(2)}): ${llmClassification.reasoning}`
             );
@@ -829,6 +1045,16 @@ module.exports = {
         if (!effectiveChatMode) {
           effectiveChatMode = detectChatMode(ctx.params.message, brokerRecommendation, session);
           chatModeSource = 'heuristic';
+          chatModeConfidence = Number(brokerRecommendation?.confidence || 0.55);
+          executionStateGraph = advanceExecutionStateGraph(
+            executionStateGraph,
+            'chat_mode_fallback',
+            {
+              chatMode: effectiveChatMode,
+              source: chatModeSource,
+              confidence: chatModeConfidence,
+            }
+          );
           this.logger?.info(`[chatMode] Heuristik-Fallback: ${effectiveChatMode}`);
         }
 
@@ -836,22 +1062,229 @@ module.exports = {
         if (!effectiveChatMode) {
           effectiveChatMode = CHAT_MODES.CONSULTATION;
           chatModeSource = 'default';
+          chatModeConfidence = 0.5;
+          executionStateGraph = advanceExecutionStateGraph(
+            executionStateGraph,
+            'chat_mode_fallback',
+            {
+              chatMode: effectiveChatMode,
+              source: chatModeSource,
+              confidence: chatModeConfidence,
+            }
+          );
         }
+
+        executionStateGraph = advanceExecutionStateGraph(
+          executionStateGraph,
+          'ready_for_routing',
+          {
+            chatMode: effectiveChatMode,
+            source: chatModeSource,
+            executionMode,
+          }
+        );
+        executionTrace.recordStateTransition({
+          family: 'chat_mode',
+          from: session?.l3?.chatMode || null,
+          to: effectiveChatMode,
+          reason: chatModeSource,
+          metadata: {
+            confidence: chatModeConfidence,
+          },
+        });
 
         this.logger?.info(
           `[chatMode] Request: ${rawRequestedChatMode || 'null'}, Effective: ${effectiveChatMode}, Source: ${chatModeSource}`
         );
+
+        // Log chat mode classification result
+        if (jobStore) {
+          jobStore.appendLog(jobId, 'chat_mode_classified', 15,
+            `chatMode=${effectiveChatMode}, source=${chatModeSource}`, {
+            chatMode: effectiveChatMode,
+            chatModeSource,
+            confidence: null,
+          });
+        }
 
         session.chatMode = effectiveChatMode;
         session.l3.chatMode = effectiveChatMode;
         session.l3.chatModeSource = chatModeSource;
         session.l3.lastClassification = {
           messageHash: msgHash,
+          fingerprint: msgHash,
           chatMode: effectiveChatMode,
+          source: chatModeSource,
+          confidence: chatModeConfidence,
           timestamp: new Date().toISOString(),
         };
+        session.l3.executionStateGraph = summarizeExecutionStateGraph(executionStateGraph);
+        turnGraph = addNode(turnGraph, {
+          id: 'chat:mode',
+          type: 'decision',
+          label: 'Chat mode resolved',
+          data: {
+            mode: effectiveChatMode,
+            source: chatModeSource,
+          },
+        });
+        turnGraph = addEdge(turnGraph, {
+          from: 'broker:recommendation',
+          to: 'chat:mode',
+          type: 'decides',
+        });
+        stateMachine = transitionStateMachine(
+          stateMachine,
+          PERSONAL_AGENT_STATES.CHAT_MODE_RESOLVED,
+          {
+            chatMode: effectiveChatMode,
+            source: chatModeSource,
+            executionMode,
+          }
+        );
 
-        if (effectiveChatMode === CHAT_MODES.CONSULTATION) {
+        const routingDecision = decideRoutingTarget({
+          effectiveChatMode,
+          brokerRecommendation,
+          message: ctx.params.message,
+          chatModeSource,
+        });
+        executionTrace.recordStateTransition({
+          family: 'routing',
+          from: 'chat_mode_resolved',
+          to: routingDecision.target,
+          reason: routingDecision.label,
+          metadata: {
+            confidence: routingDecision.confidence,
+            determinism: routingDecision.determinism,
+            gapReason: routingDecision?.gap?.reason || null,
+          },
+        });
+
+        if (
+          routingDecision.target === 'mark_unknown_execution_gap' &&
+          String(process.env.PERSONAL_AGENT_ENABLE_ROUTING_GAP_SHORT_CIRCUIT || 'false').toLowerCase() === 'true'
+        ) {
+          const gapResponse = buildExecutionGapResponse({
+            routingDecision,
+            brokerRecommendation,
+            message: ctx.params.message,
+          });
+          const stackResult = buildContextStack({
+            systemPrompt: this.settings.systemPrompt,
+            tenantFacts: session.l1?.tenantFacts || [],
+            userProfile: session.l2?.userProfile || {},
+            sessionHistory: [...(session.l3?.history || []), userMessage],
+            fileAttachments: session.l3?.fileAttachments || [],
+            toolContext: ctx.params.toolContext || null,
+            maxContextTokens: this.settings.maxContextTokens,
+          });
+          const reply = [
+            'Ich habe aktuell noch keinen belastbaren deterministischen Ausführungspfad für diese Anfrage.',
+            gapResponse?.suggestions?.[0] || null,
+            gapResponse?.suggestions?.[1] || null,
+          ]
+            .filter(Boolean)
+            .join(' ');
+          const finalized = synthesizeAndPurgeLayer4(stackResult.stack, reply);
+          const execution = {
+            status: 'partial',
+            completedSteps: 0,
+            steps: [],
+            stopPoint: gapResponse,
+            meta: executionTrace.summarize({
+              toolCalls: toolCallTracker.summarize().calls,
+              chatModeSource,
+            }),
+          };
+          const responseStrategy = this.buildResponseStrategy({
+            message: ctx.params.message,
+            knowledgeContext,
+            knownContext,
+            existingAssumptions: Array.isArray(session.l3?.assumptions)
+              ? session.l3.assumptions
+              : [],
+            execution,
+          });
+          const persisted = buildPersistableSessionState({
+            id: sessionId,
+            tenantId,
+            userId,
+            l1: finalized.stack.l1,
+            l2: finalized.stack.l2,
+            l3: {
+              ...finalized.stack.l3,
+              chatMode: effectiveChatMode,
+              chatModeSource,
+              lastClassification: session.l3.lastClassification,
+              executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
+              stateMachine: summarizeStateMachine(stateMachine),
+              turnGraph: summarizeTurnGraph(turnGraph),
+              responseStrategy,
+            },
+            createdAt: session.createdAt,
+          });
+          await this.persistSession(ctx, tenantId, sessionId, persisted);
+          return {
+            success: true,
+            sessionId,
+            executionMode,
+            chatMode: effectiveChatMode,
+            reply,
+            layer4Purged: finalized.layer4Purged,
+            l3Compressed: finalized.stack.l3?.compressed || false,
+            historyCount: Array.isArray(finalized.stack.l3?.history)
+              ? finalized.stack.l3.history.length
+              : 0,
+            routing: {
+              source: 'routing-graph',
+              routeKey: null,
+              routeLabel: routingDecision.label,
+              primaryIntent: brokerRecommendation?.intent || null,
+              secondaryIntents: [],
+              requestedDomains: detectRequestedDomains(ctx.params.message),
+              unsupportedDomains: [],
+              warnings: [gapResponse.gapReason],
+            },
+            plan: null,
+            execution,
+            stateMachine: summarizeStateMachine(stateMachine),
+            executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
+            turnGraph: summarizeTurnGraph(turnGraph),
+            responseStrategy,
+            agentTrace: this.buildAgentTrace({
+              routing: null,
+              plan: null,
+              execution,
+              evidencePlan: null,
+              consultation: null,
+              responseStrategy,
+              stateMachine,
+              executionStateGraph,
+              turnGraph,
+              routingDecision,
+            }),
+          };
+        }
+
+        if (
+          routingDecision.target === 'consultation_node' ||
+          routingDecision.target === 'consultation_intro'
+        ) {
+          stateMachine = transitionStateMachine(
+            stateMachine,
+            PERSONAL_AGENT_STATES.CONSULTATION_ACTIVE,
+            {
+              intent: brokerRecommendation?.intent || 'consultation',
+            }
+          );
+          if (jobStore) {
+            jobStore.appendLog(jobId, 'consultation_mode_entered', 25,
+              'Agentic consultation loop starting...', {
+              chatMode: CHAT_MODES.CONSULTATION,
+            });
+          }
+
           const consultationResult = await this.handleConsultationTurn(ctx, {
             message: ctx.params.message,
             brokerRecommendation,
@@ -859,6 +1292,9 @@ module.exports = {
             session,
             resolvedParams: session.resolvedParams,
             knownContext: brokerKnownContext,
+            jobId,
+            executionTrace,
+            toolCallTracker,
           });
 
           const consultationExecution = {
@@ -866,11 +1302,15 @@ module.exports = {
             plan: null,
             steps: [],
           };
+          const consultationPrimaryIntent = this.deriveConsultationPrimaryIntent({
+            brokerRecommendation,
+            routingDecision,
+          });
           const consultationRouting = {
             source: 'consultation',
             routeKey: null,
             routeLabel: 'consultation',
-            primaryIntent: brokerRecommendation?.intent || 'consultation',
+            primaryIntent: consultationPrimaryIntent,
             secondaryIntents: [],
             requestedDomains: detectRequestedDomains(ctx.params.message),
             unsupportedDomains: [],
@@ -888,6 +1328,36 @@ module.exports = {
             maxContextTokens: this.settings.maxContextTokens,
           });
 
+          stateMachine = transitionStateMachine(
+            stateMachine,
+            PERSONAL_AGENT_STATES.SYNTHESIZING,
+            {
+              consultationFacts: Array.isArray(consultationResult.factsUsed)
+                ? consultationResult.factsUsed.length
+                : 0,
+            }
+          );
+          stateMachine = transitionStateMachine(
+            stateMachine,
+            deriveTerminalState({ consultation: consultationResult, status: 'consulting' }),
+            {
+              status: 'consulting',
+              openQuestions: Array.isArray(consultationResult.openQuestions)
+                ? consultationResult.openQuestions.length
+                : 0,
+            }
+          );
+
+          const responseStrategy = this.buildResponseStrategy({
+            message: ctx.params.message,
+            knowledgeContext,
+            knownContext,
+            existingAssumptions: Array.isArray(session.l3?.assumptions)
+              ? session.l3.assumptions
+              : [],
+            execution: consultationExecution,
+          });
+
           const finalized = synthesizeAndPurgeLayer4(stackResult.stack, consultationResult.reply);
           const persisted = buildPersistableSessionState({
             id: sessionId,
@@ -898,6 +1368,8 @@ module.exports = {
             l3: {
               ...finalized.stack.l3,
               chatMode: effectiveChatMode,
+              chatModeSource,
+              lastClassification: session.l3.lastClassification,
               consultationContext: {
                 hypotheses: consultationResult.hypotheses,
                 openQuestions: consultationResult.openQuestions,
@@ -908,6 +1380,9 @@ module.exports = {
                   : [],
                 ts: new Date().toISOString(),
               },
+              stateMachine: summarizeStateMachine(stateMachine),
+              executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
+              responseStrategy,
             },
             createdAt: session.createdAt,
           });
@@ -956,6 +1431,57 @@ module.exports = {
               ? consultationResult.attemptsSummary
               : [],
           };
+          const consultationAttempts = Array.isArray(consultationPayload.attemptsSummary)
+            ? consultationPayload.attemptsSummary
+            : [];
+          consultationAttempts.forEach((attempt, idx) => {
+            const toolNodeId = `tool:consultation:${idx + 1}:${attempt.tool || 'unknown'}`;
+            turnGraph = addNode(turnGraph, {
+              id: toolNodeId,
+              type: 'tool',
+              label: attempt.tool || 'consultation-tool',
+              data: {
+                status: attempt.status || null,
+                attempts: attempt.attempts || null,
+              },
+            });
+            turnGraph = addEdge(turnGraph, {
+              from: 'chat:mode',
+              to: toolNodeId,
+              type: 'invokes',
+            });
+          });
+
+          const factsUsed = Array.isArray(consultationPayload.factsUsed)
+            ? consultationPayload.factsUsed
+            : [];
+          factsUsed.slice(0, 8).forEach((fact, idx) => {
+            const factNodeId = `fact:consultation:${idx + 1}`;
+            turnGraph = addNode(turnGraph, {
+              id: factNodeId,
+              type: 'fact',
+              label: `Consultation fact ${idx + 1}`,
+              data: {
+                source: fact?.source || null,
+                value: fact?.value || null,
+              },
+            });
+            turnGraph = addEdge(turnGraph, {
+              from: 'chat:mode',
+              to: factNodeId,
+              type: 'grounds',
+            });
+          });
+
+          turnGraph = finalizeTurnGraph(turnGraph, { status: 'completed' });
+          const consultationExecutionForTrace = {
+            ...consultationExecution,
+            meta: executionTrace.summarize({
+              toolCalls: toolCallTracker.summarize().calls,
+              chatModeSource,
+              consultationIterations: consultationAttempts.length,
+            }),
+          };
           const quality = this.buildQualitySummary({
             evidencePlan: null,
             execution: consultationExecution,
@@ -964,10 +1490,17 @@ module.exports = {
           const agentTrace = this.buildAgentTrace({
             routing: consultationRouting,
             plan: null,
-            execution: consultationExecution,
+            execution: consultationExecutionForTrace,
             evidencePlan: null,
             consultation: consultationPayload,
+            responseStrategy,
+            stateMachine,
+            executionStateGraph,
+            turnGraph,
+            routingDecision,
           });
+
+          persisted.l3.turnGraph = summarizeTurnGraph(turnGraph);
 
           return {
             success: true,
@@ -983,6 +1516,7 @@ module.exports = {
             historyCount: finalized.stack?.l3?.history?.length || 0,
             fileProcessing,
             routing: consultationRouting,
+            responseStrategy,
             plan: {
               status: 'consulting',
               steps: [],
@@ -993,8 +1527,19 @@ module.exports = {
             evidenceConfidence: null,
             quality,
             agentTrace,
+            stateMachine: summarizeStateMachine(stateMachine),
+            executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
+            turnGraph: summarizeTurnGraph(turnGraph),
             execution: consultationExecution,
           };
+        }
+
+        // Log broker plan phase
+        if (jobStore) {
+          jobStore.appendLog(jobId, 'broker_plan', 20,
+            'Planning execution strategy...', {
+            chatMode: effectiveChatMode,
+          });
         }
 
         const resumable = findResumableParentFrame(session.planStack);
@@ -1045,15 +1590,96 @@ module.exports = {
           knownContext: preflightKnownContext,
           executionMode,
         });
+        stateMachine = transitionStateMachine(
+          stateMachine,
+          PERSONAL_AGENT_STATES.EXECUTION_PLANNED,
+          {
+            primaryIntent: routedPlan?.primaryIntent || null,
+            stepCount: Array.isArray(routedPlan?.steps) ? routedPlan.steps.length : 0,
+          }
+        );
+
+        // Log execution start
+        if (jobStore) {
+          jobStore.appendLog(jobId, 'broker_execute', 50,
+            `Executing plan (${execution?.steps?.length || 0} steps)...`, {
+            planId: routedPlan?.id || null,
+            primaryIntent: routing?.primaryIntent || null,
+            stepCount: Array.isArray(routedPlan?.steps) ? routedPlan.steps.length : 0,
+          });
+        }
+
         const execution = await this.handleExecutionWithOnboarding(ctx, {
           message: ctx.params.message,
           plan: routedPlan,
           knownContext: preflightKnownContext,
           session,
           executionMode,
+          executionTrace,
+          toolCallTracker,
         });
+        const executionStepsForGraph = Array.isArray(execution?.steps) ? execution.steps : [];
+        executionStepsForGraph.forEach((step) => {
+          const stepNodeId = `tool:execution:${step?.step || 'x'}:${step?.action || 'unknown'}`;
+          turnGraph = addNode(turnGraph, {
+            id: stepNodeId,
+            type: 'tool',
+            label: step?.action || 'execution-step',
+            data: {
+              step: step?.step || null,
+              status: step?.status || null,
+            },
+          });
+          turnGraph = addEdge(turnGraph, {
+            from: 'chat:mode',
+            to: stepNodeId,
+            type: 'invokes',
+          });
+        });
+        stateMachine = transitionStateMachine(
+          stateMachine,
+          PERSONAL_AGENT_STATES.EXECUTION_RUNNING,
+          {
+            status: execution?.status || null,
+            completedSteps: (Array.isArray(execution?.steps) ? execution.steps : []).filter(
+              (step) => step?.status === 'completed'
+            ).length,
+          }
+        );
+
+        // Log execution result
+        if (jobStore) {
+          jobStore.appendLog(jobId, 'broker_execute_complete', 70,
+            `Execution ${execution?.status || 'unknown'}`, {
+            executionStatus: execution?.status || null,
+            completedSteps: (Array.isArray(execution?.steps) ? execution.steps : [])
+              .filter((s) => s?.status === 'completed').length,
+            totalSteps: Array.isArray(execution?.steps) ? execution.steps.length : 0,
+          });
+        }
+
         let responsePlan = execution?.plan || routedPlan || plan;
         status = execution?.status || 'completed';
+        const evidenceGapsForGraph = Array.isArray(responsePlan?.evidencePlan?.gaps)
+          ? responsePlan.evidencePlan.gaps
+          : [];
+        evidenceGapsForGraph.slice(0, 8).forEach((gap, idx) => {
+          const gapNodeId = `gap:evidence:${idx + 1}`;
+          turnGraph = addNode(turnGraph, {
+            id: gapNodeId,
+            type: 'gap',
+            label: gap?.id || `Evidence gap ${idx + 1}`,
+            data: {
+              required: gap?.required || null,
+              severity: gap?.severity || null,
+            },
+          });
+          turnGraph = addEdge(turnGraph, {
+            from: 'broker:recommendation',
+            to: gapNodeId,
+            type: 'requires_evidence',
+          });
+        });
         routing = {
           ...(routing || {}),
           primaryIntent: responsePlan?.primaryIntent || routing?.primaryIntent || null,
@@ -1139,8 +1765,34 @@ module.exports = {
           toolContext: ctx.params.toolContext || null,
           maxContextTokens: this.settings.maxContextTokens,
         });
+        stateMachine = transitionStateMachine(stateMachine, PERSONAL_AGENT_STATES.SYNTHESIZING, {
+          status: execution?.status || null,
+          presentationCandidate: this.hasStructuredExecutionResult(execution),
+        });
 
-        const synthesisText = this.synthesizeTurn({
+        // A) Strategic milestone: about to generate LLM synthesis
+        if (jobStore) {
+          jobStore.appendLog(jobId, 'llm_generating', 50, 'Generating synthesis reply...', {
+            executionStatus: execution?.status || null,
+            stepCount: Array.isArray(execution?.steps) ? execution.steps.length : 0,
+          });
+        }
+
+        const responseStrategy = this.buildResponseStrategy({
+          message: ctx.params.message,
+          plan: responsePlan,
+          execution,
+          knowledgeContext,
+          knownContext: preflightKnownContext,
+          missingParams: execution?.stopPoint?.missingParams || [],
+          existingAssumptions: Array.isArray(execution?.assumptions)
+            ? execution.assumptions
+            : Array.isArray(session.l3?.assumptions)
+              ? session.l3.assumptions
+              : [],
+        });
+
+        let synthesisText = this.synthesizeTurn({
           message: ctx.params.message,
           toolContext: ctx.params.toolContext,
           executionMode,
@@ -1148,10 +1800,18 @@ module.exports = {
           execution,
           fileProcessing,
           knowledgeContext,
+          responseStrategy,
           ctx,
           tenantId,
           sessionId,
         });
+
+        // A) Strategic milestone: synthesis done, now building presentation
+        if (jobStore) {
+          jobStore.appendLog(jobId, 'synthesizing', 80, 'Synthesis complete, building presentation...', {
+            replyLength: String(synthesisText || '').length,
+          });
+        }
 
         // Try to render presentation for execution result
         let presentationResult = {};
@@ -1232,6 +1892,7 @@ module.exports = {
               message: ctx.params.message,
               execution,
               plan: responsePlan,
+              executionTrace,
             });
             const replyMarkdown = empathetic.markdown || questionText;
             const onboardingNextActions = empathetic.nextActions || [];
@@ -1322,9 +1983,38 @@ module.exports = {
           }
         }
 
+        const responseReply = presentationApplied ? presentationResult.markdown : synthesisText;
+        turnGraph = addNode(turnGraph, {
+          id: 'answer:final',
+          type: 'answer',
+          label: 'Final answer',
+          data: {
+            status,
+            presentationApplied,
+            replyLength: String(responseReply || '').length,
+          },
+        });
+        turnGraph = addEdge(turnGraph, {
+          from: 'chat:mode',
+          to: 'answer:final',
+          type: 'produces',
+        });
+        turnGraph = finalizeTurnGraph(turnGraph, {
+          status: status === 'completed' ? 'completed' : 'incomplete',
+        });
+
         const finalized = synthesizeAndPurgeLayer4(
           stackResult.stack,
-          presentationApplied ? presentationResult.markdown : synthesisText
+          responseReply
+        );
+        stateMachine = transitionStateMachine(
+          stateMachine,
+          deriveTerminalState({ execution, status }),
+          {
+            status,
+            stopReason: execution?.stopPoint?.reasonCode || null,
+            presentationApplied,
+          }
         );
         const persisted = buildPersistableSessionState({
           id: sessionId,
@@ -1332,7 +2022,16 @@ module.exports = {
           userId,
           l1: finalized.stack.l1,
           l2: finalized.stack.l2,
-          l3: finalized.stack.l3,
+          l3: {
+            ...finalized.stack.l3,
+            chatMode: effectiveChatMode,
+            chatModeSource,
+            lastClassification: session.l3.lastClassification,
+            stateMachine: summarizeStateMachine(stateMachine),
+            executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
+            turnGraph: summarizeTurnGraph(turnGraph),
+            responseStrategy,
+          },
           createdAt: session.createdAt,
         });
         persisted.l3.onboardingQuestions = Array.isArray(session.l3?.onboardingQuestions)
@@ -1373,8 +2072,11 @@ module.exports = {
         });
 
         knowledgeContext = null;
-
-        const responseReply = presentationApplied ? presentationResult.markdown : synthesisText;
+        execution.meta = executionTrace.summarize({
+          toolCalls: toolCallTracker.summarize().calls,
+          chatModeSource,
+          presentationApplied,
+        });
         const quality = this.buildQualitySummary({
           evidencePlan: responsePlan.evidencePlan || null,
           execution,
@@ -1392,7 +2094,22 @@ module.exports = {
           execution,
           evidencePlan: responsePlan.evidencePlan || null,
           consultation: null,
+          responseStrategy,
+          stateMachine,
+          executionStateGraph,
+          turnGraph,
+          routingDecision,
         });
+
+        // Log completion
+        if (jobStore) {
+          jobStore.appendLog(jobId, 'chat_complete', 100,
+            `Chat completed with status=${status}`, {
+            status,
+            presentationApplied,
+            replyLength: String(responseReply || '').length,
+          });
+        }
 
         return {
           success: true,
@@ -1431,6 +2148,7 @@ module.exports = {
             : null,
           layer4Purged: finalized.layer4Purged,
           l3Compressed: Boolean(finalized.stack?.l3?.compressed),
+          responseStrategy,
           contextUsage: stackResult.usage,
           historyCount: finalized.stack?.l3?.history?.length || 0,
           fileProcessing,
@@ -1460,6 +2178,9 @@ module.exports = {
               : null,
           quality,
           agentTrace,
+          stateMachine: summarizeStateMachine(stateMachine),
+          executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
+          turnGraph: summarizeTurnGraph(turnGraph),
           execution,
         };
       },
@@ -1495,8 +2216,21 @@ module.exports = {
           success: true,
           sessionId: session.id,
           chatMode: session.chatMode || session?.l3?.chatMode || CHAT_MODES.CONSULTATION,
+          chatModeSource: session?.l3?.chatModeSource || null,
           createdAt: session.createdAt,
           updatedAt: session.updatedAt,
+          stateMachine:
+            session?.l3?.stateMachine && typeof session.l3.stateMachine === 'object'
+              ? session.l3.stateMachine
+              : null,
+          executionStateGraph:
+            session?.l3?.executionStateGraph && typeof session.l3.executionStateGraph === 'object'
+              ? session.l3.executionStateGraph
+              : null,
+          turnGraph:
+            session?.l3?.turnGraph && typeof session.l3.turnGraph === 'object'
+              ? session.l3.turnGraph
+              : null,
           planStack: Array.isArray(session?.l3?.planStack) ? session.l3.planStack : [],
           resolvedParams:
             session?.l3?.resolvedParams && typeof session.l3.resolvedParams === 'object'
@@ -1564,12 +2298,17 @@ module.exports = {
             summary: null,
             compressed: false,
             chatMode: 'auto',
+            chatModeSource: null,
+            lastClassification: null,
             consultationContext: null,
             planStack: Array.isArray(current?.l3?.planStack) ? current.l3.planStack : [],
             resolvedParams:
               current?.l3?.resolvedParams && typeof current.l3.resolvedParams === 'object'
                 ? current.l3.resolvedParams
                 : {},
+            stateMachine: null,
+            executionStateGraph: null,
+            turnGraph: null,
           },
           createdAt: current.createdAt,
         });
@@ -1808,11 +2547,20 @@ module.exports = {
       return await chatCore.call(this, ctx);
     },
 
+    buildResponseStrategy(input = {}) {
+      return buildPersonalAgentResponseStrategy(input);
+    },
+
+    buildStrategyLead(responseStrategy = null) {
+      return buildPersonalAgentStrategyLead(responseStrategy || {});
+    },
+
     buildConsultationPrompt({
       message,
       brokerRecommendation,
       resolvedParams,
       knowledgeContext,
+      responseStrategy = null,
       observations = [],
       toolRegistry = [],
     }) {
@@ -1835,6 +2583,32 @@ module.exports = {
       }
       if (brokerRecommendation?.intent) {
         facts.push(`- brokerIntent: ${brokerRecommendation.intent}`);
+      }
+
+      const strategy = responseStrategy || this.buildResponseStrategy({
+        message,
+        knowledgeContext,
+        resolvedParams,
+      });
+
+      facts.push('');
+      facts.push('Antwortstrategie:');
+      facts.push(`- audience: ${strategy.audience || 'general'}`);
+      facts.push(`- epistemicState: ${strategy.epistemicState || 'clear'}`);
+      facts.push(`- abstractionLevel: ${strategy.abstractionLevel || 'balanced'}`);
+      facts.push(`- nextMove: ${strategy.nextMove || 'answer'}`);
+      facts.push('- keine internen Schema-Feldnamen an den Nutzer ausgeben');
+      if (strategy.epistemicState === 'inferable') {
+        facts.push('- Working Assumptions ausdrücklich benennen, bevor deterministische Schritte folgen');
+      }
+      if (strategy.epistemicState === 'ambiguous') {
+        facts.push('- nur eine präzise Klärungsfrage stellen, statt zu raten');
+      }
+      if (strategy.audience === 'leadership') {
+        facts.push('- zuerst Entscheidung, Wirkung und Risiko, dann Details');
+      }
+      if (strategy.audience === 'technical') {
+        facts.push('- technische Begriffe in Klartext, aber ohne interne Parameternamen');
       }
 
       if (Array.isArray(observations) && observations.length > 0) {
@@ -1866,6 +2640,10 @@ module.exports = {
         '- Erkläre kurz und verständlich.',
         '- Formuliere belastbar mit Unsicherheiten, wenn Evidenz fehlt.',
         '- Keine Sätze wie "Schnittstelle fehlt" oder "Methodik-Hinweis".',
+        '- Leite fehlende Informationen als fachliche Konzepte, nie als interne Schemafelder, her.',
+        '- Wenn die Lage inferierbar ist, benenne die Working Assumption ausdrücklich, bevor du fortfährst.',
+        '- Wenn die Lage unklar ist, stelle genau eine präzise Klärungsfrage.',
+        '- Passe die Abstraktion an: Führungsebene = Entscheidung/Risiko/Wirkung, technisch = Details/Eingaben.',
         '- Schlage konkrete nächste Schritte vor.',
         '',
         'Verfügbare Fakten:',
@@ -2045,6 +2823,46 @@ module.exports = {
       };
     },
 
+    shouldEarlyExitConsultationLoop(action, result) {
+      if (!result || typeof result !== 'object') {
+        return false;
+      }
+
+      const data = result.data !== undefined ? result.data : result;
+      if (Array.isArray(data?.results) && data.results.length > 0) {
+        return ['grid-operations.marketPartners', 'grid-operations.vnbLookup'].includes(action);
+      }
+
+      if (data?.operator && typeof data.operator === 'object') {
+        return true;
+      }
+
+      if (Array.isArray(data?.items) && data.items.length > 0) {
+        return true;
+      }
+
+      return false;
+    },
+
+    deriveConsultationPrimaryIntent({ brokerRecommendation = {}, routingDecision = null } = {}) {
+      const brokerIntent = String(brokerRecommendation?.intent || '').trim();
+      const brokerCapability = String(brokerRecommendation?.capability || '').trim();
+
+      if (routingDecision?.target === 'consultation_intro') {
+        return 'consultation';
+      }
+
+      if (
+        brokerIntent === 'mark_unknown_execution_gap' ||
+        brokerCapability === 'interface_placeholder' ||
+        brokerIntent === 'interface-placeholder.markGap'
+      ) {
+        return 'consultation';
+      }
+
+      return brokerIntent || 'consultation';
+    },
+
     async handleConsultationTurnAgentic(ctx, input = {}) {
       const message = String(input.message || '').trim();
       const brokerRecommendation = input.brokerRecommendation || {};
@@ -2052,6 +2870,12 @@ module.exports = {
         input.resolvedParams && typeof input.resolvedParams === 'object' ? input.resolvedParams : {};
       const knowledgeContext = input.knowledgeContext || null;
       const knownContext = input.knownContext || {};
+      const executionTrace = input.executionTrace || null;
+      const toolCallTracker = input.toolCallTracker || null;
+
+      // C) Receive jobId from caller for per-iteration progress logging
+      const agenticJobId = input.jobId || null;
+      const agenticJobStore = agenticJobId ? require('../src/job-store') : null;
 
       if (!message) {
         return null;
@@ -2072,6 +2896,7 @@ module.exports = {
       const toolTrace = [];
       const collectedFacts = [];
       let plannerFailed = false;
+      const startedAt = Date.now();
 
       const summarizeAttempts = (toolResult) => {
         if (!toolResult || typeof toolResult !== 'object') {
@@ -2125,7 +2950,29 @@ module.exports = {
       };
 
       for (let iteration = 1; iteration <= CONSULTATION_REACT_MAX_ITERATIONS; iteration += 1) {
+        if (Date.now() - startedAt >= CONSULTATION_REACT_MAX_MS) {
+          toolTrace.push({
+            iteration,
+            phase: 'guard',
+            status: 'timeout-budget-reached',
+            maxMs: CONSULTATION_REACT_MAX_MS,
+          });
+          break;
+        }
+
         let stepPlan = null;
+
+        // C) Log each agentic loop iteration (THINK phase)
+        if (agenticJobStore) {
+          const iterPercent = Math.min(25 + Math.round((iteration / CONSULTATION_REACT_MAX_ITERATIONS) * 20), 45);
+          agenticJobStore.appendLog(
+            agenticJobId,
+            `agentic_iteration_${iteration}`,
+            iterPercent,
+            `Iteration ${iteration}/${CONSULTATION_REACT_MAX_ITERATIONS}: THINK...`,
+            { iteration, maxIterations: CONSULTATION_REACT_MAX_ITERATIONS, phase: 'think' }
+          );
+        }
 
         try {
           const plannerPrompt = [
@@ -2154,6 +3001,11 @@ module.exports = {
             user: message,
             temperature: 0.1,
             maxTokens: 512,
+            trace: {
+              executionTrace,
+              phase: `consultation_think_${iteration}`,
+              metadata: { iteration },
+            },
           });
 
           stepPlan = this.parseConsultationJsonResponse(
@@ -2233,6 +3085,18 @@ module.exports = {
           continue;
         }
 
+        // C) Log ACT phase: which tool is being called
+        if (agenticJobStore) {
+          const actPercent = Math.min(26 + Math.round((iteration / CONSULTATION_REACT_MAX_ITERATIONS) * 20), 46);
+          agenticJobStore.appendLog(
+            agenticJobId,
+            `agentic_act_${iteration}`,
+            actPercent,
+            `Iteration ${iteration}/${CONSULTATION_REACT_MAX_ITERATIONS}: ACT → ${action}`,
+            { iteration, action, phase: 'act' }
+          );
+        }
+
         const toolCtx = {
           ...ctx,
           broker: this.broker,
@@ -2246,14 +3110,15 @@ module.exports = {
             toolRegistry: toolRegistry.map((tool) => tool.action),
           },
           userMessage: message,
-          maxAttempts: 3,
+          maxAttempts: CONSULTATION_TOOL_MAX_ATTEMPTS,
           allowOpenApiFallback: true,
-          toolTimeoutMs: 20_000,
+          toolTimeoutMs: CONSULTATION_TOOL_TIMEOUT_MS,
           llmGenerate: async (request) => this.callLlmGenerate(ctx, request),
           parser: (raw) => this.parseConsultationJsonResponse(raw),
         });
 
         const attemptInfo = summarizeAttempts(toolResult);
+        const retryCount = Math.max(0, (attemptInfo.attempts || 1) - 1);
 
         if (toolResult.success) {
           const observation = this.summarizeConsultationObservation(action, toolResult.observation);
@@ -2275,6 +3140,56 @@ module.exports = {
             status: 'completed',
             attempts: attemptInfo.attempts,
           });
+          toolCallTracker?.record({
+            phase: 'consultation',
+            tool: action,
+            params: toolResult.params || params,
+            success: true,
+            retries: retryCount,
+            result: toolResult.observation,
+          });
+          executionTrace?.recordToolInvocation({
+            phase: 'consultation',
+            tool: action,
+            params: toolResult.params || params,
+            success: true,
+            retries: retryCount,
+            result: toolResult.observation,
+          });
+
+          // C) Log OBSERVE phase success
+          if (agenticJobStore) {
+            const obsPercent = Math.min(27 + Math.round((iteration / CONSULTATION_REACT_MAX_ITERATIONS) * 20), 47);
+            agenticJobStore.appendLog(
+              agenticJobId,
+              `agentic_observe_${iteration}`,
+              obsPercent,
+              `Iteration ${iteration}/${CONSULTATION_REACT_MAX_ITERATIONS}: OBSERVE ✓ ${action} (${attemptInfo.attempts} attempt${attemptInfo.attempts !== 1 ? 's' : ''})`,
+              { iteration, action, status: 'completed', attempts: attemptInfo.attempts }
+            );
+          }
+
+          if (iteration === 1 && this.shouldEarlyExitConsultationLoop(action, toolResult.observation)) {
+            toolTrace.push({
+              iteration,
+              phase: 'observe',
+              action,
+              status: 'early-exit',
+              reason: 'sufficient_first_tool_evidence',
+            });
+            break;
+          }
+
+          if (Date.now() - startedAt >= CONSULTATION_REACT_MAX_MS) {
+            toolTrace.push({
+              iteration,
+              phase: 'guard',
+              status: 'timeout-budget-reached-after-tool',
+              maxMs: CONSULTATION_REACT_MAX_MS,
+            });
+            break;
+          }
+
           continue;
         }
 
@@ -2308,6 +3223,36 @@ module.exports = {
           status: toolResult.failFast ? 'failed-fast' : 'failed',
           attempts: attemptInfo.attempts,
         });
+        toolCallTracker?.record({
+          phase: 'consultation',
+          tool: action,
+          params,
+          success: false,
+          retries: retryCount,
+          result: toolResult.observation,
+          error: observation.summary,
+        });
+        executionTrace?.recordToolInvocation({
+          phase: 'consultation',
+          tool: action,
+          params,
+          success: false,
+          retries: retryCount,
+          result: toolResult.observation,
+          error: observation.summary,
+        });
+
+        // C) Log OBSERVE phase failure
+        if (agenticJobStore) {
+          const obsPercent = Math.min(27 + Math.round((iteration / CONSULTATION_REACT_MAX_ITERATIONS) * 20), 47);
+          agenticJobStore.appendLog(
+            agenticJobId,
+            `agentic_observe_${iteration}`,
+            obsPercent,
+            `Iteration ${iteration}/${CONSULTATION_REACT_MAX_ITERATIONS}: OBSERVE ✗ ${action} (${toolResult.failFast ? 'fail-fast' : 'failed'}, ${attemptInfo.attempts} attempt${attemptInfo.attempts !== 1 ? 's' : ''})`,
+            { iteration, action, status: toolResult.failFast ? 'failed-fast' : 'failed', attempts: attemptInfo.attempts }
+          );
+        }
 
         const hadUnavailableAttempt = Array.isArray(toolResult.attemptsLog)
           ? toolResult.attemptsLog.some((attempt) =>
@@ -2340,6 +3285,11 @@ module.exports = {
           system: synthesisPrompt,
           user: message,
           schema: CONSULTATION_OUTPUT_SCHEMA,
+          trace: {
+            executionTrace,
+            phase: 'consultation_synthesis',
+            metadata: { observationCount: observations.length },
+          },
         });
 
         const data = raw?.data || raw;
@@ -2371,6 +3321,10 @@ module.exports = {
     },
 
     async callLlmGenerate(ctx, payload = {}) {
+      const startedAt = Date.now();
+      const trace = payload?.trace || null;
+      const llmPayload = { ...payload };
+      delete llmPayload.trace;
       const hasLocalLlmService =
         !!ctx?.broker &&
         typeof ctx.broker.hasLocalService === 'function' &&
@@ -2380,22 +3334,39 @@ module.exports = {
         (!ctx?.broker || process.env.NODE_ENV === 'test' || hasLocalLlmService);
 
       if (canCallBrokerAction) {
-        return await ctx.call('llm.generate', payload, { meta: { ...ctx.meta, $gateway: false } });
+        const response = await ctx.call('llm.generate', llmPayload, { meta: { ...ctx.meta, $gateway: false } });
+        trace?.executionTrace?.recordLLMCall({
+          phase: trace?.phase || 'llm.generate',
+          latencyMs: Date.now() - startedAt,
+          metadata: trace?.metadata || null,
+        });
+        return response;
       }
 
-      const systemText = String(payload.system || '').trim();
-      const userText = String(payload.user || '').trim();
+      const systemText = String(llmPayload.system || '').trim();
+      const userText = String(llmPayload.user || '').trim();
       const prompt = [systemText, userText].filter(Boolean).join('\n\n');
       const options = {
-        temperature: payload.temperature,
-        maxTokens: payload.maxTokens,
+        temperature: llmPayload.temperature,
+        maxTokens: llmPayload.maxTokens,
       };
 
-      if (payload.schema && typeof payload.schema === 'object') {
-        return await llmGenerateStructured(payload.schema, prompt, options);
+      if (llmPayload.schema && typeof llmPayload.schema === 'object') {
+        const response = await llmGenerateStructured(llmPayload.schema, prompt, options);
+        trace?.executionTrace?.recordLLMCall({
+          phase: trace?.phase || 'llm.generate.structured',
+          latencyMs: Date.now() - startedAt,
+          metadata: trace?.metadata || null,
+        });
+        return response;
       }
 
       const text = await llmGenerateText(prompt, options);
+      trace?.executionTrace?.recordLLMCall({
+        phase: trace?.phase || 'llm.generate.text',
+        latencyMs: Date.now() - startedAt,
+        metadata: trace?.metadata || null,
+      });
       return { text };
     },
 
@@ -2407,7 +3378,7 @@ module.exports = {
      * @param {object} session — Aktuelle Session
      * @returns {Promise<{chatMode: string, confidence: number, reasoning: string}>}
      */
-    async classifyChatModeLLM(ctx, message, session) {
+    async classifyChatModeLLM(ctx, message, session, options = {}) {
       const systemPrompt = [
         'Du bist ein Klassifikator für Chat-Modi in einem deutschen Energie-Beratungssystem.',
         '',
@@ -2441,6 +3412,13 @@ module.exports = {
           user: userPrompt,
           temperature: 0.1,
           maxTokens: 256,
+          trace: {
+            executionTrace: options.executionTrace || null,
+            phase: 'chat_mode_classifier',
+            metadata: {
+              hasPlanStack,
+            },
+          },
         });
 
         const raw = llmResponse?.text || llmResponse?.content || llmResponse;
@@ -2520,6 +3498,10 @@ module.exports = {
           system: systemPrompt,
           user: message,
           schema: CONSULTATION_OUTPUT_SCHEMA,
+          trace: {
+            executionTrace: input.executionTrace || null,
+            phase: 'consultation_non_agentic',
+          },
         });
 
         const data = raw?.data || raw;
@@ -2574,6 +3556,23 @@ module.exports = {
       const fallback = { markdown: questionText, nextActions: [] };
       if (!questionText) return fallback;
 
+      const nextActions = staticAlternatives.map((alt) => ({
+        label: alt,
+        type: 'alternative_path',
+      }));
+
+      const deterministicTemplate = [
+        'Damit ich die angeforderte Prüfung belastbar fortsetzen kann, fehlt mir noch eine entscheidende Angabe.',
+        questionText,
+        staticAlternatives.length > 0 ? `Falls das gerade nicht vorliegt: ${staticAlternatives[0]}` : null,
+      ]
+        .filter(Boolean)
+        .join(' ');
+
+      if (String(process.env.PERSONAL_AGENT_ONBOARDING_LLM || 'false').toLowerCase() !== 'true') {
+        return { markdown: deterministicTemplate, nextActions };
+      }
+
       const userSnippet = String(message || '')
         .trim()
         .slice(0, 400);
@@ -2616,21 +3615,13 @@ module.exports = {
 
         if (!llmText || llmText.length < 15) return fallback;
 
-        const nextActions = staticAlternatives.map((alt) => ({
-          label: alt,
-          type: 'alternative_path',
-        }));
         return { markdown: llmText, nextActions };
       } catch (err) {
         this.logger?.warn(
           `buildEmpathethicOnboardingReply LLM failed (non-blocking): ${err?.message}`
         );
         // Deterministic fallback: return raw question with static alternatives
-        const nextActions = staticAlternatives.map((alt) => ({
-          label: alt,
-          type: 'alternative_path',
-        }));
-        return { markdown: questionText, nextActions };
+        return { markdown: deterministicTemplate, nextActions };
       }
     },
 
@@ -2911,6 +3902,7 @@ module.exports = {
       execution,
       fileProcessing = [],
       knowledgeContext = null,
+      responseStrategy = null,
     }) {
       const fileIntro = this.buildFileProcessingIntro(fileProcessing);
       const promptExcerpt = String(message || '')
@@ -2918,7 +3910,11 @@ module.exports = {
         .slice(0, 220);
       const synthesisStyle = knowledgeContext?.synthesisStyle || null;
       const styleLead = this.buildSynthesisStyleLead(synthesisStyle);
-      const prefixed = (text) => (styleLead ? `${styleLead} ${text}` : text);
+      const strategyLead = this.buildStrategyLead(responseStrategy);
+      const prefixed = (text) => {
+        const segments = [styleLead, strategyLead, text].filter(Boolean);
+        return segments.length > 0 ? segments.join(' ') : text;
+      };
 
       if (toolContext && toolContext.responseRaw) {
         const keyCount = Object.keys(toolContext.responseRaw || {}).length;
@@ -2943,6 +3939,7 @@ module.exports = {
           fileIntro,
           assumptions: execution?.assumptions || [],
           synthesisStyle,
+          responseStrategy,
         });
       }
       if (execution?.status === 'completed') {
@@ -2958,6 +3955,7 @@ module.exports = {
           fileIntro,
           assumptions: execution?.assumptions || [],
           synthesisStyle,
+          responseStrategy,
         });
       }
       return prefixed(
@@ -2982,6 +3980,7 @@ module.exports = {
       fileIntro = '',
       assumptions = [],
       synthesisStyle = null,
+      responseStrategy = null,
     }) {
       const taskTone =
         synthesisStyle === 'cautionary' || this.isFinanceRiskTask(message, plan, execution)
@@ -2992,6 +3991,7 @@ module.exports = {
       const progressPrefix =
         taskTone === 'finance-risk' ? 'Für die Risikoprüfung' : 'Für die fachliche Bewertung';
       const styleLead = this.buildSynthesisStyleLead(synthesisStyle);
+      const strategyLead = this.buildStrategyLead(responseStrategy);
 
       const progressText =
         completedStepSummaries.length > 0
@@ -3013,8 +4013,17 @@ module.exports = {
         assumptions,
       });
 
+      const assumptionText =
+        responseStrategy?.assumptions?.length > 0
+          ? responseStrategy.assumptions
+              .slice(0, 2)
+              .map((assumption) => assumption?.statement)
+              .filter(Boolean)
+              .join(' ')
+          : '';
+
       return this.normalizeRecoveryText(
-        [styleLead, fileIntro, progressText, riskWarning, stopText, nextText]
+        [styleLead, strategyLead, fileIntro, assumptionText, progressText, riskWarning, stopText, nextText]
           .filter(Boolean)
           .join(' ')
       );
@@ -3662,6 +4671,11 @@ module.exports = {
       execution = null,
       evidencePlan = null,
       consultation = null,
+      responseStrategy = null,
+      stateMachine = null,
+      executionStateGraph = null,
+      turnGraph = null,
+      routingDecision = null,
     } = {}) {
       const toolAttempts = Array.isArray(consultation?.attemptsSummary)
         ? consultation.attemptsSummary.map((attempt) => ({
@@ -3689,7 +4703,34 @@ module.exports = {
           stopReason: execution?.stopPoint?.reasonCode || null,
           hitlItemId: execution?.stopPoint?.hitlItemId || null,
           criticalStepBlocked: execution?.stopPoint?.reasonCode === 'MANDATORY_HITL_APPROVAL',
+          meta: execution?.meta || null,
         },
+        routingDecision: routingDecision
+          ? {
+              target: routingDecision.target || null,
+              label: routingDecision.label || null,
+              confidence:
+                typeof routingDecision.confidence === 'number' ? routingDecision.confidence : null,
+              determinism: routingDecision.determinism || null,
+              gapReason: routingDecision?.gap?.reason || null,
+            }
+          : null,
+        responseStrategy: responseStrategy
+          ? {
+              audience: responseStrategy.audience || null,
+              audienceConfidence:
+                typeof responseStrategy.audienceConfidence === 'number'
+                  ? responseStrategy.audienceConfidence
+                  : null,
+              epistemicState: responseStrategy.epistemicState || null,
+              abstractionLevel: responseStrategy.abstractionLevel || null,
+              nextMove: responseStrategy.nextMove || null,
+              shouldHideInternalSchema: Boolean(responseStrategy.shouldHideInternalSchema),
+              assumptionCount: Array.isArray(responseStrategy.assumptions)
+                ? responseStrategy.assumptions.length
+                : 0,
+            }
+          : null,
         evidence: {
           source: evidencePlan?.source || null,
           registryKey: evidencePlan?.registryKey || null,
@@ -3699,6 +4740,9 @@ module.exports = {
             ? evidencePlan.gaps.map((gap) => gap.id)
             : [],
         },
+        stateMachine: summarizeStateMachine(stateMachine),
+        executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
+        turnGraph: summarizeTurnGraph(turnGraph),
         toolAttempts,
       };
     },
@@ -3867,12 +4911,14 @@ module.exports = {
       questionTextOverride,
       locationOperatorConsistency,
       evidenceHints,
+      responseStrategy = null,
     }) {
       const paramKey = resolveParamKeyFromMissing(missingParams);
       const onboardingQuestion = buildOnboardingQuestion({
         paramKey,
         action: blockedAction || plan?.steps?.[0]?.action,
         fallbackText: questionTextOverride,
+        strategy: responseStrategy,
       });
       onboardingQuestion.planSnapshot = {
         source: plan?.source || 'onboarding-resume',
@@ -3894,6 +4940,7 @@ module.exports = {
         blockedStep,
         blockedAction,
         missingParams,
+        responseStrategy,
         locationOperatorConsistency: locationOperatorConsistency || null,
         evidenceHints: evidenceHints || null,
         message: onboardingQuestion.questionText,
@@ -3923,7 +4970,7 @@ module.exports = {
 
     async handleExecutionWithOnboarding(
       ctx,
-      { message, plan, knownContext, session, executionMode }
+      { message, plan, knownContext, session, executionMode, executionTrace = null, toolCallTracker = null }
     ) {
       if (executionMode === EXECUTION_MODES.HITL) {
         const hydratedContext = this.hydrateKnownContextFromSession(knownContext, session);
@@ -4007,11 +5054,19 @@ module.exports = {
       const hydratedContext = this.hydrateKnownContextFromSession(knownContext, session);
       const firstMissing = this.findFirstMissingStep(effectivePlan, hydratedContext);
       if (firstMissing) {
+        const responseStrategy = this.buildResponseStrategy({
+          message,
+          plan: effectivePlan,
+          knownContext: hydratedContext,
+          missingParams: firstMissing.missingParams,
+          existingAssumptions,
+        });
         const stopPoint = this.buildOnboardingStopPoint({
           plan: effectivePlan,
           missingParams: firstMissing.missingParams,
           blockedStep: firstMissing.step.step,
           blockedAction: firstMissing.step.action,
+          responseStrategy,
         });
         session.l3.onboardingQuestions = [
           ...(session.l3.onboardingQuestions || []),
@@ -4033,9 +5088,19 @@ module.exports = {
         session,
         skipGapForMissingInputs: true,
         existingAssumptions,
+        executionTrace,
+        toolCallTracker,
       });
 
       if (execution?.stopPoint?.reasonCode === 'MISSING_INPUTS') {
+        const responseStrategy = this.buildResponseStrategy({
+          message,
+          plan: effectivePlan,
+          knownContext: hydratedContext,
+          missingParams: execution.stopPoint?.missingParams || [],
+          existingAssumptions,
+          execution,
+        });
         const stopPoint = this.buildOnboardingStopPoint({
           plan: effectivePlan,
           missingParams: execution.stopPoint?.missingParams || [],
@@ -4044,6 +5109,7 @@ module.exports = {
           questionTextOverride: execution.stopPoint?.questionTextOverride,
           locationOperatorConsistency: execution.stopPoint?.locationOperatorConsistency,
           evidenceHints: execution.stopPoint?.evidenceHints,
+          responseStrategy,
         });
         session.l3.onboardingQuestions = [
           ...(session.l3.onboardingQuestions || []),
@@ -4486,6 +5552,8 @@ module.exports = {
         session,
         skipGapForMissingInputs = false,
         existingAssumptions = [],
+        executionTrace = null,
+        toolCallTracker = null,
       }
     ) {
       const executionState = {
@@ -4636,6 +5704,7 @@ module.exports = {
         }
 
         try {
+          const startedAt = Date.now();
           const result = await ctx.call(plannedStep.action, params, {
             meta: { ...ctx.meta, $gateway: false },
           });
@@ -4654,6 +5723,23 @@ module.exports = {
             action: plannedStep.action,
             status: 'completed',
             params,
+            result,
+          });
+          toolCallTracker?.record({
+            phase: 'execution',
+            tool: plannedStep.action,
+            params,
+            success: true,
+            retries: 0,
+            result,
+          });
+          executionTrace?.recordToolInvocation({
+            phase: 'execution',
+            tool: plannedStep.action,
+            params,
+            success: true,
+            latencyMs: Date.now() - startedAt,
+            retries: 0,
             result,
           });
 
@@ -4724,6 +5810,22 @@ module.exports = {
             }
           }
         } catch (error) {
+          toolCallTracker?.record({
+            phase: 'execution',
+            tool: plannedStep.action,
+            params,
+            success: false,
+            retries: 0,
+            error: error.message,
+          });
+          executionTrace?.recordToolInvocation({
+            phase: 'execution',
+            tool: plannedStep.action,
+            params,
+            success: false,
+            retries: 0,
+            error: error.message,
+          });
           const placeholder = await this.markRoutingGap(ctx, {
             reasonCode: isActionUnavailable(error) ? 'UNSUPPORTED_CHAIN' : 'ACTION_FAILED',
             message: error.message,
@@ -5290,6 +6392,11 @@ module.exports = {
             summary: payload?.l3?.summary || null,
             compressed: Boolean(payload?.l3?.compressed),
             chatMode: normalizeChatMode(payload?.l3?.chatMode) || CHAT_MODES.CONSULTATION,
+            chatModeSource: payload?.l3?.chatModeSource || null,
+            lastClassification:
+              payload?.l3?.lastClassification && typeof payload.l3.lastClassification === 'object'
+                ? payload.l3.lastClassification
+                : null,
             consultationContext:
               payload?.l3?.consultationContext && typeof payload.l3.consultationContext === 'object'
                 ? payload.l3.consultationContext
@@ -5306,6 +6413,19 @@ module.exports = {
             lastCompletedPlan:
               payload?.l3?.lastCompletedPlan && typeof payload.l3.lastCompletedPlan === 'object'
                 ? payload.l3.lastCompletedPlan
+                : null,
+            stateMachine:
+              payload?.l3?.stateMachine && typeof payload.l3.stateMachine === 'object'
+                ? payload.l3.stateMachine
+                : null,
+            executionStateGraph:
+              payload?.l3?.executionStateGraph &&
+              typeof payload.l3.executionStateGraph === 'object'
+                ? payload.l3.executionStateGraph
+                : null,
+            turnGraph:
+              payload?.l3?.turnGraph && typeof payload.l3.turnGraph === 'object'
+                ? payload.l3.turnGraph
                 : null,
             criticalStepCheckpoints:
               payload?.l3?.criticalStepCheckpoints &&
@@ -5343,12 +6463,17 @@ module.exports = {
             summary: null,
             compressed: false,
             chatMode: CHAT_MODES.CONSULTATION,
+            chatModeSource: null,
+            lastClassification: null,
             consultationContext: null,
             onboardingQuestions: [],
             assumptions: [],
             planStack: [],
             resolvedParams: {},
             lastCompletedPlan: null,
+            stateMachine: null,
+            executionStateGraph: null,
+            turnGraph: null,
             criticalStepCheckpoints: {},
           },
           createdAt: new Date().toISOString(),

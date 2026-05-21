@@ -39,7 +39,8 @@ function buildSollBaselines({ redispatchTargetEur, financeBudgetEur }) {
   }
 
   const values = provenances.map((item) => item.valueEur);
-  const sollEur = values.length > 0 ? roundMoney(values.reduce((acc, val) => acc + val, 0) / values.length) : 0;
+  const sollEur =
+    values.length > 0 ? roundMoney(values.reduce((acc, val) => acc + val, 0) / values.length) : 0;
 
   return {
     sollEur,

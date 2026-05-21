@@ -736,9 +736,7 @@ describe('finance-agent service', () => {
                   bdewCode: '9900599000004',
                 },
               ];
-              const results = allPartners.filter((p) =>
-                p.name.toLowerCase().includes(query)
-              );
+              const results = allPartners.filter((p) => p.name.toLowerCase().includes(query));
               // Return shape matches grid-operations.marketPartners JSON response
               return { results };
             },
@@ -874,7 +872,9 @@ describe('finance-agent service', () => {
       expect(res.comparison.dimensionComparison.anschlussdauer.vnb1Value).toBe(45);
       expect(res.comparison.dimensionComparison.anschlussdauer.vnb2Value).toBe(55);
       expect(res.comparison.dimensionComparison.anschlussdauer.winner).toBe('vnb1');
-      expect(res.comparison.dimensionComparison.anschlussdauer.interpretation).toMatch(/VNB1 connects faster/);
+      expect(res.comparison.dimensionComparison.anschlussdauer.interpretation).toMatch(
+        /VNB1 connects faster/
+      );
     });
 
     it('compares digitalisierungsindex correctly (higher is better)', async () => {
@@ -888,7 +888,9 @@ describe('finance-agent service', () => {
       expect(res.comparison.dimensionComparison.digitalisierungsindex.vnb1Value).toBe(72);
       expect(res.comparison.dimensionComparison.digitalisierungsindex.vnb2Value).toBe(68);
       expect(res.comparison.dimensionComparison.digitalisierungsindex.winner).toBe('vnb1');
-      expect(res.comparison.dimensionComparison.digitalisierungsindex.interpretation).toMatch(/VNB1 is more digitalized/);
+      expect(res.comparison.dimensionComparison.digitalisierungsindex.interpretation).toMatch(
+        /VNB1 is more digitalized/
+      );
     });
 
     it('compares umsetzungsquote correctly (higher is better)', async () => {

@@ -90,7 +90,9 @@ describe('Assets Service - override persistence', () => {
           handler(ctx) {
             const { namespace, selector = {}, limit = 50, skip = 0 } = ctx.params;
             const all = [...objectDocs.values()].filter((doc) => doc.namespace === namespace);
-            const filtered = all.filter((doc) => matchesSelector({ payload: doc.payload }, selector));
+            const filtered = all.filter((doc) =>
+              matchesSelector({ payload: doc.payload }, selector)
+            );
             return { docs: filtered.slice(skip, skip + limit), totalDocs: filtered.length };
           },
         },

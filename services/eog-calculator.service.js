@@ -29,8 +29,7 @@ const EOG_FIELDS = {
     type: 'number',
     unit: '%',
     requiredForActual: true,
-    blocker:
-      'Ohne Effizienzwert kann der Abbaupfad ineffizienter Kosten nicht berechnet werden.',
+    blocker: 'Ohne Effizienzwert kann der Abbaupfad ineffizienter Kosten nicht berechnet werden.',
   },
   base_cost_level: {
     key: 'eog.base_cost_level',
@@ -136,12 +135,7 @@ const EOG_FIELDS = {
 
 const EOG_KEYS = Object.keys(EOG_FIELDS);
 const REQUIRED_ACTUAL_KEYS = EOG_KEYS.filter((key) => EOG_FIELDS[key].requiredForActual);
-const DECISION_OPTIONS = [
-  'manual_confirm',
-  'document_upload',
-  'scenario_assumption',
-  'abort',
-];
+const DECISION_OPTIONS = ['manual_confirm', 'document_upload', 'scenario_assumption', 'abort'];
 
 function nowIso() {
   return new Date().toISOString();
@@ -210,7 +204,8 @@ module.exports = {
       },
       openapi: {
         summary: 'Check EOG input coverage for a tenant/VNB scope',
-        description: 'Reports required fields, optional-but-relevant fields, and calibration anchors. optionalButRelevant includes quality_element, regulatory_account_balance, capex_adjustment_*, and volatile_costs which are needed for accurate detail reproduction.',
+        description:
+          'Reports required fields, optional-but-relevant fields, and calibration anchors. optionalButRelevant includes quality_element, regulatory_account_balance, capex_adjustment_*, and volatile_costs which are needed for accurate detail reproduction.',
         tags: [OPENAPI_TAG],
         requestBody: {
           required: true,
@@ -330,7 +325,16 @@ module.exports = {
                   datapoints: {
                     type: 'array',
                     items: { type: 'object' },
-                    example: [{ key: 'eog.base_cost_level', value: 1000, periodYear: 2026, sector: 'strom', source: 'tenant_uploaded', confidence: 'confirmed' }],
+                    example: [
+                      {
+                        key: 'eog.base_cost_level',
+                        value: 1000,
+                        periodYear: 2026,
+                        sector: 'strom',
+                        source: 'tenant_uploaded',
+                        confidence: 'confirmed',
+                      },
+                    ],
                   },
                 },
               },
@@ -422,7 +426,10 @@ module.exports = {
                 required: ['validationId'],
                 properties: {
                   validationId: { type: 'string', example: 'validation-uuid' },
-                  hitlConfirmation: { type: 'object', example: { approved: true, decision: 'manual_confirm' } },
+                  hitlConfirmation: {
+                    type: 'object',
+                    example: { approved: true, decision: 'manual_confirm' },
+                  },
                 },
               },
               examples: {
@@ -470,7 +477,8 @@ module.exports = {
           return {
             success: true,
             committed: false,
-            reason: 'Values marked as scenario assumptions and were not persisted as actual datapoints.',
+            reason:
+              'Values marked as scenario assumptions and were not persisted as actual datapoints.',
             decision: confirmation,
           };
         }
@@ -774,8 +782,18 @@ module.exports = {
         summary: 'Get persisted EOG model (datapoints + decision events + provenance)',
         tags: [OPENAPI_TAG],
         parameters: [
-          { name: 'tenantId', in: 'path', required: true, schema: { type: 'string', example: 'tenant-a' } },
-          { name: 'vnbId', in: 'path', required: true, schema: { type: 'string', example: 'SNB100' } },
+          {
+            name: 'tenantId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'tenant-a' },
+          },
+          {
+            name: 'vnbId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'SNB100' },
+          },
         ],
       },
       async handler(ctx) {
@@ -929,11 +947,7 @@ module.exports = {
         }
       }
 
-      const dataStatus = errors.length
-        ? 'blocked'
-        : warnings.length
-          ? 'partial'
-          : 'complete';
+      const dataStatus = errors.length ? 'blocked' : warnings.length ? 'partial' : 'complete';
 
       return { errors, warnings, normalizedDatapoints, dataStatus };
     },
@@ -1104,7 +1118,9 @@ module.exports = {
     calculateInternal(datapoints, options) {
       const map = this.mapDatapointsByKey(datapoints);
       const missingRequired = REQUIRED_ACTUAL_KEYS.filter((key) => !map[key]);
-      const blockers = missingRequired.map((key) => this.buildMissingDescriptor(key, options.scope));
+      const blockers = missingRequired.map((key) =>
+        this.buildMissingDescriptor(key, options.scope)
+      );
 
       const values = {
         efficiencyValue: map.efficiency_value?.value,
@@ -1123,9 +1139,8 @@ module.exports = {
       let computed = null;
       let adjusted = null;
       if (missingRequired.length === 0) {
-        const efficiencyFactor = values.efficiencyValue > 1
-          ? values.efficiencyValue / 100
-          : values.efficiencyValue;
+        const efficiencyFactor =
+          values.efficiencyValue > 1 ? values.efficiencyValue / 100 : values.efficiencyValue;
         const inefficiencyReduction = values.controllableCosts * (1 - efficiencyFactor);
         steps.push({
           step: 'inefficiency_reduction',

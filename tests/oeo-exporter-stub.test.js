@@ -103,7 +103,9 @@ describe('oeo-exporter-stub', () => {
 
   test('transformToOEO: INSTALLATION maps to PowerPlant plus photovoltaic subclass', () => {
     const result = transformToOEO(serialized);
-    const installation = result['@graph'].find((entry) => entry['mastr:mastrNummer'] === 'SEE999952467552');
+    const installation = result['@graph'].find(
+      (entry) => entry['mastr:mastrNummer'] === 'SEE999952467552'
+    );
     expect(installation['@type']).toEqual(
       expect.arrayContaining(['oeo:PowerPlant', 'oeo:PhotovoltaicPlant'])
     );
@@ -111,13 +113,17 @@ describe('oeo-exporter-stub', () => {
 
   test('transformToOEO: NAP maps to GridConnectionPoint', () => {
     const result = transformToOEO(serialized);
-    const napNode = result['@graph'].find((entry) => entry['@id'].includes('NAP:NAP_HOEHEINOED_001'));
+    const napNode = result['@graph'].find((entry) =>
+      entry['@id'].includes('NAP:NAP_HOEHEINOED_001')
+    );
     expect(napNode['@type']).toEqual(expect.arrayContaining(['oeo:GridConnectionPoint']));
   });
 
   test('transformToOEO: INSTALLATION contains connectedTo reference', () => {
     const result = transformToOEO(serialized);
-    const installation = result['@graph'].find((entry) => entry['mastr:mastrNummer'] === 'SEE999952467552');
+    const installation = result['@graph'].find(
+      (entry) => entry['mastr:mastrNummer'] === 'SEE999952467552'
+    );
     expect(installation['oeo:connectedTo']).toEqual(
       expect.objectContaining({ '@id': expect.stringContaining('NAP:NAP_HOEHEINOED_001') })
     );
@@ -125,7 +131,9 @@ describe('oeo-exporter-stub', () => {
 
   test('transformToOEO: INSTALLATION contains locatedIn reference', () => {
     const result = transformToOEO(serialized);
-    const installation = result['@graph'].find((entry) => entry['mastr:mastrNummer'] === 'SEE999952467552');
+    const installation = result['@graph'].find(
+      (entry) => entry['mastr:mastrNummer'] === 'SEE999952467552'
+    );
     expect(installation['oeo:locatedIn']).toEqual(
       expect.objectContaining({ '@id': expect.stringContaining('REGION:66989') })
     );

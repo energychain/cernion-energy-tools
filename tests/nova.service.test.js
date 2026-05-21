@@ -232,7 +232,11 @@ describe('NOVA Service', () => {
     );
 
     await expect(
-      broker.call('nova.pendingDecisions', { projectId: p.projectId }, { meta: { tenantId: 'tenant-y' } })
+      broker.call(
+        'nova.pendingDecisions',
+        { projectId: p.projectId },
+        { meta: { tenantId: 'tenant-y' } }
+      )
     ).rejects.toMatchObject({
       code: 403,
       type: 'NOVA_PROJECT_TENANT_MISMATCH',

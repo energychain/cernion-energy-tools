@@ -98,7 +98,9 @@ describe('session-manager plan stack helpers', () => {
 
     expect(resumed.resumed).toBe(true);
     expect(resumed.parentFrame.intent).toBe('grid_connection_planning');
-    expect(resumed.planStack.find((frame) => frame.frameId === 'pf_parent')?.status).toBe('resumed');
+    expect(resumed.planStack.find((frame) => frame.frameId === 'pf_parent')?.status).toBe(
+      'resumed'
+    );
     expect(resumed.plan.steps[0].paramsTemplate.query).toBe('Stadtwerke Walldorf');
   });
 

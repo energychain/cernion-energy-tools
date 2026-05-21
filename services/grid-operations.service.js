@@ -1990,7 +1990,14 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         requestedCapacityKW: { type: 'number', min: 0, convert: true },
         firmCapacityKW: { type: 'number', min: 0, optional: true, convert: true },
         flexibleCapacityKW: { type: 'number', min: 0, optional: true, default: 0, convert: true },
-        curtailmentWindow: { type: 'number', min: 0, max: 24, optional: true, default: 0, convert: true },
+        curtailmentWindow: {
+          type: 'number',
+          min: 0,
+          max: 24,
+          optional: true,
+          default: 0,
+          convert: true,
+        },
         operatingConstraint: { type: 'string', optional: true },
         contractStatus: { type: 'string', optional: true },
         legalStatus: { type: 'string', optional: true },
@@ -2036,17 +2043,65 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                 type: 'object',
                 required: ['requestedCapacityKW'],
                 properties: {
-                  gridOperatorId: { type: 'string', description: 'MaStR grid operator ID', example: 'SNB935578300972' },
-                  gridOperatorName: { type: 'string', description: 'Grid operator name', example: 'TWL Netze' },
-                  voltageLevel: { type: 'string', enum: ['NS', 'MS', 'HS'], default: 'MS', description: 'Voltage level of the connection point' },
-                  requestedCapacityKW: { type: 'number', description: 'Requested connection capacity in kW', example: 5000 },
-                  firmCapacityKW: { type: 'number', description: 'Guaranteed firm capacity in kW (defaults to requestedCapacityKW if omitted)', example: 3000 },
-                  flexibleCapacityKW: { type: 'number', default: 0, description: 'Curtailable flex capacity in kW under §14a', example: 2000 },
-                  curtailmentWindow: { type: 'number', default: 0, description: 'Max hours per day the VNB may curtail (0–24)', example: 4 },
-                  operatingConstraint: { type: 'string', description: 'Free-text operating constraint', example: '§14a max 2h/event, 30-min notice' },
-                  contractStatus: { type: 'string', description: 'Contract status', example: 'negotiating' },
-                  legalStatus: { type: 'string', description: 'Legal/regulatory status', example: 'pending' },
-                  ownerContact: { type: 'string', description: 'Responsible owner or contact (required for governance approval)', example: 'netzplanung@twl.de' },
+                  gridOperatorId: {
+                    type: 'string',
+                    description: 'MaStR grid operator ID',
+                    example: 'SNB935578300972',
+                  },
+                  gridOperatorName: {
+                    type: 'string',
+                    description: 'Grid operator name',
+                    example: 'TWL Netze',
+                  },
+                  voltageLevel: {
+                    type: 'string',
+                    enum: ['NS', 'MS', 'HS'],
+                    default: 'MS',
+                    description: 'Voltage level of the connection point',
+                  },
+                  requestedCapacityKW: {
+                    type: 'number',
+                    description: 'Requested connection capacity in kW',
+                    example: 5000,
+                  },
+                  firmCapacityKW: {
+                    type: 'number',
+                    description:
+                      'Guaranteed firm capacity in kW (defaults to requestedCapacityKW if omitted)',
+                    example: 3000,
+                  },
+                  flexibleCapacityKW: {
+                    type: 'number',
+                    default: 0,
+                    description: 'Curtailable flex capacity in kW under §14a',
+                    example: 2000,
+                  },
+                  curtailmentWindow: {
+                    type: 'number',
+                    default: 0,
+                    description: 'Max hours per day the VNB may curtail (0–24)',
+                    example: 4,
+                  },
+                  operatingConstraint: {
+                    type: 'string',
+                    description: 'Free-text operating constraint',
+                    example: '§14a max 2h/event, 30-min notice',
+                  },
+                  contractStatus: {
+                    type: 'string',
+                    description: 'Contract status',
+                    example: 'negotiating',
+                  },
+                  legalStatus: {
+                    type: 'string',
+                    description: 'Legal/regulatory status',
+                    example: 'pending',
+                  },
+                  ownerContact: {
+                    type: 'string',
+                    description: 'Responsible owner or contact (required for governance approval)',
+                    example: 'netzplanung@twl.de',
+                  },
                   n1ThresholdOverride: {
                     type: 'object',
                     example: { project: 78 },
@@ -2099,12 +2154,28 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                   properties: {
                     capacityModel: { type: 'object', description: 'Normalised capacity model' },
                     n1Check: { type: 'object', description: 'N-1 compliance result' },
-                    feasibility: { type: 'string', enum: ['feasible', 'conditional', 'copper_needed'], description: 'Technical feasibility verdict' },
+                    feasibility: {
+                      type: 'string',
+                      enum: ['feasible', 'conditional', 'copper_needed'],
+                      description: 'Technical feasibility verdict',
+                    },
                     governanceStatus: { type: 'string', description: 'Governance decision status' },
                     governanceBlockers: { type: 'array', items: { type: 'string' } },
-                    governanceArtifact: { type: 'object', nullable: true, description: 'Optional interface-placeholder / HITL artifact created for governance blockers' },
-                    decisionChain: { type: 'array', items: { type: 'object' }, description: 'Additive six-step A²MDM trace for the Phase-5 decision' },
-                    proof: { type: 'object', description: 'Compact proof/provenance payload for audit-friendly handoff' },
+                    governanceArtifact: {
+                      type: 'object',
+                      nullable: true,
+                      description:
+                        'Optional interface-placeholder / HITL artifact created for governance blockers',
+                    },
+                    decisionChain: {
+                      type: 'array',
+                      items: { type: 'object' },
+                      description: 'Additive six-step A²MDM trace for the Phase-5 decision',
+                    },
+                    proof: {
+                      type: 'object',
+                      description: 'Compact proof/provenance payload for audit-friendly handoff',
+                    },
                     findings: { type: 'array', items: { type: 'object' } },
                     metadata: { type: 'object' },
                   },
@@ -2160,16 +2231,29 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         const findings = [];
         let fidx = 1;
 
-        const profileFinding = evidenceLevel === 'complete'
-          ? FN_PROFILE_COMPLETE
-          : evidenceLevel === 'partial'
-            ? FN_PROFILE_PARTIAL
-            : FN_PROFILE_INSUFFICIENT;
-        const profileSeverity = evidenceLevel === 'complete' ? 'info' : evidenceLevel === 'partial' ? 'warning' : 'error';
-        findings.push(createFinding(1, 'profile', profileFinding, profileSeverity,
-          `Evidence level: ${evidenceLevel}`,
-          missingFields.length ? `Missing fields: ${missingFields.join(', ')}` : 'All required fields present.',
-          { evidenceLevel, missingFields }, null, fidx++));
+        const profileFinding =
+          evidenceLevel === 'complete'
+            ? FN_PROFILE_COMPLETE
+            : evidenceLevel === 'partial'
+              ? FN_PROFILE_PARTIAL
+              : FN_PROFILE_INSUFFICIENT;
+        const profileSeverity =
+          evidenceLevel === 'complete' ? 'info' : evidenceLevel === 'partial' ? 'warning' : 'error';
+        findings.push(
+          createFinding(
+            1,
+            'profile',
+            profileFinding,
+            profileSeverity,
+            `Evidence level: ${evidenceLevel}`,
+            missingFields.length
+              ? `Missing fields: ${missingFields.join(', ')}`
+              : 'All required fields present.',
+            { evidenceLevel, missingFields },
+            null,
+            fidx++
+          )
+        );
 
         // Step 2 — N-1 compliance
         const loadMW = capacityModel.resultingEffectiveCapacityKW / 1000;
@@ -2179,16 +2263,30 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         let n1FindingCode;
         let n1Severity;
         if (!n1Check.passes) {
-          n1FindingCode = FN_N1_FAIL; n1Severity = 'error';
+          n1FindingCode = FN_N1_FAIL;
+          n1Severity = 'error';
         } else if (n1Check.utilizationPercent >= MARGINAL_THRESHOLD * 100) {
-          n1FindingCode = FN_N1_MARGINAL; n1Severity = 'warning';
+          n1FindingCode = FN_N1_MARGINAL;
+          n1Severity = 'warning';
         } else {
-          n1FindingCode = FN_N1_PASS; n1Severity = 'info';
+          n1FindingCode = FN_N1_PASS;
+          n1Severity = 'info';
         }
-        findings.push(createFinding(2, 'n1', n1FindingCode, n1Severity,
-          `N-1: ${n1Check.utilizationPercent}% utilisation (threshold: ${n1Check.thresholdMVA} MVA, source: ${n1Check.thresholdSource})`,
-          n1Check.passes ? `Margin: ${n1Check.marginMW} MW` : `Overload: ${Math.abs(n1Check.marginMW).toFixed(2)} MW above threshold.`,
-          n1Check, 'Adjust firmCapacity or flexibleCapacity to achieve N-1 compliance.', fidx++));
+        findings.push(
+          createFinding(
+            2,
+            'n1',
+            n1FindingCode,
+            n1Severity,
+            `N-1: ${n1Check.utilizationPercent}% utilisation (threshold: ${n1Check.thresholdMVA} MVA, source: ${n1Check.thresholdSource})`,
+            n1Check.passes
+              ? `Margin: ${n1Check.marginMW} MW`
+              : `Overload: ${Math.abs(n1Check.marginMW).toFixed(2)} MW above threshold.`,
+            n1Check,
+            'Adjust firmCapacity or flexibleCapacity to achieve N-1 compliance.',
+            fidx++
+          )
+        );
 
         // Step 3 — fNAV feasibility verdict
         let feasibility;
@@ -2211,27 +2309,51 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
           feasFinding = FN_CAPACITY_CONDITIONAL;
           feasSeverity = 'info';
         }
-        findings.push(createFinding(3, 'feasibility', feasFinding, feasSeverity,
-          `Technical feasibility: ${feasibility}`,
-          `Profile type: ${capacityModel.profileType}. Effective capacity: ${capacityModel.resultingEffectiveCapacityKW} kW.`,
-          { feasibility, profileType: capacityModel.profileType }, null, fidx++));
+        findings.push(
+          createFinding(
+            3,
+            'feasibility',
+            feasFinding,
+            feasSeverity,
+            `Technical feasibility: ${feasibility}`,
+            `Profile type: ${capacityModel.profileType}. Effective capacity: ${capacityModel.resultingEffectiveCapacityKW} kW.`,
+            { feasibility, profileType: capacityModel.profileType },
+            null,
+            fidx++
+          )
+        );
 
         // Step 4 — Governance gate (Option B)
         const ownerMissing = !p.ownerContact;
         const { governanceStatus, blockers } = resolveGovernanceStatus(capacityModel, ownerMissing);
-        const govFinding = governanceStatus === 'approved' ? FN_GOVERNANCE_APPROVED : FN_GOVERNANCE_REQUIRED;
+        const govFinding =
+          governanceStatus === 'approved' ? FN_GOVERNANCE_APPROVED : FN_GOVERNANCE_REQUIRED;
         const govSeverity = governanceStatus === 'approved' ? 'info' : 'warning';
-        findings.push(createFinding(4, 'governance', govFinding, govSeverity,
-          `Governance status: ${governanceStatus}`,
-          blockers.length ? `Blockers: ${blockers.join('; ')}` : 'All governance prerequisites met.',
-          { governanceStatus, blockers, ownerMissing },
-          blockers.length ? 'Obtain legal approval and signed contract before finalising fNAV.' : null,
-          fidx++));
+        findings.push(
+          createFinding(
+            4,
+            'governance',
+            govFinding,
+            govSeverity,
+            `Governance status: ${governanceStatus}`,
+            blockers.length
+              ? `Blockers: ${blockers.join('; ')}`
+              : 'All governance prerequisites met.',
+            { governanceStatus, blockers, ownerMissing },
+            blockers.length
+              ? 'Obtain legal approval and signed contract before finalising fNAV.'
+              : null,
+            fidx++
+          )
+        );
 
         let governanceArtifact = null;
         if (ctx.meta.$gateway === true && governanceStatus !== 'approved') {
           const artifactConfig = buildGovernanceArtifactConfig(blockers);
-          const operatorKey = (p.gridOperatorId || p.gridOperatorName || 'unknown').toString().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+          const operatorKey = (p.gridOperatorId || p.gridOperatorName || 'unknown')
+            .toString()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '_');
           const placeholderGapKey = `phase5_fnav_governance_${operatorKey}_${voltageLevel.toLowerCase()}_${Math.round(capacityModel.requestedCapacityKW)}`;
 
           try {

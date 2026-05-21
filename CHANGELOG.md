@@ -8,26 +8,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- [src/personal-agent-response-strategy.js](src/personal-agent-response-strategy.js): shared audience/epistemic-state strategy helper for Personal Agent prompts, onboarding questions, and structured trace metadata with schema-safe fallback wording.
 - [src/personal-agent-state-machine.js](src/personal-agent-state-machine.js): explicit Personal-Agent turn FSM with canonical states (`init`, `session_loaded`, `knowledge_oriented`, `broker_recommended`, `chat_mode_resolved`, `consultation_active`, `execution_planned`, `execution_running`, `synthesizing`, terminal stop states) plus guarded transitions and terminal-state derivation.
 - [src/personal-agent-turn-graph.js](src/personal-agent-turn-graph.js): transient, session-turn-scoped graph model for chat reasoning (`message`, `context`, `knowledge`, `broker`, `tool`, `fact`, `gap`, `answer`) with typed edges and bounded snapshots (MAX_NODES=80, MAX_EDGES=140).
+- [src/personal-agent-execution-state-graph.js](src/personal-agent-execution-state-graph.js): deterministic execution-state graph for chat-mode resolution (`initialized` → `api_params_validated|chat_mode_cached|chat_mode_classified|chat_mode_fallback` → `execution_mode_resolved` → `ready_for_routing`) with stable message fingerprinting.
+- [src/personal-agent-routing-graph.js](src/personal-agent-routing-graph.js): explicit routing-edge decision helper (`consultation_intro`, `consultation_node`, `execution_node`, `mark_unknown_execution_gap`) with confidence-aware gap derivation.
+- [src/execution-trace.js](src/execution-trace.js): structured runtime trace collector for LLM calls, tool invocations, broker decisions and state transitions.
+- [src/tool-call-tracker.js](src/tool-call-tracker.js): unified tool-call accounting for consultation + execution with retries/backoff metadata.
+- [src/mark-execution-gap.js](src/mark-execution-gap.js): normalized execution-gap payload builder (`MARK_UNKNOWN_EXECUTION_GAP`) with explicit reason/suggestions.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `_executeChatCoreLogic()` now instantiates and advances a turn-local state machine across session load, knowledge orientation, broker recommendation, chat-mode resolution, consultation/execution, synthesis, and terminal stop handling.
 - [services/personal-agent.service.js](services/personal-agent.service.js): Phase 2 turn-graph pipeline implemented end-to-end — graph construction starts at message/session context, expands through knowledge orientation + broker routing + tool/fact/evidence-gap nodes, and finalizes before reply synthesis.
 - [services/personal-agent.service.js](services/personal-agent.service.js): chat responses and `agentTrace` now expose a structured `stateMachine` snapshot and `turnGraph` summary so UI and debugging flows can inspect the current turn lifecycle and reasoning graph without parsing free text.
 - [services/personal-agent.service.js](services/personal-agent.service.js): `getSession` now returns the latest persisted `stateMachine` and `turnGraph` snapshots for frontend rehydration and chat continuity inspection.
+- [tests/personal-agent-execution-state-graph.test.js](tests/personal-agent-execution-state-graph.test.js): unit coverage for deterministic transition path and message-fingerprint stability.
+- [tests/personal-agent-routing-graph.test.js](tests/personal-agent-routing-graph.test.js): unit coverage for explicit consultation/execution/gap edge resolution.
+- [tests/execution-trace.test.js](tests/execution-trace.test.js): unit coverage for LLM/tool/broker/state trace aggregation.
 - [tests/personal-agent-state-machine.test.js](tests/personal-agent-state-machine.test.js): unit coverage for valid transitions, fail-closed invalid transitions, terminal-state derivation, and sanitized transition summaries.
 - [tests/personal-agent-turn-graph.test.js](tests/personal-agent-turn-graph.test.js): unit coverage for turn graph creation, de-duplication of nodes/edges, and finalization behavior.
 
 ### Changed
-- [src/personal-agent-context.js](src/personal-agent-context.js): `buildPersistableSessionState()` now persists sanitized `l3.stateMachine` and `l3.turnGraph` snapshots as first-class L3 artifacts (no L4 raw payload, strings truncated 240-600 chars, no circular refs).
-- [services/personal-agent.service.js](services/personal-agent.service.js): session load/reset paths hydrate and clear both `l3.stateMachine` and `l3.turnGraph`; response payloads + `agentTrace` include both summaries.
-- [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js) and [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): coverage extended to verify state-machine + turn-graph persistence and response metadata (79 tests total, 0 failures).
+- [src/personal-agent-context.js](src/personal-agent-context.js): `buildPersistableSessionState()` now also persists sanitized `l3.chatModeSource`, `l3.lastClassification`, and `l3.executionStateGraph` alongside `l3.stateMachine`/`l3.turnGraph` (no L4 raw payload).
+- [services/personal-agent.service.js](services/personal-agent.service.js): chat-mode resolution now follows deterministic precedence `API param → session fingerprint cache → LLM classifier → heuristic → default`; API `chatMode` cannot be overwritten by classifier output.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `agentTrace` now includes `routingDecision`, `executionStateGraph`, and `execution.meta` (LLM/tool/broker/state trace summary).
+- [services/personal-agent.service.js](services/personal-agent.service.js): consultation loop gets early-exit optimization for sufficient first-tool evidence; onboarding reply defaults to deterministic template (LLM rewrite behind `PERSONAL_AGENT_ONBOARDING_LLM=true`).
+- [services/capability-broker.service.js](services/capability-broker.service.js): recommendation payload now includes top-level `capability` and `scoringBreakdown` for explainable routing decisions.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): extended assertions pass for backward-compatible consultation payload shape while exposing new trace metadata via `agentTrace.execution.meta`.
 
 ### Technical Details
 - **FSM Lifecycle:** init → session_loaded → knowledge_oriented → broker_recommended → chat_mode_resolved → (consultation_active | execution_planned) → execution_running → synthesizing → (completed | awaiting_user_input | hitl_blocked | error)
 - **Turn Graph Nodes:** message (root), context, knowledge, broker, decision, tool, fact, gap, answer
 - **Turn Graph Edges:** contextualized_by, oriented_by, routes_to, decides, invokes, grounds, requires_evidence, produces
-- **Persistence:** FSM + turn-graph snapshots stored in L3 session metadata, hydrated on session load, cleared on reset
-- **Response Exposure:** Both structures exposed in top-level response and `agentTrace` metadata (not in textual reply)
+- **Execution State Graph:** API/cache/LLM/heuristic chat-mode path is tracked as deterministic transition history and persisted in `l3.executionStateGraph`
+- **Routing Decision:** explicit edge resolution surfaced in `agentTrace.routingDecision` (target, confidence, determinism, gapReason)
+- **Execution Meta:** `agentTrace.execution.meta` carries run-level observability (`llmCalls`, `toolCalls`, `brokerDecisions`, `stateTransitions`, `totalMs`)
+- **Persistence:** state-machine + execution-state-graph + turn-graph + classification metadata stored in L3 and rehydrated on session load/reset
+- **Response Exposure:** trace/state structures are exposed as structured metadata (`agentTrace`, `executionStateGraph`) and never injected into free-text `reply`
 
 ## [0.53.9] — Personal Agent State Machine Foundation (2026-05-21)
 

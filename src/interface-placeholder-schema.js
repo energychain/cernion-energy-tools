@@ -27,10 +27,7 @@ const SIGNAL_CODES = Object.freeze([
   'REQUEST_AGENT_REPLACEMENT',
 ]);
 
-const DEFAULT_RESOLVER_ROLES = Object.freeze([
-  ROLE_KAUFMAENNISCHE_LEITUNG,
-  ROLE_NETZPLANUNG,
-]);
+const DEFAULT_RESOLVER_ROLES = Object.freeze([ROLE_KAUFMAENNISCHE_LEITUNG, ROLE_NETZPLANUNG]);
 
 const DEFAULT_SIGNAL_CODES_BY_REASON = Object.freeze({
   NEEDS_OWNER: ['NEEDS_OWNER', 'REQUEST_OWNER_ASSIGNMENT'],
@@ -41,7 +38,9 @@ const DEFAULT_SIGNAL_CODES_BY_REASON = Object.freeze({
 });
 
 function normalizeReason(reason) {
-  const value = String(reason || '').trim().toUpperCase();
+  const value = String(reason || '')
+    .trim()
+    .toUpperCase();
   if (!PLACEHOLDER_REASON.includes(value)) {
     throw new Error(`Invalid placeholder reason: ${reason}`);
   }
@@ -49,7 +48,9 @@ function normalizeReason(reason) {
 }
 
 function normalizeBlockingLevel(level) {
-  const value = String(level || 'soft').trim().toLowerCase();
+  const value = String(level || 'soft')
+    .trim()
+    .toLowerCase();
   if (!BLOCKING_LEVEL.includes(value)) {
     throw new Error(`Invalid blocking level: ${level}`);
   }
@@ -60,7 +61,11 @@ function normalizeSignalCodes(reason, signalCodes = []) {
   const normalizedReason = normalizeReason(reason);
   const baseSignals = DEFAULT_SIGNAL_CODES_BY_REASON[normalizedReason] || [normalizedReason];
   const mergedSignals = [...baseSignals, ...(Array.isArray(signalCodes) ? signalCodes : [])]
-    .map((signalCode) => String(signalCode || '').trim().toUpperCase())
+    .map((signalCode) =>
+      String(signalCode || '')
+        .trim()
+        .toUpperCase()
+    )
     .filter(Boolean)
     .filter((signalCode, index, array) => array.indexOf(signalCode) === index)
     .filter((signalCode) => SIGNAL_CODES.includes(signalCode));

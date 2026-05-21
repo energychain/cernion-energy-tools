@@ -161,13 +161,13 @@ module.exports = {
           gridOperatorId: ctx.params.gridOperatorId,
         });
 
-        const redispatchTargetEur =
-          Number.isFinite(ctx.params.redispatchTargetEur)
-            ? ctx.params.redispatchTargetEur
-            : audit?.riskAssessment?.estimatedLostCompensationEur;
+        const redispatchTargetEur = Number.isFinite(ctx.params.redispatchTargetEur)
+          ? ctx.params.redispatchTargetEur
+          : audit?.riskAssessment?.estimatedLostCompensationEur;
 
-        const financeBudgetEur =
-          Number.isFinite(ctx.params.financeBudgetEur) ? ctx.params.financeBudgetEur : null;
+        const financeBudgetEur = Number.isFinite(ctx.params.financeBudgetEur)
+          ? ctx.params.financeBudgetEur
+          : null;
 
         const baselines = buildSollBaselines({
           redispatchTargetEur,
@@ -404,12 +404,20 @@ module.exports = {
       try {
         const doc = await this.db.get(`${DOC_PREFIX}${id}`);
         if (doc.tenantId !== tenantId) {
-          throw new MoleculerClientError('Investment plan not found', 404, 'INVESTMENT_PLAN_NOT_FOUND');
+          throw new MoleculerClientError(
+            'Investment plan not found',
+            404,
+            'INVESTMENT_PLAN_NOT_FOUND'
+          );
         }
         return doc;
       } catch (err) {
         if (err?.status === 404 || err?.type === 'INVESTMENT_PLAN_NOT_FOUND') {
-          throw new MoleculerClientError('Investment plan not found', 404, 'INVESTMENT_PLAN_NOT_FOUND');
+          throw new MoleculerClientError(
+            'Investment plan not found',
+            404,
+            'INVESTMENT_PLAN_NOT_FOUND'
+          );
         }
         throw err;
       }

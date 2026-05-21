@@ -27,7 +27,9 @@ function collectApiAliases() {
 }
 
 describe('v0.52.5 TDD matrix executable coverage', () => {
-  const cases = parseTddMatrixFile(DEFAULT_MATRIX_FILE).filter((testCase) => testCase.id.startsWith('T-'));
+  const cases = parseTddMatrixFile(DEFAULT_MATRIX_FILE).filter((testCase) =>
+    testCase.id.startsWith('T-')
+  );
   const aliases = collectApiAliases();
   const requiredIds = cases.map((c) => c.id).sort();
   const passedIds = [];

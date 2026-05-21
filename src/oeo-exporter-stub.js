@@ -184,8 +184,12 @@ function buildNodeDocument(node, baseIri, warnings) {
 }
 
 function summarizeValidation({ graphologyExport, warnings, mappedNodes, mappedEdges }) {
-  const nodeWarnings = warnings.filter((warning) => warning.code === 'OEO_UNKNOWN_NODE_TYPE').length;
-  const edgeWarnings = warnings.filter((warning) => warning.code === 'OEO_UNKNOWN_EDGE_TYPE').length;
+  const nodeWarnings = warnings.filter(
+    (warning) => warning.code === 'OEO_UNKNOWN_NODE_TYPE'
+  ).length;
+  const edgeWarnings = warnings.filter(
+    (warning) => warning.code === 'OEO_UNKNOWN_EDGE_TYPE'
+  ).length;
 
   return {
     status: warnings.length > 0 ? 'warning' : 'ok',
@@ -201,7 +205,11 @@ function summarizeValidation({ graphologyExport, warnings, mappedNodes, mappedEd
 }
 
 function validateGraphologyExport(graphologyExport) {
-  if (!graphologyExport || !Array.isArray(graphologyExport.nodes) || !Array.isArray(graphologyExport.edges)) {
+  if (
+    !graphologyExport ||
+    !Array.isArray(graphologyExport.nodes) ||
+    !Array.isArray(graphologyExport.edges)
+  ) {
     throw createExporterError(
       'OEO_INVALID_GRAPH_EXPORT',
       'transformToOEO expects a Graphology export with nodes[] and edges[].'
@@ -254,7 +262,12 @@ function buildOeoExport(graphologyExport, options = {}) {
   return {
     oeo,
     warnings,
-    validationSummary: summarizeValidation({ graphologyExport, warnings, mappedNodes, mappedEdges }),
+    validationSummary: summarizeValidation({
+      graphologyExport,
+      warnings,
+      mappedNodes,
+      mappedEdges,
+    }),
     oeoVersion,
     oeoVersionIri: OEO_VERSION_IRI,
     generator: `cernion-energy-tools/${packageVersion}`,

@@ -1,8 +1,6 @@
 'use strict';
 
-const {
-  queryKnowledgeOrientation,
-} = require('../src/personal-agent-knowledge-rag');
+const { queryKnowledgeOrientation } = require('../src/personal-agent-knowledge-rag');
 
 describe('personal-agent-knowledge-rag adapter', () => {
   test('T-PA-KR-001: calls knowledge-rag.query with expected payload', async () => {
@@ -43,7 +41,7 @@ describe('personal-agent-knowledge-rag adapter', () => {
         limit: 7,
       }),
       expect.objectContaining({
-        timeout: 2000,
+        timeout: 25000,
         meta: expect.objectContaining({
           tenantId: 'tenant-a',
           $gateway: false,

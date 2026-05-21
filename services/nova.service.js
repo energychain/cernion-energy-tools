@@ -25,7 +25,11 @@ const OPENAPI_TAG = 'NOVA';
 const DOC_PREFIX_DECISION = 'nd:';
 const DOC_PREFIX_PROJECT_BINDING = 'npb:';
 const DEFAULT_DECISION_TTL_HOURS = 72;
-const DECISION_KINDS_WITH_HITL = new Set(['mastr_correction', 'asset_override', 'threshold_update']);
+const DECISION_KINDS_WITH_HITL = new Set([
+  'mastr_correction',
+  'asset_override',
+  'threshold_update',
+]);
 
 module.exports = {
   name: 'nova',
@@ -246,10 +250,14 @@ module.exports = {
         }
 
         if (decisionDoc && decisionDoc.lifecycle?.current === DECISION_STATES.PENDING_APPROVAL) {
-          decisionDoc = await this.transitionDecisionLifecycle(decisionDoc, DECISION_STATES.APPROVED, {
-            actor: 'nova.apply',
-            reason: 'legacy-apply-endpoint',
-          });
+          decisionDoc = await this.transitionDecisionLifecycle(
+            decisionDoc,
+            DECISION_STATES.APPROVED,
+            {
+              actor: 'nova.apply',
+              reason: 'legacy-apply-endpoint',
+            }
+          );
         }
 
         const projectGraph = znpService.getProject(projectId);
@@ -347,20 +355,34 @@ module.exports = {
             schema: { type: 'string', example: 'threshold_update' },
           },
           { in: 'query', name: 'limit', required: false, schema: { type: 'integer', default: 50 } },
-          { in: 'query', name: 'cursor', required: false, schema: { type: 'string', example: 'eyJwaXZvdCI6Ii4uLiJ9' } },
+          {
+            in: 'query',
+            name: 'cursor',
+            required: false,
+            schema: { type: 'string', example: 'eyJwaXZvdCI6Ii4uLiJ9' },
+          },
           { in: 'query', name: 'offset', required: false, schema: { type: 'integer', default: 0 } },
         ],
       },
       async handler(ctx) {
-        const tenantId = await this.assertProjectTenantBinding(ctx.params.projectId, resolveTenantId(ctx));
+        const tenantId = await this.assertProjectTenantBinding(
+          ctx.params.projectId,
+          resolveTenantId(ctx)
+        );
         let docs = await this.listProjectDecisions(tenantId, ctx.params.projectId);
 
         if (ctx.params.status) {
-          const status = String(ctx.params.status || '').trim().toLowerCase();
-          docs = docs.filter((doc) => String(doc.lifecycle?.current || '').toLowerCase() === status);
+          const status = String(ctx.params.status || '')
+            .trim()
+            .toLowerCase();
+          docs = docs.filter(
+            (doc) => String(doc.lifecycle?.current || '').toLowerCase() === status
+          );
         }
         if (ctx.params.kind) {
-          const kind = String(ctx.params.kind || '').trim().toLowerCase();
+          const kind = String(ctx.params.kind || '')
+            .trim()
+            .toLowerCase();
           docs = docs.filter((doc) => String(doc.kind || '').toLowerCase() === kind);
         }
 
@@ -417,7 +439,10 @@ module.exports = {
         ],
       },
       async handler(ctx) {
-        const tenantId = await this.assertProjectTenantBinding(ctx.params.projectId, resolveTenantId(ctx));
+        const tenantId = await this.assertProjectTenantBinding(
+          ctx.params.projectId,
+          resolveTenantId(ctx)
+        );
         const doc = await this.getDecisionDocById(ctx.params.id, tenantId, ctx.params.projectId);
         if (!doc) {
           throw new MoleculerError('Decision not found', 404, 'NOVA_DECISION_NOT_FOUND');
@@ -469,7 +494,10 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const tenantId = await this.assertProjectTenantBinding(ctx.params.projectId, resolveTenantId(ctx));
+        const tenantId = await this.assertProjectTenantBinding(
+          ctx.params.projectId,
+          resolveTenantId(ctx)
+        );
         const doc = await this.getDecisionDocById(ctx.params.id, tenantId, ctx.params.projectId);
         if (!doc) {
           throw new MoleculerError('Decision not found', 404, 'NOVA_DECISION_NOT_FOUND');
@@ -483,10 +511,14 @@ module.exports = {
           });
         }
         if (updated.lifecycle?.current === DECISION_STATES.TRIAGED) {
-          updated = await this.transitionDecisionLifecycle(updated, DECISION_STATES.PENDING_APPROVAL, {
-            actor: 'nova.approveDecision',
-            reason: 'manual-approval',
-          });
+          updated = await this.transitionDecisionLifecycle(
+            updated,
+            DECISION_STATES.PENDING_APPROVAL,
+            {
+              actor: 'nova.approveDecision',
+              reason: 'manual-approval',
+            }
+          );
         }
         if (updated.lifecycle?.current === DECISION_STATES.PENDING_APPROVAL) {
           updated = await this.transitionDecisionLifecycle(updated, DECISION_STATES.APPROVED, {
@@ -548,7 +580,10 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const tenantId = await this.assertProjectTenantBinding(ctx.params.projectId, resolveTenantId(ctx));
+        const tenantId = await this.assertProjectTenantBinding(
+          ctx.params.projectId,
+          resolveTenantId(ctx)
+        );
         const doc = await this.getDecisionDocById(ctx.params.id, tenantId, ctx.params.projectId);
         if (!doc) {
           throw new MoleculerError('Decision not found', 404, 'NOVA_DECISION_NOT_FOUND');
@@ -564,7 +599,11 @@ module.exports = {
         });
 
         if (updated.hitlItemId) {
-          await this.safeResolveHitl(updated.hitlItemId, 'reject', ctx.params.reason || 'Rejected in NOVA');
+          await this.safeResolveHitl(
+            updated.hitlItemId,
+            'reject',
+            ctx.params.reason || 'Rejected in NOVA'
+          );
         }
 
         return { success: true, decision: this.toPublicDecision(updated) };
@@ -592,7 +631,10 @@ module.exports = {
         ],
       },
       async handler(ctx) {
-        const tenantId = await this.assertProjectTenantBinding(ctx.params.projectId, resolveTenantId(ctx));
+        const tenantId = await this.assertProjectTenantBinding(
+          ctx.params.projectId,
+          resolveTenantId(ctx)
+        );
         const docs = await this.listProjectDecisions(tenantId, ctx.params.projectId);
 
         const counts = {
@@ -667,7 +709,10 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const tenantId = await this.assertProjectTenantBinding(ctx.params.projectId, resolveTenantId(ctx));
+        const tenantId = await this.assertProjectTenantBinding(
+          ctx.params.projectId,
+          resolveTenantId(ctx)
+        );
         const asyncCtx = {
           ...ctx,
           meta: {
@@ -682,7 +727,11 @@ module.exports = {
           action: 'replayTrigger',
           params: ctx.params,
           worker: async () => {
-            const doc = await this.getDecisionDocById(ctx.params.id, tenantId, ctx.params.projectId);
+            const doc = await this.getDecisionDocById(
+              ctx.params.id,
+              tenantId,
+              ctx.params.projectId
+            );
             if (!doc) {
               throw new MoleculerError('Decision not found', 404, 'NOVA_DECISION_NOT_FOUND');
             }
@@ -870,9 +919,7 @@ module.exports = {
 
     async listAllDecisionDocs() {
       const rows = await this.db.allDocs({ include_docs: true });
-      return rows.rows
-        .map((row) => row.doc)
-        .filter((doc) => doc && doc.type === 'nova-decision');
+      return rows.rows.map((row) => row.doc).filter((doc) => doc && doc.type === 'nova-decision');
     },
 
     async listProjectDecisions(tenantId, projectId) {
@@ -1066,7 +1113,12 @@ module.exports = {
       };
 
       doc = transition(doc, DECISION_STATES.TRIAGED, 'nova.signal', 'signal-triaged');
-      doc = transition(doc, DECISION_STATES.PENDING_APPROVAL, 'nova.signal', 'signal-awaiting-approval');
+      doc = transition(
+        doc,
+        DECISION_STATES.PENDING_APPROVAL,
+        'nova.signal',
+        'signal-awaiting-approval'
+      );
 
       if (this.shouldRequireHitl(kind)) {
         doc.hitlItemId = await this.createHitlItemForDecision(doc);
@@ -1093,7 +1145,9 @@ module.exports = {
         result.matched = true;
       }
 
-      doc.agent_interventions = Array.isArray(doc.agent_interventions) ? doc.agent_interventions : [];
+      doc.agent_interventions = Array.isArray(doc.agent_interventions)
+        ? doc.agent_interventions
+        : [];
       doc.agent_interventions.push({
         at: this.nowIso(),
         action: 'replay-trigger',

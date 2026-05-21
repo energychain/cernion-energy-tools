@@ -33,7 +33,9 @@ describeRest('presentation REST blackbox (Prompt 7)', () => {
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
     expect(body.presentation.type).toBe('vdmi_matrix_table');
-    expect(body.markdown).toContain('| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |');
+    expect(body.markdown).toContain(
+      '| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |'
+    );
   });
 
   test('REST-BB-02: PV KPI fixture returns kpi_fact and no VDMI header', async () => {
@@ -42,7 +44,9 @@ describeRest('presentation REST blackbox (Prompt 7)', () => {
     expect(response.status).toBe(200);
     expect(body.success).toBe(true);
     expect(body.presentation.type).toBe('kpi_fact');
-    expect(body.markdown).not.toContain('| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |');
+    expect(body.markdown).not.toContain(
+      '| Beschreibung des Schrittes | Verantwortlich | Durchführend | Mitwirkend | Informiert |'
+    );
   });
 
   test('REST-BB-03: BESS due-diligence fixture returns deterministic decision/risk/evidence structure without invented source/asOf', async () => {

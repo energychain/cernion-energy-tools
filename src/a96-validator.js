@@ -101,7 +101,12 @@ function validateA96Message(message) {
   const driftFields = [];
 
   if (!message || typeof message !== 'object') {
-    return { valid: false, errors: ['A96 message must be a non-null object'], warnings: [], driftFields: [] };
+    return {
+      valid: false,
+      errors: ['A96 message must be a non-null object'],
+      warnings: [],
+      driftFields: [],
+    };
   }
 
   // Check required fields

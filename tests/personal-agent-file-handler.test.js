@@ -26,7 +26,10 @@ describe('personal-agent-file-handler', () => {
 
   test('recognizeFileType detects CSV', () => {
     const csvPath = path.join(tmpDir, 'test.csv');
-    fs.writeFileSync(csvPath, 'ZaehlerID,Zeitstempel,Zaehlerstand\nM-001,2026-01-01T00:00:00Z,12456.7\n');
+    fs.writeFileSync(
+      csvPath,
+      'ZaehlerID,Zeitstempel,Zaehlerstand\nM-001,2026-01-01T00:00:00Z,12456.7\n'
+    );
 
     const result = recognizeFileType(csvPath);
     expect(result.mimeType).toBe('text/csv');
@@ -47,7 +50,14 @@ describe('personal-agent-file-handler', () => {
   test('parseExcelExtract returns sheet metadata', () => {
     const xlsxPath = path.join(tmpDir, 'book.xlsx');
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['A', 'B'], ['1', '2']]), 'SheetA');
+    XLSX.utils.book_append_sheet(
+      wb,
+      XLSX.utils.aoa_to_sheet([
+        ['A', 'B'],
+        ['1', '2'],
+      ]),
+      'SheetA'
+    );
     XLSX.writeFile(wb, xlsxPath);
 
     const result = parseExcelExtract(xlsxPath);
@@ -78,8 +88,12 @@ describe('personal-agent-file-handler', () => {
     const csvPath = path.join(tmpDir, 'oversize.csv');
     fs.writeFileSync(csvPath, Buffer.alloc(MAX_FILE_SIZE_BYTES + 1, 0x61));
 
-    expect(() => recognizeFileType(csvPath)).toThrow('Datei überschreitet die maximale Größe von 10 MB.');
-    expect(() => recognizeFileType(csvPath)).toThrow(expect.objectContaining({ code: 'FILE_TOO_LARGE' }));
+    expect(() => recognizeFileType(csvPath)).toThrow(
+      'Datei überschreitet die maximale Größe von 10 MB.'
+    );
+    expect(() => recognizeFileType(csvPath)).toThrow(
+      expect.objectContaining({ code: 'FILE_TOO_LARGE' })
+    );
   });
 
   test('returns PDF placeholder extract in MVP', () => {

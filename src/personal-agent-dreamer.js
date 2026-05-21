@@ -70,15 +70,7 @@ function sanitizeDreamAuthMetaForPersistence(meta = {}) {
  * @returns {Promise<{jobId:string,generation:number,dueAt:string}|null>}
  */
 async function scheduleDream(options = {}) {
-  const {
-    broker,
-    sessionId,
-    tenantId,
-    userId,
-    profileNamespace,
-    authMeta,
-    runFn,
-  } = options;
+  const { broker, sessionId, tenantId, userId, profileNamespace, authMeta, runFn } = options;
 
   if (!broker || typeof broker.call !== 'function') {
     throw new Error('scheduleDream requires a broker instance');
@@ -343,7 +335,9 @@ function extractFacts(session) {
 
   for (const msg of userMessages) {
     // ---- L1: tenant facts (grid operator mentions, capacity figures) --------
-    const gridMatch = msg.match(/\b(Netzbetreiber|grid operator|VNB|GNB|SNB)\s*[:\-]?\s*([A-Za-zÄÖÜäöüß0-9 .,\-]+)/i);
+    const gridMatch = msg.match(
+      /\b(Netzbetreiber|grid operator|VNB|GNB|SNB)\s*[:\-]?\s*([A-Za-zÄÖÜäöüß0-9 .,\-]+)/i
+    );
     if (gridMatch) {
       const fact = `Netzbetreiber: ${gridMatch[2].trim().slice(0, 120)}`;
       if (!tenantFacts.includes(fact)) tenantFacts.push(fact);
@@ -371,7 +365,11 @@ function extractFacts(session) {
       { pattern: /\bsolar|photovoltaik|pv\b/i, key: 'domainInterest', value: 'solar' },
       { pattern: /\bwind\b/i, key: 'domainInterest', value: 'wind' },
       { pattern: /\bspeicher|battery|storage\b/i, key: 'domainInterest', value: 'storage' },
-      { pattern: /\bnetzanschluss|grid connection\b/i, key: 'domainInterest', value: 'grid-connection' },
+      {
+        pattern: /\bnetzanschluss|grid connection\b/i,
+        key: 'domainInterest',
+        value: 'grid-connection',
+      },
     ];
     for (const d of domains) {
       if (d.pattern.test(msg)) {
@@ -430,7 +428,11 @@ async function enrichL2Profile(ctx, tenantId, userId, profileNamespace, preferen
     // 1. Read current profile
     let currentDoc;
     try {
-      currentDoc = await ctx.call('object-store.get', { namespace: profileNamespace, key: userId }, { meta: ctx.meta });
+      currentDoc = await ctx.call(
+        'object-store.get',
+        { namespace: profileNamespace, key: userId },
+        { meta: ctx.meta }
+      );
     } catch (err) {
       if (_isNotFound(err)) {
         currentDoc = null;
@@ -524,10 +526,7 @@ function extractOnboardingFactsFromSession(session) {
   const answeredFacts = listAnsweredOnboardingFacts(session?.l3 || {});
   return answeredFacts
     .filter(
-      (fact) =>
-        fact?.paramKey &&
-        typeof fact?.value === 'string' &&
-        fact.value.trim().length > 0
+      (fact) => fact?.paramKey && typeof fact?.value === 'string' && fact.value.trim().length > 0
     )
     .map((fact) => ({
       paramKey: fact.paramKey,
@@ -566,7 +565,12 @@ function convertFactsToPreferences(facts = []) {
  * @returns {number}
  */
 function computeCosineSimilarity(vecA, vecB) {
-  if (!Array.isArray(vecA) || !Array.isArray(vecB) || vecA.length !== vecB.length || vecA.length === 0) {
+  if (
+    !Array.isArray(vecA) ||
+    !Array.isArray(vecB) ||
+    vecA.length !== vecB.length ||
+    vecA.length === 0
+  ) {
     return 0;
   }
   let dot = 0;
@@ -594,7 +598,11 @@ function computeCosineSimilarity(vecA, vecB) {
  */
 async function _loadTenantMemory(ctx, namespace) {
   try {
-    const result = await ctx.call('object-store.query', { namespace, limit: 500 }, { meta: ctx.meta });
+    const result = await ctx.call(
+      'object-store.query',
+      { namespace, limit: 500 },
+      { meta: ctx.meta }
+    );
     return Array.isArray(result?.docs) ? result.docs : [];
   } catch (err) {
     if (_isNotFound(err) || _isActionUnavailable(err)) return [];
@@ -686,11 +694,15 @@ async function enrichL1TenantMemory(ctx, tenantId, tenantFacts) {
     // Write new fact
     const key = `fact:${crypto.createHash('sha256').update(fact).digest('hex').slice(0, 16)}`;
     try {
-      await ctx.call('object-store.put', {
-        namespace,
-        key,
-        payload: { text: fact, addedAt: now, source: 'dream-pipeline' },
-      }, { meta: ctx.meta });
+      await ctx.call(
+        'object-store.put',
+        {
+          namespace,
+          key,
+          payload: { text: fact, addedAt: now, source: 'dream-pipeline' },
+        },
+        { meta: ctx.meta }
+      );
       existingTexts.push(fact);
       if (newVec) {
         existingVectors.push(newVec);
@@ -730,18 +742,19 @@ async function appendAuditEntry(ctx, tenantId, entry) {
   };
 
   // AK3: SHA-256 integrity hash over payload (excluding the hash field itself)
-  const hash = crypto
-    .createHash('sha256')
-    .update(JSON.stringify(payload))
-    .digest('hex');
+  const hash = crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
 
   const storedPayload = { ...payload, integrityHash: hash };
 
-  await ctx.call('object-store.put', {
-    namespace,
-    key,
-    payload: storedPayload,
-  }, { meta: ctx.meta });
+  await ctx.call(
+    'object-store.put',
+    {
+      namespace,
+      key,
+      payload: storedPayload,
+    },
+    { meta: ctx.meta }
+  );
 
   return { key, hash };
 }
@@ -773,7 +786,11 @@ async function runDreamPipeline(ctx, sessionId, tenantId, userId, profileNamespa
   let facts = { tenantFacts: [], preferences: [] };
   try {
     facts = extractFacts(session);
-    stepResults.extractFacts = { ok: true, tenantFactsCount: facts.tenantFacts.length, preferencesCount: facts.preferences.length };
+    stepResults.extractFacts = {
+      ok: true,
+      tenantFactsCount: facts.tenantFacts.length,
+      preferencesCount: facts.preferences.length,
+    };
   } catch (err) {
     stepResults.extractFacts = { ok: false, error: err.message };
   }

@@ -36,8 +36,7 @@ describe('grid-connection What-If (Gap-4)', () => {
 
     // The openapi docs should mention scenario support
     if (validateAction.openapi?.requestBody?.content) {
-      const schema =
-        validateAction.openapi.requestBody.content['application/json']?.schema;
+      const schema = validateAction.openapi.requestBody.content['application/json']?.schema;
       if (schema && schema.properties) {
         expect(schema.properties.scenarioAdditions).toBeDefined();
       }

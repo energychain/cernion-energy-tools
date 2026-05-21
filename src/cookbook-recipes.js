@@ -525,7 +525,10 @@ const COOKBOOK_RECIPES = [
     ],
     expectedResult:
       'Reusable prompt template for agentic issue analysis with privacy-safe production feedback context.',
-    prerequisites: ['Read-only API token (optional)', 'Agent runtime that accepts text prompt + JSON context'],
+    prerequisites: [
+      'Read-only API token (optional)',
+      'Agent runtime that accepts text prompt + JSON context',
+    ],
   },
 
   // ─── INHOUSE DATA PIPELINE (4 recipes) ───────────────────────────────────

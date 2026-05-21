@@ -70,7 +70,7 @@ class VDMIAuditTrail {
 
       return result.docs
         .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-        .map(doc => {
+        .map((doc) => {
           const { _rev, _id, ...rest } = doc;
           return { id: _id, ...rest };
         });

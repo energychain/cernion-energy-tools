@@ -53,7 +53,7 @@ describe('Service: znp.correlateDisturbance', () => {
     // 1. Create a dummy project
     const projectRes = await broker.call('znp.createProject', {
       bbox: { south: 49.47, west: 8.43, north: 49.52, east: 8.52 },
-      name: 'Test Project'
+      name: 'Test Project',
     });
     const projectId = projectRes.projectId;
 
@@ -62,7 +62,7 @@ describe('Service: znp.correlateDisturbance', () => {
       projectId,
       disturbanceId: 'SIG-123',
       pattern: 'CAPACITY_BOTTLENECK',
-      severity: 'high'
+      severity: 'high',
     });
 
     expect(correlateRes.success).toBe(true);
@@ -81,7 +81,7 @@ describe('Service: znp.correlateDisturbance', () => {
     // 1. Create a dummy project
     const projectRes = await broker.call('znp.createProject', {
       bbox: { south: 49.47, west: 8.43, north: 49.52, east: 8.52 },
-      name: 'Test Project 2'
+      name: 'Test Project 2',
     });
     const projectId = projectRes.projectId;
 
@@ -90,7 +90,7 @@ describe('Service: znp.correlateDisturbance', () => {
       projectId,
       disturbanceId: 'SIG-456',
       pattern: 'REPEATING_FAULT',
-      severity: 'medium'
+      severity: 'medium',
     });
 
     expect(correlateRes.success).toBe(true);

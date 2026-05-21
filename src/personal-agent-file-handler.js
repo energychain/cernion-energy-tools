@@ -125,7 +125,9 @@ function parseExcelExtract(filePath) {
         blankrows: false,
       });
 
-      const headers = Array.isArray(rows[0]) ? rows[0].map((cell) => String(cell || '').trim()) : [];
+      const headers = Array.isArray(rows[0])
+        ? rows[0].map((cell) => String(cell || '').trim())
+        : [];
       const sampleRows = rows.slice(1, MAX_SAMPLE_ROWS + 1);
 
       return {

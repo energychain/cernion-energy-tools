@@ -63,7 +63,8 @@ const FIXED_TDD_NORMALIZATION_MAP = Object.freeze({
   'T-ZNP-04': {
     intentClass: 'znp.analysis.disturbance',
     aliases: ['GET /znp/projects/:projectId/portfolio'],
-    notes: 'Spec endpoint correlate-disturbance is normalized to existing portfolio analysis endpoint.',
+    notes:
+      'Spec endpoint correlate-disturbance is normalized to existing portfolio analysis endpoint.',
   },
   'T-ZNP-05': {
     intentClass: 'znp.analysis.strategy',
@@ -121,7 +122,8 @@ const FIXED_TDD_NORMALIZATION_MAP = Object.freeze({
   'T-VDM-06': {
     intentClass: 'vdmi.templates',
     aliases: ['GET /vdmi/tenants/:tenantId/tasks/:taskId/dossier'],
-    notes: 'No explicit templates endpoint exists; dossier route is the nearest governed artifact source.',
+    notes:
+      'No explicit templates endpoint exists; dossier route is the nearest governed artifact source.',
   },
 
   // -------------------------------------------------------------------------
@@ -167,7 +169,10 @@ const FIXED_TDD_NORMALIZATION_MAP = Object.freeze({
   },
   'T-RED-03': {
     intentClass: 'settlement.redispatch',
-    aliases: ['POST /settlement/redispatch/calculate', 'GET /settlement/redispatch/report/:settlementId'],
+    aliases: [
+      'POST /settlement/redispatch/calculate',
+      'GET /settlement/redispatch/report/:settlementId',
+    ],
   },
   'T-BIL-01': {
     intentClass: 'bilanzkreis.create',
@@ -465,7 +470,9 @@ function normalizeDefinition(id, testCase) {
   }
 
   const aliases = Array.isArray(def.aliases) ? def.aliases.map(normalizeRouteSpec) : [];
-  const rawServiceCalls = Array.isArray(testCase?.serviceCallsSpec) ? testCase.serviceCallsSpec : [];
+  const rawServiceCalls = Array.isArray(testCase?.serviceCallsSpec)
+    ? testCase.serviceCallsSpec
+    : [];
 
   return {
     id,
@@ -475,8 +482,12 @@ function normalizeDefinition(id, testCase) {
     normalizedServiceCalls: rawServiceCalls.map(normalizeRouteSpec),
     executionMode: def.executionMode || null,
     knownContext: def.knownContext || {},
-    expectedReplyKeywords: Array.isArray(def.expectedReplyKeywords) ? def.expectedReplyKeywords : [],
-    forbiddenReplyKeywords: Array.isArray(def.forbiddenReplyKeywords) ? def.forbiddenReplyKeywords : [],
+    expectedReplyKeywords: Array.isArray(def.expectedReplyKeywords)
+      ? def.expectedReplyKeywords
+      : [],
+    forbiddenReplyKeywords: Array.isArray(def.forbiddenReplyKeywords)
+      ? def.forbiddenReplyKeywords
+      : [],
     notes: def.notes || '',
   };
 }
@@ -489,7 +500,9 @@ function normalizeDefinition(id, testCase) {
  * @returns {string}
  */
 function normalizeRouteSpec(routeSpec) {
-  const input = String(routeSpec || '').trim().replace(/\s+/g, ' ');
+  const input = String(routeSpec || '')
+    .trim()
+    .replace(/\s+/g, ' ');
   if (!input) return input;
 
   const match = input.match(/^(GET|POST|PUT|PATCH|DELETE)\s+(.+)$/i);

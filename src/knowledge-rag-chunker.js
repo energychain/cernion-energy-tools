@@ -1,7 +1,9 @@
 'use strict';
 
 function normalizeMode(mode) {
-  const value = String(mode || 'paragraph').trim().toLowerCase();
+  const value = String(mode || 'paragraph')
+    .trim()
+    .toLowerCase();
   if (['paragraph', 'markdown-section', 'fixed-window', 'semantic'].includes(value)) {
     return value;
   }
@@ -53,11 +55,10 @@ function splitFixedWindow(text, options = {}) {
 
   const windowSize = Number(options.windowSize || 1000);
   const overlap = Number(options.overlap || 120);
-  const safeWindow = Number.isFinite(windowSize) && windowSize >= 200 ? Math.floor(windowSize) : 1000;
+  const safeWindow =
+    Number.isFinite(windowSize) && windowSize >= 200 ? Math.floor(windowSize) : 1000;
   const safeOverlap =
-    Number.isFinite(overlap) && overlap >= 0 && overlap < safeWindow
-      ? Math.floor(overlap)
-      : 120;
+    Number.isFinite(overlap) && overlap >= 0 && overlap < safeWindow ? Math.floor(overlap) : 120;
 
   const chunks = [];
   let cursor = 0;

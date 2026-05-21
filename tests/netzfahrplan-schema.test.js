@@ -80,7 +80,10 @@ describe('netzfahrplan-schema — normaliseFnavProfile', () => {
   });
 
   it('normalises unknown contractStatus to UNKNOWN', () => {
-    const model = normaliseFnavProfile({ requestedCapacity: 1000, contractStatus: 'flying_saucers' });
+    const model = normaliseFnavProfile({
+      requestedCapacity: 1000,
+      contractStatus: 'flying_saucers',
+    });
     expect(model.contractStatus).toBe(CONTRACT_STATUS.UNKNOWN);
   });
 });

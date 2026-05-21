@@ -23,6 +23,8 @@ afterEach(() => {
   rateQuotaStore.resetForTests();
   delete process.env.RATE_QUOTA_DIR;
   delete process.env.RATE_QUOTA_DRIVER;
+  delete process.env.RESET_LLM_TOKENS_PER_DAY_ON_RESTART;
+  delete process.env.RESET_LLM_TOKENS_PER_DAY_VALUE;
   fs.rmSync(tempDir, { recursive: true, force: true });
 });
 
@@ -74,19 +76,69 @@ describe('rate-quota-store', () => {
   });
 
   it('enforces token-bucket rate limits and returns retry metadata', () => {
-    const first = rateQuotaStore.acquireRateLimitToken({ tenantId: 'tenant-a', endpointClass: 'read' });
+    const first = rateQuotaStore.acquireRateLimitToken({
+      tenantId: 'tenant-a',
+      endpointClass: 'read',
+    });
     expect(first.allowed).toBe(true);
 
     const state = rateQuotaStore.getTenantState('tenant-a');
     state.config.rateLimits.read = 1;
     rateQuotaStore.saveTenantState('tenant-a', state);
 
-    const second = rateQuotaStore.acquireRateLimitToken({ tenantId: 'tenant-a', endpointClass: 'read' });
-    const third = rateQuotaStore.acquireRateLimitToken({ tenantId: 'tenant-a', endpointClass: 'read' });
+    const second = rateQuotaStore.acquireRateLimitToken({
+      tenantId: 'tenant-a',
+      endpointClass: 'read',
+    });
+    const third = rateQuotaStore.acquireRateLimitToken({
+      tenantId: 'tenant-a',
+      endpointClass: 'read',
+    });
 
     expect(second.allowed).toBe(true);
     expect(third.allowed).toBe(false);
     expect(third.retryAfter).toBeGreaterThan(0);
     expect(third.responseHeaders['X-RateLimit-Limit']).toBe('1');
+  });
+
+  it('resets llm_tokens_per_day usage to 0 on process restart by default', () => {
+    rateQuotaStore.recordLlmUsage({
+      tenantId: 'tenant-restart',
+      provider: 'gemini',
+      model: 'default',
+      operation: 'generate_text',
+      prompt: 'x'.repeat(1200),
+      completion: 'done',
+    });
+
+    const beforeRestart = rateQuotaStore.buildQuotaSnapshot('tenant-restart');
+    expect(beforeRestart.usage.llm_tokens_per_day.used).toBeGreaterThan(0);
+
+    loadFreshModule();
+
+    const afterRestart = rateQuotaStore.buildQuotaSnapshot('tenant-restart');
+    expect(afterRestart.usage.llm_tokens_per_day.used).toBe(0);
+    expect(afterRestart.usage.llm_tokens_per_day.remaining).toBe(
+      afterRestart.config.quotas.llm_tokens_per_day
+    );
+  });
+
+  it('uses configured restart reset value for llm_tokens_per_day', () => {
+    process.env.RESET_LLM_TOKENS_PER_DAY_VALUE = '123';
+    loadFreshModule();
+
+    rateQuotaStore.recordLlmUsage({
+      tenantId: 'tenant-reset-value',
+      provider: 'gemini',
+      model: 'default',
+      operation: 'generate_text',
+      prompt: 'x'.repeat(2200),
+      completion: 'done',
+    });
+
+    loadFreshModule();
+
+    const afterRestart = rateQuotaStore.buildQuotaSnapshot('tenant-reset-value');
+    expect(afterRestart.usage.llm_tokens_per_day.used).toBe(123);
   });
 });

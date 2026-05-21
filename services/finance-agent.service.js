@@ -30,7 +30,8 @@ const OPENAPI_TAG = 'Finance Agent';
 const PIPELINE_VERSION = '0.40.5';
 const FINANCE_OEO_CLASS = ['https://openenergyplatform.org/ontology/oeo/OEO_00000143'];
 const MODE_VALUES = ['rule_only', 'rule_plus_hyde'];
-const FINANCE_MEMORY_NAMESPACE = process.env.FINANCE_AGENT_MEMORY_NAMESPACE || 'finance_agent_memory';
+const FINANCE_MEMORY_NAMESPACE =
+  process.env.FINANCE_AGENT_MEMORY_NAMESPACE || 'finance_agent_memory';
 const FINANCE_AGENT_DEFAULT_COLLECTION =
   process.env.FINANCE_AGENT_DEFAULT_COLLECTION || 'cernion_knowledge_v1';
 const MAX_ANALYZE_ITERATIONS = 4;
@@ -167,7 +168,14 @@ module.exports = {
         includeMemoryContext: { type: 'boolean', optional: true, default: true },
         includeA2AContext: { type: 'boolean', optional: true, default: true },
         includeDatapointsContext: { type: 'boolean', optional: true, default: true },
-        contextLimit: { type: 'number', optional: true, default: 5, min: 1, max: 20, convert: true },
+        contextLimit: {
+          type: 'number',
+          optional: true,
+          default: 5,
+          min: 1,
+          max: 20,
+          convert: true,
+        },
         persistMemory: { type: 'boolean', optional: true, default: true },
         persistDatapoints: { type: 'boolean', optional: true, default: false },
         allowHypotheticals: { type: 'boolean', optional: true, default: false },
@@ -201,7 +209,8 @@ module.exports = {
                   },
                   profileId: {
                     type: 'string',
-                    description: 'Optional CYA profile id to inject target layer awareness into retrieval planning.',
+                    description:
+                      'Optional CYA profile id to inject target layer awareness into retrieval planning.',
                     example: 'stadtwerk_regulierung',
                   },
                   topK: { type: 'integer', minimum: 2, maximum: 20, default: 6 },
@@ -209,12 +218,14 @@ module.exports = {
                   includeTrace: { type: 'boolean', default: false },
                   sessionId: {
                     type: 'string',
-                    description: 'Optional session identifier for A2A/memory-aware finance analysis.',
+                    description:
+                      'Optional session identifier for A2A/memory-aware finance analysis.',
                     example: 'finance-session-2026-05-04',
                   },
                   datapointContext: {
                     type: 'array',
-                    description: 'Optional list of datapoint names to preload as L1 working memory facts.',
+                    description:
+                      'Optional list of datapoint names to preload as L1 working memory facts.',
                     items: { type: 'string' },
                     default: [],
                     example: ['finance-capex-baseline-2025', 'finance-interest-rate-history'],
@@ -227,12 +238,14 @@ module.exports = {
                   persistDatapoints: {
                     type: 'boolean',
                     default: false,
-                    description: 'Persist derived finance scenario output as datapoint when calculations are performed.',
+                    description:
+                      'Persist derived finance scenario output as datapoint when calculations are performed.',
                   },
                   allowHypotheticals: {
                     type: 'boolean',
                     default: false,
-                    description: 'Allow hypothetical scenario synthesis if no L1 evidence is found after multi-hop retrieval.',
+                    description:
+                      'Allow hypothetical scenario synthesis if no L1 evidence is found after multi-hop retrieval.',
                   },
                   collection: {
                     type: 'string',
@@ -638,12 +651,14 @@ module.exports = {
                     type: 'array',
                     items: { type: 'string' },
                     default: ['anschlussdauer', 'digitalisierungsindex', 'umsetzungsquote'],
-                    description: 'EWK dimensions to compare (anschlussdauer, digitalisierungsindex, umsetzungsquote)',
+                    description:
+                      'EWK dimensions to compare (anschlussdauer, digitalisierungsindex, umsetzungsquote)',
                   },
                   includeAssetContext: {
                     type: 'boolean',
                     default: false,
-                    description: 'If true, includes asset portfolio (solar, wind, storage) for both VNBs',
+                    description:
+                      'If true, includes asset portfolio (solar, wind, storage) for both VNBs',
                   },
                 },
               },
@@ -652,7 +667,11 @@ module.exports = {
                   value: {
                     vnb1Name: 'Netze BW',
                     vnb2Name: 'TWL Netze',
-                    comparisonDimensions: ['anschlussdauer', 'digitalisierungsindex', 'umsetzungsquote'],
+                    comparisonDimensions: [
+                      'anschlussdauer',
+                      'digitalisierungsindex',
+                      'umsetzungsquote',
+                    ],
                     includeAssetContext: true,
                   },
                 },
@@ -725,7 +744,14 @@ module.exports = {
             requestedCapacity: { type: 'number', min: 0, convert: true },
             firmCapacity: { type: 'number', min: 0, optional: true, convert: true },
             flexibleCapacity: { type: 'number', min: 0, optional: true, default: 0, convert: true },
-            curtailmentWindow: { type: 'number', min: 0, max: 24, optional: true, default: 0, convert: true },
+            curtailmentWindow: {
+              type: 'number',
+              min: 0,
+              max: 24,
+              optional: true,
+              default: 0,
+              convert: true,
+            },
             contractStatus: { type: 'string', optional: true },
             legalStatus: { type: 'string', optional: true },
           },
@@ -764,10 +790,21 @@ module.exports = {
                 properties: {
                   fnavProfile: {
                     type: 'object',
-                    example: { requestedCapacity: 5000, firmCapacity: 3000, flexibleCapacity: 2000, curtailmentWindow: 4, contractStatus: 'negotiating', legalStatus: 'pending' },
+                    example: {
+                      requestedCapacity: 5000,
+                      firmCapacity: 3000,
+                      flexibleCapacity: 2000,
+                      curtailmentWindow: 4,
+                      contractStatus: 'negotiating',
+                      legalStatus: 'pending',
+                    },
                     required: ['requestedCapacity'],
                     properties: {
-                      requestedCapacity: { type: 'number', example: 5000, description: 'Requested capacity kW' },
+                      requestedCapacity: {
+                        type: 'number',
+                        example: 5000,
+                        description: 'Requested capacity kW',
+                      },
                       firmCapacity: { type: 'number', example: 3000 },
                       flexibleCapacity: { type: 'number', example: 2000 },
                       curtailmentWindow: { type: 'number', example: 4 },
@@ -776,16 +813,35 @@ module.exports = {
                     },
                   },
                   voltageLevel: { type: 'string', enum: ['NS', 'MS', 'HS'], default: 'MS' },
-                  gridOperator: { type: 'string', example: 'TWL Netze', description: 'Used for eog-calculator lookup' },
-                  annualFeeEur: { type: 'number', example: 12000, description: 'Annual fNAV contract fee (EUR/yr)' },
+                  gridOperator: {
+                    type: 'string',
+                    example: 'TWL Netze',
+                    description: 'Used for eog-calculator lookup',
+                  },
+                  annualFeeEur: {
+                    type: 'number',
+                    example: 12000,
+                    description: 'Annual fNAV contract fee (EUR/yr)',
+                  },
                   ownerContact: { type: 'string', example: 'netzplanung@twl.de' },
-                  avoidedCapexOverrideEur: { type: 'number', example: 1500000, description: 'Override avoided CAPEX (EUR)' },
+                  avoidedCapexOverrideEur: {
+                    type: 'number',
+                    example: 1500000,
+                    description: 'Override avoided CAPEX (EUR)',
+                  },
                 },
               },
               examples: {
                 'fNAV economics — TWL Netze MS': {
                   value: {
-                    fnavProfile: { requestedCapacity: 5000, firmCapacity: 3000, flexibleCapacity: 2000, curtailmentWindow: 4, contractStatus: 'signed', legalStatus: 'approved' },
+                    fnavProfile: {
+                      requestedCapacity: 5000,
+                      firmCapacity: 3000,
+                      flexibleCapacity: 2000,
+                      curtailmentWindow: 4,
+                      contractStatus: 'signed',
+                      legalStatus: 'approved',
+                    },
                     voltageLevel: 'MS',
                     gridOperator: 'TWL Netze',
                     annualFeeEur: 15000,
@@ -807,7 +863,10 @@ module.exports = {
                     avoidedCopperCapexEur: { type: 'number' },
                     annualFeeEur: { type: 'number' },
                     paybackYears: { type: 'number' },
-                    capexSource: { type: 'string', enum: ['eog_calculator', 'parametric_fallback', 'override'] },
+                    capexSource: {
+                      type: 'string',
+                      enum: ['eog_calculator', 'parametric_fallback', 'override'],
+                    },
                     sensitivityFlags: { type: 'array', items: { type: 'string' } },
                     governanceStatus: { type: 'string' },
                     governanceBlockers: { type: 'array', items: { type: 'string' } },
@@ -883,52 +942,83 @@ module.exports = {
             const rate = EUR_PER_KW[voltageLevel] || EUR_PER_KW.MS;
             avoidedCopperCapexEur = requestedMW * 1000 * rate;
             capexSource = 'parametric_fallback';
-            sensitivityFlags.push('parametric_capex_estimate — validate with actual grid expansion cost');
+            sensitivityFlags.push(
+              'parametric_capex_estimate — validate with actual grid expansion cost'
+            );
           }
         }
 
         // Annual fee default: 1% of avoided CAPEX if not provided
         const annualFeeEur = p.annualFeeEur ?? avoidedCopperCapexEur * 0.01;
-        const paybackYears = annualFeeEur > 0
-          ? parseFloat((avoidedCopperCapexEur / annualFeeEur).toFixed(1))
-          : null;
+        const paybackYears =
+          annualFeeEur > 0 ? parseFloat((avoidedCopperCapexEur / annualFeeEur).toFixed(1)) : null;
 
         if (paybackYears == null) sensitivityFlags.push('annualFeeEur is 0 — payback undefined');
-        if (capacityModel.curtailmentFactor > 0.25) sensitivityFlags.push('high curtailment factor (>25%) — effective capacity significantly reduced');
-        if (evidenceLevel === 'partial') sensitivityFlags.push('partial evidence — economics are indicative only');
-        if (evidenceLevel === 'insufficient') sensitivityFlags.push('insufficient evidence — economics are not reliable');
+        if (capacityModel.curtailmentFactor > 0.25)
+          sensitivityFlags.push(
+            'high curtailment factor (>25%) — effective capacity significantly reduced'
+          );
+        if (evidenceLevel === 'partial')
+          sensitivityFlags.push('partial evidence — economics are indicative only');
+        if (evidenceLevel === 'insufficient')
+          sensitivityFlags.push('insufficient evidence — economics are not reliable');
 
-        const econFinding = capexSource === 'eog_calculator'
-          ? FN_ECONOMICS_AVAILABLE
-          : FN_ECONOMICS_PARTIAL;
+        const econFinding =
+          capexSource === 'eog_calculator' ? FN_ECONOMICS_AVAILABLE : FN_ECONOMICS_PARTIAL;
         const econSeverity = capexSource === 'eog_calculator' ? 'info' : 'warning';
-        findings.push(createFinding(5, 'economics', econFinding, econSeverity,
-          `Avoided CAPEX: ${Math.round(avoidedCopperCapexEur).toLocaleString('de-DE')} EUR | Payback: ${paybackYears != null ? paybackYears + ' yr' : 'n/a'}`,
-          `Source: ${capexSource}. Annual fee: ${Math.round(annualFeeEur).toLocaleString('de-DE')} EUR/yr.`,
-          { avoidedCopperCapexEur, annualFeeEur, paybackYears, capexSource, sensitivityFlags },
-          sensitivityFlags.length ? 'Review sensitivity flags before presenting to decision-makers.' : null,
-          fidx++));
+        findings.push(
+          createFinding(
+            5,
+            'economics',
+            econFinding,
+            econSeverity,
+            `Avoided CAPEX: ${Math.round(avoidedCopperCapexEur).toLocaleString('de-DE')} EUR | Payback: ${paybackYears != null ? paybackYears + ' yr' : 'n/a'}`,
+            `Source: ${capexSource}. Annual fee: ${Math.round(annualFeeEur).toLocaleString('de-DE')} EUR/yr.`,
+            { avoidedCopperCapexEur, annualFeeEur, paybackYears, capexSource, sensitivityFlags },
+            sensitivityFlags.length
+              ? 'Review sensitivity flags before presenting to decision-makers.'
+              : null,
+            fidx++
+          )
+        );
 
         // Governance gate (Option B)
         const ownerMissing = !p.ownerContact;
         const { governanceStatus, blockers } = resolveGovernanceStatus(capacityModel, ownerMissing);
-        const govFinding = governanceStatus === 'approved' ? FN_GOVERNANCE_APPROVED : FN_GOVERNANCE_REQUIRED;
-        findings.push(createFinding(5, 'governance', govFinding, governanceStatus === 'approved' ? 'info' : 'warning',
-          `Governance status: ${governanceStatus}`,
-          blockers.length ? `Blockers: ${blockers.join('; ')}` : 'All prerequisites met.',
-          { governanceStatus, blockers }, null, fidx++));
+        const govFinding =
+          governanceStatus === 'approved' ? FN_GOVERNANCE_APPROVED : FN_GOVERNANCE_REQUIRED;
+        findings.push(
+          createFinding(
+            5,
+            'governance',
+            govFinding,
+            governanceStatus === 'approved' ? 'info' : 'warning',
+            `Governance status: ${governanceStatus}`,
+            blockers.length ? `Blockers: ${blockers.join('; ')}` : 'All prerequisites met.',
+            { governanceStatus, blockers },
+            null,
+            fidx++
+          )
+        );
 
         let governanceArtifact = null;
-  if (originatedFromGateway && governanceStatus !== 'approved') {
+        if (originatedFromGateway && governanceStatus !== 'approved') {
           const artifactConfig = buildGovernanceArtifactConfig(blockers);
-          const operatorKey = (p.gridOperator || 'unknown').toString().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+          const operatorKey = (p.gridOperator || 'unknown')
+            .toString()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '_');
           const placeholderGapKey = `phase5_fnav_governance_${operatorKey}_${voltageLevel.toLowerCase()}_${Math.round(capacityModel.requestedCapacityKW)}`;
 
           try {
-            const existing = await ctx.call('interface-placeholder.listGaps', {
-              includeResolved: false,
-              limit: 250,
-            }, callOpts);
+            const existing = await ctx.call(
+              'interface-placeholder.listGaps',
+              {
+                includeResolved: false,
+                limit: 250,
+              },
+              callOpts
+            );
             const matched = (existing.placeholders || []).find(
               (item) => item.placeholderGapKey === placeholderGapKey
             );
@@ -936,18 +1026,22 @@ module.exports = {
             if (matched) {
               governanceArtifact = matched;
             } else {
-              const created = await ctx.call('interface-placeholder.markGap', {
-                role: 'finance_analyst',
-                reason: artifactConfig.reason,
-                blockingLevel: artifactConfig.blockingLevel,
-                signalCodes: artifactConfig.signalCodes,
-                placeholderGapKey,
-                replacementCriteria: {
-                  kind: 'process',
-                  capabilityHint: 'finance-agent.fnavEconomics',
-                  deadline: null,
+              const created = await ctx.call(
+                'interface-placeholder.markGap',
+                {
+                  role: 'finance_analyst',
+                  reason: artifactConfig.reason,
+                  blockingLevel: artifactConfig.blockingLevel,
+                  signalCodes: artifactConfig.signalCodes,
+                  placeholderGapKey,
+                  replacementCriteria: {
+                    kind: 'process',
+                    capabilityHint: 'finance-agent.fnavEconomics',
+                    deadline: null,
+                  },
                 },
-              }, callOpts);
+                callOpts
+              );
               governanceArtifact = created?.placeholder || null;
               if (created?.hitlItem && governanceArtifact) {
                 governanceArtifact.hitlItem = {
@@ -1085,7 +1179,12 @@ module.exports = {
           { mode, intentCount: plan.intents.length }
         )
       );
-      steps.push({ step: 1, name: 'query-planning', status: 'ok', intentCount: plan.intents.length });
+      steps.push({
+        step: 1,
+        name: 'query-planning',
+        status: 'ok',
+        intentCount: plan.intents.length,
+      });
 
       if (sessionId) {
         steps.push({
@@ -1340,13 +1439,16 @@ module.exports = {
       const hasTwl = normalized.includes('twl netze') || normalized.includes('twl');
       const has12Mw = /\b12\s*mw\b/i.test(text) || /\b12000\s*kw\b/i.test(text);
       const hasBankingDueDiligenceSignal =
-        /(due\s*diligence|risk\s*assessment|kreditausschuss|credit\s*committee|finanzierung|bank)/i.test(text);
+        /(due\s*diligence|risk\s*assessment|kreditausschuss|credit\s*committee|finanzierung|bank)/i.test(
+          text
+        );
 
       if (!(hasFrankenthal && hasTwl && has12Mw && hasBankingDueDiligenceSignal)) {
         return null;
       }
 
-      const isOnePagerRequest = /(one\s*-?pager|onepager|einseiter|eine\s+seite|kreditausschuss)/i.test(text);
+      const isOnePagerRequest =
+        /(one\s*-?pager|onepager|einseiter|eine\s+seite|kreditausschuss)/i.test(text);
       const now = new Date().toISOString();
 
       const evidenceGaps = [
@@ -1359,7 +1461,8 @@ module.exports = {
         {
           id: 'bkz-binding-proof',
           label: 'BKZ-Bescheid / verbindliche Netzanschlusszusage',
-          reason: 'Ohne formalen BKZ-Bescheid bzw. verbindliche Netzanschlusszusage keine bankfähige Anschlussannahme.',
+          reason:
+            'Ohne formalen BKZ-Bescheid bzw. verbindliche Netzanschlusszusage keine bankfähige Anschlussannahme.',
         },
       ];
 
@@ -1368,8 +1471,10 @@ module.exports = {
           id: 'operator-jurisdiction-mismatch',
           risk: 'Betreiberzuständigkeit ungesichert (TWL vs. Stadtwerke Frankenthal)',
           severity: 'hoch',
-          impact: 'Fehladressierte Netzanfragen, Verzögerung der Kreditentscheidung und potenziell fehlerhafte CAPEX/TOTEX-Annahmen.',
-          mitigation: 'Formale Betreiberzuständigkeit per BDEW/Netzanschlusspunkt bestätigen und Dokumentation im Kreditdossier hinterlegen.',
+          impact:
+            'Fehladressierte Netzanfragen, Verzögerung der Kreditentscheidung und potenziell fehlerhafte CAPEX/TOTEX-Annahmen.',
+          mitigation:
+            'Formale Betreiberzuständigkeit per BDEW/Netzanschlusspunkt bestätigen und Dokumentation im Kreditdossier hinterlegen.',
         },
       ];
 
@@ -1377,17 +1482,20 @@ module.exports = {
         {
           id: 'verify-operator-responsibility',
           type: 'evidence_collection',
-          label: 'Netzbetreiber-Zuständigkeit für Frankenthal formell verifizieren (inkl. BDEW/Marktlokation).',
+          label:
+            'Netzbetreiber-Zuständigkeit für Frankenthal formell verifizieren (inkl. BDEW/Marktlokation).',
         },
         {
           id: 'collect-bkz-proof',
           type: 'evidence_collection',
-          label: 'BKZ-Bescheid bzw. verbindliche Netzanschlusszusage als kreditrelevanten Beleg einholen.',
+          label:
+            'BKZ-Bescheid bzw. verbindliche Netzanschlusszusage als kreditrelevanten Beleg einholen.',
         },
         {
           id: 'credit-committee-conditional-release',
           type: 'credit_committee_precondition',
-          label: 'Kreditausschuss-Freigabe nur als Condition Precedent bis Betreiber- und Anschlussnachweis vorliegen.',
+          label:
+            'Kreditausschuss-Freigabe nur als Condition Precedent bis Betreiber- und Anschlussnachweis vorliegen.',
         },
       ];
 
@@ -1707,7 +1815,9 @@ module.exports = {
 
       const targetLayers = this.extractTargetLayers(cyaProfile);
       if (targetLayers.length > 0) {
-        hints.push(`CYA targetLayers: ${targetLayers.join(', ')} (verpflichtender Retrieval-Fokus)`);
+        hints.push(
+          `CYA targetLayers: ${targetLayers.join(', ')} (verpflichtender Retrieval-Fokus)`
+        );
       }
 
       const actor = profile.actor || {};
@@ -1731,7 +1841,10 @@ module.exports = {
 
       for (const arr of candidateArrays) {
         if (Array.isArray(arr)) {
-          return arr.map((v) => String(v || '').trim()).filter(Boolean).slice(0, 10);
+          return arr
+            .map((v) => String(v || '').trim())
+            .filter(Boolean)
+            .slice(0, 10);
         }
       }
 
@@ -1744,7 +1857,9 @@ module.exports = {
       const a2aMessages = Array.isArray(externalContext?.a2aMessages)
         ? externalContext.a2aMessages
         : [];
-      const datapoints = Array.isArray(externalContext?.datapoints) ? externalContext.datapoints : [];
+      const datapoints = Array.isArray(externalContext?.datapoints)
+        ? externalContext.datapoints
+        : [];
 
       if (memory && typeof memory.summary === 'string' && memory.summary.trim()) {
         hints.push(`Vorwissen aus vorheriger Analyse: ${memory.summary.trim()}`);
@@ -1781,7 +1896,8 @@ module.exports = {
         contextLimit = 5,
       } = options || {};
 
-      const memory = includeMemoryContext && sessionId ? await this.getSessionMemory(ctx, sessionId) : null;
+      const memory =
+        includeMemoryContext && sessionId ? await this.getSessionMemory(ctx, sessionId) : null;
       const a2aMessages =
         includeA2AContext && sessionId
           ? await this.getA2AMessages(ctx, sessionId, contextLimit)
@@ -1979,7 +2095,8 @@ module.exports = {
         const datapoints = Array.isArray(response?.datapoints) ? response.datapoints : [];
         return datapoints
           .filter((d) => {
-            const hay = `${d.name || ''} ${d.description || ''} ${(d.tags || []).join(' ')}`.toLowerCase();
+            const hay =
+              `${d.name || ''} ${d.description || ''} ${(d.tags || []).join(' ')}`.toLowerCase();
             return /(finance|regulator|totex|capex|opex|ar\s*egv|stromnev|enwg)/.test(hay);
           })
           .slice(0, Math.min(Math.max(limit, 1), 20));
@@ -2180,7 +2297,13 @@ module.exports = {
         return { ...plan, intents: baseIntents };
       }
 
-      const seen = new Set(baseIntents.map((i) => String(i.query || '').trim().toLowerCase()));
+      const seen = new Set(
+        baseIntents.map((i) =>
+          String(i.query || '')
+            .trim()
+            .toLowerCase()
+        )
+      );
       for (const intent of assistedIntents) {
         const query = String(intent?.query || '').trim();
         if (!query) continue;
@@ -2190,10 +2313,9 @@ module.exports = {
         baseIntents.push({
           ...intent,
           limit: Number.isFinite(intent.limit) ? Math.min(Math.max(intent.limit, 2), 20) : 6,
-          scoreThreshold:
-            Number.isFinite(intent.scoreThreshold)
-              ? Math.min(Math.max(intent.scoreThreshold, 0), 1)
-              : options.minScore ?? 0.35,
+          scoreThreshold: Number.isFinite(intent.scoreThreshold)
+            ? Math.min(Math.max(intent.scoreThreshold, 0), 1)
+            : (options.minScore ?? 0.35),
         });
       }
 
@@ -2203,7 +2325,10 @@ module.exports = {
       };
     },
 
-    computeRetrievalQualitySignals(evidence = [], { previousQuality = 0, previousEvidenceCount = 0 } = {}) {
+    computeRetrievalQualitySignals(
+      evidence = [],
+      { previousQuality = 0, previousEvidenceCount = 0 } = {}
+    ) {
       const l1Evidence = evidence.filter((row) => row.level === 'L1_Rule').length;
       const legalRefCount = this.collectLegalReferences(evidence).length;
       const avgScore =
@@ -2212,14 +2337,23 @@ module.exports = {
             Math.min(evidence.length, 6)
           : 0;
       const evidenceCount = evidence.length;
-      const conflictEstimate = Math.max(0, evidence.filter((row) => row.level === 'L2_HyDE').length - l1Evidence);
+      const conflictEstimate = Math.max(
+        0,
+        evidence.filter((row) => row.level === 'L2_HyDE').length - l1Evidence
+      );
       const l1Norm = Math.min(1, l1Evidence / 4);
       const legalNorm = Math.min(1, legalRefCount / 2);
       const scoreNorm = Math.min(1, avgScore);
       const coverageNorm = Math.min(1, evidenceCount / 6);
       const stabilityNorm = 1 - Math.min(1, conflictEstimate / 2);
       const quality = Number(
-        (0.35 * l1Norm + 0.2 * legalNorm + 0.2 * scoreNorm + 0.15 * coverageNorm + 0.1 * stabilityNorm).toFixed(4)
+        (
+          0.35 * l1Norm +
+          0.2 * legalNorm +
+          0.2 * scoreNorm +
+          0.15 * coverageNorm +
+          0.1 * stabilityNorm
+        ).toFixed(4)
       );
       const improvementDelta = Number((quality - previousQuality).toFixed(4));
       const newEvidenceCount = Math.max(0, evidenceCount - previousEvidenceCount);
@@ -2555,7 +2689,10 @@ module.exports = {
       const oeoTags = Array.isArray(options.oeoTags) ? options.oeoTags : [];
 
       if (ruleCount < 2 || selected.length < 3 || legalReferences.length === 0) {
-        if (allowHypotheticals && (arbitration.hydeEvidence.length > 0 || datapointFacts.length > 0)) {
+        if (
+          allowHypotheticals &&
+          (arbitration.hydeEvidence.length > 0 || datapointFacts.length > 0)
+        ) {
           const assumptions = [];
           for (const tag of oeoTags.slice(0, 4)) {
             assumptions.push(
@@ -2671,7 +2808,9 @@ module.exports = {
         };
       } catch (error) {
         if (isServiceNotFound(error) || error?.type === 'SERVICE_NOT_AVAILABLE') {
-          this.logger.warn('[finance-agent] datapoint.create unavailable, skipping derived datapoint persistence');
+          this.logger.warn(
+            '[finance-agent] datapoint.create unavailable, skipping derived datapoint persistence'
+          );
           return { persisted: false, reason: 'service_unavailable' };
         }
         this.logger.warn(
@@ -2682,7 +2821,9 @@ module.exports = {
     },
 
     toClaim(text) {
-      const clean = String(text || '').replace(/\s+/g, ' ').trim();
+      const clean = String(text || '')
+        .replace(/\s+/g, ' ')
+        .trim();
       if (clean.length <= 240) return clean;
       return `${clean.slice(0, 237)}...`;
     },
@@ -2698,7 +2839,7 @@ module.exports = {
       const thresholdFactor = avgScore >= minScore ? 1 : 0.7;
 
       const confidence = 100 * avgScore * 0.55 + 100 * ruleFactor * 0.3 + 100 * legalFactor * 0.15;
-      return Math.max(0, Math.min(100, Math.round(confidence * thresholdFactor / 100 * 100)));
+      return Math.max(0, Math.min(100, Math.round(((confidence * thresholdFactor) / 100) * 100)));
     },
 
     async runBenchmarkComparison(ctx, params) {
@@ -2777,11 +2918,25 @@ module.exports = {
         const match2 = (r2?.results || []).find(
           (m) => m.name && m.name.toLowerCase().includes(vnb2Name.toLowerCase())
         );
-        if (match1) vnb1 = { ...vnb1, name: match1.name || vnb1Name, mastrNummer: match1.mastrNummer || null, bdewCode: match1.bdewCode || null };
-        if (match2) vnb2 = { ...vnb2, name: match2.name || vnb2Name, mastrNummer: match2.mastrNummer || null, bdewCode: match2.bdewCode || null };
+        if (match1)
+          vnb1 = {
+            ...vnb1,
+            name: match1.name || vnb1Name,
+            mastrNummer: match1.mastrNummer || null,
+            bdewCode: match1.bdewCode || null,
+          };
+        if (match2)
+          vnb2 = {
+            ...vnb2,
+            name: match2.name || vnb2Name,
+            mastrNummer: match2.mastrNummer || null,
+            bdewCode: match2.bdewCode || null,
+          };
       } catch (_lookupErr) {
         // Optional enrichment — non-fatal; mastrNummer/bdewCode remain null
-        this.logger.debug('[finance-agent] marketPartners MaStR ID enrichment skipped: ' + _lookupErr.message);
+        this.logger.debug(
+          '[finance-agent] marketPartners MaStR ID enrichment skipped: ' + _lookupErr.message
+        );
       }
 
       // Step 2: EWK metrics already fetched in Step 1 — record as completed
@@ -2969,8 +3124,8 @@ module.exports = {
                 v1 < v2
                   ? 'VNB1 connects faster (lower is better)'
                   : v1 > v2
-                  ? 'VNB2 connects faster (lower is better)'
-                  : 'Connection speed is equal',
+                    ? 'VNB2 connects faster (lower is better)'
+                    : 'Connection speed is equal',
             };
           }
         } else if (dim === 'digitalisierungsindex') {
@@ -2986,8 +3141,8 @@ module.exports = {
                 v1 > v2
                   ? 'VNB1 is more digitalized (higher is better)'
                   : v1 < v2
-                  ? 'VNB2 is more digitalized (higher is better)'
-                  : 'Digitalization maturity is equal',
+                    ? 'VNB2 is more digitalized (higher is better)'
+                    : 'Digitalization maturity is equal',
             };
           }
         } else if (dim === 'umsetzungsquote') {
@@ -3003,8 +3158,8 @@ module.exports = {
                 v1 > v2
                   ? 'VNB1 has higher completion rate (higher is better)'
                   : v1 < v2
-                  ? 'VNB2 has higher completion rate (higher is better)'
-                  : 'Completion rate is equal',
+                    ? 'VNB2 has higher completion rate (higher is better)'
+                    : 'Completion rate is equal',
             };
           }
         }

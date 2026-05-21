@@ -367,6 +367,12 @@ const CURATED_CAPABILITIES = [
       'decision_blocked_pending_formal_request',
     ],
     preferredActions: ['vdmi.dossier', 'vdmi.negotiationTrace', 'vdmi.agentRole'],
+    hitlPolicy: {
+      criticalFlow: true,
+      mode: 'mandatory_step_approval',
+      criticalityClass: 'regulatory_commitment',
+      stepActions: ['vdmi.dossier', 'vdmi.negotiationTrace', 'vdmi.agentRole'],
+    },
     fallbackActions: ['vdmi.dossier', 'interface-placeholder.markGap'],
     avoid: ['query.ask', 'query.askLearned'],
     requiredInputs: [
@@ -498,7 +504,9 @@ const CURATED_CAPABILITIES = [
         required: false,
       },
     ],
-    risksAndNotes: ['OEP-Daten als Szenario-/Forschungsquelle behandeln, nicht als Primärquelle für Assets.'],
+    risksAndNotes: [
+      'OEP-Daten als Szenario-/Forschungsquelle behandeln, nicht als Primärquelle für Assets.',
+    ],
     routingPattern: 'oep_discovery_chain',
   },
   {
@@ -518,6 +526,12 @@ const CURATED_CAPABILITIES = [
       'vorläufiges risk assessment',
     ],
     preferredActions: ['finance-agent.analyze'],
+    hitlPolicy: {
+      criticalFlow: true,
+      mode: 'mandatory_step_approval',
+      criticalityClass: 'financial_commitment',
+      stepActions: ['finance-agent.analyze'],
+    },
     fallbackActions: ['finance-agent.analyze', 'interface-placeholder.markGap'],
     avoid: ['query.ask', 'query.askLearned'],
     requiredInputs: [

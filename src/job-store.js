@@ -18,7 +18,10 @@ const { Errors } = require('moleculer');
 const DRIVER = createDriver();
 const LEASE_SECONDS = Number(process.env.JOB_STORE_LEASE_SECONDS || 30);
 const HEARTBEAT_SECONDS = Number(process.env.JOB_STORE_HEARTBEAT_SECONDS || 10);
-const MAX_CONCURRENT_PER_TENANT = Math.max(1, Number(process.env.JOB_STORE_MAX_CONCURRENT_PER_TENANT || 2));
+const MAX_CONCURRENT_PER_TENANT = Math.max(
+  1,
+  Number(process.env.JOB_STORE_MAX_CONCURRENT_PER_TENANT || 2)
+);
 const MAX_MISSED_LEASES = Math.max(1, Number(process.env.JOB_STORE_MAX_MISSED_LEASES || 3));
 
 const TTL_MS = parseInt(process.env.JOB_STORE_TTL_SECONDS || '86400', 10) * 1000;
@@ -45,7 +48,12 @@ let dispatchScheduled = false;
 let wakeDispatchScheduled = false;
 
 async function emitRateQuotaEvents(ctx, events, extra = {}) {
-  if (!ctx?.broker || typeof ctx.broker.emit !== 'function' || !Array.isArray(events) || events.length === 0) {
+  if (
+    !ctx?.broker ||
+    typeof ctx.broker.emit !== 'function' ||
+    !Array.isArray(events) ||
+    events.length === 0
+  ) {
     return;
   }
 
@@ -94,7 +102,10 @@ function ensureArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
-function buildQueuedDescriptor(jobId, message = 'Job started. Poll /api/jobs/:jobId/status for progress.') {
+function buildQueuedDescriptor(
+  jobId,
+  message = 'Job started. Poll /api/jobs/:jobId/status for progress.'
+) {
   return {
     success: true,
     jobId,
@@ -174,7 +185,9 @@ function createAlarmEvent(jobId, alarmInput = {}) {
 
 function updateAlarmStatus(alarmId, status, options = {}) {
   if (!alarmId || !status) return null;
-  if (![ALARM_STATUS.OPEN, ALARM_STATUS.ACKNOWLEDGED, ALARM_STATUS.RESOLVED].includes(String(status))) {
+  if (
+    ![ALARM_STATUS.OPEN, ALARM_STATUS.ACKNOWLEDGED, ALARM_STATUS.RESOLVED].includes(String(status))
+  ) {
     return null;
   }
 
@@ -232,7 +245,9 @@ function listAlarmEvents(filters = {}) {
     }
   }
 
-  return events.sort((a, b) => String(b.alarm?.updatedAt || '').localeCompare(String(a.alarm?.updatedAt || '')));
+  return events.sort((a, b) =>
+    String(b.alarm?.updatedAt || '').localeCompare(String(a.alarm?.updatedAt || ''))
+  );
 }
 
 function enqueueWakeUp(entry) {
@@ -245,7 +260,12 @@ function enqueueWakeUp(entry) {
 
 function pickNextTenantForDispatch() {
   const tenants = Array.from(pendingJobsByTenant.entries())
-    .filter(([tenantId, queue]) => Array.isArray(queue) && queue.length > 0 && getRunningCount(tenantId) < MAX_CONCURRENT_PER_TENANT)
+    .filter(
+      ([tenantId, queue]) =>
+        Array.isArray(queue) &&
+        queue.length > 0 &&
+        getRunningCount(tenantId) < MAX_CONCURRENT_PER_TENANT
+    )
     .map(([tenantId]) => tenantId);
 
   if (tenants.length === 0) return null;
@@ -279,6 +299,17 @@ function runQueuedJob(entry) {
     ...buildLeasePatch(),
   });
 
+  // B) Automatic status-transition log: queued → running
+  //    Only emitted for jobs that carry expectedDuration (Personal Agent / observable jobs).
+  //    Other services (CYA, ZNP) own their own phase logs and must not be interfered with.
+  if (entry.expectedDuration) {
+    appendLog(jobId, 'status_running', 0, `Job started (tenant=${tenantId})`, {
+      service: entry.service || null,
+      action: entry.action || null,
+      tenantId,
+    });
+  }
+
   let heartbeat = null;
   if (HEARTBEAT_SECONDS > 0) {
     heartbeat = setInterval(() => {
@@ -289,16 +320,34 @@ function runQueuedJob(entry) {
 
   Promise.resolve()
     .then(() => entry.worker(jobId))
-    .then((result) => saveResult(jobId, result))
-    .catch((err) =>
+    .then((result) => {
+      // B) Automatic status-transition log: running → completed
+      //    Only emitted for observable jobs (those with expectedDuration set).
+      if (entry.expectedDuration) {
+        const job = getJob(jobId);
+        appendLog(jobId, 'status_completed', 100, 'Job completed successfully', {
+          elapsedMs: job && job.createdAt ? Date.now() - new Date(job.createdAt).getTime() : null,
+        });
+      }
+      return saveResult(jobId, result);
+    })
+    .catch((err) => {
+      const errMsg = String(err.message || err);
+      // B) Automatic status-transition log: running → error
+      //    Only emitted for observable jobs (those with expectedDuration set).
+      if (entry.expectedDuration) {
+        appendLog(jobId, 'status_error', 0, `Job failed: ${errMsg}`, {
+          error: errMsg,
+        });
+      }
       updateJob(jobId, {
         status: JOB_STATUS.ERROR,
-        error: String(err.message || err),
+        error: errMsg,
         leaseOwner: null,
         leaseExpiresAt: null,
         lastHeartbeatAt: null,
-      })
-    )
+      });
+    })
     .finally(() => {
       if (heartbeat) clearInterval(heartbeat);
       decRunningCount(tenantId);
@@ -676,8 +725,24 @@ function resetDispatchStateForTests() {
  * @param {Object} jobMeta - { service, action, tenantId, wakeContext }
  * @returns {string} jobId
  */
-function createJob({ service, action, idempotencyKey = null, tenantId = 'default', wakeContext = null }) {
-  return DRIVER.createJob({ service, action, idempotencyKey, tenantId, wakeContext });
+function createJob({
+  service,
+  action,
+  idempotencyKey = null,
+  tenantId = 'default',
+  wakeContext = null,
+  expectedDuration = null,
+  deadlineAt = null,
+}) {
+  return DRIVER.createJob({
+    service,
+    action,
+    idempotencyKey,
+    tenantId,
+    wakeContext,
+    expectedDuration,
+    deadlineAt,
+  });
 }
 
 function findJobByIdempotencyKey(service, action, idempotencyKey) {
@@ -722,7 +787,31 @@ function appendLog(jobId, phase, percent, message, details = {}) {
 }
 
 /**
- * Persist the result payload and mark job as "completed".
+ * Check if a job deadline has been exceeded.
+ * @param {string} jobId
+ * @returns {boolean} true if deadline is in the past
+ */
+function isDeadlineExceeded(jobId) {
+  const job = getJob(jobId);
+  if (!job?.deadlineAt) return false;
+  return new Date(job.deadlineAt).getTime() <= Date.now();
+}
+
+/**
+ * Get remaining time until job deadline in milliseconds.
+ * Returns null if no deadline, -1 if exceeded.
+ * @param {string} jobId
+ * @returns {number|null}
+ */
+function getTimeUntilDeadline(jobId) {
+  const job = getJob(jobId);
+  if (!job?.deadlineAt) return null;
+  const remaining = new Date(job.deadlineAt).getTime() - Date.now();
+  return remaining > 0 ? remaining : -1;
+}
+
+/**
+ * Save a result payload and mark job as "completed".
  * @param {string} jobId
  * @param {*} result - any JSON-serializable value
  * @returns {Object} updated job record
@@ -819,15 +908,20 @@ async function startJob(ctx, jobMeta, worker, options = {}) {
     action: jobMeta?.action || 'unknown',
   });
   if (!quotaCheck.allowed) {
-    throw new Errors.MoleculerError('Async job quota exceeded for tenant.', 429, 'ASYNC_JOB_QUOTA_EXCEEDED', {
-      tenantId,
-      resource: quotaCheck.resource,
-      limit: quotaCheck.limit,
-      used: quotaCheck.used,
-      remaining: quotaCheck.remaining,
-      retryAfter: quotaCheck.retryAfter,
-      responseHeaders: quotaCheck.responseHeaders,
-    });
+    throw new Errors.MoleculerError(
+      'Async job quota exceeded for tenant.',
+      429,
+      'ASYNC_JOB_QUOTA_EXCEEDED',
+      {
+        tenantId,
+        resource: quotaCheck.resource,
+        limit: quotaCheck.limit,
+        used: quotaCheck.used,
+        remaining: quotaCheck.remaining,
+        retryAfter: quotaCheck.retryAfter,
+        responseHeaders: quotaCheck.responseHeaders,
+      }
+    );
   }
 
   const quotaSnapshot = rateQuotaStore.recordAsyncJobUsage({
@@ -889,6 +983,8 @@ module.exports = {
   startJob,
   resetDispatchStateForTests,
   getDriverInfo,
+  isDeadlineExceeded,
+  getTimeUntilDeadline,
   JOB_STATUS,
   ALARM_STATUS,
   MAX_MISSED_LEASES,

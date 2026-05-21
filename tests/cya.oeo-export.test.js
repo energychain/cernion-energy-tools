@@ -18,7 +18,9 @@ describe('cya OEO export actions', () => {
       params: { operator: 'Stadtwerke Beispiel' },
     });
 
-    const vnbNode = result.oeo['@graph'].find((entry) => entry['rdfs:label'] === 'Stadtwerke Beispiel');
+    const vnbNode = result.oeo['@graph'].find(
+      (entry) => entry['rdfs:label'] === 'Stadtwerke Beispiel'
+    );
     expect(vnbNode).toBeDefined();
   });
 

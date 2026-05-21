@@ -88,6 +88,51 @@ describe('personal-agent-context', () => {
     expect(persisted.l3.fileAttachments[0].attachmentId).toBe('fa_01');
   });
 
+  it('keeps stateMachine snapshots in persisted payload', () => {
+    const persisted = buildPersistableSessionState({
+      id: 'session-fsm',
+      tenantId: 'default',
+      userId: 'u-1',
+      l1: { tenantFacts: [] },
+      l2: { userProfile: {} },
+      l3: {
+        history: [],
+        stateMachine: {
+          currentState: 'completed',
+          status: 'completed',
+          transitions: [{ state: 'init', at: new Date().toISOString(), details: {} }],
+        },
+      },
+    });
+
+    expect(persisted.l3.stateMachine).toBeTruthy();
+    expect(persisted.l3.stateMachine.currentState).toBe('completed');
+  });
+
+  it('keeps turnGraph snapshots in persisted payload', () => {
+    const persisted = buildPersistableSessionState({
+      id: 'session-graph',
+      tenantId: 'default',
+      userId: 'u-1',
+      l1: { tenantFacts: [] },
+      l2: { userProfile: {} },
+      l3: {
+        history: [],
+        turnGraph: {
+          turnId: 'graph_1',
+          status: 'completed',
+          nodeCount: 3,
+          edgeCount: 2,
+          nodes: [{ id: 'msg:user' }],
+          edges: [],
+        },
+      },
+    });
+
+    expect(persisted.l3.turnGraph).toBeTruthy();
+    expect(persisted.l3.turnGraph.turnId).toBe('graph_1');
+  });
+
   it('rejects persistable state when forbidden L4 keys leak in', () => {
     expect(() =>
       buildPersistableSessionState({

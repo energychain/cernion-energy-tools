@@ -69,11 +69,13 @@ const EXAMPLE_TRIGGER = 'Presseanfrage zur Netzstabilität';
 const OEO_STUB_ALIAS_SUNSET = '2026-11-05';
 
 function sanitizeOperatorId(value = 'demo') {
-  return String(value)
-    .trim()
-    .replace(/[^a-z0-9]+/gi, '_')
-    .replace(/^_+|_+$/g, '')
-    .toUpperCase() || 'DEMO';
+  return (
+    String(value)
+      .trim()
+      .replace(/[^a-z0-9]+/gi, '_')
+      .replace(/^_+|_+$/g, '')
+      .toUpperCase() || 'DEMO'
+  );
 }
 
 function buildDemoOeoSeed(params = {}) {
@@ -410,7 +412,9 @@ module.exports = {
           skip: 0,
         });
         const items = Array.isArray(result?.docs) ? result.docs : [];
-        const sorted = items.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+        const sorted = items.sort((a, b) =>
+          String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
+        );
         const tenantCursorId = resolveTenantId(ctx, getTenantId(ctx));
         const filterHash = buildFilterHash({ namespace: ns });
         const page = applyCursorPagination({
@@ -426,7 +430,12 @@ module.exports = {
           filterHash,
         });
         applyOffsetDeprecationHeader(ctx, ctx.params.offset != null);
-        return { success: true, count: page.data.length, items: page.data, pageInfo: page.pageInfo };
+        return {
+          success: true,
+          count: page.data.length,
+          items: page.data,
+          pageInfo: page.pageInfo,
+        };
       },
     },
 
@@ -1028,7 +1037,10 @@ module.exports = {
           .map((entry) => entry.payload);
 
         const tenantId = resolveTenantId(ctx, getTenantId(ctx));
-        const filterHash = buildFilterHash({ sessionId: id, namespace: this.resolveA2ANamespace(ctx) });
+        const filterHash = buildFilterHash({
+          sessionId: id,
+          namespace: this.resolveA2ANamespace(ctx),
+        });
         const page = applyCursorPagination({
           items: messages.map((msg) => ({
             ...msg,
@@ -1211,12 +1223,11 @@ module.exports = {
           sessionMap[msg.sessionId].push(msg);
         }
 
-        const sessions = Object.values(sessionMap)
-          .sort((a, b) => {
-            const ta = a[0] && a[0].timestamp ? new Date(a[0].timestamp).getTime() : 0;
-            const tb = b[0] && b[0].timestamp ? new Date(b[0].timestamp).getTime() : 0;
-            return tb - ta;
-          });
+        const sessions = Object.values(sessionMap).sort((a, b) => {
+          const ta = a[0] && a[0].timestamp ? new Date(a[0].timestamp).getTime() : 0;
+          const tb = b[0] && b[0].timestamp ? new Date(b[0].timestamp).getTime() : 0;
+          return tb - ta;
+        });
 
         const tenantId = resolveTenantId(ctx, getTenantId(ctx));
         const filterHash = buildFilterHash({ namespace: this.resolveA2ANamespace(ctx) });
@@ -2063,15 +2074,15 @@ module.exports = {
             action: 'generate',
             params: ctx.params,
             worker: async (jobId) => {
-            const sessionId = ctx.params.session_id || `cya_${Date.now()}`;
-            return this.runMultiAgentOrchestration(ctx, {
-              jobId,
-              sessionId,
-              profile_id,
-              target_audience,
-              context,
-              perspectives,
-            });
+              const sessionId = ctx.params.session_id || `cya_${Date.now()}`;
+              return this.runMultiAgentOrchestration(ctx, {
+                jobId,
+                sessionId,
+                profile_id,
+                target_audience,
+                context,
+                perspectives,
+              });
             },
           });
         }
@@ -2082,77 +2093,120 @@ module.exports = {
           action: 'generate',
           params: ctx.params,
           worker: async (jobId) => {
-          const profile = await this.loadProfile(ctx, profile_id);
-          const sessionId = ctx.params.session_id || `cya_${Date.now()}`;
+            const profile = await this.loadProfile(ctx, profile_id);
+            const sessionId = ctx.params.session_id || `cya_${Date.now()}`;
 
-          const ontologySignals = await this.getPlanningOntologySignals(ctx, {
-            profile,
-            targetAudience: target_audience,
-            context,
-            mode: 'initial',
-          });
-
-          // Phase 1: Data Retrieval
-          appendLog(jobId, 'phase_1_retrieval', 0, 'Starting context data retrieval...');
-          const retrieval = await retrieveContextData(ctx, {
-            profile,
-            target_audience,
-            context,
-            actorRole: profile?.actor?.role || null,
-            ontologySignals,
-          });
-          appendLog(jobId, 'phase_1_retrieval', 33, 'Context data retrieval complete');
-
-          // Phase 2: Ontology layer + Regulatory Graph (v0.32.0)
-          appendLog(jobId, 'phase_2_graph', 33, 'Building deterministic regulatory graph...');
-          const { graphSignals: _gsMain, contextManager: _cmMain } = await this._buildOntologyLayer(
-            retrieval,
-            ctx.params.goal || null,
-            Array.isArray(context?.focus_areas) ? context.focus_areas : []
-          );
-          // v0.37.0 — Persist context state non-blocking
-          if (_cmMain && sessionId) {
-            this._persistContextState(ctx, sessionId, _cmMain).catch((err) =>
-              this.logger.warn('[ContextManager] persist failed:', err.message)
-            );
-          }
-          const regulatoryGraph =
-            _gsMain ||
-            buildRegulatoryGraph({
-              retrieval,
-              context,
+            const ontologySignals = await this.getPlanningOntologySignals(ctx, {
               profile,
+              targetAudience: target_audience,
+              context,
+              mode: 'initial',
+            });
+
+            // Phase 1: Data Retrieval
+            appendLog(jobId, 'phase_1_retrieval', 0, 'Starting context data retrieval...');
+            const retrieval = await retrieveContextData(ctx, {
+              profile,
+              target_audience,
+              context,
+              actorRole: profile?.actor?.role || null,
+              ontologySignals,
+            });
+            appendLog(jobId, 'phase_1_retrieval', 33, 'Context data retrieval complete');
+
+            // Phase 2: Ontology layer + Regulatory Graph (v0.32.0)
+            appendLog(jobId, 'phase_2_graph', 33, 'Building deterministic regulatory graph...');
+            const { graphSignals: _gsMain, contextManager: _cmMain } =
+              await this._buildOntologyLayer(
+                retrieval,
+                ctx.params.goal || null,
+                Array.isArray(context?.focus_areas) ? context.focus_areas : []
+              );
+            // v0.37.0 — Persist context state non-blocking
+            if (_cmMain && sessionId) {
+              this._persistContextState(ctx, sessionId, _cmMain).catch((err) =>
+                this.logger.warn('[ContextManager] persist failed:', err.message)
+              );
+            }
+            const regulatoryGraph =
+              _gsMain ||
+              buildRegulatoryGraph({
+                retrieval,
+                context,
+                profile,
+                topologyHop: retrieval.topologyHop,
+              });
+            appendLog(jobId, 'phase_2_graph', 66, 'Regulatory graph complete');
+
+            // Phase 3: Grounding & Clarification Check
+            appendLog(jobId, 'phase_3_grounding', 66, 'Merging grounding layer...');
+            const grounding = buildGrounding({
+              retrieval,
+              regulatoryGraph,
+              context,
               topologyHop: retrieval.topologyHop,
             });
-          appendLog(jobId, 'phase_2_graph', 66, 'Regulatory graph complete');
+            // v0.33 — Dynamic Tool Router transparency fields (EU AI Act Art. 12)
+            if (retrieval.toolSetRationale) grounding.toolSetRationale = retrieval.toolSetRationale;
+            if (retrieval.signalOverrides) grounding.signalOverrides = retrieval.signalOverrides;
+            appendLog(jobId, 'phase_3_grounding', 75, 'Grounding merge complete');
 
-          // Phase 3: Grounding & Clarification Check
-          appendLog(jobId, 'phase_3_grounding', 66, 'Merging grounding layer...');
-          const grounding = buildGrounding({
-            retrieval,
-            regulatoryGraph,
-            context,
-            topologyHop: retrieval.topologyHop,
-          });
-          // v0.33 — Dynamic Tool Router transparency fields (EU AI Act Art. 12)
-          if (retrieval.toolSetRationale) grounding.toolSetRationale = retrieval.toolSetRationale;
-          if (retrieval.signalOverrides) grounding.signalOverrides = retrieval.signalOverrides;
-          appendLog(jobId, 'phase_3_grounding', 75, 'Grounding merge complete');
+            if (grounding.requiresClarification) {
+              appendLog(
+                jobId,
+                'phase_3_grounding',
+                85,
+                'Clarification required — returning HITL prompt'
+              );
+              const response = this.buildClarificationResponse({
+                sessionId,
+                profileId: profile_id,
+                targetAudience: target_audience,
+                grounding,
+                regulatoryGraph,
+                context,
+              });
 
-          if (grounding.requiresClarification) {
-            appendLog(
-              jobId,
-              'phase_3_grounding',
-              85,
-              'Clarification required — returning HITL prompt'
-            );
-            const response = this.buildClarificationResponse({
+              await this.saveSession(ctx, sessionId, {
+                status: response.status,
+                profile_id,
+                target_audience,
+                context,
+                profile,
+                retrieval,
+                regulatory_graph: regulatoryGraph,
+                grounding,
+                narrative: null,
+                clarification: response.clarification,
+                createdAt: response.metadata.createdAt,
+                updatedAt: response.metadata.updatedAt,
+                history: [],
+              });
+
+              appendLog(jobId, 'phase_3_grounding', 100, 'Clarification session saved');
+              return response;
+            }
+
+            // Phase 4: LLM Synthesis
+            appendLog(jobId, 'phase_4_synthesis', 75, 'Starting LLM synthesis...');
+            const synthesis = await synthesizeNarrative({
+              mode: 'generate',
+              profile,
+              target_audience,
+              context,
+              grounding,
+              regulatoryGraph,
+            });
+            appendLog(jobId, 'phase_4_synthesis', 100, 'LLM synthesis complete');
+
+            const response = this.buildCompletedResponse({
               sessionId,
               profileId: profile_id,
               targetAudience: target_audience,
               grounding,
               regulatoryGraph,
               context,
+              narrative: synthesis.narrative,
             });
 
             await this.saveSession(ctx, sessionId, {
@@ -2164,74 +2218,32 @@ module.exports = {
               retrieval,
               regulatory_graph: regulatoryGraph,
               grounding,
-              narrative: null,
-              clarification: response.clarification,
+              narrative: synthesis.narrative,
+              clarification: null,
               createdAt: response.metadata.createdAt,
               updatedAt: response.metadata.updatedAt,
               history: [],
             });
 
-            appendLog(jobId, 'phase_3_grounding', 100, 'Clarification session saved');
+            // Progressive Profiling: implicit extraction after session close (v0.34.0)
+            // Non-blocking — observer failure must not delay the response
+            {
+              const _completedSession = {
+                status: 'completed',
+                profile_id,
+                context,
+                regulatory_graph: regulatoryGraph,
+                grounding,
+                retrieval,
+                history: [],
+                narrative: synthesis.narrative,
+              };
+              this._observeAndUpdateProfile(ctx, profile_id, _completedSession).catch((err) =>
+                this.logger.warn('profile-observer failed (non-blocking):', err.message)
+              );
+            }
+
             return response;
-          }
-
-          // Phase 4: LLM Synthesis
-          appendLog(jobId, 'phase_4_synthesis', 75, 'Starting LLM synthesis...');
-          const synthesis = await synthesizeNarrative({
-            mode: 'generate',
-            profile,
-            target_audience,
-            context,
-            grounding,
-            regulatoryGraph,
-          });
-          appendLog(jobId, 'phase_4_synthesis', 100, 'LLM synthesis complete');
-
-          const response = this.buildCompletedResponse({
-            sessionId,
-            profileId: profile_id,
-            targetAudience: target_audience,
-            grounding,
-            regulatoryGraph,
-            context,
-            narrative: synthesis.narrative,
-          });
-
-          await this.saveSession(ctx, sessionId, {
-            status: response.status,
-            profile_id,
-            target_audience,
-            context,
-            profile,
-            retrieval,
-            regulatory_graph: regulatoryGraph,
-            grounding,
-            narrative: synthesis.narrative,
-            clarification: null,
-            createdAt: response.metadata.createdAt,
-            updatedAt: response.metadata.updatedAt,
-            history: [],
-          });
-
-          // Progressive Profiling: implicit extraction after session close (v0.34.0)
-          // Non-blocking — observer failure must not delay the response
-          {
-            const _completedSession = {
-              status: 'completed',
-              profile_id,
-              context,
-              regulatory_graph: regulatoryGraph,
-              grounding,
-              retrieval,
-              history: [],
-              narrative: synthesis.narrative,
-            };
-            this._observeAndUpdateProfile(ctx, profile_id, _completedSession).catch((err) =>
-              this.logger.warn('profile-observer failed (non-blocking):', err.message)
-            );
-          }
-
-          return response;
           },
         });
       },
@@ -2532,7 +2544,9 @@ module.exports = {
   methods: {
     async getPlanningOntologySignals(ctx, { profile, targetAudience, context, mode = 'initial' }) {
       try {
-        const focusAreas = Array.isArray(context?.focus_areas) ? context.focus_areas.join(', ') : '';
+        const focusAreas = Array.isArray(context?.focus_areas)
+          ? context.focus_areas.join(', ')
+          : '';
         const trigger = context?.trigger || '';
         const location = context?.location || '';
         const actorRole = profile?.actor?.role || 'unknown';
@@ -2561,7 +2575,10 @@ module.exports = {
           confidence: Number.isFinite(recommendation?.confidence)
             ? recommendation.confidence
             : null,
-          topActions: candidates.slice(0, 3).map((item) => item?.action).filter(Boolean),
+          topActions: candidates
+            .slice(0, 3)
+            .map((item) => item?.action)
+            .filter(Boolean),
         };
       } catch (error) {
         this.logger.debug(`[cya] planning ontology signals unavailable: ${error.message}`);

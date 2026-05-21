@@ -122,7 +122,12 @@ function inferHitCount(result) {
 }
 
 async function emitRateQuotaEvents(ctx, events, extra = {}) {
-  if (!ctx?.broker || typeof ctx.broker.emit !== 'function' || !Array.isArray(events) || events.length === 0) {
+  if (
+    !ctx?.broker ||
+    typeof ctx.broker.emit !== 'function' ||
+    !Array.isArray(events) ||
+    events.length === 0
+  ) {
     return;
   }
 
@@ -610,7 +615,8 @@ module.exports = (() => {
   const AUDIT_TYPES = ['cya', 'mastr-quality', 'redispatch', 'energy-sharing'];
 
   function parseOffset(offset) {
-    if (typeof offset === 'number' && Number.isFinite(offset) && offset >= 0) return Math.floor(offset);
+    if (typeof offset === 'number' && Number.isFinite(offset) && offset >= 0)
+      return Math.floor(offset);
     if (typeof offset === 'string' && /^\d+$/.test(offset)) return parseInt(offset, 10);
     return 0;
   }
@@ -646,7 +652,12 @@ module.exports = (() => {
       query: {
         rest: 'POST /query',
         params: {
-          queryType: { type: 'enum', values: QUERY_TYPE_VALUES, optional: true, default: 'semantic' },
+          queryType: {
+            type: 'enum',
+            values: QUERY_TYPE_VALUES,
+            optional: true,
+            default: 'semantic',
+          },
           query: { type: 'string', optional: true, trim: true },
           collection: { type: 'string', optional: true, trim: true },
           limit: { type: 'number', optional: true, convert: true, min: 1, max: 100, default: 10 },
@@ -743,7 +754,13 @@ module.exports = (() => {
                     scoreThreshold: { type: 'number', example: 0.3 },
                     dedupe: { type: 'boolean', default: true, example: true },
                     rerank: { type: 'boolean', default: true, example: true },
-                    diversityPerDocument: { type: 'number', minimum: 1, maximum: 5, default: 2, example: 2 },
+                    diversityPerDocument: {
+                      type: 'number',
+                      minimum: 1,
+                      maximum: 5,
+                      default: 2,
+                      example: 2,
+                    },
                     rerankWindow: { type: 'number', minimum: 1, maximum: 100, example: 30 },
                     filter: { type: 'object', example: { must: [] } },
                     withPayload: { type: 'boolean', default: false, example: false },
@@ -939,7 +956,11 @@ module.exports = (() => {
                     name: { type: 'string', example: 'tenant:stadtwerk-a:knowledge' },
                     chunking: { type: 'object', example: { mode: 'markdown-section' } },
                     metadata: { type: 'object', example: { domain: 'regulatory' } },
-                    embeddingModelVersion: { type: 'string', default: 'default', example: 'default' },
+                    embeddingModelVersion: {
+                      type: 'string',
+                      default: 'default',
+                      example: 'default',
+                    },
                   },
                 },
                 examples: {
@@ -980,7 +1001,11 @@ module.exports = (() => {
                   required: ['documents'],
                   properties: {
                     collection: { type: 'string', example: 'tenant:stadtwerk-a:knowledge' },
-                    documents: { type: 'array', items: { type: 'object' }, example: [{ text: '§21a EnWG ...' }] },
+                    documents: {
+                      type: 'array',
+                      items: { type: 'object' },
+                      example: [{ text: '§21a EnWG ...' }],
+                    },
                     chunking: { type: 'object', example: { mode: 'paragraph' } },
                     metadata: { type: 'object', example: { source: 'internal-policy' } },
                   },
@@ -1088,7 +1113,11 @@ module.exports = (() => {
                   type: 'object',
                   properties: {
                     collection: { type: 'string', example: 'tenant:stadtwerk-a:audit_history' },
-                    auditTypes: { type: 'array', items: { type: 'string' }, example: ['cya', 'redispatch'] },
+                    auditTypes: {
+                      type: 'array',
+                      items: { type: 'string' },
+                      example: ['cya', 'redispatch'],
+                    },
                     limit: { type: 'number', default: 10, example: 10 },
                     metadata: { type: 'object', example: { sourceClass: 'audit' } },
                   },
@@ -1143,7 +1172,11 @@ module.exports = (() => {
                   required: ['collection', 'embeddingModelVersion'],
                   properties: {
                     collection: { type: 'string', example: 'tenant:stadtwerk-a:knowledge' },
-                    embeddingModelVersion: { type: 'string', default: 'default', example: 'embed-v2' },
+                    embeddingModelVersion: {
+                      type: 'string',
+                      default: 'default',
+                      example: 'embed-v2',
+                    },
                   },
                 },
                 examples: {
@@ -1232,7 +1265,9 @@ module.exports = (() => {
               'VALIDATION_ERROR'
             );
           }
-          const invalidId = params.ids.find((id) => typeof id !== 'string' && typeof id !== 'number');
+          const invalidId = params.ids.find(
+            (id) => typeof id !== 'string' && typeof id !== 'number'
+          );
           if (invalidId !== undefined) {
             throw new Errors.MoleculerClientError(
               'Each entry in "ids" must be either a string or number',
@@ -1265,7 +1300,10 @@ module.exports = (() => {
       },
 
       hashString(value) {
-        return crypto.createHash('sha256').update(String(value || '')).digest('hex');
+        return crypto
+          .createHash('sha256')
+          .update(String(value || ''))
+          .digest('hex');
       },
 
       collectionKey(name) {
@@ -1332,7 +1370,8 @@ module.exports = (() => {
           1,
           0
         );
-        const first = Array.isArray(response?.docs) && response.docs.length > 0 ? response.docs[0] : null;
+        const first =
+          Array.isArray(response?.docs) && response.docs.length > 0 ? response.docs[0] : null;
         return first ? first.payload : null;
       },
 
@@ -1354,7 +1393,10 @@ module.exports = (() => {
                 : row
             )
           : [
-              ...indexRows.map((row) => ({ ...row, status: row.status === 'active' ? 'grace' : row.status })),
+              ...indexRows.map((row) => ({
+                ...row,
+                status: row.status === 'active' ? 'grace' : row.status,
+              })),
               {
                 modelVersion: embeddingModelVersion,
                 status: 'active',
@@ -1375,14 +1417,22 @@ module.exports = (() => {
           indexes,
         };
 
-        await this.objectPut(ctx, this.getCollectionNamespace(ctx), this.collectionKey(collectionName), payload);
+        await this.objectPut(
+          ctx,
+          this.getCollectionNamespace(ctx),
+          this.collectionKey(collectionName),
+          payload
+        );
         return payload;
       },
 
       async getCollectionRecord(ctx, collectionName, options = {}) {
         const record = await this.findCollectionRecord(ctx, collectionName);
         if (record || options.createIfMissing !== true) return record;
-        return this.createCollectionRecord(ctx, { name: collectionName, chunking: options.chunking });
+        return this.createCollectionRecord(ctx, {
+          name: collectionName,
+          chunking: options.chunking,
+        });
       },
 
       async deleteCollection(ctx, collectionName) {
@@ -1407,7 +1457,11 @@ module.exports = (() => {
           await this.objectDelete(ctx, this.getChunkNamespace(ctx), doc.key);
         }
 
-        await this.objectDelete(ctx, this.getCollectionNamespace(ctx), this.collectionKey(collectionName));
+        await this.objectDelete(
+          ctx,
+          this.getCollectionNamespace(ctx),
+          this.collectionKey(collectionName)
+        );
         return { collection: collectionName, removedChunks: docs.length };
       },
 
@@ -1456,7 +1510,9 @@ module.exports = (() => {
         }
 
         if (typeof match.text === 'string') {
-          return String(rowValue || '').toLowerCase().includes(match.text.toLowerCase());
+          return String(rowValue || '')
+            .toLowerCase()
+            .includes(match.text.toLowerCase());
         }
 
         return true;
@@ -1468,7 +1524,8 @@ module.exports = (() => {
         const mustNot = Array.isArray(filter.must_not) ? filter.must_not : [];
         if (must.some((clause) => !this.matchesClause(row, clause))) return false;
         if (mustNot.some((clause) => this.matchesClause(row, clause))) return false;
-        if (should.length > 0 && !should.some((clause) => this.matchesClause(row, clause))) return false;
+        if (should.length > 0 && !should.some((clause) => this.matchesClause(row, clause)))
+          return false;
         return true;
       },
 
@@ -1639,7 +1696,9 @@ module.exports = (() => {
           .filter((row) => this.matchesFilter(row, params.filter || {}));
 
         const threshold = Number.isFinite(params.scoreThreshold) ? params.scoreThreshold : -1;
-        const filtered = rows.filter((row) => row.score >= threshold).sort((a, b) => b.score - a.score);
+        const filtered = rows
+          .filter((row) => row.score >= threshold)
+          .sort((a, b) => b.score - a.score);
         const postProcessed = this.applySemanticPostProcessing(
           {
             success: true,
@@ -1653,7 +1712,9 @@ module.exports = (() => {
           },
           params
         );
-        const postRows = Array.isArray(postProcessed?.data?.results) ? postProcessed.data.results : [];
+        const postRows = Array.isArray(postProcessed?.data?.results)
+          ? postProcessed.data.results
+          : [];
         const offset = parseOffset(params.offset);
         const limit = clamp(params.limit || 10, 1, 100);
         const sliced = postRows.slice(offset, offset + limit).map((row) => {
@@ -1670,7 +1731,8 @@ module.exports = (() => {
             returned: sliced.length,
             total: postRows.length,
             offset,
-            nextOffset: offset + sliced.length < postRows.length ? String(offset + sliced.length) : null,
+            nextOffset:
+              offset + sliced.length < postRows.length ? String(offset + sliced.length) : null,
             reranking: postProcessed?.data?.reranking,
             results: sliced,
           },
@@ -1706,7 +1768,8 @@ module.exports = (() => {
             returned: sliced.length,
             total: rows.length,
             offset,
-            nextOffset: offset + sliced.length < rows.length ? String(offset + sliced.length) : null,
+            nextOffset:
+              offset + sliced.length < rows.length ? String(offset + sliced.length) : null,
             results: sliced,
           },
         };
@@ -1775,15 +1838,19 @@ module.exports = (() => {
         try {
           record = await this.getCollectionRecord(ctx, collection, { createIfMissing: false });
         } catch (error) {
-          if (error?.type === 'SERVICE_NOT_FOUND' || error?.name === 'ServiceNotFoundError') return null;
+          if (error?.type === 'SERVICE_NOT_FOUND' || error?.name === 'ServiceNotFoundError')
+            return null;
           throw error;
         }
 
         if (!record) return null;
 
-        if (toolParams.queryType === 'semantic') return this.localSemanticSearch(ctx, collection, record, toolParams);
-        if (toolParams.queryType === 'scroll') return this.localScroll(ctx, collection, record, toolParams);
-        if (toolParams.queryType === 'fetch') return this.localFetch(ctx, collection, record, toolParams);
+        if (toolParams.queryType === 'semantic')
+          return this.localSemanticSearch(ctx, collection, record, toolParams);
+        if (toolParams.queryType === 'scroll')
+          return this.localScroll(ctx, collection, record, toolParams);
+        if (toolParams.queryType === 'fetch')
+          return this.localFetch(ctx, collection, record, toolParams);
         return this.localCollectionInfo(ctx, collection, record);
       },
 
@@ -1935,9 +2002,10 @@ module.exports = (() => {
       },
 
       async buildDocumentsFromAudit(ctx, params) {
-        const types = Array.isArray(params.auditTypes) && params.auditTypes.length > 0
-          ? params.auditTypes
-          : ['cya', 'mastr-quality', 'redispatch'];
+        const types =
+          Array.isArray(params.auditTypes) && params.auditTypes.length > 0
+            ? params.auditTypes
+            : ['cya', 'mastr-quality', 'redispatch'];
         const limit = clamp(params.limit || 10, 1, 50);
         const docs = [];
 
@@ -1957,7 +2025,8 @@ module.exports = (() => {
               });
             }
           } catch (error) {
-            if (!(error?.type === 'SERVICE_NOT_FOUND' || error?.name === 'ServiceNotFoundError')) throw error;
+            if (!(error?.type === 'SERVICE_NOT_FOUND' || error?.name === 'ServiceNotFoundError'))
+              throw error;
           }
         }
 
@@ -1977,13 +2046,18 @@ module.exports = (() => {
               });
             }
           } catch (error) {
-            if (!(error?.type === 'SERVICE_NOT_FOUND' || error?.name === 'ServiceNotFoundError')) throw error;
+            if (!(error?.type === 'SERVICE_NOT_FOUND' || error?.name === 'ServiceNotFoundError'))
+              throw error;
           }
         }
 
         if (types.includes('redispatch')) {
           try {
-            const response = await ctx.call('redispatch-expost.list', { limit }, { meta: ctx.meta });
+            const response = await ctx.call(
+              'redispatch-expost.list',
+              { limit },
+              { meta: ctx.meta }
+            );
             const audits = Array.isArray(response?.audits) ? response.audits : [];
             for (const audit of audits) {
               docs.push({
@@ -1997,7 +2071,8 @@ module.exports = (() => {
               });
             }
           } catch (error) {
-            if (!(error?.type === 'SERVICE_NOT_FOUND' || error?.name === 'ServiceNotFoundError')) throw error;
+            if (!(error?.type === 'SERVICE_NOT_FOUND' || error?.name === 'ServiceNotFoundError'))
+              throw error;
           }
         }
 
@@ -2017,7 +2092,8 @@ module.exports = (() => {
               });
             }
           } catch (error) {
-            if (!(error?.type === 'SERVICE_NOT_FOUND' || error?.name === 'ServiceNotFoundError')) throw error;
+            if (!(error?.type === 'SERVICE_NOT_FOUND' || error?.name === 'ServiceNotFoundError'))
+              throw error;
           }
         }
 
@@ -2040,21 +2116,29 @@ module.exports = (() => {
         const chunks = chunkText(text, collectionRecord.chunking);
         if (!Array.isArray(chunks) || chunks.length === 0) return { chunks: 0, pointIds: [] };
 
-        const quotaCheck = rateQuotaStore.checkRagChunkQuota({ tenantId, chunkCount: chunks.length });
+        const quotaCheck = rateQuotaStore.checkRagChunkQuota({
+          tenantId,
+          chunkCount: chunks.length,
+        });
         await emitRateQuotaEvents(ctx, quotaCheck.newEvents || [], {
           collection: collectionRecord.name,
           sourceType: options.sourceType || 'documents',
         });
         if (!quotaCheck.allowed) {
-          throw new Errors.MoleculerError('RAG chunk quota exceeded for tenant.', 429, 'RAG_QUOTA_EXCEEDED', {
-            tenantId,
-            resource: quotaCheck.resource,
-            limit: quotaCheck.limit,
-            used: quotaCheck.used,
-            remaining: quotaCheck.remaining,
-            retryAfter: quotaCheck.retryAfter,
-            responseHeaders: quotaCheck.responseHeaders,
-          });
+          throw new Errors.MoleculerError(
+            'RAG chunk quota exceeded for tenant.',
+            429,
+            'RAG_QUOTA_EXCEEDED',
+            {
+              tenantId,
+              resource: quotaCheck.resource,
+              limit: quotaCheck.limit,
+              used: quotaCheck.used,
+              remaining: quotaCheck.remaining,
+              retryAfter: quotaCheck.retryAfter,
+              responseHeaders: quotaCheck.responseHeaders,
+            }
+          );
         }
 
         const vectors = await embeddings(chunks.map((chunk) => scrubPromptText(chunk)));
@@ -2130,7 +2214,8 @@ module.exports = (() => {
             });
 
             const documents = await this.buildDocumentsForIngest(ctx, params, sourceType);
-            if (jobId) appendLog(jobId, 'prepare_documents', 20, `Prepared ${documents.length} document(s)`);
+            if (jobId)
+              appendLog(jobId, 'prepare_documents', 20, `Prepared ${documents.length} document(s)`);
 
             let totalChunks = 0;
             let totalDocuments = 0;
@@ -2201,7 +2286,9 @@ module.exports = (() => {
             this.ensureEmbeddingCapability();
             const collectionName = String(params.collection || '').trim();
             const targetModelVersion = String(params.embeddingModelVersion || '').trim();
-            const record = await this.getCollectionRecord(ctx, collectionName, { createIfMissing: false });
+            const record = await this.getCollectionRecord(ctx, collectionName, {
+              createIfMissing: false,
+            });
 
             if (!record) {
               throw new Errors.MoleculerClientError(
@@ -2247,7 +2334,12 @@ module.exports = (() => {
               ],
             };
 
-            await this.objectPut(ctx, this.getCollectionNamespace(ctx), this.collectionKey(collectionName), updated);
+            await this.objectPut(
+              ctx,
+              this.getCollectionNamespace(ctx),
+              this.collectionKey(collectionName),
+              updated
+            );
             if (jobId) appendLog(jobId, 'completed', 100, 'Reindex completed');
 
             return {
@@ -2265,9 +2357,15 @@ module.exports = (() => {
       },
 
       async cutoverCollectionVersion(ctx, collectionName, modelVersion) {
-        const record = await this.getCollectionRecord(ctx, collectionName, { createIfMissing: false });
+        const record = await this.getCollectionRecord(ctx, collectionName, {
+          createIfMissing: false,
+        });
         if (!record) {
-          throw new Errors.MoleculerClientError(`Collection not found: ${collectionName}`, 404, 'NOT_FOUND');
+          throw new Errors.MoleculerClientError(
+            `Collection not found: ${collectionName}`,
+            404,
+            'NOT_FOUND'
+          );
         }
 
         const now = new Date().toISOString();
@@ -2299,7 +2397,12 @@ module.exports = (() => {
           }),
         };
 
-        await this.objectPut(ctx, this.getCollectionNamespace(ctx), this.collectionKey(collectionName), updated);
+        await this.objectPut(
+          ctx,
+          this.getCollectionNamespace(ctx),
+          this.collectionKey(collectionName),
+          updated
+        );
         return updated;
       },
     },

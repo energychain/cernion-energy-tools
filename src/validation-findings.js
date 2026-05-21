@@ -1104,8 +1104,7 @@ const FINDING_CODE_METADATA = {
     agent: 'finance-agent',
     step: 1,
     description: 'Finance query plan generated with ontology and legal retrieval intents',
-    descriptionDe:
-      'Finanz-Query-Plan mit Ontologie- und Rechtsreferenz-Intents wurde erzeugt',
+    descriptionDe: 'Finanz-Query-Plan mit Ontologie- und Rechtsreferenz-Intents wurde erzeugt',
   },
   FA_EVIDENCE_RETRIEVED: {
     severity: 'info',
@@ -1177,16 +1176,14 @@ const FINDING_CODE_METADATA = {
     agent: 'vdmi',
     step: 3,
     description: 'Critical process step is primarily executed through Excel shadow path',
-    descriptionDe:
-      'Kritischer Prozessschritt wird primär über einen Excel-Schattenpfad ausgeführt',
+    descriptionDe: 'Kritischer Prozessschritt wird primär über einen Excel-Schattenpfad ausgeführt',
   },
   VD_SHADOW_SHAREPOINT_BYPASS_H: {
     severity: 'error',
     agent: 'vdmi',
     step: 3,
     description: 'SharePoint or mail event bypasses the intended audited system path',
-    descriptionDe:
-      'SharePoint- oder Mail-Event umgeht den vorgesehenen auditierbaren Systempfad',
+    descriptionDe: 'SharePoint- oder Mail-Event umgeht den vorgesehenen auditierbaren Systempfad',
   },
   VD_SILO_HANDOVER_MANUAL_M: {
     severity: 'warning',
@@ -1217,8 +1214,7 @@ const FINDING_CODE_METADATA = {
     agent: 'vdmi',
     step: 6,
     description: 'Critical governance deviation detected with incomplete audit evidence chain',
-    descriptionDe:
-      'Kritische Governance-Abweichung mit unvollständiger Audit-Evidenzkette erkannt',
+    descriptionDe: 'Kritische Governance-Abweichung mit unvollständiger Audit-Evidenzkette erkannt',
   },
 
   BLINDFLUG_ANOMALY_DETECTED: {
@@ -1233,8 +1229,7 @@ const FINDING_CODE_METADATA = {
     agent: 'vdmi',
     step: 6,
     description: 'High-risk governance deviation recurs despite prior mitigation',
-    descriptionDe:
-      'Hochrisiko-Governance-Abweichung tritt trotz vorheriger Maßnahme erneut auf',
+    descriptionDe: 'Hochrisiko-Governance-Abweichung tritt trotz vorheriger Maßnahme erneut auf',
   },
 
   // ---------------------------------------------------------------------------
@@ -1273,7 +1268,8 @@ const FINDING_CODE_METADATA = {
     severity: 'error',
     agent: 'netzfahrplan',
     step: 2,
-    description: 'Resulting effective capacity exceeds the N-1 threshold — grid expansion may be required',
+    description:
+      'Resulting effective capacity exceeds the N-1 threshold — grid expansion may be required',
     descriptionDe: 'Wirkkapazität überschreitet N-1-Grenzwert — Netzausbau ggf. erforderlich',
   },
   FN_N1_MARGINAL: {
@@ -1287,8 +1283,10 @@ const FINDING_CODE_METADATA = {
     severity: 'info',
     agent: 'netzfahrplan',
     step: 3,
-    description: 'Flexible NAV (§14a EnWG) is technically feasible as an alternative to grid expansion',
-    descriptionDe: 'Flexibler NAV (§14a EnWG) ist technisch als Alternative zu Kupferausbau machbar',
+    description:
+      'Flexible NAV (§14a EnWG) is technically feasible as an alternative to grid expansion',
+    descriptionDe:
+      'Flexibler NAV (§14a EnWG) ist technisch als Alternative zu Kupferausbau machbar',
   },
   FN_CAPACITY_CONDITIONAL: {
     severity: 'warning',
@@ -1302,7 +1300,8 @@ const FINDING_CODE_METADATA = {
     agent: 'netzfahrplan',
     step: 3,
     description: 'Flexible NAV is insufficient — conventional grid expansion (copper) is required',
-    descriptionDe: 'Flexibler NAV reicht nicht aus — konventioneller Netzausbau (Kupfer) erforderlich',
+    descriptionDe:
+      'Flexibler NAV reicht nicht aus — konventioneller Netzausbau (Kupfer) erforderlich',
   },
   FN_GOVERNANCE_APPROVED: {
     severity: 'info',
@@ -1315,22 +1314,28 @@ const FINDING_CODE_METADATA = {
     severity: 'warning',
     agent: 'netzfahrplan',
     step: 4,
-    description: 'Governance decision required before fNAV can be finalised (legal/contract/owner gap)',
-    descriptionDe: 'Governance-Entscheidung erforderlich vor fNAV-Abschluss (Rechts-/Vertrags-/Owner-Lücke)',
+    description:
+      'Governance decision required before fNAV can be finalised (legal/contract/owner gap)',
+    descriptionDe:
+      'Governance-Entscheidung erforderlich vor fNAV-Abschluss (Rechts-/Vertrags-/Owner-Lücke)',
   },
   FN_ECONOMICS_AVAILABLE: {
     severity: 'info',
     agent: 'netzfahrplan',
     step: 5,
-    description: 'fNAV economics calculated: avoided CAPEX, annual fee, and payback period available',
-    descriptionDe: 'fNAV-Wirtschaftlichkeit berechnet: vermiedener CAPEX, Jahresbeitrag und Amortisation verfügbar',
+    description:
+      'fNAV economics calculated: avoided CAPEX, annual fee, and payback period available',
+    descriptionDe:
+      'fNAV-Wirtschaftlichkeit berechnet: vermiedener CAPEX, Jahresbeitrag und Amortisation verfügbar',
   },
   FN_ECONOMICS_PARTIAL: {
     severity: 'warning',
     agent: 'netzfahrplan',
     step: 5,
-    description: 'fNAV economics partially calculated — eog-calculator data unavailable, estimates used',
-    descriptionDe: 'fNAV-Wirtschaftlichkeit nur teilweise berechnet — eog-calculator-Daten nicht verfügbar',
+    description:
+      'fNAV economics partially calculated — eog-calculator data unavailable, estimates used',
+    descriptionDe:
+      'fNAV-Wirtschaftlichkeit nur teilweise berechnet — eog-calculator-Daten nicht verfügbar',
   },
 };
 

@@ -276,7 +276,9 @@ module.exports = {
         // Persist initial graph state (SUB_1 only) to znp:graph: document
         await this.persistGraph(projectId, graph);
 
-        this.logger.info(`[znp] Created project ${projectId} ("${projectName}") for tenant ${tenantId}`);
+        this.logger.info(
+          `[znp] Created project ${projectId} ("${projectName}") for tenant ${tenantId}`
+        );
 
         return {
           projectId,
@@ -1403,11 +1405,12 @@ module.exports = {
         projectId: { type: 'string' },
         disturbanceId: { type: 'string' },
         pattern: { type: 'string', optional: true },
-        severity: { type: 'string', optional: true }
+        severity: { type: 'string', optional: true },
       },
       openapi: {
         summary: 'Correlate a disturbance signal with ZNP',
-        description: 'Maps a Phase 4 blindflug-radar disturbance signal into a NOVA option shape for investment decisioning.',
+        description:
+          'Maps a Phase 4 blindflug-radar disturbance signal into a NOVA option shape for investment decisioning.',
         tags: ['ZNP'],
         requestBody: {
           required: true,
@@ -1448,19 +1451,21 @@ module.exports = {
                     projectId: { type: 'string' },
                     disturbanceId: { type: 'string' },
                     novaOption: { type: 'object' },
-                    governanceAction: { type: 'string' }
-                  }
-                }
-              }
-            }
-          }
-        }
+                    governanceAction: { type: 'string' },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       async handler(ctx) {
         const { projectId, disturbanceId, pattern, severity } = ctx.params;
         const project = this.activeGraphs.get(projectId);
         if (!project) {
-          throw new MoleculerClientError('Project graph not loaded', 404, 'NOT_FOUND', { projectId });
+          throw new MoleculerClientError('Project graph not loaded', 404, 'NOT_FOUND', {
+            projectId,
+          });
         }
 
         const novaOption = {
@@ -1471,34 +1476,38 @@ module.exports = {
           type: 'znp_capex_alternative',
           status: 'proposed',
           severity: severity || 'medium',
-          createdAt: new Date().toISOString()
+          createdAt: new Date().toISOString(),
         };
 
         let governanceAction = 'none';
 
         if (severity === 'high' || severity === 'critical') {
           // High-impact => HITL
-          await ctx.call('hitl.create', {
-            kind: 'blindflug-radar-high-impact',
-            originService: this.name,
-            originAction: 'correlateDisturbance',
-            severity: 'warning',
-            payload: { novaOption }
-          }).catch(err => this.logger.warn('Failed to create HITL item', err));
+          await ctx
+            .call('hitl.create', {
+              kind: 'blindflug-radar-high-impact',
+              originService: this.name,
+              originAction: 'correlateDisturbance',
+              severity: 'warning',
+              payload: { novaOption },
+            })
+            .catch((err) => this.logger.warn('Failed to create HITL item', err));
           governanceAction = 'hitl.create';
         } else if (severity === 'medium') {
           // Unresolved evidence => interface-placeholder
-          await ctx.call('interface-placeholder.markGap', {
-            role: 'portfolio_planner',
-            reason: 'NEEDS_EVIDENCE',
-            blockingLevel: 'soft',
-            placeholderGapKey: `disturbance_${disturbanceId}`,
-            replacementCriteria: {
-              kind: 'process',
-              capabilityHint: 'znp.correlateDisturbance',
-              deadline: null,
-            }
-          }).catch(err => this.logger.warn('Failed to mark interface gap', err));
+          await ctx
+            .call('interface-placeholder.markGap', {
+              role: 'portfolio_planner',
+              reason: 'NEEDS_EVIDENCE',
+              blockingLevel: 'soft',
+              placeholderGapKey: `disturbance_${disturbanceId}`,
+              replacementCriteria: {
+                kind: 'process',
+                capabilityHint: 'znp.correlateDisturbance',
+                deadline: null,
+              },
+            })
+            .catch((err) => this.logger.warn('Failed to mark interface gap', err));
           governanceAction = 'interface-placeholder.markGap';
         }
 
@@ -1507,9 +1516,9 @@ module.exports = {
           projectId,
           disturbanceId,
           novaOption,
-          governanceAction
+          governanceAction,
         };
-      }
+      },
     },
 
     createAssumption: {
@@ -2117,9 +2126,8 @@ module.exports = {
           { meta: ctx?.meta || {}, timeout: 8000 }
         );
 
-        const topAction = Array.isArray(result?.steps) && result.steps.length > 0
-          ? result.steps[0].action
-          : null;
+        const topAction =
+          Array.isArray(result?.steps) && result.steps.length > 0 ? result.steps[0].action : null;
 
         return {
           warning: null,
@@ -2238,7 +2246,10 @@ module.exports = {
         missingFnavApproval: false,
       };
 
-      const timestamps = [project.createdAt, project.graph.getNodeAttribute(SUBSTATION_KEY, 'layer2UpdatedAt')]
+      const timestamps = [
+        project.createdAt,
+        project.graph.getNodeAttribute(SUBSTATION_KEY, 'layer2UpdatedAt'),
+      ]
         .map((value) => Date.parse(value))
         .filter((value) => Number.isFinite(value) && value > 0);
 
@@ -2246,7 +2257,11 @@ module.exports = {
         if (attrs.type === 'mastr_asset') {
           metrics.mastrAssetCount += 1;
           metrics.mastrCapacityKW += Number(attrs.capacity) || 0;
-          if (attrs.fernsteuerbarkeitDv || attrs.fernsteuerbarkeitSonstige || attrs.hasFlexibleNav) {
+          if (
+            attrs.fernsteuerbarkeitDv ||
+            attrs.fernsteuerbarkeitSonstige ||
+            attrs.hasFlexibleNav
+          ) {
             metrics.controllableAssetCount += 1;
           }
           return;
@@ -2287,7 +2302,9 @@ module.exports = {
           action: 'znp.assessPortfolio',
         });
       } catch (err) {
-        governance.warnings.push(`interface-placeholder.canExecuteAction unavailable: ${err.message}`);
+        governance.warnings.push(
+          `interface-placeholder.canExecuteAction unavailable: ${err.message}`
+        );
       }
 
       if (missingFnavApproval) {
@@ -2336,7 +2353,10 @@ module.exports = {
 
       if (placeholderState && Array.isArray(placeholderState.blockingPlaceholders)) {
         const dedup = new Map();
-        for (const blocker of [...governance.hardBlockers, ...placeholderState.blockingPlaceholders]) {
+        for (const blocker of [
+          ...governance.hardBlockers,
+          ...placeholderState.blockingPlaceholders,
+        ]) {
           const key = blocker.placeholderId || blocker.placeholderGapKey || JSON.stringify(blocker);
           if (!dedup.has(key)) dedup.set(key, blocker);
         }

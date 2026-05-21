@@ -4,7 +4,9 @@ const FileRateQuotaDriver = require('./file-driver');
 const RedisCompatRateQuotaDriver = require('./redis-compat-driver');
 
 function normalizeDriverName(raw) {
-  return String(raw || 'redis-compat').trim().toLowerCase();
+  return String(raw || 'redis-compat')
+    .trim()
+    .toLowerCase();
 }
 
 function createDriver(logger = console) {

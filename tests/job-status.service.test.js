@@ -372,7 +372,10 @@ describe('Job Status Service', () => {
     });
 
     it('returns 400 when wake-up request is rejected', async () => {
-      jobStore.requestWakeUp.mockReturnValue({ accepted: false, reason: 'missing_idempotency_key' });
+      jobStore.requestWakeUp.mockReturnValue({
+        accepted: false,
+        reason: 'missing_idempotency_key',
+      });
       const meta = {};
       const result = await broker.call('job-status.wakeUp', { jobId: 'job-2' }, { meta });
       expect(meta.$statusCode).toBe(400);

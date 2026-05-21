@@ -231,7 +231,9 @@ function buildProof(input = {}) {
           hitlId: placeholder.hitlItem?.id || placeholder.hitlItemId || null,
         }
       : null,
-    findingCodes: Array.isArray(findings) ? findings.map((item) => item.finding).filter(Boolean) : [],
+    findingCodes: Array.isArray(findings)
+      ? findings.map((item) => item.finding).filter(Boolean)
+      : [],
   };
 }
 
@@ -252,15 +254,31 @@ function resolveN1Threshold(voltageLevel, overrides = {}) {
   const domainDefault = DOMAIN_DEFAULT_N1_MVA[level] ?? DOMAIN_DEFAULT_N1_MVA.MS;
 
   if (overrides.scenario != null) {
-    return { thresholdMVA: overrides.scenario, thresholdSource: N1_SOURCE.SCENARIO_OVERRIDE, overrideApplied: true };
+    return {
+      thresholdMVA: overrides.scenario,
+      thresholdSource: N1_SOURCE.SCENARIO_OVERRIDE,
+      overrideApplied: true,
+    };
   }
   if (overrides.project != null) {
-    return { thresholdMVA: overrides.project, thresholdSource: N1_SOURCE.PROJECT_OVERRIDE, overrideApplied: true };
+    return {
+      thresholdMVA: overrides.project,
+      thresholdSource: N1_SOURCE.PROJECT_OVERRIDE,
+      overrideApplied: true,
+    };
   }
   if (overrides.tenant != null) {
-    return { thresholdMVA: overrides.tenant, thresholdSource: N1_SOURCE.TENANT_OVERRIDE, overrideApplied: true };
+    return {
+      thresholdMVA: overrides.tenant,
+      thresholdSource: N1_SOURCE.TENANT_OVERRIDE,
+      overrideApplied: true,
+    };
   }
-  return { thresholdMVA: domainDefault, thresholdSource: N1_SOURCE.DOMAIN_DEFAULT, overrideApplied: false };
+  return {
+    thresholdMVA: domainDefault,
+    thresholdSource: N1_SOURCE.DOMAIN_DEFAULT,
+    overrideApplied: false,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -309,11 +327,12 @@ function normaliseFnavProfile(profile = {}) {
     ? profile.evidenceLevel
     : EVIDENCE_LEVEL.PARTIAL;
 
-  const profileType = flexKW > 0 && firmKW > 0
-    ? FNAV_PROFILE_TYPE.HYBRID
-    : flexKW > 0
-      ? FNAV_PROFILE_TYPE.DYNAMIC_FLEX
-      : FNAV_PROFILE_TYPE.STATIC_CAP;
+  const profileType =
+    flexKW > 0 && firmKW > 0
+      ? FNAV_PROFILE_TYPE.HYBRID
+      : flexKW > 0
+        ? FNAV_PROFILE_TYPE.DYNAMIC_FLEX
+        : FNAV_PROFILE_TYPE.STATIC_CAP;
 
   return {
     profileType,
@@ -345,12 +364,14 @@ function normaliseFnavProfile(profile = {}) {
  *             marginMW: number, utilizationPercent: number }}
  */
 function checkN1Compliance(loadMW, voltageLevel, n1Overrides = {}) {
-  const { thresholdMVA, thresholdSource, overrideApplied } = resolveN1Threshold(voltageLevel, n1Overrides);
+  const { thresholdMVA, thresholdSource, overrideApplied } = resolveN1Threshold(
+    voltageLevel,
+    n1Overrides
+  );
   // MVA ≈ MW for unity power factor (conservative assumption in planning)
   const marginMW = parseFloat((thresholdMVA - loadMW).toFixed(3));
-  const utilizationPercent = thresholdMVA > 0
-    ? parseFloat(((loadMW / thresholdMVA) * 100).toFixed(1))
-    : 100;
+  const utilizationPercent =
+    thresholdMVA > 0 ? parseFloat(((loadMW / thresholdMVA) * 100).toFixed(1)) : 100;
   return {
     passes: loadMW <= thresholdMVA,
     loadMW: parseFloat(loadMW.toFixed(3)),
@@ -396,9 +417,10 @@ function resolveGovernanceStatus(capacityModel, ownerMissing = false) {
     blockers.push('no responsible owner / contact recorded');
   }
 
-  const governanceStatus = blockers.length === 0
-    ? GOVERNANCE_STATUS.APPROVED
-    : GOVERNANCE_STATUS.REQUIRES_GOVERNANCE_DECISION;
+  const governanceStatus =
+    blockers.length === 0
+      ? GOVERNANCE_STATUS.APPROVED
+      : GOVERNANCE_STATUS.REQUIRES_GOVERNANCE_DECISION;
 
   return { governanceStatus, blockers };
 }

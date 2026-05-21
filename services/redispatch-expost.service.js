@@ -297,7 +297,11 @@ module.exports = {
                 );
                 vdmiMatrix = vdmiRes.items?.[0] || null;
               } catch (error) {
-                if (error && error.type !== 'SERVICE_NOT_FOUND' && error.name !== 'ServiceNotFoundError') {
+                if (
+                  error &&
+                  error.type !== 'SERVICE_NOT_FOUND' &&
+                  error.name !== 'ServiceNotFoundError'
+                ) {
                   throw error;
                 }
                 this.logger.debug(
@@ -313,15 +317,16 @@ module.exports = {
               id,
               type: 'redispatch-expost-audit',
               vdmiMatrixId: vdmiMatrix?.id || null,
-              vdmiTasks: vdmiMatrix?.tasks?.map(t => ({
-                taskId: t.taskId,
-                taskName: t.taskName,
-                phase: t.phase,
-                verantwortlich: t.verantwortlich,
-                durchfuehrend: t.durchfuehrend,
-                mitwirkend: t.mitwirkend,
-                informiert: t.information,
-              })) || null,
+              vdmiTasks:
+                vdmiMatrix?.tasks?.map((t) => ({
+                  taskId: t.taskId,
+                  taskName: t.taskName,
+                  phase: t.phase,
+                  verantwortlich: t.verantwortlich,
+                  durchfuehrend: t.durchfuehrend,
+                  mitwirkend: t.mitwirkend,
+                  informiert: t.information,
+                })) || null,
               gridOperator: report.gridOperator,
               period: report.period,
               settlementReadiness: report.settlementReadiness,

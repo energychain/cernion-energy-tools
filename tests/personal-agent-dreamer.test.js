@@ -184,9 +184,7 @@ describe('extractFacts', () => {
   test('extracts Netzbetreiber fact from user messages', () => {
     const session = {
       l3: {
-        history: [
-          { role: 'user', text: 'Netzbetreiber: TWL Netze Ludwigshafen' },
-        ],
+        history: [{ role: 'user', text: 'Netzbetreiber: TWL Netze Ludwigshafen' }],
       },
     };
     const result = extractFacts(session);
@@ -233,7 +231,9 @@ describe('extractFacts', () => {
       },
     };
     const result = extractFacts(session);
-    const domainPref = result.preferences.find((p) => p.key === 'domainInterest' && p.value === 'redispatch');
+    const domainPref = result.preferences.find(
+      (p) => p.key === 'domainInterest' && p.value === 'redispatch'
+    );
     expect(domainPref).toBeDefined();
   });
 
@@ -265,9 +265,7 @@ describe('extractFacts', () => {
   test('ignores assistant messages for fact extraction', () => {
     const session = {
       l3: {
-        history: [
-          { role: 'assistant', text: 'Netzbetreiber: FakeNetz' },
-        ],
+        history: [{ role: 'assistant', text: 'Netzbetreiber: FakeNetz' }],
       },
     };
     const result = extractFacts(session);
@@ -294,7 +292,9 @@ describe('AK1 — enrichL2Profile', () => {
 
   test('writes new preferences to empty profile', async () => {
     const ctx = makeCtx();
-    const prefs = [{ key: 'language', value: 'de', confidence: 0.9, updatedAt: '2026-01-01T00:00:00Z' }];
+    const prefs = [
+      { key: 'language', value: 'de', confidence: 0.9, updatedAt: '2026-01-01T00:00:00Z' },
+    ];
     const result = await enrichL2Profile(ctx, 'tenant1', userId, namespace, prefs);
     expect(result.merged.language.value).toBe('de');
     expect(result.conflicts).toBe(0);
@@ -306,10 +306,17 @@ describe('AK1 — enrichL2Profile', () => {
     await ctx.call('object-store.put', {
       namespace,
       key: userId,
-      payload: { userId, preferences: { language: { value: 'en', confidence: 0.3, updatedAt: '2026-01-01T00:00:00Z' } } },
+      payload: {
+        userId,
+        preferences: {
+          language: { value: 'en', confidence: 0.3, updatedAt: '2026-01-01T00:00:00Z' },
+        },
+      },
     });
 
-    const prefs = [{ key: 'language', value: 'de', confidence: 0.9, updatedAt: '2026-01-02T00:00:00Z' }];
+    const prefs = [
+      { key: 'language', value: 'de', confidence: 0.9, updatedAt: '2026-01-02T00:00:00Z' },
+    ];
     const result = await enrichL2Profile(ctx, 'tenant1', userId, namespace, prefs);
     expect(result.merged.language.value).toBe('de');
     expect(result.conflicts).toBe(1);
@@ -320,10 +327,17 @@ describe('AK1 — enrichL2Profile', () => {
     await ctx.call('object-store.put', {
       namespace,
       key: userId,
-      payload: { userId, preferences: { language: { value: 'de', confidence: 0.95, updatedAt: '2026-01-01T00:00:00Z' } } },
+      payload: {
+        userId,
+        preferences: {
+          language: { value: 'de', confidence: 0.95, updatedAt: '2026-01-01T00:00:00Z' },
+        },
+      },
     });
 
-    const prefs = [{ key: 'language', value: 'en', confidence: 0.4, updatedAt: '2026-01-02T00:00:00Z' }];
+    const prefs = [
+      { key: 'language', value: 'en', confidence: 0.4, updatedAt: '2026-01-02T00:00:00Z' },
+    ];
     const result = await enrichL2Profile(ctx, 'tenant1', userId, namespace, prefs);
     expect(result.merged.language.value).toBe('de'); // existing wins
     expect(result.conflicts).toBe(0);
@@ -334,10 +348,17 @@ describe('AK1 — enrichL2Profile', () => {
     await ctx.call('object-store.put', {
       namespace,
       key: userId,
-      payload: { userId, preferences: { language: { value: 'en', confidence: 0.7, updatedAt: '2026-01-01T00:00:00Z' } } },
+      payload: {
+        userId,
+        preferences: {
+          language: { value: 'en', confidence: 0.7, updatedAt: '2026-01-01T00:00:00Z' },
+        },
+      },
     });
 
-    const prefs = [{ key: 'language', value: 'de', confidence: 0.7, updatedAt: '2026-06-01T00:00:00Z' }];
+    const prefs = [
+      { key: 'language', value: 'de', confidence: 0.7, updatedAt: '2026-06-01T00:00:00Z' },
+    ];
     const result = await enrichL2Profile(ctx, 'tenant1', userId, namespace, prefs);
     expect(result.merged.language.value).toBe('de'); // newer wins
   });
@@ -361,7 +382,9 @@ describe('AK1 — enrichL2Profile', () => {
       return originalCall(action, params, opts);
     });
 
-    const prefs = [{ key: 'language', value: 'de', confidence: 0.8, updatedAt: new Date().toISOString() }];
+    const prefs = [
+      { key: 'language', value: 'de', confidence: 0.8, updatedAt: new Date().toISOString() },
+    ];
     const result = await enrichL2Profile(ctx, 'tenant1', userId, namespace, prefs);
     expect(result.retries).toBeGreaterThanOrEqual(1);
     expect(result.merged.language.value).toBe('de');
@@ -372,10 +395,17 @@ describe('AK1 — enrichL2Profile', () => {
     await ctx.call('object-store.put', {
       namespace,
       key: userId,
-      payload: { userId, preferences: { language: { value: 'de', confidence: 0.5, updatedAt: '2026-01-01T00:00:00Z' } } },
+      payload: {
+        userId,
+        preferences: {
+          language: { value: 'de', confidence: 0.5, updatedAt: '2026-01-01T00:00:00Z' },
+        },
+      },
     });
 
-    const prefs = [{ key: 'language', value: 'en', confidence: null, updatedAt: '2026-06-01T00:00:00Z' }];
+    const prefs = [
+      { key: 'language', value: 'en', confidence: null, updatedAt: '2026-06-01T00:00:00Z' },
+    ];
     const result = await enrichL2Profile(ctx, 'tenant1', userId, namespace, prefs);
     expect(result.merged.language.value).toBe('de'); // null confidence loses
   });
@@ -447,7 +477,11 @@ describe('AK2 — enrichL1TenantMemory', () => {
     await ctx.call('object-store.put', {
       namespace: ns,
       key: 'fact:abc',
-      payload: { text: 'Netzbetreiber: TWL Netze', addedAt: '2026-01-01T00:00:00Z', source: 'dream-pipeline' },
+      payload: {
+        text: 'Netzbetreiber: TWL Netze',
+        addedAt: '2026-01-01T00:00:00Z',
+        source: 'dream-pipeline',
+      },
     });
     mockEmbeddings.mockResolvedValue([[1, 0, 0]]);
     const result = await enrichL1TenantMemory(ctx, 'tenant1', ['Netzbetreiber: TWL Netze']);
@@ -461,13 +495,17 @@ describe('AK2 — enrichL1TenantMemory', () => {
     await ctx.call('object-store.put', {
       namespace: ns,
       key: 'fact:existing',
-      payload: { text: 'Leistung: 500 kW', addedAt: '2026-01-01T00:00:00Z', source: 'dream-pipeline' },
+      payload: {
+        text: 'Leistung: 500 kW',
+        addedAt: '2026-01-01T00:00:00Z',
+        source: 'dream-pipeline',
+      },
     });
 
     // Existing embedding: [1, 0, 0]
     // New fact embedding (very similar): [0.999, 0.001, 0]
     mockEmbeddings
-      .mockResolvedValueOnce([[1, 0, 0]])        // existing facts batch
+      .mockResolvedValueOnce([[1, 0, 0]]) // existing facts batch
       .mockResolvedValueOnce([[0.999, 0.001, 0]]); // new fact
 
     const sim = computeCosineSimilarity([1, 0, 0], [0.999, 0.001, 0]);
@@ -485,13 +523,17 @@ describe('AK2 — enrichL1TenantMemory', () => {
     await ctx.call('object-store.put', {
       namespace: ns,
       key: 'fact:existing',
-      payload: { text: 'Leistung: 500 kW', addedAt: '2026-01-01T00:00:00Z', source: 'dream-pipeline' },
+      payload: {
+        text: 'Leistung: 500 kW',
+        addedAt: '2026-01-01T00:00:00Z',
+        source: 'dream-pipeline',
+      },
     });
 
     // Orthogonal vectors → cosine = 0
     mockEmbeddings
-      .mockResolvedValueOnce([[1, 0, 0]])   // existing
-      .mockResolvedValueOnce([[0, 1, 0]]);  // new (different)
+      .mockResolvedValueOnce([[1, 0, 0]]) // existing
+      .mockResolvedValueOnce([[0, 1, 0]]); // new (different)
 
     const result = await enrichL1TenantMemory(ctx, 'tenant1', ['Netzbetreiber: Bayernwerk']);
     expect(result.added).toBe(1);
@@ -516,9 +558,7 @@ describe('AK2 — enrichL1TenantMemory', () => {
   test('adds newly persisted vector for intra-batch dedup in same dream run', async () => {
     const ctx = makeCtx();
     mockCapabilities.mockReturnValue({ embeddings: true });
-    mockEmbeddings
-      .mockResolvedValueOnce([[1, 0, 0]])
-      .mockResolvedValueOnce([[0.999, 0.001, 0]]);
+    mockEmbeddings.mockResolvedValueOnce([[1, 0, 0]]).mockResolvedValueOnce([[0.999, 0.001, 0]]);
 
     const result = await enrichL1TenantMemory(ctx, 'tenant1', [
       'Fact A',
@@ -537,7 +577,10 @@ describe('AK2 — enrichL1TenantMemory', () => {
 describe('AK3 — appendAuditEntry', () => {
   test('writes entry with integrityHash', async () => {
     const ctx = makeCtx();
-    const { key, hash } = await appendAuditEntry(ctx, 'tenant1', { sessionId: 'sess1', l1FactsAdded: 2 });
+    const { key, hash } = await appendAuditEntry(ctx, 'tenant1', {
+      sessionId: 'sess1',
+      l1FactsAdded: 2,
+    });
     expect(key).toMatch(/^dream:/);
     expect(hash).toMatch(/^[a-f0-9]{64}$/);
   });
@@ -595,7 +638,14 @@ describe('runDreamPipeline', () => {
         ],
       },
     };
-    const result = await runDreamPipeline(ctx, 'sess1', 'tenant1', 'user1', 'personal_agent_user_profiles:tenant1', session);
+    const result = await runDreamPipeline(
+      ctx,
+      'sess1',
+      'tenant1',
+      'user1',
+      'personal_agent_user_profiles:tenant1',
+      session
+    );
     expect(result.success).toBe(true);
     expect(result.sessionId).toBe('sess1');
     expect(result.steps.extractFacts.ok).toBe(true);
@@ -615,14 +665,28 @@ describe('runDreamPipeline', () => {
         ],
       },
     };
-    const result = await runDreamPipeline(ctx, 'sess2', 'tenant1', 'user1', 'personal_agent_user_profiles:tenant1', session);
+    const result = await runDreamPipeline(
+      ctx,
+      'sess2',
+      'tenant1',
+      'user1',
+      'personal_agent_user_profiles:tenant1',
+      session
+    );
     expect(result.steps.extractFacts.tenantFactsCount).toBeGreaterThanOrEqual(1);
     expect(result.steps.extractFacts.preferencesCount).toBeGreaterThanOrEqual(1);
   });
 
   test('completes even when session has no history', async () => {
     const ctx = makeCtx();
-    const result = await runDreamPipeline(ctx, 'sess3', 'tenant1', 'user1', 'personal_agent_user_profiles:tenant1', {});
+    const result = await runDreamPipeline(
+      ctx,
+      'sess3',
+      'tenant1',
+      'user1',
+      'personal_agent_user_profiles:tenant1',
+      {}
+    );
     expect(result.success).toBe(true);
   });
 

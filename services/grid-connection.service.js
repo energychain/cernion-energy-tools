@@ -463,7 +463,14 @@ module.exports = {
             requestedCapacity: { type: 'number', min: 0, convert: true },
             firmCapacity: { type: 'number', min: 0, optional: true, convert: true },
             flexibleCapacity: { type: 'number', min: 0, optional: true, default: 0, convert: true },
-            curtailmentWindow: { type: 'number', min: 0, max: 24, optional: true, default: 0, convert: true },
+            curtailmentWindow: {
+              type: 'number',
+              min: 0,
+              max: 24,
+              optional: true,
+              default: 0,
+              convert: true,
+            },
             operatingConstraint: { type: 'string', optional: true },
             contractStatus: { type: 'string', optional: true },
             legalStatus: { type: 'string', optional: true },
@@ -472,7 +479,8 @@ module.exports = {
         },
         voltageLevel: { type: 'enum', values: ['NS', 'MS', 'HS'], optional: true, default: 'MS' },
         n1ThresholdOverride: {
-          type: 'object', optional: true,
+          type: 'object',
+          optional: true,
           props: {
             tenant: { type: 'number', optional: true, convert: true },
             project: { type: 'number', optional: true, convert: true },
@@ -512,13 +520,36 @@ module.exports = {
                   },
                   fnavProfile: {
                     type: 'object',
-                    example: { requestedCapacity: 5000, firmCapacity: 3000, flexibleCapacity: 2000, curtailmentWindow: 4, contractStatus: 'negotiating', legalStatus: 'pending' },
+                    example: {
+                      requestedCapacity: 5000,
+                      firmCapacity: 3000,
+                      flexibleCapacity: 2000,
+                      curtailmentWindow: 4,
+                      contractStatus: 'negotiating',
+                      legalStatus: 'pending',
+                    },
                     required: ['requestedCapacity'],
                     properties: {
-                      requestedCapacity: { type: 'number', example: 5000, description: 'Requested capacity in kW' },
-                      firmCapacity: { type: 'number', example: 3000, description: 'Guaranteed firm capacity in kW' },
-                      flexibleCapacity: { type: 'number', example: 2000, description: 'Curtailable §14a flex capacity in kW' },
-                      curtailmentWindow: { type: 'number', example: 4, description: 'Max curtailment hours per day (0–24)' },
+                      requestedCapacity: {
+                        type: 'number',
+                        example: 5000,
+                        description: 'Requested capacity in kW',
+                      },
+                      firmCapacity: {
+                        type: 'number',
+                        example: 3000,
+                        description: 'Guaranteed firm capacity in kW',
+                      },
+                      flexibleCapacity: {
+                        type: 'number',
+                        example: 2000,
+                        description: 'Curtailable §14a flex capacity in kW',
+                      },
+                      curtailmentWindow: {
+                        type: 'number',
+                        example: 4,
+                        description: 'Max curtailment hours per day (0–24)',
+                      },
                       operatingConstraint: { type: 'string', example: '§14a max 2h/event' },
                       contractStatus: { type: 'string', example: 'negotiating' },
                       legalStatus: { type: 'string', example: 'pending' },
@@ -563,15 +594,22 @@ module.exports = {
         },
         responses: {
           200: {
-            description: 'fNAV validation result with capacity model, N-1 check, and governance status',
+            description:
+              'fNAV validation result with capacity model, N-1 check, and governance status',
             content: {
               'application/json': {
                 schema: {
                   type: 'object',
                   properties: {
-                    capacityModel: { type: 'object', description: 'Normalised fNAV capacity model' },
+                    capacityModel: {
+                      type: 'object',
+                      description: 'Normalised fNAV capacity model',
+                    },
                     n1Check: { type: 'object', description: 'N-1 compliance result' },
-                    feasibility: { type: 'string', enum: ['feasible', 'conditional', 'copper_needed'] },
+                    feasibility: {
+                      type: 'string',
+                      enum: ['feasible', 'conditional', 'copper_needed'],
+                    },
                     governanceStatus: { type: 'string' },
                     governanceBlockers: { type: 'array', items: { type: 'string' } },
                     governanceArtifact: { type: 'object', nullable: true },
@@ -626,7 +664,10 @@ module.exports = {
         let governanceArtifact = result.governanceArtifact || null;
         if (originatedFromGateway && result.governanceStatus !== 'approved') {
           const artifactConfig = buildGovernanceArtifactConfig(result.governanceBlockers || []);
-          const operatorKey = (gridOperatorId || gridOperatorName || gridOperatorBdew || 'unknown').toString().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+          const operatorKey = (gridOperatorId || gridOperatorName || gridOperatorBdew || 'unknown')
+            .toString()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '_');
           const placeholderGapKey = `phase5_fnav_governance_${operatorKey}_${(voltageLevel || 'MS').toLowerCase()}_${Math.round(result.capacityModel?.requestedCapacityKW || fnavProfile.requestedCapacity || 0)}`;
 
           try {

@@ -681,7 +681,11 @@ module.exports = {
           ...(bilanzkreis.featureFlags || {}),
           ...ctx.params.flags,
         };
-        const updated = { ...bilanzkreis, featureFlags: updatedFlags, updatedAt: new Date().toISOString() };
+        const updated = {
+          ...bilanzkreis,
+          featureFlags: updatedFlags,
+          updatedAt: new Date().toISOString(),
+        };
         await this.putStoredObject(ctx, NS_BILANZKREISE, ctx.params.id, updated);
         return { success: true, id: ctx.params.id, flags: updatedFlags };
       },

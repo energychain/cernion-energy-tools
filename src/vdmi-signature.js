@@ -102,9 +102,7 @@ class VDMISignature {
         totalRequired: doc.requiredSigners.length,
         signedCount: Object.keys(doc.signatures).length,
         signedBy: Object.keys(doc.signatures),
-        missingSigners: doc.requiredSigners.filter(
-          email => !doc.signatures[email]
-        ),
+        missingSigners: doc.requiredSigners.filter((email) => !doc.signatures[email]),
         expiresAt: doc.expiresAt,
         isExpired: new Date(doc.expiresAt) < new Date(),
         signatures: Object.entries(doc.signatures).map(([email, sig]) => ({
@@ -125,10 +123,7 @@ class VDMISignature {
    * @private
    */
   _hashSignature(signatureData) {
-    return crypto
-      .createHash('sha256')
-      .update(Buffer.from(signatureData, 'base64'))
-      .digest('hex');
+    return crypto.createHash('sha256').update(Buffer.from(signatureData, 'base64')).digest('hex');
   }
 }
 

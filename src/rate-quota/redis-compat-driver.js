@@ -6,7 +6,8 @@ class RedisCompatRateQuotaDriver extends FileRateQuotaDriver {
   constructor(options = {}) {
     super(options);
     this.redisUrl = options.redisUrl || process.env.RATE_QUOTA_REDIS_URL || null;
-    this.keyPrefix = options.keyPrefix || process.env.RATE_QUOTA_REDIS_PREFIX || 'cernion:rate-quotas';
+    this.keyPrefix =
+      options.keyPrefix || process.env.RATE_QUOTA_REDIS_PREFIX || 'cernion:rate-quotas';
   }
 
   getInfo() {

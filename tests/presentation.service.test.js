@@ -112,7 +112,9 @@ describe('presentation.service', () => {
     ]);
     expect(result.markdown).toMatch(/Beschreibung des Schrittes/);
     expect(result.markdown).toMatch(/DSO_GATEKEEPER/);
-    expect(result.presentation.warnings).not.toContain('vdmi_matrix_table_renderer_not_implemented_yet');
+    expect(result.presentation.warnings).not.toContain(
+      'vdmi_matrix_table_renderer_not_implemented_yet'
+    );
   });
 
   // --------------------------------------------------------------------------
@@ -205,7 +207,9 @@ describe('presentation.service', () => {
 
     expect(result.success).toBe(true);
     expect(result.presentation.type).toBe('evidence_gap_table');
-    expect(result.presentation.warnings).toContain('evidence_gap_table_renderer_not_implemented_yet');
+    expect(result.presentation.warnings).toContain(
+      'evidence_gap_table_renderer_not_implemented_yet'
+    );
     expect(result.presentation.tables).toHaveLength(1);
     expect(result.presentation.tables[0].headers).toEqual(['Evidenzlücke', 'Grund']);
     expect(result.markdown).toMatch(/Evidenzlücke/);
@@ -266,9 +270,7 @@ describe('presentation.service', () => {
     const result = await broker.call('presentation.render', {
       domainResult: {
         expectedStatus: 'decision_blocked_pending_formal_request',
-        nextActions: [
-          { id: 'act-2', type: 'review' },
-        ],
+        nextActions: [{ id: 'act-2', type: 'review' }],
       },
     });
 
@@ -339,10 +341,7 @@ describe('presentation.service', () => {
           tasks: [
             {
               taskName: 'Akteursformat-Test',
-              verantwortlich: [
-                { displayName: 'Areal Owner' },
-                { actorId: 'DSO_GATEKEEPER' },
-              ],
+              verantwortlich: [{ displayName: 'Areal Owner' }, { actorId: 'DSO_GATEKEEPER' }],
               durchfuehrend: [],
               mitwirkend: [{ id: 'M-1' }],
               information: [{ name: 'Regulator' }],
@@ -418,7 +417,11 @@ describe('presentation.service', () => {
   });
 
   test('VDMI deduplicates identical evidence gaps from task and process level', async () => {
-    const duplicateGap = { id: 'formal-request', label: 'Vollständiger §17-Antrag', reason: 'Fehlt' };
+    const duplicateGap = {
+      id: 'formal-request',
+      label: 'Vollständiger §17-Antrag',
+      reason: 'Fehlt',
+    };
     const result = await broker.call('presentation.render', {
       domainResult: {
         matrix: {
@@ -464,7 +467,8 @@ describe('presentation.service', () => {
     });
 
     expect(result.success).toBe(true);
-    const matches = result.markdown.match(/Keine belastbare Anschlusszusage ohne formalen Antrag/g) || [];
+    const matches =
+      result.markdown.match(/Keine belastbare Anschlusszusage ohne formalen Antrag/g) || [];
     expect(matches).toHaveLength(1);
   });
 
@@ -560,15 +564,15 @@ describe('presentation.service', () => {
 
     expect(result.success).toBe(true);
     expect(result.presentation.type).toBe('vdmi_matrix_table');
-    expect(result.presentation.warnings).not.toContain('vdmi_matrix_table_renderer_not_implemented_yet');
+    expect(result.presentation.warnings).not.toContain(
+      'vdmi_matrix_table_renderer_not_implemented_yet'
+    );
   });
 
   // --------------------------------------------------------------------------
   // Additional guard: domainResult is required
   // --------------------------------------------------------------------------
   test('rejects call when domainResult is absent', async () => {
-    await expect(
-      broker.call('presentation.render', {})
-    ).rejects.toThrow();
+    await expect(broker.call('presentation.render', {})).rejects.toThrow();
   });
 });

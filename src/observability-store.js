@@ -8,7 +8,10 @@ PouchDB.plugin(require('pouchdb-find'));
 const { scrubPromptText } = require('./prompt-scrubber');
 
 const DEFAULT_DB_PATH = process.env.OBSERVABILITY_DB_PATH || './data/observability';
-const DEFAULT_LOG_RETENTION_DAYS = parsePositiveInt(process.env.OBSERVABILITY_LOG_RETENTION_DAYS, 14);
+const DEFAULT_LOG_RETENTION_DAYS = parsePositiveInt(
+  process.env.OBSERVABILITY_LOG_RETENTION_DAYS,
+  14
+);
 const DEFAULT_METRIC_RETENTION_DAYS = parsePositiveInt(
   process.env.OBSERVABILITY_METRIC_RETENTION_DAYS,
   30
@@ -44,7 +47,9 @@ function configure(options = {}) {
   state.config = {
     ...state.config,
     ...Object.fromEntries(
-      Object.entries(options).filter(([, value]) => value !== undefined && value !== null && value !== '')
+      Object.entries(options).filter(
+        ([, value]) => value !== undefined && value !== null && value !== ''
+      )
     ),
   };
   return getConfig();
@@ -118,7 +123,10 @@ function sanitizeMessage(message) {
   let cleaned = scrubPromptText(String(message || ''));
   cleaned = cleaned.replace(/(Bearer\s+)[A-Za-z0-9._~+/=-]+/gi, '$1[REDACTED]');
   cleaned = cleaned.replace(/\bck_[A-Za-z0-9_-]{8,}\b/g, 'ck_[REDACTED]');
-  cleaned = cleaned.replace(/([?&](?:token|api[_-]?key|secret|password)=)[^&\s]+/gi, '$1[REDACTED]');
+  cleaned = cleaned.replace(
+    /([?&](?:token|api[_-]?key|secret|password)=)[^&\s]+/gi,
+    '$1[REDACTED]'
+  );
 
   if (cleaned.length > state.config.maxLogMessageLength) {
     return `${cleaned.slice(0, state.config.maxLogMessageLength)}…[truncated]`;
@@ -217,9 +225,17 @@ async function listLogs(filters = {}) {
   const db = await init();
   const limit = clampLimit(filters.limit, 50, 1, 500);
   const docs = await findDocs(db, 'log', filters, limit * 5);
-  const contains = String(filters.contains || '').trim().toLowerCase();
+  const contains = String(filters.contains || '')
+    .trim()
+    .toLowerCase();
   return docs
-    .filter((doc) => !contains || String(doc.message || '').toLowerCase().includes(contains))
+    .filter(
+      (doc) =>
+        !contains ||
+        String(doc.message || '')
+          .toLowerCase()
+          .includes(contains)
+    )
     .sort(sortDescByTimestamp)
     .slice(0, limit)
     .map(toPublicDoc);
@@ -244,7 +260,8 @@ async function findDocs(db, docType, filters, limit) {
   if (filters.service) selector.service = String(filters.service);
   if (filters.action) selector.action = String(filters.action);
   if (docType === 'log' && filters.level) selector.level = String(filters.level).toLowerCase();
-  if (docType === 'metric' && filters.status) selector.status = String(filters.status).toLowerCase();
+  if (docType === 'metric' && filters.status)
+    selector.status = String(filters.status).toLowerCase();
 
   const range = buildTimestampSelector(filters.since, filters.until, filters.sinceMinutes);
   if (range) selector.timestamp = range;

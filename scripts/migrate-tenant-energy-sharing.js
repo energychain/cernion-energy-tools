@@ -32,18 +32,24 @@ PouchDB.plugin(require('pouchdb-find'));
 const args = process.argv.slice(2);
 const tenantArg = args.find((a) => a.startsWith('--tenant=') || a === '--tenant');
 const tenantId = tenantArg
-  ? (tenantArg.includes('=') ? tenantArg.split('=')[1] : args[args.indexOf('--tenant') + 1])
+  ? tenantArg.includes('=')
+    ? tenantArg.split('=')[1]
+    : args[args.indexOf('--tenant') + 1]
   : null;
 const dryRun = args.includes('--dry-run');
 
 if (!tenantId || !/^[a-z0-9-]{1,64}$/.test(tenantId)) {
-  console.error('Usage: node scripts/migrate-tenant-energy-sharing.js --tenant <tenantId> [--dry-run]');
+  console.error(
+    'Usage: node scripts/migrate-tenant-energy-sharing.js --tenant <tenantId> [--dry-run]'
+  );
   console.error('tenantId must match /^[a-z0-9-]{1,64}$/');
   process.exit(1);
 }
 
-const ES_DB_PATH = process.env.ENERGY_SHARING_DB_PATH || path.join(__dirname, '../data/energy-sharing');
-const ALLOC_DB_PATH = process.env.ALLOCATION_ENGINE_DB_PATH || path.join(__dirname, '../data/allocation-engine');
+const ES_DB_PATH =
+  process.env.ENERGY_SHARING_DB_PATH || path.join(__dirname, '../data/energy-sharing');
+const ALLOC_DB_PATH =
+  process.env.ALLOCATION_ENGINE_DB_PATH || path.join(__dirname, '../data/allocation-engine');
 const MANIFEST_DIR = path.join(__dirname, '../data/migrations');
 
 // ---------------------------------------------------------------------------
@@ -156,16 +162,17 @@ async function main() {
 
   if (!dryRun) {
     if (!fs.existsSync(MANIFEST_DIR)) fs.mkdirSync(MANIFEST_DIR, { recursive: true });
-    const manifestPath = path.join(
-      MANIFEST_DIR,
-      `migrate-tenant-${tenantId}-${Date.now()}.json`
-    );
+    const manifestPath = path.join(MANIFEST_DIR, `migrate-tenant-${tenantId}-${Date.now()}.json`);
     fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2), 'utf8');
     console.log(`[migrate-tenant-energy-sharing] Manifest written: ${manifestPath}`);
   }
 
-  console.log(`[migrate-tenant-energy-sharing] energy-sharing: migrated=${esResult.migrated} skipped=${esResult.skipped} errors=${esResult.errors.length}`);
-  console.log(`[migrate-tenant-energy-sharing] allocation:      migrated=${allocResult.migrated} skipped=${allocResult.skipped} errors=${allocResult.errors.length}`);
+  console.log(
+    `[migrate-tenant-energy-sharing] energy-sharing: migrated=${esResult.migrated} skipped=${esResult.skipped} errors=${esResult.errors.length}`
+  );
+  console.log(
+    `[migrate-tenant-energy-sharing] allocation:      migrated=${allocResult.migrated} skipped=${allocResult.skipped} errors=${allocResult.errors.length}`
+  );
 
   const totalErrors = esResult.errors.length + allocResult.errors.length;
   if (totalErrors > 0) {
@@ -175,7 +182,9 @@ async function main() {
   }
 
   if (dryRun) {
-    console.log('[migrate-tenant-energy-sharing] DRY RUN — no changes written. Re-run without --dry-run to apply.');
+    console.log(
+      '[migrate-tenant-energy-sharing] DRY RUN — no changes written. Re-run without --dry-run to apply.'
+    );
   } else {
     console.log('[migrate-tenant-energy-sharing] Migration complete.');
   }

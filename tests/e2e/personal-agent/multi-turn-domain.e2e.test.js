@@ -1,5 +1,7 @@
 /* eslint-disable no-console */
 
+const { spawnSync } = require('child_process');
+
 const RUN_E2E = process.env.RUN_PERSONAL_AGENT_E2E === 'true';
 const RUN_VDMI_STEP3_E2E = process.env.RUN_PERSONAL_AGENT_E2E_VDMI_STEP3 === 'true';
 const BASE_URL = process.env.PERSONAL_AGENT_E2E_BASE_URL || 'http://127.0.0.1:3900';
@@ -15,7 +17,10 @@ const DEFAULT_CHAT_OPTIONS = Object.freeze({
 
 const JOURNALIST_ROUTING_TOKENS = ['interface_placeholder', 'mark_unknown_execution_gap'];
 const BENCHMARK_ROUTING_TOKENS = ['vnb_kpi_benchmark_comparison'];
-const VORSTAND_ROUTING_TOKENS = ['netzfahrplan_fnav_assessment', 'assess_fnav_as_kupferalternative'];
+const VORSTAND_ROUTING_TOKENS = [
+  'netzfahrplan_fnav_assessment',
+  'assess_fnav_as_kupferalternative',
+];
 
 const BENCHMARK_KNOWN_CONTEXT = Object.freeze({
   vnb1Name: 'Stadtwerke Troisdorf',
@@ -28,6 +33,25 @@ const VORSTAND_KNOWN_CONTEXT = Object.freeze({
   gridOperatorName: 'TWL Netze',
   ownerContact: 'netzplanung@twl.de',
 });
+
+function checkServerAvailableSync(baseUrl) {
+  try {
+    const normalizedBaseUrl = String(baseUrl || '').replace(/'/g, "\\'");
+    const script = [
+      "const http = require('http');",
+      `const url = new URL('${normalizedBaseUrl}/api/personal-agent/chat');`,
+      "const req = http.request({ hostname: url.hostname, port: url.port || 80, path: url.pathname, method: 'POST' }, (res) => { res.resume(); res.on('end', () => process.exit(0)); });",
+      "req.on('error', () => process.exit(1));",
+      "req.setTimeout(1500, () => { req.destroy(); process.exit(1); });",
+      'req.end();',
+    ].join('\n');
+
+    const result = spawnSync(process.execPath, ['-e', script], { stdio: 'ignore' });
+    return result.status === 0;
+  } catch (_error) {
+    return false;
+  }
+}
 
 function getSetCookieValues(headers) {
   if (typeof headers.getSetCookie === 'function') {
@@ -117,7 +141,9 @@ function expectNoInternalErrorCodes(reply) {
 }
 
 function expectNoReplyLeaks(reply) {
-  expect(reply).not.toMatch(/operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED|Parameters validation error/i);
+  expect(reply).not.toMatch(
+    /operatorEvidence|interface_placeholder|interface-placeholder|__step_|ACTION_FAILED|Parameters validation error/i
+  );
 }
 
 function expectMentions(reply, words) {
@@ -273,8 +299,9 @@ function createChatClient(baseUrl) {
   };
 }
 
-const describeE2E = RUN_E2E ? describe : describe.skip;
-const describeVdmiStep3E2E = RUN_E2E && RUN_VDMI_STEP3_E2E ? describe : describe.skip;
+const serverAvailable = RUN_E2E ? checkServerAvailableSync(BASE_URL) : false;
+const describeE2E = RUN_E2E && serverAvailable ? describe : describe.skip;
+const describeVdmiStep3E2E = RUN_E2E && RUN_VDMI_STEP3_E2E && serverAvailable ? describe : describe.skip;
 
 describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
   describe('PA-MT-001 Journalist CYA-Fallback', () => {
@@ -309,7 +336,6 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       expect(reply.length).toBeGreaterThan(20);
       expectMentions(reply, ['stand', 'einschaetzung', 'quelle', 'beleg', 'unsicher']);
       expectNoInternalErrorCodes(reply);
-
     });
 
     it('Turn 2: Unsicherheiten klar markieren', async () => {
@@ -522,7 +548,6 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       expect(reply.length).toBeGreaterThan(20);
       expectMentions(reply, ['stand', 'prozess', 'status']);
       expectNoInternalErrorCodes(reply);
-
     });
 
     it('Turn 2: N-1 Reserve aus Kontext erklären', async () => {
@@ -645,15 +670,11 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
     });
 
     it('Turn 2: captures onboarding answer and continues without technical error leakage', async () => {
-      const { response, payload } = await client.chat(
-        'Projekt-ID znp-rheinallee-01',
-        sessionId,
-        {
-          knownContext: {
-            communityName: 'Solargemeinschaft Rheinallee',
-          },
-        }
-      );
+      const { response, payload } = await client.chat('Projekt-ID znp-rheinallee-01', sessionId, {
+        knownContext: {
+          communityName: 'Solargemeinschaft Rheinallee',
+        },
+      });
 
       expectHttp200(response);
       expect(payload && typeof payload).toBe('object');
@@ -711,7 +732,9 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       const reply = extractReply(payload);
       expect(reply.length).toBeGreaterThan(20);
       expect(reply).toMatch(/Working Assumption|vorläufig|weiterarbeiten|Methodik|Evidenzpunkte/i);
-      expect(reply).not.toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
+      expect(reply).not.toContain(
+        'Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.'
+      );
       expectNoInternalErrorCodes(reply);
       expectNoReplyLeaks(reply);
     });
@@ -729,7 +752,9 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
 
       const reply = extractReply(payload);
       expect(reply).toMatch(/Methodik|Datenquelle|ENTSO-E|Netztransparenz/i);
-      expect(reply).not.toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
+      expect(reply).not.toContain(
+        'Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.'
+      );
       expectNoInternalErrorCodes(reply);
       expectNoReplyLeaks(reply);
     });
@@ -747,7 +772,9 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
 
       const reply = extractReply(payload);
       expect(reply).toMatch(/Risk Assessment|Condition Precedent|Due Diligence|Risikoampel/i);
-      expect(reply).not.toContain('Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.');
+      expect(reply).not.toContain(
+        'Ich kann die Zuständigkeit für den Standort Frankenthal noch nicht belastbar bestätigen.'
+      );
       expectNoInternalErrorCodes(reply);
       expectNoReplyLeaks(reply);
     });
@@ -780,7 +807,9 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       expect(payload.presentationType).toBe('conversational_onboarding');
 
       const reply = extractReply(payload);
-      expect(reply).toMatch(/Due Diligence|Evidenz|Netzanschlusszusage|BDEW|Marktlokation|fehlende Angaben/i);
+      expect(reply).toMatch(
+        /Due Diligence|Evidenz|Netzanschlusszusage|BDEW|Marktlokation|fehlende Angaben/i
+      );
       expectNoInternalErrorCodes(reply);
       expectNoReplyLeaks(reply);
     });
@@ -822,7 +851,9 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       expect(payload.presentationType).toBe('vdmi_matrix_table');
 
       const reply = extractReply(payload);
-      expect(reply).toMatch(/BKZ-Bescheid|Netzanschlusszusage|Verantwortlich|Durchführend|Mitwirkend|Informiert/i);
+      expect(reply).toMatch(
+        /BKZ-Bescheid|Netzanschlusszusage|Verantwortlich|Durchführend|Mitwirkend|Informiert/i
+      );
       expectNoInternalErrorCodes(reply);
       expectNoReplyLeaks(reply);
     });
@@ -843,7 +874,9 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       expect(payload.presentationType).toBe('decision_brief');
 
       const reply = extractReply(payload);
-      expect(reply).toMatch(/Entscheidungsstatus|Condition Precedent|Nächste Schritte|Kreditausschuss|BKZ/i);
+      expect(reply).toMatch(
+        /Entscheidungsstatus|Condition Precedent|Nächste Schritte|Kreditausschuss|BKZ/i
+      );
       expectNoInternalErrorCodes(reply);
       expectNoReplyLeaks(reply);
     });
@@ -900,7 +933,9 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       expect(dossierPayload.forbiddenAssumptions.length).toBeGreaterThan(0);
 
       const reply = extractReply(payload);
-      expect(reply).not.toMatch(/belastbare\s+anschluss-?\/?kapazit[aä]tszusage|anschlusszusage|kapazit[aä]tszusage/i);
+      expect(reply).not.toMatch(
+        /belastbare\s+anschluss-?\/?kapazit[aä]tszusage|anschlusszusage|kapazit[aä]tszusage/i
+      );
       expectNoInternalErrorCodes(reply);
       expectNoReplyLeaks(reply);
     });
@@ -957,7 +992,9 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       expect(dossierPayload.forbiddenAssumptions.length).toBeGreaterThan(0);
 
       const reply = extractReply(payload);
-      expect(reply).not.toMatch(/belastbare\s+anschluss-?\/?kapazit[aä]tszusage|anschlusszusage|kapazit[aä]tszusage/i);
+      expect(reply).not.toMatch(
+        /belastbare\s+anschluss-?\/?kapazit[aä]tszusage|anschlusszusage|kapazit[aä]tszusage/i
+      );
       expectNoInternalErrorCodes(reply);
       expectNoReplyLeaks(reply);
     });
@@ -982,7 +1019,11 @@ describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
       sessionId = null;
       client.clear();
       if (uploadDir) {
-        try { fs.rmSync(uploadDir, { recursive: true, force: true }); } catch { /* ok */ }
+        try {
+          fs.rmSync(uploadDir, { recursive: true, force: true });
+        } catch {
+          /* ok */
+        }
       }
     });
 

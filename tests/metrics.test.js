@@ -27,7 +27,11 @@ describe('metrics export', () => {
     });
     metrics.recordAsyncLeaseMiss('expired');
     metrics.recordAsyncWakeup('queued');
-    metrics.recordAsyncAlarm({ status: 'open', code: 'LEASE_MISSES_EXCEEDED', severity: 'critical' });
+    metrics.recordAsyncAlarm({
+      status: 'open',
+      code: 'LEASE_MISSES_EXCEEDED',
+      severity: 'critical',
+    });
 
     const output = await metrics.renderMetrics();
 

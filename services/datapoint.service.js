@@ -96,7 +96,8 @@ module.exports = {
                   name: { type: 'string', example: 'fa-derived-20260504-a1b2c3d4' },
                   value: {
                     type: 'object',
-                    description: 'Arbitrary derived value payload to persist as metadata datapoint.',
+                    description:
+                      'Arbitrary derived value payload to persist as metadata datapoint.',
                     example: {
                       status: 'ok',
                       confidence: 78,

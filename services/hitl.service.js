@@ -18,13 +18,17 @@ function nowIso() {
 }
 
 function normalizeStatus(status) {
-  const value = String(status || '').trim().toLowerCase();
+  const value = String(status || '')
+    .trim()
+    .toLowerCase();
   if (!value) return 'pending';
   return value;
 }
 
 function normalizeValue(value) {
-  return String(value || '').trim().toLowerCase();
+  return String(value || '')
+    .trim()
+    .toLowerCase();
 }
 
 function toBucketKey(date) {
@@ -834,7 +838,11 @@ module.exports = {
           }).length,
           pendingOpen: items.filter((item) => {
             const createdMs = Date.parse(item.createdAt || '');
-            return !Number.isNaN(createdMs) && createdMs <= bucketEndMs && normalizeStatus(item.status) === 'pending';
+            return (
+              !Number.isNaN(createdMs) &&
+              createdMs <= bucketEndMs &&
+              normalizeStatus(item.status) === 'pending'
+            );
           }).length,
           overdueOpen: items.filter((item) => {
             const createdMs = Date.parse(item.createdAt || '');
