@@ -1,0 +1,533 @@
+'use strict';
+
+/**
+ * T-EV-001: evidence-planner unit tests (Phase 1 – annotation only)
+ * T-EV-002: buildExecutionPlan attaches evidencePlan sidecar for known routes
+ * T-EV-003: Personal Agent response includes evidencePlan field
+ * T-EV-004: Phase 2 synthesis gate logic
+ * T-EV-005: Phase 3 generic fallback for unregistered routes
+ * T-EV-006: Phase 4 routing-matrix shortcuts — registry entries for all ROUTING_MATRIX keys
+ * T-EV-007: Phase 5 semantic forecast evidence detection for near-term Redispatch probability
+ */
+
+const {
+  planEvidence,
+  isSourceSatisfied,
+  computeConfidence,
+  shouldBlockSynthesisOnGaps,
+  buildEvidenceGapPresentation,
+} = require('../src/evidence-planner');
+const { buildExecutionPlan } = require('../src/personal-agent-routing');
+const { listRegisteredKeys } = require('../src/evidence-registry');
+
+// ── T-EV-001 ─────────────────────────────────────────────────────────────────
+describe('T-EV-001 — evidence-planner: planEvidence() pure-function contract', () => {
+  it('returns null for an unknown route key', () => {
+    const plan = { routeKey: 'unknown-route-xyz', primaryIntent: 'some_intent' };
+    expect(planEvidence(plan, {})).toBeNull();
+  });
+
+  it('returns null when plan is null or missing key', () => {
+    expect(planEvidence(null, {})).toBeNull();
+    expect(planEvidence({}, {})).toBeNull();
+  });
+
+  it('returns a valid evidencePlan for residual_load_forecast_for_dso with no context', () => {
+    const plan = {
+      routeKey: null,
+      routeLabel: 'residual_load_forecast_for_dso',
+      primaryIntent: 'residual_load_forecast_for_dso',
+    };
+    const result = planEvidence(plan, {});
+
+    expect(result).not.toBeNull();
+    expect(result.registryKey).toBe('residual_load_forecast_for_dso');
+    expect(Array.isArray(result.requiredSources)).toBe(true);
+    expect(result.requiredSources.length).toBeGreaterThan(0);
+    expect(Array.isArray(result.checkedSources)).toBe(true);
+    expect(Array.isArray(result.gaps)).toBe(true);
+    expect(typeof result.confidence).toBe('number');
+    expect(result.phaseNote).toBe('evidence-plan-phase1-annotation-only');
+  });
+
+  it('marks vnb_identity as gap when knownContext has no VNB keys', () => {
+    const plan = { routeLabel: 'residual_load_forecast_for_dso' };
+    const result = planEvidence(plan, {});
+    const gapIds = result.gaps.map((g) => g.id);
+    expect(gapIds).toContain('vnb_identity');
+  });
+
+  it('marks vnb_identity as checked when gridOperatorId is present in context', () => {
+    const plan = { routeLabel: 'residual_load_forecast_for_dso' };
+    const result = planEvidence(plan, { gridOperatorId: 'SNB123' });
+    expect(result.checkedSources).toContain('vnb_identity');
+    const gapIds = result.gaps.map((g) => g.id);
+    expect(gapIds).not.toContain('vnb_identity');
+  });
+
+  it('confidence is 0.0 when no required sources are satisfied', () => {
+    const plan = { routeLabel: 'residual_load_forecast_for_dso' };
+    const result = planEvidence(plan, {});
+    expect(result.confidence).toBe(0.0);
+  });
+
+  it('confidence is 1.0 when all required sources are satisfied', () => {
+    const plan = { routeLabel: 'residual_load_forecast_for_dso' };
+    // vnb_identity is the only required source; satisfying it gives full confidence
+    const result = planEvidence(plan, { gridOperatorId: 'SNB999' });
+    expect(result.confidence).toBeGreaterThanOrEqual(1.0);
+  });
+
+  it('isSourceSatisfied returns false when contextKeys is empty', () => {
+    expect(isSourceSatisfied({ contextKeys: [] }, { foo: 'bar' })).toBe(false);
+  });
+
+  it('isSourceSatisfied returns false for null/empty values', () => {
+    expect(isSourceSatisfied({ contextKeys: ['gridOperatorId'] }, { gridOperatorId: null })).toBe(
+      false
+    );
+    expect(isSourceSatisfied({ contextKeys: ['gridOperatorId'] }, { gridOperatorId: '' })).toBe(
+      false
+    );
+  });
+
+  it('computeConfidence returns 1.0 when no sources defined', () => {
+    expect(computeConfidence([], new Set())).toBe(1.0);
+  });
+});
+
+// ── T-EV-002 ─────────────────────────────────────────────────────────────────
+describe('T-EV-002 — buildExecutionPlan attaches evidencePlan sidecar', () => {
+  it('attaches evidencePlan for residual_load_forecast_for_dso via capability-broker path', () => {
+    const plan = buildExecutionPlan({
+      message: 'Residuallast für Stadtwerke Heidelberg berechnen',
+      brokerRecommendation: {
+        recommendedCapabilities: [{ capability: 'residual_load_forecast_for_dso', confidence: 0.9 }],
+      },
+      knownContext: {},
+    });
+
+    expect(plan).toHaveProperty('evidencePlan');
+    expect(plan.evidencePlan).not.toBeNull();
+    expect(plan.evidencePlan.registryKey).toBe('residual_load_forecast_for_dso');
+    expect(plan.evidencePlan.phaseNote).toBe('evidence-plan-phase1-annotation-only');
+  });
+
+  it('evidencePlan shows gap for vnb_identity when knownContext is empty', () => {
+    const plan = buildExecutionPlan({
+      message: 'Residuallast für VNB berechnen',
+      brokerRecommendation: {
+        recommendedCapabilities: [{ capability: 'residual_load_forecast_for_dso', confidence: 0.9 }],
+      },
+      knownContext: {},
+    });
+
+    const gapIds = plan.evidencePlan.gaps.map((g) => g.id);
+    expect(gapIds).toContain('vnb_identity');
+  });
+
+  it('evidencePlan uses generic fallback for unknown/unregistered capability (Phase 3)', () => {
+    const plan = buildExecutionPlan({
+      message: 'Irgendwas unbekanntes',
+      brokerRecommendation: null,
+      knownContext: {},
+    });
+
+    // Phase 3: unknown routes now get a generic coverage plan (not null)
+    expect(plan).toHaveProperty('evidencePlan');
+    // Generic plan can be null if no steps are present, but should not be undefined
+    if (plan.evidencePlan !== null) {
+      expect(plan.evidencePlan.source).toBe('generic');
+    }
+  });
+
+  it('does not block execution — plan.status is still ready/partial after evidencePlan annotation', () => {
+    const plan = buildExecutionPlan({
+      message: 'Residuallast für Stadtwerke berechnen',
+      brokerRecommendation: {
+        recommendedCapabilities: [{ capability: 'residual_load_forecast_for_dso', confidence: 0.9 }],
+      },
+      knownContext: {},
+    });
+
+    expect(['ready', 'partial']).toContain(plan.status);
+  });
+});
+
+// ── T-EV-004 ─────────────────────────────────────────────────────────────────
+describe('T-EV-004 — Phase 2 synthesis gate: shouldBlockSynthesisOnGaps()', () => {
+  const { shouldBlockSynthesisOnGaps, buildEvidenceGapPresentation } = require('../src/evidence-planner');
+
+  it('returns false when evidencePlan is null', () => {
+    expect(shouldBlockSynthesisOnGaps(null)).toBe(false);
+  });
+
+  it('returns false when confidence is high (≥0.8)', () => {
+    const ep = {
+      confidence: 0.9,
+      gaps: [],
+      checkedSources: ['vnb_identity'],
+      requiredSources: [],
+    };
+    expect(shouldBlockSynthesisOnGaps(ep)).toBe(false);
+  });
+
+  it('returns true when vnb_identity is in gaps (critical source missing)', () => {
+    const ep = {
+      confidence: 0.0,
+      gaps: [
+        {
+          id: 'vnb_identity',
+          label: 'VNB-Identität',
+          resolvedBy: ['grid-operations.marketPartners'],
+        },
+      ],
+      checkedSources: [],
+      requiredSources: [],
+    };
+    expect(shouldBlockSynthesisOnGaps(ep)).toBe(true);
+  });
+
+  it('returns true when asset_profile is missing', () => {
+    const ep = {
+      confidence: 0.4,
+      gaps: [
+        {
+          id: 'asset_profile',
+          label: 'Asset-Profil',
+          resolvedBy: ['finance-agent.analyze'],
+        },
+      ],
+      checkedSources: ['netzanschlusszusage'],
+      requiredSources: [],
+    };
+    expect(shouldBlockSynthesisOnGaps(ep)).toBe(true);
+  });
+
+  it('returns true when confidence is 0.0 (no sources satisfied)', () => {
+    const ep = {
+      confidence: 0.0,
+      gaps: [
+        {
+          id: 'some_other_gap',
+          label: 'Other Gap',
+          resolvedBy: [],
+        },
+      ],
+      checkedSources: [],
+      requiredSources: [],
+    };
+    expect(shouldBlockSynthesisOnGaps(ep)).toBe(true);
+  });
+
+  it('returns false when optional sources are missing but required are satisfied', () => {
+    const ep = {
+      confidence: 0.5,
+      gaps: [
+        {
+          id: 'co2_intensity',
+          label: 'CO₂-Intensität',
+          resolvedBy: ['energy-market.co2Intensity'],
+        },
+      ],
+      checkedSources: ['vnb_identity'],
+      requiredSources: [{ id: 'vnb_identity', optional: false }],
+    };
+    expect(shouldBlockSynthesisOnGaps(ep)).toBe(false);
+  });
+
+  it('buildEvidenceGapPresentation returns structured payload from evidencePlan', () => {
+    const ep = {
+      registryKey: 'residual_load_forecast_for_dso',
+      requiredSources: [
+        { id: 'vnb_identity', label: 'VNB-Identität', optional: false },
+        { id: 'forecast_horizon', label: 'Forecast-Horizont', optional: true },
+      ],
+      checkedSources: [],
+      gaps: [{ id: 'vnb_identity', label: 'VNB-Identität', resolvedBy: ['grid-operations.marketPartners'] }],
+      confidence: 0.0,
+    };
+
+    const result = buildEvidenceGapPresentation(ep);
+    expect(result.confidence).toBe(0.0);
+    expect(result.evidenceGaps).toHaveLength(1);
+    expect(result.evidenceGaps[0].id).toBe('vnb_identity');
+    expect(result.requiredSources).toHaveLength(1); // only required (not optional)
+    expect(result.phaseNote).toBe('evidence-plan-phase2-synthesis-gate');
+  });
+});
+
+// ── T-EV-005 — Phase 3: Generic tool-coverage fallback ─────────────────────
+describe('T-EV-005 — evidence-planner: Phase 3 generic fallback for unregistered routes', () => {
+  it('falls back to generic coverage when route is not in Evidence Registry', () => {
+    const plan = {
+      routeLabel: 'unknown-capability-xyz',
+      steps: [
+        { action: 'grid-operations.marketPartners', paramsTemplate: { gridOperatorId: null } },
+      ],
+    };
+    const context = {};
+    const result = planEvidence(plan, context);
+
+    // Phase 3: should not return null anymore, should have generic plan
+    expect(result).not.toBeNull();
+    expect(result.source).toBe('generic');
+    expect(result.phaseNote).toContain('Phase 3');
+  });
+
+  it('generic coverage analyzes plan.steps to infer missing params', () => {
+    const plan = {
+      routeLabel: 'custom-route-no-registry',
+      steps: [
+        // Use an action with a paramsTemplate but not in the actionOutputMap
+        { action: 'unknown-action-xyz', paramsTemplate: { gridOperatorId: null, customParam: null } },
+      ],
+    };
+    const context = {}; // no context values for these params
+    const result = planEvidence(plan, context);
+
+    expect(result).not.toBeNull();
+    expect(result.source).toBe('generic');
+    // Generic plan should have gaps for the missing params
+    expect(result.gaps.length).toBeGreaterThan(0);
+    expect(result.confidence).toBeLessThan(1.0);
+  });
+
+  it('generic coverage confidence improves when context has param values', () => {
+    const plan = {
+      routeLabel: 'custom-route-no-registry',
+      steps: [
+        // Unknown action that won't produce outputs in the map
+        { action: 'unknown-xyz', paramsTemplate: { customParam1: null, customParam2: null } },
+      ],
+    };
+
+    // First: no context
+    const resultEmpty = planEvidence(plan, {});
+    const confEmpty = resultEmpty ? resultEmpty.confidence : 0;
+
+    // Second: with context values
+    const resultFull = planEvidence(plan, { customParam1: 'value1', customParam2: 'value2' });
+    const confFull = resultFull ? resultFull.confidence : 0;
+
+    expect(resultFull).not.toBeNull();
+    expect(confFull).toBeGreaterThanOrEqual(confEmpty);
+    expect(confFull).toBe(1.0); // All params provided
+  });
+
+  it('registry-based plan takes precedence over generic for registered routes', () => {
+    const plan = { routeLabel: 'residual_load_forecast_for_dso' };
+    const result = planEvidence(plan, {});
+
+    expect(result).not.toBeNull();
+    expect(result.source).toBe('registry'); // registry, not generic
+    expect(result.registryKey).toBe('residual_load_forecast_for_dso');
+  });
+
+  it('generic plan has required structure (registryKey, gaps, confidence, source)', () => {
+    const plan = {
+      routeLabel: 'unknown-route',
+      steps: [{ action: 'some-action', paramsTemplate: { param1: null } }],
+    };
+    const result = planEvidence(plan, {});
+
+    expect(result).not.toBeNull();
+    expect(result.source).toBe('generic');
+    expect(typeof result.confidence).toBe('number');
+    expect(Array.isArray(result.gaps)).toBe(true);
+    expect(typeof result.phaseNote).toBe('string');
+  });
+});
+
+// ── T-EV-006 — Phase 4: Routing-matrix shortcuts (registry entries) ────────
+describe('T-EV-006 — evidence-planner: Phase 4 registry shortcuts for all routing-matrix routes', () => {
+  const ROUTING_MATRIX_KEYS = [
+    'investment-grid-check',
+    'energy-sharing-znp',
+    'redispatch-settlement',
+    'fnav-finance',
+    'forecast-flex',
+  ];
+
+  it('all routing-matrix keys are now registered in the Evidence Registry', () => {
+    const registeredKeys = listRegisteredKeys();
+    for (const key of ROUTING_MATRIX_KEYS) {
+      expect(registeredKeys).toContain(key);
+    }
+  });
+
+  it.each(ROUTING_MATRIX_KEYS)(
+    'planEvidence() returns source="registry" for %s (not generic fallback)',
+    (routeKey) => {
+      const plan = { routeKey };
+      const result = planEvidence(plan, {});
+
+      expect(result).not.toBeNull();
+      expect(result.source).toBe('registry');
+      expect(result.registryKey).toBe(routeKey);
+    }
+  );
+
+  it.each(ROUTING_MATRIX_KEYS)(
+    'planEvidence() for %s has at least one required source with contextKeys',
+    (routeKey) => {
+      const plan = { routeKey };
+      const result = planEvidence(plan, {});
+
+      const requiredSources = result.requiredSources.filter((s) => !s.optional);
+      expect(requiredSources.length).toBeGreaterThan(0);
+    }
+  );
+
+  it('energy-sharing-znp: requires grid_operator_identity and energy_sharing_community', () => {
+    const plan = { routeKey: 'energy-sharing-znp' };
+    const result = planEvidence(plan, {});
+
+    const requiredIds = result.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toContain('grid_operator_identity');
+    expect(requiredIds).toContain('energy_sharing_community');
+  });
+
+  it('energy-sharing-znp: znp_project is optional', () => {
+    const plan = { routeKey: 'energy-sharing-znp' };
+    const result = planEvidence(plan, {});
+
+    const znpSource = result.requiredSources.find((s) => s.id === 'znp_project');
+    expect(znpSource).toBeDefined();
+    expect(znpSource.optional).toBe(true);
+  });
+
+  it('redispatch-settlement: requires grid_operator_identity and audit_period', () => {
+    const plan = { routeKey: 'redispatch-settlement' };
+    const result = planEvidence(plan, {});
+
+    const requiredIds = result.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toContain('grid_operator_identity');
+    expect(requiredIds).toContain('audit_period');
+  });
+
+  it('redispatch-settlement: confidence improves when dateFrom is in context', () => {
+    const plan = { routeKey: 'redispatch-settlement' };
+    const resultEmpty = planEvidence(plan, {});
+    const resultWithDates = planEvidence(plan, {
+      gridOperatorId: 'GNB-123',
+      dateFrom: '2025-01-01',
+      dateTo: '2025-03-31',
+    });
+
+    expect(resultWithDates.confidence).toBeGreaterThan(resultEmpty.confidence);
+    expect(resultWithDates.gaps.length).toBeLessThan(resultEmpty.gaps.length);
+  });
+
+  it('fnav-finance: requires fnav_profile and grid_operator_identity', () => {
+    const plan = { routeKey: 'fnav-finance' };
+    const result = planEvidence(plan, {});
+
+    const requiredIds = result.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toContain('fnav_profile');
+    expect(requiredIds).toContain('grid_operator_identity');
+  });
+
+  it('fnav-finance: voltage_level and owner_contact are optional', () => {
+    const plan = { routeKey: 'fnav-finance' };
+    const result = planEvidence(plan, {});
+
+    const voltageSrc = result.requiredSources.find((s) => s.id === 'voltage_level');
+    const ownerSrc = result.requiredSources.find((s) => s.id === 'owner_contact');
+    expect(voltageSrc?.optional).toBe(true);
+    expect(ownerSrc?.optional).toBe(true);
+  });
+
+  it('forecast-flex: requires forecast_location', () => {
+    const plan = { routeKey: 'forecast-flex' };
+    const result = planEvidence(plan, {});
+
+    const requiredIds = result.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toContain('forecast_location');
+  });
+
+  it('forecast-flex: confidence is 1.0 when postleitzahl is in context', () => {
+    const plan = { routeKey: 'forecast-flex' };
+    const result = planEvidence(plan, { postleitzahl: '67063' });
+
+    // forecast_location satisfied; all others are optional → confidence = 1.0
+    expect(result.confidence).toBe(1.0);
+    const locationGap = result.gaps.find((g) => g.id === 'forecast_location');
+    expect(locationGap).toBeUndefined();
+  });
+});
+
+// ── T-EV-007 — Phase 5: semantic forecast evidence detection ───────────────
+describe('T-EV-007 — semantic Evidence planning for near-term Redispatch probability prompts', () => {
+  it('detects forecast evidence for "nächste Tage" Redispatch probability prompt (without explicit "Prognose" keyword)', () => {
+    const plan = buildExecutionPlan({
+      message:
+        'Große PV-Anlage mit Speicher in Burgbernheim; wie hoch ist die Wahrscheinlichkeit für Redispatch 2.0 in den nächsten Tagen?',
+      brokerRecommendation: null,
+      knownContext: {
+        gridOperatorName: 'Stadtwerke Burgbernheim',
+      },
+    });
+
+    expect(plan.evidencePlan).not.toBeNull();
+    expect(plan.evidencePlan.source).toBe('registry');
+    expect(plan.evidencePlan.registryKey).toBe('redispatch_probability_forecast');
+
+    const requiredIds = plan.evidencePlan.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    expect(requiredIds).toContain('forecast_horizon');
+    expect(requiredIds).toContain('gruenstromindex_forecast');
+    expect(requiredIds).toContain('temporal_probability_window');
+  });
+
+  it('keeps explicit forecast capability path intact (no regression)', () => {
+    const plan = buildExecutionPlan({
+      message: 'Bitte eine Prognose der Residuallast für die nächsten Tage erstellen',
+      brokerRecommendation: {
+        recommendedCapabilities: [{ capability: 'residual_load_forecast_for_dso', confidence: 0.92 }],
+      },
+      knownContext: {
+        gridOperatorId: 'GNB123',
+      },
+    });
+
+    expect(plan.evidencePlan).not.toBeNull();
+    expect(plan.evidencePlan.source).toBe('registry');
+    expect(plan.evidencePlan.registryKey).toBe('residual_load_forecast_for_dso');
+  });
+
+  it('does not pull forecast probability evidence for non-forecast historical redispatch audit prompt', () => {
+    const plan = buildExecutionPlan({
+      message: 'Redispatch Audit vom 2025-01-01 bis 2025-03-01 für Netzgebiet auswerten',
+      brokerRecommendation: null,
+      knownContext: {
+        gridOperatorId: 'GNB-123',
+        dateFrom: '2025-01-01',
+        dateTo: '2025-03-01',
+      },
+    });
+
+    if (plan.evidencePlan?.source === 'registry') {
+      expect(plan.evidencePlan.registryKey).not.toBe('redispatch_probability_forecast');
+    }
+  });
+
+  it('blocks synthesis gate when critical forecast evidence is missing', () => {
+    const evidencePlan = {
+      confidence: 0.25,
+      gaps: [
+        {
+          id: 'forecast_horizon',
+          label: 'Prognose-Horizont (nächste Tage)',
+          resolvedBy: ['forecast.generationForecast'],
+        },
+      ],
+      requiredSources: [
+        { id: 'forecast_horizon', optional: false },
+        { id: 'gruenstromindex_forecast', optional: false },
+      ],
+      checkedSources: [],
+    };
+
+    expect(shouldBlockSynthesisOnGaps(evidencePlan)).toBe(true);
+  });
+});
