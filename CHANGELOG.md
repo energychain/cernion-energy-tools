@@ -5,7 +5,64 @@ All notable changes to the Cernion Energy Tools project will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.53.6] — Mandatory Step-Level HITL + Quality/Trace Response (2026-05-21)
+## [Unreleased]
+
+### Added
+- [src/personal-agent-state-machine.js](src/personal-agent-state-machine.js): explicit Personal-Agent turn FSM with canonical states (`init`, `session_loaded`, `knowledge_oriented`, `broker_recommended`, `chat_mode_resolved`, `consultation_active`, `execution_planned`, `execution_running`, `synthesizing`, terminal stop states) plus guarded transitions and terminal-state derivation.
+- [src/personal-agent-turn-graph.js](src/personal-agent-turn-graph.js): transient, session-turn-scoped graph model for chat reasoning (`message`, `context`, `knowledge`, `broker`, `tool`, `fact`, `gap`, `answer`) with typed edges and bounded snapshots (MAX_NODES=80, MAX_EDGES=140).
+- [services/personal-agent.service.js](services/personal-agent.service.js): `_executeChatCoreLogic()` now instantiates and advances a turn-local state machine across session load, knowledge orientation, broker recommendation, chat-mode resolution, consultation/execution, synthesis, and terminal stop handling.
+- [services/personal-agent.service.js](services/personal-agent.service.js): Phase 2 turn-graph pipeline implemented end-to-end — graph construction starts at message/session context, expands through knowledge orientation + broker routing + tool/fact/evidence-gap nodes, and finalizes before reply synthesis.
+- [services/personal-agent.service.js](services/personal-agent.service.js): chat responses and `agentTrace` now expose a structured `stateMachine` snapshot and `turnGraph` summary so UI and debugging flows can inspect the current turn lifecycle and reasoning graph without parsing free text.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `getSession` now returns the latest persisted `stateMachine` and `turnGraph` snapshots for frontend rehydration and chat continuity inspection.
+- [tests/personal-agent-state-machine.test.js](tests/personal-agent-state-machine.test.js): unit coverage for valid transitions, fail-closed invalid transitions, terminal-state derivation, and sanitized transition summaries.
+- [tests/personal-agent-turn-graph.test.js](tests/personal-agent-turn-graph.test.js): unit coverage for turn graph creation, de-duplication of nodes/edges, and finalization behavior.
+
+### Changed
+- [src/personal-agent-context.js](src/personal-agent-context.js): `buildPersistableSessionState()` now persists sanitized `l3.stateMachine` and `l3.turnGraph` snapshots as first-class L3 artifacts (no L4 raw payload, strings truncated 240-600 chars, no circular refs).
+- [services/personal-agent.service.js](services/personal-agent.service.js): session load/reset paths hydrate and clear both `l3.stateMachine` and `l3.turnGraph`; response payloads + `agentTrace` include both summaries.
+- [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js) and [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): coverage extended to verify state-machine + turn-graph persistence and response metadata (79 tests total, 0 failures).
+
+### Technical Details
+- **FSM Lifecycle:** init → session_loaded → knowledge_oriented → broker_recommended → chat_mode_resolved → (consultation_active | execution_planned) → execution_running → synthesizing → (completed | awaiting_user_input | hitl_blocked | error)
+- **Turn Graph Nodes:** message (root), context, knowledge, broker, decision, tool, fact, gap, answer
+- **Turn Graph Edges:** contextualized_by, oriented_by, routes_to, decides, invokes, grounds, requires_evidence, produces
+- **Persistence:** FSM + turn-graph snapshots stored in L3 session metadata, hydrated on session load, cleared on reset
+- **Response Exposure:** Both structures exposed in top-level response and `agentTrace` metadata (not in textual reply)
+
+## [0.53.9] — Personal Agent State Machine Foundation (2026-05-21)
+
+### Added
+- [src/personal-agent-state-machine.js](src/personal-agent-state-machine.js): explicit Personal-Agent turn FSM with canonical states (`init`, `session_loaded`, `knowledge_oriented`, `broker_recommended`, `chat_mode_resolved`, `consultation_active`, `execution_planned`, `execution_running`, `synthesizing`, terminal stop states) plus guarded transitions and terminal-state derivation.
+- [src/personal-agent-turn-graph.js](src/personal-agent-turn-graph.js): transient, session-turn-scoped graph model for chat reasoning (`message`, `context`, `knowledge`, `broker`, `tool`, `fact`, `gap`, `answer`) with typed edges and bounded snapshots.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `_executeChatCoreLogic()` now instantiates and advances a turn-local state machine across session load, knowledge orientation, broker recommendation, chat-mode resolution, consultation/execution, synthesis, and terminal stop handling.
+- [services/personal-agent.service.js](services/personal-agent.service.js): chat responses and `agentTrace` now expose a structured `stateMachine` snapshot so UI and debugging flows can inspect the current turn lifecycle without parsing free text.
+- [services/personal-agent.service.js](services/personal-agent.service.js): Phase 2 turn-graph pipeline implemented end-to-end — graph construction starts at message/session context, expands through knowledge orientation + broker routing + tool/fact/evidence-gap nodes, and finalizes before reply synthesis.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `getSession` now returns the latest persisted `stateMachine` snapshot for frontend rehydration and chat continuity inspection.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `getSession` now also returns persisted `turnGraph` snapshots for turn-level reasoning introspection and UI replay.
+- [tests/personal-agent-state-machine.test.js](tests/personal-agent-state-machine.test.js): unit coverage for valid transitions, fail-closed invalid transitions, terminal-state derivation, and sanitized transition summaries.
+- [tests/personal-agent-turn-graph.test.js](tests/personal-agent-turn-graph.test.js): unit coverage for turn graph creation, de-duplication of nodes/edges, and finalization behavior.
+
+### Changed
+- [src/personal-agent-context.js](src/personal-agent-context.js): `buildPersistableSessionState()` now persists sanitized `l3.stateMachine` snapshots alongside existing chat/session metadata.
+- [src/personal-agent-context.js](src/personal-agent-context.js): `buildPersistableSessionState()` now persists sanitized `l3.turnGraph` snapshots as first-class L3 artifacts (no L4 raw payload).
+- [services/personal-agent.service.js](services/personal-agent.service.js): session load/reset paths hydrate and clear `l3.stateMachine`, making the FSM a first-class but non-L4 session artifact.
+- [services/personal-agent.service.js](services/personal-agent.service.js): session load/reset paths now hydrate and clear both `l3.stateMachine` and `l3.turnGraph`; response payloads + `agentTrace` include both summaries.
+- [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js) and [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): coverage extended to verify state-machine + turn-graph persistence and response metadata.
+
+## [0.53.8] — Async Job Observability: Agentic Loop + Status Transition Logs (2026-05-21)
+
+### Added
+- [services/personal-agent.service.js](services/personal-agent.service.js): `handleConsultationTurnAgentic()` now accepts `jobId` from the caller and emits per-ReAct-iteration progress logs — `agentic_iteration_N` (THINK), `agentic_act_N` (ACT, includes tool name), `agentic_observe_N` (OBSERVE, includes success/fail and attempt count) — for all jobs carrying observability context.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `handleConsultationTurn()` call in `_executeChatCoreLogic()` now forwards `jobId` into the input object so agentic loop instrumentation receives it end-to-end.
+- [src/job-store.js](src/job-store.js): `runQueuedJob()` emits `status_running` (queued→running) and `status_completed` (running→completed) / `status_error` (running→error) transition logs — gated on `entry.expectedDuration` so only observable Personal Agent jobs are affected; CYA/ZNP domain-phase log contracts are preserved.
+- [services/personal-agent.service.js](services/personal-agent.service.js): strategic milestones added to `_executeChatCoreLogic()`: `session_loaded` (10%), `broker_ready` (30%), `llm_generating` (50%), `synthesizing` (80%).
+- [src/job-store/file-driver.js](src/job-store/file-driver.js): `saveResult()` sets explicit `phase: 'done'` on the completed job record to preserve existing `znp.service.test.js` expectations.
+- [tests/helpers/job-polling.js](tests/helpers/job-polling.js): `waitForJobCompletion()`, `getJobLogs()`, `findLogByPhase()`, `getLogPhases()` polling helpers for integration tests and E2E acceptance.
+
+### Changed
+- [src/job-store.js](src/job-store.js): `status_running`/`status_completed`/`status_error` transition logs are conditional on `entry.expectedDuration` — preventing interference with CYA and ZNP domain-phase log arrays.
+- [src/job-store/file-driver.js](src/job-store/file-driver.js): `saveResult()` explicitly writes `phase: 'done'` in the `updateJob` patch, ensuring the phase field reflects completion state after any prior `appendLog` calls.
+
 ## [0.53.7] — HITL Cross-Turn Resume + L3 Checkpoint Persistence (2026-05-21)
 
 ### Added
