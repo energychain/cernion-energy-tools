@@ -1390,6 +1390,13 @@ module.exports = {
           routingDecision.target === 'mark_unknown_execution_gap' &&
           String(process.env.PERSONAL_AGENT_ENABLE_ROUTING_GAP_SHORT_CIRCUIT || 'false').toLowerCase() === 'true'
         ) {
+          const responsePolicyContract = this.buildResponsePolicyContract({
+            message: ctx.params.message,
+            workflowType: semanticClassification?.workflowType || null,
+            domainIntent: semanticClassification?.domainIntent || brokerRecommendation?.intent || null,
+            knownContext: brokerKnownContext,
+            verifiedFacts: [],
+          });
           const gapResponse = buildExecutionGapResponse({
             routingDecision,
             brokerRecommendation,
@@ -1478,6 +1485,11 @@ module.exports = {
             executionMode,
             chatMode: effectiveChatMode,
             reply,
+            workflowType: responsePolicyContract.workflowType,
+            domainIntent: responsePolicyContract.domainIntent,
+            evidenceStatus: responsePolicyContract.evidenceStatus,
+            missingEvidence: responsePolicyContract.missingEvidence,
+            guardrailCorrections: [],
             layer4Purged: finalized.layer4Purged,
             l3Compressed: finalized.stack.l3?.compressed || false,
             historyCount: Array.isArray(finalized.stack.l3?.history)
@@ -1704,6 +1716,15 @@ module.exports = {
             attemptsSummary: Array.isArray(consultationResult.attemptsSummary)
               ? consultationResult.attemptsSummary
               : [],
+            workflowType: consultationResult.workflowType || semanticClassification?.workflowType || null,
+            domainIntent: consultationResult.domainIntent || semanticClassification?.domainIntent || null,
+            evidenceStatus: consultationResult.evidenceStatus || 'unverified',
+            missingEvidence: Array.isArray(consultationResult.missingEvidence)
+              ? consultationResult.missingEvidence
+              : [],
+            guardrailCorrections: Array.isArray(consultationResult.guardrailCorrections)
+              ? consultationResult.guardrailCorrections
+              : [],
             ...(Array.isArray(consultationResult.debugTrace)
               ? { debugTrace: consultationResult.debugTrace }
               : {}),
@@ -1825,6 +1846,11 @@ module.exports = {
             executionMode,
             chatMode: effectiveChatMode,
             reply: consultationResult.reply,
+            workflowType: consultationPayload.workflowType,
+            domainIntent: consultationPayload.domainIntent,
+            evidenceStatus: consultationPayload.evidenceStatus,
+            missingEvidence: consultationPayload.missingEvidence,
+            guardrailCorrections: consultationPayload.guardrailCorrections,
             consultation: consultationPayload,
             layer4Purged: finalized.layer4Purged,
             l3Compressed: Boolean(finalized.stack?.l3?.compressed),
@@ -2322,7 +2348,29 @@ module.exports = {
           }
         }
 
-        const responseReply = presentationApplied ? presentationResult.markdown : synthesisText;
+        const executionResponsePolicyContract = this.buildResponsePolicyContract({
+          message: ctx.params.message,
+          workflowType: responsePlan?.workflowType || semanticClassification?.workflowType || null,
+          domainIntent:
+            responsePlan?.domainIntent ||
+            responsePlan?.primaryIntent ||
+            semanticClassification?.domainIntent ||
+            null,
+          knownContext: preflightKnownContext,
+          responsePlan,
+          execution,
+          evidencePlan: responsePlan?.evidencePlan || null,
+        });
+        const executionTimeoutFallback =
+          execution?.status === 'partial' ||
+          execution?.status === 'timeout' ||
+          execution?.stopPoint?.reasonCode === 'TIMEOUT';
+        const executionGuardedReply = this.applyResponsePolicyGuardrails({
+          reply: presentationApplied ? presentationResult.markdown : synthesisText,
+          contract: executionResponsePolicyContract,
+          timeoutFallback: executionTimeoutFallback,
+        });
+        const responseReply = executionGuardedReply.reply;
         turnGraph = addNode(turnGraph, {
           id: 'answer:final',
           type: 'answer',
@@ -2457,6 +2505,11 @@ module.exports = {
           executionMode,
           chatMode: effectiveChatMode,
           reply: responseReply,
+          workflowType: executionResponsePolicyContract.workflowType,
+          domainIntent: executionResponsePolicyContract.domainIntent,
+          evidenceStatus: executionResponsePolicyContract.evidenceStatus,
+          missingEvidence: executionResponsePolicyContract.missingEvidence,
+          guardrailCorrections: executionGuardedReply.guardrailCorrections,
           presentationApplied,
           presentationType: presentationType || null,
           presentation: presentationApplied
@@ -2894,6 +2947,339 @@ module.exports = {
       return buildPersonalAgentStrategyLead(responseStrategy || {});
     },
 
+    collectAllowedLegalRefs({
+      knownContext = {},
+      verifiedFacts = [],
+      workflowType = '',
+      domainIntent = '',
+    } = {}) {
+      const refs = new Set();
+      const refRegex = /§\s*\d+[a-zA-Z]*\s*EnWG/gi;
+      const register = (value) => {
+        if (value == null) {
+          return;
+        }
+
+        if (Array.isArray(value)) {
+          value.forEach((item) => register(item));
+          return;
+        }
+
+        const text = String(value);
+        const matches = text.match(refRegex) || [];
+        matches.forEach((match) => refs.add(String(match).replace(/\s+/g, ' ').trim()));
+      };
+
+      register(knownContext?.allowedLegalRefs);
+      register(knownContext?.legalReferences);
+      register(knownContext?.legalReference);
+      register(knownContext?.regulatoryFrame);
+
+      (Array.isArray(verifiedFacts) ? verifiedFacts : []).forEach((fact) => {
+        register(fact?.value);
+        register(fact?.source);
+      });
+
+      const workflowSignal = [workflowType, domainIntent]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+
+      if (/(wallbox|prosumer|nap|pv|heat|waermepumpe|wärmepumpe|bess|storage)/i.test(workflowSignal)) {
+        refs.add('§ 14a EnWG');
+      }
+      if (/(dynamic|dynamisch|tariff|tarif)/i.test(workflowSignal)) {
+        refs.add('§ 41a EnWG');
+      }
+      if (/(mieterstrom|tenant)/i.test(workflowSignal)) {
+        refs.add('§ 42c EnWG');
+      }
+
+      return Array.from(refs);
+    },
+
+    buildResponsePolicyContract({
+      message = '',
+      workflowType = null,
+      domainIntent = null,
+      knownContext = {},
+      responsePlan = null,
+      observations = [],
+      execution = null,
+      evidencePlan = null,
+      verifiedFacts = [],
+    } = {}) {
+      const resolvedWorkflowType =
+        workflowType ||
+        responsePlan?.workflowType ||
+        responsePlan?.executionReadiness?.workflowType ||
+        'consultation_general';
+      const resolvedDomainIntent =
+        domainIntent || responsePlan?.domainIntent || responsePlan?.primaryIntent || 'consultation_general';
+
+      const observationFacts = (Array.isArray(observations) ? observations : [])
+        .filter((obs) => obs?.status === 'completed')
+        .map((obs) => ({
+          source: obs?.action || 'tool',
+          value: String(obs?.summary || obs?.result?.description || 'completed').slice(0, 220),
+        }));
+
+      const executionFacts = (Array.isArray(execution?.steps) ? execution.steps : [])
+        .filter((step) => step?.status === 'completed')
+        .map((step) => ({
+          source: step?.action || 'step',
+          value: String(step?.purpose || step?.status || 'completed').slice(0, 220),
+        }));
+
+      const normalizedVerifiedFacts = [
+        ...(Array.isArray(verifiedFacts) ? verifiedFacts : []).map((item) => {
+          if (item && typeof item === 'object') {
+            return {
+              source: String(item.source || 'fact').slice(0, 160),
+              value: String(item.value || '').slice(0, 220),
+            };
+          }
+          return {
+            source: 'fact',
+            value: String(item || '').slice(0, 220),
+          };
+        }),
+        ...observationFacts,
+        ...executionFacts,
+      ].filter((fact) => Boolean(fact.value));
+
+      const hasVerifiedVnbLookup =
+        (Array.isArray(observations) ? observations : []).some(
+          (obs) =>
+            obs?.action === 'grid-operations.vnbLookup' &&
+            obs?.status === 'completed' &&
+            !obs?.error &&
+            obs?.result?.error == null
+        ) ||
+        (Array.isArray(execution?.steps) ? execution.steps : []).some(
+          (step) =>
+            step?.action === 'grid-operations.vnbLookup' &&
+            step?.status === 'completed' &&
+            !step?.error &&
+            step?.result?.error == null
+        );
+
+      const hasMarketPartnersContext = (Array.isArray(observations) ? observations : []).some(
+        (obs) => obs?.action === 'grid-operations.marketPartners'
+      );
+      const hasVnbContext =
+        /(?:\bvnb\b|\bnetzbetreiber\b|\bnetzgebiet\b|\bnetzzone\b|\bstandort\b|\banschluss\b|\bbdew\b|\bmarktlokation\b|\bnetzanschlusspunkt\b)/i.test(
+          String(message || '')
+        ) ||
+        hasMarketPartnersContext ||
+        Boolean(
+          knownContext?.gridOperatorName ||
+            knownContext?.assertedGridOperatorName ||
+            knownContext?.bdew ||
+            knownContext?.bdewCode ||
+            knownContext?.municipality ||
+            knownContext?.city
+        );
+
+      const missingEvidence = [];
+      if (hasVnbContext && !hasVerifiedVnbLookup) {
+        missingEvidence.push({
+          id: 'vnb_lookup_required',
+          label: 'Dedizierter VNB-/Netzgebietslookup fehlt.',
+          severity: 'high',
+        });
+      }
+
+      (Array.isArray(evidencePlan?.gaps) ? evidencePlan.gaps : []).slice(0, 10).forEach((gap) => {
+        missingEvidence.push({
+          id: String(gap?.id || gap?.requirementId || 'evidence_gap'),
+          label: String(gap?.required || gap?.label || 'Fehlende Evidenz').slice(0, 220),
+          severity: String(gap?.severity || 'medium'),
+        });
+      });
+
+      const unverifiedAssumptions = [];
+      if (hasVnbContext && !hasVerifiedVnbLookup) {
+        unverifiedAssumptions.push({
+          type: 'location_operator_unverified',
+          statement: 'Die Zuständigkeit des VNB ist ohne dedizierten Lookup nicht belastbar verifiziert.',
+          confidence: 'low',
+        });
+      }
+
+      const nextVerificationSteps = [];
+      if (missingEvidence.some((item) => item.id === 'vnb_lookup_required')) {
+        nextVerificationSteps.push({
+          action: 'grid-operations.vnbLookup',
+          description: 'Zuständigen VNB über dedizierten Netzgebietslookup verifizieren.',
+        });
+      }
+
+      (Array.isArray(evidencePlan?.nextSteps) ? evidencePlan.nextSteps : []).slice(0, 5).forEach((step) => {
+        nextVerificationSteps.push({
+          action: String(step?.action || 'evidence_step').slice(0, 100),
+          description: String(step?.description || step?.label || 'Evidenz ergänzen').slice(0, 220),
+        });
+      });
+
+      const allowedLegalRefs = this.collectAllowedLegalRefs({
+        knownContext,
+        verifiedFacts: normalizedVerifiedFacts,
+        workflowType: resolvedWorkflowType,
+        domainIntent: resolvedDomainIntent,
+      });
+
+      const evidenceStatus =
+        normalizedVerifiedFacts.length > 0 && missingEvidence.length === 0
+          ? 'verified'
+          : normalizedVerifiedFacts.length > 0
+            ? 'partial'
+            : 'unverified';
+
+      return {
+        workflowType: resolvedWorkflowType,
+        domainIntent: resolvedDomainIntent,
+        verifiedFacts: normalizedVerifiedFacts.slice(0, 12),
+        unverifiedAssumptions,
+        missingEvidence,
+        forbiddenClaims: [
+          'no_unverified_vnb_assertion',
+          'no_unbacked_legal_reference',
+          'no_timeout_relief_without_evidence',
+          'no_workflow_mismatch_claim',
+        ],
+        nextVerificationSteps,
+        allowedLegalRefs,
+        evidenceStatus,
+      };
+    },
+
+    buildConservativeResponseFromContract(contract = {}) {
+      const facts = Array.isArray(contract?.verifiedFacts) ? contract.verifiedFacts : [];
+      const missingEvidence = Array.isArray(contract?.missingEvidence) ? contract.missingEvidence : [];
+      const nextSteps = Array.isArray(contract?.nextVerificationSteps)
+        ? contract.nextVerificationSteps
+        : [];
+
+      const factSummary =
+        facts.length > 0
+          ? `Vorliegende Evidenz: ${facts
+              .slice(0, 3)
+              .map((fact) => `${fact.source}: ${fact.value}`)
+              .join('; ')}.`
+          : 'Derzeit liegt keine vollständige, belastbare Evidenz vor.';
+      const missingSummary =
+        missingEvidence.length > 0
+          ? `Offene Evidenz: ${missingEvidence
+              .slice(0, 3)
+              .map((item) => item.label)
+              .join('; ')}.`
+          : '';
+      const nextSummary =
+        nextSteps.length > 0
+          ? `Nächste Verifikation: ${nextSteps
+              .slice(0, 2)
+              .map((step) => step.description)
+              .join('; ')}.`
+          : 'Nächste Verifikation: Bitte fehlende Evidenz gezielt ergänzen.';
+
+      return [
+        'Synthese unvollständig; belastbare Bewertung nicht abgeschlossen.',
+        factSummary,
+        missingSummary,
+        nextSummary,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+    },
+
+    applyResponsePolicyGuardrails({ reply = '', contract = {}, timeoutFallback = false } = {}) {
+      let guardedReply = String(reply || '').trim();
+      const guardrailCorrections = [];
+
+      const workflowType = String(contract?.workflowType || '').toLowerCase();
+      const missingEvidence = Array.isArray(contract?.missingEvidence) ? contract.missingEvidence : [];
+      const hasUnverifiedVnbGap = missingEvidence.some((item) => item?.id === 'vnb_lookup_required');
+      const definiteVnbClaimRegex =
+        /(?:zust[äa]ndig(?:e[rn])?|verantwortlich(?:e[rn])?)\b[^.\n]{0,120}\b(?:ist|sei|wird|bleibt)\b/i;
+
+      if (hasUnverifiedVnbGap && definiteVnbClaimRegex.test(guardedReply)) {
+        guardedReply = this.buildConservativeResponseFromContract(contract);
+        guardrailCorrections.push({
+          code: 'UNVERIFIED_VNB_CLAIM_BLOCKED',
+          severity: 'high',
+          replacement: 'conservative_response',
+        });
+      }
+
+      const allowedLegalRefs = new Set(
+        (Array.isArray(contract?.allowedLegalRefs) ? contract.allowedLegalRefs : []).map((item) =>
+          String(item || '').replace(/\s+/g, ' ').trim()
+        )
+      );
+      const legalRefRegex = /§\s*\d+[a-zA-Z]*\s*EnWG/gi;
+      const legalRefsInReply = guardedReply.match(legalRefRegex) || [];
+      legalRefsInReply.forEach((ref) => {
+        const normalized = String(ref || '').replace(/\s+/g, ' ').trim();
+        if (!allowedLegalRefs.has(normalized)) {
+          guardedReply = guardedReply.replace(ref, 'EnWG (Quelle erforderlich)');
+          guardrailCorrections.push({
+            code: 'UNBACKED_LEGAL_REFERENCE_BLOCKED',
+            severity: 'medium',
+            reference: normalized,
+          });
+        }
+      });
+
+      const workflowMismatch =
+        (workflowType.includes('bess') && /\b(vdmi|governance|asset\s*validation|residual\s*load|forecast)\b/i.test(guardedReply)) ||
+        ((workflowType.includes('governance') || workflowType.includes('vdmi')) &&
+          /\b(bess\s*screening|battery\s*sizing|wallbox|prosumer\s*tarif)\b/i.test(guardedReply)) ||
+        (workflowType.includes('edm') && /\b(asset\s*validation|bess\s*screening|residual\s*load\s*forecast)\b/i.test(guardedReply));
+
+      if (workflowMismatch) {
+        guardedReply = this.buildConservativeResponseFromContract(contract);
+        guardrailCorrections.push({
+          code: 'WORKFLOW_CONTEXT_MISMATCH_BLOCKED',
+          severity: 'high',
+          replacement: 'conservative_response',
+        });
+      }
+
+      if (timeoutFallback && /keine kritischen probleme identifiziert/i.test(guardedReply)) {
+        guardedReply = guardedReply.replace(
+          /keine kritischen probleme identifiziert/gi,
+          'Synthese unvollständig; belastbare Bewertung nicht abgeschlossen'
+        );
+        guardrailCorrections.push({
+          code: 'MISLEADING_TIMEOUT_RELIEF_BLOCKED',
+          severity: 'high',
+        });
+      }
+
+      if (
+        timeoutFallback &&
+        !/synthese unvollständig; belastbare bewertung nicht abgeschlossen/i.test(guardedReply)
+      ) {
+        guardedReply = `Synthese unvollständig; belastbare Bewertung nicht abgeschlossen. ${guardedReply}`.trim();
+      }
+
+      if (!guardedReply) {
+        guardedReply = this.buildConservativeResponseFromContract(contract);
+        guardrailCorrections.push({
+          code: 'EMPTY_REPLY_RECOVERED',
+          severity: 'high',
+          replacement: 'conservative_response',
+        });
+      }
+
+      return {
+        reply: guardedReply,
+        guardrailCorrections,
+      };
+    },
+
     /**
      * Wraps buildConsultationExecutionPlan for service-level use.
      * Enhanced with input extraction and routing validation.
@@ -3124,10 +3510,10 @@ module.exports = {
       return {
         reply:
           'Ich habe die Beratung eingeleitet und verschiedene Aspekte überprüft. ' +
-          'Die Synthese-Phase ist zeitlich erschöpft, aber ich kann Ihnen bereits folgende Erkenntnisse zusammenfassen: ' +
+          'Synthese unvollständig; belastbare Bewertung nicht abgeschlossen. ' +
           (topFacts.length > 0
             ? topFacts.map((f) => `${f.label}: ${f.summary}`).join('; ')
-            : 'Keine kritischen Probleme identifiziert.') +
+            : 'Es liegt derzeit keine vollständige Evidenz für eine belastbare Bewertung vor.') +
           uncertaintyNote +
           ' Bitte nutzen Sie den Ausführungs-Modus, um konkrete nächste Schritte zu initiieren.',
         hypotheses: [],
@@ -4512,13 +4898,54 @@ module.exports = {
           : []
         : null;
 
+      const finalizeConsultationResult = (result, { timeoutFallback = false } = {}) => {
+        const normalizedResult = result && typeof result === 'object' ? result : {};
+        const responsePolicyContract = this.buildResponsePolicyContract({
+          message,
+          workflowType:
+            normalizedResult.workflowType || input?.semanticClassification?.workflowType || null,
+          domainIntent:
+            normalizedResult.domainIntent ||
+            input?.semanticClassification?.domainIntent ||
+            brokerRecommendation?.intent ||
+            null,
+          knownContext: input.knownContext || {},
+          observations: Array.isArray(normalizedResult.toolTrace) ? normalizedResult.toolTrace : [],
+          verifiedFacts: Array.isArray(normalizedResult.factsUsed) ? normalizedResult.factsUsed : [],
+        });
+
+        const guarded = this.applyResponsePolicyGuardrails({
+          reply: String(normalizedResult.reply || ''),
+          contract: responsePolicyContract,
+          timeoutFallback,
+        });
+
+        return {
+          ...normalizedResult,
+          reply: guarded.reply,
+          workflowType: responsePolicyContract.workflowType,
+          domainIntent: responsePolicyContract.domainIntent,
+          evidenceStatus: responsePolicyContract.evidenceStatus,
+          missingEvidence: responsePolicyContract.missingEvidence,
+          guardrailCorrections: guarded.guardrailCorrections,
+        };
+      };
+
       const agenticConsultation = await this.handleConsultationTurnAgentic(ctx, {
         ...input,
         responseStrategy,
         consultationDebugSink,
       });
       if (agenticConsultation) {
-        return agenticConsultation;
+        const debugTrace = Array.isArray(agenticConsultation.debugTrace)
+          ? agenticConsultation.debugTrace
+          : [];
+        const timeoutFallback = debugTrace.some(
+          (event) =>
+            event?.type === 'consultation_fallback_selected' &&
+            event?.reason === 'synthesis_budget_exhausted'
+        );
+        return finalizeConsultationResult(agenticConsultation, { timeoutFallback });
       }
 
       if (consultationDebugEnabled) {
@@ -4569,7 +4996,10 @@ module.exports = {
       };
 
       if (!message) {
-        return consultationDebugEnabled ? { ...fallback, debugTrace: consultationDebugSink } : fallback;
+        const fallbackResult = consultationDebugEnabled
+          ? { ...fallback, debugTrace: consultationDebugSink }
+          : fallback;
+        return finalizeConsultationResult(fallbackResult, { timeoutFallback: true });
       }
 
       try {
@@ -4592,18 +5022,18 @@ module.exports = {
 
         const data = raw?.data || raw;
         if (!data || typeof data !== 'object' || !String(data.reply || '').trim()) {
-          return fallback;
+          return finalizeConsultationResult(fallback, { timeoutFallback: true });
         }
 
         const sanitizeArray = (arr) => (Array.isArray(arr) ? arr : []);
-        return {
+        return finalizeConsultationResult({
           reply: String(data.reply || fallback.reply).trim(),
           hypotheses: sanitizeArray(data.hypotheses),
           openQuestions: sanitizeArray(data.openQuestions),
           nextActions: sanitizeArray(data.nextActions),
           factsUsed: sanitizeArray(data.factsUsed),
           ...(consultationDebugEnabled ? { debugTrace: consultationDebugSink } : {}),
-        };
+        });
       } catch (error) {
         if (!isActionUnavailable(error)) {
           this.logger?.warn(`Consultation LLM generation failed (fallback active): ${error.message}`);
@@ -4625,7 +5055,10 @@ module.exports = {
             }
           );
         }
-        return consultationDebugEnabled ? { ...fallback, debugTrace: consultationDebugSink } : fallback;
+        const fallbackResult = consultationDebugEnabled
+          ? { ...fallback, debugTrace: consultationDebugSink }
+          : fallback;
+        return finalizeConsultationResult(fallbackResult, { timeoutFallback: true });
       }
     },
 

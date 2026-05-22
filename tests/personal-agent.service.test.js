@@ -2882,6 +2882,82 @@ describe('personal-agent.service', () => {
     }
   });
 
+  it('blocks unverified VNB claims and unbacked legal references via response policy guardrails', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const contract = svc.buildResponsePolicyContract({
+      message: 'BESS in Arnstadt: zuständigen Netzbetreiber einordnen',
+      workflowType: WORKFLOW_TYPES.BESS_SCREENING,
+      domainIntent: 'bess_grid_connection',
+      knownContext: {
+        domain: 'bess_grid_connection',
+        municipality: 'Arnstadt',
+      },
+      observations: [{ action: 'grid-operations.marketPartners', status: 'completed' }],
+      verifiedFacts: [{ source: 'tool', value: 'Marktpartnerliste Arnstadt geladen' }],
+    });
+
+    const guarded = svc.applyResponsePolicyGuardrails({
+      reply: 'Zuständiger Netzbetreiber ist TEN Thüringer Energienetze gemäß §17 EnWG.',
+      contract,
+    });
+
+    expect(guarded.reply).toContain('Synthese unvollständig; belastbare Bewertung nicht abgeschlossen');
+    expect(guarded.reply).not.toContain('Zuständiger Netzbetreiber ist TEN');
+    expect(guarded.reply).not.toContain('§17 EnWG');
+    expect(guarded.guardrailCorrections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'UNVERIFIED_VNB_CLAIM_BLOCKED' }),
+      ])
+    );
+  });
+
+  it('replaces misleading timeout all-clear wording with conservative synthesis status', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const guarded = svc.applyResponsePolicyGuardrails({
+      reply: 'Keine kritischen Probleme identifiziert.',
+      contract: {
+        workflowType: 'consultation_general',
+        verifiedFacts: [],
+        missingEvidence: [],
+        nextVerificationSteps: [],
+        allowedLegalRefs: [],
+      },
+      timeoutFallback: true,
+    });
+
+    expect(guarded.reply).toContain('Synthese unvollständig; belastbare Bewertung nicht abgeschlossen');
+    expect(guarded.guardrailCorrections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'MISLEADING_TIMEOUT_RELIEF_BLOCKED' }),
+      ])
+    );
+  });
+
+  it('exposes workflow and evidence contract fields in consultation chat responses', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId: 'pa-response-policy-contract',
+        message: 'BESS Arnstadt 20 MW / 40 MWh: Netzanschluss einordnen',
+        chatMode: 'consultation',
+        executionMode: 'auto',
+        knownContext: {
+          domain: 'bess_grid_connection',
+          municipality: 'Arnstadt',
+          powerMW: 20,
+          capacityMWh: 40,
+        },
+      },
+      { meta: { tenantId: 'tenant-response-policy-contract', authUser: { userId: 'user-1' } } }
+    );
+
+    expect(typeof result.workflowType).toBe('string');
+    expect(typeof result.domainIntent).toBe('string');
+    expect(typeof result.evidenceStatus).toBe('string');
+    expect(Array.isArray(result.missingEvidence)).toBe(true);
+    expect(Array.isArray(result.guardrailCorrections)).toBe(true);
+  });
+
   it('prioritizes explicit API chatMode=execution over auto-detection', async () => {
     const result = await broker.call(
       'personal-agent.chat',
