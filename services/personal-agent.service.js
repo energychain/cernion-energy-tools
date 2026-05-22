@@ -185,6 +185,7 @@ const CONSULTATION_REACT_MAX_ITERATIONS = Number(
 const CONSULTATION_REACT_MAX_MS = Number(
   process.env.PERSONAL_AGENT_CONSULTATION_REACT_MAX_MS || 30_000
 );
+const PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS_DEFAULT = 90_000;
 const CONSULTATION_SYNTHESIS_MIN_MS = Number(
   process.env.PERSONAL_AGENT_CONSULTATION_SYNTHESIS_MIN_MS || 5_000
 );
@@ -292,7 +293,7 @@ function buildConsultationDebugLogMessage(type, payload = {}) {
     case 'consultation_synthesis_skipped':
       return `Synthesis skipped: ${payload.reason || 'unknown'} (${payload.remainingMs}ms remaining)`;
     case 'consultation_synthesis_start':
-      return `Synthesis start (observations=${payload.observationsCount || 0})`;
+      return `Synthesis start (observations=${payload.observationsCount || 0}, timeout=${payload.timeoutMs || 'n/a'}ms)`;
     case 'consultation_synthesis_end':
       return `Synthesis end (${payload.durationMs}ms)`;
     case 'consultation_synthesis_error':
@@ -1489,6 +1490,7 @@ module.exports = {
             domainIntent: responsePolicyContract.domainIntent,
             evidenceStatus: responsePolicyContract.evidenceStatus,
             missingEvidence: responsePolicyContract.missingEvidence,
+            nextVerificationSteps: responsePolicyContract.nextVerificationSteps,
             guardrailCorrections: [],
             layer4Purged: finalized.layer4Purged,
             l3Compressed: finalized.stack.l3?.compressed || false,
@@ -1722,6 +1724,9 @@ module.exports = {
             missingEvidence: Array.isArray(consultationResult.missingEvidence)
               ? consultationResult.missingEvidence
               : [],
+            nextVerificationSteps: Array.isArray(consultationResult.nextVerificationSteps)
+              ? consultationResult.nextVerificationSteps
+              : [],
             guardrailCorrections: Array.isArray(consultationResult.guardrailCorrections)
               ? consultationResult.guardrailCorrections
               : [],
@@ -1850,6 +1855,7 @@ module.exports = {
             domainIntent: consultationPayload.domainIntent,
             evidenceStatus: consultationPayload.evidenceStatus,
             missingEvidence: consultationPayload.missingEvidence,
+            nextVerificationSteps: consultationPayload.nextVerificationSteps,
             guardrailCorrections: consultationPayload.guardrailCorrections,
             consultation: consultationPayload,
             layer4Purged: finalized.layer4Purged,
@@ -2509,6 +2515,7 @@ module.exports = {
           domainIntent: executionResponsePolicyContract.domainIntent,
           evidenceStatus: executionResponsePolicyContract.evidenceStatus,
           missingEvidence: executionResponsePolicyContract.missingEvidence,
+          nextVerificationSteps: executionResponsePolicyContract.nextVerificationSteps,
           guardrailCorrections: executionGuardedReply.guardrailCorrections,
           presentationApplied,
           presentationType: presentationType || null,
@@ -2945,6 +2952,19 @@ module.exports = {
 
     buildStrategyLead(responseStrategy = null) {
       return buildPersonalAgentStrategyLead(responseStrategy || {});
+    },
+
+    resolveConsultationSynthesisTimeoutMs() {
+      const raw = Number(
+        process.env.PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS ||
+          PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS_DEFAULT
+      );
+
+      if (!Number.isFinite(raw) || raw < 1_000) {
+        return PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS_DEFAULT;
+      }
+
+      return Math.floor(raw);
     },
 
     collectAllowedLegalRefs({
@@ -4545,6 +4565,7 @@ module.exports = {
           observations,
           toolRegistry,
         });
+        const synthesisTimeoutMs = this.resolveConsultationSynthesisTimeoutMs();
 
         synthesisStartedAt = Date.now();
         consultationDebugRecorder.emit('consultation_synthesis_start', {
@@ -4552,16 +4573,18 @@ module.exports = {
           collectedFactsCount: collectedFacts.length,
           elapsedMs,
           remainingMs,
+          timeoutMs: synthesisTimeoutMs,
         });
 
         const raw = await this.callLlmGenerate(ctx, {
           system: synthesisPrompt,
           user: message,
           schema: CONSULTATION_OUTPUT_SCHEMA,
+          timeoutMs: synthesisTimeoutMs,
           trace: {
             executionTrace,
             phase: 'consultation_synthesis',
-            metadata: { observationCount: observations.length },
+            metadata: { observationCount: observations.length, timeoutMs: synthesisTimeoutMs },
           },
         });
 
@@ -4616,6 +4639,7 @@ module.exports = {
         };
       } catch (error) {
         const sanitizedSynthesisError = sanitizeConsultationDebugError(error);
+        const synthesisTimeoutMs = this.resolveConsultationSynthesisTimeoutMs();
         consultationDebugRecorder.emit('consultation_synthesis_error', {
           durationMs:
             typeof synthesisStartedAt === 'number' ? Math.max(0, Date.now() - synthesisStartedAt) : null,
@@ -4623,10 +4647,13 @@ module.exports = {
           errorCode: sanitizedSynthesisError?.code || null,
           errorMessage: sanitizedSynthesisError?.message || null,
           observationsCount: observations.length,
+          timeoutMs: synthesisTimeoutMs,
         });
 
         if (!isActionUnavailable(error)) {
-          this.logger?.warn(`Consultation agentic synthesis failed (legacy fallback active): ${error.message}`);
+          this.logger?.warn(
+            `Consultation agentic synthesis failed (timeout=${synthesisTimeoutMs}ms, legacy fallback active): ${error.message}`
+          );
         }
 
         consultationDebugRecorder.emit('consultation_synthesis_null', {
@@ -4927,6 +4954,7 @@ module.exports = {
           domainIntent: responsePolicyContract.domainIntent,
           evidenceStatus: responsePolicyContract.evidenceStatus,
           missingEvidence: responsePolicyContract.missingEvidence,
+          nextVerificationSteps: responsePolicyContract.nextVerificationSteps,
           guardrailCorrections: guarded.guardrailCorrections,
         };
       };
@@ -5009,14 +5037,17 @@ module.exports = {
           resolvedParams,
           knowledgeContext,
         });
+        const synthesisTimeoutMs = this.resolveConsultationSynthesisTimeoutMs();
 
         const raw = await this.callLlmGenerate(ctx, {
           system: systemPrompt,
           user: message,
           schema: CONSULTATION_OUTPUT_SCHEMA,
+          timeoutMs: synthesisTimeoutMs,
           trace: {
             executionTrace: input.executionTrace || null,
             phase: 'consultation_non_agentic',
+            metadata: { timeoutMs: synthesisTimeoutMs },
           },
         });
 
@@ -5035,8 +5066,11 @@ module.exports = {
           ...(consultationDebugEnabled ? { debugTrace: consultationDebugSink } : {}),
         });
       } catch (error) {
+        const synthesisTimeoutMs = this.resolveConsultationSynthesisTimeoutMs();
         if (!isActionUnavailable(error)) {
-          this.logger?.warn(`Consultation LLM generation failed (fallback active): ${error.message}`);
+          this.logger?.warn(
+            `Consultation LLM generation failed (timeout=${synthesisTimeoutMs}ms, fallback active): ${error.message}`
+          );
         }
         if (consultationDebugEnabled) {
           const sanitizedError = sanitizeConsultationDebugError(error);

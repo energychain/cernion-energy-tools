@@ -2882,6 +2882,38 @@ describe('personal-agent.service', () => {
     }
   });
 
+  it('uses 90000ms as default consultation synthesis timeout', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const previous = process.env.PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS;
+    delete process.env.PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS;
+
+    try {
+      expect(svc.resolveConsultationSynthesisTimeoutMs()).toBe(90_000);
+    } finally {
+      if (previous == null) {
+        delete process.env.PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS;
+      } else {
+        process.env.PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS = previous;
+      }
+    }
+  });
+
+  it('respects PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS override for consultation synthesis', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const previous = process.env.PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS;
+    process.env.PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS = '123456';
+
+    try {
+      expect(svc.resolveConsultationSynthesisTimeoutMs()).toBe(123_456);
+    } finally {
+      if (previous == null) {
+        delete process.env.PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS;
+      } else {
+        process.env.PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS = previous;
+      }
+    }
+  });
+
   it('blocks unverified VNB claims and unbacked legal references via response policy guardrails', () => {
     const svc = broker.getLocalService('personal-agent');
     const contract = svc.buildResponsePolicyContract({
@@ -2926,6 +2958,7 @@ describe('personal-agent.service', () => {
     });
 
     expect(guarded.reply).toContain('Synthese unvollständig; belastbare Bewertung nicht abgeschlossen');
+    expect(guarded.reply).not.toContain('Keine kritischen Probleme identifiziert');
     expect(guarded.guardrailCorrections).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: 'MISLEADING_TIMEOUT_RELIEF_BLOCKED' }),
@@ -2955,6 +2988,7 @@ describe('personal-agent.service', () => {
     expect(typeof result.domainIntent).toBe('string');
     expect(typeof result.evidenceStatus).toBe('string');
     expect(Array.isArray(result.missingEvidence)).toBe(true);
+    expect(Array.isArray(result.nextVerificationSteps)).toBe(true);
     expect(Array.isArray(result.guardrailCorrections)).toBe(true);
   });
 
