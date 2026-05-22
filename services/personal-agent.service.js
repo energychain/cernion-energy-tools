@@ -3119,6 +3119,7 @@ module.exports = {
           label: obs.action || 'Überprüfung',
           summary: String(obs.summary || obs.result?.description || obs.error || 'durchgeführt').slice(0, 200),
         }));
+      const uncertaintyNote = this.buildConsultationVnbUncertaintyNote(message, observations);
 
       return {
         reply:
@@ -3127,6 +3128,7 @@ module.exports = {
           (topFacts.length > 0
             ? topFacts.map((f) => `${f.label}: ${f.summary}`).join('; ')
             : 'Keine kritischen Probleme identifiziert.') +
+          uncertaintyNote +
           ' Bitte nutzen Sie den Ausführungs-Modus, um konkrete nächste Schritte zu initiieren.',
         hypotheses: [],
         openQuestions: [],
@@ -3151,6 +3153,36 @@ module.exports = {
       };
     },
 
+    buildConsultationVnbUncertaintyNote(message = '', observations = []) {
+      const observationList = Array.isArray(observations) ? observations : [];
+      const hasVerifiedVnbLookup = observationList.some(
+        (obs) =>
+          obs?.action === 'grid-operations.vnbLookup' &&
+          obs?.status === 'completed' &&
+          !obs?.error &&
+          obs?.result?.error == null
+      );
+
+      const hasMarketPartnersContext = observationList.some(
+        (obs) => obs?.action === 'grid-operations.marketPartners'
+      );
+
+      const hasVnbContext =
+        /(?:\bvnb\b|\bnetzbetreiber\b|\bnetzgebiet\b|\bnetzzone\b|\bstandort\b|\banschluss\b|\bbdew\b|\bmarktlokation\b|\bnetzanschlusspunkt\b)/i.test(
+          String(message || '')
+        ) ||
+        hasMarketPartnersContext ||
+        observationList.some((obs) => obs?.action === 'grid-operations.vnbLookup');
+
+      if (!hasVnbContext || hasVerifiedVnbLookup) {
+        return '';
+      }
+
+      return hasMarketPartnersContext
+        ? ' Die Zuständigkeit des VNB ist noch nicht belastbar verifiziert (Marktpartner-Treffer allein sind kein Netzgebietsnachweis).'
+        : ' Die Zuständigkeit des VNB ist noch nicht belastbar verifiziert.';
+    },
+
     buildConsultationObservationSummaryReply(message = '', observations = [], collectedFacts = [], options = {}) {
       const observationList = Array.isArray(observations) ? observations : [];
       const topFacts = observationList
@@ -3161,17 +3193,8 @@ module.exports = {
         }))
         .filter((item) => Boolean(item.label));
 
-      const hasMarketPartnersOnly =
-        observationList.some(
-          (obs) => obs?.action === 'grid-operations.marketPartners' && obs?.status === 'completed'
-        ) &&
-        !observationList.some(
-          (obs) => obs?.action === 'grid-operations.vnbLookup' && obs?.status === 'completed'
-        );
-
-      const uncertaintyNote = hasMarketPartnersOnly
-        ? ' Die Zuständigkeit des VNB ist noch nicht belastbar verifiziert (Marktpartner-Treffer allein sind kein Netzgebietsnachweis).'
-        : '';
+      const uncertaintyNote = this.buildConsultationVnbUncertaintyNote(message, observationList);
+      const hasUnverifiedVnbContext = Boolean(uncertaintyNote);
 
       return {
         reply:
@@ -3180,7 +3203,7 @@ module.exports = {
             ? topFacts.map((f) => `${f.label}: ${f.summary}`).join('; ')
             : `Zur Anfrage "${String(message || '').slice(0, 120)}" liegt bereits belastbare Evidenz vor.`) +
           uncertaintyNote,
-        hypotheses: hasMarketPartnersOnly
+        hypotheses: hasUnverifiedVnbContext
           ? [
               {
                 statement:
@@ -3190,7 +3213,7 @@ module.exports = {
               },
             ]
           : [],
-        openQuestions: hasMarketPartnersOnly
+        openQuestions: hasUnverifiedVnbContext
           ? [
               {
                 question:
