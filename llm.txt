@@ -5,7 +5,7 @@
 - version: 0.53.9
 - changelog_latest_release: 0.53.9
 - source_files_hash:
-  - CHANGELOG.md: 11a8a087b2f5c8db29c86e4e6e2ef17deec00529982d9787f5e02e6e83efa94a
+  - CHANGELOG.md: 1351cea8c535aa8c8471594e0973bdb7a776f9ae3c7495e43a81df76d17c58ad
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 5d30cd990f6ed8eac314d7f9730847c80c698b2d427132225f91fad2e1ba509d
@@ -17,7 +17,78 @@ It provides a complete implementation picture: architecture, domain knowledge, c
 
 ## Release Provenance
 ### Unreleased (from CHANGELOG)
-n/a
+## [Unreleased]
+
+### Fixed (v0.53.9 Consultation-to-Execution WorkflowType Reconciliation)
+
+- [src/consultation-execution-bridge.js](src/consultation-execution-bridge.js): Added internal deterministic `reconcileSemanticWorkflowType()` so `classifyWorkflowType()` no longer trusts a valid LLM `semanticClassification.workflowType` blindly. Strong domain signals now override semantic drift for BESS, Prosumer/NAP Wallet, EDM/MaKo, Governance/HITL, and MaStR-only inventory cases.
+- [tests/consultation-execution-bridge.test.js](tests/consultation-execution-bridge.test.js): Extended unit coverage for semantic drift reconciliation, including T1/T2/T9-style corrections and governance/EDM overrides.
+- [tests/consultation-execution-bridge-regression.test.js](tests/consultation-execution-bridge-regression.test.js): Extended regression coverage for the live bridge path with wrong semantic and broker inputs, including BESS, Prosumer, Governance, and EDM cases.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Added a real `personal-agent.chat` consultation regression asserting `executionReadiness.workflowType` on the live service path.
+
+### Added (v0.53 Consultation-to-Execution Blocker Fixes)
+
+- [src/consultation-input-extractor.js](src/consultation-input-extractor.js): NEW module providing robust regex-based input extraction from user message, consultation facts, and known context to prevent redundant slot-filling questions. Exports `extractAvailableInputs()` and `isInputAlreadyProvided()`. Handles 12 parameter patterns: Bundesland, Municipality, PostalCode, PowerMW, CapacityMWh, GridOperatorName, BDEW, AssetType, ProjectName, UserRole. **Fixes:** BESS-Screening (Bundesland not re-asked), BESS-Development (already-provided municipality preserved).
+
+- [src/consultation-routing-guardrails.js](src/consultation-routing-guardrails.js): NEW module providing intent-routing validation to prevent false-positive workflow routing. Exports `validateRoutingIntent()` with negative-control logic for 4 key misroutes: (1) advisory_only cannot route to operational intents (e.g., forecast), (2) BESS workflows cannot route to asset-validation without asset context, (3) process/gremium questions cannot route to asset-validation, (4) EDM/market-communication cannot route to asset-validation. **Fixes:** AI-Governance (advisory-only blocks forecast), Process-Governance (blocks asset-validation), EDM (blocks asset-validation).
+
+- [src/consultation-execution-bridge.js](src/consultation-execution-bridge.js): ENHANCED with 6 new workflow types (`MUNICIPAL_ENERGY_SHARING_ASSESSMENT`, `PROCESS_GOVERNANCE_DECISION_MATRIX`, `ZNP_ASSET_MDM_PLANNING`, `EDM_MARKET_COMMUNICATION_DIAGNOSTICS`, `SUPPLIER_PORTFOLIO_FLEX_ASSESSMENT`, `PROSUMER_NAP_WALLET_ONBOARDING`). Enhanced `classifyWorkflowType()` with hierarchical governance → process → domain → fallback ordering. Enhanced `analyzeInputReadiness()` to accept and use `extractedInputs` parameter to de-duplicate already-available inputs. **Fixes:** Incorrect classification into vdmi_asset_validation, ZNP jobs hanging indefinitely.
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): ENHANCED `buildConsultationExecutionArtifact()` method with input extraction and routing validation. ENHANCED `handleConsultationTurnAgentic()` with bounded execution: CONSULTATION_REACT_MAX_ITERATIONS reduced to 4, CONSULTATION_REACT_MAX_MS reduced to 8000 (8 seconds hard timeout), elapsed-time checks at each iteration. Added early-break if synthesis phase has <500ms remaining. **Fixes:** Jobs hanging >300s, unbounded REACT loop.
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): Added `fallbackConsultationReply()` method providing graceful degradation when synthesis times out. Returns structured reply summarizing top 2 observations, guiding user to Execution-Mode without technical schema leaks. **Fixes:** Timeout handling, user guidance on fallback path.
+
+- [tests/consultation-execution-bridge-regression.test.js](tests/consultation-execution-bridge-regression.test.js): NEW regression test suite with 10 test suites (PA-CEB-REGRESSION-001 through PA-CEB-REGRESSION-010) covering all 7 real blackbox findings + 3 edge cases: (1) BESS-Screening Bundesland redundancy, (2) BESS-Development Arnstadt preservation, (3) AI-Governance forecast blocking, (4) Process-Governance asset-validation blocking, (5) Municipal Energy Sharing, (6) EDM asset-validation blocking, (7) ZNP planning, (8) Input extraction de-duplication, (9) responseStrategy preservation, (10) No schema leaks in user-facing questions.
+
+### Added
+
+- [src/consultation-execution-bridge.js](src/consultation-execution-bridge.js): new pure module that converts consultation recommendations into a structured execution artifact — classifies workflow type (`bess_screening`, `bess_development`, `energy_sharing_readiness`, `vnb_identification`, `mastr_inventory`, `advisory_only`), analyses input readiness with prioritised missing-input detection, builds per-workflow executable tool-step plans with evidence gates, and assesses `readiness` / `canExecuteNow`. Governance and AI-transparency prompts are unconditionally routed to `advisory_only`. Domain guardrails hard-coded: MaStR is labeled as context indicator only; `Netzanschlusszusage` is explicitly marked as non-derivable from public APIs.
+- [src/personal-agent-turn-graph.js](src/personal-agent-turn-graph.js): `addWorkflowPlanNode(graph, planArtifact)` — adds a `workflow_plan` node with a `materializes_into` edge from `response:strategy`, plus up to 5 `evidence_gate` child nodes each connected via `gated_by` edges.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `buildConsultationExecutionArtifact()` and `executeConsultationToolPlan()` service methods added. Consultation path now runs the bridge phase between `finalizeTurnGraph` and the final return; result is wrapped in `try/catch` so bridge errors never degrade the consultation reply.
+- [services/personal-agent.service.js](services/personal-agent.service.js): consultation return payload now includes `executionReadiness` (full bridge artifact) and `consultationPlanResults` (tool-step results when `canExecuteNow=true`).
+- [tests/consultation-execution-bridge.test.js](tests/consultation-execution-bridge.test.js): 18 acceptance tests (`PA-CEB-001` – `PA-CEB-018`) covering workflow classification, input readiness analysis, readiness assessment, governance guardrail, MaStR disclaimer, hitl blocking, and `responseStrategy` passthrough.
+- [src/personal-agent-context.js](src/personal-agent-context.js): `resolveContextMutation(prevParams, incomingParams)` — detects decisive scenario parameter changes (`location`, `municipality`, `gridOperatorName`, `bdewCode`, `projectId`, etc.) and returns `{mode: 'append'|'replace', mergedParams, replacedKeys}`. Replace mode discards prior decisive params while retaining non-decisive ones; append mode overlays incoming keys. `DECISIVE_PARAMS` set exported for downstream use.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `resolveContextMutation` applied on every turn before `knownContext` is used. When mode is `replace`, `session.resolvedParams` is rebuilt from non-decisive prior params + all incoming params; jobStore logs a `context_mutation` entry with the replaced keys. Mutation mode and replaced keys are recorded in the `knowledge:orientation` TurnGraph node (`contextMutationMode`, `contextReplacedKeys`).
+- [docs/v0.52-implementation-plans/personal-agent-multi-turn-domain-e2e.md](docs/v0.52-implementation-plans/personal-agent-multi-turn-domain-e2e.md): Multi-turn domain E2E specification covering PA-MT-001 through PA-MT-008, activation instructions, context mutation discipline table, and PA-CM-001 through PA-CM-007 unit test catalogue. (#TDDHermes)
+- [tests/personal-agent-context.test.js](tests/personal-agent-context.test.js): 7 new `resolveContextMutation` unit tests (PA-CM-001 – PA-CM-007) covering append, replace, same-value refinement, null/undefined safety.
+
+- [src/personal-agent-response-strategy.js](src/personal-agent-response-strategy.js):
+
+- [src/personal-agent-response-strategy.js](src/personal-agent-response-strategy.js): shared audience/epistemic-state strategy helper for Personal Agent prompts, onboarding questions, and structured trace metadata with schema-safe fallback wording.
+- [src/personal-agent-state-machine.js](src/personal-agent-state-machine.js): explicit Personal-Agent turn FSM with canonical states (`init`, `session_loaded`, `knowledge_oriented`, `broker_recommended`, `chat_mode_resolved`, `consultation_active`, `execution_planned`, `execution_running`, `synthesizing`, terminal stop states) plus guarded transitions and terminal-state derivation.
+- [src/personal-agent-turn-graph.js](src/personal-agent-turn-graph.js): transient, session-turn-scoped graph model for chat reasoning (`message`, `context`, `knowledge`, `broker`, `tool`, `fact`, `gap`, `answer`) with typed edges and bounded snapshots (MAX_NODES=80, MAX_EDGES=140).
+- [src/personal-agent-execution-state-graph.js](src/personal-agent-execution-state-graph.js): deterministic execution-state graph for chat-mode resolution (`initialized` → `api_params_validated|chat_mode_cached|chat_mode_classified|chat_mode_fallback` → `execution_mode_resolved` → `ready_for_routing`) with stable message fingerprinting.
+- [src/personal-agent-routing-graph.js](src/personal-agent-routing-graph.js): explicit routing-edge decision helper (`consultation_intro`, `consultation_node`, `execution_node`, `mark_unknown_execution_gap`) with confidence-aware gap derivation.
+- [src/execution-trace.js](src/execution-trace.js): structured runtime trace collector for LLM calls, tool invocations, broker decisions and state transitions.
+- [src/tool-call-tracker.js](src/tool-call-tracker.js): unified tool-call accounting for consultation + execution with retries/backoff metadata.
+- [src/mark-execution-gap.js](src/mark-execution-gap.js): normalized execution-gap payload builder (`MARK_UNKNOWN_EXECUTION_GAP`) with explicit reason/suggestions.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `_executeChatCoreLogic()` now instantiates and advances a turn-local state machine across session load, knowledge orientation, broker recommendation, chat-mode resolution, consultation/execution, synthesis, and terminal stop handling.
+- [services/personal-agent.service.js](services/personal-agent.service.js): Phase 2 turn-graph pipeline implemented end-to-end — graph construction starts at message/session context, expands through knowledge orientation + broker routing + tool/fact/evidence-gap nodes, and finalizes before reply synthesis.
+- [services/personal-agent.service.js](services/personal-agent.service.js): chat responses and `agentTrace` now expose a structured `stateMachine` snapshot and `turnGraph` summary so UI and debugging flows can inspect the current turn lifecycle and reasoning graph without parsing free text.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `getSession` now returns the latest persisted `stateMachine` and `turnGraph` snapshots for frontend rehydration and chat continuity inspection.
+- [tests/personal-agent-execution-state-graph.test.js](tests/personal-agent-execution-state-graph.test.js): unit coverage for deterministic transition path and message-fingerprint stability.
+- [tests/personal-agent-routing-graph.test.js](tests/personal-agent-routing-graph.test.js): unit coverage for explicit consultation/execution/gap edge resolution.
+- [tests/execution-trace.test.js](tests/execution-trace.test.js): unit coverage for LLM/tool/broker/state trace aggregation.
+- [tests/personal-agent-state-machine.test.js](tests/personal-agent-state-machine.test.js): unit coverage for valid transitions, fail-closed invalid transitions, terminal-state derivation, and sanitized transition summaries.
+- [tests/personal-agent-turn-graph.test.js](tests/personal-agent-turn-graph.test.js): unit coverage for turn graph creation, de-duplication of nodes/edges, and finalization behavior.
+
+### Changed
+- [src/personal-agent-context.js](src/personal-agent-context.js): `buildPersistableSessionState()` now also persists sanitized `l3.chatModeSource`, `l3.lastClassification`, and `l3.executionStateGraph` alongside `l3.stateMachine`/`l3.turnGraph` (no L4 raw payload).
+- [services/personal-agent.service.js](services/personal-agent.service.js): chat-mode resolution now follows deterministic precedence `API param → session fingerprint cache → LLM classifier → heuristic → default`; API `chatMode` cannot be overwritten by classifier output.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `agentTrace` now includes `routingDecision`, `executionStateGraph`, and `execution.meta` (LLM/tool/broker/state trace summary).
+- [services/personal-agent.service.js](services/personal-agent.service.js): consultation loop gets early-exit optimization for sufficient first-tool evidence; onboarding reply defaults to deterministic template (LLM rewrite behind `PERSONAL_AGENT_ONBOARDING_LLM=true`).
+- [services/capability-broker.service.js](services/capability-broker.service.js): recommendation payload now includes top-level `capability` and `scoringBreakdown` for explainable routing decisions.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): extended assertions pass for backward-compatible consultation payload shape while exposing new trace metadata via `agentTrace.execution.meta`.
+
+### Technical Details
+- **FSM Lifecycle:** init → session_loaded → knowledge_oriented → broker_recommended → chat_mode_resolved → (consultation_active | execution_planned) → execution_running → synthesizing → (completed | awaiting_user_input | hitl_blocked | error)
+- **Turn Graph Nodes:** message (root), context, knowledge, broker, decision, tool, fact, gap, answer
+- **Turn Graph Edges:** contextualized_by, oriented_by, routes_to, decides, invokes, grounds, requires_evidence, produces
+- **Execution State Graph:** API/cache/LLM/heuristic chat-mode path is tracked as deterministic transition history and persisted in `l3.executionStateGraph`
+- **Routing Decision:** explicit edge resolution surfaced in `agentTrace.routingDecision` (target, confidence, determinism, gapReason)
+- **Execution Meta:** `agentTrace.execution.meta` carries run-level observability (`llmCalls`, `toolCalls`, `brokerDecisions`, `stateTransitions`, `totalMs`)
+- **Persistence:** state-machine + execution-state-graph + turn-graph + classification metadata stored in L3 and rehydrated on session load/reset
+- **Response Exposure:** trace/state structures are exposed as structured metadata (`agentTrace`, `executionStateGraph`) and never injected into free-text `reply`
 
 ## Domain-Specific Business Knowledge (Energy + Utility)
 
@@ -23176,4 +23247,4 @@ process:
 }
 
 ## Integrity
-- llm_txt_sha256: 4f935feadfa81fabb1db9342b257e7486cc4684556903467e769fc023071fb56
+- llm_txt_sha256: 0b5ddd3cfbd403fff7612cad6bd12c5128e3b3f61c7a5af16fc5abbeca6254ff

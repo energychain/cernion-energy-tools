@@ -2776,6 +2776,7 @@ describe('personal-agent.service', () => {
       });
 
       expect(result.reply).toContain('Kurzfazit auf Basis der erhobenen Tool-Evidenz');
+      expect(result.reply).toContain('Marktpartner-Treffer allein sind kein Netzgebietsnachweis');
       expect(result.reply).not.toContain('Synthese-Phase ist zeitlich erschöpft');
       expect(result.reply).not.toContain('Eine Abregelung hängt typischerweise');
       expect(result.debugTrace || []).toEqual(
