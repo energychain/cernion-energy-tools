@@ -183,11 +183,25 @@ Neu ab v0.53.9 (strukturiert, nicht im Freitext `reply`):
       "gapReason": null
     },
     "responseStrategy": {
+      "audienceType": "leadership",
       "audience": "leadership",
       "audienceConfidence": 0.78,
       "epistemicState": "inferable",
       "abstractionLevel": "executive",
       "nextMove": "state_assumption",
+      "nextDialogueMove": "state_assumption",
+      "decisionRole": "strategic_assumption",
+      "confidence": 0.88,
+      "workingAssumptions": [
+        {
+          "type": "working_assumption",
+          "statement": "Vorläufige Annahme: ...",
+          "basis": "contextual-inference",
+          "confidence": "medium",
+          "status": "inferred"
+        }
+      ],
+      "userFacingQuestionStyle": "confirmation",
       "shouldHideInternalSchema": true,
       "assumptionCount": 1
     },

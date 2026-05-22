@@ -9,6 +9,7 @@ const {
   buildPersistableSessionState,
   synthesizeAndPurgeLayer4,
   assertNoL4RawInPersistedState,
+  resolveContextMutation,
 } = require('../src/personal-agent-context');
 const {
   PERSONAL_AGENT_STATES,
@@ -29,7 +30,14 @@ const {
   addEdge,
   finalizeTurnGraph,
   summarizeTurnGraph,
+  addWorkflowPlanNode,
 } = require('../src/personal-agent-turn-graph');
+const {
+  buildConsultationExecutionPlan,
+  EXECUTION_READINESS,
+} = require('../src/consultation-execution-bridge');
+const { extractAvailableInputs, isInputAlreadyProvided } = require('../src/consultation-input-extractor');
+const { validateRoutingIntent } = require('../src/consultation-routing-guardrails');
 const { decideRoutingTarget } = require('../src/personal-agent-routing-graph');
 const { buildExecutionGapResponse } = require('../src/mark-execution-gap');
 const { createExecutionTrace } = require('../src/execution-trace');
@@ -48,6 +56,7 @@ const {
   fillTemplateWithContext,
   pruneUndefinedDeep,
   getMissingInputs,
+  fuzzyClassifyConsultationIntent,
 } = require('../src/personal-agent-routing');
 const {
   shouldBlockSynthesisOnGaps,
@@ -171,10 +180,10 @@ const CONSULTATION_OUTPUT_SCHEMA = {
 };
 
 const CONSULTATION_REACT_MAX_ITERATIONS = Number(
-  process.env.PERSONAL_AGENT_CONSULTATION_REACT_MAX_ITERATIONS || 3
+  process.env.PERSONAL_AGENT_CONSULTATION_REACT_MAX_ITERATIONS || 4
 );
 const CONSULTATION_REACT_MAX_MS = Number(
-  process.env.PERSONAL_AGENT_CONSULTATION_REACT_MAX_MS || 18_000
+  process.env.PERSONAL_AGENT_CONSULTATION_REACT_MAX_MS || 8_000
 );
 const CONSULTATION_TOOL_MAX_ATTEMPTS = Number(
   process.env.PERSONAL_AGENT_CONSULTATION_TOOL_MAX_ATTEMPTS || 2
@@ -882,7 +891,28 @@ module.exports = {
           text: ctx.params.message,
           ts: new Date().toISOString(),
         };
-        const knownContext = { ...(ctx.params.knownContext || {}) };
+
+        // ── Context mutation: append vs. replace ──────────────────────────
+        // If incoming knownContext changes a decisive parameter (location,
+        // operator, project), replace the stored resolvedParams to prevent
+        // old-scenario context bleeding into the new turn.
+        const rawKnownContext = ctx.params.knownContext && typeof ctx.params.knownContext === 'object'
+          ? ctx.params.knownContext
+          : {};
+        const contextMutation = resolveContextMutation(session.resolvedParams, rawKnownContext);
+        if (contextMutation.mode === 'replace') {
+          session.resolvedParams = contextMutation.mergedParams;
+          if (jobStore) {
+            jobStore.appendLog(jobId, 'context_mutation', 12, 'Context replaced', {
+              replacedKeys: contextMutation.replacedKeys,
+            });
+          }
+        } else if (Object.keys(rawKnownContext).length > 0) {
+          session.resolvedParams = contextMutation.mergedParams;
+        }
+        const knownContext = { ...rawKnownContext };
+        // ─────────────────────────────────────────────────────────────────
+
         let knowledgeContext = await this.queryKnowledgeOrientation(ctx, {
           message: ctx.params.message,
           activeDomains: detectRequestedDomains(ctx.params.message),
@@ -895,6 +925,8 @@ module.exports = {
             domainHint: knowledgeContext?.domainHint || null,
             styleHint: knowledgeContext?.styleHint || null,
             activeDomains: detectRequestedDomains(ctx.params.message),
+            contextMutationMode: contextMutation.mode,
+            contextReplacedKeys: contextMutation.replacedKeys.length > 0 ? contextMutation.replacedKeys : null,
           },
         });
         turnGraph = addEdge(turnGraph, {
@@ -919,12 +951,24 @@ module.exports = {
         let plan = null;
         let status = null;
 
-        const brokerRecommendation = await this.getBrokerRecommendation(
+        const brokerRecommendationRaw = await this.getBrokerRecommendation(
           ctx,
           ctx.params.message,
           brokerKnownContext,
           session.resolvedParams,
           session.resolvedCapabilities
+        );
+
+        const semanticClassification = await this.classifyConsultationIntentHybrid(
+          ctx,
+          ctx.params.message,
+          brokerKnownContext,
+          { executionTrace }
+        );
+
+        const brokerRecommendation = this.applyConsultationGuardrailsToBroker(
+          brokerRecommendationRaw,
+          semanticClassification
         );
         turnGraph = addNode(turnGraph, {
           id: 'broker:recommendation',
@@ -933,6 +977,11 @@ module.exports = {
           data: {
             intent: brokerRecommendation?.intent || null,
             capability: brokerRecommendation?.capability || null,
+            semanticWorkflowType: semanticClassification?.workflowType || null,
+            semanticConfidence:
+              typeof semanticClassification?.confidence === 'number'
+                ? semanticClassification.confidence
+                : null,
           },
         });
         turnGraph = addEdge(turnGraph, {
@@ -1206,6 +1255,28 @@ module.exports = {
               : [],
             execution,
           });
+          turnGraph = addNode(turnGraph, {
+            id: 'response:strategy',
+            type: 'strategy',
+            label: 'Response strategy',
+            data: {
+              audienceType: responseStrategy.audience || null,
+              epistemicState: responseStrategy.epistemicState || null,
+              abstractionLevel: responseStrategy.abstractionLevel || null,
+              nextDialogueMove: responseStrategy.nextMove || null,
+              decisionRole: responseStrategy.decisionRole || null,
+              confidence:
+                typeof responseStrategy.confidence === 'number' ? responseStrategy.confidence : null,
+              assumptionCount: Array.isArray(responseStrategy.assumptions)
+                ? responseStrategy.assumptions.length
+                : 0,
+            },
+          });
+          turnGraph = addEdge(turnGraph, {
+            from: 'chat:mode',
+            to: 'response:strategy',
+            type: 'shapes',
+          });
           const persisted = buildPersistableSessionState({
             id: sessionId,
             tenantId,
@@ -1285,10 +1356,21 @@ module.exports = {
             });
           }
 
+          const consultationResponseStrategy = this.buildResponseStrategy({
+            message: ctx.params.message,
+            knowledgeContext,
+            knownContext: brokerKnownContext,
+            existingAssumptions: Array.isArray(session.l3?.assumptions)
+              ? session.l3.assumptions
+              : [],
+          });
+
           const consultationResult = await this.handleConsultationTurn(ctx, {
             message: ctx.params.message,
             brokerRecommendation,
             knowledgeContext,
+            responseStrategy: consultationResponseStrategy,
+            semanticClassification,
             session,
             resolvedParams: session.resolvedParams,
             knownContext: brokerKnownContext,
@@ -1348,14 +1430,29 @@ module.exports = {
             }
           );
 
-          const responseStrategy = this.buildResponseStrategy({
-            message: ctx.params.message,
-            knowledgeContext,
-            knownContext,
-            existingAssumptions: Array.isArray(session.l3?.assumptions)
-              ? session.l3.assumptions
-              : [],
-            execution: consultationExecution,
+          // Reuse the responseStrategy that was passed to the consultation LLM
+          const responseStrategy = consultationResponseStrategy;
+          turnGraph = addNode(turnGraph, {
+            id: 'response:strategy',
+            type: 'strategy',
+            label: 'Response strategy',
+            data: {
+              audienceType: responseStrategy.audience || null,
+              epistemicState: responseStrategy.epistemicState || null,
+              abstractionLevel: responseStrategy.abstractionLevel || null,
+              nextDialogueMove: responseStrategy.nextMove || null,
+              decisionRole: responseStrategy.decisionRole || null,
+              confidence:
+                typeof responseStrategy.confidence === 'number' ? responseStrategy.confidence : null,
+              assumptionCount: Array.isArray(responseStrategy.assumptions)
+                ? responseStrategy.assumptions.length
+                : 0,
+            },
+          });
+          turnGraph = addEdge(turnGraph, {
+            from: 'chat:mode',
+            to: 'response:strategy',
+            type: 'shapes',
           });
 
           const finalized = synthesizeAndPurgeLayer4(stackResult.stack, consultationResult.reply);
@@ -1474,6 +1571,45 @@ module.exports = {
           });
 
           turnGraph = finalizeTurnGraph(turnGraph, { status: 'completed' });
+
+          // ═══ Consultation-to-Execution Bridge ═══
+          let executionReadiness = null;
+          let consultationPlanResults = null;
+
+          try {
+            executionReadiness = buildConsultationExecutionPlan({
+              message: ctx.params.message,
+              consultation: consultationPayload,
+              brokerRecommendation,
+              knownContext: brokerKnownContext || {},
+              semanticClassification,
+              responseStrategy: consultationResponseStrategy,
+              executionMode,
+            });
+
+            turnGraph = addWorkflowPlanNode(turnGraph, executionReadiness);
+
+            if (executionReadiness.canExecuteNow && executionReadiness.executableSteps.length > 0) {
+              consultationPlanResults = await this.executeConsultationToolPlan(ctx, {
+                plan: executionReadiness,
+                knownContext: brokerKnownContext || {},
+                session,
+                executionTrace,
+                toolCallTracker,
+              });
+            }
+
+            if (jobStore) {
+              jobStore.appendLog(jobId, 'consultation_execution_bridge', 45,
+                `Execution readiness: ${executionReadiness.readiness} / workflow: ${executionReadiness.workflowType}`,
+                { canExecuteNow: executionReadiness.canExecuteNow, stepCount: executionReadiness.executableSteps.length });
+            }
+          } catch (bridgeError) {
+            executionReadiness = null;
+            consultationPlanResults = null;
+          }
+          // ═══════════════════════════════════════
+
           const consultationExecutionForTrace = {
             ...consultationExecution,
             meta: executionTrace.summarize({
@@ -1517,8 +1653,9 @@ module.exports = {
             fileProcessing,
             routing: consultationRouting,
             responseStrategy,
+            executionReadiness: executionReadiness || null,
+            consultationPlanResults: consultationPlanResults || null,
             plan: {
-              status: 'consulting',
               steps: [],
               onboardingHints: [],
             },
@@ -1790,6 +1927,28 @@ module.exports = {
             : Array.isArray(session.l3?.assumptions)
               ? session.l3.assumptions
               : [],
+        });
+        turnGraph = addNode(turnGraph, {
+          id: 'response:strategy',
+          type: 'strategy',
+          label: 'Response strategy',
+          data: {
+            audienceType: responseStrategy.audience || null,
+            epistemicState: responseStrategy.epistemicState || null,
+            abstractionLevel: responseStrategy.abstractionLevel || null,
+            nextDialogueMove: responseStrategy.nextMove || null,
+            decisionRole: responseStrategy.decisionRole || null,
+            confidence:
+              typeof responseStrategy.confidence === 'number' ? responseStrategy.confidence : null,
+            assumptionCount: Array.isArray(responseStrategy.assumptions)
+              ? responseStrategy.assumptions.length
+              : 0,
+          },
+        });
+        turnGraph = addEdge(turnGraph, {
+          from: 'chat:mode',
+          to: 'response:strategy',
+          type: 'shapes',
         });
 
         let synthesisText = this.synthesizeTurn({
@@ -2555,6 +2714,119 @@ module.exports = {
       return buildPersonalAgentStrategyLead(responseStrategy || {});
     },
 
+    /**
+     * Wraps buildConsultationExecutionPlan for service-level use.
+     * Enhanced with input extraction and routing validation.
+     */
+    buildConsultationExecutionArtifact(
+      _ctx,
+      {
+        message,
+        consultation,
+        brokerRecommendation,
+        knownContext,
+        semanticClassification,
+        responseStrategy,
+        executionMode,
+      }
+    ) {
+      // 1. Extract available inputs from message, consultation facts, and known context
+      const extractedInputs = extractAvailableInputs(
+        message,
+        consultation?.factsUsed || {},
+        knownContext || {}
+      );
+
+      // 2. Classify workflow and validate routing intent
+      const { classifyWorkflowType } = require('../src/consultation-execution-bridge');
+      const workflowType = classifyWorkflowType({
+        message,
+        consultation: {
+          ...(consultation || {}),
+          semanticClassification:
+            semanticClassification && typeof semanticClassification === 'object'
+              ? semanticClassification
+              : consultation?.semanticClassification || null,
+        },
+        knownContext,
+        brokerRecommendation,
+        extractedInputs,
+      });
+
+      const routingValidation = validateRoutingIntent({
+        workflowType,
+        brokerRecommendation,
+        message,
+      });
+
+      // 3. Use corrected workflow type if routing validation detected a mismatch
+      const finalWorkflowType = routingValidation.correctedWorkflow || workflowType;
+      if (!routingValidation.valid) {
+        this.logger?.warn('Routing intent mismatch detected', {
+          reason: routingValidation.reason,
+          originalWorkflow: workflowType,
+          correctedWorkflow: finalWorkflowType,
+          correctedIntent: routingValidation.correctedIntent,
+        });
+      }
+
+      // 4. Build plan with extracted inputs and corrected workflow
+      return buildConsultationExecutionPlan({
+        message,
+        consultation,
+        brokerRecommendation,
+        knownContext,
+        semanticClassification,
+        extractedInputs,
+        responseStrategy,
+        executionMode,
+      });
+    },
+
+    /**
+     * Executes up to 3 safe, read-only tool steps from a consultation execution plan.
+     * Only called when plan.canExecuteNow === true.
+     */
+    async executeConsultationToolPlan(ctx, { plan, knownContext: _knownContext, session: _session, executionTrace, toolCallTracker }) {
+      const stepsToRun = (Array.isArray(plan.executableSteps) ? plan.executableSteps : [])
+        .filter((s) => s.canExecute)
+        .slice(0, 3);
+
+      const results = [];
+
+      for (const step of stepsToRun) {
+        try {
+          const result = await ctx.call(step.action, step.params || {}, {
+            meta: { ...ctx.meta, $timeout: 5000 },
+          });
+
+          if (executionTrace && typeof executionTrace.addStep === 'function') {
+            executionTrace.addStep({
+              step: step.step,
+              action: step.action,
+              purpose: step.purpose,
+              status: 'success',
+            });
+          }
+          if (toolCallTracker && typeof toolCallTracker.track === 'function') {
+            toolCallTracker.track({ action: step.action, status: 'success', source: 'consultation_plan' });
+          }
+
+          results.push({ step: step.step, action: step.action, status: 'success', result, purpose: step.purpose });
+        } catch (stepError) {
+          results.push({
+            step: step.step,
+            action: step.action,
+            status: 'error',
+            error: String(stepError?.message || stepError),
+            purpose: step.purpose,
+          });
+        }
+      }
+
+      return { results, completedSteps: results.filter((r) => r.status === 'success').length };
+    },
+
     buildConsultationPrompt({
       message,
       brokerRecommendation,
@@ -2655,7 +2927,50 @@ module.exports = {
       ].join('\n');
     },
 
-    buildConsultationToolRegistry({ message, brokerRecommendation, resolvedParams, knowledgeContext } = {}) {
+    /**
+     * Generates a graceful fallback consultation reply when synthesis times out.
+     * Preserves fidelity of collected facts without technical schema leaks.
+     */
+    fallbackConsultationReply(message = '', observations = [], collectedFacts = []) {
+      // Extract top 2 most relevant facts from observations
+      const topFacts = (Array.isArray(observations) ? observations : [])
+        .slice(0, 2)
+        .map((obs) => ({
+          label: obs.action || 'Überprüfung',
+          summary: String(obs.summary || obs.result?.description || obs.error || 'durchgeführt').slice(0, 200),
+        }));
+
+      return {
+        reply:
+          'Ich habe die Beratung eingeleitet und verschiedene Aspekte überprüft. ' +
+          'Die Synthese-Phase ist zeitlich erschöpft, aber ich kann Ihnen bereits folgende Erkenntnisse zusammenfassen: ' +
+          (topFacts.length > 0
+            ? topFacts.map((f) => `${f.label}: ${f.summary}`).join('; ')
+            : 'Keine kritischen Probleme identifiziert.') +
+          ' Bitte nutzen Sie den Ausführungs-Modus, um konkrete nächste Schritte zu initiieren.',
+        hypotheses: [],
+        openQuestions: [],
+        nextActions: [
+          {
+            action: 'Ausführungs-Modus verwenden',
+            description: 'Initiieren Sie einen der verfügbaren Tools zur konkreten Schrittausführung',
+          },
+        ],
+        factsUsed: topFacts.map((f) => f.label),
+        attemptsSummary:
+          collectedFacts.length > 0
+            ? collectedFacts.slice(0, 3).map((item) => ({
+                iteration: item.iteration || 1,
+                tool: item.tool || 'unknown',
+                status: item.status || 'unknown',
+                attempts: item.attempts || 1,
+              }))
+            : [],
+        toolTrace: [],
+      };
+    },
+
+    buildConsultationToolRegistry({ message, brokerRecommendation, resolvedParams, knowledgeContext, responseStrategy = null } = {}) {
       const registry = [];
       const messageText = String(message || '').toLowerCase();
       const knownFacts = resolvedParams && typeof resolvedParams === 'object' ? resolvedParams : {};
@@ -2700,7 +3015,7 @@ module.exports = {
       }
     },
 
-    inferConsultationToolCall({ message, brokerRecommendation, resolvedParams, knowledgeContext, observations = [] } = {}) {
+    inferConsultationToolCall({ message, brokerRecommendation, resolvedParams, knowledgeContext, responseStrategy = null, observations = [] } = {}) {
       const knownFacts = resolvedParams && typeof resolvedParams === 'object' ? resolvedParams : {};
       const messageText = String(message || '').toLowerCase();
       const operatorName =
@@ -2869,6 +3184,7 @@ module.exports = {
       const resolvedParams =
         input.resolvedParams && typeof input.resolvedParams === 'object' ? input.resolvedParams : {};
       const knowledgeContext = input.knowledgeContext || null;
+      const responseStrategy = input.responseStrategy || null;
       const knownContext = input.knownContext || {};
       const executionTrace = input.executionTrace || null;
       const toolCallTracker = input.toolCallTracker || null;
@@ -2886,6 +3202,7 @@ module.exports = {
         brokerRecommendation,
         resolvedParams,
         knowledgeContext,
+        responseStrategy,
       });
 
       if (toolRegistry.length === 0) {
@@ -2991,6 +3308,7 @@ module.exports = {
               brokerRecommendation,
               resolvedParams,
               knowledgeContext,
+              responseStrategy,
               observations,
               toolRegistry,
             }),
@@ -3023,6 +3341,7 @@ module.exports = {
             brokerRecommendation,
             resolvedParams,
             knowledgeContext,
+            responseStrategy,
             observations,
           });
         }
@@ -3271,6 +3590,14 @@ module.exports = {
         return null;
       }
 
+      // Check if synthesis phase has enough time remaining (need at least 500ms)
+      const elapsedMs = Date.now() - startedAt;
+      const remainingMs = CONSULTATION_REACT_MAX_MS - elapsedMs;
+      if (remainingMs < 500) {
+        // Synthesis time exceeded; return graceful fallback
+        return this.fallbackConsultationReply(message, observations, collectedFacts);
+      }
+
       try {
         const synthesisPrompt = this.buildConsultationPrompt({
           message,
@@ -3440,14 +3767,122 @@ module.exports = {
       }
     },
 
+    async classifyConsultationIntentHybrid(ctx, message, knownContext = {}, options = {}) {
+      const fallback = fuzzyClassifyConsultationIntent(message, knownContext, []);
+
+      const systemPrompt = [
+        'Du bist ein Intent-Klassifikator für Consultation-to-Execution im Energiemarkt.',
+        'Klassifiziere die Anfrage strikt als JSON.',
+        'Felder:',
+        '- workflowType',
+        '- personaType',
+        '- domainIntent',
+        '- executionReadinessIntent',
+        '- advisoryOnly (boolean)',
+        '- availableInputs (array)',
+        '- missingInputs (array)',
+        '- confidence (0..1)',
+        '- rationale',
+        'Wichtig: Nutze Semantik, keine starren Keyword-Matches.',
+        'Wenn Governance/Blackbox/AI-Risiko: advisoryOnly=true.',
+      ].join('\n');
+
+      try {
+        const raw = await this.callLlmGenerate(ctx, {
+          system: systemPrompt,
+          user: `Anfrage: ${String(message || '').trim()}\nKontext: ${JSON.stringify(knownContext || {})}`,
+          temperature: 0,
+          maxTokens: 500,
+          trace: {
+            executionTrace: options.executionTrace || null,
+            phase: 'consultation_intent_classifier',
+          },
+        });
+
+        const parsed = this.parseConsultationJsonResponse(raw?.text || raw?.content || raw);
+        if (!parsed || typeof parsed !== 'object') {
+          return fallback;
+        }
+
+        return {
+          workflowType: String(parsed.workflowType || fallback.workflowType),
+          personaType: String(parsed.personaType || fallback.personaType || 'general'),
+          domainIntent: String(parsed.domainIntent || fallback.domainIntent || 'consultation_general'),
+          executionReadinessIntent: String(
+            parsed.executionReadinessIntent || fallback.executionReadinessIntent || 'awaiting_input'
+          ),
+          advisoryOnly: Boolean(parsed.advisoryOnly),
+          availableInputs: Array.isArray(parsed.availableInputs)
+            ? parsed.availableInputs
+            : fallback.availableInputs,
+          missingInputs: Array.isArray(parsed.missingInputs)
+            ? parsed.missingInputs
+            : fallback.missingInputs,
+          confidence: Math.max(0, Math.min(1, Number(parsed.confidence || fallback.confidence || 0))),
+          rationale: String(parsed.rationale || fallback.rationale || 'hybrid-fallback'),
+          source: 'llm',
+        };
+      } catch (_error) {
+        return fallback;
+      }
+    },
+
+    applyConsultationGuardrailsToBroker(brokerRecommendation = {}, semanticClassification = null) {
+      if (!brokerRecommendation || typeof brokerRecommendation !== 'object') {
+        return brokerRecommendation;
+      }
+      if (!semanticClassification || typeof semanticClassification !== 'object') {
+        return brokerRecommendation;
+      }
+
+      const intent = String(brokerRecommendation.intent || '').toLowerCase();
+      const workflowType = String(semanticClassification.workflowType || '').toLowerCase();
+      const advisoryOnly = Boolean(semanticClassification.advisoryOnly);
+
+      const blocksForecast = advisoryOnly && /residual_load_forecast|forecast/.test(intent);
+      const blocksVdmiAsset =
+        /vdmi_asset_validation_governance/.test(intent) &&
+        [
+          'bess_screening',
+          'bess_development',
+          'process_governance_decision_matrix',
+          'edm_market_communication_diagnostics',
+          'prosumer_nap_wallet_onboarding',
+        ].includes(workflowType);
+
+      const blocksMastrInventory =
+        /mastr_asset_inventory/.test(intent) && workflowType === 'prosumer_nap_wallet_onboarding';
+
+      if (!(blocksForecast || blocksVdmiAsset || blocksMastrInventory)) {
+        return brokerRecommendation;
+      }
+
+      return {
+        ...brokerRecommendation,
+        intent: semanticClassification.domainIntent || brokerRecommendation.intent,
+        confidence: Math.min(Number(brokerRecommendation.confidence || 0.5), 0.45),
+        summary: 'hybrid-semantic-guardrail-correction',
+        guardrailCorrection: {
+          applied: true,
+          workflowType: semanticClassification.workflowType,
+          domainIntent: semanticClassification.domainIntent,
+          advisoryOnly,
+        },
+      };
+    },
+
     async handleConsultationTurn(ctx, input = {}) {
       const message = String(input.message || '').trim();
       const brokerRecommendation = input.brokerRecommendation || {};
       const resolvedParams =
         input.resolvedParams && typeof input.resolvedParams === 'object' ? input.resolvedParams : {};
       const knowledgeContext = input.knowledgeContext || null;
+      const responseStrategy = input.responseStrategy || null;
 
-      const agenticConsultation = await this.handleConsultationTurnAgentic(ctx, input);
+      const agenticConsultation = await this.handleConsultationTurnAgentic(ctx, {
+        ...input,
+        responseStrategy,
+      });
       if (agenticConsultation) {
         return agenticConsultation;
       }
@@ -4717,6 +5152,7 @@ module.exports = {
           : null,
         responseStrategy: responseStrategy
           ? {
+              audienceType: responseStrategy.audience || null,
               audience: responseStrategy.audience || null,
               audienceConfidence:
                 typeof responseStrategy.audienceConfidence === 'number'
@@ -4725,6 +5161,16 @@ module.exports = {
               epistemicState: responseStrategy.epistemicState || null,
               abstractionLevel: responseStrategy.abstractionLevel || null,
               nextMove: responseStrategy.nextMove || null,
+              nextDialogueMove: responseStrategy.nextMove || null,
+              decisionRole: responseStrategy.decisionRole || null,
+              confidence:
+                typeof responseStrategy.confidence === 'number'
+                  ? responseStrategy.confidence
+                  : null,
+              workingAssumptions: Array.isArray(responseStrategy.assumptions)
+                ? responseStrategy.assumptions
+                : [],
+              userFacingQuestionStyle: responseStrategy.userFacingQuestionStyle || null,
               shouldHideInternalSchema: Boolean(responseStrategy.shouldHideInternalSchema),
               assumptionCount: Array.isArray(responseStrategy.assumptions)
                 ? responseStrategy.assumptions.length

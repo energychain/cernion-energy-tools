@@ -379,6 +379,29 @@ function buildResponseStrategy(input = {}) {
           ? 'recommend_action'
           : 'answer';
 
+  const decisionRole =
+    audienceResult.audience === AUDIENCES.LEADERSHIP && epistemicState === EPISTEMIC_STATES.MISSING
+      ? 'strategic_clarification'
+      : audienceResult.audience === AUDIENCES.LEADERSHIP &&
+          epistemicState === EPISTEMIC_STATES.INFERABLE
+        ? 'strategic_assumption'
+        : audienceResult.audience === AUDIENCES.LEADERSHIP
+          ? 'strategic_decision'
+          : audienceResult.audience === AUDIENCES.TECHNICAL
+            ? 'technical_validation'
+            : epistemicState === EPISTEMIC_STATES.MISSING
+              ? 'information_gathering'
+              : 'advisory';
+
+  const userFacingQuestionStyle =
+    epistemicState === EPISTEMIC_STATES.MISSING
+      ? 'parametric'
+      : epistemicState === EPISTEMIC_STATES.AMBIGUOUS
+        ? 'clarification'
+        : epistemicState === EPISTEMIC_STATES.INFERABLE
+          ? 'confirmation'
+          : 'none';
+
   return {
     audience: audienceResult.audience,
     audienceConfidence: audienceResult.confidence,
@@ -387,6 +410,8 @@ function buildResponseStrategy(input = {}) {
     nextMove,
     assumptions,
     lead,
+    decisionRole,
+    userFacingQuestionStyle,
     shouldHideInternalSchema: true,
     confidence: Math.min(
       0.99,

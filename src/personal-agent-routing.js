@@ -448,8 +448,135 @@ function getCapabilityScore(message, capability) {
   );
 }
 
+function tokenizeForSemanticRouting(text = '') {
+  return String(text || '')
+    .toLowerCase()
+    .replace(/[\W_]+/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token && token.length >= 3);
+}
+
+function scoreTokenOverlap(messageTokens = [], referenceTokens = []) {
+  if (!Array.isArray(messageTokens) || messageTokens.length === 0) return 0;
+  if (!Array.isArray(referenceTokens) || referenceTokens.length === 0) return 0;
+
+  const ref = new Set(referenceTokens);
+  let overlap = 0;
+  for (const token of messageTokens) {
+    if (ref.has(token)) overlap += 1;
+  }
+  return overlap / Math.max(1, messageTokens.length);
+}
+
+function scoreSemanticCapabilityMatch(message = '', capability = {}) {
+  const messageTokens = tokenizeForSemanticRouting(message);
+  const referenceText = [
+    capability?.capability || '',
+    capability?.intent || '',
+    capability?.domain || '',
+    ...(Array.isArray(capability?.keywords) ? capability.keywords : []),
+    ...(Array.isArray(capability?.risksAndNotes) ? capability.risksAndNotes : []),
+  ]
+    .filter(Boolean)
+    .join(' ');
+  const referenceTokens = tokenizeForSemanticRouting(referenceText);
+
+  const overlap = scoreTokenOverlap(messageTokens, referenceTokens);
+  const lexicalBoost = getCapabilityScore(message, capability) / Math.max(1, (capability?.keywords || []).length);
+  return Number((overlap * 0.7 + lexicalBoost * 0.3).toFixed(4));
+}
+
+function fuzzyClassifyConsultationIntent(message = '', knownContext = {}, extractedInputs = []) {
+  const haystack = String(message || '').toLowerCase();
+  const availableInputs = Array.isArray(extractedInputs) ? extractedInputs : [];
+
+  const semanticProfiles = [
+    {
+      workflowType: 'advisory_only',
+      personaType: 'governance',
+      domainIntent: 'governance_advisory',
+      executionReadinessIntent: 'advisory_only',
+      advisoryOnly: true,
+      terms: ['governance', 'blackbox', 'black box', 'ki', 'ai', 'transparenz', 'aufsicht', 'haftung', 'compliance'],
+    },
+    {
+      workflowType: 'process_governance_decision_matrix',
+      personaType: 'operations_management',
+      domainIntent: 'process_governance',
+      executionReadinessIntent: 'consultation_only',
+      advisoryOnly: true,
+      terms: ['gremium', 'prozess', 'entscheidungsmatrix', 'freigabe', 'ablauf', 'entscheidung'],
+    },
+    {
+      workflowType: 'edm_market_communication_diagnostics',
+      personaType: 'market_communication',
+      domainIntent: 'edm_market_communication',
+      executionReadinessIntent: 'awaiting_input',
+      advisoryOnly: false,
+      terms: ['edm', 'mako', 'marktkommunikation', 'bilanzierung', 'edi', 'datenaustausch', 'nachrichtenformat'],
+    },
+    {
+      workflowType: 'prosumer_nap_wallet_onboarding',
+      personaType: 'prosumer',
+      domainIntent: 'prosumer_onboarding',
+      executionReadinessIntent: 'awaiting_input',
+      advisoryOnly: false,
+      terms: ['prosumer', 'wallet', 'nap', 'netzanschlusspunkt', 'onboarding', 'kundenportal'],
+    },
+    {
+      workflowType: 'bess_screening',
+      personaType: 'grid_planning',
+      domainIntent: 'bess_screening',
+      executionReadinessIntent: 'awaiting_input',
+      advisoryOnly: false,
+      terms: ['bess', 'batteriespeicher', 'großspeicher', 'stromspeicher', 'speicherprojekt', 'mw', 'mwh'],
+    },
+  ];
+
+  const scored = semanticProfiles
+    .map((profile) => {
+      const score = profile.terms.reduce((acc, term) => (haystack.includes(term) ? acc + 1 : acc), 0);
+      return { ...profile, score };
+    })
+    .sort((a, b) => b.score - a.score);
+
+  const best = scored[0] || semanticProfiles[0];
+  const confidence = Math.max(0, Math.min(1, best.score / Math.max(2, best.terms.length * 0.5)));
+
+  const missingInputs = [];
+  if (best.workflowType === 'bess_screening') {
+    const hasState =
+      availableInputs.some((entry) => ['state', 'bundesland'].includes(String(entry?.param || '').toLowerCase())) ||
+      Boolean(knownContext?.state || knownContext?.bundesland);
+    if (!hasState) {
+      missingInputs.push({ param: 'state', label: 'Bundesland oder Region', priority: 'critical' });
+    }
+  }
+
+  return {
+    workflowType: best.workflowType,
+    personaType: best.personaType,
+    domainIntent: best.domainIntent,
+    executionReadinessIntent: best.executionReadinessIntent,
+    advisoryOnly: Boolean(best.advisoryOnly),
+    availableInputs,
+    missingInputs,
+    confidence: Number(confidence.toFixed(2)),
+    rationale:
+      best.score > 0
+        ? `Fuzzy-Semantik-Match auf ${best.workflowType} mit ${best.score} Signalen.`
+        : 'Kein starker semantischer Treffer; konservativer Fallback.',
+    source: 'fuzzy',
+  };
+}
+
 function findBestCapability(message) {
   const haystack = String(message || '').toLowerCase();
+
+  const semanticCapabilityCandidates = CURATED_CAPABILITIES
+    .map((capability) => ({ capability, score: scoreSemanticCapabilityMatch(message, capability) }))
+    .sort((a, b) => b.score - a.score);
+  const semanticTop = semanticCapabilityCandidates[0] || null;
 
   const findCapabilityByName = (capabilityName) =>
     CURATED_CAPABILITIES.find((capability) => capability.capability === capabilityName) || null;
@@ -520,8 +647,6 @@ function findBestCapability(message) {
     'asset-prüfung',
     'asset pruefung',
     'assetklasse',
-    'anlage',
-    'anlagen',
     'evidence',
     'evidenz',
     'nachweis',
@@ -583,18 +708,42 @@ function findBestCapability(message) {
   }
 
   const hasVdmiAssetValidationCombo =
-    /(asset|anlage|anlagen|assetklasse|transformator|trafo)/i.test(haystack) &&
+    /(asset|assetklasse|transformator|trafo|dossier|task\s*-?id)/i.test(haystack) &&
     /(evidence|evidenz|nachweis|beleg|risk|risiko|forbidden|verbotene annahme)/i.test(haystack);
 
+  const hasAdvisoryGovernanceContext =
+    /(ki|ai|black\s*box|blackbox|governance|aufsicht|compliance|haftung)/i.test(haystack);
+  const hasBessContext = /(bess|batteriespeicher|großspeicher|stromspeicher)/i.test(haystack);
+  const hasEdmContext = /(edm|mako|marktkommunikation|bilanzierung|edi|datenaustausch)/i.test(haystack);
+  const hasProsumerContext = /(prosumer|wallet|netzanschlusspunkt|\bnap\b)/i.test(haystack);
+
+  const disallowVdmiAssetValidationByGuardrail =
+    hasAdvisoryGovernanceContext || hasBessContext || hasEdmContext || hasProsumerContext;
+
   if (
-    vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||
-    hasVdmiAssetValidationCombo
+    !disallowVdmiAssetValidationByGuardrail &&
+    (vdmiAssetValidationSignals.some((signal) => haystack.includes(signal)) ||
+      hasVdmiAssetValidationCombo)
   ) {
     const vdmiAssetValidationCapability = findCapabilityByName('vdmi_asset_validation_governance');
     if (vdmiAssetValidationCapability) {
       return {
         capability: vdmiAssetValidationCapability,
         score: 120,
+        usedFallback: false,
+      };
+    }
+  }
+
+  if (
+    hasAdvisoryGovernanceContext &&
+    semanticTop?.capability?.capability === 'residual_load_forecast_for_dso'
+  ) {
+    const governanceFallback = findCapabilityByName('vdmi_role_boundary_governance');
+    if (governanceFallback) {
+      return {
+        capability: governanceFallback,
+        score: 95,
         usedFallback: false,
       };
     }
@@ -653,12 +802,14 @@ function findBestCapability(message) {
         'mastr',
         'redispatch',
         'fernsteuerbarkeit',
-        'anlage',
-        'anlagen',
         'pv',
         'wind',
         'speicher',
       ].some((signal) => haystack.includes(signal));
+
+      if (hasProsumerContext || hasEdmContext) {
+        score = 0;
+      }
 
       const hasCompetingScenarioSignal = [...cyaSignals, ...benchmarkSignals, ...fnavSignals].some(
         (signal) => haystack.includes(signal)
@@ -673,6 +824,15 @@ function findBestCapability(message) {
       best = { capability, score };
     }
   }
+
+  if (semanticTop && semanticTop.score >= 0.42) {
+    return {
+      capability: semanticTop.capability,
+      score: Number((semanticTop.score * 100).toFixed(0)),
+      usedFallback: false,
+    };
+  }
+
   if (!best || best.score === 0) {
     return {
       capability: INTERFACE_PLACEHOLDER_CAPABILITY,
@@ -1387,5 +1547,6 @@ module.exports = {
   pruneUndefinedDeep,
   getMissingInputs,
   detectEvidenceSignalKey,
+  fuzzyClassifyConsultationIntent,
   planEvidence,
 };

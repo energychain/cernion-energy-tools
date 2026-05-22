@@ -348,6 +348,90 @@ function buildPersistableSessionState(input = {}) {
   return payload;
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Context Mutation: append vs. replace
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Decisive scenario parameters.
+ * When ANY of these change between turns the context must be REPLACED, not
+ * appended, to prevent stale location/operator context from bleeding into the
+ * new scenario.
+ */
+const DECISIVE_PARAMS = new Set([
+  'location',
+  'municipality',
+  'city',
+  'postalCode',
+  'state',
+  'bundesland',
+  'latitude',
+  'longitude',
+  'gridOperatorName',
+  'bdewCode',
+  'bdew',
+  'gridOperatorId',
+  'projectId',
+  'scenarioId',
+  'tenantProjectId',
+]);
+
+/**
+ * Determines whether incoming knownContext constitutes an append or a full
+ * replace of the current resolvedParams, and returns the merged result.
+ *
+ * Replace is triggered when:
+ *   - Any DECISIVE_PARAM key is present in the incoming params AND its value
+ *     differs from the corresponding value already stored in prevParams.
+ *
+ * Append is used when:
+ *   - Only non-decisive keys are new/changed, OR
+ *   - Decisive keys match what was already known (refinement of the same scenario).
+ *
+ * @param {object} prevParams   - Current session resolvedParams (L3)
+ * @param {object} incomingParams - Incoming knownContext for this turn
+ * @returns {{ mode: 'append'|'replace', mergedParams: object, replacedKeys: string[] }}
+ */
+function resolveContextMutation(prevParams = {}, incomingParams = {}) {
+  const prev = prevParams && typeof prevParams === 'object' ? prevParams : {};
+  const incoming = incomingParams && typeof incomingParams === 'object' ? incomingParams : {};
+
+  const replacedKeys = [];
+
+  for (const key of Object.keys(incoming)) {
+    if (!DECISIVE_PARAMS.has(key)) continue;
+    const prevVal = prev[key];
+    const newVal = incoming[key];
+    // Only flag as replace if the key is explicitly set in incoming and differs
+    if (newVal !== undefined && newVal !== null && newVal !== '') {
+      const normalizedPrev = prevVal !== undefined && prevVal !== null
+        ? String(prevVal).trim().toLowerCase()
+        : null;
+      const normalizedNew = String(newVal).trim().toLowerCase();
+      if (normalizedPrev !== null && normalizedPrev !== normalizedNew) {
+        replacedKeys.push(key);
+      }
+    }
+  }
+
+  const mode = replacedKeys.length > 0 ? 'replace' : 'append';
+
+  let mergedParams;
+  if (mode === 'replace') {
+    // Discard all previous decisive params; keep non-decisive prev params and
+    // overlay with all incoming params.
+    const prevNonDecisive = Object.fromEntries(
+      Object.entries(prev).filter(([k]) => !DECISIVE_PARAMS.has(k))
+    );
+    mergedParams = { ...prevNonDecisive, ...incoming };
+  } else {
+    // Append: incoming values override matching keys but retain everything else.
+    mergedParams = { ...prev, ...incoming };
+  }
+
+  return { mode, mergedParams, replacedKeys };
+}
+
 module.exports = {
   DEFAULT_MAX_CONTEXT_TOKENS,
   DEFAULT_RESERVATIONS,
@@ -359,4 +443,6 @@ module.exports = {
   estimateTokens,
   assertNoL4RawInPersistedState,
   buildPersistableSessionState,
+  resolveContextMutation,
+  DECISIVE_PARAMS,
 };

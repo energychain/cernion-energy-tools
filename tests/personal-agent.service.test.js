@@ -2717,4 +2717,31 @@ describe('personal-agent.service', () => {
     expect(typeof result.reply).toBe('string');
     expect(result.reply.toLowerCase()).not.toContain('agenttrace');
   });
+
+  it('consultation path preserves responseStrategy for leadership governance questions', async () => {
+    const svc = broker.getLocalService('personal-agent');
+
+    // Build consultation response with leadership strategy
+    const strategy = svc.buildResponseStrategy({
+      message: 'Wie können wir AI-Entscheidungen im Grid transparent halten und Blackbox-Risiken vermeiden?',
+      knowledgeContext: {
+        domainHint: 'grid-governance',
+        synthesisStyle: 'cautionary',
+      },
+    });
+
+    expect(strategy.audience).toBe('leadership');
+    expect(strategy.decisionRole).toBe('strategic_decision');
+    expect(strategy.userFacingQuestionStyle).toBe('none');
+
+    // Verify that buildConsultationPrompt includes the strategy
+    const prompt = svc.buildConsultationPrompt({
+      message: 'Wie können wir AI-Entscheidungen im Grid transparent halten?',
+      brokerRecommendation: { intent: 'grid-governance' },
+      responseStrategy: strategy,
+    });
+
+    expect(prompt).toContain('audience: leadership');
+    expect(prompt).toContain('Entscheidung, Wirkung und Risiko');
+  });
 });

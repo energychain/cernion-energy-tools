@@ -5,6 +5,7 @@ const {
   buildContextStack,
   buildPersistableSessionState,
   synthesizeAndPurgeLayer4,
+  resolveContextMutation,
 } = require('../src/personal-agent-context');
 
 describe('personal-agent-context', () => {
@@ -163,5 +164,76 @@ describe('personal-agent-context', () => {
         },
       })
     ).toThrow('L4_PERSISTENCE_VIOLATION');
+  });
+});
+
+describe('resolveContextMutation', () => {
+  it('PA-CM-001: append when no decisive params change', () => {
+    const result = resolveContextMutation(
+      { municipality: 'Troisdorf', powerMW: 10 },
+      { capacityMWh: 40 }
+    );
+    expect(result.mode).toBe('append');
+    expect(result.replacedKeys).toHaveLength(0);
+    expect(result.mergedParams.municipality).toBe('Troisdorf');
+    expect(result.mergedParams.powerMW).toBe(10);
+    expect(result.mergedParams.capacityMWh).toBe(40);
+  });
+
+  it('PA-CM-002: replace when location changes', () => {
+    const result = resolveContextMutation(
+      { municipality: 'Frankfurt', powerMW: 10 },
+      { municipality: 'München' }
+    );
+    expect(result.mode).toBe('replace');
+    expect(result.replacedKeys).toContain('municipality');
+    // decisive prev params (municipality) are replaced; non-decisive (powerMW) are kept
+    expect(result.mergedParams.municipality).toBe('München');
+    expect(result.mergedParams.powerMW).toBe(10);
+  });
+
+  it('PA-CM-003: append when decisive param is same value (refinement)', () => {
+    const result = resolveContextMutation(
+      { municipality: 'Troisdorf' },
+      { municipality: 'Troisdorf', powerMW: 15 }
+    );
+    expect(result.mode).toBe('append');
+    expect(result.replacedKeys).toHaveLength(0);
+    expect(result.mergedParams.powerMW).toBe(15);
+  });
+
+  it('PA-CM-004: replace when gridOperatorName changes', () => {
+    const result = resolveContextMutation(
+      { municipality: 'Troisdorf', gridOperatorName: 'TWL Netze' },
+      { gridOperatorName: 'Stadtwerke Düsseldorf' }
+    );
+    expect(result.mode).toBe('replace');
+    expect(result.replacedKeys).toContain('gridOperatorName');
+    // municipality is decisive so it is also dropped
+    expect(result.mergedParams.municipality).toBeUndefined();
+  });
+
+  it('PA-CM-005: empty incoming produces append with unchanged params', () => {
+    const result = resolveContextMutation({ municipality: 'Köln', powerMW: 5 }, {});
+    expect(result.mode).toBe('append');
+    expect(result.mergedParams.municipality).toBe('Köln');
+    expect(result.mergedParams.powerMW).toBe(5);
+  });
+
+  it('PA-CM-006: gracefully handles null/undefined inputs', () => {
+    expect(() => resolveContextMutation(null, null)).not.toThrow();
+    const result = resolveContextMutation(undefined, { municipality: 'Bonn' });
+    expect(result.mode).toBe('append');
+    expect(result.mergedParams.municipality).toBe('Bonn');
+  });
+
+  it('PA-CM-007: append does not drop non-decisive prev params', () => {
+    const result = resolveContextMutation(
+      { municipality: 'Troisdorf', powerMW: 10, customerId: 'cx-1' },
+      { powerMW: 20 }
+    );
+    expect(result.mode).toBe('append');
+    expect(result.mergedParams.customerId).toBe('cx-1');
+    expect(result.mergedParams.powerMW).toBe(20);
   });
 });

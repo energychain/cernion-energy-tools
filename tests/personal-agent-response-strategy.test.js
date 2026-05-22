@@ -64,4 +64,55 @@ describe('personal-agent-response-strategy', () => {
     expect([EPISTEMIC_STATES.AMBIGUOUS, EPISTEMIC_STATES.MISSING]).toContain(strategy.epistemicState);
     expect(strategy.shouldHideInternalSchema).toBe(true);
   });
+
+  it('includes decisionRole in strategy output', () => {
+    const leadershipStrategy = buildResponseStrategy({
+      message: 'Bitte gib mir eine Entscheidungsvorlage für den Vorstand.',
+      knownContext: { targetAudience: 'Vorstand' },
+    });
+    expect(leadershipStrategy.decisionRole).toBe('strategic_decision');
+
+    const technicalStrategy = buildResponseStrategy({
+      message: 'Bitte prüfe den BDEW-Code und das JSON-Schema.',
+      knownContext: { gridOperatorName: 'Stadtwerke X' },
+    });
+    expect(technicalStrategy.decisionRole).toBe('technical_validation');
+
+    const missingStrategy = buildResponseStrategy({
+      message: 'Analysiere das bitte.',
+      missingParams: ['location', 'operator'],
+    });
+    expect(['information_gathering', 'advisory']).toContain(missingStrategy.decisionRole);
+  });
+
+  it('includes userFacingQuestionStyle in strategy output', () => {
+    const missingStrategy = buildResponseStrategy({
+      message: 'Was ist der Netzanschlusspunkt?',
+      missingParams: ['location', 'gridOperatorName'],
+    });
+    expect(missingStrategy.userFacingQuestionStyle).toBe('parametric');
+
+    const inferableStrategy = buildResponseStrategy({
+      message: 'Bitte prüfe den BDEW-Code.',
+      knownContext: { gridOperatorName: 'Stadtwerke X' },
+      missingParams: ['gridOperatorBdew'],
+    });
+    expect(inferableStrategy.userFacingQuestionStyle).toBe('confirmation');
+
+    const clearStrategy = buildResponseStrategy({
+      message: 'Bitte gib mir eine Entscheidungsvorlage für den Vorstand.',
+      knownContext: { targetAudience: 'Vorstand', location: 'Berlin', gridOperatorName: 'Netze BW' },
+    });
+    expect(['none', 'confirmation']).toContain(clearStrategy.userFacingQuestionStyle);
+  });
+
+  it('includes confidence in strategy output between 0 and 1', () => {
+    const strategy = buildResponseStrategy({
+      message: 'Bitte gib mir eine Entscheidungsvorlage.',
+      knownContext: { targetAudience: 'Vorstand' },
+    });
+    expect(typeof strategy.confidence).toBe('number');
+    expect(strategy.confidence).toBeGreaterThan(0);
+    expect(strategy.confidence).toBeLessThanOrEqual(1);
+  });
 });

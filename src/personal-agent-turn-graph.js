@@ -124,10 +124,78 @@ function summarizeTurnGraph(graph = null) {
   };
 }
 
+/**
+ * Adds a workflow_plan node (and evidence_gate child nodes) for the
+ * consultation-to-execution bridge artifact. Must be called AFTER
+ * finalizeTurnGraph so the strategy node already exists.
+ *
+ * @param {object} graph          - TurnGraph object
+ * @param {object} planArtifact   - Result of buildConsultationExecutionPlan()
+ * @returns {object} updated graph
+ */
+function addWorkflowPlanNode(graph, planArtifact = {}) {
+  const workflowType = String(planArtifact.workflowType || 'advisory_only');
+  const planNodeId = `workflow:plan:${workflowType}`;
+
+  let next = addNode(graph, {
+    id: planNodeId,
+    type: 'workflow_plan',
+    label: `Execution plan: ${workflowType}`,
+    data: {
+      workflowType,
+      readiness: planArtifact.readiness || null,
+      canExecuteNow: Boolean(planArtifact.canExecuteNow),
+      executableStepCount: Array.isArray(planArtifact.executableSteps)
+        ? planArtifact.executableSteps.length
+        : 0,
+      missingInputCount: Array.isArray(planArtifact.missingInputs)
+        ? planArtifact.missingInputs.length
+        : 0,
+      nextUserQuestion: planArtifact.nextUserQuestion || null,
+    },
+  });
+
+  // Edge: response:strategy → workflow:plan (materializes_into)
+  next = addEdge(next, {
+    from: 'response:strategy',
+    to: planNodeId,
+    type: 'materializes_into',
+  });
+
+  // Evidence gate nodes (up to 5)
+  const gates = Array.isArray(planArtifact.evidenceGates)
+    ? planArtifact.evidenceGates.slice(0, 5)
+    : [];
+
+  gates.forEach((gate) => {
+    const gateId = `evidence:gate:${String(gate.id || gate.label || 'gate').replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 60)}`;
+    next = addNode(next, {
+      id: gateId,
+      type: 'evidence_gate',
+      label: gate.label || gate.id || 'Evidence gate',
+      data: {
+        blockedBy: gate.blockedBy || null,
+        required: Boolean(gate.required),
+        description: gate.description || null,
+      },
+    });
+
+    // Edge: workflow:plan → evidence_gate (gated_by)
+    next = addEdge(next, {
+      from: planNodeId,
+      to: gateId,
+      type: 'gated_by',
+    });
+  });
+
+  return next;
+}
+
 module.exports = {
   createTurnGraph,
   addNode,
   addEdge,
   finalizeTurnGraph,
   summarizeTurnGraph,
+  addWorkflowPlanNode,
 };
