@@ -249,18 +249,25 @@ async function buildToolParametersLLM(ctx, payload = {}) {
 
   const retryHint =
     attempt > 1
-      ? `\nVorheriger Versuch ${attempt - 1} war unzureichend. Nutze alternative Werte/Varianten.`
+      ? `\nVorheriger Versuch ${attempt - 1} war unzureichend.\nWICHTIG: Verwende NUR die oben genannten Feldnamen. Keine alternativen Namen wie 'address', 'ort', 'plz', 'company', 'name'.`
       : '';
+
+  const allowedFields = Object.keys(schema.properties || {});
+  const requiredFields = Array.isArray(schema.required) ? schema.required : [];
 
   const system = [
     'Du bist ein API-Parameter-Generator für ein Energie-Beratungssystem.',
     `Erzeuge nur eine JSON-Payload für den Tool-Call "${toolName}".`,
     '',
+    `ERLAUBTE FELDER (nur diese verwenden): ${allowedFields.join(', ')}`,
+    requiredFields.length > 0 ? `PFlichtfelder: ${requiredFields.join(', ')}` : '',
+    '',
     'SCHEMA:',
     JSON.stringify(schema, null, 2),
     '',
     'REGELN:',
-    '- Nutze ausschließlich Schema-Felder.',
+    '- NUTZE AUSSCHLIESSLICH die erlaubten Feldnamen aus der Liste oben.',
+    '- KEINE alternativen Feldnamen wie "address", "ort", "plz", "company", "name" verwenden.',
     '- Fehlende optionale Felder weglassen.',
     '- Pflichtfelder bestmöglich aus Fakten/Nutzertext ableiten.',
     '- Keine Markdown-Ausgabe, nur ein JSON-Objekt.',
@@ -271,6 +278,8 @@ async function buildToolParametersLLM(ctx, payload = {}) {
     `Nutzerfrage: "${String(userMessage || '').trim()}"`,
     `Bekannte Fakten: ${JSON.stringify(knownFacts || {}, null, 2)}`,
     `Attempt: ${attempt}`,
+    `ERLAUBTE FELDER: ${allowedFields.join(', ')}`,
+    requiredFields.length > 0 ? `Du MUSST zumindest folgende Felder setzen: ${requiredFields.join(', ')}` : '',
   ].join('\n');
 
   try {
