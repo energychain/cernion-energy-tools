@@ -363,6 +363,8 @@ async function executeToolWithRetry(ctx, payload = {}) {
     parser,
     allowOpenApiFallback = true,
     toolTimeoutMs,
+    onAttemptStart,
+    onAttemptError,
   } = payload;
 
   const attemptsLog = [];
@@ -380,6 +382,11 @@ async function executeToolWithRetry(ctx, payload = {}) {
   }
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const attemptStartedAt = Date.now();
+    if (typeof onAttemptStart === 'function') {
+      onAttemptStart({ toolName, attempt, timeoutMs: toolTimeoutMs });
+    }
+
     const parameterResult = await buildToolParametersLLM(ctx, {
       toolName,
       schema,
@@ -391,11 +398,23 @@ async function executeToolWithRetry(ctx, payload = {}) {
     });
 
     if (!parameterResult.params) {
+      const durationMs = Date.now() - attemptStartedAt;
       attemptsLog.push({
         attempt,
         step: 'param-generation',
+        durationMs,
         error: parameterResult.error,
       });
+      if (typeof onAttemptError === 'function') {
+        onAttemptError({
+          toolName,
+          attempt,
+          durationMs,
+          errorCode: 'PARAM_GENERATION_FAILED',
+          errorMessage: parameterResult.error,
+          step: 'param-generation',
+        });
+      }
       continue;
     }
 
@@ -413,23 +432,39 @@ async function executeToolWithRetry(ctx, payload = {}) {
           observation: result,
           params,
           attempt,
+          durationMs: Date.now() - attemptStartedAt,
           attemptsLog,
           schemaSource: schemaResolution.source,
         };
       }
 
+      const durationMs = Date.now() - attemptStartedAt;
       attemptsLog.push({
         attempt,
         step: 'empty-result',
+        durationMs,
         params,
       });
     } catch (error) {
+      const durationMs = Date.now() - attemptStartedAt;
       attemptsLog.push({
         attempt,
         step: 'tool-call',
+        durationMs,
         params,
+        errorCode: error?.code || error?.type || error?.name || 'TOOL_CALL_FAILED',
         error: error?.message || 'TOOL_CALL_FAILED',
       });
+      if (typeof onAttemptError === 'function') {
+        onAttemptError({
+          toolName,
+          attempt,
+          durationMs,
+          errorCode: error?.code || error?.type || error?.name || 'TOOL_CALL_FAILED',
+          errorMessage: error?.message || 'TOOL_CALL_FAILED',
+          step: 'tool-call',
+        });
+      }
     }
   }
 

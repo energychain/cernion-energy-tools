@@ -24,7 +24,17 @@ class ToolCallTracker {
     this.calls = [];
   }
 
-  record({ phase = 'unknown', tool, params = null, success = null, retries = 0, backoffMs = [], result = null, error = null } = {}) {
+  record({
+    phase = 'unknown',
+    tool,
+    params = null,
+    success = null,
+    retries = 0,
+    backoffMs = [],
+    latencyMs = null,
+    result = null,
+    error = null,
+  } = {}) {
     this.calls.push({
       phase,
       tool: tool || 'unknown',
@@ -32,6 +42,7 @@ class ToolCallTracker {
       success,
       retries,
       backoffMs: Array.isArray(backoffMs) ? backoffMs.slice(0, 5) : [],
+      latencyMs: typeof latencyMs === 'number' ? latencyMs : null,
       result: sanitize(result),
       error: error ? String(error).slice(0, 300) : null,
       at: new Date().toISOString(),
