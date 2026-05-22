@@ -77,8 +77,13 @@ describe('Consultation-Execution-Bridge Regression Tests', () => {
       const message = 'BESS-Projekt in Arnstadt, 5MW Leistung, 10MWh Speicher';
       const plan = buildConsultationExecutionPlan({
         message,
-        consultation: {},
+        consultation: {
+          semanticClassification: {
+            workflowType: WORKFLOW_TYPES.SUPPLIER_PORTFOLIO_FLEX_ASSESSMENT,
+          },
+        },
         knownContext: { municipality: 'Arnstadt', powerMW: 5, capacityMWh: 10 },
+        brokerRecommendation: { intent: 'vdmi_asset_validation_governance' },
         extractedInputs: extractAvailableInputs(message, {}, {municipality: 'Arnstadt'}),
       });
 
@@ -107,7 +112,12 @@ describe('Consultation-Execution-Bridge Regression Tests', () => {
       const message = 'Wie handhaben wir KI-Transparenz in der Netzplanung?';
       const plan = buildConsultationExecutionPlan({
         message,
-        consultation: {},
+        consultation: {
+          semanticClassification: {
+            workflowType: WORKFLOW_TYPES.SUPPLIER_PORTFOLIO_FLEX_ASSESSMENT,
+          },
+        },
+        brokerRecommendation: { intent: 'residual_load_forecast' },
         knownContext: {},
       });
 
@@ -183,7 +193,12 @@ describe('Consultation-Execution-Bridge Regression Tests', () => {
       const message = 'Strategie für elektronischen Datenaustausch (EDM) mit Netzbetreiber';
       const plan = buildConsultationExecutionPlan({
         message,
-        consultation: {},
+        consultation: {
+          semanticClassification: {
+            workflowType: WORKFLOW_TYPES.MASTR_INVENTORY,
+          },
+        },
+        brokerRecommendation: { intent: 'mastr_asset_inventory' },
         knownContext: {},
       });
 
@@ -263,6 +278,164 @@ describe('Consultation-Execution-Bridge Regression Tests', () => {
 
       expect(plan.audience).toBe('technical');
       expect(plan.abstractionLevel).toBe('detailed');
+    });
+  });
+
+  /**
+   * PA-CEB-REGRESSION-011: Prosumer NAP wallet onboarding overrides BESS/MaStR drift
+   */
+  describe('PA-CEB-REGRESSION-011: Prosumer NAP wallet onboarding overrides semantic drift', () => {
+    test('household PV/storage/wallbox/NAP signals resolve to prosumer workflow', () => {
+      const plan = buildConsultationExecutionPlan({
+        message:
+          'Haushaltskunde mit PV, Speicher, Wärmepumpe und Wallbox: NAP-Wallet Onboarding mit Rohdaten aus dem Daten-Honeypot vorbereiten.',
+        consultation: {
+          semanticClassification: {
+            workflowType: WORKFLOW_TYPES.BESS_SCREENING,
+          },
+        },
+        brokerRecommendation: { intent: 'mastr_asset_inventory' },
+        knownContext: { municipality: 'Köln' },
+      });
+
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING);
+    });
+  });
+
+  /**
+   * PA-CEB-REGRESSION-012: Exact Dev T1 must not drift to portfolio/flex
+   */
+  describe('PA-CEB-REGRESSION-012: Dev T1 BESS context dominates portfolio flex wording', () => {
+    test('project_developer + bess_grid_connection + Thueringen resolves to bess_screening', () => {
+      const plan = buildConsultationExecutionPlan({
+        message:
+          'Ich bin Projektentwickler fuer einen Batteriespeicher in Thueringen. Ich moechte mit Cernion einen geeigneten Netzanschlusspunkt finden und die wirtschaftlich beste flexible Anschlussloesung einschaetzen. Welche Schritte empfiehlst du?',
+        consultation: {
+          semanticClassification: {
+            workflowType: WORKFLOW_TYPES.SUPPLIER_PORTFOLIO_FLEX_ASSESSMENT,
+          },
+        },
+        knownContext: {
+          role: 'project_developer',
+          domain: 'bess_grid_connection',
+          region: 'Thueringen',
+        },
+        brokerRecommendation: {
+          intent: 'mastr_asset_inventory',
+          capability: 'mastr_asset_inventory',
+        },
+      });
+
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.BESS_SCREENING);
+    });
+  });
+
+  /**
+   * PA-CEB-REGRESSION-013: region='Thueringen' satisfies state requirement, asks for municipality
+   */
+  describe('PA-CEB-REGRESSION-013: region satisfies state, next question is municipality', () => {
+    test('knownContext.region does not trigger missingInputs for state', () => {
+      const plan = buildConsultationExecutionPlan({
+        message:
+          'Ich bin Projektentwickler fuer einen Batteriespeicher in Thueringen. Welche Schritte empfiehlst du?',
+        consultation: {},
+        knownContext: { region: 'Thueringen' },
+      });
+      const missingState = (plan.missingInputs || []).find((m) =>
+        ['state', 'bundesland', 'region'].includes(m.param)
+      );
+      expect(missingState).toBeUndefined();
+    });
+
+    test('readiness is awaiting_input, canExecuteNow is false when only region known', () => {
+      const plan = buildConsultationExecutionPlan({
+        message:
+          'Ich bin Projektentwickler fuer einen Batteriespeicher in Thueringen. Welche Schritte empfiehlst du?',
+        consultation: {},
+        knownContext: { region: 'Thueringen' },
+        executionMode: 'auto',
+      });
+      expect(plan.readiness).toBe('awaiting_input');
+      expect(plan.canExecuteNow).toBe(false);
+    });
+
+    test('nextUserQuestion asks for municipality/Standort, not Bundesland', () => {
+      const plan = buildConsultationExecutionPlan({
+        message:
+          'Ich bin Projektentwickler fuer einen Batteriespeicher in Thueringen. Welche Schritte empfiehlst du?',
+        consultation: {},
+        knownContext: { region: 'Thueringen' },
+      });
+      expect(plan.nextUserQuestion).toBeTruthy();
+      expect(plan.nextUserQuestion.toLowerCase()).not.toMatch(/bundesland/);
+      expect(plan.nextUserQuestion.toLowerCase()).toMatch(/gemeinde|standort|plz|ort|municipality/i);
+    });
+  });
+
+  /**
+   * PA-CEB-REGRESSION-014: municipality='Arnstadt' satisfies all location requirements
+   */
+  describe('PA-CEB-REGRESSION-014: municipality satisfies all location requirements', () => {
+    test('knownContext.municipality does not trigger any location missingInputs', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'BESS 20 MW in Arnstadt',
+        consultation: {},
+        knownContext: { municipality: 'Arnstadt', powerMW: 20, capacityMWh: 40 },
+      });
+      const missingLocation = (plan.missingInputs || []).find((m) =>
+        ['state', 'bundesland', 'region', 'municipality'].includes(m.param)
+      );
+      expect(missingLocation).toBeUndefined();
+    });
+
+    test('readiness is not awaiting_input and canExecuteNow is true in auto mode when municipality known', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'BESS 20 MW in Arnstadt',
+        consultation: {},
+        knownContext: { municipality: 'Arnstadt', powerMW: 20, capacityMWh: 40 },
+        executionMode: 'auto',
+      });
+      expect(plan.readiness).not.toBe('awaiting_input');
+      expect(plan.canExecuteNow).toBe(true);
+    });
+
+    test('marketPartners step uses Arnstadt as query param', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'BESS 20 MW in Arnstadt',
+        consultation: {},
+        knownContext: { municipality: 'Arnstadt', powerMW: 20, capacityMWh: 40 },
+      });
+      const partnersStep = (plan.executableSteps || []).find(
+        (s) => s.action === 'grid-operations.marketPartners'
+      );
+      if (partnersStep) {
+        expect(partnersStep.params.query).toBe('Arnstadt');
+      }
+    });
+  });
+
+  describe('PA-CEB-REGRESSION-015: domain-anchored BESS context resists feasibility drift', () => {
+    test('municipality + powerMW + capacityMWh with domain=bess_grid_connection stays bess_screening', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'BESS 20 MW / 40 MWh in Arnstadt',
+        consultation: {
+          semanticClassification: {
+            workflowType: WORKFLOW_TYPES.SUPPLIER_PORTFOLIO_FLEX_ASSESSMENT,
+          },
+        },
+        knownContext: {
+          domain: 'bess_grid_connection',
+          municipality: 'Arnstadt',
+          powerMW: 20,
+          capacityMWh: 40,
+        },
+        brokerRecommendation: {
+          intent: 'feasibility_assessment',
+          capability: 'feasibility_assessment',
+        },
+      });
+
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.BESS_SCREENING);
     });
   });
 

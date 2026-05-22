@@ -81,6 +81,210 @@ function signalText(message, consultation) {
   return `${String(message || '')} ${nextActionText}`;
 }
 
+function normalizeWorkflowSignalText(value = '') {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/ä/g, 'ae')
+    .replace(/ö/g, 'oe')
+    .replace(/ü/g, 'ue')
+    .replace(/ß/g, 'ss')
+    .replace(/[._/\\-]+/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function serializeSignalRecords(records = []) {
+  if (!Array.isArray(records)) {
+    return '';
+  }
+
+  return records
+    .map((record) => {
+      if (record == null) {
+        return '';
+      }
+      if (typeof record !== 'object') {
+        return String(record);
+      }
+      return [
+        record.param,
+        record.label,
+        record.value,
+        record.source,
+        record.statement,
+        record.action,
+        record.description,
+        record.key,
+        record.intent,
+        record.workflowType,
+      ]
+        .filter(Boolean)
+        .join(' ');
+    })
+    .join(' ');
+}
+
+function toKnownContextSignalText(knownContext = {}) {
+  if (!knownContext || typeof knownContext !== 'object') {
+    return '';
+  }
+
+  return Object.entries(knownContext)
+    .map(([key, value]) => `${key} ${Array.isArray(value) ? value.join(' ') : String(value ?? '')}`)
+    .join(' ');
+}
+
+function hasAnyPattern(text, patterns = []) {
+  return patterns.some((pattern) => pattern.test(text));
+}
+
+function hasBessDomainContext(knownContext = {}, extractedContext = {}) {
+  const domainCandidates = [
+    knownContext?.domain,
+    knownContext?.domainHint,
+    extractedContext?.domain,
+    extractedContext?.domainHint,
+  ]
+    .filter(Boolean)
+    .map((value) => normalizeWorkflowSignalText(String(value)))
+    .join(' ');
+
+  if (!domainCandidates) {
+    return false;
+  }
+
+  return hasAnyPattern(domainCandidates, [
+    /\b(bess|battery|batterie|speicher|grid connection|netzanschluss|netzanschlusspunkt|bess grid connection)\b/i,
+  ]);
+}
+
+function buildWorkflowSignalCorpus({
+  message = '',
+  consultation = {},
+  knownContext = {},
+  brokerRecommendation = {},
+  extractedInputs = [],
+} = {}) {
+  return normalizeWorkflowSignalText(
+    [
+      message,
+      consultation?.semanticClassification?.workflowType,
+      serializeSignalRecords(consultation?.factsUsed),
+      serializeSignalRecords(consultation?.nextActions),
+      toKnownContextSignalText(knownContext),
+      serializeSignalRecords(extractedInputs),
+      serializeSignalRecords([brokerRecommendation]),
+    ]
+      .filter(Boolean)
+      .join(' ')
+  );
+}
+
+function reconcileSemanticWorkflowType({
+  message = '',
+  consultation = {},
+  knownContext = {},
+  brokerRecommendation = {},
+  extractedInputs = [],
+} = {}) {
+  const semanticWorkflow = String(consultation?.semanticClassification?.workflowType || '').trim();
+  const validSemanticWorkflow = Object.values(WORKFLOW_TYPES).includes(semanticWorkflow)
+    ? semanticWorkflow
+    : null;
+
+  if (!validSemanticWorkflow) {
+    return null;
+  }
+
+  const explicitBessDomain =
+    normalizeWorkflowSignalText(String(knownContext?.domain || '')) === 'bess grid connection' ||
+    normalizeWorkflowSignalText(String(knownContext?.domainHint || '')) ===
+      'bess grid connection';
+  const hasProjectMetrics =
+    hasContextKey(knownContext, ['powerMW', 'capacityMW', 'capacityMWh']) ||
+    hasAnyPattern(normalizeWorkflowSignalText(message), [/\b\d+(?:[.,]\d+)?\s*(mw|mwh)\b/i]);
+
+  if (explicitBessDomain && hasProjectMetrics) {
+    return WORKFLOW_TYPES.BESS_SCREENING;
+  }
+
+  const text = buildWorkflowSignalCorpus({
+    message,
+    consultation,
+    knownContext,
+    brokerRecommendation,
+    extractedInputs,
+  });
+
+  const hasAiContext = hasAnyPattern(text, [
+    /\b(ai|ki|artificial intelligence|kuenstliche intelligenz)\b/i,
+  ]);
+  const hasGovernanceSignals = hasAnyPattern(text, [
+    /\b(blackbox|black box|aufsicht|transparenz|erklaerbarkeit|erkl[aä]rb|haftung|compliance|governance|hitl|human in the loop)\b/i,
+  ]);
+  if (hasAiContext && hasGovernanceSignals) {
+    return WORKFLOW_TYPES.ADVISORY_ONLY;
+  }
+
+  const hasProsumerRole = hasAnyPattern(text, [/\b(haushaltskunde|haushalt|endkunde|prosumer)\b/i]);
+  const hasNapWallet = hasAnyPattern(text, [/\b(nap|netzanschlusspunkt|wallet)\b/i]);
+  const hasProsumerDevices = hasAnyPattern(text, [
+    /\b(pv|photovoltaik|waermepumpe|wärmepumpe|wallbox)\b/i,
+    /\bspeicher\b/i,
+  ]);
+  const hasProsumerData = hasAnyPattern(text, [
+    /\b(rohdaten|daten honeypot|datenhoneypot|datenfreigabe|onboarding|kundenportal)\b/i,
+  ]);
+  if (hasNapWallet && (hasProsumerRole || hasProsumerDevices || hasProsumerData)) {
+    return WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING;
+  }
+
+  if (
+    hasAnyPattern(text, [
+      /\b(edm|marktkommunikation|mako|bilanzierung|mabis|wim|utilmd|gpke|edi|datenaustausch)\b/i,
+    ])
+  ) {
+    return WORKFLOW_TYPES.EDM_MARKET_COMMUNICATION_DIAGNOSTICS;
+  }
+
+  const extractedContext = Object.fromEntries(
+    (Array.isArray(extractedInputs) ? extractedInputs : []).map((entry) => [entry?.param, entry?.value])
+  );
+  const hasBessCore =
+    hasAnyPattern(text, [/\b(bess|batteriespeicher|grossspeicher|stromspeicher)\b/i]) ||
+    hasBessDomainContext(knownContext, extractedContext);
+  const hasLocationSignals =
+    hasAnyPattern(text, [/\b(arnstadt|thueringen|thuringen|bundesland|gemeinde|postleitzahl|plz)\b/i]) ||
+    hasContextKey(knownContext, ['municipality', 'location', 'postalCode', 'bundesland', 'state', 'region']) ||
+    hasContextKey(extractedContext, ['municipality', 'location', 'postalCode', 'bundesland', 'state', 'region']);
+  const hasProjectMetricSignals =
+    hasAnyPattern(text, [/\b\d+(?:[.,]\d+)?\s*(mw|mwh)\b/i]) ||
+    hasContextKey(knownContext, ['powerMW', 'capacityMW', 'capacityMWh']) ||
+    hasContextKey(extractedContext, ['powerMW', 'capacityMW', 'capacityMWh']);
+  const hasGridConnectionSignals =
+    hasAnyPattern(text, [
+      /\b(netzanschluss|anschlussloesung|anschlusslösung|flexib(?:el|ler|le)?\s+anschluss|netzbetreiber|vnb|bdew)\b/i,
+    ]) ||
+    hasContextKey(knownContext, ['gridOperatorName', 'bdewCode', 'bdew']) ||
+    hasContextKey(extractedContext, ['gridOperatorName', 'bdewCode', 'bdew']);
+  if (hasBessCore && (hasLocationSignals || hasProjectMetricSignals || hasGridConnectionSignals)) {
+    return WORKFLOW_TYPES.BESS_SCREENING;
+  }
+
+  const hasMastrRegister = hasAnyPattern(text, [/\b(mastr|marktstammdaten|anlagenregister)\b/i]);
+  const hasInventorySignals = hasAnyPattern(text, [
+    /\b(bestand|inventar|liste|abfragen|abfrage|zaehlen|zählen|filtern|register)\b/i,
+  ]);
+  if (hasMastrRegister && hasInventorySignals) {
+    return WORKFLOW_TYPES.MASTR_INVENTORY;
+  }
+
+  return validSemanticWorkflow;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Workflow classification
 // ─────────────────────────────────────────────────────────────────────────────
@@ -98,12 +302,21 @@ function signalText(message, consultation) {
  * Note: Uses extractedInputs parameter to avoid redundant extraction.
  */
 function classifyWorkflowType({ message = '', consultation = {}, knownContext = {}, brokerRecommendation = {}, extractedInputs = [] } = {}) {
-  const semanticWorkflow = String(consultation?.semanticClassification?.workflowType || '').trim();
-  if (semanticWorkflow && Object.values(WORKFLOW_TYPES).includes(semanticWorkflow)) {
-    return semanticWorkflow;
+  const reconciledSemanticWorkflow = reconcileSemanticWorkflowType({
+    message,
+    consultation,
+    knownContext,
+    brokerRecommendation,
+    extractedInputs,
+  });
+  if (reconciledSemanticWorkflow) {
+    return reconciledSemanticWorkflow;
   }
 
   const text = signalText(message, consultation);
+  const extractedContext = Object.fromEntries(
+    (Array.isArray(extractedInputs) ? extractedInputs : []).map((entry) => [entry?.param, entry?.value])
+  );
 
   // 1. Explicit domain signals — check BEFORE generic governance patterns
   // (because "strategie" in governance might appear in legitimate domain messages)
@@ -118,12 +331,34 @@ function classifyWorkflowType({ message = '', consultation = {}, knownContext = 
     return WORKFLOW_TYPES.ZNP_ASSET_MDM_PLANNING;
   }
 
-  // 1c. Portfolio / Flexibility / Aggregator
+  // 1c. Strong BESS project context must win over generic portfolio/flex signals
+  const hasStrongBessCore =
+    BESS_SIGNALS.test(text) || hasBessDomainContext(knownContext, extractedContext);
+  const hasStrongBessLocation =
+    /\b(arnstadt|thueringen|thuringen|bundesland|gemeinde|postleitzahl|plz)\b/i.test(text) ||
+    hasContextKey(knownContext, ['municipality', 'location', 'postalCode', 'bundesland', 'state', 'region']) ||
+    hasContextKey(extractedContext, ['municipality', 'location', 'postalCode', 'bundesland', 'state', 'region']);
+  const hasStrongBessMetrics =
+    /\b\d+(?:[.,]\d+)?\s*(mw|mwh)\b/i.test(text) ||
+    hasContextKey(knownContext, ['powerMW', 'capacityMW', 'capacityMWh']) ||
+    hasContextKey(extractedContext, ['powerMW', 'capacityMW', 'capacityMWh']);
+  const hasStrongBessGrid =
+    /\b(netzanschluss|anschlussloesung|anschlusslösung|flexib(?:el|ler|le)?\s+anschluss|netzbetreiber|vnb|bdew|netzanschlusspunkt)\b/i.test(
+      text
+    ) ||
+    hasContextKey(knownContext, ['gridOperatorName', 'bdewCode', 'bdew']) ||
+    hasContextKey(extractedContext, ['gridOperatorName', 'bdewCode', 'bdew']);
+
+  if (hasStrongBessCore && (hasStrongBessLocation || hasStrongBessMetrics || hasStrongBessGrid)) {
+    return WORKFLOW_TYPES.BESS_SCREENING;
+  }
+
+  // 1d. Portfolio / Flexibility / Aggregator
   if (PORTFOLIO_SIGNALS.test(text)) {
     return WORKFLOW_TYPES.SUPPLIER_PORTFOLIO_FLEX_ASSESSMENT;
   }
 
-  // 1d. Prosumer / NAP / Wallet
+  // 1e. Prosumer / NAP / Wallet
   if (PROSUMER_SIGNALS.test(text)) {
     return WORKFLOW_TYPES.PROSUMER_NAP_WALLET_ONBOARDING;
   }
@@ -191,7 +426,18 @@ const BESS_DEV_REQUIRED = [
 ];
 
 const BESS_SCREEN_REQUIRED = [
-  { param: 'state', label: 'Bundesland oder Region', priority: 'critical', keys: ['state', 'bundesland'] },
+  {
+    param: 'state',
+    label: 'Bundesland oder Region',
+    priority: 'critical',
+    keys: ['state', 'bundesland', 'region', 'municipality', 'location', 'postalCode'],
+  },
+  {
+    param: 'municipality',
+    label: 'Gemeinde, PLZ oder konkreter Standort (für VNB-Zuordnung)',
+    priority: 'high',
+    keys: ['municipality', 'location', 'postalCode'],
+  },
 ];
 
 const ES_REQUIRED = [
@@ -357,14 +603,20 @@ function buildExecutablePlan({ workflowType = WORKFLOW_TYPES.ADVISORY_ONLY, know
   }
 
   if (workflowType === WORKFLOW_TYPES.BESS_SCREENING) {
-    const hasState = hasInput(knownContext, ['state', 'bundesland']);
+    const hasState = hasInput(knownContext, ['state', 'bundesland', 'region', 'municipality', 'location', 'postalCode']);
     if (hasState) {
       executableSteps.push({
         step: 1,
         action: 'grid-operations.marketPartners',
         label: 'Netzbetreiber im Bundesland identifizieren',
         params: {
-          query: knownContext.state || knownContext.bundesland,
+          query:
+            knownContext.municipality ||
+            knownContext.location ||
+            knownContext.postalCode ||
+            knownContext.state ||
+            knownContext.bundesland ||
+            knownContext.region,
           limit: 10,
         },
         canExecute: true,
@@ -511,9 +763,10 @@ function assessExecutionReadiness({
   }
 
   const criticalMissing = missingInputs.filter((m) => m.priority === 'critical');
+  const highMissing = missingInputs.filter((m) => m.priority === 'high');
   const canRunSomething = executableSteps.some((s) => s.canExecute);
 
-  if (criticalMissing.length === 0 && canRunSomething) {
+  if (criticalMissing.length === 0 && highMissing.length === 0 && canRunSomething) {
     const readiness = canAutoExecute ? EXECUTION_READINESS.READY : EXECUTION_READINESS.PARTIAL;
     return { readiness, canExecuteNow: canAutoExecute, nextUserQuestion: null };
   }
@@ -521,6 +774,12 @@ function assessExecutionReadiness({
   if (criticalMissing.length > 0) {
     const first = criticalMissing[0];
     const nextUserQuestion = `Zu Ihrer genauen Einordnung: ${first.label}?`;
+    return { readiness: EXECUTION_READINESS.AWAITING_INPUT, canExecuteNow: false, nextUserQuestion };
+  }
+
+  if (highMissing.length > 0) {
+    const first = highMissing[0];
+    const nextUserQuestion = `Können Sie mir ${first.label} nennen, damit ich die Analyse gezielt durchführen kann?`;
     return { readiness: EXECUTION_READINESS.AWAITING_INPUT, canExecuteNow: false, nextUserQuestion };
   }
 

@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (v0.53.9 Agentic Consultation Synthesis Recovery + VNB Verification Guardrails)
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): Added explicit synthesis tracing events for agentic consultation (`consultation_synthesis_start`, `consultation_synthesis_end`, `consultation_synthesis_error`, `consultation_synthesis_null`) with duration telemetry and sanitized error payloads.
+- [services/personal-agent.service.js](services/personal-agent.service.js): When agentic synthesis returns empty/invalid payload or throws, and tool observations exist, the response now falls back to `buildConsultationObservationSummaryReply()` instead of dropping into the legacy non-agentic consultation branch without tool facts.
+- [services/personal-agent.service.js](services/personal-agent.service.js): Hardened VNB resolution follow-up after `grid-operations.marketPartners` by enforcing a `grid-operations.vnbLookup` verification step where possible; prevents premature `mode=final` completion when only market partner context is available.
+- [services/personal-agent.service.js](services/personal-agent.service.js): Observation-based summary now marks uncertainty explicitly when only market partner hits exist without confirmed VNB lookup (`Marktpartner != Zuständigkeitsnachweis`).
+- [src/consultation-execution-bridge.js](src/consultation-execution-bridge.js): Added hard semantic reconciliation override for `knownContext.domain = bess_grid_connection` with project metrics (`powerMW`/`capacityMWh`) so workflow classification remains `bess_screening` instead of drifting to generic feasibility routes.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Added focused regressions for agentic synthesis-null and synthesis-error recovery paths, including debug-trace assertions and prevention of legacy factless fallback when observations exist.
+- [tests/consultation-execution-bridge-regression.test.js](tests/consultation-execution-bridge-regression.test.js): Added focused regression ensuring BESS (`municipality + powerMW + capacityMWh + domain=bess_grid_connection`) remains `bess_screening` under semantic/broker drift.
+
+### Fixed (v0.53.9 Consultation-to-Execution WorkflowType Reconciliation)
+
+- [src/consultation-execution-bridge.js](src/consultation-execution-bridge.js): Added internal deterministic `reconcileSemanticWorkflowType()` so `classifyWorkflowType()` no longer trusts a valid LLM `semanticClassification.workflowType` blindly. Strong domain signals now override semantic drift for BESS, Prosumer/NAP Wallet, EDM/MaKo, Governance/HITL, and MaStR-only inventory cases.
+- [tests/consultation-execution-bridge.test.js](tests/consultation-execution-bridge.test.js): Extended unit coverage for semantic drift reconciliation, including T1/T2/T9-style corrections and governance/EDM overrides.
+- [tests/consultation-execution-bridge-regression.test.js](tests/consultation-execution-bridge-regression.test.js): Extended regression coverage for the live bridge path with wrong semantic and broker inputs, including BESS, Prosumer, Governance, and EDM cases.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Added a real `personal-agent.chat` consultation regression asserting `executionReadiness.workflowType` on the live service path.
+
 ### Added (v0.53 Consultation-to-Execution Blocker Fixes)
 
 - [src/consultation-input-extractor.js](src/consultation-input-extractor.js): NEW module providing robust regex-based input extraction from user message, consultation facts, and known context to prevent redundant slot-filling questions. Exports `extractAvailableInputs()` and `isInputAlreadyProvided()`. Handles 12 parameter patterns: Bundesland, Municipality, PostalCode, PowerMW, CapacityMWh, GridOperatorName, BDEW, AssetType, ProjectName, UserRole. **Fixes:** BESS-Screening (Bundesland not re-asked), BESS-Development (already-provided municipality preserved).

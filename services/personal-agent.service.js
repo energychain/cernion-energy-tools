@@ -183,13 +183,19 @@ const CONSULTATION_REACT_MAX_ITERATIONS = Number(
   process.env.PERSONAL_AGENT_CONSULTATION_REACT_MAX_ITERATIONS || 4
 );
 const CONSULTATION_REACT_MAX_MS = Number(
-  process.env.PERSONAL_AGENT_CONSULTATION_REACT_MAX_MS || 8_000
+  process.env.PERSONAL_AGENT_CONSULTATION_REACT_MAX_MS || 30_000
+);
+const CONSULTATION_SYNTHESIS_MIN_MS = Number(
+  process.env.PERSONAL_AGENT_CONSULTATION_SYNTHESIS_MIN_MS || 5_000
 );
 const CONSULTATION_TOOL_MAX_ATTEMPTS = Number(
   process.env.PERSONAL_AGENT_CONSULTATION_TOOL_MAX_ATTEMPTS || 2
 );
 const CONSULTATION_TOOL_TIMEOUT_MS = Number(
   process.env.PERSONAL_AGENT_CONSULTATION_TOOL_TIMEOUT_MS || 8_000
+);
+const CONSULTATION_MIN_EFFECTIVE_TOOL_TIMEOUT_MS = Number(
+  process.env.PERSONAL_AGENT_CONSULTATION_MIN_EFFECTIVE_TOOL_TIMEOUT_MS || 750
 );
 
 function isNotFound(error) {
@@ -204,6 +210,176 @@ function isActionUnavailable(error) {
     error?.type === 'SERVICE_SCHEMA_ERROR' ||
     error?.name === 'ServiceNotFoundError'
   );
+}
+
+function buildConsultationToolExecutionContext(ctx, brokerOverride = null) {
+  const boundCtxCall = typeof ctx?.call === 'function' ? ctx.call.bind(ctx) : null;
+  const resolvedBroker = brokerOverride || ctx?.broker || null;
+  const boundBrokerCall =
+    resolvedBroker && typeof resolvedBroker.call === 'function'
+      ? resolvedBroker.call.bind(resolvedBroker)
+      : null;
+
+  const call =
+    boundCtxCall ||
+    boundBrokerCall ||
+    (() => {
+      throw new TypeError('ctx.call is not a function');
+    });
+
+  return {
+    call,
+    meta: ctx?.meta && typeof ctx.meta === 'object' ? ctx.meta : {},
+    broker: resolvedBroker,
+  };
+}
+
+function isConsultationDebugEnabled(knownContext = {}) {
+  return knownContext?.debugTrace === true || knownContext?.debugConsultation === true;
+}
+
+function sanitizeConsultationDebugText(value, maxLen = 240) {
+  if (value == null) {
+    return null;
+  }
+
+  return String(value)
+    .replace(/(authorization|api[_-]?key|token|bearer)\s*[:=]\s*[^\s,;]+/gi, '$1=[REDACTED]')
+    .replace(/\bBearer\s+[A-Za-z0-9._-]+\b/gi, 'Bearer [REDACTED]')
+    .replace(/\b(?:sk|ck)_[A-Za-z0-9_-]+\b/g, '[REDACTED]')
+    .slice(0, maxLen);
+}
+
+function sanitizeConsultationDebugError(error) {
+  if (!error) {
+    return null;
+  }
+
+  const normalized = typeof error === 'object' ? error : { message: String(error) };
+  return pruneUndefinedDeep({
+    name: sanitizeConsultationDebugText(normalized.name || 'Error', 80),
+    code: sanitizeConsultationDebugText(normalized.code || normalized.type || null, 80),
+    message: sanitizeConsultationDebugText(normalized.message || String(error), 240),
+  });
+}
+
+function buildConsultationDebugLogMessage(type, payload = {}) {
+  switch (type) {
+    case 'consultation_route_selected':
+      return `Consultation route: ${payload.primaryIntent || 'consultation'} / ${payload.workflowType || 'unknown'}`;
+    case 'consultation_budget_check':
+      return `Budget ${payload.phase || 'check'}: ${payload.remainingMs}ms remaining`;
+    case 'consultation_planner_start':
+      return `Planner start (iteration ${payload.iteration || 0})`;
+    case 'consultation_planner_end':
+      return `Planner end (iteration ${payload.iteration || 0}, ${payload.durationMs}ms)`;
+    case 'consultation_planner_error':
+      return `Planner error (iteration ${payload.iteration || 0}): ${payload.errorMessage || 'unknown error'}`;
+    case 'consultation_tool_start':
+      return `Tool start: ${payload.tool || payload.action || 'unknown'} (attempt ${payload.attempt || 1})`;
+    case 'consultation_tool_end':
+      return `Tool end: ${payload.tool || payload.action || 'unknown'} → ${payload.status || 'unknown'} (${payload.durationMs}ms)`;
+    case 'consultation_tool_error':
+      return `Tool error: ${payload.tool || payload.action || 'unknown'} (attempt ${payload.attempt || 1}) ${payload.errorMessage || 'unknown error'}`;
+    case 'effective_tool_timeout':
+      return `Effective tool timeout: ${payload.tool || payload.action || 'unknown'} -> ${payload.effectiveToolTimeoutMs}ms`;
+    case 'tool_skipped_due_to_budget':
+      return `Tool skipped due to budget: ${payload.tool || payload.action || 'unknown'} (${payload.reason || 'budget'})`;
+    case 'synthesis_budget_reserved':
+      return `Synthesis budget reserved: ${payload.synthesisMinMs}ms`;
+    case 'consultation_observation':
+      return `Observation: ${payload.action || 'unknown'} → ${payload.status || 'unknown'}`;
+    case 'consultation_synthesis_skipped':
+      return `Synthesis skipped: ${payload.reason || 'unknown'} (${payload.remainingMs}ms remaining)`;
+    case 'consultation_synthesis_start':
+      return `Synthesis start (observations=${payload.observationsCount || 0})`;
+    case 'consultation_synthesis_end':
+      return `Synthesis end (${payload.durationMs}ms)`;
+    case 'consultation_synthesis_error':
+      return `Synthesis error (${payload.durationMs || 0}ms): ${payload.errorMessage || 'unknown error'}`;
+    case 'consultation_synthesis_null':
+      return `Synthesis null: ${payload.reason || 'unknown'}`;
+    case 'consultation_fallback_selected':
+      return `Consultation fallback: ${payload.branch || payload.reason || 'unknown'}`;
+    default:
+      return type;
+  }
+}
+
+function buildConsultationDebugProgress(type, payload = {}) {
+  const iteration = typeof payload.iteration === 'number' ? payload.iteration : 0;
+
+  switch (type) {
+    case 'consultation_route_selected':
+      return 25;
+    case 'consultation_budget_check':
+      return Math.min(88, 26 + iteration * 5);
+    case 'consultation_planner_start':
+      return Math.min(88, 28 + iteration * 5);
+    case 'consultation_planner_end':
+      return Math.min(88, 29 + iteration * 5);
+    case 'consultation_tool_start':
+      return Math.min(88, 31 + iteration * 5);
+    case 'consultation_tool_end':
+    case 'consultation_tool_error':
+    case 'effective_tool_timeout':
+    case 'tool_skipped_due_to_budget':
+    case 'consultation_observation':
+      return Math.min(90, 33 + iteration * 5);
+    case 'synthesis_budget_reserved':
+      return 80;
+    case 'consultation_synthesis_skipped':
+      return 82;
+    case 'consultation_synthesis_start':
+      return 84;
+    case 'consultation_synthesis_end':
+      return 89;
+    case 'consultation_synthesis_error':
+    case 'consultation_synthesis_null':
+      return 86;
+    case 'consultation_fallback_selected':
+      return 84;
+    default:
+      return 50;
+  }
+}
+
+function createConsultationDebugRecorder({
+  enabled = false,
+  trace = null,
+  agenticJobStore = null,
+  agenticJobId = null,
+} = {}) {
+  const sink = Array.isArray(trace) ? trace : [];
+
+  return {
+    trace: sink,
+    emit(type, payload = {}) {
+      if (!enabled) {
+        return null;
+      }
+
+      const event = pruneUndefinedDeep({
+        type,
+        at: new Date().toISOString(),
+        ...payload,
+      });
+      sink.push(event);
+
+      if (agenticJobStore && agenticJobId) {
+        const phase = [type, payload.iteration, payload.phase].filter(Boolean).join('_');
+        agenticJobStore.appendLog(
+          agenticJobId,
+          phase,
+          buildConsultationDebugProgress(type, payload),
+          buildConsultationDebugLogMessage(type, payload),
+          event
+        );
+      }
+
+      return event;
+    },
+  };
 }
 
 module.exports = {
@@ -1374,6 +1550,7 @@ module.exports = {
             session,
             resolvedParams: session.resolvedParams,
             knownContext: brokerKnownContext,
+            routingDecision,
             jobId,
             executionTrace,
             toolCallTracker,
@@ -1527,6 +1704,9 @@ module.exports = {
             attemptsSummary: Array.isArray(consultationResult.attemptsSummary)
               ? consultationResult.attemptsSummary
               : [],
+            ...(Array.isArray(consultationResult.debugTrace)
+              ? { debugTrace: consultationResult.debugTrace }
+              : {}),
           };
           const consultationAttempts = Array.isArray(consultationPayload.attemptsSummary)
             ? consultationPayload.attemptsSummary
@@ -2931,7 +3111,7 @@ module.exports = {
      * Generates a graceful fallback consultation reply when synthesis times out.
      * Preserves fidelity of collected facts without technical schema leaks.
      */
-    fallbackConsultationReply(message = '', observations = [], collectedFacts = []) {
+    fallbackConsultationReply(message = '', observations = [], collectedFacts = [], options = {}) {
       // Extract top 2 most relevant facts from observations
       const topFacts = (Array.isArray(observations) ? observations : [])
         .slice(0, 2)
@@ -2967,6 +3147,77 @@ module.exports = {
               }))
             : [],
         toolTrace: [],
+        ...(Array.isArray(options?.debugTrace) ? { debugTrace: options.debugTrace } : {}),
+      };
+    },
+
+    buildConsultationObservationSummaryReply(message = '', observations = [], collectedFacts = [], options = {}) {
+      const observationList = Array.isArray(observations) ? observations : [];
+      const topFacts = observationList
+        .slice(0, 3)
+        .map((obs) => ({
+          label: obs.action || 'Überprüfung',
+          summary: String(obs.summary || obs.result?.description || obs.error || 'durchgeführt').slice(0, 220),
+        }))
+        .filter((item) => Boolean(item.label));
+
+      const hasMarketPartnersOnly =
+        observationList.some(
+          (obs) => obs?.action === 'grid-operations.marketPartners' && obs?.status === 'completed'
+        ) &&
+        !observationList.some(
+          (obs) => obs?.action === 'grid-operations.vnbLookup' && obs?.status === 'completed'
+        );
+
+      const uncertaintyNote = hasMarketPartnersOnly
+        ? ' Die Zuständigkeit des VNB ist noch nicht belastbar verifiziert (Marktpartner-Treffer allein sind kein Netzgebietsnachweis).'
+        : '';
+
+      return {
+        reply:
+          'Kurzfazit auf Basis der erhobenen Tool-Evidenz: ' +
+          (topFacts.length > 0
+            ? topFacts.map((f) => `${f.label}: ${f.summary}`).join('; ')
+            : `Zur Anfrage "${String(message || '').slice(0, 120)}" liegt bereits belastbare Evidenz vor.`) +
+          uncertaintyNote,
+        hypotheses: hasMarketPartnersOnly
+          ? [
+              {
+                statement:
+                  'Die Zuständigkeit des Netzbetreibers ist ohne VNB-Lookup bzw. Netzgebietslogik nicht final bestätigt.',
+                confidence: 'low',
+                evidence: 'Aktuell liegt nur Marktpartner-Kontext vor.',
+              },
+            ]
+          : [],
+        openQuestions: hasMarketPartnersOnly
+          ? [
+              {
+                question:
+                  'Soll ich den zuständigen VNB über vnbLookup bzw. Netzgebietsauflösung verifizieren?',
+                whyRelevant:
+                  'Marktpartner-Suchergebnisse können vom tatsächlich zuständigen VNB abweichen.',
+              },
+            ]
+          : [],
+        nextActions: [
+          {
+            action: 'Ausführungs-Modus verwenden',
+            description: 'Nutzen Sie den Ausführungs-Modus für konkrete nächste Schritte.',
+          },
+        ],
+        factsUsed: topFacts.map((f) => f.label),
+        attemptsSummary:
+          collectedFacts.length > 0
+            ? collectedFacts.slice(0, 3).map((item) => ({
+                iteration: item.iteration || 1,
+                tool: item.tool || 'unknown',
+                status: item.status || 'unknown',
+                attempts: item.attempts || 1,
+              }))
+            : [],
+        toolTrace: [],
+        ...(Array.isArray(options?.debugTrace) ? { debugTrace: options.debugTrace } : {}),
       };
     },
 
@@ -3077,22 +3328,33 @@ module.exports = {
 
         if (topHit) {
           const bdew = topHit.bdewCode || topHit.bdew || '';
-          const city = topHit.contacts?.[0]?.city || topHit.city || '';
-          if (bdew || city) {
-            return {
-              mode: 'tool',
-              thought: 'Der Marktpartner ist gefunden; jetzt verifiziere ich die Zuständigkeit.',
-              toolCall: {
-                action: 'grid-operations.vnbLookup',
-                params: pruneUndefinedDeep({
-                  bdew,
-                  city,
-                  query: topHit.name || operatorName || String(message || '').slice(0, 120),
-                  vnbName: topHit.name || operatorName,
-                }),
-              },
-            };
-          }
+          const city =
+            topHit.contacts?.[0]?.city ||
+            topHit.city ||
+            knownFacts.city ||
+            knownFacts.municipality ||
+            knowledgeContext?.city ||
+            knowledgeContext?.municipality ||
+            '';
+          return {
+            mode: 'tool',
+            thought:
+              'Der Marktpartner ist gefunden; ich verifiziere nun den zuständigen VNB über Lookup/Netzgebietsauflösung.',
+            toolCall: {
+              action: 'grid-operations.vnbLookup',
+              params: pruneUndefinedDeep({
+                bdew,
+                city,
+                query:
+                  topHit.name ||
+                  operatorName ||
+                  knownFacts.municipality ||
+                  knownFacts.location ||
+                  String(message || '').slice(0, 120),
+                vnbName: topHit.name || operatorName,
+              }),
+            },
+          };
         }
       }
 
@@ -3192,6 +3454,18 @@ module.exports = {
       // C) Receive jobId from caller for per-iteration progress logging
       const agenticJobId = input.jobId || null;
       const agenticJobStore = agenticJobId ? require('../src/job-store') : null;
+      const consultationDebugEnabled = isConsultationDebugEnabled(knownContext);
+      const consultationDebugRecorder = createConsultationDebugRecorder({
+        enabled: consultationDebugEnabled,
+        trace: consultationDebugEnabled
+          ? Array.isArray(input.consultationDebugSink)
+            ? input.consultationDebugSink
+            : []
+          : null,
+        agenticJobStore,
+        agenticJobId,
+      });
+      const consultationDebugTrace = consultationDebugRecorder.trace;
 
       if (!message) {
         return null;
@@ -3205,6 +3479,18 @@ module.exports = {
         responseStrategy,
       });
 
+      consultationDebugRecorder.emit('consultation_route_selected', {
+        routeKey: null,
+        routeTarget: input.routingDecision?.target || CHAT_MODES.CONSULTATION,
+        primaryIntent: this.deriveConsultationPrimaryIntent({
+          brokerRecommendation,
+          routingDecision: input.routingDecision || null,
+        }),
+        workflowType: input.semanticClassification?.workflowType || null,
+        capability: brokerRecommendation?.capability || null,
+        plannedToolCalls: toolRegistry.map((tool) => tool.action).slice(0, 10),
+      });
+
       if (toolRegistry.length === 0) {
         return null;
       }
@@ -3214,6 +3500,32 @@ module.exports = {
       const collectedFacts = [];
       let plannerFailed = false;
       const startedAt = Date.now();
+      let iterationsExecuted = 0;
+      let hadUnavailableAttemptOverall = false;
+      let lastToolStatus = null;
+      let lastError = null;
+
+      const emitBudgetCheck = (phase, iteration = null) => {
+        const elapsedMs = Date.now() - startedAt;
+        const remainingMs = CONSULTATION_REACT_MAX_MS - elapsedMs;
+        consultationDebugRecorder.emit('consultation_budget_check', {
+          elapsedMs,
+          remainingMs,
+          maxMs: CONSULTATION_REACT_MAX_MS,
+          iteration,
+          iterationsLeft:
+            typeof iteration === 'number'
+              ? Math.max(CONSULTATION_REACT_MAX_ITERATIONS - iteration, 0)
+              : CONSULTATION_REACT_MAX_ITERATIONS,
+          phase,
+        });
+        return { elapsedMs, remainingMs };
+      };
+
+      consultationDebugRecorder.emit('synthesis_budget_reserved', {
+        maxMs: CONSULTATION_REACT_MAX_MS,
+        synthesisMinMs: CONSULTATION_SYNTHESIS_MIN_MS,
+      });
 
       const summarizeAttempts = (toolResult) => {
         if (!toolResult || typeof toolResult !== 'object') {
@@ -3267,7 +3579,9 @@ module.exports = {
       };
 
       for (let iteration = 1; iteration <= CONSULTATION_REACT_MAX_ITERATIONS; iteration += 1) {
-        if (Date.now() - startedAt >= CONSULTATION_REACT_MAX_MS) {
+        iterationsExecuted = iteration;
+        const loopBudget = emitBudgetCheck('loop_start', iteration);
+        if (loopBudget.elapsedMs >= CONSULTATION_REACT_MAX_MS) {
           toolTrace.push({
             iteration,
             phase: 'guard',
@@ -3292,6 +3606,11 @@ module.exports = {
         }
 
         try {
+          const plannerStartedAt = Date.now();
+          consultationDebugRecorder.emit('consultation_planner_start', {
+            iteration,
+            phase: 'think',
+          });
           const plannerPrompt = [
             'Du bist der interne ReAct-Planer des Personal Agent.',
             'Arbeite in kurzen Schleifen: THINK → ACT → OBSERVE.',
@@ -3329,9 +3648,35 @@ module.exports = {
           stepPlan = this.parseConsultationJsonResponse(
             plannerResponse?.text || plannerResponse?.content || plannerResponse
           );
+          consultationDebugRecorder.emit('consultation_planner_end', {
+            iteration,
+            durationMs: Date.now() - plannerStartedAt,
+          });
         } catch (error) {
           plannerFailed = true;
+          const sanitizedPlannerError = sanitizeConsultationDebugError(error);
+          lastError = sanitizedPlannerError?.message || sanitizedPlannerError?.code || 'planner_failed';
+          consultationDebugRecorder.emit('consultation_planner_error', {
+            iteration,
+            durationMs: null,
+            errorName: sanitizedPlannerError?.name || null,
+            errorCode: sanitizedPlannerError?.code || null,
+            errorMessage: sanitizedPlannerError?.message || null,
+          });
           toolTrace.push({ iteration, phase: 'think', status: 'failed', error: error.message });
+          break;
+        }
+
+        const postPlannerBudget = emitBudgetCheck('post_planner', iteration);
+        if (postPlannerBudget.remainingMs <= CONSULTATION_SYNTHESIS_MIN_MS) {
+          consultationDebugRecorder.emit('tool_skipped_due_to_budget', {
+            iteration,
+            action: stepPlan?.toolCall?.action || null,
+            tool: stepPlan?.toolCall?.action || null,
+            reason: 'insufficient_budget_after_planner',
+            remainingMs: postPlannerBudget.remainingMs,
+            synthesisMinMs: CONSULTATION_SYNTHESIS_MIN_MS,
+          });
           break;
         }
 
@@ -3358,7 +3703,29 @@ module.exports = {
         });
 
         if (String(stepPlan.mode || '').toLowerCase() === 'final' || !stepPlan.toolCall?.action) {
-          break;
+          const hasMarketPartnerObservation = observations.some(
+            (obs) => obs?.action === 'grid-operations.marketPartners' && obs?.status === 'completed'
+          );
+          const hasVerifiedVnbObservation = observations.some(
+            (obs) => obs?.action === 'grid-operations.vnbLookup' && obs?.status === 'completed'
+          );
+          if (hasMarketPartnerObservation && !hasVerifiedVnbObservation) {
+            const enforcedStepPlan = this.inferConsultationToolCall({
+              message,
+              brokerRecommendation,
+              resolvedParams,
+              knowledgeContext,
+              responseStrategy,
+              observations,
+            });
+            if (enforcedStepPlan?.toolCall?.action) {
+              stepPlan = enforcedStepPlan;
+            } else {
+              break;
+            }
+          } else {
+            break;
+          }
         }
 
         let action = String(stepPlan.toolCall.action || '').trim();
@@ -3416,10 +3783,48 @@ module.exports = {
           );
         }
 
-        const toolCtx = {
-          ...ctx,
-          broker: this.broker,
-        };
+        const toolCtx = buildConsultationToolExecutionContext(ctx, this.broker);
+
+        const preToolBudget = emitBudgetCheck('pre_tool', iteration);
+        const effectiveToolTimeoutMs = Math.max(
+          0,
+          Math.min(
+            CONSULTATION_TOOL_TIMEOUT_MS,
+            preToolBudget.remainingMs - CONSULTATION_SYNTHESIS_MIN_MS
+          )
+        );
+        consultationDebugRecorder.emit('effective_tool_timeout', {
+          iteration,
+          action,
+          tool: action,
+          configuredToolTimeoutMs: CONSULTATION_TOOL_TIMEOUT_MS,
+          effectiveToolTimeoutMs,
+          remainingMs: preToolBudget.remainingMs,
+          synthesisMinMs: CONSULTATION_SYNTHESIS_MIN_MS,
+        });
+
+        if (effectiveToolTimeoutMs < CONSULTATION_MIN_EFFECTIVE_TOOL_TIMEOUT_MS) {
+          toolTrace.push({
+            iteration,
+            phase: 'act',
+            action,
+            status: 'skipped-budget',
+            effectiveToolTimeoutMs,
+          });
+          consultationDebugRecorder.emit('tool_skipped_due_to_budget', {
+            iteration,
+            action,
+            tool: action,
+            reason: 'effective_timeout_below_minimum',
+            effectiveToolTimeoutMs,
+            minimumMs: CONSULTATION_MIN_EFFECTIVE_TOOL_TIMEOUT_MS,
+            remainingMs: preToolBudget.remainingMs,
+            synthesisMinMs: CONSULTATION_SYNTHESIS_MIN_MS,
+          });
+          break;
+        }
+
+        const toolStartedAt = Date.now();
 
         const toolResult = await executeToolWithRetry(toolCtx, {
           toolName: action,
@@ -3431,19 +3836,60 @@ module.exports = {
           userMessage: message,
           maxAttempts: CONSULTATION_TOOL_MAX_ATTEMPTS,
           allowOpenApiFallback: true,
-          toolTimeoutMs: CONSULTATION_TOOL_TIMEOUT_MS,
+          toolTimeoutMs: effectiveToolTimeoutMs,
           llmGenerate: async (request) => this.callLlmGenerate(ctx, request),
           parser: (raw) => this.parseConsultationJsonResponse(raw),
+          onAttemptStart: ({ toolName, attempt, timeoutMs }) => {
+            consultationDebugRecorder.emit('consultation_tool_start', {
+              iteration,
+              action: toolName,
+              tool: toolName,
+              attempt,
+              timeoutMs,
+            });
+          },
+          onAttemptError: ({ toolName, attempt, durationMs, errorCode, errorMessage }) => {
+            lastError = sanitizeConsultationDebugText(errorMessage, 240);
+            consultationDebugRecorder.emit('consultation_tool_error', {
+              iteration,
+              action: toolName,
+              tool: toolName,
+              attempt,
+              durationMs,
+              errorCode: sanitizeConsultationDebugText(errorCode, 80),
+              errorMessage: sanitizeConsultationDebugText(errorMessage, 240),
+            });
+          },
         });
 
         const attemptInfo = summarizeAttempts(toolResult);
         const retryCount = Math.max(0, (attemptInfo.attempts || 1) - 1);
+        const toolDurationMs = Date.now() - toolStartedAt;
+        const hadUnavailableAttempt = Array.isArray(toolResult.attemptsLog)
+          ? toolResult.attemptsLog.some((attempt) =>
+              /service not found|service not available|schema error|action not found/i.test(
+                String(attempt?.error || '')
+              )
+            )
+          : false;
+        hadUnavailableAttemptOverall = hadUnavailableAttemptOverall || hadUnavailableAttempt;
+        consultationDebugRecorder.emit('consultation_tool_end', {
+          iteration,
+          action,
+          tool: action,
+          attempt: attemptInfo.attempts,
+          durationMs: toolDurationMs,
+          status: toolResult.success ? 'success' : toolResult.failFast ? 'failed-fast' : 'failed',
+          failFast: Boolean(toolResult.failFast),
+          hadUnavailableAttempt,
+        });
 
         if (toolResult.success) {
           const observation = this.summarizeConsultationObservation(action, toolResult.observation);
           observation.result = toolResult.observation;
           observation.attempts = attemptInfo.attempts;
           observations.push(observation);
+          lastToolStatus = observation.status;
           toolTrace.push({
             iteration,
             phase: 'act',
@@ -3465,6 +3911,7 @@ module.exports = {
             params: toolResult.params || params,
             success: true,
             retries: retryCount,
+            latencyMs: toolDurationMs,
             result: toolResult.observation,
           });
           executionTrace?.recordToolInvocation({
@@ -3472,8 +3919,16 @@ module.exports = {
             tool: action,
             params: toolResult.params || params,
             success: true,
+            latencyMs: toolDurationMs,
             retries: retryCount,
             result: toolResult.observation,
+          });
+          consultationDebugRecorder.emit('consultation_observation', {
+            iteration,
+            action,
+            status: observation.status,
+            error: null,
+            factsCount: collectedFacts.length,
           });
 
           // C) Log OBSERVE phase success
@@ -3509,6 +3964,19 @@ module.exports = {
             break;
           }
 
+          const postToolBudget = emitBudgetCheck('post_tool', iteration);
+          if (postToolBudget.remainingMs <= CONSULTATION_SYNTHESIS_MIN_MS) {
+            consultationDebugRecorder.emit('tool_skipped_due_to_budget', {
+              iteration,
+              action: null,
+              tool: null,
+              reason: 'insufficient_budget_after_tool',
+              remainingMs: postToolBudget.remainingMs,
+              synthesisMinMs: CONSULTATION_SYNTHESIS_MIN_MS,
+            });
+            break;
+          }
+
           continue;
         }
 
@@ -3525,6 +3993,8 @@ module.exports = {
           .join(' | ')
           .slice(0, 400);
         observations.push(observation);
+        lastToolStatus = observation.status;
+        lastError = sanitizeConsultationDebugText(observation.summary, 240);
 
         toolTrace.push({
           iteration,
@@ -3548,6 +4018,7 @@ module.exports = {
           params,
           success: false,
           retries: retryCount,
+          latencyMs: toolDurationMs,
           result: toolResult.observation,
           error: observation.summary,
         });
@@ -3556,9 +4027,17 @@ module.exports = {
           tool: action,
           params,
           success: false,
+          latencyMs: toolDurationMs,
           retries: retryCount,
           result: toolResult.observation,
           error: observation.summary,
+        });
+        consultationDebugRecorder.emit('consultation_observation', {
+          iteration,
+          action,
+          status: observation.status,
+          error: sanitizeConsultationDebugText(observation.summary, 240),
+          factsCount: collectedFacts.length,
         });
 
         // C) Log OBSERVE phase failure
@@ -3573,15 +4052,20 @@ module.exports = {
           );
         }
 
-        const hadUnavailableAttempt = Array.isArray(toolResult.attemptsLog)
-          ? toolResult.attemptsLog.some((attempt) =>
-              /service not found|service not available|schema error|action not found/i.test(
-                String(attempt?.error || '')
-              )
-            )
-          : false;
-
         if (toolResult.failFast || hadUnavailableAttempt) {
+          break;
+        }
+
+        const postToolBudget = emitBudgetCheck('post_tool', iteration);
+        if (postToolBudget.remainingMs <= CONSULTATION_SYNTHESIS_MIN_MS) {
+          consultationDebugRecorder.emit('tool_skipped_due_to_budget', {
+            iteration,
+            action: null,
+            tool: null,
+            reason: 'insufficient_budget_after_tool',
+            remainingMs: postToolBudget.remainingMs,
+            synthesisMinMs: CONSULTATION_SYNTHESIS_MIN_MS,
+          });
           break;
         }
       }
@@ -3593,11 +4077,56 @@ module.exports = {
       // Check if synthesis phase has enough time remaining (need at least 500ms)
       const elapsedMs = Date.now() - startedAt;
       const remainingMs = CONSULTATION_REACT_MAX_MS - elapsedMs;
-      if (remainingMs < 500) {
-        // Synthesis time exceeded; return graceful fallback
-        return this.fallbackConsultationReply(message, observations, collectedFacts);
+      emitBudgetCheck('pre_synthesis', iterationsExecuted || null);
+      consultationDebugRecorder.emit('synthesis_budget_reserved', {
+        phase: 'pre_synthesis',
+        elapsedMs,
+        remainingMs,
+        maxMs: CONSULTATION_REACT_MAX_MS,
+        synthesisMinMs: CONSULTATION_SYNTHESIS_MIN_MS,
+      });
+      if (remainingMs < CONSULTATION_SYNTHESIS_MIN_MS) {
+        // Synthesis budget reserve exceeded
+        consultationDebugRecorder.emit('consultation_synthesis_skipped', {
+          reason: 'remaining_budget_below_synthesis_reserve',
+          remainingMs,
+          synthesisMinMs: CONSULTATION_SYNTHESIS_MIN_MS,
+        });
+
+        if (observations.length > 0) {
+          consultationDebugRecorder.emit('consultation_fallback_selected', {
+            reason: 'budget_summary_from_observations',
+            branch: 'observation_summary_reply',
+            plannerFailed,
+            hadUnavailableAttempt: hadUnavailableAttemptOverall,
+            remainingMs,
+            elapsedMs,
+            iterations: iterationsExecuted,
+            lastToolStatus,
+            lastError,
+          });
+          return this.buildConsultationObservationSummaryReply(message, observations, collectedFacts, {
+            debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
+          });
+        }
+
+        consultationDebugRecorder.emit('consultation_fallback_selected', {
+          reason: 'synthesis_budget_exhausted',
+          branch: 'fallbackConsultationReply',
+          plannerFailed,
+          hadUnavailableAttempt: hadUnavailableAttemptOverall,
+          remainingMs,
+          elapsedMs,
+          iterations: iterationsExecuted,
+          lastToolStatus,
+          lastError,
+        });
+        return this.fallbackConsultationReply(message, observations, collectedFacts, {
+          debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
+        });
       }
 
+      let synthesisStartedAt = null;
       try {
         const synthesisPrompt = this.buildConsultationPrompt({
           message,
@@ -3606,6 +4135,14 @@ module.exports = {
           knowledgeContext,
           observations,
           toolRegistry,
+        });
+
+        synthesisStartedAt = Date.now();
+        consultationDebugRecorder.emit('consultation_synthesis_start', {
+          observationsCount: observations.length,
+          collectedFactsCount: collectedFacts.length,
+          elapsedMs,
+          remainingMs,
         });
 
         const raw = await this.callLlmGenerate(ctx, {
@@ -3619,8 +4156,36 @@ module.exports = {
           },
         });
 
+        consultationDebugRecorder.emit('consultation_synthesis_end', {
+          durationMs: Date.now() - synthesisStartedAt,
+          observationsCount: observations.length,
+        });
+
         const data = raw?.data || raw;
         if (!data || typeof data !== 'object' || !String(data.reply || '').trim()) {
+          consultationDebugRecorder.emit('consultation_synthesis_null', {
+            reason: 'empty_synthesis_payload',
+            durationMs: Date.now() - synthesisStartedAt,
+            observationsCount: observations.length,
+          });
+
+          if (observations.length > 0) {
+            consultationDebugRecorder.emit('consultation_fallback_selected', {
+              reason: 'agentic_synthesis_null_with_observations',
+              branch: 'observation_summary_reply',
+              plannerFailed,
+              hadUnavailableAttempt: hadUnavailableAttemptOverall,
+              remainingMs,
+              elapsedMs,
+              iterations: iterationsExecuted,
+              lastToolStatus,
+              lastError,
+            });
+            return this.buildConsultationObservationSummaryReply(message, observations, collectedFacts, {
+              debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
+            });
+          }
+
           return null;
         }
 
@@ -3638,11 +4203,50 @@ module.exports = {
             attempts: item.attempts,
           })),
           toolTrace,
+          ...(consultationDebugEnabled ? { debugTrace: consultationDebugTrace } : {}),
         };
       } catch (error) {
+        const sanitizedSynthesisError = sanitizeConsultationDebugError(error);
+        consultationDebugRecorder.emit('consultation_synthesis_error', {
+          durationMs:
+            typeof synthesisStartedAt === 'number' ? Math.max(0, Date.now() - synthesisStartedAt) : null,
+          errorName: sanitizedSynthesisError?.name || null,
+          errorCode: sanitizedSynthesisError?.code || null,
+          errorMessage: sanitizedSynthesisError?.message || null,
+          observationsCount: observations.length,
+        });
+
         if (!isActionUnavailable(error)) {
           this.logger?.warn(`Consultation agentic synthesis failed (legacy fallback active): ${error.message}`);
         }
+
+        consultationDebugRecorder.emit('consultation_synthesis_null', {
+          reason: 'synthesis_exception',
+          durationMs:
+            typeof synthesisStartedAt === 'number' ? Math.max(0, Date.now() - synthesisStartedAt) : null,
+          observationsCount: observations.length,
+          errorCode: sanitizedSynthesisError?.code || null,
+          errorMessage: sanitizedSynthesisError?.message || null,
+        });
+
+        if (observations.length > 0) {
+          consultationDebugRecorder.emit('consultation_fallback_selected', {
+            reason: 'agentic_synthesis_exception_with_observations',
+            branch: 'observation_summary_reply',
+            plannerFailed,
+            hadUnavailableAttempt: hadUnavailableAttemptOverall,
+            remainingMs,
+            elapsedMs,
+            iterations: iterationsExecuted,
+            lastToolStatus,
+            lastError:
+              sanitizedSynthesisError?.message || sanitizedSynthesisError?.code || lastError || null,
+          });
+          return this.buildConsultationObservationSummaryReply(message, observations, collectedFacts, {
+            debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
+          });
+        }
+
         return null;
       }
     },
@@ -3878,13 +4482,37 @@ module.exports = {
         input.resolvedParams && typeof input.resolvedParams === 'object' ? input.resolvedParams : {};
       const knowledgeContext = input.knowledgeContext || null;
       const responseStrategy = input.responseStrategy || null;
+      const consultationDebugEnabled = isConsultationDebugEnabled(input.knownContext || {});
+      const consultationDebugSink = consultationDebugEnabled
+        ? Array.isArray(input.consultationDebugSink)
+          ? input.consultationDebugSink
+          : []
+        : null;
 
       const agenticConsultation = await this.handleConsultationTurnAgentic(ctx, {
         ...input,
         responseStrategy,
+        consultationDebugSink,
       });
       if (agenticConsultation) {
         return agenticConsultation;
+      }
+
+      if (consultationDebugEnabled) {
+        createConsultationDebugRecorder({ enabled: true, trace: consultationDebugSink }).emit(
+          'consultation_fallback_selected',
+          {
+            reason: 'agentic_returned_null',
+            branch: 'legacy_non_agentic_consultation',
+            plannerFailed: false,
+            hadUnavailableAttempt: false,
+            remainingMs: null,
+            elapsedMs: null,
+            iterations: null,
+            lastToolStatus: null,
+            lastError: null,
+          }
+        );
       }
 
       const fallback = {
@@ -3918,7 +4546,7 @@ module.exports = {
       };
 
       if (!message) {
-        return fallback;
+        return consultationDebugEnabled ? { ...fallback, debugTrace: consultationDebugSink } : fallback;
       }
 
       try {
@@ -3951,12 +4579,30 @@ module.exports = {
           openQuestions: sanitizeArray(data.openQuestions),
           nextActions: sanitizeArray(data.nextActions),
           factsUsed: sanitizeArray(data.factsUsed),
+          ...(consultationDebugEnabled ? { debugTrace: consultationDebugSink } : {}),
         };
       } catch (error) {
         if (!isActionUnavailable(error)) {
           this.logger?.warn(`Consultation LLM generation failed (fallback active): ${error.message}`);
         }
-        return fallback;
+        if (consultationDebugEnabled) {
+          const sanitizedError = sanitizeConsultationDebugError(error);
+          createConsultationDebugRecorder({ enabled: true, trace: consultationDebugSink }).emit(
+            'consultation_fallback_selected',
+            {
+              reason: 'non_agentic_exception',
+              branch: 'deterministic_consultation_fallback',
+              plannerFailed: false,
+              hadUnavailableAttempt: false,
+              remainingMs: null,
+              elapsedMs: null,
+              iterations: null,
+              lastToolStatus: null,
+              lastError: sanitizedError?.message || sanitizedError?.code || null,
+            }
+          );
+        }
+        return consultationDebugEnabled ? { ...fallback, debugTrace: consultationDebugSink } : fallback;
       }
     },
 
@@ -5189,6 +5835,7 @@ module.exports = {
         stateMachine: summarizeStateMachine(stateMachine),
         executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
         turnGraph: summarizeTurnGraph(turnGraph),
+        consultationDebug: Array.isArray(consultation?.debugTrace) ? consultation.debugTrace : undefined,
         toolAttempts,
       };
     },

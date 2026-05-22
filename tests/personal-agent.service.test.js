@@ -8,6 +8,7 @@ const ObjectStoreService = require('../services/object-store.service');
 const CapabilityBrokerService = require('../services/capability-broker.service');
 const PresentationService = require('../services/presentation.service');
 const PersonalAgentService = require('../services/personal-agent.service');
+const { WORKFLOW_TYPES } = require('../src/consultation-execution-bridge');
 
 describe('personal-agent.service', () => {
   let broker;
@@ -2379,6 +2380,507 @@ describe('personal-agent.service', () => {
     }
   });
 
+  it('keeps consultation tool execution working when ctx.call is non-enumerable', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const plannerResponses = [
+      {
+        text: JSON.stringify({
+          mode: 'tool',
+          thought: 'Ein Netzbetreibername liegt vor, daher starte ich mit marketPartners.',
+          toolCall: {
+            action: 'grid-operations.marketPartners',
+            params: { query: 'TWL Netze', limit: 5 },
+          },
+        }),
+      },
+      {
+        text: JSON.stringify({
+          mode: 'final',
+          thought: 'Genug Evidenz für die Synthese.',
+          reply: '',
+        }),
+      },
+    ];
+    const parameterResponses = [{ text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) }];
+    const synthesisResponse = {
+      data: {
+        reply: 'Die Zuständigkeit wurde anhand der Tool-Evidenz vorläufig eingeordnet.',
+        hypotheses: [],
+        openQuestions: [],
+        nextActions: [],
+        factsUsed: [],
+      },
+    };
+
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
+      if (payload?.schema) {
+        return synthesisResponse;
+      }
+      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+        return parameterResponses.shift();
+      }
+      return plannerResponses.shift() || { text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }) };
+    });
+
+    const mockCtx = {
+      broker,
+      meta: { tenantId: 'tenant-react-non-enum-call', authUser: { userId: 'user-1' } },
+    };
+
+    Object.defineProperty(mockCtx, 'call', {
+      enumerable: false,
+      configurable: true,
+      writable: true,
+      value: jest.fn((action, params) => broker.call(action, params, { meta: mockCtx.meta })),
+    });
+
+    try {
+      const result = await svc.handleConsultationTurn(mockCtx, {
+        message: 'TWL Netze in Burgbernheim: Wie belastbar ist die Zuständigkeitslage?',
+        brokerRecommendation: { intent: 'consultation' },
+        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+      });
+
+      expect(result.reply).toContain('Tool-Evidenz');
+      expect(Array.isArray(result.toolTrace)).toBe(true);
+      expect(result.toolTrace).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            phase: 'act',
+            action: 'grid-operations.marketPartners',
+          }),
+        ])
+      );
+      expect(
+        result.toolTrace.some((entry) => /ctx\.call is not a function/i.test(String(entry?.error || '')))
+      ).toBe(false);
+    } finally {
+      callLlmSpy.mockRestore();
+    }
+  });
+
+  it('includes consultation debug trace on synthesis-budget fallback when debugTrace is enabled', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const originalDateNow = Date.now;
+    const nowValues = [0, 0, 29_750, 29_750];
+    let nowIndex = 0;
+
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
+      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+        return { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) };
+      }
+
+      return {
+        text: JSON.stringify({
+          mode: 'tool',
+          thought: 'Ich starte mit der Marktpartner-Auflösung.',
+          toolCall: {
+            action: 'grid-operations.marketPartners',
+            params: { query: 'TWL Netze', limit: 5 },
+          },
+        }),
+      };
+    });
+
+    Date.now = jest.fn(() => nowValues[Math.min(nowIndex++, nowValues.length - 1)]);
+
+    const mockCtx = {
+      broker,
+      meta: { tenantId: 'tenant-react-debug', authUser: { userId: 'user-1' } },
+      call: jest.fn((action, params) => broker.call(action, params, { meta: mockCtx.meta })),
+    };
+
+    try {
+      const result = await svc.handleConsultationTurn(mockCtx, {
+        message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
+        brokerRecommendation: { intent: 'consultation', capability: 'grid-operations.marketPartners' },
+        semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
+        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim', debugTrace: true },
+      });
+
+      expect(result.reply).toContain('Synthese-Phase ist zeitlich erschöpft');
+      expect(Array.isArray(result.debugTrace)).toBe(true);
+      expect(result.debugTrace).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'consultation_synthesis_skipped' }),
+          expect.objectContaining({
+            type: 'consultation_fallback_selected',
+            branch: 'fallbackConsultationReply',
+            reason: 'synthesis_budget_exhausted',
+          }),
+        ])
+      );
+    } finally {
+      Date.now = originalDateNow;
+      callLlmSpy.mockRestore();
+    }
+  });
+
+  it('does not force timeout fallback when planner+tool exceed 8s but remain within default max budget', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const originalDateNow = Date.now;
+    const nowValues = [0, 0, 16_176, 16_176, 16_176, 16_176, 16_176];
+    let nowIndex = 0;
+
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
+      if (payload?.schema) {
+        return {
+          data: {
+            reply: 'Synthetisierte Antwort trotz langer Vorphase.',
+            hypotheses: [],
+            openQuestions: [],
+            nextActions: [],
+            factsUsed: [],
+          },
+        };
+      }
+
+      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+        return { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) };
+      }
+
+      return {
+        text: JSON.stringify({
+          mode: 'tool',
+          thought: 'Ich starte mit einer Tool-Abfrage.',
+          toolCall: {
+            action: 'grid-operations.marketPartners',
+            params: { query: 'TWL Netze', limit: 5 },
+          },
+        }),
+      };
+    });
+
+    Date.now = jest.fn(() => nowValues[Math.min(nowIndex++, nowValues.length - 1)]);
+
+    const mockCtx = {
+      broker,
+      meta: { tenantId: 'tenant-react-budget-30s', authUser: { userId: 'user-1' } },
+      call: jest.fn((action, params) => broker.call(action, params, { meta: mockCtx.meta })),
+    };
+
+    try {
+      const result = await svc.handleConsultationTurn(mockCtx, {
+        message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
+        brokerRecommendation: { intent: 'consultation', capability: 'grid-operations.marketPartners' },
+        semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
+        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+      });
+
+      expect(result.reply).toContain('Synthetisierte Antwort');
+      expect(result.reply).not.toContain('Synthese-Phase ist zeitlich erschöpft');
+    } finally {
+      Date.now = originalDateNow;
+      callLlmSpy.mockRestore();
+    }
+  });
+
+  it('emits effective tool timeout capped by remaining budget minus synthesis reserve', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const originalDateNow = Date.now;
+    const nowValues = [0, 0, 21_000, 21_000, 21_000, 21_000, 21_000, 21_000];
+    let nowIndex = 0;
+
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
+      if (payload?.schema) {
+        return {
+          data: {
+            reply: 'Antwort nach Budget-kappung.',
+            hypotheses: [],
+            openQuestions: [],
+            nextActions: [],
+            factsUsed: [],
+          },
+        };
+      }
+
+      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+        return { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) };
+      }
+
+      return {
+        text: JSON.stringify({
+          mode: 'tool',
+          thought: 'Tool zuerst.',
+          toolCall: {
+            action: 'grid-operations.marketPartners',
+            params: { query: 'TWL Netze', limit: 5 },
+          },
+        }),
+      };
+    });
+
+    Date.now = jest.fn(() => nowValues[Math.min(nowIndex++, nowValues.length - 1)]);
+
+    const mockCtx = {
+      broker,
+      meta: { tenantId: 'tenant-react-effective-timeout', authUser: { userId: 'user-1' } },
+      call: jest.fn((action, params) => broker.call(action, params, { meta: mockCtx.meta })),
+    };
+
+    try {
+      const result = await svc.handleConsultationTurn(mockCtx, {
+        message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
+        brokerRecommendation: { intent: 'consultation', capability: 'grid-operations.marketPartners' },
+        semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
+        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim', debugTrace: true },
+      });
+
+      const timeoutEvent = (result.debugTrace || []).find((entry) => entry.type === 'effective_tool_timeout');
+      expect(timeoutEvent).toBeTruthy();
+      expect(timeoutEvent.effectiveToolTimeoutMs).toBe(4_000);
+      expect(timeoutEvent.configuredToolTimeoutMs).toBe(8_000);
+    } finally {
+      Date.now = originalDateNow;
+      callLlmSpy.mockRestore();
+    }
+  });
+
+  it('uses observation summary when synthesis reserve is hit after successful tool evidence', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const originalDateNow = Date.now;
+    const nowValues = [0, 0, 100, 200, 200, 200, 210, 300, 29_700, 29_700, 29_700, 29_700];
+    let nowIndex = 0;
+
+    const plannerResponses = [
+      {
+        text: JSON.stringify({
+          mode: 'tool',
+          thought: 'Marktpartner recherchieren.',
+          toolCall: {
+            action: 'grid-operations.marketPartners',
+            params: { query: 'TWL Netze', limit: 5 },
+          },
+        }),
+      },
+      {
+        text: JSON.stringify({
+          mode: 'final',
+          thought: 'Es liegt genug Evidenz vor.',
+          reply: '',
+        }),
+      },
+    ];
+
+    const parameterResponses = [{ text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) }];
+
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
+      if (payload?.schema) {
+        return {
+          data: {
+            reply: 'Dieser Text sollte bei knapper Synthese-Zeit nicht verwendet werden.',
+            hypotheses: [],
+            openQuestions: [],
+            nextActions: [],
+            factsUsed: [],
+          },
+        };
+      }
+
+      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+        return parameterResponses.shift();
+      }
+
+      return plannerResponses.shift() || { text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }) };
+    });
+
+    Date.now = jest.fn(() => nowValues[Math.min(nowIndex++, nowValues.length - 1)]);
+
+    const mockCtx = {
+      broker,
+      meta: { tenantId: 'tenant-react-observation-summary', authUser: { userId: 'user-1' } },
+      call: jest.fn((action, params) => broker.call(action, params, { meta: mockCtx.meta })),
+    };
+
+    try {
+      const result = await svc.handleConsultationTurn(mockCtx, {
+        message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
+        brokerRecommendation: { intent: 'consultation', capability: 'grid-operations.marketPartners' },
+        semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
+        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim', debugTrace: true },
+      });
+
+      expect(result.reply).toContain('Kurzfazit auf Basis der erhobenen Tool-Evidenz');
+      expect(result.reply).not.toContain('Synthese-Phase ist zeitlich erschöpft');
+      expect(result.debugTrace || []).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'consultation_fallback_selected', reason: 'budget_summary_from_observations' }),
+        ])
+      );
+    } finally {
+      Date.now = originalDateNow;
+      callLlmSpy.mockRestore();
+    }
+  });
+
+  it('keeps observation-based recovery when agentic synthesis returns null payload', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const plannerResponses = [
+      {
+        text: JSON.stringify({
+          mode: 'tool',
+          thought: 'Marktpartner recherchieren.',
+          toolCall: {
+            action: 'grid-operations.marketPartners',
+            params: { query: 'TWL Netze', limit: 5 },
+          },
+        }),
+      },
+      {
+        text: JSON.stringify({
+          mode: 'final',
+          thought: 'Evidenz liegt vor.',
+          reply: '',
+        }),
+      },
+    ];
+
+    const parameterResponses = [{ text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) }];
+
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
+      if (payload?.schema) {
+        return { data: {} };
+      }
+
+      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+        return parameterResponses.shift();
+      }
+
+      return plannerResponses.shift() || { text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }) };
+    });
+
+    const mockCtx = {
+      broker,
+      meta: { tenantId: 'tenant-react-synthesis-null', authUser: { userId: 'user-1' } },
+      call: jest.fn((action, params) => broker.call(action, params, { meta: mockCtx.meta })),
+    };
+
+    try {
+      const result = await svc.handleConsultationTurn(mockCtx, {
+        message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
+        brokerRecommendation: { intent: 'consultation', capability: 'grid-operations.marketPartners' },
+        semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
+        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim', debugTrace: true },
+      });
+
+      expect(result.reply).toContain('Kurzfazit auf Basis der erhobenen Tool-Evidenz');
+      expect(result.reply).not.toContain('Synthese-Phase ist zeitlich erschöpft');
+      expect(result.reply).not.toContain('Eine Abregelung hängt typischerweise');
+      expect(result.debugTrace || []).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'consultation_synthesis_start' }),
+          expect.objectContaining({ type: 'consultation_synthesis_end' }),
+          expect.objectContaining({ type: 'consultation_synthesis_null', reason: 'empty_synthesis_payload' }),
+          expect.objectContaining({
+            type: 'consultation_fallback_selected',
+            branch: 'observation_summary_reply',
+            reason: 'agentic_synthesis_null_with_observations',
+          }),
+        ])
+      );
+      expect(
+        (result.debugTrace || []).some(
+          (event) =>
+            event.type === 'consultation_fallback_selected' &&
+            event.branch === 'legacy_non_agentic_consultation'
+        )
+      ).toBe(false);
+    } finally {
+      callLlmSpy.mockRestore();
+    }
+  });
+
+  it('uses observation recovery and traces synthesis_error when agentic synthesis throws', async () => {
+    const svc = broker.getLocalService('personal-agent');
+    const plannerResponses = [
+      {
+        text: JSON.stringify({
+          mode: 'tool',
+          thought: 'Marktpartner recherchieren.',
+          toolCall: {
+            action: 'grid-operations.marketPartners',
+            params: { query: 'TWL Netze', limit: 5 },
+          },
+        }),
+      },
+      {
+        text: JSON.stringify({
+          mode: 'final',
+          thought: 'Evidenz liegt vor.',
+          reply: '',
+        }),
+      },
+    ];
+    const parameterResponses = [{ text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) }];
+
+    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
+      if (payload?.schema) {
+        const err = new Error('Synthesis failed');
+        err.code = 'LLM_SYNTH_FAIL';
+        throw err;
+      }
+
+      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+        return parameterResponses.shift();
+      }
+
+      return plannerResponses.shift() || { text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }) };
+    });
+
+    const mockCtx = {
+      broker,
+      meta: { tenantId: 'tenant-react-synthesis-error', authUser: { userId: 'user-1' } },
+      call: jest.fn((action, params) => broker.call(action, params, { meta: mockCtx.meta })),
+    };
+
+    try {
+      const result = await svc.handleConsultationTurn(mockCtx, {
+        message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
+        brokerRecommendation: { intent: 'consultation', capability: 'grid-operations.marketPartners' },
+        semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
+        resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
+        knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim', debugTrace: true },
+      });
+
+      expect(result.reply).toContain('Kurzfazit auf Basis der erhobenen Tool-Evidenz');
+      expect(result.reply).not.toContain('Eine Abregelung hängt typischerweise');
+      expect(result.debugTrace || []).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'consultation_synthesis_start' }),
+          expect.objectContaining({ type: 'consultation_synthesis_error', errorCode: 'LLM_SYNTH_FAIL' }),
+          expect.objectContaining({ type: 'consultation_synthesis_null', reason: 'synthesis_exception' }),
+          expect.objectContaining({
+            type: 'consultation_fallback_selected',
+            branch: 'observation_summary_reply',
+            reason: 'agentic_synthesis_exception_with_observations',
+          }),
+        ])
+      );
+      expect(
+        (result.debugTrace || []).some(
+          (event) =>
+            event.type === 'consultation_fallback_selected' &&
+            event.branch === 'legacy_non_agentic_consultation'
+        )
+      ).toBe(false);
+    } finally {
+      callLlmSpy.mockRestore();
+    }
+  });
+
   it('prioritizes explicit API chatMode=execution over auto-detection', async () => {
     const result = await broker.call(
       'personal-agent.chat',
@@ -2414,6 +2916,123 @@ describe('personal-agent.service', () => {
     expect(result.status).toBe('consulting');
     expect(result.chatMode).toBe('consultation');
     expect(result.execution).toEqual({ status: 'consulting', plan: null, steps: [] });
+  });
+
+  it('reconciles wrong semantic consultation workflow on the real personal-agent.chat path', async () => {
+    const svc = broker.getLocalService('personal-agent');
+
+    const brokerRecommendationSpy = jest.spyOn(svc, 'getBrokerRecommendation').mockResolvedValue({
+      intent: 'supplier_portfolio_flex_assessment',
+      capability: 'supplier_portfolio_flex_assessment',
+      confidence: 0.91,
+    });
+    const semanticSpy = jest.spyOn(svc, 'classifyConsultationIntentHybrid').mockResolvedValue({
+      workflowType: WORKFLOW_TYPES.SUPPLIER_PORTFOLIO_FLEX_ASSESSMENT,
+      personaType: 'grid_planning',
+      domainIntent: 'supplier_portfolio_flex_assessment',
+      executionReadinessIntent: 'awaiting_input',
+      advisoryOnly: false,
+      availableInputs: [],
+      missingInputs: [],
+      confidence: 0.97,
+      rationale: 'mocked semantic drift',
+      source: 'llm',
+    });
+    const consultationSpy = jest.spyOn(svc, 'handleConsultationTurn').mockResolvedValue({
+      reply: 'Mock consultation reply',
+      hypotheses: [],
+      openQuestions: [],
+      nextActions: [{ action: 'netzanschluss_pruefen', description: 'Netzanschluss klären' }],
+      factsUsed: [{ source: 'message', value: 'Batteriespeicher in Thüringen' }],
+      attemptsSummary: [],
+    });
+
+    try {
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          sessionId: 'pa-workflow-reconcile-live-path',
+          message:
+            'Wir planen einen Batteriespeicher in Thüringen mit flexibler Anschlusslösung am Netzanschlusspunkt.',
+          chatMode: 'consultation',
+          executionMode: 'hitl',
+          knownContext: {
+            municipality: 'Arnstadt',
+            powerMW: 20,
+            capacityMWh: 40,
+            gridOperatorName: 'TWL Netze',
+          },
+        },
+        { meta: { tenantId: 'tenant-workflow-reconcile', authUser: { userId: 'user-1' } } }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.chatMode).toBe('consultation');
+      expect(result.executionReadiness).toBeDefined();
+      expect(result.executionReadiness.workflowType).toBe(WORKFLOW_TYPES.BESS_SCREENING);
+    } finally {
+      consultationSpy.mockRestore();
+      semanticSpy.mockRestore();
+      brokerRecommendationSpy.mockRestore();
+    }
+  });
+
+  it('keeps exact Dev T1 consultation on bess_screening with domain and region context', async () => {
+    const svc = broker.getLocalService('personal-agent');
+
+    const brokerRecommendationSpy = jest.spyOn(svc, 'getBrokerRecommendation').mockResolvedValue({
+      intent: 'mastr_asset_inventory',
+      capability: 'mastr_asset_inventory',
+      confidence: 0.91,
+    });
+    const semanticSpy = jest.spyOn(svc, 'classifyConsultationIntentHybrid').mockResolvedValue({
+      workflowType: WORKFLOW_TYPES.SUPPLIER_PORTFOLIO_FLEX_ASSESSMENT,
+      personaType: 'grid_planning',
+      domainIntent: 'supplier_portfolio_flex_assessment',
+      executionReadinessIntent: 'awaiting_input',
+      advisoryOnly: false,
+      availableInputs: [],
+      missingInputs: [],
+      confidence: 0.97,
+      rationale: 'mocked semantic drift for T1',
+      source: 'llm',
+    });
+    const consultationSpy = jest.spyOn(svc, 'handleConsultationTurn').mockResolvedValue({
+      reply: 'Mock consultation reply',
+      hypotheses: [],
+      openQuestions: [],
+      nextActions: [{ action: 'netzanschluss_pruefen', description: 'Netzanschluss klären' }],
+      factsUsed: [{ source: 'message', value: 'Batteriespeicher Thueringen Netzanschlusspunkt' }],
+      attemptsSummary: [],
+    });
+
+    try {
+      const result = await broker.call(
+        'personal-agent.chat',
+        {
+          sessionId: 'pa-workflow-reconcile-dev-t1',
+          message:
+            'Ich bin Projektentwickler fuer einen Batteriespeicher in Thueringen. Ich moechte mit Cernion einen geeigneten Netzanschlusspunkt finden und die wirtschaftlich beste flexible Anschlussloesung einschaetzen. Welche Schritte empfiehlst du?',
+          chatMode: 'consultation',
+          executionMode: 'auto',
+          knownContext: {
+            role: 'project_developer',
+            domain: 'bess_grid_connection',
+            region: 'Thueringen',
+          },
+        },
+        { meta: { tenantId: 'tenant-workflow-reconcile-dev-t1', authUser: { userId: 'user-1' } } }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.chatMode).toBe('consultation');
+      expect(result.executionReadiness).toBeDefined();
+      expect(result.executionReadiness.workflowType).toBe(WORKFLOW_TYPES.BESS_SCREENING);
+    } finally {
+      consultationSpy.mockRestore();
+      semanticSpy.mockRestore();
+      brokerRecommendationSpy.mockRestore();
+    }
   });
 
   it('does not expose mark_unknown_execution_gap as consultation primaryIntent for greeting prompts', async () => {
