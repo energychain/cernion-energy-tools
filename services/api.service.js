@@ -613,6 +613,12 @@ module.exports = {
             'and periodic validity checks against live microservice actions.',
         },
         {
+          name: 'Agent Receipts',
+          description:
+            'Runtime-managed receipt documents (v0.54.0 foundation). ' +
+            'PouchDB-backed CRUD, validation, lifecycle status transitions, and auditable soft-delete.',
+        },
+        {
           name: 'CYA Agent',
           description:
             'Stakeholder-perspective argumentation engine with regulatory grounding (v0.26). ' +
@@ -1237,6 +1243,16 @@ module.exports = {
           'GET /cookbook/:id': 'cookbook.get',
           'POST /cookbook/search': 'cookbook.search',
           'POST /cookbook/validate': 'cookbook.validate',
+
+          // Agent Receipts — runtime-managed routing receipts (v0.54.0)
+          // NOTE: static /validate must precede dynamic /:id routes.
+          'GET /agent-receipts': 'agent-receipts.list',
+          'POST /agent-receipts': 'agent-receipts.create',
+          'POST /agent-receipts/validate': 'agent-receipts.validate',
+          'GET /agent-receipts/:id': 'agent-receipts.get',
+          'PUT /agent-receipts/:id': 'agent-receipts.update',
+          'POST /agent-receipts/:id/status': 'agent-receipts.setStatus',
+          'DELETE /agent-receipts/:id': 'agent-receipts.archive',
 
           // CYA Agent (v0.26)
           'POST /cya/profile': 'cya.createProfile',
@@ -1927,6 +1943,7 @@ module.exports = {
           webhooks: 'Webhooks',
           'dashboard-api': 'Dashboard API',
           cookbook: 'Cookbook',
+          'agent-receipts': 'Agent Receipts',
           cya: 'CYA Agent',
         };
 

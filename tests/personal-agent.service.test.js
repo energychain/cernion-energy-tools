@@ -2502,7 +2502,7 @@ describe('personal-agent.service', () => {
         knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim', debugTrace: true },
       });
 
-      expect(result.reply).toContain('Synthese-Phase ist zeitlich erschöpft');
+      expect(result.reply).toContain('Synthese unvollständig; belastbare Bewertung nicht abgeschlossen');
       expect(Array.isArray(result.debugTrace)).toBe(true);
       expect(result.debugTrace).toEqual(
         expect.arrayContaining([

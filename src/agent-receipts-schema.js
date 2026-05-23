@@ -1,0 +1,315 @@
+'use strict';
+
+const RECEIPT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const ACTION_REF_PATTERN = /^[a-z0-9-]+\.[a-zA-Z0-9_]+$/;
+
+const RECEIPT_STATUSES = ['draft', 'active', 'deprecated', 'archived'];
+
+const STATUS_TRANSITIONS = {
+  draft: new Set(['draft', 'active', 'archived']),
+  active: new Set(['active', 'deprecated', 'archived']),
+  deprecated: new Set(['deprecated', 'active', 'archived']),
+  archived: new Set(['archived']),
+};
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function ensureStringArray(value, field, errors, { minItems = 0 } = {}) {
+  if (value == null) return [];
+  if (!Array.isArray(value)) {
+    errors.push({ field, message: `${field} must be an array of strings.` });
+    return [];
+  }
+
+  const normalized = [];
+  for (const entry of value) {
+    if (typeof entry !== 'string' || !entry.trim()) {
+      errors.push({ field, message: `${field} entries must be non-empty strings.` });
+      continue;
+    }
+    normalized.push(entry.trim());
+  }
+
+  const unique = Array.from(new Set(normalized));
+  if (minItems > 0 && unique.length < minItems) {
+    errors.push({ field, message: `${field} requires at least ${minItems} item(s).` });
+  }
+  return unique;
+}
+
+function normalizeStep(rawStep, index, errors) {
+  if (!isPlainObject(rawStep)) {
+    errors.push({
+      field: `toolPlan.steps[${index}]`,
+      message: 'Each tool step must be an object.',
+    });
+    return null;
+  }
+
+  const step = {};
+
+  if (typeof rawStep.action !== 'string' || !rawStep.action.trim()) {
+    errors.push({
+      field: `toolPlan.steps[${index}].action`,
+      message: 'action is required and must be a non-empty string.',
+    });
+  } else {
+    step.action = rawStep.action.trim();
+    if (!ACTION_REF_PATTERN.test(step.action)) {
+      errors.push({
+        field: `toolPlan.steps[${index}].action`,
+        message: 'action must follow service.action format.',
+      });
+    }
+  }
+
+  if (rawStep.description != null) {
+    if (typeof rawStep.description !== 'string' || !rawStep.description.trim()) {
+      errors.push({
+        field: `toolPlan.steps[${index}].description`,
+        message: 'description must be a non-empty string when provided.',
+      });
+    } else {
+      step.description = rawStep.description.trim();
+    }
+  }
+
+  if (rawStep.params != null) {
+    if (!isPlainObject(rawStep.params)) {
+      errors.push({
+        field: `toolPlan.steps[${index}].params`,
+        message: 'params must be an object when provided.',
+      });
+    } else {
+      step.params = rawStep.params;
+    }
+  }
+
+  if (rawStep.fallbackActions != null) {
+    const fallbacks = ensureStringArray(
+      rawStep.fallbackActions,
+      `toolPlan.steps[${index}].fallbackActions`,
+      errors
+    );
+    if (fallbacks.length > 0) {
+      step.fallbackActions = fallbacks;
+    }
+  }
+
+  if (rawStep.required !== undefined) {
+    step.required = Boolean(rawStep.required);
+  }
+
+  if (rawStep.evidence != null) {
+    if (!isPlainObject(rawStep.evidence)) {
+      errors.push({
+        field: `toolPlan.steps[${index}].evidence`,
+        message: 'evidence must be an object when provided.',
+      });
+    } else {
+      step.evidence = rawStep.evidence;
+    }
+  }
+
+  return step;
+}
+
+function normalizeMatching(rawMatching, errors) {
+  if (!isPlainObject(rawMatching)) {
+    errors.push({
+      field: 'matching',
+      message: 'matching is required and must be an object.',
+    });
+    return null;
+  }
+
+  const matching = {
+    domains: ensureStringArray(rawMatching.domains, 'matching.domains', errors),
+    triggerTerms: ensureStringArray(rawMatching.triggerTerms, 'matching.triggerTerms', errors),
+    requiredEntities: ensureStringArray(
+      rawMatching.requiredEntities,
+      'matching.requiredEntities',
+      errors
+    ),
+    workflowTypes: ensureStringArray(rawMatching.workflowTypes, 'matching.workflowTypes', errors),
+  };
+
+  const hasAtLeastOneCriterion =
+    matching.domains.length > 0 ||
+    matching.triggerTerms.length > 0 ||
+    matching.requiredEntities.length > 0 ||
+    matching.workflowTypes.length > 0;
+
+  if (!hasAtLeastOneCriterion) {
+    errors.push({
+      field: 'matching',
+      message:
+        'matching must contain at least one criterion (domains, triggerTerms, requiredEntities, workflowTypes).',
+    });
+  }
+
+  return matching;
+}
+
+function normalizeReceiptInput(input, errors) {
+  if (!isPlainObject(input)) {
+    errors.push({ field: 'receipt', message: 'receipt must be an object.' });
+    return null;
+  }
+
+  const receipt = {};
+
+  if (typeof input.receiptId !== 'string' || !input.receiptId.trim()) {
+    errors.push({ field: 'receiptId', message: 'receiptId is required.' });
+  } else {
+    receipt.receiptId = input.receiptId.trim();
+    if (!RECEIPT_ID_PATTERN.test(receipt.receiptId)) {
+      errors.push({
+        field: 'receiptId',
+        message: 'receiptId must be a stable slug (lowercase letters, numbers, hyphens).',
+      });
+    }
+  }
+
+  if (typeof input.title !== 'string' || !input.title.trim()) {
+    errors.push({ field: 'title', message: 'title is required.' });
+  } else {
+    receipt.title = input.title.trim();
+  }
+
+  if (typeof input.description !== 'string' || !input.description.trim()) {
+    errors.push({ field: 'description', message: 'description is required.' });
+  } else {
+    receipt.description = input.description.trim();
+  }
+
+  if (typeof input.domain !== 'string' || !input.domain.trim()) {
+    errors.push({ field: 'domain', message: 'domain is required.' });
+  } else {
+    receipt.domain = input.domain.trim().toLowerCase();
+  }
+
+  receipt.tags = ensureStringArray(input.tags, 'tags', errors);
+  receipt.requiredInputs = ensureStringArray(input.requiredInputs, 'requiredInputs', errors);
+  receipt.forbiddenInferences = ensureStringArray(
+    input.forbiddenInferences,
+    'forbiddenInferences',
+    errors
+  );
+
+  const status = (input.status || 'draft').trim();
+  if (!RECEIPT_STATUSES.includes(status)) {
+    errors.push({
+      field: 'status',
+      message: `status must be one of: ${RECEIPT_STATUSES.join(', ')}.`,
+    });
+  } else {
+    receipt.status = status;
+  }
+
+  const matching = normalizeMatching(input.matching, errors);
+  if (matching) {
+    receipt.matching = matching;
+  }
+
+  if (!isPlainObject(input.toolPlan)) {
+    errors.push({ field: 'toolPlan', message: 'toolPlan is required and must be an object.' });
+  } else {
+    const rawSteps = Array.isArray(input.toolPlan.steps) ? input.toolPlan.steps : null;
+    if (!rawSteps || rawSteps.length === 0) {
+      errors.push({
+        field: 'toolPlan.steps',
+        message: 'toolPlan.steps is required and must contain at least one step.',
+      });
+    }
+
+    const steps = rawSteps
+      ? rawSteps.map((step, idx) => normalizeStep(step, idx, errors)).filter(Boolean)
+      : [];
+
+    receipt.toolPlan = {
+      steps,
+    };
+  }
+
+  if (input.knowledgePlan != null) {
+    if (!isPlainObject(input.knowledgePlan)) {
+      errors.push({ field: 'knowledgePlan', message: 'knowledgePlan must be an object.' });
+    } else {
+      receipt.knowledgePlan = input.knowledgePlan;
+    }
+  }
+
+  if (input.evidencePolicy != null) {
+    if (!isPlainObject(input.evidencePolicy)) {
+      errors.push({ field: 'evidencePolicy', message: 'evidencePolicy must be an object.' });
+    } else {
+      receipt.evidencePolicy = input.evidencePolicy;
+    }
+  }
+
+  if (input.responsePolicy != null) {
+    if (!isPlainObject(input.responsePolicy)) {
+      errors.push({ field: 'responsePolicy', message: 'responsePolicy must be an object.' });
+    } else {
+      receipt.responsePolicy = input.responsePolicy;
+    }
+  }
+
+  if (input.metadata != null) {
+    if (!isPlainObject(input.metadata)) {
+      errors.push({ field: 'metadata', message: 'metadata must be an object.' });
+    } else {
+      receipt.metadata = input.metadata;
+    }
+  } else {
+    receipt.metadata = {};
+  }
+
+  return receipt;
+}
+
+function validateReceipt(input) {
+  const errors = [];
+  const warnings = [];
+  const normalized = normalizeReceiptInput(input, errors);
+
+  if (normalized && normalized.toolPlan && Array.isArray(normalized.toolPlan.steps)) {
+    for (let i = 0; i < normalized.toolPlan.steps.length; i += 1) {
+      const step = normalized.toolPlan.steps[i];
+      if (Array.isArray(step.fallbackActions)) {
+        for (const fallbackAction of step.fallbackActions) {
+          if (!ACTION_REF_PATTERN.test(fallbackAction)) {
+            errors.push({
+              field: `toolPlan.steps[${i}].fallbackActions`,
+              message: 'fallbackActions must contain service.action strings.',
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    normalized,
+  };
+}
+
+function isStatusTransitionAllowed(fromStatus, toStatus) {
+  const transitions = STATUS_TRANSITIONS[fromStatus];
+  if (!transitions) return false;
+  return transitions.has(toStatus);
+}
+
+module.exports = {
+  RECEIPT_ID_PATTERN,
+  RECEIPT_STATUSES,
+  STATUS_TRANSITIONS,
+  validateReceipt,
+  isStatusTransitionAllowed,
+};

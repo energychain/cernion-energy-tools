@@ -251,6 +251,23 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/mastr-quality/audit'].post.tags).toContain('MaStR Data Quality');
     });
 
+    it('should include Agent Receipts tag and routes', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.tags.some((tag) => tag.name === 'Agent Receipts')).toBe(true);
+      expect(schema.paths['/api/agent-receipts']).toBeDefined();
+      expect(schema.paths['/api/agent-receipts'].get).toBeDefined();
+      expect(schema.paths['/api/agent-receipts'].post).toBeDefined();
+      expect(schema.paths['/api/agent-receipts/validate']).toBeDefined();
+      expect(schema.paths['/api/agent-receipts/:id']).toBeDefined();
+      expect(schema.paths['/api/agent-receipts/:id/status']).toBeDefined();
+
+      expect(schema.paths['/api/agent-receipts'].get.tags).toContain('Agent Receipts');
+      expect(schema.paths['/api/agent-receipts'].post.tags).toContain('Agent Receipts');
+      expect(schema.paths['/api/agent-receipts/validate'].post.tags).toContain('Agent Receipts');
+      expect(schema.paths['/api/agent-receipts/:id'].get.tags).toContain('Agent Receipts');
+    });
+
     it('should include ZNP portfolio assessment route in OpenAPI', async () => {
       const schema = await broker.call('api.openapi');
 
@@ -412,6 +429,19 @@ describe('API Gateway Service', () => {
       expect(aliases['POST /osm-geo/infrastructure-nearby']).toBe('osm-geo.infrastructureNearby');
       expect(aliases['POST /osm-geo/substation-finder']).toBe('osm-geo.substationFinder');
       expect(aliases['POST /osm-geo/grid-topology']).toBe('osm-geo.gridTopology');
+    });
+
+    it('should have explicit aliases for Agent Receipts routes', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+
+      expect(aliases['GET /agent-receipts']).toBe('agent-receipts.list');
+      expect(aliases['POST /agent-receipts']).toBe('agent-receipts.create');
+      expect(aliases['POST /agent-receipts/validate']).toBe('agent-receipts.validate');
+      expect(aliases['GET /agent-receipts/:id']).toBe('agent-receipts.get');
+      expect(aliases['PUT /agent-receipts/:id']).toBe('agent-receipts.update');
+      expect(aliases['POST /agent-receipts/:id/status']).toBe('agent-receipts.setStatus');
+      expect(aliases['DELETE /agent-receipts/:id']).toBe('agent-receipts.archive');
     });
 
     it('should include Netzfahrplan / fNAV tag in OpenAPI', async () => {

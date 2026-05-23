@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.54.0] — Runtime Agent Receipts Foundation (2026-05-23)
+
+### Added
+
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): neuer PouchDB-basierter Runtime-Service für Receipt-CRUD mit Lifecycle-Statusmodell (`draft`, `active`, `deprecated`, `archived`), Soft-Delete (`archive`) und optionaler CAS-Prüfung über `_rev`.
+- [src/agent-receipts-schema.js](src/agent-receipts-schema.js): neues zentrales Schema-/Validierungsmodul für strukturierte Runtime-Receipts (slug-`receiptId`, Matching-Kriterien, Tool-Plan-Schritte, Status-Transitions, semantische Fehlerliste).
+- [tests/agent-receipts.service.test.js](tests/agent-receipts.service.test.js): neue Service-Level-Tests für Happy Path, Validierungsfehler, Statusaktivierung, Archive-Filterung und CAS-Konflikte (`AGENT_RECEIPT_CONFLICT`).
+
+### Changed
+
+- [services/api.service.js](services/api.service.js): API-Gateway um `Agent Receipts` OpenAPI-Tag und explizite REST-Aliases erweitert (`GET/POST /agent-receipts`, `POST /agent-receipts/validate`, `GET/PUT /agent-receipts/:id`, `POST /agent-receipts/:id/status`, `DELETE /agent-receipts/:id`). Reihenfolge der Routen schützt statische `validate`-Route vor `/:id`-Shadowing.
+- [tests/api.service.test.js](tests/api.service.test.js): OpenAPI- und Alias-Regressionsprüfungen um den neuen `Agent Receipts`-Tag und alle `/api/agent-receipts*`-Routen erweitert.
+- [package.json](package.json): Version auf `0.54.0` angehoben (OpenAPI-Version folgt über `packageVersion` in [services/api.service.js](services/api.service.js)).
+
+### Compatibility Notes
+
+- Cookbook bleibt in v0.54.0 unverändert (keine Migration bestehender statischer Rezepte).
+- Personal-Agent-Routing bleibt in v0.54.0 unverändert (keine Runtime-Selection-Integration in diesem Release).
+- `DELETE /agent-receipts/:id` ist bewusst archive-only (Soft-Delete) für Nachvollziehbarkeit/Audit-Trail.
+
 ## [0.53.10] — Product Discovery Domain Services (2026-05-23)
 
 ### Added
