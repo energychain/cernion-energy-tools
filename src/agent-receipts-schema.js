@@ -39,6 +39,100 @@ function ensureStringArray(value, field, errors, { minItems = 0 } = {}) {
   return unique;
 }
 
+function hasOwn(obj, key) {
+  return Object.prototype.hasOwnProperty.call(obj, key);
+}
+
+function normalizeParamMapping(rawMapping, stepField, errors) {
+  if (!isPlainObject(rawMapping)) {
+    errors.push({
+      field: `${stepField}.paramMapping`,
+      message: 'paramMapping must be an object when provided.',
+    });
+    return null;
+  }
+
+  const normalized = {};
+  const allowedSources = new Set(['fixed', 'context', 'default']);
+
+  for (const [targetParam, rawRule] of Object.entries(rawMapping)) {
+    const fieldBase = `${stepField}.paramMapping.${targetParam}`;
+
+    if (typeof targetParam !== 'string' || !targetParam.trim()) {
+      errors.push({
+        field: `${stepField}.paramMapping`,
+        message: 'paramMapping keys must be non-empty target parameter names.',
+      });
+      continue;
+    }
+
+    if (!isPlainObject(rawRule)) {
+      errors.push({
+        field: fieldBase,
+        message: 'paramMapping rules must be objects.',
+      });
+      continue;
+    }
+
+    const source = typeof rawRule.source === 'string' ? rawRule.source.trim() : '';
+    if (!allowedSources.has(source)) {
+      errors.push({
+        field: `${fieldBase}.source`,
+        message: 'source must be one of: fixed, context, default.',
+      });
+      continue;
+    }
+
+    const rule = { source };
+
+    if (source === 'fixed') {
+      if (!hasOwn(rawRule, 'value')) {
+        errors.push({
+          field: `${fieldBase}.value`,
+          message: 'fixed mappings require value.',
+        });
+      } else {
+        rule.value = rawRule.value;
+      }
+    }
+
+    if (source === 'context') {
+      const contextField =
+        typeof rawRule.contextField === 'string' ? rawRule.contextField.trim() : '';
+      if (!contextField) {
+        errors.push({
+          field: `${fieldBase}.contextField`,
+          message: 'context mappings require contextField.',
+        });
+      } else {
+        rule.contextField = contextField;
+      }
+    }
+
+    if (source === 'default') {
+      const defaultKey = typeof rawRule.defaultKey === 'string' ? rawRule.defaultKey.trim() : '';
+      if (defaultKey) {
+        rule.defaultKey = defaultKey;
+      }
+      if (hasOwn(rawRule, 'value')) {
+        rule.value = rawRule.value;
+      }
+    }
+
+    if (typeof rawRule.derivationHint === 'string' && rawRule.derivationHint.trim()) {
+      rule.derivationHint = rawRule.derivationHint.trim();
+    }
+
+    if (typeof rawRule.llmHint === 'string' && rawRule.llmHint.trim()) {
+      rule.llmHint = rawRule.llmHint.trim();
+    }
+
+    normalized[targetParam.trim()] = rule;
+  }
+
+  return normalized;
+}
+
 function normalizeStep(rawStep, index, errors) {
   if (!isPlainObject(rawStep)) {
     errors.push({
@@ -84,6 +178,13 @@ function normalizeStep(rawStep, index, errors) {
       });
     } else {
       step.params = rawStep.params;
+    }
+  }
+
+  if (rawStep.paramMapping != null) {
+    const paramMapping = normalizeParamMapping(rawStep.paramMapping, `toolPlan.steps[${index}]`, errors);
+    if (paramMapping) {
+      step.paramMapping = paramMapping;
     }
   }
 
@@ -229,9 +330,32 @@ function normalizeReceiptInput(input, errors) {
       ? rawSteps.map((step, idx) => normalizeStep(step, idx, errors)).filter(Boolean)
       : [];
 
-    receipt.toolPlan = {
+    const toolPlan = {
       steps,
     };
+
+    if (input.toolPlan.defaults != null) {
+      if (!isPlainObject(input.toolPlan.defaults)) {
+        errors.push({
+          field: 'toolPlan.defaults',
+          message: 'toolPlan.defaults must be an object when provided.',
+        });
+      } else {
+        toolPlan.defaults = input.toolPlan.defaults;
+      }
+    }
+
+    receipt.toolPlan = toolPlan;
+  }
+
+  if (input.defaults != null) {
+    if (!isPlainObject(input.defaults)) {
+      errors.push({ field: 'defaults', message: 'defaults must be an object.' });
+    } else {
+      receipt.defaults = input.defaults;
+    }
+  } else {
+    receipt.defaults = {};
   }
 
   if (input.knowledgePlan != null) {

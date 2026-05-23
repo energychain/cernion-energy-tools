@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.54.1] — Runtime Receipts Test Harness (2026-05-23)
+
+### Added
+
+- [src/agent-receipts-registry.js](src/agent-receipts-registry.js): neues Registry-Hilfsmodul für Live-Action-Inspektion aus dem Moleculer-Broker inkl. normalisierter Params-Schema-Ableitung und stabiler Action-Signaturen (SHA-256) für Audit/Staleness-Hinweise.
+- [src/agent-receipts-matcher.js](src/agent-receipts-matcher.js): neues deterministisches Matching-Modul für Receipt-Score-Berechnung (Domain-/Trigger-/Entity-/Workflow-Signale) mit expliziter Diagnose (`score`, `matched`, `reasons`, `missingEntities`).
+- [src/agent-receipts-evaluation.js](src/agent-receipts-evaluation.js): neues isoliertes Test-/Evaluate-Hilfsmodul zur planbaren Tool-Call-Simulation ohne Personal-Agent-Chatpfad; liefert strukturierte `plannedToolCalls`, `missingRequiredInputs`, `evidenceRequirements`, `warnings`, `errors`.
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): neue Harness-Actions/REST-Routen für isolierte Receipt-Prüfung und Diagnose:
+  - `POST /agent-receipts/:id/validate`
+  - `POST /agent-receipts/evaluate`, `POST /agent-receipts/:id/evaluate`
+  - `POST /agent-receipts/test`, `POST /agent-receipts/:id/test`
+  - `POST /agent-receipts/explain`, `POST /agent-receipts/:id/explain`
+- [tests/agent-receipts.service.test.js](tests/agent-receipts.service.test.js): neue Harness-Regressionsfälle für fehlende Tool-Referenzen, fehlende Required Inputs, deterministisches Param-Mapping und Wiesloch-Fixture (`mastr-asset-inventory-by-location`).
+
+### Changed
+
+- [src/agent-receipts-schema.js](src/agent-receipts-schema.js): Receipt-Schema erweitert um deterministisches `paramMapping` pro Tool-Step (`fixed`, `context`, `default`) sowie optionale `defaults` (Top-Level und `toolPlan.defaults`).
+- [src/agent-receipts-schema.js](src/agent-receipts-schema.js): Forward-Compatibility vorbereitet — optionale Mapping-Felder `derivationHint`/`llmHint` werden validiert/transportiert, aber in v0.54.1 noch nicht ausgeführt.
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): `validate` führt optional Live-Registry-Checks aus (`includeRegistryCheck=true` default), markiert fehlende Actions als Fehler und Signaturabweichungen als Warning (kein Hard-Block, solange Action live vorhanden/kompatibel prüfbar).
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): Receipt-`defaults` in Public-Payload aufgenommen (`toPublic`) und in Evaluate/Test/Explain-Planung berücksichtigt.
+- [docs/roadmap/resolved/25-v0.54.0-receipt-foundation-plan-prompt.md](docs/roadmap/resolved/25-v0.54.0-receipt-foundation-plan-prompt.md), [docs/roadmap/resolved/25-v0.54.1-receipt-test-harness-plan-prompt.md](docs/roadmap/resolved/25-v0.54.1-receipt-test-harness-plan-prompt.md): Plan-Prompts aus `docs/roadmap/issues/` nach `docs/roadmap/resolved/` verschoben.
+- [package.json](package.json): Version auf `0.54.1` angehoben.
+
+### Compatibility Notes
+
+- Personal-Agent-Routing bleibt in v0.54.1 unverändert (keine Integration in `POST /api/personal-agent/chat`).
+- Param-Mapping ist in v0.54.1 bewusst deterministisch; LLM-derived Mapping bleibt außerhalb des Scopes.
+- Evidence-Handling bleibt strukturiert-feldbasiert (`result.*`), semantische Evidence-Layer folgen in späteren Milestones.
+
 ## [0.54.0] — Runtime Agent Receipts Foundation (2026-05-23)
 
 ### Added

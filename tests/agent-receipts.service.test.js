@@ -37,6 +37,31 @@ describe('Agent Receipts Service', () => {
 
   beforeAll(async () => {
     broker = new ServiceBroker({ logger: false });
+
+    broker.createService({
+      name: 'mastr',
+      actions: {
+        installationsByLocation: {
+          params: {
+            location: { type: 'string' },
+            type: { type: 'string', optional: true },
+            limit: { type: 'number', optional: true },
+          },
+          handler() {
+            return {
+              success: true,
+              result: {
+                count: 2,
+                items: [{ capacityKw: 10 }, { capacityKw: 12 }],
+                source: 'test-fixture',
+                timestamp: new Date().toISOString(),
+              },
+            };
+          },
+        },
+      },
+    });
+
     broker.createService({
       ...AgentReceiptsService,
       settings: {
@@ -173,5 +198,137 @@ describe('Agent Receipts Service', () => {
       code: 409,
       type: 'AGENT_RECEIPT_CONFLICT',
     });
+  });
+
+  it('flags missing service action references during validate', async () => {
+    const response = await broker.call('agent-receipts.validate', {
+      receipt: validReceipt({
+        receiptId: 'missing-action-receipt',
+        toolPlan: {
+          steps: [{ action: 'unknown.serviceAction' }],
+        },
+      }),
+    });
+
+    expect(response.success).toBe(true);
+    expect(response.data.valid).toBe(false);
+    expect(response.data.errors.some((entry) => /not found/i.test(entry.message))).toBe(true);
+  });
+
+  it('reports missing required input in test harness output', async () => {
+    await broker.call('agent-receipts.create', {
+      receiptId: 'inventory-missing-input',
+      title: 'Inventory by location - missing input test',
+      description: 'Test harness should report missing required inputs for deterministic mapping.',
+      domain: 'mastr',
+      matching: {
+        triggerTerms: ['pv', 'anlagen'],
+      },
+      requiredInputs: ['location'],
+      toolPlan: {
+        defaults: {
+          limit: 20,
+        },
+        steps: [
+          {
+            action: 'mastr.installationsByLocation',
+            paramMapping: {
+              location: { source: 'context', contextField: 'location' },
+              type: { source: 'context', contextField: 'assetType' },
+              limit: { source: 'default', defaultKey: 'limit' },
+            },
+            evidence: {
+              requiredOutputFields: [
+                'result.count',
+                'result.items[].capacityKw',
+                'result.source',
+                'result.timestamp',
+              ],
+            },
+          },
+        ],
+      },
+    });
+
+    const tested = await broker.call('agent-receipts.testStored', {
+      id: 'inventory-missing-input',
+      context: {
+        question: 'Wie viele PV Anlagen gibt es?',
+        assetType: 'solar',
+      },
+    });
+
+    expect(tested.success).toBe(true);
+    expect(tested.data.executable).toBe(false);
+    expect(tested.data.missingRequiredInputs).toContain('location');
+    expect(tested.data.plan.steps[0].missingRequiredParams).toContain('location');
+  });
+
+  it('builds an executable Wiesloch receipt plan with deterministic mapping', async () => {
+    await broker.call('agent-receipts.create', {
+      receiptId: 'mastr-asset-inventory-by-location',
+      title: 'MaStR asset inventory by location',
+      description: 'Deterministic local inventory lookup by city and asset type with structured evidence.',
+      domain: 'mastr',
+      tags: ['mastr', 'inventory', 'location'],
+      matching: {
+        triggerTerms: ['wie', 'viele', 'anlagen', 'wiesloch'],
+        requiredEntities: ['location'],
+      },
+      requiredInputs: ['location'],
+      toolPlan: {
+        defaults: {
+          limit: 50,
+        },
+        steps: [
+          {
+            action: 'mastr.installationsByLocation',
+            description: 'Load MaStR installations for requested location and type.',
+            paramMapping: {
+              location: { source: 'context', contextField: 'location' },
+              type: { source: 'context', contextField: 'assetType' },
+              limit: { source: 'default', defaultKey: 'limit' },
+            },
+            evidence: {
+              requiredOutputFields: [
+                'result.count',
+                'result.items[].capacityKw',
+                'result.source',
+                'result.timestamp',
+              ],
+            },
+          },
+        ],
+      },
+      metadata: {
+        registryAudit: {
+          actions: {
+            'mastr.installationsByLocation': {
+              signature: 'outdated-signature-for-warning',
+            },
+          },
+        },
+      },
+    });
+
+    const evaluation = await broker.call('agent-receipts.evaluateStored', {
+      id: 'mastr-asset-inventory-by-location',
+      context: {
+        question: 'Wie viele PV Anlagen gibt es in Wiesloch?',
+        location: 'Wiesloch',
+        assetType: 'solar',
+      },
+    });
+
+    expect(evaluation.success).toBe(true);
+    expect(evaluation.data.executable).toBe(true);
+    expect(evaluation.data.matchScore).toBeGreaterThanOrEqual(30);
+    expect(evaluation.data.plannedToolCalls[0].selectedAction).toBe('mastr.installationsByLocation');
+    expect(evaluation.data.plannedToolCalls[0].params).toMatchObject({
+      location: 'Wiesloch',
+      type: 'solar',
+      limit: 50,
+    });
+    expect(evaluation.data.warnings.some((entry) => entry.code === 'RECEIPT_ACTION_SIGNATURE_CHANGED')).toBe(true);
   });
 });

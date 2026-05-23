@@ -10,6 +10,8 @@ const {
   validateReceipt,
   isStatusTransitionAllowed,
 } = require('../src/agent-receipts-schema');
+const { buildActionRegistry } = require('../src/agent-receipts-registry');
+const { evaluateReceiptPlan } = require('../src/agent-receipts-evaluation');
 
 function toDocId(receiptId) {
   return `ar:${receiptId}`;
@@ -35,6 +37,7 @@ function toPublic(doc) {
     evidencePolicy: doc.evidencePolicy,
     forbiddenInferences: Array.isArray(doc.forbiddenInferences) ? doc.forbiddenInferences : [],
     responsePolicy: doc.responsePolicy,
+    defaults: doc.defaults || {},
     metadata: doc.metadata || {},
     status: doc.status,
     version: doc.version || 1,
@@ -90,6 +93,7 @@ module.exports = {
         evidencePolicy: { type: 'object', optional: true },
         forbiddenInferences: { type: 'array', items: 'string', optional: true, default: [] },
         responsePolicy: { type: 'object', optional: true },
+        defaults: { type: 'object', optional: true, default: {} },
         metadata: { type: 'object', optional: true, default: {} },
         status: { type: 'enum', values: RECEIPT_STATUSES, optional: true, default: 'draft' },
       },
@@ -118,6 +122,7 @@ module.exports = {
                   evidencePolicy: { type: 'object' },
                   forbiddenInferences: { type: 'array', items: { type: 'string' } },
                   responsePolicy: { type: 'object' },
+                  defaults: { type: 'object' },
                   metadata: { type: 'object' },
                   status: { type: 'string', enum: RECEIPT_STATUSES },
                 },
@@ -539,6 +544,7 @@ module.exports = {
       params: {
         id: { type: 'string', pattern: RECEIPT_ID_PATTERN, optional: true },
         receipt: { type: 'object', optional: true },
+        includeRegistryCheck: { type: 'boolean', optional: true, default: true, convert: true },
       },
       openapi: {
         summary: 'Validate receipt payload or persisted receipt',
@@ -559,7 +565,7 @@ module.exports = {
         },
       },
       async handler(ctx) {
-        const { id, receipt } = ctx.params;
+        const { id, receipt, includeRegistryCheck } = ctx.params;
 
         if (!id && !receipt) {
           throw new MoleculerClientError(
@@ -580,14 +586,304 @@ module.exports = {
 
         const validation = validateReceipt(candidate);
 
+        const warnings = Array.isArray(validation.warnings) ? validation.warnings.slice() : [];
+        const toolChecks = [];
+
+        if (includeRegistryCheck && validation.normalized?.toolPlan?.steps) {
+          const actionRegistry = buildActionRegistry(this.broker);
+          const receiptAudit = candidate?.metadata?.registryAudit;
+
+          for (const step of validation.normalized.toolPlan.steps) {
+            const actions = [step.action, ...(Array.isArray(step.fallbackActions) ? step.fallbackActions : [])];
+
+            for (const actionRef of actions) {
+              const actionInfo = actionRegistry[actionRef] || null;
+              const status = actionInfo ? 'available' : 'missing';
+              const check = {
+                action: actionRef,
+                status,
+                signature: actionInfo?.signature || null,
+              };
+
+              if (!actionInfo) {
+                validation.errors.push({
+                  field: 'toolPlan.steps.action',
+                  message: `Referenced Moleculer action not found in live registry: ${actionRef}.`,
+                });
+              }
+
+              if (receiptAudit?.actions?.[actionRef]?.signature && actionInfo?.signature) {
+                if (receiptAudit.actions[actionRef].signature !== actionInfo.signature) {
+                  warnings.push({
+                    field: 'toolPlan.steps.action',
+                    message:
+                      'Action signature changed since receipt audit snapshot. Continuing because live action exists and can be evaluated.',
+                    action: actionRef,
+                  });
+                }
+              }
+
+              toolChecks.push(check);
+            }
+          }
+        }
+
+        const finalValid = validation.errors.length === 0;
+
         return {
           success: true,
           data: {
-            valid: validation.valid,
+            valid: finalValid,
             errors: validation.errors,
-            warnings: validation.warnings,
+            warnings,
+            toolChecks,
           },
         };
+      },
+    },
+
+    validateStored: {
+      rest: 'POST /:id/validate',
+      params: {
+        id: { type: 'string', pattern: RECEIPT_ID_PATTERN },
+        includeRegistryCheck: { type: 'boolean', optional: true, default: true, convert: true },
+      },
+      openapi: {
+        summary: 'Validate a persisted receipt with optional live registry checks',
+        tags: ['Agent Receipts'],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'mastr-asset-inventory-by-location' },
+          },
+        ],
+      },
+      async handler(ctx) {
+        return ctx.call('agent-receipts.validate', {
+          id: ctx.params.id,
+          includeRegistryCheck: ctx.params.includeRegistryCheck,
+        });
+      },
+    },
+
+    evaluate: {
+      rest: 'POST /evaluate',
+      params: {
+        id: { type: 'string', pattern: RECEIPT_ID_PATTERN, optional: true },
+        receipt: { type: 'object', optional: true },
+        context: { type: 'object', optional: true, default: {} },
+        input: { type: 'object', optional: true, default: {} },
+      },
+      openapi: {
+        summary: 'Evaluate receipt match and execution plan without running tools',
+        tags: ['Agent Receipts'],
+      },
+      async handler(ctx) {
+        const receipt = await this.resolveCandidateReceipt(ctx.params);
+        const result = evaluateReceiptPlan(receipt, {
+          broker: this.broker,
+          context: ctx.params.context,
+          input: ctx.params.input,
+        });
+
+        return {
+          success: true,
+          data: {
+            receiptId: result.receiptId,
+            matchScore: result.matchScore,
+            matched: result.matched,
+            requiredInputs: {
+              declared: result.declaredRequiredInputs,
+              missing: result.missingRequiredInputs,
+            },
+            plannedToolCalls: result.plannedToolCalls,
+            evidenceRequirements: result.evidenceRequirements,
+            warnings: result.warnings,
+            errors: result.errors,
+            executable: result.executable,
+          },
+        };
+      },
+    },
+
+    evaluateStored: {
+      rest: 'POST /:id/evaluate',
+      params: {
+        id: { type: 'string', pattern: RECEIPT_ID_PATTERN },
+        context: { type: 'object', optional: true, default: {} },
+        input: { type: 'object', optional: true, default: {} },
+      },
+      openapi: {
+        summary: 'Evaluate persisted receipt by id',
+        tags: ['Agent Receipts'],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'mastr-asset-inventory-by-location' },
+          },
+        ],
+      },
+      async handler(ctx) {
+        return ctx.call('agent-receipts.evaluate', {
+          id: ctx.params.id,
+          context: ctx.params.context,
+          input: ctx.params.input,
+        });
+      },
+    },
+
+    test: {
+      rest: 'POST /test',
+      params: {
+        id: { type: 'string', pattern: RECEIPT_ID_PATTERN, optional: true },
+        receipt: { type: 'object', optional: true },
+        context: { type: 'object', optional: true, default: {} },
+        input: { type: 'object', optional: true, default: {} },
+      },
+      openapi: {
+        summary: 'Test receipt planning and return runnable execution details',
+        tags: ['Agent Receipts'],
+      },
+      async handler(ctx) {
+        const receipt = await this.resolveCandidateReceipt(ctx.params);
+        const result = evaluateReceiptPlan(receipt, {
+          broker: this.broker,
+          context: ctx.params.context,
+          input: ctx.params.input,
+        });
+
+        return {
+          success: true,
+          data: {
+            receiptId: result.receiptId,
+            executable: result.executable,
+            plan: {
+              steps: result.plannedToolCalls,
+              evidenceRequirements: result.evidenceRequirements,
+            },
+            missingRequiredInputs: result.missingRequiredInputs,
+            warnings: result.warnings,
+            errors: result.errors,
+            diagnostics: {
+              matchScore: result.matchScore,
+              matched: result.matched,
+              reasons: result.matchReasons,
+              missingMatchEntities: result.missingMatchEntities,
+            },
+          },
+        };
+      },
+    },
+
+    testStored: {
+      rest: 'POST /:id/test',
+      params: {
+        id: { type: 'string', pattern: RECEIPT_ID_PATTERN },
+        context: { type: 'object', optional: true, default: {} },
+        input: { type: 'object', optional: true, default: {} },
+      },
+      openapi: {
+        summary: 'Test persisted receipt by id',
+        tags: ['Agent Receipts'],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'mastr-asset-inventory-by-location' },
+          },
+        ],
+      },
+      async handler(ctx) {
+        return ctx.call('agent-receipts.test', {
+          id: ctx.params.id,
+          context: ctx.params.context,
+          input: ctx.params.input,
+        });
+      },
+    },
+
+    explain: {
+      rest: 'POST /explain',
+      params: {
+        id: { type: 'string', pattern: RECEIPT_ID_PATTERN, optional: true },
+        receipt: { type: 'object', optional: true },
+        context: { type: 'object', optional: true, default: {} },
+        input: { type: 'object', optional: true, default: {} },
+      },
+      openapi: {
+        summary: 'Explain why a receipt matched or failed and what would run',
+        tags: ['Agent Receipts'],
+      },
+      async handler(ctx) {
+        const receipt = await this.resolveCandidateReceipt(ctx.params);
+        const result = evaluateReceiptPlan(receipt, {
+          broker: this.broker,
+          context: ctx.params.context,
+          input: ctx.params.input,
+        });
+
+        const summaryParts = [
+          `matchScore=${result.matchScore}`,
+          `matched=${result.matched}`,
+          `executable=${result.executable}`,
+          `missingRequiredInputs=${result.missingRequiredInputs.length}`,
+          `plannedSteps=${result.plannedToolCalls.length}`,
+        ];
+
+        return {
+          success: true,
+          data: {
+            receiptId: result.receiptId,
+            summary: summaryParts.join(' | '),
+            match: {
+              score: result.matchScore,
+              matched: result.matched,
+              reasons: result.matchReasons,
+              missingEntities: result.missingMatchEntities,
+            },
+            execution: {
+              executable: result.executable,
+              plannedToolCalls: result.plannedToolCalls,
+              evidenceRequirements: result.evidenceRequirements,
+              missingRequiredInputs: result.missingRequiredInputs,
+            },
+            warnings: result.warnings,
+            errors: result.errors,
+          },
+        };
+      },
+    },
+
+    explainStored: {
+      rest: 'POST /:id/explain',
+      params: {
+        id: { type: 'string', pattern: RECEIPT_ID_PATTERN },
+        context: { type: 'object', optional: true, default: {} },
+        input: { type: 'object', optional: true, default: {} },
+      },
+      openapi: {
+        summary: 'Explain persisted receipt by id',
+        tags: ['Agent Receipts'],
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'mastr-asset-inventory-by-location' },
+          },
+        ],
+      },
+      async handler(ctx) {
+        return ctx.call('agent-receipts.explain', {
+          id: ctx.params.id,
+          context: ctx.params.context,
+          input: ctx.params.input,
+        });
       },
     },
   },
@@ -669,6 +965,35 @@ module.exports = {
         }
         throw err;
       }
+    },
+
+    async resolveCandidateReceipt(params = {}) {
+      if (params.id) {
+        const doc = await this.loadReceipt(params.id);
+        return toPublic(doc);
+      }
+
+      if (params.receipt && typeof params.receipt === 'object') {
+        const validation = validateReceipt(params.receipt);
+        if (!validation.valid) {
+          throw new MoleculerClientError(
+            'Receipt validation failed.',
+            422,
+            'AGENT_RECEIPT_VALIDATION_FAILED',
+            { errors: validation.errors }
+          );
+        }
+        return validation.normalized;
+      }
+
+      throw new MoleculerClientError(
+        'Either id or receipt must be provided.',
+        422,
+        'AGENT_RECEIPT_VALIDATION_FAILED',
+        {
+          errors: [{ field: 'id|receipt', message: 'Provide either id or receipt.' }],
+        }
+      );
     },
   },
 };
