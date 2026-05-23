@@ -12,6 +12,7 @@ const {
 } = require('../src/agent-receipts-schema');
 const { buildActionRegistry } = require('../src/agent-receipts-registry');
 const { evaluateReceiptPlan } = require('../src/agent-receipts-evaluation');
+const { queryKnowledgeEvidence } = require('../src/personal-agent-knowledge-rag');
 
 function toDocId(receiptId) {
   return `ar:${receiptId}`;
@@ -44,6 +45,8 @@ function toPublic(doc) {
     requiredInputs: Array.isArray(doc.requiredInputs) ? doc.requiredInputs : [],
     toolPlan: doc.toolPlan || { steps: [] },
     knowledgePlan: doc.knowledgePlan,
+    knowledgeQueries: Array.isArray(doc.knowledgeQueries) ? doc.knowledgeQueries : [],
+    knowledgeEvidencePolicy: doc.knowledgeEvidencePolicy || { required: false },
     evidencePolicy: doc.evidencePolicy,
     forbiddenInferences: Array.isArray(doc.forbiddenInferences) ? doc.forbiddenInferences : [],
     responsePolicy: doc.responsePolicy,
@@ -68,6 +71,12 @@ function pruneSelectionResult(payload = {}) {
     mode: payload.mode || 'none',
     score: typeof payload.score === 'number' ? payload.score : null,
     warnings: Array.isArray(payload.warnings) ? payload.warnings : [],
+    ...(payload.selectedReceipt && typeof payload.selectedReceipt === 'object'
+      ? { selectedReceipt: payload.selectedReceipt }
+      : {}),
+    ...(payload.evaluation && typeof payload.evaluation === 'object'
+      ? { evaluation: payload.evaluation }
+      : {}),
     ...(payload.diagnostics && typeof payload.diagnostics === 'object'
       ? { diagnostics: payload.diagnostics }
       : {}),
@@ -116,6 +125,8 @@ module.exports = {
         matching: { type: 'object' },
         requiredInputs: { type: 'array', items: 'string', optional: true, default: [] },
         toolPlan: { type: 'object' },
+        knowledgeQueries: { type: 'array', optional: true, default: [] },
+        knowledgeEvidencePolicy: { type: 'object', optional: true },
         knowledgePlan: { type: 'object', optional: true },
         evidencePolicy: { type: 'object', optional: true },
         forbiddenInferences: { type: 'array', items: 'string', optional: true, default: [] },
@@ -145,6 +156,8 @@ module.exports = {
                   matching: { type: 'object' },
                   requiredInputs: { type: 'array', items: { type: 'string' } },
                   toolPlan: { type: 'object' },
+                  knowledgeQueries: { type: 'array', items: { type: 'object' } },
+                  knowledgeEvidencePolicy: { type: 'object' },
                   knowledgePlan: { type: 'object' },
                   evidencePolicy: { type: 'object' },
                   forbiddenInferences: { type: 'array', items: { type: 'string' } },
@@ -348,6 +361,7 @@ module.exports = {
         allowDraftReceipts: { type: 'boolean', optional: true, default: false, convert: true },
         explainReceiptSelection: { type: 'boolean', optional: true, default: false, convert: true },
         disableReceiptSelection: { type: 'boolean', optional: true, default: false, convert: true },
+        includeEvaluation: { type: 'boolean', optional: true, default: false, convert: true },
       },
       openapi: {
         summary: 'Select a runtime receipt for Personal Agent orchestration',
@@ -397,6 +411,7 @@ module.exports = {
           allowDraftReceipts,
           explainReceiptSelection,
           disableReceiptSelection,
+          includeEvaluation,
         } = ctx.params;
 
         if (disableReceiptSelection) {
@@ -464,7 +479,15 @@ module.exports = {
           }
 
           const forcedReceipt = toPublic(forcedDoc);
-          const forcedEvaluation = evaluateReceiptPlan(forcedReceipt, baseEvalInput);
+          let forcedEvaluation = evaluateReceiptPlan(forcedReceipt, baseEvalInput);
+          if (includeEvaluation) {
+            forcedEvaluation = await this.enrichEvaluationWithKnowledge(
+              ctx,
+              forcedReceipt,
+              baseEvalInput,
+              forcedEvaluation
+            );
+          }
 
           return {
             success: true,
@@ -473,6 +496,12 @@ module.exports = {
               receiptId: forcedReceipt.receiptId,
               status: forcedReceipt.status,
               mode: 'forced',
+              ...(includeEvaluation
+                ? {
+                    selectedReceipt: forcedReceipt,
+                    evaluation: forcedEvaluation,
+                  }
+                : {}),
               score:
                 typeof forcedEvaluation?.matchScore === 'number'
                   ? forcedEvaluation.matchScore
@@ -575,6 +604,17 @@ module.exports = {
             receiptId: selected.receipt.receiptId,
             status: selected.receipt.status,
             mode: selected.mode,
+            ...(includeEvaluation
+              ? {
+                  selectedReceipt: selected.receipt,
+                  evaluation: await this.enrichEvaluationWithKnowledge(
+                    ctx,
+                    selected.receipt,
+                    baseEvalInput,
+                    selected.evaluation
+                  ),
+                }
+              : {}),
             score:
               typeof selected.evaluation?.matchScore === 'number'
                 ? selected.evaluation.matchScore
@@ -977,22 +1017,37 @@ module.exports = {
           context: ctx.params.context,
           input: ctx.params.input,
         });
+        const resultWithKnowledge = await this.enrichEvaluationWithKnowledge(
+          ctx,
+          receipt,
+          {
+            context: ctx.params.context,
+            input: ctx.params.input,
+          },
+          result
+        );
 
         return {
           success: true,
           data: {
-            receiptId: result.receiptId,
-            matchScore: result.matchScore,
-            matched: result.matched,
+            receiptId: resultWithKnowledge.receiptId,
+            matchScore: resultWithKnowledge.matchScore,
+            matched: resultWithKnowledge.matched,
             requiredInputs: {
-              declared: result.declaredRequiredInputs,
-              missing: result.missingRequiredInputs,
+              declared: resultWithKnowledge.declaredRequiredInputs,
+              missing: resultWithKnowledge.missingRequiredInputs,
             },
-            plannedToolCalls: result.plannedToolCalls,
-            evidenceRequirements: result.evidenceRequirements,
-            warnings: result.warnings,
-            errors: result.errors,
-            executable: result.executable,
+            plannedToolCalls: resultWithKnowledge.plannedToolCalls,
+            evidenceRequirements: resultWithKnowledge.evidenceRequirements,
+            knowledgeEvidenceStatus: resultWithKnowledge.knowledgeEvidenceStatus,
+            knowledgeEvidence: resultWithKnowledge.knowledgeEvidence,
+            knowledgeEvidencePolicy: resultWithKnowledge.knowledgeEvidencePolicy,
+            knowledgeEvidenceRequired: resultWithKnowledge.knowledgeEvidenceRequired,
+            knowledgeEvidenceSatisfied: resultWithKnowledge.knowledgeEvidenceSatisfied,
+            knowledgeEvidenceTrace: resultWithKnowledge.knowledgeEvidenceTrace,
+            warnings: resultWithKnowledge.warnings,
+            errors: resultWithKnowledge.errors,
+            executable: resultWithKnowledge.executable,
           },
         };
       },
@@ -1045,24 +1100,39 @@ module.exports = {
           context: ctx.params.context,
           input: ctx.params.input,
         });
+        const resultWithKnowledge = await this.enrichEvaluationWithKnowledge(
+          ctx,
+          receipt,
+          {
+            context: ctx.params.context,
+            input: ctx.params.input,
+          },
+          result
+        );
 
         return {
           success: true,
           data: {
-            receiptId: result.receiptId,
-            executable: result.executable,
+            receiptId: resultWithKnowledge.receiptId,
+            executable: resultWithKnowledge.executable,
             plan: {
-              steps: result.plannedToolCalls,
-              evidenceRequirements: result.evidenceRequirements,
+              steps: resultWithKnowledge.plannedToolCalls,
+              evidenceRequirements: resultWithKnowledge.evidenceRequirements,
+              knowledgeEvidenceStatus: resultWithKnowledge.knowledgeEvidenceStatus,
+              knowledgeEvidence: resultWithKnowledge.knowledgeEvidence,
+              knowledgeEvidencePolicy: resultWithKnowledge.knowledgeEvidencePolicy,
+              knowledgeEvidenceRequired: resultWithKnowledge.knowledgeEvidenceRequired,
+              knowledgeEvidenceSatisfied: resultWithKnowledge.knowledgeEvidenceSatisfied,
+              knowledgeEvidenceTrace: resultWithKnowledge.knowledgeEvidenceTrace,
             },
-            missingRequiredInputs: result.missingRequiredInputs,
-            warnings: result.warnings,
-            errors: result.errors,
+            missingRequiredInputs: resultWithKnowledge.missingRequiredInputs,
+            warnings: resultWithKnowledge.warnings,
+            errors: resultWithKnowledge.errors,
             diagnostics: {
-              matchScore: result.matchScore,
-              matched: result.matched,
-              reasons: result.matchReasons,
-              missingMatchEntities: result.missingMatchEntities,
+              matchScore: resultWithKnowledge.matchScore,
+              matched: resultWithKnowledge.matched,
+              reasons: resultWithKnowledge.matchReasons,
+              missingMatchEntities: resultWithKnowledge.missingMatchEntities,
             },
           },
         };
@@ -1116,13 +1186,23 @@ module.exports = {
           context: ctx.params.context,
           input: ctx.params.input,
         });
+        const resultWithKnowledge = await this.enrichEvaluationWithKnowledge(
+          ctx,
+          receipt,
+          {
+            context: ctx.params.context,
+            input: ctx.params.input,
+          },
+          result
+        );
 
         const summaryParts = [
-          `matchScore=${result.matchScore}`,
-          `matched=${result.matched}`,
-          `executable=${result.executable}`,
-          `missingRequiredInputs=${result.missingRequiredInputs.length}`,
-          `plannedSteps=${result.plannedToolCalls.length}`,
+          `matchScore=${resultWithKnowledge.matchScore}`,
+          `matched=${resultWithKnowledge.matched}`,
+          `executable=${resultWithKnowledge.executable}`,
+          `missingRequiredInputs=${resultWithKnowledge.missingRequiredInputs.length}`,
+          `plannedSteps=${resultWithKnowledge.plannedToolCalls.length}`,
+          `knowledgeEvidenceStatus=${resultWithKnowledge.knowledgeEvidenceStatus}`,
         ];
 
         return {
@@ -1131,19 +1211,25 @@ module.exports = {
             receiptId: result.receiptId,
             summary: summaryParts.join(' | '),
             match: {
-              score: result.matchScore,
-              matched: result.matched,
-              reasons: result.matchReasons,
-              missingEntities: result.missingMatchEntities,
+              score: resultWithKnowledge.matchScore,
+              matched: resultWithKnowledge.matched,
+              reasons: resultWithKnowledge.matchReasons,
+              missingEntities: resultWithKnowledge.missingMatchEntities,
             },
             execution: {
-              executable: result.executable,
-              plannedToolCalls: result.plannedToolCalls,
-              evidenceRequirements: result.evidenceRequirements,
-              missingRequiredInputs: result.missingRequiredInputs,
+              executable: resultWithKnowledge.executable,
+              plannedToolCalls: resultWithKnowledge.plannedToolCalls,
+              evidenceRequirements: resultWithKnowledge.evidenceRequirements,
+              knowledgeEvidenceStatus: resultWithKnowledge.knowledgeEvidenceStatus,
+              knowledgeEvidence: resultWithKnowledge.knowledgeEvidence,
+              knowledgeEvidencePolicy: resultWithKnowledge.knowledgeEvidencePolicy,
+              knowledgeEvidenceRequired: resultWithKnowledge.knowledgeEvidenceRequired,
+              knowledgeEvidenceSatisfied: resultWithKnowledge.knowledgeEvidenceSatisfied,
+              knowledgeEvidenceTrace: resultWithKnowledge.knowledgeEvidenceTrace,
+              missingRequiredInputs: resultWithKnowledge.missingRequiredInputs,
             },
-            warnings: result.warnings,
-            errors: result.errors,
+            warnings: resultWithKnowledge.warnings,
+            errors: resultWithKnowledge.errors,
           },
         };
       },
@@ -1185,6 +1271,14 @@ module.exports = {
       for (const seed of RECEIPT_SEEDS) {
         const docId = `ar:${seed.receiptId}`;
         try {
+          const validation = validateReceipt(seed);
+          if (!validation.valid) {
+            this.logger.error(
+              `[agent-receipts] Seed ${seed.receiptId} is invalid: ${JSON.stringify(validation.errors)}`
+            );
+            continue;
+          }
+
           let existing;
           try {
             existing = await this.db.get(docId);
@@ -1193,18 +1287,28 @@ module.exports = {
             // Not found, proceed with create
           }
 
+          const now = new Date().toISOString();
+          const normalizedSeed = validation.normalized;
+
           if (!existing) {
             // Create new seed
             const doc = {
               _id: docId,
-              type: 'receipt',
-              status: seed.status || 'active',
-              version: seed.version || '1',
-              ...seed,
+              type: 'agent-receipt',
+              ...normalizedSeed,
+              version: Number(seed.version || 1),
+              createdAt: now,
+              updatedAt: now,
+              activatedAt: normalizedSeed.status === 'active' ? now : null,
+              deprecatedAt: normalizedSeed.status === 'deprecated' ? now : null,
+              archivedAt: normalizedSeed.status === 'archived' ? now : null,
             };
             await this.db.put(doc);
             this.logger.info(`[agent-receipts] Seeded receipt: ${seed.receiptId}`);
-          } else if (existing.status !== seed.status || existing.version !== seed.version) {
+          } else if (
+            existing.status !== normalizedSeed.status ||
+            Number(existing.version || 1) !== Number(seed.version || 1)
+          ) {
             // Check if manually edited
             const isManuallyEdited = existing.tags && existing.tags.includes('manually-edited');
             if (isManuallyEdited) {
@@ -1213,7 +1317,21 @@ module.exports = {
               );
             } else {
               // Safe update if only version/status diff
-              const updated = { ...seed, _id: docId, _rev: existing._rev, type: 'receipt' };
+              const updated = {
+                ...existing,
+                ...normalizedSeed,
+                _id: docId,
+                _rev: existing._rev,
+                type: 'agent-receipt',
+                version: Number(seed.version || existing.version || 1),
+                createdAt: existing.createdAt || now,
+                updatedAt: now,
+                activatedAt:
+                  normalizedSeed.status === 'active' ? existing.activatedAt || now : existing.activatedAt || null,
+                deprecatedAt:
+                  normalizedSeed.status === 'deprecated' ? now : existing.deprecatedAt || null,
+                archivedAt: normalizedSeed.status === 'archived' ? now : existing.archivedAt || null,
+              };
               await this.db.put(updated);
               this.logger.info(
                 `[agent-receipts] Updated receipt ${seed.receiptId} to version ${seed.version}`
@@ -1359,6 +1477,125 @@ module.exports = {
 
           return String(a.receiptId || '').localeCompare(String(b.receiptId || ''));
         });
+    },
+
+    renderKnowledgeQueryTemplate(template = '', scope = {}) {
+      const source = String(template || '').trim();
+      if (!source) return '';
+
+      return source.replace(/{{\s*([^}]+)\s*}}/g, (_full, rawPath) => {
+        const path = String(rawPath || '').trim();
+        if (!path) return '';
+        const value = path.split('.').reduce((acc, segment) => {
+          if (acc == null) return undefined;
+          return acc[segment];
+        }, scope);
+        if (value == null) return '';
+        return String(value);
+      });
+    },
+
+    async collectKnowledgeEvidence(ctx, receipt, evalInput = {}) {
+      const queries = Array.isArray(receipt?.knowledgeQueries)
+        ? receipt.knowledgeQueries.filter((entry) => entry && typeof entry === 'object')
+        : [];
+      const policy =
+        receipt?.knowledgeEvidencePolicy && typeof receipt.knowledgeEvidencePolicy === 'object'
+          ? receipt.knowledgeEvidencePolicy
+          : { required: false };
+
+      if (queries.length === 0) {
+        return {
+          status: 'missing',
+          hits: [],
+          policy,
+          trace: {
+            queryCount: 0,
+            queries: [],
+          },
+        };
+      }
+
+      const mergedScope = {
+        message:
+          evalInput?.input?.message || evalInput?.context?.message || evalInput?.message || '',
+        context: evalInput?.context && typeof evalInput.context === 'object' ? evalInput.context : {},
+        input: evalInput?.input && typeof evalInput.input === 'object' ? evalInput.input : {},
+      };
+
+      const queryResults = [];
+      for (let index = 0; index < queries.length; index += 1) {
+        const queryDef = queries[index];
+        const queryText = this.renderKnowledgeQueryTemplate(queryDef.query, mergedScope);
+        const result = await queryKnowledgeEvidence(ctx, {
+          query: queryText,
+          limit: queryDef.limit,
+          summaryMaxChars: queryDef.summaryMaxChars,
+          timeoutMs: queryDef.timeoutMs,
+        });
+
+        queryResults.push({
+          id: queryDef.id || `q${index + 1}`,
+          queryType: 'semantic',
+          query: queryText,
+          status: result.status,
+          hitCount: Array.isArray(result.hits) ? result.hits.length : 0,
+          hits: Array.isArray(result.hits) ? result.hits : [],
+        });
+      }
+
+      const combinedHits = [];
+      const seen = new Set();
+      queryResults.forEach((entry) => {
+        entry.hits.forEach((hit) => {
+          const key = `${hit.hitId || ''}::${hit.source || ''}::${hit.summary || ''}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          combinedHits.push(hit);
+        });
+      });
+
+      const hasTimeout = queryResults.some((entry) => entry.status === 'timeout');
+      const hasUnavailable = queryResults.some((entry) => entry.status === 'unavailable');
+
+      const status =
+        combinedHits.length > 0
+          ? 'available'
+          : hasTimeout
+            ? 'timeout'
+            : hasUnavailable
+              ? 'unavailable'
+              : 'missing';
+
+      return {
+        status,
+        hits: combinedHits,
+        policy,
+        trace: {
+          queryCount: queryResults.length,
+          queries: queryResults.map((entry) => ({
+            id: entry.id,
+            queryType: entry.queryType,
+            status: entry.status,
+            hitCount: entry.hitCount,
+          })),
+        },
+      };
+    },
+
+    async enrichEvaluationWithKnowledge(ctx, receipt, evalInput = {}, evaluation = {}) {
+      const evidence = await this.collectKnowledgeEvidence(ctx, receipt, evalInput);
+      return evaluateReceiptPlan(receipt, {
+        broker: this.broker,
+        context: evalInput.context || {},
+        input: evalInput.input || {},
+        actionRegistry: evalInput.actionRegistry,
+        knowledgeEvidence: {
+          status: evidence.status,
+          hits: evidence.hits,
+          trace: evidence.trace,
+        },
+      });
     },
   },
 };

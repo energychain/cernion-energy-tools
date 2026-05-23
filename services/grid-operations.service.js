@@ -740,7 +740,6 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['bdew'],
                 properties: {
                   bdew: {
                     type: 'string',
@@ -777,6 +776,14 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
       },
       async handler(ctx) {
         const { bdew, city, vnbName, query, limit } = ctx.params;
+
+        if (!bdew && !city && !vnbName && !query) {
+          throw new MoleculerClientError(
+            'At least one of bdew, city, vnbName, or query must be provided',
+            422,
+            'PARAMS_REQUIRED'
+          );
+        }
 
         // Use the most specific param as primary lookup
         let lookupParam = bdew || vnbName || query || city;

@@ -63,6 +63,43 @@ describe('Agent Receipts Service', () => {
     });
 
     broker.createService({
+      name: 'knowledge-rag',
+      actions: {
+        query: {
+          handler(ctx) {
+            const query = String(ctx.params?.query || '');
+            if (/timeout-case/i.test(query)) {
+              const error = new Error('Request timeout');
+              error.type = 'REQUEST_TIMEOUT';
+              throw error;
+            }
+            if (/missing-case/i.test(query)) {
+              return { success: true, data: { results: [] } };
+            }
+            return {
+              success: true,
+              data: {
+                results: [
+                  {
+                    id: 'knowledge-hit-1',
+                    source: 'BNetzA',
+                    score: 0.92,
+                    summary: 'Kurzbeleg zur Zuständigkeit im Netzgebiet.',
+                    referenceText: 'DO_NOT_LEAK_RAW_REFERENCE',
+                    metadata: {
+                      docType: 'Festlegung',
+                      publishedAt: '2026-01-01T00:00:00.000Z',
+                    },
+                  },
+                ],
+              },
+            };
+          },
+        },
+      },
+    });
+
+    broker.createService({
       ...AgentReceiptsService,
       settings: {
         ...AgentReceiptsService.settings,
@@ -132,6 +169,58 @@ describe('Agent Receipts Service', () => {
         validReceipt({
           receiptId: 'invalid-missing-steps',
           toolPlan: { steps: [] },
+        })
+      )
+    ).rejects.toMatchObject({
+      code: 422,
+      type: 'AGENT_RECEIPT_VALIDATION_FAILED',
+    });
+  });
+
+  it('accepts semantic knowledgeQueries and rejects non-semantic modes', async () => {
+    const withKnowledge = await broker.call(
+      'agent-receipts.create',
+      validReceipt({
+        receiptId: 'knowledge-query-valid-v1',
+        title: 'Knowledge query valid',
+        knowledgeQueries: [
+          {
+            id: 'kq1',
+            queryType: 'semantic',
+            query: '{{message}}',
+            limit: 2,
+            summaryMaxChars: 180,
+          },
+        ],
+        knowledgeEvidencePolicy: {
+          required: false,
+        },
+      })
+    );
+
+    expect(withKnowledge.success).toBe(true);
+    expect(withKnowledge.data.knowledgeQueries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'kq1',
+          queryType: 'semantic',
+          query: '{{message}}',
+        }),
+      ])
+    );
+
+    await expect(
+      broker.call(
+        'agent-receipts.create',
+        validReceipt({
+          receiptId: 'knowledge-query-invalid-v1',
+          title: 'Knowledge query invalid',
+          knowledgeQueries: [
+            {
+              queryType: 'keyword',
+              query: '{{message}}',
+            },
+          ],
         })
       )
     ).rejects.toMatchObject({
@@ -337,6 +426,88 @@ describe('Agent Receipts Service', () => {
     });
     expect(
       evaluation.data.warnings.some((entry) => entry.code === 'RECEIPT_ACTION_SIGNATURE_CHANGED')
+    ).toBe(true);
+  });
+
+  it('returns metadata-first knowledge evidence in evaluate output', async () => {
+    await broker.call('agent-receipts.create', {
+      ...validReceipt({
+        receiptId: 'knowledge-evidence-evaluate-v1',
+        title: 'Knowledge evidence evaluate',
+        matching: {
+          triggerTerms: ['netzbetreiber'],
+        },
+        requiredInputs: [],
+      }),
+      knowledgeQueries: [
+        {
+          id: 'kq-evaluate',
+          queryType: 'semantic',
+          query: '{{message}}',
+          limit: 1,
+        },
+      ],
+    });
+
+    const evaluation = await broker.call('agent-receipts.evaluateStored', {
+      id: 'knowledge-evidence-evaluate-v1',
+      input: {
+        message: 'zuständiger Netzbetreiber Wiesloch',
+      },
+    });
+
+    expect(evaluation.success).toBe(true);
+    expect(evaluation.data.knowledgeEvidenceStatus).toBe('available');
+    expect(evaluation.data.knowledgeEvidencePolicy).toEqual(expect.objectContaining({ required: false }));
+    expect(evaluation.data.knowledgeEvidence[0]).toEqual(
+      expect.objectContaining({
+        hitId: 'knowledge-hit-1',
+        source: 'BNetzA',
+        summary: expect.any(String),
+      })
+    );
+    expect(JSON.stringify(evaluation.data.knowledgeEvidence)).not.toContain('DO_NOT_LEAK_RAW_REFERENCE');
+  });
+
+  it('marks timeout knowledge status and warning when knowledge evidence is required', async () => {
+    await broker.call('agent-receipts.create', {
+      ...validReceipt({
+        receiptId: 'knowledge-timeout-required-v1',
+        title: 'Knowledge timeout required',
+        matching: {
+          triggerTerms: ['netzbetreiber'],
+        },
+        requiredInputs: [],
+      }),
+      knowledgeQueries: [
+        {
+          id: 'kq-timeout',
+          queryType: 'semantic',
+          query: '{{message}}',
+          timeoutMs: 1000,
+        },
+      ],
+      knowledgeEvidencePolicy: {
+        required: true,
+        timeoutBehavior: 'degraded',
+      },
+    });
+
+    const tested = await broker.call('agent-receipts.testStored', {
+      id: 'knowledge-timeout-required-v1',
+      input: {
+        message: 'timeout-case',
+      },
+    });
+
+    expect(tested.success).toBe(true);
+    expect(tested.data.plan.knowledgeEvidenceStatus).toBe('timeout');
+    expect(tested.data.plan.knowledgeEvidenceRequired).toBe(true);
+    expect(tested.data.plan.knowledgeEvidenceSatisfied).toBe(false);
+    expect(
+      tested.data.warnings.some(
+        (entry) => entry.code === 'RECEIPT_KNOWLEDGE_REQUIRED_NOT_AVAILABLE'
+      )
     ).toBe(true);
   });
 

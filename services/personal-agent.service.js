@@ -1489,6 +1489,7 @@ module.exports = {
             domainIntent:
               semanticClassification?.domainIntent || brokerRecommendation?.intent || null,
             knownContext: brokerKnownContext,
+            receiptKnowledgeEvidence: receiptSelectionResult?.knowledgeEvidence || null,
             verifiedFacts: [],
           });
           const gapResponse = buildExecutionGapResponse({
@@ -1660,6 +1661,7 @@ module.exports = {
             message: ctx.params.message,
             brokerRecommendation,
             knowledgeContext,
+            receiptKnowledgeEvidence: receiptSelectionResult?.knowledgeEvidence || null,
             responseStrategy: consultationResponseStrategy,
             semanticClassification,
             session,
@@ -2539,6 +2541,7 @@ module.exports = {
             semanticClassification?.domainIntent ||
             null,
           knownContext: preflightKnownContext,
+          receiptKnowledgeEvidence: receiptSelectionResult?.knowledgeEvidence || null,
           responsePlan,
           execution,
           evidencePlan: responsePlan?.evidencePlan || null,
@@ -3195,6 +3198,7 @@ module.exports = {
       workflowType = null,
       domainIntent = null,
       knownContext = {},
+      receiptKnowledgeEvidence = null,
       responsePlan = null,
       observations = [],
       execution = null,
@@ -3242,6 +3246,24 @@ module.exports = {
         ...observationFacts,
         ...executionFacts,
       ].filter((fact) => Boolean(fact.value));
+
+      const knowledgeEvidence =
+        receiptKnowledgeEvidence && typeof receiptKnowledgeEvidence === 'object'
+          ? receiptKnowledgeEvidence
+          : null;
+      const knowledgeStatus = String(knowledgeEvidence?.status || '').toLowerCase();
+      const knowledgeRequired = knowledgeEvidence?.required === true;
+      const knowledgeHits = Array.isArray(knowledgeEvidence?.hits) ? knowledgeEvidence.hits : [];
+
+      const knowledgeFacts = knowledgeHits
+        .slice(0, 4)
+        .map((hit) => ({
+          source: String(hit?.source || 'knowledge').slice(0, 160),
+          value: String(hit?.summary || '').slice(0, 220),
+        }))
+        .filter((entry) => entry.value);
+
+      normalizedVerifiedFacts.push(...knowledgeFacts);
 
       const hasVerifiedVnbLookup =
         (Array.isArray(observations) ? observations : []).some(
@@ -3293,6 +3315,30 @@ module.exports = {
         });
       });
 
+      if (knowledgeRequired && knowledgeStatus && knowledgeStatus !== 'available') {
+        missingEvidence.push({
+          id: 'receipt_knowledge_required',
+          label: 'Receipt fordert Knowledge-Evidenz, aber sie ist derzeit nicht verfügbar.',
+          severity: knowledgeStatus === 'timeout' ? 'high' : 'medium',
+        });
+      }
+
+      if (knowledgeStatus === 'timeout') {
+        missingEvidence.push({
+          id: 'knowledge_evidence_timeout',
+          label: 'Knowledge-Evidenz konnte wegen Timeout nicht geladen werden.',
+          severity: knowledgeRequired ? 'high' : 'medium',
+        });
+      }
+
+      if (knowledgeStatus === 'unavailable') {
+        missingEvidence.push({
+          id: 'knowledge_evidence_unavailable',
+          label: 'Knowledge Service ist derzeit nicht verfügbar.',
+          severity: knowledgeRequired ? 'high' : 'low',
+        });
+      }
+
       const unverifiedAssumptions = [];
       if (hasVnbContext && !hasVerifiedVnbLookup) {
         unverifiedAssumptions.push({
@@ -3303,11 +3349,27 @@ module.exports = {
         });
       }
 
+      if (knowledgeRequired && knowledgeStatus && knowledgeStatus !== 'available') {
+        unverifiedAssumptions.push({
+          type: 'knowledge_evidence_missing',
+          statement:
+            'Receipt-spezifische Knowledge-Evidenz ist derzeit nicht verifiziert verfügbar.',
+          confidence: 'low',
+        });
+      }
+
       const nextVerificationSteps = [];
       if (missingEvidence.some((item) => item.id === 'vnb_lookup_required')) {
         nextVerificationSteps.push({
           action: 'grid-operations.vnbLookup',
           description: 'Zuständigen VNB über dedizierten Netzgebietslookup verifizieren.',
+        });
+      }
+
+      if (knowledgeRequired && knowledgeStatus && knowledgeStatus !== 'available') {
+        nextVerificationSteps.push({
+          action: 'knowledge-rag.query',
+          description: 'Receipt-spezifische Knowledge-Evidenz erneut laden und verifizieren.',
         });
       }
 
@@ -3348,6 +3410,7 @@ module.exports = {
           'no_unbacked_legal_reference',
           'no_timeout_relief_without_evidence',
           'no_workflow_mismatch_claim',
+          'no_knowledge_overclaim_without_evidence',
         ],
         nextVerificationSteps,
         allowedLegalRefs,
@@ -3461,6 +3524,27 @@ module.exports = {
           code: 'WORKFLOW_CONTEXT_MISMATCH_BLOCKED',
           severity: 'high',
           replacement: 'conservative_response',
+        });
+      }
+
+      const knowledgeTimeoutGap = missingEvidence.some(
+        (item) => item?.id === 'knowledge_evidence_timeout'
+      );
+      const knowledgeRequiredGap = missingEvidence.some(
+        (item) => item?.id === 'receipt_knowledge_required'
+      );
+
+      if (knowledgeTimeoutGap || knowledgeRequiredGap) {
+        const hint =
+          'Hinweis: Knowledge-Evidenz ist aktuell nicht verfügbar; die Antwort bleibt konservativ bis zur Verifikation.';
+        if (!guardedReply.includes(hint)) {
+          guardedReply = `${guardedReply}\n\n${hint}`.trim();
+        }
+        guardrailCorrections.push({
+          code: knowledgeTimeoutGap
+            ? 'KNOWLEDGE_EVIDENCE_TIMEOUT_CONSERVATIVE'
+            : 'KNOWLEDGE_EVIDENCE_REQUIRED_CONSERVATIVE',
+          severity: 'medium',
         });
       }
 
@@ -5247,6 +5331,7 @@ module.exports = {
             brokerRecommendation?.intent ||
             null,
           knownContext: input.knownContext || {},
+          receiptKnowledgeEvidence: input.receiptKnowledgeEvidence || null,
           observations: Array.isArray(normalizedResult.toolTrace) ? normalizedResult.toolTrace : [],
           verifiedFacts: Array.isArray(normalizedResult.factsUsed)
             ? normalizedResult.factsUsed
@@ -6532,6 +6617,7 @@ module.exports = {
             allowDraftReceipts: payload.allowDraftReceipts === true,
             explainReceiptSelection: payload.explainReceiptSelection === true,
             disableReceiptSelection: false,
+            includeEvaluation: true,
           },
           { meta: { ...ctx.meta, $gateway: false } }
         );
@@ -6550,6 +6636,24 @@ module.exports = {
           warnings: Array.isArray(data?.warnings) ? data.warnings : [],
           diagnostics:
             data?.diagnostics && typeof data.diagnostics === 'object' ? data.diagnostics : null,
+          knowledgeEvidence:
+            data?.evaluation && typeof data.evaluation === 'object'
+              ? {
+                  status:
+                    typeof data.evaluation.knowledgeEvidenceStatus === 'string'
+                      ? data.evaluation.knowledgeEvidenceStatus
+                      : null,
+                  required: data.evaluation.knowledgeEvidenceRequired === true,
+                  hits: Array.isArray(data.evaluation.knowledgeEvidence)
+                    ? data.evaluation.knowledgeEvidence
+                    : [],
+                  trace:
+                    data.evaluation.knowledgeEvidenceTrace &&
+                    typeof data.evaluation.knowledgeEvidenceTrace === 'object'
+                      ? data.evaluation.knowledgeEvidenceTrace
+                      : { queryCount: 0, queries: [] },
+                }
+              : null,
         };
       } catch (error) {
         if (isActionUnavailable(error) || isNotFound(error)) {
@@ -6583,6 +6687,16 @@ module.exports = {
           diagnostics:
             selection.diagnostics && typeof selection.diagnostics === 'object'
               ? selection.diagnostics
+              : null,
+          knowledgeEvidence:
+            selection.knowledgeEvidence && typeof selection.knowledgeEvidence === 'object'
+              ? {
+                  status: selection.knowledgeEvidence.status || null,
+                  required: selection.knowledgeEvidence.required === true,
+                  hitCount: Array.isArray(selection.knowledgeEvidence.hits)
+                    ? selection.knowledgeEvidence.hits.length
+                    : 0,
+                }
               : null,
         }),
       };

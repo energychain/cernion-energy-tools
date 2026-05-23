@@ -3142,6 +3142,44 @@ describe('personal-agent.service', () => {
     );
   });
 
+  it('adds conservative handling when receipt-required knowledge evidence timed out', () => {
+    const svc = broker.getLocalService('personal-agent');
+    const contract = svc.buildResponsePolicyContract({
+      message: 'VNB Einordnung mit Receipt',
+      workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION,
+      domainIntent: 'vnb_lookup',
+      knownContext: {
+        city: 'Wiesloch',
+      },
+      receiptKnowledgeEvidence: {
+        status: 'timeout',
+        required: true,
+        hits: [],
+      },
+      observations: [],
+      verifiedFacts: [],
+    });
+
+    expect(contract.missingEvidence).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'receipt_knowledge_required' }),
+        expect.objectContaining({ id: 'knowledge_evidence_timeout' }),
+      ])
+    );
+
+    const guarded = svc.applyResponsePolicyGuardrails({
+      reply: 'Der zuständige Netzbetreiber ist eindeutig bekannt.',
+      contract,
+    });
+
+    expect(guarded.reply).toContain('Knowledge-Evidenz ist aktuell nicht verfügbar');
+    expect(guarded.guardrailCorrections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'KNOWLEDGE_EVIDENCE_TIMEOUT_CONSERVATIVE' }),
+      ])
+    );
+  });
+
   it('exposes workflow and evidence contract fields in consultation chat responses', async () => {
     const result = await broker.call(
       'personal-agent.chat',

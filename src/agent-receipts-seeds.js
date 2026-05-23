@@ -10,10 +10,14 @@
 const RECEIPT_SEEDS = Object.freeze([
   {
     receiptId: 'vnb-lookup-v1',
-    version: '1',
+    version: 1,
     status: 'active',
+    title: 'VNB lookup baseline',
+    description:
+      'Deterministic VNB/BDEW lookup receipt with conservative fallback and optional knowledge support.',
+    domain: 'grid-operations',
 
-    matchConditions: {
+    matching: {
       domains: ['grid-operations'],
       triggerTerms: [
         'vnb',
@@ -29,16 +33,11 @@ const RECEIPT_SEEDS = Object.freeze([
       requiredEntities: [],
     },
 
-    requiredInputs: [
-      { field: 'city', label: 'Ort/Gemeinde', priority: 'critical', required: false },
-      { field: 'bdewCode', label: 'BDEW-Code', priority: 'critical', required: false },
-      { field: 'vnbName', label: 'Netzbetreiber-Name', priority: 'normal', required: false },
-    ],
+    requiredInputs: [],
 
     toolPlan: {
       steps: [
         {
-          step: 1,
           action: 'grid-operations.vnbLookup',
           description: 'Primary lookup by BDEW, city, or name',
           paramMapping: {
@@ -59,10 +58,27 @@ const RECEIPT_SEEDS = Object.freeze([
             },
           },
           required: true,
-          evidence: { requirement: 'completed', fields: ['vnbName', 'bdew'] },
+          evidence: {
+            requiredOutputFields: ['vnbName', 'bdew'],
+          },
           fallbackActions: ['grid-operations.marketPartners'],
         },
       ],
+    },
+
+    knowledgeQueries: [
+      {
+        id: 'vnb-regulatory-context',
+        queryType: 'semantic',
+        query: 'VNB Zuständigkeit Netzgebiet BDEW {{context.knownContext.city}} {{context.knownContext.bdew}} {{message}}',
+        limit: 2,
+        summaryMaxChars: 220,
+      },
+    ],
+
+    knowledgeEvidencePolicy: {
+      required: false,
+      timeoutBehavior: 'degraded',
     },
 
     evidencePolicy: {
@@ -90,7 +106,8 @@ const RECEIPT_SEEDS = Object.freeze([
     },
 
     tags: ['grid-operations', 'vnb', 'bdew', 'location', 'v0.54.3'],
-    createdAt: new Date().toISOString(),
+    defaults: {},
+    metadata: {},
   },
 ]);
 

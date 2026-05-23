@@ -11,14 +11,13 @@
  *   5. Disables legacy routing when receipt is forced
  */
 
-const { describe, it, expect, beforeAll, afterAll } = require('@jest/globals');
-const { exec } = require('child_process');
-const { promisify } = require('util');
+const { describe, it, expect, beforeAll } = require('@jest/globals');
 const http = require('http');
 
-const execAsync = promisify(exec);
+const RUN_LIVE_PERSONAL_AGENT_TESTS =
+  String(process.env.PERSONAL_AGENT_LIVE_TESTS || 'false').toLowerCase() === 'true';
+const describeLive = RUN_LIVE_PERSONAL_AGENT_TESTS ? describe : describe.skip;
 
-const PERSONAL_AGENT_URL = 'http://localhost:3000/api/personal-agent/chat';
 const SESSION_ID_PREFIX = 'pa_test_vnb_';
 
 /**
@@ -58,7 +57,7 @@ async function callPersonalAgentChat(payload) {
   });
 }
 
-describe('v0.54.3 VNB Lookup Receipt Migration', () => {
+describeLive('v0.54.3 VNB Lookup Receipt Migration', () => {
   beforeAll(async () => {
     // Wait for personal-agent service to be ready (max 10s)
     let ready = false;
@@ -217,7 +216,7 @@ describe('v0.54.3 VNB Lookup Receipt Migration', () => {
   });
 });
 
-describe('v0.54.3 Receipt Executor Integration', () => {
+describeLive('v0.54.3 Receipt Executor Integration', () => {
   describe('executeWithReceipt Adapter', () => {
     it('should execute toolPlan steps deterministically', async () => {
       const sessionId = `${SESSION_ID_PREFIX}executor_deterministic`;
@@ -252,7 +251,7 @@ describe('v0.54.3 Receipt Executor Integration', () => {
   });
 });
 
-describe('v0.54.3 Backward Compatibility', () => {
+describeLive('v0.54.3 Backward Compatibility', () => {
   describe('Legacy Routes Still Work', () => {
     it('should not break when no receipt is selected', async () => {
       const sessionId = `${SESSION_ID_PREFIX}compat_no_receipt`;

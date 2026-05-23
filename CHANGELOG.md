@@ -7,6 +7,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.54.4] — Knowledge-Aware Receipts (Metadata-First, Timeout-Safe) (2026-05-23)
+
+### Added
+
+- [src/agent-receipts-schema.js](src/agent-receipts-schema.js): Receipt-Schema um optionale `knowledgeQueries` und `knowledgeEvidencePolicy` erweitert.
+  - Query-Modus in v0.54.4 bewusst eingeschränkt auf `semantic`.
+  - Strikte Validierung für Query-Limits, Timeout-Budget und Summary-Längen.
+- [src/personal-agent-knowledge-rag.js](src/personal-agent-knowledge-rag.js): neue `queryKnowledgeEvidence()`-Funktion für receipt-gesteuerte Knowledge-Evidenzabfragen.
+  - Liefert ausschließlich metadata-first Treffer (`hitId`, `source`, `score`, `summary`, optional `timestamp`, `documentType`).
+  - Rohinhalte (`referenceText`, `vectorText`, lange Dokumentausschnitte) werden nicht weitergereicht.
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): Knowledge-Evidenz in Receipt-Selection/-Evaluation integriert.
+  - `select` unterstützt optional `includeEvaluation` für Auswahl + Evaluationsdetails in einem Aufruf.
+  - `evaluate`/`test`/`explain` geben `knowledgeEvidenceStatus`, `knowledgeEvidence`, `knowledgeEvidenceRequired`, `knowledgeEvidenceSatisfied` und `knowledgeEvidenceTrace` aus.
+
+### Changed
+
+- [src/agent-receipts-evaluation.js](src/agent-receipts-evaluation.js): Evaluierung berücksichtigt Knowledge-Evidenzstatus ohne Tool-Execution-Pfad zu ersetzen.
+  - Advisory-by-default bleibt erhalten.
+  - Bei `knowledgeEvidencePolicy.required=true` werden fehlende/timeoute Knowledge-Belege als konservative Warnung markiert.
+- [services/personal-agent.service.js](services/personal-agent.service.js): bestehende Response-Guardrails um zusätzliche Knowledge-Evidenz angereichert (nicht ersetzt).
+  - Timeout/Unavailable sind first-class Evidenzzustände (`timeout`, `unavailable`) statt harter Fehlerpfad.
+  - Konservative Antworthinweise bei fehlender required-Knowledge-Evidenz.
+- [src/agent-receipts-seeds.js](src/agent-receipts-seeds.js), [services/agent-receipts.service.js](services/agent-receipts.service.js): Seed-/Schema-Angleichung minimal gehärtet.
+  - Seeds werden gegen das Receipt-Schema validiert.
+  - Seed-Dokumente nutzen konsistente Receipt-Typisierung und Lifecycle-Felder.
+
+### Fixed
+
+- Receipt-Selection-Payload enthält nun optional die selektierte Receipt-Struktur plus Evaluation, sodass Personal Agent deterministisch mit Evaluations-Telemetrie arbeiten kann.
+- Knowledge-Timeout degradiert stabil auf konservative Antwortpolitik statt Flow-Abbruch.
+- [services/grid-operations.service.js](services/grid-operations.service.js): `vnbLookup` erzwingt die Eingabe von mindestens einem Lookup-Kriterium (`bdew`, `city`, `vnbName`, `query`) nun deterministisch im Handler.
+- [tests/agent-receipts.vnb.test.js](tests/agent-receipts.vnb.test.js): Live-HTTP-VNB-Suite auf opt-in umgestellt (`PERSONAL_AGENT_LIVE_TESTS=true`), damit Release-/Unit-Gates ohne laufenden Dev-Server stabil bleiben.
+
+### Tests
+
+- [tests/personal-agent-knowledge-rag.test.js](tests/personal-agent-knowledge-rag.test.js): neue Tests für metadata-first `queryKnowledgeEvidence()`, Timeout- und Service-Unavailable-Degradation.
+- [tests/agent-receipts.service.test.js](tests/agent-receipts.service.test.js): neue Tests für
+  - `knowledgeQueries`-Schema (semantic-only),
+  - metadata-first Knowledge-Evidenz in Evaluate,
+  - required+timeout Verhalten inkl. Warnungen.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Guardrail-Regressionsfall für required Knowledge-Evidenz bei Timeout ergänzt.
+
+### Compatibility Notes
+
+- Rückwärtskompatibilität bleibt erhalten: Receipts ohne `knowledgeQueries` bleiben gültig.
+- Guardrails bleiben führend (z. B. VNB-Verifikation); Knowledge kann stützen, aber nicht umgehen.
+- Kein Rewrite von Knowledge Service/RAG-Orchestrierung in v0.54.4; Fokus bleibt auf Evidenz-Telemetrie und konservativer Antwortpolitik.
+
 ## [0.54.3] — VNB Lookup Receipt Migration: First Production Receipt (2026-05-24)
 
 ### Added

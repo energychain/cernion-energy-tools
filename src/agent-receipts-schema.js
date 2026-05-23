@@ -2,6 +2,7 @@
 
 const RECEIPT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ACTION_REF_PATTERN = /^[a-z0-9-]+\.[a-zA-Z0-9_]+$/;
+const KNOWLEDGE_QUERY_TYPE = 'semantic';
 
 const RECEIPT_STATUSES = ['draft', 'active', 'deprecated', 'archived'];
 
@@ -221,6 +222,135 @@ function normalizeStep(rawStep, index, errors) {
   return step;
 }
 
+function normalizeKnowledgeQuery(rawQuery, index, errors) {
+  if (!isPlainObject(rawQuery)) {
+    errors.push({
+      field: `knowledgeQueries[${index}]`,
+      message: 'Each knowledge query must be an object.',
+    });
+    return null;
+  }
+
+  const query = {};
+
+  if (rawQuery.id != null) {
+    if (typeof rawQuery.id !== 'string' || !rawQuery.id.trim()) {
+      errors.push({
+        field: `knowledgeQueries[${index}].id`,
+        message: 'id must be a non-empty string when provided.',
+      });
+    } else {
+      query.id = rawQuery.id.trim();
+    }
+  }
+
+  const queryType =
+    typeof rawQuery.queryType === 'string' && rawQuery.queryType.trim()
+      ? rawQuery.queryType.trim()
+      : KNOWLEDGE_QUERY_TYPE;
+  if (queryType !== KNOWLEDGE_QUERY_TYPE) {
+    errors.push({
+      field: `knowledgeQueries[${index}].queryType`,
+      message: 'queryType must be semantic in v0.54.4.',
+    });
+  } else {
+    query.queryType = queryType;
+  }
+
+  if (typeof rawQuery.query !== 'string' || !rawQuery.query.trim()) {
+    errors.push({
+      field: `knowledgeQueries[${index}].query`,
+      message: 'query is required and must be a non-empty string.',
+    });
+  } else {
+    query.query = rawQuery.query.trim();
+  }
+
+  if (rawQuery.limit != null) {
+    const limit = Number(rawQuery.limit);
+    if (!Number.isInteger(limit) || limit < 1 || limit > 10) {
+      errors.push({
+        field: `knowledgeQueries[${index}].limit`,
+        message: 'limit must be an integer between 1 and 10.',
+      });
+    } else {
+      query.limit = limit;
+    }
+  }
+
+  if (rawQuery.summaryMaxChars != null) {
+    const summaryMaxChars = Number(rawQuery.summaryMaxChars);
+    if (!Number.isInteger(summaryMaxChars) || summaryMaxChars < 80 || summaryMaxChars > 600) {
+      errors.push({
+        field: `knowledgeQueries[${index}].summaryMaxChars`,
+        message: 'summaryMaxChars must be an integer between 80 and 600.',
+      });
+    } else {
+      query.summaryMaxChars = summaryMaxChars;
+    }
+  }
+
+  if (rawQuery.timeoutMs != null) {
+    const timeoutMs = Number(rawQuery.timeoutMs);
+    if (!Number.isInteger(timeoutMs) || timeoutMs < 1000 || timeoutMs > 60000) {
+      errors.push({
+        field: `knowledgeQueries[${index}].timeoutMs`,
+        message: 'timeoutMs must be an integer between 1000 and 60000.',
+      });
+    } else {
+      query.timeoutMs = timeoutMs;
+    }
+  }
+
+  return query;
+}
+
+function normalizeKnowledgeQueries(rawQueries, errors) {
+  if (rawQueries == null) return [];
+
+  if (!Array.isArray(rawQueries)) {
+    errors.push({
+      field: 'knowledgeQueries',
+      message: 'knowledgeQueries must be an array when provided.',
+    });
+    return [];
+  }
+
+  return rawQueries.map((entry, idx) => normalizeKnowledgeQuery(entry, idx, errors)).filter(Boolean);
+}
+
+function normalizeKnowledgeEvidencePolicy(rawPolicy, errors) {
+  if (rawPolicy == null) {
+    return { required: false };
+  }
+
+  if (!isPlainObject(rawPolicy)) {
+    errors.push({
+      field: 'knowledgeEvidencePolicy',
+      message: 'knowledgeEvidencePolicy must be an object when provided.',
+    });
+    return { required: false };
+  }
+
+  const policy = {
+    required: Boolean(rawPolicy.required),
+  };
+
+  if (rawPolicy.timeoutBehavior != null) {
+    const timeoutBehavior = String(rawPolicy.timeoutBehavior || '').trim().toLowerCase();
+    if (timeoutBehavior && timeoutBehavior !== 'degraded') {
+      errors.push({
+        field: 'knowledgeEvidencePolicy.timeoutBehavior',
+        message: 'timeoutBehavior must be degraded when provided.',
+      });
+    } else if (timeoutBehavior) {
+      policy.timeoutBehavior = timeoutBehavior;
+    }
+  }
+
+  return policy;
+}
+
 function normalizeMatching(rawMatching, errors) {
   if (!isPlainObject(rawMatching)) {
     errors.push({
@@ -385,6 +515,18 @@ function normalizeReceiptInput(input, errors) {
       receipt.responsePolicy = input.responsePolicy;
     }
   }
+
+  const knowledgeQueries = normalizeKnowledgeQueries(input.knowledgeQueries, errors);
+  if (knowledgeQueries.length > 0) {
+    receipt.knowledgeQueries = knowledgeQueries;
+  } else {
+    receipt.knowledgeQueries = [];
+  }
+
+  receipt.knowledgeEvidencePolicy = normalizeKnowledgeEvidencePolicy(
+    input.knowledgeEvidencePolicy,
+    errors
+  );
 
   if (input.metadata != null) {
     if (!isPlainObject(input.metadata)) {

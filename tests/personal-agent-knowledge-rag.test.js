@@ -1,6 +1,9 @@
 'use strict';
 
-const { queryKnowledgeOrientation } = require('../src/personal-agent-knowledge-rag');
+const {
+  queryKnowledgeOrientation,
+  queryKnowledgeEvidence,
+} = require('../src/personal-agent-knowledge-rag');
 
 describe('personal-agent-knowledge-rag adapter', () => {
   test('T-PA-KR-001: calls knowledge-rag.query with expected payload', async () => {
@@ -143,5 +146,81 @@ describe('personal-agent-knowledge-rag adapter', () => {
 
     expect(timeoutCtx.call).toHaveBeenCalledTimes(1);
     expect(unavailableCtx.call).toHaveBeenCalledTimes(1);
+  });
+
+  test('T-PA-KR-007: queryKnowledgeEvidence returns metadata-first hits only', async () => {
+    const ctx = {
+      call: jest.fn().mockResolvedValue({
+        success: true,
+        data: {
+          results: [
+            {
+              id: 'doc-1',
+              source: 'BNetzA',
+              score: 0.91,
+              summary: 'Kurzfassung zum Netzgebiet und VNB-Zuständigkeit.',
+              referenceText: 'DO_NOT_EXPOSE_REFERENCE',
+              vectorText: 'DO_NOT_EXPOSE_VECTOR',
+              metadata: {
+                docType: 'Festlegung',
+                publishedAt: '2026-01-02T00:00:00.000Z',
+              },
+            },
+          ],
+        },
+      }),
+    };
+
+    const result = await queryKnowledgeEvidence(ctx, {
+      query: 'zuständiger VNB Wiesloch',
+      limit: 2,
+    });
+
+    expect(result.status).toBe('available');
+    expect(result.hits).toEqual([
+      {
+        hitId: 'doc-1',
+        source: 'BNetzA',
+        score: 0.91,
+        summary: 'Kurzfassung zum Netzgebiet und VNB-Zuständigkeit.',
+        timestamp: '2026-01-02T00:00:00.000Z',
+        documentType: 'Festlegung',
+      },
+    ]);
+    expect(JSON.stringify(result)).not.toContain('DO_NOT_EXPOSE_REFERENCE');
+    expect(JSON.stringify(result)).not.toContain('DO_NOT_EXPOSE_VECTOR');
+  });
+
+  test('T-PA-KR-008: queryKnowledgeEvidence returns timeout as first-class status', async () => {
+    const timeoutCtx = {
+      call: jest.fn().mockRejectedValue({
+        type: 'REQUEST_TIMEOUT',
+        message: 'Request timeout',
+      }),
+    };
+
+    const result = await queryKnowledgeEvidence(timeoutCtx, {
+      query: 'timeout test',
+      timeoutMs: 1000,
+    });
+
+    expect(result.status).toBe('timeout');
+    expect(result.hits).toEqual([]);
+  });
+
+  test('T-PA-KR-009: queryKnowledgeEvidence returns unavailable status on service outage', async () => {
+    const unavailableCtx = {
+      call: jest.fn().mockRejectedValue({
+        type: 'SERVICE_NOT_FOUND',
+        message: 'Service knowledge-rag not found',
+      }),
+    };
+
+    const result = await queryKnowledgeEvidence(unavailableCtx, {
+      query: 'service unavailable test',
+    });
+
+    expect(result.status).toBe('unavailable');
+    expect(result.hits).toEqual([]);
   });
 });

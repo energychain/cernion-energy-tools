@@ -8,6 +8,9 @@ const QUERY_TIMEOUT_MS = Number.isFinite(
 const DEFAULT_LIMIT = 5;
 const MIN_LIMIT = 1;
 const MAX_LIMIT = 20;
+const DEFAULT_EVIDENCE_SUMMARY_MAX_CHARS = 220;
+const MIN_EVIDENCE_SUMMARY_MAX_CHARS = 80;
+const MAX_EVIDENCE_SUMMARY_MAX_CHARS = 600;
 
 const DOMAIN_HINT_RULES = Object.freeze([
   {
@@ -248,8 +251,157 @@ async function queryKnowledgeOrientation(
   }
 }
 
+function clampSummaryMaxChars(value) {
+  const numeric = Number(value || DEFAULT_EVIDENCE_SUMMARY_MAX_CHARS);
+  if (!Number.isFinite(numeric)) return DEFAULT_EVIDENCE_SUMMARY_MAX_CHARS;
+  return Math.max(
+    MIN_EVIDENCE_SUMMARY_MAX_CHARS,
+    Math.min(MAX_EVIDENCE_SUMMARY_MAX_CHARS, Math.floor(numeric))
+  );
+}
+
+function buildSafeEvidenceSummary(hit = {}, metadata = {}, maxChars = DEFAULT_EVIDENCE_SUMMARY_MAX_CHARS) {
+  const summaryCandidate =
+    hit.summary ||
+    metadata.summary ||
+    hit.title ||
+    metadata.title ||
+    [metadata.authority, metadata.docType].filter(Boolean).join(' - ') ||
+    [hit.domain, hit.category].filter(Boolean).join(' - ') ||
+    'Knowledge hit';
+
+  return String(summaryCandidate || '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, clampSummaryMaxChars(maxChars));
+}
+
+function toSafeEvidenceHit(hit = {}, { summaryMaxChars = DEFAULT_EVIDENCE_SUMMARY_MAX_CHARS } = {}) {
+  const metadata = hit?.metadata && typeof hit.metadata === 'object' ? hit.metadata : {};
+  const safe = {
+    hitId: String(
+      hit?.hitId || hit?.id || hit?.documentId || metadata.documentId || metadata.id || ''
+    ).trim(),
+    source: String(
+      hit?.source || metadata.source || metadata.authority || hit?.domain || 'knowledge-rag'
+    )
+      .trim()
+      .slice(0, 160),
+    score: Number.isFinite(Number(hit?.score)) ? Number(hit.score) : null,
+    summary: buildSafeEvidenceSummary(hit, metadata, summaryMaxChars),
+  };
+
+  const timestamp = hit?.timestamp || metadata.timestamp || metadata.publishedAt;
+  if (timestamp != null && String(timestamp).trim()) {
+    safe.timestamp = String(timestamp).trim().slice(0, 64);
+  }
+
+  const documentType = hit?.docType || metadata.docType || metadata.documentType;
+  if (documentType != null && String(documentType).trim()) {
+    safe.documentType = String(documentType).trim().slice(0, 120);
+  }
+
+  return safe;
+}
+
+async function queryKnowledgeEvidence(
+  ctx,
+  {
+    query,
+    limit = DEFAULT_LIMIT,
+    summaryMaxChars = DEFAULT_EVIDENCE_SUMMARY_MAX_CHARS,
+    timeoutMs = QUERY_TIMEOUT_MS,
+  } = {}
+) {
+  const normalizedQuery = String(query || '').trim();
+  if (!normalizedQuery) {
+    return {
+      status: 'missing',
+      hits: [],
+      queryType: 'semantic',
+      query: '',
+      trace: {
+        hitCount: 0,
+      },
+    };
+  }
+
+  if (!ctx || typeof ctx.call !== 'function') {
+    return {
+      status: 'unavailable',
+      hits: [],
+      queryType: 'semantic',
+      query: normalizedQuery,
+      trace: {
+        hitCount: 0,
+      },
+    };
+  }
+
+  try {
+    const ragResult = await callWithHardTimeout(
+      ctx,
+      {
+        queryType: 'semantic',
+        query: normalizedQuery,
+        limit: clampLimit(limit),
+      },
+      Math.max(1000, Math.floor(Number(timeoutMs) || QUERY_TIMEOUT_MS))
+    );
+
+    const hits = extractHits(ragResult).map((hit) =>
+      toSafeEvidenceHit(hit, { summaryMaxChars: clampSummaryMaxChars(summaryMaxChars) })
+    );
+
+    return {
+      status: hits.length > 0 ? 'available' : 'missing',
+      hits,
+      queryType: 'semantic',
+      query: normalizedQuery,
+      trace: {
+        hitCount: hits.length,
+      },
+    };
+  } catch (error) {
+    if (isTimeoutError(error)) {
+      return {
+        status: 'timeout',
+        hits: [],
+        queryType: 'semantic',
+        query: normalizedQuery,
+        trace: {
+          hitCount: 0,
+        },
+      };
+    }
+
+    if (isServiceUnavailableError(error)) {
+      return {
+        status: 'unavailable',
+        hits: [],
+        queryType: 'semantic',
+        query: normalizedQuery,
+        trace: {
+          hitCount: 0,
+        },
+      };
+    }
+
+    return {
+      status: 'unavailable',
+      hits: [],
+      queryType: 'semantic',
+      query: normalizedQuery,
+      trace: {
+        hitCount: 0,
+      },
+    };
+  }
+}
+
 module.exports = {
   queryKnowledgeOrientation,
+  queryKnowledgeEvidence,
   _internal: {
     QUERY_TIMEOUT_MS,
     DOMAIN_HINT_RULES,
@@ -259,6 +411,7 @@ module.exports = {
     resolveDomainHint,
     resolveRegulatoryFrame,
     resolveSynthesisStyle,
+    toSafeEvidenceHit,
     isTimeoutError,
     isServiceUnavailableError,
   },

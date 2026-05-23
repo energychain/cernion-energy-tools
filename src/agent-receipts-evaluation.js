@@ -228,6 +228,29 @@ function evaluateReceiptPlan(receipt, payload = {}) {
     }))
     .filter((entry) => entry.requiredOutputFields.length > 0);
 
+  const knowledgeEvidencePayload = isPlainObject(payload.knowledgeEvidence)
+    ? payload.knowledgeEvidence
+    : {};
+  const knowledgeEvidenceStatus =
+    typeof knowledgeEvidencePayload.status === 'string'
+      ? knowledgeEvidencePayload.status
+      : 'missing';
+  const knowledgeEvidence = Array.isArray(knowledgeEvidencePayload.hits)
+    ? knowledgeEvidencePayload.hits
+    : [];
+  const knowledgeEvidencePolicy = isPlainObject(receipt?.knowledgeEvidencePolicy)
+    ? receipt.knowledgeEvidencePolicy
+    : { required: false };
+  const knowledgeRequired = knowledgeEvidencePolicy.required === true;
+  const knowledgeEvidenceSatisfied = !knowledgeRequired || knowledgeEvidenceStatus === 'available';
+
+  if (knowledgeRequired && !knowledgeEvidenceSatisfied) {
+    warnings.push({
+      code: 'RECEIPT_KNOWLEDGE_REQUIRED_NOT_AVAILABLE',
+      message: `Knowledge evidence required but status is ${knowledgeEvidenceStatus}.`,
+    });
+  }
+
   const executable =
     missingRequiredInputs.length === 0 &&
     errors.length === 0 &&
@@ -243,6 +266,14 @@ function evaluateReceiptPlan(receipt, payload = {}) {
     missingRequiredInputs,
     plannedToolCalls: plannedSteps,
     evidenceRequirements: allEvidenceRequirements,
+    knowledgeEvidenceStatus,
+    knowledgeEvidence,
+    knowledgeEvidencePolicy,
+    knowledgeEvidenceRequired: knowledgeRequired,
+    knowledgeEvidenceSatisfied,
+    knowledgeEvidenceTrace: isPlainObject(knowledgeEvidencePayload.trace)
+      ? knowledgeEvidencePayload.trace
+      : { queryCount: 0, queries: [] },
     warnings,
     errors,
     executable,
