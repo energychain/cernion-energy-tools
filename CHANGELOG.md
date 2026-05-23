@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.53.10] — Product Discovery Domain Services (2026-05-23)
+
+### Added
+
+- [services/ghost-asset-alert.service.js](services/ghost-asset-alert.service.js): neuer Service für Ghost-Asset-Detection (MaStR-Geo vs. VNB-Gebiet) inkl. Haversine-/Polygon-Prüfung. Closes #103.
+- [services/reinvest-signal.service.js](services/reinvest-signal.service.js): neuer Service zur Reinvest-Signalbewertung (ARegV/Fotojahr-Logik). Closes #105.
+- [services/fnav-commercial-hedging.service.js](services/fnav-commercial-hedging.service.js): neuer Service für fNAV-Risiko-/Hedging-Szenarien und kaufmännische Abregelungsbewertung. Closes #114.
+- [services/gasnetz-waermeplanung.service.js](services/gasnetz-waermeplanung.service.js): neuer Service für Gasnetz-/Wärmeplanungs-Abgleich inkl. Stranded-Asset-Risiko. Closes #115.
+- [services/e2e-connection-check.service.js](services/e2e-connection-check.service.js): neuer End-to-End-Netzanschluss-Check mit 6 Prüfsträngen und koordinierter Thread-Statusführung. Closes #117.
+- [services/nkp-reporting.service.js](services/nkp-reporting.service.js): neuer NKP-Reporting-Service mit Import, KPI-Auswertung und Plausibilitätsregeln. Closes #118.
+- [services/netzkoppelvertrag-workflow.service.js](services/netzkoppelvertrag-workflow.service.js): neuer Workflow-Service für Netzkoppelverträge (Statusmodell + Vollständigkeitscheck). Closes #119.
+- [services/vdmi-portfolio-gatekeeping.service.js](services/vdmi-portfolio-gatekeeping.service.js): neuer VDMI-Gatekeeping-Service zur Portfolio-Freigabe mit Blocking-Regeln. Closes #120.
+- [services/vdmi-governance-templates.service.js](services/vdmi-governance-templates.service.js): neuer Service für VDMI-Governance-Templates inkl. Instanziierung und RACI-Checks. Closes #121.
+- [services/agnes-bottleneck.service.js](services/agnes-bottleneck.service.js): neuer Service für N-1-Engpass-/Agnes-Assessment inkl. Schwellwertlogik. Closes #122.
+- [services/reporting-governance.service.js](services/reporting-governance.service.js): neuer Governance-Service für Reporting-Reifegrad und Datenquellen-Qualität. Closes #123.
+- [services/vnb-100-tage-assessment.service.js](services/vnb-100-tage-assessment.service.js): neuer 100-Tage-Assessment-Service mit Domain-Benchmark und ROI-Hinweisen. Closes #124.
+- [services/capex-prioritization.service.js](services/capex-prioritization.service.js): neuer Service für CAPEX-Priorisierung (physisch/regulatorisch/flex-basiert). Closes #125.
+- [services/connection-rejection-evidence.service.js](services/connection-rejection-evidence.service.js): neuer Service für revisionssichere Ablehnungsbegründungen inkl. Audit-Hash. Closes #126.
+- [services/altdaten-assessment.service.js](services/altdaten-assessment.service.js): neuer Service für Altdaten-/Migrations-Fit-Gap-Assessments. Closes #127.
+- [services/regulatorische-entgeltlogik.service.js](services/regulatorische-entgeltlogik.service.js): neuer Service für versionierte Entgeltlogik-Regelsätze inkl. Testfall-Validierung. Closes #128.
+- [services/automatisierungsradar.service.js](services/automatisierungsradar.service.js): neuer Service für Prozess-Automatisierungsradar (Quick-Win/Strategic-Quadranten). Closes #129.
+- [services/bess-screening.service.js](services/bess-screening.service.js): neuer Service für evidenzbasiertes BESS-Screening (VERIFIED/PLAUSIBLE/UNVERIFIED/MISSING). Closes #131.
+- [services/flexibilitaetskosten-raster.service.js](services/flexibilitaetskosten-raster.service.js): neuer Service für Flexibilitätskostenraster inkl. Signalprioritäten und Steuerbarkeitsklassifikation. Closes #132.
+
+### Changed
+
+- [src/capability-catalog.js](src/capability-catalog.js): Capability-Katalog um 18 neue Capabilities inkl. Routing-Pattern, Inputs und Risiken für die neuen Domain-Services erweitert (Domains Netzanschluss, Flexibilität, Stammdaten, Asset-Management, Gasnetz, Governance/Regulatorik).
+
 ### Fixed (v0.53.9 Agentic Consultation Synthesis Recovery + VNB Verification Guardrails)
 
 - [services/personal-agent.service.js](services/personal-agent.service.js): Consultation-/Agentic-Synthesis LLM timeout is now configurable via `PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS` with default `90000` ms. Change is scoped to consultation synthesis generation only; tool/API timeouts remain unchanged.
