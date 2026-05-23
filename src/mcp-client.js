@@ -505,12 +505,17 @@ class CernionMCPClient {
             // Log retry if jobId provided
             if (jobId) {
               const jobStore = require('./job-store');
-              jobStore.appendLog(jobId, `mcp_${toolName}_retry`, 0,
-                `MCP retry attempt ${attempt + 1} after ${backoffMs}ms...`, {
-                tool: toolName,
-                attempt: attempt + 1,
-                backoffMs,
-              });
+              jobStore.appendLog(
+                jobId,
+                `mcp_${toolName}_retry`,
+                0,
+                `MCP retry attempt ${attempt + 1} after ${backoffMs}ms...`,
+                {
+                  tool: toolName,
+                  attempt: attempt + 1,
+                  backoffMs,
+                }
+              );
             }
 
             await new Promise((r) => setTimeout(r, backoffMs));
@@ -526,12 +531,17 @@ class CernionMCPClient {
             // Log MCP call success if jobId provided
             if (jobId && result?.success !== false) {
               const jobStore = require('./job-store');
-              jobStore.appendLog(jobId, `mcp_${toolName}_complete`, 0,
-                `MCP tool ${toolName} completed in ${elapsedMs}ms`, {
-                tool: toolName,
-                elapsedMs,
-                success: true,
-              });
+              jobStore.appendLog(
+                jobId,
+                `mcp_${toolName}_complete`,
+                0,
+                `MCP tool ${toolName} completed in ${elapsedMs}ms`,
+                {
+                  tool: toolName,
+                  elapsedMs,
+                  success: true,
+                }
+              );
             }
 
             tracing.setOk(span);
@@ -549,12 +559,17 @@ class CernionMCPClient {
               // Log MCP call error if jobId provided
               if (jobId) {
                 const jobStore = require('./job-store');
-                jobStore.appendLog(jobId, `mcp_${toolName}_error`, 0,
-                  `MCP error after ${elapsedMs}ms: ${err.message}`, {
-                  tool: toolName,
-                  elapsedMs,
-                  error: err.message,
-                });
+                jobStore.appendLog(
+                  jobId,
+                  `mcp_${toolName}_error`,
+                  0,
+                  `MCP error after ${elapsedMs}ms: ${err.message}`,
+                  {
+                    tool: toolName,
+                    elapsedMs,
+                    error: err.message,
+                  }
+                );
               }
 
               tracing.setError(span, err);
@@ -573,12 +588,17 @@ class CernionMCPClient {
         // Log quota exhaustion if jobId provided
         if (jobId) {
           const jobStore = require('./job-store');
-          jobStore.appendLog(jobId, `mcp_${toolName}_quota_exhausted`, 0,
-            `MCP quota exhausted after ${elapsedMs}ms and ${CernionMCPClient.MAX_QUOTA_RETRIES} retries`, {
-            tool: toolName,
-            elapsedMs,
-            retries: CernionMCPClient.MAX_QUOTA_RETRIES,
-          });
+          jobStore.appendLog(
+            jobId,
+            `mcp_${toolName}_quota_exhausted`,
+            0,
+            `MCP quota exhausted after ${elapsedMs}ms and ${CernionMCPClient.MAX_QUOTA_RETRIES} retries`,
+            {
+              tool: toolName,
+              elapsedMs,
+              retries: CernionMCPClient.MAX_QUOTA_RETRIES,
+            }
+          );
         }
 
         tracing.setError(

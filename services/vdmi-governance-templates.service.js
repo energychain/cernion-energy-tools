@@ -53,12 +53,54 @@ const BASE_TEMPLATES = {
     ],
     roles: ['ANSCHLUSSNEHMER', 'NETZBETREIBER', 'PLANER', 'BEHOERDE', 'PRUEFSTELLE'],
     matrix: [
-      { activity: 'Antrag stellen', ANSCHLUSSNEHMER: 'R', NETZBETREIBER: 'I', PLANER: 'C', BEHOERDE: 'I', PRUEFSTELLE: '-' },
-      { activity: 'Netzverträglichkeit prüfen', ANSCHLUSSNEHMER: 'I', NETZBETREIBER: 'R', PLANER: 'C', BEHOERDE: '-', PRUEFSTELLE: 'C' },
-      { activity: 'Angebot erstellen', ANSCHLUSSNEHMER: 'I', NETZBETREIBER: 'R', PLANER: '-', BEHOERDE: '-', PRUEFSTELLE: '-' },
-      { activity: 'Angebot annehmen', ANSCHLUSSNEHMER: 'R', NETZBETREIBER: 'I', PLANER: '-', BEHOERDE: '-', PRUEFSTELLE: '-' },
-      { activity: 'Bauausführung', ANSCHLUSSNEHMER: 'I', NETZBETREIBER: 'A', PLANER: 'R', BEHOERDE: '-', PRUEFSTELLE: 'I' },
-      { activity: 'Abnahme', ANSCHLUSSNEHMER: 'C', NETZBETREIBER: 'A', PLANER: '-', BEHOERDE: '-', PRUEFSTELLE: 'R' },
+      {
+        activity: 'Antrag stellen',
+        ANSCHLUSSNEHMER: 'R',
+        NETZBETREIBER: 'I',
+        PLANER: 'C',
+        BEHOERDE: 'I',
+        PRUEFSTELLE: '-',
+      },
+      {
+        activity: 'Netzverträglichkeit prüfen',
+        ANSCHLUSSNEHMER: 'I',
+        NETZBETREIBER: 'R',
+        PLANER: 'C',
+        BEHOERDE: '-',
+        PRUEFSTELLE: 'C',
+      },
+      {
+        activity: 'Angebot erstellen',
+        ANSCHLUSSNEHMER: 'I',
+        NETZBETREIBER: 'R',
+        PLANER: '-',
+        BEHOERDE: '-',
+        PRUEFSTELLE: '-',
+      },
+      {
+        activity: 'Angebot annehmen',
+        ANSCHLUSSNEHMER: 'R',
+        NETZBETREIBER: 'I',
+        PLANER: '-',
+        BEHOERDE: '-',
+        PRUEFSTELLE: '-',
+      },
+      {
+        activity: 'Bauausführung',
+        ANSCHLUSSNEHMER: 'I',
+        NETZBETREIBER: 'A',
+        PLANER: 'R',
+        BEHOERDE: '-',
+        PRUEFSTELLE: 'I',
+      },
+      {
+        activity: 'Abnahme',
+        ANSCHLUSSNEHMER: 'C',
+        NETZBETREIBER: 'A',
+        PLANER: '-',
+        BEHOERDE: '-',
+        PRUEFSTELLE: 'R',
+      },
     ],
   },
   [TEMPLATE_TYPE.REDISPATCH_INTERFACE]: {
@@ -72,9 +114,27 @@ const BASE_TEMPLATES = {
     ],
     roles: ['ANB', 'BNB', 'DIREKTVERMARKTER', 'ANLAGENBETREIBER'],
     matrix: [
-      { activity: 'Stammdaten melden', ANB: 'C', BNB: 'R', DIREKTVERMARKTER: 'C', ANLAGENBETREIBER: 'I' },
-      { activity: 'Einspeisemanagement-Abruf', ANB: 'R', BNB: 'I', DIREKTVERMARKTER: 'C', ANLAGENBETREIBER: 'I' },
-      { activity: 'Abrechnungsreport', ANB: 'I', BNB: 'R', DIREKTVERMARKTER: 'C', ANLAGENBETREIBER: 'I' },
+      {
+        activity: 'Stammdaten melden',
+        ANB: 'C',
+        BNB: 'R',
+        DIREKTVERMARKTER: 'C',
+        ANLAGENBETREIBER: 'I',
+      },
+      {
+        activity: 'Einspeisemanagement-Abruf',
+        ANB: 'R',
+        BNB: 'I',
+        DIREKTVERMARKTER: 'C',
+        ANLAGENBETREIBER: 'I',
+      },
+      {
+        activity: 'Abrechnungsreport',
+        ANB: 'I',
+        BNB: 'R',
+        DIREKTVERMARKTER: 'C',
+        ANLAGENBETREIBER: 'I',
+      },
     ],
   },
   [TEMPLATE_TYPE.INVESTMENT_DECISION_RACI]: {
@@ -88,10 +148,34 @@ const BASE_TEMPLATES = {
     ],
     roles: ['FACHBEREICH', 'CONTROLLING', 'REGULATORIK', 'GESCHAEFTSFUEHRUNG'],
     matrix: [
-      { activity: 'Maßnahme identifizieren', FACHBEREICH: 'R', CONTROLLING: 'C', REGULATORIK: 'C', GESCHAEFTSFUEHRUNG: 'I' },
-      { activity: 'Business Case erstellen', FACHBEREICH: 'R', CONTROLLING: 'A', REGULATORIK: 'C', GESCHAEFTSFUEHRUNG: 'I' },
-      { activity: 'Regulatorische Prüfung', FACHBEREICH: 'C', CONTROLLING: 'I', REGULATORIK: 'R', GESCHAEFTSFUEHRUNG: 'I' },
-      { activity: 'CAPEX-Genehmigung', FACHBEREICH: 'I', CONTROLLING: 'C', REGULATORIK: 'C', GESCHAEFTSFUEHRUNG: 'R' },
+      {
+        activity: 'Maßnahme identifizieren',
+        FACHBEREICH: 'R',
+        CONTROLLING: 'C',
+        REGULATORIK: 'C',
+        GESCHAEFTSFUEHRUNG: 'I',
+      },
+      {
+        activity: 'Business Case erstellen',
+        FACHBEREICH: 'R',
+        CONTROLLING: 'A',
+        REGULATORIK: 'C',
+        GESCHAEFTSFUEHRUNG: 'I',
+      },
+      {
+        activity: 'Regulatorische Prüfung',
+        FACHBEREICH: 'C',
+        CONTROLLING: 'I',
+        REGULATORIK: 'R',
+        GESCHAEFTSFUEHRUNG: 'I',
+      },
+      {
+        activity: 'CAPEX-Genehmigung',
+        FACHBEREICH: 'I',
+        CONTROLLING: 'C',
+        REGULATORIK: 'C',
+        GESCHAEFTSFUEHRUNG: 'R',
+      },
     ],
   },
 };
@@ -325,7 +409,8 @@ module.exports = {
         try {
           return await this.db.get(ctx.params.id);
         } catch (err) {
-          if (err.status === 404) throw new MoleculerClientError('Instance not found', 404, 'INSTANCE_NOT_FOUND');
+          if (err.status === 404)
+            throw new MoleculerClientError('Instance not found', 404, 'INSTANCE_NOT_FOUND');
           throw err;
         }
       },

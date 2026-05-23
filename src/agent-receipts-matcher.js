@@ -44,8 +44,12 @@ function evaluateReceiptMatch(receipt, context = {}) {
   const reasons = [];
   const missingEntities = [];
   const textTerms = new Set(toTerms(context.question || context.message || ''));
-  const domain = String(context.domain || '').trim().toLowerCase();
-  const workflowType = String(context.workflowType || '').trim().toLowerCase();
+  const domain = String(context.domain || '')
+    .trim()
+    .toLowerCase();
+  const workflowType = String(context.workflowType || '')
+    .trim()
+    .toLowerCase();
 
   let score = 0;
 
@@ -63,7 +67,9 @@ function evaluateReceiptMatch(receipt, context = {}) {
   const triggerTerms = Array.isArray(matching.triggerTerms) ? matching.triggerTerms : [];
   let triggerHits = 0;
   for (const term of triggerTerms) {
-    const token = String(term || '').trim().toLowerCase();
+    const token = String(term || '')
+      .trim()
+      .toLowerCase();
     if (!token) continue;
     if (textTerms.has(token)) {
       triggerHits += 1;
@@ -85,7 +91,9 @@ function evaluateReceiptMatch(receipt, context = {}) {
     }
   }
 
-  const requiredEntities = Array.isArray(matching.requiredEntities) ? matching.requiredEntities : [];
+  const requiredEntities = Array.isArray(matching.requiredEntities)
+    ? matching.requiredEntities
+    : [];
   for (const entity of requiredEntities) {
     const key = String(entity || '').trim();
     if (!key) continue;

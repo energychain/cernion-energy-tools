@@ -40,6 +40,8 @@ describe('personal-agent-execution-state-graph', () => {
 
   it('creates stable message fingerprints for cache matching', () => {
     expect(createMessageFingerprint('Hallo Welt')).toBe(createMessageFingerprint('Hallo Welt'));
-    expect(createMessageFingerprint('Hallo Welt')).not.toBe(createMessageFingerprint('Prüfe MaStR'));
+    expect(createMessageFingerprint('Hallo Welt')).not.toBe(
+      createMessageFingerprint('Prüfe MaStR')
+    );
   });
 });

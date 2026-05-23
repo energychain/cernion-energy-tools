@@ -34,9 +34,13 @@ const {
 } = require('../src/personal-agent-turn-graph');
 const {
   buildConsultationExecutionPlan,
+  executeWithReceipt,
   EXECUTION_READINESS,
 } = require('../src/consultation-execution-bridge');
-const { extractAvailableInputs, isInputAlreadyProvided } = require('../src/consultation-input-extractor');
+const {
+  extractAvailableInputs,
+  isInputAlreadyProvided,
+} = require('../src/consultation-input-extractor');
 const { validateRoutingIntent } = require('../src/consultation-routing-guardrails');
 const { decideRoutingTarget } = require('../src/personal-agent-routing-graph');
 const { buildExecutionGapResponse } = require('../src/mark-execution-gap');
@@ -423,6 +427,16 @@ module.exports = {
           optional: true,
           values: [CHAT_MODES.EXECUTION, CHAT_MODES.CONSULTATION],
         },
+        forceReceipt: { type: 'string', optional: true, trim: true, max: 120 },
+        preferredReceipts: {
+          type: 'array',
+          optional: true,
+          items: 'string',
+          default: [],
+        },
+        allowDraftReceipts: { type: 'boolean', optional: true, default: false, convert: true },
+        explainReceiptSelection: { type: 'boolean', optional: true, default: false, convert: true },
+        disableReceiptSelection: { type: 'boolean', optional: true, default: false, convert: true },
         knownContext: { type: 'object', optional: true, default: {} },
       },
       openapi: {
@@ -458,6 +472,36 @@ module.exports = {
                     example: CHAT_MODES.CONSULTATION,
                     description:
                       'Optional explicit chat mode. If set, it overrides auto detection for this turn.',
+                  },
+                  forceReceipt: {
+                    type: 'string',
+                    example: 'vnb-lookup-v1',
+                    description:
+                      'Optional receipt id to force. Invalid or policy-forbidden ids fail with 422.',
+                  },
+                  preferredReceipts: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    default: [],
+                    example: ['vnb-lookup-v1', 'grid-ops-fallback-v1'],
+                    description: 'Optional ordered list of preferred runtime receipt ids.',
+                  },
+                  allowDraftReceipts: {
+                    type: 'boolean',
+                    default: false,
+                    description: 'When true, draft receipts can be selected in controlled testing.',
+                  },
+                  explainReceiptSelection: {
+                    type: 'boolean',
+                    default: false,
+                    description:
+                      'When true, includes receipt-selection diagnostics in metadata.receiptSelection.',
+                  },
+                  disableReceiptSelection: {
+                    type: 'boolean',
+                    default: false,
+                    description:
+                      'When true, bypasses runtime receipt selection and enforces legacy routing behavior.',
                   },
                   toolContext: { type: 'object', additionalProperties: true, default: {} },
                   knownContext: { type: 'object', additionalProperties: true, default: {} },
@@ -515,6 +559,14 @@ module.exports = {
                   },
                   knownContext: { type: 'string', description: 'JSON-stringified object' },
                   toolContext: { type: 'string', description: 'JSON-stringified object' },
+                  forceReceipt: { type: 'string' },
+                  preferredReceipts: {
+                    type: 'string',
+                    description: 'JSON array string, e.g. ["receipt-a","receipt-b"]',
+                  },
+                  allowDraftReceipts: { type: 'string', description: 'true/false' },
+                  explainReceiptSelection: { type: 'string', description: 'true/false' },
+                  disableReceiptSelection: { type: 'string', description: 'true/false' },
                   fileAttachments: {
                     type: 'array',
                     items: { type: 'string', format: 'binary' },
@@ -1073,9 +1125,10 @@ module.exports = {
         // If incoming knownContext changes a decisive parameter (location,
         // operator, project), replace the stored resolvedParams to prevent
         // old-scenario context bleeding into the new turn.
-        const rawKnownContext = ctx.params.knownContext && typeof ctx.params.knownContext === 'object'
-          ? ctx.params.knownContext
-          : {};
+        const rawKnownContext =
+          ctx.params.knownContext && typeof ctx.params.knownContext === 'object'
+            ? ctx.params.knownContext
+            : {};
         const contextMutation = resolveContextMutation(session.resolvedParams, rawKnownContext);
         if (contextMutation.mode === 'replace') {
           session.resolvedParams = contextMutation.mergedParams;
@@ -1103,7 +1156,8 @@ module.exports = {
             styleHint: knowledgeContext?.styleHint || null,
             activeDomains: detectRequestedDomains(ctx.params.message),
             contextMutationMode: contextMutation.mode,
-            contextReplacedKeys: contextMutation.replacedKeys.length > 0 ? contextMutation.replacedKeys : null,
+            contextReplacedKeys:
+              contextMutation.replacedKeys.length > 0 ? contextMutation.replacedKeys : null,
           },
         });
         turnGraph = addEdge(turnGraph, {
@@ -1300,15 +1354,11 @@ module.exports = {
           );
         }
 
-        executionStateGraph = advanceExecutionStateGraph(
-          executionStateGraph,
-          'ready_for_routing',
-          {
-            chatMode: effectiveChatMode,
-            source: chatModeSource,
-            executionMode,
-          }
-        );
+        executionStateGraph = advanceExecutionStateGraph(executionStateGraph, 'ready_for_routing', {
+          chatMode: effectiveChatMode,
+          source: chatModeSource,
+          executionMode,
+        });
         executionTrace.recordStateTransition({
           family: 'chat_mode',
           from: session?.l3?.chatMode || null,
@@ -1325,12 +1375,17 @@ module.exports = {
 
         // Log chat mode classification result
         if (jobStore) {
-          jobStore.appendLog(jobId, 'chat_mode_classified', 15,
-            `chatMode=${effectiveChatMode}, source=${chatModeSource}`, {
-            chatMode: effectiveChatMode,
-            chatModeSource,
-            confidence: null,
-          });
+          jobStore.appendLog(
+            jobId,
+            'chat_mode_classified',
+            15,
+            `chatMode=${effectiveChatMode}, source=${chatModeSource}`,
+            {
+              chatMode: effectiveChatMode,
+              chatModeSource,
+              confidence: null,
+            }
+          );
         }
 
         session.chatMode = effectiveChatMode;
@@ -1369,6 +1424,41 @@ module.exports = {
           }
         );
 
+        const receiptSelectionDiagnosticsRequested =
+          ctx.params.explainReceiptSelection === true ||
+          isConsultationDebugEnabled(rawKnownContext);
+        const receiptSelectionResult = await this.selectRuntimeReceipt(ctx, {
+          message: ctx.params.message,
+          context: {
+            knownContext: brokerKnownContext,
+            semanticClassification,
+            brokerRecommendation,
+            effectiveChatMode,
+            sessionId,
+          },
+          input: {
+            message: ctx.params.message,
+            knownContext: brokerKnownContext,
+            workflowType: semanticClassification?.workflowType || null,
+            domainIntent:
+              semanticClassification?.domainIntent || brokerRecommendation?.intent || null,
+          },
+          forceReceipt: ctx.params.forceReceipt,
+          preferredReceipts: Array.isArray(ctx.params.preferredReceipts)
+            ? ctx.params.preferredReceipts
+            : [],
+          allowDraftReceipts: ctx.params.allowDraftReceipts === true,
+          explainReceiptSelection: receiptSelectionDiagnosticsRequested,
+          disableReceiptSelection: ctx.params.disableReceiptSelection === true,
+        });
+
+        const receiptSelectionMetadata = this.buildReceiptSelectionMetadata(
+          receiptSelectionResult,
+          {
+            includeDiagnostics: receiptSelectionDiagnosticsRequested,
+          }
+        );
+
         const routingDecision = decideRoutingTarget({
           effectiveChatMode,
           brokerRecommendation,
@@ -1389,12 +1479,15 @@ module.exports = {
 
         if (
           routingDecision.target === 'mark_unknown_execution_gap' &&
-          String(process.env.PERSONAL_AGENT_ENABLE_ROUTING_GAP_SHORT_CIRCUIT || 'false').toLowerCase() === 'true'
+          String(
+            process.env.PERSONAL_AGENT_ENABLE_ROUTING_GAP_SHORT_CIRCUIT || 'false'
+          ).toLowerCase() === 'true'
         ) {
           const responsePolicyContract = this.buildResponsePolicyContract({
             message: ctx.params.message,
             workflowType: semanticClassification?.workflowType || null,
-            domainIntent: semanticClassification?.domainIntent || brokerRecommendation?.intent || null,
+            domainIntent:
+              semanticClassification?.domainIntent || brokerRecommendation?.intent || null,
             knownContext: brokerKnownContext,
             verifiedFacts: [],
           });
@@ -1450,7 +1543,9 @@ module.exports = {
               nextDialogueMove: responseStrategy.nextMove || null,
               decisionRole: responseStrategy.decisionRole || null,
               confidence:
-                typeof responseStrategy.confidence === 'number' ? responseStrategy.confidence : null,
+                typeof responseStrategy.confidence === 'number'
+                  ? responseStrategy.confidence
+                  : null,
               assumptionCount: Array.isArray(responseStrategy.assumptions)
                 ? responseStrategy.assumptions.length
                 : 0,
@@ -1525,6 +1620,7 @@ module.exports = {
               turnGraph,
               routingDecision,
             }),
+            ...(receiptSelectionMetadata ? { metadata: receiptSelectionMetadata } : {}),
           };
         }
 
@@ -1540,10 +1636,15 @@ module.exports = {
             }
           );
           if (jobStore) {
-            jobStore.appendLog(jobId, 'consultation_mode_entered', 25,
-              'Agentic consultation loop starting...', {
-              chatMode: CHAT_MODES.CONSULTATION,
-            });
+            jobStore.appendLog(
+              jobId,
+              'consultation_mode_entered',
+              25,
+              'Agentic consultation loop starting...',
+              {
+                chatMode: CHAT_MODES.CONSULTATION,
+              }
+            );
           }
 
           const consultationResponseStrategy = this.buildResponseStrategy({
@@ -1601,15 +1702,11 @@ module.exports = {
             maxContextTokens: this.settings.maxContextTokens,
           });
 
-          stateMachine = transitionStateMachine(
-            stateMachine,
-            PERSONAL_AGENT_STATES.SYNTHESIZING,
-            {
-              consultationFacts: Array.isArray(consultationResult.factsUsed)
-                ? consultationResult.factsUsed.length
-                : 0,
-            }
-          );
+          stateMachine = transitionStateMachine(stateMachine, PERSONAL_AGENT_STATES.SYNTHESIZING, {
+            consultationFacts: Array.isArray(consultationResult.factsUsed)
+              ? consultationResult.factsUsed.length
+              : 0,
+          });
           stateMachine = transitionStateMachine(
             stateMachine,
             deriveTerminalState({ consultation: consultationResult, status: 'consulting' }),
@@ -1634,7 +1731,9 @@ module.exports = {
               nextDialogueMove: responseStrategy.nextMove || null,
               decisionRole: responseStrategy.decisionRole || null,
               confidence:
-                typeof responseStrategy.confidence === 'number' ? responseStrategy.confidence : null,
+                typeof responseStrategy.confidence === 'number'
+                  ? responseStrategy.confidence
+                  : null,
               assumptionCount: Array.isArray(responseStrategy.assumptions)
                 ? responseStrategy.assumptions.length
                 : 0,
@@ -1718,8 +1817,10 @@ module.exports = {
             attemptsSummary: Array.isArray(consultationResult.attemptsSummary)
               ? consultationResult.attemptsSummary
               : [],
-            workflowType: consultationResult.workflowType || semanticClassification?.workflowType || null,
-            domainIntent: consultationResult.domainIntent || semanticClassification?.domainIntent || null,
+            workflowType:
+              consultationResult.workflowType || semanticClassification?.workflowType || null,
+            domainIntent:
+              consultationResult.domainIntent || semanticClassification?.domainIntent || null,
             evidenceStatus: consultationResult.evidenceStatus || 'unverified',
             missingEvidence: Array.isArray(consultationResult.missingEvidence)
               ? consultationResult.missingEvidence
@@ -1795,7 +1896,56 @@ module.exports = {
 
             turnGraph = addWorkflowPlanNode(turnGraph, executionReadiness);
 
-            if (executionReadiness.canExecuteNow && executionReadiness.executableSteps.length > 0) {
+            // ─── Receipt Selection Integration (v0.54.3) ─────
+            // If receiptSelectionResult has a selectedReceipt and disableReceiptSelection is false,
+            // use executeWithReceipt for deterministic receipt-based execution.
+            const selectedReceipt = receiptSelectionResult?.selectedReceipt || null;
+            const useReceiptExecution =
+              selectedReceipt &&
+              !ctx.params.disableReceiptSelection &&
+              executionReadiness?.canExecuteNow &&
+              executionReadiness?.executableSteps?.length > 0;
+
+            if (useReceiptExecution) {
+              try {
+                const toolResolver = async (action, params) => {
+                  return await ctx.call(action, params, { meta: ctx.meta });
+                };
+                consultationPlanResults = await executeWithReceipt(
+                  selectedReceipt,
+                  {
+                    message: ctx.params.message,
+                    knownContext: brokerKnownContext || {},
+                    resolvedParams: session?.resolvedParams || {},
+                    observations: [],
+                  },
+                  [],
+                  toolResolver,
+                  this.logger
+                );
+              } catch (receiptExecError) {
+                this.logger?.warn(
+                  `Receipt execution failed (${selectedReceipt.id}): ${receiptExecError.message}, falling back to legacy execution`
+                );
+                // Fall back to legacy if receipt execution fails
+                if (
+                  executionReadiness.canExecuteNow &&
+                  executionReadiness.executableSteps.length > 0
+                ) {
+                  consultationPlanResults = await this.executeConsultationToolPlan(ctx, {
+                    plan: executionReadiness,
+                    knownContext: brokerKnownContext || {},
+                    session,
+                    executionTrace,
+                    toolCallTracker,
+                  });
+                }
+              }
+            } else if (
+              executionReadiness.canExecuteNow &&
+              executionReadiness.executableSteps.length > 0
+            ) {
+              // Legacy execution path (no receipt, or receipt selection disabled)
               consultationPlanResults = await this.executeConsultationToolPlan(ctx, {
                 plan: executionReadiness,
                 knownContext: brokerKnownContext || {},
@@ -1804,11 +1954,20 @@ module.exports = {
                 toolCallTracker,
               });
             }
+            // ─────────────────────────────────────────────────
 
             if (jobStore) {
-              jobStore.appendLog(jobId, 'consultation_execution_bridge', 45,
-                `Execution readiness: ${executionReadiness.readiness} / workflow: ${executionReadiness.workflowType}`,
-                { canExecuteNow: executionReadiness.canExecuteNow, stepCount: executionReadiness.executableSteps.length });
+              jobStore.appendLog(
+                jobId,
+                'consultation_execution_bridge',
+                45,
+                `Execution readiness: ${executionReadiness.readiness} / workflow: ${executionReadiness.workflowType}${useReceiptExecution ? ` / receipt: ${selectedReceipt.id}` : ''}`,
+                {
+                  canExecuteNow: executionReadiness.canExecuteNow,
+                  stepCount: executionReadiness.executableSteps.length,
+                  receiptUsed: Boolean(useReceiptExecution),
+                }
+              );
             }
           } catch (bridgeError) {
             executionReadiness = null;
@@ -1880,13 +2039,13 @@ module.exports = {
             executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
             turnGraph: summarizeTurnGraph(turnGraph),
             execution: consultationExecution,
+            ...(receiptSelectionMetadata ? { metadata: receiptSelectionMetadata } : {}),
           };
         }
 
         // Log broker plan phase
         if (jobStore) {
-          jobStore.appendLog(jobId, 'broker_plan', 20,
-            'Planning execution strategy...', {
+          jobStore.appendLog(jobId, 'broker_plan', 20, 'Planning execution strategy...', {
             chatMode: effectiveChatMode,
           });
         }
@@ -1950,12 +2109,17 @@ module.exports = {
 
         // Log execution start
         if (jobStore) {
-          jobStore.appendLog(jobId, 'broker_execute', 50,
-            `Executing plan (${execution?.steps?.length || 0} steps)...`, {
-            planId: routedPlan?.id || null,
-            primaryIntent: routing?.primaryIntent || null,
-            stepCount: Array.isArray(routedPlan?.steps) ? routedPlan.steps.length : 0,
-          });
+          jobStore.appendLog(
+            jobId,
+            'broker_execute',
+            50,
+            `Executing plan (${execution?.steps?.length || 0} steps)...`,
+            {
+              planId: routedPlan?.id || null,
+              primaryIntent: routing?.primaryIntent || null,
+              stepCount: Array.isArray(routedPlan?.steps) ? routedPlan.steps.length : 0,
+            }
+          );
         }
 
         const execution = await this.handleExecutionWithOnboarding(ctx, {
@@ -1998,13 +2162,19 @@ module.exports = {
 
         // Log execution result
         if (jobStore) {
-          jobStore.appendLog(jobId, 'broker_execute_complete', 70,
-            `Execution ${execution?.status || 'unknown'}`, {
-            executionStatus: execution?.status || null,
-            completedSteps: (Array.isArray(execution?.steps) ? execution.steps : [])
-              .filter((s) => s?.status === 'completed').length,
-            totalSteps: Array.isArray(execution?.steps) ? execution.steps.length : 0,
-          });
+          jobStore.appendLog(
+            jobId,
+            'broker_execute_complete',
+            70,
+            `Execution ${execution?.status || 'unknown'}`,
+            {
+              executionStatus: execution?.status || null,
+              completedSteps: (Array.isArray(execution?.steps) ? execution.steps : []).filter(
+                (s) => s?.status === 'completed'
+              ).length,
+              totalSteps: Array.isArray(execution?.steps) ? execution.steps.length : 0,
+            }
+          );
         }
 
         let responsePlan = execution?.plan || routedPlan || plan;
@@ -2179,9 +2349,15 @@ module.exports = {
 
         // A) Strategic milestone: synthesis done, now building presentation
         if (jobStore) {
-          jobStore.appendLog(jobId, 'synthesizing', 80, 'Synthesis complete, building presentation...', {
-            replyLength: String(synthesisText || '').length,
-          });
+          jobStore.appendLog(
+            jobId,
+            'synthesizing',
+            80,
+            'Synthesis complete, building presentation...',
+            {
+              replyLength: String(synthesisText || '').length,
+            }
+          );
         }
 
         // Try to render presentation for execution result
@@ -2396,10 +2572,7 @@ module.exports = {
           status: status === 'completed' ? 'completed' : 'incomplete',
         });
 
-        const finalized = synthesizeAndPurgeLayer4(
-          stackResult.stack,
-          responseReply
-        );
+        const finalized = synthesizeAndPurgeLayer4(stackResult.stack, responseReply);
         stateMachine = transitionStateMachine(
           stateMachine,
           deriveTerminalState({ execution, status }),
@@ -2496,8 +2669,7 @@ module.exports = {
 
         // Log completion
         if (jobStore) {
-          jobStore.appendLog(jobId, 'chat_complete', 100,
-            `Chat completed with status=${status}`, {
+          jobStore.appendLog(jobId, 'chat_complete', 100, `Chat completed with status=${status}`, {
             status,
             presentationApplied,
             replyLength: String(responseReply || '').length,
@@ -2581,6 +2753,7 @@ module.exports = {
           executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
           turnGraph: summarizeTurnGraph(turnGraph),
           execution,
+          ...(receiptSelectionMetadata ? { metadata: receiptSelectionMetadata } : {}),
         };
       },
     },
@@ -3000,12 +3173,11 @@ module.exports = {
         register(fact?.source);
       });
 
-      const workflowSignal = [workflowType, domainIntent]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
+      const workflowSignal = [workflowType, domainIntent].filter(Boolean).join(' ').toLowerCase();
 
-      if (/(wallbox|prosumer|nap|pv|heat|waermepumpe|wärmepumpe|bess|storage)/i.test(workflowSignal)) {
+      if (
+        /(wallbox|prosumer|nap|pv|heat|waermepumpe|wärmepumpe|bess|storage)/i.test(workflowSignal)
+      ) {
         refs.add('§ 14a EnWG');
       }
       if (/(dynamic|dynamisch|tariff|tarif)/i.test(workflowSignal)) {
@@ -3035,7 +3207,10 @@ module.exports = {
         responsePlan?.executionReadiness?.workflowType ||
         'consultation_general';
       const resolvedDomainIntent =
-        domainIntent || responsePlan?.domainIntent || responsePlan?.primaryIntent || 'consultation_general';
+        domainIntent ||
+        responsePlan?.domainIntent ||
+        responsePlan?.primaryIntent ||
+        'consultation_general';
 
       const observationFacts = (Array.isArray(observations) ? observations : [])
         .filter((obs) => obs?.status === 'completed')
@@ -3094,11 +3269,11 @@ module.exports = {
         hasMarketPartnersContext ||
         Boolean(
           knownContext?.gridOperatorName ||
-            knownContext?.assertedGridOperatorName ||
-            knownContext?.bdew ||
-            knownContext?.bdewCode ||
-            knownContext?.municipality ||
-            knownContext?.city
+          knownContext?.assertedGridOperatorName ||
+          knownContext?.bdew ||
+          knownContext?.bdewCode ||
+          knownContext?.municipality ||
+          knownContext?.city
         );
 
       const missingEvidence = [];
@@ -3122,7 +3297,8 @@ module.exports = {
       if (hasVnbContext && !hasVerifiedVnbLookup) {
         unverifiedAssumptions.push({
           type: 'location_operator_unverified',
-          statement: 'Die Zuständigkeit des VNB ist ohne dedizierten Lookup nicht belastbar verifiziert.',
+          statement:
+            'Die Zuständigkeit des VNB ist ohne dedizierten Lookup nicht belastbar verifiziert.',
           confidence: 'low',
         });
       }
@@ -3135,12 +3311,17 @@ module.exports = {
         });
       }
 
-      (Array.isArray(evidencePlan?.nextSteps) ? evidencePlan.nextSteps : []).slice(0, 5).forEach((step) => {
-        nextVerificationSteps.push({
-          action: String(step?.action || 'evidence_step').slice(0, 100),
-          description: String(step?.description || step?.label || 'Evidenz ergänzen').slice(0, 220),
+      (Array.isArray(evidencePlan?.nextSteps) ? evidencePlan.nextSteps : [])
+        .slice(0, 5)
+        .forEach((step) => {
+          nextVerificationSteps.push({
+            action: String(step?.action || 'evidence_step').slice(0, 100),
+            description: String(step?.description || step?.label || 'Evidenz ergänzen').slice(
+              0,
+              220
+            ),
+          });
         });
-      });
 
       const allowedLegalRefs = this.collectAllowedLegalRefs({
         knownContext,
@@ -3176,7 +3357,9 @@ module.exports = {
 
     buildConservativeResponseFromContract(contract = {}) {
       const facts = Array.isArray(contract?.verifiedFacts) ? contract.verifiedFacts : [];
-      const missingEvidence = Array.isArray(contract?.missingEvidence) ? contract.missingEvidence : [];
+      const missingEvidence = Array.isArray(contract?.missingEvidence)
+        ? contract.missingEvidence
+        : [];
       const nextSteps = Array.isArray(contract?.nextVerificationSteps)
         ? contract.nextVerificationSteps
         : [];
@@ -3219,8 +3402,12 @@ module.exports = {
       const guardrailCorrections = [];
 
       const workflowType = String(contract?.workflowType || '').toLowerCase();
-      const missingEvidence = Array.isArray(contract?.missingEvidence) ? contract.missingEvidence : [];
-      const hasUnverifiedVnbGap = missingEvidence.some((item) => item?.id === 'vnb_lookup_required');
+      const missingEvidence = Array.isArray(contract?.missingEvidence)
+        ? contract.missingEvidence
+        : [];
+      const hasUnverifiedVnbGap = missingEvidence.some(
+        (item) => item?.id === 'vnb_lookup_required'
+      );
       const definiteVnbClaimRegex =
         /(?:zust[äa]ndig(?:e[rn])?|verantwortlich(?:e[rn])?)\b[^.\n]{0,120}\b(?:ist|sei|wird|bleibt)\b/i;
 
@@ -3235,13 +3422,17 @@ module.exports = {
 
       const allowedLegalRefs = new Set(
         (Array.isArray(contract?.allowedLegalRefs) ? contract.allowedLegalRefs : []).map((item) =>
-          String(item || '').replace(/\s+/g, ' ').trim()
+          String(item || '')
+            .replace(/\s+/g, ' ')
+            .trim()
         )
       );
       const legalRefRegex = /§\s*\d+[a-zA-Z]*\s*EnWG/gi;
       const legalRefsInReply = guardedReply.match(legalRefRegex) || [];
       legalRefsInReply.forEach((ref) => {
-        const normalized = String(ref || '').replace(/\s+/g, ' ').trim();
+        const normalized = String(ref || '')
+          .replace(/\s+/g, ' ')
+          .trim();
         if (!allowedLegalRefs.has(normalized)) {
           guardedReply = guardedReply.replace(ref, 'EnWG (Quelle erforderlich)');
           guardrailCorrections.push({
@@ -3253,10 +3444,16 @@ module.exports = {
       });
 
       const workflowMismatch =
-        (workflowType.includes('bess') && /\b(vdmi|governance|asset\s*validation|residual\s*load|forecast)\b/i.test(guardedReply)) ||
+        (workflowType.includes('bess') &&
+          /\b(vdmi|governance|asset\s*validation|residual\s*load|forecast)\b/i.test(
+            guardedReply
+          )) ||
         ((workflowType.includes('governance') || workflowType.includes('vdmi')) &&
           /\b(bess\s*screening|battery\s*sizing|wallbox|prosumer\s*tarif)\b/i.test(guardedReply)) ||
-        (workflowType.includes('edm') && /\b(asset\s*validation|bess\s*screening|residual\s*load\s*forecast)\b/i.test(guardedReply));
+        (workflowType.includes('edm') &&
+          /\b(asset\s*validation|bess\s*screening|residual\s*load\s*forecast)\b/i.test(
+            guardedReply
+          ));
 
       if (workflowMismatch) {
         guardedReply = this.buildConservativeResponseFromContract(contract);
@@ -3282,7 +3479,8 @@ module.exports = {
         timeoutFallback &&
         !/synthese unvollständig; belastbare bewertung nicht abgeschlossen/i.test(guardedReply)
       ) {
-        guardedReply = `Synthese unvollständig; belastbare Bewertung nicht abgeschlossen. ${guardedReply}`.trim();
+        guardedReply =
+          `Synthese unvollständig; belastbare Bewertung nicht abgeschlossen. ${guardedReply}`.trim();
       }
 
       if (!guardedReply) {
@@ -3373,7 +3571,10 @@ module.exports = {
      * Executes up to 3 safe, read-only tool steps from a consultation execution plan.
      * Only called when plan.canExecuteNow === true.
      */
-    async executeConsultationToolPlan(ctx, { plan, knownContext: _knownContext, session: _session, executionTrace, toolCallTracker }) {
+    async executeConsultationToolPlan(
+      ctx,
+      { plan, knownContext: _knownContext, session: _session, executionTrace, toolCallTracker }
+    ) {
       const stepsToRun = (Array.isArray(plan.executableSteps) ? plan.executableSteps : [])
         .filter((s) => s.canExecute)
         .slice(0, 3);
@@ -3395,10 +3596,20 @@ module.exports = {
             });
           }
           if (toolCallTracker && typeof toolCallTracker.track === 'function') {
-            toolCallTracker.track({ action: step.action, status: 'success', source: 'consultation_plan' });
+            toolCallTracker.track({
+              action: step.action,
+              status: 'success',
+              source: 'consultation_plan',
+            });
           }
 
-          results.push({ step: step.step, action: step.action, status: 'success', result, purpose: step.purpose });
+          results.push({
+            step: step.step,
+            action: step.action,
+            status: 'success',
+            result,
+            purpose: step.purpose,
+          });
         } catch (stepError) {
           results.push({
             step: step.step,
@@ -3443,11 +3654,13 @@ module.exports = {
         facts.push(`- brokerIntent: ${brokerRecommendation.intent}`);
       }
 
-      const strategy = responseStrategy || this.buildResponseStrategy({
-        message,
-        knowledgeContext,
-        resolvedParams,
-      });
+      const strategy =
+        responseStrategy ||
+        this.buildResponseStrategy({
+          message,
+          knowledgeContext,
+          resolvedParams,
+        });
 
       facts.push('');
       facts.push('Antwortstrategie:');
@@ -3457,7 +3670,9 @@ module.exports = {
       facts.push(`- nextMove: ${strategy.nextMove || 'answer'}`);
       facts.push('- keine internen Schema-Feldnamen an den Nutzer ausgeben');
       if (strategy.epistemicState === 'inferable') {
-        facts.push('- Working Assumptions ausdrücklich benennen, bevor deterministische Schritte folgen');
+        facts.push(
+          '- Working Assumptions ausdrücklich benennen, bevor deterministische Schritte folgen'
+        );
       }
       if (strategy.epistemicState === 'ambiguous') {
         facts.push('- nur eine präzise Klärungsfrage stellen, statt zu raten');
@@ -3519,12 +3734,12 @@ module.exports = {
      */
     fallbackConsultationReply(message = '', observations = [], collectedFacts = [], options = {}) {
       // Extract top 2 most relevant facts from observations
-      const topFacts = (Array.isArray(observations) ? observations : [])
-        .slice(0, 2)
-        .map((obs) => ({
-          label: obs.action || 'Überprüfung',
-          summary: String(obs.summary || obs.result?.description || obs.error || 'durchgeführt').slice(0, 200),
-        }));
+      const topFacts = (Array.isArray(observations) ? observations : []).slice(0, 2).map((obs) => ({
+        label: obs.action || 'Überprüfung',
+        summary: String(
+          obs.summary || obs.result?.description || obs.error || 'durchgeführt'
+        ).slice(0, 200),
+      }));
       const uncertaintyNote = this.buildConsultationVnbUncertaintyNote(message, observations);
 
       return {
@@ -3541,7 +3756,8 @@ module.exports = {
         nextActions: [
           {
             action: 'Ausführungs-Modus verwenden',
-            description: 'Initiieren Sie einen der verfügbaren Tools zur konkreten Schrittausführung',
+            description:
+              'Initiieren Sie einen der verfügbaren Tools zur konkreten Schrittausführung',
           },
         ],
         factsUsed: topFacts.map((f) => f.label),
@@ -3589,13 +3805,20 @@ module.exports = {
         : ' Die Zuständigkeit des VNB ist noch nicht belastbar verifiziert.';
     },
 
-    buildConsultationObservationSummaryReply(message = '', observations = [], collectedFacts = [], options = {}) {
+    buildConsultationObservationSummaryReply(
+      message = '',
+      observations = [],
+      collectedFacts = [],
+      options = {}
+    ) {
       const observationList = Array.isArray(observations) ? observations : [];
       const topFacts = observationList
         .slice(0, 3)
         .map((obs) => ({
           label: obs.action || 'Überprüfung',
-          summary: String(obs.summary || obs.result?.description || obs.error || 'durchgeführt').slice(0, 220),
+          summary: String(
+            obs.summary || obs.result?.description || obs.error || 'durchgeführt'
+          ).slice(0, 220),
         }))
         .filter((item) => Boolean(item.label));
 
@@ -3650,7 +3873,13 @@ module.exports = {
       };
     },
 
-    buildConsultationToolRegistry({ message, brokerRecommendation, resolvedParams, knowledgeContext, responseStrategy = null } = {}) {
+    buildConsultationToolRegistry({
+      message,
+      brokerRecommendation,
+      resolvedParams,
+      knowledgeContext,
+      responseStrategy = null,
+    } = {}) {
       const registry = [];
       const messageText = String(message || '').toLowerCase();
       const knownFacts = resolvedParams && typeof resolvedParams === 'object' ? resolvedParams : {};
@@ -3666,16 +3895,22 @@ module.exports = {
       registry.push({
         action: 'grid-operations.marketPartners',
         description: 'Sucht Netzbetreiber/Marktpartner über Name, City oder Suchbegriff.',
-        guidance: 'Nutze das Tool, wenn ein Netzbetreibername, eine Stadt oder ein lokaler DSO-Hinweis vorliegt.',
+        guidance:
+          'Nutze das Tool, wenn ein Netzbetreibername, eine Stadt oder ein lokaler DSO-Hinweis vorliegt.',
       });
 
       registry.push({
         action: 'grid-operations.vnbLookup',
         description: 'Verifiziert VNB-Zuständigkeit und löst BDEW-/Ortsdaten auf.',
-        guidance: 'Nutze das Tool für BDEW-Codes, Zuständigkeitsprüfungen oder wenn Marktpartner-Evidenz vorliegt.',
+        guidance:
+          'Nutze das Tool für BDEW-Codes, Zuständigkeitsprüfungen oder wenn Marktpartner-Evidenz vorliegt.',
       });
 
-      if (!operatorName && !bdewCode && !/vnb|netzbetreiber|netzoperator|bdew|bde[w]?/i.test(messageText)) {
+      if (
+        !operatorName &&
+        !bdewCode &&
+        !/vnb|netzbetreiber|netzoperator|bdew|bde[w]?/i.test(messageText)
+      ) {
         return registry;
       }
 
@@ -3695,7 +3930,14 @@ module.exports = {
       }
     },
 
-    inferConsultationToolCall({ message, brokerRecommendation, resolvedParams, knowledgeContext, responseStrategy = null, observations = [] } = {}) {
+    inferConsultationToolCall({
+      message,
+      brokerRecommendation,
+      resolvedParams,
+      knowledgeContext,
+      responseStrategy = null,
+      observations = [],
+    } = {}) {
       const knownFacts = resolvedParams && typeof resolvedParams === 'object' ? resolvedParams : {};
       const messageText = String(message || '').toLowerCase();
       const operatorName =
@@ -3715,7 +3957,10 @@ module.exports = {
             thought: 'BDEW-Code ist vorhanden, daher starte ich mit einer Zuständigkeitsprüfung.',
             toolCall: {
               action: 'grid-operations.vnbLookup',
-              params: pruneUndefinedDeep({ bdew: bdewCode, city: knowledgeContext?.city || knownFacts.city }),
+              params: pruneUndefinedDeep({
+                bdew: bdewCode,
+                city: knowledgeContext?.city || knownFacts.city,
+              }),
             },
           };
         }
@@ -3723,7 +3968,8 @@ module.exports = {
         if (operatorName) {
           return {
             mode: 'tool',
-            thought: 'Ein Netzbetreibername ist vorhanden, daher löse ich zuerst den Marktpartner auf.',
+            thought:
+              'Ein Netzbetreibername ist vorhanden, daher löse ich zuerst den Marktpartner auf.',
             toolCall: {
               action: 'grid-operations.marketPartners',
               params: pruneUndefinedDeep({ query: operatorName, limit: 5 }),
@@ -3734,7 +3980,8 @@ module.exports = {
         if (/vnb|netzbetreiber|bdew|zuständig|zuständigkeit/i.test(messageText)) {
           return {
             mode: 'tool',
-            thought: 'Die Nachricht betrifft die Zuständigkeit eines VNB, daher probiere ich eine VNB-Auflösung.',
+            thought:
+              'Die Nachricht betrifft die Zuständigkeit eines VNB, daher probiere ich eine VNB-Auflösung.',
             toolCall: {
               action: 'grid-operations.vnbLookup',
               params: pruneUndefinedDeep({
@@ -3747,7 +3994,10 @@ module.exports = {
         }
       }
 
-      if (lastObservation?.action === 'grid-operations.marketPartners' && lastObservation?.status === 'completed') {
+      if (
+        lastObservation?.action === 'grid-operations.marketPartners' &&
+        lastObservation?.status === 'completed'
+      ) {
         const results = Array.isArray(lastObservation.result?.data?.results)
           ? lastObservation.result.data.results
           : Array.isArray(lastObservation.result?.results)
@@ -3787,7 +4037,10 @@ module.exports = {
         }
       }
 
-      if (lastObservation?.action === 'grid-operations.vnbLookup' && lastObservation?.status === 'completed') {
+      if (
+        lastObservation?.action === 'grid-operations.vnbLookup' &&
+        lastObservation?.status === 'completed'
+      ) {
         return {
           mode: 'final',
           thought: 'Es liegt genug Evidenz vor, um die Beratung zu finalisieren.',
@@ -3873,7 +4126,9 @@ module.exports = {
       const message = String(input.message || '').trim();
       const brokerRecommendation = input.brokerRecommendation || {};
       const resolvedParams =
-        input.resolvedParams && typeof input.resolvedParams === 'object' ? input.resolvedParams : {};
+        input.resolvedParams && typeof input.resolvedParams === 'object'
+          ? input.resolvedParams
+          : {};
       const knowledgeContext = input.knowledgeContext || null;
       const responseStrategy = input.responseStrategy || null;
       const knownContext = input.knownContext || {};
@@ -3973,9 +4228,10 @@ module.exports = {
 
       const collectRetryFacts = () => {
         const lastObservation = observations[observations.length - 1] || null;
-        const lastResult = lastObservation?.result && typeof lastObservation.result === 'object'
-          ? lastObservation.result
-          : {};
+        const lastResult =
+          lastObservation?.result && typeof lastObservation.result === 'object'
+            ? lastObservation.result
+            : {};
         const firstResult = Array.isArray(lastResult?.data?.results)
           ? lastResult.data.results[0]
           : Array.isArray(lastResult?.results)
@@ -4024,7 +4280,10 @@ module.exports = {
 
         // C) Log each agentic loop iteration (THINK phase)
         if (agenticJobStore) {
-          const iterPercent = Math.min(25 + Math.round((iteration / CONSULTATION_REACT_MAX_ITERATIONS) * 20), 45);
+          const iterPercent = Math.min(
+            25 + Math.round((iteration / CONSULTATION_REACT_MAX_ITERATIONS) * 20),
+            45
+          );
           agenticJobStore.appendLog(
             agenticJobId,
             `agentic_iteration_${iteration}`,
@@ -4084,7 +4343,8 @@ module.exports = {
         } catch (error) {
           plannerFailed = true;
           const sanitizedPlannerError = sanitizeConsultationDebugError(error);
-          lastError = sanitizedPlannerError?.message || sanitizedPlannerError?.code || 'planner_failed';
+          lastError =
+            sanitizedPlannerError?.message || sanitizedPlannerError?.code || 'planner_failed';
           consultationDebugRecorder.emit('consultation_planner_error', {
             iteration,
             durationMs: null,
@@ -4163,10 +4423,10 @@ module.exports = {
         if (action === 'grid-operations.vnbLookup') {
           const hasBdewFact = Boolean(
             resolvedParams?.bdew ||
-              resolvedParams?.bdewCode ||
-              knowledgeContext?.bdew ||
-              knownContext?.bdew ||
-              params?.bdew
+            resolvedParams?.bdewCode ||
+            knowledgeContext?.bdew ||
+            knownContext?.bdew ||
+            params?.bdew
           );
           if (!hasBdewFact) {
             const fallbackQuery =
@@ -4202,7 +4462,10 @@ module.exports = {
 
         // C) Log ACT phase: which tool is being called
         if (agenticJobStore) {
-          const actPercent = Math.min(26 + Math.round((iteration / CONSULTATION_REACT_MAX_ITERATIONS) * 20), 46);
+          const actPercent = Math.min(
+            26 + Math.round((iteration / CONSULTATION_REACT_MAX_ITERATIONS) * 20),
+            46
+          );
           agenticJobStore.appendLog(
             agenticJobId,
             `agentic_act_${iteration}`,
@@ -4362,7 +4625,10 @@ module.exports = {
 
           // C) Log OBSERVE phase success
           if (agenticJobStore) {
-            const obsPercent = Math.min(27 + Math.round((iteration / CONSULTATION_REACT_MAX_ITERATIONS) * 20), 47);
+            const obsPercent = Math.min(
+              27 + Math.round((iteration / CONSULTATION_REACT_MAX_ITERATIONS) * 20),
+              47
+            );
             agenticJobStore.appendLog(
               agenticJobId,
               `agentic_observe_${iteration}`,
@@ -4372,7 +4638,10 @@ module.exports = {
             );
           }
 
-          if (iteration === 1 && this.shouldEarlyExitConsultationLoop(action, toolResult.observation)) {
+          if (
+            iteration === 1 &&
+            this.shouldEarlyExitConsultationLoop(action, toolResult.observation)
+          ) {
             toolTrace.push({
               iteration,
               phase: 'observe',
@@ -4471,13 +4740,21 @@ module.exports = {
 
         // C) Log OBSERVE phase failure
         if (agenticJobStore) {
-          const obsPercent = Math.min(27 + Math.round((iteration / CONSULTATION_REACT_MAX_ITERATIONS) * 20), 47);
+          const obsPercent = Math.min(
+            27 + Math.round((iteration / CONSULTATION_REACT_MAX_ITERATIONS) * 20),
+            47
+          );
           agenticJobStore.appendLog(
             agenticJobId,
             `agentic_observe_${iteration}`,
             obsPercent,
             `Iteration ${iteration}/${CONSULTATION_REACT_MAX_ITERATIONS}: OBSERVE ✗ ${action} (${toolResult.failFast ? 'fail-fast' : 'failed'}, ${attemptInfo.attempts} attempt${attemptInfo.attempts !== 1 ? 's' : ''})`,
-            { iteration, action, status: toolResult.failFast ? 'failed-fast' : 'failed', attempts: attemptInfo.attempts }
+            {
+              iteration,
+              action,
+              status: toolResult.failFast ? 'failed-fast' : 'failed',
+              attempts: attemptInfo.attempts,
+            }
           );
         }
 
@@ -4534,9 +4811,14 @@ module.exports = {
             lastToolStatus,
             lastError,
           });
-          return this.buildConsultationObservationSummaryReply(message, observations, collectedFacts, {
-            debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
-          });
+          return this.buildConsultationObservationSummaryReply(
+            message,
+            observations,
+            collectedFacts,
+            {
+              debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
+            }
+          );
         }
 
         consultationDebugRecorder.emit('consultation_fallback_selected', {
@@ -4613,9 +4895,14 @@ module.exports = {
               lastToolStatus,
               lastError,
             });
-            return this.buildConsultationObservationSummaryReply(message, observations, collectedFacts, {
-              debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
-            });
+            return this.buildConsultationObservationSummaryReply(
+              message,
+              observations,
+              collectedFacts,
+              {
+                debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
+              }
+            );
           }
 
           return null;
@@ -4642,7 +4929,9 @@ module.exports = {
         const synthesisTimeoutMs = this.resolveConsultationSynthesisTimeoutMs();
         consultationDebugRecorder.emit('consultation_synthesis_error', {
           durationMs:
-            typeof synthesisStartedAt === 'number' ? Math.max(0, Date.now() - synthesisStartedAt) : null,
+            typeof synthesisStartedAt === 'number'
+              ? Math.max(0, Date.now() - synthesisStartedAt)
+              : null,
           errorName: sanitizedSynthesisError?.name || null,
           errorCode: sanitizedSynthesisError?.code || null,
           errorMessage: sanitizedSynthesisError?.message || null,
@@ -4659,7 +4948,9 @@ module.exports = {
         consultationDebugRecorder.emit('consultation_synthesis_null', {
           reason: 'synthesis_exception',
           durationMs:
-            typeof synthesisStartedAt === 'number' ? Math.max(0, Date.now() - synthesisStartedAt) : null,
+            typeof synthesisStartedAt === 'number'
+              ? Math.max(0, Date.now() - synthesisStartedAt)
+              : null,
           observationsCount: observations.length,
           errorCode: sanitizedSynthesisError?.code || null,
           errorMessage: sanitizedSynthesisError?.message || null,
@@ -4676,11 +4967,19 @@ module.exports = {
             iterations: iterationsExecuted,
             lastToolStatus,
             lastError:
-              sanitizedSynthesisError?.message || sanitizedSynthesisError?.code || lastError || null,
+              sanitizedSynthesisError?.message ||
+              sanitizedSynthesisError?.code ||
+              lastError ||
+              null,
           });
-          return this.buildConsultationObservationSummaryReply(message, observations, collectedFacts, {
-            debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
-          });
+          return this.buildConsultationObservationSummaryReply(
+            message,
+            observations,
+            collectedFacts,
+            {
+              debugTrace: consultationDebugEnabled ? consultationDebugTrace : null,
+            }
+          );
         }
 
         return null;
@@ -4701,7 +5000,9 @@ module.exports = {
         (!ctx?.broker || process.env.NODE_ENV === 'test' || hasLocalLlmService);
 
       if (canCallBrokerAction) {
-        const response = await ctx.call('llm.generate', llmPayload, { meta: { ...ctx.meta, $gateway: false } });
+        const response = await ctx.call('llm.generate', llmPayload, {
+          meta: { ...ctx.meta, $gateway: false },
+        });
         trace?.executionTrace?.recordLLMCall({
           phase: trace?.phase || 'llm.generate',
           latencyMs: Date.now() - startedAt,
@@ -4797,7 +5098,9 @@ module.exports = {
 
         const parsed = JSON.parse(jsonMatch[0]);
         return {
-          chatMode: ['consultation', 'execution'].includes(parsed.chatMode) ? parsed.chatMode : null,
+          chatMode: ['consultation', 'execution'].includes(parsed.chatMode)
+            ? parsed.chatMode
+            : null,
           confidence: Math.max(0, Math.min(1, parsed.confidence || 0)),
           reasoning: parsed.reasoning || 'Keine Begründung',
         };
@@ -4847,7 +5150,9 @@ module.exports = {
         return {
           workflowType: String(parsed.workflowType || fallback.workflowType),
           personaType: String(parsed.personaType || fallback.personaType || 'general'),
-          domainIntent: String(parsed.domainIntent || fallback.domainIntent || 'consultation_general'),
+          domainIntent: String(
+            parsed.domainIntent || fallback.domainIntent || 'consultation_general'
+          ),
           executionReadinessIntent: String(
             parsed.executionReadinessIntent || fallback.executionReadinessIntent || 'awaiting_input'
           ),
@@ -4858,7 +5163,10 @@ module.exports = {
           missingInputs: Array.isArray(parsed.missingInputs)
             ? parsed.missingInputs
             : fallback.missingInputs,
-          confidence: Math.max(0, Math.min(1, Number(parsed.confidence || fallback.confidence || 0))),
+          confidence: Math.max(
+            0,
+            Math.min(1, Number(parsed.confidence || fallback.confidence || 0))
+          ),
           rationale: String(parsed.rationale || fallback.rationale || 'hybrid-fallback'),
           source: 'llm',
         };
@@ -4915,7 +5223,9 @@ module.exports = {
       const message = String(input.message || '').trim();
       const brokerRecommendation = input.brokerRecommendation || {};
       const resolvedParams =
-        input.resolvedParams && typeof input.resolvedParams === 'object' ? input.resolvedParams : {};
+        input.resolvedParams && typeof input.resolvedParams === 'object'
+          ? input.resolvedParams
+          : {};
       const knowledgeContext = input.knowledgeContext || null;
       const responseStrategy = input.responseStrategy || null;
       const consultationDebugEnabled = isConsultationDebugEnabled(input.knownContext || {});
@@ -4938,7 +5248,9 @@ module.exports = {
             null,
           knownContext: input.knownContext || {},
           observations: Array.isArray(normalizedResult.toolTrace) ? normalizedResult.toolTrace : [],
-          verifiedFacts: Array.isArray(normalizedResult.factsUsed) ? normalizedResult.factsUsed : [],
+          verifiedFacts: Array.isArray(normalizedResult.factsUsed)
+            ? normalizedResult.factsUsed
+            : [],
         });
 
         const guarded = this.applyResponsePolicyGuardrails({
@@ -4998,21 +5310,25 @@ module.exports = {
           'Ich ordne die Lage vorläufig ein: Eine Abregelung hängt typischerweise von lokaler Netzlast, Einspeisespitzen und Steuerbarkeit ab. Ich kann als nächsten Schritt eine strukturierte Prüfung mit Ihren Bestandsdaten starten oder wir klären zuerst die fehlenden Evidenzpunkte.',
         hypotheses: [
           {
-            statement: 'Die Abregelungswahrscheinlichkeit ist ohne lokale Last-/Engpassdaten nicht belastbar quantifizierbar.',
+            statement:
+              'Die Abregelungswahrscheinlichkeit ist ohne lokale Last-/Engpassdaten nicht belastbar quantifizierbar.',
             confidence: 'medium',
             evidence: 'Es fehlen standortspezifische Netzengpass- und Betriebsdaten.',
           },
         ],
         openQuestions: [
           {
-            question: 'Geht es um gelegentliche Spitzenkappung oder dauerhafte Leistungsbegrenzung?',
-            whyRelevant: 'Die Maßnahmen und wirtschaftlichen Auswirkungen unterscheiden sich deutlich.',
+            question:
+              'Geht es um gelegentliche Spitzenkappung oder dauerhafte Leistungsbegrenzung?',
+            whyRelevant:
+              'Die Maßnahmen und wirtschaftlichen Auswirkungen unterscheiden sich deutlich.',
           },
         ],
         nextActions: [
           {
             action: 'Prüfmodus starten',
-            description: 'Wenn gewünscht, starte ich sofort die konkrete Prüfung im execution-Modus.',
+            description:
+              'Wenn gewünscht, starte ich sofort die konkrete Prüfung im execution-Modus.',
           },
         ],
         factsUsed: [
@@ -5135,7 +5451,9 @@ module.exports = {
       const deterministicTemplate = [
         'Damit ich die angeforderte Prüfung belastbar fortsetzen kann, fehlt mir noch eine entscheidende Angabe.',
         questionText,
-        staticAlternatives.length > 0 ? `Falls das gerade nicht vorliegt: ${staticAlternatives[0]}` : null,
+        staticAlternatives.length > 0
+          ? `Falls das gerade nicht vorliegt: ${staticAlternatives[0]}`
+          : null,
       ]
         .filter(Boolean)
         .join(' ');
@@ -5594,7 +5912,16 @@ module.exports = {
           : '';
 
       return this.normalizeRecoveryText(
-        [styleLead, strategyLead, fileIntro, assumptionText, progressText, riskWarning, stopText, nextText]
+        [
+          styleLead,
+          strategyLead,
+          fileIntro,
+          assumptionText,
+          progressText,
+          riskWarning,
+          stopText,
+          nextText,
+        ]
           .filter(Boolean)
           .join(' ')
       );
@@ -6178,6 +6505,89 @@ module.exports = {
       }
     },
 
+    async selectRuntimeReceipt(ctx, payload = {}) {
+      if (payload.disableReceiptSelection === true) {
+        return {
+          selected: false,
+          receiptId: null,
+          mode: 'disabled',
+          score: null,
+          status: null,
+          warnings: [],
+          diagnostics: null,
+        };
+      }
+
+      try {
+        const result = await ctx.call(
+          'agent-receipts.select',
+          {
+            message: payload.message || '',
+            context: payload.context || {},
+            input: payload.input || {},
+            forceReceipt: payload.forceReceipt,
+            preferredReceipts: Array.isArray(payload.preferredReceipts)
+              ? payload.preferredReceipts
+              : [],
+            allowDraftReceipts: payload.allowDraftReceipts === true,
+            explainReceiptSelection: payload.explainReceiptSelection === true,
+            disableReceiptSelection: false,
+          },
+          { meta: { ...ctx.meta, $gateway: false } }
+        );
+
+        const data =
+          result && typeof result === 'object' && result.data && typeof result.data === 'object'
+            ? result.data
+            : result;
+
+        return {
+          selected: Boolean(data?.selected),
+          receiptId: typeof data?.receiptId === 'string' ? data.receiptId : null,
+          mode: typeof data?.mode === 'string' ? data.mode : data?.selected ? 'matched' : 'none',
+          score: typeof data?.score === 'number' ? data.score : null,
+          status: typeof data?.status === 'string' ? data.status : null,
+          warnings: Array.isArray(data?.warnings) ? data.warnings : [],
+          diagnostics:
+            data?.diagnostics && typeof data.diagnostics === 'object' ? data.diagnostics : null,
+        };
+      } catch (error) {
+        if (isActionUnavailable(error) || isNotFound(error)) {
+          return {
+            selected: false,
+            receiptId: null,
+            mode: 'unavailable',
+            score: null,
+            status: null,
+            warnings: [],
+            diagnostics: null,
+          };
+        }
+        throw error;
+      }
+    },
+
+    buildReceiptSelectionMetadata(selection = null, { includeDiagnostics = false } = {}) {
+      if (!includeDiagnostics || !selection || typeof selection !== 'object') {
+        return null;
+      }
+
+      return {
+        receiptSelection: pruneUndefinedDeep({
+          mode: selection.mode || 'none',
+          selected: Boolean(selection.selected),
+          receiptId: selection.receiptId || null,
+          status: selection.status || null,
+          score: typeof selection.score === 'number' ? selection.score : null,
+          warnings: Array.isArray(selection.warnings) ? selection.warnings : [],
+          diagnostics:
+            selection.diagnostics && typeof selection.diagnostics === 'object'
+              ? selection.diagnostics
+              : null,
+        }),
+      };
+    },
+
     attachKnowledgeHintsToKnownContext(knownContext = {}, knowledgeContext = null) {
       const enriched = { ...(knownContext || {}) };
       if (!knowledgeContext) {
@@ -6194,7 +6604,9 @@ module.exports = {
 
     buildQualitySummary({ evidencePlan = null, execution = null, consultation = null } = {}) {
       const confidence =
-        evidencePlan && typeof evidencePlan.confidence === 'number' ? evidencePlan.confidence : null;
+        evidencePlan && typeof evidencePlan.confidence === 'number'
+          ? evidencePlan.confidence
+          : null;
       const gapCount = Array.isArray(evidencePlan?.gaps) ? evidencePlan.gaps.length : 0;
       const consultationFactCount = Array.isArray(consultation?.factsUsed)
         ? consultation.factsUsed.length
@@ -6316,16 +6728,15 @@ module.exports = {
         evidence: {
           source: evidencePlan?.source || null,
           registryKey: evidencePlan?.registryKey || null,
-          confidence:
-            typeof evidencePlan?.confidence === 'number' ? evidencePlan.confidence : null,
-          gapIds: Array.isArray(evidencePlan?.gaps)
-            ? evidencePlan.gaps.map((gap) => gap.id)
-            : [],
+          confidence: typeof evidencePlan?.confidence === 'number' ? evidencePlan.confidence : null,
+          gapIds: Array.isArray(evidencePlan?.gaps) ? evidencePlan.gaps.map((gap) => gap.id) : [],
         },
         stateMachine: summarizeStateMachine(stateMachine),
         executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
         turnGraph: summarizeTurnGraph(turnGraph),
-        consultationDebug: Array.isArray(consultation?.debugTrace) ? consultation.debugTrace : undefined,
+        consultationDebug: Array.isArray(consultation?.debugTrace)
+          ? consultation.debugTrace
+          : undefined,
         toolAttempts,
       };
     },
@@ -6553,7 +6964,15 @@ module.exports = {
 
     async handleExecutionWithOnboarding(
       ctx,
-      { message, plan, knownContext, session, executionMode, executionTrace = null, toolCallTracker = null }
+      {
+        message,
+        plan,
+        knownContext,
+        session,
+        executionMode,
+        executionTrace = null,
+        toolCallTracker = null,
+      }
     ) {
       if (executionMode === EXECUTION_MODES.HITL) {
         const hydratedContext = this.hydrateKnownContextFromSession(knownContext, session);
@@ -6829,12 +7248,16 @@ module.exports = {
     ) {
       const store = this.ensureCriticalStepCheckpointStore(session);
       const checkpointKey = this.buildCriticalStepCheckpointKey(plan, plannedStep);
-      const stored = store[checkpointKey] && typeof store[checkpointKey] === 'object'
-        ? store[checkpointKey]
-        : null;
+      const stored =
+        store[checkpointKey] && typeof store[checkpointKey] === 'object'
+          ? store[checkpointKey]
+          : null;
 
       const providedHitlItemId =
-        knownContext?.hitlItemId || knownContext?.hitl?.itemId || knownContext?.hitlItem?.id || null;
+        knownContext?.hitlItemId ||
+        knownContext?.hitl?.itemId ||
+        knownContext?.hitlItem?.id ||
+        null;
 
       if (providedHitlItemId) {
         const providedStatus = await this.getHitlItemStatus(ctx, providedHitlItemId);
@@ -7152,10 +7575,7 @@ module.exports = {
           continue;
         }
 
-        if (
-          executionMode === EXECUTION_MODES.AUTO &&
-          plannedStep?.hitlRequired === true
-        ) {
+        if (executionMode === EXECUTION_MODES.AUTO && plannedStep?.hitlRequired === true) {
           const approval = await this.resolveCriticalStepApproval(ctx, {
             message,
             plan,
@@ -7167,37 +7587,37 @@ module.exports = {
           if (approval?.approved === true) {
             // Approval exists -> proceed with deterministic execution.
           } else {
-          const hitlMessage = `Kritischer Prüfschritt ${plannedStep.step} (${plannedStep.action}) erfordert vor Ausführung eine verpflichtende HITL-Freigabe.`;
-          const placeholder = await this.markRoutingGap(ctx, {
-            reasonCode: 'MANDATORY_HITL_APPROVAL',
-            message: hitlMessage,
-            blockedStep: plannedStep.step,
-            blockingLevel: 'hard',
-          });
+            const hitlMessage = `Kritischer Prüfschritt ${plannedStep.step} (${plannedStep.action}) erfordert vor Ausführung eine verpflichtende HITL-Freigabe.`;
+            const placeholder = await this.markRoutingGap(ctx, {
+              reasonCode: 'MANDATORY_HITL_APPROVAL',
+              message: hitlMessage,
+              blockedStep: plannedStep.step,
+              blockingLevel: 'hard',
+            });
 
-          stopPoint = this.buildStopPoint({
-            reasonCode: 'MANDATORY_HITL_APPROVAL',
-            message: hitlMessage,
-            blockedStep: plannedStep.step,
-            status: placeholder ? 'interface-placeholder' : 'hitl-required',
-            placeholder: {
-              ...placeholder,
-              blockedAction: plannedStep.action,
-              missingParams: [],
-              hitlItem: approval?.hitlItemId
-                ? { id: approval.hitlItemId, status: approval.status || 'pending' }
-                : null,
-            },
-          });
-          steps.push({
-            step: plannedStep.step,
-            action: plannedStep.action,
-            status: 'hitl-required',
-            params: {},
-            missingInputs: [],
-            hitlItemId: approval?.hitlItemId || null,
-          });
-          break;
+            stopPoint = this.buildStopPoint({
+              reasonCode: 'MANDATORY_HITL_APPROVAL',
+              message: hitlMessage,
+              blockedStep: plannedStep.step,
+              status: placeholder ? 'interface-placeholder' : 'hitl-required',
+              placeholder: {
+                ...placeholder,
+                blockedAction: plannedStep.action,
+                missingParams: [],
+                hitlItem: approval?.hitlItemId
+                  ? { id: approval.hitlItemId, status: approval.status || 'pending' }
+                  : null,
+              },
+            });
+            steps.push({
+              step: plannedStep.step,
+              action: plannedStep.action,
+              status: 'hitl-required',
+              params: {},
+              missingInputs: [],
+              hitlItemId: approval?.hitlItemId || null,
+            });
+            break;
           }
         }
 
@@ -8002,8 +8422,7 @@ module.exports = {
                 ? payload.l3.stateMachine
                 : null,
             executionStateGraph:
-              payload?.l3?.executionStateGraph &&
-              typeof payload.l3.executionStateGraph === 'object'
+              payload?.l3?.executionStateGraph && typeof payload.l3.executionStateGraph === 'object'
                 ? payload.l3.executionStateGraph
                 : null,
             turnGraph:

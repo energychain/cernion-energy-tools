@@ -93,8 +93,7 @@ function assessDataSource(source) {
 function computeGovernanceScore(assessedSources) {
   if (assessedSources.length === 0) return 0;
   const maxRisk = 4;
-  const avgRisk =
-    assessedSources.reduce((s, a) => s + a.riskScore, 0) / assessedSources.length;
+  const avgRisk = assessedSources.reduce((s, a) => s + a.riskScore, 0) / assessedSources.length;
   return Math.round(((maxRisk - avgRisk) / maxRisk) * 100);
 }
 

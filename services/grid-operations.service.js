@@ -711,9 +711,22 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
     vnbLookup: {
       rest: 'POST /vnb-lookup',
       params: {
-        bdew: { type: 'string', min: 1 },
-        limit: { type: 'number', optional: true, default: 5, min: 1, max: 50, convert: true },
+        bdew: { type: 'string', min: 1, optional: true },
         city: { type: 'string', optional: true },
+        vnbName: { type: 'string', optional: true },
+        query: { type: 'string', optional: true },
+        limit: { type: 'number', optional: true, default: 5, min: 1, max: 50, convert: true },
+      },
+      // Validator guard: at least one of bdew, city, vnbName, query must be provided
+      validation: async function (schema, ctx) {
+        const { bdew, city, vnbName, query } = ctx.params;
+        if (!bdew && !city && !vnbName && !query) {
+          throw new ctx.broker.Errors.ValidationError(
+            'At least one of bdew, city, vnbName, or query must be provided',
+            'PARAMS_REQUIRED',
+            ctx.params
+          );
+        }
       },
       openapi: {
         summary: 'Lookup MaStR ID for a VNB (grid operator) using BDEW code',
@@ -763,12 +776,23 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         },
       },
       async handler(ctx) {
-        const { bdew, limit, city } = ctx.params;
+        const { bdew, city, vnbName, query, limit } = ctx.params;
+
+        // Use the most specific param as primary lookup
+        let lookupParam = bdew || vnbName || query || city;
+        let lookupType = bdew ? 'bdew' : vnbName ? 'vnbName' : query ? 'query' : 'city';
 
         // Primary lookup via cernion_vnb_lookup
+        const mcpParams = {};
+        if (bdew) mcpParams.bdew = bdew;
+        if (city) mcpParams.city = city;
+        if (vnbName) mcpParams.vnbName = vnbName;
+        if (query) mcpParams.query = query;
+        mcpParams.limit = limit || 5;
+
         const primary = await CernionMCPClient.callWithNewSession(
           'cernion_vnb_lookup',
-          { bdew, limit },
+          mcpParams,
           ctx.meta.cernionToken
         );
 
@@ -778,7 +802,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         // Fallback: extract SNB from a sample installation in the operator's city
         if (city) {
           this.logger.info(
-            `[vnbLookup] cernion_vnb_lookup returned null for BDEW ${bdew}, trying city fallback: ${city}`
+            `[vnbLookup] cernion_vnb_lookup returned null for ${lookupType} ${lookupParam}, trying city fallback: ${city}`
           );
           try {
             const fallback = await callWithAutoPoll(
@@ -805,7 +829,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
               return {
                 success: true,
                 data: {
-                  bdew,
+                  bdew: bdew || lookupParam,
                   mastrId: snb,
                   mastrIds: [snb],
                   companyName: city,

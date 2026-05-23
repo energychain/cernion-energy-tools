@@ -35,7 +35,11 @@ const ASSESSMENT_DOMAINS = [
     domainId: 'GRID_PLANNING',
     label: 'Netzplanung & Investitionsstrategie',
     kpis: ['capex_efficiency_pct', 'n1_compliance_rate_pct', 'asset_age_avg_years'],
-    benchmarkTargets: { capex_efficiency_pct: 85, n1_compliance_rate_pct: 99, asset_age_avg_years: 25 },
+    benchmarkTargets: {
+      capex_efficiency_pct: 85,
+      n1_compliance_rate_pct: 99,
+      asset_age_avg_years: 25,
+    },
   },
   {
     domainId: 'OPERATIONS',
@@ -47,25 +51,41 @@ const ASSESSMENT_DOMAINS = [
     domainId: 'REGULATORY',
     label: 'Regulierung & Anreizregulierung',
     kpis: ['arev_efficiency_score', 'capex_recognition_rate_pct', 'complaint_resolution_days'],
-    benchmarkTargets: { arev_efficiency_score: 80, capex_recognition_rate_pct: 90, complaint_resolution_days: 30 },
+    benchmarkTargets: {
+      arev_efficiency_score: 80,
+      capex_recognition_rate_pct: 90,
+      complaint_resolution_days: 30,
+    },
   },
   {
     domainId: 'COMMERCIAL',
     label: 'Kaufmännische Steuerung & ERP',
     kpis: ['invoice_cycle_days', 'bad_debt_rate_pct', 'process_automation_pct'],
-    benchmarkTargets: { invoice_cycle_days: 14, bad_debt_rate_pct: 0.5, process_automation_pct: 60 },
+    benchmarkTargets: {
+      invoice_cycle_days: 14,
+      bad_debt_rate_pct: 0.5,
+      process_automation_pct: 60,
+    },
   },
   {
     domainId: 'DATA_QUALITY',
     label: 'Daten- & Stammdatenqualität',
     kpis: ['mastr_accuracy_pct', 'edm_completeness_pct', 'geo_data_currency_pct'],
-    benchmarkTargets: { mastr_accuracy_pct: 98, edm_completeness_pct: 95, geo_data_currency_pct: 90 },
+    benchmarkTargets: {
+      mastr_accuracy_pct: 98,
+      edm_completeness_pct: 95,
+      geo_data_currency_pct: 90,
+    },
   },
   {
     domainId: 'MARKET_INTEGRATION',
     label: 'Marktintegration (Redispatch, fNAV, §14a)',
     kpis: ['redispatch_ready_pct', 'fnav_portfolio_size', 'section14a_enrollment_pct'],
-    benchmarkTargets: { redispatch_ready_pct: 100, fnav_portfolio_size: 10, section14a_enrollment_pct: 30 },
+    benchmarkTargets: {
+      redispatch_ready_pct: 100,
+      fnav_portfolio_size: 10,
+      section14a_enrollment_pct: 30,
+    },
   },
 ];
 
@@ -86,7 +106,15 @@ function scoreDomain(domain, kpiValues) {
       continue;
     }
     // For metrics where lower = better (SAIDI, MTTR, etc.)
-    const lowerIsBetter = ['saidi_minutes', 'saifi_count', 'mttr_hours', 'invoice_cycle_days', 'bad_debt_rate_pct', 'complaint_resolution_days', 'asset_age_avg_years'].includes(kpiId);
+    const lowerIsBetter = [
+      'saidi_minutes',
+      'saifi_count',
+      'mttr_hours',
+      'invoice_cycle_days',
+      'bad_debt_rate_pct',
+      'complaint_resolution_days',
+      'asset_age_avg_years',
+    ].includes(kpiId);
     const ratio = lowerIsBetter ? target / Math.max(value, 0.001) : value / Math.max(target, 0.001);
     const score = Math.min(100, Math.round(ratio * 100));
     scores.push({
@@ -190,8 +218,14 @@ module.exports = {
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
-        const { gridOperatorId, kpiValues, roiMeasures, forbiddenAssumptions, assessorRole, label } =
-          ctx.params;
+        const {
+          gridOperatorId,
+          kpiValues,
+          roiMeasures,
+          forbiddenAssumptions,
+          assessorRole,
+          label,
+        } = ctx.params;
         const assessmentId = `${DOC_PREFIX}${crypto.randomUUID()}`;
 
         const scoredDomains = ASSESSMENT_DOMAINS.map((d) => scoreDomain(d, kpiValues));
@@ -199,7 +233,9 @@ module.exports = {
         const scoredWithData = scoredDomains.filter((d) => d.domainScore !== null);
         const overallScore =
           scoredWithData.length > 0
-            ? Math.round(scoredWithData.reduce((s, d) => s + d.domainScore, 0) / scoredWithData.length)
+            ? Math.round(
+                scoredWithData.reduce((s, d) => s + d.domainScore, 0) / scoredWithData.length
+              )
             : null;
 
         // Top 3 priority actions (lowest scoring domains)

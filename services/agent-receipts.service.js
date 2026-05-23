@@ -23,6 +23,16 @@ function normalizeRevToken(value) {
   return trimmed || undefined;
 }
 
+function normalizeStringArray(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return Array.from(
+    new Set(value.map((entry) => String(entry || '').trim()).filter((entry) => entry.length > 0))
+  );
+}
+
 function toPublic(doc) {
   return {
     receiptId: doc.receiptId,
@@ -50,6 +60,20 @@ function toPublic(doc) {
   };
 }
 
+function pruneSelectionResult(payload = {}) {
+  return {
+    selected: Boolean(payload.selected),
+    receiptId: payload.receiptId || null,
+    status: payload.status || null,
+    mode: payload.mode || 'none',
+    score: typeof payload.score === 'number' ? payload.score : null,
+    warnings: Array.isArray(payload.warnings) ? payload.warnings : [],
+    ...(payload.diagnostics && typeof payload.diagnostics === 'object'
+      ? { diagnostics: payload.diagnostics }
+      : {}),
+  };
+}
+
 module.exports = {
   name: 'agent-receipts',
 
@@ -69,6 +93,9 @@ module.exports = {
     await this.db.createIndex({ index: { fields: ['type', 'domain'] } });
     await this.db.createIndex({ index: { fields: ['type', 'updatedAt'] } });
     this.logger.info(`[agent-receipts] DB initialized at ${this.settings.dbPath}`);
+
+    // v0.54.3: Seed vnb-lookup-v1 receipt
+    await this._seedReceipts();
   },
 
   async stopped() {
@@ -306,6 +333,266 @@ module.exports = {
             limit,
             offset,
           },
+        };
+      },
+    },
+
+    select: {
+      rest: 'POST /select',
+      params: {
+        message: { type: 'string', optional: true, default: '' },
+        context: { type: 'object', optional: true, default: {} },
+        input: { type: 'object', optional: true, default: {} },
+        forceReceipt: { type: 'string', optional: true, pattern: RECEIPT_ID_PATTERN },
+        preferredReceipts: { type: 'array', optional: true, items: 'string', default: [] },
+        allowDraftReceipts: { type: 'boolean', optional: true, default: false, convert: true },
+        explainReceiptSelection: { type: 'boolean', optional: true, default: false, convert: true },
+        disableReceiptSelection: { type: 'boolean', optional: true, default: false, convert: true },
+      },
+      openapi: {
+        summary: 'Select a runtime receipt for Personal Agent orchestration',
+        tags: ['Agent Receipts'],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  message: { type: 'string', example: 'Wer ist der zuständige VNB in Trier?' },
+                  context: { type: 'object', default: {}, example: {} },
+                  input: { type: 'object', default: {}, example: {} },
+                  forceReceipt: { type: 'string', example: 'vnb-lookup-v1' },
+                  preferredReceipts: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    example: ['vnb-lookup-v1', 'grid-ops-fallback-v1'],
+                  },
+                  allowDraftReceipts: { type: 'boolean', default: false },
+                  explainReceiptSelection: { type: 'boolean', default: false },
+                  disableReceiptSelection: { type: 'boolean', default: false },
+                },
+              },
+              examples: {
+                preferredMatching: {
+                  summary: 'Prefer a list of receipts with diagnostics enabled',
+                  value: {
+                    message: 'Bitte finde den zuständigen VNB in Trier.',
+                    preferredReceipts: ['vnb-lookup-v1', 'grid-ops-fallback-v1'],
+                    explainReceiptSelection: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const {
+          message,
+          context,
+          input,
+          forceReceipt,
+          preferredReceipts,
+          allowDraftReceipts,
+          explainReceiptSelection,
+          disableReceiptSelection,
+        } = ctx.params;
+
+        if (disableReceiptSelection) {
+          return {
+            success: true,
+            data: {
+              selected: false,
+              receiptId: null,
+              status: null,
+              mode: 'disabled',
+              score: null,
+              warnings: [],
+            },
+          };
+        }
+
+        const warnings = [];
+        const baseEvalInput = {
+          broker: this.broker,
+          context: {
+            ...(context || {}),
+            message: message || context?.message || '',
+          },
+          input: {
+            ...(input || {}),
+            message: message || input?.message || '',
+          },
+        };
+
+        const includeDiagnostics = explainReceiptSelection === true;
+
+        if (forceReceipt) {
+          let forcedDoc;
+          try {
+            forcedDoc = await this.loadReceipt(forceReceipt);
+          } catch (error) {
+            if (error?.type === 'AGENT_RECEIPT_NOT_FOUND') {
+              throw new MoleculerClientError(
+                `Forced receipt is not available: ${forceReceipt}`,
+                422,
+                'RECEIPT_NOT_FOUND_OR_INVALID',
+                { receiptId: forceReceipt }
+              );
+            }
+            throw error;
+          }
+
+          const forcedStatus = String(forcedDoc.status || 'draft');
+          if (forcedStatus === 'draft' && !allowDraftReceipts) {
+            throw new MoleculerClientError(
+              `Draft receipt '${forceReceipt}' is not allowed without allowDraftReceipts=true.`,
+              422,
+              'RECEIPT_DRAFT_NOT_ALLOWED',
+              { receiptId: forceReceipt, status: forcedStatus }
+            );
+          }
+
+          if (forcedStatus !== 'active' && forcedStatus !== 'draft') {
+            throw new MoleculerClientError(
+              `Forced receipt '${forceReceipt}' is not selectable in status '${forcedStatus}'.`,
+              422,
+              'RECEIPT_NOT_ACTIVE',
+              { receiptId: forceReceipt, status: forcedStatus }
+            );
+          }
+
+          const forcedReceipt = toPublic(forcedDoc);
+          const forcedEvaluation = evaluateReceiptPlan(forcedReceipt, baseEvalInput);
+
+          return {
+            success: true,
+            data: pruneSelectionResult({
+              selected: true,
+              receiptId: forcedReceipt.receiptId,
+              status: forcedReceipt.status,
+              mode: 'forced',
+              score:
+                typeof forcedEvaluation?.matchScore === 'number'
+                  ? forcedEvaluation.matchScore
+                  : null,
+              warnings,
+              diagnostics: includeDiagnostics
+                ? {
+                    matched: forcedEvaluation?.matched === true,
+                    executable: forcedEvaluation?.executable === true,
+                    reasons: Array.isArray(forcedEvaluation?.matchReasons)
+                      ? forcedEvaluation.matchReasons
+                      : [],
+                    missingMatchEntities: Array.isArray(forcedEvaluation?.missingMatchEntities)
+                      ? forcedEvaluation.missingMatchEntities
+                      : [],
+                  }
+                : null,
+            }),
+          };
+        }
+
+        const preferred = normalizeStringArray(preferredReceipts);
+        const candidates = await this.loadSelectableReceipts({ allowDraftReceipts });
+        const byId = new Map(candidates.map((doc) => [doc.receiptId, doc]));
+
+        let selected = null;
+
+        for (const receiptId of preferred) {
+          const candidateDoc = byId.get(receiptId);
+          if (!candidateDoc) {
+            warnings.push({
+              code: 'PREFERRED_RECEIPT_NOT_FOUND_OR_NOT_ALLOWED',
+              receiptId,
+            });
+            continue;
+          }
+
+          const candidate = toPublic(candidateDoc);
+          const evaluation = evaluateReceiptPlan(candidate, baseEvalInput);
+          if (evaluation?.matched === true) {
+            selected = {
+              receipt: candidate,
+              evaluation,
+              mode: 'preferred',
+            };
+            break;
+          }
+        }
+
+        if (!selected) {
+          for (const candidateDoc of candidates) {
+            if (preferred.includes(candidateDoc.receiptId)) {
+              continue;
+            }
+
+            const candidate = toPublic(candidateDoc);
+            const evaluation = evaluateReceiptPlan(candidate, baseEvalInput);
+
+            if (evaluation?.matched !== true) {
+              continue;
+            }
+
+            if (
+              !selected ||
+              Number(evaluation.matchScore || 0) > Number(selected.evaluation.matchScore || 0)
+            ) {
+              selected = {
+                receipt: candidate,
+                evaluation,
+                mode: 'matched',
+              };
+            }
+          }
+        }
+
+        if (!selected) {
+          return {
+            success: true,
+            data: pruneSelectionResult({
+              selected: false,
+              receiptId: null,
+              status: null,
+              mode: 'none',
+              score: null,
+              warnings,
+              diagnostics: includeDiagnostics
+                ? {
+                    evaluatedCandidates: candidates.length,
+                    preferredCandidates: preferred,
+                  }
+                : null,
+            }),
+          };
+        }
+
+        return {
+          success: true,
+          data: pruneSelectionResult({
+            selected: true,
+            receiptId: selected.receipt.receiptId,
+            status: selected.receipt.status,
+            mode: selected.mode,
+            score:
+              typeof selected.evaluation?.matchScore === 'number'
+                ? selected.evaluation.matchScore
+                : null,
+            warnings,
+            diagnostics: includeDiagnostics
+              ? {
+                  matched: selected.evaluation?.matched === true,
+                  executable: selected.evaluation?.executable === true,
+                  reasons: Array.isArray(selected.evaluation?.matchReasons)
+                    ? selected.evaluation.matchReasons
+                    : [],
+                  missingMatchEntities: Array.isArray(selected.evaluation?.missingMatchEntities)
+                    ? selected.evaluation.missingMatchEntities
+                    : [],
+                }
+              : null,
+          }),
         };
       },
     },
@@ -594,7 +881,10 @@ module.exports = {
           const receiptAudit = candidate?.metadata?.registryAudit;
 
           for (const step of validation.normalized.toolPlan.steps) {
-            const actions = [step.action, ...(Array.isArray(step.fallbackActions) ? step.fallbackActions : [])];
+            const actions = [
+              step.action,
+              ...(Array.isArray(step.fallbackActions) ? step.fallbackActions : []),
+            ];
 
             for (const actionRef of actions) {
               const actionInfo = actionRegistry[actionRef] || null;
@@ -889,6 +1179,53 @@ module.exports = {
   },
 
   methods: {
+    async _seedReceipts() {
+      const { RECEIPT_SEEDS } = require('../src/agent-receipts-seeds');
+
+      for (const seed of RECEIPT_SEEDS) {
+        const docId = `ar:${seed.receiptId}`;
+        try {
+          let existing;
+          try {
+            existing = await this.db.get(docId);
+          } catch (err) {
+            if (err.status !== 404) throw err;
+            // Not found, proceed with create
+          }
+
+          if (!existing) {
+            // Create new seed
+            const doc = {
+              _id: docId,
+              type: 'receipt',
+              status: seed.status || 'active',
+              version: seed.version || '1',
+              ...seed,
+            };
+            await this.db.put(doc);
+            this.logger.info(`[agent-receipts] Seeded receipt: ${seed.receiptId}`);
+          } else if (existing.status !== seed.status || existing.version !== seed.version) {
+            // Check if manually edited
+            const isManuallyEdited = existing.tags && existing.tags.includes('manually-edited');
+            if (isManuallyEdited) {
+              this.logger.warn(
+                `[agent-receipts] Receipt ${seed.receiptId} has manual edits; skipping seed update. Review if version mismatch.`
+              );
+            } else {
+              // Safe update if only version/status diff
+              const updated = { ...seed, _id: docId, _rev: existing._rev, type: 'receipt' };
+              await this.db.put(updated);
+              this.logger.info(
+                `[agent-receipts] Updated receipt ${seed.receiptId} to version ${seed.version}`
+              );
+            }
+          }
+        } catch (err) {
+          this.logger.error(`[agent-receipts] Failed to seed ${seed.receiptId}: ${err.message}`);
+        }
+      }
+    },
+
     ensureActivationAllowed(validation) {
       const blockingErrors = Array.isArray(validation?.errors) ? validation.errors : [];
       if (blockingErrors.length > 0) {
@@ -994,6 +1331,34 @@ module.exports = {
           errors: [{ field: 'id|receipt', message: 'Provide either id or receipt.' }],
         }
       );
+    },
+
+    async loadSelectableReceipts({ allowDraftReceipts = false } = {}) {
+      const response = await this.db.find({
+        selector: { type: 'agent-receipt' },
+        limit: 5000,
+      });
+
+      const allowedStatuses = allowDraftReceipts
+        ? new Set(['active', 'draft'])
+        : new Set(['active']);
+
+      return (Array.isArray(response.docs) ? response.docs : [])
+        .filter((doc) => allowedStatuses.has(String(doc?.status || '').toLowerCase()))
+        .sort((a, b) => {
+          if (a.status !== b.status) {
+            if (a.status === 'active') return -1;
+            if (b.status === 'active') return 1;
+          }
+
+          const aUpdated = String(a.updatedAt || '');
+          const bUpdated = String(b.updatedAt || '');
+          if (aUpdated !== bUpdated) {
+            return bUpdated.localeCompare(aUpdated);
+          }
+
+          return String(a.receiptId || '').localeCompare(String(b.receiptId || ''));
+        });
     },
   },
 };

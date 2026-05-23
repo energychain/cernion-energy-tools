@@ -92,79 +92,104 @@ describeE2E('LLM ChatMode Klassifikation — E2E Szenarien', () => {
   describe('Walldorf Szenario', () => {
     const sessionId = `e2e-walldorf-${Date.now()}`;
 
-    it('Turn 1: Ladepark-Erwähnung → consultation', async () => {
-      skipIfNoServer();
-      const res = await postChat(sessionId, 'Ich möchte einen Ladepark anschließen.');
-      expect([200, 202]).toContain(res.status);
-      const data = res.body;
-      expect(data.success).toBe(true);
-      // Consultation mode: status = 'consulting' oder kein execution-Ergebnis
-      expect(data.chatMode).toBe('consultation');
-    }, TIMEOUT_MS);
+    it(
+      'Turn 1: Ladepark-Erwähnung → consultation',
+      async () => {
+        skipIfNoServer();
+        const res = await postChat(sessionId, 'Ich möchte einen Ladepark anschließen.');
+        expect([200, 202]).toContain(res.status);
+        const data = res.body;
+        expect(data.success).toBe(true);
+        // Consultation mode: status = 'consulting' oder kein execution-Ergebnis
+        expect(data.chatMode).toBe('consultation');
+      },
+      TIMEOUT_MS
+    );
 
-    it('Turn 2: "BDEW-Code ist unbekannt" → consultation (kein execution)', async () => {
-      skipIfNoServer();
-      const res = await postChat(sessionId, 'Stadtwerke Walldorf, der BDEW-Code ist unbekannt.');
-      expect([200, 202]).toContain(res.status);
-      const data = res.body;
-      expect(data.success).toBe(true);
-      // KRITISCH: Statement darf NICHT execution triggern
-      expect(data.chatMode).toBe('consultation');
-      expect(data.status).not.toBe('awaiting-onboarding');
-      expect(data.routing?.chatModeSource).not.toBe('heuristic'); // LLM oder default
-    }, TIMEOUT_MS);
+    it(
+      'Turn 2: "BDEW-Code ist unbekannt" → consultation (kein execution)',
+      async () => {
+        skipIfNoServer();
+        const res = await postChat(sessionId, 'Stadtwerke Walldorf, der BDEW-Code ist unbekannt.');
+        expect([200, 202]).toContain(res.status);
+        const data = res.body;
+        expect(data.success).toBe(true);
+        // KRITISCH: Statement darf NICHT execution triggern
+        expect(data.chatMode).toBe('consultation');
+        expect(data.status).not.toBe('awaiting-onboarding');
+        expect(data.routing?.chatModeSource).not.toBe('heuristic'); // LLM oder default
+      },
+      TIMEOUT_MS
+    );
 
-    it('Turn 3: "Prüfe jetzt den MaStR-Eintrag" → execution', async () => {
-      skipIfNoServer();
-      const res = await postChat(sessionId, 'Prüfe jetzt den MaStR-Eintrag für Stadtwerke Walldorf.');
-      expect([200, 202]).toContain(res.status);
-      const data = res.body;
-      expect(data.success).toBe(true);
-      expect(data.chatMode).toBe('execution');
-    }, TIMEOUT_MS);
+    it(
+      'Turn 3: "Prüfe jetzt den MaStR-Eintrag" → execution',
+      async () => {
+        skipIfNoServer();
+        const res = await postChat(
+          sessionId,
+          'Prüfe jetzt den MaStR-Eintrag für Stadtwerke Walldorf.'
+        );
+        expect([200, 202]).toContain(res.status);
+        const data = res.body;
+        expect(data.success).toBe(true);
+        expect(data.chatMode).toBe('execution');
+      },
+      TIMEOUT_MS
+    );
   });
 
   describe('Burgbernheim Szenario', () => {
     const sessionId = `e2e-burgbernheim-${Date.now()}`;
 
-    it('Turn 1: Hintergrund-Beschreibung → consultation', async () => {
-      skipIfNoServer();
-      const res = await postChat(
-        sessionId,
-        'Ich betreibe eine PV-Anlage in Burgbernheim und werde bereits regelmäßig abgeregelt.'
-      );
-      expect([200, 202]).toContain(res.status);
-      const data = res.body;
-      expect(data.success).toBe(true);
-      // Problemschilderung → consultation
-      expect(data.chatMode).toBe('consultation');
-    }, TIMEOUT_MS);
+    it(
+      'Turn 1: Hintergrund-Beschreibung → consultation',
+      async () => {
+        skipIfNoServer();
+        const res = await postChat(
+          sessionId,
+          'Ich betreibe eine PV-Anlage in Burgbernheim und werde bereits regelmäßig abgeregelt.'
+        );
+        expect([200, 202]).toContain(res.status);
+        const data = res.body;
+        expect(data.success).toBe(true);
+        // Problemschilderung → consultation
+        expect(data.chatMode).toBe('consultation');
+      },
+      TIMEOUT_MS
+    );
 
-    it('Turn 2: "Ich werde bereits regelmäßig abgeregelt" → consultation', async () => {
-      skipIfNoServer();
-      const res = await postChat(sessionId, 'Ich werde bereits regelmäßig abgeregelt.');
-      expect([200, 202]).toContain(res.status);
-      const data = res.body;
-      expect(data.success).toBe(true);
-      expect(data.chatMode).toBe('consultation');
-    }, TIMEOUT_MS);
+    it(
+      'Turn 2: "Ich werde bereits regelmäßig abgeregelt" → consultation',
+      async () => {
+        skipIfNoServer();
+        const res = await postChat(sessionId, 'Ich werde bereits regelmäßig abgeregelt.');
+        expect([200, 202]).toContain(res.status);
+        const data = res.body;
+        expect(data.success).toBe(true);
+        expect(data.chatMode).toBe('consultation');
+      },
+      TIMEOUT_MS
+    );
   });
 
   describe('Explicit API chatMode override', () => {
     const sessionId = `e2e-override-${Date.now()}`;
 
-    it('explicit chatMode=execution forces execution regardless of LLM', async () => {
-      skipIfNoServer();
-      const res = await postChat(
-        sessionId,
-        'Der BDEW-Code ist 9900123456789.',
-        { chatMode: 'execution' }
-      );
-      expect([200, 202]).toContain(res.status);
-      const data = res.body;
-      expect(data.success).toBe(true);
-      expect(data.chatMode).toBe('execution');
-      expect(data.routing?.chatModeSource).toBe('api');
-    }, TIMEOUT_MS);
+    it(
+      'explicit chatMode=execution forces execution regardless of LLM',
+      async () => {
+        skipIfNoServer();
+        const res = await postChat(sessionId, 'Der BDEW-Code ist 9900123456789.', {
+          chatMode: 'execution',
+        });
+        expect([200, 202]).toContain(res.status);
+        const data = res.body;
+        expect(data.success).toBe(true);
+        expect(data.chatMode).toBe('execution');
+        expect(data.routing?.chatModeSource).toBe('api');
+      },
+      TIMEOUT_MS
+    );
   });
 });

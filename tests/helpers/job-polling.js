@@ -28,11 +28,7 @@ const jobStore = require('../../src/job-store');
  * @throws {Error} if job not found or timeout exceeded
  */
 async function waitForJobCompletion(jobId, options = {}) {
-  const {
-    maxWaitMs = 300000,
-    pollIntervalMs = 5000,
-    onProgress = null,
-  } = options;
+  const { maxWaitMs = 300000, pollIntervalMs = 5000, onProgress = null } = options;
 
   if (!jobId) {
     throw new Error('jobId is required');
@@ -80,7 +76,7 @@ async function waitForJobCompletion(jobId, options = {}) {
   const lastPercent = lastJob?.percent || 0;
   throw new Error(
     `Job ${jobId} did not complete within ${maxWaitMs}ms ` +
-    `(elapsed: ${elapsedS}s, last phase: ${lastPhase}, progress: ${lastPercent}%)`
+      `(elapsed: ${elapsedS}s, last phase: ${lastPhase}, progress: ${lastPercent}%)`
   );
 }
 

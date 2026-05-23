@@ -58,10 +58,15 @@ describe('personal-agent-response-strategy', () => {
       missingParams: ['operatorEvidence'],
     });
 
-    expect([AUDIENCES.GENERAL, AUDIENCES.MIXED, AUDIENCES.LEADERSHIP, AUDIENCES.TECHNICAL]).toContain(
-      strategy.audience
+    expect([
+      AUDIENCES.GENERAL,
+      AUDIENCES.MIXED,
+      AUDIENCES.LEADERSHIP,
+      AUDIENCES.TECHNICAL,
+    ]).toContain(strategy.audience);
+    expect([EPISTEMIC_STATES.AMBIGUOUS, EPISTEMIC_STATES.MISSING]).toContain(
+      strategy.epistemicState
     );
-    expect([EPISTEMIC_STATES.AMBIGUOUS, EPISTEMIC_STATES.MISSING]).toContain(strategy.epistemicState);
     expect(strategy.shouldHideInternalSchema).toBe(true);
   });
 
@@ -101,7 +106,11 @@ describe('personal-agent-response-strategy', () => {
 
     const clearStrategy = buildResponseStrategy({
       message: 'Bitte gib mir eine Entscheidungsvorlage für den Vorstand.',
-      knownContext: { targetAudience: 'Vorstand', location: 'Berlin', gridOperatorName: 'Netze BW' },
+      knownContext: {
+        targetAudience: 'Vorstand',
+        location: 'Berlin',
+        gridOperatorName: 'Netze BW',
+      },
     });
     expect(['none', 'confirmation']).toContain(clearStrategy.userFacingQuestionStyle);
   });

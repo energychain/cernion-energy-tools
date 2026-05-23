@@ -769,13 +769,23 @@ describe('Grid Operations Service', () => {
   });
 
   describe('vnbLookup action', () => {
-    it('should require bdew code', async () => {
+    it('should require at least one of: bdew, city, vnbName, or query', async () => {
       await expect(broker.call('grid-operations.vnbLookup', {})).rejects.toThrow();
     });
 
     it('should accept valid bdew lookup', async () => {
       const result = await broker.call('grid-operations.vnbLookup', {
         bdew: '9900992720003',
+        limit: 5,
+      });
+
+      expect(result).toBeDefined();
+    });
+
+    it('should accept city-only lookup (v0.54.3)', async () => {
+      // v0.54.3: city-only queries should not fail validation
+      const result = await broker.call('grid-operations.vnbLookup', {
+        city: 'Wiesloch',
         limit: 5,
       });
 

@@ -42,7 +42,7 @@ function checkServerAvailableSync(baseUrl) {
       `const url = new URL('${normalizedBaseUrl}/api/personal-agent/chat');`,
       "const req = http.request({ hostname: url.hostname, port: url.port || 80, path: url.pathname, method: 'POST' }, (res) => { res.resume(); res.on('end', () => process.exit(0)); });",
       "req.on('error', () => process.exit(1));",
-      "req.setTimeout(1500, () => { req.destroy(); process.exit(1); });",
+      'req.setTimeout(1500, () => { req.destroy(); process.exit(1); });',
       'req.end();',
     ].join('\n');
 
@@ -301,7 +301,8 @@ function createChatClient(baseUrl) {
 
 const serverAvailable = RUN_E2E ? checkServerAvailableSync(BASE_URL) : false;
 const describeE2E = RUN_E2E && serverAvailable ? describe : describe.skip;
-const describeVdmiStep3E2E = RUN_E2E && RUN_VDMI_STEP3_E2E && serverAvailable ? describe : describe.skip;
+const describeVdmiStep3E2E =
+  RUN_E2E && RUN_VDMI_STEP3_E2E && serverAvailable ? describe : describe.skip;
 
 describeE2E('Multi-Turn Domain Scenarios (personal-agent.chat only)', () => {
   describe('PA-MT-001 Journalist CYA-Fallback', () => {

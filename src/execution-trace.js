@@ -28,7 +28,15 @@ class ExecutionTrace {
     this.stateTransitions = [];
   }
 
-  recordLLMCall({ phase, latencyMs = null, model = null, provider = null, promptTokens = null, completionTokens = null, metadata = null } = {}) {
+  recordLLMCall({
+    phase,
+    latencyMs = null,
+    model = null,
+    provider = null,
+    promptTokens = null,
+    completionTokens = null,
+    metadata = null,
+  } = {}) {
     this.llmCalls.push({
       phase: phase || 'unknown',
       latencyMs,
@@ -40,7 +48,16 @@ class ExecutionTrace {
     });
   }
 
-  recordToolInvocation({ phase = 'unknown', tool, params = null, success = null, latencyMs = null, retries = 0, result = null, error = null } = {}) {
+  recordToolInvocation({
+    phase = 'unknown',
+    tool,
+    params = null,
+    success = null,
+    latencyMs = null,
+    retries = 0,
+    result = null,
+    error = null,
+  } = {}) {
     this.toolCalls.push({
       phase,
       tool: tool || 'unknown',
@@ -53,7 +70,13 @@ class ExecutionTrace {
     });
   }
 
-  recordBrokerDecision({ intent = null, capability = null, confidence = null, scoringBreakdown = null, source = null } = {}) {
+  recordBrokerDecision({
+    intent = null,
+    capability = null,
+    confidence = null,
+    scoringBreakdown = null,
+    source = null,
+  } = {}) {
     this.brokerDecisions.push({
       intent,
       capability,
@@ -63,7 +86,13 @@ class ExecutionTrace {
     });
   }
 
-  recordStateTransition({ family = 'execution', from = null, to = null, reason = null, metadata = null } = {}) {
+  recordStateTransition({
+    family = 'execution',
+    from = null,
+    to = null,
+    reason = null,
+    metadata = null,
+  } = {}) {
     this.stateTransitions.push({
       family,
       from,

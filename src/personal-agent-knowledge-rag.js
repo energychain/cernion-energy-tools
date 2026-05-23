@@ -1,6 +1,8 @@
 'use strict';
 
-const QUERY_TIMEOUT_MS = Number.isFinite(Number(process.env.PERSONAL_AGENT_KNOWLEDGE_RAG_TIMEOUT_MS))
+const QUERY_TIMEOUT_MS = Number.isFinite(
+  Number(process.env.PERSONAL_AGENT_KNOWLEDGE_RAG_TIMEOUT_MS)
+)
   ? Math.max(1000, Math.floor(Number(process.env.PERSONAL_AGENT_KNOWLEDGE_RAG_TIMEOUT_MS)))
   : 25000;
 const DEFAULT_LIMIT = 5;

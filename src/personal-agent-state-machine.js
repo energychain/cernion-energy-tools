@@ -26,12 +26,8 @@ const TERMINAL_STATES = new Set([
 const ALLOWED_TRANSITIONS = {
   [PERSONAL_AGENT_STATES.INIT]: new Set([PERSONAL_AGENT_STATES.SESSION_LOADED]),
   [PERSONAL_AGENT_STATES.SESSION_LOADED]: new Set([PERSONAL_AGENT_STATES.KNOWLEDGE_ORIENTED]),
-  [PERSONAL_AGENT_STATES.KNOWLEDGE_ORIENTED]: new Set([
-    PERSONAL_AGENT_STATES.BROKER_RECOMMENDED,
-  ]),
-  [PERSONAL_AGENT_STATES.BROKER_RECOMMENDED]: new Set([
-    PERSONAL_AGENT_STATES.CHAT_MODE_RESOLVED,
-  ]),
+  [PERSONAL_AGENT_STATES.KNOWLEDGE_ORIENTED]: new Set([PERSONAL_AGENT_STATES.BROKER_RECOMMENDED]),
+  [PERSONAL_AGENT_STATES.BROKER_RECOMMENDED]: new Set([PERSONAL_AGENT_STATES.CHAT_MODE_RESOLVED]),
   [PERSONAL_AGENT_STATES.CHAT_MODE_RESOLVED]: new Set([
     PERSONAL_AGENT_STATES.CONSULTATION_ACTIVE,
     PERSONAL_AGENT_STATES.EXECUTION_PLANNED,
@@ -80,9 +76,13 @@ function sanitizeDetails(details = {}) {
       return acc;
     }
     if (Array.isArray(value)) {
-      acc[key] = value.slice(0, 10).map((item) =>
-        item && typeof item === 'object' ? truncateValue(JSON.stringify(item)) : truncateValue(item)
-      );
+      acc[key] = value
+        .slice(0, 10)
+        .map((item) =>
+          item && typeof item === 'object'
+            ? truncateValue(JSON.stringify(item))
+            : truncateValue(item)
+        );
       return acc;
     }
     if (typeof value === 'object') {
@@ -125,7 +125,12 @@ function cloneMachine(machine = null) {
   };
 }
 
-function createStateMachine({ sessionId, chatMode = null, executionMode = null, message = '' } = {}) {
+function createStateMachine({
+  sessionId,
+  chatMode = null,
+  executionMode = null,
+  message = '',
+} = {}) {
   const startedAt = new Date().toISOString();
   const messageText = String(message || '');
   const messageHash = `${messageText.length.toString(16)}-${Buffer.from(messageText)
@@ -143,7 +148,11 @@ function createStateMachine({ sessionId, chatMode = null, executionMode = null, 
     updatedAt: startedAt,
     completedAt: null,
     transitions: [
-      buildTransition(PERSONAL_AGENT_STATES.INIT, { chatMode, executionMode, messageHash }, startedAt),
+      buildTransition(
+        PERSONAL_AGENT_STATES.INIT,
+        { chatMode, executionMode, messageHash },
+        startedAt
+      ),
     ],
   };
 }
@@ -186,9 +195,10 @@ function transitionStateMachine(machine, nextState, details = {}) {
   const next = cloneMachine(current);
   next.currentState = state;
   next.updatedAt = updatedAt;
-  next.transitions = [...(next.transitions || []), buildTransition(state, details, updatedAt)].slice(
-    -20
-  );
+  next.transitions = [
+    ...(next.transitions || []),
+    buildTransition(state, details, updatedAt),
+  ].slice(-20);
 
   if (TERMINAL_STATES.has(state)) {
     next.status = state === PERSONAL_AGENT_STATES.FAILED ? 'failed' : 'completed';

@@ -34,6 +34,100 @@ describe('personal-agent.service', () => {
     });
     broker.createService(CapabilityBrokerService);
     broker.createService({
+      name: 'agent-receipts',
+      actions: {
+        select: {
+          handler(ctx) {
+            const forceReceipt =
+              typeof ctx.params.forceReceipt === 'string' ? ctx.params.forceReceipt.trim() : null;
+            const allowDraftReceipts = ctx.params.allowDraftReceipts === true;
+            const preferredReceipts = Array.isArray(ctx.params.preferredReceipts)
+              ? ctx.params.preferredReceipts
+              : [];
+
+            if (ctx.params.disableReceiptSelection === true) {
+              return {
+                success: true,
+                data: {
+                  selected: false,
+                  receiptId: null,
+                  status: null,
+                  mode: 'disabled',
+                  score: null,
+                  warnings: [],
+                },
+              };
+            }
+
+            if (forceReceipt === 'invalid-receipt-v1') {
+              const error = new Error('forced receipt invalid');
+              error.code = 422;
+              error.type = 'RECEIPT_NOT_FOUND_OR_INVALID';
+              throw error;
+            }
+
+            if (forceReceipt === 'draft-receipt-v1' && !allowDraftReceipts) {
+              const error = new Error('draft receipt not allowed');
+              error.code = 422;
+              error.type = 'RECEIPT_DRAFT_NOT_ALLOWED';
+              throw error;
+            }
+
+            if (forceReceipt) {
+              return {
+                success: true,
+                data: {
+                  selected: true,
+                  receiptId: forceReceipt,
+                  status: forceReceipt === 'draft-receipt-v1' ? 'draft' : 'active',
+                  mode: 'forced',
+                  score: 99,
+                  warnings: [],
+                  diagnostics: ctx.params.explainReceiptSelection
+                    ? { matched: true, executable: true }
+                    : undefined,
+                },
+              };
+            }
+
+            if (preferredReceipts.includes('draft-receipt-v1') && !allowDraftReceipts) {
+              return {
+                success: true,
+                data: {
+                  selected: false,
+                  receiptId: null,
+                  status: null,
+                  mode: 'none',
+                  score: null,
+                  warnings: [
+                    {
+                      code: 'PREFERRED_RECEIPT_NOT_FOUND_OR_NOT_ALLOWED',
+                      receiptId: 'draft-receipt-v1',
+                    },
+                  ],
+                },
+              };
+            }
+
+            return {
+              success: true,
+              data: {
+                selected: false,
+                receiptId: null,
+                status: null,
+                mode: 'none',
+                score: null,
+                warnings: [],
+                diagnostics: ctx.params.explainReceiptSelection
+                  ? { evaluatedCandidates: 0, preferredCandidates: preferredReceipts }
+                  : undefined,
+              },
+            };
+          },
+        },
+      },
+    });
+    broker.createService({
       name: 'interface-placeholder',
       actions: {
         markGap: {
@@ -2176,7 +2270,8 @@ describe('personal-agent.service', () => {
     const result = await broker.call(
       'personal-agent.chat',
       {
-        message: '500 kWp PV, 250 kWh Speicher, Burgbernheim. Wie hoch ist die Redispatch-Wahrscheinlichkeit?',
+        message:
+          '500 kWp PV, 250 kWh Speicher, Burgbernheim. Wie hoch ist die Redispatch-Wahrscheinlichkeit?',
         executionMode: 'auto',
       },
       { meta: { tenantId: 'tenant-consult-default', authUser: { userId: 'user-1' } } }
@@ -2199,7 +2294,8 @@ describe('personal-agent.service', () => {
       {
         text: JSON.stringify({
           mode: 'tool',
-          thought: 'Ein Netzbetreibername liegt vor, daher starte ich mit der Marktpartner-Auflösung.',
+          thought:
+            'Ein Netzbetreibername liegt vor, daher starte ich mit der Marktpartner-Auflösung.',
           toolCall: {
             action: 'grid-operations.marketPartners',
             params: { query: 'TWL Netze', limit: 5 },
@@ -2270,15 +2366,21 @@ describe('personal-agent.service', () => {
       },
     ];
 
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
-      if (payload?.schema) {
-        return llmResponses.shift();
-      }
-      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
-        return parameterResponses.shift();
-      }
-      return plannerResponses.shift() || { text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }) };
-    });
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockImplementation(async (_ctx, payload) => {
+        if (payload?.schema) {
+          return llmResponses.shift();
+        }
+        if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+          return parameterResponses.shift();
+        }
+        return (
+          plannerResponses.shift() || {
+            text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }),
+          }
+        );
+      });
 
     const mockCtx = {
       broker,
@@ -2299,9 +2401,7 @@ describe('personal-agent.service', () => {
       expect(Array.isArray(result.toolTrace)).toBe(true);
       expect(Array.isArray(result.attemptsSummary)).toBe(true);
       expect(result.toolTrace).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ phase: 'act' }),
-        ])
+        expect.arrayContaining([expect.objectContaining({ phase: 'act' })])
       );
     } finally {
       callLlmSpy.mockRestore();
@@ -2329,7 +2429,9 @@ describe('personal-agent.service', () => {
         }),
       },
     ];
-    const parameterResponses = [{ text: JSON.stringify({ query: 'Stadtwerke Walldorf', limit: 5 }) }];
+    const parameterResponses = [
+      { text: JSON.stringify({ query: 'Stadtwerke Walldorf', limit: 5 }) },
+    ];
     const synthesisResponse = {
       data: {
         reply: 'Ich habe passende Marktpartnerdaten ermittelt.',
@@ -2340,15 +2442,21 @@ describe('personal-agent.service', () => {
       },
     };
 
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
-      if (payload?.schema) {
-        return synthesisResponse;
-      }
-      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
-        return parameterResponses.shift();
-      }
-      return plannerResponses.shift() || { text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }) };
-    });
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockImplementation(async (_ctx, payload) => {
+        if (payload?.schema) {
+          return synthesisResponse;
+        }
+        if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+          return parameterResponses.shift();
+        }
+        return (
+          plannerResponses.shift() || {
+            text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }),
+          }
+        );
+      });
 
     const mockCtx = {
       broker,
@@ -2412,15 +2520,21 @@ describe('personal-agent.service', () => {
       },
     };
 
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
-      if (payload?.schema) {
-        return synthesisResponse;
-      }
-      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
-        return parameterResponses.shift();
-      }
-      return plannerResponses.shift() || { text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }) };
-    });
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockImplementation(async (_ctx, payload) => {
+        if (payload?.schema) {
+          return synthesisResponse;
+        }
+        if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+          return parameterResponses.shift();
+        }
+        return (
+          plannerResponses.shift() || {
+            text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }),
+          }
+        );
+      });
 
     const mockCtx = {
       broker,
@@ -2454,7 +2568,9 @@ describe('personal-agent.service', () => {
         ])
       );
       expect(
-        result.toolTrace.some((entry) => /ctx\.call is not a function/i.test(String(entry?.error || '')))
+        result.toolTrace.some((entry) =>
+          /ctx\.call is not a function/i.test(String(entry?.error || ''))
+        )
       ).toBe(false);
     } finally {
       callLlmSpy.mockRestore();
@@ -2467,22 +2583,24 @@ describe('personal-agent.service', () => {
     const nowValues = [0, 0, 29_750, 29_750];
     let nowIndex = 0;
 
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
-      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
-        return { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) };
-      }
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockImplementation(async (_ctx, payload) => {
+        if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+          return { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) };
+        }
 
-      return {
-        text: JSON.stringify({
-          mode: 'tool',
-          thought: 'Ich starte mit der Marktpartner-Auflösung.',
-          toolCall: {
-            action: 'grid-operations.marketPartners',
-            params: { query: 'TWL Netze', limit: 5 },
-          },
-        }),
-      };
-    });
+        return {
+          text: JSON.stringify({
+            mode: 'tool',
+            thought: 'Ich starte mit der Marktpartner-Auflösung.',
+            toolCall: {
+              action: 'grid-operations.marketPartners',
+              params: { query: 'TWL Netze', limit: 5 },
+            },
+          }),
+        };
+      });
 
     Date.now = jest.fn(() => nowValues[Math.min(nowIndex++, nowValues.length - 1)]);
 
@@ -2495,14 +2613,19 @@ describe('personal-agent.service', () => {
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
         message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
-        brokerRecommendation: { intent: 'consultation', capability: 'grid-operations.marketPartners' },
+        brokerRecommendation: {
+          intent: 'consultation',
+          capability: 'grid-operations.marketPartners',
+        },
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
         resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
         knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
         knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim', debugTrace: true },
       });
 
-      expect(result.reply).toContain('Synthese unvollständig; belastbare Bewertung nicht abgeschlossen');
+      expect(result.reply).toContain(
+        'Synthese unvollständig; belastbare Bewertung nicht abgeschlossen'
+      );
       expect(Array.isArray(result.debugTrace)).toBe(true);
       expect(result.debugTrace).toEqual(
         expect.arrayContaining([
@@ -2526,34 +2649,36 @@ describe('personal-agent.service', () => {
     const nowValues = [0, 0, 16_176, 16_176, 16_176, 16_176, 16_176];
     let nowIndex = 0;
 
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
-      if (payload?.schema) {
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockImplementation(async (_ctx, payload) => {
+        if (payload?.schema) {
+          return {
+            data: {
+              reply: 'Synthetisierte Antwort trotz langer Vorphase.',
+              hypotheses: [],
+              openQuestions: [],
+              nextActions: [],
+              factsUsed: [],
+            },
+          };
+        }
+
+        if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+          return { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) };
+        }
+
         return {
-          data: {
-            reply: 'Synthetisierte Antwort trotz langer Vorphase.',
-            hypotheses: [],
-            openQuestions: [],
-            nextActions: [],
-            factsUsed: [],
-          },
+          text: JSON.stringify({
+            mode: 'tool',
+            thought: 'Ich starte mit einer Tool-Abfrage.',
+            toolCall: {
+              action: 'grid-operations.marketPartners',
+              params: { query: 'TWL Netze', limit: 5 },
+            },
+          }),
         };
-      }
-
-      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
-        return { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) };
-      }
-
-      return {
-        text: JSON.stringify({
-          mode: 'tool',
-          thought: 'Ich starte mit einer Tool-Abfrage.',
-          toolCall: {
-            action: 'grid-operations.marketPartners',
-            params: { query: 'TWL Netze', limit: 5 },
-          },
-        }),
-      };
-    });
+      });
 
     Date.now = jest.fn(() => nowValues[Math.min(nowIndex++, nowValues.length - 1)]);
 
@@ -2566,7 +2691,10 @@ describe('personal-agent.service', () => {
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
         message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
-        brokerRecommendation: { intent: 'consultation', capability: 'grid-operations.marketPartners' },
+        brokerRecommendation: {
+          intent: 'consultation',
+          capability: 'grid-operations.marketPartners',
+        },
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
         resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
         knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
@@ -2587,34 +2715,36 @@ describe('personal-agent.service', () => {
     const nowValues = [0, 0, 21_000, 21_000, 21_000, 21_000, 21_000, 21_000];
     let nowIndex = 0;
 
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
-      if (payload?.schema) {
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockImplementation(async (_ctx, payload) => {
+        if (payload?.schema) {
+          return {
+            data: {
+              reply: 'Antwort nach Budget-kappung.',
+              hypotheses: [],
+              openQuestions: [],
+              nextActions: [],
+              factsUsed: [],
+            },
+          };
+        }
+
+        if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+          return { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) };
+        }
+
         return {
-          data: {
-            reply: 'Antwort nach Budget-kappung.',
-            hypotheses: [],
-            openQuestions: [],
-            nextActions: [],
-            factsUsed: [],
-          },
+          text: JSON.stringify({
+            mode: 'tool',
+            thought: 'Tool zuerst.',
+            toolCall: {
+              action: 'grid-operations.marketPartners',
+              params: { query: 'TWL Netze', limit: 5 },
+            },
+          }),
         };
-      }
-
-      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
-        return { text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) };
-      }
-
-      return {
-        text: JSON.stringify({
-          mode: 'tool',
-          thought: 'Tool zuerst.',
-          toolCall: {
-            action: 'grid-operations.marketPartners',
-            params: { query: 'TWL Netze', limit: 5 },
-          },
-        }),
-      };
-    });
+      });
 
     Date.now = jest.fn(() => nowValues[Math.min(nowIndex++, nowValues.length - 1)]);
 
@@ -2627,14 +2757,19 @@ describe('personal-agent.service', () => {
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
         message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
-        brokerRecommendation: { intent: 'consultation', capability: 'grid-operations.marketPartners' },
+        brokerRecommendation: {
+          intent: 'consultation',
+          capability: 'grid-operations.marketPartners',
+        },
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
         resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
         knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
         knownContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim', debugTrace: true },
       });
 
-      const timeoutEvent = (result.debugTrace || []).find((entry) => entry.type === 'effective_tool_timeout');
+      const timeoutEvent = (result.debugTrace || []).find(
+        (entry) => entry.type === 'effective_tool_timeout'
+      );
       expect(timeoutEvent).toBeTruthy();
       expect(timeoutEvent.effectiveToolTimeoutMs).toBe(4_000);
       expect(timeoutEvent.configuredToolTimeoutMs).toBe(8_000);
@@ -2672,25 +2807,31 @@ describe('personal-agent.service', () => {
 
     const parameterResponses = [{ text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) }];
 
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
-      if (payload?.schema) {
-        return {
-          data: {
-            reply: 'Dieser Text sollte bei knapper Synthese-Zeit nicht verwendet werden.',
-            hypotheses: [],
-            openQuestions: [],
-            nextActions: [],
-            factsUsed: [],
-          },
-        };
-      }
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockImplementation(async (_ctx, payload) => {
+        if (payload?.schema) {
+          return {
+            data: {
+              reply: 'Dieser Text sollte bei knapper Synthese-Zeit nicht verwendet werden.',
+              hypotheses: [],
+              openQuestions: [],
+              nextActions: [],
+              factsUsed: [],
+            },
+          };
+        }
 
-      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
-        return parameterResponses.shift();
-      }
+        if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+          return parameterResponses.shift();
+        }
 
-      return plannerResponses.shift() || { text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }) };
-    });
+        return (
+          plannerResponses.shift() || {
+            text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }),
+          }
+        );
+      });
 
     Date.now = jest.fn(() => nowValues[Math.min(nowIndex++, nowValues.length - 1)]);
 
@@ -2703,7 +2844,10 @@ describe('personal-agent.service', () => {
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
         message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
-        brokerRecommendation: { intent: 'consultation', capability: 'grid-operations.marketPartners' },
+        brokerRecommendation: {
+          intent: 'consultation',
+          capability: 'grid-operations.marketPartners',
+        },
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
         resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
         knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
@@ -2714,7 +2858,10 @@ describe('personal-agent.service', () => {
       expect(result.reply).not.toContain('Synthese-Phase ist zeitlich erschöpft');
       expect(result.debugTrace || []).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ type: 'consultation_fallback_selected', reason: 'budget_summary_from_observations' }),
+          expect.objectContaining({
+            type: 'consultation_fallback_selected',
+            reason: 'budget_summary_from_observations',
+          }),
         ])
       );
     } finally {
@@ -2747,17 +2894,23 @@ describe('personal-agent.service', () => {
 
     const parameterResponses = [{ text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) }];
 
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
-      if (payload?.schema) {
-        return { data: {} };
-      }
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockImplementation(async (_ctx, payload) => {
+        if (payload?.schema) {
+          return { data: {} };
+        }
 
-      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
-        return parameterResponses.shift();
-      }
+        if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+          return parameterResponses.shift();
+        }
 
-      return plannerResponses.shift() || { text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }) };
-    });
+        return (
+          plannerResponses.shift() || {
+            text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }),
+          }
+        );
+      });
 
     const mockCtx = {
       broker,
@@ -2768,7 +2921,10 @@ describe('personal-agent.service', () => {
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
         message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
-        brokerRecommendation: { intent: 'consultation', capability: 'grid-operations.marketPartners' },
+        brokerRecommendation: {
+          intent: 'consultation',
+          capability: 'grid-operations.marketPartners',
+        },
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
         resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
         knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
@@ -2783,7 +2939,10 @@ describe('personal-agent.service', () => {
         expect.arrayContaining([
           expect.objectContaining({ type: 'consultation_synthesis_start' }),
           expect.objectContaining({ type: 'consultation_synthesis_end' }),
-          expect.objectContaining({ type: 'consultation_synthesis_null', reason: 'empty_synthesis_payload' }),
+          expect.objectContaining({
+            type: 'consultation_synthesis_null',
+            reason: 'empty_synthesis_payload',
+          }),
           expect.objectContaining({
             type: 'consultation_fallback_selected',
             branch: 'observation_summary_reply',
@@ -2826,19 +2985,25 @@ describe('personal-agent.service', () => {
     ];
     const parameterResponses = [{ text: JSON.stringify({ query: 'TWL Netze', limit: 5 }) }];
 
-    const callLlmSpy = jest.spyOn(svc, 'callLlmGenerate').mockImplementation(async (_ctx, payload) => {
-      if (payload?.schema) {
-        const err = new Error('Synthesis failed');
-        err.code = 'LLM_SYNTH_FAIL';
-        throw err;
-      }
+    const callLlmSpy = jest
+      .spyOn(svc, 'callLlmGenerate')
+      .mockImplementation(async (_ctx, payload) => {
+        if (payload?.schema) {
+          const err = new Error('Synthesis failed');
+          err.code = 'LLM_SYNTH_FAIL';
+          throw err;
+        }
 
-      if (String(payload?.system || '').includes('API-Parameter-Generator')) {
-        return parameterResponses.shift();
-      }
+        if (String(payload?.system || '').includes('API-Parameter-Generator')) {
+          return parameterResponses.shift();
+        }
 
-      return plannerResponses.shift() || { text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }) };
-    });
+        return (
+          plannerResponses.shift() || {
+            text: JSON.stringify({ mode: 'final', thought: 'Fallback final' }),
+          }
+        );
+      });
 
     const mockCtx = {
       broker,
@@ -2849,7 +3014,10 @@ describe('personal-agent.service', () => {
     try {
       const result = await svc.handleConsultationTurn(mockCtx, {
         message: 'TWL Netze in Burgbernheim: Bitte Beratung einordnen.',
-        brokerRecommendation: { intent: 'consultation', capability: 'grid-operations.marketPartners' },
+        brokerRecommendation: {
+          intent: 'consultation',
+          capability: 'grid-operations.marketPartners',
+        },
         semanticClassification: { workflowType: WORKFLOW_TYPES.VNB_IDENTIFICATION },
         resolvedParams: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
         knowledgeContext: { gridOperatorName: 'TWL Netze', city: 'Burgbernheim' },
@@ -2861,8 +3029,14 @@ describe('personal-agent.service', () => {
       expect(result.debugTrace || []).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ type: 'consultation_synthesis_start' }),
-          expect.objectContaining({ type: 'consultation_synthesis_error', errorCode: 'LLM_SYNTH_FAIL' }),
-          expect.objectContaining({ type: 'consultation_synthesis_null', reason: 'synthesis_exception' }),
+          expect.objectContaining({
+            type: 'consultation_synthesis_error',
+            errorCode: 'LLM_SYNTH_FAIL',
+          }),
+          expect.objectContaining({
+            type: 'consultation_synthesis_null',
+            reason: 'synthesis_exception',
+          }),
           expect.objectContaining({
             type: 'consultation_fallback_selected',
             branch: 'observation_summary_reply',
@@ -2933,13 +3107,13 @@ describe('personal-agent.service', () => {
       contract,
     });
 
-    expect(guarded.reply).toContain('Synthese unvollständig; belastbare Bewertung nicht abgeschlossen');
+    expect(guarded.reply).toContain(
+      'Synthese unvollständig; belastbare Bewertung nicht abgeschlossen'
+    );
     expect(guarded.reply).not.toContain('Zuständiger Netzbetreiber ist TEN');
     expect(guarded.reply).not.toContain('§17 EnWG');
     expect(guarded.guardrailCorrections).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ code: 'UNVERIFIED_VNB_CLAIM_BLOCKED' }),
-      ])
+      expect.arrayContaining([expect.objectContaining({ code: 'UNVERIFIED_VNB_CLAIM_BLOCKED' })])
     );
   });
 
@@ -2957,7 +3131,9 @@ describe('personal-agent.service', () => {
       timeoutFallback: true,
     });
 
-    expect(guarded.reply).toContain('Synthese unvollständig; belastbare Bewertung nicht abgeschlossen');
+    expect(guarded.reply).toContain(
+      'Synthese unvollständig; belastbare Bewertung nicht abgeschlossen'
+    );
     expect(guarded.reply).not.toContain('Keine kritischen Probleme identifiziert');
     expect(guarded.guardrailCorrections).toEqual(
       expect.arrayContaining([
@@ -3193,7 +3369,11 @@ describe('personal-agent.service', () => {
       const svc = broker.getLocalService('personal-agent');
       const mockCtx = {
         call: jest.fn().mockResolvedValue(
-          JSON.stringify({ chatMode: 'execution', confidence: 0.92, reasoning: 'Imperativ erkannt' })
+          JSON.stringify({
+            chatMode: 'execution',
+            confidence: 0.92,
+            reasoning: 'Imperativ erkannt',
+          })
         ),
       };
       const result = await svc.classifyChatModeLLM(mockCtx, 'Prüfe den MaStR-Eintrag', {});
@@ -3206,7 +3386,11 @@ describe('personal-agent.service', () => {
       const svc = broker.getLocalService('personal-agent');
       const mockCtx = {
         call: jest.fn().mockResolvedValue(
-          JSON.stringify({ chatMode: 'consultation', confidence: 0.88, reasoning: 'Statement, keine Aufforderung' })
+          JSON.stringify({
+            chatMode: 'consultation',
+            confidence: 0.88,
+            reasoning: 'Statement, keine Aufforderung',
+          })
         ),
       };
       const result = await svc.classifyChatModeLLM(mockCtx, 'Der BDEW-Code ist unbekannt', {});
@@ -3217,9 +3401,11 @@ describe('personal-agent.service', () => {
     it('returns null chatMode when LLM returns invalid value', async () => {
       const svc = broker.getLocalService('personal-agent');
       const mockCtx = {
-        call: jest.fn().mockResolvedValue(
-          JSON.stringify({ chatMode: 'unknown', confidence: 0.5, reasoning: 'test' })
-        ),
+        call: jest
+          .fn()
+          .mockResolvedValue(
+            JSON.stringify({ chatMode: 'unknown', confidence: 0.5, reasoning: 'test' })
+          ),
       };
       const result = await svc.classifyChatModeLLM(mockCtx, 'irgendwas', {});
       expect(result.chatMode).toBeNull();
@@ -3453,7 +3639,8 @@ describe('personal-agent.service', () => {
 
     // Build consultation response with leadership strategy
     const strategy = svc.buildResponseStrategy({
-      message: 'Wie können wir AI-Entscheidungen im Grid transparent halten und Blackbox-Risiken vermeiden?',
+      message:
+        'Wie können wir AI-Entscheidungen im Grid transparent halten und Blackbox-Risiken vermeiden?',
       knowledgeContext: {
         domainHint: 'grid-governance',
         synthesisStyle: 'cautionary',
@@ -3473,5 +3660,97 @@ describe('personal-agent.service', () => {
 
     expect(prompt).toContain('audience: leadership');
     expect(prompt).toContain('Entscheidung, Wirkung und Risiko');
+  });
+
+  it('keeps legacy behavior when no receipt matches and no forceReceipt is set', async () => {
+    const baseMeta = { tenantId: 'tenant-receipt-baseline', authUser: { userId: 'user-baseline' } };
+    const message = 'Bitte prüfe die Netzanschlusskapazität in Troisdorf.';
+
+    const legacyLike = await broker.call(
+      'personal-agent.chat',
+      {
+        message,
+        sessionId: `receipt-baseline-a-${Date.now()}`,
+      },
+      { meta: baseMeta }
+    );
+
+    const selectionDisabled = await broker.call(
+      'personal-agent.chat',
+      {
+        message,
+        sessionId: `receipt-baseline-b-${Date.now()}`,
+        disableReceiptSelection: true,
+      },
+      { meta: baseMeta }
+    );
+
+    expect(legacyLike.success).toBe(true);
+    expect(selectionDisabled.success).toBe(true);
+    expect(legacyLike.chatMode).toBe(selectionDisabled.chatMode);
+    expect(legacyLike.routing.primaryIntent).toBe(selectionDisabled.routing.primaryIntent);
+    expect(legacyLike.execution.status).toBe(selectionDisabled.execution.status);
+    expect(legacyLike.metadata).toBeUndefined();
+    expect(selectionDisabled.metadata).toBeUndefined();
+  });
+
+  it('returns 422 policy error for invalid forceReceipt', async () => {
+    await expect(
+      broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Bitte prüfe Troisdorf.',
+          forceReceipt: 'invalid-receipt-v1',
+          sessionId: `receipt-force-invalid-${Date.now()}`,
+        },
+        { meta: { tenantId: 'tenant-receipt-force', authUser: { userId: 'user-force' } } }
+      )
+    ).rejects.toMatchObject({
+      code: 422,
+      type: 'RECEIPT_NOT_FOUND_OR_INVALID',
+    });
+  });
+
+  it('returns 422 policy error for forced draft receipt without allowDraftReceipts', async () => {
+    await expect(
+      broker.call(
+        'personal-agent.chat',
+        {
+          message: 'Bitte prüfe Troisdorf.',
+          forceReceipt: 'draft-receipt-v1',
+          sessionId: `receipt-force-draft-${Date.now()}`,
+        },
+        { meta: { tenantId: 'tenant-receipt-draft', authUser: { userId: 'user-draft' } } }
+      )
+    ).rejects.toMatchObject({
+      code: 422,
+      type: 'RECEIPT_DRAFT_NOT_ALLOWED',
+    });
+  });
+
+  it('adds diagnostics under metadata.receiptSelection when explainReceiptSelection is true', async () => {
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        message: 'Bitte prüfe Troisdorf.',
+        preferredReceipts: ['draft-receipt-v1'],
+        explainReceiptSelection: true,
+        sessionId: `receipt-diagnostics-${Date.now()}`,
+      },
+      { meta: { tenantId: 'tenant-receipt-diagnostics', authUser: { userId: 'user-diagnostics' } } }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.metadata).toBeDefined();
+    expect(result.metadata.receiptSelection).toBeDefined();
+    expect(result.metadata.receiptSelection.mode).toBe('none');
+    expect(result.metadata.receiptSelection.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'PREFERRED_RECEIPT_NOT_FOUND_OR_NOT_ALLOWED',
+          receiptId: 'draft-receipt-v1',
+        }),
+      ])
+    );
   });
 });

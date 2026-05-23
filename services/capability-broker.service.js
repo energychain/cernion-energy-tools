@@ -909,12 +909,14 @@ module.exports = {
           confidenceBase,
           usedFallback: selected.usedFallback,
           resolvedCapabilityPenaltyApplied: Array.isArray(resolvedCapabilities)
-            ? resolvedCapabilities.some((item) =>
-                (typeof item === 'string' ? item : item?.capability) === capability.capability
+            ? resolvedCapabilities.some(
+                (item) =>
+                  (typeof item === 'string' ? item : item?.capability) === capability.capability
               )
             : false,
           satisfiedInputCount: Array.isArray(capability.requiredInputs)
-            ? capability.requiredInputs.filter((key) => Object.keys(resolvedParams).includes(key)).length
+            ? capability.requiredInputs.filter((key) => Object.keys(resolvedParams).includes(key))
+                .length
             : 0,
           preferredActionCount: preferredActionPath.length,
           discoveredActionCount: discovered.length,

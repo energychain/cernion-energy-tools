@@ -65,7 +65,15 @@ function resolveMappedValue(rule, targetParam, context, defaults) {
   };
 }
 
-function evaluateStep(step, index, context, defaults, actionRegistry, registryAudit, receiptUpdatedAt) {
+function evaluateStep(
+  step,
+  index,
+  context,
+  defaults,
+  actionRegistry,
+  registryAudit,
+  receiptUpdatedAt
+) {
   const warnings = [];
   const errors = [];
   const requestedAction = step.action;
@@ -133,7 +141,9 @@ function evaluateStep(step, index, context, defaults, actionRegistry, registryAu
   const required = Array.isArray(paramSchema.required) ? paramSchema.required : [];
   const missingRequiredParams = required.filter((field) => !hasUsableValue(params[field]));
 
-  const stepAudit = isPlainObject(registryAudit?.actions) ? registryAudit.actions[selectedAction] : null;
+  const stepAudit = isPlainObject(registryAudit?.actions)
+    ? registryAudit.actions[selectedAction]
+    : null;
   if (stepAudit?.signature && stepAudit.signature !== actionInfo.signature) {
     warnings.push({
       code: 'RECEIPT_ACTION_SIGNATURE_CHANGED',
@@ -176,7 +186,9 @@ function evaluateReceiptPlan(receipt, payload = {}) {
 
   const match = evaluateReceiptMatch(receipt, mergedContext);
 
-  const declaredRequiredInputs = Array.isArray(receipt?.requiredInputs) ? receipt.requiredInputs : [];
+  const declaredRequiredInputs = Array.isArray(receipt?.requiredInputs)
+    ? receipt.requiredInputs
+    : [];
   const missingRequiredInputs = declaredRequiredInputs.filter((field) => {
     const fromContext = getByPath(mergedContext, field);
     const fromDefault = getByPath(defaults, field);
@@ -184,10 +196,20 @@ function evaluateReceiptPlan(receipt, payload = {}) {
   });
 
   const steps = Array.isArray(receipt?.toolPlan?.steps) ? receipt.toolPlan.steps : [];
-  const registryAudit = isPlainObject(receipt?.metadata?.registryAudit) ? receipt.metadata.registryAudit : {};
+  const registryAudit = isPlainObject(receipt?.metadata?.registryAudit)
+    ? receipt.metadata.registryAudit
+    : {};
 
   const plannedSteps = steps.map((step, index) =>
-    evaluateStep(step, index, mergedContext, defaults, actionRegistry, registryAudit, receipt?.updatedAt)
+    evaluateStep(
+      step,
+      index,
+      mergedContext,
+      defaults,
+      actionRegistry,
+      registryAudit,
+      receipt?.updatedAt
+    )
   );
 
   const warnings = [];

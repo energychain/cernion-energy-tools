@@ -162,8 +162,7 @@ function computeEvidenceScore(evidenceItems) {
     [EVIDENCE_TIER.MISSING]: 0,
   };
   const total = evidenceItems.length;
-  const score =
-    evidenceItems.reduce((sum, item) => sum + (tierWeights[item.tier] ?? 0), 0) / total;
+  const score = evidenceItems.reduce((sum, item) => sum + (tierWeights[item.tier] ?? 0), 0) / total;
 
   let readiness;
   if (score >= 0.9) readiness = 'SCREENING_READY';

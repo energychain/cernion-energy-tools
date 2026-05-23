@@ -145,7 +145,9 @@ function inferAudience(input = {}) {
     plan?.routeKey,
     execution?.stopPoint?.reasonCode,
     Array.isArray(plan?.steps)
-      ? plan.steps.map((step) => `${step?.action || ''} ${step?.purpose || ''} ${step?.label || ''}`)
+      ? plan.steps.map(
+          (step) => `${step?.action || ''} ${step?.purpose || ''} ${step?.label || ''}`
+        )
       : [],
   ]
     .flat()
@@ -158,10 +160,18 @@ function inferAudience(input = {}) {
   const explicitAudience = normalizeText(
     knownContext.targetAudience || knownContext.target_audience || knownContext.role || ''
   );
-  if (/(vorstand|geschäftsführung|geschaeftsfuehrung|leitung|management|führung|fuehrung|board)/i.test(explicitAudience)) {
+  if (
+    /(vorstand|geschäftsführung|geschaeftsfuehrung|leitung|management|führung|fuehrung|board)/i.test(
+      explicitAudience
+    )
+  ) {
     return { audience: AUDIENCES.LEADERSHIP, confidence: 0.9 };
   }
-  if (/(technisch|technik|api|schema|json|debug|trace|bdew|mastr|netzbetreiber)/i.test(explicitAudience)) {
+  if (
+    /(technisch|technik|api|schema|json|debug|trace|bdew|mastr|netzbetreiber)/i.test(
+      explicitAudience
+    )
+  ) {
     return { audience: AUDIENCES.TECHNICAL, confidence: 0.9 };
   }
 
@@ -202,9 +212,7 @@ function inferEpistemicState(input = {}, audience = AUDIENCES.GENERAL) {
     knownContext.postleitzahl,
     knownContext.location,
     knownContext.city,
-  ]
-    .filter(Boolean)
-    .length;
+  ].filter(Boolean).length;
 
   const hasInferableMissing = missingParams.some((param) =>
     /^(gridOperatorName|gridOperatorId|gridOperatorBdew|bdew|operatorEvidence|city|postalCode|postleitzahl|location)$/i.test(
@@ -416,7 +424,10 @@ function buildResponseStrategy(input = {}) {
     confidence: Math.min(
       0.99,
       Number(
-        ((audienceResult.confidence || 0.45) + (epistemicState === EPISTEMIC_STATES.CLEAR ? 0.2 : 0.1)).toFixed(2)
+        (
+          (audienceResult.confidence || 0.45) +
+          (epistemicState === EPISTEMIC_STATES.CLEAR ? 0.2 : 0.1)
+        ).toFixed(2)
       )
     ),
   };

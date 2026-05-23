@@ -39,11 +39,23 @@ const THREAD_STATUS = Object.freeze({
 });
 
 const STANDARD_THREADS = [
-  { threadId: 'TECHNICAL_FEASIBILITY', label: 'Technische Machbarkeit', defaultOwner: 'NETZPLANUNG' },
+  {
+    threadId: 'TECHNICAL_FEASIBILITY',
+    label: 'Technische Machbarkeit',
+    defaultOwner: 'NETZPLANUNG',
+  },
   { threadId: 'ASSET_MANAGEMENT', label: 'Asset Management', defaultOwner: 'ASSET_MANAGEMENT' },
   { threadId: 'GRID_CONNECTION', label: 'Netzanschluss / NAP', defaultOwner: 'NETZBETRIEB' },
-  { threadId: 'COMMERCIAL', label: 'Kaufmännische Bewertung', defaultOwner: 'KAUFMAENNISCHE_LEITUNG' },
-  { threadId: 'MANAGEMENT_COMMUNICATION', label: 'Management-Kommunikation', defaultOwner: 'GESCHAEFTSFUEHRUNG' },
+  {
+    threadId: 'COMMERCIAL',
+    label: 'Kaufmännische Bewertung',
+    defaultOwner: 'KAUFMAENNISCHE_LEITUNG',
+  },
+  {
+    threadId: 'MANAGEMENT_COMMUNICATION',
+    label: 'Management-Kommunikation',
+    defaultOwner: 'GESCHAEFTSFUEHRUNG',
+  },
 ];
 
 function nowIso() {

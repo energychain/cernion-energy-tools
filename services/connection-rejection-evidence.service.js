@@ -95,9 +95,7 @@ module.exports = {
     await this.db.createIndex({ index: { fields: ['gridOperatorId'] } });
     await this.db.createIndex({ index: { fields: ['createdAt'] } });
     await this.db.createIndex({ index: { fields: ['decision'] } });
-    this.logger.info(
-      `Connection Rejection Evidence DB initialized at ${this.settings.dbPath}`
-    );
+    this.logger.info(`Connection Rejection Evidence DB initialized at ${this.settings.dbPath}`);
   },
 
   async stopped() {

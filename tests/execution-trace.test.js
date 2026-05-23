@@ -6,7 +6,11 @@ describe('execution-trace', () => {
   it('tracks llm calls, tool calls, broker decisions, and state transitions', () => {
     const trace = createExecutionTrace({ sessionId: 'pa_trace' });
     trace.recordLLMCall({ phase: 'chat_mode_classifier', latencyMs: 120 });
-    trace.recordToolInvocation({ phase: 'execution', tool: 'grid-connection.validate', success: true });
+    trace.recordToolInvocation({
+      phase: 'execution',
+      tool: 'grid-connection.validate',
+      success: true,
+    });
     trace.recordBrokerDecision({ intent: 'grid-connection.validate', confidence: 0.82 });
     trace.recordStateTransition({ from: 'classified', to: 'execution_node', reason: 'api' });
 

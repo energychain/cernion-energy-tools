@@ -104,7 +104,8 @@ describe('Agent Receipts Service', () => {
   });
 
   it('hides archived receipts by default in list', async () => {
-    await broker.call('agent-receipts.create',
+    await broker.call(
+      'agent-receipts.create',
       validReceipt({
         receiptId: 'connection-rejection-evidence',
         title: 'Connection rejection evidence chain',
@@ -114,9 +115,9 @@ describe('Agent Receipts Service', () => {
     await broker.call('agent-receipts.archive', { id: 'connection-rejection-evidence' });
 
     const defaultList = await broker.call('agent-receipts.list', {});
-    expect(defaultList.data.some((entry) => entry.receiptId === 'connection-rejection-evidence')).toBe(
-      false
-    );
+    expect(
+      defaultList.data.some((entry) => entry.receiptId === 'connection-rejection-evidence')
+    ).toBe(false);
 
     const fullList = await broker.call('agent-receipts.list', { includeArchived: true });
     expect(fullList.data.some((entry) => entry.receiptId === 'connection-rejection-evidence')).toBe(
@@ -126,7 +127,8 @@ describe('Agent Receipts Service', () => {
 
   it('rejects invalid receipts with AGENT_RECEIPT_VALIDATION_FAILED', async () => {
     await expect(
-      broker.call('agent-receipts.create',
+      broker.call(
+        'agent-receipts.create',
         validReceipt({
           receiptId: 'invalid-missing-steps',
           toolPlan: { steps: [] },
@@ -172,7 +174,8 @@ describe('Agent Receipts Service', () => {
   });
 
   it('checks _rev when provided and returns 409 AGENT_RECEIPT_CONFLICT on mismatch', async () => {
-    await broker.call('agent-receipts.create',
+    await broker.call(
+      'agent-receipts.create',
       validReceipt({
         receiptId: 'cas-receipt',
         title: 'CAS receipt',
@@ -268,7 +271,8 @@ describe('Agent Receipts Service', () => {
     await broker.call('agent-receipts.create', {
       receiptId: 'mastr-asset-inventory-by-location',
       title: 'MaStR asset inventory by location',
-      description: 'Deterministic local inventory lookup by city and asset type with structured evidence.',
+      description:
+        'Deterministic local inventory lookup by city and asset type with structured evidence.',
       domain: 'mastr',
       tags: ['mastr', 'inventory', 'location'],
       matching: {
@@ -323,12 +327,130 @@ describe('Agent Receipts Service', () => {
     expect(evaluation.success).toBe(true);
     expect(evaluation.data.executable).toBe(true);
     expect(evaluation.data.matchScore).toBeGreaterThanOrEqual(30);
-    expect(evaluation.data.plannedToolCalls[0].selectedAction).toBe('mastr.installationsByLocation');
+    expect(evaluation.data.plannedToolCalls[0].selectedAction).toBe(
+      'mastr.installationsByLocation'
+    );
     expect(evaluation.data.plannedToolCalls[0].params).toMatchObject({
       location: 'Wiesloch',
       type: 'solar',
       limit: 50,
     });
-    expect(evaluation.data.warnings.some((entry) => entry.code === 'RECEIPT_ACTION_SIGNATURE_CHANGED')).toBe(true);
+    expect(
+      evaluation.data.warnings.some((entry) => entry.code === 'RECEIPT_ACTION_SIGNATURE_CHANGED')
+    ).toBe(true);
+  });
+
+  it('selects an active forced receipt and reports mode forced', async () => {
+    await broker.call('agent-receipts.create', {
+      ...validReceipt({
+        receiptId: 'force-active-v1',
+        title: 'Force active receipt',
+        matching: {
+          triggerTerms: ['troisdorf'],
+        },
+        requiredInputs: [],
+      }),
+    });
+    await broker.call('agent-receipts.setStatus', { id: 'force-active-v1', status: 'active' });
+
+    const selected = await broker.call('agent-receipts.select', {
+      message: 'Bitte prüfe Troisdorf.',
+      forceReceipt: 'force-active-v1',
+    });
+
+    expect(selected.success).toBe(true);
+    expect(selected.data.selected).toBe(true);
+    expect(selected.data.receiptId).toBe('force-active-v1');
+    expect(selected.data.mode).toBe('forced');
+  });
+
+  it('returns 422 for invalid forceReceipt', async () => {
+    await expect(
+      broker.call('agent-receipts.select', {
+        message: 'Bitte prüfe Troisdorf.',
+        forceReceipt: 'does-not-exist-v1',
+      })
+    ).rejects.toMatchObject({
+      code: 422,
+      type: 'RECEIPT_NOT_FOUND_OR_INVALID',
+    });
+  });
+
+  it('blocks forced draft receipt unless allowDraftReceipts=true', async () => {
+    await broker.call('agent-receipts.create', {
+      ...validReceipt({
+        receiptId: 'force-draft-v1',
+        title: 'Force draft receipt',
+        matching: {
+          triggerTerms: ['troisdorf'],
+        },
+        requiredInputs: [],
+        status: 'draft',
+      }),
+    });
+
+    await expect(
+      broker.call('agent-receipts.select', {
+        message: 'Bitte prüfe Troisdorf.',
+        forceReceipt: 'force-draft-v1',
+      })
+    ).rejects.toMatchObject({
+      code: 422,
+      type: 'RECEIPT_DRAFT_NOT_ALLOWED',
+    });
+
+    const selected = await broker.call('agent-receipts.select', {
+      message: 'Bitte prüfe Troisdorf.',
+      forceReceipt: 'force-draft-v1',
+      allowDraftReceipts: true,
+    });
+
+    expect(selected.success).toBe(true);
+    expect(selected.data.selected).toBe(true);
+    expect(selected.data.receiptId).toBe('force-draft-v1');
+    expect(selected.data.mode).toBe('forced');
+  });
+
+  it('ignores preferred draft receipts unless allowDraftReceipts is true', async () => {
+    await broker.call('agent-receipts.create', {
+      ...validReceipt({
+        receiptId: 'preferred-draft-v1',
+        title: 'Preferred draft receipt',
+        matching: {
+          triggerTerms: ['wie', 'viele', 'anlagen', 'wiesloch'],
+        },
+        requiredInputs: [],
+        status: 'draft',
+      }),
+    });
+
+    const withoutDrafts = await broker.call('agent-receipts.select', {
+      message: 'Wie viele Anlagen gibt es in Wiesloch?',
+      preferredReceipts: ['preferred-draft-v1'],
+      explainReceiptSelection: true,
+    });
+
+    expect(withoutDrafts.success).toBe(true);
+    expect(withoutDrafts.data.selected).toBe(false);
+    expect(withoutDrafts.data.mode).toBe('none');
+    expect(withoutDrafts.data.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'PREFERRED_RECEIPT_NOT_FOUND_OR_NOT_ALLOWED',
+          receiptId: 'preferred-draft-v1',
+        }),
+      ])
+    );
+
+    const withDrafts = await broker.call('agent-receipts.select', {
+      message: 'Wie viele Anlagen gibt es in Wiesloch?',
+      preferredReceipts: ['preferred-draft-v1'],
+      allowDraftReceipts: true,
+    });
+
+    expect(withDrafts.success).toBe(true);
+    expect(withDrafts.data.selected).toBe(true);
+    expect(withDrafts.data.mode).toBe('preferred');
+    expect(withDrafts.data.receiptId).toBe('preferred-draft-v1');
   });
 });

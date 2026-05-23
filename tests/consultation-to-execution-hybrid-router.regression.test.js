@@ -1,6 +1,9 @@
 'use strict';
 
-const { buildExecutionPlan, fuzzyClassifyConsultationIntent } = require('../src/personal-agent-routing');
+const {
+  buildExecutionPlan,
+  fuzzyClassifyConsultationIntent,
+} = require('../src/personal-agent-routing');
 const {
   buildConsultationExecutionPlan,
   WORKFLOW_TYPES,

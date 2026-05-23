@@ -102,7 +102,9 @@ describe('T-EV-002 — buildExecutionPlan attaches evidencePlan sidecar', () => 
     const plan = buildExecutionPlan({
       message: 'Residuallast für Stadtwerke Heidelberg berechnen',
       brokerRecommendation: {
-        recommendedCapabilities: [{ capability: 'residual_load_forecast_for_dso', confidence: 0.9 }],
+        recommendedCapabilities: [
+          { capability: 'residual_load_forecast_for_dso', confidence: 0.9 },
+        ],
       },
       knownContext: {},
     });
@@ -117,7 +119,9 @@ describe('T-EV-002 — buildExecutionPlan attaches evidencePlan sidecar', () => 
     const plan = buildExecutionPlan({
       message: 'Residuallast für VNB berechnen',
       brokerRecommendation: {
-        recommendedCapabilities: [{ capability: 'residual_load_forecast_for_dso', confidence: 0.9 }],
+        recommendedCapabilities: [
+          { capability: 'residual_load_forecast_for_dso', confidence: 0.9 },
+        ],
       },
       knownContext: {},
     });
@@ -145,7 +149,9 @@ describe('T-EV-002 — buildExecutionPlan attaches evidencePlan sidecar', () => 
     const plan = buildExecutionPlan({
       message: 'Residuallast für Stadtwerke berechnen',
       brokerRecommendation: {
-        recommendedCapabilities: [{ capability: 'residual_load_forecast_for_dso', confidence: 0.9 }],
+        recommendedCapabilities: [
+          { capability: 'residual_load_forecast_for_dso', confidence: 0.9 },
+        ],
       },
       knownContext: {},
     });
@@ -156,7 +162,10 @@ describe('T-EV-002 — buildExecutionPlan attaches evidencePlan sidecar', () => 
 
 // ── T-EV-004 ─────────────────────────────────────────────────────────────────
 describe('T-EV-004 — Phase 2 synthesis gate: shouldBlockSynthesisOnGaps()', () => {
-  const { shouldBlockSynthesisOnGaps, buildEvidenceGapPresentation } = require('../src/evidence-planner');
+  const {
+    shouldBlockSynthesisOnGaps,
+    buildEvidenceGapPresentation,
+  } = require('../src/evidence-planner');
 
   it('returns false when evidencePlan is null', () => {
     expect(shouldBlockSynthesisOnGaps(null)).toBe(false);
@@ -244,7 +253,13 @@ describe('T-EV-004 — Phase 2 synthesis gate: shouldBlockSynthesisOnGaps()', ()
         { id: 'forecast_horizon', label: 'Forecast-Horizont', optional: true },
       ],
       checkedSources: [],
-      gaps: [{ id: 'vnb_identity', label: 'VNB-Identität', resolvedBy: ['grid-operations.marketPartners'] }],
+      gaps: [
+        {
+          id: 'vnb_identity',
+          label: 'VNB-Identität',
+          resolvedBy: ['grid-operations.marketPartners'],
+        },
+      ],
       confidence: 0.0,
     };
 
@@ -280,7 +295,10 @@ describe('T-EV-005 — evidence-planner: Phase 3 generic fallback for unregister
       routeLabel: 'custom-route-no-registry',
       steps: [
         // Use an action with a paramsTemplate but not in the actionOutputMap
-        { action: 'unknown-action-xyz', paramsTemplate: { gridOperatorId: null, customParam: null } },
+        {
+          action: 'unknown-action-xyz',
+          paramsTemplate: { gridOperatorId: null, customParam: null },
+        },
       ],
     };
     const context = {}; // no context values for these params
@@ -473,7 +491,9 @@ describe('T-EV-007 — semantic Evidence planning for near-term Redispatch proba
     expect(plan.evidencePlan.source).toBe('registry');
     expect(plan.evidencePlan.registryKey).toBe('redispatch_probability_forecast');
 
-    const requiredIds = plan.evidencePlan.requiredSources.filter((s) => !s.optional).map((s) => s.id);
+    const requiredIds = plan.evidencePlan.requiredSources
+      .filter((s) => !s.optional)
+      .map((s) => s.id);
     expect(requiredIds).toContain('forecast_horizon');
     expect(requiredIds).toContain('gruenstromindex_forecast');
     expect(requiredIds).toContain('temporal_probability_window');
@@ -483,7 +503,9 @@ describe('T-EV-007 — semantic Evidence planning for near-term Redispatch proba
     const plan = buildExecutionPlan({
       message: 'Bitte eine Prognose der Residuallast für die nächsten Tage erstellen',
       brokerRecommendation: {
-        recommendedCapabilities: [{ capability: 'residual_load_forecast_for_dso', confidence: 0.92 }],
+        recommendedCapabilities: [
+          { capability: 'residual_load_forecast_for_dso', confidence: 0.92 },
+        ],
       },
       knownContext: {
         gridOperatorId: 'GNB123',

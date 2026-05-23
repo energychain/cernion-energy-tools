@@ -104,7 +104,8 @@ function openApiOperationToSchema(operation = {}) {
   for (const parameter of operation.parameters) {
     const key = String(parameter?.name || '').trim();
     if (!key) continue;
-    const parameterSchema = parameter?.schema && typeof parameter.schema === 'object' ? parameter.schema : {};
+    const parameterSchema =
+      parameter?.schema && typeof parameter.schema === 'object' ? parameter.schema : {};
     schema.properties[key] = {
       type: normalizeScalarType(parameterSchema.type),
       description: parameterSchema.description || parameter.description || key,
@@ -159,7 +160,9 @@ async function getToolParamSchema(ctx, toolName, options = {}) {
 
   try {
     const openApi = await ctx.call('api.openapi', {}, { meta: { ...ctx.meta, $gateway: false } });
-    const normalizedOperationId = `${serviceName}.${actionName}`.replace(/\./g, '_').replace(/-/g, '_');
+    const normalizedOperationId = `${serviceName}.${actionName}`
+      .replace(/\./g, '_')
+      .replace(/-/g, '_');
     const paths = openApi?.paths && typeof openApi.paths === 'object' ? openApi.paths : {};
 
     for (const pathItem of Object.values(paths)) {
@@ -245,7 +248,8 @@ async function buildToolParametersLLM(ctx, payload = {}) {
   const llmGenerate =
     typeof generate === 'function'
       ? generate
-      : async (request) => ctx.call('llm.generate', request, { meta: { ...ctx.meta, $gateway: false } });
+      : async (request) =>
+          ctx.call('llm.generate', request, { meta: { ...ctx.meta, $gateway: false } });
 
   const retryHint =
     attempt > 1
@@ -279,7 +283,9 @@ async function buildToolParametersLLM(ctx, payload = {}) {
     `Bekannte Fakten: ${JSON.stringify(knownFacts || {}, null, 2)}`,
     `Attempt: ${attempt}`,
     `ERLAUBTE FELDER: ${allowedFields.join(', ')}`,
-    requiredFields.length > 0 ? `Du MUSST zumindest folgende Felder setzen: ${requiredFields.join(', ')}` : '',
+    requiredFields.length > 0
+      ? `Du MUSST zumindest folgende Felder setzen: ${requiredFields.join(', ')}`
+      : '',
   ].join('\n');
 
   try {

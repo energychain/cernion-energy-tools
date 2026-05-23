@@ -61,8 +61,9 @@ const TECHNICAL_DATA_FIELDS = [
 
 function checkDataCompleteness(technicalData) {
   const missing = TECHNICAL_DATA_FIELDS.filter((f) => !(f in (technicalData ?? {})));
-  const completenessScore =
-    Math.round(((TECHNICAL_DATA_FIELDS.length - missing.length) / TECHNICAL_DATA_FIELDS.length) * 100);
+  const completenessScore = Math.round(
+    ((TECHNICAL_DATA_FIELDS.length - missing.length) / TECHNICAL_DATA_FIELDS.length) * 100
+  );
   return { missing, completenessScore };
 }
 
@@ -148,8 +149,15 @@ module.exports = {
       },
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
-        const { gridOperatorId, counterpartyId, interconnectionPointId, label, technicalData, deadlines, openItems } =
-          ctx.params;
+        const {
+          gridOperatorId,
+          counterpartyId,
+          interconnectionPointId,
+          label,
+          technicalData,
+          deadlines,
+          openItems,
+        } = ctx.params;
         const contractId = `${DOC_PREFIX}${crypto.randomUUID()}`;
 
         const { missing, completenessScore } = checkDataCompleteness(technicalData);
@@ -183,7 +191,13 @@ module.exports = {
         };
 
         await this.db.put(doc);
-        return { contractId, status: doc.status, technicalDataCompleteness: completenessScore, missingTechnicalData: missing, createdAt: doc.createdAt };
+        return {
+          contractId,
+          status: doc.status,
+          technicalDataCompleteness: completenessScore,
+          missingTechnicalData: missing,
+          createdAt: doc.createdAt,
+        };
       },
     },
 
@@ -230,7 +244,8 @@ module.exports = {
         try {
           doc = await this.db.get(ctx.params.id);
         } catch (err) {
-          if (err.status === 404) throw new MoleculerClientError('Contract not found', 404, 'CONTRACT_NOT_FOUND');
+          if (err.status === 404)
+            throw new MoleculerClientError('Contract not found', 404, 'CONTRACT_NOT_FOUND');
           throw err;
         }
         doc.status = ctx.params.status;
@@ -307,7 +322,8 @@ module.exports = {
         try {
           return await this.db.get(ctx.params.id);
         } catch (err) {
-          if (err.status === 404) throw new MoleculerClientError('Contract not found', 404, 'CONTRACT_NOT_FOUND');
+          if (err.status === 404)
+            throw new MoleculerClientError('Contract not found', 404, 'CONTRACT_NOT_FOUND');
           throw err;
         }
       },

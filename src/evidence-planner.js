@@ -89,8 +89,7 @@ function computeConfidence(sources, satisfiedIds) {
   const base = required.length > 0 ? requiredSatisfied / required.length : 1.0;
 
   // Optional bonus: at most 0.1 uplift scaled by optional ratio
-  const optionalBonus =
-    optional.length > 0 ? 0.1 * (optionalSatisfied / optional.length) : 0.0;
+  const optionalBonus = optional.length > 0 ? 0.1 * (optionalSatisfied / optional.length) : 0.0;
 
   return Math.min(1.0, parseFloat((base + optionalBonus).toFixed(2)));
 }

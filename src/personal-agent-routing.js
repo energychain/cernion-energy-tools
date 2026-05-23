@@ -482,7 +482,8 @@ function scoreSemanticCapabilityMatch(message = '', capability = {}) {
   const referenceTokens = tokenizeForSemanticRouting(referenceText);
 
   const overlap = scoreTokenOverlap(messageTokens, referenceTokens);
-  const lexicalBoost = getCapabilityScore(message, capability) / Math.max(1, (capability?.keywords || []).length);
+  const lexicalBoost =
+    getCapabilityScore(message, capability) / Math.max(1, (capability?.keywords || []).length);
   return Number((overlap * 0.7 + lexicalBoost * 0.3).toFixed(4));
 }
 
@@ -497,7 +498,17 @@ function fuzzyClassifyConsultationIntent(message = '', knownContext = {}, extrac
       domainIntent: 'governance_advisory',
       executionReadinessIntent: 'advisory_only',
       advisoryOnly: true,
-      terms: ['governance', 'blackbox', 'black box', 'ki', 'ai', 'transparenz', 'aufsicht', 'haftung', 'compliance'],
+      terms: [
+        'governance',
+        'blackbox',
+        'black box',
+        'ki',
+        'ai',
+        'transparenz',
+        'aufsicht',
+        'haftung',
+        'compliance',
+      ],
     },
     {
       workflowType: 'process_governance_decision_matrix',
@@ -513,7 +524,15 @@ function fuzzyClassifyConsultationIntent(message = '', knownContext = {}, extrac
       domainIntent: 'edm_market_communication',
       executionReadinessIntent: 'awaiting_input',
       advisoryOnly: false,
-      terms: ['edm', 'mako', 'marktkommunikation', 'bilanzierung', 'edi', 'datenaustausch', 'nachrichtenformat'],
+      terms: [
+        'edm',
+        'mako',
+        'marktkommunikation',
+        'bilanzierung',
+        'edi',
+        'datenaustausch',
+        'nachrichtenformat',
+      ],
     },
     {
       workflowType: 'prosumer_nap_wallet_onboarding',
@@ -529,13 +548,24 @@ function fuzzyClassifyConsultationIntent(message = '', knownContext = {}, extrac
       domainIntent: 'bess_screening',
       executionReadinessIntent: 'awaiting_input',
       advisoryOnly: false,
-      terms: ['bess', 'batteriespeicher', 'großspeicher', 'stromspeicher', 'speicherprojekt', 'mw', 'mwh'],
+      terms: [
+        'bess',
+        'batteriespeicher',
+        'großspeicher',
+        'stromspeicher',
+        'speicherprojekt',
+        'mw',
+        'mwh',
+      ],
     },
   ];
 
   const scored = semanticProfiles
     .map((profile) => {
-      const score = profile.terms.reduce((acc, term) => (haystack.includes(term) ? acc + 1 : acc), 0);
+      const score = profile.terms.reduce(
+        (acc, term) => (haystack.includes(term) ? acc + 1 : acc),
+        0
+      );
       return { ...profile, score };
     })
     .sort((a, b) => b.score - a.score);
@@ -546,8 +576,9 @@ function fuzzyClassifyConsultationIntent(message = '', knownContext = {}, extrac
   const missingInputs = [];
   if (best.workflowType === 'bess_screening') {
     const hasState =
-      availableInputs.some((entry) => ['state', 'bundesland'].includes(String(entry?.param || '').toLowerCase())) ||
-      Boolean(knownContext?.state || knownContext?.bundesland);
+      availableInputs.some((entry) =>
+        ['state', 'bundesland'].includes(String(entry?.param || '').toLowerCase())
+      ) || Boolean(knownContext?.state || knownContext?.bundesland);
     if (!hasState) {
       missingInputs.push({ param: 'state', label: 'Bundesland oder Region', priority: 'critical' });
     }
@@ -573,9 +604,10 @@ function fuzzyClassifyConsultationIntent(message = '', knownContext = {}, extrac
 function findBestCapability(message) {
   const haystack = String(message || '').toLowerCase();
 
-  const semanticCapabilityCandidates = CURATED_CAPABILITIES
-    .map((capability) => ({ capability, score: scoreSemanticCapabilityMatch(message, capability) }))
-    .sort((a, b) => b.score - a.score);
+  const semanticCapabilityCandidates = CURATED_CAPABILITIES.map((capability) => ({
+    capability,
+    score: scoreSemanticCapabilityMatch(message, capability),
+  })).sort((a, b) => b.score - a.score);
   const semanticTop = semanticCapabilityCandidates[0] || null;
 
   const findCapabilityByName = (capabilityName) =>
@@ -714,7 +746,9 @@ function findBestCapability(message) {
   const hasAdvisoryGovernanceContext =
     /(ki|ai|black\s*box|blackbox|governance|aufsicht|compliance|haftung)/i.test(haystack);
   const hasBessContext = /(bess|batteriespeicher|großspeicher|stromspeicher)/i.test(haystack);
-  const hasEdmContext = /(edm|mako|marktkommunikation|bilanzierung|edi|datenaustausch)/i.test(haystack);
+  const hasEdmContext = /(edm|mako|marktkommunikation|bilanzierung|edi|datenaustausch)/i.test(
+    haystack
+  );
   const hasProsumerContext = /(prosumer|wallet|netzanschlusspunkt|\bnap\b)/i.test(haystack);
 
   const disallowVdmiAssetValidationByGuardrail =
@@ -890,9 +924,7 @@ function extractForecastTemporalHints(text = '') {
     return { forecastDays: 7, timeframeHint: 'near_term_forecast' };
   }
 
-  if (
-    /\b(?:in\s+den\s+)?(?:n[äa]chste(?:n)?|kommende(?:n)?)\s+tage(?:n)?\b/i.test(haystack)
-  ) {
+  if (/\b(?:in\s+den\s+)?(?:n[äa]chste(?:n)?|kommende(?:n)?)\s+tage(?:n)?\b/i.test(haystack)) {
     return { forecastDays: 3, timeframeHint: 'near_term_forecast' };
   }
 
@@ -907,12 +939,15 @@ function detectEvidenceSignalKey(message = '', knownContext = {}, promptHints = 
   const hasNearTermSignal =
     /\bmorgen\b|\b(?:in\s+den\s+)?(?:n[äa]chste(?:n)?|kommende(?:n)?)\s+(?:tage(?:n)?|woche(?:n)?)\b/i.test(
       text
-    ) ||
-    Number.isFinite(Number(promptHints?.forecastDays || knownContext?.forecastDays));
+    ) || Number.isFinite(Number(promptHints?.forecastDays || knownContext?.forecastDays));
   const hasStorageOrGenerationSignal =
     /\bpv\b|\bspeicher\b|\banlage\b|\berzeugung\b|\bsolar\b|\bwind\b/i.test(text);
 
-  if (hasRedispatchSignal && hasNearTermSignal && (hasProbabilitySignal || hasStorageOrGenerationSignal)) {
+  if (
+    hasRedispatchSignal &&
+    hasNearTermSignal &&
+    (hasProbabilitySignal || hasStorageOrGenerationSignal)
+  ) {
     return 'redispatch_probability_forecast';
   }
 
@@ -1384,7 +1419,12 @@ function toContextNote(knowledgeContext = {}, action = '') {
   return `Regulatorischer Rahmen: ${knowledgeContext.regulatoryFrame}`;
 }
 
-function buildExecutionPlan({ message, brokerRecommendation, knowledgeContext = null, knownContext = {} }) {
+function buildExecutionPlan({
+  message,
+  brokerRecommendation,
+  knowledgeContext = null,
+  knownContext = {},
+}) {
   const promptHints = extractPromptHints(message);
   const evidenceSignalKey = detectEvidenceSignalKey(message, knownContext, promptHints);
   const requestedDomains = detectRequestedDomains(message);

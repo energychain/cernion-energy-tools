@@ -221,7 +221,9 @@ module.exports = {
         for (const element of networkElements) {
           const findings = evaluateN1Constraint(element);
           if (findings.length > 0) {
-            const severity = findings.some((f) => f.severity === 'CRITICAL') ? 'CRITICAL' : 'WARNING';
+            const severity = findings.some((f) => f.severity === 'CRITICAL')
+              ? 'CRITICAL'
+              : 'WARNING';
             if (severity === 'CRITICAL') criticalCount++;
             else warningCount++;
             bottlenecks.push({

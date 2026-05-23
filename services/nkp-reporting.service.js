@@ -120,9 +120,7 @@ function extractKpis(rows) {
 
   // Voltage deviation from nominal (1.0 pu)
   const maxVoltageDeviation =
-    validVoltage.length > 0
-      ? Math.max(...validVoltage.map((v) => Math.abs(v - 1.0) * 100))
-      : null;
+    validVoltage.length > 0 ? Math.max(...validVoltage.map((v) => Math.abs(v - 1.0) * 100)) : null;
 
   const loadFactorStatus =
     maxLoading >= LOAD_FACTOR_CRITICAL * 100
@@ -146,7 +144,8 @@ function extractKpis(rows) {
   return {
     avgLoadingPct: Math.round(avgLoading * 10) / 10,
     maxLoadingPct: Math.round(maxLoading * 10) / 10,
-    maxVoltageDeviationPct: maxVoltageDeviation !== null ? Math.round(maxVoltageDeviation * 100) / 100 : null,
+    maxVoltageDeviationPct:
+      maxVoltageDeviation !== null ? Math.round(maxVoltageDeviation * 100) / 100 : null,
     loadFactorStatus,
     voltageDeviationStatus,
     availabilityPct: Math.round(availabilityPct * 10) / 10,

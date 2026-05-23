@@ -108,7 +108,9 @@ describe('consultation-tool-resolver', () => {
         schema,
         knownFacts: { location: 'Walldorf' },
         userMessage: 'Stadtwerke Walldorf, BDEW unbekannt',
-        generate: async () => ({ text: '{"ort":"Walldorf","name":"Stadtwerke Walldorf","foo":"bar"}' }),
+        generate: async () => ({
+          text: '{"ort":"Walldorf","name":"Stadtwerke Walldorf","foo":"bar"}',
+        }),
       }
     );
 

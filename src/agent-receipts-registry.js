@@ -113,7 +113,8 @@ function buildActionRegistry(broker) {
       const action = service.actions[actionName] || {};
       const shortName = actionName.includes('.') ? actionName.split('.').pop() : actionName;
       const fullAction = `${service.name}.${shortName}`;
-      const schemaAction = service?.schema?.actions?.[shortName] || service?.schema?.actions?.[actionName];
+      const schemaAction =
+        service?.schema?.actions?.[shortName] || service?.schema?.actions?.[actionName];
       const paramsDef =
         (isPlainObject(action.params) && action.params) ||
         (isPlainObject(schemaAction?.params) && schemaAction.params) ||

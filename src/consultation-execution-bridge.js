@@ -74,9 +74,7 @@ const MUNICIPAL_ES_SIGNALS =
 
 function signalText(message, consultation) {
   const nextActionText = Array.isArray(consultation?.nextActions)
-    ? consultation.nextActions
-        .map((a) => `${a.action || ''} ${a.description || ''}`)
-        .join(' ')
+    ? consultation.nextActions.map((a) => `${a.action || ''} ${a.description || ''}`).join(' ')
     : '';
   return `${String(message || '')} ${nextActionText}`;
 }
@@ -201,8 +199,7 @@ function reconcileSemanticWorkflowType({
 
   const explicitBessDomain =
     normalizeWorkflowSignalText(String(knownContext?.domain || '')) === 'bess grid connection' ||
-    normalizeWorkflowSignalText(String(knownContext?.domainHint || '')) ===
-      'bess grid connection';
+    normalizeWorkflowSignalText(String(knownContext?.domainHint || '')) === 'bess grid connection';
   const hasProjectMetrics =
     hasContextKey(knownContext, ['powerMW', 'capacityMW', 'capacityMWh']) ||
     hasAnyPattern(normalizeWorkflowSignalText(message), [/\b\d+(?:[.,]\d+)?\s*(mw|mwh)\b/i]);
@@ -251,15 +248,34 @@ function reconcileSemanticWorkflowType({
   }
 
   const extractedContext = Object.fromEntries(
-    (Array.isArray(extractedInputs) ? extractedInputs : []).map((entry) => [entry?.param, entry?.value])
+    (Array.isArray(extractedInputs) ? extractedInputs : []).map((entry) => [
+      entry?.param,
+      entry?.value,
+    ])
   );
   const hasBessCore =
     hasAnyPattern(text, [/\b(bess|batteriespeicher|grossspeicher|stromspeicher)\b/i]) ||
     hasBessDomainContext(knownContext, extractedContext);
   const hasLocationSignals =
-    hasAnyPattern(text, [/\b(arnstadt|thueringen|thuringen|bundesland|gemeinde|postleitzahl|plz)\b/i]) ||
-    hasContextKey(knownContext, ['municipality', 'location', 'postalCode', 'bundesland', 'state', 'region']) ||
-    hasContextKey(extractedContext, ['municipality', 'location', 'postalCode', 'bundesland', 'state', 'region']);
+    hasAnyPattern(text, [
+      /\b(arnstadt|thueringen|thuringen|bundesland|gemeinde|postleitzahl|plz)\b/i,
+    ]) ||
+    hasContextKey(knownContext, [
+      'municipality',
+      'location',
+      'postalCode',
+      'bundesland',
+      'state',
+      'region',
+    ]) ||
+    hasContextKey(extractedContext, [
+      'municipality',
+      'location',
+      'postalCode',
+      'bundesland',
+      'state',
+      'region',
+    ]);
   const hasProjectMetricSignals =
     hasAnyPattern(text, [/\b\d+(?:[.,]\d+)?\s*(mw|mwh)\b/i]) ||
     hasContextKey(knownContext, ['powerMW', 'capacityMW', 'capacityMWh']) ||
@@ -301,7 +317,13 @@ function reconcileSemanticWorkflowType({
  *
  * Note: Uses extractedInputs parameter to avoid redundant extraction.
  */
-function classifyWorkflowType({ message = '', consultation = {}, knownContext = {}, brokerRecommendation = {}, extractedInputs = [] } = {}) {
+function classifyWorkflowType({
+  message = '',
+  consultation = {},
+  knownContext = {},
+  brokerRecommendation = {},
+  extractedInputs = [],
+} = {}) {
   const reconciledSemanticWorkflow = reconcileSemanticWorkflowType({
     message,
     consultation,
@@ -315,7 +337,10 @@ function classifyWorkflowType({ message = '', consultation = {}, knownContext = 
 
   const text = signalText(message, consultation);
   const extractedContext = Object.fromEntries(
-    (Array.isArray(extractedInputs) ? extractedInputs : []).map((entry) => [entry?.param, entry?.value])
+    (Array.isArray(extractedInputs) ? extractedInputs : []).map((entry) => [
+      entry?.param,
+      entry?.value,
+    ])
   );
 
   // 1. Explicit domain signals — check BEFORE generic governance patterns
@@ -336,8 +361,22 @@ function classifyWorkflowType({ message = '', consultation = {}, knownContext = 
     BESS_SIGNALS.test(text) || hasBessDomainContext(knownContext, extractedContext);
   const hasStrongBessLocation =
     /\b(arnstadt|thueringen|thuringen|bundesland|gemeinde|postleitzahl|plz)\b/i.test(text) ||
-    hasContextKey(knownContext, ['municipality', 'location', 'postalCode', 'bundesland', 'state', 'region']) ||
-    hasContextKey(extractedContext, ['municipality', 'location', 'postalCode', 'bundesland', 'state', 'region']);
+    hasContextKey(knownContext, [
+      'municipality',
+      'location',
+      'postalCode',
+      'bundesland',
+      'state',
+      'region',
+    ]) ||
+    hasContextKey(extractedContext, [
+      'municipality',
+      'location',
+      'postalCode',
+      'bundesland',
+      'state',
+      'region',
+    ]);
   const hasStrongBessMetrics =
     /\b\d+(?:[.,]\d+)?\s*(mw|mwh)\b/i.test(text) ||
     hasContextKey(knownContext, ['powerMW', 'capacityMW', 'capacityMWh']) ||
@@ -419,10 +458,30 @@ function classifyWorkflowType({ message = '', consultation = {}, knownContext = 
 // ─────────────────────────────────────────────────────────────────────────────
 
 const BESS_DEV_REQUIRED = [
-  { param: 'location', label: 'Projektort (Gemeinde oder GPS)', priority: 'critical', keys: ['municipality', 'location', 'latitude'] },
-  { param: 'powerMW', label: 'Installierte Leistung (MW)', priority: 'critical', keys: ['powerMW', 'capacityMW'] },
-  { param: 'capacityMWh', label: 'Speicherkapazität (MWh)', priority: 'high', keys: ['capacityMWh'] },
-  { param: 'gridOperator', label: 'Netzbetreiber oder BDEW-Code', priority: 'high', keys: ['gridOperatorName', 'bdewCode', 'bdew'] },
+  {
+    param: 'location',
+    label: 'Projektort (Gemeinde oder GPS)',
+    priority: 'critical',
+    keys: ['municipality', 'location', 'latitude'],
+  },
+  {
+    param: 'powerMW',
+    label: 'Installierte Leistung (MW)',
+    priority: 'critical',
+    keys: ['powerMW', 'capacityMW'],
+  },
+  {
+    param: 'capacityMWh',
+    label: 'Speicherkapazität (MWh)',
+    priority: 'high',
+    keys: ['capacityMWh'],
+  },
+  {
+    param: 'gridOperator',
+    label: 'Netzbetreiber oder BDEW-Code',
+    priority: 'high',
+    keys: ['gridOperatorName', 'bdewCode', 'bdew'],
+  },
 ];
 
 const BESS_SCREEN_REQUIRED = [
@@ -441,16 +500,36 @@ const BESS_SCREEN_REQUIRED = [
 ];
 
 const ES_REQUIRED = [
-  { param: 'municipality', label: 'Gemeinde / Standort', priority: 'critical', keys: ['municipality', 'location'] },
-  { param: 'powerMW', label: 'PV-Leistung (kW/MW) oder Gebäudefläche', priority: 'high', keys: ['powerMW', 'capacityMW', 'buildingArea'] },
+  {
+    param: 'municipality',
+    label: 'Gemeinde / Standort',
+    priority: 'critical',
+    keys: ['municipality', 'location'],
+  },
+  {
+    param: 'powerMW',
+    label: 'PV-Leistung (kW/MW) oder Gebäudefläche',
+    priority: 'high',
+    keys: ['powerMW', 'capacityMW', 'buildingArea'],
+  },
 ];
 
 const VNB_REQUIRED = [
-  { param: 'location_or_bdew', label: 'Gemeinde/Ort ODER BDEW-Code', priority: 'critical', keys: ['municipality', 'location', 'bdewCode', 'bdew'] },
+  {
+    param: 'location_or_bdew',
+    label: 'Gemeinde/Ort ODER BDEW-Code',
+    priority: 'critical',
+    keys: ['municipality', 'location', 'bdewCode', 'bdew'],
+  },
 ];
 
 const MASTR_REQUIRED = [
-  { param: 'location', label: 'Gemeinde oder Postleitzahl', priority: 'critical', keys: ['municipality', 'location', 'postalCode'] },
+  {
+    param: 'location',
+    label: 'Gemeinde oder Postleitzahl',
+    priority: 'critical',
+    keys: ['municipality', 'location', 'postalCode'],
+  },
 ];
 
 const REQUIRED_BY_WORKFLOW = {
@@ -469,7 +548,12 @@ function hasContextKey(knownContext, keys = []) {
   });
 }
 
-function analyzeInputReadiness({ workflowType = WORKFLOW_TYPES.ADVISORY_ONLY, knownContext = {}, consultation = {}, extractedInputs = [] } = {}) {
+function analyzeInputReadiness({
+  workflowType = WORKFLOW_TYPES.ADVISORY_ONLY,
+  knownContext = {},
+  consultation = {},
+  extractedInputs = [],
+} = {}) {
   const required = REQUIRED_BY_WORKFLOW[workflowType] || [];
 
   const availableInputs = [];
@@ -495,7 +579,12 @@ function analyzeInputReadiness({ workflowType = WORKFLOW_TYPES.ADVISORY_ONLY, kn
     return v !== null && v !== undefined && v !== '' && !extractedParams.has(k);
   });
   allKeys.forEach((key) => {
-    availableInputs.push({ param: key, value: String(knownContext[key]).slice(0, 100), source: 'knownContext', confidence: 'medium' });
+    availableInputs.push({
+      param: key,
+      value: String(knownContext[key]).slice(0, 100),
+      source: 'knownContext',
+      confidence: 'medium',
+    });
   });
 
   // 3. Check what we need vs. what we have
@@ -519,7 +608,11 @@ function hasInput(knownContext, keys = []) {
   return hasContextKey(knownContext, keys);
 }
 
-function buildExecutablePlan({ workflowType = WORKFLOW_TYPES.ADVISORY_ONLY, knownContext = {}, missingInputs = [] } = {}) {
+function buildExecutablePlan({
+  workflowType = WORKFLOW_TYPES.ADVISORY_ONLY,
+  knownContext = {},
+  missingInputs = [],
+} = {}) {
   const executableSteps = [];
   const evidenceGates = [];
   const assumptions = [];
@@ -528,7 +621,12 @@ function buildExecutablePlan({ workflowType = WORKFLOW_TYPES.ADVISORY_ONLY, know
 
   if (workflowType === WORKFLOW_TYPES.BESS_DEVELOPMENT) {
     // Step 1: VNB lookup — needs location or BDEW
-    const hasLocation = hasInput(knownContext, ['municipality', 'location', 'latitude', 'longitude']);
+    const hasLocation = hasInput(knownContext, [
+      'municipality',
+      'location',
+      'latitude',
+      'longitude',
+    ]);
     const hasBdew = hasInput(knownContext, ['bdewCode', 'bdew']);
     if (hasLocation || hasBdew) {
       executableSteps.push({
@@ -537,7 +635,8 @@ function buildExecutablePlan({ workflowType = WORKFLOW_TYPES.ADVISORY_ONLY, know
         label: 'Netzbetreiber-Zuständigkeit prüfen',
         params: {
           ...(knownContext.municipality && { city: knownContext.municipality }),
-          ...(knownContext.location && !knownContext.municipality && { city: knownContext.location }),
+          ...(knownContext.location &&
+            !knownContext.municipality && { city: knownContext.location }),
           ...(hasBdew && { bdew: knownContext.bdewCode || knownContext.bdew }),
         },
         canExecute: true,
@@ -589,7 +688,8 @@ function buildExecutablePlan({ workflowType = WORKFLOW_TYPES.ADVISORY_ONLY, know
 
     assumptions.push({
       type: 'working_assumption',
-      statement: 'MaStR-Bestand wird als Kontextindikator verwendet – kein Nachweis freier Netzkapazität.',
+      statement:
+        'MaStR-Bestand wird als Kontextindikator verwendet – kein Nachweis freier Netzkapazität.',
       basis: 'domain_guardrail',
       status: 'explicit',
     });
@@ -603,7 +703,14 @@ function buildExecutablePlan({ workflowType = WORKFLOW_TYPES.ADVISORY_ONLY, know
   }
 
   if (workflowType === WORKFLOW_TYPES.BESS_SCREENING) {
-    const hasState = hasInput(knownContext, ['state', 'bundesland', 'region', 'municipality', 'location', 'postalCode']);
+    const hasState = hasInput(knownContext, [
+      'state',
+      'bundesland',
+      'region',
+      'municipality',
+      'location',
+      'postalCode',
+    ]);
     if (hasState) {
       executableSteps.push({
         step: 1,
@@ -670,8 +777,7 @@ function buildExecutablePlan({ workflowType = WORKFLOW_TYPES.ADVISORY_ONLY, know
       label: 'Energy-Sharing-Vertrag & Netzausschluss-Prüfung (§42c EnWG)',
       blockedBy: 'vnb_lookup_completion_required',
       required: true,
-      description:
-        'Netzbetreiber muss bestätigen, dass Energy-Sharing im Netzgebiet zulässig ist.',
+      description: 'Netzbetreiber muss bestätigen, dass Energy-Sharing im Netzgebiet zulässig ist.',
     });
 
     assumptions.push({
@@ -759,7 +865,11 @@ function assessExecutionReadiness({
   canAutoExecute = false,
 } = {}) {
   if (workflowType === WORKFLOW_TYPES.ADVISORY_ONLY) {
-    return { readiness: EXECUTION_READINESS.ADVISORY_ONLY, canExecuteNow: false, nextUserQuestion: null };
+    return {
+      readiness: EXECUTION_READINESS.ADVISORY_ONLY,
+      canExecuteNow: false,
+      nextUserQuestion: null,
+    };
   }
 
   const criticalMissing = missingInputs.filter((m) => m.priority === 'critical');
@@ -774,19 +884,31 @@ function assessExecutionReadiness({
   if (criticalMissing.length > 0) {
     const first = criticalMissing[0];
     const nextUserQuestion = `Zu Ihrer genauen Einordnung: ${first.label}?`;
-    return { readiness: EXECUTION_READINESS.AWAITING_INPUT, canExecuteNow: false, nextUserQuestion };
+    return {
+      readiness: EXECUTION_READINESS.AWAITING_INPUT,
+      canExecuteNow: false,
+      nextUserQuestion,
+    };
   }
 
   if (highMissing.length > 0) {
     const first = highMissing[0];
     const nextUserQuestion = `Können Sie mir ${first.label} nennen, damit ich die Analyse gezielt durchführen kann?`;
-    return { readiness: EXECUTION_READINESS.AWAITING_INPUT, canExecuteNow: false, nextUserQuestion };
+    return {
+      readiness: EXECUTION_READINESS.AWAITING_INPUT,
+      canExecuteNow: false,
+      nextUserQuestion,
+    };
   }
 
   if (missingInputs.length > 0) {
     const first = missingInputs[0];
     const nextUserQuestion = `Können Sie noch angeben: ${first.label}?`;
-    return { readiness: EXECUTION_READINESS.AWAITING_INPUT, canExecuteNow: false, nextUserQuestion };
+    return {
+      readiness: EXECUTION_READINESS.AWAITING_INPUT,
+      canExecuteNow: false,
+      nextUserQuestion,
+    };
   }
 
   return { readiness: EXECUTION_READINESS.PARTIAL, canExecuteNow: false, nextUserQuestion: null };
@@ -885,4 +1007,201 @@ module.exports = {
   buildExecutablePlan,
   assessExecutionReadiness,
   buildConsultationExecutionPlan,
+  executeWithReceipt,
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 6. Receipt Executor — thin adapter for runtime receipt execution
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * executeWithReceipt: Deterministic receipt tool plan executor
+ *
+ * Processes receipt.toolPlan.steps sequentially:
+ * 1. Resolve params from receipt paramMapping + knownContext
+ * 2. Execute tool using existing consultation-tool-resolver primitives
+ * 3. Collect observations
+ * 4. (Optional) Execute fallback if step 1 empty and fallbackActions exist
+ * 5. Return results in shape compatible with legacy buildExecutablePlan output
+ *
+ * @param {object} receipt - Runtime receipt document (vnb-lookup-v1, etc.)
+ * @param {object} knownContext - User context (city, bdewCode, vnbName, etc.)
+ * @param {array} observations - Existing observations (appended to)
+ * @param {object} toolResolver - consultation-tool-resolver context (callAction, etc.)
+ * @param {object} logger - Logger for diagnostics
+ * @returns {object} {steps: [], observations: [], errors: []}
+ */
+async function executeWithReceipt(
+  receipt,
+  knownContext = {},
+  observations = [],
+  toolResolver = {},
+  logger = {}
+) {
+  if (!receipt || !receipt.toolPlan || !Array.isArray(receipt.toolPlan.steps)) {
+    return { steps: [], observations, errors: ['Invalid receipt or missing toolPlan'] };
+  }
+
+  const results = { steps: [], observations: [...observations], errors: [] };
+  const receiptId = receipt.receiptId || 'unknown';
+  const log = logger || { info: () => {}, warn: () => {}, error: () => {} };
+
+  for (const step of receipt.toolPlan.steps) {
+    const stepNum = step.step || 0;
+    const action = step.action || '';
+
+    log.info(`[executeWithReceipt:${receiptId}] Step ${stepNum}: executing ${action}`);
+
+    try {
+      // 1. Resolve params from receipt paramMapping
+      const resolvedParams = resolveReceiptParamMapping(step, knownContext, receipt.defaults || {});
+
+      if (Object.keys(resolvedParams).length === 0 && step.required) {
+        const err = `[executeWithReceipt] Step ${stepNum} (${action}) has no resolved params but is required`;
+        log.warn(err);
+        results.errors.push(err);
+        results.steps.push({
+          step: stepNum,
+          action,
+          status: 'skipped',
+          reason: 'no_params_resolved',
+        });
+        continue;
+      }
+
+      // 2. Execute tool (using toolResolver if available, else fallback)
+      let observation;
+      if (toolResolver && typeof toolResolver.executeTool === 'function') {
+        observation = await toolResolver.executeTool(action, resolvedParams);
+      } else {
+        // Fallback: dummy observation (for testing)
+        observation = {
+          action,
+          status: 'completed',
+          result: null,
+          error: 'toolResolver not available',
+        };
+      }
+
+      results.observations.push(observation);
+      results.steps.push({
+        step: stepNum,
+        action,
+        status: observation.status || 'completed',
+        paramMapping: step.paramMapping,
+        params: resolvedParams,
+        outcome: observation,
+      });
+
+      // 3. Conditional fallback: if step had no result AND fallbackActions exist
+      if (
+        !observation.error &&
+        (!observation.result || Object.keys(observation.result || {}).length === 0) &&
+        step.fallbackActions &&
+        Array.isArray(step.fallbackActions) &&
+        step.fallbackActions.length > 0
+      ) {
+        const fallbackAction = step.fallbackActions[0];
+        log.info(
+          `[executeWithReceipt:${receiptId}] Step ${stepNum}: primary empty, executing fallback ${fallbackAction}`
+        );
+
+        // Resolve params for fallback action (use same context, may differ by action)
+        const fallbackParams = resolveFallbackActionParams(fallbackAction, knownContext, step);
+
+        let fallbackObs;
+        if (toolResolver && typeof toolResolver.executeTool === 'function') {
+          fallbackObs = await toolResolver.executeTool(fallbackAction, fallbackParams);
+        } else {
+          fallbackObs = {
+            action: fallbackAction,
+            status: 'skipped',
+            reason: 'toolResolver not available',
+          };
+        }
+
+        results.observations.push(fallbackObs);
+        results.steps.push({
+          step: `${stepNum}b`,
+          action: fallbackAction,
+          status: 'fallback',
+          outcome: fallbackObs,
+        });
+
+        // If fallback succeeded, don't try further fallbacks
+        if (!fallbackObs.error && fallbackObs.result) {
+          break;
+        }
+      }
+    } catch (err) {
+      const errMsg = `[executeWithReceipt] Step ${stepNum} error: ${err.message}`;
+      log.error(errMsg);
+      results.errors.push(errMsg);
+      results.steps.push({
+        step: stepNum,
+        action,
+        status: 'error',
+        error: errMsg,
+      });
+
+      // Don't stop on error; continue to next step
+    }
+  }
+
+  log.info(
+    `[executeWithReceipt:${receiptId}] Completed: ${results.steps.length} steps, ${results.errors.length} errors`
+  );
+  return results;
+}
+
+/**
+ * Resolve params for a receipt step using paramMapping + knownContext + defaults
+ *
+ * paramMapping structure:
+ * {
+ *   bdew: { source: 'context', contextField: 'bdewCode', derivationHint: '...' },
+ *   city: { source: 'fixed', value: 'Berlin' },  // or source: 'default', defaultKey: 'defaultCity'
+ * }
+ */
+function resolveReceiptParamMapping(step = {}, knownContext = {}, defaults = {}) {
+  const resolved = {};
+  const paramMapping = step.paramMapping || {};
+
+  Object.entries(paramMapping).forEach(([paramName, mapping]) => {
+    if (!mapping || typeof mapping !== 'object') return;
+
+    const { source, contextField, value, defaultKey } = mapping;
+
+    if (source === 'fixed' && value !== undefined) {
+      resolved[paramName] = value;
+    } else if (source === 'context' && contextField) {
+      const ctxValue = knownContext[contextField];
+      if (ctxValue !== undefined && ctxValue !== null && ctxValue !== '') {
+        resolved[paramName] = ctxValue;
+      }
+    } else if (source === 'default' && defaultKey) {
+      const defValue = defaults[defaultKey];
+      if (defValue !== undefined && defValue !== null && defValue !== '') {
+        resolved[paramName] = defValue;
+      }
+    }
+  });
+
+  return resolved;
+}
+
+/**
+ * Resolve params for fallback action (e.g., marketPartners after vnbLookup fails)
+ * Derives query param from context or prior step result
+ */
+function resolveFallbackActionParams(fallbackAction = '', knownContext = {}, priorStep = {}) {
+  const params = {};
+
+  if (fallbackAction === 'grid-operations.marketPartners') {
+    // marketPartners prefers query param, can use city/vnbName/gridOperatorName as fallback
+    params.query = knownContext.city || knownContext.vnbName || knownContext.gridOperatorName || '';
+    params.limit = 5;
+  }
+
+  return params;
+}

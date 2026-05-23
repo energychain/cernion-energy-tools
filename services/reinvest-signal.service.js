@@ -56,8 +56,7 @@ function nowIso() {
  * Classify a maintenance/SCADA log entry as a re-invest signal.
  */
 function classifyEntry(entry) {
-  const isInFotojahr =
-    entry.eventDate && new Date(entry.eventDate).getFullYear() === FOTOJAHR;
+  const isInFotojahr = entry.eventDate && new Date(entry.eventDate).getFullYear() === FOTOJAHR;
   const isUnplanned = entry.eventType === 'UNPLANNED_OUTAGE' || entry.isEmergency;
   const isRecurring = (entry.occurrenceCount ?? 1) >= 3;
   const estimatedCapexEur = entry.estimatedRepairCostEur ?? 0;

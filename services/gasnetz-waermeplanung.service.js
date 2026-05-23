@@ -76,7 +76,10 @@ function assessSegmentRisk(segment, heatZones) {
       strandedRisk = STRANDED_RISK.HIGH;
       horizon = DECOMMISSION_HORIZON.BEFORE_2035;
       conflictingZones.push(zone.zoneId);
-    } else if (zone.zoneType === HEAT_ZONE_TYPE.DECENTRALISED_RENEWABLE && strandedRisk !== STRANDED_RISK.HIGH) {
+    } else if (
+      zone.zoneType === HEAT_ZONE_TYPE.DECENTRALISED_RENEWABLE &&
+      strandedRisk !== STRANDED_RISK.HIGH
+    ) {
       strandedRisk = STRANDED_RISK.MEDIUM;
       if (horizon === DECOMMISSION_HORIZON.BEYOND_2040) horizon = DECOMMISSION_HORIZON.BEFORE_2040;
       conflictingZones.push(zone.zoneId);
@@ -111,13 +114,14 @@ function assessSegmentRisk(segment, heatZones) {
     supportingZones,
     overlappingZoneTypes: [...new Set(zoneTypes)],
     investmentAllowed,
-    totexSignal: strandedRisk === STRANDED_RISK.HIGH
-      ? 'HALT_NEW_INVESTMENT'
-      : strandedRisk === STRANDED_RISK.MEDIUM
-        ? 'DEFER_INVESTMENT_PENDING_CLARIFICATION'
-        : strandedRisk === STRANDED_RISK.NONE && horizon === DECOMMISSION_HORIZON.NOT_RECOMMENDED
-          ? 'H2_CONVERSION_CANDIDATE'
-          : 'STANDARD_PLANNING',
+    totexSignal:
+      strandedRisk === STRANDED_RISK.HIGH
+        ? 'HALT_NEW_INVESTMENT'
+        : strandedRisk === STRANDED_RISK.MEDIUM
+          ? 'DEFER_INVESTMENT_PENDING_CLARIFICATION'
+          : strandedRisk === STRANDED_RISK.NONE && horizon === DECOMMISSION_HORIZON.NOT_RECOMMENDED
+            ? 'H2_CONVERSION_CANDIDATE'
+            : 'STANDARD_PLANNING',
   };
 }
 
@@ -217,8 +221,12 @@ module.exports = {
 
         const segmentResults = segments.map((seg) => assessSegmentRisk(seg, heatZones));
 
-        const highRiskCount = segmentResults.filter((r) => r.strandedRisk === STRANDED_RISK.HIGH).length;
-        const mediumRiskCount = segmentResults.filter((r) => r.strandedRisk === STRANDED_RISK.MEDIUM).length;
+        const highRiskCount = segmentResults.filter(
+          (r) => r.strandedRisk === STRANDED_RISK.HIGH
+        ).length;
+        const mediumRiskCount = segmentResults.filter(
+          (r) => r.strandedRisk === STRANDED_RISK.MEDIUM
+        ).length;
         const haltedInvestmentSegments = segmentResults.filter(
           (r) => r.totexSignal === 'HALT_NEW_INVESTMENT'
         );
@@ -344,7 +352,11 @@ module.exports = {
           return await this.db.get(ctx.params.id);
         } catch (err) {
           if (err.status === 404) {
-            throw new MoleculerClientError('Reconciliation not found', 404, 'RECONCILIATION_NOT_FOUND');
+            throw new MoleculerClientError(
+              'Reconciliation not found',
+              404,
+              'RECONCILIATION_NOT_FOUND'
+            );
           }
           throw err;
         }

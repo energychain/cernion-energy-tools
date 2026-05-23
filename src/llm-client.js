@@ -248,13 +248,19 @@ async function observeLlmCall(adapter, operation, options, usageInput, task) {
         if (jobId) {
           const jobStore = require('./job-store');
           const timeUntil = jobStore.getTimeUntilDeadline(jobId);
-          jobStore.appendLog(jobId, `llm_${operation}_start`, 0, `Calling LLM (${provider}/${model})...`, {
-            provider,
-            model,
-            operation,
-            deadlineExceeded: jobStore.isDeadlineExceeded(jobId),
-            timeUntilDeadlineMs: timeUntil,
-          });
+          jobStore.appendLog(
+            jobId,
+            `llm_${operation}_start`,
+            0,
+            `Calling LLM (${provider}/${model})...`,
+            {
+              provider,
+              model,
+              operation,
+              deadlineExceeded: jobStore.isDeadlineExceeded(jobId),
+              timeUntilDeadlineMs: timeUntil,
+            }
+          );
         }
 
         await enforceLlmQuota(options, usageInput);
@@ -264,12 +270,18 @@ async function observeLlmCall(adapter, operation, options, usageInput, task) {
         // Log LLM call success if jobId provided
         if (jobId) {
           const jobStore = require('./job-store');
-          jobStore.appendLog(jobId, `llm_${operation}_complete`, 0, `LLM responded in ${elapsedMs}ms`, {
-            provider,
-            model,
-            operation,
-            elapsedMs,
-          });
+          jobStore.appendLog(
+            jobId,
+            `llm_${operation}_complete`,
+            0,
+            `LLM responded in ${elapsedMs}ms`,
+            {
+              provider,
+              model,
+              operation,
+              elapsedMs,
+            }
+          );
         }
 
         tracing.setOk(span);
@@ -296,13 +308,19 @@ async function observeLlmCall(adapter, operation, options, usageInput, task) {
         // Log LLM call error if jobId provided
         if (jobId) {
           const jobStore = require('./job-store');
-          jobStore.appendLog(jobId, `llm_${operation}_error`, 0, `LLM error after ${elapsedMs}ms: ${error.message}`, {
-            provider,
-            model,
-            operation,
-            elapsedMs,
-            error: error.message,
-          });
+          jobStore.appendLog(
+            jobId,
+            `llm_${operation}_error`,
+            0,
+            `LLM error after ${elapsedMs}ms: ${error.message}`,
+            {
+              provider,
+              model,
+              operation,
+              elapsedMs,
+              error: error.message,
+            }
+          );
         }
 
         tracing.setError(span, error);

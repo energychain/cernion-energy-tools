@@ -74,8 +74,7 @@ function calculateCurtailmentRisk(contract, scenario) {
 
   // Net financial impact (liability + regulatory risk)
   const netImpactEur = compensationLiabilityEur;
-  const riskLevel =
-    netImpactEur > 500_000 ? 'HIGH' : netImpactEur > 100_000 ? 'MEDIUM' : 'LOW';
+  const riskLevel = netImpactEur > 500_000 ? 'HIGH' : netImpactEur > 100_000 ? 'MEDIUM' : 'LOW';
 
   return {
     curtailedPowerKw,
@@ -84,7 +83,8 @@ function calculateCurtailmentRisk(contract, scenario) {
     opportunityCostEur: Math.round(opportunityCostEur),
     netImpactEur: Math.round(netImpactEur),
     riskLevel,
-    compensationCapped: annualCompensationCapEur !== null && compensationLiabilityEur >= annualCompensationCapEur,
+    compensationCapped:
+      annualCompensationCapEur !== null && compensationLiabilityEur >= annualCompensationCapEur,
   };
 }
 

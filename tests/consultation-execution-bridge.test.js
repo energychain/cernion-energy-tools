@@ -15,15 +15,15 @@ describe('consultation-execution-bridge', () => {
 
   describe('classifyWorkflowType', () => {
     it('PA-CEB-001: governance/AI keywords always resolve to advisory_only', () => {
-      expect(classifyWorkflowType({ message: 'Wie erklärt ihr KI-Entscheidungen dem Aufsichtsrat?' })).toBe(
-        WORKFLOW_TYPES.ADVISORY_ONLY
-      );
+      expect(
+        classifyWorkflowType({ message: 'Wie erklärt ihr KI-Entscheidungen dem Aufsichtsrat?' })
+      ).toBe(WORKFLOW_TYPES.ADVISORY_ONLY);
       expect(classifyWorkflowType({ message: 'Was ist euer Governance-Ansatz?' })).toBe(
         WORKFLOW_TYPES.ADVISORY_ONLY
       );
-      expect(classifyWorkflowType({ message: 'Strategische Haftungsfragen bei black-box AI' })).toBe(
-        WORKFLOW_TYPES.ADVISORY_ONLY
-      );
+      expect(
+        classifyWorkflowType({ message: 'Strategische Haftungsfragen bei black-box AI' })
+      ).toBe(WORKFLOW_TYPES.ADVISORY_ONLY);
     });
 
     it('PA-CEB-002: BESS with location+capacity resolves to bess_development', () => {
@@ -76,7 +76,8 @@ describe('consultation-execution-bridge', () => {
 
     it('PA-CEB-019: semantic portfolio drift is reconciled to bess_screening for a BESS project', () => {
       const workflowType = classifyWorkflowType({
-        message: 'Wir planen einen Batteriespeicher in Thüringen mit flexibler Anschlusslösung am Netzanschlusspunkt.',
+        message:
+          'Wir planen einen Batteriespeicher in Thüringen mit flexibler Anschlusslösung am Netzanschlusspunkt.',
         consultation: {
           factsUsed: [{ source: 'message', value: 'Batteriespeicher' }],
           nextActions: [{ action: 'netzanschluss_pruefen', description: 'Netzanschluss klären' }],
@@ -293,7 +294,8 @@ describe('consultation-execution-bridge', () => {
 
     it('PA-CEB-019: buildConsultationExecutionPlan reconciles semantic portfolio drift to bess_screening', () => {
       const plan = buildConsultationExecutionPlan({
-        message: 'Wir planen einen Batteriespeicher in Thüringen mit flexibler Anschlusslösung am Netzanschlusspunkt.',
+        message:
+          'Wir planen einen Batteriespeicher in Thüringen mit flexibler Anschlusslösung am Netzanschlusspunkt.',
         consultation: {
           semanticClassification: {
             workflowType: WORKFLOW_TYPES.SUPPLIER_PORTFOLIO_FLEX_ASSESSMENT,
@@ -343,7 +345,9 @@ describe('consultation-execution-bridge', () => {
         workflowType: WORKFLOW_TYPES.BESS_SCREENING,
         knownContext: { region: 'Thueringen' },
       });
-      const missingState = missingInputs.find((m) => ['state', 'bundesland', 'region'].includes(m.param));
+      const missingState = missingInputs.find((m) =>
+        ['state', 'bundesland', 'region'].includes(m.param)
+      );
       expect(missingState).toBeUndefined();
       const missingMunicipality = missingInputs.find((m) => m.param === 'municipality');
       expect(missingMunicipality).toBeDefined();
@@ -360,7 +364,9 @@ describe('consultation-execution-bridge', () => {
       expect(plan.readiness).toBe(EXECUTION_READINESS.AWAITING_INPUT);
       expect(plan.canExecuteNow).toBe(false);
       expect(plan.nextUserQuestion).toBeTruthy();
-      expect(plan.nextUserQuestion.toLowerCase()).toMatch(/gemeinde|plz|standort|ort|municipality/i);
+      expect(plan.nextUserQuestion.toLowerCase()).toMatch(
+        /gemeinde|plz|standort|ort|municipality/i
+      );
     });
 
     it('PA-CEB-027: BESS_SCREENING with municipality satisfies both state and municipality requirements', () => {
@@ -382,7 +388,11 @@ describe('consultation-execution-bridge', () => {
         executionMode: 'auto',
       });
       expect([EXECUTION_READINESS.READY, EXECUTION_READINESS.PARTIAL]).toContain(plan.readiness);
-      expect(plan.missingInputs.filter((m) => ['state', 'bundesland', 'region', 'municipality'].includes(m.param))).toHaveLength(0);
+      expect(
+        plan.missingInputs.filter((m) =>
+          ['state', 'bundesland', 'region', 'municipality'].includes(m.param)
+        )
+      ).toHaveLength(0);
     });
   });
 });

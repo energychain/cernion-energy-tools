@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.53.9",
+    "version": "0.54.3",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -109,6 +109,10 @@
     {
       "name": "Cookbook",
       "description": "Reusable API workflow recipes (v0.20.5). Code-managed community cookbook with semantic lookup, runtime relation graph, and periodic validity checks against live microservice actions."
+    },
+    {
+      "name": "Agent Receipts",
+      "description": "Runtime-managed receipt documents (v0.54.0 foundation). PouchDB-backed CRUD, validation, lifecycle status transitions, and auditable soft-delete."
     },
     {
       "name": "CYA Agent",
@@ -10648,6 +10652,38 @@
                     "example": "consultation",
                     "description": "Optional explicit chat mode. If set, it overrides auto detection for this turn."
                   },
+                  "forceReceipt": {
+                    "type": "string",
+                    "example": "vnb-lookup-v1",
+                    "description": "Optional receipt id to force. Invalid or policy-forbidden ids fail with 422."
+                  },
+                  "preferredReceipts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "default": [],
+                    "example": [
+                      "vnb-lookup-v1",
+                      "grid-ops-fallback-v1"
+                    ],
+                    "description": "Optional ordered list of preferred runtime receipt ids."
+                  },
+                  "allowDraftReceipts": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "When true, draft receipts can be selected in controlled testing."
+                  },
+                  "explainReceiptSelection": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "When true, includes receipt-selection diagnostics in metadata.receiptSelection."
+                  },
+                  "disableReceiptSelection": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "When true, bypasses runtime receipt selection and enforces legacy routing behavior."
+                  },
                   "toolContext": {
                     "type": "object",
                     "additionalProperties": true,
@@ -10741,6 +10777,25 @@
                   "toolContext": {
                     "type": "string",
                     "description": "JSON-stringified object"
+                  },
+                  "forceReceipt": {
+                    "type": "string"
+                  },
+                  "preferredReceipts": {
+                    "type": "string",
+                    "description": "JSON array string, e.g. [\"receipt-a\",\"receipt-b\"]"
+                  },
+                  "allowDraftReceipts": {
+                    "type": "string",
+                    "description": "true/false"
+                  },
+                  "explainReceiptSelection": {
+                    "type": "string",
+                    "description": "true/false"
+                  },
+                  "disableReceiptSelection": {
+                    "type": "string",
+                    "description": "true/false"
                   },
                   "fileAttachments": {
                     "type": "array",
@@ -16053,6 +16108,451 @@
         "x-oeo-class": [
           "https://openenergyplatform.org/ontology/oeo/OEO_00000143"
         ]
+      }
+    },
+    "/api/agent-receipts": {
+      "get": {
+        "operationId": "agent-receipts_list",
+        "summary": "List agent receipts",
+        "tags": [
+          "Agent Receipts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "active",
+                "deprecated",
+                "archived"
+              ]
+            }
+          },
+          {
+            "name": "domain",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ]
+      },
+      "post": {
+        "operationId": "agent-receipts_create",
+        "summary": "Create an agent receipt",
+        "tags": [
+          "Agent Receipts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Creates a runtime-managed receipt with validated schema and auditable lifecycle metadata.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "receiptId",
+                  "title",
+                  "description",
+                  "domain",
+                  "matching",
+                  "toolPlan"
+                ],
+                "properties": {
+                  "receiptId": {
+                    "type": "string",
+                    "example": "bess-screening-v1"
+                  },
+                  "title": {
+                    "type": "string",
+                    "example": "BESS Screening Baseline"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "domain": {
+                    "type": "string",
+                    "example": "grid-operations"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "matching": {
+                    "type": "object"
+                  },
+                  "requiredInputs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "toolPlan": {
+                    "type": "object"
+                  },
+                  "knowledgePlan": {
+                    "type": "object"
+                  },
+                  "evidencePolicy": {
+                    "type": "object"
+                  },
+                  "forbiddenInferences": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "responsePolicy": {
+                    "type": "object"
+                  },
+                  "defaults": {
+                    "type": "object"
+                  },
+                  "metadata": {
+                    "type": "object"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "active",
+                      "deprecated",
+                      "archived"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-receipts/select": {
+      "post": {
+        "operationId": "agent-receipts_select",
+        "summary": "Select a runtime receipt for Personal Agent orchestration",
+        "tags": [
+          "Agent Receipts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "example": "Wer ist der zuständige VNB in Trier?"
+                  },
+                  "context": {
+                    "type": "object",
+                    "default": {},
+                    "example": {}
+                  },
+                  "input": {
+                    "type": "object",
+                    "default": {},
+                    "example": {}
+                  },
+                  "forceReceipt": {
+                    "type": "string",
+                    "example": "vnb-lookup-v1"
+                  },
+                  "preferredReceipts": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "vnb-lookup-v1",
+                      "grid-ops-fallback-v1"
+                    ]
+                  },
+                  "allowDraftReceipts": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "explainReceiptSelection": {
+                    "type": "boolean",
+                    "default": false
+                  },
+                  "disableReceiptSelection": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              },
+              "examples": {
+                "preferredMatching": {
+                  "summary": "Prefer a list of receipts with diagnostics enabled",
+                  "value": {
+                    "message": "Bitte finde den zuständigen VNB in Trier.",
+                    "preferredReceipts": [
+                      "vnb-lookup-v1",
+                      "grid-ops-fallback-v1"
+                    ],
+                    "explainReceiptSelection": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-receipts/validate": {
+      "post": {
+        "operationId": "agent-receipts_validate",
+        "summary": "Validate receipt payload or persisted receipt",
+        "tags": [
+          "Agent Receipts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "example": "bess-screening-v1"
+                  },
+                  "receipt": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-receipts/:id": {
+      "get": {
+        "operationId": "agent-receipts_get",
+        "summary": "Get an agent receipt by id",
+        "tags": [
+          "Agent Receipts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "bess-screening-v1"
+            }
+          }
+        ]
+      },
+      "put": {
+        "operationId": "agent-receipts_update",
+        "summary": "Update an agent receipt",
+        "tags": [
+          "Agent Receipts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "agent-receipts_archive",
+        "summary": "Archive an agent receipt (soft delete)",
+        "tags": [
+          "Agent Receipts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-receipts/:id/status": {
+      "post": {
+        "operationId": "agent-receipts_setStatus",
+        "summary": "Set receipt lifecycle status",
+        "tags": [
+          "Agent Receipts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "bess-screening-v1"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "draft",
+                      "active",
+                      "deprecated",
+                      "archived"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  },
+                  "_rev": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/cya/profile": {
@@ -22205,5 +22705,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.53.9"
+  "x-version": "0.54.3"
 }

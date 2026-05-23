@@ -38,7 +38,7 @@ const CK_TOKEN_SUNSET_HTTP_DATE = 'Wed, 31 Dec 2026 23:59:59 GMT';
 const PERSONAL_AGENT_MAX_FILES = 5;
 const PERSONAL_AGENT_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 const PERSONAL_AGENT_MAX_TOTAL_SIZE_BYTES = 50 * 1024 * 1024;
-const PERSONAL_AGENT_MAX_FIELDS = 10;
+const PERSONAL_AGENT_MAX_FIELDS = 16;
 const PERSONAL_AGENT_ALLOWED_EXTENSIONS = new Set([
   '.csv',
   '.xlsx',
@@ -101,6 +101,59 @@ function parseOptionalJsonObject(value, fallback = {}) {
   } catch (_error) {
     return fallback;
   }
+}
+
+function parseOptionalJsonStringArray(value, fallback = []) {
+  if (value == null || value === '') {
+    return fallback;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((entry) => String(entry || '').trim()).filter(Boolean);
+  }
+
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  const raw = value.trim();
+  if (!raw) {
+    return fallback;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.map((entry) => String(entry || '').trim()).filter(Boolean);
+    }
+  } catch (_error) {
+    // Fallback to comma-separated values for form payloads
+  }
+
+  return raw
+    .split(',')
+    .map((entry) => String(entry || '').trim())
+    .filter(Boolean);
+}
+
+function parseOptionalBoolean(value, fallback = false) {
+  if (value == null || value === '') {
+    return fallback;
+  }
+
+  if (typeof value === 'boolean') {
+    return value;
+  }
+
+  const normalized = String(value).trim().toLowerCase();
+  if (['true', '1', 'yes', 'on'].includes(normalized)) {
+    return true;
+  }
+  if (['false', '0', 'no', 'off'].includes(normalized)) {
+    return false;
+  }
+
+  return fallback;
 }
 
 function toFileArray(rawFiles) {
@@ -1248,6 +1301,7 @@ module.exports = {
           // NOTE: static /validate must precede dynamic /:id routes.
           'GET /agent-receipts': 'agent-receipts.list',
           'POST /agent-receipts': 'agent-receipts.create',
+          'POST /agent-receipts/select': 'agent-receipts.select',
           'POST /agent-receipts/validate': 'agent-receipts.validate',
           'GET /agent-receipts/:id': 'agent-receipts.get',
           'PUT /agent-receipts/:id': 'agent-receipts.update',
@@ -1815,6 +1869,11 @@ module.exports = {
               sessionId,
               executionMode: String(fields.executionMode || 'auto'),
               chatMode: String(fields.chatMode || '').trim() || undefined,
+              forceReceipt: String(fields.forceReceipt || '').trim() || undefined,
+              preferredReceipts: parseOptionalJsonStringArray(fields.preferredReceipts, []),
+              allowDraftReceipts: parseOptionalBoolean(fields.allowDraftReceipts, false),
+              explainReceiptSelection: parseOptionalBoolean(fields.explainReceiptSelection, false),
+              disableReceiptSelection: parseOptionalBoolean(fields.disableReceiptSelection, false),
               knownContext: parseOptionalJsonObject(fields.knownContext, {}),
               toolContext: parseOptionalJsonObject(fields.toolContext, {}),
               fileAttachments: processedFiles,

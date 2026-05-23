@@ -88,7 +88,10 @@ function evaluateRule(ruleSet, input) {
     let result = 0;
     let remaining = quantity;
     for (const tier of tiers) {
-      const band = tier.upperLimit !== null ? Math.min(remaining, tier.upperLimit - (tier.lowerLimit ?? 0)) : remaining;
+      const band =
+        tier.upperLimit !== null
+          ? Math.min(remaining, tier.upperLimit - (tier.lowerLimit ?? 0))
+          : remaining;
       result += band * tier.rate;
       remaining -= band;
       if (remaining <= 0) break;
@@ -189,8 +192,15 @@ module.exports = {
       async handler(ctx) {
         const tenantId = getTenantId(ctx);
         const {
-          gridOperatorId, ruleType, effectiveFrom, effectiveTo, label, legalBasis,
-          formulaDefinition, testCases, changeJustification,
+          gridOperatorId,
+          ruleType,
+          effectiveFrom,
+          effectiveTo,
+          label,
+          legalBasis,
+          formulaDefinition,
+          testCases,
+          changeJustification,
         } = ctx.params;
         const ruleSetId = `${RS_PREFIX}${crypto.randomUUID()}`;
 
@@ -278,7 +288,10 @@ module.exports = {
         });
 
         const active = result.docs.filter((r) => {
-          return r.effectiveFrom <= referenceDate && (r.effectiveTo === null || r.effectiveTo >= referenceDate);
+          return (
+            r.effectiveFrom <= referenceDate &&
+            (r.effectiveTo === null || r.effectiveTo >= referenceDate)
+          );
         });
 
         if (active.length === 0) {
@@ -361,7 +374,8 @@ module.exports = {
         try {
           return await this.db.get(ctx.params.id);
         } catch (err) {
-          if (err.status === 404) throw new MoleculerClientError('Rule set not found', 404, 'RULE_SET_NOT_FOUND');
+          if (err.status === 404)
+            throw new MoleculerClientError('Rule set not found', 404, 'RULE_SET_NOT_FOUND');
           throw err;
         }
       },

@@ -72,16 +72,21 @@ function classifyDeviationEntry(entry) {
   }
 
   const openEvidenceGates = [];
-  if ((fitStatus === FIT_STATUS.GAP || fitStatus === FIT_STATUS.MUST_DEVIATION) && !hasEvidenceGate) {
+  if (
+    (fitStatus === FIT_STATUS.GAP || fitStatus === FIT_STATUS.MUST_DEVIATION) &&
+    !hasEvidenceGate
+  ) {
     openEvidenceGates.push({
       gate: 'EVIDENCE_REQUIRED',
-      description: 'Entscheidungsgrundlage fehlt: Evidenz oder Lösung definieren bevor Migrationsfreigabe',
+      description:
+        'Entscheidungsgrundlage fehlt: Evidenz oder Lösung definieren bevor Migrationsfreigabe',
     });
   }
   if (fitStatus === FIT_STATUS.MUST_DEVIATION && !hasRegulatoryBasis) {
     openEvidenceGates.push({
       gate: 'REGULATORY_BASIS_REQUIRED',
-      description: 'Pflichtabweichung ohne gesetzliche/betriebliche Begründung — muss dokumentiert werden',
+      description:
+        'Pflichtabweichung ohne gesetzliche/betriebliche Begründung — muss dokumentiert werden',
     });
   }
   if (fitStatus === FIT_STATUS.ALLOWED_DEVIATION && !entry.approvalStatus) {
@@ -102,8 +107,7 @@ function classifyDeviationEntry(entry) {
     approvalStatus: entry.approvalStatus ?? null,
     openEvidenceGates,
     migrationApproved: openEvidenceGates.length === 0 && fitStatus !== FIT_STATUS.UNKNOWN,
-    cleansingRequired:
-      fitStatus === FIT_STATUS.GAP || entry.requiresDataCleansing === true,
+    cleansingRequired: fitStatus === FIT_STATUS.GAP || entry.requiresDataCleansing === true,
   };
 }
 
@@ -209,11 +213,7 @@ module.exports = {
           cleansingCount: requiresCleansing.length,
           migrationReadinessPct,
           readinessStatus:
-            blocking.length > 0
-              ? 'BLOCKED'
-              : migrationReadinessPct >= 90
-                ? 'READY'
-                : 'PARTIAL',
+            blocking.length > 0 ? 'BLOCKED' : migrationReadinessPct >= 90 ? 'READY' : 'PARTIAL',
           prioritisedActions: [
             ...blocking.slice(0, 3).map((d) => ({
               action: `BLOCKING: ${d.processArea} — ${d.deviationDescription.slice(0, 80)}`,

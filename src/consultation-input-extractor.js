@@ -99,7 +99,7 @@ function extractAvailableInputs(message = '', consultationFacts = {}, knownConte
   const addIfNew = (param, value, source, confidence = 'high') => {
     if (seen.has(param)) return;
     if (!value || String(value).trim() === '') return;
-    availableInputs.push({param, value, source, confidence});
+    availableInputs.push({ param, value, source, confidence });
     seen.add(param);
   };
 

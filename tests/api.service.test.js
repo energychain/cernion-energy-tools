@@ -258,12 +258,14 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/agent-receipts']).toBeDefined();
       expect(schema.paths['/api/agent-receipts'].get).toBeDefined();
       expect(schema.paths['/api/agent-receipts'].post).toBeDefined();
+      expect(schema.paths['/api/agent-receipts/select']).toBeDefined();
       expect(schema.paths['/api/agent-receipts/validate']).toBeDefined();
       expect(schema.paths['/api/agent-receipts/:id']).toBeDefined();
       expect(schema.paths['/api/agent-receipts/:id/status']).toBeDefined();
 
       expect(schema.paths['/api/agent-receipts'].get.tags).toContain('Agent Receipts');
       expect(schema.paths['/api/agent-receipts'].post.tags).toContain('Agent Receipts');
+      expect(schema.paths['/api/agent-receipts/select'].post.tags).toContain('Agent Receipts');
       expect(schema.paths['/api/agent-receipts/validate'].post.tags).toContain('Agent Receipts');
       expect(schema.paths['/api/agent-receipts/:id'].get.tags).toContain('Agent Receipts');
     });
@@ -437,6 +439,7 @@ describe('API Gateway Service', () => {
 
       expect(aliases['GET /agent-receipts']).toBe('agent-receipts.list');
       expect(aliases['POST /agent-receipts']).toBe('agent-receipts.create');
+      expect(aliases['POST /agent-receipts/select']).toBe('agent-receipts.select');
       expect(aliases['POST /agent-receipts/validate']).toBe('agent-receipts.validate');
       expect(aliases['GET /agent-receipts/:id']).toBe('agent-receipts.get');
       expect(aliases['PUT /agent-receipts/:id']).toBe('agent-receipts.update');
@@ -476,7 +479,7 @@ describe('API Gateway Service', () => {
       expect(apiRoute.busboyConfig).toBeDefined();
       expect(apiRoute.busboyConfig.limits.files).toBe(5);
       expect(apiRoute.busboyConfig.limits.fileSize).toBe(10 * 1024 * 1024);
-      expect(apiRoute.busboyConfig.limits.fields).toBe(10);
+      expect(apiRoute.busboyConfig.limits.fields).toBe(16);
     });
 
     it('should have onBeforeCall hook', () => {
@@ -536,6 +539,11 @@ describe('API Gateway Service', () => {
           message: 'Analysiere diese CSV',
           executionMode: 'auto',
           chatMode: 'consultation',
+          forceReceipt: 'vnb-lookup-v1',
+          preferredReceipts: '["vnb-lookup-v1","fallback-v1"]',
+          allowDraftReceipts: 'true',
+          explainReceiptSelection: 'true',
+          disableReceiptSelection: 'false',
           fileAttachments: [
             {
               path: uploadPath,
@@ -557,6 +565,11 @@ describe('API Gateway Service', () => {
 
       expect(ctx.params.message).toBe('Analysiere diese CSV');
       expect(ctx.params.chatMode).toBe('consultation');
+      expect(ctx.params.forceReceipt).toBe('vnb-lookup-v1');
+      expect(ctx.params.preferredReceipts).toEqual(['vnb-lookup-v1', 'fallback-v1']);
+      expect(ctx.params.allowDraftReceipts).toBe(true);
+      expect(ctx.params.explainReceiptSelection).toBe(true);
+      expect(ctx.params.disableReceiptSelection).toBe(false);
       expect(ctx.params.fileAttachments).toHaveLength(1);
       expect(ctx.params.fileAttachments[0].attachmentId).toMatch(/^fa_/);
       expect(ctx.params.fileAttachments[0].tempPath).toContain(

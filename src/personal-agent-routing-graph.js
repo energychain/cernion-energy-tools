@@ -7,7 +7,9 @@ const DEFAULT_EXECUTION_CONFIDENCE_THRESHOLD = Number(
 );
 
 function isGreetingLike(message = '') {
-  const haystack = String(message || '').trim().toLowerCase();
+  const haystack = String(message || '')
+    .trim()
+    .toLowerCase();
   if (!haystack) return false;
   return /^(hallo|hi|hey|guten\s+(tag|morgen|abend)|moin)\b/.test(haystack);
 }

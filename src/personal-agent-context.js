@@ -335,9 +335,7 @@ function buildPersistableSessionState(input = {}) {
           ? input.l3.executionStateGraph
           : null,
       turnGraph:
-        input?.l3?.turnGraph && typeof input.l3.turnGraph === 'object'
-          ? input.l3.turnGraph
-          : null,
+        input?.l3?.turnGraph && typeof input.l3.turnGraph === 'object' ? input.l3.turnGraph : null,
       criticalStepCheckpoints,
     },
     createdAt: input.createdAt || new Date().toISOString(),
@@ -404,9 +402,8 @@ function resolveContextMutation(prevParams = {}, incomingParams = {}) {
     const newVal = incoming[key];
     // Only flag as replace if the key is explicitly set in incoming and differs
     if (newVal !== undefined && newVal !== null && newVal !== '') {
-      const normalizedPrev = prevVal !== undefined && prevVal !== null
-        ? String(prevVal).trim().toLowerCase()
-        : null;
+      const normalizedPrev =
+        prevVal !== undefined && prevVal !== null ? String(prevVal).trim().toLowerCase() : null;
       const normalizedNew = String(newVal).trim().toLowerCase();
       if (normalizedPrev !== null && normalizedPrev !== normalizedNew) {
         replacedKeys.push(key);

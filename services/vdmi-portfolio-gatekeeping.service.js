@@ -192,7 +192,11 @@ module.exports = {
 
         // Load active proposals for overlap detection
         const existing = await this.db.find({
-          selector: { tenantId, type: 'vdmi-portfolio-gatekeeping', decision: { $nin: [GATE_DECISION.REJECT] } },
+          selector: {
+            tenantId,
+            type: 'vdmi-portfolio-gatekeeping',
+            decision: { $nin: [GATE_DECISION.REJECT] },
+          },
           limit: 500,
         });
 
@@ -290,7 +294,8 @@ module.exports = {
         try {
           return await this.db.get(ctx.params.id);
         } catch (err) {
-          if (err.status === 404) throw new MoleculerClientError('Proposal not found', 404, 'PROPOSAL_NOT_FOUND');
+          if (err.status === 404)
+            throw new MoleculerClientError('Proposal not found', 404, 'PROPOSAL_NOT_FOUND');
           throw err;
         }
       },

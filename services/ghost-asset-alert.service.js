@@ -45,9 +45,7 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -60,8 +58,7 @@ function pointInPolygon(lat, lon, polygon) {
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
     const [yi, xi] = polygon[i];
     const [yj, xj] = polygon[j];
-    const intersects =
-      yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
+    const intersects = yi > lat !== yj > lat && lon < ((xj - xi) * (lat - yi)) / (yj - yi) + xi;
     if (intersects) inside = !inside;
   }
   return inside;
@@ -432,9 +429,7 @@ module.exports = {
           throw err;
         }
 
-        const ghostFindings = doc.findings.filter(
-          (f) => f.findingCode === 'GHOST_ASSET_SUSPECTED'
-        );
+        const ghostFindings = doc.findings.filter((f) => f.findingCode === 'GHOST_ASSET_SUSPECTED');
 
         // Emit action items — downstream EDM service picks these up via events
         const actionItems = ghostFindings.map((f) => ({

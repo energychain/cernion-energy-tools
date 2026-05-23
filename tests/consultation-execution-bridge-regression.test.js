@@ -54,7 +54,9 @@ describe('Consultation-Execution-Bridge Regression Tests', () => {
       // Should have Bundesland in available inputs
       expect(plan.availableInputs.map((a) => a.param)).toContain('bundesland');
       // Should NOT ask for Bundesland in missing inputs
-      const missingBundesland = plan.missingInputs.find((m) => m.param.toLowerCase().includes('state'));
+      const missingBundesland = plan.missingInputs.find((m) =>
+        m.param.toLowerCase().includes('state')
+      );
       expect(missingBundesland).toBeUndefined();
     });
   });
@@ -84,7 +86,7 @@ describe('Consultation-Execution-Bridge Regression Tests', () => {
         },
         knownContext: { municipality: 'Arnstadt', powerMW: 5, capacityMWh: 10 },
         brokerRecommendation: { intent: 'vdmi_asset_validation_governance' },
-        extractedInputs: extractAvailableInputs(message, {}, {municipality: 'Arnstadt'}),
+        extractedInputs: extractAvailableInputs(message, {}, { municipality: 'Arnstadt' }),
       });
 
       expect(plan.workflowType).toBe(WORKFLOW_TYPES.BESS_SCREENING);
@@ -251,11 +253,15 @@ describe('Consultation-Execution-Bridge Regression Tests', () => {
       });
 
       // Bavaria (Bayern) should be in availableInputs
-      const hasBavaria = plan.availableInputs.some((a) => String(a.value).toLowerCase().includes('bayern'));
+      const hasBavaria = plan.availableInputs.some((a) =>
+        String(a.value).toLowerCase().includes('bayern')
+      );
       expect(hasBavaria || plan.availableInputs.length > 0).toBe(true);
 
       // Bundesland should NOT be in missingInputs if extracted
-      const missingState = plan.missingInputs.find((m) => m.label.toLowerCase().includes('bundesland'));
+      const missingState = plan.missingInputs.find((m) =>
+        m.label.toLowerCase().includes('bundesland')
+      );
       expect(missingState).toBeUndefined();
     });
   });
@@ -368,7 +374,9 @@ describe('Consultation-Execution-Bridge Regression Tests', () => {
       });
       expect(plan.nextUserQuestion).toBeTruthy();
       expect(plan.nextUserQuestion.toLowerCase()).not.toMatch(/bundesland/);
-      expect(plan.nextUserQuestion.toLowerCase()).toMatch(/gemeinde|standort|plz|ort|municipality/i);
+      expect(plan.nextUserQuestion.toLowerCase()).toMatch(
+        /gemeinde|standort|plz|ort|municipality/i
+      );
     });
   });
 
@@ -456,7 +464,9 @@ describe('Consultation-Execution-Bridge Regression Tests', () => {
         expect(plan.nextUserQuestion).not.toMatch(/\$|_key|_param|missingInput/);
         // Should contain human-readable text
         expect(plan.nextUserQuestion.length).toBeGreaterThan(10);
-        expect(/[ÄÖÜäöü]/.test(plan.nextUserQuestion) || /[a-z]/i.test(plan.nextUserQuestion)).toBe(true);
+        expect(/[ÄÖÜäöü]/.test(plan.nextUserQuestion) || /[a-z]/i.test(plan.nextUserQuestion)).toBe(
+          true
+        );
       }
     });
   });

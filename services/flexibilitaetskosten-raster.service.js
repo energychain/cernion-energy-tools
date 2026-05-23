@@ -74,7 +74,10 @@ function classifySignal(signal) {
 
   const openEvidence = [];
   if (costEurPerMwh === null) {
-    openEvidence.push({ field: 'costEurPerMwh', label: 'Flexibilitätskosten noch nicht kalkuliert' });
+    openEvidence.push({
+      field: 'costEurPerMwh',
+      label: 'Flexibilitätskosten noch nicht kalkuliert',
+    });
   }
   if (signal.contractBoundary === undefined) {
     openEvidence.push({ field: 'contractBoundary', label: 'Vertragsgrenze nicht definiert' });
@@ -103,8 +106,7 @@ module.exports = {
   name: 'flexibilitaetskosten-raster',
 
   settings: {
-    dbPath:
-      process.env.FLEXIBILITAETSKOSTEN_RASTER_DB_PATH || './data/flexibilitaetskosten-raster',
+    dbPath: process.env.FLEXIBILITAETSKOSTEN_RASTER_DB_PATH || './data/flexibilitaetskosten-raster',
   },
 
   created() {

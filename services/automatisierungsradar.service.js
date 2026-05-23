@@ -84,7 +84,10 @@ function analyseProcessStep(step) {
   });
 
   // Auto-detect obvious blockers from metadata flags
-  if (step.isManualHandoff && !detectedBlockers.find((b) => b.blocker === BLOCKER_TYPE.MANUAL_HANDOFF)) {
+  if (
+    step.isManualHandoff &&
+    !detectedBlockers.find((b) => b.blocker === BLOCKER_TYPE.MANUAL_HANDOFF)
+  ) {
     detectedBlockers.push({
       blocker: BLOCKER_TYPE.MANUAL_HANDOFF,
       description: 'Manuelle Übergabe erkannt aus Step-Metadaten',
@@ -92,7 +95,10 @@ function analyseProcessStep(step) {
       resolvable: true,
     });
   }
-  if (step.hasExcelSilo && !detectedBlockers.find((b) => b.blocker === BLOCKER_TYPE.DATA_GARBAGE_SOURCE)) {
+  if (
+    step.hasExcelSilo &&
+    !detectedBlockers.find((b) => b.blocker === BLOCKER_TYPE.DATA_GARBAGE_SOURCE)
+  ) {
     detectedBlockers.push({
       blocker: BLOCKER_TYPE.DATA_GARBAGE_SOURCE,
       description: 'Excel-Silo als Datenquelle erkannt — Datenqualität kritisch prüfen',

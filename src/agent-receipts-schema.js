@@ -182,7 +182,11 @@ function normalizeStep(rawStep, index, errors) {
   }
 
   if (rawStep.paramMapping != null) {
-    const paramMapping = normalizeParamMapping(rawStep.paramMapping, `toolPlan.steps[${index}]`, errors);
+    const paramMapping = normalizeParamMapping(
+      rawStep.paramMapping,
+      `toolPlan.steps[${index}]`,
+      errors
+    );
     if (paramMapping) {
       step.paramMapping = paramMapping;
     }

@@ -28,11 +28,7 @@ const GOVERNANCE_WORKFLOWS = new Set([
   'ai_governance_framework',
 ]);
 
-const BESS_WORKFLOWS = new Set([
-  'bess_screening',
-  'bess_development',
-  'bess_feasibility_study',
-]);
+const BESS_WORKFLOWS = new Set(['bess_screening', 'bess_development', 'bess_feasibility_study']);
 
 const PROCESS_WORKFLOWS = new Set([
   'process_governance_decision_matrix',
@@ -58,7 +54,11 @@ const MARKET_COMMUNICATION_WORKFLOWS = new Set([
  * - 'edm_market_misrouted_to_asset_validation'
  * - 'allowed_routing'
  */
-function validateRoutingIntent({workflowType = '', brokerRecommendation = {}, message = ''} = {}) {
+function validateRoutingIntent({
+  workflowType = '',
+  brokerRecommendation = {},
+  message = '',
+} = {}) {
   const intent = brokerRecommendation.intent || '';
   const operativeIntent = OPERATIONAL_INTENTS.has(intent);
 
@@ -76,8 +76,9 @@ function validateRoutingIntent({workflowType = '', brokerRecommendation = {}, me
 
   // Rule 2: BESS workflows routing to asset-validation without asset-context
   if (BESS_WORKFLOWS.has(workflowType) && intent === 'vdmi_asset_validation_governance') {
-    const hasAssetContext =
-      /(?:anlage|installation|asset|equipment|prüf|validier|audit)\s/i.test(message);
+    const hasAssetContext = /(?:anlage|installation|asset|equipment|prüf|validier|audit)\s/i.test(
+      message
+    );
     if (!hasAssetContext) {
       return {
         valid: false,
@@ -102,14 +103,16 @@ function validateRoutingIntent({workflowType = '', brokerRecommendation = {}, me
   }
 
   // Rule 4: EDM/market-communication should not route to asset-validation
-  if (MARKET_COMMUNICATION_WORKFLOWS.has(workflowType) && intent === 'vdmi_asset_validation_governance') {
+  if (
+    MARKET_COMMUNICATION_WORKFLOWS.has(workflowType) &&
+    intent === 'vdmi_asset_validation_governance'
+  ) {
     return {
       valid: false,
       reason: 'edm_market_misrouted_to_asset_validation',
       correctedWorkflow: workflowType,
       correctedIntent: 'market_communication_strategy',
-      explanation:
-        'Market communication is strategic messaging, not asset validation',
+      explanation: 'Market communication is strategic messaging, not asset validation',
     };
   }
 

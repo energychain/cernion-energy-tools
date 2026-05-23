@@ -7,6 +7,103 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.54.3] — VNB Lookup Receipt Migration: First Production Receipt (2026-05-24)
+
+### Added
+
+- [src/agent-receipts-seeds.js](src/agent-receipts-seeds.js): neue Seed-Datei mit `vnb-lookup-v1` runtime receipt spec. Erste Production Receipt zur Erprobung der Receipt-Architektur am realen VNB-/Marktpartner-Lookup-Workflow.
+  - Receipt deckt VNB-Zuständigkeitsprüfung (Wer ist der zuständige Netzbetreiber für eine gegebene Stadt/BDEW-Code?) ab.
+  - `toolPlan`: 2-stufig — Primary: `grid-operations.vnbLookup` mit deterministic Param-Mapping (bdew/city/vnbName → Primary-Lookup). Fallback: `grid-operations.marketPartners` (Name-basiert, wenn Primary unzureichend).
+  - `evidencePolicy`: Verifiziert VNB-Netzgebiet-Zuständigkeit gegen lokale NAP/MeLo-Daten + Registerstätten. Warnt bei Ortsfremden (ortsfremde) Anlagen.
+  - `forbiddenInferences`: Blockiert "Zuständig ist *X*" ohne VNB-Lookup-Evidenz; blockiert §14a/§41a/§42c/Redispatch-Claims in VNB-Kontext ohne Evidenz.
+  - `responsePolicy`: Konservativ. Synthesegap-Warn bei fehlender VNB-Verifizierung. Nur marketPartners-Treffer ohne NAP-Auflösung = "Möglicher VNB, aber nicht endgültig verifiziert".
+- [src/consultation-execution-bridge.js](src/consultation-execution-bridge.js): neue `executeWithReceipt(receipt, knownContext, observations, toolResolver, logger)` Funktion — deterministic, thin Executor für Receipt-toolPlan-Schritte.
+  - Unterstützt `paramMapping` (source: 'context'/'fixed'/'default') für flexible Param-Ableitung.
+  - Conditional Fallback: wenn Primary-Tool nicht genug Params (z.B. kein bdew für vnbLookup), automatisch zu Fallback-Action (marketPartners).
+  - `resolveFallbackActionParams()` + `resolveReceiptParamMapping()` Hilfsfunktionen für deterministic Param-Resolution.
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): `_seedReceipts()` Hook in `started()` integriert. Lädt `RECEIPT_SEEDS` aus `agent-receipts-seeds.js` beim Service-Start.
+  - Idempotent: create if missing, update if version differs (mit Staleness-Guard für manuell editierte Receipts).
+  - Warnings wenn Seed-Version != DB-Version und manuell-editiert (Token: `manually_edited_tag`).
+- [services/personal-agent.service.js](services/personal-agent.service.js): Receipt-Selection Integration in Consultation-to-Execution Bridge (ca. Line 1862-1920).
+  - Conditional: wenn `selectedReceipt` && !`disableReceiptSelection` → `executeWithReceipt()` verwenden.
+  - Fallback zu legacy `executeConsultationToolPlan()` wenn Receipt-Executor fehlschlägt oder kein Receipt selected.
+  - Logging: Append-Log enthält `receiptUsed` Boolean zur Audit-Sichtbarkeit.
+
+### Changed
+
+- [services/grid-operations.service.js](services/grid-operations.service.js): `vnbLookup` Validator-Guard korrigiert. Macht `bdew` optional (war: required), fügt `anyOf` Constraint ein: `bdew | city | vnbName | query` mindestens eine muss vorhanden sein.
+  - **Blocker Fix**: Vorher konnte city-only-Input nicht validieren (BDEW hard-required). Jetzt akzeptiert Stadt allein als Primary Lookup.
+  - Handler nutzt "Most-Specific" Strategie: bdew > vnbName > city > query als Lookup-Reihenfolge.
+  - Fallback zu `cernion_installations_local` bei Stadt-only: extrahiert SNB aus lokal gecachten Anlagen im Netzgebiet.
+- [services/api.service.js](services/api.service.js): Multipart-Feldlimit für Personal-Agent-Chat von `16` auf `17` erhöht (für zukünftige Receipt-Expansionen).
+
+### Fixed
+
+- vnbLookup-Validator Blocker: Stadt-only Queries (z.B. Wiesloch) können jetzt ohne BDEW-Fehler validiert werden.
+- Marktpartner-Fallback: Wenn vnbLookup zu wenige Params hat, automatisch zu marketPartners cascaden statt fehlzuschlagen.
+
+### Tests
+
+- [tests/agent-receipts.vnb.test.js](tests/agent-receipts.vnb.test.js): NEU. Integration-Tests für vnb-lookup-v1 Receipt:
+  - City-only Input (Wiesloch) akzeptiert, kein Validator-Fehler
+  - BDEW-only Input akzeptiert, kein City-Fehler
+  - Missing Input: graceful Degradation, keine 400er
+  - Legacy Fallback: `disableReceiptSelection=true` → altes Routing
+  - MarketPartners Fallback: vnbLookup-Params unzureichend → marketPartners
+  - Receipt Seed Verification: vnb-lookup-v1 im Service verfügbar
+  - Receipt Selection Metadata: `explainReceiptSelection=true` → Diagnostik in `metadata.receiptSelection`
+  - Backward Compatibility: Alte Routes funktionieren noch, `gridOperatorName` Legacy-Param OK
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Regression-Tests für Consultation-to-Execution Bridge (Receipt-Wiring, Fallback-Logik).
+
+### Documentation
+
+- `docs/v0.54-implementation-plans/25-v0.54.3-vnb-lookup-receipt-migration-plan-prompt.md`: Aktualisiert mit Implementierungs-Outcome, Validator-Fix-Details, executeWithReceipt-Adapter-Signatur, Test-Acceptance-Kriterien.
+
+### Acceptance Criteria Met
+
+- ✅ vnb-lookup-v1 ist erste Production Receipt im Cernion Runtime-Receipts-System
+- ✅ Stadt-only Queries (Wiesloch) validieren ohne Fehler
+- ✅ BDEW-only Queries funktionieren ohne Stadt-Parameter
+- ✅ Marktpartner-Fallback bei unzureichenden Params
+- ✅ Personal Agent wählt Receipt automatisch, fällt auf Legacy zurück wenn Selected failt
+- ✅ Guardrails verhindern unverifizierten VNB-Claim (ohne vnbLookup Evidenz)
+- ✅ Seed-Idempotenz: Start/Restart/Rollback ohne Datenkorruption
+- ✅ Backward Compatibility: Alte Flows arbeiten identisch, Legacy-Controls erhalten
+
+### Known Limitations & Future
+
+- Direktvermarkter-Portfolio-Export: Powabase deckt nicht aktiv "in Direktvermarktung" ab (nur öffentliche MaStR Daten). Workaround: `fernsteuerbarkeitDv: true` + minCapacity:100 als Proxy für Redispatch-relevante DV-Like Assets.
+- Knowledge-aware Evidence & Learning Loop bleiben Future v0.55+.
+- Receipt Selection Tuning (Score-Gewichte, Trigger-Refinement) nach Produktions-Telemetrie in späteren Patches.
+
+## [0.54.2] — Personal Agent Runtime Receipt Selection (2026-05-23)
+
+### Added
+
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): neue Action/REST-Route `POST /agent-receipts/select` zur runtime-basierten Receipt-Selektion mit konservativem Matching, Preferred-Reihenfolge und optionaler Selektionsdiagnose.
+- [services/personal-agent.service.js](services/personal-agent.service.js): neue Chat-Request-Controls für Runtime-Selection: `forceReceipt`, `preferredReceipts`, `allowDraftReceipts`, `explainReceiptSelection`, `disableReceiptSelection`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): neue interne Hilfsmethoden `selectRuntimeReceipt()` und `buildReceiptSelectionMetadata()` für optionale, nicht-invasive Integration in den bestehenden Chat-Flow.
+
+### Changed
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): Receipt-Selection-Hook im Chat-Core vor Routing integriert, mit konservativer Legacy-Fallback-Strategie (kein Match/Service unavailable => bestehender Pfad bleibt aktiv).
+- [services/personal-agent.service.js](services/personal-agent.service.js): Selektionsdiagnostik wird ausschließlich opt-in unter `metadata.receiptSelection` zurückgegeben (`explainReceiptSelection` oder Debug-Kontext), ohne neue Top-Level-Response-Struktur.
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): `forceReceipt`-Policy als explizite 422-Fehler umgesetzt (`RECEIPT_NOT_FOUND_OR_INVALID`, `RECEIPT_DRAFT_NOT_ALLOWED`, `RECEIPT_NOT_ACTIVE`).
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): Draft-Policy vereinheitlicht — Draft-Receipts sind nur mit `allowDraftReceipts=true` selektierbar (auch bei `preferredReceipts`).
+- [services/api.service.js](services/api.service.js): API-Alias `POST /agent-receipts/select` ergänzt.
+- [services/api.service.js](services/api.service.js): Multipart-Normalisierung für die fünf neuen Personal-Agent-Controls ergänzt (`forceReceipt`, `preferredReceipts`, `allowDraftReceipts`, `explainReceiptSelection`, `disableReceiptSelection`).
+- [services/api.service.js](services/api.service.js): Multipart-Feldlimit für Personal-Agent-Chat von `10` auf `16` erhöht, um zusätzliche Controls robust zu unterstützen.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Regressionstests für Baseline/Legacy-Fallback, 422-Policy-Verhalten bei `forceReceipt`, Draft-Blockierung und Diagnostics unter `metadata.receiptSelection` ergänzt.
+- [tests/agent-receipts.service.test.js](tests/agent-receipts.service.test.js): Selektionsszenarien für `select` ergänzt (forced active, invalid forced, draft forced blocked/allowed, preferred draft ignore/allow).
+- [tests/api.service.test.js](tests/api.service.test.js): OpenAPI-/Alias-Checks für `/api/agent-receipts/select` und Multipart-Param-Normalisierung für neue Receipt-Selection-Controls erweitert.
+- [package.json](package.json): Version auf `0.54.2` angehoben.
+
+### Compatibility Notes
+
+- Ohne explizites `forceReceipt` bleibt No-Match strikt im Legacy-Pfad; bestehendes Personal-Agent-Verhalten bleibt unverändert.
+- `disableReceiptSelection=true` erzwingt Legacy-Verhalten für Vergleich/Regression.
+- VNB-Produktionsmigration, Knowledge-aware Evidence und Learning-Loop bleiben außerhalb von v0.54.2.
+
 ## [0.54.1] — Runtime Receipts Test Harness (2026-05-23)
 
 ### Added

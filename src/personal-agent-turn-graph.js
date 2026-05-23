@@ -168,7 +168,9 @@ function addWorkflowPlanNode(graph, planArtifact = {}) {
     : [];
 
   gates.forEach((gate) => {
-    const gateId = `evidence:gate:${String(gate.id || gate.label || 'gate').replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 60)}`;
+    const gateId = `evidence:gate:${String(gate.id || gate.label || 'gate')
+      .replace(/[^a-zA-Z0-9_]/g, '_')
+      .slice(0, 60)}`;
     next = addNode(next, {
       id: gateId,
       type: 'evidence_gate',

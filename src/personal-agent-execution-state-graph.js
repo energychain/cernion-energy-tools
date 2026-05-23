@@ -56,10 +56,19 @@ function sanitizeValue(value) {
 }
 
 function createMessageFingerprint(message = '') {
-  return crypto.createHash('sha1').update(String(message || '')).digest('hex').slice(0, 16);
+  return crypto
+    .createHash('sha1')
+    .update(String(message || ''))
+    .digest('hex')
+    .slice(0, 16);
 }
 
-function createExecutionStateGraph({ sessionId, message, chatMode = null, executionMode = null } = {}) {
+function createExecutionStateGraph({
+  sessionId,
+  message,
+  chatMode = null,
+  executionMode = null,
+} = {}) {
   const createdAt = new Date().toISOString();
   return {
     graphId: `exec_state_${sessionId || 'session'}_${createdAt}`,
