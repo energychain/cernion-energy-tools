@@ -448,6 +448,50 @@ const FIXED_TDD_NORMALIZATION_MAP = Object.freeze({
     expectedReplyKeywords: ['muenchen', 'aktualisiere'],
     forbiddenReplyKeywords: ['frankfurt'],
   },
+
+  // -------------------------------------------------------------------------
+  // Agent Receipts — Governed Learning Loop (v0.54.5)
+  // -------------------------------------------------------------------------
+  'T-AR-01': {
+    intentClass: 'agent-receipts.proposeDraft',
+    aliases: ['POST /agent-receipts/propose'],
+    notes: 'proposeDraft creates receipt with status: draft and audit metadata.',
+  },
+  'T-AR-02': {
+    intentClass: 'agent-receipts.proposeDraft',
+    aliases: ['POST /agent-receipts/propose'],
+    notes: 'proposeDraft rejects any non-draft status in the payload.',
+  },
+  'T-AR-03': {
+    intentClass: 'agent-receipts.promote',
+    aliases: ['POST /agent-receipts/:id/promote'],
+    notes: 'promote transitions draft to active with full audit metadata.',
+  },
+  'T-AR-04': {
+    intentClass: 'agent-receipts.promote',
+    aliases: ['POST /agent-receipts/:id/promote'],
+    notes: 'promote blocks promotion when receipt has blocking validation errors.',
+  },
+  'T-AR-05': {
+    intentClass: 'agent-receipts.promote',
+    aliases: ['POST /agent-receipts/:id/promote'],
+    notes: 'promote rejects if receipt is already active.',
+  },
+  'T-AR-06': {
+    intentClass: 'agent-receipts.promote',
+    aliases: ['POST /agent-receipts/:id/promote'],
+    notes: 'promote CAS rev guard prevents concurrent promotion race.',
+  },
+  'T-AR-07': {
+    intentClass: 'agent-receipts.promote',
+    aliases: ['POST /agent-receipts/:id/promote'],
+    notes: 'promote auto-deprecates superseded active receipt with full audit fields.',
+  },
+  'T-AR-08': {
+    intentClass: 'agent-receipts.proposeDraft',
+    aliases: ['POST /agent-receipts/propose'],
+    notes: 'chat-path guardrail: proposeDraft response is unambiguously draft/pendingReview.',
+  },
 });
 
 function normalizeDefinition(id, testCase) {

@@ -385,6 +385,21 @@ Die Single-Turn-Matrix oben bleibt die fachliche Vollabdeckung fuer einzelne Int
 
 ---
 
+#### Domain: Agent Receipts — Governed Learning Loop (v0.54.5)
+
+| ID | Nutzer-Prompt / Szenario | Intent-Klasse | Service-Calls (sequentiell) | Erwartetes Ergebnis |
+|----|--------------------------|---------------|-----------------------------|---------------------|
+| T-AR-01 | "Schlage ein neues Draft-Receipt vor (chat-Pfad)." | `agent-receipts.proposeDraft` | 1. `POST /agent-receipts/propose` | `success: true`, `status: draft`, `pendingReview: true`, Audit-Felder gesetzt, `activatedAt: null`. |
+| T-AR-02 | "proposeDraft lehnt status: active im Payload ab." | `agent-receipts.proposeDraft` | 1. `POST /agent-receipts/propose` | Fehler 422 `AGENT_RECEIPT_PROPOSE_STATUS_REJECTED` — kein Bypass des Draft-Gates moeglich. |
+| T-AR-03 | "Promoviere Draft-Receipt zu active mit promotedBy-Identitaet." | `agent-receipts.promote` | 1. `POST /agent-receipts/:id/promote` | `success: true`, `status: active`, `promotedAt`, `promotedBy`, `promotedFromDraftId` gesetzt. |
+| T-AR-04 | "promote blockiert bei blocking validation errors." | `agent-receipts.promote` | 1. `POST /agent-receipts/:id/promote` | Fehler 409 `AGENT_RECEIPT_BLOCKING_VALIDATION` — invalide Drafts koennen nicht promoviert werden. |
+| T-AR-05 | "promote lehnt ab wenn Receipt bereits active ist." | `agent-receipts.promote` | 1. `POST /agent-receipts/:id/promote` | Fehler 409 `AGENT_RECEIPT_PROMOTE_NOT_DRAFT` — aktive Receipts koennen nicht erneut promoviert werden. |
+| T-AR-06 | "promote mit veraltetem _rev schlaegt durch CAS-Guard fehl." | `agent-receipts.promote` | 1. `POST /agent-receipts/:id/promote` | Fehler 409 `AGENT_RECEIPT_CONFLICT` — Concurrent-Promotion-Race wird verhindert. |
+| T-AR-07 | "promote auto-depreciert supersediertes aktives Receipt mit vollstaendigen Audit-Feldern." | `agent-receipts.promote` | 1. `POST /agent-receipts/:id/promote` | `superseded: { receiptId, status: deprecated }`, `deprecatedBy`, `supersededByReceiptId` in Metadata. |
+| T-AR-08 | "proposeDraft mit creatorSource: chat gibt glasklare Draft-Antwort ohne Aktivierungs-Sprache." | `agent-receipts.proposeDraft` | 1. `POST /agent-receipts/propose` | `status: draft`, `pendingReview: true`; `activatedAt`, `promotedAt`, `promotedBy` sind null. |
+
+---
+
 ## 4. Watchdog-Spezifikation
 
 ### 4.1 Dead-Man's-Switch Modell

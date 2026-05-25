@@ -280,16 +280,49 @@ describe('consultation-execution-bridge', () => {
       expect(plan.abstractionLevel).toBe('high');
     });
 
-    it('PA-CEB-018: VNB workflow with location produces executable VNB lookup step', () => {
+    it('PA-CEB-018: VNB workflow with city-only location produces 2-step plan; vnbLookup NOT canExecute without operatorScope', () => {
       const plan = buildConsultationExecutionPlan({
         message: 'Wer ist der Netzbetreiber in Heidelberg?',
         knownContext: { municipality: 'Heidelberg' },
         executionMode: 'auto',
       });
       expect(plan.workflowType).toBe(WORKFLOW_TYPES.VNB_IDENTIFICATION);
+
+      // Step 1 must be marketPartners (resolve operator candidates from locationScope)
+      const step1 = plan.executableSteps.find((s) => s.action.includes('marketPartners'));
+      expect(step1).toBeDefined();
+      expect(step1.canExecute).toBe(true);
+      expect(step1.scopeType).toBe('locationScope');
+
+      // Step 2: vnbLookup must NOT be canExecute — operatorScope not yet resolved
       const vnbStep = plan.executableSteps.find((s) => s.action.includes('vnbLookup'));
       expect(vnbStep).toBeDefined();
-      expect(vnbStep.canExecute).toBe(true);
+      expect(vnbStep.canExecute).toBe(false);
+      expect(vnbStep.scopeRequirement).toBe('operatorScope');
+
+      // scopeClassification must show locationScope only, no operatorScope
+      expect(plan.scopeClassification).toBeDefined();
+      expect(plan.scopeClassification.locationScopeAvailable).toBe(true);
+      expect(plan.scopeClassification.operatorScopeResolved).toBe(false);
+    });
+
+    it('PA-CEB-018b: VNB workflow with BDEW code (operatorScope) uses direct vnbLookup as step 1', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'VNB für BDEW 9900277000000',
+        knownContext: { bdew: '9900277000000' },
+        executionMode: 'auto',
+      });
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.VNB_IDENTIFICATION);
+
+      // With operatorScope: direct vnbLookup as step 1
+      const step1 = plan.executableSteps.find((s) => s.step === 1);
+      expect(step1).toBeDefined();
+      expect(step1.action).toContain('vnbLookup');
+      expect(step1.canExecute).toBe(true);
+      expect(step1.scopeType).toBe('operatorScope');
+
+      // scopeClassification shows operatorScope resolved
+      expect(plan.scopeClassification.operatorScopeResolved).toBe(true);
     });
 
     it('PA-CEB-019: buildConsultationExecutionPlan reconciles semantic portfolio drift to bess_screening', () => {

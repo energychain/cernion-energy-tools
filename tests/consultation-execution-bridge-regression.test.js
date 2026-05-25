@@ -470,4 +470,146 @@ describe('Consultation-Execution-Bridge Regression Tests', () => {
       }
     });
   });
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // SCOPE SEPARATION REGRESSIONS (v0.54.6)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * PA-CEB-SCOPE-001: Asset query by location must NOT trigger VNB resolution.
+   * "Zeige Anlagen in Wiesloch / PLZ 69168" → mastr_inventory, not vnb_identification
+   */
+  describe('PA-CEB-SCOPE-001: Asset query by location does not trigger VNB lookup', () => {
+    it('Wiesloch asset query → mastr_inventory or location-scoped workflow, not vnb_identification', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'Zeige Anlagen in Wiesloch / PLZ 69168',
+        knownContext: { city: 'Wiesloch', postalCode: '69168' },
+        executionMode: 'auto',
+      });
+      // Must NOT classify as vnb_identification
+      expect(plan.workflowType).not.toBe(WORKFLOW_TYPES.VNB_IDENTIFICATION);
+
+      // No step must call vnbLookup unnecessarily
+      const vnbStep = plan.executableSteps.find((s) => s.action.includes('vnbLookup'));
+      expect(vnbStep).toBeUndefined();
+
+      // scopeClassification: locationScope available, no operatorScope needed/required
+      expect(plan.scopeClassification).toBeDefined();
+      expect(plan.scopeClassification.locationScopeAvailable).toBe(true);
+    });
+  });
+
+  /**
+   * PA-CEB-SCOPE-002: Asset query by named operator must NOT become location query.
+   * "Zeige Anlagen der Netze BW" → operator-scoped plan, marketPartners with operator name
+   */
+  describe('PA-CEB-SCOPE-002: Asset query by operator uses operator scope', () => {
+    it('Netze BW query → uses operator name context, not geography', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'Zeige Anlagen der Netze BW',
+        knownContext: { gridOperatorName: 'Netze BW' },
+        executionMode: 'auto',
+      });
+      // scopeClassification must show operatorScope resolved
+      expect(plan.scopeClassification).toBeDefined();
+      expect(plan.scopeClassification.operatorScopeResolved).toBe(true);
+      expect(plan.scopeClassification.primaryScope).not.toBe('locationScope');
+    });
+  });
+
+  /**
+   * PA-CEB-SCOPE-003: GrünstromIndex / CO2 / weather is a locationScope query.
+   * Must NOT require VNB resolution.
+   */
+  describe('PA-CEB-SCOPE-003: GrünstromIndex query requires only locationScope', () => {
+    it('GrünstromIndex Wiesloch → locationScope primary, no VNB resolution', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'Wie ist der GrünstromIndex für Wiesloch 69168?',
+        knownContext: { city: 'Wiesloch', postalCode: '69168' },
+        executionMode: 'auto',
+      });
+      // locationScope available
+      expect(plan.scopeClassification.locationScopeAvailable).toBe(true);
+      // operatorScope NOT required for this query
+      expect(plan.scopeClassification.operatorScopeResolved).toBe(false);
+      // No vnbLookup step should appear
+      const vnbStep = plan.executableSteps.find((s) => s.action.includes('vnbLookup'));
+      expect(vnbStep).toBeUndefined();
+    });
+  });
+
+  /**
+   * PA-CEB-SCOPE-004: "Wer ist der zuständige VNB für Wiesloch?" is VNB_RESOLUTION.
+   * Must produce 2-step plan (marketPartners → vnbLookup), NOT direct vnbLookup with city.
+   * vnbLookup step must NOT be canExecute without operatorScope.
+   */
+  describe('PA-CEB-SCOPE-004: VNB resolution request uses 2-step chain', () => {
+    it('city-only VNB resolution → step 1 = marketPartners (canExecute:true), step 2 = vnbLookup (canExecute:false)', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'Wer ist der zuständige VNB für Wiesloch?',
+        knownContext: { city: 'Wiesloch' },
+        executionMode: 'auto',
+      });
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.VNB_IDENTIFICATION);
+
+      // Step 1: marketPartners with locationScope
+      const step1 = plan.executableSteps.find((s) => s.step === 1);
+      expect(step1).toBeDefined();
+      expect(step1.action).toContain('marketPartners');
+      expect(step1.canExecute).toBe(true);
+      expect(step1.scopeType).toBe('locationScope');
+
+      // Step 2: vnbLookup blocked — needs operatorScope from step 1
+      const step2 = plan.executableSteps.find((s) => s.step === 2);
+      expect(step2).toBeDefined();
+      expect(step2.action).toContain('vnbLookup');
+      expect(step2.canExecute).toBe(false);
+      expect(step2.scopeRequirement).toBe('operatorScope');
+
+      // scopeClassification confirms: no operatorScope yet
+      expect(plan.scopeClassification.operatorScopeResolved).toBe(false);
+      expect(plan.scopeClassification.primaryScope).toBe('vnbResolution');
+    });
+
+    it('VNB resolution with bdew (operatorScope resolved) → direct vnbLookup as step 1', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'VNB für BDEW 9900277000000',
+        knownContext: { bdew: '9900277000000' },
+        executionMode: 'auto',
+      });
+      expect(plan.workflowType).toBe(WORKFLOW_TYPES.VNB_IDENTIFICATION);
+
+      const step1 = plan.executableSteps.find((s) => s.step === 1);
+      expect(step1.action).toContain('vnbLookup');
+      expect(step1.canExecute).toBe(true);
+      expect(step1.scopeType).toBe('operatorScope');
+    });
+  });
+
+  /**
+   * PA-CEB-SCOPE-005: Heidelberg city-only must NOT execute vnbLookup directly.
+   * Old behavior (vnbLookup canExecute:true with city only) must NOT recur.
+   */
+  describe('PA-CEB-SCOPE-005: Heidelberg city-only must not execute vnbLookup directly', () => {
+    it('Heidelberg city-only → vnbLookup step is NOT canExecute (scope anti-pattern prevented)', () => {
+      const plan = buildConsultationExecutionPlan({
+        message: 'Wer ist der Netzbetreiber in Heidelberg?',
+        knownContext: { municipality: 'Heidelberg' },
+        executionMode: 'auto',
+      });
+
+      // vnbLookup must not be canExecute when only city is provided
+      const vnbStep = plan.executableSteps.find((s) => s.action.includes('vnbLookup'));
+      if (vnbStep) {
+        expect(vnbStep.canExecute).toBe(false);
+        expect(vnbStep.scopeRequirement).toBe('operatorScope');
+      }
+
+      // marketPartners step must exist and be canExecute
+      const mpStep = plan.executableSteps.find((s) => s.action.includes('marketPartners'));
+      expect(mpStep).toBeDefined();
+      expect(mpStep.canExecute).toBe(true);
+    });
+  });
 });
+

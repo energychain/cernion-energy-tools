@@ -1298,14 +1298,16 @@ module.exports = {
           'POST /cookbook/validate': 'cookbook.validate',
 
           // Agent Receipts — runtime-managed routing receipts (v0.54.0)
-          // NOTE: static /validate must precede dynamic /:id routes.
+          // NOTE: static /validate and /propose must precede dynamic /:id routes.
           'GET /agent-receipts': 'agent-receipts.list',
           'POST /agent-receipts': 'agent-receipts.create',
           'POST /agent-receipts/select': 'agent-receipts.select',
           'POST /agent-receipts/validate': 'agent-receipts.validate',
+          'POST /agent-receipts/propose': 'agent-receipts.proposeDraft',
           'GET /agent-receipts/:id': 'agent-receipts.get',
           'PUT /agent-receipts/:id': 'agent-receipts.update',
           'POST /agent-receipts/:id/status': 'agent-receipts.setStatus',
+          'POST /agent-receipts/:id/promote': 'agent-receipts.promote',
           'DELETE /agent-receipts/:id': 'agent-receipts.archive',
 
           // CYA Agent (v0.26)

@@ -797,14 +797,63 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
         if (query) mcpParams.query = query;
         mcpParams.limit = limit || 5;
 
-        const primary = await CernionMCPClient.callWithNewSession(
-          'cernion_vnb_lookup',
-          mcpParams,
-          ctx.meta.cernionToken
-        );
+        let primary;
+        try {
+          primary = await CernionMCPClient.callWithNewSession(
+            'cernion_vnb_lookup',
+            mcpParams,
+            ctx.meta.cernionToken
+          );
+        } catch (err) {
+          this.logger.error(
+            `[vnbLookup] MCP call to cernion_vnb_lookup failed: ${err.message}`,
+            {
+              tool: 'cernion_vnb_lookup',
+              lookupType,
+              lookupParam,
+              error: err.message,
+            }
+          );
+
+          // Return diagnostic error response instead of throwing
+          return {
+            success: false,
+            data: null,
+            error: {
+              code: 'VNB_LOOKUP_FAILED',
+              message: `Unable to resolve VNB ID via cernion_vnb_lookup: ${err.message}`,
+              diagnostics: {
+                tool: 'cernion_vnb_lookup',
+                lookupType,
+                lookupParam,
+                originalError: err.message,
+                suggestion: 'Verify CERNION_TOKEN is set and the MCP server is accessible',
+              },
+            },
+            verification: {
+              verifiedIdentity: false,
+              source: null,
+              warnings: [`Primary lookup failed: ${err.message}`],
+              gap: {
+                code: 'VNB_LOOKUP_FAILED',
+                message: `VNB lookup service unavailable: ${err.message}`,
+              },
+            },
+          };
+        }
 
         // Return immediately if mastrId was found
-        if (primary?.data?.mastrId) return primary;
+        if (primary?.data?.mastrId) {
+          return this.normalizeVnbLookupEvidence(primary, ctx.params);
+        }
+
+        // If primary returned error status (success: false), don't retry fallback
+        if (primary?.success === false) {
+          this.logger.warn(
+            `[vnbLookup] Primary lookup returned error status: ${primary?.error?.message || 'unknown'}`
+          );
+          return this.normalizeVnbLookupEvidence(primary, ctx.params);
+        }
 
         // Fallback: extract SNB from a sample installation in the operator's city
         if (city) {
@@ -833,7 +882,7 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
 
             if (snb) {
               this.logger.info(`[vnbLookup] SNB extracted via city fallback: ${snb}`);
-              return {
+              const fallbackResult = {
                 success: true,
                 data: {
                   bdew: bdew || lookupParam,
@@ -846,13 +895,18 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
                 },
                 metadata: primary?.metadata,
               };
+
+              return this.normalizeVnbLookupEvidence(fallbackResult, ctx.params);
             }
           } catch (err) {
-            this.logger.warn(`[vnbLookup] City fallback failed: ${err.message}`);
+            this.logger.warn(`[vnbLookup] City fallback failed: ${err.message}`, {
+              city,
+              error: err.message,
+            });
           }
         }
 
-        return primary;
+        return this.normalizeVnbLookupEvidence(primary, ctx.params);
       },
     },
 
@@ -2478,6 +2532,53 @@ heat pumps, storage systems) in a given postcode area or for a specific VNB.
   },
 
   methods: {
+    normalizeVnbLookupEvidence(result, requestParams = {}) {
+      const payload = result && typeof result === 'object' ? result : { success: true, data: {} };
+      const data = payload?.data && typeof payload.data === 'object' ? { ...payload.data } : {};
+
+      const source = String(data.source || '').trim().toLowerCase();
+      const city = String(requestParams?.city || '').trim();
+      const normalizedCity = city.toLowerCase();
+      const bdew = String(data.bdew || '').trim();
+      const companyName = String(data.companyName || data.vnbName || '').trim();
+
+      const cityPlaceholderBdew = normalizedCity && bdew.toLowerCase() === normalizedCity;
+      const cityPlaceholderName = normalizedCity && companyName.toLowerCase() === normalizedCity;
+      const fallbackPlaceholder = source === 'city-nap-fallback' && (cityPlaceholderBdew || cityPlaceholderName);
+
+      const warnings = [];
+      if (fallbackPlaceholder) {
+        warnings.push(
+          'Fallback result is not a verified VNB identity (city placeholder values detected).'
+        );
+      }
+
+      const verifiedIdentity = Boolean(data.mastrId) && !fallbackPlaceholder;
+
+      return {
+        ...payload,
+        data: {
+          ...data,
+          ...(fallbackPlaceholder ? { bdew: null, companyName: null, vnbName: null } : {}),
+          evidenceStatus: verifiedIdentity ? 'verified' : 'unverified',
+          verification: {
+            verifiedIdentity,
+            source: source || null,
+            warnings,
+            gap: verifiedIdentity
+              ? null
+              : {
+                  code: 'VNB_IDENTITY_UNVERIFIED',
+                  message:
+                    'VNB identity could not be confirmed from authoritative BDEW/name evidence.',
+                },
+          },
+          partial: verifiedIdentity ? false : true,
+          unverified: verifiedIdentity ? false : true,
+        },
+      };
+    },
+
     /**
      * BR-0001: Post-processing for vnb_lookup_codes results.
      *

@@ -236,6 +236,7 @@ const ACTION_REQUIREMENTS = Object.freeze({
     anyOf: ['gridOperatorId', 'gridOperatorBdew', 'communityName', 'communityId'],
   },
   'znp.getProjectMeta': { allOf: ['projectId'] },
+  'znp.assessPortfolio': { allOf: ['projectId'] },
   'redispatch-expost.audit': {
     anyOf: ['gridOperatorId', 'gridOperatorBdew', 'gridOperatorName'],
   },
@@ -270,6 +271,9 @@ const ACTION_PARAM_ALIASES = Object.freeze({
     consumers: ['consumers'],
   },
   'znp.getProjectMeta': {
+    projectId: ['projectId'],
+  },
+  'znp.assessPortfolio': {
     projectId: ['projectId'],
   },
   'redispatch-expost.audit': {
@@ -1377,6 +1381,19 @@ function pruneUndefinedDeep(value) {
   return Object.fromEntries(entries);
 }
 
+/**
+ * Determines if a parameter value is "missing" for execution preflight purposes.
+ * Treats null, undefined, empty string, empty array, and empty plain object as missing.
+ * This is more strict than a simple null-check: an empty string projectId is not valid.
+ */
+function isMissingRequired(value) {
+  if (value == null) return true;
+  if (typeof value === 'string') return value.trim() === '';
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === 'object') return Object.keys(value).length === 0;
+  return false;
+}
+
 function getMissingInputs(action, params = {}) {
   const rules = ACTION_REQUIREMENTS[action];
   if (!rules) return [];
@@ -1384,7 +1401,7 @@ function getMissingInputs(action, params = {}) {
 
   if (Array.isArray(rules.allOf)) {
     for (const key of rules.allOf) {
-      if (!Object.prototype.hasOwnProperty.call(params, key) || params[key] === undefined) {
+      if (!Object.prototype.hasOwnProperty.call(params, key) || params[key] == null) {
         missing.push(key);
       }
     }
@@ -1400,6 +1417,64 @@ function getMissingInputs(action, params = {}) {
   }
 
   return missing;
+}
+
+/**
+ * Central execution preflight function.
+ *
+ * Validates params before any ctx.call() is issued for the given action.
+ * Combines ACTION_REQUIREMENTS (allOf / anyOf), isMissingRequired (covers null/empty-string/
+ * empty-array/empty-object), and optional required-scope checks.
+ *
+ * Returns a structured outcome:
+ *   { outcome: 'ok' }
+ *   { outcome: 'missing-inputs', missingParams: string[] }
+ *   { outcome: 'scope-blocked',  missingParams: string[] }
+ *
+ * Callers in executeDeterministicPlan must treat any outcome !== 'ok' as a hard stop
+ * and must NOT forward execution to ctx.call.
+ *
+ * @param {string} action         - Moleculer action name, e.g. 'znp.assessPortfolio'
+ * @param {object} params         - Resolved params that would be passed to ctx.call
+ * @param {object} [options]
+ * @param {string[]} [options.requiredScopes]  - Scopes that must be present in contextScopes
+ * @param {object}  [options.contextScopes]    - Map of scope key → boolean/truthy from context
+ */
+function runExecutionPreflight(action, params = {}, { requiredScopes = [], contextScopes = null } = {}) {
+  const rules = ACTION_REQUIREMENTS[action];
+  const missingParams = [];
+
+  if (rules) {
+    if (Array.isArray(rules.allOf)) {
+      for (const key of rules.allOf) {
+        if (!Object.prototype.hasOwnProperty.call(params, key) || isMissingRequired(params[key])) {
+          missingParams.push(key);
+        }
+      }
+    }
+
+    if (Array.isArray(rules.anyOf) && rules.anyOf.length > 0) {
+      const hasAny = rules.anyOf.some(
+        (key) => Object.prototype.hasOwnProperty.call(params, key) && !isMissingRequired(params[key])
+      );
+      if (!hasAny) {
+        missingParams.push(`oneOf:${rules.anyOf.join('|')}`);
+      }
+    }
+  }
+
+  if (missingParams.length > 0) {
+    return { outcome: 'missing-inputs', missingParams };
+  }
+
+  if (Array.isArray(requiredScopes) && requiredScopes.length > 0 && contextScopes != null) {
+    const blockedScopes = requiredScopes.filter((s) => !contextScopes[s]);
+    if (blockedScopes.length > 0) {
+      return { outcome: 'scope-blocked', missingParams: blockedScopes };
+    }
+  }
+
+  return { outcome: 'ok', missingParams: [] };
 }
 
 function shouldAttachRegulatoryContextNote(action = '') {
@@ -1586,6 +1661,8 @@ module.exports = {
   fillTemplateWithContext,
   pruneUndefinedDeep,
   getMissingInputs,
+  isMissingRequired,
+  runExecutionPreflight,
   detectEvidenceSignalKey,
   fuzzyClassifyConsultationIntent,
   planEvidence,

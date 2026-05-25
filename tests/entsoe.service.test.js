@@ -148,7 +148,7 @@ describe('ENTSO-E Service', () => {
     });
 
     it('should have default timeout setting', () => {
-      expect(EntsoeService.settings.defaultTimeout).toBe(30000);
+      expect(EntsoeService.settings.defaultTimeout).toBe(90000);
     });
   });
 });

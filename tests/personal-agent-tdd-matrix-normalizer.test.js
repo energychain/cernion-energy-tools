@@ -26,11 +26,11 @@ describe('personal-agent-tdd-matrix-normalizer', () => {
     expect(normalizeRouteSpec('GET /foo/bar')).toBe('GET /foo/bar');
   });
 
-  it('contains fixed mappings for all required matrix IDs (70)', () => {
+  it('contains fixed mappings for all required matrix IDs (78)', () => {
     const markdown = fs.readFileSync(DEFAULT_MATRIX_FILE, 'utf8');
     const required = extractRequiredTddIds(markdown);
     const mapIds = getNormalizedTestIds();
-    expect(required).toHaveLength(70);
+    expect(required).toHaveLength(78);
     expect(mapIds).toEqual(required);
   });
 

@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.54.3
-- changelog_latest_release: 0.54.3
+- version: 0.54.8
+- changelog_latest_release: 0.54.8
 - source_files_hash:
-  - CHANGELOG.md: 685c0165d56ea6e043beaa3a12b5afa7bf2fa99d8100b62290af9c6558906dc8
+  - CHANGELOG.md: 8c70a4ca1614e72283685c31478372a65de79bd99b8d6714922b138131c4dfba
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 5d30cd990f6ed8eac314d7f9730847c80c698b2d427132225f91fad2e1ba509d
-  - openapi-export.json: 0b01c5e7688800e015da86d2e2eeccf4adbd52f449191c3605ca2899103f7639
+  - openapi-export.json: ae9cd8ef5af8ea230b608091870ea67333c39acf3121b16d4d4c114d7170baef
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -588,10 +588,10 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 283
-- operation_count: 328
+- path_count: 285
+- operation_count: 330
 - operations_by_tag:
-- Agent Receipts: 8 operations
+- Agent Receipts: 10 operations
 - Analytics: 4 operations
 - api: 1 operations
 - Assets: 5 operations
@@ -654,7 +654,9 @@ process:
 - DELETE /api/agent-receipts/:id | tags: [Agent Receipts] | operationId: agent-receipts_archive | summary: Archive an agent receipt (soft delete)
 - GET /api/agent-receipts/:id | tags: [Agent Receipts] | operationId: agent-receipts_get | summary: Get an agent receipt by id
 - PUT /api/agent-receipts/:id | tags: [Agent Receipts] | operationId: agent-receipts_update | summary: Update an agent receipt
+- POST /api/agent-receipts/:id/promote | tags: [Agent Receipts] | operationId: agent-receipts_promote | summary: Promote a draft receipt to active (explicit review gate)
 - POST /api/agent-receipts/:id/status | tags: [Agent Receipts] | operationId: agent-receipts_setStatus | summary: Set receipt lifecycle status
+- POST /api/agent-receipts/propose | tags: [Agent Receipts] | operationId: agent-receipts_proposeDraft | summary: Propose a new draft receipt (governed learning loop)
 - POST /api/agent-receipts/select | tags: [Agent Receipts] | operationId: agent-receipts_select | summary: Select a runtime receipt for Personal Agent orchestration
 - POST /api/agent-receipts/validate | tags: [Agent Receipts] | operationId: agent-receipts_validate | summary: Validate receipt payload or persisted receipt
 - GET /api/assets/:assetId/effective | tags: [Assets] | operationId: assets_effective | summary: Get effective asset view (MaStR + applied overrides)
@@ -978,7 +980,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.54.3"
+    "version": "0.54.8"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -1295,8 +1297,17 @@ process:
                     },
                     "type": "array"
                   },
+                  "knowledgeEvidencePolicy": {
+                    "type": "object"
+                  },
                   "knowledgePlan": {
                     "type": "object"
+                  },
+                  "knowledgeQueries": {
+                    "items": {
+                      "type": "object"
+                    },
+                    "type": "array"
                   },
                   "matching": {
                     "type": "object"
@@ -1442,6 +1453,71 @@ process:
         ]
       }
     },
+    "/api/agent-receipts/:id/promote": {
+      "post": {
+        "description": "Transitions a draft receipt to active. Requires promotedBy identity. Validates the receipt fully before promotion. Optionally auto-deprecates a superseded active receipt. Requires _rev for CAS conflict protection.",
+        "operationId": "agent-receipts_promote",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "example": "vnb-lookup-v2",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "_rev": {
+                    "description": "CAS revision token. Prevents concurrent promotion race conditions.",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "changeReason": {
+                    "type": "string"
+                  },
+                  "promotedBy": {
+                    "description": "Identity of the reviewer who approved promotion.",
+                    "example": "admin@example.com",
+                    "type": "string"
+                  },
+                  "supersedes": {
+                    "description": "Optional receiptId of an active receipt to auto-deprecate on promotion. Falls back to supersedes field stored on the draft.",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "promotedBy"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Promote a draft receipt to active (explicit review gate)",
+        "tags": [
+          "Agent Receipts"
+        ]
+      }
+    },
     "/api/agent-receipts/:id/status": {
       "post": {
         "operationId": "agent-receipts_setStatus",
@@ -1505,6 +1581,103 @@ process:
         ]
       }
     },
+    "/api/agent-receipts/propose": {
+      "post": {
+        "description": "Creates a receipt in draft status only. Chat and automated flows must use this path instead of create. The receipt is pending review and must be explicitly promoted before becoming active.",
+        "operationId": "agent-receipts_proposeDraft",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "changeReason": {
+                    "description": "Optional human-readable reason for this proposal.",
+                    "type": "string"
+                  },
+                  "creatorId": {
+                    "description": "Identity of the creator (user id, agent name, etc).",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "creatorSource": {
+                    "default": "api",
+                    "description": "Origin of the proposal. Chat-originated proposals must use chat.",
+                    "enum": [
+                      "chat",
+                      "admin",
+                      "api",
+                      "seed"
+                    ],
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "domain": {
+                    "type": "string"
+                  },
+                  "matching": {
+                    "type": "object"
+                  },
+                  "receiptId": {
+                    "example": "vnb-lookup-v2",
+                    "type": "string"
+                  },
+                  "requiredInputs": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "supersedes": {
+                    "description": "Optional receiptId of an active receipt this draft intends to supersede upon promotion.",
+                    "type": "string"
+                  },
+                  "tags": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "toolPlan": {
+                    "type": "object"
+                  }
+                },
+                "required": [
+                  "receiptId",
+                  "title",
+                  "description",
+                  "domain",
+                  "matching",
+                  "toolPlan"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Propose a new draft receipt (governed learning loop)",
+        "tags": [
+          "Agent Receipts"
+        ]
+      }
+    },
     "/api/agent-receipts/select": {
       "post": {
         "operationId": "agent-receipts_select",
@@ -1530,6 +1703,14 @@ process:
                     "default": false,
                     "type": "boolean"
                   },
+                  "bdewCode": {
+                    "example": "9900992720003",
+                    "type": "string"
+                  },
+                  "city": {
+                    "example": "Wiesloch",
+                    "type": "string"
+                  },
                   "context": {
                     "default": {},
                     "example": {},
@@ -1552,6 +1733,13 @@ process:
                     "example": {},
                     "type": "object"
                   },
+                  "knownContext": {
+                    "default": {},
+                    "example": {
+                      "city": "Wiesloch"
+                    },
+                    "type": "object"
+                  },
                   "message": {
                     "example": "Wer ist der zuständige VNB in Trier?",
                     "type": "string"
@@ -1565,6 +1753,14 @@ process:
                       "type": "string"
                     },
                     "type": "array"
+                  },
+                  "question": {
+                    "example": "Wer ist der zuständige Netzbetreiber?",
+                    "type": "string"
+                  },
+                  "vnbName": {
+                    "example": "TWL Netze GmbH",
+                    "type": "string"
                   }
                 },
                 "type": "object"
@@ -23681,8 +23877,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.54.3"
+  "x-version": "0.54.8"
 }
 
 ## Integrity
-- llm_txt_sha256: 6986d303a71e8f823ac3ce01d0b1928aa774c8cbfb17395f15f51ff07706a1f7
+- llm_txt_sha256: 2d84c47950364baeacc6afa47a5273c0435d2ffe9c6ea44c9a4be46e81b65bb7

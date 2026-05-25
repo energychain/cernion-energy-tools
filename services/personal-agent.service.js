@@ -60,6 +60,7 @@ const {
   fillTemplateWithContext,
   pruneUndefinedDeep,
   getMissingInputs,
+  runExecutionPreflight,
   fuzzyClassifyConsultationIntent,
 } = require('../src/personal-agent-routing');
 const {
@@ -187,9 +188,9 @@ const CONSULTATION_REACT_MAX_ITERATIONS = Number(
   process.env.PERSONAL_AGENT_CONSULTATION_REACT_MAX_ITERATIONS || 4
 );
 const CONSULTATION_REACT_MAX_MS = Number(
-  process.env.PERSONAL_AGENT_CONSULTATION_REACT_MAX_MS || 30_000
+  process.env.PERSONAL_AGENT_CONSULTATION_REACT_MAX_MS || 90000
 );
-const PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS_DEFAULT = 90_000;
+const PERSONAL_AGENT_SYNTHESIS_TIMEOUT_MS_DEFAULT = 90000;
 const CONSULTATION_SYNTHESIS_MIN_MS = Number(
   process.env.PERSONAL_AGENT_CONSULTATION_SYNTHESIS_MIN_MS || 5_000
 );
@@ -197,7 +198,7 @@ const CONSULTATION_TOOL_MAX_ATTEMPTS = Number(
   process.env.PERSONAL_AGENT_CONSULTATION_TOOL_MAX_ATTEMPTS || 2
 );
 const CONSULTATION_TOOL_TIMEOUT_MS = Number(
-  process.env.PERSONAL_AGENT_CONSULTATION_TOOL_TIMEOUT_MS || 8_000
+  process.env.PERSONAL_AGENT_CONSULTATION_TOOL_TIMEOUT_MS || 16000
 );
 const CONSULTATION_MIN_EFFECTIVE_TOOL_TIMEOUT_MS = Number(
   process.env.PERSONAL_AGENT_CONSULTATION_MIN_EFFECTIVE_TOOL_TIMEOUT_MS || 750
@@ -214,6 +215,20 @@ function isActionUnavailable(error) {
     error?.type === 'SERVICE_NOT_AVAILABLE' ||
     error?.type === 'SERVICE_SCHEMA_ERROR' ||
     error?.name === 'ServiceNotFoundError'
+  );
+}
+
+/**
+ * Detects a Moleculer parameter validation error that slipped past preflight.
+ * These should be converted to a structured PREFLIGHT_MISS signal instead of
+ * exposing raw schema internals to the user.
+ */
+function isParametersValidationError(error) {
+  const msg = String(error?.message || '');
+  return (
+    /parameters\s+validation\s+error/i.test(msg) ||
+    error?.type === 'VALIDATION_ERROR' ||
+    error?.name === 'ValidationError'
   );
 }
 
@@ -385,6 +400,16 @@ function createConsultationDebugRecorder({
       return event;
     },
   };
+}
+
+/**
+ * Returns true only if `value` looks like a real BDEW code (5–13 digits).
+ * Rejects free-text tokens that NLP extraction may have accidentally placed
+ * in promptHints.bdew (e.g. "KANNST", "WER", "FÜR").
+ */
+function isPlausibleBdewCode(value) {
+  if (!value || typeof value !== 'string') return false;
+  return /^\d{5,13}$/.test(value.trim());
 }
 
 module.exports = {
@@ -1003,13 +1028,36 @@ module.exports = {
         },
       },
       async handler(ctx) {
+        const sessionKey = String(ctx.params.sessionId || '').trim();
+        const messageKey = String(ctx.params.message || '').trim();
+        const receiptKey = String(ctx.params.forceReceipt || '').trim();
+        const idempotencyKey =
+          sessionKey && messageKey
+            ? `${sessionKey}:${crypto
+                .createHash('sha256')
+                .update(`${messageKey}|${receiptKey}`)
+                .digest('hex')
+                .slice(0, 16)}`
+            : sessionKey || undefined;
+
         // Gateway-aware async job routing wrapper
         return await jobStore.startJob(
           ctx,
           { service: 'personal-agent', action: 'chat' },
           (jobId) => this._executeChatCoreLogic(ctx, jobId),
           {
-            idempotencyKey: ctx.params.sessionId || undefined,
+            idempotencyKey,
+            wakeContext: {
+              params: {
+                sessionId: sessionKey || undefined,
+                message: messageKey,
+                forceReceipt: receiptKey || undefined,
+              },
+              meta: {
+                tenantId: ctx.meta?.tenantId,
+                userId: ctx.meta?.authUser?.userId,
+              },
+            },
           }
         );
       },
@@ -1424,9 +1472,21 @@ module.exports = {
           }
         );
 
+        const forceReceiptRequested =
+          typeof ctx.params.forceReceipt === 'string' && ctx.params.forceReceipt.trim().length > 0;
         const receiptSelectionDiagnosticsRequested =
           ctx.params.explainReceiptSelection === true ||
+          forceReceiptRequested ||
           isConsultationDebugEnabled(rawKnownContext);
+
+        if (forceReceiptRequested && ctx.params.disableReceiptSelection === true) {
+          throw new MoleculerClientError(
+            'forceReceipt cannot be combined with disableReceiptSelection=true.',
+            422,
+            'RECEIPT_FORCE_CONFLICTS_WITH_DISABLE'
+          );
+        }
+
         const receiptSelectionResult = await this.selectRuntimeReceipt(ctx, {
           message: ctx.params.message,
           context: {
@@ -1452,12 +1512,60 @@ module.exports = {
           disableReceiptSelection: ctx.params.disableReceiptSelection === true,
         });
 
-        const receiptSelectionMetadata = this.buildReceiptSelectionMetadata(
+        let receiptSelectionMetadata = this.buildReceiptSelectionMetadata(
           receiptSelectionResult,
           {
             includeDiagnostics: receiptSelectionDiagnosticsRequested,
           }
         );
+
+          if (
+            Array.isArray(receiptSelectionResult?.evaluation?.plannedToolCalls) &&
+            receiptSelectionResult.execution &&
+            typeof receiptSelectionResult.execution === 'object'
+          ) {
+            receiptSelectionResult.execution.plannedToolCalls =
+              receiptSelectionResult.evaluation.plannedToolCalls.map((step) => ({
+                step: Number(step?.step || 0) || null,
+                action: step?.selectedAction || step?.action || null,
+                requestedAction: step?.action || null,
+                params: step?.params || {},
+                status: step?.status || null,
+              }));
+          }
+
+        if (forceReceiptRequested && receiptSelectionResult?.selected !== true) {
+          throw new MoleculerClientError(
+            `Forced receipt '${ctx.params.forceReceipt}' was not selected for execution.`,
+            422,
+            'RECEIPT_FORCED_NOT_SELECTED',
+            {
+              forceReceipt: ctx.params.forceReceipt,
+              selectionMode: receiptSelectionResult?.mode || 'none',
+            }
+          );
+        }
+
+        const receiptSelectionExecutable =
+          receiptSelectionResult?.selected === true &&
+          (receiptSelectionResult?.evaluation
+            ? receiptSelectionResult.evaluation.executable === true
+            : true);
+
+        if (forceReceiptRequested && !receiptSelectionExecutable) {
+          throw new MoleculerClientError(
+            `Forced receipt '${ctx.params.forceReceipt}' is not executable for the current context.`,
+            422,
+            'RECEIPT_FORCED_NOT_EXECUTABLE',
+            {
+              forceReceipt: ctx.params.forceReceipt,
+              diagnostics: receiptSelectionResult?.diagnostics || null,
+            }
+          );
+        }
+
+        const shouldPreferReceiptExecution =
+          receiptSelectionExecutable && ctx.params.disableReceiptSelection !== true;
 
         const routingDecision = decideRoutingTarget({
           effectiveChatMode,
@@ -1626,8 +1734,9 @@ module.exports = {
         }
 
         if (
-          routingDecision.target === 'consultation_node' ||
-          routingDecision.target === 'consultation_intro'
+          (routingDecision.target === 'consultation_node' ||
+            routingDecision.target === 'consultation_intro') &&
+          !shouldPreferReceiptExecution
         ) {
           stateMachine = transitionStateMachine(
             stateMachine,
@@ -1674,9 +1783,16 @@ module.exports = {
           });
 
           const consultationExecution = {
-            status: 'consulting',
+            status:
+              consultationResult?.status === 'awaiting-onboarding'
+                ? 'awaiting-onboarding'
+                : 'consulting',
             plan: null,
             steps: [],
+            stopPoint:
+              consultationResult?.stopPoint && typeof consultationResult.stopPoint === 'object'
+                ? consultationResult.stopPoint
+                : null,
           };
           const consultationPrimaryIntent = this.deriveConsultationPrimaryIntent({
             brokerRecommendation,
@@ -1709,11 +1825,22 @@ module.exports = {
               ? consultationResult.factsUsed.length
               : 0,
           });
+          if (consultationExecution.status === 'awaiting-onboarding') {
+            stateMachine = transitionStateMachine(
+              stateMachine,
+              PERSONAL_AGENT_STATES.AWAITING_ONBOARDING,
+              {
+                reasonCode: consultationExecution?.stopPoint?.reasonCode || null,
+                blockedAction: consultationExecution?.stopPoint?.blockedAction || null,
+                blockedStep: consultationExecution?.stopPoint?.blockedStep || null,
+              }
+            );
+          }
           stateMachine = transitionStateMachine(
             stateMachine,
-            deriveTerminalState({ consultation: consultationResult, status: 'consulting' }),
+            deriveTerminalState({ consultation: consultationResult, status: consultationExecution.status }),
             {
-              status: 'consulting',
+              status: consultationExecution.status,
               openQuestions: Array.isArray(consultationResult.openQuestions)
                 ? consultationResult.openQuestions.length
                 : 0,
@@ -1790,6 +1917,10 @@ module.exports = {
           persisted.l3.lastCompletedPlan =
             session.l3?.lastCompletedPlan && typeof session.l3.lastCompletedPlan === 'object'
               ? session.l3.lastCompletedPlan
+              : null;
+          persisted.l3.stopPoint =
+            consultationExecution?.stopPoint && typeof consultationExecution.stopPoint === 'object'
+              ? consultationExecution.stopPoint
               : null;
 
           assertNoL4RawInPersistedState(persisted);
@@ -1905,30 +2036,63 @@ module.exports = {
             const useReceiptExecution =
               selectedReceipt &&
               !ctx.params.disableReceiptSelection &&
-              executionReadiness?.canExecuteNow &&
-              executionReadiness?.executableSteps?.length > 0;
+              receiptSelectionResult?.evaluation?.executable === true;
 
             if (useReceiptExecution) {
               try {
-                const toolResolver = async (action, params) => {
-                  return await ctx.call(action, params, { meta: ctx.meta });
+                const toolResolver = {
+                  executeTool: async (action, params) => {
+                    return {
+                      action,
+                      status: 'completed',
+                      result: await ctx.call(action, params, { meta: ctx.meta }),
+                    };
+                  },
                 };
                 consultationPlanResults = await executeWithReceipt(
                   selectedReceipt,
-                  {
+                  this.buildReceiptExecutionContext({
                     message: ctx.params.message,
                     knownContext: brokerKnownContext || {},
                     resolvedParams: session?.resolvedParams || {},
                     observations: [],
-                  },
+                  }),
                   [],
                   toolResolver,
                   this.logger
                 );
+                receiptSelectionResult.execution = {
+                  used: true,
+                  executor: 'executeWithReceipt',
+                  fallbackReason: null,
+                  executedToolCalls: Array.isArray(consultationPlanResults?.steps)
+                    ? consultationPlanResults.steps.map((step) => ({
+                        step: Number(step?.step || 0) || null,
+                        action: step?.action || step?.outcome?.action || null,
+                        status: step?.status || null,
+                        params: step?.params || {},
+                      }))
+                    : [],
+                };
               } catch (receiptExecError) {
                 this.logger?.warn(
-                  `Receipt execution failed (${selectedReceipt.id}): ${receiptExecError.message}, falling back to legacy execution`
+                  `Receipt execution failed (${selectedReceipt.receiptId || selectedReceipt.id || 'unknown-receipt'}): ${receiptExecError.message}, falling back to legacy execution`
                 );
+                if (forceReceiptRequested) {
+                  throw new MoleculerClientError(
+                    `Forced receipt execution failed: ${receiptExecError.message}`,
+                    422,
+                    'RECEIPT_FORCED_EXECUTION_FAILED',
+                    {
+                      forceReceipt: ctx.params.forceReceipt,
+                    }
+                  );
+                }
+                receiptSelectionResult.execution = {
+                  used: false,
+                  executor: 'executeWithReceipt',
+                  fallbackReason: 'receipt_execution_failed',
+                };
                 // Fall back to legacy if receipt execution fails
                 if (
                   executionReadiness.canExecuteNow &&
@@ -1947,6 +2111,16 @@ module.exports = {
               executionReadiness.canExecuteNow &&
               executionReadiness.executableSteps.length > 0
             ) {
+              receiptSelectionResult.execution = {
+                used: false,
+                executor: 'executeWithReceipt',
+                fallbackReason:
+                  ctx.params.disableReceiptSelection === true
+                    ? 'disabled_by_request'
+                    : selectedReceipt
+                      ? 'receipt_not_executable'
+                      : 'no_selected_receipt',
+              };
               // Legacy execution path (no receipt, or receipt selection disabled)
               consultationPlanResults = await this.executeConsultationToolPlan(ctx, {
                 plan: executionReadiness,
@@ -1989,6 +2163,9 @@ module.exports = {
             evidencePlan: null,
             execution: consultationExecution,
             consultation: consultationPayload,
+          });
+          receiptSelectionMetadata = this.buildReceiptSelectionMetadata(receiptSelectionResult, {
+            includeDiagnostics: receiptSelectionDiagnosticsRequested,
           });
           const agentTrace = this.buildAgentTrace({
             routing: consultationRouting,
@@ -2115,7 +2292,7 @@ module.exports = {
             jobId,
             'broker_execute',
             50,
-            `Executing plan (${execution?.steps?.length || 0} steps)...`,
+            `Executing plan (${Array.isArray(routedPlan?.steps) ? routedPlan.steps.length : 0} steps)...`,
             {
               planId: routedPlan?.id || null,
               primaryIntent: routing?.primaryIntent || null,
@@ -2124,14 +2301,107 @@ module.exports = {
           );
         }
 
-        const execution = await this.handleExecutionWithOnboarding(ctx, {
-          message: ctx.params.message,
-          plan: routedPlan,
-          knownContext: preflightKnownContext,
-          session,
-          executionMode,
-          executionTrace,
-          toolCallTracker,
+        let execution = null;
+        const selectedReceiptForExecution = receiptSelectionResult?.selectedReceipt || null;
+        const canRunReceiptExecution =
+          Boolean(selectedReceiptForExecution) &&
+          ctx.params.disableReceiptSelection !== true &&
+          (executionMode === EXECUTION_MODES.AUTO || forceReceiptRequested || shouldPreferReceiptExecution);
+
+        if (canRunReceiptExecution) {
+          try {
+            const receiptExecutionContext = this.buildReceiptExecutionContext({
+              message: ctx.params.message,
+              knownContext: preflightKnownContext,
+              resolvedParams: session?.resolvedParams || {},
+              observations: [],
+            });
+
+            const receiptExecutionResult = await executeWithReceipt(
+              selectedReceiptForExecution,
+              receiptExecutionContext,
+              [],
+              {
+                executeTool: async (action, params) => ({
+                  action,
+                  status: 'completed',
+                  result: await ctx.call(action, params, {
+                    meta: { ...ctx.meta, $gateway: false },
+                  }),
+                }),
+              },
+              this.logger
+            );
+
+            execution = this.normalizeReceiptExecutionResult(receiptExecutionResult, {
+              plan: routedPlan,
+              message: ctx.params.message,
+            });
+
+            receiptSelectionResult.execution = {
+              used: true,
+              executor: 'executeWithReceipt',
+              fallbackReason: null,
+              executedToolCalls: Array.isArray(execution?.steps)
+                ? execution.steps.map((step) => ({
+                    step: Number(step?.step || 0) || null,
+                    action: step?.action || null,
+                    status: step?.status || null,
+                    params: step?.params || {},
+                  }))
+                : [],
+            };
+          } catch (receiptExecError) {
+            receiptSelectionResult.execution = {
+              used: false,
+              executor: 'executeWithReceipt',
+              fallbackReason: 'receipt_execution_failed',
+            };
+
+            if (forceReceiptRequested) {
+              throw new MoleculerClientError(
+                `Forced receipt execution failed: ${receiptExecError.message}`,
+                422,
+                'RECEIPT_FORCED_EXECUTION_FAILED',
+                {
+                  forceReceipt: ctx.params.forceReceipt,
+                }
+              );
+            }
+          }
+        } else if (forceReceiptRequested) {
+          throw new MoleculerClientError(
+            'Forced receipt was selected but cannot be executed in the current mode/context.',
+            422,
+            'RECEIPT_FORCED_NOT_EXECUTABLE',
+            {
+              executionMode,
+            }
+          );
+        }
+
+        if (!execution) {
+          if (!receiptSelectionResult.execution) {
+            receiptSelectionResult.execution = {
+              used: false,
+              executor: 'executeWithReceipt',
+              fallbackReason:
+                ctx.params.disableReceiptSelection === true ? 'disabled_by_request' : 'legacy_path',
+            };
+          }
+
+          execution = await this.handleExecutionWithOnboarding(ctx, {
+            message: ctx.params.message,
+            plan: routedPlan,
+            knownContext: preflightKnownContext,
+            session,
+            executionMode,
+            executionTrace,
+            toolCallTracker,
+          });
+        }
+        receiptSelectionMetadata = this.buildReceiptSelectionMetadata(receiptSelectionResult, {
+          includeDiagnostics: receiptSelectionDiagnosticsRequested,
         });
         const executionStepsForGraph = Array.isArray(execution?.steps) ? execution.steps : [];
         executionStepsForGraph.forEach((step) => {
@@ -2413,6 +2683,22 @@ module.exports = {
         if (execution?.status === 'awaiting-onboarding') {
           const onboardingQuestion = execution?.stopPoint?.onboardingQuestion;
           const questionText = onboardingQuestion?.questionText || execution?.stopPoint?.message;
+          const isMandatoryHitlApproval =
+            execution?.stopPoint?.reasonCode === 'MANDATORY_HITL_APPROVAL';
+
+          if (isMandatoryHitlApproval) {
+            stateMachine = transitionStateMachine(
+              stateMachine,
+              PERSONAL_AGENT_STATES.AWAITING_ONBOARDING,
+              {
+                reasonCode: 'MANDATORY_HITL_APPROVAL',
+                blockedAction: execution?.stopPoint?.blockedAction || null,
+                blockedStep: execution?.stopPoint?.blockedStep || null,
+                hitlItemId:
+                  onboardingQuestion?.hitlItem?.id || execution?.stopPoint?.hitlItemId || null,
+              }
+            );
+          }
 
           // ── Parent-Plan Resume Status Transparency ──
           // Wenn wir von einem resolved Zwischen-Intent zurückkehren,
@@ -2437,26 +2723,50 @@ module.exports = {
             : [];
 
           if (questionText) {
-            const empathetic = await this.buildEmpathethicOnboardingReply({
-              message: ctx.params.message,
-              execution,
-              plan: responsePlan,
-              executionTrace,
-            });
-            const replyMarkdown = empathetic.markdown || questionText;
-            const onboardingNextActions = empathetic.nextActions || [];
+            let hitlOnboardingQuestion = onboardingQuestion;
+            let replyMarkdown = questionText;
+            let onboardingNextActions = [];
+
+            if (isMandatoryHitlApproval) {
+              hitlOnboardingQuestion = this.buildHitlOnboardingQuestion(
+                execution?.stopPoint || {},
+                responsePlan
+              );
+              replyMarkdown = this.buildHitlApprovalMarkdown(hitlOnboardingQuestion);
+              onboardingNextActions = [
+                {
+                  label: 'Freigabe öffnen',
+                  action: 'open_hitl_item',
+                  hitlItemId:
+                    hitlOnboardingQuestion?.hitlItem?.id || execution?.stopPoint?.hitlItemId,
+                },
+              ];
+            } else {
+              const empathetic = await this.buildEmpathethicOnboardingReply({
+                message: ctx.params.message,
+                execution,
+                plan: responsePlan,
+                executionTrace,
+              });
+              replyMarkdown = empathetic.markdown || questionText;
+              onboardingNextActions = empathetic.nextActions || [];
+            }
+
+            synthesisText = statusPrefix + replyMarkdown;
 
             presentationApplied = true;
             presentationType = 'conversational_onboarding';
             presentationResult = {
               type: 'conversational_onboarding',
-              markdown: statusPrefix + replyMarkdown,
+              markdown: synthesisText,
               warnings: missingParams.map((param) => `missing_context:${param}`),
               presentation: {
                 type: 'conversational_onboarding',
                 title: 'Fehlende Eingaben',
                 summary:
-                  'Bitte ergänzen Sie die fehlenden Angaben, damit die Ausführung fortgesetzt werden kann.',
+                  isMandatoryHitlApproval
+                    ? 'Für den nächsten Schritt ist eine Freigabe erforderlich.'
+                    : 'Bitte ergänzen Sie die fehlenden Angaben, damit die Ausführung fortgesetzt werden kann.',
                 markdown: replyMarkdown,
                 warnings: missingParams.map((param) => `missing_context:${param}`),
                 sections: [
@@ -2472,7 +2782,15 @@ module.exports = {
                   blockedAction: execution?.stopPoint?.blockedAction || null,
                   blockedStep: execution?.stopPoint?.blockedStep || null,
                   missingParams,
-                  onboardingQuestion: onboardingQuestion || null,
+                  onboardingQuestion:
+                    (isMandatoryHitlApproval ? hitlOnboardingQuestion : onboardingQuestion) || null,
+                  hitlItem:
+                    isMandatoryHitlApproval
+                      ? hitlOnboardingQuestion?.hitlItem ||
+                        (execution?.stopPoint?.hitlItemId
+                          ? { id: execution.stopPoint.hitlItemId, status: 'pending' }
+                          : null)
+                      : null,
                   nextActions: onboardingNextActions,
                 },
               },
@@ -2621,6 +2939,8 @@ module.exports = {
           session.l3?.lastCompletedPlan && typeof session.l3.lastCompletedPlan === 'object'
             ? session.l3.lastCompletedPlan
             : null;
+        persisted.l3.stopPoint =
+          execution?.stopPoint && typeof execution.stopPoint === 'object' ? execution.stopPoint : null;
 
         assertNoL4RawInPersistedState(persisted);
         await this.persistSession(ctx, tenantId, sessionId, persisted);
@@ -4216,8 +4536,63 @@ module.exports = {
       const knowledgeContext = input.knowledgeContext || null;
       const responseStrategy = input.responseStrategy || null;
       const knownContext = input.knownContext || {};
+      const session = input.session && typeof input.session === 'object' ? input.session : null;
       const executionTrace = input.executionTrace || null;
       const toolCallTracker = input.toolCallTracker || null;
+
+      const pendingHitlStopPoint =
+        session?.l3?.stopPoint && typeof session.l3.stopPoint === 'object'
+          ? session.l3.stopPoint
+          : null;
+      const pendingHitlStatus = String(
+        pendingHitlStopPoint?.hitlItem?.status ||
+          pendingHitlStopPoint?.onboardingQuestion?.hitlItem?.status ||
+          'pending'
+      ).toLowerCase();
+
+      if (
+        pendingHitlStopPoint?.reasonCode === 'MANDATORY_HITL_APPROVAL' &&
+        !['approved', 'rejected', 'declined', 'cancelled'].includes(pendingHitlStatus)
+      ) {
+        const onboardingQuestion = this.buildHitlOnboardingQuestion(
+          pendingHitlStopPoint,
+          pendingHitlStopPoint?.onboardingQuestion?.planSnapshot || null
+        );
+        const reply = this.buildHitlApprovalMarkdown(onboardingQuestion);
+
+        return {
+          status: 'awaiting-onboarding',
+          stopPoint: {
+            ...pendingHitlStopPoint,
+            onboardingQuestion,
+            message: onboardingQuestion.message,
+            hitlItemId:
+              onboardingQuestion?.hitlItem?.id || pendingHitlStopPoint?.hitlItemId || null,
+          },
+          reply,
+          hypotheses: [],
+          openQuestions: [
+            {
+              question: onboardingQuestion.message,
+              whyRelevant:
+                'Für den nächsten kritischen Schritt ist eine ausdrückliche Freigabe erforderlich.',
+            },
+          ],
+          nextActions: [
+            {
+              action: 'HITL-Freigabe entscheiden',
+              description:
+                'Öffnen Sie das Freigabe-Element und bestätigen oder lehnen Sie den Schritt ab.',
+            },
+          ],
+          factsUsed: [
+            {
+              source: 'session_stop_point',
+              value: 'MANDATORY_HITL_APPROVAL',
+            },
+          ],
+        };
+      }
 
       // C) Receive jobId from caller for per-iteration progress logging
       const agenticJobId = input.jobId || null;
@@ -6590,6 +6965,97 @@ module.exports = {
       }
     },
 
+    buildReceiptExecutionContext({
+      message = '',
+      knownContext = {},
+      resolvedParams = {},
+      observations = [],
+    } = {}) {
+      const baseContext = {
+        ...(knownContext && typeof knownContext === 'object' ? knownContext : {}),
+        ...(resolvedParams && typeof resolvedParams === 'object' ? resolvedParams : {}),
+      };
+
+      const city =
+        baseContext.city ||
+        baseContext.municipality ||
+        baseContext.location ||
+        baseContext.promptHints?.city ||
+        null;
+      const rawBdew =
+        baseContext.bdewCode || baseContext.bdew || baseContext.promptHints?.bdew;
+      const bdewCode = isPlausibleBdewCode(rawBdew) ? rawBdew : undefined;
+      const vnbName =
+        baseContext.vnbName ||
+        baseContext.gridOperatorName ||
+        baseContext.assertedGridOperatorName ||
+        baseContext.promptHints?.vnbName;
+
+      return pruneUndefinedDeep({
+        ...baseContext,
+        message: String(message || ''),
+        city: city,
+        municipality: baseContext.municipality || city || undefined,
+        bdewCode: bdewCode || undefined,
+        bdew: isPlausibleBdewCode(baseContext.bdew) ? baseContext.bdew : bdewCode || undefined,
+        vnbName: vnbName || undefined,
+        gridOperatorName: baseContext.gridOperatorName || vnbName || undefined,
+        observations: Array.isArray(observations) ? observations : [],
+      });
+    },
+
+    normalizeReceiptExecutionResult(result = {}, { plan = null, message = '' } = {}) {
+      const rawSteps = Array.isArray(result?.steps) ? result.steps : [];
+      const normalizedSteps = rawSteps.map((step, idx) => ({
+        step: Number(step?.step || idx + 1),
+        action: step?.action || step?.outcome?.action || 'unknown.action',
+        status:
+          step?.status === 'error' || step?.status === 'failed'
+            ? 'failed'
+            : step?.status === 'fallback'
+              ? 'completed'
+              : step?.status === 'skipped'
+                ? 'blocked'
+                : 'completed',
+        params: step?.params || {},
+        result: step?.outcome?.result || step?.result || null,
+        error: step?.error || step?.outcome?.error || null,
+      }));
+
+      const completedSteps = normalizedSteps.filter((step) => step.status === 'completed').length;
+      const failedStep = normalizedSteps.find((step) => step.status === 'failed');
+      const blockedStep = normalizedSteps.find((step) => step.status === 'blocked');
+
+      let stopPoint = null;
+      if (failedStep) {
+        stopPoint = {
+          reasonCode: 'ACTION_FAILED',
+          message: failedStep.error || 'Runtime receipt execution failed.',
+          blockedStep: failedStep.step,
+          blockedAction: failedStep.action,
+          status: 'action-error',
+        };
+      } else if (blockedStep) {
+        stopPoint = {
+          reasonCode: 'MISSING_INPUTS',
+          message: 'Runtime receipt execution blocked because required inputs are missing.',
+          blockedStep: blockedStep.step,
+          blockedAction: blockedStep.action,
+          status: 'missing-inputs',
+        };
+      }
+
+      return {
+        status: stopPoint ? 'partial' : 'completed',
+        completedSteps,
+        steps: normalizedSteps,
+        stopPoint,
+        message,
+        assumptions: [],
+        plan,
+      };
+    },
+
     async selectRuntimeReceipt(ctx, payload = {}) {
       if (payload.disableReceiptSelection === true) {
         return {
@@ -6600,6 +7066,12 @@ module.exports = {
           status: null,
           warnings: [],
           diagnostics: null,
+          selectedReceipt: null,
+          execution: {
+            used: false,
+            executor: null,
+            fallbackReason: 'disabled_by_request',
+          },
         };
       }
 
@@ -6627,6 +7099,40 @@ module.exports = {
             ? result.data
             : result;
 
+        let selectedReceipt =
+          data?.selectedReceipt && typeof data.selectedReceipt === 'object'
+            ? data.selectedReceipt
+            : null;
+
+        if (
+          !selectedReceipt &&
+          data?.selected === true &&
+          typeof data?.receiptId === 'string' &&
+          data.receiptId.trim().length > 0
+        ) {
+          try {
+            const fetched = await ctx.call(
+              'agent-receipts.get',
+              {
+                id: data.receiptId.trim(),
+                includeArchived: false,
+              },
+              { meta: { ...ctx.meta, $gateway: false } }
+            );
+            const fetchedData =
+              fetched && typeof fetched === 'object' && fetched.data && typeof fetched.data === 'object'
+                ? fetched.data
+                : fetched;
+            if (fetchedData && typeof fetchedData === 'object') {
+              selectedReceipt = fetchedData;
+            }
+          } catch (fetchError) {
+            this.logger?.warn?.(
+              `Runtime receipt selected but not hydrated (${data.receiptId}): ${fetchError.message}`
+            );
+          }
+        }
+
         return {
           selected: Boolean(data?.selected),
           receiptId: typeof data?.receiptId === 'string' ? data.receiptId : null,
@@ -6636,6 +7142,25 @@ module.exports = {
           warnings: Array.isArray(data?.warnings) ? data.warnings : [],
           diagnostics:
             data?.diagnostics && typeof data.diagnostics === 'object' ? data.diagnostics : null,
+          selectedReceipt,
+          evaluation:
+            data?.evaluation && typeof data.evaluation === 'object'
+              ? {
+                  executable: data.evaluation.executable === true,
+                  matchScore:
+                    typeof data.evaluation.matchScore === 'number'
+                      ? data.evaluation.matchScore
+                      : null,
+                  plannedToolCalls: Array.isArray(data.evaluation.plannedToolCalls)
+                    ? data.evaluation.plannedToolCalls
+                    : [],
+                }
+              : null,
+          execution: {
+            used: false,
+            executor: null,
+            fallbackReason: null,
+          },
           knowledgeEvidence:
             data?.evaluation && typeof data.evaluation === 'object'
               ? {
@@ -6657,6 +7182,17 @@ module.exports = {
         };
       } catch (error) {
         if (isActionUnavailable(error) || isNotFound(error)) {
+          if (typeof payload.forceReceipt === 'string' && payload.forceReceipt.trim().length > 0) {
+            throw new MoleculerClientError(
+              'Forced runtime receipt cannot be resolved because agent-receipts service is unavailable.',
+              422,
+              'RECEIPT_SELECTION_UNAVAILABLE',
+              {
+                forceReceipt: payload.forceReceipt,
+              }
+            );
+          }
+
           return {
             selected: false,
             receiptId: null,
@@ -6665,6 +7201,12 @@ module.exports = {
             status: null,
             warnings: [],
             diagnostics: null,
+            selectedReceipt: null,
+            execution: {
+              used: false,
+              executor: null,
+              fallbackReason: 'selection_service_unavailable',
+            },
           };
         }
         throw error;
@@ -6687,6 +7229,20 @@ module.exports = {
           diagnostics:
             selection.diagnostics && typeof selection.diagnostics === 'object'
               ? selection.diagnostics
+              : null,
+          execution:
+            selection.execution && typeof selection.execution === 'object'
+              ? {
+                  used: selection.execution.used === true,
+                  executor: selection.execution.executor || null,
+                  fallbackReason: selection.execution.fallbackReason || null,
+                  plannedToolCalls: Array.isArray(selection.execution.plannedToolCalls)
+                    ? selection.execution.plannedToolCalls
+                    : [],
+                  executedToolCalls: Array.isArray(selection.execution.executedToolCalls)
+                    ? selection.execution.executedToolCalls
+                    : [],
+                }
               : null,
           knowledgeEvidence:
             selection.knowledgeEvidence && typeof selection.knowledgeEvidence === 'object'
@@ -6872,8 +7428,10 @@ module.exports = {
         missingParams: Array.isArray(placeholder?.missingParams) ? placeholder.missingParams : null,
         onboardingQuestion: placeholder?.onboardingQuestion || null,
         onboardingHints: placeholder?.onboardingHints || null,
+        placeholder: placeholder || null,
         placeholderId: placeholder?.placeholder?.placeholderId || null,
         placeholderMetadata: placeholder?.placeholderMetadata || null,
+        hitlItem: placeholder?.hitlItem || null,
         hitlItemId: placeholder?.hitlItem?.id || null,
       };
     },
@@ -7056,6 +7614,83 @@ module.exports = {
       };
     },
 
+    buildHitlOnboardingQuestion(stopPoint = {}, plan = {}) {
+      const placeholder =
+        stopPoint?.placeholder && typeof stopPoint.placeholder === 'object'
+          ? stopPoint.placeholder
+          : {};
+      const placeholderHitlItem =
+        placeholder?.hitlItem && typeof placeholder.hitlItem === 'object'
+          ? placeholder.hitlItem
+          : null;
+
+      const hitlItem =
+        placeholderHitlItem ||
+        (stopPoint?.hitlItemId
+          ? {
+              id: stopPoint.hitlItemId,
+              status: 'pending',
+            }
+          : null);
+
+      const blockedAction = stopPoint?.blockedAction || placeholder?.blockedAction || null;
+      const blockedStep = Number(stopPoint?.blockedStep || 0) || 1;
+      const message =
+        String(stopPoint?.message || '').trim() ||
+        `Um den Schritt ${blockedStep}${blockedAction ? ` (${blockedAction})` : ''} auszuführen, ist eine Freigabe erforderlich.`;
+
+      return {
+        reasonCode: 'MANDATORY_HITL_APPROVAL',
+        questionId: `hitl_approval_${hitlItem?.id || blockedStep}`,
+        questionText: message,
+        message,
+        status: 'pending',
+        blockedAction,
+        blockedStep,
+        action: blockedAction,
+        missingParams: [],
+        hitlItem,
+        hitlItemId: hitlItem?.id || null,
+        placeholderId: stopPoint?.placeholderId || placeholder?.placeholder?.placeholderId || null,
+        placeholderMetadata: stopPoint?.placeholderMetadata || placeholder?.placeholderMetadata || null,
+        planSnapshot:
+          plan && typeof plan === 'object'
+            ? {
+                source: plan?.source || 'hitl-resume',
+                routeKey: plan?.routeKey || null,
+                routeLabel: plan?.routeLabel || null,
+                primaryIntent: plan?.primaryIntent || blockedAction || null,
+                secondaryIntents: plan?.secondaryIntents || [],
+                requestedDomains: plan?.requestedDomains || [],
+                unsupportedDomains: plan?.unsupportedDomains || [],
+                warnings: plan?.warnings || [],
+                promptHints: plan?.promptHints || {},
+                status: plan?.status || 'ready',
+                steps: Array.isArray(plan?.steps) ? plan.steps : [],
+              }
+            : null,
+      };
+    },
+
+    buildHitlApprovalMarkdown(onboardingQuestion = {}) {
+      const hitlItemId = onboardingQuestion?.hitlItem?.id || onboardingQuestion?.hitlItemId || null;
+      const baseMessage =
+        String(onboardingQuestion?.message || onboardingQuestion?.questionText || '').trim() ||
+        'Um diesen Schritt auszuführen, ist eine Freigabe erforderlich.';
+
+      if (!hitlItemId) {
+        return `${baseMessage}\n\nBitte bestätige die Freigabe, damit ich fortfahren kann.`;
+      }
+
+      return [
+        baseMessage,
+        '',
+        `[embed ref="hitl_item_${hitlItemId}" title="Freigabe erforderlich" /]`,
+        '',
+        'Bitte bestätige oder lehne die Freigabe ab, damit ich den blockierten Schritt fortsetzen kann.',
+      ].join('\n');
+    },
+
     enrichPlanWithOnboardingHints(plan = {}, knownContext = {}) {
       const firstMissing = this.findFirstMissingStep(plan, knownContext);
       if (!firstMissing) {
@@ -7168,6 +7803,7 @@ module.exports = {
       }
 
       const hydratedContext = this.hydrateKnownContextFromSession(knownContext, session);
+
       const firstMissing = this.findFirstMissingStep(effectivePlan, hydratedContext);
       if (firstMissing) {
         const responseStrategy = this.buildResponseStrategy({
@@ -7188,6 +7824,7 @@ module.exports = {
           ...(session.l3.onboardingQuestions || []),
           stopPoint.onboardingQuestion,
         ];
+        session.l3.stopPoint = null;
         return {
           status: 'awaiting-onboarding',
           completedSteps: 0,
@@ -7207,6 +7844,28 @@ module.exports = {
         executionTrace,
         toolCallTracker,
       });
+
+      if (execution?.stopPoint?.reasonCode === 'MANDATORY_HITL_APPROVAL') {
+        const onboardingQuestion = this.buildHitlOnboardingQuestion(execution.stopPoint, effectivePlan);
+        const stopPoint = {
+          ...execution.stopPoint,
+          onboardingQuestion,
+          message: onboardingQuestion.message,
+          blockedAction: onboardingQuestion.blockedAction || execution.stopPoint.blockedAction,
+          blockedStep: onboardingQuestion.blockedStep || execution.stopPoint.blockedStep,
+          hitlItemId: onboardingQuestion?.hitlItem?.id || execution?.stopPoint?.hitlItemId || null,
+        };
+        session.l3.stopPoint = stopPoint;
+
+        return {
+          ...execution,
+          plan: effectivePlan,
+          status: 'awaiting-onboarding',
+          completedSteps: execution.completedSteps || 0,
+          stopPoint,
+          onboardingQuestion,
+        };
+      }
 
       if (execution?.stopPoint?.reasonCode === 'MISSING_INPUTS') {
         const responseStrategy = this.buildResponseStrategy({
@@ -7231,6 +7890,7 @@ module.exports = {
           ...(session.l3.onboardingQuestions || []),
           stopPoint.onboardingQuestion,
         ];
+        session.l3.stopPoint = null;
 
         return {
           ...execution,
@@ -7240,6 +7900,8 @@ module.exports = {
           stopPoint,
         };
       }
+
+      session.l3.stopPoint = null;
 
       return {
         ...execution,
@@ -7780,9 +8442,43 @@ module.exports = {
           break;
         }
 
-        const missingInputs = getMissingInputs(plannedStep.action, params);
+        // Central execution preflight — must pass before any ctx.call.
+        // Uses runExecutionPreflight for stricter checks (null, empty string, empty array/object)
+        // beyond what the legacy getMissingInputs covers.
+        const preflight = runExecutionPreflight(plannedStep.action, params, {
+          requiredScopes: Array.isArray(plannedStep.requiredScopes) ? plannedStep.requiredScopes : [],
+          contextScopes: knownContext?._scopes || null,
+        });
+        const missingInputs = preflight.missingParams;
 
-        if (missingInputs.length > 0) {
+        if (preflight.outcome === 'scope-blocked') {
+          const placeholder = await this.markRoutingGap(ctx, {
+            reasonCode: 'SCOPE_BLOCKED',
+            message: `Step ${plannedStep.step} (${plannedStep.action}) requires scope evidence: ${missingInputs.join(', ')}`,
+            blockedStep: plannedStep.step,
+          });
+          stopPoint = this.buildStopPoint({
+            reasonCode: 'SCOPE_BLOCKED',
+            message: `Scope-Voraussetzungen nicht erfüllt für ${plannedStep.action}: ${missingInputs.join(', ')}`,
+            blockedStep: plannedStep.step,
+            status: placeholder ? 'interface-placeholder' : 'scope-blocked',
+            placeholder: {
+              ...placeholder,
+              blockedAction: plannedStep.action,
+              missingParams: missingInputs,
+            },
+          });
+          steps.push({
+            step: plannedStep.step,
+            action: plannedStep.action,
+            status: 'scope-blocked',
+            params,
+            missingInputs,
+          });
+          break;
+        }
+
+        if (preflight.outcome === 'missing-inputs') {
           if (skipGapForMissingInputs) {
             stopPoint = {
               reasonCode: 'MISSING_INPUTS',
@@ -7943,6 +8639,36 @@ module.exports = {
             retries: 0,
             error: error.message,
           });
+          // Guard: Moleculer Parameters validation error slipped past preflight.
+          // Convert to structured PREFLIGHT_MISS — do not expose schema internals to user.
+          if (isParametersValidationError(error)) {
+            const placeholder = await this.markRoutingGap(ctx, {
+              reasonCode: 'PREFLIGHT_MISS',
+              message: `Ungültige Parameter für ${plannedStep.action}.`,
+              blockedStep: plannedStep.step,
+            });
+            stopPoint = this.buildStopPoint({
+              reasonCode: 'PREFLIGHT_MISS',
+              message: `Ungültige oder fehlende Parameter für ${plannedStep.action}. Bitte notwendige Felder prüfen.`,
+              blockedStep: plannedStep.step,
+              status: placeholder ? 'interface-placeholder' : 'missing-inputs',
+              placeholder: {
+                ...placeholder,
+                blockedAction: plannedStep.action,
+                missingParams: [],
+                preflightRegression: true,
+              },
+            });
+            steps.push({
+              step: plannedStep.step,
+              action: plannedStep.action,
+              status: 'blocked',
+              params,
+              error: 'PREFLIGHT_MISS',
+              preflightRegression: true,
+            });
+            break;
+          }
           const placeholder = await this.markRoutingGap(ctx, {
             reasonCode: isActionUnavailable(error) ? 'UNSUPPORTED_CHAIN' : 'ACTION_FAILED',
             message: error.message,

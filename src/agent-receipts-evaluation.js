@@ -2,6 +2,7 @@
 
 const { buildActionRegistry, getActionInfo } = require('./agent-receipts-registry');
 const { evaluateReceiptMatch, getByPath, hasUsableValue } = require('./agent-receipts-matcher');
+const { isOperatorScopeResolved, hasLocationScope } = require('./query-scope-classifier');
 
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
@@ -141,6 +142,32 @@ function evaluateStep(
   const required = Array.isArray(paramSchema.required) ? paramSchema.required : [];
   const missingRequiredParams = required.filter((field) => !hasUsableValue(params[field]));
 
+  // Scope enforcement: if step declares requiredScopes, verify the context satisfies them.
+  // Domain rule: 'operatorScope' requires bdew/vnbName/gridOperatorMastrId — city alone is not enough.
+  const requiredScopes = Array.isArray(step.requiredScopes) ? step.requiredScopes : [];
+  const scopeViolations = [];
+  for (const requiredScope of requiredScopes) {
+    if (requiredScope === 'operatorScope' && !isOperatorScopeResolved(context)) {
+      scopeViolations.push({
+        code: 'RECEIPT_SCOPE_NOT_RESOLVED',
+        scope: 'operatorScope',
+        message:
+          'Step requires operator identity (bdew/vnbName/gridOperatorMastrId). ' +
+          'city/postalCode/region alone is not sufficient for operatorScope. ' +
+          'Use a preceding marketPartners step to resolve operator identity first.',
+        available: hasLocationScope(context) ? 'locationScope only' : 'no scope',
+      });
+    }
+    if (requiredScope === 'locationScope' && !hasLocationScope(context)) {
+      scopeViolations.push({
+        code: 'RECEIPT_SCOPE_NOT_RESOLVED',
+        scope: 'locationScope',
+        message: 'Step requires location context (city/postalCode/region). None available.',
+        available: isOperatorScopeResolved(context) ? 'operatorScope only' : 'no scope',
+      });
+    }
+  }
+
   const stepAudit = isPlainObject(registryAudit?.actions)
     ? registryAudit.actions[selectedAction]
     : null;
@@ -159,8 +186,14 @@ function evaluateStep(
     action: requestedAction,
     selectedAction,
     params,
-    status: missingRequiredParams.length === 0 ? 'ready' : 'missing-input',
+    status:
+      scopeViolations.length > 0
+        ? 'scope-blocked'
+        : missingRequiredParams.length === 0
+          ? 'ready'
+          : 'missing-input',
     missingRequiredParams,
+    scopeViolations,
     evidenceRequiredFields: extractStructuredEvidence(step),
     warnings,
     errors,
@@ -170,7 +203,13 @@ function evaluateStep(
 function evaluateReceiptPlan(receipt, payload = {}) {
   const context = isPlainObject(payload.context) ? payload.context : {};
   const input = isPlainObject(payload.input) ? payload.input : {};
+  // Flatten nested knownContext so paramMapping can resolve fields like city/bdew
+  // regardless of whether the caller passes context.city or context.knownContext.city
+  const nestedKnownContext = isPlainObject(context.knownContext) ? context.knownContext : {};
+  const nestedInputKnownContext = isPlainObject(input.knownContext) ? input.knownContext : {};
   const mergedContext = {
+    ...nestedKnownContext,
+    ...nestedInputKnownContext,
     ...context,
     ...input,
   };

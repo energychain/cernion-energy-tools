@@ -791,6 +791,65 @@ describe('Grid Operations Service', () => {
 
       expect(result).toBeDefined();
     });
+
+    it('marks city fallback placeholder values as unverified and partial', async () => {
+      callWithNewSession.mockResolvedValueOnce({ success: true, data: {} });
+      callWithAutoPoll.mockResolvedValueOnce({
+        success: true,
+        installations: [
+          {
+            napData: {
+              netzbetreiberMastrNummer: 'SNB935578300972',
+            },
+          },
+        ],
+      });
+
+      const result = await broker.call('grid-operations.vnbLookup', {
+        city: 'Wiesloch',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.source).toBe('city-nap-fallback');
+      expect(result.data.bdew).toBeNull();
+      expect(result.data.companyName).toBeNull();
+      expect(result.data.evidenceStatus).toBe('unverified');
+      expect(result.data.partial).toBe(true);
+      expect(result.data.unverified).toBe(true);
+      expect(result.data.verification).toEqual(
+        expect.objectContaining({
+          verifiedIdentity: false,
+          gap: expect.objectContaining({ code: 'VNB_IDENTITY_UNVERIFIED' }),
+        })
+      );
+    });
+
+    it('keeps authoritative vnb lookup as verified evidence', async () => {
+      callWithNewSession.mockResolvedValueOnce({
+        success: true,
+        data: {
+          bdew: '9900992720003',
+          companyName: 'Netze BW GmbH',
+          mastrId: 'SNB935578300972',
+          source: 'bdew-lookup',
+        },
+      });
+
+      const result = await broker.call('grid-operations.vnbLookup', {
+        bdew: '9900992720003',
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data.evidenceStatus).toBe('verified');
+      expect(result.data.partial).toBe(false);
+      expect(result.data.unverified).toBe(false);
+      expect(result.data.verification).toEqual(
+        expect.objectContaining({
+          verifiedIdentity: true,
+          gap: null,
+        })
+      );
+    });
   });
 
   describe('connectionCapacityCheck action', () => {

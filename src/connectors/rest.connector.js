@@ -71,7 +71,7 @@ module.exports = {
       url: connectorConfig.url,
       headers,
       data: connectorConfig.body,
-      timeout: options.timeoutMs || 30000,
+      timeout: options.timeoutMs || 90000,
     });
 
     let rows;

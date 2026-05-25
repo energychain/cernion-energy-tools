@@ -1312,7 +1312,7 @@ module.exports = {
               taskId: 'network-operator-decision',
               loopProtection: {
                 roundLimit: 12,
-                timeoutMs: 30_000,
+                timeoutMs: 90000,
                 reached: false,
                 converged: true,
                 roleBoundaryViolation: false,
@@ -1353,7 +1353,7 @@ module.exports = {
 
         const taskMeta = matrix.tasksById?.[ctx.params.taskId] || null;
         const roundLimit = 12;
-        const timeoutMs = 30_000;
+        const timeoutMs = 90000;
         const hitRoundLimit = trace.length >= roundLimit;
 
         if (hitRoundLimit) {

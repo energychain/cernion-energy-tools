@@ -15,6 +15,12 @@
  *   - BESS vs. Energy Sharing paths are kept separate.
  */
 
+const {
+  classifyQueryScope,
+  isOperatorScopeResolved,
+  hasLocationScope,
+} = require('./query-scope-classifier');
+
 const WORKFLOW_TYPES = Object.freeze({
   BESS_SCREENING: 'bess_screening',
   BESS_DEVELOPMENT: 'bess_development',
@@ -790,31 +796,71 @@ function buildExecutablePlan({
   }
 
   if (workflowType === WORKFLOW_TYPES.VNB_IDENTIFICATION) {
-    const hasMunicipality = hasInput(knownContext, ['municipality', 'location']);
+    const hasMunicipality = hasInput(knownContext, ['municipality', 'location', 'city']);
     const hasBdew = hasInput(knownContext, ['bdewCode', 'bdew']);
+    const hasVnbName = hasInput(knownContext, ['vnbName', 'gridOperatorName']);
 
-    if (hasMunicipality || hasBdew) {
+    // Domain rule: operatorScope (bdew/vnbName) enables direct vnbLookup.
+    // locationScope alone (city) is disambiguation context only, not operator identity.
+    // When only locationScope is available, resolve via 2-step: marketPartners → vnbLookup.
+    if (hasBdew || hasVnbName) {
+      // Operator identity available: direct vnbLookup
       executableSteps.push({
         step: 1,
         action: 'grid-operations.vnbLookup',
-        label: 'VNB-Zuständigkeit prüfen',
+        label: 'VNB-Zuständigkeit prüfen (Operator-Scope)',
         params: {
-          ...(hasMunicipality && { city: knownContext.municipality || knownContext.location }),
           ...(hasBdew && { bdew: knownContext.bdewCode || knownContext.bdew }),
+          ...(hasVnbName && { vnbName: knownContext.vnbName || knownContext.gridOperatorName }),
+          ...(hasMunicipality && { city: knownContext.municipality || knownContext.location }),
         },
         canExecute: true,
-        purpose: 'primary_vnb_lookup',
+        purpose: 'direct_vnb_lookup',
+        scopeType: 'operatorScope',
       });
       executableSteps.push({
         step: 2,
         action: 'grid-operations.marketPartners',
         label: 'Marktpartner & Kontaktdaten',
         params: {
-          query: knownContext.municipality || knownContext.gridOperatorName || '',
+          query:
+            knownContext.vnbName ||
+            knownContext.gridOperatorName ||
+            knownContext.municipality ||
+            '',
           limit: 5,
         },
         canExecute: true,
         purpose: 'market_context',
+        scopeType: 'operatorScope',
+      });
+    } else if (hasMunicipality) {
+      // Location scope only: resolve operator via marketPartners first, then vnbLookup
+      // Step 1 can execute; step 2 requires step 1 result (operatorScope not yet resolved)
+      executableSteps.push({
+        step: 1,
+        action: 'grid-operations.marketPartners',
+        label: 'Marktpartner für Standort identifizieren (Operator-Auflösung)',
+        params: {
+          query: knownContext.municipality || knownContext.location || knownContext.city,
+          limit: 5,
+        },
+        canExecute: true,
+        purpose: 'operator_resolution_from_location',
+        scopeType: 'locationScope',
+        note: 'locationScope only — operator identity not yet resolved; marketPartners provides candidates',
+      });
+      executableSteps.push({
+        step: 2,
+        action: 'grid-operations.vnbLookup',
+        label: 'VNB-Zuständigkeit prüfen (nach Operator-Auflösung)',
+        params: {},
+        canExecute: false,
+        purpose: 'vnb_lookup_after_resolution',
+        scopeType: 'operatorScope',
+        scopeRequirement: 'operatorScope',
+        dependsOn: 'step1',
+        note: 'Requires operatorScope from step 1 (marketPartners result). city alone is not sufficient.',
       });
     } else {
       evidenceGates.push({
@@ -984,6 +1030,9 @@ function buildConsultationExecutionPlan({
     canAutoExecute,
   });
 
+  // Classify the query scope so the execution trace shows what drove tool selection
+  const scopeClassification = classifyQueryScope(message, knownContext);
+
   return {
     workflowType,
     readiness,
@@ -996,6 +1045,7 @@ function buildConsultationExecutionPlan({
     nextUserQuestion,
     audience: responseStrategy?.audience || 'general',
     abstractionLevel: responseStrategy?.abstractionLevel || 'balanced',
+    scopeClassification,
   };
 }
 
@@ -1045,6 +1095,10 @@ async function executeWithReceipt(
   const results = { steps: [], observations: [...observations], errors: [] };
   const receiptId = receipt.receiptId || 'unknown';
   const log = logger || { info: () => {}, warn: () => {}, error: () => {} };
+  const executionState = { stepResults: {} };
+  const runtimeContext = {
+    ...(knownContext && typeof knownContext === 'object' ? { ...knownContext } : {}),
+  };
 
   for (const step of receipt.toolPlan.steps) {
     const stepNum = step.step || 0;
@@ -1054,7 +1108,12 @@ async function executeWithReceipt(
 
     try {
       // 1. Resolve params from receipt paramMapping
-      const resolvedParams = resolveReceiptParamMapping(step, knownContext, receipt.defaults || {});
+      const resolvedParams = resolveReceiptParamMapping(
+        step,
+        runtimeContext,
+        receipt.defaults || {},
+        executionState
+      );
 
       if (Object.keys(resolvedParams).length === 0 && step.required) {
         const err = `[executeWithReceipt] Step ${stepNum} (${action}) has no resolved params but is required`;
@@ -1083,20 +1142,35 @@ async function executeWithReceipt(
         };
       }
 
-      results.observations.push(observation);
+      const normalizedObservation = normalizeObservationForStep(action, observation);
+      const normalizedResult = normalizedObservation?.result;
+      const normalizedStepData =
+        normalizedResult && typeof normalizedResult === 'object' && normalizedResult.data !== undefined
+          ? normalizedResult.data
+          : normalizedResult;
+      if (stepNum) {
+        executionState.stepResults[stepNum] = {
+          data: normalizedStepData,
+          raw: normalizedResult,
+          params: resolvedParams,
+        };
+      }
+      mergeContextFromStepResult(runtimeContext, action, normalizedStepData);
+
+      results.observations.push(normalizedObservation);
       results.steps.push({
         step: stepNum,
         action,
-        status: observation.status || 'completed',
+        status: normalizedObservation.status || 'completed',
         paramMapping: step.paramMapping,
         params: resolvedParams,
-        outcome: observation,
+        outcome: normalizedObservation,
       });
 
       // 3. Conditional fallback: if step had no result AND fallbackActions exist
       if (
-        !observation.error &&
-        (!observation.result || Object.keys(observation.result || {}).length === 0) &&
+        !normalizedObservation.error &&
+        (!normalizedObservation.result || Object.keys(normalizedObservation.result || {}).length === 0) &&
         step.fallbackActions &&
         Array.isArray(step.fallbackActions) &&
         step.fallbackActions.length > 0
@@ -1107,7 +1181,7 @@ async function executeWithReceipt(
         );
 
         // Resolve params for fallback action (use same context, may differ by action)
-        const fallbackParams = resolveFallbackActionParams(fallbackAction, knownContext, step);
+        const fallbackParams = resolveFallbackActionParams(fallbackAction, runtimeContext, step);
 
         let fallbackObs;
         if (toolResolver && typeof toolResolver.executeTool === 'function') {
@@ -1120,16 +1194,32 @@ async function executeWithReceipt(
           };
         }
 
-        results.observations.push(fallbackObs);
+        const normalizedFallbackObservation = normalizeObservationForStep(fallbackAction, fallbackObs);
+        const fallbackStepData =
+          normalizedFallbackObservation?.result &&
+          typeof normalizedFallbackObservation.result === 'object' &&
+          normalizedFallbackObservation.result.data !== undefined
+            ? normalizedFallbackObservation.result.data
+            : normalizedFallbackObservation?.result;
+        if (stepNum) {
+          executionState.stepResults[`${stepNum}b`] = {
+            data: fallbackStepData,
+            raw: normalizedFallbackObservation?.result,
+            params: fallbackParams,
+          };
+        }
+        mergeContextFromStepResult(runtimeContext, fallbackAction, fallbackStepData);
+
+        results.observations.push(normalizedFallbackObservation);
         results.steps.push({
           step: `${stepNum}b`,
           action: fallbackAction,
           status: 'fallback',
-          outcome: fallbackObs,
+          outcome: normalizedFallbackObservation,
         });
 
         // If fallback succeeded, don't try further fallbacks
-        if (!fallbackObs.error && fallbackObs.result) {
+        if (!normalizedFallbackObservation.error && normalizedFallbackObservation.result) {
           break;
         }
       }
@@ -1163,8 +1253,16 @@ async function executeWithReceipt(
  *   city: { source: 'fixed', value: 'Berlin' },  // or source: 'default', defaultKey: 'defaultCity'
  * }
  */
-function resolveReceiptParamMapping(step = {}, knownContext = {}, defaults = {}) {
-  const resolved = {};
+function resolveReceiptParamMapping(step = {}, knownContext = {}, defaults = {}, executionState = {}) {
+  const resolved = pruneEmptyValues(
+    deepResolveStepReferences(
+      {
+        ...(step?.params && typeof step.params === 'object' ? step.params : {}),
+        ...(step?.paramsTemplate && typeof step.paramsTemplate === 'object' ? step.paramsTemplate : {}),
+      },
+      executionState
+    )
+  );
   const paramMapping = step.paramMapping || {};
 
   Object.entries(paramMapping).forEach(([paramName, mapping]) => {
@@ -1173,14 +1271,20 @@ function resolveReceiptParamMapping(step = {}, knownContext = {}, defaults = {})
     const { source, contextField, value, defaultKey } = mapping;
 
     if (source === 'fixed' && value !== undefined) {
-      resolved[paramName] = value;
+      const resolvedValue = resolveMappedRuntimeValue(value, executionState);
+      if (resolvedValue !== undefined && resolvedValue !== null && resolvedValue !== '') {
+        resolved[paramName] = resolvedValue;
+      }
     } else if (source === 'context' && contextField) {
-      const ctxValue = knownContext[contextField];
+      const ctxValue =
+        typeof contextField === 'string' && contextField.startsWith('__step_')
+          ? resolveStepReference(contextField, executionState)
+          : getByPath(knownContext, contextField);
       if (ctxValue !== undefined && ctxValue !== null && ctxValue !== '') {
         resolved[paramName] = ctxValue;
       }
     } else if (source === 'default' && defaultKey) {
-      const defValue = defaults[defaultKey];
+      const defValue = getByPath(defaults, defaultKey);
       if (defValue !== undefined && defValue !== null && defValue !== '') {
         resolved[paramName] = defValue;
       }
@@ -1188,6 +1292,217 @@ function resolveReceiptParamMapping(step = {}, knownContext = {}, defaults = {})
   });
 
   return resolved;
+}
+
+function normalizeObservationForStep(action = '', observation = {}) {
+  if (!observation || typeof observation !== 'object') {
+    return {
+      action,
+      status: 'completed',
+      result: observation,
+    };
+  }
+
+  if (action !== 'grid-operations.marketPartners') {
+    return observation;
+  }
+
+  const result = observation.result;
+  if (!result || typeof result !== 'object') {
+    return observation;
+  }
+
+  const data = result?.data && typeof result.data === 'object' ? result.data : null;
+  const candidates = Array.isArray(data?.results)
+    ? data.results
+    : Array.isArray(result?.results)
+      ? result.results
+      : [];
+
+  if (candidates.length < 2) {
+    return observation;
+  }
+
+  const ordered = orderMarketPartnersByVnbPreference(candidates);
+  const normalizedResult =
+    data && Array.isArray(data.results)
+      ? {
+          ...result,
+          data: {
+            ...data,
+            results: ordered,
+          },
+        }
+      : {
+          ...result,
+          results: ordered,
+        };
+
+  return {
+    ...observation,
+    result: normalizedResult,
+  };
+}
+
+function orderMarketPartnersByVnbPreference(candidates = []) {
+  const scoreCandidate = (candidate = {}) => {
+    const role = String(candidate?.role || candidate?.marketRole || '').toLowerCase();
+    const roleLabel = String(candidate?.roleLabel || '').toLowerCase();
+    const name = String(candidate?.name || candidate?.companyName || candidate?.legalName || '').toLowerCase();
+    const hasBdew = Boolean(candidate?.bdewCode || candidate?.bdew);
+
+    let score = 0;
+    if (/\bvnb\b|distribution|verteilnetz/.test(role) || /\bvnb\b|distribution/.test(roleLabel)) {
+      score += 120;
+    }
+    if (/netze|netz|verteilnetz/.test(name)) {
+      score += 90;
+    }
+    if (/lieferant|vertrieb|energiehandel|sales/.test(role) || /lieferant|vertrieb|energiehandel/.test(name)) {
+      score -= 70;
+    }
+    if (hasBdew) {
+      score += 10;
+    }
+    if (Array.isArray(candidate?.contacts) && candidate.contacts.length > 0) {
+      score += 5;
+    }
+    return score;
+  };
+
+  return [...candidates]
+    .map((candidate, index) => ({
+      candidate,
+      index,
+      score: scoreCandidate(candidate),
+    }))
+    .sort((a, b) => {
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+      return a.index - b.index;
+    })
+    .map((entry) => entry.candidate);
+}
+
+function mergeContextFromStepResult(runtimeContext = {}, action = '', stepData = {}) {
+  if (!runtimeContext || typeof runtimeContext !== 'object' || !stepData || typeof stepData !== 'object') {
+    return;
+  }
+
+  if (action === 'grid-operations.marketPartners') {
+    const results = Array.isArray(stepData?.results) ? stepData.results : [];
+    const top = results[0] || null;
+    if (top && runtimeContext.bdewCode == null && runtimeContext.bdew == null) {
+      runtimeContext.bdewCode = top.bdewCode || top.bdew || runtimeContext.bdewCode;
+      runtimeContext.bdew = top.bdewCode || top.bdew || runtimeContext.bdew;
+    }
+    if (top && !runtimeContext.city) {
+      runtimeContext.city = top?.contacts?.[0]?.city || runtimeContext.city;
+    }
+    if (top && !runtimeContext.vnbName) {
+      runtimeContext.vnbName = top.name || top.companyName || runtimeContext.vnbName;
+    }
+  }
+
+  if (action === 'grid-operations.vnbLookup') {
+    const operator = stepData?.operator && typeof stepData.operator === 'object' ? stepData.operator : null;
+    if (operator && runtimeContext.bdewCode == null && runtimeContext.bdew == null) {
+      runtimeContext.bdewCode = operator.bdew || runtimeContext.bdewCode;
+      runtimeContext.bdew = operator.bdew || runtimeContext.bdew;
+    }
+    if (operator && !runtimeContext.city) {
+      runtimeContext.city = operator.city || runtimeContext.city;
+    }
+    if (operator && !runtimeContext.vnbName) {
+      runtimeContext.vnbName = operator.name || runtimeContext.vnbName;
+    }
+  }
+}
+
+function resolveMappedRuntimeValue(value, executionState = {}) {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('__step_')) {
+    return value;
+  }
+  return resolveStepReference(trimmed, executionState);
+}
+
+function deepResolveStepReferences(value, executionState = {}) {
+  if (Array.isArray(value)) {
+    return value.map((item) => deepResolveStepReferences(item, executionState));
+  }
+  if (!value || typeof value !== 'object') {
+    return resolveMappedRuntimeValue(value, executionState);
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, child]) => [key, deepResolveStepReferences(child, executionState)])
+  );
+}
+
+function resolveStepReference(reference = '', executionState = {}) {
+  if (typeof reference !== 'string') {
+    return undefined;
+  }
+
+  const match = reference.match(/^(__step_(\d+))(?:\.(.+))?$/);
+  if (!match) {
+    return undefined;
+  }
+
+  const stepIndex = Number(match[2]);
+  const stepPath = match[3] || '';
+  const stepEntry = executionState?.stepResults?.[stepIndex];
+  if (!stepEntry) {
+    return undefined;
+  }
+
+  if (!stepPath) {
+    return stepEntry;
+  }
+
+  return getByPath(stepEntry, stepPath);
+}
+
+function getByPath(source, path = '') {
+  if (!path) {
+    return source;
+  }
+  const segments = String(path)
+    .replace(/\[(\d+)\]/g, '.$1')
+    .split('.')
+    .filter(Boolean);
+
+  return segments.reduce((cursor, segment) => {
+    if (cursor === undefined || cursor === null) {
+      return undefined;
+    }
+    return cursor[segment];
+  }, source);
+}
+
+function pruneEmptyValues(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => pruneEmptyValues(item))
+      .filter((item) => item !== undefined);
+  }
+  if (!value || typeof value !== 'object') {
+    if (value === undefined || value === null || value === '') {
+      return undefined;
+    }
+    return value;
+  }
+
+  const entries = Object.entries(value)
+    .map(([key, child]) => [key, pruneEmptyValues(child)])
+    .filter(([, child]) => child !== undefined);
+
+  return Object.fromEntries(entries);
 }
 
 /**

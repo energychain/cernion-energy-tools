@@ -406,7 +406,7 @@ describe('German Grid Service', () => {
     });
 
     it('should have default timeout setting', () => {
-      expect(GermanGridService.settings.defaultTimeout).toBe(30000);
+      expect(GermanGridService.settings.defaultTimeout).toBe(90000);
     });
   });
 });

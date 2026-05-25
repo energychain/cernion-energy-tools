@@ -47,7 +47,10 @@ const ONBOARDING_PARAM_QUESTIONS = Object.freeze({
   },
   projectId: {
     label: 'Projekt-ID',
-    question: 'Welche Projekt-ID soll ich verwenden?',
+    question:
+      'Bezieht sich diese Anfrage auf ein bestehendes ZNP-Projekt? ' +
+      'Falls ja: Bitte Projekt-ID oder Projektnamen nennen. ' +
+      'Falls nein: Soll ein neues Projekt angelegt werden?',
   },
   fnavProfile: {
     label: 'fNAV-Profil',

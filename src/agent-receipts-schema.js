@@ -6,6 +6,8 @@ const KNOWLEDGE_QUERY_TYPE = 'semantic';
 
 const RECEIPT_STATUSES = ['draft', 'active', 'deprecated', 'archived'];
 
+const CREATOR_SOURCES = ['chat', 'admin', 'api', 'seed'];
+
 const STATUS_TRANSITIONS = {
   draft: new Set(['draft', 'active', 'archived']),
   active: new Set(['active', 'deprecated', 'archived']),
@@ -207,6 +209,18 @@ function normalizeStep(rawStep, index, errors) {
   if (rawStep.required !== undefined) {
     step.required = Boolean(rawStep.required);
   }
+
+
+    if (rawStep.requiredScopes != null) {
+      const scopes = ensureStringArray(
+        rawStep.requiredScopes,
+        `toolPlan.steps[${index}].requiredScopes`,
+        errors
+      );
+      if (scopes.length > 0) {
+        step.requiredScopes = scopes;
+      }
+    }
 
   if (rawStep.evidence != null) {
     if (!isPlainObject(rawStep.evidence)) {
@@ -579,6 +593,7 @@ function isStatusTransitionAllowed(fromStatus, toStatus) {
 module.exports = {
   RECEIPT_ID_PATTERN,
   RECEIPT_STATUSES,
+  CREATOR_SOURCES,
   STATUS_TRANSITIONS,
   validateReceipt,
   isStatusTransitionAllowed,

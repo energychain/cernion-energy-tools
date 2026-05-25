@@ -7,6 +7,194 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.54.8] — Generic Execution Preflight for Missing/Invalid Action Params (2026-05-25)
+
+### Added
+
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): `isMissingRequired(value)` — centralisierter Missing-Value-Check für null, undefined, leeren String, leeres Array und leeres Objekt.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): `runExecutionPreflight(action, params, options)` — generische Preflight-Funktion für alle `ctx.call`-Aufrufe in `executeDeterministicPlan`. Kombiniert `ACTION_REQUIREMENTS` (allOf/anyOf), `isMissingRequired` (leere Strings, leere Arrays, leere Objekte) und optionalen Scope-Check (`requiredScopes`/`contextScopes`). Gibt strukturierte Outcomes zurück: `ok`, `missing-inputs`, `scope-blocked`.
+
+### Fixed
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): `executeDeterministicPlan()` verwendet jetzt `runExecutionPreflight()` statt `getMissingInputs()` direkt. Damit werden auch leere Strings (`''`), leere Arrays (`[]`) und leere Objekte (`{}`) als fehlend erkannt — nicht nur `null`/`undefined`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `executeDeterministicPlan()` behandelt `scope-blocked`-Outcomes deterministisch als harten Stopp vor `ctx.call`, mit eigenem `SCOPE_BLOCKED` reasonCode, strukturiertem `stopPoint` und sichtbarer Ausgabe in `steps`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): Catch-Guard in `executeDeterministicPlan()` — Moleculer `Parameters validation error` (die preflight-seitig durchgerutscht sind) werden in strukturiertes `PREFLIGHT_MISS`-Signal umgewandelt. Keine rohen Schema-Internals (`Parameters validation error`, `allOf`, `anyOf`) werden mehr an den Nutzer ausgegeben.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `isParametersValidationError(error)` — neue Hilfsfunktion zur Erkennung von Moleculer-Validierungsfehlern (`/parameters\s+validation\s+error/i`, `type === 'VALIDATION_ERROR'`).
+
+### Architecture
+
+- LLM-seitiges Parameter-Repair bleibt explizit ausgeschlossen. Jeder `ctx.call` muss durch deterministischen Preflight geschützt sein.
+- `runExecutionPreflight` ist der kanonische Einstiegspunkt für alle Execution-Preflight-Checks. `getMissingInputs` bleibt für `applyMissingContextFallback` (Plan-Phase) und Tests erhalten.
+- `scope-blocked` ist ein First-Class-Outcome neben `missing-inputs` und kann über `plannedStep.requiredScopes` + `knownContext._scopes` ausgelöst werden.
+
+### Tests
+
+- [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): 10 neue Tests für `isMissingRequired` (null, undefined, leerer String, Whitespace, leeres Array, leeres Objekt, gültige Werte, Zahl).
+- [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): 15 neue Tests für `runExecutionPreflight` — allOf/anyOf-Fälle mit null/empty/whitespace/absent/valid, scope-blocked, scope-satisfied, missing-inputs-Priorität über scope-blocked, unknown action.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): `GENERIC-PREFLIGHT-001` — leerer String `projectId` → `awaiting-onboarding`, `znp.assessPortfolio` nicht aufgerufen, kein internes Error-Text im Reply.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): `GENERIC-PREFLIGHT-002` — fehlende `projectId` → sicherer Reply, kein `Parameters validation error`, kein `ACTION_FAILED`, `znp.assessPortfolio` nicht aufgerufen.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): `GENERIC-PREFLIGHT-003` — gültige `projectId` → Action darf aufgerufen werden, kein `PREFLIGHT_MISS` im Reply.
+
+### Release Gates
+
+- `test:unit:ci` ✅ (neue Tests: 48 routing + 4 service preflight grün; 3 pre-existing synthesis-timeout failures in v0.54.5–v0.54.7 changes unverändert)
+
+## [0.54.7] — Execution Preflight for Missing Required Params (znp.assessPortfolio / projectId) (2026-05-25)
+
+### Fixed
+
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): `znp.assessPortfolio` zu `ACTION_REQUIREMENTS` hinzugefügt (`allOf: ['projectId']`) und zu `ACTION_PARAM_ALIASES` ergänzt, damit fehlende `projectId` deterministisch vor dem Microservice-Call erkannt werden.
+- [src/personal-agent-routing.js](src/personal-agent-routing.js): `getMissingInputs` – `allOf`-Prüfung behandelt jetzt auch `null` als fehlend (`== null` statt `=== undefined`), da eine `null`-`projectId` keine gültige Projektreferenz ist.
+- [src/personal-agent-onboarding.js](src/personal-agent-onboarding.js): Onboarding-Frage für `projectId` verbessert – fragt jetzt gezielt, ob die Anfrage einem bestehenden ZNP-Projekt zugeordnet werden soll (Projekt-ID oder -name) oder ob ein neues Projekt angelegt werden soll.
+
+### Architecture
+
+- Turn-2-Execution-Requests ohne `projectId` für `znp.assessPortfolio` werden deterministisch auf `awaiting-onboarding` umgeleitet, bevor der Moleculer-Call ausgelöst wird. Es findet kein LLM-basiertes Parameter-Repair statt.
+
+### Tests
+
+- [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js): Neuer `describe`-Block `getMissingInputs — znp.assessPortfolio` (6 Tests): absent, `undefined`, `null`, gültiger Wert, `applyMissingContextFallback` blockiert, `applyMissingContextFallback` passiert mit `knownContext`.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): `znp`-Mock-Service um `assessPortfolio`-Action erweitert (mit Param-Guard). Neuer Regressionstest `ZNP-PREFLIGHT`: verifiziert `awaiting-onboarding`, `missingParams` enthält `projectId`, `znp.assessPortfolio` wird nicht aufgerufen, Reply enthält keine internen Fehlertexte (`Parameters validation error`, `ACTION_FAILED`, Schema-Terme).
+
+### Release Gates
+
+- `test:unit:ci` ✅
+
+ — HITL Approval Short-Circuit, Scope-Separation Hardening, and Energy-ID Extraction (2026-05-25)
+
+### Fixed
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): Kritischer HITL-Propagation-Fix im Personal-Agent-Execution-Pfad.
+  - `handleExecutionWithOnboarding()` behandelt `MANDATORY_HITL_APPROVAL` jetzt explizit als priorisierten Stopp und gibt deterministisch `status: "awaiting-onboarding"` mit strukturiertem `onboardingQuestion` zurück.
+  - `_executeChatCoreLogic()` rendert für `MANDATORY_HITL_APPROVAL` eine klare Freigabe-Antwort inkl. UI-Embed (`[embed ref="hitl_item_<id>" ...]`) statt in den generischen Consultation-/LLM-Retry-Pfad zu laufen.
+  - `handleConsultationTurnAgentic()` enthält einen frühen Short-Circuit auf `session.l3.stopPoint.reasonCode === "MANDATORY_HITL_APPROVAL"`, sodass blockierte kritische Schritte nicht erneut durch die ReAct-/LLM-Schleife laufen.
+  - `session.l3.stopPoint` wird persistiert, damit die Freigabeanforderung turn-übergreifend stabil reproduzierbar bleibt.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `buildStopPoint()` gibt nun HITL-relevante Details (`placeholder`, `hitlItem`) vollständig weiter; `hitlItemId` bleibt konsistent für Frontend-Rendering.
+- [src/query-scope-classifier.js](src/query-scope-classifier.js): Neue zentrale Scope-Klassifikation eingeführt (`locationScope` vs. `operatorScope` etc.).
+  - City/PLZ/Region werden strikt als `locationScope` behandelt.
+  - `operatorScope` gilt nur als aufgelöst bei belastbarer Operator-Identität (z. B. BDEW, VNB-Name, MaStR-Operator-ID).
+- [src/consultation-execution-bridge.js](src/consultation-execution-bridge.js): VNB-Identifikation fachlich korrigiert.
+  - City-only-Anfragen erzeugen jetzt eine 2-Schritt-Kette (`marketPartners` -> `vnbLookup`) statt eines direkten, ungesicherten `vnbLookup`.
+  - Scope-Klassifikation (`scopeClassification`) wird in Planergebnis ausgegeben.
+- [src/agent-receipts-evaluation.js](src/agent-receipts-evaluation.js): Scope-Enforcement ergänzt.
+  - Steps mit `requiredScopes` werden gegen den realen Kontext geprüft.
+  - Fehlende Scopes führen deterministisch zu `status: "scope-blocked"` statt irreführendem `ready`.
+- [src/agent-receipts-seeds.js](src/agent-receipts-seeds.js): Scope-separierte VNB-Receipts gehärtet.
+  - `vnb-lookup-v1` verlangt nun `operatorScope`.
+  - Neue Chain `vnb-resolution-chain-v1` für location-getriebene VNB-Auflösung.
+- [src/agent-receipts-schema.js](src/agent-receipts-schema.js): Normalizer-Bug behoben — `requiredScopes` wird in `normalizeStep()` nicht mehr verworfen.
+- [src/utils/energy-id-extractor.js](src/utils/energy-id-extractor.js): Neue zentrale Utility zur robusten Extraktion energie-fachlicher IDs (MeLo, MaLo, MaStR-ID, BDEW/GLN, EIC, OBIS, PLZ) mit strikten `\b`-Regexen.
+- [src/consultation-input-extractor.js](src/consultation-input-extractor.js): Migration auf zentrale Energy-ID-Extraktion.
+  - Entfernt fehleranfällige ad-hoc-Pattern für `postalCode`/`bdewCode` aus `INPUT_PATTERNS`.
+  - Verhindert False-Positives (z. B. Wörter wie „Hier“ als pseudo-BDEW-Code).
+  - Schärft die Municipality-Erkennung (entfernt überbreite `(?:in|bei|ort)`-Klausel).
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): BDEW-Kontext-Pollution behoben — `buildReceiptExecutionContext()` validiert jetzt alle BDEW-Kandidaten mit `isPlausibleBdewCode()` (`/^\d{5,13}$/`). Freitext-Tokens wie `KANNST`, `WER`, `FÜR` aus NLP-Extraktion in `promptHints.bdew` werden abgewiesen und tauchen nicht mehr als `bdew`/`bdewCode` in Receipt-Parametern auf.
+- [src/agent-receipts-evaluation.js](src/agent-receipts-evaluation.js): `evaluateReceiptPlan()` flacht jetzt `context.knownContext` und `input.knownContext` vor der Parameterauflösung in `mergedContext` ein. Damit werden Felder wie `city`, `bdew`, `location` auch dann korrekt in `plannedToolCalls[].params` gemappt, wenn der Aufrufer sie in `context.knownContext.city` statt direkt in `context.city` übergibt.
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): `select`-Handler flacht jetzt `context.knownContext` und `input.knownContext` in `baseEvalInput` ein, bevor `evaluateReceiptPlan` aufgerufen wird. Damit schlagen Trigger-Matching und Param-Mapping auch für stadtbasierte Queries (`city`-Kontext) ohne `forceReceipt` durch.
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): Runtime-Selection für `vnb-lookup-v1` gezielt robust gemacht.
+  - Selection-Input wird jetzt über alle API-Formen konsolidiert (`message`/`question`, top-level `knownContext`, `context.knownContext`, top-level/context-level `city`, `bdewCode`, `vnbName`).
+  - VNB-Signale im Text inferieren bei Bedarf `domain: grid-operations` und `workflowType: vnb_identification`, damit `matchScore` nicht an Domain-Lücken scheitert.
+  - Bei `selected:false` liefert `diagnostics` jetzt kandidatenscharfe Ablehnungsgründe (`missing_trigger`, `missing_context`, `score_below_threshold`, `not_executable`) plus Status-Exclusions.
+- [services/personal-agent.service.js](services/personal-agent.service.js): Runtime-Receipt-Ausführung im `personal-agent.chat` Execution-Pfad gehärtet.
+  - Selektierte/erzwungene Receipts werden jetzt im Execution-Flow vor Legacy-Plan-Ausführung deterministisch über `executeWithReceipt()` ausgeführt.
+  - `forceReceipt` ist jetzt ein echtes Ausführungs-Gate: kein stiller Fallback mehr bei Modus-/Policy-Mismatch (`422` Guardrail-Fehler statt Capability-Broker-Drift).
+  - Legacy-Fallback greift nur noch kontrolliert und wird in `metadata.receiptSelection.execution` mit `fallbackReason` sichtbar gemacht.
+- [services/personal-agent.service.js](services/personal-agent.service.js): Receipt-Priorität im Chatpfad präzisiert.
+  - Erzwungene Receipts haben harte Priorität auch außerhalb reiner Execution-Intent-Hints; bei `selected && !executable` folgt ein klarer `422` (`RECEIPT_FORCED_NOT_EXECUTABLE`) statt stiller Capability-/Consultation-Drift.
+  - Selektierte ausführbare Receipts werden vor Consultation-Routing priorisiert (`executeWithReceipt()`), inkl. Metadata zu geplanten und ausgeführten Toolcalls.
+  - `metadata.receiptSelection.execution` enthält jetzt zusätzlich `plannedToolCalls` und `executedToolCalls`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): Receipt-Param-Mapping-Kontext normalisiert, sodass `city`, `bdewCode`/`bdew` und `vnbName`/`gridOperatorName` für vnb-Receipt-Mappings zuverlässig verfügbar sind.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `selectRuntimeReceipt()` gibt nun `selectedReceipt` durch und behandelt erzwungene Selection-Unavailable-Fälle explizit als `422` statt als stilles `mode=unavailable`-Degrading.
+- [services/grid-operations.service.js](services/grid-operations.service.js): VNB-Evidence-Härtung für `city-nap-fallback`.
+  - Placeholder-Kollisionen (`bdew === city`, `companyName === city`) werden nicht mehr als bestätigte Identität ausgegeben.
+  - Solche Antworten werden als `partial`/`unverified` markiert (`evidenceStatus`, `verification.gap`) und bereinigen irreführende Felder (`bdew`, `companyName`, `vnbName` -> `null`).
+- [src/job-store.js](src/job-store.js): Idempotency-Queue-Recovery gehärtet. `startJob()` erkennt jetzt stale `queued`-Jobs (`JOB_STORE_IDEMPOTENT_QUEUE_STALE_MS`, Default 30s), re-enqueued sie aktiv und protokolliert `idempotency_queue_revival`, statt dauerhaft auf einem nie geleasten Queue-Eintrag zu verharren.
+- [src/job-store.js](src/job-store.js): Queue-Recovery ist jetzt restart-sicher. Wenn ein bereits registrierter `queued`-Idempotency-Job nach Neustart keinen In-Memory-Queue-Eintrag mehr hat, wird er automatisch wieder in die Dispatch-Queue aufgenommen, statt als scheinbar „queued“ ohne Lease hängen zu bleiben.
+- [services/personal-agent.service.js](services/personal-agent.service.js): Gateway-Async-Chat stabilisiert.
+  - `idempotencyKey` ist jetzt turn-spezifisch (`sessionId` + SHA-256 über `message|forceReceipt`), damit gleiches `sessionId` nicht mehrere unterschiedliche Turns auf einen alten Queue-Job klemmt.
+  - `wakeContext` wird für den Chat-Job explizit gesetzt, damit Recovery/Rehydration den Turn mit korrekten Kernparametern wieder aufnehmen kann.
+- [services/personal-agent.service.js](services/personal-agent.service.js): Der REST-Pfad von `personal-agent.chat` bleibt bewusst async; der Sync-Pfad ist weiterhin nur für interne Moleculer-Aufrufe ohne `$gateway` vorgesehen.
+
+### Tests
+
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): HITL-Regressionen für den neuen Mandatory-HITL-Short-Circuit ergänzt/aktualisiert (inkl. Embed-Rendering und `awaiting-onboarding`-Status für kritische StopPoints).
+- [tests/query-scope-classifier.test.js](tests/query-scope-classifier.test.js): Neue Scope-Regressionstests (`SCOPE-REGRESSION-001` bis `005`) für saubere Trennung von `locationScope` und `operatorScope`.
+- [tests/consultation-execution-bridge.test.js](tests/consultation-execution-bridge.test.js): VNB-City-only-Routing aktualisiert (`PA-CEB-018`) und BDEW-direct-Fall ergänzt (`PA-CEB-018b`).
+- [tests/consultation-execution-bridge-regression.test.js](tests/consultation-execution-bridge-regression.test.js): Scope-Routing-Regressionsfälle (`PA-CEB-SCOPE-001` bis `005`) ergänzt.
+- [tests/agent-receipts.service.test.js](tests/agent-receipts.service.test.js): VNB-Selection/Evaluation auf scope-separierte Receipts angepasst (`vnb-resolution-chain-v1`), inkl. `scope-blocked`-Absicherung.
+- [tests/energy-id-extractor.test.js](tests/energy-id-extractor.test.js): Neue Test-Suite für positive/negative Pattern-Fälle (MeLo, MaLo, MaStR-ID, BDEW/GLN, EIC, OBIS, PLZ) und Boundary-/Dedup-Regressions.
+
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): T-PA-RE-004 bis T-PA-RE-006 — `buildReceiptExecutionContext` BDEW-Validierung: Freitext-Token-Rejection, numerische Code-Passthrough, keine BDEW-Injektion bei reinem City-Kontext.
+- [tests/agent-receipts.service.test.js](tests/agent-receipts.service.test.js): T-AR-09 — `evaluateStored` löst `city` aus `context.knownContext.city` in `plannedToolCalls[0].params` auf.
+- [tests/agent-receipts.service.test.js](tests/agent-receipts.service.test.js): T-AR-10 — `select` wählt VNB-Receipt automatisch anhand von `context.knownContext.city` ohne `forceReceipt`.
+- [tests/agent-receipts.service.test.js](tests/agent-receipts.service.test.js): zusätzliche Blackbox-nahe Selection-Fälle für `vnb-lookup-v1` via top-level und nested Kontextformen sowie aussagekräftige `selected:false`-Diagnostics.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Receipt-Orchestrierungsregressionen ergänzt für
+  - `forceReceipt="vnb-lookup-v1"` im Execution-Chatpfad (`grid-operations.vnbLookup` statt `grid-operations.marketPartners`),
+  - nachvollziehbare Selection-Diagnostics ohne `forceReceipt`,
+  - Legacy-Pfad bei `disableReceiptSelection=true` inkl. sichtbarer Fallback-Metadata.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Receipt-Priority-Regressions ergänzt für normalen Chatpfad ohne `forceReceipt`, harte Forced-Priorität und unverified/partial-VNB-Fallback-Evidenz.
+- [tests/grid-operations.service.test.js](tests/grid-operations.service.test.js): Evidence-Validation-Tests ergänzt für `vnbLookup` (`city-nap-fallback` als unverified/partial vs. verifizierter BDEW-Pfad).
+- [tests/job-store.test.js](tests/job-store.test.js): Regression für stale idempotente Queue-Jobs ergänzt — ein künstlich gealterter `queued`-Job wird bei erneutem `startJob()` wieder dispatcht und erfolgreich abgeschlossen (kein permanenter `queued`-Deadlock).
+- [tests/job-store.test.js](tests/job-store.test.js): Regression für restart-verlorene Queue-Einträge ergänzt — ein bestehender `queued`-Idempotency-Job wird nach erneutem `startJob()` wieder in die Dispatch-Queue aufgenommen und abgeschlossen.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Gateway-nahe Async-Regression ergänzt für `forceReceipt="vnb-lookup-v1"` — 202/`queued` Antwort wird bis `completed` durchlaufen; Ergebnis enthält `mode=forced`, `receiptId=vnb-lookup-v1`, `grid-operations.vnbLookup(city=Wiesloch)` und keinen Drift zu `grid-operations.marketPartners`.
+
+### Release Gates
+
+- `npm run test:unit:ci` ✅
+
+## [0.54.5] — Governed Learning Loop for Draft Receipts (2026-05-23)
+
+### Added
+
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): neue governte Learning-Loop-Actions für Runtime-Receipts.
+  - `POST /agent-receipts/propose` (`proposeDraft`): erstellt ausschließlich `draft`-Receipts mit `pendingReview=true`.
+  - `POST /agent-receipts/:id/promote` (`promote`): explizites Review-Gate für `draft -> active` inkl. `promotedBy`-Pflicht.
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): erweiterte Audit-Felder in Receipt-Payloads (`creatorId`, `creatorSource`, `promotedAt`, `promotedBy`, `promotedFromDraftId`, `changeReason`, `supersedes`).
+- [services/api.service.js](services/api.service.js): neue API-Aliases für den Learning-Loop:
+  - `POST /api/agent-receipts/propose`
+  - `POST /api/agent-receipts/:id/promote`
+
+### Changed
+
+- [src/agent-receipts-schema.js](src/agent-receipts-schema.js): `CREATOR_SOURCES` eingeführt (`chat`, `admin`, `api`, `seed`) zur Herkunfts-Governance von Receipt-Vorschlägen.
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): `proposeDraft` lehnt eingehende Nicht-Draft-Statuswerte strikt ab (`AGENT_RECEIPT_PROPOSE_STATUS_REJECTED`) statt still umzuschreiben.
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): Promotion nutzt CAS-/`_rev`-Guard (`AGENT_RECEIPT_CONFLICT`) zur Race-Prevention bei parallelen Reviews.
+- [services/agent-receipts.service.js](services/agent-receipts.service.js): Auto-Deprecation für supersedierte aktive Receipts (`deprecated` statt `archived`) mit Audit-Metadaten (`deprecatedBy`, `supersededByReceiptId`, `changeReason`).
+- [docs/v0.52-implementation-plans/personal-agent-v052-architecture-tdd.md](docs/v0.52-implementation-plans/personal-agent-v052-architecture-tdd.md): TDD-Matrix um `T-AR-01` bis `T-AR-08` erweitert (Governance-/Safety-Cases für Draft/Promote-Flow).
+- [src/personal-agent-tdd-matrix-normalizer.js](src/personal-agent-tdd-matrix-normalizer.js): fixe Normalisierungsmappings für `T-AR-*` ergänzt.
+
+### Fixed
+
+- Chat-originierte Receipt-Vorschläge können nicht mehr an `create`, `setStatus` oder `promote` vorbeigeschleust werden; der governte Pfad ist `proposeDraft`.
+- `promote` blockiert nicht-draft Promotionen deterministisch (`AGENT_RECEIPT_PROMOTE_NOT_DRAFT`) und verhindert damit implizite aktive Mutationen.
+- `proposeDraft`-Antwort ist eindeutig konservativ (`draft`, `pendingReview`) und vermeidet aktivierende Formulierungen im Nutzertext.
+
+### Tests
+
+- [tests/agent-receipts.service.test.js](tests/agent-receipts.service.test.js): neue v0.54.5-Suite mit `T-AR-01` bis `T-AR-08` für
+  - Draft-Erstellung inkl. Audit-Metadaten,
+  - harte Status-Ablehnung bei `proposeDraft`,
+  - Promotion-Audit (`promotedAt`, `promotedBy`),
+  - Blocking-Validation bei Promotion,
+  - Re-Promotion-Block,
+  - CAS-Konfliktpfad,
+  - Auto-Deprecation supersedierter Receipts,
+  - klare Chat-Guardrail-Antwort.
+- [tests/personal-agent-tdd-matrix-parser.test.js](tests/personal-agent-tdd-matrix-parser.test.js), [tests/personal-agent-tdd-matrix-normalizer.test.js](tests/personal-agent-tdd-matrix-normalizer.test.js), [tests/personal-agent-tdd-matrix.generated.test.js](tests/personal-agent-tdd-matrix.generated.test.js): Matrix-/Count-Gates auf 78 IDs aktualisiert.
+
+### Release Gates
+
+- `npm run test:unit:ci` ✅
+- `npm run test:tdd-matrix` ✅
+- `npm run check:tdd-matrix-coverage` ✅ (`78/78`, `100%`)
+
+### Compatibility Notes
+
+- Bestehende Receipt-CRUD-Pfade bleiben verfügbar; für chat-originierte Vorschläge ist der governte Zielpfad ab v0.54.5 `proposeDraft`.
+- `setStatus` bleibt für interne/admin Lifecycle-Fälle nutzbar, ist aber nicht das externe Review-Gate für Draft-Learning-Loop.
+- Historie wird nicht gelöscht; supersedierte produktive Receipts werden nachvollziehbar auf `deprecated` gesetzt.
+
 ## [0.54.4] — Knowledge-Aware Receipts (Metadata-First, Timeout-Safe) (2026-05-23)
 
 ### Added

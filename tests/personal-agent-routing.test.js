@@ -6,6 +6,8 @@ const {
   fillTemplateWithContext,
   pruneUndefinedDeep,
   getMissingInputs,
+  isMissingRequired,
+  runExecutionPreflight,
 } = require('../src/personal-agent-routing');
 
 describe('personal-agent-routing', () => {
@@ -388,5 +390,239 @@ describe('personal-agent-routing', () => {
       blockedAction: 'grid-connection.fnavValidate',
       missingParams: ['fnavProfile'],
     });
+  });
+});
+
+describe('getMissingInputs — znp.assessPortfolio', () => {
+  it('returns [projectId] when projectId is absent', () => {
+    expect(getMissingInputs('znp.assessPortfolio', {})).toEqual(['projectId']);
+  });
+
+  it('returns [projectId] when projectId is undefined', () => {
+    expect(getMissingInputs('znp.assessPortfolio', { projectId: undefined })).toEqual(['projectId']);
+  });
+
+  it('returns [projectId] when projectId is null', () => {
+    // null is treated as missing — a null projectId is not a valid project reference
+    const params = { projectId: null, kaufmaennischeFreigabeFnav: false };
+    expect(getMissingInputs('znp.assessPortfolio', params)).toEqual(['projectId']);
+  });
+
+  it('returns [] when projectId is present with a valid value', () => {
+    expect(getMissingInputs('znp.assessPortfolio', { projectId: 'znp-proj-001' })).toEqual([]);
+  });
+
+  it('applyMissingContextFallback detects missing projectId for znp.assessPortfolio', () => {
+    const plan = {
+      source: 'capability-broker',
+      status: 'ready',
+      steps: [
+        {
+          step: 1,
+          action: 'znp.assessPortfolio',
+          paramsTemplate: { kaufmaennischeFreigabeFnav: false },
+          source: 'capability-broker',
+        },
+      ],
+      promptHints: {},
+    };
+
+    const routed = applyMissingContextFallback(plan, {
+      executionMode: 'auto',
+      knownContext: {},
+    });
+
+    expect(routed.status).toBe('missing-context');
+    expect(routed.missingContext).toMatchObject({
+      blockedAction: 'znp.assessPortfolio',
+      missingParams: ['projectId'],
+    });
+    const missingStep = routed.steps.find((s) => s.action === 'MISSING_CONTEXT');
+    expect(missingStep).toBeDefined();
+    expect(missingStep.missingParams).toEqual(['projectId']);
+  });
+
+  it('does NOT add MISSING_CONTEXT when projectId is provided via knownContext', () => {
+    // Template must include the projectId slot (undefined) so fillTemplateWithContext
+    // hydrates it from knownContext before getMissingInputs runs
+    const plan = {
+      source: 'capability-broker',
+      status: 'ready',
+      steps: [
+        {
+          step: 1,
+          action: 'znp.assessPortfolio',
+          paramsTemplate: { projectId: undefined, kaufmaennischeFreigabeFnav: false },
+          source: 'capability-broker',
+        },
+      ],
+      promptHints: {},
+    };
+
+    const routed = applyMissingContextFallback(plan, {
+      executionMode: 'auto',
+      knownContext: { projectId: 'znp-proj-001' },
+    });
+
+    expect(routed.status).toBe('ready');
+    expect(routed.missingContext).toBeUndefined();
+  });
+});
+
+describe('isMissingRequired', () => {
+  it('returns true for null', () => {
+    expect(isMissingRequired(null)).toBe(true);
+  });
+
+  it('returns true for undefined', () => {
+    expect(isMissingRequired(undefined)).toBe(true);
+  });
+
+  it('returns true for empty string', () => {
+    expect(isMissingRequired('')).toBe(true);
+  });
+
+  it('returns true for whitespace-only string', () => {
+    expect(isMissingRequired('   ')).toBe(true);
+  });
+
+  it('returns true for empty array', () => {
+    expect(isMissingRequired([])).toBe(true);
+  });
+
+  it('returns true for empty object', () => {
+    expect(isMissingRequired({})).toBe(true);
+  });
+
+  it('returns false for a non-empty string', () => {
+    expect(isMissingRequired('znp-proj-001')).toBe(false);
+  });
+
+  it('returns false for a non-empty array', () => {
+    expect(isMissingRequired(['item'])).toBe(false);
+  });
+
+  it('returns false for a non-empty object', () => {
+    expect(isMissingRequired({ key: 'val' })).toBe(false);
+  });
+
+  it('returns false for a number (0 is falsy but not "missing")', () => {
+    expect(isMissingRequired(0)).toBe(false);
+  });
+});
+
+describe('runExecutionPreflight — generic param validation', () => {
+  // allOf: required param absent
+  it('returns missing-inputs when required param is absent (no key)', () => {
+    const result = runExecutionPreflight('znp.assessPortfolio', {});
+    expect(result.outcome).toBe('missing-inputs');
+    expect(result.missingParams).toContain('projectId');
+  });
+
+  // allOf: required param undefined
+  it('returns missing-inputs when required param is undefined', () => {
+    const result = runExecutionPreflight('znp.assessPortfolio', { projectId: undefined });
+    expect(result.outcome).toBe('missing-inputs');
+    expect(result.missingParams).toContain('projectId');
+  });
+
+  // allOf: required param null
+  it('returns missing-inputs when required param is null', () => {
+    const result = runExecutionPreflight('znp.assessPortfolio', { projectId: null });
+    expect(result.outcome).toBe('missing-inputs');
+    expect(result.missingParams).toContain('projectId');
+  });
+
+  // allOf: required string param empty
+  it('returns missing-inputs when required string param is empty string', () => {
+    const result = runExecutionPreflight('znp.assessPortfolio', { projectId: '' });
+    expect(result.outcome).toBe('missing-inputs');
+    expect(result.missingParams).toContain('projectId');
+  });
+
+  // allOf: whitespace-only string is also missing
+  it('returns missing-inputs when required string param is whitespace only', () => {
+    const result = runExecutionPreflight('znp.assessPortfolio', { projectId: '   ' });
+    expect(result.outcome).toBe('missing-inputs');
+    expect(result.missingParams).toContain('projectId');
+  });
+
+  // allOf: valid value passes
+  it('returns ok when all required params are present and non-empty', () => {
+    const result = runExecutionPreflight('znp.assessPortfolio', { projectId: 'znp-proj-001' });
+    expect(result.outcome).toBe('ok');
+    expect(result.missingParams).toEqual([]);
+  });
+
+  // anyOf: all missing → missing-inputs
+  it('returns missing-inputs for anyOf action when all candidates are absent', () => {
+    const result = runExecutionPreflight('grid-operations.vnbLookup', {});
+    expect(result.outcome).toBe('missing-inputs');
+    expect(result.missingParams[0]).toMatch(/oneOf:/);
+  });
+
+  // anyOf: null value is not considered satisfied
+  it('returns missing-inputs for anyOf when all values are null', () => {
+    const result = runExecutionPreflight('grid-operations.vnbLookup', {
+      bdew: null,
+      city: null,
+      vnbName: null,
+      query: null,
+    });
+    expect(result.outcome).toBe('missing-inputs');
+  });
+
+  // anyOf: empty string is not considered satisfied
+  it('returns missing-inputs for anyOf when all values are empty string', () => {
+    const result = runExecutionPreflight('grid-operations.vnbLookup', {
+      bdew: '',
+      city: '',
+      vnbName: '',
+      query: '',
+    });
+    expect(result.outcome).toBe('missing-inputs');
+  });
+
+  // anyOf: at least one valid value passes
+  it('returns ok for anyOf when at least one value is present and non-empty', () => {
+    const result = runExecutionPreflight('grid-operations.vnbLookup', { city: 'Wiesloch' });
+    expect(result.outcome).toBe('ok');
+  });
+
+  // Action without ACTION_REQUIREMENTS entry → always ok
+  it('returns ok for unknown action (no requirements registered)', () => {
+    const result = runExecutionPreflight('some.unknownAction', { anything: 'goes' });
+    expect(result.outcome).toBe('ok');
+  });
+
+  // scope-blocked
+  it('returns scope-blocked when a required scope is missing from contextScopes', () => {
+    const result = runExecutionPreflight(
+      'znp.assessPortfolio',
+      { projectId: 'znp-proj-001' },
+      { requiredScopes: ['operatorScope'], contextScopes: { operatorScope: false } }
+    );
+    expect(result.outcome).toBe('scope-blocked');
+    expect(result.missingParams).toContain('operatorScope');
+  });
+
+  // scope satisfied → ok
+  it('returns ok when required scope is satisfied in contextScopes', () => {
+    const result = runExecutionPreflight(
+      'znp.assessPortfolio',
+      { projectId: 'znp-proj-001' },
+      { requiredScopes: ['operatorScope'], contextScopes: { operatorScope: true } }
+    );
+    expect(result.outcome).toBe('ok');
+  });
+
+  // missing-inputs takes precedence over scope-blocked
+  it('returns missing-inputs even when scope is blocked (params checked first)', () => {
+    const result = runExecutionPreflight(
+      'znp.assessPortfolio',
+      { projectId: null },
+      { requiredScopes: ['operatorScope'], contextScopes: { operatorScope: false } }
+    );
+    expect(result.outcome).toBe('missing-inputs');
   });
 });

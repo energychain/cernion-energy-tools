@@ -79,23 +79,23 @@ describe('personal-agent-tdd-matrix-parser', () => {
     expect(extractRequiredTddIds(markdown)).toEqual(['MT-JOU-01', 'T-INV-01', 'T-ZNP-02']);
   });
 
-  it('parses the real architecture matrix file and finds 70 testcases', () => {
+  it('parses the real architecture matrix file and finds 78 testcases', () => {
     const cases = parseTddMatrixFile(DEFAULT_MATRIX_FILE);
     expect(Array.isArray(cases)).toBe(true);
-    expect(cases).toHaveLength(70);
+    expect(cases).toHaveLength(78);
 
     const ids = new Set(cases.map((c) => c.id));
-    expect(ids.size).toBe(70);
+    expect(ids.size).toBe(78);
     expect(ids.has('T-INV-01')).toBe(true);
     expect(ids.has('T-QUE-04')).toBe(true);
     expect(ids.has('MT-JOU-01')).toBe(true);
     expect(ids.has('MT-VOR-04')).toBe(true);
   });
 
-  it('required ID extractor returns the same 70 IDs for the real matrix file', () => {
+  it('required ID extractor returns the same 78 IDs for the real matrix file', () => {
     const markdown = fs.readFileSync(path.resolve(DEFAULT_MATRIX_FILE), 'utf8');
     const required = extractRequiredTddIds(markdown);
-    expect(required).toHaveLength(70);
+    expect(required).toHaveLength(78);
     expect(required[0]).toMatch(/^(MT|T)-/);
   });
 });

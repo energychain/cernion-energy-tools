@@ -67,8 +67,8 @@ describe('v0.52.5 TDD matrix executable coverage', () => {
     expect(normalizedIds).toEqual(requiredIds);
   });
 
-  it('parses exactly 58 executable single-turn matrix testcases', () => {
-    expect(cases).toHaveLength(58);
+  it('parses exactly 66 executable single-turn matrix testcases', () => {
+    expect(cases).toHaveLength(66);
   });
 
   test.each(cases)('$id maps to executable backend aliases', (testCase) => {

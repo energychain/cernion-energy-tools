@@ -74,7 +74,7 @@ module.exports = {
   name: 'german-grid',
 
   settings: {
-    defaultTimeout: 30000,
+    defaultTimeout: 90000,
   },
 
   actions: {

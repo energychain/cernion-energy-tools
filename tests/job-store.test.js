@@ -44,6 +44,7 @@ afterEach(() => {
   delete process.env.JOB_STORE_DIR;
   delete process.env.JOB_STORE_MAX_CONCURRENT_PER_TENANT;
   delete process.env.JOB_STORE_MAX_MISSED_LEASES;
+  delete process.env.JOB_STORE_IDEMPOTENT_QUEUE_STALE_MS;
 });
 
 // ─── createJob ────────────────────────────────────────────────────────────────
@@ -448,6 +449,30 @@ describe('startJob', () => {
       expect(second.reused).toBe(true);
       expect(second.jobId).toBe(first.jobId);
       await new Promise((r) => setTimeout(r, 30));
+      expect(worker).toHaveBeenCalledTimes(1);
+    });
+
+    it('re-enqueues queued idempotent jobs when in-memory dispatch state was lost', async () => {
+      const ctx = { meta: { $gateway: true, tenantId: 'tenant-stale-queue' } };
+      const worker = jest.fn(async () => ({ ok: true }));
+
+      const seededJobId = jobStore.createJob({
+        service: 'svc',
+        action: 'act',
+        tenantId: 'tenant-stale-queue',
+        idempotencyKey: 'ck:stale-queued',
+      });
+
+      const second = await jobStore.startJob(ctx, { service: 'svc', action: 'act' }, worker, {
+        idempotencyKey: 'ck:stale-queued',
+      });
+
+      expect(second.reused).toBe(true);
+      expect(second.jobId).toBe(seededJobId);
+
+      await new Promise((r) => setTimeout(r, 50));
+      expect(jobStore.getJob(seededJobId).status).toBe('completed');
+      expect(jobStore.getResult(seededJobId)).toEqual({ ok: true });
       expect(worker).toHaveBeenCalledTimes(1);
     });
 

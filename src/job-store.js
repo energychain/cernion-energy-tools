@@ -25,6 +25,10 @@ const MAX_CONCURRENT_PER_TENANT = Math.max(
 const MAX_MISSED_LEASES = Math.max(1, Number(process.env.JOB_STORE_MAX_MISSED_LEASES || 3));
 
 const TTL_MS = parseInt(process.env.JOB_STORE_TTL_SECONDS || '86400', 10) * 1000;
+const IDEMPOTENT_QUEUE_STALE_MS = Math.max(
+  5_000,
+  Number(process.env.JOB_STORE_IDEMPOTENT_QUEUE_STALE_MS || 30_000)
+);
 
 const JOB_STATUS = {
   QUEUED: 'queued',
@@ -115,6 +119,23 @@ function buildQueuedDescriptor(
     resultUrl: `/api/jobs/${jobId}/result`,
     progressUrl: `/api/jobs/${jobId}/progress`,
   };
+}
+
+function isIdempotentQueueStale(job) {
+  if (!job || String(job.status) !== JOB_STATUS.QUEUED) return false;
+  const updatedAt = Date.parse(String(job.updatedAt || job.createdAt || ''));
+  if (Number.isNaN(updatedAt)) return true;
+  return Date.now() - updatedAt >= IDEMPOTENT_QUEUE_STALE_MS;
+}
+
+function isJobEnqueuedInMemory(jobId) {
+  for (const queue of pendingJobsByTenant.values()) {
+    if (!Array.isArray(queue) || queue.length === 0) continue;
+    if (queue.some((entry) => String(entry?.jobId || '') === String(jobId))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function getRunningCount(tenantId) {
@@ -871,6 +892,8 @@ async function startJob(ctx, jobMeta, worker, options = {}) {
     return worker(null); // null jobId: appendLog calls are no-ops for internal callers
   }
 
+  const tenantId = ctx?.meta?.tenantId || 'default';
+
   const idempotencyKey =
     typeof options.idempotencyKey === 'string' && options.idempotencyKey.trim()
       ? options.idempotencyKey.trim()
@@ -879,6 +902,28 @@ async function startJob(ctx, jobMeta, worker, options = {}) {
   if (idempotencyKey) {
     const existing = findJobByIdempotencyKey(jobMeta?.service, jobMeta?.action, idempotencyKey);
     if (existing && (existing.status === 'queued' || existing.status === 'running')) {
+      const needsRequeue =
+        String(existing.status) === JOB_STATUS.QUEUED && !isJobEnqueuedInMemory(existing.jobId);
+
+      if (needsRequeue || isIdempotentQueueStale(existing)) {
+        enqueuePendingJob({
+          tenantId: existing.tenantId || tenantId,
+          jobId: existing.jobId,
+          idempotencyKey,
+          worker,
+        });
+        appendLog(
+          existing.jobId,
+          'idempotency_queue_revival',
+          Number(existing?.percent || 0),
+          'Stale queued idempotent job revived and re-dispatched.',
+          {
+            staleMs: IDEMPOTENT_QUEUE_STALE_MS,
+          }
+        );
+        scheduleDispatch();
+      }
+
       const descriptor = buildQueuedDescriptor(
         existing.jobId,
         'Existing idempotent job reused. Poll /api/jobs/:jobId/status for progress.'
@@ -893,7 +938,6 @@ async function startJob(ctx, jobMeta, worker, options = {}) {
     }
   }
 
-  const tenantId = ctx?.meta?.tenantId || 'default';
   const wakeContext =
     options.wakeContext && typeof options.wakeContext === 'object'
       ? {

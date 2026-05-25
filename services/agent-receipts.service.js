@@ -7,6 +7,7 @@ const { MoleculerClientError } = require('moleculer').Errors;
 const {
   RECEIPT_ID_PATTERN,
   RECEIPT_STATUSES,
+  CREATOR_SOURCES,
   validateReceipt,
   isStatusTransitionAllowed,
 } = require('../src/agent-receipts-schema');
@@ -34,6 +35,197 @@ function normalizeStringArray(value) {
   );
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+function firstNonEmptyString(...values) {
+  for (const candidate of values) {
+    if (candidate == null) continue;
+    const normalized = String(candidate).trim();
+    if (normalized) {
+      return normalized;
+    }
+  }
+  return null;
+}
+
+const VNB_SELECTION_SIGNALS =
+  /\b(vnb|netzbetreiber|zust[aä]ndig(?:e|er|es|en)?(?:\s+netzbetreiber)?|verteilnetz(?:betreiber)?|netzgebiet)\b/i;
+
+function normalizeSelectionPayload(payload = {}) {
+  const context = isPlainObject(payload.context) ? payload.context : {};
+  const input = isPlainObject(payload.input) ? payload.input : {};
+
+  const topKnownContext = isPlainObject(payload.knownContext) ? payload.knownContext : {};
+  const contextKnownContext = isPlainObject(context.knownContext) ? context.knownContext : {};
+  const inputKnownContext = isPlainObject(input.knownContext) ? input.knownContext : {};
+
+  const mergedKnownContext = {
+    ...topKnownContext,
+    ...contextKnownContext,
+    ...inputKnownContext,
+  };
+
+  const message = firstNonEmptyString(
+    payload.message,
+    payload.question,
+    context.message,
+    context.question,
+    input.message,
+    input.question
+  ) || '';
+
+  const question = firstNonEmptyString(payload.question, context.question, input.question, message);
+
+  const city = firstNonEmptyString(
+    payload.city,
+    context.city,
+    input.city,
+    mergedKnownContext.city,
+    mergedKnownContext.municipality,
+    mergedKnownContext.location
+  );
+
+  const bdewCode = firstNonEmptyString(
+    payload.bdewCode,
+    payload.bdew,
+    context.bdewCode,
+    context.bdew,
+    input.bdewCode,
+    input.bdew,
+    mergedKnownContext.bdewCode,
+    mergedKnownContext.bdew
+  );
+
+  const vnbName = firstNonEmptyString(
+    payload.vnbName,
+    context.vnbName,
+    input.vnbName,
+    context.gridOperatorName,
+    input.gridOperatorName,
+    mergedKnownContext.vnbName,
+    mergedKnownContext.gridOperatorName,
+    mergedKnownContext.assertedGridOperatorName
+  );
+
+  const domainHint = firstNonEmptyString(
+    payload.domain,
+    context.domain,
+    input.domain,
+    mergedKnownContext.domain,
+    mergedKnownContext.domainHint
+  );
+  const workflowHint = firstNonEmptyString(
+    payload.workflowType,
+    context.workflowType,
+    input.workflowType,
+    mergedKnownContext.workflowType
+  );
+
+  const inferredVnbSignal = VNB_SELECTION_SIGNALS.test(message);
+  const normalizedDomain = domainHint || (inferredVnbSignal ? 'grid-operations' : null);
+  const normalizedWorkflowType = workflowHint || (inferredVnbSignal ? 'vnb_identification' : null);
+
+  const normalizedKnownContext = {
+    ...mergedKnownContext,
+    ...(city ? { city } : {}),
+    ...(bdewCode ? { bdewCode, bdew: bdewCode } : {}),
+    ...(vnbName ? { vnbName, gridOperatorName: vnbName } : {}),
+    ...(normalizedDomain ? { domain: normalizedDomain } : {}),
+    ...(normalizedWorkflowType ? { workflowType: normalizedWorkflowType } : {}),
+  };
+
+  const normalizedContext = {
+    ...mergedKnownContext,
+    ...context,
+    knownContext: normalizedKnownContext,
+    message,
+    question: question || message,
+    ...(city ? { city } : {}),
+    ...(bdewCode ? { bdewCode, bdew: bdewCode } : {}),
+    ...(vnbName ? { vnbName, gridOperatorName: vnbName } : {}),
+    ...(normalizedDomain ? { domain: normalizedDomain } : {}),
+    ...(normalizedWorkflowType ? { workflowType: normalizedWorkflowType } : {}),
+  };
+
+  const normalizedInput = {
+    ...inputKnownContext,
+    ...input,
+    knownContext: normalizedKnownContext,
+    message,
+    question: question || message,
+    ...(city ? { city } : {}),
+    ...(bdewCode ? { bdewCode, bdew: bdewCode } : {}),
+    ...(vnbName ? { vnbName, gridOperatorName: vnbName } : {}),
+    ...(normalizedDomain ? { domain: normalizedDomain } : {}),
+    ...(normalizedWorkflowType ? { workflowType: normalizedWorkflowType } : {}),
+  };
+
+  return {
+    message,
+    context: normalizedContext,
+    input: normalizedInput,
+    normalizedSignals: {
+      inferredVnbSignal,
+      city: city || null,
+      bdewCode: bdewCode || null,
+      vnbName: vnbName || null,
+      domain: normalizedDomain || null,
+      workflowType: normalizedWorkflowType || null,
+    },
+  };
+}
+
+function buildCandidateSelectionDiagnostic({
+  receipt,
+  evaluation,
+  stage = 'automatic',
+  selected = false,
+} = {}) {
+  const matchReasons = Array.isArray(evaluation?.matchReasons) ? evaluation.matchReasons : [];
+  const missingMatchEntities = Array.isArray(evaluation?.missingMatchEntities)
+    ? evaluation.missingMatchEntities
+    : [];
+  const missingRequiredInputs = Array.isArray(evaluation?.missingRequiredInputs)
+    ? evaluation.missingRequiredInputs
+    : [];
+  const score = typeof evaluation?.matchScore === 'number' ? evaluation.matchScore : null;
+
+  let rejectReason = null;
+  if (!selected) {
+    if (evaluation?.matched !== true && score !== null && score < 30) {
+      rejectReason = 'score_below_threshold';
+    } else if (evaluation?.matched !== true && matchReasons.length === 0) {
+      rejectReason = 'missing_trigger';
+    }
+
+    if (!rejectReason && missingMatchEntities.length > 0) {
+      rejectReason = 'missing_context';
+    }
+    if (!rejectReason && evaluation?.executable === false) {
+      rejectReason = 'not_executable';
+    }
+    if (!rejectReason && evaluation?.matched !== true) {
+      rejectReason = 'not_matched';
+    }
+  }
+
+  return {
+    receiptId: receipt?.receiptId || null,
+    status: receipt?.status || null,
+    stage,
+    selected,
+    matched: evaluation?.matched === true,
+    executable: evaluation?.executable === true,
+    score,
+    rejectReason,
+    matchReasons,
+    missingMatchEntities,
+    missingRequiredInputs,
+  };
+}
+
 function toPublic(doc) {
   return {
     receiptId: doc.receiptId,
@@ -59,6 +251,13 @@ function toPublic(doc) {
     activatedAt: doc.activatedAt || null,
     deprecatedAt: doc.deprecatedAt || null,
     archivedAt: doc.archivedAt || null,
+    creatorId: doc.creatorId || null,
+    creatorSource: doc.creatorSource || null,
+    promotedAt: doc.promotedAt || null,
+    promotedBy: doc.promotedBy || null,
+    promotedFromDraftId: doc.promotedFromDraftId || null,
+    changeReason: doc.changeReason || null,
+    supersedes: doc.supersedes || null,
     _rev: doc._rev,
   };
 }
@@ -354,8 +553,14 @@ module.exports = {
       rest: 'POST /select',
       params: {
         message: { type: 'string', optional: true, default: '' },
+        question: { type: 'string', optional: true },
+        knownContext: { type: 'object', optional: true, default: {} },
         context: { type: 'object', optional: true, default: {} },
         input: { type: 'object', optional: true, default: {} },
+        city: { type: 'string', optional: true },
+        bdewCode: { type: 'string', optional: true },
+        bdew: { type: 'string', optional: true },
+        vnbName: { type: 'string', optional: true },
         forceReceipt: { type: 'string', optional: true, pattern: RECEIPT_ID_PATTERN },
         preferredReceipts: { type: 'array', optional: true, items: 'string', default: [] },
         allowDraftReceipts: { type: 'boolean', optional: true, default: false, convert: true },
@@ -374,8 +579,17 @@ module.exports = {
                 type: 'object',
                 properties: {
                   message: { type: 'string', example: 'Wer ist der zuständige VNB in Trier?' },
+                  question: { type: 'string', example: 'Wer ist der zuständige Netzbetreiber?' },
+                  knownContext: {
+                    type: 'object',
+                    default: {},
+                    example: { city: 'Wiesloch' },
+                  },
                   context: { type: 'object', default: {}, example: {} },
                   input: { type: 'object', default: {}, example: {} },
+                  city: { type: 'string', example: 'Wiesloch' },
+                  bdewCode: { type: 'string', example: '9900992720003' },
+                  vnbName: { type: 'string', example: 'TWL Netze GmbH' },
                   forceReceipt: { type: 'string', example: 'vnb-lookup-v1' },
                   preferredReceipts: {
                     type: 'array',
@@ -403,9 +617,6 @@ module.exports = {
       },
       async handler(ctx) {
         const {
-          message,
-          context,
-          input,
           forceReceipt,
           preferredReceipts,
           allowDraftReceipts,
@@ -413,6 +624,11 @@ module.exports = {
           disableReceiptSelection,
           includeEvaluation,
         } = ctx.params;
+
+        const normalizedSelectionInput = normalizeSelectionPayload(ctx.params);
+        const message = normalizedSelectionInput.message;
+        const context = normalizedSelectionInput.context;
+        const input = normalizedSelectionInput.input;
 
         if (disableReceiptSelection) {
           return {
@@ -431,15 +647,10 @@ module.exports = {
         const warnings = [];
         const baseEvalInput = {
           broker: this.broker,
-          context: {
-            ...(context || {}),
-            message: message || context?.message || '',
-          },
-          input: {
-            ...(input || {}),
-            message: message || input?.message || '',
-          },
+          context,
+          input,
         };
+        const candidateDiagnostics = [];
 
         const includeDiagnostics = explainReceiptSelection === true;
 
@@ -480,6 +691,14 @@ module.exports = {
 
           const forcedReceipt = toPublic(forcedDoc);
           let forcedEvaluation = evaluateReceiptPlan(forcedReceipt, baseEvalInput);
+          candidateDiagnostics.push(
+            buildCandidateSelectionDiagnostic({
+              receipt: forcedReceipt,
+              evaluation: forcedEvaluation,
+              stage: 'forced',
+              selected: true,
+            })
+          );
           if (includeEvaluation) {
             forcedEvaluation = await this.enrichEvaluationWithKnowledge(
               ctx,
@@ -517,6 +736,8 @@ module.exports = {
                     missingMatchEntities: Array.isArray(forcedEvaluation?.missingMatchEntities)
                       ? forcedEvaluation.missingMatchEntities
                       : [],
+                    selectionSignals: normalizedSelectionInput.normalizedSignals,
+                    candidates: candidateDiagnostics,
                   }
                 : null,
             }),
@@ -525,6 +746,20 @@ module.exports = {
 
         const preferred = normalizeStringArray(preferredReceipts);
         const candidates = await this.loadSelectableReceipts({ allowDraftReceipts });
+        const allDocsResponse = await this.db.find({
+          selector: { type: 'agent-receipt' },
+          limit: 5000,
+        });
+        const allReceipts = Array.isArray(allDocsResponse?.docs) ? allDocsResponse.docs : [];
+        const allowedStatuses = allowDraftReceipts
+          ? new Set(['active', 'draft'])
+          : new Set(['active']);
+        const excludedByStatus = allReceipts
+          .filter((doc) => !allowedStatuses.has(String(doc?.status || '').toLowerCase()))
+          .map((doc) => ({
+            receiptId: doc?.receiptId || null,
+            status: doc?.status || null,
+          }));
         const byId = new Map(candidates.map((doc) => [doc.receiptId, doc]));
 
         let selected = null;
@@ -541,6 +776,14 @@ module.exports = {
 
           const candidate = toPublic(candidateDoc);
           const evaluation = evaluateReceiptPlan(candidate, baseEvalInput);
+          candidateDiagnostics.push(
+            buildCandidateSelectionDiagnostic({
+              receipt: candidate,
+              evaluation,
+              stage: 'preferred',
+              selected: evaluation?.matched === true,
+            })
+          );
           if (evaluation?.matched === true) {
             selected = {
               receipt: candidate,
@@ -559,6 +802,14 @@ module.exports = {
 
             const candidate = toPublic(candidateDoc);
             const evaluation = evaluateReceiptPlan(candidate, baseEvalInput);
+            candidateDiagnostics.push(
+              buildCandidateSelectionDiagnostic({
+                receipt: candidate,
+                evaluation,
+                stage: 'automatic',
+                selected: evaluation?.matched === true,
+              })
+            );
 
             if (evaluation?.matched !== true) {
               continue;
@@ -591,6 +842,9 @@ module.exports = {
                 ? {
                     evaluatedCandidates: candidates.length,
                     preferredCandidates: preferred,
+                    selectionSignals: normalizedSelectionInput.normalizedSignals,
+                    candidates: candidateDiagnostics,
+                    excludedByStatus,
                   }
                 : null,
             }),
@@ -630,6 +884,8 @@ module.exports = {
                   missingMatchEntities: Array.isArray(selected.evaluation?.missingMatchEntities)
                     ? selected.evaluation.missingMatchEntities
                     : [],
+                  selectionSignals: normalizedSelectionInput.normalizedSignals,
+                  candidates: candidateDiagnostics,
                 }
               : null,
           }),
@@ -841,6 +1097,323 @@ module.exports = {
         return {
           success: true,
           data: toPublic(stored),
+        };
+      },
+    },
+
+    proposeDraft: {
+      rest: 'POST /propose',
+      params: {
+        receiptId: { type: 'string', pattern: RECEIPT_ID_PATTERN },
+        title: { type: 'string', min: 3 },
+        description: { type: 'string', min: 10 },
+        domain: { type: 'string', min: 2 },
+        tags: { type: 'array', items: 'string', optional: true, default: [] },
+        matching: { type: 'object' },
+        requiredInputs: { type: 'array', items: 'string', optional: true, default: [] },
+        toolPlan: { type: 'object' },
+        knowledgeQueries: { type: 'array', optional: true, default: [] },
+        knowledgeEvidencePolicy: { type: 'object', optional: true },
+        knowledgePlan: { type: 'object', optional: true },
+        evidencePolicy: { type: 'object', optional: true },
+        forbiddenInferences: { type: 'array', items: 'string', optional: true, default: [] },
+        responsePolicy: { type: 'object', optional: true },
+        defaults: { type: 'object', optional: true, default: {} },
+        metadata: { type: 'object', optional: true, default: {} },
+        creatorId: { type: 'string', optional: true, nullable: true },
+        creatorSource: {
+          type: 'enum',
+          values: CREATOR_SOURCES,
+          optional: true,
+          default: 'api',
+        },
+        changeReason: { type: 'string', optional: true },
+        supersedes: { type: 'string', optional: true, pattern: RECEIPT_ID_PATTERN },
+      },
+      openapi: {
+        summary: 'Propose a new draft receipt (governed learning loop)',
+        tags: ['Agent Receipts'],
+        description:
+          'Creates a receipt in draft status only. Chat and automated flows must use this path instead of create. The receipt is pending review and must be explicitly promoted before becoming active.',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['receiptId', 'title', 'description', 'domain', 'matching', 'toolPlan'],
+                properties: {
+                  receiptId: { type: 'string', example: 'vnb-lookup-v2' },
+                  title: { type: 'string' },
+                  description: { type: 'string' },
+                  domain: { type: 'string' },
+                  tags: { type: 'array', items: { type: 'string' } },
+                  matching: { type: 'object' },
+                  requiredInputs: { type: 'array', items: { type: 'string' } },
+                  toolPlan: { type: 'object' },
+                  creatorId: {
+                    type: 'string',
+                    nullable: true,
+                    description: 'Identity of the creator (user id, agent name, etc).',
+                  },
+                  creatorSource: {
+                    type: 'string',
+                    enum: CREATOR_SOURCES,
+                    default: 'api',
+                    description:
+                      'Origin of the proposal. Chat-originated proposals must use chat.',
+                  },
+                  changeReason: {
+                    type: 'string',
+                    description: 'Optional human-readable reason for this proposal.',
+                  },
+                  supersedes: {
+                    type: 'string',
+                    description:
+                      'Optional receiptId of an active receipt this draft intends to supersede upon promotion.',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        // status must never be provided as non-draft by the caller
+        if (
+          Object.prototype.hasOwnProperty.call(ctx.params, 'status') &&
+          ctx.params.status !== 'draft'
+        ) {
+          throw new MoleculerClientError(
+            'proposeDraft only accepts status: draft. Use promote to activate a receipt.',
+            422,
+            'AGENT_RECEIPT_PROPOSE_STATUS_REJECTED',
+            { field: 'status', provided: ctx.params.status }
+          );
+        }
+
+        const candidate = {
+          ...ctx.params,
+          status: 'draft',
+        };
+
+        // Strip governance fields before schema validation
+        delete candidate.creatorId;
+        delete candidate.creatorSource;
+        delete candidate.changeReason;
+        delete candidate.supersedes;
+
+        const validation = validateReceipt(candidate);
+        if (!validation.valid) {
+          throw new MoleculerClientError(
+            'Receipt proposal validation failed.',
+            422,
+            'AGENT_RECEIPT_VALIDATION_FAILED',
+            { errors: validation.errors }
+          );
+        }
+
+        const receiptId = validation.normalized.receiptId;
+        const id = toDocId(receiptId);
+
+        try {
+          await this.db.get(id);
+          throw new MoleculerClientError(
+            `Receipt already exists: ${receiptId}`,
+            409,
+            'AGENT_RECEIPT_EXISTS',
+            { receiptId }
+          );
+        } catch (err) {
+          if (err?.type === 'AGENT_RECEIPT_EXISTS') throw err;
+          if (err?.status !== 404) throw err;
+        }
+
+        const rawSource = ctx.params.creatorSource;
+        const creatorSource = CREATOR_SOURCES.includes(rawSource) ? rawSource : 'api';
+        const rawCreatorId = ctx.params.creatorId;
+        const creatorId =
+          typeof rawCreatorId === 'string' && rawCreatorId.trim() ? rawCreatorId.trim() : null;
+        const rawChangeReason = ctx.params.changeReason;
+        const changeReason =
+          typeof rawChangeReason === 'string' && rawChangeReason.trim()
+            ? rawChangeReason.trim()
+            : null;
+        const rawSupersedes = ctx.params.supersedes;
+        const supersedes =
+          typeof rawSupersedes === 'string' && rawSupersedes.trim()
+            ? rawSupersedes.trim()
+            : null;
+
+        const now = new Date().toISOString();
+        const doc = {
+          _id: id,
+          type: 'agent-receipt',
+          ...validation.normalized,
+          status: 'draft',
+          version: 1,
+          createdAt: now,
+          updatedAt: now,
+          activatedAt: null,
+          deprecatedAt: null,
+          archivedAt: null,
+          creatorId,
+          creatorSource,
+          promotedAt: null,
+          promotedBy: null,
+          promotedFromDraftId: null,
+          ...(changeReason != null ? { changeReason } : {}),
+          ...(supersedes != null ? { supersedes } : {}),
+        };
+
+        const result = await this.db.put(doc);
+        doc._rev = result.rev;
+
+        return {
+          success: true,
+          receiptId,
+          status: 'draft',
+          pendingReview: true,
+          message: `Receipt '${receiptId}' stored as draft. It is pending review and must be explicitly promoted by a reviewer before it can be used in production.`,
+          data: toPublic(doc),
+        };
+      },
+    },
+
+    promote: {
+      rest: 'POST /:id/promote',
+      params: {
+        id: { type: 'string', pattern: RECEIPT_ID_PATTERN },
+        promotedBy: { type: 'string', min: 1 },
+        changeReason: { type: 'string', optional: true },
+        supersedes: { type: 'string', optional: true, pattern: RECEIPT_ID_PATTERN },
+        _rev: { type: 'string', optional: true, nullable: true },
+      },
+      openapi: {
+        summary: 'Promote a draft receipt to active (explicit review gate)',
+        tags: ['Agent Receipts'],
+        description:
+          'Transitions a draft receipt to active. Requires promotedBy identity. Validates the receipt fully before promotion. Optionally auto-deprecates a superseded active receipt. Requires _rev for CAS conflict protection.',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', example: 'vnb-lookup-v2' },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['promotedBy'],
+                properties: {
+                  promotedBy: {
+                    type: 'string',
+                    description: 'Identity of the reviewer who approved promotion.',
+                    example: 'admin@example.com',
+                  },
+                  changeReason: { type: 'string' },
+                  supersedes: {
+                    type: 'string',
+                    description:
+                      'Optional receiptId of an active receipt to auto-deprecate on promotion. Falls back to supersedes field stored on the draft.',
+                  },
+                  _rev: {
+                    type: 'string',
+                    nullable: true,
+                    description: 'CAS revision token. Prevents concurrent promotion race conditions.',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const { id, promotedBy, changeReason, supersedes } = ctx.params;
+        const doc = await this.loadReceipt(id);
+        const requestedRev = normalizeRevToken(ctx.params._rev);
+
+        this.assertCasRevision(doc, requestedRev, id);
+
+        if (doc.status !== 'draft') {
+          throw new MoleculerClientError(
+            `Only draft receipts can be promoted. Current status: ${doc.status}.`,
+            409,
+            'AGENT_RECEIPT_PROMOTE_NOT_DRAFT',
+            { receiptId: id, currentStatus: doc.status }
+          );
+        }
+
+        // Full validation with target status active — blocks on any blocking error
+        const validation = validateReceipt({ ...toPublic(doc), status: 'active' });
+        this.ensureActivationAllowed(validation);
+
+        const now = new Date().toISOString();
+        const promotedByTrimmed = promotedBy.trim();
+        const changeReasonTrimmed =
+          typeof changeReason === 'string' && changeReason.trim()
+            ? changeReason.trim()
+            : doc.changeReason || null;
+
+        const updatedDoc = {
+          ...doc,
+          status: 'active',
+          updatedAt: now,
+          version: (doc.version || 1) + 1,
+          activatedAt: now,
+          promotedAt: now,
+          promotedBy: promotedByTrimmed,
+          promotedFromDraftId: id,
+          ...(changeReasonTrimmed != null ? { changeReason: changeReasonTrimmed } : {}),
+        };
+
+        const stored = await this.putWithConflictHandling(updatedDoc, requestedRev, id);
+
+        // Auto-deprecate superseded receipt — prefer explicit param, fall back to draft's supersedes field
+        const supersededId = supersedes || doc.supersedes || null;
+        let supersededResult = null;
+
+        if (supersededId && supersededId !== id) {
+          try {
+            const supersededDoc = await this.loadReceipt(supersededId);
+            if (supersededDoc.status === 'active') {
+              const deprecatedNow = new Date().toISOString();
+              const deprecatedDoc = {
+                ...supersededDoc,
+                status: 'deprecated',
+                updatedAt: deprecatedNow,
+                version: (supersededDoc.version || 1) + 1,
+                deprecatedAt: deprecatedNow,
+                metadata: {
+                  ...(supersededDoc.metadata || {}),
+                  deprecatedBy: promotedByTrimmed,
+                  supersededByReceiptId: id,
+                  ...(changeReasonTrimmed != null ? { changeReason: changeReasonTrimmed } : {}),
+                },
+              };
+              await this.db.put(deprecatedDoc);
+              supersededResult = { receiptId: supersededId, status: 'deprecated' };
+              this.logger.info(
+                `[agent-receipts] Auto-deprecated ${supersededId} (superseded by ${id}, promotedBy=${promotedByTrimmed})`
+              );
+            }
+          } catch (err) {
+            if (err?.type !== 'AGENT_RECEIPT_NOT_FOUND') {
+              this.logger.warn(
+                `[agent-receipts] Could not auto-deprecate ${supersededId}: ${err.message}`
+              );
+            }
+          }
+        }
+
+        return {
+          success: true,
+          data: toPublic(stored),
+          ...(supersededResult != null ? { superseded: supersededResult } : {}),
         };
       },
     },

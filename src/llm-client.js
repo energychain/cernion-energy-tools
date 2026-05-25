@@ -44,8 +44,8 @@ function getStructuredMode() {
 }
 
 function getTimeoutMs(options = {}) {
-  const timeout = Number(options.timeoutMs ?? process.env.LLM_TIMEOUT_MS ?? 30000);
-  return Number.isFinite(timeout) && timeout > 0 ? timeout : 30000;
+  const timeout = Number(options.timeoutMs ?? process.env.LLM_TIMEOUT_MS ?? 90000);
+  return Number.isFinite(timeout) && timeout > 0 ? timeout : 90000;
 }
 
 function getMaxRetries(options = {}) {

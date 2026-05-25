@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.54.3",
+    "version": "0.54.8",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -16259,6 +16259,15 @@
                   "toolPlan": {
                     "type": "object"
                   },
+                  "knowledgeQueries": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "knowledgeEvidencePolicy": {
+                    "type": "object"
+                  },
                   "knowledgePlan": {
                     "type": "object"
                   },
@@ -16326,6 +16335,17 @@
                     "type": "string",
                     "example": "Wer ist der zuständige VNB in Trier?"
                   },
+                  "question": {
+                    "type": "string",
+                    "example": "Wer ist der zuständige Netzbetreiber?"
+                  },
+                  "knownContext": {
+                    "type": "object",
+                    "default": {},
+                    "example": {
+                      "city": "Wiesloch"
+                    }
+                  },
                   "context": {
                     "type": "object",
                     "default": {},
@@ -16335,6 +16355,18 @@
                     "type": "object",
                     "default": {},
                     "example": {}
+                  },
+                  "city": {
+                    "type": "string",
+                    "example": "Wiesloch"
+                  },
+                  "bdewCode": {
+                    "type": "string",
+                    "example": "9900992720003"
+                  },
+                  "vnbName": {
+                    "type": "string",
+                    "example": "TWL Netze GmbH"
                   },
                   "forceReceipt": {
                     "type": "string",
@@ -16414,6 +16446,103 @@
                   },
                   "receipt": {
                     "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-receipts/propose": {
+      "post": {
+        "operationId": "agent-receipts_proposeDraft",
+        "summary": "Propose a new draft receipt (governed learning loop)",
+        "tags": [
+          "Agent Receipts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Creates a receipt in draft status only. Chat and automated flows must use this path instead of create. The receipt is pending review and must be explicitly promoted before becoming active.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "receiptId",
+                  "title",
+                  "description",
+                  "domain",
+                  "matching",
+                  "toolPlan"
+                ],
+                "properties": {
+                  "receiptId": {
+                    "type": "string",
+                    "example": "vnb-lookup-v2"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "domain": {
+                    "type": "string"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "matching": {
+                    "type": "object"
+                  },
+                  "requiredInputs": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "toolPlan": {
+                    "type": "object"
+                  },
+                  "creatorId": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "Identity of the creator (user id, agent name, etc)."
+                  },
+                  "creatorSource": {
+                    "type": "string",
+                    "enum": [
+                      "chat",
+                      "admin",
+                      "api",
+                      "seed"
+                    ],
+                    "default": "api",
+                    "description": "Origin of the proposal. Chat-originated proposals must use chat."
+                  },
+                  "changeReason": {
+                    "type": "string",
+                    "description": "Optional human-readable reason for this proposal."
+                  },
+                  "supersedes": {
+                    "type": "string",
+                    "description": "Optional receiptId of an active receipt this draft intends to supersede upon promotion."
                   }
                 }
               }
@@ -16547,6 +16676,71 @@
                   "_rev": {
                     "type": "string",
                     "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/agent-receipts/:id/promote": {
+      "post": {
+        "operationId": "agent-receipts_promote",
+        "summary": "Promote a draft receipt to active (explicit review gate)",
+        "tags": [
+          "Agent Receipts"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "description": "Transitions a draft receipt to active. Requires promotedBy identity. Validates the receipt fully before promotion. Optionally auto-deprecates a superseded active receipt. Requires _rev for CAS conflict protection.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "vnb-lookup-v2"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "promotedBy"
+                ],
+                "properties": {
+                  "promotedBy": {
+                    "type": "string",
+                    "description": "Identity of the reviewer who approved promotion.",
+                    "example": "admin@example.com"
+                  },
+                  "changeReason": {
+                    "type": "string"
+                  },
+                  "supersedes": {
+                    "type": "string",
+                    "description": "Optional receiptId of an active receipt to auto-deprecate on promotion. Falls back to supersedes field stored on the draft."
+                  },
+                  "_rev": {
+                    "type": "string",
+                    "nullable": true,
+                    "description": "CAS revision token. Prevents concurrent promotion race conditions."
                   }
                 }
               }
@@ -22705,5 +22899,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.54.3"
+  "x-version": "0.54.8"
 }

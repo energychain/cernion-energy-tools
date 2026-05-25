@@ -9,7 +9,14 @@
  *
  * Uses regex-based pattern matching for NLP-like extraction—more robust than
  * LLM-based slot-filling which hallucinations.
+ *
+ * Energy-domain identifiers (MeLo, MaLo, MaStR-ID, BDEW/GLN, EIC, OBIS,
+ * PLZ) are extracted via the centralised energy-id-extractor utility instead
+ * of ad-hoc regexes to avoid false positives like mistaking "Hier" for a
+ * BDEW code.
  */
+
+const { extractEnergyIds } = require('./utils/energy-id-extractor');
 
 const INPUT_PATTERNS = Object.freeze({
   bundesland: {
@@ -21,15 +28,12 @@ const INPUT_PATTERNS = Object.freeze({
   },
   municipality: {
     patterns: [
+      // Only match when preceded by an explicit location keyword to avoid
+      // catching arbitrary words like "d die RLM-Daten" or sentence fragments.
       /(?:stadt|gemeinde|ort)\s+([A-Z][a-zäöüß\-\s]{2,})/i,
-      /(?:in|bei|ort)\s*[:=]?\s*([A-Z][a-zäöüß\-\s]{2,})/i,
-      /\b(arnstadt|münchen|hamburg|köln|köln|berlin|dresden|frankfurt|düsseldorf)\b/i,
+      /\b(arnstadt|münchen|hamburg|köln|berlin|dresden|frankfurt|düsseldorf|heidelberg|wiesloch|mannheim|karlsruhe|stuttgart|nürnberg|dortmund|essen|leipzig|bremen|hannover|duisburg|bochum|wuppertal|bielefeld|bonn|münster|augsburg|wiesbaden|gelsenkirchen|mönchengladbach|braunschweig|chemnitz|kiel|aachen|halle|magdeburg|freiburg|krefeld|lübeck|oberhausen|erfurt|mainz|rostock|kassel|hagen|hamm|saarbrücken|mülheim)\b/i,
     ],
     aliases: ['city', 'town', 'location'],
-  },
-  postalCode: {
-    patterns: [/\b(\d{5})\b/],
-    aliases: ['zip_code', 'plz', 'postleitzahl'],
   },
   powerMW: {
     patterns: [
@@ -48,14 +52,10 @@ const INPUT_PATTERNS = Object.freeze({
   },
   gridOperatorName: {
     patterns: [
-      /(?:netzbetreiber|vnb|ort)\s*[:=]?\s*([A-Z][a-zäöüß\s\-\.]{2,})/i,
-      /(?:zuständig|betrieben)\s+(?:von|durch|von)\s+([A-Z][a-zäöüß\s\-\.]{2,})/i,
+      /(?:netzbetreiber|vnb)\s*[:=]?\s*([A-Z][a-zäöüß\s\-\.]{2,})/i,
+      /(?:zuständig|betrieben)\s+(?:von|durch)\s+([A-Z][a-zäöüß\s\-\.]{2,})/i,
     ],
     aliases: ['vnb_name', 'operator', 'netzbetreiber'],
-  },
-  bdewCode: {
-    patterns: [/\b([A-Z0-9]{2,10})\b(?:\s*BDEW|\s*BDEW-Code)?/i],
-    aliases: ['operator_code', 'bdew'],
   },
   assetType: {
     patterns: [
@@ -114,6 +114,26 @@ function extractAvailableInputs(message = '', consultationFacts = {}, knownConte
           addIfNew(paramKey, match[1], 'message', 'high');
           break; // Use first match
         }
+      }
+    }
+
+    // 1b. Extract energy-domain identifiers (MeLo, MaLo, MaStR-ID, BDEW/GLN,
+    //     EIC, OBIS, PLZ) via the centralised utility — strict word-boundary
+    //     patterns prevent false positives like matching "Hier" as a BDEW code.
+    const energyIds = extractEnergyIds(message);
+    for (const match of energyIds) {
+      // Map extractor type → INPUT_PATTERNS / knownContext field names
+      const paramKey = {
+        meloId: 'meloId',
+        maloId: 'maloId',
+        mastrId: 'mastrId',
+        bdewCode: 'bdewCode',
+        eicCode: 'eicCode',
+        obisCode: 'obisCode',
+        postalCode: 'postalCode',
+      }[match.type];
+      if (paramKey) {
+        addIfNew(paramKey, match.value, 'message', 'high');
       }
     }
   }
