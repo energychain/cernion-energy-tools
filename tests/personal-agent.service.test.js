@@ -18,6 +18,8 @@ describe('personal-agent.service', () => {
   let executedActions;
   let executedCallDetails;
   let hitlItems;
+  let personaDirectory;
+  let seedPersona;
 
   beforeEach(async () => {
     objectStorePath = path.join(os.tmpdir(), `personal-agent-store-${Date.now()}-${Math.random()}`);
@@ -25,6 +27,22 @@ describe('personal-agent.service', () => {
     executedActions = [];
     executedCallDetails = [];
     hitlItems = new Map();
+    personaDirectory = new Map();
+    seedPersona = (tenantId, overrides = {}) => {
+      const list = personaDirectory.get(tenantId) || [];
+      const persona = {
+        id: `${tenantId}/netzplanung-human`,
+        tenantId,
+        personaName: 'Thorsten Zoerner',
+        personaType: 'human',
+        assignedRoles: ['ROLE_NETZPLANUNG', 'ROLE_KAUFMAENNISCHE_LEITUNG'],
+        status: 'active',
+        ...overrides,
+      };
+      list.push(persona);
+      personaDirectory.set(tenantId, list);
+      return persona;
+    };
     broker = new ServiceBroker({ logger: false });
     broker.createService({
       ...ObjectStoreService,
@@ -258,18 +276,80 @@ describe('personal-agent.service', () => {
       },
     });
     broker.createService({
+      name: 'agent-persona',
+      actions: {
+        list: {
+          handler(ctx) {
+            const tenantId = ctx.params?.tenantId || ctx.meta?.tenantId || null;
+            const role = ctx.params?.role || null;
+            const personas = Array.isArray(personaDirectory.get(tenantId))
+              ? personaDirectory.get(tenantId)
+              : [];
+            const items = role
+              ? personas.filter(
+                  (persona) =>
+                    Array.isArray(persona.assignedRoles) && persona.assignedRoles.includes(role)
+                )
+              : personas;
+            return { success: true, items };
+          },
+        },
+      },
+    });
+    broker.createService({
       name: 'hitl',
       actions: {
         create: {
           handler(ctx) {
             const id = `hitl-${hitlItems.size + 1}`;
+            const tenantId = ctx.meta?.tenantId || null;
+            const paramsRoutingContext =
+              ctx.params?.routingContext && typeof ctx.params.routingContext === 'object'
+                ? ctx.params.routingContext
+                : null;
+            const responsibleRole =
+              ctx.params?.responsibleRole || paramsRoutingContext?.responsibleRole || null;
+            const requiredResolverRoles = Array.isArray(ctx.params?.requiredResolverRoles)
+              ? ctx.params.requiredResolverRoles
+              : [];
+            const explicitPersonaId =
+              ctx.params?.personaId || paramsRoutingContext?.personaId || null;
+            const personas = Array.isArray(personaDirectory.get(tenantId))
+              ? personaDirectory.get(tenantId)
+              : [];
+            const resolvedPersona = explicitPersonaId
+              ? personas.find((persona) => persona.id === explicitPersonaId)
+              : personas.find(
+                  (persona) =>
+                    persona.status === 'active' &&
+                    responsibleRole &&
+                    Array.isArray(persona.assignedRoles) &&
+                    persona.assignedRoles.includes(responsibleRole)
+                ) || null;
+
             const item = {
               id,
               kind: ctx.params.kind || 'generic',
               payload: ctx.params.payload || {},
               status: 'pending',
               createdAt: new Date().toISOString(),
-              tenantId: ctx.meta?.tenantId || null,
+              tenantId,
+              responsibleRole,
+              requiredResolverRoles,
+              personaId: resolvedPersona?.id || explicitPersonaId || null,
+              personaName: resolvedPersona?.personaName || null,
+              personaType: resolvedPersona?.personaType || null,
+              personaResolution: resolvedPersona
+                ? {
+                    personaId: resolvedPersona.id,
+                    personaName: resolvedPersona.personaName,
+                    personaType: resolvedPersona.personaType,
+                    responsibleRole,
+                    requiredResolverRoles,
+                    source: 'agent-persona.mock',
+                  }
+                : null,
+              routingContext: paramsRoutingContext,
             };
             hitlItems.set(id, item);
             return { success: true, item };
@@ -3795,6 +3875,125 @@ describe('personal-agent.service', () => {
     expect(result.reply).not.toMatch(/notification|dispatch|unresolved_recipient|channel/i);
   });
 
+  it('propagates actor identity and routing metadata for critical HITL stopPoint', async () => {
+    seedPersona('tenant-critical-hitl-routing', {
+      id: 'tenant-critical-hitl-routing/thorsten-human',
+      personaName: 'Thorsten Zoerner',
+      personaType: 'human',
+      assignedRoles: ['ROLE_NETZPLANUNG', 'ROLE_KAUFMAENNISCHE_LEITUNG'],
+      status: 'active',
+    });
+
+    const result = await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId: `pa-rest-actor-routing-test-${Date.now()}`,
+        message: 'Bitte Due Diligence für den Kreditausschuss durchführen.',
+        chatMode: 'execution',
+        executionMode: 'auto',
+        knownContext: {
+          responsibleRole: 'ROLE_NETZPLANUNG',
+          routingContext: {
+            source: 'chat-rest-actor-routing-test',
+            scenario: 'critical-finance-hitl',
+          },
+        },
+      },
+      {
+        meta: {
+          tenantId: 'tenant-critical-hitl-routing',
+          authUser: { userId: 'user-hitl-routing' },
+        },
+      }
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.execution.status).toBe('awaiting-onboarding');
+    expect(result.execution.stopPoint.reasonCode).toBe('MANDATORY_HITL_APPROVAL');
+    expect(result.execution.stopPoint.blockedAction).toBe('finance-agent.analyze');
+    expect(result.execution.stopPoint.hitlItemId).toMatch(/^hitl-/);
+    expect(result.execution.stopPoint.responsibleRole).toBe('ROLE_NETZPLANUNG');
+    expect(result.execution.stopPoint.personaId).toBe('tenant-critical-hitl-routing/thorsten-human');
+    expect(result.execution.stopPoint.personaName).toBe('Thorsten Zoerner');
+    expect(result.execution.stopPoint.personaType).toBe('human');
+    expect(result.execution.stopPoint.routingContext).toMatchObject({
+      source: 'chat-rest-actor-routing-test',
+    });
+    expect(result.reply).toMatch(/\[embed ref="hitl_item_/i);
+    expect(result.reply).not.toMatch(/notification|dispatch|unresolved_recipient|channel/i);
+    expect(result.agentTrace?.stateMachine?.currentState).not.toBe('failed');
+    expect(['hitl_blocked', 'awaiting_user_input']).toContain(
+      result.agentTrace?.stateMachine?.currentState
+    );
+  });
+
+  it('keeps pending HITL stopPoint on neutral follow-up turn without rerouting', async () => {
+    seedPersona('tenant-critical-hitl-followup', {
+      id: 'thorsten-zoerner',
+      personaName: 'Thorsten Zoerner',
+      personaType: 'human',
+      assignedRoles: ['ROLE_NETZPLANUNG', 'ROLE_KAUFMAENNISCHE_LEITUNG'],
+      status: 'active',
+    });
+
+    const sessionId = `pa-rest-actor-routing-after-seed-${Date.now()}`;
+    const meta = {
+      tenantId: 'tenant-critical-hitl-followup',
+      authUser: { userId: 'user-hitl-followup' },
+    };
+
+    const first = await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId,
+        message: 'Bitte Due Diligence für den Kreditausschuss durchführen.',
+        chatMode: 'execution',
+        executionMode: 'auto',
+        knownContext: {
+          responsibleRole: 'ROLE_NETZPLANUNG',
+          routingContext: {
+            source: 'chat-rest-actor-routing-test',
+          },
+        },
+      },
+      { meta }
+    );
+
+    expect(first.success).toBe(true);
+    expect(first.execution.status).toBe('awaiting-onboarding');
+    expect(first.execution.stopPoint.reasonCode).toBe('MANDATORY_HITL_APPROVAL');
+    expect(first.execution.stopPoint.blockedAction).toBe('finance-agent.analyze');
+    expect(first.execution.stopPoint.hitlItemId).toMatch(/^hitl-/);
+    expect(first.execution.stopPoint.personaId).toBe('thorsten-zoerner');
+    expect(first.agentTrace?.stateMachine?.currentState).toBe('hitl_blocked');
+
+    const firstHitlItemId = first.execution.stopPoint.hitlItemId;
+    const firstPersonaId = first.execution.stopPoint.personaId;
+    const placeholderCallsBeforeSecondTurn = placeholderCalls.length;
+
+    const second = await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId,
+        message: 'Bitte fortfahren.',
+        chatMode: 'execution',
+        executionMode: 'auto',
+      },
+      { meta }
+    );
+
+    expect(second.success).toBe(true);
+    expect(second.execution.status).toBe('awaiting-onboarding');
+    expect(second.execution.stopPoint.reasonCode).toBe('MANDATORY_HITL_APPROVAL');
+    expect(second.execution.stopPoint.blockedAction).toBe('finance-agent.analyze');
+    expect(second.execution.stopPoint.hitlItemId).toBe(firstHitlItemId);
+    expect(second.execution.stopPoint.personaId).toBe(firstPersonaId);
+    expect(second.reply).toContain(`[embed ref="hitl_item_${firstHitlItemId}"`);
+    expect(second.agentTrace?.stateMachine?.currentState).toBe('hitl_blocked');
+    expect(second.reply).not.toMatch(/PREFLIGHT_MISS/i);
+    expect(placeholderCalls.length).toBe(placeholderCallsBeforeSecondTurn);
+  });
+
   it('resumes critical flow after HITL approval on next turn', async () => {
     const sessionId = `hitl-resume-${Date.now()}`;
     const meta = { tenantId: 'tenant-critical-resume', authUser: { userId: 'user-hitl-resume' } };
@@ -3839,6 +4038,85 @@ describe('personal-agent.service', () => {
         (step) => step.action === 'finance-agent.analyze' && step.status === 'completed'
       )
     ).toBe(true);
+  });
+
+  it('resumes approved critical HITL checkpoint without placeholder rerouting', async () => {
+    const sessionId = `hitl-approved-resume-neutral-${Date.now()}`;
+    const meta = {
+      tenantId: 'tenant-critical-hitl-approved-resume',
+      authUser: { userId: 'user-hitl-approved-resume' },
+    };
+
+    // Turn 1: trigger mandatory HITL stop for finance-agent.analyze
+    const first = await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId,
+        message: 'Bitte Due Diligence für den Kreditausschuss durchführen.',
+        chatMode: 'execution',
+        executionMode: 'auto',
+      },
+      { meta }
+    );
+
+    expect(first.success).toBe(true);
+    expect(first.execution.status).toBe('awaiting-onboarding');
+    expect(first.execution.stopPoint.reasonCode).toBe('MANDATORY_HITL_APPROVAL');
+    expect(first.execution.stopPoint.blockedAction).toBe('finance-agent.analyze');
+    const hitlItemId = first.execution.stopPoint.hitlItemId;
+    expect(hitlItemId).toBeTruthy();
+
+    // Approve the HITL item
+    const approval = await broker.call('hitl.approve', { id: hitlItemId }, { meta });
+    expect(approval.item.status).toBe('approved');
+
+    const placeholderCallsBefore = placeholderCalls.length;
+
+    // Turn 2: neutral follow-up with knownContext.hitlItemId — should resume, not reroute
+    const resumed = await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId,
+        message: 'Bitte fortfahren.',
+        executionMode: 'auto',
+        knownContext: {
+          hitlItemId,
+        },
+      },
+      { meta }
+    );
+
+    expect(resumed.success).toBe(true);
+
+    // Must not land on interface-placeholder.markGap
+    expect(placeholderCalls.length).toBe(placeholderCallsBefore);
+    expect(resumed.execution.stopPoint?.reasonCode).not.toBe('PREFLIGHT_MISS');
+    const hasMarkGapStep = Array.isArray(resumed.execution.steps) &&
+      resumed.execution.steps.some((s) => s.action === 'interface-placeholder.markGap');
+    expect(hasMarkGapStep).toBe(false);
+
+    // Must not create a new pending HITL for the same approved item
+    const newHitlStop = resumed.execution.stopPoint?.reasonCode === 'MANDATORY_HITL_APPROVAL' &&
+      resumed.execution.stopPoint?.hitlItemId !== hitlItemId;
+    expect(newHitlStop).toBe(false);
+
+    // State machine must not be failed
+    expect(resumed.agentTrace?.stateMachine?.currentState).not.toBe('failed');
+
+    // Option A: finance-agent.analyze was executed successfully
+    const analyzeDone = Array.isArray(resumed.execution.steps) &&
+      resumed.execution.steps.some(
+        (s) => s.action === 'finance-agent.analyze' && s.status === 'completed'
+      );
+
+    if (analyzeDone) {
+      // Option A path: execution completed or partial with done step
+      expect(['completed', 'partial']).toContain(resumed.execution.status);
+    } else {
+      // Option B path: controlled approved-resume response — must still not be PREFLIGHT_MISS
+      expect(resumed.execution.stopPoint?.reasonCode).not.toBe('PREFLIGHT_MISS');
+      expect(resumed.execution.stopPoint?.blockedAction).not.toBe('interface-placeholder.markGap');
+    }
   });
 
   it('preserves persona routing metadata in HITL onboarding questions', () => {

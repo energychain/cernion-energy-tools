@@ -232,6 +232,20 @@ function isParametersValidationError(error) {
   );
 }
 
+function normalizeHitlStatus(status) {
+  return String(status || '').trim().toLowerCase();
+}
+
+function isHitlApprovedStatus(status) {
+  return normalizeHitlStatus(status) === 'approved';
+}
+
+function isHitlTerminalStatus(status) {
+  return ['approved', 'rejected', 'declined', 'cancelled', 'expired', 'resolved'].includes(
+    normalizeHitlStatus(status)
+  );
+}
+
 function buildConsultationToolExecutionContext(ctx, brokerOverride = null) {
   const boundCtxCall = typeof ctx?.call === 'function' ? ctx.call.bind(ctx) : null;
   const resolvedBroker = brokerOverride || ctx?.broker || null;
@@ -1191,6 +1205,266 @@ module.exports = {
         const knownContext = { ...rawKnownContext };
         // ─────────────────────────────────────────────────────────────────
 
+        const sessionHitlGate = await this.resolveSessionHitlResumeGate(ctx, {
+          session,
+          knownContext: rawKnownContext,
+          message: ctx.params.message,
+        });
+
+        if (sessionHitlGate?.mode === 'blocked' || sessionHitlGate?.mode === 'terminal') {
+          const forcedChatMode =
+            normalizeChatMode(ctx.params.chatMode || ctx.meta?.chatMode || ctx.meta?.$params?.chatMode) ||
+            CHAT_MODES.EXECUTION;
+
+          stateMachine = transitionStateMachine(
+            stateMachine,
+            PERSONAL_AGENT_STATES.KNOWLEDGE_ORIENTED,
+            {
+              activeDomains: detectRequestedDomains(ctx.params.message),
+              knowledgeDomain: null,
+            }
+          );
+          stateMachine = transitionStateMachine(
+            stateMachine,
+            PERSONAL_AGENT_STATES.BROKER_RECOMMENDED,
+            {
+              intent: 'hitl_resume_gate',
+              capability: 'personal-agent.hitl_resume_gate',
+            }
+          );
+          stateMachine = transitionStateMachine(
+            stateMachine,
+            PERSONAL_AGENT_STATES.CHAT_MODE_RESOLVED,
+            {
+              chatMode: forcedChatMode,
+              source: 'session_hitl_gate',
+              executionMode,
+            }
+          );
+          stateMachine = transitionStateMachine(
+            stateMachine,
+            PERSONAL_AGENT_STATES.EXECUTION_PLANNED,
+            {
+              primaryIntent: 'critical_step_hitl_resume_gate',
+              stepCount: 0,
+            }
+          );
+          stateMachine = transitionStateMachine(
+            stateMachine,
+            sessionHitlGate.mode === 'blocked'
+              ? PERSONAL_AGENT_STATES.HITL_BLOCKED
+              : PERSONAL_AGENT_STATES.COMPLETED,
+            {
+              reasonCode:
+                sessionHitlGate.mode === 'blocked'
+                  ? 'MANDATORY_HITL_APPROVAL'
+                  : 'HITL_TERMINAL_DECISION',
+              blockedAction: sessionHitlGate?.stopPoint?.blockedAction || null,
+              hitlItemId: sessionHitlGate?.stopPoint?.hitlItemId || null,
+              hitlStatus: sessionHitlGate?.status || null,
+            }
+          );
+
+          const stackResult = buildContextStack({
+            systemPrompt: this.settings.systemPrompt,
+            tenantFacts: session.l1?.tenantFacts || [],
+            userProfile: session.l2?.userProfile || {},
+            sessionHistory: [...(session.l3?.history || []), userMessage],
+            fileAttachments: session.l3?.fileAttachments || [],
+            toolContext: ctx.params.toolContext || null,
+            maxContextTokens: this.settings.maxContextTokens,
+          });
+          const finalized = synthesizeAndPurgeLayer4(
+            stackResult.stack,
+            sessionHitlGate.reply || ''
+          );
+
+          const execution = {
+            status: sessionHitlGate.mode === 'blocked' ? 'awaiting-onboarding' : 'partial',
+            plan: null,
+            steps: [],
+            stopPoint: sessionHitlGate.stopPoint || null,
+            meta: executionTrace.summarize({
+              toolCalls: toolCallTracker.summarize().calls,
+              chatModeSource: 'session_hitl_gate',
+            }),
+          };
+
+          const responseStrategy = this.buildResponseStrategy({
+            message: ctx.params.message,
+            execution,
+            knownContext,
+            missingParams: [],
+            existingAssumptions: Array.isArray(session.l3?.assumptions) ? session.l3.assumptions : [],
+          });
+
+          turnGraph = addNode(turnGraph, {
+            id: 'knowledge:orientation',
+            type: 'knowledge',
+            label: 'Knowledge orientation',
+            data: {
+              domainHint: null,
+              styleHint: null,
+              activeDomains: detectRequestedDomains(ctx.params.message),
+              contextMutationMode: contextMutation.mode,
+              contextReplacedKeys:
+                contextMutation.replacedKeys.length > 0 ? contextMutation.replacedKeys : null,
+            },
+          });
+          turnGraph = addEdge(turnGraph, {
+            from: 'msg:user',
+            to: 'knowledge:orientation',
+            type: 'oriented_by',
+          });
+
+          turnGraph = addNode(turnGraph, {
+            id: 'broker:recommendation',
+            type: 'broker',
+            label: 'Capability recommendation',
+            data: {
+              intent: 'hitl_resume_gate',
+              capability: 'personal-agent.hitl_resume_gate',
+              semanticWorkflowType: null,
+              semanticConfidence: null,
+            },
+          });
+          turnGraph = addEdge(turnGraph, {
+            from: 'knowledge:orientation',
+            to: 'broker:recommendation',
+            type: 'routes_to',
+          });
+          turnGraph = addNode(turnGraph, {
+            id: 'chat:mode',
+            type: 'decision',
+            label: 'Chat mode resolved',
+            data: {
+              mode: forcedChatMode,
+              source: 'session_hitl_gate',
+            },
+          });
+          turnGraph = addEdge(turnGraph, {
+            from: 'broker:recommendation',
+            to: 'chat:mode',
+            type: 'decides',
+          });
+          turnGraph = finalizeTurnGraph(turnGraph, {
+            status: sessionHitlGate.mode === 'blocked' ? 'hitl_blocked' : 'hitl_terminal',
+          });
+
+          const persisted = buildPersistableSessionState({
+            id: sessionId,
+            tenantId,
+            userId,
+            l1: finalized.stack.l1,
+            l2: finalized.stack.l2,
+            l3: {
+              ...finalized.stack.l3,
+              chatMode: forcedChatMode,
+              chatModeSource: 'session_hitl_gate',
+              executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
+              stateMachine: summarizeStateMachine(stateMachine),
+              turnGraph: summarizeTurnGraph(turnGraph),
+              responseStrategy,
+              planStack: Array.isArray(session.planStack) ? session.planStack : [],
+              resolvedParams:
+                session.resolvedParams && typeof session.resolvedParams === 'object'
+                  ? session.resolvedParams
+                  : {},
+              resolvedCapabilities: Array.isArray(session.resolvedCapabilities)
+                ? session.resolvedCapabilities
+                : [],
+              lastCompletedPlan:
+                session.l3?.lastCompletedPlan && typeof session.l3.lastCompletedPlan === 'object'
+                  ? session.l3.lastCompletedPlan
+                  : null,
+              stopPoint:
+                sessionHitlGate.stopPoint && typeof sessionHitlGate.stopPoint === 'object'
+                  ? sessionHitlGate.stopPoint
+                  : null,
+              criticalStepCheckpoints:
+                session.l3?.criticalStepCheckpoints &&
+                typeof session.l3.criticalStepCheckpoints === 'object'
+                  ? session.l3.criticalStepCheckpoints
+                  : {},
+            },
+            createdAt: session.createdAt,
+          });
+
+          assertNoL4RawInPersistedState(persisted);
+          await this.persistSession(ctx, tenantId, sessionId, persisted);
+
+          const quality = this.buildQualitySummary({
+            evidencePlan: null,
+            execution,
+            consultation: null,
+          });
+          const agentTrace = this.buildAgentTrace({
+            routing: {
+              source: 'session-hitl-gate',
+              routeKey: null,
+              routeLabel: 'hitl_resume_gate',
+              primaryIntent: 'critical_step_hitl_resume_gate',
+              secondaryIntents: [],
+              requestedDomains: detectRequestedDomains(ctx.params.message),
+              unsupportedDomains: [],
+              warnings: [],
+              chatMode: forcedChatMode,
+            },
+            plan: null,
+            execution,
+            evidencePlan: null,
+            consultation: null,
+            responseStrategy,
+            stateMachine,
+            executionStateGraph,
+            turnGraph,
+            routingDecision: {
+              target: 'execution_node',
+              label: 'session-hitl-gate',
+              confidence: 1,
+              determinism: 'high',
+            },
+          });
+
+          return {
+            success: true,
+            status: execution.status,
+            sessionId,
+            executionMode,
+            chatMode: forcedChatMode,
+            reply: sessionHitlGate.reply,
+            execution,
+            plan: {
+              steps: [],
+              onboardingHints: [],
+            },
+            quality,
+            agentTrace,
+            stateMachine: summarizeStateMachine(stateMachine),
+            executionStateGraph: summarizeExecutionStateGraph(executionStateGraph),
+            turnGraph: summarizeTurnGraph(turnGraph),
+            layer4Purged: finalized.layer4Purged,
+            l3Compressed: finalized.stack.l3?.compressed || false,
+            historyCount: Array.isArray(finalized.stack.l3?.history)
+              ? finalized.stack.l3.history.length
+              : 0,
+            contextUsage: stackResult.usage,
+            fileProcessing,
+          };
+        }
+
+        // ── Approved HITL Resume: inject stored plan and enrich knownContext ──
+        if (sessionHitlGate?.mode === 'approved') {
+          const approvedPlanSnapshot = sessionHitlGate.planSnapshot;
+          if (approvedPlanSnapshot?.steps?.length > 0) {
+            session.l3._approvedHitlResume = approvedPlanSnapshot;
+          }
+          if (!knownContext.hitlItemId && sessionHitlGate.hitlItemId) {
+            knownContext.hitlItemId = sessionHitlGate.hitlItemId;
+          }
+        }
+        // ───────────────────────────────────────────────────────────────────────
+
         let knowledgeContext = await this.queryKnowledgeOrientation(ctx, {
           message: ctx.params.message,
           activeDomains: detectRequestedDomains(ctx.params.message),
@@ -1339,6 +1613,13 @@ module.exports = {
               confidence: 1,
             }
           );
+        }
+
+        // Approved HITL resume: force execution mode so the plan is not lost to consultation routing
+        if (!effectiveChatMode && session.l3?._approvedHitlResume) {
+          effectiveChatMode = CHAT_MODES.EXECUTION;
+          chatModeSource = 'approved_hitl_resume';
+          chatModeConfidence = 1;
         }
 
         // Ebene 2: LLM-Klassifikator
@@ -1828,7 +2109,7 @@ module.exports = {
           if (consultationExecution.status === 'awaiting-onboarding') {
             stateMachine = transitionStateMachine(
               stateMachine,
-              PERSONAL_AGENT_STATES.AWAITING_ONBOARDING,
+              PERSONAL_AGENT_STATES.AWAITING_USER_INPUT,
               {
                 reasonCode: consultationExecution?.stopPoint?.reasonCode || null,
                 blockedAction: consultationExecution?.stopPoint?.blockedAction || null,
@@ -1922,6 +2203,11 @@ module.exports = {
             consultationExecution?.stopPoint && typeof consultationExecution.stopPoint === 'object'
               ? consultationExecution.stopPoint
               : null;
+          persisted.l3.criticalStepCheckpoints =
+            session.l3?.criticalStepCheckpoints &&
+            typeof session.l3.criticalStepCheckpoints === 'object'
+              ? session.l3.criticalStepCheckpoints
+              : {};
 
           assertNoL4RawInPersistedState(persisted);
           await this.persistSession(ctx, tenantId, sessionId, persisted);
@@ -2251,6 +2537,16 @@ module.exports = {
               plan = mergeResolvedParamsIntoPlan(resumed.parentFrame.plan, session.resolvedParams);
             }
           }
+        }
+
+        // Approved HITL resume: use the stored plan from the blocked checkpoint instead of broker-derived plan
+        if (!plan && session.l3?._approvedHitlResume?.steps?.length > 0) {
+          plan = session.l3._approvedHitlResume;
+          delete session.l3._approvedHitlResume;
+          routing = {
+            primaryIntent: plan.primaryIntent || 'approved_hitl_resume',
+            requestedDomains: Array.isArray(plan.requestedDomains) ? plan.requestedDomains : [],
+          };
         }
 
         if (!plan) {
@@ -2689,7 +2985,7 @@ module.exports = {
           if (isMandatoryHitlApproval) {
             stateMachine = transitionStateMachine(
               stateMachine,
-              PERSONAL_AGENT_STATES.AWAITING_ONBOARDING,
+              PERSONAL_AGENT_STATES.HITL_BLOCKED,
               {
                 reasonCode: 'MANDATORY_HITL_APPROVAL',
                 blockedAction: execution?.stopPoint?.blockedAction || null,
@@ -2941,6 +3237,11 @@ module.exports = {
             : null;
         persisted.l3.stopPoint =
           execution?.stopPoint && typeof execution.stopPoint === 'object' ? execution.stopPoint : null;
+        persisted.l3.criticalStepCheckpoints =
+          session.l3?.criticalStepCheckpoints &&
+          typeof session.l3.criticalStepCheckpoints === 'object'
+            ? session.l3.criticalStepCheckpoints
+            : {};
 
         assertNoL4RawInPersistedState(persisted);
         await this.persistSession(ctx, tenantId, sessionId, persisted);
@@ -7578,8 +7879,332 @@ module.exports = {
       });
     },
 
+    normalizeRoutingContext(routingContext) {
+      if (!routingContext || typeof routingContext !== 'object' || Array.isArray(routingContext)) {
+        return null;
+      }
+      return { ...routingContext };
+    },
+
+    deriveCriticalStepRoutingMetadata({ plan = {}, plannedStep = {}, knownContext = {} } = {}) {
+      const stepResolverRoles = Array.isArray(plannedStep?.requiredResolverRoles)
+        ? plannedStep.requiredResolverRoles
+        : [];
+      const planResolverRoles = Array.isArray(plan?.requiredResolverRoles)
+        ? plan.requiredResolverRoles
+        : [];
+      const contextResolverRoles = Array.isArray(knownContext?.requiredResolverRoles)
+        ? knownContext.requiredResolverRoles
+        : [];
+
+      return {
+        responsibleRole:
+          plannedStep?.responsibleRole ||
+          plannedStep?.ownerRole ||
+          plan?.responsibleRole ||
+          knownContext?.responsibleRole ||
+          null,
+        requiredResolverRoles:
+          stepResolverRoles.length > 0
+            ? stepResolverRoles
+            : planResolverRoles.length > 0
+              ? planResolverRoles
+              : contextResolverRoles,
+        personaId: plannedStep?.personaId || plan?.personaId || knownContext?.personaId || null,
+        routingContext:
+          this.normalizeRoutingContext(plannedStep?.routingContext) ||
+          this.normalizeRoutingContext(plan?.routingContext) ||
+          this.normalizeRoutingContext(knownContext?.routingContext) ||
+          null,
+      };
+    },
+
+    updateCriticalStepCheckpointStatus(session = {}, hitlItemId, status) {
+      const normalizedStatus = normalizeHitlStatus(status);
+      if (!hitlItemId || !normalizedStatus) {
+        return;
+      }
+
+      const store = this.ensureCriticalStepCheckpointStore(session);
+      for (const [checkpointKey, checkpoint] of Object.entries(store)) {
+        if (!checkpoint || checkpoint.hitlItemId !== hitlItemId) {
+          continue;
+        }
+
+        store[checkpointKey] = {
+          ...checkpoint,
+          status: normalizedStatus,
+          updatedAt: new Date().toISOString(),
+          ...(normalizedStatus === 'approved' ? { approvedAt: new Date().toISOString() } : {}),
+        };
+      }
+    },
+
+    findSessionPendingHitlReference(session = {}, knownContext = {}) {
+      const sessionStopPoint =
+        session?.l3?.stopPoint && typeof session.l3.stopPoint === 'object' ? session.l3.stopPoint : null;
+      const stateMachineState = String(session?.l3?.stateMachine?.currentState || '').trim();
+
+      const knownContextHitlItemId =
+        knownContext?.hitlItemId || knownContext?.hitl?.itemId || knownContext?.hitlItem?.id || null;
+
+      const stopPointHitlItemId =
+        sessionStopPoint?.hitlItemId ||
+        sessionStopPoint?.hitlItem?.id ||
+        sessionStopPoint?.onboardingQuestion?.hitlItem?.id ||
+        null;
+
+      const stopPointIndicatesMandatoryHitl =
+        sessionStopPoint?.reasonCode === 'MANDATORY_HITL_APPROVAL' && Boolean(stopPointHitlItemId);
+      const stateIndicatesHitlBlocked =
+        stateMachineState === PERSONAL_AGENT_STATES.HITL_BLOCKED || stateMachineState === 'hitl_blocked';
+
+      let checkpointHitlItemId = null;
+      let checkpointContext = null;
+      const checkpointStore = this.ensureCriticalStepCheckpointStore(session);
+      const checkpointEntries = Object.values(checkpointStore).filter(
+        (entry) => entry && typeof entry === 'object' && entry.hitlItemId
+      );
+
+      if (checkpointEntries.length > 0) {
+        checkpointEntries.sort((a, b) => {
+          const aTs = Date.parse(a.updatedAt || a.createdAt || a.approvedAt || 0) || 0;
+          const bTs = Date.parse(b.updatedAt || b.createdAt || b.approvedAt || 0) || 0;
+          return bTs - aTs;
+        });
+        checkpointContext = checkpointEntries[0] || null;
+        checkpointHitlItemId = checkpointContext?.hitlItemId || null;
+      }
+
+      const hitlItemId = knownContextHitlItemId || stopPointHitlItemId || checkpointHitlItemId || null;
+
+      const shouldGateBySession =
+        Boolean(hitlItemId) &&
+        (stopPointIndicatesMandatoryHitl ||
+          stateIndicatesHitlBlocked ||
+          (sessionStopPoint?.reasonCode === 'MANDATORY_HITL_APPROVAL' && !stopPointHitlItemId));
+
+      return {
+        shouldGateBySession,
+        hitlItemId,
+        sessionStopPoint,
+        checkpointContext,
+        stateMachineState,
+      };
+    },
+
+    buildHitlTerminalMessage(status, blockedAction = null) {
+      const suffix = blockedAction ? ` (${blockedAction})` : '';
+      if (['rejected', 'declined', 'cancelled'].includes(status)) {
+        return `Die erforderliche HITL-Freigabe${suffix} wurde abgelehnt oder widerrufen. Der blockierte Schritt wird nicht ausgeführt.`;
+      }
+      if (status === 'expired') {
+        return `Die erforderliche HITL-Freigabe${suffix} ist abgelaufen. Bitte starten Sie den Vorgang neu, falls der Schritt erneut ausgeführt werden soll.`;
+      }
+      if (status === 'resolved') {
+        return `Die HITL-Freigabe${suffix} ist bereits abgeschlossen. Es liegt kein offener Freigabe-Blocker mehr vor.`;
+      }
+      return `Die HITL-Freigabe${suffix} befindet sich nicht mehr in einem ausführbaren Zustand.`;
+    },
+
+    async resolveSessionHitlResumeGate(ctx, { session = {}, knownContext = {}, message = '' } = {}) {
+      const hitlRef = this.findSessionPendingHitlReference(session, knownContext);
+
+      if (!hitlRef?.shouldGateBySession || !hitlRef?.hitlItemId) {
+        return { mode: 'none' };
+      }
+
+      const hitlItem = await this.getHitlItem(ctx, hitlRef.hitlItemId);
+      const resolvedStatus = normalizeHitlStatus(
+        hitlItem?.status ||
+          hitlRef?.sessionStopPoint?.hitlItem?.status ||
+          hitlRef?.sessionStopPoint?.onboardingQuestion?.hitlItem?.status ||
+          hitlRef?.checkpointContext?.status ||
+          'pending'
+      );
+
+      this.updateCriticalStepCheckpointStatus(session, hitlRef.hitlItemId, resolvedStatus || 'pending');
+
+      if (isHitlApprovedStatus(resolvedStatus)) {
+        const savedStopPoint =
+          session.l3?.stopPoint && typeof session.l3.stopPoint === 'object'
+            ? { ...session.l3.stopPoint }
+            : null;
+        session.l3.stopPoint = null;
+        return {
+          mode: 'approved',
+          hitlItemId: hitlRef.hitlItemId,
+          hitlItem,
+          status: resolvedStatus,
+          savedStopPoint,
+          planSnapshot: savedStopPoint?.onboardingQuestion?.planSnapshot || null,
+        };
+      }
+
+      const baseStopPoint =
+        hitlRef?.sessionStopPoint && typeof hitlRef.sessionStopPoint === 'object'
+          ? hitlRef.sessionStopPoint
+          : {};
+      const basePlaceholder =
+        baseStopPoint?.placeholder && typeof baseStopPoint.placeholder === 'object'
+          ? baseStopPoint.placeholder
+          : {};
+      const publicHitlItem =
+        this.toPublicStopPointHitlItem(hitlItem) ||
+        this.toPublicStopPointHitlItem(baseStopPoint?.hitlItem) ||
+        (hitlRef.hitlItemId
+          ? {
+              id: hitlRef.hitlItemId,
+              status: resolvedStatus || 'pending',
+              responsibleRole: baseStopPoint?.responsibleRole || basePlaceholder?.responsibleRole || null,
+              requiredResolverRoles: Array.isArray(baseStopPoint?.requiredResolverRoles)
+                ? baseStopPoint.requiredResolverRoles
+                : Array.isArray(basePlaceholder?.requiredResolverRoles)
+                  ? basePlaceholder.requiredResolverRoles
+                  : [],
+              personaId: baseStopPoint?.personaId || basePlaceholder?.personaId || null,
+              personaName: baseStopPoint?.personaName || basePlaceholder?.personaName || null,
+              personaType: baseStopPoint?.personaType || basePlaceholder?.personaType || null,
+              personaResolution:
+                baseStopPoint?.personaResolution || basePlaceholder?.personaResolution || null,
+              routingContext:
+                this.normalizeRoutingContext(baseStopPoint?.routingContext) ||
+                this.normalizeRoutingContext(basePlaceholder?.routingContext) ||
+                null,
+            }
+          : null);
+
+      const blockedAction =
+        baseStopPoint?.blockedAction || basePlaceholder?.blockedAction || hitlRef?.checkpointContext?.action || null;
+      const blockedStep =
+        Number(baseStopPoint?.blockedStep || basePlaceholder?.blockedStep || hitlRef?.checkpointContext?.step || 1) || 1;
+
+      const placeholder = {
+        ...basePlaceholder,
+        blockedAction,
+        missingParams: [],
+        responsibleRole:
+          baseStopPoint?.responsibleRole ||
+          basePlaceholder?.responsibleRole ||
+          publicHitlItem?.responsibleRole ||
+          null,
+        requiredResolverRoles: Array.isArray(baseStopPoint?.requiredResolverRoles)
+          ? baseStopPoint.requiredResolverRoles
+          : Array.isArray(basePlaceholder?.requiredResolverRoles)
+            ? basePlaceholder.requiredResolverRoles
+            : Array.isArray(publicHitlItem?.requiredResolverRoles)
+              ? publicHitlItem.requiredResolverRoles
+              : [],
+        personaId: baseStopPoint?.personaId || basePlaceholder?.personaId || publicHitlItem?.personaId || null,
+        personaName:
+          baseStopPoint?.personaName || basePlaceholder?.personaName || publicHitlItem?.personaName || null,
+        personaType:
+          baseStopPoint?.personaType || basePlaceholder?.personaType || publicHitlItem?.personaType || null,
+        personaResolution:
+          baseStopPoint?.personaResolution ||
+          basePlaceholder?.personaResolution ||
+          publicHitlItem?.personaResolution ||
+          null,
+        routingContext:
+          this.normalizeRoutingContext(baseStopPoint?.routingContext) ||
+          this.normalizeRoutingContext(basePlaceholder?.routingContext) ||
+          this.normalizeRoutingContext(publicHitlItem?.routingContext) ||
+          null,
+        hitlItem: publicHitlItem,
+      };
+
+      if (isHitlTerminalStatus(resolvedStatus)) {
+        const terminalMessage = this.buildHitlTerminalMessage(resolvedStatus, blockedAction);
+        const terminalStopPoint = this.buildStopPoint({
+          reasonCode: 'HITL_TERMINAL_DECISION',
+          message: terminalMessage,
+          blockedStep,
+          status: 'hitl-terminal',
+          placeholder,
+        });
+        session.l3.stopPoint = terminalStopPoint;
+        return {
+          mode: 'terminal',
+          hitlItemId: hitlRef.hitlItemId,
+          status: resolvedStatus,
+          stopPoint: terminalStopPoint,
+          reply: terminalMessage,
+        };
+      }
+
+      const blockedStopPoint = this.buildStopPoint({
+        reasonCode: 'MANDATORY_HITL_APPROVAL',
+        message:
+          String(baseStopPoint?.message || '').trim() ||
+          `Kritischer Prüfschritt ${blockedStep}${blockedAction ? ` (${blockedAction})` : ''} erfordert vor Ausführung eine verpflichtende HITL-Freigabe.`,
+        blockedStep,
+        status: 'hitl-required',
+        placeholder,
+      });
+
+      const onboardingQuestion = this.buildHitlOnboardingQuestion(
+        blockedStopPoint,
+        baseStopPoint?.onboardingQuestion?.planSnapshot || null
+      );
+      const stopPoint = {
+        ...blockedStopPoint,
+        onboardingQuestion,
+        message: onboardingQuestion.message,
+        hitlItemId: onboardingQuestion?.hitlItem?.id || blockedStopPoint?.hitlItemId || null,
+      };
+
+      session.l3.stopPoint = stopPoint;
+
+      const normalizedMessage = String(message || '').toLowerCase();
+      const explicitDecisionIntent =
+        /(ich\s+(gebe\s+frei|genehmige|lehne\s+ab)|freigeben|freigabe|genehmigen|ablehnen|reject|approve)/i.test(
+          normalizedMessage
+        );
+
+      const replyBase = this.buildHitlApprovalMarkdown(onboardingQuestion);
+      const reply = explicitDecisionIntent
+        ? `${replyBase}\n\nHinweis: Die Entscheidung wird erst wirksam, wenn das HITL-Element explizit bestätigt oder abgelehnt wurde.`
+        : replyBase;
+
+      return {
+        mode: 'blocked',
+        hitlItemId: hitlRef.hitlItemId,
+        status: resolvedStatus || 'pending',
+        stopPoint,
+        reply,
+      };
+    },
+
+    toPublicStopPointHitlItem(hitlItem) {
+      if (!hitlItem || typeof hitlItem !== 'object') {
+        return null;
+      }
+
+      return {
+        id: hitlItem.id || null,
+        status: hitlItem.status || null,
+        kind: hitlItem.kind || null,
+        severity: hitlItem.severity || null,
+        dueAt: hitlItem.dueAt || null,
+        createdAt: hitlItem.createdAt || null,
+        updatedAt: hitlItem.updatedAt || null,
+        responsibleRole: hitlItem.responsibleRole || null,
+        requiredResolverRoles: Array.isArray(hitlItem.requiredResolverRoles)
+          ? hitlItem.requiredResolverRoles
+          : [],
+        personaId: hitlItem.personaId || null,
+        personaName: hitlItem.personaName || null,
+        personaType: hitlItem.personaType || null,
+        personaResolution:
+          hitlItem.personaResolution && typeof hitlItem.personaResolution === 'object'
+            ? hitlItem.personaResolution
+            : null,
+        routingContext: this.normalizeRoutingContext(hitlItem.routingContext),
+      };
+    },
+
     buildStopPoint({ reasonCode, message, blockedStep, status, placeholder }) {
-      const hitlItem = placeholder?.hitlItem || null;
+      const hitlItem = this.toPublicStopPointHitlItem(placeholder?.hitlItem || null);
       const personaId =
         placeholder?.personaId || hitlItem?.personaId || placeholder?.personaResolution?.personaId || null;
       const personaName =
@@ -7803,10 +8428,7 @@ module.exports = {
         stopPoint?.placeholder && typeof stopPoint.placeholder === 'object'
           ? stopPoint.placeholder
           : {};
-      const placeholderHitlItem =
-        placeholder?.hitlItem && typeof placeholder.hitlItem === 'object'
-          ? placeholder.hitlItem
-          : null;
+      const placeholderHitlItem = this.toPublicStopPointHitlItem(placeholder?.hitlItem || null);
 
       const personaId =
         stopPoint?.personaId || placeholder?.personaId || placeholderHitlItem?.personaId || null;
@@ -8182,6 +8804,11 @@ module.exports = {
     },
 
     async getHitlItemStatus(ctx, hitlItemId) {
+      const item = await this.getHitlItem(ctx, hitlItemId);
+      return item?.status || null;
+    },
+
+    async getHitlItem(ctx, hitlItemId) {
       if (!hitlItemId) return null;
       try {
         const result = await ctx.call(
@@ -8189,7 +8816,7 @@ module.exports = {
           { id: hitlItemId },
           { meta: { ...ctx.meta, $gateway: false } }
         );
-        return result?.item?.status || null;
+        return result?.item || null;
       } catch (error) {
         if (isActionUnavailable(error) || isNotFound(error)) {
           return null;
@@ -8199,22 +8826,16 @@ module.exports = {
       }
     },
 
-    async createCriticalStepHitlItem(ctx, { message, plan = {}, plannedStep = {}, session = {} }) {
+    async createCriticalStepHitlItem(
+      ctx,
+      { message, plan = {}, plannedStep = {}, session = {}, knownContext = {} }
+    ) {
       try {
-        const responsibleRole =
-          plannedStep?.responsibleRole || plannedStep?.ownerRole || plan?.responsibleRole || null;
-        const requiredResolverRoles = Array.isArray(plannedStep?.requiredResolverRoles)
-          ? plannedStep.requiredResolverRoles
-          : Array.isArray(plan?.requiredResolverRoles)
-            ? plan.requiredResolverRoles
-            : [];
-        const personaId = plannedStep?.personaId || plan?.personaId || null;
-        const routingContext =
-          plannedStep?.routingContext && typeof plannedStep.routingContext === 'object'
-            ? plannedStep.routingContext
-            : plan?.routingContext && typeof plan.routingContext === 'object'
-              ? plan.routingContext
-              : {};
+        const routingMetadata = this.deriveCriticalStepRoutingMetadata({
+          plan,
+          plannedStep,
+          knownContext,
+        });
 
         const payload = {
           sessionId: session?.id || null,
@@ -8237,10 +8858,10 @@ module.exports = {
             originAction: plannedStep?.action || 'unknown',
             severity: 'critical',
             requiredScope: 'full-access',
-            responsibleRole,
-            requiredResolverRoles,
-            personaId,
-            routingContext,
+            responsibleRole: routingMetadata.responsibleRole,
+            requiredResolverRoles: routingMetadata.requiredResolverRoles,
+            personaId: routingMetadata.personaId,
+            routingContext: routingMetadata.routingContext || {},
           },
           { meta: { ...ctx.meta, $gateway: false } }
         );
@@ -8273,7 +8894,8 @@ module.exports = {
         null;
 
       if (providedHitlItemId) {
-        const providedStatus = await this.getHitlItemStatus(ctx, providedHitlItemId);
+        const providedItem = await this.getHitlItem(ctx, providedHitlItemId);
+        const providedStatus = providedItem?.status || null;
         if (providedStatus === 'approved') {
           store[checkpointKey] = {
             hitlItemId: providedHitlItemId,
@@ -8282,7 +8904,16 @@ module.exports = {
             action: plannedStep?.action || null,
             step: plannedStep?.step || null,
           };
-          return { approved: true, hitlItemId: providedHitlItemId, status: providedStatus };
+          return {
+            approved: true,
+            hitlItemId: providedHitlItemId,
+            status: providedStatus,
+            hitlItem:
+              this.toPublicStopPointHitlItem(providedItem) || {
+                id: providedHitlItemId,
+                status: providedStatus,
+              },
+          };
         }
 
         store[checkpointKey] = {
@@ -8296,19 +8927,34 @@ module.exports = {
           approved: false,
           hitlItemId: providedHitlItemId,
           status: providedStatus || 'pending',
+          hitlItem:
+            this.toPublicStopPointHitlItem(providedItem) || {
+              id: providedHitlItemId,
+              status: providedStatus || 'pending',
+            },
         };
       }
 
       const storedHitlItemId = stored?.hitlItemId || null;
       if (storedHitlItemId) {
-        const status = await this.getHitlItemStatus(ctx, storedHitlItemId);
+        const storedItem = await this.getHitlItem(ctx, storedHitlItemId);
+        const status = storedItem?.status || null;
         if (status === 'approved') {
           store[checkpointKey] = {
             ...stored,
             status: 'approved',
             approvedAt: new Date().toISOString(),
           };
-          return { approved: true, hitlItemId: storedHitlItemId, status };
+          return {
+            approved: true,
+            hitlItemId: storedHitlItemId,
+            status,
+            hitlItem:
+              this.toPublicStopPointHitlItem(storedItem) || {
+                id: storedHitlItemId,
+                status,
+              },
+          };
         }
 
         store[checkpointKey] = {
@@ -8316,7 +8962,16 @@ module.exports = {
           status: status || 'pending',
           updatedAt: new Date().toISOString(),
         };
-        return { approved: false, hitlItemId: storedHitlItemId, status: status || 'pending' };
+        return {
+          approved: false,
+          hitlItemId: storedHitlItemId,
+          status: status || 'pending',
+          hitlItem:
+            this.toPublicStopPointHitlItem(storedItem) || {
+              id: storedHitlItemId,
+              status: status || 'pending',
+            },
+        };
       }
 
       const createdItem = await this.createCriticalStepHitlItem(ctx, {
@@ -8324,6 +8979,7 @@ module.exports = {
         plan,
         plannedStep,
         session,
+        knownContext,
       });
 
       if (createdItem?.id) {
@@ -8338,10 +8994,11 @@ module.exports = {
           approved: false,
           hitlItemId: createdItem.id,
           status: createdItem.status || 'pending',
+          hitlItem: this.toPublicStopPointHitlItem(createdItem),
         };
       }
 
-      return { approved: false, hitlItemId: null, status: 'pending' };
+      return { approved: false, hitlItemId: null, status: 'pending', hitlItem: null };
     },
 
     findBestVdmiDecisionTask(matrix = {}) {
@@ -8597,6 +9254,12 @@ module.exports = {
             knownContext,
           });
 
+          const routingMetadata = this.deriveCriticalStepRoutingMetadata({
+            plan,
+            plannedStep,
+            knownContext,
+          });
+
           if (approval?.approved === true) {
             // Approval exists -> proceed with deterministic execution.
           } else {
@@ -8608,6 +9271,19 @@ module.exports = {
               blockingLevel: 'hard',
             });
 
+            const hitlItem =
+              this.toPublicStopPointHitlItem(approval?.hitlItem) ||
+              (approval?.hitlItemId
+                ? {
+                    id: approval.hitlItemId,
+                    status: approval.status || 'pending',
+                    responsibleRole: routingMetadata.responsibleRole,
+                    requiredResolverRoles: routingMetadata.requiredResolverRoles,
+                    personaId: routingMetadata.personaId,
+                    routingContext: routingMetadata.routingContext,
+                  }
+                : null);
+
             stopPoint = this.buildStopPoint({
               reasonCode: 'MANDATORY_HITL_APPROVAL',
               message: hitlMessage,
@@ -8617,9 +9293,19 @@ module.exports = {
                 ...placeholder,
                 blockedAction: plannedStep.action,
                 missingParams: [],
-                hitlItem: approval?.hitlItemId
-                  ? { id: approval.hitlItemId, status: approval.status || 'pending' }
-                  : null,
+                responsibleRole: hitlItem?.responsibleRole || routingMetadata.responsibleRole || null,
+                requiredResolverRoles: Array.isArray(hitlItem?.requiredResolverRoles)
+                  ? hitlItem.requiredResolverRoles
+                  : routingMetadata.requiredResolverRoles,
+                personaId: hitlItem?.personaId || routingMetadata.personaId || null,
+                personaName: hitlItem?.personaName || null,
+                personaType: hitlItem?.personaType || null,
+                personaResolution: hitlItem?.personaResolution || null,
+                routingContext:
+                  this.normalizeRoutingContext(hitlItem?.routingContext) ||
+                  this.normalizeRoutingContext(routingMetadata.routingContext) ||
+                  null,
+                hitlItem,
               },
             });
             steps.push({
@@ -9494,6 +10180,10 @@ module.exports = {
               payload?.l3?.lastCompletedPlan && typeof payload.l3.lastCompletedPlan === 'object'
                 ? payload.l3.lastCompletedPlan
                 : null,
+            stopPoint:
+              payload?.l3?.stopPoint && typeof payload.l3.stopPoint === 'object'
+                ? payload.l3.stopPoint
+                : null,
             stateMachine:
               payload?.l3?.stateMachine && typeof payload.l3.stateMachine === 'object'
                 ? payload.l3.stateMachine
@@ -9550,6 +10240,7 @@ module.exports = {
             planStack: [],
             resolvedParams: {},
             lastCompletedPlan: null,
+            stopPoint: null,
             stateMachine: null,
             executionStateGraph: null,
             turnGraph: null,

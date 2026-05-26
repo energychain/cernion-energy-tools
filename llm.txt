@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.55.3
-- changelog_latest_release: 0.55.3
+- version: 0.55.4
+- changelog_latest_release: 0.55.4
 - source_files_hash:
-  - CHANGELOG.md: d65ec0c98d907e73d86957dc719cede9334a9af21b2ef924ce36637bbe86e676
+  - CHANGELOG.md: 5928e6ea82d266c7b098871dc15568976a0d952272cc573cfeca249890a0325c
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 5d30cd990f6ed8eac314d7f9730847c80c698b2d427132225f91fad2e1ba509d
-  - openapi-export.json: 6ae3d469830ac010dd3734804aa11540fc962bbb5be430db0883b915956287f1
+  - openapi-export.json: 1932a561508594ca8d3aae54dfa364ac9dd1146aacc6215414aa53fe5325a10a
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -588,9 +588,10 @@ process:
   - step 3: znp.znp.calculateGFactor | rest: GET /api/znp/projects/:projectId/g-factor | params: {   "projectId": null,   "target_layer": 2 }
 
 ## OpenAPI Summary
-- path_count: 285
-- operation_count: 330
+- path_count: 289
+- operation_count: 337
 - operations_by_tag:
+- Actor Personas: 7 operations
 - Agent Receipts: 10 operations
 - Analytics: 4 operations
 - api: 1 operations
@@ -649,6 +650,13 @@ process:
 - GET /api/admin/backup/snapshots | tags: [Backup & Restore] | operationId: backup-orchestrator_list | summary: List available backup snapshots
 - DELETE /api/admin/backup/snapshots/:snapshotId | tags: [Backup & Restore] | operationId: backup-orchestrator_delete | summary: Delete a backup snapshot
 - GET /api/admin/backup/snapshots/:snapshotId | tags: [Backup & Restore] | operationId: backup-orchestrator_get | summary: Get backup snapshot manifest by ID
+- GET /api/agent-personas | tags: [Actor Personas] | operationId: agent-persona_list | summary: List actor personas
+- POST /api/agent-personas | tags: [Actor Personas] | operationId: agent-persona_create | summary: Create an actor persona
+- DELETE /api/agent-personas/:id | tags: [Actor Personas] | operationId: agent-persona_remove | summary: Deactivate an actor persona
+- GET /api/agent-personas/:id | tags: [Actor Personas] | operationId: agent-persona_get | summary: Get an actor persona
+- PUT /api/agent-personas/:id | tags: [Actor Personas] | operationId: agent-persona_update | summary: Update an actor persona
+- GET /api/agent-personas/by-role/:role | tags: [Actor Personas] | operationId: agent-persona_listByRole | summary: List actor personas by role
+- GET /api/agent-personas/resolve-by-role/:role | tags: [Actor Personas] | operationId: agent-persona_resolveByRole | summary: Resolve actor personas by role
 - GET /api/agent-receipts | tags: [Agent Receipts] | operationId: agent-receipts_list | summary: List agent receipts
 - POST /api/agent-receipts | tags: [Agent Receipts] | operationId: agent-receipts_create | summary: Create an agent receipt
 - DELETE /api/agent-receipts/:id | tags: [Agent Receipts] | operationId: agent-receipts_archive | summary: Archive an agent receipt (soft delete)
@@ -980,7 +988,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.55.3"
+    "version": "0.55.4"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -1186,6 +1194,1307 @@ process:
           "Backup & Restore"
         ],
         "x-oeo-class": "OEO_00140083"
+      }
+    },
+    "/api/agent-personas": {
+      "get": {
+        "description": "Lists all actor personas for the resolved tenant scope.",
+        "operationId": "agent-persona_list",
+        "parameters": [
+          {
+            "description": "Tenant scope for the actor persona registry. The API gateway injects the resolved tenant into action params as tenantId.",
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional tenant fallback when the X-Tenant-Id header is not provided.",
+            "in": "query",
+            "name": "tenantId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "example": 1,
+                      "type": "integer"
+                    },
+                    "items": {
+                      "items": {
+                        "properties": {
+                          "assignedRoles": {
+                            "example": [
+                              "billing@stadtwerk",
+                              "management"
+                            ],
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "communicationChannels": {
+                            "items": {
+                              "properties": {
+                                "address": {
+                                  "example": "thorsten@example.com",
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "email",
+                                    "telegram",
+                                    "signal",
+                                    "openclaw-chat"
+                                  ],
+                                  "example": "email",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "address"
+                              ],
+                              "type": "object"
+                            },
+                            "type": "array"
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "defaultPersonalAgentSessionId": {
+                            "example": "pa_12345678",
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "id": {
+                            "example": "thorsten-human",
+                            "type": "string"
+                          },
+                          "openclawUserId": {
+                            "example": "openclaw-123",
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "personaName": {
+                            "example": "Thorsten Zoerner",
+                            "type": "string"
+                          },
+                          "personaType": {
+                            "enum": [
+                              "human",
+                              "specialized-agent"
+                            ],
+                            "example": "human",
+                            "type": "string"
+                          },
+                          "status": {
+                            "enum": [
+                              "active",
+                              "inactive",
+                              "on-leave"
+                            ],
+                            "example": "active",
+                            "type": "string"
+                          },
+                          "tenantId": {
+                            "example": "tenant-a",
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "tenantId",
+                          "id",
+                          "personaName",
+                          "personaType",
+                          "assignedRoles",
+                          "communicationChannels",
+                          "status",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    },
+                    "tenantId": {
+                      "example": "tenant-a",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "tenantId",
+                    "count",
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List actor personas",
+        "tags": [
+          "Actor Personas"
+        ]
+      },
+      "post": {
+        "description": "Creates a tenant-scoped actor persona for HITL routing, notification delivery, and persona inbox resolution.",
+        "operationId": "agent-persona_create",
+        "parameters": [
+          {
+            "description": "Tenant scope for the actor persona registry. The API gateway injects the resolved tenant into action params as tenantId.",
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "assignedRoles": {
+                    "example": [
+                      "billing@stadtwerk"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "communicationChannels": {
+                    "items": {
+                      "properties": {
+                        "address": {
+                          "example": "thorsten@example.com",
+                          "type": "string"
+                        },
+                        "type": {
+                          "enum": [
+                            "email",
+                            "telegram",
+                            "signal",
+                            "openclaw-chat"
+                          ],
+                          "example": "email",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "address"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "defaultPersonalAgentSessionId": {
+                    "example": "pa_12345678",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "id": {
+                    "example": "thorsten-human",
+                    "type": "string"
+                  },
+                  "openclawUserId": {
+                    "example": "openclaw-123",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "personaName": {
+                    "example": "Thorsten Zoerner",
+                    "type": "string"
+                  },
+                  "personaType": {
+                    "enum": [
+                      "human",
+                      "specialized-agent"
+                    ],
+                    "example": "human",
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "active",
+                      "inactive",
+                      "on-leave"
+                    ],
+                    "example": "active",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "personaName",
+                  "personaType"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "item": {
+                      "properties": {
+                        "assignedRoles": {
+                          "example": [
+                            "billing@stadtwerk",
+                            "management"
+                          ],
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "communicationChannels": {
+                          "items": {
+                            "properties": {
+                              "address": {
+                                "example": "thorsten@example.com",
+                                "type": "string"
+                              },
+                              "type": {
+                                "enum": [
+                                  "email",
+                                  "telegram",
+                                  "signal",
+                                  "openclaw-chat"
+                                ],
+                                "example": "email",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "address"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "createdAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "defaultPersonalAgentSessionId": {
+                          "example": "pa_12345678",
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "id": {
+                          "example": "thorsten-human",
+                          "type": "string"
+                        },
+                        "openclawUserId": {
+                          "example": "openclaw-123",
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "personaName": {
+                          "example": "Thorsten Zoerner",
+                          "type": "string"
+                        },
+                        "personaType": {
+                          "enum": [
+                            "human",
+                            "specialized-agent"
+                          ],
+                          "example": "human",
+                          "type": "string"
+                        },
+                        "status": {
+                          "enum": [
+                            "active",
+                            "inactive",
+                            "on-leave"
+                          ],
+                          "example": "active",
+                          "type": "string"
+                        },
+                        "tenantId": {
+                          "example": "tenant-a",
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "tenantId",
+                        "id",
+                        "personaName",
+                        "personaType",
+                        "assignedRoles",
+                        "communicationChannels",
+                        "status",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "item"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Create an actor persona",
+        "tags": [
+          "Actor Personas"
+        ]
+      }
+    },
+    "/api/agent-personas/:id": {
+      "delete": {
+        "description": "Soft-deactivates an actor persona within the resolved tenant scope while preserving the record for auditability.",
+        "operationId": "agent-persona_remove",
+        "parameters": [
+          {
+            "description": "Tenant scope for the actor persona registry. The API gateway injects the resolved tenant into action params as tenantId.",
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional tenant fallback when the X-Tenant-Id header is not provided.",
+            "in": "query",
+            "name": "tenantId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Persona identifier within the tenant.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "item": {
+                      "properties": {
+                        "assignedRoles": {
+                          "example": [
+                            "billing@stadtwerk",
+                            "management"
+                          ],
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "communicationChannels": {
+                          "items": {
+                            "properties": {
+                              "address": {
+                                "example": "thorsten@example.com",
+                                "type": "string"
+                              },
+                              "type": {
+                                "enum": [
+                                  "email",
+                                  "telegram",
+                                  "signal",
+                                  "openclaw-chat"
+                                ],
+                                "example": "email",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "address"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "createdAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "defaultPersonalAgentSessionId": {
+                          "example": "pa_12345678",
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "id": {
+                          "example": "thorsten-human",
+                          "type": "string"
+                        },
+                        "openclawUserId": {
+                          "example": "openclaw-123",
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "personaName": {
+                          "example": "Thorsten Zoerner",
+                          "type": "string"
+                        },
+                        "personaType": {
+                          "enum": [
+                            "human",
+                            "specialized-agent"
+                          ],
+                          "example": "human",
+                          "type": "string"
+                        },
+                        "status": {
+                          "enum": [
+                            "active",
+                            "inactive",
+                            "on-leave"
+                          ],
+                          "example": "active",
+                          "type": "string"
+                        },
+                        "tenantId": {
+                          "example": "tenant-a",
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "tenantId",
+                        "id",
+                        "personaName",
+                        "personaType",
+                        "assignedRoles",
+                        "communicationChannels",
+                        "status",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "item"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Deactivate an actor persona",
+        "tags": [
+          "Actor Personas"
+        ]
+      },
+      "get": {
+        "description": "Returns one actor persona by id within the resolved tenant scope.",
+        "operationId": "agent-persona_get",
+        "parameters": [
+          {
+            "description": "Tenant scope for the actor persona registry. The API gateway injects the resolved tenant into action params as tenantId.",
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional tenant fallback when the X-Tenant-Id header is not provided.",
+            "in": "query",
+            "name": "tenantId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Persona identifier within the tenant.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "item": {
+                      "properties": {
+                        "assignedRoles": {
+                          "example": [
+                            "billing@stadtwerk",
+                            "management"
+                          ],
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "communicationChannels": {
+                          "items": {
+                            "properties": {
+                              "address": {
+                                "example": "thorsten@example.com",
+                                "type": "string"
+                              },
+                              "type": {
+                                "enum": [
+                                  "email",
+                                  "telegram",
+                                  "signal",
+                                  "openclaw-chat"
+                                ],
+                                "example": "email",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "address"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "createdAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "defaultPersonalAgentSessionId": {
+                          "example": "pa_12345678",
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "id": {
+                          "example": "thorsten-human",
+                          "type": "string"
+                        },
+                        "openclawUserId": {
+                          "example": "openclaw-123",
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "personaName": {
+                          "example": "Thorsten Zoerner",
+                          "type": "string"
+                        },
+                        "personaType": {
+                          "enum": [
+                            "human",
+                            "specialized-agent"
+                          ],
+                          "example": "human",
+                          "type": "string"
+                        },
+                        "status": {
+                          "enum": [
+                            "active",
+                            "inactive",
+                            "on-leave"
+                          ],
+                          "example": "active",
+                          "type": "string"
+                        },
+                        "tenantId": {
+                          "example": "tenant-a",
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "tenantId",
+                        "id",
+                        "personaName",
+                        "personaType",
+                        "assignedRoles",
+                        "communicationChannels",
+                        "status",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "item"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Get an actor persona",
+        "tags": [
+          "Actor Personas"
+        ]
+      },
+      "put": {
+        "description": "Updates one actor persona within the resolved tenant scope.",
+        "operationId": "agent-persona_update",
+        "parameters": [
+          {
+            "description": "Tenant scope for the actor persona registry. The API gateway injects the resolved tenant into action params as tenantId.",
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional tenant fallback when the X-Tenant-Id header is not provided.",
+            "in": "query",
+            "name": "tenantId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Persona identifier within the tenant.",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "assignedRoles": {
+                    "example": [
+                      "billing@stadtwerk"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "communicationChannels": {
+                    "items": {
+                      "properties": {
+                        "address": {
+                          "example": "thorsten@example.com",
+                          "type": "string"
+                        },
+                        "type": {
+                          "enum": [
+                            "email",
+                            "telegram",
+                            "signal",
+                            "openclaw-chat"
+                          ],
+                          "example": "email",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "address"
+                      ],
+                      "type": "object"
+                    },
+                    "type": "array"
+                  },
+                  "defaultPersonalAgentSessionId": {
+                    "example": "pa_12345678",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "openclawUserId": {
+                    "example": "openclaw-123",
+                    "nullable": true,
+                    "type": "string"
+                  },
+                  "personaName": {
+                    "example": "Thorsten Z.",
+                    "type": "string"
+                  },
+                  "personaType": {
+                    "enum": [
+                      "human",
+                      "specialized-agent"
+                    ],
+                    "example": "human",
+                    "type": "string"
+                  },
+                  "status": {
+                    "enum": [
+                      "active",
+                      "inactive",
+                      "on-leave"
+                    ],
+                    "example": "active",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "item": {
+                      "properties": {
+                        "assignedRoles": {
+                          "example": [
+                            "billing@stadtwerk",
+                            "management"
+                          ],
+                          "items": {
+                            "type": "string"
+                          },
+                          "type": "array"
+                        },
+                        "communicationChannels": {
+                          "items": {
+                            "properties": {
+                              "address": {
+                                "example": "thorsten@example.com",
+                                "type": "string"
+                              },
+                              "type": {
+                                "enum": [
+                                  "email",
+                                  "telegram",
+                                  "signal",
+                                  "openclaw-chat"
+                                ],
+                                "example": "email",
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "type",
+                              "address"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "createdAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        },
+                        "defaultPersonalAgentSessionId": {
+                          "example": "pa_12345678",
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "id": {
+                          "example": "thorsten-human",
+                          "type": "string"
+                        },
+                        "openclawUserId": {
+                          "example": "openclaw-123",
+                          "nullable": true,
+                          "type": "string"
+                        },
+                        "personaName": {
+                          "example": "Thorsten Zoerner",
+                          "type": "string"
+                        },
+                        "personaType": {
+                          "enum": [
+                            "human",
+                            "specialized-agent"
+                          ],
+                          "example": "human",
+                          "type": "string"
+                        },
+                        "status": {
+                          "enum": [
+                            "active",
+                            "inactive",
+                            "on-leave"
+                          ],
+                          "example": "active",
+                          "type": "string"
+                        },
+                        "tenantId": {
+                          "example": "tenant-a",
+                          "type": "string"
+                        },
+                        "updatedAt": {
+                          "format": "date-time",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "tenantId",
+                        "id",
+                        "personaName",
+                        "personaType",
+                        "assignedRoles",
+                        "communicationChannels",
+                        "status",
+                        "createdAt",
+                        "updatedAt"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "item"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Update an actor persona",
+        "tags": [
+          "Actor Personas"
+        ]
+      }
+    },
+    "/api/agent-personas/by-role/:role": {
+      "get": {
+        "description": "Lists all active actor personas matching one role inside the resolved tenant scope.",
+        "operationId": "agent-persona_listByRole",
+        "parameters": [
+          {
+            "description": "Tenant scope for the actor persona registry. The API gateway injects the resolved tenant into action params as tenantId.",
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional tenant fallback when the X-Tenant-Id header is not provided.",
+            "in": "query",
+            "name": "tenantId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Assigned role to resolve within the tenant persona registry.",
+            "in": "path",
+            "name": "role",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "example": 1,
+                      "type": "integer"
+                    },
+                    "items": {
+                      "items": {
+                        "properties": {
+                          "assignedRoles": {
+                            "example": [
+                              "billing@stadtwerk",
+                              "management"
+                            ],
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "communicationChannels": {
+                            "items": {
+                              "properties": {
+                                "address": {
+                                  "example": "thorsten@example.com",
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "email",
+                                    "telegram",
+                                    "signal",
+                                    "openclaw-chat"
+                                  ],
+                                  "example": "email",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "address"
+                              ],
+                              "type": "object"
+                            },
+                            "type": "array"
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "defaultPersonalAgentSessionId": {
+                            "example": "pa_12345678",
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "id": {
+                            "example": "thorsten-human",
+                            "type": "string"
+                          },
+                          "openclawUserId": {
+                            "example": "openclaw-123",
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "personaName": {
+                            "example": "Thorsten Zoerner",
+                            "type": "string"
+                          },
+                          "personaType": {
+                            "enum": [
+                              "human",
+                              "specialized-agent"
+                            ],
+                            "example": "human",
+                            "type": "string"
+                          },
+                          "status": {
+                            "enum": [
+                              "active",
+                              "inactive",
+                              "on-leave"
+                            ],
+                            "example": "active",
+                            "type": "string"
+                          },
+                          "tenantId": {
+                            "example": "tenant-a",
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "tenantId",
+                          "id",
+                          "personaName",
+                          "personaType",
+                          "assignedRoles",
+                          "communicationChannels",
+                          "status",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "role": {
+                      "example": "billing@stadtwerk",
+                      "type": "string"
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    },
+                    "tenantId": {
+                      "example": "tenant-a",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "tenantId",
+                    "role",
+                    "count",
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "List actor personas by role",
+        "tags": [
+          "Actor Personas"
+        ]
+      }
+    },
+    "/api/agent-personas/resolve-by-role/:role": {
+      "get": {
+        "description": "Returns active actor personas for one role in deterministic name/id order for the resolved tenant scope.",
+        "operationId": "agent-persona_resolveByRole",
+        "parameters": [
+          {
+            "description": "Tenant scope for the actor persona registry. The API gateway injects the resolved tenant into action params as tenantId.",
+            "in": "header",
+            "name": "X-Tenant-Id",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Optional tenant fallback when the X-Tenant-Id header is not provided.",
+            "in": "query",
+            "name": "tenantId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Assigned role to resolve within the tenant persona registry.",
+            "in": "path",
+            "name": "role",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "example": 1,
+                      "type": "integer"
+                    },
+                    "items": {
+                      "items": {
+                        "properties": {
+                          "assignedRoles": {
+                            "example": [
+                              "billing@stadtwerk",
+                              "management"
+                            ],
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "communicationChannels": {
+                            "items": {
+                              "properties": {
+                                "address": {
+                                  "example": "thorsten@example.com",
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "email",
+                                    "telegram",
+                                    "signal",
+                                    "openclaw-chat"
+                                  ],
+                                  "example": "email",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "address"
+                              ],
+                              "type": "object"
+                            },
+                            "type": "array"
+                          },
+                          "createdAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          },
+                          "defaultPersonalAgentSessionId": {
+                            "example": "pa_12345678",
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "id": {
+                            "example": "thorsten-human",
+                            "type": "string"
+                          },
+                          "openclawUserId": {
+                            "example": "openclaw-123",
+                            "nullable": true,
+                            "type": "string"
+                          },
+                          "personaName": {
+                            "example": "Thorsten Zoerner",
+                            "type": "string"
+                          },
+                          "personaType": {
+                            "enum": [
+                              "human",
+                              "specialized-agent"
+                            ],
+                            "example": "human",
+                            "type": "string"
+                          },
+                          "status": {
+                            "enum": [
+                              "active",
+                              "inactive",
+                              "on-leave"
+                            ],
+                            "example": "active",
+                            "type": "string"
+                          },
+                          "tenantId": {
+                            "example": "tenant-a",
+                            "type": "string"
+                          },
+                          "updatedAt": {
+                            "format": "date-time",
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "tenantId",
+                          "id",
+                          "personaName",
+                          "personaType",
+                          "assignedRoles",
+                          "communicationChannels",
+                          "status",
+                          "createdAt",
+                          "updatedAt"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "role": {
+                      "example": "billing@stadtwerk",
+                      "type": "string"
+                    },
+                    "success": {
+                      "example": true,
+                      "type": "boolean"
+                    },
+                    "tenantId": {
+                      "example": "tenant-a",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "tenantId",
+                    "role",
+                    "count",
+                    "items"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful response"
+          }
+        },
+        "summary": "Resolve actor personas by role",
+        "tags": [
+          "Actor Personas"
+        ]
       }
     },
     "/api/agent-receipts": {
@@ -23800,6 +25109,10 @@ process:
       "name": "Personal Agent"
     },
     {
+      "description": "Tenant-scoped actor persona registry for HITL routing, notification ownership, and persona-aware inbox delivery.",
+      "name": "Actor Personas"
+    },
+    {
       "description": "Deterministic 6-step Netzanschluss validation pipeline (v0.14). Produces structured findings and a Go/No-Go decision sealed with a PouchDB snapshot for audit integrity. No LLM involvement — identical inputs always produce identical finding codes.",
       "name": "Grid Connection Validation"
     },
@@ -23901,8 +25214,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.55.3"
+  "x-version": "0.55.4"
 }
 
 ## Integrity
-- llm_txt_sha256: d0fd007971b3c66185f3e9defd48fbfc4b66229f508e06f51157efef2ca4de43
+- llm_txt_sha256: 8ce18e41dccb0f8582ef6563484f182ef093ddd2af93d6e728f862ef5f8a56f8

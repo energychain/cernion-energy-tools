@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.55.4] — Approved HITL Resume Gate & Actor Persona REST (2026-05-26)
+
+### Added
+
+- [services/api.service.js](services/api.service.js): Actor Persona REST exposure via 7 new aliases under `/api/agent-personas*` routes (`GET /agent-personas`, `POST /agent-personas`, `GET /agent-personas/:id`, `PUT /agent-personas/:id`, `DELETE /agent-personas/:id`, `GET /agent-personas/by-role/:role`, `GET /agent-personas/resolve-by-role/:role`). Route ordering is careful to prevent `:id` wildcard shadowing of more-specific `/by-role/:role` and `/resolve-by-role/:role` routes.
+- [services/api.service.js](services/api.service.js): gateway-level tenant injection middleware for actor-persona REST routes. Resolves `X-Tenant-Id` header via token verification chain and explicitly injects `ctx.meta.tenantId` into both `req.$params.tenantId` and `ctx.params.tenantId` before action validation, ensuring tenant-safe routing for all 7 aliases.
+- [services/agent-persona.service.js](services/agent-persona.service.js): comprehensive OpenAPI metadata added to all 6 agent-persona actions (`create`, `get`, `list`, `update`, `remove`, `listByRole`, `resolveByRole`) with schema definitions, request/response bodies, parameter documentation, and proper `Actor Personas` tag registration.
+- [services/api.service.js](services/api.service.js): new OpenAPI tag descriptor for `Actor Personas` documenting tenant-scoped actor persona registry used for HITL routing, notification delivery, and persona inbox resolution. Added `categoryTagByService` mapping: `agent-persona` → `Actor Personas`.
+
+### Changed
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): critical-step HITL routing metadata is now propagated end-to-end in the chat REST execution path (`knownContext`/`plannedStep`/`plan` -> `hitl.create` -> `stopPoint`/onboarding context), preserving `responsibleRole`, `requiredResolverRoles`, `personaId`, `personaName`, `personaType`, `personaResolution`, and `routingContext` in public stop-point payloads.
+- [services/personal-agent.service.js](services/personal-agent.service.js): critical HITL checkpoint reuse now loads the full `hitl.get` item (not only `id/status`), preventing actor identity loss when an existing HITL item is reused.
+- [services/personal-agent.service.js](services/personal-agent.service.js): state-machine transitions for onboarding/HITL were aligned with valid terminal states (`awaiting_user_input` / `hitl_blocked`) so expected `awaiting-onboarding` outcomes are no longer surfaced as `failed` in `agentTrace.stateMachine.currentState`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): approved HITL resume gate — after a mandatory HITL checkpoint is approved, a subsequent turn (including neutral follow-ups like "Bitte fortfahren.") now resumes the blocked plan step instead of rerouting through the capability broker. `resolveSessionHitlResumeGate` captures the `planSnapshot` from the persisted stop-point before clearing it; the chat handler injects the plan into the session and forces `execution` mode, so `handleExecutionWithOnboarding` re-runs the approved step via the checkpoint's stored `hitlItemId`. Eliminates `PREFLIGHT_MISS` / `interface-placeholder.markGap` on approved-resume turns.
+
+### Tests
+
+- [tests/api.service.test.js](tests/api.service.test.js): added regression `should include Actor Personas tag and routes` — verifies OpenAPI documentation includes `Actor Personas` tag, routes exist at `/api/agent-personas*` paths, operations are properly tagged, and `X-Tenant-Id` header parameter is documented.
+- [tests/api.service.test.js](tests/api.service.test.js): added regression `should have explicit aliases for Actor Persona routes in non-shadowing order` — asserts all 7 aliases present and correctly mapped, verifies route ordering constraint (`/by-role/:role` and `/resolve-by-role/:role` precede `/:id` in alias resolution to prevent wildcard shadowing).
+- [tests/api.service.test.js](tests/api.service.test.js): added regression `should inject header tenantId into agent-persona params before action validation` — end-to-end integration test verifying X-Tenant-Id header injection: header value takes precedence over body tenantId, injected into both `req.$params.tenantId` and `ctx.params.tenantId`, and action validation succeeds with correct tenant context.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression `propagates actor identity and routing metadata for critical HITL stopPoint` with same-tenant persona seeding and assertions for `execution.stopPoint` actor fields and routing context.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): test setup HITL mock enriched to resolve same-tenant persona routing by role/`personaId` and return full routing metadata to mirror production `hitl.create` behavior.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression `resumes approved critical HITL checkpoint without placeholder rerouting` — Turn 1 triggers mandatory HITL stop, HITL is approved, Turn 2 sends a neutral "Bitte fortfahren." with `knownContext.hitlItemId`; asserts no `interface-placeholder.markGap` call, no `PREFLIGHT_MISS` reasonCode, no re-creation of pending HITL, and either `finance-agent.analyze` completed or controlled approved-resume response (no broker reroute).
+
 ## [0.55.3] — Always-On Persona Inbox & HITL Lifecycle Resolution (2026-05-26)
 
 ### Added (v0.55.3)
