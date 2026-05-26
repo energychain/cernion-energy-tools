@@ -13,6 +13,7 @@ const NbpMonitorService = require('../services/nbp-monitor.service');
 const KnowledgeRagService = require('../services/knowledge-rag.service');
 const FinanceAgentService = require('../services/finance-agent.service');
 const PersonalAgentService = require('../services/personal-agent.service');
+const AgentPersonaService = require('../services/agent-persona.service');
 const ObservabilityService = require('../services/observability.service');
 const TenantQuotaService = require('../services/tenant-quota.service');
 const rateQuotaStore = require('../src/rate-quota-store');
@@ -26,10 +27,12 @@ describe('API Gateway Service', () => {
   let broker;
   let tokenStorageFile;
   let rateQuotaDir;
+  let agentPersonaDbPath;
 
   beforeAll(async () => {
     tokenStorageFile = path.join(os.tmpdir(), `api-service-token-test-${Date.now()}.json`);
     rateQuotaDir = path.join(os.tmpdir(), `api-rate-quotas-${Date.now()}`);
+    agentPersonaDbPath = path.join(os.tmpdir(), `api-agent-persona-${Date.now()}`);
     process.env.RATE_QUOTA_DIR = rateQuotaDir;
 
     broker = new ServiceBroker({
@@ -75,6 +78,13 @@ describe('API Gateway Service', () => {
     });
     broker.createService(PersonalAgentService);
     broker.createService({
+      ...AgentPersonaService,
+      settings: {
+        ...AgentPersonaService.settings,
+        dbPath: agentPersonaDbPath,
+      },
+    });
+    broker.createService({
       ...ObservabilityService,
       settings: {
         ...ObservabilityService.settings,
@@ -91,6 +101,7 @@ describe('API Gateway Service', () => {
     if (fs.existsSync(tokenStorageFile)) {
       fs.unlinkSync(tokenStorageFile);
     }
+    fs.rmSync(agentPersonaDbPath, { recursive: true, force: true });
     fs.rmSync(rateQuotaDir, { recursive: true, force: true });
     delete process.env.RATE_QUOTA_DIR;
   });
@@ -270,6 +281,28 @@ describe('API Gateway Service', () => {
       expect(schema.paths['/api/agent-receipts/:id'].get.tags).toContain('Agent Receipts');
     });
 
+    it('should include Actor Personas tag and routes', async () => {
+      const schema = await broker.call('api.openapi');
+
+      expect(schema.tags.some((tag) => tag.name === 'Actor Personas')).toBe(true);
+      expect(schema.paths['/api/agent-personas']).toBeDefined();
+      expect(schema.paths['/api/agent-personas/:id']).toBeDefined();
+      expect(schema.paths['/api/agent-personas/by-role/:role']).toBeDefined();
+      expect(schema.paths['/api/agent-personas/resolve-by-role/:role']).toBeDefined();
+
+      expect(schema.paths['/api/agent-personas'].get.tags).toContain('Actor Personas');
+      expect(schema.paths['/api/agent-personas'].post.tags).toContain('Actor Personas');
+      expect(schema.paths['/api/agent-personas/:id'].get.tags).toContain('Actor Personas');
+      expect(schema.paths['/api/agent-personas/by-role/:role'].get.tags).toContain(
+        'Actor Personas'
+      );
+
+      const createParameters = schema.paths['/api/agent-personas'].post.parameters || [];
+      expect(
+        createParameters.some((parameter) => parameter.name === 'X-Tenant-Id' && parameter.in === 'header')
+      ).toBe(true);
+    });
+
     it('should include ZNP portfolio assessment route in OpenAPI', async () => {
       const schema = await broker.call('api.openapi');
 
@@ -447,6 +480,29 @@ describe('API Gateway Service', () => {
       expect(aliases['DELETE /agent-receipts/:id']).toBe('agent-receipts.archive');
     });
 
+    it('should have explicit aliases for Actor Persona routes in non-shadowing order', () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const aliases = apiRoute?.aliases || {};
+      const aliasKeys = Object.keys(aliases);
+
+      expect(aliases['GET /agent-personas']).toBe('agent-persona.list');
+      expect(aliases['POST /agent-personas']).toBe('agent-persona.create');
+      expect(aliases['GET /agent-personas/by-role/:role']).toBe('agent-persona.listByRole');
+      expect(aliases['GET /agent-personas/resolve-by-role/:role']).toBe(
+        'agent-persona.resolveByRole'
+      );
+      expect(aliases['GET /agent-personas/:id']).toBe('agent-persona.get');
+      expect(aliases['PUT /agent-personas/:id']).toBe('agent-persona.update');
+      expect(aliases['DELETE /agent-personas/:id']).toBe('agent-persona.remove');
+
+      expect(aliasKeys.indexOf('GET /agent-personas/by-role/:role')).toBeLessThan(
+        aliasKeys.indexOf('GET /agent-personas/:id')
+      );
+      expect(aliasKeys.indexOf('GET /agent-personas/resolve-by-role/:role')).toBeLessThan(
+        aliasKeys.indexOf('GET /agent-personas/:id')
+      );
+    });
+
     it('should include Netzfahrplan / fNAV tag in OpenAPI', async () => {
       const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
       expect(apiRoute).toBeDefined();
@@ -621,6 +677,50 @@ describe('API Gateway Service', () => {
       ).rejects.toMatchObject({ code: 413, type: 'FILE_TOO_LARGE' });
 
       fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it('should inject header tenantId into agent-persona params before action validation', async () => {
+      const apiRoute = ApiService.settings.routes.find((r) => r.path === '/api');
+      const ctx = { meta: {} };
+      const req = {
+        headers: { 'x-tenant-id': 'tenant-rest' },
+        query: {},
+        body: {
+          tenantId: 'wrong-tenant',
+          id: 'rest-persona',
+          personaName: 'REST Persona',
+          personaType: 'human',
+          assignedRoles: ['management'],
+          communicationChannels: [{ type: 'email', address: 'rest@example.com' }],
+        },
+        params: {},
+        $params: {
+          tenantId: 'wrong-tenant',
+          id: 'rest-persona',
+          personaName: 'REST Persona',
+          personaType: 'human',
+          assignedRoles: ['management'],
+          communicationChannels: [{ type: 'email', address: 'rest@example.com' }],
+        },
+        method: 'POST',
+        url: '/api/agent-personas',
+      };
+
+      await apiRoute.onBeforeCall.call(
+        { logger: { debug: jest.fn(), warn: jest.fn() }, broker },
+        ctx,
+        apiRoute,
+        req,
+        {}
+      );
+
+      expect(ctx.meta.tenantId).toBe('tenant-rest');
+      expect(req.$params.tenantId).toBe('tenant-rest');
+
+      const result = await broker.call('agent-persona.create', req.$params, { meta: ctx.meta });
+      expect(result.success).toBe(true);
+      expect(result.item.tenantId).toBe('tenant-rest');
+      expect(result.item.id).toBe('rest-persona');
     });
 
     it('should extract token from body when provided', async () => {

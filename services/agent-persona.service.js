@@ -12,6 +12,224 @@ const DOC_PREFIX = 'persona:';
 const PERSONA_TYPES = Object.freeze(['human', 'specialized-agent']);
 const PERSONA_STATUSES = Object.freeze(['active', 'inactive', 'on-leave']);
 const CHANNEL_TYPES = Object.freeze(['email', 'telegram', 'signal', 'openclaw-chat']);
+const OPENAPI_TAG = 'Actor Personas';
+
+function tenantHeaderParameter() {
+  return {
+    name: 'X-Tenant-Id',
+    in: 'header',
+    required: false,
+    description:
+      'Tenant scope for the actor persona registry. The API gateway injects the resolved tenant into action params as tenantId.',
+    schema: { type: 'string' },
+  };
+}
+
+function tenantQueryParameter() {
+  return {
+    name: 'tenantId',
+    in: 'query',
+    required: false,
+    description: 'Optional tenant fallback when the X-Tenant-Id header is not provided.',
+    schema: { type: 'string' },
+  };
+}
+
+function personaIdPathParameter() {
+  return {
+    name: 'id',
+    in: 'path',
+    required: true,
+    description: 'Persona identifier within the tenant.',
+    schema: { type: 'string' },
+  };
+}
+
+function rolePathParameter() {
+  return {
+    name: 'role',
+    in: 'path',
+    required: true,
+    description: 'Assigned role to resolve within the tenant persona registry.',
+    schema: { type: 'string' },
+  };
+}
+
+function personaSchema() {
+  return {
+    type: 'object',
+    required: [
+      'tenantId',
+      'id',
+      'personaName',
+      'personaType',
+      'assignedRoles',
+      'communicationChannels',
+      'status',
+      'createdAt',
+      'updatedAt',
+    ],
+    properties: {
+      tenantId: { type: 'string', example: 'tenant-a' },
+      id: { type: 'string', example: 'thorsten-human' },
+      personaName: { type: 'string', example: 'Thorsten Zoerner' },
+      personaType: { type: 'string', enum: PERSONA_TYPES, example: 'human' },
+      openclawUserId: { type: 'string', example: 'openclaw-123', nullable: true },
+      assignedRoles: {
+        type: 'array',
+        items: { type: 'string' },
+        example: ['billing@stadtwerk', 'management'],
+      },
+      communicationChannels: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['type', 'address'],
+          properties: {
+            type: { type: 'string', enum: CHANNEL_TYPES, example: 'email' },
+            address: { type: 'string', example: 'thorsten@example.com' },
+          },
+        },
+      },
+      defaultPersonalAgentSessionId: {
+        type: 'string',
+        example: 'pa_12345678',
+        nullable: true,
+      },
+      status: { type: 'string', enum: PERSONA_STATUSES, example: 'active' },
+      createdAt: { type: 'string', format: 'date-time' },
+      updatedAt: { type: 'string', format: 'date-time' },
+    },
+  };
+}
+
+function personaItemResponseSchema() {
+  return {
+    type: 'object',
+    required: ['success', 'item'],
+    properties: {
+      success: { type: 'boolean', example: true },
+      item: personaSchema(),
+    },
+  };
+}
+
+function personaCollectionResponseSchema(includeRole = false) {
+  const schema = {
+    type: 'object',
+    required: ['success', 'tenantId', 'count', 'items'],
+    properties: {
+      success: { type: 'boolean', example: true },
+      tenantId: { type: 'string', example: 'tenant-a' },
+      count: { type: 'integer', example: 1 },
+      items: {
+        type: 'array',
+        items: personaSchema(),
+      },
+    },
+  };
+
+  if (includeRole) {
+    schema.required.splice(2, 0, 'role');
+    schema.properties.role = { type: 'string', example: 'billing@stadtwerk' };
+  }
+
+  return schema;
+}
+
+function createPersonaRequestBodySchema() {
+  return {
+    type: 'object',
+    required: ['id', 'personaName', 'personaType'],
+    properties: {
+      id: { type: 'string', example: 'thorsten-human' },
+      personaName: { type: 'string', example: 'Thorsten Zoerner' },
+      personaType: { type: 'string', enum: PERSONA_TYPES, example: 'human' },
+      openclawUserId: { type: 'string', example: 'openclaw-123', nullable: true },
+      assignedRoles: {
+        type: 'array',
+        items: { type: 'string' },
+        example: ['billing@stadtwerk'],
+      },
+      communicationChannels: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['type', 'address'],
+          properties: {
+            type: { type: 'string', enum: CHANNEL_TYPES, example: 'email' },
+            address: { type: 'string', example: 'thorsten@example.com' },
+          },
+        },
+      },
+      defaultPersonalAgentSessionId: {
+        type: 'string',
+        example: 'pa_12345678',
+        nullable: true,
+      },
+      status: { type: 'string', enum: PERSONA_STATUSES, example: 'active' },
+    },
+  };
+}
+
+function updatePersonaRequestBodySchema() {
+  return {
+    type: 'object',
+    properties: {
+      personaName: { type: 'string', example: 'Thorsten Z.' },
+      personaType: { type: 'string', enum: PERSONA_TYPES, example: 'human' },
+      openclawUserId: { type: 'string', example: 'openclaw-123', nullable: true },
+      assignedRoles: {
+        type: 'array',
+        items: { type: 'string' },
+        example: ['billing@stadtwerk'],
+      },
+      communicationChannels: {
+        type: 'array',
+        items: {
+          type: 'object',
+          required: ['type', 'address'],
+          properties: {
+            type: { type: 'string', enum: CHANNEL_TYPES, example: 'email' },
+            address: { type: 'string', example: 'thorsten@example.com' },
+          },
+        },
+      },
+      defaultPersonalAgentSessionId: {
+        type: 'string',
+        example: 'pa_12345678',
+        nullable: true,
+      },
+      status: { type: 'string', enum: PERSONA_STATUSES, example: 'active' },
+    },
+  };
+}
+
+function itemResponse() {
+  return {
+    200: {
+      description: 'Successful response',
+      content: {
+        'application/json': {
+          schema: personaItemResponseSchema(),
+        },
+      },
+    },
+  };
+}
+
+function collectionResponse(includeRole = false) {
+  return {
+    200: {
+      description: 'Successful response',
+      content: {
+        'application/json': {
+          schema: personaCollectionResponseSchema(includeRole),
+        },
+      },
+    },
+  };
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -103,6 +321,22 @@ module.exports = {
         defaultPersonalAgentSessionId: { type: 'string', trim: true, min: 1, optional: true },
         status: { type: 'enum', values: PERSONA_STATUSES, optional: true, default: 'active' },
       },
+      openapi: {
+        summary: 'Create an actor persona',
+        description:
+          'Creates a tenant-scoped actor persona for HITL routing, notification delivery, and persona inbox resolution.',
+        tags: [OPENAPI_TAG],
+        parameters: [tenantHeaderParameter()],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: createPersonaRequestBodySchema(),
+            },
+          },
+        },
+        responses: itemResponse(),
+      },
       async handler(ctx) {
         const persona = await this.createPersona(ctx.params, ctx);
         return { success: true, item: this.toPublic(persona) };
@@ -114,6 +348,13 @@ module.exports = {
         tenantId: { type: 'string', trim: true, min: 1 },
         id: { type: 'string', trim: true, min: 1 },
       },
+      openapi: {
+        summary: 'Get an actor persona',
+        description: 'Returns one actor persona by id within the resolved tenant scope.',
+        tags: [OPENAPI_TAG],
+        parameters: [tenantHeaderParameter(), tenantQueryParameter(), personaIdPathParameter()],
+        responses: itemResponse(),
+      },
       async handler(ctx) {
         const tenantId = this.assertTenantAccess(ctx, ctx.params.tenantId);
         const persona = await this.getPersonaOrThrow(tenantId, ctx.params.id);
@@ -124,6 +365,13 @@ module.exports = {
     list: {
       params: {
         tenantId: { type: 'string', trim: true, min: 1 },
+      },
+      openapi: {
+        summary: 'List actor personas',
+        description: 'Lists all actor personas for the resolved tenant scope.',
+        tags: [OPENAPI_TAG],
+        parameters: [tenantHeaderParameter(), tenantQueryParameter()],
+        responses: collectionResponse(false),
       },
       async handler(ctx) {
         const tenantId = this.assertTenantAccess(ctx, ctx.params.tenantId);
@@ -163,6 +411,21 @@ module.exports = {
         defaultPersonalAgentSessionId: { type: 'string', trim: true, min: 1, optional: true },
         status: { type: 'enum', values: PERSONA_STATUSES, optional: true },
       },
+      openapi: {
+        summary: 'Update an actor persona',
+        description: 'Updates one actor persona within the resolved tenant scope.',
+        tags: [OPENAPI_TAG],
+        parameters: [tenantHeaderParameter(), tenantQueryParameter(), personaIdPathParameter()],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: updatePersonaRequestBodySchema(),
+            },
+          },
+        },
+        responses: itemResponse(),
+      },
       async handler(ctx) {
         const tenantId = this.assertTenantAccess(ctx, ctx.params.tenantId);
         const updated = await this.updatePersona(tenantId, ctx.params.id, ctx.params);
@@ -174,6 +437,14 @@ module.exports = {
       params: {
         tenantId: { type: 'string', trim: true, min: 1 },
         id: { type: 'string', trim: true, min: 1 },
+      },
+      openapi: {
+        summary: 'Deactivate an actor persona',
+        description:
+          'Soft-deactivates an actor persona within the resolved tenant scope while preserving the record for auditability.',
+        tags: [OPENAPI_TAG],
+        parameters: [tenantHeaderParameter(), tenantQueryParameter(), personaIdPathParameter()],
+        responses: itemResponse(),
       },
       async handler(ctx) {
         const tenantId = this.assertTenantAccess(ctx, ctx.params.tenantId);
@@ -187,6 +458,13 @@ module.exports = {
         tenantId: { type: 'string', trim: true, min: 1 },
         role: { type: 'string', trim: true, min: 1 },
       },
+      openapi: {
+        summary: 'List actor personas by role',
+        description: 'Lists all active actor personas matching one role inside the resolved tenant scope.',
+        tags: [OPENAPI_TAG],
+        parameters: [tenantHeaderParameter(), tenantQueryParameter(), rolePathParameter()],
+        responses: collectionResponse(true),
+      },
       async handler(ctx) {
         const tenantId = this.assertTenantAccess(ctx, ctx.params.tenantId);
         const items = await this.findByRole(tenantId, ctx.params.role);
@@ -198,6 +476,14 @@ module.exports = {
       params: {
         tenantId: { type: 'string', trim: true, min: 1 },
         role: { type: 'string', trim: true, min: 1 },
+      },
+      openapi: {
+        summary: 'Resolve actor personas by role',
+        description:
+          'Returns active actor personas for one role in deterministic name/id order for the resolved tenant scope.',
+        tags: [OPENAPI_TAG],
+        parameters: [tenantHeaderParameter(), tenantQueryParameter(), rolePathParameter()],
+        responses: collectionResponse(true),
       },
       async handler(ctx) {
         const tenantId = this.assertTenantAccess(ctx, ctx.params.tenantId);

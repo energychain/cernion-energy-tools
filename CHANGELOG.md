@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.55.5] — Durable Approved HITL Resume & Plan-Stack Metadata Preservation (2026-05-26)
+
+### Added
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): durable HITL resume snapshots with exact checkpoint matching and hard-override behavior.
+  - New helper `buildCriticalStepResumeSnapshot(...)` captures and serializes the approved plan state at checkpoint creation time.
+  - New helper `findCriticalStepCheckpointContext(...)` locates the matching critical-step checkpoint by `hitlItemId` and checkpoint metadata.
+  - New helper `findCriticalStepPlanStackFrame(...)` retrieves the saved plan stack frame from the session, preserving HITL routing metadata.
+  - New helper `resolveCriticalStepResumePlan(...)` performs exact recovery of the durable approved plan snapshot.
+  - `resolveSessionHitlResumeGate(...)` now returns an explicit `approved-missing-plan` diagnostic mode when an approved HITL cannot recover its durable plan, instead of silently treating it as `approved` without plan context.
+  - The approved HITL resume path now forces `execution` mode, bypasses broker/LLM routing, and injects the durable plan snapshot directly before step re-execution.
+  - Synthetic `broker-recommended` state is added to the approved-resume transition so the FSM remains valid even when broker planning is skipped.
+
+### Changed
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): critical-step HITL checkpoint persistence now stores a durable `planSnapshot` alongside `hitlItemId`, `blockedAction`, and `blockedStep` metadata.
+  - `createCriticalStepHitlItem(...)` captures `planSnapshot` from the `plannedStep.plan` and saves it in the checkpoint via `buildCriticalStepResumeSnapshot(...)`.
+  - `resolveCriticalStepApproval(...)` loads the durable checkpoint and passes the recovered plan snapshot to the chat handler.
+  - Checkpoint metadata includes `checkpointKey`, `planSnapshot`, `blockedAction`, `blockedStep`, persona fields (`personaId`, `personaName`, `personaType`, `personaResolution`), and `routingContext` for exact recovery on approved resume.
+- [services/personal-agent.service.js](services/personal-agent.service.js): plan-stack frame injection now preserves HITL routing metadata (`hitlItemId`, `blockedAction`, `blockedStep`, `checkpointKey`, `planSnapshot`, persona/routing fields) so the plan-stack fallback is exact enough for HITL resume recovery if needed.
+- [src/personal-agent-context.js](src/personal-agent-context.js): `buildPersistableSessionState(...)` now includes safe, serializable HITL checkpoint data in the persisted `criticalStepCheckpoints` array, preserving:
+  - `checkpointKey`, `hitlItemId`, `status`, `action`, `step`
+  - `blockedAction`, `blockedStep`, `responsibleRole`, `requiredResolverRoles`
+  - persona fields: `personaId`, `personaName`, `personaType`, `personaResolution`
+  - `routingContext` and `planSnapshot` (safe metadata only, no raw prompts or secrets)
+  - This enables durable recovery of the approved plan across session reload/persistence boundaries.
+- [src/session-manager.js](src/session-manager.js): `sanitizePlanFrame(...)` now preserves HITL-related metadata on plan-stack frames:
+  - `hitlItemId`, `blockedAction`, `blockedStep`, `checkpointKey`, `planSnapshot`
+  - persona/routing fields for accurate resume context after session reload
+- [services/personal-agent.service.js](services/personal-agent.service.js): approved HITL resume is now a hard override, executed before normal broker/LLM/parent-plan routing decision logic. The chat handler checks for approved HITL resume first and injects the durable plan directly if available, skipping capability-broker consultation entirely.
+
+### Fixed
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): approved HITL resume no longer drifts into `interface-placeholder.markGap`, `PREFLIGHT_MISS`, or `AWAITING_USER_INPUT` on Turn 2+ after approval.
+  - The durable plan snapshot is recovered from `criticalStepCheckpoints` and injected into the session before routing.
+  - Broker/LLM planning is explicitly bypassed for approved resume turns.
+  - If the durable plan cannot be recovered, the resolver returns `approved-missing-plan` diagnostic mode instead of silently treating the checkpoint as approved without plan context.
+
+### Tests
+
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): strengthened regression `resumes approved critical HITL checkpoint without placeholder rerouting`.
+  - Verifies persisted checkpoint state after object-store reload.
+  - Asserts that the checkpoint contains `planSnapshot` with steps.
+  - Confirms that the plan-stack frame includes `hitlItemId` and `planSnapshot`.
+  - Validates that the resumed plan executes the blocked step (`finance-agent.analyze`) without broker reroute.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): added regression `fails closed with approved_hitl_resume_missing_plan when the durable resume plan is absent`.
+  - Simulates approval of a critical HITL checkpoint.
+  - Removes the durable plan snapshot from the persisted session state.
+  - Tests the gate resolver directly and expects `approved-missing-plan` diagnostic mode.
+  - Verifies that the reply contains the explicit `approved_hitl_resume_missing_plan` reason code and diagnostic message.
+  - Confirms that the FSM state is `failed` and no step execution occurs without the durable plan context.
+
 ## [0.55.4] — Approved HITL Resume Gate & Actor Persona REST (2026-05-26)
 
 ### Added

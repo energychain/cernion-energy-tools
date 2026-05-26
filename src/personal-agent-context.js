@@ -269,7 +269,55 @@ function buildPersistableSessionState(input = {}) {
       if (!value || typeof value !== 'object') {
         return acc;
       }
+      const planSnapshot =
+        value.planSnapshot && typeof value.planSnapshot === 'object'
+          ? {
+              source: value.planSnapshot.source || null,
+              routeKey: value.planSnapshot.routeKey || null,
+              routeLabel: value.planSnapshot.routeLabel || null,
+              primaryIntent: value.planSnapshot.primaryIntent || null,
+              secondaryIntents: Array.isArray(value.planSnapshot.secondaryIntents)
+                ? value.planSnapshot.secondaryIntents
+                : [],
+              requestedDomains: Array.isArray(value.planSnapshot.requestedDomains)
+                ? value.planSnapshot.requestedDomains
+                : [],
+              unsupportedDomains: Array.isArray(value.planSnapshot.unsupportedDomains)
+                ? value.planSnapshot.unsupportedDomains
+                : [],
+              warnings: Array.isArray(value.planSnapshot.warnings) ? value.planSnapshot.warnings : [],
+              promptHints:
+                value.planSnapshot.promptHints && typeof value.planSnapshot.promptHints === 'object'
+                  ? value.planSnapshot.promptHints
+                  : {},
+              status: value.planSnapshot.status || null,
+              steps: Array.isArray(value.planSnapshot.steps)
+                ? value.planSnapshot.steps
+                : [],
+              blockedAction: value.planSnapshot.blockedAction || null,
+              blockedStep:
+                Number.isFinite(Number(value.planSnapshot.blockedStep))
+                  ? Number(value.planSnapshot.blockedStep)
+                  : null,
+              responsibleRole: value.planSnapshot.responsibleRole || null,
+              requiredResolverRoles: Array.isArray(value.planSnapshot.requiredResolverRoles)
+                ? value.planSnapshot.requiredResolverRoles
+                : [],
+              personaId: value.planSnapshot.personaId || null,
+              personaName: value.planSnapshot.personaName || null,
+              personaType: value.planSnapshot.personaType || null,
+              personaResolution:
+                value.planSnapshot.personaResolution && typeof value.planSnapshot.personaResolution === 'object'
+                  ? value.planSnapshot.personaResolution
+                  : null,
+              routingContext:
+                value.planSnapshot.routingContext && typeof value.planSnapshot.routingContext === 'object'
+                  ? value.planSnapshot.routingContext
+                  : null,
+            }
+          : null;
       acc[key] = {
+        checkpointKey: value.checkpointKey || key,
         hitlItemId: value.hitlItemId || null,
         status: value.status || null,
         action: value.action || null,
@@ -277,6 +325,22 @@ function buildPersistableSessionState(input = {}) {
         createdAt: value.createdAt || null,
         updatedAt: value.updatedAt || null,
         approvedAt: value.approvedAt || null,
+        blockedAction: value.blockedAction || null,
+        blockedStep: Number.isFinite(Number(value.blockedStep)) ? Number(value.blockedStep) : null,
+        responsibleRole: value.responsibleRole || null,
+        requiredResolverRoles: Array.isArray(value.requiredResolverRoles)
+          ? value.requiredResolverRoles
+          : [],
+        personaId: value.personaId || null,
+        personaName: value.personaName || null,
+        personaType: value.personaType || null,
+        personaResolution:
+          value.personaResolution && typeof value.personaResolution === 'object'
+            ? value.personaResolution
+            : null,
+        routingContext:
+          value.routingContext && typeof value.routingContext === 'object' ? value.routingContext : null,
+        planSnapshot,
       };
       return acc;
     },

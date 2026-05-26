@@ -562,6 +562,11 @@ module.exports = {
             'Layer 4 is transient and never persisted.',
         },
         {
+          name: 'Actor Personas',
+          description:
+            'Tenant-scoped actor persona registry for HITL routing, notification ownership, and persona-aware inbox delivery.',
+        },
+        {
           name: 'Grid Connection Validation',
           description:
             'Deterministic 6-step Netzanschluss validation pipeline (v0.14). ' +
@@ -1310,6 +1315,15 @@ module.exports = {
           'POST /agent-receipts/:id/promote': 'agent-receipts.promote',
           'DELETE /agent-receipts/:id': 'agent-receipts.archive',
 
+          // Actor Personas — static role routes must precede dynamic /:id routes.
+          'GET /agent-personas': 'agent-persona.list',
+          'POST /agent-personas': 'agent-persona.create',
+          'GET /agent-personas/by-role/:role': 'agent-persona.listByRole',
+          'GET /agent-personas/resolve-by-role/:role': 'agent-persona.resolveByRole',
+          'GET /agent-personas/:id': 'agent-persona.get',
+          'PUT /agent-personas/:id': 'agent-persona.update',
+          'DELETE /agent-personas/:id': 'agent-persona.remove',
+
           // CYA Agent (v0.26)
           'POST /cya/profile': 'cya.createProfile',
           'GET /cya/profile/:profile_id': 'cya.getProfile',
@@ -1787,6 +1801,21 @@ module.exports = {
             }
           }
 
+          const isAgentPersonaRoute =
+            requestPath === '/api/agent-personas' || requestPath.startsWith('/api/agent-personas/');
+
+          if (isAgentPersonaRoute && ctx.meta.tenantId) {
+            if (!req.$params || typeof req.$params !== 'object') {
+              req.$params = {};
+            }
+
+            req.$params.tenantId = ctx.meta.tenantId;
+
+            if (ctx.params && typeof ctx.params === 'object') {
+              ctx.params.tenantId = ctx.meta.tenantId;
+            }
+          }
+
           const isPersonalAgentChatMultipart =
             method === 'POST' &&
             requestPath === '/api/personal-agent/chat' &&
@@ -1998,6 +2027,7 @@ module.exports = {
           'knowledge-rag': 'Knowledge RAG',
           'finance-agent': 'Finance Agent',
           'personal-agent': 'Personal Agent',
+          'agent-persona': 'Actor Personas',
           'mastr-quality': 'MaStR Data Quality',
           hitl: 'HITL',
           auth: 'Authentication',

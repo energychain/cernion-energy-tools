@@ -1211,7 +1211,13 @@ module.exports = {
           message: ctx.params.message,
         });
 
-        if (sessionHitlGate?.mode === 'blocked' || sessionHitlGate?.mode === 'terminal') {
+        if (
+          sessionHitlGate?.mode === 'blocked' ||
+          sessionHitlGate?.mode === 'terminal' ||
+          sessionHitlGate?.mode === 'approved-missing-plan'
+        ) {
+          const isDiagnosticMissingPlan = sessionHitlGate?.mode === 'approved-missing-plan';
+          const isBlockedHitl = sessionHitlGate?.mode === 'blocked';
           const forcedChatMode =
             normalizeChatMode(ctx.params.chatMode || ctx.meta?.chatMode || ctx.meta?.$params?.chatMode) ||
             CHAT_MODES.EXECUTION;
@@ -1251,12 +1257,16 @@ module.exports = {
           );
           stateMachine = transitionStateMachine(
             stateMachine,
-            sessionHitlGate.mode === 'blocked'
-              ? PERSONAL_AGENT_STATES.HITL_BLOCKED
-              : PERSONAL_AGENT_STATES.COMPLETED,
+            isDiagnosticMissingPlan
+              ? PERSONAL_AGENT_STATES.FAILED
+              : isBlockedHitl
+                ? PERSONAL_AGENT_STATES.HITL_BLOCKED
+                : PERSONAL_AGENT_STATES.COMPLETED,
             {
               reasonCode:
-                sessionHitlGate.mode === 'blocked'
+                isDiagnosticMissingPlan
+                  ? 'approved_hitl_resume_missing_plan'
+                  : isBlockedHitl
                   ? 'MANDATORY_HITL_APPROVAL'
                   : 'HITL_TERMINAL_DECISION',
               blockedAction: sessionHitlGate?.stopPoint?.blockedAction || null,
@@ -1280,7 +1290,11 @@ module.exports = {
           );
 
           const execution = {
-            status: sessionHitlGate.mode === 'blocked' ? 'awaiting-onboarding' : 'partial',
+            status: isDiagnosticMissingPlan
+              ? 'failed'
+              : isBlockedHitl
+                ? 'awaiting-onboarding'
+                : 'partial',
             plan: null,
             steps: [],
             stopPoint: sessionHitlGate.stopPoint || null,
@@ -1454,21 +1468,28 @@ module.exports = {
         }
 
         // ── Approved HITL Resume: inject stored plan and enrich knownContext ──
-        if (sessionHitlGate?.mode === 'approved') {
-          const approvedPlanSnapshot = sessionHitlGate.planSnapshot;
-          if (approvedPlanSnapshot?.steps?.length > 0) {
-            session.l3._approvedHitlResume = approvedPlanSnapshot;
+        const approvedHitlResumePlan =
+          sessionHitlGate?.mode === 'approved' ? sessionHitlGate.planSnapshot || null : null;
+        const hasApprovedHitlResumePlan = Boolean(
+          approvedHitlResumePlan?.steps && approvedHitlResumePlan.steps.length > 0
+        );
+        if (hasApprovedHitlResumePlan) {
+          if (!session.l3 || typeof session.l3 !== 'object') {
+            session.l3 = {};
           }
+          session.l3._approvedHitlResume = approvedHitlResumePlan;
           if (!knownContext.hitlItemId && sessionHitlGate.hitlItemId) {
             knownContext.hitlItemId = sessionHitlGate.hitlItemId;
           }
         }
         // ───────────────────────────────────────────────────────────────────────
 
-        let knowledgeContext = await this.queryKnowledgeOrientation(ctx, {
-          message: ctx.params.message,
-          activeDomains: detectRequestedDomains(ctx.params.message),
-        });
+        let knowledgeContext = hasApprovedHitlResumePlan
+          ? { domainHint: null, styleHint: null }
+          : await this.queryKnowledgeOrientation(ctx, {
+              message: ctx.params.message,
+              activeDomains: detectRequestedDomains(ctx.params.message),
+            });
         turnGraph = addNode(turnGraph, {
           id: 'knowledge:orientation',
           type: 'knowledge',
@@ -1503,70 +1524,90 @@ module.exports = {
         let routing = null;
         let plan = null;
         let status = null;
+        let brokerRecommendationRaw = null;
+        let semanticClassification = null;
+        let brokerRecommendation = null;
 
-        const brokerRecommendationRaw = await this.getBrokerRecommendation(
-          ctx,
-          ctx.params.message,
-          brokerKnownContext,
-          session.resolvedParams,
-          session.resolvedCapabilities
-        );
+        if (!hasApprovedHitlResumePlan) {
+          brokerRecommendationRaw = await this.getBrokerRecommendation(
+            ctx,
+            ctx.params.message,
+            brokerKnownContext,
+            session.resolvedParams,
+            session.resolvedCapabilities
+          );
 
-        const semanticClassification = await this.classifyConsultationIntentHybrid(
-          ctx,
-          ctx.params.message,
-          brokerKnownContext,
-          { executionTrace }
-        );
+          semanticClassification = await this.classifyConsultationIntentHybrid(
+            ctx,
+            ctx.params.message,
+            brokerKnownContext,
+            { executionTrace }
+          );
 
-        const brokerRecommendation = this.applyConsultationGuardrailsToBroker(
-          brokerRecommendationRaw,
-          semanticClassification
-        );
-        turnGraph = addNode(turnGraph, {
-          id: 'broker:recommendation',
-          type: 'broker',
-          label: 'Capability recommendation',
-          data: {
-            intent: brokerRecommendation?.intent || null,
-            capability: brokerRecommendation?.capability || null,
-            semanticWorkflowType: semanticClassification?.workflowType || null,
-            semanticConfidence:
-              typeof semanticClassification?.confidence === 'number'
-                ? semanticClassification.confidence
-                : null,
-          },
-        });
-        turnGraph = addEdge(turnGraph, {
-          from: 'knowledge:orientation',
-          to: 'broker:recommendation',
-          type: 'routes_to',
-        });
-        stateMachine = transitionStateMachine(
-          stateMachine,
-          PERSONAL_AGENT_STATES.BROKER_RECOMMENDED,
-          {
-            intent: brokerRecommendation?.intent || null,
-            capability: brokerRecommendation?.capability || null,
-          }
-        );
-        executionTrace.recordBrokerDecision({
-          intent: brokerRecommendation?.intent || null,
-          capability: brokerRecommendation?.capability || null,
-          confidence:
-            typeof brokerRecommendation?.confidence === 'number'
-              ? brokerRecommendation.confidence
-              : null,
-          scoringBreakdown: brokerRecommendation?.scoringBreakdown || null,
-          source: brokerRecommendation?.summary || 'capability-broker',
-        });
-
-        // A) Strategic milestone: broker ready
-        if (jobStore) {
-          jobStore.appendLog(jobId, 'broker_ready', 30, 'Broker recommendation ready', {
-            intent: brokerRecommendation?.intent || null,
-            capability: brokerRecommendation?.capability || null,
+          brokerRecommendation = this.applyConsultationGuardrailsToBroker(
+            brokerRecommendationRaw,
+            semanticClassification
+          );
+          turnGraph = addNode(turnGraph, {
+            id: 'broker:recommendation',
+            type: 'broker',
+            label: 'Capability recommendation',
+            data: {
+              intent: brokerRecommendation?.intent || null,
+              capability: brokerRecommendation?.capability || null,
+              semanticWorkflowType: semanticClassification?.workflowType || null,
+              semanticConfidence:
+                typeof semanticClassification?.confidence === 'number'
+                  ? semanticClassification.confidence
+                  : null,
+            },
           });
+          turnGraph = addEdge(turnGraph, {
+            from: 'knowledge:orientation',
+            to: 'broker:recommendation',
+            type: 'routes_to',
+          });
+          stateMachine = transitionStateMachine(
+            stateMachine,
+            PERSONAL_AGENT_STATES.BROKER_RECOMMENDED,
+            {
+              intent: brokerRecommendation?.intent || null,
+              capability: brokerRecommendation?.capability || null,
+            }
+          );
+          executionTrace.recordBrokerDecision({
+            intent: brokerRecommendation?.intent || null,
+            capability: brokerRecommendation?.capability || null,
+            confidence:
+              typeof brokerRecommendation?.confidence === 'number'
+                ? brokerRecommendation.confidence
+                : null,
+            scoringBreakdown: brokerRecommendation?.scoringBreakdown || null,
+            source: brokerRecommendation?.summary || 'capability-broker',
+          });
+
+          // A) Strategic milestone: broker ready
+          if (jobStore) {
+            jobStore.appendLog(jobId, 'broker_ready', 30, 'Broker recommendation ready', {
+              intent: brokerRecommendation?.intent || null,
+              capability: brokerRecommendation?.capability || null,
+            });
+          }
+        } else {
+          stateMachine = transitionStateMachine(
+            stateMachine,
+            PERSONAL_AGENT_STATES.BROKER_RECOMMENDED,
+            {
+              intent: 'approved_hitl_resume',
+              capability: 'personal-agent.hitl_resume',
+            }
+          );
+          routing = {
+            primaryIntent: hasApprovedHitlResumePlan ? approvedHitlResumePlan?.primaryIntent || 'approved_hitl_resume' : null,
+            requestedDomains: Array.isArray(approvedHitlResumePlan?.requestedDomains)
+              ? approvedHitlResumePlan.requestedDomains
+              : [],
+          };
         }
 
         // ═══ ChatMode-Auflösung (4-Ebenen-Fallback) ═══
@@ -1577,6 +1618,12 @@ module.exports = {
         let effectiveChatMode = normalizeChatMode(rawRequestedChatMode);
         let chatModeSource = 'api';
         let chatModeConfidence = rawRequestedChatMode ? 1 : null;
+
+        if (hasApprovedHitlResumePlan) {
+          effectiveChatMode = CHAT_MODES.EXECUTION;
+          chatModeSource = 'approved_hitl_resume';
+          chatModeConfidence = 1;
+        }
 
         // Cache-Prüfung: identische Nachricht bereits klassifiziert?
         const msgHash = createMessageFingerprint(ctx.params.message || '');
@@ -1603,7 +1650,7 @@ module.exports = {
           this.logger?.info(`[chatMode] Cache-Hit: ${effectiveChatMode}`);
         }
 
-        if (effectiveChatMode && rawRequestedChatMode) {
+        if (effectiveChatMode && rawRequestedChatMode && !hasApprovedHitlResumePlan) {
           executionStateGraph = advanceExecutionStateGraph(
             executionStateGraph,
             'api_params_validated',
@@ -1613,13 +1660,6 @@ module.exports = {
               confidence: 1,
             }
           );
-        }
-
-        // Approved HITL resume: force execution mode so the plan is not lost to consultation routing
-        if (!effectiveChatMode && session.l3?._approvedHitlResume) {
-          effectiveChatMode = CHAT_MODES.EXECUTION;
-          chatModeSource = 'approved_hitl_resume';
-          chatModeConfidence = 1;
         }
 
         // Ebene 2: LLM-Klassifikator
@@ -2515,34 +2555,35 @@ module.exports = {
           });
         }
 
-        const resumable = findResumableParentFrame(session.planStack);
-        if (resumable?.parentFrame) {
-          const freshDomains = detectRequestedDomains(ctx.params.message);
-          const parentDomains = Array.isArray(resumable.parentFrame.routing?.requestedDomains)
-            ? resumable.parentFrame.routing.requestedDomains
-            : [];
-          const domainMismatch =
-            freshDomains.length > 0 &&
-            freshDomains.some((domain) => !parentDomains.includes(domain));
+        if (!hasApprovedHitlResumePlan) {
+          const resumable = findResumableParentFrame(session.planStack);
+          if (resumable?.parentFrame) {
+            const freshDomains = detectRequestedDomains(ctx.params.message);
+            const parentDomains = Array.isArray(resumable.parentFrame.routing?.requestedDomains)
+              ? resumable.parentFrame.routing.requestedDomains
+              : [];
+            const domainMismatch =
+              freshDomains.length > 0 &&
+              freshDomains.some((domain) => !parentDomains.includes(domain));
 
-          if (!domainMismatch) {
-            const resumed = resumeParentPlanFrame(session.planStack, session.resolvedParams);
-            if (resumed?.parentFrame) {
-              session.planStack = resumed.planStack;
-              routing = {
-                ...(resumed.parentFrame.routing || {}),
-                primaryIntent:
-                  resumed.parentFrame.intent || resumed.parentFrame.routing?.primaryIntent || null,
-              };
-              plan = mergeResolvedParamsIntoPlan(resumed.parentFrame.plan, session.resolvedParams);
+            if (!domainMismatch) {
+              const resumed = resumeParentPlanFrame(session.planStack, session.resolvedParams);
+              if (resumed?.parentFrame) {
+                session.planStack = resumed.planStack;
+                routing = {
+                  ...(resumed.parentFrame.routing || {}),
+                  primaryIntent:
+                    resumed.parentFrame.intent || resumed.parentFrame.routing?.primaryIntent || null,
+                };
+                plan = mergeResolvedParamsIntoPlan(resumed.parentFrame.plan, session.resolvedParams);
+              }
             }
           }
         }
 
         // Approved HITL resume: use the stored plan from the blocked checkpoint instead of broker-derived plan
-        if (!plan && session.l3?._approvedHitlResume?.steps?.length > 0) {
-          plan = session.l3._approvedHitlResume;
-          delete session.l3._approvedHitlResume;
+        if (!plan && hasApprovedHitlResumePlan) {
+          plan = session.l3._approvedHitlResume || approvedHitlResumePlan;
           routing = {
             primaryIntent: plan.primaryIntent || 'approved_hitl_resume',
             requestedDomains: Array.isArray(plan.requestedDomains) ? plan.requestedDomains : [],
@@ -2799,6 +2840,41 @@ module.exports = {
               plan: responsePlan,
               awaitingParams: execution.stopPoint?.missingParams || [],
               resolvedParamsSnapshot: { ...session.resolvedParams },
+              hitlItemId: execution.stopPoint?.hitlItemId || null,
+              blockedAction: execution.stopPoint?.blockedAction || null,
+              blockedStep: execution.stopPoint?.blockedStep || null,
+              checkpointKey:
+                execution.stopPoint?.hitlItemId && responsePlan
+                  ? this.buildCriticalStepCheckpointKey(responsePlan, {
+                      step: execution.stopPoint?.blockedStep || 0,
+                      action: execution.stopPoint?.blockedAction || 'unknown-action',
+                    })
+                  : null,
+              planSnapshot:
+                execution?.stopPoint?.reasonCode === 'MANDATORY_HITL_APPROVAL'
+                  ? this.buildCriticalStepResumeSnapshot(responsePlan, {
+                      action: execution.stopPoint?.blockedAction || null,
+                      step: execution.stopPoint?.blockedStep || null,
+                      responsibleRole: execution.stopPoint?.responsibleRole || null,
+                      requiredResolverRoles: Array.isArray(execution.stopPoint?.requiredResolverRoles)
+                        ? execution.stopPoint.requiredResolverRoles
+                        : [],
+                      personaId: execution.stopPoint?.personaId || null,
+                      personaName: execution.stopPoint?.personaName || null,
+                      personaType: execution.stopPoint?.personaType || null,
+                      personaResolution: execution.stopPoint?.personaResolution || null,
+                      routingContext: execution.stopPoint?.routingContext || null,
+                    })
+                  : null,
+              responsibleRole: execution.stopPoint?.responsibleRole || null,
+              requiredResolverRoles: Array.isArray(execution.stopPoint?.requiredResolverRoles)
+                ? execution.stopPoint.requiredResolverRoles
+                : [],
+              personaId: execution.stopPoint?.personaId || null,
+              personaName: execution.stopPoint?.personaName || null,
+              personaType: execution.stopPoint?.personaType || null,
+              personaResolution: execution.stopPoint?.personaResolution || null,
+              routingContext: execution.stopPoint?.routingContext || null,
             },
             { maxDepth: 5 }
           );
@@ -7959,22 +8035,12 @@ module.exports = {
       const stateIndicatesHitlBlocked =
         stateMachineState === PERSONAL_AGENT_STATES.HITL_BLOCKED || stateMachineState === 'hitl_blocked';
 
-      let checkpointHitlItemId = null;
-      let checkpointContext = null;
-      const checkpointStore = this.ensureCriticalStepCheckpointStore(session);
-      const checkpointEntries = Object.values(checkpointStore).filter(
-        (entry) => entry && typeof entry === 'object' && entry.hitlItemId
-      );
-
-      if (checkpointEntries.length > 0) {
-        checkpointEntries.sort((a, b) => {
-          const aTs = Date.parse(a.updatedAt || a.createdAt || a.approvedAt || 0) || 0;
-          const bTs = Date.parse(b.updatedAt || b.createdAt || b.approvedAt || 0) || 0;
-          return bTs - aTs;
-        });
-        checkpointContext = checkpointEntries[0] || null;
-        checkpointHitlItemId = checkpointContext?.hitlItemId || null;
-      }
+      const checkpointContext = this.findCriticalStepCheckpointContext(session, {
+        hitlItemId: knownContextHitlItemId || stopPointHitlItemId || null,
+        blockedAction: sessionStopPoint?.blockedAction || null,
+        blockedStep: sessionStopPoint?.blockedStep || null,
+      });
+      const checkpointHitlItemId = checkpointContext?.hitlItemId || null;
 
       const hitlItemId = knownContextHitlItemId || stopPointHitlItemId || checkpointHitlItemId || null;
 
@@ -7982,7 +8048,7 @@ module.exports = {
         Boolean(hitlItemId) &&
         (stopPointIndicatesMandatoryHitl ||
           stateIndicatesHitlBlocked ||
-          (sessionStopPoint?.reasonCode === 'MANDATORY_HITL_APPROVAL' && !stopPointHitlItemId));
+          Boolean(checkpointContext));
 
       return {
         shouldGateBySession,
@@ -8030,14 +8096,72 @@ module.exports = {
           session.l3?.stopPoint && typeof session.l3.stopPoint === 'object'
             ? { ...session.l3.stopPoint }
             : null;
+        const resumePlanState = this.resolveCriticalStepResumePlan(session, hitlRef);
         session.l3.stopPoint = null;
+
+        if (!resumePlanState.planSnapshot?.steps?.length) {
+          const diagnosticMessage =
+            'Die HITL-Freigabe wurde bestätigt, aber der gespeicherte Resume-Plan konnte nicht wiederhergestellt werden. Bitte den Vorgang aus dem ursprünglichen Schritt neu starten.';
+          const diagnosticStopPoint = this.buildStopPoint({
+            reasonCode: 'approved_hitl_resume_missing_plan',
+            message: diagnosticMessage,
+            blockedStep: Number(savedStopPoint?.blockedStep || hitlRef?.checkpointContext?.step || 1) || 1,
+            status: 'failed',
+            placeholder: {
+              blockedAction:
+                savedStopPoint?.blockedAction || hitlRef?.checkpointContext?.action || null,
+              hitlItem: hitlItem
+                ? this.toPublicStopPointHitlItem(hitlItem)
+                : hitlRef.hitlItemId
+                  ? { id: hitlRef.hitlItemId, status: resolvedStatus || 'approved' }
+                  : null,
+              responsibleRole:
+                savedStopPoint?.responsibleRole || hitlRef?.checkpointContext?.responsibleRole || null,
+              requiredResolverRoles: Array.isArray(savedStopPoint?.requiredResolverRoles)
+                ? savedStopPoint.requiredResolverRoles
+                : Array.isArray(hitlRef?.checkpointContext?.requiredResolverRoles)
+                  ? hitlRef.checkpointContext.requiredResolverRoles
+                  : [],
+              personaId: savedStopPoint?.personaId || hitlRef?.checkpointContext?.personaId || null,
+              personaName:
+                savedStopPoint?.personaName || hitlRef?.checkpointContext?.personaName || null,
+              personaType:
+                savedStopPoint?.personaType || hitlRef?.checkpointContext?.personaType || null,
+              personaResolution:
+                savedStopPoint?.personaResolution || hitlRef?.checkpointContext?.personaResolution || null,
+              routingContext:
+                this.normalizeRoutingContext(savedStopPoint?.routingContext) ||
+                this.normalizeRoutingContext(hitlRef?.checkpointContext?.routingContext) ||
+                null,
+            },
+          });
+          return {
+            mode: 'approved-missing-plan',
+            hitlItemId: hitlRef.hitlItemId,
+            hitlItem,
+            status: resolvedStatus,
+            savedStopPoint,
+            checkpointContext: resumePlanState.checkpointContext,
+            planStackFrame: resumePlanState.planStackFrame,
+            planSnapshot: null,
+            stopPoint: diagnosticStopPoint,
+            reply: diagnosticMessage,
+          };
+        }
+
+        if (!session.l3 || typeof session.l3 !== 'object') {
+          session.l3 = {};
+        }
+        session.l3._approvedHitlResume = resumePlanState.planSnapshot;
         return {
           mode: 'approved',
           hitlItemId: hitlRef.hitlItemId,
           hitlItem,
           status: resolvedStatus,
           savedStopPoint,
-          planSnapshot: savedStopPoint?.onboardingQuestion?.planSnapshot || null,
+          checkpointContext: resumePlanState.checkpointContext,
+          planStackFrame: resumePlanState.planStackFrame,
+          planSnapshot: resumePlanState.planSnapshot,
         };
       }
 
@@ -8495,19 +8619,17 @@ module.exports = {
         placeholderMetadata: stopPoint?.placeholderMetadata || placeholder?.placeholderMetadata || null,
         planSnapshot:
           plan && typeof plan === 'object'
-            ? {
-                source: plan?.source || 'hitl-resume',
-                routeKey: plan?.routeKey || null,
-                routeLabel: plan?.routeLabel || null,
-                primaryIntent: plan?.primaryIntent || blockedAction || null,
-                secondaryIntents: plan?.secondaryIntents || [],
-                requestedDomains: plan?.requestedDomains || [],
-                unsupportedDomains: plan?.unsupportedDomains || [],
-                warnings: plan?.warnings || [],
-                promptHints: plan?.promptHints || {},
-                status: plan?.status || 'ready',
-                steps: Array.isArray(plan?.steps) ? plan.steps : [],
-              }
+            ? this.buildCriticalStepResumeSnapshot(plan, {
+                action: blockedAction,
+                step: blockedStep,
+                responsibleRole,
+                requiredResolverRoles,
+                personaId,
+                personaName,
+                personaType,
+                personaResolution: stopPoint?.personaResolution || placeholder?.personaResolution || null,
+                routingContext,
+              })
             : null,
       };
     },
@@ -8790,6 +8912,178 @@ module.exports = {
       ].join('::');
     },
 
+    buildCriticalStepResumeSnapshot(plan = {}, plannedStep = {}) {
+      const safeSteps = Array.isArray(plan?.steps)
+        ? plan.steps.map((step) => ({
+            step: Number.isFinite(Number(step?.step)) ? Number(step.step) : null,
+            action: step?.action || null,
+            purpose: step?.purpose || null,
+            criticalityClass: step?.criticalityClass || null,
+            required: Boolean(step?.required),
+            paramsTemplate:
+              step?.paramsTemplate && typeof step.paramsTemplate === 'object' ? step.paramsTemplate : {},
+            params: step?.params && typeof step.params === 'object' ? step.params : {},
+            requiredScopes: Array.isArray(step?.requiredScopes) ? step.requiredScopes : [],
+            hitlRequired: Boolean(step?.hitlRequired),
+            responsibleRole: step?.responsibleRole || null,
+            requiredResolverRoles: Array.isArray(step?.requiredResolverRoles)
+              ? step.requiredResolverRoles
+              : [],
+            personaId: step?.personaId || null,
+            personaName: step?.personaName || null,
+            personaType: step?.personaType || null,
+            personaResolution:
+              step?.personaResolution && typeof step.personaResolution === 'object'
+                ? step.personaResolution
+                : null,
+            routingContext: this.normalizeRoutingContext(step?.routingContext),
+          }))
+        : [];
+
+      return {
+        source: plan?.source || 'hitl-resume',
+        routeKey: plan?.routeKey || null,
+        routeLabel: plan?.routeLabel || null,
+        primaryIntent: plan?.primaryIntent || plannedStep?.action || null,
+        secondaryIntents: Array.isArray(plan?.secondaryIntents) ? plan.secondaryIntents : [],
+        requestedDomains: Array.isArray(plan?.requestedDomains) ? plan.requestedDomains : [],
+        unsupportedDomains: Array.isArray(plan?.unsupportedDomains) ? plan.unsupportedDomains : [],
+        warnings: Array.isArray(plan?.warnings) ? plan.warnings : [],
+        promptHints: plan?.promptHints && typeof plan.promptHints === 'object' ? plan.promptHints : {},
+        status: plan?.status || 'ready',
+        steps: safeSteps,
+        blockedAction: plannedStep?.action || null,
+        blockedStep: Number.isFinite(Number(plannedStep?.step)) ? Number(plannedStep.step) : null,
+        responsibleRole:
+          plannedStep?.responsibleRole || plannedStep?.ownerRole || plan?.responsibleRole || null,
+        requiredResolverRoles: Array.isArray(plannedStep?.requiredResolverRoles)
+          ? plannedStep.requiredResolverRoles
+          : Array.isArray(plan?.requiredResolverRoles)
+            ? plan.requiredResolverRoles
+            : [],
+        personaId: plannedStep?.personaId || plan?.personaId || null,
+        personaName: plannedStep?.personaName || plan?.personaName || null,
+        personaType: plannedStep?.personaType || plan?.personaType || null,
+        personaResolution:
+          plannedStep?.personaResolution || plan?.personaResolution || null,
+        routingContext:
+          this.normalizeRoutingContext(plannedStep?.routingContext) ||
+          this.normalizeRoutingContext(plan?.routingContext) ||
+          null,
+      };
+    },
+
+    findCriticalStepCheckpointContext(
+      session = {},
+      { hitlItemId = null, blockedAction = null, blockedStep = null } = {}
+    ) {
+      const checkpointStore = this.ensureCriticalStepCheckpointStore(session);
+      const entries = Object.entries(checkpointStore)
+        .map(([checkpointKey, entry]) => ({ checkpointKey, ...(entry || {}) }))
+        .filter((entry) => entry && typeof entry === 'object' && entry.hitlItemId);
+
+      if (entries.length === 0) {
+        return null;
+      }
+
+      const exactHitlMatches = hitlItemId
+        ? entries.filter((entry) => entry.hitlItemId === hitlItemId)
+        : [];
+      const exactStepMatches =
+        exactHitlMatches.length === 0 && blockedAction
+          ? entries.filter(
+              (entry) =>
+                String(entry.action || '').trim() === String(blockedAction || '').trim() &&
+                Number(entry.step || 0) === Number(blockedStep || 0)
+            )
+          : [];
+
+      const matches = exactHitlMatches.length > 0 ? exactHitlMatches : exactStepMatches;
+      if (matches.length === 0) {
+        return null;
+      }
+
+      matches.sort((a, b) => {
+        const aTs = Date.parse(a.updatedAt || a.createdAt || a.approvedAt || 0) || 0;
+        const bTs = Date.parse(b.updatedAt || b.createdAt || b.approvedAt || 0) || 0;
+        return bTs - aTs;
+      });
+
+      return matches[0] || null;
+    },
+
+    findCriticalStepPlanStackFrame(
+      planStack = [],
+      { hitlItemId = null, blockedAction = null, blockedStep = null } = {}
+    ) {
+      const stack = Array.isArray(planStack) ? planStack : [];
+      if (stack.length === 0) {
+        return null;
+      }
+
+      const exactHitlMatches = hitlItemId
+        ? stack.filter((frame) => frame && typeof frame === 'object' && frame.hitlItemId === hitlItemId)
+        : [];
+      const exactStepMatches =
+        exactHitlMatches.length === 0 && blockedAction
+          ? stack.filter(
+              (frame) =>
+                frame &&
+                typeof frame === 'object' &&
+                String(frame.blockedAction || '').trim() === String(blockedAction || '').trim() &&
+                Number(frame.blockedStep || 0) === Number(blockedStep || 0)
+            )
+          : [];
+
+      const matches = exactHitlMatches.length > 0 ? exactHitlMatches : exactStepMatches;
+      return matches.length > 0 ? matches[matches.length - 1] : null;
+    },
+
+    resolveCriticalStepResumePlan(session = {}, hitlRef = {}) {
+      const sessionStopPoint =
+        session?.l3?.stopPoint && typeof session.l3.stopPoint === 'object' ? session.l3.stopPoint : null;
+      const blockedAction = sessionStopPoint?.blockedAction || null;
+      const blockedStep = Number(sessionStopPoint?.blockedStep || 0) || null;
+      const checkpointContext = this.findCriticalStepCheckpointContext(session, {
+        hitlItemId: hitlRef?.hitlItemId || sessionStopPoint?.hitlItemId || null,
+        blockedAction,
+        blockedStep,
+      });
+
+      const stopPointPlanSnapshot =
+        sessionStopPoint?.onboardingQuestion?.planSnapshot &&
+        Array.isArray(sessionStopPoint.onboardingQuestion.planSnapshot.steps) &&
+        sessionStopPoint.onboardingQuestion.planSnapshot.steps.length > 0
+          ? sessionStopPoint.onboardingQuestion.planSnapshot
+          : null;
+      const checkpointPlanSnapshot =
+        checkpointContext?.planSnapshot &&
+        Array.isArray(checkpointContext.planSnapshot.steps) &&
+        checkpointContext.planSnapshot.steps.length > 0
+          ? checkpointContext.planSnapshot
+          : null;
+      const planStackFrame = this.findCriticalStepPlanStackFrame(session?.planStack || [], {
+        hitlItemId: hitlRef?.hitlItemId || sessionStopPoint?.hitlItemId || checkpointContext?.hitlItemId || null,
+        blockedAction,
+        blockedStep,
+      });
+      const planStackPlanSnapshot =
+        planStackFrame?.planSnapshot &&
+        Array.isArray(planStackFrame.planSnapshot.steps) &&
+        planStackFrame.planSnapshot.steps.length > 0
+          ? planStackFrame.planSnapshot
+          : null;
+
+      return {
+        planSnapshot: stopPointPlanSnapshot || checkpointPlanSnapshot || planStackPlanSnapshot || null,
+        checkpointContext,
+        planStackFrame,
+        stopPointPlanSnapshot,
+        checkpointPlanSnapshot,
+        planStackPlanSnapshot,
+      };
+    },
+
     ensureCriticalStepCheckpointStore(session = {}) {
       if (!session.l3 || typeof session.l3 !== 'object') {
         session.l3 = {};
@@ -8903,6 +9197,25 @@ module.exports = {
             approvedAt: new Date().toISOString(),
             action: plannedStep?.action || null,
             step: plannedStep?.step || null,
+            checkpointKey,
+            planSnapshot: this.buildCriticalStepResumeSnapshot(plan, plannedStep),
+            blockedAction: plannedStep?.action || null,
+            blockedStep: Number.isFinite(Number(plannedStep?.step)) ? Number(plannedStep.step) : null,
+            responsibleRole:
+              plannedStep?.responsibleRole || plannedStep?.ownerRole || plan?.responsibleRole || null,
+            requiredResolverRoles: Array.isArray(plannedStep?.requiredResolverRoles)
+              ? plannedStep.requiredResolverRoles
+              : Array.isArray(plan?.requiredResolverRoles)
+                ? plan.requiredResolverRoles
+                : [],
+            personaId: plannedStep?.personaId || plan?.personaId || null,
+            personaName: plannedStep?.personaName || plan?.personaName || null,
+            personaType: plannedStep?.personaType || plan?.personaType || null,
+            personaResolution: plannedStep?.personaResolution || plan?.personaResolution || null,
+            routingContext:
+              this.normalizeRoutingContext(plannedStep?.routingContext) ||
+              this.normalizeRoutingContext(plan?.routingContext) ||
+              null,
           };
           return {
             approved: true,
@@ -8922,6 +9235,25 @@ module.exports = {
           updatedAt: new Date().toISOString(),
           action: plannedStep?.action || null,
           step: plannedStep?.step || null,
+          checkpointKey,
+          planSnapshot: this.buildCriticalStepResumeSnapshot(plan, plannedStep),
+          blockedAction: plannedStep?.action || null,
+          blockedStep: Number.isFinite(Number(plannedStep?.step)) ? Number(plannedStep.step) : null,
+          responsibleRole:
+            plannedStep?.responsibleRole || plannedStep?.ownerRole || plan?.responsibleRole || null,
+          requiredResolverRoles: Array.isArray(plannedStep?.requiredResolverRoles)
+            ? plannedStep.requiredResolverRoles
+            : Array.isArray(plan?.requiredResolverRoles)
+              ? plan.requiredResolverRoles
+              : [],
+          personaId: plannedStep?.personaId || plan?.personaId || null,
+          personaName: plannedStep?.personaName || plan?.personaName || null,
+          personaType: plannedStep?.personaType || plan?.personaType || null,
+          personaResolution: plannedStep?.personaResolution || plan?.personaResolution || null,
+          routingContext:
+            this.normalizeRoutingContext(plannedStep?.routingContext) ||
+            this.normalizeRoutingContext(plan?.routingContext) ||
+            null,
         };
         return {
           approved: false,
@@ -8944,6 +9276,10 @@ module.exports = {
             ...stored,
             status: 'approved',
             approvedAt: new Date().toISOString(),
+            planSnapshot:
+              stored?.planSnapshot && Array.isArray(stored.planSnapshot.steps)
+                ? stored.planSnapshot
+                : this.buildCriticalStepResumeSnapshot(plan, plannedStep),
           };
           return {
             approved: true,
@@ -8961,6 +9297,10 @@ module.exports = {
           ...stored,
           status: status || 'pending',
           updatedAt: new Date().toISOString(),
+          planSnapshot:
+            stored?.planSnapshot && Array.isArray(stored.planSnapshot.steps)
+              ? stored.planSnapshot
+              : this.buildCriticalStepResumeSnapshot(plan, plannedStep),
         };
         return {
           approved: false,
@@ -8989,6 +9329,25 @@ module.exports = {
           createdAt: new Date().toISOString(),
           action: plannedStep?.action || null,
           step: plannedStep?.step || null,
+          checkpointKey,
+          planSnapshot: this.buildCriticalStepResumeSnapshot(plan, plannedStep),
+          blockedAction: plannedStep?.action || null,
+          blockedStep: Number.isFinite(Number(plannedStep?.step)) ? Number(plannedStep.step) : null,
+          responsibleRole:
+            plannedStep?.responsibleRole || plannedStep?.ownerRole || plan?.responsibleRole || null,
+          requiredResolverRoles: Array.isArray(plannedStep?.requiredResolverRoles)
+            ? plannedStep.requiredResolverRoles
+            : Array.isArray(plan?.requiredResolverRoles)
+              ? plan.requiredResolverRoles
+              : [],
+          personaId: plannedStep?.personaId || plan?.personaId || null,
+          personaName: plannedStep?.personaName || plan?.personaName || null,
+          personaType: plannedStep?.personaType || plan?.personaType || null,
+          personaResolution: plannedStep?.personaResolution || plan?.personaResolution || null,
+          routingContext:
+            this.normalizeRoutingContext(plannedStep?.routingContext) ||
+            this.normalizeRoutingContext(plan?.routingContext) ||
+            null,
         };
         return {
           approved: false,

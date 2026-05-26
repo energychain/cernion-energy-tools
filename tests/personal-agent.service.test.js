@@ -4066,6 +4066,22 @@ describe('personal-agent.service', () => {
     const hitlItemId = first.execution.stopPoint.hitlItemId;
     expect(hitlItemId).toBeTruthy();
 
+    const persistedBeforeApproval = await broker.call(
+      'personal-agent.getSession',
+      { sessionId },
+      { meta }
+    );
+    const checkpointEntries = Object.values(persistedBeforeApproval.l3?.criticalStepCheckpoints || {});
+    const persistedCheckpoint = checkpointEntries.find((entry) => entry.hitlItemId === hitlItemId);
+    expect(persistedCheckpoint).toBeTruthy();
+    expect(persistedCheckpoint.planSnapshot).toBeTruthy();
+    expect(persistedCheckpoint.planSnapshot.steps.some((step) => step.action === 'finance-agent.analyze')).toBe(true);
+    const persistedPlanFrame = (persistedBeforeApproval.l3?.planStack || []).find(
+      (frame) => frame.hitlItemId === hitlItemId
+    );
+    expect(persistedPlanFrame).toBeTruthy();
+    expect(persistedPlanFrame.planSnapshot).toBeTruthy();
+
     // Approve the HITL item
     const approval = await broker.call('hitl.approve', { id: hitlItemId }, { meta });
     expect(approval.item.status).toBe('approved');
@@ -4090,7 +4106,9 @@ describe('personal-agent.service', () => {
 
     // Must not land on interface-placeholder.markGap
     expect(placeholderCalls.length).toBe(placeholderCallsBefore);
+    expect(resumed.execution.plan?.steps?.[0]?.action).toBe('finance-agent.analyze');
     expect(resumed.execution.stopPoint?.reasonCode).not.toBe('PREFLIGHT_MISS');
+    expect(resumed.execution.stopPoint?.reasonCode).not.toBe('approved_hitl_resume_missing_plan');
     const hasMarkGapStep = Array.isArray(resumed.execution.steps) &&
       resumed.execution.steps.some((s) => s.action === 'interface-placeholder.markGap');
     expect(hasMarkGapStep).toBe(false);
@@ -4117,6 +4135,117 @@ describe('personal-agent.service', () => {
       expect(resumed.execution.stopPoint?.reasonCode).not.toBe('PREFLIGHT_MISS');
       expect(resumed.execution.stopPoint?.blockedAction).not.toBe('interface-placeholder.markGap');
     }
+  });
+
+  it('fails closed with approved_hitl_resume_missing_plan when the durable resume plan is absent', async () => {
+    const sessionId = `hitl-approved-resume-missing-plan-${Date.now()}`;
+    const meta = {
+      tenantId: 'tenant-critical-hitl-approved-resume-missing-plan',
+      authUser: { userId: 'user-hitl-approved-resume-missing-plan' },
+    };
+
+    const first = await broker.call(
+      'personal-agent.chat',
+      {
+        sessionId,
+        message: 'Bitte Due Diligence für den Kreditausschuss durchführen.',
+        chatMode: 'execution',
+        executionMode: 'auto',
+      },
+      { meta }
+    );
+
+    expect(first.execution.stopPoint.reasonCode).toBe('MANDATORY_HITL_APPROVAL');
+    const hitlItemId = first.execution.stopPoint.hitlItemId;
+    expect(hitlItemId).toBeTruthy();
+
+    const persisted = await broker.call(
+      'object-store.get',
+      {
+        namespace: 'tenant:tenant-critical-hitl-approved-resume-missing-plan:personal_agent_sessions',
+        key: sessionId,
+      },
+      { meta }
+    );
+
+    const payload = persisted.payload;
+    const checkpointEntries = Object.entries(payload.l3?.criticalStepCheckpoints || {});
+    for (const [checkpointKey, checkpoint] of checkpointEntries) {
+      if (checkpoint?.hitlItemId !== hitlItemId) {
+        continue;
+      }
+      payload.l3.criticalStepCheckpoints[checkpointKey] = {
+        ...checkpoint,
+        planSnapshot: null,
+      };
+    }
+    if (payload.l3?.stopPoint?.onboardingQuestion) {
+      payload.l3.stopPoint = {
+        ...payload.l3.stopPoint,
+        onboardingQuestion: {
+          ...payload.l3.stopPoint.onboardingQuestion,
+          planSnapshot: null,
+        },
+      };
+    }
+    payload.l3.planStack = Array.isArray(payload.l3?.planStack)
+      ? payload.l3.planStack.map((frame) => ({
+          ...frame,
+          planSnapshot: null,
+        }))
+      : [];
+
+    await broker.call(
+      'object-store.put',
+      {
+        namespace: 'tenant:tenant-critical-hitl-approved-resume-missing-plan:personal_agent_sessions',
+        key: sessionId,
+        payload,
+      },
+      { meta }
+    );
+
+    const approval = await broker.call('hitl.approve', { id: hitlItemId }, { meta });
+    expect(approval.item.status).toBe('approved');
+
+    const reloaded = await broker.call(
+      'personal-agent.getSession',
+      { sessionId },
+      { meta }
+    );
+
+    const personalAgent = broker.getLocalService('personal-agent');
+    const gate = await personalAgent.resolveSessionHitlResumeGate(
+      { call: broker.call.bind(broker), meta },
+      {
+        session: {
+          ...reloaded,
+          l3: {
+            ...reloaded.l3,
+            stopPoint: null,
+            criticalStepCheckpoints: Object.fromEntries(
+              Object.entries(reloaded.l3?.criticalStepCheckpoints || {}).map(([checkpointKey, checkpoint]) => [
+                checkpointKey,
+                {
+                  ...checkpoint,
+                  planSnapshot: null,
+                },
+              ])
+            ),
+            planStack: [],
+          },
+        },
+        knownContext: {
+          hitlItemId,
+        },
+        message: 'Bitte fortfahren.',
+      }
+    );
+
+    expect(gate.mode).toBe('approved-missing-plan');
+    expect(gate.stopPoint?.reasonCode).toBe('approved_hitl_resume_missing_plan');
+    expect(gate.stopPoint?.blockedAction).not.toBe('interface-placeholder.markGap');
+    expect(gate.reply).toMatch(/Resume-Plan/i);
   });
 
   it('preserves persona routing metadata in HITL onboarding questions', () => {
