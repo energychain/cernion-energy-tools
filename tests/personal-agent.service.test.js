@@ -3792,6 +3792,7 @@ describe('personal-agent.service', () => {
     expect(result.execution.steps[0].status).toBe('hitl-required');
     expect(result.execution.stopPoint.hitlItemId).toMatch(/^hitl-/);
     expect(result.reply).toMatch(/\[embed ref="hitl_item_/i);
+    expect(result.reply).not.toMatch(/notification|dispatch|unresolved_recipient|channel/i);
   });
 
   it('resumes critical flow after HITL approval on next turn', async () => {
@@ -3838,6 +3839,39 @@ describe('personal-agent.service', () => {
         (step) => step.action === 'finance-agent.analyze' && step.status === 'completed'
       )
     ).toBe(true);
+  });
+
+  it('preserves persona routing metadata in HITL onboarding questions', () => {
+    const personalAgent = broker.getLocalService('personal-agent');
+
+    const onboardingQuestion = personalAgent.buildHitlOnboardingQuestion(
+      {
+        reasonCode: 'MANDATORY_HITL_APPROVAL',
+        message: 'Freigabe erforderlich',
+        blockedAction: 'finance-agent.analyze',
+        blockedStep: 2,
+        hitlItemId: 'hitl-persona-1',
+        responsibleRole: 'ROLE_NETZPLANUNG',
+        requiredResolverRoles: ['ROLE_NETZPLANUNG', 'ROLE_KAUFMAENNISCHE_LEITUNG'],
+        personaId: 'tenant-a/persona-1',
+        personaName: 'Thorsten Zoerner',
+        personaType: 'human',
+        routingContext: { source: 'vdmi' },
+      },
+      { source: 'test' }
+    );
+
+    expect(onboardingQuestion.hitlItem).toMatchObject({
+      id: 'hitl-persona-1',
+      personaId: 'tenant-a/persona-1',
+      personaName: 'Thorsten Zoerner',
+      responsibleRole: 'ROLE_NETZPLANUNG',
+    });
+    expect(onboardingQuestion.personaId).toBe('tenant-a/persona-1');
+    expect(onboardingQuestion.personaName).toBe('Thorsten Zoerner');
+    expect(onboardingQuestion.personaType).toBe('human');
+    expect(onboardingQuestion.responsibleRole).toBe('ROLE_NETZPLANUNG');
+    expect(onboardingQuestion.routingContext).toEqual({ source: 'vdmi' });
   });
 
   it('returns quality and agentTrace as structured response fields without polluting textual reply', async () => {

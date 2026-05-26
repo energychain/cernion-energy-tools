@@ -9,6 +9,10 @@ describe('hitl service', () => {
   const originalInterval = process.env.HITL_EXPIRY_CHECK_INTERVAL_MS;
   let broker;
   let emitted;
+  const personasByTenant = new Map();
+  const notificationDispatches = [];
+  const inboxResolutions = [];
+  let notificationShouldFail = false;
 
   function tenantMeta(tenantId) {
     return { meta: { tenantId } };
@@ -41,8 +45,126 @@ describe('hitl service', () => {
       return originalEmit(eventName, payload, groups);
     };
 
+    broker.createService({
+      name: 'agent-persona',
+      actions: {
+        get: {
+          handler(ctx) {
+            const { tenantId, id } = ctx.params;
+            const tenantPersonas = personasByTenant.get(tenantId) || new Map();
+            const persona = tenantPersonas.get(id);
+            if (!persona) {
+              const error = new Error('Persona not found');
+              error.code = 404;
+              error.type = 'PERSONA_NOT_FOUND';
+              throw error;
+            }
+            return { success: true, item: persona };
+          },
+        },
+        resolveByRole: {
+          handler(ctx) {
+            const { tenantId, role } = ctx.params;
+            const tenantPersonas = personasByTenant.get(tenantId) || new Map();
+            const items = [...tenantPersonas.values()]
+              .filter((persona) => persona.status === 'active')
+              .filter((persona) => Array.isArray(persona.assignedRoles) && persona.assignedRoles.includes(role))
+              .sort((left, right) =>
+                String(left.personaName || '').localeCompare(String(right.personaName || '')) ||
+                String(left.id || '').localeCompare(String(right.id || ''))
+              );
+            return { success: true, tenantId, role, count: items.length, items };
+          },
+        },
+      },
+    });
+
+    broker.createService({
+      name: 'notification',
+      actions: {
+        dispatchHitlApproval: {
+          handler(ctx) {
+            notificationDispatches.push({ ...ctx.params, metaTenantId: ctx.meta?.tenantId || null });
+            if (notificationShouldFail) {
+              const error = new Error('notification backend unavailable');
+              error.type = 'NOTIFICATION_BACKEND_UNAVAILABLE';
+              throw error;
+            }
+
+            return {
+              success: true,
+              dispatch: {
+                id: `dispatch-${notificationDispatches.length}`,
+                status: 'queued',
+                warnings: [],
+              },
+            };
+          },
+        },
+      },
+    });
+
+    broker.createService({
+      name: 'persona-inbox',
+      actions: {
+        resolveByHitlItem: {
+          handler(ctx) {
+            inboxResolutions.push({ ...ctx.params, metaTenantId: ctx.meta?.tenantId || null });
+            return { success: true, count: 1, items: [] };
+          },
+        },
+      },
+    });
+
     broker.createService(require('../services/hitl.service'));
     await broker.start();
+
+    personasByTenant.set(
+      'tenant-a',
+      new Map([
+        [
+          'tenant-a/persona-1',
+          {
+            id: 'tenant-a/persona-1',
+            tenantId: 'tenant-a',
+            personaName: 'Thorsten Zoerner',
+            personaType: 'human',
+            assignedRoles: ['ROLE_NETZPLANUNG'],
+            communicationChannels: [],
+            status: 'active',
+          },
+        ],
+        [
+          'tenant-a/persona-2',
+          {
+            id: 'tenant-a/persona-2',
+            tenantId: 'tenant-a',
+            personaName: 'Cernion Finance Agent',
+            personaType: 'specialized-agent',
+            assignedRoles: ['ROLE_KAUFMAENNISCHE_LEITUNG'],
+            communicationChannels: [],
+            status: 'active',
+          },
+        ],
+      ])
+    );
+    personasByTenant.set(
+      'tenant-b',
+      new Map([
+        [
+          'tenant-b/persona-1',
+          {
+            id: 'tenant-b/persona-1',
+            tenantId: 'tenant-b',
+            personaName: 'Tenant B Persona',
+            personaType: 'human',
+            assignedRoles: ['ROLE_NETZPLANUNG'],
+            communicationChannels: [],
+            status: 'active',
+          },
+        ],
+      ])
+    );
   });
 
   afterAll(async () => {
@@ -53,6 +175,9 @@ describe('hitl service', () => {
 
   beforeEach(() => {
     emitted.length = 0;
+    notificationDispatches.length = 0;
+    inboxResolutions.length = 0;
+    notificationShouldFail = false;
   });
 
   test('creates and resolves hitl item with events', async () => {
@@ -82,6 +207,113 @@ describe('hitl service', () => {
     expect(createdEvent).toBeTruthy();
     expect(resolvedEvent).toBeTruthy();
     expect(resolvedEvent.payload.itemId).toBe(created.item.id);
+    expect(inboxResolutions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          tenantId: 'tenant-a',
+          hitlItemId: created.item.id,
+          resolutionSource: 'hitl:approved',
+          metaTenantId: 'tenant-a',
+        }),
+      ])
+    );
+  });
+
+  test('resolves persona routing metadata on create for same-tenant persona lookups', async () => {
+    const created = await broker.call(
+      'hitl.create',
+      {
+        kind: 'persona-routed-approval',
+        payload: { sessionId: 'S-2' },
+        responsibleRole: 'ROLE_NETZPLANUNG',
+        requiredResolverRoles: ['ROLE_NETZPLANUNG', 'ROLE_KAUFMAENNISCHE_LEITUNG'],
+      },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+
+    expect(created.item.personaId).toBe('tenant-a/persona-1');
+    expect(created.item.personaName).toBe('Thorsten Zoerner');
+    expect(created.item.personaType).toBe('human');
+    expect(created.item.personaResolution).toMatchObject({
+      source: 'responsibleRole',
+      personaId: 'tenant-a/persona-1',
+      responsibleRole: 'ROLE_NETZPLANUNG',
+    });
+
+    const createdEvent = emitted.find((evt) => evt.eventName === 'hitl.item.created');
+    expect(createdEvent.payload.personaId).toBe('tenant-a/persona-1');
+    expect(createdEvent.payload.responsibleRole).toBe('ROLE_NETZPLANUNG');
+  });
+
+  test('fails open when persona routing resolves to another tenant', async () => {
+    const created = await broker.call(
+      'hitl.create',
+      {
+        kind: 'persona-routed-approval',
+        payload: { sessionId: 'S-3' },
+        personaId: 'tenant-b/persona-1',
+      },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+
+    expect(created.success).toBe(true);
+    expect(created.item.personaId).toBeNull();
+    expect(created.item.personaResolution).toBeNull();
+  });
+
+  test('stores notification dispatch summary and preserves embedRef', async () => {
+    const created = await broker.call(
+      'hitl.create',
+      {
+        kind: 'persona-routed-approval',
+        payload: { sessionId: 'S-4' },
+        responsibleRole: 'ROLE_NETZPLANUNG',
+      },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+
+    expect(created.success).toBe(true);
+    expect(created.item.notification).toMatchObject({
+      dispatchId: 'dispatch-1',
+      status: 'queued',
+      embedRef: `hitl_item_${created.item.id}`,
+    });
+
+    expect(notificationDispatches).toHaveLength(1);
+    expect(notificationDispatches[0]).toMatchObject({
+      tenantId: 'tenant-a',
+      hitlItemId: created.item.id,
+      personaId: 'tenant-a/persona-1',
+      responsibleRole: 'ROLE_NETZPLANUNG',
+      embedRef: `hitl_item_${created.item.id}`,
+      sourceService: 'hitl',
+      sourceAction: 'create',
+      metaTenantId: 'tenant-a',
+    });
+  });
+
+  test('notification dispatch failure does not block HITL creation', async () => {
+    notificationShouldFail = true;
+
+    const created = await broker.call(
+      'hitl.create',
+      {
+        kind: 'persona-routed-approval',
+        payload: { sessionId: 'S-5' },
+        responsibleRole: 'ROLE_NETZPLANUNG',
+      },
+      { meta: { tenantId: 'tenant-a' } }
+    );
+
+    expect(created.success).toBe(true);
+    expect(created.item.status).toBe('pending');
+    expect(created.item.notification).toMatchObject({
+      dispatchId: null,
+      status: 'failed',
+      embedRef: `hitl_item_${created.item.id}`,
+    });
+    expect(Array.isArray(created.item.notification.warnings)).toBe(true);
+    expect(created.item.notification.warnings.length).toBeGreaterThan(0);
   });
 
   test('isolates items by tenant', async () => {

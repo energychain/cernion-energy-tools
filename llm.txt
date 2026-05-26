@@ -2,14 +2,14 @@
 
 ## Metadata
 - project: cernion-energy-tools
-- version: 0.54.8
-- changelog_latest_release: 0.54.8
+- version: 0.55.3
+- changelog_latest_release: 0.55.3
 - source_files_hash:
-  - CHANGELOG.md: 8c70a4ca1614e72283685c31478372a65de79bd99b8d6714922b138131c4dfba
+  - CHANGELOG.md: d65ec0c98d907e73d86957dc719cede9334a9af21b2ef924ce36637bbe86e676
   - README.md: 867404173fb8d52620b055cfd37ebd13d11244345f6f20a1e5975e7c1710e420
   - docs/BACKEND_CONTEXT.md: ea5c04f2b9065bb44d5fcf82751d3c60b948a86a597e7c5104d9585fdd64c46d
   - src/cookbook-recipes.js: 5d30cd990f6ed8eac314d7f9730847c80c698b2d427132225f91fad2e1ba509d
-  - openapi-export.json: ae9cd8ef5af8ea230b608091870ea67333c39acf3121b16d4d4c114d7170baef
+  - openapi-export.json: 6ae3d469830ac010dd3734804aa11540fc962bbb5be430db0883b915956287f1
 
 ## Purpose
 This file is generated for LLM consumption and release-time context transfer.
@@ -980,7 +980,7 @@ process:
   "info": {
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com.",
     "title": "Cernion Energy Tools API",
-    "version": "0.54.8"
+    "version": "0.55.3"
   },
   "openapi": "3.0.0",
   "paths": {
@@ -12351,7 +12351,13 @@ process:
                     "payload": {
                       "sessionId": "S-123"
                     },
+                    "personaId": "tenant-a/thorsten-human",
+                    "requiredResolverRoles": [
+                      "ROLE_KAUFMAENNISCHE_LEITUNG",
+                      "ROLE_NETZPLANUNG"
+                    ],
                     "requiredScope": "full-access",
+                    "responsibleRole": "ROLE_NETZPLANUNG",
                     "severity": "warning"
                   }
                 }
@@ -12381,8 +12387,26 @@ process:
                     },
                     "type": "object"
                   },
+                  "personaId": {
+                    "example": "tenant-a/thorsten-human",
+                    "type": "string"
+                  },
+                  "requiredResolverRoles": {
+                    "example": [
+                      "ROLE_KAUFMAENNISCHE_LEITUNG",
+                      "ROLE_NETZPLANUNG"
+                    ],
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
                   "requiredScope": {
                     "example": "full-access",
+                    "type": "string"
+                  },
+                  "responsibleRole": {
+                    "example": "ROLE_NETZPLANUNG",
                     "type": "string"
                   },
                   "severity": {
@@ -23877,8 +23901,8 @@ process:
     }
   ],
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.54.8"
+  "x-version": "0.55.3"
 }
 
 ## Integrity
-- llm_txt_sha256: 2d84c47950364baeacc6afa47a5273c0435d2ffe9c6ea44c9a4be46e81b65bb7
+- llm_txt_sha256: d0fd007971b3c66185f3e9defd48fbfc4b66229f508e06f51157efef2ca4de43

@@ -1,7 +1,7 @@
 # UI Contract: HITL Approval Dashboard
 
 > **Page ID:** `hitl`
-> **Version:** 0.44.5
+> **Version:** 0.55.3
 > **Last updated:** 2026-05-06
 
 ---
@@ -56,6 +56,21 @@
       "requiredScope": "full-access",
       "payload": {
         "analysisId": "fa_123"
+      },
+      "responsibleRole": "ROLE_NETZPLANUNG",
+      "requiredResolverRoles": ["ROLE_NETZPLANUNG", "ROLE_KAUFMAENNISCHE_LEITUNG"],
+      "personaId": "tenant-a/persona-1",
+      "personaName": "Thorsten Zoerner",
+      "personaType": "human",
+      "notification": {
+        "dispatchId": "dispatch-123",
+        "status": "queued",
+        "inboxMessageId": "inbox-123",
+        "inboxStatus": "queued",
+        "warnings": [],
+        "idempotencyKey": "tenant-a:hitl_abc123:tenant-a/persona-1",
+        "embedRef": "hitl_item_hitl_abc123",
+        "updatedAt": "2026-05-25T12:00:00.000Z"
       },
       "dueAt": "2026-05-13T10:00:00.000Z",
       "createdAt": "2026-05-06T10:00:00.000Z",

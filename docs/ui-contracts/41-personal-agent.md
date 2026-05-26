@@ -1,4 +1,4 @@
-# UI Contract 41 — Personal Agent (v0.53.9)
+# UI Contract 41 — Personal Agent (v0.55.3)
 
 ## Scope
 Interaktive Chat-Schnittstelle mit Zwiebelmodus (L0–L4), Capability-Routing, HITL-Planmodus, Session-Wiederherstellung und Session-Reset. Seit dem aktuellen Unreleased-Schnitt zusätzlich mit deterministischem Execution-State-Graph, expliziter Routing-Edge-Entscheidung und strukturierter Execution-Observability.
@@ -299,6 +299,40 @@ Consultation-Response (gekürzt):
 ```
 
 Wichtig (Kompatibilität): Das top-level `execution`-Objekt im Consultation-Pfad bleibt unverändert (`status`, `plan`, `steps`). Vertiefte Laufzeit-Metadaten stehen in `agentTrace.execution.meta`. Die optionale `responseStrategy`-Struktur ist rein additiv und bleibt getrennt vom Freitext `reply`.
+
+### 2) GET /api/personal-agent/session/:sessionId/proactive-messages
+- Action: `personal-agent.pullProactiveMessages`
+- Zweck: Liest queued Persona-Inbox-Nachrichten und markiert sie serverseitig auf `visible`.
+- Tenant-Scope: strikt mandantengebunden.
+
+Response:
+```json
+{
+  "success": true,
+  "sessionId": "pa_...",
+  "personaId": "tenant-a/persona-1",
+  "count": 1,
+  "proactiveMessages": [
+    {
+      "id": "inbox-123",
+      "type": "hitl-approval",
+      "hitlItemId": "hitl-abc123",
+      "embedRef": "hitl_item_hitl-abc123",
+      "title": "Freigabe erforderlich",
+      "summary": "Für HITL-Item hitl-abc123 ist eine menschliche Freigabe erforderlich.",
+      "status": "visible",
+      "createdAt": "2026-05-25T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+Hinweis: `proactiveMessages` enthält bewusst nur folgende Felder:
+`id`, `type`, `hitlItemId`, `embedRef`, `title`, `summary`, `status`, `createdAt`.
+
+### 3) POST /api/personal-agent/session/:sessionId/proactive-messages/:id/acknowledge
+- Action: `personal-agent.acknowledgeProactiveMessage`
+- Zweck: UI/User-Signal für Lifecycle-Übergang auf `acknowledged`.
 
 HITL-Response (gekürzt):
 ```json

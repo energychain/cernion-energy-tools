@@ -3138,6 +3138,166 @@ module.exports = {
       },
     },
 
+    pullProactiveMessages: {
+      rest: 'GET /session/:sessionId/proactive-messages',
+      params: {
+        sessionId: { type: 'string', min: 1, trim: true, max: 120 },
+        personaId: { type: 'string', optional: true, trim: true, max: 180 },
+        limit: { type: 'number', optional: true, convert: true, integer: true, min: 1, max: 100, default: 20 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Pull queued proactive persona messages for the current session',
+        parameters: [
+          {
+            in: 'path',
+            name: 'sessionId',
+            required: true,
+            schema: { type: 'string', example: 'pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8' },
+          },
+          {
+            in: 'query',
+            name: 'personaId',
+            required: false,
+            schema: { type: 'string', example: 'tenant-a/thorsten-human' },
+          },
+          {
+            in: 'query',
+            name: 'limit',
+            required: false,
+            schema: { type: 'integer', default: 20, minimum: 1, maximum: 100 },
+          },
+        ],
+      },
+      async handler(ctx) {
+        const tenantId = getTenantId(ctx);
+        const userId = String(ctx.meta?.authUser?.userId || 'anonymous');
+        const sessionId = String(ctx.params.sessionId || '').trim();
+        const explicitPersonaId = String(ctx.params.personaId || '').trim() || null;
+        const limit = Number(ctx.params.limit || 20);
+
+        await this.loadSession(ctx, tenantId, sessionId, userId, { createIfMissing: true });
+
+        const persona = await this.resolvePersonaForSession(ctx, {
+          tenantId,
+          sessionId,
+          personaId: explicitPersonaId,
+        });
+
+        if (!persona?.id) {
+          return {
+            success: true,
+            sessionId,
+            personaId: null,
+            count: 0,
+            proactiveMessages: [],
+          };
+        }
+
+        const pending = await this.fetchPendingPersonaInboxMessages(ctx, {
+          tenantId,
+          personaId: persona.id,
+          sessionId,
+          limit,
+        });
+
+        return {
+          success: true,
+          sessionId,
+          personaId: persona.id,
+          count: pending.length,
+          proactiveMessages: pending.map((item) => this.toPublicProactiveMessage(item)),
+        };
+      },
+    },
+
+    acknowledgeProactiveMessage: {
+      rest: 'POST /session/:sessionId/proactive-messages/:id/acknowledge',
+      params: {
+        sessionId: { type: 'string', min: 1, trim: true, max: 120 },
+        id: { type: 'string', min: 1, trim: true, max: 120 },
+        personaId: { type: 'string', optional: true, trim: true, max: 180 },
+      },
+      openapi: {
+        tags: [OPENAPI_TAG],
+        summary: 'Acknowledge a proactive persona message',
+        parameters: [
+          {
+            in: 'path',
+            name: 'sessionId',
+            required: true,
+            schema: { type: 'string', example: 'pa_a1b2c3d4-e5f6-4789-a012-b3c4d5e6f7a8' },
+          },
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string', example: 'inbox-1' },
+          },
+          {
+            in: 'query',
+            name: 'personaId',
+            required: false,
+            schema: { type: 'string', example: 'tenant-a/thorsten-human' },
+          },
+        ],
+        requestBody: {
+          required: false,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {},
+              },
+              examples: {
+                default: {
+                  value: {},
+                },
+              },
+            },
+          },
+        },
+      },
+      async handler(ctx) {
+        const tenantId = getTenantId(ctx);
+        const userId = String(ctx.meta?.authUser?.userId || 'anonymous');
+        const sessionId = String(ctx.params.sessionId || '').trim();
+        const explicitPersonaId = String(ctx.params.personaId || '').trim() || null;
+
+        await this.loadSession(ctx, tenantId, sessionId, userId, { createIfMissing: true });
+        const persona = await this.resolvePersonaForSession(ctx, {
+          tenantId,
+          sessionId,
+          personaId: explicitPersonaId,
+        });
+
+        if (!persona?.id) {
+          throw new MoleculerClientError(
+            'Persona not resolved for session',
+            404,
+            'PERSONA_SESSION_NOT_RESOLVED'
+          );
+        }
+
+        const response = await ctx.call(
+          'persona-inbox.acknowledge',
+          {
+            tenantId,
+            id: ctx.params.id,
+          },
+          { meta: { ...ctx.meta, tenantId, $gateway: false } }
+        );
+
+        return {
+          success: true,
+          sessionId,
+          personaId: persona.id,
+          item: this.toPublicProactiveMessage(response?.item || {}),
+        };
+      },
+    },
+
     resetSession: {
       rest: 'POST /session/:sessionId/reset',
       params: {
@@ -7419,6 +7579,23 @@ module.exports = {
     },
 
     buildStopPoint({ reasonCode, message, blockedStep, status, placeholder }) {
+      const hitlItem = placeholder?.hitlItem || null;
+      const personaId =
+        placeholder?.personaId || hitlItem?.personaId || placeholder?.personaResolution?.personaId || null;
+      const personaName =
+        placeholder?.personaName || hitlItem?.personaName || placeholder?.personaResolution?.personaName || null;
+      const personaType =
+        placeholder?.personaType || hitlItem?.personaType || placeholder?.personaResolution?.personaType || null;
+      const responsibleRole =
+        placeholder?.responsibleRole || hitlItem?.responsibleRole || placeholder?.personaResolution?.responsibleRole || null;
+      const requiredResolverRoles = Array.isArray(placeholder?.requiredResolverRoles)
+        ? placeholder.requiredResolverRoles
+        : Array.isArray(hitlItem?.requiredResolverRoles)
+          ? hitlItem.requiredResolverRoles
+          : Array.isArray(placeholder?.personaResolution?.requiredResolverRoles)
+            ? placeholder.personaResolution.requiredResolverRoles
+            : null;
+
       return {
         status,
         reasonCode,
@@ -7431,8 +7608,15 @@ module.exports = {
         placeholder: placeholder || null,
         placeholderId: placeholder?.placeholder?.placeholderId || null,
         placeholderMetadata: placeholder?.placeholderMetadata || null,
-        hitlItem: placeholder?.hitlItem || null,
-        hitlItemId: placeholder?.hitlItem?.id || null,
+        hitlItem,
+        hitlItemId: hitlItem?.id || null,
+        responsibleRole,
+        requiredResolverRoles,
+        personaId,
+        personaName,
+        personaType,
+        personaResolution: placeholder?.personaResolution || hitlItem?.personaResolution || null,
+        routingContext: placeholder?.routingContext || hitlItem?.routingContext || null,
       };
     },
 
@@ -7624,12 +7808,39 @@ module.exports = {
           ? placeholder.hitlItem
           : null;
 
+      const personaId =
+        stopPoint?.personaId || placeholder?.personaId || placeholderHitlItem?.personaId || null;
+      const personaName =
+        stopPoint?.personaName || placeholder?.personaName || placeholderHitlItem?.personaName || null;
+      const personaType =
+        stopPoint?.personaType || placeholder?.personaType || placeholderHitlItem?.personaType || null;
+      const responsibleRole =
+        stopPoint?.responsibleRole ||
+        placeholder?.responsibleRole ||
+        placeholderHitlItem?.responsibleRole ||
+        null;
+      const requiredResolverRoles = Array.isArray(stopPoint?.requiredResolverRoles)
+        ? stopPoint.requiredResolverRoles
+        : Array.isArray(placeholder?.requiredResolverRoles)
+          ? placeholder.requiredResolverRoles
+          : Array.isArray(placeholderHitlItem?.requiredResolverRoles)
+            ? placeholderHitlItem.requiredResolverRoles
+            : [];
+      const routingContext =
+        stopPoint?.routingContext || placeholder?.routingContext || placeholderHitlItem?.routingContext || null;
+
       const hitlItem =
         placeholderHitlItem ||
         (stopPoint?.hitlItemId
           ? {
               id: stopPoint.hitlItemId,
               status: 'pending',
+              personaId,
+              personaName,
+              personaType,
+              responsibleRole,
+              requiredResolverRoles,
+              routingContext,
             }
           : null);
 
@@ -7651,6 +7862,13 @@ module.exports = {
         missingParams: [],
         hitlItem,
         hitlItemId: hitlItem?.id || null,
+        responsibleRole,
+        requiredResolverRoles,
+        personaId,
+        personaName,
+        personaType,
+        personaResolution: stopPoint?.personaResolution || placeholder?.personaResolution || hitlItem?.personaResolution || null,
+        routingContext,
         placeholderId: stopPoint?.placeholderId || placeholder?.placeholder?.placeholderId || null,
         placeholderMetadata: stopPoint?.placeholderMetadata || placeholder?.placeholderMetadata || null,
         planSnapshot:
@@ -7983,6 +8201,21 @@ module.exports = {
 
     async createCriticalStepHitlItem(ctx, { message, plan = {}, plannedStep = {}, session = {} }) {
       try {
+        const responsibleRole =
+          plannedStep?.responsibleRole || plannedStep?.ownerRole || plan?.responsibleRole || null;
+        const requiredResolverRoles = Array.isArray(plannedStep?.requiredResolverRoles)
+          ? plannedStep.requiredResolverRoles
+          : Array.isArray(plan?.requiredResolverRoles)
+            ? plan.requiredResolverRoles
+            : [];
+        const personaId = plannedStep?.personaId || plan?.personaId || null;
+        const routingContext =
+          plannedStep?.routingContext && typeof plannedStep.routingContext === 'object'
+            ? plannedStep.routingContext
+            : plan?.routingContext && typeof plan.routingContext === 'object'
+              ? plan.routingContext
+              : {};
+
         const payload = {
           sessionId: session?.id || null,
           routeKey: plan?.routeKey || null,
@@ -8004,6 +8237,10 @@ module.exports = {
             originAction: plannedStep?.action || 'unknown',
             severity: 'critical',
             requiredScope: 'full-access',
+            responsibleRole,
+            requiredResolverRoles,
+            personaId,
+            routingContext,
           },
           { meta: { ...ctx.meta, $gateway: false } }
         );
@@ -9321,6 +9558,107 @@ module.exports = {
           createdAt: new Date().toISOString(),
           updatedAt: null,
         };
+      }
+    },
+
+    toPublicProactiveMessage(item = {}) {
+      return {
+        id: item.id || null,
+        type: item.type || null,
+        hitlItemId: item.hitlItemId || null,
+        embedRef: item.embedRef || null,
+        title: item.title || null,
+        summary: item.summary || null,
+        status: item.status || null,
+        createdAt: item.createdAt || null,
+      };
+    },
+
+    async resolvePersonaForSession(ctx, { tenantId, sessionId, personaId }) {
+      if (personaId) {
+        try {
+          const byId = await ctx.call(
+            'agent-persona.get',
+            {
+              tenantId,
+              id: personaId,
+            },
+            { meta: { ...ctx.meta, tenantId, $gateway: false } }
+          );
+          return byId?.item || null;
+        } catch (error) {
+          if (
+            isActionUnavailable(error) ||
+            isNotFound(error) ||
+            error?.type === 'PERSONA_NOT_FOUND' ||
+            error?.type === 'PERSONA_TENANT_FORBIDDEN'
+          ) {
+            return null;
+          }
+          throw error;
+        }
+      }
+
+      try {
+        const list = await ctx.call(
+          'agent-persona.list',
+          { tenantId },
+          { meta: { ...ctx.meta, tenantId, $gateway: false } }
+        );
+        const items = Array.isArray(list?.items) ? list.items : [];
+        const match = items
+          .filter((item) => item?.status === 'active')
+          .find((item) => String(item?.defaultPersonalAgentSessionId || '').trim() === sessionId);
+        return match || null;
+      } catch (error) {
+        if (isActionUnavailable(error) || isNotFound(error)) {
+          return null;
+        }
+        throw error;
+      }
+    },
+
+    async fetchPendingPersonaInboxMessages(ctx, { tenantId, personaId, sessionId, limit = 20 }) {
+      let pending = [];
+      try {
+        const list = await ctx.call(
+          'persona-inbox.listPendingForPersona',
+          {
+            tenantId,
+            personaId,
+            sessionId,
+            limit,
+            offset: 0,
+          },
+          { meta: { ...ctx.meta, tenantId, $gateway: false } }
+        );
+        pending = Array.isArray(list?.items) ? list.items : [];
+      } catch (error) {
+        if (isActionUnavailable(error) || isNotFound(error)) {
+          return [];
+        }
+        throw error;
+      }
+
+      const ids = pending.map((item) => item?.id).filter(Boolean);
+      if (ids.length === 0) return [];
+
+      try {
+        const visible = await ctx.call(
+          'persona-inbox.markVisible',
+          {
+            tenantId,
+            ids,
+          },
+          { meta: { ...ctx.meta, tenantId, $gateway: false } }
+        );
+        const updated = Array.isArray(visible?.items) ? visible.items : [];
+        return updated.length > 0 ? updated : pending;
+      } catch (error) {
+        if (isActionUnavailable(error) || isNotFound(error)) {
+          return pending;
+        }
+        throw error;
       }
     },
 

@@ -10,12 +10,47 @@ const VdmiService = require('../services/vdmi.service');
 describe('vdmi.service', () => {
   let broker;
   let dbPath;
+  const personasByTenant = new Map();
 
   beforeAll(async () => {
     dbPath = path.join(os.tmpdir(), `cernion-vdmi-test-${Date.now()}`);
     process.env.VDMI_DB_PATH = dbPath;
 
     broker = new ServiceBroker({ logger: false });
+
+    broker.createService({
+      name: 'agent-persona',
+      actions: {
+        get: {
+          handler(ctx) {
+            const { tenantId, id } = ctx.params;
+            const tenantPersonas = personasByTenant.get(tenantId) || new Map();
+            const persona = tenantPersonas.get(id);
+            if (!persona) {
+              const error = new Error('Persona not found');
+              error.code = 404;
+              error.type = 'PERSONA_NOT_FOUND';
+              throw error;
+            }
+            return { success: true, item: persona };
+          },
+        },
+        resolveByRole: {
+          handler(ctx) {
+            const { tenantId, role } = ctx.params;
+            const tenantPersonas = personasByTenant.get(tenantId) || new Map();
+            const items = [...tenantPersonas.values()]
+              .filter((persona) => persona.status === 'active')
+              .filter((persona) => Array.isArray(persona.assignedRoles) && persona.assignedRoles.includes(role))
+              .sort((left, right) =>
+                String(left.personaName || '').localeCompare(String(right.personaName || '')) ||
+                String(left.id || '').localeCompare(String(right.id || ''))
+              );
+            return { success: true, tenantId, role, count: items.length, items };
+          },
+        },
+      },
+    });
 
     broker.createService({
       name: 'hitl',
@@ -30,6 +65,24 @@ describe('vdmi.service', () => {
 
     broker.createService(VdmiService);
     await broker.start();
+
+    personasByTenant.set(
+      'tenant-a',
+      new Map([
+        [
+          'tenant-a/persona-1',
+          {
+            id: 'tenant-a/persona-1',
+            tenantId: 'tenant-a',
+            personaName: 'Thorsten Zoerner',
+            personaType: 'human',
+            assignedRoles: ['grid_operator', 'ROLE_NETZPLANUNG'],
+            communicationChannels: [],
+            status: 'active',
+          },
+        ],
+      ])
+    );
   });
 
   afterAll(async () => {
@@ -91,7 +144,11 @@ describe('vdmi.service', () => {
           },
           {
             eventName: 'hitl.item.created',
-            payload: { approver: 'grid_operator', taskId: 'task-1' },
+            payload: {
+              approver: 'grid_operator',
+              responsibleRole: 'ROLE_NETZPLANUNG',
+              taskId: 'task-1',
+            },
           },
           {
             eventName: 'webhooks.delivered',
@@ -103,6 +160,8 @@ describe('vdmi.service', () => {
     );
 
     const taskId = detected.matrix.tasks[0].taskId;
+    expect(detected.matrix.tasks[0].verantwortlich[0].personaId).toBe('tenant-a/persona-1');
+    expect(detected.matrix.tasks[0].verantwortlich[0].personaName).toBe('Thorsten Zoerner');
 
     const trace = await broker.call(
       'vdmi.negotiationTrace',

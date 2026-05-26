@@ -60,6 +60,14 @@ function toRoleCandidatesFromEvent(eventName, payload = {}) {
         actorId: String(approver),
         confidence: 1,
         reason: 'HITL approver signal',
+        responsibleRole: payload.responsibleRole || null,
+        requiredResolverRoles: Array.isArray(payload.requiredResolverRoles)
+          ? payload.requiredResolverRoles
+          : [],
+        personaId: payload.personaId || null,
+        personaName: payload.personaName || null,
+        personaType: payload.personaType || null,
+        routingContext: payload.routingContext || null,
       });
     }
   }
@@ -73,6 +81,14 @@ function toRoleCandidatesFromEvent(eventName, payload = {}) {
         actorId: String(serviceId),
         confidence: 0.95,
         reason: 'Execution completion event',
+        responsibleRole: payload.responsibleRole || null,
+        requiredResolverRoles: Array.isArray(payload.requiredResolverRoles)
+          ? payload.requiredResolverRoles
+          : [],
+        personaId: payload.personaId || null,
+        personaName: payload.personaName || null,
+        personaType: payload.personaType || null,
+        routingContext: payload.routingContext || null,
       });
     }
   }
@@ -80,11 +96,37 @@ function toRoleCandidatesFromEvent(eventName, payload = {}) {
   if (eventName.includes('agent') && (payload.personaId || payload.agentId)) {
     const agentId = payload.personaId || payload.agentId;
     roles.push({
-      role: 'M',
+      role: payload.role || 'D',
       actorType: 'agent',
       actorId: String(agentId),
       confidence: 0.9,
       reason: 'Agent advisory signal',
+      responsibleRole: payload.responsibleRole || null,
+      requiredResolverRoles: Array.isArray(payload.requiredResolverRoles)
+        ? payload.requiredResolverRoles
+        : [],
+      personaId: payload.personaId || null,
+      personaName: payload.personaName || null,
+      personaType: payload.personaType || null,
+      routingContext: payload.routingContext || null,
+    });
+  }
+
+  if (payload.personaId && roles.length === 0) {
+    roles.push({
+      role: payload.role || 'I',
+      actorType: payload.actorType || 'persona',
+      actorId: String(payload.personaId),
+      confidence: 0.8,
+      reason: 'Persona routing signal',
+      responsibleRole: payload.responsibleRole || null,
+      requiredResolverRoles: Array.isArray(payload.requiredResolverRoles)
+        ? payload.requiredResolverRoles
+        : [],
+      personaId: payload.personaId,
+      personaName: payload.personaName || null,
+      personaType: payload.personaType || null,
+      routingContext: payload.routingContext || null,
     });
   }
 
@@ -113,6 +155,115 @@ function toRoleCandidatesFromEvent(eventName, payload = {}) {
   }
 
   return roles;
+}
+
+async function resolvePersonaSnapshot({ broker, tenantId, candidate = {}, payload = {} } = {}) {
+  if (!broker || typeof broker.call !== 'function' || !tenantId) {
+    return null;
+  }
+
+  const routingContext =
+    (payload.routingContext && typeof payload.routingContext === 'object'
+      ? payload.routingContext
+      : null) ||
+    (candidate.routingContext && typeof candidate.routingContext === 'object'
+      ? candidate.routingContext
+      : null);
+
+  const candidateRoles = Array.from(
+    new Set(
+      [
+        payload.responsibleRole,
+        candidate.responsibleRole,
+        routingContext?.responsibleRole,
+        routingContext?.role,
+        routingContext?.primaryRole,
+        ...(Array.isArray(payload.requiredResolverRoles) ? payload.requiredResolverRoles : []),
+        ...(Array.isArray(candidate.requiredResolverRoles) ? candidate.requiredResolverRoles : []),
+        ...(Array.isArray(routingContext?.requiredResolverRoles)
+          ? routingContext.requiredResolverRoles
+          : []),
+      ]
+        .map((value) => String(value || '').trim())
+        .filter(Boolean)
+    )
+  );
+
+  const explicitPersonaId = String(
+    payload.personaId || candidate.personaId || routingContext?.personaId || ''
+  ).trim();
+
+  const resolveById = async (personaId) => {
+    try {
+      const result = await broker.call(
+        'agent-persona.get',
+        { tenantId, id: personaId },
+        { meta: { tenantId } }
+      );
+      return result?.item || null;
+    } catch (err) {
+      if (err?.code === 404 || err?.type === 'PERSONA_NOT_FOUND') return null;
+      if (err?.type === 'PERSONA_TENANT_FORBIDDEN') return null;
+      throw err;
+    }
+  };
+
+  const resolveByRole = async (role) => {
+    try {
+      const result = await broker.call(
+        'agent-persona.resolveByRole',
+        { tenantId, role },
+        { meta: { tenantId } }
+      );
+      return Array.isArray(result?.items) ? result.items[0] || null : null;
+    } catch (err) {
+      if (err?.code === 404 || err?.type === 'PERSONA_NOT_FOUND') return null;
+      if (err?.type === 'PERSONA_TENANT_FORBIDDEN') return null;
+      throw err;
+    }
+  };
+
+  if (explicitPersonaId) {
+    const persona = await resolveById(explicitPersonaId);
+    if (persona) {
+      return {
+        source: 'personaId',
+        responsibleRole: candidateRoles[0] || payload.responsibleRole || null,
+        requiredResolverRoles: candidateRoles,
+        routingContext,
+        personaId: persona.id,
+        personaName: persona.personaName || null,
+        personaType: persona.personaType || null,
+      };
+    }
+  }
+
+  for (const role of candidateRoles) {
+    const persona = await resolveByRole(role);
+    if (persona) {
+      return {
+        source: 'responsibleRole',
+        responsibleRole: role,
+        requiredResolverRoles: candidateRoles,
+        routingContext,
+        personaId: persona.id,
+        personaName: persona.personaName || null,
+        personaType: persona.personaType || null,
+      };
+    }
+  }
+
+  return candidateRoles.length > 0 || explicitPersonaId
+    ? {
+        source: explicitPersonaId ? 'personaId' : 'responsibleRole',
+        responsibleRole: candidateRoles[0] || payload.responsibleRole || null,
+        requiredResolverRoles: candidateRoles,
+        routingContext,
+        personaId: explicitPersonaId || null,
+        personaName: payload.personaName || candidate.personaName || null,
+        personaType: payload.personaType || candidate.personaType || null,
+      }
+    : null;
 }
 
 function emptyTask(taskId, taskName) {
@@ -509,6 +660,20 @@ module.exports = {
 
           for (const candidate of candidates) {
             const actorRef = { actorType: candidate.actorType, actorId: candidate.actorId };
+            const personaRouting = await resolvePersonaSnapshot({
+              broker: this.broker,
+              tenantId,
+              candidate,
+              payload,
+            });
+            if (personaRouting) {
+              actorRef.personaId = personaRouting.personaId || null;
+              actorRef.personaName = personaRouting.personaName || null;
+              actorRef.personaType = personaRouting.personaType || null;
+              actorRef.responsibleRole = personaRouting.responsibleRole || null;
+              actorRef.requiredResolverRoles = personaRouting.requiredResolverRoles || [];
+              actorRef.routingContext = personaRouting.routingContext || null;
+            }
             if (candidate.role === 'V') task.verantwortlich.push(actorRef);
             if (candidate.role === 'D') {
               if (task.durchfuehrend.length > 0) {

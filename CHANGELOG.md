@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.55.3] — Always-On Persona Inbox & HITL Lifecycle Resolution (2026-05-26)
+
+### Added (v0.55.3)
+
+- [services/persona-inbox.service.js](services/persona-inbox.service.js): new tenant-scoped Persona Inbox domain service with idempotent enqueue and explicit lifecycle states `queued -> visible -> acknowledged -> resolved`.
+- [services/persona-inbox.service.js](services/persona-inbox.service.js): added actions `enqueue`, `listPendingForPersona`, `markVisible`, `acknowledge`, `resolveByHitlItem` with strict tenant guardrails and deterministic status transitions.
+- [services/personal-agent.service.js](services/personal-agent.service.js): added proactive inbox endpoints `pullProactiveMessages` and `acknowledgeProactiveMessage` for session-bound persona polling and explicit user acknowledgement.
+
+### Changed (v0.55.3)
+
+- [services/notification.service.js](services/notification.service.js): notification dispatch now hands off HITL approvals to `persona-inbox.enqueue` and persists `inboxHandoff` status on dispatch records.
+- [services/notification.service.js](services/notification.service.js): inbox handoff remains fail-open (`persona_inbox_unavailable` / `persona_inbox_handoff_failed`) and does not block HITL notification dispatch persistence.
+- [services/hitl.service.js](services/hitl.service.js): HITL terminal transitions now resolve linked inbox entries via `persona-inbox.resolveByHitlItem` for `approved`, `rejected`, and `expired` outcomes.
+- [services/personal-agent.service.js](services/personal-agent.service.js): proactive message public payload is now intentionally minimal (`id`, `type`, `hitlItemId`, `embedRef`, `title`, `summary`, `status`, `createdAt`) and excludes dispatch/routing internals.
+- [docs/ui-contracts/40-hitl.md](docs/ui-contracts/40-hitl.md): updated HITL contract examples to include inbox-related notification summary fields.
+- [docs/ui-contracts/41-personal-agent.md](docs/ui-contracts/41-personal-agent.md): documented proactive message pull/ack flow and minimal message payload contract.
+
+### Tests (v0.55.3)
+
+- [tests/persona-inbox.service.test.js](tests/persona-inbox.service.test.js): new coverage for idempotent enqueue, pending listing, visibility transition, acknowledgement, HITL-based resolution, and cross-tenant protection.
+- [tests/personal-agent.proactive-messages.test.js](tests/personal-agent.proactive-messages.test.js): new regression suite for proactive inbox retrieval, `visible` transition, and minimal public payload guarantees.
+- [tests/notification.service.test.js](tests/notification.service.test.js): extended with persona inbox handoff assertions and deduplication compatibility.
+- [tests/hitl.service.test.js](tests/hitl.service.test.js): extended with inbox resolution integration assertions and fail-open notification behavior.
+
+### Added (v0.55.2 — Proactive HITL Notification Routing)
+
+- [services/notification.service.js](services/notification.service.js): new tenant-scoped notification dispatch service with persistent PouchDB records for HITL approval routing. Added actions: `dispatchHitlApproval`, `dispatch`, `getDispatch`, `listDispatches`, `retryDispatch`, `markChannelDelivered`, `markChannelFailed`.
+- [services/notification.service.js](services/notification.service.js): deterministic idempotency for HITL approval dispatches via key pattern `${tenantId}:${hitlItemId}:${personaId|responsibleRole}` (or provided key) and hashed document ids, preventing duplicate dispatch records on repeated call paths.
+- [services/notification.service.js](services/notification.service.js): recipient resolution is tenant-safe and persona-first (`agent-persona.get`), then role-based (`agent-persona.resolveByRole`), excluding non-`active` personas by default. Unresolved recipients are persisted with dispatch status `unresolved_recipient`.
+- [services/notification.service.js](services/notification.service.js): v0.55.2 delivery model is internal-dispatch-first. No real email/signal/telegram transport is performed. `openclaw-chat` channels are queued (`pending`) and unsupported channels are marked `skipped` with sanitized metadata.
+- [services/hitl.service.js](services/hitl.service.js): HITL `create` now triggers `notification.dispatchHitlApproval` only after successful HITL item persistence (single trigger owner). Trigger is fail-open and cannot block HITL creation.
+- [services/hitl.service.js](services/hitl.service.js): notification summary is persisted on HITL item (`dispatchId`, `status`, `warnings`, `idempotencyKey`, `embedRef`, `updatedAt`) for auditability; creation event now includes `notificationDispatchId` and `notificationStatus`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): critical-step HITL creation now forwards available routing metadata (`responsibleRole`, `requiredResolverRoles`, `personaId`, `routingContext`) into `hitl.create`. Personal Agent still does not dispatch notifications directly.
+
+### Tests (v0.55.2)
+
+- [tests/notification.service.test.js](tests/notification.service.test.js): new suite covering tenant-scoped dispatch persistence, persona-id and role-based recipient resolution, exclusion of inactive/on-leave personas, unresolved role handling, cross-tenant persona id behavior, and idempotent duplicate prevention.
+- [tests/hitl.service.test.js](tests/hitl.service.test.js): added notification integration mock and regression cases for persisted notification summary, `embedRef` propagation (`hitl_item_<id>`), and fail-open behavior when notification dispatch throws.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): strengthened HITL embed regression to assert no notification internals leak into user-facing reply text.
+
+### Added (v0.55.1 — Role-to-Persona Resolution)
+
+- [services/hitl.service.js](services/hitl.service.js): `create` action accepts new routing params `responsibleRole`, `requiredResolverRoles`, `personaId`, and `routingContext`. On creation the new `resolvePersonaRouting()` helper resolves the best matching persona (by explicit id or by role) and stores `personaId`, `personaName`, `personaType`, `personaResolution`, and `routingContext` on the item.
+- [services/hitl.service.js](services/hitl.service.js): `resolvePersonaRouting(ctx, tenantId, params)` — tenant-safe persona resolution helper. Resolves by explicit `personaId` first (same-tenant only, 404/403 fail-open), then iterates `responsibleRole`/`requiredResolverRoles` via `agent-persona.resolveByRole`. Returns `null` and preserves HITL flow when no persona can be matched.
+- [services/hitl.service.js](services/hitl.service.js): `hitl.item.created` and `hitl.item.resolved` events now carry `responsibleRole`, `requiredResolverRoles`, `personaId`, `personaName`, `personaType`, and `routingContext` metadata for downstream consumers (VDMI, webhooks, notification routing).
+- [services/vdmi.service.js](services/vdmi.service.js): `toRoleCandidatesFromEvent()` now propagates persona-routing fields (`responsibleRole`, `requiredResolverRoles`, `personaId`, `personaName`, `personaType`, `routingContext`) onto every inferred candidate, covering HITL, execution-completion, agent-advisory, and bare-persona-id signal paths.
+- [services/vdmi.service.js](services/vdmi.service.js): `resolvePersonaSnapshot({ broker, tenantId, candidate, payload })` — module-level async helper that resolves a persona snapshot against `agent-persona` (by id or role) and returns structured routing metadata. Falls back gracefully on 404/403 and when broker is unavailable.
+- [services/vdmi.service.js](services/vdmi.service.js): `detect` handler now calls `resolvePersonaSnapshot()` per inferred candidate and enriches each actor ref with `personaId`, `personaName`, `personaType`, `responsibleRole`, `requiredResolverRoles`, and `routingContext` before assigning it to a VDMI role slot.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `buildStopPoint()` now extracts and surfaces persona-routing metadata (`personaId`, `personaName`, `personaType`, `responsibleRole`, `requiredResolverRoles`, `personaResolution`, `routingContext`) from the placeholder and its embedded `hitlItem`.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `buildHitlOnboardingQuestion()` preserves all persona-routing fields in the returned onboarding question and in the `hitlItem` skeleton reconstructed from `hitlItemId`, ensuring metadata is available across HITL resume turns.
+- [docs/ui-contracts/40-hitl.md](docs/ui-contracts/40-hitl.md): HITL dashboard response example extended with `responsibleRole`, `requiredResolverRoles`, `personaId`, `personaName`, and `personaType` fields.
+
+### Tests (v0.55.1)
+
+- [tests/hitl.service.test.js](tests/hitl.service.test.js): in-memory `agent-persona` mock seeded with tenant-a (Thorsten Zoerner / ROLE_NETZPLANUNG, Cernion Finance Agent / ROLE_KAUFMAENNISCHE_LEITUNG) and tenant-b personas. Two new tests: (1) same-tenant persona routing resolves `ROLE_NETZPLANUNG` → `tenant-a/persona-1` and populates event metadata; (2) cross-tenant explicit `personaId` is ignored and HITL item is still created (fail-open).
+- [tests/vdmi.service.test.js](tests/vdmi.service.test.js): in-memory `agent-persona` mock seeded for tenant-a (Thorsten Zoerner with roles `grid_operator`, `ROLE_NETZPLANUNG`). `detect` test payload extended with `responsibleRole: 'ROLE_NETZPLANUNG'`; new assertions confirm `verantwortlich[0].personaId` and `personaName` on the inferred task.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): new unit test `preserves persona routing metadata in HITL onboarding questions` — directly exercises `buildHitlOnboardingQuestion()` and asserts that `personaId`, `personaName`, `personaType`, `responsibleRole`, `routingContext`, and `hitlItem` persona fields are all preserved in the returned question object.
+
+### Added (v0.55.0 — Actor Persona Foundation)
+
+- [services/agent-persona.service.js](services/agent-persona.service.js): tenant-scoped Actor Persona registry foundation with PouchDB persistence, CRUD actions, soft-deactivate removal, and deterministic role lookup helpers (`listByRole`, `resolveByRole`).
+- [tests/agent-persona.service.test.js](tests/agent-persona.service.test.js): focused coverage for tenant isolation, duplicate-id handling, persona validation, soft deactivate semantics, and role lookup ordering/filtering.
+
 ## [0.54.8] — Generic Execution Preflight for Missing/Invalid Action Params (2026-05-25)
 
 ### Added

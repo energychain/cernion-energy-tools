@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Cernion Energy Tools API",
-    "version": "0.54.8",
+    "version": "0.55.3",
     "description": "MicroService Agent System for Energy Markets - REST API with AI integration.\n\nCERNION_TOKEN: request at https://cernion.de/ or by email: dev@stromdao.com."
   },
   "tags": [
@@ -11426,6 +11426,24 @@
                       "sessionId": "S-123"
                     }
                   },
+                  "responsibleRole": {
+                    "type": "string",
+                    "example": "ROLE_NETZPLANUNG"
+                  },
+                  "requiredResolverRoles": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": [
+                      "ROLE_KAUFMAENNISCHE_LEITUNG",
+                      "ROLE_NETZPLANUNG"
+                    ]
+                  },
+                  "personaId": {
+                    "type": "string",
+                    "example": "tenant-a/thorsten-human"
+                  },
                   "originService": {
                     "type": "string",
                     "example": "cya"
@@ -11456,6 +11474,12 @@
                     "payload": {
                       "sessionId": "S-123"
                     },
+                    "responsibleRole": "ROLE_NETZPLANUNG",
+                    "requiredResolverRoles": [
+                      "ROLE_KAUFMAENNISCHE_LEITUNG",
+                      "ROLE_NETZPLANUNG"
+                    ],
+                    "personaId": "tenant-a/thorsten-human",
                     "originService": "cya",
                     "originAction": "refine",
                     "severity": "warning",
@@ -22899,5 +22923,5 @@
     }
   },
   "x-generator": "scripts/export-openapi.js",
-  "x-version": "0.54.8"
+  "x-version": "0.55.3"
 }

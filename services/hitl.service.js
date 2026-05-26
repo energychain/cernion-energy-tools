@@ -31,6 +31,19 @@ function normalizeValue(value) {
     .toLowerCase();
 }
 
+function trimString(value) {
+  return String(value || '').trim();
+}
+
+function uniqueStrings(values = []) {
+  return Array.from(new Set(values.map((value) => trimString(value)).filter(Boolean)));
+}
+
+function sanitizeNotificationError(error) {
+  const raw = String(error?.message || 'notification_dispatch_failed');
+  return raw.replace(/\s+/g, ' ').trim().slice(0, 240);
+}
+
 function toBucketKey(date) {
   return new Date(date).toISOString().slice(0, 10);
 }
@@ -77,11 +90,15 @@ module.exports = {
       params: {
         kind: { type: 'string', min: 2 },
         payload: { type: 'object', optional: true, default: {} },
+        responsibleRole: { type: 'string', optional: true },
+        requiredResolverRoles: { type: 'array', optional: true, default: [], items: 'string' },
+        personaId: { type: 'string', optional: true },
         originService: { type: 'string', optional: true },
         originAction: { type: 'string', optional: true },
         severity: { type: 'string', optional: true, default: 'warning' },
         requiredScope: { type: 'string', optional: true, default: 'full-access' },
         dueAt: { type: 'string', optional: true },
+        routingContext: { type: 'object', optional: true, default: {} },
       },
       openapi: {
         summary: 'Create HITL item',
@@ -96,6 +113,13 @@ module.exports = {
                 properties: {
                   kind: { type: 'string', example: 'cya-consensus-failed' },
                   payload: { type: 'object', example: { sessionId: 'S-123' } },
+                  responsibleRole: { type: 'string', example: 'ROLE_NETZPLANUNG' },
+                  requiredResolverRoles: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    example: ['ROLE_KAUFMAENNISCHE_LEITUNG', 'ROLE_NETZPLANUNG'],
+                  },
+                  personaId: { type: 'string', example: 'tenant-a/thorsten-human' },
                   originService: { type: 'string', example: 'cya' },
                   originAction: { type: 'string', example: 'refine' },
                   severity: { type: 'string', example: 'warning' },
@@ -112,6 +136,9 @@ module.exports = {
                   value: {
                     kind: 'cya-consensus-failed',
                     payload: { sessionId: 'S-123' },
+                    responsibleRole: 'ROLE_NETZPLANUNG',
+                    requiredResolverRoles: ['ROLE_KAUFMAENNISCHE_LEITUNG', 'ROLE_NETZPLANUNG'],
+                    personaId: 'tenant-a/thorsten-human',
                     originService: 'cya',
                     originAction: 'refine',
                     severity: 'warning',
@@ -131,6 +158,8 @@ module.exports = {
           ctx.params.dueAt ||
           new Date(Date.now() + DEFAULT_DUE_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
+        const personaRouting = await this.resolvePersonaRouting(ctx, tenantId, ctx.params);
+
         const item = {
           _id: `${DOC_PREFIX}${id}`,
           id,
@@ -141,6 +170,13 @@ module.exports = {
           severity: ctx.params.severity,
           requiredScope: ctx.params.requiredScope,
           payload: ctx.params.payload || {},
+          responsibleRole: personaRouting?.responsibleRole || trimString(ctx.params.responsibleRole) || null,
+          requiredResolverRoles: personaRouting?.requiredResolverRoles || uniqueStrings(ctx.params.requiredResolverRoles),
+          personaId: personaRouting?.personaId || null,
+          personaName: personaRouting?.personaName || null,
+          personaType: personaRouting?.personaType || null,
+          personaResolution: personaRouting || null,
+          routingContext: personaRouting?.routingContext || ctx.params.routingContext || null,
           originService: ctx.params.originService || null,
           originAction: ctx.params.originAction || null,
           dueAt,
@@ -157,7 +193,16 @@ module.exports = {
           ],
         };
 
-        await this.db.put(item);
+        const putResult = await this.db.put(item);
+        item._rev = putResult.rev;
+
+        const notificationSummary = await this.dispatchHitlApprovalNotification(ctx, tenantId, item);
+        if (notificationSummary) {
+          item.notification = notificationSummary;
+          item.updatedAt = nowIso();
+          const updatedResult = await this.db.put(item);
+          item._rev = updatedResult.rev;
+        }
 
         this.broker.emit('hitl.item.created', {
           eventId: crypto.randomUUID(),
@@ -169,6 +214,14 @@ module.exports = {
           dueAt: item.dueAt,
           originService: item.originService,
           originAction: item.originAction,
+          responsibleRole: item.responsibleRole,
+          requiredResolverRoles: item.requiredResolverRoles,
+          personaId: item.personaId,
+          personaName: item.personaName,
+          personaType: item.personaType,
+          routingContext: item.routingContext,
+          notificationDispatchId: item.notification?.dispatchId || null,
+          notificationStatus: item.notification?.status || null,
           timestamp: createdAt,
         });
 
@@ -722,6 +775,209 @@ module.exports = {
       return actor;
     },
 
+    async dispatchHitlApprovalNotification(ctx, tenantId, item) {
+      const shouldDispatch = Boolean(item?.personaId || item?.responsibleRole);
+      if (!shouldDispatch) {
+        return null;
+      }
+
+      const hitlItemId = item?.id || null;
+      const recipientKey = trimString(item?.personaId || item?.responsibleRole || 'unknown');
+      const idempotencyKey = `${tenantId}:${hitlItemId}:${recipientKey}`;
+      const embedRef = `hitl_item_${hitlItemId}`;
+
+      try {
+        const response = await ctx.call(
+          'notification.dispatchHitlApproval',
+          {
+            tenantId,
+            hitlItemId,
+            personaId: item?.personaId || null,
+            responsibleRole: item?.responsibleRole || null,
+            routingContext: item?.routingContext || null,
+            embedRef,
+            sourceService: item?.originService || 'hitl',
+            sourceAction: item?.originAction || 'create',
+            idempotencyKey,
+          },
+          { meta: { ...ctx.meta, tenantId, $gateway: false } }
+        );
+
+        return {
+          dispatchId: response?.dispatch?.id || null,
+          status: response?.dispatch?.status || 'queued',
+          inboxMessageId: response?.dispatch?.inboxHandoff?.messageId || null,
+          inboxStatus: response?.dispatch?.inboxHandoff?.status || null,
+          warnings: Array.isArray(response?.dispatch?.warnings)
+            ? response.dispatch.warnings.slice(0, 5)
+            : [],
+          idempotencyKey,
+          embedRef,
+          updatedAt: nowIso(),
+        };
+      } catch (error) {
+        if (
+          error?.code === 404 ||
+          error?.type === 'SERVICE_NOT_FOUND' ||
+          error?.type === 'SERVICE_NOT_AVAILABLE'
+        ) {
+          return {
+            dispatchId: null,
+            status: 'failed',
+            inboxMessageId: null,
+            inboxStatus: null,
+            warnings: ['notification_dispatch_unavailable'],
+            idempotencyKey,
+            embedRef,
+            updatedAt: nowIso(),
+          };
+        }
+
+        this.logger.warn(`[hitl] notification dispatch failed for ${hitlItemId}: ${error.message}`);
+        return {
+          dispatchId: null,
+          status: 'failed',
+          inboxMessageId: null,
+          inboxStatus: null,
+          warnings: [sanitizeNotificationError(error)],
+          idempotencyKey,
+          embedRef,
+          updatedAt: nowIso(),
+        };
+      }
+    },
+
+    async resolvePersonaInboxForHitlItem(ctx, item, status) {
+      if (!item?.id || !item?.tenantId) {
+        return;
+      }
+
+      try {
+        await ctx.call(
+          'persona-inbox.resolveByHitlItem',
+          {
+            tenantId: item.tenantId,
+            hitlItemId: item.id,
+            resolutionSource: `hitl:${status}`,
+          },
+          { meta: { ...ctx.meta, tenantId: item.tenantId, $gateway: false } }
+        );
+      } catch (error) {
+        if (
+          error?.code === 404 ||
+          error?.type === 'SERVICE_NOT_FOUND' ||
+          error?.type === 'SERVICE_NOT_AVAILABLE'
+        ) {
+          return;
+        }
+        this.logger.warn(`[hitl] persona inbox resolve failed for ${item.id}: ${error.message}`);
+      }
+    },
+
+    async resolvePersonaRouting(ctx, tenantId, params = {}) {
+      const routingContext =
+        params.routingContext && typeof params.routingContext === 'object' ? params.routingContext : null;
+      const candidateRoles = uniqueStrings([
+        params.responsibleRole,
+        routingContext?.responsibleRole,
+        routingContext?.role,
+        routingContext?.primaryRole,
+        ...(Array.isArray(params.requiredResolverRoles) ? params.requiredResolverRoles : []),
+        ...(Array.isArray(routingContext?.requiredResolverRoles)
+          ? routingContext.requiredResolverRoles
+          : []),
+      ]);
+      const explicitPersonaId = trimString(params.personaId || routingContext?.personaId);
+
+      const resolveById = async (personaId) => {
+        try {
+          const result = await ctx.call(
+            'agent-persona.get',
+            {
+              tenantId,
+              id: personaId,
+            },
+            { meta: { tenantId } }
+          );
+          return result?.item || null;
+        } catch (err) {
+          if (err?.code === 404 || err?.type === 'PERSONA_NOT_FOUND') {
+            return null;
+          }
+          if (err?.type === 'PERSONA_TENANT_FORBIDDEN') {
+            return null;
+          }
+          throw err;
+        }
+      };
+
+      const resolveByRole = async (role) => {
+        try {
+          const result = await ctx.call(
+            'agent-persona.resolveByRole',
+            {
+              tenantId,
+              role,
+            },
+            { meta: { tenantId } }
+          );
+          return Array.isArray(result?.items) ? result.items[0] || null : null;
+        } catch (err) {
+          if (err?.code === 404 || err?.type === 'PERSONA_NOT_FOUND') {
+            return null;
+          }
+          if (err?.type === 'PERSONA_TENANT_FORBIDDEN') {
+            return null;
+          }
+          throw err;
+        }
+      };
+
+      if (explicitPersonaId) {
+        const persona = await resolveById(explicitPersonaId);
+        if (persona) {
+          return {
+            source: 'personaId',
+            responsibleRole: candidateRoles[0] || trimString(params.responsibleRole) || null,
+            requiredResolverRoles: candidateRoles,
+            routingContext,
+            personaId: persona.id,
+            personaName: persona.personaName || null,
+            personaType: persona.personaType || null,
+          };
+        }
+      }
+
+      for (const role of candidateRoles) {
+        const persona = await resolveByRole(role);
+        if (persona) {
+          return {
+            source: 'responsibleRole',
+            responsibleRole: role,
+            requiredResolverRoles: candidateRoles,
+            routingContext,
+            personaId: persona.id,
+            personaName: persona.personaName || null,
+            personaType: persona.personaType || null,
+          };
+        }
+      }
+
+      if (candidateRoles.length > 0) {
+        return {
+          source: 'responsibleRole',
+          responsibleRole: candidateRoles[0] || trimString(params.responsibleRole) || null,
+          requiredResolverRoles: candidateRoles,
+          routingContext,
+          personaId: null,
+          personaName: null,
+          personaType: null,
+        };
+      }
+
+      return null;
+    },
+
     async resolveItem(item, status, ctx, options = {}) {
       if (normalizeStatus(item.status) !== 'pending') {
         throw new MoleculerClientError(
@@ -752,6 +1008,7 @@ module.exports = {
       };
 
       await this.db.put(updated);
+      await this.resolvePersonaInboxForHitlItem(ctx, updated, status);
 
       this.broker.emit('hitl.item.resolved', {
         eventId: crypto.randomUUID(),
@@ -762,6 +1019,12 @@ module.exports = {
         resolvedAt,
         originService: updated.originService,
         originAction: updated.originAction,
+        responsibleRole: updated.responsibleRole,
+        requiredResolverRoles: updated.requiredResolverRoles,
+        personaId: updated.personaId,
+        personaName: updated.personaName,
+        personaType: updated.personaType,
+        routingContext: updated.routingContext,
         comment: comment || null,
         feedbackToAgent: options.feedbackToAgent || null,
       });
@@ -986,6 +1249,14 @@ module.exports = {
           ],
         };
         await this.db.put(updated);
+        await this.resolvePersonaInboxForHitlItem(
+          {
+            call: this.broker.call.bind(this.broker),
+            meta: { tenantId: updated.tenantId },
+          },
+          updated,
+          'expired'
+        );
         this.broker.emit('hitl.item.expired', {
           eventId: crypto.randomUUID(),
           itemId: updated.id,
