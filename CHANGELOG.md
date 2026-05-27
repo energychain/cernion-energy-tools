@@ -9,41 +9,63 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- [services/dashboard-api.service.js](services/dashboard-api.service.js): neues read-only Cockpit-Endpoint `redispatchMeteringCockpit` (`GET /api/dashboard/redispatch-metering-cockpit`) für operatorbezogene Redispatch/Metering/Masterdata/Governance-Readiness.
-  - Liefert `decisionReadiness` (`signal`, `score`, `blocked`) als Traffic-Light-Metadaten aus bestehenden deterministischen Reports.
-  - Liefert explizite `blockingEvidenceGaps` statt impliziter Annahmen (u. a. fehlende Redispatch-/MaStR-Evidenz, offene kritische VDMI-Findings, Datapoint-Fehler).
-  - Liefert `staleData`-Hinweise sowie `sourceReports`-Referenzen für UI-Auditierbarkeit.
-- [docs/ui-contracts/32-redispatch-metering-cockpit.md](docs/ui-contracts/32-redispatch-metering-cockpit.md): neuer UI-Contract für das Redispatch-Metering-Datenfluss-Cockpit inkl. Response-Semantik, Blocker-Logik und Datenquellen.
-- [src/cookbook-recipes.js](src/cookbook-recipes.js): neues Rezept `fnav-contract-gate-netzsignal-priority` für den vollständigen Phase-5-Flow aus technischer fNAV-Validierung und additiver Wirtschaftlichkeitsbewertung mit explizitem Netzsignal-Vorrang-Vertragsgate.
-- [services/settlement.service.js](services/settlement.service.js): neues Endpoint-Action-Paar `reconcileA96` (`POST /api/settlement/a96/reconcile`) für stateless A96-Abgleich externer Zeilen gegen interne Redispatch-Baselines.
-  - Matching erfolgt strikt über `anlageId/timeSlice`.
-  - Delta-Klassen: `MATCH`, `VALUE_MISMATCH`, `MISSING_IN_INTERNAL`, `MISSING_IN_INBOUND`, `INVALID_INBOUND`.
-  - Reuse des bestehenden A96-Validators für Inbound-Formatprüfung ohne Persistenz der Inbound-Payload.
-- [services/dashboard-api.service.js](services/dashboard-api.service.js): neues read-only Monitor-Endpoint `loadProfileStreamMonitor` (`GET /api/dashboard/load-profile-stream-monitor`) für Lastgangdaten-/Bewegungsstrom-Diagnostik mit strikten Anomaly-Class-Buckets (`dataQualityGap`, `realAnomaly`, `forecastProblem`, `processGovernanceBreak`) und expliziter Partial-Findings-Semantik.
-- [docs/ui-contracts/33-load-profile-stream-monitor.md](docs/ui-contracts/33-load-profile-stream-monitor.md): neuer UI-Contract für den Lastgangdaten-Bewegungsstrom-Monitor inkl. Response-Shape, Bucket-Semantik und Partial-Findings-Policy.
-- [src/cookbook-recipes.js](src/cookbook-recipes.js): neues Rezept `dashboard-load-profile-stream-monitor` für den read-only Composite-Flow über EDM-Summary, EDM-Validation, Forecast-Qualität und VDMI-Governance.
+- [services/hitl.service.js](services/hitl.service.js): Workflow-Abschluss-Tracking mit `workflowCompletionState` (pending/completed) und `workflowAuditTrail` für durable Prozessmetriken.
+  - Neue Aktion `getWorkflowState` zur Abfrage des Workflow-Abschluss-Status.
+  - Neue Aktion `markWorkflowCompleted` zur expliziten Workflow-Finalisierung mit `completionNotes` und `handoffPersonaId`.
+  - `resolveItem` erweitert um Audit-Trail-Populate mit Schritt-Nummer, Dauer und Resolutionsstatus.
+  - Emit `hitl.workflow.completed` Event für Workflow-Tracking.
+- [services/agent-persona.service.js](services/agent-persona.service.js): Persona-Verfügbarkeits-Tracking mit `available` Flag, `lastSeenAt` Zeitstempel und `availabilityWindow` (startHour, endHour, timezone).
+  - Neue Aktion `updateAvailability` für Persona-Status-Management.
+  - Neue Aktion `recordPersonaActivity` für Interaktions-Zeitstempel-Tracking.
+  - Personas werden mit Standard-Verfügbarkeitsfenstern initialisiert (00:00-24:00 UTC, available=true).
+- [tests/hitl.service.test.js](tests/hitl.service.test.js): umfassende Unit-Tests für Workflow-Abschluss, Audit-Trail-Populate und Event-Emission.
+- [tests/agent-persona.service.test.js](tests/agent-persona.service.test.js): Unit-Tests für Verfügbarkeits-Updates, Activity-Recording und Zeitstempel-Tracking.
 
 ### Changed
 
-- [services/api.service.js](services/api.service.js): API-Alias ergänzt — `GET /dashboard/redispatch-metering-cockpit` → `dashboard-api.redispatchMeteringCockpit`.
-- [services/api.service.js](services/api.service.js): Settlement-Alias ergänzt — `POST /settlement/a96/reconcile` → `settlement.reconcileA96`.
-- [services/dashboard-api.service.js](services/dashboard-api.service.js): `cacheTtlMs` um `redispatchMeteringCockpit` erweitert (5 Minuten); BDEW-basierte Operatorauflösung über `grid-operations.vnbLookupCodes` für Cockpit-Scoping ergänzt.
-- [src/netzfahrplan-schema.js](src/netzfahrplan-schema.js): additive Contract-Gate-Logik für flexible fNAV-Profile ergänzt (`signalPriorityPolicy`, `controlEvidenceRef`, `contractGate`) und in Evidence-/Governance-/Proof-Helfer integriert.
-- [services/grid-operations.service.js](services/grid-operations.service.js), [services/grid-connection.service.js](services/grid-connection.service.js), [services/finance-agent.service.js](services/finance-agent.service.js): direkte Phase-5-fNAV-Endpunkte akzeptieren nun die optionalen Contract-Gate-Felder und geben eine explizite `contractGate`-Bewertung zurück.
-- [src/capability-catalog.js](src/capability-catalog.js), [src/personal-agent-routing.js](src/personal-agent-routing.js), [services/capability-broker.service.js](services/capability-broker.service.js): Routing-/Hydration-Logik erweitert, damit Begriffe wie `Netzsignal Vorrang`, `Vertragsgate` und `Fernwirknachweis` auf die bestehende fNAV-Capability zeigen und die neuen Felder sowohl über Personal Agent als auch direkt weitergereicht werden.
-- [src/capability-catalog.js](src/capability-catalog.js), [services/capability-broker.service.js](services/capability-broker.service.js), [src/personal-agent-routing.js](src/personal-agent-routing.js), [src/personal-agent-tdd-matrix-normalizer.js](src/personal-agent-tdd-matrix-normalizer.js): neue Personal-Agent-Capability `settlement_a96_reconciliation` inkl. Keyword-Erkennung und Param-Hydration (`settlementId`, `incomingRows`) für den direkten A96-Abgleichspfad.
-- [services/api.service.js](services/api.service.js): Dashboard-Alias ergänzt — `GET /dashboard/load-profile-stream-monitor` → `dashboard-api.loadProfileStreamMonitor`.
-- [src/capability-catalog.js](src/capability-catalog.js), [services/capability-broker.service.js](services/capability-broker.service.js): neue Capability `load_profile_stream_monitor` inkl. Signal-Erkennung und Param-Hydration (`meloId`, `from`, `to`, optional `gridOperatorId`, `profileId`) für den Lastgang-Monitor-Pfad.
-- [docs/ui-contracts/41-personal-agent.md](docs/ui-contracts/41-personal-agent.md), [docs/ui-contracts/06-grid-connection.md](docs/ui-contracts/06-grid-connection.md): UI-Verträge für Personal Agent und Grid Connection um Contract-Gate-Felder und konservative Blocker-Semantik ergänzt.
-- [docs/ui-contracts/22-settlement.md](docs/ui-contracts/22-settlement.md): UI-Contract um `POST /api/settlement/a96/reconcile` inkl. Request/Response- und Delta-Klassen-Semantik erweitert.
+- [services/hitl.service.js](services/hitl.service.js): HITL-Items erhalten `workflowCompletionState`, `workflowCompletedAt` und `workflowAuditTrail` Felder bei Erstellung.
+- [services/agent-persona.service.js](services/agent-persona.service.js): Persona-Schema um `available`, `lastSeenAt` und `availabilityWindow` Felder erweitert.
 
-### Tests
+### Fixed
 
-- [tests/dashboard-api.test.js](tests/dashboard-api.test.js): neue Regressionen für Cockpit-Happy-Path, BDEW→`gridOperatorId`-Auflösung/Filter-Forwarding, High-Severity-Blocker (`red`) und graceful degradation bei Upstream-Fehlern.
-- [tests/api.service.test.js](tests/api.service.test.js): OpenAPI- und Alias-Assertions für `/api/dashboard/redispatch-metering-cockpit` ergänzt.
-- [tests/netzfahrplan-schema.test.js](tests/netzfahrplan-schema.test.js), [tests/netzfahrplan-integration.test.js](tests/netzfahrplan-integration.test.js), [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Regressionen für Contract-Gate-Blocker, happy path mit explizitem Netzsignal-Vorrang, Capability-Routing und Personal-Agent-Weitergabe der neuen Felder ergänzt.
-- [tests/settlement.service.test.js](tests/settlement.service.test.js), [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js), [tests/personal-agent-routing.test.js](tests/personal-agent-routing.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Regressionen für A96-Reconciliation (anlageId/timeSlice-Matching), Broker/Router-Hydration und Personal-Agent-Ausführung ergänzt.
-- [tests/dashboard-api.test.js](tests/dashboard-api.test.js), [tests/api.service.test.js](tests/api.service.test.js), [tests/capability-broker.service.test.js](tests/capability-broker.service.test.js): Regressionen für Lastgangdaten-Bewegungsstrom-Monitor, OpenAPI/Alias-Exposure und Capability-Routing ergänzt.
+- Workflow-Audit-Trail verfolgt jetzt Zeit-bis-Auflösung und Schrittzähler für verbesserte Post-Hoc-Analytik.
+- Persona-Verfügbarkeitsstatus ermöglicht Escalation-Routing auf Basis von Online-/Offline-Status.
+
+## [0.55.6] — Persona/HITL Workflow & Availability Enhancements (2026-05-27)
+
+### Added
+
+- [services/hitl.service.js](services/hitl.service.js): Workflow-Completion-Tracking mit `workflowCompletionState` und `workflowAuditTrail` für durable Prozessmetriken.
+  - Neue Aktion `getWorkflowState` zur Abfrage des Workflow-Abschluss-Status.
+  - Neue Aktion `markWorkflowCompleted` zur expliziten Workflow-Finalisierung mit `completionNotes` und `handoffPersonaId`.
+  - `resolveItem` erweitert um Audit-Trail-Populate mit Schritt-Nummer und Dauer (in Sekunden).
+  - Emit `hitl.workflow.completed` Event für Workflow-Tracking (eventId, itemId, tenantId, completedAt, previousStatus, interventionCount).
+- [services/agent-persona.service.js](services/agent-persona.service.js): Persona-Verfügbarkeits-Tracking.
+  - Neue Aktion `updateAvailability` für Status-Änderungen (`available` Flag, `availabilityWindow` mit startHour/endHour/timezone).
+  - Neue Aktion `recordPersonaActivity` für `lastSeenAt` Zeitstempel-Updates zur Presence-Tracking.
+  - Personas werden mit Standard-Verfügbarkeitsfenstern initialisiert (00:00-24:00 UTC, available=true, lastSeenAt=now).
+- [tests/hitl.service.test.js](tests/hitl.service.test.js): 6 neue Unit-Tests für Workflow-State-Abfragen, Audit-Trail-Populate, Completion-Markierung und Event-Emission.
+- [tests/agent-persona.service.test.js](tests/agent-persona.service.test.js): 4 neue Unit-Tests für Verfügbarkeits-Initialisierung, Updates und Activity-Recording.
+
+### Changed
+
+- [services/hitl.service.js](services/hitl.service.js): HITL-Items erhalten bei Erstellung `workflowCompletionState='pending'`, `workflowCompletedAt=null` und `workflowAuditTrail=[]`.
+- [services/agent-persona.service.js](services/agent-persona.service.js): Persona-Schema um `available`, `lastSeenAt` und `availabilityWindow` Felder erweitert.
+- [services/hitl.service.js](services/hitl.service.js): `resolveItem` verfolgt jetzt `resolution_${status}` Audit-Entries mit Schritt-Nummer und Dauer-Berechnung.
+
+### Removed
+
+- HITL-Items ohne `workflowAuditTrail` beim Lesen sind nun implizit leere Arrays (backward-compatible).
+
+### Fixed
+
+- ✅ Workflow-Audit-Trail verfolgt jetzt Zeit-bis-Auflösung (duration_seconds) für verbesserte Post-Hoc-Analytik.
+- ✅ Persona-Verfügbarkeitsstatus mit lastSeenAt ermöglicht künftige Escalation-Routing-Logik.
+- ✅ OpenAPI-Beispiele für `markWorkflowCompleted` completionNotes ergänzt (fix für OPENAPI_WARN).
+
+### Addresses
+
+- Closes #137 (Persona/HITL workflow tracking and availability management enhancements).
 
 ## [0.55.5] — Durable Approved HITL Resume & Plan-Stack Metadata Preservation (2026-05-26)
 
