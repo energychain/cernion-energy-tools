@@ -13,6 +13,96 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [0.56.5] — Persona Resolution Audit Store & Tenant-Scoped Query/Prune (2026-05-27)
+
+### Added
+
+- [services/agent-persona.service.js](services/agent-persona.service.js): neuer tenant-isolierter Audit Store für Persona-Resolution-Ereignisse in separater PouchDB (`AGENT_PERSONA_AUDIT_DB_PATH`, Default `./data/agent-persona-audit`). Persistiert ausschließlich strikt whitelisted Felder (`eventId`, `tenantId`, `sessionId`, `personaId`, `roleId`, `resolutionMode`, `confidence`, `matchedSignals`, `fallbackPersonaIds`, `resolved`, `reason`, `timestamp`).
+- [services/agent-persona.service.js](services/agent-persona.service.js): neue interne Actions `queryResolutionAudits`, `summarizeResolutionAudits`, `pruneResolutionAudits` für Tenant-Analytics und Retention.
+- [services/agent-persona.service.js](services/agent-persona.service.js): neue Retention-Konfiguration `AGENT_PERSONA_AUDIT_RETENTION_DAYS` (Default `90`) als Fallback für `pruneResolutionAudits`.
+- [tests/agent-persona.service.test.js](tests/agent-persona.service.test.js): neue Testabdeckung für Audit-Persistenz, Query-Isolation, Summary-Metriken, fail-open Persistenzfehler sowie tenant-spezifisches Pruning.
+
+### Changed
+
+- [services/agent-persona.service.js](services/agent-persona.service.js): `resolvePersona` persistiert Audit-Einträge zusätzlich best-effort (neben Event-Emission), ohne den Resolver-Flow bei Persistenzfehlern zu blockieren.
+
+### Fixed
+
+- [services/agent-persona.service.js](services/agent-persona.service.js): `pruneResolutionAudits` ist strikt tenant-scoped. Kein globales Pruning in v0.56.5. Wenn `tenantId` fehlt, wird ausschließlich der bestehende Tenant-Kontext verwendet; Tenant-übergreifendes Löschen ist ausgeschlossen.
+
+## [0.56.4] — Persona Resolution Audit Events & Workflow Handoff (2026-05-27)
+
+### Added
+
+- [services/agent-persona.service.js](services/agent-persona.service.js): `agent-persona.resolvePersona` emittiert jetzt best-effort das Event `agent-persona.resolved` bei erfolgreicher Resolution (inkl. `system_fallback`). Event-Payload ist strikt whitelisted auf `eventId`, `tenantId`, `sessionId`, `personaId`, `roleId`, `resolutionMode`, `confidence`, `matchedSignals`, `fallbackPersonaIds`, `resolved`, `reason`, `timestamp`.
+- [services/agent-persona.service.js](services/agent-persona.service.js): erfolgreicher Resolver-Return enthält neu top-level `auditEventId` (nicht in `resolvedPersona`, 8-Feld-Whitelist bleibt unverändert).
+- [services/personal-agent.service.js](services/personal-agent.service.js): neue Hilfsmethoden `getHandoffPersonaIdFromWorkflowAuditTrail()` und `getPersonaHandoffSnapshotContext()` für best-effort HITL-Handoff-Ingestion aus belastbarem `hitlItemId`.
+
+### Changed
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): alle 4 `resolvePersonaForTrace`-Callsites reichern den Snapshot um HITL-derived `handoffPersonaId` und `workflowCompletionState` an, falls verfügbar; bei nicht ladbarem HITL-State wird fail-open ohne Fehler fortgesetzt.
+- [services/personal-agent.service.js](services/personal-agent.service.js): `resolvePersonaForTrace()` gibt bei erfolgreicher Resolution zusätzlich `auditEventId`, `handoffApplied` (nur bei `resolutionMode === 'handoff'`) und `appliedHandoffPersonaId` (nur bei tatsächlich angewendetem Handoff) zurück.
+
+### Fixed
+
+- [services/agent-persona.service.js](services/agent-persona.service.js): Event-Emission ist vollständig best-effort gekapselt; ein fehlgeschlagenes `broker.emit` beeinflusst den Resolver-Return nicht und wirft nicht nach außen.
+- [tests/agent-persona.service.test.js](tests/agent-persona.service.test.js), [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): Testabdeckung für Event-Whitelist, `auditEventId`, Handoff-Ableitung aus tatsächlichem Resolver-Ergebnis und Reply-Non-Leakage erweitert.
+
+## [0.56.3] — ZNP Context Signals in Persona Resolution (2026-05-27)
+
+### Added
+
+- [src/znp-context-snapshot.js](src/znp-context-snapshot.js): Neues Shared-Modul für ZNP-Kontextnormalisierung. Exportiert `ALLOWED_ACTIVE_LAYERS`, `ALLOWED_PLANNING_SCENARIOS`, `ALLOWED_ASSET_TYPES`, `normalizeActiveLayer`, `normalizePlanningScenario`, `normalizeZnpAssetContext`, `buildZnpContextSnapshot`. ASCII-kanonische Scenario-Keys (`enwg_14a`, `enwg_42c`, `redispatch_expost`, `nap_expansion`, `asset_review`, `grid_connection_validation`, `market_communication`, `governance_review`). `normalizeZnpAssetContext` beschränkt die Ausgabe auf `{ assetType, capacityClass }` — kein `mastrId`, keine internen Felder.
+- [services/agent-persona.service.js](services/agent-persona.service.js): `resolvePersona` akzeptiert jetzt `planningScenario` (optional, v0.56.3). ALLOWED_KEYS in `normalizeContextAffinities` um `planningScenarios` und `assetTypes` erweitert. `scorePersona` bewertet `planningScenario` (Gewicht ×2) und `assetContext.assetType` (Gewicht ×1) gegen die jeweiligen Affinity-Listen.
+- [services/personal-agent.service.js](services/personal-agent.service.js): Alle 4 `resolvePersonaForTrace`-Aufrufstellen extrahieren per `buildZnpContextSnapshot(ctx, session, semanticClassification)` die ZNP-Signale (`znpProjectId`, `activeLayer`, `planningScenario`, `assetContext`) und spreaden sie in den Snapshot.
+
+### Changed
+
+- Output-Whitelist von `resolvedPersona` bleibt unverändert bei 8 Feldern (`personaId`, `roleId`, `confidence`, `resolutionMode`, `availability`, `matchedSignals`, `fallbackPersonaIds`, `policy`). ZNP-Rohdaten werden nicht nach außen gegeben.
+
+## [0.56.2] — agentTrace.personaResolution Integration (2026-05-27)
+
+### Added
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): neue interne Methode `resolvePersonaForTrace(ctx, snapshot)` — awaited best-effort Call auf `agent-persona.resolvePersona` mit 1500 ms Timeout. Wirft nie; bei Service-Ausfall, Timeout oder fehlendem Tenant wird ein strukturierter Fallback `{ resolved: false, reason }` zurückgegeben (`service_unavailable` | `timeout` | `no_tenant` | `error` | `no_match`).
+- [services/personal-agent.service.js](services/personal-agent.service.js): `agentTrace.personaResolution` — neues strukturiertes Feld in allen vier normalen `agentTrace`-Rückgabepfaden von `personal-agent.chat` (HITL-Resume-Gate, Routing-Gap, Consultation-Node, Execution-Path). Bei Erfolg: whitelisted Felder aus `resolvedPersona` (`personaId`, `roleId`, `confidence`, `resolutionMode`, `availability`, `matchedSignals`, `fallbackPersonaIds`, `policy`). Bei Fallback: `{ resolved: false, reason }`.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): `resolvePersona`-Action dem `agent-persona`-Mock-Service im Test-Broker hinzugefügt.
+- [tests/personal-agent.service.test.js](tests/personal-agent.service.test.js): 5 neue Tests im `describe`-Block `v0.56.2 — agentTrace.personaResolution` (T-PA-PR-001 bis T-PA-PR-005).
+
+### Changed
+
+- [services/personal-agent.service.js](services/personal-agent.service.js): `buildAgentTrace` akzeptiert optionalen Parameter `personaResolution = null` und gibt ihn in der Trace-Struktur durch.
+
+### Compatibility
+
+- `agentTrace.personaResolution` ist ein neues Feld — bestehende Clients können es ignorieren. Kein Bruch bestehender Chat-Response-Felder. `reply`-Text unverändert.
+- Early-Return-Pfade (Validation-Errors, Gateway-Errors) liefern weiterhin keinen `agentTrace` und sind nicht betroffen.
+- Bestehende 112 Personal-Agent-Tests + 19 Agent-Persona-Tests bleiben grün (117/117 + 19/19).
+
+## [0.56.1] — Deterministic Persona-Resolution-Modell (2026-05-27)
+
+### Added
+
+- [services/agent-persona.service.js](services/agent-persona.service.js): `ROLE_IDS` — kanonische Rollenbezeichner für das Persona-Resolution-Modell: `grid_planner`, `asset_mdm_operator`, `redispatch_coordinator`, `market_communication_operator`, `governance_reviewer`, `system_agent`.
+- [services/agent-persona.service.js](services/agent-persona.service.js): Persona-Dokument-Schema rückwärtskompatibel erweitert um vier optionale Felder: `roleIds`, `contextAffinities`, `handoffTargets`, `resolutionPolicy`.
+- [services/agent-persona.service.js](services/agent-persona.service.js): interne Moleculer-Action `resolvePersona` — read-only, tenant-isoliert, availability-bewusst, deterministisch. Kein REST/OpenAPI-Endpoint in v0.56.1.
+  - Input-Whitelist: `sessionId`, `sourceService`, `sourceAction`, `workflowType`, `domainIntent`, `znpProjectId`, `activeLayer`, `assetContext`, `hitlItemId`, `workflowCompletionState`, `handoffPersonaId`.
+  - Output `resolvedPersona`: explizit whitelisted auf 8 Felder (`personaId`, `roleId`, `confidence`, `resolutionMode`, `availability`, `matchedSignals`, `fallbackPersonaIds`, `policy`). Keine L4-/Prompt-/Tool-Call-Rohpayloads im Response.
+  - Matching-Reihenfolge: `handoffPersonaId` (tenant-sicher, fail-closed) → Kontextsignal-Scoring (workflowType×3, domainIntent×3, activeLayer×2, sourceService×1, sourceAction×1) → Availability-Priorisierung → deterministischer Gleichstand-Sort (score desc, id asc) → `system_agent`-Fallback.
+  - `system_agent`-Fallback: bevorzugt tenant-lokale Persona mit `roleId: system_agent`, sonst stabile synthetische Auflösung (`personaId: null`, `confidence: 0.05`) ohne Cross-Tenant-Zugriff.
+- [tests/agent-persona.service.test.js](tests/agent-persona.service.test.js): 7 neue Unit-Tests für `resolvePersona` im neuen `describe`-Block.
+
+### Changed
+
+- [services/agent-persona.service.js](services/agent-persona.service.js): `create`- und `update`-Action-Params um die vier neuen optionalen Felder erweitert.
+- [services/agent-persona.service.js](services/agent-persona.service.js): `createPersona`- und `updatePersona`-Methoden normalisieren und persistieren die neuen Felder.
+- [tests/agent-persona.service.test.js](tests/agent-persona.service.test.js): `createPersona`-Hilfsfunktion leitet `roleIds`, `contextAffinities`, `handoffTargets`, `resolutionPolicy` an die Action durch.
+
+### Compatibility
+
+- Bestehende Personas ohne die neuen Felder bleiben vollständig valide; `roleIds` und `handoffTargets` defaulten auf `[]`, `contextAffinities` auf `{}`, `resolutionPolicy` auf `null`.
+- Bestehende Availability-Tests (v0.55.7) bleiben grün.
+
 ## [0.55.7] — Persona/HITL Workflow & Availability Enhancements (2026-05-27)
 
 ### Added
